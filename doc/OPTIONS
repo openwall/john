@@ -1,0 +1,184 @@
+	John the Ripper's command line syntax.
+
+When invoked with no command line arguments, "john" prints its usage
+summary.
+
+The supported command line arguments are password file names and
+options.  Many of the supported options accept additional arguments.
+
+You can list any number of password files right on the command line of
+"john".  You do not have to specify any options.  If valid password
+files are specified but no options are given, John will go through
+the default selection of cracking modes with their default settings.
+
+Options may be specified along with password files or on their own,
+although some require that password files be specified and some do not
+support operation on password files.
+
+All options are case sensitive, can be abbreviated as long as the
+abbreviations are unambiguous, can be prefixed with two dashes
+(GNU-style) or with one dash, and can use "=" or ":" to indicate an
+argument (if supported for a given option).
+
+The supported options are as follows, square brackets denote optional
+arguments:
+
+--single			"single crack" mode
+
+Enables the "single crack" mode, using rules from the configuration
+file section [List.Rules:Single].
+
+--wordlist=FILE			wordlist mode, read words from FILE,
+--stdin				or from stdin
+
+These are used to enable the wordlist mode.
+
+--rules				enable word mangling rules for wordlist mode
+
+Enables word mangling rules that are read from [List.Rules:Wordlist].
+
+--incremental[=MODE]		"incremental" mode [using section MODE]
+
+Enables the "incremental" mode, using the specified configuration file
+definition (section [Incremental:MODE], or [Incremental:All] by default
+except for LM hashes for which the default is [Incremental:LanMan]).
+
+--external=MODE			external mode or word filter
+
+Enables an external mode, using external functions defined in section
+[List.External:MODE].
+
+--stdout[=LENGTH]		just output candidate passwords
+
+When used with a cracking mode, except for "single crack", makes John
+output the candidate passwords it generates to stdout instead of
+actually trying them against password hashes; no password files may be
+specified when this option is used.  If a LENGTH is given, John
+assumes that to be the significant password length and only produces
+passwords up to that length.
+
+--restore[=NAME]		restore an interrupted session
+
+Continues an interrupted cracking session, reading state information
+from the specified session file or from $JOHN/john.rec by default.
+
+--session=NAME			give a new session the NAME
+
+This option can only be used when starting a new cracking session and
+its purpose is to give the new session a name (to which John will
+append the ".rec" suffix to form the session file name).  This is
+useful for running multiple instances of John in parallel or to be
+able to later recover a session other than the last one you interrupt.
+
+--status[=NAME]			print status of a session [called NAME]
+
+Prints status of an interrupted or running session.  Note that on a
+Unix-like system, you can get a detached running session to update its
+session file by sending a SIGHUP to the appropriate "john" process;
+then use this option to read in and display the status.
+
+--make-charset=FILE		make a charset, overwriting FILE
+
+Generates a charset file based on character frequencies from
+$JOHN/john.pot, for use with "incremental" mode.  The entire
+$JOHN/john.pot will be used for the charset generation unless you
+specify some password files in which case only the cracked passwords
+which correspond to those password files will be used.  You can also
+use an external filter() routine with this option.
+
+--show				show cracked passwords
+
+Shows the cracked passwords for given password files (which you must
+specify).  You can use this option while another instance of John is
+cracking to see what John did so far; to get the most up to date
+information, first send a SIGHUP to the appropriate "john" process.
+
+--test				perform a benchmark
+
+Benchmarks all of the compiled in hashing algorithms and tests them
+for proper operation.
+
+--users=[-]LOGIN|UID[,..]	[do not] load this (these) user(s)
+
+Allows you to select just a few accounts for cracking or for other
+operations.  A dash before the list can be used to invert the check
+(that is, load information for all the accounts that are not listed).
+
+--groups=[-]GID[,..]		load users [not] of this (these) group(s)
+
+Tells John to load (or to not load) information for accounts in the
+specified group(s) only.
+
+--shells=[-]SHELL[,..]		load users with[out] this (these) shell(s)
+
+This option is useful to load accounts with a valid shell only or to
+not load accounts with a bad shell.  You can omit the path before a
+shell name, so "--shells=csh" will match both "/bin/csh" and
+"/usr/bin/csh", while "--shells=/bin/csh" will only match "/bin/csh".
+
+--salts=[-]COUNT		load salts with[out] at least COUNT passwords
+
+This is a feature which allows to achieve better performance in some
+special cases.  For example, you can crack only some salts using
+"--salts=2" faster and then crack the rest using "--salts=-2".  Total
+cracking time will be about the same, but you will likely get some
+passwords cracked earlier.
+
+--format=NAME			force ciphertext format NAME
+
+Allows you to override the hash type detection.  Currently, valid
+"format names" are DES, BSDI, MD5, BF, AFS, and LM.  You can use this
+option when cracking or with "--test".  Note that John can't crack
+hashes of different types at the same time.  If you happen to get a
+password file which uses more than one hash type (for different
+accounts), then you have to invoke John once for each hash type and
+you need to use this option to make John crack hashes of types other
+than the one it would autodetect by default.
+
+--save-memory=LEVEL		enable memory saving, at LEVEL 1..3
+
+You might need this option if you don't have enough memory or don't
+want John to affect other processes too much.  Level 1 tells John to
+not waste memory on login names; it is only supported when a cracking
+mode other than "single crack" is explicitly requested.  The only
+impact is that you won't see the login names while cracking.  Higher
+memory saving levels have a performance impact; you should probably
+avoid using them unless John doesn't work or gets into swap otherwise.
+
+
+	Additional utilities.
+
+There're some related utilities in John's run directory:
+
+	unshadow PASSWORD-FILE SHADOW-FILE
+
+Combines the "passwd" and "shadow" files (when you already have access
+to both) for use with John.  You might need this since if you only
+used your shadow file, the "Full Name" or "GECOS" information wouldn't
+be used by the "single crack" mode (thus reducing its efficiency) and
+you wouldn't be able to use the "--groups" and "--shells" options and
+to select by UID with "--users".  You probably also want to see all of
+the passwd file fields with "--show".
+
+You'll usually want to redirect the output of "unshadow" to a file
+which you then pass to John.
+
+	unafs DATABASE-FILE CELL-NAME
+
+Gets password hashes out of the binary AFS database and produces
+output usable by John (you should redirect the output to a file).
+
+	unique OUTPUT-FILE
+
+Removes duplicates from a wordlist (read from stdin) without changing
+the order of entries.  You might want to use this with John's
+"--stdout" option if you've got a lot of disk space to trade for the
+reduced cracking time (on possibly trying some duplicates as they
+might be produced with word mangling rules).
+
+	mailer PASSWORD-FILE
+
+A shell script to send mail to all the users who got weak passwords.
+You should edit the message inside the script before using it.
+
+$Id$
