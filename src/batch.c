@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -23,6 +23,7 @@ static void do_wordlist_pass(struct db_main *db)
 {
 	char *name;
 
+	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
 	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
 		name = WORDLIST_NAME;
 
