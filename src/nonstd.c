@@ -1,7 +1,10 @@
 /*
  * Generated S-box files.
  *
- * Produced by Matthew Kwan - May 1998
+ * This software may be modified, redistributed, and used for any purpose,
+ * so long as its origin is acknowledged.
+ *
+ * Produced by Matthew Kwan - March 1998
  */
 
 
