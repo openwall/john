@@ -260,6 +260,7 @@ static void john_run(void)
 	else
 	if (options.flags & FLG_CRACKING_CHK) {
 		if (!(options.flags & FLG_STDOUT)) {
+			status_init(NULL, 1);
 			log_init(LOG_NAME, POT_NAME, options.session);
 			john_log_format();
 			if (cfg_get_bool(SECTION_OPTIONS, NULL, "Idle"))

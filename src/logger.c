@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004 by Solar Designer
  */
 
 #include <stdio.h>
@@ -111,7 +111,7 @@ static int log_time(void)
 {
 	unsigned int time;
 
-	time = status_get_time();
+	time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
 	return (int)sprintf(log.ptr, "%u:%02u:%02u:%02u ",
 		time / 86400, time % 86400 / 3600,

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004 by Solar Designer
  */
 
 #include <stdio.h>
@@ -160,7 +160,7 @@ void do_external_crack(struct db_main *db)
 		*internal++ = *external++;
 	*internal = 0;
 
-	status_init(NULL, 1);
+	status_init(NULL, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
