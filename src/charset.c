@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -99,7 +99,7 @@ static int charset_new_length(int length,
 		printf("%d ", length + 1);
 		fflush(stdout);
 
-		offset = ftell(file);
+		if ((offset = ftell(file)) < 0) pexit("ftell");
 		header->offsets[length][0] = offset;
 		header->offsets[length][1] = offset >> 8;
 		header->offsets[length][2] = offset >> 16;
