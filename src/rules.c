@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -12,6 +12,7 @@
 #include "memory.h"
 #include "formats.h"
 #include "loader.h"
+#include "logger.h"
 #include "rpp.h"
 #include "rules.h"
 
@@ -485,7 +486,9 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case 'D':
 			POSITION
-			if (pos >= (int)strlen(in)) out = in; else {
+			if (pos >= (int)strlen(in))
+				out = in;
+			else {
 				memcpy(out, in, pos);
 				strcpy(&out[pos], &in[pos + 1]);
 			}
@@ -675,6 +678,8 @@ int rules_count(struct rpp_context *start, int split)
 	int count;
 
 	if (!(count = rules_check(start, split))) {
+		log_event("! Invalid rule at line %d: %s",
+			rules_line, rules_errors[rules_errno]);
 		fprintf(stderr, "Invalid rule in %s at line %d: %s\n",
 			cfg_name, rules_line,
 			rules_errors[rules_errno]);

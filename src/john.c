@@ -71,6 +71,47 @@ static void john_register_all(void)
 	}
 }
 
+static void john_log_format(void)
+{
+	int min_chunk, chunk;
+
+	log_event("- Hash type: %s (lengths up to %d%s)",
+		database.format->params.format_name,
+		database.format->params.plaintext_length,
+		database.format->methods.split != fmt_default_split ?
+		", longer passwords split" : "");
+
+	log_event("- Algorithm: %s",
+		database.format->params.algorithm_name);
+
+	chunk = min_chunk = database.format->params.max_keys_per_crypt;
+	if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
+	    chunk < SINGLE_HASH_MIN)
+			chunk = SINGLE_HASH_MIN;
+	if (chunk > 1)
+		log_event("- Candidate passwords %s be buffered and "
+			"tried in chunks of %d",
+			min_chunk > 1 ? "will" : "may",
+			chunk);
+}
+
+static char *john_loaded_counts(void)
+{
+	static char s_loaded_counts[80];
+
+	if (database.password_count == 1)
+		return "1 password hash";
+
+	sprintf(s_loaded_counts,
+		database.salt_count > 1 ?
+		"%d password hashes with %d different salts" :
+		"%d password hashes with no different salts",
+		database.password_count,
+		database.salt_count);
+
+	return s_loaded_counts;
+}
+
 static void john_load(void)
 {
 	struct list_entry *current;
@@ -142,26 +183,30 @@ static void john_load(void)
 			ldr_load_pw_file(&database, current->data);
 		} while ((current = current->next));
 
+		if ((options.flags & FLG_CRACKING_CHK) &&
+		    database.password_count) {
+			log_init(LOG_NAME, NULL, options.session);
+			if (status_restored_time)
+				log_event("Continuing an interrupted session");
+			else
+				log_event("Starting a new session");
+			log_event("Loaded a total of %s", john_loaded_counts());
+		}
+
 		ldr_load_pot_file(&database, POT_NAME);
 
 		ldr_fix_database(&database);
 
-		printf("Loaded %d password%s%s",
-			database.password_count,
-			database.password_count != 1 ? "s" : "",
-			database.password_count ? "" : ", exiting...");
-		if (database.password_count > 1) {
-			printf(" with ");
-			printf(database.salt_count != 1 ? "%d" : "no",
-				database.salt_count);
-			printf(" different salts");
-		}
-		if (database.password_count)
-			printf(" (%s [%s])\n",
+		if (database.password_count) {
+			log_event("Remaining %s", john_loaded_counts());
+			printf("Loaded %s (%s [%s])\n",
+				john_loaded_counts(),
 				database.format->params.format_name,
 				database.format->params.algorithm_name);
-		else
-			putchar('\n');
+		} else {
+			log_discard();
+			puts("No password hashes loaded");
+		}
 
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 	}
@@ -216,10 +261,7 @@ static void john_run(void)
 	if (options.flags & FLG_CRACKING_CHK) {
 		if (!(options.flags & FLG_STDOUT)) {
 			log_init(LOG_NAME, POT_NAME, options.session);
-			if (status_restored_time)
-				log_event("Continuing an interrupted session");
-			else
-				log_event("Starting a new session");
+			john_log_format();
 		}
 		tty_init();
 
@@ -248,12 +290,13 @@ static void john_done(void)
 {
 	path_done();
 
-	if (event_abort)
-		log_event("Session aborted");
-	else
 	if ((options.flags & FLG_CRACKING_CHK) &&
-	    !(options.flags & FLG_STDOUT))
-		log_event("Session completed");
+	    !(options.flags & FLG_STDOUT)) {
+		if (event_abort)
+			log_event("Session aborted");
+		else
+			log_event("Session completed");
+	}
 	log_done();
 	check_abort(0);
 }
