@@ -164,7 +164,8 @@ void DES_bs_set_key(char *key, int index)
 {
 	register unsigned char *new = (unsigned char *)key;
 	register unsigned char *old = DES_bs_all.keys[index];
-	register ARCH_WORD xor, mask;
+	register ARCH_WORD mask;
+	register unsigned int xor;
 	register int ofs, bit, s1, s2;
 
 	init_depth();
@@ -180,7 +181,7 @@ void DES_bs_set_key(char *key, int index)
 				s1 = DES_bs_all.s1[xor];
 				s2 = DES_bs_all.s2[xor];
 				DES_bs_all.K[bit + s1] DEPTH ^= mask;
-				if (s2 > 56) break;
+				if (s2 > 56) break; /* Required for xor == 0 */
 				xor >>= s2;
 				DES_bs_all.K[bit += s2] DEPTH ^= mask;
 				if (!xor) break;
@@ -209,7 +210,8 @@ void DES_bs_set_key_LM(char *key, int index)
 	register unsigned char *old = DES_bs_all.keys[index];
 #endif
 	register unsigned char plain;
-	register ARCH_WORD xor, mask;
+	register ARCH_WORD mask;
+	register unsigned int xor;
 	register int ofs, bit, s1, s2;
 
 	init_depth();
