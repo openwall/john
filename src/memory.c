@@ -28,12 +28,6 @@ void *mem_alloc(size_t size)
 	return res;
 }
 
-void mem_free(void **ptr)
-{
-	if (*ptr) free(*ptr);
-	*ptr = NULL;
-}
-
 void *mem_alloc_tiny(size_t size, size_t align)
 {
 	static unsigned long buffer, bufree = 0;

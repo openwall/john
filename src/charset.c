@@ -307,8 +307,8 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 		charset_write_header(file, header);
 	}
 
-	mem_free((void **)&cracks);
-	mem_free((void **)&chars);
+	MEM_FREE(cracks);
+	MEM_FREE(chars);
 
 	error = ferror(file);
 	if (error | fclose(file)) {
@@ -319,7 +319,7 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	printf("Successfully written charset file: %s (%d character%s)\n",
 		charset, header->count, header->count != 1 ? "s" : "");
 
-	mem_free((void **)&header);
+	MEM_FREE(header);
 }
 
 void do_makechars(struct db_main *db, char *charset)

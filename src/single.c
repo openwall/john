@@ -209,7 +209,7 @@ static int single_process_buffer(struct db_salt *salt)
 			keys->ptr += length;
 		} while (--keys->count);
 
-		mem_free((void **)&keys);
+		MEM_FREE(keys);
 	}
 
 	keys = salt->keys;

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -560,8 +560,8 @@ static void ldr_init_hash(struct db_main *db)
 void ldr_fix_database(struct db_main *db)
 {
 	ldr_init_salts(db);
-	mem_free((void **)&db->password_hash);
-	mem_free((void **)&db->salt_hash);
+	MEM_FREE(db->password_hash);
+	MEM_FREE(db->salt_hash);
 
 	ldr_remove_marked(db);
 	ldr_filter_salts(db);

@@ -312,6 +312,6 @@ void crk_done(void)
 		if (crk_key_index && crk_db->salts && !event_abort)
 			crk_salt_loop();
 
-		mem_free((void **)&crk_timestamps);
+		MEM_FREE(crk_timestamps);
 	}
 }

@@ -100,8 +100,8 @@ char *path_expand(char *name)
 
 void path_done(void)
 {
-	mem_free((void **)&john_home_path);
+	MEM_FREE(john_home_path);
 #if JOHN_SYSTEMWIDE
-	mem_free((void **)&user_home_path);
+	MEM_FREE(user_home_path);
 #endif
 }
