@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2003 by Solar Designer
+# Copyright (c) 1996-2004 by Solar Designer
 #
 
 CPP = gcc
@@ -102,7 +102,7 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc, ELF binaries"
 	@echo "tru64-alpha-cc           Tru64 (Digital UNIX, OSF/1), Alpha, cc"
 	@echo "aix-ppc-cc               AIX, PowerPC, cc"
-	@echo "macosx-ppc-cc            MacOS X, PowerPC, cc"
+	@echo "macosx-ppc-cc            Mac OS X, PowerPC, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
