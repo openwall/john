@@ -1,4 +1,4 @@
-John the Ripper v1.7, when released, is going to be GPL'ed.  However,
+John the Ripper 1.7, when released, is going to be GPL'ed.  However,
 the licensing status of one source file -- x86-mmx.S -- is non-obvious
 to me.  I have explicit permission to use the S-box code found in this
 file in John, but I'm not sure whether this was meant to imply that I

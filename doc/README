@@ -1,9 +1,9 @@
 This is a development version of John the Ripper, not an official
 release.  There's currently no up-to-date documentation.  You should
-be familiar with John v1.6 to use this.
+be familiar with John 1.6 to use this.
 
 There're no charset files included with development versions of John.
-You're supposed to take them from John v1.6 distribution.
+You're supposed to take them from John 1.6 distribution.
 
 -- 
 Solar Designer <solar@openwall.com>
