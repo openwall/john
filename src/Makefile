@@ -75,6 +75,8 @@ default:
 	@echo "linux-x86-any-elf        Linux, x86, ELF binaries"
 	@echo "linux-x86-mmx-elf        Linux, x86 with MMX, ELF binaries"
 	@echo "linux-x86-any-a.out      Linux, x86, a.out binaries"
+	@echo "linux-x86-64             Linux, AMD x86-64, 64-bit native"
+	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc                Linux, PowerPC"
@@ -127,6 +129,19 @@ linux-x86-any-a.out:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
+linux-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		OPT_INLINE="$(OPT_INLINE) -finline-limit=2000"
+
+linux-x86-64-mmx:
+	$(LN) x86-mmx.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		CFLAGS="$(CFLAGS) -m32" \
+		ASFLAGS="$(ASFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32"
+
 linux-alpha:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
@@ -137,11 +152,11 @@ linux-alpha:
 linux-alpha-ccc:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) alpha.o" \
 		CPP=ccc CC=ccc AS=ccc LD=ccc \
 		CFLAGS="-c -Wf,-switch,noil_schedule" \
 		OPT_NORMAL="-fast" \
-		OPT_INLINE="-O2 -arch host" \
-		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
+		OPT_INLINE="-O2 -arch host"
 
 linux-sparc:
 	$(MAKE) use-linux-sparc HAMMER=use-linux-sparc NAIL=sparc.h
