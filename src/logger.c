@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -17,78 +17,191 @@
 #include "params.h"
 #include "path.h"
 #include "memory.h"
+#include "status.h"
 #include "config.h"
-
-static int log_fd = 0;
-static char *log_buffer;
-static char *log_bufptr;
 
 static int cfg_beep;
 
-void log_init(char *name)
+/*
+ * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
+ * and (ptr - buffer) may actually exceed size by up to LINE_BUFFER_SIZE.
+ * As long as log_file_write() is called after every write to the buffer,
+ * there's always room for at least LINE_BUFFER_SIZE bytes to be added.
+ */
+struct log_file {
+	char *name;
+	char *buffer, *ptr;
+	int size;
+	int fd;
+};
+
+static struct log_file log = {NULL, NULL, NULL, 0, -1};
+static struct log_file pot = {NULL, NULL, NULL, 0, -1};
+
+static void log_file_init(struct log_file *f, char *name, int size)
 {
+	f->name = name;
+
 	if (chmod(path_expand(name), S_IRUSR | S_IWUSR))
 	if (errno != ENOENT)
 		pexit("chmod: %s", path_expand(name));
 
-	if ((log_fd = open(path_expand(name), O_WRONLY | O_CREAT | O_APPEND,
-	    S_IRUSR | S_IWUSR)) < 0)
+	if ((f->fd = open(path_expand(name),
+	    O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)) < 0)
 		pexit("open: %s", path_expand(name));
 
-	log_bufptr = log_buffer =
-		mem_alloc(LOG_BUFFER_SIZE + LINE_BUFFER_SIZE);
-
-	cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep");
+	f->ptr = f->buffer = mem_alloc(size + LINE_BUFFER_SIZE);
+	f->size = size;
 }
 
-static void log_write(void)
+static void log_file_flush(struct log_file *f)
 {
-	int size;
+	int count;
 
-	size = log_bufptr - log_buffer;
-	log_bufptr = log_buffer;
+	if (f->fd < 0) return;
+
+	count = f->ptr - f->buffer;
+	if (count <= 0) return;
+
+	f->ptr = f->buffer;
 
 #if defined(LOCK_EX) && OS_FLOCK
-	if (flock(log_fd, LOCK_EX)) pexit("flock");
+	if (flock(f->fd, LOCK_EX)) pexit("flock");
 #endif
-	if (write_loop(log_fd, log_buffer, size) < 0) pexit("write");
+	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 #if defined(LOCK_EX) && OS_FLOCK
-	if (flock(log_fd, LOCK_UN)) pexit("flock");
+	if (flock(f->fd, LOCK_UN)) pexit("flock");
 #endif
+}
+
+static int log_file_write(struct log_file *f)
+{
+	if (f->ptr - f->buffer > f->size) {
+		log_file_flush(f);
+		return 1;
+	}
+
+	return 0;
+}
+
+static void log_file_fsync(struct log_file *f)
+{
+	if (f->fd < 0) return;
+
+	log_file_flush(f);
+#ifndef __CYGWIN32__
+	if (fsync(f->fd)) pexit("fsync");
+#endif
+}
+
+static void log_file_done(struct log_file *f)
+{
+	if (f->fd < 0) return;
+
+	log_file_fsync(f);
+	if (close(f->fd)) pexit("close");
+	f->fd = -1;
+
+	mem_free((void **)&(f->buffer));
+}
+
+static int log_time(void)
+{
+	unsigned int time;
+
+	time = status_get_time();
+
+	return (int)sprintf(log.ptr, "%u:%02u:%02u:%02u ",
+		time / 86400, time % 86400 / 3600,
+		time % 3600 / 60, time % 60);
+}
+
+void log_init(char *log_name, char *pot_name, char *session)
+{
+	char *p;
+
+	if (log_name && log.fd < 0) {
+		if (session) {
+			if (!(p = strrchr(session, '.')))
+				p = session + strlen(session);
+			log_name = mem_alloc_tiny((p - session) +
+				strlen(LOG_SUFFIX) + 1, MEM_ALIGN_NONE);
+			strnzcpy(log_name, session, p - session + 1);
+			strcat(log_name, LOG_SUFFIX);
+		}
+
+		log_file_init(&log, log_name, LOG_BUFFER_SIZE);
+	}
+
+	if (pot_name && pot.fd < 0) {
+		log_file_init(&pot, pot_name, POT_BUFFER_SIZE);
+
+		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep");
+	}
 }
 
 void log_guess(char *login, char *ciphertext, char *plaintext)
 {
+	int count1, count2;
+
 	printf("%-16s (%s)\n", plaintext, login);
 
-	if (log_fd && ciphertext)
-	if (strlen(ciphertext) + strlen(plaintext) < LINE_BUFFER_SIZE - 3) {
-		log_bufptr += (int)sprintf(log_bufptr,
+	if (pot.fd >= 0 && ciphertext &&
+	    strlen(ciphertext) + strlen(plaintext) <= LINE_BUFFER_SIZE - 3) {
+		count1 = (int)sprintf(pot.ptr,
 			"%s:%s\n", ciphertext, plaintext);
-		if (log_bufptr - log_buffer > LOG_BUFFER_SIZE) log_write();
+		if (count1 > 0) pot.ptr += count1;
 	}
+
+	if (log.fd >= 0 &&
+	    strlen(login) < LINE_BUFFER_SIZE - 64) {
+		count1 = log_time();
+		if (count1 > 0) {
+			log.ptr += count1;
+			count2 = (int)sprintf(log.ptr, "Cracked %s\n", login);
+			if (count2 > 0)
+				log.ptr += count2;
+			else
+				log.ptr -= count1;
+		}
+	}
+
+/* Try to keep the two files in sync */
+	if (log_file_write(&pot))
+		log_file_flush(&log);
+	else
+	if (log_file_write(&log))
+		log_file_flush(&pot);
 
 	if (cfg_beep)
 		write_loop(fileno(stderr), "\007", 1);
 }
 
+void log_event(char *event)
+{
+	int count1, count2;
+
+	count1 = log_time();
+	if (count1 > 0 &&
+	    count1 + (count2 = strlen(event)) < LINE_BUFFER_SIZE) {
+		log.ptr += count1;
+		memcpy(log.ptr, event, count2);
+		log.ptr += count2;
+		*log.ptr++ = '\n';
+
+		if (log_file_write(&log))
+			log_file_flush(&pot);
+	}
+}
+
 void log_flush(void)
 {
-	if (log_fd) {
-		if (log_bufptr != log_buffer) log_write();
-#ifndef __CYGWIN32__
-		if (fsync(log_fd)) pexit("fsync");
-#endif
-	}
+	log_file_fsync(&log);
+	log_file_fsync(&pot);
 }
 
 void log_done(void)
 {
-	if (log_fd) {
-		log_flush();
-		if (close(log_fd)) pexit("close");
-		log_fd = 0;
-
-		mem_free((void **)&log_buffer);
-	}
+	log_file_done(&log);
+	log_file_done(&pot);
 }

@@ -11,6 +11,7 @@
 #include "signals.h"
 #include "compiler.h"
 #include "loader.h"
+#include "logger.h"
 #include "status.h"
 #include "recovery.h"
 #include "config.h"
@@ -160,6 +161,8 @@ void do_external_crack(struct db_main *db)
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
+
+	log_event("- external mode");
 
 	crk_init(db, fix_state, NULL);
 

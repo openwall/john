@@ -283,7 +283,7 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	if (event_abort) {
 		fclose(file);
 		unlink(charset);
-		putchar('\n'); check_abort();
+		putchar('\n'); check_abort(0);
 	}
 
 	printf("DONE\nGenerating cracking order... ");
@@ -293,7 +293,7 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	if (event_abort) {
 		fclose(file);
 		unlink(charset);
-		putchar('\n'); check_abort();
+		putchar('\n'); check_abort(0);
 	}
 
 	puts("DONE");

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002 by Solar Designer
+ * Copyright (c) 1996-2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -80,12 +80,12 @@ static void john_load(void)
 	if (options.flags & FLG_EXTERNAL_CHK)
 		ext_init(options.external);
 
-	if (options.flags & FLG_MAKECHARS_CHK) {
+	if (options.flags & FLG_MAKECHR_CHK) {
 		options.loader.flags |= DB_CRACKED;
 		ldr_init_database(&database, &options.loader);
 
 		if (options.flags & FLG_PASSWD) {
-			ldr_show_pot_file(&database, LOG_NAME);
+			ldr_show_pot_file(&database, POT_NAME);
 
 			database.options->flags |= DB_PLAINTEXTS;
 			if ((current = options.passwd->head))
@@ -94,7 +94,7 @@ static void john_load(void)
 			} while ((current = current->next));
 		} else {
 			database.options->flags |= DB_PLAINTEXTS;
-			ldr_show_pot_file(&database, LOG_NAME);
+			ldr_show_pot_file(&database, POT_NAME);
 		}
 
 		return;
@@ -113,7 +113,7 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			ldr_show_pot_file(&database, LOG_NAME);
+			ldr_show_pot_file(&database, POT_NAME);
 
 			if ((current = options.passwd->head))
 			do {
@@ -142,7 +142,7 @@ static void john_load(void)
 			ldr_load_pw_file(&database, current->data);
 		} while ((current = current->next));
 
-		ldr_load_pot_file(&database, LOG_NAME);
+		ldr_load_pot_file(&database, POT_NAME);
 
 		ldr_fix_database(&database);
 
@@ -210,11 +210,17 @@ static void john_run(void)
 	if (options.flags & FLG_TEST_CHK)
 		benchmark_all();
 	else
-	if (options.flags & FLG_MAKECHARS_CHK)
+	if (options.flags & FLG_MAKECHR_CHK)
 		do_makechars(&database, options.charset);
 	else
 	if (options.flags & FLG_CRACKING_CHK) {
-		if (!(options.flags & FLG_STDOUT)) log_init(LOG_NAME);
+		if (!(options.flags & FLG_STDOUT)) {
+			log_init(LOG_NAME, POT_NAME, options.session);
+			if (status_restored_time)
+				log_event("Continuing an interrupted session");
+			else
+				log_event("Starting a new session");
+		}
 		tty_init();
 
 		if (options.flags & FLG_SINGLE_CHK)
@@ -235,7 +241,6 @@ static void john_run(void)
 
 		status_print();
 		tty_done();
-		if (!(options.flags & FLG_STDOUT)) log_done();
 	}
 }
 
@@ -243,7 +248,14 @@ static void john_done(void)
 {
 	path_done();
 
-	check_abort();
+	if (event_abort)
+		log_event("Session aborted");
+	else
+	if ((options.flags & FLG_CRACKING_CHK) &&
+	    !(options.flags & FLG_STDOUT))
+		log_event("Session completed");
+	log_done();
+	check_abort(0);
 }
 
 int main(int argc, char **argv)

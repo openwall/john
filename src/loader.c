@@ -57,7 +57,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 
 	while (fgets(line, sizeof(line), file)) {
 		process_line(db, line);
-		check_abort();
+		check_abort(0);
 	}
 
 	if (ferror(file)) pexit("fgets");
