@@ -267,7 +267,7 @@ static void sig_remove_timer(void)
 	struct itimerval it;
 
 	memset(&it, 0, sizeof(it));
-	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
+	if (setitimer(ITIMER_REAL, &it, NULL)) perror("setitimer");
 #endif
 
 	signal(SIGALRM, SIG_DFL);
