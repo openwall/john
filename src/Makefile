@@ -82,7 +82,7 @@ default:
 	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
-	@echo "linux-ppc                Linux, PowerPC"
+	@echo "linux-ppc32              Linux, PowerPC 32-bit"
 	@echo "freebsd-x86-any-elf      FreeBSD, x86, ELF binaries"
 	@echo "freebsd-x86-mmx-elf      FreeBSD, x86 with MMX, ELF binaries"
 	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries"
@@ -101,10 +101,10 @@ default:
 	@echo "sco-x86-any-gcc          SCO, x86, gcc, ELF binaries"
 	@echo "sco-x86-any-cc           SCO, x86, cc, ELF binaries"
 	@echo "tru64-alpha-cc           Tru64 (Digital UNIX, OSF/1), Alpha, cc"
-	@echo "aix-ppc-cc               AIX, PowerPC, cc"
-	@echo "macosx-ppc-cc            Mac OS X, PowerPC 32-bit, cc"
+	@echo "aix-ppc32-cc             AIX, PowerPC 32-bit, cc"
+	@echo "macosx-ppc32-cc          Mac OS X, PowerPC 32-bit, cc"
 	@echo "macosx-ppc64-cc          Mac OS X, PowerPC 64-bit, cc"
-	@echo "macosx-ppc-altivec-cc    Mac OS X, PowerPC 32-bit w/AltiVec, cc"
+	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC 32-bit w/AltiVec, cc"
 	@echo "macosx-ppc64-altivec-cc  Mac OS X, PowerPC 64-bit w/AltiVec, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
@@ -174,8 +174,8 @@ use-linux-sparc:
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o"
 
-linux-ppc:
-	$(LN) ppc.h arch.h
+linux-ppc32:
+	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ)
 
 freebsd-x86-any-elf:
@@ -356,8 +356,8 @@ digipaq-alpha.o: alpha.S
 	$(AS) $(ASFLAGS) tmp.s -o digipaq-alpha.o
 	$(RM) tmp.s
 
-aix-ppc-cc:
-	$(LN) ppc.h arch.h
+aix-ppc32-cc:
+	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -qunroll=2 -qarch=ppc -qchars=signed" \
@@ -365,8 +365,8 @@ aix-ppc-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
-macosx-ppc-cc:
-	$(LN) ppc.h arch.h
+macosx-ppc32-cc:
+	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -traditional-cpp" \
@@ -381,7 +381,7 @@ macosx-ppc64-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -finline-limit=4000"
 
-macosx-ppc-altivec-cc:
+macosx-ppc32-altivec-cc:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \

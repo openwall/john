@@ -1,10 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2005 by Solar Designer
  */
 
 /*
- * Architecture specific parameters for PowerPC.
+ * Architecture specific parameters for 32-bit PowerPC.
  */
 
 #ifndef _JOHN_ARCH_H
