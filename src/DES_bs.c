@@ -96,14 +96,15 @@ void DES_bs_init(int LM)
 
 /* Special case: instead of doing an extra check in *_set_key*(), we
  * might overrun into DES_bs_all.B, which is harmless as long as the
- * order of fields is unchanged. */
+ * order of fields is unchanged.  57 is the smallest value to guarantee
+ * we'd be past the end of K[] since we start with ofs = -1. */
 	DES_bs_all.s1[0] = 57;
 
 /* The same for second bits. */
 	for (index = 0; index < 0x100; index++) {
 		bit = DES_bs_all.s1[index];
 		bit += DES_bs_all.s1[index >> bit];
-		DES_bs_all.s2[index] = bit < 8 ? bit : 57;
+		DES_bs_all.s2[index] = (bit <= 8) ? bit : 57;
 	}
 
 	if (LM) {
@@ -181,7 +182,7 @@ void DES_bs_set_key(char *key, int index)
 				s1 = DES_bs_all.s1[xor];
 				s2 = DES_bs_all.s2[xor];
 				DES_bs_all.K[bit + s1] DEPTH ^= mask;
-				if (s2 > 56) break; /* Required for xor == 0 */
+				if (s2 > 8) break; /* Required for xor == 0 */
 				xor >>= s2;
 				DES_bs_all.K[bit += s2] DEPTH ^= mask;
 				if (!xor) break;
