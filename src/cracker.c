@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002 by Solar Designer
+ * Copyright (c) 1996-2003 by Solar Designer
  */
 
 #include <string.h>
@@ -56,6 +56,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	if (db->loaded)
 	if ((where = fmt_self_test(db->format))) {
+		log_event("! Self test failed (%s)", where);
 		fprintf(stderr, "Self test failed (%s)\n", where);
 		error();
 	}

@@ -262,6 +262,9 @@ static void john_run(void)
 		if (!(options.flags & FLG_STDOUT)) {
 			log_init(LOG_NAME, POT_NAME, options.session);
 			john_log_format();
+			if (cfg_get_bool(SECTION_OPTIONS, NULL, "Idle"))
+				log_event("- Configured to use otherwise idle "
+					"processor cycles only");
 		}
 		tty_init();
 
