@@ -14,8 +14,10 @@
 
 void error(void)
 {
+#ifndef _JOHN_MISC_NO_LOG
 	log_event("Terminating on error");
 	log_done();
+#endif
 
 	exit(1);
 }

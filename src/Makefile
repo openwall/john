@@ -59,8 +59,8 @@ BENCH_OBJS = \
 	DES_bs.o DES_bs_b.o \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	BF_fmt.o $(BENCH_BF_OBJS_DEPEND) \
-	bench.o best.o common.o config.o formats.o memory.o misc.o params.o \
-	path.o signals.o tty.o
+	bench.o best.o common.o config.o formats.o memory.o miscnl.o \
+	params.o path.o signals.o tty.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique
 PROJ_DOS = ../run/john.bin ../run/john.com \
@@ -497,6 +497,9 @@ DES_bs_b.o: DES_bs_b.c DES_bs_s.c
 # I prefer to distribute Matthew Kwan's S-box file unmodified...
 DES_bs_s.c: nonstd.c
 	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_s.c
+
+miscnl.o: misc.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
 .c.o:
 	$(CC) $(CFLAGS) $(OPT_NORMAL) $*.c
