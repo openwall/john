@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 /*
@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "math.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
@@ -30,6 +31,7 @@ int main(int argc, char **argv)
 	struct fmt_main *format;
 	struct bench_results results;
 	unsigned long virtual;
+	int64 tmp;
 	char s_real[64], s_virtual[64];
 
 	if (argc != 2) return 1;
@@ -63,8 +65,9 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "FAILED\n");
 	} else {
-		virtual = (unsigned long)
-			(results.count * CLK_TCK * 10 / results.virtual);
+		tmp.lo = results.count; tmp.hi = 0;
+		mul64by32(&tmp, CLK_TCK * 10);
+		virtual = div64by32lo(&tmp, results.virtual);
 
 		benchmark_cps(results.count, results.real, s_real);
 		benchmark_cps(results.count, results.virtual, s_virtual);

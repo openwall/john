@@ -22,6 +22,7 @@
 
 #include "arch.h"
 #include "misc.h"
+#include "math.h"
 #include "params.h"
 #include "memory.h"
 #include "signals.h"
@@ -159,7 +160,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	results->real = end_real - start_real;
 	results->virtual = end_virtual - start_virtual;
-	results->count = count * format->params.max_keys_per_crypt;
+	results->count = count * max;
 
 	for (index = 0; index < 2; index++)
 		MEM_FREE(two_salts[index]);
@@ -169,12 +170,16 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
 {
-	unsigned long cps_hi, cps_lo;
+	unsigned int cps_hi, cps_lo;
+	int64 tmp;
 
-	cps_hi = count * CLK_TCK / time;
-	cps_lo = count * ((unsigned ARCH_WORD)CLK_TCK * 10) / time % 10;
+	tmp.lo = count; tmp.hi = 0;
+	mul64by32(&tmp, CLK_TCK);
+	cps_hi = div64by32lo(&tmp, time);
+	mul64by32(&tmp, 10);
+	cps_lo = div64by32lo(&tmp, time) % 10;
 
-	sprintf(buffer, cps_hi < 100 ? "%lu.%lu" : "%lu", cps_hi, cps_lo);
+	sprintf(buffer, cps_hi < 100 ? "%u.%u" : "%u", cps_hi, cps_lo);
 }
 
 void benchmark_all(void)
