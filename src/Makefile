@@ -332,7 +332,7 @@ aix-ppc-cc:
 	$(LN) ppc.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -qunroll -qarch=ppc -qchars=signed" \
+		CFLAGS="-c -qunroll=2 -qarch=ppc -qchars=signed" \
 		LDFLAGS="-s -lbsd" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
