@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2003 by Solar Designer
  */
 
 /*
@@ -1275,8 +1275,12 @@ BF_body:
 
 #define EF_ID				$0x00200000
 #define CF_MMX				$0x00800000
+/* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
+/* "AuthenticAMD" */
 #define CV_AMD				$0x444D4163
+/* "CentaurHauls" */
+#define CV_CENTAUR			$0x736C7561
 
 .text
 
@@ -1317,6 +1321,8 @@ CPU_detect:
 	andb $0x0F,%ah
 	cmpl CV_AMD,%ecx
 	je CPU_detect_AMD		/* Is an AMD processor */
+	cmpl CV_CENTAUR,%ecx
+	je CPU_detect_P5		/* Is a Centaur Technology processor */
 	cmpl CV_INTEL,%ecx
 	jne CPU_detect_yes		/* Not an Intel or AMD */
 	cmpb $5,%ah
@@ -1334,6 +1340,7 @@ CPU_detect_P5:
  * Intel Pentium
  * Intel Pentium 4
  * AMD Athlon
+ * Centaur Technology processors (IDT Winchip to VIA C3 and beyond)
  *
  */
 #if !DES_X2
