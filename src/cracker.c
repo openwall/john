@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2002 by Solar Designer
  */
 
 #include <string.h>
@@ -106,7 +106,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	crk_db->guess_count++;
 	status.guess_count++;
 
-	if (crk_guesses) {
+	if (crk_guesses && !dupe) {
 		strnfcpy(crk_guesses->ptr, key, crk_params.plaintext_length);
 		crk_guesses->ptr += crk_params.plaintext_length;
 		crk_guesses->count++;
