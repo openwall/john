@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.6.31.1"
+#define JOHN_VERSION			"1.6.31.2"
 
 /*
  * Is this a system-wide installation? *BSD ports and Linux distributions
@@ -26,6 +26,7 @@
 #endif
 
 #if JOHN_SYSTEMWIDE
+#define JOHN_SYSTEMWIDE_EXEC		"/usr/libexec/john"
 #define JOHN_SYSTEMWIDE_HOME		"/usr/share/john"
 #define JOHN_PRIVATE_HOME		"~/.john"
 #endif
