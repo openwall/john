@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -338,6 +338,29 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if ((max_length = cfg_get_int(SECTION_INC, mode, "MaxLen")) < 0)
 		max_length = CHARSET_LENGTH;
 	max_count = cfg_get_int(SECTION_INC, mode, "CharCount");
+
+	if (min_length > max_length) {
+		fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
+			min_length, max_length);
+		error();
+	}
+
+	if (max_length > CHARSET_LENGTH) {
+		fprintf(stderr,
+			"\n"
+			"MaxLen = %d exceeds the compile-time limit of %d\n\n"
+			"There're several good reasons why you probably don't "
+			"need to raise it:\n"
+			"- many hash types don't support passwords "
+			"(or password halves) longer than\n"
+			"7 or 8 characters;\n"
+			"- you probably don't have sufficient statistical "
+			"information to generate a\n"
+			"charset file for lengths beyond 8;\n"
+			"- the limitation applies to incremental mode only.\n",
+			max_length, CHARSET_LENGTH);
+		error();
+	}
 
 	if (!(file = fopen(path_expand(charset), "rb")))
 		pexit("fopen: %s", path_expand(charset));
