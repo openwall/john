@@ -559,7 +559,7 @@ DES_bs_n.c: nonstd.c
 	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_n.c
 
 DES_bs_a.c: nonstd.c ppc-alti.pl
-	./ppc-alti.pl nonstd.c > DES_bs_a.c
+	perl ppc-alti.pl nonstd.c > DES_bs_a.c
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
