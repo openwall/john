@@ -165,38 +165,40 @@ void DES_bs_set_key(char *key, int index)
 {
 	register unsigned char *new = (unsigned char *)key;
 	register unsigned char *old = DES_bs_all.keys[index];
+	register DES_bs_vector *k, *kbase;
 	register ARCH_WORD mask;
-	register unsigned int xor;
-	register int ofs, bit, s1, s2;
+	register unsigned int xor, s1, s2;
 
 	init_depth();
 
 	mask = (ARCH_WORD)1 << index;
-	ofs = -1;
-	while ((*new || *old) && ofs < 55) {
+	k = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH - 1;
+	while ((*new || *old) && k < &DES_bs_all.K[55]) {
+		kbase = k;
 		if ((xor = *new ^ *old)) {
 			xor &= 0x7F; /* Note: this might result in xor == 0 */
 			*old = *new;
-			bit = ofs;
 			do {
 				s1 = DES_bs_all.s1[xor];
 				s2 = DES_bs_all.s2[xor];
-				DES_bs_all.K[bit + s1] DEPTH ^= mask;
+				k[s1] START ^= mask;
 				if (s2 > 8) break; /* Required for xor == 0 */
 				xor >>= s2;
-				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+				k[s2] START ^= mask;
+				k += s2;
 				if (!xor) break;
 				s1 = DES_bs_all.s1[xor];
 				s2 = DES_bs_all.s2[xor];
 				xor >>= s2;
-				DES_bs_all.K[bit + s1] DEPTH ^= mask;
-				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+				k[s1] START ^= mask;
+				k[s2] START ^= mask;
+				k += s2;
 			} while (xor);
 		}
 
 		if (*new) new++;
 		old++;
-		ofs += 7;
+		k = kbase + 7;
 	}
 
 	DES_bs_all.keys_changed = 1;
@@ -210,38 +212,40 @@ void DES_bs_set_key_LM(char *key, int index)
 #else
 	register unsigned char *old = DES_bs_all.keys[index];
 #endif
-	register unsigned char plain;
+	register DES_bs_vector *k, *kbase;
 	register ARCH_WORD mask;
-	register unsigned int xor;
-	register int ofs, bit, s1, s2;
+	register unsigned int xor, s1, s2;
+	register unsigned char plain;
 
 	init_depth();
 
 	mask = (ARCH_WORD)1 << index;
-	ofs = -1;
-	while ((*new || *old) && ofs < 55) {
+	k = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH - 1;
+	while ((*new || *old) && k < &DES_bs_all.K[55]) {
 		plain = DES_bs_all.E.extras.u[ARCH_INDEX(*new)];
+		kbase = k;
 		if ((xor = plain ^ *old)) {
 			*old = plain;
-			bit = ofs;
 			do {
 				s1 = DES_bs_all.s1[xor];
 				s2 = DES_bs_all.s2[xor];
 				xor >>= s2;
-				DES_bs_all.K[bit + s1] DEPTH ^= mask;
-				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+				k[s1] START ^= mask;
+				k[s2] START ^= mask;
+				k += s2;
 				if (!xor) break;
 				s1 = DES_bs_all.s1[xor];
 				s2 = DES_bs_all.s2[xor];
 				xor >>= s2;
-				DES_bs_all.K[bit + s1] DEPTH ^= mask;
-				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+				k[s1] START ^= mask;
+				k[s2] START ^= mask;
+				k += s2;
 			} while (xor);
 		}
 
 		if (*new) new++;
 		old++;
-		ofs += 8;
+		k = kbase + 8;
 	}
 }
 
@@ -307,25 +311,27 @@ ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext)
 int DES_bs_get_hash(int index, int count)
 {
 	register int result;
+	register DES_bs_vector *b;
 
 	init_depth();
+	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
 
-	result = (DES_bs_all.B[0] DEPTH >> index) & 1;
-	result |= ((DES_bs_all.B[1] DEPTH >> index) & 1) << 1;
-	result |= ((DES_bs_all.B[2] DEPTH >> index) & 1) << 2;
-	result |= ((DES_bs_all.B[3] DEPTH >> index) & 1) << 3;
+	result = (b[0] START >> index) & 1;
+	result |= ((b[1] START >> index) & 1) << 1;
+	result |= ((b[2] START >> index) & 1) << 2;
+	result |= ((b[3] START >> index) & 1) << 3;
 	if (count == 4) return result;
 
-	result |= ((DES_bs_all.B[4] DEPTH >> index) & 1) << 4;
-	result |= ((DES_bs_all.B[5] DEPTH >> index) & 1) << 5;
-	result |= ((DES_bs_all.B[6] DEPTH >> index) & 1) << 6;
-	result |= ((DES_bs_all.B[7] DEPTH >> index) & 1) << 7;
+	result |= ((b[4] START >> index) & 1) << 4;
+	result |= ((b[5] START >> index) & 1) << 5;
+	result |= ((b[6] START >> index) & 1) << 6;
+	result |= ((b[7] START >> index) & 1) << 7;
 	if (count == 8) return result;
 
-	result |= ((DES_bs_all.B[8] DEPTH >> index) & 1) << 8;
-	result |= ((DES_bs_all.B[9] DEPTH >> index) & 1) << 9;
-	result |= ((DES_bs_all.B[10] DEPTH >> index) & 1) << 10;
-	result |= ((DES_bs_all.B[11] DEPTH >> index) & 1) << 11;
+	result |= ((b[8] START >> index) & 1) << 8;
+	result |= ((b[9] START >> index) & 1) << 9;
+	result |= ((b[10] START >> index) & 1) << 10;
+	result |= ((b[11] START >> index) & 1) << 11;
 
 	return result;
 }
@@ -342,25 +348,29 @@ int DES_bs_cmp_all(ARCH_WORD *binary)
 #if DES_BS_VECTOR
 	register int depth;
 #endif
+	register DES_bs_vector *b;
 
 	for_each_depth() {
 		value = binary[0];
+		b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
 
-		mask = DES_bs_all.B[0] DEPTH ^ -(value & 1);
-		mask |= DES_bs_all.B[1] DEPTH ^ -((value >> 1) & 1);
+		mask = b[0] START ^ -(value & 1);
+		mask |= b[1] START ^ -((value >> 1) & 1);
 		if (mask == ~(ARCH_WORD)0) goto next_depth;
-		mask |= DES_bs_all.B[2] DEPTH ^ -((value >> 2) & 1);
-		mask |= DES_bs_all.B[3] DEPTH ^ -((value >> 3) & 1);
+		mask |= b[2] START ^ -((value >> 2) & 1);
+		mask |= b[3] START ^ -((value >> 3) & 1);
 		if (mask == ~(ARCH_WORD)0) goto next_depth;
 		value >>= 4;
+		b += 4;
 		for (bit = 4; bit < 32; bit += 2) {
-			mask |= DES_bs_all.B[bit] DEPTH ^
+			mask |= b[0] START ^
 				-(value & 1);
 			if (mask == ~(ARCH_WORD)0) goto next_depth;
-			mask |= DES_bs_all.B[bit + 1] DEPTH ^
+			mask |= b[1] START ^
 				-((value >> 1) & 1);
 			if (mask == ~(ARCH_WORD)0) goto next_depth;
 			value >>= 2;
+			b += 2;
 		}
 
 		return 1;
@@ -374,12 +384,17 @@ next_depth:
 int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 {
 	register int bit;
+	register DES_bs_vector *b;
 
 	init_depth();
+	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
 
-	for (bit = 0; bit < count; bit++)
-	if (((DES_bs_all.B[bit] DEPTH >> index) ^
-		(binary[bit >> 5] >> (bit & 0x1F))) & 1) return 0;
+	for (bit = 0; bit < 31; bit++, b++)
+		if (((b[0] START >> index) ^ (binary[0] >> bit)) & 1) return 0;
+
+	for (; bit < count; bit++, b++)
+		if (((b[0] START >> index) ^
+			(binary[bit >> 5] >> (bit & 0x1F))) & 1) return 0;
 
 	return 1;
 }

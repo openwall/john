@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.6.37.6"
+#define JOHN_VERSION			"1.6.37.7"
 
 /*
  * Is this a system-wide installation? *BSD ports and Linux distributions
