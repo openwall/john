@@ -322,8 +322,40 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	MEM_FREE(header);
 }
 
+static char *charset_self_test(void)
+{
+	int64 total, tmp, check;
+	int n;
+
+	pow64of32(&total, CHARSET_SIZE, CHARSET_LENGTH);
+	check = total;
+	n = CHARSET_LENGTH;
+	while (--n > 0)
+		div64by32(&check, CHARSET_SIZE);
+	if (check.hi != 0 || check.lo != CHARSET_SIZE)
+		return "pow64of32() overflow";
+
+	pow64of32(&tmp, CHARSET_SIZE - 1, CHARSET_LENGTH);
+	neg64(&tmp);
+	add64to64(&total, &tmp);
+	check = total;
+	mul64by32(&check, CHARSET_SCALE);
+	div64by32(&check, CHARSET_SCALE);
+	if (check.hi != total.hi || check.lo != total.lo)
+		return "mul64by32() overflow";
+
+	return NULL;
+}
+
 void do_makechars(struct db_main *db, char *charset)
 {
+	char *where;
+
+	if ((where = charset_self_test())) {
+		fprintf(stderr, "Self test failed (%s)\n", where);
+		error();
+	}
+
 	charset_filter_plaintexts(db);
 
 	printf("Loaded %d plaintext%s%s\n",
