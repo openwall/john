@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002 by Solar Designer
+ * Copyright (c) 1996-2002,2005 by Solar Designer
  */
 
 #include <string.h>
@@ -92,12 +92,18 @@ void DES_bs_init(int LM)
  * non-zero bit in the index. */
 	for (bit = 0; bit <= 7; bit++)
 	for (index = 1 << bit; index < 0x100; index += 2 << bit)
-		DES_bs_all.s[index] = bit + 1;
+		DES_bs_all.s1[index] = bit + 1;
 
-/* Special case: instead of doing an extra check in the loop below, we
- * might instead overrun into DES_bs_all.B, which is harmless, as long
- * as the order of fields is unchanged. */
-	DES_bs_all.s[0] = 57;
+/* Special case: instead of doing an extra check in *_set_key*(), we
+ * might overrun into DES_bs_all.B, which is harmless as long as the
+ * order of fields is unchanged. */
+	DES_bs_all.s1[0] = 57;
+
+/* The same for second bits. */
+	for (index = 0; index < 0x100; index++) {
+		bit = DES_bs_all.s1[index];
+		DES_bs_all.s2[index] = bit + DES_bs_all.s1[index >> bit];
+	}
 
 	if (LM) {
 		for (c = 0; c < 0x100; c++)
@@ -158,7 +164,7 @@ void DES_bs_set_key(char *key, int index)
 	register unsigned char *new = (unsigned char *)key;
 	register unsigned char *old = DES_bs_all.keys[index];
 	register ARCH_WORD xor, mask;
-	register int ofs, bit, shift;
+	register int ofs, bit, s1, s2;
 
 	init_depth();
 
@@ -166,13 +172,23 @@ void DES_bs_set_key(char *key, int index)
 	ofs = -1;
 	while ((*new || *old) && ofs < 55) {
 		if ((xor = *new ^ *old)) {
-			xor &= 0x7F;
+			xor &= 0x7F; /* Note: this might result in xor == 0 */
 			*old = *new;
 			bit = ofs;
 			do {
-				shift = DES_bs_all.s[xor];
-				DES_bs_all.K[bit += shift] DEPTH ^= mask;
-			} while (xor >>= shift);
+				s1 = DES_bs_all.s1[xor];
+				s2 = DES_bs_all.s2[xor];
+				DES_bs_all.K[bit + s1] DEPTH ^= mask;
+				if (s2 > 56) break;
+				xor >>= s2;
+				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+				if (!xor) break;
+				s1 = DES_bs_all.s1[xor];
+				s2 = DES_bs_all.s2[xor];
+				xor >>= s2;
+				DES_bs_all.K[bit + s1] DEPTH ^= mask;
+				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+			} while (xor);
 		}
 
 		if (*new) new++;
@@ -193,7 +209,7 @@ void DES_bs_set_key_LM(char *key, int index)
 #endif
 	register unsigned char plain;
 	register ARCH_WORD xor, mask;
-	register int ofs, bit, shift;
+	register int ofs, bit, s1, s2;
 
 	init_depth();
 
@@ -205,9 +221,18 @@ void DES_bs_set_key_LM(char *key, int index)
 			*old = plain;
 			bit = ofs;
 			do {
-				shift = DES_bs_all.s[xor];
-				DES_bs_all.K[bit += shift] DEPTH ^= mask;
-			} while (xor >>= shift);
+				s1 = DES_bs_all.s1[xor];
+				s2 = DES_bs_all.s2[xor];
+				xor >>= s2;
+				DES_bs_all.K[bit + s1] DEPTH ^= mask;
+				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+				if (!xor) break;
+				s1 = DES_bs_all.s1[xor];
+				s2 = DES_bs_all.s2[xor];
+				xor >>= s2;
+				DES_bs_all.K[bit + s1] DEPTH ^= mask;
+				DES_bs_all.K[bit += s2] DEPTH ^= mask;
+			} while (xor);
 		}
 
 		if (*new) new++;

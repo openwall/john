@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2005 by Solar Designer
  */
 
 /*
@@ -59,7 +59,7 @@ typedef struct {
 #if DES_BS_ASM
 	DES_bs_vector tmp[16];	/* Miscellaneous temporary storage */
 #endif
-	unsigned char s[0x100];	/* Shift counts, used internally */
+	unsigned char s1[0x100], s2[0x100];	/* Shift counts */
 	int KS_updates;		/* Key schedule updates counter */
 	int keys_changed;	/* If keys have changed since last expand */
 	unsigned char keys[DES_BS_DEPTH][8];	/* Current keys */
