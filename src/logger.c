@@ -104,7 +104,7 @@ static void log_file_done(struct log_file *f)
 	if (close(f->fd)) pexit("close");
 	f->fd = -1;
 
-	mem_free((void **)&(f->buffer));
+	MEM_FREE(f->buffer);
 }
 
 static int log_time(void)

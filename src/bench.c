@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2003 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -162,7 +162,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	results->count = count * format->params.max_keys_per_crypt;
 
 	for (index = 0; index < 2; index++)
-		mem_free(&two_salts[index]);
+		MEM_FREE(two_salts[index]);
 
 	return event_abort ? "" : NULL;
 }

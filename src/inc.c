@@ -485,9 +485,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	rec_done(event_abort);
 
 	for (pos = 0; pos < (int)header->length - 2; pos++)
-		mem_free((void **)&chars[pos]);
-	mem_free((void **)&char2);
-	mem_free((void **)&header);
+		MEM_FREE(chars[pos]);
+	MEM_FREE(char2);
+	MEM_FREE(header);
 
 	fclose(file);
 }

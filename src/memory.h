@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2003 by Solar Designer
  */
 
 /*
@@ -11,6 +11,7 @@
 #define _JOHN_MEMORY_H
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "arch.h"
 
@@ -46,9 +47,15 @@ extern void *mem_alloc(size_t size);
 
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
- * Returns immediately if the pointer is already NULL.
+ * Does nothing if the pointer is already NULL.
  */
-extern void mem_free(void **ptr);
+#define MEM_FREE(ptr) \
+{ \
+	if ((ptr)) { \
+		free((ptr)); \
+		(ptr) = NULL; \
+	} \
+}
 
 /*
  * Similar to the above function, except the memory can't be freed.
