@@ -243,11 +243,11 @@ solaris-sparc-any:
 solaris-sparc-gcc:
 	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparc-gcc
 
-solaris-sparc-v8-cc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparc-v8-cc
+solaris-sparcv8-cc:
+	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv8-cc
 
-solaris-sparc-v9-cc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparc-v9-cc
+solaris-sparcv9-cc:
+	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv9-cc
 
 use-solaris-sparc-gcc:
 	$(MAKE) $(NAIL) \
@@ -255,7 +255,7 @@ use-solaris-sparc-gcc:
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
 		LDFLAGS="-s -lrt"
 
-use-solaris-sparc-v8-cc:
+use-solaris-sparcv8-cc:
 	$(MAKE) $(NAIL) \
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
@@ -265,7 +265,7 @@ use-solaris-sparc-v8-cc:
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
-use-solaris-sparc-v9-cc:
+use-solaris-sparcv9-cc:
 	$(MAKE) $(NAIL) \
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
