@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2002 by Solar Designer
  */
 
 #include <string.h>
@@ -241,21 +241,12 @@ void DES_bs_expand_keys(void)
 static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
 {
 	static ARCH_WORD out[2];
-	int bit, index, value;
 
-	out[0] = out[1] = 0;
-	for (bit = 0; bit < 64; bit++) {
-		index = bit >> 5;
-
-/* Swap L and R here instead of doing it one more time in DES_bs_crypt() */
-		if (count & 1) index ^= 1;
-
-/* Get the bit */
-		value = (raw[index] >> (bit & 0x1F)) & 1;
-
-/* Pack the bits into two words */
-		out[bit >> 5] |= value << (bit & 0x1F);
-	}
+/* For odd iteration counts, swap L and R here instead of doing it one
+ * more time in DES_bs_crypt(). */
+	count &= 1;
+	out[count] = raw[0];
+	out[count ^ 1] = raw[1];
 
 	return out;
 }
