@@ -104,6 +104,8 @@ default:
 	@echo "aix-ppc-cc               AIX, PowerPC, cc"
 	@echo "macosx-ppc-cc            Mac OS X, PowerPC 32-bit, cc"
 	@echo "macosx-ppc64-cc          Mac OS X, PowerPC 64-bit, cc"
+	@echo "macosx-ppc-altivec-cc    Mac OS X, PowerPC 32-bit w/AltiVec, cc"
+	@echo "macosx-ppc64-altivec-cc  Mac OS X, PowerPC 64-bit w/AltiVec, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
@@ -368,7 +370,6 @@ macosx-ppc-cc:
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -traditional-cpp" \
-		LDFLAGS="" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
@@ -377,9 +378,29 @@ macosx-ppc64-cc:
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -traditional-cpp -mcpu=G5 -mpowerpc64" \
-		LDFLAGS="" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -finline-limit=4000"
+
+macosx-ppc-altivec-cc:
+	$(LN) ppc32alt.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -traditional-cpp" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3 -finline-limit=4000"
+
+macosx-ppc64-altivec-cc:
+	$(LN) ppc64alt.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -traditional-cpp -mcpu=G5 -mpowerpc64" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3 -finline-limit=4000"
+
+ppc-alti.o: ppc-alti.c DES_bs_a.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec ppc-alti.c
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
@@ -537,6 +558,9 @@ DES_bs_s.c: sboxes.c
 DES_bs_n.c: nonstd.c
 	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_n.c
 
+DES_bs_a.c: nonstd.c ppc-alti.pl
+	./ppc-alti.pl nonstd.c > DES_bs_a.c
+
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
@@ -557,7 +581,7 @@ clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32)
 	$(RM) ../run/john.exe *.o *.bak core
 	$(RM) detect bench generic.h arch.h sparc.h tmp.s
-	$(RM) DES_bs_s.c DES_bs_n.c
+	$(RM) DES_bs_s.c DES_bs_n.c DES_bs_a.c
 	$(CP) $(NULL) Makefile.dep
 
 include Makefile.dep
