@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2002 by Solar Designer
+# Copyright (c) 1996-2003 by Solar Designer
 #
 
 CPP = gcc
@@ -109,6 +109,7 @@ default:
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
 	@echo "irix-mips64-cc           IRIX, MIPS 64-bit, cc"
+	@echo "irix-mips64-r10k-cc      IRIX, MIPS 64-bit (R10K), cc"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP 2.x, x86"
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP 2.x, x86 with MMX"
 	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
@@ -362,6 +363,15 @@ irix-mips32-cc:
 		OPT_INLINE="-INLINE:all"
 
 irix-mips64-cc:
+	$(LN) mips64.h arch.h
+	$(MAKE) $(PROJ) \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -O2 -64 -mips3 -signed" \
+		LDFLAGS="-s -64 -mips3" \
+		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
+		OPT_INLINE="-INLINE:all"
+
+irix-mips64-r10k-cc:
 	$(LN) mips64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
