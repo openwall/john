@@ -145,7 +145,10 @@ void do_external_crack(struct db_main *db)
 	unsigned char *internal;
 	c_int *external;
 
+	log_event("Proceeding with external mode: %s", ext_mode);
+
 	if (!f_generate) {
+		log_event("! No generate() function defined");
 		fprintf(stderr, "No generate() for external mode: %s\n",
 			ext_mode);
 		error();
@@ -161,8 +164,6 @@ void do_external_crack(struct db_main *db)
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
-
-	log_event("- external mode");
 
 	crk_init(db, fix_state, NULL);
 

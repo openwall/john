@@ -75,6 +75,7 @@ static void fix_state(void)
 
 static void inc_format_error(char *charset)
 {
+	log_event("! Incorrect charset file format: %s", charset);
 	fprintf(stderr, "Incorrect charset file format: %s\n", charset);
 	error();
 }
@@ -87,6 +88,8 @@ static void inc_new_length(unsigned int length,
 	int value, pos, i, j;
 	char *buffer;
 	int count;
+
+	log_event("- Switching to length %d", length + 1);
 
 	char1[0] = 0;
 	if (length)
@@ -161,7 +164,9 @@ static void inc_new_length(unsigned int length,
 	} while (value != EOF);
 
 	if (value == EOF) {
-		if (ferror(file)) pexit("getc"); else
+		if (ferror(file))
+			pexit("getc");
+		else
 			inc_format_error(charset);
 	}
 }
@@ -192,6 +197,9 @@ static void inc_new_count(unsigned int length, int count,
 {
 	int pos, i, j;
 	int size;
+
+	log_event("- Expanding tables for length %d to character count %d",
+		length + 1, count + 1);
 
 	size = count + 2;
 
@@ -327,7 +335,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			mode = "All";
 	}
 
+	log_event("Proceeding with \"incremental\" mode: %s", mode);
+
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
+		log_event("! No charset defined");
 		fprintf(stderr, "No charset defined for mode: %s\n", mode);
 		error();
 	}
@@ -341,12 +352,16 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	max_count = cfg_get_int(SECTION_INC, mode, "CharCount");
 
 	if (min_length > max_length) {
+		log_event("! MinLen = %d exceeds MaxLen = %d",
+			min_length, max_length);
 		fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
 			min_length, max_length);
 		error();
 	}
 
 	if (max_length > CHARSET_LENGTH) {
+		log_event("! MaxLen = %d exceeds the compile-time limit of %d",
+			max_length, CHARSET_LENGTH);
 		fprintf(stderr,
 			"\n"
 			"MaxLen = %d exceeds the compile-time limit of %d\n\n"
@@ -363,10 +378,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	if (!(file = fopen(path_expand(charset), "rb"))) {
-		log_flush();
+	if (!(file = fopen(path_expand(charset), "rb")))
 		pexit("fopen: %s", path_expand(charset));
-	}
 
 	header = (struct charset_header *)mem_alloc(sizeof(*header));
 
@@ -374,12 +387,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (ferror(file)) pexit("fread");
 
 	if (feof(file) ||
-		memcmp(header->version, CHARSET_VERSION,
-			sizeof(header->version)) ||
-		header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
-		header->length != CHARSET_LENGTH ||
-		header->count > CHARSET_SIZE ||
-		!header->count) inc_format_error(charset);
+	    memcmp(header->version, CHARSET_VERSION, sizeof(header->version)) ||
+	    header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
+	    header->length != CHARSET_LENGTH ||
+	    header->count > CHARSET_SIZE || !header->count)
+		inc_format_error(charset);
 
 	fread(allchars, header->count, 1, file);
 	if (ferror(file)) pexit("fread");
@@ -390,10 +402,20 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		expand(allchars, extra, sizeof(allchars));
 	real_count = strlen(allchars);
 
-	if (max_count < 0) max_count = CHARSET_SIZE; else
-	if ((unsigned int)max_count > real_count)
-		fprintf(stderr, "Warning: only %d characters available\n",
+	if (max_count < 0) max_count = CHARSET_SIZE;
+
+	if (min_length != max_length)
+		log_event("- Lengths %d to %d, up to %d different characters",
+			min_length, max_length, max_count);
+	else
+		log_event("- Length %d, up to %d different characters",
+			min_length, max_count);
+
+	if ((unsigned int)max_count > real_count) {
+		log_event("! Only %u characters available", real_count);
+		fprintf(stderr, "Warning: only %u characters available\n",
 			real_count);
+	}
 
 	if (header->length >= 2)
 		char2 = (char2_table)mem_alloc(sizeof(*char2));
@@ -410,8 +432,6 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
-
-	log_event("- \"incremental\" mode");
 
 	ptr = header->order + (entry = rec_entry) * 3;
 	memcpy(numbers, rec_numbers, sizeof(numbers));
@@ -453,6 +473,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			min_length = 1;
 			if (crk_process_key("")) break;
 		}
+
+		log_event("- Trying length %d, fixed @%d, character count %d",
+			length + 1, fixed + 1, count + 1);
 
 		if (inc_key_loop(length, fixed, count, char1, char2, chars))
 			break;

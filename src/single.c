@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -79,6 +79,8 @@ static void single_init(void)
 {
 	struct db_salt *salt;
 
+	log_event("Proceeding with \"single crack\" mode");
+
 	progress = 0;
 
 	length = single_db->format->params.plaintext_length;
@@ -86,6 +88,7 @@ static void single_init(void)
 	if (key_count < SINGLE_HASH_MIN) key_count = SINGLE_HASH_MIN;
 
 	if (rpp_init(rule_ctx, SUBSECTION_SINGLE)) {
+		log_event("! No \"single crack\" mode rules found");
 		fprintf(stderr, "No \"single crack\" mode rules found in %s\n",
 			cfg_name);
 		error();
@@ -95,17 +98,23 @@ static void single_init(void)
 	rec_rule = rule_number = 0;
 	rule_count = rules_count(rule_ctx, 0);
 
+	log_event("- %d preprocessed word mangling rules", rule_count);
+
 	status_init(get_progress, !status.pass);
 
 	rec_restore_mode(restore_state);
 	rec_init(single_db, save_state);
 
-	log_event("- \"single crack\" mode");
-
 	salt = single_db->salts;
 	do {
 		single_alloc_keys(&salt->keys);
 	} while ((salt = salt->next));
+
+	log_event("- Allocated %d buffer%s of %d candidate passwords%s",
+		single_db->salt_count,
+		single_db->salt_count != 1 ? "s" : "",
+		key_count,
+		single_db->salt_count != 1 ? " each" : "");
 
 	guessed_keys = NULL;
 	single_alloc_keys(&guessed_keys);
@@ -293,14 +302,29 @@ static int single_process_salt(struct db_salt *salt, char *rule)
 
 static void single_run(void)
 {
-	char *rule;
+	char *prerule, *rule;
 	struct db_salt *salt;
-	int min;
+	int min, saved_min;
 
-	while ((rule = rpp_next(rule_ctx))) {
-		if (!(rule = rules_reject(rule, single_db))) {
-			rule_number++;
+	saved_min = rec_rule;
+	while ((prerule = rpp_next(rule_ctx))) {
+		if (!(rule = rules_reject(prerule, single_db))) {
+			log_event("- Rule #%d: '%s' rejected",
+				++rule_number, prerule);
 			continue;
+		}
+
+		if (strcmp(prerule, rule))
+			log_event("- Rule #%d: '%s' accepted as '%s'",
+				rule_number + 1, prerule, rule);
+		else
+			log_event("- Rule #%d: '%s' accepted",
+				rule_number + 1, prerule);
+
+		if (saved_min != rec_rule) {
+			log_event("- Oldest still in use is now rule #%d",
+				rec_rule + 1);
+			saved_min = rec_rule;
 		}
 
 		min = rule_number;
@@ -322,6 +346,9 @@ static void single_done(void)
 	struct db_salt *salt;
 
 	if (!event_abort) {
+		log_event("- Processing the remaining buffered "
+			"candidate passwords");
+
 		if ((salt = single_db->salts))
 		do {
 			if (!salt->list) continue;
