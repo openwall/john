@@ -15,16 +15,18 @@ for you to compile and you can start using John right away.
 
 Enter the directory into which you extracted the source code
 distribution of John.  Enter the "src" subdirectory and invoke "make"
-to obtain a list of supported operating systems:
+to obtain a list of operating systems for which specific support
+exists:
 
 	cd src
 	make
 
-Select one of the supported systems and type:
+Note the make target for your system and type:
 
 	make clean SYSTEM
 
-or, if your system is not listed, try:
+where SYSTEM is the appropriate make target.  Alternatively, if your
+system is not listed, use:
 
 	make clean generic
 
@@ -48,4 +50,4 @@ executable to a different machine running the same OS, you might not
 get the best performance.  Thus, it is recommended to re-compile John
 on each system where possible.
 
-$Id$
+$Id: INSTALL,v 1.1 2004/06/15 16:20:20 solar Exp $
