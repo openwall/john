@@ -144,7 +144,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	length = db->format->params.plaintext_length;
 
-	log_event("- Wordlist file: %s", path_expand(name));
+	log_event("- Wordlist file: %.100s", path_expand(name));
 
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, SUBSECTION_WORDLIST)) {
@@ -189,14 +189,15 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (rules) {
 			if ((rule = rules_reject(prerule, db))) {
 				if (strcmp(prerule, rule))
-					log_event("- Rule #%d: '%s' accepted"
-						" as '%s'",
+					log_event("- Rule #%d: '%.100s'"
+						" accepted as '%.100s'",
 						rule_number + 1, prerule, rule);
 				else
-					log_event("- Rule #%d: '%s' accepted",
+					log_event("- Rule #%d: '%.100s'"
+						" accepted",
 						rule_number + 1, prerule);
 			} else
-				log_event("- Rule #%d: '%s' rejected",
+				log_event("- Rule #%d: '%.100s' rejected",
 					rule_number + 1, prerule);
 		}
 

@@ -678,7 +678,7 @@ int rules_count(struct rpp_context *start, int split)
 	int count;
 
 	if (!(count = rules_check(start, split))) {
-		log_event("! Invalid rule at line %d: %s",
+		log_event("! Invalid rule at line %d: %.100s",
 			rules_line, rules_errors[rules_errno]);
 		fprintf(stderr, "Invalid rule in %s at line %d: %s\n",
 			cfg_name, rules_line,
