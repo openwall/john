@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -176,10 +176,17 @@ void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
 	tmp.lo = count; tmp.hi = 0;
 	mul64by32(&tmp, CLK_TCK);
 	cps_hi = div64by32lo(&tmp, time);
-	mul64by32(&tmp, 10);
-	cps_lo = div64by32lo(&tmp, time) % 10;
 
-	sprintf(buffer, cps_hi < 100 ? "%u.%u" : "%u", cps_hi, cps_lo);
+	if (cps_hi >= 1000000)
+		sprintf(buffer, "%uK", cps_hi / 1000);
+	else
+	if (cps_hi >= 100)
+		sprintf(buffer, "%u", cps_hi);
+	else {
+		mul64by32(&tmp, 10);
+		cps_lo = div64by32lo(&tmp, time) % 10;
+		sprintf(buffer, "%u.%u", cps_hi, cps_lo);
+	}
 }
 
 void benchmark_all(void)

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2004 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -76,8 +76,8 @@ static char *status_get_cps(char *buffer)
 	int use_ticks;
 	clock_t ticks;
 	unsigned long time;
-	unsigned int cps_hi, cps_lo;
-	int64 tmp;
+	int64 tmp, cps;
+	unsigned int cps_100;
 
 	use_ticks = !status.crypts.hi && !status_restored_time;
 
@@ -88,16 +88,25 @@ static char *status_get_cps(char *buffer)
 		time = status_restored_time + ticks / CLK_TCK;
 	if (!time) time = 1;
 
-	tmp = status.crypts;
-	if (use_ticks) mul64by32(&tmp, CLK_TCK);
-	cps_hi = div64by32lo(&tmp, time);
+	cps = status.crypts;
+	if (use_ticks) mul64by32(&cps, CLK_TCK);
+	div64by32(&cps, time);
 
-	tmp = status.crypts;
-	if (use_ticks) mul64by32(&tmp, CLK_TCK);
-	mul64by32(&tmp, 100);
-	cps_lo = div64by32lo(&tmp, time) % 100;
-
-	sprintf(buffer, cps_hi < 100 ? "%u.%02u" : "%u", cps_hi, cps_lo);
+	if (cps.hi || cps.lo >= 1000000000)
+		sprintf(buffer, "%uM", div64by32lo(&cps, 1000000));
+	else
+	if (cps.lo >= 1000000)
+		sprintf(buffer, "%uK", div64by32lo(&cps, 1000));
+	else
+	if (cps.lo >= 100)
+		sprintf(buffer, "%u", cps.lo);
+	else {
+		tmp = status.crypts;
+		if (use_ticks) mul64by32(&tmp, CLK_TCK);
+		mul64by32(&tmp, 100);
+		cps_100 = div64by32lo(&tmp, time) % 100;
+		sprintf(buffer, "%u.%02u", cps.lo, cps_100);
+	}
 
 	return buffer;
 }
