@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2003 by Solar Designer
  *
  * Based on the RSA Data Security, Inc. MD5 Message-Digest Algorithm and
  * FreeBSD MD5-based crypt(3) by Poul-Henning Kamp <phk@login.dknet.dk>.
@@ -305,9 +305,9 @@ static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 
 #endif
 
-#define order				MD5_std_all.order
-#define pool				MD5_std_all.pool
-#define block				MD5_std_all.block
+#define order				MD5_std_all._order
+#define pool				MD5_std_all._pool
+#define block				MD5_std_all._block
 
 static void init_line(int line, int index, MD5_block *even, MD5_block *odd)
 {
