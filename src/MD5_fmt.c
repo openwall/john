@@ -87,7 +87,7 @@ static int get_hash_2(int index)
 static int salt_hash(void *salt)
 {
 	return
-		((int)atoi64[ARCH_INDEX(((char *)salt)[0])] | 
+		((int)atoi64[ARCH_INDEX(((char *)salt)[0])] |
 		((int)atoi64[ARCH_INDEX(((char *)salt)[1])] << 6)) & 0x3FF;
 }
 
