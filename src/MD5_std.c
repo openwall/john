@@ -3,7 +3,7 @@
  * Copyright (c) 1996-2001,2003 by Solar Designer
  *
  * Based on the RSA Data Security, Inc. MD5 Message-Digest Algorithm and
- * FreeBSD MD5-based crypt(3) by Poul-Henning Kamp <phk@login.dknet.dk>.
+ * FreeBSD MD5-based crypt(3) by Poul-Henning Kamp <phk at login.dknet.dk>.
  * My implementation supports passwords of up to 15 characters long only,
  * since this allows using a significantly faster algorithm -- SD.
  */

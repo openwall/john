@@ -9,9 +9,9 @@
  *	http://www.openwall.com/crypt/
  *
  * This implementation is compatible with OpenBSD bcrypt.c (version 2a)
- * by Niels Provos <provos@physnet.uni-hamburg.de>, and uses some of his
+ * by Niels Provos <provos at citi.umich.edu>, and uses some of his
  * ideas. The password hashing algorithm was designed by David Mazieres
- * <dm@lcs.mit.edu>.
+ * <dm at lcs.mit.edu>.
  *
  * There's a paper on the algorithm that explains its design decisions:
  *
