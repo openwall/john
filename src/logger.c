@@ -10,6 +10,7 @@
 #include <sys/file.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "arch.h"
@@ -38,6 +39,8 @@ struct log_file {
 static struct log_file log = {NULL, NULL, NULL, 0, -1};
 static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
+static int in_logger = 0;
+
 static void log_file_init(struct log_file *f, char *name, int size)
 {
 	f->name = name;
@@ -63,12 +66,11 @@ static void log_file_flush(struct log_file *f)
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-	f->ptr = f->buffer;
-
 #if defined(LOCK_EX) && OS_FLOCK
 	if (flock(f->fd, LOCK_EX)) pexit("flock");
 #endif
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
+	f->ptr = f->buffer;
 #if defined(LOCK_EX) && OS_FLOCK
 	if (flock(f->fd, LOCK_UN)) pexit("flock");
 #endif
@@ -120,6 +122,8 @@ void log_init(char *log_name, char *pot_name, char *session)
 {
 	char *p;
 
+	in_logger = 1;
+
 	if (log_name && log.fd < 0) {
 		if (session) {
 			if (!(p = strrchr(session, '.')))
@@ -138,6 +142,8 @@ void log_init(char *log_name, char *pot_name, char *session)
 
 		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep");
 	}
+
+	in_logger = 0;
 }
 
 void log_guess(char *login, char *ciphertext, char *plaintext)
@@ -145,6 +151,8 @@ void log_guess(char *login, char *ciphertext, char *plaintext)
 	int count1, count2;
 
 	printf("%-16s (%s)\n", plaintext, login);
+
+	in_logger = 1;
 
 	if (pot.fd >= 0 && ciphertext &&
 	    strlen(ciphertext) + strlen(plaintext) <= LINE_BUFFER_SIZE - 3) {
@@ -158,7 +166,8 @@ void log_guess(char *login, char *ciphertext, char *plaintext)
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
-			count2 = (int)sprintf(log.ptr, "Cracked %s\n", login);
+			count2 = (int)sprintf(log.ptr,
+				"+ Cracked %s\n", login);
 			if (count2 > 0)
 				log.ptr += count2;
 			else
@@ -173,35 +182,74 @@ void log_guess(char *login, char *ciphertext, char *plaintext)
 	if (log_file_write(&log))
 		log_file_flush(&pot);
 
+	in_logger = 0;
+
 	if (cfg_beep)
 		write_loop(fileno(stderr), "\007", 1);
 }
 
-void log_event(char *event)
+void log_event(char *format, ...)
 {
+	va_list args;
 	int count1, count2;
+
+	if (log.fd < 0) return;
+
+/*
+ * Handle possible recursion:
+ * log_*() -> ... -> pexit() -> ... -> log_event()
+ */
+	if (in_logger) return;
+	in_logger = 1;
 
 	count1 = log_time();
 	if (count1 > 0 &&
-	    count1 + (count2 = strlen(event)) < LINE_BUFFER_SIZE) {
+	    count1 + strlen(format) < LINE_BUFFER_SIZE - 500 - 1) {
 		log.ptr += count1;
-		memcpy(log.ptr, event, count2);
-		log.ptr += count2;
-		*log.ptr++ = '\n';
+
+		va_start(args, format);
+		count2 = (int)vsprintf(log.ptr, format, args);
+		va_end(args);
+
+		if (count2 > 0) {
+			log.ptr += count2;
+			*log.ptr++ = '\n';
+		} else
+			log.ptr -= count1;
 
 		if (log_file_write(&log))
 			log_file_flush(&pot);
 	}
+
+	in_logger = 0;
+}
+
+void log_discard(void)
+{
+	log.ptr = log.buffer;
 }
 
 void log_flush(void)
 {
+	in_logger = 1;
+
 	log_file_fsync(&log);
 	log_file_fsync(&pot);
+
+	in_logger = 0;
 }
 
 void log_done(void)
 {
+/*
+ * Handle possible recursion:
+ * log_*() -> ... -> pexit() -> ... -> log_done()
+ */
+	if (in_logger) return;
+	in_logger = 1;
+
 	log_file_done(&log);
 	log_file_done(&pot);
+
+	in_logger = 0;
 }
