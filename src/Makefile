@@ -82,7 +82,8 @@ default:
 	@echo "freebsd-x86-mmx-elf      FreeBSD, x86 with MMX, ELF binaries"
 	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-any          OpenBSD, x86"
+	@echo "openbsd-x86-any-elf      OpenBSD, x86, ELF binaries"
+	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-vax              OpenBSD, VAX"
 	@echo "netbsd-vax               NetBSD, VAX"
@@ -179,7 +180,13 @@ freebsd-alpha:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
 
-openbsd-x86-any:
+openbsd-x86-any-elf:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		ASFLAGS="$(ASFLAGS) -DBSD"
+
+openbsd-x86-any-a.out:
 	$(LN) x86-any.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
