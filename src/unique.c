@@ -97,7 +97,7 @@ static void read_buffer(void)
 	ptr = 0;
 	while (fgetl(line, sizeof(line), stdin)) {
 		last = &buffer.hash[line_hash(line)];
-#if ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN && !ARCH_INT_GT_32
 		current = *last;
 #else
 		current = get_int(last);
@@ -149,7 +149,7 @@ static void clean_buffer(void)
 
 	while (fgetl(line, sizeof(line), output)) {
 		last = &buffer.hash[line_hash(line)];
-#if ARCH_LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN && !ARCH_INT_GT_32
 		current = *last;
 #else
 		current = get_int(last);
@@ -166,6 +166,9 @@ static void clean_buffer(void)
 	}
 
 	if (ferror(output)) pexit("fgets");
+
+/* Workaround a Solaris stdio bug. */
+	if (fseek(output, 0, SEEK_END) < 0) pexit("fseek");
 }
 
 static void unique_init(char *name)
