@@ -26,7 +26,7 @@ contributed patches.
 
 	How to install.
 
-See doc/INSTALL for information on installing John on your system.
+See INSTALL for information on installing John on your system.
 
 
 	How to use.
@@ -66,8 +66,7 @@ To continue an interrupted session, run:
 
 These are just the most essential things you can do with John.  For
 a complete list of command line options and for more complicated usage
-examples you should refer to doc/OPTIONS and doc/EXAMPLES,
-respectively.
+examples you should refer to OPTIONS and EXAMPLES, respectively.
 
 
 	Features and performance.
@@ -120,4 +119,4 @@ CREDITS		- credits and how to contact the author
 
 Happy reading!
 
-$Id$
+$Id: README,v 1.3 2004/06/15 11:30:23 solar Exp $
