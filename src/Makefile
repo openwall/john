@@ -48,6 +48,9 @@ BENCH_DES_OBJS_ORIG = \
 BENCH_DES_OBJS_DEPEND = \
 	$(BENCH_DES_OBJS_ORIG)
 
+BENCH_DES_BS_OBJS_DEPEND = \
+	DES_bs_b.o
+
 BENCH_MD5_OBJS_DEPEND = \
 	MD5_fmt.o MD5_std.o
 
@@ -56,7 +59,7 @@ BENCH_BF_OBJS_DEPEND = \
 
 BENCH_OBJS = \
 	$(BENCH_DES_OBJS_DEPEND) \
-	DES_bs.o DES_bs_b.o \
+	DES_bs.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	BF_fmt.o $(BENCH_BF_OBJS_DEPEND) \
 	bench.o best.o common.o config.o formats.o memory.o miscnl.o \
@@ -454,6 +457,7 @@ generic.h:
 	$(LD) $(LDFLAGS) detect.o -o detect
 	./best.sh "$(MAKE)" \
 		"$(BENCH_DES_OBJS_DEPEND)" \
+		"$(BENCH_DES_BS_OBJS_DEPEND)" \
 		"$(BENCH_MD5_OBJS_DEPEND)" \
 		"$(BENCH_BF_OBJS_DEPEND)"
 
@@ -513,12 +517,15 @@ john.com: john.asm
 
 # Inlining the S-boxes produces faster code, as long as they fit in the cache
 # (that is, on RISC with at least 8 KB of L1 code cache).
-DES_bs_b.o: DES_bs_b.c DES_bs_s.c
+DES_bs_b.o: DES_bs_b.c DES_bs_s.c DES_bs_n.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
 
-# I prefer to distribute Matthew Kwan's S-box file unmodified...
-DES_bs_s.c: nonstd.c
-	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_s.c
+# I prefer to distribute Matthew Kwan's S-box files unmodified...
+DES_bs_s.c: sboxes.c
+	$(SED) "s/unsigned long/ARCH_WORD/" sboxes.c > DES_bs_s.c
+
+DES_bs_n.c: nonstd.c
+	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_n.c
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
@@ -539,7 +546,8 @@ depend:
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32)
 	$(RM) ../run/john.exe *.o *.bak core
-	$(RM) detect bench generic.h arch.h sparc.h tmp.s DES_bs_s.c
+	$(RM) detect bench generic.h arch.h sparc.h tmp.s
+	$(RM) DES_bs_s.c DES_bs_n.c
 	$(CP) $(NULL) Makefile.dep
 
 include Makefile.dep

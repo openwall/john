@@ -1,15 +1,16 @@
 #!/bin/sh
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2000 by Solar Designer
+# Copyright (c) 1996-2000,2003 by Solar Designer
 #
 
-[ $# -eq 4 ] || exit 1
+[ $# -eq 5 ] || exit 1
 
 MAKE=$1
 DES_DEPEND=$2
-MD5_DEPEND=$3
-BF_DEPEND=$4
+DES_BS_DEPEND=$3
+MD5_DEPEND=$4
+BF_DEPEND=$5
 
 # Detect the best non-bitslice DES algorithm
 
@@ -36,6 +37,7 @@ echo "Compiling: DES benchmark (code version #$DES_BEST, no key copying)"
 $MAKE bench || exit 1
 RES=`./bench 1` || exit 1
 if [ $RES -gt $MAX ]; then
+	MAX=$RES
 	DES_COPY=0
 else
 	DES_COPY=1
@@ -43,17 +45,24 @@ fi
 
 # Check if bitslice DES is faster
 
-./detect $DES_BEST $DES_COPY 1 0 0 0 > arch.h
+DES_BS=0
+
 rm -f $DES_DEPEND bench
 
-echo "Compiling: DES benchmark (bitslice)"
-$MAKE bench || exit 1
-RES=`./bench 1` || exit 1
-if [ $RES -gt $MAX ]; then
-	DES_BS=1
-else
-	DES_BS=0
-fi
+for MODE in 1 2; do
+	if ./detect $DES_BEST $DES_COPY $MODE 0 0 0 > arch.h; then
+		echo "Compiling: DES benchmark (bitslice, code version #$MODE)"
+		if [ $MODE -gt 1 ]; then
+			rm -f $DES_BS_DEPEND bench
+		fi
+		$MAKE bench || exit 1
+		RES=`./bench 1` || exit 1
+		if [ $RES -gt $MAX ]; then
+			MAX=$RES
+			DES_BS=$MODE
+		fi
+	fi
+done
 
 # Detect the best MD5 algorithm
 
