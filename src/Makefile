@@ -73,7 +73,7 @@ PROJ_WIN32 = ../run/john.exe \
 
 default:
 	@echo "To build John the Ripper, type:"
-	@echo "	make SYSTEM"
+	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
 	@echo "linux-x86-any-elf        Linux, x86, ELF binaries"
 	@echo "linux-x86-mmx-elf        Linux, x86 with MMX, ELF binaries"
