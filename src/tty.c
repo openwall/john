@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 #ifndef __DJGPP__
@@ -30,7 +30,7 @@ extern int tcsetattr(int fd, int actions, struct termios *termios_p);
 #include "tty.h"
 
 #ifndef __DJGPP__
-static int tty_fd = 0;
+static int tty_fd = -1;
 static struct termios saved_ti;
 #endif
 
@@ -40,7 +40,7 @@ void tty_init(void)
 	int fd;
 	struct termios ti;
 
-	if (tty_fd) return;
+	if (tty_fd >= 0) return;
 
 	if ((fd = open("/dev/tty", O_RDONLY | O_NONBLOCK)) < 0) return;
 
@@ -72,7 +72,7 @@ int tty_getchar(void)
 	struct timeval tv;
 #endif
 
-	if (tty_fd) {
+	if (tty_fd >= 0) {
 #ifdef __CYGWIN32__
 		FD_ZERO(&set); FD_SET(tty_fd, &set);
 		tv.tv_sec = 0; tv.tv_usec = 0;
@@ -95,9 +95,9 @@ void tty_done(void)
 #ifndef __DJGPP__
 	int fd;
 
-	if (!tty_fd) return;
+	if (tty_fd < 0) return;
 
-	fd = tty_fd; tty_fd = 0;
+	fd = tty_fd; tty_fd = -1;
 	tcsetattr(fd, TCSANOW, &saved_ti);
 
 	close(fd);
