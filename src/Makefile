@@ -12,6 +12,7 @@ LN = ln -sf
 RM = rm -f
 TR = tr
 SED = sed
+PERL = perl
 NULL = /dev/null
 CPPFLAGS = -E
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer
@@ -560,7 +561,7 @@ DES_bs_n.c: nonstd.c
 	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_n.c
 
 DES_bs_a.c: nonstd.c ppc-alti.pl
-	perl ppc-alti.pl nonstd.c > DES_bs_a.c
+	$(PERL) ppc-alti.pl nonstd.c > DES_bs_a.c
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
