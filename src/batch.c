@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2003 by Solar Designer
+ * Copyright (c) 1996-98,2003,2004 by Solar Designer
  */
 
 #include <stdio.h>
@@ -37,8 +37,6 @@ static void do_incremental_pass(struct db_main *db)
 
 void do_batch_crack(struct db_main *db)
 {
-	status_init(NULL, 1);
-
 	switch (status.pass) {
 	case 0:
 	case 1:

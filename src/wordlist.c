@@ -172,7 +172,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	line_number = rule_number = 0;
 
-	status_init(get_progress, !status.pass);
+	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);

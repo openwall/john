@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004 by Solar Designer
  */
 
 #include <stdio.h>
@@ -100,7 +100,7 @@ static void single_init(void)
 
 	log_event("- %d preprocessed word mangling rules", rule_count);
 
-	status_init(get_progress, !status.pass);
+	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(single_db, save_state);
