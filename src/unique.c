@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-2002 by Solar Designer
  */
 
 #include <stdio.h>
@@ -149,7 +149,11 @@ static void clean_buffer(void)
 
 	while (fgetl(line, sizeof(line), output)) {
 		last = &buffer.hash[line_hash(line)];
+#if ARCH_LITTLE_ENDIAN
 		current = *last;
+#else
+		current = get_int(last);
+#endif
 		while (current != ENTRY_END_HASH && current != ENTRY_DUPE) {
 			if (!strcmp(line, &buffer.data[current + 4])) {
 				put_int(last, get_data(current));
