@@ -102,7 +102,8 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc, ELF binaries"
 	@echo "tru64-alpha-cc           Tru64 (Digital UNIX, OSF/1), Alpha, cc"
 	@echo "aix-ppc-cc               AIX, PowerPC, cc"
-	@echo "macosx-ppc-cc            Mac OS X, PowerPC, cc"
+	@echo "macosx-ppc-cc            Mac OS X, PowerPC 32-bit, cc"
+	@echo "macosx-ppc64-cc          Mac OS X, PowerPC 64-bit, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
@@ -370,6 +371,15 @@ macosx-ppc-cc:
 		LDFLAGS="" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
+
+macosx-ppc64-cc:
+	$(LN) ppc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -traditional-cpp -mcpu=G5 -mpowerpc64" \
+		LDFLAGS="" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3 -finline-limit=4000"
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h

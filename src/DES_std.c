@@ -320,7 +320,7 @@ unsigned char DES_PC2[48] = {
 static void init_SPE(void)
 {
 	int box, index, row, column, bit;
-	ARCH_WORD mask, l, h;
+	unsigned int mask, l, h;
 
 	for (box = 0; box < 8; box++)
 	for (index = 0; index < 64; index++) {
@@ -337,10 +337,10 @@ static void init_SPE(void)
 
 		h = l = 0;
 		for (bit = 0; bit < 24; bit++) {
-			if (((unsigned ARCH_WORD)0x80000000 >>
+			if (((unsigned int)0x80000000 >>
 			    DES_P[ARCH_INDEX(DES_E[bit])]) & mask)
 				l |= 1 << bit;
-			if (((unsigned ARCH_WORD)0x80000000 >>
+			if (((unsigned int)0x80000000 >>
 			    DES_P[ARCH_INDEX(DES_E[bit + 24])]) & mask)
 				h |= 1 << bit;
 		}
@@ -350,7 +350,7 @@ static void init_SPE(void)
 #if ARCH_BITS >= 64
 		DES_SPE[box][index] =
 			DES_DO_SIZE_FIX(l) |
-			(DES_DO_SIZE_FIX(h) << 32);
+			((unsigned ARCH_WORD)DES_DO_SIZE_FIX(h) << 32);
 #else
 		DES_SPE[box][index][0] = DES_DO_SIZE_FIX(l);
 		DES_SPE[box][index][1] = DES_DO_SIZE_FIX(h);
@@ -1056,11 +1056,11 @@ ARCH_WORD DES_raw_get_salt(char *ciphertext)
 
 ARCH_WORD DES_std_get_salt(char *ciphertext)
 {
-	ARCH_WORD salt;
+	unsigned int salt;
 
 	salt = DES_raw_get_salt(ciphertext);
 	salt = DES_24_TO_32(salt);
-	return DES_DO_SIZE_FIX(salt);
+	return (ARCH_WORD)DES_DO_SIZE_FIX(salt);
 }
 
 ARCH_WORD DES_raw_get_count(char *ciphertext)
