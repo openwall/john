@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar bdesigner
+ * Copyright (c) 1996-2001,2003 by Solar bdesigner
  */
 
 #include "arch.h"
@@ -9,7 +9,11 @@
 #include "DES_bs.h"
 
 /* Include the S-boxes here, so that the compiler can inline them */
+#if DES_BS == 2
 #include "DES_bs_s.c"
+#else
+#include "DES_bs_n.c"
+#endif
 
 #define b				DES_bs_all.B
 #define e				DES_bs_all.E.E
