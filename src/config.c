@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2002 by Solar Designer
  */
 
 #include <stdio.h>
@@ -135,7 +135,7 @@ void cfg_init(char *name, int allow_missing)
 
 	if (fclose(file)) pexit("fclose");
 
-	cfg_name = path_expand(name);
+	cfg_name = str_alloc_copy(path_expand(name));
 }
 
 static struct cfg_section *cfg_get_section(char *section, char *subsection)
