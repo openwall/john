@@ -102,7 +102,8 @@ void DES_bs_init(int LM)
 /* The same for second bits. */
 	for (index = 0; index < 0x100; index++) {
 		bit = DES_bs_all.s1[index];
-		DES_bs_all.s2[index] = bit + DES_bs_all.s1[index >> bit];
+		bit += DES_bs_all.s1[index >> bit];
+		DES_bs_all.s2[index] = bit < 8 ? bit : 57;
 	}
 
 	if (LM) {
