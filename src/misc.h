@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 /*
@@ -13,7 +13,8 @@
 #include <stdio.h>
 
 /*
- * Exit on error. Terminates the process with non-zero exit status.
+ * Exit on error. Logs the event, closes john.pot and the log file, and
+ * terminates the process with non-zero exit status.
  */
 extern void error(void);
 

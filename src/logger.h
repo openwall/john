@@ -23,8 +23,21 @@ extern void log_guess(char *login, char *ciphertext, char *plaintext);
 
 /*
  * Logs an arbitrary event.
+ *
+ * The caller must make sure that any conversion specifiers in the
+ * format string expand to no more than 500 characters.
  */
-extern void log_event(char *event);
+extern void log_event(char *format, ...)
+#ifdef __GNUC__
+	__attribute__ ((format (printf, 1, 2)));
+#else
+	;
+#endif
+
+/*
+ * Discards any buffered log data.
+ */
+extern void log_discard(void);
 
 /*
  * Flushes the john.pot and log file buffers to disk.
