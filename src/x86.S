@@ -52,7 +52,7 @@
  * DES stuff.
  *
  * Included are versions for:
- * 1. MMX (Pentium MMX and newer Intel x86 CPU's, some clones);
+ * 1. MMX (Pentium MMX and newer Intel x86 CPUs, some clones);
  * 2. Intel Pentium without MMX;
  * 3. The rest (good for Pentium Pro, 486, clones).
  *
