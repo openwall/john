@@ -161,10 +161,10 @@ static void john_load(void)
 				ldr_show_pw_file(&database, current->data);
 			} while ((current = current->next));
 
-			printf("%s%d password%s cracked, %d left\n",
+			printf("%s%d password hash%s cracked, %d left\n",
 				database.guess_count ? "\n" : "",
 				database.guess_count,
-				database.guess_count != 1 ? "s" : "",
+				database.guess_count != 1 ? "es" : "",
 				database.password_count -
 				database.guess_count);
 
