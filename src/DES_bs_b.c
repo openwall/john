@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003 by Solar bdesigner
+ * Copyright (c) 1996-2001,2003 by Solar Designer
  */
 
 #include "arch.h"
