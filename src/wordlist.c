@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -14,6 +14,7 @@
 #include "path.h"
 #include "signals.h"
 #include "loader.h"
+#include "logger.h"
 #include "status.h"
 #include "recovery.h"
 #include "rpp.h"
@@ -128,8 +129,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	char *(*apply)(char *word, char *rule, int split);
 
 	if (name) {
-		if (!(word_file = fopen(path_expand(name), "r")))
+		if (!(word_file = fopen(path_expand(name), "r"))) {
+			log_flush();
 			pexit("fopen: %s", path_expand(name));
+		}
 	} else
 		word_file = stdin;
 
@@ -159,6 +162,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
+
+	log_event("- wordlist mode");
 
 	crk_init(db, fix_state, NULL);
 

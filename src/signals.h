@@ -42,6 +42,6 @@ extern void sig_init(void);
 /*
  * Terminates the process if event_abort is set.
  */
-extern void check_abort(void);
+extern void check_abort(int be_async_signal_safe);
 
 #endif

@@ -14,6 +14,7 @@
 #include "signals.h"
 #include "formats.h"
 #include "loader.h"
+#include "logger.h"
 #include "status.h"
 #include "recovery.h"
 #include "config.h"
@@ -362,8 +363,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	if (!(file = fopen(path_expand(charset), "rb")))
+	if (!(file = fopen(path_expand(charset), "rb"))) {
+		log_flush();
 		pexit("fopen: %s", path_expand(charset));
+	}
 
 	header = (struct charset_header *)mem_alloc(sizeof(*header));
 
@@ -407,6 +410,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
+
+	log_event("- \"incremental\" mode");
 
 	ptr = header->order + (entry = rec_entry) * 3;
 	memcpy(numbers, rec_numbers, sizeof(numbers));

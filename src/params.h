@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.6.34"
+#define JOHN_VERSION			"1.6.34.1"
 
 /*
  * Is this a system-wide installation? *BSD ports and Linux distributions
@@ -72,12 +72,16 @@
 #if JOHN_SYSTEMWIDE
 #define CFG_PRIVATE_FULL_NAME		JOHN_PRIVATE_HOME "/john.conf"
 #define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
-#define LOG_NAME			JOHN_PRIVATE_HOME "/john.pot"
-#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/restore"
+#define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
+#define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
+#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john.rec"
 #else
-#define LOG_NAME			"$JOHN/john.pot"
-#define RECOVERY_NAME			"$JOHN/restore"
+#define POT_NAME			"$JOHN/john.pot"
+#define LOG_NAME			"$JOHN/john.log"
+#define RECOVERY_NAME			"$JOHN/john.rec"
 #endif
+#define LOG_SUFFIX			".log"
+#define RECOVERY_SUFFIX			".rec"
 #define WORDLIST_NAME			"$JOHN/password.lst"
 
 /*
@@ -206,8 +210,9 @@ extern int password_hash_thresholds[3];
 #define LINE_BUFFER_SIZE		0x400
 
 /*
- * Log file buffer size, can be zero.
+ * john.pot and log file buffer sizes, can be zero.
  */
+#define POT_BUFFER_SIZE			0x1000
 #define LOG_BUFFER_SIZE			0x1000
 
 /*

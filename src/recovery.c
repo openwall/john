@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -28,6 +28,7 @@ extern int ftruncate(int fd, size_t length);
 #include "recovery.h"
 
 char *rec_name = RECOVERY_NAME;
+static int rec_name_fixed = 0;
 int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
@@ -36,6 +37,20 @@ static int rec_fd;
 static FILE *rec_file = NULL;
 static struct db_main *rec_db;
 static void (*rec_save_mode)(FILE *file);
+
+static char *rec_name_complete(char *rec_name)
+{
+	char *result;
+
+	if (strchr(rec_name, '.')) return rec_name;
+
+	result = mem_alloc_tiny(strlen(rec_name) +
+		strlen(RECOVERY_SUFFIX) + 1, MEM_ALIGN_NONE);
+	strcpy(result, rec_name);
+	strcat(result, RECOVERY_SUFFIX);
+
+	return result;
+}
 
 #if defined(LOCK_EX) && OS_FLOCK
 static void rec_lock(void)
@@ -59,6 +74,9 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 	rec_done(1);
 
 	if (!rec_argc) return;
+
+	if (!rec_name_fixed)
+		rec_name = rec_name_complete(rec_name);
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
@@ -94,7 +112,7 @@ void rec_save(void)
 		fprintf(rec_file, "%s\n", *opt);
 
 	if (save_format)
-		fprintf(rec_file, "-format:%s\n",
+		fprintf(rec_file, "--format=%s\n",
 			rec_db->format->params.label);
 
 	fprintf(rec_file, "%u\n%u\n%08x\n%08x\n%d\n%d\n",
@@ -147,9 +165,16 @@ void rec_restore_args(int lock)
 	char **argv;
 	char *save_rec_name;
 
-	if (!(rec_file = fopen(path_expand(rec_name), "r+")))
-		pexit("fopen: %s", path_expand(rec_name));
+	if (!(rec_file = fopen(path_expand(rec_name), "r+"))) {
+		save_rec_name = rec_name;
+		rec_name = rec_name_complete(rec_name);
+		if (rec_name != save_rec_name)
+			rec_file = fopen(path_expand(rec_name), "r+");
+		if (!rec_file)
+			pexit("fopen: %s", path_expand(rec_name));
+	}
 	rec_fd = fileno(rec_file);
+	rec_name_fixed = 1;
 
 	if (lock) rec_lock();
 

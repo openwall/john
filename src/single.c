@@ -11,6 +11,7 @@
 #include "memory.h"
 #include "signals.h"
 #include "loader.h"
+#include "logger.h"
 #include "status.h"
 #include "recovery.h"
 #include "rpp.h"
@@ -98,6 +99,8 @@ static void single_init(void)
 
 	rec_restore_mode(restore_state);
 	rec_init(single_db, save_state);
+
+	log_event("- \"single crack\" mode");
 
 	salt = single_db->salts;
 	do {

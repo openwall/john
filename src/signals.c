@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2003 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -110,12 +110,17 @@ static void sig_remove_update(void)
 	signal(SIGHUP, SIG_IGN);
 }
 
-void check_abort(void)
+void check_abort(int be_async_signal_safe)
 {
-	if (event_abort) {
-		fprintf(stderr, "Session aborted\n");
-		error();
+	if (!event_abort) return;
+
+	if (be_async_signal_safe) {
+		write_loop(2, "Session aborted\n", 16);
+		_exit(1);
 	}
+
+	fprintf(stderr, "Session aborted\n");
+	error();
 }
 
 static void sig_install_abort(void);
@@ -128,11 +133,11 @@ static void sig_handle_abort(int signum)
 {
 	int saved_errno = errno;
 
-	check_abort();
+	check_abort(1);
 
 	event_abort = event_pending = 1;
 
-	fprintf(stderr, "Wait...\r");
+	write_loop(2, "Wait...\r", 8);
 
 #ifdef __CYGWIN32__
 	errno = saved_errno;
@@ -161,6 +166,9 @@ static void sig_install_abort(void)
 #ifdef SIGXCPU
 	signal(SIGXCPU, sig_handle_abort);
 #endif
+#ifdef SIGXFSZ
+	signal(SIGXFSZ, sig_handle_abort);
+#endif
 #endif
 }
 
@@ -168,6 +176,12 @@ static void sig_remove_abort(void)
 {
 	signal(SIGINT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
+#ifdef SIGXCPU
+	signal(SIGXCPU, SIG_DFL);
+#endif
+#ifdef SIGXFSZ
+	signal(SIGXFSZ, SIG_DFL);
+#endif
 }
 
 #ifdef __CYGWIN32__

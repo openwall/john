@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2003 by Solar Designer
  */
 
 /*
@@ -65,9 +65,9 @@
 #define FLG_STATUS_CHK			0x00040000
 #define FLG_STATUS_SET			(FLG_STATUS_CHK | FLG_ACTION)
 /* Make a charset */
-#define FLG_MAKECHARS_CHK		0x00100000
-#define FLG_MAKECHARS_SET \
-	(FLG_MAKECHARS_CHK | FLG_ACTION | FLG_PWD_SUP)
+#define FLG_MAKECHR_CHK			0x00100000
+#define FLG_MAKECHR_SET \
+	(FLG_MAKECHR_CHK | FLG_ACTION | FLG_PWD_SUP)
 /* Show cracked passwords */
 #define FLG_SHOW_CHK			0x00200000
 #define FLG_SHOW_SET \
@@ -95,6 +95,9 @@ struct options_main {
 
 /* Password file loader options */
 	struct db_options loader;
+
+/* Session name */
+	char *session;
 
 /* Ciphertext format name */
 	char *format;
