@@ -5,7 +5,7 @@ The following major changes have been done since John 1.6:
 * Bitslice DES code for x86 with MMX: more than twice faster on Intel MMX.
 * Bitsliced the LM hash code as well: now several times faster.
 * Generic Blowfish x86 assembly code in addition to the original Pentium
-version: +15% on the Pentium Pro family (up to Pentium III), +20% on AMD.
+version: +15% on the Pentium Pro family (up to Pentium III), +20% on AMD K6.
 * First attempt at vectorization support for bitslice DES.
 * Verbose logging of events to the global or a session-specific log file.
 * Better idle priority emulation with POSIX.1b (POSIX.4) scheduling calls.
