@@ -20,7 +20,7 @@ LDFLAGS = -s
 OPT_NORMAL = -funroll-loops
 OPT_INLINE = -finline-functions
 
-JOHN_VERSION = 1.6
+JOHN_VERSION = 1.6.33
 JOHN_ARCHIVE = john-$(JOHN_VERSION)
 
 JOHN_DIST = \
@@ -86,19 +86,20 @@ default:
 	@echo "linux-x86-mmx-elf        Linux, x86 with MMX, ELF binaries"
 	@echo "linux-x86-any-a.out      Linux, x86, a.out binaries"
 	@echo "linux-alpha              Linux, Alpha"
-	@echo "linux-sparc              Linux, SPARC"
+	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc                Linux, PowerPC"
 	@echo "freebsd-x86-any-elf      FreeBSD, x86, ELF binaries"
 	@echo "freebsd-x86-mmx-elf      FreeBSD, x86 with MMX, ELF binaries"
 	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
 	@echo "openbsd-x86-any          OpenBSD, x86"
-	@echo "openbsd-sparc            OpenBSD, SPARC"
+	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-vax              OpenBSD, VAX"
 	@echo "netbsd-vax               NetBSD, VAX"
-	@echo "solaris-sparc-gcc        Solaris, SPARC, gcc"
-	@echo "solaris-sparc-v8-cc      Solaris, SPARC V8, cc"
-	@echo "solaris-sparc-v9-cc      Solaris, SPARC V9, cc"
+	@echo "solaris-sparc-gcc        Solaris, SPARC 32-bit, gcc"
+	@echo "solaris-sparc64-gcc      Solaris, SPARC V9 64-bit, gcc"
+	@echo "solaris-sparc-v8-cc      Solaris, SPARC V8 32-bit, cc"
+	@echo "solaris-sparc-v9-cc      Solaris, SPARC V9 32-bit, cc"
 	@echo "solaris-x86-any          Solaris, x86, gcc"
 	@echo "sco-x86-any-gcc          SCO, x86, gcc, ELF binaries"
 	@echo "sco-x86-any-cc           SCO, x86, cc, ELF binaries"
@@ -264,6 +265,12 @@ spro-sparc.o: sparc.S
 	$(CPP) $(CPPFLAGS) sparc.S | $(SED) 's/% /%/g' > tmp.s
 	$(AS) $(ASFLAGS) tmp.s -o spro-sparc.o
 	$(RM) tmp.s
+
+solaris-sparc64-gcc:
+	$(LN) sparc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
+		LDFLAGS="-m64 -s -lrt"
 
 solaris-x86-any:
 	$(RM) arch.h
