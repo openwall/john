@@ -62,7 +62,7 @@ BENCH_OBJS = \
 	DES_bs.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	BF_fmt.o $(BENCH_BF_OBJS_DEPEND) \
-	bench.o best.o common.o config.o formats.o memory.o miscnl.o \
+	bench.o best.o common.o config.o formats.o math.o memory.o miscnl.o \
 	params.o path.o signals.o tty.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique
