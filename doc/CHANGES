@@ -1,4 +1,4 @@
-The following major changes have been done since John v1.6:
+The following major changes have been done since John 1.6:
 
 * Two MD5 hashes at a time for extra ILP on RISC: up to +80% on Alpha EV5.
 * Significant improvements to the generic bitslice DES code: +20% on RISC.

@@ -275,7 +275,7 @@ char *rules_apply(char *word, char *rule, int split)
 		in[RULE_WORD_SIZE - 1] = 0;
 
 		switch (LAST) {
-/* Crack v4.1 rules */
+/* Crack 4.1 rules */
 		case ':':
 		case ' ':
 		case '\t':
@@ -425,7 +425,7 @@ char *rules_apply(char *word, char *rule, int split)
 			out = in;
 			break;
 
-/* Crack v5.0 rules */
+/* Crack 5.0 rules */
 		case '[':
 			if (in[0]) strcpy(out, &in[1]); else out[0] = 0;
 			break;
