@@ -20,16 +20,6 @@ LDFLAGS = -s
 OPT_NORMAL = -funroll-loops
 OPT_INLINE = -finline-functions
 
-JOHN_VERSION = 1.6.34
-JOHN_ARCHIVE = john-$(JOHN_VERSION)
-
-JOHN_DIST = \
-	$(JOHN_ARCHIVE)/src/*.{c,h,S,sh,asm,com,diff} \
-	$(JOHN_ARCHIVE)/src/Makefile{,.dep} \
-	$(JOHN_ARCHIVE)/run/{mailer,john.conf,*.chr,password.lst} \
-	$(JOHN_ARCHIVE)/doc/* \
-	$(JOHN_ARCHIVE)/README
-
 JOHN_OBJS_MINIMAL = \
 	DES_fmt.o DES_std.o DES_bs.o \
 	BSDI_fmt.o \
@@ -526,13 +516,5 @@ clean:
 	$(RM) ../run/john.exe *.o *.bak core
 	$(RM) detect bench generic.h arch.h sparc.h tmp.s DES_bs_s.c
 	$(CP) $(NULL) Makefile.dep
-
-dist:
-	$(MAKE) clean
-	cd ../..; \
-	chmod 600 $(JOHN_DIST); \
-	chmod 700 $(JOHN_ARCHIVE)/src/*.sh $(JOHN_ARCHIVE)/run/mailer; \
-	touch $(JOHN_DIST); \
-	tar czf $(JOHN_ARCHIVE)/$(JOHN_ARCHIVE).tar.gz $(JOHN_DIST)
 
 include Makefile.dep
