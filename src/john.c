@@ -75,13 +75,13 @@ static void john_log_format(void)
 {
 	int min_chunk, chunk;
 
-	log_event("- Hash type: %s (lengths up to %d%s)",
+	log_event("- Hash type: %.100s (lengths up to %d%s)",
 		database.format->params.format_name,
 		database.format->params.plaintext_length,
 		database.format->methods.split != fmt_default_split ?
 		", longer passwords split" : "");
 
-	log_event("- Algorithm: %s",
+	log_event("- Algorithm: %.100s",
 		database.format->params.algorithm_name);
 
 	chunk = min_chunk = database.format->params.max_keys_per_crypt;

@@ -75,7 +75,7 @@ static void fix_state(void)
 
 static void inc_format_error(char *charset)
 {
-	log_event("! Incorrect charset file format: %s", charset);
+	log_event("! Incorrect charset file format: %.100s", charset);
 	fprintf(stderr, "Incorrect charset file format: %s\n", charset);
 	error();
 }
@@ -335,7 +335,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			mode = "All";
 	}
 
-	log_event("Proceeding with \"incremental\" mode: %s", mode);
+	log_event("Proceeding with \"incremental\" mode: %.100s", mode);
 
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
 		log_event("! No charset defined");

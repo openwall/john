@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2003 by Solar Designer
  */
 
 #include <stdio.h>
@@ -145,7 +145,7 @@ void do_external_crack(struct db_main *db)
 	unsigned char *internal;
 	c_int *external;
 
-	log_event("Proceeding with external mode: %s", ext_mode);
+	log_event("Proceeding with external mode: %.100s", ext_mode);
 
 	if (!f_generate) {
 		log_event("! No generate() function defined");

@@ -110,6 +110,7 @@ static void single_init(void)
 		single_alloc_keys(&salt->keys);
 	} while ((salt = salt->next));
 
+	if (key_count > 1)
 	log_event("- Allocated %d buffer%s of %d candidate passwords%s",
 		single_db->salt_count,
 		single_db->salt_count != 1 ? "s" : "",
@@ -309,16 +310,16 @@ static void single_run(void)
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
 		if (!(rule = rules_reject(prerule, single_db))) {
-			log_event("- Rule #%d: '%s' rejected",
+			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
 			continue;
 		}
 
 		if (strcmp(prerule, rule))
-			log_event("- Rule #%d: '%s' accepted as '%s'",
+			log_event("- Rule #%d: '%.100s' accepted as '%s'",
 				rule_number + 1, prerule, rule);
 		else
-			log_event("- Rule #%d: '%s' accepted",
+			log_event("- Rule #%d: '%.100s' accepted",
 				rule_number + 1, prerule);
 
 		if (saved_min != rec_rule) {
