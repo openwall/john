@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004 by Solar Designer
  */
 
 #include <stdio.h>
@@ -139,12 +139,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (name) {
 		if (!(word_file = fopen(path_expand(name), "r")))
 			pexit("fopen: %s", path_expand(name));
-	} else
+		log_event("- Wordlist file: %.100s", path_expand(name));
+	} else {
 		word_file = stdin;
+		log_event("- Reading candidate passwords from stdin");
+	}
 
 	length = db->format->params.plaintext_length;
-
-	log_event("- Wordlist file: %.100s", path_expand(name));
 
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, SUBSECTION_WORDLIST)) {
