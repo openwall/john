@@ -1,9 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2002 by Solar Designer
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -171,6 +172,13 @@ static void john_init(int argc, char **argv)
 #if CPU_DETECT
 	if (!CPU_detect()) {
 #if CPU_REQ
+#if CPU_FALLBACK
+#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#error CPU_FALLBACK is incompatible with the current DOS and Win32 code
+#endif
+		execv(JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY, argv);
+		perror("execv");
+#endif
 		fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
 		error();
 #endif

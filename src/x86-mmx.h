@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2002 by Solar Designer
  */
 
 /*
@@ -30,6 +30,12 @@
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_NAME			"MMX"
+#ifndef CPU_FALLBACK
+#define CPU_FALLBACK			0
+#endif
+#if CPU_FALLBACK
+#define CPU_FALLBACK_BINARY		"john-non-mmx"
+#endif
 
 #define DES_ASM				1
 #define DES_128K			0
