@@ -60,7 +60,7 @@ DES_bs_all_B:
 DES_bs_all_tmp:
 .space (16 * 8)
 DES_bs_all_fields_not_used_here:
-.space (0x100 + 16 + 0x100 + 4 + 4 + 64 * 8)
+.space (0x400 + 0x100 + 4 + 4 + 64 * 8)
 DES_bs_all_possible_alignment_gaps:
 .space 0x100
 
