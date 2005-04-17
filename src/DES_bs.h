@@ -59,8 +59,7 @@ typedef struct {
 #if DES_BS_ASM
 	DES_bs_vector tmp[16];	/* Miscellaneous temporary storage */
 #endif
-	unsigned char s1[0x100];	/* Shift counts past the 1st bit */
-	char cache_bank_shift[16];
+	unsigned int s1[0x100];	/* Byte offsets past the 1st bit */
 	unsigned char s2[0x100];	/* Shift counts past the 2nd bit */
 	int KS_updates;		/* Key schedule updates counter */
 	int keys_changed;	/* If keys have changed since last expand */
