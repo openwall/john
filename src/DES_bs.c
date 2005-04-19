@@ -210,20 +210,21 @@ void DES_bs_set_key(char *key, int index)
 			} while (xor);
 		}
 
-		if (*new) new++;
+		new++;
 		old++;
 		k = kbase + 7;
 	}
 
 	while (*old && k < &DES_bs_all.K[55]) {
 		kbase = k;
-		xor = *old;
+		xor = *old & 0x7F; /* Note: this might result in xor == 0 */
 		*old++ = 0;
 		do {
 			s1 = DES_bs_all.s1[xor];
 			s2 = DES_bs_all.s2[xor];
-			xor >>= s2;
 			*(ARCH_WORD *)((char *)k + s1) ^= mask;
+			if (s2 > 8) break; /* Required for xor == 0 */
+			xor >>= s2;
 			k[s2] START ^= mask;
 			k += s2;
 			if (!xor) break;
