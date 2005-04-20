@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -668,11 +668,15 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		} while ((current = current->next));
 
 		if (pass) {
-			chars = format->params.plaintext_length;
-
-			if (current && show && index < count - 1)
-			if ((int)strlen(current->plaintext) != chars)
-				current = NULL;
+			/* "index < count - 1" implies that count is at
+			 * least 2 and thus format can't be NULL. */
+			chars = 0;
+			if (show && index < count - 1) {
+				chars = format->params.plaintext_length;
+				if (current &&
+				    (int)strlen(current->plaintext) != chars)
+					current = NULL;
+			}
 
 			if (current) {
 				if (show) {
@@ -683,10 +687,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 				db->guess_count++;
 			} else
-			if (show)
-			do {
+			while (chars--)
 				putchar('?');
-			} while (--chars);
 		} else
 		if (current) {
 			found = 1;
