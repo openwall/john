@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -16,6 +16,15 @@ struct shadow_entry {
 };
 
 static struct shadow_entry **shadow_table;
+
+static void alloc_hash(void)
+{
+	int size;
+
+	size = SHADOW_HASH_SIZE * sizeof(struct shadow_entry *);
+	shadow_table = (struct shadow_entry **)mem_alloc(size);
+	memset(shadow_table, 0, size);
+}
 
 static int login_hash(char *login)
 {
@@ -125,9 +134,7 @@ int unshadow(int argc, char **argv)
 			error();
 	}
 
-	shadow_table = (struct shadow_entry **)
-		mem_alloc(SHADOW_HASH_SIZE * sizeof(struct shadow_entry *));
-	memset(shadow_table, 0, sizeof(shadow_table));
+	alloc_hash();
 
 	read_file(argv[2], process_shadow_line);
 	read_file(argv[1], process_passwd_line);
