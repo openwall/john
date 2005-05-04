@@ -36,6 +36,7 @@ DES_bs_combined CC_CACHE_ALIGN DES_bs_all;
 #define DES_bs_clear_block() \
 { \
 	altivec zero; \
+/* This may produce an "uninitialized" warning */ \
 	zero = vec_xor(zero, zero); \
 	DES_bs_clear_block_8(0); \
 	DES_bs_clear_block_8(8); \
@@ -277,6 +278,7 @@ void DES_bs_crypt_LM(void)
 	ARCH_WORD **k;
 	int rounds;
 
+/* This may produce an "uninitialized" warning */
 	zero = vec_xor(zero, zero);
 	ones = vec_nor(zero, zero);
 	DES_bs_clear_block_8(0);
