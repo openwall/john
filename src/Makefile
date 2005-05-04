@@ -400,7 +400,7 @@ macosx-ppc32-altivec-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -finline-limit=4000"
 
-# This slightly is slower than macosx-ppc32-altivec-cc for most hash types.
+# This is slightly slower than macosx-ppc32-altivec-cc for most hash types.
 macosx-ppc64-altivec-cc:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
@@ -412,7 +412,7 @@ macosx-ppc64-altivec-cc:
 		OPT_INLINE="-O3 -finline-limit=4000"
 
 ppc-alti.o: ppc-alti.c DES_bs_a.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec ppc-alti.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
