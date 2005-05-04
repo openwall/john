@@ -84,6 +84,10 @@ default:
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
+	@echo "linux-ppc64              Linux, PowerPC 64-bit"
+	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec"
+#	@echo "linux-ppc32-altivec      Linux, PowerPC 32-bit w/AltiVec"
+#	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "freebsd-x86-any-elf      FreeBSD, x86, ELF binaries"
 	@echo "freebsd-x86-mmx-elf      FreeBSD, x86 with MMX, ELF binaries"
 	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries"
@@ -180,6 +184,28 @@ use-linux-sparc:
 linux-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ)
+
+linux-ppc64:
+	$(LN) ppc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64" \
+		OPT_INLINE="-finline-functions -finline-limit=4000"
+
+linux-ppc32-altivec:
+	$(LN) ppc32alt.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		OPT_INLINE="-finline-functions -finline-limit=4000"
+
+# This is slightly slower than linux-ppc32-altivec for most hash types.
+linux-ppc64-altivec:
+	$(LN) ppc64alt.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		CFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64" \
+		OPT_INLINE="-finline-functions -finline-limit=4000"
 
 freebsd-x86-any-elf:
 	$(LN) x86-any.h arch.h
