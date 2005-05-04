@@ -175,9 +175,6 @@ void DES_bs_crypt_25(void)
 	ARCH_WORD **k;
 #endif
 	int iterations, rounds_and_swapped;
-#if DES_BS_VECTOR
-	int depth;
-#endif
 
 	DES_bs_clear_block();
 
