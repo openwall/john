@@ -7,6 +7,8 @@
 #include "common.h"
 #include "DES_bs.h"
 
+#include <altivec.h>
+
 typedef vector signed int altivec;
 
 /* Include the S-boxes here, so that the compiler can inline them */
