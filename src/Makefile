@@ -208,7 +208,7 @@ linux-ppc64-altivec:
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 
 ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c -o $@
 
 freebsd-x86-any-elf:
 	$(LN) x86-any.h arch.h
@@ -441,7 +441,7 @@ macosx-ppc64-altivec-cc:
 		OPT_INLINE="-fast -finline-limit=4000"
 
 ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
