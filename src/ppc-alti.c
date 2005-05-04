@@ -7,7 +7,9 @@
 #include "common.h"
 #include "DES_bs.h"
 
+#ifdef __linux__
 #include <altivec.h>
+#endif
 
 typedef vector signed int altivec;
 
