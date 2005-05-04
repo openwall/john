@@ -105,7 +105,7 @@ default:
 	@echo "tru64-alpha-cc           Tru64 (Digital UNIX, OSF/1), Alpha, cc"
 	@echo "aix-ppc32-cc             AIX, PowerPC 32-bit, cc"
 	@echo "macosx-ppc32-cc          Mac OS X, PowerPC 32-bit, cc"
-#	@echo "macosx-ppc64-cc          Mac OS X, PowerPC 64-bit, cc"
+	@echo "macosx-ppc64-cc          Mac OS X 10.4+, PowerPC 64-bit, cc"
 	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC w/AltiVec, cc"
 #	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC 32-bit w/AltiVec, cc"
 #	@echo "macosx-ppc64-altivec-cc  Mac OS X, PowerPC 64-bit w/AltiVec, cc"
@@ -386,7 +386,8 @@ macosx-ppc64-cc:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp -mcpu=G5 -mpowerpc64" \
+		CFLAGS="-c -traditional-cpp -m64" \
+		LDFLAGS="-s -m64" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -finline-limit=4000"
 
@@ -399,12 +400,14 @@ macosx-ppc32-altivec-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -finline-limit=4000"
 
+# This slightly is slower than macosx-ppc32-altivec-cc for most hash types.
 macosx-ppc64-altivec-cc:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp -mcpu=G5 -mpowerpc64" \
+		CFLAGS="-c -traditional-cpp -m64" \
+		LDFLAGS="-s -m64" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -finline-limit=4000"
 
