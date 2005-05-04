@@ -195,17 +195,20 @@ linux-ppc64:
 linux-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-linux.o" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 
 # This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-linux.o" \
 		CFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
+
+ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c
 
 freebsd-x86-any-elf:
 	$(LN) x86-any.h arch.h
@@ -412,33 +415,33 @@ macosx-ppc64-cc:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp -m64" \
+		CFLAGS="-c -Wall -fomit-frame-pointer -m64" \
 		LDFLAGS="-s -m64" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3 -finline-limit=4000"
+		OPT_NORMAL="-fast" \
+		OPT_INLINE="-fast -finline-limit=4000"
 
 macosx-ppc32-altivec-cc:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3 -finline-limit=4000"
+		CFLAGS="-c -Wall -fomit-frame-pointer" \
+		OPT_NORMAL="-fast -mcpu=7450" \
+		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 
 # This is slightly slower than macosx-ppc32-altivec-cc for most hash types.
 macosx-ppc64-altivec-cc:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti.o" \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp -m64" \
+		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
 		LDFLAGS="-s -m64" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3 -finline-limit=4000"
+		OPT_NORMAL="-fast" \
+		OPT_INLINE="-fast -finline-limit=4000"
 
-ppc-alti.o: ppc-alti.c DES_bs_a.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c
+ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
+	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
