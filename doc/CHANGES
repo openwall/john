@@ -3,7 +3,7 @@ The following major changes have been made since John 1.6:
 * Bitslice DES code for x86 with MMX: more than twice faster on Intel MMX.
 * Bitsliced the LM hash code as well: now several times faster.
 * Significant improvements to the generic bitslice DES code: +20% on RISC.
-* PowerPC G4+ AltiVec support (Mac OS X only for now): effective 128-bitness
+* PowerPC G4+ AltiVec support (Mac OS X and Linux): effective 128-bitness
 for bitslice DES, resulting in huge speedups.
 * First attempt at generic vectorization support for bitslice DES.
 * Two MD5 hashes at a time for extra ILP on RISC: up to +80% on Alpha EV5.
