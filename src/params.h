@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.6.38"
+#define JOHN_VERSION			"1.6.38.1"
 
 /*
  * Is this a system-wide installation? *BSD ports and Linux distributions
@@ -191,7 +191,7 @@ extern int password_hash_thresholds[3];
 /*
  * Maximum number of character ranges for rules.
  */
-#define RULE_RANGES_MAX			8
+#define RULE_RANGES_MAX			16
 
 /*
  * Buffer size for words while applying rules, should be at least as large
