@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001 by Solar Designer and others:
+ * Copyright (c) 2000-2001,2005 by Solar Designer and others:
  *
  * The MMX DES S-box code is by Bruce Ford and Rémi Guyomarch, originally
  * for use in the distributed.net clients, included here with permission.
