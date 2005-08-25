@@ -117,6 +117,6 @@ they will be added, but considered the least probable.
 
 	Defining an external mode.
 
-See doc/EXTERNAL.
+See EXTERNAL.
 
-$Id$
+$Id: CONFIG,v 1.1 2005/08/25 04:49:04 solar Exp $
