@@ -31,7 +31,7 @@ not need to bother about some wordlist entries being longer than the
 maximum supported password length for the hash type you're cracking.
 To give an example, for traditional DES-based crypt(3) hashes only
 the first 8 characters of passwords are significant.  This means that
-if there're two or more candidate passwords in the wordlist whose
+if there are two or more candidate passwords in the wordlist whose
 first 8 characters are exactly the same, they're effectively the same
 8 character long candidate password which only needs to be tried once.
 As long as the wordlist is sorted alphabetically, John is smart enough
@@ -108,4 +108,4 @@ particular external mode on John's command line.  See EXTERNAL.
 
 See EXAMPLES for a reasonable order of cracking modes to use.
 
-$Id$
+$Id: MODES,v 1.1 2004/06/19 16:53:39 solar Exp $

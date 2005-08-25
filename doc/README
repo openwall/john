@@ -2,7 +2,7 @@ This is a development version of John the Ripper, not an official
 release.  There's currently no complete up-to-date documentation.  You
 should be familiar with John 1.6 to use this.
 
-There're no charset files included with development versions of John.
+There are no charset files included with development versions of John.
 You're supposed to take them from John 1.6 distribution.
 
 -- 
@@ -96,7 +96,7 @@ Instead, it has its own highly optimized modules for different hash
 types and processor architectures.  Some of the algorithms used, such
 as bitslice DES, couldn't have been implemented within the crypt(3)
 API; they require a more powerful interface such as the one used in
-John.  Additionally, there're assembly language routines for several
+John.  Additionally, there are assembly language routines for several
 processor architectures, most importantly for x86 with MMX.
 
 
@@ -119,4 +119,4 @@ CREDITS		- credits and how to contact the author
 
 Happy reading!
 
-$Id: README,v 1.3 2004/06/15 11:30:23 solar Exp $
+$Id: README,v 1.4 2004/06/19 16:48:33 solar Exp $
