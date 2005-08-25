@@ -1,0 +1,189 @@
+	Wordlist rules syntax.
+
+Each wordlist rule consists of optional rule reject flags followed by
+one or more simple commands, listed all on one line and optionally
+separated with spaces.  There's also a preprocessor, which generates
+multiple rules for a single source line.  Below you will find
+descriptions of the rule reject flags, the rule commands (many of them
+are compatible with those of Crack 5.0a), and the preprocessor syntax.
+
+
+	Rule reject flags.
+
+-c	reject this rule unless current hash type is case-sensitive
+-8	reject this rule unless current hash type uses 8-bit characters
+-s	reject this rule unless some passwords were split at loading
+
+
+	Character position codes.
+
+Character positions are numbered starting with 0, and specified in rules
+with the following characters:
+
+0...9	for 0...9
+A...Z	for 10...35
+*	for max_length
+-	for (max_length - 1)
++	for (max_length + 1)
+
+Here max_length is the maximum plaintext length supported for the
+current hash type.
+
+The same characters are also used for specifying other numeric
+parameters.
+
+
+	Character classes.
+
+??	matches "?"
+?v	matches vowels: "aeiouAEIOU"
+?c	matches consonants: "bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ"
+?w	matches whitespace: space and horizontal tabulation characters
+?p	matches punctuation: ".,:;'?!`" and the double quote character
+?s	matches symbols "$%^&*()-_+=|\<>[]{}#@/~"
+?l	matches lowercase letters [a-z]
+?u	matches uppercase letters [A-Z]
+?d	matches digits [0-9]
+?a	matches letters [a-zA-Z]
+?x	matches letters and digits [a-zA-Z0-9]
+
+The complement of a class can be specified by uppercasing its name.  For
+example, "?D" matches everything but digits.
+
+
+	Simple commands.
+
+:	no-op: do nothing to the input word
+l	convert to lowercase
+u	convert to uppercase
+c	capitalize
+C	lowercase the first character, and uppercase the rest
+t	toggle case of all characters in the word
+TN	toggle case of the character in position N
+r	reverse: "Fred" -> "derF"
+d	duplicate: "Fred" -> "FredFred"
+f	reflect: "Fred" -> "FredderF"
+{	rotate the word left: "jsmith" -> "smithj"
+}	rotate the word right: "smithj" -> "jsmith"
+$X	append character X to the word
+^X	prefix the word with character X
+
+
+	Length control commands.
+
+<N	reject the word unless it is less than N characters long
+>N	reject the word unless it is greater than N characters long
+'N	truncate the word at length N
+
+
+	English grammar commands.
+
+p	pluralize: "crack" -> "cracks", etc. (lowercase only)
+P	"crack" -> "cracked", etc. (lowercase only)
+I	"crack" -> "cracking", etc. (lowercase only)
+
+
+	Insert/delete commands.
+
+[	delete the first character
+]	delete the last character
+DN	delete the character in position N
+xNM	extract substring from position N for up to M characters
+iNX	insert character X in position N and shift the rest right
+oNX	overstrike character in position N with character X
+
+Note that square brackets ("[" and "]") are special characters to the
+preprocessor: you should escape them with a backslash ("\") if using
+these commands.
+
+
+	Charset conversion commands.
+
+S	shift case: "Crack96" -> "cRACK(^"
+V	lowercase vowels, uppercase consonants: "Crack96" -> "CRaCK96"
+R	shift each character right, by keyboard: "Crack96" -> "Vtsvl07"
+L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
+
+
+	Memory access commands.
+
+M	memorize the word
+Q	reject the word unless it has changed
+
+
+	Character class commands.
+
+sXY	replace all characters X in the word with Y
+s?CY	replace all characters of class C in the word with Y
+@X	purge all characters X from the word
+@?C	purge all characters of class C from the word
+!X	reject the word if it contains character X
+!?C	reject the word if it contains a character in class C
+/X	reject the word unless it contains character X
+/?C	reject the word unless it contains a character in class C
+=NX	reject the word unless character in position N is equal to X
+=N?C	reject the word unless character in position N is in class C
+(X	reject the word unless its first character is X
+(?C	reject the word unless its first character is in class C
+)X	reject the word unless its last character is X
+)?C	reject the word unless its last character is in class C
+%NX	reject the word unless it contains at least N instances of X
+%N?C	reject the word unless it contains at least N characters of class C
+
+
+	Extra "single crack" mode commands.
+
+When defining "single crack" mode rules, extra commands are available
+for word pairs support, to control if other commands are applied to the
+first, the second, or to both words:
+
+1	first word only
+2	second word only
++	the concatenation of both (should only be used after a "1" or "2")
+
+If you use some of the above commands in a rule, it will only process
+word pairs (e.g., full names from the GECOS field) and reject single
+words.  A "+" is assumed at the end of any rule that uses some of these
+commands, unless you specify it manually.  For example, "1l2u" will
+convert the first word to lowercase, the second one to uppercase, and
+use the concatenation of both.  The use for a "+" might be to apply some
+more commands: "1l2u+r" will reverse the concatenation of both words,
+after applying some commands to them separately.
+
+
+	The rule preprocessor.
+
+The preprocessor is used to combine similar rules into one source line.
+For example, if you need to make John try lowercased words with digits
+appended, you could write a rule for each digit, 10 rules total.  Now
+imagine appending two-digit numbers, -- the configuration file would get
+large and ugly.
+
+With the preprocessor you can do these things easier.  Simply write one
+source line containing the common part of these rules followed by the
+list of characters you would have put into separate rules, in square
+brackets (the way you would do in a regexp).  The preprocessor will then
+generate the rules for you (at John startup for syntax checking, and
+once again while cracking, but never keeping all the expanded rules in
+memory).  For the examples above, the source lines will be "l$[0-9]"
+(lowercase and append a digit) and "l$[0-9]$[0-9]" (lowercase and append
+two digits).  These source lines will be expanded to 10 and 100 rules,
+respectively.  By the way, preprocessor commands are processed
+right-to-left while character lists are processed left-to-right, which
+results in normal ordering of numbers in the above examples and in other
+typical cases.  Note that arbitrary combinations of character ranges
+and character lists are valid.  For example, "[aeiou]" will use vowels
+and "[aeiou0-9]" will use vowels and digits.  If you need to have John
+try vowels followed by all other letters, you can use "[aeioua-z]", --
+the preprocessor is smart enough to not produce duplicate rules in such
+cases.
+
+There are some special characters in rules ("[" starts a preprocessor
+character list, "-" marks a range inside the list, etc.)  You should
+prefix them with a backslash ("\") if you want to put them inside a rule
+without using their special meaning.  Of course, the same applies to "\"
+itself.  Also, if you need to start a preprocessor character list at the
+very beginning of a line, you'll have to prefix it with a ":" (the no-op
+rule command), or it would be treated as a new section start.
+
+$Id$
