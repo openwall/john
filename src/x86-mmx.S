@@ -1041,7 +1041,8 @@ DES_bs_all_possible_alignment_gaps:
 
 DO_ALIGN(3)
 mm_ones:
-.quad -1
+.long -1
+.long -1
 
 .text
 
