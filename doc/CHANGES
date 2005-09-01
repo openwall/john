@@ -15,6 +15,7 @@ version: +15% on the Pentium Pro family (up to Pentium III), +20% on AMD K6
 * System-wide installation support for *BSD ports and Linux distributions.
 * AIX, DU/Tru64 C2, HP-UX tcb files support in unshadow.
 * New make targets for Linux/x86-64, Linux/PowerPC, FreeBSD/Alpha, SCO,
-OpenBSD/SPARC, OpenBSD/VAX, NetBSD/VAX, Solaris/SPARC64, Mac OS X, BeOS.
+OpenBSD/SPARC, OpenBSD/VAX, NetBSD/VAX, Solaris/SPARC64, Mac OS X (PowerPC
+and x86), BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).

@@ -113,6 +113,7 @@ default:
 	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC w/AltiVec, cc"
 #	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC 32-bit w/AltiVec, cc"
 #	@echo "macosx-ppc64-altivec-cc  Mac OS X, PowerPC 64-bit w/AltiVec, cc"
+	@echo "macosx-x86-mmx-cc        Mac OS X, x86 with MMX, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
@@ -442,6 +443,16 @@ macosx-ppc64-altivec-cc:
 
 ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
+
+macosx-x86-mmx-cc:
+	$(LN) x86-mmx.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -traditional-cpp" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3"
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
