@@ -1,0 +1,87 @@
+	John the Ripper credits.
+
+John the Ripper has been developed and is maintained by Solar Designer.
+
+I'd like to thank the following people for their direct or indirect help
+in making John what it is now:
+
+* Matthew Kwan --
+	for producing and letting everyone use his DES S-boxes files
+	(nonstd.c and sboxes.c):
+	http://www.darkside.com.au/bitslice/
+
+* Eli Biham --
+	for great "bitslice" paper:
+	http://www.cs.technion.ac.il/~biham/Reports/cs0891.ps.gz
+
+* Roman Rusakov --
+	for his optimization hints which affected early versions of John
+
+* Lionel Cons --
+	for making me add the Kerberos AFS passwords support, reporting
+	some bugs, and for many good advices
+
+* stran9er --
+	for tracking down the section alignment problem with MMX in the
+	DOS and Win32 ports
+
+* All the people who have developed freeware crypt(3) implementations --
+	for various tricks that I combined in my routines
+
+* Niels Provos and Poul-Henning Kamp --
+	for original Blowfish-based and MD5-based crypt(3), respectively,
+	that my implementations are compatible with
+
+* Alec Muffett --
+	for the original wordlist rules syntax
+
+* The SOrCErEr --
+	for proving the large charsets are worth implementing, and for
+	introducing "-groups" in his cracker
+
+* Jackal --
+	for the format of john.pot and part of the user interface
+
+* Anton Ertl --
+	for "Labels as Values" optimization that I use in compiler.c:
+	http://www.complang.tuwien.ac.at/papers/ertl96diss.ps.gz
+
+* The developers of Cygwin --
+	for Cygwin (at the time called Cygnus Developer's Kit) that I
+	used for the Win32 port:
+	http://www.cygwin.com
+
+* DJ Delorie --
+	for DJGPP that I used for the DOS port:
+	http://www.delorie.com/djgpp/
+
+* Charles W Sandmann --
+	for the the DPMI server that I use for the DOS port
+
+
+	Author contact information.
+
+John the Ripper homepage is located at:
+
+	http://www.openwall.com/john/
+
+There you will find instructions on joining the john-users mailing list.
+You will also be able to browse archives of past discussions.  Please
+share your experience with using John the Ripper and ask questions
+(preferably advanced ones) on the list.  Be sure to specify an
+informative message subject whenever you post to the list (that is,
+something better than "question" or "problem").  If you need to provide
+a binary file, place it on a private URL and post that, do not attach
+the file to your message.
+
+If you need to contact me privately, please e-mail me at the address
+below, but most messages should really be directed to the list instead.
+
+Please don't ask questions until you read the FAQ.
+
+-- 
+Alexander Peslyak <solar at openwall.com>
+GPG key ID: B35D3598  fp: 6429 0D7E F130 C13E C929  6447 73C3 A290 B35D 3598
+http://www.openwall.com - bringing security into open computing environments
+
+$Id$
