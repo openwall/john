@@ -1,0 +1,133 @@
+	John the Ripper FAQ.
+
+Q: How do I start John, use a specific cracking mode, see the passwords
+it cracked, etc?
+A: See EXAMPLES. :-)
+
+Q: How do I "unshadow"?
+A: See EXAMPLES on how to combine your passwd and shadow files.  If you
+don't have root access, there's no answer for you here. :-)
+
+Q: Where do I get wordlists for use with John?
+A: http://www.openwall.com/wordlists/
+
+Q: Why doesn't John load my password file?  It says "No password hashes
+loaded".
+A: Your password file might be shadowed.  You need to get both
+/etc/passwd and the shadow file, and combine them into one file for use
+with John.  Please refer to EXAMPLES.  As the system administrator,
+you're supposed to know the name and location of your shadow file.
+A: All of the password hashes found in the file (that John recognizes as
+such) might be already cracked by previous invocations of John.
+A: The file you're trying to run John on might in fact not be a password
+file at all.
+A: Your password file format or hash type(s) might not be supported by
+John, or at least by the version and build of John that you're using.
+If you're positive that this is the case, you may want to check the
+contributed resources list on John the Ripper homepage for a suitable
+patch and, if unsuccessful with that, post a note to the mailing list
+(see CREDITS) including a sample password file line that John does not
+load (please make sure that the password is already changed by the time
+you post).
+
+Q: I've recently switched my system to MD5-based (or Blowfish-based)
+password hashes, but there are still some DES-based hashes in the
+password file.  How do I handle multiple hash types in one file?
+A: Use the "--format=..." option to tell John which hashes you would
+like it to load.  Unfortunately, you will have to run John for each hash
+type separately.  See OPTIONS.
+
+Q: I have 10 users, but John said it loaded 15 password hashes.  What's
+going on?
+A: Some extremely poorly designed hash types (Windows NT LM hashes and
+double-length DES-based crypt(3) hashes also known as "bigcrypt" or
+"crypt16") have a property that allows John to split their encodings
+into two separate hashes (corresponding to halves of plaintext
+passwords) on load.  John then proceeds to crack those hashes
+separately, so at a given time it may have only one of two halves of
+some passwords cracked.  If interrupted and restarted, it would need to
+only load the hashes which correspond to uncracked password halves, so
+the number of such hashes is what John reports (in all cases, for
+consistency).
+
+Q: Why doesn't John display a progress indicator for the "incremental"
+mode?
+A: Do you really want to see a 0% all the time?  As explained in MODES,
+"incremental" mode is not supposed to terminate in a reasonable time.
+(There are a few exceptions to this, so a progress indicator might be
+added at some point.)
+
+Q: Why does John display meaningless c/s values while cracking, instead
+of real "crypts per second" rate?
+A: The values displayed by John mean combinations (of username and
+password) per second, not crypts per second.  This is the effective
+cracking speed that you get on a particular set of password hashes, and
+it may be useful, for example, to tune the "--salts=..." threshold and
+other settings.  If you want a benchmark of the low-level password
+hashing routines only, use "--test".  (Future versions of John the
+Ripper might report effective and raw c/s rates for different time
+intervals.  These won't fit on the current status line, though.)
+
+Q: I just noticed that the c/s rate reported while using "incremental"
+mode is a lot lower than it is with other cracking modes.  Why?
+A: You're probably running John for a few seconds only.  The current
+"incremental" mode implementation uses large character sets which need
+to be expanded into even larger data structures in memory each time John
+switches to a different password length.  Fortunately, this is only
+noticeable when John has just started since the length switches become
+rare after a few minutes.  For long-living sessions, which is where we
+care about performance the most, this overhead is negligible.  This is a
+very low price for the better order of candidate passwords tried.
+
+Q: How can I test John's password hashing routines for proper operation?
+A: John always performs a self-test when you run it on a password file
+and refuses to work if an error occurs.  If you need to test all of the
+low-level routines at once, use "--test".
+
+Q: Does John support multi-processing or distributed processing?
+A: There's no real MP or distributed processing support in John right
+now, but you can distribute the work between a few nodes manually.  One
+approach would be to have your nodes (CPUs, machines) each try different
+password lengths.  This is easily accomplished with "incremental" mode's
+"MinLen" and "MaxLen" settings (see CONFIG).  Typically, you would not
+really need to split the work for "single crack" and wordlist modes
+since these are relatively quick, although you may dedicate one node to
+those initially.  You may safely run multiple instances of John in the
+same working directory, all writing to the same "pot file" (this is a
+feature).  You do, however, need to assign each of them a unique session
+name, with "--session".  Other approaches, such as splitting password
+files or splitting wordlists, are typically less efficient (in some
+cases a lot less efficient).
+
+Q: Is John the Ripper better than Crack?
+A: I think so, but I am biased.  John is much faster, has many password
+hash types supported out of the box and even more with contributed
+patches, has "incremental" mode (try all possible candidate passwords in
+order of decreasing estimated probability) and other features not found
+in Crack, and is natively available on more platforms.  However, one
+feature that is currently unique to Crack is its DAWG (Directed Acyclic
+Word Graphs) wordlist compression, which saves disk space needed to
+store wordlists.
+
+Q: Is John the Ripper better than L0phtCrack?
+A: In some aspects, yes (but I am biased).  John runs on many platforms.
+For example, you can have it crack Windows passwords while running on
+Linux or Mac OS X on PowerPC (and it will take advantage of AltiVec
+acceleration there!)  L0phtCrack only runs on Windows.  John's
+performance at Windows NT LM hashes (case-insensitive, DES-based) is
+comparable to that of recent versions of L0phtCrack (LC 5 as of this
+writing), but John offers "incremental" mode (see the answer to the
+previous question) which lets it outperform L0phtCrack at LM hashes in
+some cases.  John is also better at Unix passwords.  L0phtCrack, on the
+other hand, is specialized for Windows passwords and includes many
+Windows-specific features that John does not.  Finally, L0phtCrack is a
+Windows GUI application, which is a clear advantage for that platform.
+
+Q: Where do I get new versions of John the Ripper?
+Q: What is the primary website for John the Ripper?
+A: http://www.openwall.com/john/
+
+Q: How can I contact you (the author)?
+A: See CREDITS.
+
+$Id$
