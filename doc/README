@@ -1,15 +1,6 @@
 This is a development version of John the Ripper, not an official
-release.  There's currently no complete up-to-date documentation.  You
-should be familiar with John 1.6 to use this.
-
-There are no charset files included with development versions of John.
-You're supposed to take them from John 1.6 distribution.
-
--- 
-Solar Designer <solar at openwall.com>
-
-The following text will become the README once the rest of the
-documentation is updated to reflect changes made after John 1.6:
+release.  There are no charset files included with development versions
+of John.  You're supposed to take them from John 1.6 distribution.
 
 
 	John the Ripper password cracker.
@@ -119,4 +110,4 @@ CREDITS		- credits and how to contact the author
 
 Happy reading!
 
-$Id: README,v 1.4 2004/06/19 16:48:33 solar Exp $
+$Id: README,v 1.5 2005/08/25 05:36:49 solar Exp $
