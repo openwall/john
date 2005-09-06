@@ -96,18 +96,18 @@ processor architectures, most importantly for x86 with MMX.
 The rest of documentation is located in separate files, listed here in
 the recommended order of reading:
 
-INSTALL		- you've probably read it already
-OPTIONS		- command line options and additional utilities
-MODES		- cracking modes: what they are
-CONFIG   (*)	- how to customize
-RULES    (*)	- wordlist rules syntax
-EXTERNAL (*)	- defining an external mode
-EXAMPLES	- usage examples - strongly recommended
-FAQ		- guess
-CHANGES		- history of changes
-CREDITS		- credits and how to contact the author
+* INSTALL - you've probably read it already
+* OPTIONS - command line options and additional utilities
+* MODES - cracking modes: what they are
+* CONFIG (*) - how to customize
+* RULES (*) - wordlist rules syntax
+* EXTERNAL (*) - defining an external mode
+* EXAMPLES - usage examples - strongly recommended
+* FAQ - guess
+* CHANGES (*) - history of changes
+* CREDITS (*) - credits and how to contact the author
 (*) most users can safely skip these.
 
 Happy reading!
 
-$Id: README,v 1.5 2005/08/25 05:36:49 solar Exp $
+$Id: README,v 1.6 2005/09/05 02:04:07 solar Exp $

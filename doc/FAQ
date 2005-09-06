@@ -1,7 +1,7 @@
 	John the Ripper FAQ.
 
 
-	"Help!  I can't run John."
+	Help!  I can't run John.
 
 If you're not familiar with your OS, you should probably not be using
 John in the first place since John is a tool for system administrators.
@@ -168,4 +168,4 @@ other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
 Windows GUI application, which is a clear advantage for that platform.
 
-$Id: FAQ,v 1.1 2005/09/05 02:00:00 solar Exp $
+$Id: FAQ,v 1.2 2005/09/06 00:50:07 solar Exp $
