@@ -26,7 +26,7 @@ of modes and assuming that "passwd" is a copy of your password file:
 or, to restrict it to the wordlist mode only, but permitting the use
 of word mangling rules:
 
-	john --wordlist=/usr/dict/words --rules passwd
+	john --wordlist=password.lst --rules passwd
 
 Cracked passwords will be printed to the terminal and saved in the
 file called $JOHN/john.pot (in the documentation and in the
@@ -106,4 +106,4 @@ the recommended order of reading:
 
 Happy reading!
 
-$Id: README,v 1.8 2005/09/06 03:04:59 solar Exp $
+$Id: README,v 1.9 2005/09/06 03:09:56 solar Exp $
