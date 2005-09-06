@@ -1,15 +1,41 @@
 	John the Ripper FAQ.
 
-Q: How do I start John, use a specific cracking mode, see the passwords
-it cracked, etc?
-A: See EXAMPLES. :-)
+
+	"Help!  I can't run John."
+
+If you're not familiar with your OS, you should probably not be using
+John in the first place since John is a tool for system administrators.
+However, here are the answers to a few (not very) common questions to
+avoid having them asked over and over and for amusement.
+
+Q: When I type "john" (or "john passwd", etc.), it says "command not
+found" (or equivalent)?!
+A: The examples given in John the Ripper documentation assume that you
+know how to invoke newly-built programs from your shell.  On Unix-like
+systems, it is typical to not have "." (the current directory) in your
+$PATH (the list of directories to search for programs).  In that case,
+you need to type "./john" (dot, slash, and "john", without the quotes)
+to invoke the John binary executable located in the current directory.
+
+Q: ...but I am on a Unix-like system and I don't seem to readily have a
+John binary executable.
+A: Please follow the instructions in INSTALL.
+
+Q: When I double-click on "john.exe", a window flashes and disappears?!
+A: You're not supposed to click.  You're supposed to run John from a
+command-line shell.  On Windows, some of those shells would be cmd.exe,
+command.com, or bash (the latter is available with Cygwin).
+
+
+	Other trivial matters.
+
+Q: How do I start John on my password file, use a specific cracking
+mode, see the passwords it cracked, etc?
+A: See README and EXAMPLES. :-)
 
 Q: How do I "unshadow"?
 A: See EXAMPLES on how to combine your passwd and shadow files.  If you
 don't have root access, there's no answer for you here. :-)
-
-Q: Where do I get wordlists for use with John?
-A: http://www.openwall.com/wordlists/
 
 Q: Why doesn't John load my password file?  It says "No password hashes
 loaded".
@@ -21,6 +47,8 @@ A: All of the password hashes found in the file (that John recognizes as
 such) might be already cracked by previous invocations of John.
 A: The file you're trying to run John on might in fact not be a password
 file at all.
+A: Your command line syntax might be wrong, resulting in John trying to
+load a wrong file.
 A: Your password file format or hash type(s) might not be supported by
 John, or at least by the version and build of John that you're using.
 If you're positive that this is the case, you may want to check the
@@ -29,6 +57,19 @@ patch and, if unsuccessful with that, post a note to the mailing list
 (see CREDITS) including a sample password file line that John does not
 load (please make sure that the password is already changed by the time
 you post).
+
+Q: Where do I get wordlists for use with John?
+A: http://www.openwall.com/wordlists/
+
+Q: Where do I get new versions of John the Ripper?
+Q: What is the primary website for John the Ripper?
+A: http://www.openwall.com/john/
+
+Q: How can I contact you (the author)?
+A: See CREDITS.
+
+
+	(Semi-)advanced topics.
 
 Q: I've recently switched my system to MD5-based (or Blowfish-based)
 password hashes, but there are still some DES-based hashes in the
@@ -96,8 +137,12 @@ those initially.  You may safely run multiple instances of John in the
 same working directory, all writing to the same "pot file" (this is a
 feature).  You do, however, need to assign each of them a unique session
 name, with "--session".  Other approaches, such as splitting password
-files or splitting wordlists, are typically less efficient (in some
-cases a lot less efficient).
+files naively (without regard to salts), are typically less efficient
+(in some cases to the extent where there's no speedup from using
+multiple processors at all).
+
+
+	Miscellaneous.
 
 Q: Is John the Ripper better than Crack?
 A: I think so, but I am biased.  John is much faster, has many password
@@ -123,11 +168,4 @@ other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
 Windows GUI application, which is a clear advantage for that platform.
 
-Q: Where do I get new versions of John the Ripper?
-Q: What is the primary website for John the Ripper?
-A: http://www.openwall.com/john/
-
-Q: How can I contact you (the author)?
-A: See CREDITS.
-
-$Id$
+$Id: FAQ,v 1.1 2005/09/05 02:00:00 solar Exp $
