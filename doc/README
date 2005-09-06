@@ -106,8 +106,9 @@ the recommended order of reading:
 * FAQ - guess
 * CHANGES (*) - history of changes
 * CREDITS (*) - credits and how to contact the author
+
 (*) most users can safely skip these.
 
 Happy reading!
 
-$Id: README,v 1.6 2005/09/05 02:04:07 solar Exp $
+$Id: README,v 1.7 2005/09/06 03:01:39 solar Exp $
