@@ -1,5 +1,9 @@
 	John the Ripper FAQ.
 
+The latest version of this FAQ may be viewed online at:
+
+	http://www.openwall.com/john/doc/FAQ.shtml
+
 
 	Help!  I can't run John.
 
@@ -173,4 +177,4 @@ other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
 Windows GUI application, which is a clear advantage for that platform.
 
-$Id: FAQ,v 1.3 2005/09/06 03:01:39 solar Exp $
+$Id: FAQ,v 1.4 2005/09/06 03:09:56 solar Exp $
