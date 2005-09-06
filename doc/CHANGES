@@ -19,3 +19,5 @@ OpenBSD/SPARC, OpenBSD/VAX, NetBSD/VAX, Solaris/SPARC64, Mac OS X (PowerPC
 and x86), BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
+
+$Id$
