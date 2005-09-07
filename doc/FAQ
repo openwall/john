@@ -71,6 +71,9 @@ Q: Where do I get wordlists for use with John?
 A: http://www.openwall.com/wordlists/
 
 Q: Where do I get new versions of John the Ripper?
+Q: Where do I get the source code for John?
+Q: I only have the source code for John the Ripper, where do I get it
+pre-compiled for Windows (or another supported non-Unix OS)?
 Q: What is the primary website for John the Ripper?
 A: http://www.openwall.com/john/
 
@@ -94,7 +97,7 @@ double-length DES-based crypt(3) hashes also known as "bigcrypt" or
 "crypt16") have a property that allows John to split their encodings
 into two separate hashes (corresponding to halves of plaintext
 passwords) on load.  John then proceeds to crack those hashes
-separately, so at a given time it may have only one of two halves of
+separately, so at a given time it might have only one of two halves of
 some passwords cracked.  If interrupted and restarted, it would need to
 only load the hashes which correspond to uncracked password halves, so
 the number of such hashes is what John reports (in all cases, for
@@ -177,4 +180,4 @@ other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
 Windows GUI application, which is a clear advantage for that platform.
 
-$Id: FAQ,v 1.4 2005/09/06 03:09:56 solar Exp $
+$Id: FAQ,v 1.5 2005/09/06 03:57:33 solar Exp $
