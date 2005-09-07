@@ -69,7 +69,7 @@ static struct opt_entry opt_list[] = {
 };
 
 #if DES_BS
-/* nonstd.c and parts of x86-mmx.S aren't mine */
+/* nonstd.c, sboxes.c, and parts of x86-mmx.S aren't mine */
 #define JOHN_COPYRIGHT \
 	"Solar Designer and others"
 #else
