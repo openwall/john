@@ -668,12 +668,11 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		} while ((current = current->next));
 
 		if (pass) {
-			/* "index < count - 1" implies that count is at
-			 * least 2 and thus format can't be NULL. */
 			chars = 0;
-			if (show && index < count - 1) {
-				chars = format->params.plaintext_length;
-				if (current &&
+			if (show) {
+				if (format)
+					chars = format->params.plaintext_length;
+				if (index < count - 1 && current &&
 				    (int)strlen(current->plaintext) != chars)
 					current = NULL;
 			}
