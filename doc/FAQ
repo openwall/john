@@ -179,6 +179,6 @@ previous question) which lets it outperform L0phtCrack at LM hashes in
 some cases.  John is also better at Unix passwords.  L0phtCrack, on the
 other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
-Windows GUI application, which is a clear advantage for that platform.
+purely commercial Windows GUI application.
 
-$Id: FAQ,v 1.6 2005/09/07 11:17:54 solar Exp $
+$Id: FAQ,v 1.7 2005/09/11 19:04:51 solar Exp $
