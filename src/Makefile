@@ -173,14 +173,8 @@ linux-alpha-ccc:
 		OPT_INLINE="-O2 -arch host"
 
 linux-sparc:
-	$(MAKE) use-linux-sparc HAMMER=use-linux-sparc NAIL=sparc.h
-	$(LN) sparc.h arch.h
-	$(MAKE) use-linux-sparc NAIL="$(PROJ)"
-
-use-linux-sparc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o"
+	$(LN) sparc32.h arch.h
+	$(MAKE) $(PROJ)
 
 linux-ppc32:
 	$(LN) ppc32.h arch.h
