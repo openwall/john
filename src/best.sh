@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2000,2003 by Solar Designer
+# Copyright (c) 1996-2000,2003,2005 by Solar Designer
 #
 
 [ $# -eq 5 ] || exit 1
@@ -75,6 +75,7 @@ echo "Compiling: MD5 benchmark (two hashes at a time)"
 $MAKE bench || exit 1
 RES=`./bench 2` || exit 1
 if [ $RES -gt $MAX ]; then
+	MAX=$RES
 	MD5_X2=1
 else
 	MD5_X2=0
