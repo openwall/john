@@ -148,7 +148,7 @@ length, you may optimize this even further:
 
 Alternatively, you may simply use huge.lst available on Openwall
 wordlist collection CDs.  It has word mangling rules pre-applied for the
-most common languages and any duplicates purged.
+most common languages and it has any duplicates purged.
 
 Depending on target hash type, the number of different salts (if
 applicable), the size of your wordlist, rules, and processor
@@ -404,4 +404,4 @@ of comments in the default configuration file supplied with John.
 Please refer to EXTERNAL for information on the programming language
 used.
 
-$Id$
+$Id: EXAMPLES,v 1.1 2005/09/04 18:33:18 solar Exp $
