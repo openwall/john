@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1998,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -41,6 +41,7 @@ int process_db(FILE *file, char *cell)
 	size =
 		((long)buffer[6] << 8) +
 		(long)buffer[7];
+	if (size == 0) size = 64; /* OpenAFS */
 	if (fseek(file, size, SEEK_SET)) pexit("fseek");
 
 	if (fread(buffer, 8, 1, file) != 1) return 1;
