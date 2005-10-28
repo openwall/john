@@ -97,11 +97,11 @@ default:
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-vax              OpenBSD, VAX"
 	@echo "netbsd-vax               NetBSD, VAX"
-	@echo "solaris-sparc-gcc        Solaris, SPARC 32-bit, gcc"
+	@echo "solaris-sparc64-cc       Solaris, SPARC V9 64-bit, cc (best)"
 	@echo "solaris-sparc64-gcc      Solaris, SPARC V9 64-bit, gcc"
-	@echo "solaris-sparcv8-cc       Solaris, SPARC V8 32-bit, cc"
 	@echo "solaris-sparcv9-cc       Solaris, SPARC V9 32-bit, cc"
-	@echo "solaris-sparc64-cc       Solaris, SPARC V9 64-bit, cc"
+	@echo "solaris-sparcv8-cc       Solaris, SPARC V8 32-bit, cc"
+	@echo "solaris-sparc-gcc        Solaris, SPARC 32-bit, gcc"
 	@echo "solaris-x86-any          Solaris, x86, gcc"
 	@echo "sco-x86-any-gcc          SCO, x86, gcc"
 	@echo "sco-x86-any-cc           SCO, x86, cc"
@@ -114,9 +114,9 @@ default:
 	@echo "macosx-x86-mmx-cc        Mac OS X, x86 with MMX, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
-	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
+	@echo "irix-mips64-r10k-cc      IRIX, MIPS 64-bit (R10K), cc (best)"
 	@echo "irix-mips64-cc           IRIX, MIPS 64-bit, cc"
-	@echo "irix-mips64-r10k-cc      IRIX, MIPS 64-bit (R10K), cc"
+	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP 2.x, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP 2.x, x86"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
@@ -263,59 +263,6 @@ netbsd-vax:
 	$(LN) vax.h arch.h
 	$(MAKE) $(PROJ)
 
-solaris-sparc-any:
-	$(MAKE) $(HAMMER) NAIL=sparc.h
-	$(RM) arch.h
-	ln -s sparc.h arch.h
-	$(MAKE) $(HAMMER) NAIL="$(PROJ)"
-
-solaris-sparc-gcc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparc-gcc
-
-solaris-sparcv8-cc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv8-cc
-
-solaris-sparcv9-cc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv9-cc
-
-use-solaris-sparc-gcc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
-		LDFLAGS="-s -lrt"
-
-use-solaris-sparcv8-cc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -xO4 -xarch=v8" \
-		LDFLAGS="-s -lc -lrt" \
-		OPT_NORMAL="" \
-		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
-
-use-solaris-sparcv9-cc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra" \
-		LDFLAGS="-s -lc -lrt" \
-		OPT_NORMAL="" \
-		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
-
-sparc.h:
-	$(RM) arch.h
-	$(CC) $(CFLAGS) -DOS_TIMER -DOS_FLOCK -DDES_ASM detect.c
-	$(LD) $(LDFLAGS) detect.o -o detect
-	./sparc.sh "$(MAKE)" "$(HAMMER)" "$(BENCH_DES_OBJS_DEPEND)"
-
-# Older versions of spro cc didn't support .S files directly
-spro-sparc.o: sparc.S
-	$(CPP) $(CPPFLAGS) sparc.S | $(SED) 's/% /%/g' > tmp.s
-	$(AS) $(ASFLAGS) tmp.s -o spro-sparc.o
-	$(RM) tmp.s
-
 solaris-sparc64-cc:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
@@ -330,6 +277,59 @@ solaris-sparc64-gcc:
 	$(MAKE) $(PROJ) \
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
 		LDFLAGS="-m64 -s -lrt"
+
+solaris-sparc-any:
+	$(MAKE) $(HAMMER) NAIL=sparc.h
+	$(RM) arch.h
+	ln -s sparc.h arch.h
+	$(MAKE) $(HAMMER) NAIL="$(PROJ)"
+
+solaris-sparcv9-cc:
+	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv9-cc
+
+solaris-sparcv8-cc:
+	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv8-cc
+
+solaris-sparc-gcc:
+	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparc-gcc
+
+use-solaris-sparcv9-cc:
+	$(MAKE) $(NAIL) \
+		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
+		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra" \
+		LDFLAGS="-s -lc -lrt" \
+		OPT_NORMAL="" \
+		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
+
+use-solaris-sparcv8-cc:
+	$(MAKE) $(NAIL) \
+		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
+		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -xO4 -xarch=v8" \
+		LDFLAGS="-s -lc -lrt" \
+		OPT_NORMAL="" \
+		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
+
+use-solaris-sparc-gcc:
+	$(MAKE) $(NAIL) \
+		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
+		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
+		LDFLAGS="-s -lrt"
+
+sparc.h:
+	$(RM) arch.h
+	$(CC) $(CFLAGS) -DOS_TIMER -DOS_FLOCK -DDES_ASM detect.c
+	$(LD) $(LDFLAGS) detect.o -o detect
+	./sparc.sh "$(MAKE)" "$(HAMMER)" "$(BENCH_DES_OBJS_DEPEND)"
+
+# Older versions of spro cc didn't support .S files directly
+spro-sparc.o: sparc.S
+	$(CPP) $(CPPFLAGS) sparc.S | $(SED) 's/% /%/g' > tmp.s
+	$(AS) $(ASFLAGS) tmp.s -o spro-sparc.o
+	$(RM) tmp.s
 
 solaris-x86-any:
 	$(RM) arch.h
@@ -460,12 +460,12 @@ hpux-pa-risc-cc:
 		OPT_NORMAL="+O2" \
 		OPT_INLINE="+O3 +Oinline"
 
-irix-mips32-cc:
-	$(LN) mips32.h arch.h
+irix-mips64-r10k-cc:
+	$(LN) mips64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -O2 -32 -signed" \
-		LDFLAGS="-s -32" \
+		CFLAGS="-c -O2 -64 -mips4 -r10000 -signed" \
+		LDFLAGS="-s -64 -mips4 -r10000" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
@@ -478,12 +478,12 @@ irix-mips64-cc:
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
-irix-mips64-r10k-cc:
-	$(LN) mips64.h arch.h
+irix-mips32-cc:
+	$(LN) mips32.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -O2 -64 -mips4 -r10000 -signed" \
-		LDFLAGS="-s -64 -mips4 -r10000" \
+		CFLAGS="-c -O2 -32 -signed" \
+		LDFLAGS="-s -32" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
