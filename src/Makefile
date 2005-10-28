@@ -105,18 +105,18 @@ default:
 	@echo "solaris-x86-any          Solaris, x86, gcc"
 	@echo "sco-x86-any-gcc          SCO, x86, gcc"
 	@echo "sco-x86-any-cc           SCO, x86, cc"
-	@echo "tru64-alpha-cc           Tru64 (Digital UNIX, OSF/1), Alpha, cc"
-	@echo "aix-ppc32-cc             AIX, PowerPC 32-bit, cc"
-	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC w/AltiVec, cc (best)"
-	@echo "macosx-ppc32-cc          Mac OS X, PowerPC 32-bit, cc"
-#	@echo "macosx-ppc64-altivec-cc  Mac OS X, PowerPC 64-bit w/AltiVec, cc"
-	@echo "macosx-ppc64-cc          Mac OS X 10.4+, PowerPC 64-bit, cc"
-	@echo "macosx-x86-mmx-cc        Mac OS X, x86 with MMX, cc"
+	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
+	@echo "aix-ppc32                AIX, PowerPC 32-bit"
+	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
+	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
+#	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
+	@echo "macosx-ppc64             Mac OS X 10.4+, PowerPC 64-bit"
+	@echo "macosx-x86-mmx           Mac OS X, x86 with MMX"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
-	@echo "irix-mips64-r10k-cc      IRIX, MIPS 64-bit (R10K), cc (best)"
-	@echo "irix-mips64-cc           IRIX, MIPS 64-bit, cc"
-	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
+	@echo "irix-mips64-r10k         IRIX, MIPS 64-bit (R10K) (best)"
+	@echo "irix-mips64              IRIX, MIPS 64-bit"
+	@echo "irix-mips32              IRIX, MIPS 32-bit"
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP 2.x, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP 2.x, x86"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
@@ -372,7 +372,7 @@ sco-x86.o: x86.S
 	$(AS) $(ASFLAGS) tmp.s -o sco-x86.o
 	$(RM) tmp.s
 
-tru64-alpha-cc:
+tru64-alpha:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) digipaq-alpha.o" \
@@ -387,7 +387,7 @@ digipaq-alpha.o: alpha.S
 	$(AS) $(ASFLAGS) tmp.s -o digipaq-alpha.o
 	$(RM) tmp.s
 
-aix-ppc32-cc:
+aix-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
@@ -396,7 +396,7 @@ aix-ppc32-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
-macosx-ppc32-altivec-cc:
+macosx-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
@@ -405,7 +405,7 @@ macosx-ppc32-altivec-cc:
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 
-macosx-ppc32-cc:
+macosx-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
@@ -413,8 +413,8 @@ macosx-ppc32-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
-# This is slightly slower than macosx-ppc32-altivec-cc for most hash types.
-macosx-ppc64-altivec-cc:
+# This is slightly slower than macosx-ppc32-altivec for most hash types.
+macosx-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
@@ -424,7 +424,7 @@ macosx-ppc64-altivec-cc:
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000"
 
-macosx-ppc64-cc:
+macosx-ppc64:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
@@ -436,7 +436,7 @@ macosx-ppc64-cc:
 ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
 
-macosx-x86-mmx-cc:
+macosx-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
@@ -460,7 +460,7 @@ hpux-pa-risc-cc:
 		OPT_NORMAL="+O2" \
 		OPT_INLINE="+O3 +Oinline"
 
-irix-mips64-r10k-cc:
+irix-mips64-r10k:
 	$(LN) mips64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
@@ -469,7 +469,7 @@ irix-mips64-r10k-cc:
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
-irix-mips64-cc:
+irix-mips64:
 	$(LN) mips64.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
@@ -478,7 +478,7 @@ irix-mips64-cc:
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
-irix-mips32-cc:
+irix-mips32:
 	$(LN) mips32.h arch.h
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
