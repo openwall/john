@@ -197,7 +197,7 @@ or:
 Finally, to make John have less impact on other processes, you should
 set the option "Idle = Y" in the configuration file (see CONFIG).
 
-To only crack accounts with a "good" shell (in general, the shell, user
+To only crack accounts with a "good" shell (in general, the shell, user,
 and group filters described above work for all cracking modes as well):
 
 	john --wordlist=all.lst --rules --shells=sh,csh,tcsh,bash mypasswd
@@ -404,4 +404,4 @@ of comments in the default configuration file supplied with John.
 Please refer to EXTERNAL for information on the programming language
 used.
 
-$Id: EXAMPLES,v 1.2 2005/10/08 21:26:30 solar Exp $
+$Id: EXAMPLES,v 1.3 2005/10/28 16:30:46 solar Exp $
