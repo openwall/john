@@ -137,7 +137,7 @@ If you've got a lot of spare disk space to trade for performance and the
 hash type of your password files is relatively slow, you may use John's
 "unique" utility to eliminate any duplicate candidate passwords:
 
-	john --wordlist=all.lst --rules | unique mangled.lst
+	john --wordlist=all.lst --rules --stdout | unique mangled.lst
 	john --wordlist=mangled.lst mypasswd
 
 If you know that your target hash type truncates passwords at a given
@@ -404,4 +404,4 @@ of comments in the default configuration file supplied with John.
 Please refer to EXTERNAL for information on the programming language
 used.
 
-$Id: EXAMPLES,v 1.1 2005/09/04 18:33:18 solar Exp $
+$Id: EXAMPLES,v 1.2 2005/10/08 21:26:30 solar Exp $
