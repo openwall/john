@@ -83,11 +83,10 @@ default:
 	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
-	@echo "linux-ppc32              Linux, PowerPC 32-bit"
-	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
-#	@echo "linux-ppc32-altivec      Linux, PowerPC 32-bit w/AltiVec"
+	@echo "linux-ppc32              Linux, PowerPC 32-bit"
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
+	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX (best)"
 	@echo "freebsd-x86-any          FreeBSD, x86"
 	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries (obsolete)"
@@ -108,11 +107,10 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc, ELF binaries"
 	@echo "tru64-alpha-cc           Tru64 (Digital UNIX, OSF/1), Alpha, cc"
 	@echo "aix-ppc32-cc             AIX, PowerPC 32-bit, cc"
-	@echo "macosx-ppc32-cc          Mac OS X, PowerPC 32-bit, cc"
-	@echo "macosx-ppc64-cc          Mac OS X 10.4+, PowerPC 64-bit, cc"
 	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC w/AltiVec, cc (best)"
-#	@echo "macosx-ppc32-altivec-cc  Mac OS X, PowerPC 32-bit w/AltiVec, cc"
+	@echo "macosx-ppc32-cc          Mac OS X, PowerPC 32-bit, cc"
 #	@echo "macosx-ppc64-altivec-cc  Mac OS X, PowerPC 64-bit w/AltiVec, cc"
+	@echo "macosx-ppc64-cc          Mac OS X 10.4+, PowerPC 64-bit, cc"
 	@echo "macosx-x86-mmx-cc        Mac OS X, x86 with MMX, cc"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
@@ -176,28 +174,28 @@ linux-sparc:
 	$(LN) sparc32.h arch.h
 	$(MAKE) $(PROJ)
 
-linux-ppc32:
-	$(LN) ppc32.h arch.h
-	$(MAKE) $(PROJ)
-
-linux-ppc64:
-	$(LN) ppc64.h arch.h
-	$(MAKE) $(PROJ) \
-		CFLAGS="$(CFLAGS) -m64" \
-		LDFLAGS="$(LDFLAGS) -m64" \
-		OPT_INLINE="-finline-functions -finline-limit=4000"
-
 linux-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-linux.o" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 
+linux-ppc32:
+	$(LN) ppc32.h arch.h
+	$(MAKE) $(PROJ)
+
 # This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-linux.o" \
+		CFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64" \
+		OPT_INLINE="-finline-functions -finline-limit=4000"
+
+linux-ppc64:
+	$(LN) ppc64.h arch.h
+	$(MAKE) $(PROJ) \
 		CFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
@@ -398,23 +396,6 @@ aix-ppc32-cc:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
-macosx-ppc32-cc:
-	$(LN) ppc32.h arch.h
-	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3"
-
-macosx-ppc64-cc:
-	$(LN) ppc64.h arch.h
-	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -Wall -fomit-frame-pointer -m64" \
-		LDFLAGS="-s -m64" \
-		OPT_NORMAL="-fast" \
-		OPT_INLINE="-fast -finline-limit=4000"
-
 macosx-ppc32-altivec-cc:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
@@ -424,6 +405,14 @@ macosx-ppc32-altivec-cc:
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 
+macosx-ppc32-cc:
+	$(LN) ppc32.h arch.h
+	$(MAKE) $(PROJ) \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -traditional-cpp" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3"
+
 # This is slightly slower than macosx-ppc32-altivec-cc for most hash types.
 macosx-ppc64-altivec-cc:
 	$(LN) ppc64alt.h arch.h
@@ -431,6 +420,15 @@ macosx-ppc64-altivec-cc:
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
+		LDFLAGS="-s -m64" \
+		OPT_NORMAL="-fast" \
+		OPT_INLINE="-fast -finline-limit=4000"
+
+macosx-ppc64-cc:
+	$(LN) ppc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -Wall -fomit-frame-pointer -m64" \
 		LDFLAGS="-s -m64" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000"
