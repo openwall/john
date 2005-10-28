@@ -76,8 +76,8 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-any            Linux, x86"
 	@echo "linux-x86-mmx            Linux, x86 with MMX"
+	@echo "linux-x86-any            Linux, x86"
 	@echo "linux-x86-any-a.out      Linux, x86, a.out binaries (obsolete)"
 	@echo "linux-x86-64             Linux, AMD x86-64, 64-bit native"
 	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
@@ -88,12 +88,12 @@ default:
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec"
 #	@echo "linux-ppc32-altivec      Linux, PowerPC 32-bit w/AltiVec"
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
-	@echo "freebsd-x86-any          FreeBSD, x86"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
+	@echo "freebsd-x86-any          FreeBSD, x86"
 	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries (obsolete)"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
+	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries (obsolete)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-vax              OpenBSD, VAX"
@@ -119,23 +119,23 @@ default:
 	@echo "irix-mips32-cc           IRIX, MIPS 32-bit, cc"
 	@echo "irix-mips64-cc           IRIX, MIPS 64-bit, cc"
 	@echo "irix-mips64-r10k-cc      IRIX, MIPS 64-bit (R10K), cc"
-	@echo "dos-djgpp-x86-any        DOS, DJGPP 2.x, x86"
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP 2.x, x86 with MMX"
-	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
+	@echo "dos-djgpp-x86-any        DOS, DJGPP 2.x, x86"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
-	@echo "beos-x86-any             BeOS, x86"
+	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
 	@echo "beos-x86-mmx             BeOS, x86 with MMX"
+	@echo "beos-x86-any             BeOS, x86"
 	@echo "generic                  Any other Unix system with gcc"
-
-linux-x86-any:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o"
 
 linux-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
+
+linux-x86-any:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o"
 
 linux-x86-any-a.out:
 	$(LN) x86-any.h arch.h
@@ -205,16 +205,16 @@ linux-ppc64-altivec:
 ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c -o $@
 
-freebsd-x86-any:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		ASFLAGS="$(ASFLAGS) -DBSD"
-
 freebsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		ASFLAGS="$(ASFLAGS) -DBSD"
+
+freebsd-x86-any:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 freebsd-x86-any-a.out:
@@ -228,16 +228,16 @@ freebsd-alpha:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
 
-openbsd-x86-any:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		ASFLAGS="$(ASFLAGS) -DBSD"
-
 openbsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		ASFLAGS="$(ASFLAGS) -DBSD"
+
+openbsd-x86-any:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 openbsd-x86-any-a.out:
@@ -489,23 +489,17 @@ irix-mips64-r10k-cc:
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
-dos-djgpp-x86-any:
-	copy x86-any.h arch.h
-	$(MAKE) $(PROJ_DOS) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
-
 dos-djgpp-x86-mmx:
 	copy x86-mmx.h arch.h
 	$(MAKE) $(PROJ_DOS) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
-win32-cygwin-x86-any:
-	$(CP) x86-any.h arch.h
-	$(MAKE) $(PROJ_WIN32) \
+dos-djgpp-x86-any:
+	copy x86-any.h arch.h
+	$(MAKE) $(PROJ_DOS) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
 win32-cygwin-x86-mmx:
 	$(CP) x86-mmx.h arch.h
@@ -513,15 +507,21 @@ win32-cygwin-x86-mmx:
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
-beos-x86-any:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o"
+win32-cygwin-x86-any:
+	$(CP) x86-any.h arch.h
+	$(MAKE) $(PROJ_WIN32) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 beos-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
+
+beos-x86-any:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o"
 
 generic: generic.h
 	$(RM) arch.h
