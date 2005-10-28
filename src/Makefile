@@ -76,9 +76,9 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-any-elf        Linux, x86, ELF binaries"
-	@echo "linux-x86-mmx-elf        Linux, x86 with MMX, ELF binaries"
-	@echo "linux-x86-any-a.out      Linux, x86, a.out binaries"
+	@echo "linux-x86-any            Linux, x86"
+	@echo "linux-x86-mmx            Linux, x86 with MMX"
+	@echo "linux-x86-any-a.out      Linux, x86, a.out binaries (obsolete)"
 	@echo "linux-x86-64             Linux, AMD x86-64, 64-bit native"
 	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
@@ -88,13 +88,13 @@ default:
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec"
 #	@echo "linux-ppc32-altivec      Linux, PowerPC 32-bit w/AltiVec"
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
-	@echo "freebsd-x86-any-elf      FreeBSD, x86, ELF binaries"
-	@echo "freebsd-x86-mmx-elf      FreeBSD, x86 with MMX, ELF binaries"
-	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries"
+	@echo "freebsd-x86-any          FreeBSD, x86"
+	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
+	@echo "freebsd-x86-any-a.out    FreeBSD, x86, a.out binaries (obsolete)"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-any-elf      OpenBSD, x86, ELF binaries"
-	@echo "openbsd-x86-mmx-elf      OpenBSD, x86 with MMX, ELF binaries"
-	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries"
+	@echo "openbsd-x86-any          OpenBSD, x86"
+	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
+	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries (obsolete)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-vax              OpenBSD, VAX"
 	@echo "netbsd-vax               NetBSD, VAX"
@@ -127,12 +127,12 @@ default:
 	@echo "beos-x86-mmx             BeOS, x86 with MMX"
 	@echo "generic                  Any other Unix system with gcc"
 
-linux-x86-any-elf:
+linux-x86-any:
 	$(LN) x86-any.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o"
 
-linux-x86-mmx-elf:
+linux-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
@@ -205,13 +205,13 @@ linux-ppc64-altivec:
 ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c -o $@
 
-freebsd-x86-any-elf:
+freebsd-x86-any:
 	$(LN) x86-any.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
-freebsd-x86-mmx-elf:
+freebsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
@@ -228,13 +228,13 @@ freebsd-alpha:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
 
-openbsd-x86-any-elf:
+openbsd-x86-any:
 	$(LN) x86-any.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
-openbsd-x86-mmx-elf:
+openbsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
