@@ -94,7 +94,9 @@ default:
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX (best)"
 	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries (obsolete)"
+	@echo "openbsd-sparc64          OpenBSD, SPARC 64-bit (best)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
+	@echo "openbsd-sparc-a.out      OpenBSD, SPARC 32-bit (obsolete)"
 	@echo "openbsd-vax              OpenBSD, VAX"
 	@echo "netbsd-vax               NetBSD, VAX"
 	@echo "solaris-sparc64-cc       Solaris, SPARC V9 64-bit, cc (best)"
@@ -244,12 +246,30 @@ openbsd-x86-any-a.out:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
 
+openbsd-sparc64:
+	$(LN) sparc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
+		LDFLAGS="-m64 -s"
+
 openbsd-sparc:
 	$(MAKE) use-openbsd-sparc HAMMER=use-openbsd-sparc NAIL=sparc.h
 	$(LN) sparc.h arch.h
 	$(MAKE) use-openbsd-sparc NAIL="$(PROJ)"
 
 use-openbsd-sparc:
+	$(MAKE) $(NAIL) \
+		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
+		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
+		ASFLAGS="-c -DBSD"
+
+openbsd-sparc-a.out:
+	$(MAKE) use-openbsd-sparc-a.out \
+		HAMMER=use-openbsd-sparc-a.out NAIL=sparc.h
+	$(LN) sparc.h arch.h
+	$(MAKE) use-openbsd-sparc-a.out NAIL="$(PROJ)"
+
+use-openbsd-sparc-a.out:
 	$(MAKE) $(NAIL) \
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
