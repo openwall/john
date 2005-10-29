@@ -94,6 +94,7 @@ default:
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX (best)"
 	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries (obsolete)"
+	@echo "openbsd-x86-64           OpenBSD, AMD x86-64"
 	@echo "openbsd-sparc64          OpenBSD, SPARC 64-bit (best)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-sparc-a.out      OpenBSD, SPARC 32-bit (obsolete)"
@@ -245,6 +246,11 @@ openbsd-x86-any-a.out:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
+
+openbsd-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		OPT_INLINE="$(OPT_INLINE) -finline-limit=2000"
 
 openbsd-sparc64:
 	$(LN) sparc64.h arch.h
