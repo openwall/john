@@ -95,9 +95,13 @@ default:
 	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-x86-any-a.out    OpenBSD, x86, a.out binaries (obsolete)"
 	@echo "openbsd-x86-64           OpenBSD, AMD x86-64"
+	@echo "openbsd-alpha            OpenBSD, Alpha"
 	@echo "openbsd-sparc64          OpenBSD, SPARC 64-bit (best)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
 	@echo "openbsd-sparc-a.out      OpenBSD, SPARC 32-bit (obsolete)"
+	@echo "openbsd-ppc32            OpenBSD, PowerPC 32-bit"
+	@echo "openbsd-ppc64            OpenBSD, PowerPC 64-bit"
+	@echo "openbsd-pa-risc          OpenBSD, PA-RISC"
 	@echo "openbsd-vax              OpenBSD, VAX"
 	@echo "netbsd-vax               NetBSD, VAX"
 	@echo "solaris-sparc64-cc       Solaris, SPARC V9 64-bit, cc (best)"
@@ -252,6 +256,11 @@ openbsd-x86-64:
 	$(MAKE) $(PROJ) \
 		OPT_INLINE="$(OPT_INLINE) -finline-limit=2000"
 
+openbsd-alpha:
+	$(LN) alpha.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
+
 openbsd-sparc64:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
@@ -280,6 +289,22 @@ use-openbsd-sparc-a.out:
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
 		ASFLAGS="-c -DUNDERSCORES -DBSD"
+
+openbsd-ppc32:
+	$(LN) ppc32.h arch.h
+	$(MAKE) $(PROJ)
+
+openbsd-ppc64:
+	$(LN) ppc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64" \
+		OPT_INLINE="-finline-functions -finline-limit=4000"
+
+openbsd-pa-risc:
+	$(LN) pa-risc.h arch.h
+	$(MAKE) $(PROJ) \
+		CFLAGS="-c -Wall -O3 -fomit-frame-pointer"
 
 openbsd-vax:
 	$(LN) vax.h arch.h
