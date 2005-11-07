@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2005 by Solar Designer
  */
 
 /*
@@ -71,8 +71,10 @@ struct fmt_params {
  * should be word aligned; the functions may assume such alignment.
  */
 struct fmt_methods {
-/* Initializes the algorithm's internal structures, valid() is the only
- * method that is allowed to be called before a call to init(). */
+/* Initializes the algorithm's internal structures; valid() and split() are
+ * the only methods that are allowed to be called before a call to init().
+ * Note that initializing an algorithm might de-initialize some others (if
+ * a shared underlying resource is used). */
 	void (*init)(void);
 
 /* Checks if an ASCII ciphertext is valid for this format. Returns zero for
