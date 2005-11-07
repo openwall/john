@@ -318,10 +318,10 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 		if ((current_pw = db->password_hash[pw_hash]))
 		do {
-			if (!strcmp(current_pw->source, piece)) {
-				if (!(db->options->flags & DB_WORDS)) break;
-
-				if (!strcmp(current_pw->login, login)) break;
+			if (!memcmp(current_pw->binary, binary,
+			    format->params.binary_size)) {
+				if (!(db->options->flags & DB_WORDS) ||
+				    !strcmp(current_pw->login, login)) break;
 			}
 		} while ((current_pw = current_pw->next_hash));
 
@@ -332,9 +332,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 		if ((current_salt = db->salt_hash[salt_hash]))
 		do {
-			if (!memcmp(
-				current_salt->salt, salt,
-				format->params.salt_size)) break;
+			if (!memcmp(current_salt->salt, salt,
+			    format->params.salt_size))
+				break;
 		} while ((current_salt = current_salt->next));
 
 		if (!current_salt) {
@@ -407,16 +407,20 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
 	char *ciphertext;
+	void *binary;
 	int hash;
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line);
-	if (!format->methods.valid(ciphertext)) return;
+	if (format->methods.valid(ciphertext) != 1) return;
 
-	hash = LDR_HASH_FUNC(format->methods.binary(ciphertext));
+	binary = format->methods.binary(format->methods.split(ciphertext, 0));
+	hash = LDR_HASH_FUNC(binary);
+
 	if ((current = db->password_hash[hash]))
 	do {
-		if (!strcmp(current->source, ciphertext))
+		if (current->binary && !memcmp(current->binary, binary,
+		    format->params.binary_size))
 			current->binary = NULL;
 	} while ((current = current->next_hash));
 }
@@ -577,7 +581,7 @@ static int ldr_cracked_hash(char *ciphertext)
 
 	while (*ciphertext) {
 		hash <<= 1;
-		hash ^= *ciphertext++;
+		hash ^= *ciphertext++ | 0x20; /* ASCII case insensitive */
 	}
 
 	hash ^= hash >> CRACKED_HASH_LOG;
@@ -664,7 +668,16 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 		if ((current = db->cracked_hash[hash]))
 		do {
-			if (!strcmp(current->ciphertext, piece)) break;
+			if (!strcmp(current->ciphertext, piece))
+				break;
+/* This extra check, along with ldr_cracked_hash() being case-insensitive,
+ * is only needed for matching some pot file records produced by older
+ * versions of John and contributed patches where split() didn't unify the
+ * case of hex-encoded hashes. */
+			if (split != fmt_default_split &&
+			    format->methods.valid(current->ciphertext) == 1 &&
+			    !strcmp(split(current->ciphertext, 0), piece))
+				break;
 		} while ((current = current->next));
 
 		if (pass) {

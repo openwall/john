@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2005 by Solar Designer
  */
 
 #include <string.h>
@@ -21,19 +21,18 @@
 #define PLAINTEXT_LENGTH		7
 #define CIPHERTEXT_LENGTH		32
 
-#define LM_EMPTY			"AAD3B435B51404EE"
-#define LM_EMPTY_LOWER			"aad3b435b51404ee"
+#define LM_EMPTY			"aad3b435b51404ee"
 
 static struct fmt_tests tests[] = {
-	{"$LM$A9C604D244C4E99D", "AAAAAA"},
-	{"$LM$CBC501A4D2227783", "AAAAAAA"},
-	{"$LM$3466C2B0487FE39A", "CRACKPO"},
-	{"$LM$DBC5E5CBA8028091", "IMPUNIT"},
+	{"$LM$a9c604d244c4e99d", "AAAAAA"},
+	{"$LM$cbc501a4d2227783", "AAAAAAA"},
+	{"$LM$3466c2b0487fe39a", "CRACKPO"},
+	{"$LM$dbc5e5cba8028091", "IMPUNIT"},
 	{LM_EMPTY LM_EMPTY, ""},
-	{"$LM$73CC402BD3E79175", "SCLEROS"},
-	{"$LM$5ECD9236D21095CE", "YOKOHAM"},
-	{"$LM$A5E6066DE61C3E35", "ZZZZZZZ"},
-	{"$LM$1FB363FEB834C12D", "ZZZZZZ"},
+	{"$LM$73cc402bd3e79175", "SCLEROS"},
+	{"$LM$5ecd9236d21095ce", "YOKOHAM"},
+	{"$LM$A5E6066DE61C3E35", "ZZZZZZZ"}, /* uppercase encoding */
+	{"$LM$1FB363feB834C12D", "ZZZZZZ"}, /* mixed case encoding */
 	{NULL}
 };
 
@@ -59,7 +58,7 @@ static int valid(char *ciphertext)
 	if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH) {
 		strcpy(lower, &ciphertext[16]);
 		strlwr(lower);
-		if (strcmp(lower, LM_EMPTY_LOWER))
+		if (strcmp(lower, LM_EMPTY))
 			return 2;
 		else
 			return 1;
@@ -77,7 +76,10 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[21];
 
-	if (!strncmp(ciphertext, "$LM$", 4)) return ciphertext;
+/* We don't just "return ciphertext" for already split hashes since we may
+ * need to convert hashes stored by older versions of John to all-lowercase. */
+	if (!strncmp(ciphertext, "$LM$", 4))
+		ciphertext += 4;
 
 	out[0] = '$';
 	out[1] = 'L';
@@ -90,6 +92,9 @@ static char *split(char *ciphertext, int index)
 		memcpy(&out[4], ciphertext, 16);
 
 	out[20] = 0;
+
+	strlwr(&out[4]);
+
 	return out;
 }
 
