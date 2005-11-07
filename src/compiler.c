@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -587,7 +587,8 @@ static int c_cond(char term, struct c_ident *vars, char *token)
 {
 	char c;
 	char *pos;
-	union c_insn *start, *out, *fixup;
+	union c_insn *start, *outer_loop_start, *fixup;
+	struct c_fixup *outer_loop_break_fixups;
 
 	if (!term) return c_errno = C_ERROR_NOTINFUNC;
 
@@ -610,14 +611,23 @@ static int c_cond(char term, struct c_ident *vars, char *token)
 		(c_code_ptr - 1)->op = c_op_bz;
 	fixup = c_code_ptr++;
 
-	out = c_loop_start;
-	if (c == 'w')
+	outer_loop_start = c_loop_start;
+	outer_loop_break_fixups = c_break_fixups;
+	if (c == 'w') {
 		c_loop_start = start;
+		c_break_fixups = NULL;
+	}
 
-	if (c_block(';', vars)) return c_errno;
+	if (c_block(';', vars)) {
+		if (c == 'w') {
+			c_free_fixup(c_break_fixups, NULL);
+			c_break_fixups = outer_loop_break_fixups;
+		}
+		return c_errno;
+	}
 
 	if (c == 'w') {
-		c_loop_start = out;
+		c_loop_start = outer_loop_start;
 
 		if (c_pass) {
 			(c_code_ptr++)->op = c_op_ba;
@@ -626,7 +636,7 @@ static int c_cond(char term, struct c_ident *vars, char *token)
 			c_code_ptr += 2;
 
 		c_free_fixup(c_break_fixups, c_code_ptr);
-		c_break_fixups = NULL;
+		c_break_fixups = outer_loop_break_fixups;
 	} else {
 		while (*(token = c_gettoken()) == ' ')
 		if (c_errno) return c_errno;
