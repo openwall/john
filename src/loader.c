@@ -664,6 +664,9 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	for (found = pass = 0; pass == 0 || (pass == 1 && found); pass++)
 	for (index = 0; index < count; index++) {
 		piece = split(ciphertext, index);
+		if (split != fmt_default_split)
+			piece = strcpy(mem_alloc(strlen(piece) + 1), piece);
+
 		hash = ldr_cracked_hash(piece);
 
 		if ((current = db->cracked_hash[hash]))
@@ -679,6 +682,9 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 			    !strcmp(split(current->ciphertext, 0), piece))
 				break;
 		} while ((current = current->next));
+
+		if (split != fmt_default_split)
+			MEM_FREE(piece);
 
 		if (pass) {
 			chars = 0;
