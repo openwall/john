@@ -319,7 +319,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		if ((current_pw = db->password_hash[pw_hash]))
 		do {
 			if (!memcmp(current_pw->binary, binary,
-			    format->params.binary_size)) {
+			    format->params.binary_size) &&
+			    !strcmp(current_pw->source, piece)) {
 				if (!(db->options->flags & DB_WORDS) ||
 				    !strcmp(current_pw->login, login)) break;
 			}
@@ -414,13 +415,15 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	ciphertext = ldr_get_field(&line);
 	if (format->methods.valid(ciphertext) != 1) return;
 
-	binary = format->methods.binary(format->methods.split(ciphertext, 0));
+	ciphertext = format->methods.split(ciphertext, 0);
+	binary = format->methods.binary(ciphertext);
 	hash = LDR_HASH_FUNC(binary);
 
 	if ((current = db->password_hash[hash]))
 	do {
 		if (current->binary && !memcmp(current->binary, binary,
-		    format->params.binary_size))
+		    format->params.binary_size) &&
+		    !strcmp(current->source, ciphertext))
 			current->binary = NULL;
 	} while ((current = current->next_hash));
 }
