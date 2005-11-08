@@ -119,7 +119,7 @@ extern int password_hash_thresholds[3];
 /*
  * Cracked password hash size, used while loading.
  */
-#define CRACKED_HASH_LOG		10
+#define CRACKED_HASH_LOG		11
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
 
 /*
