@@ -173,7 +173,7 @@ struct fmt_main fmt_LM = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_BS,
+		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		init,

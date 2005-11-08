@@ -16,6 +16,7 @@
 #define FMT_CASE			0x00000001
 #define FMT_8_BIT			0x00000002
 #define FMT_BS				0x00010000
+#define FMT_SPLIT_UNIFIES_CASE		0x00020000
 
 /*
  * A password to test the methods for correct operation.
@@ -82,8 +83,12 @@ struct fmt_methods {
  * into (up to 9, will usually be 1). */
 	int (*valid)(char *ciphertext);
 
-/* Splits a ciphertext into several pieces, and returns the piece with given
- * index, starting from 0 (will usually return the ciphertext unchanged). */
+/* Splits a ciphertext into several pieces and returns the piece with given
+ * index, starting from 0 (will usually return the ciphertext unchanged).
+ * For hex-encoded hashes which are compared by the target system/application
+ * irrespective of the case of characters (upper/lower/mixed) used in their
+ * encoding, split() must unify the case (e.g., convert to all-lowercase)
+ * and FMT_SPLIT_UNIFIES_CASE must be set. */
 	char *(*split)(char *ciphertext, int index);
 
 /* Converts an ASCII ciphertext to binary, possibly using the salt */

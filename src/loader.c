@@ -634,7 +634,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	char source[LINE_BUFFER_SIZE];
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index);
-	int index, count;
+	int index, count, unify;
 	char *login, *ciphertext, *gecos, *home;
 	char *piece;
 	int pass, found, chars;
@@ -650,9 +650,11 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	if (format) {
 		split = format->methods.split;
+		unify = format->params.flags & FMT_SPLIT_UNIFIES_CASE;
 	} else {
 		split = fmt_default_split;
 		count = 1;
+		unify = 0;
 	}
 
 	if (!*ciphertext) {
@@ -664,7 +666,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	for (found = pass = 0; pass == 0 || (pass == 1 && found); pass++)
 	for (index = 0; index < count; index++) {
 		piece = split(ciphertext, index);
-		if (split != fmt_default_split)
+		if (unify)
 			piece = strcpy(mem_alloc(strlen(piece) + 1), piece);
 
 		hash = ldr_cracked_hash(piece);
@@ -677,13 +679,13 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
  * is only needed for matching some pot file records produced by older
  * versions of John and contributed patches where split() didn't unify the
  * case of hex-encoded hashes. */
-			if (split != fmt_default_split &&
+			if (unify &&
 			    format->methods.valid(current->ciphertext) == 1 &&
 			    !strcmp(split(current->ciphertext, 0), piece))
 				break;
 		} while ((current = current->next));
 
-		if (split != fmt_default_split)
+		if (unify)
 			MEM_FREE(piece);
 
 		if (pass) {
