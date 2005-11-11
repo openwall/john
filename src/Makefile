@@ -265,7 +265,7 @@ openbsd-sparc64:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
-		LDFLAGS="-m64 -s"
+		LDFLAGS="$(LDFLAGS) -m64"
 
 openbsd-sparc:
 	$(MAKE) use-openbsd-sparc HAMMER=use-openbsd-sparc NAIL=sparc.h
@@ -319,7 +319,7 @@ solaris-sparc64-cc:
 	$(MAKE) $(PROJ) \
 		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -fast -xarch=native64" \
-		LDFLAGS="-xarch=native64 -s -lc -lrt" \
+		LDFLAGS="-s -xarch=native64 -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -327,7 +327,7 @@ solaris-sparc64-gcc:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
-		LDFLAGS="-m64 -s -lrt"
+		LDFLAGS="$(LDFLAGS) -m64 -lrt"
 
 solaris-sparc-any:
 	$(MAKE) $(HAMMER) NAIL=sparc.h
@@ -368,7 +368,7 @@ use-solaris-sparc-gcc:
 	$(MAKE) $(NAIL) \
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
-		LDFLAGS="-s -lrt"
+		LDFLAGS="$(LDFLAGS) -lrt"
 
 sparc.h:
 	$(RM) arch.h
@@ -388,7 +388,7 @@ solaris-x86-any:
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
 		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
-		LDFLAGS="-s -lc -lrt"
+		LDFLAGS="$(LDFLAGS) -lc -lrt"
 
 # Solaris x86 got a broken assembler, with line length restriction (and some
 # other problems, that are worked around in x86.S)
