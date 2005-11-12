@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -329,7 +329,10 @@ char *rules_apply(char *word, char *rule, int split)
 		case 'p':
 			out = in;
 			if (!out[0] || !out[1]) break;
-			if (strchr("hsx", out[pos = strlen(out) - 1]))
+			pos = strlen(out) - 1;
+			if (strchr("sxz", out[pos]) ||
+			    (pos > 1 && out[pos] == 'h' &&
+			    out[pos - 1] == 'c' || out[pos - 1] == 's'))
 				strcat(out, "es");
 			else
 			if (out[pos] == 'f' && out[pos - 1] != 'f')
