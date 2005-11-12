@@ -332,7 +332,7 @@ char *rules_apply(char *word, char *rule, int split)
 			pos = strlen(out) - 1;
 			if (strchr("sxz", out[pos]) ||
 			    (pos > 1 && out[pos] == 'h' &&
-			    out[pos - 1] == 'c' || out[pos - 1] == 's'))
+			    (out[pos - 1] == 'c' || out[pos - 1] == 's')))
 				strcat(out, "es");
 			else
 			if (out[pos] == 'f' && out[pos - 1] != 'f')
