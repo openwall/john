@@ -20,4 +20,4 @@ and x86), BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Id$
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.12 2005/11/16 13:11:14 solar Exp $

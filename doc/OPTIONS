@@ -181,4 +181,4 @@ might be produced with word mangling rules).
 A shell script to send mail to all the users who got weak passwords.
 You should edit the message inside the script before using it.
 
-$Id: OPTIONS,v 1.1 2004/06/15 16:20:20 solar Exp $
+$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.3 2005/11/16 13:11:15 solar Exp $

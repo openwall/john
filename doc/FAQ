@@ -181,4 +181,4 @@ other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
 purely commercial Windows GUI application.
 
-$Id: FAQ,v 1.7 2005/09/11 19:04:51 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.9 2005/11/16 13:11:15 solar Exp $
