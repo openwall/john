@@ -50,4 +50,4 @@ executable to a different machine running the same OS, you might not
 get the best performance.  Thus, it is recommended to re-compile John
 on each system where possible.
 
-$Id: INSTALL,v 1.1 2004/06/15 16:20:20 solar Exp $
+$Owl$
