@@ -28,7 +28,7 @@ struct bench_results {
 
 /*
  * Benchmarks the supplied cracking algorithm. Returns NULL on success,
- * an error message if the self test fails or there're no test vectors
+ * an error message if the self test fails or there are no test vectors
  * for this algorithm, or an empty string if aborted.
  */
 extern char *benchmark_format(struct fmt_main *format, int salts,

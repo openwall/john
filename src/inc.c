@@ -365,7 +365,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		fprintf(stderr,
 			"\n"
 			"MaxLen = %d exceeds the compile-time limit of %d\n\n"
-			"There're several good reasons why you probably don't "
+			"There are several good reasons why you probably don't "
 			"need to raise it:\n"
 			"- many hash types don't support passwords "
 			"(or password halves) longer than\n"
