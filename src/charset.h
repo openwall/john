@@ -45,7 +45,7 @@ struct charset_header {
  * Cracking order.
  *
  * This is a list of current {length, fixed position, character count}.
- * There're CHARSET_LENGTH different lengths, and fixed position is up
+ * There are CHARSET_LENGTH different lengths, and fixed position is up
  * to the current length, which means we have exactly (CHARSET_LENGTH *
  * (CHARSET_LENGTH + 1) / 2) different {length, fixed position} pairs;
  * for each such pair we need to try all charsets from 1 character and
