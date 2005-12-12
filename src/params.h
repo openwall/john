@@ -26,8 +26,12 @@
 #endif
 
 #if JOHN_SYSTEMWIDE
+#ifndef JOHN_SYSTEMWIDE_EXEC
 #define JOHN_SYSTEMWIDE_EXEC		"/usr/libexec/john"
+#endif
+#ifndef JOHN_SYSTEMWIDE_HOME
 #define JOHN_SYSTEMWIDE_HOME		"/usr/share/john"
+#endif
 #define JOHN_PRIVATE_HOME		"~/.john"
 #endif
 
