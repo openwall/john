@@ -1,23 +1,26 @@
 The following major changes have been made since John 1.6:
 
-* Bitslice DES code for x86 with MMX: more than twice faster on Intel MMX.
+* Bitslice DES code for x86 with MMX: more than twice faster than older
+non-bitslice MMX code.
 * Bitsliced the LM hash code as well: now several times faster.
 * Significant improvements to the generic bitslice DES code: +20% on RISC.
 * PowerPC G4+ AltiVec support (Mac OS X and Linux): effective 128-bitness
 for bitslice DES, resulting in huge speedups.
 * First attempt at generic vectorization support for bitslice DES.
-* Two MD5 hashes at a time for extra ILP on RISC: up to +80% on Alpha EV5.
+* Two MD5 hashes at a time for extra ILP on RISC: up to +80% on Alpha EV5+.
 * Generic Blowfish x86 assembly code in addition to the original Pentium
-version: +15% on the Pentium Pro family (up to Pentium III), +20% on AMD K6
-(Pentium 4 and newer AMD CPUs are happy running the original Pentium code).
+version: +15% on the Pentium Pro family (up to and including Pentium III),
++20% on AMD K6 (Pentium 4 and newer AMD CPUs are more happy running the
+original Pentium code for Blowfish).
 * Verbose logging of events to the global or a session-specific log file.
 * Better idle priority emulation with POSIX.1b (POSIX.4) scheduling calls.
 * System-wide installation support for *BSD ports and Linux distributions.
 * AIX, DU/Tru64 C2, HP-UX tcb files support in unshadow.
-* New make targets for Linux/x86-64, Linux/PowerPC, FreeBSD/Alpha, SCO,
-OpenBSD/SPARC, OpenBSD/VAX, NetBSD/VAX, Solaris/SPARC64, Mac OS X (PowerPC
-and x86), BeOS.
+* New make targets for Linux/x86-64, Linux/PowerPC, FreeBSD/Alpha,
+OpenBSD/x86-64, OpenBSD/Alpha, OpenBSD/SPARC, OpenBSD/SPARC64,
+OpenBSD/PowerPC, OpenBSD/PA-RISC, OpenBSD/VAX, NetBSD/VAX, Solaris/SPARC64,
+Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.12 2005/11/16 13:11:14 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.13 2005/12/12 11:54:44 solar Exp $
