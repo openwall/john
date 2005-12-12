@@ -181,4 +181,5 @@ void opt_init(int argc, char **argv)
 	}
 
 	rec_argc = argc; rec_argv = argv;
+	rec_check = 0;
 }

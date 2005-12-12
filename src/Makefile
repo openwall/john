@@ -29,9 +29,9 @@ JOHN_OBJS_MINIMAL = \
 	AFS_fmt.o \
 	LM_fmt.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
-	external.o formats.o getopt.o idle.o inc.o john.o list.o loader.o \
-	logger.o math.o memory.o misc.o options.o params.o path.o recovery.o \
-	rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
+	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
+	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
+	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
 	unshadow.o \
 	unafs.o \
 	unique.o

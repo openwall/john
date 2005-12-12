@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2005 by Solar Designer
  */
 
 /*
@@ -29,6 +29,12 @@ extern int rec_version;
  */
 extern int rec_argc;
 extern char **rec_argv;
+
+/*
+ * Checksum (or equivalent) of the file(s) being processed by the current
+ * cracking mode.
+ */
+extern unsigned int rec_check;
 
 /*
  * Opens the crash recovery file for writing, and sets a function that will

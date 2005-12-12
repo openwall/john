@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2005 by Solar Designer
  */
 
 /*
@@ -26,20 +26,23 @@
  * Charset file header.
  */
 struct charset_header {
-/* CHARSET_VERSION */
-	char version[4] CC_PACKED;
+/* CHARSET_V* */
+	char version[4];
+
+/* A checksum of the file or equivalent */
+	unsigned char check[4];
 
 /* CHARSET_MIN, CHARSET_MAX */
-	unsigned char min, max CC_PACKED;
+	unsigned char min, max;
 
 /* CHARSET_LENGTH */
-	unsigned char length CC_PACKED;
+	unsigned char length;
 
 /* Number of different characters, up to (max - min + 1) */
-	unsigned char count CC_PACKED;
+	unsigned char count;
 
 /* File offsets for each length, 32-bit little endian */
-	unsigned char offsets[CHARSET_LENGTH][4] CC_PACKED;
+	unsigned char offsets[CHARSET_LENGTH][4];
 
 /*
  * Cracking order.
@@ -52,9 +55,8 @@ struct charset_header {
  * up to CHARSET_SIZE characters large.
  */
 	unsigned char order
-		[CHARSET_LENGTH * (CHARSET_LENGTH + 1) / 2 * CHARSET_SIZE * 3]
-		CC_PACKED;
-} CC_PACKED;
+		[CHARSET_LENGTH * (CHARSET_LENGTH + 1) / 2 * CHARSET_SIZE * 3];
+};
 
 /*
  * Reads a charset file header.

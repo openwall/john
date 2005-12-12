@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.6.39.4"
+#define JOHN_VERSION			"1.6.39.5"
 
 /*
  * Is this a system-wide installation? *BSD ports and Linux distributions
@@ -38,15 +38,18 @@
 /*
  * Crash recovery file format version strings.
  */
-#define RECOVERY_VERSION_0		"REC0"
-#define RECOVERY_VERSION_1		"REC1"
-#define RECOVERY_VERSION_2		"REC2"
-#define RECOVERY_VERSION_CURRENT	RECOVERY_VERSION_2
+#define RECOVERY_V0			"REC0"
+#define RECOVERY_V1			"REC1"
+#define RECOVERY_V2			"REC2"
+#define RECOVERY_V3			"REC3"
+#define RECOVERY_V			RECOVERY_V3
 
 /*
  * Charset file format version string.
  */
-#define CHARSET_VERSION			"CHR1"
+#define CHARSET_V1			"CHR1"
+#define CHARSET_V2			"CHR2"
+#define CHARSET_V			CHARSET_V2
 
 /*
  * Timer interval in seconds.

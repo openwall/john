@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003 by Solar Designer
+ * Copyright (c) 1996-2003,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -32,6 +32,7 @@ static int rec_name_fixed = 0;
 int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
+unsigned int rec_check;
 
 static int rec_fd;
 static FILE *rec_file = NULL;
@@ -104,7 +105,7 @@ void rec_save(void)
 
 	save_format = !options.format && rec_db->loaded;
 
-	fprintf(rec_file, RECOVERY_VERSION_CURRENT "\n%d\n",
+	fprintf(rec_file, RECOVERY_V "\n%d\n",
 		rec_argc + (save_format ? 1 : 0));
 
 	opt = rec_argv;
@@ -115,13 +116,14 @@ void rec_save(void)
 		fprintf(rec_file, "--format=%s\n",
 			rec_db->format->params.label);
 
-	fprintf(rec_file, "%u\n%u\n%08x\n%08x\n%d\n%d\n",
+	fprintf(rec_file, "%u\n%u\n%08x\n%08x\n%d\n%d\n%08x\n",
 		status_get_time() + 1,
 		status.guess_count,
 		status.crypts.lo,
 		status.crypts.hi,
 		status.pass,
-		status_get_progress ? status_get_progress() : -1);
+		status_get_progress ? status_get_progress() : -1,
+		rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
 
@@ -183,9 +185,10 @@ void rec_restore_args(int lock)
 	if (!fgetl(line, sizeof(line), rec_file)) rec_format_error("fgets");
 
 	rec_version = 0;
-	if (!strcmp(line, RECOVERY_VERSION_2)) rec_version = 2; else
-	if (!strcmp(line, RECOVERY_VERSION_1)) rec_version = 1; else
-	if (strcmp(line, RECOVERY_VERSION_0)) rec_format_error("fgets");
+	if (!strcmp(line, RECOVERY_V3)) rec_version = 3; else
+	if (!strcmp(line, RECOVERY_V2)) rec_version = 2; else
+	if (!strcmp(line, RECOVERY_V1)) rec_version = 1; else
+	if (strcmp(line, RECOVERY_V0)) rec_format_error("fgets");
 
 	if (fscanf(rec_file, "%d\n", &argc) != 1) rec_format_error("fscanf");
 	argv = mem_alloc_tiny(sizeof(char *) * (argc + 1), MEM_ALIGN_WORD);
@@ -216,6 +219,12 @@ void rec_restore_args(int lock)
 		status.progress = -1;
 	} else
 	if (fscanf(rec_file, "%d\n%d\n", &status.pass, &status.progress) != 2)
+		rec_format_error("fscanf");
+
+	if (rec_version < 3)
+		rec_check = 0;
+	else
+	if (fscanf(rec_file, "%x\n", &rec_check) != 1)
 		rec_format_error("fscanf");
 }
 
