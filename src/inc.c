@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004 by Solar Designer
+ * Copyright (c) 1996-2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -318,6 +318,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	char *extra;
 	FILE *file;
 	struct charset_header *header;
+	unsigned int check;
 	char allchars[CHARSET_SIZE + 1];
 	char char1[CHARSET_SIZE + 1];
 	char2_table char2;
@@ -387,11 +388,25 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (ferror(file)) pexit("fread");
 
 	if (feof(file) ||
-	    memcmp(header->version, CHARSET_VERSION, sizeof(header->version)) ||
+	    (memcmp(header->version, CHARSET_V1, sizeof(header->version)) &&
+	    memcmp(header->version, CHARSET_V2, sizeof(header->version))) ||
 	    header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
 	    header->length != CHARSET_LENGTH ||
 	    header->count > CHARSET_SIZE || !header->count)
 		inc_format_error(charset);
+
+	check =
+		(unsigned int)header->check[0] |
+		((unsigned int)header->check[1] << 8) |
+		((unsigned int)header->check[2] << 16) |
+		((unsigned int)header->check[3] << 24);
+	if (!status_restored_time)
+		rec_check = check;
+	if (rec_check != check) {
+		log_event("! Charset file has changed: %.100s", charset);
+		fprintf(stderr, "Charset file has changed: %s\n", charset);
+		error();
+	}
 
 	fread(allchars, header->count, 1, file);
 	if (ferror(file)) pexit("fread");

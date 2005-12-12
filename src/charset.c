@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -14,6 +14,7 @@
 #include "path.h"
 #include "memory.h"
 #include "list.h"
+#include "crc32.h"
 #include "signals.h"
 #include "loader.h"
 #include "external.h"
@@ -24,6 +25,8 @@ typedef unsigned int (*char_counters)
 
 typedef int64 (*crack_counters)
 	[CHARSET_LENGTH][CHARSET_LENGTH][CHARSET_SIZE];
+
+static CRC32_t checksum;
 
 static void charset_filter_plaintexts(struct db_main *db)
 {
@@ -59,34 +62,53 @@ static void charset_filter_plaintexts(struct db_main *db)
 	} while ((current = current->next));
 }
 
+static int cfputc(int c, FILE *stream)
+{
+	unsigned char ch;
+
+	ch = c;
+	CRC32_Update(&checksum, &ch, 1);
+
+	return fputc(c, stream);
+}
+
+static void charset_checksum_header(struct charset_header *header)
+{
+	CRC32_Update(&checksum, header->version, sizeof(header->version));
+	CRC32_Update(&checksum, &header->min, 1);
+	CRC32_Update(&checksum, &header->max, 1);
+	CRC32_Update(&checksum, &header->length, 1);
+	CRC32_Update(&checksum, &header->count, 1);
+	CRC32_Update(&checksum, header->offsets, sizeof(header->offsets));
+	CRC32_Update(&checksum, header->order, sizeof(header->order));
+	CRC32_Final(header->check, checksum);
+}
+
 static void charset_write_header(FILE *file, struct charset_header *header)
 {
-#if ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)) || (__GNUC__ > 2)
-	fwrite(header, sizeof(*header), 1, file);
-#else
 	fwrite(header->version, sizeof(header->version), 1, file);
+	fwrite(header->check, sizeof(header->check), 1, file);
 	fputc(header->min, file);
 	fputc(header->max, file);
 	fputc(header->length, file);
 	fputc(header->count, file);
 	fwrite(header->offsets, sizeof(header->offsets), 1, file);
 	fwrite(header->order, sizeof(header->order), 1, file);
-#endif
 }
 
 void charset_read_header(FILE *file, struct charset_header *header)
 {
-#if ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)) || (__GNUC__ > 2)
-	fread(header, sizeof(*header), 1, file);
-#else
 	fread(header->version, sizeof(header->version), 1, file);
+	if (memcmp(header->version, CHARSET_V1, sizeof(header->version)))
+		fread(header->check, sizeof(header->check), 1, file);
+	else
+		memset(header->check, 0, sizeof(header->check));
 	header->min = getc(file);
 	header->max = getc(file);
 	header->length = getc(file);
 	header->count = getc(file);
 	fread(header->offsets, sizeof(header->offsets), 1, file);
 	fread(header->order, sizeof(header->order), 1, file);
-#endif
 }
 
 static int charset_new_length(int length,
@@ -142,13 +164,14 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 
 	header->count = count;
 	fwrite(buffer, 1, count, file);
+	CRC32_Update(&checksum, buffer, count);
 
 	for (length = 0; charset_new_length(length, header, file); length++)
 	for (pos = 0; pos <= length; pos++) {
 		if (event_abort) return;
 
-		fputc(CHARSET_ESC, file); fputc(CHARSET_NEW, file);
-		fputc(length, file); fputc(pos, file);
+		cfputc(CHARSET_ESC, file); cfputc(CHARSET_NEW, file);
+		cfputc(length, file); cfputc(pos, file);
 
 		memset(chars, 0, sizeof(*chars));
 
@@ -190,16 +213,17 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 			} while (1);
 
 			if (count) {
-				fputc(CHARSET_ESC, file);
-				fputc(CHARSET_LINE, file);
-				fputc(i, file); fputc(j, file);
+				cfputc(CHARSET_ESC, file);
+				cfputc(CHARSET_LINE, file);
+				cfputc(i, file); cfputc(j, file);
 				fwrite(buffer, 1, count, file);
+				CRC32_Update(&checksum, buffer, count);
 			}
 		}
 	}
 
-	fputc(CHARSET_ESC, file); fputc(CHARSET_NEW, file);
-	fputc(CHARSET_LENGTH, file);
+	cfputc(CHARSET_ESC, file); cfputc(CHARSET_NEW, file);
+	cfputc(CHARSET_LENGTH, file);
 }
 
 static void charset_generate_order(crack_counters cracks, unsigned char *order)
@@ -300,10 +324,11 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 
 	fflush(file);
 	if (!ferror(file) && !fseek(file, 0, SEEK_SET)) {
-		strcpy(header->version, CHARSET_VERSION);
+		strcpy(header->version, CHARSET_V);
 		header->min = CHARSET_MIN;
 		header->max = CHARSET_MAX;
 		header->length = CHARSET_LENGTH;
+		charset_checksum_header(header);
 		charset_write_header(file, header);
 	}
 
@@ -364,6 +389,8 @@ void do_makechars(struct db_main *db, char *charset)
 		db->plaintexts->count ? "" : ", exiting...");
 
 	if (!db->plaintexts->count) return;
+
+	CRC32_Init(&checksum);
 
 	charset_generate_all(db->plaintexts->head, charset);
 }

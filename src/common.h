@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2005 by Solar Designer
  */
 
 /*
@@ -24,12 +24,6 @@ typedef unsigned int ARCH_WORD_32;
 	__attribute__ ((aligned (MEM_ALIGN_CACHE)))
 #else
 #define CC_CACHE_ALIGN			/* nothing */
-#endif
-
-#if ((__GNUC__ == 2) && (__GNUC_MINOR__ >= 7)) || (__GNUC__ > 2)
-#define CC_PACKED			__attribute__ ((packed))
-#else
-#define CC_PACKED			/* nothing */
 #endif
 
 /*
