@@ -11,7 +11,6 @@
 #define _JOHN_CHARSET_H
 
 #include "params.h"
-#include "common.h"
 #include "loader.h"
 
 /*
