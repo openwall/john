@@ -28,8 +28,9 @@ struct charset_header {
 /* CHARSET_V* */
 	char version[4];
 
-/* A checksum of the file or equivalent */
-	unsigned char check[4];
+/* A checksum of the file or equivalent plus some space for future extensions
+ * (only 4 bytes are used currently) */
+	unsigned char check[24];
 
 /* CHARSET_MIN, CHARSET_MAX */
 	unsigned char min, max;
