@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003 by Solar Designer
+ * Copyright (c) 1996-2003,2005 by Solar Designer
  */
 
 #include <stdio.h>
@@ -40,9 +40,9 @@ static unsigned int get_int(unsigned int *ptr)
 	unsigned char *bytes = (unsigned char *)ptr;
 
 	return
-		(unsigned int)bytes[0] +
-		((unsigned int)bytes[1] << 8) +
-		((unsigned int)bytes[2] << 16) +
+		(unsigned int)bytes[0] |
+		((unsigned int)bytes[1] << 8) |
+		((unsigned int)bytes[2] << 16) |
 		((unsigned int)bytes[3] << 24);
 }
 
