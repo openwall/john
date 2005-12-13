@@ -98,9 +98,9 @@ static void inc_new_length(unsigned int length,
 		memset(chars[pos], 0, sizeof(**chars));
 
 	offset =
-		(long)header->offsets[length][0] +
-		((long)header->offsets[length][1] << 8) +
-		((long)header->offsets[length][2] << 16) +
+		(long)header->offsets[length][0] |
+		((long)header->offsets[length][1] << 8) |
+		((long)header->offsets[length][2] << 16) |
 		((long)header->offsets[length][3] << 24);
 	if (fseek(file, offset, SEEK_SET)) pexit("fseek");
 

@@ -39,16 +39,16 @@ int process_db(FILE *file, char *cell)
 
 	if (fread(buffer, 8, 1, file) != 1) return 1;
 	size =
-		((long)buffer[6] << 8) +
+		((long)buffer[6] << 8) |
 		(long)buffer[7];
 	if (size == 0) size = 64; /* OpenAFS */
 	if (fseek(file, size, SEEK_SET)) pexit("fseek");
 
 	if (fread(buffer, 8, 1, file) != 1) return 1;
 	size +=
-		((long)buffer[4] << 24) +
-		((long)buffer[5] << 16) +
-		((long)buffer[6] << 8) +
+		((long)buffer[4] << 24) |
+		((long)buffer[5] << 16) |
+		((long)buffer[6] << 8) |
 		(long)buffer[7];
 	if (fseek(file, size, SEEK_SET)) pexit("fseek");
 
