@@ -1,7 +1,12 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1998,2005 by Solar Designer
+ * This is a tiny implementation of CRC-32.
+ *
+ * Written by Solar Designer <solar at openwall.com> in 1998, revised in
+ * 2005 for use in John the Ripper, and placed in the public domain.
+ * There's absolutely no warranty.
  */
+
+#include <stdio.h>
 
 #include "memory.h"
 #include "crc32.h"
@@ -9,7 +14,7 @@
 #define POLY 0xEDB88320
 #define ALL1 0xFFFFFFFF
 
-static CRC32_t *table;
+static CRC32_t *table = NULL;
 
 void CRC32_Init(CRC32_t *value)
 {
@@ -19,7 +24,9 @@ void CRC32_Init(CRC32_t *value)
 	*value = ALL1;
 
 	if (table) return;
-	table = mem_alloc_tiny(sizeof(*table) * 0x100, MEM_ALIGN_WORD);
+/* mem_alloc() doesn't return on failure.  If replacing this with plain
+ * malloc(3), error checking would need to be added. */
+	table = mem_alloc(sizeof(*table) * 0x100);
 
 	for (index = 0; index < 0x100; index++) {
 		entry = index;

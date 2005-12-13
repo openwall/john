@@ -1,6 +1,9 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1998,2005 by Solar Designer
+ * This is a tiny implementation of CRC-32.
+ *
+ * Written by Solar Designer <solar at openwall.com> in 1998, revised in
+ * 2005 for use in John the Ripper, and placed in the public domain.
+ * There's absolutely no warranty.
  */
 
 #ifndef _JOHN_CRC32_H
