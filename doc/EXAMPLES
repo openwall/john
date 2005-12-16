@@ -303,6 +303,7 @@ files at all), you might want to use it to generate a new set of main
 charset files:
 
 	john --make-charset=all.chr
+	john --make-charset=alnum.chr --external=filter_alnum
 	john --make-charset=alpha.chr --external=filter_alpha
 	john --make-charset=digits.chr --external=filter_digits
 	john --make-charset=lanman.chr --external=filter_lanman

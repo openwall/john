@@ -87,8 +87,8 @@ These parameters are defined in the configuration file sections called
 [Incremental:MODE], where MODE is any name that you assign to the mode
 (it's the name that you will need to specify on John's command line).
 You can either use a pre-defined incremental mode definition (one of
-"All", "Alpha", "Digits", or "LanMan" for LM hashes) or define a
-custom one.
+"All", "Alnum", "Alpha", "Digits", or "LanMan" for LM hashes) or define
+a custom one.
 
 See CONFIG and EXAMPLES for information on defining custom modes.
 
