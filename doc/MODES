@@ -87,8 +87,8 @@ These parameters are defined in the configuration file sections called
 [Incremental:MODE], where MODE is any name that you assign to the mode
 (it's the name that you will need to specify on John's command line).
 You can either use a pre-defined incremental mode definition (one of
-"All", "Alpha", "Digits", or "LanMan" for LM hashes) or define a
-custom one.
+"All", "Alnum", "Alpha", "Digits", or "LanMan" for LM hashes) or define
+a custom one.
 
 See CONFIG and EXAMPLES for information on defining custom modes.
 
@@ -108,4 +108,4 @@ particular external mode on John's command line.  See EXTERNAL.
 
 See EXAMPLES for a reasonable order of cracking modes to use.
 
-$Owl: Owl/packages/john/john/doc/MODES,v 1.3 2005/11/16 13:11:15 solar Exp $
+$Owl: Owl/packages/john/john/doc/MODES,v 1.4 2005/12/16 15:23:47 solar Exp $

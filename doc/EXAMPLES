@@ -303,6 +303,7 @@ files at all), you might want to use it to generate a new set of main
 charset files:
 
 	john --make-charset=all.chr
+	john --make-charset=alnum.chr --external=filter_alnum
 	john --make-charset=alpha.chr --external=filter_alpha
 	john --make-charset=digits.chr --external=filter_digits
 	john --make-charset=lanman.chr --external=filter_lanman
@@ -404,4 +405,4 @@ of comments in the default configuration file supplied with John.
 Please refer to EXTERNAL for information on the programming language
 used.
 
-$Owl: Owl/packages/john/john/doc/EXAMPLES,v 1.5 2005/11/16 13:11:15 solar Exp $
+$Owl: Owl/packages/john/john/doc/EXAMPLES,v 1.6 2005/12/16 15:23:47 solar Exp $
