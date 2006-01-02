@@ -21,11 +21,16 @@ in x86-mmx.S).
 * Roman Rusakov - for his optimization hints which affected early
 versions of John.
 
-* Lionel Cons - for making me add Kerberos AFS passwords support,
+* Lionel Cons - for making me add Kerberos AFS passwords support, for
 reporting some bugs, and for many good advices.
 
 * stran9er - for tracking down the section alignment problem with MMX in
 the DOS and Win32 ports.
+
+* Authors of the contributed patches ever listed on John the Ripper
+homepage and/or placed into contrib/ directory on the FTP server - for
+those patches which, while not included into the official John the
+Ripper for various reasons, are nevertheless very helpful to many users.
 
 * All the people who have developed freeware crypt(3) implementations -
 for various tricks that I combined in my routines.
