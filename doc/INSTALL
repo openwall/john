@@ -1,5 +1,15 @@
 	Installing John the Ripper.
 
+First of all, most likely you do not need to install John the Ripper
+system-wide.  Instead, after you extract the distribution archive and
+possibly compile the source code (see below), you may simply enter the
+"run" directory and invoke John from there.
+
+System-wide installation is also supported, but it is intended for use
+by packagers of John for *BSD "ports", Linux distributions, etc., rather
+than by end-users.  (If you're in fact preparing a package of John,
+please refer to the JOHN_SYSTEMWIDE setting in src/params.h.)
+
 You may have obtained the source code or a "binary" (pre-compiled)
 distribution of John the Ripper.  On Unix-like systems, it is typical
 to get the source code and compile it into "binary" executables right
