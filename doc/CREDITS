@@ -21,11 +21,16 @@ in x86-mmx.S).
 * Roman Rusakov - for his optimization hints which affected early
 versions of John.
 
-* Lionel Cons - for making me add Kerberos AFS passwords support,
+* Lionel Cons - for making me add Kerberos AFS passwords support, for
 reporting some bugs, and for many good advices.
 
 * stran9er - for tracking down the section alignment problem with MMX in
 the DOS and Win32 ports.
+
+* Authors of the contributed patches ever listed on John the Ripper
+homepage and/or placed into contrib/ directory on the FTP server - for
+those patches which, while not included into the official John the
+Ripper for various reasons, are nevertheless very helpful to many users.
 
 * All the people who have developed freeware crypt(3) implementations -
 for various tricks that I combined in my routines.
@@ -81,4 +86,4 @@ Please don't ask questions until you read the FAQ.
 -- 
 Solar Designer <solar at openwall.com>
 
-$Owl: Owl/packages/john/john/doc/CREDITS,v 1.5 2005/11/16 13:11:14 solar Exp $
+$Owl: Owl/packages/john/john/doc/CREDITS,v 1.6 2006/01/02 04:10:37 solar Exp $
