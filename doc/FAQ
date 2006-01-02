@@ -199,7 +199,7 @@ Q: What is the format of the crash recovery files ("john.rec", other
 A: The format of these files is deliberately undocumented and is subject
 to change without notice.  (However, each release of John the Ripper is
 likely to be able to read .rec files produced by at least the
-immediately preceeding release.  Whenever compatibility is broken, John
+immediately preceding release.  Whenever compatibility is broken, John
 will refuse to recover the session, leaving the .rec file intact.)
 Although the meaning of some of the numbers that get into .rec files is
 trivial to explain, it is not possible to reasonably describe some
@@ -230,7 +230,9 @@ writing), but John offers "incremental" mode (see the answer to the
 previous question) which lets it outperform L0phtCrack at LM hashes in
 some cases.  John is also better at Unix passwords.  L0phtCrack, on the
 other hand, is specialized for Windows passwords and includes many
-Windows-specific features that John does not.  Finally, L0phtCrack is a
-purely commercial Windows GUI application.
+Windows-specific features that John does not.  Finally, L0phtCrack used
+to be a purely commercial Windows GUI application, now discontinued (no
+new copies may be acquired legally, so this FAQ entry is likely to be
+dropped soon).
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.12 2006/01/02 07:17:42 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.13 2006/01/02 08:29:59 solar Exp $
