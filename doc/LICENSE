@@ -40,6 +40,11 @@ your software (where the GPL restrictions could be a problem).
 Finally, I have placed the CRC-32 implementation (crc32.c, crc32.h) in
 the public domain.
 
+
+	Commercial licensing.
+
+Commercial licenses (non-GPL) are available upon request.
+
 -- 
 Alexander Peslyak aka Solar Designer <solar at openwall.com>
 
