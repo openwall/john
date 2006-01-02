@@ -1,7 +1,7 @@
 	John the Ripper copyright and license.
 
 John the Ripper password cracker,
-Copyright (c) 1996-2005 by Solar Designer.
+Copyright (c) 1996-2006 by Solar Designer.
 Portions copyright (c) by their respective authors:
 
 Optimized DES S-box expressions (nonstd.c, sboxes.c) have been produced
@@ -29,13 +29,16 @@ used for any purpose, so long as their origin is acknowledged.
 
 As the copyright holder for the bcrypt (Blowfish-based password hashing)
 implementation found in John the Ripper, I have placed a derived version
-of this implementation into the public domain.  This derived version may
+of this implementation in the public domain.  This derived version may
 be obtained at:
 
 	http://www.openwall.com/crypt/
 
 The intent is to provide modern password hashing for your servers and
 your software (where the GPL restrictions could be a problem).
+
+Finally, I have placed the CRC-32 implementation (crc32.c, crc32.h) in
+the public domain.
 
 -- 
 Alexander Peslyak aka Solar Designer <solar at openwall.com>
