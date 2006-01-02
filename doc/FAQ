@@ -58,7 +58,7 @@ John, or at least by the version and build of John that you're using.
 If you're positive that this is the case, you may want to check the
 contributed resources list on John the Ripper homepage for a suitable
 patch and, if unsuccessful with that, post a note to the mailing list
-(see CREDITS) including a sample password file line that John does not
+(see CONTACT) including a sample password file line that John does not
 load (please make sure that the password is already changed by the time
 you post).
 
@@ -79,7 +79,7 @@ Q: What is the primary website for John the Ripper?
 A: http://www.openwall.com/john/
 
 Q: How can I contact you (the author)?
-A: See CREDITS.
+A: See CONTACT.
 
 
 	(Semi-)advanced topics.
@@ -181,4 +181,4 @@ other hand, is specialized for Windows passwords and includes many
 Windows-specific features that John does not.  Finally, L0phtCrack is a
 purely commercial Windows GUI application.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.9 2005/11/16 13:11:15 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.10 2006/01/02 04:52:45 solar Exp $

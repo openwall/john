@@ -100,10 +100,11 @@ the recommended order of reading:
 * EXAMPLES - usage examples - strongly recommended
 * FAQ - guess
 * CHANGES (*) - history of changes
-* CREDITS (*) - credits and how to contact the author
+* CONTACT (*) - how to contact the author
+* CREDITS (*) - credits
 
 (*) most users can safely skip these.
 
 Happy reading!
 
-$Owl: Owl/packages/john/john/doc/README,v 1.11 2005/11/16 13:11:15 solar Exp $
+$Owl: Owl/packages/john/john/doc/README,v 1.12 2006/01/02 04:52:45 solar Exp $
