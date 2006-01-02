@@ -78,8 +78,9 @@ combinations being too large (actually, it will terminate if you set a
 low password length limit or make it use a small charset), and you'll
 have to interrupt it earlier.
 
-That's one reason why this mode deals with character frequency tables,
-to get as many passwords as possible within a limited time.
+That's one reason why this mode deals with trigraph frequencies,
+separately for each character position and for each password length,
+to crack as many passwords as possible within a limited time.
 
 To use the mode you need a specific definition for the mode's
 parameters, including password length limits and the charset to use.
