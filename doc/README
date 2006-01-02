@@ -91,7 +91,7 @@ processor architectures, most importantly for x86 with MMX.
 The rest of documentation is located in separate files, listed here in
 the recommended order of reading:
 
-* INSTALL - you've probably read it already
+* INSTALL - installation instructions
 * OPTIONS - command line options and additional utilities
 * MODES - cracking modes: what they are
 * CONFIG (*) - how to customize
@@ -100,11 +100,12 @@ the recommended order of reading:
 * EXAMPLES - usage examples - strongly recommended
 * FAQ - guess
 * CHANGES (*) - history of changes
-* CONTACT (*) - how to contact the author
+* CONTACT (*) - how to contact the author or otherwise obtain support
 * CREDITS (*) - credits
+* LICENSE - copyrights and licensing terms
 
 (*) most users can safely skip these.
 
 Happy reading!
 
-$Owl: Owl/packages/john/john/doc/README,v 1.12 2006/01/02 04:52:45 solar Exp $
+$Owl: Owl/packages/john/john/doc/README,v 1.13 2006/01/02 05:11:28 solar Exp $
