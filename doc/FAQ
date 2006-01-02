@@ -58,7 +58,7 @@ John, or at least by the version and build of John that you're using.
 If you're positive that this is the case, you may want to check the
 contributed resources list on John the Ripper homepage for a suitable
 patch and, if unsuccessful with that, post a note to the mailing list
-(see CREDITS) including a sample password file line that John does not
+(see CONTACT) including a sample password file line that John does not
 load (please make sure that the password is already changed by the time
 you post).
 
@@ -79,7 +79,7 @@ Q: What is the primary website for John the Ripper?
 A: http://www.openwall.com/john/
 
 Q: How can I contact you (the author)?
-A: See CREDITS.
+A: See CONTACT.
 
 
 	(Semi-)advanced topics.
