@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004 by Solar Designer
+ * Copyright (c) 1996-2004,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -212,7 +212,7 @@ static void john_load(void)
 	}
 }
 
-static void john_init(int argc, char **argv)
+static void john_init(char *name, int argc, char **argv)
 {
 #if CPU_DETECT
 	if (!CPU_detect()) {
@@ -240,7 +240,7 @@ static void john_init(int argc, char **argv)
 	cfg_init(CFG_ALT_NAME, 0);
 
 	status_init(NULL, 1);
-	opt_init(argc, argv);
+	opt_init(name, argc, argv);
 
 	john_register_all();
 	common_init();
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
 	argv++;
 #else
 	if (!argv[0])
-		name = "";
+		name = "john";
 	else
 	if ((name = strrchr(argv[0], '/')))
 		name++;
@@ -327,8 +327,8 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef __CYGWIN32__
-	if (strlen(name) > 4)
-	if (!strcmp(strlwr(name) + strlen(name) - 4, ".exe"))
+	strlwr(name);
+	if (strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".exe"))
 		name[strlen(name) - 4] = 0;
 #endif
 
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "unique"))
 		return unique(argc, argv);
 
-	john_init(argc, argv);
+	john_init(name, argc, argv);
 	john_run();
 	john_done();
 

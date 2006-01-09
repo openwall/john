@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2005 by Solar Designer
+ * Copyright (c) 1996-2003,2005,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -190,10 +190,11 @@ void rec_restore_args(int lock)
 	if (!strcmp(line, RECOVERY_V1)) rec_version = 1; else
 	if (strcmp(line, RECOVERY_V0)) rec_format_error("fgets");
 
-	if (fscanf(rec_file, "%d\n", &argc) != 1) rec_format_error("fscanf");
+	if (fscanf(rec_file, "%d\n", &argc) != 1 || argc < 2)
+		rec_format_error("fscanf");
 	argv = mem_alloc_tiny(sizeof(char *) * (argc + 1), MEM_ALIGN_WORD);
 
-	argv[0] = "";
+	argv[0] = "john";
 
 	for (index = 1; index < argc; index++)
 	if (fgetl(line, sizeof(line), rec_file))
@@ -204,7 +205,7 @@ void rec_restore_args(int lock)
 	argv[argc] = NULL;
 
 	save_rec_name = rec_name;
-	opt_init(argc, argv);
+	opt_init(argv[0], argc, argv);
 	rec_name = save_rec_name;
 
 	if (fscanf(rec_file, "%u\n%u\n%x\n%x\n",

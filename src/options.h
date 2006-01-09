@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2003 by Solar Designer
+ * Copyright (c) 1996-98,2003,2006 by Solar Designer
  */
 
 /*
@@ -120,6 +120,6 @@ extern struct options_main options;
 /*
  * Initializes the options structure.
  */
-extern void opt_init(int argc, char **argv);
+extern void opt_init(char *name, int argc, char **argv);
 
 #endif

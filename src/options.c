@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2005 by Solar Designer
+ * Copyright (c) 1996-2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -104,12 +104,10 @@ static struct opt_entry opt_list[] = {
 	"DES/BSDI/MD5/BF/AFS/LM\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n"
 
-void opt_init(int argc, char **argv)
+void opt_init(char *name, int argc, char **argv)
 {
-	if (!argv[0]) error();
-
-	if (!argv[1]) {
-		printf(JOHN_USAGE, argv[0]);
+	if (argc < 2) {
+		printf(JOHN_USAGE, name);
 		exit(0);
 	}
 
