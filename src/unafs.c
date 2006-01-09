@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1998,2005 by Solar Designer
+ * Copyright (c) 1998,2005,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -63,8 +63,7 @@ int unafs(int argc, char **argv)
 	FILE *file;
 
 	if (argc != 3) {
-		printf("Usage: %s DATABASE-FILE CELL-NAME\n",
-			argv[0] ? argv[0] : "unafs");
+		puts("Usage: unafs DATABASE-FILE CELL-NAME");
 
 		if (argc <= 1)
 			return 0;

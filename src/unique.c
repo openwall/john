@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1998,1999,2002,2003,2005 by Solar Designer
+ * Copyright (c) 1998,1999,2002,2003,2005,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -203,8 +203,7 @@ static void unique_done(void)
 int unique(int argc, char **argv)
 {
 	if (argc != 2) {
-		printf("Usage: %s OUTPUT-FILE\n",
-			argv[0] ? argv[0] : "unique");
+		puts("Usage: unique OUTPUT-FILE");
 
 		if (argc <= 1)
 			return 0;

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -125,8 +125,7 @@ static void process_passwd_line(char *line)
 int unshadow(int argc, char **argv)
 {
 	if (argc != 3) {
-		printf("Usage: %s PASSWORD-FILE SHADOW-FILE\n",
-			argv[0] ? argv[0] : "unshadow");
+		puts("Usage: unshadow PASSWORD-FILE SHADOW-FILE");
 
 		if (argc <= 1)
 			return 0;
