@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003 by Solar Designer
+ * Copyright (c) 1996-2003,2006 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -126,11 +126,7 @@ void check_abort(int be_async_signal_safe)
 
 static void sig_install_abort(void);
 
-#ifdef __CYGWIN32__
-static BOOL sig_handle_abort(DWORD ctrltype)
-#else
 static void sig_handle_abort(int signum)
-#endif
 {
 	int saved_errno = errno;
 
@@ -140,14 +136,18 @@ static void sig_handle_abort(int signum)
 
 	write_loop(2, "Wait...\r", 8);
 
-#ifdef __CYGWIN32__
-	errno = saved_errno;
-	return TRUE;
-#else
 	sig_install_abort();
+
 	errno = saved_errno;
-#endif
 }
+
+#ifdef __CYGWIN32__
+static CALLBACK BOOL sig_handle_abort_ctrl(DWORD ctrltype)
+{
+	sig_handle_abort(SIGINT);
+	return TRUE;
+}
+#endif
 
 static void sig_install_abort(void)
 {
@@ -156,12 +156,9 @@ static void sig_install_abort(void)
 #endif
 
 #ifdef __CYGWIN32__
-#ifdef __CYGWIN__
-	SetConsoleCtrlHandler((PHANDLER_ROUTINE)sig_handle_abort, TRUE);
-#else
-	SetConsoleCtrlHandler((HANDLER_ROUTINE *)sig_handle_abort, TRUE);
+	SetConsoleCtrlHandler(sig_handle_abort_ctrl, TRUE);
 #endif
-#else
+
 	signal(SIGINT, sig_handle_abort);
 	signal(SIGTERM, sig_handle_abort);
 #ifdef SIGXCPU
@@ -170,11 +167,14 @@ static void sig_install_abort(void)
 #ifdef SIGXFSZ
 	signal(SIGXFSZ, sig_handle_abort);
 #endif
-#endif
 }
 
 static void sig_remove_abort(void)
 {
+#ifdef __CYGWIN32__
+	SetConsoleCtrlHandler(sig_handle_abort_ctrl, FALSE);
+#endif
+
 	signal(SIGINT, SIG_DFL);
 	signal(SIGTERM, SIG_DFL);
 #ifdef SIGXCPU
