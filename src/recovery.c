@@ -141,7 +141,10 @@ void rec_done(int aborted)
 {
 	if (!rec_file) return;
 
-	if (aborted) rec_save();
+	if (aborted)
+		rec_save();
+	else
+		log_flush();
 
 	if (fclose(rec_file)) pexit("fclose");
 	rec_file = NULL;
