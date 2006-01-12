@@ -542,24 +542,28 @@ dos-djgpp-x86-mmx:
 	copy x86-mmx.h arch.h
 	$(MAKE) $(PROJ_DOS) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
 dos-djgpp-x86-any:
 	copy x86-any.h arch.h
 	$(MAKE) $(PROJ_DOS) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
 win32-cygwin-x86-mmx:
 	$(CP) x86-mmx.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-cygwin-x86-any:
 	$(CP) x86-any.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 beos-x86-mmx:
