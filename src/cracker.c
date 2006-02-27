@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003 by Solar Designer
+ * Copyright (c) 1996-2003,2006 by Solar Designer
  */
 
 #include <string.h>
@@ -156,6 +156,11 @@ static int crk_process_event(void)
 	if (event_status) {
 		event_status = 0;
 		status_print();
+	}
+
+	if (event_ticksafety) {
+		event_ticksafety = 0;
+		status_ticks_overflow_safety();
 	}
 
 	return event_abort;

@@ -35,8 +35,10 @@
 
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
+volatile int event_ticksafety = 0;
 
 static int timer_save_interval, timer_save_value;
+static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 
 #if !OS_TIMER
 
@@ -217,6 +219,12 @@ static void sig_handle_timer(int signum)
 		event_save = event_pending = 1;
 	}
 
+	if (!--timer_ticksafety_value) {
+		timer_ticksafety_value = timer_ticksafety_interval;
+
+		event_ticksafety = event_pending = 1;
+	}
+
 	if (sig_getchar() >= 0) {
 		while (sig_getchar() >= 0);
 
@@ -285,6 +293,12 @@ void sig_init(void)
 	if ((timer_save_interval /= TIMER_INTERVAL) <= 0)
 		timer_save_interval = 1;
 	timer_save_value = timer_save_interval;
+
+	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
+	timer_ticksafety_interval /= CLK_TCK;
+	if ((timer_ticksafety_interval /= TIMER_INTERVAL) <= 0)
+		timer_ticksafety_interval = 1;
+	timer_ticksafety_value = timer_ticksafety_interval;
 
 	atexit(sig_done);
 

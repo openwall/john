@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2004 by Solar Designer
+ * Copyright (c) 1996-2001,2004,2006 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -47,22 +47,28 @@ void status_init(int (*get_progress)(void), int start)
 	status_get_progress = get_progress;
 }
 
+void status_ticks_overflow_safety(void)
+{
+	unsigned int time;
+	clock_t ticks;
+
+	ticks = get_time() - status.start_time;
+	if (ticks > ((clock_t)1 << (sizeof(clock_t) * 8 - 2))) {
+		time = ticks / CLK_TCK;
+		status_restored_time += time;
+		status.start_time += (clock_t)time * CLK_TCK;
+	}
+}
+
 void status_update_crypts(unsigned int count)
 {
-	unsigned int saved_hi, time;
-	clock_t ticks;
+	unsigned int saved_hi;
 
 	saved_hi = status.crypts.hi;
 	add32to64(&status.crypts, count);
 
-	if (status.crypts.hi != saved_hi) {
-		ticks = get_time() - status.start_time;
-		if (ticks > ((clock_t)1 << (sizeof(clock_t) * 8 - 2))) {
-			time = ticks / CLK_TCK;
-			status_restored_time += time;
-			status.start_time += (clock_t)time * CLK_TCK;
-		}
-	}
+	if (status.crypts.hi != saved_hi)
+		status_ticks_overflow_safety();
 }
 
 unsigned int status_get_time(void)
