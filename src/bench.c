@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -12,6 +12,7 @@
 #include <limits.h>
 #endif
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <signal.h>
 #include <time.h>
@@ -28,6 +29,19 @@
 #include "signals.h"
 #include "formats.h"
 #include "bench.h"
+
+long clk_tck = 0;
+
+void clk_tck_init(void)
+{
+	if (clk_tck) return;
+
+#if defined(_SC_CLK_TCK) || !defined(CLK_TCK)
+	clk_tck = sysconf(_SC_CLK_TCK);
+#else
+	clk_tck = CLK_TCK;
+#endif
+}
 
 static volatile int bench_running;
 
@@ -84,6 +98,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	void *salt, *two_salts[2];
 	int index, max;
 
+	clk_tck_init();
+
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
 		sprintf(s_error, "FAILED (%s)", where);
@@ -127,7 +143,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	it.it_value.tv_sec = BENCHMARK_TIME;
 	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
 #else
-	sig_timer_emu_init(BENCHMARK_TIME * CLK_TCK);
+	sig_timer_emu_init(BENCHMARK_TIME * clk_tck);
 #endif
 
 	start_real = times(&buf);
@@ -174,7 +190,7 @@ void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
 	int64 tmp;
 
 	tmp.lo = count; tmp.hi = 0;
-	mul64by32(&tmp, CLK_TCK);
+	mul64by32(&tmp, clk_tck);
 	cps_hi = div64by32lo(&tmp, time);
 
 	if (cps_hi >= 1000000)

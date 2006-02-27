@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2006 by Solar Designer
  */
 
 /*
@@ -25,6 +25,17 @@ struct bench_results {
 /* Number of passwords tried */
 	unsigned ARCH_WORD count;
 };
+
+/*
+ * Clock ticks per second - either as obtained via sysconf(_SC_CLK_TCK)
+ * or the constant CLK_TCK.
+ */
+extern long clk_tck;
+
+/*
+ * Initializes clk_tck on the first invocation; does nothing afterwards.
+ */
+extern void clk_tck_init(void);
 
 /*
  * Benchmarks the supplied cracking algorithm. Returns NULL on success,

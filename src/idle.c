@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2006 by Solar Designer
  */
 
 #include <unistd.h>
@@ -25,6 +25,7 @@ extern int nice(int);
 #include "config.h"
 #include "options.h"
 #include "signals.h"
+#include "bench.h"
 
 void idle_init(void)
 {
@@ -34,6 +35,8 @@ void idle_init(void)
 
 	if (!cfg_get_bool(SECTION_OPTIONS, NULL, "Idle")) return;
 	if (options.flags & FLG_STDOUT) return;
+
+	clk_tck_init();
 
 #ifndef __BEOS__
 	nice(20);
@@ -68,7 +71,7 @@ void idle_yield(void)
 	current = times(&buf);
 	if (!last_adj) last_adj = current;
 
-	if (current - last_adj >= CLK_TCK) {
+	if (current - last_adj >= clk_tck) {
 		calls_per_tick = calls_since_adj / (current - last_adj);
 		calls_since_adj = 0;
 		last_adj = current;
@@ -79,6 +82,6 @@ void idle_yield(void)
 		last_check = current;
 		sched_yield();
 		current = times(&buf);
-	} while (current - last_check > 1 && current - last_adj < CLK_TCK);
+	} while (current - last_check > 1 && current - last_adj < clk_tck);
 #endif
 }
