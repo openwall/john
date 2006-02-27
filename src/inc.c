@@ -80,6 +80,26 @@ static void inc_format_error(char *charset)
 	error();
 }
 
+static int is_mixedcase(char *chars)
+{
+	char *ptr, c;
+	char present[CHARSET_SIZE];
+
+	memset(present, 0, sizeof(present));
+	ptr = chars;
+	while ((c = *ptr++))
+		present[ARCH_INDEX(c) - CHARSET_MIN] = 1;
+
+	ptr = chars;
+	while ((c = *ptr++)) {
+		if (c >= 'A' && c <= 'Z' &&
+		    present[ARCH_INDEX(c | 0x20) - CHARSET_MIN])
+			return 1;
+	}
+
+	return 0;
+}
+
 static void inc_new_length(unsigned int length,
 	struct charset_header *header, FILE *file, char *charset,
 	char *char1, char2_table char2, chars_table *chars)
@@ -360,6 +380,25 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
+	if (min_length > db->format->params.plaintext_length) {
+		log_event("! MinLen = %d is too large for this hash type",
+			min_length);
+		fprintf(stderr, "MinLen = %d exceeds the maximum possible "
+			"length for the current hash type (%d)\n",
+			min_length, db->format->params.plaintext_length);
+		error();
+	}
+
+	if (max_length > db->format->params.plaintext_length) {
+		log_event("! MaxLen = %d is too large for this hash type",
+			max_length);
+		fprintf(stderr, "Warning: "
+			"MaxLen = %d is too large for the current hash type, "
+			"reduced to %d\n",
+			max_length, db->format->params.plaintext_length);
+		max_length = db->format->params.plaintext_length;
+	}
+
 	if (max_length > CHARSET_LENGTH) {
 		log_event("! MaxLen = %d exceeds the compile-time limit of %d",
 			max_length, CHARSET_LENGTH);
@@ -432,6 +471,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			real_count);
 	}
 
+	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
+		log_event("! Mixed-case charset, "
+			"but the hash type is case-insensitive");
+		fprintf(stderr, "Warning: mixed-case charset, "
+			"but the current hash type is case-insensitive;\n"
+			"some candidate passwords may be unnecessarily "
+			"tried more than once.\n");
+	}
+
 	if (header->length >= 2)
 		char2 = (char2_table)mem_alloc(sizeof(*char2));
 	else
@@ -467,9 +515,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		if (entry != rec_entry)
 			memset(numbers, 0, sizeof(numbers));
 
-		if (count >= real_count ||
-			(int)length >= db->format->params.plaintext_length ||
-			(fixed && !count)) continue;
+		if (count >= real_count || (fixed && !count)) continue;
 
 		if ((int)length + 1 < min_length ||
 			(int)length >= max_length ||
