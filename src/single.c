@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -347,20 +347,21 @@ static void single_done(void)
 	struct db_salt *salt;
 
 	if (!event_abort) {
-		log_event("- Processing the remaining buffered "
-			"candidate passwords");
+		if ((salt = single_db->salts)) {
+			log_event("- Processing the remaining buffered "
+				"candidate passwords");
 
-		if ((salt = single_db->salts))
-		do {
-			if (!salt->list) continue;
-			if (salt->keys->count)
-			if (single_process_buffer(salt)) break;
-		} while ((salt = salt->next));
+			do {
+				if (!salt->list) continue;
+				if (salt->keys->count)
+				if (single_process_buffer(salt)) break;
+			} while ((salt = salt->next));
+		}
 
 		progress = 100;
 	}
 
-	rec_done(event_abort);
+	rec_done(event_abort || (status.pass && single_db->salts));
 }
 
 void do_single_crack(struct db_main *db)
