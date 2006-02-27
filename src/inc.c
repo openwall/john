@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2005 by Solar Designer
+ * Copyright (c) 1996-2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -400,7 +400,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		((unsigned int)header->check[1] << 8) |
 		((unsigned int)header->check[2] << 16) |
 		((unsigned int)header->check[3] << 24);
-	if (!status_restored_time)
+	if (!rec_restoring_now)
 		rec_check = check;
 	if (rec_check != check) {
 		log_event("! Charset file has changed: %.100s", charset);

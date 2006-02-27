@@ -33,6 +33,7 @@ int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
 unsigned int rec_check;
+int rec_restoring_now = 0;
 
 static int rec_fd;
 static FILE *rec_file = NULL;
@@ -137,11 +138,11 @@ void rec_save(void)
 #endif
 }
 
-void rec_done(int aborted)
+void rec_done(int save)
 {
 	if (!rec_file) return;
 
-	if (aborted)
+	if (save)
 		rec_save();
 	else
 		log_flush();
@@ -149,8 +150,7 @@ void rec_done(int aborted)
 	if (fclose(rec_file)) pexit("fclose");
 	rec_file = NULL;
 
-	if (!aborted && (!status.pass || status.pass == 3))
-	if (unlink(path_expand(rec_name)))
+	if (!save && unlink(path_expand(rec_name)))
 		pexit("unlink: %s", path_expand(rec_name));
 }
 
@@ -230,6 +230,8 @@ void rec_restore_args(int lock)
 	else
 	if (fscanf(rec_file, "%x\n", &rec_check) != 1)
 		rec_format_error("fscanf");
+
+	rec_restoring_now = 1;
 }
 
 void rec_restore_mode(int (*restore_mode)(FILE *file))
@@ -241,4 +243,6 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 
 	if (fclose(rec_file)) pexit("fclose");
 	rec_file = NULL;
+
+	rec_restoring_now = 0;
 }
