@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -231,7 +231,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	} while (rules);
 
 	crk_done();
-	rec_done(event_abort);
+	rec_done(event_abort || (status.pass && db->salts));
 
 	if (ferror(word_file)) pexit("fgets");
 
