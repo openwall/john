@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -39,11 +39,11 @@ static int ext_pos;
 
 static int ext_getchar(void)
 {
-	char c;
+	unsigned char c;
 
 	if (!ext_line || !ext_line->data) return -1;
 
-	if ((c = ext_line->data[ext_pos++])) return c;
+	if ((c = (unsigned char)ext_line->data[ext_pos++])) return c;
 
 	ext_line = ext_line->next;
 	ext_pos = 0;
