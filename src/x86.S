@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003 by Solar Designer
+ * Copyright (c) 1996-2003,2006 by Solar Designer
  */
 
 /*
@@ -672,6 +672,7 @@ DES_KS_copy:
 
 #ifndef BSD
 .bss
+DO_ALIGN(5)
 #endif
 
 #if DES_X2
