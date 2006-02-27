@@ -15,18 +15,45 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7"
+#define JOHN_VERSION			"1.7.0.1"
 
 /*
- * Is this a system-wide installation? *BSD ports and Linux distributions
- * will probably want to set this to 1 for their builds of John.
+ * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
+ *
+ * You do need to set JOHN_SYSTEMWIDE to 1, but you do not need to patch
+ * this file for that.  Instead, you can pass -DJOHN_SYSTEMWIDE=1 in CFLAGS.
+ * You also do not need to patch the Makefile for that since you can pass
+ * the CFLAGS via "make" command line.  Similarly, you do not need to patch
+ * anything to change JOHN_SYSTEMWIDE_EXEC and JOHN_SYSTEMWIDE_HOME
+ * (although the defaults for these should be fine).
+ *
+ * JOHN_SYSTEMWIDE_EXEC should be set to the _directory_ where John will
+ * look for its "CPU fallback" program binary (which should be another
+ * build of John itself).  This is only activated when John is compiled
+ * with -DCPU_FALLBACK=1.  The fallback program binary name is defined
+ * with CPU_FALLBACK_BINARY in architecture-specific header files such as
+ * x86-mmx.h (and the default should be fine - no need to patch it).
+ * Currently, this is used to transparently fallback to a non-MMX build of
+ * John when an MMX build is run on older x86 processors.  Please do make
+ * use of this functionality in your package if it is built for x86 (yes,
+ * you need to do two builds of John for a single binary package).
+ *
+ * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
+ * it with a specific path, neither in this file nor in the default
+ * john.conf, if at all possible.
+ */
+
+/*
+ * Is this a system-wide installation?  *BSD "ports" and Linux distributions
+ * will want to set this to 1 for their builds of John - please refer to the
+ * notes above.
  */
 #ifndef JOHN_SYSTEMWIDE
 #define JOHN_SYSTEMWIDE			0
 #endif
 
 #if JOHN_SYSTEMWIDE
-#ifndef JOHN_SYSTEMWIDE_EXEC
+#ifndef JOHN_SYSTEMWIDE_EXEC /* please refer to the notes above */
 #define JOHN_SYSTEMWIDE_EXEC		"/usr/libexec/john"
 #endif
 #ifndef JOHN_SYSTEMWIDE_HOME
