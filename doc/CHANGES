@@ -1,3 +1,10 @@
+The following changes have been made between John 1.7 and 1.7.0.1:
+
+* Minor bug and portability fixes.
+* Better handling of certain uncommon scenarios and improper uses of John.
+* Bonus: "Keyboard" cracker included in the default john.conf (john.ini)
+that will try sequences of adjacent keys on a keyboard as passwords.
+
 The following major changes have been made since John 1.6:
 
 * Bitslice DES code for x86 with MMX: more than twice faster than older
