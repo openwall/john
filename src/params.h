@@ -129,7 +129,7 @@
 #define SECTION_EXT			"List.External:"
 
 /*
- * Hash table sizes. These are also hardcoded into the hash functions.
+ * Hash table sizes.  These are also hardcoded into the hash functions.
  */
 #define SALT_HASH_SIZE			0x400
 #define PASSWORD_HASH_SIZE_0		0x10
@@ -137,7 +137,7 @@
 #define PASSWORD_HASH_SIZE_2		0x1000
 
 /*
- * Password hash table thresholds. These are the counts of entries required
+ * Password hash table thresholds.  These are the counts of entries required
  * to enable the corresponding hash table size.
  */
 #define PASSWORD_HASH_THRESHOLD_0	(PASSWORD_HASH_SIZE_0 / 2)
@@ -199,7 +199,7 @@ extern int password_hash_thresholds[3];
 /*
  * Charset parameters.
  * Be careful if you change these, ((SIZE ** LENGTH) * SCALE) should fit
- * into 64 bits. You can reduce the SCALE if required.
+ * into 64 bits.  You can reduce the SCALE if required.
  */
 #define CHARSET_MIN			' '
 #define CHARSET_MAX			0x7E
