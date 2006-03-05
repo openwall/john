@@ -82,19 +82,27 @@ static void inc_format_error(char *charset)
 
 static int is_mixedcase(char *chars)
 {
-	char *ptr, c;
 	char present[CHARSET_SIZE];
+	char *ptr, c;
+	unsigned int i;
 
 	memset(present, 0, sizeof(present));
 	ptr = chars;
-	while ((c = *ptr++))
-		present[ARCH_INDEX(c) - CHARSET_MIN] = 1;
+	while ((c = *ptr++)) {
+		i = ARCH_INDEX(c) - CHARSET_MIN;
+		if (i >= CHARSET_SIZE)
+			return -1;
+		present[i] = 1;
+	}
 
 	ptr = chars;
 	while ((c = *ptr++)) {
-		if (c >= 'A' && c <= 'Z' &&
-		    present[ARCH_INDEX(c | 0x20) - CHARSET_MIN])
-			return 1;
+		/* assume ASCII */
+		if (c >= 'A' && c <= 'Z') {
+			i = ARCH_INDEX(c | 0x20) - CHARSET_MIN;
+			if (i < CHARSET_SIZE && present[i])
+				return 1;
+		}
 	}
 
 	return 0;
@@ -164,7 +172,7 @@ static void inc_new_length(unsigned int length,
 		if (value == CHARSET_NEW) {
 			if ((value = getc(file)) != (int)length) break;
 			if ((value = getc(file)) == EOF) break;
-			if ((unsigned int)value > length)
+			if (value < 0 || value > length)
 				inc_format_error(charset);
 			pos = value;
 		} else
@@ -172,10 +180,12 @@ static void inc_new_length(unsigned int length,
 			if (pos < 0)
 				inc_format_error(charset);
 			if ((value = getc(file)) == EOF) break;
-			if ((unsigned int)(i = value) > CHARSET_SIZE)
+			i = value;
+			if (i < 0 || i > CHARSET_SIZE)
 				inc_format_error(charset);
 			if ((value = getc(file)) == EOF) break;
-			if ((unsigned int)(j = value) > CHARSET_SIZE)
+			j = value;
+			if (j < 0 || j > CHARSET_SIZE)
 				inc_format_error(charset);
 		} else
 			inc_format_error(charset);
@@ -191,57 +201,72 @@ static void inc_new_length(unsigned int length,
 	}
 }
 
-static void expand(char *dst, char *src, int size)
+static int expand(char *dst, char *src, int size)
 {
+	char present[CHARSET_SIZE];
 	char *dptr = dst, *sptr = src;
 	int count = size;
-	char present[CHARSET_SIZE];
+	unsigned int i;
 
 	memset(present, 0, sizeof(present));
 	while (*dptr) {
-		if (--count <= 1) return;
-		present[ARCH_INDEX(*dptr++) - CHARSET_MIN] = 1;
+		if (--count <= 1)
+			return 0;
+		i = ARCH_INDEX(*dptr++) - CHARSET_MIN;
+		if (i >= CHARSET_SIZE)
+			return -1;
+		present[i] = 1;
 	}
 
-	while (*sptr)
-	if (!present[ARCH_INDEX(*sptr) - CHARSET_MIN]) {
-		*dptr++ = *sptr++;
-		if (--count <= 1) break;
-	} else
-		sptr++;
+	while (*sptr) {
+		i = ARCH_INDEX(*sptr) - CHARSET_MIN;
+		if (i >= CHARSET_SIZE)
+			return -1;
+		if (!present[i]) {
+			*dptr++ = *sptr++;
+			if (--count <= 1) break;
+		} else
+			sptr++;
+	}
 	*dptr = 0;
+
+	return 0;
 }
 
-static void inc_new_count(unsigned int length, int count,
+static void inc_new_count(unsigned int length, int count, char *charset,
 	char *allchars, char *char1, char2_table char2, chars_table *chars)
 {
 	int pos, i, j;
 	int size;
+	int error;
 
 	log_event("- Expanding tables for length %d to character count %d",
 		length + 1, count + 1);
 
 	size = count + 2;
 
-	expand(char1, allchars, size);
+	error = expand(char1, allchars, size);
 	if (length)
-		expand((*char2)[CHARSET_SIZE], allchars, size);
+		error |= expand((*char2)[CHARSET_SIZE], allchars, size);
 	for (pos = 0; pos <= (int)length - 2; pos++)
-		expand((*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
+		error |= expand((*chars[pos])[CHARSET_SIZE][CHARSET_SIZE],
 			allchars, size);
 
 	for (i = 0; i < CHARSET_SIZE; i++) {
-		if (length)
+		if (length) error |=
 			expand((*char2)[i], (*char2)[CHARSET_SIZE], size);
 
 		for (j = 0; j < CHARSET_SIZE; j++)
 		for (pos = 0; pos <= (int)length - 2; pos++) {
-			expand((*chars[pos])[i][j], (*chars[pos])
+			error |= expand((*chars[pos])[i][j], (*chars[pos])
 				[CHARSET_SIZE][j], size);
-			expand((*chars[pos])[i][j], (*chars[pos])
+			error |= expand((*chars[pos])[i][j], (*chars[pos])
 				[CHARSET_SIZE][CHARSET_SIZE], size);
 		}
 	}
+
+	if (error)
+		inc_format_error(charset);
 }
 
 static int inc_key_loop(int length, int fixed, int count,
@@ -452,8 +477,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (feof(file)) inc_format_error(charset);
 
 	allchars[header->count] = 0;
-	if (extra)
-		expand(allchars, extra, sizeof(allchars));
+	if (expand(allchars, extra ? extra : "", sizeof(allchars)))
+		inc_format_error(charset);
 	real_count = strlen(allchars);
 
 	if (max_count < 0) max_count = CHARSET_SIZE;
@@ -471,7 +496,12 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			real_count);
 	}
 
-	if (!(db->format->params.flags & FMT_CASE) && is_mixedcase(allchars)) {
+	if (!(db->format->params.flags & FMT_CASE))
+	switch (is_mixedcase(allchars)) {
+	case -1:
+		inc_format_error(charset);
+
+	case 1:
 		log_event("! Mixed-case charset, "
 			"but the hash type is case-insensitive");
 		fprintf(stderr, "Warning: mixed-case charset, "
@@ -527,7 +557,7 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			last_count = -1;
 		}
 		if ((int)count > last_count)
-			inc_new_count(length, last_count = count,
+			inc_new_count(length, last_count = count, charset,
 				allchars, char1, char2, chars);
 
 		if (!length && !min_length) {
