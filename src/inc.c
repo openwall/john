@@ -290,8 +290,8 @@ update_ending:
 	if (pos < 2) {
 		if (pos == 0)
 			key_i[0] = char1[numbers[0]];
-		if (length)
-			key_i[1] = (*char2)[key_i[0] - CHARSET_MIN][numbers[1]];
+		if (length) key_i[1] = (*char2)
+			[ARCH_INDEX(key_i[0]) - CHARSET_MIN][numbers[1]];
 		pos = 2;
 	}
 	while (pos < length) {
