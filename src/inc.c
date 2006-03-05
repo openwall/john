@@ -454,9 +454,17 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (feof(file) ||
 	    (memcmp(header->version, CHARSET_V1, sizeof(header->version)) &&
 	    memcmp(header->version, CHARSET_V2, sizeof(header->version))) ||
-	    header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
-	    header->length != CHARSET_LENGTH ||
-	    header->count > CHARSET_SIZE || !header->count)
+	    !header->count)
+		inc_format_error(charset);
+
+	if (header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
+	    header->length != CHARSET_LENGTH) {
+		log_event("! Incompatible charset file: %.100s", charset);
+		fprintf(stderr, "Incompatible charset file: %s\n", charset);
+		error();
+	}
+
+	if (header->count > CHARSET_SIZE)
 		inc_format_error(charset);
 
 	check =
