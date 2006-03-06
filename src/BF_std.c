@@ -449,10 +449,10 @@ extern void (*BF_body)(void);
 	L = R = 0; \
 	ptr = BF_current.P; \
 	do { \
-		ptr += 2; \
 		BF_ENCRYPT; \
-		*(ptr - 2) = L; \
-		*(ptr - 1) = R; \
+		*ptr = L; \
+		*(ptr + 1) = R; \
+		ptr += 2; \
 	} while (ptr < &BF_current.P[BF_N + 2]); \
 \
 	ptr = BF_current.S[0]; \
