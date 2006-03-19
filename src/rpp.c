@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2006 by Solar Designer
  */
 
 #include <string.h>
@@ -26,7 +26,7 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 static void rpp_add_char(struct rpp_range *range, unsigned char c)
 {
 	int index = c / ARCH_BITS;
-	ARCH_WORD mask = 1 << (c % ARCH_BITS);
+	ARCH_WORD mask = (ARCH_WORD)1 << (c % ARCH_BITS);
 
 	if (range->mask[index] & mask) return;
 

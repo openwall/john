@@ -1,4 +1,4 @@
-The following changes have been made between John 1.7 and 1.7.0.1:
+The following changes have been made between John 1.7 and 1.7.0.2:
 
 * Minor bug and portability fixes.
 * Better handling of certain uncommon scenarios and improper uses of John.
