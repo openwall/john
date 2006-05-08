@@ -293,7 +293,7 @@ static unsigned char PADDING[56] = {
 
 static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 {
-	register MD5_word tmp, mask;
+	MD5_word tmp, mask;
 
 	mask = OOFFOOFF;
 	do {
@@ -588,7 +588,7 @@ void MD5_std_crypt(void)
 
 static void MD5_body(MD5_word x[15], MD5_word out[4])
 {
-	register MD5_word a, b = Cb, c = Cc, d;
+	MD5_word a, b = Cb, c = Cc, d;
 
 /* Round 1 */
 	a = AC1 + x[0];
@@ -681,9 +681,9 @@ static void MD5_body(MD5_word x[15], MD5_word out[4])
 static void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 {
-	register MD5_word a0, b0 = Cb, c0 = Cc, d0;
-	register MD5_word a1, b1, c1, d1;
-	register MD5_word u, v;
+	MD5_word a0, b0 = Cb, c0 = Cc, d0;
+	MD5_word a1, b1, c1, d1;
+	MD5_word u, v;
 
 /* Round 1 */
 	a0 = (u = AC1) + x0[0];

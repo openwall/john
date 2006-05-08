@@ -815,7 +815,7 @@ struct c_ident *c_lookup(char *name)
 void c_execute(struct c_ident *fn)
 {
 #ifndef __GNUC__
-	register void (*op)(void);
+	void (*op)(void);
 #endif
 
 	if (!fn) return;

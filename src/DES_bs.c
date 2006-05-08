@@ -14,7 +14,7 @@
 #define DEPTH				[depth]
 #define START				[0]
 #define init_depth() \
-	register int depth; \
+	int depth; \
 	depth = index >> ARCH_BITS_LOG; \
 	index &= (ARCH_BITS - 1);
 #define for_each_depth() \
@@ -126,8 +126,8 @@ void DES_bs_init(int LM)
 
 void DES_bs_set_salt(ARCH_WORD salt)
 {
-	register ARCH_WORD mask;
-	register int src, dst;
+	ARCH_WORD mask;
+	int src, dst;
 
 	mask = 1;
 	for (dst = 0; dst < 48; dst++) {
@@ -169,11 +169,11 @@ void DES_bs_set_key(char *key, int index)
 {
 /* new is NUL-terminated, but not NUL-padded to any length;
  * old is NUL-padded to 8 characters, but not always NUL-terminated. */
-	register unsigned char *new = (unsigned char *)key;
-	register unsigned char *old = DES_bs_all.keys[index];
-	register DES_bs_vector *k, *kbase;
-	register ARCH_WORD mask;
-	register unsigned int xor, s1, s2;
+	unsigned char *new = (unsigned char *)key;
+	unsigned char *old = DES_bs_all.keys[index];
+	DES_bs_vector *k, *kbase;
+	ARCH_WORD mask;
+	unsigned int xor, s1, s2;
 
 	init_depth();
 
@@ -246,16 +246,16 @@ void DES_bs_set_key_LM(char *key, int index)
 {
 /* new is NUL-terminated, but not NUL-padded to any length;
  * old is NUL-padded to 7 characters and NUL-terminated. */
-	register unsigned char *new = (unsigned char *)key;
+	unsigned char *new = (unsigned char *)key;
 #if !DES_BS_VECTOR && ARCH_BITS >= 64
-	register unsigned char *old = DES_bs_all.E.extras.keys[index];
+	unsigned char *old = DES_bs_all.E.extras.keys[index];
 #else
-	register unsigned char *old = DES_bs_all.keys[index];
+	unsigned char *old = DES_bs_all.keys[index];
 #endif
-	register DES_bs_vector *k, *kbase;
-	register ARCH_WORD mask;
-	register unsigned int xor, s1, s2;
-	register unsigned char plain;
+	DES_bs_vector *k, *kbase;
+	ARCH_WORD mask;
+	unsigned int xor, s1, s2;
+	unsigned char plain;
 
 	init_depth();
 
@@ -323,9 +323,9 @@ void DES_bs_set_key_LM(char *key, int index)
 #if DES_BS_EXPAND
 void DES_bs_expand_keys(void)
 {
-	register int index;
+	int index;
 #if DES_BS_VECTOR
-	register int depth;
+	int depth;
 #endif
 
 	if (!DES_bs_all.keys_changed) return;
@@ -381,8 +381,8 @@ ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext)
 
 int DES_bs_get_hash(int index, int count)
 {
-	register int result;
-	register DES_bs_vector *b;
+	int result;
+	DES_bs_vector *b;
 
 	init_depth();
 	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
@@ -414,12 +414,12 @@ int DES_bs_get_hash(int index, int count)
  */
 int DES_bs_cmp_all(ARCH_WORD *binary)
 {
-	register ARCH_WORD value, mask;
-	register int bit;
+	ARCH_WORD value, mask;
+	int bit;
 #if DES_BS_VECTOR
-	register int depth;
+	int depth;
 #endif
-	register DES_bs_vector *b;
+	DES_bs_vector *b;
 
 	for_each_depth() {
 		value = binary[0];
@@ -454,8 +454,8 @@ next_depth:
 
 int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 {
-	register int bit;
-	register DES_bs_vector *b;
+	int bit;
+	DES_bs_vector *b;
 
 	init_depth();
 	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
