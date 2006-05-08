@@ -1308,7 +1308,7 @@ CPU_detect:
 	xorl %eax,%eax
 	cpuid
 	testl %eax,%eax
-	jz CPU_detect_ret		/* Newer 486's */
+	jz CPU_detect_ret		/* Newer 486s */
 	pushl %ecx
 	movl $1,%eax
 	cpuid
@@ -1325,7 +1325,7 @@ CPU_detect:
 	cmpl CV_CENTAUR,%ecx
 	je CPU_detect_P5		/* Is a Centaur Technology processor */
 	cmpl CV_INTEL,%ecx
-	jne CPU_detect_yes		/* Not an Intel or AMD */
+	jne CPU_detect_yes		/* Not an Intel processor */
 	cmpb $5,%ah
 	je CPU_detect_P5		/* Intel Pentium */
 	cmpb $15,%ah
@@ -1333,7 +1333,9 @@ CPU_detect:
 	jmp CPU_detect_yes		/* Not one of the above */
 CPU_detect_AMD:
 	cmpb $6,%ah
-	jne CPU_detect_yes		/* Not an AMD Athlon */
+	je CPU_detect_P5		/* AMD Athlon */
+	cmpb $15,%ah
+	jne CPU_detect_yes		/* Neither AMD Athlon nor AMD64 */
 CPU_detect_P5:
 /*
  * Enable Intel Pentium optimizations when running on one of:
@@ -1341,6 +1343,7 @@ CPU_detect_P5:
  * Intel Pentium
  * Intel Pentium 4
  * AMD Athlon
+ * AMD64 processors
  * Centaur Technology processors (IDT Winchip to VIA C3 and beyond)
  *
  */
