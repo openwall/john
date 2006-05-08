@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2005 by Solar Designer
+# Copyright (c) 1996-2006 by Solar Designer
 #
 
 CPP = gcc
@@ -150,8 +150,7 @@ linux-x86-any-a.out:
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		OPT_INLINE="$(OPT_INLINE) -finline-limit=2000"
+	$(MAKE) $(PROJ)
 
 linux-x86-64-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -253,8 +252,7 @@ openbsd-x86-any-a.out:
 
 openbsd-x86-64:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		OPT_INLINE="$(OPT_INLINE) -finline-limit=2000"
+	$(MAKE) $(PROJ)
 
 openbsd-alpha:
 	$(LN) alpha.h arch.h
