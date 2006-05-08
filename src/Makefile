@@ -102,6 +102,7 @@ default:
 	@echo "openbsd-ppc64            OpenBSD, PowerPC 64-bit"
 	@echo "openbsd-pa-risc          OpenBSD, PA-RISC"
 	@echo "openbsd-vax              OpenBSD, VAX"
+	@echo "netbsd-sparc64           NetBSD, SPARC 64-bit"
 	@echo "netbsd-vax               NetBSD, VAX"
 	@echo "solaris-sparc64-cc       Solaris, SPARC V9 64-bit, cc (best)"
 	@echo "solaris-sparc64-gcc      Solaris, SPARC V9 64-bit, gcc"
@@ -326,6 +327,12 @@ openbsd-pa-risc:
 openbsd-vax:
 	$(LN) vax.h arch.h
 	$(MAKE) $(PROJ)
+
+netbsd-sparc64:
+	$(LN) sparc64.h arch.h
+	$(MAKE) $(PROJ) \
+		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
+		LDFLAGS="$(LDFLAGS) -m64"
 
 netbsd-vax:
 	$(LN) vax.h arch.h
