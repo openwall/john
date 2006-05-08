@@ -226,7 +226,7 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 	case 2:
 		execv(JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY, argv);
-		perror("execv");
+		perror("execv: " JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY);
 #endif
 		if (!detected)
 			fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
