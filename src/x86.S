@@ -305,7 +305,7 @@ DES_xor_key2:
  * imperfect pairing.
  */
 
-#define DES_2_ROUNDS_START_P5(K) \
+#define DES_2_ROUNDS_START_P1(K) \
 	xorl Rl,%eax; \
 	movb %al,%bl; \
 	movb %ah,%dl; \
@@ -398,8 +398,8 @@ DES_xor_key2:
 	xorl Ll,Rh; \
 	movl DES_SPE_L+0x700(%edx),Ll
 
-#define DES_2_ROUNDS_P5(K) \
-	DES_2_ROUNDS_START_P5(K); \
+#define DES_2_ROUNDS_P1(K) \
+	DES_2_ROUNDS_START_P1(K); \
 	xorl Ll,Rl; \
 	movl DES_SPE_H+0x700(%edx),Ll; \
 	xorl Ll,Rh; \
@@ -407,17 +407,17 @@ DES_xor_key2:
 	movl DES_SavedL,Ll
 
 DO_ALIGN(12)
-DES_std_crypt_P5:
+DES_std_crypt_P1:
 	DES_CRYPT_START
-DES_loop_P5:
-	DES_2_ROUNDS_P5(DES_KS_copy)
-	DES_2_ROUNDS_P5(DES_KS_copy+16)
-	DES_2_ROUNDS_P5(DES_KS_copy+32)
-	DES_2_ROUNDS_P5(DES_KS_copy+48)
-	DES_2_ROUNDS_P5(DES_KS_copy+64)
-	DES_2_ROUNDS_P5(DES_KS_copy+80)
-	DES_2_ROUNDS_P5(DES_KS_copy+96)
-	DES_2_ROUNDS_START_P5(DES_KS_copy+112)
+DES_loop_P1:
+	DES_2_ROUNDS_P1(DES_KS_copy)
+	DES_2_ROUNDS_P1(DES_KS_copy+16)
+	DES_2_ROUNDS_P1(DES_KS_copy+32)
+	DES_2_ROUNDS_P1(DES_KS_copy+48)
+	DES_2_ROUNDS_P1(DES_KS_copy+64)
+	DES_2_ROUNDS_P1(DES_KS_copy+80)
+	DES_2_ROUNDS_P1(DES_KS_copy+96)
+	DES_2_ROUNDS_START_P1(DES_KS_copy+112)
 	xorl Rl,Ll
 	movl DES_SPE_H+0x700(%edx),%eax
 	xorl Rh,%eax
@@ -428,7 +428,7 @@ DES_loop_P5:
 	decl %eax
 	movl %eax,DES_count_tmp
 	movl DES_KS_copy,%eax
-	jnz DES_loop_P5
+	jnz DES_loop_P1
 	DES_CRYPT_END
 
 /*
@@ -1007,7 +1007,7 @@ MD5_body:
 
 .text
 
-#define BF_ROUND_P5(L, R, N) \
+#define BF_ROUND_P1(L, R, N) \
 	xorl L,tmp2; \
 	xorl tmp1,tmp1; \
 	movl tmp2,L; \
@@ -1027,34 +1027,34 @@ MD5_body:
 	movl P(N)+4,tmp2; \
 	xorl tmp5,R
 
-#define BF_ENCRYPT_START_P5 \
-	BF_ROUND_P5(L, R, 0); \
-	BF_ROUND_P5(R, L, 1); \
-	BF_ROUND_P5(L, R, 2); \
-	BF_ROUND_P5(R, L, 3); \
-	BF_ROUND_P5(L, R, 4); \
-	BF_ROUND_P5(R, L, 5); \
-	BF_ROUND_P5(L, R, 6); \
-	BF_ROUND_P5(R, L, 7); \
-	BF_ROUND_P5(L, R, 8); \
-	BF_ROUND_P5(R, L, 9); \
-	BF_ROUND_P5(L, R, 10); \
-	BF_ROUND_P5(R, L, 11); \
-	BF_ROUND_P5(L, R, 12); \
-	BF_ROUND_P5(R, L, 13); \
-	BF_ROUND_P5(L, R, 14); \
-	BF_ROUND_P5(R, L, 15); \
+#define BF_ENCRYPT_START_P1 \
+	BF_ROUND_P1(L, R, 0); \
+	BF_ROUND_P1(R, L, 1); \
+	BF_ROUND_P1(L, R, 2); \
+	BF_ROUND_P1(R, L, 3); \
+	BF_ROUND_P1(L, R, 4); \
+	BF_ROUND_P1(R, L, 5); \
+	BF_ROUND_P1(L, R, 6); \
+	BF_ROUND_P1(R, L, 7); \
+	BF_ROUND_P1(L, R, 8); \
+	BF_ROUND_P1(R, L, 9); \
+	BF_ROUND_P1(L, R, 10); \
+	BF_ROUND_P1(R, L, 11); \
+	BF_ROUND_P1(L, R, 12); \
+	BF_ROUND_P1(R, L, 13); \
+	BF_ROUND_P1(L, R, 14); \
+	BF_ROUND_P1(R, L, 15); \
 	movl BF_ptr,tmp5; \
 	xorl L,tmp2; \
 	movl P(17),L
 
-#define BF_ENCRYPT_END_P5 \
+#define BF_ENCRYPT_END_P1 \
 	xorl R,L; \
 	movl tmp2,R
 
 DO_ALIGN(12)
-.globl BF_body_P5
-BF_body_P5:
+.globl BF_body_P1
+BF_body_P1:
 	pushl %ebp
 	pushl %ebx
 	pushl %esi
@@ -1064,45 +1064,45 @@ BF_body_P5:
 	movl P(0),tmp2
 	xorl tmp3,tmp3
 	movl $P(0),BF_ptr
-BF_loop_P_P5:
-	BF_ENCRYPT_START_P5
+BF_loop_P_P1:
+	BF_ENCRYPT_START_P1
 	addl $8,tmp5
-	BF_ENCRYPT_END_P5
+	BF_ENCRYPT_END_P1
 	movl tmp5,BF_ptr
 	cmpl $P(18),tmp5
 	movl L,-8(tmp5)
 	movl R,-4(tmp5)
 	movl P(0),tmp2
-	jb BF_loop_P_P5
+	jb BF_loop_P_P1
 #ifndef DONT_AVOID_PENTIUMPRO_FAMILY_PARTIAL_REGISTER_STALLS
 	xorl tmp3,tmp3
 #endif
 	movl $BF_current,BF_ptr
-BF_loop_S_P5:
-	BF_ENCRYPT_START_P5
-	BF_ENCRYPT_END_P5
+BF_loop_S_P1:
+	BF_ENCRYPT_START_P1
+	BF_ENCRYPT_END_P1
 	movl P(0),tmp2
 	movl L,(tmp5)
 	movl R,4(tmp5)
-	BF_ENCRYPT_START_P5
-	BF_ENCRYPT_END_P5
+	BF_ENCRYPT_START_P1
+	BF_ENCRYPT_END_P1
 	movl P(0),tmp2
 	movl L,8(tmp5)
 	movl R,12(tmp5)
-	BF_ENCRYPT_START_P5
-	BF_ENCRYPT_END_P5
+	BF_ENCRYPT_START_P1
+	BF_ENCRYPT_END_P1
 	movl P(0),tmp2
 	movl L,16(tmp5)
 	movl R,20(tmp5)
-	BF_ENCRYPT_START_P5
+	BF_ENCRYPT_START_P1
 	addl $32,tmp5
-	BF_ENCRYPT_END_P5
+	BF_ENCRYPT_END_P1
 	movl tmp5,BF_ptr
 	cmpl $BF_current+0x1000,tmp5
 	movl P(0),tmp2
 	movl L,-8(tmp5)
 	movl R,-4(tmp5)
-	jb BF_loop_S_P5
+	jb BF_loop_S_P1
 	popl %edi
 	popl %esi
 	popl %ebx
@@ -1334,23 +1334,23 @@ CPU_detect:
 	cmpl CV_AMD,%ecx
 	je CPU_detect_AMD		/* Is an AMD processor */
 	cmpl CV_CENTAUR,%ecx
-	je CPU_detect_P5		/* Is a Centaur Technology processor */
+	je CPU_detect_P1		/* Is a Centaur Technology processor */
 	cmpl CV_INTEL,%ecx
 	jne CPU_detect_ret		/* Not an Intel processor */
 	cmpb $5,%ah
-	je CPU_detect_P5		/* Intel Pentium */
+	je CPU_detect_P1		/* Intel Pentium */
 	cmpb $15,%ah
 	jne CPU_detect_ret		/* Not Intel Pentium 4 */
 #if DES_BS_VECTOR > 2
 	movb $1,%al			/* P4 => cancel the fallback request */
 #endif
-	jmp CPU_detect_P5
+	jmp CPU_detect_P1
 CPU_detect_AMD:
 	cmpb $6,%ah
-	je CPU_detect_P5		/* AMD Athlon */
+	je CPU_detect_P1		/* AMD Athlon */
 	cmpb $15,%ah
 	jne CPU_detect_ret		/* Neither AMD Athlon nor AMD64 */
-CPU_detect_P5:
+CPU_detect_P1:
 /*
  * Enable Intel Pentium optimizations when running on one of:
  *
@@ -1362,9 +1362,9 @@ CPU_detect_P5:
  *
  */
 #if !DES_X2
-	movl $DES_std_crypt_P5,DES_std_crypt
+	movl $DES_std_crypt_P1,DES_std_crypt
 #endif
-	movl $BF_body_P5,BF_body
+	movl $BF_body_P1,BF_body
 CPU_detect_ret:
 	movzbl %al,%eax
 	popl %ebx
