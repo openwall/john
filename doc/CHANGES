@@ -5,6 +5,7 @@ for better performance at DES-based crypt(3) hashes on all Pentium 4
 processors and at LM hashes on some Pentium 4 processors.
 * Assorted high-level changes have been applied to improve performance
 on current x86-64 processors.
+* New make target for NetBSD/SPARC64.
 * Minor source code cleanups.
 
 The following changes have been made between John 1.7 and 1.7.0.2:
