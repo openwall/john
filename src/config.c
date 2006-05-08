@@ -146,13 +146,13 @@ static struct cfg_section *cfg_get_section(char *section, char *subsection)
 	if ((current = cfg_database))
 	do {
 		p1 = current->name; p2 = section;
-		while (*p1 && *p1 == tolower(*p2)) {
+		while (*p1 && *p1 == tolower((int)(unsigned char)*p2)) {
 			p1++; p2++;
 		}
 		if (*p2) continue;
 
 		if ((p2 = subsection))
-		while (*p1 && *p1 == tolower(*p2)) {
+		while (*p1 && *p1 == tolower((int)(unsigned char)*p2)) {
 			p1++; p2++;
 		}
 		if (*p1) continue;
@@ -184,7 +184,7 @@ char *cfg_get_param(char *section, char *subsection, char *param)
 	if ((current_param = current_section->params))
 	do {
 		p1 = current_param->name; p2 = param;
-		while (*p1 && *p1 == tolower(*p2)) {
+		while (*p1 && *p1 == tolower((int)(unsigned char)*p2)) {
 			p1++; p2++;
 		}
 		if (*p1 || *p2) continue;
