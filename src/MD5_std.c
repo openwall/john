@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2006 by Solar Designer
  *
  * Based on the RSA Data Security, Inc. MD5 Message-Digest Algorithm and
  * FreeBSD MD5-based crypt(3) by Poul-Henning Kamp <phk at login.dknet.dk>.
@@ -588,7 +588,7 @@ void MD5_std_crypt(void)
 
 static void MD5_body(MD5_word x[15], MD5_word out[4])
 {
-	register unsigned ARCH_WORD a, b = Cb, c = Cc, d;
+	register MD5_word a, b = Cb, c = Cc, d;
 
 /* Round 1 */
 	a = AC1 + x[0];
@@ -681,9 +681,9 @@ static void MD5_body(MD5_word x[15], MD5_word out[4])
 static void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 {
-	register unsigned ARCH_WORD a0, b0 = Cb, c0 = Cc, d0;
-	register unsigned ARCH_WORD a1, b1, c1, d1;
-	register unsigned ARCH_WORD u, v;
+	register MD5_word a0, b0 = Cb, c0 = Cc, d0;
+	register MD5_word a1, b1, c1, d1;
+	register MD5_word u, v;
 
 /* Round 1 */
 	a0 = (u = AC1) + x0[0];
