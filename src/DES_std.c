@@ -592,10 +592,10 @@ extern void DES_xor_key2(ARCH_WORD *value1, ARCH_WORD *value2);
 
 void DES_raw_set_key(char *key)
 {
-	register int i;
+	int i;
 	DES_KS *pos;
 #if !DES_ASM
-	register ARCH_WORD *value1;
+	ARCH_WORD *value1;
 #endif
 
 	memcpy(DES_KS_current,
@@ -611,9 +611,9 @@ void DES_raw_set_key(char *key)
 
 void DES_std_set_key(char *key)
 {
-	register int i, j, k, l;
+	int i, j, k, l;
 #if !DES_ASM
-	register ARCH_WORD *value1, *value2;
+	ARCH_WORD *value1, *value2;
 #endif
 
 	j = key[0];
@@ -667,12 +667,12 @@ void DES_std_set_key(char *key)
 
 void DES_std_set_block(ARCH_WORD R, ARCH_WORD L)
 {
-	register ARCH_WORD Rl, Rh, Ll, Lh;
-	register unsigned ARCH_WORD C;
+	ARCH_WORD Rl, Rh, Ll, Lh;
+	unsigned ARCH_WORD C;
 #if ARCH_BITS >= 64
-	register ARCH_WORD mask;
+	ARCH_WORD mask;
 #else
-	register ARCH_WORD *mask;
+	ARCH_WORD *mask;
 #endif
 	int chunk;
 
@@ -722,13 +722,13 @@ void DES_std_set_block(ARCH_WORD R, ARCH_WORD L)
 
 void DES_std_get_block(DES_binary binary, unsigned ARCH_WORD out[2])
 {
-	register ARCH_WORD Rl, Rh, Ll, Lh;
-	register ARCH_WORD R, L;
-	register unsigned ARCH_WORD C;
+	ARCH_WORD Rl, Rh, Ll, Lh;
+	ARCH_WORD R, L;
+	unsigned ARCH_WORD C;
 #if ARCH_BITS >= 64
-	register unsigned ARCH_WORD mask;
+	unsigned ARCH_WORD mask;
 #else
-	register ARCH_WORD *mask;
+	ARCH_WORD *mask;
 #endif
 	int chunk;
 
@@ -943,9 +943,9 @@ void DES_std_crypt(DES_KS KS, DES_binary DES_out)
 {
 #if DES_MASK
 #if ARCH_BITS >= 64
-	register unsigned ARCH_WORD DES_D;
+	unsigned ARCH_WORD DES_D;
 #else
-	register unsigned ARCH_WORD DES_Dl, DES_Dh;
+	unsigned ARCH_WORD DES_Dl, DES_Dh;
 #endif
 #else
 	union {
@@ -958,14 +958,14 @@ void DES_std_crypt(DES_KS KS, DES_binary DES_out)
 	} DES_tmp;
 #endif
 #if ARCH_BITS >= 64
-	register ARCH_WORD R, L;
+	ARCH_WORD R, L;
 #if !DES_128K
-	register ARCH_WORD T;
+	ARCH_WORD T;
 #endif
 #else
-	register ARCH_WORD Rl, Rh, Ll, Lh;
+	ARCH_WORD Rl, Rh, Ll, Lh;
 #endif
-	register int count;
+	int count;
 
 #if ARCH_BITS >= 64
 	R = DES_IV[0];
