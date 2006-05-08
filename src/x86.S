@@ -1326,22 +1326,30 @@ CPU_detect:
 	xchgl %edx,%eax
 #endif
 	andb $0x0F,%ah
+#if DES_BS_VECTOR > 2
+	movb $2,%al			/* Have SSE, but fallback is desired */
+#else
+	movb $1,%al
+#endif
 	cmpl CV_AMD,%ecx
 	je CPU_detect_AMD		/* Is an AMD processor */
 	cmpl CV_CENTAUR,%ecx
 	je CPU_detect_P5		/* Is a Centaur Technology processor */
 	cmpl CV_INTEL,%ecx
-	jne CPU_detect_yes		/* Not an Intel processor */
+	jne CPU_detect_ret		/* Not an Intel processor */
 	cmpb $5,%ah
 	je CPU_detect_P5		/* Intel Pentium */
 	cmpb $15,%ah
-	je CPU_detect_P5		/* Intel Pentium 4 */
-	jmp CPU_detect_yes		/* Not one of the above */
+	jne CPU_detect_ret		/* Not Intel Pentium 4 */
+#if DES_BS_VECTOR > 2
+	movb $1,%al			/* P4 => cancel the fallback request */
+#endif
+	jmp CPU_detect_P5
 CPU_detect_AMD:
 	cmpb $6,%ah
 	je CPU_detect_P5		/* AMD Athlon */
 	cmpb $15,%ah
-	jne CPU_detect_yes		/* Neither AMD Athlon nor AMD64 */
+	jne CPU_detect_ret		/* Neither AMD Athlon nor AMD64 */
 CPU_detect_P5:
 /*
  * Enable Intel Pentium optimizations when running on one of:
@@ -1357,10 +1365,7 @@ CPU_detect_P5:
 	movl $DES_std_crypt_P5,DES_std_crypt
 #endif
 	movl $BF_body_P5,BF_body
-CPU_detect_yes:
-#if DES_X2
-	movb $1,%al
-#endif
 CPU_detect_ret:
+	movzbl %al,%eax
 	popl %ebx
 	ret

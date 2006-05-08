@@ -215,18 +215,25 @@ static void john_load(void)
 static void john_init(char *name, int argc, char **argv)
 {
 #if CPU_DETECT
-	if (!CPU_detect()) {
+	int detected;
+
+	switch ((detected = CPU_detect())) {
 #if CPU_REQ
+	case 0:
 #if CPU_FALLBACK
 #if defined(__DJGPP__) || defined(__CYGWIN32__)
 #error CPU_FALLBACK is incompatible with the current DOS and Win32 code
 #endif
+	case 2:
 		execv(JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY, argv);
 		perror("execv");
 #endif
-		fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
+		if (!detected)
+			fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
 		error();
 #endif
+	default:
+		break;
 	}
 #endif
 
