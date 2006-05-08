@@ -1276,6 +1276,7 @@ BF_body:
 
 #define EF_ID				$0x00200000
 #define CF_MMX				$0x00800000
+#define CF_SSE				$0x02000000
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
@@ -1313,7 +1314,12 @@ CPU_detect:
 	movl $1,%eax
 	cpuid
 	popl %ecx
-#if DES_X2
+#if DES_BS_VECTOR > 2
+	xchgl %edx,%eax
+	andl CF_SSE,%eax
+	jz CPU_detect_ret		/* No SSE */
+	xchgl %edx,%eax
+#elif DES_X2
 	xchgl %edx,%eax
 	andl CF_MMX,%eax
 	jz CPU_detect_ret		/* No MMX */
