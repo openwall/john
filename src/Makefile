@@ -80,6 +80,7 @@ default:
 	@echo "linux-x86-mmx            Linux, x86 with MMX (best for P3&AMD)"
 	@echo "linux-x86-any            Linux, x86"
 	@echo "linux-x86-64             Linux, AMD x86-64, 64-bit native"
+	@echo "linux-x86-64-sse         Linux, AMD x86-64, 32-bit with SSE"
 	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
@@ -159,6 +160,14 @@ linux-x86-any-a.out:
 linux-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ)
+
+linux-x86-64-sse:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
+		CFLAGS="$(CFLAGS) -m32" \
+		ASFLAGS="$(ASFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32"
 
 linux-x86-64-mmx:
 	$(LN) x86-mmx.h arch.h
