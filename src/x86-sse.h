@@ -4,7 +4,7 @@
  */
 
 /*
- * Architecture specific parameters for x86 with SSE.
+ * Architecture specific parameters for x86 with SSE2.
  */
 
 #ifndef _JOHN_ARCH_H
@@ -29,7 +29,7 @@
 
 #define CPU_DETECT			1
 #define CPU_REQ				1
-#define CPU_NAME			"SSE"
+#define CPU_NAME			"SSE2"
 #ifndef CPU_FALLBACK
 #define CPU_FALLBACK			0
 #endif
@@ -49,7 +49,7 @@
 #define DES_BS				1
 #define DES_BS_VECTOR			4
 #define DES_BS_EXPAND			1
-#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE"
+#define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2"
 
 #define MD5_ASM				1
 #define MD5_X2				0

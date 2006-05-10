@@ -1276,7 +1276,7 @@ BF_body:
 
 #define EF_ID				$0x00200000
 #define CF_MMX				$0x00800000
-#define CF_SSE				$0x02000000
+#define CF_SSE2				$0x04000000
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
@@ -1316,8 +1316,8 @@ CPU_detect:
 	popl %ecx
 #if DES_BS_VECTOR > 2
 	xchgl %edx,%eax
-	andl CF_SSE,%eax
-	jz CPU_detect_ret		/* No SSE */
+	andl CF_SSE2,%eax
+	jz CPU_detect_ret		/* No SSE2 */
 	xchgl %edx,%eax
 #elif DES_X2
 	xchgl %edx,%eax
@@ -1325,12 +1325,8 @@ CPU_detect:
 	jz CPU_detect_ret		/* No MMX */
 	xchgl %edx,%eax
 #endif
-	andb $0x0F,%ah
-#if DES_BS_VECTOR > 2
-	movb $2,%al			/* Have SSE, but fallback is desired */
-#else
 	movb $1,%al
-#endif
+	andb $0x0F,%ah
 	cmpl CV_AMD,%ecx
 	je CPU_detect_AMD		/* Is an AMD processor */
 	cmpl CV_CENTAUR,%ecx
@@ -1340,11 +1336,8 @@ CPU_detect:
 	cmpb $5,%ah
 	je CPU_detect_P1		/* Intel Pentium */
 	cmpb $15,%ah
-	jne CPU_detect_ret		/* Not Intel Pentium 4 */
-#if DES_BS_VECTOR > 2
-	movb $1,%al			/* P4 => cancel the fallback request */
-#endif
-	jmp CPU_detect_P1
+	je CPU_detect_P1		/* Intel Pentium 4 */
+	jmp CPU_detect_ret
 CPU_detect_AMD:
 	cmpb $6,%ah
 	je CPU_detect_P1		/* AMD Athlon */
