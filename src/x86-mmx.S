@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005 by Solar Designer and others:
+ * Copyright (c) 2000-2001,2005,2006 by Solar Designer and others:
  *
  * The MMX DES S-box code is by Bruce Ford and Rémi Guyomarch, originally
  * for use in the distributed.net clients, included here with permission.
@@ -1037,19 +1037,12 @@ DES_bs_all_possible_alignment_gaps:
 	movq B(b6),a6; \
 	pxor (tmp1),a5
 
-.data
-
-DO_ALIGN(3)
-mm_ones:
-.long -1
-.long -1
-
 .text
 
 DO_ALIGN(5)
 .globl DES_bs_init_asm
 DES_bs_init_asm:
-	movq mm_ones,%mm0
+	pcmpeqd %mm0,%mm0
 	movq %mm0,pnot
 	ret
 
@@ -1201,7 +1194,7 @@ DO_ALIGN(5)
 DES_bs_crypt_LM:
 	pxor zero,zero
 	pushl %esi
-	movq pnot,ones
+	pcmpeqd ones,ones
 	movl $DES_bs_all_KS_p,k_ptr
 	movq zero,B(0)
 	movq zero,B(1)
