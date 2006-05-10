@@ -2,8 +2,8 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2000-2001,2005,2006 by Solar Designer and others:
  *
- * The MMX DES S-box code that this SSE DES S-box code is derived from is
- * by Bruce Ford and Rémi Guyomarch, originally for use in the
+ * The MMX DES S-box code that this SSE2 DES S-box code is derived from
+ * is by Bruce Ford and Rémi Guyomarch, originally for use in the
  * distributed.net clients, included here with permission.  Only minor
  * modifications have been made to their S-box code.  The optimized S-box
  * expressions are based on work by Matthew Kwan (see nonstd.c).
@@ -98,108 +98,108 @@ DES_bs_all_possible_alignment_gaps:
 #define S1_x58				tmp_at(15)
 
 #define S1(out1, out2, out3, out4, extra) \
-	movaps %xmm0,S1_a1; \
-	movaps %xmm3,%xmm6; \
-	xorps pnot,%xmm0; \
-	xorps %xmm2,%xmm3; \
-	xorps pnot,%xmm6; \
-	movaps %xmm0,%xmm7; \
+	movdqa %xmm0,S1_a1; \
+	movdqa %xmm3,%xmm6; \
+	pxor pnot,%xmm0; \
+	pxor %xmm2,%xmm3; \
+	pxor pnot,%xmm6; \
+	movdqa %xmm0,%xmm7; \
 	extra; \
-	movaps %xmm4,S1_a5; \
-	orps %xmm2,%xmm7; \
-	movaps %xmm3,S1_x3; \
-	movaps %xmm5,%xmm4; \
-	movaps %xmm6,S1_x1; \
-	xorps %xmm0,%xmm3; \
-	movaps %xmm7,S1_x5; \
-	orps %xmm6,%xmm0; \
-	movaps %xmm2,S1_a3; \
-	andps %xmm6,%xmm7; \
-	movaps %xmm3,S1_x4; \
-	orps %xmm3,%xmm2; \
-	xorps pnot,%xmm2; \
-	andps %xmm0,%xmm4; \
-	movaps %xmm7,%xmm6; \
-	orps %xmm5,%xmm2; \
-	movaps %xmm7,S1_x6; \
-	orps %xmm5,%xmm6; \
-	xorps %xmm2,%xmm7; \
-	xorps %xmm6,%xmm3; \
-	movaps %xmm2,S1_x25; \
-	xorps %xmm4,%xmm6; \
-	andps S1_a3,%xmm4; \
-	movaps %xmm6,%xmm2; \
-	xorps S1_a3,%xmm6; \
-	orps %xmm1,%xmm2; \
-	andps S1_x5,%xmm6; \
-	xorps %xmm3,%xmm2; \
-	movaps %xmm4,S1_x38; \
-	xorps %xmm2,%xmm0; \
-	movaps %xmm7,S1_x26; \
-	movaps %xmm5,%xmm4; \
-	movaps %xmm2,S1_x13; \
-	orps %xmm0,%xmm4; \
-	movaps S1_x1,%xmm7; \
-	orps %xmm1,%xmm6; \
-	movaps %xmm0,S1_x14; \
-	movaps %xmm3,%xmm2; \
-	andnps S1_x3,%xmm0; \
-	xorps %xmm7,%xmm4; \
-	orps S1_x4,%xmm5; \
-	orps %xmm1,%xmm0; \
-	xorps S1_x38,%xmm5; \
-	xorps %xmm0,%xmm4; \
-	movaps S1_a5,%xmm0; \
-	andps %xmm7,%xmm2; \
-	movaps %xmm6,S1_x55; \
-	orps %xmm1,%xmm2; \
-	movaps S1_x14,%xmm6; \
-	orps %xmm4,%xmm0; \
-	andps S1_x5,%xmm6; \
-	orps %xmm3,%xmm7; \
-	movaps %xmm5,S1_x58; \
-	xorps %xmm3,%xmm6; \
-	xorps S1_x6,%xmm7; \
-	movaps %xmm1,%xmm5; \
-	xorps S1_x26,%xmm2; \
-	andps %xmm6,%xmm5; \
-	andps S1_a3,%xmm6; \
-	xorps %xmm7,%xmm5; \
-	orps S1_a5,%xmm5; \
-	movaps S1_a1,%xmm7; \
-	xorps %xmm2,%xmm5; \
-	movaps S1_x4,%xmm2; \
-	orps %xmm3,%xmm7; \
-	orps S1_x38,%xmm2; \
-	xorps %xmm6,%xmm3; \
-	xorps S1_x25,%xmm6; \
-	xorps %xmm4,%xmm7; \
-	movaps S1_a3,%xmm4; \
-	orps %xmm1,%xmm7; \
-	orps S1_x26,%xmm4; \
-	orps %xmm1,%xmm6; \
-	xorps S1_x14,%xmm4; \
-	xorps %xmm2,%xmm6; \
-	movaps S1_x13,%xmm2; \
-	xorps %xmm4,%xmm7; \
-	xorps S1_x55,%xmm3; \
-	xorps %xmm2,%xmm0; \
-	xorps out1,%xmm5; \
-	andps %xmm3,%xmm2; \
-	movaps S1_a5,%xmm4; \
-	andps %xmm1,%xmm2; \
-	movaps %xmm5,out1; \
-	xorps S1_x58,%xmm2; \
-	andps %xmm4,%xmm7; \
-	xorps out4,%xmm0; \
-	andps %xmm4,%xmm2; \
-	xorps out2,%xmm7; \
-	movaps %xmm0,out4; \
-	xorps out3,%xmm2; \
-	xorps %xmm6,%xmm7; \
-	xorps %xmm3,%xmm2; \
-	movaps %xmm7,out2; \
-	movaps %xmm2,out3
+	movdqa %xmm4,S1_a5; \
+	por %xmm2,%xmm7; \
+	movdqa %xmm3,S1_x3; \
+	movdqa %xmm5,%xmm4; \
+	movdqa %xmm6,S1_x1; \
+	pxor %xmm0,%xmm3; \
+	movdqa %xmm7,S1_x5; \
+	por %xmm6,%xmm0; \
+	movdqa %xmm2,S1_a3; \
+	pand %xmm6,%xmm7; \
+	movdqa %xmm3,S1_x4; \
+	por %xmm3,%xmm2; \
+	pxor pnot,%xmm2; \
+	pand %xmm0,%xmm4; \
+	movdqa %xmm7,%xmm6; \
+	por %xmm5,%xmm2; \
+	movdqa %xmm7,S1_x6; \
+	por %xmm5,%xmm6; \
+	pxor %xmm2,%xmm7; \
+	pxor %xmm6,%xmm3; \
+	movdqa %xmm2,S1_x25; \
+	pxor %xmm4,%xmm6; \
+	pand S1_a3,%xmm4; \
+	movdqa %xmm6,%xmm2; \
+	pxor S1_a3,%xmm6; \
+	por %xmm1,%xmm2; \
+	pand S1_x5,%xmm6; \
+	pxor %xmm3,%xmm2; \
+	movdqa %xmm4,S1_x38; \
+	pxor %xmm2,%xmm0; \
+	movdqa %xmm7,S1_x26; \
+	movdqa %xmm5,%xmm4; \
+	movdqa %xmm2,S1_x13; \
+	por %xmm0,%xmm4; \
+	movdqa S1_x1,%xmm7; \
+	por %xmm1,%xmm6; \
+	movdqa %xmm0,S1_x14; \
+	movdqa %xmm3,%xmm2; \
+	pandn S1_x3,%xmm0; \
+	pxor %xmm7,%xmm4; \
+	por S1_x4,%xmm5; \
+	por %xmm1,%xmm0; \
+	pxor S1_x38,%xmm5; \
+	pxor %xmm0,%xmm4; \
+	movdqa S1_a5,%xmm0; \
+	pand %xmm7,%xmm2; \
+	movdqa %xmm6,S1_x55; \
+	por %xmm1,%xmm2; \
+	movdqa S1_x14,%xmm6; \
+	por %xmm4,%xmm0; \
+	pand S1_x5,%xmm6; \
+	por %xmm3,%xmm7; \
+	movdqa %xmm5,S1_x58; \
+	pxor %xmm3,%xmm6; \
+	pxor S1_x6,%xmm7; \
+	movdqa %xmm1,%xmm5; \
+	pxor S1_x26,%xmm2; \
+	pand %xmm6,%xmm5; \
+	pand S1_a3,%xmm6; \
+	pxor %xmm7,%xmm5; \
+	por S1_a5,%xmm5; \
+	movdqa S1_a1,%xmm7; \
+	pxor %xmm2,%xmm5; \
+	movdqa S1_x4,%xmm2; \
+	por %xmm3,%xmm7; \
+	por S1_x38,%xmm2; \
+	pxor %xmm6,%xmm3; \
+	pxor S1_x25,%xmm6; \
+	pxor %xmm4,%xmm7; \
+	movdqa S1_a3,%xmm4; \
+	por %xmm1,%xmm7; \
+	por S1_x26,%xmm4; \
+	por %xmm1,%xmm6; \
+	pxor S1_x14,%xmm4; \
+	pxor %xmm2,%xmm6; \
+	movdqa S1_x13,%xmm2; \
+	pxor %xmm4,%xmm7; \
+	pxor S1_x55,%xmm3; \
+	pxor %xmm2,%xmm0; \
+	pxor out1,%xmm5; \
+	pand %xmm3,%xmm2; \
+	movdqa S1_a5,%xmm4; \
+	pand %xmm1,%xmm2; \
+	movdqa %xmm5,out1; \
+	pxor S1_x58,%xmm2; \
+	pand %xmm4,%xmm7; \
+	pxor out4,%xmm0; \
+	pand %xmm4,%xmm2; \
+	pxor out2,%xmm7; \
+	movdqa %xmm0,out4; \
+	pxor out3,%xmm2; \
+	pxor %xmm6,%xmm7; \
+	pxor %xmm3,%xmm2; \
+	movdqa %xmm7,out2; \
+	movdqa %xmm2,out3
 
 #define S2_out1				%xmm1
 #undef S2_out2
@@ -218,93 +218,93 @@ DES_bs_all_possible_alignment_gaps:
 #define S2_x25				tmp_at(10)
 
 #define S2(out1, out2, out3, out4, extra) \
-	movaps %xmm3,S2_a4; \
-	movaps %xmm4,%xmm6; \
+	movdqa %xmm3,S2_a4; \
+	movdqa %xmm4,%xmm6; \
 	extra; \
-	movaps %xmm0,S2_a1; \
-	movaps %xmm4,%xmm7; \
-	xorps pnot,%xmm0; \
-	xorps %xmm5,%xmm6; \
-	xorps pnot,%xmm7; \
-	movaps %xmm0,%xmm3; \
-	movaps %xmm2,S2_a3; \
-	orps %xmm5,%xmm7; \
-	movaps %xmm6,S2_x3; \
-	orps %xmm7,%xmm3; \
-	xorps %xmm4,%xmm7; \
-	xorps %xmm0,%xmm6; \
-	andps %xmm1,%xmm3; \
-	orps %xmm7,%xmm2; \
-	movaps %xmm1,S2_a2; \
-	xorps %xmm5,%xmm3; \
-	movaps %xmm6,S2_x4; \
-	xorps %xmm1,%xmm6; \
-	movaps %xmm7,S2_x13; \
-	andps %xmm3,%xmm1; \
-	andps S2_a3,%xmm3; \
-	xorps %xmm2,%xmm1; \
-	movaps S2_x4,%xmm7; \
-	movaps %xmm1,%xmm2; \
-	andps S2_a4,%xmm2; \
-	xorps %xmm6,%xmm3; \
-	movaps %xmm6,S2_x5; \
-	xorps %xmm2,%xmm3; \
-	movaps S2_a1,%xmm2; \
-	orps %xmm5,%xmm7; \
-	orps %xmm2,%xmm1; \
-	andps %xmm3,%xmm7; \
-	xorps out2,%xmm3; \
-	orps %xmm4,%xmm2; \
-	orps S2_a3,%xmm7; \
-	movaps %xmm2,%xmm6; \
-	xorps S2_x13,%xmm1; \
-	orps %xmm5,%xmm6; \
-	movaps %xmm3,out2; \
-	andps %xmm0,%xmm4; \
-	movaps S2_x13,%xmm3; \
-	orps %xmm0,%xmm5; \
-	movaps %xmm2,S2_x18; \
-	xorps %xmm6,%xmm3; \
-	movaps S2_a2,%xmm2; \
-	xorps %xmm6,%xmm0; \
-	xorps %xmm2,%xmm3; \
-	andps %xmm2,%xmm0; \
-	xorps %xmm3,%xmm7; \
-	orps %xmm4,%xmm2; \
-	xorps S2_x3,%xmm4; \
-	andps %xmm3,%xmm6; \
-	xorps %xmm0,%xmm4; \
-	xorps %xmm5,%xmm6; \
-	movaps %xmm7,S2_x25; \
-	andps %xmm3,%xmm0; \
-	movaps S2_a3,%xmm7; \
-	xorps %xmm2,%xmm5; \
-	xorps S2_x5,%xmm0; \
-	andps %xmm4,%xmm7; \
-	andps S2_a2,%xmm4; \
-	xorps %xmm5,%xmm7; \
-	orps S2_a4,%xmm7; \
-	movaps %xmm1,%xmm5; \
-	orps S2_a3,%xmm5; \
-	orps %xmm2,%xmm1; \
-	andps S2_x18,%xmm2; \
-	xorps %xmm3,%xmm4; \
-	movaps S2_a4,%xmm3; \
-	andps %xmm4,%xmm2; \
-	andps S2_a3,%xmm4; \
-	xorps %xmm5,%xmm0; \
-	xorps S2_x25,%xmm7; \
-	xorps %xmm6,%xmm4; \
-	xorps out3,%xmm7; \
-	andps %xmm3,%xmm1; \
-	orps %xmm3,%xmm2; \
-	xorps out1,%xmm1; \
-	xorps %xmm4,%xmm2; \
-	xorps %xmm0,%xmm1; \
-	xorps out4,%xmm2; \
-	movaps %xmm1,out1; \
-	movaps %xmm7,out3; \
-	movaps %xmm2,out4
+	movdqa %xmm0,S2_a1; \
+	movdqa %xmm4,%xmm7; \
+	pxor pnot,%xmm0; \
+	pxor %xmm5,%xmm6; \
+	pxor pnot,%xmm7; \
+	movdqa %xmm0,%xmm3; \
+	movdqa %xmm2,S2_a3; \
+	por %xmm5,%xmm7; \
+	movdqa %xmm6,S2_x3; \
+	por %xmm7,%xmm3; \
+	pxor %xmm4,%xmm7; \
+	pxor %xmm0,%xmm6; \
+	pand %xmm1,%xmm3; \
+	por %xmm7,%xmm2; \
+	movdqa %xmm1,S2_a2; \
+	pxor %xmm5,%xmm3; \
+	movdqa %xmm6,S2_x4; \
+	pxor %xmm1,%xmm6; \
+	movdqa %xmm7,S2_x13; \
+	pand %xmm3,%xmm1; \
+	pand S2_a3,%xmm3; \
+	pxor %xmm2,%xmm1; \
+	movdqa S2_x4,%xmm7; \
+	movdqa %xmm1,%xmm2; \
+	pand S2_a4,%xmm2; \
+	pxor %xmm6,%xmm3; \
+	movdqa %xmm6,S2_x5; \
+	pxor %xmm2,%xmm3; \
+	movdqa S2_a1,%xmm2; \
+	por %xmm5,%xmm7; \
+	por %xmm2,%xmm1; \
+	pand %xmm3,%xmm7; \
+	pxor out2,%xmm3; \
+	por %xmm4,%xmm2; \
+	por S2_a3,%xmm7; \
+	movdqa %xmm2,%xmm6; \
+	pxor S2_x13,%xmm1; \
+	por %xmm5,%xmm6; \
+	movdqa %xmm3,out2; \
+	pand %xmm0,%xmm4; \
+	movdqa S2_x13,%xmm3; \
+	por %xmm0,%xmm5; \
+	movdqa %xmm2,S2_x18; \
+	pxor %xmm6,%xmm3; \
+	movdqa S2_a2,%xmm2; \
+	pxor %xmm6,%xmm0; \
+	pxor %xmm2,%xmm3; \
+	pand %xmm2,%xmm0; \
+	pxor %xmm3,%xmm7; \
+	por %xmm4,%xmm2; \
+	pxor S2_x3,%xmm4; \
+	pand %xmm3,%xmm6; \
+	pxor %xmm0,%xmm4; \
+	pxor %xmm5,%xmm6; \
+	movdqa %xmm7,S2_x25; \
+	pand %xmm3,%xmm0; \
+	movdqa S2_a3,%xmm7; \
+	pxor %xmm2,%xmm5; \
+	pxor S2_x5,%xmm0; \
+	pand %xmm4,%xmm7; \
+	pand S2_a2,%xmm4; \
+	pxor %xmm5,%xmm7; \
+	por S2_a4,%xmm7; \
+	movdqa %xmm1,%xmm5; \
+	por S2_a3,%xmm5; \
+	por %xmm2,%xmm1; \
+	pand S2_x18,%xmm2; \
+	pxor %xmm3,%xmm4; \
+	movdqa S2_a4,%xmm3; \
+	pand %xmm4,%xmm2; \
+	pand S2_a3,%xmm4; \
+	pxor %xmm5,%xmm0; \
+	pxor S2_x25,%xmm7; \
+	pxor %xmm6,%xmm4; \
+	pxor out3,%xmm7; \
+	pand %xmm3,%xmm1; \
+	por %xmm3,%xmm2; \
+	pxor out1,%xmm1; \
+	pxor %xmm4,%xmm2; \
+	pxor %xmm0,%xmm1; \
+	pxor out4,%xmm2; \
+	movdqa %xmm1,out1; \
+	movdqa %xmm7,out3; \
+	movdqa %xmm2,out4
 
 #define S3_out1				%xmm2
 #define S3_out2				%xmm6
@@ -329,101 +329,101 @@ DES_bs_all_possible_alignment_gaps:
 #define S3_x38				S3_x4
 
 #define S3(out1, out2, out3, out4, extra) \
-	movaps %xmm0,S3_a1; \
+	movdqa %xmm0,S3_a1; \
 	extra; \
-	movaps %xmm4,%xmm0; \
-	movaps %xmm5,%xmm6; \
-	xorps pnot,%xmm6; \
-	movaps %xmm4,%xmm7; \
-	xorps %xmm6,%xmm7; \
-	movaps %xmm6,S3_x2; \
-	andps %xmm2,%xmm0; \
-	movaps %xmm7,S3_x9; \
-	xorps %xmm5,%xmm0; \
-	movaps %xmm4,S3_a5; \
-	andnps %xmm3,%xmm4; \
-	movaps %xmm0,S3_x4; \
-	orps %xmm3,%xmm7; \
-	movaps S3_a5,%xmm6; \
-	xorps %xmm4,%xmm0; \
-	movaps %xmm5,S3_a6; \
-	andnps %xmm2,%xmm6; \
-	movaps %xmm0,S3_x6; \
-	xorps %xmm6,%xmm7; \
-	movaps S3_x2,%xmm5; \
-	xorps %xmm1,%xmm0; \
-	movaps %xmm4,S3_x5; \
-	movaps %xmm7,%xmm4; \
-	orps S3_x4,%xmm5; \
-	andps %xmm0,%xmm4; \
-	movaps %xmm7,S3_x11; \
-	xorps %xmm5,%xmm6; \
-	xorps S3_a5,%xmm7; \
-	orps %xmm1,%xmm6; \
-	movaps %xmm4,S3_x12; \
-	andps %xmm5,%xmm4; \
-	movaps %xmm7,S3_x13; \
-	orps %xmm0,%xmm7; \
-	movaps %xmm4,S3_x54; \
-	movaps %xmm2,%xmm4; \
-	xorps S3_x9,%xmm4; \
-	andps %xmm3,%xmm7; \
-	movaps %xmm0,S3_x7; \
-	xorps %xmm3,%xmm4; \
-	xorps S3_a6,%xmm5; \
-	xorps %xmm4,%xmm6; \
-	movaps %xmm3,S3_a4; \
-	orps %xmm5,%xmm3; \
-	movaps %xmm2,S3_a3; \
-	xorps %xmm3,%xmm5; \
-	orps %xmm1,%xmm5; \
-	xorps %xmm7,%xmm2; \
-	xorps S3_x12,%xmm7; \
-	movaps %xmm2,%xmm4; \
-	orps S3_x5,%xmm2; \
-	andps %xmm1,%xmm7; \
-	orps S3_x4,%xmm4; \
-	orps %xmm1,%xmm2; \
-	xorps S3_x11,%xmm7; \
-	xorps %xmm3,%xmm2; \
-	movaps S3_a1,%xmm3; \
-	xorps S3_a4,%xmm4; \
-	andps %xmm3,%xmm7; \
-	xorps S3_x7,%xmm7; \
-	orps %xmm3,%xmm2; \
-	movaps %xmm4,S3_x38; \
-	xorps %xmm6,%xmm2; \
-	xorps out4,%xmm7; \
-	orps %xmm1,%xmm4; \
-	movaps S3_a3,%xmm6; \
-	movaps %xmm2,%xmm3; \
-	xorps S3_x9,%xmm6; \
-	orps S3_x5,%xmm6; \
-	xorps S3_x38,%xmm3; \
-	xorps %xmm6,%xmm4; \
-	movaps S3_a6,%xmm6; \
-	andps S3_x11,%xmm6; \
-	movaps %xmm7,out4; \
-	movaps S3_x2,%xmm0; \
-	xorps %xmm6,%xmm3; \
-	orps S3_x6,%xmm6; \
-	andps %xmm1,%xmm3; \
-	orps S3_x38,%xmm0; \
-	xorps %xmm6,%xmm3; \
-	xorps S3_x13,%xmm0; \
-	movaps %xmm5,%xmm6; \
-	orps S3_a1,%xmm3; \
-	xorps %xmm5,%xmm0; \
-	andps S3_x54,%xmm6; \
-	xorps %xmm4,%xmm3; \
-	orps S3_a1,%xmm6; \
-	xorps out3,%xmm3; \
-	xorps %xmm0,%xmm6; \
-	xorps out1,%xmm2; \
-	movaps %xmm3,out3; \
-	xorps out2,%xmm6; \
-	movaps %xmm2,out1; \
-	movaps %xmm6,out2
+	movdqa %xmm4,%xmm0; \
+	movdqa %xmm5,%xmm6; \
+	pxor pnot,%xmm6; \
+	movdqa %xmm4,%xmm7; \
+	pxor %xmm6,%xmm7; \
+	movdqa %xmm6,S3_x2; \
+	pand %xmm2,%xmm0; \
+	movdqa %xmm7,S3_x9; \
+	pxor %xmm5,%xmm0; \
+	movdqa %xmm4,S3_a5; \
+	pandn %xmm3,%xmm4; \
+	movdqa %xmm0,S3_x4; \
+	por %xmm3,%xmm7; \
+	movdqa S3_a5,%xmm6; \
+	pxor %xmm4,%xmm0; \
+	movdqa %xmm5,S3_a6; \
+	pandn %xmm2,%xmm6; \
+	movdqa %xmm0,S3_x6; \
+	pxor %xmm6,%xmm7; \
+	movdqa S3_x2,%xmm5; \
+	pxor %xmm1,%xmm0; \
+	movdqa %xmm4,S3_x5; \
+	movdqa %xmm7,%xmm4; \
+	por S3_x4,%xmm5; \
+	pand %xmm0,%xmm4; \
+	movdqa %xmm7,S3_x11; \
+	pxor %xmm5,%xmm6; \
+	pxor S3_a5,%xmm7; \
+	por %xmm1,%xmm6; \
+	movdqa %xmm4,S3_x12; \
+	pand %xmm5,%xmm4; \
+	movdqa %xmm7,S3_x13; \
+	por %xmm0,%xmm7; \
+	movdqa %xmm4,S3_x54; \
+	movdqa %xmm2,%xmm4; \
+	pxor S3_x9,%xmm4; \
+	pand %xmm3,%xmm7; \
+	movdqa %xmm0,S3_x7; \
+	pxor %xmm3,%xmm4; \
+	pxor S3_a6,%xmm5; \
+	pxor %xmm4,%xmm6; \
+	movdqa %xmm3,S3_a4; \
+	por %xmm5,%xmm3; \
+	movdqa %xmm2,S3_a3; \
+	pxor %xmm3,%xmm5; \
+	por %xmm1,%xmm5; \
+	pxor %xmm7,%xmm2; \
+	pxor S3_x12,%xmm7; \
+	movdqa %xmm2,%xmm4; \
+	por S3_x5,%xmm2; \
+	pand %xmm1,%xmm7; \
+	por S3_x4,%xmm4; \
+	por %xmm1,%xmm2; \
+	pxor S3_x11,%xmm7; \
+	pxor %xmm3,%xmm2; \
+	movdqa S3_a1,%xmm3; \
+	pxor S3_a4,%xmm4; \
+	pand %xmm3,%xmm7; \
+	pxor S3_x7,%xmm7; \
+	por %xmm3,%xmm2; \
+	movdqa %xmm4,S3_x38; \
+	pxor %xmm6,%xmm2; \
+	pxor out4,%xmm7; \
+	por %xmm1,%xmm4; \
+	movdqa S3_a3,%xmm6; \
+	movdqa %xmm2,%xmm3; \
+	pxor S3_x9,%xmm6; \
+	por S3_x5,%xmm6; \
+	pxor S3_x38,%xmm3; \
+	pxor %xmm6,%xmm4; \
+	movdqa S3_a6,%xmm6; \
+	pand S3_x11,%xmm6; \
+	movdqa %xmm7,out4; \
+	movdqa S3_x2,%xmm0; \
+	pxor %xmm6,%xmm3; \
+	por S3_x6,%xmm6; \
+	pand %xmm1,%xmm3; \
+	por S3_x38,%xmm0; \
+	pxor %xmm6,%xmm3; \
+	pxor S3_x13,%xmm0; \
+	movdqa %xmm5,%xmm6; \
+	por S3_a1,%xmm3; \
+	pxor %xmm5,%xmm0; \
+	pand S3_x54,%xmm6; \
+	pxor %xmm4,%xmm3; \
+	por S3_a1,%xmm6; \
+	pxor out3,%xmm3; \
+	pxor %xmm0,%xmm6; \
+	pxor out1,%xmm2; \
+	movdqa %xmm3,out3; \
+	pxor out2,%xmm6; \
+	movdqa %xmm2,out1; \
+	movdqa %xmm6,out2
 
 #define S4_out1				%xmm1
 #define S4_out2				%xmm0
@@ -436,72 +436,72 @@ DES_bs_all_possible_alignment_gaps:
 #define S4_a6				tmp_at(4)
 
 #define S4(out1, out2, out3, out4, extra) \
-	movaps %xmm2,%xmm6; \
-	movaps %xmm3,S4_a4; \
-	movaps %xmm0,%xmm7; \
-	movaps %xmm1,S4_a2; \
-	orps %xmm0,%xmm6; \
+	movdqa %xmm2,%xmm6; \
+	movdqa %xmm3,S4_a4; \
+	movdqa %xmm0,%xmm7; \
+	movdqa %xmm1,S4_a2; \
+	por %xmm0,%xmm6; \
 	extra; \
-	andps %xmm4,%xmm7; \
-	movaps %xmm1,%xmm3; \
-	movaps %xmm5,S4_a6; \
-	movaps %xmm2,S4_a3; \
-	movaps %xmm4,%xmm5; \
-	andps %xmm6,%xmm5; \
-	orps %xmm2,%xmm3; \
-	xorps pnot,%xmm2; \
-	xorps %xmm5,%xmm0; \
-	xorps pnot,%xmm0; \
-	xorps %xmm7,%xmm6; \
-	xorps %xmm0,%xmm3; \
-	movaps %xmm1,%xmm7; \
-	andps %xmm6,%xmm7; \
-	xorps %xmm2,%xmm5; \
-	xorps %xmm4,%xmm2; \
-	andps %xmm5,%xmm0; \
-	xorps %xmm7,%xmm4; \
-	andps %xmm1,%xmm5; \
-	orps %xmm1,%xmm2; \
-	xorps %xmm6,%xmm5; \
-	movaps S4_a4,%xmm1; \
-	movaps %xmm0,%xmm6; \
-	andps %xmm4,%xmm1; \
-	xorps %xmm2,%xmm6; \
-	orps S4_a4,%xmm6; \
-	xorps %xmm3,%xmm1; \
-	andps S4_a2,%xmm4; \
-	xorps %xmm5,%xmm6; \
-	movaps S4_a6,%xmm3; \
-	xorps %xmm0,%xmm4; \
-	xorps S4_a3,%xmm7; \
-	movaps %xmm3,%xmm0; \
-	xorps %xmm2,%xmm7; \
-	andps %xmm6,%xmm0; \
-	movaps S4_a4,%xmm2; \
-	orps %xmm3,%xmm6; \
-	xorps %xmm1,%xmm0; \
-	andps %xmm2,%xmm7; \
-	xorps pnot,%xmm1; \
-	xorps %xmm7,%xmm4; \
-	movaps %xmm4,%xmm5; \
-	xorps %xmm1,%xmm4; \
-	xorps out1,%xmm1; \
-	orps %xmm4,%xmm2; \
-	andps S4_a2,%xmm4; \
-	xorps %xmm6,%xmm1; \
-	xorps %xmm0,%xmm4; \
-	xorps out3,%xmm6; \
-	xorps %xmm4,%xmm2; \
-	xorps out2,%xmm0; \
-	andps %xmm2,%xmm3; \
-	xorps %xmm2,%xmm6; \
-	xorps %xmm3,%xmm5; \
-	movaps %xmm1,out1; \
-	xorps %xmm5,%xmm6; \
-	movaps %xmm0,out2; \
-	xorps out4,%xmm5; \
-	movaps %xmm6,out3; \
-	movaps %xmm5,out4
+	pand %xmm4,%xmm7; \
+	movdqa %xmm1,%xmm3; \
+	movdqa %xmm5,S4_a6; \
+	movdqa %xmm2,S4_a3; \
+	movdqa %xmm4,%xmm5; \
+	pand %xmm6,%xmm5; \
+	por %xmm2,%xmm3; \
+	pxor pnot,%xmm2; \
+	pxor %xmm5,%xmm0; \
+	pxor pnot,%xmm0; \
+	pxor %xmm7,%xmm6; \
+	pxor %xmm0,%xmm3; \
+	movdqa %xmm1,%xmm7; \
+	pand %xmm6,%xmm7; \
+	pxor %xmm2,%xmm5; \
+	pxor %xmm4,%xmm2; \
+	pand %xmm5,%xmm0; \
+	pxor %xmm7,%xmm4; \
+	pand %xmm1,%xmm5; \
+	por %xmm1,%xmm2; \
+	pxor %xmm6,%xmm5; \
+	movdqa S4_a4,%xmm1; \
+	movdqa %xmm0,%xmm6; \
+	pand %xmm4,%xmm1; \
+	pxor %xmm2,%xmm6; \
+	por S4_a4,%xmm6; \
+	pxor %xmm3,%xmm1; \
+	pand S4_a2,%xmm4; \
+	pxor %xmm5,%xmm6; \
+	movdqa S4_a6,%xmm3; \
+	pxor %xmm0,%xmm4; \
+	pxor S4_a3,%xmm7; \
+	movdqa %xmm3,%xmm0; \
+	pxor %xmm2,%xmm7; \
+	pand %xmm6,%xmm0; \
+	movdqa S4_a4,%xmm2; \
+	por %xmm3,%xmm6; \
+	pxor %xmm1,%xmm0; \
+	pand %xmm2,%xmm7; \
+	pxor pnot,%xmm1; \
+	pxor %xmm7,%xmm4; \
+	movdqa %xmm4,%xmm5; \
+	pxor %xmm1,%xmm4; \
+	pxor out1,%xmm1; \
+	por %xmm4,%xmm2; \
+	pand S4_a2,%xmm4; \
+	pxor %xmm6,%xmm1; \
+	pxor %xmm0,%xmm4; \
+	pxor out3,%xmm6; \
+	pxor %xmm4,%xmm2; \
+	pxor out2,%xmm0; \
+	pand %xmm2,%xmm3; \
+	pxor %xmm2,%xmm6; \
+	pxor %xmm3,%xmm5; \
+	movdqa %xmm1,out1; \
+	pxor %xmm5,%xmm6; \
+	movdqa %xmm0,out2; \
+	pxor out4,%xmm5; \
+	movdqa %xmm6,out3; \
+	movdqa %xmm5,out4
 
 #define S5_out1				%xmm5
 #define S5_out2				%xmm7
@@ -527,110 +527,110 @@ DES_bs_all_possible_alignment_gaps:
 #define S5_x38				S5_x9
 
 #define S5(out1, out2, out3, out4, extra) \
-	movaps %xmm1,S5_a2; \
-	movaps %xmm3,%xmm6; \
-	movaps %xmm2,%xmm7; \
-	andnps %xmm2,%xmm6; \
-	andnps %xmm0,%xmm7; \
-	movaps %xmm6,%xmm1; \
-	movaps %xmm0,S5_a1; \
-	xorps %xmm0,%xmm1; \
+	movdqa %xmm1,S5_a2; \
+	movdqa %xmm3,%xmm6; \
+	movdqa %xmm2,%xmm7; \
+	pandn %xmm2,%xmm6; \
+	pandn %xmm0,%xmm7; \
+	movdqa %xmm6,%xmm1; \
+	movdqa %xmm0,S5_a1; \
+	pxor %xmm0,%xmm1; \
 	extra; \
-	xorps %xmm3,%xmm0; \
-	movaps %xmm1,S5_x2; \
-	movaps %xmm5,S5_a6; \
-	orps %xmm0,%xmm6; \
-	orps %xmm7,%xmm5; \
-	movaps %xmm6,S5_x7; \
-	xorps %xmm5,%xmm1; \
-	movaps %xmm5,S5_x4; \
-	andps %xmm2,%xmm6; \
-	movaps S5_a6,%xmm5; \
-	xorps %xmm3,%xmm6; \
-	andnps S5_x7,%xmm5; \
-	movaps %xmm0,S5_x6; \
-	movaps %xmm7,%xmm0; \
-	movaps %xmm5,S5_x8; \
-	xorps %xmm2,%xmm5; \
-	movaps %xmm1,S5_x5; \
-	xorps %xmm3,%xmm0; \
-	movaps %xmm5,S5_x9; \
-	andnps %xmm6,%xmm7; \
-	orps S5_a6,%xmm0; \
-	orps %xmm4,%xmm5; \
-	movaps %xmm6,S5_x13; \
-	xorps %xmm1,%xmm5; \
-	movaps %xmm0,S5_x16; \
-	xorps %xmm0,%xmm7; \
-	movaps S5_a2,%xmm0; \
-	movaps %xmm4,%xmm1; \
-	movaps %xmm7,S5_x17; \
-	orps %xmm7,%xmm1; \
-	andps S5_x5,%xmm7; \
-	xorps %xmm6,%xmm1; \
-	andnps %xmm1,%xmm0; \
-	movaps %xmm7,%xmm6; \
-	andnps S5_x7,%xmm6; \
-	xorps %xmm0,%xmm5; \
-	xorps S5_x9,%xmm7; \
-	movaps %xmm3,%xmm0; \
-	movaps %xmm5,S5_x21; \
-	movaps %xmm6,%xmm5; \
-	andnps S5_x8,%xmm0; \
-	andnps %xmm1,%xmm5; \
-	xorps out3,%xmm6; \
-	xorps %xmm2,%xmm0; \
-	movaps S5_a1,%xmm2; \
-	movaps %xmm0,%xmm1; \
-	xorps S5_x9,%xmm2; \
-	andps %xmm4,%xmm1; \
-	movaps %xmm7,S5_x38; \
-	xorps %xmm1,%xmm6; \
-	movaps S5_x4,%xmm1; \
-	movaps %xmm2,%xmm7; \
-	andps S5_x2,%xmm7; \
-	andps %xmm3,%xmm1; \
-	xorps S5_x17,%xmm1; \
-	andnps %xmm4,%xmm7; \
-	movaps %xmm2,S5_x24; \
-	xorps %xmm7,%xmm1; \
-	movaps out2,%xmm7; \
-	orps %xmm2,%xmm3; \
-	movaps S5_a2,%xmm2; \
-	xorps %xmm1,%xmm7; \
-	movaps %xmm3,S5_x28; \
-	andnps %xmm3,%xmm2; \
-	movaps S5_x38,%xmm3; \
-	xorps %xmm2,%xmm7; \
-	movaps S5_x16,%xmm2; \
-	orps %xmm4,%xmm3; \
-	orps S5_x13,%xmm2; \
-	orps %xmm5,%xmm1; \
-	xorps out1,%xmm5; \
-	xorps %xmm3,%xmm2; \
-	orps S5_a2,%xmm2; \
-	movaps %xmm7,out2; \
-	xorps S5_x6,%xmm1; \
-	xorps %xmm2,%xmm6; \
-	andnps %xmm4,%xmm1; \
-	movaps S5_x38,%xmm2; \
-	xorps S5_x24,%xmm1; \
-	movaps %xmm2,%xmm3; \
-	xorps S5_x21,%xmm2; \
-	xorps %xmm1,%xmm5; \
-	andps S5_x6,%xmm3; \
-	andnps %xmm4,%xmm2; \
-	andps S5_x28,%xmm2; \
-	xorps %xmm0,%xmm3; \
-	xorps pnot,%xmm6; \
-	xorps %xmm2,%xmm3; \
-	movaps S5_x21,%xmm4; \
-	orps S5_a2,%xmm3; \
-	movaps %xmm6,out3; \
-	xorps out4,%xmm4; \
-	xorps %xmm3,%xmm5; \
-	movaps %xmm4,out4; \
-	movaps %xmm5,out1
+	pxor %xmm3,%xmm0; \
+	movdqa %xmm1,S5_x2; \
+	movdqa %xmm5,S5_a6; \
+	por %xmm0,%xmm6; \
+	por %xmm7,%xmm5; \
+	movdqa %xmm6,S5_x7; \
+	pxor %xmm5,%xmm1; \
+	movdqa %xmm5,S5_x4; \
+	pand %xmm2,%xmm6; \
+	movdqa S5_a6,%xmm5; \
+	pxor %xmm3,%xmm6; \
+	pandn S5_x7,%xmm5; \
+	movdqa %xmm0,S5_x6; \
+	movdqa %xmm7,%xmm0; \
+	movdqa %xmm5,S5_x8; \
+	pxor %xmm2,%xmm5; \
+	movdqa %xmm1,S5_x5; \
+	pxor %xmm3,%xmm0; \
+	movdqa %xmm5,S5_x9; \
+	pandn %xmm6,%xmm7; \
+	por S5_a6,%xmm0; \
+	por %xmm4,%xmm5; \
+	movdqa %xmm6,S5_x13; \
+	pxor %xmm1,%xmm5; \
+	movdqa %xmm0,S5_x16; \
+	pxor %xmm0,%xmm7; \
+	movdqa S5_a2,%xmm0; \
+	movdqa %xmm4,%xmm1; \
+	movdqa %xmm7,S5_x17; \
+	por %xmm7,%xmm1; \
+	pand S5_x5,%xmm7; \
+	pxor %xmm6,%xmm1; \
+	pandn %xmm1,%xmm0; \
+	movdqa %xmm7,%xmm6; \
+	pandn S5_x7,%xmm6; \
+	pxor %xmm0,%xmm5; \
+	pxor S5_x9,%xmm7; \
+	movdqa %xmm3,%xmm0; \
+	movdqa %xmm5,S5_x21; \
+	movdqa %xmm6,%xmm5; \
+	pandn S5_x8,%xmm0; \
+	pandn %xmm1,%xmm5; \
+	pxor out3,%xmm6; \
+	pxor %xmm2,%xmm0; \
+	movdqa S5_a1,%xmm2; \
+	movdqa %xmm0,%xmm1; \
+	pxor S5_x9,%xmm2; \
+	pand %xmm4,%xmm1; \
+	movdqa %xmm7,S5_x38; \
+	pxor %xmm1,%xmm6; \
+	movdqa S5_x4,%xmm1; \
+	movdqa %xmm2,%xmm7; \
+	pand S5_x2,%xmm7; \
+	pand %xmm3,%xmm1; \
+	pxor S5_x17,%xmm1; \
+	pandn %xmm4,%xmm7; \
+	movdqa %xmm2,S5_x24; \
+	pxor %xmm7,%xmm1; \
+	movdqa out2,%xmm7; \
+	por %xmm2,%xmm3; \
+	movdqa S5_a2,%xmm2; \
+	pxor %xmm1,%xmm7; \
+	movdqa %xmm3,S5_x28; \
+	pandn %xmm3,%xmm2; \
+	movdqa S5_x38,%xmm3; \
+	pxor %xmm2,%xmm7; \
+	movdqa S5_x16,%xmm2; \
+	por %xmm4,%xmm3; \
+	por S5_x13,%xmm2; \
+	por %xmm5,%xmm1; \
+	pxor out1,%xmm5; \
+	pxor %xmm3,%xmm2; \
+	por S5_a2,%xmm2; \
+	movdqa %xmm7,out2; \
+	pxor S5_x6,%xmm1; \
+	pxor %xmm2,%xmm6; \
+	pandn %xmm4,%xmm1; \
+	movdqa S5_x38,%xmm2; \
+	pxor S5_x24,%xmm1; \
+	movdqa %xmm2,%xmm3; \
+	pxor S5_x21,%xmm2; \
+	pxor %xmm1,%xmm5; \
+	pand S5_x6,%xmm3; \
+	pandn %xmm4,%xmm2; \
+	pand S5_x28,%xmm2; \
+	pxor %xmm0,%xmm3; \
+	pxor pnot,%xmm6; \
+	pxor %xmm2,%xmm3; \
+	movdqa S5_x21,%xmm4; \
+	por S5_a2,%xmm3; \
+	movdqa %xmm6,out3; \
+	pxor out4,%xmm4; \
+	pxor %xmm3,%xmm5; \
+	movdqa %xmm4,out4; \
+	movdqa %xmm5,out1
 
 #define S6_out1				%xmm0
 #undef S6_out2
@@ -650,99 +650,99 @@ DES_bs_all_possible_alignment_gaps:
 #define S6_x16				tmp_at(11)
 
 #define S6(out1, out2, out3, out4, extra) \
-	movaps %xmm2,S6_a3; \
+	movdqa %xmm2,S6_a3; \
 	extra; \
-	movaps %xmm4,%xmm6; \
-	xorps pnot,%xmm6; \
-	movaps %xmm5,%xmm7; \
-	movaps %xmm1,S6_a2; \
-	movaps %xmm4,%xmm2; \
-	movaps %xmm3,S6_a4; \
-	xorps %xmm1,%xmm7; \
-	xorps pnot,%xmm1; \
-	xorps %xmm6,%xmm7; \
-	movaps %xmm6,S6_x2; \
-	xorps %xmm0,%xmm7; \
-	andps %xmm5,%xmm2; \
-	movaps %xmm4,%xmm6; \
-	movaps %xmm1,S6_x1; \
-	movaps %xmm5,%xmm3; \
-	andps S6_a2,%xmm3; \
-	andps %xmm7,%xmm6; \
-	movaps %xmm0,S6_a1; \
-	orps %xmm2,%xmm1; \
-	movaps %xmm2,S6_x6; \
-	andps %xmm6,%xmm0; \
-	movaps %xmm3,S6_x15; \
-	xorps %xmm0,%xmm1; \
-	movaps S6_a4,%xmm0; \
-	movaps %xmm4,%xmm2; \
-	movaps %xmm6,S6_x8; \
-	andps %xmm1,%xmm0; \
-	movaps %xmm7,S6_x5; \
-	xorps %xmm3,%xmm2; \
-	movaps S6_x2,%xmm6; \
-	xorps %xmm7,%xmm0; \
-	movaps S6_a1,%xmm7; \
-	xorps %xmm5,%xmm1; \
-	movaps %xmm2,S6_x16; \
-	andps %xmm7,%xmm2; \
-	movaps S6_a4,%xmm3; \
-	xorps %xmm2,%xmm6; \
-	xorps S6_a2,%xmm2; \
-	andps %xmm7,%xmm1; \
-	orps %xmm6,%xmm3; \
-	xorps %xmm5,%xmm6; \
-	xorps %xmm3,%xmm1; \
-	andps %xmm6,%xmm7; \
-	andps S6_a3,%xmm1; \
-	andps %xmm4,%xmm6; \
-	movaps S6_x6,%xmm3; \
-	xorps %xmm1,%xmm0; \
-	xorps out2,%xmm0; \
-	orps %xmm2,%xmm3; \
-	andps S6_a4,%xmm3; \
-	xorps %xmm7,%xmm4; \
-	movaps S6_x5,%xmm1; \
-	xorps %xmm3,%xmm4; \
-	xorps pnot,%xmm2; \
-	orps %xmm4,%xmm5; \
-	movaps %xmm0,out2; \
-	movaps %xmm5,%xmm3; \
-	andnps S6_a4,%xmm3; \
-	xorps %xmm6,%xmm1; \
-	movaps S6_x6,%xmm0; \
-	xorps %xmm2,%xmm3; \
-	orps S6_a4,%xmm1; \
-	xorps %xmm3,%xmm0; \
-	andps S6_a3,%xmm3; \
-	xorps %xmm1,%xmm0; \
-	orps S6_x5,%xmm6; \
-	movaps %xmm7,%xmm1; \
-	xorps S6_x15,%xmm7; \
-	xorps %xmm3,%xmm4; \
-	movaps S6_a4,%xmm3; \
-	xorps %xmm5,%xmm7; \
-	andps S6_x8,%xmm5; \
-	orps %xmm3,%xmm7; \
-	xorps S6_x6,%xmm6; \
-	orps %xmm3,%xmm5; \
-	orps S6_x16,%xmm1; \
-	xorps %xmm6,%xmm5; \
-	xorps S6_x1,%xmm1; \
-	movaps S6_a3,%xmm3; \
-	xorps %xmm1,%xmm7; \
-	xorps out4,%xmm4; \
-	orps %xmm3,%xmm7; \
-	andps %xmm1,%xmm2; \
-	xorps out1,%xmm0; \
-	orps %xmm3,%xmm2; \
-	xorps %xmm7,%xmm0; \
-	xorps %xmm5,%xmm2; \
-	movaps %xmm4,out4; \
-	xorps out3,%xmm2; \
-	movaps %xmm0,out1; \
-	movaps %xmm2,out3
+	movdqa %xmm4,%xmm6; \
+	pxor pnot,%xmm6; \
+	movdqa %xmm5,%xmm7; \
+	movdqa %xmm1,S6_a2; \
+	movdqa %xmm4,%xmm2; \
+	movdqa %xmm3,S6_a4; \
+	pxor %xmm1,%xmm7; \
+	pxor pnot,%xmm1; \
+	pxor %xmm6,%xmm7; \
+	movdqa %xmm6,S6_x2; \
+	pxor %xmm0,%xmm7; \
+	pand %xmm5,%xmm2; \
+	movdqa %xmm4,%xmm6; \
+	movdqa %xmm1,S6_x1; \
+	movdqa %xmm5,%xmm3; \
+	pand S6_a2,%xmm3; \
+	pand %xmm7,%xmm6; \
+	movdqa %xmm0,S6_a1; \
+	por %xmm2,%xmm1; \
+	movdqa %xmm2,S6_x6; \
+	pand %xmm6,%xmm0; \
+	movdqa %xmm3,S6_x15; \
+	pxor %xmm0,%xmm1; \
+	movdqa S6_a4,%xmm0; \
+	movdqa %xmm4,%xmm2; \
+	movdqa %xmm6,S6_x8; \
+	pand %xmm1,%xmm0; \
+	movdqa %xmm7,S6_x5; \
+	pxor %xmm3,%xmm2; \
+	movdqa S6_x2,%xmm6; \
+	pxor %xmm7,%xmm0; \
+	movdqa S6_a1,%xmm7; \
+	pxor %xmm5,%xmm1; \
+	movdqa %xmm2,S6_x16; \
+	pand %xmm7,%xmm2; \
+	movdqa S6_a4,%xmm3; \
+	pxor %xmm2,%xmm6; \
+	pxor S6_a2,%xmm2; \
+	pand %xmm7,%xmm1; \
+	por %xmm6,%xmm3; \
+	pxor %xmm5,%xmm6; \
+	pxor %xmm3,%xmm1; \
+	pand %xmm6,%xmm7; \
+	pand S6_a3,%xmm1; \
+	pand %xmm4,%xmm6; \
+	movdqa S6_x6,%xmm3; \
+	pxor %xmm1,%xmm0; \
+	pxor out2,%xmm0; \
+	por %xmm2,%xmm3; \
+	pand S6_a4,%xmm3; \
+	pxor %xmm7,%xmm4; \
+	movdqa S6_x5,%xmm1; \
+	pxor %xmm3,%xmm4; \
+	pxor pnot,%xmm2; \
+	por %xmm4,%xmm5; \
+	movdqa %xmm0,out2; \
+	movdqa %xmm5,%xmm3; \
+	pandn S6_a4,%xmm3; \
+	pxor %xmm6,%xmm1; \
+	movdqa S6_x6,%xmm0; \
+	pxor %xmm2,%xmm3; \
+	por S6_a4,%xmm1; \
+	pxor %xmm3,%xmm0; \
+	pand S6_a3,%xmm3; \
+	pxor %xmm1,%xmm0; \
+	por S6_x5,%xmm6; \
+	movdqa %xmm7,%xmm1; \
+	pxor S6_x15,%xmm7; \
+	pxor %xmm3,%xmm4; \
+	movdqa S6_a4,%xmm3; \
+	pxor %xmm5,%xmm7; \
+	pand S6_x8,%xmm5; \
+	por %xmm3,%xmm7; \
+	pxor S6_x6,%xmm6; \
+	por %xmm3,%xmm5; \
+	por S6_x16,%xmm1; \
+	pxor %xmm6,%xmm5; \
+	pxor S6_x1,%xmm1; \
+	movdqa S6_a3,%xmm3; \
+	pxor %xmm1,%xmm7; \
+	pxor out4,%xmm4; \
+	por %xmm3,%xmm7; \
+	pand %xmm1,%xmm2; \
+	pxor out1,%xmm0; \
+	por %xmm3,%xmm2; \
+	pxor %xmm7,%xmm0; \
+	pxor %xmm5,%xmm2; \
+	movdqa %xmm4,out4; \
+	pxor out3,%xmm2; \
+	movdqa %xmm0,out1; \
+	movdqa %xmm2,out3
 
 #define S7_out1				%xmm7
 #define S7_out2				%xmm1
@@ -763,99 +763,99 @@ DES_bs_all_possible_alignment_gaps:
 #define S7_x26				tmp_at(12)
 
 #define S7(out1, out2, out3, out4, extra) \
-	movaps %xmm0,S7_a1; \
-	movaps %xmm1,%xmm6; \
+	movdqa %xmm0,S7_a1; \
+	movdqa %xmm1,%xmm6; \
 	extra; \
-	movaps %xmm1,S7_a2; \
-	movaps %xmm3,%xmm7; \
-	movaps %xmm5,S7_a6; \
-	andps %xmm3,%xmm6; \
-	movaps %xmm3,S7_a4; \
-	xorps %xmm4,%xmm6; \
-	xorps pnot,%xmm4; \
-	andps %xmm6,%xmm7; \
-	andps %xmm4,%xmm3; \
-	movaps %xmm1,%xmm5; \
-	xorps %xmm2,%xmm6; \
-	xorps %xmm7,%xmm5; \
-	movaps %xmm7,S7_x6; \
-	orps %xmm1,%xmm4; \
-	orps %xmm3,%xmm1; \
-	xorps %xmm6,%xmm7; \
-	movaps %xmm5,S7_x7; \
-	andps %xmm2,%xmm4; \
-	andps %xmm2,%xmm5; \
-	orps %xmm7,%xmm3; \
-	movaps %xmm1,S7_x13; \
-	xorps %xmm5,%xmm0; \
-	orps S7_a6,%xmm0; \
-	xorps %xmm4,%xmm1; \
-	movaps %xmm4,S7_x15; \
-	xorps %xmm6,%xmm0; \
-	movaps %xmm5,S7_x8; \
-	movaps %xmm3,%xmm4; \
-	movaps S7_a6,%xmm6; \
-	movaps %xmm0,%xmm5; \
-	xorps S7_x6,%xmm5; \
-	orps %xmm6,%xmm4; \
-	movaps %xmm7,S7_x25; \
-	orps %xmm6,%xmm5; \
-	movaps S7_a1,%xmm7; \
-	xorps %xmm1,%xmm5; \
-	movaps %xmm3,S7_x26; \
-	andps %xmm5,%xmm7; \
-	movaps %xmm0,S7_x11; \
-	xorps %xmm0,%xmm7; \
-	movaps S7_a4,%xmm3; \
-	movaps %xmm7,%xmm0; \
-	orps S7_a2,%xmm0; \
-	andps %xmm3,%xmm1; \
-	andps S7_x13,%xmm3; \
-	orps S7_x7,%xmm2; \
-	xorps S7_x6,%xmm0; \
-	xorps %xmm3,%xmm2; \
-	movaps S7_a2,%xmm3; \
-	movaps %xmm0,%xmm6; \
-	xorps pnot,%xmm3; \
-	xorps S7_x15,%xmm6; \
-	orps %xmm3,%xmm1; \
-	andps S7_x26,%xmm0; \
-	xorps %xmm6,%xmm4; \
-	andps S7_a6,%xmm0; \
-	orps %xmm3,%xmm6; \
-	orps S7_a6,%xmm6; \
-	andps %xmm5,%xmm3; \
-	andps S7_a6,%xmm1; \
-	xorps %xmm3,%xmm0; \
-	orps S7_a1,%xmm0; \
-	xorps %xmm6,%xmm2; \
-	xorps S7_x11,%xmm1; \
-	xorps %xmm4,%xmm0; \
-	movaps S7_a1,%xmm4; \
-	xorps %xmm2,%xmm5; \
-	movaps S7_a4,%xmm6; \
-	orps %xmm2,%xmm4; \
-	xorps S7_x25,%xmm6; \
-	xorps %xmm4,%xmm1; \
-	movaps S7_a6,%xmm4; \
-	andps %xmm1,%xmm6; \
-	movaps S7_x6,%xmm3; \
-	andps %xmm4,%xmm6; \
-	xorps S7_x15,%xmm3; \
-	xorps %xmm5,%xmm6; \
-	xorps S7_x8,%xmm2; \
-	orps %xmm4,%xmm3; \
-	orps S7_a1,%xmm6; \
-	xorps %xmm2,%xmm3; \
-	xorps out1,%xmm7; \
-	xorps %xmm6,%xmm3; \
-	xorps out2,%xmm1; \
-	movaps %xmm7,out1; \
-	xorps out3,%xmm3; \
-	movaps %xmm1,out2; \
-	xorps out4,%xmm0; \
-	movaps %xmm3,out3; \
-	movaps %xmm0,out4
+	movdqa %xmm1,S7_a2; \
+	movdqa %xmm3,%xmm7; \
+	movdqa %xmm5,S7_a6; \
+	pand %xmm3,%xmm6; \
+	movdqa %xmm3,S7_a4; \
+	pxor %xmm4,%xmm6; \
+	pxor pnot,%xmm4; \
+	pand %xmm6,%xmm7; \
+	pand %xmm4,%xmm3; \
+	movdqa %xmm1,%xmm5; \
+	pxor %xmm2,%xmm6; \
+	pxor %xmm7,%xmm5; \
+	movdqa %xmm7,S7_x6; \
+	por %xmm1,%xmm4; \
+	por %xmm3,%xmm1; \
+	pxor %xmm6,%xmm7; \
+	movdqa %xmm5,S7_x7; \
+	pand %xmm2,%xmm4; \
+	pand %xmm2,%xmm5; \
+	por %xmm7,%xmm3; \
+	movdqa %xmm1,S7_x13; \
+	pxor %xmm5,%xmm0; \
+	por S7_a6,%xmm0; \
+	pxor %xmm4,%xmm1; \
+	movdqa %xmm4,S7_x15; \
+	pxor %xmm6,%xmm0; \
+	movdqa %xmm5,S7_x8; \
+	movdqa %xmm3,%xmm4; \
+	movdqa S7_a6,%xmm6; \
+	movdqa %xmm0,%xmm5; \
+	pxor S7_x6,%xmm5; \
+	por %xmm6,%xmm4; \
+	movdqa %xmm7,S7_x25; \
+	por %xmm6,%xmm5; \
+	movdqa S7_a1,%xmm7; \
+	pxor %xmm1,%xmm5; \
+	movdqa %xmm3,S7_x26; \
+	pand %xmm5,%xmm7; \
+	movdqa %xmm0,S7_x11; \
+	pxor %xmm0,%xmm7; \
+	movdqa S7_a4,%xmm3; \
+	movdqa %xmm7,%xmm0; \
+	por S7_a2,%xmm0; \
+	pand %xmm3,%xmm1; \
+	pand S7_x13,%xmm3; \
+	por S7_x7,%xmm2; \
+	pxor S7_x6,%xmm0; \
+	pxor %xmm3,%xmm2; \
+	movdqa S7_a2,%xmm3; \
+	movdqa %xmm0,%xmm6; \
+	pxor pnot,%xmm3; \
+	pxor S7_x15,%xmm6; \
+	por %xmm3,%xmm1; \
+	pand S7_x26,%xmm0; \
+	pxor %xmm6,%xmm4; \
+	pand S7_a6,%xmm0; \
+	por %xmm3,%xmm6; \
+	por S7_a6,%xmm6; \
+	pand %xmm5,%xmm3; \
+	pand S7_a6,%xmm1; \
+	pxor %xmm3,%xmm0; \
+	por S7_a1,%xmm0; \
+	pxor %xmm6,%xmm2; \
+	pxor S7_x11,%xmm1; \
+	pxor %xmm4,%xmm0; \
+	movdqa S7_a1,%xmm4; \
+	pxor %xmm2,%xmm5; \
+	movdqa S7_a4,%xmm6; \
+	por %xmm2,%xmm4; \
+	pxor S7_x25,%xmm6; \
+	pxor %xmm4,%xmm1; \
+	movdqa S7_a6,%xmm4; \
+	pand %xmm1,%xmm6; \
+	movdqa S7_x6,%xmm3; \
+	pand %xmm4,%xmm6; \
+	pxor S7_x15,%xmm3; \
+	pxor %xmm5,%xmm6; \
+	pxor S7_x8,%xmm2; \
+	por %xmm4,%xmm3; \
+	por S7_a1,%xmm6; \
+	pxor %xmm2,%xmm3; \
+	pxor out1,%xmm7; \
+	pxor %xmm6,%xmm3; \
+	pxor out2,%xmm1; \
+	movdqa %xmm7,out1; \
+	pxor out3,%xmm3; \
+	movdqa %xmm1,out2; \
+	pxor out4,%xmm0; \
+	movdqa %xmm3,out3; \
+	movdqa %xmm0,out4
 
 #define S8_out1				%xmm6
 #define S8_out2				%xmm2
@@ -872,97 +872,97 @@ DES_bs_all_possible_alignment_gaps:
 #define S8_x33				tmp_at(8)
 
 #define S8(out1, out2, out3, out4, extra) \
-	movaps %xmm0,S8_a1; \
+	movdqa %xmm0,S8_a1; \
 	extra; \
-	movaps %xmm2,%xmm6; \
-	xorps pnot,%xmm0; \
-	movaps %xmm2,%xmm7; \
-	movaps %xmm3,S8_a4; \
-	orps %xmm0,%xmm7; \
-	xorps pnot,%xmm3; \
-	xorps %xmm0,%xmm6; \
-	movaps %xmm5,S8_a6; \
-	movaps %xmm4,%xmm5; \
-	movaps %xmm1,S8_a2; \
-	movaps %xmm7,%xmm1; \
-	movaps %xmm4,S8_a5; \
-	xorps %xmm3,%xmm7; \
-	orps %xmm6,%xmm5; \
-	orps %xmm7,%xmm0; \
-	andps %xmm4,%xmm1; \
-	andnps %xmm0,%xmm2; \
-	orps %xmm7,%xmm4; \
-	xorps %xmm1,%xmm2; \
-	movaps %xmm5,S8_x22; \
-	andps %xmm3,%xmm5; \
-	orps S8_a2,%xmm2; \
-	xorps %xmm4,%xmm7; \
-	xorps %xmm0,%xmm3; \
-	movaps %xmm4,%xmm1; \
-	xorps S8_x22,%xmm7; \
-	xorps %xmm3,%xmm1; \
-	xorps %xmm6,%xmm4; \
-	xorps %xmm5,%xmm2; \
-	xorps S8_a1,%xmm5; \
-	andps %xmm3,%xmm6; \
-	movaps %xmm1,S8_x14; \
-	andps %xmm4,%xmm5; \
-	movaps %xmm7,S8_x33; \
-	movaps %xmm0,%xmm1; \
-	andps S8_a5,%xmm3; \
-	movaps %xmm0,%xmm7; \
-	andps S8_a5,%xmm1; \
-	xorps %xmm3,%xmm7; \
-	andps S8_a2,%xmm7; \
-	xorps %xmm1,%xmm6; \
-	movaps S8_a6,%xmm1; \
-	xorps %xmm4,%xmm7; \
-	orps S8_a2,%xmm6; \
-	andnps %xmm0,%xmm4; \
-	xorps S8_x14,%xmm6; \
-	andps %xmm2,%xmm1; \
-	xorps S8_a1,%xmm3; \
-	xorps %xmm6,%xmm2; \
-	orps S8_a6,%xmm6; \
-	xorps %xmm7,%xmm1; \
-	xorps S8_x22,%xmm3; \
-	xorps %xmm7,%xmm6; \
-	orps S8_a2,%xmm4; \
-	andps S8_a2,%xmm5; \
-	xorps %xmm4,%xmm3; \
-	movaps S8_a1,%xmm4; \
-	andps S8_x33,%xmm4; \
-	orps S8_a4,%xmm7; \
-	xorps %xmm4,%xmm0; \
-	andps S8_a2,%xmm7; \
-	xorps %xmm0,%xmm5; \
-	movaps S8_a6,%xmm4; \
-	orps %xmm0,%xmm2; \
-	xorps S8_x33,%xmm7; \
-	orps %xmm4,%xmm5; \
-	xorps out1,%xmm6; \
-	andps %xmm4,%xmm2; \
-	xorps out4,%xmm1; \
-	xorps %xmm7,%xmm5; \
-	xorps %xmm3,%xmm2; \
-	xorps out3,%xmm5; \
-	movaps %xmm6,out1; \
-	xorps out2,%xmm2; \
-	movaps %xmm1,out4; \
-	movaps %xmm5,out3; \
-	movaps %xmm2,out2
+	movdqa %xmm2,%xmm6; \
+	pxor pnot,%xmm0; \
+	movdqa %xmm2,%xmm7; \
+	movdqa %xmm3,S8_a4; \
+	por %xmm0,%xmm7; \
+	pxor pnot,%xmm3; \
+	pxor %xmm0,%xmm6; \
+	movdqa %xmm5,S8_a6; \
+	movdqa %xmm4,%xmm5; \
+	movdqa %xmm1,S8_a2; \
+	movdqa %xmm7,%xmm1; \
+	movdqa %xmm4,S8_a5; \
+	pxor %xmm3,%xmm7; \
+	por %xmm6,%xmm5; \
+	por %xmm7,%xmm0; \
+	pand %xmm4,%xmm1; \
+	pandn %xmm0,%xmm2; \
+	por %xmm7,%xmm4; \
+	pxor %xmm1,%xmm2; \
+	movdqa %xmm5,S8_x22; \
+	pand %xmm3,%xmm5; \
+	por S8_a2,%xmm2; \
+	pxor %xmm4,%xmm7; \
+	pxor %xmm0,%xmm3; \
+	movdqa %xmm4,%xmm1; \
+	pxor S8_x22,%xmm7; \
+	pxor %xmm3,%xmm1; \
+	pxor %xmm6,%xmm4; \
+	pxor %xmm5,%xmm2; \
+	pxor S8_a1,%xmm5; \
+	pand %xmm3,%xmm6; \
+	movdqa %xmm1,S8_x14; \
+	pand %xmm4,%xmm5; \
+	movdqa %xmm7,S8_x33; \
+	movdqa %xmm0,%xmm1; \
+	pand S8_a5,%xmm3; \
+	movdqa %xmm0,%xmm7; \
+	pand S8_a5,%xmm1; \
+	pxor %xmm3,%xmm7; \
+	pand S8_a2,%xmm7; \
+	pxor %xmm1,%xmm6; \
+	movdqa S8_a6,%xmm1; \
+	pxor %xmm4,%xmm7; \
+	por S8_a2,%xmm6; \
+	pandn %xmm0,%xmm4; \
+	pxor S8_x14,%xmm6; \
+	pand %xmm2,%xmm1; \
+	pxor S8_a1,%xmm3; \
+	pxor %xmm6,%xmm2; \
+	por S8_a6,%xmm6; \
+	pxor %xmm7,%xmm1; \
+	pxor S8_x22,%xmm3; \
+	pxor %xmm7,%xmm6; \
+	por S8_a2,%xmm4; \
+	pand S8_a2,%xmm5; \
+	pxor %xmm4,%xmm3; \
+	movdqa S8_a1,%xmm4; \
+	pand S8_x33,%xmm4; \
+	por S8_a4,%xmm7; \
+	pxor %xmm4,%xmm0; \
+	pand S8_a2,%xmm7; \
+	pxor %xmm0,%xmm5; \
+	movdqa S8_a6,%xmm4; \
+	por %xmm0,%xmm2; \
+	pxor S8_x33,%xmm7; \
+	por %xmm4,%xmm5; \
+	pxor out1,%xmm6; \
+	pand %xmm4,%xmm2; \
+	pxor out4,%xmm1; \
+	pxor %xmm7,%xmm5; \
+	pxor %xmm3,%xmm2; \
+	pxor out3,%xmm5; \
+	movdqa %xmm6,out1; \
+	pxor out2,%xmm2; \
+	movdqa %xmm1,out4; \
+	movdqa %xmm5,out3; \
+	movdqa %xmm2,out2
 
 #define zero				%xmm0
 
 #define DES_bs_clear_block_8(i) \
-	movaps zero,B(i); \
-	movaps zero,B(i + 1); \
-	movaps zero,B(i + 2); \
-	movaps zero,B(i + 3); \
-	movaps zero,B(i + 4); \
-	movaps zero,B(i + 5); \
-	movaps zero,B(i + 6); \
-	movaps zero,B(i + 7)
+	movdqa zero,B(i); \
+	movdqa zero,B(i + 1); \
+	movdqa zero,B(i + 2); \
+	movdqa zero,B(i + 3); \
+	movdqa zero,B(i + 4); \
+	movdqa zero,B(i + 5); \
+	movdqa zero,B(i + 6); \
+	movdqa zero,B(i + 7)
 
 #define DES_bs_clear_block \
 	DES_bs_clear_block_8(0); \
@@ -979,62 +979,62 @@ DES_bs_all_possible_alignment_gaps:
 #define k(i)				(i)*4(k_ptr)
 
 #define a6_xor_ptr			%esi
-#define a6_p				xorps (a6_xor_ptr),a6
-#define a6_v(i)				xorps K(i),a6
+#define a6_p				pxor (a6_xor_ptr),a6
+#define a6_v(i)				pxor K(i),a6
 
 #define tmp1				%ecx
 #define tmp2				a6_xor_ptr
 
 #define xor_E(i) \
 	movl E(i),tmp1; \
-	movaps K(i),a1; \
+	movdqa K(i),a1; \
 	movl E(i + 1),tmp2; \
-	movaps K(i + 1),a2; \
-	xorps (tmp1),a1; \
-	xorps (tmp2),a2; \
+	movdqa K(i + 1),a2; \
+	pxor (tmp1),a1; \
+	pxor (tmp2),a2; \
 	movl E(i + 2),tmp1; \
-	movaps K(i + 2),a3; \
+	movdqa K(i + 2),a3; \
 	movl E(i + 3),tmp2; \
-	movaps K(i + 3),a4; \
-	xorps (tmp1),a3; \
-	xorps (tmp2),a4; \
+	movdqa K(i + 3),a4; \
+	pxor (tmp1),a3; \
+	pxor (tmp2),a4; \
 	movl E(i + 4),tmp1; \
-	movaps K(i + 4),a5; \
+	movdqa K(i + 4),a5; \
 	movl E(i + 5),a6_xor_ptr; \
-	movaps K(i + 5),a6; \
-	xorps (tmp1),a5
+	movdqa K(i + 5),a6; \
+	pxor (tmp1),a5
 
 #define xor_B(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6) \
-	movaps B(b1),a1; \
-	movaps B(b2),a2; \
-	xorps K(k1),a1; \
-	movaps B(b3),a3; \
-	xorps K(k2),a2; \
-	movaps B(b4),a4; \
-	xorps K(k3),a3; \
-	movaps B(b5),a5; \
-	xorps K(k4),a4; \
-	movaps B(b6),a6; \
-	xorps K(k5),a5
+	movdqa B(b1),a1; \
+	movdqa B(b2),a2; \
+	pxor K(k1),a1; \
+	movdqa B(b3),a3; \
+	pxor K(k2),a2; \
+	movdqa B(b4),a4; \
+	pxor K(k3),a3; \
+	movdqa B(b5),a5; \
+	pxor K(k4),a4; \
+	movdqa B(b6),a6; \
+	pxor K(k5),a5
 
 #define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
 	movl k(k1),tmp1; \
 	movl k(k2),tmp2; \
-	movaps B(b1),a1; \
-	movaps B(b2),a2; \
-	xorps (tmp1),a1; \
+	movdqa B(b1),a1; \
+	movdqa B(b2),a2; \
+	pxor (tmp1),a1; \
 	movl k(k3),tmp1; \
-	xorps (tmp2),a2; \
+	pxor (tmp2),a2; \
 	movl k(k4),tmp2; \
-	movaps B(b3),a3; \
-	movaps B(b4),a4; \
-	xorps (tmp1),a3; \
+	movdqa B(b3),a3; \
+	movdqa B(b4),a4; \
+	pxor (tmp1),a3; \
 	movl k(k5),tmp1; \
-	xorps (tmp2),a4; \
-	movaps B(b5),a5; \
+	pxor (tmp2),a4; \
+	movdqa B(b5),a5; \
 	movl k(k6),a6_xor_ptr; \
-	movaps B(b6),a6; \
-	xorps (tmp1),a5
+	movdqa B(b6),a6; \
+	pxor (tmp1),a5
 
 .data
 
@@ -1050,8 +1050,8 @@ mm_ones:
 DO_ALIGN(5)
 .globl DES_bs_init_asm
 DES_bs_init_asm:
-	movaps mm_ones,%xmm0
-	movaps %xmm0,pnot
+	movdqa mm_ones,%xmm0
+	movdqa %xmm0,pnot
 	ret
 
 #define rounds_and_swapped		%ebp
@@ -1061,7 +1061,7 @@ DO_ALIGN(5)
 .globl DES_bs_crypt
 DES_bs_crypt:
 	movl 4(%esp),iterations
-	xorps zero,zero
+	pxor zero,zero
 	pushl %ebp
 	pushl %esi
 	movl $DES_bs_all_KS_v,k_ptr
@@ -1125,7 +1125,7 @@ DES_bs_crypt_next:
 DO_ALIGN(5)
 .globl DES_bs_crypt_25
 DES_bs_crypt_25:
-	xorps zero,zero
+	pxor zero,zero
 	pushl %ebp
 	pushl %esi
 	movl $DES_bs_all_KS_v,k_ptr
@@ -1191,74 +1191,74 @@ DES_bs_crypt_25_next:
 DO_ALIGN(5)
 .globl DES_bs_crypt_LM
 DES_bs_crypt_LM:
-	xorps zero,zero
+	pxor zero,zero
 	pushl %esi
-	movaps pnot,ones
+	movdqa pnot,ones
 	movl $DES_bs_all_KS_p,k_ptr
-	movaps zero,B(0)
-	movaps zero,B(1)
-	movaps zero,B(2)
-	movaps zero,B(3)
-	movaps zero,B(4)
-	movaps zero,B(5)
-	movaps zero,B(6)
-	movaps zero,B(7)
-	movaps ones,B(8)
-	movaps ones,B(9)
-	movaps ones,B(10)
-	movaps zero,B(11)
-	movaps ones,B(12)
-	movaps zero,B(13)
-	movaps zero,B(14)
-	movaps zero,B(15)
-	movaps zero,B(16)
-	movaps zero,B(17)
-	movaps zero,B(18)
-	movaps zero,B(19)
-	movaps zero,B(20)
-	movaps zero,B(21)
-	movaps zero,B(22)
-	movaps ones,B(23)
-	movaps zero,B(24)
-	movaps zero,B(25)
-	movaps ones,B(26)
-	movaps zero,B(27)
-	movaps zero,B(28)
-	movaps ones,B(29)
-	movaps ones,B(30)
-	movaps ones,B(31)
-	movaps zero,B(32)
-	movaps zero,B(33)
-	movaps zero,B(34)
-	movaps ones,B(35)
-	movaps zero,B(36)
-	movaps ones,B(37)
-	movaps ones,B(38)
-	movaps ones,B(39)
-	movaps zero,B(40)
-	movaps zero,B(41)
-	movaps zero,B(42)
-	movaps zero,B(43)
-	movaps zero,B(44)
-	movaps ones,B(45)
-	movaps zero,B(46)
-	movaps zero,B(47)
-	movaps ones,B(48)
-	movaps ones,B(49)
-	movaps zero,B(50)
-	movaps zero,B(51)
-	movaps zero,B(52)
-	movaps zero,B(53)
-	movaps ones,B(54)
-	movaps zero,B(55)
-	movaps ones,B(56)
-	movaps zero,B(57)
-	movaps ones,B(58)
-	movaps zero,B(59)
-	movaps ones,B(60)
-	movaps ones,B(61)
-	movaps ones,B(62)
-	movaps ones,B(63)
+	movdqa zero,B(0)
+	movdqa zero,B(1)
+	movdqa zero,B(2)
+	movdqa zero,B(3)
+	movdqa zero,B(4)
+	movdqa zero,B(5)
+	movdqa zero,B(6)
+	movdqa zero,B(7)
+	movdqa ones,B(8)
+	movdqa ones,B(9)
+	movdqa ones,B(10)
+	movdqa zero,B(11)
+	movdqa ones,B(12)
+	movdqa zero,B(13)
+	movdqa zero,B(14)
+	movdqa zero,B(15)
+	movdqa zero,B(16)
+	movdqa zero,B(17)
+	movdqa zero,B(18)
+	movdqa zero,B(19)
+	movdqa zero,B(20)
+	movdqa zero,B(21)
+	movdqa zero,B(22)
+	movdqa ones,B(23)
+	movdqa zero,B(24)
+	movdqa zero,B(25)
+	movdqa ones,B(26)
+	movdqa zero,B(27)
+	movdqa zero,B(28)
+	movdqa ones,B(29)
+	movdqa ones,B(30)
+	movdqa ones,B(31)
+	movdqa zero,B(32)
+	movdqa zero,B(33)
+	movdqa zero,B(34)
+	movdqa ones,B(35)
+	movdqa zero,B(36)
+	movdqa ones,B(37)
+	movdqa ones,B(38)
+	movdqa ones,B(39)
+	movdqa zero,B(40)
+	movdqa zero,B(41)
+	movdqa zero,B(42)
+	movdqa zero,B(43)
+	movdqa zero,B(44)
+	movdqa ones,B(45)
+	movdqa zero,B(46)
+	movdqa zero,B(47)
+	movdqa ones,B(48)
+	movdqa ones,B(49)
+	movdqa zero,B(50)
+	movdqa zero,B(51)
+	movdqa zero,B(52)
+	movdqa zero,B(53)
+	movdqa ones,B(54)
+	movdqa zero,B(55)
+	movdqa ones,B(56)
+	movdqa zero,B(57)
+	movdqa ones,B(58)
+	movdqa zero,B(59)
+	movdqa ones,B(60)
+	movdqa ones,B(61)
+	movdqa ones,B(62)
+	movdqa ones,B(63)
 	movl $8,rounds
 DES_bs_crypt_LM_loop:
 	xor_B_KS_p(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5)
