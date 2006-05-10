@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2006 by Solar Designer
  */
 
 #include <stdio.h>
@@ -33,7 +33,7 @@ char *fmt_self_test(struct fmt_main *format)
 	static char s_size[32];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
-	int index, max, size;
+	int done, index, max, size;
 	void *binary, *salt;
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
@@ -45,6 +45,7 @@ char *fmt_self_test(struct fmt_main *format)
 
 	if (!(current = format->params.tests)) return NULL;
 
+	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	if (max > 2 && !(format->params.flags & FMT_BS)) max = 2;
 	do {
@@ -84,8 +85,16 @@ char *fmt_self_test(struct fmt_main *format)
 			return "get_key";
 
 		index = (index << 1) + 1; /* 0, 1, 3, 7, 15, 31, 63, ... */
-		if (index >= max) index = 0;
-	} while ((++current)->ciphertext);
+		if (index >= max) {
+			index = 0;
+			done |= 1;
+		}
+
+		if (!(++current)->ciphertext) {
+			current = format->params.tests;
+			done |= 2;
+		}
+	} while (done != 3);
 
 	return NULL;
 }
