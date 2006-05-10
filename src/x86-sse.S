@@ -1036,21 +1036,12 @@ DES_bs_all_possible_alignment_gaps:
 	movdqa B(b6),a6; \
 	pxor (tmp1),a5
 
-.data
-
-DO_ALIGN(4)
-mm_ones:
-.long -1
-.long -1
-.long -1
-.long -1
-
 .text
 
 DO_ALIGN(5)
 .globl DES_bs_init_asm
 DES_bs_init_asm:
-	movdqa mm_ones,%xmm0
+	pcmpeqd %xmm0,%xmm0
 	movdqa %xmm0,pnot
 	ret
 
@@ -1193,7 +1184,7 @@ DO_ALIGN(5)
 DES_bs_crypt_LM:
 	pxor zero,zero
 	pushl %esi
-	movdqa pnot,ones
+	pcmpeqd ones,ones
 	movl $DES_bs_all_KS_p,k_ptr
 	movdqa zero,B(0)
 	movdqa zero,B(1)
