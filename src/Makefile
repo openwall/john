@@ -76,11 +76,11 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-sse            Linux, x86 with SSE2"
+	@echo "linux-x86-sse2           Linux, x86 with SSE2 (best)"
 	@echo "linux-x86-mmx            Linux, x86 with MMX"
 	@echo "linux-x86-any            Linux, x86"
 	@echo "linux-x86-64             Linux, AMD x86-64, 64-bit native"
-	@echo "linux-x86-64-sse         Linux, AMD x86-64, 32-bit with SSE2"
+	@echo "linux-x86-64-sse2        Linux, AMD x86-64, 32-bit with SSE2"
 	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
@@ -88,12 +88,12 @@ default:
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
-	@echo "freebsd-x86-sse          FreeBSD, x86 with SSE2"
-	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX (best for P3&AMD)"
+	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best)"
+	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-sse          OpenBSD, x86 with SSE2"
-	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX (best for P3&AMD)"
+	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best)"
+	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
 	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-x86-64           OpenBSD, AMD x86-64"
 	@echo "openbsd-alpha            OpenBSD, Alpha"
@@ -119,24 +119,23 @@ default:
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
 	@echo "macosx-ppc64             Mac OS X 10.4+, PowerPC 64-bit"
-	@echo "macosx-x86-sse           Mac OS X, x86 with SSE2"
+	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips64-r10k         IRIX, MIPS 64-bit (R10K) (best)"
 	@echo "irix-mips64              IRIX, MIPS 64-bit"
 	@echo "irix-mips32              IRIX, MIPS 32-bit"
-	@echo "dos-djgpp-x86-sse        DOS, DJGPP, x86 with SSE2"
 	@echo "dos-djgpp-x86-mmx        DOS, DJGPP, x86 with MMX"
 	@echo "dos-djgpp-x86-any        DOS, DJGPP, x86"
-	@echo "win32-cygwin-x86-sse     Win32, Cygwin, x86 with SSE2"
+	@echo "win32-cygwin-x86-sse2    Win32, Cygwin, x86 with SSE2 (best)"
 	@echo "win32-cygwin-x86-mmx     Win32, Cygwin, x86 with MMX"
 	@echo "win32-cygwin-x86-any     Win32, Cygwin, x86"
-	@echo "beos-x86-sse             BeOS, x86 with SSE2"
+	@echo "beos-x86-sse2            BeOS, x86 with SSE2 (best)"
 	@echo "beos-x86-mmx             BeOS, x86 with MMX"
 	@echo "beos-x86-any             BeOS, x86"
 	@echo "generic                  Any other Unix-like system with gcc"
 
-linux-x86-sse:
+linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o"
@@ -161,7 +160,7 @@ linux-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ)
 
-linux-x86-64-sse:
+linux-x86-64-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
@@ -226,7 +225,7 @@ linux-ppc64:
 ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c -o $@
 
-freebsd-x86-sse:
+freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
@@ -255,7 +254,7 @@ freebsd-alpha:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
 
-openbsd-x86-sse:
+openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
@@ -520,7 +519,7 @@ macosx-ppc64:
 ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
 
-macosx-x86-sse:
+macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
@@ -581,13 +580,6 @@ irix-mips32:
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
-dos-djgpp-x86-sse:
-	copy x86-sse.h arch.h
-	$(MAKE) $(PROJ_DOS) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
-		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
-
 dos-djgpp-x86-mmx:
 	copy x86-mmx.h arch.h
 	$(MAKE) $(PROJ_DOS) \
@@ -602,7 +594,7 @@ dos-djgpp-x86-any:
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
-win32-cygwin-x86-sse:
+win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
@@ -623,7 +615,7 @@ win32-cygwin-x86-any:
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
-beos-x86-sse:
+beos-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o"
