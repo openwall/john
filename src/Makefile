@@ -91,6 +91,7 @@ default:
 	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best)"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
+	@echo "freebsd-x86-64           FreeBSD, AMD x86-64"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
 	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best)"
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
@@ -248,6 +249,10 @@ freebsd-x86-any-a.out:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
+
+freebsd-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ)
 
 freebsd-alpha:
 	$(LN) alpha.h arch.h
