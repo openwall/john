@@ -1,3 +1,10 @@
+The following changes have been made between John 1.7.1 and 1.7.2:
+
+* Bitslice DES assembly code for x86-64 making use of the 64-bit mode
+extended SSE2 with 16 XMM registers has been added for better performance
+at DES-based crypt(3) hashes with x86-64 builds on AMD processors.
+* New make target for FreeBSD/x86-64.
+
 The following changes have been made between John 1.7.0.2 and 1.7.1:
 
 * Bitslice DES code for x86 with SSE2 has been added for better performance

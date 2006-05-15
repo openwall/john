@@ -79,9 +79,9 @@ default:
 	@echo "linux-x86-sse2           Linux, x86 with SSE2 (best)"
 	@echo "linux-x86-mmx            Linux, x86 with MMX"
 	@echo "linux-x86-any            Linux, x86"
-	@echo "linux-x86-64             Linux, AMD x86-64, 64-bit native"
-	@echo "linux-x86-64-sse2        Linux, AMD x86-64, 32-bit with SSE2"
-	@echo "linux-x86-64-mmx         Linux, AMD x86-64, 32-bit with MMX"
+	@echo "linux-x86-64             Linux, AMD x86-64 with SSE2"
+#	@echo "linux-x86-64-32-sse2     Linux, AMD x86-64, 32-bit with SSE2"
+#	@echo "linux-x86-64-32-mmx      Linux, AMD x86-64, 32-bit with MMX"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
@@ -91,12 +91,12 @@ default:
 	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best)"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
-	@echo "freebsd-x86-64           FreeBSD, AMD x86-64"
+	@echo "freebsd-x86-64           FreeBSD, AMD x86-64 with SSE2"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
 	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best)"
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
 	@echo "openbsd-x86-any          OpenBSD, x86"
-	@echo "openbsd-x86-64           OpenBSD, AMD x86-64"
+	@echo "openbsd-x86-64           OpenBSD, AMD x86-64 with SSE2"
 	@echo "openbsd-alpha            OpenBSD, Alpha"
 	@echo "openbsd-sparc64          OpenBSD, SPARC 64-bit (best)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
@@ -159,9 +159,10 @@ linux-x86-any-a.out:
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ)
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
 
-linux-x86-64-sse2:
+linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
@@ -169,7 +170,7 @@ linux-x86-64-sse2:
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
-linux-x86-64-mmx:
+linux-x86-64-32-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
@@ -252,7 +253,8 @@ freebsd-x86-any-a.out:
 
 freebsd-x86-64:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ)
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
 
 freebsd-alpha:
 	$(LN) alpha.h arch.h
@@ -285,7 +287,8 @@ openbsd-x86-any-a.out:
 
 openbsd-x86-64:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ)
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
 
 openbsd-alpha:
 	$(LN) alpha.h arch.h
