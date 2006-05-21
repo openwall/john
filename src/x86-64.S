@@ -1,6 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006 by Solar Designer and others:
+ *
+ * The optimized S-box expressions are based on work by Matthew Kwan (see
+ * nonstd.c and sboxes.c).  S1-S5 and S7 are based on nonstd.c, whereas S6
+ * and S8 are based on sboxes.c.
  */
 
 #ifdef UNDERSCORES
