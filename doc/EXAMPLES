@@ -29,7 +29,7 @@ the many utilities that dump Windows password hashes (LM and/or NTLM) in
 Jeremy Allison's PWDUMP output format.  Some of these utilities may be
 obtained here:
 
-	http://www.openwall.com/passwords/nt.shtml
+	http://www.openwall.com/passwords/pwdump
 
 2. Now, let's assume you've got a password file, "mypasswd", and want to
 crack it.  The simplest way is to let John use its default order of
