@@ -12,7 +12,7 @@ DES S-box expressions (found in nonstd.c and sboxes.c):
 
 * Bruce Ford and Rémi Guyomarch - for producing and permitting the use
 of their MMX implementation of Matthew Kwan's S-box expressions (found
-in x86-mmx.S).
+in x86-mmx.S and x86-sse.S, with modifications).
 
 * Eli Biham - for the great "bitslice" paper:
 
@@ -65,4 +65,4 @@ the source code and/or binary updates for CWSDPMI may be obtained at:
 
 	http://clio.rice.edu/cwsdpmi/
 
-$Owl: Owl/packages/john/john/doc/CREDITS,v 1.8 2006/01/10 20:17:54 solar Exp $
+$Owl: Owl/packages/john/john/doc/CREDITS,v 1.9 2006/05/25 13:10:52 solar Exp $
