@@ -12,7 +12,7 @@ DES S-box expressions (found in nonstd.c and sboxes.c):
 
 * Bruce Ford and Rémi Guyomarch - for producing and permitting the use
 of their MMX implementation of Matthew Kwan's S-box expressions (found
-in x86-mmx.S).
+in x86-mmx.S and x86-sse.S, with modifications).
 
 * Eli Biham - for the great "bitslice" paper:
 

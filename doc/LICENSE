@@ -4,9 +4,10 @@ John the Ripper password cracker,
 Copyright (c) 1996-2006 by Solar Designer.
 Portions copyright (c) by their respective authors:
 
-Optimized DES S-box expressions (nonstd.c, sboxes.c) have been produced
-by Matthew Kwan.  The corresponding MMX code (parts of x86-mmx.S) is
-based on Bruce Ford and Rémi Guyomarch's implementation.
+The optimized DES S-box expressions (nonstd.c and sboxes.c) have been
+produced by Matthew Kwan.  The corresponding MMX and non-x86-64 SSE2
+code (parts of x86-mmx.S and x86-sse.S) is based on Bruce Ford and Rémi
+Guyomarch's MMX implementation.
 
 This version of John the Ripper is hereby being made available to you
 under the terms of the GNU General Public License version 2 as published
