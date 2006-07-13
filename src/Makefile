@@ -121,6 +121,7 @@ default:
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
 	@echo "macosx-ppc64             Mac OS X 10.4+, PowerPC 64-bit"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
+	@echo "macosx-universal         Mac OS X, Universal Binary (x86 + PPC)"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips64-r10k         IRIX, MIPS 64-bit (R10K) (best)"
@@ -546,6 +547,39 @@ macosx-x86-mmx:
 		CFLAGS="-c -traditional-cpp" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
+
+macosx-x86-uni:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
+		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -Wall -arch i386 -fomit-frame-pointer" \
+		LDFLAGS="-s -arch i386 -isysroot /Developer/SDKs/MacOSX10.4u.sdk" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3"
+
+macosx-ppc32-uni:
+	$(LN) ppc32alt.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
+		ASFLAGS="$(ASFLAGS) -arch ppc" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -Wall -arch ppc -fomit-frame-pointer" \
+		LDFLAGS="-s -arch ppc" \
+		OPT_NORMAL="-fast -mcpu=7450" \
+		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
+
+macosx-universal:
+	$(MAKE) clean 
+	$(MAKE) macosx-x86-uni
+	mv ../run/john ../run/john-x86
+	$(MAKE) clean 
+	$(MAKE) macosx-ppc32-uni
+	mv ../run/john ../run/john-ppc
+	lipo -create ../run/john-x86 ../run/john-ppc -output ../run/john
+	rm ../run/john-x86
+	rm ../run/john-ppc
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
