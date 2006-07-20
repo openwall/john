@@ -548,7 +548,8 @@ macosx-x86-mmx:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
-macosx-x86-uni:
+john-macosx-x86:
+	$(RM) *.o
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
@@ -558,8 +559,10 @@ macosx-x86-uni:
 		LDFLAGS="-s -arch i386 -isysroot /Developer/SDKs/MacOSX10.4u.sdk" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
+	mv ../run/john john-macosx-x86
 
-macosx-ppc32-uni:
+john-macosx-ppc:
+	$(RM) *.o
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
@@ -569,17 +572,10 @@ macosx-ppc32-uni:
 		LDFLAGS="-s -arch ppc" \
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
+	mv ../run/john john-macosx-ppc
 
-macosx-universal:
-	$(MAKE) clean 
-	$(MAKE) macosx-x86-uni
-	mv ../run/john ../run/john-x86
-	$(MAKE) clean 
-	$(MAKE) macosx-ppc32-uni
-	mv ../run/john ../run/john-ppc
-	lipo -create ../run/john-x86 ../run/john-ppc -output ../run/john
-	rm ../run/john-x86
-	rm ../run/john-ppc
+macosx-universal: john-macosx-x86 john-macosx-ppc
+	lipo -create john-macosx-x86 john-macosx-ppc -output ../run/john
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
@@ -774,7 +770,7 @@ depend:
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32)
-	$(RM) ../run/john.exe *.o *.bak core
+	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
 	$(RM) detect bench generic.h arch.h sparc.h tmp.s
 	$(RM) DES_bs_s.c DES_bs_n.c DES_bs_a.c
 	$(CP) $(NULL) Makefile.dep
