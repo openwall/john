@@ -485,8 +485,17 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (feof(file)) inc_format_error(charset);
 
 	allchars[header->count] = 0;
-	if (expand(allchars, extra ? extra : "", sizeof(allchars)))
+	if (expand(allchars, "", sizeof(allchars)))
 		inc_format_error(charset);
+	if (extra && expand(allchars, extra, sizeof(allchars))) {
+		log_event("! Extra characters not in compile-time "
+			"specified range ('\\x%02x' to '\\x%02x')",
+			CHARSET_MIN, CHARSET_MAX);
+		fprintf(stderr, "Extra characters not in compile-time "
+			"specified range ('\\x%02x' to '\\x%02x')\n",
+			CHARSET_MIN, CHARSET_MAX);
+		error();
+	}
 	real_count = strlen(allchars);
 
 	if (max_count < 0) max_count = CHARSET_SIZE;
