@@ -88,6 +88,7 @@ default:
 	@echo "linux-ppc32              Linux, PowerPC 32-bit"
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
+	@echo "linux-ia64               Linux, IA-64"
 	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best)"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
@@ -227,6 +228,10 @@ linux-ppc64:
 
 ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c -o $@
+
+linux-ia64:
+	$(LN) ia64.h arch.h
+	$(MAKE) $(PROJ)
 
 freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
