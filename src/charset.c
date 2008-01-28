@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005,2008 by Solar Designer
  */
 
 #include <stdio.h>
@@ -226,23 +226,59 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 	cfputc(CHARSET_LENGTH, file);
 }
 
+/*
+ * This generates the "cracking order" (please see the comment in charset.h)
+ * based on the number of candidate passwords for each {length, fixed index
+ * position, character count} combination, and on the number of cracked
+ * passwords for that combination.  The idea is to start with combinations for
+ * which the ratio between the number of candidates and the number of
+ * successful cracks is the smallest.  This way, the expected number of
+ * successful cracks per a unit of time will be monotonically non-increasing
+ * over time.  Of course, this applies to the expectation only (based on
+ * available statistics) - actual behavior (on a yet unknown set of passwords
+ * to be cracked) may and likely will differ.
+ *
+ * The cracks[] array is used as input (containing the number of successful
+ * cracks for each combination) and as scratch space for intermediate results
+ * (so it is clobbered by this function).
+ */
 static void charset_generate_order(crack_counters cracks, unsigned char *order)
 {
-	int length, pos, count;
+	int length, pos, count; /* zero-based */
 	int best_length, best_pos, best_count;
 	unsigned int div;
 	int64 total, tmp, min, *value;
 	unsigned char *ptr;
 
+/* Calculate the ratios */
+
 	for (length = 0; length < CHARSET_LENGTH; length++)
 	for (count = 0; count < CHARSET_SIZE; count++) {
+/* First, calculate the number of candidate passwords for this combination of
+ * length and count (number of different character indices).  We subtract the
+ * number of candidates for the previous count (at the same length) because
+ * those are to be tried as a part of another combination. */
 		pow64of32(&total, count + 1, length + 1);
 		pow64of32(&tmp, count, length + 1);
 		neg64(&tmp);
 		add64to64(&total, &tmp);
+
+/* Now, multiply it by an arbitrary constant to reduce precision loss in
+ * subsequent division operations. */
 		mul64by32(&total, CHARSET_SCALE);
+
+/* Calculate the number of candidates (times the arbitrary constant) for a
+ * {length, fixed index position, character count} combination, for the
+ * specific values of length and count.  Obviously, this value is the same for
+ * each position in which the character index is fixed - it only depends on the
+ * length and count - which is why we calculate it out of the inner loop. */
 		if (count) div64by32(&total, length + 1);
 
+/* Finally, for each fixed index position separately, calculate the candidates
+ * to successful cracks ratio (times the arbitrary constant, which lets us
+ * distinguish ratios below 1.0), and store it back in the cracks[] array (we
+ * reuse the array).  We treat combinations with no successful cracks (so far)
+ * the same as those with exactly one successful crack. */
 		for (pos = 0; pos <= length; pos++) {
 			tmp = total;
 			if ((div = (*cracks)[length][pos][count].lo))
@@ -251,10 +287,19 @@ static void charset_generate_order(crack_counters cracks, unsigned char *order)
 		}
 	}
 
+/*
+ * Fill out the order[] with combinations sorted for non-decreasing ratios.
+ *
+ * We currently use a very inefficient sorting algorithm, but it's fine as long
+ * as the size of order[] is small and this code only executes once per charset
+ * file generated.
+ */
+
 	ptr = order;
 	best_length = best_pos = best_count = 0;
 	do {
-		min.hi = min.lo = 0xFFFFFFFF;
+/* Find the minimum ratio and its corresponding combination */
+		min.hi = min.lo = 0xFFFFFFFF; /* maximum possible value */
 
 		for (length = 0; length < CHARSET_LENGTH; length++)
 		for (count = 0; count < CHARSET_SIZE; count++)
@@ -269,10 +314,13 @@ static void charset_generate_order(crack_counters cracks, unsigned char *order)
 			}
 		}
 
+/* If min remained at its maximum value, we're done.  We assume that no ratio
+ * is this large. */
 		if (min.hi >= 0xFFFFFFFF && min.lo >= 0xFFFFFFFF) break;
 
+/* Record the combination and "take" it out of the input array */
 		value = &(*cracks)[best_length][best_pos][best_count];
-		value->hi = value->lo = 0xFFFFFFFF;
+		value->hi = value->lo = 0xFFFFFFFF; /* taken */
 		*ptr++ = best_length;
 		*ptr++ = best_pos;
 		*ptr++ = best_count;
