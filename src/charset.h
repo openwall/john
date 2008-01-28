@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2008 by Solar Designer
  */
 
 /*
@@ -47,12 +47,12 @@ struct charset_header {
 /*
  * Cracking order.
  *
- * This is a list of current {length, fixed position, character count}.
- * There are CHARSET_LENGTH different lengths, and fixed position is up
- * to the current length, which means we have exactly (CHARSET_LENGTH *
- * (CHARSET_LENGTH + 1) / 2) different {length, fixed position} pairs;
- * for each such pair we need to try all charsets from 1 character and
- * up to CHARSET_SIZE characters large.
+ * This is a list of current {length, fixed index position, character count}.
+ * There are CHARSET_LENGTH different lengths, and fixed index position is up
+ * to the current length, which means that we have exactly (CHARSET_LENGTH *
+ * (CHARSET_LENGTH + 1) / 2) different {length, fixed index position} pairs;
+ * for each such pair we need to try all charsets from 1 character and up to
+ * CHARSET_SIZE characters large.
  */
 	unsigned char order
 		[CHARSET_LENGTH * (CHARSET_LENGTH + 1) / 2 * CHARSET_SIZE * 3];
