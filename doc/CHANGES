@@ -4,6 +4,8 @@ The following changes have been made between John 1.7.2 and 1.7.2.2:
 * Bitslice DES assembly code for x86-64 has been converted to use
 instruction pointer relative addressing (needed for Mac OS X support).
 * Minor bug fixes.
+* "DumbForce" and "KnownForce" external mode samples have been added to the
+default john.conf.
 
 The following changes have been made between John 1.7.1 and 1.7.2:
 
@@ -53,4 +55,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.21 2008/06/21 14:58:44 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.22 2008/06/21 15:31:26 solar Exp $
