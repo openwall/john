@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006 by Solar Designer and others:
+ * Copyright (c) 2000-2001,2005,2006,2008 by Solar Designer and others:
  *
  * The optimized S-box expressions are based on work by Matthew Kwan (see
  * nonstd.c and sboxes.c).  S1-S5 and S7 are based on nonstd.c, whereas S6
@@ -48,9 +48,9 @@ DES_bs_all_fields_not_used_here:
 DES_bs_all_possible_alignment_gaps:
 .space 0x100
 
-#define E(i)				DES_bs_all_E+(i)*8
-#define B(i)				DES_bs_all_B+(i)*16
-#define tmp_at(i)			DES_bs_all_tmp+(i)*16
+#define E(i)				DES_bs_all_E+(i)*8(%rip)
+#define B(i)				DES_bs_all_B+(i)*16(%rip)
+#define tmp_at(i)			DES_bs_all_tmp+(i)*16(%rip)
 
 #define pnot				tmp_at(0)
 
@@ -816,7 +816,7 @@ DO_ALIGN(6)
 .globl DES_bs_crypt
 DES_bs_crypt:
 	pxor zero,zero
-	movq $DES_bs_all_KS_v,k_ptr
+	leaq DES_bs_all_KS_v(%rip),k_ptr
 	DES_bs_clear_block
 	movl $8,rounds_and_swapped
 DES_bs_crypt_start:
@@ -874,7 +874,7 @@ DO_ALIGN(6)
 .globl DES_bs_crypt_25
 DES_bs_crypt_25:
 	pxor zero,zero
-	movq $DES_bs_all_KS_v,k_ptr
+	leaq DES_bs_all_KS_v(%rip),k_ptr
 	DES_bs_clear_block
 	movl $8,rounds_and_swapped
 	movl $25,iterations
@@ -937,7 +937,7 @@ DO_ALIGN(6)
 DES_bs_crypt_LM:
 	pxor zero,zero
 	pcmpeqd ones,ones
-	movq $DES_bs_all_KS_p,k_ptr
+	leaq DES_bs_all_KS_p(%rip),k_ptr
 	movdqa zero,B(0)
 	movdqa zero,B(1)
 	movdqa zero,B(2)
