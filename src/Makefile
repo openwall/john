@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2006 by Solar Designer
+# Copyright (c) 1996-2008 by Solar Designer
 #
 
 CPP = gcc
@@ -122,6 +122,7 @@ default:
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
 	@echo "macosx-ppc64             Mac OS X 10.4+, PowerPC 64-bit"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
+	@echo "macosx-x86-64            Mac OS X 10.5+, AMD x86-64 with SSE2"
 	@echo "macosx-universal         Mac OS X, Universal Binary (x86 + PPC)"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
@@ -537,9 +538,9 @@ macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp" \
+		CFLAGS="-c -Wall -march=i686 -fomit-frame-pointer" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
@@ -547,9 +548,20 @@ macosx-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -traditional-cpp" \
+		CFLAGS="-c -Wall -march=i686 -fomit-frame-pointer" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3"
+
+macosx-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -Wall -m64 -fomit-frame-pointer" \
+		LDFLAGS="-m64" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
@@ -560,8 +572,8 @@ john-macosx-x86:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -Wall -arch i386 -fomit-frame-pointer" \
-		LDFLAGS="-s -arch i386 -isysroot /Developer/SDKs/MacOSX10.4u.sdk" \
+		CFLAGS="-c -Wall -arch i386 -march=i686 -fomit-frame-pointer" \
+		LDFLAGS="-s -arch i386" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 	mv ../run/john john-macosx-x86
