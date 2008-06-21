@@ -1,7 +1,7 @@
 	John the Ripper copyright and license.
 
 John the Ripper password cracker,
-Copyright (c) 1996-2006 by Solar Designer.
+Copyright (c) 1996-2008 by Solar Designer.
 Portions copyright (c) by their respective authors:
 
 The optimized DES S-box expressions (nonstd.c and sboxes.c) have been
