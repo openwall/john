@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2008 by Solar Designer
  */
 
 #include <stdlib.h>
@@ -24,8 +24,8 @@
 #define BINARY_SIZE			4
 #define SALT_SIZE			20
 
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT		BF_N
+#define MAX_KEYS_PER_CRYPT		BF_N
 
 static struct fmt_tests tests[] = {
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW",
@@ -42,7 +42,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[PLAINTEXT_LENGTH + 1];
+static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
 static BF_salt saved_salt;
 
 static int valid(char *ciphertext)
@@ -85,17 +85,17 @@ static int binary_hash_2(void *binary)
 
 static int get_hash_0(int index)
 {
-	return BF_out[0] & 0xF;
+	return BF_out[index][0] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	return BF_out[0] & 0xFF;
+	return BF_out[index][0] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	return BF_out[0] & 0xFFF;
+	return BF_out[index][0] & 0xFFF;
 }
 
 static int salt_hash(void *salt)
@@ -110,16 +110,16 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	BF_std_set_key(key);
+	BF_std_set_key(key, index);
 
-	strnfcpy(saved_key, key, PLAINTEXT_LENGTH);
+	strnfcpy(saved_key[index], key, PLAINTEXT_LENGTH);
 }
 
 static char *get_key(int index)
 {
-	saved_key[PLAINTEXT_LENGTH] = 0;
+	saved_key[index][PLAINTEXT_LENGTH] = 0;
 
-	return saved_key;
+	return saved_key[index];
 }
 
 static void crypt_all(int count)
@@ -127,16 +127,28 @@ static void crypt_all(int count)
 	BF_std_crypt(saved_salt);
 }
 
-static int cmp_all(void *binary, int index)
+static int cmp_all(void *binary, int count)
 {
-	return *(BF_word *)binary == BF_out[0];
+#if BF_X2
+	return
+	    *(BF_word *)binary == BF_out[0][0] ||
+	    *(BF_word *)binary == BF_out[1][0];
+#else
+	return *(BF_word *)binary == BF_out[0][0];
+#endif
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return *(BF_word *)binary == BF_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	BF_std_crypt_exact();
+	BF_std_crypt_exact(index);
 
-	return !memcmp(BF_std_get_binary(source), BF_out, sizeof(BF_binary));
+	return !memcmp(BF_std_get_binary(source), BF_out[index],
+	    sizeof(BF_binary));
 }
 
 struct fmt_main fmt_BF = {
@@ -176,7 +188,7 @@ struct fmt_main fmt_BF = {
 			get_hash_2
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
