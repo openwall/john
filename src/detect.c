@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2008 by Solar Designer
  */
 
 /*
@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	int value = 1;
 	int size_log;
 
-	if (argc != 7) return 1;
+	if (argc != 8) return 1;
 
 	size_log = 0;
 	while (sizeof(long) * 8 != 1 << size_log) size_log++;
@@ -136,13 +136,15 @@ int main(int argc, char **argv)
 "\n"
 "#define BF_ASM\t\t\t\t0\n"
 "#define BF_SCALE\t\t\t%c\n"
+"#define BF_X2\t\t\t\t%c\n"
 "\n"
 "#endif\n",
 		argv[2][0],
 		argv[3][0],
 		argv[4][0],
 		argv[5][0],
-		argv[6][0]);
+		argv[6][0],
+		argv[7][0]);
 
 	return 0;
 }

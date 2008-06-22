@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2000,2003,2005 by Solar Designer
+# Copyright (c) 1996-2000,2003,2005,2008 by Solar Designer
 #
 
 [ $# -eq 5 ] || exit 1
@@ -18,7 +18,7 @@ MAX=0
 DES_BEST=1
 
 for MODE in 1 2 3 4 5; do
-	if ./detect $MODE 1 0 0 0 0 > arch.h; then
+	if ./detect $MODE 1 0 0 0 0 0 > arch.h; then
 		rm -f $DES_DEPEND bench
 		echo "Compiling: DES benchmark (code version #$MODE)"
 		$MAKE bench || exit 1
@@ -30,7 +30,7 @@ for MODE in 1 2 3 4 5; do
 	fi
 done
 
-./detect $DES_BEST 0 0 0 0 0 > arch.h
+./detect $DES_BEST 0 0 0 0 0 0 > arch.h
 rm -f $DES_DEPEND bench
 
 echo "Compiling: DES benchmark (code version #$DES_BEST, no key copying)"
@@ -50,7 +50,7 @@ DES_BS=0
 rm -f $DES_DEPEND bench
 
 for MODE in 1 2; do
-	if ./detect $DES_BEST $DES_COPY $MODE 0 0 0 > arch.h; then
+	if ./detect $DES_BEST $DES_COPY $MODE 0 0 0 0 > arch.h; then
 		echo "Compiling: DES benchmark (bitslice, code version #$MODE)"
 		if [ $MODE -gt 1 ]; then
 			rm -f $DES_BS_DEPEND bench
@@ -68,7 +68,7 @@ done
 
 MAX=`./bench 2` || exit 1
 
-./detect $DES_BEST $DES_COPY $DES_BS 1 0 0 > arch.h
+./detect $DES_BEST $DES_COPY $DES_BS 1 0 0 0 > arch.h
 rm -f $MD5_DEPEND bench
 
 echo "Compiling: MD5 benchmark (two hashes at a time)"
@@ -81,7 +81,7 @@ else
 	MD5_X2=0
 fi
 
-./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 1 0 > arch.h
+./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 1 0 0 > arch.h
 rm -f $MD5_DEPEND bench
 
 echo "Compiling: MD5 benchmark (immediate values)"
@@ -97,7 +97,7 @@ fi
 
 MAX=`./bench 3` || exit 1
 
-./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM 1 > arch.h
+./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM 1 0 > arch.h
 rm -f $BF_DEPEND bench
 
 echo "Compiling: Blowfish benchmark (scale)"
@@ -109,8 +109,21 @@ else
 	BF_SCALE=0
 fi
 
+./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM $BF_SCALE 1 > arch.h
+rm -f $BF_DEPEND bench
+
+echo "Compiling: Blowfish benchmark (two hashes at a time)"
+$MAKE bench || exit 1
+RES=`./bench 3` || exit 1
+if [ $RES -gt $MAX ]; then
+	BF_X2=1
+else
+	BF_X2=0
+fi
+
 # Produce generic.h, make sure everything is rebuilt with detected options,
 # and do some cleanup
 
-./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM $BF_SCALE > generic.h
+./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM $BF_SCALE $BF_X2 \
+	> generic.h
 rm -f $DES_DEPEND $MD5_DEPEND $BF_DEPEND bench detect best.o detect.o arch.h
