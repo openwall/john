@@ -56,13 +56,13 @@ BENCH_MD5_OBJS_DEPEND = \
 	MD5_fmt.o MD5_std.o
 
 BENCH_BF_OBJS_DEPEND = \
-	BF_std.o
+	BF_fmt.o BF_std.o
 
 BENCH_OBJS = \
 	$(BENCH_DES_OBJS_DEPEND) \
 	DES_bs.o $(BENCH_DES_BS_OBJS_DEPEND) \
 	$(BENCH_MD5_OBJS_DEPEND) \
-	BF_fmt.o $(BENCH_BF_OBJS_DEPEND) \
+	$(BENCH_BF_OBJS_DEPEND) \
 	bench.o best.o common.o config.o formats.o math.o memory.o miscnl.o \
 	params.o path.o signals.o tty.o
 
