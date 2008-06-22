@@ -117,13 +117,13 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc"
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
+	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
+	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
 	@echo "macosx-ppc64             Mac OS X 10.4+, PowerPC 64-bit"
-	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
-	@echo "macosx-x86-64            Mac OS X 10.5+, x86-64 with SSE2"
-	@echo "macosx-universal         Mac OS X, Universal Binary (x86 + PPC)"
+	@echo "macosx-universal         Mac OS X, Universal Binary (x86 + x86-64 + PPC)"
 	@echo "hpux-pa-risc-gcc         HP-UX, PA-RISC, gcc"
 	@echo "hpux-pa-risc-cc          HP-UX, PA-RISC, ANSI cc"
 	@echo "irix-mips64-r10k         IRIX, MIPS 64-bit (R10K) (best)"
@@ -494,15 +494,37 @@ aix-ppc32:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
+macosx-x86-sse2:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+
+macosx-x86-mmx:
+	$(LN) x86-mmx.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+
+macosx-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="-m64"
+
 macosx-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -Wall -fomit-frame-pointer" \
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 
+# "cc -traditional-cpp" was needed on older versions of Mac OS X; it might
+# actually be problematic on current ones, but those will hopefully use other
+# make targets anyway (e.g., macosx-ppc32-altivec above).
 macosx-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
@@ -516,7 +538,6 @@ macosx-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
 		LDFLAGS="-s -m64" \
 		OPT_NORMAL="-fast" \
@@ -525,7 +546,6 @@ macosx-ppc64-altivec:
 macosx-ppc64:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -Wall -fomit-frame-pointer -m64" \
 		LDFLAGS="-s -m64" \
 		OPT_NORMAL="-fast" \
@@ -534,49 +554,25 @@ macosx-ppc64:
 ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
 
-macosx-x86-sse2:
-	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -Wall -march=i686 -fomit-frame-pointer" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3"
-
-macosx-x86-mmx:
-	$(LN) x86-mmx.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -Wall -march=i686 -fomit-frame-pointer" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3"
-
-macosx-x86-64:
-	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
-		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -Wall -m64 -fomit-frame-pointer" \
-		LDFLAGS="-m64" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3"
-
 john-macosx-x86:
 	$(RM) *.o
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CPP=cc CC=cc AS=cc LD=cc \
-		CFLAGS="-c -Wall -arch i386 -march=i686 -fomit-frame-pointer" \
-		LDFLAGS="-s -arch i386" \
-		OPT_NORMAL="-O2" \
-		OPT_INLINE="-O3"
+		CFLAGS="$(CFLAGS) -arch i386" \
+		LDFLAGS="-arch i386"
 	mv ../run/john john-macosx-x86
+
+john-macosx-x86-64:
+	$(RM) *.o
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		ASFLAGS="$(ASFLAGS) -arch x86_64 -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -arch x86_64 -m64" \
+		LDFLAGS="-arch x86_64 -m64"
+	mv ../run/john john-macosx-x86-64
 
 john-macosx-ppc:
 	$(RM) *.o
@@ -584,15 +580,15 @@ john-macosx-ppc:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		ASFLAGS="$(ASFLAGS) -arch ppc" \
-		CPP=cc CC=cc AS=cc LD=cc \
 		CFLAGS="-c -Wall -arch ppc -fomit-frame-pointer" \
-		LDFLAGS="-s -arch ppc" \
+		LDFLAGS="-arch ppc" \
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 	mv ../run/john john-macosx-ppc
 
-macosx-universal: john-macosx-x86 john-macosx-ppc
-	lipo -create john-macosx-x86 john-macosx-ppc -output ../run/john
+macosx-universal: john-macosx-x86 john-macosx-x86-64 john-macosx-ppc
+	lipo -create john-macosx-x86 john-macosx-x86-64 john-macosx-ppc \
+		-output ../run/john
 
 hpux-pa-risc-gcc:
 	$(LN) pa-risc.h arch.h
