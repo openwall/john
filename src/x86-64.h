@@ -1,10 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2003,2006 by Solar Designer
+ * Copyright (c) 2003,2006,2008 by Solar Designer
  */
 
 /*
- * Architecture specific parameters for AMD x86-64.
+ * Architecture specific parameters for x86-64.
  */
 
 #ifndef _JOHN_ARCH_H
@@ -44,5 +44,6 @@
 
 #define BF_ASM				0
 #define BF_SCALE			1
+#define BF_X2				1
 
 #endif
