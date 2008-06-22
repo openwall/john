@@ -13,7 +13,7 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"lm"
-#define FORMAT_NAME			"NT LM DES"
+#define FORMAT_NAME			"LM DES"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
