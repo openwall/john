@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2008 by Solar Designer
  */
 
 /*
@@ -44,5 +44,6 @@
 
 #define BF_ASM				0
 #define BF_SCALE			1
+#define BF_X2				1
 
 #endif
