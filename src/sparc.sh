@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2000 by Solar Designer
+# Copyright (c) 1996-2000,2008 by Solar Designer
 #
 
 [ $# -eq 3 ] || exit 1
@@ -16,7 +16,7 @@ MAX=0
 DES_BEST=1
 
 for MODE in 2 3; do
-	if ./detect $MODE 0 0 1 0 0 > arch.h; then
+	if ./detect $MODE 0 0 1 0 0 1 > arch.h; then
 		rm -f $DES_DEPEND bench
 		$MAKE $HAMMER NAIL=bench \
 			BENCH_DES_OBJS_DEPEND="$DES_DEPEND" || exit 1
@@ -30,7 +30,7 @@ done
 
 # Check if bitslice DES is faster
 
-./detect $DES_BEST 0 1 1 0 0 > arch.h
+./detect $DES_BEST 0 1 1 0 0 1 > arch.h
 rm -f $DES_DEPEND bench
 
 $MAKE $HAMMER NAIL=bench BENCH_DES_OBJS_DEPEND="$DES_DEPEND" || exit 1
@@ -44,5 +44,5 @@ fi
 # Produce sparc.h, make sure everything is rebuilt with detected options,
 # and do some cleanup
 
-./detect $DES_BEST 0 $DES_BS 1 0 0 > sparc.h
+./detect $DES_BEST 0 $DES_BS 1 0 0 1 > sparc.h
 rm -f $DES_DEPEND bench detect best.o detect.o arch.h
