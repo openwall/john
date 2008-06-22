@@ -1,8 +1,11 @@
-The following changes have been made between John 1.7.2 and 1.7.2.2:
+The following changes have been made between John 1.7.2 and 1.7.2.3:
 
-* New make targets: macosx-universal, macosx-x86-64.
+* Two Blowfish-based crypt(3) hashes may now be computed in parallel for much
+better performance on modern multi-issue CPUs with a sufficient number of
+registers (e.g., x86-64, RISC).
 * Bitslice DES assembly code for x86-64 has been converted to use
 instruction pointer relative addressing (needed for Mac OS X support).
+* New make targets: macosx-universal, macosx-x86-64.
 * Minor bug fixes.
 * "DumbForce" and "KnownForce" external mode samples have been added to the
 default john.conf.
