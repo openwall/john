@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2008 by Solar Designer
  */
 
 #include <string.h>
@@ -105,7 +105,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int cmp_all(void *binary, int index)
+static int cmp_all(void *binary, int count)
 {
 #if MD5_X2
 	return *(MD5_word *)binary == MD5_out[0][0] ||
@@ -115,10 +115,15 @@ static int cmp_all(void *binary, int index)
 #endif
 }
 
+static int cmp_one(void *binary, int index)
+{
+	return *(MD5_word *)binary == MD5_out[index][0];
+}
+
 static int cmp_exact(char *source, int index)
 {
 	return !memcmp(MD5_std_get_binary(source), MD5_out[index],
-		sizeof(MD5_binary));
+	    sizeof(MD5_binary));
 }
 
 struct fmt_main fmt_MD5 = {
@@ -158,7 +163,7 @@ struct fmt_main fmt_MD5 = {
 			get_hash_2
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
