@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008 by Solar Designer
  */
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ char *fmt_self_test(struct fmt_main *format)
 		for (size = 0; size < 3; size++)
 		if (format->methods.get_hash[size](index) !=
 		    format->methods.binary_hash[size](binary)) {
-			sprintf(s_size, "get_hash[%d]", size);
+			sprintf(s_size, "get_hash[%d](%d)", size, index);
 			return s_size;
 		}
 
