@@ -104,6 +104,7 @@ echo "Compiling: Blowfish benchmark (scale)"
 $MAKE bench || exit 1
 RES=`./bench 3` || exit 1
 if [ $RES -gt $MAX ]; then
+	MAX=$RES
 	BF_SCALE=1
 else
 	BF_SCALE=0
