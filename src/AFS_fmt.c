@@ -52,7 +52,7 @@ static struct fmt_tests tests[] = {
 #define AFS_MASK_16			DES_DO_SIZE_FIX(0xFFF9FFF9)
 #if ARCH_BITS >= 64
 #define AFS_BINARY_MASK \
-	(AFS_MASK_16 | ((ARCH_WORD)AFS_MASK_16 << 32))
+	(AFS_MASK_16 | ((unsigned ARCH_WORD)AFS_MASK_16 << 32))
 #else
 #define AFS_BINARY_MASK			AFS_MASK_16
 #endif
