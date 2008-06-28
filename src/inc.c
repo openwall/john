@@ -172,7 +172,7 @@ static void inc_new_length(unsigned int length,
 		if (value == CHARSET_NEW) {
 			if ((value = getc(file)) != (int)length) break;
 			if ((value = getc(file)) == EOF) break;
-			if (value < 0 || value > length)
+			if (value < 0 || value > (int)length)
 				inc_format_error(charset);
 			pos = value;
 		} else
