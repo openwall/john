@@ -189,9 +189,7 @@ static void status_print_cracking(char *percent)
 	else
 		fprintf(stderr,
 			"  trying: %s%s%s\n",
-			crk_get_key1(),
-			saved_key[0] ? " - " : "",
-			saved_key ? saved_key : "");
+			crk_get_key1(), saved_key[0] ? " - " : "", saved_key);
 }
 
 void status_print(void)
