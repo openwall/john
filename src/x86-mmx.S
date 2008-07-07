@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006 by Solar Designer and others:
+ * Copyright (c) 2000-2001,2005,2006,2008 by Solar Designer and others:
  *
  * The MMX DES S-box code is by Bruce Ford and Rémi Guyomarch, originally
  * for use in the distributed.net clients, included here with permission.
@@ -25,17 +25,21 @@
  */
 #ifndef ALIGN_FIX
 #ifdef ALIGN_LOG
-#define DO_ALIGN(log)			.align (log)
+#define DO_ALIGN(log)			.align log
 #else
-#define DO_ALIGN(log)			.align (1 << (log))
+#define DO_ALIGN(log)			.align 1 << log
 #endif
 #else
 #ifdef ALIGN_LOG
-#define DO_ALIGN(log)			.align (log); .space 4
+#define DO_ALIGN(log)			.align log; .zero 4
 #else
-#define DO_ALIGN(log)			.align (1 << (log)); .space 4
+#define DO_ALIGN(log)			.align 1 << log; .zero 4
 #endif
 #endif
+
+/* Sun's assembler can't multiply, but at least it can add... */
+#define nptr(n)				n+n+n+n
+#define nvec(n)				n+n+n+n+n+n+n+n
 
 #ifdef BSD
 .data
@@ -47,26 +51,26 @@
 DO_ALIGN(5)
 DES_bs_all:
 DES_bs_all_KSp:
-.space (0x300 * 4)
+.zero nptr(0x300)
 DES_bs_all_KS_p:
 DES_bs_all_KS_v:
-.space (0x300 * 8)
+.zero nvec(0x300)
 DES_bs_all_E:
-.space (96 * 4)
+.zero nptr(96)
 DES_bs_all_K:
-.space (56 * 8)
+.zero nvec(56)
 DES_bs_all_B:
-.space (64 * 8)
+.zero nvec(64)
 DES_bs_all_tmp:
-.space (16 * 8)
+.zero nvec(16)
 DES_bs_all_fields_not_used_here:
-.space (0x400 + 0x100 + 4 + 4 + 64 * 8)
+.zero 0x400 + 0x100 + 4 + 4 + 0x200
 DES_bs_all_possible_alignment_gaps:
-.space 0x100
+.zero 0x100
 
-#define E(i)				DES_bs_all_E+(i)*4
-#define B(i)				DES_bs_all_B+(i)*8
-#define tmp_at(i)			DES_bs_all_tmp+(i)*8
+#define E(i)				DES_bs_all_E+nptr(i)
+#define B(i)				DES_bs_all_B+nvec(i)
+#define tmp_at(i)			DES_bs_all_tmp+nvec(i)
 
 #define pnot				tmp_at(0)
 
@@ -976,8 +980,8 @@ DES_bs_all_possible_alignment_gaps:
 	DES_bs_clear_block_8(56)
 
 #define k_ptr				%edx
-#define K(i)				(i)*8(k_ptr)
-#define k(i)				(i)*4(k_ptr)
+#define K(i)				nvec(i)(k_ptr)
+#define k(i)				nptr(i)(k_ptr)
 
 #define a6_xor_ptr			%esi
 #define a6_p				pxor (a6_xor_ptr),a6
@@ -1094,11 +1098,11 @@ DES_bs_crypt_swap:
 	xor_E(84)
 	S7(B(31), B(11), B(21), B(6), a6_p)
 	xor_E(90)
-	addl $96*8,k_ptr
+	addl $nvec(96),k_ptr
 	S8(B(4), B(26), B(14), B(20), a6_p)
 	decl rounds_and_swapped
 	jnz DES_bs_crypt_start
-	subl $0x300*8+48*8,k_ptr
+	subl $nvec(0x300+48),k_ptr
 	movl $0x108,rounds_and_swapped
 	decl iterations
 	jnz DES_bs_crypt_swap
@@ -1109,7 +1113,7 @@ DES_bs_crypt_swap:
 #endif
 	ret
 DES_bs_crypt_next:
-	subl $0x300*8-48*8,k_ptr
+	subl $nvec(0x300-48),k_ptr
 	movl $8,rounds_and_swapped
 	decl iterations
 	jnz DES_bs_crypt_start
@@ -1166,10 +1170,10 @@ DES_bs_crypt_25_swap:
 	S7(B(31), B(11), B(21), B(6), a6_v(89))
 	xor_B(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32)
 	S8(B(4), B(26), B(14), B(20), a6_v(95))
-	addl $96*8,k_ptr
+	addl $nvec(96),k_ptr
 	decl rounds_and_swapped
 	jnz DES_bs_crypt_25_start
-	subl $0x300*8+48*8,k_ptr
+	subl $nvec(0x300+48),k_ptr
 	movl $0x108,rounds_and_swapped
 	decl iterations
 	jnz DES_bs_crypt_25_swap
@@ -1180,7 +1184,7 @@ DES_bs_crypt_25_swap:
 #endif
 	ret
 DES_bs_crypt_25_next:
-	subl $0x300*8-48*8,k_ptr
+	subl $nvec(0x300-48),k_ptr
 	movl $8,rounds_and_swapped
 	decl iterations
 	jmp DES_bs_crypt_25_start
@@ -1293,7 +1297,7 @@ DES_bs_crypt_LM_loop:
 	xor_B_KS_p(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60, 89)
 	S7(B(31), B(11), B(21), B(6), a6_p)
 	xor_B_KS_p(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
-	addl $96*4,k_ptr
+	addl $nptr(96),k_ptr
 	S8(B(4), B(26), B(14), B(20), a6_p)
 	decl rounds
 	jnz DES_bs_crypt_LM_loop
