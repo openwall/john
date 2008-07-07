@@ -679,7 +679,11 @@ DO_ALIGN(5)
 
 .globl DES_SPE_F
 DES_SPE_F:
+#ifdef DUMBAS
+.zero 0x1000
+#else
 .space 0x1000
+#endif
 
 #else
 
