@@ -16,10 +16,14 @@
 #endif
 
 #ifdef ALIGN_LOG
-#define DO_ALIGN(log)			.align (log)
+#define DO_ALIGN(log)			.align log
 #else
-#define DO_ALIGN(log)			.align (1 << (log))
+#define DO_ALIGN(log)			.align 1 << log
 #endif
+
+/* Sun's assembler can't multiply, but at least it can add... */
+#define nptr(n)				n+n+n+n+n+n+n+n
+#define nvec(n)				n+n+n+n+n+n+n+n+n+n+n+n+n+n+n+n
 
 #ifdef BSD
 .data
@@ -31,26 +35,26 @@
 DO_ALIGN(6)
 DES_bs_all:
 DES_bs_all_KSp:
-.space (0x300 * 8)
+.zero nptr(0x300)
 DES_bs_all_KS_p:
 DES_bs_all_KS_v:
-.space (0x300 * 16)
+.zero nvec(0x300)
 DES_bs_all_E:
-.space (96 * 8)
+.zero nptr(96)
 DES_bs_all_K:
-.space (56 * 16)
+.zero nvec(56)
 DES_bs_all_B:
-.space (64 * 16)
+.zero nvec(64)
 DES_bs_all_tmp:
-.space (16 * 16)
+.zero nvec(16)
 DES_bs_all_fields_not_used_here:
-.space (0x400 + 0x100 + 4 + 4 + 128 * 8)
+.zero 0x400 + 0x100 + 4 + 4 + 0x400
 DES_bs_all_possible_alignment_gaps:
-.space 0x100
+.zero 0x100
 
-#define E(i)				DES_bs_all_E+(i)*8(%rip)
-#define B(i)				DES_bs_all_B+(i)*16(%rip)
-#define tmp_at(i)			DES_bs_all_tmp+(i)*16(%rip)
+#define E(i)				DES_bs_all_E+nptr(i)(%rip)
+#define B(i)				DES_bs_all_B+nvec(i)(%rip)
+#define tmp_at(i)			DES_bs_all_tmp+nvec(i)(%rip)
 
 #define pnot				tmp_at(0)
 
@@ -740,8 +744,8 @@ DES_bs_all_possible_alignment_gaps:
 	DES_bs_clear_block_8(56)
 
 #define k_ptr				%rdx
-#define K(i)				(i)*16(k_ptr)
-#define k(i)				(i)*8(k_ptr)
+#define K(i)				nvec(i)(k_ptr)
+#define k(i)				nptr(i)(k_ptr)
 
 #define tmp1				%rcx
 #define tmp2				%rsi
@@ -854,17 +858,17 @@ DES_bs_crypt_swap:
 	xor_E(84)
 	S7(B(31), B(11), B(21), B(6))
 	xor_E(90)
-	addq $96*16,k_ptr
+	addq $nvec(96),k_ptr
 	S8(B(4), B(26), B(14), B(20))
 	subl $1,rounds_and_swapped
 	jnz DES_bs_crypt_start
-	subq $0x300*16+48*16,k_ptr
+	subq $nvec(0x300+48),k_ptr
 	movl $0x108,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_swap
 	ret
 DES_bs_crypt_next:
-	subq $0x300*16-48*16,k_ptr
+	subq $nvec(0x300-48),k_ptr
 	movl $8,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_start
@@ -914,16 +918,16 @@ DES_bs_crypt_25_swap:
 	S7(B(31), B(11), B(21), B(6))
 	xor_B(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
 	S8(B(4), B(26), B(14), B(20))
-	addq $96*16,k_ptr
+	addq $nvec(96),k_ptr
 	subl $1,rounds_and_swapped
 	jnz DES_bs_crypt_25_start
-	subq $0x300*16+48*16,k_ptr
+	subq $nvec(0x300+48),k_ptr
 	movl $0x108,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_25_swap
 	ret
 DES_bs_crypt_25_next:
-	subq $0x300*16-48*16,k_ptr
+	subq $nvec(0x300-48),k_ptr
 	movl $8,rounds_and_swapped
 	subl $1,iterations
 	jmp DES_bs_crypt_25_start
@@ -1035,7 +1039,7 @@ DES_bs_crypt_LM_loop:
 	xor_B_KS_p(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60, 89)
 	S7(B(31), B(11), B(21), B(6))
 	xor_B_KS_p(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
-	addq $96*8,k_ptr
+	addq $nptr(96),k_ptr
 	S8(B(4), B(26), B(14), B(20))
 	subl $1,rounds
 	jnz DES_bs_crypt_LM_loop
