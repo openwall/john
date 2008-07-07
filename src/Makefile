@@ -112,7 +112,14 @@ default:
 	@echo "solaris-sparcv9-cc       Solaris, SPARC V9 32-bit, cc"
 	@echo "solaris-sparcv8-cc       Solaris, SPARC V8 32-bit, cc"
 	@echo "solaris-sparc-gcc        Solaris, SPARC 32-bit, gcc"
-	@echo "solaris-x86-any          Solaris, x86, gcc"
+	@echo "solaris-x86-64-cc        Solaris, x86-64 with SSE2, cc (best)"
+	@echo "solaris-x86-64-gcc       Solaris, x86-64 with SSE2, gcc"
+	@echo "solaris-x86-sse2-cc      Solaris 9 4/04+, x86 with SSE2, cc"
+	@echo "solaris-x86-sse2-gcc     Solaris 9 4/04+, x86 with SSE2, gcc"
+	@echo "solaris-x86-mmx-cc       Solaris, x86 with MMX, cc"
+	@echo "solaris-x86-mmx-gcc      Solaris, x86 with MMX, gcc"
+	@echo "solaris-x86-any-cc       Solaris, x86, cc"
+	@echo "solaris-x86-any-gcc      Solaris, x86, gcc"
 	@echo "sco-x86-any-gcc          SCO, x86, gcc"
 	@echo "sco-x86-any-cc           SCO, x86, cc"
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
@@ -429,7 +436,73 @@ spro-sparc.o: sparc.S
 	$(AS) $(ASFLAGS) tmp.s -o spro-sparc.o
 	$(RM) tmp.s
 
-solaris-x86-any:
+solaris-x86-64-cc:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -fast -xarch=native64" \
+		ASFLAGS="-c -xarch=native64" \
+		LDFLAGS="-s -xarch=native64 -lrt" \
+		OPT_NORMAL="" \
+		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
+
+solaris-x86-64-gcc:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		CFLAGS="$(CFLAGS) -m64" \
+		ASFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64 -lrt"
+
+solaris-x86-sse2-cc:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -fast -xarch=native" \
+		ASFLAGS="-c -xarch=native" \
+		LDFLAGS="-s -xarch=native -lrt" \
+		OPT_NORMAL="" \
+		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
+
+solaris-x86-sse2-gcc:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
+		LDFLAGS="$(LDFLAGS) -lrt"
+
+solaris-x86-mmx-cc:
+	$(LN) x86-mmx.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -fast -xarch=native" \
+		ASFLAGS="-c -xarch=native" \
+		LDFLAGS="-s -xarch=native -lrt" \
+		OPT_NORMAL="" \
+		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
+
+solaris-x86-mmx-gcc:
+	$(LN) x86-mmx.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
+		LDFLAGS="$(LDFLAGS) -lrt"
+
+solaris-x86-any-cc:
+	$(RM) arch.h
+	ln -s x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		SHELL=/bin/sh \
+		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
+		CPP=cc CC=cc AS=cc LD=cc \
+		CFLAGS="-c -xO4" \
+		ASFLAGS="-c" \
+		LDFLAGS="-s -lc -lrt" \
+		OPT_NORMAL="" \
+		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
+
+solaris-x86-any-gcc:
 	$(RM) arch.h
 	ln -s x86-any.h arch.h
 	$(MAKE) $(PROJ) \
@@ -437,8 +510,9 @@ solaris-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
 		LDFLAGS="$(LDFLAGS) -lc -lrt"
 
-# Solaris x86 got a broken assembler, with line length restriction (and some
-# other problems, that are worked around in x86.S)
+# Older versions of Sun's assembler had a line length restriction (and some
+# other problems, which affect newer versions as well and which are worked
+# around in x86.S).
 solaris-x86.o: x86.S
 	$(CPP) $(CPPFLAGS) -P -DDUMBAS x86.S | $(TR) \; \\n > tmp.s
 	$(AS) $(ASFLAGS) tmp.s -o solaris-x86.o
