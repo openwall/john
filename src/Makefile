@@ -3,10 +3,10 @@
 # Copyright (c) 1996-2008 by Solar Designer
 #
 
-CPP = gcc
 CC = gcc
-AS = gcc
-LD = gcc
+AS = $(CC)
+LD = $(CC)
+CPP = $(CC)
 CP = cp
 LN = ln -sf
 RM = rm -f
@@ -199,7 +199,7 @@ linux-alpha-ccc:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o" \
-		CPP=ccc CC=ccc AS=ccc LD=ccc \
+		CC=ccc \
 		CFLAGS="-c -Wf,-switch,noil_schedule" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-O2 -arch host"
@@ -371,7 +371,7 @@ netbsd-vax:
 solaris-sparc64-cc:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -fast -xarch=native64" \
 		LDFLAGS="-s -xarch=native64 -lc -lrt" \
 		OPT_NORMAL="" \
@@ -402,7 +402,7 @@ use-solaris-sparcv9-cc:
 	$(MAKE) $(NAIL) \
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra" \
 		LDFLAGS="-s -lc -lrt" \
 		OPT_NORMAL="" \
@@ -412,7 +412,7 @@ use-solaris-sparcv8-cc:
 	$(MAKE) $(NAIL) \
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8" \
 		LDFLAGS="-s -lc -lrt" \
 		OPT_NORMAL="" \
@@ -440,7 +440,7 @@ solaris-x86-64-cc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -fast -xarch=native64" \
 		ASFLAGS="-c -xarch=native64" \
 		LDFLAGS="-s -xarch=native64 -lrt" \
@@ -459,7 +459,7 @@ solaris-x86-sse2-cc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -fast -xarch=native" \
 		ASFLAGS="-c -xarch=native" \
 		LDFLAGS="-s -xarch=native -lrt" \
@@ -476,7 +476,7 @@ solaris-x86-mmx-cc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -fast -xarch=native" \
 		ASFLAGS="-c -xarch=native" \
 		LDFLAGS="-s -xarch=native -lrt" \
@@ -495,7 +495,7 @@ solaris-x86-any-cc:
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
 		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -xO4" \
 		ASFLAGS="-c" \
 		LDFLAGS="-s -lc -lrt" \
@@ -531,7 +531,7 @@ sco-x86-any-cc:
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
 		JOHN_OBJS="$(JOHN_OBJS) sco-x86.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -b elf -O3" \
 		ASFLAGS="-c -b elf" \
 		OPT_NORMAL="-K loop_unroll,no_inline" \
@@ -548,7 +548,7 @@ tru64-alpha:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) digipaq-alpha.o" \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -O4 -arch host" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-inline all"
@@ -562,7 +562,7 @@ digipaq-alpha.o: alpha.S
 aix-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -qunroll=2 -qarch=ppc -qchars=signed" \
 		LDFLAGS="-s -lbsd" \
 		OPT_NORMAL="-O2" \
@@ -602,7 +602,7 @@ macosx-ppc32-altivec:
 macosx-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -traditional-cpp" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
@@ -672,7 +672,7 @@ hpux-pa-risc-gcc:
 hpux-pa-risc-cc:
 	$(LN) pa-risc.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -Aa -D_HPUX_SOURCE -DANSI_CPP" \
 		LDFLAGS="-s" \
 		OPT_NORMAL="+O2" \
@@ -681,7 +681,7 @@ hpux-pa-risc-cc:
 irix-mips64-r10k:
 	$(LN) mips64.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -O2 -64 -mips4 -r10000 -signed" \
 		LDFLAGS="-s -64 -mips4 -r10000" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
@@ -690,7 +690,7 @@ irix-mips64-r10k:
 irix-mips64:
 	$(LN) mips64.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -O2 -64 -mips3 -signed" \
 		LDFLAGS="-s -64 -mips3" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
@@ -699,7 +699,7 @@ irix-mips64:
 irix-mips32:
 	$(LN) mips32.h arch.h
 	$(MAKE) $(PROJ) \
-		CPP=cc CC=cc AS=cc LD=cc \
+		CC=cc \
 		CFLAGS="-c -O2 -32 -signed" \
 		LDFLAGS="-s -32" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
