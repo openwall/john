@@ -76,12 +76,12 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-sse2           Linux, x86 with SSE2 (best)"
-	@echo "linux-x86-mmx            Linux, x86 with MMX"
-	@echo "linux-x86-any            Linux, x86"
-	@echo "linux-x86-64             Linux, x86-64 with SSE2"
+	@echo "linux-x86-64             Linux, x86-64 with SSE2 (best)"
 #	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX"
+	@echo "linux-x86-sse2           Linux, x86 with SSE2 (best if 32-bit)"
+	@echo "linux-x86-mmx            Linux, x86 with MMX"
+	@echo "linux-x86-any            Linux, x86"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
@@ -89,15 +89,15 @@ default:
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ia64               Linux, IA-64"
-	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best)"
+	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2 (best)"
+	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best if 32-bit)"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
-	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best)"
+	@echo "openbsd-x86-64           OpenBSD, x86-64 with SSE2 (best)"
+	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best if 32-bit)"
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
 	@echo "openbsd-x86-any          OpenBSD, x86"
-	@echo "openbsd-x86-64           OpenBSD, x86-64 with SSE2"
 	@echo "openbsd-alpha            OpenBSD, Alpha"
 	@echo "openbsd-sparc64          OpenBSD, SPARC 64-bit (best)"
 	@echo "openbsd-sparc            OpenBSD, SPARC 32-bit"
@@ -124,8 +124,8 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc"
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
+	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
-	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
@@ -145,27 +145,6 @@ default:
 	@echo "beos-x86-mmx             BeOS, x86 with MMX"
 	@echo "beos-x86-any             BeOS, x86"
 	@echo "generic                  Any other Unix-like system with gcc"
-
-linux-x86-sse2:
-	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o"
-
-linux-x86-mmx:
-	$(LN) x86-mmx.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
-
-linux-x86-any:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o"
-
-linux-x86-any-a.out:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
@@ -187,6 +166,27 @@ linux-x86-64-32-mmx:
 		CFLAGS="$(CFLAGS) -m32" \
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
+
+linux-x86-sse2:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o"
+
+linux-x86-mmx:
+	$(LN) x86-mmx.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
+
+linux-x86-any:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o"
+
+linux-x86-any-a.out:
+	$(LN) x86-any.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
+		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
@@ -241,6 +241,11 @@ linux-ia64:
 	$(LN) ia64.h arch.h
 	$(MAKE) $(PROJ)
 
+freebsd-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
+
 freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
@@ -265,15 +270,15 @@ freebsd-x86-any-a.out:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
 
-freebsd-x86-64:
-	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
-
 freebsd-alpha:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
+
+openbsd-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
 
 openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -298,11 +303,6 @@ openbsd-x86-any-a.out:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
-
-openbsd-x86-64:
-	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
 
 openbsd-alpha:
 	$(LN) alpha.h arch.h
@@ -568,6 +568,14 @@ aix-ppc32:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
+macosx-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="-m64"
+
 macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
@@ -579,14 +587,6 @@ macosx-x86-mmx:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
-
-macosx-x86-64:
-	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
-		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64" \
-		LDFLAGS="-m64"
 
 macosx-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
@@ -628,16 +628,6 @@ macosx-ppc64:
 ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
 
-john-macosx-x86:
-	$(RM) *.o
-	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -arch i386" \
-		LDFLAGS="-arch i386"
-	mv ../run/john john-macosx-x86
-
 john-macosx-x86-64:
 	$(RM) *.o
 	$(LN) x86-64.h arch.h
@@ -647,6 +637,16 @@ john-macosx-x86-64:
 		CFLAGS="$(CFLAGS) -arch x86_64 -m64" \
 		LDFLAGS="-arch x86_64 -m64"
 	mv ../run/john john-macosx-x86-64
+
+john-macosx-x86:
+	$(RM) *.o
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
+		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -arch i386" \
+		LDFLAGS="-arch i386"
+	mv ../run/john john-macosx-x86
 
 john-macosx-ppc:
 	$(RM) *.o
@@ -660,8 +660,8 @@ john-macosx-ppc:
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 	mv ../run/john john-macosx-ppc
 
-macosx-universal: john-macosx-x86 john-macosx-x86-64 john-macosx-ppc
-	lipo -create john-macosx-x86 john-macosx-x86-64 john-macosx-ppc \
+macosx-universal: john-macosx-x86-64 john-macosx-x86 john-macosx-ppc
+	lipo -create john-macosx-x86-64 john-macosx-x86 john-macosx-ppc \
 		-output ../run/john
 
 hpux-pa-risc-gcc:
