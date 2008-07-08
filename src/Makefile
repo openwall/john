@@ -439,7 +439,7 @@ spro-sparc.o: sparc.S
 solaris-x86-64-cc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native64" \
 		ASFLAGS="-c -xarch=native64" \
@@ -450,7 +450,7 @@ solaris-x86-64-cc:
 solaris-x86-64-gcc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o" \
 		CFLAGS="$(CFLAGS) -m64" \
 		ASFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 -lrt"
@@ -458,7 +458,7 @@ solaris-x86-64-gcc:
 solaris-x86-sse2-cc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) solaris-x86.o x86-sse.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native" \
 		ASFLAGS="-c -xarch=native" \
@@ -469,13 +469,13 @@ solaris-x86-sse2-cc:
 solaris-x86-sse2-gcc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-mmx-cc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) solaris-x86.o x86-mmx.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native" \
 		ASFLAGS="-c -xarch=native" \
@@ -486,7 +486,7 @@ solaris-x86-mmx-cc:
 solaris-x86-mmx-gcc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-any-cc:
