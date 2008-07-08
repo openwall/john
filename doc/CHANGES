@@ -1,11 +1,14 @@
-The following changes have been made between John 1.7.2 and 1.7.2.3:
+The following changes have been made between John 1.7.2 and 1.7.2.4:
 
 * Two Blowfish-based crypt(3) hashes may now be computed in parallel for much
 better performance on modern multi-issue CPUs with a sufficient number of
-registers (e.g., x86-64, RISC).
+registers (e.g., x86-64, RISC architectures).
 * Bitslice DES assembly code for x86-64 has been converted to use
 instruction pointer relative addressing (needed for Mac OS X support).
-* New make targets: macosx-universal, macosx-x86-64.
+* New make targets: macosx-universal, macosx-x86-64, solaris-x86-64-cc,
+solaris-x86-64-gcc, solaris-x86-sse2-cc, solaris-x86-sse2-gcc,
+solaris-x86-mmx-cc, solaris-x86-mmx-gcc, solaris-x86-any-cc; other
+changes to the Makefile.
 * Minor bug fixes.
 * "DumbForce" and "KnownForce" external mode samples have been added to the
 default john.conf.
@@ -58,4 +61,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.23 2008/06/22 02:24:39 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.24 2008/07/08 01:00:53 solar Exp $
