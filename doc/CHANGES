@@ -7,8 +7,8 @@ registers (e.g., x86-64).
 instruction pointer relative addressing (needed for Mac OS X support).
 * New make targets: macosx-universal, macosx-x86-64, solaris-x86-64-cc,
 solaris-x86-64-gcc, solaris-x86-sse2-cc, solaris-x86-sse2-gcc,
-solaris-x86-mmx-cc, solaris-x86-mmx-gcc, solaris-x86-any-cc; other
-changes to the Makefile.
+solaris-x86-mmx-cc, solaris-x86-mmx-gcc, solaris-x86-any-cc, linux-ia64;
+other changes to the Makefile.
 * Minor bug fixes.
 * "DumbForce" and "KnownForce" external mode samples have been added to the
 default john.conf.
