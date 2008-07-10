@@ -93,7 +93,7 @@ type separately.  See OPTIONS.
 
 Q: I have 10 users, but John said it loaded 15 password hashes.  What's
 going on?
-A: Some extremely poorly designed hash types (Windows NT LM hashes and
+A: Some extremely poorly designed hash types (Windows LM hashes and
 double-length DES-based crypt(3) hashes also known as "bigcrypt" or
 "crypt16") have a property that allows John to split their encodings
 into two separate hashes (corresponding to halves of plaintext
@@ -224,7 +224,7 @@ A: In some aspects, yes (but I am biased).  John runs on many platforms.
 For example, you can have it crack Windows passwords while running on
 Linux or Mac OS X on PowerPC (and it will take advantage of AltiVec
 acceleration there!)  L0phtCrack only runs on Windows.  John's
-performance at Windows NT LM hashes (case-insensitive, DES-based) is
+performance at Windows LM hashes (case-insensitive, DES-based) is
 comparable to that of recent versions of L0phtCrack (LC 5 as of this
 writing), but John offers "incremental" mode (see the answer to the
 previous question) which lets it outperform L0phtCrack at LM hashes in
