@@ -6,8 +6,8 @@ different architectures), DOS, Win32, BeOS, and OpenVMS (the latter
 requires a contributed patch).  Its primary purpose is to detect weak
 Unix passwords.  Besides several crypt(3) password hash types most
 commonly found on various Unix flavors, supported out of the box are
-Kerberos/AFS and Windows NT/2000/XP LM hashes, plus several more with
-contributed patches.
+Kerberos/AFS and Windows LM hashes, plus several more with contributed
+patches.
 
 
 	How to install.
@@ -75,12 +75,12 @@ crypt(3) hash types: traditional and double-length DES-based, BSDI
 extended DES-based, FreeBSD MD5-based (now also used on Linux and in
 Cisco IOS), and OpenBSD Blowfish-based (now also used on some Linux
 distributions).  Also supported out of the box are Kerberos/AFS and
-Windows NT/2000/XP LM (DES-based) hashes.
+Windows LM (DES-based) hashes.
 
 Contributed patches add support for many more password hash types,
-including Windows NT/2000/XP NTLM (MD4-based) hashes, several hash
-types used on OpenVMS, hashes used by MySQL, Netscape LDAP server,
-Eggdrop IRC bot, S/Key skeykeys files, and for Kerberos v4 TGTs.
+including Windows NTLM (MD4-based) hashes, several hash types used on
+OpenVMS, hashes used by MySQL, Netscape LDAP server, Eggdrop IRC bot,
+S/Key skeykeys files, and many others, as well as for Kerberos v4 TGTs.
 
 Unlike other crackers, John doesn't use a crypt(3)-style routine.
 Instead, it has its own highly optimized modules for different hash
@@ -113,4 +113,4 @@ the recommended order of reading:
 
 Happy reading!
 
-$Owl: Owl/packages/john/john/doc/README,v 1.15 2006/05/25 13:10:52 solar Exp $
+$Owl: Owl/packages/john/john/doc/README,v 1.16 2008/07/10 02:47:05 solar Exp $
