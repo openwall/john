@@ -7,8 +7,8 @@ registers (e.g., x86-64).
 instruction pointer relative addressing (needed for Mac OS X support).
 * New make targets: macosx-universal, macosx-x86-64, solaris-x86-64-cc,
 solaris-x86-64-gcc, solaris-x86-sse2-cc, solaris-x86-sse2-gcc,
-solaris-x86-mmx-cc, solaris-x86-mmx-gcc, solaris-x86-any-cc; other
-changes to the Makefile.
+solaris-x86-mmx-cc, solaris-x86-mmx-gcc, solaris-x86-any-cc, linux-ia64;
+other changes to the Makefile.
 * Minor bug fixes.
 * "DumbForce" and "KnownForce" external mode samples have been added to the
 default john.conf.
@@ -61,4 +61,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.25 2008/07/10 04:15:51 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.26 2008/07/10 05:15:27 solar Exp $
