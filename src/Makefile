@@ -427,7 +427,7 @@ use-solaris-sparc-gcc:
 sparc.h:
 	$(RM) arch.h
 	$(CC) $(CFLAGS) -DOS_TIMER -DOS_FLOCK -DDES_ASM detect.c
-	$(LD) $(LDFLAGS) detect.o -o detect
+	$(LD) detect.o $(LDFLAGS) -o detect
 	./sparc.sh "$(MAKE)" "$(HAMMER)" "$(BENCH_DES_OBJS_DEPEND)"
 
 # Older versions of spro cc didn't support .S files directly
@@ -574,7 +574,7 @@ macosx-x86-64:
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64" \
-		LDFLAGS="-m64"
+		LDFLAGS="$(LDFLAGS) -m64"
 
 macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -607,13 +607,23 @@ macosx-ppc32:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
+# This can be used to compile a 32-bit non-AltiVec PowerPC binary on x86.
+macosx-ppc32-cross:
+	$(LN) ppc32.h arch.h
+	$(MAKE) $(PROJ) \
+		ASFLAGS="$(ASFLAGS) -arch ppc" \
+		CFLAGS="-c -Wall -arch ppc -fomit-frame-pointer" \
+		LDFLAGS="$(LDFLAGS) -arch ppc" \
+		OPT_NORMAL="-O2" \
+		OPT_INLINE="-O3 -finline-limit=4000"
+
 # This is slightly slower than macosx-ppc32-altivec for most hash types.
 macosx-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
-		LDFLAGS="-s -m64" \
+		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000"
 
@@ -621,7 +631,7 @@ macosx-ppc64:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CFLAGS="-c -Wall -fomit-frame-pointer -m64" \
-		LDFLAGS="-s -m64" \
+		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000"
 
@@ -635,7 +645,7 @@ john-macosx-x86-64:
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
 		ASFLAGS="$(ASFLAGS) -arch x86_64 -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch x86_64 -m64" \
-		LDFLAGS="-arch x86_64 -m64"
+		LDFLAGS="$(LDFLAGS) -arch x86_64 -m64"
 	mv ../run/john john-macosx-x86-64
 
 john-macosx-x86:
@@ -645,7 +655,7 @@ john-macosx-x86:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch i386" \
-		LDFLAGS="-arch i386"
+		LDFLAGS="$(LDFLAGS) -arch i386"
 	mv ../run/john john-macosx-x86
 
 john-macosx-ppc:
@@ -655,7 +665,7 @@ john-macosx-ppc:
 		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		ASFLAGS="$(ASFLAGS) -arch ppc" \
 		CFLAGS="-c -Wall -arch ppc -fomit-frame-pointer" \
-		LDFLAGS="-arch ppc" \
+		LDFLAGS="$(LDFLAGS) -arch ppc" \
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
 	mv ../run/john john-macosx-ppc
@@ -763,7 +773,7 @@ generic: generic.h
 generic.h:
 	$(RM) arch.h
 	$(CC) $(CFLAGS) detect.c
-	$(LD) $(LDFLAGS) detect.o -o detect
+	$(LD) detect.o $(LDFLAGS) -o detect
 	./best.sh "$(MAKE)" \
 		"$(BENCH_DES_OBJS_DEPEND)" \
 		"$(BENCH_DES_BS_OBJS_DEPEND)" \
@@ -771,10 +781,10 @@ generic.h:
 		"$(BENCH_BF_OBJS_DEPEND)"
 
 bench: $(BENCH_OBJS)
-	$(LD) $(LDFLAGS) $(BENCH_OBJS) -o bench
+	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
 
 ../run/john: $(JOHN_OBJS)
-	$(LD) $(LDFLAGS) $(JOHN_OBJS) -o ../run/john
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -789,7 +799,7 @@ bench: $(BENCH_OBJS)
 	ln -s john ../run/unique
 
 ../run/john.bin: $(JOHN_OBJS)
-	$(LD) $(LDFLAGS) $(JOHN_OBJS) -o ../run/john.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john.exe
 	if exist ..\run\john.bin del ..\run\john.bin
 	ren ..\run\john.exe john.bin
 
