@@ -38,15 +38,14 @@ mode, see the passwords it cracked, etc?
 A: See README and EXAMPLES. :-)
 
 Q: How do I "unshadow"?
-A: See EXAMPLES on how to combine your passwd and shadow files.  If you
-don't have root access, there's no answer for you here. :-)
+A: See EXAMPLES on how to combine your passwd and shadow files, provided
+that you have root access to the target system.
 
 Q: Why doesn't John load my password file?  It says "No password hashes
 loaded".
 A: Your password file might be shadowed.  You need to get both
-/etc/passwd and the shadow file, and combine them into one file for use
-with John.  Please refer to EXAMPLES.  As the system administrator,
-you're supposed to know the name and location of your shadow file.
+/etc/passwd and the shadow file (typically /etc/shadow), and combine
+them into one file for use with John.  Please refer to EXAMPLES.
 A: All of the password hashes found in the file (that John recognizes as
 such) might be already cracked by previous invocations of John.
 A: The file you're trying to run John on might in fact not be a password
@@ -74,7 +73,7 @@ A: http://www.openwall.com/wordlists/
 Q: Where do I get new versions of John the Ripper?
 Q: Where do I get the source code for John?
 Q: I only have the source code for John the Ripper, where do I get it
-pre-compiled for Windows (or another supported non-Unix OS)?
+pre-compiled for my OS (if supported)?
 Q: What is the primary website for John the Ripper?
 A: http://www.openwall.com/john/
 

@@ -22,7 +22,7 @@ in x86-mmx.S and x86-sse.S, with modifications).
 versions of John.
 
 * Lionel Cons - for making me add Kerberos AFS passwords support, for
-reporting some bugs, and for many good advices.
+reporting some bugs, and for many good suggestions.
 
 * stran9er - for tracking down the section alignment problem with MMX in
 the DOS and Win32 ports.
