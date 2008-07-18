@@ -100,7 +100,7 @@ static struct opt_entry opt_list[] = {
 "--shells=[-]SHELL[,..]     load users with[out] this (these) shell(s) only\n" \
 "--salts=[-]COUNT           load salts with[out] at least COUNT passwords " \
 	"only\n" \
-"--format=NAME              force ciphertext format NAME: " \
+"--format=NAME              force hash type NAME: " \
 	"DES/BSDI/MD5/BF/AFS/LM\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n"
 
