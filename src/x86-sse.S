@@ -30,10 +30,18 @@
 #endif
 #else
 #ifdef ALIGN_LOG
-#define DO_ALIGN(log)			.align log; .zero ALIGN_FIX
+#define DO_ALIGN(log)			.align log; .space ALIGN_FIX
 #else
-#define DO_ALIGN(log)			.align 1 << log; .zero ALIGN_FIX
+#define DO_ALIGN(log)			.align 1 << log; .space ALIGN_FIX
 #endif
+#endif
+
+#ifdef __sun
+/* Sun's assembler doesn't recognize .space */
+#define DO_SPACE(size)			.zero size
+#else
+/* Mac OS X assembler doesn't recognize .zero */
+#define DO_SPACE(size)			.space size
 #endif
 
 /* Sun's assembler can't multiply, but at least it can add... */
@@ -50,22 +58,22 @@
 DO_ALIGN(5)
 DES_bs_all:
 DES_bs_all_KSp:
-.zero nptr(0x300)
+DO_SPACE(nptr(0x300))
 DES_bs_all_KS_p:
 DES_bs_all_KS_v:
-.zero nvec(0x300)
+DO_SPACE(nvec(0x300))
 DES_bs_all_E:
-.zero nptr(96)
+DO_SPACE(nptr(96))
 DES_bs_all_K:
-.zero nvec(56)
+DO_SPACE(nvec(56))
 DES_bs_all_B:
-.zero nvec(64)
+DO_SPACE(nvec(64))
 DES_bs_all_tmp:
-.zero nvec(16)
+DO_SPACE(nvec(16))
 DES_bs_all_fields_not_used_here:
-.zero 0x400 + 0x100 + 4 + 4 + 0x400
+DO_SPACE(0x400 + 0x100 + 4 + 4 + 0x400)
 DES_bs_all_possible_alignment_gaps:
-.zero 0x100
+DO_SPACE(0x100)
 
 #define E(i)				DES_bs_all_E+nptr(i)
 #define B(i)				DES_bs_all_B+nvec(i)
