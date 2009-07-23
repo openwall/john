@@ -372,7 +372,7 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 
 	fflush(file);
 	if (!ferror(file) && !fseek(file, 0, SEEK_SET)) {
-		strcpy(header->version, CHARSET_V);
+		strncpy(header->version, CHARSET_V, sizeof(header->version));
 		header->min = CHARSET_MIN;
 		header->max = CHARSET_MAX;
 		header->length = CHARSET_LENGTH;
