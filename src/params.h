@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2008 by Solar Designer
+ * Copyright (c) 1996-2009 by Solar Designer
  */
 
 /*
@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.3.1"
+#define JOHN_VERSION			"1.7.3.2"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -198,8 +198,17 @@ extern int password_hash_thresholds[3];
 
 /*
  * Charset parameters.
- * Be careful if you change these, ((SIZE ** LENGTH) * SCALE) should fit
- * into 64 bits.  You can reduce the SCALE if required.
+ *
+ * Please note that certain intermediate values computed in charset.c while
+ * generating a new charset file should fit in 64 bits.  As long as
+ * ((SIZE ** LENGTH) * SCALE) fits in 64 bits you're definitely safe, although
+ * the exact requirement, which you can see in charset.c: charset_self_test(),
+ * is a bit less strict.  John will refuse to generate a charset file if the
+ * values would overflow, so rather than do the math yourself you can simply
+ * let John test the values for you.  You can reduce the SCALE if required.
+ *
+ * Also, please note that changes to these parameters make your build of John
+ * incompatible with charset files generated with other builds.
  */
 #define CHARSET_MIN			' '
 #define CHARSET_MAX			0x7E
