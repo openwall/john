@@ -1301,3 +1301,7 @@ DES_bs_crypt_LM_loop:
 	jnz DES_bs_crypt_LM_loop
 	popl %esi
 	ret
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif

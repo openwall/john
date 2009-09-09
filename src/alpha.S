@@ -318,3 +318,7 @@ DES_KS_current:
 .space 128
 
 .comm DES_KS_table, (8 * 128 * 16 * 8), 128
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif
