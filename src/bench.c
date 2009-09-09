@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -211,7 +211,9 @@ void benchmark_all(void)
 	char *result, *msg_1, *msg_m;
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
+	unsigned int total, failed;
 
+	total = failed = 0;
 	if ((format = fmt_list))
 	do {
 		printf("Benchmarking: %s%s [%s]... ",
@@ -236,16 +238,20 @@ void benchmark_all(void)
 			msg_1 = "Long";
 		}
 
+		total++;
+
 		if ((result = benchmark_format(format,
 		    format->params.salt_size ? BENCHMARK_MANY : 1,
 		    &results_m))) {
 			puts(result);
+			failed++;
 			continue;
 		}
 
 		if (msg_1)
 		if ((result = benchmark_format(format, 1, &results_1))) {
 			puts(result);
+			failed++;
 			continue;
 		}
 
@@ -276,4 +282,7 @@ void benchmark_all(void)
 			msg_1, s_real);
 #endif
 	} while ((format = format->next) && !event_abort);
+
+	if (failed && total > 1)
+		printf("%u out of %u tests have FAILED\n", failed, total);
 }
