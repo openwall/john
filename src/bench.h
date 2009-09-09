@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2006 by Solar Designer
+ * Copyright (c) 1996-99,2006,2009 by Solar Designer
  */
 
 /*
@@ -38,8 +38,13 @@ extern long clk_tck;
 extern void clk_tck_init(void);
 
 /*
+ * Benchmark time in seconds (per cracking algorithm).
+ */
+extern unsigned int benchmark_time;
+
+/*
  * Benchmarks the supplied cracking algorithm. Returns NULL on success,
- * an error message if the self test fails or there are no test vectors
+ * an error message if the self-test fails or there are no test vectors
  * for this algorithm, or an empty string if aborted.
  */
 extern char *benchmark_format(struct fmt_main *format, int salts,
@@ -53,8 +58,9 @@ extern void benchmark_cps(unsigned ARCH_WORD count, clock_t time,
 
 /*
  * Benchmarks all the registered cracking algorithms and prints the results
- * to stdout.
+ * to stdout. Returns zero on success, non-zero if any tests failed or were
+ * aborted.
  */
-extern void benchmark_all(void);
+extern int benchmark_all(void);
 
 #endif

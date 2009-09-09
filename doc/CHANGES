@@ -1,3 +1,9 @@
+The following changes have been made between John 1.7.3.2 and 1.7.3.3:
+
+* "make check" has been implemented (for Unix-like systems only).
+* The --test option will now take an optional argument - the duration of each
+benchmark in seconds.
+
 The following changes have been made between John 1.7.3.1 and 1.7.3.2:
 
 * An unimportant compiler warning has been fixed, and a source code comment
