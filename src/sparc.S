@@ -410,3 +410,7 @@ DES_count:
 .common DES_KS_table, (8 * 128 * 16 * 8), 32
 
 #endif
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif

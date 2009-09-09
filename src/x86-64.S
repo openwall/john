@@ -1052,3 +1052,7 @@ DES_bs_crypt_LM_loop:
 	subl $1,rounds
 	jnz DES_bs_crypt_LM_loop
 	ret
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif

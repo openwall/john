@@ -1366,3 +1366,7 @@ CPU_detect_ret:
 	movzbl %al,%eax
 	popl %ebx
 	ret
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif

@@ -1314,3 +1314,7 @@ DES_bs_crypt_LM_loop:
 	emms
 #endif
 	ret
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif
