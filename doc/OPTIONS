@@ -93,10 +93,11 @@ specify).  You can use this option while another instance of John is
 cracking to see what John did so far; to get the most up to date
 information, first send a SIGHUP to the appropriate "john" process.
 
---test				perform a benchmark
+--test[=TIME]			run tests and benchmarks for TIME seconds each
 
-Benchmarks all of the compiled in hashing algorithms and tests them
-for proper operation.
+Tests all of the compiled in hashing algorithms for proper operation and
+benchmarks them.  The "--format" option can be used to restrict this to
+a specific algorithm.
 
 --users=[-]LOGIN|UID[,..]	[do not] load this (these) user(s)
 
@@ -181,4 +182,4 @@ might be produced with word mangling rules).
 A shell script to send mail to all the users who got weak passwords.
 You should edit the message inside the script before using it.
 
-$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.4 2008/07/18 01:45:41 solar Exp $
+$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.5 2009/09/09 04:50:14 solar Exp $
