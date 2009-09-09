@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.3.2"
+#define JOHN_VERSION			"1.7.3.3"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -89,7 +89,7 @@
 #define TIMER_SAVE_DELAY		(600 / TIMER_INTERVAL)
 
 /*
- * Benchmark time in seconds, per cracking algorithm.
+ * Default benchmark time in seconds (per cracking algorithm).
  */
 #define BENCHMARK_TIME			5
 

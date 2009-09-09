@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008,2009 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -42,6 +42,8 @@ void clk_tck_init(void)
 	clk_tck = CLK_TCK;
 #endif
 }
+
+unsigned int benchmark_time = BENCHMARK_TIME;
 
 static volatile int bench_running;
 
@@ -139,11 +141,19 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	bench_running = 1;
 	signal(SIGALRM, bench_handle_timer);
 
+/* Cap it at a sane value to hopefully avoid integer overflows below */
+	if (benchmark_time > 3600)
+		benchmark_time = 3600;
+
+/* In the future, "zero time" may mean self-tests without benchmarks */
+	if (!benchmark_time)
+		benchmark_time = 1;
+
 #if OS_TIMER
-	it.it_value.tv_sec = BENCHMARK_TIME;
+	it.it_value.tv_sec = benchmark_time;
 	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
 #else
-	sig_timer_emu_init(BENCHMARK_TIME * clk_tck);
+	sig_timer_emu_init(benchmark_time * clk_tck);
 #endif
 
 	start_real = times(&buf);
@@ -205,7 +215,7 @@ void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
 	}
 }
 
-void benchmark_all(void)
+int benchmark_all(void)
 {
 	struct fmt_main *format;
 	char *result, *msg_1, *msg_m;
@@ -283,6 +293,8 @@ void benchmark_all(void)
 #endif
 	} while ((format = format->next) && !event_abort);
 
-	if (failed && total > 1)
+	if (failed && total > 1 && !event_abort)
 		printf("%u out of %u tests have FAILED\n", failed, total);
+
+	return failed || event_abort;
 }

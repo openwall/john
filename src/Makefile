@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2008 by Solar Designer
+# Copyright (c) 1996-2009 by Solar Designer
 #
 
 CC = gcc
@@ -861,6 +861,9 @@ miscnl.o: misc.c
 # We don't have any files with .s suffix, this is for compiling in DOS only
 .s.o:
 	$(AS) $(ASFLAGS) $*.S
+
+check:
+	../run/john --make_check
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null

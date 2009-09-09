@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2008 by Solar Designer
+ * Copyright (c) 1996-2009 by Solar Designer
  */
 
 #include <stdio.h>
@@ -17,6 +17,7 @@
 #include "status.h"
 #include "recovery.h"
 #include "options.h"
+#include "bench.h"
 
 struct options_main options;
 
@@ -49,8 +50,8 @@ static struct opt_entry opt_list[] = {
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK,
 		0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
-		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM &
-		~OPT_REQ_PARAM},
+		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~OPT_REQ_PARAM,
+		"%u", &benchmark_time},
 	{"users", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.loader.users},
 	{"groups", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
@@ -94,7 +95,7 @@ static struct opt_entry opt_list[] = {
 "--status[=NAME]            print status of a session [called NAME]\n" \
 "--make-charset=FILE        make a charset, FILE will be overwritten\n" \
 "--show                     show cracked passwords\n" \
-"--test                     perform a benchmark\n" \
+"--test[=TIME]              run tests and benchmarks for TIME seconds each\n" \
 "--users=[-]LOGIN|UID[,..]  [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]       load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]     load users with[out] this (these) shell(s) only\n" \

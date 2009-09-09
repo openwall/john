@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006 by Solar Designer
+ * Copyright (c) 1996-2004,2006,2009 by Solar Designer
  */
 
 #include <stdio.h>
@@ -45,6 +45,8 @@ extern int unique(int argc, char **argv);
 
 static struct db_main database;
 static struct fmt_main dummy_format;
+
+static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
@@ -214,37 +216,41 @@ static void john_load(void)
 
 static void john_init(char *name, int argc, char **argv)
 {
-#if CPU_DETECT
-	int detected;
+	int make_check = (argc == 2 && !strcmp(argv[1], "--make_check"));
+	if (make_check)
+		argv[1] = "--test=0";
 
-	switch ((detected = CPU_detect())) {
+#if CPU_DETECT
+	if (!CPU_detect()) {
 #if CPU_REQ
-	case 0:
 #if CPU_FALLBACK
 #if defined(__DJGPP__) || defined(__CYGWIN32__)
 #error CPU_FALLBACK is incompatible with the current DOS and Win32 code
 #endif
-	case 2:
-		execv(JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY, argv);
-		perror("execv: " JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY);
+		if (!make_check) {
+#define CPU_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" CPU_FALLBACK_BINARY
+			execv(CPU_FALLBACK_PATHNAME, argv);
+			perror("execv: " CPU_FALLBACK_PATHNAME);
+		}
 #endif
-		if (!detected)
-			fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
+		fprintf(stderr, "Sorry, %s is required\n", CPU_NAME);
+		if (make_check)
+			exit(0);
 		error();
 #endif
-	default:
-		break;
 	}
 #endif
 
-	path_init(argv);
+	if (!make_check) {
+		path_init(argv);
 
 #if JOHN_SYSTEMWIDE
-	cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-	cfg_init(CFG_PRIVATE_ALT_NAME, 1);
+		cfg_init(CFG_PRIVATE_FULL_NAME, 1);
+		cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
-	cfg_init(CFG_FULL_NAME, 1);
-	cfg_init(CFG_ALT_NAME, 0);
+		cfg_init(CFG_FULL_NAME, 1);
+		cfg_init(CFG_ALT_NAME, 0);
+	}
 
 	status_init(NULL, 1);
 	opt_init(name, argc, argv);
@@ -260,7 +266,7 @@ static void john_init(char *name, int argc, char **argv)
 static void john_run(void)
 {
 	if (options.flags & FLG_TEST_CHK)
-		benchmark_all();
+		exit_status = benchmark_all() ? 1 : 0;
 	else
 	if (options.flags & FLG_MAKECHR_CHK)
 		do_makechars(&database, options.charset);
@@ -352,5 +358,5 @@ int main(int argc, char **argv)
 	john_run();
 	john_done();
 
-	return 0;
+	return exit_status;
 }
