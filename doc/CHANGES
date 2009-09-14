@@ -1,16 +1,14 @@
-The following changes have been made between John 1.7.3.2 and 1.7.3.4:
+The following changes have been made between John 1.7.3.1 and 1.7.3.4:
 
 * "make check" has been implemented (for Unix-like systems only).
-* The --test option will now take an optional argument - the duration of each
+* The "--test" option will now take an optional argument - the duration of each
 benchmark in seconds.
 * Section .note.GNU-stack has been added to all assembly files to avoid the
 stack area unnecessarily being made executable on Linux systems that use this
 mechanism.
-
-The following changes have been made between John 1.7.3.1 and 1.7.3.2:
-
-* An unimportant compiler warning has been fixed, and a source code comment
-has been made more verbose and more complete.
+* Some very minor bugs that did not affect normal operation have been fixed.
+* Some unimportant compiler warnings have been fixed, a source code comment has
+been made more verbose and more complete.
 
 The following changes have been made between John 1.7.3 and 1.7.3.1:
 
