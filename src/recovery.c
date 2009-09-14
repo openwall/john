@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2005,2006 by Solar Designer
+ * Copyright (c) 1996-2003,2005,2006,2009 by Solar Designer
  */
 
 #include <stdio.h>
@@ -156,7 +156,7 @@ void rec_done(int save)
 
 static void rec_format_error(char *fn)
 {
-	if (ferror(rec_file))
+	if (fn && errno && ferror(rec_file))
 		pexit("%s", fn);
 	else {
 		fprintf(stderr, "Incorrect crash recovery file format: %s\n",
@@ -191,10 +191,12 @@ void rec_restore_args(int lock)
 	if (!strcmp(line, RECOVERY_V3)) rec_version = 3; else
 	if (!strcmp(line, RECOVERY_V2)) rec_version = 2; else
 	if (!strcmp(line, RECOVERY_V1)) rec_version = 1; else
-	if (strcmp(line, RECOVERY_V0)) rec_format_error("fgets");
+	if (strcmp(line, RECOVERY_V0)) rec_format_error(NULL);
 
-	if (fscanf(rec_file, "%d\n", &argc) != 1 || argc < 2)
+	if (fscanf(rec_file, "%d\n", &argc) != 1)
 		rec_format_error("fscanf");
+	if (argc < 2)
+		rec_format_error(NULL);
 	argv = mem_alloc_tiny(sizeof(char *) * (argc + 1), MEM_ALIGN_WORD);
 
 	argv[0] = "john";
