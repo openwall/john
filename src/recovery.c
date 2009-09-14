@@ -226,6 +226,8 @@ void rec_restore_args(int lock)
 	} else
 	if (fscanf(rec_file, "%d\n%d\n", &status.pass, &status.progress) != 2)
 		rec_format_error("fscanf");
+	if (status.pass < 0 || status.pass > 3)
+		rec_format_error(NULL);
 
 	if (rec_version < 3)
 		rec_check = 0;
