@@ -157,7 +157,7 @@ void rec_done(int save)
 static void rec_format_error(char *fn)
 {
 	if (ferror(rec_file))
-		pexit(fn);
+		pexit("%s", fn);
 	else {
 		fprintf(stderr, "Incorrect crash recovery file format: %s\n",
 			path_expand(rec_name));
