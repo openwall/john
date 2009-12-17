@@ -1,3 +1,8 @@
+The following changes have been made between John 1.7.3.4 and 1.7.3.5:
+
+* Processing of word mangling rules has been made significantly faster,
+primarily due to caching and updating of the current "word" length.
+
 The following changes have been made between John 1.7.3.1 and 1.7.3.4:
 
 * "make check" has been implemented (for Unix-like systems only).
