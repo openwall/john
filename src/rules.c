@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005,2009 by Solar Designer
  */
 
 #include <stdio.h>
@@ -123,7 +123,14 @@ static char *conv_tolower, *conv_toupper;
 }
 
 #define CONV(conv) { \
-	for (pos = 0; (out[pos] = (conv)[ARCH_INDEX(in[pos])]); pos++); \
+	for (pos = 0; (in[pos] = (conv)[ARCH_INDEX(in[pos])]); pos++); \
+}
+
+#define GET_OUT { \
+	if (in == buffer[0]) \
+		out = buffer[1]; \
+	else \
+		out = buffer[0]; \
 }
 
 static void rules_init_class(char name, char *valid)
@@ -260,19 +267,34 @@ char *rules_reject(char *rule, struct db_main *db)
 char *rules_apply(char *word, char *rule, int split)
 {
 	static char buffer[3][RULE_WORD_SIZE * 2];
-	char *in = buffer[0], *out = buffer[1];
+	char *in = buffer[0], *out, *p;
 	char memory[RULE_WORD_SIZE];
 	int memory_empty, which;
 	char value, *class;
-	int pos, out_pos;
+	int length, pos;
 	int count, required;
 
-	strnfcpy(in, word, RULE_WORD_SIZE);
+	length = 0;
+	while (length < RULE_WORD_SIZE - 1) {
+		if (!(in[length] = word[length]))
+			break;
+		length++;
+	}
+
+/*
+ * This check assumes that rules_reject() has optimized the no-op rule
+ * (a colon) into an empty string.
+ */
+	if (!NEXT) {
+		in[rules_max_length] = 0;
+		return in;
+	}
+
+	if (!length) REJECT
+
 	memory_empty = 1; which = 0;
 
-	if (NEXT != ':' || *(rule + 1))
 	while (RULE) {
-		if (!in[0]) REJECT
 		in[RULE_WORD_SIZE - 1] = 0;
 
 		switch (LAST) {
@@ -280,17 +302,16 @@ char *rules_apply(char *word, char *rule, int split)
 		case ':':
 		case ' ':
 		case '\t':
-			out = in;
 			break;
 
 		case '<':
 			POSITION
-			if ((int)strlen(in) < pos) out = in; else REJECT
+			if (length >= pos) REJECT
 			break;
 
 		case '>':
 			POSITION
-			if ((int)strlen(in) > pos) out = in; else REJECT
+			if (length <= pos) REJECT
 			break;
 
 		case 'l':
@@ -303,150 +324,161 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case 'c':
 			pos = 0;
-			if ((out[0] = conv_toupper[ARCH_INDEX(in[0])]))
+			if ((in[0] = conv_toupper[ARCH_INDEX(in[0])]))
 			while (in[++pos])
-				out[pos] = conv_tolower[ARCH_INDEX(in[pos])];
-			out[pos] = 0;
-			if (out[0] == 'M' && out[1] == 'c')
-				out[2] = conv_toupper[ARCH_INDEX(out[2])];
+				in[pos] = conv_tolower[ARCH_INDEX(in[pos])];
+			in[pos] = 0;
+			if (in[0] == 'M' && in[1] == 'c')
+				in[2] = conv_toupper[ARCH_INDEX(in[2])];
 			break;
 
 		case 'r':
-			*(out += strlen(in)) = 0;
-			while (*in) *--out = *in++;
+			GET_OUT
+			*(out += length) = 0;
+			while (*in)
+				*--out = *in++;
+			in = out;
 			break;
 
 		case 'd':
-			strcpy(out, in); strcat(out, in);
+			memcpy(in + length, in, length);
+			in[length <<= 1] = 0;
 			break;
 
 		case 'f':
-			out = in;
-			out[pos = strlen(out) << 1] = 0;
-			while (*in) out[--pos] = *in++;
+			in[pos = (length <<= 1)] = 0;
+			p = in;
+			while (*p)
+				in[--pos] = *p++;
 			break;
 
 		case 'p':
-			out = in;
-			if (!out[0] || !out[1]) break;
-			pos = strlen(out) - 1;
-			if (strchr("sxz", out[pos]) ||
-			    (pos > 1 && out[pos] == 'h' &&
-			    (out[pos - 1] == 'c' || out[pos - 1] == 's')))
-				strcat(out, "es");
+			if (length < 2) break;
+			pos = length - 1;
+			if (strchr("sxz", in[pos]) ||
+			    (pos > 1 && in[pos] == 'h' &&
+			    (in[pos - 1] == 'c' || in[pos - 1] == 's')))
+				strcat(in, "es");
 			else
-			if (out[pos] == 'f' && out[pos - 1] != 'f')
-				strcpy(&out[pos], "ves");
+			if (in[pos] == 'f' && in[pos - 1] != 'f')
+				strcpy(&in[pos], "ves");
 			else
-			if (pos > 1 && out[pos] == 'e' && out[pos - 1] == 'f')
-				strcpy(&out[pos - 1], "ves");
+			if (pos > 1 && in[pos] == 'e' && in[pos - 1] == 'f')
+				strcpy(&in[pos - 1], "ves");
 			else
-			if (pos > 1 && out[pos] == 'y') {
-				if (strchr("aeiou", out[pos - 1]))
-					strcat(out, "s");
+			if (pos > 1 && in[pos] == 'y') {
+				if (strchr("aeiou", in[pos - 1]))
+					strcat(in, "s");
 				else
-					strcpy(&out[pos], "ies");
+					strcpy(&in[pos], "ies");
 			} else
-				strcat(out, "s");
+				strcat(in, "s");
+			length = strlen(in);
 			break;
 
 		case '$':
 			VALUE
-			out = in;
-			out[pos = strlen(out)] = value;
-			out[pos + 1] = 0;
+			in[length++] = value;
+			in[length] = 0;
 			break;
 
 		case '^':
+			GET_OUT
 			VALUE
 			out[0] = value;
 			strcpy(&out[1], in);
+			length++;
+			in = out;
 			break;
 
 		case 'x':
 			POSITION
-			if (pos < (int)strlen(in)) {
+			if (pos < length) {
+				GET_OUT
 				in += pos;
 				POSITION
 				strnzcpy(out, in, pos + 1);
+				length = strlen(in = out);
 			} else {
 				POSITION
-				out[0] = 0;
+				in[length = 0] = 0;
 			}
 			break;
 
 		case 'i':
 			POSITION
 			VALUE
-			if (pos < (out_pos = strlen(in))) {
-				memcpy(out, in, pos);
-				out[pos] = value;
-				strcpy(&out[pos + 1], &in[pos]);
+			if (pos < length) {
+				p = in + pos;
+				memmove(p + 1, p, length++ - pos);
+				*p = value;
+				in[length] = 0;
 			} else {
-				out = in;
-				out[out_pos] = value;
-				out[out_pos + 1] = 0;
+				in[length++] = value;
+				in[length] = 0;
 			}
 			break;
 
 		case 'o':
 			POSITION
 			VALUE
-			out = in;
-			if (out[pos]) out[pos] = value;
+			if (in[pos])
+				in[pos] = value;
 			break;
 
 		case 's':
-			out = in;
-			CLASS(0, out[pos] = NEXT, {})
+			CLASS(0, in[pos] = NEXT, {})
 			VALUE
 			break;
 
 		case '@':
-			out_pos = 0;
-			CLASS(0, {}, out[out_pos++] = in[pos])
-			out[out_pos] = 0;
+			length = 0;
+			CLASS(0, {}, in[length++] = in[pos])
+			in[length] = 0;
 			break;
 
 		case '!':
 			CLASS(0, REJECT, {})
-			out = in;
 			break;
 
 		case '/':
 			CLASS(0, break, {})
 			if (!in[pos]) REJECT
-			out = in;
 			break;
 
 		case '=':
 			POSITION
-			if (pos >= (int)strlen(in)) {
+			if (pos >= length) {
 				SKIP_CLASS
 				REJECT
 			} else
 				CLASS(pos, break, REJECT)
-			out = in;
 			break;
 
 /* Crack 5.0 rules */
 		case '[':
-			if (in[0]) strcpy(out, &in[1]); else out[0] = 0;
+			if (length) {
+				GET_OUT
+				strcpy(out, &in[1]);
+				length--;
+				in = out;
+			} else
+				in[0] = 0;
 			break;
 
 		case ']':
-			out = in;
-			if (out[0]) out[strlen(out) - 1] = 0;
+			if (length)
+				in[--length] = 0;
 			break;
 
 		case 'C':
 			pos = 0;
-			if ((out[0] = conv_tolower[ARCH_INDEX(in[0])]))
+			if ((in[0] = conv_tolower[ARCH_INDEX(in[0])]))
 			while (in[++pos])
-				out[pos] = conv_toupper[ARCH_INDEX(in[pos])];
-			out[pos] = 0;
-			if (out[0] == 'm' && out[1] == 'C')
-				out[2] = conv_tolower[ARCH_INDEX(out[2])];
+				in[pos] = conv_toupper[ARCH_INDEX(in[pos])];
+			in[pos] = 0;
+			if (in[0] == 'm' && in[1] == 'C')
+				in[2] = conv_tolower[ARCH_INDEX(in[2])];
 			break;
 
 		case 't':
@@ -455,21 +487,20 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case '(':
 			CLASS(0, break, REJECT)
-			out = in;
 			break;
 
 		case ')':
-			if (!in[0]) {
+			if (!length) {
 				SKIP_CLASS
 				REJECT
 			} else
-				CLASS(strlen(in) - 1, break, REJECT)
-			out = in;
+				CLASS(length - 1, break, REJECT)
 			break;
 
 		case '\'':
 			POSITION
-			(out = in)[pos] = 0;
+			in[pos] = 0;
+			length = strlen(in);
 			break;
 
 		case '%':
@@ -477,42 +508,45 @@ char *rules_apply(char *word, char *rule, int split)
 			count = 0; required = pos;
 			CLASS(0, if (++count >= required) break, {})
 			if (count < required) REJECT
-			out = in;
 			break;
 
 /* Rules added in John */
 		case 'T':
 			POSITION
-			out = in;
-			out[pos] = conv_invert[ARCH_INDEX(out[pos])];
+			in[pos] = conv_invert[ARCH_INDEX(in[pos])];
 			break;
 
 		case 'D':
 			POSITION
-			if (pos >= (int)strlen(in))
-				out = in;
-			else {
+			if (pos < length) {
+				GET_OUT
 				memcpy(out, in, pos);
 				strcpy(&out[pos], &in[pos + 1]);
+				length--;
+				in = out;
 			}
 			break;
 
 		case '{':
-			if (in[0]) {
+			if (length) {
+				GET_OUT
 				strcpy(out, &in[1]);
 				in[1] = 0;
 				strcat(out, in);
+				in = out;
 			} else
-				out[0] = 0;
+				in[0] = 0;
 			break;
 
 		case '}':
-			if (in[0]) {
-				out[0] = in[pos = strlen(in) - 1];
+			if (length) {
+				GET_OUT
+				out[0] = in[pos = length - 1];
 				in[pos] = 0;
 				strcpy(&out[1], in);
+				in = out;
 			} else
-				out[0] = 0;
+				in[0] = 0;
 			break;
 
 		case 'S':
@@ -532,40 +566,40 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case 'P':
-			out = in;
-			if ((pos = strlen(out) - 1) < 2) break;
-			if (out[pos] == 'd' && out[pos - 1] == 'e') break;
-			if (out[pos] == 'y') out[pos] = 'i'; else
-			if (strchr("bgp", out[pos]) &&
-			    !strchr("bgp", out[pos - 1])) {
-				out[pos + 1] = out[pos];
-				out[pos + 2] = 0;
+			if ((pos = length - 1) < 2) break;
+			if (in[pos] == 'd' && in[pos - 1] == 'e') break;
+			if (in[pos] == 'y') in[pos] = 'i'; else
+			if (strchr("bgp", in[pos]) &&
+			    !strchr("bgp", in[pos - 1])) {
+				in[pos + 1] = in[pos];
+				in[pos + 2] = 0;
 			}
-			if (out[pos] == 'e')
-				strcat(out, "d");
+			if (in[pos] == 'e')
+				strcat(in, "d");
 			else
-				strcat(out, "ed");
+				strcat(in, "ed");
+			length = strlen(in);
 			break;
 
 		case 'I':
-			out = in;
-			if ((pos = strlen(out) - 1) < 2) break;
-			if (out[pos] == 'g' && out[pos - 1] == 'n' &&
-			    out[pos - 2] == 'i') break;
-			if (strchr("aeiou", out[pos]))
-				strcpy(&out[pos], "ing");
+			if ((pos = length - 1) < 2) break;
+			if (in[pos] == 'g' && in[pos - 1] == 'n' &&
+			    in[pos - 2] == 'i') break;
+			if (strchr("aeiou", in[pos]))
+				strcpy(&in[pos], "ing");
 			else {
-				if (strchr("bgp", out[pos]) &&
-				    !strchr("bgp", out[pos - 1])) {
-					out[pos + 1] = out[pos];
-					out[pos + 2] = 0;
+				if (strchr("bgp", in[pos]) &&
+				    !strchr("bgp", in[pos - 1])) {
+					in[pos + 1] = in[pos];
+					in[pos + 2] = 0;
 				}
-				strcat(out, "ing");
+				strcat(in, "ing");
 			}
+			length = strlen(in);
 			break;
 
 		case 'M':
-			strnfcpy(memory, (out = in), rules_max_length);
+			strnfcpy(memory, in, rules_max_length);
 			memory_empty = 0;
 			break;
 
@@ -576,7 +610,6 @@ char *rules_apply(char *word, char *rule, int split)
 			} else
 				if (!strncmp(memory, in, rules_max_length))
 					REJECT
-			out = in;
 			break;
 
 /* Additional "single crack" mode rules */
@@ -586,9 +619,16 @@ char *rules_apply(char *word, char *rule, int split)
 				return NULL;
 			}
 			if (!split) REJECT
-			if (which) strcpy(buffer[2], in);
-			else strnzcpy(buffer[2], &word[split], RULE_WORD_SIZE);
-			strnzcpy(out, word, split + 1);
+			if (which)
+				memcpy(buffer[2], in, length + 1);
+			else
+				strnzcpy(buffer[2], &word[split],
+				    RULE_WORD_SIZE);
+			length = split;
+			if (length > RULE_WORD_SIZE - 1)
+				length = RULE_WORD_SIZE - 1;
+			memcpy(in, word, length);
+			in[length] = 0;
 			which = 1;
 			break;
 
@@ -598,27 +638,37 @@ char *rules_apply(char *word, char *rule, int split)
 				return NULL;
 			}
 			if (!split) REJECT
-			if (which) strcpy(buffer[2], in);
-			else strnzcpy(buffer[2], word, split + 1);
-			strnzcpy(out, &word[split], RULE_WORD_SIZE);
+			if (which) {
+				memcpy(buffer[2], in, length + 1);
+			} else {
+				length = split;
+				if (length > RULE_WORD_SIZE - 1)
+					length = RULE_WORD_SIZE - 1;
+				strnzcpy(buffer[2], word, length + 1);
+			}
+			strnzcpy(in, &word[split], RULE_WORD_SIZE);
+			length = strlen(in);
 			which = 2;
 			break;
 
 		case '+':
 			switch (which) {
 			case 1:
-				strcat(out = in, buffer[2]);
+				strcat(in, buffer[2]);
 				break;
 
 			case 2:
+				GET_OUT
 				strcpy(out, buffer[2]);
 				strcat(out, in);
+				in = out;
 				break;
 
 			default:
 				rules_errno = RULES_ERROR_UNKNOWN;
 				return NULL;
 			}
+			length = strlen(in);
 			which = 0;
 			break;
 
@@ -627,12 +677,7 @@ char *rules_apply(char *word, char *rule, int split)
 			return NULL;
 		}
 
-		if (!out[0]) REJECT
-
-		if ((in = out) == buffer[1])
-			out = buffer[0];
-		else
-			out = buffer[1];
+		if (!length) REJECT
 	}
 
 	switch (which) {
@@ -641,9 +686,8 @@ char *rules_apply(char *word, char *rule, int split)
 		break;
 
 	case 2:
-		strcpy(out, buffer[2]);
-		strcat(out, in);
-		in = out;
+		strcat(buffer[2], in);
+		in = buffer[2];
 	}
 
 	in[rules_max_length] = 0;
