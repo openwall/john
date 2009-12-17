@@ -580,13 +580,17 @@ macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DBSD -DALIGN_LOG"
+		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
@@ -653,9 +657,9 @@ john-macosx-x86:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		ASFLAGS="$(ASFLAGS) -arch i386 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -arch i386" \
-		LDFLAGS="$(LDFLAGS) -arch i386"
+		ASFLAGS="$(ASFLAGS) -arch i386 -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -arch i386 -m32" \
+		LDFLAGS="$(LDFLAGS) -arch i386 -m32"
 	mv ../run/john john-macosx-x86
 
 john-macosx-ppc:
