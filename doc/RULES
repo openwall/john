@@ -69,6 +69,24 @@ $X	append character X to the word
 ^X	prefix the word with character X
 
 
+	String commands.
+
+A"STR"	append string STR to the word
+B"STR"	prefix the word with string STR
+
+Although the use of the double-quote character is good for readability,
+you may use any other character not found in STR instead.  This is
+particularly useful when STR contains the double-quote character.
+There's no way to escape your quotation character of choice within a
+string (preventing it from ending the string and the command), but you
+may achieve the same effect by specifying multiple commands one after
+another.  For example, if you choose to use the forward slash as your
+quotation character, yet it happens to be found in a string and you
+don't want to reconsider your choice, you may write "A/start/$/A/end/",
+which will append the string "start/end".  Of course, it is simpler and
+more efficient to use, say, "A,start/end," for the same effect.
+
+
 	Length control commands.
 
 <N	reject the word unless it is less than N characters long
