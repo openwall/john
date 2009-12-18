@@ -107,8 +107,18 @@ L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
 
 	Memory access commands.
 
-M	memorize the word
-Q	reject the word unless it has changed
+M	memorize the word (for use with the "Q" command below only)
+Q	query the memory and reject the word unless it has changed
+
+If "Q" is used without a preceding "M", it compares the current "word"
+(possibly mangled by preceding commands) against its initial state.
+
+The intended use for these commands is to help avoid duplicate candidate
+passwords that could result from multiple similar rules.  For example,
+if you have the rule "l" (lowercase) somewhere in your ruleset and you
+want to add the rule "lr" (lowercase and reverse), you could instead
+write the latter as "lMrQ" in order to avoid producing duplicate
+candidate passwords for palindromes.
 
 
 	Character class commands.
