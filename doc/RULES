@@ -107,8 +107,18 @@ L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
 
 	Memory access commands.
 
-M	memorize the word
-Q	reject the word unless it has changed
+M	memorize the word (for use with the "Q" command below only)
+Q	query the memory and reject the word unless it has changed
+
+If "Q" is used without a preceding "M", it compares the current "word"
+(possibly mangled by preceding commands) against its initial state.
+
+The intended use for these commands is to help avoid duplicate candidate
+passwords that could result from multiple similar rules.  For example,
+if you have the rule "l" (lowercase) somewhere in your ruleset and you
+want to add the rule "lr" (lowercase and reverse), you could instead
+write the latter as "lMrQ" in order to avoid producing duplicate
+candidate passwords for palindromes.
 
 
 	Character class commands.
@@ -186,4 +196,4 @@ itself.  Also, if you need to start a preprocessor character list at the
 very beginning of a line, you'll have to prefix it with a ":" (the no-op
 rule command), or it would be treated as a new section start.
 
-$Owl: Owl/packages/john/john/doc/RULES,v 1.2 2005/11/16 13:11:15 solar Exp $
+$Owl: Owl/packages/john/john/doc/RULES,v 1.3 2009/12/18 16:54:44 solar Exp $
