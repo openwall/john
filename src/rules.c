@@ -499,8 +499,8 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case '\'':
 			POSITION
-			in[pos] = 0;
-			length = strlen(in);
+			if (pos < length)
+				in[length = pos] = 0;
 			break;
 
 		case '%':
