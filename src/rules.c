@@ -511,6 +511,42 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 /* Rules added in John */
+		case 'A':
+			VALUE
+			do {
+				char c = RULE;
+				if (c == value)
+					break;
+				if (length < RULE_WORD_SIZE - 1)
+					in[length++] = c;
+				if (c)
+					continue;
+				rules_errno = RULES_ERROR_END;
+				return NULL;
+			} while (1);
+			in[length] = 0;
+			break;
+
+		case 'B':
+			GET_OUT
+			VALUE
+			p = out;
+			do {
+				char c = RULE;
+				if (c == value)
+					break;
+				if (p < out + (RULE_WORD_SIZE - 1))
+					*p++ = c;
+				if (c)
+					continue;
+				rules_errno = RULES_ERROR_END;
+				return NULL;
+			} while (1);
+			strcpy(p, in);
+			length += p - out;
+			in = out;
+			break;
+
 		case 'T':
 			POSITION
 			in[pos] = conv_invert[ARCH_INDEX(in[pos])];
