@@ -71,16 +71,17 @@ static char *conv_tolower, *conv_toupper;
 	if (!rules_debug) goto out_NULL; \
 }
 
-#define VALUE { \
-	if (!(value = RULE)) goto out_ERROR_END; \
+#define VALUE(value) { \
+	if (!((value) = RULE)) goto out_ERROR_END; \
 }
 
-#define POSITION { \
-	if ((pos = rules_length[ARCH_INDEX(RULE)]) == INVALID_LENGTH) \
+#define POSITION(pos) { \
+	if (((pos) = rules_length[ARCH_INDEX(RULE)]) == INVALID_LENGTH) \
 		goto out_ERROR_POSITION; \
 }
 
-#define CLASS(start, true, false) { \
+#define CLASS_export_pos(start, true, false) { \
+	char value, *class; \
 	if ((value = RULE) == '?') { \
 		if (!(class = rules_classes[ARCH_INDEX(RULE)])) \
 			goto out_ERROR_CLASS; \
@@ -101,12 +102,19 @@ static char *conv_tolower, *conv_toupper;
 	} \
 }
 
+#define CLASS(start, true, false) { \
+	int pos; \
+	CLASS_export_pos(start, true, false); \
+}
+
 #define SKIP_CLASS { \
-	VALUE \
-	if (value == '?') VALUE \
+	char value; \
+	VALUE(value) \
+	if (value == '?') VALUE(value) \
 }
 
 #define CONV(conv) { \
+	int pos; \
 	for (pos = 0; (in[pos] = (conv)[ARCH_INDEX(in[pos])]); pos++); \
 }
 
@@ -251,12 +259,10 @@ char *rules_reject(char *rule, struct db_main *db)
 char *rules_apply(char *word, char *rule, int split)
 {
 	static char buffer[3][RULE_WORD_SIZE * 2];
-	char *in = buffer[0], *out, *p;
+	char *in = buffer[0];
 	char memory[RULE_WORD_SIZE];
 	int memory_empty, which;
-	char value, *class;
-	int length, pos;
-	int count, required;
+	int length;
 
 	length = 0;
 	while (length < RULE_WORD_SIZE - 1) {
@@ -289,13 +295,19 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case '<':
-			POSITION
-			if (length >= pos) REJECT
+			{
+				int pos;
+				POSITION(pos)
+				if (length >= pos) REJECT
+			}
 			break;
 
 		case '>':
-			POSITION
-			if (length <= pos) REJECT
+			{
+				int pos;
+				POSITION(pos)
+				if (length <= pos) REJECT
+			}
 			break;
 
 		case 'l':
@@ -307,21 +319,27 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case 'c':
-			pos = 0;
-			if ((in[0] = conv_toupper[ARCH_INDEX(in[0])]))
-			while (in[++pos])
-				in[pos] = conv_tolower[ARCH_INDEX(in[pos])];
-			in[pos] = 0;
+			{
+				int pos = 0;
+				if ((in[0] = conv_toupper[ARCH_INDEX(in[0])]))
+				while (in[++pos])
+					in[pos] =
+					    conv_tolower[ARCH_INDEX(in[pos])];
+				in[pos] = 0;
+			}
 			if (in[0] == 'M' && in[1] == 'c')
 				in[2] = conv_toupper[ARCH_INDEX(in[2])];
 			break;
 
 		case 'r':
-			GET_OUT
-			*(out += length) = 0;
-			while (*in)
-				*--out = *in++;
-			in = out;
+			{
+				char *out;
+				GET_OUT
+				*(out += length) = 0;
+				while (*in)
+					*--out = *in++;
+				in = out;
+			}
 			break;
 
 		case 'd':
@@ -330,89 +348,110 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case 'f':
-			in[pos = (length <<= 1)] = 0;
-			p = in;
-			while (*p)
-				in[--pos] = *p++;
+			{
+				int pos;
+				in[pos = (length <<= 1)] = 0;
+				{
+					char *p = in;
+					while (*p)
+						in[--pos] = *p++;
+				}
+			}
 			break;
 
 		case 'p':
 			if (length < 2) break;
-			pos = length - 1;
-			if (strchr("sxz", in[pos]) ||
-			    (pos > 1 && in[pos] == 'h' &&
-			    (in[pos - 1] == 'c' || in[pos - 1] == 's')))
-				strcat(in, "es");
-			else
-			if (in[pos] == 'f' && in[pos - 1] != 'f')
-				strcpy(&in[pos], "ves");
-			else
-			if (pos > 1 && in[pos] == 'e' && in[pos - 1] == 'f')
-				strcpy(&in[pos - 1], "ves");
-			else
-			if (pos > 1 && in[pos] == 'y') {
-				if (strchr("aeiou", in[pos - 1]))
-					strcat(in, "s");
+			{
+				int pos = length - 1;
+				if (strchr("sxz", in[pos]) ||
+				    (pos > 1 && in[pos] == 'h' &&
+				    (in[pos - 1] == 'c' || in[pos - 1] == 's')))
+					strcat(in, "es");
 				else
-					strcpy(&in[pos], "ies");
-			} else
-				strcat(in, "s");
+				if (in[pos] == 'f' && in[pos - 1] != 'f')
+					strcpy(&in[pos], "ves");
+				else
+				if (pos > 1 &&
+				    in[pos] == 'e' && in[pos - 1] == 'f')
+					strcpy(&in[pos - 1], "ves");
+				else
+				if (pos > 1 && in[pos] == 'y') {
+					if (strchr("aeiou", in[pos - 1]))
+						strcat(in, "s");
+					else
+						strcpy(&in[pos], "ies");
+				} else
+					strcat(in, "s");
+			}
 			length = strlen(in);
 			break;
 
 		case '$':
-			VALUE
-			in[length++] = value;
+			VALUE(in[length++])
 			in[length] = 0;
 			break;
 
 		case '^':
-			GET_OUT
-			VALUE
-			out[0] = value;
-			strcpy(&out[1], in);
+			{
+				char *out;
+				GET_OUT
+				VALUE(out[0])
+				strcpy(&out[1], in);
+				in = out;
+			}
 			length++;
-			in = out;
 			break;
 
 		case 'x':
-			POSITION
-			if (pos < length) {
-				GET_OUT
-				in += pos;
-				POSITION
-				strnzcpy(out, in, pos + 1);
-				length = strlen(in = out);
-			} else {
-				POSITION
-				in[length = 0] = 0;
+			{
+				int pos;
+				POSITION(pos)
+				if (pos < length) {
+					char *out;
+					GET_OUT
+					in += pos;
+					POSITION(pos)
+					strnzcpy(out, in, pos + 1);
+					length = strlen(in = out);
+				} else {
+					POSITION(pos)
+					in[length = 0] = 0;
+				}
 			}
 			break;
 
 		case 'i':
-			POSITION
-			VALUE
-			if (pos < length) {
-				p = in + pos;
-				memmove(p + 1, p, length++ - pos);
-				*p = value;
-				in[length] = 0;
-			} else {
-				in[length++] = value;
-				in[length] = 0;
+			{
+				int pos;
+				POSITION(pos)
+				if (pos < length) {
+					char *p = in + pos;
+					memmove(p + 1, p, length++ - pos);
+					VALUE(*p)
+				} else {
+					VALUE(in[length++])
+				}
 			}
+			in[length] = 0;
 			break;
 
 		case 'o':
-			POSITION
-			VALUE
-			if (in[pos])
-				in[pos] = value;
+			{
+				int pos;
+				char value;
+				POSITION(pos)
+				VALUE(value);
+				if (pos < length)
+					in[pos] = value;
+			}
 			break;
 
 		case 's':
 			CLASS(0, in[pos] = NEXT, {})
-			VALUE
+			{
+				char value;
+				VALUE(value)
+			}
 			break;
 
 		case '@':
@@ -426,22 +465,30 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case '/':
-			CLASS(0, break, {})
-			if (!in[pos]) REJECT
+			{
+				int pos;
+				CLASS_export_pos(0, break, {})
+				if (!in[pos]) REJECT
+			}
 			break;
 
 		case '=':
-			POSITION
-			if (pos >= length) {
-				SKIP_CLASS
-				REJECT
-			} else
-				CLASS(pos, break, REJECT)
+			{
+				int pos;
+				POSITION(pos)
+				if (pos >= length) {
+					SKIP_CLASS
+					REJECT
+				} else {
+					CLASS_export_pos(pos, break, REJECT)
+				}
+			}
 			break;
 
 /* Crack 5.0 rules */
 		case '[':
 			if (length) {
+				char *out;
 				GET_OUT
 				strcpy(out, &in[1]);
 				length--;
@@ -456,11 +503,14 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case 'C':
-			pos = 0;
-			if ((in[0] = conv_tolower[ARCH_INDEX(in[0])]))
-			while (in[++pos])
-				in[pos] = conv_toupper[ARCH_INDEX(in[pos])];
-			in[pos] = 0;
+			{
+				int pos = 0;
+				if ((in[0] = conv_tolower[ARCH_INDEX(in[0])]))
+				while (in[++pos])
+					in[pos] =
+					    conv_toupper[ARCH_INDEX(in[pos])];
+				in[pos] = 0;
+			}
 			if (in[0] == 'm' && in[1] == 'C')
 				in[2] = conv_tolower[ARCH_INDEX(in[2])];
 			break;
@@ -477,76 +527,96 @@ char *rules_apply(char *word, char *rule, int split)
 			if (!length) {
 				SKIP_CLASS
 				REJECT
-			} else
+			} else {
 				CLASS(length - 1, break, REJECT)
+			}
 			break;
 
 		case '\'':
-			POSITION
-			if (pos < length)
-				in[length = pos] = 0;
+			{
+				int pos;
+				POSITION(pos)
+				if (pos < length)
+					in[length = pos] = 0;
+			}
 			break;
 
 		case '%':
-			POSITION
-			count = 0; required = pos;
-			CLASS(0, if (++count >= required) break, {})
-			if (count < required) REJECT
+			{
+				int count = 0, required;
+				POSITION(required)
+				CLASS(0, if (++count >= required) break, {})
+				if (count < required) REJECT
+			}
 			break;
 
 /* Rules added in John */
 		case 'A':
-			VALUE
-			do {
-				char c = RULE;
-				if (c == value)
-					break;
-				if (length < RULE_WORD_SIZE - 1)
-					in[length++] = c;
-				if (c)
-					continue;
-				goto out_ERROR_END;
-			} while (1);
+			{
+				char term;
+				VALUE(term)
+				do {
+					char c = RULE;
+					if (c == term)
+						break;
+					if (length < RULE_WORD_SIZE - 1)
+						in[length++] = c;
+					if (c)
+						continue;
+					goto out_ERROR_END;
+				} while (1);
+			}
 			in[length] = 0;
 			break;
 
 		case 'B':
-			GET_OUT
-			VALUE
-			p = out;
-			do {
-				char c = RULE;
-				if (c == value)
-					break;
-				if (p < out + (RULE_WORD_SIZE - 1))
-					*p++ = c;
-				if (c)
-					continue;
-				goto out_ERROR_END;
-			} while (1);
-			strcpy(p, in);
-			length += p - out;
-			in = out;
+			{
+				char term, *out, *p;
+				VALUE(term)
+				GET_OUT
+				p = out;
+				do {
+					char c = RULE;
+					if (c == term)
+						break;
+					if (p < out + (RULE_WORD_SIZE - 1))
+						*p++ = c;
+					if (c)
+						continue;
+					goto out_ERROR_END;
+				} while (1);
+				strcpy(p, in);
+				length += p - out;
+				in = out;
+			}
 			break;
 
 		case 'T':
-			POSITION
-			in[pos] = conv_invert[ARCH_INDEX(in[pos])];
+			{
+				int pos;
+				POSITION(pos)
+				in[pos] = conv_invert[ARCH_INDEX(in[pos])];
+			}
 			break;
 
 		case 'D':
-			POSITION
-			if (pos < length) {
-				GET_OUT
-				memcpy(out, in, pos);
-				strcpy(&out[pos], &in[pos + 1]);
-				length--;
-				in = out;
+			{
+				int pos;
+				POSITION(pos)
+				if (pos < length) {
+					char *out;
+					GET_OUT
+					memcpy(out, in, pos);
+					strcpy(&out[pos], &in[pos + 1]);
+					length--;
+					in = out;
+				}
 			}
 			break;
 
 		case '{':
 			if (length) {
+				char *out;
 				GET_OUT
 				strcpy(out, &in[1]);
 				in[1] = 0;
@@ -558,6 +628,8 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case '}':
 			if (length) {
+				char *out;
+				int pos;
 				GET_OUT
 				out[0] = in[pos = length - 1];
 				in[pos] = 0;
@@ -584,34 +656,40 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case 'P':
-			if ((pos = length - 1) < 2) break;
-			if (in[pos] == 'd' && in[pos - 1] == 'e') break;
-			if (in[pos] == 'y') in[pos] = 'i'; else
-			if (strchr("bgp", in[pos]) &&
-			    !strchr("bgp", in[pos - 1])) {
-				in[pos + 1] = in[pos];
-				in[pos + 2] = 0;
-			}
-			if (in[pos] == 'e')
-				strcat(in, "d");
-			else
-				strcat(in, "ed");
-			length = strlen(in);
-			break;
-
-		case 'I':
-			if ((pos = length - 1) < 2) break;
-			if (in[pos] == 'g' && in[pos - 1] == 'n' &&
-			    in[pos - 2] == 'i') break;
-			if (strchr("aeiou", in[pos]))
-				strcpy(&in[pos], "ing");
-			else {
+			{
+				int pos;
+				if ((pos = length - 1) < 2) break;
+				if (in[pos] == 'd' && in[pos - 1] == 'e') break;
+				if (in[pos] == 'y') in[pos] = 'i'; else
 				if (strchr("bgp", in[pos]) &&
 				    !strchr("bgp", in[pos - 1])) {
 					in[pos + 1] = in[pos];
 					in[pos + 2] = 0;
 				}
-				strcat(in, "ing");
+				if (in[pos] == 'e')
+					strcat(in, "d");
+				else
+					strcat(in, "ed");
+			}
+			length = strlen(in);
+			break;
+
+		case 'I':
+			{
+				int pos;
+				if ((pos = length - 1) < 2) break;
+				if (in[pos] == 'g' && in[pos - 1] == 'n' &&
+				    in[pos - 2] == 'i') break;
+				if (strchr("aeiou", in[pos]))
+					strcpy(&in[pos], "ing");
+				else {
+					if (strchr("bgp", in[pos]) &&
+					    !strchr("bgp", in[pos - 1])) {
+						in[pos + 1] = in[pos];
+						in[pos + 2] = 0;
+					}
+					strcat(in, "ing");
+				}
 			}
 			length = strlen(in);
 			break;
@@ -672,10 +750,13 @@ char *rules_apply(char *word, char *rule, int split)
 				break;
 
 			case 2:
-				GET_OUT
-				strcpy(out, buffer[2]);
-				strcat(out, in);
-				in = out;
+				{
+					char *out;
+					GET_OUT
+					strcpy(out, buffer[2]);
+					strcat(out, in);
+					in = out;
+				}
 				break;
 
 			default:
