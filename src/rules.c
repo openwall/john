@@ -68,35 +68,22 @@ static char *conv_tolower, *conv_toupper;
 #define NEXT				(*rule)
 
 #define REJECT { \
-	if (!rules_debug) return NULL; \
+	if (!rules_debug) goto out_NULL; \
 }
 
 #define VALUE { \
-	if (!(value = RULE)) { \
-		rules_errno = RULES_ERROR_END; \
-		return NULL; \
-	} \
+	if (!(value = RULE)) goto out_ERROR_END; \
 }
 
 #define POSITION { \
-	if ((pos = rules_length[ARCH_INDEX(RULE)]) == INVALID_LENGTH) { \
-		if (LAST) \
-			rules_errno = RULES_ERROR_POSITION; \
-		else \
-			rules_errno = RULES_ERROR_END; \
-		return NULL; \
-	} \
+	if ((pos = rules_length[ARCH_INDEX(RULE)]) == INVALID_LENGTH) \
+		goto out_ERROR_POSITION; \
 }
 
 #define CLASS(start, true, false) { \
 	if ((value = RULE) == '?') { \
-		if (!(class = rules_classes[ARCH_INDEX(RULE)])) { \
-			if (LAST) \
-				rules_errno = RULES_ERROR_CLASS; \
-			else \
-				rules_errno = RULES_ERROR_END; \
-			return NULL; \
-		} \
+		if (!(class = rules_classes[ARCH_INDEX(RULE)])) \
+			goto out_ERROR_CLASS; \
 		for (pos = (start); ARCH_INDEX(in[pos]); pos++) \
 		if (class[ARCH_INDEX(in[pos])]) { \
 			true; \
@@ -104,10 +91,7 @@ static char *conv_tolower, *conv_toupper;
 			false; \
 		} \
 	} else { \
-		if (!value) { \
-			rules_errno = RULES_ERROR_END; \
-			return NULL; \
-		} \
+		if (!value) goto out_ERROR_END; \
 		for (pos = (start); ARCH_INDEX(in[pos]); pos++) \
 		if (in[pos] == value) { \
 			true; \
@@ -521,8 +505,7 @@ char *rules_apply(char *word, char *rule, int split)
 					in[length++] = c;
 				if (c)
 					continue;
-				rules_errno = RULES_ERROR_END;
-				return NULL;
+				goto out_ERROR_END;
 			} while (1);
 			in[length] = 0;
 			break;
@@ -539,8 +522,7 @@ char *rules_apply(char *word, char *rule, int split)
 					*p++ = c;
 				if (c)
 					continue;
-				rules_errno = RULES_ERROR_END;
-				return NULL;
+				goto out_ERROR_END;
 			} while (1);
 			strcpy(p, in);
 			length += p - out;
@@ -650,10 +632,8 @@ char *rules_apply(char *word, char *rule, int split)
 
 /* Additional "single crack" mode rules */
 		case '1':
-			if (split < 0) {
-				rules_errno = RULES_ERROR_UNKNOWN;
-				return NULL;
-			}
+			if (split < 0)
+				goto out_ERROR_UNKNOWN;
 			if (!split) REJECT
 			if (which)
 				memcpy(buffer[2], in, length + 1);
@@ -669,10 +649,8 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case '2':
-			if (split < 0) {
-				rules_errno = RULES_ERROR_UNKNOWN;
-				return NULL;
-			}
+			if (split < 0)
+				goto out_ERROR_UNKNOWN;
 			if (!split) REJECT
 			if (which) {
 				memcpy(buffer[2], in, length + 1);
@@ -701,16 +679,14 @@ char *rules_apply(char *word, char *rule, int split)
 				break;
 
 			default:
-				rules_errno = RULES_ERROR_UNKNOWN;
-				return NULL;
+				goto out_ERROR_UNKNOWN;
 			}
 			length = strlen(in);
 			which = 0;
 			break;
 
 		default:
-			rules_errno = RULES_ERROR_UNKNOWN;
-			return NULL;
+			goto out_ERROR_UNKNOWN;
 		}
 
 		if (!length) REJECT
@@ -728,6 +704,26 @@ char *rules_apply(char *word, char *rule, int split)
 
 	in[rules_max_length] = 0;
 	return in;
+
+out_ERROR_POSITION:
+	rules_errno = RULES_ERROR_POSITION;
+	if (LAST)
+		goto out_NULL;
+
+out_ERROR_END:
+	rules_errno = RULES_ERROR_END;
+out_NULL:
+	return NULL;
+
+out_ERROR_CLASS:
+	rules_errno = RULES_ERROR_CLASS;
+	if (LAST)
+		goto out_NULL;
+	goto out_ERROR_END;
+
+out_ERROR_UNKNOWN:
+	rules_errno = RULES_ERROR_UNKNOWN;
+	goto out_NULL;
 }
 
 int rules_check(struct rpp_context *start, int split)
