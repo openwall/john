@@ -15,22 +15,29 @@ are compatible with those of Crack 5.0a), and the preprocessor syntax.
 -s	reject this rule unless some passwords were split at loading
 
 
-	Character position codes.
+	Numeric constants and variables.
 
-Character positions are numbered starting with 0, and specified in rules
-with the following characters:
+Numeric constants may be specified and variables referred to with the
+following characters:
 
 0...9	for 0...9
 A...Z	for 10...35
 *	for max_length
 -	for (max_length - 1)
 +	for (max_length + 1)
+a...k	user-defined numeric variables (with the "v" command)
+m	initial or memorized word's last character position
+l	initial or current word's length (updated whenever "v" is used)
+z	"infinite" position or length (beyond end of word)
 
 Here max_length is the maximum plaintext length supported for the
 current hash type.
 
-The same characters are also used for specifying other numeric
-parameters.
+These may be used to specify character positions, substring lengths, and
+other numeric parameters to rule commands as appropriate for a given
+command.  Character positions are numbered starting with 0.  Thus, for
+example, the initial value of "m" (last character position) is one less
+than that of "l" (length).
 
 
 	Character classes.
@@ -71,8 +78,10 @@ $X	append character X to the word
 
 	String commands.
 
-A"STR"	append string STR to the word
-B"STR"	prefix the word with string STR
+AN"STR"	insert string STR into the word at position N
+
+To append a string, specify "z" for the position.  To prefix the word
+with a string, specify "0" for the position.
 
 Although the use of the double-quote character is good for readability,
 you may use any other character not found in STR instead.  This is
@@ -82,9 +91,9 @@ string (preventing it from ending the string and the command), but you
 may achieve the same effect by specifying multiple commands one after
 another.  For example, if you choose to use the forward slash as your
 quotation character, yet it happens to be found in a string and you
-don't want to reconsider your choice, you may write "A/start/$/A/end/",
-which will append the string "start/end".  Of course, it is simpler and
-more efficient to use, say, "A,start/end," for the same effect.
+don't want to reconsider your choice, you may write "Az/yes/$/Az/no/",
+which will append the string "yes/no".  Of course, it is simpler and
+more efficient to use, say, "Az,yes/no," for the same effect.
 
 
 	Length control commands.
@@ -125,7 +134,7 @@ L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
 
 	Memory access commands.
 
-M	memorize the word (for use with the "Q" command below only)
+M	memorize the word (for use with "Q", "X", or to update "m")
 Q	query the memory and reject the word unless it has changed
 
 If "Q" is used without a preceding "M", it compares the current "word"
@@ -214,4 +223,4 @@ itself.  Also, if you need to start a preprocessor character list at the
 very beginning of a line, you'll have to prefix it with a ":" (the no-op
 rule command), or it would be treated as a new section start.
 
-$Owl: Owl/packages/john/john/doc/RULES,v 1.4 2009/12/18 17:17:57 solar Exp $
+$Owl: Owl/packages/john/john/doc/RULES,v 1.5 2009/12/20 14:27:43 solar Exp $
