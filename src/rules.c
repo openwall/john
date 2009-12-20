@@ -28,7 +28,8 @@ char *rules_errors[] = {
 int rules_errno, rules_line;
 
 static int rules_debug;
-static char *rules_classes[0x100], rules_length[0x100];
+static char *rules_classes[0x100];
+static unsigned char rules_length[0x100];
 static int rules_max_length = 0;
 
 #define CONV_SOURCE \
@@ -61,7 +62,8 @@ static char *conv_source = CONV_SOURCE;
 static char *conv_shift, *conv_invert, *conv_vowels, *conv_right, *conv_left;
 static char *conv_tolower, *conv_toupper;
 
-#define INVALID_LENGTH			0x7F
+#define INVALID_LENGTH			0xFE
+#define INFINITE_LENGTH			0xFF
 
 #define RULE				(*rule++)
 #define LAST				(*(rule - 1))
@@ -195,11 +197,11 @@ static void rules_init_length(int max_length)
 	memset(rules_length, INVALID_LENGTH, sizeof(rules_length));
 
 	for (c = '0'; c <= '9'; c++) rules_length[c] = c - '0';
-	for (c = 'a'; c <= 'z'; c++) rules_length[c] = c - ('a' - 10);
 	for (c = 'A'; c <= 'Z'; c++) rules_length[c] = c - ('A' - 10);
 	rules_length['*'] = rules_max_length = max_length;
 	rules_length['-'] = max_length - 1;
 	rules_length['+'] = max_length + 1;
+	rules_length['z'] = INFINITE_LENGTH;
 }
 
 void rules_init(int max_length)
@@ -261,7 +263,7 @@ char *rules_apply(char *word, char *rule, int split)
 	static char buffer[3][RULE_WORD_SIZE * 2];
 	char *in = buffer[0];
 	char memory[RULE_WORD_SIZE];
-	int memory_empty, which;
+	int memory_nonempty, which;
 	int length;
 
 	length = 0;
@@ -282,7 +284,14 @@ char *rules_apply(char *word, char *rule, int split)
 
 	if (!length) REJECT
 
-	memory_empty = 1; which = 0;
+/*
+ * This assumes that RULE_WORD_SIZE is small enough that "length - 1" can't
+ * reach or exceed INVALID_LENGTH.
+ */
+	rules_length['m'] = (unsigned char)length - 1;
+	memory_nonempty = 0;
+
+	which = 0;
 
 	while (RULE) {
 		in[RULE_WORD_SIZE - 1] = 0;
@@ -696,16 +705,41 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case 'M':
 			strnfcpy(memory, in, rules_max_length);
-			memory_empty = 0;
+			rules_length['m'] = (unsigned char)length - 1;
+			memory_nonempty = 1;
 			break;
 
 		case 'Q':
-			if (memory_empty) {
-				if (!strncmp(word, in, rules_max_length))
+			{
+				char *p = memory_nonempty ? memory : word;
+				if (!strncmp(p, in, rules_max_length))
 					REJECT
-			} else
-				if (!strncmp(memory, in, rules_max_length))
-					REJECT
+			}
+			break;
+
+		case 'X':
+			{
+				int mpos, count, ipos, mleft;
+				char *inp, *mp;
+				POSITION(mpos)
+				POSITION(count)
+				POSITION(ipos)
+				mleft = (int)(rules_length['m'] + 1) - mpos;
+				if (count > mleft)
+					count = mleft;
+				if (count <= 0)
+					break;
+				mp = (memory_nonempty ? memory : word) + mpos;
+				if (ipos >= length) {
+					memcpy(&in[length], mp, count);
+					in[length += count] = 0;
+					break;
+				}
+				inp = in + ipos;
+				memmove(inp + count, inp, length - ipos);
+				in[length += count] = 0;
+				memcpy(inp, mp, count);
+			}
 			break;
 
 /* Additional "single crack" mode rules */
