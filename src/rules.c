@@ -559,30 +559,20 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 /* Rules added in John */
-		case 'A':
+		case 'A': /* append/insert/prepend string */
 			{
-				char term;
-				VALUE(term)
-				do {
-					char c = RULE;
-					if (c == term)
-						break;
-					if (length < RULE_WORD_SIZE - 1)
-						in[length++] = c;
-					if (c)
-						continue;
-					goto out_ERROR_END;
-				} while (1);
-			}
-			in[length] = 0;
-			break;
-
-		case 'B':
-			{
+				int pos;
 				char term, *out, *p;
+				POSITION(pos)
 				VALUE(term)
-				GET_OUT
-				p = out;
+				if (pos >= length) { /* append */
+					out = in;
+					p = &in[pos = length];
+				} else { /* insert or prepend */
+					GET_OUT
+					memcpy(out, in, pos);
+					p = out + pos;
+				}
 				do {
 					char c = RULE;
 					if (c == term)
@@ -593,8 +583,13 @@ char *rules_apply(char *word, char *rule, int split)
 						continue;
 					goto out_ERROR_END;
 				} while (1);
-				strcpy(p, in);
-				length += p - out;
+				if (pos >= length) {
+					*p = 0;
+					length += p - (out + pos);
+					break;
+				}
+				strcpy(p, &in[pos]);
+				length += p - (out + pos);
 				in = out;
 			}
 			break;
@@ -712,7 +707,7 @@ char *rules_apply(char *word, char *rule, int split)
 				REJECT
 			break;
 
-		case 'X':
+		case 'X': /* append/insert/prepend substring from memory */
 			{
 				int mpos, count, ipos, mleft;
 				char *inp, *mp;
