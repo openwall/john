@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2009 by Solar Designer
  */
 
 #include <stdio.h>
@@ -11,6 +11,7 @@
 #include "misc.h"
 #include "math.h"
 #include "params.h"
+#include "common.h"
 #include "path.h"
 #include "signals.h"
 #include "loader.h"
@@ -119,20 +120,24 @@ static int get_progress(void)
 		div64by32lo(&x100, file_stat.st_size + 1)) / rule_count;
 }
 
-static char *dummy_rules_apply(char *word, char *rule, int split)
+static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
 {
 	word[length] = 0;
-
-	return word;
+	if (strcmp(word, last))
+		return strcpy(last, word);
+	return NULL;
 }
 
 void do_wordlist_crack(struct db_main *db, char *name, int rules)
 {
-	char line[LINE_BUFFER_SIZE];
+	union {
+		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
+		ARCH_WORD dummy;
+	} aligned;
+	char *line = aligned.buffer[0], *last = aligned.buffer[1];
 	struct rpp_context ctx;
 	char *prerule, *rule, *word;
-	char last[RULE_WORD_SIZE];
-	char *(*apply)(char *word, char *rule, int split);
+	char *(*apply)(char *word, char *rule, int split, char *last);
 
 	log_event("Proceeding with wordlist mode");
 
@@ -182,8 +187,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (rules) prerule = rpp_next(&ctx); else prerule = "";
 	rule = "";
 
-	memset(last, ' ', length + 1);
-	last[length + 2] = 0;
+/* A string that can't be produced by fgetl(). */
+	last[0] = '\n';
+	last[1] = 0;
 
 	if (prerule)
 	do {
@@ -203,22 +209,25 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 		if (rule)
-		while (fgetl(line, sizeof(line), word_file)) {
+		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
 			line_number++;
 
-			if (line[0] == '#')
-			if (!strncmp(line, "#!comment", 9)) continue;
+			if (line[0] != '#') {
+not_comment:
+				if ((word = apply(line, rule, -1, last))) {
+					last = word;
 
-			if ((word = apply(line, rule, -1)))
-			if (strcmp(word, last)) {
-				strcpy(last, word);
-
-				if (ext_filter(word))
-				if (crk_process_key(word)) {
-					rules = 0;
-					break;
+					if (ext_filter(word))
+					if (crk_process_key(word)) {
+						rules = 0;
+						break;
+					}
 				}
+				continue;
 			}
+
+			if (strncmp(line, "#!comment", 9))
+				goto not_comment;
 		}
 
 		if (rules) {

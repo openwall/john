@@ -31,27 +31,35 @@ int rules_errno, rules_line;
 static int rules_max_length = 0;
 
 static struct {
-	char *classes[0x100];
 	unsigned char vars[0x100];
 	int debug;
 /*
- * Some rule commands may temporarily double the length, and we add another 16
- * bytes (more than machine word size but less than cache line size) to avoid
- * cache bank conflicts when copying data between the buffers.
+ * Some rule commands may temporarily double the length, and we skip a few
+ * machine words to avoid cache bank conflicts when copying data between the
+ * buffers.  We need three buffers because some rule commands require separate
+ * input and output buffers and we also need a buffer either for leaving the
+ * previous mangled word intact for a subsequent comparison (in wordlist mode)
+ * or for switching between two input words (in "single crack" mode).
+ * rules_apply() tries to minimize data copying, and thus it may return a
+ * pointer to any of the three buffers.
  */
-	char buffer[3][RULE_WORD_SIZE * 2 + 16];
+	union {
+		char buffer[3][RULE_WORD_SIZE * 2 + CACHE_BANK_SHIFT];
+		ARCH_WORD dummy;
+	} aligned;
 /*
  * "memory" doesn't have to be static (could as well be on stack), but we keep
  * it here to ensure it doesn't occasionally "overlap" with our other data in
  * terms of cache tags.
  */
 	char memory[RULE_WORD_SIZE];
+	char *classes[0x100];
 } CC_CACHE_ALIGN rules_data;
 
 #define rules_debug rules_data.debug
 #define rules_classes rules_data.classes
 #define rules_vars rules_data.vars
-#define buffer rules_data.buffer
+#define buffer rules_data.aligned.buffer
 #define memory_buffer rules_data.memory
 
 #define CONV_SOURCE \
@@ -143,10 +151,8 @@ static char *conv_tolower, *conv_toupper;
 }
 
 #define GET_OUT { \
-	if (in == buffer[0]) \
-		out = buffer[1]; \
-	else \
-		out = buffer[0]; \
+	out = alt; \
+	alt = in; \
 }
 
 static void rules_init_class(char name, char *valid)
@@ -287,11 +293,15 @@ char *rules_reject(char *rule, struct db_main *db)
 	return rule - 1;
 }
 
-char *rules_apply(char *word, char *rule, int split)
+char *rules_apply(char *word, char *rule, int split, char *last)
 {
-	char *in = buffer[0], *memory = word;
+	char *in, *alt, *memory = word;
 	int length;
 	int which;
+
+	in = buffer[0];
+	if (in == last)
+		in = buffer[2];
 
 	length = 0;
 	while (length < RULE_WORD_SIZE - 1) {
@@ -304,12 +314,14 @@ char *rules_apply(char *word, char *rule, int split)
  * This check assumes that rules_reject() has optimized the no-op rule
  * (a colon) into an empty string.
  */
-	if (!NEXT) {
-		in[rules_max_length] = 0;
-		return in;
-	}
+	if (!NEXT)
+		goto out_OK;
 
 	if (!length) REJECT
+
+	alt = buffer[1];
+	if (alt == last)
+		alt = buffer[2];
 
 /*
  * This assumes that RULE_WORD_SIZE is small enough that length can't reach or
@@ -858,18 +870,37 @@ char *rules_apply(char *word, char *rule, int split)
 		if (!length) REJECT
 	}
 
-	switch (which) {
-	case 1:
-		strcat(in, buffer[2]);
-		break;
+	if (which)
+		goto out_which;
 
-	case 2:
-		strcat(buffer[2], in);
-		in = buffer[2];
-	}
-
+out_OK:
 	in[rules_max_length] = 0;
+	if (last) {
+		if (length >= ARCH_SIZE - 1) {
+			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
+				return in;
+			if (!strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
+				goto out_NULL;
+			return in;
+		}
+		if (last[2])
+			return in;
+		if (in[0] != last[0])
+			return in;
+		if (in[1] != last[1] && length)
+			return in;
+		return NULL;
+	}
 	return in;
+
+out_which:
+	if (which == 1) {
+		strcat(in, buffer[2]);
+		goto out_OK;
+	}
+	strcat(buffer[2], in);
+	in = buffer[2];
+	goto out_OK;
 
 out_ERROR_POSITION:
 	rules_errno = RULES_ERROR_POSITION;
@@ -907,7 +938,7 @@ int rules_check(struct rpp_context *start, int split)
 	rules_debug = 1;
 	while ((rule = rpp_next(&ctx)))
 	if ((rule = rules_reject(rule, NULL))) {
-		rules_apply("", rule, split);
+		rules_apply("", rule, split, NULL);
 		if (rules_errno) break;
 
 		if (ctx.input) rules_line = ctx.input->number;
