@@ -62,7 +62,7 @@ static char *conv_source = CONV_SOURCE;
 static char *conv_shift, *conv_invert, *conv_vowels, *conv_right, *conv_left;
 static char *conv_tolower, *conv_toupper;
 
-#define INVALID_LENGTH			0xFE
+#define INVALID_LENGTH			0x81
 #define INFINITE_LENGTH			0xFF
 
 #define RULE				(*rule++)
@@ -285,9 +285,10 @@ char *rules_apply(char *word, char *rule, int split)
 	if (!length) REJECT
 
 /*
- * This assumes that RULE_WORD_SIZE is small enough that "length - 1" can't
- * reach or exceed INVALID_LENGTH.
+ * This assumes that RULE_WORD_SIZE is small enough that length can't reach or
+ * exceed INVALID_LENGTH.
  */
+	rules_length['l'] = length;
 	rules_length['m'] = (unsigned char)length - 1;
 
 	which = 0;
@@ -748,6 +749,20 @@ char *rules_apply(char *word, char *rule, int split)
 				memmove(inp + count, inp, length - ipos);
 				in[length += count] = 0;
 				memcpy(inp, mp, count);
+			}
+			break;
+
+		case 'v': /* assign value to an integer variable */
+			{
+				char var;
+				unsigned char a, s;
+				VALUE(var)
+				if (var < 'a' || var > 'k')
+					goto out_ERROR_POSITION;
+				rules_length['l'] = length;
+				POSITION(a)
+				POSITION(s)
+				rules_length[ARCH_INDEX(var)] = a - s;
 			}
 			break;
 
