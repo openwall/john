@@ -26,8 +26,8 @@ A...Z	for 10...35
 -	for (max_length - 1)
 +	for (max_length + 1)
 a...k	user-defined numeric variables (with the "v" command)
-m	initial or memorized word's last character position
 l	initial or current word's length (updated whenever "v" is used)
+m	initial or memorized word's last character position
 z	"infinite" position or length (beyond end of word)
 
 Here max_length is the maximum plaintext length supported for the
@@ -119,6 +119,9 @@ xNM	extract substring from position N for up to M characters
 iNX	insert character X in position N and shift the rest right
 oNX	overstrike character in position N with character X
 
+Also see the "X" command (extract and insert substring) under "Memory
+access commands" below.
+
 Note that square brackets ("[" and "]") are special characters to the
 preprocessor: you should escape them with a backslash ("\") if using
 these commands.
@@ -136,16 +139,52 @@ L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
 
 M	memorize the word (for use with "Q", "X", or to update "m")
 Q	query the memory and reject the word unless it has changed
+XNMI	extract substring NM from memory and insert into current word at I
 
-If "Q" is used without a preceding "M", it compares the current "word"
-(possibly mangled by preceding commands) against its initial state.
+If "Q" or "X" are used without a preceding "M", they read from the
+initial "word".  In other words, you may assume an implied "M" at the
+start of each rule, and there's no need to ever start a rule with "M"
+(that "M" would be a no-op).  The only reasonable use for "M" is in the
+middle of a rule, after some commands have possibly modified the word.
 
-The intended use for these commands is to help avoid duplicate candidate
-passwords that could result from multiple similar rules.  For example,
-if you have the rule "l" (lowercase) somewhere in your ruleset and you
-want to add the rule "lr" (lowercase and reverse), you could instead
-write the latter as "lMrQ" in order to avoid producing duplicate
+The intended use for the "Q" command is to help avoid duplicate
+candidate passwords that could result from multiple similar rules.  For
+example, if you have the rule "l" (lowercase) somewhere in your ruleset
+and you want to add the rule "lr" (lowercase and reverse), you could
+instead write the latter as "lMrQ" in order to avoid producing duplicate
 candidate passwords for palindromes.
+
+The "X" command extracts a substring from memory (or from the initial
+word if "M" was never used) starting at position N (in the memorized or
+initial word) and going for up to M characters.  It inserts the
+substring into the current word at position I.  The target position may
+be "z" for appending the substring, "0" for prefixing the word with it,
+or it may be any other valid numeric constant or variable.  Some example
+uses, assuming that we're at the start of a rule or after an "M", would
+be "X011" (duplicate the first character), "Xm1z" (duplicate the last
+character), "dX0zz" (triplicate the word), "<4X011X113X215" (duplicate
+every character in a short word), ">9x5zX05z" (rotate long words left by
+5 characters, same as ">9{{{{{" but faster due to fewer commands),
+">9vam4Xa50'l" (rotate right by 5 characters, same as ">9}}}}}").
+
+
+	Numeric commands.
+
+vVNM	update "l" (length), then subtract M from N and assign to variable V
+
+V must be one of "a" through "k".  N and M may be any valid numeric
+constants or initialized variables.  It is OK to refer to the same
+variable in the same command more than once, even three times.  For
+example, "va00" and "vaaa" will both set the variable "a" to zero (but
+the latter will require "a" to have been previously initialized),
+whereas "vil2" will set the variable "i" to the current word's length
+minus 2.  If "i" is then used as a character position before the word is
+modified further, it will refer to the second character from the end.
+It is OK for intermediate variable values to become negative, but such
+values should not be directly used as positions or lengths.  For
+example, if we follow our "vil2" somewhere later in the same rule with
+"vj02vjij", we'll set "j" to "i" plus 2, or to the word's length as of
+the time of processing of the "vil2" command earlier in the rule.
 
 
 	Character class commands.
@@ -223,4 +262,4 @@ itself.  Also, if you need to start a preprocessor character list at the
 very beginning of a line, you'll have to prefix it with a ":" (the no-op
 rule command), or it would be treated as a new section start.
 
-$Owl: Owl/packages/john/john/doc/RULES,v 1.5 2009/12/20 14:27:43 solar Exp $
+$Owl: Owl/packages/john/john/doc/RULES,v 1.6 2009/12/20 16:23:07 solar Exp $
