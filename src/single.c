@@ -235,7 +235,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	first_number = 0;
 	if ((first = pw->words->head))
 	do {
-		if ((key = rules_apply(first->data, rule, 0)))
+		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
 		if (single_add_key(keys, key))
 		if (single_process_buffer(salt)) return 1;
@@ -255,7 +255,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				strnzcpy(pair, first->data, RULE_WORD_SIZE);
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
 
-				if ((key = rules_apply(pair, rule, split)))
+				if ((key = rules_apply(pair, rule, split, NULL)))
 				if (ext_filter(key))
 				if (single_add_key(keys, key))
 				if (single_process_buffer(salt)) return 1;
@@ -267,7 +267,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				pair[1] = 0;
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
 
-				if ((key = rules_apply(pair, rule, 1)))
+				if ((key = rules_apply(pair, rule, 1, NULL)))
 				if (ext_filter(key))
 				if (single_add_key(keys, key))
 				if (single_process_buffer(salt)) return 1;
