@@ -335,8 +335,9 @@ char *rules_apply(char *word, char *rule, int split)
 					    conv_tolower[ARCH_INDEX(in[pos])];
 				in[pos] = 0;
 			}
-			if (in[0] == 'M' && in[1] == 'c')
-				in[2] = conv_toupper[ARCH_INDEX(in[2])];
+			if (in[0] != 'M' || in[1] != 'c')
+				break;
+			in[2] = conv_toupper[ARCH_INDEX(in[2])];
 			break;
 
 		case 'r':
@@ -421,10 +422,10 @@ char *rules_apply(char *word, char *rule, int split)
 					POSITION(pos)
 					strnzcpy(out, in, pos + 1);
 					length = strlen(in = out);
-				} else {
-					POSITION(pos)
-					in[length = 0] = 0;
+					break;
 				}
+				POSITION(pos)
+				in[length = 0] = 0;
 			}
 			break;
 
@@ -436,10 +437,11 @@ char *rules_apply(char *word, char *rule, int split)
 					char *p = in + pos;
 					memmove(p + 1, p, length++ - pos);
 					VALUE(*p)
-				} else {
-					VALUE(in[length++])
+					in[length] = 0;
+					break;
 				}
 			}
+			VALUE(in[length++])
 			in[length] = 0;
 			break;
 
@@ -476,8 +478,9 @@ char *rules_apply(char *word, char *rule, int split)
 			{
 				int pos;
 				CLASS_export_pos(0, break, {})
-				if (!in[pos]) REJECT
+				if (in[pos]) break;
 			}
+			REJECT
 			break;
 
 		case '=':
@@ -501,8 +504,9 @@ char *rules_apply(char *word, char *rule, int split)
 				strcpy(out, &in[1]);
 				length--;
 				in = out;
-			} else
-				in[0] = 0;
+				break;
+			}
+			in[0] = 0;
 			break;
 
 		case ']':
@@ -562,35 +566,48 @@ char *rules_apply(char *word, char *rule, int split)
 		case 'A': /* append/insert/prepend string */
 			{
 				int pos;
-				char term, *out, *p;
+				char term;
 				POSITION(pos)
 				VALUE(term)
 				if (pos >= length) { /* append */
-					out = in;
-					p = &in[pos = length];
-				} else { /* insert or prepend */
-					GET_OUT
-					memcpy(out, in, pos);
-					p = out + pos;
-				}
-				do {
-					char c = RULE;
-					if (c == term)
-						break;
-					if (p < out + (RULE_WORD_SIZE - 1))
-						*p++ = c;
-					if (c)
-						continue;
-					goto out_ERROR_END;
-				} while (1);
-				if (pos >= length) {
+					char *start, *end, *p;
+					start = p = &in[pos = length];
+					end = &in[RULE_WORD_SIZE - 1];
+					do {
+						char c = RULE;
+						if (c == term)
+							break;
+						if (p < end)
+							*p++ = c;
+						if (c)
+							continue;
+						goto out_ERROR_END;
+					} while (1);
 					*p = 0;
-					length += p - (out + pos);
+					length += p - start;
 					break;
 				}
-				strcpy(p, &in[pos]);
-				length += p - (out + pos);
-				in = out;
+				/* insert or prepend */
+				{
+					char *out, *start, *end, *p;
+					GET_OUT
+					memcpy(out, in, pos);
+					start = p = &out[pos];
+					end = &out[RULE_WORD_SIZE - 1];
+					do {
+						char c = RULE;
+						if (c == term)
+							break;
+						if (p < end)
+							*p++ = c;
+						if (c)
+							continue;
+						goto out_ERROR_END;
+					} while (1);
+					strcpy(p, &in[pos]);
+					length += p - start;
+					in = out;
+				}
 			}
 			break;
 
@@ -625,8 +642,9 @@ char *rules_apply(char *word, char *rule, int split)
 				in[1] = 0;
 				strcat(out, in);
 				in = out;
-			} else
-				in[0] = 0;
+				break;
+			}
+			in[0] = 0;
 			break;
 
 		case '}':
@@ -638,8 +656,9 @@ char *rules_apply(char *word, char *rule, int split)
 				in[pos] = 0;
 				strcpy(&out[1], in);
 				in = out;
-			} else
-				in[0] = 0;
+				break;
+			}
+			in[0] = 0;
 			break;
 
 		case 'S':
