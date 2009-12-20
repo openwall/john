@@ -261,10 +261,10 @@ char *rules_reject(char *rule, struct db_main *db)
 char *rules_apply(char *word, char *rule, int split)
 {
 	static char buffer[3][RULE_WORD_SIZE * 2];
-	char *in = buffer[0];
-	char memory[RULE_WORD_SIZE];
-	int memory_nonempty, which;
+	char memory_buffer[RULE_WORD_SIZE];
+	char *in = buffer[0], *memory = word;
 	int length;
+	int which;
 
 	length = 0;
 	while (length < RULE_WORD_SIZE - 1) {
@@ -289,7 +289,6 @@ char *rules_apply(char *word, char *rule, int split)
  * reach or exceed INVALID_LENGTH.
  */
 	rules_length['m'] = (unsigned char)length - 1;
-	memory_nonempty = 0;
 
 	which = 0;
 
@@ -704,17 +703,13 @@ char *rules_apply(char *word, char *rule, int split)
 			break;
 
 		case 'M':
-			strnfcpy(memory, in, rules_max_length);
+			strnfcpy(memory = memory_buffer, in, rules_max_length);
 			rules_length['m'] = (unsigned char)length - 1;
-			memory_nonempty = 1;
 			break;
 
 		case 'Q':
-			{
-				char *p = memory_nonempty ? memory : word;
-				if (!strncmp(p, in, rules_max_length))
-					REJECT
-			}
+			if (!strncmp(memory, in, rules_max_length))
+				REJECT
 			break;
 
 		case 'X':
@@ -729,7 +724,7 @@ char *rules_apply(char *word, char *rule, int split)
 					count = mleft;
 				if (count <= 0)
 					break;
-				mp = (memory_nonempty ? memory : word) + mpos;
+				mp = memory + mpos;
 				if (ipos >= length) {
 					memcpy(&in[length], mp, count);
 					in[length += count] = 0;
