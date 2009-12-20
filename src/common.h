@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2005 by Solar Designer
+ * Copyright (c) 1996-99,2005,2009 by Solar Designer
  */
 
 /*
@@ -25,6 +25,16 @@ typedef unsigned int ARCH_WORD_32;
 #else
 #define CC_CACHE_ALIGN			/* nothing */
 #endif
+
+/*
+ * This "shift" is the number of bytes that may be inserted between arrays the
+ * size of which would be a multiple of cache line size (some power of two) and
+ * that might be accessed simultaneously.  The purpose of the shift is to avoid
+ * cache bank conflicts with such accesses, actually allowing them to proceed
+ * simultaneously.  This number should be a multiple of the machine's word size
+ * but smaller than cache line size.
+ */
+#define CACHE_BANK_SHIFT		16
 
 /*
  * ASCII <-> binary conversion tables.
