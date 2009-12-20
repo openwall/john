@@ -9,6 +9,7 @@
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
+#include "common.h"
 #include "memory.h"
 #include "formats.h"
 #include "loader.h"
@@ -27,10 +28,31 @@ char *rules_errors[] = {
 
 int rules_errno, rules_line;
 
-static int rules_debug;
-static char *rules_classes[0x100];
-static unsigned char rules_length[0x100];
 static int rules_max_length = 0;
+
+static struct {
+	char *classes[0x100];
+	unsigned char vars[0x100];
+	int debug;
+/*
+ * Some rule commands may temporarily double the length, and we add another 16
+ * bytes (more than machine word size but less than cache line size) to avoid
+ * cache bank conflicts when copying data between the buffers.
+ */
+	char buffer[3][RULE_WORD_SIZE * 2 + 16];
+/*
+ * "memory" doesn't have to be static (could as well be on stack), but we keep
+ * it here to ensure it doesn't occasionally "overlap" with our other data in
+ * terms of cache tags.
+ */
+	char memory[RULE_WORD_SIZE];
+} CC_CACHE_ALIGN rules_data;
+
+#define rules_debug rules_data.debug
+#define rules_classes rules_data.classes
+#define rules_vars rules_data.vars
+#define buffer rules_data.buffer
+#define memory_buffer rules_data.memory
 
 #define CONV_SOURCE \
 	"`1234567890-=\\qwertyuiop[]asdfghjkl;'zxcvbnm,./" \
@@ -78,7 +100,7 @@ static char *conv_tolower, *conv_toupper;
 }
 
 #define POSITION(pos) { \
-	if (((pos) = rules_length[ARCH_INDEX(RULE)]) == INVALID_LENGTH) \
+	if (((pos) = rules_vars[ARCH_INDEX(RULE)]) == INVALID_LENGTH) \
 		goto out_ERROR_POSITION; \
 }
 
@@ -194,19 +216,19 @@ static void rules_init_length(int max_length)
 {
 	int c;
 
-	memset(rules_length, INVALID_LENGTH, sizeof(rules_length));
+	memset(rules_vars, INVALID_LENGTH, sizeof(rules_vars));
 
-	for (c = '0'; c <= '9'; c++) rules_length[c] = c - '0';
-	for (c = 'A'; c <= 'Z'; c++) rules_length[c] = c - ('A' - 10);
+	for (c = '0'; c <= '9'; c++) rules_vars[c] = c - '0';
+	for (c = 'A'; c <= 'Z'; c++) rules_vars[c] = c - ('A' - 10);
 
 	if (max_length > RULE_WORD_SIZE - 1)
 		max_length = RULE_WORD_SIZE - 1;
 
-	rules_length['*'] = rules_max_length = max_length;
-	rules_length['-'] = max_length - 1;
-	rules_length['+'] = max_length + 1;
+	rules_vars['*'] = rules_max_length = max_length;
+	rules_vars['-'] = max_length - 1;
+	rules_vars['+'] = max_length + 1;
 
-	rules_length['z'] = INFINITE_LENGTH;
+	rules_vars['z'] = INFINITE_LENGTH;
 }
 
 void rules_init(int max_length)
@@ -265,8 +287,6 @@ char *rules_reject(char *rule, struct db_main *db)
 
 char *rules_apply(char *word, char *rule, int split)
 {
-	static char buffer[3][RULE_WORD_SIZE * 2];
-	char memory_buffer[RULE_WORD_SIZE];
 	char *in = buffer[0], *memory = word;
 	int length;
 	int which;
@@ -293,8 +313,8 @@ char *rules_apply(char *word, char *rule, int split)
  * This assumes that RULE_WORD_SIZE is small enough that length can't reach or
  * exceed INVALID_LENGTH.
  */
-	rules_length['l'] = length;
-	rules_length['m'] = (unsigned char)length - 1;
+	rules_vars['l'] = length;
+	rules_vars['m'] = (unsigned char)length - 1;
 
 	which = 0;
 
@@ -724,7 +744,7 @@ char *rules_apply(char *word, char *rule, int split)
 
 		case 'M':
 			strnfcpy(memory = memory_buffer, in, rules_max_length);
-			rules_length['m'] = (unsigned char)length - 1;
+			rules_vars['m'] = (unsigned char)length - 1;
 			break;
 
 		case 'Q':
@@ -739,7 +759,7 @@ char *rules_apply(char *word, char *rule, int split)
 				POSITION(mpos)
 				POSITION(count)
 				POSITION(ipos)
-				mleft = (int)(rules_length['m'] + 1) - mpos;
+				mleft = (int)(rules_vars['m'] + 1) - mpos;
 				if (count > mleft)
 					count = mleft;
 				if (count <= 0)
@@ -764,10 +784,10 @@ char *rules_apply(char *word, char *rule, int split)
 				VALUE(var)
 				if (var < 'a' || var > 'k')
 					goto out_ERROR_POSITION;
-				rules_length['l'] = length;
+				rules_vars['l'] = length;
 				POSITION(a)
 				POSITION(s)
-				rules_length[ARCH_INDEX(var)] = a - s;
+				rules_vars[ARCH_INDEX(var)] = a - s;
 			}
 			break;
 
