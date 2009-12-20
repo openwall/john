@@ -198,9 +198,14 @@ static void rules_init_length(int max_length)
 
 	for (c = '0'; c <= '9'; c++) rules_length[c] = c - '0';
 	for (c = 'A'; c <= 'Z'; c++) rules_length[c] = c - ('A' - 10);
+
+	if (max_length > RULE_WORD_SIZE - 1)
+		max_length = RULE_WORD_SIZE - 1;
+
 	rules_length['*'] = rules_max_length = max_length;
 	rules_length['-'] = max_length - 1;
 	rules_length['+'] = max_length + 1;
+
 	rules_length['z'] = INFINITE_LENGTH;
 }
 
