@@ -221,9 +221,6 @@ static void rules_init_length(int max_length)
 	for (c = '0'; c <= '9'; c++) rules_vars[c] = c - '0';
 	for (c = 'A'; c <= 'Z'; c++) rules_vars[c] = c - ('A' - 10);
 
-	if (max_length > RULE_WORD_SIZE - 1)
-		max_length = RULE_WORD_SIZE - 1;
-
 	rules_vars['*'] = rules_max_length = max_length;
 	rules_vars['-'] = max_length - 1;
 	rules_vars['+'] = max_length + 1;
@@ -233,14 +230,19 @@ static void rules_init_length(int max_length)
 
 void rules_init(int max_length)
 {
-	if (rules_max_length) return;
-
-	rules_init_classes();
-	rules_init_convs();
-	rules_init_length(max_length);
-
 	rules_debug = 0;
 	rules_errno = RULES_ERROR_NONE;
+
+	if (max_length > RULE_WORD_SIZE - 1)
+		max_length = RULE_WORD_SIZE - 1;
+
+	if (max_length == rules_max_length) return;
+
+	if (!rules_max_length) {
+		rules_init_classes();
+		rules_init_convs();
+	}
+	rules_init_length(max_length);
 }
 
 char *rules_reject(char *rule, struct db_main *db)
@@ -777,7 +779,7 @@ char *rules_apply(char *word, char *rule, int split)
 			}
 			break;
 
-		case 'v': /* assign value to an integer variable */
+		case 'v': /* assign value to numeric variable */
 			{
 				char var;
 				unsigned char a, s;
