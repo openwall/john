@@ -39,22 +39,26 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	struct rpp_range *range;
 	unsigned char *input, *output, *end;
 	unsigned char c1, c2, c;
+	int flag_p;
 
 	input = (unsigned char *)ctx->input->data;
 	output = (unsigned char *)ctx->output;
 	end = output + RULE_BUFFER_SIZE - 1;
+	flag_p = 0;
 	ctx->count = ctx->refs_count = 0;
 
 	while (*input && output < end)
 	switch (*input) {
 	case '\\':
 		if (!(c = *++input)) break;
-		input++;
 		if (c >= '1' && c <= '9' && ctx->refs_count < RULE_RANGES_MAX) {
 			ctx->refs[ctx->refs_count].pos = (char *)output;
 			ctx->refs[ctx->refs_count++].range = c - '1';
 		}
-		*output++ = c;
+		if (*++input == '[' && c == 'p' && ctx->count < RULE_RANGES_MAX)
+			flag_p = 1;
+		else
+			*output++ = c;
 		break;
 
 	case '[':
@@ -67,6 +71,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		range = &ctx->ranges[ctx->count++];
 		range->pos = (char *)output++;
 		range->index = range->count = 0;
+		range->flag_p = flag_p; flag_p = 0;
 		memset(range->mask, 0, sizeof(range->mask));
 
 		c1 = 0;
@@ -122,7 +127,12 @@ char *rpp_next(struct rpp_context *ctx)
 		index = ctx->count - 1;
 		do {
 			range = &ctx->ranges[index];
-			if (++range->index < range->count) break;
+			if (++range->index < range->count) {
+				if (range->flag_p)
+					continue;
+				else
+					break;
+			}
 			range->index = 0;
 		} while (index--);
 	}
