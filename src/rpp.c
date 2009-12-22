@@ -43,19 +43,16 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	input = (unsigned char *)ctx->input->data;
 	output = (unsigned char *)ctx->output;
 	end = output + RULE_BUFFER_SIZE - 1;
-	ctx->count = 0;
+	ctx->count = ctx->refs_count = 0;
 
 	while (*input && output < end)
 	switch (*input) {
 	case '\\':
 		if (!(c = *++input)) break;
 		input++;
-		if (c >= '1' && c <= '9' && ctx->count < RULE_RANGES_MAX) {
-			range = &ctx->ranges[ctx->count++];
-			range->pos = (char *)output++;
-			range->count = -(int)(c - '0');
-			range->index = 0;
-			break;
+		if (c >= '1' && c <= '9' && ctx->refs_count < RULE_RANGES_MAX) {
+			ctx->refs[ctx->refs_count].pos = (char *)output;
+			ctx->refs[ctx->refs_count++].range = c - '1';
 		}
 		*output++ = c;
 		break;
@@ -118,12 +115,8 @@ char *rpp_next(struct rpp_context *ctx)
 
 	if ((index = ctx->count - 1) >= 0) {
 		do {
-			char *p;
 			range = &ctx->ranges[index];
-			p = range->pos;
-			if (range->count < 0)
-				range = &ctx->ranges[-range->count - 1];
-			*p = range->chars[range->index];
+			*range->pos = range->chars[range->index];
 		} while (index--);
 
 		index = ctx->count - 1;
@@ -132,6 +125,17 @@ char *rpp_next(struct rpp_context *ctx)
 			if (++range->index < range->count) break;
 			range->index = 0;
 		} while (index--);
+	}
+
+	if (ctx->refs_count > 0) {
+		int ref_index = ctx->refs_count - 1;
+		do {
+			int range_index = ctx->refs[ref_index].range;
+			if (range_index < ctx->count) {
+				range = &ctx->ranges[range_index];
+				*ctx->refs[ref_index].pos = *range->pos;
+			}
+		} while (ref_index--);
 	}
 
 	if (index < 0) {
