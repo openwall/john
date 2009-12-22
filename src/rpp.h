@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2009 by Solar Designer
  */
 
 /*
@@ -35,6 +35,17 @@ struct rpp_range {
 };
 
 /*
+ * Reference to a character range.
+ */
+struct rpp_ref {
+/* Character position in output rule */
+	char *pos;
+
+/* Range being referenced (by number) */
+	int range;
+};
+
+/*
  * Preprocessor context.
  */
 struct rpp_context {
@@ -47,8 +58,13 @@ struct rpp_context {
 /* Number of character ranges in this rule */
 	int count;
 
-/* Character ranges. I really hate to do it this way, but otherwise context
- * management would be far more complicated. */
+/* Number of references to ranges in this rule */
+	int refs_count;
+
+/* References to ranges (mapping of reference number to range number) */
+	struct rpp_ref refs[RULE_RANGES_MAX];
+
+/* Character ranges */
 	struct rpp_range ranges[RULE_RANGES_MAX];
 };
 
