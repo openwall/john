@@ -27,6 +27,9 @@ struct rpp_range {
 /* Current character value index */
 	int index;
 
+/* Whether the range should be processed "in parallel" with preceding ranges */
+	int flag_p;
+
 /* Present characters bitmask for dupe checking */
 	ARCH_WORD mask[0x100 / ARCH_BITS];
 
