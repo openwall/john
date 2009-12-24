@@ -10,9 +10,11 @@ are compatible with those of Crack 5.0a), and the preprocessor syntax.
 
 	Rule reject flags.
 
+-:	no-op: don't reject
 -c	reject this rule unless current hash type is case-sensitive
 -8	reject this rule unless current hash type uses 8-bit characters
--s	reject this rule unless some passwords were split at loading
+-s	reject this rule unless some pass hashes were split at loading
+-p	reject this rule unless word pair commands are currently allowed
 
 
 	Numeric constants and variables.
@@ -53,6 +55,7 @@ than that of "l" (length).
 ?d	matches digits [0-9]
 ?a	matches letters [a-zA-Z]
 ?x	matches letters and digits [a-zA-Z0-9]
+?z	matches all characters
 
 The complement of a class can be specified by uppercasing its name.  For
 example, "?D" matches everything but digits.
@@ -262,4 +265,18 @@ itself.  Also, if you need to start a preprocessor character list at the
 very beginning of a line, you'll have to prefix it with a ":" (the no-op
 rule command), or it would be treated as a new section start.
 
-$Owl: Owl/packages/john/john/doc/RULES,v 1.6 2009/12/20 16:23:07 solar Exp $
+Finally, the preprocessor supports some magic escape sequences.  These
+start with a backslash and use characters that you would not normally
+need to escape.  Currently supported are "\1" through "\9" for
+back-references to prior ranges (these will be substituted by the same
+character that is currently generated for the referenced range, with
+ranges numbered from 1, left-to-right), "\0" for back-reference to the
+immediately preceding range, "\p" right before a range to have that
+range processed "in parallel" with preceding ranges, and "\p1" through
+"\p9" right before a range to have the range processed "in parallel"
+with the specific referenced range.
+
+Please refer to the default configuration file for John the Ripper for
+many example uses of the features described in here.
+
+$Owl: Owl/packages/john/john/doc/RULES,v 1.7 2009/12/24 09:44:45 solar Exp $
