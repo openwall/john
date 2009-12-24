@@ -51,13 +51,24 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	switch (*input) {
 	case '\\':
 		if (!(c = *++input)) break;
-		if (c >= '1' && c <= '9' && ctx->refs_count < RULE_RANGES_MAX) {
-			ctx->refs[ctx->refs_count].pos = (char *)output;
-			ctx->refs[ctx->refs_count++].range = c - '1';
+		c1 = ctx->count ? '0' : '1';
+		c2 = (ctx->count <= 9) ? '0' + ctx->count : '9';
+		if (c >= c1 && c <= c2 && ctx->refs_count < RULE_RANGES_MAX) {
+			struct rpp_ref *ref = &ctx->refs[ctx->refs_count++];
+			ref->pos = (char *)output;
+			ref->range = (c == '0') ? ctx->count - 1 : c - '1';
 		}
-		if (*++input == '[' && c == 'p' && ctx->count < RULE_RANGES_MAX)
-			flag_p = 1;
-		else
+		flag_p = 0;
+		input++;
+		if (c == 'p' && ctx->count < RULE_RANGES_MAX) {
+			if ((c = *input) == '[') {
+				flag_p = -1;
+			} else if (c >= '1' && c <= '9') {
+				flag_p = c - '0';
+				input++;
+			}
+		}
+		if (!flag_p)
 			*output++ = c;
 		break;
 
@@ -73,6 +84,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		range->index = range->count = 0;
 		range->flag_p = flag_p; flag_p = 0;
 		memset(range->mask, 0, sizeof(range->mask));
+		range->chars[0] = 0;
 
 		c1 = 0;
 		while (*input && *input != ']')
@@ -111,13 +123,14 @@ static void rpp_process_rule(struct rpp_context *ctx)
 char *rpp_next(struct rpp_context *ctx)
 {
 	struct rpp_range *range;
-	int index;
+	int index, done;
 
 	if (ctx->count < 0) {
 		if (!ctx->input) return NULL;
 		rpp_process_rule(ctx);
 	}
 
+	done = 1;
 	if ((index = ctx->count - 1) >= 0) {
 		do {
 			range = &ctx->ranges[index];
@@ -127,6 +140,8 @@ char *rpp_next(struct rpp_context *ctx)
 		index = ctx->count - 1;
 		do {
 			range = &ctx->ranges[index];
+			if (range->flag_p > 0)
+				continue;
 			if (++range->index < range->count) {
 				if (range->flag_p)
 					continue;
@@ -135,20 +150,32 @@ char *rpp_next(struct rpp_context *ctx)
 			}
 			range->index = 0;
 		} while (index--);
+
+		done = index < 0;
+
+		index = ctx->count - 1;
+		do {
+			range = &ctx->ranges[index];
+			if (range->flag_p <= 0 || range->flag_p > ctx->count)
+				continue;
+			range->index = ctx->ranges[range->flag_p - 1].index;
+			if (range->index >= range->count)
+				range->index = 0;
+		} while (index--);
 	}
 
 	if (ctx->refs_count > 0) {
 		int ref_index = ctx->refs_count - 1;
 		do {
-			int range_index = ctx->refs[ref_index].range;
-			if (range_index < ctx->count) {
-				range = &ctx->ranges[range_index];
+			index = ctx->refs[ref_index].range;
+			if (index < ctx->count) {
+				range = &ctx->ranges[index];
 				*ctx->refs[ref_index].pos = *range->pos;
 			}
 		} while (ref_index--);
 	}
 
-	if (index < 0) {
+	if (done) {
 		ctx->input = ctx->input->next;
 		ctx->count = -1;
 	}
