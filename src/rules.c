@@ -21,6 +21,7 @@ char *rules_errors[] = {
 	NULL,	/* No error */
 	"Unexpected end of rule",
 	"Unknown command",
+	"Unallowed command",
 	"Invalid position code",
 	"Unknown character class code",
 	"Unknown rule reject flag"
@@ -32,7 +33,12 @@ static int rules_max_length = 0;
 
 static struct {
 	unsigned char vars[0x100];
-	int debug;
+/*
+ * pass == -2	initial syntax checking of rules
+ * pass == -1	optimization of rules (no-ops are removed)
+ * pass == 0	actual processing of rules
+ */
+	int pass;
 /*
  * Some rule commands may temporarily double the length, and we skip a few
  * machine words to avoid cache bank conflicts when copying data between the
@@ -56,7 +62,7 @@ static struct {
 	char *classes[0x100];
 } CC_CACHE_ALIGN rules_data;
 
-#define rules_debug rules_data.debug
+#define rules_pass rules_data.pass
 #define rules_classes rules_data.classes
 #define rules_vars rules_data.vars
 #define buffer rules_data.aligned.buffer
@@ -100,7 +106,7 @@ static char *conv_tolower, *conv_toupper;
 #define NEXT				(*rule)
 
 #define REJECT { \
-	if (!rules_debug) goto out_NULL; \
+	if (!rules_pass) goto out_NULL; \
 }
 
 #define VALUE(value) { \
@@ -165,8 +171,8 @@ static void rules_init_class(char name, char *valid)
 	for (pos = valid; ARCH_INDEX(*pos); pos++)
 		rules_classes[ARCH_INDEX(name)][ARCH_INDEX(*pos)] = 1;
 
-	if (name >= 'a' && name <= 'z') {
-		inv = name & ~0x20;
+	if ((name | 0x20) >= 'a' && (name | 0x20) <= 'z') {
+		inv = name ^ 0x20;
 		rules_classes[ARCH_INDEX(inv)] =
 			mem_alloc_tiny(0x100, MEM_ALIGN_NONE);
 		memset(rules_classes[ARCH_INDEX(inv)], 1, 0x100);
@@ -190,6 +196,7 @@ static void rules_init_classes(void)
 	rules_init_class('d', CHARS_DIGITS);
 	rules_init_class('a', CHARS_LOWER CHARS_UPPER);
 	rules_init_class('x', CHARS_LOWER CHARS_UPPER CHARS_DIGITS);
+	rules_init_class('Z', "");
 }
 
 static char *rules_init_conv(char *src, char *dst)
@@ -236,7 +243,7 @@ static void rules_init_length(int max_length)
 
 void rules_init(int max_length)
 {
-	rules_debug = 0;
+	rules_pass = 0;
 	rules_errno = RULES_ERROR_NONE;
 
 	if (max_length > RULE_WORD_SIZE - 1)
@@ -251,8 +258,10 @@ void rules_init(int max_length)
 	rules_init_length(max_length);
 }
 
-char *rules_reject(char *rule, struct db_main *db)
+char *rules_reject(char *rule, int split, struct db_main *db)
 {
+	static char out_rule[RULE_BUFFER_SIZE];
+
 	while (RULE)
 	switch (LAST) {
 	case ':':
@@ -262,6 +271,9 @@ char *rules_reject(char *rule, struct db_main *db)
 
 	case '-':
 		switch (RULE) {
+		case ':':
+			continue;
+
 		case 'c':
 			if (!db) continue;
 			if (db->format->params.flags & FMT_CASE) continue;
@@ -277,6 +289,10 @@ char *rules_reject(char *rule, struct db_main *db)
 			if (db->options->flags & DB_SPLIT) continue;
 			return NULL;
 
+		case 'p':
+			if (split >= 0) continue;
+			return NULL;
+
 		case '\0':
 			rules_errno = RULES_ERROR_END;
 			return NULL;
@@ -287,10 +303,16 @@ char *rules_reject(char *rule, struct db_main *db)
 		}
 
 	default:
-		return rule - 1;
+		goto accept;
 	}
 
-	return rule - 1;
+accept:
+	rules_pass--;
+	strnzcpy(out_rule, rule - 1, sizeof(out_rule));
+	rules_apply("", out_rule, split, NULL);
+	rules_pass++;
+
+	return out_rule;
 }
 
 char *rules_apply(char *word, char *rule, int split, char *last)
@@ -340,6 +362,10 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 		case ':':
 		case ' ':
 		case '\t':
+			if (rules_pass == -1) {
+				memmove(rule - 1, rule, strlen(rule) + 1);
+				rule--;
+			}
 			break;
 
 		case '<':
@@ -808,7 +834,7 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 /* Additional "single crack" mode rules */
 		case '1':
 			if (split < 0)
-				goto out_ERROR_UNKNOWN;
+				goto out_ERROR_UNALLOWED;
 			if (!split) REJECT
 			if (which)
 				memcpy(buffer[2], in, length + 1);
@@ -825,7 +851,7 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 
 		case '2':
 			if (split < 0)
-				goto out_ERROR_UNKNOWN;
+				goto out_ERROR_UNALLOWED;
 			if (!split) REJECT
 			if (which) {
 				memcpy(buffer[2], in, length + 1);
@@ -857,7 +883,7 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 				break;
 
 			default:
-				goto out_ERROR_UNKNOWN;
+				goto out_ERROR_UNALLOWED;
 			}
 			length = strlen(in);
 			which = 0;
@@ -921,6 +947,10 @@ out_ERROR_CLASS:
 out_ERROR_UNKNOWN:
 	rules_errno = RULES_ERROR_UNKNOWN;
 	goto out_NULL;
+
+out_ERROR_UNALLOWED:
+	rules_errno = RULES_ERROR_UNALLOWED;
+	goto out_NULL;
 }
 
 int rules_check(struct rpp_context *start, int split)
@@ -935,16 +965,15 @@ int rules_check(struct rpp_context *start, int split)
 	rules_line = ctx.input->number;
 	count = 0;
 
-	rules_debug = 1;
-	while ((rule = rpp_next(&ctx)))
-	if ((rule = rules_reject(rule, NULL))) {
-		rules_apply("", rule, split, NULL);
+	rules_pass = -1; /* rules_reject() will turn this into -2 */
+	while ((rule = rpp_next(&ctx))) {
+		rules_reject(rule, split, NULL);
 		if (rules_errno) break;
 
 		if (ctx.input) rules_line = ctx.input->number;
 		count++;
 	}
-	rules_debug = 0;
+	rules_pass = 0;
 
 	return rules_errno ? 0 : count;
 }
