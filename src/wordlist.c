@@ -194,7 +194,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (prerule)
 	do {
 		if (rules) {
-			if ((rule = rules_reject(prerule, db))) {
+			if ((rule = rules_reject(prerule, -1, db))) {
 				if (strcmp(prerule, rule))
 					log_event("- Rule #%d: '%.100s'"
 						" accepted as '%.100s'",
