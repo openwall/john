@@ -13,7 +13,7 @@ are compatible with those of Crack 5.0a), and the preprocessor syntax.
 -:	no-op: don't reject
 -c	reject this rule unless current hash type is case-sensitive
 -8	reject this rule unless current hash type uses 8-bit characters
--s	reject this rule unless some pass hashes were split at loading
+-s	reject this rule unless some password hashes were split at loading
 -p	reject this rule unless word pair commands are currently allowed
 
 
@@ -279,4 +279,4 @@ with the specific referenced range.
 Please refer to the default configuration file for John the Ripper for
 many example uses of the features described in here.
 
-$Owl: Owl/packages/john/john/doc/RULES,v 1.7 2009/12/24 09:44:45 solar Exp $
+$Owl: Owl/packages/john/john/doc/RULES,v 1.8 2009/12/24 10:10:26 solar Exp $
