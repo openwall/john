@@ -19,9 +19,10 @@
 #define RULES_ERROR_NONE		0
 #define RULES_ERROR_END			1
 #define RULES_ERROR_UNKNOWN		2
-#define RULES_ERROR_POSITION		3
-#define RULES_ERROR_CLASS		4
-#define RULES_ERROR_REJECT		5
+#define RULES_ERROR_UNALLOWED		3
+#define RULES_ERROR_POSITION		4
+#define RULES_ERROR_CLASS		5
+#define RULES_ERROR_REJECT		6
 
 /*
  * Error names.
@@ -48,10 +49,13 @@ extern void rules_init(int max_length);
  * Processes rule reject flags, based on information from the database.
  * Returns a pointer to the first command in the rule if it's accepted,
  * or NULL if rejected or an error occurred. Also sets rules_errno on
- * error. If the database is NULL, all rules are accepted (to be used
- * for syntax checking).
+ * error. If the database is NULL, almost all rules are accepted (to be
+ * used for syntax checking).
+ *
+ * split == 0	"single crack" mode rules allowed
+ * split < 0	"single crack" mode rules are invalid
  */
-extern char *rules_reject(char *rule, struct db_main *db);
+extern char *rules_reject(char *rule, int split, struct db_main *db);
 
 /*
  * Applies rule to a word. Returns the updated word, or NULL if rejected or
