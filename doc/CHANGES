@@ -25,6 +25,8 @@ removal of no-op rule commands in an initial pass).
 revised to make use of the new features, for speed, to produce fewer
 duplicates, and to attempt additional kinds of candidate passwords (such
 as for years 2010 through 2019 with "year-based" rules).
+* The idle priority emulation code has been optimized for lower overhead when
+there appears to be no other demand for CPU time.
 * The default for the Idle setting has been changed from N to Y.
 
 The following changes have been made between John 1.7.3.1 and 1.7.3.4:
