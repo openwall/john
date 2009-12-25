@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2009 by Solar Designer
  */
 
 /*
@@ -73,8 +73,8 @@ extern char *cfg_get_param(char *section, char *subsection, char *param);
 extern int cfg_get_int(char *section, char *subsection, char *param);
 
 /*
- * Converts the value to boolean. Returns 0 (false) if not found.
+ * Converts the value to boolean. Returns def if not found.
  */
-extern int cfg_get_bool(char *section, char *subsection, char *param);
+extern int cfg_get_bool(char *section, char *subsection, char *param, int def);
 
 #endif
