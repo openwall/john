@@ -28,7 +28,7 @@ A...Z	for 10...35
 -	for (max_length - 1)
 +	for (max_length + 1)
 a...k	user-defined numeric variables (with the "v" command)
-l	initial or current word's length (updated whenever "v" is used)
+l	initial or updated word's length (updated whenever "v" is used)
 m	initial or memorized word's last character position
 z	"infinite" position or length (beyond end of word)
 
