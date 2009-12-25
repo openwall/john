@@ -28,7 +28,7 @@ A...Z	for 10...35
 -	for (max_length - 1)
 +	for (max_length + 1)
 a...k	user-defined numeric variables (with the "v" command)
-l	initial or current word's length (updated whenever "v" is used)
+l	initial or updated word's length (updated whenever "v" is used)
 m	initial or memorized word's last character position
 z	"infinite" position or length (beyond end of word)
 
@@ -279,4 +279,4 @@ with the specific referenced range.
 Please refer to the default configuration file for John the Ripper for
 many example uses of the features described in here.
 
-$Owl: Owl/packages/john/john/doc/RULES,v 1.8 2009/12/24 10:10:26 solar Exp $
+$Owl: Owl/packages/john/john/doc/RULES,v 1.9 2009/12/25 18:05:44 solar Exp $
