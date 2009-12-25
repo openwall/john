@@ -41,8 +41,7 @@ thereby greatly reducing its impact on other system processes.  The
 impact on performance of John itself is negligible except on otherwise
 overloaded systems.  This setting does not affect John's startup time
 and non-cracking invocations of John; it only affects the actual
-cracking.  The default is "N" (no), but you really should want to
-(consciously) change this!
+cracking.  The default is "Y" (yes).
 
 Save = SECONDS
 

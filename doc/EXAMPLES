@@ -195,7 +195,8 @@ or:
 	john --restore=allrules
 
 Finally, to make John have less impact on other processes, you should
-set the option "Idle = Y" in the configuration file (see CONFIG).
+set the option "Idle = Y" in the configuration file (see CONFIG).  The
+default may vary depending on the version and build of JtR.
 
 To only crack accounts with a "good" shell (in general, the shell, user,
 and group filters described above work for all cracking modes as well):
