@@ -205,33 +205,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-
-	Miscellaneous.
-
-Q: Is John the Ripper better than Crack?
-A: I think so, but I am biased.  John is much faster, has many password
-hash types supported out of the box and even more with contributed
-patches, has "incremental" mode (try all possible candidate passwords in
-order of decreasing estimated probability) and other features not found
-in Crack, and is natively available on more platforms.  However, one
-feature that is currently unique to Crack is its DAWG (Directed Acyclic
-Word Graphs) wordlist compression, which saves disk space needed to
-store wordlists.
-
-Q: Is John the Ripper better than L0phtCrack?
-A: In some aspects, yes (but I am biased).  John runs on many platforms.
-For example, you can have it crack Windows passwords while running on
-Linux or Mac OS X on PowerPC (and it will take advantage of AltiVec
-acceleration there!)  L0phtCrack only runs on Windows.  John's
-performance at Windows LM hashes (case-insensitive, DES-based) is
-comparable to that of recent versions of L0phtCrack (LC 5 as of this
-writing), but John offers "incremental" mode (see the answer to the
-previous question) which lets it outperform L0phtCrack at LM hashes in
-some cases.  John is also better at Unix passwords.  L0phtCrack, on the
-other hand, is specialized for Windows passwords and includes many
-Windows-specific features that John does not.  Finally, L0phtCrack used
-to be a purely commercial Windows GUI application, now discontinued (no
-new copies may be acquired legally, so this FAQ entry is likely to be
-dropped soon).
-
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.15 2008/07/18 01:52:16 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.16 2009/12/25 17:29:46 solar Exp $
