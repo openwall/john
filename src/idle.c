@@ -33,7 +33,7 @@ void idle_init(void)
 	struct sched_param param = {0};
 #endif
 
-	if (!cfg_get_bool(SECTION_OPTIONS, NULL, "Idle")) return;
+	if (!cfg_get_bool(SECTION_OPTIONS, NULL, "Idle", 1)) return;
 	if (options.flags & FLG_STDOUT) return;
 
 	clk_tck_init();

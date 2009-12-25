@@ -140,7 +140,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 	if (pot_name && pot.fd < 0) {
 		log_file_init(&pot, pot_name, POT_BUFFER_SIZE);
 
-		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep");
+		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep", 0);
 	}
 
 	in_logger = 0;

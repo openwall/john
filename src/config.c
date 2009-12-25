@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002 by Solar Designer
+ * Copyright (c) 1996-2002,2009 by Solar Designer
  */
 
 #include <stdio.h>
@@ -210,11 +210,13 @@ int cfg_get_int(char *section, char *subsection, char *param)
 	return -1;
 }
 
-int cfg_get_bool(char *section, char *subsection, char *param)
+int cfg_get_bool(char *section, char *subsection, char *param, int def)
 {
 	char *value;
 
-	if ((value = cfg_get_param(section, subsection, param)))
+	if (!(value = cfg_get_param(section, subsection, param)))
+		return def;
+
 	switch (*value) {
 	case 'y':
 	case 'Y':

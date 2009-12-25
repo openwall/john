@@ -276,7 +276,7 @@ static void john_run(void)
 			status_init(NULL, 1);
 			log_init(LOG_NAME, POT_NAME, options.session);
 			john_log_format();
-			if (cfg_get_bool(SECTION_OPTIONS, NULL, "Idle"))
+			if (cfg_get_bool(SECTION_OPTIONS, NULL, "Idle", 1))
 				log_event("- Configured to use otherwise idle "
 					"processor cycles only");
 		}
