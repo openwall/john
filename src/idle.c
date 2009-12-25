@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2009 by Solar Designer
  */
 
 #include <unistd.h>
@@ -54,17 +54,20 @@ void idle_init(void)
 void idle_yield(void)
 {
 #ifdef _POSIX_PRIORITY_SCHEDULING
-	static int calls_per_tick = 0;
-	static int calls_since_tick = 0;
-	static int calls_since_adj = 0;
+	static unsigned int calls_to_skip = 0;
+	static unsigned int calls_per_tick = 0;
+	static unsigned int calls_since_tick = 0;
+	static unsigned int calls_since_adj = 0;
+	static int calls_per_tick_known = 0;
 	static clock_t last_adj = 0;
 	clock_t last_check;
 	clock_t current;
+	int yield_calls;
 	struct tms buf;
 
 	if (!use_yield) return;
 
-	if (++calls_since_tick < calls_per_tick) return;
+	if (++calls_since_tick < calls_to_skip) return;
 	calls_since_adj += calls_since_tick;
 	calls_since_tick = 0;
 
@@ -74,14 +77,36 @@ void idle_yield(void)
 	if (current - last_adj >= clk_tck) {
 		calls_per_tick = calls_since_adj / (current - last_adj);
 		calls_since_adj = 0;
+		calls_per_tick_known = 2;
 		last_adj = current;
+	} else if (calls_per_tick_known < 2) {
+		if (current > last_adj) {
+			calls_per_tick = calls_since_adj / (current - last_adj);
+			calls_per_tick_known = 1;
+		} else if (!calls_per_tick_known)
+			calls_per_tick++;
 	}
 
+	yield_calls = 0;
 	do {
 		if (event_pending) break;
 		last_check = current;
 		sched_yield();
+		yield_calls++;
 		current = times(&buf);
 	} while (current - last_check > 1 && current - last_adj < clk_tck);
+
+	if (yield_calls != 1)
+		calls_to_skip = 0;
+	calls_to_skip += calls_per_tick;
+
+	{
+		/* 1/16th of a second */
+		unsigned int max_calls_to_skip = calls_per_tick * clk_tck >> 4;
+		if (max_calls_to_skip < calls_per_tick)
+			max_calls_to_skip = calls_per_tick;
+		if (calls_to_skip > max_calls_to_skip)
+			calls_to_skip = max_calls_to_skip;
+	}
 #endif
 }
