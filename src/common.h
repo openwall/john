@@ -34,7 +34,7 @@ typedef unsigned int ARCH_WORD_32;
  * simultaneously.  This number should be a multiple of the machine's word size
  * but smaller than cache line size.
  */
-#define CACHE_BANK_SHIFT		16
+#define CACHE_BANK_SHIFT		ARCH_SIZE
 
 /*
  * ASCII <-> binary conversion tables.
