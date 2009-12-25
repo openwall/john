@@ -46,8 +46,14 @@ loaded".
 A: Your password file might be shadowed.  You need to get both
 /etc/passwd and the shadow file (typically /etc/shadow), and combine
 them into one file for use with John.  Please refer to EXAMPLES.
-A: All of the password hashes found in the file (that John recognizes as
-such) might be already cracked by previous invocations of John.
+A: All of the password hashes found in the file (that are of the same
+type as the very first recognized hash in the file unless you're using
+the "--format=..." option) might be already cracked by previous
+invocations of John.
+A: With PWDUMP-format files, John focuses on LM rather than NTLM hashes
+by default, and it might not load any hashes at all if there are no LM
+hashes to crack.  To have JtR Pro or a build of JtR with the jumbo patch
+focus on NTLM hashes instead, you need to pass the "--format=nt" option.
 A: The file you're trying to run John on might in fact not be a password
 file at all.
 A: Your command line syntax might be wrong, resulting in John trying to
