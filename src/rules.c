@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005,2009 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005,2009,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -905,15 +905,13 @@ out_OK:
 		if (length >= ARCH_SIZE - 1) {
 			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
 				return in;
-			if (!strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
-				goto out_NULL;
-			return in;
+			if (strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
+				return in;
+			return NULL;
 		}
-		if (last[2])
+		if (last[length])
 			return in;
-		if (in[0] != last[0])
-			return in;
-		if (in[1] != last[1] && length)
+		if (memcmp(in, last, length))
 			return in;
 		return NULL;
 	}
