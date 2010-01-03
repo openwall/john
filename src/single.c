@@ -309,7 +309,7 @@ static void single_run(void)
 
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
-		if (!(rule = rules_reject(prerule, 0, single_db))) {
+		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
 			continue;

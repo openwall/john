@@ -258,7 +258,7 @@ void rules_init(int max_length)
 	rules_init_length(max_length);
 }
 
-char *rules_reject(char *rule, int split, struct db_main *db)
+char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
 
@@ -309,7 +309,7 @@ char *rules_reject(char *rule, int split, struct db_main *db)
 accept:
 	rules_pass--;
 	strnzcpy(out_rule, rule - 1, sizeof(out_rule));
-	rules_apply("", out_rule, split, NULL);
+	rules_apply("", out_rule, split, last);
 	rules_pass++;
 
 	return out_rule;
@@ -967,7 +967,7 @@ int rules_check(struct rpp_context *start, int split)
 
 	rules_pass = -1; /* rules_reject() will turn this into -2 */
 	while ((rule = rpp_next(&ctx))) {
-		rules_reject(rule, split, NULL);
+		rules_reject(rule, split, NULL, NULL);
 		if (rules_errno) break;
 
 		if (ctx.input) rules_line = ctx.input->number;
