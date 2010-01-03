@@ -1,3 +1,8 @@
+The following changes have been made between John 1.7.4 and 1.7.4.1:
+
+* Some bugs introduced in 1.7.4 and affecting wordlist mode's elimination of
+consecutive duplicate candidate passwords have been fixed.
+
 The following changes have been made between John 1.7.3.4 and 1.7.4:
 
 * Support for back-references and "parallel" ranges has been added to the

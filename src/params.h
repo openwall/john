@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2009 by Solar Designer
+ * Copyright (c) 1996-2010 by Solar Designer
  */
 
 /*
@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.4"
+#define JOHN_VERSION			"1.7.4.1"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
