@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -125,11 +125,12 @@ static void single_init(void)
 
 static int single_key_hash(char *key)
 {
-	int pos, hash = 0;
+	unsigned int hash = 0;
+	int pos;
 
 	for (pos = 0; pos < length && *key; pos++) {
 		hash <<= 1;
-		hash ^= *key++;
+		hash ^= (unsigned char)*key++;
 	}
 
 	hash ^= hash >> SINGLE_HASH_LOG;
