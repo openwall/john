@@ -125,18 +125,42 @@ static void single_init(void)
 
 static int single_key_hash(char *key)
 {
-	unsigned int hash = 0;
-	int pos;
+	unsigned int hash, extra, pos;
 
-	for (pos = 0; pos < length && *key; pos++) {
-		hash <<= 1;
-		hash ^= (unsigned char)*key++;
+	hash = (unsigned char)key[0];
+	if (!hash)
+		goto out;
+	extra = (unsigned char)key[1];
+	if (!extra)
+		goto out_and;
+
+	pos = 3;
+	if (length & 1) {
+		while (key[2]) {
+			hash += (unsigned char)key[2];
+			if (!key[3] || pos >= length) break;
+			extra += (unsigned char)key[3];
+			key += 2;
+			pos += 2;
+		}
+	} else {
+		while (key[2] && pos < length) {
+			hash += (unsigned char)key[2];
+			if (!key[3]) break;
+			extra += (unsigned char)key[3];
+			key += 2;
+			pos += 2;
+		}
 	}
 
-	hash ^= hash >> SINGLE_HASH_LOG;
-	hash ^= hash >> (2 * SINGLE_HASH_LOG);
-	hash &= SINGLE_HASH_SIZE - 1;
+	hash -= extra + pos;
+#if SINGLE_HASH_LOG > 6
+	hash ^= extra << 6;
+#endif
 
+out_and:
+	hash &= SINGLE_HASH_SIZE - 1;
+out:
 	return hash;
 }
 
