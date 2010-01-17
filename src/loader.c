@@ -89,9 +89,11 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 
 	db->salts = NULL;
 
+	db->password_hash = NULL;
+	db->password_hash_func = NULL;
+
 	if (options->flags & DB_CRACKED) {
 		db->salt_hash = NULL;
-		db->password_hash = NULL;
 
 		db->cracked_hash = mem_alloc(
 			CRACKED_HASH_SIZE * sizeof(struct db_cracked *));
@@ -102,9 +104,6 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
 		memset(db->salt_hash, 0,
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
-
-		db->password_hash = NULL;
-		db->password_hash_func = NULL;
 
 		db->cracked_hash = NULL;
 
@@ -331,6 +330,13 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			sizeof(struct db_keys *);
 	}
 
+/*
+ * Allocate a hash table for use by the loader itself.  We use this for two
+ * purposes: to detect and avoid loading of duplicate hashes when DB_WORDS is
+ * not set, and to remove previously-cracked hashes (found in john.pot).  We
+ * allocate, use, and free this hash table prior to deciding on the sizes of
+ * and allocating the per-salt hash tables to be used while cracking.
+ */
 	if (!db->password_hash)
 		ldr_init_password_hash(db);
 
@@ -340,17 +346,17 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		binary = format->methods.binary(piece);
 		pw_hash = db->password_hash_func(binary);
 
-		if ((current_pw = db->password_hash[pw_hash]))
-		do {
-			if (!memcmp(current_pw->binary, binary,
-			    format->params.binary_size) &&
-			    !strcmp(current_pw->source, piece)) {
-				if (!(db->options->flags & DB_WORDS) ||
-				    !strcmp(current_pw->login, login)) break;
-			}
-		} while ((current_pw = current_pw->next_hash));
+		if (!(db->options->flags & DB_WORDS)) {
+			if ((current_pw = db->password_hash[pw_hash]))
+			do {
+				if (!memcmp(current_pw->binary, binary,
+				    format->params.binary_size) &&
+				    !strcmp(current_pw->source, piece))
+					break;
+			} while ((current_pw = current_pw->next_hash));
 
-		if (current_pw) continue;
+			if (current_pw) continue;
+		}
 
 		salt = format->methods.salt(piece);
 		salt_hash = format->methods.salt_hash(salt);
