@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2004,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2004,2006,2010 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -153,7 +153,8 @@ static void status_print_stdout(char *percent)
 		percent,
 		status_get_cps(s_wps));
 
-	if (options.flags & FLG_STATUS_CHK)
+	if ((options.flags & FLG_STATUS_CHK) ||
+	    !(status.crypts.lo | status.crypts.hi))
 		fputc('\n', stderr);
 	else
 		fprintf(stderr,
