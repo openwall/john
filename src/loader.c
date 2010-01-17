@@ -284,11 +284,12 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 
 	list_init(&words);
 
-	list_add(words, login);
+	if (*login)
+		list_add(words, login);
 	ldr_split_string(words, gecos);
 	ldr_split_string(words, login);
 
-	if ((pos = strrchr(home, '/')))
+	if ((pos = strrchr(home, '/')) && pos[1])
 		list_add_unique(words, pos + 1);
 
 	return words;
@@ -421,7 +422,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				sprintf(current_pw->login, "%s:%d",
 					login, index + 1);
 			} else
-			if (words)
+			if (words && *login)
 				current_pw->login = words->head->data;
 			else
 				current_pw->login = str_alloc_copy(login);
