@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -103,8 +103,8 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 		memset(db->salt_hash, 0,
 			SALT_HASH_SIZE * sizeof(struct db_salt *));
 
-		db->password_hash = mem_alloc(LDR_HASH_SIZE);
-		memset(db->password_hash, 0, LDR_HASH_SIZE);
+		db->password_hash = NULL;
+		db->password_hash_func = NULL;
 
 		db->cracked_hash = NULL;
 
@@ -123,6 +123,27 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 	db->salt_count = db->password_count = db->guess_count = 0;
 
 	db->format = NULL;
+}
+
+static void ldr_init_password_hash(struct db_main *db)
+{
+	int (*func)(void *binary);
+	int size = PASSWORD_HASH_SIZES - 1;
+
+	if (mem_saving_level >= 2)
+		size--;
+
+	do {
+		func = db->format->methods.binary_hash[size];
+		if (func && func != fmt_default_binary_hash)
+			break;
+	} while (--size >= 0);
+	if (size < 0)
+		size = 0;
+	db->password_hash_func = func;
+	size = password_hash_sizes[size] * sizeof(struct db_password *);
+	db->password_hash = mem_alloc(size);
+	memset(db->password_hash, 0, size);
 }
 
 static char *ldr_get_field(char **ptr)
@@ -310,11 +331,14 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			sizeof(struct db_keys *);
 	}
 
+	if (!db->password_hash)
+		ldr_init_password_hash(db);
+
 	for (index = 0; index < count; index++) {
 		piece = format->methods.split(ciphertext, index);
 
 		binary = format->methods.binary(piece);
-		pw_hash = LDR_HASH_FUNC(binary);
+		pw_hash = db->password_hash_func(binary);
 
 		if ((current_pw = db->password_hash[pw_hash]))
 		do {
@@ -417,7 +441,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 
 	ciphertext = format->methods.split(ciphertext, 0);
 	binary = format->methods.binary(ciphertext);
-	hash = LDR_HASH_FUNC(binary);
+	hash = db->password_hash_func(binary);
 
 	if ((current = db->password_hash[hash]))
 	do {
@@ -540,16 +564,41 @@ void ldr_update_salt(struct db_main *db, struct db_salt *salt)
 static void ldr_init_hash(struct db_main *db)
 {
 	struct db_salt *current;
-	int size;
+	int threshold, size;
+
+	threshold = password_hash_thresholds[0];
+	if (db->format->params.flags & FMT_BS) {
+/*
+ * Estimate the complexity of DES_bs_get_hash() for each computed hash (but
+ * comparing it against less than 1 loaded hash on average due to the use of a
+ * hash table) vs. the complexity of DES_bs_cmp_all() for all computed hashes
+ * at once (but calling it for each loaded hash individually).
+ */
+		threshold = db->format->params.min_keys_per_crypt * 5;
+#if DES_BS_VECTOR
+		threshold /= ARCH_BITS_LOG * DES_BS_VECTOR;
+#else
+		threshold /= ARCH_BITS_LOG;
+#endif
+		threshold++;
+	}
 
 	if ((current = db->salts))
 	do {
-		for (size = 2; size >= 0; size--)
-		if (current->count >= password_hash_thresholds[size]) break;
+		size = -1;
+		if (current->count >= threshold)
+			for (size = PASSWORD_HASH_SIZES - 1; size >= 0; size--)
+				if (current->count >=
+				    password_hash_thresholds[size] &&
+				    db->format->methods.binary_hash[size] &&
+				    db->format->methods.binary_hash[size] !=
+				    fmt_default_binary_hash)
+					break;
 
-		if ((db->format->params.flags & FMT_BS) && !size) size = -1;
+		if (mem_saving_level >= 2)
+			size--;
 
-		if (size >= 0 && mem_saving_level < 2) {
+		if (size >= 0 && mem_saving_level < 3) {
 			current->hash = mem_alloc_tiny(
 				password_hash_sizes[size] *
 				sizeof(struct db_password *),

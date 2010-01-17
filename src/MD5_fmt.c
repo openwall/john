@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010 by Solar Designer
  */
 
 #include <string.h>
@@ -69,6 +69,16 @@ static int binary_hash_2(void *binary)
 	return *(MD5_word *)binary & 0xFFF;
 }
 
+static int binary_hash_3(void *binary)
+{
+	return *(MD5_word *)binary & 0xFFFF;
+}
+
+static int binary_hash_4(void *binary)
+{
+	return *(MD5_word *)binary & 0xFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return MD5_out[index][0] & 0xF;
@@ -82,6 +92,16 @@ static int get_hash_1(int index)
 static int get_hash_2(int index)
 {
 	return MD5_out[index][0] & 0xFFF;
+}
+
+static int get_hash_3(int index)
+{
+	return MD5_out[index][0] & 0xFFFF;
+}
+
+static int get_hash_4(int index)
+{
+	return MD5_out[index][0] & 0xFFFFF;
 }
 
 static int salt_hash(void *salt)
@@ -149,7 +169,9 @@ struct fmt_main fmt_MD5 = {
 		{
 			binary_hash_0,
 			binary_hash_1,
-			binary_hash_2
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
 		},
 		salt_hash,
 		(void (*)(void *))MD5_std_set_salt,
@@ -160,7 +182,9 @@ struct fmt_main fmt_MD5 = {
 		{
 			get_hash_0,
 			get_hash_1,
-			get_hash_2
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
 		},
 		cmp_all,
 		cmp_one,

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2010 by Solar Designer
  */
 
 #include <string.h>
@@ -139,6 +139,16 @@ static int binary_hash_2(void *binary)
 	return *(ARCH_WORD *)binary & 0xFFF;
 }
 
+static int binary_hash_3(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFF;
+}
+
+static int binary_hash_4(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return DES_bs_get_hash(index, 4);
@@ -152,6 +162,16 @@ static int get_hash_1(int index)
 static int get_hash_2(int index)
 {
 	return DES_bs_get_hash(index, 12);
+}
+
+static int get_hash_3(int index)
+{
+	return DES_bs_get_hash(index, 16);
+}
+
+static int get_hash_4(int index)
+{
+	return DES_bs_get_hash(index, 20);
 }
 
 static int salt_hash(void *salt)
@@ -182,6 +202,9 @@ static int binary_hash_2(void *binary)
 	return DES_STD_HASH_2(*(ARCH_WORD *)binary);
 }
 
+#define binary_hash_3 NULL
+#define binary_hash_4 NULL
+
 static int get_hash_0(int index)
 {
 	return DES_STD_HASH_0(buffer[index].aligned.data.binary[0]);
@@ -202,6 +225,9 @@ static int get_hash_2(int index)
 	binary = buffer[index].aligned.data.binary[0];
 	return DES_STD_HASH_2(binary);
 }
+
+#define get_hash_3 NULL
+#define get_hash_4 NULL
 
 static int salt_hash(void *salt)
 {
@@ -388,7 +414,9 @@ struct fmt_main fmt_BSDI = {
 		{
 			binary_hash_0,
 			binary_hash_1,
-			binary_hash_2
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
 		},
 		salt_hash,
 		set_salt,
@@ -403,7 +431,9 @@ struct fmt_main fmt_BSDI = {
 		{
 			get_hash_0,
 			get_hash_1,
-			get_hash_2
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
 		},
 		cmp_all,
 		cmp_one,
