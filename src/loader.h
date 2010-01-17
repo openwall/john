@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2010 by Solar Designer
  */
 
 /*
@@ -170,6 +170,7 @@ struct db_main {
 /* Salt and password hash tables, used while loading */
 	struct db_salt **salt_hash;
 	struct db_password **password_hash;
+	int (*password_hash_func)(void *binary);
 
 /* Cracked passwords */
 	struct db_cracked **cracked_hash;
