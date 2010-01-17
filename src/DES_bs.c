@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005 by Solar Designer
+ * Copyright (c) 1996-2002,2005,2010 by Solar Designer
  */
 
 #include <string.h>
@@ -403,6 +403,18 @@ int DES_bs_get_hash(int index, int count)
 	result |= ((b[9] START >> index) & 1) << 9;
 	result |= ((b[10] START >> index) & 1) << 10;
 	result |= ((b[11] START >> index) & 1) << 11;
+	if (count == 12) return result;
+
+	result |= ((b[12] START >> index) & 1) << 12;
+	result |= ((b[13] START >> index) & 1) << 13;
+	result |= ((b[14] START >> index) & 1) << 14;
+	result |= ((b[15] START >> index) & 1) << 15;
+	if (count == 16) return result;
+
+	result |= ((b[16] START >> index) & 1) << 16;
+	result |= ((b[17] START >> index) & 1) << 17;
+	result |= ((b[18] START >> index) & 1) << 18;
+	result |= ((b[19] START >> index) & 1) << 19;
 
 	return result;
 }
