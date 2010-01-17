@@ -184,7 +184,8 @@ static void status_print_cracking(char *percent)
 		percent,
 		status_get_cps(s_cps));
 
-	if (options.flags & FLG_STATUS_CHK)
+	if ((options.flags & FLG_STATUS_CHK) ||
+	    !(status.crypts.lo | status.crypts.hi))
 		fputc('\n', stderr);
 	else
 		fprintf(stderr,
