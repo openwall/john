@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98 by Solar Designer
+ * Copyright (c) 1996-98,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -44,7 +44,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 		bufree -= end - buffer;
 		buffer = end;
 	} else
-	if (size + align <= MEM_ALLOC_SIZE && bufree <= MEM_ALLOC_MAX) {
+	if (size + align <= MEM_ALLOC_SIZE && bufree <= MEM_ALLOC_MAX_WASTE) {
 		buffer = (unsigned long)mem_alloc(MEM_ALLOC_SIZE);
 		bufree = MEM_ALLOC_SIZE;
 		return mem_alloc_tiny(size, align + 1);
