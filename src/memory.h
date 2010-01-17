@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2003 by Solar Designer
+ * Copyright (c) 1996-98,2003,2010 by Solar Designer
  */
 
 /*
@@ -29,9 +29,12 @@
 
 /*
  * Use mem_alloc() instead of allocating a new block in mem_alloc_tiny()
- * if more than MEM_ALLOC_MAX bytes would be lost.
+ * if more than MEM_ALLOC_MAX_WASTE bytes would be lost.
+ * This shouldn't be set too small, or mem_alloc_tiny() will keep calling
+ * mem_alloc() for many allocations in a row, which might end up wasting even
+ * more memory to malloc() overhead.
  */
-#define MEM_ALLOC_MAX			0x400
+#define MEM_ALLOC_MAX_WASTE		0xff
 
 /*
  * Memory saving level, setting this high enough disables alignments (if the
