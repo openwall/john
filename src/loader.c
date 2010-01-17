@@ -629,15 +629,19 @@ void ldr_fix_database(struct db_main *db)
 
 static int ldr_cracked_hash(char *ciphertext)
 {
-	int hash = 0;
+	unsigned int hash = 0;
+	char *p = ciphertext;
 
-	while (*ciphertext) {
+	while (*p) {
 		hash <<= 1;
-		hash ^= *ciphertext++ | 0x20; /* ASCII case insensitive */
+		hash += (unsigned char)*p++ | 0x20; /* ASCII case insensitive */
+		if (hash >> (2 * CRACKED_HASH_LOG - 1)) {
+			hash ^= hash >> CRACKED_HASH_LOG;
+			hash &= CRACKED_HASH_SIZE - 1;
+		}
 	}
 
 	hash ^= hash >> CRACKED_HASH_LOG;
-	hash ^= hash >> (2 * CRACKED_HASH_LOG);
 	hash &= CRACKED_HASH_SIZE - 1;
 
 	return hash;
