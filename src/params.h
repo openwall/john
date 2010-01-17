@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.4.1"
+#define JOHN_VERSION			"1.7.4.2"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -129,38 +129,43 @@
 #define SECTION_EXT			"List.External:"
 
 /*
+ * Number of different password hash table sizes.
+ * This is not really configurable, but we define it here in order to have
+ * the number hard-coded in fewer places.
+ */
+#define PASSWORD_HASH_SIZES		5
+
+/*
  * Hash table sizes.  These are also hardcoded into the hash functions.
  */
 #define SALT_HASH_SIZE			0x400
 #define PASSWORD_HASH_SIZE_0		0x10
 #define PASSWORD_HASH_SIZE_1		0x100
 #define PASSWORD_HASH_SIZE_2		0x1000
+#define PASSWORD_HASH_SIZE_3		0x10000
+#define PASSWORD_HASH_SIZE_4		0x100000
 
 /*
  * Password hash table thresholds.  These are the counts of entries required
  * to enable the corresponding hash table size.
  */
-#define PASSWORD_HASH_THRESHOLD_0	(PASSWORD_HASH_SIZE_0 / 2)
-#define PASSWORD_HASH_THRESHOLD_1	(PASSWORD_HASH_SIZE_1 / 4)
-#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_2 / 4)
+#define PASSWORD_HASH_THRESHOLD_0	3
+#define PASSWORD_HASH_THRESHOLD_1	PASSWORD_HASH_SIZE_0
+#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 5)
+#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 3)
+#define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 2)
 
 /*
  * Tables of the above values.
  */
-extern int password_hash_sizes[3];
-extern int password_hash_thresholds[3];
+extern int password_hash_sizes[PASSWORD_HASH_SIZES];
+extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 
 /*
  * Cracked password hash size, used while loading.
  */
 #define CRACKED_HASH_LOG		11
 #define CRACKED_HASH_SIZE		(1 << CRACKED_HASH_LOG)
-
-/*
- * Password hash function to use while loading.
- */
-#define LDR_HASH_SIZE	(PASSWORD_HASH_SIZE_2 * sizeof(struct db_password *))
-#define LDR_HASH_FUNC	(format->methods.binary_hash[2])
 
 /*
  * Buffered keys hash size, used for "single crack" mode.

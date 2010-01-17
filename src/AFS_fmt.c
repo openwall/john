@@ -452,7 +452,9 @@ struct fmt_main fmt_AFS = {
 		{
 			binary_hash_0,
 			binary_hash_1,
-			binary_hash_2
+			binary_hash_2,
+			NULL,
+			NULL
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -463,7 +465,9 @@ struct fmt_main fmt_AFS = {
 		{
 			get_hash_0,
 			get_hash_1,
-			get_hash_2
+			get_hash_2,
+			NULL,
+			NULL
 		},
 		cmp_all,
 		cmp_one,

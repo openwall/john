@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010 by Solar Designer
  */
 
 /*
@@ -9,6 +9,8 @@
 
 #ifndef _JOHN_FORMATS_H
 #define _JOHN_FORMATS_H
+
+#include "params.h"
 
 /*
  * Format property flags...
@@ -98,9 +100,9 @@ struct fmt_methods {
 	void *(*salt)(char *ciphertext);
 
 /* These functions calculate a hash out of a binary ciphertext. To be used
- * for hash table initialization. One of the three should be used depending
+ * for hash table initialization. One of them should be selected depending
  * on the hash table size. */
-	int (*binary_hash[3])(void *binary);
+	int (*binary_hash[PASSWORD_HASH_SIZES])(void *binary);
 
 /* Calculates a hash out of a salt (given in internal representation). To be
  * used by the password file loader. */
@@ -127,7 +129,7 @@ struct fmt_methods {
 
 /* These functions calculate a hash out of a ciphertext that has just been
  * generated with the crypt_all() method. To be used while cracking. */
-	int (*get_hash[3])(int index);
+	int (*get_hash[PASSWORD_HASH_SIZES])(int index);
 
 /* Compares a given ciphertext against all the crypt_all() method outputs and
  * returns zero if no matches detected. A non-zero return value means that
