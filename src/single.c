@@ -255,16 +255,18 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	char *key;
 	unsigned int c;
 
+	if (!(first = pw->words->head))
+		return -1;
+
 	keys = salt->keys;
 
 	first_number = 0;
-	if ((first = pw->words->head))
 	do {
 		if ((key = rules_apply(first->data, rule, 0, NULL)))
 		if (ext_filter(key))
 		if (single_add_key(keys, key))
 		if (single_process_buffer(salt)) return 1;
-		if (!salt->list) return 0;
+		if (!salt->list) return 2;
 
 		if (++first_number > SINGLE_WORDS_PAIR_MAX) continue;
 
@@ -284,7 +286,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				if (ext_filter(key))
 				if (single_add_key(keys, key))
 				if (single_process_buffer(salt)) return 1;
-				if (!salt->list) return 0;
+				if (!salt->list) return 2;
 			}
 
 			if (first->data[1]) {
@@ -296,7 +298,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				if (ext_filter(key))
 				if (single_add_key(keys, key))
 				if (single_process_buffer(salt)) return 1;
-				if (!salt->list) return 0;
+				if (!salt->list) return 2;
 			}
 		} while (++second_number <= SINGLE_WORDS_PAIR_MAX &&
 			(second = second->next));
@@ -309,19 +311,41 @@ static int single_process_salt(struct db_salt *salt, char *rule)
 {
 	struct db_keys *keys;
 	struct db_password *pw;
+	int have_words = 0;
 
 	keys = salt->keys;
+	if (!keys)
+		return 0;
 
 	pw = salt->list;
 	do {
-		if (single_process_pw(salt, pw, rule)) return 1;
-		if (!salt->list) return 0;
+		switch (single_process_pw(salt, pw, rule)) {
+		case -1: /* no words seen yet */
+			continue;
+		case 1: /* no hashes left to crack for all salts */
+			return 1;
+		case 2: /* no hashes left to crack for this salt */
+			return 0;
+		}
+		have_words = 1;
+		pw = pw->next;
+		break;
+	} while ((pw = pw->next));
+	if (pw)
+	do {
+		if (single_process_pw(salt, pw, rule) > 0)
+			return salt->list ? 1 : 0;
 	} while ((pw = pw->next));
 
 	if (keys->count && rule_number - keys->rule > (key_count << 1))
 		if (single_process_buffer(salt)) return 1;
 
 	if (!keys->count) keys->rule = rule_number;
+
+	if (!have_words) {
+		if (keys->count && single_process_buffer(salt)) return 1;
+		salt->keys = NULL;
+	}
 
 	return 0;
 }
@@ -359,7 +383,8 @@ static void single_run(void)
 		do {
 			if (!salt->list) continue;
 			if (single_process_salt(salt, rule)) return;
-			if (salt->keys->rule < min) min = salt->keys->rule;
+			if (salt->keys && salt->keys->rule < min)
+				min = salt->keys->rule;
 		} while ((salt = salt->next));
 
 		rec_rule = min;
@@ -374,10 +399,10 @@ static void single_done(void)
 	if (!event_abort) {
 		if ((salt = single_db->salts)) {
 			log_event("- Processing the remaining buffered "
-				"candidate passwords");
+				"candidate passwords, if any");
 
 			do {
-				if (!salt->list) continue;
+				if (!salt->list || !salt->keys) continue;
 				if (salt->keys->count)
 				if (single_process_buffer(salt)) break;
 			} while ((salt = salt->next));
