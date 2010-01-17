@@ -170,6 +170,8 @@ struct db_main {
 /* Salt and password hash tables, used while loading */
 	struct db_salt **salt_hash;
 	struct db_password **password_hash;
+
+/* binary_hash function used by the loader itself */
 	int (*password_hash_func)(void *binary);
 
 /* Cracked passwords */
