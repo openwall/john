@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006,2009 by Solar Designer
+ * Copyright (c) 1996-2004,2006,2009,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -173,7 +173,8 @@ static void john_load(void)
 			return;
 		}
 
-		if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK))
+		if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
+		    status.pass <= 1)
 			options.loader.flags |= DB_WORDS;
 		else
 		if (mem_saving_level)
