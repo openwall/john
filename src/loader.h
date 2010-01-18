@@ -65,20 +65,20 @@ struct db_keys_hash {
  * Buffered keys.
  */
 struct db_keys {
-/* Number of keys currently in the buffer */
-	int count;
+/* Keys hash table, for fast dupe checking */
+	struct db_keys_hash *hash;
 
 /* &buffer[count * plaintext_length] */
 	char *ptr;
+
+/* Number of keys currently in the buffer */
+	int count;
 
 /* Number of last processed rule */
 	int rule;
 
 /* Number of recursive calls for this salt */
 	int lock;
-
-/* Keys hash table, for fast dupe checking */
-	struct db_keys_hash *hash;
 
 /* The keys, allocated as (plaintext_length * min_keys_per_crypt) bytes */
 	char buffer[1];
