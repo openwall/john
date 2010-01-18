@@ -654,6 +654,10 @@ void ldr_fix_database(struct db_main *db)
 	db->loaded = 1;
 }
 
+/*
+ * ldr_remove_salt() is called by ldr_remove_hash() when it happens to remove
+ * the last password hash for a salt.
+ */
 static void ldr_remove_salt(struct db_main *db, struct db_salt *salt)
 {
 	struct db_salt **current;
