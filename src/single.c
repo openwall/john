@@ -166,19 +166,21 @@ out:
 
 static int single_add_key(struct db_keys *keys, char *key)
 {
-	int index, hash;
+	int index, new_hash, reuse_hash;
 	struct db_keys_hash_entry *entry;
 
-	if ((index = keys->hash->hash[single_key_hash(key)]) >= 0)
+/* Check if this is a known duplicate, and reject it if so */
+	if ((index = keys->hash->hash[new_hash = single_key_hash(key)]) >= 0)
 	do {
 		entry = &keys->hash->list[index];
 		if (!strncmp(key, &keys->buffer[entry->offset], length))
 			return 0;
 	} while ((index = entry->next) >= 0);
 
-	index = keys->hash->hash[hash = single_key_hash(keys->ptr)];
+/* Update the hash table removing the list entry we're about to reuse */
+	index = keys->hash->hash[reuse_hash = single_key_hash(keys->ptr)];
 	if (index == keys->count)
-		keys->hash->hash[hash] = keys->hash->list[index].next;
+		keys->hash->hash[reuse_hash] = keys->hash->list[index].next;
 	else
 	if (index >= 0) {
 		entry = &keys->hash->list[index];
@@ -191,11 +193,12 @@ static int single_add_key(struct db_keys *keys, char *key)
 		}
 	}
 
-	index = keys->hash->hash[hash = single_key_hash(key)];
+/* Add the new entry */
+	index = keys->hash->hash[new_hash];
 	entry = &keys->hash->list[keys->count];
 	entry->next = index;
 	entry->offset = keys->ptr - keys->buffer;
-	keys->hash->hash[hash] = keys->count;
+	keys->hash->hash[new_hash] = keys->count;
 
 	strnfcpy(keys->ptr, key, length);
 	keys->ptr += length;
@@ -211,6 +214,18 @@ static int single_process_buffer(struct db_salt *salt)
 
 	if (crk_process_salt(salt)) return 1;
 
+/*
+ * Flush the keys list (since we've just processed the keys), but not the hash
+ * table to allow for more effective checking for duplicates.  We could flush
+ * the hash table too, such as by calling single_alloc_keys() here, which would
+ * allow us to drop the update-hash-before-list-entry-reuse code from
+ * single_add_key().  This would speed things up in terms of this source file's
+ * code overhead, however it would allow more duplicates to pass.  The apparent
+ * c/s rate (counting duplicates as if they were distinct combinations) would
+ * be higher, but the number of passwords cracked per unit of time might be
+ * lower or higher depending on many things including the relative speed of
+ * password hash computations vs. the "overhead".
+ */
 	keys = salt->keys;
 	keys->count = 0;
 	keys->ptr = keys->buffer;
