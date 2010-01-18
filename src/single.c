@@ -374,6 +374,7 @@ static void single_run(void)
 	char *prerule, *rule;
 	struct db_salt *salt;
 	int min, saved_min;
+	int have_words;
 
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
@@ -396,18 +397,28 @@ static void single_run(void)
 			saved_min = rec_rule;
 		}
 
+		have_words = 0;
+
 		min = rule_number;
 
 		salt = single_db->salts;
 		do {
 			if (!salt->list) continue;
 			if (single_process_salt(salt, rule)) return;
-			if (salt->keys && salt->keys->rule < min)
+			if (!salt->keys) continue;
+			have_words = 1;
+			if (salt->keys->rule < min)
 				min = salt->keys->rule;
 		} while ((salt = salt->next));
 
 		rec_rule = min;
 		rule_number++;
+
+		if (have_words) continue;
+
+		log_event("- No information to base%s candidate passwords on",
+			rule_number > 1 ? " further" : "");
+		return;
 	}
 }
 
