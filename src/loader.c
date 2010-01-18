@@ -554,7 +554,11 @@ static void ldr_filter_salts(struct db_main *db)
 	} while ((current = current->next));
 }
 
-static void ldr_update_salt(struct db_main *db, struct db_salt *salt)
+/*
+ * Allocate memory for and initialize the hash table for this salt if needed.
+ * Also initialize salt->count (the number of password hashes for this salt).
+ */
+static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 {
 	struct db_password *current;
 	int (*hash_func)(void *binary);
@@ -571,9 +575,12 @@ static void ldr_update_salt(struct db_main *db, struct db_salt *salt)
 		return;
 	}
 
-	memset(salt->hash, 0,
-		password_hash_sizes[salt->hash_size] *
-		sizeof(struct db_password *));
+	salt->hash = mem_alloc_tiny(password_hash_sizes[salt->hash_size] *
+	    sizeof(struct db_password *), MEM_ALIGN_WORD);
+	memset(salt->hash, 0, password_hash_sizes[salt->hash_size] *
+	    sizeof(struct db_password *));
+
+	salt->index = db->format->methods.get_hash[salt->hash_size];
 
 	hash_func = db->format->methods.binary_hash[salt->hash_size];
 
@@ -587,6 +594,10 @@ static void ldr_update_salt(struct db_main *db, struct db_salt *salt)
 	} while ((current = current->next));
 }
 
+/*
+ * Decide on whether to use a hash table and on its size for each salt, call
+ * ldr_init_hash_for_salt() to allocate and initialize the hash tables.
+ */
 static void ldr_init_hash(struct db_main *db)
 {
 	struct db_salt *current;
@@ -612,7 +623,7 @@ static void ldr_init_hash(struct db_main *db)
 	if ((current = db->salts))
 	do {
 		size = -1;
-		if (current->count >= threshold)
+		if (current->count >= threshold && mem_saving_level < 3)
 			for (size = PASSWORD_HASH_SIZES - 1; size >= 0; size--)
 				if (current->count >=
 				    password_hash_thresholds[size] &&
@@ -624,18 +635,8 @@ static void ldr_init_hash(struct db_main *db)
 		if (mem_saving_level >= 2)
 			size--;
 
-		if (size >= 0 && mem_saving_level < 3) {
-			current->hash = mem_alloc_tiny(
-				password_hash_sizes[size] *
-				sizeof(struct db_password *),
-				MEM_ALIGN_WORD);
-
-			current->hash_size = size;
-
-			current->index = db->format->methods.get_hash[size];
-		}
-
-		ldr_update_salt(db, current);
+		current->hash_size = size;
+		ldr_init_hash_for_salt(db, current);
 	} while ((current = current->next));
 }
 
