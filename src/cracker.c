@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010 by Solar Designer
  */
 
 #include <string.h>
@@ -92,8 +92,6 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 {
 	int dupe;
 	char *key;
-	struct db_salt *search_salt;
-	struct db_password *search_pw;
 
 	dupe = !memcmp(&crk_timestamps[index], &status.crypts, sizeof(int64));
 	crk_timestamps[index] = status.crypts;
@@ -103,7 +101,6 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	log_guess(crk_db->options->flags & DB_LOGIN ? pw->login : "?",
 		dupe ? NULL : pw->source, key);
 
-	crk_db->password_count--;
 	crk_db->guess_count++;
 	status.guess_count++;
 
@@ -113,33 +110,12 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		crk_guesses->count++;
 	}
 
-	if (pw == salt->list) {
-		salt->list = pw->next;
+	ldr_remove_hash(crk_db, salt, pw);
 
-		ldr_update_salt(crk_db, salt);
+	if (!crk_db->salts)
+		return 1;
 
-		if (!salt->list) {
-			crk_db->salt_count--;
-
-			if (salt == crk_db->salts) {
-				crk_db->salts = salt->next;
-			} else {
-				search_salt = crk_db->salts;
-				while (search_salt->next != salt)
-					search_salt = search_salt->next;
-				search_salt->next = salt->next;
-			}
-
-			if (crk_db->salts) crk_init_salt(); else return 1;
-		}
-	} else {
-		search_pw = salt->list;
-		while (search_pw->next != pw)
-			search_pw = search_pw->next;
-		search_pw->next = pw->next;
-
-		ldr_update_salt(crk_db, salt);
-	}
+	crk_init_salt();
 
 	return 0;
 }
