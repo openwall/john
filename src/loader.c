@@ -568,7 +568,7 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 		salt->count = 0;
 		if ((current = salt->list))
 		do {
-			current->next_hash = current->next;
+			current->next_hash = NULL; /* unused */
 			salt->count++;
 		} while ((current = current->next));
 
@@ -673,40 +673,29 @@ static void ldr_remove_salt(struct db_main *db, struct db_salt *salt)
 void ldr_remove_hash(struct db_main *db, struct db_salt *salt,
 	struct db_password *pw)
 {
-	struct db_password *current;
+	struct db_password **current;
 	int hash;
 
 	db->password_count--;
-
-	if (pw == salt->list) {
-		salt->list = pw->next;
-		if (!salt->list) {
-			ldr_remove_salt(db, salt);
-			return;
-		}
-	} else {
-		current = salt->list;
-		while (current->next != pw)
-			current = current->next;
-		current->next = pw->next;
-		if (salt->hash_size < 0)
-			current->next_hash = current->next;
-	}
-
 	salt->count--;
 
-	if (salt->hash_size < 0)
-		return;
-
-	hash = db->format->methods.binary_hash[salt->hash_size](pw->binary);
-	current = salt->hash[hash];
-	if (current == pw) {
-		salt->hash[hash] = pw->next_hash;
+	current = &salt->list;
+	while (*current != pw)
+		current = &(*current)->next;
+	*current = pw->next;
+	if (!salt->list) {
+		ldr_remove_salt(db, salt);
 		return;
 	}
-	while (current->next_hash != pw)
-		current = current->next_hash;
-	current->next_hash = pw->next_hash;
+
+	if (salt->hash_size < 0)
+		return; /* assume that next_hash is unused */
+
+	hash = db->format->methods.binary_hash[salt->hash_size](pw->binary);
+	current = &salt->hash[hash];
+	while (*current != pw)
+		current = &(*current)->next_hash;
+	*current = pw->next_hash;
 }
 
 static int ldr_cracked_hash(char *ciphertext)
