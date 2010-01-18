@@ -282,6 +282,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 		if (single_add_key(keys, key))
 		if (single_process_buffer(salt)) return 1;
 		if (!salt->list) return 2;
+		if (!pw->binary) return 0;
 
 		if (++first_number > SINGLE_WORDS_PAIR_MAX) continue;
 
@@ -302,6 +303,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				if (single_add_key(keys, key))
 				if (single_process_buffer(salt)) return 1;
 				if (!salt->list) return 2;
+				if (!pw->binary) return 0;
 			}
 
 			if (first->data[1]) {
@@ -314,6 +316,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				if (single_add_key(keys, key))
 				if (single_process_buffer(salt)) return 1;
 				if (!salt->list) return 2;
+				if (!pw->binary) return 0;
 			}
 		} while (++second_number <= SINGLE_WORDS_PAIR_MAX &&
 			(second = second->next));
