@@ -170,7 +170,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffered keys hash size, used for "single crack" mode.
  */
-#define SINGLE_HASH_LOG			5
+#define SINGLE_HASH_LOG			7
 #define SINGLE_HASH_SIZE		(1 << SINGLE_HASH_LOG)
 
 /*
@@ -187,9 +187,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Hash and buffer sizes for unique.
  */
-#define UNIQUE_HASH_LOG			17
+#define UNIQUE_HASH_LOG			20
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-#define UNIQUE_BUFFER_SIZE		0x800000
+#define UNIQUE_BUFFER_SIZE		0x4000000
 
 /*
  * Maximum number of GECOS words per password to load.
@@ -260,8 +260,8 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * john.pot and log file buffer sizes, can be zero.
  */
-#define POT_BUFFER_SIZE			0x1000
-#define LOG_BUFFER_SIZE			0x1000
+#define POT_BUFFER_SIZE			0x8000
+#define LOG_BUFFER_SIZE			0x8000
 
 /*
  * Buffer size for path names.
