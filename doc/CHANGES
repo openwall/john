@@ -1,5 +1,16 @@
-The following changes have been made between John 1.7.4 and 1.7.4.1:
+The following changes have been made between John 1.7.4 and 1.7.4.2:
 
+* Major performance improvements for processing of very large password files
+or sets of files, especially with salt-less or same-salt hashes, achieved
+primarily through introduction of two additional hash table sizes (64K and 1M
+entries), changes to the loader, and smarter processing of successful guesses
+(to accommodate getting thousands of hashes successfully cracked per second).
+* Many default buffer and hash table sizes have been increased and thresholds
+for the use of hash tables lowered, meaning that John will now tend to use
+more memory to achieve better speed (unless it is told not to with the
+"--save-memory" option).
+* Some previously missed common website passwords found on public lists of
+"top N passwords" have been added to the bundled common passwords list.
 * Some bugs introduced in 1.7.4 and affecting wordlist mode's elimination of
 consecutive duplicate candidate passwords have been fixed.
 
@@ -114,4 +125,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.36 2010/01/03 22:53:50 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.37 2010/01/18 07:30:44 solar Exp $
