@@ -114,9 +114,6 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 		}
 	}
 
-	if (!options->max_pps)
-		db->options->max_pps = (unsigned int)~0 >> 1;
-
 	list_init(&db->plaintexts);
 
 	db->salt_count = db->password_count = db->guess_count = 0;
@@ -124,6 +121,13 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 	db->format = NULL;
 }
 
+/*
+ * Allocate a hash table for use by the loader itself.  We use this for two
+ * purposes: to detect and avoid loading of duplicate hashes when DB_WORDS is
+ * not set, and to remove previously-cracked hashes (found in john.pot).  We
+ * allocate, use, and free this hash table prior to deciding on the sizes of
+ * and allocating the per-salt hash tables to be used while cracking.
+ */
 static void ldr_init_password_hash(struct db_main *db)
 {
 	int (*func)(void *binary);
@@ -331,13 +335,6 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			sizeof(struct db_keys *);
 	}
 
-/*
- * Allocate a hash table for use by the loader itself.  We use this for two
- * purposes: to detect and avoid loading of duplicate hashes when DB_WORDS is
- * not set, and to remove previously-cracked hashes (found in john.pot).  We
- * allocate, use, and free this hash table prior to deciding on the sizes of
- * and allocating the per-salt hash tables to be used while cracking.
- */
 	if (!db->password_hash)
 		ldr_init_password_hash(db);
 
@@ -465,6 +462,15 @@ void ldr_load_pot_file(struct db_main *db, char *name)
 		read_file(db, name, RF_ALLOW_MISSING, ldr_load_pot_line);
 }
 
+/*
+ * The following are several functions called by ldr_fix_database().
+ * They assume that the per-salt hash tables have not yet been initialized.
+ */
+
+/*
+ * Glue the salt_hash[] buckets together and into the salts list.  The loader
+ * needs the hash table, but then we free it and the cracker uses the list.
+ */
 static void ldr_init_salts(struct db_main *db)
 {
 	struct db_salt **tail, *current;
@@ -479,6 +485,10 @@ static void ldr_init_salts(struct db_main *db)
 	}
 }
 
+/*
+ * Remove the previously-cracked hashes marked with "binary = NULL" by
+ * ldr_load_pot_line().
+ */
 static void ldr_remove_marked(struct db_main *db)
 {
 	struct db_salt *current_salt, *last_salt;
@@ -514,15 +524,24 @@ static void ldr_remove_marked(struct db_main *db)
 	} while ((current_salt = current_salt->next));
 }
 
+/*
+ * Remove salts with too few or too many password hashes.
+ */
 static void ldr_filter_salts(struct db_main *db)
 {
 	struct db_salt *current, *last;
+	int min = db->options->min_pps;
+	int max = db->options->max_pps;
+
+	if (!max) {
+		if (!min) return;
+		max = ~(unsigned int)0 >> 1;
+	}
 
 	last = NULL;
 	if ((current = db->salts))
 	do {
-		if (current->count < db->options->min_pps ||
-		    current->count > db->options->max_pps) {
+		if (current->count < min || current->count > max) {
 			if (last)
 				last->next = current->next;
 			else
