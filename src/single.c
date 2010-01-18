@@ -310,31 +310,35 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 static int single_process_salt(struct db_salt *salt, char *rule)
 {
 	struct db_keys *keys;
-	struct db_password *pw;
-	int have_words = 0;
+	struct db_password *pw, **last;
+	int status, have_words = 0;
 
 	keys = salt->keys;
 	if (!keys)
 		return 0;
 
-	pw = salt->list;
+	last = &salt->list;
+	pw = *last;
 	do {
-		switch (single_process_pw(salt, pw, rule)) {
-		case -1: /* no words seen yet */
-			continue;
-		case 1: /* no hashes left to crack for all salts */
-			return 1;
-		case 2: /* no hashes left to crack for this salt */
-			return 0;
+/*
+ * "binary" is set to NULL on entries marked for removal (so we remove them
+ * here) or already removed (yet we might hit them once in some obscure cases).
+ */
+		if (pw->binary) {
+			if (!(status = single_process_pw(salt, pw, rule))) {
+				have_words = 1;
+				goto next;
+			}
+			if (status < 0) /* no words for this hash */
+				goto next;
+			if (status == 2) /* no hashes left for this salt */
+				return 0;
+			return 1; /* no hashes left to crack for all salts */
+		} else {
+			*last = pw->next; /* remove */
 		}
-		have_words = 1;
-		pw = pw->next;
-		break;
-	} while ((pw = pw->next));
-	if (pw)
-	do {
-		if (single_process_pw(salt, pw, rule) > 0)
-			return salt->list ? 1 : 0;
+next:
+		last = &pw->next;
 	} while ((pw = pw->next));
 
 	if (keys->count && rule_number - keys->rule > (key_count << 1))
