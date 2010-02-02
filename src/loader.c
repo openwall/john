@@ -604,7 +604,7 @@ static void ldr_init_hash(struct db_main *db)
 	int threshold, size;
 
 	threshold = password_hash_thresholds[0];
-	if (db->format->params.flags & FMT_BS) {
+	if (db->format && (db->format->params.flags & FMT_BS)) {
 /*
  * Estimate the complexity of DES_bs_get_hash() for each computed hash (but
  * comparing it against less than 1 loaded hash on average due to the use of a
