@@ -266,6 +266,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 static void ldr_split_string(struct list_main *dst, char *src)
 {
 	char *word, *pos;
+	char c;
 
 	pos = src;
 	do {
@@ -275,10 +276,11 @@ static void ldr_split_string(struct list_main *dst, char *src)
 
 		pos = word;
 		while (!issep_map[ARCH_INDEX(*pos)]) pos++;
-		if (*pos) *pos++ = 0;
-
+		c = *pos;
+		*pos = 0;
 		list_add_unique(dst, word);
-	} while (*pos && dst->count < LDR_WORDS_MAX);
+		*pos++ = c;
+	} while (c && dst->count < LDR_WORDS_MAX);
 }
 
 static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
