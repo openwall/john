@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2009 by Solar Designer
+ * Copyright (c) 1996-98,2009,2010 by Solar Designer
  */
 
 /*
@@ -29,6 +29,9 @@ struct rpp_range {
 
 /* Whether the range should be processed "in parallel" with preceding ranges */
 	int flag_p;
+
+/* Whether repeated characters should be added or discarded */
+	int flag_r;
 
 /* Present characters bitmask for dupe checking */
 	ARCH_WORD mask[0x100 / ARCH_BITS];
