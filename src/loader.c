@@ -233,7 +233,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		if (source) sprintf(source, "%s:%s", uid, line);
 	}
 
-	if (options->flags & DB_WORDS || options->shells->head) {
+	if ((options->flags & DB_WORDS) || options->shells->head) {
 		gid = ldr_get_field(&line);
 		do {
 			*gecos = ldr_get_field(&line);
@@ -742,6 +742,11 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	ciphertext = ldr_get_field(&line);
 
 	if (line) {
+/* If just one format was forced on the command line, insist on it */
+		if (!fmt_list->next &&
+		    !fmt_list->methods.valid(ciphertext))
+			return;
+
 		pos = line;
 		do {
 			if (*pos == '\r' || *pos == '\n') *pos = 0;
@@ -787,6 +792,9 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
 		source, &format, db->options, line);
 	if (!count) return;
+
+/* If just one format was forced on the command line, insist on it */
+	if (!fmt_list->next && !format) return;
 
 	show = !(db->options->flags & DB_PLAINTEXTS);
 
