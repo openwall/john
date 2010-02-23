@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2006,2009 by Solar Designer
+ * Copyright (c) 1996-98,2006,2009,2010 by Solar Designer
  */
 
 #include <string.h>
@@ -160,7 +160,7 @@ char *rpp_next(struct rpp_context *ctx)
 				continue;
 			range->index = ctx->ranges[range->flag_p - 1].index;
 			if (range->index >= range->count)
-				range->index = 0;
+				range->index = range->count - 1;
 		} while (index--);
 	}
 
