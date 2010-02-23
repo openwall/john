@@ -63,8 +63,8 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		if (c == 'p' && ctx->count < RULE_RANGES_MAX) {
 			if ((c = *input) == '[') {
 				flag_p = -1;
-			} else if (c >= '1' && c <= '9') {
-				flag_p = c - '0';
+			} else if (c >= '0' && c <= '9') {
+				flag_p = (c == '0') ? ctx->count : c - '0';
 				input++;
 			}
 		}
