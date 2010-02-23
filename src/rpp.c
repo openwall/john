@@ -25,12 +25,17 @@ int rpp_init(struct rpp_context *ctx, char *subsection)
 
 static void rpp_add_char(struct rpp_range *range, unsigned char c)
 {
-	int index = c / ARCH_BITS;
-	ARCH_WORD mask = (ARCH_WORD)1 << (c % ARCH_BITS);
+	if (range->flag_r) {
+		if (range->count >= 0x100) return;
+	} else {
+		int index = c / ARCH_BITS;
+		ARCH_WORD mask = (ARCH_WORD)1 << (c % ARCH_BITS);
 
-	if (range->mask[index] & mask) return;
+		if (range->mask[index] & mask) return;
 
-	range->mask[index] |= mask;
+		range->mask[index] |= mask;
+	}
+
 	range->chars[range->count++] = (char)c;
 }
 
@@ -39,12 +44,12 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	struct rpp_range *range;
 	unsigned char *input, *output, *end;
 	unsigned char c1, c2, c;
-	int flag_p;
+	int flag_p, flag_r;
 
 	input = (unsigned char *)ctx->input->data;
 	output = (unsigned char *)ctx->output;
 	end = output + RULE_BUFFER_SIZE - 1;
-	flag_p = 0;
+	flag_p = flag_r = 0;
 	ctx->count = ctx->refs_count = 0;
 
 	while (*input && output < end)
@@ -58,18 +63,29 @@ static void rpp_process_rule(struct rpp_context *ctx)
 			ref->pos = (char *)output;
 			ref->range = (c == '0') ? ctx->count - 1 : c - '1';
 		}
-		flag_p = 0;
 		input++;
-		if (c == 'p' && ctx->count < RULE_RANGES_MAX) {
-			if ((c = *input) == '[') {
+		if (ctx->count < RULE_RANGES_MAX)
+		switch (c) {
+		case 'p':
+			if ((c2 = *input) == '[' || c2 == '\\') {
 				flag_p = -1;
-			} else if (c >= '0' && c <= '9') {
-				flag_p = (c == '0') ? ctx->count : c - '0';
+				break;
+			} else if (c2 >= '0' && c2 <= '9') {
+				flag_p = (c2 == '0') ? ctx->count : c2 - '0';
 				input++;
+				break;
 			}
-		}
-		if (!flag_p)
 			*output++ = c;
+			break;
+		case 'r':
+			if (*input == '[' || *input == '\\') {
+				flag_r = 1;
+				break;
+			}
+			/* fall through */
+		default:
+			*output++ = c;
+		}
 		break;
 
 	case '[':
@@ -83,6 +99,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		range->pos = (char *)output++;
 		range->index = range->count = 0;
 		range->flag_p = flag_p; flag_p = 0;
+		range->flag_r = flag_r; flag_r = 0;
 		memset(range->mask, 0, sizeof(range->mask));
 		range->chars[0] = 0;
 
