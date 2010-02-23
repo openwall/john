@@ -415,7 +415,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		}
 
 		if (db->options->flags & DB_LOGIN) {
-			if (count > 1) {
+			if (count >= 2 && count <= 9) {
 				current_pw->login = mem_alloc_tiny(
 					strlen(login) + 3, MEM_ALIGN_NONE);
 				sprintf(current_pw->login, "%s:%d",
