@@ -158,6 +158,8 @@ char *rpp_next(struct rpp_context *ctx)
 			range = &ctx->ranges[index];
 			if (range->flag_p <= 0 || range->flag_p > ctx->count)
 				continue;
+			if (ctx->ranges[range->flag_p - 1].flag_p)
+				continue; /* don't bother to support this */
 			range->index = ctx->ranges[range->flag_p - 1].index;
 			if (range->index >= range->count)
 				range->index = range->count - 1;
