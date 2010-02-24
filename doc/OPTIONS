@@ -80,11 +80,12 @@ then use this option to read in and display the status.
 --make-charset=FILE		make a charset, overwriting FILE
 
 Generates a charset file based on character frequencies from
-$JOHN/john.pot, for use with "incremental" mode.  The entire
-$JOHN/john.pot will be used for the charset generation unless you
-specify some password files in which case only the cracked passwords
-which correspond to those password files will be used.  You can also
-use an external filter() routine with this option.
+$JOHN/john.pot, for use with the "incremental" mode.  The entire
+$JOHN/john.pot will be used for the charset generation by default.  You
+may restrict the set of passwords used by specifying some password files
+(in which case only the cracked passwords that correspond to those
+password files will be used), "--format", or/and "--external" (with an
+external mode that defines a filter() function).
 
 --show				show cracked passwords
 
@@ -128,12 +129,13 @@ passwords cracked earlier.
 --format=NAME			force hash type NAME
 
 Allows you to override the hash type detection.  Currently, valid
-"format names" are DES, BSDI, MD5, BF, AFS, and LM.  You can use this
-option when cracking or with "--test".  Note that John can't crack
-hashes of different types at the same time.  If you happen to get a
-password file that uses more than one hash type (for different
-accounts), then you have to invoke John once for each hash type and
-you need to use this option to make John crack hashes of types other
+"format names" are DES, BSDI, MD5, BF, AFS, and LM (and many more are
+added with various patches).  You can use this option when you're
+starting a cracking session or along with one of: "--test", "--show",
+"--make-charset".  Note that John can't crack hashes of different types
+at the same time.  If you happen to get a password file that uses more
+than one hash type, then you have to invoke John once for each hash type
+and you need to use this option to make John crack hashes of types other
 than the one it would autodetect by default.
 
 --save-memory=LEVEL		enable memory saving, at LEVEL 1..3
