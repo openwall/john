@@ -235,7 +235,7 @@ after applying some commands to them separately.
 The preprocessor is used to combine similar rules into one source line.
 For example, if you need to make John try lowercased words with digits
 appended, you could write a rule for each digit, 10 rules total.  Now
-imagine appending two-digit numbers, -- the configuration file would get
+imagine appending two-digit numbers - the configuration file would get
 large and ugly.
 
 With the preprocessor you can do these things easier.  Simply write one
@@ -243,19 +243,20 @@ source line containing the common part of these rules followed by the
 list of characters you would have put into separate rules, in square
 brackets (the way you would do in a regexp).  The preprocessor will then
 generate the rules for you (at John startup for syntax checking, and
-once again while cracking, but never keeping all the expanded rules in
-memory).  For the examples above, the source lines will be "l$[0-9]"
+once again while cracking, but never keeping all of the expanded rules
+in memory).  For the examples above, the source lines will be "l$[0-9]"
 (lowercase and append a digit) and "l$[0-9]$[0-9]" (lowercase and append
 two digits).  These source lines will be expanded to 10 and 100 rules,
 respectively.  By the way, preprocessor commands are processed
 right-to-left while character lists are processed left-to-right, which
-results in normal ordering of numbers in the above examples and in other
-typical cases.  Note that arbitrary combinations of character ranges
-and character lists are valid.  For example, "[aeiou]" will use vowels
-and "[aeiou0-9]" will use vowels and digits.  If you need to have John
-try vowels followed by all other letters, you can use "[aeioua-z]", --
-the preprocessor is smart enough to not produce duplicate rules in such
-cases.
+results in natural ordering of numbers in the above examples and in
+other typical cases.  Note that arbitrary combinations of character
+ranges and character lists are valid.  For example, "[aeiou]" will use
+vowels, whereas "[aeiou0-9]" will use vowels and digits.  If you need to
+have John try vowels followed by all other letters, you can use
+"[aeioua-z]" - the preprocessor is smart enough not to produce duplicate
+rules in such cases (although this behavior may be disabled with the
+"\r" magic escape sequence described below).
 
 There are some special characters in rules ("[" starts a preprocessor
 character list, "-" marks a range inside the list, etc.)  You should
@@ -267,14 +268,22 @@ rule command), or it would be treated as a new section start.
 
 Finally, the preprocessor supports some magic escape sequences.  These
 start with a backslash and use characters that you would not normally
-need to escape.  Currently supported are "\1" through "\9" for
-back-references to prior ranges (these will be substituted by the same
-character that is currently generated for the referenced range, with
-ranges numbered from 1, left-to-right), "\0" for back-reference to the
-immediately preceding range, "\p" right before a range to have that
-range processed "in parallel" with preceding ranges, and "\p1" through
-"\p9" right before a range to have the range processed "in parallel"
-with the specific referenced range.
+need to escape.  In the following paragraph describing the escapes, the
+word "range" refers to a single instance of a mix of character lists
+and/or ranges placed in square brackets as illustrated above.
+
+Currently supported are "\1" through "\9" for back-references to prior
+ranges (these will be substituted by the same character that is
+currently substituted for the referenced range, with ranges numbered
+from 1, left-to-right), "\0" for back-reference to the immediately
+preceding range, "\p" before a range to have that range processed "in
+parallel" with preceding ranges, "\p1" through "\p9" to have the range
+processed "in parallel" with the specific referenced range, "\p0" to
+have the range processed "in parallel" with the immediately preceding
+range, and "\r" to allow the range to produce repeated characters.  The
+"\r" escape is only useful if the range is "parallel" to another one or
+if there's at least one other range "parallel" to this one, because you
+should not want to actually produce duplicate rules.
 
 Please refer to the default configuration file for John the Ripper for
 many example uses of the features described in here.
