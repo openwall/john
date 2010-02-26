@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -120,19 +120,11 @@ static int log_time(void)
 
 void log_init(char *log_name, char *pot_name, char *session)
 {
-	char *p;
-
 	in_logger = 1;
 
 	if (log_name && log.fd < 0) {
-		if (session) {
-			if (!(p = strrchr(session, '.')))
-				p = session + strlen(session);
-			log_name = mem_alloc_tiny((p - session) +
-				strlen(LOG_SUFFIX) + 1, MEM_ALIGN_NONE);
-			strnzcpy(log_name, session, p - session + 1);
-			strcat(log_name, LOG_SUFFIX);
-		}
+		if (session)
+			log_name = path_session(session, LOG_SUFFIX);
 
 		log_file_init(&log, log_name, LOG_BUFFER_SIZE);
 	}

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2005,2006,2009 by Solar Designer
+ * Copyright (c) 1996-2003,2005,2006,2009,2010 by Solar Designer
  */
 
 #include <stdio.h>
@@ -28,7 +28,7 @@ extern int ftruncate(int fd, size_t length);
 #include "recovery.h"
 
 char *rec_name = RECOVERY_NAME;
-static int rec_name_fixed = 0;
+int rec_name_completed = 1;
 int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
@@ -40,18 +40,11 @@ static FILE *rec_file = NULL;
 static struct db_main *rec_db;
 static void (*rec_save_mode)(FILE *file);
 
-static char *rec_name_complete(char *rec_name)
+static void rec_name_complete(void)
 {
-	char *result;
-
-	if (strchr(rec_name, '.')) return rec_name;
-
-	result = mem_alloc_tiny(strlen(rec_name) +
-		strlen(RECOVERY_SUFFIX) + 1, MEM_ALIGN_NONE);
-	strcpy(result, rec_name);
-	strcat(result, RECOVERY_SUFFIX);
-
-	return result;
+	if (rec_name_completed) return;
+	rec_name = path_session(rec_name, RECOVERY_SUFFIX);
+	rec_name_completed = 1;
 }
 
 #if defined(LOCK_EX) && OS_FLOCK
@@ -77,8 +70,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 	if (!rec_argc) return;
 
-	if (!rec_name_fixed)
-		rec_name = rec_name_complete(rec_name);
+	rec_name_complete();
 
 	if ((rec_fd = open(path_expand(rec_name), O_RDWR | O_CREAT, 0600)) < 0)
 		pexit("open: %s", path_expand(rec_name));
@@ -172,16 +164,10 @@ void rec_restore_args(int lock)
 	char **argv;
 	char *save_rec_name;
 
-	if (!(rec_file = fopen(path_expand(rec_name), "r+"))) {
-		save_rec_name = rec_name;
-		rec_name = rec_name_complete(rec_name);
-		if (rec_name != save_rec_name)
-			rec_file = fopen(path_expand(rec_name), "r+");
-		if (!rec_file)
-			pexit("fopen: %s", path_expand(rec_name));
-	}
+	rec_name_complete();
+	if (!(rec_file = fopen(path_expand(rec_name), "r+")))
+		pexit("fopen: %s", path_expand(rec_name));
 	rec_fd = fileno(rec_file);
-	rec_name_fixed = 1;
 
 	if (lock) rec_lock();
 
@@ -212,6 +198,7 @@ void rec_restore_args(int lock)
 	save_rec_name = rec_name;
 	opt_init(argv[0], argc, argv);
 	rec_name = save_rec_name;
+	rec_name_completed = 1;
 
 	if (fscanf(rec_file, "%u\n%u\n%x\n%x\n",
 		&status_restored_time,

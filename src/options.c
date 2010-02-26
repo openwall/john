@@ -134,8 +134,10 @@ void opt_init(char *name, int argc, char **argv)
 
 	opt_check(opt_list, options.flags, argv);
 
-	if (options.session)
+	if (options.session) {
 		rec_name = options.session;
+		rec_name_completed = 0;
+	}
 
 	if (options.flags & FLG_RESTORE_CHK) {
 		rec_restore_args(1);
