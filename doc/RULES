@@ -30,6 +30,7 @@ A...Z	for 10...35
 a...k	user-defined numeric variables (with the "v" command)
 l	initial or updated word's length (updated whenever "v" is used)
 m	initial or memorized word's last character position
+p	position of the character last found with the "/" or "%" commands
 z	"infinite" position or length (beyond end of word)
 
 Here max_length is the maximum plaintext length supported for the
