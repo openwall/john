@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2006,2010 by Solar Designer
  */
 
 /*
@@ -15,9 +15,11 @@
 #include "loader.h"
 
 /*
- * Crash recovery file name.
+ * Crash recovery file name and whether it has been "completed" (by adding
+ * the filename suffix to the session name).
  */
 extern char *rec_name;
+extern int rec_name_completed;
 
 /*
  * Crash recovery file format version number.

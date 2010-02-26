@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2010 by Solar Designer
  */
 
 /*
@@ -17,8 +17,15 @@ extern void path_init(char **argv);
 
 /*
  * Expands "$JOHN/" and "~/" in a path name.
+ * The returned buffer might be overwritten with subsequent calls.
  */
 extern char *path_expand(char *name);
+
+/*
+ * Generates a filename for the given session name and filename suffix.
+ * Memory for the resulting filename is allocated with mem_alloc_tiny().
+ */
+extern char *path_session(char *session, char *suffix);
 
 /*
  * Frees the memory allocated in path_init().

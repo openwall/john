@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2010 by Solar Designer
  */
 
 #include <string.h>
@@ -96,6 +96,30 @@ char *path_expand(char *name)
 #endif
 
 	return name;
+}
+
+char *path_session(char *session, char *suffix)
+{
+	int keep, add;
+	char *p;
+
+	keep = strlen(session);
+#ifdef __DJGPP__
+	if ((p = strchr(session, '.')))
+		keep = p - session;
+#endif
+
+	if (!keep) {
+		fprintf(stderr, "Invalid session name requested\n");
+		error();
+	}
+
+	add = strlen(suffix) + 1;
+	p = mem_alloc_tiny(keep + add, MEM_ALIGN_NONE);
+	memcpy(p, session, keep);
+	memcpy(p + keep, suffix, add);
+
+	return p;
 }
 
 void path_done(void)

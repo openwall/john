@@ -2,6 +2,8 @@ The following changes have been made between John 1.7.4.2 and 1.7.5:
 
 * Support for the use of "--format" along with "--show" or "--make-charset" has
 been added.
+* The choice of .rec and .log filenames for custom session names has been made
+more intuitive.
 * Support for "\r" (character lists with repeats) and "\p0" (reference to the
 immediately preceding character list/range) has been added to the word mangling
 rules preprocessor.
