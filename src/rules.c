@@ -544,6 +544,7 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 			{
 				int pos;
 				CLASS_export_pos(0, break, {})
+				rules_vars['p'] = pos;
 				if (in[pos]) break;
 			}
 			REJECT
@@ -621,10 +622,12 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 
 		case '%':
 			{
-				int count = 0, required;
+				int count = 0, required, pos;
 				POSITION(required)
-				CLASS(0, if (++count >= required) break, {})
+				CLASS_export_pos(0,
+				    if (++count >= required) break, {})
 				if (count < required) REJECT
+				rules_vars['p'] = pos;
 			}
 			break;
 
