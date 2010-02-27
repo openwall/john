@@ -1,11 +1,14 @@
+The following changes have been made between John 1.7.5 and 1.7.5.1:
+
+* A new numeric variable has been added to the word mangling rules engine:
+"p" for position of the character last found with the "/" or "%" commands.
+
 The following changes have been made between John 1.7.4.2 and 1.7.5:
 
 * Support for the use of "--format" along with "--show" or "--make-charset" has
 been added.
 * The choice of .rec and .log filenames for custom session names has been made
 more intuitive.
-* A new numeric variable has been added to the word mangling rules engine:
-"p" for position of the character last found with the "/" or "%" commands.
 * Support for "\r" (character lists with repeats) and "\p0" (reference to the
 immediately preceding character list/range) has been added to the word mangling
 rules preprocessor.
@@ -141,4 +144,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.40 2010/02/26 01:13:37 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.41 2010/02/27 17:59:24 solar Exp $
