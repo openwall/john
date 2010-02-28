@@ -33,10 +33,12 @@
  * with -DCPU_FALLBACK=1.  The fallback program binary name is defined
  * with CPU_FALLBACK_BINARY in architecture-specific header files such as
  * x86-mmx.h (and the default should be fine - no need to patch it).
- * Currently, this is used to transparently fallback to a non-MMX build of
- * John when an MMX build is run on older x86 processors.  Please do make
- * use of this functionality in your package if it is built for x86 (yes,
- * you need to do two builds of John for a single binary package).
+ * Currently, this is used to transparently fallback to a non-SSE2 build
+ * (perhaps to an MMX build) when an SSE2 build is run on older x86
+ * processors.  Similarly, this is used to fallback to a non-MMX build on
+ * ancient x86 processors.  Please do make use of this functionality in
+ * your package if it is built for 32-bit x86 (yes, you need to do up to
+ * three builds of John for a single binary package).
  *
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
