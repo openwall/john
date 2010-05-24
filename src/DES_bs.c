@@ -109,7 +109,7 @@ void DES_bs_init(int LM)
 
 /* Convert to byte offsets */
 	for (index = 0; index < 0x100; index++)
-		DES_bs_all.s1[index] *= DES_BS_DEPTH >> 3;
+		DES_bs_all.s1[index] *= sizeof(DES_bs_vector);
 
 	if (LM) {
 		for (c = 0; c < 0x100; c++)
