@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010 by Solar Designer
  *
  * A public domain version of this code, with reentrant and crypt(3)
  * interfaces added, but optimizations specific to password cracking
@@ -41,7 +41,7 @@ struct BF_ctx {
 	BF_key P;
 };
 
-#if BF_X2
+#if BF_N > 1
 #define INDICES				[BF_N]
 #define INDEX				[index]
 #define INDEX0				[index]
@@ -54,6 +54,35 @@ struct BF_ctx {
 #define for_each_index()
 #endif
 
+#if BF_X2
+#if BF_mt > 1
+#define INDEX2				[index & 1]
+#else
+#define INDEX2				[index]
+#endif
+#else
+#define INDEX2
+#endif
+
+#if BF_mt > 1
+#if BF_X2
+#define for_each_t() \
+	for (t = 0; t < n; t += 2)
+#define for_each_ti() \
+	for (index = t; index <= t + 1; index++)
+#else
+#define for_each_t() \
+	for (t = 0; t < n; t++)
+#define for_each_ti() \
+	index = t;
+#endif
+#else
+#define for_each_t()
+#define for_each_ti() \
+	for_each_index()
+#endif
+
+#if BF_mt == 1
 /* Current Blowfish context */
 #if BF_ASM
 extern
@@ -61,6 +90,7 @@ extern
 static
 #endif
 struct BF_ctx CC_CACHE_ALIGN BF_current INDICES;
+#endif
 
 /* Current Blowfish key */
 static BF_key CC_CACHE_ALIGN BF_exp_key INDICES;
@@ -567,120 +597,164 @@ void BF_std_set_key(char *key, int index)
 	}
 }
 
-void BF_std_crypt(BF_salt salt)
+void BF_std_crypt(BF_salt salt, int n)
 {
-	BF_word L0, R0;
-	BF_word u1, u2, u3, u4;
-#if BF_X2
-	BF_word L1, R1;
-	BF_word v1, v2, v3, v4;
-	int index;
+#if BF_mt > 1
+	int t;
 #endif
-	BF_word *ptr;
-	BF_word count;
-	int i;
 
-	for_each_index() {
-		memcpy(BF_current INDEX.S,
-		    BF_init_state.S, sizeof(BF_current INDEX.S));
-		memcpy(BF_current INDEX.P,
-		    BF_init_key INDEX, sizeof(BF_current INDEX.P));
-	}
+#if BF_mt > 1 && defined(_OPENMP)
+#pragma omp parallel for default(none) private(t) shared(n, BF_init_state, BF_init_key, BF_exp_key, salt, BF_magic_w, BF_out)
+#endif
+	for_each_t() {
+#if BF_mt > 1
+#if BF_X2
+		struct BF_ctx BF_current[2];
+#else
+		struct BF_ctx BF_current;
+#endif
+#endif
 
-	for_each_index() {
-		L0 = R0 = 0;
-		for (i = 0; i < BF_ROUNDS + 2; i += 2) {
-			L0 ^= salt[i & 2];
-			R0 ^= salt[(i & 2) + 1];
-			BF_ENCRYPT(BF_current INDEX, L0, R0);
-			BF_current INDEX.P[i] = L0;
-			BF_current INDEX.P[i + 1] = R0;
+		BF_word L0, R0;
+		BF_word u1, u2, u3, u4;
+#if BF_X2
+		BF_word L1, R1;
+		BF_word v1, v2, v3, v4;
+#endif
+		BF_word *ptr;
+		BF_word count;
+#if BF_N > 1
+		int index;
+#endif
+
+		for_each_ti() {
+			int i;
+
+			memcpy(BF_current INDEX2.S,
+			    BF_init_state.S, sizeof(BF_current INDEX2.S));
+			memcpy(BF_current INDEX2.P,
+			    BF_init_key INDEX, sizeof(BF_current INDEX2.P));
+
+			L0 = R0 = 0;
+			for (i = 0; i < BF_ROUNDS + 2; i += 2) {
+				L0 ^= salt[i & 2];
+				R0 ^= salt[(i & 2) + 1];
+				BF_ENCRYPT(BF_current INDEX2, L0, R0);
+				BF_current INDEX2.P[i] = L0;
+				BF_current INDEX2.P[i + 1] = R0;
+			}
+
+			ptr = BF_current INDEX2.S[0];
+			do {
+				ptr += 4;
+				L0 ^= salt[(BF_ROUNDS + 2) & 3];
+				R0 ^= salt[(BF_ROUNDS + 3) & 3];
+				BF_ENCRYPT(BF_current INDEX2, L0, R0);
+				*(ptr - 4) = L0;
+				*(ptr - 3) = R0;
+
+				L0 ^= salt[(BF_ROUNDS + 4) & 3];
+				R0 ^= salt[(BF_ROUNDS + 5) & 3];
+				BF_ENCRYPT(BF_current INDEX2, L0, R0);
+				*(ptr - 2) = L0;
+				*(ptr - 1) = R0;
+			} while (ptr < &BF_current INDEX2.S[3][0xFF]);
 		}
 
-		ptr = BF_current INDEX.S[0];
+		count = salt[4];
 		do {
-			ptr += 4;
-			L0 ^= salt[(BF_ROUNDS + 2) & 3];
-			R0 ^= salt[(BF_ROUNDS + 3) & 3];
-			BF_ENCRYPT(BF_current INDEX, L0, R0);
-			*(ptr - 4) = L0;
-			*(ptr - 3) = R0;
+			for_each_ti() {
+				BF_current INDEX2.P[0] ^= BF_exp_key INDEX[0];
+				BF_current INDEX2.P[1] ^= BF_exp_key INDEX[1];
+				BF_current INDEX2.P[2] ^= BF_exp_key INDEX[2];
+				BF_current INDEX2.P[3] ^= BF_exp_key INDEX[3];
+				BF_current INDEX2.P[4] ^= BF_exp_key INDEX[4];
+				BF_current INDEX2.P[5] ^= BF_exp_key INDEX[5];
+				BF_current INDEX2.P[6] ^= BF_exp_key INDEX[6];
+				BF_current INDEX2.P[7] ^= BF_exp_key INDEX[7];
+				BF_current INDEX2.P[8] ^= BF_exp_key INDEX[8];
+				BF_current INDEX2.P[9] ^= BF_exp_key INDEX[9];
+				BF_current INDEX2.P[10] ^= BF_exp_key INDEX[10];
+				BF_current INDEX2.P[11] ^= BF_exp_key INDEX[11];
+				BF_current INDEX2.P[12] ^= BF_exp_key INDEX[12];
+				BF_current INDEX2.P[13] ^= BF_exp_key INDEX[13];
+				BF_current INDEX2.P[14] ^= BF_exp_key INDEX[14];
+				BF_current INDEX2.P[15] ^= BF_exp_key INDEX[15];
+				BF_current INDEX2.P[16] ^= BF_exp_key INDEX[16];
+				BF_current INDEX2.P[17] ^= BF_exp_key INDEX[17];
+			}
 
-			L0 ^= salt[(BF_ROUNDS + 4) & 3];
-			R0 ^= salt[(BF_ROUNDS + 5) & 3];
-			BF_ENCRYPT(BF_current INDEX, L0, R0);
-			*(ptr - 2) = L0;
-			*(ptr - 1) = R0;
-		} while (ptr < &BF_current INDEX.S[3][0xFF]);
-	}
+			BF_body();
 
-	count = salt[4];
-	do {
-		for_each_index() {
-			BF_current INDEX.P[0] ^= BF_exp_key INDEX[0];
-			BF_current INDEX.P[1] ^= BF_exp_key INDEX[1];
-			BF_current INDEX.P[2] ^= BF_exp_key INDEX[2];
-			BF_current INDEX.P[3] ^= BF_exp_key INDEX[3];
-			BF_current INDEX.P[4] ^= BF_exp_key INDEX[4];
-			BF_current INDEX.P[5] ^= BF_exp_key INDEX[5];
-			BF_current INDEX.P[6] ^= BF_exp_key INDEX[6];
-			BF_current INDEX.P[7] ^= BF_exp_key INDEX[7];
-			BF_current INDEX.P[8] ^= BF_exp_key INDEX[8];
-			BF_current INDEX.P[9] ^= BF_exp_key INDEX[9];
-			BF_current INDEX.P[10] ^= BF_exp_key INDEX[10];
-			BF_current INDEX.P[11] ^= BF_exp_key INDEX[11];
-			BF_current INDEX.P[12] ^= BF_exp_key INDEX[12];
-			BF_current INDEX.P[13] ^= BF_exp_key INDEX[13];
-			BF_current INDEX.P[14] ^= BF_exp_key INDEX[14];
-			BF_current INDEX.P[15] ^= BF_exp_key INDEX[15];
-			BF_current INDEX.P[16] ^= BF_exp_key INDEX[16];
-			BF_current INDEX.P[17] ^= BF_exp_key INDEX[17];
-		}
+			u1 = salt[0];
+			u2 = salt[1];
+			u3 = salt[2];
+			u4 = salt[3];
+			for_each_ti() {
+				BF_current INDEX2.P[0] ^= u1;
+				BF_current INDEX2.P[1] ^= u2;
+				BF_current INDEX2.P[2] ^= u3;
+				BF_current INDEX2.P[3] ^= u4;
+				BF_current INDEX2.P[4] ^= u1;
+				BF_current INDEX2.P[5] ^= u2;
+				BF_current INDEX2.P[6] ^= u3;
+				BF_current INDEX2.P[7] ^= u4;
+				BF_current INDEX2.P[8] ^= u1;
+				BF_current INDEX2.P[9] ^= u2;
+				BF_current INDEX2.P[10] ^= u3;
+				BF_current INDEX2.P[11] ^= u4;
+				BF_current INDEX2.P[12] ^= u1;
+				BF_current INDEX2.P[13] ^= u2;
+				BF_current INDEX2.P[14] ^= u3;
+				BF_current INDEX2.P[15] ^= u4;
+				BF_current INDEX2.P[16] ^= u1;
+				BF_current INDEX2.P[17] ^= u2;
+			}
 
-		BF_body();
-
-		u1 = salt[0];
-		u2 = salt[1];
-		u3 = salt[2];
-		u4 = salt[3];
-		for_each_index() {
-			BF_current INDEX.P[0] ^= u1;
-			BF_current INDEX.P[1] ^= u2;
-			BF_current INDEX.P[2] ^= u3;
-			BF_current INDEX.P[3] ^= u4;
-			BF_current INDEX.P[4] ^= u1;
-			BF_current INDEX.P[5] ^= u2;
-			BF_current INDEX.P[6] ^= u3;
-			BF_current INDEX.P[7] ^= u4;
-			BF_current INDEX.P[8] ^= u1;
-			BF_current INDEX.P[9] ^= u2;
-			BF_current INDEX.P[10] ^= u3;
-			BF_current INDEX.P[11] ^= u4;
-			BF_current INDEX.P[12] ^= u1;
-			BF_current INDEX.P[13] ^= u2;
-			BF_current INDEX.P[14] ^= u3;
-			BF_current INDEX.P[15] ^= u4;
-			BF_current INDEX.P[16] ^= u1;
-			BF_current INDEX.P[17] ^= u2;
-		}
-
-		BF_body();
-	} while (--count);
-
-	for_each_index() {
-		L0 = BF_magic_w[0];
-		R0 = BF_magic_w[1];
-
-		count = 64;
-		do {
-			BF_ENCRYPT(BF_current INDEX, L0, R0);
+			BF_body();
 		} while (--count);
 
-		BF_out INDEX0[0] = L0;
-		BF_out INDEX0[1] = R0;
+#if BF_mt == 1
+		for_each_ti() {
+			L0 = BF_magic_w[0];
+			R0 = BF_magic_w[1];
+
+			count = 64;
+			do {
+				BF_ENCRYPT(BF_current INDEX, L0, R0);
+			} while (--count);
+
+			BF_out INDEX0[0] = L0;
+			BF_out INDEX0[1] = R0;
+		}
+#else
+		for_each_ti() {
+			BF_word L, R;
+			BF_word u1, u2, u3, u4;
+			BF_word count;
+			int i;
+
+			memcpy(&BF_out[index], &BF_magic_w,
+			    sizeof(BF_out[index]));
+
+			count = 64;
+			do
+			for (i = 0; i < 6; i += 2) {
+				L = BF_out[index][i];
+				R = BF_out[index][i + 1];
+				BF_ENCRYPT(BF_current INDEX2, L, R);
+				BF_out[index][i] = L;
+				BF_out[index][i + 1] = R;
+			} while (--count);
+
+/* This has to be bug-compatible with the original implementation :-) */
+			BF_out[index][5] &= ~(BF_word)0xFF;
+		}
+#endif
 	}
 }
 
+#if BF_mt == 1
 void BF_std_crypt_exact(int index)
 {
 	BF_word L, R;
@@ -703,6 +777,7 @@ void BF_std_crypt_exact(int index)
 /* This has to be bug-compatible with the original implementation :-) */
 	BF_out[index][5] &= ~(BF_word)0xFF;
 }
+#endif
 
 /*
  * I'm not doing any error checking in the routines below since the
