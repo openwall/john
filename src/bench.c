@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008,2009 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2010 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -158,6 +158,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
+	start_virtual += buf.tms_cutime + buf.tms_cstime;
 	count = 0;
 
 	index = salts;
@@ -182,6 +183,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	end_real = times(&buf);
 	end_virtual = buf.tms_utime + buf.tms_stime;
+	end_virtual += buf.tms_cutime + buf.tms_cstime;
 	if (end_virtual == start_virtual) end_virtual++;
 
 	results->real = end_real - start_real;
