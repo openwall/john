@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2009 by Solar Designer
+# Copyright (c) 1996-2010 by Solar Designer
 #
 
 CC = gcc
@@ -15,9 +15,14 @@ SED = sed
 PERL = perl
 NULL = /dev/null
 CPPFLAGS = -E
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer
-ASFLAGS = -c
-LDFLAGS = -s
+OMPFLAGS =
+# gcc with OpenMP
+#OMPFLAGS = -fopenmp
+# Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
+#OMPFLAGS = -xopenmp
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
+ASFLAGS = -c $(OMPFLAGS)
+LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 OPT_INLINE = -finline-functions
 
@@ -372,8 +377,8 @@ solaris-sparc64-cc:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native64" \
-		LDFLAGS="-s -xarch=native64 -lc -lrt" \
+		CFLAGS="-c -fast -xarch=native64 $(OMPFLAGS)" \
+		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -403,8 +408,8 @@ use-solaris-sparcv9-cc:
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
 		CC=cc \
-		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra" \
-		LDFLAGS="-s -lc -lrt" \
+		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra $(OMPFLAGS)" \
+		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -413,8 +418,8 @@ use-solaris-sparcv8-cc:
 		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
 		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
 		CC=cc \
-		CFLAGS="-c -xO4 -xarch=v8" \
-		LDFLAGS="-s -lc -lrt" \
+		CFLAGS="-c -xO4 -xarch=v8 $(OMPFLAGS)" \
+		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -441,9 +446,9 @@ solaris-x86-64-cc:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native64" \
-		ASFLAGS="-c -xarch=native64" \
-		LDFLAGS="-s -xarch=native64 -lrt" \
+		CFLAGS="-c -fast -xarch=native64 $(OMPFLAGS)" \
+		ASFLAGS="-c -xarch=native64 $(OMPFLAGS)" \
+		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -460,9 +465,9 @@ solaris-x86-sse2-cc:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) solaris-x86.o x86-sse.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native" \
-		ASFLAGS="-c -xarch=native" \
-		LDFLAGS="-s -xarch=native -lrt" \
+		CFLAGS="-c -fast -xarch=native $(OMPFLAGS)" \
+		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
+		LDFLAGS="-s -xarch=native $(OMPFLAGS) -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -477,9 +482,9 @@ solaris-x86-mmx-cc:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) solaris-x86.o x86-mmx.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native" \
-		ASFLAGS="-c -xarch=native" \
-		LDFLAGS="-s -xarch=native -lrt" \
+		CFLAGS="-c -fast -xarch=native $(OMPFLAGS)" \
+		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
+		LDFLAGS="-s -xarch=native $(OMPFLAGS) -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -496,9 +501,9 @@ solaris-x86-any-cc:
 		SHELL=/bin/sh \
 		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
 		CC=cc \
-		CFLAGS="-c -xO4" \
-		ASFLAGS="-c" \
-		LDFLAGS="-s -lc -lrt" \
+		CFLAGS="-c -xO4 $(OMPFLAGS)" \
+		ASFLAGS="-c $(OMPFLAGS)" \
+		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
