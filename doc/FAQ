@@ -184,20 +184,27 @@ and refuses to work if an error occurs.  If you need to test all of the
 low-level routines at once, use "--test".
 
 Q: Does John support multi-processing or distributed processing?
-A: There's no real MP or distributed processing support in John right
-now, but you can distribute the work between a few nodes manually.  One
-approach would be to have your nodes (CPUs, machines) each try different
-password lengths.  This is easily accomplished with "incremental" mode's
-"MinLen" and "MaxLen" settings (see CONFIG).  Typically, you would not
-really need to split the work for "single crack" and wordlist modes
-since these are relatively quick, although you may dedicate one node to
-those initially.  You may safely run multiple instances of John in the
-same working directory, all writing to the same "pot file" (this is a
-feature).  You do, however, need to assign each of them a unique session
-name, with "--session".  Other approaches, such as splitting password
-files naively (without regard to salts), are typically less efficient
-(in some cases to the extent where there's no speedup from using
-multiple processors at all).
+A: There's currently built-in parallel processing support (to make use
+of multiple CPUs and/or CPU cores on a single system) for OpenBSD-style
+Blowfish-based crypt(3) (bcrypt) hashes only.  To use it, you need to
+make an OpenMP-enabled build of John by uncommenting one of the OMPFLAGS
+lines near the beginning of the Makefile.  For other hash types and/or
+to distribute the workload between multiple machines, other approaches
+need to be used.  For a small number of nodes (CPUs, CPU cores, and/or
+machines), it is reasonable to use a manual approach.  One of those
+approaches is to have your nodes try different password lengths.  This
+is easily accomplished with "incremental" mode's "MinLen" and "MaxLen"
+settings (see CONFIG).  Typically, you would not really need to split
+the workload for "single crack" and wordlist modes since these are
+relatively quick, although you may dedicate one node to those initially.
+You may safely run multiple instances of John in the same working
+directory, all writing to the same "pot file" (this is a feature).  You
+do, however, need to assign each of them a unique session name, with
+"--session".  Other approaches, such as splitting password files naively
+(without regard to salts), are typically less efficient (in some cases
+to the extent where there's no speedup from using multiple nodes at
+all).  Some advanced and automated approaches are listed on the wiki at:
+http://openwall.info/wiki/john/parallelization
 
 Q: What is the format of the crash recovery files ("john.rec", other
 .rec's)?  What do the numbers mean?
