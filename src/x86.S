@@ -978,6 +978,7 @@ MD5_body:
 	popl %ebp
 	ret
 
+#if BF_ASM
 /*
  * Blowfish stuff.
  */
@@ -1274,6 +1275,9 @@ BF_body:
 .space 32
 #endif
 
+/* Blowfish stuff ends here */
+#endif
+
 /*
  * CPU detection.
  */
@@ -1299,7 +1303,9 @@ BF_body:
 .globl CPU_detect
 CPU_detect:
 	pushl %ebx
+#if BF_ASM
 	movl $BF_body_generic,BF_body
+#endif
 	pushfl
 	pushfl
 	xorl EF_ID,(%esp)
@@ -1361,7 +1367,9 @@ CPU_detect_P1:
 #if !DES_X2
 	movl $DES_std_crypt_P1,DES_std_crypt
 #endif
+#if BF_ASM
 	movl $BF_body_P1,BF_body
+#endif
 CPU_detect_ret:
 	movzbl %al,%eax
 	popl %ebx

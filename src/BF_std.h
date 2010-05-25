@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010 by Solar Designer
  */
 
 /*
@@ -26,9 +26,18 @@ typedef BF_word BF_salt[4 + 1];
 typedef BF_word BF_binary[6];
 
 #if BF_X2
-#define BF_N				2
+#define BF_Nmin				2
 #else
-#define BF_N				1
+#define BF_Nmin				1
+#endif
+
+#if defined(_OPENMP) && !BF_ASM
+#define BF_cpt				3
+#define BF_mt				96
+#define BF_N				(BF_Nmin * BF_mt)
+#else
+#define BF_mt				1
+#define BF_N				BF_Nmin
 #endif
 
 /*
@@ -53,14 +62,17 @@ extern unsigned char BF_atoi64[0x80];
 extern void BF_std_set_key(char *key, int index);
 
 /*
- * Main encryption routine, sets first two words of BF_out.
+ * Main hashing routine, sets first two words of BF_out
+ * (or all words in an OpenMP-enabled build).
  */
-extern void BF_std_crypt(BF_salt salt);
+extern void BF_std_crypt(BF_salt salt, int n);
 
+#if BF_mt == 1
 /*
  * Calculates the rest of BF_out, for exact comparison.
  */
 extern void BF_std_crypt_exact(int index);
+#endif
 
 /*
  * Returns the salt for BF_std_crypt().

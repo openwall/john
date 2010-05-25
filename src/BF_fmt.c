@@ -24,7 +24,7 @@
 #define BINARY_SIZE			4
 #define SALT_SIZE			20
 
-#define MIN_KEYS_PER_CRYPT		BF_N
+#define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
 
 static struct fmt_tests tests[] = {
@@ -44,6 +44,26 @@ static struct fmt_tests tests[] = {
 
 static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
 static BF_salt saved_salt;
+
+#ifdef _OPENMP
+#include <omp.h>
+
+struct fmt_main fmt_BF;
+
+static void init(void)
+{
+	int n = BF_Nmin * omp_get_max_threads();
+	if (n < BF_Nmin)
+		n = BF_Nmin;
+	if (n > BF_N)
+		n = BF_N;
+	fmt_BF.params.min_keys_per_crypt = n;
+	n *= BF_cpt;
+	if (n > BF_N)
+		n = BF_N;
+	fmt_BF.params.max_keys_per_crypt = n;
+}
+#endif
 
 static int valid(char *ciphertext)
 {
@@ -144,12 +164,18 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	BF_std_crypt(saved_salt);
+	BF_std_crypt(saved_salt, count);
 }
 
 static int cmp_all(void *binary, int count)
 {
-#if BF_X2
+#if BF_N > 2
+	int i;
+	for (i = 0; i < count; i++)
+		if (*(BF_word *)binary == BF_out[i][0])
+			return 1;
+	return 0;
+#elif BF_N == 2
 	return
 	    *(BF_word *)binary == BF_out[0][0] ||
 	    *(BF_word *)binary == BF_out[1][0];
@@ -165,7 +191,9 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
+#if BF_mt == 1
 	BF_std_crypt_exact(index);
+#endif
 
 	return !memcmp(BF_std_get_binary(source), BF_out[index],
 	    sizeof(BF_binary));
@@ -186,7 +214,11 @@ struct fmt_main fmt_BF = {
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
+#ifdef _OPENMP
+		init,
+#else
 		fmt_default_init,
+#endif
 		valid,
 		fmt_default_split,
 		(void *(*)(char *))BF_std_get_binary,
