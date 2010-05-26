@@ -321,27 +321,8 @@ openbsd-sparc64:
 		LDFLAGS="$(LDFLAGS) -m64"
 
 openbsd-sparc:
-	$(MAKE) use-openbsd-sparc HAMMER=use-openbsd-sparc NAIL=sparc.h
-	$(LN) sparc.h arch.h
-	$(MAKE) use-openbsd-sparc NAIL="$(PROJ)"
-
-use-openbsd-sparc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
-		ASFLAGS="-c -DBSD"
-
-openbsd-sparc-a.out:
-	$(MAKE) use-openbsd-sparc-a.out \
-		HAMMER=use-openbsd-sparc-a.out NAIL=sparc.h
-	$(LN) sparc.h arch.h
-	$(MAKE) use-openbsd-sparc-a.out NAIL="$(PROJ)"
-
-use-openbsd-sparc-a.out:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
-		ASFLAGS="-c -DUNDERSCORES -DBSD"
+	$(LN) sparc32.h arch.h
+	$(MAKE) $(PROJ)
 
 openbsd-ppc32:
 	$(LN) ppc32.h arch.h
@@ -388,58 +369,28 @@ solaris-sparc64-gcc:
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
 		LDFLAGS="$(LDFLAGS) -m64 -lrt"
 
-solaris-sparc-any:
-	$(MAKE) $(HAMMER) NAIL=sparc.h
-	$(RM) arch.h
-	ln -s sparc.h arch.h
-	$(MAKE) $(HAMMER) NAIL="$(PROJ)"
-
 solaris-sparcv9-cc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv9-cc
-
-solaris-sparcv8-cc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparcv8-cc
-
-solaris-sparc-gcc:
-	$(MAKE) solaris-sparc-any HAMMER=use-solaris-sparc-gcc
-
-use-solaris-sparcv9-cc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
+	$(LN) sparc32.h arch.h
+	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
-use-solaris-sparcv8-cc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) spro-sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) spro-sparc.o" \
+solaris-sparcv8-cc:
+	$(LN) sparc32.h arch.h
+	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8 $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
-use-solaris-sparc-gcc:
-	$(MAKE) $(NAIL) \
-		BENCH_DES_OBJS_DEPEND="$(BENCH_DES_OBJS_ORIG) sparc.o" \
-		JOHN_OBJS="$(JOHN_OBJS_ORIG) sparc.o" \
+solaris-sparc-gcc:
+	$(LN) sparc32.h arch.h
+	$(MAKE) $(PROJ) \
 		LDFLAGS="$(LDFLAGS) -lrt"
-
-sparc.h:
-	$(RM) arch.h
-	$(CC) $(CFLAGS) -DOS_TIMER -DOS_FLOCK -DDES_ASM detect.c
-	$(LD) detect.o $(LDFLAGS) -o detect
-	./sparc.sh "$(MAKE)" "$(HAMMER)" "$(BENCH_DES_OBJS_DEPEND)"
-
-# Older versions of spro cc didn't support .S files directly
-spro-sparc.o: sparc.S
-	$(CPP) $(CPPFLAGS) sparc.S | $(SED) 's/% /%/g' > tmp.s
-	$(AS) $(ASFLAGS) tmp.s -o spro-sparc.o
-	$(RM) tmp.s
 
 solaris-x86-64-cc:
 	$(LN) x86-64.h arch.h
@@ -880,7 +831,7 @@ depend:
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
-	$(RM) detect bench generic.h arch.h sparc.h tmp.s
+	$(RM) detect bench generic.h arch.h tmp.s
 	$(RM) DES_bs_s.c DES_bs_n.c DES_bs_a.c
 	$(CP) $(NULL) Makefile.dep
 
