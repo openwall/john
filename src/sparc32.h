@@ -25,16 +25,9 @@
 
 #define CPU_DETECT			0
 
-/*
- * Let's not use the old assembly file (developed in 1996) because it uses
- * registers reserved by the SPARC ABI (%g5-%g7) and this no longer works
- * with glibc 2.3.x.  Also, the performance improvement with it is minimal
- * on UltraSPARC processors (which may be made to run a 32-bit build of
- * John for whatever reason).
- */
 #define DES_ASM				0
 /*
- * Let's also not bother trying 128 KB SPE tables with the old-fashioned DES
+ * Let's not bother trying 128 KB SPE tables with the old-fashioned DES
  * implementation, despite them resulting in better performance on some
  * systems.  We're using bitslice DES for the most important (most common)
  * DES-based hash types anyway.

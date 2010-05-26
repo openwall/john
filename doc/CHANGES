@@ -2,6 +2,7 @@ The following changes have been made between John 1.7.5.1 and 1.7.5.2:
 
 * Optional parallelization for the OpenBSD-style Blowfish-based crypt(3)
 (bcrypt) hashes with OpenMP has been added.
+* The obsolete 32-bit SPARC assembly implementation of DES has been dropped.
 
 The following changes have been made between John 1.7.5 and 1.7.5.1:
 

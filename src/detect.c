@@ -61,15 +61,8 @@ int main(int argc, char **argv)
 		(sizeof(int) > 4) ? 1 : 0);
 
 	puts(
-"#define CPU_DETECT\t\t\t0\n");
-
-	printf(
-"#define DES_ASM\t\t\t\t%d\n",
-#ifdef DES_ASM
-		1);
-#else
-		0);
-#endif
+"#define CPU_DETECT\t\t\t0\n\n"
+"#define DES_ASM\t\t\t\t0");
 
 	switch (argv[1][0]) {
 	case '1':
