@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2010 by Solar Designer
  */
 
 #include "arch.h"
@@ -57,6 +57,10 @@
 	DES_bs_clear_block_8(48); \
 	DES_bs_clear_block_8(56);
 
+#define x(p) (e[p] ed ^ k[p] kd)
+#define y(p, q) (b[p] bd ^ k[q] kd)
+#define z(r) (&b[r] bd)
+
 void DES_bs_crypt(int count)
 {
 #if DES_BS_EXPAND
@@ -81,73 +85,57 @@ void DES_bs_crypt(int count)
 
 start:
 	for_each_depth()
-	s1(e[0] ed ^ k[0] kd, e[1] ed ^ k[1] kd, e[2] ed ^ k[2] kd,
-		e[3] ed ^ k[3] kd, e[4] ed ^ k[4] kd, e[5] ed ^ k[5] kd,
-		&b[40] bd, &b[48] bd, &b[54] bd, &b[62] bd);
+	s1(x(0), x(1), x(2), x(3), x(4), x(5),
+		z(40), z(48), z(54), z(62));
 	for_each_depth()
-	s2(e[6] ed ^ k[6] kd, e[7] ed ^ k[7] kd, e[8] ed ^ k[8] kd,
-		e[9] ed ^ k[9] kd, e[10] ed ^ k[10] kd, e[11] ed ^ k[11] kd,
-		&b[44] bd, &b[59] bd, &b[33] bd, &b[49] bd);
+	s2(x(6), x(7), x(8), x(9), x(10), x(11),
+		z(44), z(59), z(33), z(49));
 	for_each_depth()
-	s3(e[12] ed ^ k[12] kd, e[13] ed ^ k[13] kd, e[14] ed ^ k[14] kd,
-		e[15] ed ^ k[15] kd, e[16] ed ^ k[16] kd, e[17] ed ^ k[17] kd,
-		&b[55] bd, &b[47] bd, &b[61] bd, &b[37] bd);
+	s3(x(12), x(13), x(14), x(15), x(16), x(17),
+		z(55), z(47), z(61), z(37));
 	for_each_depth()
-	s4(e[18] ed ^ k[18] kd, e[19] ed ^ k[19] kd, e[20] ed ^ k[20] kd,
-		e[21] ed ^ k[21] kd, e[22] ed ^ k[22] kd, e[23] ed ^ k[23] kd,
-		&b[57] bd, &b[51] bd, &b[41] bd, &b[32] bd);
+	s4(x(18), x(19), x(20), x(21), x(22), x(23),
+		z(57), z(51), z(41), z(32));
 	for_each_depth()
-	s5(e[24] ed ^ k[24] kd, e[25] ed ^ k[25] kd, e[26] ed ^ k[26] kd,
-		e[27] ed ^ k[27] kd, e[28] ed ^ k[28] kd, e[29] ed ^ k[29] kd,
-		&b[39] bd, &b[45] bd, &b[56] bd, &b[34] bd);
+	s5(x(24), x(25), x(26), x(27), x(28), x(29),
+		z(39), z(45), z(56), z(34));
 	for_each_depth()
-	s6(e[30] ed ^ k[30] kd, e[31] ed ^ k[31] kd, e[32] ed ^ k[32] kd,
-		e[33] ed ^ k[33] kd, e[34] ed ^ k[34] kd, e[35] ed ^ k[35] kd,
-		&b[35] bd, &b[60] bd, &b[42] bd, &b[50] bd);
+	s6(x(30), x(31), x(32), x(33), x(34), x(35),
+		z(35), z(60), z(42), z(50));
 	for_each_depth()
-	s7(e[36] ed ^ k[36] kd, e[37] ed ^ k[37] kd, e[38] ed ^ k[38] kd,
-		e[39] ed ^ k[39] kd, e[40] ed ^ k[40] kd, e[41] ed ^ k[41] kd,
-		&b[63] bd, &b[43] bd, &b[53] bd, &b[38] bd);
+	s7(x(36), x(37), x(38), x(39), x(40), x(41),
+		z(63), z(43), z(53), z(38));
 	for_each_depth()
-	s8(e[42] ed ^ k[42] kd, e[43] ed ^ k[43] kd, e[44] ed ^ k[44] kd,
-		e[45] ed ^ k[45] kd, e[46] ed ^ k[46] kd, e[47] ed ^ k[47] kd,
-		&b[36] bd, &b[58] bd, &b[46] bd, &b[52] bd);
+	s8(x(42), x(43), x(44), x(45), x(46), x(47),
+		z(36), z(58), z(46), z(52));
 
 	if (rounds_and_swapped == 0x100) goto next;
 
 swap:
 	for_each_depth()
-	s1(e[48] ed ^ k[48] kd, e[49] ed ^ k[49] kd, e[50] ed ^ k[50] kd,
-		e[51] ed ^ k[51] kd, e[52] ed ^ k[52] kd, e[53] ed ^ k[53] kd,
-		&b[8] bd, &b[16] bd, &b[22] bd, &b[30] bd);
+	s1(x(48), x(49), x(50), x(51), x(52), x(53),
+		z(8), z(16), z(22), z(30));
 	for_each_depth()
-	s2(e[54] ed ^ k[54] kd, e[55] ed ^ k[55] kd, e[56] ed ^ k[56] kd,
-		e[57] ed ^ k[57] kd, e[58] ed ^ k[58] kd, e[59] ed ^ k[59] kd,
-		&b[12] bd, &b[27] bd, &b[1] bd, &b[17] bd);
+	s2(x(54), x(55), x(56), x(57), x(58), x(59),
+		z(12), z(27), z(1), z(17));
 	for_each_depth()
-	s3(e[60] ed ^ k[60] kd, e[61] ed ^ k[61] kd, e[62] ed ^ k[62] kd,
-		e[63] ed ^ k[63] kd, e[64] ed ^ k[64] kd, e[65] ed ^ k[65] kd,
-		&b[23] bd, &b[15] bd, &b[29] bd, &b[5] bd);
+	s3(x(60), x(61), x(62), x(63), x(64), x(65),
+		z(23), z(15), z(29), z(5));
 	for_each_depth()
-	s4(e[66] ed ^ k[66] kd, e[67] ed ^ k[67] kd, e[68] ed ^ k[68] kd,
-		e[69] ed ^ k[69] kd, e[70] ed ^ k[70] kd, e[71] ed ^ k[71] kd,
-		&b[25] bd, &b[19] bd, &b[9] bd, &b[0] bd);
+	s4(x(66), x(67), x(68), x(69), x(70), x(71),
+		z(25), z(19), z(9), z(0));
 	for_each_depth()
-	s5(e[72] ed ^ k[72] kd, e[73] ed ^ k[73] kd, e[74] ed ^ k[74] kd,
-		e[75] ed ^ k[75] kd, e[76] ed ^ k[76] kd, e[77] ed ^ k[77] kd,
-		&b[7] bd, &b[13] bd, &b[24] bd, &b[2] bd);
+	s5(x(72), x(73), x(74), x(75), x(76), x(77),
+		z(7), z(13), z(24), z(2));
 	for_each_depth()
-	s6(e[78] ed ^ k[78] kd, e[79] ed ^ k[79] kd, e[80] ed ^ k[80] kd,
-		e[81] ed ^ k[81] kd, e[82] ed ^ k[82] kd, e[83] ed ^ k[83] kd,
-		&b[3] bd, &b[28] bd, &b[10] bd, &b[18] bd);
+	s6(x(78), x(79), x(80), x(81), x(82), x(83),
+		z(3), z(28), z(10), z(18));
 	for_each_depth()
-	s7(e[84] ed ^ k[84] kd, e[85] ed ^ k[85] kd, e[86] ed ^ k[86] kd,
-		e[87] ed ^ k[87] kd, e[88] ed ^ k[88] kd, e[89] ed ^ k[89] kd,
-		&b[31] bd, &b[11] bd, &b[21] bd, &b[6] bd);
+	s7(x(84), x(85), x(86), x(87), x(88), x(89),
+		z(31), z(11), z(21), z(6));
 	for_each_depth()
-	s8(e[90] ed ^ k[90] kd, e[91] ed ^ k[91] kd, e[92] ed ^ k[92] kd,
-		e[93] ed ^ k[93] kd, e[94] ed ^ k[94] kd, e[95] ed ^ k[95] kd,
-		&b[4] bd, &b[26] bd, &b[14] bd, &b[20] bd);
+	s8(x(90), x(91), x(92), x(93), x(94), x(95),
+		z(4), z(26), z(14), z(20));
 
 	k += 96;
 
@@ -187,73 +175,65 @@ void DES_bs_crypt_25(void)
 
 start:
 	for_each_depth()
-	s1(e[0] ed ^ k[0] kd, e[1] ed ^ k[1] kd, e[2] ed ^ k[2] kd,
-		e[3] ed ^ k[3] kd, e[4] ed ^ k[4] kd, e[5] ed ^ k[5] kd,
-		&b[40] bd, &b[48] bd, &b[54] bd, &b[62] bd);
+	s1(x(0), x(1), x(2), x(3), x(4), x(5),
+		z(40), z(48), z(54), z(62));
 	for_each_depth()
-	s2(e[6] ed ^ k[6] kd, e[7] ed ^ k[7] kd, e[8] ed ^ k[8] kd,
-		e[9] ed ^ k[9] kd, e[10] ed ^ k[10] kd, e[11] ed ^ k[11] kd,
-		&b[44] bd, &b[59] bd, &b[33] bd, &b[49] bd);
+	s2(x(6), x(7), x(8), x(9), x(10), x(11),
+		z(44), z(59), z(33), z(49));
 	for_each_depth()
-	s3(b[7] bd ^ k[12] kd, b[8] bd ^ k[13] kd, b[9] bd ^ k[14] kd,
-		b[10] bd ^ k[15] kd, b[11] bd ^ k[16] kd, b[12] bd ^ k[17] kd,
-		&b[55] bd, &b[47] bd, &b[61] bd, &b[37] bd);
+	s3(y(7, 12), y(8, 13), y(9, 14),
+		y(10, 15), y(11, 16), y(12, 17),
+		z(55), z(47), z(61), z(37));
 	for_each_depth()
-	s4(b[11] bd ^ k[18] kd, b[12] bd ^ k[19] kd, b[13] bd ^ k[20] kd,
-		b[14] bd ^ k[21] kd, b[15] bd ^ k[22] kd, b[16] bd ^ k[23] kd,
-		&b[57] bd, &b[51] bd, &b[41] bd, &b[32] bd);
+	s4(y(11, 18), y(12, 19), y(13, 20),
+		y(14, 21), y(15, 22), y(16, 23),
+		z(57), z(51), z(41), z(32));
 	for_each_depth()
-	s5(e[24] ed ^ k[24] kd, e[25] ed ^ k[25] kd, e[26] ed ^ k[26] kd,
-		e[27] ed ^ k[27] kd, e[28] ed ^ k[28] kd, e[29] ed ^ k[29] kd,
-		&b[39] bd, &b[45] bd, &b[56] bd, &b[34] bd);
+	s5(x(24), x(25), x(26), x(27), x(28), x(29),
+		z(39), z(45), z(56), z(34));
 	for_each_depth()
-	s6(e[30] ed ^ k[30] kd, e[31] ed ^ k[31] kd, e[32] ed ^ k[32] kd,
-		e[33] ed ^ k[33] kd, e[34] ed ^ k[34] kd, e[35] ed ^ k[35] kd,
-		&b[35] bd, &b[60] bd, &b[42] bd, &b[50] bd);
+	s6(x(30), x(31), x(32), x(33), x(34), x(35),
+		z(35), z(60), z(42), z(50));
 	for_each_depth()
-	s7(b[23] bd ^ k[36] kd, b[24] bd ^ k[37] kd, b[25] bd ^ k[38] kd,
-		b[26] bd ^ k[39] kd, b[27] bd ^ k[40] kd, b[28] bd ^ k[41] kd,
-		&b[63] bd, &b[43] bd, &b[53] bd, &b[38] bd);
+	s7(y(23, 36), y(24, 37), y(25, 38),
+		y(26, 39), y(27, 40), y(28, 41),
+		z(63), z(43), z(53), z(38));
 	for_each_depth()
-	s8(b[27] bd ^ k[42] kd, b[28] bd ^ k[43] kd, b[29] bd ^ k[44] kd,
-		b[30] bd ^ k[45] kd, b[31] bd ^ k[46] kd, b[0] bd ^ k[47] kd,
-		&b[36] bd, &b[58] bd, &b[46] bd, &b[52] bd);
+	s8(y(27, 42), y(28, 43), y(29, 44),
+		y(30, 45), y(31, 46), y(0, 47),
+		z(36), z(58), z(46), z(52));
 
 	if (rounds_and_swapped == 0x100) goto next;
 
 swap:
 	for_each_depth()
-	s1(e[48] ed ^ k[48] kd, e[49] ed ^ k[49] kd, e[50] ed ^ k[50] kd,
-		e[51] ed ^ k[51] kd, e[52] ed ^ k[52] kd, e[53] ed ^ k[53] kd,
-		&b[8] bd, &b[16] bd, &b[22] bd, &b[30] bd);
+	s1(x(48), x(49), x(50), x(51), x(52), x(53),
+		z(8), z(16), z(22), z(30));
 	for_each_depth()
-	s2(e[54] ed ^ k[54] kd, e[55] ed ^ k[55] kd, e[56] ed ^ k[56] kd,
-		e[57] ed ^ k[57] kd, e[58] ed ^ k[58] kd, e[59] ed ^ k[59] kd,
-		&b[12] bd, &b[27] bd, &b[1] bd, &b[17] bd);
+	s2(x(54), x(55), x(56), x(57), x(58), x(59),
+		z(12), z(27), z(1), z(17));
 	for_each_depth()
-	s3(b[39] bd ^ k[60] kd, b[40] bd ^ k[61] kd, b[41] bd ^ k[62] kd,
-		b[42] bd ^ k[63] kd, b[43] bd ^ k[64] kd, b[44] bd ^ k[65] kd,
-		&b[23] bd, &b[15] bd, &b[29] bd, &b[5] bd);
+	s3(y(39, 60), y(40, 61), y(41, 62),
+		y(42, 63), y(43, 64), y(44, 65),
+		z(23), z(15), z(29), z(5));
 	for_each_depth()
-	s4(b[43] bd ^ k[66] kd, b[44] bd ^ k[67] kd, b[45] bd ^ k[68] kd,
-		b[46] bd ^ k[69] kd, b[47] bd ^ k[70] kd, b[48] bd ^ k[71] kd,
-		&b[25] bd, &b[19] bd, &b[9] bd, &b[0] bd);
+	s4(y(43, 66), y(44, 67), y(45, 68),
+		y(46, 69), y(47, 70), y(48, 71),
+		z(25), z(19), z(9), z(0));
 	for_each_depth()
-	s5(e[72] ed ^ k[72] kd, e[73] ed ^ k[73] kd, e[74] ed ^ k[74] kd,
-		e[75] ed ^ k[75] kd, e[76] ed ^ k[76] kd, e[77] ed ^ k[77] kd,
-		&b[7] bd, &b[13] bd, &b[24] bd, &b[2] bd);
+	s5(x(72), x(73), x(74), x(75), x(76), x(77),
+		z(7), z(13), z(24), z(2));
 	for_each_depth()
-	s6(e[78] ed ^ k[78] kd, e[79] ed ^ k[79] kd, e[80] ed ^ k[80] kd,
-		e[81] ed ^ k[81] kd, e[82] ed ^ k[82] kd, e[83] ed ^ k[83] kd,
-		&b[3] bd, &b[28] bd, &b[10] bd, &b[18] bd);
+	s6(x(78), x(79), x(80), x(81), x(82), x(83),
+		z(3), z(28), z(10), z(18));
 	for_each_depth()
-	s7(b[55] bd ^ k[84] kd, b[56] bd ^ k[85] kd, b[57] bd ^ k[86] kd,
-		b[58] bd ^ k[87] kd, b[59] bd ^ k[88] kd, b[60] bd ^ k[89] kd,
-		&b[31] bd, &b[11] bd, &b[21] bd, &b[6] bd);
+	s7(y(55, 84), y(56, 85), y(57, 86),
+		y(58, 87), y(59, 88), y(60, 89),
+		z(31), z(11), z(21), z(6));
 	for_each_depth()
-	s8(b[59] bd ^ k[90] kd, b[60] bd ^ k[91] kd, b[61] bd ^ k[92] kd,
-		b[62] bd ^ k[93] kd, b[63] bd ^ k[94] kd, b[32] bd ^ k[95] kd,
-		&b[4] bd, &b[26] bd, &b[14] bd, &b[20] bd);
+	s8(y(59, 90), y(60, 91), y(61, 92),
+		y(62, 93), y(63, 94), y(32, 95),
+		z(4), z(26), z(14), z(20));
 
 	k += 96;
 
@@ -269,6 +249,8 @@ next:
 	iterations--;
 	goto start;
 }
+
+#undef x
 
 #undef kd
 #if DES_BS_VECTOR
@@ -357,86 +339,70 @@ void DES_bs_crypt_LM(void)
 
 	do {
 		for_each_depth()
-		s1(b[31] bd ^ k[0] kd, b[0] bd ^ k[1] kd,
-			b[1] bd ^ k[2] kd, b[2] bd ^ k[3] kd,
-			b[3] bd ^ k[4] kd, b[4] bd ^ k[5] kd,
-			&b[40] bd, &b[48] bd, &b[54] bd, &b[62] bd);
+		s1(y(31, 0), y(0, 1), y(1, 2),
+			y(2, 3), y(3, 4), y(4, 5),
+			z(40), z(48), z(54), z(62));
 		for_each_depth()
-		s2(b[3] bd ^ k[6] kd, b[4] bd ^ k[7] kd,
-			b[5] bd ^ k[8] kd, b[6] bd ^ k[9] kd,
-			b[7] bd ^ k[10] kd, b[8] bd ^ k[11] kd,
-			&b[44] bd, &b[59] bd, &b[33] bd, &b[49] bd);
+		s2(y(3, 6), y(4, 7), y(5, 8),
+			y(6, 9), y(7, 10), y(8, 11),
+			z(44), z(59), z(33), z(49));
 		for_each_depth()
-		s3(b[7] bd ^ k[12] kd, b[8] bd ^ k[13] kd,
-			b[9] bd ^ k[14] kd, b[10] bd ^ k[15] kd,
-			b[11] bd ^ k[16] kd, b[12] bd ^ k[17] kd,
-			&b[55] bd, &b[47] bd, &b[61] bd, &b[37] bd);
+		s3(y(7, 12), y(8, 13), y(9, 14),
+			y(10, 15), y(11, 16), y(12, 17),
+			z(55), z(47), z(61), z(37));
 		for_each_depth()
-		s4(b[11] bd ^ k[18] kd, b[12] bd ^ k[19] kd,
-			b[13] bd ^ k[20] kd, b[14] bd ^ k[21] kd,
-			b[15] bd ^ k[22] kd, b[16] bd ^ k[23] kd,
-			&b[57] bd, &b[51] bd, &b[41] bd, &b[32] bd);
+		s4(y(11, 18), y(12, 19), y(13, 20),
+			y(14, 21), y(15, 22), y(16, 23),
+			z(57), z(51), z(41), z(32));
 		for_each_depth()
-		s5(b[15] bd ^ k[24] kd, b[16] bd ^ k[25] kd,
-			b[17] bd ^ k[26] kd, b[18] bd ^ k[27] kd,
-			b[19] bd ^ k[28] kd, b[20] bd ^ k[29] kd,
-			&b[39] bd, &b[45] bd, &b[56] bd, &b[34] bd);
+		s5(y(15, 24), y(16, 25), y(17, 26),
+			y(18, 27), y(19, 28), y(20, 29),
+			z(39), z(45), z(56), z(34));
 		for_each_depth()
-		s6(b[19] bd ^ k[30] kd, b[20] bd ^ k[31] kd,
-			b[21] bd ^ k[32] kd, b[22] bd ^ k[33] kd,
-			b[23] bd ^ k[34] kd, b[24] bd ^ k[35] kd,
-			&b[35] bd, &b[60] bd, &b[42] bd, &b[50] bd);
+		s6(y(19, 30), y(20, 31), y(21, 32),
+			y(22, 33), y(23, 34), y(24, 35),
+			z(35), z(60), z(42), z(50));
 		for_each_depth()
-		s7(b[23] bd ^ k[36] kd, b[24] bd ^ k[37] kd,
-			b[25] bd ^ k[38] kd, b[26] bd ^ k[39] kd,
-			b[27] bd ^ k[40] kd, b[28] bd ^ k[41] kd,
-			&b[63] bd, &b[43] bd, &b[53] bd, &b[38] bd);
+		s7(y(23, 36), y(24, 37), y(25, 38),
+			y(26, 39), y(27, 40), y(28, 41),
+			z(63), z(43), z(53), z(38));
 		for_each_depth()
-		s8(b[27] bd ^ k[42] kd, b[28] bd ^ k[43] kd,
-			b[29] bd ^ k[44] kd, b[30] bd ^ k[45] kd,
-			b[31] bd ^ k[46] kd, b[0] bd ^ k[47] kd,
-			&b[36] bd, &b[58] bd, &b[46] bd, &b[52] bd);
+		s8(y(27, 42), y(28, 43), y(29, 44),
+			y(30, 45), y(31, 46), y(0, 47),
+			z(36), z(58), z(46), z(52));
 
 		for_each_depth()
-		s1(b[63] bd ^ k[48] kd, b[32] bd ^ k[49] kd,
-			b[33] bd ^ k[50] kd, b[34] bd ^ k[51] kd,
-			b[35] bd ^ k[52] kd, b[36] bd ^ k[53] kd,
-			&b[8] bd, &b[16] bd, &b[22] bd, &b[30] bd);
+		s1(y(63, 48), y(32, 49), y(33, 50),
+			y(34, 51), y(35, 52), y(36, 53),
+			z(8), z(16), z(22), z(30));
 		for_each_depth()
-		s2(b[35] bd ^ k[54] kd, b[36] bd ^ k[55] kd,
-			b[37] bd ^ k[56] kd, b[38] bd ^ k[57] kd,
-			b[39] bd ^ k[58] kd, b[40] bd ^ k[59] kd,
-			&b[12] bd, &b[27] bd, &b[1] bd, &b[17] bd);
+		s2(y(35, 54), y(36, 55), y(37, 56),
+			y(38, 57), y(39, 58), y(40, 59),
+			z(12), z(27), z(1), z(17));
 		for_each_depth()
-		s3(b[39] bd ^ k[60] kd, b[40] bd ^ k[61] kd,
-			b[41] bd ^ k[62] kd, b[42] bd ^ k[63] kd,
-			b[43] bd ^ k[64] kd, b[44] bd ^ k[65] kd,
-			&b[23] bd, &b[15] bd, &b[29] bd, &b[5] bd);
+		s3(y(39, 60), y(40, 61), y(41, 62),
+			y(42, 63), y(43, 64), y(44, 65),
+			z(23), z(15), z(29), z(5));
 		for_each_depth()
-		s4(b[43] bd ^ k[66] kd, b[44] bd ^ k[67] kd,
-			b[45] bd ^ k[68] kd, b[46] bd ^ k[69] kd,
-			b[47] bd ^ k[70] kd, b[48] bd ^ k[71] kd,
-			&b[25] bd, &b[19] bd, &b[9] bd, &b[0] bd);
+		s4(y(43, 66), y(44, 67), y(45, 68),
+			y(46, 69), y(47, 70), y(48, 71),
+			z(25), z(19), z(9), z(0));
 		for_each_depth()
-		s5(b[47] bd ^ k[72] kd, b[48] bd ^ k[73] kd,
-			b[49] bd ^ k[74] kd, b[50] bd ^ k[75] kd,
-			b[51] bd ^ k[76] kd, b[52] bd ^ k[77] kd,
-			&b[7] bd, &b[13] bd, &b[24] bd, &b[2] bd);
+		s5(y(47, 72), y(48, 73), y(49, 74),
+			y(50, 75), y(51, 76), y(52, 77),
+			z(7), z(13), z(24), z(2));
 		for_each_depth()
-		s6(b[51] bd ^ k[78] kd, b[52] bd ^ k[79] kd,
-			b[53] bd ^ k[80] kd, b[54] bd ^ k[81] kd,
-			b[55] bd ^ k[82] kd, b[56] bd ^ k[83] kd,
-			&b[3] bd, &b[28] bd, &b[10] bd, &b[18] bd);
+		s6(y(51, 78), y(52, 79), y(53, 80),
+			y(54, 81), y(55, 82), y(56, 83),
+			z(3), z(28), z(10), z(18));
 		for_each_depth()
-		s7(b[55] bd ^ k[84] kd, b[56] bd ^ k[85] kd,
-			b[57] bd ^ k[86] kd, b[58] bd ^ k[87] kd,
-			b[59] bd ^ k[88] kd, b[60] bd ^ k[89] kd,
-			&b[31] bd, &b[11] bd, &b[21] bd, &b[6] bd);
+		s7(y(55, 84), y(56, 85), y(57, 86),
+			y(58, 87), y(59, 88), y(60, 89),
+			z(31), z(11), z(21), z(6));
 		for_each_depth()
-		s8(b[59] bd ^ k[90] kd, b[60] bd ^ k[91] kd,
-			b[61] bd ^ k[92] kd, b[62] bd ^ k[93] kd,
-			b[63] bd ^ k[94] kd, b[32] bd ^ k[95] kd,
-			&b[4] bd, &b[26] bd, &b[14] bd, &b[20] bd);
+		s8(y(59, 90), y(60, 91), y(61, 92),
+			y(62, 93), y(63, 94), y(32, 95),
+			z(4), z(26), z(14), z(20));
 
 		k += 96;
 	} while (--rounds);
