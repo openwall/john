@@ -8,6 +8,12 @@
 #if !DES_BS_ASM
 #include "DES_bs.h"
 
+#define zero				0
+#define ones				~(ARCH_WORD)0
+
+#define vst(dst, src) \
+	(dst) = (src)
+
 /* Include the S-boxes here, so that the compiler can inline them */
 #if DES_BS == 2
 #include "DES_bs_s.c"
@@ -37,14 +43,14 @@
 
 #define DES_bs_clear_block_8(i) \
 	for_each_depth() { \
-		b[i] bd = 0; \
-		b[i + 1] bd = 0; \
-		b[i + 2] bd = 0; \
-		b[i + 3] bd = 0; \
-		b[i + 4] bd = 0; \
-		b[i + 5] bd = 0; \
-		b[i + 6] bd = 0; \
-		b[i + 7] bd = 0; \
+		vst(b[i] bd, zero); \
+		vst(b[i + 1] bd, zero); \
+		vst(b[i + 2] bd, zero); \
+		vst(b[i + 3] bd, zero); \
+		vst(b[i + 4] bd, zero); \
+		vst(b[i + 5] bd, zero); \
+		vst(b[i + 6] bd, zero); \
+		vst(b[i + 7] bd, zero); \
 	}
 
 #define DES_bs_clear_block() \
@@ -56,6 +62,18 @@
 	DES_bs_clear_block_8(40); \
 	DES_bs_clear_block_8(48); \
 	DES_bs_clear_block_8(56);
+
+#define DES_bs_set_block_8(i, v0, v1, v2, v3, v4, v5, v6, v7) \
+	for_each_depth() { \
+		vst(b[i] bd, v0); \
+		vst(b[i + 1] bd, v1); \
+		vst(b[i + 2] bd, v2); \
+		vst(b[i + 3] bd, v3); \
+		vst(b[i + 4] bd, v4); \
+		vst(b[i + 5] bd, v5); \
+		vst(b[i + 6] bd, v6); \
+		vst(b[i + 7] bd, v7); \
+	}
 
 #define x(p) (e[p] ed ^ k[p] kd)
 #define y(p, q) (b[p] bd ^ k[q] kd)
@@ -267,72 +285,14 @@ void DES_bs_crypt_LM(void)
 	int depth;
 #endif
 
-	for_each_depth() {
-		b[0] bd = 0;
-		b[1] bd = 0;
-		b[2] bd = 0;
-		b[3] bd = 0;
-		b[4] bd = 0;
-		b[5] bd = 0;
-		b[6] bd = 0;
-		b[7] bd = 0;
-		b[8] bd = ~(ARCH_WORD)0;
-		b[9] bd = ~(ARCH_WORD)0;
-		b[10] bd = ~(ARCH_WORD)0;
-		b[11] bd = 0;
-		b[12] bd = ~(ARCH_WORD)0;
-		b[13] bd = 0;
-		b[14] bd = 0;
-		b[15] bd = 0;
-		b[16] bd = 0;
-		b[17] bd = 0;
-		b[18] bd = 0;
-		b[19] bd = 0;
-		b[20] bd = 0;
-		b[21] bd = 0;
-		b[22] bd = 0;
-		b[23] bd = ~(ARCH_WORD)0;
-		b[24] bd = 0;
-		b[25] bd = 0;
-		b[26] bd = ~(ARCH_WORD)0;
-		b[27] bd = 0;
-		b[28] bd = 0;
-		b[29] bd = ~(ARCH_WORD)0;
-		b[30] bd = ~(ARCH_WORD)0;
-		b[31] bd = ~(ARCH_WORD)0;
-		b[32] bd = 0;
-		b[33] bd = 0;
-		b[34] bd = 0;
-		b[35] bd = ~(ARCH_WORD)0;
-		b[36] bd = 0;
-		b[37] bd = ~(ARCH_WORD)0;
-		b[38] bd = ~(ARCH_WORD)0;
-		b[39] bd = ~(ARCH_WORD)0;
-		b[40] bd = 0;
-		b[41] bd = 0;
-		b[42] bd = 0;
-		b[43] bd = 0;
-		b[44] bd = 0;
-		b[45] bd = ~(ARCH_WORD)0;
-		b[46] bd = 0;
-		b[47] bd = 0;
-		b[48] bd = ~(ARCH_WORD)0;
-		b[49] bd = ~(ARCH_WORD)0;
-		b[50] bd = 0;
-		b[51] bd = 0;
-		b[52] bd = 0;
-		b[53] bd = 0;
-		b[54] bd = ~(ARCH_WORD)0;
-		b[55] bd = 0;
-		b[56] bd = ~(ARCH_WORD)0;
-		b[57] bd = 0;
-		b[58] bd = ~(ARCH_WORD)0;
-		b[59] bd = 0;
-		b[60] bd = ~(ARCH_WORD)0;
-		b[61] bd = ~(ARCH_WORD)0;
-		b[62] bd = ~(ARCH_WORD)0;
-		b[63] bd = ~(ARCH_WORD)0;
-	}
+	DES_bs_set_block_8(0, zero, zero, zero, zero, zero, zero, zero, zero);
+	DES_bs_set_block_8(8, ones, ones, ones, zero, ones, zero, zero, zero);
+	DES_bs_set_block_8(16, zero, zero, zero, zero, zero, zero, zero, ones);
+	DES_bs_set_block_8(24, zero, zero, ones, zero, zero, ones, ones, ones);
+	DES_bs_set_block_8(32, zero, zero, zero, ones, zero, ones, ones, ones);
+	DES_bs_set_block_8(40, zero, zero, zero, zero, zero, ones, zero, zero);
+	DES_bs_set_block_8(48, ones, ones, zero, zero, zero, zero, ones, zero);
+	DES_bs_set_block_8(56, ones, zero, ones, zero, ones, ones, ones, ones);
 
 	k = DES_bs_all.KS.p;
 	rounds = 8;
