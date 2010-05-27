@@ -53,11 +53,18 @@ like and use John from there.
 
 	A note on moving binaries between systems.
 
-On some architectures, certain system hardware performance parameters
-are detected at compile time; in particular, this is done for 32-bit
-SPARC and for "generic" make targets.  If you then move the binary
-executable to a different machine running the same OS, you might not
-get the best performance.  Thus, it is recommended to re-compile John
-on each system where possible.
+With the "generic" make target, certain machine hardware performance
+parameters are detected at compile time.  Additionally, some OS-specific
+make targets tell the C compiler to generate and optimize code for the
+machine's specific CPU type (this currently applies to C compilers other
+than gcc only).  If you then move the binary executable to a different
+machine, you might not get the best performance or the program might
+not run at all if the CPU lacks features that the C compiler assumed it
+would have.  Thus, it is recommended to recompile John on each system if
+you use one of these make targets.
 
-$Owl: Owl/packages/john/john/doc/INSTALL,v 1.4 2006/01/02 04:43:25 solar Exp $
+Since Linux and *BSD distributions' packages of John typically use make
+targets other than "generic" and since they typically use gcc, they are
+usually not affected by this potential problem.
+
+$Owl: Owl/packages/john/john/doc/INSTALL,v 1.5 2010/05/27 13:37:48 solar Exp $
