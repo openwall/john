@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010 by Solar Designer
  */
 
 /*
@@ -23,7 +23,10 @@
 #endif
 
 #if DES_BS_VECTOR
-typedef ARCH_WORD DES_bs_vector[DES_BS_VECTOR];
+#ifndef DES_BS_VECTOR_SIZE
+#define DES_BS_VECTOR_SIZE		DES_BS_VECTOR
+#endif
+typedef ARCH_WORD DES_bs_vector[DES_BS_VECTOR_SIZE];
 #else
 #define DES_bs_vector			ARCH_WORD
 #endif
