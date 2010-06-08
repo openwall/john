@@ -12,7 +12,6 @@ LN = ln -sf
 RM = rm -f
 TR = tr
 SED = sed
-PERL = perl
 NULL = /dev/null
 CPPFLAGS = -E
 OMPFLAGS =
@@ -213,7 +212,7 @@ linux-sparc:
 	$(LN) sparc32.h arch.h
 	$(MAKE) $(PROJ)
 
-linux-ppc32-altivec: DES_bs_a.c
+linux-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
@@ -223,7 +222,7 @@ linux-ppc32:
 	$(MAKE) $(PROJ)
 
 # This is slightly slower than linux-ppc32-altivec for most hash types.
-linux-ppc64-altivec: DES_bs_a.c
+linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		CFLAGS="$(CFLAGS) -m64" \
@@ -543,7 +542,7 @@ macosx-x86-mmx:
 		CFLAGS="$(CFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
-macosx-ppc32-altivec: DES_bs_a.c
+macosx-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
 		CFLAGS="-c -Wall -fomit-frame-pointer" \
@@ -572,7 +571,7 @@ macosx-ppc32-cross:
 		OPT_INLINE="-O3 -finline-limit=4000"
 
 # This is slightly slower than macosx-ppc32-altivec for most hash types.
-macosx-ppc64-altivec: DES_bs_a.c
+macosx-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
 		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
@@ -608,7 +607,7 @@ john-macosx-x86:
 		LDFLAGS="$(LDFLAGS) -arch i386 -m32"
 	mv ../run/john john-macosx-x86
 
-john-macosx-ppc: DES_bs_a.c
+john-macosx-ppc:
 	$(RM) *.o
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
@@ -783,20 +782,9 @@ john.com: john.asm
 	$(CC) symlink.c -o ../run/unique.exe
 	strip ../run/unique.exe
 
-# Inlining the S-boxes produces faster code, as long as they fit in the cache
-# (that is, on RISC with at least 8 KB of L1 code cache).
-DES_bs_b.o: DES_bs_b.c DES_bs_s.c DES_bs_n.c
+# Inlining the S-boxes produces faster code as long as they fit in the cache.
+DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
-
-# I prefer to distribute Matthew Kwan's S-box files unmodified...
-DES_bs_s.c: sboxes.c
-	$(SED) "s/unsigned long/ARCH_WORD/" sboxes.c > DES_bs_s.c
-
-DES_bs_n.c: nonstd.c
-	$(SED) "s/unsigned long/ARCH_WORD/" nonstd.c > DES_bs_n.c
-
-DES_bs_a.c: nonstd.c ppc-alti.pl
-	$(PERL) ppc-alti.pl nonstd.c > DES_bs_a.c
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
@@ -821,7 +809,6 @@ clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
 	$(RM) detect bench generic.h arch.h tmp.s
-	$(RM) DES_bs_s.c DES_bs_n.c DES_bs_a.c
 	$(CP) $(NULL) Makefile.dep
 
 include Makefile.dep
