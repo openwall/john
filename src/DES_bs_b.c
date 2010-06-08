@@ -9,39 +9,77 @@
 #include "DES_bs.h"
 
 #if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
-#define USE_ALTI
-#endif
-
-#ifdef USE_ALTI
+#undef DES_BS_VECTOR
+#define DES_BS_VECTOR			0
 
 #ifdef __linux__
 #include <altivec.h>
 #endif
 
-typedef vector signed int altivec;
+typedef vector signed int vtype;
 
 #define vst(dst, ofs, src) \
-	vec_st((src), (ofs) * sizeof(altivec), &(dst))
+	vec_st((src), (ofs) * sizeof(vtype), &(dst))
+
+#define vxorf(a, b) \
+	vec_xor((a), (b))
+
+#define vnot(dst, a) \
+	(dst) = vec_nor((a), (a))
+#define vand(dst, a, b) \
+	(dst) = vec_and((a), (b))
+#define vor(dst, a, b) \
+	(dst) = vec_or((a), (b))
+#define vandn(dst, a, b) \
+	(dst) = vec_andc((a), (b))
+#define vxorn(dst, a, b) \
+	(dst) = vec_xor((a), (b)); \
+	(dst) = vec_nor((dst), (dst))
 
 #else
 
+typedef ARCH_WORD vtype;
+
 #define zero				0
-#define ones				~(ARCH_WORD)0
+#define ones				~(vtype)0
 
 #define vst(dst, ofs, src) \
-	*((ARCH_WORD *)&(dst) + (ofs)) = (src)
+	*((vtype *)&(dst) + (ofs)) = (src)
+
+#define vxorf(a, b) \
+	((a) ^ (b))
+
+#define vnot(dst, a) \
+	(dst) = ~(a)
+#define vand(dst, a, b) \
+	(dst) = (a) & (b)
+#define vor(dst, a, b) \
+	(dst) = (a) | (b)
+#define vandn(dst, a, b) \
+	(dst) = (a) & ~(b)
+#define vxorn(dst, a, b) \
+	(dst) = ~((a) ^ (b))
 
 #endif
 
+#if !defined(vxor) && defined(vxorf)
+#define vxor(dst, a, b) \
+	(dst) = vxorf((a), (b))
+#endif
+#if !defined(vxorf) && defined(vxor)
+/*
+ * This requires gcc's "Statement Exprs" extension (also supported by a number
+ * of other C compilers).
+ */
+#define vxorf(a, b) \
+	({ vtype tmp; vxor(tmp, (a), (b)); tmp; })
+#endif
+
 /* Include the S-boxes here so that the compiler can inline them */
-#ifdef USE_ALTI
-#include "DES_bs_a.c"
-#undef DES_BS_VECTOR
-#define DES_BS_VECTOR			0
-#elif DES_BS == 2
-#include "DES_bs_s.c"
+#if DES_BS == 2
+#include "sboxes.c"
 #else
-#include "DES_bs_n.c"
+#include "nonstd.c"
 #endif
 
 #define b				DES_bs_all.B
@@ -98,15 +136,9 @@ typedef vector signed int altivec;
 		vst(b[i] bd, 7, v7); \
 	}
 
-#ifdef USE_ALTI
-#define x(p) vec_xor(*(altivec *)e[p], *(altivec *)k[p])
-#define y(p, q) vec_xor(*(altivec *)b[p], *(altivec *)k[q])
-#define z(r) ((altivec *)b[r])
-#else
-#define x(p) (e[p] ed ^ k[p] kd)
-#define y(p, q) (b[p] bd ^ k[q] kd)
-#define z(r) (&b[r] bd)
-#endif
+#define x(p) vxorf(*(vtype *)&e[p] ed, *(vtype *)&k[p] kd)
+#define y(p, q) vxorf(*(vtype *)&b[p] bd, *(vtype *)&k[q] kd)
+#define z(r) ((vtype *)&b[r] bd)
 
 void DES_bs_crypt(int count)
 {
@@ -120,10 +152,10 @@ void DES_bs_crypt(int count)
 	int depth;
 #endif
 
-#ifdef USE_ALTI
-	altivec zero;
+#ifndef zero
+	vtype zero;
 /* This may produce an "uninitialized" warning */
-	zero = vec_xor(zero, zero);
+	vxor(zero, zero, zero);
 #endif
 
 	DES_bs_clear_block();
@@ -216,10 +248,10 @@ void DES_bs_crypt_25(void)
 	int depth;
 #endif
 
-#ifdef USE_ALTI
-	altivec zero;
+#ifndef zero
+	vtype zero;
 /* This may produce an "uninitialized" warning */
-	zero = vec_xor(zero, zero);
+	vxor(zero, zero, zero);
 #endif
 
 	DES_bs_clear_block();
@@ -326,11 +358,11 @@ void DES_bs_crypt_LM(void)
 	int depth;
 #endif
 
-#ifdef USE_ALTI
-	altivec zero, ones;
+#ifndef zero
+	vtype zero, ones;
 /* This may produce an "uninitialized" warning */
-	zero = vec_xor(zero, zero);
-	ones = vec_nor(zero, zero);
+	vxor(zero, zero, zero);
+	vnot(ones, zero);
 #endif
 
 	DES_bs_set_block_8(0, zero, zero, zero, zero, zero, zero, zero, zero);
