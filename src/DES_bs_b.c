@@ -36,6 +36,46 @@ typedef vector signed int vtype;
 	(dst) = vec_xor((a), (b)); \
 	(dst) = vec_nor((dst), (dst))
 
+#elif defined(__ALTIVEC__) && \
+    ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
+    (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
+#undef DES_BS_VECTOR
+#define DES_BS_VECTOR			0
+
+#ifdef __linux__
+#include <altivec.h>
+#endif
+
+typedef struct {
+	vector signed int f;
+	ARCH_WORD g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	vec_st((src).f, (ofs) * sizeof(DES_bs_vector), &((vtype *)&(dst))->f); \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
+
+#define vxor(dst, a, b) \
+	(dst).f = vec_xor((a).f, (b).f); \
+	(dst).g = (a).g ^ (b).g
+
+#define vnot(dst, a) \
+	(dst).f = vec_nor((a).f, (a).f); \
+	(dst).g = ~(a).g
+#define vand(dst, a, b) \
+	(dst).f = vec_and((a).f, (b).f); \
+	(dst).g = (a).g & (b).g
+#define vor(dst, a, b) \
+	(dst).f = vec_or((a).f, (b).f); \
+	(dst).g = (a).g ^ (b).g
+#define vandn(dst, a, b) \
+	(dst).f = vec_andc((a).f, (b).f); \
+	(dst).g = (a).g & ~(b).g
+#define vxorn(dst, a, b) \
+	(dst).f = vec_xor((a).f, (b).f); \
+	(dst).f = vec_nor((dst).f, (dst).f); \
+	(dst).g = ~((a).g ^ (b).g)
+
 #else
 
 typedef ARCH_WORD vtype;

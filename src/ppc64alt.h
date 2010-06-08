@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2005,2008 by Solar Designer
+ * Copyright (c) 1996-2000,2005,2008,2010 by Solar Designer
  */
 
 /*
@@ -34,9 +34,16 @@
 #define DES_COPY			0
 #define DES_BS_ASM			0
 #define DES_BS				1
-#define DES_BS_VECTOR			2
 #define DES_BS_EXPAND			0
+
+#if 1
+#define DES_BS_VECTOR			2
 #define DES_BS_ALGORITHM_NAME		"128/128 BS AltiVec"
+#else
+#define DES_BS_VECTOR			3
+#define DES_BS_VECTOR_SIZE		4
+#define DES_BS_ALGORITHM_NAME		"128/128 + 64/64 BS AltiVec"
+#endif
 
 #define MD5_ASM				0
 #define MD5_X2				1
