@@ -549,6 +549,16 @@ macosx-ppc32-altivec:
 		OPT_NORMAL="-fast -mcpu=7450" \
 		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000 -faltivec -maltivec"
 
+# The -cross targets can be used to compile PowerPC binaries on x86.
+macosx-ppc32-altivec-cross:
+	$(LN) ppc32alt.h arch.h
+	$(MAKE) $(PROJ) \
+		ASFLAGS="$(ASFLAGS) -arch ppc" \
+		CFLAGS="-c -Wall -arch ppc -fomit-frame-pointer" \
+		LDFLAGS="$(LDFLAGS) -arch ppc" \
+		OPT_NORMAL="-fast -mcpu=7450" \
+		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000 -faltivec -maltivec"
+
 # "cc -traditional-cpp" was needed on older versions of Mac OS X; it might
 # actually be problematic on current ones, but those will hopefully use other
 # make targets anyway (e.g., macosx-ppc32-altivec above).
@@ -560,7 +570,6 @@ macosx-ppc32:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3"
 
-# This can be used to compile a 32-bit non-AltiVec PowerPC binary on x86.
 macosx-ppc32-cross:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ) \
@@ -579,11 +588,29 @@ macosx-ppc64-altivec:
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000 -faltivec -maltivec"
 
+macosx-ppc64-altivec-cross:
+	$(LN) ppc64alt.h arch.h
+	$(MAKE) $(PROJ) \
+		ASFLAGS="$(ASFLAGS) -arch ppc" \
+		CFLAGS="-c -arch ppc -m64 -Wall -fomit-frame-pointer" \
+		LDFLAGS="$(LDFLAGS) -arch ppc -m64" \
+		OPT_NORMAL="-fast" \
+		OPT_INLINE="-fast -finline-limit=4000 -faltivec -maltivec"
+
 macosx-ppc64:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
-		CFLAGS="-c -Wall -fomit-frame-pointer -m64" \
+		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
 		LDFLAGS="$(LDFLAGS) -m64" \
+		OPT_NORMAL="-fast" \
+		OPT_INLINE="-fast -finline-limit=4000"
+
+macosx-ppc64-cross:
+	$(LN) ppc64.h arch.h
+	$(MAKE) $(PROJ) \
+		ASFLAGS="$(ASFLAGS) -arch ppc" \
+		CFLAGS="-c -arch ppc -m64 -Wall -fomit-frame-pointer" \
+		LDFLAGS="$(LDFLAGS) -arch ppc -m64" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000"
 
