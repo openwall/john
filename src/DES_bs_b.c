@@ -8,14 +8,37 @@
 #if !DES_BS_ASM
 #include "DES_bs.h"
 
+#if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
+#define USE_ALTI
+#endif
+
+#ifdef USE_ALTI
+
+#ifdef __linux__
+#include <altivec.h>
+#endif
+
+typedef vector signed int altivec;
+
+#define vst(dst, ofs, src) \
+	vec_st((src), (ofs) * sizeof(altivec), &(dst))
+
+#else
+
 #define zero				0
 #define ones				~(ARCH_WORD)0
 
-#define vst(dst, src) \
-	(dst) = (src)
+#define vst(dst, ofs, src) \
+	*((ARCH_WORD *)&(dst) + (ofs)) = (src)
 
-/* Include the S-boxes here, so that the compiler can inline them */
-#if DES_BS == 2
+#endif
+
+/* Include the S-boxes here so that the compiler can inline them */
+#ifdef USE_ALTI
+#include "DES_bs_a.c"
+#undef DES_BS_VECTOR
+#define DES_BS_VECTOR			0
+#elif DES_BS == 2
 #include "DES_bs_s.c"
 #else
 #include "DES_bs_n.c"
@@ -43,14 +66,14 @@
 
 #define DES_bs_clear_block_8(i) \
 	for_each_depth() { \
-		vst(b[i] bd, zero); \
-		vst(b[i + 1] bd, zero); \
-		vst(b[i + 2] bd, zero); \
-		vst(b[i + 3] bd, zero); \
-		vst(b[i + 4] bd, zero); \
-		vst(b[i + 5] bd, zero); \
-		vst(b[i + 6] bd, zero); \
-		vst(b[i + 7] bd, zero); \
+		vst(b[i] bd, 0, zero); \
+		vst(b[i] bd, 1, zero); \
+		vst(b[i] bd, 2, zero); \
+		vst(b[i] bd, 3, zero); \
+		vst(b[i] bd, 4, zero); \
+		vst(b[i] bd, 5, zero); \
+		vst(b[i] bd, 6, zero); \
+		vst(b[i] bd, 7, zero); \
 	}
 
 #define DES_bs_clear_block() \
@@ -65,19 +88,25 @@
 
 #define DES_bs_set_block_8(i, v0, v1, v2, v3, v4, v5, v6, v7) \
 	for_each_depth() { \
-		vst(b[i] bd, v0); \
-		vst(b[i + 1] bd, v1); \
-		vst(b[i + 2] bd, v2); \
-		vst(b[i + 3] bd, v3); \
-		vst(b[i + 4] bd, v4); \
-		vst(b[i + 5] bd, v5); \
-		vst(b[i + 6] bd, v6); \
-		vst(b[i + 7] bd, v7); \
+		vst(b[i] bd, 0, v0); \
+		vst(b[i] bd, 1, v1); \
+		vst(b[i] bd, 2, v2); \
+		vst(b[i] bd, 3, v3); \
+		vst(b[i] bd, 4, v4); \
+		vst(b[i] bd, 5, v5); \
+		vst(b[i] bd, 6, v6); \
+		vst(b[i] bd, 7, v7); \
 	}
 
+#ifdef USE_ALTI
+#define x(p) vec_xor(*(altivec *)e[p], *(altivec *)k[p])
+#define y(p, q) vec_xor(*(altivec *)b[p], *(altivec *)k[q])
+#define z(r) ((altivec *)b[r])
+#else
 #define x(p) (e[p] ed ^ k[p] kd)
 #define y(p, q) (b[p] bd ^ k[q] kd)
 #define z(r) (&b[r] bd)
+#endif
 
 void DES_bs_crypt(int count)
 {
@@ -89,6 +118,12 @@ void DES_bs_crypt(int count)
 	int iterations, rounds_and_swapped;
 #if DES_BS_VECTOR
 	int depth;
+#endif
+
+#ifdef USE_ALTI
+	altivec zero;
+/* This may produce an "uninitialized" warning */
+	zero = vec_xor(zero, zero);
 #endif
 
 	DES_bs_clear_block();
@@ -179,6 +214,12 @@ void DES_bs_crypt_25(void)
 	int iterations, rounds_and_swapped;
 #if DES_BS_VECTOR
 	int depth;
+#endif
+
+#ifdef USE_ALTI
+	altivec zero;
+/* This may produce an "uninitialized" warning */
+	zero = vec_xor(zero, zero);
 #endif
 
 	DES_bs_clear_block();
@@ -283,6 +324,13 @@ void DES_bs_crypt_LM(void)
 	int rounds;
 #if DES_BS_VECTOR
 	int depth;
+#endif
+
+#ifdef USE_ALTI
+	altivec zero, ones;
+/* This may produce an "uninitialized" warning */
+	zero = vec_xor(zero, zero);
+	ones = vec_nor(zero, zero);
 #endif
 
 	DES_bs_set_block_8(0, zero, zero, zero, zero, zero, zero, zero, zero);
