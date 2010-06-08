@@ -5,6 +5,11 @@
  * so long as its origin is acknowledged.
  *
  * Produced by Matthew Kwan - May 1998
+ *
+ * Modified in John the Ripper to use a custom data type and cpp macros instead
+ * of explicit C operators for bitwise ops.  This allows DES_bs_b.c to use
+ * compiler intrinsics for SIMD bitwise ops.  The conversion was made using the
+ * DES_vec.pl script.  No copyright to these minor changes is claimed.
  */
 
 
