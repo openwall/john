@@ -32,7 +32,7 @@
 #define DES_SCALE			0
 #define DES_EXTB			1
 #define DES_COPY			0
-#define DES_BS_ASM			1
+#define DES_BS_ASM			0
 #define DES_BS				1
 #define DES_BS_VECTOR			2
 #define DES_BS_EXPAND			0

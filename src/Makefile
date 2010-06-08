@@ -213,24 +213,22 @@ linux-sparc:
 	$(LN) sparc32.h arch.h
 	$(MAKE) $(PROJ)
 
-linux-ppc32-altivec:
+linux-ppc32-altivec: DES_bs_a.c
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-linux.o" \
-		OPT_INLINE="-finline-functions -finline-limit=4000"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 
 linux-ppc32:
 	$(LN) ppc32.h arch.h
 	$(MAKE) $(PROJ)
 
 # This is slightly slower than linux-ppc32-altivec for most hash types.
-linux-ppc64-altivec:
+linux-ppc64-altivec: DES_bs_a.c
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-linux.o" \
 		CFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64" \
-		OPT_INLINE="-finline-functions -finline-limit=4000"
+		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 
 linux-ppc64:
 	$(LN) ppc64.h arch.h
@@ -238,9 +236,6 @@ linux-ppc64:
 		CFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
-
-ppc-alti-linux.o: ppc-alti.c DES_bs_a.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) -maltivec ppc-alti.c -o $@
 
 linux-ia64:
 	$(LN) ia64.h arch.h
@@ -548,13 +543,12 @@ macosx-x86-mmx:
 		CFLAGS="$(CFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
-macosx-ppc32-altivec:
+macosx-ppc32-altivec: DES_bs_a.c
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		CFLAGS="-c -Wall -fomit-frame-pointer" \
 		OPT_NORMAL="-fast -mcpu=7450" \
-		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
+		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000 -faltivec -maltivec"
 
 # "cc -traditional-cpp" was needed on older versions of Mac OS X; it might
 # actually be problematic on current ones, but those will hopefully use other
@@ -578,14 +572,13 @@ macosx-ppc32-cross:
 		OPT_INLINE="-O3 -finline-limit=4000"
 
 # This is slightly slower than macosx-ppc32-altivec for most hash types.
-macosx-ppc64-altivec:
+macosx-ppc64-altivec: DES_bs_a.c
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		CFLAGS="-c -m64 -Wall -fomit-frame-pointer" \
 		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_NORMAL="-fast" \
-		OPT_INLINE="-fast -finline-limit=4000"
+		OPT_INLINE="-fast -finline-limit=4000 -faltivec -maltivec"
 
 macosx-ppc64:
 	$(LN) ppc64.h arch.h
@@ -594,9 +587,6 @@ macosx-ppc64:
 		LDFLAGS="$(LDFLAGS) -m64" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-fast -finline-limit=4000"
-
-ppc-alti-macosx.o: ppc-alti.c DES_bs_a.c
-	$(CC) $(CFLAGS) $(OPT_INLINE) -faltivec -maltivec ppc-alti.c -o $@
 
 john-macosx-x86-64:
 	$(RM) *.o
@@ -618,16 +608,15 @@ john-macosx-x86:
 		LDFLAGS="$(LDFLAGS) -arch i386 -m32"
 	mv ../run/john john-macosx-x86
 
-john-macosx-ppc:
+john-macosx-ppc: DES_bs_a.c
 	$(RM) *.o
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) ppc-alti-macosx.o" \
 		ASFLAGS="$(ASFLAGS) -arch ppc" \
 		CFLAGS="-c -Wall -arch ppc -fomit-frame-pointer" \
 		LDFLAGS="$(LDFLAGS) -arch ppc" \
 		OPT_NORMAL="-fast -mcpu=7450" \
-		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000"
+		OPT_INLINE="-fast -mcpu=7450 -finline-limit=4000 -faltivec -maltivec"
 	mv ../run/john john-macosx-ppc
 
 macosx-universal: john-macosx-x86-64 john-macosx-x86 john-macosx-ppc
