@@ -10,6 +10,10 @@
  * Note: there's some MMX code in x86.S as well.
  */
 
+#include "arch.h"
+
+#if DES_BS_ASM
+
 #ifdef UNDERSCORES
 #define DES_bs_all			_DES_bs_all
 #define DES_bs_init_asm			_DES_bs_init_asm
@@ -1314,6 +1318,8 @@ DES_bs_crypt_LM_loop:
 	emms
 #endif
 	ret
+
+#endif
 
 #if defined(__ELF__) && defined(__linux__)
 .section .note.GNU-stack,"",@progbits

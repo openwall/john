@@ -25,8 +25,8 @@ LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 OPT_INLINE = -finline-functions
 
-JOHN_OBJS_MINIMAL = \
-	DES_fmt.o DES_std.o DES_bs.o \
+JOHN_OBJS = \
+	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
 	MD5_fmt.o MD5_std.o \
 	BF_fmt.o BF_std.o \
@@ -39,13 +39,6 @@ JOHN_OBJS_MINIMAL = \
 	unshadow.o \
 	unafs.o \
 	unique.o
-
-JOHN_OBJS_ORIG = \
-	$(JOHN_OBJS_MINIMAL) \
-	DES_bs_b.o
-
-JOHN_OBJS = \
-	$(JOHN_OBJS_ORIG)
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -153,12 +146,12 @@ default:
 linux-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o"
 
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		CFLAGS="$(CFLAGS) -m32" \
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
@@ -166,7 +159,7 @@ linux-x86-64-32-sse2:
 linux-x86-64-32-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		CFLAGS="$(CFLAGS) -m32" \
 		ASFLAGS="$(ASFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
@@ -174,12 +167,12 @@ linux-x86-64-32-mmx:
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o"
 
 linux-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o"
 
 linux-x86-any:
 	$(LN) x86-any.h arch.h
@@ -243,18 +236,18 @@ linux-ia64:
 freebsd-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o"
 
 freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 freebsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 freebsd-x86-any:
@@ -277,18 +270,18 @@ freebsd-alpha:
 openbsd-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o"
 
 openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 openbsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 openbsd-x86-any:
@@ -389,7 +382,7 @@ solaris-sparc-gcc:
 solaris-x86-64-cc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native64 $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native64 $(OMPFLAGS)" \
@@ -400,7 +393,7 @@ solaris-x86-64-cc:
 solaris-x86-64-gcc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
 		CFLAGS="$(CFLAGS) -m64" \
 		ASFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 -lrt"
@@ -408,7 +401,7 @@ solaris-x86-64-gcc:
 solaris-x86-sse2-cc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) solaris-x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
@@ -419,13 +412,13 @@ solaris-x86-sse2-cc:
 solaris-x86-sse2-gcc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-mmx-cc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) solaris-x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
@@ -436,7 +429,7 @@ solaris-x86-mmx-cc:
 solaris-x86-mmx-gcc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-any-cc:
@@ -693,7 +686,7 @@ irix-mips32:
 dos-djgpp-x86-mmx:
 	copy x86-mmx.h arch.h
 	$(MAKE) $(PROJ_DOS) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
@@ -707,14 +700,14 @@ dos-djgpp-x86-any:
 win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-cygwin-x86-mmx:
 	$(CP) x86-mmx.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
@@ -728,12 +721,12 @@ win32-cygwin-x86-any:
 beos-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-sse.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o"
 
 beos-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS_MINIMAL) x86.o x86-mmx.o"
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o"
 
 beos-x86-any:
 	$(LN) x86-any.h arch.h
