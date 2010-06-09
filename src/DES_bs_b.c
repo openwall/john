@@ -10,7 +10,6 @@
 
 #if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
 #undef DES_BS_VECTOR
-#define DES_BS_VECTOR			0
 
 #ifdef __linux__
 #include <altivec.h>
@@ -19,7 +18,7 @@
 typedef vector signed int vtype;
 
 #define vst(dst, ofs, src) \
-	vec_st((src), (ofs) * sizeof(vtype), &(dst))
+	vec_st((src), (ofs) * sizeof(DES_bs_vector), &(dst))
 
 #define vxorf(a, b) \
 	vec_xor((a), (b))
@@ -35,12 +34,15 @@ typedef vector signed int vtype;
 #define vxorn(dst, a, b) \
 	(dst) = vec_xor((a), (b)); \
 	(dst) = vec_nor((dst), (dst))
+#define vnor(dst, a, b) \
+	(dst) = vec_nor((a), (b))
+#define vsel(dst, a, b, c) \
+	(dst) = vec_sel((a), (b), (c))
 
 #elif defined(__ALTIVEC__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
 #undef DES_BS_VECTOR
-#define DES_BS_VECTOR			0
 
 #ifdef __linux__
 #include <altivec.h>
@@ -67,13 +69,273 @@ typedef struct {
 	(dst).g = (a).g & (b).g
 #define vor(dst, a, b) \
 	(dst).f = vec_or((a).f, (b).f); \
-	(dst).g = (a).g ^ (b).g
+	(dst).g = (a).g | (b).g
 #define vandn(dst, a, b) \
 	(dst).f = vec_andc((a).f, (b).f); \
 	(dst).g = (a).g & ~(b).g
 #define vxorn(dst, a, b) \
 	(dst).f = vec_xor((a).f, (b).f); \
 	(dst).f = vec_nor((dst).f, (dst).f); \
+	(dst).g = ~((a).g ^ (b).g)
+#define vnor(dst, a, b) \
+	(dst).f = vec_nor((a).f, (b).f); \
+	(dst).g = ~((a).g | (b).g)
+#define vsel(dst, a, b, c) \
+	(dst).f = vec_sel((a).f, (b).f, (c).f); \
+	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
+
+#elif defined(__ALTIVEC__) && DES_BS_DEPTH == 256
+#undef DES_BS_VECTOR
+
+#ifdef __linux__
+#include <altivec.h>
+#endif
+
+typedef struct {
+	vector signed int f, g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	vec_st((src).f, (ofs) * sizeof(DES_bs_vector), &((vtype *)&(dst))->f); \
+	vec_st((src).g, (ofs) * sizeof(DES_bs_vector), &((vtype *)&(dst))->g)
+
+#define vxor(dst, a, b) \
+	(dst).f = vec_xor((a).f, (b).f); \
+	(dst).g = vec_xor((a).g, (b).g)
+
+#define vnot(dst, a) \
+	(dst).f = vec_nor((a).f, (a).f); \
+	(dst).g = vec_nor((a).g, (a).g)
+#define vand(dst, a, b) \
+	(dst).f = vec_and((a).f, (b).f); \
+	(dst).g = vec_and((a).g, (b).g)
+#define vor(dst, a, b) \
+	(dst).f = vec_or((a).f, (b).f); \
+	(dst).g = vec_or((a).g, (b).g)
+#define vandn(dst, a, b) \
+	(dst).f = vec_andc((a).f, (b).f); \
+	(dst).g = vec_andc((a).g, (b).g)
+#define vxorn(dst, a, b) \
+	(dst).f = vec_xor((a).f, (b).f); \
+	(dst).g = vec_xor((a).g, (b).g); \
+	(dst).f = vec_nor((dst).f, (dst).f); \
+	(dst).g = vec_nor((dst).g, (dst).g)
+#define vnor(dst, a, b) \
+	(dst).f = vec_nor((a).f, (b).f); \
+	(dst).g = vec_nor((a).g, (b).g)
+#define vsel(dst, a, b, c) \
+	(dst).f = vec_sel((a).f, (b).f, (c).f); \
+	(dst).g = vec_sel((a).g, (b).g, (c).g)
+
+#elif defined(__SSE2__) && DES_BS_DEPTH == 128
+#undef DES_BS_VECTOR
+
+#ifdef __GNUC__
+#warning Notice: with recent versions of gcc, we are currently using SSE2 intrinsics instead of the supplied SSE2 assembly code.  This choice is made in the x86-*.h file.
+#endif
+
+#include <emmintrin.h>
+
+typedef __m128i vtype;
+
+#define vst(dst, ofs, src) \
+	_mm_store_si128((vtype *)((DES_bs_vector *)&(dst) + (ofs)), (src))
+
+#define vxorf(a, b) \
+	_mm_xor_si128((a), (b))
+
+#define vnot(dst, a) \
+	(dst) = _mm_xor_si128((a), *(vtype *)DES_bs_all.ones)
+#define vand(dst, a, b) \
+	(dst) = _mm_and_si128((a), (b))
+#define vor(dst, a, b) \
+	(dst) = _mm_or_si128((a), (b))
+#define vandn(dst, a, b) \
+	(dst) = _mm_andnot_si128((b), (a))
+#define vxorn(dst, a, b) \
+	(dst) = _mm_xor_si128(_mm_xor_si128((a), (b)), \
+	    *(vtype *)DES_bs_all.ones)
+
+#elif defined(__SSE2__) && defined(__MMX__) && DES_BS_DEPTH == 192 && \
+    !defined(DES_BS_NO_MMX)
+#undef DES_BS_VECTOR
+
+#include <emmintrin.h>
+#include <mmintrin.h>
+
+typedef struct {
+	__m128i f;
+	__m64 g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	_mm_store_si128(&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
+
+#define vxor(dst, a, b) \
+	(dst).f = _mm_xor_si128((a).f, (b).f); \
+	(dst).g = _mm_xor_si64((a).g, (b).g)
+
+#define vnot(dst, a) \
+	(dst).f = _mm_xor_si128((a).f, ((vtype *)DES_bs_all.ones)->f); \
+	(dst).g = _mm_xor_si64((a).g, ((vtype *)DES_bs_all.ones)->g)
+#define vand(dst, a, b) \
+	(dst).f = _mm_and_si128((a).f, (b).f); \
+	(dst).g = _mm_and_si64((a).g, (b).g)
+#define vor(dst, a, b) \
+	(dst).f = _mm_or_si128((a).f, (b).f); \
+	(dst).g = _mm_or_si64((a).g, (b).g)
+#define vandn(dst, a, b) \
+	(dst).f = _mm_andnot_si128((b).f, (a).f); \
+	(dst).g = _mm_andnot_si64((b).g, (a).g)
+#define vxorn(dst, a, b) \
+	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
+	    (*(vtype *)DES_bs_all.ones).f); \
+	(dst).g = _mm_xor_si64(_mm_xor_si64((a).g, (b).g), \
+	    (*(vtype *)DES_bs_all.ones).g);
+
+#elif defined(__SSE2__) && \
+    ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
+    (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
+#undef DES_BS_VECTOR
+
+#include <emmintrin.h>
+
+typedef struct {
+	__m128i f;
+	ARCH_WORD g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	_mm_store_si128(&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
+
+#define vxor(dst, a, b) \
+	(dst).f = _mm_xor_si128((a).f, (b).f); \
+	(dst).g = (a).g ^ (b).g
+
+#define vnot(dst, a) \
+	(dst).f = _mm_xor_si128((a).f, ((vtype *)DES_bs_all.ones)->f); \
+	(dst).g = ~(a).g
+#define vand(dst, a, b) \
+	(dst).f = _mm_and_si128((a).f, (b).f); \
+	(dst).g = (a).g & (b).g
+#define vor(dst, a, b) \
+	(dst).f = _mm_or_si128((a).f, (b).f); \
+	(dst).g = (a).g | (b).g
+#define vandn(dst, a, b) \
+	(dst).f = _mm_andnot_si128((b).f, (a).f); \
+	(dst).g = (a).g & ~(b).g
+#define vxorn(dst, a, b) \
+	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
+	    (*(vtype *)DES_bs_all.ones).f); \
+	(dst).g = ~((a).g ^ (b).g)
+
+#elif defined(__SSE2__) && defined(__MMX__) && \
+    ((ARCH_BITS == 64 && DES_BS_DEPTH == 256) || \
+    (ARCH_BITS == 32 && DES_BS_DEPTH == 224))
+#undef DES_BS_VECTOR
+
+#include <emmintrin.h>
+#include <mmintrin.h>
+
+typedef struct {
+	__m128i f;
+	__m64 g;
+	ARCH_WORD h;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	_mm_store_si128(&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g; \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->h = (src).h
+
+#define vxor(dst, a, b) \
+	(dst).f = _mm_xor_si128((a).f, (b).f); \
+	(dst).g = _mm_xor_si64((a).g, (b).g); \
+	(dst).h = (a).h ^ (b).h
+
+#define vnot(dst, a) \
+	(dst).f = _mm_xor_si128((a).f, ((vtype *)DES_bs_all.ones)->f); \
+	(dst).g = _mm_xor_si64((a).g, ((vtype *)DES_bs_all.ones)->g); \
+	(dst).h = ~(a).h
+#define vand(dst, a, b) \
+	(dst).f = _mm_and_si128((a).f, (b).f); \
+	(dst).g = _mm_and_si64((a).g, (b).g); \
+	(dst).h = (a).h & (b).h
+#define vor(dst, a, b) \
+	(dst).f = _mm_or_si128((a).f, (b).f); \
+	(dst).g = _mm_or_si64((a).g, (b).g); \
+	(dst).h = (a).h | (b).h
+#define vandn(dst, a, b) \
+	(dst).f = _mm_andnot_si128((b).f, (a).f); \
+	(dst).g = _mm_andnot_si64((b).g, (a).g); \
+	(dst).h = (a).h & ~(b).h
+#define vxorn(dst, a, b) \
+	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
+	    (*(vtype *)DES_bs_all.ones).f); \
+	(dst).g = _mm_xor_si64(_mm_xor_si64((a).g, (b).g), \
+	    (*(vtype *)DES_bs_all.ones).g); \
+	(dst).h = ~((a).h ^ (b).h)
+
+#elif defined(__MMX__) && DES_BS_DEPTH == 64
+#undef DES_BS_VECTOR
+
+#include <mmintrin.h>
+
+typedef __m64 vtype;
+
+#define vxorf(a, b) \
+	_mm_xor_si64((a), (b))
+
+#define vnot(dst, a) \
+	(dst) = _mm_xor_si64((a), *(vtype *)DES_bs_all.ones)
+#define vand(dst, a, b) \
+	(dst) = _mm_and_si64((a), (b))
+#define vor(dst, a, b) \
+	(dst) = _mm_or_si64((a), (b))
+#define vandn(dst, a, b) \
+	(dst) = _mm_andnot_si64((b), (a))
+#define vxorn(dst, a, b) \
+	(dst) = _mm_xor_si64(_mm_xor_si64((a), (b)), \
+	    *(vtype *)DES_bs_all.ones)
+
+#elif defined(__MMX__) && DES_BS_DEPTH == 96
+#undef DES_BS_VECTOR
+
+#include <mmintrin.h>
+
+typedef struct {
+	__m64 f;
+	ARCH_WORD g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f = (src).f; \
+	((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g = (src).g
+
+#define vxor(dst, a, b) \
+	(dst).f = _mm_xor_si64((a).f, (b).f); \
+	(dst).g = (a).g ^ (b).g
+
+#define vnot(dst, a) \
+	(dst).f = _mm_xor_si64((a).f, ((vtype *)DES_bs_all.ones)->f); \
+	(dst).g = ~(a).g
+#define vand(dst, a, b) \
+	(dst).f = _mm_and_si64((a).f, (b).f); \
+	(dst).g = (a).g & (b).g
+#define vor(dst, a, b) \
+	(dst).f = _mm_or_si64((a).f, (b).f); \
+	(dst).g = (a).g | (b).g
+#define vandn(dst, a, b) \
+	(dst).f = _mm_andnot_si64((b).f, (a).f); \
+	(dst).g = (a).g & ~(b).g
+#define vxorn(dst, a, b) \
+	(dst).f = _mm_xor_si64(_mm_xor_si64((a).f, (b).f), \
+	    (*(vtype *)DES_bs_all.ones).f); \
 	(dst).g = ~((a).g ^ (b).g)
 
 #else
@@ -82,9 +344,6 @@ typedef ARCH_WORD vtype;
 
 #define zero				0
 #define ones				~(vtype)0
-
-#define vst(dst, ofs, src) \
-	*((vtype *)&(dst) + (ofs)) = (src)
 
 #define vxorf(a, b) \
 	((a) ^ (b))
@@ -102,6 +361,11 @@ typedef ARCH_WORD vtype;
 
 #endif
 
+#ifndef vst
+#define vst(dst, ofs, src) \
+	*((vtype *)((DES_bs_vector *)&(dst) + (ofs))) = (src)
+#endif
+
 #if !defined(vxor) && defined(vxorf)
 #define vxor(dst, a, b) \
 	(dst) = vxorf((a), (b))
@@ -115,8 +379,20 @@ typedef ARCH_WORD vtype;
 	({ vtype tmp; vxor(tmp, (a), (b)); tmp; })
 #endif
 
+#ifdef __GNUC__
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 0)
+#define MAYBE_INLINE __attribute__((always_inline))
+#else
+#define MAYBE_INLINE inline
+#endif
+#else
+#define MAYBE_INLINE
+#endif
+
 /* Include the S-boxes here so that the compiler can inline them */
-#if DES_BS == 2
+#if DES_BS == 3
+#include "sboxes-s.c"
+#elif DES_BS == 2
 #include "sboxes.c"
 #else
 #include "nonstd.c"
@@ -124,6 +400,10 @@ typedef ARCH_WORD vtype;
 
 #define b				DES_bs_all.B
 #define e				DES_bs_all.E.E
+
+#ifndef DES_BS_VECTOR
+#define DES_BS_VECTOR			0
+#endif
 
 #if DES_BS_VECTOR
 #define kd				[depth]
