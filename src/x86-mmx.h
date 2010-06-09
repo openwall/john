@@ -45,11 +45,23 @@
 #define DES_EXTB			0
 #define DES_COPY			1
 #define DES_STD_ALGORITHM_NAME		"48/64 4K MMX"
-#define DES_BS_ASM			1
-#define DES_BS				1
+#if defined(__MMX__) && 0
+#define DES_BS_ASM			0
+#if 1
 #define DES_BS_VECTOR			2
-#define DES_BS_EXPAND			1
 #define DES_BS_ALGORITHM_NAME		"64/64 BS MMX"
+#else
+#define DES_BS_VECTOR			3
+#define DES_BS_VECTOR_SIZE		4
+#define DES_BS_ALGORITHM_NAME		"64/64 BS MMX + 32/32 BS"
+#endif
+#else
+#define DES_BS_ASM			1
+#define DES_BS_VECTOR			2
+#define DES_BS_ALGORITHM_NAME		"64/64 BS MMX"
+#endif
+#define DES_BS				1
+#define DES_BS_EXPAND			1
 
 #define MD5_ASM				1
 #define MD5_X2				0
