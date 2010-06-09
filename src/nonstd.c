@@ -13,7 +13,7 @@
  */
 
 
-static void
+MAYBE_INLINE static void
 s1 (
 	vtype	a1,
 	vtype	a2,
@@ -97,7 +97,7 @@ s1 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s2 (
 	vtype	a1,
 	vtype	a2,
@@ -175,7 +175,7 @@ s2 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s3 (
 	vtype	a1,
 	vtype	a2,
@@ -256,7 +256,7 @@ s3 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s4 (
 	vtype	a1,
 	vtype	a2,
@@ -321,7 +321,7 @@ s4 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s5 (
 	vtype	a1,
 	vtype	a2,
@@ -405,7 +405,7 @@ s5 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s6 (
 	vtype	a1,
 	vtype	a2,
@@ -486,7 +486,7 @@ s6 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s7 (
 	vtype	a1,
 	vtype	a2,
@@ -565,7 +565,7 @@ s7 (
 }
 
 
-static void
+MAYBE_INLINE static void
 s8 (
 	vtype	a1,
 	vtype	a2,
