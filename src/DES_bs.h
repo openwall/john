@@ -61,6 +61,8 @@ typedef struct {
 	DES_bs_vector B[64];	/* Data blocks */
 #if DES_BS_ASM
 	DES_bs_vector tmp[16];	/* Miscellaneous temporary storage */
+#elif defined(__MMX__) || defined(__SSE2__)
+	DES_bs_vector ones;	/* All 1 bits (to implement NOT with XOR) */
 #endif
 	unsigned int s1[0x100];	/* Byte offsets past the 1st bit */
 	unsigned char s2[0x100];	/* Shift counts past the 2nd bit */
