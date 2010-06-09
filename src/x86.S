@@ -1324,7 +1324,7 @@ CPU_detect:
 	movl $1,%eax
 	cpuid
 	popl %ecx
-#if DES_BS_VECTOR > 2
+#if DES_BS_VECTOR >= 4
 	xchgl %edx,%eax
 	andl CF_SSE2,%eax
 	jz CPU_detect_ret		/* No SSE2 */
@@ -1335,8 +1335,8 @@ CPU_detect:
 	jz CPU_detect_ret		/* No MMX */
 	xchgl %edx,%eax
 #endif
-	movb $1,%al
-	andb $0x0F,%ah
+	andl $0xF0FF0,%eax		/* Extended model, family, and model */
+	orb $1,%al			/* Detected a suitable CPU */
 	cmpl CV_AMD,%ecx
 	je CPU_detect_AMD		/* Is an AMD processor */
 	cmpl CV_CENTAUR,%ecx
@@ -1347,6 +1347,8 @@ CPU_detect:
 	je CPU_detect_P1		/* Intel Pentium */
 	cmpb $15,%ah
 	je CPU_detect_P1		/* Intel Pentium 4 */
+	cmpl $0x106a1,%eax		/* Family 6, model 26 */
+	je CPU_detect_i7		/* Core i7 or Xeon W5580/W5590 */
 	jmp CPU_detect_ret
 CPU_detect_AMD:
 	cmpb $6,%ah
@@ -1367,6 +1369,7 @@ CPU_detect_P1:
 #if !DES_X2
 	movl $DES_std_crypt_P1,DES_std_crypt
 #endif
+CPU_detect_i7:
 #if BF_ASM
 	movl $BF_body_P1,BF_body
 #endif
