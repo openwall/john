@@ -303,7 +303,7 @@ typedef __m64 vtype;
 	(dst) = _mm_xor_si64(_mm_xor_si64((a), (b)), \
 	    *(vtype *)DES_bs_all.ones)
 
-#elif defined(__MMX__) && DES_BS_DEPTH == 96
+#elif defined(__MMX__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
 #undef DES_BS_VECTOR
 
 #include <mmintrin.h>
