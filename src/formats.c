@@ -85,7 +85,12 @@ char *fmt_self_test(struct fmt_main *format)
 		    format->params.plaintext_length))
 			return "get_key";
 
-		index = (index << 1) + 1; /* 0, 1, 3, 7, 15, 31, 63, ... */
+/* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
+		if (index >= 2)
+			index += index >> 1;
+		else
+			index++;
+
 		if (index >= max) {
 			index = 0;
 			done |= 1;
