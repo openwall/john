@@ -14,6 +14,12 @@ DES S-box expressions (found in nonstd.c and sboxes.c):
 of their MMX implementation of Matthew Kwan's S-box expressions (found
 in x86-mmx.S and x86-sse.S, with modifications).
 
+* Dumplinger Boy (Dango-Chu) - for producing and letting everyone use
+his optimized DES S-box expressions making use of a vector conditional
+select operation such as on PowerPC with AltiVec (found in sboxes-s.c):
+
+	http://dango.chu.jp/hiki/?Enhanced+Bitslice+DES
+
 * Eli Biham - for the great "bitslice" paper:
 
 	http://www.cs.technion.ac.il/~biham/Reports/cs0891.ps.gz
