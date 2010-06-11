@@ -803,7 +803,7 @@ john.com: john.asm
 	strip ../run/unique.exe
 
 # Inlining the S-boxes produces faster code as long as they fit in the cache.
-DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c
+DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 	$(CC) $(CFLAGS) $(OPT_INLINE) DES_bs_b.c
 
 miscnl.o: misc.c
