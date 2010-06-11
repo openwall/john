@@ -4,6 +4,9 @@ The following changes have been made between John 1.7.5.1 and 1.7.5.3:
 (bcrypt) hashes with OpenMP has been added.
 * A more suitable version of 32-bit x86 assembly code for Blowfish is now
 chosen on Core i7 and similar CPUs (when they happen to run a 32-bit build).
+* More optimal DES S-box expressions for PowerPC with AltiVec (making use of
+the conditional select operation) contributed by Dumplinger Boy (Dango-Chu)
+have been integrated.
 * The bitslice DES C source code has been reworked to allow for the use of
 arbitrary SIMD intrinsics, which was previously only implemented for AltiVec
 as a special case.
@@ -163,4 +166,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.44 2010/06/11 22:47:26 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.45 2010/06/11 22:55:26 solar Exp $
