@@ -1,7 +1,20 @@
-The following changes have been made between John 1.7.5.1 and 1.7.5.2:
+The following changes have been made between John 1.7.5.1 and 1.7.5.3:
 
 * Optional parallelization for the OpenBSD-style Blowfish-based crypt(3)
 (bcrypt) hashes with OpenMP has been added.
+* A more suitable version of 32-bit x86 assembly code for Blowfish is now
+chosen on Core i7 and similar CPUs (when they happen to run a 32-bit build).
+* The bitslice DES C source code has been reworked to allow for the use of
+arbitrary SIMD intrinsics, which was previously only implemented for AltiVec
+as a special case.
+* Support for SSE2 and MMX intrinsics with bitslice DES (as an alternative to
+the supplied assembly code) has been added (currently only enabled for SSE2 on
+x86-64 when compiling with gcc 4.5.0+).
+* Support for mixed-type longer virtual vectors (such as SSE2+MMX, SSE2+ALU,
+AltiVec+ALU, and other combinations) with bitslice DES has been added (not
+enabled by default yet, primarily intended for easy benchmarks on future CPUs,
+with future compiler versions, with even more SIMD instruction sets, and with
+different DES S-box expressions that might be available in the future).
 * The obsolete 32-bit SPARC assembly implementation of DES has been dropped.
 
 The following changes have been made between John 1.7.5 and 1.7.5.1:
@@ -150,4 +163,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.43 2010/05/26 04:41:06 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.44 2010/06/11 22:47:26 solar Exp $
