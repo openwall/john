@@ -38,7 +38,9 @@ extern int CPU_detect(void);
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_AFS, fmt_LM;
+#ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
+#endif
 
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
@@ -67,7 +69,9 @@ static void john_register_all(void)
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+#ifdef HAVE_CRYPT
 	john_register_one(&fmt_crypt);
+#endif
 
 	if (!fmt_list) {
 		fprintf(stderr, "Unknown ciphertext format name requested\n");
