@@ -101,7 +101,7 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]COUNT           load salts with[out] at least COUNT passwords " \
 	"only\n" \
 "--format=NAME              force hash type NAME: " \
-	"DES/BSDI/MD5/BF/AFS/LM\n" \
+	"DES/BSDI/MD5/BF/AFS/LM/crypt\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n"
 
 void opt_init(char *name, int argc, char **argv)

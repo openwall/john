@@ -19,6 +19,10 @@
 #include "formats.h"
 #include "loader.h"
 
+#ifdef HAVE_CRYPT
+extern struct fmt_main fmt_crypt;
+#endif
+
 /*
  * Flags for read_file().
  */
@@ -259,6 +263,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 	if ((*format = fmt_list))
 	do {
+#ifdef HAVE_CRYPT
+/*
+ * Only probe for support by the current system's crypt(3) if this is forced
+ * from the command-line or/and if the hash encoding string looks like one of
+ * those that are only supported in that way.  Avoid the probe in other cases
+ * because it may be slow and undesirable (false detection is possible).
+ */
+		if (*format == &fmt_crypt &&
+		    fmt_list != &fmt_crypt /* not forced */ &&
+		    strncmp(*ciphertext, "$5$", 3) &&
+		    strncmp(*ciphertext, "$6$", 3))
+			continue;
+#endif
 		if ((count = (*format)->methods.valid(*ciphertext))) {
 			fmt_init(*format);
 			return count;

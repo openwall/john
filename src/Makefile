@@ -146,92 +146,111 @@ default:
 linux-x86-64:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o"
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		CFLAGS="$(CFLAGS) -m32" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o" \
+		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-64-32-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
-		CFLAGS="$(CFLAGS) -m32" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o" \
+		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32"
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o"
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-mmx:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o"
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-any:
 	$(LN) x86-any.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o"
-
-linux-x86-any-a.out:
-	$(LN) x86-any.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) alpha.o"
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o alpha.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 # This target is currently "undocumented" as ccc generates much slower
 # code for the large unrolled loops in John; let's hope it gets fixed.
 linux-alpha-ccc:
 	$(LN) alpha.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) alpha.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o alpha.o" \
 		CC=ccc \
-		CFLAGS="-c -Wf,-switch,noil_schedule" \
+		CFLAGS="-c -Wf,-switch,noil_schedule -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt" \
 		OPT_NORMAL="-fast" \
 		OPT_INLINE="-O2 -arch host"
 
 linux-sparc:
 	$(LN) sparc32.h arch.h
-	$(MAKE) $(PROJ)
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
 	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt" \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 
 linux-ppc32:
 	$(LN) ppc32.h arch.h
-	$(MAKE) $(PROJ)
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 # This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
 	$(LN) ppc64alt.h arch.h
 	$(MAKE) $(PROJ) \
-		CFLAGS="$(CFLAGS) -m64" \
-		LDFLAGS="$(LDFLAGS) -m64" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -m64 -lcrypt" \
 		OPT_INLINE="-finline-functions -finline-limit=4000 -maltivec"
 
 linux-ppc64:
 	$(LN) ppc64.h arch.h
 	$(MAKE) $(PROJ) \
-		CFLAGS="$(CFLAGS) -m64" \
-		LDFLAGS="$(LDFLAGS) -m64" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -m64 -lcrypt" \
 		OPT_INLINE="-finline-functions -finline-limit=4000"
 
 linux-ia64:
 	$(LN) ia64.h arch.h
-	$(MAKE) $(PROJ)
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 freebsd-x86-64:
 	$(LN) x86-64.h arch.h
