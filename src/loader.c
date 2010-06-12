@@ -216,7 +216,12 @@ static int ldr_split_line(char **login, char **ciphertext,
 	*login = ldr_get_field(&line);
 	if (!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) return 0;
 
-	if (!*(*ciphertext = ldr_get_field(&line))) if (!line) return 0;
+	if (!*(*ciphertext = ldr_get_field(&line)) && !line) {
+		if (strlen(*login) < 13)
+			return 0;
+		*ciphertext = *login;
+		*login = "?";
+	}
 
 	if (source) strcpy(source, line ? line : "");
 
