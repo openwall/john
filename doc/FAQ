@@ -94,7 +94,9 @@ password hashes, but there are still some DES-based hashes in the
 password file.  How do I handle multiple hash types in one file?
 A: Use the "--format=..." option to tell John which hashes you would
 like it to load.  Unfortunately, you will have to run John for each hash
-type separately.  See OPTIONS.
+type separately.  This requirement may sometimes be avoided with the use
+of "--format=crypt", but this is not recommended.  Please see the
+description of the "--format" option in OPTIONS for more detail.
 
 Q: I have 10 users, but John said it loaded 15 password hashes.  What's
 going on?
@@ -218,4 +220,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.18 2010/05/25 08:27:31 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.19 2010/06/12 16:35:59 solar Exp $
