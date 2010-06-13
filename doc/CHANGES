@@ -12,7 +12,7 @@ arbitrary SIMD intrinsics, which was previously only implemented for AltiVec
 as a special case.
 * Support for SSE2 and MMX intrinsics with bitslice DES (as an alternative to
 the supplied assembly code) has been added (currently only enabled for SSE2 on
-x86-64 when compiling with gcc 4.5.0+).
+x86-64 when compiling with gcc 4.4.0+).
 * Support for mixed-type longer virtual vectors (such as SSE2+MMX, SSE2+ALU,
 AltiVec+ALU, and other combinations) with bitslice DES has been added (not
 enabled by default yet, primarily intended for easy benchmarks on future CPUs,
