@@ -1,6 +1,9 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2009,2010 by Solar Designer
+ *
+ * Generic crypt(3) support (as well as support for glibc's crypt_r(3) with
+ * OpenMP parallelization).
  */
 
 #define _XOPEN_SOURCE /* for crypt(3) */
@@ -8,6 +11,7 @@
 #include <string.h>
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
+#include <stdlib.h> /* for calloc(3) */
 #else
 #include <unistd.h>
 #endif
