@@ -380,10 +380,10 @@ typedef ARCH_WORD vtype;
 #endif
 
 #ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ > 0)
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
 #define MAYBE_INLINE __attribute__((always_inline))
 #else
-#define MAYBE_INLINE inline
+#define MAYBE_INLINE __inline__
 #endif
 #else
 #define MAYBE_INLINE
