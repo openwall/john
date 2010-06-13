@@ -38,6 +38,8 @@ extern struct fmt_main fmt_crypt;
 static char issep_map[0x100];
 static int issep_initialized = 0;
 
+static char *no_username = "?";
+
 static void read_file(struct db_main *db, char *name, int flags,
 	void (*process_line)(struct db_main *db, char *line))
 {
@@ -224,7 +226,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		if (strlen(*login) < 13)
 			return 0;
 		*ciphertext = *login;
-		*login = "?";
+		*login = no_username;
 	}
 
 	if (source) strcpy(source, line ? line : "");
@@ -316,10 +318,11 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 
 	list_init(&words);
 
-	if (*login)
+	if (*login && login != no_username)
 		list_add(words, login);
 	ldr_split_string(words, gecos);
-	ldr_split_string(words, login);
+	if (login != no_username)
+		ldr_split_string(words, login);
 
 	if ((pos = strrchr(home, '/')) && pos[1])
 		list_add_unique(words, pos + 1);
@@ -447,6 +450,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				sprintf(current_pw->login, "%s:%d",
 					login, index + 1);
 			} else
+			if (login == no_username)
+				current_pw->login = login;
+			else
 			if (words && *login)
 				current_pw->login = words->head->data;
 			else
