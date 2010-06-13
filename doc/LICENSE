@@ -4,10 +4,11 @@ John the Ripper password cracker,
 Copyright (c) 1996-2010 by Solar Designer.
 Portions copyright (c) by their respective authors:
 
-The optimized DES S-box expressions (nonstd.c and sboxes.c) have been
-produced by Matthew Kwan.  The corresponding MMX and non-x86-64 SSE2
-code (parts of x86-mmx.S and x86-sse.S) is based on Bruce Ford and Rémi
-Guyomarch's MMX implementation.
+The optimized DES S-box expressions found in sboxes.c and nonstd.c have
+been produced by Matthew Kwan and those found in sboxes-s.c by
+Dumplinger Boy (Dango-Chu).  MMX and non-x86-64 SSE2 code corresponding
+to Matthew's DES S-box expressions (portions of x86-mmx.S and x86-sse.S)
+is based on Bruce Ford and Rémi Guyomarch's MMX implementation.
 
 This version of John the Ripper is hereby being made available to you
 under the terms of the GNU General Public License version 2 as published
@@ -24,9 +25,20 @@ General Public License for more details.
 In addition or alternatively to the license above, the following
 components are available to you under more relaxed terms:
 
-As specified in the corresponding source files (nonstd.c and sboxes.c),
+As specified in the corresponding source files (sboxes.c and nonstd.c),
 Matthew Kwan's DES S-box expressions may be modified, redistributed, and
 used for any purpose, so long as their origin is acknowledged.
+Matthew's original files (prior to modification for John the Ripper) are
+available at:
+
+	http://www.darkside.com.au/bitslice/
+	http://download.openwall.net/pub/projects/john/contrib/bitslice-des/mkwan/
+
+Dumplinger Boy (Dango-Chu)'s DES S-box expressions are also available
+under the 2-clause BSD license:
+
+	http://dango.chu.jp/hiki/?Enhanced+Bitslice+DES
+	http://download.openwall.net/pub/projects/john/contrib/bitslice-des/dango.chu.jp/
 
 As the copyright holder for the bcrypt (Blowfish-based password hashing)
 implementation found in John the Ripper, I have placed a derived version
