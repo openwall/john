@@ -363,8 +363,9 @@ netbsd-vax:
 solaris-sparc64-cc:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native64 $(OMPFLAGS)" \
+		CFLAGS="-c -fast -xarch=native64 -DHAVE_CRYPT $(OMPFLAGS)" \
 		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
@@ -372,14 +373,16 @@ solaris-sparc64-cc:
 solaris-sparc64-gcc:
 	$(LN) sparc64.h arch.h
 	$(MAKE) $(PROJ) \
-		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -m64 -lrt"
 
 solaris-sparcv9-cc:
 	$(LN) sparc32.h arch.h
 	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
-		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra $(OMPFLAGS)" \
+		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra -DHAVE_CRYPT $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
@@ -387,8 +390,9 @@ solaris-sparcv9-cc:
 solaris-sparcv8-cc:
 	$(LN) sparc32.h arch.h
 	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
-		CFLAGS="-c -xO4 -xarch=v8 $(OMPFLAGS)" \
+		CFLAGS="-c -xO4 -xarch=v8 -DHAVE_CRYPT $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
@@ -396,14 +400,16 @@ solaris-sparcv8-cc:
 solaris-sparc-gcc:
 	$(LN) sparc32.h arch.h
 	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-64-cc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native64 $(OMPFLAGS)" \
+		CFLAGS="-c -fast -xarch=native64 -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native64 $(OMPFLAGS)" \
 		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lrt" \
 		OPT_NORMAL="" \
@@ -412,17 +418,17 @@ solaris-x86-64-cc:
 solaris-x86-64-gcc:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o" \
-		CFLAGS="$(CFLAGS) -m64" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
+		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT" \
 		ASFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 -lrt"
 
 solaris-x86-sse2-cc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native $(OMPFLAGS)" \
+		CFLAGS="-c -fast -xarch=native -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
 		LDFLAGS="-s -xarch=native $(OMPFLAGS) -lrt" \
 		OPT_NORMAL="" \
@@ -431,15 +437,16 @@ solaris-x86-sse2-cc:
 solaris-x86-sse2-gcc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-mmx-cc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-mmx.o" \
 		CC=cc \
-		CFLAGS="-c -fast -xarch=native $(OMPFLAGS)" \
+		CFLAGS="-c -fast -xarch=native -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
 		LDFLAGS="-s -xarch=native $(OMPFLAGS) -lrt" \
 		OPT_NORMAL="" \
@@ -448,7 +455,8 @@ solaris-x86-mmx-cc:
 solaris-x86-mmx-gcc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
 solaris-x86-any-cc:
@@ -456,9 +464,9 @@ solaris-x86-any-cc:
 	ln -s x86-any.h arch.h
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o" \
 		CC=cc \
-		CFLAGS="-c -xO4 $(OMPFLAGS)" \
+		CFLAGS="-c -xO4 -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c $(OMPFLAGS)" \
 		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
 		OPT_NORMAL="" \
@@ -469,7 +477,8 @@ solaris-x86-any-gcc:
 	ln -s x86-any.h arch.h
 	$(MAKE) $(PROJ) \
 		SHELL=/bin/sh \
-		JOHN_OBJS="$(JOHN_OBJS) solaris-x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lc -lrt"
 
 # Older versions of Sun's assembler had a line length restriction (and some

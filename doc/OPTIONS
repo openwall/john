@@ -140,15 +140,17 @@ than the one it would autodetect by default.
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on
-Linux.  When specified (and supported), this option makes John use the
-system's crypt(3) function.  This may be needed to audit password
-hashes supported by the system, but not yet supported by John's own
-optimized cryptographic routines.  Currently, this is the case for
-glibc 2.7+ "SHA-crypt" hashes as used by recent versions of Fedora and
-Ubuntu.  In fact, you do not have to explicitly specify "--format=crypt"
-for hashes of this specific type unless you have other hash types (those
-supported by John natively) in the password file(s) as well (in which
-case another hash type may get detected unless you specify this option).
+Linux and Solaris.  When specified (and supported), this option makes
+John use the system's crypt(3) or crypt_r(3) function.  This may be
+needed to audit password hashes supported by the system, but not yet
+supported by John's own optimized cryptographic routines.  Currently,
+this is the case for glibc 2.7+ "SHA-crypt" hashes as used by recent
+versions of Fedora and Ubuntu, and for SunMD5 hashes supported (but not
+used by default) on recent versions of Solaris.  In fact, you do not
+have to explicitly specify "--format=crypt" for hashes of these specific
+types unless you have other hash types (those supported by John
+natively) in the password file(s) as well (in which case another hash
+type may get detected unless you specify this option).
 
 "--format=crypt" is also a way to make John crack crypt(3) hashes of
 different types at the same time, but doing so results in poor
