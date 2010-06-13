@@ -142,8 +142,8 @@ static void *salt(char *ciphertext)
 	default:
 		if ((length >= 26 && length <= 34 &&
 		    !strncmp(ciphertext, "$1$", 3)) ||
-		    (length >= 55 && !strncmp(ciphertext, "$5$", 3)) ||
-		    (length >= 98 && !strncmp(ciphertext, "$6$", 3))) {
+		    (length >= 47 && !strncmp(ciphertext, "$5$", 3)) ||
+		    (length >= 90 && !strncmp(ciphertext, "$6$", 3))) {
 			char *p = strrchr(ciphertext + 3, '$');
 			if (p) cut = p - ciphertext;
 		} else
