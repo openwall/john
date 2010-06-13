@@ -101,15 +101,14 @@ description of the "--format" option in OPTIONS for more detail.
 Q: I have 10 users, but John said it loaded 15 password hashes.  What's
 going on?
 A: Some extremely poorly designed hash types (Windows LM hashes and
-double-length DES-based crypt(3) hashes also known as "bigcrypt" or
-"crypt16") have a property that allows John to split their encodings
-into two separate hashes (corresponding to halves of plaintext
-passwords) on load.  John then proceeds to crack those hashes
-separately, so at a given time it might have only one of two halves of
-some passwords cracked.  If interrupted and restarted, it would need to
-only load the hashes which correspond to uncracked password halves, so
-the number of such hashes is what John reports (in all cases, for
-consistency).
+DES-based crypt(3) hashes known as "bigcrypt") have a property that
+allows John to split their encodings into two separate hashes
+(corresponding to "halves" of plaintext passwords) on load.  John then
+proceeds to crack those hashes separately, so at a given time it might
+have only one of two halves of some passwords cracked.  If interrupted
+and restarted, it would need to only load the hashes that correspond to
+uncracked password halves, so the number of such hashes is what John
+reports (in all cases, for consistency).
 
 Q: Are the strings tried with "-i" ("incremental" mode) random?  They
 certainly look like they are almost random.
@@ -226,4 +225,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.20 2010/06/13 01:47:12 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.21 2010/06/13 16:02:44 solar Exp $
