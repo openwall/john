@@ -12,7 +12,7 @@ arbitrary SIMD intrinsics, which was previously only implemented for AltiVec
 as a special case.
 * Support for SSE2 and MMX intrinsics with bitslice DES (as an alternative to
 the supplied assembly code) has been added (currently only enabled for SSE2 on
-x86-64 when compiling with gcc 4.5.0+).
+x86-64 when compiling with gcc 4.4.0+).
 * Support for mixed-type longer virtual vectors (such as SSE2+MMX, SSE2+ALU,
 AltiVec+ALU, and other combinations) with bitslice DES has been added (not
 enabled by default yet, primarily intended for easy benchmarks on future CPUs,
@@ -166,4 +166,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.45 2010/06/11 22:55:26 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.46 2010/06/13 00:37:38 solar Exp $

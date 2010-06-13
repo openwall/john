@@ -33,7 +33,7 @@
 #define DES_EXTB			1
 #define DES_COPY			0
 #if defined(__SSE2__) && \
-    ((__GNUC__ == 4 && __GNUC_MINOR__ >= 5) || __GNUC__ > 4)
+    ((__GNUC__ == 4 && __GNUC_MINOR__ >= 4) || __GNUC__ > 4)
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			2
