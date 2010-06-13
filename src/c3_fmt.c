@@ -78,7 +78,7 @@ static int valid(char *ciphertext)
 	if (length >= BINARY_SIZE)
 		return 0;
 
-	if (length >= 34 && ciphertext[0] == '$')
+	if (length >= 26 && ciphertext[0] == '$')
 		return 1;
 
 	if (length == 13 && count_base64 == 11)
@@ -121,50 +121,41 @@ static void *salt(char *ciphertext)
 
 #if 1
 /* This piece is optional, but matching salts are not detected without it */
-	switch (strlen(ciphertext)) {
+	int length = strlen(ciphertext);
+
+	switch (length) {
 	case 13:
 	case 24:
 		cut = 2;
-		break;
-
-	case 35:
-	case 46:
-	case 57:
-		if (ciphertext[0] != '$') cut = 2;
 		break;
 
 	case 20:
 		if (ciphertext[0] == '_') cut = 9;
 		break;
 
-	case 34:
-		if (!strncmp(ciphertext, "$1$", 3)) {
-			char *p = strchr(ciphertext + 3, '$');
-			if (p) cut = p - ciphertext;
-		}
-		break;
-
-	case 59:
-		if (!strncmp(ciphertext, "$2$", 3)) cut = 28;
-		break;
-
-	case 60:
-		if (!strncmp(ciphertext, "$2a$", 4)) cut = 29;
-		break;
+	case 35:
+	case 46:
+	case 57:
+		if (ciphertext[0] != '$') cut = 2;
+		/* fall through */
 
 	default:
-		if ((!strncmp(ciphertext, "$5$", 3) ||
-		    !strncmp(ciphertext, "$6$", 3)) &&
-		    strlen(ciphertext) >= 55) {
-			char *p = strchr(ciphertext + 3, '$');
-			if (p && !strncmp(ciphertext + 3, "rounds=", 7))
-				p = strchr(p + 1, '$');
+		if ((length >= 26 && length <= 34 &&
+		    !strncmp(ciphertext, "$1$", 3)) ||
+		    (length >= 55 && !strncmp(ciphertext, "$5$", 3)) ||
+		    (length >= 98 && !strncmp(ciphertext, "$6$", 3))) {
+			char *p = strrchr(ciphertext + 3, '$');
 			if (p) cut = p - ciphertext;
-			break;
-		}
-
-		if (!strncmp(ciphertext, "$md5$", 5) ||
-		    !strncmp(ciphertext, "$md5,", 5)) {
+		} else
+		if (length == 59 && !strncmp(ciphertext, "$2$", 3))
+			cut = 28;
+		else
+		if (length == 60 && !strncmp(ciphertext, "$2a$", 4))
+			cut = 29;
+		else
+		if (length >= 27 &&
+		    (!strncmp(ciphertext, "$md5$", 5) ||
+		    !strncmp(ciphertext, "$md5,", 5))) {
 			char *p = strrchr(ciphertext + 4, '$');
 			if (p) {
 				/* NUL padding is required */
@@ -180,7 +171,6 @@ static void *salt(char *ciphertext)
 				out[p - ciphertext] = 'x';
 				return out;
 			}
-			break;
 		}
 	}
 #endif
