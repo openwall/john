@@ -2,9 +2,9 @@ The following changes have been made between John 1.7.5.1 and 1.7.5.4:
 
 * Generic crypt(3) support (enabled with "--format=crypt") has been added for
 auditing password hash types supported by the system but not yet supported by
-John's own optimized cryptographic routines.
+John's own optimized cryptographic routines (such as "SHA-crypt" and SunMD5).
 * Optional parallelization of the above has been implemented by means of OpenMP
-and glibc's crypt_r(3).
+along with glibc's crypt_r(3) or Solaris' MT-safe crypt(3C).
 * Optional parallelization of John's own optimized code for the OpenBSD-style
 Blowfish-based crypt(3) (bcrypt) hashes with OpenMP has been added.
 * A more suitable version of 32-bit x86 assembly code for Blowfish is now
@@ -173,4 +173,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.47 2010/06/13 01:47:12 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.48 2010/06/13 22:00:49 solar Exp $

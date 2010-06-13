@@ -2,11 +2,14 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2009,2010 by Solar Designer
  *
- * Generic crypt(3) support (as well as support for glibc's crypt_r(3) with
- * OpenMP parallelization).
+ * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
+ * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
  */
 
-#define _XOPEN_SOURCE /* for crypt(3) */
+#define _XOPEN_SOURCE 4 /* for crypt(3) */
+#define _XOPEN_SOURCE_EXTENDED
+#define _XOPEN_VERSION 4
+#define _XPG4_2
 #define _GNU_SOURCE /* for crypt_r(3) */
 #include <string.h>
 #if defined(_OPENMP) && defined(__GLIBC__)
@@ -157,6 +160,27 @@ static void *salt(char *ciphertext)
 			if (p && !strncmp(ciphertext + 3, "rounds=", 7))
 				p = strchr(p + 1, '$');
 			if (p) cut = p - ciphertext;
+			break;
+		}
+
+		if (!strncmp(ciphertext, "$md5$", 5) ||
+		    !strncmp(ciphertext, "$md5,", 5)) {
+			char *p = strrchr(ciphertext + 4, '$');
+			if (p) {
+				/* NUL padding is required */
+				memset(out, 0, sizeof(out));
+				memcpy(out, ciphertext, ++p - ciphertext);
+/*
+ * Workaround what looks like a bug in sunmd5.c: crypt_genhash_impl() where it
+ * takes a different substring as salt depending on whether the optional
+ * existing hash encoding is present after the salt or not.  Specifically, the
+ * last '$' delimiter is included into the salt when there's no existing hash
+ * encoding after it, but is omitted from the salt otherwise.
+ */
+				out[p - ciphertext] = 'x';
+				return out;
+			}
+			break;
 		}
 	}
 #endif
@@ -291,6 +315,18 @@ static void crypt_all(int count)
 		strnzcpy(crypt_out[index], hash, BINARY_SIZE);
 	}
 #else
+#if defined(_OPENMP) && defined(__sun)
+/*
+ * crypt(3C) is MT-safe on Solaris.  For traditional DES-based hashes, this is
+ * implemented with locking (hence there's no speedup from the use of multiple
+ * threads, and the per-thread performance is extremely poor anyway).  For
+ * modern hash types, the function is actually able to compute multiple hashes
+ * in parallel by different threads (and the performance for some hash types is
+ * reasonable).  Overall, this code is reasonable to use for "SHA-crypt" and
+ * SunMD5 hashes, which are not yet supported by John natively.
+ */
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt)
+#endif
 	for (index = 0; index < count; index++)
 		strnzcpy(crypt_out[index], crypt(saved_key[index], saved_salt),
 		    BINARY_SIZE);

@@ -188,12 +188,13 @@ Q: Does John support multi-processing or distributed processing?
 A: There's currently built-in parallel processing support (to make use
 of multiple CPUs and/or CPU cores on a single system) for OpenBSD-style
 Blowfish-based crypt(3) (bcrypt) hashes (with John's own optimized code)
-and for the system's crypt_r(3) function (the glibc flavor of it only).
-The latter is only reasonable to use for crypt(3) hash types not yet
-supported by John natively (that is, for glibc 2.7+ "SHA-crypt" hashes
-as used by recent versions of Fedora and Ubuntu).  To use this limited
-OpenMP support, you need to make an OpenMP-enabled build of John by
-uncommenting one of the OMPFLAGS lines near the beginning of the
+and for the underlying system's thread-safe password hashing function
+(crypt_r(3) on Linux or crypt(3C) on Solaris).  The latter is only
+reasonable to use for crypt(3) hash types not yet supported by John
+natively (that is, for glibc 2.7+ "SHA-crypt" hashes as used by recent
+versions of Fedora and Ubuntu and for SunMD5 hashes).  To use this
+limited OpenMP support, you need to make an OpenMP-enabled build of John
+by uncommenting one of the OMPFLAGS lines near the beginning of the
 Makefile.  This requires GCC 4.2+ or another OpenMP-capable C compiler.
 For other hash types and/or to distribute the workload between multiple
 machines, other approaches need to be used.  For a small number of nodes
@@ -225,4 +226,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.21 2010/06/13 16:02:44 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.22 2010/06/13 22:00:49 solar Exp $
