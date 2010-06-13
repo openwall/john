@@ -4,8 +4,13 @@
  */
 
 #define _XOPEN_SOURCE /* for crypt(3) */
+#define _GNU_SOURCE /* for crypt_r(3) */
 #include <string.h>
+#if defined(_OPENMP) && defined(__GLIBC__)
+#include <crypt.h>
+#else
 #include <unistd.h>
+#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -25,8 +30,8 @@
 #define BINARY_SIZE			128
 #define SALT_SIZE			BINARY_SIZE
 
-#define MIN_KEYS_PER_CRYPT		0x40
-#define MAX_KEYS_PER_CRYPT		0x40
+#define MIN_KEYS_PER_CRYPT		96
+#define MAX_KEYS_PER_CRYPT		96
 
 static struct fmt_tests tests[] = {
 	{"CCNf8Sbh3HDfQ", "U*U*U*U*"},
@@ -40,6 +45,15 @@ static struct fmt_tests tests[] = {
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 static char saved_salt[SALT_SIZE];
 static char crypt_out[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
+
+#if defined(_OPENMP) && defined(__GLIBC__)
+#include <omp.h>
+
+#define MAX_THREADS			MAX_KEYS_PER_CRYPT
+
+/* We assume that this is zero-initialized (all NULL pointers) */
+static struct crypt_data *crypt_data[MAX_THREADS];
+#endif
 
 static int valid(char *ciphertext)
 {
@@ -255,9 +269,28 @@ static void crypt_all(int count)
 {
 	int index;
 
+#if defined(_OPENMP) && defined(__GLIBC__)
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt, crypt_data)
+	for (index = 0; index < count; index++) {
+		char *hash;
+		int t = omp_get_thread_num();
+		if (t < MAX_THREADS) {
+			struct crypt_data **data = &crypt_data[t];
+			if (!*data)
+				*data = calloc(1, sizeof(**data));
+			hash = crypt_r(saved_key[index], saved_salt, *data);
+		} else { /* should not happen */
+			struct crypt_data data;
+			memset(&data, 0, sizeof(data));
+			hash = crypt_r(saved_key[index], saved_salt, &data);
+		}
+		strnzcpy(crypt_out[index], hash, BINARY_SIZE);
+	}
+#else
 	for (index = 0; index < count; index++)
 		strnzcpy(crypt_out[index], crypt(saved_key[index], saved_salt),
 		    BINARY_SIZE);
+#endif
 }
 
 static int cmp_all(void *binary, int count)
