@@ -15,6 +15,7 @@
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
 #include <stdlib.h> /* for calloc(3) */
+#include <omp.h> /* for omp_get_thread_num() */
 #else
 #include <unistd.h>
 #endif
@@ -54,8 +55,6 @@ static char saved_salt[SALT_SIZE];
 static char crypt_out[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
 
 #if defined(_OPENMP) && defined(__GLIBC__)
-#include <omp.h>
-
 #define MAX_THREADS			MAX_KEYS_PER_CRYPT
 
 /* We assume that this is zero-initialized (all NULL pointers) */
@@ -64,8 +63,10 @@ static struct crypt_data *crypt_data[MAX_THREADS];
 
 static int valid(char *ciphertext)
 {
-#if 1
-	int length, count_base64;
+	int length, count_base64, id, pw_length;
+	char pw[PLAINTEXT_LENGTH + 1], *new_ciphertext;
+/* We assume that these are zero-initialized */
+	static char sup_length[BINARY_SIZE], sup_id[0x80];
 
 	length = count_base64 = 0;
 	while (ciphertext[length]) {
@@ -75,36 +76,78 @@ static int valid(char *ciphertext)
 		length++;
 	}
 
-	if (length >= BINARY_SIZE)
+	if (length < 13 || length >= BINARY_SIZE)
 		return 0;
 
-	if (length >= 26 && ciphertext[0] == '$')
-		return 1;
-
+	id = 0;
 	if (length == 13 && count_base64 == 11)
-		return 1;
-
-	if (length == 20 && count_base64 == 19 && ciphertext[0] == '_')
-		return 1;
-
+		id = 1;
+	else
 	if (length >= 13 &&
 	    count_base64 >= length - 2 && /* allow for invalid salt */
-	    length % 11 == 0)
+	    (length - 2) % 11 == 0)
+		id = 2;
+	else
+	if (length == 20 && count_base64 == 19 && ciphertext[0] == '_')
+		id = 3;
+	else
+	if (ciphertext[0] == '$') {
+		id = (unsigned char)ciphertext[1];
+		if (id <= 0x20 || id >= 0x80)
+			id = 9;
+	} else
+	if (ciphertext[0] == '*' || ciphertext[0] == '!') /* likely locked */
+		id = 10;
+
+/* Previously detected as supported */
+	if (sup_length[length] > 0 && sup_id[id] > 0)
 		return 1;
 
-	return 0;
-#else
+/* Previously detected as unsupported */
+	if (sup_length[length] < 0 && sup_id[id] < 0)
+		return 0;
+
+	pw_length = ((length - 2) / 11) << 3;
+	if (pw_length >= sizeof(pw))
+		pw_length = sizeof(pw) - 1;
+	memcpy(pw, ciphertext, pw_length); /* reuse the string, why not? */
+	pw[pw_length] = 0;
+
+#if defined(_OPENMP) && defined(__GLIBC__)
 /*
- * Poor load time, but more effective at detecting supported and rejecting
- * bad/unsupported hashes.
+ * Let's use crypt_r(3) just like we will in crypt_all() below.
+ * It is possible that crypt(3) and crypt_r(3) differ in their supported hash
+ * types on a given system.
  */
-	char *r = strlen(ciphertext) >= 13 ? crypt("", ciphertext) : "";
-	int l = strlen(r);
-	return
-	    !strncmp(r, ciphertext, 2) &&
-	    l == strlen(ciphertext) &&
-	    l >= 13 && l < BINARY_SIZE;
+	{
+		struct crypt_data **data = &crypt_data[0];
+		if (!*data)
+			*data = calloc(1, sizeof(**data));
+		new_ciphertext = crypt_r(pw, ciphertext, *data);
+	}
+#else
+	new_ciphertext = crypt(pw, ciphertext);
 #endif
+
+	if (strlen(new_ciphertext) == length &&
+	    !strncmp(new_ciphertext, ciphertext, 2)) {
+		sup_length[length] = 1;
+		sup_id[id] = 1;
+		return 1;
+	}
+
+	if (id != 10)
+		fprintf(stderr, "Generic crypt(3) module: "
+		    "hash encoding string length %d, type id %c%c\n"
+		    "appears to be unsupported on this system; "
+		    "will not load such hashes.\n",
+		    length, id > 0x20 ? '$' : '#', id > 0x20 ? id : '0' + id);
+
+	if (!sup_length[length])
+		sup_length[length] = -1;
+	if (!sup_id[id])
+		sup_id[id] = -1;
+	return 0;
 }
 
 static void *binary(char *ciphertext)
