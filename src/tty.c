@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003 by Solar Designer
+ * Copyright (c) 1996-99,2003,2010 by Solar Designer
  */
 
 #ifndef __DJGPP__
@@ -34,13 +34,25 @@ static int tty_fd = -1;
 static struct termios saved_ti;
 #endif
 
-void tty_init(void)
+void tty_init(int stdin_mode)
 {
-#ifndef __DJGPP__
+#ifdef __DJGPP__
+	if (stdin_mode)
+		return;
+#else
 	int fd;
 	struct termios ti;
 
 	if (tty_fd >= 0) return;
+
+/*
+ * If we're in "--stdin" mode (reading candidate passwords from stdin), then
+ * only initialize the tty if stdin is not a tty.  Otherwise it could be the
+ * same tty, in which case we'd interfere with the user's ability to type
+ * candidate passwords directly to John.
+ */
+	if (stdin_mode && !tcgetattr(0, &ti))
+		return;
 
 	if ((fd = open("/dev/tty", O_RDONLY | O_NONBLOCK)) < 0) return;
 

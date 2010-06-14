@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99 by Solar Designer
+ * Copyright (c) 1996-99,2010 by Solar Designer
  */
 
 /*
@@ -13,8 +13,10 @@
 /*
  * Initializes the terminal for unbuffered non-blocking input. Also registers
  * tty_done() via atexit().
+ * stdin_mode indicates whether we're running with "--stdin" (reading candidate
+ * passwords from stdin) or not.
  */
-extern void tty_init(void);
+extern void tty_init(int stdin_mode);
 
 /*
  * Reads a character, returns -1 if no data available or on error.
