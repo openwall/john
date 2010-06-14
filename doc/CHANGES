@@ -1,4 +1,4 @@
-The following changes have been made between John 1.7.5.1 and 1.7.5.4:
+The following changes have been made between John 1.7.5.1 and 1.7.6:
 
 * Generic crypt(3) support (enabled with "--format=crypt") has been added for
 auditing password hash types supported by the system but not yet supported by
@@ -26,6 +26,10 @@ different DES S-box expressions that might be available in the future).
 * The obsolete 32-bit SPARC assembly implementation of DES has been dropped.
 * The loader will now detect password hashes specified on a line on their own,
 not only as part of an /etc/passwd or PWDUMP format file.
+* When run in "--stdin" mode and reading candidate passwords from a terminal
+(to be typed by the user), John will no longer mess with the terminal settings.
+* John will now restore terminal settings not only on normal termination or
+interrupt, but also when forcibly interrupted with two Ctrl-C keypresses.
 
 The following changes have been made between John 1.7.5 and 1.7.5.1:
 
