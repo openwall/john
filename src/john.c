@@ -287,7 +287,7 @@ static void john_run(void)
 				log_event("- Configured to use otherwise idle "
 					"processor cycles only");
 		}
-		tty_init();
+		tty_init(options.flags & FLG_STDIN_CHK);
 
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
