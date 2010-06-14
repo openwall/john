@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -117,6 +117,8 @@ static void sig_remove_update(void)
 void check_abort(int be_async_signal_safe)
 {
 	if (!event_abort) return;
+
+	tty_done();
 
 	if (be_async_signal_safe) {
 		write_loop(2, "Session aborted\n", 16);
