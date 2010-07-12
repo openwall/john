@@ -70,6 +70,7 @@ static void single_alloc_keys(struct db_keys **keys)
 
 	(*keys)->count = 0;
 	(*keys)->ptr = (*keys)->buffer;
+	(*keys)->have_words = 1; /* assume yes; we'll see for real later */
 	(*keys)->rule = rule_number;
 	(*keys)->lock = 0;
 	memset((*keys)->hash, -1, hash_size);
@@ -332,8 +333,9 @@ static int single_process_salt(struct db_salt *salt, char *rule)
 	int status, have_words = 0;
 
 	keys = salt->keys;
-	if (!keys)
-		return 0;
+
+	if (!keys->have_words)
+		goto no_own_words;
 
 	last = &salt->list;
 	pw = *last;
@@ -365,8 +367,9 @@ next:
 	if (!keys->count) keys->rule = rule_number;
 
 	if (!have_words) {
+		keys->have_words = 0;
+no_own_words:
 		if (keys->count && single_process_buffer(salt)) return 1;
-		salt->keys = NULL;
 	}
 
 	return 0;
@@ -408,7 +411,7 @@ static void single_run(void)
 		do {
 			if (!salt->list) continue;
 			if (single_process_salt(salt, rule)) return;
-			if (!salt->keys) continue;
+			if (!salt->keys->have_words) continue;
 			have_words = 1;
 			if (salt->keys->rule < min)
 				min = salt->keys->rule;
@@ -435,7 +438,7 @@ static void single_done(void)
 				"candidate passwords, if any");
 
 			do {
-				if (!salt->list || !salt->keys) continue;
+				if (!salt->list) continue;
 				if (salt->keys->count)
 				if (single_process_buffer(salt)) break;
 			} while ((salt = salt->next));
