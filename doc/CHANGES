@@ -1,3 +1,10 @@
+The following changes have been made between John 1.7.6 and 1.7.6.1:
+
+* Corrected a logic error introduced in JtR 1.7.4.2: in "single crack" mode,
+we need a salt's key buffer even when we have no words corresponding to that
+salt's hashes to base candidate passwords on.  We need this buffer to hold
+other salts' successful guesses for testing against this salt's hashes.
+
 The following changes have been made between John 1.7.5.1 and 1.7.6:
 
 * Generic crypt(3) support (enabled with "--format=crypt") has been added for
