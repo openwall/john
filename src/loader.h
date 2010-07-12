@@ -74,6 +74,11 @@ struct db_keys {
 /* Number of keys currently in the buffer */
 	int count;
 
+/* Whether we have words to base candidate passwords on or not.
+ * Even if not, we need this keys buffer anyway to hold other salts' successful
+ * guesses for testing against this salt's hashes. */
+	int have_words;
+
 /* Number of last processed rule */
 	int rule;
 
