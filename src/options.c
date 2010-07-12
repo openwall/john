@@ -69,12 +69,16 @@ static struct opt_entry opt_list[] = {
 };
 
 #if DES_BS
-/* nonstd.c, sboxes.c, and parts of x86-mmx.S aren't mine */
-#define JOHN_COPYRIGHT \
-	"Solar Designer and others"
+/* nonstd.c, sboxes.c, sboxes-s.c, and parts of x86-mmx.S aren't mine - SD */
+#define JOHN_COPYRIGHT "Solar Designer and others"
 #else
-#define JOHN_COPYRIGHT \
-	"Solar Designer"
+#define JOHN_COPYRIGHT "Solar Designer"
+#endif
+
+#ifdef HAVE_CRYPT
+#define MAYBE_CRYPT "/crypt"
+#else
+#define MAYBE_CRYPT ""
 #endif
 
 #define JOHN_USAGE \
@@ -101,7 +105,7 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]COUNT           load salts with[out] at least COUNT passwords " \
 	"only\n" \
 "--format=NAME              force hash type NAME: " \
-	"DES/BSDI/MD5/BF/AFS/LM/crypt\n" \
+	"DES/BSDI/MD5/BF/AFS/LM" MAYBE_CRYPT "\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n"
 
 void opt_init(char *name, int argc, char **argv)
