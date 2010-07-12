@@ -36,10 +36,7 @@ static struct termios saved_ti;
 
 void tty_init(int stdin_mode)
 {
-#ifdef __DJGPP__
-	if (stdin_mode)
-		return;
-#else
+#ifndef __DJGPP__
 	int fd;
 	struct termios ti;
 
