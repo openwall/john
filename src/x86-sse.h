@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005,2006,2008,2010 by Solar Designer
+ * Copyright (c) 1996-2002,2005,2006,2008,2010,2011 by Solar Designer
  */
 
 /*
@@ -45,7 +45,30 @@
 #define DES_EXTB			0
 #define DES_COPY			1
 #define DES_STD_ALGORITHM_NAME		"48/64 4K MMX"
-#if defined(__SSE2__) && 0
+#define DES_BS				1
+#ifdef __AVX__
+#define DES_BS_ASM			0
+#if 1
+#define DES_BS_VECTOR			8
+#if defined(__XOP__) && defined(__GNUC__)
+/* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
+#undef DES_BS
+#define DES_BS				3
+#define DES_BS_ALGORITHM_NAME		"256/256 BS XOP"
+#else
+#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX"
+#endif
+#else
+#define DES_BS_VECTOR			4
+#ifdef __XOP__
+#undef DES_BS
+#define DES_BS				3
+#define DES_BS_ALGORITHM_NAME		"128/256 BS XOP"
+#else
+#define DES_BS_ALGORITHM_NAME		"128/256 BS AVX"
+#endif
+#endif
+#elif defined(__SSE2__) && 0
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			4
@@ -68,7 +91,6 @@
 #define DES_BS_VECTOR			4
 #define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2"
 #endif
-#define DES_BS				1
 #define DES_BS_EXPAND			1
 
 #define MD5_ASM				1

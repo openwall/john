@@ -1,6 +1,6 @@
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2010 by Solar Designer
+# Copyright (c) 1996-2011 by Solar Designer
 #
 
 CC = gcc
@@ -73,12 +73,16 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-64             Linux, x86-64 with SSE2 (best)"
+	@echo "linux-x86-64             Linux, x86-64 with SSE2 (best tested)"
+	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (experimental)"
+	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (experimental)"
 #	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX"
-	@echo "linux-x86-sse2           Linux, x86 with SSE2 (best if 32-bit)"
-	@echo "linux-x86-mmx            Linux, x86 with MMX"
-	@echo "linux-x86-any            Linux, x86"
+	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (best tested if 32-bit)"
+	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
+	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
+	@echo "linux-x86-avx            Linux, x86 32-bit with AVX (experimental)"
+	@echo "linux-x86-xop            Linux, x86 32-bit with AVX and XOP (experimental)"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
@@ -150,6 +154,20 @@ linux-x86-64:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
+linux-x86-64-avx:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-x86-64-xop:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
@@ -185,6 +203,20 @@ linux-x86-any:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-x86-avx:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-x86-xop:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-alpha:
