@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2010,2011 by Solar Designer
  */
 
 #include "arch.h"
@@ -127,14 +127,56 @@ typedef struct {
 	(dst).f = vec_sel((a).f, (b).f, (c).f); \
 	(dst).g = vec_sel((a).g, (b).g, (c).g)
 
+#elif defined(__AVX__) && DES_BS_DEPTH == 256
+#undef DES_BS_VECTOR
+
+#include <immintrin.h>
+
+/* Not __m256i because bitwise ops are "floating-point" with AVX */
+typedef __m256 vtype;
+
+#define vst(dst, ofs, src) \
+	_mm256_store_ps((float *)((DES_bs_vector *)&(dst) + (ofs)), (src))
+
+#define vxorf(a, b) \
+	_mm256_xor_ps((a), (b))
+
+#define vnot(dst, a) \
+	(dst) = _mm256_xor_ps((a), *(vtype *)&DES_bs_all.ones)
+#define vand(dst, a, b) \
+	(dst) = _mm256_and_ps((a), (b))
+#define vor(dst, a, b) \
+	(dst) = _mm256_or_ps((a), (b))
+#define vandn(dst, a, b) \
+	(dst) = _mm256_andnot_ps((b), (a))
+#define vxorn(dst, a, b) \
+	(dst) = _mm256_xor_ps(_mm256_xor_ps((a), (b)), \
+	    *(vtype *)&DES_bs_all.ones)
+
+#ifdef __XOP__
+#define vnor(dst, a, b) \
+	(dst) = _mm256_xor_ps(_mm256_or_ps((a), (b)), \
+	    *(vtype *)&DES_bs_all.ones)
+/* This could be _mm256_cmov_ps(), but it does not exist (yet?) */
+#define vsel(dst, a, b, c) \
+	(dst) = __builtin_ia32_vpcmov_v8sf256((b), (a), (c))
+#endif
+
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
 #undef DES_BS_VECTOR
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__AVX__)
 #warning Notice: with recent versions of gcc, we are currently using SSE2 intrinsics instead of the supplied SSE2 assembly code.  This choice is made in the x86-*.h file.
 #endif
 
+#ifdef __AVX__
+#include <immintrin.h>
+#ifdef __XOP__
+#include <x86intrin.h>
+#endif
+#else
 #include <emmintrin.h>
+#endif
 
 typedef __m128i vtype;
 
@@ -155,6 +197,14 @@ typedef __m128i vtype;
 #define vxorn(dst, a, b) \
 	(dst) = _mm_xor_si128(_mm_xor_si128((a), (b)), \
 	    *(vtype *)&DES_bs_all.ones)
+
+#ifdef __XOP__
+#define vnor(dst, a, b) \
+	(dst) = _mm_xor_si128(_mm_or_si128((a), (b)), \
+	    *(vtype *)&DES_bs_all.ones)
+#define vsel(dst, a, b, c) \
+	(dst) = _mm_cmov_si128((b), (a), (c))
+#endif
 
 #elif defined(__SSE2__) && defined(__MMX__) && DES_BS_DEPTH == 192 && \
     !defined(DES_BS_NO_MMX)
