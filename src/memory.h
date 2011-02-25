@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2003,2010 by Solar Designer
+ * Copyright (c) 1996-98,2003,2010,2011 by Solar Designer
  */
 
 /*
@@ -20,7 +20,13 @@
  */
 #define MEM_ALIGN_NONE			1
 #define MEM_ALIGN_WORD			ARCH_SIZE
+/*
+ * These are hopefully suitable guesses.  They are right for only a subset of
+ * the architectures/CPUs we support, yet our use of them does not require that
+ * they be entirely correct.
+ */
 #define MEM_ALIGN_CACHE			(ARCH_SIZE * 8)
+#define MEM_ALIGN_PAGE			0x1000
 
 /*
  * Block size used by mem_alloc_tiny().
