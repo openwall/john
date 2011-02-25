@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009,2010 by Solar Designer
+ * Copyright (c) 2009-2011 by Solar Designer
  *
  * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
  * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
@@ -14,7 +14,6 @@
 #include <string.h>
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
-#include <stdlib.h> /* for calloc(3) */
 #include <omp.h> /* for omp_get_thread_num() */
 #else
 #include <unistd.h>
@@ -23,6 +22,7 @@
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
+#include "memory.h"
 #include "common.h"
 #include "formats.h"
 
@@ -121,8 +121,16 @@ static int valid(char *ciphertext)
  */
 	{
 		struct crypt_data **data = &crypt_data[0];
-		if (!*data)
-			*data = calloc(1, sizeof(**data));
+/*
+ * **data is not exactly tiny, but we use mem_alloc_tiny() for its alignment
+ * support and error checking.  We do not need to free() this memory anyway.
+ *
+ * The page alignment is to keep different threads' data on different pages.
+ */
+		if (!*data) {
+			*data = mem_alloc_tiny(sizeof(**data), MEM_ALIGN_PAGE);
+			memset(*data, 0, sizeof(**data));
+		}
 		new_ciphertext = crypt_r(pw, ciphertext, *data);
 	}
 #else
@@ -337,8 +345,11 @@ static void crypt_all(int count)
 		int t = omp_get_thread_num();
 		if (t < MAX_THREADS) {
 			struct crypt_data **data = &crypt_data[t];
-			if (!*data)
-				*data = calloc(1, sizeof(**data));
+			if (!*data) {
+				*data = mem_alloc_tiny(sizeof(**data),
+				    MEM_ALIGN_PAGE);
+				memset(*data, 0, sizeof(**data));
+			}
 			hash = crypt_r(saved_key[index], saved_salt, *data);
 		} else { /* should not happen */
 			struct crypt_data data;
