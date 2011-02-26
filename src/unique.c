@@ -162,12 +162,16 @@ static void write_buffer(void)
 
 	ptr = 0;
 	while ((hash = get_data(ptr)) != ENTRY_END_LIST) {
+		unsigned int length, size;
 		ptr += 4;
+		length = strlen(&buffer.data[ptr]);
+		size = length + 1;
 		if (hash != ENTRY_DUPE) {
-			fprintf(output, "%s\n", &buffer.data[ptr]);
-			if (ferror(output)) pexit("fprintf");
+			buffer.data[ptr + length] = '\n';
+			if (fwrite(&buffer.data[ptr], size, 1, output) != 1)
+				pexit("fwrite");
 		}
-		ptr += strlen(&buffer.data[ptr]) + 1;
+		ptr += size;
 	}
 }
 
