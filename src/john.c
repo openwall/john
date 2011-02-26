@@ -319,16 +319,17 @@ static void john_run(void)
 			char *might = "Passwords printed while cracking might";
 			char *partial = " be partial";
 			char *not_all = " not be all those cracked";
-			int flags = database.options->flags &
-			    (DB_SPLIT | DB_NODUP);
-			if (flags == DB_SPLIT) /* split, all loaded */
+			switch (database.options->flags &
+			    (DB_SPLIT | DB_NODUP)) {
+			case DB_SPLIT:
 				printf("%s%s\n", might, partial);
-			else
-			if (flags == DB_NODUP) /* not split, dupes not loaded */
+				break;
+			case DB_NODUP:
 				printf("%s%s\n", might, not_all);
-			else
-			if (flags) /* split, dupes not loaded */
+				break;
+			case (DB_SPLIT | DB_NODUP):
 				printf("%s%s and%s\n", might, partial, not_all);
+			}
 			puts("Use the \"--show\" option to display all of the "
 			    "cracked passwords reliably");
 		}
