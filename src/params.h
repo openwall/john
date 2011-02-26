@@ -181,9 +181,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define SINGLE_HASH_MIN			8
 
 /*
- * Shadow file entry table hash size, used by unshadow.
+ * Shadow file entry hash table size, used by unshadow.
  */
-#define SHADOW_HASH_LOG			8
+#define SHADOW_HASH_LOG			18
 #define SHADOW_HASH_SIZE		(1 << SHADOW_HASH_LOG)
 
 /*
