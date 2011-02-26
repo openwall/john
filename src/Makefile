@@ -469,7 +469,7 @@ solaris-x86-sse2-cc:
 solaris-x86-sse2-gcc:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
@@ -487,7 +487,7 @@ solaris-x86-mmx-cc:
 solaris-x86-mmx-gcc:
 	$(LN) x86-mmx.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-mmx.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lrt"
 
