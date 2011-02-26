@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006,2009,2010 by Solar Designer
+ * Copyright (c) 1996-2004,2006,2009-2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -158,6 +158,8 @@ static void john_load(void)
 	}
 
 	if (options.flags & FLG_PASSWD) {
+		int total;
+
 		if (options.flags & FLG_SHOW_CHK) {
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
@@ -200,21 +202,24 @@ static void john_load(void)
 			else
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
-		}
-
-		ldr_load_pot_file(&database, POT_NAME);
-
-		ldr_fix_database(&database);
-
-		if (database.password_count) {
-			log_event("Remaining %s", john_loaded_counts());
 			printf("Loaded %s (%s [%s])\n",
 				john_loaded_counts(),
 				database.format->params.format_name,
 				database.format->params.algorithm_name);
-		} else {
+		}
+
+		total = database.password_count;
+		ldr_load_pot_file(&database, POT_NAME);
+		ldr_fix_database(&database);
+
+		if (!database.password_count) {
 			log_discard();
-			puts("No password hashes loaded");
+			printf("No password hashes %s\n",
+			    total ? "left to crack" : "loaded");
+		} else
+		if (database.password_count < total) {
+			log_event("Remaining %s", john_loaded_counts());
+			printf("Remaining %s\n", john_loaded_counts());
 		}
 
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
