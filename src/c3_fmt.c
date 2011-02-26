@@ -237,20 +237,20 @@ static void *salt(char *ciphertext)
 	((int)(unsigned char)(atoi64[ARCH_INDEX((s)[(i)])] ^ (s)[(i) - 1]))
 
 #define H0(s) \
-	int i = strlen(s) - 1; \
+	int i = strlen(s) - 2; \
 	return i > 0 ? H((s), i) & 0xF : 0
 #define H1(s) \
-	int i = strlen(s) - 1; \
+	int i = strlen(s) - 2; \
 	return i > 2 ? (H((s), i) ^ (H((s), i - 2) << 4)) & 0xFF : 0
 #define H2(s) \
-	int i = strlen(s) - 1; \
+	int i = strlen(s) - 2; \
 	return i > 2 ? (H((s), i) ^ (H((s), i - 2) << 6)) & 0xFFF : 0
 #define H3(s) \
-	int i = strlen(s) - 1; \
+	int i = strlen(s) - 2; \
 	return i > 4 ? (H((s), i) ^ (H((s), i - 2) << 5) ^ \
 	    (H((s), i - 4) << 10)) & 0xFFFF : 0
 #define H4(s) \
-	int i = strlen(s) - 1; \
+	int i = strlen(s) - 2; \
 	return i > 6 ? (H((s), i) ^ (H((s), i - 2) << 5) ^ \
 	    (H((s), i - 4) << 10) ^ (H((s), i - 6) << 15)) & 0xFFFFF : 0
 
@@ -309,6 +309,7 @@ static int salt_hash(void *salt)
 	int i, h;
 
 	i = strlen((char *)salt) - 1;
+	if (i > 1) i--;
 
 	h = (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i])];
 	h ^= ((unsigned char *)salt)[i - 1];
