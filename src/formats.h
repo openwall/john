@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
  */
 
 /*
@@ -13,12 +13,13 @@
 #include "params.h"
 
 /*
- * Format property flags...
+ * Format property flags.
  */
 #define FMT_CASE			0x00000001
 #define FMT_8_BIT			0x00000002
 #define FMT_BS				0x00010000
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
+#define FMT_WARNED			0x80000000
 
 /*
  * A password to test the methods for correct operation.
