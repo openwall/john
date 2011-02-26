@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2006,2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -26,19 +26,52 @@ static void alloc_hash(void)
 	memset(shadow_table, 0, size);
 }
 
-static int login_hash(char *login)
+static unsigned int login_hash(char *login)
 {
-	int hash = 0;
+	unsigned int hash, extra;
+	char *p;
 
-	while (*login) {
-		hash <<= 1;
-		hash ^= *login++;
+	p = login + 2;
+	hash = (unsigned char)login[0];
+	if (!hash)
+		goto out;
+	extra = (unsigned char)login[1];
+	if (!extra)
+#if SHADOW_HASH_SIZE >= 0x100
+		goto out;
+#else
+		goto out_and;
+#endif
+
+	while (*p) {
+		hash <<= 3; extra <<= 2;
+		hash += (unsigned char)p[0];
+		if (!p[1]) break;
+		extra += (unsigned char)p[1];
+		p += 2;
+		if (hash & 0xe0000000) {
+			hash ^= hash >> SHADOW_HASH_LOG;
+			extra ^= extra >> SHADOW_HASH_LOG;
+			hash &= SHADOW_HASH_SIZE - 1;
+		}
 	}
 
-	hash ^= hash >> SHADOW_HASH_LOG;
-	hash ^= hash >> (2 * SHADOW_HASH_LOG);
-	hash &= SHADOW_HASH_SIZE - 1;
+	hash -= extra;
+	hash ^= extra << (SHADOW_HASH_LOG / 2);
 
+	hash ^= hash >> SHADOW_HASH_LOG;
+#if SHADOW_HASH_LOG <= 15
+	hash ^= hash >> (2 * SHADOW_HASH_LOG);
+#endif
+#if SHADOW_HASH_LOG <= 10
+	hash ^= hash >> (3 * SHADOW_HASH_LOG);
+#endif
+
+#if SHADOW_HASH_SIZE < 0x100
+out_and:
+#endif
+	hash &= SHADOW_HASH_SIZE - 1;
+out:
 	return hash;
 }
 
