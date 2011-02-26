@@ -14,7 +14,7 @@
 #include "params.h"
 #include "memory.h"
 
-#define ENTRY_END_HASH			0xFFFFFFFF
+#define ENTRY_END_HASH			0xFFFFFFFF /* also hard-coded */
 #define ENTRY_END_LIST			0xFFFFFFFE
 #define ENTRY_DUPE			0xFFFFFFFD
 
@@ -112,10 +112,15 @@ out:
 
 static void init_hash(void)
 {
+#if 0
 	int index;
 
 	for (index = 0; index < UNIQUE_HASH_SIZE; index++)
 		buffer.hash[index] = ENTRY_END_HASH;
+#else
+/* ENTRY_END_HASH is 0xFFFFFFFF */
+	memset(buffer.hash, 0xff, UNIQUE_HASH_SIZE * sizeof(unsigned int));
+#endif
 }
 
 static void read_buffer(void)
