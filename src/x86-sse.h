@@ -46,7 +46,8 @@
 #define DES_COPY			1
 #define DES_STD_ALGORITHM_NAME		"48/64 4K MMX"
 #define DES_BS				1
-#ifdef __AVX__
+#if defined(__AVX__) && defined(__GNUC__)
+/* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			8
