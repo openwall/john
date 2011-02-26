@@ -215,9 +215,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 	char *source, struct fmt_main **format,
 	struct db_options *options, char *line)
 {
+	struct fmt_main *alt;
 	char *uid = NULL, *gid = NULL, *shell = NULL;
 	char *tmp;
-	int count;
+	int retval;
 
 	*login = ldr_get_field(&line);
 	if (!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) return 0;
@@ -264,7 +265,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (*format) {
 		int valid = (*format)->methods.valid(*ciphertext);
 		if (!valid) {
-			struct fmt_main *alt = fmt_list;
+			alt = fmt_list;
 			do {
 				if (alt == *format)
 					continue;
@@ -298,8 +299,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 		return valid;
 	}
 
-	if ((*format = fmt_list))
+	retval = -1;
+	if ((alt = fmt_list))
 	do {
+		int valid;
 #ifdef HAVE_CRYPT
 /*
  * Only probe for support by the current system's crypt(3) if this is forced
@@ -307,7 +310,7 @@ static int ldr_split_line(char **login, char **ciphertext,
  * those that are only supported in that way.  Avoid the probe in other cases
  * because it may be slow and undesirable (false detection is possible).
  */
-		if (*format == &fmt_crypt &&
+		if (alt == &fmt_crypt &&
 		    fmt_list != &fmt_crypt /* not forced */ &&
 #ifdef __sun
 		    strncmp(*ciphertext, "$md5$", 5) &&
@@ -317,13 +320,27 @@ static int ldr_split_line(char **login, char **ciphertext,
 		    strncmp(*ciphertext, "$6$", 3))
 			continue;
 #endif
-		if ((count = (*format)->methods.valid(*ciphertext))) {
-			fmt_init(*format);
-			return count;
+		if (!(valid = alt->methods.valid(*ciphertext)))
+			continue;
+		if (retval < 0) {
+			fmt_init(*format = alt);
+			retval = valid;
+#ifdef LDR_WARN_AMBIGUOUS
+			continue;
+#else
+			break;
+#endif
 		}
-	} while ((*format = (*format)->next));
+#ifdef LDR_WARN_AMBIGUOUS
+		printf("Warning: detected hash type \"%s\", but the string is "
+		    "also recognized as \"%s\"\n",
+		    (*format)->params.label, alt->params.label);
+		printf("Use the \"--format=%s\" option to force loading these "
+		    "as that type instead\n", alt->params.label);
+#endif
+	} while ((alt = alt->next));
 
-	return -1;
+	return retval;
 }
 
 static void ldr_split_string(struct list_main *dst, char *src)
