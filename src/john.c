@@ -214,7 +214,7 @@ static void john_load(void)
 
 		if (!database.password_count) {
 			log_discard();
-			printf("No password hashes %s\n",
+			printf("No password hashes %s (see FAQ)\n",
 			    total ? "left to crack" : "loaded");
 		} else
 		if (database.password_count < total) {
