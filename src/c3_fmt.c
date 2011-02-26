@@ -121,13 +121,13 @@ static int valid(char *ciphertext)
  */
 	{
 		struct crypt_data **data = &crypt_data[0];
+		if (!*data) {
 /*
  * **data is not exactly tiny, but we use mem_alloc_tiny() for its alignment
  * support and error checking.  We do not need to free() this memory anyway.
  *
  * The page alignment is to keep different threads' data on different pages.
  */
-		if (!*data) {
 			*data = mem_alloc_tiny(sizeof(**data), MEM_ALIGN_PAGE);
 			memset(*data, 0, sizeof(**data));
 		}
@@ -346,8 +346,19 @@ static void crypt_all(int count)
 		if (t < MAX_THREADS) {
 			struct crypt_data **data = &crypt_data[t];
 			if (!*data) {
-				*data = mem_alloc_tiny(sizeof(**data),
-				    MEM_ALIGN_PAGE);
+/* Stagger the structs to reduce their competition for the same cache lines */
+				size_t mask = MEM_ALIGN_PAGE, shift = 0;
+				while (t) {
+					mask >>= 1;
+					if (mask < MEM_ALIGN_CACHE)
+						break;
+					if (t & 1)
+						shift += mask;
+					t >>= 1;
+				}
+				*data = (void *)((char *)
+				    mem_alloc_tiny(sizeof(**data) +
+				    shift, MEM_ALIGN_PAGE) + shift);
 				memset(*data, 0, sizeof(**data));
 			}
 			hash = crypt_r(saved_key[index], saved_salt, *data);
