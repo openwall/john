@@ -287,6 +287,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 					    "type \"%s\"\n",
 					    (*format)->params.label,
 					    alt->params.label);
+					printf("Use the "
+					    "\"--format=%s\" option to force "
+					    "loading hashes of that type "
+					    "instead\n", alt->params.label);
 					break;
 				}
 			} while ((alt = alt->next));
