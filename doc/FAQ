@@ -42,7 +42,8 @@ A: See EXAMPLES on how to combine your passwd and shadow files, provided
 that you have root access to the target system.
 
 Q: Why doesn't John load my password file?  It says "No password hashes
-loaded".
+loaded", "No password hashes loaded (see FAQ)", or "No password hashes
+left to crack (see FAQ)".
 A: Your password file might be shadowed.  You need to get both
 /etc/passwd and the shadow file (typically /etc/shadow), and combine
 them into one file for use with John.  Please refer to EXAMPLES.
@@ -50,7 +51,10 @@ A: All of the password hashes found in the file (that are of the same
 type as the very first recognized hash in the file unless you're using
 the "--format=..." option) might be already cracked by previous
 invocations of John.  (The message printed in that case has been changed
-to "No password hashes left to crack" starting with version 1.7.7.)
+to "No password hashes left to crack (see FAQ)" starting with version
+1.7.7.)  To display cracked passwords, use "john --show" on your
+password hash file(s).  To force John to crack those same hashes again,
+remove the john.pot file.
 A: With PWDUMP-format files, John focuses on LM rather than NTLM hashes
 by default, and it might not load any hashes at all if there are no LM
 hashes to crack.  To have JtR Pro or a build of JtR with the jumbo patch
@@ -227,4 +231,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.23 2011/02/26 09:27:22 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.24 2011/02/26 09:39:29 solar Exp $
