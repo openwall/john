@@ -283,15 +283,17 @@ static int ldr_split_line(char **login, char **ciphertext,
 #endif
 				if (alt->methods.valid(*ciphertext)) {
 					alt->params.flags |= FMT_WARNED;
-					printf("Warning: only loading hashes "
+					fprintf(stderr,
+					    "Warning: only loading hashes "
 					    "of type \"%s\", but also saw "
-					    "type \"%s\"\n",
-					    (*format)->params.label,
-					    alt->params.label);
-					printf("Use the "
+					    "type \"%s\"\n"
+					    "Use the "
 					    "\"--format=%s\" option to force "
 					    "loading hashes of that type "
-					    "instead\n", alt->params.label);
+					    "instead\n",
+					    (*format)->params.label,
+					    alt->params.label,
+					    alt->params.label);
 					break;
 				}
 			} while ((alt = alt->next));
@@ -332,11 +334,13 @@ static int ldr_split_line(char **login, char **ciphertext,
 #endif
 		}
 #ifdef LDR_WARN_AMBIGUOUS
-		printf("Warning: detected hash type \"%s\", but the string is "
-		    "also recognized as \"%s\"\n",
-		    (*format)->params.label, alt->params.label);
-		printf("Use the \"--format=%s\" option to force loading these "
-		    "as that type instead\n", alt->params.label);
+		fprintf(stderr,
+		    "Warning: detected hash type \"%s\", but the string is "
+		    "also recognized as \"%s\"\n"
+		    "Use the \"--format=%s\" option to force loading these "
+		    "as that type instead\n",
+		    (*format)->params.label, alt->params.label,
+		    alt->params.label);
 #endif
 	} while ((alt = alt->next));
 
