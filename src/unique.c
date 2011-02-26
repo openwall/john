@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1998,1999,2002,2003,2005,2006 by Solar Designer
+ * Copyright (c) 1998,1999,2002,2003,2005,2006,2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -66,16 +66,47 @@ static void put_int(unsigned int *ptr, unsigned int value)
 
 static unsigned int line_hash(char *line)
 {
-	unsigned int hash = 0;
+	unsigned int hash, extra;
+	char *p;
 
-	while (*line) {
-		hash <<= 2;
-		hash ^= *line++;
-		hash += hash >> UNIQUE_HASH_LOG;
+	p = line + 2;
+	hash = (unsigned char)line[0];
+	if (!hash)
+		goto out;
+	extra = (unsigned char)line[1];
+	if (!extra)
+#if UNIQUE_HASH_SIZE >= 0x100
+		goto out;
+#else
+		goto out_and;
+#endif
+
+	while (*p) {
+		hash <<= 2; extra <<= 3;
+		hash += (unsigned char)p[0];
+		if (!p[1]) break;
+		extra += (unsigned char)p[1];
+		p += 2;
+		if (hash & 0xf0000000) {
+			hash ^= hash >> UNIQUE_HASH_LOG;
+			hash &= UNIQUE_HASH_SIZE - 1;
+		}
+		if (extra & 0xf8000000) {
+			extra ^= extra >> UNIQUE_HASH_LOG;
+			extra &= UNIQUE_HASH_SIZE - 1;
+		}
 	}
 
-	hash &= UNIQUE_HASH_SIZE - 1;
+	hash -= extra;
+	hash ^= extra << (UNIQUE_HASH_LOG / 2);
 
+	hash ^= hash >> UNIQUE_HASH_LOG;
+
+#if UNIQUE_HASH_SIZE < 0x100
+out_and:
+#endif
+	hash &= UNIQUE_HASH_SIZE - 1;
+out:
 	return hash;
 }
 
