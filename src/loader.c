@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2010 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2010,2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -380,8 +380,10 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			do {
 				if (!memcmp(current_pw->binary, binary,
 				    format->params.binary_size) &&
-				    !strcmp(current_pw->source, piece))
+				    !strcmp(current_pw->source, piece)) {
+					db->options->flags |= DB_NODUP;
 					break;
+				}
 			} while ((current_pw = current_pw->next_hash));
 
 			if (current_pw) continue;
