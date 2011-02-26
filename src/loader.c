@@ -388,6 +388,7 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 
 static void ldr_load_pw_line(struct db_main *db, char *line)
 {
+	static int skip_dupe_checking = 0;
 	struct fmt_main *format;
 	int index, count;
 	char *login, *ciphertext, *gecos, *home;
@@ -431,7 +432,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		binary = format->methods.binary(piece);
 		pw_hash = db->password_hash_func(binary);
 
-		if (!(db->options->flags & DB_WORDS)) {
+		if (!(db->options->flags & DB_WORDS) && !skip_dupe_checking) {
+			int collisions = 0;
 			if ((current_pw = db->password_hash[pw_hash]))
 			do {
 				if (!memcmp(current_pw->binary, binary,
@@ -440,6 +442,20 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 					db->options->flags |= DB_NODUP;
 					break;
 				}
+				if (collisions >= LDR_HASH_COLLISIONS_MAX) {
+					fprintf(stderr, "Warning: "
+					    "excessive partial hash "
+					    "collisions detected\n%s",
+					    db->password_hash_func !=
+					    fmt_default_binary_hash ? "" :
+					    "(cause: the \"format\" lacks "
+					    "proper binary_hash() function "
+					    "definitions)\n");
+					skip_dupe_checking = 1;
+					current_pw = NULL; /* no match */
+					break;
+				}
+				collisions++;
 			} while ((current_pw = current_pw->next_hash));
 
 			if (current_pw) continue;
