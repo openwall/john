@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2008,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008,2010,2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -33,7 +33,7 @@ char *fmt_self_test(struct fmt_main *format)
 	static char s_size[32];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
-	int done, index, max, size;
+	int ntests, done, index, max, size;
 	void *binary, *salt;
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
@@ -44,10 +44,13 @@ char *fmt_self_test(struct fmt_main *format)
 	fmt_init(format);
 
 	if (!(current = format->params.tests)) return NULL;
+	ntests = 0;
+	while ((current++)->ciphertext)
+		ntests++;
+	current = format->params.tests;
 
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
-	if (max > 2 && !(format->params.flags & FMT_BS)) max = 2;
 	do {
 		if (format->methods.valid(current->ciphertext) != 1)
 			return "valid";
@@ -85,18 +88,29 @@ char *fmt_self_test(struct fmt_main *format)
 		    format->params.plaintext_length))
 			return "get_key";
 
+/* Remove some old keys to better test cmp_all() */
+		if (index & 1)
+			format->methods.set_key("", index);
+
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
-		if (index >= 2)
+		if (index >= 2 && max > ntests)
 			index += index >> 1;
 		else
 			index++;
 
 		if (index >= max) {
-			index = 0;
+			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
 			done |= 1;
 		}
 
 		if (!(++current)->ciphertext) {
+/* Jump straight to last index for non-bitslice DES */
+			if (!(format->params.flags & FMT_BS) &&
+			    (!strcmp(format->params.label, "des") ||
+			    !strcmp(format->params.label, "bsdi") ||
+			    !strcmp(format->params.label, "afs")))
+				index = max - 1;
+
 			current = format->params.tests;
 			done |= 2;
 		}
