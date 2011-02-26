@@ -82,18 +82,15 @@ static unsigned int line_hash(char *line)
 #endif
 
 	while (*p) {
-		hash <<= 2; extra <<= 3;
+		hash <<= 3; extra <<= 2;
 		hash += (unsigned char)p[0];
 		if (!p[1]) break;
 		extra += (unsigned char)p[1];
 		p += 2;
-		if (hash & 0xf0000000) {
+		if (hash & 0xe0000000) {
 			hash ^= hash >> UNIQUE_HASH_LOG;
-			hash &= UNIQUE_HASH_SIZE - 1;
-		}
-		if (extra & 0xf8000000) {
 			extra ^= extra >> UNIQUE_HASH_LOG;
-			extra &= UNIQUE_HASH_SIZE - 1;
+			hash &= UNIQUE_HASH_SIZE - 1;
 		}
 	}
 
