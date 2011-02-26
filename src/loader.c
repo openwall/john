@@ -261,7 +261,38 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (ldr_check_list(options->groups, gid, gid)) return 0;
 	if (ldr_check_shells(options->shells, shell)) return 0;
 
-	if (*format) return (*format)->methods.valid(*ciphertext);
+	if (*format) {
+		int valid = (*format)->methods.valid(*ciphertext);
+		if (!valid) {
+			struct fmt_main *alt = fmt_list;
+			do {
+				if (alt == *format)
+					continue;
+				if (alt->params.flags & FMT_WARNED)
+					continue;
+#ifdef HAVE_CRYPT
+				if (alt == &fmt_crypt &&
+#ifdef __sun
+				    strncmp(*ciphertext, "$md5$", 5) &&
+				    strncmp(*ciphertext, "$md5,", 5) &&
+#endif
+				    strncmp(*ciphertext, "$5$", 3) &&
+				    strncmp(*ciphertext, "$6$", 3))
+					continue;
+#endif
+				if (alt->methods.valid(*ciphertext)) {
+					alt->params.flags |= FMT_WARNED;
+					printf("Warning: only loading hashes "
+					    "of type \"%s\", but also saw "
+					    "type \"%s\"\n",
+					    (*format)->params.label,
+					    alt->params.label);
+					break;
+				}
+			} while ((alt = alt->next));
+		}
+		return valid;
+	}
 
 	if ((*format = fmt_list))
 	do {
