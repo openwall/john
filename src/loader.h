@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010 by Solar Designer
+ * Copyright (c) 1996-98,2010,2011 by Solar Designer
  */
 
 /*
@@ -140,6 +140,8 @@ struct db_cracked {
 #define DB_WORDS			0x00000002
 /* Some hashed passwords were split into several entries */
 #define DB_SPLIT			0x00000010
+/* Duplicate hashes were seen and excluded */
+#define DB_NODUP			0x00000020
 /* Cracked passwords only (ciphertext, plaintext) */
 #define DB_CRACKED			0x00000100
 /* Cracked plaintexts list */
