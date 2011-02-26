@@ -284,6 +284,8 @@ static void john_run(void)
 		do_makechars(&database, options.charset);
 	else
 	if (options.flags & FLG_CRACKING_CHK) {
+		int remaining = database.password_count;
+
 		if (!(options.flags & FLG_STDOUT)) {
 			status_init(NULL, 1);
 			log_init(LOG_NAME, POT_NAME, options.session);
@@ -312,6 +314,24 @@ static void john_run(void)
 
 		status_print();
 		tty_done();
+
+		if (database.password_count < remaining) {
+			char *might = "Passwords printed while cracking might";
+			char *partial = " be partial";
+			char *not_all = " not be all those cracked";
+			int flags = database.options->flags &
+			    (DB_SPLIT | DB_NODUP);
+			if (flags == DB_SPLIT) /* split, all loaded */
+				printf("%s%s\n", might, partial);
+			else
+			if (flags == DB_NODUP) /* not split, dupes not loaded */
+				printf("%s%s\n", might, not_all);
+			else
+			if (flags) /* split, dupes not loaded */
+				printf("%s%s and%s\n", might, partial, not_all);
+			puts("Use the \"--show\" option to display all of the "
+			    "cracked passwords reliably");
+		}
 	}
 }
 
