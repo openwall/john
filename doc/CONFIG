@@ -43,6 +43,10 @@ overloaded systems.  This setting does not affect John's startup time
 and non-cracking invocations of John; it only affects the actual
 cracking.  The default is "Y" (yes).
 
+Starting with version 1.7.7, this setting is ignored for OpenMP-enabled
+hash types when the actual number of threads is greater than 1.
+Unfortunately, it did not work right at least with GNU libgomp on Linux.
+
 Save = SECONDS
 
 This is the time interval (in seconds) between crash recovery file
@@ -118,4 +122,4 @@ they will be added, but considered the least probable.
 
 See EXTERNAL.
 
-$Owl: Owl/packages/john/john/doc/CONFIG,v 1.4 2009/12/25 16:59:31 solar Exp $
+$Owl: Owl/packages/john/john/doc/CONFIG,v 1.5 2011/02/27 07:16:16 solar Exp $
