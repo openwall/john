@@ -15,10 +15,21 @@
 /*
  * Format property flags.
  */
+/* Uses case-sensitive passwords */
 #define FMT_CASE			0x00000001
+/* Supports 8-bit characters in passwords (does not ignore the 8th bit) */
 #define FMT_8_BIT			0x00000002
+/* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
+/* The split() method unifies the case of characters in hash encodings */
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
+/* Parallelized with OpenMP */
+#ifdef _OPENMP
+#define FMT_OMP				0x01000000
+#else
+#define FMT_OMP				0
+#endif
+/* We've already warned the user about hashes of this type being present */
 #define FMT_WARNED			0x80000000
 
 /*
