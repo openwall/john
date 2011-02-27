@@ -153,10 +153,6 @@ static int get_hash_4(int index)
 	return DES_bs_get_hash(index, 20);
 }
 
-static void set_salt(void *salt)
-{
-}
-
 static int cmp_all(void *binary, int count)
 {
 	return DES_bs_cmp_all((ARCH_WORD *)binary);
@@ -209,7 +205,7 @@ struct fmt_main fmt_LM = {
 			binary_hash_4
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		DES_bs_set_key_LM,
 		get_key,
 		DES_bs_clear_keys_LM,
