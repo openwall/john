@@ -33,6 +33,7 @@ static struct fmt_tests tests[] = {
 	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
 	{"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
 	{"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
+	{"$1$`!@#%^&*$E6hD76/pKTS8qToBCkux30", "invalid salt"},
 	{"$1$12345678$xek.CpjQUVgdf/P2N9KQf/", ""},
 	{"$1$1234$BdIMOAWFOV2AQlLsrN/Sw.", "1234"},
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
@@ -117,9 +118,22 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-	return
-		((int)atoi64[ARCH_INDEX(((char *)salt)[0])] |
-		((int)atoi64[ARCH_INDEX(((char *)salt)[1])] << 6)) & 0x3FF;
+	unsigned int i, h, retval;
+
+	retval = 0;
+	for (i = 0; i <= 6; i += 2) {
+		h = (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i])];
+		h ^= ((unsigned char *)salt)[i + 1];
+		h <<= 6;
+		h ^= (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i + 1])];
+		h ^= ((unsigned char *)salt)[i];
+		retval += h;
+	}
+
+	retval ^= retval >> 10;
+	retval &= 0x3FF;
+
+	return retval;
 }
 
 static void set_key(char *key, int index)
