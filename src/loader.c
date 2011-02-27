@@ -217,7 +217,6 @@ static int ldr_split_line(char **login, char **ciphertext,
 {
 	struct fmt_main *alt;
 	char *uid = NULL, *gid = NULL, *shell = NULL;
-	char *tmp;
 	int retval;
 
 	*login = ldr_get_field(&line);
@@ -235,7 +234,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	uid = ldr_get_field(&line);
 
 	if (strlen(uid) == 32) {
-		tmp = *ciphertext;
+		char *tmp = *ciphertext;
 		*ciphertext = uid;
 		uid = tmp;
 
