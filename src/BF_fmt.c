@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
  */
 
 #include <stdlib.h>
@@ -211,7 +211,7 @@ struct fmt_main fmt_BF = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
 #ifdef _OPENMP
