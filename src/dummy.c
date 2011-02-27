@@ -26,6 +26,7 @@
 static struct fmt_tests tests[] = {
 	{"$dummy$64756d6d79", "dummy"},
 	{"$dummy$", ""},
+	{"$dummy$70617373776f7264", "password"},
 	{NULL}
 };
 
