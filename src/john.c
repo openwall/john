@@ -18,6 +18,7 @@
 #include "tty.h"
 #include "signals.h"
 #include "common.h"
+#include "idle.h"
 #include "formats.h"
 #include "loader.h"
 #include "logger.h"
@@ -290,7 +291,7 @@ static void john_run(void)
 			status_init(NULL, 1);
 			log_init(LOG_NAME, POT_NAME, options.session);
 			john_log_format();
-			if (cfg_get_bool(SECTION_OPTIONS, NULL, "Idle", 1))
+			if (idle_requested(database.format))
 				log_event("- Configured to use otherwise idle "
 					"processor cycles only");
 		}
