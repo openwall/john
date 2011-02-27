@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010,2011 by Solar Designer
  */
 
 #include <string.h>
@@ -84,7 +84,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	rec_save();
 
-	idle_init();
+	idle_init(db->format);
 }
 
 static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
