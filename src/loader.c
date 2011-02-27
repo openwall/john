@@ -223,9 +223,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) return 0;
 
 	if (!*(*ciphertext = ldr_get_field(&line)) && !line) {
-		if (strlen(*login) < 13)
+		char *p = *login;
+		while (*p == ' ' || *p == '\t') p++;
+		*ciphertext = p;
+		p += strlen(p) - 1;
+		while (p > *ciphertext && (*p == ' ' || *p == '\t')) p--;
+		if (++p - *ciphertext < 13)
 			return 0;
-		*ciphertext = *login;
+		*p = 0;
 		*login = no_username;
 	}
 
