@@ -223,12 +223,22 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) return 0;
 
 	if (!*(*ciphertext = ldr_get_field(&line)) && !line) {
+/* Possible hash on a line on its own (no colons) */
 		char *p = *login;
+/* Skip leading and trailing whitespace */
 		while (*p == ' ' || *p == '\t') p++;
 		*ciphertext = p;
 		p += strlen(p) - 1;
 		while (p > *ciphertext && (*p == ' ' || *p == '\t')) p--;
-		if (++p - *ciphertext < 13)
+		p++;
+/* Check for a special case: possibly a traditional crypt(3) hash with
+ * whitespace in its invalid salt.  Only support such hashes at the very start
+ * of a line (no leading whitespace other than the invalid salt). */
+		if (p - *ciphertext == 11 && *ciphertext - *login == 2)
+			(*ciphertext)--;
+		if (p - *ciphertext == 12 && *ciphertext - *login == 1)
+			(*ciphertext)--;
+		if (p - *ciphertext < 13)
 			return 0;
 		*p = 0;
 		*login = no_username;
