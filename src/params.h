@@ -199,6 +199,13 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define LDR_WORDS_MAX			0x10
 
 /*
+ * Maximum number of partial hash collisions in a db->password_hash[] bucket.
+ * If this limit is hit, we print a warning and disable detection of duplicate
+ * hashes (since it could be too slow).
+ */
+#define LDR_HASH_COLLISIONS_MAX		1000
+
+/*
  * Maximum number of GECOS words to try in pairs.
  */
 #define SINGLE_WORDS_PAIR_MAX		4
