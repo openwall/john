@@ -220,9 +220,14 @@ static int ldr_split_line(char **login, char **ciphertext,
 	int retval;
 
 	*login = ldr_get_field(&line);
-	if (!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) return 0;
+	*ciphertext = ldr_get_field(&line);
 
-	if (!*(*ciphertext = ldr_get_field(&line)) && !line) {
+/* Check for NIS stuff */
+	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
+	    strlen(*ciphertext) < 13)
+		return 0;
+
+	if (!**ciphertext && !line) {
 /* Possible hash on a line on its own (no colons) */
 		char *p = *login;
 /* Skip leading and trailing whitespace */
