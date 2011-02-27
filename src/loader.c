@@ -224,7 +224,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 /* Check for NIS stuff */
 	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
-	    strlen(*ciphertext) < 13)
+	    strlen(*ciphertext) < 13 && strncmp(*ciphertext, "$dummy$", 7))
 		return 0;
 
 	if (!**ciphertext && !line) {
@@ -236,15 +236,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p += strlen(p) - 1;
 		while (p > *ciphertext && (*p == ' ' || *p == '\t')) p--;
 		p++;
+/* Some valid dummy hashes may be shorter than 13 characters, so don't subject
+ * them to the length checks. */
+		if (strncmp(*ciphertext, "$dummy$", 7)) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
  * of a line (no leading whitespace other than the invalid salt). */
-		if (p - *ciphertext == 11 && *ciphertext - *login == 2)
-			(*ciphertext)--;
-		if (p - *ciphertext == 12 && *ciphertext - *login == 1)
-			(*ciphertext)--;
-		if (p - *ciphertext < 13)
-			return 0;
+			if (p - *ciphertext == 11 && *ciphertext - *login == 2)
+				(*ciphertext)--;
+			if (p - *ciphertext == 12 && *ciphertext - *login == 1)
+				(*ciphertext)--;
+			if (p - *ciphertext < 13)
+				return 0;
+		}
 		*p = 0;
 		*login = no_username;
 	}
