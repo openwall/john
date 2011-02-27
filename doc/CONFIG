@@ -43,6 +43,10 @@ overloaded systems.  This setting does not affect John's startup time
 and non-cracking invocations of John; it only affects the actual
 cracking.  The default is "Y" (yes).
 
+Starting with version 1.7.7, this setting is ignored for OpenMP-enabled
+hash types when the actual number of threads is greater than 1.
+Unfortunately, it did not work right at least with GNU libgomp on Linux.
+
 Save = SECONDS
 
 This is the time interval (in seconds) between crash recovery file
