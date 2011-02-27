@@ -73,6 +73,8 @@ typedef struct {
 	MD5_block _block[MD5_N];
 	MD5_pattern _order[21][MD5_N];
 	MD5_pool _pool[MD5_N];
+	char *prefix;
+	int prelen;
 } MD5_std_combined;
 
 extern MD5_std_combined MD5_std_all;
