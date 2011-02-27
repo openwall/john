@@ -153,6 +153,10 @@ int fmt_default_salt_hash(void *salt)
 	return 0;
 }
 
+void fmt_default_set_salt(void *salt)
+{
+}
+
 void fmt_default_clear_keys(void)
 {
 }
