@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2006,2009,2010 by Solar Designer
+ * Copyright (c) 1996-98,2006,2009,2010,2011 by Solar Designer
  */
 
 #include <string.h>
@@ -111,14 +111,16 @@ static void rpp_process_rule(struct rpp_context *ctx)
 			break;
 
 		case '-':
-			if ((c2 = *++input))
-			if (c1 && range->count) {
-				if (c1 > c2)
-					for (c = c1 - 1; c >= c2; c--)
-						rpp_add_char(range, c);
-				else
-					for (c = c1 + 1; c <= c2; c++)
-						rpp_add_char(range, c);
+			if ((c2 = *++input)) {
+				input++;
+				if (c1 && range->count) {
+					if (c1 > c2)
+						for (c = c1 - 1; c >= c2; c--)
+							rpp_add_char(range, c);
+					else
+						for (c = c1 + 1; c <= c2; c++)
+							rpp_add_char(range, c);
+				}
 			}
 			c1 = c2;
 			break;
