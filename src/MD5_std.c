@@ -1,11 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2006,2011 by Solar Designer
  *
- * Based on the RSA Data Security, Inc. MD5 Message-Digest Algorithm and
- * FreeBSD MD5-based crypt(3) by Poul-Henning Kamp <phk at login.dknet.dk>.
- * My implementation supports passwords of up to 15 characters long only,
- * since this allows using a significantly faster algorithm -- SD.
+ * This implementation of FreeBSD-style MD5-based crypt(3) password hashing
+ * supports passwords of up to 15 characters long only since this lets us use a
+ * significantly faster algorithm. -- SD
  */
 
 #include <string.h>
