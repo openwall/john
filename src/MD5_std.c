@@ -308,6 +308,8 @@ static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 #define order				MD5_std_all._order
 #define pool				MD5_std_all._pool
 #define block				MD5_std_all._block
+#define prefix				MD5_std_all.prefix
+#define prelen				MD5_std_all.prelen
 
 static void init_line(int line, int index, MD5_block *even, MD5_block *odd)
 {
@@ -359,6 +361,14 @@ void MD5_std_set_salt(char *salt)
 #if MD5_X2
 	memcpy(pool[1].s, salt, pool[1].l.s = length);
 #endif
+
+	if (salt[8]) {
+		prefix = "$apr1$";
+		prelen = 6;
+	} else {
+		prefix = "$1$";
+		prelen = 3;
+	}
 }
 
 void MD5_std_set_key(char *key, int index)
@@ -483,11 +493,11 @@ void MD5_std_crypt(void)
 	for (index = 0, key = pool; index < MD5_N; index++, key++) {
 #endif
 		memcpy(&block[index], key->o.p.b, key->l.p);
-		memcpy(&block[index].b[key->l.p], "$1$", 3);
-		memcpy(&block[index].b[key->l.p + 3], key->s, key->l.s);
-		memcpy(&block[index].b[key->l.ps + 3],
+		memcpy(&block[index].b[key->l.p], prefix, prelen);
+		memcpy(&block[index].b[key->l.p + prelen], key->s, key->l.s);
+		memcpy(&block[index].b[key->l.ps + prelen],
 			MD5_out[index], key->l.p);
-		length = key->l.psp + 3;
+		length = key->l.psp + prelen;
 		if ((mask = key->l.p))
 		do {
 			block[index].b[length++] =
@@ -856,11 +866,18 @@ static void MD5_body(MD5_word x0[15], MD5_word x1[15],
 char *MD5_std_get_salt(char *ciphertext)
 {
 	static char out[9];
-	int length;
+	char *p, *q;
+	int i;
 
-	for (length = 0; length < 8; length++)
-	if ((out[length] = ciphertext[3 + length]) == '$') break;
-	out[length] = 0;
+	p = ciphertext + 3;
+	if ((out[8] = !strncmp(ciphertext, "$apr1$", 6)))
+		p = ciphertext + 6;
+
+	q = out;
+	for (i = 0; *p != '$' && i < 8; i++)
+		*q++ = *p++;
+	while (i++ < 8)
+		*q++ = 0;
 
 	return out;
 }
@@ -885,7 +902,11 @@ MD5_word *MD5_std_get_binary(char *ciphertext)
 	char *pos;
 	MD5_word value;
 
-	pos = ciphertext + 3; while (*pos++ != '$');
+	pos = ciphertext + 3;
+	if (!strncmp(ciphertext, "$apr1$", 6))
+		pos = ciphertext + 6;
+
+	while (*pos++ != '$');
 
 	TO_BINARY(0, 6, 12);
 	TO_BINARY(1, 7, 13);
