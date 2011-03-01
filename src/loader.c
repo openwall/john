@@ -777,8 +777,8 @@ void ldr_fix_database(struct db_main *db)
 	MEM_FREE(db->password_hash);
 	MEM_FREE(db->salt_hash);
 
-	ldr_remove_marked(db);
 	ldr_filter_salts(db);
+	ldr_remove_marked(db);
 
 	ldr_init_hash(db);
 
