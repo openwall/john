@@ -2,6 +2,7 @@ The following changes have been made between John 1.7.6.1 and 1.7.6.2:
 
 * Added Intel AVX and AMD XOP instruction sets support for bitslice DES
 (with C compiler intrinsics).
+* ...many more changes, to be documented.
 
 The following changes have been made between John 1.7.6 and 1.7.6.1:
 
@@ -189,4 +190,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.51 2011/02/25 08:42:37 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.52 2011/03/01 05:20:29 solar Exp $
