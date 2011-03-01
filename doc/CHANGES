@@ -2,6 +2,7 @@ The following changes have been made between John 1.7.6.1 and 1.7.6.2:
 
 * Added Intel AVX and AMD XOP instruction sets support for bitslice DES
 (with C compiler intrinsics).
+* ...many more changes, to be documented.
 
 The following changes have been made between John 1.7.6 and 1.7.6.1:
 
