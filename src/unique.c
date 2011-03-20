@@ -3,6 +3,7 @@
  * Copyright (c) 1998,1999,2002,2003,2005,2006,2011 by Solar Designer
  */
 
+#define _POSIX_SOURCE /* for fdopen(3) */
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>

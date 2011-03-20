@@ -3,6 +3,7 @@
  * Copyright (c) 1996-99,2003,2004,2006,2009 by Solar Designer
  */
 
+#define _POSIX_SOURCE /* for fileno(3) */
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
