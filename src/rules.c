@@ -905,6 +905,8 @@ char *rules_apply(char *word, char *rule, int split, char *last)
 out_OK:
 	in[rules_max_length] = 0;
 	if (last) {
+		if (length > rules_max_length)
+			length = rules_max_length;
 		if (length >= ARCH_SIZE - 1) {
 			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
 				return in;
