@@ -3,6 +3,7 @@
  * Copyright (c) 1996-2001,2006,2009,2011 by Solar Designer
  */
 
+#define _XOPEN_SOURCE /* for nice(2) */
 #include <unistd.h>
 
 #ifdef _POSIX_PRIORITY_SCHEDULING

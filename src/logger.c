@@ -3,6 +3,7 @@
  * Copyright (c) 1996-99,2003,2004,2010 by Solar Designer
  */
 
+#define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
