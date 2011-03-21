@@ -36,7 +36,35 @@
 #if defined(__AVX__) && defined(__GNUC__)
 /* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
 #define DES_BS_ASM			0
-#if 1
+#if 0
+/* 512-bit as 2x256 */
+#define DES_BS_VECTOR			8
+#if defined(__XOP__) && defined(__GNUC__)
+/* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
+#undef DES_BS
+#define DES_BS                          3
+#define DES_BS_ALGORITHM_NAME           "256/256 X2 BS XOP"
+#else
+#define DES_BS_ALGORITHM_NAME           "256/256 X2 BS AVX"
+#endif
+#elif 0
+/* 384-bit as 256+64+64 */
+#define DES_BS_VECTOR_SIZE		8
+#define DES_BS_VECTOR			6
+#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX + 64/64 BS MMX + 64/64 BS"
+#elif 0
+/* 320-bit as 256+64 MMX */
+#define DES_BS_VECTOR_SIZE		8
+#define DES_BS_VECTOR			5
+#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX + 64/64 BS MMX"
+#elif 0
+/* 320-bit as 256+64 */
+#define DES_BS_NO_MMX
+#define DES_BS_VECTOR_SIZE		8
+#define DES_BS_VECTOR			5
+#define DES_BS_ALGORITHM_NAME		"256/256 BS AVX + 64/64 BS"
+#elif 0
+/* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
 #if defined(__XOP__) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
@@ -46,7 +74,19 @@
 #else
 #define DES_BS_ALGORITHM_NAME		"256/256 BS AVX"
 #endif
+#elif 0
+/* 256-bit as 2x128 */
+#define DES_BS_NO_AVX256
+#define DES_BS_VECTOR			4
+#ifdef __XOP__
+#undef DES_BS
+#define DES_BS				3
+#define DES_BS_ALGORITHM_NAME		"128/256 X2 BS XOP"
 #else
+#define DES_BS_ALGORITHM_NAME		"128/256 X2 BS AVX"
+#endif
+#else
+/* 128-bit */
 #define DES_BS_VECTOR			2
 #ifdef __XOP__
 #undef DES_BS
