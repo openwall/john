@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2004,2006,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2004,2006,2010,2011 by Solar Designer
  */
 
 #ifdef __ultrix__
@@ -101,6 +101,9 @@ static char *status_get_cps(char *buffer)
 	if (use_ticks) mul64by32(&cps, clk_tck);
 	div64by32(&cps, time);
 
+	if (cps.hi > 232 || (cps.hi == 232 && cps.lo >= 3567587328U))
+		sprintf(buffer, "%uG", div64by32lo(&cps, 1000000000));
+	else
 	if (cps.hi || cps.lo >= 1000000000)
 		sprintf(buffer, "%uM", div64by32lo(&cps, 1000000));
 	else
