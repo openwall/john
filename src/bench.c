@@ -3,6 +3,8 @@
  * Copyright (c) 1996-2001,2003,2004,2006,2008-2010 by Solar Designer
  */
 
+#define _XOPEN_SOURCE /* for setitimer(2) */
+
 #ifdef __ultrix__
 #define __POSIX
 #define _POSIX_SOURCE
