@@ -1,8 +1,42 @@
 The following changes have been made between John 1.7.6.1 and 1.7.6.2:
 
 * Added Intel AVX and AMD XOP instruction sets support for bitslice DES
-(with C compiler intrinsics).
-* ...many more changes, to be documented.
+(with C compiler intrinsics).  New make targets: linux-x86-64-avx,
+linux-x86-64-xop, linux-x86-avx, and linux-x86-xop (these require recent
+versions of GCC and GNU binutils).
+* A "dummy" "format" is now supported (plaintext passwords encoded in
+hexadecimal and prefixed with "$dummy$") - for faster testing and tuning of
+custom wordlists, rule sets, .chr files, and external modes on already known or
+artificial passwords, as well as for testing of future and modified versions of
+John itself.
+* Apache "$apr1$" MD5-based password hashes are now supported along with the
+FreeBSD-style MD5-based crypt(3) hashes that were supported previously.  Hashes
+of both of these types may be loaded for cracking simultaneously.
+* The "--salts" option threshold is now applied before removal of previously
+cracked hashes for consistent behavior with interrupted and continued sessions.
+* The "Idle = Y" setting (which is the default) is now ignored for
+OpenMP-enabled hash types when the actual number of threads is greater than 1.
+(Unfortunately, it did not work right at least with GNU libgomp on Linux.)
+* When a cracking session terminates or is interrupted, John will now warn the
+user if the cracked passwords printed to the terminal while cracking are
+potentially incomplete.  It will advise the user to use the "--show" option to
+see the complete set of cracked passwords with proper post-processing.
+* When loading hashes specified on a line on their own (feature introduced in
+1.7.6), the loader will now ignore leading and trailing whitespace.
+* Unless a hash type is forced from the command line, the loader will now print
+warnings about additional hash types seen in the input files (beyond the hash
+type autodetected initially).
+* For use primarily by the jumbo patch (and later by future enhancements to the
+official versions as well), the loader now includes logic to warn the user of
+ambiguous hash encodings (e.g. LM vs. NTLM vs. raw-MD5, all of which may be
+represented as 32 hexadecimal characters) and of excessive partial hash
+collisions, which it works around (these are typically caused by an incomplete
+implementation of a new hash type).
+* The "unique" and "unshadow" programs have been made significantly faster.
+* "DateTime", "Repeats", "Subsets", "AtLeast1-Simple", "AtLeast1-Generic", and
+"Policy" external mode samples have been added to the default john.conf.
+* The self-tests have been enhanced to detect more kinds of program bugs.
+* A few minor bug fixes and enhancements were made.
 
 The following changes have been made between John 1.7.6 and 1.7.6.1:
 
