@@ -15,13 +15,19 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		72
+/* Max 125, but 95 typically produces fewer L1 data cache tag collisions */
+#define PLAINTEXT_LENGTH		95
 
-#define BINARY_SIZE			128
+typedef struct {
+	ARCH_WORD_32 hash;
+	char c0;
+} dummy_binary;
+
+#define BINARY_SIZE			sizeof(dummy_binary)
 #define SALT_SIZE			0
 
-#define MIN_KEYS_PER_CRYPT		64
-#define MAX_KEYS_PER_CRYPT		128
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
 
 static struct fmt_tests tests[] = {
 	{"$dummy$64756d6d79", "dummy"},
@@ -58,20 +64,18 @@ static int valid(char *ciphertext)
 	if ((q - p) & 1)
 		return 0;
 
-/* Should leave at least one byte for NUL termination (we will sometimes treat
- * these "binaries" as strings). */
-	if (((q - p) >> 1) >= BINARY_SIZE)
+/* We won't be able to crack passwords longer than PLAINTEXT_LENGTH.
+ * Also, we rely on this check having been performed before decode(). */
+	if (((q - p) >> 1) > PLAINTEXT_LENGTH)
 		return 0;
 
 	return 1;
 }
 
-static void *binary(char *ciphertext)
+static char *decode(char *ciphertext)
 {
-	static char out[BINARY_SIZE];
+	static char out[PLAINTEXT_LENGTH + 1];
 	char *p, *q, c;
-
-	memset(out, 0, sizeof(out));
 
 	p = strrchr(ciphertext, '$') + 1;
 	q = out;
@@ -79,13 +83,21 @@ static void *binary(char *ciphertext)
 		p++;
 		*q++ = (atoi16[ARCH_INDEX(c)] << 4) | atoi16[ARCH_INDEX(*p++)];
 	}
+	*q = 0;
 
 	return out;
 }
 
-static unsigned int string_hash(char *s)
+#ifdef __GNUC__
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
+__attribute__((always_inline))
+#else
+__inline__
+#endif
+#endif
+static ARCH_WORD_32 string_hash(char *s)
 {
-	unsigned int hash, extra;
+	ARCH_WORD_32 hash, extra;
 	char *p;
 
 	p = s + 2;
@@ -118,51 +130,64 @@ out:
 	return hash;
 }
 
+static void *binary(char *ciphertext)
+{
+	static dummy_binary out;
+	char *decoded;
+
+	decoded = decode(ciphertext);
+
+	out.hash = string_hash(decoded);
+	out.c0 = decoded[0];
+
+	return &out;
+}
+
 static int binary_hash_0(void *binary)
 {
-	unsigned int hash = string_hash((char *)binary);
+	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
 	hash ^= hash >> 8;
 	return (hash ^ (hash >> 4)) & 0xf;
 }
 
 static int binary_hash_1(void *binary)
 {
-	unsigned int hash = string_hash((char *)binary);
+	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
 	return (hash ^ (hash >> 8)) & 0xff;
 }
 
 static int binary_hash_2(void *binary)
 {
-	unsigned int hash = string_hash((char *)binary);
+	ARCH_WORD_32 hash = ((dummy_binary *)binary)->hash;
 	return (hash ^ (hash >> 12)) & 0xfff;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return string_hash((char *)binary) & 0xffff;
+	return ((dummy_binary *)binary)->hash & 0xffff;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return string_hash((char *)binary) & 0xfffff;
+	return ((dummy_binary *)binary)->hash & 0xfffff;
 }
 
 static int get_hash_0(int index)
 {
-	unsigned int hash = string_hash(saved_key[index]);
+	ARCH_WORD_32 hash = string_hash(saved_key[index]);
 	hash ^= hash >> 8;
 	return (hash ^ (hash >> 4)) & 0xf;
 }
 
 static int get_hash_1(int index)
 {
-	unsigned int hash = string_hash(saved_key[index]);
+	ARCH_WORD_32 hash = string_hash(saved_key[index]);
 	return (hash ^ (hash >> 8)) & 0xff;
 }
 
 static int get_hash_2(int index)
 {
-	unsigned int hash = string_hash(saved_key[index]);
+	ARCH_WORD_32 hash = string_hash(saved_key[index]);
 	return (hash ^ (hash >> 12)) & 0xfff;
 }
 
@@ -197,9 +222,9 @@ static int cmp_all(void *binary, int count)
 	int i;
 
 	for (i = 0; i < count; i++) {
-		if (*(char *)binary != saved_key[i][0])
+		if (((dummy_binary *)binary)->c0 != saved_key[i][0])
 			continue;
-		if (!strcmp((char *)binary, saved_key[i]))
+		if (((dummy_binary *)binary)->hash == string_hash(saved_key[i]))
 			return 1;
 	}
 
@@ -208,12 +233,14 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !strcmp((char *)binary, saved_key[index]);
+	return
+	    ((dummy_binary *)binary)->c0 == saved_key[index][0] &&
+	    ((dummy_binary *)binary)->hash == string_hash(saved_key[index]);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	return !strcmp(decode(source), saved_key[index]);
 }
 
 struct fmt_main fmt_dummy = {
