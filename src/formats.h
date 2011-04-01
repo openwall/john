@@ -43,7 +43,8 @@ struct fmt_tests {
  * Parameters of a hash function and its cracking algorithm.
  */
 struct fmt_params {
-/* Label to refer to this format */
+/* Label to refer to this format (any alphabetical characters in it must be
+ * lowercase). */
 	char *label;
 
 /* Ciphertext format name */
