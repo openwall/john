@@ -196,7 +196,7 @@ Blowfish-based crypt(3) (bcrypt) hashes (with John's own optimized code)
 and for the underlying system's thread-safe password hashing function
 (crypt_r(3) on Linux or crypt(3C) on Solaris).  The latter is only
 reasonable to use for crypt(3) hash types not yet supported by John
-natively (that is, for glibc 2.7+ "SHA-crypt" hashes as used by recent
+natively (that is, for glibc 2.7+ SHA-crypt hashes as used by recent
 versions of Fedora and Ubuntu and for SunMD5 hashes).  To use this
 limited OpenMP support, you need to make an OpenMP-enabled build of John
 by uncommenting one of the OMPFLAGS lines near the beginning of the
@@ -231,4 +231,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.24 2011/02/26 09:39:29 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.25 2011/04/27 18:02:49 solar Exp $
