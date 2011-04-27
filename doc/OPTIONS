@@ -144,7 +144,7 @@ Linux and Solaris.  When specified (and supported), this option makes
 John use the system's crypt(3) or crypt_r(3) function.  This may be
 needed to audit password hashes supported by the system, but not yet
 supported by John's own optimized cryptographic routines.  Currently,
-this is the case for glibc 2.7+ "SHA-crypt" hashes as used by recent
+this is the case for glibc 2.7+ SHA-crypt hashes as used by recent
 versions of Fedora and Ubuntu, and for SunMD5 hashes supported (but not
 used by default) on recent versions of Solaris.  In fact, you do not
 have to explicitly specify "--format=crypt" for hashes of these specific

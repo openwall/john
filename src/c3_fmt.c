@@ -378,7 +378,7 @@ static void crypt_all(int count)
  * threads, and the per-thread performance is extremely poor anyway).  For
  * modern hash types, the function is actually able to compute multiple hashes
  * in parallel by different threads (and the performance for some hash types is
- * reasonable).  Overall, this code is reasonable to use for "SHA-crypt" and
+ * reasonable).  Overall, this code is reasonable to use for SHA-crypt and
  * SunMD5 hashes, which are not yet supported by John natively.
  */
 #pragma omp parallel for default(none) private(index) shared(count, crypt_out, saved_key, saved_salt)

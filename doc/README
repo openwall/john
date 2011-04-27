@@ -78,14 +78,14 @@ supported by recent versions of Solaris).  Also supported out of the box
 are Kerberos/AFS and Windows LM (DES-based) hashes.
 
 When running on Linux distributions with glibc 2.7+, John 1.7.6+
-additionally supports (and autodetects) "SHA-crypt" hashes (which are
+additionally supports (and autodetects) SHA-crypt hashes (which are
 actually used by recent versions of Fedora and Ubuntu), with optional
 OpenMP parallelization (requires GCC 4.2+, needs to be explicitly
 enabled at compile-time by uncommenting the proper OMPFLAGS line near
 the beginning of the Makefile).
 
 Similarly, when running on recent versions of Solaris, John 1.7.6+
-supports and autodetects "SHA-crypt" and SunMD5 hashes, also with
+supports and autodetects SHA-crypt and SunMD5 hashes, also with
 optional OpenMP parallelization (requires GCC 4.2+ or recent Sun Studio,
 needs to be explicitly enabled at compile-time by uncommenting the
 proper OMPFLAGS line near the beginning of the Makefile and at runtime

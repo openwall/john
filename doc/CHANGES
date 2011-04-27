@@ -49,7 +49,7 @@ The following changes have been made between John 1.7.5.1 and 1.7.6:
 
 * Generic crypt(3) support (enabled with "--format=crypt") has been added for
 auditing password hash types supported by the system but not yet supported by
-John's own optimized cryptographic routines (such as "SHA-crypt" and SunMD5).
+John's own optimized cryptographic routines (such as SHA-crypt and SunMD5).
 * Optional parallelization of the above has been implemented by means of OpenMP
 along with glibc's crypt_r(3) or Solaris' MT-safe crypt(3C).
 * Optional parallelization of John's own optimized code for the OpenBSD-style
