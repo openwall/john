@@ -162,6 +162,61 @@ typedef __m256 vtype;
 	(dst) = __builtin_ia32_vpcmov_v8sf256((b), (a), (c))
 #endif
 
+#elif defined(__AVX__) && DES_BS_DEPTH == 384 && !defined(DES_BS_NO_AVX128)
+#undef DES_BS_VECTOR
+
+#include <immintrin.h>
+#ifdef __XOP__
+#include <x86intrin.h>
+#endif
+
+typedef struct {
+/* Not __m256i because bitwise ops are "floating-point" with AVX */
+	__m256 f;
+	__m128i g;
+} vtype;
+
+#define vst(dst, ofs, src) \
+	_mm256_store_ps( \
+	    (float *)&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->f, \
+	    (src).f); \
+	_mm_store_si128(&((vtype *)((DES_bs_vector *)&(dst) + (ofs)))->g, \
+	    (src).g)
+
+#define vxor(dst, a, b) \
+	(dst).f = _mm256_xor_ps((a).f, (b).f); \
+	(dst).g = _mm_xor_si128((a).g, (b).g)
+
+#define vnot(dst, a) \
+	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).g = _mm_xor_si128((a).g, ((vtype *)&DES_bs_all.ones)->g)
+#define vand(dst, a, b) \
+	(dst).f = _mm256_and_ps((a).f, (b).f); \
+	(dst).g = _mm_and_si128((a).g, (b).g)
+#define vor(dst, a, b) \
+	(dst).f = _mm256_or_ps((a).f, (b).f); \
+	(dst).g = _mm_or_si128((a).g, (b).g)
+#define vandn(dst, a, b) \
+	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
+	(dst).g = _mm_andnot_si128((b).g, (a).g)
+#define vxorn(dst, a, b) \
+	(dst).f = _mm256_xor_ps(_mm256_xor_ps((a).f, (b).f), \
+	    (*(vtype *)&DES_bs_all.ones).f); \
+	(dst).g = _mm_xor_si128(_mm_xor_si128((a).g, (b).g), \
+	    (*(vtype *)&DES_bs_all.ones).g)
+
+#ifdef __XOP__
+#define vnor(dst, a, b) \
+	(dst).f = _mm256_xor_ps(_mm256_or_ps((a).f, (b).f), \
+	    (*(vtype *)&DES_bs_all.ones).f); \
+	(dst).g = _mm_xor_si128(_mm_or_si128((a).g, (b).g), \
+	    (*(vtype *)&DES_bs_all.ones).g)
+/* This could be _mm256_cmov_ps(), but it does not exist (yet?) */
+#define vsel(dst, a, b, c) \
+	(dst).f = __builtin_ia32_vpcmov_v8sf256((b).f, (a).f, (c).f); \
+	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
+#endif
+
 #elif defined(__AVX__) && DES_BS_DEPTH == 512
 #undef DES_BS_VECTOR
 

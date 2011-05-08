@@ -64,9 +64,9 @@
 #ifdef __XOP__
 #undef DES_BS
 #define DES_BS				3
-#define DES_BS_ALGORITHM_NAME		"128/256 BS XOP"
+#define DES_BS_ALGORITHM_NAME		"128/128 BS XOP"
 #else
-#define DES_BS_ALGORITHM_NAME		"128/256 BS AVX"
+#define DES_BS_ALGORITHM_NAME		"128/128 BS AVX"
 #endif
 #endif
 #elif defined(__SSE2__) && 0
