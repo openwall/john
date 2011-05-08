@@ -96,19 +96,21 @@ static void charset_write_header(FILE *file, struct charset_header *header)
 	fwrite(header->order, sizeof(header->order), 1, file);
 }
 
-void charset_read_header(FILE *file, struct charset_header *header)
+int charset_read_header(FILE *file, struct charset_header *header)
 {
-	fread(header->version, sizeof(header->version), 1, file);
-	if (memcmp(header->version, CHARSET_V1, sizeof(header->version)))
-		fread(header->check, sizeof(header->check), 1, file);
-	else
-		memset(header->check, 0, sizeof(header->check));
+	if (fread(header->version, sizeof(header->version), 1, file) != 1)
+		return -1;
+	memset(header->check, 0, sizeof(header->check));
+	if (memcmp(header->version, CHARSET_V1, sizeof(header->version)) &&
+	    fread(header->check, sizeof(header->check), 1, file) != 1)
+		return -1;
 	header->min = getc(file);
 	header->max = getc(file);
 	header->length = getc(file);
 	header->count = getc(file);
-	fread(header->offsets, sizeof(header->offsets), 1, file);
-	fread(header->order, sizeof(header->order), 1, file);
+	return
+	    fread(header->offsets, sizeof(header->offsets), 1, file) != 1 ||
+	    fread(header->order, sizeof(header->order), 1, file) != 1;
 }
 
 static int charset_new_length(int length,

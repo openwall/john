@@ -448,7 +448,8 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	header = (struct charset_header *)mem_alloc(sizeof(*header));
 
-	charset_read_header(file, header);
+	if (charset_read_header(file, header) && !ferror(file))
+		inc_format_error(charset);
 	if (ferror(file)) pexit("fread");
 
 	if (feof(file) ||
@@ -480,9 +481,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		error();
 	}
 
-	fread(allchars, header->count, 1, file);
-	if (ferror(file)) pexit("fread");
-	if (feof(file)) inc_format_error(charset);
+	if (fread(allchars, header->count, 1, file) != 1) {
+		if (ferror(file)) pexit("fread");
+		inc_format_error(charset);
+	}
 
 	allchars[header->count] = 0;
 	if (expand(allchars, "", sizeof(allchars)))
