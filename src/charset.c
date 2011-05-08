@@ -337,7 +337,7 @@ static void charset_generate_order(crack_counters cracks, unsigned char *order)
 static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 {
 	FILE *file;
-	int error;
+	int was_error;
 	struct charset_header *header;
 	char_counters chars;
 	crack_counters cracks;
@@ -390,10 +390,11 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	MEM_FREE(cracks);
 	MEM_FREE(chars);
 
-	error = ferror(file);
-	if (error | fclose(file)) {
+	was_error = ferror(file);
+	if (fclose(file) || was_error) {
 		unlink(charset);
-		pexit("%s", charset);
+		fprintf(stderr, "Failed to write charset file: %s\n", charset);
+		error();
 	}
 
 	printf("Successfully written charset file: %s (%d character%s)\n",
