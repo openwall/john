@@ -5,6 +5,7 @@
 
 #define _XOPEN_SOURCE /* for nice(2) */
 #include <unistd.h>
+#include <stdio.h>
 
 #ifdef _POSIX_PRIORITY_SCHEDULING
 #include <sched.h>
@@ -58,7 +59,14 @@ void idle_init(struct fmt_main *format)
 	clk_tck_init();
 
 #ifndef __BEOS__
-	nice(20);
+/*
+ * Normally, the range is -20 to 19, but some systems can do 20 as well (at
+ * least some versions of Linux on Alpha), so we try 20.  We assume that we're
+ * started with a non-negative nice value (so no need to increment it by more
+ * than 20).
+ */
+	if (nice(20) == -1)
+		perror("nice");
 #else
 	set_thread_priority(getpid(), 1);
 #endif
