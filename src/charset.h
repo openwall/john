@@ -60,8 +60,9 @@ struct charset_header {
 
 /*
  * Reads a charset file header.
+ * Returns zero on success, non-zero on error.
  */
-extern void charset_read_header(FILE *file, struct charset_header *header);
+extern int charset_read_header(FILE *file, struct charset_header *header);
 
 /*
  * Generates a charset file, based on plaintexts in the database.
