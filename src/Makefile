@@ -210,15 +210,17 @@ linux-x86-avx:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -lcrypt"
+		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-xop:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -lcrypt"
+		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
