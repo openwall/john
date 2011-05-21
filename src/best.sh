@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # This file is part of John the Ripper password cracker,
-# Copyright (c) 1996-2000,2003,2005,2008 by Solar Designer
+# Copyright (c) 1996-2000,2003,2005,2008,2011 by Solar Designer
 #
 
 [ $# -eq 5 ] || exit 1
@@ -49,7 +49,7 @@ DES_BS=0
 
 rm -f $DES_DEPEND bench
 
-for MODE in 1 2; do
+for MODE in 1 2 3; do
 	if ./detect $DES_BEST $DES_COPY $MODE 0 0 0 0 > arch.h; then
 		echo "Compiling: DES benchmark (bitslice, code version #$MODE)"
 		if [ $MODE -gt 1 ]; then
@@ -127,4 +127,5 @@ fi
 
 ./detect $DES_BEST $DES_COPY $DES_BS $MD5_X2 $MD5_IMM $BF_SCALE $BF_X2 \
 	> generic.h
-rm -f $DES_DEPEND $MD5_DEPEND $BF_DEPEND bench detect best.o detect.o arch.h
+rm -f $DES_DEPEND $DES_BS_DEPEND $MD5_DEPEND $BF_DEPEND \
+	bench detect best.o detect.o arch.h
