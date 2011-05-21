@@ -436,13 +436,17 @@ typedef __m128i vtype;
 #define vxorn(dst, a, b) \
 	(dst) = _mm_xor_si128(_mm_xor_si128((a), (b)), \
 	    *(vtype *)&DES_bs_all.ones)
-
-#ifdef __XOP__
 #define vnor(dst, a, b) \
 	(dst) = _mm_xor_si128(_mm_or_si128((a), (b)), \
 	    *(vtype *)&DES_bs_all.ones)
+
+#ifdef __XOP__
 #define vsel(dst, a, b, c) \
 	(dst) = _mm_cmov_si128((b), (a), (c))
+#else
+#define vsel(dst, a, b, c) \
+	(dst) = _mm_xor_si128(_mm_andnot_si128((c), (a)), \
+	    _mm_and_si128((c), (b)))
 #endif
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 256
@@ -702,6 +706,10 @@ typedef ARCH_WORD vtype;
 	(dst) = (a) & ~(b)
 #define vxorn(dst, a, b) \
 	(dst) = ~((a) ^ (b))
+#define vnor(dst, a, b) \
+	(dst) = ~((a) | (b))
+#define vsel(dst, a, b, c) \
+	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 
 #endif
 
