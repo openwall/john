@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -13,6 +13,8 @@
 #include "params.h"
 #include "memory.h"
 #include "compiler.h"
+
+#undef PRINT_INSNS
 
 char *c_errors[] = {
 	NULL,	/* No error */
@@ -107,7 +109,11 @@ struct c_op {
 #ifdef __GNUC__
 static struct c_op c_ops[];
 #else
+#ifdef PRINT_INSNS
+static struct c_op c_ops[48];
+#else
 static struct c_op c_ops[38];
+#endif
 #endif
 
 static void c_init(void)
@@ -772,14 +778,14 @@ static int c_block(char term, struct c_ident *vars)
 	return c_errno;
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(PRINT_INSNS)
 static void c_direct(union c_insn *addr);
 #endif
 
 int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	struct c_ident *externs)
 {
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(PRINT_INSNS)
 	c_direct(NULL);
 #endif
 
@@ -814,13 +820,9 @@ struct c_ident *c_lookup(char *name)
 
 void c_execute(struct c_ident *fn)
 {
-#ifndef __GNUC__
-	void (*op)(void);
-#endif
-
 	if (!fn) return;
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(PRINT_INSNS)
 	c_direct(fn->addr);
 #else
 	c_stack[0].pc = NULL;
@@ -828,13 +830,19 @@ void c_execute(struct c_ident *fn)
 
 	c_pc = fn->addr;
 	do {
-		op = (c_pc++)->op;
+		void (*op)(void) = (c_pc++)->op;
+#ifdef PRINT_INSNS
+		int i = 0;
+		while (c_ops[i].op != op && c_ops[i].prec >= 0)
+			i++;
+		fprintf(stderr, "op: %s\n", c_ops[i].name);
+#endif
 		op();
 	} while (c_pc);
 #endif
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(PRINT_INSNS)
 
 static void c_direct(union c_insn *addr)
 {
@@ -879,7 +887,7 @@ static void c_direct(union c_insn *addr)
 		&&op_inc_l,
 		&&op_dec_l,
 		&&op_inc_r,
-		&&op_dec_r,
+		&&op_dec_r
 	};
 
 	if (!addr) {
@@ -1462,5 +1470,19 @@ static struct c_op c_ops[] = {
 	{12, C_LEFT_TO_RIGHT, C_CLASS_LEFT, "--", c_op_dec_l},
 	{12, C_LEFT_TO_RIGHT, C_CLASS_RIGHT, "++", c_op_inc_r},
 	{12, C_LEFT_TO_RIGHT, C_CLASS_RIGHT, "--", c_op_dec_r},
+#ifdef PRINT_INSNS
+	{0, 0, 0, "return", c_f_op_return},
+	{0, 0, 0, "bz", c_f_op_bz},
+	{0, 0, 0, "ba", c_f_op_ba},
+	{0, 0, 0, "push_imm", c_f_op_push_imm},
+	{0, 0, 0, "push_mem", c_f_op_push_mem},
+	{0, 0, 0, "pop", c_f_op_pop},
+	{0, 0, 0, "push_imm_imm", c_f_op_push_imm_imm},
+	{0, 0, 0, "push_imm_mem", c_f_op_push_imm_mem},
+	{0, 0, 0, "push_mem_imm", c_f_op_push_mem_imm},
+	{0, 0, 0, "push_mem_mem", c_f_op_push_mem_mem},
+	{-1}
+#else
 	{0}
+#endif
 };
