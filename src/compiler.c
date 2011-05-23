@@ -110,7 +110,7 @@ struct c_op {
 static struct c_op c_ops[];
 #else
 #ifdef PRINT_INSNS
-static struct c_op c_ops[48];
+static struct c_op c_ops[49];
 #else
 static struct c_op c_ops[38];
 #endif
@@ -359,6 +359,9 @@ static void (*c_op_push_imm_mem)(void);
 static void (*c_op_push_mem_imm)(void);
 static void (*c_op_push_mem_mem)(void);
 
+static void (*c_op_assign)(void);
+static void (*c_op_assign_pop)(void);
+
 static void (*c_push
 	(void (*last)(void), void (*op)(void), union c_insn *value))(void)
 {
@@ -454,7 +457,7 @@ static int c_define(char term, struct c_ident **vars, struct c_ident *globals)
 	return c_errno;
 }
 
-static int c_expr(char term, struct c_ident *vars, char *token)
+static int c_expr(char term, struct c_ident *vars, char *token, int pop)
 {
 	char c;
 	struct c_ident *var;
@@ -579,9 +582,16 @@ static int c_expr(char term, struct c_ident *vars, char *token)
 
 	if (sp || balance) c_errno = C_ERROR_COUNT;
 
-	if (c_pass)
-		c_code_ptr->op = c_op_pop;
-	c_code_ptr++;
+	if (pop) {
+		if (last == c_op_assign) {
+			if (c_pass)
+				(c_code_ptr - 1)->op = c_op_assign_pop;
+		} else {
+			if (c_pass)
+				c_code_ptr->op = c_op_pop;
+			c_code_ptr++;
+		}
+	}
 
 	if (!term && !c_errno) c_errno = C_ERROR_NOTINFUNC;
 	if (*token == term) return -1;
@@ -602,7 +612,7 @@ static int c_cond(char term, struct c_ident *vars, char *token)
 	start = c_code_ptr;
 
 	if (c_expect('(')) return c_errno;
-	switch (c_expr(')', vars, c_gettoken())) {
+	switch (c_expr(')', vars, c_gettoken(), 0)) {
 	case -1:
 		break;
 
@@ -614,7 +624,8 @@ static int c_cond(char term, struct c_ident *vars, char *token)
 	}
 
 	if (c_pass)
-		(c_code_ptr - 1)->op = c_op_bz;
+		c_code_ptr->op = c_op_bz;
+	c_code_ptr++;
 	fixup = c_code_ptr++;
 
 	outer_loop_start = c_loop_start;
@@ -766,7 +777,7 @@ static int c_block(char term, struct c_ident *vars)
 		} else
 
 		if (*token != ';')
-			if (c_expr(term, locals, token)) break;
+			if (c_expr(term, locals, token, 1)) break;
 
 		if (c_errno) break;
 	}
@@ -905,6 +916,9 @@ static void c_direct(union c_insn *addr)
 		c_op_push_mem_imm = &&op_push_mem_imm;
 		c_op_push_mem_mem = &&op_push_mem_mem;
 
+		c_op_assign = &&op_assign;
+		c_op_assign_pop = &&op_assign_pop;
+
 		do {
 			c_ops[op].op = ops[op];
 		} while (c_ops[++op].prec);
@@ -987,6 +1001,11 @@ op_index:
 op_assign:
 	*(sp - 3)->mem = imm;
 	sp -= 2;
+	goto *(pc++)->op;
+
+op_assign_pop:
+	*(sp - 3)->mem = imm;
+	sp -= 4;
 	goto *(pc++)->op;
 
 op_add_a:
@@ -1223,10 +1242,16 @@ static void c_op_index(void)
 	(c_sp - 2)->imm = *((c_sp - 1)->mem += c_sp->imm);
 }
 
-static void c_op_assign(void)
+static void c_f_op_assign(void)
 {
 	c_sp -= 2;
 	(c_sp - 2)->imm = *(c_sp - 1)->mem = c_sp->imm;
+}
+
+static void c_f_op_assign_pop(void)
+{
+	c_sp -= 4;
+	*(c_sp + 1)->mem = (c_sp + 2)->imm;
 }
 
 static void c_op_add_a(void)
@@ -1432,9 +1457,12 @@ static void (*c_op_push_imm_mem)(void) = c_f_op_push_imm_mem;
 static void (*c_op_push_mem_imm)(void) = c_f_op_push_mem_imm;
 static void (*c_op_push_mem_mem)(void) = c_f_op_push_mem_mem;
 
+static void (*c_op_assign)(void) = c_f_op_assign;
+static void (*c_op_assign_pop)(void) = c_f_op_assign_pop;
+
 static struct c_op c_ops[] = {
 	{1, C_LEFT_TO_RIGHT, C_CLASS_BINARY, "[", c_op_index},
-	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, "=", c_op_assign},
+	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, "=", c_f_op_assign},
 	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, "+=", c_op_add_a},
 	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, "-=", c_op_sub_a},
 	{2, C_RIGHT_TO_LEFT, C_CLASS_BINARY, "*=", c_op_mul_a},
@@ -1481,6 +1509,7 @@ static struct c_op c_ops[] = {
 	{0, 0, 0, "push_imm_mem", c_f_op_push_imm_mem},
 	{0, 0, 0, "push_mem_imm", c_f_op_push_mem_imm},
 	{0, 0, 0, "push_mem_mem", c_f_op_push_mem_mem},
+	{0, 0, 0, "assign_pop", c_f_op_assign_pop},
 	{-1}
 #else
 	{0}
