@@ -110,7 +110,7 @@ struct c_op {
 static struct c_op c_ops[];
 #else
 #ifdef PRINT_INSNS
-static struct c_op c_ops[50];
+static struct c_op c_ops[52];
 #else
 static struct c_op c_ops[38];
 #endif
@@ -359,6 +359,8 @@ static void (*c_op_push_imm_mem)(void);
 static void (*c_op_push_mem_imm)(void);
 static void (*c_op_push_mem_mem)(void);
 static void (*c_op_push_mem_mem_mem)(void);
+static void (*c_op_push_mem_mem_mem_imm)(void);
+static void (*c_op_push_mem_mem_mem_mem)(void);
 
 static void (*c_op_assign)(void);
 static void (*c_op_assign_pop)(void);
@@ -388,6 +390,16 @@ static void (*c_push
 		last = c_op_push_mem_mem_mem;
 		if (c_pass) {
 			(c_code_ptr - 3)->op = last;
+			*c_code_ptr = *value;
+		}
+		c_code_ptr++;
+	} else if (last == c_op_push_mem_mem_mem) {
+		if (op == c_op_push_imm)
+			last = c_op_push_mem_mem_mem_imm;
+		else
+			last = c_op_push_mem_mem_mem_mem;
+		if (c_pass) {
+			(c_code_ptr - 4)->op = last;
 			*c_code_ptr = *value;
 		}
 		c_code_ptr++;
@@ -817,6 +829,10 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	for (c_pass = 0; c_pass < 2; c_pass++) {
 		c_init();
 		c_block(0, externs);
+#ifdef PRINT_INSNS
+		fprintf(stderr, "Code size: %u\n",
+		    (unsigned int)(c_code_ptr - c_code_start));
+#endif
 
 		if (!c_pass) {
 			c_free_ident(c_funcs, NULL);
@@ -924,6 +940,8 @@ static void c_direct(union c_insn *addr)
 		c_op_push_mem_imm = &&op_push_mem_imm;
 		c_op_push_mem_mem = &&op_push_mem_mem;
 		c_op_push_mem_mem_mem = &&op_push_mem_mem_mem;
+		c_op_push_mem_mem_mem_imm = &&op_push_mem_mem_mem_imm;
+		c_op_push_mem_mem_mem_mem = &&op_push_mem_mem_mem_mem;
 
 		c_op_assign = &&op_assign;
 		c_op_assign_pop = &&op_assign_pop;
@@ -1009,6 +1027,26 @@ op_push_mem_mem_mem:
 	imm = *((sp + 5)->mem = (pc + 2)->mem);
 	pc += 4;
 	sp += 6;
+	goto *(pc - 1)->op;
+
+op_push_mem_mem_mem_imm:
+	(sp - 2)->imm = imm;
+	sp->imm = *((sp + 1)->mem = pc->mem);
+	(sp + 2)->imm = *((sp + 3)->mem = (pc + 1)->mem);
+	(sp + 4)->imm = *((sp + 5)->mem = (pc + 2)->mem);
+	imm = (pc + 3)->imm;
+	pc += 5;
+	sp += 8;
+	goto *(pc - 1)->op;
+
+op_push_mem_mem_mem_mem:
+	(sp - 2)->imm = imm;
+	sp->imm = *((sp + 1)->mem = pc->mem);
+	(sp + 2)->imm = *((sp + 3)->mem = (pc + 1)->mem);
+	(sp + 4)->imm = *((sp + 5)->mem = (pc + 2)->mem);
+	imm = *((sp + 7)->mem = (pc + 3)->mem);
+	pc += 5;
+	sp += 8;
 	goto *(pc - 1)->op;
 
 op_index:
@@ -1265,6 +1303,31 @@ static void c_f_op_push_mem_mem_mem(void)
 	c_sp += 6;
 }
 
+static void c_f_op_push_mem_mem_mem_imm(void)
+{
+	c_sp->imm = *c_pc->mem;
+	(c_sp + 1)->mem = (c_pc++)->mem;
+	(c_sp + 2)->imm = *c_pc->mem;
+	(c_sp + 3)->mem = (c_pc++)->mem;
+	(c_sp + 4)->imm = *c_pc->mem;
+	(c_sp + 5)->mem = (c_pc++)->mem;
+	(c_sp + 6)->imm = (c_pc++)->imm;
+	c_sp += 8;
+}
+
+static void c_f_op_push_mem_mem_mem_mem(void)
+{
+	c_sp->imm = *c_pc->mem;
+	(c_sp + 1)->mem = (c_pc++)->mem;
+	(c_sp + 2)->imm = *c_pc->mem;
+	(c_sp + 3)->mem = (c_pc++)->mem;
+	(c_sp + 4)->imm = *c_pc->mem;
+	(c_sp + 5)->mem = (c_pc++)->mem;
+	(c_sp + 6)->imm = *c_pc->mem;
+	(c_sp + 7)->mem = (c_pc++)->mem;
+	c_sp += 8;
+}
+
 static void c_op_index(void)
 {
 	c_sp -= 2;
@@ -1486,6 +1549,8 @@ static void (*c_op_push_imm_mem)(void) = c_f_op_push_imm_mem;
 static void (*c_op_push_mem_imm)(void) = c_f_op_push_mem_imm;
 static void (*c_op_push_mem_mem)(void) = c_f_op_push_mem_mem;
 static void (*c_op_push_mem_mem_mem)(void) = c_f_op_push_mem_mem_mem;
+static void (*c_op_push_mem_mem_mem_imm)(void) = c_f_op_push_mem_mem_mem_imm;
+static void (*c_op_push_mem_mem_mem_mem)(void) = c_f_op_push_mem_mem_mem_mem;
 
 static void (*c_op_assign)(void) = c_f_op_assign;
 static void (*c_op_assign_pop)(void) = c_f_op_assign_pop;
@@ -1540,6 +1605,8 @@ static struct c_op c_ops[] = {
 	{0, 0, 0, "push_mem_imm", c_f_op_push_mem_imm},
 	{0, 0, 0, "push_mem_mem", c_f_op_push_mem_mem},
 	{0, 0, 0, "push_mem_mem_mem", c_f_op_push_mem_mem_mem},
+	{0, 0, 0, "push_mem_mem_mem_imm", c_f_op_push_mem_mem_mem_imm},
+	{0, 0, 0, "push_mem_mem_mem_mem", c_f_op_push_mem_mem_mem_mem},
 	{0, 0, 0, "assign_pop", c_f_op_assign_pop},
 	{-1}
 #else
