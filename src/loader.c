@@ -465,7 +465,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 					db->options->flags |= DB_NODUP;
 					break;
 				}
-				if (collisions >= LDR_HASH_COLLISIONS_MAX) {
+				if (++collisions <= LDR_HASH_COLLISIONS_MAX)
+					continue;
+				if (format->params.binary_size)
 					fprintf(stderr, "Warning: "
 					    "excessive partial hash "
 					    "collisions detected\n%s",
@@ -474,11 +476,13 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 					    "(cause: the \"format\" lacks "
 					    "proper binary_hash() function "
 					    "definitions)\n");
-					skip_dupe_checking = 1;
-					current_pw = NULL; /* no match */
-					break;
-				}
-				collisions++;
+				else
+					fprintf(stderr, "Warning: "
+					    "check for duplicates partially "
+					    "bypassed to speedup loading\n");
+				skip_dupe_checking = 1;
+				current_pw = NULL; /* no match */
+				break;
 			} while ((current_pw = current_pw->next_hash));
 
 			if (current_pw) continue;
