@@ -351,10 +351,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 			fmt_init(*format = alt);
 			retval = valid;
 #ifdef LDR_WARN_AMBIGUOUS
-			continue;
-#else
-			break;
+			if (!source) /* not --show */
+				continue;
 #endif
+			break;
 		}
 #ifdef LDR_WARN_AMBIGUOUS
 		fprintf(stderr,
