@@ -9,7 +9,7 @@
 
 #define DB_ENTRY_SIZE			200
 
-void process_entry(unsigned char *entry, char *cell)
+static void process_entry(unsigned char *entry, char *cell)
 {
 	char *name = (char *)&entry[40];
 	char *instance = (char *)&entry[104];
@@ -32,7 +32,7 @@ void process_entry(unsigned char *entry, char *cell)
 	printf(",%s\n", cell);
 }
 
-int process_db(FILE *file, char *cell)
+static int process_db(FILE *file, char *cell)
 {
 	unsigned char buffer[DB_ENTRY_SIZE];
 	long size;
