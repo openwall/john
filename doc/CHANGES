@@ -1,3 +1,10 @@
+The following changes have been made between John 1.7.7 and 1.7.7.1:
+
+* The external mode virtual machine's performance has been improved through
+additional multi-op instructions matching common instruction sequences
+(assign-pop and some triple- and quad-push VM instructions were added).
+* A few minor bug fixes and enhancements were made.
+
 The following changes have been made between John 1.7.6.1 and 1.7.7:
 
 * Added Intel AVX and AMD XOP instruction sets support for bitslice DES
