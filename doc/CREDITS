@@ -16,16 +16,18 @@ in x86-mmx.S and x86-sse.S, with modifications).
 
 * Dumplinger Boy (Dango-Chu) - for producing and letting everyone use
 his optimized DES S-box expressions making use of a vector conditional
-select operation such as on PowerPC with AltiVec (found in sboxes-s.c):
+select operation such as on PowerPC with AltiVec (previously found in
+sboxes-s.c, now replaced with Roman Rusakov's):
 
 	http://dango.chu.jp/hiki/?Enhanced+Bitslice+DES
+
+* Roman Rusakov - for the DES S-box expressions that current versions of
+John the Ripper use, as well as for optimization hints during early
+development of John the Ripper.
 
 * Eli Biham - for the great "bitslice" paper:
 
 	http://www.cs.technion.ac.il/~biham/Reports/cs0891.ps.gz
-
-* Roman Rusakov - for his optimization hints which affected early
-versions of John.
 
 * Lionel Cons - for making me add Kerberos AFS passwords support, for
 reporting some bugs, and for many good suggestions.

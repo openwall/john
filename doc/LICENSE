@@ -6,7 +6,7 @@ Portions copyright (c) by their respective authors:
 
 The optimized DES S-box expressions found in sboxes.c and nonstd.c have
 been produced by Matthew Kwan and those found in sboxes-s.c by
-Dumplinger Boy (Dango-Chu).  MMX and non-x86-64 SSE2 code corresponding
+Roman Rusakov.  MMX and non-x86-64 SSE2 code corresponding
 to Matthew's DES S-box expressions (portions of x86-mmx.S and x86-sse.S)
 is based on Bruce Ford and Rémi Guyomarch's MMX implementation.
 
@@ -33,12 +33,6 @@ available at:
 
 	http://www.darkside.com.au/bitslice/
 	http://download.openwall.net/pub/projects/john/contrib/bitslice-des/mkwan/
-
-Dumplinger Boy (Dango-Chu)'s DES S-box expressions are also available
-under the 2-clause BSD license:
-
-	http://dango.chu.jp/hiki/?Enhanced+Bitslice+DES
-	http://download.openwall.net/pub/projects/john/contrib/bitslice-des/dango.chu.jp/
 
 As the copyright holder for the bcrypt (Blowfish-based password hashing)
 implementation found in John the Ripper, I have placed a derived version
