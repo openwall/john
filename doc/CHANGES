@@ -1,5 +1,10 @@
-The following changes have been made between John 1.7.7 and 1.7.7.1:
+The following changes have been made between John 1.7.7 and 1.7.7.2:
 
+* Corrected support for bcrypt (OpenBSD Blowfish) hashes of passwords
+containing non-ASCII characters (that is, characters with the 8th bit set).
+Added support for such hashes produced by crypt_blowfish up to 1.0.4, which
+contained a sign extension bug (inherited from older versions of John).
+The old buggy behavior may be enabled per-hash, using the "$2x$" prefix.
 * The external mode virtual machine's performance has been improved through
 additional multi-op instructions matching common instruction sequences
 (assign-pop and some triple- and quad-push VM instructions were added).
