@@ -22,7 +22,7 @@
 #define CIPHERTEXT_LENGTH		60
 
 #define BINARY_SIZE			4
-#define SALT_SIZE			20
+#define SALT_SIZE			sizeof(BF_salt)
 
 #define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
@@ -38,20 +38,57 @@ static struct fmt_tests tests[] = {
 		""},
 	{"$2a$05$abcdefghijklmnopqrstuu5s2v8.iXieOjg/.AySBTTZIIVFJeBui",
 		"0123456789abcdefghijklmnopqrstuvwxyz"
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"},
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		"chars after 72 are ignored"},
+	{"$2x$05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e",
+		"\xa3"},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq",
+		"\xa3"},
+	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS",
+		"\xd1\x91"},
+	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/O9LIGgn8OMzuDoHfof8AQimSGfcSWxnS",
+		"\xd0\xc1\xd2\xcf\xcc\xd8"},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.swQOIzjOiJ9GHEPuhEkvqrUyvWhEMx6",
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa"
+		"chars after 72 are ignored as usual"},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.R9xrDjiycxMbQE2bp.vgqlYpW5wx2yy",
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"
+		"\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55\xaa\x55"},
+	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.7uG0VCzI2bS7j6ymqJi9CdcdxiRTWNy",
+		""},
+	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.9tQZzcJfm3uj2NvJ/n5xkhpqLrMpWCe",
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"
+		"\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff\x55\xaa\xff"},
 	{NULL}
 };
 
 static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
+static char keys_mode;
+static int sign_extension_bug;
 static BF_salt saved_salt;
 
 #ifdef _OPENMP
 #include <omp.h>
 
 struct fmt_main fmt_BF;
+#endif
 
 static void init(void)
 {
+#ifdef _OPENMP
 	int n = BF_Nmin * omp_get_max_threads();
 	if (n < BF_Nmin)
 		n = BF_Nmin;
@@ -62,15 +99,19 @@ static void init(void)
 	if (n > BF_N)
 		n = BF_N;
 	fmt_BF.params.max_keys_per_crypt = n;
-}
 #endif
+
+	keys_mode = 'a';
+	sign_extension_bug = 0;
+}
 
 static int valid(char *ciphertext)
 {
 	int rounds;
 	char *pos;
 
-	if (strncmp(ciphertext, "$2a$", 4)) return 0;
+	if (strncmp(ciphertext, "$2a$", 4) &&
+	    strncmp(ciphertext, "$2x$", 4)) return 0;
 
 	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0;
 	if (ciphertext[5] < '0' || ciphertext[5] > '9') return 0;
@@ -140,31 +181,38 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-	return *(BF_word *)salt & 0x3FF;
+	return ((BF_salt *)salt)->salt[0] & 0x3FF;
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(saved_salt, salt, sizeof(saved_salt));
+	memcpy(&saved_salt, salt, sizeof(saved_salt));
 }
 
 static void set_key(char *key, int index)
 {
-	BF_std_set_key(key, index);
+	BF_std_set_key(key, index, sign_extension_bug);
 
-	strnfcpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 static char *get_key(int index)
 {
-	saved_key[index][PLAINTEXT_LENGTH] = 0;
-
 	return saved_key[index];
 }
 
 static void crypt_all(int count)
 {
-	BF_std_crypt(saved_salt, count);
+	if (keys_mode != saved_salt.subtype) {
+		int i;
+
+		keys_mode = saved_salt.subtype;
+		sign_extension_bug = (keys_mode == 'x');
+		for (i = 0; i < count; i++)
+			BF_std_set_key(saved_key[i], i, sign_extension_bug);
+	}
+
+	BF_std_crypt(&saved_salt, count);
 }
 
 static int cmp_all(void *binary, int count)
@@ -214,15 +262,11 @@ struct fmt_main fmt_BF = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
-#ifdef _OPENMP
 		init,
-#else
-		fmt_default_init,
-#endif
 		valid,
 		fmt_default_split,
-		(void *(*)(char *))BF_std_get_binary,
-		(void *(*)(char *))BF_std_get_salt,
+		BF_std_get_binary,
+		BF_std_get_salt,
 		{
 			binary_hash_0,
 			binary_hash_1,

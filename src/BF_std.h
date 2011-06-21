@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
  */
 
 /*
@@ -16,9 +16,13 @@
 typedef ARCH_WORD_32 BF_word;
 
 /*
- * Binary salt type, also keeps the number of rounds.
+ * Binary salt type, also keeps the number of rounds and hash sub-type.
  */
-typedef BF_word BF_salt[4 + 1];
+typedef struct {
+	BF_word salt[4];
+	unsigned char rounds;
+	char subtype;
+} BF_salt;
 
 /*
  * Binary ciphertext type.
@@ -59,13 +63,13 @@ extern unsigned char BF_atoi64[0x80];
 /*
  * Sets a key for BF_std_crypt().
  */
-extern void BF_std_set_key(char *key, int index);
+extern void BF_std_set_key(char *key, int index, int sign_extension_bug);
 
 /*
  * Main hashing routine, sets first two words of BF_out
  * (or all words in an OpenMP-enabled build).
  */
-extern void BF_std_crypt(BF_salt salt, int n);
+extern void BF_std_crypt(BF_salt *salt, int n);
 
 #if BF_mt == 1
 /*
@@ -77,11 +81,11 @@ extern void BF_std_crypt_exact(int index);
 /*
  * Returns the salt for BF_std_crypt().
  */
-extern BF_word *BF_std_get_salt(char *ciphertext);
+extern void *BF_std_get_salt(char *ciphertext);
 
 /*
  * Converts an ASCII ciphertext to binary.
  */
-extern BF_word *BF_std_get_binary(char *ciphertext);
+extern void *BF_std_get_binary(char *ciphertext);
 
 #endif

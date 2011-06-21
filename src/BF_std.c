@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
  *
  * A public domain version of this code, with reentrant and crypt(3)
  * interfaces added, but optimizations specific to password cracking
@@ -577,7 +577,7 @@ extern void (*BF_body)(void);
 
 #endif
 
-void BF_std_set_key(char *key, int index)
+void BF_std_set_key(char *key, int index, int sign_extension_bug)
 {
 	char *ptr = key;
 	int i, j;
@@ -587,7 +587,10 @@ void BF_std_set_key(char *key, int index)
 		tmp = 0;
 		for (j = 0; j < 4; j++) {
 			tmp <<= 8;
-			tmp |= *ptr;
+			if (sign_extension_bug)
+				tmp |= (int)(signed char)*ptr;
+			else
+				tmp |= (unsigned char)*ptr;
 
 			if (!*ptr) ptr = key; else ptr++;
 		}
@@ -597,7 +600,7 @@ void BF_std_set_key(char *key, int index)
 	}
 }
 
-void BF_std_crypt(BF_salt salt, int n)
+void BF_std_crypt(BF_salt *salt, int n)
 {
 #if BF_mt > 1
 	int t;
@@ -637,8 +640,8 @@ void BF_std_crypt(BF_salt salt, int n)
 
 			L0 = R0 = 0;
 			for (i = 0; i < BF_ROUNDS + 2; i += 2) {
-				L0 ^= salt[i & 2];
-				R0 ^= salt[(i & 2) + 1];
+				L0 ^= salt->salt[i & 2];
+				R0 ^= salt->salt[(i & 2) + 1];
 				BF_ENCRYPT(BF_current INDEX2, L0, R0);
 				BF_current INDEX2.P[i] = L0;
 				BF_current INDEX2.P[i + 1] = R0;
@@ -647,21 +650,21 @@ void BF_std_crypt(BF_salt salt, int n)
 			ptr = BF_current INDEX2.S[0];
 			do {
 				ptr += 4;
-				L0 ^= salt[(BF_ROUNDS + 2) & 3];
-				R0 ^= salt[(BF_ROUNDS + 3) & 3];
+				L0 ^= salt->salt[(BF_ROUNDS + 2) & 3];
+				R0 ^= salt->salt[(BF_ROUNDS + 3) & 3];
 				BF_ENCRYPT(BF_current INDEX2, L0, R0);
 				*(ptr - 4) = L0;
 				*(ptr - 3) = R0;
 
-				L0 ^= salt[(BF_ROUNDS + 4) & 3];
-				R0 ^= salt[(BF_ROUNDS + 5) & 3];
+				L0 ^= salt->salt[(BF_ROUNDS + 4) & 3];
+				R0 ^= salt->salt[(BF_ROUNDS + 5) & 3];
 				BF_ENCRYPT(BF_current INDEX2, L0, R0);
 				*(ptr - 2) = L0;
 				*(ptr - 1) = R0;
 			} while (ptr < &BF_current INDEX2.S[3][0xFF]);
 		}
 
-		count = salt[4];
+		count = 1 << salt->rounds;
 		do {
 			for_each_ti() {
 				BF_current INDEX2.P[0] ^= BF_exp_key INDEX[0];
@@ -686,10 +689,10 @@ void BF_std_crypt(BF_salt salt, int n)
 
 			BF_body();
 
-			u1 = salt[0];
-			u2 = salt[1];
-			u3 = salt[2];
-			u4 = salt[3];
+			u1 = salt->salt[0];
+			u2 = salt->salt[1];
+			u3 = salt->salt[2];
+			u4 = salt->salt[3];
 			for_each_ti() {
 				BF_current INDEX2.P[0] ^= u1;
 				BF_current INDEX2.P[1] ^= u2;
@@ -806,19 +809,20 @@ static void BF_decode(BF_word *dst, char *src, int size)
 	} while (dptr < end);
 }
 
-BF_word *BF_std_get_salt(char *ciphertext)
+void *BF_std_get_salt(char *ciphertext)
 {
 	static BF_salt salt;
 
-	BF_decode(salt, &ciphertext[7], 16);
-	BF_swap(salt, 4);
+	BF_decode(salt.salt, &ciphertext[7], 16);
+	BF_swap(salt.salt, 4);
 
-	salt[4] = (BF_word)1 << atoi(&ciphertext[4]);
+	salt.rounds = atoi(&ciphertext[4]);
+	salt.subtype = ciphertext[2];
 
-	return salt;
+	return &salt;
 }
 
-BF_word *BF_std_get_binary(char *ciphertext)
+void *BF_std_get_binary(char *ciphertext)
 {
 	static BF_binary binary;
 
@@ -827,5 +831,5 @@ BF_word *BF_std_get_binary(char *ciphertext)
 	BF_swap(binary, 6);
 	binary[5] &= ~(BF_word)0xFF;
 
-	return binary;
+	return &binary;
 }
