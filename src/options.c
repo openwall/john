@@ -68,12 +68,7 @@ static struct opt_entry opt_list[] = {
 	{NULL}
 };
 
-#if DES_BS
-/* nonstd.c, sboxes.c, sboxes-s.c, and parts of x86-mmx.S aren't mine - SD */
-#define JOHN_COPYRIGHT "Solar Designer and others"
-#else
 #define JOHN_COPYRIGHT "Solar Designer"
-#endif
 
 #ifdef HAVE_CRYPT
 #define MAYBE_CRYPT "/crypt"

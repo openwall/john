@@ -2,10 +2,6 @@
 
 John the Ripper password cracker,
 Copyright (c) 1996-2011 by Solar Designer.
-Portions copyright (c) by their respective authors:
-
-The DES S-box code found in sboxes.c and nonstd.c has been produced by
-Matthew Kwan.
 
 This version of John the Ripper is hereby being made available to you
 under the terms of the GNU General Public License version 2 as published
@@ -22,15 +18,6 @@ General Public License for more details.
 In addition or alternatively to the license above, the following
 components are available to you under more relaxed terms:
 
-As specified in the corresponding source files (sboxes.c and nonstd.c),
-Matthew Kwan's DES S-box expressions may be modified, redistributed, and
-used for any purpose, so long as their origin is acknowledged.
-Matthew's original files (prior to modification for John the Ripper) are
-available at:
-
-	http://www.darkside.com.au/bitslice/
-	http://download.openwall.net/pub/projects/john/contrib/bitslice-des/mkwan/
-
 As the copyright holder for the bcrypt (Blowfish-based password hashing)
 implementation found in John the Ripper, I have placed a derived version
 of this implementation in the public domain.  This derived version may
@@ -41,8 +28,8 @@ be obtained at:
 The intent is to provide modern password hashing for your servers and
 your software (where the GPL restrictions could be a problem).
 
-Finally, I have placed the CRC-32 implementation (crc32.c, crc32.h) in
-the public domain.
+Additionally, I have placed the CRC-32 implementation (crc32.c, crc32.h)
+in the public domain.
 
 
 	Commercial licensing.
@@ -52,4 +39,4 @@ Commercial licenses (non-GPL) are available upon request.
 -- 
 Alexander Peslyak aka Solar Designer <solar at openwall.com>
 
-$Owl: Owl/packages/john/john/doc/LICENSE,v 1.11 2011/06/22 01:38:12 solar Exp $
+$Owl: Owl/packages/john/john/doc/LICENSE,v 1.12 2011/06/22 13:03:43 solar Exp $
