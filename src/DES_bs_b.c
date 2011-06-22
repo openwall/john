@@ -747,6 +747,7 @@ typedef ARCH_WORD vtype;
 #elif DES_BS == 2
 #include "sboxes.c"
 #else
+#undef andn
 #include "nonstd.c"
 #endif
 
