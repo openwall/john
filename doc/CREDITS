@@ -11,8 +11,9 @@ DES S-box expressions (found in nonstd.c and sboxes.c):
 	http://www.darkside.com.au/bitslice/
 
 * Bruce Ford and Rémi Guyomarch - for producing and permitting the use
-of their MMX implementation of Matthew Kwan's S-box expressions (found
-in x86-mmx.S and x86-sse.S, with modifications).
+of their MMX implementation of Matthew Kwan's S-box expressions
+(previously found in x86-mmx.S and x86-sse.S, with modifications, now
+replaced with Roman Rusakov's).
 
 * Dumplinger Boy (Dango-Chu) - for producing and letting everyone use
 his optimized DES S-box expressions making use of a vector conditional
