@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2011 by Solar Designer
  */
 
 /*
@@ -11,6 +11,13 @@
 #define _JOHN_EXTERNAL_H
 
 #include "loader.h"
+
+#define EXT_REQ_GENERATE		0x00000001
+#define EXT_REQ_FILTER			0x00000002
+#define EXT_USES_GENERATE		0x00010000
+#define EXT_USES_FILTER			0x00020000
+
+extern unsigned int ext_flags;
 
 /*
  * Defined for use in the ext_filter() macro, below.

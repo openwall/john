@@ -18,6 +18,7 @@
 #include "recovery.h"
 #include "options.h"
 #include "bench.h"
+#include "external.h"
 
 struct options_main options;
 
@@ -123,10 +124,16 @@ void opt_init(char *name, int argc, char **argv)
 
 	opt_process(opt_list, &options.flags, argv);
 
-	if ((options.flags &
-	    (FLG_EXTERNAL_CHK | FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) ==
-	    FLG_EXTERNAL_CHK)
-		options.flags |= FLG_CRACKING_SET;
+	ext_flags = 0;
+	if (options.flags & FLG_EXTERNAL_CHK) {
+		if (options.flags & (FLG_CRACKING_CHK | FLG_MAKECHR_CHK)) {
+			ext_flags = EXT_REQ_FILTER | EXT_USES_FILTER;
+		} else {
+			options.flags |= FLG_CRACKING_SET;
+			ext_flags = EXT_REQ_GENERATE |
+			    EXT_USES_GENERATE | EXT_USES_FILTER;
+		}
+	}
 
 	if (!(options.flags & FLG_ACTION))
 		options.flags |= FLG_BATCH_SET;
