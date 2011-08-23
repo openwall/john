@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2011 by Solar Designer
  */
 
 #include <stdio.h>
@@ -16,10 +16,12 @@
 #include "recovery.h"
 #include "config.h"
 #include "cracker.h"
+#include "external.h"
 
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
 
+unsigned int ext_flags = 0;
 char *ext_mode = NULL;
 
 static c_int ext_word[PLAINTEXT_BUFFER_SIZE];
@@ -77,6 +79,19 @@ void ext_init(char *mode)
 
 	f_generate = c_lookup("generate");
 	f_filter = c_lookup("filter");
+
+	if ((ext_flags & EXT_REQ_GENERATE) && !f_generate) {
+		fprintf(stderr, "No generate() for external mode: %s\n", mode);
+		error();
+	}
+	if ((ext_flags & EXT_REQ_FILTER) && !f_filter) {
+		fprintf(stderr, "No filter() for external mode: %s\n", mode);
+		error();
+	}
+	if ((ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
+	    EXT_USES_FILTER && f_generate)
+		fprintf(stderr, "Warning: external mode defines generate(), "
+		    "but is only used for filter()\n");
 
 	ext_mode = mode;
 }
@@ -146,13 +161,6 @@ void do_external_crack(struct db_main *db)
 	c_int *external;
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
-
-	if (!f_generate) {
-		log_event("! No generate() function defined");
-		fprintf(stderr, "No generate() for external mode: %s\n",
-			ext_mode);
-		error();
-	}
 
 	internal = (unsigned char *)int_word;
 	external = ext_word;
