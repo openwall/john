@@ -43,6 +43,18 @@ It is better to modify generate() not to generate words that would get
 filtered out.
 
 
+	Pre-defined variables.
+
+Besides the "word" variable documented above, John the Ripper 1.7.9 and
+newer pre-defines two additional variables: "abort" and "status", both
+of type "int".  When set to 1 by an external mode, these cause the
+current cracking session to be aborted or the status line to be
+displayed (just like on a keypress), respectively.  These actions are
+taken after having tested at least all of the candidate passwords that
+were in external mode's "word" so far.  In other words, the actions may
+be delayed in order to process any buffered candidate passwords.
+
+
 	The language.
 
 As it has been mentioned above, the compiler supports a subset of C.
@@ -75,4 +87,4 @@ functions);
 You can find some external mode examples in the default configuration
 file supplied with John.
 
-$Owl: Owl/packages/john/john/doc/EXTERNAL,v 1.2 2005/11/16 13:11:15 solar Exp $
+$Owl: Owl/packages/john/john/doc/EXTERNAL,v 1.3 2011/09/18 07:44:58 solar Exp $
