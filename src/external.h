@@ -10,6 +10,7 @@
 #ifndef _JOHN_EXTERNAL_H
 #define _JOHN_EXTERNAL_H
 
+#include "compiler.h"
 #include "loader.h"
 
 #define EXT_REQ_GENERATE		0x00000001
@@ -18,6 +19,8 @@
 #define EXT_USES_FILTER			0x00020000
 
 extern unsigned int ext_flags;
+
+extern c_int ext_abort, ext_status;
 
 /*
  * Defined for use in the ext_filter() macro, below.
