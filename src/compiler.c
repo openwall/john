@@ -221,9 +221,9 @@ static char *c_gettoken(void)
 	return token;
 }
 
-static int c_getint(char *token)
+static c_int c_getint(char *token)
 {
-	int value;
+	c_int value;
 	long l_value;
 	char *error;
 
@@ -236,7 +236,7 @@ static int c_getint(char *token)
 	} else {
 		errno = 0;
 		l_value = strtol(token, &error, 0);
-		value = (int)l_value;
+		value = (c_int)l_value;
 		if (errno == ERANGE || (long)value != l_value)
 			c_errno = C_ERROR_RANGE;
 		else
@@ -422,7 +422,7 @@ static int c_define(char term, struct c_ident **vars, struct c_ident *globals)
 {
 	char *token;
 	char c;
-	int size;
+	c_int size;
 
 	c_expect(' ');
 	token = c_gettoken();
