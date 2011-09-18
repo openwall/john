@@ -24,8 +24,8 @@ extern void crk_init(struct db_main *db, void (*fix_state)(void),
 
 /*
  * Tries the key against all passwords in the database (should not be empty).
- * The return value is non-zero if aborted or everything got cracked (event
- * flags can be used to find out which of these has happened).
+ * The return value is non-zero if aborted or everything got cracked (the
+ * event_abort flag can be used to find out which of these has happened).
  */
 extern int crk_process_key(char *key);
 
