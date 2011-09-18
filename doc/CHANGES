@@ -1,3 +1,9 @@
+The following changes have been made between John 1.7.8 and 1.7.9:
+
+* Two pre-defined external mode variables have been added: "abort" and
+"status", which let an external mode request the current cracking session to be
+aborted or the status line to be displayed, respectively.
+
 The following changes have been made between John 1.7.7 and 1.7.8:
 
 * The bitslice DES S-box expressions have been replaced with those generated
