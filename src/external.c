@@ -25,9 +25,22 @@ unsigned int ext_flags = 0;
 char *ext_mode = NULL;
 
 static c_int ext_word[PLAINTEXT_BUFFER_SIZE];
+c_int ext_abort, ext_status;
+
+static struct c_ident ext_ident_status = {
+	NULL,
+	"status",
+	&ext_status
+};
+
+static struct c_ident ext_ident_abort = {
+	&ext_ident_status,
+	"abort",
+	&ext_abort
+};
 
 static struct c_ident ext_globals = {
-	NULL,
+	&ext_ident_abort,
 	"word",
 	ext_word
 };

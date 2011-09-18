@@ -17,6 +17,7 @@
 #include "logger.h"
 #include "status.h"
 #include "recovery.h"
+#include "external.h"
 
 #ifdef index
 #undef index
@@ -203,7 +204,16 @@ static int crk_salt_loop(void)
 
 	crk_methods.clear_keys();
 
-	return 0;
+	if (ext_abort)
+		event_abort = 1;
+
+	if (ext_status && !event_abort) {
+		ext_status = 0;
+		event_status = 0;
+		status_print();
+	}
+
+	return ext_abort;
 }
 
 int crk_process_key(char *key)
@@ -229,7 +239,16 @@ int crk_process_key(char *key)
 	status_update_crypts(1);
 	crk_fix_state();
 
-	return 0;
+	if (ext_abort)
+		event_abort = 1;
+
+	if (ext_status && !event_abort) {
+		ext_status = 0;
+		event_status = 0;
+		status_print();
+	}
+
+	return ext_abort;
 }
 
 int crk_process_salt(struct db_salt *salt)
