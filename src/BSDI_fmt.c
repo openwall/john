@@ -58,7 +58,7 @@ static struct fmt_tests tests[] = {
 #define MIN_KEYS_PER_CRYPT		4
 #define MAX_KEYS_PER_CRYPT		8
 
-ARCH_WORD saved_salt, current_salt;
+static ARCH_WORD saved_salt, current_salt;
 
 #endif
 
