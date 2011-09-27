@@ -18,8 +18,9 @@
  * Perl script.  The script performed various optimizations, including the
  * x86-64 specific optimization of preferring registers 0-7 over 8-15 to reduce
  * the number of instruction prefixes (and thus code size).  The instruction
- * scheduling has not been tuned for specific CPUs yet (it is based on a single
- * pass by a loop in the Perl script).
+ * scheduling for S1 through S4 has been tuned for Core 2.  For S5 through S8,
+ * this hasn't been done yet (it is based on a single pass by a loop in the
+ * Perl script).
  *
  * The effort has been sponsored by Rapid7: http://www.rapid7.com
  */
@@ -95,80 +96,79 @@ DO_SPACE(0x100)
 #define a6				%xmm5
 
 #define S1(out1, out2, out3, out4) \
-	movdqa %xmm3,tmp_at(1); \
 	movdqa %xmm4,%xmm7; \
 	movdqa %xmm5,%xmm10; \
-	pandn %xmm0,%xmm7; \
-	movdqa %xmm2,%xmm12; \
-	movdqa %xmm7,%xmm14; \
+	pandn %xmm0,%xmm4; \
+	movdqa %xmm2,%xmm13; \
+	movdqa %xmm4,%xmm14; \
 	por %xmm2,%xmm10; \
 	movdqa %xmm5,%xmm11; \
+	pxor %xmm0,%xmm13; \
+	pxor %xmm7,%xmm11; \
 	pxor %xmm3,%xmm14; \
-	pxor %xmm0,%xmm12; \
-	movdqa %xmm14,%xmm9; \
-	movdqa %xmm12,%xmm3; \
-	pxor %xmm4,%xmm11; \
-	pand %xmm10,%xmm3; \
+	movdqa %xmm13,%xmm12; \
 	movdqa %xmm11,%xmm15; \
-	movdqa %xmm3,%xmm8; \
+	pand %xmm10,%xmm13; \
+	movdqa %xmm14,%xmm9; \
+	movdqa %xmm13,%xmm8; \
 	pxor %xmm2,%xmm15; \
-	pxor tmp_at(1),%xmm8; \
-	pandn %xmm8,%xmm9; \
-	pandn %xmm14,%xmm15; \
-	por %xmm5,%xmm3; \
-	por %xmm0,%xmm5; \
-	pxor %xmm15,%xmm3; \
-	movdqa %xmm9,%xmm15; \
-	movdqa %xmm5,%xmm6; \
-	pandn %xmm3,%xmm15; \
-	por %xmm3,%xmm6; \
-	pandn %xmm4,%xmm8; \
-	movdqa %xmm8,%xmm13; \
-	pandn tmp_at(1),%xmm5; \
-	pxor %xmm6,%xmm13; \
-	pxor %xmm8,%xmm5; \
+	pxor %xmm3,%xmm8; \
 	pandn %xmm11,%xmm12; \
-	por %xmm12,%xmm5; \
-	pandn %xmm2,%xmm7; \
+	pandn %xmm8,%xmm9; \
+	por %xmm5,%xmm13; \
+	por %xmm0,%xmm5; \
+	pandn %xmm7,%xmm8; \
+	pandn %xmm14,%xmm15; \
+	movdqa %xmm5,%xmm6; \
+	pxor %xmm15,%xmm13; \
+	movdqa %xmm9,%xmm15; \
+	por %xmm13,%xmm6; \
+	pandn %xmm3,%xmm5; \
+	movdqa %xmm8,%xmm3; \
+	pandn %xmm13,%xmm15; \
+	pxor %xmm6,%xmm8; \
+	pxor %xmm3,%xmm5; \
+	pand %xmm10,%xmm13; \
+	pandn %xmm2,%xmm4; \
 	movdqa %xmm6,%xmm2; \
-	pand %xmm10,%xmm3; \
-	pxor %xmm14,%xmm2; \
-	pandn %xmm2,%xmm7; \
-	movdqa %xmm7,%xmm2; \
-	pxor %xmm11,%xmm7; \
-	pxor pnot,%xmm2; \
-	pxor %xmm2,%xmm3; \
-	movdqa %xmm1,%xmm2; \
-	por %xmm8,%xmm7; \
-	pandn %xmm13,%xmm2; \
-	pxor %xmm3,%xmm2; \
-	pxor out3,%xmm2; \
-	movdqa %xmm2,out3; \
-	pxor %xmm10,%xmm7; \
-	pxor %xmm0,%xmm7; \
-	movdqa %xmm1,%xmm0; \
-	pxor %xmm7,%xmm3; \
-	por %xmm1,%xmm9; \
-	pxor %xmm3,%xmm9; \
-	pxor out1,%xmm9; \
-	movdqa %xmm9,out1; \
 	pxor %xmm10,%xmm6; \
+	pxor %xmm14,%xmm2; \
+	pandn %xmm2,%xmm4; \
+	movdqa %xmm4,%xmm2; \
+	pxor pnot,%xmm2; \
+	pxor %xmm11,%xmm4; \
+	pxor %xmm2,%xmm13; \
+	movdqa %xmm1,%xmm2; \
+	por %xmm3,%xmm4; \
+	pandn %xmm8,%xmm2; \
+	por %xmm7,%xmm14; \
+	pxor %xmm10,%xmm4; \
+	por %xmm1,%xmm9; \
+	pxor %xmm13,%xmm2; \
+	pxor %xmm0,%xmm4; \
+	movdqa %xmm1,%xmm0; \
+	pxor %xmm4,%xmm13; \
+	pxor %xmm13,%xmm9; \
+	por %xmm12,%xmm5; \
+	pxor out1,%xmm9; \
 	por %xmm5,%xmm6; \
-	pxor %xmm7,%xmm6; \
-	por %xmm11,%xmm3; \
-	pxor %xmm6,%xmm3; \
+	por %xmm11,%xmm13; \
+	pxor %xmm4,%xmm6; \
+	movdqa %xmm9,out1; \
 	por %xmm15,%xmm0; \
-	pxor %xmm0,%xmm3; \
-	pxor out2,%xmm3; \
-	movdqa %xmm3,out2; \
-	por %xmm4,%xmm14; \
+	pxor %xmm6,%xmm13; \
+	pxor out3,%xmm2; \
+	pxor out2,%xmm13; \
+	pand %xmm15,%xmm4; \
 	pandn %xmm14,%xmm6; \
-	pand %xmm15,%xmm7; \
-	pxor %xmm6,%xmm7; \
-	por %xmm1,%xmm7; \
-	pxor %xmm5,%xmm7; \
-	pxor out4,%xmm7; \
-	movdqa %xmm7,out4
+	pxor %xmm0,%xmm13; \
+	pxor %xmm6,%xmm4; \
+	movdqa %xmm2,out3; \
+	por %xmm1,%xmm4; \
+	pxor %xmm5,%xmm4; \
+	movdqa %xmm13,out2; \
+	pxor out4,%xmm4; \
+	movdqa %xmm4,out4
 
 #define S2(out1, out2, out3, out4) \
 	movdqa %xmm4,%xmm13; \
@@ -181,60 +181,59 @@ DO_SPACE(0x100)
 	movdqa %xmm5,%xmm9; \
 	movdqa %xmm6,%xmm14; \
 	pandn %xmm13,%xmm8; \
-	por %xmm1,%xmm14; \
-	movdqa %xmm8,%xmm12; \
 	pand %xmm0,%xmm7; \
 	pxor pnot,%xmm0; \
+	por %xmm1,%xmm14; \
+	movdqa %xmm8,%xmm12; \
 	pxor %xmm4,%xmm7; \
-	pandn %xmm7,%xmm12; \
 	pand %xmm2,%xmm9; \
+	pxor %xmm5,%xmm13; \
 	pxor %xmm8,%xmm6; \
 	movdqa %xmm9,%xmm10; \
 	pand %xmm14,%xmm6; \
 	pandn %xmm6,%xmm10; \
 	pand %xmm2,%xmm6; \
+	pandn %xmm7,%xmm12; \
 	pxor %xmm6,%xmm0; \
-	pxor %xmm5,%xmm13; \
 	movdqa %xmm9,%xmm5; \
 	pandn %xmm3,%xmm10; \
 	pandn %xmm13,%xmm5; \
 	movdqa %xmm5,%xmm11; \
 	pandn %xmm1,%xmm5; \
 	pxor %xmm0,%xmm11; \
-	pxor %xmm11,%xmm10; \
-	pxor out2,%xmm10; \
-	movdqa %xmm10,out2; \
+	pxor %xmm13,%xmm2; \
+	por %xmm3,%xmm12; \
 	pxor %xmm5,%xmm7; \
 	movdqa %xmm7,%xmm1; \
-	pxor %xmm13,%xmm2; \
+	pxor out2,%xmm10; \
 	pandn %xmm0,%xmm1; \
 	movdqa %xmm3,%xmm0; \
 	pxor %xmm2,%xmm1; \
 	pandn %xmm14,%xmm0; \
-	pxor %xmm1,%xmm0; \
-	pxor out1,%xmm0; \
-	movdqa %xmm0,out1; \
-	pxor %xmm5,%xmm6; \
-	por %xmm6,%xmm2; \
 	pxor %xmm11,%xmm14; \
+	pxor %xmm5,%xmm6; \
+	pxor %xmm1,%xmm0; \
+	por %xmm6,%xmm2; \
 	por %xmm14,%xmm9; \
-	pxor %xmm9,%xmm2; \
 	pxor %xmm1,%xmm6; \
-	movdqa %xmm3,%xmm1; \
+	pxor %xmm11,%xmm10; \
 	pand %xmm9,%xmm6; \
+	pxor out3,%xmm2; \
 	pxor %xmm4,%xmm6; \
 	pandn %xmm6,%xmm8; \
+	pxor %xmm9,%xmm2; \
 	pxor %xmm11,%xmm8; \
-	por %xmm8,%xmm1; \
-	pxor %xmm1,%xmm2; \
-	pxor out3,%xmm2; \
-	movdqa %xmm2,out3; \
-	pandn %xmm8,%xmm7; \
+	por %xmm8,%xmm3; \
 	por %xmm13,%xmm14; \
-	pxor %xmm14,%xmm7; \
-	por %xmm3,%xmm12; \
-	pxor %xmm12,%xmm7; \
+	pxor %xmm3,%xmm2; \
+	pandn %xmm8,%xmm7; \
+	movdqa %xmm2,out3; \
 	pxor out4,%xmm7; \
+	movdqa %xmm10,out2; \
+	pxor %xmm14,%xmm7; \
+	pxor out1,%xmm0; \
+	pxor %xmm12,%xmm7; \
+	movdqa %xmm0,out1; \
 	movdqa %xmm7,out4
 
 #define S3(out1, out2, out3, out4) \
@@ -247,12 +246,12 @@ DO_SPACE(0x100)
 	por %xmm13,%xmm6; \
 	movdqa %xmm13,%xmm9; \
 	pxor %xmm3,%xmm8; \
-	movdqa %xmm5,%xmm14; \
-	pandn %xmm8,%xmm11; \
-	movdqa %xmm4,%xmm12; \
-	movdqa %xmm11,%xmm10; \
-	pxor %xmm1,%xmm9; \
 	movdqa %xmm3,%xmm15; \
+	pandn %xmm8,%xmm11; \
+	pxor %xmm1,%xmm9; \
+	movdqa %xmm11,%xmm10; \
+	movdqa %xmm4,%xmm12; \
+	movdqa %xmm5,%xmm14; \
 	pxor %xmm6,%xmm10; \
 	pandn %xmm9,%xmm14; \
 	movdqa %xmm10,%xmm7; \
@@ -262,103 +261,103 @@ DO_SPACE(0x100)
 	pand %xmm3,%xmm5; \
 	pandn %xmm10,%xmm14; \
 	por %xmm3,%xmm7; \
-	pand %xmm0,%xmm7; \
-	pxor %xmm9,%xmm7; \
 	pandn %xmm10,%xmm12; \
-	pxor %xmm7,%xmm12; \
+	pand %xmm0,%xmm7; \
 	pxor out4,%xmm12; \
-	movdqa %xmm12,out4; \
+	pxor %xmm9,%xmm7; \
 	pand %xmm13,%xmm8; \
 	pxor %xmm0,%xmm15; \
+	pxor %xmm7,%xmm12; \
 	pxor %xmm15,%xmm6; \
+	pand %xmm3,%xmm13; \
 	por %xmm2,%xmm6; \
-	pandn %xmm6,%xmm8; \
 	por %xmm11,%xmm15; \
+	pandn %xmm6,%xmm8; \
 	movdqa %xmm15,%xmm6; \
 	pand %xmm4,%xmm8; \
 	pandn %xmm7,%xmm6; \
 	movdqa %xmm1,%xmm7; \
 	pandn %xmm10,%xmm1; \
 	pandn %xmm5,%xmm7; \
+	por %xmm9,%xmm5; \
 	pxor %xmm7,%xmm6; \
 	movdqa %xmm2,%xmm7; \
-	por %xmm9,%xmm5; \
-	pandn %xmm6,%xmm7; \
-	pandn %xmm5,%xmm7; \
-	pxor %xmm0,%xmm7; \
-	pxor %xmm8,%xmm7; \
-	pxor out2,%xmm7; \
-	movdqa %xmm7,out2; \
-	pandn %xmm1,%xmm2; \
 	pxor %xmm9,%xmm15; \
+	pandn %xmm6,%xmm7; \
+	pandn %xmm1,%xmm2; \
+	pandn %xmm5,%xmm7; \
 	pxor pnot,%xmm15; \
+	pxor out2,%xmm7; \
 	pxor %xmm2,%xmm15; \
 	pandn %xmm4,%xmm14; \
-	pxor %xmm15,%xmm14; \
-	pxor out1,%xmm14; \
-	movdqa %xmm14,out1; \
-	pand %xmm3,%xmm13; \
-	por %xmm9,%xmm15; \
-	pandn %xmm15,%xmm13; \
+	movdqa %xmm12,out4; \
+	por %xmm15,%xmm9; \
+	pxor %xmm0,%xmm7; \
+	pandn %xmm9,%xmm13; \
 	por %xmm11,%xmm1; \
+	pxor %xmm8,%xmm7; \
 	pxor %xmm1,%xmm13; \
 	por %xmm4,%xmm6; \
+	pxor out1,%xmm14; \
 	pxor %xmm13,%xmm6; \
+	pxor %xmm15,%xmm14; \
 	pxor out3,%xmm6; \
+	movdqa %xmm7,out2; \
+	movdqa %xmm14,out1; \
 	movdqa %xmm6,out3
 
 #define S4(out1, out2, out3, out4) \
+	movdqa %xmm3,%xmm7; \
+	movdqa %xmm1,%xmm8; \
 	pxor %xmm2,%xmm0; \
 	pxor %xmm4,%xmm2; \
-	movdqa %xmm3,%xmm7; \
 	por %xmm1,%xmm3; \
-	movdqa %xmm1,%xmm8; \
-	pxor %xmm4,%xmm3; \
-	pandn %xmm2,%xmm3; \
 	pandn %xmm2,%xmm1; \
-	movdqa %xmm3,%xmm6; \
+	pxor %xmm4,%xmm3; \
 	movdqa %xmm1,%xmm10; \
 	pxor %xmm7,%xmm1; \
+	pandn %xmm2,%xmm3; \
 	movdqa %xmm1,%xmm11; \
+	movdqa %xmm3,%xmm6; \
+	pxor %xmm8,%xmm7; \
 	por %xmm0,%xmm1; \
 	pandn %xmm1,%xmm3; \
 	movdqa %xmm3,%xmm1; \
+	movdqa %xmm5,%xmm12; \
 	pxor %xmm8,%xmm3; \
 	pand %xmm3,%xmm11; \
 	movdqa %xmm11,%xmm9; \
-	pandn %xmm2,%xmm11; \
-	movdqa %xmm5,%xmm2; \
-	pxor %xmm3,%xmm0; \
-	pandn %xmm0,%xmm11; \
-	pxor %xmm11,%xmm6; \
-	pxor %xmm8,%xmm7; \
 	por %xmm4,%xmm10; \
-	movdqa %xmm6,%xmm4; \
+	pxor %xmm3,%xmm0; \
+	pandn %xmm2,%xmm11; \
+	pandn %xmm0,%xmm11; \
 	pxor %xmm0,%xmm10; \
 	movdqa %xmm7,%xmm0; \
-	pandn %xmm10,%xmm7; \
-	pxor %xmm1,%xmm7; \
+	pxor %xmm11,%xmm6; \
+	movdqa %xmm6,%xmm4; \
 	pandn %xmm5,%xmm6; \
-	pxor %xmm7,%xmm6; \
+	pandn %xmm10,%xmm7; \
 	pxor out1,%xmm6; \
-	movdqa %xmm6,out1; \
-	pxor pnot,%xmm7; \
 	pandn %xmm4,%xmm5; \
+	pxor %xmm1,%xmm7; \
+	pxor %xmm7,%xmm6; \
+	pxor pnot,%xmm7; \
 	pxor %xmm7,%xmm5; \
+	pxor %xmm4,%xmm7; \
 	pxor out2,%xmm5; \
 	movdqa %xmm5,out2; \
-	pxor %xmm4,%xmm7; \
 	pandn %xmm7,%xmm0; \
-	movdqa %xmm2,%xmm7; \
+	movdqa %xmm12,%xmm7; \
 	por %xmm9,%xmm0; \
+	movdqa %xmm6,out1; \
 	pxor %xmm10,%xmm0; \
-	por %xmm3,%xmm2; \
-	pxor %xmm0,%xmm2; \
-	pxor out3,%xmm2; \
-	movdqa %xmm2,out3; \
-	pand %xmm7,%xmm3; \
-	pxor %xmm3,%xmm0; \
+	por %xmm3,%xmm12; \
+	pxor %xmm0,%xmm12; \
 	pxor out4,%xmm0; \
+	pand %xmm7,%xmm3; \
+	pxor out3,%xmm12; \
+	movdqa %xmm12,out3; \
+	pxor %xmm3,%xmm0; \
 	movdqa %xmm0,out4
 
 #define S5(out1, out2, out3, out4) \
