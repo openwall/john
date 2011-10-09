@@ -3,6 +3,10 @@ The following changes have been made between John 1.7.8 and 1.7.9:
 * Two pre-defined external mode variables have been added: "abort" and
 "status", which let an external mode request the current cracking session to be
 aborted or the status line to be displayed, respectively.
+* Optimized the DES S-box x86-64 (16-register SSE2) assembly code, disabled the
+use of SSE2 intrinsics for DES S-boxes even with very recent GCC now that the
+supplied assembly code appears to result in performance that is at least as
+good as or is slightly better than that of GCC-generated code.
 
 The following changes have been made between John 1.7.7 and 1.7.8:
 
@@ -251,4 +255,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.59 2011/09/18 07:47:43 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.60 2011/10/09 01:43:49 solar Exp $
