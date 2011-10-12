@@ -31,11 +31,6 @@ typedef vector signed int vtype;
 	(dst) = vec_or((a), (b))
 #define vandn(dst, a, b) \
 	(dst) = vec_andc((a), (b))
-#define vxorn(dst, a, b) \
-	(dst) = vec_xor((a), (b)); \
-	(dst) = vec_nor((dst), (dst))
-#define vnor(dst, a, b) \
-	(dst) = vec_nor((a), (b))
 #define vsel(dst, a, b, c) \
 	(dst) = vec_sel((a), (b), (c))
 
@@ -73,13 +68,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = vec_andc((a).f, (b).f); \
 	(dst).g = (a).g & ~(b).g
-#define vxorn(dst, a, b) \
-	(dst).f = vec_xor((a).f, (b).f); \
-	(dst).f = vec_nor((dst).f, (dst).f); \
-	(dst).g = ~((a).g ^ (b).g)
-#define vnor(dst, a, b) \
-	(dst).f = vec_nor((a).f, (b).f); \
-	(dst).g = ~((a).g | (b).g)
 #define vsel(dst, a, b, c) \
 	(dst).f = vec_sel((a).f, (b).f, (c).f); \
 	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
@@ -115,14 +103,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = vec_andc((a).f, (b).f); \
 	(dst).g = vec_andc((a).g, (b).g)
-#define vxorn(dst, a, b) \
-	(dst).f = vec_xor((a).f, (b).f); \
-	(dst).g = vec_xor((a).g, (b).g); \
-	(dst).f = vec_nor((dst).f, (dst).f); \
-	(dst).g = vec_nor((dst).g, (dst).g)
-#define vnor(dst, a, b) \
-	(dst).f = vec_nor((a).f, (b).f); \
-	(dst).g = vec_nor((a).g, (b).g)
 #define vsel(dst, a, b, c) \
 	(dst).f = vec_sel((a).f, (b).f, (c).f); \
 	(dst).g = vec_sel((a).g, (b).g, (c).g)
@@ -149,14 +129,8 @@ typedef __m256 vtype;
 	(dst) = _mm256_or_ps((a), (b))
 #define vandn(dst, a, b) \
 	(dst) = _mm256_andnot_ps((b), (a))
-#define vxorn(dst, a, b) \
-	(dst) = _mm256_xor_ps(_mm256_xor_ps((a), (b)), \
-	    *(vtype *)&DES_bs_all.ones)
 
 #ifdef __XOP__
-#define vnor(dst, a, b) \
-	(dst) = _mm256_xor_ps(_mm256_or_ps((a), (b)), \
-	    *(vtype *)&DES_bs_all.ones)
 /* This could be _mm256_cmov_ps(), but it does not exist (yet?) */
 #define vsel(dst, a, b, c) \
 	(dst) = __builtin_ia32_vpcmov_v8sf256((b), (a), (c))
@@ -199,18 +173,8 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm_andnot_si128((b).g, (a).g)
-#define vxorn(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_xor_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si128(_mm_xor_si128((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 
 #ifdef __XOP__
-#define vnor(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_or_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si128(_mm_or_si128((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 /* This could be _mm256_cmov_ps(), but it does not exist (yet?) */
 #define vsel(dst, a, b, c) \
 	(dst).f = __builtin_ia32_vpcmov_v8sf256((b).f, (a).f, (c).f); \
@@ -251,18 +215,8 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm256_andnot_ps((b).g, (a).g)
-#define vxorn(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_xor_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm256_xor_ps(_mm256_xor_ps((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 
 #ifdef __XOP__
-#define vnor(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_or_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm256_xor_ps(_mm256_or_ps((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 /* This could be _mm256_cmov_ps(), but it does not exist (yet?) */
 #define vsel(dst, a, b, c) \
 	(dst).f = __builtin_ia32_vpcmov_v8sf256((b).f, (a).f, (c).f); \
@@ -304,11 +258,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
-#define vxorn(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_xor_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si64(_mm_xor_si64((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 
 #elif defined(__AVX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 320) || \
@@ -346,10 +295,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
-#define vxorn(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_xor_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = ~((a).g ^ (b).g)
 
 #elif defined(__AVX__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 384) || \
@@ -394,12 +339,6 @@ typedef struct {
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
-#define vxorn(dst, a, b) \
-	(dst).f = _mm256_xor_ps(_mm256_xor_ps((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si64(_mm_xor_si64((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g); \
-	(dst).h = ~((a).h ^ (b).h)
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
 #undef DES_BS_VECTOR
@@ -433,12 +372,6 @@ typedef __m128i vtype;
 	(dst) = _mm_or_si128((a), (b))
 #define vandn(dst, a, b) \
 	(dst) = _mm_andnot_si128((b), (a))
-#define vxorn(dst, a, b) \
-	(dst) = _mm_xor_si128(_mm_xor_si128((a), (b)), \
-	    *(vtype *)&DES_bs_all.ones)
-#define vnor(dst, a, b) \
-	(dst) = _mm_xor_si128(_mm_or_si128((a), (b)), \
-	    *(vtype *)&DES_bs_all.ones)
 
 #ifdef __XOP__
 #define vsel(dst, a, b, c) \
@@ -487,18 +420,8 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = _mm_andnot_si128((b).g, (a).g)
-#define vxorn(dst, a, b) \
-	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si128(_mm_xor_si128((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 
 #ifdef __XOP__
-#define vnor(dst, a, b) \
-	(dst).f = _mm_xor_si128(_mm_or_si128((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si128(_mm_or_si128((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 #define vsel(dst, a, b, c) \
 	(dst).f = _mm_cmov_si128((b).f, (a).f, (c).f); \
 	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
@@ -537,11 +460,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
-#define vxorn(dst, a, b) \
-	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si64(_mm_xor_si64((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g)
 
 #elif defined(__SSE2__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
@@ -576,10 +494,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
-#define vxorn(dst, a, b) \
-	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = ~((a).g ^ (b).g)
 
 #elif defined(__SSE2__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 256) || \
@@ -622,12 +536,6 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
-#define vxorn(dst, a, b) \
-	(dst).f = _mm_xor_si128(_mm_xor_si128((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = _mm_xor_si64(_mm_xor_si64((a).g, (b).g), \
-	    (*(vtype *)&DES_bs_all.ones).g); \
-	(dst).h = ~((a).h ^ (b).h)
 
 #elif defined(__MMX__) && ARCH_BITS != 64 && DES_BS_DEPTH == 64
 #undef DES_BS_VECTOR
@@ -647,9 +555,6 @@ typedef __m64 vtype;
 	(dst) = _mm_or_si64((a), (b))
 #define vandn(dst, a, b) \
 	(dst) = _mm_andnot_si64((b), (a))
-#define vxorn(dst, a, b) \
-	(dst) = _mm_xor_si64(_mm_xor_si64((a), (b)), \
-	    *(vtype *)&DES_bs_all.ones)
 
 #elif defined(__MMX__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
 #undef DES_BS_VECTOR
@@ -681,10 +586,6 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm_andnot_si64((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
-#define vxorn(dst, a, b) \
-	(dst).f = _mm_xor_si64(_mm_xor_si64((a).f, (b).f), \
-	    (*(vtype *)&DES_bs_all.ones).f); \
-	(dst).g = ~((a).g ^ (b).g)
 
 #else
 
@@ -704,10 +605,6 @@ typedef ARCH_WORD vtype;
 	(dst) = (a) | (b)
 #define vandn(dst, a, b) \
 	(dst) = (a) & ~(b)
-#define vxorn(dst, a, b) \
-	(dst) = ~((a) ^ (b))
-#define vnor(dst, a, b) \
-	(dst) = ~((a) | (b))
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 
