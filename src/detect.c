@@ -1,11 +1,20 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2008 by Solar Designer
+ * Copyright (c) 1996-2000,2008,2011 by Solar Designer
  */
 
 /*
  * Architecture specific parameters detection program.
  */
+
+#define _XOPEN_SOURCE 500 /* for ITIMER_REAL */
+#include <sys/time.h>
+
+#ifdef ITIMER_REAL
+#define OS_TIMER
+#endif
+
+#define OS_FLOCK /* we also check for defined(LOCK_EX) on all uses anyway */
 
 #include <stdio.h>
 
