@@ -32,6 +32,7 @@ JOHN_OBJS = \
 	BF_fmt.o BF_std.o \
 	AFS_fmt.o \
 	LM_fmt.o \
+	trip_fmt.o \
 	dummy.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
