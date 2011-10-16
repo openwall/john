@@ -1,5 +1,6 @@
 The following changes have been made between John 1.7.8 and 1.7.9:
 
+* Added support for cracking 10-character DES-based tripcodes.
 * Two pre-defined external mode variables have been added: "abort" and
 "status", which let an external mode request the current cracking session to be
 aborted or the status line to be displayed, respectively.
