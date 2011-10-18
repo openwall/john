@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
  */
 
 /*
@@ -30,6 +30,9 @@ typedef ARCH_WORD DES_bs_vector[DES_BS_VECTOR_SIZE];
 #else
 #define DES_bs_vector			ARCH_WORD
 #endif
+
+#define xindex \
+	(((index << 3) | (index / (DES_BS_DEPTH / 8))) % DES_BS_DEPTH)
 
 /*
  * All bitslice DES parameters combined into one struct for more efficient
@@ -64,10 +67,11 @@ typedef struct {
 #elif defined(__MMX__) || defined(__SSE2__)
 	DES_bs_vector ones;	/* All 1 bits (to implement NOT with XOR) */
 #endif
-	unsigned int s1[0x100];	/* Byte offsets past the 1st bit */
-	unsigned char s2[0x100];	/* Shift counts past the 2nd bit */
-	int KS_updates;		/* Key schedule updates counter */
-	int keys_changed;	/* If keys have changed since last expand */
+	union {
+		unsigned char c[8][DES_BS_DEPTH];
+		DES_bs_vector v[8][8];
+	} xkeys;		/* Partially transposed key bits matrix */
+	int keys_changed;	/* If keys have changed */
 	unsigned char keys[DES_BS_DEPTH][8];	/* Current keys */
 } DES_bs_combined;
 
@@ -84,31 +88,19 @@ extern void DES_bs_init(int LM);
 extern void DES_bs_set_salt(ARCH_WORD salt);
 
 /*
- * Clears the bitslice keys if the key schedule has been updated too
- * many times without being fully regenerated. This should be called
- * whenever possible to reduce the impact of hardware faults.
- */
-extern void DES_bs_clear_keys(void);
-extern void DES_bs_clear_keys_LM(void);
-
-/*
  * Sets a key for DES_bs_crypt().
  */
 extern void DES_bs_set_key(char *key, int index);
 
 /*
- * Initializes the key schedule with actual key bits. Not for LM.
- */
-#if DES_BS_EXPAND
-extern void DES_bs_expand_keys(void);
-#else
-#define DES_bs_expand_keys()
-#endif
-
-/*
  * Sets a key for DES_bs_crypt_LM().
  */
 extern void DES_bs_set_key_LM(char *key, int index);
+
+/*
+ * Finalizes the key setup.
+ */
+extern void DES_bs_finalize_keys(int LM);
 
 /*
  * Generic bitslice routine: 24 bit salts, variable iteration count.
