@@ -311,7 +311,7 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	DES_bs_finalize_keys(0);
+	DES_bs_finalize_keys();
 	DES_bs_crypt(saved_count);
 }
 

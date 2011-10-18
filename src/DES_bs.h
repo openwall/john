@@ -88,19 +88,16 @@ extern void DES_bs_init(int LM);
 extern void DES_bs_set_salt(ARCH_WORD salt);
 
 /*
- * Sets a key for DES_bs_crypt().
+ * Set a key for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
  */
 extern void DES_bs_set_key(char *key, int index);
-
-/*
- * Sets a key for DES_bs_crypt_LM().
- */
 extern void DES_bs_set_key_LM(char *key, int index);
 
 /*
- * Finalizes the key setup.
+ * Finalize the key setup for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
  */
-extern void DES_bs_finalize_keys(int LM);
+extern void DES_bs_finalize_keys(void);
+extern void DES_bs_finalize_keys_LM(void);
 
 /*
  * Generic bitslice routine: 24 bit salts, variable iteration count.
