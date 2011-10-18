@@ -154,6 +154,29 @@ fill2:
 	dst[DES_BS_DEPTH * 7] = 0;
 }
 
+#ifdef __i386__
+/* register-starved */
+#define LOAD_V \
+	unsigned ARCH_WORD v0 = vp[0] START; \
+	unsigned ARCH_WORD v4 = vp[4] START;
+#define v1 vp[1] START
+#define v2 vp[2] START
+#define v3 vp[3] START
+#define v5 vp[5] START
+#define v6 vp[6] START
+#define v7 vp[7] START
+#else
+#define LOAD_V \
+	unsigned ARCH_WORD v0 = vp[0] START; \
+	unsigned ARCH_WORD v1 = vp[1] START; \
+	unsigned ARCH_WORD v2 = vp[2] START; \
+	unsigned ARCH_WORD v3 = vp[3] START; \
+	unsigned ARCH_WORD v4 = vp[4] START; \
+	unsigned ARCH_WORD v5 = vp[5] START; \
+	unsigned ARCH_WORD v6 = vp[6] START; \
+	unsigned ARCH_WORD v7 = vp[7] START;
+#endif
+
 #if ARCH_BITS >= 64
 #define MASK_ONES 0x0101010101010101UL
 #else
@@ -161,107 +184,107 @@ fill2:
 #endif
 
 #define FINALIZE_NEXT_KEY_BIT_0 { \
-	unsigned ARCH_WORD m = MASK_ONES; \
-	unsigned ARCH_WORD v = v0 & m; \
-	v |= (vp[1] START & m) << 1; \
-	v |= (vp[2] START & m) << 2; \
-	v |= (vp[3] START & m) << 3; \
-	v |= (vp[4] START & m) << 4; \
-	v |= (vp[5] START & m) << 5; \
-	v |= (vp[6] START & m) << 6; \
-	v |= (vp[7] START & m) << 7; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES, va, vb; \
+	va = v0 & m; \
+	vb = (v1 & m) << 1; \
+	va |= (v2 & m) << 2; \
+	vb |= (v3 & m) << 3; \
+	va |= (v4 & m) << 4; \
+	vb |= (v5 & m) << 5; \
+	va |= (v6 & m) << 6; \
+	vb |= (v7 & m) << 7; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_1 { \
-	unsigned ARCH_WORD m = MASK_ONES << 1; \
-	unsigned ARCH_WORD v = (v0 & m) >> 1; \
-	v |= vp[1] START & m; \
-	v |= (vp[2] START & m) << 1; \
-	v |= (vp[3] START & m) << 2; \
-	v |= (vp[4] START & m) << 3; \
-	v |= (vp[5] START & m) << 4; \
-	v |= (vp[6] START & m) << 5; \
-	v |= (vp[7] START & m) << 6; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 1, va, vb; \
+	va = (v0 & m) >> 1; \
+	vb = v1 & m; \
+	va |= (v2 & m) << 1; \
+	vb |= (v3 & m) << 2; \
+	va |= (v4 & m) << 3; \
+	vb |= (v5 & m) << 4; \
+	va |= (v6 & m) << 5; \
+	vb |= (v7 & m) << 6; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_2 { \
-	unsigned ARCH_WORD m = MASK_ONES << 2; \
-	unsigned ARCH_WORD v = (v0 & m) >> 2; \
-	v |= (vp[1] START & m) >> 1; \
-	v |= vp[2] START & m; \
-	v |= (vp[3] START & m) << 1; \
-	v |= (vp[4] START & m) << 2; \
-	v |= (vp[5] START & m) << 3; \
-	v |= (vp[6] START & m) << 4; \
-	v |= (vp[7] START & m) << 5; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 2, va, vb; \
+	va = (v0 & m) >> 2; \
+	vb = (v1 & m) >> 1; \
+	va |= v2 & m; \
+	vb |= (v3 & m) << 1; \
+	va |= (v4 & m) << 2; \
+	vb |= (v5 & m) << 3; \
+	va |= (v6 & m) << 4; \
+	vb |= (v7 & m) << 5; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_3 { \
-	unsigned ARCH_WORD m = MASK_ONES << 3; \
-	unsigned ARCH_WORD v = (v0 & m) >> 3; \
-	v |= (vp[1] START & m) >> 2; \
-	v |= (vp[2] START & m) >> 1; \
-	v |= vp[3] START & m; \
-	v |= (vp[4] START & m) << 1; \
-	v |= (vp[5] START & m) << 2; \
-	v |= (vp[6] START & m) << 3; \
-	v |= (vp[7] START & m) << 4; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 3, va, vb; \
+	va = (v0 & m) >> 3; \
+	vb = (v1 & m) >> 2; \
+	va |= (v2 & m) >> 1; \
+	vb |= v3 & m; \
+	va |= (v4 & m) << 1; \
+	vb |= (v5 & m) << 2; \
+	va |= (v6 & m) << 3; \
+	vb |= (v7 & m) << 4; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_4 { \
-	unsigned ARCH_WORD m = MASK_ONES << 4; \
-	unsigned ARCH_WORD v = (v0 & m) >> 4; \
-	v |= (vp[1] START & m) >> 3; \
-	v |= (vp[2] START & m) >> 2; \
-	v |= (vp[3] START & m) >> 1; \
-	v |= vp[4] START & m; \
-	v |= (vp[5] START & m) << 1; \
-	v |= (vp[6] START & m) << 2; \
-	v |= (vp[7] START & m) << 3; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 4, va, vb; \
+	va = (v0 & m) >> 4; \
+	vb = (v1 & m) >> 3; \
+	va |= (v2 & m) >> 2; \
+	vb |= (v3 & m) >> 1; \
+	va |= v4 & m; \
+	vb |= (v5 & m) << 1; \
+	va |= (v6 & m) << 2; \
+	vb |= (v7 & m) << 3; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_5 { \
-	unsigned ARCH_WORD m = MASK_ONES << 5; \
-	unsigned ARCH_WORD v = (v0 & m) >> 5; \
-	v |= (vp[1] START & m) >> 4; \
-	v |= (vp[2] START & m) >> 3; \
-	v |= (vp[3] START & m) >> 2; \
-	v |= (vp[4] START & m) >> 1; \
-	v |= vp[5] START & m; \
-	v |= (vp[6] START & m) << 1; \
-	v |= (vp[7] START & m) << 2; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 5, va, vb; \
+	va = (v0 & m) >> 5; \
+	vb = (v1 & m) >> 4; \
+	va |= (v2 & m) >> 3; \
+	vb |= (v3 & m) >> 2; \
+	va |= (v4 & m) >> 1; \
+	vb |= v5 & m; \
+	va |= (v6 & m) << 1; \
+	vb |= (v7 & m) << 2; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_6 { \
-	unsigned ARCH_WORD m = MASK_ONES << 6; \
-	unsigned ARCH_WORD v = (v0 & m) >> 6; \
-	v |= (vp[1] START & m) >> 5; \
-	v |= (vp[2] START & m) >> 4; \
-	v |= (vp[3] START & m) >> 3; \
-	v |= (vp[4] START & m) >> 2; \
-	v |= (vp[5] START & m) >> 1; \
-	v |= vp[6] START & m; \
-	v |= (vp[7] START & m) << 1; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 6, va, vb; \
+	va = (v0 & m) >> 6; \
+	vb = (v1 & m) >> 5; \
+	va |= (v2 & m) >> 4; \
+	vb |= (v3 & m) >> 3; \
+	va |= (v4 & m) >> 2; \
+	vb |= (v5 & m) >> 1; \
+	va |= v6 & m; \
+	vb |= (v7 & m) << 1; \
+	*kp++ START = va | vb; \
 }
 
 #define FINALIZE_NEXT_KEY_BIT_7 { \
-	unsigned ARCH_WORD m = MASK_ONES << 7; \
-	unsigned ARCH_WORD v = (v0 & m) >> 7; \
-	v |= (vp[1] START & m) >> 6; \
-	v |= (vp[2] START & m) >> 5; \
-	v |= (vp[3] START & m) >> 4; \
-	v |= (vp[4] START & m) >> 3; \
-	v |= (vp[5] START & m) >> 2; \
-	v |= (vp[6] START & m) >> 1; \
-	v |= vp[7] START & m; \
-	DES_bs_all.K[ik++] DEPTH = v; \
+	unsigned ARCH_WORD m = MASK_ONES << 7, va, vb; \
+	va = (v0 & m) >> 7; \
+	vb = (v1 & m) >> 6; \
+	va |= (v2 & m) >> 5; \
+	vb |= (v3 & m) >> 4; \
+	va |= (v4 & m) >> 3; \
+	vb |= (v5 & m) >> 2; \
+	va |= (v6 & m) >> 1; \
+	vb |= v7 & m; \
+	*kp++ START = va | vb; \
 }
 
 void DES_bs_finalize_keys(void)
@@ -275,11 +298,12 @@ void DES_bs_finalize_keys(void)
 	DES_bs_all.keys_changed = 0;
 
 	for_each_depth() {
-		int ik = 0, ic;
+		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH;
+		int ic;
 		for (ic = 0; ic < 8; ic++) {
 			DES_bs_vector *vp =
 			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
-			unsigned ARCH_WORD v0 = vp[0] START;
+			LOAD_V
 			FINALIZE_NEXT_KEY_BIT_0
 			FINALIZE_NEXT_KEY_BIT_1
 			FINALIZE_NEXT_KEY_BIT_2
@@ -304,6 +328,38 @@ void DES_bs_finalize_keys(void)
 	}
 #endif
 }
+
+void DES_bs_finalize_keys_LM(void)
+{
+#if DES_BS_VECTOR
+	int depth;
+#endif
+
+	for_each_depth() {
+		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH;
+		int ic;
+		for (ic = 0; ic < 7; ic++) {
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
+			LOAD_V
+			FINALIZE_NEXT_KEY_BIT_0
+			FINALIZE_NEXT_KEY_BIT_1
+			FINALIZE_NEXT_KEY_BIT_2
+			FINALIZE_NEXT_KEY_BIT_3
+			FINALIZE_NEXT_KEY_BIT_4
+			FINALIZE_NEXT_KEY_BIT_5
+			FINALIZE_NEXT_KEY_BIT_6
+			FINALIZE_NEXT_KEY_BIT_7
+		}
+	}
+}
+
+#undef v1
+#undef v2
+#undef v3
+#undef v5
+#undef v6
+#undef v7
 
 void DES_bs_set_key_LM(char *key, int index)
 {
@@ -347,30 +403,6 @@ fill3:
 fill2:
 	dst[DES_BS_DEPTH * 5] = 0;
 	dst[DES_BS_DEPTH * 6] = 0;
-}
-
-void DES_bs_finalize_keys_LM(void)
-{
-#if DES_BS_VECTOR
-	int depth;
-#endif
-
-	for_each_depth() {
-		int ik = 0, ic;
-		for (ic = 0; ic < 7; ic++) {
-			DES_bs_vector *vp =
-			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
-			unsigned ARCH_WORD v0 = vp[0] START;
-			FINALIZE_NEXT_KEY_BIT_0
-			FINALIZE_NEXT_KEY_BIT_1
-			FINALIZE_NEXT_KEY_BIT_2
-			FINALIZE_NEXT_KEY_BIT_3
-			FINALIZE_NEXT_KEY_BIT_4
-			FINALIZE_NEXT_KEY_BIT_5
-			FINALIZE_NEXT_KEY_BIT_6
-			FINALIZE_NEXT_KEY_BIT_7
-		}
-	}
 }
 
 static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
