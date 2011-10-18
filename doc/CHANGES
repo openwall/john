@@ -1,13 +1,16 @@
 The following changes have been made between John 1.7.8 and 1.7.9:
 
-* Added support for cracking 10-character DES-based tripcodes.
-* Two pre-defined external mode variables have been added: "abort" and
-"status", which let an external mode request the current cracking session to be
-aborted or the status line to be displayed, respectively.
+* Replaced the bitslice DES key setup algorithm with a faster one, which
+significantly improves performance at LM hashes, as well as at DES-based
+crypt(3) hashes when there's just one salt (or very few salts).
 * Optimized the DES S-box x86-64 (16-register SSE2) assembly code, disabled the
 use of SSE2 intrinsics for DES S-boxes even with very recent GCC now that the
 supplied assembly code appears to result in performance that is at least as
 good as or is slightly better than that of GCC-generated code.
+* Added support for cracking 10-character DES-based tripcodes.
+* Two pre-defined external mode variables have been added: "abort" and
+"status", which let an external mode request the current cracking session to be
+aborted or the status line to be displayed, respectively.
 
 The following changes have been made between John 1.7.7 and 1.7.8:
 
@@ -256,4 +259,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.61 2011/10/16 21:26:37 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.62 2011/10/18 05:00:23 solar Exp $

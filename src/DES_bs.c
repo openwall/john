@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005,2010 by Solar Designer
+ * Copyright (c) 1996-2002,2005,2010,2011 by Solar Designer
  */
 
 #include <string.h>
@@ -56,12 +56,6 @@ void DES_bs_init(int LM)
 	int p, q, s;
 	int c;
 
-	DES_bs_all.KS_updates = 0;
-	if (LM)
-		DES_bs_clear_keys_LM();
-	else
-		DES_bs_clear_keys();
-
 #if DES_BS_EXPAND
 	if (LM)
 		k = DES_bs_all.KS.p;
@@ -87,29 +81,6 @@ void DES_bs_init(int LM)
 			*k++ = &DES_bs_all.K[bit] START;
 		}
 	}
-
-/* Initialize the array with right shifts needed to get past the first
- * non-zero bit in the index. */
-	for (bit = 0; bit <= 7; bit++)
-	for (index = 1 << bit; index < 0x100; index += 2 << bit)
-		DES_bs_all.s1[index] = bit + 1;
-
-/* Special case: instead of doing an extra check in *_set_key*(), we
- * might overrun into DES_bs_all.B, which is harmless as long as the
- * order of fields is unchanged.  57 is the smallest value to guarantee
- * we'd be past the end of K[] since we start at -1. */
-	DES_bs_all.s1[0] = 57;
-
-/* The same for second bits */
-	for (index = 0; index < 0x100; index++) {
-		bit = DES_bs_all.s1[index];
-		bit += DES_bs_all.s1[index >> bit];
-		DES_bs_all.s2[index] = (bit <= 8) ? bit : 57;
-	}
-
-/* Convert to byte offsets */
-	for (index = 0; index < 0x100; index++)
-		DES_bs_all.s1[index] *= sizeof(DES_bs_vector);
 
 	if (LM) {
 		for (c = 0; c < 0x100; c++)
@@ -146,203 +117,145 @@ void DES_bs_set_salt(ARCH_WORD salt)
 	}
 }
 
-void DES_bs_clear_keys(void)
-{
-	if (DES_bs_all.KS_updates++ & 0xFFF) return;
-	DES_bs_all.KS_updates = 1;
-	memset(DES_bs_all.K, 0, sizeof(DES_bs_all.K));
-	memset(DES_bs_all.keys, 0, sizeof(DES_bs_all.keys));
-	DES_bs_all.keys_changed = 1;
-}
-
-void DES_bs_clear_keys_LM(void)
-{
-	if (DES_bs_all.KS_updates++ & 0xFFF) return;
-	DES_bs_all.KS_updates = 1;
-	memset(DES_bs_all.K, 0, sizeof(DES_bs_all.K));
-#if !DES_BS_VECTOR && ARCH_BITS >= 64
-	memset(DES_bs_all.E.extras.keys, 0, sizeof(DES_bs_all.E.extras.keys));
-#else
-	memset(DES_bs_all.keys, 0, sizeof(DES_bs_all.keys));
-#endif
-}
-
 void DES_bs_set_key(char *key, int index)
 {
-/* new is NUL-terminated, but not NUL-padded to any length;
- * old is NUL-padded to 8 characters, but not always NUL-terminated. */
-	unsigned char *new = (unsigned char *)key;
-	unsigned char *old = DES_bs_all.keys[index];
-	DES_bs_vector *k, *kbase;
-	ARCH_WORD mask;
-	unsigned int xor, s1, s2;
-
-	init_depth();
-
-	mask = (ARCH_WORD)1 << index;
-	k = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH - 1;
-#if ARCH_ALLOWS_UNALIGNED
-	if (*(ARCH_WORD_32 *)new == *(ARCH_WORD_32 *)old &&
-	    old[sizeof(ARCH_WORD_32)]) {
-		new += sizeof(ARCH_WORD_32);
-		old += sizeof(ARCH_WORD_32);
-		k += sizeof(ARCH_WORD_32) * 7;
-	}
-#endif
-	while (*new && k < &DES_bs_all.K[55]) {
-		kbase = k;
-		if ((xor = *new ^ *old)) {
-			xor &= 0x7F; /* Note: this might result in xor == 0 */
-			*old = *new;
-			do {
-				s1 = DES_bs_all.s1[xor];
-				s2 = DES_bs_all.s2[xor];
-				*(ARCH_WORD *)((char *)k + s1) ^= mask;
-				if (s2 > 8) break; /* Required for xor == 0 */
-				xor >>= s2;
-				k[s2] START ^= mask;
-				k += s2;
-				if (!xor) break;
-				s1 = DES_bs_all.s1[xor];
-				s2 = DES_bs_all.s2[xor];
-				xor >>= s2;
-				*(ARCH_WORD *)((char *)k + s1) ^= mask;
-				k[s2] START ^= mask;
-				k += s2;
-			} while (xor);
-		}
-
-		new++;
-		old++;
-		k = kbase + 7;
-	}
-
-	while (*old && k < &DES_bs_all.K[55]) {
-		kbase = k;
-		xor = *old & 0x7F; /* Note: this might result in xor == 0 */
-		*old++ = 0;
-		do {
-			s1 = DES_bs_all.s1[xor];
-			s2 = DES_bs_all.s2[xor];
-			*(ARCH_WORD *)((char *)k + s1) ^= mask;
-			if (s2 > 8) break; /* Required for xor == 0 */
-			xor >>= s2;
-			k[s2] START ^= mask;
-			k += s2;
-			if (!xor) break;
-			s1 = DES_bs_all.s1[xor];
-			s2 = DES_bs_all.s2[xor];
-			xor >>= s2;
-			*(ARCH_WORD *)((char *)k + s1) ^= mask;
-			k[s2] START ^= mask;
-			k += s2;
-		} while (xor);
-
-		k = kbase + 7;
-	}
+	unsigned char *dst = &DES_bs_all.xkeys.c[0][index];
 
 	DES_bs_all.keys_changed = 1;
+
+	if (!key[0]) goto fill8;
+	*dst = key[0];
+	*(dst + DES_BS_DEPTH) = key[1];
+	*(dst + DES_BS_DEPTH * 2) = key[2];
+	if (!key[1]) goto fill6;
+	if (!key[2]) goto fill5;
+	*(dst + DES_BS_DEPTH * 3) = key[3];
+	*(dst + DES_BS_DEPTH * 4) = key[4];
+	if (!key[3]) goto fill4;
+	if (!key[4] || !key[5]) goto fill3;
+	*(dst + DES_BS_DEPTH * 5) = key[5];
+	if (!key[6]) goto fill2;
+	*(dst + DES_BS_DEPTH * 6) = key[6];
+	*(dst + DES_BS_DEPTH * 7) = key[7];
+	return;
+fill8:
+	dst[0] = 0;
+	dst[DES_BS_DEPTH] = 0;
+fill6:
+	dst[DES_BS_DEPTH * 2] = 0;
+fill5:
+	dst[DES_BS_DEPTH * 3] = 0;
+fill4:
+	dst[DES_BS_DEPTH * 4] = 0;
+fill3:
+	dst[DES_BS_DEPTH * 5] = 0;
+fill2:
+	dst[DES_BS_DEPTH * 6] = 0;
+	dst[DES_BS_DEPTH * 7] = 0;
 }
 
 void DES_bs_set_key_LM(char *key, int index)
 {
-/* new is NUL-terminated, but not NUL-padded to any length;
- * old is NUL-padded to 7 characters and NUL-terminated. */
-	unsigned char *new = (unsigned char *)key;
-#if !DES_BS_VECTOR && ARCH_BITS >= 64
-	unsigned char *old = DES_bs_all.E.extras.keys[index];
-#else
-	unsigned char *old = DES_bs_all.keys[index];
-#endif
-	DES_bs_vector *k, *kbase;
-	ARCH_WORD mask;
-	unsigned int xor, s1, s2;
-	unsigned char plain;
+	unsigned char *dst = &DES_bs_all.xkeys.c[0][index];
 
-	init_depth();
-
-	mask = (ARCH_WORD)1 << index;
-	k = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH - 1;
-#if ARCH_ALLOWS_UNALIGNED
-	if (*(ARCH_WORD_32 *)new == *(ARCH_WORD_32 *)old &&
-	    old[sizeof(ARCH_WORD_32)]) {
-		new += sizeof(ARCH_WORD_32);
-		old += sizeof(ARCH_WORD_32);
-		k += sizeof(ARCH_WORD_32) * 8;
-	}
-#endif
-	while (*new && k < &DES_bs_all.K[55]) {
-		plain = DES_bs_all.E.extras.u[ARCH_INDEX(*new)];
-		kbase = k;
-		if ((xor = plain ^ *old)) {
-			*old = plain;
-			do {
-				s1 = DES_bs_all.s1[xor];
-				s2 = DES_bs_all.s2[xor];
-				xor >>= s2;
-				*(ARCH_WORD *)((char *)k + s1) ^= mask;
-				k[s2] START ^= mask;
-				k += s2;
-				if (!xor) break;
-				s1 = DES_bs_all.s1[xor];
-				s2 = DES_bs_all.s2[xor];
-				xor >>= s2;
-				*(ARCH_WORD *)((char *)k + s1) ^= mask;
-				k[s2] START ^= mask;
-				k += s2;
-			} while (xor);
-		}
-
-		new++;
-		old++;
-		k = kbase + 8;
-	}
-
-	while (*old) {
-		kbase = k;
-		xor = *old;
-		*old++ = 0;
-		do {
-			s1 = DES_bs_all.s1[xor];
-			s2 = DES_bs_all.s2[xor];
-			xor >>= s2;
-			*(ARCH_WORD *)((char *)k + s1) ^= mask;
-			k[s2] START ^= mask;
-			k += s2;
-			if (!xor) break;
-			s1 = DES_bs_all.s1[xor];
-			s2 = DES_bs_all.s2[xor];
-			xor >>= s2;
-			*(ARCH_WORD *)((char *)k + s1) ^= mask;
-			k[s2] START ^= mask;
-			k += s2;
-		} while (xor);
-
-		k = kbase + 8;
-	}
+/*
+ * gcc 4.5.0 on x86_64 would generate redundant movzbl's without explicit
+ * use of "long" here.
+ */
+	unsigned long c = (unsigned char)key[0];
+	if (!c) goto fill7;
+	*dst = DES_bs_all.E.extras.u[c];
+	c = (unsigned char)key[1];
+	if (!c) goto fill6;
+	*(dst + DES_BS_DEPTH) = DES_bs_all.E.extras.u[c];
+	c = (unsigned char)key[2];
+	if (!c) goto fill5;
+	*(dst + DES_BS_DEPTH * 2) = DES_bs_all.E.extras.u[c];
+	c = (unsigned char)key[3];
+	if (!c) goto fill4;
+	*(dst + DES_BS_DEPTH * 3) = DES_bs_all.E.extras.u[c];
+	c = (unsigned char)key[4];
+	if (!c) goto fill3;
+	*(dst + DES_BS_DEPTH * 4) = DES_bs_all.E.extras.u[c];
+	c = (unsigned char)key[5];
+	if (!c) goto fill2;
+	*(dst + DES_BS_DEPTH * 5) = DES_bs_all.E.extras.u[c];
+	c = (unsigned char)key[6];
+	*(dst + DES_BS_DEPTH * 6) = DES_bs_all.E.extras.u[c];
+	return;
+fill7:
+	dst[0] = 0;
+fill6:
+	dst[DES_BS_DEPTH] = 0;
+fill5:
+	dst[DES_BS_DEPTH * 2] = 0;
+fill4:
+	dst[DES_BS_DEPTH * 3] = 0;
+fill3:
+	dst[DES_BS_DEPTH * 4] = 0;
+fill2:
+	dst[DES_BS_DEPTH * 5] = 0;
+	dst[DES_BS_DEPTH * 6] = 0;
 }
 
-#if DES_BS_EXPAND
-void DES_bs_expand_keys(void)
+void DES_bs_finalize_keys(int LM)
 {
-	int index;
 #if DES_BS_VECTOR
 	int depth;
 #endif
 
-	if (!DES_bs_all.keys_changed) return;
+	if (!LM) {
+		if (!DES_bs_all.keys_changed)
+			return;
+		DES_bs_all.keys_changed = 0;
+	}
 
-	for (index = 0; index < 0x300; index++)
-	for_each_depth()
-#if DES_BS_VECTOR
-		DES_bs_all.KS.v[index] DEPTH = DES_bs_all.KSp[index] DEPTH;
+	for_each_depth() {
+#if ARCH_BITS >= 64
+		unsigned ARCH_WORD m = 0x0101010101010101UL;
 #else
-		DES_bs_all.KS.v[index] = *DES_bs_all.KSp[index];
+		unsigned ARCH_WORD m = 0x01010101UL;
 #endif
+		int ik = 0, ic;
+		for (ic = 0; ic < 8 - LM; ic++) {
+			int s, iv;
+			unsigned ARCH_WORD v0 =
+			    DES_bs_all.xkeys.v[ic][0] DEPTH;
+			{
+				unsigned ARCH_WORD v = v0 & m;
+				for (iv = 1; iv < 8; iv++) {
+					unsigned ARCH_WORD v1 =
+					    DES_bs_all.xkeys.v[ic][iv] DEPTH;
+					v |= (v1 & m) << iv;
+				}
+				DES_bs_all.K[ik++] DEPTH = v;
+			}
+			for (s = 1; s < 7 + LM; s++) {
+				unsigned ARCH_WORD v = (v0 >> s) & m;
+				for (iv = 1; iv < 8; iv++) {
+					unsigned ARCH_WORD v1 =
+					    DES_bs_all.xkeys.v[ic][iv] DEPTH;
+					v |= ((v1 >> s) & m) << iv;
+				}
+				DES_bs_all.K[ik++] DEPTH = v;
+			}
+		}
+	}
 
-	DES_bs_all.keys_changed = 0;
-}
+#if DES_BS_EXPAND
+	if (!LM) {
+		int index;
+		for (index = 0; index < 0x300; index++)
+		for_each_depth()
+#if DES_BS_VECTOR
+			DES_bs_all.KS.v[index] DEPTH =
+			    DES_bs_all.KSp[index] DEPTH;
+#else
+			DES_bs_all.KS.v[index] = *DES_bs_all.KSp[index];
 #endif
+	}
+#endif
+}
 
 static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
 {
