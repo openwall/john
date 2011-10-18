@@ -88,7 +88,7 @@ DO_SPACE(nvec(64))
 DES_bs_all_tmp:
 DO_SPACE(nvec(16))
 DES_bs_all_fields_not_used_here:
-DO_SPACE(0x400 + 0x100 + 4 + 4 + 0x400)
+DO_SPACE(nvec(64) + 4)
 DES_bs_all_possible_alignment_gaps:
 DO_SPACE(0x100)
 
