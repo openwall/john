@@ -189,14 +189,6 @@ static char *get_key(int index)
 	*dst = 0;
 
 	return out;
-
-#if 0
-#if !DES_BS_VECTOR && ARCH_BITS >= 64
-	return (char *)DES_bs_all.E.extras.keys[index];
-#else
-	return (char *)DES_bs_all.keys[index];
-#endif
-#endif
 }
 
 struct fmt_main fmt_LM = {
