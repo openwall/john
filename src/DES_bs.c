@@ -154,6 +154,8 @@ fill2:
 	dst[DES_BS_DEPTH * 7] = 0;
 }
 
+#if !DES_BS_ASM
+
 #ifdef __i386__
 /* register-starved */
 #define LOAD_V \
@@ -360,6 +362,8 @@ void DES_bs_finalize_keys_LM(void)
 #undef v5
 #undef v6
 #undef v7
+
+#endif
 
 void DES_bs_set_key_LM(char *key, int index)
 {
