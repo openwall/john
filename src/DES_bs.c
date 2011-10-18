@@ -85,9 +85,9 @@ void DES_bs_init(int LM)
 	if (LM) {
 		for (c = 0; c < 0x100; c++)
 		if (c >= 'a' && c <= 'z')
-			DES_bs_all.E.extras.u[c] = c & ~0x20;
+			DES_bs_all.E.u[c] = c & ~0x20;
 		else
-			DES_bs_all.E.extras.u[c] = c;
+			DES_bs_all.E.u[c] = c;
 	}
 
 #if DES_BS_ASM
@@ -315,24 +315,24 @@ void DES_bs_set_key_LM(char *key, int index)
  */
 	unsigned long c = (unsigned char)key[0];
 	if (!c) goto fill7;
-	*dst = DES_bs_all.E.extras.u[c];
+	*dst = DES_bs_all.E.u[c];
 	c = (unsigned char)key[1];
 	if (!c) goto fill6;
-	*(dst + DES_BS_DEPTH) = DES_bs_all.E.extras.u[c];
+	*(dst + DES_BS_DEPTH) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[2];
 	if (!c) goto fill5;
-	*(dst + DES_BS_DEPTH * 2) = DES_bs_all.E.extras.u[c];
+	*(dst + DES_BS_DEPTH * 2) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[3];
 	if (!c) goto fill4;
-	*(dst + DES_BS_DEPTH * 3) = DES_bs_all.E.extras.u[c];
+	*(dst + DES_BS_DEPTH * 3) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[4];
 	if (!c) goto fill3;
-	*(dst + DES_BS_DEPTH * 4) = DES_bs_all.E.extras.u[c];
+	*(dst + DES_BS_DEPTH * 4) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[5];
 	if (!c) goto fill2;
-	*(dst + DES_BS_DEPTH * 5) = DES_bs_all.E.extras.u[c];
+	*(dst + DES_BS_DEPTH * 5) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[6];
-	*(dst + DES_BS_DEPTH * 6) = DES_bs_all.E.extras.u[c];
+	*(dst + DES_BS_DEPTH * 6) = DES_bs_all.E.u[c];
 	return;
 fill7:
 	dst[0] = 0;

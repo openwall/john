@@ -53,12 +53,7 @@ typedef struct {
 	} KS;			/* Current key schedule */
 	union {
 		ARCH_WORD *E[96];	/* Expansion function (data bit ptrs) */
-		struct {
-#if !DES_BS_VECTOR && ARCH_BITS >= 64
-			unsigned char keys[DES_BS_DEPTH][8]; /* Current keys */
-#endif
-			unsigned char u[0x100];	/* Uppercase */
-		} extras;		/* Re-use the cache space for LM */
+		unsigned char u[0x100];	/* Uppercase (for LM) */
 	} E;
 	DES_bs_vector K[56];	/* Keys */
 	DES_bs_vector B[64];	/* Data blocks */
@@ -72,7 +67,6 @@ typedef struct {
 		DES_bs_vector v[8][8];
 	} xkeys;		/* Partially transposed key bits matrix */
 	int keys_changed;	/* If keys have changed */
-	unsigned char keys[DES_BS_DEPTH][8];	/* Current keys */
 } DES_bs_combined;
 
 extern DES_bs_combined DES_bs_all;
