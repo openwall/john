@@ -154,6 +154,25 @@ fill2:
 	dst[DES_BS_DEPTH * 7] = 0;
 }
 
+#if ARCH_BITS >= 64
+#define MASK_ONES 0x0101010101010101UL
+#else
+#define MASK_ONES 0x01010101UL
+#endif
+
+#define FINALIZE_NEXT_KEY_BIT(s) { \
+	unsigned ARCH_WORD m = MASK_ONES << (s); \
+	unsigned ARCH_WORD v = (v0 & m) >> (s); \
+	int iv; \
+	for (iv = 1; iv < (s); iv++) \
+		v |= (vp[iv] START & m) >> ((s) - iv); \
+	if ((s) > 0) \
+		v |= vp[iv] START & m; \
+	for (iv = (s) + 1; iv < 8; iv++) \
+		v |= (vp[iv] START & m) << (iv - (s)); \
+	DES_bs_all.K[ik++] DEPTH = v; \
+}
+
 void DES_bs_finalize_keys(void)
 {
 #if DES_BS_VECTOR
@@ -165,34 +184,18 @@ void DES_bs_finalize_keys(void)
 	DES_bs_all.keys_changed = 0;
 
 	for_each_depth() {
-#if ARCH_BITS >= 64
-		unsigned ARCH_WORD m = 0x0101010101010101UL;
-#else
-		unsigned ARCH_WORD m = 0x01010101UL;
-#endif
 		int ik = 0, ic;
 		for (ic = 0; ic < 8; ic++) {
-			int s, iv;
-			unsigned ARCH_WORD v0 =
-			    DES_bs_all.xkeys.v[ic][0] DEPTH;
-			{
-				unsigned ARCH_WORD v = v0 & m;
-				for (iv = 1; iv < 8; iv++) {
-					unsigned ARCH_WORD v1 =
-					    DES_bs_all.xkeys.v[ic][iv] DEPTH;
-					v |= (v1 & m) << iv;
-				}
-				DES_bs_all.K[ik++] DEPTH = v;
-			}
-			for (s = 1; s < 7; s++) {
-				unsigned ARCH_WORD v = (v0 >> s) & m;
-				for (iv = 1; iv < 8; iv++) {
-					unsigned ARCH_WORD v1 =
-					    DES_bs_all.xkeys.v[ic][iv] DEPTH;
-					v |= ((v1 >> s) & m) << iv;
-				}
-				DES_bs_all.K[ik++] DEPTH = v;
-			}
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
+			unsigned ARCH_WORD v0 = vp[0] START;
+			FINALIZE_NEXT_KEY_BIT(0)
+			FINALIZE_NEXT_KEY_BIT(1)
+			FINALIZE_NEXT_KEY_BIT(2)
+			FINALIZE_NEXT_KEY_BIT(3)
+			FINALIZE_NEXT_KEY_BIT(4)
+			FINALIZE_NEXT_KEY_BIT(5)
+			FINALIZE_NEXT_KEY_BIT(6)
 		}
 	}
 
@@ -262,34 +265,19 @@ void DES_bs_finalize_keys_LM(void)
 #endif
 
 	for_each_depth() {
-#if ARCH_BITS >= 64
-		unsigned ARCH_WORD m = 0x0101010101010101UL;
-#else
-		unsigned ARCH_WORD m = 0x01010101UL;
-#endif
 		int ik = 0, ic;
 		for (ic = 0; ic < 7; ic++) {
-			int s, iv;
-			unsigned ARCH_WORD v0 =
-			    DES_bs_all.xkeys.v[ic][0] DEPTH;
-			{
-				unsigned ARCH_WORD v = v0 & m;
-				for (iv = 1; iv < 8; iv++) {
-					unsigned ARCH_WORD v1 =
-					    DES_bs_all.xkeys.v[ic][iv] DEPTH;
-					v |= (v1 & m) << iv;
-				}
-				DES_bs_all.K[ik++] DEPTH = v;
-			}
-			for (s = 1; s < 8; s++) {
-				unsigned ARCH_WORD v = (v0 >> s) & m;
-				for (iv = 1; iv < 8; iv++) {
-					unsigned ARCH_WORD v1 =
-					    DES_bs_all.xkeys.v[ic][iv] DEPTH;
-					v |= ((v1 >> s) & m) << iv;
-				}
-				DES_bs_all.K[ik++] DEPTH = v;
-			}
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
+			unsigned ARCH_WORD v0 = vp[0] START;
+			FINALIZE_NEXT_KEY_BIT(0)
+			FINALIZE_NEXT_KEY_BIT(1)
+			FINALIZE_NEXT_KEY_BIT(2)
+			FINALIZE_NEXT_KEY_BIT(3)
+			FINALIZE_NEXT_KEY_BIT(4)
+			FINALIZE_NEXT_KEY_BIT(5)
+			FINALIZE_NEXT_KEY_BIT(6)
+			FINALIZE_NEXT_KEY_BIT(7)
 		}
 	}
 }
