@@ -157,7 +157,8 @@ static void crypt_all(int count)
 
 	for (index = 0; index < count; index++) {
 		static ARCH_WORD prev_salt = -1;
-		ARCH_WORD salt, *out;
+		ARCH_WORD salt;
+		unsigned ARCH_WORD *out;
 		char fake_crypt[14];
 
 		if (!buffer[index].key[0]) {
