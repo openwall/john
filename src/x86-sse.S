@@ -33,7 +33,6 @@
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
 #define DES_bs_finalize_keys		_DES_bs_finalize_keys
-#define DES_bs_finalize_keys_LM		_DES_bs_finalize_keys_LM
 #endif
 
 /*
@@ -785,8 +784,16 @@ DO_SPACE(4)
 	movdqa B(b6),a6; \
 	pxor (tmp1),a5
 
+#define mask01				tmp_at(15)
+
 #define v_ptr				%eax
 #define V(i)				nvec(i)(v_ptr)
+
+#if 1
+#define SHLB1(reg)			paddb reg,reg
+#else
+#define SHLB1(reg)			psllq $1,reg
+#endif
 
 #define FINALIZE_NEXT_KEY_BITS_0_6 \
 	movdqa mask01,%xmm7; \
@@ -799,7 +806,7 @@ DO_SPACE(4)
 	pand %xmm7,%xmm1; \
 	pand %xmm7,%xmm2; \
 	pand %xmm7,%xmm3; \
-	psllq $1,%xmm1; \
+	SHLB1(%xmm1); \
 	psllq $2,%xmm2; \
 	psllq $3,%xmm3; \
 	por %xmm0,%xmm1; \
@@ -822,7 +829,7 @@ DO_SPACE(4)
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
+	SHLB1(%xmm7); \
 	movdqa %xmm0,K(0); \
 \
 	movdqa V(0),%xmm0; \
@@ -833,7 +840,7 @@ DO_SPACE(4)
 	pand %xmm7,%xmm2; \
 	pand %xmm7,%xmm3; \
 	psrlq $1,%xmm0; \
-	psllq $1,%xmm2; \
+	SHLB1(%xmm2); \
 	psllq $2,%xmm3; \
 	por %xmm0,%xmm1; \
 	por %xmm2,%xmm3; \
@@ -855,7 +862,7 @@ DO_SPACE(4)
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
+	SHLB1(%xmm7); \
 	movdqa %xmm0,K(1); \
 \
 	movdqa V(0),%xmm0; \
@@ -867,7 +874,7 @@ DO_SPACE(4)
 	pand %xmm7,%xmm3; \
 	psrlq $2,%xmm0; \
 	psrlq $1,%xmm1; \
-	psllq $1,%xmm3; \
+	SHLB1(%xmm3); \
 	por %xmm0,%xmm1; \
 	por %xmm2,%xmm3; \
 	movdqa V(4),%xmm4; \
@@ -888,7 +895,7 @@ DO_SPACE(4)
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
+	SHLB1(%xmm7); \
 	movdqa %xmm0,K(2); \
 \
 	movdqa V(0),%xmm0; \
@@ -910,7 +917,7 @@ DO_SPACE(4)
 	pand %xmm7,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
-	psllq $1,%xmm4; \
+	SHLB1(%xmm4); \
 	pand %xmm7,%xmm6; \
 	pand %xmm7,%xmm0; \
 	psllq $2,%xmm5; \
@@ -921,7 +928,7 @@ DO_SPACE(4)
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
+	SHLB1(%xmm7); \
 	movdqa %xmm0,K(3); \
 \
 	movdqa V(0),%xmm0; \
@@ -946,7 +953,7 @@ DO_SPACE(4)
 	movdqa V(7),%xmm0; \
 	pand %xmm7,%xmm6; \
 	pand %xmm7,%xmm0; \
-	psllq $1,%xmm5; \
+	SHLB1(%xmm5); \
 	psllq $2,%xmm6; \
 	psllq $3,%xmm0; \
 	por %xmm4,%xmm5; \
@@ -954,7 +961,7 @@ DO_SPACE(4)
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
+	SHLB1(%xmm7); \
 	movdqa %xmm0,K(4); \
 \
 	movdqa V(0),%xmm0; \
@@ -980,14 +987,14 @@ DO_SPACE(4)
 	psrlq $1,%xmm4; \
 	pand %xmm7,%xmm6; \
 	pand %xmm7,%xmm0; \
-	psllq $1,%xmm6; \
+	SHLB1(%xmm6); \
 	psllq $2,%xmm0; \
 	por %xmm4,%xmm5; \
 	por %xmm6,%xmm3; \
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
+	SHLB1(%xmm7); \
 	movdqa %xmm0,K(5); \
 \
 	movdqa V(0),%xmm0; \
@@ -1014,15 +1021,12 @@ DO_SPACE(4)
 	pand %xmm7,%xmm6; \
 	pand %xmm7,%xmm0; \
 	psrlq $1,%xmm5; \
-	psllq $1,%xmm0; \
+	SHLB1(%xmm0); \
 	por %xmm4,%xmm5; \
 	por %xmm6,%xmm3; \
 	por %xmm5,%xmm0; \
 	por %xmm3,%xmm0; \
-	psllq $1,%xmm7; \
 	movdqa %xmm0,K(6)
-
-#define mask01				tmp_at(15)
 
 .text
 
@@ -1111,9 +1115,9 @@ DES_bs_finalize_keys:
 	jnz DES_bs_finalize_keys_body
 	ret
 DES_bs_finalize_keys_body:
-	movl $0,DES_bs_all_keys_changed
-	movl $DES_bs_all_K,k_ptr
 	movl $DES_bs_all_xkeys,v_ptr
+	movl $DES_bs_all_K,k_ptr
+	movl $0,DES_bs_all_keys_changed
 DES_bs_finalize_keys_main_loop:
 	FINALIZE_NEXT_KEY_BITS_0_6
 	addl $nvec(7),k_ptr
@@ -1217,14 +1221,19 @@ DES_bs_crypt_25_next:
 	decl iterations
 	jmp DES_bs_crypt_25_start
 
+#define ones				%xmm1
+
+#define rounds				%eax
+
 DO_ALIGN(6)
-.globl DES_bs_finalize_keys_LM
-DES_bs_finalize_keys_LM:
-	movl $DES_bs_all_K,k_ptr
+.globl DES_bs_crypt_LM
+DES_bs_crypt_LM:
 	movl $DES_bs_all_xkeys,v_ptr
+	movl $DES_bs_all_K,k_ptr
 DES_bs_finalize_keys_LM_loop:
 	FINALIZE_NEXT_KEY_BITS_0_6
 # bit 7
+	SHLB1(%xmm7)
 	movdqa V(0),%xmm0
 	movdqa V(1),%xmm1
 	movdqa V(2),%xmm2
@@ -1256,20 +1265,11 @@ DES_bs_finalize_keys_LM_loop:
 	por %xmm5,%xmm0
 	addl $nvec(8),v_ptr
 	por %xmm3,%xmm0
-	psllq $1,%xmm7
 	movdqa %xmm0,K(7)
 	addl $nvec(8),k_ptr
 	cmpl $DES_bs_all_K+nvec(56),k_ptr
 	jb DES_bs_finalize_keys_LM_loop
-	ret
 
-#define ones				%xmm1
-
-#define rounds				%eax
-
-DO_ALIGN(6)
-.globl DES_bs_crypt_LM
-DES_bs_crypt_LM:
 	pxor zero,zero
 	pushl %esi
 	pcmpeqd ones,ones
