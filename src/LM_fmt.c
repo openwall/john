@@ -155,7 +155,9 @@ static int get_hash_4(int index)
 
 static void crypt_all(int count)
 {
+#if !DES_BS_ASM
 	DES_bs_finalize_keys_LM();
+#endif
 	DES_bs_crypt_LM();
 }
 
