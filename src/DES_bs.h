@@ -91,7 +91,9 @@ extern void DES_bs_set_key_LM(char *key, int index);
  * Finalize the key setup for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
  */
 extern void DES_bs_finalize_keys(void);
+#if !DES_BS_ASM
 extern void DES_bs_finalize_keys_LM(void);
+#endif
 
 /*
  * Generic bitslice routine: 24 bit salts, variable iteration count.
