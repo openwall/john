@@ -80,6 +80,8 @@ DES_bs_all_xkeys:
 DO_SPACE(nvec(64))
 DES_bs_all_keys_changed:
 DO_SPACE(4)
+DES_bs_all_salt:
+DO_SPACE(4)
 
 #define E(i)				DES_bs_all_E+nptr(i)(%rip)
 #define B(i)				DES_bs_all_B+nvec(i)(%rip)

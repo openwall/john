@@ -88,6 +88,9 @@ void DES_bs_init(int LM)
 			DES_bs_all.E.u[c] = c & ~0x20;
 		else
 			DES_bs_all.E.u[c] = c;
+	} else {
+		DES_bs_all.salt = 0xffffff;
+		DES_bs_set_salt(0);
 	}
 
 #if DES_BS_ASM
@@ -99,21 +102,32 @@ void DES_bs_init(int LM)
 
 void DES_bs_set_salt(ARCH_WORD salt)
 {
-	ARCH_WORD mask;
-	int src, dst;
+	unsigned int new = salt;
+	unsigned int old = DES_bs_all.salt;
+	int dst;
 
-	mask = 1;
-	for (dst = 0; dst < 48; dst++) {
-		if (dst == 24) mask = 1;
+	DES_bs_all.salt = new;
 
-		if (salt & mask) {
-			if (dst < 24) src = dst + 24; else src = dst - 24;
-		} else src = dst;
-
-		DES_bs_all.E.E[dst] = &DES_bs_all.B[DES_E[src]] START;
-		DES_bs_all.E.E[dst + 48] = &DES_bs_all.B[DES_E[src] + 32] START;
-
-		mask <<= 1;
+	for (dst = 0; dst < 24; dst++) {
+		if (!((new ^ old) & 1))
+			goto next;
+		int src1 = dst + 24;
+		int src2 = dst;
+		if (!(new & 1)) {
+			src2 = src1;
+			src1 = dst;
+		}
+		src1 = DES_E[src1];
+		src2 = DES_E[src2];
+		DES_bs_all.E.E[dst] = &DES_bs_all.B[src1] START;
+		DES_bs_all.E.E[dst + 24] = &DES_bs_all.B[src2] START;
+		DES_bs_all.E.E[dst + 48] = &DES_bs_all.B[src1 + 32] START;
+		DES_bs_all.E.E[dst + 72] = &DES_bs_all.B[src2 + 32] START;
+next:
+		new >>= 1;
+		old >>= 1;
+		if (new == old)
+			break;
 	}
 }
 
