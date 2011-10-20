@@ -32,7 +32,6 @@
 #define DES_bs_crypt			_DES_bs_crypt
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
-#define DES_bs_finalize_keys		_DES_bs_finalize_keys
 #endif
 
 /*
@@ -1050,6 +1049,10 @@ DES_bs_init_asm:
 DO_ALIGN(6)
 .globl DES_bs_crypt
 DES_bs_crypt:
+	cmpl $0,DES_bs_all_keys_changed
+	jz DES_bs_crypt_body
+	call DES_bs_finalize_keys
+DES_bs_crypt_body:
 	movl 4(%esp),iterations
 	pxor zero,zero
 	pushl %ebp
@@ -1113,59 +1116,11 @@ DES_bs_crypt_next:
 	ret
 
 DO_ALIGN(6)
-.globl DES_bs_finalize_keys
-DES_bs_finalize_keys:
-	cmpl $0,DES_bs_all_keys_changed
-	jnz DES_bs_finalize_keys_body
-	ret
-DES_bs_finalize_keys_body:
-	movl $DES_bs_all_xkeys,v_ptr
-	movl $DES_bs_all_K,k_ptr
-	movl $0,DES_bs_all_keys_changed
-DES_bs_finalize_keys_main_loop:
-	FINALIZE_NEXT_KEY_BITS_0_6
-	addl $nvec(7),k_ptr
-	addl $nvec(8),v_ptr
-	cmpl $DES_bs_all_K+nvec(56),k_ptr
-	jb DES_bs_finalize_keys_main_loop
-	pushl %esi
-	movl $DES_bs_all_KSp,k_ptr
-	movl $DES_bs_all_KS_v,v_ptr
-DES_bs_finalize_keys_expand_loop:
-	movl k(0),tmp1
-	movl k(1),tmp2
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	movl k(2),tmp1
-	movl k(3),tmp2
-	movdqa %xmm0,V(0)
-	movdqa %xmm1,V(1)
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	movl k(4),tmp1
-	movl k(5),tmp2
-	movdqa %xmm0,V(2)
-	movdqa %xmm1,V(3)
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	movl k(6),tmp1
-	movl k(7),tmp2
-	movdqa %xmm0,V(4)
-	movdqa %xmm1,V(5)
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	addl $nptr(8),k_ptr
-	movdqa %xmm0,V(6)
-	movdqa %xmm1,V(7)
-	addl $nvec(8),v_ptr
-	cmpl $DES_bs_all_KSp+nptr(0x300),k_ptr
-	jb DES_bs_finalize_keys_expand_loop
-	popl %esi
-	ret
-
-DO_ALIGN(6)
 .globl DES_bs_crypt_25
 DES_bs_crypt_25:
+	cmpl $0,DES_bs_all_keys_changed
+	jnz DES_bs_finalize_keys_25
+DES_bs_crypt_25_body:
 	pxor zero,zero
 	pushl %ebp
 	pushl %esi
@@ -1224,6 +1179,53 @@ DES_bs_crypt_25_next:
 	movl $8,rounds_and_swapped
 	decl iterations
 	jmp DES_bs_crypt_25_start
+
+DES_bs_finalize_keys_25:
+	pushl $DES_bs_crypt_25_body
+DES_bs_finalize_keys:
+	movl $DES_bs_all_xkeys,v_ptr
+	movl $DES_bs_all_K,k_ptr
+	movl $0,DES_bs_all_keys_changed
+DES_bs_finalize_keys_main_loop:
+	FINALIZE_NEXT_KEY_BITS_0_6
+	addl $nvec(7),k_ptr
+	addl $nvec(8),v_ptr
+	cmpl $DES_bs_all_K+nvec(56),k_ptr
+	jb DES_bs_finalize_keys_main_loop
+	pushl %esi
+	movl $DES_bs_all_KSp,k_ptr
+	movl $DES_bs_all_KS_v,v_ptr
+DES_bs_finalize_keys_expand_loop:
+	movl k(0),tmp1
+	movl k(1),tmp2
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	movl k(2),tmp1
+	movl k(3),tmp2
+	movdqa %xmm0,V(0)
+	movdqa %xmm1,V(1)
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	movl k(4),tmp1
+	movl k(5),tmp2
+	movdqa %xmm0,V(2)
+	movdqa %xmm1,V(3)
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	movl k(6),tmp1
+	movl k(7),tmp2
+	movdqa %xmm0,V(4)
+	movdqa %xmm1,V(5)
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	addl $nptr(8),k_ptr
+	movdqa %xmm0,V(6)
+	movdqa %xmm1,V(7)
+	addl $nvec(8),v_ptr
+	cmpl $DES_bs_all_KSp+nptr(0x300),k_ptr
+	jb DES_bs_finalize_keys_expand_loop
+	popl %esi
+	ret
 
 #define ones				%xmm1
 
