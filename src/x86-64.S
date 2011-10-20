@@ -1183,7 +1183,7 @@ DES_bs_crypt_LM:
 	leaq DES_bs_all_K(%rip),k_ptr
 	movdqa mask10,%xmm11
 	movdqa mask20,%xmm12
-	movl $8,iterations
+	movl $7,iterations
 	movdqa mask40,%xmm13
 	movdqa mask80,%xmm14
 DES_bs_finalize_keys_LM_loop:
