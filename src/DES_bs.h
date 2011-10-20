@@ -67,6 +67,7 @@ typedef struct {
 		DES_bs_vector v[8][8];
 	} xkeys;		/* Partially transposed key bits matrix */
 	int keys_changed;	/* If keys have changed */
+	unsigned int salt;	/* Salt value corresponding to E[] contents */
 } DES_bs_combined;
 
 extern DES_bs_combined DES_bs_all;
