@@ -113,11 +113,11 @@ void DES_bs_set_salt(ARCH_WORD salt)
 	for (dst = 0; dst < 24; dst++) {
 		if ((new ^ old) & 1) {
 			DES_bs_vector *sp1, *sp2;
-			int src1 = dst + 24;
-			int src2 = dst;
-			if (!(new & 1)) {
-				src2 = src1;
-				src1 = dst;
+			int src1 = dst;
+			int src2 = dst + 24;
+			if (new & 1) {
+				src1 = src2;
+				src2 = dst;
 			}
 			sp1 = DES_bs_all.Ens[src1];
 			sp2 = DES_bs_all.Ens[src2];
