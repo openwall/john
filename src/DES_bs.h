@@ -89,11 +89,11 @@ extern void DES_bs_set_salt(ARCH_WORD salt);
 extern void DES_bs_set_key(char *key, int index);
 extern void DES_bs_set_key_LM(char *key, int index);
 
+#if !DES_BS_ASM
 /*
  * Finalize the key setup for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
  */
 extern void DES_bs_finalize_keys(void);
-#if !DES_BS_ASM
 extern void DES_bs_finalize_keys_LM(void);
 #endif
 

@@ -33,7 +33,6 @@
 #define DES_bs_crypt			_DES_bs_crypt
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
-#define DES_bs_finalize_keys		_DES_bs_finalize_keys
 #endif
 
 #ifdef ALIGN_LOG
@@ -979,6 +978,12 @@ DES_bs_init_asm:
 DO_ALIGN(6)
 .globl DES_bs_crypt
 DES_bs_crypt:
+	cmpl $0,DES_bs_all_keys_changed(%rip)
+	jz DES_bs_crypt_body
+	pushq %rdi
+	call DES_bs_finalize_keys
+	popq %rdi
+DES_bs_crypt_body:
 	pxor zero,zero
 	leaq DES_bs_all_KS_v(%rip),k_ptr
 	DES_bs_clear_block
@@ -1035,59 +1040,11 @@ DES_bs_crypt_next:
 	ret
 
 DO_ALIGN(6)
-.globl DES_bs_finalize_keys
-DES_bs_finalize_keys:
-	cmpl $0,DES_bs_all_keys_changed(%rip)
-	jnz DES_bs_finalize_keys_body
-	ret
-DES_bs_finalize_keys_body:
-	leaq DES_bs_all_xkeys(%rip),v_ptr
-	leaq DES_bs_all_K(%rip),k_ptr
-	movl $8,iterations
-	movl $0,DES_bs_all_keys_changed(%rip)
-DES_bs_finalize_keys_main_loop:
-	FINALIZE_NEXT_KEY_BITS_0_6
-	addq $nvec(7),k_ptr
-	addq $nvec(8),v_ptr
-	subl $1,iterations
-	jnz DES_bs_finalize_keys_main_loop
-	leaq DES_bs_all_KSp(%rip),k_ptr
-	leaq DES_bs_all_KS_v(%rip),v_ptr
-	movl $0x60,iterations
-DES_bs_finalize_keys_expand_loop:
-	movq k(0),tmp1
-	movq k(1),tmp2
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	movq k(2),tmp1
-	movq k(3),tmp2
-	movdqa %xmm0,V(0)
-	movdqa %xmm1,V(1)
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	movq k(4),tmp1
-	movq k(5),tmp2
-	movdqa %xmm0,V(2)
-	movdqa %xmm1,V(3)
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	movq k(6),tmp1
-	movq k(7),tmp2
-	movdqa %xmm0,V(4)
-	movdqa %xmm1,V(5)
-	movdqa (tmp1),%xmm0
-	movdqa (tmp2),%xmm1
-	addq $nptr(8),k_ptr
-	movdqa %xmm0,V(6)
-	movdqa %xmm1,V(7)
-	addq $nvec(8),v_ptr
-	subl $1,iterations
-	jnz DES_bs_finalize_keys_expand_loop
-	ret
-
-DO_ALIGN(6)
 .globl DES_bs_crypt_25
 DES_bs_crypt_25:
+	cmpl $0,DES_bs_all_keys_changed(%rip)
+	jnz DES_bs_finalize_keys_25
+DES_bs_crypt_25_body:
 	pxor zero,zero
 	leaq DES_bs_all_KS_v(%rip),k_ptr
 	DES_bs_clear_block
@@ -1142,6 +1099,54 @@ DES_bs_crypt_25_next:
 	movl $8,rounds_and_swapped
 	subl $1,iterations
 	jmp DES_bs_crypt_25_start
+
+DES_bs_finalize_keys_25:
+	leaq DES_bs_crypt_25_body(%rip),tmp1
+	pushq tmp1
+DES_bs_finalize_keys:
+	leaq DES_bs_all_xkeys(%rip),v_ptr
+	leaq DES_bs_all_K(%rip),k_ptr
+	movl $8,iterations
+	movl $0,DES_bs_all_keys_changed(%rip)
+DES_bs_finalize_keys_main_loop:
+	FINALIZE_NEXT_KEY_BITS_0_6
+	addq $nvec(7),k_ptr
+	addq $nvec(8),v_ptr
+	subl $1,iterations
+	jnz DES_bs_finalize_keys_main_loop
+	leaq DES_bs_all_KSp(%rip),k_ptr
+	leaq DES_bs_all_KS_v(%rip),v_ptr
+	movl $0x60,iterations
+DES_bs_finalize_keys_expand_loop:
+	movq k(0),tmp1
+	movq k(1),tmp2
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	movq k(2),tmp1
+	movq k(3),tmp2
+	movdqa %xmm0,V(0)
+	movdqa %xmm1,V(1)
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	movq k(4),tmp1
+	movq k(5),tmp2
+	movdqa %xmm0,V(2)
+	movdqa %xmm1,V(3)
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	movq k(6),tmp1
+	movq k(7),tmp2
+	movdqa %xmm0,V(4)
+	movdqa %xmm1,V(5)
+	movdqa (tmp1),%xmm0
+	movdqa (tmp2),%xmm1
+	addq $nptr(8),k_ptr
+	movdqa %xmm0,V(6)
+	movdqa %xmm1,V(7)
+	addq $nvec(8),v_ptr
+	subl $1,iterations
+	jnz DES_bs_finalize_keys_expand_loop
+	ret
 
 #define ones				%xmm1
 
