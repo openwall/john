@@ -96,6 +96,8 @@ DES_bs_all_keys_changed:
 DO_SPACE(4)
 DES_bs_all_salt:
 DO_SPACE(4)
+DES_bs_all_Ens:
+DO_SPACE(nptr(48))
 
 #define E(i)				DES_bs_all_E+nptr(i)
 #define B(i)				DES_bs_all_B+nvec(i)

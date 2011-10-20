@@ -89,6 +89,8 @@ void DES_bs_init(int LM)
 		else
 			DES_bs_all.E.u[c] = c;
 	} else {
+		for (index = 0; index < 48; index++)
+			DES_bs_all.Ens[index] = &DES_bs_all.B[DES_E[index]];
 		DES_bs_all.salt = 0xffffff;
 		DES_bs_set_salt(0);
 	}
@@ -109,21 +111,21 @@ void DES_bs_set_salt(ARCH_WORD salt)
 	DES_bs_all.salt = new;
 
 	for (dst = 0; dst < 24; dst++) {
-		if (!((new ^ old) & 1))
-			goto next;
-		int src1 = dst + 24;
-		int src2 = dst;
-		if (!(new & 1)) {
-			src2 = src1;
-			src1 = dst;
+		if ((new ^ old) & 1) {
+			DES_bs_vector *sp1, *sp2;
+			int src1 = dst + 24;
+			int src2 = dst;
+			if (!(new & 1)) {
+				src2 = src1;
+				src1 = dst;
+			}
+			sp1 = DES_bs_all.Ens[src1];
+			sp2 = DES_bs_all.Ens[src2];
+			DES_bs_all.E.E[dst] = (ARCH_WORD *)sp1;
+			DES_bs_all.E.E[dst + 24] = (ARCH_WORD *)sp2;
+			DES_bs_all.E.E[dst + 48] = (ARCH_WORD *)(sp1 + 32);
+			DES_bs_all.E.E[dst + 72] = (ARCH_WORD *)(sp2 + 32);
 		}
-		src1 = DES_E[src1];
-		src2 = DES_E[src2];
-		DES_bs_all.E.E[dst] = &DES_bs_all.B[src1] START;
-		DES_bs_all.E.E[dst + 24] = &DES_bs_all.B[src2] START;
-		DES_bs_all.E.E[dst + 48] = &DES_bs_all.B[src1 + 32] START;
-		DES_bs_all.E.E[dst + 72] = &DES_bs_all.B[src2 + 32] START;
-next:
 		new >>= 1;
 		old >>= 1;
 		if (new == old)
