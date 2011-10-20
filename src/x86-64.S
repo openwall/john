@@ -716,7 +716,14 @@ DO_SPACE(nptr(48))
 	pxor (tmp1),a5; \
 	pxor (tmp2),a6
 
-#define mask01				tmp_at(15)
+#define mask01				tmp_at(8)
+#define mask02				tmp_at(9)
+#define mask04				tmp_at(10)
+#define mask08				tmp_at(11)
+#define mask10				tmp_at(12)
+#define mask20				tmp_at(13)
+#define mask40				tmp_at(14)
+#define mask80				tmp_at(15)
 
 #define v_ptr				%rax
 #define V(i)				nvec(i)(v_ptr)
@@ -728,8 +735,6 @@ DO_SPACE(nptr(48))
 #endif
 
 #define FINALIZE_NEXT_KEY_BITS_0_6 \
-	movdqa mask01,%xmm7; \
-\
 	movdqa V(0),%xmm0; \
 	movdqa V(1),%xmm1; \
 	movdqa V(2),%xmm2; \
@@ -761,16 +766,15 @@ DO_SPACE(nptr(48))
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	SHLB1(%xmm7); \
+	movdqa V(2),%xmm2; \
 	movdqa %xmm0,K(0); \
 \
 	movdqa V(0),%xmm0; \
-	movdqa V(2),%xmm2; \
 	movdqa V(3),%xmm3; \
-	pand %xmm7,%xmm0; \
-	pand %xmm7,%xmm1; \
-	pand %xmm7,%xmm2; \
-	pand %xmm7,%xmm3; \
+	pand %xmm8,%xmm1; \
+	pand %xmm8,%xmm2; \
+	pand %xmm8,%xmm0; \
+	pand %xmm8,%xmm3; \
 	psrlq $1,%xmm0; \
 	SHLB1(%xmm2); \
 	psllq $2,%xmm3; \
@@ -779,13 +783,13 @@ DO_SPACE(nptr(48))
 	movdqa V(4),%xmm4; \
 	movdqa V(5),%xmm5; \
 	por %xmm1,%xmm3; \
-	pand %xmm7,%xmm4; \
-	pand %xmm7,%xmm5; \
+	pand %xmm8,%xmm4; \
+	pand %xmm8,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
 	psllq $3,%xmm4; \
-	pand %xmm7,%xmm6; \
-	pand %xmm7,%xmm0; \
+	pand %xmm8,%xmm6; \
+	pand %xmm8,%xmm0; \
 	psllq $4,%xmm5; \
 	psllq $5,%xmm6; \
 	psllq $6,%xmm0; \
@@ -794,31 +798,30 @@ DO_SPACE(nptr(48))
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	SHLB1(%xmm7); \
+	movdqa V(2),%xmm2; \
 	movdqa %xmm0,K(1); \
 \
 	movdqa V(0),%xmm0; \
-	movdqa V(2),%xmm2; \
 	movdqa V(3),%xmm3; \
-	pand %xmm7,%xmm0; \
-	pand %xmm7,%xmm1; \
-	pand %xmm7,%xmm2; \
-	pand %xmm7,%xmm3; \
-	psrlq $2,%xmm0; \
+	pand %xmm9,%xmm1; \
+	pand %xmm9,%xmm2; \
+	pand %xmm9,%xmm0; \
+	pand %xmm9,%xmm3; \
 	psrlq $1,%xmm1; \
+	psrlq $2,%xmm0; \
 	SHLB1(%xmm3); \
 	por %xmm0,%xmm1; \
 	por %xmm2,%xmm3; \
 	movdqa V(4),%xmm4; \
 	movdqa V(5),%xmm5; \
 	por %xmm1,%xmm3; \
-	pand %xmm7,%xmm4; \
-	pand %xmm7,%xmm5; \
+	pand %xmm9,%xmm4; \
+	pand %xmm9,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
 	psllq $2,%xmm4; \
-	pand %xmm7,%xmm6; \
-	pand %xmm7,%xmm0; \
+	pand %xmm9,%xmm6; \
+	pand %xmm9,%xmm0; \
 	psllq $3,%xmm5; \
 	psllq $4,%xmm6; \
 	psllq $5,%xmm0; \
@@ -827,31 +830,30 @@ DO_SPACE(nptr(48))
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	SHLB1(%xmm7); \
+	movdqa V(2),%xmm2; \
 	movdqa %xmm0,K(2); \
 \
 	movdqa V(0),%xmm0; \
-	movdqa V(2),%xmm2; \
 	movdqa V(3),%xmm3; \
-	pand %xmm7,%xmm0; \
-	pand %xmm7,%xmm1; \
-	pand %xmm7,%xmm2; \
-	pand %xmm7,%xmm3; \
-	psrlq $3,%xmm0; \
+	pand %xmm10,%xmm1; \
+	pand %xmm10,%xmm2; \
+	pand %xmm10,%xmm0; \
+	pand %xmm10,%xmm3; \
 	psrlq $2,%xmm1; \
+	psrlq $3,%xmm0; \
 	psrlq $1,%xmm2; \
 	por %xmm0,%xmm1; \
 	por %xmm2,%xmm3; \
 	movdqa V(4),%xmm4; \
 	movdqa V(5),%xmm5; \
 	por %xmm1,%xmm3; \
-	pand %xmm7,%xmm4; \
-	pand %xmm7,%xmm5; \
+	pand %xmm10,%xmm4; \
+	pand %xmm10,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
 	SHLB1(%xmm4); \
-	pand %xmm7,%xmm6; \
-	pand %xmm7,%xmm0; \
+	pand %xmm10,%xmm6; \
+	pand %xmm10,%xmm0; \
 	psllq $2,%xmm5; \
 	psllq $3,%xmm6; \
 	psllq $4,%xmm0; \
@@ -860,18 +862,17 @@ DO_SPACE(nptr(48))
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	SHLB1(%xmm7); \
+	movdqa V(2),%xmm2; \
 	movdqa %xmm0,K(3); \
 \
 	movdqa V(0),%xmm0; \
-	movdqa V(2),%xmm2; \
 	movdqa V(3),%xmm3; \
-	pand %xmm7,%xmm0; \
-	pand %xmm7,%xmm1; \
-	pand %xmm7,%xmm2; \
-	pand %xmm7,%xmm3; \
-	psrlq $4,%xmm0; \
+	pand %xmm11,%xmm1; \
+	pand %xmm11,%xmm2; \
+	pand %xmm11,%xmm0; \
+	pand %xmm11,%xmm3; \
 	psrlq $3,%xmm1; \
+	psrlq $4,%xmm0; \
 	psrlq $2,%xmm2; \
 	psrlq $1,%xmm3; \
 	por %xmm0,%xmm1; \
@@ -879,12 +880,12 @@ DO_SPACE(nptr(48))
 	movdqa V(4),%xmm4; \
 	movdqa V(5),%xmm5; \
 	por %xmm1,%xmm3; \
-	pand %xmm7,%xmm4; \
-	pand %xmm7,%xmm5; \
+	pand %xmm11,%xmm4; \
+	pand %xmm11,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
-	pand %xmm7,%xmm6; \
-	pand %xmm7,%xmm0; \
+	pand %xmm11,%xmm6; \
+	pand %xmm11,%xmm0; \
 	SHLB1(%xmm5); \
 	psllq $2,%xmm6; \
 	psllq $3,%xmm0; \
@@ -893,18 +894,17 @@ DO_SPACE(nptr(48))
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	SHLB1(%xmm7); \
+	movdqa V(2),%xmm2; \
 	movdqa %xmm0,K(4); \
 \
 	movdqa V(0),%xmm0; \
-	movdqa V(2),%xmm2; \
 	movdqa V(3),%xmm3; \
-	pand %xmm7,%xmm0; \
-	pand %xmm7,%xmm1; \
-	pand %xmm7,%xmm2; \
-	pand %xmm7,%xmm3; \
-	psrlq $5,%xmm0; \
+	pand %xmm12,%xmm1; \
+	pand %xmm12,%xmm2; \
+	pand %xmm12,%xmm0; \
+	pand %xmm12,%xmm3; \
 	psrlq $4,%xmm1; \
+	psrlq $5,%xmm0; \
 	psrlq $3,%xmm2; \
 	psrlq $2,%xmm3; \
 	por %xmm0,%xmm1; \
@@ -912,13 +912,13 @@ DO_SPACE(nptr(48))
 	movdqa V(4),%xmm4; \
 	movdqa V(5),%xmm5; \
 	por %xmm1,%xmm3; \
-	pand %xmm7,%xmm4; \
-	pand %xmm7,%xmm5; \
+	pand %xmm12,%xmm4; \
+	pand %xmm12,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
 	psrlq $1,%xmm4; \
-	pand %xmm7,%xmm6; \
-	pand %xmm7,%xmm0; \
+	pand %xmm12,%xmm6; \
+	pand %xmm12,%xmm0; \
 	SHLB1(%xmm6); \
 	psllq $2,%xmm0; \
 	por %xmm4,%xmm5; \
@@ -926,18 +926,17 @@ DO_SPACE(nptr(48))
 	por %xmm5,%xmm0; \
 	movdqa V(1),%xmm1; \
 	por %xmm3,%xmm0; \
-	SHLB1(%xmm7); \
+	movdqa V(2),%xmm2; \
 	movdqa %xmm0,K(5); \
 \
 	movdqa V(0),%xmm0; \
-	movdqa V(2),%xmm2; \
 	movdqa V(3),%xmm3; \
-	pand %xmm7,%xmm0; \
-	pand %xmm7,%xmm1; \
-	pand %xmm7,%xmm2; \
-	pand %xmm7,%xmm3; \
-	psrlq $6,%xmm0; \
+	pand %xmm13,%xmm1; \
+	pand %xmm13,%xmm2; \
+	pand %xmm13,%xmm0; \
+	pand %xmm13,%xmm3; \
 	psrlq $5,%xmm1; \
+	psrlq $6,%xmm0; \
 	psrlq $4,%xmm2; \
 	psrlq $3,%xmm3; \
 	por %xmm0,%xmm1; \
@@ -945,13 +944,13 @@ DO_SPACE(nptr(48))
 	movdqa V(4),%xmm4; \
 	movdqa V(5),%xmm5; \
 	por %xmm1,%xmm3; \
-	pand %xmm7,%xmm4; \
-	pand %xmm7,%xmm5; \
+	pand %xmm13,%xmm4; \
+	pand %xmm13,%xmm5; \
 	movdqa V(6),%xmm6; \
 	movdqa V(7),%xmm0; \
 	psrlq $2,%xmm4; \
-	pand %xmm7,%xmm6; \
-	pand %xmm7,%xmm0; \
+	pand %xmm13,%xmm6; \
+	pand %xmm13,%xmm0; \
 	psrlq $1,%xmm5; \
 	SHLB1(%xmm0); \
 	por %xmm4,%xmm5; \
@@ -970,6 +969,20 @@ DES_bs_init_asm:
 	paddb %xmm0,%xmm0
 	pxor pnot,%xmm0
 	movdqa %xmm0,mask01
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask02
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask04
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask08
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask10
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask20
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask40
+	SHLB1(%xmm0)
+	movdqa %xmm0,mask80
 	ret
 
 #define iterations			%edi
@@ -1104,10 +1117,17 @@ DES_bs_finalize_keys_25:
 	leaq DES_bs_crypt_25_body(%rip),tmp1
 	pushq tmp1
 DES_bs_finalize_keys:
+	movdqa mask01,%xmm7
+	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
+	movdqa mask04,%xmm9
+	movdqa mask08,%xmm10
 	leaq DES_bs_all_K(%rip),k_ptr
 	movl $8,iterations
+	movdqa mask10,%xmm11
+	movdqa mask20,%xmm12
 	movl $0,DES_bs_all_keys_changed(%rip)
+	movdqa mask40,%xmm13
 DES_bs_finalize_keys_main_loop:
 	FINALIZE_NEXT_KEY_BITS_0_6
 	addq $nvec(7),k_ptr
@@ -1155,21 +1175,28 @@ DES_bs_finalize_keys_expand_loop:
 DO_ALIGN(6)
 .globl DES_bs_crypt_LM
 DES_bs_crypt_LM:
+	movdqa mask01,%xmm7
+	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
+	movdqa mask04,%xmm9
+	movdqa mask08,%xmm10
 	leaq DES_bs_all_K(%rip),k_ptr
+	movdqa mask10,%xmm11
+	movdqa mask20,%xmm12
 	movl $8,iterations
+	movdqa mask40,%xmm13
+	movdqa mask80,%xmm14
 DES_bs_finalize_keys_LM_loop:
 	FINALIZE_NEXT_KEY_BITS_0_6
 # bit 7
-	SHLB1(%xmm7)
 	movdqa V(0),%xmm0
 	movdqa V(1),%xmm1
 	movdqa V(2),%xmm2
 	movdqa V(3),%xmm3
-	pand %xmm7,%xmm0
-	pand %xmm7,%xmm1
-	pand %xmm7,%xmm2
-	pand %xmm7,%xmm3
+	pand %xmm14,%xmm0
+	pand %xmm14,%xmm1
+	pand %xmm14,%xmm2
+	pand %xmm14,%xmm3
 	psrlq $7,%xmm0
 	psrlq $6,%xmm1
 	psrlq $5,%xmm2
@@ -1179,13 +1206,13 @@ DES_bs_finalize_keys_LM_loop:
 	movdqa V(4),%xmm4
 	movdqa V(5),%xmm5
 	por %xmm1,%xmm3
-	pand %xmm7,%xmm4
-	pand %xmm7,%xmm5
+	pand %xmm14,%xmm4
+	pand %xmm14,%xmm5
 	movdqa V(6),%xmm6
 	movdqa V(7),%xmm0
 	psrlq $3,%xmm4
-	pand %xmm7,%xmm6
-	pand %xmm7,%xmm0
+	pand %xmm14,%xmm6
+	pand %xmm14,%xmm0
 	psrlq $2,%xmm5
 	psrlq $1,%xmm6
 	por %xmm4,%xmm5
