@@ -77,6 +77,8 @@ DES_bs_all_tmp:
 DO_SPACE(nvec(16))
 DES_bs_all_xkeys:
 DO_SPACE(nvec(64))
+DES_bs_all_pxkeys:
+DO_SPACE(nptr(128))
 DES_bs_all_keys_changed:
 DO_SPACE(4)
 DES_bs_all_salt:
