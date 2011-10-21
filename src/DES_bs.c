@@ -82,6 +82,10 @@ void DES_bs_init(int LM)
 		}
 	}
 
+	for (index = 0; index < DES_BS_DEPTH; index++)
+		DES_bs_all.pxkeys[index] =
+		    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
+
 	if (LM) {
 		for (c = 0; c < 0x100; c++)
 		if (c >= 'a' && c <= 'z')
@@ -135,39 +139,39 @@ void DES_bs_set_salt(ARCH_WORD salt)
 
 void DES_bs_set_key(char *key, int index)
 {
-	unsigned char *dst = &DES_bs_all.xkeys.c[0][index];
+	unsigned char *dst = DES_bs_all.pxkeys[index];
 
 	DES_bs_all.keys_changed = 1;
 
 	if (!key[0]) goto fill8;
 	*dst = key[0];
-	*(dst + DES_BS_DEPTH) = key[1];
-	*(dst + DES_BS_DEPTH * 2) = key[2];
+	*(dst + sizeof(DES_bs_vector) * 8) = key[1];
+	*(dst + sizeof(DES_bs_vector) * 8 * 2) = key[2];
 	if (!key[1]) goto fill6;
 	if (!key[2]) goto fill5;
-	*(dst + DES_BS_DEPTH * 3) = key[3];
-	*(dst + DES_BS_DEPTH * 4) = key[4];
+	*(dst + sizeof(DES_bs_vector) * 8 * 3) = key[3];
+	*(dst + sizeof(DES_bs_vector) * 8 * 4) = key[4];
 	if (!key[3]) goto fill4;
 	if (!key[4] || !key[5]) goto fill3;
-	*(dst + DES_BS_DEPTH * 5) = key[5];
+	*(dst + sizeof(DES_bs_vector) * 8 * 5) = key[5];
 	if (!key[6]) goto fill2;
-	*(dst + DES_BS_DEPTH * 6) = key[6];
-	*(dst + DES_BS_DEPTH * 7) = key[7];
+	*(dst + sizeof(DES_bs_vector) * 8 * 6) = key[6];
+	*(dst + sizeof(DES_bs_vector) * 8 * 7) = key[7];
 	return;
 fill8:
 	dst[0] = 0;
-	dst[DES_BS_DEPTH] = 0;
+	dst[sizeof(DES_bs_vector) * 8] = 0;
 fill6:
-	dst[DES_BS_DEPTH * 2] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 2] = 0;
 fill5:
-	dst[DES_BS_DEPTH * 3] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 3] = 0;
 fill4:
-	dst[DES_BS_DEPTH * 4] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 4] = 0;
 fill3:
-	dst[DES_BS_DEPTH * 5] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 5] = 0;
 fill2:
-	dst[DES_BS_DEPTH * 6] = 0;
-	dst[DES_BS_DEPTH * 7] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 7] = 0;
 }
 
 #if !DES_BS_ASM
@@ -383,7 +387,7 @@ void DES_bs_finalize_keys_LM(void)
 
 void DES_bs_set_key_LM(char *key, int index)
 {
-	unsigned char *dst = &DES_bs_all.xkeys.c[0][index];
+	unsigned char *dst = DES_bs_all.pxkeys[index];
 
 /*
  * gcc 4.5.0 on x86_64 would generate redundant movzbl's without explicit
@@ -394,35 +398,35 @@ void DES_bs_set_key_LM(char *key, int index)
 	*dst = DES_bs_all.E.u[c];
 	c = (unsigned char)key[1];
 	if (!c) goto fill6;
-	*(dst + DES_BS_DEPTH) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[2];
 	if (!c) goto fill5;
-	*(dst + DES_BS_DEPTH * 2) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 2) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[3];
 	if (!c) goto fill4;
-	*(dst + DES_BS_DEPTH * 3) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 3) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[4];
 	if (!c) goto fill3;
-	*(dst + DES_BS_DEPTH * 4) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 4) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[5];
 	if (!c) goto fill2;
-	*(dst + DES_BS_DEPTH * 5) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 5) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[6];
-	*(dst + DES_BS_DEPTH * 6) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 6) = DES_bs_all.E.u[c];
 	return;
 fill7:
 	dst[0] = 0;
 fill6:
-	dst[DES_BS_DEPTH] = 0;
+	dst[sizeof(DES_bs_vector) * 8] = 0;
 fill5:
-	dst[DES_BS_DEPTH * 2] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 2] = 0;
 fill4:
-	dst[DES_BS_DEPTH * 3] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 3] = 0;
 fill3:
-	dst[DES_BS_DEPTH * 4] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 4] = 0;
 fill2:
-	dst[DES_BS_DEPTH * 5] = 0;
-	dst[DES_BS_DEPTH * 6] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 5] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
 }
 
 static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
