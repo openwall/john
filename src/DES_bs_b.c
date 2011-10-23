@@ -8,6 +8,8 @@
 #if !DES_BS_ASM
 #include "DES_bs.h"
 
+#define _ones (*(vtype *)&DES_bs_all.ones)
+
 #if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
 #undef DES_BS_VECTOR
 
@@ -121,8 +123,6 @@ typedef __m256 vtype;
 #define vxorf(a, b) \
 	_mm256_xor_ps((a), (b))
 
-#define vnot(dst, a) \
-	(dst) = _mm256_xor_ps((a), *(vtype *)&DES_bs_all.ones)
 #define vand(dst, a, b) \
 	(dst) = _mm256_and_ps((a), (b))
 #define vor(dst, a, b) \
@@ -161,9 +161,6 @@ typedef struct {
 	(dst).f = _mm256_xor_ps((a).f, (b).f); \
 	(dst).g = _mm_xor_si128((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si128((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
 	(dst).g = _mm_and_si128((a).g, (b).g)
@@ -203,9 +200,6 @@ typedef struct {
 	(dst).f = _mm256_xor_ps((a).f, (b).f); \
 	(dst).g = _mm256_xor_ps((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm256_xor_ps((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
 	(dst).g = _mm256_and_ps((a).g, (b).g)
@@ -246,9 +240,6 @@ typedef struct {
 	(dst).f = _mm256_xor_ps((a).f, (b).f); \
 	(dst).g = _mm_xor_si64((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
 	(dst).g = _mm_and_si64((a).g, (b).g)
@@ -284,7 +275,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).f = _mm256_xor_ps((a).f, _ones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
@@ -324,8 +315,8 @@ typedef struct {
 	(dst).h = (a).h ^ (b).h
 
 #define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g); \
+	(dst).f = _mm256_xor_ps((a).f, _ones.f); \
+	(dst).g = _mm_xor_si64((a).g, _ones.g); \
 	(dst).h = ~(a).h
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
@@ -364,8 +355,6 @@ typedef __m128i vtype;
 #define vxorf(a, b) \
 	_mm_xor_si128((a), (b))
 
-#define vnot(dst, a) \
-	(dst) = _mm_xor_si128((a), *(vtype *)&DES_bs_all.ones)
 #define vand(dst, a, b) \
 	(dst) = _mm_and_si128((a), (b))
 #define vor(dst, a, b) \
@@ -408,9 +397,6 @@ typedef struct {
 	(dst).f = _mm_xor_si128((a).f, (b).f); \
 	(dst).g = _mm_xor_si128((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si128((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
 	(dst).g = _mm_and_si128((a).g, (b).g)
@@ -448,9 +434,6 @@ typedef struct {
 	(dst).f = _mm_xor_si128((a).f, (b).f); \
 	(dst).g = _mm_xor_si64((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
 	(dst).g = _mm_and_si64((a).g, (b).g)
@@ -483,7 +466,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).f = _mm_xor_si128((a).f, _ones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
@@ -521,8 +504,8 @@ typedef struct {
 	(dst).h = (a).h ^ (b).h
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g); \
+	(dst).f = _mm_xor_si128((a).f, _ones.f); \
+	(dst).g = _mm_xor_si64((a).g, _ones.g); \
 	(dst).h = ~(a).h
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
@@ -547,8 +530,6 @@ typedef __m64 vtype;
 #define vxorf(a, b) \
 	_mm_xor_si64((a), (b))
 
-#define vnot(dst, a) \
-	(dst) = _mm_xor_si64((a), *(vtype *)&DES_bs_all.ones)
 #define vand(dst, a, b) \
 	(dst) = _mm_and_si64((a), (b))
 #define vor(dst, a, b) \
@@ -575,7 +556,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si64((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).f = _mm_xor_si64((a).f, _ones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si64((a).f, (b).f); \
@@ -591,9 +572,6 @@ typedef struct {
 
 typedef ARCH_WORD vtype;
 
-#define zero				0
-#define ones				~(vtype)0
-
 #define vxorf(a, b) \
 	((a) ^ (b))
 
@@ -607,6 +585,9 @@ typedef ARCH_WORD vtype;
 	(dst) = (a) & ~(b)
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
+
+#define zero 0
+#define ones (~(vtype)0)
 
 #endif
 
@@ -626,6 +607,11 @@ typedef ARCH_WORD vtype;
  */
 #define vxorf(a, b) \
 	({ vtype tmp; vxor(tmp, (a), (b)); tmp; })
+#endif
+
+#ifndef vnot
+#define vnot(dst, a) \
+	vxor((dst), (a), _ones)
 #endif
 
 #ifdef __GNUC__
