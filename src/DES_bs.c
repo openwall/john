@@ -101,7 +101,8 @@ void DES_bs_init(int LM)
 
 #if DES_BS_ASM
 	DES_bs_init_asm();
-#elif defined(__MMX__) || defined(__SSE2__)
+#else
+	memset(&DES_bs_all.zero, 0, sizeof(DES_bs_all.zero));
 	memset(&DES_bs_all.ones, -1, sizeof(DES_bs_all.ones));
 #endif
 }

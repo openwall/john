@@ -8,6 +8,7 @@
 #if !DES_BS_ASM
 #include "DES_bs.h"
 
+#define _zero (*(vtype *)&DES_bs_all.zero)
 #define _ones (*(vtype *)&DES_bs_all.ones)
 
 #if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
@@ -586,8 +587,10 @@ typedef ARCH_WORD vtype;
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 
-#define zero 0
-#define ones (~(vtype)0)
+#undef _zero
+#define _zero 0
+#undef _ones
+#define _ones (~(vtype)0)
 
 #endif
 
@@ -707,12 +710,7 @@ void DES_bs_crypt(int count)
 #if DES_BS_VECTOR
 	int depth;
 #endif
-
-#ifndef zero
-	vtype zero;
-/* This may produce an "uninitialized" warning */
-	vxor(zero, zero, zero);
-#endif
+	vtype zero = _zero;
 
 	DES_bs_clear_block();
 
@@ -803,12 +801,7 @@ void DES_bs_crypt_25(void)
 #if DES_BS_VECTOR
 	int depth;
 #endif
-
-#ifndef zero
-	vtype zero;
-/* This may produce an "uninitialized" warning */
-	vxor(zero, zero, zero);
-#endif
+	vtype zero = _zero;
 
 	DES_bs_clear_block();
 
@@ -913,13 +906,8 @@ void DES_bs_crypt_LM(void)
 #if DES_BS_VECTOR
 	int depth;
 #endif
-
-#ifndef zero
-	vtype zero, ones;
-/* This may produce an "uninitialized" warning */
-	vxor(zero, zero, zero);
-	vnot(ones, zero);
-#endif
+	vtype zero = _zero;
+	vtype ones = _ones;
 
 	DES_bs_set_block_8(0, zero, zero, zero, zero, zero, zero, zero, zero);
 	DES_bs_set_block_8(8, ones, ones, ones, zero, ones, zero, zero, zero);
