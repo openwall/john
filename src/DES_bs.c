@@ -104,6 +104,9 @@ void DES_bs_init(int LM)
 #else
 	memset(&DES_bs_all.zero, 0, sizeof(DES_bs_all.zero));
 	memset(&DES_bs_all.ones, -1, sizeof(DES_bs_all.ones));
+	for (bit = 0; bit < 8; bit++)
+		memset(&DES_bs_all.masks[bit], 1 << bit,
+		    sizeof(DES_bs_all.masks[bit]));
 #endif
 }
 

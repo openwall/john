@@ -583,11 +583,42 @@ typedef ARCH_WORD vtype;
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 
+/* Archs friendly to use of immediate values */
+#ifdef __x86_64__
+#define mask01 0x0101010101010101UL
+#elif __i386__
+#define mask01 0x01010101UL
+#else
+#undef mask01
+#endif
+
+/* Assume that 0 always fits in one load immediate instruction */
 #undef vzero
 #define vzero 0
+
+#ifdef mask01
 #undef vones
 #define vones (~(vtype)0)
+#define mask02 (mask01 << 1)
+#define mask04 (mask01 << 2)
+#define mask08 (mask01 << 3)
+#define mask10 (mask01 << 4)
+#define mask20 (mask01 << 5)
+#define mask40 (mask01 << 6)
+#define mask80 (mask01 << 7)
+#endif
 
+#endif
+
+#ifndef mask01
+#define mask01 (*(vtype *)&DES_bs_all.masks[0])
+#define mask02 (*(vtype *)&DES_bs_all.masks[1])
+#define mask04 (*(vtype *)&DES_bs_all.masks[2])
+#define mask08 (*(vtype *)&DES_bs_all.masks[3])
+#define mask10 (*(vtype *)&DES_bs_all.masks[4])
+#define mask20 (*(vtype *)&DES_bs_all.masks[5])
+#define mask40 (*(vtype *)&DES_bs_all.masks[6])
+#define mask80 (*(vtype *)&DES_bs_all.masks[7])
 #endif
 
 #ifndef vst

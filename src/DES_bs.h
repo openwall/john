@@ -59,6 +59,7 @@ typedef struct {
 #else
 	DES_bs_vector zero;	/* All 0 bits */
 	DES_bs_vector ones;	/* All 1 bits */
+	DES_bs_vector masks[8];	/* Each byte set to 0x01 ... 0x80 */
 #endif
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)];
