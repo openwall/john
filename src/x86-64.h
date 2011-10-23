@@ -33,7 +33,10 @@
 #define DES_EXTB			1
 #define DES_COPY			0
 #define DES_BS				1
-#if defined(__AVX__) && defined(__GNUC__)
+#if 0
+#define DES_BS_VECTOR			0
+#define DES_BS_ALGORITHM_NAME		"64/64 BS"
+#elif defined(__AVX__) && defined(__GNUC__)
 /* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
 #define DES_BS_ASM			0
 #if 0
@@ -123,6 +126,10 @@
 #define DES_BS_VECTOR			3
 #define DES_BS_VECTOR_SIZE		4
 #define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16 + 64/64 BS"
+#elif 0
+#define DES_BS_NO_MMX
+#define DES_BS_VECTOR			4
+#define DES_BS_ALGORITHM_NAME		"128/128 X2 BS SSE2-16"
 #else
 #define DES_BS_VECTOR			4
 #define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16 + 64/64 BS MMX + 64/64 BS"
