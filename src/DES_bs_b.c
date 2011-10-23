@@ -335,10 +335,6 @@ typedef struct {
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
 #undef DES_BS_VECTOR
 
-#if defined(__GNUC__) && !defined(__AVX__)
-#warning Notice: with recent versions of gcc, we are currently using SSE2 intrinsics instead of the supplied SSE2 assembly code.  This choice is made in the x86-*.h file.
-#endif
-
 #ifdef __AVX__
 #include <immintrin.h>
 #ifdef __XOP__
