@@ -557,6 +557,11 @@ typedef ARCH_WORD vtype;
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 
+#define vshl(dst, src, shift) \
+	(dst) = (src) << (shift)
+#define vshr(dst, src, shift) \
+	(dst) = (src) >> (shift)
+
 /* Archs friendly to use of immediate values */
 #ifdef __x86_64__
 #define mask01 0x0101010101010101UL
@@ -618,6 +623,23 @@ typedef ARCH_WORD vtype;
 	vxor((dst), (a), vones)
 #endif
 
+#ifndef vshl
+#define vshl(dst, src, shift) { \
+	int depth; \
+	for (depth = 0; depth < DES_BS_VECTOR; depth++) \
+		((unsigned ARCH_WORD *)&(dst))[depth] = \
+		    ((unsigned ARCH_WORD *)&(src))[depth] << (shift); \
+}
+#endif
+#ifndef vshr
+#define vshr(dst, src, shift) { \
+	int depth; \
+	for (depth = 0; depth < DES_BS_VECTOR; depth++) \
+		((unsigned ARCH_WORD *)&(dst))[depth] = \
+		    ((unsigned ARCH_WORD *)&(src))[depth] >> (shift); \
+}
+#endif
+
 #ifdef __GNUC__
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
 #define MAYBE_INLINE __attribute__((always_inline))
@@ -645,6 +667,7 @@ typedef ARCH_WORD vtype;
 #define kd				[depth]
 #define bd				[depth]
 #define ed				[depth]
+#define DEPTH				[depth]
 #define for_each_depth() \
 	for (depth = 0; depth < DES_BS_VECTOR; depth++)
 #else
@@ -655,6 +678,7 @@ typedef ARCH_WORD vtype;
 #endif
 #define bd
 #define ed				[0]
+#define DEPTH
 #define for_each_depth()
 #endif
 
@@ -890,6 +914,239 @@ next:
 	iterations--;
 	goto start;
 }
+
+#ifdef __i386__
+/* register-starved */
+#define LOAD_V \
+	vtype v0 = *(vtype *)&vp[0]; \
+	vtype v4 = *(vtype *)&vp[4];
+#define v1 *(vtype *)&vp[1]
+#define v2 *(vtype *)&vp[2]
+#define v3 *(vtype *)&vp[3]
+#define v5 *(vtype *)&vp[5]
+#define v6 *(vtype *)&vp[6]
+#define v7 *(vtype *)&vp[7]
+#else
+#define LOAD_V \
+	vtype v0 = *(vtype *)&vp[0]; \
+	vtype v1 = *(vtype *)&vp[1]; \
+	vtype v2 = *(vtype *)&vp[2]; \
+	vtype v3 = *(vtype *)&vp[3]; \
+	vtype v4 = *(vtype *)&vp[4]; \
+	vtype v5 = *(vtype *)&vp[5]; \
+	vtype v6 = *(vtype *)&vp[6]; \
+	vtype v7 = *(vtype *)&vp[7];
+#endif
+
+#define vand_shl_or(dst, src, mask, shift) \
+	vand(tmp, src, mask); \
+	vshl(tmp, tmp, shift); \
+	vor(dst, dst, tmp)
+
+#define vand_shl(dst, src, mask, shift) \
+	vand(tmp, src, mask); \
+	vshl(dst, tmp, shift)
+
+#define vand_or(dst, src, mask) \
+	vand(tmp, src, mask); \
+	vor(dst, dst, tmp)
+
+#define vand_shr_or(dst, src, mask, shift) \
+	vand(tmp, src, mask); \
+	vshr(tmp, tmp, shift); \
+	vor(dst, dst, tmp)
+
+#define vand_shr(dst, src, mask, shift) \
+	vand(tmp, src, mask); \
+	vshr(dst, tmp, shift)
+
+#define FINALIZE_NEXT_KEY_BIT_0 { \
+	vtype m = mask01, va, vb, tmp; \
+	vand(va, v0, m); \
+	vand_shl(vb, v1, m, 1); \
+	vand_shl_or(va, v2, m, 2); \
+	vand_shl_or(vb, v3, m, 3); \
+	vand_shl_or(va, v4, m, 4); \
+	vand_shl_or(vb, v5, m, 5); \
+	vand_shl_or(va, v6, m, 6); \
+	vand_shl_or(vb, v7, m, 7); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_1 { \
+	vtype m = mask02, va, vb, tmp; \
+	vand_shr(va, v0, m, 1); \
+	vand(vb, v1, m); \
+	vand_shl_or(va, v2, m, 1); \
+	vand_shl_or(vb, v3, m, 2); \
+	vand_shl_or(va, v4, m, 3); \
+	vand_shl_or(vb, v5, m, 4); \
+	vand_shl_or(va, v6, m, 5); \
+	vand_shl_or(vb, v7, m, 6); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_2 { \
+	vtype m = mask04, va, vb, tmp; \
+	vand_shr(va, v0, m, 2); \
+	vand_shr(vb, v1, m, 1); \
+	vand_or(va, v2, m); \
+	vand_shl_or(vb, v3, m, 1); \
+	vand_shl_or(va, v4, m, 2); \
+	vand_shl_or(vb, v5, m, 3); \
+	vand_shl_or(va, v6, m, 4); \
+	vand_shl_or(vb, v7, m, 5); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_3 { \
+	vtype m = mask08, va, vb, tmp; \
+	vand_shr(va, v0, m, 3); \
+	vand_shr(vb, v1, m, 2); \
+	vand_shr_or(va, v2, m, 1); \
+	vand_or(vb, v3, m); \
+	vand_shl_or(va, v4, m, 1); \
+	vand_shl_or(vb, v5, m, 2); \
+	vand_shl_or(va, v6, m, 3); \
+	vand_shl_or(vb, v7, m, 4); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_4 { \
+	vtype m = mask10, va, vb, tmp; \
+	vand_shr(va, v0, m, 4); \
+	vand_shr(vb, v1, m, 3); \
+	vand_shr_or(va, v2, m, 2); \
+	vand_shr_or(vb, v3, m, 1); \
+	vand_or(va, v4, m); \
+	vand_shl_or(vb, v5, m, 1); \
+	vand_shl_or(va, v6, m, 2); \
+	vand_shl_or(vb, v7, m, 3); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_5 { \
+	vtype m = mask20, va, vb, tmp; \
+	vand_shr(va, v0, m, 5); \
+	vand_shr(vb, v1, m, 4); \
+	vand_shr_or(va, v2, m, 3); \
+	vand_shr_or(vb, v3, m, 2); \
+	vand_shr_or(va, v4, m, 1); \
+	vand_or(vb, v5, m); \
+	vand_shl_or(va, v6, m, 1); \
+	vand_shl_or(vb, v7, m, 2); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_6 { \
+	vtype m = mask40, va, vb, tmp; \
+	vand_shr(va, v0, m, 6); \
+	vand_shr(vb, v1, m, 5); \
+	vand_shr_or(va, v2, m, 4); \
+	vand_shr_or(vb, v3, m, 3); \
+	vand_shr_or(va, v4, m, 2); \
+	vand_shr_or(vb, v5, m, 1); \
+	vand_or(va, v6, m); \
+	vand_shl_or(vb, v7, m, 1); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_7 { \
+	vtype m = mask80, va, vb, tmp; \
+	vand_shr(va, v0, m, 7); \
+	vand_shr(vb, v1, m, 6); \
+	vand_shr_or(va, v2, m, 5); \
+	vand_shr_or(vb, v3, m, 4); \
+	vand_shr_or(va, v4, m, 3); \
+	vand_shr_or(vb, v5, m, 2); \
+	vand_shr_or(va, v6, m, 1); \
+	vand_or(vb, v7, m); \
+	vor(*(vtype *)kp, va, vb); \
+	kp++; \
+}
+
+void DES_bs_finalize_keys(void)
+{
+#if DES_BS_VECTOR_LOOPS
+	int depth;
+#endif
+
+	if (!DES_bs_all.keys_changed)
+		return;
+	DES_bs_all.keys_changed = 0;
+
+	for_each_depth() {
+		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH;
+		int ic;
+		for (ic = 0; ic < 8; ic++) {
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
+			LOAD_V
+			FINALIZE_NEXT_KEY_BIT_0
+			FINALIZE_NEXT_KEY_BIT_1
+			FINALIZE_NEXT_KEY_BIT_2
+			FINALIZE_NEXT_KEY_BIT_3
+			FINALIZE_NEXT_KEY_BIT_4
+			FINALIZE_NEXT_KEY_BIT_5
+			FINALIZE_NEXT_KEY_BIT_6
+		}
+	}
+
+#if DES_BS_EXPAND
+	{
+		int index;
+		for (index = 0; index < 0x300; index++)
+		for_each_depth() {
+#if DES_BS_VECTOR_LOOPS
+			DES_bs_all.KS.v[index] DEPTH =
+			    DES_bs_all.KSp[index] DEPTH;
+#else
+			vst(*(vtype *)&DES_bs_all.KS.v[index], 0,
+			    *(vtype *)DES_bs_all.KSp[index]);
+#endif
+		}
+	}
+#endif
+}
+
+void DES_bs_finalize_keys_LM(void)
+{
+#if DES_BS_VECTOR_LOOPS
+	int depth;
+#endif
+
+	for_each_depth() {
+		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH;
+		int ic;
+		for (ic = 0; ic < 7; ic++) {
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
+			LOAD_V
+			FINALIZE_NEXT_KEY_BIT_0
+			FINALIZE_NEXT_KEY_BIT_1
+			FINALIZE_NEXT_KEY_BIT_2
+			FINALIZE_NEXT_KEY_BIT_3
+			FINALIZE_NEXT_KEY_BIT_4
+			FINALIZE_NEXT_KEY_BIT_5
+			FINALIZE_NEXT_KEY_BIT_6
+			FINALIZE_NEXT_KEY_BIT_7
+		}
+	}
+}
+
+#undef v1
+#undef v2
+#undef v3
+#undef v5
+#undef v6
+#undef v7
 
 #undef x
 
