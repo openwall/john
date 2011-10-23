@@ -46,7 +46,7 @@ typedef vector signed int vtype;
 
 typedef struct {
 	vector signed int f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -131,6 +131,22 @@ typedef __m256 vtype;
 	(dst) = __builtin_ia32_vpcmov_v8sf256((b), (a), (c))
 #endif
 
+/*
+ * We should be able to do 256-bit shifts with one instruction with AVX2, but
+ * for plain AVX let's use pairs of 128-bit instructions (and likely incur
+ * extra memory stores/loads because the rest of our AVX code is 256-bit). :-(
+ */
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst))[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src))[0], (shift)); \
+	((__m128i *)&(dst))[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src))[1], (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst))[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src))[0], (shift)); \
+	((__m128i *)&(dst))[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src))[1], (shift))
+
 #elif defined(__AVX__) && DES_BS_DEPTH == 384 && !defined(DES_BS_NO_AVX128)
 #include <immintrin.h>
 #ifdef __XOP__
@@ -171,6 +187,19 @@ typedef struct {
 	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
 #endif
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_slli_epi64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_srli_epi64((src).g, (shift))
+
 #elif defined(__AVX__) && DES_BS_DEPTH == 512
 #include <immintrin.h>
 
@@ -208,6 +237,25 @@ typedef struct {
 	(dst).g = __builtin_ia32_vpcmov_v8sf256((b).g, (a).g, (c).g)
 #endif
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	((__m128i *)&(dst).g)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).g)[0], (shift)); \
+	((__m128i *)&(dst).g)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).g)[1], (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	((__m128i *)&(dst).g)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).g)[0], (shift)); \
+	((__m128i *)&(dst).g)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).g)[1], (shift))
+
 #elif defined(__AVX__) && defined(__MMX__) && DES_BS_DEPTH == 320 && \
     !defined(DES_BS_NO_MMX)
 #include <immintrin.h>
@@ -239,6 +287,19 @@ typedef struct {
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift))
+
 #elif defined(__AVX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 320) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 288))
@@ -248,7 +309,7 @@ typedef struct {
 typedef struct {
 /* Not __m256i because bitwise ops are "floating-point" with AVX */
 	__m256 f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -274,6 +335,19 @@ typedef struct {
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = (src).g << (shift)
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = (src).g >> (shift)
+
 #elif defined(__AVX__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 384) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 352))
@@ -284,7 +358,7 @@ typedef struct {
 /* Not __m256i because bitwise ops are "floating-point" with AVX */
 	__m256 f;
 	__m64 g;
-	ARCH_WORD h;
+	unsigned ARCH_WORD h;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -315,6 +389,21 @@ typedef struct {
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
+
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift)); \
+	(dst).h = (src).h << (shift)
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift)); \
+	(dst).h = (src).h >> (shift)
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
 #ifdef __AVX__
@@ -349,6 +438,11 @@ typedef __m128i vtype;
 	(dst) = _mm_xor_si128(_mm_andnot_si128((c), (a)), \
 	    _mm_and_si128((c), (b)))
 #endif
+
+#define vshl(dst, src, shift) \
+	(dst) = _mm_slli_epi64((src), (shift))
+#define vshr(dst, src, shift) \
+	(dst) = _mm_srli_epi64((src), (shift))
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 256 && defined(DES_BS_NO_MMX)
 #ifdef __AVX__
@@ -390,6 +484,13 @@ typedef struct {
 	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
 #endif
 
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = _mm_slli_epi64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = _mm_srli_epi64((src).g, (shift))
+
 #elif defined(__SSE2__) && defined(__MMX__) && DES_BS_DEPTH == 192 && \
     !defined(DES_BS_NO_MMX)
 #include <emmintrin.h>
@@ -419,6 +520,13 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
 
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift))
+
 #elif defined(__SSE2__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
@@ -426,7 +534,7 @@ typedef struct {
 
 typedef struct {
 	__m128i f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -451,6 +559,13 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = (src).g << (shift)
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = (src).g >> (shift)
+
 #elif defined(__SSE2__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 256) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 224))
@@ -460,7 +575,7 @@ typedef struct {
 typedef struct {
 	__m128i f;
 	__m64 g;
-	ARCH_WORD h;
+	unsigned ARCH_WORD h;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -491,6 +606,15 @@ typedef struct {
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
 
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift)); \
+	(dst).h = (src).h << (shift)
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift)); \
+	(dst).h = (src).h >> (shift)
+
 #elif defined(__MMX__) && ARCH_BITS != 64 && DES_BS_DEPTH == 64
 #include <mmintrin.h>
 
@@ -506,12 +630,17 @@ typedef __m64 vtype;
 #define vandn(dst, a, b) \
 	(dst) = _mm_andnot_si64((b), (a))
 
+#define vshl(dst, src, shift) \
+	(dst) = _mm_slli_si64((src), (shift))
+#define vshr(dst, src, shift) \
+	(dst) = _mm_srli_si64((src), (shift))
+
 #elif defined(__MMX__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
 #include <mmintrin.h>
 
 typedef struct {
 	__m64 f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -534,6 +663,13 @@ typedef struct {
 #define vandn(dst, a, b) \
 	(dst).f = _mm_andnot_si64((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
+
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_si64((src).f, (shift)); \
+	(dst).g = (src).g << (shift)
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_si64((src).f, (shift)); \
+	(dst).g = (src).g >> (shift)
 
 #else
 
