@@ -82,6 +82,10 @@ void DES_bs_init(int LM)
 		}
 	}
 
+	for (index = 0; index < DES_BS_DEPTH; index++)
+		DES_bs_all.pxkeys[index] =
+		    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
+
 	if (LM) {
 		for (c = 0; c < 0x100; c++)
 		if (c >= 'a' && c <= 'z')
@@ -97,8 +101,12 @@ void DES_bs_init(int LM)
 
 #if DES_BS_ASM
 	DES_bs_init_asm();
-#elif defined(__MMX__) || defined(__SSE2__)
+#else
+	memset(&DES_bs_all.zero, 0, sizeof(DES_bs_all.zero));
 	memset(&DES_bs_all.ones, -1, sizeof(DES_bs_all.ones));
+	for (bit = 0; bit < 8; bit++)
+		memset(&DES_bs_all.masks[bit], 1 << bit,
+		    sizeof(DES_bs_all.masks[bit]));
 #endif
 }
 
@@ -135,255 +143,44 @@ void DES_bs_set_salt(ARCH_WORD salt)
 
 void DES_bs_set_key(char *key, int index)
 {
-	unsigned char *dst = &DES_bs_all.xkeys.c[0][index];
+	unsigned char *dst = DES_bs_all.pxkeys[index];
 
 	DES_bs_all.keys_changed = 1;
 
 	if (!key[0]) goto fill8;
 	*dst = key[0];
-	*(dst + DES_BS_DEPTH) = key[1];
-	*(dst + DES_BS_DEPTH * 2) = key[2];
+	*(dst + sizeof(DES_bs_vector) * 8) = key[1];
+	*(dst + sizeof(DES_bs_vector) * 8 * 2) = key[2];
 	if (!key[1]) goto fill6;
 	if (!key[2]) goto fill5;
-	*(dst + DES_BS_DEPTH * 3) = key[3];
-	*(dst + DES_BS_DEPTH * 4) = key[4];
+	*(dst + sizeof(DES_bs_vector) * 8 * 3) = key[3];
+	*(dst + sizeof(DES_bs_vector) * 8 * 4) = key[4];
 	if (!key[3]) goto fill4;
 	if (!key[4] || !key[5]) goto fill3;
-	*(dst + DES_BS_DEPTH * 5) = key[5];
+	*(dst + sizeof(DES_bs_vector) * 8 * 5) = key[5];
 	if (!key[6]) goto fill2;
-	*(dst + DES_BS_DEPTH * 6) = key[6];
-	*(dst + DES_BS_DEPTH * 7) = key[7];
+	*(dst + sizeof(DES_bs_vector) * 8 * 6) = key[6];
+	*(dst + sizeof(DES_bs_vector) * 8 * 7) = key[7];
 	return;
 fill8:
 	dst[0] = 0;
-	dst[DES_BS_DEPTH] = 0;
+	dst[sizeof(DES_bs_vector) * 8] = 0;
 fill6:
-	dst[DES_BS_DEPTH * 2] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 2] = 0;
 fill5:
-	dst[DES_BS_DEPTH * 3] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 3] = 0;
 fill4:
-	dst[DES_BS_DEPTH * 4] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 4] = 0;
 fill3:
-	dst[DES_BS_DEPTH * 5] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 5] = 0;
 fill2:
-	dst[DES_BS_DEPTH * 6] = 0;
-	dst[DES_BS_DEPTH * 7] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 7] = 0;
 }
-
-#if !DES_BS_ASM
-
-#ifdef __i386__
-/* register-starved */
-#define LOAD_V \
-	unsigned ARCH_WORD v0 = vp[0] START; \
-	unsigned ARCH_WORD v4 = vp[4] START;
-#define v1 vp[1] START
-#define v2 vp[2] START
-#define v3 vp[3] START
-#define v5 vp[5] START
-#define v6 vp[6] START
-#define v7 vp[7] START
-#else
-#define LOAD_V \
-	unsigned ARCH_WORD v0 = vp[0] START; \
-	unsigned ARCH_WORD v1 = vp[1] START; \
-	unsigned ARCH_WORD v2 = vp[2] START; \
-	unsigned ARCH_WORD v3 = vp[3] START; \
-	unsigned ARCH_WORD v4 = vp[4] START; \
-	unsigned ARCH_WORD v5 = vp[5] START; \
-	unsigned ARCH_WORD v6 = vp[6] START; \
-	unsigned ARCH_WORD v7 = vp[7] START;
-#endif
-
-#if ARCH_BITS >= 64
-#define MASK_ONES 0x0101010101010101UL
-#else
-#define MASK_ONES 0x01010101UL
-#endif
-
-#define FINALIZE_NEXT_KEY_BIT_0 { \
-	unsigned ARCH_WORD m = MASK_ONES, va, vb; \
-	va = v0 & m; \
-	vb = (v1 & m) << 1; \
-	va |= (v2 & m) << 2; \
-	vb |= (v3 & m) << 3; \
-	va |= (v4 & m) << 4; \
-	vb |= (v5 & m) << 5; \
-	va |= (v6 & m) << 6; \
-	vb |= (v7 & m) << 7; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_1 { \
-	unsigned ARCH_WORD m = MASK_ONES << 1, va, vb; \
-	va = (v0 & m) >> 1; \
-	vb = v1 & m; \
-	va |= (v2 & m) << 1; \
-	vb |= (v3 & m) << 2; \
-	va |= (v4 & m) << 3; \
-	vb |= (v5 & m) << 4; \
-	va |= (v6 & m) << 5; \
-	vb |= (v7 & m) << 6; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_2 { \
-	unsigned ARCH_WORD m = MASK_ONES << 2, va, vb; \
-	va = (v0 & m) >> 2; \
-	vb = (v1 & m) >> 1; \
-	va |= v2 & m; \
-	vb |= (v3 & m) << 1; \
-	va |= (v4 & m) << 2; \
-	vb |= (v5 & m) << 3; \
-	va |= (v6 & m) << 4; \
-	vb |= (v7 & m) << 5; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_3 { \
-	unsigned ARCH_WORD m = MASK_ONES << 3, va, vb; \
-	va = (v0 & m) >> 3; \
-	vb = (v1 & m) >> 2; \
-	va |= (v2 & m) >> 1; \
-	vb |= v3 & m; \
-	va |= (v4 & m) << 1; \
-	vb |= (v5 & m) << 2; \
-	va |= (v6 & m) << 3; \
-	vb |= (v7 & m) << 4; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_4 { \
-	unsigned ARCH_WORD m = MASK_ONES << 4, va, vb; \
-	va = (v0 & m) >> 4; \
-	vb = (v1 & m) >> 3; \
-	va |= (v2 & m) >> 2; \
-	vb |= (v3 & m) >> 1; \
-	va |= v4 & m; \
-	vb |= (v5 & m) << 1; \
-	va |= (v6 & m) << 2; \
-	vb |= (v7 & m) << 3; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_5 { \
-	unsigned ARCH_WORD m = MASK_ONES << 5, va, vb; \
-	va = (v0 & m) >> 5; \
-	vb = (v1 & m) >> 4; \
-	va |= (v2 & m) >> 3; \
-	vb |= (v3 & m) >> 2; \
-	va |= (v4 & m) >> 1; \
-	vb |= v5 & m; \
-	va |= (v6 & m) << 1; \
-	vb |= (v7 & m) << 2; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_6 { \
-	unsigned ARCH_WORD m = MASK_ONES << 6, va, vb; \
-	va = (v0 & m) >> 6; \
-	vb = (v1 & m) >> 5; \
-	va |= (v2 & m) >> 4; \
-	vb |= (v3 & m) >> 3; \
-	va |= (v4 & m) >> 2; \
-	vb |= (v5 & m) >> 1; \
-	va |= v6 & m; \
-	vb |= (v7 & m) << 1; \
-	*kp++ START = va | vb; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_7 { \
-	unsigned ARCH_WORD m = MASK_ONES << 7, va, vb; \
-	va = (v0 & m) >> 7; \
-	vb = (v1 & m) >> 6; \
-	va |= (v2 & m) >> 5; \
-	vb |= (v3 & m) >> 4; \
-	va |= (v4 & m) >> 3; \
-	vb |= (v5 & m) >> 2; \
-	va |= (v6 & m) >> 1; \
-	vb |= v7 & m; \
-	*kp++ START = va | vb; \
-}
-
-void DES_bs_finalize_keys(void)
-{
-#if DES_BS_VECTOR
-	int depth;
-#endif
-
-	if (!DES_bs_all.keys_changed)
-		return;
-	DES_bs_all.keys_changed = 0;
-
-	for_each_depth() {
-		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH;
-		int ic;
-		for (ic = 0; ic < 8; ic++) {
-			DES_bs_vector *vp =
-			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
-			LOAD_V
-			FINALIZE_NEXT_KEY_BIT_0
-			FINALIZE_NEXT_KEY_BIT_1
-			FINALIZE_NEXT_KEY_BIT_2
-			FINALIZE_NEXT_KEY_BIT_3
-			FINALIZE_NEXT_KEY_BIT_4
-			FINALIZE_NEXT_KEY_BIT_5
-			FINALIZE_NEXT_KEY_BIT_6
-		}
-	}
-
-#if DES_BS_EXPAND
-	{
-		int index;
-		for (index = 0; index < 0x300; index++)
-		for_each_depth()
-#if DES_BS_VECTOR
-			DES_bs_all.KS.v[index] DEPTH =
-			    DES_bs_all.KSp[index] DEPTH;
-#else
-			DES_bs_all.KS.v[index] = *DES_bs_all.KSp[index];
-#endif
-	}
-#endif
-}
-
-void DES_bs_finalize_keys_LM(void)
-{
-#if DES_BS_VECTOR
-	int depth;
-#endif
-
-	for_each_depth() {
-		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH;
-		int ic;
-		for (ic = 0; ic < 7; ic++) {
-			DES_bs_vector *vp =
-			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH;
-			LOAD_V
-			FINALIZE_NEXT_KEY_BIT_0
-			FINALIZE_NEXT_KEY_BIT_1
-			FINALIZE_NEXT_KEY_BIT_2
-			FINALIZE_NEXT_KEY_BIT_3
-			FINALIZE_NEXT_KEY_BIT_4
-			FINALIZE_NEXT_KEY_BIT_5
-			FINALIZE_NEXT_KEY_BIT_6
-			FINALIZE_NEXT_KEY_BIT_7
-		}
-	}
-}
-
-#undef v1
-#undef v2
-#undef v3
-#undef v5
-#undef v6
-#undef v7
-
-#endif
 
 void DES_bs_set_key_LM(char *key, int index)
 {
-	unsigned char *dst = &DES_bs_all.xkeys.c[0][index];
+	unsigned char *dst = DES_bs_all.pxkeys[index];
 
 /*
  * gcc 4.5.0 on x86_64 would generate redundant movzbl's without explicit
@@ -394,35 +191,35 @@ void DES_bs_set_key_LM(char *key, int index)
 	*dst = DES_bs_all.E.u[c];
 	c = (unsigned char)key[1];
 	if (!c) goto fill6;
-	*(dst + DES_BS_DEPTH) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[2];
 	if (!c) goto fill5;
-	*(dst + DES_BS_DEPTH * 2) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 2) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[3];
 	if (!c) goto fill4;
-	*(dst + DES_BS_DEPTH * 3) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 3) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[4];
 	if (!c) goto fill3;
-	*(dst + DES_BS_DEPTH * 4) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 4) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[5];
 	if (!c) goto fill2;
-	*(dst + DES_BS_DEPTH * 5) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 5) = DES_bs_all.E.u[c];
 	c = (unsigned char)key[6];
-	*(dst + DES_BS_DEPTH * 6) = DES_bs_all.E.u[c];
+	*(dst + sizeof(DES_bs_vector) * 8 * 6) = DES_bs_all.E.u[c];
 	return;
 fill7:
 	dst[0] = 0;
 fill6:
-	dst[DES_BS_DEPTH] = 0;
+	dst[sizeof(DES_bs_vector) * 8] = 0;
 fill5:
-	dst[DES_BS_DEPTH * 2] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 2] = 0;
 fill4:
-	dst[DES_BS_DEPTH * 3] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 3] = 0;
 fill3:
-	dst[DES_BS_DEPTH * 4] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 4] = 0;
 fill2:
-	dst[DES_BS_DEPTH * 5] = 0;
-	dst[DES_BS_DEPTH * 6] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 5] = 0;
+	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
 }
 
 static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
