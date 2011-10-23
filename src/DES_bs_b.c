@@ -439,6 +439,8 @@ typedef __m128i vtype;
 	    _mm_and_si128((c), (b)))
 #endif
 
+#define vshl1(dst, src) \
+	(dst) = _mm_add_epi8((src), (src))
 #define vshl(dst, src, shift) \
 	(dst) = _mm_slli_epi64((src), (shift))
 #define vshr(dst, src, shift) \
@@ -484,6 +486,9 @@ typedef struct {
 	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
 #endif
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = _mm_add_epi8((src).g, (src).g)
 #define vshl(dst, src, shift) \
 	(dst).f = _mm_slli_epi64((src).f, (shift)); \
 	(dst).g = _mm_slli_epi64((src).g, (shift))
@@ -520,6 +525,9 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = _mm_add_pi8((src).g, (src).g)
 #define vshl(dst, src, shift) \
 	(dst).f = _mm_slli_epi64((src).f, (shift)); \
 	(dst).g = _mm_slli_si64((src).g, (shift))
@@ -559,6 +567,9 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = (src).g << 1
 #define vshl(dst, src, shift) \
 	(dst).f = _mm_slli_epi64((src).f, (shift)); \
 	(dst).g = (src).g << (shift)
@@ -606,6 +617,10 @@ typedef struct {
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = _mm_add_pi8((src).g, (src).g); \
+	(dst).h = (src).h << 1
 #define vshl(dst, src, shift) \
 	(dst).f = _mm_slli_epi64((src).f, (shift)); \
 	(dst).g = _mm_slli_si64((src).g, (shift)); \
@@ -630,6 +645,8 @@ typedef __m64 vtype;
 #define vandn(dst, a, b) \
 	(dst) = _mm_andnot_si64((b), (a))
 
+#define vshl1(dst, src) \
+	(dst) = _mm_add_pi8((src), (src))
 #define vshl(dst, src, shift) \
 	(dst) = _mm_slli_si64((src), (shift))
 #define vshr(dst, src, shift) \
@@ -664,6 +681,9 @@ typedef struct {
 	(dst).f = _mm_andnot_si64((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = (src).g << 1
 #define vshl(dst, src, shift) \
 	(dst).f = _mm_slli_si64((src).f, (shift)); \
 	(dst).g = (src).g << (shift)
@@ -733,6 +753,11 @@ typedef unsigned ARCH_WORD vtype;
 	vxor((dst), (a), vones)
 #endif
 
+#ifndef vshl1
+#define vshl1(dst, src) \
+	vshl((dst), (src), 1)
+#endif
+
 #if defined(vshl) && defined(vshr)
 #define DES_BS_VECTOR_LOOPS_K 0
 #define DEPTH_K
@@ -741,6 +766,7 @@ typedef unsigned ARCH_WORD vtype;
 #define kvtype vtype
 #define kvand vand
 #define kvor vor
+#define kvshl1 vshl1
 #define kvshl vshl
 #define kvshr vshr
 #else
@@ -758,6 +784,8 @@ typedef unsigned ARCH_WORD kvtype;
 	(dst) = (a) & (b)
 #define kvor(dst, a, b) \
 	(dst) = (a) | (b)
+#define kvshl1(dst, src) \
+	(dst) = (src) << 1
 #define kvshl(dst, src, shift) \
 	(dst) = (src) << (shift)
 #define kvshr(dst, src, shift) \
@@ -1092,14 +1120,19 @@ next:
 	kvtype v7 = *(kvtype *)&vp[7];
 #endif
 
+#define kvand_shl1_or(dst, src, mask) \
+	kvand(tmp, src, mask); \
+	kvshl1(tmp, tmp); \
+	kvor(dst, dst, tmp)
+
 #define kvand_shl_or(dst, src, mask, shift) \
 	kvand(tmp, src, mask); \
 	kvshl(tmp, tmp, shift); \
 	kvor(dst, dst, tmp)
 
-#define kvand_shl(dst, src, mask, shift) \
+#define kvand_shl1(dst, src, mask) \
 	kvand(tmp, src, mask); \
-	kvshl(dst, tmp, shift)
+	kvshl1(dst, tmp)
 
 #define kvand_or(dst, src, mask) \
 	kvand(tmp, src, mask); \
@@ -1117,7 +1150,7 @@ next:
 #define FINALIZE_NEXT_KEY_BIT_0 { \
 	kvtype m = mask01, va, vb, tmp; \
 	kvand(va, v0, m); \
-	kvand_shl(vb, v1, m, 1); \
+	kvand_shl1(vb, v1, m); \
 	kvand_shl_or(va, v2, m, 2); \
 	kvand_shl_or(vb, v3, m, 3); \
 	kvand_shl_or(va, v4, m, 4); \
@@ -1132,7 +1165,7 @@ next:
 	kvtype m = mask02, va, vb, tmp; \
 	kvand_shr(va, v0, m, 1); \
 	kvand(vb, v1, m); \
-	kvand_shl_or(va, v2, m, 1); \
+	kvand_shl1_or(va, v2, m); \
 	kvand_shl_or(vb, v3, m, 2); \
 	kvand_shl_or(va, v4, m, 3); \
 	kvand_shl_or(vb, v5, m, 4); \
@@ -1147,7 +1180,7 @@ next:
 	kvand_shr(va, v0, m, 2); \
 	kvand_shr(vb, v1, m, 1); \
 	kvand_or(va, v2, m); \
-	kvand_shl_or(vb, v3, m, 1); \
+	kvand_shl1_or(vb, v3, m); \
 	kvand_shl_or(va, v4, m, 2); \
 	kvand_shl_or(vb, v5, m, 3); \
 	kvand_shl_or(va, v6, m, 4); \
@@ -1162,7 +1195,7 @@ next:
 	kvand_shr(vb, v1, m, 2); \
 	kvand_shr_or(va, v2, m, 1); \
 	kvand_or(vb, v3, m); \
-	kvand_shl_or(va, v4, m, 1); \
+	kvand_shl1_or(va, v4, m); \
 	kvand_shl_or(vb, v5, m, 2); \
 	kvand_shl_or(va, v6, m, 3); \
 	kvand_shl_or(vb, v7, m, 4); \
@@ -1177,7 +1210,7 @@ next:
 	kvand_shr_or(va, v2, m, 2); \
 	kvand_shr_or(vb, v3, m, 1); \
 	kvand_or(va, v4, m); \
-	kvand_shl_or(vb, v5, m, 1); \
+	kvand_shl1_or(vb, v5, m); \
 	kvand_shl_or(va, v6, m, 2); \
 	kvand_shl_or(vb, v7, m, 3); \
 	kvor(*(kvtype *)kp, va, vb); \
@@ -1192,7 +1225,7 @@ next:
 	kvand_shr_or(vb, v3, m, 2); \
 	kvand_shr_or(va, v4, m, 1); \
 	kvand_or(vb, v5, m); \
-	kvand_shl_or(va, v6, m, 1); \
+	kvand_shl1_or(va, v6, m); \
 	kvand_shl_or(vb, v7, m, 2); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
@@ -1207,7 +1240,7 @@ next:
 	kvand_shr_or(va, v4, m, 2); \
 	kvand_shr_or(vb, v5, m, 1); \
 	kvand_or(va, v6, m); \
-	kvand_shl_or(vb, v7, m, 1); \
+	kvand_shl1_or(vb, v7, m); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
