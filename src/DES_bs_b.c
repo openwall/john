@@ -8,8 +8,8 @@
 #if !DES_BS_ASM
 #include "DES_bs.h"
 
-#define _zero (*(vtype *)&DES_bs_all.zero)
-#define _ones (*(vtype *)&DES_bs_all.ones)
+#define vzero (*(vtype *)&DES_bs_all.zero)
+#define vones (*(vtype *)&DES_bs_all.ones)
 
 #if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
 #undef DES_BS_VECTOR
@@ -276,7 +276,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, _ones.f); \
+	(dst).f = _mm256_xor_ps((a).f, vones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
@@ -316,8 +316,8 @@ typedef struct {
 	(dst).h = (a).h ^ (b).h
 
 #define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, _ones.f); \
-	(dst).g = _mm_xor_si64((a).g, _ones.g); \
+	(dst).f = _mm256_xor_ps((a).f, vones.f); \
+	(dst).g = _mm_xor_si64((a).g, vones.g); \
 	(dst).h = ~(a).h
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
@@ -467,7 +467,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, _ones.f); \
+	(dst).f = _mm_xor_si128((a).f, vones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
@@ -505,8 +505,8 @@ typedef struct {
 	(dst).h = (a).h ^ (b).h
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, _ones.f); \
-	(dst).g = _mm_xor_si64((a).g, _ones.g); \
+	(dst).f = _mm_xor_si128((a).f, vones.f); \
+	(dst).g = _mm_xor_si64((a).g, vones.g); \
 	(dst).h = ~(a).h
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
@@ -557,7 +557,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si64((a).f, _ones.f); \
+	(dst).f = _mm_xor_si64((a).f, vones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si64((a).f, (b).f); \
@@ -587,10 +587,10 @@ typedef ARCH_WORD vtype;
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
 
-#undef _zero
-#define _zero 0
-#undef _ones
-#define _ones (~(vtype)0)
+#undef vzero
+#define vzero 0
+#undef vones
+#define vones (~(vtype)0)
 
 #endif
 
@@ -614,7 +614,7 @@ typedef ARCH_WORD vtype;
 
 #ifndef vnot
 #define vnot(dst, a) \
-	vxor((dst), (a), _ones)
+	vxor((dst), (a), vones)
 #endif
 
 #ifdef __GNUC__
@@ -673,7 +673,7 @@ typedef ARCH_WORD vtype;
 		vst(b[i] bd, 7, zero); \
 	}
 
-#define DES_bs_clear_block() \
+#define DES_bs_clear_block \
 	DES_bs_clear_block_8(0); \
 	DES_bs_clear_block_8(8); \
 	DES_bs_clear_block_8(16); \
@@ -710,9 +710,11 @@ void DES_bs_crypt(int count)
 #if DES_BS_VECTOR
 	int depth;
 #endif
-	vtype zero = _zero;
 
-	DES_bs_clear_block();
+	{
+		vtype zero = vzero;
+		DES_bs_clear_block
+	}
 
 #if DES_BS_EXPAND
 	k = DES_bs_all.KS.v;
@@ -801,9 +803,11 @@ void DES_bs_crypt_25(void)
 #if DES_BS_VECTOR
 	int depth;
 #endif
-	vtype zero = _zero;
 
-	DES_bs_clear_block();
+	{
+		vtype zero = vzero;
+		DES_bs_clear_block
+	}
 
 #if DES_BS_EXPAND
 	k = DES_bs_all.KS.v;
@@ -906,17 +910,18 @@ void DES_bs_crypt_LM(void)
 #if DES_BS_VECTOR
 	int depth;
 #endif
-	vtype zero = _zero;
-	vtype ones = _ones;
 
-	DES_bs_set_block_8(0, zero, zero, zero, zero, zero, zero, zero, zero);
-	DES_bs_set_block_8(8, ones, ones, ones, zero, ones, zero, zero, zero);
-	DES_bs_set_block_8(16, zero, zero, zero, zero, zero, zero, zero, ones);
-	DES_bs_set_block_8(24, zero, zero, ones, zero, zero, ones, ones, ones);
-	DES_bs_set_block_8(32, zero, zero, zero, ones, zero, ones, ones, ones);
-	DES_bs_set_block_8(40, zero, zero, zero, zero, zero, ones, zero, zero);
-	DES_bs_set_block_8(48, ones, ones, zero, zero, zero, zero, ones, zero);
-	DES_bs_set_block_8(56, ones, zero, ones, zero, ones, ones, ones, ones);
+	{
+		vtype z = vzero, o = vones;
+		DES_bs_set_block_8(0, z, z, z, z, z, z, z, z);
+		DES_bs_set_block_8(8, o, o, o, z, o, z, z, z);
+		DES_bs_set_block_8(16, z, z, z, z, z, z, z, o);
+		DES_bs_set_block_8(24, z, z, o, z, z, o, o, o);
+		DES_bs_set_block_8(32, z, z, z, o, z, o, o, o);
+		DES_bs_set_block_8(40, z, z, z, z, z, o, z, z);
+		DES_bs_set_block_8(48, o, o, z, z, z, z, o, z);
+		DES_bs_set_block_8(56, o, z, o, z, o, o, o, o);
+	}
 
 	k = DES_bs_all.KS.p;
 	rounds = 8;
