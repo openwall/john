@@ -23,7 +23,7 @@ CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
 LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
-OPT_INLINE = -finline-functions
+OPT_INLINE = -funroll-loops -finline-functions
 
 JOHN_OBJS = \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
