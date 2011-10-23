@@ -157,27 +157,27 @@ static int binary_hash_4(void *binary)
 
 static int get_hash_0(int index)
 {
-	return DES_bs_get_hash(xindex, 4);
+	return DES_bs_get_hash(index, 4);
 }
 
 static int get_hash_1(int index)
 {
-	return DES_bs_get_hash(xindex, 8);
+	return DES_bs_get_hash(index, 8);
 }
 
 static int get_hash_2(int index)
 {
-	return DES_bs_get_hash(xindex, 12);
+	return DES_bs_get_hash(index, 12);
 }
 
 static int get_hash_3(int index)
 {
-	return DES_bs_get_hash(xindex, 16);
+	return DES_bs_get_hash(index, 16);
 }
 
 static int get_hash_4(int index)
 {
-	return DES_bs_get_hash(xindex, 20);
+	return DES_bs_get_hash(index, 20);
 }
 
 static int salt_hash(void *salt)
@@ -192,9 +192,6 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
-#if !DES_BS_ASM
-	DES_bs_finalize_keys();
-#endif
 	DES_bs_crypt_25();
 }
 
@@ -205,12 +202,12 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, xindex);
+	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return DES_bs_cmp_one(DES_bs_get_binary(source), 64, xindex);
+	return DES_bs_cmp_one(DES_bs_get_binary(source), 64, index);
 }
 
 #else
@@ -327,10 +324,10 @@ static char *get_key(int index)
 	unsigned char *src;
 	char *dst;
 
-	src = &DES_bs_all.xkeys.c[0][index];
+	src = DES_bs_all.pxkeys[index];
 	dst = out;
 	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
-		src += DES_BS_DEPTH;
+		src += sizeof(DES_bs_vector) * 8;
 		dst++;
 	}
 	*dst = 0;

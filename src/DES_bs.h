@@ -31,9 +31,6 @@ typedef ARCH_WORD DES_bs_vector[DES_BS_VECTOR_SIZE];
 #define DES_bs_vector			ARCH_WORD
 #endif
 
-#define xindex \
-	(((index << 3) | (index / (DES_BS_DEPTH / 8))) % DES_BS_DEPTH)
-
 /*
  * All bitslice DES parameters combined into one struct for more efficient
  * cache usage. Don't re-order unless you know what you're doing, as there
@@ -59,13 +56,16 @@ typedef struct {
 	DES_bs_vector B[64];	/* Data blocks */
 #if DES_BS_ASM
 	DES_bs_vector tmp[16];	/* Miscellaneous temporary storage */
-#elif defined(__MMX__) || defined(__SSE2__)
-	DES_bs_vector ones;	/* All 1 bits (to implement NOT with XOR) */
+#else
+	DES_bs_vector zero;	/* All 0 bits */
+	DES_bs_vector ones;	/* All 1 bits */
+	DES_bs_vector masks[8];	/* Each byte set to 0x01 ... 0x80 */
 #endif
 	union {
-		unsigned char c[8][DES_BS_DEPTH];
+		unsigned char c[8][8][sizeof(DES_bs_vector)];
 		DES_bs_vector v[8][8];
 	} xkeys;		/* Partially transposed key bits matrix */
+	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
 	int keys_changed;	/* If keys have changed */
 	unsigned int salt;	/* Salt value corresponding to E[] contents */
 	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
@@ -88,14 +88,6 @@ extern void DES_bs_set_salt(ARCH_WORD salt);
  */
 extern void DES_bs_set_key(char *key, int index);
 extern void DES_bs_set_key_LM(char *key, int index);
-
-#if !DES_BS_ASM
-/*
- * Finalize the key setup for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
- */
-extern void DES_bs_finalize_keys(void);
-extern void DES_bs_finalize_keys_LM(void);
-#endif
 
 /*
  * Generic bitslice routine: 24 bit salts, variable iteration count.
