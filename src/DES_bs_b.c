@@ -382,7 +382,7 @@ typedef __m128i vtype;
 	    _mm_and_si128((c), (b)))
 #endif
 
-#elif defined(__SSE2__) && DES_BS_DEPTH == 256
+#elif defined(__SSE2__) && DES_BS_DEPTH == 256 && defined(DES_BS_NO_MMX)
 #undef DES_BS_VECTOR
 
 #ifdef __AVX__
