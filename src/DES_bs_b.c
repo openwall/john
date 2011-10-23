@@ -682,7 +682,7 @@ typedef struct {
 	(dst).g = (a).g & ~(b).g
 
 #define vshl1(dst, src) \
-	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).f = _mm_add_pi8((src).f, (src).f); \
 	(dst).g = (src).g << 1
 #define vshl(dst, src, shift) \
 	(dst).f = _mm_slli_si64((src).f, (shift)); \
