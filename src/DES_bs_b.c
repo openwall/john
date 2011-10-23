@@ -11,9 +11,9 @@
 #define vzero (*(vtype *)&DES_bs_all.zero)
 #define vones (*(vtype *)&DES_bs_all.ones)
 
-#if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
-#undef DES_BS_VECTOR
+#define DES_BS_VECTOR_LOOPS 0
 
+#if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
 #ifdef __linux__
 #include <altivec.h>
 #endif
@@ -40,8 +40,6 @@ typedef vector signed int vtype;
 #elif defined(__ALTIVEC__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
-#undef DES_BS_VECTOR
-
 #ifdef __linux__
 #include <altivec.h>
 #endif
@@ -76,8 +74,6 @@ typedef struct {
 	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
 
 #elif defined(__ALTIVEC__) && DES_BS_DEPTH == 256
-#undef DES_BS_VECTOR
-
 #ifdef __linux__
 #include <altivec.h>
 #endif
@@ -111,8 +107,6 @@ typedef struct {
 	(dst).g = vec_sel((a).g, (b).g, (c).g)
 
 #elif defined(__AVX__) && DES_BS_DEPTH == 256 && !defined(DES_BS_NO_AVX256)
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 
 /* Not __m256i because bitwise ops are "floating-point" with AVX */
@@ -138,8 +132,6 @@ typedef __m256 vtype;
 #endif
 
 #elif defined(__AVX__) && DES_BS_DEPTH == 384 && !defined(DES_BS_NO_AVX128)
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #ifdef __XOP__
 #include <x86intrin.h>
@@ -180,8 +172,6 @@ typedef struct {
 #endif
 
 #elif defined(__AVX__) && DES_BS_DEPTH == 512
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 
 typedef struct {
@@ -220,8 +210,6 @@ typedef struct {
 
 #elif defined(__AVX__) && defined(__MMX__) && DES_BS_DEPTH == 320 && \
     !defined(DES_BS_NO_MMX)
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #include <mmintrin.h>
 
@@ -254,8 +242,6 @@ typedef struct {
 #elif defined(__AVX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 320) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 288))
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #include <mmintrin.h>
 
@@ -291,8 +277,6 @@ typedef struct {
 #elif defined(__AVX__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 384) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 352))
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #include <mmintrin.h>
 
@@ -333,8 +317,6 @@ typedef struct {
 	(dst).h = (a).h & ~(b).h
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
-#undef DES_BS_VECTOR
-
 #ifdef __AVX__
 #include <immintrin.h>
 #ifdef __XOP__
@@ -369,8 +351,6 @@ typedef __m128i vtype;
 #endif
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 256 && defined(DES_BS_NO_MMX)
-#undef DES_BS_VECTOR
-
 #ifdef __AVX__
 #include <immintrin.h>
 #ifdef __XOP__
@@ -412,8 +392,6 @@ typedef struct {
 
 #elif defined(__SSE2__) && defined(__MMX__) && DES_BS_DEPTH == 192 && \
     !defined(DES_BS_NO_MMX)
-#undef DES_BS_VECTOR
-
 #include <emmintrin.h>
 #include <mmintrin.h>
 
@@ -444,8 +422,6 @@ typedef struct {
 #elif defined(__SSE2__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
-#undef DES_BS_VECTOR
-
 #include <emmintrin.h>
 
 typedef struct {
@@ -478,8 +454,6 @@ typedef struct {
 #elif defined(__SSE2__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 256) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 224))
-#undef DES_BS_VECTOR
-
 #include <emmintrin.h>
 #include <mmintrin.h>
 
@@ -518,8 +492,6 @@ typedef struct {
 	(dst).h = (a).h & ~(b).h
 
 #elif defined(__MMX__) && ARCH_BITS != 64 && DES_BS_DEPTH == 64
-#undef DES_BS_VECTOR
-
 #include <mmintrin.h>
 
 typedef __m64 vtype;
@@ -535,8 +507,6 @@ typedef __m64 vtype;
 	(dst) = _mm_andnot_si64((b), (a))
 
 #elif defined(__MMX__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
-#undef DES_BS_VECTOR
-
 #include <mmintrin.h>
 
 typedef struct {
@@ -566,6 +536,10 @@ typedef struct {
 	(dst).g = (a).g & ~(b).g
 
 #else
+
+#if DES_BS_VECTOR
+#define DES_BS_VECTOR_LOOPS
+#endif
 
 typedef ARCH_WORD vtype;
 
@@ -667,11 +641,7 @@ typedef ARCH_WORD vtype;
 #define b				DES_bs_all.B
 #define e				DES_bs_all.E.E
 
-#ifndef DES_BS_VECTOR
-#define DES_BS_VECTOR			0
-#endif
-
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 #define kd				[depth]
 #define bd				[depth]
 #define ed				[depth]
@@ -734,7 +704,7 @@ void DES_bs_crypt(int count)
 	ARCH_WORD **k;
 #endif
 	int iterations, rounds_and_swapped;
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 	int depth;
 #endif
 
@@ -827,7 +797,7 @@ void DES_bs_crypt_25(void)
 	ARCH_WORD **k;
 #endif
 	int iterations, rounds_and_swapped;
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 	int depth;
 #endif
 
@@ -924,7 +894,7 @@ next:
 #undef x
 
 #undef kd
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 #define kd				[depth]
 #else
 #define kd				[0]
@@ -934,7 +904,7 @@ void DES_bs_crypt_LM(void)
 {
 	ARCH_WORD **k;
 	int rounds;
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 	int depth;
 #endif
 
