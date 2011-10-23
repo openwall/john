@@ -8,9 +8,12 @@
 #if !DES_BS_ASM
 #include "DES_bs.h"
 
-#if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
-#undef DES_BS_VECTOR
+#define vzero (*(vtype *)&DES_bs_all.zero)
+#define vones (*(vtype *)&DES_bs_all.ones)
 
+#define DES_BS_VECTOR_LOOPS 0
+
+#if defined(__ALTIVEC__) && DES_BS_DEPTH == 128
 #ifdef __linux__
 #include <altivec.h>
 #endif
@@ -37,15 +40,13 @@ typedef vector signed int vtype;
 #elif defined(__ALTIVEC__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
-#undef DES_BS_VECTOR
-
 #ifdef __linux__
 #include <altivec.h>
 #endif
 
 typedef struct {
 	vector signed int f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -73,8 +74,6 @@ typedef struct {
 	(dst).g = (((a).g & ~(c).g) ^ ((b).g & (c).g))
 
 #elif defined(__ALTIVEC__) && DES_BS_DEPTH == 256
-#undef DES_BS_VECTOR
-
 #ifdef __linux__
 #include <altivec.h>
 #endif
@@ -108,8 +107,6 @@ typedef struct {
 	(dst).g = vec_sel((a).g, (b).g, (c).g)
 
 #elif defined(__AVX__) && DES_BS_DEPTH == 256 && !defined(DES_BS_NO_AVX256)
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 
 /* Not __m256i because bitwise ops are "floating-point" with AVX */
@@ -121,8 +118,6 @@ typedef __m256 vtype;
 #define vxorf(a, b) \
 	_mm256_xor_ps((a), (b))
 
-#define vnot(dst, a) \
-	(dst) = _mm256_xor_ps((a), *(vtype *)&DES_bs_all.ones)
 #define vand(dst, a, b) \
 	(dst) = _mm256_and_ps((a), (b))
 #define vor(dst, a, b) \
@@ -136,9 +131,23 @@ typedef __m256 vtype;
 	(dst) = __builtin_ia32_vpcmov_v8sf256((b), (a), (c))
 #endif
 
-#elif defined(__AVX__) && DES_BS_DEPTH == 384 && !defined(DES_BS_NO_AVX128)
-#undef DES_BS_VECTOR
+/*
+ * We should be able to do 256-bit shifts with one instruction with AVX2, but
+ * for plain AVX let's use pairs of 128-bit instructions (and likely incur
+ * extra memory stores/loads because the rest of our AVX code is 256-bit). :-(
+ */
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst))[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src))[0], (shift)); \
+	((__m128i *)&(dst))[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src))[1], (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst))[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src))[0], (shift)); \
+	((__m128i *)&(dst))[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src))[1], (shift))
 
+#elif defined(__AVX__) && DES_BS_DEPTH == 384 && !defined(DES_BS_NO_AVX128)
 #include <immintrin.h>
 #ifdef __XOP__
 #include <x86intrin.h>
@@ -161,9 +170,6 @@ typedef struct {
 	(dst).f = _mm256_xor_ps((a).f, (b).f); \
 	(dst).g = _mm_xor_si128((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si128((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
 	(dst).g = _mm_and_si128((a).g, (b).g)
@@ -181,9 +187,20 @@ typedef struct {
 	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
 #endif
 
-#elif defined(__AVX__) && DES_BS_DEPTH == 512
-#undef DES_BS_VECTOR
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_slli_epi64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_srli_epi64((src).g, (shift))
 
+#elif defined(__AVX__) && DES_BS_DEPTH == 512
 #include <immintrin.h>
 
 typedef struct {
@@ -203,9 +220,6 @@ typedef struct {
 	(dst).f = _mm256_xor_ps((a).f, (b).f); \
 	(dst).g = _mm256_xor_ps((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm256_xor_ps((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
 	(dst).g = _mm256_and_ps((a).g, (b).g)
@@ -223,10 +237,27 @@ typedef struct {
 	(dst).g = __builtin_ia32_vpcmov_v8sf256((b).g, (a).g, (c).g)
 #endif
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	((__m128i *)&(dst).g)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).g)[0], (shift)); \
+	((__m128i *)&(dst).g)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).g)[1], (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	((__m128i *)&(dst).g)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).g)[0], (shift)); \
+	((__m128i *)&(dst).g)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).g)[1], (shift))
+
 #elif defined(__AVX__) && defined(__MMX__) && DES_BS_DEPTH == 320 && \
     !defined(DES_BS_NO_MMX)
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #include <mmintrin.h>
 
@@ -246,9 +277,6 @@ typedef struct {
 	(dst).f = _mm256_xor_ps((a).f, (b).f); \
 	(dst).g = _mm_xor_si64((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
 	(dst).g = _mm_and_si64((a).g, (b).g)
@@ -259,18 +287,29 @@ typedef struct {
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift))
+
 #elif defined(__AVX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 320) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 288))
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #include <mmintrin.h>
 
 typedef struct {
 /* Not __m256i because bitwise ops are "floating-point" with AVX */
 	__m256 f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -284,7 +323,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).f = _mm256_xor_ps((a).f, vones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
@@ -296,11 +335,22 @@ typedef struct {
 	(dst).f = _mm256_andnot_ps((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = (src).g << (shift)
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = (src).g >> (shift)
+
 #elif defined(__AVX__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 384) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 352))
-#undef DES_BS_VECTOR
-
 #include <immintrin.h>
 #include <mmintrin.h>
 
@@ -308,7 +358,7 @@ typedef struct {
 /* Not __m256i because bitwise ops are "floating-point" with AVX */
 	__m256 f;
 	__m64 g;
-	ARCH_WORD h;
+	unsigned ARCH_WORD h;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -324,8 +374,8 @@ typedef struct {
 	(dst).h = (a).h ^ (b).h
 
 #define vnot(dst, a) \
-	(dst).f = _mm256_xor_ps((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g); \
+	(dst).f = _mm256_xor_ps((a).f, vones.f); \
+	(dst).g = _mm_xor_si64((a).g, vones.g); \
 	(dst).h = ~(a).h
 #define vand(dst, a, b) \
 	(dst).f = _mm256_and_ps((a).f, (b).f); \
@@ -340,13 +390,22 @@ typedef struct {
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
 
+#define vshl(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_slli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift)); \
+	(dst).h = (src).h << (shift)
+#define vshr(dst, src, shift) \
+	((__m128i *)&(dst).f)[0] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[0], (shift)); \
+	((__m128i *)&(dst).f)[1] = \
+	    _mm_srli_epi64(((__m128i *)&(src).f)[1], (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift)); \
+	(dst).h = (src).h >> (shift)
+
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
-#undef DES_BS_VECTOR
-
-#if defined(__GNUC__) && !defined(__AVX__)
-#warning Notice: with recent versions of gcc, we are currently using SSE2 intrinsics instead of the supplied SSE2 assembly code.  This choice is made in the x86-*.h file.
-#endif
-
 #ifdef __AVX__
 #include <immintrin.h>
 #ifdef __XOP__
@@ -364,8 +423,6 @@ typedef __m128i vtype;
 #define vxorf(a, b) \
 	_mm_xor_si128((a), (b))
 
-#define vnot(dst, a) \
-	(dst) = _mm_xor_si128((a), *(vtype *)&DES_bs_all.ones)
 #define vand(dst, a, b) \
 	(dst) = _mm_and_si128((a), (b))
 #define vor(dst, a, b) \
@@ -382,9 +439,14 @@ typedef __m128i vtype;
 	    _mm_and_si128((c), (b)))
 #endif
 
-#elif defined(__SSE2__) && DES_BS_DEPTH == 256
-#undef DES_BS_VECTOR
+#define vshl1(dst, src) \
+	(dst) = _mm_add_epi8((src), (src))
+#define vshl(dst, src, shift) \
+	(dst) = _mm_slli_epi64((src), (shift))
+#define vshr(dst, src, shift) \
+	(dst) = _mm_srli_epi64((src), (shift))
 
+#elif defined(__SSE2__) && DES_BS_DEPTH == 256 && defined(DES_BS_NO_MMX)
 #ifdef __AVX__
 #include <immintrin.h>
 #ifdef __XOP__
@@ -408,9 +470,6 @@ typedef struct {
 	(dst).f = _mm_xor_si128((a).f, (b).f); \
 	(dst).g = _mm_xor_si128((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si128((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
 	(dst).g = _mm_and_si128((a).g, (b).g)
@@ -427,10 +486,18 @@ typedef struct {
 	(dst).g = _mm_cmov_si128((b).g, (a).g, (c).g)
 #endif
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = _mm_add_epi8((src).g, (src).g)
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = _mm_slli_epi64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = _mm_srli_epi64((src).g, (shift))
+
 #elif defined(__SSE2__) && defined(__MMX__) && DES_BS_DEPTH == 192 && \
     !defined(DES_BS_NO_MMX)
-#undef DES_BS_VECTOR
-
 #include <emmintrin.h>
 #include <mmintrin.h>
 
@@ -448,9 +515,6 @@ typedef struct {
 	(dst).f = _mm_xor_si128((a).f, (b).f); \
 	(dst).g = _mm_xor_si64((a).g, (b).g)
 
-#define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g)
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
 	(dst).g = _mm_and_si64((a).g, (b).g)
@@ -461,16 +525,24 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = _mm_andnot_si64((b).g, (a).g)
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = _mm_add_pi8((src).g, (src).g)
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift))
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift))
+
 #elif defined(__SSE2__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 192) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 160))
-#undef DES_BS_VECTOR
-
 #include <emmintrin.h>
 
 typedef struct {
 	__m128i f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -483,7 +555,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).f = _mm_xor_si128((a).f, vones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
@@ -495,18 +567,26 @@ typedef struct {
 	(dst).f = _mm_andnot_si128((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = (src).g << 1
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = (src).g << (shift)
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = (src).g >> (shift)
+
 #elif defined(__SSE2__) && defined(__MMX__) && \
     ((ARCH_BITS == 64 && DES_BS_DEPTH == 256) || \
     (ARCH_BITS == 32 && DES_BS_DEPTH == 224))
-#undef DES_BS_VECTOR
-
 #include <emmintrin.h>
 #include <mmintrin.h>
 
 typedef struct {
 	__m128i f;
 	__m64 g;
-	ARCH_WORD h;
+	unsigned ARCH_WORD h;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -521,8 +601,8 @@ typedef struct {
 	(dst).h = (a).h ^ (b).h
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si128((a).f, ((vtype *)&DES_bs_all.ones)->f); \
-	(dst).g = _mm_xor_si64((a).g, ((vtype *)&DES_bs_all.ones)->g); \
+	(dst).f = _mm_xor_si128((a).f, vones.f); \
+	(dst).g = _mm_xor_si64((a).g, vones.g); \
 	(dst).h = ~(a).h
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si128((a).f, (b).f); \
@@ -537,9 +617,20 @@ typedef struct {
 	(dst).g = _mm_andnot_si64((b).g, (a).g); \
 	(dst).h = (a).h & ~(b).h
 
-#elif defined(__MMX__) && ARCH_BITS != 64 && DES_BS_DEPTH == 64
-#undef DES_BS_VECTOR
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_epi8((src).f, (src).f); \
+	(dst).g = _mm_add_pi8((src).g, (src).g); \
+	(dst).h = (src).h << 1
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_epi64((src).f, (shift)); \
+	(dst).g = _mm_slli_si64((src).g, (shift)); \
+	(dst).h = (src).h << (shift)
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_epi64((src).f, (shift)); \
+	(dst).g = _mm_srli_si64((src).g, (shift)); \
+	(dst).h = (src).h >> (shift)
 
+#elif defined(__MMX__) && ARCH_BITS != 64 && DES_BS_DEPTH == 64
 #include <mmintrin.h>
 
 typedef __m64 vtype;
@@ -547,8 +638,6 @@ typedef __m64 vtype;
 #define vxorf(a, b) \
 	_mm_xor_si64((a), (b))
 
-#define vnot(dst, a) \
-	(dst) = _mm_xor_si64((a), *(vtype *)&DES_bs_all.ones)
 #define vand(dst, a, b) \
 	(dst) = _mm_and_si64((a), (b))
 #define vor(dst, a, b) \
@@ -556,14 +645,19 @@ typedef __m64 vtype;
 #define vandn(dst, a, b) \
 	(dst) = _mm_andnot_si64((b), (a))
 
-#elif defined(__MMX__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
-#undef DES_BS_VECTOR
+#define vshl1(dst, src) \
+	(dst) = _mm_add_pi8((src), (src))
+#define vshl(dst, src, shift) \
+	(dst) = _mm_slli_si64((src), (shift))
+#define vshr(dst, src, shift) \
+	(dst) = _mm_srli_si64((src), (shift))
 
+#elif defined(__MMX__) && ARCH_BITS == 32 && DES_BS_DEPTH == 96
 #include <mmintrin.h>
 
 typedef struct {
 	__m64 f;
-	ARCH_WORD g;
+	unsigned ARCH_WORD g;
 } vtype;
 
 #define vst(dst, ofs, src) \
@@ -575,7 +669,7 @@ typedef struct {
 	(dst).g = (a).g ^ (b).g
 
 #define vnot(dst, a) \
-	(dst).f = _mm_xor_si64((a).f, ((vtype *)&DES_bs_all.ones)->f); \
+	(dst).f = _mm_xor_si64((a).f, vones.f); \
 	(dst).g = ~(a).g
 #define vand(dst, a, b) \
 	(dst).f = _mm_and_si64((a).f, (b).f); \
@@ -587,12 +681,23 @@ typedef struct {
 	(dst).f = _mm_andnot_si64((b).f, (a).f); \
 	(dst).g = (a).g & ~(b).g
 
+#define vshl1(dst, src) \
+	(dst).f = _mm_add_pi8((src).f, (src).f); \
+	(dst).g = (src).g << 1
+#define vshl(dst, src, shift) \
+	(dst).f = _mm_slli_si64((src).f, (shift)); \
+	(dst).g = (src).g << (shift)
+#define vshr(dst, src, shift) \
+	(dst).f = _mm_srli_si64((src).f, (shift)); \
+	(dst).g = (src).g >> (shift)
+
 #else
 
-typedef ARCH_WORD vtype;
+#if DES_BS_VECTOR
+#define DES_BS_VECTOR_LOOPS
+#endif
 
-#define zero				0
-#define ones				~(vtype)0
+typedef unsigned ARCH_WORD vtype;
 
 #define vxorf(a, b) \
 	((a) ^ (b))
@@ -607,6 +712,21 @@ typedef ARCH_WORD vtype;
 	(dst) = (a) & ~(b)
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
+
+#define vshl(dst, src, shift) \
+	(dst) = (src) << (shift)
+#define vshr(dst, src, shift) \
+	(dst) = (src) >> (shift)
+
+/* Assume that 0 always fits in one load immediate instruction */
+#undef vzero
+#define vzero 0
+
+/* Archs friendly to use of immediate values */
+#if defined(__x86_64__) || defined(__i386__)
+#undef vones
+#define vones (~(vtype)0)
+#endif
 
 #endif
 
@@ -628,15 +748,293 @@ typedef ARCH_WORD vtype;
 	({ vtype tmp; vxor(tmp, (a), (b)); tmp; })
 #endif
 
+#ifndef vnot
+#define vnot(dst, a) \
+	vxor((dst), (a), vones)
+#endif
+
+#ifndef vshl1
+#define vshl1(dst, src) \
+	vshl((dst), (src), 1)
+#endif
+
+#if defined(vshl) && defined(vshr)
+#define DES_BS_VECTOR_LOOPS_K 0
+#define DEPTH_K
+#define for_each_depth_k()
+
+#define kvtype vtype
+#define kvand vand
+#define kvor vor
+#define kvshl1 vshl1
+#define kvshl vshl
+#define kvshr vshr
+#else
+#if DES_BS_VECTOR
+#define DES_BS_VECTOR_LOOPS_K 1
+#define DEPTH_K				[depth]
+#define for_each_depth_k() \
+	for (depth = 0; depth < DES_BS_VECTOR; depth++)
+#else
+#define DES_BS_VECTOR_LOOPS_K 0
+#endif
+
+typedef unsigned ARCH_WORD kvtype;
+#define kvand(dst, a, b) \
+	(dst) = (a) & (b)
+#define kvor(dst, a, b) \
+	(dst) = (a) | (b)
+#define kvshl1(dst, src) \
+	(dst) = (src) << 1
+#define kvshl(dst, src, shift) \
+	(dst) = (src) << (shift)
+#define kvshr(dst, src, shift) \
+	(dst) = (src) >> (shift)
+#endif
+
+#if !DES_BS_VECTOR || DES_BS_VECTOR_LOOPS_K
+#ifdef __x86_64__
+#define mask01 0x0101010101010101UL
+#elif __i386__
+#define mask01 0x01010101UL
+#else
+#undef mask01
+#endif
+#ifdef mask01
+#define mask02 (mask01 << 1)
+#define mask04 (mask01 << 2)
+#define mask08 (mask01 << 3)
+#define mask10 (mask01 << 4)
+#define mask20 (mask01 << 5)
+#define mask40 (mask01 << 6)
+#define mask80 (mask01 << 7)
+#endif
+#endif
+
+#ifndef mask01
+#define mask01 (*(vtype *)&DES_bs_all.masks[0])
+#define mask02 (*(vtype *)&DES_bs_all.masks[1])
+#define mask04 (*(vtype *)&DES_bs_all.masks[2])
+#define mask08 (*(vtype *)&DES_bs_all.masks[3])
+#define mask10 (*(vtype *)&DES_bs_all.masks[4])
+#define mask20 (*(vtype *)&DES_bs_all.masks[5])
+#define mask40 (*(vtype *)&DES_bs_all.masks[6])
+#define mask80 (*(vtype *)&DES_bs_all.masks[7])
+#endif
+
 #ifdef __GNUC__
 #if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
 #define MAYBE_INLINE __attribute__((always_inline))
 #else
 #define MAYBE_INLINE __inline__
 #endif
+#elif __STDC_VERSION__ >= 199901L
+#define MAYBE_INLINE inline
 #else
 #define MAYBE_INLINE
 #endif
+
+#ifdef __i386__
+/* register-starved */
+#define LOAD_V \
+	kvtype v0 = *(kvtype *)&vp[0]; \
+	kvtype v4 = *(kvtype *)&vp[4];
+#define v1 *(kvtype *)&vp[1]
+#define v2 *(kvtype *)&vp[2]
+#define v3 *(kvtype *)&vp[3]
+#define v5 *(kvtype *)&vp[5]
+#define v6 *(kvtype *)&vp[6]
+#define v7 *(kvtype *)&vp[7]
+#else
+#define LOAD_V \
+	kvtype v0 = *(kvtype *)&vp[0]; \
+	kvtype v1 = *(kvtype *)&vp[1]; \
+	kvtype v2 = *(kvtype *)&vp[2]; \
+	kvtype v3 = *(kvtype *)&vp[3]; \
+	kvtype v4 = *(kvtype *)&vp[4]; \
+	kvtype v5 = *(kvtype *)&vp[5]; \
+	kvtype v6 = *(kvtype *)&vp[6]; \
+	kvtype v7 = *(kvtype *)&vp[7];
+#endif
+
+#define kvand_shl1_or(dst, src, mask) \
+	kvand(tmp, src, mask); \
+	kvshl1(tmp, tmp); \
+	kvor(dst, dst, tmp)
+
+#define kvand_shl_or(dst, src, mask, shift) \
+	kvand(tmp, src, mask); \
+	kvshl(tmp, tmp, shift); \
+	kvor(dst, dst, tmp)
+
+#define kvand_shl1(dst, src, mask) \
+	kvand(tmp, src, mask); \
+	kvshl1(dst, tmp)
+
+#define kvand_or(dst, src, mask) \
+	kvand(tmp, src, mask); \
+	kvor(dst, dst, tmp)
+
+#define kvand_shr_or(dst, src, mask, shift) \
+	kvand(tmp, src, mask); \
+	kvshr(tmp, tmp, shift); \
+	kvor(dst, dst, tmp)
+
+#define kvand_shr(dst, src, mask, shift) \
+	kvand(tmp, src, mask); \
+	kvshr(dst, tmp, shift)
+
+#define FINALIZE_NEXT_KEY_BIT_0 { \
+	kvtype m = mask01, va, vb, tmp; \
+	kvand(va, v0, m); \
+	kvand_shl1(vb, v1, m); \
+	kvand_shl_or(va, v2, m, 2); \
+	kvand_shl_or(vb, v3, m, 3); \
+	kvand_shl_or(va, v4, m, 4); \
+	kvand_shl_or(vb, v5, m, 5); \
+	kvand_shl_or(va, v6, m, 6); \
+	kvand_shl_or(vb, v7, m, 7); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_1 { \
+	kvtype m = mask02, va, vb, tmp; \
+	kvand_shr(va, v0, m, 1); \
+	kvand(vb, v1, m); \
+	kvand_shl1_or(va, v2, m); \
+	kvand_shl_or(vb, v3, m, 2); \
+	kvand_shl_or(va, v4, m, 3); \
+	kvand_shl_or(vb, v5, m, 4); \
+	kvand_shl_or(va, v6, m, 5); \
+	kvand_shl_or(vb, v7, m, 6); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_2 { \
+	kvtype m = mask04, va, vb, tmp; \
+	kvand_shr(va, v0, m, 2); \
+	kvand_shr(vb, v1, m, 1); \
+	kvand_or(va, v2, m); \
+	kvand_shl1_or(vb, v3, m); \
+	kvand_shl_or(va, v4, m, 2); \
+	kvand_shl_or(vb, v5, m, 3); \
+	kvand_shl_or(va, v6, m, 4); \
+	kvand_shl_or(vb, v7, m, 5); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_3 { \
+	kvtype m = mask08, va, vb, tmp; \
+	kvand_shr(va, v0, m, 3); \
+	kvand_shr(vb, v1, m, 2); \
+	kvand_shr_or(va, v2, m, 1); \
+	kvand_or(vb, v3, m); \
+	kvand_shl1_or(va, v4, m); \
+	kvand_shl_or(vb, v5, m, 2); \
+	kvand_shl_or(va, v6, m, 3); \
+	kvand_shl_or(vb, v7, m, 4); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_4 { \
+	kvtype m = mask10, va, vb, tmp; \
+	kvand_shr(va, v0, m, 4); \
+	kvand_shr(vb, v1, m, 3); \
+	kvand_shr_or(va, v2, m, 2); \
+	kvand_shr_or(vb, v3, m, 1); \
+	kvand_or(va, v4, m); \
+	kvand_shl1_or(vb, v5, m); \
+	kvand_shl_or(va, v6, m, 2); \
+	kvand_shl_or(vb, v7, m, 3); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_5 { \
+	kvtype m = mask20, va, vb, tmp; \
+	kvand_shr(va, v0, m, 5); \
+	kvand_shr(vb, v1, m, 4); \
+	kvand_shr_or(va, v2, m, 3); \
+	kvand_shr_or(vb, v3, m, 2); \
+	kvand_shr_or(va, v4, m, 1); \
+	kvand_or(vb, v5, m); \
+	kvand_shl1_or(va, v6, m); \
+	kvand_shl_or(vb, v7, m, 2); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_6 { \
+	kvtype m = mask40, va, vb, tmp; \
+	kvand_shr(va, v0, m, 6); \
+	kvand_shr(vb, v1, m, 5); \
+	kvand_shr_or(va, v2, m, 4); \
+	kvand_shr_or(vb, v3, m, 3); \
+	kvand_shr_or(va, v4, m, 2); \
+	kvand_shr_or(vb, v5, m, 1); \
+	kvand_or(va, v6, m); \
+	kvand_shl1_or(vb, v7, m); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+#define FINALIZE_NEXT_KEY_BIT_7 { \
+	kvtype m = mask80, va, vb, tmp; \
+	kvand_shr(va, v0, m, 7); \
+	kvand_shr(vb, v1, m, 6); \
+	kvand_shr_or(va, v2, m, 5); \
+	kvand_shr_or(vb, v3, m, 4); \
+	kvand_shr_or(va, v4, m, 3); \
+	kvand_shr_or(vb, v5, m, 2); \
+	kvand_shr_or(va, v6, m, 1); \
+	kvand_or(vb, v7, m); \
+	kvor(*(kvtype *)kp, va, vb); \
+	kp++; \
+}
+
+static MAYBE_INLINE void DES_bs_finalize_keys(void)
+{
+#if DES_BS_VECTOR_LOOPS_K
+	int depth;
+#endif
+
+	for_each_depth_k() {
+		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH_K;
+		int ic;
+		for (ic = 0; ic < 8; ic++) {
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH_K;
+			LOAD_V
+			FINALIZE_NEXT_KEY_BIT_0
+			FINALIZE_NEXT_KEY_BIT_1
+			FINALIZE_NEXT_KEY_BIT_2
+			FINALIZE_NEXT_KEY_BIT_3
+			FINALIZE_NEXT_KEY_BIT_4
+			FINALIZE_NEXT_KEY_BIT_5
+			FINALIZE_NEXT_KEY_BIT_6
+		}
+	}
+
+#if DES_BS_EXPAND
+	{
+		int index;
+		for (index = 0; index < 0x300; index++)
+		for_each_depth_k() {
+#if DES_BS_VECTOR_LOOPS_K
+			DES_bs_all.KS.v[index] DEPTH_K =
+			    DES_bs_all.KSp[index] DEPTH_K;
+#else
+			vst(*(kvtype *)&DES_bs_all.KS.v[index], 0,
+			    *(kvtype *)DES_bs_all.KSp[index]);
+#endif
+		}
+	}
+#endif
+}
 
 /* Include the S-boxes here so that the compiler can inline them */
 #if DES_BS == 3
@@ -651,14 +1049,11 @@ typedef ARCH_WORD vtype;
 #define b				DES_bs_all.B
 #define e				DES_bs_all.E.E
 
-#ifndef DES_BS_VECTOR
-#define DES_BS_VECTOR			0
-#endif
-
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 #define kd				[depth]
 #define bd				[depth]
 #define ed				[depth]
+#define DEPTH				[depth]
 #define for_each_depth() \
 	for (depth = 0; depth < DES_BS_VECTOR; depth++)
 #else
@@ -669,6 +1064,7 @@ typedef ARCH_WORD vtype;
 #endif
 #define bd
 #define ed				[0]
+#define DEPTH
 #define for_each_depth()
 #endif
 
@@ -684,7 +1080,7 @@ typedef ARCH_WORD vtype;
 		vst(b[i] bd, 7, zero); \
 	}
 
-#define DES_bs_clear_block() \
+#define DES_bs_clear_block \
 	DES_bs_clear_block_8(0); \
 	DES_bs_clear_block_8(8); \
 	DES_bs_clear_block_8(16); \
@@ -710,102 +1106,6 @@ typedef ARCH_WORD vtype;
 #define y(p, q) vxorf(*(vtype *)&b[p] bd, *(vtype *)&k[q] kd)
 #define z(r) ((vtype *)&b[r] bd)
 
-void DES_bs_crypt(int count)
-{
-#if DES_BS_EXPAND
-	DES_bs_vector *k;
-#else
-	ARCH_WORD **k;
-#endif
-	int iterations, rounds_and_swapped;
-#if DES_BS_VECTOR
-	int depth;
-#endif
-
-#ifndef zero
-	vtype zero;
-/* This may produce an "uninitialized" warning */
-	vxor(zero, zero, zero);
-#endif
-
-	DES_bs_clear_block();
-
-#if DES_BS_EXPAND
-	k = DES_bs_all.KS.v;
-#else
-	k = DES_bs_all.KS.p;
-#endif
-	rounds_and_swapped = 8;
-	iterations = count;
-
-start:
-	for_each_depth()
-	s1(x(0), x(1), x(2), x(3), x(4), x(5),
-		z(40), z(48), z(54), z(62));
-	for_each_depth()
-	s2(x(6), x(7), x(8), x(9), x(10), x(11),
-		z(44), z(59), z(33), z(49));
-	for_each_depth()
-	s3(x(12), x(13), x(14), x(15), x(16), x(17),
-		z(55), z(47), z(61), z(37));
-	for_each_depth()
-	s4(x(18), x(19), x(20), x(21), x(22), x(23),
-		z(57), z(51), z(41), z(32));
-	for_each_depth()
-	s5(x(24), x(25), x(26), x(27), x(28), x(29),
-		z(39), z(45), z(56), z(34));
-	for_each_depth()
-	s6(x(30), x(31), x(32), x(33), x(34), x(35),
-		z(35), z(60), z(42), z(50));
-	for_each_depth()
-	s7(x(36), x(37), x(38), x(39), x(40), x(41),
-		z(63), z(43), z(53), z(38));
-	for_each_depth()
-	s8(x(42), x(43), x(44), x(45), x(46), x(47),
-		z(36), z(58), z(46), z(52));
-
-	if (rounds_and_swapped == 0x100) goto next;
-
-swap:
-	for_each_depth()
-	s1(x(48), x(49), x(50), x(51), x(52), x(53),
-		z(8), z(16), z(22), z(30));
-	for_each_depth()
-	s2(x(54), x(55), x(56), x(57), x(58), x(59),
-		z(12), z(27), z(1), z(17));
-	for_each_depth()
-	s3(x(60), x(61), x(62), x(63), x(64), x(65),
-		z(23), z(15), z(29), z(5));
-	for_each_depth()
-	s4(x(66), x(67), x(68), x(69), x(70), x(71),
-		z(25), z(19), z(9), z(0));
-	for_each_depth()
-	s5(x(72), x(73), x(74), x(75), x(76), x(77),
-		z(7), z(13), z(24), z(2));
-	for_each_depth()
-	s6(x(78), x(79), x(80), x(81), x(82), x(83),
-		z(3), z(28), z(10), z(18));
-	for_each_depth()
-	s7(x(84), x(85), x(86), x(87), x(88), x(89),
-		z(31), z(11), z(21), z(6));
-	for_each_depth()
-	s8(x(90), x(91), x(92), x(93), x(94), x(95),
-		z(4), z(26), z(14), z(20));
-
-	k += 96;
-
-	if (--rounds_and_swapped) goto start;
-	k -= (0x300 + 48);
-	rounds_and_swapped = 0x108;
-	if (--iterations) goto swap;
-	return;
-
-next:
-	k -= (0x300 - 48);
-	rounds_and_swapped = 8;
-	if (--iterations) goto start;
-}
-
 void DES_bs_crypt_25(void)
 {
 #if DES_BS_EXPAND
@@ -814,17 +1114,18 @@ void DES_bs_crypt_25(void)
 	ARCH_WORD **k;
 #endif
 	int iterations, rounds_and_swapped;
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 	int depth;
 #endif
 
-#ifndef zero
-	vtype zero;
-/* This may produce an "uninitialized" warning */
-	vxor(zero, zero, zero);
-#endif
+	if (DES_bs_all.keys_changed)
+		goto finalize_keys;
+body:
 
-	DES_bs_clear_block();
+	{
+		vtype zero = vzero;
+		DES_bs_clear_block
+	}
 
 #if DES_BS_EXPAND
 	k = DES_bs_all.KS.v;
@@ -909,12 +1210,152 @@ next:
 	rounds_and_swapped = 8;
 	iterations--;
 	goto start;
+
+finalize_keys:
+	DES_bs_all.keys_changed = 0;
+	DES_bs_finalize_keys();
+	goto body;
+}
+
+void DES_bs_crypt(int count)
+{
+#if DES_BS_EXPAND
+	DES_bs_vector *k;
+#else
+	ARCH_WORD **k;
+#endif
+	int iterations, rounds_and_swapped;
+#if DES_BS_VECTOR_LOOPS
+	int depth;
+#endif
+
+	if (DES_bs_all.keys_changed)
+		goto finalize_keys;
+body:
+
+	{
+		vtype zero = vzero;
+		DES_bs_clear_block
+	}
+
+#if DES_BS_EXPAND
+	k = DES_bs_all.KS.v;
+#else
+	k = DES_bs_all.KS.p;
+#endif
+	rounds_and_swapped = 8;
+	iterations = count;
+
+start:
+	for_each_depth()
+	s1(x(0), x(1), x(2), x(3), x(4), x(5),
+		z(40), z(48), z(54), z(62));
+	for_each_depth()
+	s2(x(6), x(7), x(8), x(9), x(10), x(11),
+		z(44), z(59), z(33), z(49));
+	for_each_depth()
+	s3(x(12), x(13), x(14), x(15), x(16), x(17),
+		z(55), z(47), z(61), z(37));
+	for_each_depth()
+	s4(x(18), x(19), x(20), x(21), x(22), x(23),
+		z(57), z(51), z(41), z(32));
+	for_each_depth()
+	s5(x(24), x(25), x(26), x(27), x(28), x(29),
+		z(39), z(45), z(56), z(34));
+	for_each_depth()
+	s6(x(30), x(31), x(32), x(33), x(34), x(35),
+		z(35), z(60), z(42), z(50));
+	for_each_depth()
+	s7(x(36), x(37), x(38), x(39), x(40), x(41),
+		z(63), z(43), z(53), z(38));
+	for_each_depth()
+	s8(x(42), x(43), x(44), x(45), x(46), x(47),
+		z(36), z(58), z(46), z(52));
+
+	if (rounds_and_swapped == 0x100) goto next;
+
+swap:
+	for_each_depth()
+	s1(x(48), x(49), x(50), x(51), x(52), x(53),
+		z(8), z(16), z(22), z(30));
+	for_each_depth()
+	s2(x(54), x(55), x(56), x(57), x(58), x(59),
+		z(12), z(27), z(1), z(17));
+	for_each_depth()
+	s3(x(60), x(61), x(62), x(63), x(64), x(65),
+		z(23), z(15), z(29), z(5));
+	for_each_depth()
+	s4(x(66), x(67), x(68), x(69), x(70), x(71),
+		z(25), z(19), z(9), z(0));
+	for_each_depth()
+	s5(x(72), x(73), x(74), x(75), x(76), x(77),
+		z(7), z(13), z(24), z(2));
+	for_each_depth()
+	s6(x(78), x(79), x(80), x(81), x(82), x(83),
+		z(3), z(28), z(10), z(18));
+	for_each_depth()
+	s7(x(84), x(85), x(86), x(87), x(88), x(89),
+		z(31), z(11), z(21), z(6));
+	for_each_depth()
+	s8(x(90), x(91), x(92), x(93), x(94), x(95),
+		z(4), z(26), z(14), z(20));
+
+	k += 96;
+
+	if (--rounds_and_swapped) goto start;
+	k -= (0x300 + 48);
+	rounds_and_swapped = 0x108;
+	if (--iterations) goto swap;
+	return;
+
+next:
+	k -= (0x300 - 48);
+	rounds_and_swapped = 8;
+	if (--iterations) goto start;
+	return;
+
+finalize_keys:
+	DES_bs_all.keys_changed = 0;
+	DES_bs_finalize_keys();
+	goto body;
 }
 
 #undef x
 
+static MAYBE_INLINE void DES_bs_finalize_keys_LM(void)
+{
+#if DES_BS_VECTOR_LOOPS_K
+	int depth;
+#endif
+
+	for_each_depth_k() {
+		DES_bs_vector *kp = (DES_bs_vector *)&DES_bs_all.K[0] DEPTH_K;
+		int ic;
+		for (ic = 0; ic < 7; ic++) {
+			DES_bs_vector *vp =
+			    (DES_bs_vector *)&DES_bs_all.xkeys.v[ic][0] DEPTH_K;
+			LOAD_V
+			FINALIZE_NEXT_KEY_BIT_0
+			FINALIZE_NEXT_KEY_BIT_1
+			FINALIZE_NEXT_KEY_BIT_2
+			FINALIZE_NEXT_KEY_BIT_3
+			FINALIZE_NEXT_KEY_BIT_4
+			FINALIZE_NEXT_KEY_BIT_5
+			FINALIZE_NEXT_KEY_BIT_6
+			FINALIZE_NEXT_KEY_BIT_7
+		}
+	}
+}
+
+#undef v1
+#undef v2
+#undef v3
+#undef v5
+#undef v6
+#undef v7
+
 #undef kd
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 #define kd				[depth]
 #else
 #define kd				[0]
@@ -924,25 +1365,23 @@ void DES_bs_crypt_LM(void)
 {
 	ARCH_WORD **k;
 	int rounds;
-#if DES_BS_VECTOR
+#if DES_BS_VECTOR_LOOPS
 	int depth;
 #endif
 
-#ifndef zero
-	vtype zero, ones;
-/* This may produce an "uninitialized" warning */
-	vxor(zero, zero, zero);
-	vnot(ones, zero);
-#endif
+	{
+		vtype z = vzero, o = vones;
+		DES_bs_set_block_8(0, z, z, z, z, z, z, z, z);
+		DES_bs_set_block_8(8, o, o, o, z, o, z, z, z);
+		DES_bs_set_block_8(16, z, z, z, z, z, z, z, o);
+		DES_bs_set_block_8(24, z, z, o, z, z, o, o, o);
+		DES_bs_set_block_8(32, z, z, z, o, z, o, o, o);
+		DES_bs_set_block_8(40, z, z, z, z, z, o, z, z);
+		DES_bs_set_block_8(48, o, o, z, z, z, z, o, z);
+		DES_bs_set_block_8(56, o, z, o, z, o, o, o, o);
+	}
 
-	DES_bs_set_block_8(0, zero, zero, zero, zero, zero, zero, zero, zero);
-	DES_bs_set_block_8(8, ones, ones, ones, zero, ones, zero, zero, zero);
-	DES_bs_set_block_8(16, zero, zero, zero, zero, zero, zero, zero, ones);
-	DES_bs_set_block_8(24, zero, zero, ones, zero, zero, ones, ones, ones);
-	DES_bs_set_block_8(32, zero, zero, zero, ones, zero, ones, ones, ones);
-	DES_bs_set_block_8(40, zero, zero, zero, zero, zero, ones, zero, zero);
-	DES_bs_set_block_8(48, ones, ones, zero, zero, zero, zero, ones, zero);
-	DES_bs_set_block_8(56, ones, zero, ones, zero, ones, ones, ones, ones);
+	DES_bs_finalize_keys_LM();
 
 	k = DES_bs_all.KS.p;
 	rounds = 8;
