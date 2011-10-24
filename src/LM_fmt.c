@@ -44,9 +44,17 @@ static struct fmt_tests tests[] = {
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT		DES_BS_DEPTH
 
+#if DES_bs_mt
+struct fmt_main fmt_LM;
+#endif
+
 static void init(void)
 {
 	DES_bs_init(1);
+#if DES_bs_mt
+	fmt_LM.params.min_keys_per_crypt = DES_bs_min_kpc;
+	fmt_LM.params.max_keys_per_crypt = DES_bs_max_kpc;
+#endif
 }
 
 static int valid(char *ciphertext)
@@ -169,6 +177,8 @@ static char *get_key(int index)
 	unsigned char *src;
 	char *dst;
 
+	init_t();
+
 	src = DES_bs_all.pxkeys[index];
 	dst = out;
 	while (dst < &out[7] && (*dst = *src)) {
@@ -192,6 +202,9 @@ struct fmt_main fmt_LM = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#if DES_bs_mt
+		FMT_OMP |
+#endif
 		FMT_8_BIT | FMT_BS | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {

@@ -70,9 +70,17 @@ static struct {
 
 #if DES_BS
 
+#if DES_bs_mt
+struct fmt_main fmt_DES;
+#endif
+
 static void init(void)
 {
 	DES_bs_init(0);
+#if DES_bs_mt
+	fmt_DES.params.min_keys_per_crypt = DES_bs_min_kpc;
+	fmt_DES.params.max_keys_per_crypt = DES_bs_max_kpc;
+#endif
 }
 
 #endif
@@ -314,6 +322,8 @@ static char *get_key(int index)
 	unsigned char *src;
 	char *dst;
 
+	init_t();
+
 	src = DES_bs_all.pxkeys[index];
 	dst = out;
 	while (dst < &out[PLAINTEXT_LENGTH] && (*dst = *src)) {
@@ -341,6 +351,9 @@ struct fmt_main fmt_DES = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#if DES_BS && DES_bs_mt
+		FMT_OMP |
+#endif
 #if DES_BS
 		FMT_CASE | FMT_BS,
 #else

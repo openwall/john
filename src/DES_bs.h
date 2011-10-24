@@ -71,7 +71,32 @@ typedef struct {
 	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
 } DES_bs_combined;
 
+#if defined(_OPENMP) && !DES_BS_ASM
+#define DES_bs_mt			1
+#define DES_bs_cpt			32
+#define DES_bs_mt_max			(DES_bs_cpt * 24)
+extern int DES_bs_min_kpc, DES_bs_max_kpc;
+extern int DES_bs_nt;
+extern DES_bs_combined *DES_bs_all_p;
+#define DES_bs_all_align		64
+#define DES_bs_all_size \
+	((sizeof(DES_bs_combined) + (DES_bs_all_align - 1)) & \
+	    ~(DES_bs_all_align - 1))
+#define DES_bs_all_by_tnum(tnum) \
+	(*(DES_bs_combined *)((char *)DES_bs_all_p + (tnum) * DES_bs_all_size))
+#define DES_bs_all \
+	(*(DES_bs_combined *)((char *)DES_bs_all_p + t))
+#define for_each_t(n) \
+	for (t = 0; t < (n) * DES_bs_all_size; t += DES_bs_all_size)
+#define init_t() \
+	int t = (unsigned int)index / DES_BS_DEPTH * DES_bs_all_size; \
+	index = (unsigned int)index % DES_BS_DEPTH;
+#else
+#define DES_bs_mt			0
 extern DES_bs_combined DES_bs_all;
+#define for_each_t(n)
+#define init_t()
+#endif
 
 /*
  * Initializes the internal structures.
