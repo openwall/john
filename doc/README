@@ -75,7 +75,8 @@ crypt(3) hash types: traditional DES-based, "bigcrypt", BSDI extended
 DES-based, FreeBSD MD5-based (also used on Linux and in Cisco IOS), and
 OpenBSD Blowfish-based (now also used on some Linux distributions and
 supported by recent versions of Solaris).  Also supported out of the box
-are Kerberos/AFS and Windows LM (DES-based) hashes.
+are Kerberos/AFS and Windows LM (DES-based) hashes, as well as DES-based
+tripcodes.
 
 When running on Linux distributions with glibc 2.7+, John 1.7.6+
 additionally supports (and autodetects) SHA-crypt hashes (which are
