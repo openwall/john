@@ -90,19 +90,19 @@ extern void DES_bs_set_key(char *key, int index);
 extern void DES_bs_set_key_LM(char *key, int index);
 
 /*
- * Generic bitslice routine: 24 bit salts, variable iteration count.
+ * Almost generic implementation: 24-bit salts, variable iteration count.
  */
-extern void DES_bs_crypt(int count);
+extern void DES_bs_crypt(int count, int keys_count);
 
 /*
- * A simplified special-case version: 12 bit salts, 25 iterations.
+ * A simplified special-case implementation: 12-bit salts, 25 iterations.
  */
-extern void DES_bs_crypt_25(void);
+extern void DES_bs_crypt_25(int keys_count);
 
 /*
  * Another special-case version: a non-zero IV, no salts, no iterations.
  */
-extern void DES_bs_crypt_LM(void);
+extern void DES_bs_crypt_LM(int keys_count);
 
 /*
  * Converts an ASCII ciphertext to binary to be used with one of the

@@ -153,16 +153,6 @@ static int get_hash_4(int index)
 	return DES_bs_get_hash(index, 20);
 }
 
-static void crypt_all(int count)
-{
-	DES_bs_crypt_LM();
-}
-
-static int cmp_all(void *binary, int count)
-{
-	return DES_bs_cmp_all((ARCH_WORD *)binary);
-}
-
 static int cmp_one(void *binary, int index)
 {
 	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
@@ -222,7 +212,7 @@ struct fmt_main fmt_LM = {
 		DES_bs_set_key_LM,
 		get_key,
 		fmt_default_clear_keys,
-		crypt_all,
+		DES_bs_crypt_LM,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -230,7 +220,7 @@ struct fmt_main fmt_LM = {
 			get_hash_3,
 			get_hash_4
 		},
-		cmp_all,
+		(int (*)(void *, int))DES_bs_cmp_all,
 		cmp_one,
 		cmp_exact
 	}

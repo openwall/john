@@ -311,12 +311,7 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	DES_bs_crypt(saved_count);
-}
-
-static int cmp_all(void *binary, int count)
-{
-	return DES_bs_cmp_all((ARCH_WORD *)binary);
+	DES_bs_crypt(saved_count, count);
 }
 
 static int cmp_one(void *binary, int index)
@@ -430,7 +425,11 @@ struct fmt_main fmt_BSDI = {
 			get_hash_3,
 			get_hash_4
 		},
+#if DES_BS
+		(int (*)(void *, int))DES_bs_cmp_all,
+#else
 		cmp_all,
+#endif
 		cmp_one,
 		cmp_exact
 	}
