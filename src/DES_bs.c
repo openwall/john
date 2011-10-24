@@ -72,7 +72,7 @@ void DES_bs_init(int LM)
  * memory anyway.
  *
  * We allocate one extra entry (will be at "thread number" -1) to hold "ones"
- * shared between threads.
+ * and "salt" fields that are shared between threads.
  */
 	n = DES_bs_nt;
 	if (!n) {
@@ -134,6 +134,11 @@ void DES_bs_init(int LM)
 				DES_bs_all.Ens[index] =
 				    &DES_bs_all.B[DES_E[index]];
 			DES_bs_all.salt = 0xffffff;
+#if DES_bs_mt
+			DES_bs_set_salt_for_thread(t, 0);
+#else
+			DES_bs_set_salt(0);
+#endif
 		}
 
 #if !DES_BS_ASM
@@ -152,54 +157,17 @@ void DES_bs_init(int LM)
 		    ((char *)DES_bs_all_p + DES_bs_all_size);
 #endif
 
-	if (!LM)
-		DES_bs_set_salt(0);
-
 #if DES_BS_ASM
 	DES_bs_init_asm();
 #endif
 }
 
+#if DES_bs_mt
 void DES_bs_set_salt(ARCH_WORD salt)
 {
-#if DES_bs_mt
-	int t;
-#endif
-
-	for_each_t(DES_bs_nt) {
-		unsigned int new = salt;
-		unsigned int old = DES_bs_all.salt;
-		int dst;
-
-		DES_bs_all.salt = new;
-
-		for (dst = 0; dst < 24; dst++) {
-			if ((new ^ old) & 1) {
-				DES_bs_vector *sp1, *sp2;
-				int src1 = dst;
-				int src2 = dst + 24;
-				if (new & 1) {
-					src1 = src2;
-					src2 = dst;
-				}
-				sp1 = DES_bs_all.Ens[src1];
-				sp2 = DES_bs_all.Ens[src2];
-				DES_bs_all.E.E[dst] =
-				    (ARCH_WORD *)sp1;
-				DES_bs_all.E.E[dst + 24] =
-				    (ARCH_WORD *)sp2;
-				DES_bs_all.E.E[dst + 48] =
-				    (ARCH_WORD *)(sp1 + 32);
-				DES_bs_all.E.E[dst + 72] =
-				    (ARCH_WORD *)(sp2 + 32);
-			}
-			new >>= 1;
-			old >>= 1;
-			if (new == old)
-				break;
-		}
-	}
+	DES_bs_all_by_tnum(-1).salt = salt;
 }
+#endif
 
 void DES_bs_set_key(char *key, int index)
 {
