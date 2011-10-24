@@ -149,10 +149,10 @@ extern ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext);
 extern int DES_bs_get_hash(int index, int count);
 
 /*
- * Compares 32 bits of a given ciphertext against all the DES_bs_crypt()
- * outputs and returns zero if no matches detected.
+ * Compares 32 bits of a given ciphertext against at least the first count of
+ * the DES_bs_crypt*() outputs and returns zero if no matches detected.
  */
-extern int DES_bs_cmp_all(ARCH_WORD *binary);
+extern int DES_bs_cmp_all(ARCH_WORD *binary, int count);
 
 /*
  * Compares count bits of a given ciphertext against one of the outputs.

@@ -337,11 +337,11 @@ int DES_bs_get_hash(int index, int count)
 }
 
 /*
- * The trick I used here allows to compare one ciphertext against all the
- * DES_bs_crypt() outputs in just O(log2(ARCH_BITS)) operations, assuming
- * that DES_BS_VECTOR is 0 or 1. This routine isn't vectorized, yet.
+ * The trick used here allows to compare one ciphertext against all the
+ * DES_bs_crypt*() outputs in just O(log2(ARCH_BITS)) operations, assuming
+ * that DES_BS_VECTOR is 0 or 1. This routine isn't vectorized yet.
  */
-int DES_bs_cmp_all(ARCH_WORD *binary)
+int DES_bs_cmp_all(ARCH_WORD *binary, int count)
 {
 	ARCH_WORD value, mask;
 	int bit;
@@ -350,10 +350,10 @@ int DES_bs_cmp_all(ARCH_WORD *binary)
 	int depth;
 #endif
 #if DES_bs_mt
-	int t;
+	int t, n = (count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;
 #endif
 
-	for_each_t(DES_bs_nt)
+	for_each_t(n)
 	for_each_depth() {
 		value = binary[0];
 		b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
