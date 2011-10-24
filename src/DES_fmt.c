@@ -190,16 +190,6 @@ static void set_salt(void *salt)
 	DES_bs_set_salt(*(ARCH_WORD *)salt);
 }
 
-static void crypt_all(int count)
-{
-	DES_bs_crypt_25();
-}
-
-static int cmp_all(void *binary, int count)
-{
-	return DES_bs_cmp_all((ARCH_WORD *)binary);
-}
-
 static int cmp_one(void *binary, int index)
 {
 	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
@@ -388,7 +378,11 @@ struct fmt_main fmt_DES = {
 #endif
 		get_key,
 		fmt_default_clear_keys,
+#if DES_BS
+		DES_bs_crypt_25,
+#else
 		crypt_all,
+#endif
 		{
 			get_hash_0,
 			get_hash_1,
@@ -396,7 +390,11 @@ struct fmt_main fmt_DES = {
 			get_hash_3,
 			get_hash_4
 		},
+#if DES_BS
+		(int (*)(void *, int))DES_bs_cmp_all,
+#else
 		cmp_all,
+#endif
 		cmp_one,
 		cmp_exact
 	}

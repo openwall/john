@@ -1106,7 +1106,7 @@ static MAYBE_INLINE void DES_bs_finalize_keys(void)
 #define y(p, q) vxorf(*(vtype *)&b[p] bd, *(vtype *)&k[q] kd)
 #define z(r) ((vtype *)&b[r] bd)
 
-void DES_bs_crypt_25(void)
+void DES_bs_crypt_25(int keys_count)
 {
 #if DES_BS_EXPAND
 	DES_bs_vector *k;
@@ -1217,7 +1217,7 @@ finalize_keys:
 	goto body;
 }
 
-void DES_bs_crypt(int count)
+void DES_bs_crypt(int count, int keys_count)
 {
 #if DES_BS_EXPAND
 	DES_bs_vector *k;
@@ -1361,7 +1361,7 @@ static MAYBE_INLINE void DES_bs_finalize_keys_LM(void)
 #define kd				[0]
 #endif
 
-void DES_bs_crypt_LM(void)
+void DES_bs_crypt_LM(int keys_count)
 {
 	ARCH_WORD **k;
 	int rounds;
