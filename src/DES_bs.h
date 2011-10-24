@@ -93,6 +93,7 @@ extern DES_bs_combined *DES_bs_all_p;
 	index = (unsigned int)index % DES_BS_DEPTH;
 #else
 #define DES_bs_mt			0
+#define DES_bs_cpt			1
 extern DES_bs_combined DES_bs_all;
 #define for_each_t(n)
 #define init_t()
