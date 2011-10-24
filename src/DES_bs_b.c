@@ -1004,8 +1004,6 @@ typedef unsigned ARCH_WORD kvtype;
 	kp++; \
 }
 
-#endif
-
 #if DES_bs_mt
 static MAYBE_INLINE void DES_bs_finalize_keys(int t)
 #else
@@ -1048,6 +1046,43 @@ static MAYBE_INLINE void DES_bs_finalize_keys(void)
 		}
 	}
 #endif
+}
+
+#endif
+
+#if DES_bs_mt
+MAYBE_INLINE void DES_bs_set_salt_for_thread(int t, unsigned int salt)
+#else
+void DES_bs_set_salt(ARCH_WORD salt)
+#endif
+{
+	unsigned int new = salt;
+	unsigned int old = DES_bs_all.salt;
+	int dst;
+
+	DES_bs_all.salt = new;
+
+	for (dst = 0; dst < 24; dst++) {
+		if ((new ^ old) & 1) {
+			DES_bs_vector *sp1, *sp2;
+			int src1 = dst;
+			int src2 = dst + 24;
+			if (new & 1) {
+				src1 = src2;
+				src2 = dst;
+			}
+			sp1 = DES_bs_all.Ens[src1];
+			sp2 = DES_bs_all.Ens[src2];
+			DES_bs_all.E.E[dst] = (ARCH_WORD *)sp1;
+			DES_bs_all.E.E[dst + 24] = (ARCH_WORD *)sp2;
+			DES_bs_all.E.E[dst + 48] = (ARCH_WORD *)(sp1 + 32);
+			DES_bs_all.E.E[dst + 72] = (ARCH_WORD *)(sp2 + 32);
+		}
+		new >>= 1;
+		old >>= 1;
+		if (new == old)
+			break;
+	}
 }
 
 #if !DES_BS_ASM
@@ -1146,6 +1181,10 @@ void DES_bs_crypt_25(int keys_count)
 			goto finalize_keys;
 
 body:
+#if DES_bs_mt
+		DES_bs_set_salt_for_thread(t, DES_bs_all_by_tnum(-1).salt);
+#endif
+
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block
@@ -1274,6 +1313,10 @@ void DES_bs_crypt(int count, int keys_count)
 			goto finalize_keys;
 
 body:
+#if DES_bs_mt
+		DES_bs_set_salt_for_thread(t, DES_bs_all_by_tnum(-1).salt);
+#endif
+
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block

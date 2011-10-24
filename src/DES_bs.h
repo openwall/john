@@ -107,6 +107,9 @@ extern void DES_bs_init(int LM);
  * Sets a salt for DES_bs_crypt().
  */
 extern void DES_bs_set_salt(ARCH_WORD salt);
+#if DES_bs_mt
+extern void DES_bs_set_salt_for_thread(int t, unsigned int salt);
+#endif
 
 /*
  * Set a key for DES_bs_crypt() or DES_bs_crypt_LM(), respectively.
