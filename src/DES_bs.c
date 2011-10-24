@@ -5,6 +5,10 @@
 
 #include <string.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "common.h"
 #include "DES_std.h"
@@ -26,7 +30,11 @@
 #define for_each_depth()
 #endif
 
-#if !DES_BS_ASM
+#if defined(_OPENMP) && !DES_BS_ASM
+int DES_bs_min_kpc, DES_bs_max_kpc;
+int DES_bs_nt = 0;
+DES_bs_combined *DES_bs_all_p = NULL;
+#elif !DES_BS_ASM
 DES_bs_combined CC_CACHE_ALIGN DES_bs_all;
 #endif
 
@@ -55,95 +63,151 @@ void DES_bs_init(int LM)
 	int round, index, bit;
 	int p, q, s;
 	int c;
+#if DES_bs_mt
+	int t, n;
 
-#if DES_BS_EXPAND
-	if (LM)
-		k = DES_bs_all.KS.p;
-	else
-		k = DES_bs_all.KSp;
-#else
-	k = DES_bs_all.KS.p;
+/*
+ * The array of DES_bs_all's is not exactly tiny, but we use mem_alloc_tiny()
+ * for its alignment support and error checking.  We do not need to free() this
+ * memory anyway.
+ *
+ * We allocate one extra entry (will be at "thread number" -1) to hold "ones"
+ * shared between threads.
+ */
+	n = DES_bs_nt;
+	if (!n) {
+		n = omp_get_max_threads();
+		if (n < 1)
+			n = 1;
+		if (n > DES_bs_mt_max)
+			n = DES_bs_mt_max;
+		DES_bs_min_kpc = n * DES_BS_DEPTH;
+		n *= DES_bs_cpt;
+		if (n > DES_bs_mt_max)
+			n = DES_bs_mt_max;
+		DES_bs_max_kpc = n * DES_BS_DEPTH;
+		DES_bs_nt = n;
+		DES_bs_all_p = mem_alloc_tiny(
+		    ++n * DES_bs_all_size, MEM_ALIGN_PAGE);
+	}
 #endif
 
-	s = 0;
-	for (round = 0; round < 16; round++) {
-		s += DES_ROT[round];
-		for (index = 0; index < 48; index++) {
-			p = DES_PC2[index];
-			q = p < 28 ? 0 : 28;
-			p += s;
-			while (p >= 28) p -= 28;
-			bit = DES_PC1[p + q];
-			bit ^= 070;
-			bit -= bit >> 3;
-			bit = 55 - bit;
-			if (LM) bit = DES_LM_KP[bit];
-			*k++ = &DES_bs_all.K[bit] START;
-		}
-	}
-
-	for (index = 0; index < DES_BS_DEPTH; index++)
-		DES_bs_all.pxkeys[index] =
-		    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
-
-	if (LM) {
-		for (c = 0; c < 0x100; c++)
-		if (c >= 'a' && c <= 'z')
-			DES_bs_all.E.u[c] = c & ~0x20;
+	for_each_t(n) {
+#if DES_BS_EXPAND
+		if (LM)
+			k = DES_bs_all.KS.p;
 		else
-			DES_bs_all.E.u[c] = c;
-	} else {
-		for (index = 0; index < 48; index++)
-			DES_bs_all.Ens[index] = &DES_bs_all.B[DES_E[index]];
-		DES_bs_all.salt = 0xffffff;
-		DES_bs_set_salt(0);
+			k = DES_bs_all.KSp;
+#else
+		k = DES_bs_all.KS.p;
+#endif
+
+		s = 0;
+		for (round = 0; round < 16; round++) {
+			s += DES_ROT[round];
+			for (index = 0; index < 48; index++) {
+				p = DES_PC2[index];
+				q = p < 28 ? 0 : 28;
+				p += s;
+				while (p >= 28) p -= 28;
+				bit = DES_PC1[p + q];
+				bit ^= 070;
+				bit -= bit >> 3;
+				bit = 55 - bit;
+				if (LM) bit = DES_LM_KP[bit];
+				*k++ = &DES_bs_all.K[bit] START;
+			}
+		}
+
+		for (index = 0; index < DES_BS_DEPTH; index++)
+			DES_bs_all.pxkeys[index] =
+			    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
+
+		if (LM) {
+			for (c = 0; c < 0x100; c++)
+			if (c >= 'a' && c <= 'z')
+				DES_bs_all.E.u[c] = c & ~0x20;
+			else
+				DES_bs_all.E.u[c] = c;
+		} else {
+			for (index = 0; index < 48; index++)
+				DES_bs_all.Ens[index] =
+				    &DES_bs_all.B[DES_E[index]];
+			DES_bs_all.salt = 0xffffff;
+		}
+
+#if !DES_BS_ASM
+		memset(&DES_bs_all.zero, 0, sizeof(DES_bs_all.zero));
+		memset(&DES_bs_all.ones, -1, sizeof(DES_bs_all.ones));
+		for (bit = 0; bit < 8; bit++)
+			memset(&DES_bs_all.masks[bit], 1 << bit,
+			    sizeof(DES_bs_all.masks[bit]));
+#endif
 	}
+
+#if DES_bs_mt
+/* Skip the special entry (will be at "thread number" -1) */
+	if (n > DES_bs_nt)
+		DES_bs_all_p = (DES_bs_combined *)
+		    ((char *)DES_bs_all_p + DES_bs_all_size);
+#endif
+
+	if (!LM)
+		DES_bs_set_salt(0);
 
 #if DES_BS_ASM
 	DES_bs_init_asm();
-#else
-	memset(&DES_bs_all.zero, 0, sizeof(DES_bs_all.zero));
-	memset(&DES_bs_all.ones, -1, sizeof(DES_bs_all.ones));
-	for (bit = 0; bit < 8; bit++)
-		memset(&DES_bs_all.masks[bit], 1 << bit,
-		    sizeof(DES_bs_all.masks[bit]));
 #endif
 }
 
 void DES_bs_set_salt(ARCH_WORD salt)
 {
-	unsigned int new = salt;
-	unsigned int old = DES_bs_all.salt;
-	int dst;
+#if DES_bs_mt
+	int t;
+#endif
 
-	DES_bs_all.salt = new;
+	for_each_t(DES_bs_nt) {
+		unsigned int new = salt;
+		unsigned int old = DES_bs_all.salt;
+		int dst;
 
-	for (dst = 0; dst < 24; dst++) {
-		if ((new ^ old) & 1) {
-			DES_bs_vector *sp1, *sp2;
-			int src1 = dst;
-			int src2 = dst + 24;
-			if (new & 1) {
-				src1 = src2;
-				src2 = dst;
+		DES_bs_all.salt = new;
+
+		for (dst = 0; dst < 24; dst++) {
+			if ((new ^ old) & 1) {
+				DES_bs_vector *sp1, *sp2;
+				int src1 = dst;
+				int src2 = dst + 24;
+				if (new & 1) {
+					src1 = src2;
+					src2 = dst;
+				}
+				sp1 = DES_bs_all.Ens[src1];
+				sp2 = DES_bs_all.Ens[src2];
+				DES_bs_all.E.E[dst] =
+				    (ARCH_WORD *)sp1;
+				DES_bs_all.E.E[dst + 24] =
+				    (ARCH_WORD *)sp2;
+				DES_bs_all.E.E[dst + 48] =
+				    (ARCH_WORD *)(sp1 + 32);
+				DES_bs_all.E.E[dst + 72] =
+				    (ARCH_WORD *)(sp2 + 32);
 			}
-			sp1 = DES_bs_all.Ens[src1];
-			sp2 = DES_bs_all.Ens[src2];
-			DES_bs_all.E.E[dst] = (ARCH_WORD *)sp1;
-			DES_bs_all.E.E[dst + 24] = (ARCH_WORD *)sp2;
-			DES_bs_all.E.E[dst + 48] = (ARCH_WORD *)(sp1 + 32);
-			DES_bs_all.E.E[dst + 72] = (ARCH_WORD *)(sp2 + 32);
+			new >>= 1;
+			old >>= 1;
+			if (new == old)
+				break;
 		}
-		new >>= 1;
-		old >>= 1;
-		if (new == old)
-			break;
 	}
 }
 
 void DES_bs_set_key(char *key, int index)
 {
-	unsigned char *dst = DES_bs_all.pxkeys[index];
+	unsigned char *dst;
+
+	init_t();
+
+	dst = DES_bs_all.pxkeys[index];
 
 	DES_bs_all.keys_changed = 1;
 
@@ -180,7 +244,11 @@ fill2:
 
 void DES_bs_set_key_LM(char *key, int index)
 {
-	unsigned char *dst = DES_bs_all.pxkeys[index];
+	unsigned char *dst;
+
+	init_t();
+
+	dst = DES_bs_all.pxkeys[index];
 
 /*
  * gcc 4.5.0 on x86_64 would generate redundant movzbl's without explicit
@@ -264,6 +332,7 @@ int DES_bs_get_hash(int index, int count)
 	int result;
 	DES_bs_vector *b;
 
+	init_t();
 	init_depth();
 	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
 
@@ -308,11 +377,15 @@ int DES_bs_cmp_all(ARCH_WORD *binary)
 {
 	ARCH_WORD value, mask;
 	int bit;
+	DES_bs_vector *b;
 #if DES_BS_VECTOR
 	int depth;
 #endif
-	DES_bs_vector *b;
+#if DES_bs_mt
+	int t;
+#endif
 
+	for_each_t(DES_bs_nt)
 	for_each_depth() {
 		value = binary[0];
 		b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
@@ -349,6 +422,7 @@ int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 	int bit;
 	DES_bs_vector *b;
 
+	init_t();
 	init_depth();
 	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
 

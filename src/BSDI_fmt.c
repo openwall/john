@@ -77,12 +77,18 @@ static struct {
 	char key[PLAINTEXT_LENGTH];
 } buffer[MAX_KEYS_PER_CRYPT];
 
+struct fmt_main fmt_BSDI;
+
 static void init(void)
 {
 	DES_std_init();
 
 #if DES_BS
 	DES_bs_init(0);
+#if DES_bs_mt
+	fmt_BSDI.params.min_keys_per_crypt = DES_bs_min_kpc;
+	fmt_BSDI.params.max_keys_per_crypt = DES_bs_max_kpc;
+#endif
 
 	DES_std_set_salt(0);
 	DES_count = 1;
@@ -388,6 +394,9 @@ struct fmt_main fmt_BSDI = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#if DES_BS && DES_bs_mt
+		FMT_OMP |
+#endif
 #if DES_BS
 		FMT_CASE | FMT_BS,
 #else
