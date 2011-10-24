@@ -75,7 +75,7 @@ static struct {
 	} aligned;
 #endif
 	char key[PLAINTEXT_LENGTH];
-} buffer[MAX_KEYS_PER_CRYPT];
+} *buffer;
 
 struct fmt_main fmt_BSDI;
 
@@ -95,6 +95,10 @@ static void init(void)
 #else
 	current_salt = -1;
 #endif
+
+	buffer = mem_alloc_tiny(
+	    sizeof(*buffer) * fmt_BSDI.params.max_keys_per_crypt,
+	    MEM_ALIGN_CACHE);
 }
 
 static int valid(char *ciphertext)
