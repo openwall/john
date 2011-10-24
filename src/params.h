@@ -12,6 +12,8 @@
 
 #include <limits.h>
 
+#include "arch.h"
+
 /*
  * John's version number.
  */
@@ -172,7 +174,11 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffered keys hash size, used for "single crack" mode.
  */
+#if defined(_OPENMP) && DES_BS && !DES_BS_ASM
+#define SINGLE_HASH_LOG			10
+#else
 #define SINGLE_HASH_LOG			7
+#endif
 #define SINGLE_HASH_SIZE		(1 << SINGLE_HASH_LOG)
 
 /*
