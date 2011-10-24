@@ -15,7 +15,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.8.3"
+#define JOHN_VERSION			"1.7.8.4"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
