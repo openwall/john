@@ -112,7 +112,7 @@
 #define DES_BS_ALGORITHM_NAME		"128/128 BS AVX-16"
 #endif
 #endif
-#elif defined(__SSE2__) && 0
+#elif defined(__SSE2__) && defined(_OPENMP)
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			2
