@@ -259,7 +259,10 @@ struct fmt_main fmt_BF = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if BF_mt > 1
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
