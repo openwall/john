@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2008,2010 by Solar Designer
+ * Copyright (c) 1996-2002,2008,2010,2011 by Solar Designer
  */
 
 /*
@@ -45,7 +45,7 @@
 #define DES_EXTB			0
 #define DES_COPY			1
 #define DES_STD_ALGORITHM_NAME		"48/64 4K MMX"
-#if defined(__MMX__) && 0
+#if defined(__MMX__) && defined(_OPENMP)
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			2
