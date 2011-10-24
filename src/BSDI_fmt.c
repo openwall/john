@@ -79,7 +79,7 @@ static void init(void)
 	DES_std_init();
 
 #if DES_BS
-	DES_bs_init(0);
+	DES_bs_init(0, (DES_bs_cpt + 28) / 29);
 #if DES_bs_mt
 	fmt_BSDI.params.min_keys_per_crypt = DES_bs_min_kpc;
 	fmt_BSDI.params.max_keys_per_crypt = DES_bs_max_kpc;

@@ -101,7 +101,7 @@ extern DES_bs_combined DES_bs_all;
 /*
  * Initializes the internal structures.
  */
-extern void DES_bs_init(int LM);
+extern void DES_bs_init(int LM, int cpt);
 
 /*
  * Sets a salt for DES_bs_crypt().

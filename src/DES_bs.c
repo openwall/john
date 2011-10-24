@@ -5,10 +5,6 @@
 
 #include <string.h>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include "arch.h"
 #include "common.h"
 #include "DES_std.h"
@@ -30,8 +26,11 @@
 #define for_each_depth()
 #endif
 
-#if defined(_OPENMP) && !DES_BS_ASM
+#if DES_bs_mt
+#include <omp.h>
+#include <assert.h>
 int DES_bs_min_kpc, DES_bs_max_kpc;
+static int DES_bs_n_alloc;
 int DES_bs_nt = 0;
 DES_bs_combined *DES_bs_all_p = NULL;
 #elif !DES_BS_ASM
@@ -57,7 +56,7 @@ static unsigned char DES_LM_reverse[16] = {
 extern void DES_bs_init_asm(void);
 #endif
 
-void DES_bs_init(int LM)
+void DES_bs_init(int LM, int cpt)
 {
 	ARCH_WORD **k;
 	int round, index, bit;
@@ -74,19 +73,20 @@ void DES_bs_init(int LM)
  * We allocate one extra entry (will be at "thread number" -1) to hold "ones"
  * and "salt" fields that are shared between threads.
  */
-	n = DES_bs_nt;
-	if (!n) {
-		n = omp_get_max_threads();
-		if (n < 1)
-			n = 1;
-		if (n > DES_bs_mt_max)
-			n = DES_bs_mt_max;
-		DES_bs_min_kpc = n * DES_BS_DEPTH;
-		n *= DES_bs_cpt;
-		if (n > DES_bs_mt_max)
-			n = DES_bs_mt_max;
-		DES_bs_max_kpc = n * DES_BS_DEPTH;
-		DES_bs_nt = n;
+	n = omp_get_max_threads();
+	if (n < 1)
+		n = 1;
+	if (n > DES_bs_mt_max)
+		n = DES_bs_mt_max;
+	DES_bs_min_kpc = n * DES_BS_DEPTH;
+	n *= cpt;
+	if (n > DES_bs_mt_max)
+		n = DES_bs_mt_max;
+	DES_bs_max_kpc = n * DES_BS_DEPTH;
+	assert(!DES_bs_all_p || n <= DES_bs_n_alloc);
+	DES_bs_nt = n;
+	if (!DES_bs_all_p) {
+		DES_bs_n_alloc = n;
 		DES_bs_all_p = mem_alloc_tiny(
 		    ++n * DES_bs_all_size, MEM_ALIGN_PAGE);
 	}

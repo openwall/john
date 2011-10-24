@@ -50,7 +50,7 @@ struct fmt_main fmt_LM;
 
 static void init(void)
 {
-	DES_bs_init(1);
+	DES_bs_init(1, DES_bs_cpt);
 #if DES_bs_mt
 	fmt_LM.params.min_keys_per_crypt = DES_bs_min_kpc;
 	fmt_LM.params.max_keys_per_crypt = DES_bs_max_kpc;
