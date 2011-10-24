@@ -66,13 +66,8 @@ static int saved_count;
 
 static struct {
 #if !DES_BS
-	union {
-		double dummy;
-		struct {
-			DES_KS KS;
-			DES_binary binary;
-		} data;
-	} aligned;
+	DES_KS KS;
+	DES_binary binary;
 #endif
 	char key[PLAINTEXT_LENGTH];
 } *buffer;
@@ -217,14 +212,14 @@ static int binary_hash_2(void *binary)
 
 static int get_hash_0(int index)
 {
-	return DES_STD_HASH_0(buffer[index].aligned.data.binary[0]);
+	return DES_STD_HASH_0(buffer[index].binary[0]);
 }
 
 static int get_hash_1(int index)
 {
 	ARCH_WORD binary;
 
-	binary = buffer[index].aligned.data.binary[0];
+	binary = buffer[index].binary[0];
 	return DES_STD_HASH_1(binary);
 }
 
@@ -232,7 +227,7 @@ static int get_hash_2(int index)
 {
 	ARCH_WORD binary;
 
-	binary = buffer[index].aligned.data.binary[0];
+	binary = buffer[index].binary[0];
 	return DES_STD_HASH_2(binary);
 }
 
@@ -305,7 +300,7 @@ static void set_key(char *key, int index)
 #if DES_BS
 	DES_bs_set_key(final, index);
 #else
-	memcpy(buffer[index].aligned.data.KS, DES_KS_current, sizeof(DES_KS));
+	memcpy(buffer[index].KS, DES_KS_current, sizeof(DES_KS));
 #endif
 	strnfcpy(buffer[index].key, key, PLAINTEXT_LENGTH);
 }
@@ -347,8 +342,7 @@ static void crypt_all(int count)
 	DES_count = saved_count;
 
 	for (index = 0; index < count; index++)
-		DES_std_crypt(buffer[index].aligned.data.KS,
-			buffer[index].aligned.data.binary);
+		DES_std_crypt(buffer[index].KS, buffer[index].binary);
 }
 
 static int cmp_all(void *binary, int count)
@@ -357,7 +351,7 @@ static int cmp_all(void *binary, int count)
 
 	for (index = 0; index < count; index++)
 	if (*(unsigned ARCH_WORD *)binary ==
-	    (buffer[index].aligned.data.binary[0] & DES_BINARY_MASK))
+	    (buffer[index].binary[0] & DES_BINARY_MASK))
 		return 1;
 
 	return 0;
@@ -366,7 +360,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 	return *(unsigned ARCH_WORD *)binary ==
-		(buffer[index].aligned.data.binary[0] & DES_BINARY_MASK);
+		(buffer[index].binary[0] & DES_BINARY_MASK);
 }
 
 static int cmp_exact(char *source, int index)
@@ -378,7 +372,7 @@ static int cmp_exact(char *source, int index)
 
 	for (word = 0; word < 16 / DES_SIZE; word++)
 	if ((unsigned ARCH_WORD)binary[word] !=
-	    (buffer[index].aligned.data.binary[word] & DES_BINARY_MASK))
+	    (buffer[index].binary[word] & DES_BINARY_MASK))
 		return 0;
 
 	return 1;
