@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2006 by Solar Designer
+ * Copyright (c) 1996-99,2003,2006,2011 by Solar Designer
  */
 
 /*
@@ -67,7 +67,11 @@ int main(int argc, char **argv)
 	} else {
 		tmp.lo = results.count; tmp.hi = 0;
 		mul64by32(&tmp, clk_tck * 10);
+#ifdef _OPENMP
+		virtual = div64by32lo(&tmp, results.real);
+#else
 		virtual = div64by32lo(&tmp, results.virtual);
+#endif
 
 		benchmark_cps(results.count, results.real, s_real);
 		benchmark_cps(results.count, results.virtual, s_virtual);
