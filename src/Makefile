@@ -17,13 +17,15 @@ CPPFLAGS = -E
 OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
+#OMPFLAGS = -fopenmp -msse2
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
 LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
-OPT_INLINE = -funroll-loops -finline-functions
+# Remove the "-Os" if you're using an ancient version of gcc
+OPT_INLINE = -Os -funroll-loops -finline-functions
 
 JOHN_OBJS = \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
