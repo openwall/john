@@ -14,7 +14,6 @@
 #define DEPTH				[depth]
 #define START				[0]
 #define init_depth() \
-	int depth; \
 	depth = index >> ARCH_BITS_LOG; \
 	index &= (ARCH_BITS - 1);
 #define for_each_depth() \
@@ -212,6 +211,7 @@ fill2:
 
 void DES_bs_set_key_LM(char *key, int index)
 {
+	unsigned long c;
 	unsigned char *dst;
 
 	init_t();
@@ -222,7 +222,7 @@ void DES_bs_set_key_LM(char *key, int index)
  * gcc 4.5.0 on x86_64 would generate redundant movzbl's without explicit
  * use of "long" here.
  */
-	unsigned long c = (unsigned char)key[0];
+	c = (unsigned char)key[0];
 	if (!c) goto fill7;
 	*dst = DES_bs_all.E.u[c];
 	c = (unsigned char)key[1];
@@ -299,6 +299,9 @@ int DES_bs_get_hash(int index, int count)
 {
 	int result;
 	DES_bs_vector *b;
+#if DES_BS_VECTOR
+	int depth;
+#endif
 
 	init_t();
 	init_depth();
@@ -389,6 +392,9 @@ int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 {
 	int bit;
 	DES_bs_vector *b;
+#if DES_BS_VECTOR
+	int depth;
+#endif
 
 	init_t();
 	init_depth();
