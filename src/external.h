@@ -25,8 +25,7 @@ extern c_int ext_abort, ext_status;
 /*
  * Defined for use in the ext_filter() macro, below.
  */
-extern char *ext_mode;
-extern struct c_ident *f_filter;
+extern void *f_filter;
 
 /*
  * Initializes an external mode.
@@ -37,7 +36,7 @@ extern void ext_init(char *mode);
  * Calls an external word filter. Returns 0 if the word is rejected.
  */
 #define ext_filter(word) \
-	(!ext_mode || !f_filter || ext_filter_body(word, word))
+	(!f_filter || ext_filter_body(word, word))
 
 /*
  * The actual implementation of ext_filter(); use the macro instead.
