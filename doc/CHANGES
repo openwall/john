@@ -9,6 +9,8 @@ crypt(3) hashes when there's just one salt (or very few salts).
 * Added two pre-defined external mode variables: "abort" and "status", which
 let an external mode request the current cracking session to be aborted or the
 status line to be displayed, respectively.
+* Made some minor optimizations to external mode function calls and virtual
+machine implementation.
 
 The following changes have been made between John 1.7.7 and 1.7.8:
 
@@ -257,4 +259,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.63 2011/10/24 01:38:46 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.64 2011/10/29 13:55:40 solar Exp $
