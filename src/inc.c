@@ -311,8 +311,9 @@ update_last:
 	}
 
 	key = key_i;
-	if (!ext_mode || !f_filter || ext_filter_body(key_i, key = key_e))
-	if (crk_process_key(key)) return 1;
+	if (!f_filter || ext_filter_body(key_i, key = key_e))
+		if (crk_process_key(key))
+			return 1;
 
 	if (rec_compat) goto compat;
 

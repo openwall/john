@@ -22,7 +22,7 @@ static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
 
 unsigned int ext_flags = 0;
-char *ext_mode = NULL;
+static char *ext_mode;
 
 static c_int ext_word[PLAINTEXT_BUFFER_SIZE];
 c_int ext_abort, ext_status;
@@ -45,8 +45,8 @@ static struct c_ident ext_globals = {
 	ext_word
 };
 
-static struct c_ident *f_generate;
-struct c_ident *f_filter;
+static void *f_generate;
+void *f_filter = NULL;
 
 static struct cfg_list *ext_source;
 static struct cfg_line *ext_line;
@@ -120,7 +120,7 @@ int ext_filter_body(char *in, char *out)
 		*external++ = *internal++;
 	*external = 0;
 
-	c_execute(f_filter);
+	c_execute_fast(f_filter);
 
 	if (in[0] && !ext_word[0]) return 0;
 
@@ -189,7 +189,7 @@ void do_external_crack(struct db_main *db)
 	crk_init(db, fix_state, NULL);
 
 	do {
-		c_execute(f_generate);
+		c_execute_fast(f_generate);
 		if (!ext_word[0]) break;
 
 		c_execute(f_filter);

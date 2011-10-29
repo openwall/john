@@ -8,6 +8,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "params.h"
@@ -809,15 +810,11 @@ static int c_block(char term, struct c_ident *vars)
 	return c_errno;
 }
 
-#if defined(__GNUC__) && !defined(PRINT_INSNS)
-static void c_direct(union c_insn *addr);
-#endif
-
 int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	struct c_ident *externs)
 {
 #if defined(__GNUC__) && !defined(PRINT_INSNS)
-	c_direct(NULL);
+	c_execute_fast(NULL);
 #endif
 
 	c_ext_getchar = ext_getchar;
@@ -848,22 +845,22 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	return c_errno;
 }
 
-struct c_ident *c_lookup(char *name)
+void *c_lookup(char *name)
 {
-	return c_find_ident(c_funcs, NULL, name);
+	struct c_ident *f = c_find_ident(c_funcs, NULL, name);
+	if (f)
+		return f->addr;
+	return NULL;
 }
 
-void c_execute(struct c_ident *fn)
-{
-	if (!fn) return;
+#if !defined(__GNUC__) || defined(PRINT_INSNS)
 
-#if defined(__GNUC__) && !defined(PRINT_INSNS)
-	c_direct(fn->addr);
-#else
+void c_execute_fast(void *addr)
+{
 	c_stack[0].pc = NULL;
 	c_sp = &c_stack[2];
 
-	c_pc = fn->addr;
+	c_pc = addr;
 	do {
 #ifdef PRINT_INSNS
 		void (*op)(void) = (c_pc++)->op;
@@ -885,12 +882,11 @@ void c_execute(struct c_ident *fn)
 		(c_pc++)->op();
 #endif
 	} while (c_pc);
-#endif
 }
 
-#if defined(__GNUC__) && !defined(PRINT_INSNS)
+#else
 
-static void c_direct(union c_insn *addr)
+void c_execute_fast(void *addr)
 {
 	union c_insn *pc = addr;
 	union c_insn *sp = c_stack;
@@ -938,6 +934,8 @@ static void c_direct(union c_insn *addr)
 
 	if (!addr) {
 		int op = 0;
+
+		assert(c_op_return != &&op_return); /* Don't do this twice */
 
 		c_op_return = &&op_return;
 		c_op_bz = &&op_bz;
