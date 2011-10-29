@@ -116,19 +116,47 @@ int ext_filter_body(char *in, char *out)
 
 	internal = (unsigned char *)in;
 	external = ext_word;
-	while (*internal)
-		*external++ = *internal++;
-	*external = 0;
+	external[0] = internal[0];
+	external[1] = internal[1];
+	external[2] = internal[2];
+	external[3] = internal[3];
+	if (external[0] && external[1] && external[2] && external[3])
+	do {
+		if (!(external[4] = internal[4]))
+			break;
+		if (!(external[5] = internal[5]))
+			break;
+		if (!(external[6] = internal[6]))
+			break;
+		if (!(external[7] = internal[7]))
+			break;
+		internal += 4;
+		external += 4;
+	} while (1);
 
 	c_execute_fast(f_filter);
 
-	if (in[0] && !ext_word[0]) return 0;
+	if (!ext_word[0] && in[0]) return 0;
 
 	internal = (unsigned char *)out;
 	external = ext_word;
-	while (*external)
-		*internal++ = *external++;
-	*internal = 0;
+	internal[0] = external[0];
+	internal[1] = external[1];
+	internal[2] = external[2];
+	internal[3] = external[3];
+	if (external[0] && external[1] && external[2] && external[3])
+	do {
+		if (!(internal[4] = external[4]))
+			break;
+		if (!(internal[5] = external[5]))
+			break;
+		if (!(internal[6] = external[6]))
+			break;
+		if (!(internal[7] = external[7]))
+			break;
+		internal += 4;
+		external += 4;
+	} while (1);
 
 	return 1;
 }
@@ -190,16 +218,32 @@ void do_external_crack(struct db_main *db)
 
 	do {
 		c_execute_fast(f_generate);
-		if (!ext_word[0]) break;
+		if (!ext_word[0])
+			break;
 
-		c_execute(f_filter);
-		if (!ext_word[0]) continue;
+		if (f_filter) {
+			c_execute_fast(f_filter);
+			if (!ext_word[0])
+				continue;
+		}
 
-		internal = (unsigned char *)int_word;
-		external = ext_word;
-		while (*external)
-			*internal++ = *external++;
-		*internal = 0;
+		int_word[0] = ext_word[0];
+		if ((int_word[1] = ext_word[1])) {
+			internal = (unsigned char *)&int_word[2];
+			external = &ext_word[2];
+			do {
+				if (!(internal[0] = external[0]))
+					break;
+				if (!(internal[1] = external[1]))
+					break;
+				if (!(internal[2] = external[2]))
+					break;
+				if (!(internal[3] = external[3]))
+					break;
+				internal += 4;
+				external += 4;
+			} while (1);
+		}
 
 		if (crk_process_key(int_word)) break;
 	} while (1);
