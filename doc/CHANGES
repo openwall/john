@@ -9,6 +9,8 @@ crypt(3) hashes when there's just one salt (or very few salts).
 * Added two pre-defined external mode variables: "abort" and "status", which
 let an external mode request the current cracking session to be aborted or the
 status line to be displayed, respectively.
+* Made some minor optimizations to external mode function calls and virtual
+machine implementation.
 
 The following changes have been made between John 1.7.7 and 1.7.8:
 
