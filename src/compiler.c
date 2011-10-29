@@ -932,7 +932,11 @@ void c_execute_fast(void *addr)
 		&&op_dec_r
 	};
 
+#if __GNUC__ >= 3
+	if (__builtin_expect(addr == NULL, 0)) {
+#else
 	if (!addr) {
+#endif
 		int op = 0;
 
 		assert(c_op_return != &&op_return); /* Don't do this twice */
@@ -968,12 +972,15 @@ op_return:
 	return;
 
 op_bz:
+	sp -= 2;
+#if __GNUC__ >= 3
+	if (__builtin_expect(imm != 0, 1)) {
+#else
 	if (imm) {
+#endif
 		pc += 2;
-		sp -= 2;
 		goto *(pc - 1)->op;
 	}
-	sp -= 2;
 
 op_ba:
 	pc = pc->pc;
