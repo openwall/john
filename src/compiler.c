@@ -865,14 +865,25 @@ void c_execute(struct c_ident *fn)
 
 	c_pc = fn->addr;
 	do {
-		void (*op)(void) = (c_pc++)->op;
 #ifdef PRINT_INSNS
+		void (*op)(void) = (c_pc++)->op;
 		int i = 0;
 		while (c_ops[i].op != op && c_ops[i].prec >= 0)
 			i++;
 		fprintf(stderr, "op: %s\n", c_ops[i].name);
-#endif
 		op();
+#else
+		(c_pc++)->op();
+		if (!c_pc)
+			break;
+		(c_pc++)->op();
+		if (!c_pc)
+			break;
+		(c_pc++)->op();
+		if (!c_pc)
+			break;
+		(c_pc++)->op();
+#endif
 	} while (c_pc);
 #endif
 }
