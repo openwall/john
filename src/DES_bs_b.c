@@ -702,7 +702,8 @@ typedef struct {
 #else
 
 #if DES_BS_VECTOR
-#define DES_BS_VECTOR_LOOPS
+#undef DES_BS_VECTOR_LOOPS
+#define DES_BS_VECTOR_LOOPS 1
 #endif
 
 typedef unsigned ARCH_WORD vtype;
@@ -766,7 +767,7 @@ typedef unsigned ARCH_WORD vtype;
 	vshl((dst), (src), 1)
 #endif
 
-#if defined(vshl) && defined(vshr)
+#if !DES_BS_VECTOR_LOOPS && defined(vshl) && defined(vshr)
 #define DES_BS_VECTOR_LOOPS_K 0
 #define DEPTH_K
 #define for_each_depth_k()
