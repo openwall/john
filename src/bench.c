@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2010 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2010,2011 by Solar Designer
  */
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) */
@@ -147,12 +147,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (benchmark_time > 3600)
 		benchmark_time = 3600;
 
-/* In the future, "zero time" may mean self-tests without benchmarks */
-	if (!benchmark_time)
-		benchmark_time = 1;
-
 #if OS_TIMER
-	it.it_value.tv_sec = benchmark_time;
+	if (!(it.it_value.tv_sec = benchmark_time)) {
+/* Use exactly one tick for reasonable precision, but no less than 1 ms */
+		if ((it.it_value.tv_usec = 1000000 / clk_tck) < 1000)
+			it.it_value.tv_usec = 1000; /* 1 ms */
+	}
 	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
 #else
 	sig_timer_emu_init(benchmark_time * clk_tck);
@@ -184,6 +184,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	} while (bench_running && !event_abort);
 
 	end_real = times(&buf);
+	if (end_real == start_real) end_real++;
+
 	end_virtual = buf.tms_utime + buf.tms_stime;
 	end_virtual += buf.tms_cutime + buf.tms_cstime;
 	if (end_virtual == start_virtual) end_virtual++;
@@ -226,6 +228,10 @@ int benchmark_all(void)
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
 	unsigned int total, failed;
+
+	if (!benchmark_time)
+		puts("Warning: doing quick benchmarking - "
+		    "the performance numbers will be inaccurate");
 
 	total = failed = 0;
 	if ((format = fmt_list))
