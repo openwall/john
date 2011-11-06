@@ -391,7 +391,13 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	return 1;
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (!strcmp((char *)binary, crypt_out[index]))
+			return 1;
+
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
