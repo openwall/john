@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2006,2009 by Solar Designer
+ * Copyright (c) 1996-99,2006,2009,2011 by Solar Designer
  */
 
 /*
@@ -13,6 +13,7 @@
 #include <time.h>
 
 #include "arch.h"
+#include "math.h"
 #include "formats.h"
 
 /*
@@ -23,7 +24,7 @@ struct bench_results {
 	clock_t real, virtual;
 
 /* Number of passwords tried */
-	unsigned ARCH_WORD count;
+	int64 count;
 };
 
 /*
@@ -53,8 +54,7 @@ extern char *benchmark_format(struct fmt_main *format, int salts,
 /*
  * Converts benchmarked c/s into an ASCII string.
  */
-extern void benchmark_cps(unsigned ARCH_WORD count, clock_t time,
-	char *buffer);
+extern void benchmark_cps(int64 *count, clock_t time, char *buffer);
 
 /*
  * Benchmarks all the registered cracking algorithms and prints the results
