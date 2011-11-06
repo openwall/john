@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2010 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2010,2011 by Solar Designer
  */
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) */
@@ -97,7 +97,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	struct tms buf;
 	clock_t start_real, start_virtual, end_real, end_virtual;
-	unsigned ARCH_WORD count;
+	int64 count;
 	char *ciphertext;
 	void *salt, *two_salts[2];
 	int index, max;
@@ -147,12 +147,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (benchmark_time > 3600)
 		benchmark_time = 3600;
 
-/* In the future, "zero time" may mean self-tests without benchmarks */
-	if (!benchmark_time)
-		benchmark_time = 1;
-
 #if OS_TIMER
-	it.it_value.tv_sec = benchmark_time;
+	if (!(it.it_value.tv_sec = benchmark_time)) {
+/* Use exactly one tick for reasonable precision, but no less than 1 ms */
+		if ((it.it_value.tv_usec = 1000000 / clk_tck) < 1000)
+			it.it_value.tv_usec = 1000; /* 1 ms */
+	}
 	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
 #else
 	sig_timer_emu_init(benchmark_time * clk_tck);
@@ -161,7 +161,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
 	start_virtual += buf.tms_cutime + buf.tms_cstime;
-	count = 0;
+	count.lo = count.hi = 0;
 
 	index = salts;
 	max = format->params.max_keys_per_crypt;
@@ -177,20 +177,22 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		format->methods.crypt_all(max);
 		format->methods.cmp_all(binary, max);
 
-		count++;
+		add32to64(&count, max);
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
 	} while (bench_running && !event_abort);
 
 	end_real = times(&buf);
+	if (end_real == start_real) end_real++;
+
 	end_virtual = buf.tms_utime + buf.tms_stime;
 	end_virtual += buf.tms_cutime + buf.tms_cstime;
 	if (end_virtual == start_virtual) end_virtual++;
 
 	results->real = end_real - start_real;
 	results->virtual = end_virtual - start_virtual;
-	results->count = count * max;
+	results->count = count;
 
 	for (index = 0; index < 2; index++)
 		MEM_FREE(two_salts[index]);
@@ -198,12 +200,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	return event_abort ? "" : NULL;
 }
 
-void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
+void benchmark_cps(int64 *count, clock_t time, char *buffer)
 {
 	unsigned int cps_hi, cps_lo;
 	int64 tmp;
 
-	tmp.lo = count; tmp.hi = 0;
+	tmp = *count;
 	mul64by32(&tmp, clk_tck);
 	cps_hi = div64by32lo(&tmp, time);
 
@@ -226,6 +228,10 @@ int benchmark_all(void)
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
 	unsigned int total, failed;
+
+	if (!benchmark_time)
+		puts("Warning: doing quick benchmarking - "
+		    "the performance numbers will be inaccurate");
 
 	total = failed = 0;
 	if ((format = fmt_list))
@@ -271,8 +277,8 @@ int benchmark_all(void)
 
 		puts("DONE");
 
-		benchmark_cps(results_m.count, results_m.real, s_real);
-		benchmark_cps(results_m.count, results_m.virtual, s_virtual);
+		benchmark_cps(&results_m.count, results_m.real, s_real);
+		benchmark_cps(&results_m.count, results_m.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__CYGWIN32__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n",
 			msg_m, s_real, s_virtual);
@@ -286,8 +292,8 @@ int benchmark_all(void)
 			continue;
 		}
 
-		benchmark_cps(results_1.count, results_1.real, s_real);
-		benchmark_cps(results_1.count, results_1.virtual, s_virtual);
+		benchmark_cps(&results_1.count, results_1.real, s_real);
+		benchmark_cps(&results_1.count, results_1.virtual, s_virtual);
 #if !defined(__DJGPP__) && !defined(__CYGWIN32__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
 			msg_1, s_real, s_virtual);
