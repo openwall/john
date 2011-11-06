@@ -317,7 +317,7 @@ static int salt_hash(void *salt)
 	h ^= (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i - 1])];
 	h ^= ((unsigned char *)salt)[i];
 
-	return h & 0x3FF;
+	return h & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
@@ -391,7 +391,13 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	return 1;
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (!strcmp((char *)binary, crypt_out[index]))
+			return 1;
+
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)

@@ -181,7 +181,7 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-	return ((BF_salt *)salt)->salt[0] & 0x3FF;
+	return ((BF_salt *)salt)->salt[0] & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)

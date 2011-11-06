@@ -181,7 +181,7 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD *)salt & 0x3FF;
+	return *(ARCH_WORD *)salt & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
@@ -236,7 +236,7 @@ static int get_hash_2(int index)
 
 static int salt_hash(void *salt)
 {
-	return DES_STD_HASH_2(*(ARCH_WORD *)salt) & 0x3FF;
+	return DES_STD_HASH_2(*(ARCH_WORD *)salt) & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
