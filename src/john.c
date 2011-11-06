@@ -270,11 +270,11 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 	status_init(NULL, 1);
+	if (argc < 2)
+		john_register_all(); /* for printing by opt_init() */
 	opt_init(name, argc, argv);
-
-	john_register_all();
+	john_register_all(); /* maybe restricted to one format by options */
 	common_init();
-
 	sig_init();
 
 	john_load();
