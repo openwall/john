@@ -130,8 +130,8 @@ static int salt_hash(void *salt)
 		retval += h;
 	}
 
-	retval ^= retval >> 10;
-	retval &= 0x3FF;
+	retval ^= retval >> SALT_HASH_LOG;
+	retval &= SALT_HASH_SIZE - 1;
 
 	return retval;
 }

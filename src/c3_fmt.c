@@ -317,7 +317,7 @@ static int salt_hash(void *salt)
 	h ^= (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i - 1])];
 	h ^= ((unsigned char *)salt)[i];
 
-	return h & 0x3FF;
+	return h & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
