@@ -132,9 +132,9 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-	return
-		((int)atoi64[ARCH_INDEX(((char *)salt)[0])] |
-		((int)atoi64[ARCH_INDEX(((char *)salt)[1])] << 6)) & 0x3FF;
+	return	((int)atoi16[ARCH_INDEX(((char *)salt)[0])] |
+		((int)atoi16[ARCH_INDEX(((char *)salt)[1])] << 4) |
+		((int)atoi16[ARCH_INDEX(((char *)salt)[2])] << 8)) & (SALT_HASH_SIZE - 1);
 }
 
 static void set_key(char *key, int index)

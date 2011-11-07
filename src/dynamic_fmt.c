@@ -1633,8 +1633,8 @@ static int salt_hash(void *salt)
 	if (!salt || *((char*)salt) == 0)
 		return 0;
 	x = ((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[0])-' '));
-	y = (((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[1])-' ')<<4));
-	return (x+y) & 0x3FF;
+	y = (((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[1])-' ')<<6));
+	return (x+y) & (SALT_HASH_SIZE - 1);
 }
 
 /*********************************************************************************

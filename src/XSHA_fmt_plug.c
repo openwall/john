@@ -143,7 +143,7 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32 *)salt & 0x3FF;
+	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)

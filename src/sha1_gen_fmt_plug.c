@@ -151,14 +151,14 @@ static int salt_hash(void *salt)
 	while (*p) {
 		hash <<= 1;
 		hash += (unsigned char)*p++;
-		if (hash >> 10) {
-			hash ^= hash >> 10;
-			hash &= 0x3FF;
+		if (hash >> SALT_HASH_LOG) {
+			hash ^= hash >> SALT_HASH_LOG;
+			hash &= (SALT_HASH_SIZE - 1);
 		}
 	}
 
-	hash ^= hash >> 10;
-	hash &= 0x3FF;
+	hash ^= hash >> SALT_HASH_LOG;
+	hash &= (SALT_HASH_SIZE - 1);
 
 	return hash;
 }

@@ -163,10 +163,10 @@ static int get_hash_4(int index)
 
 static int salt_hash(void *salt)
 {
-    int x, y;
-    x = ((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[0])-' '));
-    y = (((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[1])-' ')<<4));
-    return (x+y) & 0x3FF;
+	return (((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[0])-' ')) +
+	    ((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[1])-' ')<<4) +
+	    ((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[2])-' ')<<8))
+	    & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
