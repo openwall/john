@@ -6265,12 +6265,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->methods.salt = salt;
 	pFmt->methods.set_salt = set_salt;
 	pFmt->methods.salt_hash = salt_hash;
-	{
-		char *p = Setup->szFORMAT_NAME;
-		while (*p == ' ' || *p == '\t')
-			p++;
-		pFmt->params.format_name = str_alloc_copy(p);
-	}
+	pFmt->params.format_name = str_alloc_copy(Setup->szFORMAT_NAME);
 	pFmt->params.benchmark_length = 0;		// NOTE 0 'assumes' salted. If unsalted, we set back to -1
 	pFmt->params.salt_size = 0;
 	pFmt->params.min_keys_per_crypt = 1;
