@@ -188,7 +188,7 @@ static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 }
 
 static void sapcodvng_crypt_all(int count) {
-	unsigned int i;
+	int i;
 
 #ifdef _OPENMP
 #pragma omp parallel for
