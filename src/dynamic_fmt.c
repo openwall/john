@@ -500,11 +500,15 @@ static unsigned short itoa16_w2_u[256], itoa16_w2_l[256], *itoa16_w2=itoa16_w2_l
 #ifndef PLAINTEXT_LENGTH
 #define PLAINTEXT_LENGTH PLAINTEXT_LENGTH_X86
 #endif
-static char saved_key[MAX_KEYS_PER_CRYPT>MAX_KEYS_PER_CRYPT_X86?MAX_KEYS_PER_CRYPT:MAX_KEYS_PER_CRYPT_X86][PLAINTEXT_LENGTH>PLAINTEXT_LENGTH_X86?PLAINTEXT_LENGTH:PLAINTEXT_LENGTH_X86+1];
-static int saved_key_len[MAX_KEYS_PER_CRYPT>MAX_KEYS_PER_CRYPT_X86?MAX_KEYS_PER_CRYPT:MAX_KEYS_PER_CRYPT_X86];
+
+#define EFFECTIVE_MKPC (MAX_KEYS_PER_CRYPT > MAX_KEYS_PER_CRYPT_X86 ? MAX_KEYS_PER_CRYPT : MAX_KEYS_PER_CRYPT_X86)
+#define EFFECTIVE_MAX_LENGTH (PLAINTEXT_LENGTH > PLAINTEXT_LENGTH_X86 ? PLAINTEXT_LENGTH : PLAINTEXT_LENGTH_X86)
+
+static char saved_key[EFFECTIVE_MKPC][EFFECTIVE_MAX_LENGTH + 1];
+static int saved_key_len[EFFECTIVE_MKPC];
 
 // Used in 'get_key' if we are running in store_keys_in_input mode
-static char out[PLAINTEXT_LENGTH>PLAINTEXT_LENGTH_X86?PLAINTEXT_LENGTH:PLAINTEXT_LENGTH_X86+1];
+static char out[EFFECTIVE_MAX_LENGTH + 1];
 
 // This is the GLOBAL count of keys. ALL of the primitives which deal with a count
 // will read from this variable.
@@ -2759,9 +2763,9 @@ static inline void __append_string(char *Str, unsigned len)
 #endif
 	if (md5_unicode_convert) {
 		if (!options.ascii && !options.iso8859_1) {
-			UTF16 utf16Str[256+1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, 256, (unsigned char*)Str, len) * sizeof(UTF16);
+			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (j = 0; j < m_count; ++j) {
@@ -2854,9 +2858,9 @@ static inline void __append2_string(char *Str, unsigned len)
 #endif
 	if (md5_unicode_convert) {
 		if (!options.ascii && !options.iso8859_1) {
-			UTF16 utf16Str[256+1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, 256, (unsigned char*)Str, len) * sizeof(UTF16);
+			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (j = 0; j < m_count; ++j) {
@@ -3055,9 +3059,9 @@ void DynamicFunc__append_keys()
 			for (j = 0; j < m_count; ++j) {
 				int z;
 				unsigned char *cp, *cpi;
-				UTF16 utf16Str[256+1];
+				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 				int outlen;
-				outlen = enc_to_utf16(utf16Str, 256, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
@@ -3149,9 +3153,9 @@ void DynamicFunc__append_keys2()
 			for (j = 0; j < m_count; ++j) {
 				int z;
 				unsigned char *cp, *cpi;
-				UTF16 utf16Str[256+1];
+				UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 				int outlen;
-				outlen = enc_to_utf16(utf16Str, 256, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)saved_key[j], saved_key_len[j]) * sizeof(UTF16);
 				if (outlen <= 0) {
 					saved_key_len[j] = -outlen / sizeof(UTF16);
 					if (outlen < 0)
@@ -4645,9 +4649,9 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 #endif
 	if (md5_unicode_convert) {
 		if (!options.ascii && !options.iso8859_1) {
-			UTF16 utf16Str[256+1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, 256, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
@@ -4718,9 +4722,9 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
 #endif
 	if (md5_unicode_convert) {
 		if (!options.ascii && !options.iso8859_1) {
-			UTF16 utf16Str[256+1];
+			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, 256, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
+			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)cursalt, saltlen) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 
