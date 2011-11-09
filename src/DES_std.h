@@ -124,7 +124,8 @@ extern ARCH_WORD DES_count;
 /*
  * Initializes the internal structures.
  */
-extern void DES_std_init(void);
+struct fmt_main;
+extern void DES_std_init(struct fmt_main *pFmt);
 
 /*
  * Sets a salt for DES_std_crypt().

@@ -14,9 +14,16 @@
 #include "path.h"
 #include "memory.h"
 #include "config.h"
+#include "logger.h"
+
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
 
 char *cfg_name = NULL;
 static struct cfg_section *cfg_database = NULL;
+static int cfg_recursion;
+static int cfg_process_directive(char *line, int number);
 
 static char *trim(char *s)
 {
@@ -62,12 +69,17 @@ static void cfg_add_line(char *line, int number)
 
 	entry->data = str_alloc_copy(line);
 	entry->number = number;
+	entry->cfg_name = cfg_name;
 
 	list = cfg_database->list;
-	if (list->tail)
+	if (list->tail) {
+		entry->id = list->tail->id + 1;
 		list->tail = list->tail->next = entry;
-	else
+	}
+	else {
+		entry->id = 0;
 		list->tail = list->head = entry;
+	}
 }
 
 static void cfg_add_param(char *name, char *value)
@@ -88,8 +100,10 @@ static int cfg_process_line(char *line, int number)
 	char *p;
 
 	line = trim(line);
-	if (!*line || *line == '#' || *line == ';') return 0;
-
+	if (!*line || *line == '#' || *line == ';')
+		return 0;
+	if (*line == '.')
+		return cfg_process_directive(line, number);
 	if (*line == '[') {
 		if ((p = strchr(line, ']'))) *p = 0; else return 1;
 		cfg_add_section(strlwr(trim(line + 1)));
@@ -109,6 +123,9 @@ static int cfg_process_line(char *line, int number)
 
 static void cfg_error(char *name, int number)
 {
+#ifdef HAVE_MPI
+	if (mpi_id == 0)
+#endif
 	fprintf(stderr, "Error in %s at line %d\n",
 		path_expand(name), number);
 	error();
@@ -120,22 +137,26 @@ void cfg_init(char *name, int allow_missing)
 	char line[LINE_BUFFER_SIZE];
 	int number;
 
-	if (cfg_database) return;
+	if (cfg_database && !cfg_recursion) return;
 
-	if (!(file = fopen(path_expand(name), "r"))) {
-		if (allow_missing && errno == ENOENT) return;
-		pexit("fopen: %s", path_expand(name));
+	cfg_name = str_alloc_copy(path_expand(name));
+	file = fopen(cfg_name, "r");
+	if (!file) {
+		cfg_name = str_alloc_copy(path_expand_ex(name));
+		file = fopen(cfg_name, "r");
+		if (!file) {
+			if (allow_missing && errno == ENOENT) return;
+			pexit("fopen: %s", cfg_name);
+		}
 	}
 
 	number = 0;
 	while (fgetl(line, sizeof(line), file))
-	if (cfg_process_line(line, ++number)) cfg_error(name, number);
+	if (cfg_process_line(line, ++number)) cfg_error(cfg_name, number);
 
 	if (ferror(file)) pexit("fgets");
 
 	if (fclose(file)) pexit("fclose");
-
-	cfg_name = str_alloc_copy(path_expand(name));
 }
 
 static struct cfg_section *cfg_get_section(char *section, char *subsection)
@@ -227,4 +248,132 @@ int cfg_get_bool(char *section, char *subsection, char *param, int def)
 	}
 
 	return 0;
+}
+
+// Handle .include [section]
+static int cfg_process_directive_include_section(char *line, int number)
+{
+	struct cfg_section *newsection;
+	char *p = &line[10];
+	char *p2 = strchr(&p[1], ']');
+	char Section[256];
+	if (!p2) {
+		fprintf(stderr, "ERROR, invalid config include line:  %s\n", line);
+#ifndef BENCH_BUILD
+		log_event ("! Error, invalid config include line:  %s", line);
+#endif
+		return 1;
+	}
+	if (!cfg_database || !cfg_database->name) {
+		fprintf(stderr, "ERROR, invalid section include, when not in a section:  %s\n", line);
+#ifndef BENCH_BUILD
+		log_event ("! ERROR, invalid section include, when not in a section:  %s", line);
+#endif
+		return 1;
+	}
+	*p2 = 0;
+	strlwr(p);
+	if (!strcmp(cfg_database->name, p)) {
+		fprintf(stderr, "ERROR, invalid to load the current section (recursive):  %s\n", line);
+#ifndef BENCH_BUILD
+		log_event ("! ERROR, invalid to load the current section (recursive):  %s", line);
+#endif
+		return 1;
+	}
+	p = strtok(p, ":");
+	p2 = strtok(NULL, "");
+	if (!p || !p2) {
+		fprintf(stderr, "ERROR, invalid .include line, can not find this section:  %s\n", line);
+#ifndef BENCH_BUILD
+		log_event("! ERROR, invalid .include line, can not find this section:  %s", line);
+#endif
+		return 1;
+	}
+	*Section = ':';
+	strnzcpy(&Section[1], p2, 254);
+	if ((newsection = cfg_get_section(p, Section))) {
+		if (newsection->list) {
+			struct cfg_line *pLine = newsection->list->head;
+			while (pLine) {
+				cfg_add_line(pLine->data, number);
+				pLine = pLine->next;
+			}
+			return 0;
+		}
+		else {
+			struct cfg_param *current = newsection->params;
+			while (current) {
+				cfg_add_param(current->name, current->value);
+				current = current->next;
+			}
+			return 0;
+		}
+	}
+	fprintf(stderr, "ERROR, could not find include section:  %s%s]\n", line, Section);
+#ifndef BENCH_BUILD
+	log_event("! ERROR, could not find include section:  %s%s]", line, Section);
+#endif
+	return 1;
+}
+
+// Handle a .include "file"   or a .include <file>
+static int cfg_process_directive_include_config(char *line, int number)
+{
+	char *p, *p2, *saved_fname;
+	char Name[PATH_BUFFER_SIZE];
+	// Ok, we are including a file.
+	if (!strncmp(line, ".include \"", 10)) {
+		p = &line[10];
+		p2 = strchr(&p[1], '\"');
+		if (!p2) {
+			fprintf(stderr, "ERROR, invalid config include line:  %s\n", line);
+#ifndef BENCH_BUILD
+			log_event("! ERROR, invalid config include line:  %s", line);
+#endif
+			return 1;
+		}
+		*p2 = 0;
+		strnzcpy(Name, p, PATH_BUFFER_SIZE);
+	}
+	else {
+		p = &line[10];
+		p2 = strchr(&p[1], '>');
+		if (!p2) {
+			fprintf(stderr, "ERROR, invalid config include line:  %s\n", line);
+#ifndef BENCH_BUILD
+			log_event("! ERROR, invalid config include line:  %s", line);
+#endif
+			return 1;
+		}
+		*p2 = 0;
+		strcpy(Name, "$JOHN/");
+		strnzcpy(&Name[6], p, PATH_BUFFER_SIZE - 6);
+	}
+	if (cfg_recursion == 20) {
+		fprintf(stderr, "ERROR, .include recursion too deep in john.ini processing file .include \"%s\"\n", p);
+#ifndef BENCH_BUILD
+		log_event("! ERROR, .include recursion too deep in john.ini processing file .include \"%s\"", p);
+#endif
+		return 1;
+	}
+	saved_fname = cfg_name;
+	cfg_recursion++;
+	cfg_init(Name, 0);
+	cfg_recursion--;
+	cfg_name = saved_fname;
+	return 0;
+}
+
+// Handle a .directive line.  Curently only .include syntax is handled.
+static int cfg_process_directive(char *line, int number)
+{
+	if (!strncmp(line, ".include \"", 10) || !strncmp(line, ".include <", 10))
+		return cfg_process_directive_include_config(line, number);
+	if (!strncmp(line, ".include [", 10))
+		return cfg_process_directive_include_section(line, number);
+	fprintf (stderr, "Unknown directive in the .conf file:  '%s'\n", line);
+#ifndef BENCH_BUILD
+	log_event("! Unknown directive in the .conf file:  %s", line);
+#endif
+	return 1;
 }

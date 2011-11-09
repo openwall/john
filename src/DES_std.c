@@ -460,7 +460,7 @@ static void init_KS(void)
 	memcpy(DES_KS_current, DES_KS_table, sizeof(DES_KS));
 }
 
-void DES_std_init(void)
+void DES_std_init(struct fmt_main *pFmt)
 {
 	init_SPE();
 	init_IP_E();

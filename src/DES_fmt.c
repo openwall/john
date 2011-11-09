@@ -70,14 +70,14 @@ static struct {
 
 #if DES_BS
 
-static void init(void)
+static void init(struct fmt_main *pFmt)
 {
 	DES_bs_init(0);
 }
 
 #endif
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 
@@ -356,6 +356,7 @@ struct fmt_main fmt_DES = {
 #else
 		DES_std_init,
 #endif
+		fmt_default_prepare,
 		valid,
 		split,
 		(void *(*)(char *))

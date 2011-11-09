@@ -1,9 +1,15 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2003,2004,2006,2008-2010 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by JimF and magnum
  */
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) */
+
+#if defined (__MINGW32__) || defined (_MSC_VER)
+#define SIGALRM SIGFPE
+#endif
 
 #ifdef __ultrix__
 #define __POSIX
@@ -14,12 +20,18 @@
 #include <limits.h>
 #endif
 #include <stdio.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <signal.h>
 #include <time.h>
+#ifndef _MSC_VER
 #include <sys/time.h>
+#endif
+#if !defined (__MINGW32__) && !defined (_MSC_VER)
 #include <sys/times.h>
+#endif
 
 #include "times.h"
 
@@ -31,6 +43,19 @@
 #include "signals.h"
 #include "formats.h"
 #include "bench.h"
+
+#ifndef _JOHN_BENCH_TMP
+#include "options.h"
+#endif
+
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#include "config.h"
+#endif /* HAVE_MPI */
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif /* _OPENMP */
 
 long clk_tck = 0;
 
@@ -89,14 +114,19 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	static void *binary = NULL;
 	static int binary_size = 0;
 	static char s_error[64];
+	char *TmpPW[1024];
+	int pw_mangled=0;
 	char *where;
 	struct fmt_tests *current;
 	int cond;
 #if OS_TIMER
 	struct itimerval it;
 #endif
+	clock_t start_real, end_real;
+#if !defined (__MINGW32__) && !defined (_MSC_VER)
+	clock_t start_virtual, end_virtual;
 	struct tms buf;
-	clock_t start_real, start_virtual, end_real, end_virtual;
+#endif
 	unsigned ARCH_WORD count;
 	char *ciphertext;
 	void *salt, *two_salts[2];
@@ -119,8 +149,13 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	for (index = 0; index < 2; index++) {
 		two_salts[index] = mem_alloc(format->params.salt_size);
 
-		if ((ciphertext = format->params.tests[index].ciphertext))
+		if ((ciphertext = format->params.tests[index].ciphertext)) {
+			char *prepared;
+			current->flds[1] = current->ciphertext;
+			prepared = format->methods.prepare(current->flds, format);
+			ciphertext = format->methods.split(prepared, 0);
 			salt = format->methods.salt(ciphertext);
+		}
 		else
 			salt = two_salts[0];
 
@@ -130,8 +165,29 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (format->params.benchmark_length > 0) {
 		cond = (salts == 1) ? 1 : -1;
 		salts = 1;
-	} else
+	} else {
 		cond = 0;
+		if (format->params.benchmark_length < -950) {
+			/* smash the passwords */
+			struct fmt_tests *current = format->params.tests;
+			int i=0;
+			pw_mangled = 1;
+			while (current->ciphertext) {
+				if (current->plaintext[0]) {
+					TmpPW[i] = str_alloc_copy(current->plaintext);
+					TmpPW[i][0] ^= 5;
+					current->plaintext = TmpPW[i++];
+				}
+				++current;
+			}
+			/* -1001 turns into -1 and -1000 turns into 0 , and -999 turns into 1 for benchmark length */
+			format->params.benchmark_length += 1000;
+			if (format->params.benchmark_length > 0) {
+				cond = (salts == 1) ? 1 : -1;
+				salts = 1;
+			}
+		}
+	}
 
 	bench_set_keys(format, current, cond);
 
@@ -147,20 +203,27 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (benchmark_time > 3600)
 		benchmark_time = 3600;
 
-/* In the future, "zero time" may mean self-tests without benchmarks */
-	if (!benchmark_time)
-		benchmark_time = 1;
+/* In the future, "zero time" may mean self-tests without benchmarks */  // The future is now :)
+//	if (!benchmark_time)
+//		benchmark_time = 1;
 
 #if OS_TIMER
 	it.it_value.tv_sec = benchmark_time;
+	if (!benchmark_time)
+		/* we have to have 'some' delay, or we do not get our trigger 10ms should be enough, but still 'fast' */
+		it.it_value.tv_usec = 10000;
 	if (setitimer(ITIMER_REAL, &it, NULL)) pexit("setitimer");
 #else
 	sig_timer_emu_init(benchmark_time * clk_tck);
 #endif
 
+#if defined (__MINGW32__) || defined (_MSC_VER)
+	start_real = clock();
+#else
 	start_real = times(&buf);
 	start_virtual = buf.tms_utime + buf.tms_stime;
 	start_virtual += buf.tms_cutime + buf.tms_cstime;
+#endif
 	count = 0;
 
 	index = salts;
@@ -183,17 +246,36 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	} while (bench_running && !event_abort);
 
+#if defined (__MINGW32__) || defined (_MSC_VER)
+	end_real = clock();
+#else
 	end_real = times(&buf);
 	end_virtual = buf.tms_utime + buf.tms_stime;
 	end_virtual += buf.tms_cutime + buf.tms_cstime;
 	if (end_virtual == start_virtual) end_virtual++;
+	results->virtual = end_virtual - start_virtual;
+#endif
 
 	results->real = end_real - start_real;
-	results->virtual = end_virtual - start_virtual;
 	results->count = count * max;
 
 	for (index = 0; index < 2; index++)
 		MEM_FREE(two_salts[index]);
+
+	/* unsmash the passwords */
+	if (pw_mangled) {
+		struct fmt_tests *current = format->params.tests;
+		int i=0;
+		while (current->ciphertext) {
+			if (current->plaintext[0]) {
+				TmpPW[i][0] ^= 5;
+				current->plaintext = TmpPW[i++];
+			}
+			++current;
+		}
+		/* -1001 turns into -1 and -1000 turns into 0 , and -999 turns into 1 for benchmark length */
+		format->params.benchmark_length -= 1000;
+	}
 
 	return event_abort ? "" : NULL;
 }
@@ -207,6 +289,9 @@ void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
 	mul64by32(&tmp, clk_tck);
 	cps_hi = div64by32lo(&tmp, time);
 
+	if (cps_hi >= 1000000000)
+		sprintf(buffer, "%uM", cps_hi / 1000000);
+	else
 	if (cps_hi >= 1000000)
 		sprintf(buffer, "%uK", cps_hi / 1000);
 	else
@@ -219,6 +304,21 @@ void benchmark_cps(unsigned ARCH_WORD count, clock_t time, char *buffer)
 	}
 }
 
+#ifdef HAVE_MPI
+void gather_results(struct bench_results *results)
+{
+	struct bench_results combined;
+	MPI_Reduce(&results->real, &combined.real, 1, MPI_LONG,
+		MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&results->virtual, &combined.virtual, 1, MPI_LONG,
+		MPI_MAX, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&results->count, &combined.count, 1, MPI_UNSIGNED_LONG,
+		MPI_SUM, 0, MPI_COMM_WORLD);
+	if (mpi_id == 0)
+		memcpy(results, &combined, sizeof(struct bench_results));
+}
+#endif
+
 int benchmark_all(void)
 {
 	struct fmt_main *format;
@@ -228,21 +328,103 @@ int benchmark_all(void)
 	unsigned int total, failed;
 
 	total = failed = 0;
+#ifndef _JOHN_BENCH_TMP
+	options.field_sep_char = 31;
+#endif
 	if ((format = fmt_list))
 	do {
-		printf("Benchmarking: %s%s [%s]... ",
+#ifndef _JOHN_BENCH_TMP
+/* Silently skip DIGEST-MD5 (for which we have no tests), unless forced */
+		if (!format->params.tests && format != fmt_list)
+			continue;
+
+/* Just test the UTF-8 aware formats if --encoding=utf8 */
+		if ((options.utf8) && !(format->params.flags & FMT_UTF8)) {
+			if (options.format == NULL)
+				continue;
+			else {
+				if (format->params.flags & FMT_UNICODE) {
+					printf("The %s format does not yet support UTF-8 conversion.\n\n", format->params.label);
+					continue;
+				}
+				else {
+					printf("The %s format does not use internal charset conversion (--encoding=utf8 option).\n\n", format->params.label);
+					continue;
+				}
+			}
+		}
+#endif
+
+#if defined(HAVE_MPI) && defined(_OPENMP)
+		static int haveWarned = 0;
+		int ompt = omp_get_max_threads();
+		if (format->params.flags & FMT_OMP &&
+		    ompt > 1 && mpi_p > 1 && haveWarned++ == 0) {
+			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
+				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				   mpi_id == 0)
+					printf("MPI in use, disabling OMP (see doc/README.mpi)\n\n");
+			} else
+				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				   mpi_id == 0)
+					printf("Note: Running both MPI and OMP (see doc/README.mpi)\n\n");
+		}
+#endif
+		fmt_init(format);
+
+		printf("Benchmarking: %s%s [%s]%s... ",
 			format->params.format_name,
 			format->params.benchmark_comment,
-			format->params.algorithm_name);
+			format->params.algorithm_name,
+#ifndef _JOHN_BENCH_TMP
+			(options.utf8) ? " in UTF-8 mode" : "");
+#else
+			"");
+#endif
 		fflush(stdout);
 
+#ifdef HAVE_MPI
+#ifdef _OPENMP
+		if (format->params.flags & FMT_OMP &&
+		    omp_get_max_threads() > 1 && mpi_p > 1)
+			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
+				omp_set_num_threads(1);
+				ompt = 1;
+			}
+#endif /* _OPENMP */
+		if (mpi_p > 1) {
+			printf("(%uxMPI", mpi_p);
+#ifdef _OPENMP
+			if (format->params.flags & FMT_OMP) {
+				if (ompt > 1)
+					printf(", %dxOMP", ompt);
+			}
+#endif /* _OPENMP */
+			printf(") ");
+#ifdef _OPENMP
+		} else {
+			if (format->params.flags & FMT_OMP && ompt > 1)
+				printf("(%dxOMP) ", ompt);
+#endif /* _OPENMP */
+		}
+		fflush(stdout);
+#else /* HAVE_MPI */
+#ifdef _OPENMP
+		int ompt = omp_get_max_threads();
+		if (format->params.flags & FMT_OMP && ompt > 1)
+			printf("(%dxOMP) ", ompt);
+		fflush(stdout);
+#endif /* _OPENMP */
+#endif /* HAVE_MPI */
 		switch (format->params.benchmark_length) {
 		case -1:
+		case -1001:
 			msg_m = "Raw";
 			msg_1 = NULL;
 			break;
 
 		case 0:
+		case -1000:
 			msg_m = "Many salts";
 			msg_1 = "Only one salt";
 			break;
@@ -271,9 +453,15 @@ int benchmark_all(void)
 
 		puts("DONE");
 
+#ifdef HAVE_MPI
+		if (mpi_p > 1) {
+			gather_results(&results_m);
+			gather_results(&results_1);
+		}
+#endif
 		benchmark_cps(results_m.count, results_m.real, s_real);
 		benchmark_cps(results_m.count, results_m.virtual, s_virtual);
-#if !defined(__DJGPP__) && !defined(__CYGWIN32__) && !defined(__BEOS__)
+#if !defined(__DJGPP__) && !defined(__CYGWIN32__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 		printf("%s:\t%s c/s real, %s c/s virtual\n",
 			msg_m, s_real, s_virtual);
 #else
@@ -283,12 +471,13 @@ int benchmark_all(void)
 
 		if (!msg_1) {
 			putchar('\n');
+
 			continue;
 		}
 
 		benchmark_cps(results_1.count, results_1.real, s_real);
 		benchmark_cps(results_1.count, results_1.virtual, s_virtual);
-#if !defined(__DJGPP__) && !defined(__CYGWIN32__) && !defined(__BEOS__)
+#if !defined(__DJGPP__) && !defined(__CYGWIN32__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
 			msg_1, s_real, s_virtual);
 #else

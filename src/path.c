@@ -12,6 +12,8 @@
 
 static char *john_home_path = NULL;
 static int john_home_length;
+static char *john_home_pathex = NULL;
+static int john_home_lengthex;
 
 #if JOHN_SYSTEMWIDE
 #include <unistd.h>
@@ -60,15 +62,74 @@ void path_init(char **argv)
 		fprintf(stderr, "Created directory: %s\n", private);
 #endif
 #else
-	if (argv[0])
-	if (!john_home_path && (pos = strrchr(argv[0], '/'))) {
-		john_home_length = pos - argv[0] + 1;
-		if (john_home_length >= PATH_BUFFER_SIZE) return;
+	if (argv[0]) {
+		int dos=0;
+		if (!john_home_path) {
+			pos = strrchr(argv[0], '/');
+			if (!pos) {
+				pos = strrchr(argv[0], '\\'); // handle this for MSVC and MinGW which use 'DOS' style C:\path\run\john  syntax.
+				if (pos>argv[0] && argv[0][1] == ':') {
+					argv[0] += 2;
+					dos = 1;
+				}
+			}
+			if (pos) {
+				john_home_length = pos - argv[0] + 1;
+				if (john_home_length >= PATH_BUFFER_SIZE) return;
 
-		john_home_path = mem_alloc(PATH_BUFFER_SIZE);
-		memcpy(john_home_path, argv[0], john_home_length);
+				john_home_path = mem_alloc(PATH_BUFFER_SIZE);
+				memcpy(john_home_path, argv[0], john_home_length);
+				john_home_path[john_home_length] = 0;
+				pos = strchr(john_home_path, '\\');
+				while (dos && pos) {
+					*pos = '/';
+					pos = strchr(pos, '\\');
+				}
+			}
+		}
 	}
 #endif
+}
+
+void path_init_ex(const char *path)
+{
+	int dos = 0;
+	char *pos;
+
+	pos = strrchr(path, '/');
+	if (!pos) {
+		pos = strrchr(path, '\\');
+		if (pos>path && path[1] == ':') {
+			path += 2;
+			dos = 1;
+		}
+		else if (pos == path)
+			dos = 1;
+	}
+	if (pos) {
+		john_home_lengthex = pos - path + 1;
+		if (john_home_lengthex >= PATH_BUFFER_SIZE) return;
+
+		john_home_pathex = mem_alloc(PATH_BUFFER_SIZE);
+		memcpy(john_home_pathex, path, john_home_lengthex);
+		john_home_pathex[john_home_lengthex] = 0;
+		pos = strchr(john_home_pathex, '\\');
+		while (dos && pos) {
+			*pos = '/';
+			pos = strchr(pos, '\\');
+		}
+	}
+}
+
+char *path_expand_ex(char *name)
+{
+	if (john_home_pathex &&
+	    john_home_lengthex + strlen(name) < PATH_BUFFER_SIZE) {
+		strnzcpy(&john_home_pathex[john_home_lengthex], name,
+			PATH_BUFFER_SIZE - john_home_lengthex);
+		return john_home_pathex;
+	}
+	return name;
 }
 
 char *path_expand(char *name)
@@ -128,4 +189,6 @@ void path_done(void)
 #if JOHN_SYSTEMWIDE
 	MEM_FREE(user_home_path);
 #endif
+	if (john_home_pathex)
+		MEM_FREE(john_home_pathex);
 }

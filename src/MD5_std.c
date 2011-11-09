@@ -266,10 +266,10 @@ static MD5_data MD5_data_init = {
 	(a) += (b);
 
 #if MD5_X2
-static void MD5_body(MD5_word x0[15], MD5_word x1[15],
+extern void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4]);
 #else
-static void MD5_body(MD5_word x[15], MD5_word out[4]);
+extern void MD5_body(MD5_word x[15], MD5_word out[4]);
 #endif
 
 #else
@@ -316,10 +316,19 @@ static void init_line(int line, int index, MD5_block *even, MD5_block *odd)
 	order[line][index].odd = odd;
 }
 
-void MD5_std_init(void)
+void MD5_std_init(struct fmt_main *pFmt)
 {
 	int index;
 	MD5_pool *current;
+
+	// Note, $dynamic_n$ will call here for setup.  If set are !MD5_IMM,
+	// $dynamic_n$ will NOT be able to use the MD5 functions.
+	// but since I do not know if this function can be called multiple
+	// times, I simply added a static, so the init WILL get run, but
+	// only 1 time.
+	static int bFirst = 1;
+	if (!bFirst) return;
+	bFirst = 0;
 
 #if !MD5_IMM
 	MD5_std_all.data = MD5_data_init;
@@ -595,7 +604,7 @@ void MD5_std_crypt(void)
 
 #if !MD5_X2
 
-static void MD5_body(MD5_word x[15], MD5_word out[4])
+void MD5_body(MD5_word x[15], MD5_word out[4])
 {
 	MD5_word a, b = Cb, c = Cc, d;
 
@@ -687,7 +696,7 @@ static void MD5_body(MD5_word x[15], MD5_word out[4])
 
 #else
 
-static void MD5_body(MD5_word x0[15], MD5_word x1[15],
+void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 {
 	MD5_word a0, b0 = Cb, c0 = Cc, d0;

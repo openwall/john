@@ -1,10 +1,15 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006,2009,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by various authors
  */
 
 #define _XOPEN_SOURCE /* for nice(2) */
+
+#ifndef _MSC_VER
 #include <unistd.h>
+#endif
 #include <stdio.h>
 
 #ifdef _POSIX_PRIORITY_SCHEDULING
@@ -13,6 +18,10 @@
 #include <sys/times.h>
 
 static int use_yield = 0;
+#endif
+
+#if defined (__MINGW32__) || defined (_MSC_VER)
+#include <windows.h>
 #endif
 
 #ifdef __CYGWIN32__
@@ -58,7 +67,12 @@ void idle_init(struct fmt_main *format)
 
 	clk_tck_init();
 
-#ifndef __BEOS__
+#if defined(__MINGW32__) || defined (_MSC_VER)
+	SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_IDLE);
+#elif defined(__BEOS__)
+	set_thread_priority(getpid(), 1);
+#else
 /*
  * Normally, the range is -20 to 19, but some systems can do 20 as well (at
  * least some versions of Linux on Alpha), so we try 20.  We assume that we're
@@ -67,8 +81,6 @@ void idle_init(struct fmt_main *format)
  */
 	if (nice(20) == -1)
 		perror("nice");
-#else
-	set_thread_priority(getpid(), 1);
 #endif
 
 #if defined(_POSIX_PRIORITY_SCHEDULING) && defined(SCHED_IDLE)

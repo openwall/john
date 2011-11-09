@@ -1,0 +1,1317 @@
+/*
+ * This file is part of John the Ripper password cracker,
+ * Copyright (c) 2000-2001,2005,2006,2008 by Solar Designer and others:
+ *
+ * The optimized S-box expressions are based on work by Matthew Kwan (see
+ * nonstd.c and sboxes.c).  S1-S5 and S7 are based on nonstd.c, whereas S6
+ * and S8 are based on sboxes.c.
+ *
+ * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
+ * comment further down this file).
+ */
+
+#include "arch.h"
+
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log
+#else
+#define DO_ALIGN(log)			.align 1 << log
+#endif
+
+#if DES_BS_ASM
+
+#ifdef UNDERSCORES
+#define DES_bs_all			_DES_bs_all
+#define DES_bs_init_asm			_DES_bs_init_asm
+#define DES_bs_crypt			_DES_bs_crypt
+#define DES_bs_crypt_25			_DES_bs_crypt_25
+#define DES_bs_crypt_LM			_DES_bs_crypt_LM
+#endif
+
+#ifdef __sun
+/* Sun's assembler doesn't recognize .space */
+#define DO_SPACE(size)			.zero size
+#else
+/* Mac OS X assembler doesn't recognize .zero */
+#define DO_SPACE(size)			.space size
+#endif
+
+/* Sun's assembler can't multiply, but at least it can add... */
+#define nptr(n)				n+n+n+n+n+n+n+n
+#define nvec(n)				n+n+n+n+n+n+n+n+n+n+n+n+n+n+n+n
+
+#ifdef BSD
+.data
+#else
+.bss
+#endif
+
+.globl DES_bs_all
+DO_ALIGN(6)
+DES_bs_all:
+DES_bs_all_KSp:
+DO_SPACE(nptr(0x300))
+DES_bs_all_KS_p:
+DES_bs_all_KS_v:
+DO_SPACE(nvec(0x300))
+DES_bs_all_E:
+DO_SPACE(nptr(96))
+DES_bs_all_K:
+DO_SPACE(nvec(56))
+DES_bs_all_B:
+DO_SPACE(nvec(64))
+DES_bs_all_tmp:
+DO_SPACE(nvec(16))
+DES_bs_all_fields_not_used_here:
+DO_SPACE(0x400 + 0x100 + 4 + 4 + 0x400)
+DES_bs_all_possible_alignment_gaps:
+DO_SPACE(0x100)
+
+#define E(i)				DES_bs_all_E+nptr(i)(%rip)
+#define B(i)				DES_bs_all_B+nvec(i)(%rip)
+#define tmp_at(i)			DES_bs_all_tmp+nvec(i)(%rip)
+
+#define pnot				tmp_at(0)
+
+#define a1				%xmm0
+#define a2				%xmm1
+#define a3				%xmm2
+#define a4				%xmm3
+#define a5				%xmm4
+#define a6				%xmm5
+
+#define S1(out1, out2, out3, out4) \
+	movdqa %xmm3,%xmm11; \
+	movdqa %xmm3,%xmm6; \
+	movdqa %xmm0,tmp_at(1); \
+	movdqa %xmm4,tmp_at(2); \
+	movdqa %xmm4,%xmm7; \
+	movdqa %xmm4,%xmm14; \
+	movdqa %xmm3,%xmm9; \
+	pandn %xmm2,%xmm11; \
+	pxor %xmm2,%xmm9; \
+	pandn %xmm2,%xmm4; \
+	movdqa %xmm9,%xmm12; \
+	pxor %xmm4,%xmm6; \
+	por %xmm11,%xmm14; \
+	movdqa %xmm14,%xmm10; \
+	pandn %xmm3,%xmm7; \
+	pandn %xmm5,%xmm12; \
+	movdqa %xmm12,%xmm0; \
+	pandn tmp_at(2),%xmm3; \
+	pand %xmm5,%xmm10; \
+	movdqa %xmm10,%xmm15; \
+	movdqa %xmm10,%xmm13; \
+	por %xmm10,%xmm4; \
+	pxor %xmm7,%xmm0; \
+	por %xmm1,%xmm0; \
+	pxor %xmm6,%xmm15; \
+	pxor %xmm15,%xmm0; \
+	pxor tmp_at(2),%xmm13; \
+	pand %xmm9,%xmm13; \
+	movdqa %xmm13,%xmm8; \
+	por %xmm15,%xmm7; \
+	pxor %xmm9,%xmm4; \
+	movdqa %xmm4,%xmm15; \
+	pxor %xmm11,%xmm8; \
+	por %xmm5,%xmm8; \
+	pxor %xmm3,%xmm8; \
+	movdqa %xmm8,%xmm3; \
+	pandn %xmm8,%xmm6; \
+	movdqa %xmm6,%xmm5; \
+	pxor %xmm7,%xmm6; \
+	pxor %xmm12,%xmm15; \
+	por %xmm1,%xmm3; \
+	pxor %xmm13,%xmm3; \
+	pand tmp_at(1),%xmm3; \
+	pxor %xmm0,%xmm3; \
+	pxor out2,%xmm3; \
+	pxor pnot,%xmm3; \
+	movdqa %xmm11,%xmm0; \
+	por %xmm1,%xmm0; \
+	pandn %xmm1,%xmm5; \
+	pxor %xmm4,%xmm5; \
+	pandn %xmm8,%xmm15; \
+	movdqa %xmm15,%xmm9; \
+	pand %xmm2,%xmm7; \
+	movdqa %xmm3,out2; \
+	por %xmm2,%xmm15; \
+	movdqa %xmm1,%xmm2; \
+	pand %xmm1,%xmm9; \
+	pxor %xmm9,%xmm6; \
+	movdqa %xmm6,%xmm9; \
+	pandn %xmm6,%xmm12; \
+	pand tmp_at(1),%xmm9; \
+	pxor %xmm5,%xmm9; \
+	movdqa %xmm7,%xmm5; \
+	pxor out4,%xmm9; \
+	movdqa %xmm9,out4; \
+	pxor %xmm14,%xmm7; \
+	pandn %xmm7,%xmm10; \
+	pandn %xmm8,%xmm5; \
+	pxor %xmm5,%xmm0; \
+	pandn %xmm4,%xmm5; \
+	por %xmm11,%xmm5; \
+	pandn %xmm5,%xmm2; \
+	pxor %xmm2,%xmm15; \
+	pandn tmp_at(1),%xmm15; \
+	pxor %xmm0,%xmm15; \
+	pxor pnot,%xmm15; \
+	pxor out1,%xmm15; \
+	movdqa %xmm15,out1; \
+	pxor %xmm12,%xmm0; \
+	por %xmm8,%xmm5; \
+	pxor tmp_at(2),%xmm5; \
+	pandn %xmm1,%xmm5; \
+	pxor %xmm10,%xmm5; \
+	por tmp_at(1),%xmm5; \
+	pxor %xmm0,%xmm5; \
+	pxor pnot,%xmm5; \
+	pxor out3,%xmm5; \
+	movdqa %xmm5,out3
+
+#define S2(out1, out2, out3, out4) \
+	movdqa %xmm3,tmp_at(1); \
+	movdqa %xmm5,%xmm7; \
+	movdqa %xmm4,%xmm9; \
+	movdqa %xmm4,%xmm10; \
+	movdqa %xmm1,%xmm11; \
+	movdqa %xmm1,%xmm12; \
+	pxor %xmm0,%xmm7; \
+	pxor %xmm7,%xmm9; \
+	pand %xmm5,%xmm10; \
+	movdqa %xmm10,%xmm8; \
+	pandn %xmm0,%xmm8; \
+	movdqa %xmm8,%xmm14; \
+	movdqa %xmm8,%xmm6; \
+	pandn %xmm1,%xmm14; \
+	movdqa %xmm14,%xmm15; \
+	por %xmm10,%xmm14; \
+	pandn %xmm14,%xmm7; \
+	movdqa %xmm7,%xmm14; \
+	pandn %xmm4,%xmm6; \
+	pxor %xmm1,%xmm4; \
+	pxor %xmm9,%xmm15; \
+	por %xmm6,%xmm11; \
+	por %xmm2,%xmm14; \
+	movdqa %xmm11,%xmm3; \
+	pxor %xmm15,%xmm14; \
+	pxor %xmm15,%xmm6; \
+	pand %xmm1,%xmm6; \
+	pandn %xmm4,%xmm7; \
+	pand tmp_at(1),%xmm3; \
+	pxor %xmm14,%xmm3; \
+	pxor pnot,%xmm3; \
+	movdqa %xmm3,%xmm13; \
+	pxor %xmm8,%xmm3; \
+	pandn %xmm3,%xmm12; \
+	pxor %xmm9,%xmm12; \
+	pandn %xmm5,%xmm8; \
+	movdqa %xmm6,%xmm5; \
+	pxor out1,%xmm13; \
+	movdqa %xmm13,out1; \
+	por %xmm0,%xmm15; \
+	pxor %xmm1,%xmm15; \
+	pxor %xmm8,%xmm5; \
+	movdqa %xmm15,%xmm0; \
+	pand %xmm2,%xmm5; \
+	pxor %xmm12,%xmm5; \
+	por %xmm6,%xmm15; \
+	pxor %xmm1,%xmm9; \
+	pandn %xmm2,%xmm0; \
+	pxor %xmm7,%xmm0; \
+	movdqa %xmm0,%xmm3; \
+	por %xmm8,%xmm7; \
+	por tmp_at(1),%xmm3; \
+	por %xmm10,%xmm6; \
+	pand %xmm2,%xmm10; \
+	pxor %xmm7,%xmm14; \
+	pxor %xmm5,%xmm3; \
+	movdqa %xmm15,%xmm5; \
+	pxor out3,%xmm3; \
+	pand %xmm2,%xmm5; \
+	pand %xmm4,%xmm15; \
+	pandn %xmm11,%xmm15; \
+	movdqa %xmm3,out3; \
+	pxor %xmm14,%xmm5; \
+	por tmp_at(1),%xmm15; \
+	pxor %xmm5,%xmm15; \
+	pxor pnot,%xmm15; \
+	pxor out4,%xmm15; \
+	movdqa %xmm15,out4; \
+	pandn %xmm9,%xmm14; \
+	pxor %xmm0,%xmm14; \
+	pandn %xmm2,%xmm14; \
+	pxor %xmm9,%xmm14; \
+	pxor %xmm10,%xmm6; \
+	pandn tmp_at(1),%xmm6; \
+	pxor %xmm6,%xmm14; \
+	pxor pnot,%xmm14; \
+	pxor out2,%xmm14; \
+	movdqa %xmm14,out2
+
+#define S3(out1, out2, out3, out4) \
+	movdqa %xmm0,tmp_at(1); \
+	movdqa %xmm4,%xmm0; \
+	movdqa %xmm5,tmp_at(3); \
+	movdqa %xmm2,%xmm7; \
+	movdqa %xmm4,%xmm13; \
+	pxor %xmm5,%xmm7; \
+	movdqa %xmm3,tmp_at(2); \
+	movdqa %xmm5,%xmm11; \
+	pxor %xmm1,%xmm7; \
+	movdqa %xmm7,%xmm5; \
+	pand %xmm1,%xmm5; \
+	movdqa %xmm5,%xmm6; \
+	movdqa %xmm5,%xmm14; \
+	movdqa %xmm5,%xmm15; \
+	pand %xmm2,%xmm11; \
+	por %xmm11,%xmm5; \
+	pxor %xmm5,%xmm4; \
+	movdqa %xmm4,tmp_at(4); \
+	pxor %xmm5,%xmm4; \
+	por %xmm4,%xmm6; \
+	pxor %xmm2,%xmm14; \
+	movdqa %xmm6,%xmm12; \
+	pandn %xmm14,%xmm13; \
+	movdqa %xmm13,%xmm10; \
+	pandn tmp_at(3),%xmm15; \
+	movdqa %xmm13,%xmm9; \
+	pxor %xmm7,%xmm12; \
+	movdqa %xmm13,%xmm3; \
+	pxor %xmm15,%xmm0; \
+	movdqa %xmm0,%xmm8; \
+	por tmp_at(1),%xmm10; \
+	pxor %xmm12,%xmm10; \
+	pandn %xmm7,%xmm9; \
+	pxor %xmm9,%xmm11; \
+	por tmp_at(1),%xmm11; \
+	pand tmp_at(1),%xmm8; \
+	pxor %xmm4,%xmm8; \
+	pand %xmm2,%xmm4; \
+	por tmp_at(2),%xmm8; \
+	pxor %xmm10,%xmm8; \
+	movdqa %xmm8,%xmm10; \
+	pxor tmp_at(4),%xmm11; \
+	por %xmm1,%xmm3; \
+	pxor %xmm3,%xmm6; \
+	pxor %xmm4,%xmm7; \
+	por %xmm9,%xmm0; \
+	pxor out4,%xmm10; \
+	pxor %xmm5,%xmm0; \
+	movdqa %xmm0,tmp_at(5); \
+	movdqa %xmm10,out4; \
+	por tmp_at(1),%xmm0; \
+	pandn %xmm13,%xmm2; \
+	por tmp_at(1),%xmm2; \
+	pxor %xmm0,%xmm6; \
+	pxor %xmm2,%xmm7; \
+	movdqa tmp_at(5),%xmm0; \
+	pandn tmp_at(2),%xmm6; \
+	pxor %xmm11,%xmm6; \
+	pxor pnot,%xmm6; \
+	pxor out3,%xmm6; \
+	por %xmm15,%xmm0; \
+	movdqa %xmm6,out3; \
+	pxor tmp_at(3),%xmm5; \
+	pandn %xmm5,%xmm12; \
+	pand tmp_at(1),%xmm12; \
+	pxor %xmm12,%xmm0; \
+	pand tmp_at(2),%xmm0; \
+	pxor %xmm7,%xmm0; \
+	movdqa %xmm0,%xmm2; \
+	por %xmm1,%xmm9; \
+	movdqa tmp_at(1),%xmm1; \
+	pxor tmp_at(4),%xmm9; \
+	pand tmp_at(3),%xmm8; \
+	pxor out2,%xmm2; \
+	movdqa %xmm2,out2; \
+	pxor %xmm14,%xmm8; \
+	pandn %xmm8,%xmm1; \
+	pxor %xmm1,%xmm9; \
+	pandn %xmm0,%xmm3; \
+	por tmp_at(1),%xmm3; \
+	pxor %xmm1,%xmm3; \
+	pand tmp_at(2),%xmm3; \
+	pxor %xmm9,%xmm3; \
+	pxor pnot,%xmm3; \
+	pxor out1,%xmm3; \
+	movdqa %xmm3,out1
+
+#define S4(out1, out2, out3, out4) \
+	movdqa %xmm2,%xmm7; \
+	movdqa %xmm2,%xmm9; \
+	por %xmm0,%xmm7; \
+	pand %xmm4,%xmm7; \
+	movdqa %xmm7,%xmm6; \
+	pxor %xmm2,%xmm7; \
+	por %xmm1,%xmm9; \
+	pxor %xmm0,%xmm6; \
+	pandn %xmm2,%xmm0; \
+	por %xmm6,%xmm0; \
+	pxor %xmm6,%xmm9; \
+	movdqa %xmm0,%xmm10; \
+	pand %xmm1,%xmm10; \
+	movdqa %xmm10,%xmm11; \
+	pxor %xmm2,%xmm10; \
+	pxor %xmm4,%xmm11; \
+	pxor %xmm2,%xmm4; \
+	movdqa %xmm11,%xmm8; \
+	pand %xmm1,%xmm11; \
+	pand %xmm3,%xmm8; \
+	pxor %xmm8,%xmm9; \
+	movdqa %xmm7,%xmm8; \
+	por %xmm6,%xmm7; \
+	pandn %xmm1,%xmm8; \
+	movdqa %xmm9,%xmm12; \
+	pxor %xmm0,%xmm8; \
+	movdqa %xmm1,%xmm0; \
+	pandn %xmm4,%xmm0; \
+	movdqa %xmm0,%xmm4; \
+	pxor %xmm10,%xmm0; \
+	pxor out2,%xmm12; \
+	pxor %xmm7,%xmm4; \
+	por %xmm3,%xmm4; \
+	pxor %xmm8,%xmm4; \
+	movdqa %xmm4,%xmm6; \
+	pand %xmm5,%xmm4; \
+	pxor %xmm4,%xmm12; \
+	pxor pnot,%xmm12; \
+	pandn %xmm3,%xmm0; \
+	por %xmm5,%xmm6; \
+	movdqa %xmm12,out2; \
+	pxor %xmm9,%xmm6; \
+	movdqa %xmm6,%xmm8; \
+	pxor %xmm11,%xmm7; \
+	pxor %xmm7,%xmm0; \
+	pxor %xmm0,%xmm9; \
+	movdqa %xmm9,%xmm2; \
+	pandn %xmm9,%xmm3; \
+	pxor out1,%xmm8; \
+	movdqa %xmm8,out1; \
+	pandn %xmm1,%xmm2; \
+	pxor %xmm2,%xmm6; \
+	pxor %xmm3,%xmm6; \
+	por %xmm6,%xmm5; \
+	pxor %xmm5,%xmm0; \
+	pxor pnot,%xmm0; \
+	movdqa %xmm0,%xmm1; \
+	pxor %xmm4,%xmm6; \
+	pxor %xmm6,%xmm0; \
+	pxor out4,%xmm0; \
+	movdqa %xmm0,out4; \
+	pxor out3,%xmm1; \
+	movdqa %xmm1,out3
+
+#define S5(out1, out2, out3, out4) \
+	movdqa %xmm3,%xmm7; \
+	movdqa %xmm4,tmp_at(2); \
+	movdqa %xmm1,tmp_at(1); \
+	movdqa %xmm0,%xmm6; \
+	movdqa %xmm2,%xmm4; \
+	movdqa %xmm0,%xmm10; \
+	movdqa %xmm5,%xmm12; \
+	movdqa %xmm1,%xmm13; \
+	pandn %xmm2,%xmm7; \
+	movdqa %xmm1,%xmm15; \
+	pxor %xmm7,%xmm6; \
+	pandn %xmm0,%xmm4; \
+	pxor %xmm3,%xmm10; \
+	movdqa %xmm4,%xmm8; \
+	movdqa %xmm4,%xmm1; \
+	por %xmm10,%xmm7; \
+	pandn %xmm7,%xmm12; \
+	por %xmm5,%xmm8; \
+	movdqa %xmm12,tmp_at(3); \
+	movdqa %xmm12,%xmm14; \
+	movdqa %xmm7,%xmm12; \
+	movdqa %xmm8,%xmm9; \
+	pxor %xmm3,%xmm4; \
+	pand %xmm2,%xmm12; \
+	pxor %xmm3,%xmm12; \
+	pxor %xmm2,%xmm14; \
+	pxor %xmm6,%xmm9; \
+	movdqa %xmm14,%xmm11; \
+	pandn %xmm12,%xmm1; \
+	por %xmm5,%xmm4; \
+	pxor %xmm4,%xmm1; \
+	movdqa %xmm1,%xmm5; \
+	pand %xmm3,%xmm8; \
+	por tmp_at(2),%xmm11; \
+	pxor %xmm9,%xmm11; \
+	pxor %xmm1,%xmm8; \
+	por tmp_at(2),%xmm5; \
+	pxor %xmm12,%xmm5; \
+	pandn %xmm5,%xmm13; \
+	pxor %xmm13,%xmm11; \
+	movdqa %xmm11,%xmm13; \
+	pxor %xmm14,%xmm0; \
+	pand %xmm0,%xmm6; \
+	pandn tmp_at(2),%xmm6; \
+	pxor %xmm8,%xmm6; \
+	movdqa %xmm0,%xmm8; \
+	pxor out4,%xmm13; \
+	movdqa %xmm13,out4; \
+	pand %xmm9,%xmm1; \
+	movdqa %xmm1,%xmm9; \
+	por %xmm12,%xmm4; \
+	por %xmm3,%xmm8; \
+	pandn %xmm8,%xmm15; \
+	pxor %xmm6,%xmm15; \
+	pxor out2,%xmm15; \
+	pandn %xmm7,%xmm9; \
+	movdqa %xmm15,out2; \
+	pandn tmp_at(3),%xmm3; \
+	pxor %xmm2,%xmm3; \
+	movdqa %xmm3,%xmm2; \
+	pxor %xmm14,%xmm1; \
+	movdqa %xmm1,%xmm7; \
+	pand tmp_at(2),%xmm2; \
+	pxor %xmm9,%xmm2; \
+	pandn %xmm5,%xmm9; \
+	pxor %xmm9,%xmm0; \
+	por tmp_at(2),%xmm7; \
+	pxor %xmm7,%xmm4; \
+	por tmp_at(1),%xmm4; \
+	pxor %xmm2,%xmm4; \
+	pxor pnot,%xmm4; \
+	pxor out3,%xmm4; \
+	movdqa %xmm4,out3; \
+	por %xmm9,%xmm6; \
+	pxor %xmm10,%xmm6; \
+	pandn tmp_at(2),%xmm6; \
+	pxor %xmm0,%xmm6; \
+	pand %xmm1,%xmm10; \
+	pxor %xmm10,%xmm3; \
+	pxor %xmm11,%xmm1; \
+	pandn %xmm8,%xmm1; \
+	pand tmp_at(2),%xmm1; \
+	pxor %xmm3,%xmm1; \
+	por tmp_at(1),%xmm1; \
+	pxor %xmm6,%xmm1; \
+	pxor out1,%xmm1; \
+	movdqa %xmm1,out1
+
+#define S6(out1, out2, out3, out4) \
+	movdqa %xmm1,%xmm12; \
+	movdqa %xmm2,tmp_at(1); \
+	movdqa %xmm4,%xmm2; \
+	movdqa %xmm5,%xmm8; \
+	movdqa %xmm4,%xmm7; \
+	movdqa %xmm5,%xmm14; \
+	movdqa %xmm5,%xmm10; \
+	pxor pnot,%xmm12; \
+	pxor pnot,%xmm2; \
+	movdqa %xmm12,%xmm15; \
+	pxor %xmm1,%xmm8; \
+	pxor %xmm2,%xmm8; \
+	pxor %xmm0,%xmm8; \
+	pand %xmm4,%xmm10; \
+	movdqa %xmm8,%xmm13; \
+	pand %xmm4,%xmm13; \
+	pand %xmm1,%xmm14; \
+	pxor %xmm14,%xmm7; \
+	movdqa %xmm7,%xmm9; \
+	por %xmm10,%xmm15; \
+	movdqa %xmm13,%xmm6; \
+	pand %xmm0,%xmm9; \
+	pxor %xmm9,%xmm2; \
+	movdqa %xmm2,%xmm11; \
+	pxor %xmm5,%xmm2; \
+	pand %xmm0,%xmm6; \
+	pxor %xmm15,%xmm6; \
+	movdqa %xmm6,%xmm15; \
+	pxor %xmm5,%xmm6; \
+	pand %xmm0,%xmm6; \
+	por %xmm3,%xmm11; \
+	pxor %xmm11,%xmm6; \
+	pand %xmm3,%xmm15; \
+	pxor %xmm8,%xmm15; \
+	pand tmp_at(1),%xmm6; \
+	pxor out2,%xmm6; \
+	pxor %xmm15,%xmm6; \
+	movdqa %xmm6,out2; \
+	pand %xmm2,%xmm0; \
+	movdqa %xmm0,%xmm15; \
+	pxor %xmm1,%xmm9; \
+	movdqa %xmm10,%xmm1; \
+	pand %xmm4,%xmm2; \
+	por %xmm0,%xmm7; \
+	pxor %xmm4,%xmm15; \
+	movdqa %xmm8,%xmm4; \
+	por %xmm9,%xmm1; \
+	pxor %xmm12,%xmm7; \
+	pand %xmm3,%xmm1; \
+	pxor %xmm1,%xmm15; \
+	pxor pnot,%xmm9; \
+	por %xmm15,%xmm5; \
+	movdqa %xmm5,%xmm1; \
+	pxor %xmm2,%xmm4; \
+	por %xmm3,%xmm4; \
+	pxor %xmm14,%xmm0; \
+	pxor %xmm5,%xmm0; \
+	pxor pnot,%xmm1; \
+	pand %xmm3,%xmm1; \
+	pxor %xmm9,%xmm1; \
+	movdqa %xmm1,%xmm11; \
+	pxor %xmm10,%xmm1; \
+	pxor %xmm4,%xmm1; \
+	por %xmm3,%xmm0; \
+	pxor %xmm7,%xmm0; \
+	pand tmp_at(1),%xmm11; \
+	pxor %xmm11,%xmm15; \
+	pxor out4,%xmm15; \
+	movdqa %xmm15,out4; \
+	por tmp_at(1),%xmm0; \
+	pxor %xmm0,%xmm1; \
+	pxor out1,%xmm1; \
+	movdqa %xmm1,out1; \
+	por %xmm8,%xmm2; \
+	pxor %xmm10,%xmm2; \
+	pand %xmm13,%xmm5; \
+	por %xmm3,%xmm5; \
+	pxor %xmm5,%xmm2; \
+	pand %xmm9,%xmm7; \
+	por tmp_at(1),%xmm7; \
+	pxor %xmm7,%xmm2; \
+	pxor out3,%xmm2; \
+	movdqa %xmm2,out3
+
+#define S7(out1, out2, out3, out4) \
+	movdqa %xmm3,%xmm14; \
+	movdqa %xmm1,%xmm8; \
+	movdqa %xmm3,%xmm11; \
+	movdqa %xmm1,%xmm7; \
+	movdqa %xmm2,%xmm10; \
+	pand %xmm1,%xmm14; \
+	pxor %xmm4,%xmm14; \
+	movdqa %xmm14,%xmm12; \
+	por %xmm1,%xmm11; \
+	por %xmm4,%xmm11; \
+	pandn %xmm4,%xmm7; \
+	por %xmm2,%xmm7; \
+	pand %xmm3,%xmm12; \
+	pxor %xmm12,%xmm8; \
+	movdqa %xmm8,%xmm13; \
+	pxor %xmm11,%xmm7; \
+	pandn %xmm3,%xmm10; \
+	movdqa %xmm10,%xmm9; \
+	pxor %xmm3,%xmm8; \
+	movdqa %xmm12,%xmm3; \
+	pandn %xmm2,%xmm13; \
+	pxor %xmm13,%xmm14; \
+	pxor %xmm2,%xmm13; \
+	movdqa %xmm13,%xmm6; \
+	pandn %xmm1,%xmm9; \
+	por %xmm2,%xmm3; \
+	pand %xmm5,%xmm9; \
+	pxor %xmm8,%xmm3; \
+	pandn %xmm5,%xmm6; \
+	pxor %xmm14,%xmm6; \
+	pxor %xmm12,%xmm14; \
+	movdqa %xmm14,%xmm11; \
+	pxor %xmm2,%xmm12; \
+	pand %xmm1,%xmm12; \
+	pandn %xmm5,%xmm12; \
+	pxor %xmm3,%xmm12; \
+	por %xmm5,%xmm11; \
+	movdqa %xmm12,%xmm15; \
+	pxor %xmm7,%xmm11; \
+	pand %xmm0,%xmm11; \
+	pxor %xmm6,%xmm11; \
+	movdqa %xmm11,%xmm7; \
+	pxor %xmm9,%xmm6; \
+	por %xmm0,%xmm15; \
+	pxor %xmm15,%xmm6; \
+	movdqa %xmm8,%xmm15; \
+	pxor pnot,%xmm6; \
+	pxor out1,%xmm7; \
+	movdqa %xmm7,out1; \
+	pxor out2,%xmm6; \
+	movdqa %xmm6,out2; \
+	pxor %xmm12,%xmm13; \
+	por %xmm1,%xmm15; \
+	pxor %xmm15,%xmm11; \
+	movdqa %xmm5,%xmm15; \
+	por %xmm4,%xmm10; \
+	pxor %xmm1,%xmm14; \
+	pandn %xmm8,%xmm14; \
+	pand %xmm5,%xmm14; \
+	pandn %xmm11,%xmm15; \
+	movdqa %xmm2,%xmm11; \
+	pxor %xmm13,%xmm15; \
+	pxor %xmm10,%xmm13; \
+	pxor %xmm14,%xmm13; \
+	pand %xmm2,%xmm9; \
+	pandn %xmm3,%xmm11; \
+	movdqa %xmm0,%xmm3; \
+	por %xmm12,%xmm11; \
+	pxor %xmm9,%xmm14; \
+	por %xmm0,%xmm14; \
+	pxor %xmm13,%xmm14; \
+	pandn %xmm11,%xmm3; \
+	pxor %xmm3,%xmm15; \
+	pxor out3,%xmm15; \
+	movdqa %xmm15,out3; \
+	pxor out4,%xmm14; \
+	movdqa %xmm14,out4
+
+#define S8(out1, out2, out3, out4) \
+	movdqa %xmm3,tmp_at(1); \
+	movdqa %xmm5,tmp_at(2); \
+	movdqa %xmm0,%xmm15; \
+	pxor pnot,%xmm15; \
+	movdqa %xmm3,%xmm13; \
+	pxor pnot,%xmm13; \
+	movdqa %xmm15,%xmm3; \
+	movdqa %xmm15,%xmm7; \
+	movdqa %xmm13,%xmm10; \
+	pxor %xmm2,%xmm7; \
+	por %xmm2,%xmm3; \
+	pxor pnot,%xmm2; \
+	pxor %xmm3,%xmm10; \
+	movdqa %xmm10,%xmm14; \
+	por %xmm10,%xmm15; \
+	movdqa %xmm15,%xmm5; \
+	movdqa %xmm15,%xmm12; \
+	pand %xmm15,%xmm2; \
+	por %xmm4,%xmm14; \
+	movdqa %xmm14,%xmm9; \
+	pand %xmm4,%xmm3; \
+	pxor %xmm13,%xmm5; \
+	movdqa %xmm5,%xmm11; \
+	movdqa %xmm5,%xmm8; \
+	pand %xmm7,%xmm5; \
+	pxor %xmm7,%xmm9; \
+	pand %xmm4,%xmm12; \
+	pand %xmm4,%xmm11; \
+	movdqa %xmm11,%xmm6; \
+	pxor %xmm12,%xmm5; \
+	pxor %xmm14,%xmm8; \
+	por %xmm1,%xmm5; \
+	pxor %xmm8,%xmm5; \
+	pxor %xmm15,%xmm6; \
+	movdqa %xmm5,%xmm8; \
+	pand %xmm1,%xmm6; \
+	pxor %xmm9,%xmm6; \
+	por %xmm4,%xmm7; \
+	pand %xmm7,%xmm13; \
+	por tmp_at(2),%xmm8; \
+	pxor %xmm6,%xmm8; \
+	pxor out1,%xmm8; \
+	movdqa %xmm8,out1; \
+	pxor %xmm2,%xmm3; \
+	por %xmm1,%xmm3; \
+	pxor %xmm13,%xmm3; \
+	movdqa %xmm3,%xmm2; \
+	pxor %xmm10,%xmm14; \
+	pxor %xmm7,%xmm14; \
+	pxor %xmm0,%xmm13; \
+	pand %xmm9,%xmm13; \
+	pand tmp_at(2),%xmm2; \
+	pxor %xmm6,%xmm2; \
+	pxor out4,%xmm2; \
+	movdqa %xmm2,out4; \
+	por tmp_at(1),%xmm6; \
+	pand %xmm1,%xmm6; \
+	pxor %xmm14,%xmm6; \
+	pand %xmm0,%xmm14; \
+	pxor %xmm15,%xmm14; \
+	pand %xmm1,%xmm13; \
+	pxor %xmm14,%xmm13; \
+	por tmp_at(2),%xmm13; \
+	pxor %xmm6,%xmm13; \
+	pxor out3,%xmm13; \
+	movdqa %xmm13,out3; \
+	pxor %xmm0,%xmm11; \
+	pxor %xmm11,%xmm7; \
+	pxor pnot,%xmm9; \
+	pand %xmm9,%xmm15; \
+	por %xmm1,%xmm15; \
+	pxor %xmm7,%xmm15; \
+	pxor %xmm5,%xmm3; \
+	por %xmm14,%xmm3; \
+	pand tmp_at(2),%xmm3; \
+	pxor %xmm15,%xmm3; \
+	pxor out2,%xmm3; \
+	movdqa %xmm3,out2
+
+#define zero				%xmm0
+
+#define DES_bs_clear_block_8(i) \
+	movdqa zero,B(i); \
+	movdqa zero,B(i + 1); \
+	movdqa zero,B(i + 2); \
+	movdqa zero,B(i + 3); \
+	movdqa zero,B(i + 4); \
+	movdqa zero,B(i + 5); \
+	movdqa zero,B(i + 6); \
+	movdqa zero,B(i + 7)
+
+#define DES_bs_clear_block \
+	DES_bs_clear_block_8(0); \
+	DES_bs_clear_block_8(8); \
+	DES_bs_clear_block_8(16); \
+	DES_bs_clear_block_8(24); \
+	DES_bs_clear_block_8(32); \
+	DES_bs_clear_block_8(40); \
+	DES_bs_clear_block_8(48); \
+	DES_bs_clear_block_8(56)
+
+#define k_ptr				%rdx
+#define K(i)				nvec(i)(k_ptr)
+#define k(i)				nptr(i)(k_ptr)
+
+#define tmp1				%rcx
+#define tmp2				%rsi
+
+#define xor_E(i) \
+	movq E(i),tmp1; \
+	movdqa K(i),a1; \
+	movq E(i + 1),tmp2; \
+	movdqa K(i + 1),a2; \
+	pxor (tmp1),a1; \
+	pxor (tmp2),a2; \
+	movq E(i + 2),tmp1; \
+	movdqa K(i + 2),a3; \
+	movq E(i + 3),tmp2; \
+	movdqa K(i + 3),a4; \
+	pxor (tmp1),a3; \
+	pxor (tmp2),a4; \
+	movq E(i + 4),tmp1; \
+	movdqa K(i + 4),a5; \
+	movq E(i + 5),tmp2; \
+	movdqa K(i + 5),a6; \
+	pxor (tmp1),a5; \
+	pxor (tmp2),a6
+
+#define xor_B(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+	movdqa B(b1),a1; \
+	movdqa B(b2),a2; \
+	pxor K(k1),a1; \
+	movdqa B(b3),a3; \
+	pxor K(k2),a2; \
+	movdqa B(b4),a4; \
+	pxor K(k3),a3; \
+	movdqa B(b5),a5; \
+	pxor K(k4),a4; \
+	movdqa B(b6),a6; \
+	pxor K(k5),a5; \
+	pxor K(k6),a6
+
+#define xor_B_KS_p(b1, k1, b2, k2, b3, k3, b4, k4, b5, k5, b6, k6) \
+	movq k(k1),tmp1; \
+	movq k(k2),tmp2; \
+	movdqa B(b1),a1; \
+	movdqa B(b2),a2; \
+	pxor (tmp1),a1; \
+	movq k(k3),tmp1; \
+	pxor (tmp2),a2; \
+	movq k(k4),tmp2; \
+	movdqa B(b3),a3; \
+	movdqa B(b4),a4; \
+	pxor (tmp1),a3; \
+	movq k(k5),tmp1; \
+	pxor (tmp2),a4; \
+	movdqa B(b5),a5; \
+	movq k(k6),tmp2; \
+	movdqa B(b6),a6; \
+	pxor (tmp1),a5; \
+	pxor (tmp2),a6
+
+.text
+
+DO_ALIGN(6)
+.globl DES_bs_init_asm
+DES_bs_init_asm:
+	pcmpeqd %xmm0,%xmm0
+	movdqa %xmm0,pnot
+	ret
+
+#define iterations			%edi
+#define rounds_and_swapped		%eax
+
+DO_ALIGN(6)
+.globl DES_bs_crypt
+DES_bs_crypt:
+	pxor zero,zero
+	leaq DES_bs_all_KS_v(%rip),k_ptr
+	DES_bs_clear_block
+	movl $8,rounds_and_swapped
+DES_bs_crypt_start:
+	xor_E(0)
+	S1(B(40), B(48), B(54), B(62))
+	xor_E(6)
+	S2(B(44), B(59), B(33), B(49))
+	xor_E(12)
+	S3(B(55), B(47), B(61), B(37))
+	xor_E(18)
+	S4(B(57), B(51), B(41), B(32))
+	xor_E(24)
+	S5(B(39), B(45), B(56), B(34))
+	xor_E(30)
+	S6(B(35), B(60), B(42), B(50))
+	xor_E(36)
+	S7(B(63), B(43), B(53), B(38))
+	xor_E(42)
+	S8(B(36), B(58), B(46), B(52))
+	cmpl $0x100,rounds_and_swapped
+	je DES_bs_crypt_next
+DES_bs_crypt_swap:
+	xor_E(48)
+	S1(B(8), B(16), B(22), B(30))
+	xor_E(54)
+	S2(B(12), B(27), B(1), B(17))
+	xor_E(60)
+	S3(B(23), B(15), B(29), B(5))
+	xor_E(66)
+	S4(B(25), B(19), B(9), B(0))
+	xor_E(72)
+	S5(B(7), B(13), B(24), B(2))
+	xor_E(78)
+	S6(B(3), B(28), B(10), B(18))
+	xor_E(84)
+	S7(B(31), B(11), B(21), B(6))
+	xor_E(90)
+	addq $nvec(96),k_ptr
+	S8(B(4), B(26), B(14), B(20))
+	subl $1,rounds_and_swapped
+	jnz DES_bs_crypt_start
+	subq $nvec(0x300+48),k_ptr
+	movl $0x108,rounds_and_swapped
+	subl $1,iterations
+	jnz DES_bs_crypt_swap
+	ret
+DES_bs_crypt_next:
+	subq $nvec(0x300-48),k_ptr
+	movl $8,rounds_and_swapped
+	subl $1,iterations
+	jnz DES_bs_crypt_start
+	ret
+
+DO_ALIGN(6)
+.globl DES_bs_crypt_25
+DES_bs_crypt_25:
+	pxor zero,zero
+	leaq DES_bs_all_KS_v(%rip),k_ptr
+	DES_bs_clear_block
+	movl $8,rounds_and_swapped
+	movl $25,iterations
+DES_bs_crypt_25_start:
+	xor_E(0)
+	S1(B(40), B(48), B(54), B(62))
+	xor_E(6)
+	S2(B(44), B(59), B(33), B(49))
+	xor_B(7, 12, 8, 13, 9, 14, 10, 15, 11, 16, 12, 17)
+	S3(B(55), B(47), B(61), B(37))
+	xor_B(11, 18, 12, 19, 13, 20, 14, 21, 15, 22, 16, 23)
+	S4(B(57), B(51), B(41), B(32))
+	xor_E(24)
+	S5(B(39), B(45), B(56), B(34))
+	xor_E(30)
+	S6(B(35), B(60), B(42), B(50))
+	xor_B(23, 36, 24, 37, 25, 38, 26, 39, 27, 40, 28, 41)
+	S7(B(63), B(43), B(53), B(38))
+	xor_B(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0, 47)
+	S8(B(36), B(58), B(46), B(52))
+	cmpl $0x100,rounds_and_swapped
+	je DES_bs_crypt_25_next
+DES_bs_crypt_25_swap:
+	xor_E(48)
+	S1(B(8), B(16), B(22), B(30))
+	xor_E(54)
+	S2(B(12), B(27), B(1), B(17))
+	xor_B(39, 60, 40, 61, 41, 62, 42, 63, 43, 64, 44, 65)
+	S3(B(23), B(15), B(29), B(5))
+	xor_B(43, 66, 44, 67, 45, 68, 46, 69, 47, 70, 48, 71)
+	S4(B(25), B(19), B(9), B(0))
+	xor_E(72)
+	S5(B(7), B(13), B(24), B(2))
+	xor_E(78)
+	S6(B(3), B(28), B(10), B(18))
+	xor_B(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60, 89)
+	S7(B(31), B(11), B(21), B(6))
+	xor_B(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
+	S8(B(4), B(26), B(14), B(20))
+	addq $nvec(96),k_ptr
+	subl $1,rounds_and_swapped
+	jnz DES_bs_crypt_25_start
+	subq $nvec(0x300+48),k_ptr
+	movl $0x108,rounds_and_swapped
+	subl $1,iterations
+	jnz DES_bs_crypt_25_swap
+	ret
+DES_bs_crypt_25_next:
+	subq $nvec(0x300-48),k_ptr
+	movl $8,rounds_and_swapped
+	subl $1,iterations
+	jmp DES_bs_crypt_25_start
+
+#define ones				%xmm1
+
+#define rounds				%eax
+
+DO_ALIGN(6)
+.globl DES_bs_crypt_LM
+DES_bs_crypt_LM:
+	pxor zero,zero
+	pcmpeqd ones,ones
+	leaq DES_bs_all_KS_p(%rip),k_ptr
+	movdqa zero,B(0)
+	movdqa zero,B(1)
+	movdqa zero,B(2)
+	movdqa zero,B(3)
+	movdqa zero,B(4)
+	movdqa zero,B(5)
+	movdqa zero,B(6)
+	movdqa zero,B(7)
+	movdqa ones,B(8)
+	movdqa ones,B(9)
+	movdqa ones,B(10)
+	movdqa zero,B(11)
+	movdqa ones,B(12)
+	movdqa zero,B(13)
+	movdqa zero,B(14)
+	movdqa zero,B(15)
+	movdqa zero,B(16)
+	movdqa zero,B(17)
+	movdqa zero,B(18)
+	movdqa zero,B(19)
+	movdqa zero,B(20)
+	movdqa zero,B(21)
+	movdqa zero,B(22)
+	movdqa ones,B(23)
+	movdqa zero,B(24)
+	movdqa zero,B(25)
+	movdqa ones,B(26)
+	movdqa zero,B(27)
+	movdqa zero,B(28)
+	movdqa ones,B(29)
+	movdqa ones,B(30)
+	movdqa ones,B(31)
+	movdqa zero,B(32)
+	movdqa zero,B(33)
+	movdqa zero,B(34)
+	movdqa ones,B(35)
+	movdqa zero,B(36)
+	movdqa ones,B(37)
+	movdqa ones,B(38)
+	movdqa ones,B(39)
+	movdqa zero,B(40)
+	movdqa zero,B(41)
+	movdqa zero,B(42)
+	movdqa zero,B(43)
+	movdqa zero,B(44)
+	movdqa ones,B(45)
+	movdqa zero,B(46)
+	movdqa zero,B(47)
+	movdqa ones,B(48)
+	movdqa ones,B(49)
+	movdqa zero,B(50)
+	movdqa zero,B(51)
+	movdqa zero,B(52)
+	movdqa zero,B(53)
+	movdqa ones,B(54)
+	movdqa zero,B(55)
+	movdqa ones,B(56)
+	movdqa zero,B(57)
+	movdqa ones,B(58)
+	movdqa zero,B(59)
+	movdqa ones,B(60)
+	movdqa ones,B(61)
+	movdqa ones,B(62)
+	movdqa ones,B(63)
+	movl $8,rounds
+DES_bs_crypt_LM_loop:
+	xor_B_KS_p(31, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5)
+	S1(B(40), B(48), B(54), B(62))
+	xor_B_KS_p(3, 6, 4, 7, 5, 8, 6, 9, 7, 10, 8, 11)
+	S2(B(44), B(59), B(33), B(49))
+	xor_B_KS_p(7, 12, 8, 13, 9, 14, 10, 15, 11, 16, 12, 17)
+	S3(B(55), B(47), B(61), B(37))
+	xor_B_KS_p(11, 18, 12, 19, 13, 20, 14, 21, 15, 22, 16, 23)
+	S4(B(57), B(51), B(41), B(32))
+	xor_B_KS_p(15, 24, 16, 25, 17, 26, 18, 27, 19, 28, 20, 29)
+	S5(B(39), B(45), B(56), B(34))
+	xor_B_KS_p(19, 30, 20, 31, 21, 32, 22, 33, 23, 34, 24, 35)
+	S6(B(35), B(60), B(42), B(50))
+	xor_B_KS_p(23, 36, 24, 37, 25, 38, 26, 39, 27, 40, 28, 41)
+	S7(B(63), B(43), B(53), B(38))
+	xor_B_KS_p(27, 42, 28, 43, 29, 44, 30, 45, 31, 46, 0, 47)
+	S8(B(36), B(58), B(46), B(52))
+	xor_B_KS_p(63, 48, 32, 49, 33, 50, 34, 51, 35, 52, 36, 53)
+	S1(B(8), B(16), B(22), B(30))
+	xor_B_KS_p(35, 54, 36, 55, 37, 56, 38, 57, 39, 58, 40, 59)
+	S2(B(12), B(27), B(1), B(17))
+	xor_B_KS_p(39, 60, 40, 61, 41, 62, 42, 63, 43, 64, 44, 65)
+	S3(B(23), B(15), B(29), B(5))
+	xor_B_KS_p(43, 66, 44, 67, 45, 68, 46, 69, 47, 70, 48, 71)
+	S4(B(25), B(19), B(9), B(0))
+	xor_B_KS_p(47, 72, 48, 73, 49, 74, 50, 75, 51, 76, 52, 77)
+	S5(B(7), B(13), B(24), B(2))
+	xor_B_KS_p(51, 78, 52, 79, 53, 80, 54, 81, 55, 82, 56, 83)
+	S6(B(3), B(28), B(10), B(18))
+	xor_B_KS_p(55, 84, 56, 85, 57, 86, 58, 87, 59, 88, 60, 89)
+	S7(B(31), B(11), B(21), B(6))
+	xor_B_KS_p(59, 90, 60, 91, 61, 92, 62, 93, 63, 94, 32, 95)
+	addq $nptr(96),k_ptr
+	S8(B(4), B(26), B(14), B(20))
+	subl $1,rounds
+	jnz DES_bs_crypt_LM_loop
+	ret
+
+#endif
+
+/* The following was written by Alain Espinosa <alainesp at gmail.com> in 2007.
+ * No copyright is claimed, and the software is hereby placed in the public domain.
+ * In case this attempt to disclaim copyright and place the software in the
+ * public domain is deemed null and void, then the software is
+ * Copyright (c) 2007 Alain Espinosa and it is hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * (This is a heavily cut-down "BSD license".)
+ */
+/* ...converted to use %rip-relative addressing, still public domain */
+
+/*
+ * FIXME: this depends on the assembler being able to multiply, which won't
+ * work on Solaris (unless the use of GNU assembler is forced).
+ */
+
+#ifdef UNDERSCORES
+#define nt_crypt_all_x86_64 _nt_crypt_all_x86_64
+#define nt_buffer8x _nt_buffer8x
+#define output8x _output8x
+#endif
+
+/*
+extern nt_crypt_all_x86_64(int count);
+*/
+
+.globl nt_crypt_all_x86_64
+
+.data
+DO_ALIGN(6)
+const_init_a:
+.long 0xFFFFFFFF
+.long 0xFFFFFFFF
+.long 0xFFFFFFFF
+.long 0xFFFFFFFF
+const_init_b:
+.long 0xefcdab89
+.long 0xefcdab89
+.long 0xefcdab89
+.long 0xefcdab89
+const_init_c:
+.long 0x98badcfe
+.long 0x98badcfe
+.long 0x98badcfe
+.long 0x98badcfe
+const_init_d:
+.long 0x10325476
+.long 0x10325476
+.long 0x10325476
+.long 0x10325476
+
+const_stage2:
+.long 0x5a827999
+.long 0x5a827999
+.long 0x5a827999
+.long 0x5a827999
+const_stage3:
+.long 0x6ed9eba1
+.long 0x6ed9eba1
+.long 0x6ed9eba1
+.long 0x6ed9eba1
+
+#define a  %xmm0
+#define b  %xmm1
+#define c  %xmm2
+#define d  %xmm3
+#define t1 %xmm4
+#define t2 %xmm5
+#define t3 %xmm6
+#define t4 %xmm7
+
+#undef a3
+#define a3  %xmm8
+#define b3  %xmm9
+#define c3  %xmm10
+#define d3  %xmm11
+#define t13 %xmm12
+#define t23 %xmm13
+
+#define STEP1(aa, bb, cc, dd, aa3, bb3, cc3, dd3, x, s, base)	\
+	paddd (512*base)+(x*32)+nt_buffer8x(%rip), aa;		\
+	paddd (512*base)+(x*32)+16+nt_buffer8x(%rip), aa3;	\
+	movdqa cc, t1;						\
+	movdqa cc3, t13;					\
+	pxor dd, t1;						\
+	pxor dd3, t13;						\
+	pand bb, t1;						\
+	pand bb3, t13;						\
+	pxor dd, t1;						\
+	pxor dd3, t13;						\
+	paddd t1, aa;						\
+	paddd t13, aa3;						\
+	movdqa aa, t2;						\
+	movdqa aa3, t23;					\
+	pslld $s, aa;						\
+	pslld $s, aa3;						\
+	psrld $(32-s), t2;					\
+	psrld $(32-s), t23;					\
+	por t2, aa;						\
+	por t23, aa3;
+
+#define STEP2(aa, bb, cc, dd, aa3, bb3, cc3, dd3, x, s, base)	\
+	paddd (512*base)+(x*32)+nt_buffer8x(%rip), aa;		\
+	paddd (512*base)+(x*32)+16+nt_buffer8x(%rip), aa3;	\
+	movdqa cc, t1;						\
+	movdqa cc3, t13;					\
+	movdqa cc, t2;						\
+	movdqa cc3, t23;					\
+	por dd, t1;						\
+	por dd3, t13;						\
+	pand dd, t2;						\
+	pand dd3, t23;						\
+	pand bb, t1;						\
+	pand bb3, t13;						\
+	paddd t3, aa;						\
+	paddd t3, aa3;						\
+	por t2, t1;						\
+	por t23, t13;						\
+	paddd t1, aa;						\
+	paddd t13, aa3;						\
+	movdqa aa, t1;						\
+	movdqa aa3, t13;					\
+	pslld $s, aa;						\
+	pslld $s, aa3;						\
+	psrld $(32-s), t1;					\
+	psrld $(32-s), t13;					\
+	por t1, aa;						\
+	por t13, aa3;
+
+#define STEP3(aa, bb, cc, dd, aa3, bb3, cc3, dd3, x, s, base)	\
+	paddd (512*base)+(x*32)+nt_buffer8x(%rip), aa;		\
+	paddd (512*base)+(x*32)+16+nt_buffer8x(%rip), aa3;	\
+	movdqa dd, t1;						\
+	movdqa dd3, t13;					\
+	pxor cc, t1;						\
+	pxor cc3, t13;						\
+	paddd t4, aa;						\
+	paddd t4, aa3;						\
+	pxor bb, t1;						\
+	pxor bb3, t13;						\
+	paddd t1, aa;						\
+	paddd t13, aa3;						\
+	movdqa aa, t1;						\
+	movdqa aa3, t13;					\
+	pslld $s, aa;						\
+	pslld $s, aa3;						\
+	psrld $(32-s), t1;					\
+	psrld $(32-s), t13;					\
+	por t1, aa;						\
+	por t13, aa3;
+
+#define NT_CRYPT_BODY(base)					\
+	movdqa const_init_a(%rip), a;				\
+	movdqa const_init_a(%rip), a3;				\
+	movdqa const_init_b(%rip), b;				\
+	movdqa const_init_b(%rip), b3;				\
+	movdqa const_init_c(%rip), c;				\
+	movdqa const_init_c(%rip), c3;				\
+	movdqa const_init_d(%rip), d;				\
+	movdqa const_init_d(%rip), d3;				\
+								\
+	paddd (512*base)+nt_buffer8x(%rip), a;			\
+	paddd (512*base)+16+nt_buffer8x(%rip), a3;		\
+	pslld $3, a;						\
+	pslld $3, a3;						\
+								\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 1 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 2 , 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 3 , 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 4 , 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 5 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 6 , 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 7 , 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 8 , 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 9 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 10, 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 11, 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 12, 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 13, 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 14, 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 15, 19, base)		\
+								\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 0 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 4 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 8 , 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 12, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 1 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 5 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 9 , 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 13, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 2 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 6 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 10, 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 14, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 3 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 7 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 11, 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 15, 13, base)		\
+								\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 0 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 8 , 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 4 , 11, base)		\
+	STEP3(b, c, d, a, b3, c3, d3, a3, 12, 15, base)		\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 2 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 10, 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 6 , 11, base)		\
+	STEP3(b, c, d, a, b3, c3, d3, a3, 14, 15, base)		\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 1 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 9 , 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 5 , 11, base)		\
+	movdqa a, t1;						\
+	movdqa a3, t13;						\
+	paddd (512*base)+416+nt_buffer8x(%rip), b;		\
+	paddd (512*base)+416+16+nt_buffer8x(%rip), b3;		\
+	pxor d, t1;						\
+	pxor d3,t13;						\
+	pxor c, t1;						\
+	pxor c3,t13;						\
+	paddd t1, b;						\
+	paddd t13,b3;						\
+								\
+	movdqa a,  (128*base)+output8x(%rip);			\
+	movdqa a3,  (128*base)+16+output8x(%rip);		\
+	movdqa b, (128*base)+32+output8x(%rip);			\
+	movdqa b3, (128*base)+32+16+output8x(%rip);		\
+	movdqa c, (128*base)+64+output8x(%rip);			\
+	movdqa c3, (128*base)+64+16+output8x(%rip);		\
+	movdqa d, (128*base)+96+output8x(%rip);			\
+	movdqa d3, (128*base)+96+16+output8x(%rip);
+
+.text
+
+DO_ALIGN(6)
+
+nt_crypt_all_x86_64:
+	movdqa const_stage2(%rip), t3
+	movdqa const_stage3(%rip), t4
+
+	NT_CRYPT_BODY(0)
+	NT_CRYPT_BODY(1)
+	NT_CRYPT_BODY(2)
+	NT_CRYPT_BODY(3)
+
+	ret
+
+#if defined(__ELF__) && defined(__linux__)
+.section .note.GNU-stack,"",@progbits
+#endif

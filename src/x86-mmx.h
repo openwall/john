@@ -1,6 +1,9 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2002,2008,2010 by Solar Designer
+ *
+ * ...with changes in the jumbo patch for mingw and MSC, by JimF.
+ * ...and introduction of MMX_TYPE and MMX_COEF by Simon Marechal.
  */
 
 /*
@@ -20,14 +23,18 @@
 #define ARCH_ALLOWS_UNALIGNED		1
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
-#if defined(__CYGWIN32__) || defined(__BEOS__)
+#if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER)
 #define OS_TIMER			0
 #else
 #define OS_TIMER			1
 #endif
 #define OS_FLOCK			1
 
+#ifdef _MSC_VER
+#define CPU_DETECT			0
+#else
 #define CPU_DETECT			1
+#endif
 #define CPU_REQ				1
 #define CPU_NAME			"MMX"
 #ifndef CPU_FALLBACK
@@ -75,5 +82,8 @@
 #define BF_X2				0
 #endif
 #define BF_SCALE			1
+
+#define MMX_TYPE			" MMX"
+#define MMX_COEF			2
 
 #endif

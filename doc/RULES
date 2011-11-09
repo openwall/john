@@ -7,6 +7,19 @@ multiple rules for a single source line.  Below you will find
 descriptions of the rule reject flags, the rule commands (many of them
 are compatible with those of Crack 5.0a), and the preprocessor syntax.
 
+    Note about .include [section] syntax.
+
+A rule section, can include another section of rules, or in more general,
+terms, any section can include another section, within the john.conf
+file format (new in 1.7.8-jumbo-6).  This sectional include is done
+using a 'period' directive.  So within a rule set, a line like:
+.include [list.rules.someother] will be replaced by all of the rules
+from the 'someother' ruleset.  One side effect of being able to include
+rules, is that any rule which would need to start with a period character,
+will have to escape that character (or the config file loader will bail
+out, listing a bugus . directive). At this time, it is not valid for a
+john rule to start with a period, so at this time, this is not a problem.
+
 
 	Rule reject flags.
 
@@ -15,6 +28,9 @@ are compatible with those of Crack 5.0a), and the preprocessor syntax.
 -8	reject this rule unless current hash type uses 8-bit characters
 -s	reject this rule unless some password hashes were split at loading
 -p	reject this rule unless word pair commands are currently allowed
+-u	reject this rule unless the --encoding=utf8 flag is used
+-U	reject this rule if the --encoding=utf8 flag is used
+->N	reject this rule unless length N or longer is supported
 
 
 	Numeric constants and variables.
@@ -56,10 +72,24 @@ than that of "l" (length).
 ?d	matches digits [0-9]
 ?a	matches letters [a-zA-Z]
 ?x	matches letters and digits [a-zA-Z0-9]
+?o	matches control characters
+?y	matches valid characters
 ?z	matches all characters
+?b	matches characters with 8th bit set (mnemonic "b for binary")
+?N	where N is 0...9 are user-defined character classes. They match characters
+	as defined in john.conf, section [UserClasses]
 
 The complement of a class can be specified by uppercasing its name.  For
 example, "?D" matches everything but digits.
+
+NOTE, if running in --encoding=iso-8859-1 (or koi8-r/cp1251/cp866,etc), then the
+high bit characters are added to the respective classes. So in iso-8859-1 mode,
+lower case ?l would include àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþßÿ while in 'normal'
+runs, it is only a-z.
+
+NOTE 2, the rules engine currently have very limited understanding of UTF-8 so
+character classes etc. will only work with ASCII characters, even if using
+--encoding=utf8.
 
 
 	Simple commands.
@@ -78,6 +108,10 @@ f	reflect: "Fred" -> "FredderF"
 }	rotate the word right: "smithj" -> "jsmith"
 $X	append character X to the word
 ^X	prefix the word with character X
+
+NOTE, all of these are encoding-aware. Eg. if you do not specify an encoding,
+the l command will lowercase A-Z only. If you use --encoding=iso-8859-1 it will
+also recognise ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ and lowercase them properly.
 
 
 	String commands.
@@ -137,6 +171,8 @@ S	shift case: "Crack96" -> "cRACK(^"
 V	lowercase vowels, uppercase consonants: "Crack96" -> "CRaCK96"
 R	shift each character right, by keyboard: "Crack96" -> "Vtsvl07"
 L	shift each character left, by keyboard: "Crack96" -> "Xeaxj85"
+
+NOTE, of these, only S and V are encoding-aware.
 
 
 	Memory access commands.

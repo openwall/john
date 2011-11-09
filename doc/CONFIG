@@ -118,6 +118,32 @@ appear in the charset file.  Just list all those characters here and
 they will be added, but considered the least probable.
 
 
+	"include" syntax within the john.conf file.
+
+At version 1.7.8-jumbo6 (and later), include syntax was added to john.conf
+file format.  The syntax is one of these 3 types:
+.include "file"
+.include <file>
+.include [section]
+
+The include of a file, will load a file, and drop it right into where
+the .include is located at.  This is similar to how #include "" and
+#include <> works in the C language.  Some of the larger sections in
+the jumbo john, have been moved out of the 'john.conf' file, into their
+own .conf file (the dumb16/32 and the generic scripting sections)
+
+the .include [section], will take all of the lines found within [section]
+and place them into the current 'building' section.  Thus, things like
+numerous small rules sections can be made, and then a couple of 'super'
+rules sections can be created, which will .include several of these
+smaller rules sections to make the body of this rules section.  Also
+it can be used to load common information among several incremental
+sections, or a common init function (or other functions), in a pair
+of extern sections.
+
+See [Incremental:All7] and several others around there for examples.
+
+
 	Defining an external mode.
 
 See EXTERNAL.

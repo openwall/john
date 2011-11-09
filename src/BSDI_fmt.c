@@ -58,7 +58,7 @@ static struct fmt_tests tests[] = {
 #define MIN_KEYS_PER_CRYPT		4
 #define MAX_KEYS_PER_CRYPT		8
 
-ARCH_WORD saved_salt, current_salt;
+static ARCH_WORD saved_salt, current_salt;
 
 #endif
 
@@ -77,9 +77,9 @@ static struct {
 	char key[PLAINTEXT_LENGTH];
 } buffer[MAX_KEYS_PER_CRYPT];
 
-static void init(void)
+static void init(struct fmt_main *pFmt)
 {
-	DES_std_init();
+	DES_std_init(pFmt);
 
 #if DES_BS
 	DES_bs_init(0);
@@ -91,7 +91,7 @@ static void init(void)
 #endif
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 
@@ -402,6 +402,7 @@ struct fmt_main fmt_BSDI = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		(void *(*)(char *))

@@ -16,6 +16,11 @@
 #include "recovery.h"
 #include "config.h"
 #include "cracker.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+
+static unsigned long long mpi_line = 0;
+#endif
 
 static char int_word[PLAINTEXT_BUFFER_SIZE];
 static char rec_word[PLAINTEXT_BUFFER_SIZE];
@@ -36,6 +41,16 @@ struct c_ident *f_filter;
 static struct cfg_list *ext_source;
 static struct cfg_line *ext_line;
 static int ext_pos;
+static int progress = -1;
+
+static int get_progress(int *hundth_perc)
+{
+	// This is a dummy function just for getting the DONE
+	// timestamp from status.c - it will return -1 all
+	// the time except when a mode is finished
+	*hundth_perc = 0;
+	return progress;
+}
 
 static int ext_getchar(void)
 {
@@ -59,6 +74,9 @@ static void ext_rewind(void)
 void ext_init(char *mode)
 {
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Unknown external mode: %s\n", mode);
 		error();
 	}
@@ -66,8 +84,11 @@ void ext_init(char *mode)
 	if (c_compile(ext_getchar, ext_rewind, &ext_globals)) {
 		if (!ext_line) ext_line = ext_source->tail;
 
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Compiler error in %s at line %d: %s\n",
-			cfg_name, ext_line->number,
+			ext_line->cfg_name, ext_line->number,
 			c_errors[c_errno]);
 		error();
 	}
@@ -131,6 +152,9 @@ static int restore_state(FILE *file)
 	} while ((*internal++ = *external++ = c));
 
 	c_execute(c_lookup("restore"));
+#ifdef HAVE_MPI
+	mpi_line = mpi_id + 1;  // We just need the correct modulus
+#endif
 
 	return 0;
 }
@@ -147,8 +171,14 @@ void do_external_crack(struct db_main *db)
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
 
+#ifdef HAVE_MPI
+	if (mpi_p > 1) log_event("MPI: each node will process 1/%u of candidates", mpi_p);
+#endif
 	if (!f_generate) {
 		log_event("! No generate() function defined");
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "No generate() for external mode: %s\n",
 			ext_mode);
 		error();
@@ -160,7 +190,7 @@ void do_external_crack(struct db_main *db)
 		*internal++ = *external++;
 	*internal = 0;
 
-	status_init(NULL, 0);
+	status_init(&get_progress, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
@@ -171,6 +201,10 @@ void do_external_crack(struct db_main *db)
 		c_execute(f_generate);
 		if (!ext_word[0]) break;
 
+#ifdef HAVE_MPI
+		// MPI distribution
+		if (mpi_line++ % mpi_p != mpi_id) continue;
+#endif
 		c_execute(f_filter);
 		if (!ext_word[0]) continue;
 
@@ -182,6 +216,9 @@ void do_external_crack(struct db_main *db)
 
 		if (crk_process_key(int_word)) break;
 	} while (1);
+
+	if (!event_abort)
+		progress = 100; // For reporting DONE after a no-ETA run
 
 	crk_done();
 	rec_done(event_abort);

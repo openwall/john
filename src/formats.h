@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
+ *
+ * ...with a change in the jumbo patch, by JimF
  */
 
 /*
@@ -11,6 +13,9 @@
 #define _JOHN_FORMATS_H
 
 #include "params.h"
+#include "misc.h"
+
+struct fmt_main;
 
 /*
  * Format property flags.
@@ -19,6 +24,12 @@
 #define FMT_CASE			0x00000001
 /* Supports 8-bit characters in passwords (does not ignore the 8th bit) */
 #define FMT_8_BIT			0x00000002
+/* Originally uses internal 8859-1 conversion (typically to Unicode) */
+#define FMT_UNICODE			0x00000004
+/* Honours the --encoding=utf8 flag (typically changes the 8859-1 behaviour above) */
+#define FMT_UTF8			0x00000008
+/* Format has false positive matches.  Thus, do not remove hashes when a likely PW is found */
+#define FMT_NOT_EXACT		0x00000100
 /* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
@@ -37,6 +48,7 @@
  */
 struct fmt_tests {
 	char *ciphertext, *plaintext;
+	char *flds[10];
 };
 
 /*
@@ -87,16 +99,25 @@ struct fmt_params {
  * should be word aligned; the functions may assume such alignment.
  */
 struct fmt_methods {
-/* Initializes the algorithm's internal structures; valid() and split() are
- * the only methods that are allowed to be called before a call to init().
+/* Initializes the algorithm's internal structures; valid() prepare() and split()
+ * are the only methods that are allowed to be called before a call to init().
  * Note that initializing an algorithm might de-initialize some others (if
  * a shared underlying resource is used). */
-	void (*init)(void);
+	void (*init)(struct fmt_main *);
+
+/* returns a prepared ciphertext if this format is 'possible' to be used.
+ * The 'split_fields array, is the actual contents of the fields, read from
+ * the The default returns split_fields[1].  However, this function CAN
+ * return significantly different data than is in field[1].  It may append
+ * a signature, it may put the user name into the ciphertext, etc.  This
+ * function (and valid) are/may be called prior to the calling the init()
+ * function. This function (and valid), MUST be able to stand on their own. */
+	char * (*prepare)(char *split_fields[10], struct fmt_main *pFmt);
 
 /* Checks if an ASCII ciphertext is valid for this format. Returns zero for
  * invalid ciphertexts, or a number of parts the ciphertext should be split
  * into (up to 9, will usually be 1). */
-	int (*valid)(char *ciphertext);
+	int (*valid)(char *ciphertext, struct fmt_main *);
 
 /* Splits a ciphertext into several pieces and returns the piece with given
  * index, starting from 0 (will usually return the ciphertext unchanged).
@@ -162,11 +183,13 @@ struct fmt_methods {
  */
 struct fmt_private {
 	int initialized;
+	void *data;
 };
 
 /*
  * A structure to keep a list of supported ciphertext formats.
  */
+#define FMT_MAIN_VERSION 9		/* change if structure changes */
 struct fmt_main {
 	struct fmt_params params;
 	struct fmt_methods methods;
@@ -198,8 +221,9 @@ extern char *fmt_self_test(struct fmt_main *format);
 /*
  * Default methods.
  */
-extern void fmt_default_init(void);
-extern int fmt_default_valid(char *ciphertext);
+extern void fmt_default_init(struct fmt_main *pFmt);
+extern char *fmt_default_prepare(char *split_fields[10], struct fmt_main *pFmt);
+extern int fmt_default_valid(char *ciphertext, struct fmt_main *pFmt);
 extern char *fmt_default_split(char *ciphertext, int index);
 extern void *fmt_default_binary(char *ciphertext);
 extern void *fmt_default_salt(char *ciphertext);

@@ -1,4 +1,5 @@
 	John the Ripper's command line syntax.
+	(Updated in/for the jumbo patch by JimF and magnum)
 
 When invoked with no command line arguments, "john" prints its usage
 summary.
@@ -23,19 +24,27 @@ argument (if supported for a given option).
 The supported options are as follows, square brackets denote optional
 arguments:
 
---single			"single crack" mode
+--single[=SECTION]		"single crack" mode
 
 Enables the "single crack" mode, using rules from the configuration
-file section [List.Rules:Single].
+file section [List.Rules:Single].  If --single=Single_2 then the rules
+from [List.Rules:Single_2] section would be used.
 
 --wordlist=FILE			wordlist mode, read words from FILE,
 --stdin				or from stdin
 
 These are used to enable the wordlist mode.
 
---rules				enable word mangling rules for wordlist mode
+--encoding=NAME
+
+Input data in a character encoding other than the default 'raw'. See also
+doc/ENCODINGS.   --encoding=LIST gives a list of all handled encodings.
+
+--rules[=SECTION]		enable word mangling rules for wordlist mode
 
 Enables word mangling rules that are read from [List.Rules:Wordlist].
+If --rules=Wordlist_elite  was used, then [List.Rules:Wordlist_elite]
+would be the section used.
 
 --incremental[=MODE]		"incremental" mode [using section MODE]
 
@@ -69,6 +78,8 @@ its purpose is to give the new session a name (to which John will
 append the ".rec" suffix to form the session file name).  This is
 useful for running multiple instances of John in parallel or to be
 able to later recover a session other than the last one you interrupt.
+john.log file will also be named NAME.log (whatever 'NAME' is), so
+that any logging of the session work will end up in this file.
 
 --status[=NAME]			print status of a session [called NAME]
 
@@ -87,18 +98,21 @@ may restrict the set of passwords used by specifying some password files
 password files will be used), "--format", or/and "--external" (with an
 external mode that defines a filter() function).
 
---show				show cracked passwords
+--show[=left]			show cracked passwords
 
 Shows the cracked passwords for given password files (which you must
 specify).  You can use this option while another instance of John is
 cracking to see what John did so far; to get the most up to date
 information, first send a SIGHUP to the appropriate "john" process.
+if --show=left then all uncracked hashes are listed (in a john 'input'
+file format way).  =left is just that literal string "=left".
 
 --test[=TIME]			run tests and benchmarks for TIME seconds each
 
 Tests all of the compiled in hashing algorithms for proper operation and
 benchmarks them.  The "--format" option can be used to restrict this to
-a specific algorithm.
+a specific algorithm.  Using --test=0 will do a very quick self-test but
+will not produce usable speed figures.
 
 --users=[-]LOGIN|UID[,..]	[do not] load this (these) user(s)
 
@@ -118,13 +132,21 @@ not load accounts with a bad shell.  You can omit the path before a
 shell name, so "--shells=csh" will match both "/bin/csh" and
 "/usr/bin/csh", while "--shells=/bin/csh" will only match "/bin/csh".
 
---salts=[-]COUNT		load salts with[out] at least COUNT passwords
+--salts=[-]COUNT[:MAX]		load salts with[out] at least COUNT passwords
 
 This is a feature which allows to achieve better performance in some
 special cases.  For example, you can crack only some salts using
 "--salts=2" faster and then crack the rest using "--salts=-2".  Total
 cracking time will be about the same, but you will likely get some
-passwords cracked earlier.
+passwords cracked earlier.  If MAX is listed, then no hashes are
+loaded where there are more than MAX salts.  This is so that if you
+have run --salts=25 and then later can run --salts=10:24 and none of
+the hashes that were already done from the --salts=25 will be re-done.
+
+--pot=NAME			pot filename to use
+
+By default, john will use john.pot.  This override allows using a different
+john.pot-like file (to start from, and to store any found password into).
 
 --format=NAME			force hash type NAME
 
@@ -152,12 +174,19 @@ types unless you have other hash types (those supported by John
 natively) in the password file(s) as well (in which case another hash
 type may get detected unless you specify this option).
 
+When benchmarking "--format=crypt", it will default to benchmark DES.
+The "--subformat=TYPE" can be added for benchmarking other types, given
+they are supported by the system. Currently supported TYPEs are MD5, BF,
+SHA-256 and SHA-512.
+
 "--format=crypt" is also a way to make John crack crypt(3) hashes of
 different types at the same time, but doing so results in poor
 performance and in unnecessarily poor results (in terms of passwords
 cracked) for hashes of the "faster" types (as compared to the "slower"
 ones loaded for cracking at the same time).  So you are advised to use
 separate invocations of John, one per hash type.
+
+--subformat=LIST displays all the built-in dynamic formats, and exits
 
 --save-memory=LEVEL		enable memory saving, at LEVEL 1..3
 
@@ -168,6 +197,67 @@ mode other than "single crack" is explicitly requested.  The only
 impact is that you won't see the login names while cracking.  Higher
 memory saving levels have a performance impact; you should probably
 avoid using them unless John doesn't work or gets into swap otherwise.
+
+--mem-file-size=SIZE		max size of wordlist to preload into memory
+
+One of the significant performance improvements for some builds of
+john, is preloading the wordlist file into memory, instead of reading
+line by line. This is especially true when running with a large list
+of --rules.  The default max size file is 5 million bytes.  Using this
+option allows making this larger.  A special value is --mem-file-size=0.
+This will force loading to memory regardless of file size.  NOTE if
+--save-memory is used, then memory file processing is turned off.
+
+--field-separator-char=c	Use 'c' instead of the char ':'
+
+By design, john works with most files, as 'tokenized' files.  The field
+separator used by john is the colon ':' character.  However, there are
+hashes which use the colon in the salt field, and there are users which
+may have a colon for a user name (for a couple examples of problems
+with it).  However, an advanced john user can change the input files,
+by using a different character than the ':' (and different than any
+other 'used' character), and avoid problems of lines not being properly
+processed.  The side effects are that the pot file will get this
+'character' used in it also (and only lines in the pot file that HAVE
+that character will be loaded at startup), and there are other side
+effects.  Usually, this is ONLY used in very advanced situations, where
+the user 'knows what he is doing'.  If the character can not be easily
+represented by the keyboard, then the format of
+--field-separator-char=\xHH can be used. --field-separator-char=\x1F
+would represent the character right before the space (space is 0x20)
+
+--fix-state-delay=N		only determine the wordlist offset every N times
+
+This is an optimization which helps on some systems.  This just
+limits the number of times that the ftell() call is performed.
+The one side effect, is that if john is aborted, and restarted, it
+may redo more tests.  Thus, the use of this option is only acceptable
+and desirable for fast hash types (e.g., raw MD5).
+
+--nolog		            turns off john.log file
+
+This will turn off creation, or updating to the john.log file (which may
+have a different name if the --session=NAME flag was used.)  Often the
+logging is not wanted, and this log file can often become very large
+(such as working with many 'fast' rules on a fast format).  The log file
+is often used to check what work has been done, but if this will not be
+needed, and the log file is simply going to be deleted when done, then
+running in --nolog mode may be used.
+
+--crack-status          show status line on every crack
+
+This will automagically emit a status line at every cracked password. This is
+mostly for testing.
+
+--mkpc=N                force min/max keys per crypt to N
+
+This option is for certain kinds of testing and is not mentioned in the usage
+blob. Many formats perform the crypts in batches of several (sometimes
+thousands or even tens of thousands) candidates. This option forces it down
+from the format's default. For most purposes, you would use 1. One good
+example is for studying which rules give most "hits": Without this options,
+you can't know for sure which rule produced a successful guess when analyzing
+the log file.
 
 
 	Additional utilities.
@@ -199,10 +289,14 @@ the order of entries.  You might want to use this with John's
 "--stdout" option if you've got a lot of disk space to trade for the
 reduced cracking time (on possibly trying some duplicates as they
 might be produced with word mangling rules).
+This program has been updated.  It is faster, it now can 'cut' the
+lines (in a couple of ways), and can unique the files data, AND also
+unique it against an existing file.
 
 	mailer PASSWORD-FILE
 
 A shell script to send mail to all the users who got weak passwords.
 You should edit the message inside the script before using it.
 
+Based on (and modified in the jumbo patch):
 $Owl: Owl/packages/john/john/doc/OPTIONS,v 1.9 2011/04/27 18:02:49 solar Exp $

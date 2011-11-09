@@ -1,0 +1,58 @@
+This version of John is UTF-8 and codepage aware, using a new command line
+argument. In short, this means "my wordlists and input files are encoded in
+UTF-8" (or CP1252 etc). It does NOT mean you can feed John with eg. a UTF-8
+encoded wordlist when cracking LM. It DOES make John recognise national vowels,
+lower or upper case characters, etc. when specifying a codepage.
+
+Currently supported encodings: utf-8, iso-8859-1 (or ansi), iso-8859-7,
+iso-8859-15, koi8-r, cp437, cp737, cp850, cp858, cp866, cp1251, cp1252 and
+cp1253. New encodings can be added with ease, using automated tools that rely
+on the Unicode Database (see Openwall wiki).
+
+
+Example usage:
+  john hashes.txt --wordlist:spanish.dic --encoding:iso-8859-1 --rules
+
+
+The behaviour is a little different depending on whether the format use Unicode
+(UTF-16 or UCS-2) internally or not.
+
+ * For Unicode formats (eg. NT, mssql, etc), you can pick any of the encodings
+   and the input candidates will be properly converted to UTF-16.
+
+ * For non-Unicode formats (eg. DES, LM, MD5 etc), no actual conversion will
+   be made so you need to use an encoding that matches what the hashes were
+   made from. But you should still tell John about it so it can handle national
+   characters properly.
+
+You can convert your wordlists from/to a large number of formats, using for
+example iconv(1). It may be a good idea to include the encoding in the filename,
+eg. "greek.8859-7.dict" or "rockyou.utf8.lst".
+
+You can also convert on the fly, example:
+$ iconv < greek.8859-7.dict -f iso-8859-7 -t cp737 | ./john -pipe -enc:cp737 ...
+
+The traditional behavior, and what is still happening if you don't specify an
+encoding, is that John will assume ISO-8859-1 when converting plaintexts or
+salts to UTF-16 (this also happens to be very fast), and assume ASCII in most
+other cases (it will use 8-bit candidates as-is, but not upper/lower-case them
+or recognise letters etc).
+
+Some new reject rules and character classes are implemented, see doc/RULES.
+Note that UTF-8 is not handled well in rules. Some wordlist rules may cut
+UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
+such rules with -U to have them in use only when --encoding=utf8 is not used.
+
+Also, the recognition of non-ASCII characters for upper/lower-casing etc does
+not work with UTF-8 in Rules engine. Formats that internally uppercase
+it's plaintexts, like old MSSQL, will uppercase properly though.
+
+Caveats:
+Beware of UTF-8 BOM's. They will cripple the first word in your wordlist.
+
+--
+
+These contributions to John are hereby placed in the public domain. In case
+that is not applicable, they are Copyright 2009, 2010, 2011 by magnum and
+JimF and hereby released to the general public. Redistribution and use in
+source and binary forms, with or without modification, is permitted.

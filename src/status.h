@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by JimF.
  */
 
 /*
@@ -27,7 +29,7 @@ struct status_main {
 
 extern struct status_main status;
 
-extern int (*status_get_progress)(void);
+extern int (*status_get_progress)(int *hundth);
 
 /*
  * Elapsed time of previous sessions and excess ticks (if any), in seconds.
@@ -39,7 +41,7 @@ extern unsigned int status_restored_time;
  * fields to zero. Always initializes the get_progress() handler (can be
  * NULL).
  */
-extern void status_init(int (*get_progress)(void), int start);
+extern void status_init(int (*get_progress)(int*), int start);
 
 /*
  * Checks the number of ticks elapsed since start_time and moves some excess

@@ -1,17 +1,31 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2005,2006,2009,2010 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by JimF.
  */
 
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
+
 #include <stdio.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#include <io.h>
+#pragma warning ( disable : 4996 )
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifndef _MSC_VER
 #include <sys/file.h>
+#endif
 #include <errno.h>
 #include <string.h>
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#include "signals.h"
+#endif
 
 #if defined(__CYGWIN32__) && !defined(__CYGWIN__)
 extern int ftruncate(int fd, size_t length);
@@ -29,7 +43,11 @@ extern int ftruncate(int fd, size_t length);
 #include "recovery.h"
 
 char *rec_name = RECOVERY_NAME;
+#ifdef HAVE_MPI
+int rec_name_completed = 0;
+#else
 int rec_name_completed = 1;
+#endif
 int rec_version = 0;
 int rec_argc = 0;
 char **rec_argv;
@@ -44,7 +62,21 @@ static void (*rec_save_mode)(FILE *file);
 static void rec_name_complete(void)
 {
 	if (rec_name_completed) return;
+#ifdef HAVE_MPI
+	char *mpi_suffix;
+	mpi_suffix = mem_alloc_tiny(strlen(id2string()) + 1 +
+	    strlen(RECOVERY_SUFFIX) + 1, MEM_ALIGN_NONE);
+	mpi_suffix[0] = 0;
+	if (mpi_p > 1) {
+		strcat(mpi_suffix, ".");
+		strcat(mpi_suffix, id2string());
+	}
+	strcat(mpi_suffix, RECOVERY_SUFFIX);
+
+	rec_name = path_session(rec_name, mpi_suffix);
+#else
 	rec_name = path_session(rec_name, RECOVERY_SUFFIX);
+#endif
 	rec_name_completed = 1;
 }
 
@@ -53,8 +85,13 @@ static void rec_lock(void)
 {
 	if (flock(rec_fd, LOCK_EX | LOCK_NB)) {
 		if (errno == EWOULDBLOCK) {
+#ifdef HAVE_MPI
+			fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
+			        mpi_id, mpi_name, path_expand(rec_name));
+#else
 			fprintf(stderr, "Crash recovery file is locked: %s\n",
 				path_expand(rec_name));
+#endif
 			error();
 		} else
 			pexit("flock");
@@ -84,7 +121,7 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 void rec_save(void)
 {
-	int save_format;
+	int save_format, hund;
 	long size;
 	char **opt;
 
@@ -93,7 +130,9 @@ void rec_save(void)
 	if (!rec_file) return;
 
 	if (fseek(rec_file, 0, SEEK_SET)) pexit("fseek");
-#ifdef __CYGWIN32__
+#ifdef _MSC_VER
+	if (_write(fileno(rec_file), "", 0)) pexit("ftruncate");
+#elif __CYGWIN32__
 	if (ftruncate(rec_fd, 0)) pexit("ftruncate");
 #endif
 
@@ -116,7 +155,7 @@ void rec_save(void)
 		status.crypts.lo,
 		status.crypts.hi,
 		status.pass,
-		status_get_progress ? status_get_progress() : -1,
+		status_get_progress ? status_get_progress(&hund) : -1,
 		rec_check);
 
 	if (rec_save_mode) rec_save_mode(rec_file);
@@ -125,8 +164,10 @@ void rec_save(void)
 
 	if ((size = ftell(rec_file)) < 0) pexit("ftell");
 	if (fflush(rec_file)) pexit("fflush");
+#ifndef _MSC_VER
 	if (ftruncate(rec_fd, size)) pexit("ftruncate");
-#ifndef __CYGWIN32__
+#endif
+#if !defined(__CYGWIN32__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 	if (fsync(rec_fd)) pexit("fsync");
 #endif
 }
@@ -138,7 +179,31 @@ void rec_done(int save)
 	if (save)
 		rec_save();
 	else
+#ifdef HAVE_MPI
+	{
 		log_flush();
+		if (mpi_p > 1) {
+			if (rec_db->password_count) {
+#ifdef JOHN_MPI_BARRIER
+				int time = status_get_time();
+				if (nice(20) < 0) fprintf(stderr, "nice() failed\n");
+				fprintf(stderr, "Node %d finished at %u:%02u:%02u:%02u.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
+				MPI_Barrier(MPI_COMM_WORLD);
+#endif
+			} else {
+#ifdef JOHN_MPI_ABORT
+				int time = status_get_time();
+				fprintf(stderr, "Node %d: All hashes cracked at %u:%02u:%02u:%02u! Aborting other nodes.\n", mpi_id, time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60);
+				MPI_Abort(MPI_COMM_WORLD, 0);
+#else
+				fprintf(stderr, "Node %d: All hashes cracked! Abort the other nodes manually!\n", mpi_id);
+#endif
+			}
+		}
+	}
+#else
+	log_flush();
+#endif
 
 	if (fclose(rec_file)) pexit("fclose");
 	rec_file = NULL;

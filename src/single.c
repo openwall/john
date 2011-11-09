@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2006,2010 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by JimF.
  */
 
 #include <stdio.h>
@@ -18,6 +20,10 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
+#include "unicode.h"
 
 static int progress = 0;
 static int rec_rule;
@@ -49,10 +55,16 @@ static int restore_state(FILE *file)
 	return restore_rule_number();
 }
 
-static int get_progress(void)
+static int get_progress(int *hundth)
 {
-	if (progress) return progress;
+	if (progress) {
+		if (hundth)
+			*hundth = 0;
+		return progress;
+	}
 
+	if (hundth)
+		*hundth = (rule_number * 10000 / (rule_count + 1)) % 100;
 	return rule_number * 100 / (rule_count + 1);
 }
 
@@ -88,7 +100,7 @@ static void single_init(void)
 	key_count = single_db->format->params.min_keys_per_crypt;
 	if (key_count < SINGLE_HASH_MIN) key_count = SINGLE_HASH_MIN;
 
-	if (rpp_init(rule_ctx, SUBSECTION_SINGLE)) {
+	if (rpp_init(rule_ctx, single_db->options->activesinglerules)) {
 		log_event("! No \"single crack\" mode rules found");
 		fprintf(stderr, "No \"single crack\" mode rules found in %s\n",
 			cfg_name);
@@ -101,6 +113,16 @@ static void single_init(void)
 
 	log_event("- %d preprocessed word mangling rules", rule_count);
 
+#ifdef HAVE_MPI
+	if (mpi_p > 1) {
+		log_event("MPI hack active: processsing 1/%d of rules, total %d for "
+		    "this node", mpi_p, (rule_count / mpi_p) +
+		    (rule_count % mpi_p > mpi_id ? 1 : 0));
+		if (mpi_id == 0) fprintf(stderr,"MPI: each node processing 1/%d of %d "
+		    "rules. (%seven split)\n",
+		    mpi_p, rule_count, rule_count % mpi_p ? "un" : "");
+	}
+#endif
 	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
@@ -269,7 +291,6 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	char pair[RULE_WORD_SIZE];
 	int split;
 	char *key;
-	unsigned int c;
 
 	if (!(first = pw->words->head))
 		return -1;
@@ -287,8 +308,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 
 		if (++first_number > SINGLE_WORDS_PAIR_MAX) continue;
 
-		c = (unsigned int)first->data[0] | 0x20;
-		if (c < 'a' || c > 'z') continue;
+		if (!CP_isLetter[(unsigned char)first->data[0]]) continue;
 
 		second_number = 0;
 		second = pw->words->head;
@@ -384,6 +404,13 @@ static void single_run(void)
 
 	saved_min = rec_rule;
 	while ((prerule = rpp_next(rule_ctx))) {
+#ifdef HAVE_MPI
+		// MPI distribution: leapfrog rules
+		if (rule_number % mpi_p != mpi_id) {
+			rule_number++;
+			continue;
+		}
+#endif
 		if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
 			log_event("- Rule #%d: '%.100s' rejected",
 				++rule_number, prerule);
@@ -444,7 +471,7 @@ static void single_done(void)
 			} while ((salt = salt->next));
 		}
 
-		progress = 100;
+		progress = 100; // For reporting DONE when finished
 	}
 
 	rec_done(event_abort || (status.pass && single_db->salts));

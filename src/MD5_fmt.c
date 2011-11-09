@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by bartavelle
  */
 
 #include <string.h>
@@ -11,6 +13,17 @@
 #include "common.h"
 #include "formats.h"
 
+#ifdef MD5_SSE_PARA
+#include "sse-intrinsics.h"
+#endif
+
+#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+#include <omp.h>
+#define OMP_MAX_PARA              384
+#else
+#define OMP_MAX_PARA              1
+#endif
+
 #define FORMAT_LABEL			"md5"
 #define FORMAT_NAME			"FreeBSD MD5"
 
@@ -20,11 +33,15 @@
 #define PLAINTEXT_LENGTH		15
 #define CIPHERTEXT_LENGTH		22
 
+#ifdef MD5_SSE_PARA
+#define BINARY_SIZE			16
+#else
 #define BINARY_SIZE			4
+#endif
 #define SALT_SIZE			9
 
-#define MIN_KEYS_PER_CRYPT		MD5_N
-#define MAX_KEYS_PER_CRYPT		MD5_N
+#define MIN_KEYS_PER_CRYPT		(MD5_N * OMP_MAX_PARA)
+#define MAX_KEYS_PER_CRYPT		(MD5_N * OMP_MAX_PARA)
 
 static struct fmt_tests tests[] = {
 	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
@@ -39,12 +56,42 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
+	{"$1$bb$19smCEBG0Q1pVil0/HqK./", "aaaaa"},
+	{"$1$coin$rebm0t9KJ56mgGWJF5o5M0", "lapin"},
+	{"$1$pouet$/Ecz/vyk.zCYvrr6wB78h0", "canard"},
+	{"$1$test2$02MCIATVoxq3IhgK6XRkb1", "test1"},
+	{"$1$aussi$X67z3kXsWo92F15uChx1H1", "felicie"},
+	{"$1$boire$gf.YM2y3InYEu9.NbVr.v0", "manger"},
+	{"$1$bas$qvkmmWnVHRCSv/6LQ1doH/", "haut"},
+	{"$1$gauche$EPvd6LZlrgb0MMFPxUrJN1", "droite"},
 	{NULL}
 };
 
-static char saved_key[MD5_N][PLAINTEXT_LENGTH + 1];
+static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+#ifdef MD5_SSE_PARA
+static unsigned char cursalt[SALT_SIZE];
+static int CryptType;
+static MD5_word sout[MAX_KEYS_PER_CRYPT*BINARY_SIZE/sizeof(MD5_word)];
+static int omp_para = 1;
+#endif
 
-static int valid(char *ciphertext)
+struct fmt_main fmt_MD5;
+
+static void init(struct fmt_main *pFmt)
+{
+#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+	omp_para = 4 * omp_get_max_threads();
+	if (omp_para < 1)
+		omp_para = 1;
+	if (omp_para > OMP_MAX_PARA)
+		omp_para = OMP_MAX_PARA;
+	fmt_MD5.params.min_keys_per_crypt =
+		fmt_MD5.params.max_keys_per_crypt = MD5_N * omp_para;
+#endif
+	MD5_std_init(pFmt);
+}
+
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos, *start;
 
@@ -93,28 +140,64 @@ static int binary_hash_4(void *binary)
 
 static int get_hash_0(int index)
 {
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+	return ((MD5_word *)sout)[x+y*MMX_COEF*4] & 0xF;
+#else
 	return MD5_out[index][0] & 0xF;
+#endif
 }
 
 static int get_hash_1(int index)
 {
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+	return ((MD5_word *)sout)[x+y*MMX_COEF*4] & 0xFF;
+#else
 	return MD5_out[index][0] & 0xFF;
+#endif
 }
 
 static int get_hash_2(int index)
 {
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+	return ((MD5_word *)sout)[x+y*MMX_COEF*4] & 0xFFF;
+#else
 	return MD5_out[index][0] & 0xFFF;
+#endif
 }
 
 static int get_hash_3(int index)
 {
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+	return ((MD5_word *)sout)[x+y*MMX_COEF*4] & 0xFFFF;
+#else
 	return MD5_out[index][0] & 0xFFFF;
+#endif
 }
 
 static int get_hash_4(int index)
 {
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+	return ((MD5_word *)sout)[x+y*MMX_COEF*4] & 0xFFFFF;
+#else
 	return MD5_out[index][0] & 0xFFFFF;
+#endif
 }
+
 
 static int salt_hash(void *salt)
 {
@@ -138,7 +221,9 @@ static int salt_hash(void *salt)
 
 static void set_key(char *key, int index)
 {
+#ifndef MD5_SSE_PARA
 	MD5_std_set_key(key, index);
+#endif
 
 	strnfcpy(saved_key[index], key, PLAINTEXT_LENGTH);
 }
@@ -152,23 +237,91 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
-#if MD5_X2
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+
+	for(y=0;y<MD5_SSE_PARA*omp_para;y++) for(x=0;x<MMX_COEF;x++)
+	{
+		if( ((MD5_word *)binary)[0] == ((MD5_word *)sout)[x+y*MMX_COEF*4] )
+			return 1;
+	}
+	return 0;
+#else
+# if MD5_X2
 	return *(MD5_word *)binary == MD5_out[0][0] ||
 		*(MD5_word *)binary == MD5_out[1][0];
-#else
+# else
 	return *(MD5_word *)binary == MD5_out[0][0];
+# endif
 #endif
 }
 
 static int cmp_one(void *binary, int index)
 {
+#ifdef MD5_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+
+	if( ((unsigned int *)binary)[0] != ((unsigned int *)sout)[x+y*MMX_COEF*4] )
+		return 0;
+	if( ((unsigned int *)binary)[1] != ((unsigned int *)sout)[x+y*MMX_COEF*4+4] )
+		return 0;
+	if( ((unsigned int *)binary)[2] != ((unsigned int *)sout)[x+y*MMX_COEF*4+8] )
+		return 0;
+	if( ((unsigned int *)binary)[3] != ((unsigned int *)sout)[x+y*MMX_COEF*4+12] )
+		return 0;
+	return 1;
+#else
 	return *(MD5_word *)binary == MD5_out[index][0];
+#endif
 }
 
 static int cmp_exact(char *source, int index)
 {
+#ifdef MD5_SSE_PARA
+	return 1;
+#else
 	return !memcmp(MD5_std_get_binary(source), MD5_out[index],
 	    sizeof(MD5_binary));
+#endif
+}
+
+static void crypt_all(int count) {
+#ifdef MD5_SSE_PARA
+#ifdef _OPENMP
+	int t;
+#pragma omp parallel for
+	for (t = 0; t < omp_para; t++)
+		md5cryptsse((unsigned char *)(&saved_key[t*MD5_N]), cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
+#else
+	md5cryptsse((unsigned char *)saved_key, cursalt, (char *)sout, CryptType);
+#endif
+#else
+	MD5_std_crypt();
+#endif
+}
+
+static void set_salt(void *salt)
+{
+#ifdef MD5_SSE_PARA
+	memcpy(cursalt, salt, SALT_SIZE);
+	if (cursalt[8]) {
+		CryptType = MD5_TYPE_APACHE;
+		cursalt[8] = 0;
+	}
+	else
+		CryptType = MD5_TYPE_STD;
+#endif
+	MD5_std_set_salt(salt);
+}
+
+static void *get_salt(char *ciphertext) {
+	return MD5_std_get_salt(ciphertext);
+}
+
+static void *get_binary(char *ciphertext) {
+	return MD5_std_get_binary(ciphertext);
 }
 
 struct fmt_main fmt_MD5 = {
@@ -183,14 +336,19 @@ struct fmt_main fmt_MD5 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#else
 		FMT_CASE | FMT_8_BIT,
+#endif
 		tests
 	}, {
-		MD5_std_init,
+		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		(void *(*)(char *))MD5_std_get_binary,
-		(void *(*)(char *))MD5_std_get_salt,
+		get_binary,
+		get_salt,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -199,11 +357,11 @@ struct fmt_main fmt_MD5 = {
 			binary_hash_4
 		},
 		salt_hash,
-		(void (*)(void *))MD5_std_set_salt,
+		set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
-		(void (*)(int))MD5_std_crypt,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,

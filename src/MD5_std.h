@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2003,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by bartavelle
  */
 
 /*
@@ -56,10 +58,25 @@ typedef struct {
 } MD5_data;
 #endif
 
-#if MD5_X2
-#define MD5_N				2
+#if !defined(MD5_in_sse_intrinsics) && defined(__GNUC__) && \
+    (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4))
+#undef MD5_SSE_PARA
+#endif
+
+#ifdef MD5_SSE_PARA
+# ifndef MMX_COEF
+#  define MMX_COEF			4
+# endif
+# define MD5_N				(MD5_SSE_PARA*MMX_COEF)
+# define MD5_ALGORITHM_NAME		MD5_N_STR
 #else
-#define MD5_N				1
+# if MD5_X2
+#  define MD5_N				2
+#  define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR " X2"
+# else
+#  define MD5_N				1
+#  define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR
+# endif
 #endif
 
 typedef struct {
@@ -84,16 +101,15 @@ extern MD5_std_combined MD5_std_all;
  */
 #define MD5_out				MD5_std_all.out
 
-#if MD5_X2
-#define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR " X2"
-#else
-#define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR
-#endif
+// these 2 are still used by the 'para' function
+#define MD5_TYPE_APACHE 1
+#define MD5_TYPE_STD	2
 
 /*
  * Initializes the internal structures.
  */
-extern void MD5_std_init(void);
+struct fmt_main;
+extern void MD5_std_init(struct fmt_main *pFmt);
 
 /*
  * Sets a salt for MD5_std_crypt().

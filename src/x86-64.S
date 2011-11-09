@@ -22,9 +22,18 @@
  * pass by a loop in the Perl script).
  *
  * The effort has been sponsored by Rapid7: http://www.rapid7.com
+ *
+ * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
+ * comment further down this file).
  */
 
 #include "arch.h"
+
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log
+#else
+#define DO_ALIGN(log)			.align 1 << log
+#endif
 
 #if DES_BS_ASM
 
@@ -34,12 +43,6 @@
 #define DES_bs_crypt			_DES_bs_crypt
 #define DES_bs_crypt_25			_DES_bs_crypt_25
 #define DES_bs_crypt_LM			_DES_bs_crypt_LM
-#endif
-
-#ifdef ALIGN_LOG
-#define DO_ALIGN(log)			.align log
-#else
-#define DO_ALIGN(log)			.align 1 << log
 #endif
 
 #ifdef __sun
@@ -963,6 +966,355 @@ DES_bs_crypt_LM_loop:
 	ret
 
 #endif
+
+/* The following was written by Alain Espinosa <alainesp at gmail.com> in 2007.
+ * No copyright is claimed, and the software is hereby placed in the public domain.
+ * In case this attempt to disclaim copyright and place the software in the
+ * public domain is deemed null and void, then the software is
+ * Copyright (c) 2007 Alain Espinosa and it is hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
+ *
+ * (This is a heavily cut-down "BSD license".)
+ */
+/* ...converted to use %rip-relative addressing, still public domain */
+
+/*
+ * FIXME: this depends on the assembler being able to multiply, which won't
+ * work on Solaris (unless the use of GNU assembler is forced).
+ */
+
+#ifdef UNDERSCORES
+#define nt_crypt_all_x86_64 _nt_crypt_all_x86_64
+#define nt_crypt_all_8859_1_x86_64 _nt_crypt_all_8859_1_x86_64
+#define nt_buffer8x _nt_buffer8x
+#define output8x _output8x
+#endif
+
+/*
+extern nt_crypt_all_x86_64(int count);
+extern nt_crypt_all_8859_1x86_64(int count);
+*/
+
+.globl nt_crypt_all_x86_64
+.globl nt_crypt_all_8859_1_x86_64
+
+.data
+DO_ALIGN(6)
+const_init_a:
+.long 0xFFFFFFFF
+.long 0xFFFFFFFF
+.long 0xFFFFFFFF
+.long 0xFFFFFFFF
+const_init_b:
+.long 0xefcdab89
+.long 0xefcdab89
+.long 0xefcdab89
+.long 0xefcdab89
+const_init_c:
+.long 0x98badcfe
+.long 0x98badcfe
+.long 0x98badcfe
+.long 0x98badcfe
+const_init_d:
+.long 0x10325476
+.long 0x10325476
+.long 0x10325476
+.long 0x10325476
+
+const_stage2:
+.long 0x5a827999
+.long 0x5a827999
+.long 0x5a827999
+.long 0x5a827999
+const_stage3:
+.long 0x6ed9eba1
+.long 0x6ed9eba1
+.long 0x6ed9eba1
+.long 0x6ed9eba1
+
+#define a  %xmm0
+#define b  %xmm1
+#define c  %xmm2
+#define d  %xmm3
+#define t1 %xmm4
+#define t2 %xmm5
+#define t3 %xmm6
+#define t4 %xmm7
+
+#undef a3
+#define a3  %xmm8
+#define b3  %xmm9
+#define c3  %xmm10
+#define d3  %xmm11
+#define t13 %xmm12
+#define t23 %xmm13
+
+#define STEP1(aa, bb, cc, dd, aa3, bb3, cc3, dd3, x, s, base)	\
+	paddd (512*base)+(x*32)+nt_buffer8x(%rip), aa;		\
+	paddd (512*base)+(x*32)+16+nt_buffer8x(%rip), aa3;	\
+	movdqa cc, t1;						\
+	movdqa cc3, t13;					\
+	pxor dd, t1;						\
+	pxor dd3, t13;						\
+	pand bb, t1;						\
+	pand bb3, t13;						\
+	pxor dd, t1;						\
+	pxor dd3, t13;						\
+	paddd t1, aa;						\
+	paddd t13, aa3;						\
+	movdqa aa, t2;						\
+	movdqa aa3, t23;					\
+	pslld $s, aa;						\
+	pslld $s, aa3;						\
+	psrld $(32-s), t2;					\
+	psrld $(32-s), t23;					\
+	por t2, aa;						\
+	por t23, aa3;
+
+#define STEP2(aa, bb, cc, dd, aa3, bb3, cc3, dd3, x, s, base)	\
+	paddd (512*base)+(x*32)+nt_buffer8x(%rip), aa;		\
+	paddd (512*base)+(x*32)+16+nt_buffer8x(%rip), aa3;	\
+	movdqa cc, t1;						\
+	movdqa cc3, t13;					\
+	movdqa cc, t2;						\
+	movdqa cc3, t23;					\
+	por dd, t1;						\
+	por dd3, t13;						\
+	pand dd, t2;						\
+	pand dd3, t23;						\
+	pand bb, t1;						\
+	pand bb3, t13;						\
+	paddd t3, aa;						\
+	paddd t3, aa3;						\
+	por t2, t1;						\
+	por t23, t13;						\
+	paddd t1, aa;						\
+	paddd t13, aa3;						\
+	movdqa aa, t1;						\
+	movdqa aa3, t13;					\
+	pslld $s, aa;						\
+	pslld $s, aa3;						\
+	psrld $(32-s), t1;					\
+	psrld $(32-s), t13;					\
+	por t1, aa;						\
+	por t13, aa3;
+
+#define STEP3(aa, bb, cc, dd, aa3, bb3, cc3, dd3, x, s, base)	\
+	paddd (512*base)+(x*32)+nt_buffer8x(%rip), aa;		\
+	paddd (512*base)+(x*32)+16+nt_buffer8x(%rip), aa3;	\
+	movdqa dd, t1;						\
+	movdqa dd3, t13;					\
+	pxor cc, t1;						\
+	pxor cc3, t13;						\
+	paddd t4, aa;						\
+	paddd t4, aa3;						\
+	pxor bb, t1;						\
+	pxor bb3, t13;						\
+	paddd t1, aa;						\
+	paddd t13, aa3;						\
+	movdqa aa, t1;						\
+	movdqa aa3, t13;					\
+	pslld $s, aa;						\
+	pslld $s, aa3;						\
+	psrld $(32-s), t1;					\
+	psrld $(32-s), t13;					\
+	por t1, aa;						\
+	por t13, aa3;
+
+#define NT_CRYPT_BODY_8859_1(base)					\
+	movdqa const_init_a(%rip), a;				\
+	movdqa const_init_a(%rip), a3;				\
+	movdqa const_init_b(%rip), b;				\
+	movdqa const_init_b(%rip), b3;				\
+	movdqa const_init_c(%rip), c;				\
+	movdqa const_init_c(%rip), c3;				\
+	movdqa const_init_d(%rip), d;				\
+	movdqa const_init_d(%rip), d3;				\
+								\
+	paddd (512*base)+nt_buffer8x(%rip), a;			\
+	paddd (512*base)+16+nt_buffer8x(%rip), a3;		\
+	pslld $3, a;						\
+	pslld $3, a3;						\
+								\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 1 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 2 , 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 3 , 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 4 , 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 5 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 6 , 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 7 , 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 8 , 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 9 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 10, 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 11, 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 12, 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 13, 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 14, 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 15, 19, base)		\
+								\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 0 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 4 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 8 , 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 12, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 1 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 5 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 9 , 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 13, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 2 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 6 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 10, 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 14, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 3 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 7 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 11, 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 15, 13, base)		\
+								\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 0 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 8 , 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 4 , 11, base)		\
+	STEP3(b, c, d, a, b3, c3, d3, a3, 12, 15, base)		\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 2 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 10, 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 6 , 11, base)		\
+	STEP3(b, c, d, a, b3, c3, d3, a3, 14, 15, base)		\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 1 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 9 , 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 5 , 11, base)		\
+	movdqa a, t1;						\
+	movdqa a3, t13;						\
+	paddd (512*base)+416+nt_buffer8x(%rip), b;		\
+	paddd (512*base)+416+16+nt_buffer8x(%rip), b3;		\
+	pxor d, t1;						\
+	pxor d3,t13;						\
+	pxor c, t1;						\
+	pxor c3,t13;						\
+	paddd t1, b;						\
+	paddd t13,b3;						\
+								\
+	movdqa a,  (128*base)+output8x(%rip);			\
+	movdqa a3,  (128*base)+16+output8x(%rip);		\
+	movdqa b, (128*base)+32+output8x(%rip);			\
+	movdqa b3, (128*base)+32+16+output8x(%rip);		\
+	movdqa c, (128*base)+64+output8x(%rip);			\
+	movdqa c3, (128*base)+64+16+output8x(%rip);		\
+	movdqa d, (128*base)+96+output8x(%rip);			\
+	movdqa d3, (128*base)+96+16+output8x(%rip);
+
+#define NT_CRYPT_BODY(base)					\
+	movdqa const_init_a(%rip), a;				\
+	movdqa const_init_a(%rip), a3;				\
+	movdqa const_init_b(%rip), b;				\
+	movdqa const_init_b(%rip), b3;				\
+	movdqa const_init_c(%rip), c;				\
+	movdqa const_init_c(%rip), c3;				\
+	movdqa const_init_d(%rip), d;				\
+	movdqa const_init_d(%rip), d3;				\
+								\
+	paddd (512*base)+nt_buffer8x(%rip), a;			\
+	paddd (512*base)+16+nt_buffer8x(%rip), a3;		\
+	movdqa a, t1;						\
+	movdqa a3, t13;						\
+	pslld $3, a;						\
+	pslld $3, a3;						\
+	psrld $29, t1;						\
+	psrld $29, t13;						\
+	por t1, a;						\
+	por t13, a3;						\
+								\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 1 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 2 , 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 3 , 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 4 , 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 5 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 6 , 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 7 , 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 8 , 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 9 , 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 10, 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 11, 19, base)		\
+	STEP1(a, b, c, d, a3, b3, c3, d3, 12, 3 , base)		\
+	STEP1(d, a, b, c, d3, a3, b3, c3, 13, 7 , base)		\
+	STEP1(c, d, a, b, c3, d3, a3, b3, 14, 11, base)		\
+	STEP1(b, c, d, a, b3, c3, d3, a3, 15, 19, base)		\
+								\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 0 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 4 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 8 , 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 12, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 1 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 5 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 9 , 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 13, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 2 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 6 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 10, 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 14, 13, base)		\
+	STEP2(a, b, c, d, a3, b3, c3, d3, 3 , 3 , base)		\
+	STEP2(d, a, b, c, d3, a3, b3, c3, 7 , 5 , base)		\
+	STEP2(c, d, a, b, c3, d3, a3, b3, 11, 9 , base)		\
+	STEP2(b, c, d, a, b3, c3, d3, a3, 15, 13, base)		\
+								\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 0 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 8 , 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 4 , 11, base)		\
+	STEP3(b, c, d, a, b3, c3, d3, a3, 12, 15, base)		\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 2 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 10, 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 6 , 11, base)		\
+	STEP3(b, c, d, a, b3, c3, d3, a3, 14, 15, base)		\
+	STEP3(a, b, c, d, a3, b3, c3, d3, 1 , 3 , base)		\
+	STEP3(d, a, b, c, d3, a3, b3, c3, 9 , 9 , base)		\
+	STEP3(c, d, a, b, c3, d3, a3, b3, 5 , 11, base)		\
+	movdqa a, t1;						\
+	movdqa a3, t13;						\
+	paddd (512*base)+416+nt_buffer8x(%rip), b;		\
+	paddd (512*base)+416+16+nt_buffer8x(%rip), b3;		\
+	pxor d, t1;						\
+	pxor d3,t13;						\
+	pxor c, t1;						\
+	pxor c3,t13;						\
+	paddd t1, b;						\
+	paddd t13,b3;						\
+								\
+	movdqa a,  (128*base)+output8x(%rip);			\
+	movdqa a3,  (128*base)+16+output8x(%rip);		\
+	movdqa b, (128*base)+32+output8x(%rip);			\
+	movdqa b3, (128*base)+32+16+output8x(%rip);		\
+	movdqa c, (128*base)+64+output8x(%rip);			\
+	movdqa c3, (128*base)+64+16+output8x(%rip);		\
+	movdqa d, (128*base)+96+output8x(%rip);			\
+	movdqa d3, (128*base)+96+16+output8x(%rip);
+
+.text
+
+DO_ALIGN(6)
+
+nt_crypt_all_x86_64:
+	movdqa const_stage2(%rip), t3
+	movdqa const_stage3(%rip), t4
+
+	NT_CRYPT_BODY(0)
+	NT_CRYPT_BODY(1)
+	NT_CRYPT_BODY(2)
+	NT_CRYPT_BODY(3)
+
+	ret
+
+nt_crypt_all_8859_1_x86_64:
+	movdqa const_stage2(%rip), t3
+	movdqa const_stage3(%rip), t4
+
+	NT_CRYPT_BODY_8859_1(0)
+	NT_CRYPT_BODY_8859_1(1)
+	NT_CRYPT_BODY_8859_1(2)
+	NT_CRYPT_BODY_8859_1(3)
+
+	ret
 
 #if defined(__ELF__) && defined(__linux__)
 .section .note.GNU-stack,"",@progbits

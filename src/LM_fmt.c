@@ -44,12 +44,12 @@ static struct fmt_tests tests[] = {
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT		DES_BS_DEPTH
 
-static void init(void)
+static void init(struct fmt_main *pFmt)
 {
 	DES_bs_init(1);
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 	char lower[CIPHERTEXT_LENGTH - 16 + 1];
@@ -70,6 +70,16 @@ static int valid(char *ciphertext)
 	if (*pos || pos - ciphertext != 20) return 0;
 
 	return 1;
+}
+
+// here to 'handle' the pwdump files:  user:gid:lmhash:ntlmhash:::
+// Note, we do NOT address the group id issues in the lm stuff, inside loader.
+static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+	if (!valid(split_fields[1], pFmt) &&
+	    split_fields[2] && valid(split_fields[2], pFmt))
+		return split_fields[2];
+	return split_fields[1];
 }
 
 static char *split(char *ciphertext, int index)
@@ -193,6 +203,7 @@ struct fmt_main fmt_LM = {
 		tests
 	}, {
 		init,
+		prepare,
 		valid,
 		split,
 		get_binary,
