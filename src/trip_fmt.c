@@ -48,13 +48,13 @@ static struct {
 static DES_binary binary_mask;
 static unsigned char salt_map[0x100];
 
-static void init(void)
+static void init(struct fmt_main *pFmt)
 {
 	char fake_crypt[14];
 	ARCH_WORD *alt_binary;
 	int i;
 
-	DES_std_init();
+	DES_std_init(pFmt);
 
 	memset(fake_crypt, '.', 13);
 	fake_crypt[13] = 0;
@@ -82,7 +82,7 @@ static void init(void)
 	}
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 
@@ -275,6 +275,7 @@ struct fmt_main fmt_trip = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,

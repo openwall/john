@@ -25,6 +25,8 @@ struct cfg_line {
 	struct cfg_line *next;
 	char *data;
 	int number;
+	char *cfg_name;
+	int id;
 };
 
 /*

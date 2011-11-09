@@ -311,12 +311,21 @@ static unsigned char PADDING[56] = {
 #define prefix				MD5_std_all.prefix
 #define prelen				MD5_std_all.prelen
 
-void MD5_std_init(void)
+void MD5_std_init(struct fmt_main *pFmt)
 {
 	int index;
 	MD5_pool *current;
 #if MD5_std_mt
 	int t, n;
+
+	// Note, $dynamic_n$ will call here for setup.  If set are !MD5_IMM,
+	// $dynamic_n$ will NOT be able to use the MD5 functions.
+	// but since I do not know if this function can be called multiple
+	// times, I simply added a static, so the init WILL get run, but
+	// only 1 time.
+	static int bFirst = 1;
+	if (!bFirst) return;
+	bFirst = 0;
 
 	if (!MD5_std_all_p) {
 		n = omp_get_max_threads();

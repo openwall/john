@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2006,2010,2011 by Solar Designer
+ *
+ * ...with a change in the jumbo patch, by JimF
  */
 
 #include <string.h>
@@ -18,6 +20,8 @@
 #include "status.h"
 #include "recovery.h"
 #include "external.h"
+#include "options.h"
+#include "unicode.h"
 
 #ifdef index
 #undef index
@@ -150,16 +154,46 @@ void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int index)
 {
+	UTF8 utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
+	UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
+	char tmp8[PLAINTEXT_BUFFER_SIZE + 1];
 	int dupe;
-	char *key;
+	char *key, *utf8key, *repkey, *replogin;
 
 	dupe = !memcmp(&crk_timestamps[index], &status.crypts, sizeof(int64));
 	crk_timestamps[index] = status.crypts;
 
-	key = crk_methods.get_key(index);
+	repkey = key = crk_methods.get_key(index);
+	replogin = pw->login;
 
-	log_guess(crk_db->options->flags & DB_LOGIN ? pw->login : "?",
-		dupe ? NULL : pw->source, key);
+	if (options.store_utf8 || options.report_utf8) {
+		if (options.utf8)
+			utf8key = key;
+		else {
+			utf8key = (char*)enc_to_utf8_r(key, utf8buf_key, PLAINTEXT_BUFFER_SIZE);
+			// Double-check that the conversion was correct. Our
+			// fallback is to log, warn and use the original key instead.
+			utf8_to_enc_r((UTF8*)utf8key, tmp8, PLAINTEXT_BUFFER_SIZE);
+			if (strcmp(tmp8, key)) {
+				fprintf(stderr, "Warning, conversion failed %s -> %s -> %s - fallback to codepage\n", key, utf8key, tmp8);
+				log_event("Warning, conversion failed %s -> %s -> %s - fallback to codepage", key, utf8key, tmp8);
+				utf8key = key;
+			}
+		}
+		if (options.report_utf8) {
+			repkey = utf8key;
+			if (crk_db->options->flags & DB_LOGIN)
+				replogin = (char*)enc_to_utf8_r(pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
+		}
+		if (options.store_utf8)
+			key = utf8key;
+	}
+
+	log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
+		dupe ? NULL : pw->source, repkey, key, crk_db->options->field_sep_char);
+
+	if (options.flags & FLG_CRKSTAT)
+		event_pending = event_status = 1;
 
 	crk_db->guess_count++;
 	status.guess_count++;
@@ -170,7 +204,8 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		crk_guesses->count++;
 	}
 
-	crk_remove_hash(salt, pw);
+	if (!(crk_params.flags & FMT_NOT_EXACT))
+		crk_remove_hash(salt, pw);
 
 	if (!crk_db->salts)
 		return 1;
@@ -229,8 +264,10 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_exact(pw->source, index)) {
 				if (crk_process_guess(salt, pw, index))
 					return 1;
-				else
-					break;
+				else {
+					if (!(crk_params.flags & FMT_NOT_EXACT))
+						break;
+				}
 			}
 		} while ((pw = pw->next));
 	} else

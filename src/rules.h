@@ -73,7 +73,7 @@ extern char *rules_reject(char *rule, int split, char *last,
  * rules_apply() are properly aligned).  If the new mangled word matches the
  * previous one, it will be rejected (rules_apply() will return NULL).
  */
-extern char *rules_apply(char *word, char *rule, int split, char *last);
+extern char *rules_apply(const char *word, char *rule, int split, char *last);
 
 /*
  * Checks if all the rules for context are valid. Returns the number of rules,
@@ -86,8 +86,19 @@ extern int rules_check(struct rpp_context *start, int split);
 
 /*
  * Similar to rules_check(), but displays a message and does not return on
- * error.
+ * error.  Also performs 'dupe' rule removal, and lists if any rules were removed.
  */
 extern int rules_count(struct rpp_context *start, int split);
+
+/*
+ * The data lines (linked list), of rules are passed in, and any duplicate
+ * rules are removed. The rules are first copied to a temp array, and there
+ * they get 'reduced', by dropping the no-op information (calling rules_reject
+ * with split==-1 and the db==NULL).  If log is true then any rules that are
+ * removed get logged.  The return count is the number of rules removed.
+ * 0 return means no dupes found.  NOTE the pLines list can be modified by this
+ * function, simply by manipulating the linked list pointers.
+ */
+extern int rules_remove_dups(struct cfg_line *pLines, int log);
 
 #endif

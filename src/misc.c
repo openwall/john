@@ -1,10 +1,17 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003 by Solar Designer
+ *
+ * ...with changes in the jumbo patch for MSC, by JimF.
  */
 
 #include <stdio.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#include <io.h>
+#pragma warning ( disable : 4996 )
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -12,11 +19,19 @@
 
 #include "logger.h"
 
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
+
 void error(void)
 {
 #ifndef _JOHN_MISC_NO_LOG
 	log_event("Terminating on error");
 	log_done();
+#if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
+	if (mpi_p > 1)
+		MPI_Abort(MPI_COMM_WORLD,1);
+#endif
 #endif
 
 	exit(1);
@@ -26,6 +41,12 @@ void pexit(char *format, ...)
 {
 	va_list args;
 
+#ifndef _JOHN_MISC_NO_LOG
+#ifdef HAVE_MPI
+	if (mpi_p > 1)
+		fprintf(stderr, "Node %u@%s: ", mpi_id, mpi_name);
+#endif
+#endif
 	va_start(args, format);
 	vfprintf(stderr, format, args);
 	va_end(args);
@@ -35,7 +56,7 @@ void pexit(char *format, ...)
 	error();
 }
 
-int write_loop(int fd, char *buffer, int count)
+int write_loop(int fd, const char *buffer, int count)
 {
 	int offset, block;
 
@@ -82,48 +103,48 @@ char *fgetl(char *s, int size, FILE *stream)
 	return res;
 }
 
-char *strnfcpy(char *dst, char *src, int size)
+char *strnfcpy(char *dst, const char *src, int size)
 {
-	char *dptr = dst, *sptr = src;
-	int count = size;
+	char *dptr = dst;
 
-	while (count--)
-		if (!(*dptr++ = *sptr++)) break;
+	while (size--)
+		if (!(*dptr++ = *src++)) break;
 
 	return dst;
 }
 
-char *strnzcpy(char *dst, char *src, int size)
+char *strnzcpy(char *dst, const char *src, int size)
 {
-	char *dptr = dst, *sptr = src;
-	int count = size;
+	char *dptr = dst;
 
-	if (count)
-		while (--count)
-			if (!(*dptr++ = *sptr++)) break;
+	if (size)
+		while (--size)
+			if (!(*dptr++ = *src++)) break;
 	*dptr = 0;
 
 	return dst;
 }
 
-char *strnzcat(char *dst, char *src, int size)
+char *strnzcat(char *dst, const char *src, int size)
 {
-	char *dptr = dst, *sptr = src;
-	int count = size;
+	char *dptr = dst;
 
-	if (count) {
-		while (count && *dptr) {
-			count--; dptr++;
+	if (size) {
+		while (size && *dptr) {
+			size--; dptr++;
 		}
-		if (count)
-			while (--count)
-				if (!(*dptr++ = *sptr++)) break;
+		if (size)
+			while (--size)
+				if (!(*dptr++ = *src++)) break;
 	}
 	*dptr = 0;
 
 	return dst;
 }
 
+// NOTE there is an encoding-aware version in unicode.c: enc_strlwr(). That
+// one should be used for usernames, plaintexts etc in formats.
+#ifndef _MSC_VER
 char *strlwr(char *s)
 {
 	unsigned char *ptr = (unsigned char *)s;
@@ -136,3 +157,16 @@ char *strlwr(char *s)
 
 	return s;
 }
+char *strupr(char *s)
+{
+	unsigned char *ptr = (unsigned char *)s;
+
+	while (*ptr)
+	if (*ptr >= 'a' && *ptr <= 'z')
+		*ptr++ ^= 0x20;
+	else
+		ptr++;
+
+	return s;
+}
+#endif

@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2006 by Solar Designer
+ *
+ * ...with a change in the jumbo patch, by JoMo-Kun
  */
 
 #include <stdio.h>
@@ -23,6 +25,32 @@
 #include "cracker.h"
 
 extern struct fmt_main fmt_LM;
+extern struct fmt_main fmt_NETLM;
+extern struct fmt_main fmt_NETHALFLM;
+
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
+#include <math.h>
+
+static unsigned long long try, cand;
+
+static int get_progress(int *hundth_perc)
+{
+	int hundredXpercent, percent;
+
+	if (!cand)
+		return -1;
+
+	if (try > 1844674407370955LL) {
+		*hundth_perc = percent = 99;
+	} else {
+		hundredXpercent = (int)((unsigned long long)(10000 * (try)) / (unsigned long long)cand);
+		percent = hundredXpercent / 100;
+		*hundth_perc = hundredXpercent - (percent*100);
+	}
+	return percent;
+}
 
 typedef char (*char2_table)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1];
@@ -64,6 +92,7 @@ static int restore_state(FILE *file)
 		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE) return 1;
 	}
 
+	cand = 0; // progress reporting don't work after resume so we mute it
 	return 0;
 }
 
@@ -76,6 +105,9 @@ static void fix_state(void)
 static void inc_format_error(char *charset)
 {
 	log_event("! Incorrect charset file format: %.100s", charset);
+#ifdef HAVE_MPI
+	if (mpi_id == 0)
+#endif
 	fprintf(stderr, "Incorrect charset file format: %s\n", charset);
 	error();
 }
@@ -311,6 +343,7 @@ update_last:
 	}
 
 	key = key_i;
+	try++;
 	if (!f_filter || ext_filter_body(key_i, key = key_e))
 		if (crk_process_key(key))
 			return 1;
@@ -378,6 +411,10 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (!mode) {
 		if (db->format == &fmt_LM)
 			mode = "LanMan";
+		else if (db->format == &fmt_NETLM)
+			mode = "LanMan";
+		else if (db->format == &fmt_NETHALFLM)
+			mode = "LanMan";
 		else
 			mode = "All";
 	}
@@ -386,6 +423,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
 		log_event("! No charset defined");
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "No charset defined for mode: %s\n", mode);
 		error();
 	}
@@ -401,6 +441,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (min_length > max_length) {
 		log_event("! MinLen = %d exceeds MaxLen = %d",
 			min_length, max_length);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "MinLen = %d exceeds MaxLen = %d\n",
 			min_length, max_length);
 		error();
@@ -409,6 +452,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (min_length > db->format->params.plaintext_length) {
 		log_event("! MinLen = %d is too large for this hash type",
 			min_length);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "MinLen = %d exceeds the maximum possible "
 			"length for the current hash type (%d)\n",
 			min_length, db->format->params.plaintext_length);
@@ -418,6 +464,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (max_length > db->format->params.plaintext_length) {
 		log_event("! MaxLen = %d is too large for this hash type",
 			max_length);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Warning: "
 			"MaxLen = %d is too large for the current hash type, "
 			"reduced to %d\n",
@@ -428,6 +477,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (max_length > CHARSET_LENGTH) {
 		log_event("! MaxLen = %d exceeds the compile-time limit of %d",
 			max_length, CHARSET_LENGTH);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr,
 			"\n"
 			"MaxLen = %d exceeds the compile-time limit of %d\n\n"
@@ -462,6 +514,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
 	    header->length != CHARSET_LENGTH) {
 		log_event("! Incompatible charset file: %.100s", charset);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Incompatible charset file: %s\n", charset);
 		error();
 	}
@@ -494,6 +549,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		log_event("! Extra characters not in compile-time "
 			"specified range ('\\x%02x' to '\\x%02x')",
 			CHARSET_MIN, CHARSET_MAX);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Extra characters not in compile-time "
 			"specified range ('\\x%02x' to '\\x%02x')\n",
 			CHARSET_MIN, CHARSET_MAX);
@@ -512,9 +570,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 	if ((unsigned int)max_count > real_count) {
 		log_event("! Only %u characters available", real_count);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Warning: only %u characters available\n",
 			real_count);
 	}
+
+	for (pos = min_length; pos <= max_length; pos++)
+		cand += pow(real_count, pos);
 
 	if (!(db->format->params.flags & FMT_CASE))
 	switch (is_mixedcase(allchars)) {
@@ -524,6 +588,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	case 1:
 		log_event("! Mixed-case charset, "
 			"but the hash type is case-insensitive");
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Warning: mixed-case charset, "
 			"but the current hash type is case-insensitive;\n"
 			"some candidate passwords may be unnecessarily "
@@ -538,10 +605,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		chars[pos] = (chars_table)mem_alloc(sizeof(*chars[0]));
 
 	rec_compat = 0;
+#ifdef HAVE_MPI
+	/* *ptr has to start at different positions so they don't overlap */
+	rec_entry = mpi_id;
+#else
 	rec_entry = 0;
+#endif
 	memset(rec_numbers, 0, sizeof(rec_numbers));
 
-	status_init(NULL, 0);
+	status_init(get_progress, 0);
 
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
@@ -558,6 +630,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		entry++;
 		length = *ptr++; fixed = *ptr++; count = *ptr++;
 
+#ifdef HAVE_MPI
+		/* increment *ptr with the number of processors after this */
+		ptr = ptr + (3 * (mpi_p - 1));
+		entry = entry + mpi_p - 1;
+#endif
 		if (length >= CHARSET_LENGTH ||
 			fixed > length ||
 			count >= CHARSET_SIZE) inc_format_error(charset);
@@ -582,6 +659,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 
 		if (!length && !min_length) {
 			min_length = 1;
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
 			if (crk_process_key("")) break;
 		}
 
@@ -591,6 +671,9 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		if (inc_key_loop(length, fixed, count, char1, char2, chars))
 			break;
 	}
+
+	if (!event_abort)
+		try = cand = 100; // For reporting DONE after a no-ETA run
 
 	crk_done();
 	rec_done(event_abort);

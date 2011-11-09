@@ -22,6 +22,17 @@ extern void path_init(char **argv);
 extern char *path_expand(char *name);
 
 /*
+ * these 2 are used when -conf=path is used.  Here, we have a 'base'
+ * directory other than where john ran from (or likely can). Thus we
+ * want to base file names from there. Since we have added #include
+ * to the john.conf processing, we do want to look in the same
+ * dir where we loaded the john.conf file, if -conf= arg is used.
+ */
+extern void path_init_ex(const char *name);
+extern char *path_expand_ex(char *name);
+
+
+/*
  * Generates a filename for the given session name and filename suffix.
  * Memory for the resulting filename is allocated with mem_alloc_tiny().
  */

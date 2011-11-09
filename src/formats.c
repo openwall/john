@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006,2008,2010,2011 by Solar Designer
+ *
+ * ...with a change in the jumbo patch, by JimF
  */
 
 #include <stdio.h>
@@ -8,6 +10,9 @@
 
 #include "params.h"
 #include "formats.h"
+#ifndef BENCH_BUILD
+#include "options.h"
+#endif
 
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
@@ -23,9 +28,21 @@ void fmt_register(struct fmt_main *format)
 void fmt_init(struct fmt_main *format)
 {
 	if (!format->private.initialized) {
-		format->methods.init();
+		format->methods.init(format);
 		format->private.initialized = 1;
 	}
+#ifndef BENCH_BUILD
+	if (options.mkpc) {
+		if (options.mkpc <= format->params.max_keys_per_crypt)
+			format->params.min_keys_per_crypt =
+				format->params.max_keys_per_crypt =
+				options.mkpc;
+		else {
+			fprintf(stderr, "Can't set mkpc larger than %u for %s format\n", format->params.max_keys_per_crypt, format->params.label);
+			error();
+		}
+	}
+#endif
 }
 
 char *fmt_self_test(struct fmt_main *format)
@@ -39,7 +56,7 @@ char *fmt_self_test(struct fmt_main *format)
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
 
-	if (format->methods.valid("*")) return "valid";
+	if (format->methods.valid("*",format)) return "valid";
 
 	fmt_init(format);
 
@@ -48,13 +65,19 @@ char *fmt_self_test(struct fmt_main *format)
 	while ((current++)->ciphertext)
 		ntests++;
 	current = format->params.tests;
+	if (ntests==0) return NULL;
 
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		if (format->methods.valid(current->ciphertext) != 1)
+		char *prepared;
+		current->flds[1] = current->ciphertext;
+		prepared = format->methods.prepare(current->flds, format);
+		if (!prepared || strlen(prepared) < 7) // $dummy$ can be just 7 bytes long.
+			return "prepare";
+		if (format->methods.valid(prepared,format) != 1)
 			return "valid";
-		ciphertext = format->methods.split(current->ciphertext, 0);
+		ciphertext = format->methods.split(prepared, 0);
 		plaintext = current->plaintext;
 
 		binary = format->methods.binary(ciphertext);
@@ -77,16 +100,22 @@ char *fmt_self_test(struct fmt_main *format)
 			return s_size;
 		}
 
-		if (!format->methods.cmp_all(binary, index + 1))
-			return "cmp_all";
-		if (!format->methods.cmp_one(binary, index))
-			return "cmp_one";
-		if (!format->methods.cmp_exact(ciphertext, index))
-			return "cmp_exact";
-
-		if (strncmp(format->methods.get_key(index), plaintext,
-		    format->params.plaintext_length))
-			return "get_key";
+		if (!format->methods.cmp_all(binary, index + 1)) {
+			sprintf(s_size, "cmp_all(%d)", index + 1);
+			return s_size;
+		}
+		if (!format->methods.cmp_one(binary, index)) {
+			sprintf(s_size, "cmp_one(%d)", index);
+			return s_size;
+		}
+		if (!format->methods.cmp_exact(ciphertext, index)) {
+			sprintf(s_size, "cmp_exact(%d)", index);
+			return s_size;
+		}
+		if (strncmp(format->methods.get_key(index), plaintext, format->params.plaintext_length)) {
+			sprintf(s_size, "get_key(%d)", index);
+			return s_size;
+		}
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
@@ -119,11 +148,16 @@ char *fmt_self_test(struct fmt_main *format)
 	return NULL;
 }
 
-void fmt_default_init(void)
+void fmt_default_init(struct fmt_main *pFmt)
 {
 }
 
-int fmt_default_valid(char *ciphertext)
+char *fmt_default_prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+	return split_fields[1];
+}
+
+int fmt_default_valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	return 0;
 }

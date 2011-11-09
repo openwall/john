@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006 by Solar Designer
+ *
+ * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
 
 /*
@@ -29,7 +31,11 @@ extern volatile int event_ticksafety;	/* System time in ticks may overflow */
 /*
  * Timer emulation for systems with no setitimer(2).
  */
+#if defined (__MINGW32__) || defined (_MSC_VER)
+#include <time.h>
+#else
 #include <sys/times.h>
+#endif
 
 extern void sig_timer_emu_init(clock_t interval);
 extern void sig_timer_emu_tick(void);

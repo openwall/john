@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2003,2006,2008,2010,2011 by Solar Designer
+ *
+ * ...with a trivial change in the jumbo patch, by Alain Espinosa.
  */
 
 /*
@@ -174,8 +176,34 @@
 #define MD5_X2				1
 #define MD5_IMM				1
 
+#if !defined(USING_ICC_S_FILE) && defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#define MD5_SSE_PARA		2
+#define MD5_N_STR			"8x"
+#else
+#define MD5_SSE_PARA		3
+#define MD5_N_STR			"12x"
+#endif
+
+#if !defined(USING_ICC_S_FILE) && defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#define MD4_SSE_PARA		2
+#define MD4_N_STR			"8x"
+#else
+#define MD4_SSE_PARA		3
+#define MD4_N_STR			"12x"
+#endif
+
+#ifdef __GNUC__
+#define SHA1_SSE_PARA		2
+#define SHA1_N_STR			"8x"
+#else
+#define SHA1_SSE_PARA		2
+#define SHA1_N_STR			"8x"
+#endif
+
 #define BF_ASM				0
 #define BF_SCALE			1
 #define BF_X2				1
+
+#define NT_X86_64
 
 #endif

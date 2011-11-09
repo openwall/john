@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by various authors
  */
 
 /*
@@ -17,7 +19,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9"
+#define JOHN_VERSION			"1.7.9-jumbo-1RC"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -120,7 +122,7 @@
 /*
  * Default benchmark time in seconds (per cracking algorithm).
  */
-#define BENCHMARK_TIME			5
+#define BENCHMARK_TIME			1
 
 /*
  * Number of salts to assume when benchmarking.
@@ -137,11 +139,19 @@
 #define CFG_PRIVATE_ALT_NAME		JOHN_PRIVATE_HOME "/john.ini"
 #define POT_NAME			JOHN_PRIVATE_HOME "/john.pot"
 #define LOG_NAME			JOHN_PRIVATE_HOME "/john.log"
+#ifdef HAVE_MPI
+#define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john"
+#else
 #define RECOVERY_NAME			JOHN_PRIVATE_HOME "/john.rec"
+#endif /* HAVE_MPI */
 #else
 #define POT_NAME			"$JOHN/john.pot"
 #define LOG_NAME			"$JOHN/john.log"
+#ifdef HAVE_MPI
+#define RECOVERY_NAME			"$JOHN/john"
+#else
 #define RECOVERY_NAME			"$JOHN/john.rec"
+#endif /* HAVE_MPI */
 #endif
 #define LOG_SUFFIX			".log"
 #define RECOVERY_SUFFIX			".rec"
@@ -232,9 +242,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Hash and buffer sizes for unique.
  */
-#define UNIQUE_HASH_LOG			20
+#define UNIQUE_HASH_LOG			21
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-#define UNIQUE_BUFFER_SIZE		0x4000000
+#define UNIQUE_BUFFER_SIZE		0x8000000
 
 /*
  * Maximum number of GECOS words per password to load.
@@ -298,7 +308,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffer size for fgets().
  */
-#define LINE_BUFFER_SIZE		0x400
+#define LINE_BUFFER_SIZE		0x4000
 
 /*
  * john.pot and log file buffer sizes, can be zero.
@@ -314,5 +324,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #else
 #define PATH_BUFFER_SIZE		0x400
 #endif
+
+/* Markov mode stuff */
+#define MAX_MKV_LVL 400
+#define MAX_MKV_LEN 30
 
 #endif

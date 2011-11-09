@@ -1,10 +1,18 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2004,2006,2009-2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by various authors
  */
 
 #include <stdio.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#define CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -35,8 +43,19 @@
 #include "single.h"
 #include "wordlist.h"
 #include "inc.h"
+#include "mkv.h"
 #include "external.h"
 #include "batch.h"
+#include "dynamic.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif /* _OPENMP */
+#endif /* HAVE_MPI */
+#include <openssl/opensslv.h>
+#include "unicode.h"
+#include "plugin.h"
 
 #if CPU_DETECT
 extern int CPU_detect(void);
@@ -50,9 +69,41 @@ extern struct fmt_main fmt_crypt;
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 
+extern struct fmt_main fmt_MD5gen;
+
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+extern struct fmt_main fmt_rawSHA224;
+extern struct fmt_main fmt_rawSHA256;
+extern struct fmt_main fmt_rawSHA384;
+extern struct fmt_main fmt_rawSHA512;
+
+extern struct fmt_main fmt_XSHA512;
+
+extern struct fmt_main fmt_hmailserver;
+extern struct fmt_main fmt_SybaseASE;
+#endif
+
+#ifdef HAVE_SKEY
+extern struct fmt_main fmt_SKEY;
+#endif
+
+extern struct fmt_main fmt_ssh;
+extern struct fmt_main fmt_pdf;
+extern struct fmt_main rar_fmt;
+extern struct fmt_main zip_fmt;
+
+#include "fmt_externs.h"
+
+extern int unique(int argc, char **argv);
 extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
-extern int unique(int argc, char **argv);
+extern int undrop(int argc, char **argv);
+#ifndef _MSC_VER
+extern int ssh2john(int argc, char **argv);
+extern int pdf2john(int argc, char **argv);
+extern int rar2john(int argc, char **argv);
+#endif
+extern int zip2john(int argc, char **argv);
 
 static struct db_main database;
 static struct fmt_main dummy_format;
@@ -69,7 +120,15 @@ static void john_register_one(struct fmt_main *format)
 
 static void john_register_all(void)
 {
+	int i, cnt;
+	struct fmt_main *pFmts;
+
 	if (options.format) strlwr(options.format);
+
+	// NOTE, this MUST happen, before ANY format that links a 'thin' format to dynamic.
+	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
+	// generic format first
+	cnt = dynamic_Register_formats(&pFmts);
 
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
@@ -77,13 +136,49 @@ static void john_register_all(void)
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+
+	for (i = 0; i < cnt; ++i)
+		john_register_one(&(pFmts[i]));
+
+#include "fmt_registers.h"
+
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+	john_register_one(&fmt_rawSHA224);
+	john_register_one(&fmt_rawSHA256);
+	john_register_one(&fmt_rawSHA384);
+	john_register_one(&fmt_rawSHA512);
+
+	john_register_one(&fmt_XSHA512);
+
+	john_register_one(&fmt_hmailserver);
+	john_register_one(&fmt_SybaseASE);
+#endif
+
 #ifdef HAVE_CRYPT
 	john_register_one(&fmt_crypt);
 #endif
 	john_register_one(&fmt_trip);
+#ifdef HAVE_SKEY
+	john_register_one(&fmt_SKEY);
+#endif
+
+	john_register_one(&fmt_ssh);
+	john_register_one(&fmt_pdf);
+	john_register_one(&rar_fmt);
+	john_register_one(&zip_fmt);
 	john_register_one(&fmt_dummy);
 
+#ifdef HAVE_DL
+	if (options.fmt_dlls)
+	register_dlls ( options.fmt_dlls,
+		cfg_get_param(SECTION_OPTIONS, NULL, "plugin"),
+		john_register_one );
+#endif
+
 	if (!fmt_list) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Unknown ciphertext format name requested\n");
 		error();
 	}
@@ -93,10 +188,17 @@ static void john_log_format(void)
 {
 	int min_chunk, chunk;
 
+#ifdef HAVE_MPI
+	if (mpi_p > 1)
+		log_event("- MPI mode: %u nodes, this one running on %s", mpi_p, mpi_name);
+#endif
+	/* make sure the format is properly initialized */
+	fmt_init(database.format);
+
 	log_event("- Hash type: %.100s (lengths up to %d%s)",
 		database.format->params.format_name,
 		database.format->params.plaintext_length,
-		database.format->methods.split != fmt_default_split ?
+		(database.format == &fmt_DES || database.format == &fmt_LM) ?
 		", longer passwords split" : "");
 
 	log_event("- Algorithm: %.100s",
@@ -134,7 +236,9 @@ static void john_load(void)
 {
 	struct list_entry *current;
 
+#ifndef _MSC_VER
 	umask(077);
+#endif
 
 	if (options.flags & FLG_EXTERNAL_CHK)
 		ext_init(options.external);
@@ -144,7 +248,7 @@ static void john_load(void)
 		ldr_init_database(&database, &options.loader);
 
 		if (options.flags & FLG_PASSWD) {
-			ldr_show_pot_file(&database, POT_NAME);
+			ldr_show_pot_file(&database, options.loader.activepot);
 
 			database.options->flags |= DB_PLAINTEXTS;
 			if ((current = options.passwd->head))
@@ -153,7 +257,7 @@ static void john_load(void)
 			} while ((current = current->next));
 		} else {
 			database.options->flags |= DB_PLAINTEXTS;
-			ldr_show_pot_file(&database, POT_NAME);
+			ldr_show_pot_file(&database, options.loader.activepot);
 		}
 
 		return;
@@ -174,7 +278,7 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			ldr_show_pot_file(&database, POT_NAME);
+			ldr_show_pot_file(&database, options.loader.activepot);
 
 			if ((current = options.passwd->head))
 			do {
@@ -195,14 +299,24 @@ static void john_load(void)
 		    status.pass <= 1)
 			options.loader.flags |= DB_WORDS;
 		else
-		if (mem_saving_level)
+		if (mem_saving_level) {
 			options.loader.flags &= ~DB_LOGIN;
+			options.loader.max_wordfile_memory = 0;
+		}
 		ldr_init_database(&database, &options.loader);
 
 		if ((current = options.passwd->head))
 		do {
 			ldr_load_pw_file(&database, current->data);
 		} while ((current = current->next));
+
+		// Unicode (UTF-16) formats may lack UTF-8 support (initially)
+		if (options.utf8 && database.password_count &&
+		    database.format->params.flags & FMT_UNICODE &&
+		    !(database.format->params.flags & FMT_UTF8)) {
+			fprintf(stderr, "This format does not yet support UTF-8 conversion\n");
+				error();
+		}
 
 		if ((options.flags & FLG_CRACKING_CHK) &&
 		    database.password_count) {
@@ -212,14 +326,32 @@ static void john_load(void)
 			else
 				log_event("Starting a new session");
 			log_event("Loaded a total of %s", john_loaded_counts());
+			/* make sure the format is properly initialized */
+			fmt_init(database.format);
 			printf("Loaded %s (%s [%s])\n",
 				john_loaded_counts(),
 				database.format->params.format_name,
 				database.format->params.algorithm_name);
 		}
 
+		if (database.password_count) {
+			if (database.format->params.flags & FMT_UNICODE)
+				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+			        NULL, "UnicodeStoreUTF8", 0);
+			else
+				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+			        NULL, "CPstoreUTF8", 0);
+		}
+		if (!options.utf8) {
+			if (options.report_utf8 && options.log_passwords)
+				log_event("- Passwords in this logfile are UTF-8 encoded");
+
+			if (options.store_utf8)
+				log_event("- Passwords will be stored UTF-8 encoded in .pot file");
+		}
+
 		total = database.password_count;
-		ldr_load_pot_file(&database, POT_NAME);
+		ldr_load_pot_file(&database, options.loader.activepot);
 		ldr_fix_database(&database);
 
 		if (!database.password_count) {
@@ -270,6 +402,11 @@ static void john_init(char *name, int argc, char **argv)
 
 	CPU_detect_or_fallback(argv, make_check);
 
+	status_init(NULL, 1);
+	if (argc < 2)
+		john_register_all(); /* for printing by opt_init() */
+	opt_init(name, argc, argv);
+
 	if (!make_check) {
 #if defined(_OPENMP) && OMP_FALLBACK
 #if defined(__DJGPP__) || defined(__CYGWIN32__)
@@ -285,23 +422,34 @@ static void john_init(char *name, int argc, char **argv)
 
 		path_init(argv);
 
+		if (options.flags & FLG_CONFIG_CLI)
+		{
+			path_init_ex(options.config);
+			cfg_init(options.config, 1);
+			cfg_init(CFG_FULL_NAME, 1);
+			cfg_init(CFG_ALT_NAME, 0);
+		}
+		else
+		{
 #if JOHN_SYSTEMWIDE
-		cfg_init(CFG_PRIVATE_FULL_NAME, 1);
-		cfg_init(CFG_PRIVATE_ALT_NAME, 1);
+			cfg_init(CFG_PRIVATE_FULL_NAME, 1);
+			cfg_init(CFG_PRIVATE_ALT_NAME, 1);
 #endif
-		cfg_init(CFG_FULL_NAME, 1);
-		cfg_init(CFG_ALT_NAME, 0);
+			cfg_init(CFG_FULL_NAME, 1);
+			cfg_init(CFG_ALT_NAME, 0);
+		}
 	}
 
-	status_init(NULL, 1);
-	if (argc < 2)
-		john_register_all(); /* for printing by opt_init() */
-	opt_init(name, argc, argv);
+	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
+
 	john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();
 
 	john_load();
+
+	if (options.encodingStr && options.encodingStr[0])
+		log_event("- %s input encoding enabled", options.encodingStr);
 }
 
 static void john_run(void)
@@ -317,7 +465,7 @@ static void john_run(void)
 
 		if (!(options.flags & FLG_STDOUT)) {
 			status_init(NULL, 1);
-			log_init(LOG_NAME, POT_NAME, options.session);
+			log_init(LOG_NAME, options.loader.activepot, options.session);
 			john_log_format();
 			if (idle_requested(database.format))
 				log_event("- Configured to use otherwise idle "
@@ -325,6 +473,20 @@ static void john_run(void)
 		}
 		tty_init(options.flags & FLG_STDIN_CHK);
 
+#if defined(HAVE_MPI) && defined(_OPENMP)
+		if (database.format->params.flags & FMT_OMP &&
+		    omp_get_max_threads() > 1 && mpi_p > 1) {
+			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
+				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				   mpi_id == 0)
+					fprintf(stderr, "MPI in use, disabling OMP (see doc/README.mpi)\n");
+				omp_set_num_threads(1);
+			} else
+				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				   mpi_id == 0)
+					fprintf(stderr, "Note: Running both MPI and OMP (see doc/README.mpi)\n");
+		}
+#endif
 		if (options.flags & FLG_SINGLE_CHK)
 			do_single_crack(&database);
 		else
@@ -334,6 +496,9 @@ static void john_run(void)
 		else
 		if (options.flags & FLG_INC_CHK)
 			do_incremental_crack(&database, options.charset);
+		else
+		if (options.flags & FLG_MKV_CHK)
+			do_markov_crack(&database, options.mkv_level, options.mkv_start, options.mkv_end, options.mkv_maxlen, options.mkv_minlevel, options.mkv_minlen);
 		else
 		if (options.flags & FLG_EXTERNAL_CHK)
 			do_external_crack(&database);
@@ -351,15 +516,27 @@ static void john_run(void)
 			switch (database.options->flags &
 			    (DB_SPLIT | DB_NODUP)) {
 			case DB_SPLIT:
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
 				fprintf(stderr, "%s%s\n", might, partial);
 				break;
 			case DB_NODUP:
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
 				fprintf(stderr, "%s%s\n", might, not_all);
 				break;
 			case (DB_SPLIT | DB_NODUP):
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
 				fprintf(stderr, "%s%s and%s\n",
 				    might, partial, not_all);
 			}
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
 			fputs("Use the \"--show\" option to display all of "
 			    "the cracked passwords reliably\n", stderr);
 		}
@@ -379,11 +556,22 @@ static void john_done(void)
 	}
 	log_done();
 	check_abort(0);
+	cleanup_tiny_memory();
 }
 
 int main(int argc, char **argv)
 {
 	char *name;
+
+#ifdef _MSC_VER
+   // Send all reports to STDOUT
+   _CrtSetReportMode( _CRT_WARN, _CRTDBG_MODE_FILE );
+   _CrtSetReportFile( _CRT_WARN, _CRTDBG_FILE_STDOUT );
+   _CrtSetReportMode( _CRT_ERROR, _CRTDBG_MODE_FILE );
+   _CrtSetReportFile( _CRT_ERROR, _CRTDBG_FILE_STDOUT );
+   _CrtSetReportMode( _CRT_ASSERT, _CRTDBG_MODE_FILE );
+   _CrtSetReportFile( _CRT_ASSERT, _CRTDBG_FILE_STDOUT );
+#endif
 
 #ifdef __DJGPP__
 	if (--argc <= 0) return 1;
@@ -398,11 +586,16 @@ int main(int argc, char **argv)
 	else
 	if ((name = strrchr(argv[0], '/')))
 		name++;
+#if defined(__CYGWIN32__) || defined (__MINGW32__) || defined (_MSC_VER)
+	else
+	if ((name = strrchr(argv[0], '\\')))
+		name++;
+#endif
 	else
 		name = argv[0];
 #endif
 
-#ifdef __CYGWIN32__
+#if defined(__CYGWIN32__) || defined (__MINGW32__) || defined (_MSC_VER)
 	strlwr(name);
 	if (strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".exe"))
 		name[strlen(name) - 4] = 0;
@@ -423,9 +616,38 @@ int main(int argc, char **argv)
 		return unique(argc, argv);
 	}
 
+#ifndef _MSC_VER
+	if (!strcmp(name, "ssh2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return ssh2john(argc, argv);
+	}
+
+ 	if (!strcmp(name, "pdf2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return pdf2john(argc, argv);
+	}
+
+	if (!strcmp(name, "rar2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return rar2john(argc, argv);
+	}
+#endif
+
+	if (!strcmp(name, "zip2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return zip2john(argc, argv);
+	}
+
+#ifdef HAVE_MPI
+	mpi_setup(argc, argv);
+#endif
 	john_init(name, argc, argv);
 	john_run();
 	john_done();
+
+#ifdef _MSC_VER
+	_CrtDumpMemoryLeaks();
+#endif
 
 	return exit_status;
 }

@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch for mingw and MSC, by JimF.
  */
 
 /*
@@ -20,14 +22,18 @@
 #define ARCH_ALLOWS_UNALIGNED		1
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
-#if defined(__CYGWIN32__) || defined(__BEOS__)
+#if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER)
 #define OS_TIMER			0
 #else
 #define OS_TIMER			1
 #endif
 #define OS_FLOCK			1
 
+#ifdef _MSC_VER
+#define CPU_DETECT			0
+#else
 #define CPU_DETECT			1
+#endif
 #define CPU_REQ				0
 
 #define DES_ASM				1

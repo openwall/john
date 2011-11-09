@@ -9,6 +9,7 @@
 #include "common.h"
 #include "DES_std.h"
 #include "DES_bs.h"
+#include "unicode.h"
 
 #if DES_BS_VECTOR
 #define DEPTH				[depth]
@@ -131,10 +132,14 @@ void DES_bs_init(int LM, int cpt)
 
 		if (LM) {
 			for (c = 0; c < 0x100; c++)
+#ifdef BENCH_BUILD
 			if (c >= 'a' && c <= 'z')
 				DES_bs_all.E.u[c] = c & ~0x20;
 			else
 				DES_bs_all.E.u[c] = c;
+#else
+			DES_bs_all.E.u[c] = CP_up[c];
+#endif
 		} else {
 			for (index = 0; index < 48; index++)
 				DES_bs_all.Ens[index] =

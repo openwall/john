@@ -1,11 +1,19 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2003,2005,2010,2011 by Solar Designer
+ *
+ * ...with heavy changes in the jumbo patch, by various authors
  */
+
+#define LDR_WARN_AMBIGUOUS
 
 #include <stdio.h>
 #include <sys/stat.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#define S_ISDIR(a) ((a) & _S_IFDIR)
+#endif
 #include <errno.h>
 #include <string.h>
 
@@ -18,6 +26,12 @@
 #include "signals.h"
 #include "formats.h"
 #include "loader.h"
+#include "options.h"
+#include "config.h"
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+#endif
+#include "unicode.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -29,15 +43,6 @@ int ldr_in_pot = 0;
  */
 #define RF_ALLOW_MISSING		1
 #define RF_ALLOW_DIR			2
-
-/*
- * Word separator characters for ldr_split_words(), used on GECOS fields.
- */
-#define issep \
-	"!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\177"
-
-static char issep_map[0x100];
-static int issep_initialized = 0;
 
 static char *no_username = "?";
 
@@ -72,21 +77,6 @@ static void read_file(struct db_main *db, char *name, int flags,
 	if (fclose(file)) pexit("fclose");
 }
 
-static void ldr_init_issep(void)
-{
-	char *pos;
-
-	if (issep_initialized) return;
-
-	memset(issep_map, 0, sizeof(issep_map));
-
-	memset(issep_map, 1, 33);
-	for (pos = issep; *pos; pos++)
-		issep_map[ARCH_INDEX(*pos)] = 1;
-
-	issep_initialized = 1;
-}
-
 void ldr_init_database(struct db_main *db, struct db_options *options)
 {
 	db->loaded = 0;
@@ -114,11 +104,9 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 
 		db->cracked_hash = NULL;
 
-		if (options->flags & DB_WORDS) {
+		if (options->flags & DB_WORDS)
 			options->flags |= DB_LOGIN;
 
-			ldr_init_issep();
-		}
 	}
 
 	list_init(&db->plaintexts);
@@ -156,13 +144,13 @@ static void ldr_init_password_hash(struct db_main *db)
 	memset(db->password_hash, 0, size);
 }
 
-static char *ldr_get_field(char **ptr)
+static char *ldr_get_field(char **ptr, char field_sep_char)
 {
 	char *res, *pos;
 
 	if (!*ptr) return "";
 
-	if ((pos = strchr(res = *ptr, ':'))) {
+	if ((pos = strchr(res = *ptr, field_sep_char))) {
 		*pos++ = 0; *ptr = pos;
 	} else {
 		pos = res;
@@ -211,33 +199,42 @@ static int ldr_check_shells(struct list_main *list, char *shell)
 	return 0;
 }
 
+static char *trimwhite(char *Str) {
+	char *p = &Str[strlen(Str)-1];
+	while ( p > Str && (*p == ' ' || *p == '\t')) {
+		*p = 0;
+		--p;
+	}
+	while (*Str == ' ' || *Str == '\t')
+		++Str;
+	return Str;
+}
+
 static int ldr_split_line(char **login, char **ciphertext,
 	char **gecos, char **home,
 	char *source, struct fmt_main **format,
-	struct db_options *options, char *line)
+	struct db_options *db_options, char *line)
 {
 	struct fmt_main *alt;
 	char *uid = NULL, *gid = NULL, *shell = NULL;
-	int retval;
+	char *split_fields[10];
+	int i, retval, valid;
 
-	*login = ldr_get_field(&line);
-	*ciphertext = ldr_get_field(&line);
+	// Note, only 7 are 'defined' in the passwd format.  We load 10, so that
+	// other formats can add specific extra stuff.
+	for (i = 0; i < 10; ++i) {
+		split_fields[i] = ldr_get_field(&line, db_options->field_sep_char);
+		if (!line && i == 1 && split_fields[1][0] == 0) {
+			/* allow a file of 'raw' hashes to work properly */
+			if (strlen(split_fields[0]) < 13 && strncmp(split_fields[0], "$dummy$", 7))
+				return 0;
+			split_fields[1] = trimwhite(split_fields[0]);
+			split_fields[0] = no_username;
 
-/* Check for NIS stuff */
-	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
-	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
-		return 0;
-
-	if (!**ciphertext && !line) {
-/* Possible hash on a line on its own (no colons) */
-		char *p = *login;
-/* Skip leading and trailing whitespace */
-		while (*p == ' ' || *p == '\t') p++;
-		*ciphertext = p;
-		p += strlen(p) - 1;
-		while (p > *ciphertext && (*p == ' ' || *p == '\t')) p--;
-		p++;
-/* Some valid dummy hashes may be shorter than 10 characters, so don't subject
+// this code was from orignal block.  Not sure exactly what is wanted, so I will
+// leave this hear, but commented out.
+#if 0
+/* Some valid dummy hashes may be shorter than 13 characters, so don't subject
  * them to the length checks. */
 		if (strncmp(*ciphertext, "$dummy$", 7) &&
 		    p - *ciphertext != 10 /* not tripcode */) {
@@ -251,44 +248,34 @@ static int ldr_split_line(char **login, char **ciphertext,
 			if (p - *ciphertext < 13)
 				return 0;
 		}
-		*p = 0;
-		*login = no_username;
+#endif
+		}
+		if (i == 1 && source)
+			strcpy(source, line ? line : "");
 	}
 
-	if (source) strcpy(source, line ? line : "");
+	*login = split_fields[0];
+	*ciphertext = split_fields[1];
 
-	uid = ldr_get_field(&line);
+/* Check for NIS stuff */
+	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
+	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
+		return 0;
 
-	if (strlen(uid) == 32) {
-		char *tmp = *ciphertext;
-		*ciphertext = uid;
-		uid = tmp;
+	uid = split_fields[2];
+	gid = split_fields[3];
 
-		if (!strncmp(*ciphertext, "NO PASSWORD", 11))
-			*ciphertext = "";
+	*gecos = split_fields[4];
+	*home = split_fields[5];
+	shell = split_fields[6];
 
-		if (source) sprintf(source, "%s:%s", uid, line);
-	}
-
-	if ((options->flags & DB_WORDS) || options->shells->head) {
-		gid = ldr_get_field(&line);
-		do {
-			*gecos = ldr_get_field(&line);
-			*home = ldr_get_field(&line);
-			shell = ldr_get_field(&line);
-		} while (!**gecos &&
-			!strcmp(*home, "0") && !strcmp(shell, "0"));
-	} else
-	if (options->groups->head) {
-		gid = ldr_get_field(&line);
-	}
-
-	if (ldr_check_list(options->users, *login, uid)) return 0;
-	if (ldr_check_list(options->groups, gid, gid)) return 0;
-	if (ldr_check_shells(options->shells, shell)) return 0;
+	if (ldr_check_list(db_options->users, *login, uid)) return 0;
+	if (ldr_check_list(db_options->groups, gid, gid)) return 0;
+	if (ldr_check_shells(db_options->shells, shell)) return 0;
 
 	if (*format) {
-		int valid = (*format)->methods.valid(*ciphertext);
+		*ciphertext = (*format)->methods.prepare(split_fields, *format);
+		valid = (*format)->methods.valid(*ciphertext, *format);
 		if (!valid) {
 			alt = fmt_list;
 			do {
@@ -306,8 +293,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 				    strncmp(*ciphertext, "$6$", 3))
 					continue;
 #endif
-				if (alt->methods.valid(*ciphertext)) {
+				if (alt->methods.valid(*ciphertext,alt)) {
 					alt->params.flags |= FMT_WARNED;
+#ifdef HAVE_MPI
+					if (mpi_id == 0)
+#endif
 					fprintf(stderr,
 					    "Warning: only loading hashes "
 					    "of type \"%s\", but also saw "
@@ -330,6 +320,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if ((alt = fmt_list))
 	do {
 		int valid;
+		char *prepared_CT = alt->methods.prepare(split_fields, alt);
+		if (!prepared_CT || !*prepared_CT)
+			continue;
 #ifdef HAVE_CRYPT
 /*
  * Only probe for support by the current system's crypt(3) if this is forced
@@ -340,18 +333,19 @@ static int ldr_split_line(char **login, char **ciphertext,
 		if (alt == &fmt_crypt &&
 		    fmt_list != &fmt_crypt /* not forced */ &&
 #ifdef __sun
-		    strncmp(*ciphertext, "$md5$", 5) &&
-		    strncmp(*ciphertext, "$md5,", 5) &&
+		    strncmp(prepared_CT, "$md5$", 5) &&
+		    strncmp(prepared_CT, "$md5,", 5) &&
 #endif
-		    strncmp(*ciphertext, "$5$", 3) &&
-		    strncmp(*ciphertext, "$6$", 3))
+		    strncmp(prepared_CT, "$5$", 3) &&
+		    strncmp(prepared_CT, "$6$", 3))
 			continue;
 #endif
-		if (!(valid = alt->methods.valid(*ciphertext)))
+		if (!(valid = alt->methods.valid(prepared_CT, alt)))
 			continue;
 		if (retval < 0) {
 			fmt_init(*format = alt);
 			retval = valid;
+			*ciphertext = prepared_CT;
 #ifdef LDR_WARN_AMBIGUOUS
 			if (!source) /* not --show */
 				continue;
@@ -359,6 +353,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 			break;
 		}
 #ifdef LDR_WARN_AMBIGUOUS
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr,
 		    "Warning: detected hash type \"%s\", but the string is "
 		    "also recognized as \"%s\"\n"
@@ -380,11 +377,11 @@ static void ldr_split_string(struct list_main *dst, char *src)
 	pos = src;
 	do {
 		word = pos;
-		while (*word && issep_map[ARCH_INDEX(*word)]) word++;
+		while (*word && CP_isSeparator[ARCH_INDEX(*word)]) word++;
 		if (!*word) break;
 
 		pos = word;
-		while (!issep_map[ARCH_INDEX(*pos)]) pos++;
+		while (!CP_isSeparator[ARCH_INDEX(*pos)]) pos++;
 		c = *pos;
 		*pos = 0;
 		list_add_unique(dst, word);
@@ -469,6 +466,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				}
 				if (++collisions <= LDR_HASH_COLLISIONS_MAX)
 					continue;
+#ifdef HAVE_MPI
+				if (mpi_id == 0) {
+#endif
 				if (format->params.binary_size)
 					fprintf(stderr, "Warning: "
 					    "excessive partial hash "
@@ -482,6 +482,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 					fprintf(stderr, "Warning: "
 					    "check for duplicates partially "
 					    "bypassed to speedup loading\n");
+#ifdef HAVE_MPI
+				}
+#endif
 				skip_dupe_checking = 1;
 				current_pw = NULL; /* no match */
 				break;
@@ -572,13 +575,16 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
-	char *ciphertext;
+	char *ciphertext, *unprepared;
 	void *binary;
 	int hash;
 	struct db_password *current;
+	char *flds[10] = {0};
 
-	ciphertext = ldr_get_field(&line);
-	if (format->methods.valid(ciphertext) != 1) return;
+	unprepared = ldr_get_field(&line, db->options->field_sep_char);
+	flds[1] = unprepared;
+	ciphertext = format->methods.prepare(flds, format);
+	if (format->methods.valid(ciphertext,format) != 1) return;
 
 	ciphertext = format->methods.split(ciphertext, 0);
 	binary = format->methods.binary(ciphertext);
@@ -595,7 +601,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 
 void ldr_load_pot_file(struct db_main *db, char *name)
 {
-	if (db->format) {
+	if (db->format && !(db->format->params.flags & FMT_NOT_EXACT)) {
 #ifdef HAVE_CRYPT
 		ldr_in_pot = 1;
 #endif
@@ -652,8 +658,17 @@ static void ldr_remove_marked(struct db_main *db)
 					last_pw->next = current_pw->next;
 				else
 					current_salt->list = current_pw->next;
-			} else
+			} else {
 				last_pw = current_pw;
+				if (db->options->showuncracked) {
+					if (!options.utf8 && options.report_utf8) {
+						UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
+						enc_to_utf8_r(current_pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
+						printf("%s%c%s\n",utf8login,db->options->field_sep_char,current_pw->source);
+					} else
+						printf("%s%c%s\n",current_pw->login,db->options->field_sep_char,current_pw->source);
+				}
+			}
 		} while ((current_pw = current_pw->next));
 
 		if (!current_salt->list) {
@@ -796,6 +811,9 @@ void ldr_fix_database(struct db_main *db)
 	ldr_init_hash(db);
 
 	db->loaded = 1;
+
+	if (db->options->showuncracked)
+		exit(0);
 }
 
 static int ldr_cracked_hash(char *ciphertext)
@@ -824,12 +842,12 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	int hash;
 	struct db_cracked *current, *last;
 
-	ciphertext = ldr_get_field(&line);
+	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
 		if (!fmt_list->next &&
-		    !fmt_list->methods.valid(ciphertext))
+		    !fmt_list->methods.valid(ciphertext,fmt_list))
 			return;
 
 		pos = line;
@@ -878,6 +896,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	int pass, found, chars;
 	int hash;
 	struct db_cracked *current;
+	UTF8 utf8login[LINE_BUFFER_SIZE + 1];
+	UTF8 utf8source[LINE_BUFFER_SIZE + 1];
 
 	format = NULL;
 	count = ldr_split_line(&login, &ciphertext, &gecos, &home,
@@ -892,15 +912,27 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	if (format) {
 		split = format->methods.split;
 		unify = format->params.flags & FMT_SPLIT_UNIFIES_CASE;
+		if (format->params.flags & FMT_UNICODE)
+			options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+			    NULL, "UnicodeStoreUTF8", 0);
+		else
+			options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
+			    NULL, "CPstoreUTF8", 0);
 	} else {
 		split = fmt_default_split;
 		count = 1;
 		unify = 0;
 	}
 
+	if (!options.utf8 && !options.store_utf8 && options.report_utf8) {
+		login = (char*)enc_to_utf8_r(login, utf8login, LINE_BUFFER_SIZE);
+		enc_to_utf8_r(source, utf8source, LINE_BUFFER_SIZE);
+		strnzcpy(source, (char*)utf8source, sizeof(source));
+	}
+
 	if (!*ciphertext) {
 		found = 1;
-		if (show) printf("%s:NO PASSWORD", login);
+		if (show) printf("%s%cNO PASSWORD", login, db->options->field_sep_char);
 
 		db->guess_count++;
 	} else
@@ -921,7 +953,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
  * versions of John and contributed patches where split() didn't unify the
  * case of hex-encoded hashes. */
 			if (unify &&
-			    format->methods.valid(current->ciphertext) == 1 &&
+			    format->methods.valid(current->ciphertext,format) == 1 &&
 			    !strcmp(split(current->ciphertext, 0), piece))
 				break;
 		} while ((current = current->next));
@@ -953,14 +985,14 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		} else
 		if (current) {
 			found = 1;
-			if (show) printf("%s:", login);
+			if (show) printf("%s%c", login, db->options->field_sep_char);
 			break;
 		}
 	}
 
 	if (found && show) {
 		if (source[0])
-			printf(":%s", source);
+			printf("%c%s", db->options->field_sep_char, source);
 		else
 			putchar('\n');
 	}

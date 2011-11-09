@@ -1,10 +1,16 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2005,2008,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by various authors
  */
 
 #include <stdio.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#define unlink _unlink
+#endif
 #include <string.h>
 #include <math.h>
 #include <assert.h>
@@ -130,10 +136,10 @@ static int charset_new_length(int length,
 		fflush(stdout);
 
 		if ((offset = ftell(file)) < 0) pexit("ftell");
-		header->offsets[length][0] = offset;
-		header->offsets[length][1] = offset >> 8;
-		header->offsets[length][2] = offset >> 16;
-		header->offsets[length][3] = offset >> 24;
+		header->offsets[length][0] = (unsigned char)((unsigned long)offset);
+		header->offsets[length][1] = (unsigned char)((unsigned long)(offset >> 8));
+		header->offsets[length][2] = (unsigned char)((unsigned long)(offset >> 16));
+		header->offsets[length][3] = (unsigned char)((unsigned long)(offset >> 24));
 	}
 
 	return result;

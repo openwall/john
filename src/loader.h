@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-98,2010,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by various authors
  */
 
 /*
@@ -159,6 +161,28 @@ struct db_options {
 
 /* Requested passwords per salt */
 	int min_pps, max_pps;
+
+/* Maximum size of a wordlist file to be 'preloaded' into memory  */
+	unsigned max_wordfile_memory;
+
+/* number of times fix_state_delay is called in wordfile.c before  any fseek() is done. */
+	unsigned max_fix_state_delay;
+
+/* the wordlist rules section (default if none entered is Wordlist) */
+	char *activewordlistrules;
+
+/* the 'single' rules section (default if none entered is Single) */
+	char *activesinglerules;
+
+/* the pot file used (default if none entered is $JOHN/john.pot or JOHN_PRIVATE_HOME/john.pot
+   depending upon compile defines) */
+	char *activepot;
+
+/* if --show=left is used, this is set, and john dumps the non-cracked hashes and exits */
+	int showuncracked;
+
+/* by default will be ':', but -field-separator-char=c can over ride the default */
+	char field_sep_char;
 };
 
 /*

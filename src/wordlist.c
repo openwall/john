@@ -1,14 +1,22 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2006,2009 by Solar Designer
+ *
+ * Heavily modified by JimF and maybe by others.
  */
 
 #define _POSIX_SOURCE /* for fileno(3) */
+
 #include <stdio.h>
 #include <sys/stat.h>
+#ifndef _MSC_VER
 #include <unistd.h>
+#else
+#pragma warning ( disable : 4996 )
+#endif
 #include <string.h>
 
+#include "arch.h"
 #include "misc.h"
 #include "math.h"
 #include "params.h"
@@ -23,9 +31,17 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "memory.h"
+#include "options.h"
+
+#ifdef HAVE_MPI
+#include "john-mpi.h"
+
+static int distributeWords, distributeRules, myrulecount;
+#endif
 
 static FILE *word_file = NULL;
-static int progress = 0;
+static int progress = 0, hund_progress = 0;
 
 static int rec_rule;
 static long rec_pos;
@@ -33,6 +49,13 @@ static long rec_pos;
 static int rule_number, rule_count, line_number;
 static int length;
 static struct rpp_context *rule_ctx;
+
+// used for file in 'memory map' mode
+static char *word_file_str, **words;
+
+static unsigned int nWordFileLines, nCurLine;
+
+static struct db_main *_db;
 
 static void save_state(FILE *file)
 {
@@ -71,14 +94,38 @@ static int restore_state(FILE *file)
 
 	if (word_file == stdin)
 		restore_line_number();
-	else
-		if (fseek(word_file, rec_pos, SEEK_SET)) pexit("fseek");
+	else {
+		if (nWordFileLines) {
+			for (nCurLine = 0; nCurLine < nWordFileLines; ++nCurLine) {
+				if (words[nCurLine] - words[0] >= rec_pos)
+					break;
+			}
+		}
+		else {
+			if (fseek(word_file, rec_pos, SEEK_SET)) pexit("fseek");
+#ifdef HAVE_MPI
+			line_number = rec_pos ? mpi_id : 0;    // we just need the correct modulus
+#endif
+		}
+	}
 
 	return 0;
 }
 
+static int fix_state_delay;
+
 static void fix_state(void)
 {
+	if (nWordFileLines) {
+		rec_rule = rule_number;
+		rec_pos = words[nCurLine] - words[0];
+		return;
+	}
+
+	if (++fix_state_delay < _db->options->max_fix_state_delay)
+		return;
+	fix_state_delay=0;
+
 	rec_rule = rule_number;
 
 	if (word_file == stdin)
@@ -94,39 +141,63 @@ static void fix_state(void)
 	}
 }
 
-static int get_progress(void)
+static int get_progress(int *hundth_perc)
 {
 	struct stat file_stat;
 	long pos;
-	int64 x100;
-
-	if (!word_file) return progress;
-
-	if (word_file == stdin) return -1;
-
-	if (fstat(fileno(word_file), &file_stat)) pexit("fstat");
-
-	if ((pos = ftell(word_file)) < 0) {
-#ifdef __DJGPP__
-		if (pos != -1)
-			pos = 0;
-		else
+	int hundredXpercent, percent;
+#ifndef HAVE_MPI
+	double x100, tmp;
 #endif
-			pexit("ftell");
+
+	if (!word_file) {
+		*hundth_perc = hund_progress;
+		return progress;
 	}
 
-	mul32by32(&x100, pos, 100);
-	return
-		(rule_number * 100 +
-		div64by32lo(&x100, file_stat.st_size + 1)) / rule_count;
+	if (word_file == stdin) {
+		*hundth_perc = 0;
+		return -1;
+	}
+
+	if (fstat(fileno(word_file), &file_stat)) pexit("fstat");
+	if (nWordFileLines) {
+		pos = rec_pos;
+	}
+	else {
+		if ((pos = ftell(word_file)) < 0) {
+#ifdef __DJGPP__
+			if (pos != -1)
+				pos = 0;
+			else
+#endif
+				pexit("ftell");
+		}
+	}
+
+#ifdef HAVE_MPI
+	if (distributeRules)
+		hundredXpercent = (int)((long long)(10000 * (rule_number / mpi_p * file_stat.st_size + pos)) /
+		                        (long long)(myrulecount * file_stat.st_size));
+	else
+		hundredXpercent = (int)((long long)(10000 * (rule_number * file_stat.st_size + pos)) /
+		                        (long long)(rule_count * file_stat.st_size));
+#else
+	x100 = ((double)pos) * 10000.;
+	// a double 'tmp' var is required, as I have seen the compiler
+	// optimize away the next statement if assigned to an int
+	tmp = (((double)rule_number)*10000. + x100/(file_stat.st_size+1)) / rule_count;
+	// safe int assignment.  tmp will be from 0 to 10000.00
+	hundredXpercent = (int)tmp;
+#endif
+	percent = hundredXpercent / 100;
+	*hundth_perc = hundredXpercent - (percent*100);
+	return percent;
 }
 
-static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
+static char *dummy_rules_apply(const char *word, char *rule, int split, char *last)
 {
-	word[length] = 0;
-	if (strcmp(word, last))
-		return strcpy(last, word);
-	return NULL;
+	return (char*)word;
 }
 
 void do_wordlist_crack(struct db_main *db, char *name, int rules)
@@ -135,27 +206,249 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
 		ARCH_WORD dummy;
 	} aligned;
-	char *line = aligned.buffer[0], *last = aligned.buffer[1];
+#if ARCH_ALLOWS_UNALIGNED
+	const char *line = aligned.buffer[0];
+#else
+	// for unaligned, we have to strcpy INTO line, so we can not have it be 'const'
+	char *line = aligned.buffer[0];
+#endif
+	char *last = aligned.buffer[1];
 	struct rpp_context ctx;
 	char *prerule, *rule, *word;
-	char *(*apply)(char *word, char *rule, int split, char *last);
+	char *(*apply)(const char *word, char *rule, int split, char *last);
+	long file_len;
+	int i, pipe_input=0, max_pipe_words=0, rules_keep=0, init_this_time=1, really_done=0;
+	char msg_buf[128];
+
+#ifdef HAVE_MPI
+	char file_line[LINE_BUFFER_SIZE];
+	long my_size = 0;
+	unsigned int myWordFileLines = 0;
+#endif
 
 	log_event("Proceeding with wordlist mode");
 
-	if (name) {
-		if (!(word_file = fopen(path_expand(name), "r")))
-			pexit("fopen: %s", path_expand(name));
-		log_event("- Wordlist file: %.100s", path_expand(name));
-	} else {
-		word_file = stdin;
-		log_event("- Reading candidate passwords from stdin");
-	}
+	_db = db;
 
 	length = db->format->params.plaintext_length;
 
+	if (name) {
+		char *cp, csearch;
+
+		if (!(word_file = fopen(path_expand(name), "rb")))
+			pexit("fopen: %s", path_expand(name));
+		log_event("- Wordlist file: %.100s", path_expand(name));
+
+		/* this will both get us the file length, and tell us
+		   of 'invalid' files (i.e. too big in Win32 or other
+		   32 bit OS's.  A file between 2gb and 4gb returns
+		   a negative number.  NOTE john craps out on files
+		   this big.  The file needs cut before running through
+		   through john */
+		fseek(word_file, 0, SEEK_END);
+		file_len = ftell(word_file);
+		fseek(word_file, 0, SEEK_SET);
+		if (file_len < 0)
+		{
+			fprintf(stderr, "Error, dictionary file is too large for john to read (probably a 32 bit OS issue)\n");
+			error();
+		}
+		/* If the file is < max_wordfile_memory, then we work from a memory map of the file */
+#ifdef HAVE_MPI
+		if ((mpi_p > 1 && file_len > mpi_p * 100 && file_len / mpi_p < db->options->max_wordfile_memory) ||
+		    (file_len < db->options->max_wordfile_memory || db->options->max_wordfile_memory == 0)) {
+			// Load only this node's share of words to memory
+			char *aep;
+
+			if (mpi_p > 1 && (file_len > mpi_p * 100 || db->options->max_wordfile_memory == 0)) {
+				// Check size for our share. This depends on line
+				// lengths so we can't just split file_len
+				for (nWordFileLines = 0;; ++nWordFileLines) {
+					if (!fgets(file_line, sizeof(file_line), word_file)) {
+						if (ferror(word_file))
+							pexit("fgets");
+						else
+							break;
+					}
+					if (nWordFileLines % mpi_p == mpi_id) {
+						my_size += strlen(file_line);
+					}
+				}
+				fseek(word_file, 0, SEEK_SET);
+
+				// Now copy just our share to memory
+				word_file_str = mem_alloc(my_size + LINE_BUFFER_SIZE + 1);
+				i = 0;
+				for (myWordFileLines = 0;; ++myWordFileLines) {
+					if (!fgets(file_line, sizeof(file_line), word_file)) {
+						if (ferror(word_file))
+							pexit("fgets");
+						else
+							break;
+					}
+					if (myWordFileLines % mpi_p == mpi_id) {
+						strcpy(&word_file_str[i], file_line);
+						i += (int)strlen(&word_file_str[i]);
+					}
+				}
+				log_event("- loaded this node's share of wordfile %s into memory "
+				          "(%lu bytes of %lu, max_size=%u avg/node)",
+				          name, my_size, file_len, db->options->max_wordfile_memory);
+				if (mpi_id == 0)
+					fprintf(stderr,"MPI: each node loaded 1/%d of wordfile to memory (about %lu %s/node)\n",
+					        mpi_p,
+					        my_size > 1<<23 ? my_size >> 20 : my_size >> 10,
+					        my_size > 1<<23 ? "MB" : "KB");
+				aep = word_file_str + my_size;
+				file_len = my_size;
+			}
+			else {
+				log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)",
+				          name, file_len, db->options->max_wordfile_memory);
+				if (mpi_p > 1 && mpi_id == 0)
+					fprintf(stderr,"MPI: each node loaded the whole wordfile to memory\n");
+				word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
+				if (fread(word_file_str, 1, file_len, word_file) != file_len) {
+					if (ferror(word_file))
+						pexit("fread");
+					fprintf(stderr, "fread: Unexpected EOF\n");
+					error();
+				}
+			}
+#else
+		if (file_len < db->options->max_wordfile_memory ||
+		    db->options->max_wordfile_memory == 0)
+		{
+			char *aep;
+
+			/* probably should only be debug message, but I left it in */
+			log_event("loading wordfile %s into memory (%lu bytes, max_size=%u)", name, file_len, db->options->max_wordfile_memory);
+
+			word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
+			if (fread(word_file_str, 1, file_len, word_file) != file_len) {
+				if (ferror(word_file))
+					pexit("fread");
+				fprintf(stderr, "fread: Unexpected EOF\n");
+				error();
+			}
+#endif
+			aep = word_file_str + file_len;
+			*aep = 0;
+			csearch = '\n';
+			cp = memchr(word_file_str, csearch, file_len);
+			if (!cp)
+			{
+				csearch = '\r';
+				cp = memchr(word_file_str, csearch, file_len);
+			}
+			for (nWordFileLines = 1; cp; ++nWordFileLines)
+				cp = memchr(&cp[1], csearch, file_len - (cp - word_file_str) - 1);
+			words = mem_alloc( (nWordFileLines+1) * sizeof(char*));
+			log_event("wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
+
+			i = 0;
+			cp = word_file_str;
+			do
+			{
+				char *ep = cp, ec;
+				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
+				ec = *ep;
+				*ep = 0;
+				if (strncmp(cp, "#!comment", 9)) {
+					if (!rules) {
+						if (ep - cp >= length)
+							cp[length] = 0;
+						if (!i || strcmp(cp, words[i-1])) {
+							words[i++] = cp;
+							if (i == nWordFileLines)
+								break;
+						}
+					} else {
+						if (ep - cp >= LINE_BUFFER_SIZE)
+							cp[LINE_BUFFER_SIZE-1] = 0;
+						words[i++] = cp;
+						if (i == nWordFileLines)
+							break;
+					}
+				}
+				cp = ep + 1;
+				if (ec == '\r' && *cp == '\n') cp++;
+			} while (cp < aep);
+			nWordFileLines = i;
+			nCurLine=0;
+		}
+	} else {
+		/* Ok, we can be in --stdin or --pipe mode.  In --stdin, we simply copy over the
+		 * stdin file handle, and deal with it like a 'normal' word_file file (one line
+		 * at a time.  For --pipe mode, we read up to mem-buffer size, but that may not
+		 * be the end. We then set a value, so that when we are 'done' in the loop, we
+		 * jump back up.  Doing this, allows --pipe to have rules run on them. in --stdin
+		 * mode, we can NOT perform rules, due to we can not fseek stdin in most OS's
+		 */
+ 		word_file = stdin;
+		if (options.flags & FLG_STDIN_CHK) {
+			log_event("- Reading candidate passwords from stdin");
+		} else {
+			pipe_input = 1;
+			if (db->options->max_wordfile_memory < 0x20000)
+				db->options->max_wordfile_memory = 0x20000;
+			if (length < 16)
+				max_pipe_words = (db->options->max_wordfile_memory/length);
+			else
+				max_pipe_words = (db->options->max_wordfile_memory/16);
+
+			word_file_str = mem_alloc(db->options->max_wordfile_memory);
+			words = mem_alloc(max_pipe_words * sizeof(char*));
+			rules_keep = rules;
+
+GRAB_NEXT_PIPE_LOAD:;
+			{
+				char *cpi, *cpe;
+
+				log_event("- Reading next block of candidate passwords from stdin pipe");
+
+				// the second (and subsquent) times through, we do NOT call init functions.
+				if (nWordFileLines)
+					init_this_time = 0;
+
+				rules = rules_keep;
+				nWordFileLines = 0;
+				cpi = word_file_str;
+				cpe = (cpi + db->options->max_wordfile_memory) - (LINE_BUFFER_SIZE+1);
+				while (nWordFileLines < max_pipe_words) {
+					if (!fgetl(cpi, LINE_BUFFER_SIZE, word_file)) {
+						pipe_input = 0; /* We are now done.  After processing, do NOT goto the GRAB_NEXT... again */
+						break;
+					}
+					if (strncmp(cpi, "#!comment", 9)) {
+						if (!rules) {
+							cpi[length] = 0;
+							if (!nWordFileLines || strcmp(cpi, words[nWordFileLines-1])) {
+								words[nWordFileLines++] = cpi;
+								cpi += (strlen(cpi)+1);
+								if (cpi > cpe)
+									break;
+							}
+						} else {
+							words[nWordFileLines++] = cpi;
+							cpi += (strlen(cpi)+1);
+							if (cpi > cpe)
+								break;
+						}
+					}
+				}
+				sprintf(msg_buf, "- Read block of %d candidate passwords from pipe", nWordFileLines);
+				log_event("%s", msg_buf);
+			}
+		}
+	}
+
 	if (rules) {
-		if (rpp_init(rule_ctx = &ctx, SUBSECTION_WORDLIST)) {
+		if (rpp_init(rule_ctx = &ctx, db->options->activewordlistrules)) {
 			log_event("! No wordlist mode rules found");
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
 			fprintf(stderr, "No wordlist mode rules found in %s\n",
 				cfg_name);
 			error();
@@ -176,14 +469,58 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		apply = dummy_rules_apply;
 	}
 
-	line_number = rule_number = 0;
+#ifdef HAVE_MPI
+	if (mpi_p > 1) {
+		// Leapfrogging rules is less overhead unless we have wordfile in memory
 
-	status_init(get_progress, 0);
+		// Do not leapfrog at all if we have a split wordlist in memory
+		if (!myWordFileLines) {
 
-	rec_restore_mode(restore_state);
-	rec_init(db, save_state);
+			// If less rules than nodes, leapfrog words
+			if (rule_count < mpi_p)
+				distributeWords = 1;
+			else
+				distributeRules = 1;
 
-	crk_init(db, fix_state, NULL);
+			// Magic debug numbers (should be replaced by proper options)
+			// use --mem = 0 to force split wordlist (no leapfrogging)
+			// use --mem = 1 to force leapfrogging of words
+			// use --mem = 2 to force leapfrogging of rules
+			if (db->options->max_wordfile_memory == 1) {
+				distributeWords = 1;
+				distributeRules = 0;
+			}
+			if (rule_count >= mpi_p && db->options->max_wordfile_memory == 2) {
+				distributeWords = 0;
+				distributeRules = 1;
+			}
+		}
+
+		// Tell user what was chosen.
+		if (distributeWords) {
+			log_event("MPI hack active: will process 1/%u of words", mpi_p);
+			if (mpi_id == 0) fprintf(stderr,"MPI: each node processing 1/%u of words\n", mpi_p);
+		}
+		if (distributeRules) {
+			myrulecount = (int)(rule_count / mpi_p) + (rule_count % mpi_p > mpi_id ? 1 : 0);
+			log_event("MPI hack active: will process 1/%u of rules, total %d for this node", mpi_p, myrulecount);
+			if (mpi_id == 0) fprintf(stderr,"MPI: each node processing 1/%u of %d rules. (%seven split)\n",
+			                         mpi_p, rule_count, rule_count % mpi_p ? "un" : "");
+		}
+	}
+#endif
+	rule_number = 0; nCurLine = 0;
+
+	if (init_this_time) {
+		line_number = 0;
+
+		status_init(get_progress, 0);
+
+		rec_restore_mode(restore_state);
+		rec_init(db, save_state);
+
+		crk_init(db, fix_state, NULL);
+	}
 
 	if (rules) prerule = rpp_next(&ctx); else prerule = "";
 	rule = "";
@@ -195,6 +532,12 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (prerule)
 	do {
 		if (rules) {
+#ifdef HAVE_MPI
+			// MPI distribution - leapfrog rules
+			if (distributeRules && rule_number % mpi_p != mpi_id)
+				rule = NULL;
+			else
+#endif
 			if ((rule = rules_reject(prerule, -1, last, db))) {
 				if (strcmp(prerule, rule))
 					log_event("- Rule #%d: '%.100s'"
@@ -210,35 +553,64 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 
 		if (rule)
-		while (fgetl(line, LINE_BUFFER_SIZE, word_file)) {
-			line_number++;
-
-			if (line[0] != '#') {
-not_comment:
-				if ((word = apply(line, rule, -1, last))) {
-					last = word;
-
-					if (ext_filter(word))
-					if (crk_process_key(word)) {
-						rules = 0;
-						break;
-					}
-				}
-				continue;
+		while (1) {
+			if (nWordFileLines) {
+				if (nCurLine == nWordFileLines)
+					break;
+#ifdef HAVE_MPI
+				if (!distributeWords || line_number % mpi_p == mpi_id)
+#endif
+#if ARCH_ALLOWS_UNALIGNED
+				line = words[nCurLine++];
+#else
+				strcpy(line, words[nCurLine++]);
+#endif
 			}
+			else {
+				do {
+					if (!fgetl(((char*)line), LINE_BUFFER_SIZE, word_file))
+						goto EndOfFile;
+				} while (!strncmp(line, "#!comment", 9));
+				if (!rules)
+					((char*)line)[length] = 0;
+			}
+#ifdef HAVE_MPI
+			// MPI distribution - leapfrog words
+			if (line_number++ % mpi_p != mpi_id && distributeWords)
+				continue;
+#else
+			line_number++;
+#endif
 
-			if (strncmp(line, "#!comment", 9))
-				goto not_comment;
+			if ((word = apply(line, rule, -1, last))) {
+				last = word;
+
+				if (ext_filter(word))
+				if (crk_process_key(word)) {
+					rules = 0;
+					really_done=1; /* keep us from relooping, if in -pipe mode */
+					break;
+				}
+			}
 		}
 
+EndOfFile:
 		if (rules) {
-			if (!(rule = rpp_next(&ctx))) break;
-			rule_number++;
+			if (!(rule = rpp_next(&ctx)))
+				break;
 
+			rule_number++;
 			line_number = 0;
-			if (fseek(word_file, 0, SEEK_SET)) pexit("fseek");
+
+			if (nWordFileLines)
+				nCurLine = 0;
+			else
+				if (fseek(word_file, 0, SEEK_SET)) pexit("fseek");
 		}
 	} while (rules);
+
+	if (pipe_input && !really_done)
+		goto GRAB_NEXT_PIPE_LOAD;
 
 	crk_done();
 	rec_done(event_abort || (status.pass && db->salts));
@@ -247,10 +619,12 @@ not_comment:
 
 	if (name) {
 		if (event_abort)
-			progress = get_progress();
+			progress = get_progress(&hund_progress);
 		else
 			progress = 100;
 
+		MEM_FREE(word_file_str);
+		MEM_FREE(words);
 		if (fclose(word_file)) pexit("fclose");
 		word_file = NULL;
 	}
