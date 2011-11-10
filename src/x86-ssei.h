@@ -122,10 +122,10 @@
 //#define MMX_TYPE			" SSE2"
 //#define MMX_COEF			4
 
-#if defined (_MSC_VER)
-#define MD5_SSE_PARA		2
-#define MD5_N_STR			"8x"
-#elif defined(__GNUC__)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define MD5_SSE_PARA		3
+#define MD5_N_STR			"12x"
+#elif defined(__GNUC__) || defined (_MSC_VER)
 #define MD5_SSE_PARA		2
 #define MD5_N_STR			"8x"
 #else
@@ -133,10 +133,10 @@
 #define MD5_N_STR			"12x"
 #endif
 
-#if defined (_MSC_VER)
-#define MD4_SSE_PARA		2
-#define MD4_N_STR			"8x"
-#elif defined(__GNUC__)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define MD4_SSE_PARA		3
+#define MD4_N_STR			"12x"
+#elif defined(__GNUC__) || defined (_MSC_VER)
 #define MD4_SSE_PARA		2
 #define MD4_N_STR			"8x"
 #else

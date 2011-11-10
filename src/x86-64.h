@@ -176,7 +176,10 @@
 #define MD5_X2				1
 #define MD5_IMM				1
 
-#if !defined(USING_ICC_S_FILE) && defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define MD5_SSE_PARA		3
+#define MD5_N_STR			"12x"
+#elif defined(__GNUC__)
 #define MD5_SSE_PARA		2
 #define MD5_N_STR			"8x"
 #else
@@ -184,7 +187,10 @@
 #define MD5_N_STR			"12x"
 #endif
 
-#if !defined(USING_ICC_S_FILE) && defined(__GNUC__) && !defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define MD4_SSE_PARA		3
+#define MD4_N_STR			"12x"
+#elif defined(__GNUC__)
 #define MD4_SSE_PARA		2
 #define MD4_N_STR			"8x"
 #else
