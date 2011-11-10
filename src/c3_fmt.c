@@ -104,7 +104,7 @@ static void init(struct fmt_main *pFmt)
 			tests[3].ciphertext = "$2a$05$.WRrXibc1zPgIdRXYfv.4uu6TD1KWf0VnHzq/0imhUhuxSxCyeBs2";
 			tests[4].ciphertext = "$2a$05$Otz9agnajgrAe0.kFVF9V.tzaStZ2s1s4ZWi/LY4sw2k/MTVFj/IO";
 		} else if (strncmp(options.subformat, "des", 4)) {
-			fprintf(stderr, "Subformat unknown. Currently supported: DES, MD5, SHA-256, SHA-512\n\n");
+			fprintf(stderr, "Subformat unknown to John. Currently supported: DES, MD5, BF, SHA-256, SHA-512\n\n");
 			error();
 		}
 	}
