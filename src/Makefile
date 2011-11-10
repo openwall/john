@@ -983,8 +983,9 @@ dos-djgpp-x86-any:
 win32-cygwin-x86-sse2i:
 	$(CP) x86-ssei.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	perl ../run/sse2i_winfix.pl
 	$(MAKE) $(PROJ_WIN32) \
-		JOHN_OBJS="sse-intrinsics-32.S $(JOHN_OBJS) x86.o x86-sse.o " \
+		JOHN_OBJS="sse-intrinsics-win32.o $(JOHN_OBJS) x86.o x86-sse.o " \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
@@ -1015,8 +1016,9 @@ win32-cygwin-x86-any:
 win32-mingw-x86-sse2i:
 	$(CP) x86-ssei.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	perl ../run/sse2i_winfix.pl
 	$(MAKE) $(PROJ_WIN32_MINGW) \
-		JOHN_OBJS="sse-intrinsics-32.S $(JOHN_OBJS) x86.o x86-sse.o " \
+		JOHN_OBJS="sse-intrinsics-win32.o $(JOHN_OBJS) x86.o x86-sse.o " \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
@@ -1282,6 +1284,7 @@ clean:
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
 	$(RM) detect bench generic.h arch.h tmp.s
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
+	$(RM) sse-intrinsics-win32.S
 	$(CP) $(NULL) Makefile.dep
 
 # For the time being, icc builds a better sse-intrinsics.S but this may
@@ -1290,7 +1293,7 @@ clean:
 intrinsics: clean-intrinsics sse-intrinsics.S sse-intrinsics-32.S
 
 clean-intrinsics:
-	$(RM) sse-intrinsics.S sse-intrinsics-32.S
+	$(RM) sse-intrinsics.S sse-intrinsics-32.S sse-intrinsics-win32.S
 
 sse-intrinsics.S:
 	$(LN) x86-64.h arch.h
