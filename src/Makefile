@@ -255,7 +255,7 @@ linux-x86-64i:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.S" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 
@@ -290,7 +290,7 @@ linux-x86-64-32-sse2i:
 	$(LN) x86-ssei.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.S" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
@@ -345,7 +345,7 @@ linux-x86-sse2i:
 	$(LN) x86-ssei.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.S" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
@@ -985,7 +985,7 @@ win32-cygwin-x86-sse2i:
 	$(CP) x86-ssei.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
-		JOHN_OBJS="sse-intrinsics-32.S $(JOHN_OBJS) x86.o x86-sse.o " \
+		JOHN_OBJS="sse-intrinsics-32.o $(JOHN_OBJS) x86.o x86-sse.o " \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
@@ -1017,7 +1017,7 @@ win32-mingw-x86-sse2i:
 	$(CP) x86-ssei.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32_MINGW) \
-		JOHN_OBJS="sse-intrinsics-32.S $(JOHN_OBJS) x86.o x86-sse.o " \
+		JOHN_OBJS="sse-intrinsics-32.o $(JOHN_OBJS) x86.o x86-sse.o " \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
@@ -1288,14 +1288,14 @@ clean:
 # For the time being, icc builds a better sse-intrinsics.S but this may
 # change over time. NOTE that sse-intrinsics.S is never re-built unless you
 # manually do a "make intrinsics".
-intrinsics: clean-intrinsics sse-intrinsics.S sse-intrinsics-32.S
+intrinsics: clean-intrinsics sse-intrinsics-64.S sse-intrinsics-32.S
 
 clean-intrinsics:
-	$(RM) sse-intrinsics.S sse-intrinsics-32.S sse-intrinsics-win32.S
+	$(RM) sse-intrinsics-64.S sse-intrinsics-32.S sse-intrinsics-win32.S
 
-sse-intrinsics.S:
+sse-intrinsics-64.S:
 	$(LN) x86-64.h arch.h
-	icc -S -o sse-intrinsics.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
+	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
 
 sse-intrinsics-32.S:
 	$(LN) x86-ssei.h arch.h
