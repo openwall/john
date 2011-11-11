@@ -1,4 +1,18 @@
 	.file "sse-intrinsics.c"
+
+#ifdef UNDERSCORES
+#define memcpy	    _memcpy
+#define memset	    _memset
+#define strlen	    _strlen
+#define MD5_Init    _MD5_Init
+#define MD5_Update  _MD5_Update
+#define MD5_Final   _MD5_Final
+#define SSEmd5body   _SSEmd5body
+#define SSESHA1body  _SSESHA1body
+#define SSEmd4body   _SSEmd4body
+#define md5cryptsse  _md5cryptsse
+#endif
+
 	.text
 ..TXTST0:
 # -- Begin  sse_debug
@@ -9,8 +23,6 @@ sse_debug:
         movl      $1, debug
         ret       
         .align    16,0x90
-	.type	sse_debug,@function
-	.size	sse_debug,.-sse_debug
 	.data
 # -- End  sse_debug
 	.text
@@ -107,8 +119,6 @@ mmxput:
         movl      $1, %edx
         jmp       ..B2.6
         .align    16,0x90
-	.type	mmxput,@function
-	.size	mmxput,.-mmxput
 	.data
 # -- End  mmxput
 	.text
@@ -156,8 +166,6 @@ mmxput2:
         popl      %esi
         ret       
         .align    16,0x90
-	.type	mmxput2,@function
-	.size	mmxput2,.-mmxput2
 	.data
 # -- End  mmxput2
 	.text
@@ -379,8 +387,6 @@ dispatch:
         popl      %esi
         ret       
         .align    16,0x90
-	.type	dispatch,@function
-	.size	dispatch,.-dispatch
 	.section .rodata, "a"
 	.align 32
 	.align 32
@@ -793,8 +799,6 @@ mmxput3.:
         popl      %esi
         ret       
         .align    16,0x90
-	.type	mmxput3,@function
-	.size	mmxput3,.-mmxput3
 	.data
 # -- End  mmxput3
 	.text
@@ -3816,8 +3820,6 @@ SSEmd5body.:
         addl      $1564, %esp
         ret       
         .align    16,0x90
-	.type	SSEmd5body,@function
-	.size	SSEmd5body,.-SSEmd5body
 	.data
 # -- End  SSEmd5body
 	.text
@@ -5285,8 +5287,6 @@ md5cryptsse:
         testl     %eax, %eax
         jmp       ..B7.47
         .align    16,0x90
-	.type	md5cryptsse,@function
-	.size	md5cryptsse,.-md5cryptsse
 	.section .rodata, "a"
 	.space 28, 0x00 	# pad
 	.align 32
@@ -7525,8 +7525,6 @@ SSEmd4body:
         addl      $1644, %esp
         ret       
         .align    16,0x90
-	.type	SSEmd4body,@function
-	.size	SSEmd4body,.-SSEmd4body
 	.data
 # -- End  SSEmd4body
 	.text
@@ -10854,8 +10852,6 @@ SSESHA1body:
         movdqa    %xmm2, 112(%esp)
         jmp       ..B9.5
         .align    16,0x90
-	.type	SSESHA1body,@function
-	.size	SSESHA1body,.-SSESHA1body
 	.data
 # -- End  SSESHA1body
 	.bss
@@ -10863,433 +10859,262 @@ SSESHA1body:
 	.align 4
 	.globl debug
 debug:
-	.type	debug,@object
-	.size	debug,4
 	.space 4	# pad
 	.section .rodata, "a"
 	.space 12, 0x00 	# pad
 	.align 16
 .L_2il0floatpacket.61:
 	.long	0x67452301,0x67452301,0x67452301,0x67452301
-	.type	.L_2il0floatpacket.61,@object
-	.size	.L_2il0floatpacket.61,16
 	.align 16
 .L_2il0floatpacket.62:
 	.long	0xefcdab89,0xefcdab89,0xefcdab89,0xefcdab89
-	.type	.L_2il0floatpacket.62,@object
-	.size	.L_2il0floatpacket.62,16
 	.align 16
 .L_2il0floatpacket.63:
 	.long	0x98badcfe,0x98badcfe,0x98badcfe,0x98badcfe
-	.type	.L_2il0floatpacket.63,@object
-	.size	.L_2il0floatpacket.63,16
 	.align 16
 .L_2il0floatpacket.64:
 	.long	0x10325476,0x10325476,0x10325476,0x10325476
-	.type	.L_2il0floatpacket.64,@object
-	.size	.L_2il0floatpacket.64,16
 	.align 16
 .L_2il0floatpacket.65:
 	.long	0xd76aa478,0xd76aa478,0xd76aa478,0xd76aa478
-	.type	.L_2il0floatpacket.65,@object
-	.size	.L_2il0floatpacket.65,16
 	.align 16
 .L_2il0floatpacket.66:
 	.long	0xe8c7b756,0xe8c7b756,0xe8c7b756,0xe8c7b756
-	.type	.L_2il0floatpacket.66,@object
-	.size	.L_2il0floatpacket.66,16
 	.align 16
 .L_2il0floatpacket.67:
 	.long	0x242070db,0x242070db,0x242070db,0x242070db
-	.type	.L_2il0floatpacket.67,@object
-	.size	.L_2il0floatpacket.67,16
 	.align 16
 .L_2il0floatpacket.68:
 	.long	0xc1bdceee,0xc1bdceee,0xc1bdceee,0xc1bdceee
-	.type	.L_2il0floatpacket.68,@object
-	.size	.L_2il0floatpacket.68,16
 	.align 16
 .L_2il0floatpacket.69:
 	.long	0xf57c0faf,0xf57c0faf,0xf57c0faf,0xf57c0faf
-	.type	.L_2il0floatpacket.69,@object
-	.size	.L_2il0floatpacket.69,16
 	.align 16
 .L_2il0floatpacket.70:
 	.long	0x4787c62a,0x4787c62a,0x4787c62a,0x4787c62a
-	.type	.L_2il0floatpacket.70,@object
-	.size	.L_2il0floatpacket.70,16
 	.align 16
 .L_2il0floatpacket.71:
 	.long	0xa8304613,0xa8304613,0xa8304613,0xa8304613
-	.type	.L_2il0floatpacket.71,@object
-	.size	.L_2il0floatpacket.71,16
 	.align 16
 .L_2il0floatpacket.72:
 	.long	0xfd469501,0xfd469501,0xfd469501,0xfd469501
-	.type	.L_2il0floatpacket.72,@object
-	.size	.L_2il0floatpacket.72,16
 	.align 16
 .L_2il0floatpacket.73:
 	.long	0x698098d8,0x698098d8,0x698098d8,0x698098d8
-	.type	.L_2il0floatpacket.73,@object
-	.size	.L_2il0floatpacket.73,16
 	.align 16
 .L_2il0floatpacket.74:
 	.long	0x8b44f7af,0x8b44f7af,0x8b44f7af,0x8b44f7af
-	.type	.L_2il0floatpacket.74,@object
-	.size	.L_2il0floatpacket.74,16
 	.align 16
 .L_2il0floatpacket.75:
 	.long	0xffff5bb1,0xffff5bb1,0xffff5bb1,0xffff5bb1
-	.type	.L_2il0floatpacket.75,@object
-	.size	.L_2il0floatpacket.75,16
 	.align 16
 .L_2il0floatpacket.76:
 	.long	0x895cd7be,0x895cd7be,0x895cd7be,0x895cd7be
-	.type	.L_2il0floatpacket.76,@object
-	.size	.L_2il0floatpacket.76,16
 	.align 16
 .L_2il0floatpacket.77:
 	.long	0x6b901122,0x6b901122,0x6b901122,0x6b901122
-	.type	.L_2il0floatpacket.77,@object
-	.size	.L_2il0floatpacket.77,16
 	.align 16
 .L_2il0floatpacket.78:
 	.long	0xfd987193,0xfd987193,0xfd987193,0xfd987193
-	.type	.L_2il0floatpacket.78,@object
-	.size	.L_2il0floatpacket.78,16
 	.align 16
 .L_2il0floatpacket.79:
 	.long	0xa679438e,0xa679438e,0xa679438e,0xa679438e
-	.type	.L_2il0floatpacket.79,@object
-	.size	.L_2il0floatpacket.79,16
 	.align 16
 .L_2il0floatpacket.80:
 	.long	0x49b40821,0x49b40821,0x49b40821,0x49b40821
-	.type	.L_2il0floatpacket.80,@object
-	.size	.L_2il0floatpacket.80,16
 	.align 16
 .L_2il0floatpacket.81:
 	.long	0xf61e2562,0xf61e2562,0xf61e2562,0xf61e2562
-	.type	.L_2il0floatpacket.81,@object
-	.size	.L_2il0floatpacket.81,16
 	.align 16
 .L_2il0floatpacket.82:
 	.long	0xc040b340,0xc040b340,0xc040b340,0xc040b340
-	.type	.L_2il0floatpacket.82,@object
-	.size	.L_2il0floatpacket.82,16
 	.align 16
 .L_2il0floatpacket.83:
 	.long	0x265e5a51,0x265e5a51,0x265e5a51,0x265e5a51
-	.type	.L_2il0floatpacket.83,@object
-	.size	.L_2il0floatpacket.83,16
 	.align 16
 .L_2il0floatpacket.84:
 	.long	0xe9b6c7aa,0xe9b6c7aa,0xe9b6c7aa,0xe9b6c7aa
-	.type	.L_2il0floatpacket.84,@object
-	.size	.L_2il0floatpacket.84,16
 	.align 16
 .L_2il0floatpacket.85:
 	.long	0xd62f105d,0xd62f105d,0xd62f105d,0xd62f105d
-	.type	.L_2il0floatpacket.85,@object
-	.size	.L_2il0floatpacket.85,16
 	.align 16
 .L_2il0floatpacket.86:
 	.long	0x02441453,0x02441453,0x02441453,0x02441453
-	.type	.L_2il0floatpacket.86,@object
-	.size	.L_2il0floatpacket.86,16
 	.align 16
 .L_2il0floatpacket.87:
 	.long	0xd8a1e681,0xd8a1e681,0xd8a1e681,0xd8a1e681
-	.type	.L_2il0floatpacket.87,@object
-	.size	.L_2il0floatpacket.87,16
 	.align 16
 .L_2il0floatpacket.88:
 	.long	0xe7d3fbc8,0xe7d3fbc8,0xe7d3fbc8,0xe7d3fbc8
-	.type	.L_2il0floatpacket.88,@object
-	.size	.L_2il0floatpacket.88,16
 	.align 16
 .L_2il0floatpacket.89:
 	.long	0x21e1cde6,0x21e1cde6,0x21e1cde6,0x21e1cde6
-	.type	.L_2il0floatpacket.89,@object
-	.size	.L_2il0floatpacket.89,16
 	.align 16
 .L_2il0floatpacket.90:
 	.long	0xc33707d6,0xc33707d6,0xc33707d6,0xc33707d6
-	.type	.L_2il0floatpacket.90,@object
-	.size	.L_2il0floatpacket.90,16
 	.align 16
 .L_2il0floatpacket.91:
 	.long	0xf4d50d87,0xf4d50d87,0xf4d50d87,0xf4d50d87
-	.type	.L_2il0floatpacket.91,@object
-	.size	.L_2il0floatpacket.91,16
 	.align 16
 .L_2il0floatpacket.92:
 	.long	0x455a14ed,0x455a14ed,0x455a14ed,0x455a14ed
-	.type	.L_2il0floatpacket.92,@object
-	.size	.L_2il0floatpacket.92,16
 	.align 16
 .L_2il0floatpacket.93:
 	.long	0xa9e3e905,0xa9e3e905,0xa9e3e905,0xa9e3e905
-	.type	.L_2il0floatpacket.93,@object
-	.size	.L_2il0floatpacket.93,16
 	.align 16
 .L_2il0floatpacket.94:
 	.long	0xfcefa3f8,0xfcefa3f8,0xfcefa3f8,0xfcefa3f8
-	.type	.L_2il0floatpacket.94,@object
-	.size	.L_2il0floatpacket.94,16
 	.align 16
 .L_2il0floatpacket.95:
 	.long	0x676f02d9,0x676f02d9,0x676f02d9,0x676f02d9
-	.type	.L_2il0floatpacket.95,@object
-	.size	.L_2il0floatpacket.95,16
 	.align 16
 .L_2il0floatpacket.96:
 	.long	0x8d2a4c8a,0x8d2a4c8a,0x8d2a4c8a,0x8d2a4c8a
-	.type	.L_2il0floatpacket.96,@object
-	.size	.L_2il0floatpacket.96,16
 	.align 16
 .L_2il0floatpacket.97:
 	.long	0xfffa3942,0xfffa3942,0xfffa3942,0xfffa3942
-	.type	.L_2il0floatpacket.97,@object
-	.size	.L_2il0floatpacket.97,16
 	.align 16
 .L_2il0floatpacket.98:
 	.long	0x8771f681,0x8771f681,0x8771f681,0x8771f681
-	.type	.L_2il0floatpacket.98,@object
-	.size	.L_2il0floatpacket.98,16
 	.align 16
 .L_2il0floatpacket.99:
 	.long	0x6d9d6122,0x6d9d6122,0x6d9d6122,0x6d9d6122
-	.type	.L_2il0floatpacket.99,@object
-	.size	.L_2il0floatpacket.99,16
 	.align 16
 .L_2il0floatpacket.100:
 	.long	0xfde5380c,0xfde5380c,0xfde5380c,0xfde5380c
-	.type	.L_2il0floatpacket.100,@object
-	.size	.L_2il0floatpacket.100,16
 	.align 16
 .L_2il0floatpacket.101:
 	.long	0xa4beea44,0xa4beea44,0xa4beea44,0xa4beea44
-	.type	.L_2il0floatpacket.101,@object
-	.size	.L_2il0floatpacket.101,16
 	.align 16
 .L_2il0floatpacket.102:
 	.long	0x4bdecfa9,0x4bdecfa9,0x4bdecfa9,0x4bdecfa9
-	.type	.L_2il0floatpacket.102,@object
-	.size	.L_2il0floatpacket.102,16
 	.align 16
 .L_2il0floatpacket.103:
 	.long	0xf6bb4b60,0xf6bb4b60,0xf6bb4b60,0xf6bb4b60
-	.type	.L_2il0floatpacket.103,@object
-	.size	.L_2il0floatpacket.103,16
 	.align 16
 .L_2il0floatpacket.104:
 	.long	0xbebfbc70,0xbebfbc70,0xbebfbc70,0xbebfbc70
-	.type	.L_2il0floatpacket.104,@object
-	.size	.L_2il0floatpacket.104,16
 	.align 16
 .L_2il0floatpacket.105:
 	.long	0x289b7ec6,0x289b7ec6,0x289b7ec6,0x289b7ec6
-	.type	.L_2il0floatpacket.105,@object
-	.size	.L_2il0floatpacket.105,16
 	.align 16
 .L_2il0floatpacket.106:
 	.long	0xeaa127fa,0xeaa127fa,0xeaa127fa,0xeaa127fa
-	.type	.L_2il0floatpacket.106,@object
-	.size	.L_2il0floatpacket.106,16
 	.align 16
 .L_2il0floatpacket.107:
 	.long	0xd4ef3085,0xd4ef3085,0xd4ef3085,0xd4ef3085
-	.type	.L_2il0floatpacket.107,@object
-	.size	.L_2il0floatpacket.107,16
 	.align 16
 .L_2il0floatpacket.108:
 	.long	0x04881d05,0x04881d05,0x04881d05,0x04881d05
-	.type	.L_2il0floatpacket.108,@object
-	.size	.L_2il0floatpacket.108,16
 	.align 16
 .L_2il0floatpacket.109:
 	.long	0xd9d4d039,0xd9d4d039,0xd9d4d039,0xd9d4d039
-	.type	.L_2il0floatpacket.109,@object
-	.size	.L_2il0floatpacket.109,16
 	.align 16
 .L_2il0floatpacket.110:
 	.long	0xe6db99e5,0xe6db99e5,0xe6db99e5,0xe6db99e5
-	.type	.L_2il0floatpacket.110,@object
-	.size	.L_2il0floatpacket.110,16
 	.align 16
 .L_2il0floatpacket.111:
 	.long	0x1fa27cf8,0x1fa27cf8,0x1fa27cf8,0x1fa27cf8
-	.type	.L_2il0floatpacket.111,@object
-	.size	.L_2il0floatpacket.111,16
 	.align 16
 .L_2il0floatpacket.112:
 	.long	0xc4ac5665,0xc4ac5665,0xc4ac5665,0xc4ac5665
-	.type	.L_2il0floatpacket.112,@object
-	.size	.L_2il0floatpacket.112,16
 	.align 16
 .L_2il0floatpacket.113:
 	.long	0xf4292244,0xf4292244,0xf4292244,0xf4292244
-	.type	.L_2il0floatpacket.113,@object
-	.size	.L_2il0floatpacket.113,16
 	.align 16
 .L_2il0floatpacket.114:
 	.long	0x432aff97,0x432aff97,0x432aff97,0x432aff97
-	.type	.L_2il0floatpacket.114,@object
-	.size	.L_2il0floatpacket.114,16
 	.align 16
 .L_2il0floatpacket.115:
 	.long	0xab9423a7,0xab9423a7,0xab9423a7,0xab9423a7
-	.type	.L_2il0floatpacket.115,@object
-	.size	.L_2il0floatpacket.115,16
 	.align 16
 .L_2il0floatpacket.116:
 	.long	0xfc93a039,0xfc93a039,0xfc93a039,0xfc93a039
-	.type	.L_2il0floatpacket.116,@object
-	.size	.L_2il0floatpacket.116,16
 	.align 16
 .L_2il0floatpacket.117:
 	.long	0x655b59c3,0x655b59c3,0x655b59c3,0x655b59c3
-	.type	.L_2il0floatpacket.117,@object
-	.size	.L_2il0floatpacket.117,16
 	.align 16
 .L_2il0floatpacket.118:
 	.long	0x8f0ccc92,0x8f0ccc92,0x8f0ccc92,0x8f0ccc92
-	.type	.L_2il0floatpacket.118,@object
-	.size	.L_2il0floatpacket.118,16
 	.align 16
 .L_2il0floatpacket.119:
 	.long	0xffeff47d,0xffeff47d,0xffeff47d,0xffeff47d
-	.type	.L_2il0floatpacket.119,@object
-	.size	.L_2il0floatpacket.119,16
 	.align 16
 .L_2il0floatpacket.120:
 	.long	0x85845dd1,0x85845dd1,0x85845dd1,0x85845dd1
-	.type	.L_2il0floatpacket.120,@object
-	.size	.L_2il0floatpacket.120,16
 	.align 16
 .L_2il0floatpacket.121:
 	.long	0x6fa87e4f,0x6fa87e4f,0x6fa87e4f,0x6fa87e4f
-	.type	.L_2il0floatpacket.121,@object
-	.size	.L_2il0floatpacket.121,16
 	.align 16
 .L_2il0floatpacket.122:
 	.long	0xfe2ce6e0,0xfe2ce6e0,0xfe2ce6e0,0xfe2ce6e0
-	.type	.L_2il0floatpacket.122,@object
-	.size	.L_2il0floatpacket.122,16
 	.align 16
 .L_2il0floatpacket.123:
 	.long	0xa3014314,0xa3014314,0xa3014314,0xa3014314
-	.type	.L_2il0floatpacket.123,@object
-	.size	.L_2il0floatpacket.123,16
 	.align 16
 .L_2il0floatpacket.124:
 	.long	0x4e0811a1,0x4e0811a1,0x4e0811a1,0x4e0811a1
-	.type	.L_2il0floatpacket.124,@object
-	.size	.L_2il0floatpacket.124,16
 	.align 16
 .L_2il0floatpacket.125:
 	.long	0xf7537e82,0xf7537e82,0xf7537e82,0xf7537e82
-	.type	.L_2il0floatpacket.125,@object
-	.size	.L_2il0floatpacket.125,16
 	.align 16
 .L_2il0floatpacket.126:
 	.long	0xbd3af235,0xbd3af235,0xbd3af235,0xbd3af235
-	.type	.L_2il0floatpacket.126,@object
-	.size	.L_2il0floatpacket.126,16
 	.align 16
 .L_2il0floatpacket.127:
 	.long	0x2ad7d2bb,0x2ad7d2bb,0x2ad7d2bb,0x2ad7d2bb
-	.type	.L_2il0floatpacket.127,@object
-	.size	.L_2il0floatpacket.127,16
 	.align 16
 .L_2il0floatpacket.128:
 	.long	0xeb86d391,0xeb86d391,0xeb86d391,0xeb86d391
-	.type	.L_2il0floatpacket.128,@object
-	.size	.L_2il0floatpacket.128,16
 	.align 16
 .L_2il0floatpacket.474:
 	.long	0x67452301,0x67452301,0x67452301,0x67452301
-	.type	.L_2il0floatpacket.474,@object
-	.size	.L_2il0floatpacket.474,16
 	.align 16
 .L_2il0floatpacket.475:
 	.long	0xefcdab89,0xefcdab89,0xefcdab89,0xefcdab89
-	.type	.L_2il0floatpacket.475,@object
-	.size	.L_2il0floatpacket.475,16
 	.align 16
 .L_2il0floatpacket.476:
 	.long	0x98badcfe,0x98badcfe,0x98badcfe,0x98badcfe
-	.type	.L_2il0floatpacket.476,@object
-	.size	.L_2il0floatpacket.476,16
 	.align 16
 .L_2il0floatpacket.477:
 	.long	0x10325476,0x10325476,0x10325476,0x10325476
-	.type	.L_2il0floatpacket.477,@object
-	.size	.L_2il0floatpacket.477,16
 	.align 16
 .L_2il0floatpacket.478:
 	.long	0x5a827999,0x5a827999,0x5a827999,0x5a827999
-	.type	.L_2il0floatpacket.478,@object
-	.size	.L_2il0floatpacket.478,16
 	.align 16
 .L_2il0floatpacket.479:
 	.long	0x6ed9eba1,0x6ed9eba1,0x6ed9eba1,0x6ed9eba1
-	.type	.L_2il0floatpacket.479,@object
-	.size	.L_2il0floatpacket.479,16
 	.align 16
 .L_2il0floatpacket.498:
 	.long	0x67452301,0x67452301,0x67452301,0x67452301
-	.type	.L_2il0floatpacket.498,@object
-	.size	.L_2il0floatpacket.498,16
 	.align 16
 .L_2il0floatpacket.499:
 	.long	0xefcdab89,0xefcdab89,0xefcdab89,0xefcdab89
-	.type	.L_2il0floatpacket.499,@object
-	.size	.L_2il0floatpacket.499,16
 	.align 16
 .L_2il0floatpacket.500:
 	.long	0x98badcfe,0x98badcfe,0x98badcfe,0x98badcfe
-	.type	.L_2il0floatpacket.500,@object
-	.size	.L_2il0floatpacket.500,16
 	.align 16
 .L_2il0floatpacket.501:
 	.long	0x10325476,0x10325476,0x10325476,0x10325476
-	.type	.L_2il0floatpacket.501,@object
-	.size	.L_2il0floatpacket.501,16
 	.align 16
 .L_2il0floatpacket.502:
 	.long	0xc3d2e1f0,0xc3d2e1f0,0xc3d2e1f0,0xc3d2e1f0
-	.type	.L_2il0floatpacket.502,@object
-	.size	.L_2il0floatpacket.502,16
 	.align 16
 .L_2il0floatpacket.503:
 	.long	0x5a827999,0x5a827999,0x5a827999,0x5a827999
-	.type	.L_2il0floatpacket.503,@object
-	.size	.L_2il0floatpacket.503,16
 	.align 16
 .L_2il0floatpacket.504:
 	.long	0x6ed9eba1,0x6ed9eba1,0x6ed9eba1,0x6ed9eba1
-	.type	.L_2il0floatpacket.504,@object
-	.size	.L_2il0floatpacket.504,16
 	.align 16
 .L_2il0floatpacket.505:
 	.long	0x8f1bbcdc,0x8f1bbcdc,0x8f1bbcdc,0x8f1bbcdc
-	.type	.L_2il0floatpacket.505,@object
-	.size	.L_2il0floatpacket.505,16
 	.align 16
 .L_2il0floatpacket.506:
 	.long	0xca62c1d6,0xca62c1d6,0xca62c1d6,0xca62c1d6
-	.type	.L_2il0floatpacket.506,@object
-	.size	.L_2il0floatpacket.506,16
 	.align 4
 .L_2__STRING.3:
 	.byte	0
 	.byte	0
-	.type	.L_2__STRING.3,@object
-	.size	.L_2__STRING.3,2
-	.section .rodata.str1.4, "aMS",@progbits,1
 	.align 4
 	.align 4
 .L_2__STRING.2:
@@ -11297,8 +11122,6 @@ debug:
 	.byte	49
 	.byte	36
 	.byte	0
-	.type	.L_2__STRING.2,@object
-	.size	.L_2__STRING.2,4
 	.align 4
 .L_2__STRING.1:
 	.byte	36
@@ -11308,8 +11131,5 @@ debug:
 	.byte	49
 	.byte	36
 	.byte	0
-	.type	.L_2__STRING.1,@object
-	.size	.L_2__STRING.1,7
 	.data
-	.section .note.GNU-stack, ""
 # End

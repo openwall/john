@@ -198,7 +198,10 @@
 #define MD4_N_STR			"12x"
 #endif
 
-#ifdef __GNUC__
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define SHA1_SSE_PARA		2
+#define SHA1_N_STR			"8x"
+#elif defined(__GNUC__)
 #define SHA1_SSE_PARA		2
 #define SHA1_N_STR			"8x"
 #else
