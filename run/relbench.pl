@@ -26,6 +26,16 @@ sub parse
 			$virtual *= 1000 if ($virtuals eq 'K');
 			$virtual *= 1000000 if ($virtuals eq 'M');
 			return;
+		} else {
+			($kind, $real, $reals) =
+				/^([\w ]+):\s+([\d.]+)([KM]?) c\/s$/;
+			if ($name && $kind && $real) {
+				$id = $name . ':' . $kind;
+				$real *= 1000 if ($reals eq 'K');
+				$real *= 1000000 if ($reals eq 'M');
+				$virtual = $real;
+				return;
+			}
 		}
 	} else {
 		($name) = /^Benchmarking: (.+) \[.*\].* DONE$/;
