@@ -75,8 +75,6 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	char Buf[200];
 	if (!strncmp(split_fields[1], "$LION$", 6))
 		return split_fields[1];
-	if (!split_fields[0])
-		return split_fields[1];
 	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[0]);
 		if (valid(Buf, pFmt)) {
