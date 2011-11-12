@@ -124,9 +124,10 @@ static int netntlm_valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 
+	if (strncmp(ciphertext, "$NETNTLM$", 9)!=0) return 0;
+
 	if ((strlen(ciphertext) != 74) && (strlen(ciphertext) != 90)) return 0;
 
-	if (strncmp(ciphertext, "$NETNTLM$", 9)!=0) return 0;
 	if ((ciphertext[25] != '$') && (ciphertext[41] != '$')) return 0;
 
 	for (pos = &ciphertext[9]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
@@ -151,6 +152,10 @@ static char *netntlm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 		return split_fields[1];
 
 	if (strlen(split_fields[4]) != CIPHERTEXT_LENGTH)
+		return split_fields[1];
+
+	// this string suggests we have an improperly formatted NTLMv2
+	if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
 		return split_fields[1];
 
 	// Handle ESS (8 byte client challenge in "LM" field padded with zeros)

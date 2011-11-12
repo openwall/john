@@ -138,6 +138,10 @@ static char *netlm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	if (!strncmp(split_fields[3], split_fields[4], 48))
 		return split_fields[1];
 
+	// this string suggests we have an improperly formatted NTLMv2
+	if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+		return split_fields[1];
+
 	cp = mem_alloc(7+strlen(split_fields[3])+1+strlen(split_fields[5])+1);
 	sprintf(cp, "$NETLM$%s$%s", split_fields[5], split_fields[3]);
 
