@@ -201,7 +201,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "M$", 2))
+	if (!strncmp(split_fields[1], "M$", 2) || !split_fields[0])
 		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
 	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);

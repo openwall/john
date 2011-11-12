@@ -110,6 +110,9 @@ static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	if (!strncmp(split_fields[1], "$NETHALFLM$", 11))
 		return split_fields[1];
+	if (!split_fields[3]||!split_fields[4]||!split_fields[5])
+		return split_fields[1];
+
 	if (strlen(split_fields[3]) != CIPHERTEXT_LENGTH)
 		return split_fields[1];
 

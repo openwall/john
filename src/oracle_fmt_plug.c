@@ -120,6 +120,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	if (!strncmp(split_fields[1], "O$", 2))
 		return split_fields[1];
+	if (!split_fields[0])
+		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
 	sprintf (cp, "O$%s#%s", split_fields[0], split_fields[1]);
 	if (valid(cp, pFmt))

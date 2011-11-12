@@ -197,6 +197,9 @@ static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	if (!strncmp(split_fields[1], "$NETNTLMv2$", 11))
 		return split_fields[1];
+	if (!split_fields[0]||!split_fields[2]||!split_fields[3]||!split_fields[4]||!split_fields[5])
+		return split_fields[1];
+
 	/* DOMAIN\USER: -or- USER::DOMAIN: */
 	if ((tmp = strstr(login, "\\")) != NULL) {
 		identity = (char *) mem_alloc(strlen(login));

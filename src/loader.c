@@ -579,9 +579,12 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	void *binary;
 	int hash;
 	struct db_password *current;
-	char *flds[10] = {0};
+	char *flds[10];
+	int i;
 
 	unprepared = ldr_get_field(&line, db->options->field_sep_char);
+	for (i = 0; i < 10; ++i)
+		flds[i] = "";
 	flds[1] = unprepared;
 	ciphertext = format->methods.prepare(flds, format);
 	if (format->methods.valid(ciphertext,format) != 1) return;

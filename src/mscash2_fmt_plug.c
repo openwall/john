@@ -295,6 +295,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	char *cp;
 	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], pFmt))
 		return split_fields[1];
+	if (!split_fields[0])
+		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
 	sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]);
 	if (valid(cp, pFmt))
