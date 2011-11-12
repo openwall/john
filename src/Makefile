@@ -162,13 +162,17 @@ default:
 #	@echo "linux-ppc64-altivec      Linux, PowerPC 64-bit w/AltiVec"
 	@echo "linux-ppc64              Linux, PowerPC 64-bit"
 	@echo "linux-ia64               Linux, IA-64"
-	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2 (best)"
-	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2 (best if 32-bit)"
+	@echo "freebsd-x86-64i          FreeBSD, x86-64 with pre-built intrinsics (best)"
+	@echo "freebsd-x86-64           FreeBSD, x86-64 with SSE2"
+	@echo "freebsd-x86-sse2i        FreeBSD, x86 with pre-built intrinsics (best if 32-bit)"
+	@echo "freebsd-x86-sse2         FreeBSD, x86 with SSE2"
 	@echo "freebsd-x86-mmx          FreeBSD, x86 with MMX"
 	@echo "freebsd-x86-any          FreeBSD, x86"
 	@echo "freebsd-alpha            FreeBSD, Alpha"
-	@echo "openbsd-x86-64           OpenBSD, x86-64 with SSE2 (best)"
-	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2 (best if 32-bit)"
+	@echo "openbsd-x86-64i          OpenBSD, x86-64 with pre-built intrinsics (best)"
+	@echo "openbsd-x86-64           OpenBSD, x86-64 with SSE2"
+	@echo "openbsd-x86-sse2i        OpenBSD, x86 with pre-built intrinsics (best if 32-bit)"
+	@echo "openbsd-x86-sse2         OpenBSD, x86 with SSE2"
 	@echo "openbsd-x86-mmx          OpenBSD, x86 with MMX"
 	@echo "openbsd-x86-any          OpenBSD, x86"
 	@echo "openbsd-alpha            OpenBSD, Alpha"
@@ -185,9 +189,11 @@ default:
 	@echo "solaris-sparcv9-cc       Solaris, SPARC V9 32-bit, cc"
 	@echo "solaris-sparcv8-cc       Solaris, SPARC V8 32-bit, cc"
 	@echo "solaris-sparc-gcc        Solaris, SPARC 32-bit, gcc"
-	@echo "solaris-x86-64-cc        Solaris, x86-64 with SSE2, cc (best)"
+	@echo "solaris-x86-64-cc        Solaris, x86-64 with SSE2, cc"
+	@echo "solaris-x86-64i-gcc      Solaris, x86-64 with pre-built instrinsics, gcc"
 	@echo "solaris-x86-64-gcc       Solaris, x86-64 with SSE2, gcc"
 	@echo "solaris-x86-sse2-cc      Solaris 9 4/04+, x86 with SSE2, cc"
+	@echo "solaris-x86-sse2i-gcc    Solaris 9 4/04+, x86 with pre-built instrinsics, gcc"
 	@echo "solaris-x86-sse2-gcc     Solaris 9 4/04+, x86 with SSE2, gcc"
 	@echo "solaris-x86-mmx-cc       Solaris, x86 with MMX, cc"
 	@echo "solaris-x86-mmx-gcc      Solaris, x86 with MMX, gcc"
@@ -197,7 +203,9 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc"
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
-	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
+	@echo "macosx-x86-64i           Mac OS X 10.5+, Xcode 3.0+, x86-64 with pre-built instrinsics (best)"
+	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2"
+	@echo "macosx-x86-sse2i         Mac OS X, x86 with pre-built instrinsics"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
@@ -445,12 +453,27 @@ freebsd-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o"
 
+freebsd-x86-64i:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
+		CFLAGS="$(CFLAGS) -DUSING_ICC_S_FILE"
+
 freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md5-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
+
+freebsd-x86-sse2i:
+	$(LN) x86-ssei.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		CFLAGS="$(CFLAGS) -msse2 -DUSING_ICC_S_FILE" \
+		ASFLAGS="$(ASFLAGS) -msse2 -DBSD" \
 
 freebsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -485,12 +508,27 @@ openbsd-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o"
 
+openbsd-x86-64i:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
+		CFLAGS="$(CFLAGS) -DUSING_ICC_S_FILE"
+
 openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md5-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
+
+openbsd-x86-sse2i:
+	$(LN) x86-ssei.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		CFLAGS="$(CFLAGS) -msse2 -DUSING_ICC_S_FILE" \
+		ASFLAGS="$(ASFLAGS) -msse2 -DBSD"
 
 openbsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -644,6 +682,16 @@ solaris-x86-64-gcc:
 		ASFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS)"
 
+solaris-x86-64i-gcc:
+	$(RM) arch.h
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
+		CFLAGS="$(CFLAGS) -m64 -DHAVE_CRYPT -DUSING_ICC_S_FILE" \
+		ASFLAGS="$(CFLAGS) -m64" \
+		LDFLAGS="$(LDFLAGS) -m64 $(LDFLAGS_SOLARIS)"
+
 solaris-x86-sse2-cc:
 	$(RM) arch.h
 	$(LN) x86-sse.h arch.h
@@ -664,6 +712,16 @@ solaris-x86-sse2-gcc:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
+		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
+
+solaris-x86-sse2i-gcc:
+	$(RM) arch.h
+	$(LN) x86-ssei.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -msse2 -DUSING_ICC_S_FILE" \
+		ASFLAGS="$(ASFLAGS) -msse2" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 
 solaris-x86-mmx-cc:
@@ -783,6 +841,15 @@ macosx-x86-64:
 		CFLAGS="$(CFLAGS) -m64" \
 		LDFLAGS="$(LDFLAGS) -m64"
 
+macosx-x86-64i:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
+		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m64 -DUSING_ICC_S_FILE" \
+		LDFLAGS="$(LDFLAGS) -m64"
+
 macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -790,6 +857,15 @@ macosx-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md5-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32"
+
+macosx-x86-sse2i:
+	$(LN) x86-ssei.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md5-mmx.o sse-intrinsics-32.o" \
+		ASFLAGS="$(ASFLAGS) -m32 -msse2 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m32 -msse2 -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-x86-mmx:
