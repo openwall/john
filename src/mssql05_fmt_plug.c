@@ -195,14 +195,14 @@ static void init(struct fmt_main *pFmt)
 
 static void set_key(char *_key, int index) {
 	unsigned char *key = (unsigned char*)_key;
-	int len;
 #ifdef MMX_COEF
+	int len;
 	int i;
-	strnzcpy(plain_keys[index], _key, PLAINTEXT_LENGTH);
-#else
-	plain_keys[index] = key;
-#endif
+	strnzcpy(plain_keys[index], _key, PLAINTEXT_LENGTH + 1);
 	len = strlen(_key);
+#else
+	plain_keys[index] = _key;
+#endif
 
 #ifdef MMX_COEF
 	if(index==0)
@@ -212,7 +212,7 @@ static void set_key(char *_key, int index) {
 		for (j=0; j<SHA1_SSE_PARA; j++)
 			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
 #else
-		memset(saved_key, 0, 64*MMX_COEF);
+		memset(saved_key, 0, 60*MMX_COEF);
 		total_len = 0;
 #endif
 	}
@@ -239,13 +239,14 @@ static void set_key_enc(char *key, int index) {
 	int utf16len;
 
 #ifdef MMX_COEF
-	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH*3);
+	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH*3 + 1);
 #else
 	plain_keys[index] = key;
 #endif
 	utf16len = enc_to_utf16(utf16key, PLAINTEXT_LENGTH, (unsigned char*)key, utf8len);
 	if (utf16len <= 0) {
 		utf8len = -utf16len;
+		plain_keys[index][utf8len] = 0; // match truncation!
 		if (utf16len != 0)
 			utf16len = strlen16(utf16key);
 	}
@@ -258,7 +259,7 @@ static void set_key_enc(char *key, int index) {
 		for (j=0; j<SHA1_SSE_PARA; j++)
 			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
 #else
-		memset(saved_key, 0, 64*MMX_COEF);
+		memset(saved_key, 0, 60*MMX_COEF);
 		total_len = 0;
 #endif
 	}

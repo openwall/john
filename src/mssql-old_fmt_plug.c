@@ -175,7 +175,7 @@ static void set_key(char *key, int index) {
 	int utf8len, orig_len;
 #ifdef MMX_COEF
 	int i;
-	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH + 1);
 #else
 	plain_keys[index] = key;
 #endif
@@ -192,7 +192,7 @@ static void set_key(char *key, int index) {
 		for (j=0; j<SHA1_SSE_PARA; j++)
 			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
 #else
-		memset(saved_key, 0, 64*MMX_COEF);
+		memset(saved_key, 0, 60*MMX_COEF);
 		total_len = 0;
 #endif
 	}
@@ -219,13 +219,14 @@ static void set_key_enc(char *key, int index) {
 	int utf16len;
 
 #ifdef MMX_COEF
-	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH*3);
+	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH*3 + 1);
 #else
 	plain_keys[index] = key;
 #endif
 	utf16len = enc_to_utf16(utf16key_tmp, PLAINTEXT_LENGTH, (unsigned char*)key, utf8len);
 	if (utf16len <= 0) {
 		utf8len = -utf16len;
+		plain_keys[index][utf8len] = 0; // match truncation!
 		if (utf16len != 0)
 			utf16len = strlen16(utf16key_tmp);
 	}
@@ -241,7 +242,7 @@ static void set_key_enc(char *key, int index) {
 		for (j=0; j<SHA1_SSE_PARA; j++)
 			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
 #else
-		memset(saved_key, 0, 64*MMX_COEF);
+		memset(saved_key, 0, 60*MMX_COEF);
 		total_len = 0;
 #endif
 	}
@@ -274,11 +275,11 @@ static void set_key_enc(char *key, int index) {
 }
 
 static char *get_key(int index) {
-	static UTF8 UC_Key[PLAINTEXT_LENGTH*3*3+1];
+	static UTF8 UC_Key[PLAINTEXT_LENGTH*3+1];
 	// Calling this will ONLY upcase characters 'valid' in the code page. There are MANY
 	// code pages which mssql WILL upcase the letter (in UCS-2), but there is no upper case value
 	// in the code page.  Thus we MUST keep the lower cased letter in this case.
-	enc_uc(UC_Key, PLAINTEXT_LENGTH*3*3, (UTF8*)plain_keys[index], strlen(plain_keys[index]));
+	enc_uc(UC_Key, PLAINTEXT_LENGTH*3, (UTF8*)plain_keys[index], strlen(plain_keys[index]));
 	return (char*)UC_Key;
 }
 

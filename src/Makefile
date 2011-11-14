@@ -1354,6 +1354,9 @@ test:
 test_full:
 	cd ../test && ./tstall
 
+test_utf8:
+	cd ../test && ./tstall utf8
+
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
