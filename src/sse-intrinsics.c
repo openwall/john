@@ -721,13 +721,13 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	}
 	else
 	{
-	SHA1_PARA_DO(i)
-	{
-		_mm_store_si128((__m128i *)&out[i*20+0], a[i]);
-		_mm_store_si128((__m128i *)&out[i*20+4], b[i]);
-		_mm_store_si128((__m128i *)&out[i*20+8], c[i]);
-		_mm_store_si128((__m128i *)&out[i*20+12], d[i]);
-		_mm_store_si128((__m128i *)&out[i*20+16], e[i]);
+		SHA1_PARA_DO(i)
+		{
+			_mm_store_si128((__m128i *)&out[i*20+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*20+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*20+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*20+12], d[i]);
+			_mm_store_si128((__m128i *)&out[i*20+16], e[i]);
 		}
 	}
 }

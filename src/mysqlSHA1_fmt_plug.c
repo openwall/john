@@ -1,4 +1,3 @@
-// vim: set ts=8 sw=4 et :
 /*
  * Copyright (c) 2007 Marti Raudsepp <marti AT juffo org>
  *
@@ -13,36 +12,46 @@
  * SHA1(SHA1(password)) where the inner is a binary digest (not hex!) This
  * means that with the SSE2-boosted SHA-1 implementation, it will be several
  * times faster than John's cracker for the old hash format. (though the old
- * hash had significant weaknesses, John's code does not take advantage of
- * that)
+ * hash had significant weaknesses, some of which are exploited with John's
+ * format "mysql-fast")
  *
  * It's a slight improvement over the old hash, but still not something a
  * reasonable DBMS would use for password storage.
+ *
+ * Use of SSE2 intrinsics added by magnum 2011, no rights reserved
+ *
  */
 
 #include <string.h>
 
 #include "arch.h"
+
+#ifdef SHA1_SSE_PARA
+#define MMX_COEF	4
+#include "sse-intrinsics.h"
+#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#elif MMX_COEF
+#define NBKEYS	MMX_COEF
+#endif
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
 
-//#define X_DEBUG
-#ifdef X_DEBUG
-# include <assert.h>
-#endif
-
 #define FORMAT_LABEL			"mysql-sha1"
 #define FORMAT_NAME			"MySQL 4.1 double-SHA-1"
-#ifdef MMX_COEF
-# if (MMX_COEF == 2)
-#  define ALGORITHM_NAME		"mysql-sha1 MMX"
-# else
-#  define ALGORITHM_NAME		"mysql-sha1 SSE2"
-# endif
+
+#ifdef SHA1_SSE_PARA
+#define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
+#elif defined(MMX_COEF) && MMX_COEF == 4
+#define ALGORITHM_NAME			"SSE2 4x"
+#elif defined(MMX_COEF) && MMX_COEF == 2
+#define ALGORITHM_NAME			"MMX 2x"
+#elif defined(MMX_COEF)
+#define ALGORITHM_NAME			"?"
 #else
-# define ALGORITHM_NAME			"mysql-sha1"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -55,57 +64,53 @@
 #define SALT_SIZE			0
 
 #ifdef MMX_COEF
-# define MIN_KEYS_PER_CRYPT		MMX_COEF
-# define MAX_KEYS_PER_CRYPT		MMX_COEF
-//#define GETPOS(i, index)		( (index)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + ((i)&3) ) //std getpos
-# define GETPOS(i, index)		( (index)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + (3-((i)&3)) ) //for endianity conversion
-# define BYTESWAP(n) ( \
-        (((n)&0x000000ff) << 24) | \
-        (((n)&0x0000ff00) << 8 ) | \
-        (((n)&0x00ff0000) >> 8 ) | \
-        (((n)&0xff000000) >> 24) )
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*4*MMX_COEF ) //for endianity conversion
+#define BYTESWAP(n) (	\
+                      (((n)&0x000000ff) << 24) |	\
+                      (((n)&0x0000ff00) << 8 ) |	\
+                      (((n)&0x00ff0000) >> 8 ) |	\
+                      (((n)&0xff000000) >> 24) )
 #else
-# define MIN_KEYS_PER_CRYPT		1
-# define MAX_KEYS_PER_CRYPT		1
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1
 #endif
 
-static struct fmt_tests mysqlsha1_tests[] = {
-    {"*5AD8F88516BD021DD43F171E2C785C69F8E54ADB", "tere"},
-    {"*2C905879F74F28F8570989947D06A8429FB943E6", "verysecretpassword"},
-    {"*A8A397146B1A5F8C8CF26404668EFD762A1B7B82", "________________________________"},
-    {"*F9F1470004E888963FB466A5452C9CBD9DF6239C", "12345678123456781234567812345678"},
-    {"*97CF7A3ACBE0CA58D5391AC8377B5D9AC11D46D9", "' OR 1 /*'"},
-    {"*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19", "password"},
-    {"*7534F9EAEE5B69A586D1E9C1ACE3E3F9F6FCC446", "5"},
-    {NULL}
+static struct fmt_tests tests[] = {
+	{"*5AD8F88516BD021DD43F171E2C785C69F8E54ADB", "tere"},
+	{"*2C905879F74F28F8570989947D06A8429FB943E6", "verysecretpassword"},
+	{"*A8A397146B1A5F8C8CF26404668EFD762A1B7B82", "________________________________"},
+	{"*F9F1470004E888963FB466A5452C9CBD9DF6239C", "12345678123456781234567812345678"},
+	{"*97CF7A3ACBE0CA58D5391AC8377B5D9AC11D46D9", "' OR 1 /*'"},
+	{"*2470C0C06DEE42FD1618BB99005ADCA2EC9D1E19", "password"},
+	{"*7534F9EAEE5B69A586D1E9C1ACE3E3F9F6FCC446", "5"},
+	{NULL}
 };
 
 #ifdef MMX_COEF
+#ifdef _MSC_VER
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key mysqlSHA1_saved_key
 #define crypt_key mysqlSHA1_crypt_key
-#ifdef _MSC_VER
-__declspec(align(16)) char saved_key[80*4*MMX_COEF];
-__declspec(align(16)) char crypt_key[BINARY_SIZE*MMX_COEF];
 #define interm_key mysqlSHA1_interm_key
-__declspec(align(16)) char interm_key[80*4*MMX_COEF];
+__declspec(align(16)) char saved_key[80*4*NBKEYS];
+__declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
+__declspec(align(16)) char interm_key[80*4*NBKEYS];
 #else
-char saved_key[80*4*MMX_COEF] __attribute__ ((aligned(16)));
-char crypt_key[BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));
-/* Intermediate key which stores the hashes between two SHA-1 operations. Don't
- * ask me why it has to be so long ;) */
-#define interm_key mysqlSHA1_interm_key
-char interm_key[80*4*MMX_COEF] __attribute__ ((aligned(16)));
+static char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+static char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
+static char interm_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
 #endif
-
+#ifndef SHA1_SSE_PARA
 static unsigned long total_len;
-
-# if MMX_COEF > 2
+#if MMX_COEF > 2
 /* argument to shammx(); all intermediary plaintexts are 20 bytes long */
-#  define TMPKEY_LENGTHS 0x14141414
-# else
-#  define TMPKEY_LENGTHS 0x00140014
-# endif
+#define TMPKEY_LENGTHS 0x14141414
+#else
+#define TMPKEY_LENGTHS 0x00140014
+#endif
+#endif
 
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -115,176 +120,205 @@ static SHA_CTX ctx;
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-    int i;
+	int i;
 
-    if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
-    if (ciphertext[0] != '*')
-        return 0;
-    for (i = 1; i < CIPHERTEXT_LENGTH; i++){
-        if (!( (('0' <= ciphertext[i])&&(ciphertext[i] <= '9'))
-           || (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-           || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-        {
-            return 0;
-        }
-    }
-    return 1;
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
+	if (ciphertext[0] != '*')
+		return 0;
+	for (i = 1; i < CIPHERTEXT_LENGTH; i++) {
+		if (!( (('0' <= ciphertext[i])&&(ciphertext[i] <= '9'))
+		       || (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
+		       || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
+		{
+			return 0;
+		}
+	}
+	return 1;
 }
 
-static void mysqlsha1_init(struct fmt_main *pFmt)
+static void init(struct fmt_main *pFmt)
 {
 #ifdef MMX_COEF
-	const int offset = (MMX_COEF*BINARY_SIZE)/4;
+	int i;
 
-    memset(saved_key, 0, sizeof saved_key);
-    memset(interm_key, 0, sizeof interm_key);
-    /* input strings have to be terminated by 0x80. The input strings in
-     * interm_key have a static length (20 bytes) so we can set them just once.
-     */
-    ((unsigned*)interm_key)[offset+0] = BYTESWAP(0x80);
-    ((unsigned*)interm_key)[offset+1] = BYTESWAP(0x80);
-# if MMX_COEF > 2
-    ((unsigned*)interm_key)[offset+2] = BYTESWAP(0x80);
-    ((unsigned*)interm_key)[offset+3] = BYTESWAP(0x80);
-# endif
+	/* input strings have to be terminated by 0x80. The input strings in
+	 * interm_key have a static length (20 bytes) so we can set them just
+	 * once. If intrinsics, we do the same for the length byte.
+	 */
+	for (i = 0; i < NBKEYS; i++) {
+		interm_key[GETPOS(20,i)] = 0x80;
+#ifdef SHA1_SSE_PARA
+		((unsigned int *)interm_key)[15*MMX_COEF + (i&3) + (i>>2)*80*MMX_COEF] = 20 << 3;
+#endif
+	}
 #endif
 }
 
-static void mysqlsha1_set_key(char *key, int index) {
+static void set_key(char *key, int index) {
 #ifdef MMX_COEF
-    int len;
-    int i;
-    /* FIXME: we're wasting 22% time in set_key with SSE2 (rawSHA1 is wasting
-     * nearly 50%!). The huge memset() is probably a culprit, but also the
-     * bytewise byte-order swapping code (see GETPOS macro above). */
+	int i;
 
-    if(index==0)
-    {
-        total_len = 0;
-        //memset(saved_key, 0, sizeof(saved_key));
+	if (index==0)
+	{
+#ifdef SHA1_SSE_PARA
+		int j;
+		for (j=0; j<SHA1_SSE_PARA; j++)
+			memset(saved_key+j*4*80*MMX_COEF, 0, 56*MMX_COEF);
+#else
+		total_len = 0;
 		memset(saved_key, 0, 56*MMX_COEF);
-    }
-    len = strlen(key);
-    if(len>PLAINTEXT_LENGTH)
-        len = PLAINTEXT_LENGTH;
+#endif
+	}
 
-    total_len += len << ( ( (32/MMX_COEF) * index ) );
-    for(i=0;i<len;i++)
-        saved_key[GETPOS(i, index)] = key[i];
+	i = -1;
+	while (key[++i])
+		saved_key[GETPOS(i, index)] = key[i];
 
-    saved_key[GETPOS(i, index)] = 0x80;
+#ifdef SHA1_SSE_PARA
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = i << 3;
 #else
-    strnzcpy(saved_key, key, PLAINTEXT_LENGTH+1);
+	total_len += i << ( ( (32/MMX_COEF) * index ) );
+#endif
+	saved_key[GETPOS(i, index)] = 0x80;
+#else
+	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
 #endif
 }
 
-static char *mysqlsha1_get_key(int index) {
+static char *get_key(int index) {
 #ifdef MMX_COEF
-    static char out[PLAINTEXT_LENGTH+1];
-    unsigned int i,s;
+	static char out[PLAINTEXT_LENGTH+1];
+	unsigned int i, s;
 
-    s = (total_len >> (((32/MMX_COEF)*(index)))) & 0xff;
-    for(i=0;i<s;i++)
-        out[i] = saved_key[ GETPOS(i, index) ];
-    out[i] = 0;
-    return out;
+#ifdef SHA1_SSE_PARA
+	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
 #else
-    return saved_key;
+	s = (total_len >> (((32 / MMX_COEF) * (index)))) & 0xff;
+#endif
+	for (i = 0; i < s; i++)
+		out[i] = saved_key[ GETPOS(i, index) ];
+	out[i] = 0;
+	return out;
+#else
+	return saved_key;
 #endif
 }
 
-static int mysqlsha1_cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int index) {
 #ifdef MMX_COEF
-    int i=0;
-    while(i< (BINARY_SIZE/4) )
-    {
-        if (
-                ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
-                && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
+#ifdef SHA1_SSE_PARA
+	unsigned int x,y=0;
+
+	for(;y<SHA1_SSE_PARA;y++)
+	for(x=0;x<MMX_COEF;x++)
+	{
+		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+			return 1;
+	}
+	return 0;
+#else
+	int i=0;
+	while(i< (BINARY_SIZE/4) )
+	{
+		if (
+		    ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
+		    && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
 #if (MMX_COEF > 3)
-                && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
-                && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
+		    && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
+		    && ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
 #endif
-           )
-            return 0;
-        i++;
-    }
-    return 1;
+		    )
+			return 0;
+		i++;
+	}
+	return 1;
+#endif
 #else
-    return !memcmp(binary, crypt_key, BINARY_SIZE);
+	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
 }
 
-static int mysqlsha1_cmp_exact(char *source, int count){
-  return (1);
+static int cmp_exact(char *source, int index)
+{
+	return (1);
 }
 
-static int mysqlsha1_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
-    int i = 0;
-    for(i=0;i<(BINARY_SIZE/4);i++)
-        if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
-            return 0;
-    return 1;
+#if SHA1_SSE_PARA
+	unsigned int x,y;
+	x = index&3;
+	y = index/4;
+
+	if( ((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+		return 0;
+	if( ((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4] )
+		return 0;
+	if( ((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+8] )
+		return 0;
+	if( ((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+12] )
+		return 0;
+	if( ((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+16] )
+		return 0;
+	return 1;
 #else
-    return mysqlsha1_cmp_all(binary, index);
+	int i = 0;
+	for (i=0;i<(BINARY_SIZE/4);i++)
+		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
+			return 0;
+	return 1;
+#endif
+#else
+	return cmp_all(binary, index);
 #endif
 }
 
-static void mysqlsha1_crypt_all(int count) {
+static void crypt_all(int count) {
 #ifdef MMX_COEF
-    unsigned int i;
+#ifdef SHA1_SSE_PARA
+	unsigned int i;
 
-//    shammx((unsigned char *) crypt_key, (unsigned char *) saved_key, total_len);
+	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
 
-//    for(i = 0; i < MMX_COEF*BINARY_SIZE/sizeof(unsigned); i++)
-//    {
-//        ((unsigned*)interm_key)[i] = BYTESWAP(((unsigned*)crypt_key)[i]);
-//    }
+	for (i = 0; i < SHA1_SSE_PARA; i++)
+		memcpy(&interm_key[i*80*4*MMX_COEF],
+		       &crypt_key[i*BINARY_SIZE*MMX_COEF],
+		       MMX_COEF*BINARY_SIZE);
 
-    shammx_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, total_len);
-    for(i = 0; i < MMX_COEF*BINARY_SIZE/sizeof(unsigned); i++)
-    {
-        ((unsigned*)interm_key)[i] = ((unsigned*)crypt_key)[i];
-    }
-
-
-    /* Verify that the 0x80 padding hasn't been overwritten. */
-# ifdef X_DEBUG
-    assert(((unsigned*)interm_key)[i+0] == BYTESWAP(0x80));
-    assert(((unsigned*)interm_key)[i+1] == BYTESWAP(0x80));
-#  if MMX_COEF > 2
-    assert(((unsigned*)interm_key)[i+2] == BYTESWAP(0x80));
-    assert(((unsigned*)interm_key)[i+3] == BYTESWAP(0x80));
-#  endif
-# endif /* X_DEBUG */
-
-    shammx((unsigned char *) crypt_key, (unsigned char *) interm_key, TMPKEY_LENGTHS);
+	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, 0);
 
 #else
-    SHA1_Init(&ctx);
-    SHA1_Update(&ctx, (unsigned char *) saved_key, strlen(saved_key));
-    SHA1_Final((unsigned char *) crypt_key, &ctx);
+	shammx_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, total_len);
+	memcpy(interm_key, crypt_key, MMX_COEF*BINARY_SIZE);
+	shammx((unsigned char *) crypt_key, (unsigned char *) interm_key, TMPKEY_LENGTHS);
+#endif
+#else
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, (unsigned char *) saved_key, strlen(saved_key));
+	SHA1_Final((unsigned char *) crypt_key, &ctx);
 
-    SHA1_Init(&ctx);
-    SHA1_Update(&ctx, (unsigned char *) crypt_key, BINARY_SIZE);
-    SHA1_Final((unsigned char *) crypt_key, &ctx);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, (unsigned char *) crypt_key, BINARY_SIZE);
+	SHA1_Final((unsigned char *) crypt_key, &ctx);
 #endif
 }
 
-static void *mysqlsha1_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
-    static char realcipher[BINARY_SIZE];
-    int i;
+	static char realcipher[BINARY_SIZE];
+	int i;
 
-    // ignore first character '*'
-    ciphertext += 1;
-    for(i=0;i<BINARY_SIZE;i++)
-    {
-        realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-    }
-    return (void *)realcipher;
+	// ignore first character '*'
+	ciphertext += 1;
+	for (i=0;i<BINARY_SIZE;i++)
+	{
+		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	}
+#ifdef SHA1_SSE_PARA
+	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
+#endif
+	return (void *)realcipher;
 }
 
 static int binary_hash_0(void *binary)
@@ -312,6 +346,43 @@ static int binary_hash_4(void *binary)
 	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFF;
 }
 
+#ifdef SHA1_SSE_PARA
+static int get_hash_0(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xf;
+}
+static int get_hash_1(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xff;
+}
+static int get_hash_2(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xfff;
+}
+static int get_hash_3(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xffff;
+}
+static int get_hash_4(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xfffff;
+}
+#else
 static int get_hash_0(int index)
 {
 	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xF;
@@ -336,50 +407,51 @@ static int get_hash_4(int index)
 {
 	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFFFFF;
 }
+#endif
 
 struct fmt_main fmt_mysqlSHA1 = {
-    {
-        FORMAT_LABEL,
-        FORMAT_NAME,
-        ALGORITHM_NAME,
-        BENCHMARK_COMMENT,
-        BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
-        BINARY_SIZE,
-        SALT_SIZE,
-        MIN_KEYS_PER_CRYPT,
-        MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT,
-        mysqlsha1_tests
-    }, {
-        mysqlsha1_init,
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		init,
 		fmt_default_prepare,
-        valid,
-        fmt_default_split,
-        mysqlsha1_binary,
-        fmt_default_salt,
-        {
-            binary_hash_0,
-            binary_hash_1,
-            binary_hash_2,
-            binary_hash_3,
-            binary_hash_4
-        },
-        fmt_default_salt_hash,
-        fmt_default_set_salt,
-        mysqlsha1_set_key,
-        mysqlsha1_get_key,
-        fmt_default_clear_keys,
-        mysqlsha1_crypt_all,
-        {
-            get_hash_0,
-            get_hash_1,
-            get_hash_2,
-            get_hash_3,
-            get_hash_4
-        },
-        mysqlsha1_cmp_all,
-        mysqlsha1_cmp_one,
-        mysqlsha1_cmp_exact
-    }
+		valid,
+		fmt_default_split,
+		binary,
+		fmt_default_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
+		},
+		fmt_default_salt_hash,
+		fmt_default_set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

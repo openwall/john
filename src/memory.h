@@ -97,6 +97,8 @@ void dump_stuff_mmx(unsigned char * x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
 void dump_stuff_shammx(unsigned char * x, unsigned int size, unsigned int index);
 void dump_stuff_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
+void dump_out_shammx(unsigned char * x, unsigned int size, unsigned int index);
+void dump_out_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
 void alter_endianity(unsigned char * x, unsigned int size);
 #endif
 

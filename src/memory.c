@@ -142,6 +142,7 @@ void alter_endianity(unsigned char * _x, unsigned int size)
 
 // These work for standard MMX_COEF buffers, AND for SSEi MMX_PARA multiple MMX_COEF blocks, where index will be mod(X * MMX_COEF) and not simply mod(MMX_COEF)
 #define SHAGETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*4*MMX_COEF ) //for endianity conversion
+#define SHAGETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*20*MMX_COEF ) //for endianity conversion
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*64*MMX_COEF  )
 
 void dump_stuff_mmx(unsigned char * buf, unsigned int size, unsigned int index)
@@ -174,6 +175,21 @@ void dump_stuff_shammx(unsigned char * buf, unsigned int size, unsigned int inde
 void dump_stuff_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index) {
 	printf("%s : ", msg);
 	dump_stuff_shammx(buf, size, index);
+}
+void dump_out_shammx(unsigned char * buf, unsigned int size, unsigned int index)
+{
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", buf[SHAGETOUTPOS(i, index)]);
+		if( (i%4)==3 )
+			printf(" ");
+	}
+	printf("\n");
+}
+void dump_out_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index) {
+	printf("%s : ", msg);
+	dump_out_shammx(buf, size, index);
 }
 
 #endif
