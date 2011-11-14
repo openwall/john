@@ -3631,7 +3631,7 @@ static struct md5_item md5_items[21] = {
 
 static void FreeBSDMD5Crypt_setup_nonMMX() {
 	unsigned char *cp, *cp1;
-	MD5_word *w;
+	//MD5_word *w;
 	unsigned len, i;
 	char *pass;
 	unsigned plen;
@@ -3652,9 +3652,9 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 		pass = saved_key[i];
 		plen = saved_key_len[i];
 
-	cp1 = md5_cspp.x1.B; w=md5_cspp.x1.w;
+		cp1 = md5_cspp.x1.B; /* w=md5_cspp.x1.w*/ ;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_cspp.x2.B2; w=md5_cspp.x2.w2; }
+		if (i == 1) { cp1 = md5_cspp.x2.B2; /* w=md5_cspp.x2.w2; */ }
 #endif
 	cp = &cp1[16];
 	memcpy(cp, cursalt, saltlen); cp += saltlen; memcpy(cp, pass, plen); cp += plen; memcpy(cp, pass, plen); cp += plen;
@@ -3664,11 +3664,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 	md5_items[8].len1 = md5_items[10].len1 = md5_items[11].len1 = md5_items[13].len1 =
 	md5_items[16].len1 = md5_items[17].len1 = md5_items[19].len1 = md5_items[20].len1 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_pspc.x1.B; w=md5_pspc.x1.w;
+	cp1 = md5_pspc.x1.B; /* w=md5_pspc.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_pspc.x2.B2; w=md5_pspc.x2.w2; }
+	if (i == 1) { cp1 = md5_pspc.x2.B2; /* w=md5_pspc.x2.w2 */; }
 #endif
 	cp = cp1;
 	memcpy(cp, pass, plen); cp += plen; memcpy(cp, cursalt, saltlen); cp += saltlen; memcpy(cp, pass, plen); cp += plen;
@@ -3693,11 +3693,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 	md5_items[8].len2 = md5_items[9].len2 = md5_items[11].len2 = md5_items[12].len2 =
 	md5_items[14].len2 = md5_items[15].len2 = md5_items[18].len2 = md5_items[20].len2 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_cpp.x1.B; w=md5_cpp.x1.w;
+	cp1 = md5_cpp.x1.B; /* w=md5_cpp.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_cpp.x2.B2; w=md5_cpp.x2.w2; }
+	if (i == 1) { cp1 = md5_cpp.x2.B2; /* w=md5_cpp.x2.w2 */; }
 #endif
 	cp = &cp1[16];
 	memcpy(cp, pass, plen); cp += plen; memcpy(cp, pass, plen); cp += plen;
@@ -3706,11 +3706,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 	md5_items[3].len1 = md5_items[6].len1 = md5_items[9].len1 = md5_items[12].len1 =
 	md5_items[15].len1 = md5_items[18].len1 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_ppc.x1.B; w=md5_ppc.x1.w;
+	cp1 = md5_ppc.x1.B; /* w=md5_ppc.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_ppc.x2.B2; w=md5_ppc.x2.w2; }
+	if (i == 1) { cp1 = md5_ppc.x2.B2; /* w=md5_ppc.x2.w2 */; }
 #endif
 	cp = cp1;
 	memcpy(cp, pass, plen); cp += plen; memcpy(cp, pass, plen); cp += plen;
@@ -3731,11 +3731,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 	md5_items[1].len2 = md5_items[4].len2 = md5_items[7].len2 = md5_items[13].len2 =
 	md5_items[16].len2 = md5_items[19].len2 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_csp.x1.B; w=md5_csp.x1.w;
+	cp1 = md5_csp.x1.B; /* w=md5_csp.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_csp.x2.B2; w=md5_csp.x2.w2; }
+	if (i == 1) { cp1 = md5_csp.x2.B2; /* w=md5_csp.x2.w2 */; }
 #endif
 	cp = &cp1[16];
 	memcpy(cp, cursalt, saltlen); cp += saltlen; memcpy(cp, pass, plen); cp += plen;
@@ -3743,11 +3743,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 #if !defined (USE_MD5_Go) || (MD5_ASM != 1)
 	md5_items[7].len1 = md5_items[14].len1 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_psc.x1.B; w=md5_psc.x1.w;
+	cp1 = md5_psc.x1.B; /* w=md5_psc.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_psc.x2.B2; w=md5_psc.x2.w2; }
+	if (i == 1) { cp1 = md5_psc.x2.B2; /* w=md5_psc.x2.w2 */; }
 #endif
 	cp = cp1;
 	memcpy(cp, pass, plen); cp += plen; memcpy(cp, cursalt, saltlen); cp += saltlen;
@@ -3764,11 +3764,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 #if !defined (USE_MD5_Go) || (MD5_ASM != 1)
 	md5_items[3].len2 = md5_items[17].len2 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_cp.x1.B; w=md5_cp.x1.w;
+	cp1 = md5_cp.x1.B; /* w=md5_cp.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_cp.x2.B2; w=md5_cp.x2.w2; }
+	if (i == 1) { cp1 = md5_cp.x2.B2; /* w=md5_cp.x2.w2 */; }
 #endif
 	cp = &cp1[16];
 	memcpy(cp, pass, plen); cp += plen;
@@ -3776,11 +3776,11 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 #if !defined (USE_MD5_Go) || (MD5_ASM != 1)
 	md5_items[0].len1 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
-	cp1 = md5_pc.x1.B; w=md5_pc.x1.w;
+	cp1 = md5_pc.x1.B; /* w=md5_pc.x1.w */;
 #if MD5_X2
-	if (i == 1) { cp1 = md5_pc.x2.B2; w=md5_pc.x2.w2; }
+	if (i == 1) { cp1 = md5_pc.x2.B2; /* w=md5_pc.x2.w2 */; }
 #endif
 	cp = cp1;
 	memcpy(cp, pass, plen); cp += plen;
@@ -3797,7 +3797,7 @@ static void FreeBSDMD5Crypt_setup_nonMMX() {
 #if !defined (USE_MD5_Go) || (MD5_ASM != 1)
 	md5_items[10].len2 = len;
 #endif
-	MD5_swap(w,w,(len+5)>>2);
+	//MD5_swap(w,w,(len+5)>>2);
 
 #if MD5_X2
 	}
