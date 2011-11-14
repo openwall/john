@@ -24,11 +24,11 @@
 #define FORMAT_NAME			"Raw SHA-1"
 
 #ifdef SHA1_N_STR
-#define ALGORITHM_NAME			SHA1_N_STR
+#define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
 #elif defined(MMX_COEF) && MMX_COEF == 4
-#define ALGORITHM_NAME			"4x"
+#define ALGORITHM_NAME			"SSE2 4x"
 #elif defined(MMX_COEF) && MMX_COEF == 2
-#define ALGORITHM_NAME			"2x"
+#define ALGORITHM_NAME			"MMX 2x"
 #elif defined(MMX_COEF)
 #define ALGORITHM_NAME			"?"
 #else

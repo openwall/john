@@ -20,7 +20,7 @@
 #define MMX_COEF			4
 #include "sse-intrinsics.h"
 #define NBKEYS				(MMX_COEF * MD4_SSE_PARA)
-#define ALGORITHM_NAME			MD4_N_STR
+#define ALGORITHM_NAME			"SSE2i " MD4_N_STR
 #define PLAINTEXT_LENGTH		54
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS

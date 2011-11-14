@@ -266,28 +266,28 @@ static void __SSE_gen_BenchLowLevelFunctions();
 
 #if (MMX_COEF == 2)
 #define BLOCK_LOOPS			64
-#define ALGORITHM_NAME		"MMX 64x2 (.S)"
+#define ALGORITHM_NAME		"MMX 64x2"
 #else // MMX_COEF != 2
 #define BLOCK_LOOPS			32
 #ifdef MD5_SSE_PARA
 #include "sse-intrinsics.h"
 #if (MD5_SSE_PARA==1)
-#define ALGORITHM_NAME		"SSE2 32x4x1 (intr)"
+#define ALGORITHM_NAME		"SSE2i 32x4x1"
 #elif (MD5_SSE_PARA==2)
-#define ALGORITHM_NAME		"SSE2 16x4x2 (intr)"
+#define ALGORITHM_NAME		"SSE2i 16x4x2"
 #elif (MD5_SSE_PARA==3)
-#define ALGORITHM_NAME		"SSE2 10x4x3 (intr)"
+#define ALGORITHM_NAME		"SSE2i 10x4x3"
 #elif (MD5_SSE_PARA==4)
-#define ALGORITHM_NAME		"SSE2 8x4x4 (intr)"
+#define ALGORITHM_NAME		"SSE2i 8x4x4"
 #elif (MD5_SSE_PARA==5)
-#define ALGORITHM_NAME		"SSE2 6x4x5 (intr)"
+#define ALGORITHM_NAME		"SSE2i 6x4x5"
 #elif (MD5_SSE_PARA==6)
-#define ALGORITHM_NAME		"SSE2 5x4x6 (intr)"
+#define ALGORITHM_NAME		"SSE2i 5x4x6"
 #else //if (MD5_SSE_PARA==8)
-#define ALGORITHM_NAME		"SSE2 4x4x8 (intr)"
+#define ALGORITHM_NAME		"SSE2i 4x4x8"
 #endif // MD5_SSE_PARA
 #else  // !MD5_SSE_PARA
-#define ALGORITHM_NAME		"SSE2 32x4 (.S)"
+#define ALGORITHM_NAME		"SSE2 32x4"
 #endif // PARA
 #endif // MMX_COEF == 4
 
@@ -6454,28 +6454,28 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	{
 #ifdef MMX_COEF
 #if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "MMX 2x1 (.S)";
+		pFmt->params.algorithm_name = "MMX 2x1";
 		pFmt->params.max_keys_per_crypt = 2;
 #elif (MD5_SSE_PARA==1)
-		pFmt->params.algorithm_name = "SSE2 4x1 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x1";
 		pFmt->params.max_keys_per_crypt = 4;
 #elif (MD5_SSE_PARA==2)
-		pFmt->params.algorithm_name = "SSE2 4x2 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x2";
 		pFmt->params.max_keys_per_crypt = 8;
 #elif (MD5_SSE_PARA==3)
-		pFmt->params.algorithm_name = "SSE2 4x3 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x3";
 		pFmt->params.max_keys_per_crypt = 12;
 #elif (MD5_SSE_PARA==4)
-		pFmt->params.algorithm_name = "SSE2 4x4 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x4";
 		pFmt->params.max_keys_per_crypt = 16;
 #elif (MD5_SSE_PARA==5)
-		pFmt->params.algorithm_name = "SSE2 4x5 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x5";
 		pFmt->params.max_keys_per_crypt = 20;
 #elif (MD5_SSE_PARA==6)
-		pFmt->params.algorithm_name = "SSE2 4x6 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x6";
 		pFmt->params.max_keys_per_crypt = 24;
 #else
-		pFmt->params.algorithm_name = "SSE2 4x1 (.S)";
+		pFmt->params.algorithm_name = "SSE2 4x1";
 		pFmt->params.max_keys_per_crypt = 4;
 #endif
 #else
@@ -6504,24 +6504,24 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		// by doing more than simple 1 set of MMX_COEF
 		pFmt->params.max_keys_per_crypt = 16;
 #if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "MMX 8x2 (.S)";
+		pFmt->params.algorithm_name = "MMX 8x2";
 #elif (MD5_SSE_PARA==1)
-		pFmt->params.algorithm_name = "SSE2 4x4x1 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 4x4x1";
 #elif (MD5_SSE_PARA==2)
-		pFmt->params.algorithm_name = "SSE2 2x4x2 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 2x4x2";
 #elif (MD5_SSE_PARA==3)
-		pFmt->params.algorithm_name = "SSE2 2x4x3 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 2x4x3";
 		pFmt->params.max_keys_per_crypt = 24;
 #elif (MD5_SSE_PARA==4)
-		pFmt->params.algorithm_name = "SSE2 1x4x4 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 1x4x4";
 #elif (MD5_SSE_PARA==5)
-		pFmt->params.algorithm_name = "SSE2 1x4x5 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 1x4x5";
 		pFmt->params.max_keys_per_crypt = 20;
 #elif (MD5_SSE_PARA==6)
-		pFmt->params.algorithm_name = "SSE2 1x4x6 (intr)";
+		pFmt->params.algorithm_name = "SSE2i 1x4x6";
 		pFmt->params.max_keys_per_crypt = 24;
 #else
-		pFmt->params.algorithm_name = "SSE2 4x4 (.S)";
+		pFmt->params.algorithm_name = "SSE2 4x4";
 #endif
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if

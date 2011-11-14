@@ -136,7 +136,7 @@ static void BESWAP(unsigned int *x, unsigned int *y, int count)
 #endif
 
 # ifdef SHA1_SSE_PARA
-#   define ALGORITHM_NAME				"SSE2-para " SHA1_N_STR
+#   define ALGORITHM_NAME		"SSE2i " SHA1_N_STR
 #  define MS_NUM_KEYS			(THREAD_PARA*MMX_COEF*SHA1_SSE_PARA)
 # else
 #  define MS_NUM_KEYS			(THREAD_PARA*MMX_COEF)
