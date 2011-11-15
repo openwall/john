@@ -38,8 +38,12 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
+#define FORMAT_TAG			"$dynamic_12$"
+#define TAG_LENGTH			12
+
 #define PLAINTEXT_LENGTH		55
-#define CIPHERTEXT_LENGTH		40
+#define HASH_LENGTH			40
+#define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define BINARY_SIZE			20
 #define SALT_SIZE			0
@@ -60,7 +64,7 @@
 static struct fmt_tests rawsha1_tests[] = {
 	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	{"A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
+	{FORMAT_TAG "A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
 	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
 	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
 	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
@@ -91,14 +95,36 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
-	for (i = 0; i < CIPHERTEXT_LENGTH; i++){
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	if (strlen(ciphertext) != HASH_LENGTH)
+		return 0;
+
+	for (i = 0; i < HASH_LENGTH; i++){
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
 					(('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
 					|| (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
 			return 0;
 	}
 	return 1;
+}
+
+static char *rawsha1_split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	strncpy(out, FORMAT_TAG, sizeof(out));
+
+	memcpy(&out[TAG_LENGTH], ciphertext, HASH_LENGTH);
+	out[CIPHERTEXT_LENGTH] = 0;
+
+	strlwr(&out[TAG_LENGTH]);
+
+	return out;
 }
 
 static void rawsha1_init(struct fmt_main *pFmt)
@@ -255,6 +281,8 @@ static void * rawsha1_binary(char *ciphertext)
 	static unsigned char realcipher[BINARY_SIZE];
 	int i;
 
+	ciphertext += TAG_LENGTH;
+
 	for(i=0;i<BINARY_SIZE;i++)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
@@ -347,13 +375,13 @@ struct fmt_main fmt_rawSHA1 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		rawsha1_tests
 	}, {
 		rawsha1_init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		rawsha1_split,
 		rawsha1_binary,
 		fmt_default_salt,
 		{
