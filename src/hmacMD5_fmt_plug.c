@@ -22,18 +22,16 @@
 #define MD5_N				MMX_COEF
 #endif
 
-#ifdef MMX_COEF
-#if (MMX_COEF == 2)
-#define ALGORITHM_NAME			"hmac-md5 MMX"
+#ifdef MD5_N_STR
+#define ALGORITHM_NAME			"SSE2i " MD5_N_STR
+#elif defined(MMX_COEF) && MMX_COEF == 4
+#define ALGORITHM_NAME			"SSE2 4x"
+#elif defined(MMX_COEF) && MMX_COEF == 2
+#define ALGORITHM_NAME			"MMX 2x"
+#elif defined(MMX_COEF)
+#define ALGORITHM_NAME			"?"
 #else
-#ifdef MD5_SSE_PARA
-#define ALGORITHM_NAME			"hmac-md5 SSE2-" MD5_N_STR
-#else
-#define ALGORITHM_NAME			"hmac-md5 SSE2"
-#endif
-#endif
-#else
-#define ALGORITHM_NAME			"hmac-md5"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -57,6 +55,8 @@
 
 static struct fmt_tests hmacmd5_tests[] = {
 	{"what do ya want for nothing?#750c783e6ab0b503eaa86e310a5db738", "Jefe"},
+	{"YT1m11GDMm3oze0EdqO3FZmATSrxhquB#6c97850b296b34719b7cea5c0c751e22", ""},
+	{"2shXeqDlLdZ2pSMc0CBHfTyA5a9TKuSW#dfeb02c6f8a9ce89b554be60db3a2333", "magnum"},
 	{NULL}
 };
 
@@ -80,7 +80,7 @@ unsigned char ipad[PLAINTEXT_LENGTH*MD5_N] __attribute__ ((aligned(16)));
 unsigned char cursalt[SALT_SIZE*MD5_N] __attribute__ ((aligned(16)));
 unsigned char dump[BINARY_SIZE*MD5_N] __attribute__((aligned(16)));
 #endif
-static unsigned long total_len;
+static ARCH_WORD_32 total_len;
 #else
 static char crypt_key[BINARY_SIZE+1];
 static MD5_CTX ctx;
@@ -196,37 +196,37 @@ static int hmacmd5_cmp_all(void *binary, int index) {
 	while(i< (BINARY_SIZE/4) )
 	{
 		if (
-			( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
+			( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1])
 #if (MMX_COEF > 3)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3])
 #ifdef MD5_SSE_PARA
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*1*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*1*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*1*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*1*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*1*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*1*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*1*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*1*MMX_COEF])
 #endif
 #if (MD5_SSE_PARA>2)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*2*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*2*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*2*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*2*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*2*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*2*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*2*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*2*MMX_COEF])
 #endif
 #if (MD5_SSE_PARA>3)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*3*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*3*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*3*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*3*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*3*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*3*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*3*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*3*MMX_COEF])
 #endif
 #if (MD5_SSE_PARA>4)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*4*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*4*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*4*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*4*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*4*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*4*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*4*MMX_COEF])
+			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*4*MMX_COEF])
 #endif
 #if (MD5_SSE_PARA>5)
-#error hmac_md5 format onlyhandles MD5_SSE_PARA up to 5, not over.
+#error hmac_md5 format only handles MD5_SSE_PARA up to 5, not over.
 #endif
 #endif
 #endif
@@ -255,9 +255,9 @@ static int hmacmd5_cmp_one(void * binary, int index)
 	int i = 0;
 	for(i=0;i<(BINARY_SIZE/4);i++)
 #ifdef MD5_SSE_PARA
-		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*16*MMX_COEF] )
+		if ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*16*MMX_COEF] )
 #else
-		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
+		if ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+index] )
 #endif
 			return 0;
 	return 1;
