@@ -157,16 +157,31 @@ void SSEmd5body(__m128i* data, unsigned int * out, int init)
 		MD5_STEP(MD5_I, d, a, b, c, 11, 0xbd3af235, 10)
 		MD5_STEP(MD5_I, c, d, a, b, 2, 0x2ad7d2bb, 15)
 		MD5_STEP(MD5_I, b, c, d, a, 9, 0xeb86d391, 21)
-	MD5_PARA_DO(i)
-	{
-		a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
-		b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
-		c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
-		d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
-		_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
-		_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
-		_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
-		_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
+
+	if (init) {
+		MD5_PARA_DO(i)
+		{
+			a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
+			b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
+			c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
+			d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
+			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
+		}
+	} else {
+		MD5_PARA_DO(i)
+		{
+			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&out[i*16+0]));
+			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&out[i*16+4]));
+			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&out[i*16+8]));
+			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&out[i*16+12]));
+			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
+		}
 	}
 }
 
@@ -508,16 +523,30 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 		MD4_STEP(MD4_H, c, d, a, b, 7, cst, 11)
 		MD4_STEP(MD4_H, b, c, d, a, 15, cst, 15)
 
-	MD4_PARA_DO(i)
-	{
-		a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
-		b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
-		c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
-		d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
-		_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
-		_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
-		_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
-		_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
+	if (init) {
+		MD5_PARA_DO(i)
+		{
+			a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
+			b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
+			c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
+			d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
+			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
+		}
+	} else {
+		MD5_PARA_DO(i)
+		{
+			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&out[i*16+0]));
+			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&out[i*16+4]));
+			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&out[i*16+8]));
+			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&out[i*16+12]));
+			_mm_store_si128((__m128i *)&out[i*16+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
+		}
 	}
 }
 
