@@ -86,15 +86,15 @@ static struct fmt_tests tests[] = {
 static unsigned char cursalt[SALT_SIZE];
 
 #ifdef MMX_COEF
-#ifdef _MSC_VER
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key mssql_saved_key
 #define crypt_key mssql_crypt_key
+#ifdef _MSC_VER
 __declspec(align(16)) char saved_key[80*4*NBKEYS];
 __declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-static char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-static char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
+char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 #ifndef SHA1_SSE_PARA
 static unsigned long total_len;

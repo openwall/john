@@ -72,10 +72,10 @@ static struct fmt_tests rawsha1_tests[] = {
 	{NULL}
 };
 
-#ifdef MMX_COEF
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key rawSHA1_saved_key
 #define crypt_key rawSHA1_crypt_key
+#ifdef MMX_COEF
 #if defined (_MSC_VER)
 __declspec(align(16)) char saved_key[80*4*NBKEYS];
 __declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];

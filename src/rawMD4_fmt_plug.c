@@ -48,15 +48,15 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MD4_SSE_PARA
-#if defined (_MSC_VER)
+/* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key rawmd4_saved_key
 #define crypt_key rawmd4_crypt_key
-/* Cygwin would not guarantee the alignment if these were declared static */
+#if defined (_MSC_VER)
 __declspec(align(16)) char saved_key[64*MAX_KEYS_PER_CRYPT];
 __declspec(align(16)) char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT];
 #else
-static char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(16)));
-static char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(16)));
+char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(16)));
+char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(16)));
 #endif
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else

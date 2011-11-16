@@ -69,15 +69,15 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MMX_COEF
-#if defined (_MSC_VER)
 /* Cygwin would not guarantee the alignment if these were declared static */
 #define saved_key nsldap_saved_key
 #define crypt_key nsldap_crypt_key
+#if defined (_MSC_VER)
 __declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
 __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-static unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-static unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 #ifndef SHA1_SSE_PARA
 static unsigned long total_len;
