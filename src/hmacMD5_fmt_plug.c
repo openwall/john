@@ -13,11 +13,24 @@
 
 #define FORMAT_LABEL			"hmac-md5"
 #define FORMAT_NAME			"HMAC MD5"
+
+#ifdef MD5_SSE_PARA
+#define MMX_COEF 4
+#include "sse-intrinsics.h"
+#define MD5_N				(MD5_SSE_PARA*MMX_COEF)
+#else
+#define MD5_N				MMX_COEF
+#endif
+
 #ifdef MMX_COEF
 #if (MMX_COEF == 2)
 #define ALGORITHM_NAME			"hmac-md5 MMX"
 #else
+#ifdef MD5_SSE_PARA
+#define ALGORITHM_NAME			"hmac-md5 SSE2-" MD5_N_STR
+#else
 #define ALGORITHM_NAME			"hmac-md5 SSE2"
+#endif
 #endif
 #else
 #define ALGORITHM_NAME			"hmac-md5"
@@ -33,9 +46,10 @@
 #define SALT_SIZE			64
 
 #ifdef MMX_COEF
-#define MIN_KEYS_PER_CRYPT		MMX_COEF
-#define MAX_KEYS_PER_CRYPT		MMX_COEF
-#define GETPOS(i, index)		( (index)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + ((i)&3) )
+#define MIN_KEYS_PER_CRYPT		MD5_N
+#define MAX_KEYS_PER_CRYPT		MD5_N
+#define GETPOS(i, index)        ( ((index)&3)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + ((i)&3) + ((index)>>2)*64*MMX_COEF )
+
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -54,17 +68,17 @@ static struct fmt_tests hmacmd5_tests[] = {
 #define cursalt hmacmd5_cursalt
 #define dump hmacmd5_dump
 #ifdef _MSC_VER
-__declspec(align(16)) char crypt_key[64*MMX_COEF];
-__declspec(align(16)) unsigned char opad[PLAINTEXT_LENGTH*MMX_COEF];
-__declspec(align(16)) unsigned char ipad[PLAINTEXT_LENGTH*MMX_COEF];
-__declspec(align(16)) unsigned char cursalt[SALT_SIZE*MMX_COEF];
-__declspec(align(16)) unsigned char dump[BINARY_SIZE*MMX_COEF];
+__declspec(align(16)) char crypt_key[64*4*MD5_N];
+__declspec(align(16)) unsigned char opad[PLAINTEXT_LENGTH*MD5_N];
+__declspec(align(16)) unsigned char ipad[PLAINTEXT_LENGTH*MD5_N];
+__declspec(align(16)) unsigned char cursalt[SALT_SIZE*MD5_N];
+__declspec(align(16)) unsigned char dump[BINARY_SIZE*MD5_N];
 #else
-char crypt_key[64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char opad[PLAINTEXT_LENGTH*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char ipad[PLAINTEXT_LENGTH*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char cursalt[SALT_SIZE*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char dump[BINARY_SIZE*MMX_COEF] __attribute__((aligned(16)));
+char crypt_key[64*4*MD5_N] __attribute__ ((aligned(16)));
+unsigned char opad[PLAINTEXT_LENGTH*MD5_N] __attribute__ ((aligned(16)));
+unsigned char ipad[PLAINTEXT_LENGTH*MD5_N] __attribute__ ((aligned(16)));
+unsigned char cursalt[SALT_SIZE*MD5_N] __attribute__ ((aligned(16)));
+unsigned char dump[BINARY_SIZE*MD5_N] __attribute__((aligned(16)));
 #endif
 static unsigned long total_len;
 #else
@@ -79,14 +93,13 @@ static unsigned char out[PLAINTEXT_LENGTH + 1];
 static void hmacmd5_init(struct fmt_main *pFmt)
 {
 #ifdef MMX_COEF
-	memset(crypt_key, 0, sizeof(crypt_key));
-	crypt_key[GETPOS(BINARY_SIZE,0)] = 0x80;
-	crypt_key[GETPOS(BINARY_SIZE,1)] = 0x80;
-#if (MMX_COEF == 4)
-	crypt_key[GETPOS(BINARY_SIZE,2)] = 0x80;
-	crypt_key[GETPOS(BINARY_SIZE,3)] = 0x80;
+	int i;
+	for (i = 0; i < MD5_N; ++i) {
+		crypt_key[GETPOS(BINARY_SIZE,i)] = 0x80;
+#ifdef MD5_SSE_PARA
+		((unsigned int *)crypt_key)[14*MMX_COEF + (i&3) + (i>>2)*64] = (BINARY_SIZE+64)<<3;
 #endif
-#endif
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -110,36 +123,25 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void hmacmd5_set_salt(void *salt)
 {
 #ifdef MMX_COEF
+	int i, j;
 	total_len = 0;
 	while(((unsigned char *)salt)[total_len])
 	{
-		cursalt[GETPOS(total_len, 0)] = ((unsigned char *)salt)[total_len];
-		cursalt[GETPOS(total_len, 1)] = ((unsigned char *)salt)[total_len];
-#if (MMX_COEF == 4)
-		cursalt[GETPOS(total_len, 2)] = ((unsigned char *)salt)[total_len];
-		cursalt[GETPOS(total_len, 3)] = ((unsigned char *)salt)[total_len];
-#endif
-		total_len ++;
+		for (i = 0; i < MD5_N; ++i)
+			cursalt[GETPOS(total_len,i)] = ((unsigned char *)salt)[total_len];
+		++total_len;
 	}
-	cursalt[GETPOS(total_len, 0)] = 0x80;
-	cursalt[GETPOS(total_len, 1)] = 0x80;
-#if (MMX_COEF == 4)
-	cursalt[GETPOS(total_len, 2)] = 0x80;
-	cursalt[GETPOS(total_len, 3)] = 0x80;
-#endif
-	{
-		int i;
-		for (i = total_len + 1; i < SALT_SIZE; i++) {
-			cursalt[GETPOS(i, 0)] = 0;
-			cursalt[GETPOS(i, 1)] = 0;
-#if (MMX_COEF == 4)
-			cursalt[GETPOS(i, 2)] = 0;
-			cursalt[GETPOS(i, 3)] = 0;
-#endif
-		}
+	for (i = 0; i < MD5_N; ++i)
+		cursalt[GETPOS(total_len, i)] = 0x80;
+	for (j = total_len + 1; j < SALT_SIZE; ++j) {
+		for (i = 0; i < MD5_N; ++i)
+			cursalt[GETPOS(j,i)] = 0;
 	}
-	//total_len += 64;
-	//total_len += (total_len<<16);
+#ifdef MD5_SSE_PARA
+	for (i = 0; i < MD5_N; ++i) {
+		((unsigned int *)cursalt)[14*MMX_COEF + (i&3) + (i>>2)*16*MMX_COEF] = (total_len+64)<<3;
+	}
+#endif
 #else
 	memcpy(cursalt, salt, SALT_SIZE);
 #endif
@@ -199,6 +201,34 @@ static int hmacmd5_cmp_all(void *binary, int index) {
 #if (MMX_COEF > 3)
 			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
 			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
+#ifdef MD5_SSE_PARA
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*1*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*1*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*1*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*1*MMX_COEF])
+#endif
+#if (MD5_SSE_PARA>2)
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*2*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*2*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*2*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*2*MMX_COEF])
+#endif
+#if (MD5_SSE_PARA>3)
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*3*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*3*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*3*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*3*MMX_COEF])
+#endif
+#if (MD5_SSE_PARA>4)
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+0+16*4*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1+16*4*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2+16*4*MMX_COEF])
+			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3+16*4*MMX_COEF])
+#endif
+#if (MD5_SSE_PARA>5)
+#error hmac_md5 format onlyhandles MD5_SSE_PARA up to 5, not over.
+#endif
+#endif
 #endif
 		)
 			return 0;
@@ -224,7 +254,11 @@ static int hmacmd5_cmp_one(void * binary, int index)
 #ifdef MMX_COEF
 	int i = 0;
 	for(i=0;i<(BINARY_SIZE/4);i++)
+#ifdef MD5_SSE_PARA
+		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*16*MMX_COEF] )
+#else
 		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
+#endif
 			return 0;
 	return 1;
 #else
@@ -235,11 +269,22 @@ static int hmacmd5_cmp_one(void * binary, int index)
 static void hmacmd5_crypt_all(int count) {
 
 #ifdef MMX_COEF
+#ifdef MD5_SSE_PARA
 	int i;
-	i = mdfivemmx_nosizeupdate( dump, ipad, 64);
-	i = mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, cursalt, total_len + 64);
-	i = mdfivemmx_nosizeupdate( dump, opad, 64);
-	i = mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, (unsigned char *) crypt_key, BINARY_SIZE + 64);
+	SSEmd5body(ipad, ((unsigned int *)dump), 1);
+	SSEmd5body(cursalt, ((unsigned int *)dump), 0);
+	for (i = 0; i < MD5_SSE_PARA; ++i)
+		memcpy(&crypt_key[64*4*i], &dump[64*i], 64);
+	SSEmd5body(opad, ((unsigned int *)dump), 1);
+	SSEmd5body(crypt_key, ((unsigned int *)dump), 0);
+	for (i = 0; i < MD5_SSE_PARA; ++i)
+		memcpy(&crypt_key[64*4*i], &dump[64*i], 64);
+#else
+	mdfivemmx_nosizeupdate( dump, ipad, 64);
+	mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, cursalt, total_len + 64);
+	mdfivemmx_nosizeupdate( dump, opad, 64);
+	mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, (unsigned char *) crypt_key, BINARY_SIZE + 64);
+#endif
 #else
 	MD5_Init( &ctx );
 	MD5_Update( &ctx, ipad, 64 );
