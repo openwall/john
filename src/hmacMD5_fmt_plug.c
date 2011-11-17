@@ -100,6 +100,7 @@ static void hmacmd5_init(struct fmt_main *pFmt)
 		((unsigned int *)crypt_key)[14*MMX_COEF + (i&3) + (i>>2)*64] = (BINARY_SIZE+64)<<3;
 #endif
 	}
+#endif
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -123,25 +124,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void hmacmd5_set_salt(void *salt)
 {
 #ifdef MMX_COEF
-	int i, j;
-	total_len = 0;
-	while(((unsigned char *)salt)[total_len])
-	{
-		for (i = 0; i < MD5_N; ++i)
-			cursalt[GETPOS(total_len,i)] = ((unsigned char *)salt)[total_len];
-		++total_len;
-	}
-	for (i = 0; i < MD5_N; ++i)
-		cursalt[GETPOS(total_len, i)] = 0x80;
-	for (j = total_len + 1; j < SALT_SIZE; ++j) {
-		for (i = 0; i < MD5_N; ++i)
-			cursalt[GETPOS(j,i)] = 0;
-	}
-#ifdef MD5_SSE_PARA
-	for (i = 0; i < MD5_N; ++i) {
-		((unsigned int *)cursalt)[14*MMX_COEF + (i&3) + (i>>2)*16*MMX_COEF] = (total_len+64)<<3;
-	}
-#endif
+	memcpy(cursalt, salt, SALT_SIZE * MD5_N);
 #else
 	memcpy(cursalt, salt, SALT_SIZE);
 #endif
@@ -227,7 +210,6 @@ static int hmacmd5_cmp_all(void *binary, int index) {
 #endif
 #if (MD5_SSE_PARA>5)
 #error hmac_md5 format only handles MD5_SSE_PARA up to 5, not over.
-#endif
 #endif
 #endif
 		)
@@ -316,14 +298,38 @@ static void * hmacmd5_salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
 	int i=0;
-	memset(salt, 0, SALT_SIZE);
+#ifdef MMX_COEF
+	int j;
+#endif
+	memset(salt, 0, sizeof(salt));
 	while(ciphertext[i]!='#')
 	{
 		salt[i] = ciphertext[i];
 		i++;
 	}
-	salt[i]=0;
+#ifdef MMX_COEF
+	total_len = 0;
+	while(((unsigned char *)salt)[total_len])
+	{
+		for (i = 0; i < MD5_N; ++i)
+			cursalt[GETPOS(total_len,i)] = ((unsigned char *)salt)[total_len];
+		++total_len;
+	}
+	for (i = 0; i < MD5_N; ++i)
+		cursalt[GETPOS(total_len, i)] = 0x80;
+	for (j = total_len + 1; j < SALT_SIZE; ++j) {
+		for (i = 0; i < MD5_N; ++i)
+			cursalt[GETPOS(j,i)] = 0;
+	}
+#ifdef MD5_SSE_PARA
+	for (i = 0; i < MD5_N; ++i) {
+		((unsigned int *)cursalt)[14*MMX_COEF + (i&3) + (i>>2)*16*MMX_COEF] = (total_len+64)<<3;
+	}
+#endif
+	return cursalt;
+#else
 	return salt;
+#endif
 }
 
 struct fmt_main fmt_hmacMD5 = {
@@ -335,7 +341,11 @@ struct fmt_main fmt_hmacMD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#ifdef MMX_COEF
+		SALT_SIZE * MD5_N,
+#else
 		SALT_SIZE,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
