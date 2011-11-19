@@ -224,7 +224,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 
 /* Check for NIS stuff */
 	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
-	    strlen(*ciphertext) < 13 && strncmp(*ciphertext, "$dummy$", 7))
+	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
 		return 0;
 
 	if (!**ciphertext && !line) {
@@ -236,9 +236,10 @@ static int ldr_split_line(char **login, char **ciphertext,
 		p += strlen(p) - 1;
 		while (p > *ciphertext && (*p == ' ' || *p == '\t')) p--;
 		p++;
-/* Some valid dummy hashes may be shorter than 13 characters, so don't subject
+/* Some valid dummy hashes may be shorter than 10 characters, so don't subject
  * them to the length checks. */
-		if (strncmp(*ciphertext, "$dummy$", 7)) {
+		if (strncmp(*ciphertext, "$dummy$", 7) &&
+		    p - *ciphertext != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
  * of a line (no leading whitespace other than the invalid salt). */
