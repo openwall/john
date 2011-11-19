@@ -821,14 +821,14 @@ typedef unsigned ARCH_WORD kvtype;
 #endif
 
 #ifndef mask01
-#define mask01 (*(vtype *)&DES_bs_all.masks[0])
-#define mask02 (*(vtype *)&DES_bs_all.masks[1])
-#define mask04 (*(vtype *)&DES_bs_all.masks[2])
-#define mask08 (*(vtype *)&DES_bs_all.masks[3])
-#define mask10 (*(vtype *)&DES_bs_all.masks[4])
-#define mask20 (*(vtype *)&DES_bs_all.masks[5])
-#define mask40 (*(vtype *)&DES_bs_all.masks[6])
-#define mask80 (*(vtype *)&DES_bs_all.masks[7])
+#define mask01 (*(kvtype *)&DES_bs_all.masks[0])
+#define mask02 (*(kvtype *)&DES_bs_all.masks[1])
+#define mask04 (*(kvtype *)&DES_bs_all.masks[2])
+#define mask08 (*(kvtype *)&DES_bs_all.masks[3])
+#define mask10 (*(kvtype *)&DES_bs_all.masks[4])
+#define mask20 (*(kvtype *)&DES_bs_all.masks[5])
+#define mask40 (*(kvtype *)&DES_bs_all.masks[6])
+#define mask80 (*(kvtype *)&DES_bs_all.masks[7])
 #endif
 
 #ifdef __GNUC__
