@@ -145,9 +145,13 @@ extern ARCH_WORD *DES_bs_get_binary(char *ciphertext);
 extern ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext);
 
 /*
- * Calculates a hash for a DES_bs_crypt() output.
+ * Calculate a hash for a DES_bs_crypt() output.
  */
-extern int DES_bs_get_hash(int index, int count);
+extern int DES_bs_get_hash_0(int index);
+extern int DES_bs_get_hash_1(int index);
+extern int DES_bs_get_hash_2(int index);
+extern int DES_bs_get_hash_3(int index);
+extern int DES_bs_get_hash_4(int index);
 
 /*
  * Compares 32 bits of a given ciphertext against at least the first count of
