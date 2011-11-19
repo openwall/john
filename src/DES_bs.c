@@ -118,6 +118,13 @@ void DES_bs_init(int LM, int cpt)
 			}
 		}
 
+/*
+ * Have keys go to bit layers where DES_bs_get_hash() and DES_bs_cmp_one()
+ * currently expect them.  The big-endian specific weirdness may be avoided by
+ * re-working those two functions to operate on bytes rather than ARCH_WORDs,
+ * which would likely not affect their performance significantly (except on
+ * architectures that lack support for byte loads, such as Alpha without BWX).
+ */
 		for (index = 0; index < DES_BS_DEPTH; index++)
 			DES_bs_all.pxkeys[index] =
 			    &DES_bs_all.xkeys.c[0][index & 7]
