@@ -4,6 +4,7 @@
  */
 
 #include "arch.h"
+#include "common.h"
 #include "DES_bs.h"
 
 #if DES_BS_ASM && defined(_OPENMP) && defined(__GNUC__)
@@ -829,18 +830,6 @@ typedef unsigned ARCH_WORD kvtype;
 #define mask20 (*(kvtype *)&DES_bs_all.masks[5])
 #define mask40 (*(kvtype *)&DES_bs_all.masks[6])
 #define mask80 (*(kvtype *)&DES_bs_all.masks[7])
-#endif
-
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-#define MAYBE_INLINE __attribute__((always_inline))
-#else
-#define MAYBE_INLINE __inline__
-#endif
-#elif __STDC_VERSION__ >= 199901L
-#define MAYBE_INLINE inline
-#else
-#define MAYBE_INLINE
 #endif
 
 #ifdef __i386__
