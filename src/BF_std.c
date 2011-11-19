@@ -817,7 +817,10 @@ void *BF_std_get_salt(char *ciphertext)
 	BF_swap(salt.salt, 4);
 
 	salt.rounds = atoi(&ciphertext[4]);
-	salt.subtype = ciphertext[2];
+	if (ciphertext[2] == 'a')
+		salt.subtype = 'y';
+	else
+		salt.subtype = ciphertext[2];
 
 	return &salt;
 }
