@@ -42,7 +42,7 @@ static struct fmt_tests tests[] = {
 		"chars after 72 are ignored"},
 	{"$2x$05$/OK.fbVrR/bpIqNJ5ianF.CE5elHaaO4EbggVDjb8P19RukzXSM3e",
 		"\xa3"},
-	{"$2a$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq",
+	{"$2y$05$/OK.fbVrR/bpIqNJ5ianF.Sa7shbm4.OzKpvFnX1pQLmQW96oUlCq",
 		"\xa3"},
 	{"$2x$05$6bNw2HLQYeqHYyBfLMsv/OiwqTymGIGzFsA4hOTWebfehXHNprcAS",
 		"\xd1\x91"},
@@ -101,7 +101,7 @@ static void init(void)
 	fmt_BF.params.max_keys_per_crypt = n;
 #endif
 
-	keys_mode = 'a';
+	keys_mode = 'y';
 	sign_extension_bug = 0;
 }
 
@@ -111,7 +111,9 @@ static int valid(char *ciphertext)
 	char *pos;
 
 	if (strncmp(ciphertext, "$2a$", 4) &&
-	    strncmp(ciphertext, "$2x$", 4)) return 0;
+	    strncmp(ciphertext, "$2x$", 4) &&
+	    strncmp(ciphertext, "$2y$", 4))
+		return 0;
 
 	if (ciphertext[4] < '0' || ciphertext[4] > '9') return 0;
 	if (ciphertext[5] < '0' || ciphertext[5] > '9') return 0;
