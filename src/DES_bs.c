@@ -303,17 +303,28 @@ int DES_bs_get_hash(int index, int count)
 {
 	int result;
 	DES_bs_vector *b;
+#if !ARCH_LITTLE_ENDIAN || DES_BS_VECTOR
 	int depth;
+#endif
 
 	init_t();
 
+#if ARCH_LITTLE_ENDIAN
+/*
+ * This is merely an optimization.  Nothing will break if this check for
+ * little-endian archs is removed, even if the arch is in fact little-endian.
+ */
+	init_depth();
+	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
+#define GET_BIT(bit) \
+	(((unsigned ARCH_WORD)b[(bit)] START >> index) & 1)
+#else
 	depth = index >> 3;
 	index &= 7;
-
 	b = (DES_bs_vector *)((unsigned char *)&DES_bs_all.B[0] START + depth);
-
 #define GET_BIT(bit) \
 	(((unsigned int)*(unsigned char *)&b[(bit)] START >> index) & 1)
+#endif
 #define MOVE_BIT(bit) \
 	(GET_BIT(bit) << (bit))
 
