@@ -299,7 +299,7 @@ ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext)
 	return DES_bs_get_binary_raw(DES_do_IP(block), 1);
 }
 
-int DES_bs_get_hash(int index, int count)
+static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 {
 	int result;
 	DES_bs_vector *b;
@@ -361,6 +361,31 @@ int DES_bs_get_hash(int index, int count)
 #undef MOVE_BIT
 
 	return result;
+}
+
+int DES_bs_get_hash_0(int index)
+{
+	return DES_bs_get_hash(index, 4);
+}
+
+int DES_bs_get_hash_1(int index)
+{
+	return DES_bs_get_hash(index, 8);
+}
+
+int DES_bs_get_hash_2(int index)
+{
+	return DES_bs_get_hash(index, 12);
+}
+
+int DES_bs_get_hash_3(int index)
+{
+	return DES_bs_get_hash(index, 16);
+}
+
+int DES_bs_get_hash_4(int index)
+{
+	return DES_bs_get_hash(index, 20);
 }
 
 /*
