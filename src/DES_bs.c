@@ -356,6 +356,17 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	result |= MOVE_BIT(17);
 	result |= MOVE_BIT(18);
 	result |= MOVE_BIT(19);
+	if (count == 20) return result;
+
+	result |= MOVE_BIT(20);
+	result |= MOVE_BIT(21);
+	result |= MOVE_BIT(22);
+	result |= MOVE_BIT(23);
+	if (count == 24) return result;
+
+	result |= MOVE_BIT(24);
+	result |= MOVE_BIT(25);
+	result |= MOVE_BIT(26);
 
 #undef GET_BIT
 #undef MOVE_BIT
@@ -386,6 +397,16 @@ int DES_bs_get_hash_3(int index)
 int DES_bs_get_hash_4(int index)
 {
 	return DES_bs_get_hash(index, 20);
+}
+
+int DES_bs_get_hash_5(int index)
+{
+	return DES_bs_get_hash(index, 24);
+}
+
+int DES_bs_get_hash_6(int index)
+{
+	return DES_bs_get_hash(index, 27);
 }
 
 /*

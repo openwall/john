@@ -136,6 +136,16 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0x7FFFFFF;
+}
+
 static int cmp_one(void *binary, int index)
 {
 	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
@@ -193,7 +203,9 @@ struct fmt_main fmt_LM = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -206,7 +218,9 @@ struct fmt_main fmt_LM = {
 			DES_bs_get_hash_1,
 			DES_bs_get_hash_2,
 			DES_bs_get_hash_3,
-			DES_bs_get_hash_4
+			DES_bs_get_hash_4,
+			DES_bs_get_hash_5,
+			DES_bs_get_hash_6
 		},
 		(int (*)(void *, int))DES_bs_cmp_all,
 		cmp_one,

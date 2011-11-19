@@ -163,11 +163,23 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0x7FFFFFF;
+}
+
 #define get_hash_0 DES_bs_get_hash_0
 #define get_hash_1 DES_bs_get_hash_1
 #define get_hash_2 DES_bs_get_hash_2
 #define get_hash_3 DES_bs_get_hash_3
 #define get_hash_4 DES_bs_get_hash_4
+#define get_hash_5 DES_bs_get_hash_5
+#define get_hash_6 DES_bs_get_hash_6
 
 static int salt_hash(void *salt)
 {
@@ -208,6 +220,8 @@ static int binary_hash_2(void *binary)
 
 #define binary_hash_3 NULL
 #define binary_hash_4 NULL
+#define binary_hash_5 NULL
+#define binary_hash_6 NULL
 
 static int get_hash_0(int index)
 {
@@ -232,6 +246,8 @@ static int get_hash_2(int index)
 
 #define get_hash_3 NULL
 #define get_hash_4 NULL
+#define get_hash_5 NULL
+#define get_hash_6 NULL
 
 static int salt_hash(void *salt)
 {
@@ -361,7 +377,9 @@ struct fmt_main fmt_DES = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -382,7 +400,9 @@ struct fmt_main fmt_DES = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 #if DES_BS
 		(int (*)(void *, int))DES_bs_cmp_all,

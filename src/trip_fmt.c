@@ -126,6 +126,8 @@ static int binary_hash_2(void *binary)
 
 #define binary_hash_3 NULL
 #define binary_hash_4 NULL
+#define binary_hash_5 NULL
+#define binary_hash_6 NULL
 
 static int get_hash_0(int index)
 {
@@ -150,6 +152,8 @@ static int get_hash_2(int index)
 
 #define get_hash_3 NULL
 #define get_hash_4 NULL
+#define get_hash_5 NULL
+#define get_hash_6 NULL
 
 static void crypt_all(int count)
 {
@@ -280,7 +284,9 @@ struct fmt_main fmt_trip = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -293,7 +299,9 @@ struct fmt_main fmt_trip = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
