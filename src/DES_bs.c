@@ -120,20 +120,11 @@ void DES_bs_init(int LM, int cpt)
 
 /*
  * Have keys go to bit layers where DES_bs_get_hash() and DES_bs_cmp_one()
- * currently expect them.  The big-endian specific weirdness may be avoided by
- * re-working those two functions to operate on bytes rather than ARCH_WORDs,
- * which would likely not affect their performance significantly (except on
- * architectures that lack support for byte loads, such as Alpha without BWX).
+ * currently expect them.
  */
 		for (index = 0; index < DES_BS_DEPTH; index++)
 			DES_bs_all.pxkeys[index] =
-			    &DES_bs_all.xkeys.c[0][index & 7]
-#if ARCH_LITTLE_ENDIAN
-			    [index >> 3];
-#else
-			    [((index >> 3) & ~(ARCH_SIZE - 1)) |
-			    (ARCH_SIZE - 1 - ((index >> 3) & (ARCH_SIZE - 1)))];
-#endif
+			    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
 
 		if (LM) {
 			for (c = 0; c < 0x100; c++)
@@ -312,42 +303,51 @@ int DES_bs_get_hash(int index, int count)
 {
 	int result;
 	DES_bs_vector *b;
-#if DES_BS_VECTOR
 	int depth;
-#endif
 
 	init_t();
-	init_depth();
-	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
 
-	result = (b[0] START >> index) & 1;
-	result |= ((b[1] START >> index) & 1) << 1;
-	result |= ((b[2] START >> index) & 1) << 2;
-	result |= ((b[3] START >> index) & 1) << 3;
+	depth = index >> 3;
+	index &= 7;
+
+	b = (DES_bs_vector *)((unsigned char *)&DES_bs_all.B[0] START + depth);
+
+#define GET_BIT(bit) \
+	(((unsigned int)*(unsigned char *)&b[(bit)] START >> index) & 1)
+#define MOVE_BIT(bit) \
+	(GET_BIT(bit) << (bit))
+
+	result = GET_BIT(0);
+	result |= MOVE_BIT(1);
+	result |= MOVE_BIT(2);
+	result |= MOVE_BIT(3);
 	if (count == 4) return result;
 
-	result |= ((b[4] START >> index) & 1) << 4;
-	result |= ((b[5] START >> index) & 1) << 5;
-	result |= ((b[6] START >> index) & 1) << 6;
-	result |= ((b[7] START >> index) & 1) << 7;
+	result |= MOVE_BIT(4);
+	result |= MOVE_BIT(5);
+	result |= MOVE_BIT(6);
+	result |= MOVE_BIT(7);
 	if (count == 8) return result;
 
-	result |= ((b[8] START >> index) & 1) << 8;
-	result |= ((b[9] START >> index) & 1) << 9;
-	result |= ((b[10] START >> index) & 1) << 10;
-	result |= ((b[11] START >> index) & 1) << 11;
+	result |= MOVE_BIT(8);
+	result |= MOVE_BIT(9);
+	result |= MOVE_BIT(10);
+	result |= MOVE_BIT(11);
 	if (count == 12) return result;
 
-	result |= ((b[12] START >> index) & 1) << 12;
-	result |= ((b[13] START >> index) & 1) << 13;
-	result |= ((b[14] START >> index) & 1) << 14;
-	result |= ((b[15] START >> index) & 1) << 15;
+	result |= MOVE_BIT(12);
+	result |= MOVE_BIT(13);
+	result |= MOVE_BIT(14);
+	result |= MOVE_BIT(15);
 	if (count == 16) return result;
 
-	result |= ((b[16] START >> index) & 1) << 16;
-	result |= ((b[17] START >> index) & 1) << 17;
-	result |= ((b[18] START >> index) & 1) << 18;
-	result |= ((b[19] START >> index) & 1) << 19;
+	result |= MOVE_BIT(16);
+	result |= MOVE_BIT(17);
+	result |= MOVE_BIT(18);
+	result |= MOVE_BIT(19);
+
+#undef GET_BIT
+#undef MOVE_BIT
 
 	return result;
 }
@@ -405,20 +405,27 @@ int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 {
 	int bit;
 	DES_bs_vector *b;
-#if DES_BS_VECTOR
 	int depth;
-#endif
 
 	init_t();
-	init_depth();
-	b = (DES_bs_vector *)&DES_bs_all.B[0] DEPTH;
+
+	depth = index >> 3;
+	index &= 7;
+
+	b = (DES_bs_vector *)((unsigned char *)&DES_bs_all.B[0] START + depth);
+
+#define GET_BIT \
+	((unsigned ARCH_WORD)*(unsigned char *)&b[0] START >> index)
 
 	for (bit = 0; bit < 31; bit++, b++)
-		if (((b[0] START >> index) ^ (binary[0] >> bit)) & 1) return 0;
+		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
+			return 0;
 
 	for (; bit < count; bit++, b++)
-		if (((b[0] START >> index) ^
-			(binary[bit >> 5] >> (bit & 0x1F))) & 1) return 0;
+		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
+			return 0;
+
+#undef GET_BIT
 
 	return 1;
 }
