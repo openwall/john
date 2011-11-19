@@ -6,6 +6,7 @@ significantly improves performance at LM hashes, as well as at DES-based
 crypt(3) hashes when there's just one salt (or very few salts).
 * Optimized the DES S-box x86-64 (16-register SSE2) assembly code.
 * Added support for 10-character DES-based tripcodes (not optimized yet).
+* Added support for the "$2y$" prefix of bcrypt hashes.
 * Added two more hash table sizes (16M and 128M entries) for faster processing
 of very large numbers of hashes per salt (over 1M).
 * Added two pre-defined external mode variables: "abort" and "status", which
@@ -261,4 +262,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.65 2011/11/19 04:04:17 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.66 2011/11/19 04:24:00 solar Exp $
