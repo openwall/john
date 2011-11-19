@@ -120,7 +120,13 @@ void DES_bs_init(int LM, int cpt)
 
 		for (index = 0; index < DES_BS_DEPTH; index++)
 			DES_bs_all.pxkeys[index] =
-			    &DES_bs_all.xkeys.c[0][index & 7][index >> 3];
+			    &DES_bs_all.xkeys.c[0][index & 7]
+#if ARCH_LITTLE_ENDIAN
+			    [index >> 3];
+#else
+			    [((index >> 3) & ~(ARCH_SIZE - 1)) |
+			    (ARCH_SIZE - 1 - ((index >> 3) & (ARCH_SIZE - 1)))];
+#endif
 
 		if (LM) {
 			for (c = 0; c < 0x100; c++)
