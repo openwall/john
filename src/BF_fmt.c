@@ -89,16 +89,16 @@ struct fmt_main fmt_BF;
 static void init(void)
 {
 #ifdef _OPENMP
-	int n = BF_Nmin * omp_get_max_threads();
+	int n = BF_Nmin * omp_get_max_threads(), max;
 	if (n < BF_Nmin)
 		n = BF_Nmin;
 	if (n > BF_N)
 		n = BF_N;
 	fmt_BF.params.min_keys_per_crypt = n;
-	n *= BF_cpt;
-	if (n > BF_N)
-		n = BF_N;
-	fmt_BF.params.max_keys_per_crypt = n;
+	max = n * BF_cpt;
+	while (max > BF_N)
+		max -= n;
+	fmt_BF.params.max_keys_per_crypt = max;
 #endif
 
 	keys_mode = 'y';

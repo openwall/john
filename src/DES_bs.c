@@ -78,9 +78,12 @@ void DES_bs_init(int LM, int cpt)
 	if (n > DES_bs_mt_max)
 		n = DES_bs_mt_max;
 	DES_bs_min_kpc = n * DES_BS_DEPTH;
-	n *= cpt;
-	if (n > DES_bs_mt_max)
-		n = DES_bs_mt_max;
+	{
+		int max = n * cpt;
+		while (max > DES_bs_mt_max)
+			max -= n;
+		n = max;
+	}
 	DES_bs_max_kpc = n * DES_BS_DEPTH;
 	assert(!DES_bs_all_p || n <= DES_bs_n_alloc);
 	DES_bs_nt = n;
