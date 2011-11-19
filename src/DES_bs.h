@@ -152,6 +152,8 @@ extern int DES_bs_get_hash_1(int index);
 extern int DES_bs_get_hash_2(int index);
 extern int DES_bs_get_hash_3(int index);
 extern int DES_bs_get_hash_4(int index);
+extern int DES_bs_get_hash_5(int index);
+extern int DES_bs_get_hash_6(int index);
 
 /*
  * Compares 32 bits of a given ciphertext against at least the first count of

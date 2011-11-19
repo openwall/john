@@ -6,6 +6,8 @@ significantly improves performance at LM hashes, as well as at DES-based
 crypt(3) hashes when there's just one salt (or very few salts).
 * Optimized the DES S-box x86-64 (16-register SSE2) assembly code.
 * Added support for 10-character DES-based tripcodes (not optimized yet).
+* Added two more hash table sizes (16M and 128M entries) for faster processing
+of very large numbers of hashes per salt (over 1M).
 * Added two pre-defined external mode variables: "abort" and "status", which
 let an external mode request the current cracking session to be aborted or the
 status line to be displayed, respectively.

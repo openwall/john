@@ -435,7 +435,9 @@ struct fmt_main fmt_crypt = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			NULL,
+			NULL
 		},
 		salt_hash,
 		set_salt,
@@ -448,7 +450,9 @@ struct fmt_main fmt_crypt = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			NULL,
+			NULL
 		},
 		cmp_all,
 		cmp_one,

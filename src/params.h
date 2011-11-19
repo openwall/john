@@ -137,7 +137,14 @@
  * This is not really configurable, but we define it here in order to have
  * the number hard-coded in fewer places.
  */
-#define PASSWORD_HASH_SIZES		5
+#define PASSWORD_HASH_SIZES		7
+
+/*
+ * Which hash table size (out of those listed below) the loader should use for
+ * its own purposes.  This does not affect password cracking speed after the
+ * loading is complete.
+ */
+#define PASSWORD_HASH_SIZE_FOR_LDR	4
 
 /*
  * Hash table sizes.  These may also be hardcoded into the hash functions.
@@ -149,6 +156,8 @@
 #define PASSWORD_HASH_SIZE_2		0x1000
 #define PASSWORD_HASH_SIZE_3		0x10000
 #define PASSWORD_HASH_SIZE_4		0x100000
+#define PASSWORD_HASH_SIZE_5		0x1000000
+#define PASSWORD_HASH_SIZE_6		0x8000000
 
 /*
  * Password hash table thresholds.  These are the counts of entries required
@@ -159,6 +168,8 @@
 #define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 5)
 #define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 3)
 #define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 2)
+#define PASSWORD_HASH_THRESHOLD_5	PASSWORD_HASH_SIZE_4
+#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 2)
 
 /*
  * Tables of the above values.

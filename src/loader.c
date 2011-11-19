@@ -137,9 +137,9 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 static void ldr_init_password_hash(struct db_main *db)
 {
 	int (*func)(void *binary);
-	int size = PASSWORD_HASH_SIZES - 1;
+	int size = PASSWORD_HASH_SIZE_FOR_LDR;
 
-	if (mem_saving_level >= 2)
+	if (size > 0 && mem_saving_level >= 2)
 		size--;
 
 	do {
