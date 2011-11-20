@@ -3,6 +3,16 @@
 # This file is part of John the Ripper password cracker,
 # Copyright (c) 1996-98 by Solar Designer
 #
+# This is a script to send mail to all users whose passwords got cracked.
+# This is not always a good idea, though, since lots of people do not
+# check their e-mail or ignore such messages, and the messages can be a
+# hint for crackers.
+#
+# You should probably deploy proactive password strength checking, such as
+# with passwdqc, before you ask users to change their passwords - whether
+# using this script or otherwise.  And you should edit the message inside
+# the script before possibly using it.
+#
 
 if [ $# -ne 1 ]; then
 	echo "Usage: $0 PASSWORD-FILE"
@@ -27,7 +37,7 @@ $DIR/john -show "$1" -shells:$SHELLS | sed -n 's/:.*//p' |
 		mail -s 'Bad password' "$LOGIN" << EOF
 Hello!
 
-Your password for account "$LOGIN" is insecure. Please change it as soon
+Your password for account "$LOGIN" is insecure.  Please change it as soon
 as possible.
 
 Yours,
