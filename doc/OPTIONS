@@ -170,9 +170,10 @@ memory saving levels have a performance impact; you should probably
 avoid using them unless John doesn't work or gets into swap otherwise.
 
 
-	Additional utilities.
+	Additional utilities (compiled/installed along with John).
 
-There are some related utilities in John's run directory:
+There are some related utilities in John's run directory.  (Depending on
+platform, these may be symlinks to the main John program binary.)
 
 	unshadow PASSWORD-FILE SHADOW-FILE
 
@@ -200,9 +201,44 @@ the order of entries.  You might want to use this with John's
 reduced cracking time (on possibly trying some duplicates as they
 might be produced with word mangling rules).
 
+
+	Scripts.
+
+There are also some related scripts supplied in John's run directory.
+(Binary packages of John may choose to install these along with the
+documentation instead.)
+
+	relbench BENCHMARK-FILE-1 BENCHMARK-FILE-2
+
+relbench is a Perl script to compare two "john --test" benchmark runs,
+such as for different machines, "make" targets, C compilers,
+optimization options, or/and versions of John the Ripper.  To use it,
+redirect the output of each "john --test" run to a file, then run the
+script on the two files.  Most values output by the script indicate
+relative performance seen on the second benchmark run as compared to the
+first one, with the value of 1.0 indicating no change, values higher
+than 1.0 indicating speedup, and values lower than 1.0 indicating
+slowdown.  Specifically, the script outputs the minimum, maximum,
+median, and geometric mean for the speedup (or slowdown) seen across the
+many individual benchmarks that "john --test" performs.  It also outputs
+the median absolute deviation (relative to the median) and geometric
+standard deviation (relative to the geometric mean).  Of these two, a
+median absolute deviation of 0.0 would indicate that no deviation from
+the median is prevalent, whereas a geometric standard deviation of 1.0
+would indicate that all benchmarks were sped up or slowed down by the
+exact same ratio or their speed remained unchanged.  In practice, these
+values will tend to deviate from 0.0 and 1.0, respectively.
+
 	mailer PASSWORD-FILE
 
-A shell script to send mail to all the users who got weak passwords.
-You should edit the message inside the script before using it.
+A shell script to send mail to all users whose passwords got cracked.
+This is not always a good idea, though, since lots of people do not
+check their e-mail or ignore such messages, and the messages can be a
+hint for crackers.
 
-$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.9 2011/04/27 18:02:49 solar Exp $
+You should probably deploy proactive password strength checking, such as
+with passwdqc, before you ask users to change their passwords - whether
+using this script or otherwise.  And you should edit the message inside
+the script before possibly using it.
+
+$Owl: Owl/packages/john/john/doc/OPTIONS,v 1.11 2011/11/20 00:51:35 solar Exp $
