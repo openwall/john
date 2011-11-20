@@ -18,7 +18,8 @@ machine implementation.
 such as for different machines, "make" targets, C compilers, optimization
 options, or/and versions of John the Ripper.
 * Additional public lists of "top N passwords" have been merged into the
-bundled common passwords list.
+bundled common passwords list, and some insufficiently common passwords were
+removed from the list.
 
 The following changes have been made between John 1.7.7 and 1.7.8:
 
