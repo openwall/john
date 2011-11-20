@@ -202,7 +202,14 @@ might be produced with word mangling rules).
 
 	mailer PASSWORD-FILE
 
-A shell script to send mail to all the users who got weak passwords.
-You should edit the message inside the script before using it.
+A shell script to send mail to all users whose passwords got cracked.
+This is not always a good idea, though, since lots of people do not
+check their e-mail or ignore such messages, and the messages can be a
+hint for crackers.
+
+You should probably deploy proactive password strength checking, such as
+with passwdqc, before you ask users to change their passwords - whether
+using this script or otherwise.  And you should edit the message inside
+the script before possibly using it.
 
 $Owl$
