@@ -14,6 +14,9 @@ let an external mode request the current cracking session to be aborted or the
 status line to be displayed, respectively.
 * Made some minor optimizations to external mode function calls and virtual
 machine implementation.
+* Added relbench, a Perl script to compare two "john --test" benchmark runs,
+such as for different machines, "make" targets, C compilers, optimization
+options, or/and versions of John the Ripper.
 
 The following changes have been made between John 1.7.7 and 1.7.8:
 
