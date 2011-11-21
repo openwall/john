@@ -22,7 +22,7 @@ OMPFLAGS =
 #OMPFLAGS = -xopenmp
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
-LDFLAGS = -s $(OMPFLAGS)
+LDFLAGS = -s -lm $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
 OPT_INLINE = -Os -funroll-loops -finline-functions
@@ -404,7 +404,7 @@ solaris-sparc64-cc:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native64 -DHAVE_CRYPT $(OMPFLAGS)" \
-		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lc -lrt" \
+		LDFLAGS="$(LDFLAGS) -xarch=native64 -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -421,7 +421,7 @@ solaris-sparcv9-cc:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8plusa -xchip=ultra -DHAVE_CRYPT $(OMPFLAGS)" \
-		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
+		LDFLAGS="$(LDFLAGS) -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -431,7 +431,7 @@ solaris-sparcv8-cc:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CC=cc \
 		CFLAGS="-c -xO4 -xarch=v8 -DHAVE_CRYPT $(OMPFLAGS)" \
-		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
+		LDFLAGS="$(LDFLAGS) -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -449,7 +449,7 @@ solaris-x86-64-cc:
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native64 -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native64 $(OMPFLAGS)" \
-		LDFLAGS="-s -xarch=native64 $(OMPFLAGS) -lrt" \
+		LDFLAGS="$(LDFLAGS) -xarch=native64 -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -468,7 +468,7 @@ solaris-x86-sse2-cc:
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
-		LDFLAGS="-s -xarch=native $(OMPFLAGS) -lrt" \
+		LDFLAGS="$(LDFLAGS) -xarch=native -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -486,7 +486,7 @@ solaris-x86-mmx-cc:
 		CC=cc \
 		CFLAGS="-c -fast -xarch=native -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c -xarch=native $(OMPFLAGS)" \
-		LDFLAGS="-s -xarch=native $(OMPFLAGS) -lrt" \
+		LDFLAGS="$(LDFLAGS) -xarch=native -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -506,7 +506,7 @@ solaris-x86-any-cc:
 		CC=cc \
 		CFLAGS="-c -xO4 -DHAVE_CRYPT $(OMPFLAGS)" \
 		ASFLAGS="-c $(OMPFLAGS)" \
-		LDFLAGS="-s $(OMPFLAGS) -lc -lrt" \
+		LDFLAGS="$(LDFLAGS) -lrt" \
 		OPT_NORMAL="" \
 		OPT_INLINE="-xinline=s1,s2,s3,s4,s5,s6,s7,s8"
 
@@ -517,7 +517,7 @@ solaris-x86-any-gcc:
 		SHELL=/bin/sh \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -lc -lrt"
+		LDFLAGS="$(LDFLAGS) -lrt"
 
 # Older versions of Sun's assembler had a line length restriction (and some
 # other problems, which affect newer versions as well and which are worked
@@ -573,7 +573,7 @@ aix-ppc32:
 	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -qunroll=2 -qarch=ppc -qchars=signed" \
-		LDFLAGS="-s -lbsd" \
+		LDFLAGS="$(LDFLAGS) -lbsd" \
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
@@ -718,7 +718,6 @@ hpux-pa-risc-cc:
 	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -Aa -D_HPUX_SOURCE -DANSI_CPP" \
-		LDFLAGS="-s" \
 		OPT_NORMAL="+O2" \
 		OPT_INLINE="+O3 +Oinline"
 
@@ -727,7 +726,7 @@ irix-mips64-r10k:
 	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -O2 -64 -mips4 -r10000 -signed" \
-		LDFLAGS="-s -64 -mips4 -r10000" \
+		LDFLAGS="$(LDFLAGS) -64 -mips4 -r10000" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
@@ -736,7 +735,7 @@ irix-mips64:
 	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -O2 -64 -mips3 -signed" \
-		LDFLAGS="-s -64 -mips3" \
+		LDFLAGS="$(LDFLAGS) -64 -mips3" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
@@ -745,7 +744,7 @@ irix-mips32:
 	$(MAKE) $(PROJ) \
 		CC=cc \
 		CFLAGS="-c -O2 -32 -signed" \
-		LDFLAGS="-s -32" \
+		LDFLAGS="$(LDFLAGS) -32" \
 		OPT_NORMAL="-LNO:opt=1 -OPT:Olimit=2194" \
 		OPT_INLINE="-INLINE:all"
 
