@@ -454,15 +454,25 @@ void MD5_std_set_key(char *key, int index)
 extern void MD5_body(MD5_word x[15], MD5_word out[4]);
 #else
 
+/*
+ * x86-64 implies a fairly recent CPU, so presumably its L1 instruction cache
+ * is large enough.
+ */
+#ifdef __x86_64__
+#define MAYBE_INLINE_BODY MAYBE_INLINE
+#else
+#define MAYBE_INLINE_BODY
+#endif
+
 #if !MD5_X2
 
 #if MD5_std_mt
 #define MD5_body(x, out) \
 	MD5_body_for_thread(t, x, out)
-static MAYBE_INLINE void MD5_body_for_thread(int t,
+static MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
 	MD5_word x[15], MD5_word out[4])
 #else
-static MAYBE_INLINE void MD5_body(MD5_word x[15], MD5_word out[4])
+static MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
 #endif
 {
 	MD5_word a, b = Cb, c = Cc, d;
@@ -558,11 +568,11 @@ static MAYBE_INLINE void MD5_body(MD5_word x[15], MD5_word out[4])
 #if MD5_std_mt
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(t, x0, x1, out0, out1)
-static MAYBE_INLINE void MD5_body_for_thread(int t,
+static MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
 	MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 #else
-static MAYBE_INLINE void MD5_body(MD5_word x0[15], MD5_word x1[15],
+static MAYBE_INLINE_BODY void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 #endif
 {
