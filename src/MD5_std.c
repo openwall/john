@@ -274,30 +274,6 @@ static MD5_data MD5_data_init = {
 	ROTATE_LEFT ((a), (s)); \
 	(a) += (b);
 
-#if MD5_std_mt
-#if MD5_X2
-static void MD5_body_for_thread(int t, MD5_word x0[15], MD5_word x1[15],
-	MD5_word out0[4], MD5_word out1[4]);
-#define MD5_body(x0, x1, out0, out1) \
-	MD5_body_for_thread(t, x0, x1, out0, out1)
-#else
-static void MD5_body_for_thread(int t, MD5_word x[15], MD5_word out[4]);
-#define MD5_body(x, out) \
-	MD5_body_for_thread(t, x, out)
-#endif
-#else
-#if MD5_X2
-static void MD5_body(MD5_word x0[15], MD5_word x1[15],
-	MD5_word out0[4], MD5_word out1[4]);
-#else
-static void MD5_body(MD5_word x[15], MD5_word out[4]);
-#endif
-#endif
-
-#else
-
-extern void MD5_body(MD5_word x[15], MD5_word out[4]);
-
 #endif
 
 static unsigned char PADDING[56] = {
@@ -312,7 +288,7 @@ static unsigned char PADDING[56] = {
 
 #else
 
-static void MD5_swap(MD5_word *x, MD5_word *y, int count)
+static MAYBE_INLINE void MD5_swap(MD5_word *x, MD5_word *y, int count)
 {
 	MD5_word tmp, mask;
 
@@ -473,6 +449,294 @@ void MD5_std_set_key(char *key, int index)
 	order[16][index].length = current->l.pp;
 	order[19][index].length = current->l.pp;
 }
+
+#if MD5_ASM
+extern void MD5_body(MD5_word x[15], MD5_word out[4]);
+#else
+
+#if !MD5_X2
+
+#if MD5_std_mt
+#define MD5_body(x, out) \
+	MD5_body_for_thread(t, x, out)
+static MAYBE_INLINE void MD5_body_for_thread(int t,
+	MD5_word x[15], MD5_word out[4])
+#else
+static MAYBE_INLINE void MD5_body(MD5_word x[15], MD5_word out[4])
+#endif
+{
+	MD5_word a, b = Cb, c = Cc, d;
+
+/* Round 1 */
+	a = AC1 + x[0];
+	ROTATE_LEFT (a, S11); a += b;			/* 1 */
+	d = (c ^ (a & MASK1)) + x[1] + AC2pCd;
+	ROTATE_LEFT (d, S12); d += a;			/* 2 */
+	c = F(d, a, b) + x[2] + AC3pCc;
+	ROTATE_LEFT(c, S13); c += d;			/* 3 */
+	b = F(c, d, a) + x[3] + AC4pCb;
+	ROTATE_LEFT(b, S14); b += c;			/* 4 */
+	FF (a, b, c, d, x[ 4], S11, AC5);		/* 5 */
+	FF (d, a, b, c, x[ 5], S12, AC6);		/* 6 */
+	FF (c, d, a, b, x[ 6], S13, AC7);		/* 7 */
+	FF (b, c, d, a, x[ 7], S14, AC8);		/* 8 */
+	FF (a, b, c, d, x[ 8], S11, AC9);		/* 9 */
+	FF (d, a, b, c, x[ 9], S12, AC10);		/* 10 */
+	FF (c, d, a, b, x[10], S13, AC11);		/* 11 */
+	FF (b, c, d, a, x[11], S14, AC12);		/* 12 */
+	FF (a, b, c, d, x[12], S11, AC13);		/* 13 */
+	FF (d, a, b, c, x[13], S12, AC14);		/* 14 */
+	FF (c, d, a, b, x[14], S13, AC15);		/* 15 */
+	b += F (c, d, a) + AC16;
+	ROTATE_LEFT (b, S14); b += c;			/* 16 */
+
+/* Round 2 */
+	GG (a, b, c, d, x[ 1], S21, AC17);		/* 17 */
+	GG (d, a, b, c, x[ 6], S22, AC18);		/* 18 */
+	GG (c, d, a, b, x[11], S23, AC19);		/* 19 */
+	GG (b, c, d, a, x[ 0], S24, AC20);		/* 20 */
+	GG (a, b, c, d, x[ 5], S21, AC21);		/* 21 */
+	GG (d, a, b, c, x[10], S22, AC22);		/* 22 */
+	c += G (d, a, b) + AC23;
+	ROTATE_LEFT (c, S23); c += d;			/* 23 */
+	GG (b, c, d, a, x[ 4], S24, AC24);		/* 24 */
+	GG (a, b, c, d, x[ 9], S21, AC25);		/* 25 */
+	GG (d, a, b, c, x[14], S22, AC26);		/* 26 */
+	GG (c, d, a, b, x[ 3], S23, AC27);		/* 27 */
+	GG (b, c, d, a, x[ 8], S24, AC28);		/* 28 */
+	GG (a, b, c, d, x[13], S21, AC29);		/* 29 */
+	GG (d, a, b, c, x[ 2], S22, AC30);		/* 30 */
+	GG (c, d, a, b, x[ 7], S23, AC31);		/* 31 */
+	GG (b, c, d, a, x[12], S24, AC32);		/* 32 */
+
+/* Round 3 */
+	HH (a, b, c, d, x[ 5], S31, AC33);		/* 33 */
+	HH (d, a, b, c, x[ 8], S32, AC34);		/* 34 */
+	HH (c, d, a, b, x[11], S33, AC35);		/* 35 */
+	HH (b, c, d, a, x[14], S34, AC36);		/* 36 */
+	HH (a, b, c, d, x[ 1], S31, AC37);		/* 37 */
+	HH (d, a, b, c, x[ 4], S32, AC38);		/* 38 */
+	HH (c, d, a, b, x[ 7], S33, AC39);		/* 39 */
+	HH (b, c, d, a, x[10], S34, AC40);		/* 40 */
+	HH (a, b, c, d, x[13], S31, AC41);		/* 41 */
+	HH (d, a, b, c, x[ 0], S32, AC42);		/* 42 */
+	HH (c, d, a, b, x[ 3], S33, AC43);		/* 43 */
+	HH (b, c, d, a, x[ 6], S34, AC44);		/* 44 */
+	HH (a, b, c, d, x[ 9], S31, AC45);		/* 45 */
+	HH (d, a, b, c, x[12], S32, AC46);		/* 46 */
+	c += H (d, a, b) + AC47;
+	ROTATE_LEFT (c, S33); c += d;			/* 47 */
+	HH (b, c, d, a, x[ 2], S34, AC48);		/* 48 */
+
+/* Round 4 */
+	II (a, b, c, d, x[ 0], S41, AC49);		/* 49 */
+	II (d, a, b, c, x[ 7], S42, AC50);		/* 50 */
+	II (c, d, a, b, x[14], S43, AC51);		/* 51 */
+	II (b, c, d, a, x[ 5], S44, AC52);		/* 52 */
+	II (a, b, c, d, x[12], S41, AC53);		/* 53 */
+	II (d, a, b, c, x[ 3], S42, AC54);		/* 54 */
+	II (c, d, a, b, x[10], S43, AC55);		/* 55 */
+	II (b, c, d, a, x[ 1], S44, AC56);		/* 56 */
+	II (a, b, c, d, x[ 8], S41, AC57);		/* 57 */
+	d += I (a, b, c) + AC58;
+	ROTATE_LEFT (d, S42); d += a;			/* 58 */
+	II (c, d, a, b, x[ 6], S43, AC59);		/* 59 */
+	II (b, c, d, a, x[13], S44, AC60);		/* 60 */
+	II (a, b, c, d, x[ 4], S41, AC61);		/* 61 */
+	II (d, a, b, c, x[11], S42, AC62);		/* 62 */
+	II (c, d, a, b, x[ 2], S43, AC63);		/* 63 */
+	II (b, c, d, a, x[ 9], S44, AC64);		/* 64 */
+
+	out[0] = Ca + a;
+	out[1] = Cb + b;
+	out[2] = Cc + c;
+	out[3] = Cd + d;
+}
+
+#else
+
+#if MD5_std_mt
+#define MD5_body(x0, x1, out0, out1) \
+	MD5_body_for_thread(t, x0, x1, out0, out1)
+static MAYBE_INLINE void MD5_body_for_thread(int t,
+	MD5_word x0[15], MD5_word x1[15],
+	MD5_word out0[4], MD5_word out1[4])
+#else
+static MAYBE_INLINE void MD5_body(MD5_word x0[15], MD5_word x1[15],
+	MD5_word out0[4], MD5_word out1[4])
+#endif
+{
+	MD5_word a0, b0 = Cb, c0 = Cc, d0;
+	MD5_word a1, b1, c1, d1;
+	MD5_word u, v;
+
+/* Round 1 */
+	a0 = (u = AC1) + x0[0];
+	ROTATE_LEFT (a0, S11); a0 += b0;		/* 1 */
+	a1 = u + x1[0];
+	ROTATE_LEFT (a1, S11); a1 += b0;		/* 1 */
+	d0 = (c0 ^ (a0 & (u = MASK1))) + x0[1] + (v = AC2pCd);
+	ROTATE_LEFT (d0, S12); d0 += a0;		/* 2 */
+	d1 = (c0 ^ (a1 & u)) + x1[1] + v;
+	ROTATE_LEFT (d1, S12); d1 += a1;		/* 2 */
+	c0 = F(d0, a0, b0) + x0[2] + (u = AC3pCc);
+	ROTATE_LEFT(c0, S13); c0 += d0;			/* 3 */
+	c1 = F(d1, a1, b0) + x1[2] + u;
+	ROTATE_LEFT(c1, S13); c1 += d1;			/* 3 */
+	b0 = F(c0, d0, a0) + x0[3] + (u = AC4pCb);
+	ROTATE_LEFT(b0, S14); b0 += c0;			/* 4 */
+	b1 = F(c1, d1, a1) + x1[3] + u;
+	ROTATE_LEFT(b1, S14); b1 += c1;			/* 4 */
+	FF (a0, b0, c0, d0, x0[ 4], S11, (u = AC5));	/* 5 */
+	FF (a1, b1, c1, d1, x1[ 4], S11, u);		/* 5 */
+	FF (d0, a0, b0, c0, x0[ 5], S12, (u = AC6));	/* 6 */
+	FF (d1, a1, b1, c1, x1[ 5], S12, u);		/* 6 */
+	FF (c0, d0, a0, b0, x0[ 6], S13, (u = AC7));	/* 7 */
+	FF (c1, d1, a1, b1, x1[ 6], S13, u);		/* 7 */
+	FF (b0, c0, d0, a0, x0[ 7], S14, (u = AC8));	/* 8 */
+	FF (b1, c1, d1, a1, x1[ 7], S14, u);		/* 8 */
+	FF (a0, b0, c0, d0, x0[ 8], S11, (u = AC9));	/* 9 */
+	FF (a1, b1, c1, d1, x1[ 8], S11, u);		/* 9 */
+	FF (d0, a0, b0, c0, x0[ 9], S12, (u = AC10));	/* 10 */
+	FF (d1, a1, b1, c1, x1[ 9], S12, u);		/* 10 */
+	FF (c0, d0, a0, b0, x0[10], S13, (u = AC11));	/* 11 */
+	FF (c1, d1, a1, b1, x1[10], S13, u);		/* 11 */
+	FF (b0, c0, d0, a0, x0[11], S14, (u = AC12));	/* 12 */
+	FF (b1, c1, d1, a1, x1[11], S14, u);		/* 12 */
+	FF (a0, b0, c0, d0, x0[12], S11, (u = AC13));	/* 13 */
+	FF (a1, b1, c1, d1, x1[12], S11, u);		/* 13 */
+	FF (d0, a0, b0, c0, x0[13], S12, (u = AC14));	/* 14 */
+	FF (d1, a1, b1, c1, x1[13], S12, u);		/* 14 */
+	FF (c0, d0, a0, b0, x0[14], S13, (u = AC15));	/* 15 */
+	FF (c1, d1, a1, b1, x1[14], S13, u);		/* 15 */
+	b0 += F (c0, d0, a0) + (u = AC16);
+	ROTATE_LEFT (b0, S14); b0 += c0;		/* 16 */
+	b1 += F (c1, d1, a1) + u;
+	ROTATE_LEFT (b1, S14); b1 += c1;		/* 16 */
+
+/* Round 2 */
+	GG (a0, b0, c0, d0, x0[ 1], S21, (u = AC17));	/* 17 */
+	GG (a1, b1, c1, d1, x1[ 1], S21, u);		/* 17 */
+	GG (d0, a0, b0, c0, x0[ 6], S22, (u = AC18));	/* 18 */
+	GG (d1, a1, b1, c1, x1[ 6], S22, u);		/* 18 */
+	GG (c0, d0, a0, b0, x0[11], S23, (u = AC19));	/* 19 */
+	GG (c1, d1, a1, b1, x1[11], S23, u);		/* 19 */
+	GG (b0, c0, d0, a0, x0[ 0], S24, (u = AC20));	/* 20 */
+	GG (b1, c1, d1, a1, x1[ 0], S24, u);		/* 20 */
+	GG (a0, b0, c0, d0, x0[ 5], S21, (u = AC21));	/* 21 */
+	GG (a1, b1, c1, d1, x1[ 5], S21, u);		/* 21 */
+	GG (d0, a0, b0, c0, x0[10], S22, (u = AC22));	/* 22 */
+	GG (d1, a1, b1, c1, x1[10], S22, u);		/* 22 */
+	c0 += G (d0, a0, b0) + (u = AC23);
+	ROTATE_LEFT (c0, S23); c0 += d0;		/* 23 */
+	c1 += G (d1, a1, b1) + u;
+	ROTATE_LEFT (c1, S23); c1 += d1;		/* 23 */
+	GG (b0, c0, d0, a0, x0[ 4], S24, (u = AC24));	/* 24 */
+	GG (b1, c1, d1, a1, x1[ 4], S24, u);		/* 24 */
+	GG (a0, b0, c0, d0, x0[ 9], S21, (u = AC25));	/* 25 */
+	GG (a1, b1, c1, d1, x1[ 9], S21, u);		/* 25 */
+	GG (d0, a0, b0, c0, x0[14], S22, (u = AC26));	/* 26 */
+	GG (d1, a1, b1, c1, x1[14], S22, u);		/* 26 */
+	GG (c0, d0, a0, b0, x0[ 3], S23, (u = AC27));	/* 27 */
+	GG (c1, d1, a1, b1, x1[ 3], S23, u);		/* 27 */
+	GG (b0, c0, d0, a0, x0[ 8], S24, (u = AC28));	/* 28 */
+	GG (b1, c1, d1, a1, x1[ 8], S24, u);		/* 28 */
+	GG (a0, b0, c0, d0, x0[13], S21, (u = AC29));	/* 29 */
+	GG (a1, b1, c1, d1, x1[13], S21, u);		/* 29 */
+	GG (d0, a0, b0, c0, x0[ 2], S22, (u = AC30));	/* 30 */
+	GG (d1, a1, b1, c1, x1[ 2], S22, u);		/* 30 */
+	GG (c0, d0, a0, b0, x0[ 7], S23, (u = AC31));	/* 31 */
+	GG (c1, d1, a1, b1, x1[ 7], S23, u);		/* 31 */
+	GG (b0, c0, d0, a0, x0[12], S24, (u = AC32));	/* 32 */
+	GG (b1, c1, d1, a1, x1[12], S24, u);		/* 32 */
+
+/* Round 3 */
+	HH (a0, b0, c0, d0, x0[ 5], S31, (u = AC33));	/* 33 */
+	HH (a1, b1, c1, d1, x1[ 5], S31, u);		/* 33 */
+	HH (d0, a0, b0, c0, x0[ 8], S32, (u = AC34));	/* 34 */
+	HH (d1, a1, b1, c1, x1[ 8], S32, u);		/* 34 */
+	HH (c0, d0, a0, b0, x0[11], S33, (u = AC35));	/* 35 */
+	HH (c1, d1, a1, b1, x1[11], S33, u);		/* 35 */
+	HH (b0, c0, d0, a0, x0[14], S34, (u = AC36));	/* 36 */
+	HH (b1, c1, d1, a1, x1[14], S34, u);		/* 36 */
+	HH (a0, b0, c0, d0, x0[ 1], S31, (u = AC37));	/* 37 */
+	HH (a1, b1, c1, d1, x1[ 1], S31, u);		/* 37 */
+	HH (d0, a0, b0, c0, x0[ 4], S32, (u = AC38));	/* 38 */
+	HH (d1, a1, b1, c1, x1[ 4], S32, u);		/* 38 */
+	HH (c0, d0, a0, b0, x0[ 7], S33, (u = AC39));	/* 39 */
+	HH (c1, d1, a1, b1, x1[ 7], S33, u);		/* 39 */
+	HH (b0, c0, d0, a0, x0[10], S34, (u = AC40));	/* 40 */
+	HH (b1, c1, d1, a1, x1[10], S34, u);		/* 40 */
+	HH (a0, b0, c0, d0, x0[13], S31, (u = AC41));	/* 41 */
+	HH (a1, b1, c1, d1, x1[13], S31, u);		/* 41 */
+	HH (d0, a0, b0, c0, x0[ 0], S32, (u = AC42));	/* 42 */
+	HH (d1, a1, b1, c1, x1[ 0], S32, u);		/* 42 */
+	HH (c0, d0, a0, b0, x0[ 3], S33, (u = AC43));	/* 43 */
+	HH (c1, d1, a1, b1, x1[ 3], S33, u);		/* 43 */
+	HH (b0, c0, d0, a0, x0[ 6], S34, (u = AC44));	/* 44 */
+	HH (b1, c1, d1, a1, x1[ 6], S34, u);		/* 44 */
+	HH (a0, b0, c0, d0, x0[ 9], S31, (u = AC45));	/* 45 */
+	HH (a1, b1, c1, d1, x1[ 9], S31, u);		/* 45 */
+	HH (d0, a0, b0, c0, x0[12], S32, (u = AC46));	/* 46 */
+	HH (d1, a1, b1, c1, x1[12], S32, u);		/* 46 */
+	c0 += H (d0, a0, b0) + (u = AC47);
+	ROTATE_LEFT (c0, S33); c0 += d0;		/* 47 */
+	c1 += H (d1, a1, b1) + u;
+	ROTATE_LEFT (c1, S33); c1 += d1;		/* 47 */
+	HH (b0, c0, d0, a0, x0[ 2], S34, (u = AC48));	/* 48 */
+	HH (b1, c1, d1, a1, x1[ 2], S34, u);		/* 48 */
+
+/* Round 4 */
+	II (a0, b0, c0, d0, x0[ 0], S41, (u = AC49));	/* 49 */
+	II (a1, b1, c1, d1, x1[ 0], S41, u);		/* 49 */
+	II (d0, a0, b0, c0, x0[ 7], S42, (u = AC50));	/* 50 */
+	II (d1, a1, b1, c1, x1[ 7], S42, u);		/* 50 */
+	II (c0, d0, a0, b0, x0[14], S43, (u = AC51));	/* 51 */
+	II (c1, d1, a1, b1, x1[14], S43, u);		/* 51 */
+	II (b0, c0, d0, a0, x0[ 5], S44, (u = AC52));	/* 52 */
+	II (b1, c1, d1, a1, x1[ 5], S44, u);		/* 52 */
+	II (a0, b0, c0, d0, x0[12], S41, (u = AC53));	/* 53 */
+	II (a1, b1, c1, d1, x1[12], S41, u);		/* 53 */
+	II (d0, a0, b0, c0, x0[ 3], S42, (u = AC54));	/* 54 */
+	II (d1, a1, b1, c1, x1[ 3], S42, u);		/* 54 */
+	II (c0, d0, a0, b0, x0[10], S43, (u = AC55));	/* 55 */
+	II (c1, d1, a1, b1, x1[10], S43, u);		/* 55 */
+	II (b0, c0, d0, a0, x0[ 1], S44, (u = AC56));	/* 56 */
+	II (b1, c1, d1, a1, x1[ 1], S44, u);		/* 56 */
+	II (a0, b0, c0, d0, x0[ 8], S41, (u = AC57));	/* 57 */
+	II (a1, b1, c1, d1, x1[ 8], S41, u);		/* 57 */
+	d0 += I (a0, b0, c0) + (u = AC58);
+	ROTATE_LEFT (d0, S42); d0 += a0;		/* 58 */
+	d1 += I (a1, b1, c1) + u;
+	ROTATE_LEFT (d1, S42); d1 += a1;		/* 58 */
+	II (c0, d0, a0, b0, x0[ 6], S43, (u = AC59));	/* 59 */
+	II (c1, d1, a1, b1, x1[ 6], S43, u);		/* 59 */
+	II (b0, c0, d0, a0, x0[13], S44, (u = AC60));	/* 60 */
+	II (b1, c1, d1, a1, x1[13], S44, u);		/* 60 */
+	II (a0, b0, c0, d0, x0[ 4], S41, (u = AC61));	/* 61 */
+	II (a1, b1, c1, d1, x1[ 4], S41, u);		/* 61 */
+	II (d0, a0, b0, c0, x0[11], S42, (u = AC62));	/* 62 */
+	II (d1, a1, b1, c1, x1[11], S42, u);		/* 62 */
+	II (c0, d0, a0, b0, x0[ 2], S43, (u = AC63));	/* 63 */
+	II (c1, d1, a1, b1, x1[ 2], S43, u);		/* 63 */
+	II (b0, c0, d0, a0, x0[ 9], S44, (u = AC64));	/* 64 */
+	II (b1, c1, d1, a1, x1[ 9], S44, u);		/* 64 */
+
+	out1[3] = Cd + d1;
+
+	out0[0] = Ca + a0;
+	out0[1] = Cb + b0;
+	out0[2] = Cc + c0;
+	out0[3] = Cd + d0;
+
+	out1[0] = Ca + a1;
+	out1[1] = Cb + b1;
+	out1[2] = Cc + c1;
+}
+
+#endif
+
+#endif
 
 #if MD5_std_mt
 static MAYBE_INLINE void MD5_std_crypt_for_thread(int t)
@@ -683,286 +947,6 @@ void MD5_std_crypt(int count)
 
 	salt_changed = 0;
 }
-#endif
-
-#if !MD5_ASM
-
-#if !MD5_X2
-
-#if MD5_std_mt
-static void MD5_body_for_thread(int t, MD5_word x[15], MD5_word out[4])
-#else
-static void MD5_body(MD5_word x[15], MD5_word out[4])
-#endif
-{
-	MD5_word a, b = Cb, c = Cc, d;
-
-/* Round 1 */
-	a = AC1 + x[0];
-	ROTATE_LEFT (a, S11); a += b;			/* 1 */
-	d = (c ^ (a & MASK1)) + x[1] + AC2pCd;
-	ROTATE_LEFT (d, S12); d += a;			/* 2 */
-	c = F(d, a, b) + x[2] + AC3pCc;
-	ROTATE_LEFT(c, S13); c += d;			/* 3 */
-	b = F(c, d, a) + x[3] + AC4pCb;
-	ROTATE_LEFT(b, S14); b += c;			/* 4 */
-	FF (a, b, c, d, x[ 4], S11, AC5);		/* 5 */
-	FF (d, a, b, c, x[ 5], S12, AC6);		/* 6 */
-	FF (c, d, a, b, x[ 6], S13, AC7);		/* 7 */
-	FF (b, c, d, a, x[ 7], S14, AC8);		/* 8 */
-	FF (a, b, c, d, x[ 8], S11, AC9);		/* 9 */
-	FF (d, a, b, c, x[ 9], S12, AC10);		/* 10 */
-	FF (c, d, a, b, x[10], S13, AC11);		/* 11 */
-	FF (b, c, d, a, x[11], S14, AC12);		/* 12 */
-	FF (a, b, c, d, x[12], S11, AC13);		/* 13 */
-	FF (d, a, b, c, x[13], S12, AC14);		/* 14 */
-	FF (c, d, a, b, x[14], S13, AC15);		/* 15 */
-	b += F (c, d, a) + AC16;
-	ROTATE_LEFT (b, S14); b += c;			/* 16 */
-
-/* Round 2 */
-	GG (a, b, c, d, x[ 1], S21, AC17);		/* 17 */
-	GG (d, a, b, c, x[ 6], S22, AC18);		/* 18 */
-	GG (c, d, a, b, x[11], S23, AC19);		/* 19 */
-	GG (b, c, d, a, x[ 0], S24, AC20);		/* 20 */
-	GG (a, b, c, d, x[ 5], S21, AC21);		/* 21 */
-	GG (d, a, b, c, x[10], S22, AC22);		/* 22 */
-	c += G (d, a, b) + AC23;
-	ROTATE_LEFT (c, S23); c += d;			/* 23 */
-	GG (b, c, d, a, x[ 4], S24, AC24);		/* 24 */
-	GG (a, b, c, d, x[ 9], S21, AC25);		/* 25 */
-	GG (d, a, b, c, x[14], S22, AC26);		/* 26 */
-	GG (c, d, a, b, x[ 3], S23, AC27);		/* 27 */
-	GG (b, c, d, a, x[ 8], S24, AC28);		/* 28 */
-	GG (a, b, c, d, x[13], S21, AC29);		/* 29 */
-	GG (d, a, b, c, x[ 2], S22, AC30);		/* 30 */
-	GG (c, d, a, b, x[ 7], S23, AC31);		/* 31 */
-	GG (b, c, d, a, x[12], S24, AC32);		/* 32 */
-
-/* Round 3 */
-	HH (a, b, c, d, x[ 5], S31, AC33);		/* 33 */
-	HH (d, a, b, c, x[ 8], S32, AC34);		/* 34 */
-	HH (c, d, a, b, x[11], S33, AC35);		/* 35 */
-	HH (b, c, d, a, x[14], S34, AC36);		/* 36 */
-	HH (a, b, c, d, x[ 1], S31, AC37);		/* 37 */
-	HH (d, a, b, c, x[ 4], S32, AC38);		/* 38 */
-	HH (c, d, a, b, x[ 7], S33, AC39);		/* 39 */
-	HH (b, c, d, a, x[10], S34, AC40);		/* 40 */
-	HH (a, b, c, d, x[13], S31, AC41);		/* 41 */
-	HH (d, a, b, c, x[ 0], S32, AC42);		/* 42 */
-	HH (c, d, a, b, x[ 3], S33, AC43);		/* 43 */
-	HH (b, c, d, a, x[ 6], S34, AC44);		/* 44 */
-	HH (a, b, c, d, x[ 9], S31, AC45);		/* 45 */
-	HH (d, a, b, c, x[12], S32, AC46);		/* 46 */
-	c += H (d, a, b) + AC47;
-	ROTATE_LEFT (c, S33); c += d;			/* 47 */
-	HH (b, c, d, a, x[ 2], S34, AC48);		/* 48 */
-
-/* Round 4 */
-	II (a, b, c, d, x[ 0], S41, AC49);		/* 49 */
-	II (d, a, b, c, x[ 7], S42, AC50);		/* 50 */
-	II (c, d, a, b, x[14], S43, AC51);		/* 51 */
-	II (b, c, d, a, x[ 5], S44, AC52);		/* 52 */
-	II (a, b, c, d, x[12], S41, AC53);		/* 53 */
-	II (d, a, b, c, x[ 3], S42, AC54);		/* 54 */
-	II (c, d, a, b, x[10], S43, AC55);		/* 55 */
-	II (b, c, d, a, x[ 1], S44, AC56);		/* 56 */
-	II (a, b, c, d, x[ 8], S41, AC57);		/* 57 */
-	d += I (a, b, c) + AC58;
-	ROTATE_LEFT (d, S42); d += a;			/* 58 */
-	II (c, d, a, b, x[ 6], S43, AC59);		/* 59 */
-	II (b, c, d, a, x[13], S44, AC60);		/* 60 */
-	II (a, b, c, d, x[ 4], S41, AC61);		/* 61 */
-	II (d, a, b, c, x[11], S42, AC62);		/* 62 */
-	II (c, d, a, b, x[ 2], S43, AC63);		/* 63 */
-	II (b, c, d, a, x[ 9], S44, AC64);		/* 64 */
-
-	out[0] = Ca + a;
-	out[1] = Cb + b;
-	out[2] = Cc + c;
-	out[3] = Cd + d;
-}
-
-#else
-
-#if MD5_std_mt
-static void MD5_body_for_thread(int t, MD5_word x0[15], MD5_word x1[15],
-	MD5_word out0[4], MD5_word out1[4])
-#else
-static void MD5_body(MD5_word x0[15], MD5_word x1[15],
-	MD5_word out0[4], MD5_word out1[4])
-#endif
-{
-	MD5_word a0, b0 = Cb, c0 = Cc, d0;
-	MD5_word a1, b1, c1, d1;
-	MD5_word u, v;
-
-/* Round 1 */
-	a0 = (u = AC1) + x0[0];
-	ROTATE_LEFT (a0, S11); a0 += b0;		/* 1 */
-	a1 = u + x1[0];
-	ROTATE_LEFT (a1, S11); a1 += b0;		/* 1 */
-	d0 = (c0 ^ (a0 & (u = MASK1))) + x0[1] + (v = AC2pCd);
-	ROTATE_LEFT (d0, S12); d0 += a0;		/* 2 */
-	d1 = (c0 ^ (a1 & u)) + x1[1] + v;
-	ROTATE_LEFT (d1, S12); d1 += a1;		/* 2 */
-	c0 = F(d0, a0, b0) + x0[2] + (u = AC3pCc);
-	ROTATE_LEFT(c0, S13); c0 += d0;			/* 3 */
-	c1 = F(d1, a1, b0) + x1[2] + u;
-	ROTATE_LEFT(c1, S13); c1 += d1;			/* 3 */
-	b0 = F(c0, d0, a0) + x0[3] + (u = AC4pCb);
-	ROTATE_LEFT(b0, S14); b0 += c0;			/* 4 */
-	b1 = F(c1, d1, a1) + x1[3] + u;
-	ROTATE_LEFT(b1, S14); b1 += c1;			/* 4 */
-	FF (a0, b0, c0, d0, x0[ 4], S11, (u = AC5));	/* 5 */
-	FF (a1, b1, c1, d1, x1[ 4], S11, u);		/* 5 */
-	FF (d0, a0, b0, c0, x0[ 5], S12, (u = AC6));	/* 6 */
-	FF (d1, a1, b1, c1, x1[ 5], S12, u);		/* 6 */
-	FF (c0, d0, a0, b0, x0[ 6], S13, (u = AC7));	/* 7 */
-	FF (c1, d1, a1, b1, x1[ 6], S13, u);		/* 7 */
-	FF (b0, c0, d0, a0, x0[ 7], S14, (u = AC8));	/* 8 */
-	FF (b1, c1, d1, a1, x1[ 7], S14, u);		/* 8 */
-	FF (a0, b0, c0, d0, x0[ 8], S11, (u = AC9));	/* 9 */
-	FF (a1, b1, c1, d1, x1[ 8], S11, u);		/* 9 */
-	FF (d0, a0, b0, c0, x0[ 9], S12, (u = AC10));	/* 10 */
-	FF (d1, a1, b1, c1, x1[ 9], S12, u);		/* 10 */
-	FF (c0, d0, a0, b0, x0[10], S13, (u = AC11));	/* 11 */
-	FF (c1, d1, a1, b1, x1[10], S13, u);		/* 11 */
-	FF (b0, c0, d0, a0, x0[11], S14, (u = AC12));	/* 12 */
-	FF (b1, c1, d1, a1, x1[11], S14, u);		/* 12 */
-	FF (a0, b0, c0, d0, x0[12], S11, (u = AC13));	/* 13 */
-	FF (a1, b1, c1, d1, x1[12], S11, u);		/* 13 */
-	FF (d0, a0, b0, c0, x0[13], S12, (u = AC14));	/* 14 */
-	FF (d1, a1, b1, c1, x1[13], S12, u);		/* 14 */
-	FF (c0, d0, a0, b0, x0[14], S13, (u = AC15));	/* 15 */
-	FF (c1, d1, a1, b1, x1[14], S13, u);		/* 15 */
-	b0 += F (c0, d0, a0) + (u = AC16);
-	ROTATE_LEFT (b0, S14); b0 += c0;		/* 16 */
-	b1 += F (c1, d1, a1) + u;
-	ROTATE_LEFT (b1, S14); b1 += c1;		/* 16 */
-
-/* Round 2 */
-	GG (a0, b0, c0, d0, x0[ 1], S21, (u = AC17));	/* 17 */
-	GG (a1, b1, c1, d1, x1[ 1], S21, u);		/* 17 */
-	GG (d0, a0, b0, c0, x0[ 6], S22, (u = AC18));	/* 18 */
-	GG (d1, a1, b1, c1, x1[ 6], S22, u);		/* 18 */
-	GG (c0, d0, a0, b0, x0[11], S23, (u = AC19));	/* 19 */
-	GG (c1, d1, a1, b1, x1[11], S23, u);		/* 19 */
-	GG (b0, c0, d0, a0, x0[ 0], S24, (u = AC20));	/* 20 */
-	GG (b1, c1, d1, a1, x1[ 0], S24, u);		/* 20 */
-	GG (a0, b0, c0, d0, x0[ 5], S21, (u = AC21));	/* 21 */
-	GG (a1, b1, c1, d1, x1[ 5], S21, u);		/* 21 */
-	GG (d0, a0, b0, c0, x0[10], S22, (u = AC22));	/* 22 */
-	GG (d1, a1, b1, c1, x1[10], S22, u);		/* 22 */
-	c0 += G (d0, a0, b0) + (u = AC23);
-	ROTATE_LEFT (c0, S23); c0 += d0;		/* 23 */
-	c1 += G (d1, a1, b1) + u;
-	ROTATE_LEFT (c1, S23); c1 += d1;		/* 23 */
-	GG (b0, c0, d0, a0, x0[ 4], S24, (u = AC24));	/* 24 */
-	GG (b1, c1, d1, a1, x1[ 4], S24, u);		/* 24 */
-	GG (a0, b0, c0, d0, x0[ 9], S21, (u = AC25));	/* 25 */
-	GG (a1, b1, c1, d1, x1[ 9], S21, u);		/* 25 */
-	GG (d0, a0, b0, c0, x0[14], S22, (u = AC26));	/* 26 */
-	GG (d1, a1, b1, c1, x1[14], S22, u);		/* 26 */
-	GG (c0, d0, a0, b0, x0[ 3], S23, (u = AC27));	/* 27 */
-	GG (c1, d1, a1, b1, x1[ 3], S23, u);		/* 27 */
-	GG (b0, c0, d0, a0, x0[ 8], S24, (u = AC28));	/* 28 */
-	GG (b1, c1, d1, a1, x1[ 8], S24, u);		/* 28 */
-	GG (a0, b0, c0, d0, x0[13], S21, (u = AC29));	/* 29 */
-	GG (a1, b1, c1, d1, x1[13], S21, u);		/* 29 */
-	GG (d0, a0, b0, c0, x0[ 2], S22, (u = AC30));	/* 30 */
-	GG (d1, a1, b1, c1, x1[ 2], S22, u);		/* 30 */
-	GG (c0, d0, a0, b0, x0[ 7], S23, (u = AC31));	/* 31 */
-	GG (c1, d1, a1, b1, x1[ 7], S23, u);		/* 31 */
-	GG (b0, c0, d0, a0, x0[12], S24, (u = AC32));	/* 32 */
-	GG (b1, c1, d1, a1, x1[12], S24, u);		/* 32 */
-
-/* Round 3 */
-	HH (a0, b0, c0, d0, x0[ 5], S31, (u = AC33));	/* 33 */
-	HH (a1, b1, c1, d1, x1[ 5], S31, u);		/* 33 */
-	HH (d0, a0, b0, c0, x0[ 8], S32, (u = AC34));	/* 34 */
-	HH (d1, a1, b1, c1, x1[ 8], S32, u);		/* 34 */
-	HH (c0, d0, a0, b0, x0[11], S33, (u = AC35));	/* 35 */
-	HH (c1, d1, a1, b1, x1[11], S33, u);		/* 35 */
-	HH (b0, c0, d0, a0, x0[14], S34, (u = AC36));	/* 36 */
-	HH (b1, c1, d1, a1, x1[14], S34, u);		/* 36 */
-	HH (a0, b0, c0, d0, x0[ 1], S31, (u = AC37));	/* 37 */
-	HH (a1, b1, c1, d1, x1[ 1], S31, u);		/* 37 */
-	HH (d0, a0, b0, c0, x0[ 4], S32, (u = AC38));	/* 38 */
-	HH (d1, a1, b1, c1, x1[ 4], S32, u);		/* 38 */
-	HH (c0, d0, a0, b0, x0[ 7], S33, (u = AC39));	/* 39 */
-	HH (c1, d1, a1, b1, x1[ 7], S33, u);		/* 39 */
-	HH (b0, c0, d0, a0, x0[10], S34, (u = AC40));	/* 40 */
-	HH (b1, c1, d1, a1, x1[10], S34, u);		/* 40 */
-	HH (a0, b0, c0, d0, x0[13], S31, (u = AC41));	/* 41 */
-	HH (a1, b1, c1, d1, x1[13], S31, u);		/* 41 */
-	HH (d0, a0, b0, c0, x0[ 0], S32, (u = AC42));	/* 42 */
-	HH (d1, a1, b1, c1, x1[ 0], S32, u);		/* 42 */
-	HH (c0, d0, a0, b0, x0[ 3], S33, (u = AC43));	/* 43 */
-	HH (c1, d1, a1, b1, x1[ 3], S33, u);		/* 43 */
-	HH (b0, c0, d0, a0, x0[ 6], S34, (u = AC44));	/* 44 */
-	HH (b1, c1, d1, a1, x1[ 6], S34, u);		/* 44 */
-	HH (a0, b0, c0, d0, x0[ 9], S31, (u = AC45));	/* 45 */
-	HH (a1, b1, c1, d1, x1[ 9], S31, u);		/* 45 */
-	HH (d0, a0, b0, c0, x0[12], S32, (u = AC46));	/* 46 */
-	HH (d1, a1, b1, c1, x1[12], S32, u);		/* 46 */
-	c0 += H (d0, a0, b0) + (u = AC47);
-	ROTATE_LEFT (c0, S33); c0 += d0;		/* 47 */
-	c1 += H (d1, a1, b1) + u;
-	ROTATE_LEFT (c1, S33); c1 += d1;		/* 47 */
-	HH (b0, c0, d0, a0, x0[ 2], S34, (u = AC48));	/* 48 */
-	HH (b1, c1, d1, a1, x1[ 2], S34, u);		/* 48 */
-
-/* Round 4 */
-	II (a0, b0, c0, d0, x0[ 0], S41, (u = AC49));	/* 49 */
-	II (a1, b1, c1, d1, x1[ 0], S41, u);		/* 49 */
-	II (d0, a0, b0, c0, x0[ 7], S42, (u = AC50));	/* 50 */
-	II (d1, a1, b1, c1, x1[ 7], S42, u);		/* 50 */
-	II (c0, d0, a0, b0, x0[14], S43, (u = AC51));	/* 51 */
-	II (c1, d1, a1, b1, x1[14], S43, u);		/* 51 */
-	II (b0, c0, d0, a0, x0[ 5], S44, (u = AC52));	/* 52 */
-	II (b1, c1, d1, a1, x1[ 5], S44, u);		/* 52 */
-	II (a0, b0, c0, d0, x0[12], S41, (u = AC53));	/* 53 */
-	II (a1, b1, c1, d1, x1[12], S41, u);		/* 53 */
-	II (d0, a0, b0, c0, x0[ 3], S42, (u = AC54));	/* 54 */
-	II (d1, a1, b1, c1, x1[ 3], S42, u);		/* 54 */
-	II (c0, d0, a0, b0, x0[10], S43, (u = AC55));	/* 55 */
-	II (c1, d1, a1, b1, x1[10], S43, u);		/* 55 */
-	II (b0, c0, d0, a0, x0[ 1], S44, (u = AC56));	/* 56 */
-	II (b1, c1, d1, a1, x1[ 1], S44, u);		/* 56 */
-	II (a0, b0, c0, d0, x0[ 8], S41, (u = AC57));	/* 57 */
-	II (a1, b1, c1, d1, x1[ 8], S41, u);		/* 57 */
-	d0 += I (a0, b0, c0) + (u = AC58);
-	ROTATE_LEFT (d0, S42); d0 += a0;		/* 58 */
-	d1 += I (a1, b1, c1) + u;
-	ROTATE_LEFT (d1, S42); d1 += a1;		/* 58 */
-	II (c0, d0, a0, b0, x0[ 6], S43, (u = AC59));	/* 59 */
-	II (c1, d1, a1, b1, x1[ 6], S43, u);		/* 59 */
-	II (b0, c0, d0, a0, x0[13], S44, (u = AC60));	/* 60 */
-	II (b1, c1, d1, a1, x1[13], S44, u);		/* 60 */
-	II (a0, b0, c0, d0, x0[ 4], S41, (u = AC61));	/* 61 */
-	II (a1, b1, c1, d1, x1[ 4], S41, u);		/* 61 */
-	II (d0, a0, b0, c0, x0[11], S42, (u = AC62));	/* 62 */
-	II (d1, a1, b1, c1, x1[11], S42, u);		/* 62 */
-	II (c0, d0, a0, b0, x0[ 2], S43, (u = AC63));	/* 63 */
-	II (c1, d1, a1, b1, x1[ 2], S43, u);		/* 63 */
-	II (b0, c0, d0, a0, x0[ 9], S44, (u = AC64));	/* 64 */
-	II (b1, c1, d1, a1, x1[ 9], S44, u);		/* 64 */
-
-	out1[3] = Cd + d1;
-
-	out0[0] = Ca + a0;
-	out0[1] = Cb + b0;
-	out0[2] = Cc + c0;
-	out0[3] = Cd + d0;
-
-	out1[0] = Ca + a1;
-	out1[1] = Cb + b1;
-	out1[2] = Cc + c1;
-}
-
-#endif
-
 #endif
 
 char *MD5_std_get_salt(char *ciphertext)
