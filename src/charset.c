@@ -6,10 +6,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "misc.h"
-#include "math.h"
 #include "params.h"
 #include "path.h"
 #include "memory.h"
@@ -23,7 +24,7 @@
 typedef unsigned int (*char_counters)
 	[CHARSET_SIZE + 1][CHARSET_SIZE + 1][CHARSET_SIZE];
 
-typedef int64 (*crack_counters)
+typedef unsigned int (*crack_counters)
 	[CHARSET_LENGTH][CHARSET_LENGTH][CHARSET_SIZE];
 
 static CRC32_t checksum;
@@ -211,7 +212,7 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 				}
 
 				if (i == CHARSET_SIZE && j == CHARSET_SIZE)
-					(*cracks)[length][pos][count].lo = max;
+					(*cracks)[length][pos][count] = max;
 
 				if (!max) break;
 
@@ -246,16 +247,18 @@ static void charset_generate_chars(struct list_entry *plaintexts,
  * to be cracked) may and likely will differ.
  *
  * The cracks[] array is used as input (containing the number of successful
- * cracks for each combination) and as scratch space for intermediate results
- * (so it is clobbered by this function).
+ * cracks for each combination).
  */
-static void charset_generate_order(crack_counters cracks, unsigned char *order)
+static void charset_generate_order(crack_counters cracks,
+	unsigned char *order, int size)
 {
 	int length, pos, count; /* zero-based */
 	int best_length, best_pos, best_count;
-	unsigned int div;
-	int64 total, tmp, min, *value;
+	double total, tmp, min, value;
 	unsigned char *ptr;
+	double (*ratios)[CHARSET_LENGTH][CHARSET_LENGTH][CHARSET_SIZE];
+
+	ratios = mem_alloc(sizeof(*ratios));
 
 /* Calculate the ratios */
 
@@ -265,32 +268,27 @@ static void charset_generate_order(crack_counters cracks, unsigned char *order)
  * length and count (number of different character indices).  We subtract the
  * number of candidates for the previous count (at the same length) because
  * those are to be tried as a part of another combination. */
-		pow64of32(&total, count + 1, length + 1);
-		pow64of32(&tmp, count, length + 1);
-		neg64(&tmp);
-		add64to64(&total, &tmp);
+		total = pow(count + 1.0, length + 1.0);
+		tmp = pow((double)count, length + 1.0);
+		total -= tmp;
 
-/* Now, multiply it by an arbitrary constant to reduce precision loss in
- * subsequent division operations. */
-		mul64by32(&total, CHARSET_SCALE);
-
-/* Calculate the number of candidates (times the arbitrary constant) for a
- * {length, fixed index position, character count} combination, for the
- * specific values of length and count.  Obviously, this value is the same for
- * each position in which the character index is fixed - it only depends on the
- * length and count - which is why we calculate it out of the inner loop. */
-		if (count) div64by32(&total, length + 1);
+/* Calculate the number of candidates for a {length, fixed index position,
+ * character count} combination, for the specific values of length and count.
+ * Obviously, this value is the same for each position in which the character
+ * index is fixed - it only depends on the length and count - which is why we
+ * calculate it out of the inner loop. */
+		if (count)
+			total /= length + 1;
 
 /* Finally, for each fixed index position separately, calculate the candidates
- * to successful cracks ratio (times the arbitrary constant, which lets us
- * distinguish ratios below 1.0), and store it back in the cracks[] array (we
- * reuse the array).  We treat combinations with no successful cracks (so far)
- * the same as those with exactly one successful crack. */
+ * to successful cracks ratio.  We treat combinations with no successful cracks
+ * (so far) the same as those with exactly one successful crack. */
 		for (pos = 0; pos <= length; pos++) {
+			unsigned int div;
 			tmp = total;
-			if ((div = (*cracks)[length][pos][count].lo))
-				div64by32(&tmp, div);
-			(*cracks)[length][pos][count] = tmp;
+			if ((div = (*cracks)[length][pos][count]))
+				tmp /= div;
+			(*ratios)[length][pos][count] = tmp;
 		}
 	}
 
@@ -306,32 +304,36 @@ static void charset_generate_order(crack_counters cracks, unsigned char *order)
 	best_length = best_pos = best_count = 0;
 	do {
 /* Find the minimum ratio and its corresponding combination */
-		min.hi = min.lo = 0xFFFFFFFF; /* maximum possible value */
+		int found = 0;
+		min = 0.0; /* unused */
 
 		for (length = 0; length < CHARSET_LENGTH; length++)
 		for (count = 0; count < CHARSET_SIZE; count++)
 		for (pos = 0; pos <= length; pos++) {
-			value = &(*cracks)[length][pos][count];
-			if (value->hi < min.hi ||
-			    (value->hi == min.hi && value->lo < min.lo)) {
-				min = *value;
+			value = (*ratios)[length][pos][count];
+			if (value >= 0.0 && (!found || value < min)) {
+				found = 1;
+				min = value;
 				best_length = length;
 				best_pos = pos;
 				best_count = count;
 			}
 		}
 
-/* If min remained at its maximum value, we're done.  We assume that no ratio
- * is this large. */
-		if (min.hi >= 0xFFFFFFFF && min.lo >= 0xFFFFFFFF) break;
+		if (!found)
+			break;
 
 /* Record the combination and "take" it out of the input array */
-		value = &(*cracks)[best_length][best_pos][best_count];
-		value->hi = value->lo = 0xFFFFFFFF; /* taken */
+		(*ratios)[best_length][best_pos][best_count] = -1.0; /* taken */
+		assert(ptr <= order + size - 3);
 		*ptr++ = best_length;
 		*ptr++ = best_pos;
 		*ptr++ = best_count;
 	} while (!event_abort);
+
+	assert(event_abort || ptr == order + size);
+
+	MEM_FREE(ratios);
 }
 
 static void charset_generate_all(struct list_entry *plaintexts, char *charset)
@@ -368,7 +370,7 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	printf("DONE\nGenerating cracking order... ");
 	fflush(stdout);
 
-	charset_generate_order(cracks, header->order);
+	charset_generate_order(cracks, header->order, sizeof(header->order));
 	if (event_abort) {
 		fclose(file);
 		unlink(charset);
@@ -403,40 +405,8 @@ static void charset_generate_all(struct list_entry *plaintexts, char *charset)
 	MEM_FREE(header);
 }
 
-static char *charset_self_test(void)
-{
-	int64 total, tmp, check;
-	int n;
-
-	pow64of32(&total, CHARSET_SIZE, CHARSET_LENGTH);
-	check = total;
-	n = CHARSET_LENGTH;
-	while (--n > 0)
-		div64by32(&check, CHARSET_SIZE);
-	if (check.hi != 0 || check.lo != CHARSET_SIZE)
-		return "pow64of32() overflow";
-
-	pow64of32(&tmp, CHARSET_SIZE - 1, CHARSET_LENGTH);
-	neg64(&tmp);
-	add64to64(&total, &tmp);
-	check = total;
-	mul64by32(&check, CHARSET_SCALE);
-	div64by32(&check, CHARSET_SCALE);
-	if (check.hi != total.hi || check.lo != total.lo)
-		return "mul64by32() overflow";
-
-	return NULL;
-}
-
 void do_makechars(struct db_main *db, char *charset)
 {
-	char *where;
-
-	if ((where = charset_self_test())) {
-		fprintf(stderr, "Self test failed (%s)\n", where);
-		error();
-	}
-
 	charset_filter_plaintexts(db);
 
 	printf("Loaded %d plaintext%s%s\n",

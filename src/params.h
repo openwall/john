@@ -231,22 +231,13 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Charset parameters.
  *
- * Please note that certain intermediate values computed in charset.c while
- * generating a new charset file should fit in 64 bits.  As long as
- * ((SIZE ** LENGTH) * SCALE) fits in 64 bits you're definitely safe, although
- * the exact requirement, which you can see in charset.c: charset_self_test(),
- * is a bit less strict.  John will refuse to generate a charset file if the
- * values would overflow, so rather than do the math yourself you can simply
- * let John test the values for you.  You can reduce the SCALE if required.
- *
- * Also, please note that changes to these parameters make your build of John
+ * Please note that changes to these parameters make your build of John
  * incompatible with charset files generated with other builds.
  */
 #define CHARSET_MIN			' '
 #define CHARSET_MAX			0x7E
 #define CHARSET_SIZE			(CHARSET_MAX - CHARSET_MIN + 1)
 #define CHARSET_LENGTH			8
-#define CHARSET_SCALE			0x100
 
 /*
  * Compiler parameters.

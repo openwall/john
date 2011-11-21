@@ -68,12 +68,6 @@ void mul64by32(int64 *dst, unsigned int m)
 	dst->hi += tmp.hi;
 }
 
-void pow64of32(int64 *dst, unsigned int x, int n)
-{
-	dst->lo = 1; dst->hi = 0;
-	while (n--) mul64by32(dst, x);
-}
-
 unsigned int div64by32lo(int64 *src, unsigned int d)
 {
 	unsigned int lo, hi, q, s, mask;
