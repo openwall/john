@@ -42,7 +42,23 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[MD5_N][PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+
+struct fmt_main fmt_MD5;
+
+static void init(void)
+{
+	MD5_std_init();
+
+#if MD5_std_mt
+	fmt_MD5.params.min_keys_per_crypt = MD5_std_min_kpc;
+	fmt_MD5.params.max_keys_per_crypt = MD5_std_max_kpc;
+#endif
+
+	saved_key = mem_alloc_tiny(
+	    sizeof(*saved_key) * fmt_MD5.params.max_keys_per_crypt,
+	    MEM_ALIGN_CACHE);
+}
 
 static int valid(char *ciphertext)
 {
@@ -103,36 +119,43 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
+	init_t();
 	return MD5_out[index][0] & 0x7FFFFFF;
 }
 
@@ -172,21 +195,31 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
-#if MD5_X2
-	return *(MD5_word *)binary == MD5_out[0][0] ||
-		*(MD5_word *)binary == MD5_out[1][0];
-#else
-	return *(MD5_word *)binary == MD5_out[0][0];
+#if MD5_std_mt
+	int t, n = (count + (MD5_N - 1)) / MD5_N;
 #endif
+	for_each_t(n) {
+#if MD5_X2
+		if (*(MD5_word *)binary == MD5_out[0][0] ||
+		    *(MD5_word *)binary == MD5_out[1][0])
+			return 1;
+#else
+		if (*(MD5_word *)binary == MD5_out[0][0])
+			return 1;
+#endif
+	}
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
+	init_t();
 	return *(MD5_word *)binary == MD5_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
+	init_t();
 	return !memcmp(MD5_std_get_binary(source), MD5_out[index],
 	    sizeof(MD5_binary));
 }
@@ -203,10 +236,13 @@ struct fmt_main fmt_MD5 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#if MD5_std_mt
+		FMT_OMP |
+#endif
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
-		MD5_std_init,
+		init,
 		valid,
 		fmt_default_split,
 		(void *(*)(char *))MD5_std_get_binary,
@@ -225,7 +261,7 @@ struct fmt_main fmt_MD5 = {
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
-		(void (*)(int))MD5_std_crypt,
+		MD5_std_crypt,
 		{
 			get_hash_0,
 			get_hash_1,

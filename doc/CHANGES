@@ -1,5 +1,6 @@
 The following changes have been made between John 1.7.8 and 1.7.9:
 
+* Added optional parallelization of the MD5-based crypt(3) code with OpenMP.
 * Added optional parallelization of the bitslice DES code with OpenMP.
 * Replaced the bitslice DES key setup algorithm with a faster one, which
 significantly improves performance at LM hashes, as well as at DES-based

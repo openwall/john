@@ -65,7 +65,6 @@ typedef struct {
 typedef struct {
 #if !MD5_IMM
 	MD5_data data;
-	double dummy;
 #endif
 
 	MD5_binary out[MD5_N];
@@ -77,7 +76,30 @@ typedef struct {
 	int prelen;
 } MD5_std_combined;
 
+#if defined(_OPENMP) && !MD5_ASM
+#define MD5_std_mt			1
+#define MD5_std_cpt			128
+#define MD5_std_mt_max			(MD5_std_cpt * 24)
+extern MD5_std_combined *MD5_std_all_p;
+extern int MD5_std_min_kpc, MD5_std_max_kpc;
+extern int MD5_std_nt;
+#define MD5_std_all_align		64
+#define MD5_std_all_size \
+	((sizeof(MD5_std_combined) + (MD5_std_all_align - 1)) & \
+	    ~(MD5_std_all_align - 1))
+#define MD5_std_all \
+	(*(MD5_std_combined *)((char *)MD5_std_all_p + t))
+#define for_each_t(n) \
+	for (t = 0; t < (n) * MD5_std_all_size; t += MD5_std_all_size)
+#define init_t() \
+	int t = (unsigned int)index / MD5_N * MD5_std_all_size; \
+	index = (unsigned int)index % MD5_N;
+#else
+#define MD5_std_mt			0
 extern MD5_std_combined MD5_std_all;
+#define for_each_t(n)
+#define init_t()
+#endif
 
 /*
  * MD5_std_crypt() output buffer.
@@ -107,9 +129,9 @@ extern void MD5_std_set_salt(char *salt);
 extern void MD5_std_set_key(char *key, int index);
 
 /*
- * Main encryption routine, sets MD5_out.
+ * Main hashing routine, sets MD5_out.
  */
-extern void MD5_std_crypt(void);
+extern void MD5_std_crypt(int count);
 
 /*
  * Returns the salt for MD5_std_set_salt().

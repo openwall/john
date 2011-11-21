@@ -94,7 +94,11 @@
 #endif
 #define DES_BS_EXPAND			1
 
+#ifdef _OPENMP
+#define MD5_ASM				0
+#else
 #define MD5_ASM				1
+#endif
 #define MD5_X2				0
 #define MD5_IMM				1
 

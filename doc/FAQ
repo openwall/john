@@ -190,34 +190,36 @@ and refuses to work if an error occurs.  If you need to test all of the
 low-level routines at once, use "--test".
 
 Q: Does John support multi-processing or distributed processing?
-A: There's currently built-in parallel processing support (to make use
-of multiple CPUs and/or CPU cores on a single system) for DES-based
-crypt(3) hashes (traditional, bigcrypt, and BSDI-style), OpenBSD-style
-Blowfish-based crypt(3) (bcrypt) hashes (with John's own optimized code)
-and for the underlying system's thread-safe password hashing function
-(crypt_r(3) on Linux or crypt(3C) on Solaris).  The latter is only
-reasonable to use for crypt(3) hash types not yet supported by John
-natively (that is, for glibc 2.7+ SHA-crypt hashes as used by recent
-versions of Fedora and Ubuntu, and for SunMD5 hashes).  To use this
-limited OpenMP support, you need to make an OpenMP-enabled build of John
-by uncommenting one of the OMPFLAGS lines near the beginning of the
-Makefile.  This requires GCC 4.2+ or another OpenMP-capable C compiler.
-For other hash types and/or to distribute the workload between multiple
-machines, other approaches need to be used.  For a small number of nodes
-(CPUs, CPU cores, and/or machines), it is reasonable to use a manual
-approach.  One of those approaches is to have your nodes try different
-password lengths.  This is easily accomplished with "incremental" mode's
-"MinLen" and "MaxLen" settings (see CONFIG).  Typically, you would not
-really need to split the workload for "single crack" and wordlist modes
-since these are relatively quick, although you may dedicate one node to
-those initially.  You may safely run multiple instances of John in the
-same working directory, all writing to the same "pot file" (this is a
-feature).  You do, however, need to assign each of them a unique session
-name, with "--session".  Other approaches, such as splitting password
-files naively (without regard to salts), are typically less efficient
-(in some cases to the extent where there's no speedup from using
-multiple nodes at all).  Some advanced and automated approaches are
-listed on the wiki at:
+A: There's currently built-in parallel processing support using OpenMP
+(to make use of multiple CPUs and/or CPU cores in a single system) for
+all crypt(3) hash flavors (DES-, MD5-, and Blowfish-based) supported by
+John natively, as well as for LM hashes and, when running on Linux or
+Solaris, also for the underlying system's thread-safe password hashing
+function.  The latter is only reasonable to use for crypt(3) hash types
+not yet supported by John natively (that is, for glibc 2.7+ SHA-crypt
+hashes as used by recent versions of Fedora and Ubuntu, and for SunMD5
+hashes, which may optionally be enabled on Solaris).  In "community
+enhanced" -jumbo versions, parallelization with OpenMP is also supported
+for many (but not all) of the hash types added in those versions.  To
+use John's OpenMP support, you need to make an OpenMP-enabled build by
+uncommenting one of the OMPFLAGS lines near the beginning of the
+Makefile.  This requires GCC 4.2 or newer, or another OpenMP-capable C
+compiler.  For other hash types and/or to distribute the workload
+between multiple machines, other approaches need to be used.  For a
+small number of nodes (CPUs, CPU cores, and/or machines), it is
+reasonable to use a manual approach.  One of those approaches is to have
+your nodes try different password lengths.  This is easily accomplished
+with "incremental" mode's "MinLen" and "MaxLen" settings (see CONFIG).
+Typically, you would not really need to split the workload for "single
+crack" and wordlist modes since these are relatively quick, although you
+may dedicate one node to those initially.  You may safely run multiple
+instances of John in the same working directory, all writing to the same
+"pot file" (this is a feature).  You do, however, need to assign each of
+them a unique session name, with "--session".  Other approaches, such as
+splitting password files naively (without regard to salts), are
+typically less efficient (in some cases to the extent where there's no
+speedup from using multiple nodes at all).  Some advanced and automated
+approaches are listed on the wiki at:
 http://openwall.info/wiki/john/parallelization
 
 Q: What is the format of the crash recovery files ("john.rec", other
