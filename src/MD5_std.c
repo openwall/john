@@ -13,7 +13,16 @@
 #include "common.h"
 #include "MD5_std.h"
 
+#if MD5_std_mt
+#include <omp.h>
+int MD5_std_min_kpc, MD5_std_max_kpc;
+int MD5_std_nt;
+MD5_std_combined *MD5_std_all_p = NULL;
+static char saved_salt[9];
+static int salt_changed;
+#else
 MD5_std_combined CC_CACHE_ALIGN MD5_std_all;
+#endif
 
 #if !MD5_IMM
 static MD5_data MD5_data_init = {
@@ -265,11 +274,24 @@ static MD5_data MD5_data_init = {
 	ROTATE_LEFT ((a), (s)); \
 	(a) += (b);
 
+#if MD5_std_mt
+#if MD5_X2
+static void MD5_body_for_thread(int t, MD5_word x0[15], MD5_word x1[15],
+	MD5_word out0[4], MD5_word out1[4]);
+#define MD5_body(x0, x1, out0, out1) \
+	MD5_body_for_thread(t, x0, x1, out0, out1)
+#else
+static void MD5_body_for_thread(int t, MD5_word x[15], MD5_word out[4]);
+#define MD5_body(x, out) \
+	MD5_body_for_thread(t, x, out)
+#endif
+#else
 #if MD5_X2
 static void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4]);
 #else
 static void MD5_body(MD5_word x[15], MD5_word out[4]);
+#endif
 #endif
 
 #else
@@ -310,47 +332,80 @@ static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 #define prefix				MD5_std_all.prefix
 #define prelen				MD5_std_all.prelen
 
-static void init_line(int line, int index, MD5_block *even, MD5_block *odd)
-{
-	order[line][index].even = even;
-	order[line][index].odd = odd;
-}
-
 void MD5_std_init(void)
 {
 	int index;
 	MD5_pool *current;
+#if MD5_std_mt
+	int t, n;
 
-#if !MD5_IMM
-	MD5_std_all.data = MD5_data_init;
+	if (!MD5_std_all_p) {
+		n = omp_get_max_threads();
+		if (n < 1)
+			n = 1;
+		if (n > MD5_std_mt_max)
+			n = MD5_std_mt_max;
+		MD5_std_min_kpc = n * MD5_N;
+		{
+			int max = n * MD5_std_cpt;
+			while (max > MD5_std_mt_max)
+				max -= n;
+			n = max;
+		}
+		MD5_std_max_kpc = n * MD5_N;
+/*
+ * The array of MD5_std_all's is not exactly tiny, but we use mem_alloc_tiny()
+ * for its alignment support and error checking.  We do not need to free() this
+ * memory anyway.
+ */
+		MD5_std_all_p = mem_alloc_tiny(n * MD5_std_all_size,
+		    MEM_ALIGN_PAGE);
+		MD5_std_nt = n;
+	}
 #endif
 
-	for (index = 0, current = pool; index < MD5_N; index++, current++) {
-		init_line(0, index, &current->e.p, &current->o.psp);
-		init_line(1, index, &current->e.spp, &current->o.pp);
-		init_line(2, index, &current->e.spp, &current->o.psp);
-		init_line(3, index, &current->e.pp, &current->o.ps);
-		init_line(4, index, &current->e.spp, &current->o.pp);
-		init_line(5, index, &current->e.spp, &current->o.psp);
-		init_line(6, index, &current->e.pp, &current->o.psp);
-		init_line(7, index, &current->e.sp, &current->o.pp);
-		init_line(8, index, &current->e.spp, &current->o.psp);
-		init_line(9, index, &current->e.pp, &current->o.psp);
-		init_line(10, index, &current->e.spp, &current->o.p);
-		init_line(11, index, &current->e.spp, &current->o.psp);
-		init_line(12, index, &current->e.pp, &current->o.psp);
-		init_line(13, index, &current->e.spp, &current->o.pp);
-		init_line(14, index, &current->e.sp, &current->o.psp);
-		init_line(15, index, &current->e.pp, &current->o.psp);
-		init_line(16, index, &current->e.spp, &current->o.pp);
-		init_line(17, index, &current->e.spp, &current->o.ps);
-		init_line(18, index, &current->e.pp, &current->o.psp);
-		init_line(19, index, &current->e.spp, &current->o.pp);
-		init_line(20, index, &current->e.spp, &current->o.psp);
+	for_each_t(MD5_std_nt) {
+#if !MD5_IMM
+		MD5_std_all.data = MD5_data_init;
+#endif
+
+		current = pool;
+		for (index = 0; index < MD5_N; index++) {
+#define init_line(line, init_even, init_odd) \
+	order[line][index].even = init_even; \
+	order[line][index].odd = init_odd;
+			init_line(0, &current->e.p, &current->o.psp);
+			init_line(1, &current->e.spp, &current->o.pp);
+			init_line(2, &current->e.spp, &current->o.psp);
+			init_line(3, &current->e.pp, &current->o.ps);
+			init_line(4, &current->e.spp, &current->o.pp);
+			init_line(5, &current->e.spp, &current->o.psp);
+			init_line(6, &current->e.pp, &current->o.psp);
+			init_line(7, &current->e.sp, &current->o.pp);
+			init_line(8, &current->e.spp, &current->o.psp);
+			init_line(9, &current->e.pp, &current->o.psp);
+			init_line(10, &current->e.spp, &current->o.p);
+			init_line(11, &current->e.spp, &current->o.psp);
+			init_line(12, &current->e.pp, &current->o.psp);
+			init_line(13, &current->e.spp, &current->o.pp);
+			init_line(14, &current->e.sp, &current->o.psp);
+			init_line(15, &current->e.pp, &current->o.psp);
+			init_line(16, &current->e.spp, &current->o.pp);
+			init_line(17, &current->e.spp, &current->o.ps);
+			init_line(18, &current->e.pp, &current->o.psp);
+			init_line(19, &current->e.spp, &current->o.pp);
+			init_line(20, &current->e.spp, &current->o.psp);
+#undef init_line
+			current++;
+		}
 	}
 }
 
+#if MD5_std_mt
+static MAYBE_INLINE void MD5_std_set_salt_for_thread(int t, char *salt)
+#else
 void MD5_std_set_salt(char *salt)
+#endif
 {
 	int length;
 
@@ -370,10 +425,20 @@ void MD5_std_set_salt(char *salt)
 	}
 }
 
+#if MD5_std_mt
+void MD5_std_set_salt(char *salt)
+{
+	memcpy(saved_salt, salt, sizeof(saved_salt));
+	salt_changed = 1;
+}
+#endif
+
 void MD5_std_set_key(char *key, int index)
 {
 	int length;
 	MD5_pool *current;
+
+	init_t();
 
 	for (length = 0; key[length] && length < 15; length++);
 	current = &pool[index];
@@ -409,7 +474,11 @@ void MD5_std_set_key(char *key, int index)
 	order[19][index].length = current->l.pp;
 }
 
-void MD5_std_crypt(void)
+#if MD5_std_mt
+static MAYBE_INLINE void MD5_std_crypt_for_thread(int t)
+#else
+void MD5_std_crypt(int count)
+#endif
 {
 	int length, index, mask;
 	MD5_pattern *line;
@@ -591,11 +660,40 @@ void MD5_std_crypt(void)
 #endif
 }
 
+#if MD5_std_mt
+void MD5_std_crypt(int count)
+{
+#if MD5_std_mt
+	int t, n = (count + (MD5_N - 1)) / MD5_N;
+#endif
+
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(t) shared(n, salt_changed, saved_salt)
+#endif
+	for_each_t(n) {
+/*
+ * We could move the salt_changed check out of the parallel region (and have
+ * two specialized parallel regions instead), but MD5_std_crypt_for_thread()
+ * does so much work that the salt_changed check is negligible.
+ */
+		if (salt_changed)
+			MD5_std_set_salt_for_thread(t, saved_salt);
+		MD5_std_crypt_for_thread(t);
+	}
+
+	salt_changed = 0;
+}
+#endif
+
 #if !MD5_ASM
 
 #if !MD5_X2
 
+#if MD5_std_mt
+static void MD5_body_for_thread(int t, MD5_word x[15], MD5_word out[4])
+#else
 static void MD5_body(MD5_word x[15], MD5_word out[4])
+#endif
 {
 	MD5_word a, b = Cb, c = Cc, d;
 
@@ -687,8 +785,13 @@ static void MD5_body(MD5_word x[15], MD5_word out[4])
 
 #else
 
+#if MD5_std_mt
+static void MD5_body_for_thread(int t, MD5_word x0[15], MD5_word x1[15],
+	MD5_word out0[4], MD5_word out1[4])
+#else
 static void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
+#endif
 {
 	MD5_word a0, b0 = Cb, c0 = Cc, d0;
 	MD5_word a1, b1, c1, d1;
