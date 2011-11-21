@@ -88,6 +88,65 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	idle_init(db->format);
 }
 
+/*
+ * crk_remove_salt() is called by crk_remove_hash() when it happens to remove
+ * the last password hash for a salt.
+ */
+static void crk_remove_salt(struct db_salt *salt)
+{
+	struct db_salt **current;
+
+	crk_db->salt_count--;
+
+	current = &crk_db->salts;
+	while (*current != salt)
+		current = &(*current)->next;
+	*current = salt->next;
+}
+
+/*
+ * Updates the database after a password has been cracked.
+ */
+void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
+{
+	struct db_password **current;
+	int hash;
+
+	crk_db->password_count--;
+
+	if (!--salt->count) {
+		salt->list = NULL; /* "single crack" mode might care */
+		crk_remove_salt(salt);
+		return;
+	}
+
+/*
+ * If there's no hash table for this salt, assume that next_hash fields are
+ * unused and don't need to be updated.  Only bother with the list.
+ */
+	if (salt->hash_size < 0) {
+		current = &salt->list;
+		while (*current != pw)
+			current = &(*current)->next;
+		*current = pw->next;
+		pw->binary = NULL;
+		return;
+	}
+
+	hash = crk_db->format->methods.binary_hash[salt->hash_size](pw->binary);
+	current = &salt->hash[hash];
+	while (*current != pw)
+		current = &(*current)->next_hash;
+	*current = pw->next_hash;
+
+/*
+ * If there's a hash table for this salt, assume that the list is only used by
+ * "single crack" mode, so mark the entry for removal by "single crack" mode
+ * code in case that's what we're running, instead of traversing the list here.
+ */
+	pw->binary = NULL;
+}
+
 static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	int index)
 {
@@ -111,7 +170,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		crk_guesses->count++;
 	}
 
-	ldr_remove_hash(crk_db, salt, pw);
+	crk_remove_hash(salt, pw);
 
 	if (!crk_db->salts)
 		return 1;

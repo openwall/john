@@ -790,63 +790,6 @@ void ldr_fix_database(struct db_main *db)
 	db->loaded = 1;
 }
 
-/*
- * ldr_remove_salt() is called by ldr_remove_hash() when it happens to remove
- * the last password hash for a salt.
- */
-static void ldr_remove_salt(struct db_main *db, struct db_salt *salt)
-{
-	struct db_salt **current;
-
-	db->salt_count--;
-
-	current = &db->salts;
-	while (*current != salt)
-		current = &(*current)->next;
-	*current = salt->next;
-}
-
-void ldr_remove_hash(struct db_main *db, struct db_salt *salt,
-	struct db_password *pw)
-{
-	struct db_password **current;
-	int hash;
-
-	db->password_count--;
-
-	if (!--salt->count) {
-		salt->list = NULL; /* "single crack" mode might care */
-		ldr_remove_salt(db, salt);
-		return;
-	}
-
-/*
- * If there's no hash table for this salt, assume that next_hash fields are
- * unused and don't need to be updated.  Only bother with the list.
- */
-	if (salt->hash_size < 0) {
-		current = &salt->list;
-		while (*current != pw)
-			current = &(*current)->next;
-		*current = pw->next;
-		pw->binary = NULL;
-		return;
-	}
-
-	hash = db->format->methods.binary_hash[salt->hash_size](pw->binary);
-	current = &salt->hash[hash];
-	while (*current != pw)
-		current = &(*current)->next_hash;
-	*current = pw->next_hash;
-
-/*
- * If there's a hash table for this salt, assume that the list is only used by
- * "single crack" mode, so mark the entry for removal by "single crack" mode
- * code in case that's what we're running, instead of traversing the list here.
- */
-	pw->binary = NULL;
-}
-
 static int ldr_cracked_hash(char *ciphertext)
 {
 	unsigned int hash = 0;

@@ -215,12 +215,6 @@ extern void ldr_load_pot_file(struct db_main *db, char *name);
 extern void ldr_fix_database(struct db_main *db);
 
 /*
- * Updates the database after a password has been cracked.
- */
-extern void ldr_remove_hash(struct db_main *db, struct db_salt *salt,
-	struct db_password *pw);
-
-/*
  * Loads cracked passwords into the database.
  */
 extern void ldr_show_pot_file(struct db_main *db, char *name);
