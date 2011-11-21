@@ -15,6 +15,8 @@ let an external mode request the current cracking session to be aborted or the
 status line to be displayed, respectively.
 * Made some minor optimizations to external mode function calls and virtual
 machine implementation.
+* The "--make-charset" option now uses floating-point rather than 64-bit
+integer operations, which allows for larger CHARSET_* settings in params.h.
 * Added relbench, a Perl script to compare two "john --test" benchmark runs,
 such as for different machines, "make" targets, C compilers, optimization
 options, or/and versions of John the Ripper.
@@ -269,4 +271,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.70 2011/11/21 02:36:55 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.71 2011/11/21 04:41:32 solar Exp $
