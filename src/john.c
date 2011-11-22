@@ -231,13 +231,9 @@ static void john_load(void)
 	}
 }
 
-static void john_init(char *name, int argc, char **argv)
-{
-	int make_check = (argc == 2 && !strcmp(argv[1], "--make_check"));
-	if (make_check)
-		argv[1] = "--test=0";
-
 #if CPU_DETECT
+static void CPU_detect_or_fallback(char **argv, int make_check)
+{
 	if (!CPU_detect()) {
 #if CPU_REQ
 #if CPU_FALLBACK
@@ -256,7 +252,18 @@ static void john_init(char *name, int argc, char **argv)
 		error();
 #endif
 	}
+}
+#else
+#define CPU_detect_or_fallback(argv, make_check)
 #endif
+
+static void john_init(char *name, int argc, char **argv)
+{
+	int make_check = (argc == 2 && !strcmp(argv[1], "--make_check"));
+	if (make_check)
+		argv[1] = "--test=0";
+
+	CPU_detect_or_fallback(argv, make_check);
 
 	if (!make_check) {
 		path_init(argv);
@@ -384,14 +391,20 @@ int main(int argc, char **argv)
 		name[strlen(name) - 4] = 0;
 #endif
 
-	if (!strcmp(name, "unshadow"))
+	if (!strcmp(name, "unshadow")) {
+		CPU_detect_or_fallback(argv, 0);
 		return unshadow(argc, argv);
+	}
 
-	if (!strcmp(name, "unafs"))
+	if (!strcmp(name, "unafs")) {
+		CPU_detect_or_fallback(argv, 0);
 		return unafs(argc, argv);
+	}
 
-	if (!strcmp(name, "unique"))
+	if (!strcmp(name, "unique")) {
+		CPU_detect_or_fallback(argv, 0);
 		return unique(argc, argv);
+	}
 
 	john_init(name, argc, argv);
 	john_run();
