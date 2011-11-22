@@ -48,11 +48,25 @@
 #define DES_BS				1
 #if defined(__AVX__) && defined(__GNUC__)
 /* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
+#define CPU_REQ_AVX
+#undef CPU_NAME
+#define CPU_NAME			"AVX"
+#if CPU_FALLBACK
+#undef CPU_FALLBACK_BINARY
+#define CPU_FALLBACK_BINARY		"john-non-avx"
+#endif
 #define DES_BS_ASM			0
 #if 1
 #define DES_BS_VECTOR			8
 #if defined(__XOP__) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
+#define CPU_REQ_XOP
+#undef CPU_NAME
+#define CPU_NAME			"XOP"
+#if CPU_FALLBACK
+#undef CPU_FALLBACK_BINARY
+#define CPU_FALLBACK_BINARY		"john-non-xop"
+#endif
 #undef DES_BS
 #define DES_BS				3
 #define DES_BS_ALGORITHM_NAME		"256/256 BS XOP"
