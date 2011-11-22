@@ -17,6 +17,8 @@ status line to be displayed, respectively.
 machine implementation.
 * The "--make-charset" option now uses floating-point rather than 64-bit
 integer operations, which allows for larger CHARSET_* settings in params.h.
+* Added runtime detection of Intel AVX and AMD XOP instruction set extensions,
+with optional fallback to an alternate program binary.
 * Added relbench, a Perl script to compare two "john --test" benchmark runs,
 such as for different machines, "make" targets, C compilers, optimization
 options, or/and versions of John the Ripper.
