@@ -481,10 +481,10 @@ extern void MD5_body(MD5_word x[15], MD5_word out[4]);
 #if MD5_std_mt
 #define MD5_body(x, out) \
 	MD5_body_for_thread(t, x, out)
-static MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
+MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
 	MD5_word x[15], MD5_word out[4])
 #else
-static MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
+MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
 #endif
 {
 	MD5_word a, b = Cb, c = Cc, d;
@@ -580,11 +580,11 @@ static MAYBE_INLINE_BODY void MD5_body(MD5_word x[15], MD5_word out[4])
 #if MD5_std_mt
 #define MD5_body(x0, x1, out0, out1) \
 	MD5_body_for_thread(t, x0, x1, out0, out1)
-static MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
+MAYBE_INLINE_BODY void MD5_body_for_thread(int t,
 	MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 #else
-static MAYBE_INLINE_BODY void MD5_body(MD5_word x0[15], MD5_word x1[15],
+MAYBE_INLINE_BODY void MD5_body(MD5_word x0[15], MD5_word x1[15],
 	MD5_word out0[4], MD5_word out1[4])
 #endif
 {
