@@ -157,7 +157,7 @@ linux-x86-64-avx:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
-		CFLAGS_MAIN="$(CFLAGS) -DHAVE_CRYPT" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -mavx" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
@@ -166,7 +166,7 @@ linux-x86-64-xop:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
-		CFLAGS_MAIN="$(CFLAGS) -DHAVE_CRYPT" \
+		CFLAGS_MAIN="$(CFLAGS) -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -mxop" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
@@ -198,7 +198,7 @@ linux-x86-avx:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS_MAIN="$(CFLAGS) -m32 -DHAVE_CRYPT" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
@@ -207,7 +207,7 @@ linux-x86-xop:
 	$(LN) x86-sse.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS_MAIN="$(CFLAGS) -m32 -DHAVE_CRYPT" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
