@@ -1335,6 +1335,49 @@ DES_bs_crypt_LM_loop:
 
 #endif
 
+#if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
+/*
+ * CPU detection.
+ */
+
+#define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
+#define CF_XOP				$0x00000800
+
+.text
+
+#ifdef UNDERSCORES
+#define CPU_detect _CPU_detect
+#endif
+.globl CPU_detect
+CPU_detect:
+	movl $1,%eax
+	cpuid
+	andl CF_XSAVE_OSXSAVE_AVX,%ecx
+	cmpl CF_XSAVE_OSXSAVE_AVX,%ecx
+	jne CPU_detect_fail
+	xorl %ecx,%ecx
+	xgetbv
+	andb $0x6,%al
+	cmpb $0x6,%al
+	jne CPU_detect_fail
+#ifdef CPU_REQ_XOP
+	movl $0x80000000,%eax
+	cpuid
+	movl $0x80000001,%edx
+	cmpl %edx,%eax
+	jl CPU_detect_fail
+	xchgl %edx,%eax
+	cpuid
+	testl CF_XOP,%ecx
+	jz CPU_detect_fail
+#endif
+	movl $1,%eax
+	ret
+CPU_detect_fail:
+	xorl %eax,%eax
+	ret
+#endif
+
 #if defined(__ELF__) && defined(__linux__)
 .section .note.GNU-stack,"",@progbits
 #endif

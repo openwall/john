@@ -156,7 +156,7 @@ default:
 linux-x86-64-avx:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -mavx" \
@@ -165,7 +165,7 @@ linux-x86-64-avx:
 linux-x86-64-xop:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -mxop" \

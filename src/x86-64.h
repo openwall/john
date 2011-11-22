@@ -25,6 +25,13 @@
 
 #define CPU_DETECT			0
 
+#ifdef __XOP__
+#define JOHN_XOP
+#endif
+#if defined(__AVX__) || defined(JOHN_XOP)
+#define JOHN_AVX
+#endif
+
 #define DES_ASM				0
 #define DES_128K			0
 #define DES_X2				0
@@ -36,13 +43,24 @@
 #if 0
 #define DES_BS_VECTOR			0
 #define DES_BS_ALGORITHM_NAME		"64/64 BS"
-#elif defined(__AVX__) && defined(__GNUC__)
+#elif defined(JOHN_AVX) && defined(__GNUC__)
 /* Require gcc for AVX because DES_bs_all is aligned in a gcc-specific way */
+#undef CPU_DETECT
+#define CPU_DETECT			1
+#define CPU_REQ				1
+#define CPU_REQ_AVX
+#define CPU_NAME			"AVX"
+#ifndef CPU_FALLBACK
+#define CPU_FALLBACK			0
+#endif
+#if CPU_FALLBACK
+#define CPU_FALLBACK_BINARY		"john-non-avx"
+#endif
 #define DES_BS_ASM			0
 #if 0
 /* 512-bit as 2x256 */
 #define DES_BS_VECTOR			8
-#if defined(__XOP__) && defined(__GNUC__)
+#if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
@@ -54,7 +72,7 @@
 /* 384-bit as 256+128 */
 #define DES_BS_VECTOR_SIZE		8
 #define DES_BS_VECTOR			6
-#if defined(__XOP__) && defined(__GNUC__)
+#if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
@@ -82,7 +100,7 @@
 #elif 0
 /* 256-bit as 1x256 */
 #define DES_BS_VECTOR			4
-#if defined(__XOP__) && defined(__GNUC__)
+#if defined(JOHN_XOP) && defined(__GNUC__)
 /* Require gcc for 256-bit XOP because of __builtin_ia32_vpcmov_v8sf256() */
 #undef DES_BS
 #define DES_BS				3
@@ -94,7 +112,7 @@
 /* 256-bit as 2x128 */
 #define DES_BS_NO_AVX256
 #define DES_BS_VECTOR			4
-#ifdef __XOP__
+#ifdef JOHN_XOP
 #undef DES_BS
 #define DES_BS				3
 #define DES_BS_ALGORITHM_NAME		"128/128 X2 BS XOP-16"
@@ -104,7 +122,7 @@
 #else
 /* 128-bit */
 #define DES_BS_VECTOR			2
-#ifdef __XOP__
+#ifdef JOHN_XOP
 #undef DES_BS
 #define DES_BS				3
 #define DES_BS_ALGORITHM_NAME		"128/128 BS XOP-16"
@@ -140,6 +158,16 @@
 #define DES_BS_ALGORITHM_NAME		"128/128 BS SSE2-16"
 #endif
 #define DES_BS_EXPAND			1
+
+#if CPU_DETECT && DES_BS == 3
+#define CPU_REQ_XOP
+#undef CPU_NAME
+#define CPU_NAME			"XOP"
+#if CPU_FALLBACK
+#undef CPU_FALLBACK_BINARY
+#define CPU_FALLBACK_BINARY		"john-non-xop"
+#endif
+#endif
 
 #define MD5_ASM				0
 #define MD5_X2				1
