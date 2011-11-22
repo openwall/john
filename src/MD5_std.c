@@ -284,20 +284,23 @@ static unsigned char PADDING[56] = {
 
 #if ARCH_LITTLE_ENDIAN
 
-#define MD5_swap(x, y, count)
+#define MD5_swap(dst, src, count)
 
 #else
 
-static MAYBE_INLINE void MD5_swap(MD5_word *x, MD5_word *y, int count)
-{
-	MD5_word tmp, mask;
-
-	mask = OOFFOOFF;
-	do {
-		tmp = *x++;
-		ROTATE_LEFT(tmp, 16);
-		*y++ = ((tmp & mask) << 8) | ((tmp >> 8) & mask);
-	} while (--count);
+#define MD5_swap(dst, src, count) \
+{ \
+	MD5_word *dptr = (dst), *sptr = (src); \
+	int loop_count = (count); \
+	MD5_word mask = OOFFOOFF; \
+	do { \
+		MD5_word tmp = *sptr++; \
+		ROTATE_LEFT(tmp, 16); \
+		*dptr++ = ((tmp & mask) << 8) | ((tmp >> 8) & mask); \
+		tmp = *sptr++; \
+		ROTATE_LEFT(tmp, 16); \
+		*dptr++ = ((tmp & mask) << 8) | ((tmp >> 8) & mask); \
+	} while ((loop_count -= 2)); \
 }
 
 #endif
@@ -913,10 +916,10 @@ void MD5_std_crypt(int count)
 #if MD5_X2
 		memcpy(&line[1].odd->b[line[1].length], MD5_out[1], 16);
 #endif
-		MD5_swap(line[0].odd->w, block[0].w, 14);
+		MD5_swap(block[0].w, line[0].odd->w, 14);
 		block[0].w[14] = line[0].odd->w[14];
 #if MD5_X2
-		MD5_swap(line[1].odd->w, block[1].w, 14);
+		MD5_swap(block[1].w, line[1].odd->w, 14);
 		block[1].w[14] = line[1].odd->w[14];
 		if ((line += 2) > &order[20][MD5_N - 1]) line = order[0];
 		MD5_body(block[0].w, block[1].w,
@@ -1013,7 +1016,10 @@ MD5_word *MD5_std_get_binary(char *ciphertext)
 		(MD5_word)atoi64[ARCH_INDEX(pos[0])] |
 		((MD5_word)atoi64[ARCH_INDEX(pos[1])] << 6);
 
+#undef OOFFOOFF
+#define OOFFOOFF 0x00ff00ff
 	MD5_swap(out.w, out.w, 4);
+#undef OOFFOOFF
 
 	return out.w;
 }
