@@ -21,6 +21,8 @@ OMPFLAGS =
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
+# CFLAGS for use on the main john.c file only
+CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
 LDFLAGS = -s -lm $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
@@ -77,16 +79,16 @@ default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
-	@echo "linux-x86-64             Linux, x86-64 with SSE2 (best tested)"
-	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (experimental)"
-	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (experimental)"
+	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
+	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
+	@echo "linux-x86-64             Linux, x86-64 with SSE2 (most common)"
 #	@echo "linux-x86-64-32-sse2     Linux, x86-64, 32-bit with SSE2"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX"
-	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (best tested if 32-bit)"
+	@echo "linux-x86-avx            Linux, x86 32-bit with AVX (2011+ Intel CPUs)"
+	@echo "linux-x86-xop            Linux, x86 32-bit with AVX and XOP (2011+ AMD CPUs)"
+	@echo "linux-x86-sse2           Linux, x86 32-bit with SSE2 (most common, if 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
-	@echo "linux-x86-avx            Linux, x86 32-bit with AVX (experimental)"
-	@echo "linux-x86-xop            Linux, x86 32-bit with AVX and XOP (experimental)"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
@@ -151,25 +153,29 @@ default:
 	@echo "beos-x86-any             BeOS, x86"
 	@echo "generic                  Any other Unix-like system with gcc"
 
-linux-x86-64:
-	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -lcrypt"
-
 linux-x86-64-avx:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS_MAIN="$(CFLAGS) -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mavx" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-xop:
 	$(LN) x86-64.h arch.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+		CFLAGS_MAIN="$(CFLAGS) -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mxop" \
+		LDFLAGS="$(LDFLAGS) -lcrypt"
+
+linux-x86-64:
+	$(LN) x86-64.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-32-sse2:
@@ -186,6 +192,24 @@ linux-x86-64-32-mmx:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-mmx.o" \
 		CFLAGS="$(CFLAGS) -m32 -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-avx:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-xop:
+	$(LN) x86-sse.h arch.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		CFLAGS_MAIN="$(CFLAGS) -m32 -DHAVE_CRYPT" \
+		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-sse2:
@@ -208,22 +232,6 @@ linux-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
-
-linux-x86-avx:
-	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
-
-linux-x86-xop:
-	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
-		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -m32" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
@@ -873,6 +881,9 @@ DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
+
+john.o: john.c
+	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) $*.c
 
 .c.o:
 	$(CC) $(CFLAGS) $(OPT_NORMAL) $*.c
