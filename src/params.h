@@ -22,25 +22,25 @@
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
  *
- * You do need to set JOHN_SYSTEMWIDE to 1, but you do not need to patch
- * this file for that.  Instead, you can pass -DJOHN_SYSTEMWIDE=1 in CFLAGS.
- * You also do not need to patch the Makefile for that since you can pass
- * the CFLAGS via "make" command line.  Similarly, you do not need to patch
- * anything to change JOHN_SYSTEMWIDE_EXEC and JOHN_SYSTEMWIDE_HOME
- * (although the defaults for these should be fine).
+ * You do need to set JOHN_SYSTEMWIDE to 1, but you do not need to patch this
+ * file for that.  Instead, you can pass -DJOHN_SYSTEMWIDE=1 in CFLAGS.  You
+ * also do not need to patch the Makefile for that since you can pass the
+ * CFLAGS via "make" command line.  Similarly, you do not need to patch
+ * anything to change JOHN_SYSTEMWIDE_EXEC and JOHN_SYSTEMWIDE_HOME (although
+ * the defaults for these should be fine).
  *
- * JOHN_SYSTEMWIDE_EXEC should be set to the _directory_ where John will
- * look for its "CPU fallback" program binary (which should be another
- * build of John itself).  This is only activated when John is compiled
- * with -DCPU_FALLBACK=1.  The fallback program binary name is defined
- * with CPU_FALLBACK_BINARY in architecture-specific header files such as
- * x86-mmx.h (and the default should be fine - no need to patch it).
- * Currently, this is used to transparently fallback to a non-SSE2 build
- * (perhaps to an MMX build) when an SSE2 build is run on older x86
- * processors.  Similarly, this is used to fallback to a non-MMX build on
- * ancient x86 processors.  Please do make use of this functionality in
- * your package if it is built for 32-bit x86 (yes, you need to do up to
- * three builds of John for a single binary package).
+ * JOHN_SYSTEMWIDE_EXEC should be set to the _directory_ where John will look
+ * for its "CPU fallback" program binary (which should be another build of John
+ * itself).  This is only activated when John is compiled with
+ * -DCPU_FALLBACK=1.  The fallback program binary name is defined with
+ * CPU_FALLBACK_BINARY in architecture-specific header files such as x86-64.h
+ * (and the default should be fine - no need to patch it).  On x86-64, this may
+ * be used to transparently fallback from a -64-xop build to -64-avx, then to
+ * plain -64 (which implies SSE2).  On 32-bit x86, this may be used to fallback
+ * from -xop to -avx, then to -sse2, then to -mmx, and finally to -any.  Please
+ * do make use of this functionality in your package if it is built for x86-64
+ * or 32-bit x86 (yes, you may need to make five builds of John for a single
+ * 32-bit x86 binary package).
  *
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
