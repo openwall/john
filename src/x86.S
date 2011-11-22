@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2011 by Solar Designer
  */
 
 /*
@@ -1285,6 +1285,8 @@ BF_body:
 #define EF_ID				$0x00200000
 #define CF_MMX				$0x00800000
 #define CF_SSE2				$0x04000000
+#define CF_XSAVE_OSXSAVE_AVX		$0x1C000000
+#define CF_XOP				$0x00000800
 /* "GenuineIntel" */
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
@@ -1323,6 +1325,45 @@ CPU_detect:
 	pushl %ecx
 	movl $1,%eax
 	cpuid
+#if defined(CPU_REQ_AVX) || defined(CPU_REQ_XOP)
+	andl CF_XSAVE_OSXSAVE_AVX,%ecx
+	cmpl CF_XSAVE_OSXSAVE_AVX,%ecx
+	jne CPU_detect_pop_ecx_fail
+	xorl %ecx,%ecx
+	pushl %eax
+	pushl %edx
+	xgetbv
+	andb $0x6,%al
+	cmpb $0x6,%al
+	popl %edx
+	popl %eax
+	je CPU_detect_AVX
+CPU_detect_pop_ecx_fail:
+	popl %ecx
+	xorl %eax,%eax
+	jmp CPU_detect_ret
+CPU_detect_AVX:
+#endif
+#ifdef CPU_REQ_XOP
+	pushl %eax
+	pushl %edx
+	movl $0x80000000,%eax
+	cpuid
+	movl $0x80000001,%edx
+	cmpl %edx,%eax
+	jl CPU_detect_no_XOP
+	xchgl %edx,%eax
+	cpuid
+	testl CF_XOP,%ecx
+	jnz CPU_detect_XOP
+CPU_detect_no_XOP:
+	popl %edx
+	popl %eax
+	jmp CPU_detect_pop_ecx_fail
+CPU_detect_XOP:
+	popl %edx
+	popl %eax
+#endif
 	popl %ecx
 #if DES_BS_VECTOR >= 4
 	xchgl %edx,%eax
