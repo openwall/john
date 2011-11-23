@@ -1350,6 +1350,7 @@ DES_bs_crypt_LM_loop:
 #endif
 .globl CPU_detect
 CPU_detect:
+	pushq %rbx
 	movl $1,%eax
 	cpuid
 	andl CF_XSAVE_OSXSAVE_AVX,%ecx
@@ -1372,9 +1373,11 @@ CPU_detect:
 	jz CPU_detect_fail
 #endif
 	movl $1,%eax
+	popq %rbx
 	ret
 CPU_detect_fail:
 	xorl %eax,%eax
+	popq %rbx
 	ret
 #endif
 
