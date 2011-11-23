@@ -275,7 +275,8 @@ static void john_init(char *name, int argc, char **argv)
 #if defined(__DJGPP__) || defined(__CYGWIN32__)
 #error OMP_FALLBACK is incompatible with the current DOS and Win32 code
 #endif
-		if (omp_get_max_threads() <= 1) {
+		if (!getenv("JOHN_NO_OMP_FALLBACK") &&
+		    omp_get_max_threads() <= 1) {
 #define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
 			execv(OMP_FALLBACK_PATHNAME, argv);
 			perror("execv: " OMP_FALLBACK_PATHNAME);
