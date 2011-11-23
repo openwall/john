@@ -38,7 +38,11 @@
 #define DES_EXTB			0
 #define DES_COPY			1
 #define DES_BS_ASM			0
+#ifdef _OPENMP
+#define DES_BS				2
+#else
 #define DES_BS				0
+#endif
 #define DES_BS_VECTOR			0
 #define DES_BS_EXPAND			0
 
