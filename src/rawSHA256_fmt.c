@@ -116,6 +116,16 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return crypt_out[0] & 0xF;
@@ -139,6 +149,16 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return crypt_out[0] & 0xFFFFF;
+}
+
+static int get_hash_5(int index)
+{
+	return crypt_out[0] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return crypt_out[0] & 0x7FFFFFF;
 }
 
 static void set_key(char *key, int index)
@@ -198,7 +218,9 @@ struct fmt_main fmt_rawSHA256 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -211,7 +233,9 @@ struct fmt_main fmt_rawSHA256 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_all,

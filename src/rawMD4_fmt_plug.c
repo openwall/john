@@ -139,6 +139,16 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+}
+
 #ifdef MD4_SSE_PARA
 static int get_hash_0(int index)
 {
@@ -175,6 +185,20 @@ static int get_hash_4(int index)
         y = index/4;
 	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xfffff;
 }
+static int get_hash_5(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xffffff;
+}
+static int get_hash_6(int index)
+{
+	unsigned int x,y;
+        x = index&3;
+        y = index/4;
+	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0x7ffffff;
+}
 #else
 static int get_hash_0(int index)
 {
@@ -199,6 +223,14 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return crypt_out[0] & 0xFFFFF;
+}
+static int get_hash_5(int index)
+{
+	return crypt_out[0] & 0xFFFFFF;
+}
+static int get_hash_6(int index)
+{
+	return crypt_out[0] & 0x7FFFFFF;
 }
 #endif
 
@@ -319,7 +351,9 @@ struct fmt_main fmt_rawMD4 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -332,7 +366,9 @@ struct fmt_main fmt_rawMD4 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

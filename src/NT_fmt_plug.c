@@ -411,6 +411,16 @@ static int binary_hash_4(void *binary)
 	return ((unsigned int *)binary)[1] & 0x0FFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((unsigned int *)binary)[1] & 0x0FFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((unsigned int *)binary)[1] & 0x07FFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 #if defined(NT_X86_64)
@@ -478,6 +488,34 @@ static int get_hash_4(int index)
 		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0FFFFF;
 #else
 	return output1x[(index<<2)+1] & 0x0FFFFF;
+#endif
+}
+
+static int get_hash_5(int index)
+{
+#if defined(NT_X86_64)
+	return output8x[32*(index>>3)+8+index%8] & 0x0FFFFFF;
+#elif defined(NT_SSE2)
+	if(index<NT_NUM_KEYS4)
+		return output4x[16*(index>>2)+4+index%4] & 0x0FFFFFF;
+	else
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x0FFFFFF;
+#else
+	return output1x[(index<<2)+1] & 0x0FFFFFF;
+#endif
+}
+
+static int get_hash_6(int index)
+{
+#if defined(NT_X86_64)
+	return output8x[32*(index>>3)+8+index%8] & 0x07FFFFFF;
+#elif defined(NT_SSE2)
+	if(index<NT_NUM_KEYS4)
+		return output4x[16*(index>>2)+4+index%4] & 0x07FFFFFF;
+	else
+		return output1x[(index-NT_NUM_KEYS4)*4+1] & 0x07FFFFFF;
+#else
+	return output1x[(index<<2)+1] & 0x07FFFFFF;
 #endif
 }
 
@@ -921,7 +959,9 @@ struct fmt_main fmt_NT = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -934,7 +974,9 @@ struct fmt_main fmt_NT = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
