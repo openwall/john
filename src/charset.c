@@ -234,7 +234,7 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 	cfputc(CHARSET_LENGTH, file);
 }
 
-static double powi(int x, int y)
+static double powi(int x, unsigned int y)
 {
 	double a = 1.0;
 	if (y) {
