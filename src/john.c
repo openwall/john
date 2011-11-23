@@ -9,9 +9,14 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include "params.h"
+
+#if defined(_OPENMP) && OMP_FALLBACK
+#include <omp.h>
+#endif
+
 #include "arch.h"
 #include "misc.h"
-#include "params.h"
 #include "path.h"
 #include "memory.h"
 #include "list.h"
@@ -266,6 +271,17 @@ static void john_init(char *name, int argc, char **argv)
 	CPU_detect_or_fallback(argv, make_check);
 
 	if (!make_check) {
+#if defined(_OPENMP) && OMP_FALLBACK
+#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#endif
+		if (omp_get_max_threads() <= 1) {
+#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
+			execv(OMP_FALLBACK_PATHNAME, argv);
+			perror("execv: " OMP_FALLBACK_PATHNAME);
+		}
+#endif
+
 		path_init(argv);
 
 #if JOHN_SYSTEMWIDE
