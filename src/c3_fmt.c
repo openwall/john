@@ -25,6 +25,7 @@
 #include "memory.h"
 #include "common.h"
 #include "formats.h"
+#include "loader.h"
 
 #define FORMAT_LABEL			"crypt"
 #define FORMAT_NAME			"generic crypt(3)"
@@ -144,7 +145,7 @@ static int valid(char *ciphertext)
 		return 1;
 	}
 
-	if (id != 10)
+	if (id != 10 && !ldr_in_pot)
 		fprintf(stderr, "Generic crypt(3) module: "
 		    "hash encoding string length %d, type id %c%c\n"
 		    "appears to be unsupported on this system; "
