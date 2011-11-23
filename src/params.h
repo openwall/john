@@ -57,7 +57,7 @@
  * -DCPU_FALLBACK_BINARY='"john-omp-sse2"' as fallbacks from an OpenMP-enabled
  * -avx build.  Please note that you do not need to patch any John files for
  * this, not even the Makefile.  For an example of passing these settings from
- * an RPM spec file, please refer to john.spec used by Openwall GNU/*/Linux.
+ * an RPM spec file, please refer to john.spec used in Owl.
  *
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
