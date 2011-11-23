@@ -31,16 +31,32 @@
  *
  * JOHN_SYSTEMWIDE_EXEC should be set to the _directory_ where John will look
  * for its "CPU fallback" program binary (which should be another build of John
- * itself).  This is only activated when John is compiled with
- * -DCPU_FALLBACK=1.  The fallback program binary name is defined with
- * CPU_FALLBACK_BINARY in architecture-specific header files such as x86-64.h
- * (and the default should be fine - no need to patch it).  On x86-64, this may
- * be used to transparently fallback from a -64-xop build to -64-avx, then to
- * plain -64 (which implies SSE2).  On 32-bit x86, this may be used to fallback
- * from -xop to -avx, then to -sse2, then to -mmx, and finally to -any.  Please
- * do make use of this functionality in your package if it is built for x86-64
- * or 32-bit x86 (yes, you may need to make five builds of John for a single
+ * itself).  This is activated when John is compiled with -DCPU_FALLBACK=1.
+ * The fallback program binary name is defined with CPU_FALLBACK_BINARY in
+ * architecture-specific header files such as x86-64.h (and the default should
+ * be fine - no need to patch it).  On x86-64, this may be used to
+ * transparently fallback from a -64-xop build to -64-avx, then to plain -64
+ * (which implies SSE2).  On 32-bit x86, this may be used to fallback from -xop
+ * to -avx, then to -sse2, then to -mmx, and finally to -any.  Please do make
+ * use of this functionality in your package if it is built for x86-64 or
+ * 32-bit x86 (yes, you may need to make five builds of John for a single
  * 32-bit x86 binary package).
+ *
+ * Similarly, -DOMP_FALLBACK=1 activates fallback to OMP_FALLBACK_BINARY in the
+ * JOHN_SYSTEMWIDE_EXEC directory when an OpenMP-enabled build of John
+ * determines that it would otherwise run only one thread, which would often
+ * be less optimal than running a non-OpenMP build.
+ *
+ * CPU_FALLBACK and OMP_FALLBACK may be used together, but in that case you
+ * need to override some of the default fallback binary filenames such that you
+ * can have both OpenMP-enabled and non-OpenMP fallback binaries that use the
+ * same CPU instruction set extensions.  You can do these overrides with
+ * options like -DOMP_FALLBACK_BINARY='"john-non-omp-non-avx"' (leaving
+ * CPU_FALLBACK_BINARY at its default of "john-non-avx") or
+ * -DOMP_FALLBACK_BINARY='"john-sse2"' and
+ * -DCPU_FALLBACK_BINARY='"john-omp-sse2"' as fallbacks from an OpenMP-enabled
+ * -avx build.  Please note that you do not need to patch any John files for
+ * this, not even the Makefile.
  *
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
@@ -64,6 +80,14 @@
 #define JOHN_SYSTEMWIDE_HOME		"/usr/share/john"
 #endif
 #define JOHN_PRIVATE_HOME		"~/.john"
+#endif
+
+#ifndef OMP_FALLBACK
+#define OMP_FALLBACK			0
+#endif
+
+#if OMP_FALLBACK && !defined(OMP_FALLBACK_BINARY)
+#define OMP_FALLBACK_BINARY		"john-non-omp"
 #endif
 
 /*
