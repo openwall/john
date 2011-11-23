@@ -87,6 +87,7 @@ extern int MD5_std_nt;
 #define MD5_std_all_size \
 	((sizeof(MD5_std_combined) + (MD5_std_all_align - 1)) & \
 	    ~(MD5_std_all_align - 1))
+#ifdef __GNUC__
 #define MD5_std_all \
 	(*(MD5_std_combined *)((char *)MD5_std_all_p + t))
 #define for_each_t(n) \
@@ -94,6 +95,19 @@ extern int MD5_std_nt;
 #define init_t() \
 	int t = (unsigned int)index / MD5_N * MD5_std_all_size; \
 	index = (unsigned int)index % MD5_N;
+#else
+/*
+ * For compilers that complain about the above e.g. with "iteration expression
+ * of omp for loop does not have a canonical shape".
+ */
+#define MD5_std_all \
+	(*(MD5_std_combined *)((char *)MD5_std_all_p + t * MD5_std_all_size))
+#define for_each_t(n) \
+	for (t = 0; t < (n); t++)
+#define init_t() \
+	int t = (unsigned int)index / MD5_N; \
+	index = (unsigned int)index % MD5_N;
+#endif
 #else
 #define MD5_std_mt			0
 extern MD5_std_combined MD5_std_all;

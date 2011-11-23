@@ -84,6 +84,7 @@ extern DES_bs_combined *DES_bs_all_p;
 	    ~(DES_bs_all_align - 1))
 #define DES_bs_all_by_tnum(tnum) \
 	(*(DES_bs_combined *)((char *)DES_bs_all_p + (tnum) * DES_bs_all_size))
+#ifdef __GNUC__
 #define DES_bs_all \
 	(*(DES_bs_combined *)((char *)DES_bs_all_p + t))
 #define for_each_t(n) \
@@ -91,6 +92,19 @@ extern DES_bs_combined *DES_bs_all_p;
 #define init_t() \
 	int t = (unsigned int)index / DES_BS_DEPTH * DES_bs_all_size; \
 	index = (unsigned int)index % DES_BS_DEPTH;
+#else
+/*
+ * For compilers that complain about the above e.g. with "iteration expression
+ * of omp for loop does not have a canonical shape".
+ */
+#define DES_bs_all \
+	DES_bs_all_by_tnum(t)
+#define for_each_t(n) \
+	for (t = 0; t < (n); t++)
+#define init_t() \
+	int t = (unsigned int)index / DES_BS_DEPTH; \
+	index = (unsigned int)index % DES_BS_DEPTH;
+#endif
 #else
 #define DES_bs_mt			0
 #define DES_bs_cpt			1
