@@ -24,7 +24,7 @@ CFLAGS = -c -Wall -O2 -fomit-frame-pointer $(OMPFLAGS)
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS)
-LDFLAGS = -s -lm $(OMPFLAGS)
+LDFLAGS = -s $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
 OPT_INLINE = -Os -funroll-loops -finline-functions

@@ -234,6 +234,22 @@ static void charset_generate_chars(struct list_entry *plaintexts,
 	cfputc(CHARSET_LENGTH, file);
 }
 
+static double powi(int x, int y)
+{
+	double a = 1.0;
+	if (y) {
+		double b = x;
+		do {
+			if (y & 1)
+				a *= b;
+			if (!(y >>= 1))
+				break;
+			b *= b;
+		} while (1);
+	}
+	return a;
+}
+
 /*
  * This generates the "cracking order" (please see the comment in charset.h)
  * based on the number of candidate passwords for each {length, fixed index
@@ -254,7 +270,7 @@ static void charset_generate_order(crack_counters cracks,
 {
 	int length, pos, count; /* zero-based */
 	int best_length, best_pos, best_count;
-	double total, tmp, min, value;
+	double total, min, value;
 	unsigned char *ptr;
 	double (*ratios)[CHARSET_LENGTH][CHARSET_LENGTH][CHARSET_SIZE];
 
@@ -268,9 +284,7 @@ static void charset_generate_order(crack_counters cracks,
  * length and count (number of different character indices).  We subtract the
  * number of candidates for the previous count (at the same length) because
  * those are to be tried as a part of another combination. */
-		total = pow(count + 1.0, length + 1.0);
-		tmp = pow((double)count, length + 1.0);
-		total -= tmp;
+		total = powi(count + 1, length + 1) - powi(count, length + 1);
 
 /* Calculate the number of candidates for a {length, fixed index position,
  * character count} combination, for the specific values of length and count.
@@ -284,11 +298,11 @@ static void charset_generate_order(crack_counters cracks,
  * to successful cracks ratio.  We treat combinations with no successful cracks
  * (so far) the same as those with exactly one successful crack. */
 		for (pos = 0; pos <= length; pos++) {
-			unsigned int div;
-			tmp = total;
-			if ((div = (*cracks)[length][pos][count]))
-				tmp /= div;
-			(*ratios)[length][pos][count] = tmp;
+			double ratio = total;
+			unsigned int div = (*cracks)[length][pos][count];
+			if (div)
+				ratio /= div;
+			(*ratios)[length][pos][count] = ratio;
 		}
 	}
 
