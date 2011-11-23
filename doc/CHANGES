@@ -19,6 +19,8 @@ machine implementation.
 integer operations, which allows for larger CHARSET_* settings in params.h.
 * Added runtime detection of Intel AVX and AMD XOP instruction set extensions,
 with optional fallback to an alternate program binary.
+* In OpenMP-enabled builds, added support for fallback to a non-OpenMP build
+when the requested thread count is 1.
 * Added relbench, a Perl script to compare two "john --test" benchmark runs,
 such as for different machines, "make" targets, C compilers, optimization
 options, or/and versions of John the Ripper.
@@ -273,4 +275,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.72 2011/11/22 03:53:09 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.73 2011/11/23 01:31:56 solar Exp $
