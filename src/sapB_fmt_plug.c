@@ -79,7 +79,7 @@ static struct fmt_tests sapbcode_tests[] = {
 };
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static char crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
+static ARCH_WORD_32 crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE/sizeof(ARCH_WORD_32)];
 static char pwConverted[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH+1];
 static int strlenPW[MAX_KEYS_PER_CRYPT];
 static char unConverted[SALT_SIZE+1];
@@ -226,13 +226,14 @@ static void sapbcode_crypt_all(int count) {
 		MD5_Final(final_key, &ctx);
 
 		for (i = 0; i < 8; i++)
-			crypt_key[index][i] = final_key[i + 8] ^ final_key[i];
+			((char*)crypt_key[index])[i] = final_key[i + 8] ^ final_key[i];
 	}
 }
 
 static void *sapbcode_binary(char *ciphertext)
 {
-	static char realcipher[BINARY_SIZE];
+	static ARCH_WORD_32 binary[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+	char *realcipher = (char*)binary;
 	int i;
 
 	char* newCiphertextPointer=&ciphertext[SALT_SIZE+1];
