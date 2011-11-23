@@ -19,6 +19,8 @@ machine implementation.
 integer operations, which allows for larger CHARSET_* settings in params.h.
 * Added runtime detection of Intel AVX and AMD XOP instruction set extensions,
 with optional fallback to an alternate program binary.
+* In OpenMP-enabled builds, added support for fallback to a non-OpenMP build
+when the requested thread count is 1.
 * Added relbench, a Perl script to compare two "john --test" benchmark runs,
 such as for different machines, "make" targets, C compilers, optimization
 options, or/and versions of John the Ripper.
