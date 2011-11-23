@@ -33,8 +33,9 @@
 #ifndef CPU_FALLBACK
 #define CPU_FALLBACK			0
 #endif
-#if CPU_FALLBACK
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
 #define CPU_FALLBACK_BINARY		"john-non-sse"
+#define CPU_FALLBACK_BINARY_DEFAULT
 #endif
 
 #ifdef __XOP__
@@ -58,7 +59,7 @@
 #define CPU_REQ_AVX
 #undef CPU_NAME
 #define CPU_NAME			"AVX"
-#if CPU_FALLBACK
+#ifdef CPU_FALLBACK_BINARY_DEFAULT
 #undef CPU_FALLBACK_BINARY
 #define CPU_FALLBACK_BINARY		"john-non-avx"
 #endif
@@ -70,7 +71,7 @@
 #define CPU_REQ_XOP
 #undef CPU_NAME
 #define CPU_NAME			"XOP"
-#if CPU_FALLBACK
+#ifdef CPU_FALLBACK_BINARY_DEFAULT
 #undef CPU_FALLBACK_BINARY
 #define CPU_FALLBACK_BINARY		"john-non-xop"
 #endif
