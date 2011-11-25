@@ -1,9 +1,31 @@
 #!/usr/bin/perl -w
 #
-# John the Ripper benchmark output comparison tool, revision 3
+# John the Ripper benchmark output comparison tool, revision 4
 # Copyright (c) 2011 Solar Designer
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.  (This is a heavily cut-down "BSD license".)
+#
+# This is a Perl script to compare two "john --test" benchmark runs,
+# such as for different machines, "make" targets, C compilers,
+# optimization options, or/and versions of John the Ripper.  To use it,
+# redirect the output of each "john --test" run to a file, then run the
+# script on the two files.  Most values output by the script indicate
+# relative performance seen on the second benchmark run as compared to the
+# first one, with the value of 1.0 indicating no change, values higher
+# than 1.0 indicating speedup, and values lower than 1.0 indicating
+# slowdown.  Specifically, the script outputs the minimum, maximum,
+# median, and geometric mean for the speedup (or slowdown) seen across the
+# many individual benchmarks that "john --test" performs.  It also outputs
+# the median absolute deviation (relative to the median) and geometric
+# standard deviation (relative to the geometric mean).  Of these two, a
+# median absolute deviation of 0.0 would indicate that no deviation from
+# the median is prevalent, whereas a geometric standard deviation of 1.0
+# would indicate that all benchmarks were sped up or slowed down by the
+# exact same ratio or their speed remained unchanged.  In practice, these
+# values will tend to deviate from 0.0 and 1.0, respectively.
+#
+
+$warned = 0;
 
 sub parse
 {
@@ -18,24 +40,21 @@ sub parse
 	if (defined($name)) {
 		($kind, $real, $reals, $virtual, $virtuals) =
 		    /^([\w ]+):\s+([\d.]+)([KM]?) c\/s real, ([\d.]+)([KM]?) c\/s virtual$/;
+		if (!defined($virtual)) {
+			($kind, $real, $reals) =
+			    /^([\w ]+):\s+([\d.]+)([KM]?) c\/s$/;
+			$virtual = $real; $virtuals = $reals;
+			print "Warning: some benchmark results are missing virtual (CPU) time data\n" unless ($warned);
+			$warned = 1;
+		}
 		undef $id;
-		if ($name && $kind && $real && $virtual) {
+		if ($kind && $real && $virtual) {
 			$id = $name . ':' . $kind;
 			$real *= 1000 if ($reals eq 'K');
 			$real *= 1000000 if ($reals eq 'M');
 			$virtual *= 1000 if ($virtuals eq 'K');
 			$virtual *= 1000000 if ($virtuals eq 'M');
 			return;
-		} else {
-			($kind, $real, $reals) =
-				/^([\w ]+):\s+([\d.]+)([KM]?) c\/s$/;
-			if ($name && $kind && $real) {
-				$id = $name . ':' . $kind;
-				$real *= 1000 if ($reals eq 'K');
-				$real *= 1000000 if ($reals eq 'M');
-				$virtual = $real;
-				return;
-			}
 		}
 	} else {
 		($name) = /^Benchmarking: (.+) \[.*\].* DONE$/;
