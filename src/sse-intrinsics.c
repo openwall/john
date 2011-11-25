@@ -524,7 +524,7 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 		MD4_STEP(MD4_H, b, c, d, a, 15, cst, 15)
 
 	if (init) {
-		MD5_PARA_DO(i)
+		MD4_PARA_DO(i)
 		{
 			a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
 			b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
@@ -536,7 +536,7 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 			_mm_store_si128((__m128i *)&out[i*16+12], d[i]);
 		}
 	} else {
-		MD5_PARA_DO(i)
+		MD4_PARA_DO(i)
 		{
 			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&out[i*16+0]));
 			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&out[i*16+4]));
