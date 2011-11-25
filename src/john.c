@@ -611,6 +611,11 @@ int main(int argc, char **argv)
 		return unafs(argc, argv);
 	}
 
+	if (!strcmp(name, "undrop")) {
+		CPU_detect_or_fallback(argv, 0);
+		return undrop(argc, argv);
+	}
+
 	if (!strcmp(name, "unique")) {
 		CPU_detect_or_fallback(argv, 0);
 		return unique(argc, argv);
