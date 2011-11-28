@@ -27,4 +27,14 @@ extern void MD4_Init(MD4_CTX *ctx);
 extern void MD4_Update(MD4_CTX *ctx, void *data, unsigned long size);
 extern void MD4_Final(unsigned char *result, MD4_CTX *ctx);
 
+/* Bartavelle's SSE/MMX asm functions */
+#if (MMX_COEF == 2)
+extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+#endif
+
+#if (MMX_COEF == 4)
+#define mdfourmmx mdfoursse2
+extern int mdfoursse2(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+#endif
+
 #endif

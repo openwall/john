@@ -1,6 +1,6 @@
 #include "arch.h"
 
-// extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+// extern int mdfivemmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 
 #ifdef UNDERSCORES
 #define mdfivemmx	_mdfivemmx
@@ -151,7 +151,7 @@ stored: ; .long 0 ; .long 0 ; .long 0 ; .long 0
 
 .text
 /*
- * Try to do some asm md4 w/ mmx
+ * Try to do some asm md5 w/ mmx
  * %eax ptr -> out
  * %edx ptr -> in
  * %ecx n
