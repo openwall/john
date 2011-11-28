@@ -95,6 +95,8 @@ void dump_stuff_msg(char *msg, unsigned char * x, unsigned int size);
 #if defined (MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 void dump_stuff_mmx(unsigned char * x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
+void dump_out_mmx(unsigned char * x, unsigned int size, unsigned int index);
+void dump_out_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
 void dump_stuff_shammx(unsigned char * x, unsigned int size, unsigned int index);
 void dump_stuff_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
 void dump_out_shammx(unsigned char * x, unsigned int size, unsigned int index);
