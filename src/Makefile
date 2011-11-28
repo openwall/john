@@ -859,7 +859,7 @@ john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
 
 ../run/john.exe: $(JOHN_OBJS)
-	$(LD) $(JOHN_OBJS) -lkernel32 -o ../run/john.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john.exe
 	strip ../run/john.exe
 
 ../run/unshadow.exe: symlink.c
