@@ -774,14 +774,13 @@ win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o" \
-		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-cygwin-x86-mmx:
 	$(CP) x86-mmx.h arch.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
-		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=3" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-cygwin-x86-any:
@@ -860,7 +859,7 @@ john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
 
 ../run/john.exe: $(JOHN_OBJS)
-	$(LD) $(JOHN_OBJS) -lkernel32 -o ../run/john.exe
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) -lkernel32 -o ../run/john.exe
 	strip ../run/john.exe
 
 ../run/unshadow.exe: symlink.c
