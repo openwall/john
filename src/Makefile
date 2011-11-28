@@ -1076,6 +1076,7 @@ win32-cygwin-x86-any:
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
+		CFLAGS_MAIN="$(CFLAGS) -O0" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-mingw-x86-sse2i:

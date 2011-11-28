@@ -196,6 +196,7 @@ static void print_usage(char *name)
 	column = strrchr(JOHN_USAGE, '\0') - strrchr(JOHN_USAGE, '\n') - 1;
 	format = fmt_list;
 	do {
+		int length;
 		char *label = format->params.label;
 		if (!strncmp(label, "dynamic", 7)) {
 			if (dynamics++)
@@ -203,7 +204,7 @@ static void print_usage(char *name)
 			else
 				label = "dynamic_n";
 		}
-		int length = strlen(label) + (format->next != NULL);
+		length = strlen(label) + (format->next != NULL);
 		column += length;
 		if (column > 80) {
 			printf("\n" JOHN_USAGE_INDENT);
