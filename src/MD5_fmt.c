@@ -96,6 +96,7 @@ static void init(struct fmt_main *pFmt)
 	saved_key = mem_alloc_tiny(
 	    sizeof(*saved_key) * fmt_MD5.params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
+	memset(saved_key, 0, sizeof(*saved_key) * fmt_MD5.params.max_keys_per_crypt);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
