@@ -63,10 +63,10 @@ static struct fmt_tests tests[] = {
   {NULL}
 };
 
-static uchar saved_plain[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static uchar saved_pre[MAX_KEYS_PER_CRYPT][8];
+static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static uchar (*saved_pre)[8];
+static uchar (*output)[BINARY_SIZE];
 static uchar *challenge;
-static uchar output[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
 
 extern struct fmt_main fmt_NETHALFLM;
 static void init(struct fmt_main *pFmt)
@@ -83,6 +83,9 @@ static void init(struct fmt_main *pFmt)
 		n = MAX_KEYS_PER_CRYPT;
 	fmt_NETHALFLM.params.max_keys_per_crypt = n;
 #endif
+	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * fmt_NETHALFLM.params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_pre = mem_alloc_tiny(sizeof(*saved_pre) * fmt_NETHALFLM.params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_alloc_tiny(sizeof(*output) * fmt_NETHALFLM.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)

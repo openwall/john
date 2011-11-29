@@ -93,10 +93,11 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static ARCH_WORD_32 saved_plain[MAX_KEYS_PER_CRYPT][(PLAINTEXT_LENGTH+4)/sizeof(ARCH_WORD_32)];
-static int saved_len[MAX_KEYS_PER_CRYPT];
-static ARCH_WORD_32 output[MAX_KEYS_PER_CRYPT][CRYPT_BINARY_SIZE/sizeof(ARCH_WORD_32)];
-static HMACMD5Context saved_ctx[MAX_KEYS_PER_CRYPT];
+static char (*saved_plain)[(PLAINTEXT_LENGTH+4)];
+static int (*saved_len);
+static char (*output)[CRYPT_BINARY_SIZE];
+static HMACMD5Context (*saved_ctx);
+
 static int keys_prepared;
 static unsigned char *saltblob = NULL;
 #define CHECKSUM  saltblob
@@ -117,6 +118,11 @@ static void init(struct fmt_main *pFmt)
 		n = MAX_KEYS_PER_CRYPT;
 	fmt_mskrb5.params.max_keys_per_crypt = n;
 #endif
+	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_alloc_tiny(sizeof(*saved_len) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	output = mem_alloc_tiny(sizeof(*output) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_ctx = mem_alloc_tiny(sizeof(*saved_ctx) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
 	if (options.utf8) {
 		tests[1].plaintext = "\xC3\xBC"; // German u-umlaut in UTF-8
 		tests[1].ciphertext = "$mskrb5$$$958db4ddb514a6cc8be1b1ccf82b0191$090408357a6f41852d17f3b4bb4634adfd388db1be64d3fe1a1d75ee4338d2a4aea387e5";

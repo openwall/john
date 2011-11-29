@@ -92,12 +92,12 @@ static struct fmt_tests tests[] = {
   {NULL}
 };
 
-static unsigned char saved_plain[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static int saved_len[MAX_KEYS_PER_CRYPT];
+static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static int (*saved_len);
+static uchar (*output)[BINARY_SIZE];
+static HMACMD5Context (*saved_ctx);
 static int keys_prepared;
-static HMACMD5Context saved_ctx[MAX_KEYS_PER_CRYPT];
 static unsigned char *challenge;
-static ARCH_WORD_32 output[MAX_KEYS_PER_CRYPT][BINARY_SIZE/sizeof(ARCH_WORD_32)];
 
 #if !defined(uint16) && !defined(HAVE_UINT16_FROM_RPC_RPC_H)
 #if (SIZEOF_SHORT == 4)
@@ -132,6 +132,10 @@ static void init(struct fmt_main *pFmt)
 		n = MAX_KEYS_PER_CRYPT;
 	fmt_NETLMv2.params.max_keys_per_crypt = n;
 #endif
+	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_len = mem_alloc_tiny(sizeof(*saved_len) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	output = mem_alloc_tiny(sizeof(*output) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_ctx = mem_alloc_tiny(sizeof(*saved_ctx) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int netlmv2_valid(char *ciphertext, struct fmt_main *pFmt)
