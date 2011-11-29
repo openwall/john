@@ -30,12 +30,7 @@
 #define OS_TIMER			1
 #endif
 #define OS_FLOCK			1
-
-#ifdef _MSC_VER
-#define CPU_DETECT			0
-#else
 #define CPU_DETECT			1
-#endif
 #define CPU_REQ				1
 #define CPU_NAME			"SSE2"
 #ifndef CPU_FALLBACK
@@ -136,11 +131,7 @@
 #define BF_ASM				0
 #define BF_X2				1
 #else
-#ifdef _MSC_VER
-#define BF_ASM				0
-#else
 #define BF_ASM				1
-#endif
 #define BF_X2				0
 #endif
 #define BF_SCALE			1

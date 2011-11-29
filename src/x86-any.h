@@ -28,12 +28,7 @@
 #define OS_TIMER			1
 #endif
 #define OS_FLOCK			1
-
-#ifdef _MSC_VER
-#define CPU_DETECT			0
-#else
 #define CPU_DETECT			1
-#endif
 #define CPU_REQ				0
 
 #define DES_ASM				1

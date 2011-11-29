@@ -116,7 +116,7 @@ buffer:
 // These are 'magic' param marshalling calls to convert VC __fastcall, to 
 // GCC/GAS register param ordering.  Same as was done in MD5/SHA1. Requires
 // MinGW32 to build the .o, and then VC can use that .o file properly.
-mdfivemmx_VC:
+mdfourmmx_VC:
     lea mdfourmmx_VC_exit, %eax
     push %eax
     pusha
