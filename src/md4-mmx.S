@@ -6,8 +6,15 @@
 #ifdef UNDERSCORES
 #define mdfourmmx	_mdfourmmx
 #endif
+// For proper VC 'param marshalling' function stubs.
+#ifdef __MINGW32__
+#define mdfourmmx_VC @mdfourmmx_VC@12
+#endif
 
 .globl mdfourmmx
+#ifdef __MINGW32__
+.globl mdfourmmx_VC
+#endif
 
 .data
 #if defined (MD4_SSE_PARA) && !defined (MMX_COEF)
@@ -104,11 +111,27 @@ buffer:
  * %edx ptr -> in
  * %ecx n
  */
+ 
+ #ifdef __MINGW32__
+// These are 'magic' param marshalling calls to convert VC __fastcall, to 
+// GCC/GAS register param ordering.  Same as was done in MD5/SHA1. Requires
+// MinGW32 to build the .o, and then VC can use that .o file properly.
+mdfivemmx_VC:
+    lea mdfourmmx_VC_exit, %eax
+    push %eax
+    pusha
+    mov %ecx, %eax
+    mov 40(%esp), %ecx
+    jmp mdfourmmx_no_push
+mdfourmmx_VC_exit:
+    ret $4
+#endif
 
 mdfourmmx:
 	 //MD4 Init
 	pusha
 	
+mdfourmmx_no_push:
 	shl $3, %ecx
 	mov %ecx, %ebx
 	and $0xffff, %ecx
@@ -202,8 +225,15 @@ mdfourmmx:
 #ifdef UNDERSCORES
 #define mdfoursse2	_mdfoursse2
 #endif
+// For proper VC 'param marshalling' function stubs.
+#ifdef __MINGW32__
+#define mdfoursse2_VC @mdfoursse2_VC@12
+#endif
 
 .globl mdfoursse2
+#ifdef __MINGW32__
+.globl mdfoursse2_VC
+#endif
 
 .data
 #if defined (MD4_SSE_PARA) && !defined (MMX_COEF)
@@ -313,10 +343,25 @@ buffer:
  * %ecx n
  */
 
+ #ifdef __MINGW32__
+// These are 'magic' param marshalling calls to convert VC __fastcall, to 
+// GCC/GAS register param ordering.  Same as was done in MD5/SHA1. Requires
+// MinGW32 to build the .o, and then VC can use that .o file properly.
+mdfoursse2_VC:
+    lea mdfoursse2_VC_exit, %eax
+    push %eax
+    pusha
+    mov %ecx, %eax
+    mov 40(%esp), %ecx
+    jmp mdfoursse2_no_push
+mdfoursse2_VC_exit:
+    ret $4
+#endif
+
 mdfoursse2:
 	pusha
-	 //MD4 Init
-	
+	 
+mdfoursse2_no_push:	 
 	//mov %edx, %eax
 	//ret
 

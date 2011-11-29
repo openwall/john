@@ -73,8 +73,8 @@ static struct fmt_tests tests[] = {
 #define saved_key rawmd5_saved_key
 #define crypt_key rawmd5_crypt_key
 #if defined (_MSC_VER)
-__declspec(align(MMX_COEF*4)) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
-__declspec(align(MMX_COEF*4)) unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT];
+__declspec(align(16)) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
+__declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT];
 #else
 unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
 unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));

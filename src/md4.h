@@ -29,12 +29,22 @@ extern void MD4_Final(unsigned char *result, MD4_CTX *ctx);
 
 /* Bartavelle's SSE/MMX asm functions */
 #if (MMX_COEF == 2)
+#ifdef _MSC_VER
+int __fastcall mdfourmmx_VC(unsigned char *out, unsigned char *in, int n);
+#define mdfourmmx mdfourmmx_VC
+#else
 extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+#endif
 #endif
 
 #if (MMX_COEF == 4)
+#ifdef _MSC_VER
+int __fastcall mdfoursse2_VC(unsigned char *out, unsigned char *in, int n);
+#define mdfourmmx mdfoursse2_VC
+#else
 #define mdfourmmx mdfoursse2
 extern int mdfoursse2(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+#endif
 #endif
 
 #endif
