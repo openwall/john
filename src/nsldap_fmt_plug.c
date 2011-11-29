@@ -102,32 +102,56 @@ static void init(struct fmt_main *pFmt)
 #endif
 }
 
-static void set_key(char *key, int index) {
+static void set_key(char *_key, int index)
+{
 #ifdef MMX_COEF
-	int i;
+	const unsigned int *key = (unsigned int*)_key;
+	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int *keybuf_word = keybuffer;
+	unsigned ARCH_WORD len, temp;
 
-	if (index==0)
-		{
-			i = 0;
 #ifndef SHA1_SSE_PARA
-			total_len = 0;
-#else
-			for (; i < SHA1_SSE_PARA; ++i)
+	if (!index)
+		total_len = 0;
 #endif
-				memset(&saved_key[i*4*80*MMX_COEF], 0, 56*MMX_COEF);
+	len = 0;
+	while((temp = *key++) & 0xff) {
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = temp << 24 | 0x80 << 16;
+			len++;
+			goto key_cleaning;
 		}
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = temp << 24 | ((temp & 0xff00) | 0x80) << 8;
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff000000))
+		{
+			*keybuf_word = temp << 24 | (temp & 0xff00) << 8 | (temp & 0xff0000 >> 8) | 0x80;
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = temp << 24 | (temp & 0xff00) << 8 | (temp & 0xff0000 >> 8) | temp >> 24 ;
+		len += 4;
+		keybuf_word += MMX_COEF;
+	}
+	*keybuf_word = 0x80 << 24;
 
-	i = -1;
-	while (key[++i])
-		saved_key[GETPOS(i, index)] = key[i];
-	saved_key[GETPOS(i, index)] = 0x80;
+key_cleaning:
+	keybuf_word += MMX_COEF;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
+	}
 
 #ifdef SHA1_SSE_PARA
-	saved_key[GETPOS(63, index)] = i << 3;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 3;
 #else
-	total_len += i << ( ( (32/MMX_COEF) * index ) );
+	total_len += len << ( (32/MMX_COEF) * index);
 #endif
-
 #else
 	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -138,7 +162,7 @@ static char *get_key(int index) {
 	unsigned int i, s;
 
 #ifdef SHA1_SSE_PARA
-	s = saved_key[GETPOS(63, index)] >> 3;
+	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
 #else
 	s = (total_len >> (((32/MMX_COEF)*(index)))) & 0xff;
 #endif
