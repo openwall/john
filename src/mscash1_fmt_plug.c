@@ -125,11 +125,11 @@ static void init(struct fmt_main *pFmt)
 	fmt_mscash.params.max_keys_per_crypt = nmax;
 #endif
 
-	ms_buffer1x = mem_calloc_tiny(sizeof(ms_buffer1x[0]) * 16*MS_NUM_KEYS, MEM_ALIGN_WORD);
-	output1x    = mem_calloc_tiny(sizeof(output1x[0])    *  4*MS_NUM_KEYS, MEM_ALIGN_WORD);
-	crypt       = mem_calloc_tiny(sizeof(crypt[0])       *  4*MS_NUM_KEYS, MEM_ALIGN_WORD);
-	last        = mem_calloc_tiny(sizeof(last[0])        *  4*MS_NUM_KEYS, MEM_ALIGN_WORD);
-	last_i      = mem_calloc_tiny(sizeof(last_i[0])      *    MS_NUM_KEYS, MEM_ALIGN_WORD);
+	ms_buffer1x = mem_calloc_tiny(sizeof(ms_buffer1x[0]) * 16*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	output1x    = mem_calloc_tiny(sizeof(output1x[0])    *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt       = mem_calloc_tiny(sizeof(crypt[0])       *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	last        = mem_calloc_tiny(sizeof(last[0])        *  4*fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	last_i      = mem_calloc_tiny(sizeof(last_i[0])      *    fmt_mscash.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	new_key=1;
 
