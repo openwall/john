@@ -88,8 +88,8 @@ static uchar (*saved_key)[21];
 static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static uchar (*output)[PARTIAL_BINARY_SIZE];
 static uchar *challenge;
+#define setzero(var) memset(var, 0, sizeof(*var) * pFmt->params.max_keys_per_crypt)
 
-extern struct fmt_main fmt_NETLM;
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
@@ -98,15 +98,18 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	fmt_NETLM.params.min_keys_per_crypt = n;
+	pFmt->params.min_keys_per_crypt = n;
 	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	fmt_NETLM.params.max_keys_per_crypt = n;
+	pFmt->params.max_keys_per_crypt = n;
 #endif
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * fmt_NETLM.params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * fmt_NETLM.params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_alloc_tiny(sizeof(*output) * fmt_NETLM.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_alloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	setzero(saved_key);
+	setzero(saved_plain);
+	setzero(output);
 }
 
 static int netlm_valid(char *ciphertext, struct fmt_main *pFmt)

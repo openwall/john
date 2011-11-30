@@ -89,10 +89,10 @@ static uchar (*saved_key)[21];
 static uchar (*output)[PARTIAL_BINARY_SIZE];
 static uchar *challenge;
 static int keys_prepared;
+#define setzero(var) memset(var, 0, sizeof(*var) * pFmt->params.max_keys_per_crypt)
 
 #include "unicode.h"
 
-extern struct fmt_main fmt_MSCHAPv2;
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
@@ -101,16 +101,21 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	fmt_MSCHAPv2.params.min_keys_per_crypt = n;
+	pFmt->params.min_keys_per_crypt = n;
 	n = n * (n << 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	fmt_MSCHAPv2.params.max_keys_per_crypt = n;
+	pFmt->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * fmt_MSCHAPv2.params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_len = mem_alloc_tiny(sizeof(*saved_len) * fmt_MSCHAPv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * fmt_MSCHAPv2.params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_alloc_tiny(sizeof(*output) * fmt_MSCHAPv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_len = mem_alloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_alloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	setzero(saved_plain);
+	setzero(saved_len);
+	setzero(saved_key);
+	setzero(output);
+
 }
 
 static int mschapv2_valid(char *ciphertext, struct fmt_main *pFmt)

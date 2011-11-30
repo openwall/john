@@ -97,6 +97,7 @@ static char (*saved_plain)[(PLAINTEXT_LENGTH+4)];
 static int (*saved_len);
 static char (*output)[CRYPT_BINARY_SIZE];
 static HMACMD5Context (*saved_ctx);
+#define setzero(var) memset(var, 0, sizeof(*var) * fmt_mskrb5.params.max_keys_per_crypt)
 
 static int keys_prepared;
 static unsigned char *saltblob = NULL;
@@ -122,6 +123,10 @@ static void init(struct fmt_main *pFmt)
 	saved_len = mem_alloc_tiny(sizeof(*saved_len) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	output = mem_alloc_tiny(sizeof(*output) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_ctx = mem_alloc_tiny(sizeof(*saved_ctx) * fmt_mskrb5.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	setzero(saved_plain);
+	setzero(saved_len);
+	setzero(output);
+	setzero(saved_ctx);
 
 	if (options.utf8) {
 		tests[1].plaintext = "\xC3\xBC"; // German u-umlaut in UTF-8

@@ -98,6 +98,7 @@ static uchar (*output)[BINARY_SIZE];
 static HMACMD5Context (*saved_ctx);
 static int keys_prepared;
 static unsigned char *challenge;
+#define setzero(var) memset(var, 0, sizeof(*var) * pFmt->params.max_keys_per_crypt)
 
 #if !defined(uint16) && !defined(HAVE_UINT16_FROM_RPC_RPC_H)
 #if (SIZEOF_SHORT == 4)
@@ -117,7 +118,6 @@ static unsigned char *challenge;
 
 #include "byteorder.h"
 
-extern struct fmt_main fmt_NETLMv2;
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
@@ -126,16 +126,20 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	fmt_NETLMv2.params.min_keys_per_crypt = n;
+	pFmt->params.min_keys_per_crypt = n;
 	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	fmt_NETLMv2.params.max_keys_per_crypt = n;
+	pFmt->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_len = mem_alloc_tiny(sizeof(*saved_len) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	output = mem_alloc_tiny(sizeof(*output) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_ctx = mem_alloc_tiny(sizeof(*saved_ctx) * fmt_NETLMv2.params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_len = mem_alloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	output = mem_alloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_ctx = mem_alloc_tiny(sizeof(*saved_ctx) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	setzero(saved_plain);
+	setzero(saved_len);
+	setzero(output);
+	setzero(saved_ctx);
 }
 
 static int netlmv2_valid(char *ciphertext, struct fmt_main *pFmt)
