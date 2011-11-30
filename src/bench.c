@@ -325,6 +325,13 @@ int benchmark_all(void)
 	struct bench_results results_1, results_m;
 	char s_real[64], s_virtual[64];
 	unsigned int total, failed;
+#ifdef _OPENMP
+	int ompt;
+	int ompt_start = omp_get_max_threads();
+#ifdef HAVE_MPI
+	static int haveWarned = 0;
+#endif
+#endif
 
 	if (!benchmark_time)
 		puts("Warning: doing quick benchmarking - "
@@ -359,21 +366,28 @@ int benchmark_all(void)
 #endif
 
 #if defined(HAVE_MPI) && defined(_OPENMP)
-		static int haveWarned = 0;
-		int ompt = omp_get_max_threads();
 		if (format->params.flags & FMT_OMP &&
-		    ompt > 1 && mpi_p > 1 && haveWarned++ == 0) {
+		    ompt_start > 1 && mpi_p > 1 && haveWarned++ == 0) {
 			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
+				omp_set_num_threads(1);
+				ompt_start = 1;
 				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
-				   mpi_id == 0)
+				   mpi_id == 0) {
 					printf("MPI in use, disabling OMP (see doc/README.mpi)\n\n");
-			} else
+				}
+			} else {
 				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
-				   mpi_id == 0)
+				   mpi_id == 0) {
 					printf("Note: Running both MPI and OMP (see doc/README.mpi)\n\n");
+				}
+			}
 		}
 #endif
 		fmt_init(format);
+#ifdef _OPENMP
+		// format's init() or MPIOMPmutex may have capped the number of threads
+		ompt = omp_get_max_threads();
+#endif /* _OPENMP */
 
 		printf("Benchmarking: %s%s [%s]%s... ",
 			format->params.format_name,
@@ -387,14 +401,6 @@ int benchmark_all(void)
 		fflush(stdout);
 
 #ifdef HAVE_MPI
-#ifdef _OPENMP
-		if (format->params.flags & FMT_OMP &&
-		    omp_get_max_threads() > 1 && mpi_p > 1)
-			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
-				omp_set_num_threads(1);
-				ompt = 1;
-			}
-#endif /* _OPENMP */
 		if (mpi_p > 1) {
 			printf("(%uxMPI", mpi_p);
 #ifdef _OPENMP
@@ -413,7 +419,6 @@ int benchmark_all(void)
 		fflush(stdout);
 #else /* HAVE_MPI */
 #ifdef _OPENMP
-		int ompt = omp_get_max_threads();
 		if (format->params.flags & FMT_OMP && ompt > 1)
 			printf("(%dxOMP) ", ompt);
 		fflush(stdout);
@@ -455,6 +460,10 @@ int benchmark_all(void)
 		}
 
 		puts("DONE");
+#ifdef _OPENMP
+		// reset this in case format capped it (we may be running more formats)
+		omp_set_num_threads(ompt_start);
+#endif
 
 #ifdef HAVE_MPI
 		if (mpi_p > 1) {
