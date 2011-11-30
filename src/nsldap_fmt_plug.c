@@ -153,7 +153,7 @@ key_cleaning:
 	total_len += len << ( (32/MMX_COEF) * index);
 #endif
 #else
-	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key, _key, PLAINTEXT_LENGTH + 1);
 #endif
 }
 
