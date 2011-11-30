@@ -67,7 +67,6 @@ static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static uchar (*saved_pre)[8];
 static uchar (*output)[BINARY_SIZE];
 static uchar *challenge;
-#define setzero(var) memset(var, 0, sizeof(*var) * pFmt->params.max_keys_per_crypt)
 
 
 static void init(struct fmt_main *pFmt)
@@ -84,12 +83,9 @@ static void init(struct fmt_main *pFmt)
 		n = MAX_KEYS_PER_CRYPT;
 	pFmt->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_alloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_pre = mem_alloc_tiny(sizeof(*saved_pre) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_alloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	setzero(saved_plain);
-	setzero(saved_pre);
-	setzero(output);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_pre = mem_calloc_tiny(sizeof(*saved_pre) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)

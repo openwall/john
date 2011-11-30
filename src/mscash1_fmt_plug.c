@@ -125,17 +125,11 @@ static void init(struct fmt_main *pFmt)
 	fmt_mscash.params.max_keys_per_crypt = nmax;
 #endif
 
-	ms_buffer1x = mem_alloc_tiny(sizeof(ms_buffer1x[0]) * 16*MS_NUM_KEYS, MEM_ALIGN_NONE);
-	output1x    = mem_alloc_tiny(sizeof(output1x[0])    * 4*MS_NUM_KEYS, MEM_ALIGN_NONE);
-	crypt       = mem_alloc_tiny(sizeof(crypt[0])       * 4*MS_NUM_KEYS, MEM_ALIGN_NONE);
-	last        = mem_alloc_tiny(sizeof(last[0])        * 4*MS_NUM_KEYS, MEM_ALIGN_NONE);
-	last_i      = mem_alloc_tiny(sizeof(last_i[0])      *   MS_NUM_KEYS, MEM_ALIGN_NONE);
-	memset(output1x,0,sizeof(output1x[0])*4*MS_NUM_KEYS);
-	memset(crypt,0,sizeof(crypt[0])*4*MS_NUM_KEYS);
-	memset(last,0,sizeof(last[0])*4*MS_NUM_KEYS);
-
-	memset(ms_buffer1x,0,sizeof(ms_buffer1x[0])*16*MS_NUM_KEYS);
-	memset(last_i,0,sizeof(last_i[0])*MS_NUM_KEYS);
+	ms_buffer1x = mem_calloc_tiny(sizeof(ms_buffer1x[0]) * 16*MS_NUM_KEYS, MEM_ALIGN_WORD);
+	output1x    = mem_calloc_tiny(sizeof(output1x[0])    *  4*MS_NUM_KEYS, MEM_ALIGN_WORD);
+	crypt       = mem_calloc_tiny(sizeof(crypt[0])       *  4*MS_NUM_KEYS, MEM_ALIGN_WORD);
+	last        = mem_calloc_tiny(sizeof(last[0])        *  4*MS_NUM_KEYS, MEM_ALIGN_WORD);
+	last_i      = mem_calloc_tiny(sizeof(last_i[0])      *    MS_NUM_KEYS, MEM_ALIGN_WORD);
 
 	new_key=1;
 

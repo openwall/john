@@ -88,6 +88,12 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	return (void *)start;
 }
 
+void *mem_calloc_tiny(size_t size, size_t align) {
+	char *cp = (char*) mem_alloc_tiny(size, align);
+	memset(cp, 0, size);
+	return cp;
+}
+
 void *mem_alloc_copy(size_t size, size_t align, void *src)
 {
 	return memcpy(mem_alloc_tiny(size, align), src, size);

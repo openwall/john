@@ -82,21 +82,16 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE/sizeof(ARCH_WORD_32)];
 static char (*pwConverted)[PLAINTEXT_LENGTH+1];
 static int (*strlenPW);
-#define setzero(var) memset(var, 0, sizeof(*var) * MAX_KEYS_PER_CRYPT)
 
 static char unConverted[SALT_SIZE+1];
 static int strlenUN;
 
 static void sapbcode_init(struct fmt_main *pFmt)
 {
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
-	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	pwConverted = mem_alloc_tiny(sizeof(*pwConverted) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
-	strlenPW = mem_alloc_tiny(sizeof(*strlenPW) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	setzero(saved_key);
-	setzero(crypt_key);
-	setzero(pwConverted);
-	setzero(strlenPW);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+	pwConverted = mem_calloc_tiny(sizeof(*pwConverted) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
+	strlenPW = mem_calloc_tiny(sizeof(*strlenPW) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 }
 
 static int sapbcode_valid(char *ciphertext, struct fmt_main *pFmt)

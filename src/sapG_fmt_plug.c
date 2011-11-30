@@ -71,21 +71,16 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static UTF8 (*trPassword)[PLAINTEXT_LENGTH + 1];
 static int (*pwLen);
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
-#define setzero(var) memset(var, 0, sizeof(*var) * MAX_KEYS_PER_CRYPT)
 
 static char theSalt[SALT_SIZE];
 static unsigned int unLen;
 
 static void sapcodvng_init(struct fmt_main *pFmt)
 {
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
-	trPassword = mem_alloc_tiny(sizeof(*trPassword) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
-	pwLen = mem_alloc_tiny(sizeof(*pwLen) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	setzero(saved_key);
-	setzero(trPassword);
-	setzero(pwLen);
-	setzero(crypt_key);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
+	trPassword = mem_calloc_tiny(sizeof(*trPassword) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
+	pwLen = mem_calloc_tiny(sizeof(*pwLen) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 }
 
 static int sapcodvng_valid(char *ciphertext, struct fmt_main *pFmt)

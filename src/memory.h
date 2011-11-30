@@ -71,6 +71,11 @@ extern void *mem_alloc(size_t size);
  * This one is used to reduce the overhead.
  */
 extern void *mem_alloc_tiny(size_t size, size_t align);
+/*
+ * this version same as mem_alloc_tiny, but initialized the memory
+ * to NULL bytes, like CALLOC(3) function does
+ */
+extern void *mem_calloc_tiny(size_t size, size_t align);
 
 /*
  * Uses mem_alloc_tiny() to allocate the memory, and copies src in there.

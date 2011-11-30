@@ -49,20 +49,20 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int saved_key_length[MAX_KEYS_PER_CRYPT];
-#define setzero(var) memset(var, 0, sizeof(*var) * pFmt->params.max_keys_per_crypt)
+static int (*saved_key_length);
+static ARCH_WORD_32 (*crypt_out)[16];
 
 #ifdef PRECOMPUTE_CTX_FOR_SALT
 static SHA512_CTX ctx_salt;
 #else
 static ARCH_WORD_32 saved_salt;
 #endif
-static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][16];
 
 static void init(struct fmt_main *pFmt)
 {
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	setzero(saved_key);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
+	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
