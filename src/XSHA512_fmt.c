@@ -48,7 +48,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int saved_key_length[MAX_KEYS_PER_CRYPT];
 #ifdef PRECOMPUTE_CTX_FOR_SALT
 static SHA512_CTX ctx_salt;
@@ -56,6 +56,12 @@ static SHA512_CTX ctx_salt;
 static ARCH_WORD_32 saved_salt;
 #endif
 static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][16];
+
+static void init(struct fmt_main *pFmt)
+{
+	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	memset(saved_key, 0, (sizeof(*saved_key) * pFmt->params.max_keys_per_crypt));
+}
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -295,7 +301,7 @@ struct fmt_main fmt_XSHA512 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		prepare,
 		valid,
 		fmt_default_split,

@@ -68,14 +68,11 @@ static struct fmt_tests tests[] = {
 #define MIN_KEYS_PER_CRYPT		OK_NUM_KEYS
 #define MAX_KEYS_PER_CRYPT		MS_NUM_KEYS
 
-
-static unsigned int ms_buffer1x[16*MS_NUM_KEYS];
-static unsigned int output1x[4*MS_NUM_KEYS];
-
-static unsigned int crypt[4*MS_NUM_KEYS];
-static unsigned int last[4*MS_NUM_KEYS];
-
-static unsigned int last_i[MS_NUM_KEYS];
+static unsigned int *ms_buffer1x;
+static unsigned int *output1x;
+static unsigned int *crypt;
+static unsigned int *last;
+static unsigned int *last_i;
 
 static unsigned int *salt_buffer;
 static unsigned int new_key;
@@ -127,8 +124,19 @@ static void init(struct fmt_main *pFmt)
 		nmax = MS_NUM_KEYS;
 	fmt_mscash.params.max_keys_per_crypt = nmax;
 #endif
-	memset(ms_buffer1x,0,64*MS_NUM_KEYS);
-	memset(last_i,0,4*MS_NUM_KEYS);
+
+	ms_buffer1x = mem_alloc_tiny(sizeof(ms_buffer1x[0]) * 16*MS_NUM_KEYS, MEM_ALIGN_NONE);
+	output1x    = mem_alloc_tiny(sizeof(output1x[0])    * 4*MS_NUM_KEYS, MEM_ALIGN_NONE);
+	crypt       = mem_alloc_tiny(sizeof(crypt[0])       * 4*MS_NUM_KEYS, MEM_ALIGN_NONE);
+	last        = mem_alloc_tiny(sizeof(last[0])        * 4*MS_NUM_KEYS, MEM_ALIGN_NONE);
+	last_i      = mem_alloc_tiny(sizeof(last_i[0])      *   MS_NUM_KEYS, MEM_ALIGN_NONE);
+	memset(output1x,0,sizeof(output1x[0])*4*MS_NUM_KEYS);
+	memset(crypt,0,sizeof(crypt[0])*4*MS_NUM_KEYS);
+	memset(last,0,sizeof(last[0])*4*MS_NUM_KEYS);
+
+	memset(ms_buffer1x,0,sizeof(ms_buffer1x[0])*16*MS_NUM_KEYS);
+	memset(last_i,0,sizeof(last_i[0])*MS_NUM_KEYS);
+
 	new_key=1;
 
 	if (options.utf8) {

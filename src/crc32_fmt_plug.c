@@ -46,11 +46,7 @@
 #define SALT_SIZE			4
 
 #define MIN_KEYS_PER_CRYPT		1
-//#ifdef _OPENMP
 #define MAX_KEYS_PER_CRYPT		16384
-//#else
-//#define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
-//#endif
 
 static struct fmt_tests tests[] = {
 	{"$crc32$00000000.fa455f6b", "ripper"},
@@ -61,9 +57,15 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crcs[MAX_KEYS_PER_CRYPT];
 static ARCH_WORD_32 crcsalt;
+
+static void init(struct fmt_main *pFmt)
+{
+	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	memset(saved_key, 0, (sizeof(*saved_key) * pFmt->params.max_keys_per_crypt));
+}
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -199,7 +201,7 @@ struct fmt_main fmt_crc32 = {
 		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT | FMT_OMP,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
