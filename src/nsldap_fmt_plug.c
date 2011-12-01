@@ -18,6 +18,27 @@
 #define NBKEYS				MMX_COEF
 #endif
 
+// This is a small gain in this format but I wanted to try the concept
+#if defined __GNUC__ && ((__GNUC__ == 4 && __GNUC_MINOR__ >= 3) \
+                          || (__GNUC__ > 4))
+#define SWAP(x)	__builtin_bswap32((x))
+#elif defined (__linux__)
+#include <byteswap.h>
+#define SWAP(x)	bswap_32((x))
+#elif _MSC_VER && defined(__SSE2__)
+#include <intrin.h>
+#define SWAP(x)	_byteswap_ulong((x))
+#else
+#define SWAP(x)	bswap_32((x))
+static inline int bswap_32(int x)
+{
+	return ( ((x & 0xff000000) >> 24)
+	         | ((x & 0x00ff0000) >>  8)
+	         | ((x & 0x0000ff00) <<  8)
+	         | ((x & 0x000000ff) << 24));
+}
+#endif
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -61,10 +82,23 @@
 #define NSLDAP_MAGIC_LENGTH 5
 
 static struct fmt_tests tests[] = {
+	{"{SHA}MtEMe4z5ZXDKBM438qGdhCQNOok=", "abcdefghijklmnopqrstuvwxyz"},
 	{"{SHA}cMiB1KJphN3OeV9vcYF8nPRIDnk=", "aaaa"},
 	{"{SHA}iu0TIuVFC62weOH7YKgXod8loso=", "bbbb"},
 	{"{SHA}0ijZPTcJXMa+t2XnEbEwSOkvQu0=", "ccccccccc"},
 	{"{SHA}vNR9eUfJfcKmdkLDqNoKagho+qU=", "dddddddddd"},
+	{"{SHA}jLIjfQZ5yojbZGTqxg2pY0VROWQ=", "12345"},
+	{"{SHA}IOq+XWSw4hZ5boNPUtYf0LcDMvw=", "1234567"},
+	{"{SHA}fEqNCco3Yq9h5ZUglD3CZJT4lBs=", "123456"},
+	{"{SHA}d1u5YbgdocpJIXpI5TPIMsM3FUo=", "princess"},
+	{"{SHA}Y2fEjdGT1W6nsLqtJbGUVeUp9e4=", "abc123"},
+	{"{SHA}fCIvspJ9goryL1khNOiTJIBjfA0=", "12345678"},
+	{"{SHA}7o2HKPQ1/VUPg4Uqq6tSNM4dpSg=", "iloveyou"},
+	{"{SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=", "password"},
+	{"{SHA}98O8HYCOBHMq32eZZczDTKeuNEE=", "123456789"},
+	{"{SHA}X+4AI5lA+IPUwoVOQcf5iedSeKM=", "nicole"},
+	{"{SHA}8c9lHOGiGRp2DAsvFhI095WOJuQ=", "rockyou"},
+	{"{SHA}PQ87ndys7DDEAIxeAw5sE6R4y08=", "daniel"},
 	{NULL}
 };
 
@@ -115,30 +149,30 @@ static void set_key(char *_key, int index)
 		total_len = 0;
 #endif
 	len = 0;
-	while((temp = *key++) & 0xff) {
-		if (!(temp & 0xff00))
+	while((temp = SWAP(*key++)) & 0xff000000) {
+		if (!(temp & 0xff0000))
 		{
-			*keybuf_word = temp << 24 | 0x80 << 16;
+			*keybuf_word = (temp & 0xff000000) | 0x800000;
 			len++;
 			goto key_cleaning;
 		}
-		if (!(temp & 0xff0000))
+		if (!(temp & 0xff00))
 		{
-			*keybuf_word = temp << 24 | ((temp & 0xff00) | 0x80) << 8;
+			*keybuf_word = (temp & 0xffff0000) | 0x8000;
 			len+=2;
 			goto key_cleaning;
 		}
-		if (!(temp & 0xff000000))
+		if (!(temp & 0xff))
 		{
-			*keybuf_word = temp << 24 | (temp & 0xff00) << 8 | (temp & 0xff0000 >> 8) | 0x80;
+			*keybuf_word = temp | 0x80;
 			len+=3;
 			goto key_cleaning;
 		}
-		*keybuf_word = temp << 24 | (temp & 0xff00) << 8 | (temp & 0xff0000 >> 8) | temp >> 24 ;
+		*keybuf_word = temp;
 		len += 4;
 		keybuf_word += MMX_COEF;
 	}
-	*keybuf_word = 0x80 << 24;
+	*keybuf_word = 0x80000000;
 
 key_cleaning:
 	keybuf_word += MMX_COEF;
@@ -164,7 +198,7 @@ static char *get_key(int index) {
 #ifdef SHA1_SSE_PARA
 	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
 #else
-	s = (total_len >> (((32/MMX_COEF)*(index)))) & 0xff;
+	s = (total_len >> (((32/MMX_COEF)*(index)))) & 0x3F;
 #endif
 	for(i=0;i<s;i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
@@ -177,35 +211,18 @@ static char *get_key(int index) {
 
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-# ifdef SHA1_SSE_PARA
 	unsigned int x,y=0;
 
 #ifdef SHA1_SSE_PARA
 	for(;y<SHA1_SSE_PARA;y++)
 #endif
-		for(x=0;x<MMX_COEF;x++)
-			{
-				if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*MMX_COEF*5] )
-					return 1;
-			}
+	for(x=0;x<MMX_COEF;x++)
+	{
+		if( ((unsigned int*)binary)[0] ==
+		    ((unsigned int*)crypt_key)[x+y*MMX_COEF*5] )
+			return 1;
+	}
 	return 0;
-# else
-	int i=0;
-	while(i< (BINARY_SIZE/4) )
-		{
-			if (
-			    ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF])
-			    && ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF+1])
-#   if (MMX_COEF > 3)
-			    && ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF+2])
-			    && ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF+3])
-#   endif
-			    )
-				return 0;
-			i++;
-		}
-	return 1;
-# endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -218,29 +235,21 @@ static int cmp_exact(char *source, int count){
 static int cmp_one(void * binary, int index)
 {
 #ifdef MMX_COEF
-# if SHA1_SSE_PARA
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
 
 	if( ((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5] )
 		return 0;
-	if( ((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+4] )
+	if( ((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+MMX_COEF*1] )
 		return 0;
-	if( ((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+8] )
+	if( ((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+MMX_COEF*2] )
 		return 0;
-	if( ((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+12] )
+	if( ((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+MMX_COEF*3] )
 		return 0;
-	if( ((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+16] )
+	if( ((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+MMX_COEF*4] )
 		return 0;
 	return 1;
-# else
-	int i = 0;
-	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF+index] )
-			return 0;
-	return 1;
-# endif
 #else
 	return cmp_all(binary, index);
 #endif
@@ -249,11 +258,11 @@ static int cmp_one(void * binary, int index)
 static void crypt_all(int count) {
 #ifdef MMX_COEF
 
-# if SHA1_SSE_PARA
+#if SHA1_SSE_PARA
 	SSESHA1body(saved_key, (unsigned int*)crypt_key, NULL, 0);
-# else
+#else
 	shammx_nofinalbyteswap((unsigned char*) crypt_key, (unsigned char*) saved_key, total_len);
-# endif
+#endif
 
 #else
 	SHA_CTX ctx;
@@ -282,7 +291,7 @@ static int binary_hash_2(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0x
 static int binary_hash_3(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffff; }
 static int binary_hash_4(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffff; }
 
-#ifdef MMX_COEF
+#if SHA1_SSE_PARA
 static int get_hash_0(int index)
 {
 	unsigned int x,y;
@@ -319,11 +328,11 @@ static int get_hash_4(int index)
 	return ((unsigned int*)crypt_key)[x+y*MMX_COEF*5] & 0xfffff;
 }
 #else
-static int get_hash_0(int index) { return ((unsigned int*)crypt_key)[0] & 0xf; }
-static int get_hash_1(int index) { return ((unsigned int*)crypt_key)[0] & 0xff; }
-static int get_hash_2(int index) { return ((unsigned int*)crypt_key)[0] & 0xfff; }
-static int get_hash_3(int index) { return ((unsigned int*)crypt_key)[0] & 0xffff; }
-static int get_hash_4(int index) { return ((unsigned int*)crypt_key)[0] & 0xfffff; }
+static int get_hash_0(int index) { return ((unsigned int*)crypt_key)[index] & 0xf; }
+static int get_hash_1(int index) { return ((unsigned int*)crypt_key)[index] & 0xff; }
+static int get_hash_2(int index) { return ((unsigned int*)crypt_key)[index] & 0xfff; }
+static int get_hash_3(int index) { return ((unsigned int*)crypt_key)[index] & 0xffff; }
+static int get_hash_4(int index) { return ((unsigned int*)crypt_key)[index] & 0xfffff; }
 #endif
 
 struct fmt_main fmt_nsldap = {
