@@ -1320,7 +1320,7 @@ fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile
 	$(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
-	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) $*.c
+	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
 
 .c.o:
 	$(CC) $(CFLAGS) $(OPT_NORMAL) $*.c
