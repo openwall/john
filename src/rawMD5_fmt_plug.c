@@ -10,32 +10,32 @@
 
 #include "arch.h"
 
-#ifdef MD5_SSE_PARA
-#define MMX_COEF			4
-#include "sse-intrinsics.h"
-#define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#elif MMX_COEF
-#define NBKEYS				MMX_COEF
-#endif
-
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 
-#define FORMAT_LABEL			"raw-md5thick"
+#define FORMAT_LABEL		"raw-md5thick"
 #define FORMAT_NAME			"Raw MD5"
 
 #ifdef MD5_SSE_PARA
-#define ALGORITHM_NAME			"SSE2i " MD5_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define ALGORITHM_NAME			"SSE2 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define ALGORITHM_NAME			"MMX 2x"
+#  define MMX_COEF				4
+#  include "sse-intrinsics.h"
+#  define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
+#  define DO_MMX_MD5(in, out)	SSEmd5body(in, (unsigned int*)out, 1)
+#  define ALGORITHM_NAME		"SSE2i " MD5_N_STR
 #elif defined(MMX_COEF)
-#define ALGORITHM_NAME			"?"
+#  define NBKEYS				MMX_COEF
+#  define DO_MMX_MD5(in, out)	mdfivemmx_nosizeupdate(out, in, 1)
+#  if MMX_COEF == 4
+#    define ALGORITHM_NAME		"SSE2 4x"
+#  elif MMX_COEF == 2
+#    define ALGORITHM_NAME		"MMX 2x"
+#  elif defined(MMX_COEF)
+#    define ALGORITHM_NAME		"?"
+#  endif
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#  define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -43,11 +43,11 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE			16
-#define SALT_SIZE			0
+#define BINARY_SIZE				16
+#define SALT_SIZE				0
 
-#define FORMAT_TAG			"$dynamic_0$"
-#define TAG_LENGTH			11
+#define FORMAT_TAG				"$dynamic_0$"
+#define TAG_LENGTH				11
 
 static struct fmt_tests tests[] = {
 	{"5a105e8b9d40e1329780d62ea2265d8a","test1"},
@@ -58,7 +58,7 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MMX_COEF
-#define PLAINTEXT_LENGTH		54
+#define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF*4 )
@@ -78,9 +78,6 @@ __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT];
 #else
 unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
 unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
-#endif
-#ifndef MD5_SSE_PARA
-static unsigned int total_len;
 #endif
 #else
 static MD5_CTX ctx;
@@ -137,140 +134,42 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
-}
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
 
 #ifdef MMX_COEF
-static int get_hash_0(int index)
-{
-	unsigned int x,y;
-	x = index&3;
-	y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xf;
-}
-static int get_hash_1(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xff;
-}
-static int get_hash_2(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xfff;
-}
-static int get_hash_3(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xffff;
-}
-static int get_hash_4(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xfffff;
-}
-static int get_hash_5(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xffffff;
-}
-static int get_hash_6(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0x7ffffff;
-}
+#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*4
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
 #else
-static int get_hash_0(int index)
-{
-	return crypt_out[0] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_out[0] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return crypt_out[0] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return crypt_out[0] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return crypt_out[0] & 0xFFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return crypt_out[0] & 0xFFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return crypt_out[0] & 0x7FFFFFF;
-}
+static int get_hash_0(int index) { 	return crypt_out[0] & 0xf; }
+static int get_hash_1(int index) { 	return crypt_out[0] & 0xff; }
+static int get_hash_2(int index) { 	return crypt_out[0] & 0xfff; }
+static int get_hash_3(int index) { 	return crypt_out[0] & 0xffff; }
+static int get_hash_4(int index) { 	return crypt_out[0] & 0xfffff; }
+static int get_hash_5(int index) { 	return crypt_out[0] & 0xffffff; }
+static int get_hash_6(int index) { 	return crypt_out[0] & 0x7ffffff; }
 #endif
 
 static void set_key(char *_key, int index)
 {
 #ifdef MMX_COEF
-	const unsigned int *key = (unsigned int*)_key;
-	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
-	unsigned int *keybuf_word = keybuffer;
-	unsigned int len, temp;
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(0, index)];
+	ARCH_WORD_32 *keybuf_word = keybuffer;
+	unsigned int len;
+	ARCH_WORD_32 temp;
 
-#ifndef MD5_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((temp = *key++) & 0xff) {
 		if (!(temp & 0xff00))
@@ -303,12 +202,13 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef MD5_SSE_PARA
-	keybuffer[56] = len << 3;
-#else
-	total_len += len << ( (32/MMX_COEF) * index);
-#endif
+	/* 
+	 * This works for MMX, SSE2 and SSE2i.  Note, for 32 bit MMX/SSE2, we now use
+	 * mdfivemmx_nosizeupdate and not mdfivemmx function. Setting the size here,
+	 * and calling the 'nosizeupdate' function is about 5% faster, AND it makes the
+	 * code much more similar between SSE2i and older 32 bit SSE2 
+	 */
+	keybuffer[14*MMX_COEF] = len << 3;
 #else
 	saved_key_length = strlen(_key);
 	memcpy(saved_key, _key, saved_key_length);
@@ -321,7 +221,8 @@ static char *get_key(int index)
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i,len;
 
-	len = (unsigned char)saved_key[GETPOS(56,index)] >> 3;
+	len = ((ARCH_WORD_32*)&saved_key[GETPOS(0, index)])[14*MMX_COEF] >> 3;
+
 	for(i=0;i<len;i++)
 		out[i] = saved_key[GETPOS(i, index)];
 	out[i] = 0;
@@ -334,10 +235,8 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-#ifdef MD5_SSE_PARA
-	SSEmd5body(saved_key, (unsigned int*)crypt_key, 1);
-#elif MMX_COEF
-	mdfivemmx(crypt_key, saved_key, total_len);
+#if MMX_COEF
+	DO_MMX_MD5(saved_key, crypt_key);
 #else
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, saved_key, saved_key_length);
@@ -347,26 +246,16 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-#ifdef MD5_SSE_PARA
 	unsigned int x,y=0;
-
+#ifdef MD5_SSE_PARA
 	for(; y < MD5_SSE_PARA; y++)
+#endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
-			if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*MMX_COEF*4] )
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+x] )
 				return 1;
 		}
 	return 0;
-#else
-	unsigned int x;
-
-	for(x = 0; x < MMX_COEF; x++)
-	{
-		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x] )
-			return 1;
-	}
-	return 0;
-#endif
 #else
 	return !memcmp(binary, crypt_out, BINARY_SIZE);
 #endif
@@ -379,27 +268,13 @@ static int cmp_exact(char *source, int count){
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
-#if MD5_SSE_PARA
-	unsigned int x,y;
-	x = index&3;
-	y = index/4;
-
-	if( ((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4] )
-		return 0;
-	if( ((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4+4] )
-		return 0;
-	if( ((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4+8] )
-		return 0;
-	if( ((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4+12] )
-		return 0;
-	return 1;
-#else
-	int i = 0;
+	unsigned int i,x,y;
+	x = index&(MMX_COEF-1);
+	y = index/MMX_COEF;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF+index] )
+		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x] )
 			return 0;
 	return 1;
-#endif
 #else
 	return !memcmp(binary, crypt_out, BINARY_SIZE);
 #endif

@@ -30,7 +30,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		48
+#define PLAINTEXT_LENGTH		55
 #define CIPHERTEXT_LENGTH		32
 #define BINARY_SIZE				16
 #define SALT_SIZE				0
