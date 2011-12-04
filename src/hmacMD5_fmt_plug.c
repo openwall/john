@@ -96,9 +96,7 @@ static void hmacmd5_init(struct fmt_main *pFmt)
 	int i;
 	for (i = 0; i < MD5_N; ++i) {
 		crypt_key[GETPOS(BINARY_SIZE,i)] = 0x80;
-#ifdef MD5_SSE_PARA
 		((unsigned int *)crypt_key)[14*MMX_COEF + (i&3) + (i>>2)*64] = (BINARY_SIZE+64)<<3;
-#endif
 	}
 #endif
 }
@@ -236,11 +234,7 @@ static int hmacmd5_cmp_one(void * binary, int index)
 #ifdef MMX_COEF
 	int i = 0;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-#ifdef MD5_SSE_PARA
 		if ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*16*MMX_COEF] )
-#else
-		if ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+index] )
-#endif
 			return 0;
 	return 1;
 #else
@@ -263,7 +257,10 @@ static void hmacmd5_crypt_all(int count) {
 		memcpy(&crypt_key[64*4*i], &dump[64*i], 64);
 #else
 	mdfivemmx_nosizeupdate( dump, ipad, 64);
-	mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, cursalt, total_len + 64);
+	// note, total_len is NOT computed since we moved salt setting to salt, and not get_salt.
+	total_len = ((ARCH_WORD_32*)cursalt)[14*MMX_COEF] >> 3;
+//	mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, cursalt, total_len + 64);
+	mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, cursalt, total_len);
 	mdfivemmx_nosizeupdate( dump, opad, 64);
 	mdfivemmx_noinit_uniformsizeupdate( (unsigned char *) crypt_key, (unsigned char *) crypt_key, BINARY_SIZE + 64);
 #endif
@@ -321,11 +318,9 @@ static void * hmacmd5_salt(char *ciphertext)
 		for (i = 0; i < MD5_N; ++i)
 			cursalt[GETPOS(j,i)] = 0;
 	}
-#ifdef MD5_SSE_PARA
 	for (i = 0; i < MD5_N; ++i) {
 		((unsigned int *)cursalt)[14*MMX_COEF + (i&3) + (i>>2)*16*MMX_COEF] = (total_len+64)<<3;
 	}
-#endif
 	return cursalt;
 #else
 	return salt;
