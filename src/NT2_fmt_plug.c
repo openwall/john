@@ -365,6 +365,8 @@ key_cleaning_enc:
 	                                PLAINTEXT_LENGTH + 1,
 	                                (unsigned char*)_key,
 	                                strlen(_key)) << 1;
+	if (saved_key_length <= 0)
+		saved_key_length = strlen16(saved_key);
 #endif
 }
 
@@ -472,6 +474,8 @@ static void set_key_utf8(char *_key, int index)
 	                                 PLAINTEXT_LENGTH + 1,
 	                                 (unsigned char*)_key,
 	                                 strlen(_key)) << 1;
+	if (saved_key_length <= 0)
+		saved_key_length = strlen16(saved_key);
 #endif
 }
 
