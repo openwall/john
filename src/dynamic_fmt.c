@@ -148,6 +148,7 @@
 #include "sha.h"
 #include "memory.h"
 #include "unicode.h"
+#include "johnswap.h"
 
 extern struct fmt_main fmt_MD5gen;
 static struct fmt_main *pFmts;
@@ -205,11 +206,8 @@ typedef union {
 #ifdef SHA1_SSE_PARA
 static void SHA1_swap(MD5_word *x, MD5_word *y, int count)
 {
-	MD5_word tmp;
 	do {
-		tmp = *x++;
-		ROTATE_LEFT(tmp, 16);
-		*y++ = ((tmp & 0x00FF00FF) << 8) | ((tmp >> 8) & 0x00FF00FF);
+		*y++ = JOHNSWAP(*x++); 
 	} while (--count);
 }
 #endif
@@ -218,24 +216,16 @@ extern char *MD5_DumpHexStr(void *p);
 #define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((MD5_word)(x)>>(32-(n))))
 static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 {
-	MD5_word tmp;
 	do {
-		tmp = *x++;
-		ROTATE_LEFT(tmp, 16);
-		*y++ = ((tmp & 0x00FF00FF) << 8) | ((tmp >> 8) & 0x00FF00FF);
+		*y++ = JOHNSWAP(*x++); 
 	} while (--count);
 }
 #if MD5_X2
 static void MD5_swap2(MD5_word *x, MD5_word *x2, MD5_word *y, MD5_word *y2, int count)
 {
-	MD5_word tmp, tmp2;
 	do {
-		tmp = *x++;
-		tmp2 = *x2++;
-		ROTATE_LEFT(tmp, 16);
-		ROTATE_LEFT(tmp2, 16);
-		*y++ = ((tmp & 0x00FF00FF) << 8) | ((tmp >> 8) & 0x00FF00FF);
-		*y2++ = ((tmp2 & 0x00FF00FF) << 8) | ((tmp2 >> 8) & 0x00FF00FF);
+		*y++ = JOHNSWAP(*x++); 
+		*y2++ = JOHNSWAP(*x2++); 
 	} while (--count);
 }
 #endif
@@ -723,11 +713,14 @@ static void init(struct fmt_main *pFmt)
 	if (!pPriv || (pPriv->init == 1 && !strcmp(curdat.dynamic_WHICH_TYPE_SIG, pPriv->dynamic_WHICH_TYPE_SIG)))
 		return;
 
-	pPriv->init = 1;
+	DynamicFunc__clean_input_full();
+	DynamicFunc__clean_input2_full();
 
 	dynamic_RESET(pFmt);
 	if (!pPriv)
 		return;
+
+	pPriv->init = 1;
 
 	memcpy(&curdat, pPriv, sizeof(private_subformat_data));
 	dynamic_use_sse = curdat.dynamic_use_sse;
@@ -760,7 +753,7 @@ static void init(struct fmt_main *pFmt)
 	fmt_MD5gen.methods.get_key    = pFmt->methods.get_key;
 	fmt_MD5gen.methods.clear_keys = pFmt->methods.clear_keys;
 	fmt_MD5gen.methods.crypt_all  = pFmt->methods.crypt_all;
-	for (i = 0; i < 5; ++i)
+	for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 	{
 		fmt_MD5gen.methods.binary_hash[i] = pFmt->methods.binary_hash[i];
 		fmt_MD5gen.methods.get_hash[i]    = pFmt->methods.get_hash[i];
@@ -933,89 +926,145 @@ static void set_key(char *key, int index)
 {
 	unsigned int len;
 
+#ifdef MMX_COEF
 	if (curdat.store_keys_in_input==2)
 		dynamic_use_sse = 3;
 	else if (curdat.md5_startup_in_x86)
 		dynamic_use_sse = 2;
 	else if (dynamic_use_sse==2)
 		dynamic_use_sse = 1;
-//		DynamicFunc__clean_input();
+#endif
 
 	if (curdat.nPassCase>1)
 		key = HandleCase(key, curdat.nPassCase);
 
 	// Ok, if the key is in unicode/utf8, we switch it here one time, and are done with it.
 
-	len = strlen(key);
-
 	if (curdat.store_keys_in_input)
 	{
-		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
-			len = 55;
 #ifdef MMX_COEF
 		if (dynamic_use_sse==1) {
-			unsigned int i, cnt;
+			// code derived from rawMD5_fmt_plug.c code from magnum
+			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
 			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-			ARCH_WORD_32 *pi = (ARCH_WORD_32 *)key;
-			ARCH_WORD_32 *po = &((ARCH_WORD_32 *)(&(input_buf[idx])))[index&(MMX_COEF-1)];
-			if(index==0)
-				DynamicFunc__clean_input();
-			cnt = len>>2;
-			for (i = 0; i < cnt; ++i)
+			ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(input_buf[idx])))[index&(MMX_COEF-1)];
+			ARCH_WORD_32 *keybuf_word = keybuffer;
+			unsigned int len;
+			ARCH_WORD_32 temp;
+
+			len = 0;
+			while((temp = *key32++) & 0xff) {
+				if (!(temp & 0xff00))
+				{
+					*keybuf_word = (temp & 0xff) | (0x80 << 8);
+					++len;
+					goto key_cleaning;
+				}
+				if (!(temp & 0xff0000))
+				{
+					*keybuf_word = (temp & 0xffff) | (0x80 << 16);
+					len+=2;
+					goto key_cleaning;
+				}
+				if (!(temp & 0xff000000))
 			{
-				*po = *pi++;
-				po += MMX_COEF;
+					*keybuf_word = temp | (0x80 << 24);
+					len+=3;
+					goto key_cleaning;
+				}
+				*keybuf_word = temp;
+				len += 4;
+				keybuf_word += MMX_COEF;
 			}
-			for(i=cnt<<2;i<len;i++)
-				input_buf[idx][GETPOS(i, index&(MMX_COEF-1))] = key[i];
-			input_buf[idx][GETPOS(i, index&(MMX_COEF-1))] = 0x80;
-			total_len[idx] += ( len << ( ( (32/MMX_COEF) * (index&(MMX_COEF-1)) ) ));
-			saved_key_len[index] = len;
+			*keybuf_word = 0x80;
+
+key_cleaning:
+			keybuf_word += MMX_COEF;
+			while(*keybuf_word) {
+				*keybuf_word = 0;
+				keybuf_word += MMX_COEF;
+			}
+			keybuffer[14*MMX_COEF] = len << 3;
 			return;
 		}
 		if (dynamic_use_sse==3) {
-			unsigned int i, idx,idx_mod;
-			if(index==0) {
-				i=0;
-#if SHA1_SSE_PARA
-				for (; i < SHA1_SSE_PARA; ++i) {
+			// code derived from nsldap_fmt_plug.c code from magnum
+			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
+			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+			ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(sinput_buf[idx])))[index&(MMX_COEF-1)];
+			ARCH_WORD_32 *keybuf_word = keybuffer;
+			unsigned int len;
+			ARCH_WORD_32 temp;
+
+#ifndef SHA1_SSE_PARA
+			if (!index)
+				memset(total_len, 0, sizeof(total_len));
 #endif
-				memset(&sinput_buf[i], 0, 56*MMX_COEF);
-				total_len[i] = 0;
-#if SHA1_SSE_PARA
+
+			len = 0;
+			while((temp = JOHNSWAP(*key32++)) & 0xff000000) {
+				if (!(temp & 0xff0000))
+				{
+					*keybuf_word = (temp & 0xff000000) | 0x800000;
+					++len;
+					goto key_cleaning2;
 				}
-#endif
+				if (!(temp & 0xff00))
+				{
+					*keybuf_word = (temp & 0xffff0000) | 0x8000;
+					len+=2;
+					goto key_cleaning2;
+				}
+				if (!(temp & 0xff))
+				{
+					*keybuf_word = temp | 0x80;
+					len+=3;
+					goto key_cleaning2;
+				}
+				*keybuf_word = temp;
+				len += 4;
+				keybuf_word += MMX_COEF;
 			}
-			idx = index/MMX_COEF;
-			idx_mod=index&(MMX_COEF-1);
-			for(i = 0; i < len; ++i)
-				sinput_buf[idx][SHAGETPOS(i, idx_mod)] = key[i];
-			sinput_buf[idx][SHAGETPOS(i, idx_mod)] = 0x80;
-			((unsigned int *)sinput_buf[idx])[15*MMX_COEF+idx_mod] = len<<3;
+			*keybuf_word = 0x80000000;
+
+key_cleaning2:
+			keybuf_word += MMX_COEF;
+			while(*keybuf_word) {
+				*keybuf_word = 0;
+				keybuf_word += MMX_COEF;
+			}
+#ifndef SHA1_SSE_PARA
 			total_len[idx] += ( len << ( ( (32/MMX_COEF) * index ) ));
 			saved_key_len[index] = len;
+#else
+			keybuffer[15*MMX_COEF] = len << 3;
+#endif
 			return;
 		}
 #endif
+		len = strlen(key);
+		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
+			len = 55;
+
 		if(index==0) {
-			//fprintf (stderr, "FULL Cleaning keys\n");
+			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
 			DynamicFunc__clean_input_full();
 		}
 #if MD5_X2
 		if (index & 1)
-			strnzcpy(input_buf_X86[index>>MD5_X2].x2.b2, key, PLAINTEXT_LENGTH_X86);
+			strnzcpy(input_buf_X86[index>>MD5_X2].x2.b2, key, len+1);
 		else
 #endif
-			strnzcpy(input_buf_X86[index>>MD5_X2].x1.b, key, PLAINTEXT_LENGTH_X86);
+			strnzcpy(input_buf_X86[index>>MD5_X2].x1.b, key, len+1);
 		saved_key_len[index] = total_len_X86[index] = len;
 	}
 	else
 	{
+		len = strlen(key);
 		if (len > 55 && !(fmt_MD5gen.params.flags & FMT_UNICODE))
 			len = 55;
 		if(index==0) {
-			//fprintf (stderr, "FULL Cleaning keys\n");
-			DynamicFunc__clean_input_full();
+			DynamicFunc__clean_input();
 		}
 		keys_dirty = 1;
 		strnzcpy(((char*)(saved_key[index])), key, len+1);
@@ -1042,12 +1091,21 @@ static char *get_key(int index)
 		if (dynamic_use_sse && !curdat.md5_startup_in_x86) {
 			unsigned int s;
 			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+//if (curdat.store_keys_in_input && dynamic_use_sse==1)
 
-			s = saved_key_len[index];
+//			s = saved_key_len[index];  // NOTE, we now have to get the length from the buffer, we do NOT store it into a saved_key_len buffer.
 			if (dynamic_use_sse==3) {
+#ifndef SHA1_SSE_PARA
+			s = saved_key_len[index];
+#else
+				ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(sinput_buf[idx])))[index&(MMX_COEF-1)];
+				s = keybuffer[15*MMX_COEF] >> 3;
+#endif
 				for(i=0;i<s;i++)
 					out[i] = sinput_buf[idx][ SHAGETPOS(i, index&(MMX_COEF-1)) ];
 			} else {
+				ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(input_buf[idx])))[index&(MMX_COEF-1)];
+				s = keybuffer[14*MMX_COEF] >> 3;
 				for(i=0;i<s;i++)
 					out[i] = input_buf[idx][ GETPOS(i, index&(MMX_COEF-1)) ];
 			}
@@ -1240,6 +1298,7 @@ static void crypt_all(int count)
 	// many keys are loaded, and how much work we do.
 	m_count = count;
 
+#ifdef MMX_COEF
 	// If this format is MMX built, but is supposed to start in X86 (but be switchable), then we
 	// set that value here.
 	if (curdat.store_keys_in_input==2)
@@ -1248,6 +1307,7 @@ static void crypt_all(int count)
 		dynamic_use_sse = 2;
 	else if (dynamic_use_sse==2)
 		dynamic_use_sse = 1;
+#endif
 
 	md5_unicode_convert = 0;
 
@@ -1327,6 +1387,8 @@ static int binary_hash_1(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0
 static int binary_hash_2(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
 static int binary_hash_3(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
 static int binary_hash_4(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
+static int binary_hash_5(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
+static int binary_hash_6(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
 #if !ARCH_LITTLE_ENDIAN
 // the lower 8 bits is zero on the binary (but filled in on the hash).  We need to dump the low 8
@@ -1335,6 +1397,7 @@ static int binary_hash_1_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[
 static int binary_hash_2_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xfff; }
 static int binary_hash_3_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xffff; }
 static int binary_hash_4_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xfffff; }
+static int binary_hash_5_64x4(void * binary) { return (((ARCH_WORD_32 *)binary)[0]>>8) & 0xffffff; }
 int get_hash_0_64x4(int index) {
 #if MD5_X2
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xf;
@@ -1360,6 +1423,12 @@ int get_hash_4_64x4(int index) {
 	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xfffff;
 #endif
 	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xfffff;}
+int get_hash_5_64x4(int index) {
+#if MD5_X2
+	if (index & 1) return (crypt_key_X86[index>>MD5_X2].x2.w2[0]>>8) & 0xffffff;
+#endif
+	return (crypt_key_X86[index>>MD5_X2].x1.w[0]>>8) & 0xffffff;}
+
 
 #endif
 
@@ -1435,6 +1504,34 @@ int get_hash_4(int index)
 		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xfffff;
 #endif
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xfffff;
+}
+int get_hash_5(int index)
+{
+#ifdef MMX_COEF
+	if (dynamic_use_sse&1) {
+		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx]))[index&(MMX_COEF-1)] & 0xffffff;
+	}
+#endif
+#if MD5_X2
+	if (index & 1)
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0xffffff;
+#endif
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0xffffff;
+}
+int get_hash_6(int index)
+{
+#ifdef MMX_COEF
+	if (dynamic_use_sse&1) {
+		unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
+		return ((ARCH_WORD_32 *)&(crypt_key[idx]))[index&(MMX_COEF-1)] & 0x7ffffff;
+	}
+#endif
+#if MD5_X2
+	if (index & 1)
+		return crypt_key_X86[index>>MD5_X2].x2.w2[0] & 0x7ffffff;
+#endif
+	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0x7ffffff;
 }
 
 /*********************************************************************************
@@ -1814,7 +1911,9 @@ struct fmt_main fmt_MD5gen =
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -1827,7 +1926,9 @@ struct fmt_main fmt_MD5gen =
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
@@ -3535,18 +3636,28 @@ void DynamicFunc__crypt()
 #ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
-		{
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key[i]), 1);
+			}
+		} else {
+			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(0, i);
 			SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key[i]), 1);
+		}
 		}
 		return;
 	}
 #else
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; ++i)
+				mdfivemmx_nosizeupdate((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), 1);
+		} else {
 		for (i = 0; i < cnt; ++i)
 			mdfivemmx((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+		}
 		return;
 	}
 #endif
@@ -4378,8 +4489,7 @@ void DynamicFunc__crypt2()
 #ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
-		{
+		for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
 			SSEmd5body((unsigned char*)(&input_buf2[i]), (unsigned int*)(&crypt_key2[i]), 1);
 		}
@@ -4417,18 +4527,28 @@ void DynamicFunc__crypt_in1_to_out2()
 #ifdef MD5_SSE_PARA
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
-		for (i = 0; i < cnt; i += MD5_SSE_PARA)
-		{
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
+				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+			} 
+		} else {
+			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(0, i);
 			SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+		}
 		}
 		return;
 	}
 #else
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; ++i)
+				mdfivemmx_nosizeupdate((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), 1);
+		} else {
 		for (i = 0; i < cnt; ++i)
 			mdfivemmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+		}
 		return;
 	}
 #endif
@@ -6324,12 +6444,18 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->methods.binary_hash[2] = binary_hash_2_64x4;
 		pFmt->methods.binary_hash[3] = binary_hash_3_64x4;
 		pFmt->methods.binary_hash[4] = binary_hash_4_64x4;
+		pFmt->methods.binary_hash[5] = binary_hash_5_64x4;
 		pFmt->methods.get_hash[0] = get_hash_0_64x4;
 		pFmt->methods.get_hash[1] = get_hash_1_64x4;
 		pFmt->methods.get_hash[2] = get_hash_2_64x4;
 		pFmt->methods.get_hash[3] = get_hash_3_64x4;
 		pFmt->methods.get_hash[4] = get_hash_4_64x4;
+		pFmt->methods.get_hash[5] = get_hash_5_64x4;
 #endif
+		// Not enough bits in a single WORD to do the 7th one.
+		pFmt->methods.binary_hash[6] = NULL;
+		pFmt->methods.get_hash[6] = NULL;
+
 	}
 	if (Setup->flags & MGF_UTF8)
 		pFmt->params.flags |= FMT_UTF8;

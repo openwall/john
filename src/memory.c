@@ -12,6 +12,7 @@
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
+#include "johnswap.h"
 
 unsigned int mem_saving_level = 0;
 
@@ -131,18 +132,15 @@ void dump_stuff_msg(char *msg, unsigned char * x, unsigned int size) {
 #define MMX_COEF	4
 #endif
 
-#define ROTATE_LEFT(i,c) (i) = (((i)<<(c))|((ARCH_WORD_32)(i)>>(32-(c))))
-
 void alter_endianity(unsigned char * _x, unsigned int size)
 {
 	// since we are only using this in MMX code, we KNOW that we are using x86 CPU's which do not have problems
 	// with non aligned 4 byte word access.  Thus, we use a faster swapping function.
-	ARCH_WORD_32 tmp, *x = (ARCH_WORD_32*)_x;
+	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
+	int i = -1;
 	size>>=2;
-	while (size--) {
-		tmp = *x;
-		ROTATE_LEFT(tmp, 16);
-		*x++ = ((tmp & 0x00FF00FF) << 8) | ((tmp >> 8) & 0x00FF00FF);
+	while (++i < size) {
+		x[i] = JOHNSWAP(x[i]);
 	}
 }
 
