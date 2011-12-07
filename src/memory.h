@@ -29,6 +29,13 @@
 #define MEM_ALIGN_PAGE			0x1000
 
 /*
+ * SIMD buffers need to be aligned to register size
+ */
+#if MMX_COEF
+#define MEM_ALIGN_SIMD			(MMX_COEF * 4)
+#endif
+
+/*
  * Block size used by mem_alloc_tiny().
  */
 #define MEM_ALLOC_SIZE			0x10000
