@@ -18,27 +18,7 @@
 #define NBKEYS				MMX_COEF
 #endif
 
-// This is a small gain in this format but I wanted to try the concept
-#if defined __GNUC__ && ((__GNUC__ == 4 && __GNUC_MINOR__ >= 3) \
-                          || (__GNUC__ > 4))
-#define SWAP(x)	__builtin_bswap32((x))
-#elif defined (__linux__)
-#include <byteswap.h>
-#define SWAP(x)	bswap_32((x))
-#elif _MSC_VER
-#include <intrin.h>
-#define SWAP(x)	_byteswap_ulong((x))
-#else
-#define SWAP(x)	bswap_32((x))
-static inline int bswap_32(int x)
-{
-	return ( ((x & 0xff000000) >> 24)
-	         | ((x & 0x00ff0000) >>  8)
-	         | ((x & 0x0000ff00) <<  8)
-	         | ((x & 0x000000ff) << 24));
-}
-#endif
-
+#include "johnswap.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -150,7 +130,7 @@ static void set_key(char *_key, int index)
 		total_len = 0;
 #endif
 	len = 0;
-	while((temp = SWAP(*key++)) & 0xff000000) {
+	while((temp = JOHNSWAP(*key++)) & 0xff000000) {
 		if (!(temp & 0xff0000))
 		{
 			*keybuf_word = (temp & 0xff000000) | 0x800000;
@@ -291,6 +271,8 @@ static int binary_hash_1(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0x
 static int binary_hash_2(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfff; }
 static int binary_hash_3(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffff; }
 static int binary_hash_4(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffff; }
+static int binary_hash_5(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffffff; }
+static int binary_hash_6(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0x7ffffff; }
 
 #ifdef MMX_COEF
 #define HASH_IDX ((index&3)+(index/4)*MMX_COEF*5)
@@ -299,12 +281,16 @@ static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] &
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xfff; }
 static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_IDX] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xfff; }
 static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0x7ffffff; }
 #endif
 
 struct fmt_main fmt_nsldap = {
@@ -333,7 +319,9 @@ struct fmt_main fmt_nsldap = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -346,7 +334,9 @@ struct fmt_main fmt_nsldap = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
