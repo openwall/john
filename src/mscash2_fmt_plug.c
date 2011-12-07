@@ -49,6 +49,10 @@
 
 #include <string.h>
 #include "arch.h"
+#ifdef SHA1_SSE_PARA
+#define MMX_COEF			4
+#include "sse-intrinsics.h"
+#endif
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
@@ -68,13 +72,13 @@
 #if defined(MMX_COEF) && !defined(SHA1_SSE_PARA)
 #undef _OPENMP
 #undef FMT_OMP
-#define FMT_OMP 0
+#define FMT_OMP				0
 #else
 #include <omp.h>
 #endif
 #endif
 
-#define ITERATIONS					10240
+#define ITERATIONS			10240
 static unsigned iteration_cnt =	(ITERATIONS); /* this will get changed at runtime, salt loading */
 
 /* Note: some tests will be replaced in init() if running UTF-8 */
@@ -107,17 +111,6 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			16
 #define SALT_SIZE			(11*4)
 
-#ifdef SHA1_SSE_PARA
-#define MMX_COEF	4
-#include "sse-intrinsics.h"
-#endif
-
-#ifdef _OPENMP
-#define THREAD_PARA              96
-#else
-#define THREAD_PARA              1
-#endif
-
 #ifdef MMX_COEF
 
 #if !ARCH_LITTLE_ENDIAN
@@ -137,9 +130,9 @@ static void BESWAP(unsigned int *x, unsigned int *y, int count)
 
 # ifdef SHA1_SSE_PARA
 #   define ALGORITHM_NAME		"SSE2i " SHA1_N_STR
-#  define MS_NUM_KEYS			(THREAD_PARA*MMX_COEF*SHA1_SSE_PARA)
+#  define MS_NUM_KEYS			(MMX_COEF*SHA1_SSE_PARA)
 # else
-#  define MS_NUM_KEYS			(THREAD_PARA*MMX_COEF)
+#  define MS_NUM_KEYS			MMX_COEF
 #  if MMX_COEF==4
 #   define ALGORITHM_NAME		"SSE2 4x"
 #  else
@@ -149,46 +142,30 @@ static void BESWAP(unsigned int *x, unsigned int *y, int count)
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
 #define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
-#define sse_hash1  CASH2_ssh_hash1
-#define sse_crypt1 CASH2_sse_crypt1
-#define sse_crypt2 CASH2_sse_crypt2
-#define sse_crypt  CASH2_sse_crypt
-#if defined (_MSC_VER)
-__declspec(align(16)) unsigned char sse_hash1[80*4*MS_NUM_KEYS];
-__declspec(align(16)) unsigned char sse_crypt1[20*MS_NUM_KEYS];
-__declspec(align(16)) unsigned char sse_crypt2[20*MS_NUM_KEYS];
-__declspec(align(16)) unsigned char sse_crypt[20*MS_NUM_KEYS];
+static unsigned char (*sse_hash1);
+static unsigned char (*sse_crypt1);
+static unsigned char (*sse_crypt2);
+static unsigned char (*sse_crypt);
 
 #else
-unsigned char sse_hash1[80*4*MS_NUM_KEYS] __attribute__ ((aligned(16)));
-unsigned char sse_crypt1[20*MS_NUM_KEYS]  __attribute__ ((aligned(16)));
-unsigned char sse_crypt2[20*MS_NUM_KEYS]  __attribute__ ((aligned(16)));
-unsigned char sse_crypt[20*MS_NUM_KEYS]   __attribute__ ((aligned(16)));
+# define ALGORITHM_NAME			"Generic 1x"
+# define MS_NUM_KEYS			1
 #endif
-
-#else
-# define ALGORITHM_NAME				"Generic 1x"
-# define MS_NUM_KEYS				THREAD_PARA
-#endif
-
-#define KEYS_PER_THREAD				(MS_NUM_KEYS / THREAD_PARA)
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		MS_NUM_KEYS
 
-#define PLAIN_KEY_LEN  (3*PLAINTEXT_LENGTH+1)
-#define U16_KEY_LEN    (2*PLAINTEXT_LENGTH)
-#define HASH_LEN       (16+48)
+#define PLAIN_KEY_LEN			(3*PLAINTEXT_LENGTH+1)
+#define U16_KEY_LEN			(2*PLAINTEXT_LENGTH)
+#define HASH_LEN			(16+48)
 
 static unsigned char *salt_buffer;
 static unsigned int   salt_len;
-static unsigned char  key[PLAIN_KEY_LEN*MS_NUM_KEYS];
+static unsigned char(*key);
 static unsigned int   new_key = 1;
-static unsigned char  md4hash[HASH_LEN*MS_NUM_KEYS]; // allows the md4 of user, and salt to be appended to it.  the md4 is ntlm, with the salt is DCC1
-static unsigned int   crypt[4*MS_NUM_KEYS];
+static unsigned char(*md4hash); // allows the md4 of user, and salt to be appended to it.  the md4 is ntlm, with the salt is DCC1
+static unsigned int (*crypt);
 static int omp_t = 1;
-
-struct fmt_main fmt_mscash2;
 
 static void init(struct fmt_main *pFmt)
 {
@@ -196,17 +173,20 @@ static void init(struct fmt_main *pFmt)
 	omp_t = omp_get_max_threads();
 	if (omp_t < 1)
 		omp_t = 1;
-	if (omp_t > THREAD_PARA)
-		omp_t = THREAD_PARA;
-	fmt_mscash2.params.min_keys_per_crypt =
-	fmt_mscash2.params.max_keys_per_crypt = KEYS_PER_THREAD * omp_t;
+	pFmt->params.max_keys_per_crypt = omp_t * MS_NUM_KEYS;
 #endif
 
+	key = mem_calloc_tiny(sizeof(*key)*PLAIN_KEY_LEN*pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt = mem_calloc_tiny(sizeof(*crypt)*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #if defined (MMX_COEF)
-	memset(sse_hash1, 0, sizeof(sse_hash1));
+	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*80*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_crypt = mem_calloc_tiny(sizeof(*sse_crypt)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	{
 		int index;
-		for (index = 0; index < MS_NUM_KEYS; ++index) {
+		for (index = 0; index < pFmt->params.max_keys_per_crypt; ++index) {
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits
 			// The 64 is for the ipad/opad, the 20 is for the length of the SHA1 buffer that also gets into each crypt
 			// this works for SSEi
@@ -220,7 +200,7 @@ static void init(struct fmt_main *pFmt)
 
 	if (options.utf8) {
 		// UTF8 may be up to three bytes per character
-		fmt_mscash2.params.plaintext_length = PLAIN_KEY_LEN - 1;
+		pFmt->params.plaintext_length = PLAIN_KEY_LEN - 1;
 		tests[1].plaintext = "\xc3\xbc";         // German u-umlaut in UTF-8
 		tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
 		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
@@ -519,7 +499,7 @@ static int salt_hash(void *salt)
 static void pbkdf2_sse2(int t)
 {
 	// Thread safe, t is our thread number.
-	// All indexes into buffers are offset by (t * KEYS_PER_THREAD * (size))
+	// All indexes into buffers are offset by (t * MS_NUM_KEYS * (size))
 	SHA_CTX ctx1, ctx2;
 	unsigned int ipad[SHA_LBLOCK], opad[SHA_LBLOCK];
 	unsigned int tmp_hash[SHA_DIGEST_LENGTH/4];
@@ -531,15 +511,15 @@ static void pbkdf2_sse2(int t)
 
 
 	// All pointers get their offset for this thread here. No further offsetting below.
-	t_crypt = &crypt[t * KEYS_PER_THREAD * 4];
-	t_sse_crypt1 = &sse_crypt1[t * KEYS_PER_THREAD * 20];
-	t_sse_crypt2 = &sse_crypt2[t * KEYS_PER_THREAD * 20];
-	t_sse_hash1 = &sse_hash1[t * KEYS_PER_THREAD * 80 * 4];
+	t_crypt = &crypt[t * MS_NUM_KEYS * 4];
+	t_sse_crypt1 = &sse_crypt1[t * MS_NUM_KEYS * 20];
+	t_sse_crypt2 = &sse_crypt2[t * MS_NUM_KEYS * 20];
+	t_sse_hash1 = &sse_hash1[t * MS_NUM_KEYS * 80 * 4];
 	i1 = (unsigned int*)t_sse_crypt1;
 	i2 = (unsigned int*)t_sse_crypt2;
 	o1 = (unsigned int*)t_sse_hash1;
 
-	for(k = 0; k < KEYS_PER_THREAD; ++k)
+	for(k = 0; k < MS_NUM_KEYS; ++k)
 	{
 		for(i = 0;i < 4;i++) {
 			ipad[i] = t_crypt[k*4+i]^0x36363636;
@@ -589,7 +569,7 @@ static void pbkdf2_sse2(int t)
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt1, 1);
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, 1);
 		// only xor first 16 bytes, since that is ALL this format uses
-		for (k = 0; k < KEYS_PER_THREAD; k++) {
+		for (k = 0; k < MS_NUM_KEYS; k++) {
 			unsigned *p = &((unsigned int*)t_sse_hash1)[(((k>>2)*80)<<2) + (k&(MMX_COEF-1))];
 			for(j = 0; j < 4; j++)
 				t_crypt[(k<<2)+j] ^= p[(j<<(MMX_COEF>>1))];
@@ -703,17 +683,17 @@ static void crypt_all(int count)
 #endif
 	for (t = 0; t < omp_t; t++)	{
 		MD4_CTX ctx;
-		for (i = 0; i < KEYS_PER_THREAD; ++i) {
+		for (i = 0; i < MS_NUM_KEYS; ++i) {
 			// Get DCC1.  That is MD4( NTLM . unicode(lc username) )
 			MD4_Init(&ctx);
-			MD4_Update(&ctx, &md4hash[(t * KEYS_PER_THREAD + i) * HASH_LEN], 16);
+			MD4_Update(&ctx, &md4hash[(t * MS_NUM_KEYS + i) * HASH_LEN], 16);
 			MD4_Update(&ctx, salt_buffer, salt_len);
-			MD4_Final((unsigned char*)&crypt[(t * KEYS_PER_THREAD + i) * 4], &ctx);
+			MD4_Final((unsigned char*)&crypt[(t * MS_NUM_KEYS + i) * 4], &ctx);
 			// now we have DCC1 (mscash) which is MD4 (MD4(unicode(pass)) . unicode(lc username))
 
 #ifndef MMX_COEF
 			// Non-SSE: Compute DCC2 one at a time
-			pbkdf2(&crypt[(t * KEYS_PER_THREAD + i) * 4]);
+			pbkdf2(&crypt[(t * MS_NUM_KEYS + i) * 4]);
 #endif
 		}
 #ifdef MMX_COEF
