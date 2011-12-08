@@ -68,14 +68,13 @@
 #endif
 #include "unicode.h"
 
-#ifdef _OPENMP
-#if defined(MMX_COEF) && !defined(SHA1_SSE_PARA)
+#if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))
 #undef _OPENMP
 #undef FMT_OMP
 #define FMT_OMP				0
-#else
+#elif defined (_OPENMP)
 #include <omp.h>
-#endif
+#define OMP_LOOPS			1
 #endif
 
 #define ITERATIONS			10240
@@ -112,21 +111,6 @@ static struct fmt_tests tests[] = {
 #define SALT_SIZE			(11*4)
 
 #ifdef MMX_COEF
-
-#if !ARCH_LITTLE_ENDIAN
-#define BESWAP(a,b,c)
-#else
-#define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((unsigned int)(x)>>(32-(n))))
-static void BESWAP(unsigned int *x, unsigned int *y, int count)
-{
-	unsigned int tmp;
-	do {
-		tmp = *x++;
-		ROTATE_LEFT(tmp, 16);
-		*y++ = ((tmp & 0x00FF00FF) << 8) | ((tmp >> 8) & 0x00FF00FF);
-	} while (--count);
-}
-#endif
 
 # ifdef SHA1_SSE_PARA
 #   define ALGORITHM_NAME		"SSE2i " SHA1_N_STR
@@ -170,7 +154,7 @@ static int omp_t = 1;
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
-	omp_t = omp_get_max_threads();
+	omp_t = OMP_LOOPS * omp_get_max_threads();
 	if (omp_t < 1)
 		omp_t = 1;
 	pFmt->params.max_keys_per_crypt = omp_t * MS_NUM_KEYS;
@@ -361,7 +345,7 @@ static void *get_binary(char *ciphertext)
 		out[i] = temp;
 	}
 #ifdef MMX_COEF
-	BESWAP(out, out, 4);
+	alter_endianity(out, sizeof(out));
 #endif
 	return out;
 }
