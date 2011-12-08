@@ -102,18 +102,18 @@ extern char *str_alloc_copy(char *src);
 extern void cleanup_tiny_memory();
 
 
-void dump_stuff(unsigned char * x, unsigned int size);
-void dump_stuff_msg(char *msg, unsigned char * x, unsigned int size);
+void dump_stuff(void *x, unsigned int size);
+void dump_stuff_msg(void *msg, void *x, unsigned int size);
 #if defined (MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
-void dump_stuff_mmx(unsigned char * x, unsigned int size, unsigned int index);
-void dump_stuff_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
-void dump_out_mmx(unsigned char * x, unsigned int size, unsigned int index);
-void dump_out_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx(unsigned char * x, unsigned int size, unsigned int index);
-void dump_stuff_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
-void dump_out_shammx(unsigned char * x, unsigned int size, unsigned int index);
-void dump_out_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index);
-void alter_endianity(unsigned char * x, unsigned int size);
+void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
+void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_out_mmx(void *x, unsigned int size, unsigned int index);
+void dump_out_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_stuff_shammx(void *x, unsigned int size, unsigned int index);
+void dump_stuff_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
+void dump_out_shammx(void *x, unsigned int size, unsigned int index);
+void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index);
+void alter_endianity(void * x, unsigned int size);
 #endif
 
 

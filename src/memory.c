@@ -111,19 +111,19 @@ char *str_alloc_copy(char *src)
 	return (char *)memcpy(mem_alloc_tiny(size, MEM_ALIGN_NONE), src, size);
 }
 
-void dump_stuff(unsigned char * x, unsigned int size)
+void dump_stuff(void* x, unsigned int size)
 {
         unsigned int i;
         for(i=0;i<size;i++)
         {
-                printf("%.2x", x[i]);
+	        printf("%.2x", ((unsigned char*)x)[i]);
                 if( (i%4)==3 )
                         printf(" ");
         }
         printf("\n");
 }
-void dump_stuff_msg(char *msg, unsigned char * x, unsigned int size) {
-	printf("%s : ", msg);
+void dump_stuff_msg(void *msg, void *x, unsigned int size) {
+	printf("%s : ", (char *)msg);
 	dump_stuff(x, size);
 }
 
@@ -132,8 +132,10 @@ void dump_stuff_msg(char *msg, unsigned char * x, unsigned int size) {
 #define MMX_COEF	4
 #endif
 
-void alter_endianity(unsigned char * _x, unsigned int size)
+#if ARCH_ALLOWS_UNALIGNED
+void alter_endianity(void * _x, unsigned int size)
 {
+	// size is in BYTES
 	// since we are only using this in MMX code, we KNOW that we are using x86 CPU's which do not have problems
 	// with non aligned 4 byte word access.  Thus, we use a faster swapping function.
 	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
@@ -143,6 +145,7 @@ void alter_endianity(unsigned char * _x, unsigned int size)
 		x[i] = JOHNSWAP(x[i]);
 	}
 }
+#endif
 
 // These work for standard MMX_COEF buffers, AND for SSEi MMX_PARA multiple MMX_COEF blocks, where index will be mod(X * MMX_COEF) and not simply mod(MMX_COEF)
 #define SHAGETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*4*MMX_COEF ) //for endianity conversion
@@ -150,65 +153,65 @@ void alter_endianity(unsigned char * _x, unsigned int size)
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*64*MMX_COEF  )
 #define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*16*MMX_COEF  )
 
-void dump_stuff_mmx(unsigned char * buf, unsigned int size, unsigned int index)
+void dump_stuff_mmx(void *buf, unsigned int size, unsigned int index)
 {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
-		printf("%.2x", buf[GETPOS(i, index)]);
+		printf("%.2x", ((unsigned char*)buf)[GETPOS(i, index)]);
 		if( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
 }
-void dump_out_mmx(unsigned char * buf, unsigned int size, unsigned int index)
+void dump_out_mmx(void *buf, unsigned int size, unsigned int index)
 {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
-		printf("%.2x", buf[GETOUTPOS(i, index)]);
+		printf("%.2x", ((unsigned char*)buf)[GETOUTPOS(i, index)]);
 		if( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
 }
-void dump_stuff_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index) {
-	printf("%s : ", msg);
+void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
 	dump_stuff_mmx(buf, size, index);
 }
-void dump_out_mmx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index) {
-	printf("%s : ", msg);
+void dump_out_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
 	dump_out_mmx(buf, size, index);
 }
 
-void dump_stuff_shammx(unsigned char * buf, unsigned int size, unsigned int index)
+void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index)
 {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
-		printf("%.2x", buf[SHAGETPOS(i, index)]);
+		printf("%.2x", ((unsigned char*)buf)[SHAGETPOS(i, index)]);
 		if( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
 }
-void dump_stuff_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index) {
-	printf("%s : ", msg);
+void dump_stuff_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
 	dump_stuff_shammx(buf, size, index);
 }
-void dump_out_shammx(unsigned char * buf, unsigned int size, unsigned int index)
+void dump_out_shammx(void *buf, unsigned int size, unsigned int index)
 {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
-		printf("%.2x", buf[SHAGETOUTPOS(i, index)]);
+		printf("%.2x", ((unsigned char*)buf)[SHAGETOUTPOS(i, index)]);
 		if( (i%4)==3 )
 			printf(" ");
 	}
 	printf("\n");
 }
-void dump_out_shammx_msg(char *msg, unsigned char * buf, unsigned int size, unsigned int index) {
-	printf("%s : ", msg);
+void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
 	dump_out_shammx(buf, size, index);
 }
 
