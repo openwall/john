@@ -149,8 +149,9 @@
 #include "memory.h"
 #include "unicode.h"
 #include "johnswap.h"
+#include "pkzip.h"
 
-extern struct fmt_main fmt_MD5gen;
+extern struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
 static int nFmts;
 static int force_md5_ctx;
@@ -463,19 +464,19 @@ static unsigned int total_len2_X86[MAX_KEYS_PER_CRYPT_X86];
 
 static int keys_dirty;
 // We store the salt here
-static char cursalt[SALT_SIZE+1];
+static unsigned char *cursalt;
 // length of salt (so we don't have to call strlen() all the time.
 static int saltlen;
 // This array is for the 2nd salt in the hash.  I know of no hashes with double salts,
 // but test type dynamic_16 (which is 'fake') has 2 salts, and this is the data/code to
 // handle double salts.
-static char cursalt2[64+1];
+static unsigned char *cursalt2;
 static int saltlen2;
 
-static char username[64+1];
+static unsigned char *username;
 static int usernamelen;
 
-static char flds[10][64+1];
+static unsigned char *flds[10];
 static int fld_lens[10];
 
 static char itoa16_up[16] = "0123456789ABCDEF";
@@ -554,7 +555,7 @@ typedef struct private_subformat_data
 	// Some formats have 'constants'.  A good example is the MD5 Post Office format dynamic_18
 	// There can be 8 constants which can be put into the strings being built.  Most formats do
 	// not have constants.
-	char *Consts[8];
+	unsigned char *Consts[8];
 	int ConstsLen[8];
 	int nConsts;
 
@@ -670,18 +671,45 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE) {
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still valid.
-		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2))
+		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2)) {
+			// do another check, just in case there is a HEX$ type salt.
+			if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
+				// Ok, we do have a HEX.  We now want to compute it's length.
+				if (strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET+4]) == pPriv->dynamic_FIXED_SALT_SIZE*2) {
+					// Ok, check for salt-2, username, etc.
+				} else if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE*2+4], "$$", 2)) {
 			return 0;
+	}
+			} else
+				return 0;
+		}
 	}
 	else if (pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE)) {
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
-		char *cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
+		char *cpX;
+		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
+			if (strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET+4]) <= -(pPriv->dynamic_FIXED_SALT_SIZE*2)) {
+				// ok  We are only 'overlength', due to HEX$hexsalt being longer due to be 2x+4 because 1 byte becomes 2.
+				// Once we convert FROM the external HEX$ format, to binary format, it will be <= the max salt size, and
+				// thus this salt is 'safe' for this format.
+			} else {
+				cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE*2) + 3);
+				strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE*2) + 3);
+				if (!strstr(cpX, "$$")) {
+					MEM_FREE(cpX);
+					return 0;
+				}
+				MEM_FREE(cpX);
+			}
+		} else {
+			cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
 		strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
 		if (!strstr(cpX, "$$")) {
 			MEM_FREE(cpX);
 			return 0;
 		}
 		MEM_FREE(cpX);
+	}
 	}
 	if (pPriv->b2Salts==1 && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], "$$2"))
 		return 0;
@@ -726,37 +754,34 @@ static void init(struct fmt_main *pFmt)
 	dynamic_use_sse = curdat.dynamic_use_sse;
 	force_md5_ctx = curdat.force_md5_ctx;
 
-	fmt_MD5gen.params.max_keys_per_crypt = pFmt->params.max_keys_per_crypt;
-	fmt_MD5gen.params.min_keys_per_crypt = pFmt->params.min_keys_per_crypt;
-	fmt_MD5gen.params.format_name        = pFmt->params.format_name;
-	fmt_MD5gen.params.algorithm_name     = pFmt->params.algorithm_name;
-	fmt_MD5gen.params.benchmark_comment  = pFmt->params.benchmark_comment;
-	fmt_MD5gen.params.benchmark_length   = pFmt->params.benchmark_length;
+	fmt_Dynamic.params.max_keys_per_crypt = pFmt->params.max_keys_per_crypt;
+	fmt_Dynamic.params.min_keys_per_crypt = pFmt->params.min_keys_per_crypt;
+	fmt_Dynamic.params.format_name        = pFmt->params.format_name;
+	fmt_Dynamic.params.algorithm_name     = pFmt->params.algorithm_name;
+	fmt_Dynamic.params.benchmark_comment  = pFmt->params.benchmark_comment;
+	fmt_Dynamic.params.benchmark_length   = pFmt->params.benchmark_length;
 	if ( (pFmt->params.flags&FMT_UNICODE) && options.utf8 )
 		pFmt->params.plaintext_length = pPriv->pSetup->MaxInputLen * 3; // we allow for 3 bytes of utf8 data to make up the number of plaintext_length unicode chars.
 	else
-		fmt_MD5gen.params.plaintext_length   = pFmt->params.plaintext_length;
-//	fprintf(stderr, "plaintext_length %u\n", pFmt->params.plaintext_length);
-	fmt_MD5gen.params.salt_size          = pFmt->params.salt_size;
-	if (pFmt->params.salt_size > 0)
-		++pFmt->params.salt_size;
-	fmt_MD5gen.params.flags              = pFmt->params.flags;
+		fmt_Dynamic.params.plaintext_length   = pFmt->params.plaintext_length;
+	fmt_Dynamic.params.salt_size          = pFmt->params.salt_size;
+	fmt_Dynamic.params.flags              = pFmt->params.flags;
 
-	fmt_MD5gen.methods.cmp_all    = pFmt->methods.cmp_all;
-	fmt_MD5gen.methods.cmp_one    = pFmt->methods.cmp_one;
-	fmt_MD5gen.methods.cmp_exact  = pFmt->methods.cmp_exact;
-	fmt_MD5gen.methods.set_salt   = pFmt->methods.set_salt;
-	fmt_MD5gen.methods.salt       = pFmt->methods.salt;
-	fmt_MD5gen.methods.salt_hash  = pFmt->methods.salt_hash;
-	fmt_MD5gen.methods.split      = pFmt->methods.split;
-	fmt_MD5gen.methods.set_key    = pFmt->methods.set_key;
-	fmt_MD5gen.methods.get_key    = pFmt->methods.get_key;
-	fmt_MD5gen.methods.clear_keys = pFmt->methods.clear_keys;
-	fmt_MD5gen.methods.crypt_all  = pFmt->methods.crypt_all;
+	fmt_Dynamic.methods.cmp_all    = pFmt->methods.cmp_all;
+	fmt_Dynamic.methods.cmp_one    = pFmt->methods.cmp_one;
+	fmt_Dynamic.methods.cmp_exact  = pFmt->methods.cmp_exact;
+	fmt_Dynamic.methods.set_salt   = pFmt->methods.set_salt;
+	fmt_Dynamic.methods.salt       = pFmt->methods.salt;
+	fmt_Dynamic.methods.salt_hash  = pFmt->methods.salt_hash;
+	fmt_Dynamic.methods.split      = pFmt->methods.split;
+	fmt_Dynamic.methods.set_key    = pFmt->methods.set_key;
+	fmt_Dynamic.methods.get_key    = pFmt->methods.get_key;
+	fmt_Dynamic.methods.clear_keys = pFmt->methods.clear_keys;
+	fmt_Dynamic.methods.crypt_all  = pFmt->methods.crypt_all;
 	for (i = 0; i < PASSWORD_HASH_SIZES; ++i)
 	{
-		fmt_MD5gen.methods.binary_hash[i] = pFmt->methods.binary_hash[i];
-		fmt_MD5gen.methods.get_hash[i]    = pFmt->methods.get_hash[i];
+		fmt_Dynamic.methods.binary_hash[i] = pFmt->methods.binary_hash[i];
+		fmt_Dynamic.methods.get_hash[i]    = pFmt->methods.get_hash[i];
 	}
 
 #if !MD5_IMM
@@ -852,67 +877,62 @@ static char *split(char *ciphertext, int index)
  *********************************************************************************/
 static void set_salt(void *salt)
 {
-	char *cp;
-	memset(cursalt, 0, sizeof(cursalt));
-	strnzcpy(cursalt, salt, sizeof(cursalt));
-	// without this, the 3 byte salt for dynamic_7 gets 4 bytes 'sometimes'.
-	if (curdat.dynamic_FIXED_SALT_SIZE > 0)
-		cursalt[curdat.dynamic_FIXED_SALT_SIZE] = 0;
-
-	// find user, salt2, domain, host, etc, etc.
-	cp = &cursalt[saltlen=strlen(cursalt)];
-	while (--cp > cursalt)
-	{
-		if (*cp == '$' && cp[-1] == '$')
-		{
-			switch (cp[1])
-			{
-				case '2':
-					// salt2
-					--cp;
-					*cp = 0;
-					saltlen = cp-cursalt;
-					strnzcpy(cursalt2, &cp[3], sizeof(cursalt2));
-					saltlen2 = strlen(cursalt2);
-					break;
-				case 'U':
-					// username
-					--cp;
-					*cp = 0;
-					saltlen = cp-cursalt;
-					strnzcpy(username, &cp[3], sizeof(username));
-					usernamelen = strlen(username);
-					break;
-				case 'F':
-					{
-						// Fld flags
-						int which = cp[2] - '0';
-						if (which >= 0 && which <= 9) {
-							--cp;
-							*cp = 0;
-							saltlen = cp-cursalt;
-							strnzcpy(flds[which], &cp[4], sizeof(flds[0]));
-							fld_lens[which] = strlen(flds[which]);
+	unsigned char *cpsalt;
+	unsigned todo_bits=0, i, bit;
+	if (!salt || curdat.dynamic_FIXED_SALT_SIZE == 0) {
+		saltlen = 0;
+		return;
 						}
-					}
-					break;
-			}
+	cpsalt = *((unsigned char**)salt);
+	saltlen = *cpsalt++ - '0';
+	saltlen <<= 3;
+	saltlen += *cpsalt++ - '0';
+#if ARCH_ALLOWS_UNALIGNED
+	if (*((ARCH_WORD_32*)cpsalt) != 0x30303030)
+#else
+	if (memcmp(cpsalt, "0000", 4))
+#endif
+	{
+		// this is why we used base-8. Takes an extra byte, but there is NO conditional
+		// logic, building this number, and no multiplication. We HAVE added one conditional
+		// check, to see if we can skip the entire load, if it is 0000.
+		todo_bits = *cpsalt++ - '0';
+		todo_bits <<= 3;
+		todo_bits += *cpsalt++ - '0';
+		todo_bits <<= 3;
+		todo_bits += *cpsalt++ - '0';
+		todo_bits <<= 3;
+		todo_bits += *cpsalt++ - '0';
+	}
+	else
+		cpsalt += 4;
+	cursalt = cpsalt;
+	if (!todo_bits) return;
+	cpsalt += saltlen;
+	if (todo_bits & 1) {
+		todo_bits ^= 1; // clear that bit.
+		saltlen2 = *cpsalt++;
+		cursalt2 = cpsalt;
+		if (todo_bits == 0) return;
+		cpsalt += saltlen2;
+	}
+	if (todo_bits & 2) {
+		todo_bits ^= 2; // clear that bit.
+		usernamelen = *cpsalt++;
+		username = cpsalt;
+		if (todo_bits == 0) return;
+		cpsalt += usernamelen;
+	}
+	bit = 4;
+	for (i = 0; i < 10; ++i, bit<<=1) {
+		if (todo_bits & bit) {
+			todo_bits ^= bit; // clear that bit.
+			fld_lens[i] = *cpsalt++;
+			flds[i] = cpsalt;
+			if (todo_bits == 0) return;
+			cpsalt += fld_lens[i];
 		}
 	}
-}
-
-/*********************************************************************************
- * init() here does nothing. NOTE many formats LINKING into us will have a valid that
- * NOTE specific for phpass.  We internally look at a salt as 8 bytes, but external
- * it is 9. NOTE in the crypt, we DO use that last byte. It tells crypt how many
- * times to loop.  However, within ALL of the primitive functions, they only work
- * with the first 8 bytes of the salt (the true salt value), and ignore that 9th
- * byte.
- *********************************************************************************/
-static void set_salt_phpass(void *salt)
-{
-	strncpy(cursalt, salt, saltlen+1);
-	cursalt[saltlen+1] = 0;
 }
 
 /*********************************************************************************
@@ -1061,7 +1081,7 @@ key_cleaning2:
 	else
 	{
 		len = strlen(key);
-		if (len > 55 && !(fmt_MD5gen.params.flags & FMT_UNICODE))
+		if (len > 55 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
 			len = 55;
 		if(index==0) {
 			DynamicFunc__clean_input();
@@ -1534,15 +1554,244 @@ int get_hash_6(int index)
 	return crypt_key_X86[index>>MD5_X2].x1.w[0] & 0x7ffffff;
 }
 
+
+/************************************************************************
+ * We now fully handle all hashing of salts, here in the format. We 
+ * return a pointer ot an allocated salt record. Thus, we search all
+ * of the salt records, looking for the same salt.  If we find it, we
+ * want to return THAT pointer, and not allocate a new pointer.
+ * This works great, but forces us to do salt comparision here.
+ ***********************************************************************/
+#define DYNA_SALT_HASH_BITS 15
+#define DYNA_SALT_HASH_SIZE (1<<DYNA_SALT_HASH_BITS)
+#define DYNA_SALT_HASH_MOD  (DYNA_SALT_HASH_SIZE-1)
+
+typedef struct dyna_salt_list_entry {
+	struct dyna_salt_list_entry *next;
+	unsigned char *salt;
+} dyna_salt_list_entry;
+typedef struct {
+	dyna_salt_list_entry *head, *tail;
+	int count;
+} dyna_salt_list_main;
+
+typedef struct {
+	dyna_salt_list_main List;
+} SaltHashTab_t;
+static SaltHashTab_t        *SaltHashTab;
+static dyna_salt_list_entry *pSaltHashData, *pSaltHashDataNext;
+static int                   dyna_salt_list_count;
+static unsigned char        *pSaltDataBuf, *pNextSaltDataBuf;
+static int                   nSaltDataBuf;
+
+static unsigned char *AddSaltHash(unsigned char *salt, unsigned len, unsigned int idx) {
+	unsigned char *pRet;
+	if (dyna_salt_list_count == 0) {
+		pSaltHashDataNext = pSaltHashData = mem_calloc_tiny(sizeof(dyna_salt_list_entry) * 25000, MEM_ALIGN_WORD);
+		dyna_salt_list_count = 25000;
+	}
+	if (nSaltDataBuf < len) {
+		pSaltDataBuf = pNextSaltDataBuf = mem_alloc_tiny(MEM_ALLOC_SIZE*6, MEM_ALIGN_NONE);
+		nSaltDataBuf = MEM_ALLOC_SIZE*6;
+	}
+	pRet = pNextSaltDataBuf;
+	pSaltHashDataNext->salt = pNextSaltDataBuf;
+	memcpy(pSaltHashDataNext->salt, salt, len);
+	pNextSaltDataBuf += len;
+	nSaltDataBuf -= len;
+
+	if (SaltHashTab[idx].List.count == 0)
+		SaltHashTab[idx].List.tail = SaltHashTab[idx].List.head = pSaltHashDataNext;
+	else {
+		SaltHashTab[idx].List.tail->next = pSaltHashDataNext;
+		SaltHashTab[idx].List.tail = pSaltHashDataNext;
+	}
+	++SaltHashTab[idx].List.count;
+	++pSaltHashDataNext;
+	--dyna_salt_list_count;
+	return pRet;
+}
+static unsigned char *FindSaltHash(unsigned char *salt, unsigned len, u32 crc) {
+	unsigned int idx = crc & DYNA_SALT_HASH_MOD;
+	dyna_salt_list_entry *p;
+	if (!SaltHashTab) 
+		SaltHashTab = mem_calloc_tiny(sizeof(SaltHashTab_t) * DYNA_SALT_HASH_SIZE, MEM_ALIGN_WORD);
+
+	if (!SaltHashTab[idx].List.count) {
+		return AddSaltHash(salt, len, idx);
+	}
+	// Ok, we have some salts in this hash list.  Now walk the list, searching for an EQUAL salt.
+	p = SaltHashTab[idx].List.head;
+	while (p) {
+		if (!memcmp((char*)salt, (char*)p->salt, len)) {
+			return p->salt;  // found it!  return this one, so we do not allocate another.
+		}
+		p = p->next;
+	}
+	return AddSaltHash(salt, len, idx);
+}
+static unsigned char *HashSalt(unsigned char *salt, unsigned len) {
+	u32 crc = -1, i;
+	unsigned char *ret_hash;
+
+	// compute the hash.
+	for (i = 0; i < len; ++i)
+		crc = pkzip_crc32(crc,salt[i]);
+	crc = ~crc;
+
+	ret_hash = FindSaltHash(salt, len, crc);
+	return ret_hash;
+}
+static int ConvertFromHex(unsigned char *p, int len) {
+	unsigned char *cp;
+	int i, x;
+	if (!p || memcmp(p, "HEX$", 4))
+		return len;
+	// Ok, do a convert, and return 'new' len.
+	len -= 4; 
+	len >>= 1;
+	cp = p;
+	x = len;
+	for (i=4; x; --x, i+= 2) {
+		*cp++ = atoi16[ARCH_INDEX(p[i])]*16 + atoi16[ARCH_INDEX(p[i+1])];
+    }
+	*cp = 0;
+	return len;
+}
+static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, unsigned char *Buffer) {
+	// Ok, we get this:   extern_salt = salt_data$$2salt2$$Uuser ...  where anything can be missing or in any order
+	// the any order has 1 exception of salt_data MUST be first.  So if we get $$2salt2, then we know there is no salt-1 value.
+	unsigned char *salt2, *userid, *Flds[10];
+	int nsalt2=0, nuserid=0, nFlds[10]={0,0,0,0,0,0,0,0,0,0};
+	unsigned char len = strlen((char*)extern_salt), i, bit;
+	unsigned bit_array=0;
+	unsigned the_real_len = 6;  // 2 bytes base-8 length, and 4 bytes base-8 bitmap.
+
+	// work from back of string to front, looking for the $$X signatures.
+	for (i = len-3; i > 0; --i) {
+		if (extern_salt[i] == '$' && extern_salt[i+1] == '$') {
+			// a 'likely' extra salt value.
+			switch(extern_salt[i+2]) {
+				case '2': 
+					salt2 = &extern_salt[i+3];
+					nsalt2 = strlen((char*)salt2);
+					nsalt2 = ConvertFromHex(salt2, nsalt2);
+					extern_salt[i] = 0;
+					bit_array |= 1;
+					the_real_len += (nsalt2+1);
+					break;
+				case 'U': 
+					userid = &extern_salt[i+3];
+					nuserid = strlen((char*)userid);
+					nuserid = ConvertFromHex(userid, nuserid);
+					extern_salt[i] = 0;
+					bit_array |= 2;
+					the_real_len += (nuserid+1);
+					break;
+				case 'F': {
+					if (extern_salt[i+3] >= '0' && extern_salt[i+3] <= '9') {
+						Flds[extern_salt[i+3]-'0'] = &extern_salt[i+4];
+						nFlds[extern_salt[i+3]-'0'] = strlen((char*)(Flds[extern_salt[i+3]-'0']));
+						nFlds[extern_salt[i+3]-'0'] = ConvertFromHex(Flds[extern_salt[i+3]-'0'], nFlds[extern_salt[i+3]-'0']);
+						extern_salt[i] = 0;
+						bit_array |= (1<<(2+extern_salt[i+3]-'0'));
+						the_real_len += (nFlds[extern_salt[i+3]-'0']+1);
+						break;
+					}
+				}
+			}
+		}
+	}
+	// We have now ripped the data apart.  Now put it into Buffer, in proper ORDER
+
+	// Length of salt (salt1)  These 2 are stored as base-8 numbers.
+	len = strlen((char*)extern_salt);
+	len = ConvertFromHex(extern_salt, len);
+	the_real_len += len;
+
+	*Buffer++ = (len>>3) + '0';
+	*Buffer++ = (len&7) + '0';
+
+	// bit array
+	*Buffer++ = (bit_array>>9) + '0';
+	*Buffer++ = ((bit_array>>6)&7) + '0';
+	*Buffer++ = ((bit_array>>3)&7) + '0';
+	*Buffer++ = (bit_array&7) + '0';
+
+	memcpy((char*)Buffer, (char*)extern_salt, len);
+	Buffer += len;
+
+	if (!bit_array)
+		return the_real_len;
+
+	if (nsalt2) {
+		*Buffer++ = nsalt2;
+		memcpy((char*)Buffer, (char*)salt2, nsalt2);
+		Buffer += nsalt2;
+		bit_array &= ~1;
+		if (!bit_array)
+			return the_real_len;
+	}
+	if (nuserid) {
+		*Buffer++ = nuserid;
+		memcpy((char*)Buffer, (char*)userid, nuserid);
+		Buffer += nuserid;
+		bit_array &= ~2;
+		if (!bit_array)
+			return the_real_len;
+	}
+	bit = 4;
+	for (i = 0; i < 10; ++i, bit<<=1) {
+		if (nFlds[i]) {
+			*Buffer++ = nFlds[i];
+			memcpy((char*)Buffer, (char*)(Flds[i]), nFlds[i]);
+			Buffer += nFlds[i];
+			bit_array &= ~bit;
+			if (!bit_array)
+				return the_real_len;
+		}
+
+	}
+	return the_real_len;
+}
+
 /*********************************************************************************
- * 'normal' get salt function. We simply return a pointer past the '$' char
+ * This salt function has been TOTALLY re-written.  Now, we do these things:
+ *  1. convert from external format ($salt$$Uuser$$2HEX$salt2_in_hex, etc, into
+ *     our internal format.  Our internal format is 2 base-8 numbers (2 digit and 4
+ *     digit), followed by the 'raw' salt bytes, followed by pascal strings of any
+ *     other special salt values (salt2, user, flields 0 to 9).  The first 2 digit
+ *     base 8 number is the length of the binary bytes of the 'real' salt.  The
+ *     2nd base-8 4 digit number, is a bit mask of what 'extra' salt types are 
+ *     contained.
+ *  2. We allocate and 'own' the salt buffers here, so that:
+ *  3. We detect duplicate salts. NOTE, we have normalized the salts, so 2 salts that
+ *     appear different (external format), appear exactly the same on internal format.
+ *     Thus, we dupe remove them here.
+ *  4. We allocation storage for the salts. The ONLY thing we return to john, is
+ *     a 4 (or 8 byte in 64 bit builds) pointer to the salt.  Thus, when we find
+ *     a dupe, we do not have to allocate ANY memory, and simply return the pointer
+ *     to the original salt (which is the same as the one we are working on now).
+ *
+ *  this is much more complex, however, it allows us to use much less memory, to 
+ *  have the set_salt function operate VERY quickly (all processing is done here).
+ *  It also allows john load time to happen FASTER (yes faster), that it was happening
+ *  due to smaller memory footprint, and john's external salt collision to have 
+ *  less work to do.  The memory footprint was also reduced, because now we store
+ *  JUST the require memory, and a pointer.  Before, often we stored a LOT of memory
+ *  for many format types.  For a few types, we do use more memory with this method
+ *  than before, but for more the memory usage is way down.
  *********************************************************************************/
 static void *salt(char *ciphertext)
 {
-	static char Salt[SALT_SIZE+1];
+	static unsigned char salt_p[sizeof(unsigned char*)];
+	char Salt[SALT_SIZE+1], saltIntBuf[SALT_SIZE+1];
 	int off, possible_neg_one=0;
+	unsigned char *saltp;
+	unsigned the_real_len;
 
 	memset(Salt, 0, SALT_SIZE+1);
+	memset(salt_p, 0, sizeof(salt_p));
 
 	// Ok, see if the wrong dynamic type is loaded (such as the 'last' dynamic type).
 	if (!strncmp(ciphertext, "$dynamic_", 9)) {
@@ -1564,7 +1813,7 @@ static void *salt(char *ciphertext)
 			nFmtNum = -1;
 			sscanf(subformat, "$dynamic_%d", &nFmtNum);
 			if (nFmtNum==-1)
-				return Salt;
+				return salt_p;
 			pFmtLocal = dynamic_Get_fmt_main(nFmtNum);
 			if (pFmtLocal)
 				init(pFmtLocal);
@@ -1572,13 +1821,12 @@ static void *salt(char *ciphertext)
 	}
 
 	if (curdat.dynamic_FIXED_SALT_SIZE==0 && !curdat.nUserName && !curdat.FldMask)
-		return Salt;
+		return salt_p;
 	if (!strncmp(ciphertext, "$dynamic_", 9))
 		off=curdat.dynamic_SALT_OFFSET;
 	else
 		off=curdat.dynamic_SALT_OFFSET-strlen(curdat.dynamic_WHICH_TYPE_SIG);
-	// this code is better, but now will NOT handle salts that start out with:  $$U  or $$F# or $$2.  Well, that simply
-	// is going to be how it is.
+
 	if (ciphertext[off] == '$' && (ciphertext[off+1]=='U' ||
 		                          (ciphertext[off+1]=='F' && ciphertext[off+2]>='0' && ciphertext[off+2]<='9') ||
 								   ciphertext[off+1]=='2') )
@@ -1694,7 +1942,13 @@ static void *salt(char *ciphertext)
 		MEM_FREE(cpU2);
 		MEM_FREE(cpTmp);
 	}
-	return Salt;
+
+	the_real_len = salt_external_to_internal_convert((unsigned char*)Salt, (unsigned char*)saltIntBuf);
+
+	// Now convert this into a stored salt, or find the 'already' stored same salt.
+	saltp = HashSalt((unsigned char*)saltIntBuf, the_real_len);
+	memcpy(salt_p, &saltp, sizeof(saltp));
+	return salt_p;
 }
 /*********************************************************************************
  * 'special' get salt function for phpass. We return the 8 bytes salt, followed by
@@ -1705,37 +1959,34 @@ static void *salt(char *ciphertext)
  *********************************************************************************/
 static void *salt_phpass(char *ciphertext)
 {
-	static unsigned char salt[64];
-	// store off the 'real' 8 bytes of salt
-	char *cp = ciphertext;
-	if (!strncmp(cp, "$dynamic_", 9)) {
-		cp += 9;
-		while (*cp != '$')
-			++cp;
+	static char salt_p[sizeof(unsigned char*)];
+	static unsigned char salt[20], *saltp;
+	if (!strncmp(ciphertext, "$dynamic_", 9)) {
+		ciphertext += 9;
+		while (*ciphertext != '$')
+			++ciphertext;
 	}
-	memcpy(salt, &cp[25], 8);
-	// append the 1 byte of loop count information.
-	salt[8] = cp[24];
-	salt[9]=0;
-	saltlen=8;
-	return salt;
+	sprintf((char*)salt, "100000%8.8s%c", &ciphertext[25], ciphertext[24]);
+
+	// Now convert this into a stored salt, or find the 'already' stored same salt.
+	saltp = HashSalt(salt, 15);
+	memcpy(salt_p, &saltp, sizeof(saltp));
+	return salt_p;
 }
 
 /*********************************************************************************
- * This returns a 'decent' hash for salted hashes (where they are unk arbritray
- * text.  Many of the salts are from ' ' to 0x7E.  This function works well for
- * them. NOTE we have to KNOW that a format is not salted, and ALWAYS return 0
- * for them.  If not, even though they are listed as not salted, JOHN will have
- * problems, and will treat them 'like' salted (i.e. slows john down A LOT).
+ * Now our salt is returned only as a pointer.  We 
  *********************************************************************************/
 static int salt_hash(void *salt)
 {
-	int x,y;
-	if (!salt || *((char*)salt) == 0)
-		return 0;
-	x = ((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[0])-' '));
-	y = (((ARCH_WORD_32)(ARCH_INDEX(((unsigned char *)salt)[1])-' ')<<6));
-	return (x+y) & (SALT_HASH_SIZE - 1);
+	unsigned long H;
+	if (!salt) return 0;
+	// salt is now a pointer, but WORD aligned.  We remove that word alingment, and simply use the next bits
+	H = *((unsigned long*)salt);
+
+	// Mix up the pointer value (H^(H>>9)) so that if we have a fixed sized allocation
+	// that things do get 'stirred' up better.
+	return ( (H^(H>>9)) & (SALT_HASH_SIZE-1) );
 }
 
 /*********************************************************************************
@@ -1871,7 +2122,7 @@ static void * binary_b64_4x6(char *ciphertext)
  * ready to handle base-16 hashes.  The phpass stuff will be linked in later, IF
  * needed.
  *********************************************************************************/
-struct fmt_main fmt_MD5gen =
+struct fmt_main fmt_Dynamic =
 {
 	{
 		FORMAT_LABEL,
@@ -2603,7 +2854,7 @@ static void __SSE_append_string_to_input_unicode(unsigned char *IPB, unsigned id
 
 }
 
-static void __SSE_append_string_to_input(unsigned char *IPB, unsigned idx_mod, char *cp, unsigned len, unsigned bf_ptr, unsigned bUpdate0x80)
+static void __SSE_append_string_to_input(unsigned char *IPB, unsigned idx_mod, unsigned char *cp, unsigned len, unsigned bf_ptr, unsigned bUpdate0x80)
 {
 	unsigned char *cpO;
 	// if our insertion point is on an 'even' DWORD, then we use DWORD * copying, as long as we can
@@ -2684,7 +2935,7 @@ static int __SSE_gen_BenchLowLevMD5(unsigned secs, unsigned which)
 	{
 		char Pass[40];
 		sprintf(Pass, "Sample Password %d - %d", cnt, i);
-		fmt_MD5gen.methods.set_key(Pass, i);
+		fmt_Dynamic.methods.set_key(Pass, i);
 	}
 	DynamicFunc__clean_input();
 	DynamicFunc__clean_input2();
@@ -2773,7 +3024,7 @@ static int __SSE_gen_BenchLowLevMD5(unsigned secs, unsigned which)
 
 	DynamicFunc__clean_input();
 	DynamicFunc__clean_input2();
-	fmt_MD5gen.methods.set_key("", 0);
+	fmt_Dynamic.methods.set_key("", 0);
 
 	return (int)d;
 #endif
@@ -2820,7 +3071,7 @@ static void __SSE_gen_BenchLowLevelFunctions()
 #endif  // #ifdef MMX_COEF from way above.
 
 
-static inline void __append_string(char *Str, unsigned len)
+static inline void __append_string(unsigned char *Str, unsigned len)
 {
 	unsigned j;
 #ifdef MMX_COEF
@@ -2838,7 +3089,7 @@ static inline void __append_string(char *Str, unsigned len)
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 
-				outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (j = 0; j < m_count; ++j) {
@@ -2847,7 +3098,7 @@ static inline void __append_string(char *Str, unsigned len)
 					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
 					// note we use the 'non' unicode variant, since we have already computed the unicode, and length properly
-					__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j) {
@@ -2855,7 +3106,7 @@ static inline void __append_string(char *Str, unsigned len)
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len[idx] += ( (len<<1) << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)Str,len,bf_ptr,1);
+					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf[idx]),idx_mod,Str,len,bf_ptr,1);
 				}
 			}
 		}
@@ -2866,7 +3117,7 @@ static inline void __append_string(char *Str, unsigned len)
 		if (!options.ascii && !options.iso8859_1) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)Str, len) * sizeof(UTF16);
+			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (j = 0; j < m_count; ++j) {
@@ -2888,7 +3139,7 @@ static inline void __append_string(char *Str, unsigned len)
 			for (j = 0; j < m_count; ++j) {
 				int z;
 				unsigned char *cp;
-				unsigned char *cpi = (unsigned char*)Str;
+				unsigned char *cpi = Str;
 #if MD5_X2
 				if (j&1)
 					cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]]);
@@ -2915,7 +3166,7 @@ static inline void __append_string(char *Str, unsigned len)
 	}
 }
 
-static inline void __append2_string(char *Str, unsigned len)
+static inline void __append2_string(unsigned char *Str, unsigned len)
 {
 	unsigned j;
 #ifdef MMX_COEF
@@ -2933,7 +3184,7 @@ static inline void __append2_string(char *Str, unsigned len)
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 
-				outlen = enc_to_utf16(utf16Str, 27, (unsigned char*)Str, len) * sizeof(UTF16);
+				outlen = enc_to_utf16(utf16Str, 27, Str, len) * sizeof(UTF16);
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (j = 0; j < m_count; ++j) {
@@ -2942,7 +3193,7 @@ static inline void __append2_string(char *Str, unsigned len)
 					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len2[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
 					// note we use the 'non' unicode variant of __SSE_append_string_to_input(), since it's already unicode, and length properly
-					__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j) {
@@ -2950,7 +3201,7 @@ static inline void __append2_string(char *Str, unsigned len)
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len2[idx] += ( (len<<1) << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)Str,len,bf_ptr,1);
+					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf2[idx]),idx_mod,Str,len,bf_ptr,1);
 				}
 			}
 		}
@@ -2961,7 +3212,7 @@ static inline void __append2_string(char *Str, unsigned len)
 		if (!options.ascii && !options.iso8859_1) {
 			UTF16 utf16Str[EFFECTIVE_MAX_LENGTH / 3 + 1];
 			int outlen;
-			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, (unsigned char*)Str, len) * sizeof(UTF16);
+			outlen = enc_to_utf16(utf16Str, EFFECTIVE_MAX_LENGTH / 3, Str, len) * sizeof(UTF16);
 			if (outlen < 0)
 				outlen = strlen16(utf16Str) * sizeof(UTF16);
 			for (j = 0; j < m_count; ++j) {
@@ -2983,7 +3234,7 @@ static inline void __append2_string(char *Str, unsigned len)
 			for (j = 0; j < m_count; ++j) {
 				int z;
 				unsigned char *cp;
-				unsigned char *cpi = (unsigned char*)Str;
+				unsigned char *cpi = Str;
 #if MD5_X2
 				if (j&1)
 					cp = &(input_buf2_X86[j>>MD5_X2].x2.B2[total_len2_X86[j]]);
@@ -3142,14 +3393,14 @@ void DynamicFunc__append_keys()
 							outlen = strlen16(utf16Str) * sizeof(UTF16);
 					}
 					total_len[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				} else {
 					total_len[idx] += ( ((saved_key_len[j])<<1) << ((32/MMX_COEF)*idx_mod));
 					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 				}
 			} else {
 				total_len[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
-				__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,saved_key[j],saved_key_len[j],bf_ptr,1);
+				__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
 		return;
@@ -3236,14 +3487,14 @@ void DynamicFunc__append_keys2()
 							outlen = strlen16(utf16Str) * sizeof(UTF16);
 					}
 					total_len2[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				} else {
 					total_len2[idx] += ( (saved_key_len[j]<<1) << ((32/MMX_COEF)*idx_mod));
 					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 				}
 			} else {
 				total_len2[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
-				__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,saved_key[j],saved_key_len[j],bf_ptr,1);
+				__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
 		return;
@@ -4114,7 +4365,7 @@ static struct md5_item md5_items[21] =  {
 #define SETLEN_MD5_INPUT(a,b,c) do{\
 	len=cp-a+b; \
 	a[len]=0x80; a[64-8]=len<<3; a[64-7]=len>>5; \
-	__SSE_append_string_to_input(c[idx],idx_mod,(char*)a,64,0,0); \
+	__SSE_append_string_to_input(c[idx],idx_mod,(unsigned char*)a,64,0,0); \
 }while(0)
 
 
@@ -4213,7 +4464,7 @@ static void CopyCryptToOut1Location(unsigned char *o, int j, int k) {
 			Buf[1] = *pi; pi += MMX_COEF;
 			Buf[2] = *pi; pi += MMX_COEF;
 			Buf[3] = *pi;
-			__SSE_append_string_to_input(out,idx_mod,(char*)Buf,16,md5_items[j].lens[idx][x],0);
+			__SSE_append_string_to_input(out,idx_mod,(unsigned char*)Buf,16,md5_items[j].lens[idx][x],0);
 		}
 #ifdef MD5_SSE_PARA
 		out += 64*MMX_COEF;
@@ -4754,7 +5005,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (j = 0; j < m_count; ++j) {
-					__SSE_append_string_to_input((unsigned char*)(&input_buf[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input((unsigned char*)(&input_buf[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j)
@@ -4827,7 +5078,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (j = 0; j < m_count; ++j) {
-					__SSE_append_string_to_input((unsigned char*)(&input_buf2[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input((unsigned char*)(&input_buf2[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j)
@@ -5622,10 +5873,10 @@ void DynamicFunc__X86toSSE_switch_input1() {
 		total_len[idx] += (total_len_X86[j] << ((32/MMX_COEF)*idx_mod));
 #if (MD5_X2)
 		if (j & 1)
-			__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,input_buf_X86[j>>1].x2.b2,total_len_X86[j],0,1);
+			__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,input_buf_X86[j>>1].x2.B2,total_len_X86[j],0,1);
 		else
 #endif
-		__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,input_buf_X86[j>>MD5_X2].x1.b,total_len_X86[j],0,1);
+		__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,input_buf_X86[j>>MD5_X2].x1.B,total_len_X86[j],0,1);
 	}
 #endif
 }
@@ -5642,10 +5893,10 @@ void DynamicFunc__X86toSSE_switch_input2() {
 		total_len2[idx] += (total_len2_X86[j] << ((32/MMX_COEF)*idx_mod));
 #if (MD5_X2)
 		if (j & 1)
-			__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,input_buf2_X86[j>>1].x2.b2,total_len2_X86[j],0,1);
+			__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,input_buf2_X86[j>>1].x2.B2,total_len2_X86[j],0,1);
 		else
 #endif
-		__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,input_buf2_X86[j>>MD5_X2].x1.b,total_len2_X86[j],0,1);
+		__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,input_buf2_X86[j>>MD5_X2].x1.B,total_len2_X86[j],0,1);
 	}
 #endif
 }
@@ -6422,7 +6673,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	{
 		if (Setup->pConstants[curdat.nConsts].Const == NULL)
 			break;
-		curdat.Consts[curdat.nConsts] = str_alloc_copy(Setup->pConstants[curdat.nConsts].Const);
+		curdat.Consts[curdat.nConsts] = (unsigned char*)str_alloc_copy(Setup->pConstants[curdat.nConsts].Const);
 		curdat.ConstsLen[curdat.nConsts] = strlen(Setup->pConstants[curdat.nConsts].Const);
 	}
 
@@ -6500,27 +6751,20 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	}
 	else
 	{
+		pFmt->params.salt_size = sizeof(void *);
 		if (Setup->SaltLen > 0)
-		{
-			//pFmt->params.salt_size = SALT_SIZE;
-			pFmt->params.salt_size = Setup->SaltLen;
 			curdat.dynamic_FIXED_SALT_SIZE = Setup->SaltLen;
-		}
 		else
 		{
-			pFmt->params.salt_size = SALT_SIZE;
 			// says we have a salt, but NOT a fixed sized one that we 'know' about.
 			// if the SaltLen is -1, then there is NO constraints. If the SaltLen
 			// is -12 (or any other neg number other than -1), then there is no
 			// fixed salt length, but the 'max' salt size is -SaltLen.  So, -12
 			// means any salt from 1 to 12 is 'valid'.
-			if (Setup->SaltLen > -2) {
+			if (Setup->SaltLen > -2)
 				curdat.dynamic_FIXED_SALT_SIZE = -1;
-				pFmt->params.salt_size = SALT_SIZE;
-			} else {
+			else
 				curdat.dynamic_FIXED_SALT_SIZE = Setup->SaltLen;
-				pFmt->params.salt_size = -(Setup->SaltLen);
-			}
 		}
 	}
 
@@ -6624,7 +6868,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if (Setup->startFlags&MGF_PHPassSetup)
 	{
 		pFmt->methods.salt = salt_phpass;
-		pFmt->methods.set_salt = set_salt_phpass;
 #ifdef MMX_COEF
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
 		// by doing more than simple 1 set of MMX_COEF
@@ -6854,7 +7097,7 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 {
 	extern struct options_main options;
 	char label[40], label_id[40];
-	memcpy(pFmt, &fmt_MD5gen, sizeof(struct fmt_main));
+	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 	dynamic_RESET(pFmt);
 	sprintf(label, "$dynamic_%d$", idx);
 	sprintf(label_id, "dynamic_%d", idx);
@@ -6961,12 +7204,8 @@ void dynamic_RESET(struct fmt_main *fmt)
 	memset(&curdat, 0, sizeof(curdat));
 	m_count = 0;
 	keys_dirty = 0;
-	memset(cursalt, 0, sizeof(cursalt));
-	saltlen = 0;
-	memset(cursalt2, 0, sizeof(cursalt2));
-	saltlen2 = 0;
-	memset(username, 0, sizeof(username));
-	usernamelen = 0;
+	cursalt=cursalt2=username=0;
+	saltlen=saltlen2=usernamelen=0;
 	// make 'sure' we startout with blank inputs.
 	m_count = 0;
 	DynamicFunc__clean_input_full();
