@@ -7249,6 +7249,10 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 
 	pFmt->params.max_keys_per_crypt = pFmtLocal->params.max_keys_per_crypt;
 	pFmt->params.min_keys_per_crypt = pFmtLocal->params.min_keys_per_crypt;
+	if (pFmtLocal->params.salt_size)
+		pFmt->params.salt_size = sizeof(void*);
+	else
+		pFmt->params.salt_size = 0;
 	pFmt->methods.cmp_all    = pFmtLocal->methods.cmp_all;
 	pFmt->methods.cmp_one    = pFmtLocal->methods.cmp_one;
 	pFmt->methods.cmp_exact  = pFmtLocal->methods.cmp_exact;
