@@ -795,8 +795,10 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_24: sha1($p.$s)",                  _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24, 32 },
 	{ "dynamic_25: sha1($s.$p)",                  _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24, 32 },
 	{ "dynamic_26: sha1($p) raw-sha1",            _Funcs_26,_Preloads_26,_ConstDefault, MGF_SHA1_40_BYTE_FINISH, MGF_RAW_SHA1_INPUT },
+#if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                  _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, 0, 15 },
 	{ "dynamic_28: Apache MD5",                   _Funcs_28,_Preloads_28,_Const_28,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, 0, 15 },
+#endif
 #if defined (MMX_COEF)
 	{ "dynamic_29: md5(unicode($p))",             _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27 } // if we are in utf8 mode, we triple this in the init() call
 #else
@@ -813,11 +815,23 @@ char *dynamic_PRELOAD_SIGNATURE(int cnt)
 
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 {
+	char Type[20];
+	sprintf(Type, "dynamic_%d", cnt);
 	if (cnt < 0 || cnt > 1000)
 		return 0;
-	if (cnt >= ARRAY_COUNT(Setups))
+	if (cnt >= ARRAY_COUNT(Setups)) {
+		int j,len, bGood=0;
+		len=strlen(Type);
+		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
+			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len)) {
+				bGood = 1;
+				break;
+			}
+		}
+		if (!bGood)
 		return 0;
-
+		return dynamic_SETUP(&Setups[j], pFmt);
+	}
 	return dynamic_SETUP(&Setups[cnt], pFmt);
 }
 
@@ -826,10 +840,19 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 // 1 is valid.
 int dynamic_IS_VALID(int i)
 {
+	char Type[20];
+	sprintf(Type, "dynamic_%d", i);
 	if (i < 0 || (i > 100 && i < 1000) || i > 2000)
 		return -1;
-	if (i < 1000 && i >= ARRAY_COUNT(Setups))
+	if (i < 1000 && i >= ARRAY_COUNT(Setups)) {
+		int j,len;
+		len=strlen(Type);
+		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
+			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len))
+				return 1;
+		}
 		return -1;
+	}
 	if (i >= 1000) {
 		if (!dynamic_IS_PARSER_VALID(i))
 			return 0;

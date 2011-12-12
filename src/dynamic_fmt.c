@@ -593,6 +593,29 @@ static private_subformat_data curdat;
  * john will call valid on EACH of those formats, asking each one if a string is
  * valid. Each format has a 'private' properly setup data object.
  *********************************************************************************/
+static int HEX_valid(char *Hex) {
+	// Ok, we validate any '$HEX$hex_value string.
+	// we validate this:
+	//   1. all valid hex chars (case does not matter).
+	//   2. must be an even number of hex chars.
+	//   3. byte following MUST be null or '$'.
+	// if valid, we return the length of the data, AFTER hex-to-binary conversion (i.e. the real data length).
+	// if not valid, we return -1
+	int len;
+
+	if (strncmp(Hex, "HEX$", 4))
+		return -1;
+	Hex += 4;
+	for (len = 0; ;++len, Hex+=2) {
+		if (atoi16[(unsigned char)Hex[0]] == 0x7f) {
+			if ((unsigned char)Hex[0] == '$' || !Hex[0])
+				return len;
+			return -1;
+		}
+		if (atoi16[(unsigned char)Hex[1]] == 0x7f)
+			return -1; // odd length
+	}
+}
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i, cipherTextLen;
@@ -657,10 +680,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		cipherTextLen = 40;
 	}
 	for (i = 0; i < cipherTextLen; i++){
-		if (!(  (('0' <= cp[i])&&(cp[i] <= '9')) ||
-			 	(('a' <= cp[i])&&(cp[i] <= 'f')) ||
-				(('A' <= cp[i])&&(cp[i] <= 'F'))
-			))
+		if (atoi16[(unsigned char)cp[i]] == 0x7f)
 			return 0;
 	}
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
@@ -673,11 +693,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			// do another check, just in case there is a HEX$ type salt.
 			if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
 				// Ok, we do have a HEX.  We now want to compute it's length.
-				if (strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET+4]) == pPriv->dynamic_FIXED_SALT_SIZE*2) {
-					// Ok, check for salt-2, username, etc.
-				} else if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE*2+4], "$$", 2)) {
-			return 0;
-	}
+				if (HEX_valid(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE)
+					return 0;
 			} else
 				return 0;
 		}
@@ -686,19 +703,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
 		char *cpX;
 		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
-			if (strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET+4]) <= -(pPriv->dynamic_FIXED_SALT_SIZE*2)) {
-				// ok  We are only 'overlength', due to HEX$hexsalt being longer due to be 2x+4 because 1 byte becomes 2.
-				// Once we convert FROM the external HEX$ format, to binary format, it will be <= the max salt size, and
-				// thus this salt is 'safe' for this format.
-			} else {
-				cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE*2) + 3);
-				strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE*2) + 3);
-				if (!strstr(cpX, "$$")) {
-					MEM_FREE(cpX);
-					return 0;
-				}
-				MEM_FREE(cpX);
-			}
+			if (HEX_valid(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -pPriv->dynamic_FIXED_SALT_SIZE)
+				return 0;
 		} else {
 			cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
 		strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
@@ -718,6 +724,15 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		sprintf(Fld, "$$F%d", i);
 		if ( (pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i) && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 			return 0;
+	}
+
+	// Search for HEX$ and validate all of them.
+	cp = strstr(ciphertext, "$HEX$");
+	while (cp) {
+		++cp;
+		if (HEX_valid(cp) < 1)
+			return 0;
+		cp = strstr(cp, "$HEX$");
 	}
 
 	return 1;
@@ -1629,7 +1644,7 @@ static unsigned char *FindSaltHash(unsigned char *salt, unsigned len, u32 crc) {
 	return AddSaltHash(salt, len, idx);
 }
 static unsigned char *HashSalt(unsigned char *salt, unsigned len) {
-	u32 crc = -1, i;
+	u32 crc = 0xffffffff, i;
 	unsigned char *ret_hash;
 
 	// compute the hash.
@@ -1659,7 +1674,7 @@ static int ConvertFromHex(unsigned char *p, int len) {
 static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, unsigned char *Buffer) {
 	// Ok, we get this:   extern_salt = salt_data$$2salt2$$Uuser ...  where anything can be missing or in any order
 	// the any order has 1 exception of salt_data MUST be first.  So if we get $$2salt2, then we know there is no salt-1 value.
-	unsigned char *salt2, *userid, *Flds[10];
+	unsigned char *salt2=0, *userid=0, *Flds[10];
 	int nsalt2=0, nuserid=0, nFlds[10]={0,0,0,0,0,0,0,0,0,0};
 	unsigned char len = strlen((char*)extern_salt), i, bit;
 	unsigned bit_array=0;
@@ -7094,16 +7109,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 {
 	extern struct options_main options;
-	char label[40], label_id[40];
+	char label[16], label_id[16], *cp;
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 	dynamic_RESET(pFmt);
-	sprintf(label, "$dynamic_%d$", idx);
-	sprintf(label_id, "dynamic_%d", idx);
-
-	if (!options.format || strncmp(options.format, "dynamic_", 8))
-		pFmt->params.label = str_alloc_copy("dynamic");
-	else
-		pFmt->params.label = str_alloc_copy(label_id);
 
 	if (idx < 1000) {
 		if (dynamic_RESERVED_PRELOAD_SETUP(idx, pFmt) != 1)
@@ -7113,6 +7121,21 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 		if (dynamic_LOAD_PARSER_FUNCTIONS(idx, pFmt) != 1)
 			return 0;
 	}
+
+	/* we 'have' to take the sig from the test array.  If we do not have */
+	/* our preload array 'solid', then the idx will not be the proper */
+	/* number.  So we simply grab the label from the test cyphertext string */
+	strncpy(label, pFmt->params.tests[0].ciphertext, 15);
+	cp = strchr(&label[1], '$');
+	cp[1] = 0;
+	strcpy(label_id, &label[1]);
+	cp = strchr(label_id, '$');
+	*cp = 0;
+
+	if (!options.format || strncmp(options.format, "dynamic_", 8))
+		pFmt->params.label = str_alloc_copy("dynamic");
+	else
+		pFmt->params.label = str_alloc_copy(label_id);
 
 	strcpy(curdat.dynamic_WHICH_TYPE_SIG, label);
 
