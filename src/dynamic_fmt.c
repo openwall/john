@@ -201,7 +201,6 @@ typedef union {
 // MD5_go is SUPER slow on big endian. In the case of bigendian, we simply
 // fall back, and use OpenSSL MD5 calls, which are usually MUCH faster.
 #define USE_MD5_Go
-#define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((MD5_word)(x)>>(32-(n))))
 #define MD5_swap(x, y, count)
 #define MD5_swap2(a,b,c,d,e)
 #ifdef SHA1_SSE_PARA
@@ -214,7 +213,6 @@ static void SHA1_swap(MD5_word *x, MD5_word *y, int count)
 #endif
 #else
 extern char *MD5_DumpHexStr(void *p);
-#define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((MD5_word)(x)>>(32-(n))))
 static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 {
 	do {
