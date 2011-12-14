@@ -30,6 +30,7 @@
 #include "options.h"
 #include "unicode.h"
 #include "memory.h"
+#include "johnswap.h"
 
 #define FORMAT_LABEL			"nt2"
 #define FORMAT_NAME			"NT v2"
@@ -252,21 +253,26 @@ static void *binary(char *ciphertext)
 
 	ciphertext+=4;
 	for (i=0; i<4; i++)
-		{
-			temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
+	{
+		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
 
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+2])])<<12;
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+3])])<<8;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+2])])<<12;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+3])])<<8;
 
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+4])])<<20;
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+5])])<<16;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+4])])<<20;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+5])])<<16;
 
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+6])])<<28;
-			temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+7])])<<24;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+6])])<<28;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+7])])<<24;
 
-			out[i]=temp;
-		}
+#if ARCH_LITTLE_ENDIAN
+		out[i]=temp;
+#else
+		out[i]=JOHNSWAP(temp);
+#endif
+	}
+//	dump_stuff_msg("binary", out, 16);
 	return out;
 }
 
@@ -317,12 +323,24 @@ key_cleaning:
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif
 #else
+#if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = saved_key;
 	while (*s)
 		*d++ = *s++;
 	*d = 0;
 	saved_key_length = (int)((char*)d - (char*)saved_key);
+#else
+	UTF8 *s = (UTF8*)_key;
+	UTF8 *d = (UTF8*)saved_key;
+	while (*s) {
+		*d++ = *s++;
+		++d;
+	}
+	*d = 0;
+	saved_key_length = (int)((char*)d - (char*)saved_key);
+#endif
+//	dump_stuff_msg(_key, saved_key, 24);
 #endif
 }
 
@@ -512,7 +530,26 @@ static char *get_key(int index)
 	}
 	return (char*)utf16_to_enc(key);
 #else
+#if ARCH_LITTLE_ENDIAN
+//	char *x = utf16_to_enc(saved_key);
+//	printf ("x=%s\n",x);
+//	return x;
 	return (char*)utf16_to_enc(saved_key);
+#else
+	int i;
+	UTF16 Tmp[80];
+	UTF8 *p = (UTF8*)saved_key, *p2 = (UTF8*)Tmp;
+	for (i = 0; i < saved_key_length; i += 2) {
+		p2[i] = p[i+1];
+		p2[i+1] = p[i];
+	}
+	p2[i] = 0;
+	p2[i+1] = 0;
+//	char *x = utf16_to_enc(Tmp);
+//	printf ("x=%s\n",x);
+//	return x;
+	return (char*)utf16_to_enc(Tmp);
+#endif
 #endif
 }
 
@@ -577,8 +614,10 @@ static void crypt_all(int count) {
 	mdfourmmx(crypt_key, saved_key, total_len);
 #else
 	MD4_Init( &ctx );
+//	dump_stuff_msg("saved_key", saved_key, saved_key_length);
 	MD4_Update(&ctx, (unsigned char*)saved_key, saved_key_length);
 	MD4_Final((unsigned char*) crypt_key, &ctx);
+//	dump_stuff_msg("crypt_key", crypt_key, 16);
 #endif
 }
 
