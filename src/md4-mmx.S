@@ -111,9 +111,9 @@ buffer:
  * %edx ptr -> in
  * %ecx n
  */
- 
+
  #ifdef __MINGW32__
-// These are 'magic' param marshalling calls to convert VC __fastcall, to 
+// These are 'magic' param marshalling calls to convert VC __fastcall, to
 // GCC/GAS register param ordering.  Same as was done in MD5/SHA1. Requires
 // MinGW32 to build the .o, and then VC can use that .o file properly.
 mdfourmmx_VC:
@@ -130,7 +130,7 @@ mdfourmmx_VC_exit:
 mdfourmmx:
 	 //MD4 Init
 	pusha
-	
+
 mdfourmmx_no_push:
 	shl $3, %ecx
 	mov %ecx, %ebx
@@ -215,7 +215,7 @@ mdfourmmx_no_push:
 	emms
 
 	popa
-	
+
 	ret
 
 #elif (MMX_COEF == 4)
@@ -344,7 +344,7 @@ buffer:
  */
 
  #ifdef __MINGW32__
-// These are 'magic' param marshalling calls to convert VC __fastcall, to 
+// These are 'magic' param marshalling calls to convert VC __fastcall, to
 // GCC/GAS register param ordering.  Same as was done in MD5/SHA1. Requires
 // MinGW32 to build the .o, and then VC can use that .o file properly.
 mdfoursse2_VC:
@@ -360,8 +360,8 @@ mdfoursse2_VC_exit:
 
 mdfoursse2:
 	pusha
-	 
-mdfoursse2_no_push:	 
+
+mdfoursse2_no_push:
 	//mov %edx, %eax
 	//ret
 
@@ -371,7 +371,7 @@ mdfoursse2_no_push:
 	and $0xff, %ebx
 	shl $3, %ebx
 	mov %ebx, (14*16)(%edx)
-	
+
 	mov %ecx, %ebx
 	shr $8, %ecx
 	and $0xff, %ebx
@@ -462,7 +462,7 @@ mdfoursse2_no_push:
 	emms
 
 	popa
-	
+
 	ret
 
 #endif

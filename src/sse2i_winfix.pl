@@ -26,7 +26,7 @@ unless ( -e "sse-intrinsics-win32.S" ) {
 	print OUTPUT "#define SSEmd4body   _SSEmd4body\n";
 	print OUTPUT "#define md5cryptsse  _md5cryptsse\n";
 	print OUTPUT "#endif\n\n";
-	while (<INPUT>) {                        
+	while (<INPUT>) {
 		next if (/^\t\.type\t/);
 		next if (/^\t\.size\t/);
 		next if (/^\t\.section \.rodata\./);

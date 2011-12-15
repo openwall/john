@@ -207,7 +207,7 @@ typedef union {
 static void SHA1_swap(MD5_word *x, MD5_word *y, int count)
 {
 	do {
-		*y++ = JOHNSWAP(*x++); 
+		*y++ = JOHNSWAP(*x++);
 	} while (--count);
 }
 #endif
@@ -216,15 +216,15 @@ extern char *MD5_DumpHexStr(void *p);
 static void MD5_swap(MD5_word *x, MD5_word *y, int count)
 {
 	do {
-		*y++ = JOHNSWAP(*x++); 
+		*y++ = JOHNSWAP(*x++);
 	} while (--count);
 }
 #if MD5_X2
 static void MD5_swap2(MD5_word *x, MD5_word *x2, MD5_word *y, MD5_word *y2, int count)
 {
 	do {
-		*y++ = JOHNSWAP(*x++); 
-		*y2++ = JOHNSWAP(*x2++); 
+		*y++ = JOHNSWAP(*x++);
+		*y2++ = JOHNSWAP(*x2++);
 	} while (--count);
 }
 #endif
@@ -1569,7 +1569,7 @@ int get_hash_6(int index)
 
 
 /************************************************************************
- * We now fully handle all hashing of salts, here in the format. We 
+ * We now fully handle all hashing of salts, here in the format. We
  * return a pointer ot an allocated salt record. Thus, we search all
  * of the salt records, looking for the same salt.  If we find it, we
  * want to return THAT pointer, and not allocate a new pointer.
@@ -1627,7 +1627,7 @@ static unsigned char *AddSaltHash(unsigned char *salt, unsigned len, unsigned in
 static unsigned char *FindSaltHash(unsigned char *salt, unsigned len, u32 crc) {
 	unsigned int idx = crc & DYNA_SALT_HASH_MOD;
 	dyna_salt_list_entry *p;
-	if (!SaltHashTab) 
+	if (!SaltHashTab)
 		SaltHashTab = mem_calloc_tiny(sizeof(SaltHashTab_t) * DYNA_SALT_HASH_SIZE, MEM_ALIGN_WORD);
 
 	if (!SaltHashTab[idx].List.count) {
@@ -1661,7 +1661,7 @@ static int ConvertFromHex(unsigned char *p, int len) {
 	if (!p || memcmp(p, "HEX$", 4))
 		return len;
 	// Ok, do a convert, and return 'new' len.
-	len -= 4; 
+	len -= 4;
 	len >>= 1;
 	cp = p;
 	x = len;
@@ -1685,7 +1685,7 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
 		if (extern_salt[i] == '$' && extern_salt[i+1] == '$') {
 			// a 'likely' extra salt value.
 			switch(extern_salt[i+2]) {
-				case '2': 
+				case '2':
 					salt2 = &extern_salt[i+3];
 					nsalt2 = strlen((char*)salt2);
 					nsalt2 = ConvertFromHex(salt2, nsalt2);
@@ -1693,7 +1693,7 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
 					bit_array |= 1;
 					the_real_len += (nsalt2+1);
 					break;
-				case 'U': 
+				case 'U':
 					userid = &extern_salt[i+3];
 					nuserid = strlen((char*)userid);
 					nuserid = ConvertFromHex(userid, nuserid);
@@ -1775,7 +1775,7 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
  *     digit), followed by the 'raw' salt bytes, followed by pascal strings of any
  *     other special salt values (salt2, user, flields 0 to 9).  The first 2 digit
  *     base 8 number is the length of the binary bytes of the 'real' salt.  The
- *     2nd base-8 4 digit number, is a bit mask of what 'extra' salt types are 
+ *     2nd base-8 4 digit number, is a bit mask of what 'extra' salt types are
  *     contained.
  *  2. We allocate and 'own' the salt buffers here, so that:
  *  3. We detect duplicate salts. NOTE, we have normalized the salts, so 2 salts that
@@ -1786,10 +1786,10 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
  *     a dupe, we do not have to allocate ANY memory, and simply return the pointer
  *     to the original salt (which is the same as the one we are working on now).
  *
- *  this is much more complex, however, it allows us to use much less memory, to 
+ *  this is much more complex, however, it allows us to use much less memory, to
  *  have the set_salt function operate VERY quickly (all processing is done here).
  *  It also allows john load time to happen FASTER (yes faster), that it was happening
- *  due to smaller memory footprint, and john's external salt collision to have 
+ *  due to smaller memory footprint, and john's external salt collision to have
  *  less work to do.  The memory footprint was also reduced, because now we store
  *  JUST the require memory, and a pointer.  Before, often we stored a LOT of memory
  *  for many format types.  For a few types, we do use more memory with this method
@@ -1988,7 +1988,7 @@ static void *salt_phpass(char *ciphertext)
 }
 
 /*********************************************************************************
- * Now our salt is returned only as a pointer.  We 
+ * Now our salt is returned only as a pointer.  We
  *********************************************************************************/
 static int salt_hash(void *salt)
 {
@@ -4794,7 +4794,7 @@ void DynamicFunc__crypt_in1_to_out2()
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
-			} 
+			}
 		} else {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(0, i);

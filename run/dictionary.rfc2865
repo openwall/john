@@ -6,7 +6,7 @@
 #	$Id$
 #
 ATTRIBUTE	User-Name				1	string
-ATTRIBUTE	User-Password				2	string 
+ATTRIBUTE	User-Password				2	string
 ATTRIBUTE	CHAP-Password				3	octets
 ATTRIBUTE	NAS-IP-Address				4	ipaddr
 ATTRIBUTE	NAS-Port				5	integer

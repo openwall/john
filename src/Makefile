@@ -1369,7 +1369,7 @@ sse-intrinsics-64.S:
 sse-intrinsics-32.S:
 	$(LN) x86-ssei.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
-	perl ../run/sse2i_winfix.pl
+	perl sse2i_winfix.pl
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 
 include Makefile.dep

@@ -202,11 +202,11 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-	/* 
+	/*
 	 * This works for MMX, SSE2 and SSE2i.  Note, for 32 bit MMX/SSE2, we now use
 	 * mdfivemmx_nosizeupdate and not mdfivemmx function. Setting the size here,
 	 * and calling the 'nosizeupdate' function is about 5% faster, AND it makes the
-	 * code much more similar between SSE2i and older 32 bit SSE2 
+	 * code much more similar between SSE2i and older 32 bit SSE2
 	 */
 	keybuffer[14*MMX_COEF] = len << 3;
 #else
