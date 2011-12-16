@@ -171,58 +171,22 @@ static char *hmacmd5_get_key(int index) {
 	return (char *) out;
 }
 
-static int hmacmd5_cmp_all(void *binary, int index) {
-	int i=0;
+static int hmacmd5_cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-	while(i< (BINARY_SIZE/4) )
-	{
-		if (
-			( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1])
-#if (MMX_COEF > 3)
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3])
-#ifdef MD5_SSE_PARA
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*1*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*1*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*1*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*1*MMX_COEF])
+	unsigned int x,y=0;
+
+#if MD5_SSE_PARA
+	for(;y<MD5_SSE_PARA;y++)
 #endif
-#if (MD5_SSE_PARA>2)
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*2*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*2*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*2*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*2*MMX_COEF])
-#endif
-#if (MD5_SSE_PARA>3)
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*3*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*3*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*3*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*3*MMX_COEF])
-#endif
-#if (MD5_SSE_PARA>4)
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+0+16*4*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+1+16*4*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+2+16*4*MMX_COEF])
-			&& ( ((ARCH_WORD_32 *)binary)[i] != ((ARCH_WORD_32 *)crypt_key)[i*MMX_COEF+3+16*4*MMX_COEF])
-#endif
-#if (MD5_SSE_PARA>5)
-#error hmac_md5 format only handles MD5_SSE_PARA up to 5, not over.
-#endif
-#endif
-		)
-			return 0;
-		i++;
-	}
+		for(x=0;x<MMX_COEF;x++)
+		{
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] )
+				return 1;
+		}
+	return 0;
 #else
-	while(i<BINARY_SIZE)
-	{
-		if(((char *)binary)[i]!=((char *)crypt_key)[i])
-			return 0;
-		i++;
-	}
+	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
-	return 1;
 }
 
 static int hmacmd5_cmp_exact(char *source, int count){

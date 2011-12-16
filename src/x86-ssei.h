@@ -138,37 +138,71 @@
 #endif
 #define BF_SCALE			1
 
+#ifndef MD5_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define MD5_SSE_PARA		3
+#define MD5_SSE_PARA			3
 #define MD5_N_STR			"12x"
+#elif defined(__clang__)
+#define MD5_SSE_PARA			4
+#define MD5_N_STR			"16x"
 #elif defined(__GNUC__) || defined (_MSC_VER)
-#define MD5_SSE_PARA		2
+#define MD5_SSE_PARA			3
+#define MD5_N_STR			"12x"
+#else
+#define MD5_SSE_PARA			2
 #define MD5_N_STR			"8x"
-#else
-#define MD5_SSE_PARA		3
-#define MD5_N_STR			"12x"
+#endif
 #endif
 
+#ifndef MD4_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define MD4_SSE_PARA		3
+#define MD4_SSE_PARA			3
 #define MD4_N_STR			"12x"
-#elif defined(__GNUC__) || defined (_MSC_VER)
-#define MD4_SSE_PARA		2
+#elif defined(__clang__)
+#define MD4_SSE_PARA			3
+#define MD4_N_STR			"12x"
+#elif defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 5))
+#define MD4_SSE_PARA			2
 #define MD4_N_STR			"8x"
-#else
-#define MD4_SSE_PARA		3
+#elif defined(__GNUC__) || defined (_MSC_VER)
+#define MD4_SSE_PARA			3
 #define MD4_N_STR			"12x"
+#else
+#define MD4_SSE_PARA			2
+#define MD4_N_STR			"8x"
+#endif
 #endif
 
+#ifndef SHA1_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
-#define SHA1_SSE_PARA		2
+#define SHA1_SSE_PARA			2
 #define SHA1_N_STR			"8x"
+#elif defined(__clang__)
+#define SHA1_SSE_PARA			2
+#define SHA1_N_STR			"8x"
+#elif defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 6))
+#define SHA1_SSE_PARA			1
+#define SHA1_N_STR			"4x"
 #elif defined(__GNUC__) || defined (_MSC_VER)
-#define SHA1_SSE_PARA		2
+#define SHA1_SSE_PARA			2
 #define SHA1_N_STR			"8x"
 #else
-#define SHA1_SSE_PARA		2
-#define SHA1_N_STR			"8x"
+#define SHA1_SSE_PARA			1
+#define SHA1_N_STR			"4x"
+#endif
+#endif
+
+#define STR_VALUE(arg)			#arg
+#define PARA_TO_N(n)			"4x" STR_VALUE(n)
+
+#ifndef MD4_N_STR
+#define MD4_N_STR			PARA_TO_N(MD4_SSE_PARA)
+#endif
+#ifndef MD5_N_STR
+#define MD5_N_STR			PARA_TO_N(MD5_SSE_PARA)
+#endif
+#ifndef SHA1_N_STR
+#define SHA1_N_STR			PARA_TO_N(SHA1_SSE_PARA)
 #endif
 
 #define NT_SSE2

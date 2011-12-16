@@ -33,6 +33,8 @@
  */
 #if MMX_COEF
 #define MEM_ALIGN_SIMD			(MMX_COEF * 4)
+#else
+#define MEM_ALIGN_SIMD			(16)
 #endif
 
 /*

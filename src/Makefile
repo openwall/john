@@ -270,8 +270,8 @@ linux-x86-64-icc:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="-c -msse2 -axCORE-AVX2 -no-prec-div -ipo -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_DL $(ICCOMPFLAGS)" \
-		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl $(ICCOMPFLAGS) -s " \
+		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_DL $(ICCOMPFLAGS)" \
+		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl $(ICCOMPFLAGS) -s" \
 		CPP="icc" CC="icc" AS="icc" LD="icc"
 
 linux-x86-64-32-sse2:
