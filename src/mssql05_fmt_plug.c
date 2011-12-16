@@ -28,6 +28,7 @@
 #include "options.h"
 #include "unicode.h"
 #include "sha.h"
+#include "johnswap.h"
 
 #define FORMAT_LABEL			"mssql05"
 #define FORMAT_NAME			"MS-SQL05"
@@ -57,11 +58,7 @@
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
-#if (MMX_COEF==2)
-#define SALT_EXTRA_LEN          0x40004
-#else
-#define SALT_EXTRA_LEN          0x4040404
-#endif
+
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -93,22 +90,17 @@ static unsigned char cursalt[SALT_SIZE];
 #define saved_key mssql05_saved_key
 #define crypt_key mssql05_crypt_key
 #ifdef _MSC_VER
-__declspec(align(16)) char saved_key[80*4*NBKEYS];
-__declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
+__declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
+__declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
-#ifndef SHA1_SSE_PARA
-static unsigned long total_len;
-#endif
-static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
 #else
 
 static unsigned char *saved_key;
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static unsigned int key_length;
-static char *plain_keys[1];
 
 #endif
 
@@ -170,7 +162,8 @@ static void * get_salt(char * ciphertext)
 	return out2;
 }
 
-static void set_key_enc(char *_key, int index);
+static void set_key_CP(char *_key, int index);
+static void set_key_utf8(char *_key, int index);
 extern struct fmt_main fmt_mssql05;
 
 static void init(struct fmt_main *pFmt)
@@ -181,118 +174,225 @@ static void init(struct fmt_main *pFmt)
 	saved_key = mem_alloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
 	if (options.utf8) {
-		fmt_mssql05.methods.set_key = set_key_enc;
+		fmt_mssql05.methods.set_key = set_key_utf8;
 		fmt_mssql05.params.plaintext_length = PLAINTEXT_LENGTH * 3;
 	}
 	else if (options.iso8859_1 || options.ascii) {
 		; // do nothing
 	}
 	else {
-		// this function made to handle both utf8 and 'codepage' encodings.
-		fmt_mssql05.methods.set_key = set_key_enc;
+		fmt_mssql05.methods.set_key = set_key_CP;
 	}
 }
 
-static void set_key(char *_key, int index) {
-	unsigned char *key = (unsigned char*)_key;
+// ISO-8859-1 to UCS-2, directly into vector key buffer
+static void set_key(char *_key, int index)
+{
 #ifdef MMX_COEF
-	int len;
-	int i;
-	strnzcpy(plain_keys[index], _key, PLAINTEXT_LENGTH + 1);
-	len = strlen(_key);
-#else
-	plain_keys[index] = _key;
-#endif
+	const unsigned char *key = (unsigned char*)_key;
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int len, temp2;
 
-#ifdef MMX_COEF
-	if(index==0)
-	{
-#ifdef SHA1_SSE_PARA
-		int j;
-		for (j=0; j<SHA1_SSE_PARA; j++)
-			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
-#else
-		memset(saved_key, 0, 60*MMX_COEF);
-		total_len = 0;
-#endif
+	len = SALT_SIZE >> 1;
+	while((temp2 = *key++)) {
+		unsigned int temp;
+		if ((temp = *key++))
+		{
+			*keybuf_word = JOHNSWAP((temp << 16) | temp2);
+		}
+		else
+		{
+			*keybuf_word = JOHNSWAP(temp2);
+			keybuf_word += MMX_COEF;
+			*keybuf_word = (0x80 << 8);
+			len++;
+			goto key_cleaning;
+		}
+		len += 2;
+		keybuf_word += MMX_COEF;
 	}
-#ifdef SHA1_SSE_PARA
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (2*len+SALT_SIZE)<<3;
-#else
-	total_len += (len*2) << ( ( (32/MMX_COEF) * index ) );
-#endif
-	for(i=0;i<len;i++)
-		saved_key[GETPOS((i*2), index)] = key[i];
-	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
-#else
-	key_length = 0;
+	keybuf_word += MMX_COEF;
+	*keybuf_word = (0x80 << 24);
 
-	while( (((unsigned short *)saved_key)[key_length] = (key[key_length] ENDIAN_SHIFT_L ))  )
-		key_length++;
+key_cleaning:
+	keybuf_word += MMX_COEF;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
+	}
+
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
+#else
+	UTF8 *s = (UTF8*)_key;
+	UTF16 *d = (UTF16*)saved_key;
+	for (key_length = 0; s[key_length]; key_length++)
+		d[key_length] = s[key_length];
+	d[key_length] = 0;
+	key_length <<= 1;
 #endif
 }
 
-static void set_key_enc(char *key, int index) {
-	UTF16 utf16key[PLAINTEXT_LENGTH+1];
-	int utf8len = strlen(key);
-	int i;
-	int utf16len;
-
+// Legacy codepage to UCS-2, directly into vector key buffer
+static void set_key_CP(char *_key, int index)
+{
 #ifdef MMX_COEF
-	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH*3 + 1);
-#else
-	plain_keys[index] = key;
-#endif
-	utf16len = enc_to_utf16(utf16key, PLAINTEXT_LENGTH, (unsigned char*)key, utf8len);
-	if (utf16len <= 0) {
-		utf8len = -utf16len;
-		plain_keys[index][utf8len] = 0; // match truncation!
-		if (utf16len != 0)
-			utf16len = strlen16(utf16key);
+	const unsigned char *key = (unsigned char*)_key;
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int len, temp2;
+
+	len = SALT_SIZE >> 1;
+	while((temp2 = CP_to_Unicode[*key++])) {
+		unsigned int temp;
+		if ((temp = CP_to_Unicode[*key++]))
+		{
+			*keybuf_word = JOHNSWAP((temp << 16) | temp2);
+		}
+		else
+		{
+			*keybuf_word = JOHNSWAP(temp2);
+			keybuf_word += MMX_COEF;
+			*keybuf_word = (0x80 << 8);
+			len++;
+			goto key_cleaning_enc;
+		}
+		len += 2;
+		keybuf_word += MMX_COEF;
+	}
+	keybuf_word += MMX_COEF;
+	*keybuf_word = (0x80 << 24);
+
+key_cleaning_enc:
+	keybuf_word += MMX_COEF;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
 	}
 
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
+#else
+	key_length = enc_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
+	                          (unsigned char*)_key, strlen(_key));
+	if (key_length <= 0)
+		key_length = strlen16((UTF16*)&saved_key);
+	key_length <<= 1;
+#endif
+}
+
+// UTF-8 to UCS-2, directly into vector key buffer
+static void set_key_utf8(char *_key, int index)
+{
 #ifdef MMX_COEF
-	if(index==0)
-	{
-#ifdef SHA1_SSE_PARA
-		int j;
-		for (j=0; j<SHA1_SSE_PARA; j++)
-			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
-#else
-		memset(saved_key, 0, 60*MMX_COEF);
-		total_len = 0;
-#endif
+	const UTF8 *source = (UTF8*)_key;
+	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	UTF32 chl, chh = 0x80;
+	unsigned int len;
+
+	len = SALT_SIZE >> 1;
+	while (*source) {
+		chl = *source;
+		if (chl >= 0xC0) {
+			unsigned int extraBytesToRead = opt_trailingBytesUTF8[chl & 0x3f];
+			switch (extraBytesToRead) {
+			case 2:
+				++source;
+				if (*source) {
+					chl <<= 6;
+					chl += *source;
+				} else
+					return;
+			case 1:
+				++source;
+				if (*source) {
+					chl <<= 6;
+					chl += *source;
+				} else
+					return;
+			case 0:
+				break;
+			default:
+				return;
+			}
+			chl -= offsetsFromUTF8[extraBytesToRead];
+		}
+		source++;
+		len++;
+		if (*source && len < PLAINTEXT_LENGTH) {
+			chh = *source;
+			if (chh >= 0xC0) {
+				unsigned int extraBytesToRead =
+					opt_trailingBytesUTF8[chh & 0x3f];
+				switch (extraBytesToRead) {
+				case 2:
+					++source;
+					if (*source) {
+						chh <<= 6;
+						chh += *source;
+					} else
+						return;
+				case 1:
+					++source;
+					if (*source) {
+						chh <<= 6;
+						chh += *source;
+					} else
+						return;
+				case 0:
+					break;
+				default:
+					return;
+				}
+				chh -= offsetsFromUTF8[extraBytesToRead];
+			}
+			source++;
+			len++;
+		} else {
+			chh = 0xffff;
+			*keybuf_word = JOHNSWAP((chh << 16) | chl);
+			keybuf_word += MMX_COEF;
+			break;
+		}
+		*keybuf_word = JOHNSWAP((chh << 16) | chl);
+		keybuf_word += MMX_COEF;
+	}
+	if (chh != 0xffff || len == SALT_SIZE >> 1) {
+		*keybuf_word = 0xffffffff;
+		keybuf_word += MMX_COEF;
+		*keybuf_word = (0x80 << 24);
+	} else {
+		*keybuf_word = 0xffff8000;
+	}
+	keybuf_word += MMX_COEF;
+
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
 	}
 
-#ifdef SHA1_SSE_PARA
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
 #else
-	total_len += (utf16len*2) << ( ( (32/MMX_COEF) * index ) );
-#endif
-	for(i=0;i<utf16len;i++)
-	{
-		saved_key[GETPOS((i*2), index)] = (char)utf16key[i];
-		saved_key[GETPOS((i*2+1), index)] = (char)(utf16key[i]>>8);
-	}
-	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
-#else
-	for(i=0;i<utf16len;i++)
-	{
-		unsigned char *uc = (unsigned char*)&(utf16key[i]);
-//#if ARCH_LITTLE_ENDIAN
-		saved_key[(i<<1)  ] = uc[0];
-		saved_key[(i<<1)+1] = uc[1];
-//#else
-//		saved_key[(i<<1)  ] = uc[1];
-//		saved_key[(i<<1)+1] = uc[0];
-//#endif
-	}
-	key_length = i;
+	key_length = utf8_to_utf16((UTF16*)&saved_key, PLAINTEXT_LENGTH + 1,
+	                           (unsigned char*)_key, strlen(_key) << 1);
+	if (key_length <= 0)
+		key_length = strlen16((UTF16*)&saved_key);
 #endif
 }
 
 static char *get_key(int index) {
-	return (char*) plain_keys[index];
+#ifdef MMX_COEF
+	static UTF16 out[PLAINTEXT_LENGTH + 1];
+	unsigned int i,s;
+
+	s = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3) - SALT_SIZE) >> 1;
+	for(i=0;i<s;i++) {
+		out[i] = saved_key[GETPOS(i<<1, index)] |
+			(saved_key[GETPOS((i<<1) + 1, index)] << 8);
+	}
+	out[i] = 0;
+	return (char*)utf16_to_enc(out);
+#else
+	saved_key[key_length] = 0;
+	return (char*)utf16_to_enc((UTF16*)saved_key);
+#endif
 }
 
 static int cmp_all(void *binary, int count) {
@@ -369,24 +469,20 @@ static void crypt_all(int count) {
 	unsigned i, index;
 	for (index = 0; index < count; ++index)
 	{
-#ifdef SHA1_SSE_PARA
-		unsigned len = (((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) & 0xff) - SALT_SIZE;
-#else
-		unsigned len = (total_len >> ((32/MMX_COEF)*index)) & 0xFF;
-#endif
+		unsigned len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
 #ifdef SHA1_SSE_PARA
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
 #else
-	shammx( (unsigned char *) crypt_key, (unsigned char *) saved_key, total_len + SALT_EXTRA_LEN);
+	shammx_nosizeupdate_nofinalbyteswap( (unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
 #endif
 #else
 	SHA_CTX ctx;
-	memcpy(saved_key+key_length*2, cursalt, SALT_SIZE);
+	memcpy(saved_key+key_length, cursalt, SALT_SIZE);
 	SHA1_Init( &ctx );
-	SHA1_Update( &ctx, saved_key, key_length*2+SALT_SIZE );
+	SHA1_Update( &ctx, saved_key, key_length+SALT_SIZE );
 	SHA1_Final( (unsigned char *) crypt_key, &ctx);
 #endif
 
@@ -403,7 +499,7 @@ static void * binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+14])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+15])];
 	}
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
