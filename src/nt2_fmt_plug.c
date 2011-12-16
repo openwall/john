@@ -281,9 +281,7 @@ static void set_key(char *_key, int index)
 {
 #ifdef MMX_COEF
 	const unsigned char *key = (unsigned char*)_key;
-	//unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
-	unsigned int *keybuffer = buf_ptr[index];
-	unsigned int *keybuf_word = keybuffer;
+	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len, temp2;
 
 #ifndef MD4_SSE_PARA
@@ -318,7 +316,7 @@ key_cleaning:
 	}
 
 #ifdef MD4_SSE_PARA
-	keybuffer[56] = len << 4;
+	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
 #else
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif
@@ -349,9 +347,7 @@ static void set_key_CP(char *_key, int index)
 {
 #ifdef MMX_COEF
 	const unsigned char *key = (unsigned char*)_key;
-	//unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
-	unsigned int *keybuffer = buf_ptr[index];
-	unsigned int *keybuf_word = keybuffer;
+	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len;
 
 #ifndef MD4_SSE_PARA
@@ -381,7 +377,7 @@ key_cleaning_enc:
 	}
 
 #ifdef MD4_SSE_PARA
-	keybuffer[56] = len << 4;
+	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
 #else
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif
@@ -400,10 +396,7 @@ static void set_key_utf8(char *_key, int index)
 {
 #ifdef MMX_COEF
 	const UTF8 *source = (UTF8*)_key;
-	//unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
-	unsigned int *keybuffer = buf_ptr[index];
-	unsigned int *keybuf_word = keybuffer;
-	unsigned int *keybuf_end = &keybuf_word[MMX_COEF * ((PLAINTEXT_LENGTH + 1) >> 1)];
+	unsigned int *keybuf_word = buf_ptr[index];
 	UTF32 chl, chh = 0x80;
 	unsigned int len = 0;
 
@@ -439,7 +432,7 @@ static void set_key_utf8(char *_key, int index)
 		}
 		source++;
 		len++;
-		if (*source) {
+		if (*source && len < PLAINTEXT_LENGTH) {
 			chh = *source;
 			if (chh >= 0xC0) {
 				unsigned int extraBytesToRead =
@@ -470,15 +463,12 @@ static void set_key_utf8(char *_key, int index)
 			len++;
 		} else {
 			chh = 0x80;
+			*keybuf_word = (chh << 16) | chl;
+			keybuf_word += MMX_COEF;
+			break;
 		}
 		*keybuf_word = (chh << 16) | chl;
 		keybuf_word += MMX_COEF;
-		if (*source == 0) {
-			break;
-		}
-		if (keybuf_word >= keybuf_end) {
-			break;
-		}
 	}
 	if (chh != 0x80 || len == 0) {
 		*keybuf_word = 0x80;
@@ -491,7 +481,7 @@ static void set_key_utf8(char *_key, int index)
 	}
 
 #ifdef MD4_SSE_PARA
-	keybuffer[56] = len << 4;
+	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
 #else
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif

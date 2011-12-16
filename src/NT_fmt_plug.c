@@ -649,7 +649,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 {
 	unsigned int i=0;
 	unsigned int md4_size=0;
-	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+	for(; key[md4_size]; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]))
@@ -741,7 +741,7 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 		}
 		source++;
 		outlen++;
-		if (*source) {
+		if (*source && (target < targetEnd)) {
 			chh = *source;
 			if (chh >= 0xC0) {
 				unsigned int extraBytesToRead =
@@ -777,15 +777,12 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
 			outlen++;
 		} else {
 			chh = 0x80;
+			*target = chh << 16 | chl;
+			target += xBuf;
+			break;
 		}
 		*target = chh << 16 | chl;
 		target += xBuf;
-		if (*source == 0) {
-			break;
-		}
-		if (target >= targetEnd) {
-			break;
-		}
 	}
 	if (chh != 0x80 || outlen == 0) {
 		*target = 0x80;
@@ -845,7 +842,7 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 	} else {
 		unsigned int temp;
 		i = 0;
-		for(md4_size = 0; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+		for(md4_size = 0; key[md4_size]; i += xBuf, md4_size++)
 			{
 				if ((temp = CP_to_Unicode[key[++md4_size]]))
 					keybuffer[i] = CP_to_Unicode[key[md4_size-1]] | (temp << 16);
