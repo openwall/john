@@ -233,6 +233,7 @@ void do_external_crack(struct db_main *db)
 {
 	unsigned char *internal;
 	c_int *external;
+	const int maxlen = db->format->params.plaintext_length;
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
 
@@ -286,6 +287,7 @@ void do_external_crack(struct db_main *db)
 			} while (1);
 		}
 
+		int_word[maxlen] = 0;
 		if (crk_process_key(int_word)) break;
 	} while (1);
 
