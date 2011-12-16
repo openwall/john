@@ -1,5 +1,7 @@
 //original work by Jeff Fay
 //some optimisations by bartavelle at bandecon.com
+/* OpenMP support and further optimizations (including some code rewrites)
+ * by Solar Designer */
 
 #include <stdio.h>
 #include <string.h>
@@ -18,7 +20,7 @@
 #define BINARY_SIZE                    16
 #define SALT_SIZE                      0
 #define MIN_KEYS_PER_CRYPT             1
-#define MAX_KEYS_PER_CRYPT             1
+#define MAX_KEYS_PER_CRYPT             0x900
 
 /*A struct used for JTR's benchmarks*/
 static struct fmt_tests tests[] = {
@@ -65,8 +67,33 @@ static const unsigned char lotus_magic_table[256] = {
 };
 
 /*Some more JTR variables*/
-static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
-static char saved_key[PLAINTEXT_LENGTH + 1];
+static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+struct fmt_main fmt_lotus5;
+
+static void init(struct fmt_main *pFmt)
+{
+#ifdef _OPENMP
+	int n = omp_get_max_threads();
+	if (n < 1)
+		n = 1;
+	if (n > fmt_lotus5.params.max_keys_per_crypt)
+		n = fmt_lotus5.params.max_keys_per_crypt;
+	fmt_lotus5.params.min_keys_per_crypt = n;
+#endif
+
+	crypt_key = mem_alloc_tiny(
+	    (sizeof(*crypt_key) + sizeof(*saved_key)) *
+	    fmt_lotus5.params.max_keys_per_crypt,
+	    MEM_ALIGN_CACHE);
+	saved_key = (void *)((char *)crypt_key +
+	    sizeof(*crypt_key) * fmt_lotus5.params.max_keys_per_crypt);
+}
 
 /*Utility function to convert hex to bin */
 static void * binary (char *ciphertext)
@@ -98,18 +125,27 @@ valid (char *ciphertext, struct fmt_main *pFmt)
 /*sets the value of saved_key so we can play with it*/
 static void set_key (char *key, int index)
 {
-  strnzcpy (saved_key, key, PLAINTEXT_LENGTH + 1);
+  strnzcpy (saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
 /*retrieves the saved key; used by JTR*/
 static char * get_key (int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
 
-static int cmp_all (void *binary, int index)
+static int cmp_all (void *binary, int count)
 {
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
+	int index;
+	for (index = 0; index < count; index++)
+		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
+			return 1;
+	return 0;
+}
+
+static int cmp_one (void *binary, int index)
+{
+	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
 static int cmp_exact (char *source, int index)
@@ -117,43 +153,47 @@ static int cmp_exact (char *source, int index)
 	return 1;
 }
 
-
 /*Beginning of private functions*/
 /* Takes the plaintext password and generates the second row of our
  * working matrix for the final call to the mixing function*/
-void
-lotus_transform_password (unsigned char *inpass, unsigned char *outh)
+void MAYBE_INLINE
+lotus_transform_password (unsigned char *i1, unsigned char *o1,
+    unsigned char *i2, unsigned char *o2)
 {
-  unsigned char prevbyte;
+  unsigned char p1, p2;
   int i;
 
-  prevbyte = 0x00;
-  for (i = 0; i < 16; i++)
+  p1 = p2 = 0x00;
+  for (i = 0; i < 8; i++)
     {
-      *outh = lotus_magic_table[ARCH_INDEX((*inpass) ^ prevbyte)];
-      prevbyte = *outh;
-      ++outh;
-      ++inpass;
+      p1 = *o1++ = lotus_magic_table[ARCH_INDEX(*i1++ ^ p1)];
+      p2 = *o2++ = lotus_magic_table[ARCH_INDEX(*i2++ ^ p2)];
+      p1 = *o1++ = lotus_magic_table[ARCH_INDEX(*i1++ ^ p1)];
+      p2 = *o2++ = lotus_magic_table[ARCH_INDEX(*i2++ ^ p2)];
     }
 }
 
 /* The mixing function: perturbs the first three rows of the matrix*/
-void lotus_mix (unsigned char *lotus_matrix)
+void MAYBE_INLINE lotus_mix (unsigned char *m1, unsigned char *m2)
 {
   int i, j;
-  unsigned char prevbyte;
-  unsigned char *temp;
+  unsigned char p1, p2;
+  unsigned char *t1, *t2;
 
-  prevbyte = 0x00;
+  p1 = p2 = 0x00;
 
   for (i = 18; i > 0; i--)
     {
-      temp = lotus_matrix;
-      for (j = 48; j > 0; j--)
+      t1 = m1;
+      t2 = m2;
+      for (j = 48; j > 0; )
 	{
-	  *temp = *temp ^ lotus_magic_table[ARCH_INDEX((j + prevbyte) & 0xff)];
-	  prevbyte = *temp;
-	  temp++;
+	  p1 = t1[0] ^= lotus_magic_table[ARCH_INDEX((j + p1) & 0xff)];
+	  p2 = t2[0] ^= lotus_magic_table[ARCH_INDEX((j-- + p2) & 0xff)];
+	  p1 = t1[1] ^= lotus_magic_table[ARCH_INDEX((j + p1) & 0xff)];
+	  p2 = t2[1] ^= lotus_magic_table[ARCH_INDEX((j-- + p2) & 0xff)];
+	  t1 += 2;
+	  t2 += 2;
 	}
     }
 }
@@ -162,43 +202,65 @@ void lotus_mix (unsigned char *lotus_matrix)
 /*the last public function; generates ciphertext*/
 static void crypt_all (int count)
 {
-  unsigned char password[PLAINTEXT_LENGTH];
-  unsigned char lotus_matrix[64], *lotus_matrix1, *lotus_matrix2, *lotus_matrix3, *lotus_matrix4;
-  int i;
+ int index;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+ for (index = 0; index < count; index += 2) {
+  struct {
+   union {
+    unsigned char m[64];
+    unsigned char m4[4][16];
+    ARCH_WORD m4w[4][16 / ARCH_SIZE];
+   } u;
+  } ctx[2];
   int password_length;
 
-  password_length = strlen (saved_key);
-  memset (password, (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
-  lotus_matrix1 = lotus_matrix;
-  lotus_matrix2 = lotus_matrix1 + 16;
-  lotus_matrix3 = lotus_matrix2 + 16;
-  lotus_matrix4 = lotus_matrix3 + 16;
-  memcpy (password, saved_key, password_length);
+  memset(ctx[0].u.m4[0], 0, 16);
+  password_length = strlen(saved_key[index]);
+  memset(ctx[0].u.m4[1], (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
+  memcpy(ctx[0].u.m4[1], saved_key[index], password_length);
 
-  memset (lotus_matrix1, 0, 16);
-  memcpy (lotus_matrix2, password, 16);
-  memcpy (lotus_matrix3, password, 16);
-  lotus_transform_password (lotus_matrix2, lotus_matrix4);
-  lotus_mix (lotus_matrix);
-  memcpy (lotus_matrix2, lotus_matrix4, 16);
-  for (i = 0; i < 16; i++)
-    {
-      lotus_matrix3[i] = lotus_matrix1[i] ^ lotus_matrix2[i];
-    }
-  lotus_mix (lotus_matrix);
-  memcpy (crypt_key, lotus_matrix1, BINARY_SIZE);
+  memcpy(ctx[0].u.m4[2], ctx[0].u.m4[1], 16);
+  memset(ctx[1].u.m4[0], 0, 16);
+  password_length = strlen(saved_key[index + 1]);
+  memset(ctx[1].u.m4[1], (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
+  memcpy(ctx[1].u.m4[1], saved_key[index + 1], password_length);
+
+  memcpy(ctx[1].u.m4[2], ctx[1].u.m4[1], 16);
+  lotus_transform_password(ctx[0].u.m4[1], ctx[0].u.m4[3],
+      ctx[1].u.m4[1], ctx[1].u.m4[3]);
+  lotus_mix(ctx[0].u.m, ctx[1].u.m);
+  memcpy(ctx[0].u.m4[1], ctx[0].u.m4[3], 16);
+  memcpy(ctx[1].u.m4[1], ctx[1].u.m4[3], 16);
+  {
+   int i;
+   for (i = 0; i < 16 / ARCH_SIZE; i++) {
+    ctx[0].u.m4w[2][i] = ctx[0].u.m4w[0][i] ^ ctx[0].u.m4w[1][i];
+    ctx[1].u.m4w[2][i] = ctx[1].u.m4w[0][i] ^ ctx[1].u.m4w[1][i];
+   }
+  }
+  lotus_mix(ctx[0].u.m, ctx[1].u.m);
+  memcpy(crypt_key[index], ctx[0].u.m4[0], BINARY_SIZE);
+  memcpy(crypt_key[index + 1], ctx[1].u.m4[0], BINARY_SIZE);
+ }
 }
 
-static int get_hash1(int index) { return crypt_key[0] & 0xf; }
-static int get_hash2(int index) { return crypt_key[0] & 0xff; }
-static int get_hash3(int index) { return crypt_key[0] & 0xfff; }
-static int get_hash4(int index) { return crypt_key[0] & 0xffff; }
-static int get_hash5(int index) { return crypt_key[0] & 0xfffff; }
+static int get_hash1(int index) { return crypt_key[index][0] & 0xf; }
+static int get_hash2(int index) { return crypt_key[index][0] & 0xff; }
+static int get_hash3(int index) { return crypt_key[index][0] & 0xfff; }
+static int get_hash4(int index) { return crypt_key[index][0] & 0xffff; }
+static int get_hash5(int index) { return crypt_key[index][0] & 0xfffff; }
+static int get_hash6(int index) { return crypt_key[index][0] & 0xffffff; }
+static int get_hash7(int index) { return crypt_key[index][0] & 0x7ffffff; }
 static int binary_hash1(void * binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
 static int binary_hash2(void * binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
 static int binary_hash3(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
 static int binary_hash4(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
 static int binary_hash5(void * binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash6(void * binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash7(void * binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
 
 /* C's version of a class specifier */
 struct fmt_main fmt_lotus5 = {
@@ -213,10 +275,10 @@ struct fmt_main fmt_lotus5 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -227,7 +289,9 @@ struct fmt_main fmt_lotus5 = {
 			binary_hash2,
 			binary_hash3,
 			binary_hash4,
-			binary_hash5
+			binary_hash5,
+			binary_hash6,
+			binary_hash7
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -240,9 +304,12 @@ struct fmt_main fmt_lotus5 = {
 			get_hash2,
 			get_hash3,
 			get_hash4,
-			get_hash5
+			get_hash5,
+			get_hash6,
+			get_hash7
 		},
 		cmp_all,
-		cmp_all,
-		cmp_exact}
+		cmp_one,
+		cmp_exact
+	}
 };

@@ -195,7 +195,7 @@ default:
 	@echo "sco-x86-any-cc           SCO, x86, cc"
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
-	@echo "macosx-x86-64[i]         Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
+	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
 	@echo "macosx-x86-sse2[i]       Mac OS X, x86 with SSE2"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
@@ -1067,7 +1067,7 @@ win32-cygwin-x86-mmx:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
-		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=2" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=3" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-cygwin-x86-any:

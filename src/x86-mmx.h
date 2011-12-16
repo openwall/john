@@ -78,15 +78,13 @@
 #define MD5_X2				0
 #define MD5_IMM				1
 
-#ifdef _OPENMP
+#if defined(_OPENMP) || defined(_MSC_VER) || \
+    (defined(__GNUC__) && \
+    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)))
 #define BF_ASM				0
 #define BF_X2				1
 #else
-#ifdef _MSC_VER
-#define BF_ASM				0
-#else
 #define BF_ASM				1
-#endif
 #define BF_X2				0
 #endif
 #define BF_SCALE			1

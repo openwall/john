@@ -659,6 +659,7 @@ static struct fmt_tests _Preloads_26[] =
 	{NULL}
 };
 
+#if ARCH_LITTLE_ENDIAN
 //dynamic_27 --> FreeBSD MD5
 static DYNAMIC_primitive_funcp _Funcs_27[] =
 {
@@ -707,6 +708,7 @@ static DYNAMIC_Constants _Const_28[] =
 	{"$apr1$"},
 	{NULL}
 };
+#endif
 
 //dynamic_29 --> raw-md5-unicode  md5(unicode($p))
 static DYNAMIC_primitive_funcp _Funcs_29[] =

@@ -1,5 +1,13 @@
 #include "arch.h"
 
+#ifdef __sun
+/* Sun's assembler doesn't recognize .space */
+#define DO_SPACE(size)			.zero size
+#else
+/* Mac OS X assembler doesn't recognize .zero */
+#define DO_SPACE(size)			.space size
+#endif
+
 // extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 
 #if (MMX_COEF == 2)
@@ -46,7 +54,7 @@ const_stage3:
 
 .align(4*MMX_COEF)
 buffer:
-.zero(64*2)
+DO_SPACE(64*2)
 
 #define ctxa %mm0
 #define ctxb %mm1
@@ -277,7 +285,7 @@ const_stage3:
 
 .align(4*MMX_COEF)
 buffer:
-.zero(64*4)
+DO_SPACE(64*4)
 
 #define ctxa %xmm0
 #define ctxb %xmm1
