@@ -316,7 +316,7 @@ static void set_key_utf8(char *_key, int index)
 		}
 		source++;
 		len++;
-		if (*source && len < PLAINTEXT_LENGTH) {
+		if (*source && len < PLAINTEXT_LENGTH + (SALT_SIZE >> 1)) {
 			chh = *source;
 			if (chh >= 0xC0) {
 				unsigned int extraBytesToRead =
