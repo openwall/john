@@ -19,8 +19,8 @@
 #define CIPHERTEXT_LENGTH              32
 #define BINARY_SIZE                    16
 #define SALT_SIZE                      0
-#define MIN_KEYS_PER_CRYPT             1
-#define MAX_KEYS_PER_CRYPT             0x900
+#define MIN_KEYS_PER_CRYPT             2
+#define MAX_KEYS_PER_CRYPT             0x900 /* must be even */
 
 /*A struct used for JTR's benchmarks*/
 static struct fmt_tests tests[] = {
@@ -82,6 +82,7 @@ static void init(struct fmt_main *pFmt)
 	int n = omp_get_max_threads();
 	if (n < 1)
 		n = 1;
+	n *= 2;
 	if (n > fmt_lotus5.params.max_keys_per_crypt)
 		n = fmt_lotus5.params.max_keys_per_crypt;
 	fmt_lotus5.params.min_keys_per_crypt = n;

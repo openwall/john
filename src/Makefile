@@ -196,7 +196,7 @@ default:
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
 	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
-	@echo "macosx-x86-sse2[i]       Mac OS X, x86 with SSE2"
+	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"

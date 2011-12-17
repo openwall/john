@@ -79,9 +79,11 @@ static void init(struct fmt_main *pFmt)
 {
 	MD5_std_init(pFmt);
 #if defined(_OPENMP) && defined(MD5_SSE_PARA)
-	omp_para = OMP_SCALE * omp_get_max_threads();
+	omp_para = omp_get_max_threads();
 	if (omp_para < 1)
 		omp_para = 1;
+	fmt_MD5.params.min_keys_per_crypt = MD5_N * omp_para;
+	omp_para *= OMP_SCALE;
 	fmt_MD5.params.max_keys_per_crypt = MD5_N * omp_para;
 #elif MD5_std_mt
 	fmt_MD5.params.min_keys_per_crypt = MD5_std_min_kpc;
