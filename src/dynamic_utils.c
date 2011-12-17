@@ -3,7 +3,7 @@
  * in 2009. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright ï¿½ 2009 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
@@ -38,9 +38,14 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	for (i = 0; i < 1000; ++i)
 	{
 		char *sz = dynamic_PRELOAD_SIGNATURE(i);
+		char Type[14], *cp;
 		if (!sz)
 			break;
-		printf ("Format = dynamic_%d%s  type = %s\n", i, i<10?" ":"", sz);
+		strncpy(Type, sz, sizeof(Type));
+		Type[13] = 0;
+		cp = strchr(Type, ':');
+		if (cp) *cp = 0;
+		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
 	}
 
 	// The config has not been loaded, so we have to load it now, if we want to 'check'
