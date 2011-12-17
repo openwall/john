@@ -100,7 +100,7 @@ unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 
 static unsigned char *saved_key;
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
-static unsigned int key_length;
+static int key_length;
 
 #endif
 
@@ -164,7 +164,6 @@ static void * get_salt(char * ciphertext)
 
 static void set_key_CP(char *_key, int index);
 static void set_key_utf8(char *_key, int index);
-extern struct fmt_main fmt_mssql05;
 
 static void init(struct fmt_main *pFmt)
 {
@@ -174,14 +173,14 @@ static void init(struct fmt_main *pFmt)
 	saved_key = mem_alloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
 	if (options.utf8) {
-		fmt_mssql05.methods.set_key = set_key_utf8;
-		fmt_mssql05.params.plaintext_length = PLAINTEXT_LENGTH * 3;
+		pFmt->methods.set_key = set_key_utf8;
+		pFmt->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 	}
 	else if (options.iso8859_1 || options.ascii) {
 		; // do nothing
 	}
 	else {
-		fmt_mssql05.methods.set_key = set_key_CP;
+		pFmt->methods.set_key = set_key_CP;
 	}
 }
 
@@ -273,7 +272,7 @@ key_cleaning_enc:
 	key_length = enc_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
 	                          (unsigned char*)_key, strlen(_key));
 	if (key_length <= 0)
-		key_length = strlen16((UTF16*)&saved_key);
+		key_length = strlen16((UTF16*)saved_key);
 	key_length <<= 1;
 #endif
 }
@@ -370,10 +369,12 @@ static void set_key_utf8(char *_key, int index)
 
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
 #else
-	key_length = utf8_to_utf16((UTF16*)&saved_key, PLAINTEXT_LENGTH + 1,
-	                           (unsigned char*)_key, strlen(_key) << 1);
+	key_length = utf8_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
+	                           (unsigned char*)_key, strlen(_key));
 	if (key_length <= 0)
-		key_length = strlen16((UTF16*)&saved_key);
+		key_length = strlen16((UTF16*)saved_key);
+
+	key_length <<= 1;
 #endif
 }
 
@@ -390,7 +391,7 @@ static char *get_key(int index) {
 	out[i] = 0;
 	return (char*)utf16_to_enc(out);
 #else
-	saved_key[key_length] = 0;
+	((UTF16*)saved_key)[key_length>>1] = 0;
 	return (char*)utf16_to_enc((UTF16*)saved_key);
 #endif
 }
