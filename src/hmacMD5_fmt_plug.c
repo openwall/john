@@ -180,7 +180,7 @@ static int hmacmd5_cmp_all(void *binary, int count) {
 #endif
 		for(x=0;x<MMX_COEF;x++)
 		{
-			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4] )
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*16] )
 				return 1;
 		}
 	return 0;
