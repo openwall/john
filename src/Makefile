@@ -1339,13 +1339,13 @@ depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
 
 test:
-	cd ../test && ./tstall quick
+	cd ../test && perl jtrts.pl
 
 test_full:
-	cd ../test && ./tstall
+	cd ../test && perl jtrts.pl -type full
 
 test_utf8:
-	cd ../test && ./tstall utf8
+	cd ../test && perl jtrts.pl -type utf-8
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
