@@ -2,8 +2,10 @@
  * generic salted-sha1 support for LDAP style password storage
  * only works with salt that are powers of 2
  *
- * by bartavelle?
- * XXX: need a licensing statement
+ * Copyright (c) 2003 Simon Marechal
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #define MAX_SALT_LEN	16
