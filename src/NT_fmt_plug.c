@@ -649,7 +649,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 {
 	unsigned int i=0;
 	unsigned int md4_size=0;
-	for(; key[md4_size]; i += xBuf, md4_size++)
+	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]))
@@ -842,7 +842,7 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 	} else {
 		unsigned int temp;
 		i = 0;
-		for(md4_size = 0; key[md4_size]; i += xBuf, md4_size++)
+		for(md4_size = 0; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
 			{
 				if ((temp = CP_to_Unicode[key[++md4_size]]))
 					keybuffer[i] = CP_to_Unicode[key[md4_size-1]] | (temp << 16);
