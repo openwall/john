@@ -38,9 +38,14 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	for (i = 0; i < 1000; ++i)
 	{
 		char *sz = dynamic_PRELOAD_SIGNATURE(i);
+		char Type[14], *cp;
 		if (!sz)
 			break;
-		printf ("Format = dynamic_%d%s  type = %s\n", i, i<10?" ":"", sz);
+		strncpy(Type, sz, sizeof(Type));
+		Type[13] = 0;
+		cp = strchr(Type, ':');
+		if (cp) *cp = 0;
+		printf ("Format = %s%s  type = %s\n", Type, strlen(Type)<10?" ":"", sz);
 	}
 
 	// The config has not been loaded, so we have to load it now, if we want to 'check'

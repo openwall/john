@@ -607,12 +607,12 @@ static int HEX_valid(char *Hex) {
 		return -1;
 	Hex += 4;
 	for (len = 0; ;++len, Hex+=2) {
-		if (atoi16[(unsigned char)Hex[0]] == 0x7f) {
-			if ((unsigned char)Hex[0] == '$' || !Hex[0])
+		if (atoi16[ARCH_INDEX(Hex[0])] == 0x7f) {
+			if (Hex[0] == '$' || !Hex[0])
 				return len;
 			return -1;
 		}
-		if (atoi16[(unsigned char)Hex[1]] == 0x7f)
+		if (atoi16[ARCH_INDEX(Hex[1])] == 0x7f)
 			return -1; // odd length
 	}
 }
@@ -680,7 +680,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		cipherTextLen = 40;
 	}
 	for (i = 0; i < cipherTextLen; i++){
-		if (atoi16[(unsigned char)cp[i]] == 0x7f)
+		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
@@ -707,13 +707,13 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		} else {
 			cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
-		strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
-		if (!strstr(cpX, "$$")) {
+			strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
+			if (!strstr(cpX, "$$")) {
+				MEM_FREE(cpX);
+				return 0;
+			}
 			MEM_FREE(cpX);
-			return 0;
 		}
-		MEM_FREE(cpX);
-	}
 	}
 	if (pPriv->b2Salts==1 && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], "$$2"))
 		return 0;
@@ -895,7 +895,7 @@ static void set_salt(void *salt)
 	if (!salt || curdat.dynamic_FIXED_SALT_SIZE == 0) {
 		saltlen = 0;
 		return;
-						}
+	}
 	cpsalt = *((unsigned char**)salt);
 	saltlen = *cpsalt++ - '0';
 	saltlen <<= 3;
@@ -1000,7 +1000,7 @@ static void set_key(char *key, int index)
 					goto key_cleaning;
 				}
 				if (!(temp & 0xff000000))
-			{
+				{
 					*keybuf_word = temp | (0x80 << 24);
 					len+=3;
 					goto key_cleaning;
@@ -1129,7 +1129,7 @@ static char *get_key(int index)
 //			s = saved_key_len[index];  // NOTE, we now have to get the length from the buffer, we do NOT store it into a saved_key_len buffer.
 			if (dynamic_use_sse==3) {
 #ifndef SHA1_SSE_PARA
-			s = saved_key_len[index];
+				s = saved_key_len[index];
 #else
 				ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(sinput_buf[idx])))[index&(MMX_COEF-1)];
 				s = keybuffer[15*MMX_COEF] >> 3;
@@ -3906,9 +3906,9 @@ void DynamicFunc__crypt()
 			}
 		} else {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
-			SSE_Intrinsics_LoadLens(0, i);
-			SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key[i]), 1);
-		}
+				SSE_Intrinsics_LoadLens(0, i);
+				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key[i]), 1);
+			}
 		}
 		return;
 	}
@@ -3919,8 +3919,8 @@ void DynamicFunc__crypt()
 			for (i = 0; i < cnt; ++i)
 				mdfivemmx_nosizeupdate((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), 1);
 		} else {
-		for (i = 0; i < cnt; ++i)
-			mdfivemmx((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+			for (i = 0; i < cnt; ++i)
+				mdfivemmx((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
 		}
 		return;
 	}
@@ -4797,9 +4797,9 @@ void DynamicFunc__crypt_in1_to_out2()
 			}
 		} else {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
-			SSE_Intrinsics_LoadLens(0, i);
-			SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
-		}
+				SSE_Intrinsics_LoadLens(0, i);
+				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+			}
 		}
 		return;
 	}
@@ -4810,8 +4810,8 @@ void DynamicFunc__crypt_in1_to_out2()
 			for (i = 0; i < cnt; ++i)
 				mdfivemmx_nosizeupdate((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), 1);
 		} else {
-		for (i = 0; i < cnt; ++i)
-			mdfivemmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+			for (i = 0; i < cnt; ++i)
+				mdfivemmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
 		}
 		return;
 	}
