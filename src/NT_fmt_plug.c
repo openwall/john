@@ -649,10 +649,10 @@ static inline void set_key_helper(unsigned int * keybuffer,
 {
 	unsigned int i=0;
 	unsigned int md4_size=0;
-	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+	for(; key[md4_size]; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
-		if ((temp = key[++md4_size]))
+		if ((temp = key[++md4_size]) && md4_size < PLAINTEXT_LENGTH)
 		{
 			keybuffer[i] = key[md4_size-1] | (temp << 16);
 		}
@@ -704,7 +704,7 @@ static inline void set_key_helper_utf8(unsigned int * keybuffer, unsigned int xB
     const UTF8 * source, unsigned int lenStoreOffset, unsigned int *lastlen)
 {
 	unsigned int *target = keybuffer;
-	unsigned int *targetEnd = &keybuffer[xBuf * ((PLAINTEXT_LENGTH + 1) >> 1)];
+	unsigned int *targetEnd = &keybuffer[xBuf * (PLAINTEXT_LENGTH >> 1)];
 	UTF32 chl, chh = 0x80;
 	unsigned int outlen = 0;
 
@@ -842,9 +842,9 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 	} else {
 		unsigned int temp;
 		i = 0;
-		for(md4_size = 0; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+		for(md4_size = 0; key[md4_size]; i += xBuf, md4_size++)
 			{
-				if ((temp = CP_to_Unicode[key[++md4_size]]))
+				if ((temp = CP_to_Unicode[key[++md4_size]]) && md4_size < PLAINTEXT_LENGTH)
 					keybuffer[i] = CP_to_Unicode[key[md4_size-1]] | (temp << 16);
 				else {
 					keybuffer[i] = CP_to_Unicode[key[md4_size-1]] | 0x800000;
