@@ -1339,12 +1339,21 @@ depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
 
 test:
-	cd ../test && perl jtrts.pl
+	cd ../test && perl jtrts.pl -q
 
 test_full:
-	cd ../test && perl jtrts.pl -type full
+	cd ../test && perl jtrts.pl -q -type full
 
 test_utf8:
+	cd ../test && perl jtrts.pl -q -type utf-8
+
+test_verbose:
+	cd ../test && perl jtrts.pl
+
+test_full_verbose:
+	cd ../test && perl jtrts.pl -type full
+
+test_utf8_verbose:
 	cd ../test && perl jtrts.pl -type utf-8
 
 clean:
