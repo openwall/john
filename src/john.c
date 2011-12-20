@@ -241,7 +241,7 @@ static void john_load(void)
 #endif
 
 	if (options.flags & FLG_EXTERNAL_CHK)
-		ext_init(options.external);
+		ext_init(options.external, NULL);
 
 	if (options.flags & FLG_MAKECHR_CHK) {
 		options.loader.flags |= DB_CRACKED;
@@ -332,6 +332,10 @@ static void john_load(void)
 				john_loaded_counts(),
 				database.format->params.format_name,
 				database.format->params.algorithm_name);
+
+			// Tell External our max length
+			if (options.flags & FLG_EXTERNAL_CHK)
+				ext_init(options.external, &database);
 		}
 
 		if (database.password_count) {

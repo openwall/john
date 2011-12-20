@@ -30,7 +30,7 @@ extern void *f_filter;
 /*
  * Initializes an external mode.
  */
-extern void ext_init(char *mode);
+extern void ext_init(char *mode, struct db_main *db);
 
 /*
  * Calls an external word filter. Returns 0 if the word is rejected.

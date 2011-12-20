@@ -253,7 +253,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			fprintf(stderr, "Error, dictionary file is too large for john to read (probably a 32 bit OS issue)\n");
 			error();
 		}
-		/* If the file is < max_wordfile_memory, then we work from a memory map of the file */
+		/* If the file is < max_wordfile_memory, then we work from a
+		   memory map of the file. But this is disabled if we are also
+		   using an external filter, as a modification of a word could
+		   trash the buffer */
+		if (!(options.flags & FLG_EXTERNAL_CHK))
 #ifdef HAVE_MPI
 		if ((mpi_p > 1 && file_len > mpi_p * 100 && file_len / mpi_p < db->options->max_wordfile_memory) ||
 		    (file_len < db->options->max_wordfile_memory || db->options->max_wordfile_memory == 0)) {

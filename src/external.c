@@ -57,6 +57,7 @@ static struct cfg_list *ext_source;
 static struct cfg_line *ext_line;
 static int ext_pos;
 static int progress = -1;
+static int maxlen = PLAINTEXT_BUFFER_SIZE - 1;
 
 static int get_progress(int *hundth_perc)
 {
@@ -86,8 +87,13 @@ static void ext_rewind(void)
 	ext_pos = 0;
 }
 
-void ext_init(char *mode)
+void ext_init(char *mode, struct db_main *db)
 {
+	if (db) {
+		maxlen = db->format->params.plaintext_length;
+		return;
+	}
+
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
 #ifdef HAVE_MPI
 		if (mpi_id == 0)
@@ -188,6 +194,7 @@ int ext_filter_body(char *in, char *out)
 		external += 4;
 	} while (1);
 
+	out[maxlen] = 0;
 	return 1;
 }
 
@@ -233,7 +240,6 @@ void do_external_crack(struct db_main *db)
 {
 	unsigned char *internal;
 	c_int *external;
-	const int maxlen = db->format->params.plaintext_length;
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
 
