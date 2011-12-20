@@ -291,7 +291,7 @@ static void set_key(char *_key, int index)
 	len = 0;
 	while((temp2 = *key++)) {
 		unsigned int temp;
-		if ((temp = *key++))
+		if ((temp = *key++) && len < PLAINTEXT_LENGTH - 1)
 		{
 			temp2 |= (temp << 16);
 			*keybuf_word = temp2;
@@ -357,7 +357,7 @@ static void set_key_CP(char *_key, int index)
 	len = 0;
 	while((*keybuf_word = CP_to_Unicode[*key++])) {
 		unsigned int temp;
-		if ((temp = CP_to_Unicode[*key++]))
+		if ((temp = CP_to_Unicode[*key++]) && len < PLAINTEXT_LENGTH - 1)
 			*keybuf_word |= (temp << 16);
 		else {
 			*keybuf_word |= (0x80 << 16);
