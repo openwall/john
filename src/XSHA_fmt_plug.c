@@ -1,7 +1,16 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2008,2011 by Solar Designer
+ *
+ * Intrinsics support added by magnum 2011. This currently does
+ * not use OMP. If you want OMP & OpenSSL instead, uncomment
+ * the two following lines that undef's SHA1_SSE_PARA & MMX_COEF.
  */
+
+#ifdef _OPENMP
+//#undef SHA1_SSE_PARA
+//#undef MMX_COEF
+#endif
 
 #include <string.h>
 
@@ -24,7 +33,7 @@
 #define FORMAT_LABEL			"xsha"
 #define FORMAT_NAME			"Mac OS X 10.4 - 10.6 salted SHA-1"
 
-#ifdef SHA1_N_STR
+#ifdef SHA1_SSE_PARA
 #define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
 #elif defined(MMX_COEF) && MMX_COEF == 4
 #define ALGORITHM_NAME			"SSE2 4x"
@@ -418,13 +427,13 @@ static int cmp_one(void *binary, int index)
 
 	if( ((ARCH_WORD_32 *)binary)[0] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5] )
 		return 0;
-	if( ((ARCH_WORD_32 *)binary)[1] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+4] )
+	if( ((ARCH_WORD_32 *)binary)[1] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+MMX_COEF] )
 		return 0;
-	if( ((ARCH_WORD_32 *)binary)[2] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+8] )
+	if( ((ARCH_WORD_32 *)binary)[2] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+2*MMX_COEF] )
 		return 0;
-	if( ((ARCH_WORD_32 *)binary)[3] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+12] )
+	if( ((ARCH_WORD_32 *)binary)[3] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+3*MMX_COEF] )
 		return 0;
-	if( ((ARCH_WORD_32 *)binary)[4] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+16] )
+	if( ((ARCH_WORD_32 *)binary)[4] != ((ARCH_WORD_32 *)crypt_key)[x+y*MMX_COEF*5+4*MMX_COEF] )
 		return 0;
 	return 1;
 #else
@@ -449,7 +458,10 @@ struct fmt_main fmt_XSHA = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#ifndef MMX_COEF
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		fmt_default_init,
