@@ -389,33 +389,17 @@ static char *get_key(int index) {
 
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
 	unsigned int x,y=0;
 
+#ifdef SHA1_SSE_PARA
 	for(;y<SHA1_SSE_PARA;y++)
+#endif
 	for(x=0;x<MMX_COEF;x++)
 	{
 		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
 			return 1;
 	}
 	return 0;
-#else
-	int i=0;
-	while(i< (BINARY_SIZE/4) )
-	{
-		if (
-			( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
-#if (MMX_COEF > 3)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
-#endif
-		)
-			return 0;
-		i++;
-	}
-	return 1;
-#endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -433,10 +417,10 @@ static int cmp_one(void * binary, int index)
 	y = index>>(MMX_COEF>>1);
 
 	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5])   |
-	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4]) |
-	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+8]) |
-	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+12])|
-	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+16]) )
+	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+MMX_COEF]) |
+	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+2*MMX_COEF]) |
+	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+3*MMX_COEF])|
+	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4*MMX_COEF]) )
 		return 0;
 	return 1;
 #else

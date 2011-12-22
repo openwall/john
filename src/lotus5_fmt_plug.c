@@ -82,7 +82,7 @@ static void init(struct fmt_main *pFmt)
 		n = 1;
 	n *= 2;
 	if (n > pFmt->params.max_keys_per_crypt)
-		n = fmt_lotus5.params.max_keys_per_crypt;
+		n = pFmt->params.max_keys_per_crypt;
 	pFmt->params.min_keys_per_crypt = n;
 #endif
 
