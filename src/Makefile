@@ -1052,7 +1052,7 @@ win32-cygwin-x86-sse2i:
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="sse-intrinsics-32.o $(JOHN_OBJS) x86.o x86-sse.o " \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
 win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
@@ -1060,7 +1060,7 @@ win32-cygwin-x86-sse2:
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse2 -m32" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
 win32-cygwin-x86-mmx:
 	$(CP) x86-mmx.h arch.h
@@ -1085,7 +1085,7 @@ win32-mingw-x86-sse2i:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="sse-intrinsics-32.o $(JOHN_OBJS) x86.o x86-sse.o " \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+		ASFLAGS="$(ASFLAGS) -msse2 -m32  -DUNDERSCORES"
 
 win32-mingw-x86-sse2:
 	$(CP) x86-sse.h arch.h
@@ -1093,7 +1093,7 @@ win32-mingw-x86-sse2:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
-		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
+		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
 win32-mingw-x86-mmx:
 	$(CP) x86-mmx.h arch.h
