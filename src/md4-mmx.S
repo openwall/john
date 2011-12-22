@@ -17,25 +17,25 @@
 #endif
 
 // extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+// extern int mdfourmmx_nosizeupdate(unsigned char *out, unsigned char *in, int ignored) __attribute__((regparm(3)));
 
 #if (MMX_COEF == 2)
 #ifdef UNDERSCORES
 #define mdfourmmx	_mdfourmmx
+#define mdfourmmx_nosizeupdate _mdfourmmx_nosizeupdate
 #endif
 // For proper VC 'param marshalling' function stubs.
 #ifdef __MINGW32__
 #define mdfourmmx_VC @mdfourmmx_VC@12
+#define mdfourmmx_nosizeupdate_VC _mdfourmmx_nosizeupdate_VC@12
+.globl mdfourmmx_VC
+.globl mdfourmmx_nosizeupdate_VC
 #endif
 
 .globl mdfourmmx
-#ifdef __MINGW32__
-.globl mdfourmmx_VC
-#endif
+.globl mdfourmmx_nosizeupdate
 
 .data
-#if defined (MD4_SSE_PARA) && !defined (MMX_COEF)
-#define MMX_COEF 4
-#endif
 
 // align of 2*MMX_COEF was crashing on SSE2 builds (at least cross compiling from 64 bit linux)
 .align(4*MMX_COEF)
@@ -141,8 +141,24 @@ mdfourmmx_VC:
     jmp mdfourmmx_no_push
 mdfourmmx_VC_exit:
     ret $4
+
+mdfourmmx_nosizeupdate_VC:
+    lea mdfourmmx_nosizeupdate_VC_exit, %eax
+    push %eax
+    pusha
+    mov %ecx, %eax
+    mov 40(%esp), %ecx
+    
+    jmp mdfourmmx_no_size
+mdfourmmx_nosizeupdate_VC_exit:
+    ret $4
+    
 #endif
 
+mdfourmmx_nosizeupdate:
+	pusha
+	jmp mdfourmmx_no_size
+	
 mdfourmmx:
 	 //MD4 Init
 	pusha
@@ -157,6 +173,7 @@ mdfourmmx_no_push:
 	mov %ecx, (14*8)(%edx)
 	mov %ebx, (14*8+4)(%edx)
 
+mdfourmmx_no_size:
 	movq const_init_a, ctxa
 	movq const_init_b, ctxb
 	movq const_init_c, ctxc
@@ -234,22 +251,25 @@ mdfourmmx_no_push:
 
 	ret
 
-#elif (MMX_COEF == 4)
+#else  //#elif (MMX_COEF == 4)
 
 // extern int mdfoursse2(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+// extern int mdfoursse2_nosizeupdate(unsigned char *out, unsigned char *in, int ignored) __attribute__((regparm(3)));
 
 #ifdef UNDERSCORES
 #define mdfoursse2	_mdfoursse2
+#define mdfoursse2_nosizeupdate	_mdfoursse2_nosizeupdate
 #endif
 // For proper VC 'param marshalling' function stubs.
 #ifdef __MINGW32__
 #define mdfoursse2_VC @mdfoursse2_VC@12
+#define mdfoursse2_nosizeupdate_VC @mdfoursse2_nosizeupdate_VC@12
+.globl mdfoursse2_VC
+.globl mdfoursse2_nosizeupdate_VC
 #endif
 
 .globl mdfoursse2
-#ifdef __MINGW32__
-.globl mdfoursse2_VC
-#endif
+.globl mdfoursse2_nosizeupdate
 
 .data
 #if defined (MD4_SSE_PARA) && !defined (MMX_COEF)
@@ -372,7 +392,23 @@ mdfoursse2_VC:
     jmp mdfoursse2_no_push
 mdfoursse2_VC_exit:
     ret $4
+
+mdfoursse2_nosizeupdate_VC:
+    lea mdfoursse2_nosizeupdate_VC_exit, %eax
+    push %eax
+    pusha
+    mov %ecx, %eax
+    mov 40(%esp), %ecx
+
+    jmp mdfoursse2_no_size
+mdfoursse2_nosizeupdate_VC_exit:
+    ret $4
+
 #endif
+
+mdfoursse2_nosizeupdate:
+	pusha
+	jmp mdfoursse2_no_size
 
 mdfoursse2:
 	pusha
@@ -404,6 +440,7 @@ mdfoursse2_no_push:
 	shl $3, %ecx
 	mov %ecx, (14*16+12)(%edx)
 
+mdfoursse2_no_size:
 	movapd const_init_a, ctxa
 	movapd const_init_b, ctxb
 	movapd const_init_c, ctxc

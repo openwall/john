@@ -69,12 +69,16 @@
 //dynamic_27 --> FreeBSD MD5
 //dynamic_28 --> Apache MD5
 //dynamic_29 --> md5(unicode($p))			// raw-md5-unicode
+//dynamic_30 --> md4($p)                    // raw-md4
+//dynamic_31 --> md4($s.$p)
+//dynamic_32 --> md4($p.$s)
+//dynamic_33 --> md4(unicode($p))			// NT
+//dynamic_34 --> md5(md4($p))
 
-// dynamic_0  raw-md5
 static DYNAMIC_primitive_funcp _Funcs_0[] =
 {
 	//MGF_KEYS_INPUT
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_0[] =
@@ -91,7 +95,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_1[] =
@@ -107,10 +111,13 @@ static struct fmt_tests _Preloads_1[] =
 static DYNAMIC_primitive_funcp _Funcs_2[] =
 {
 	//MGF_KEYS_INPUT
-	DynamicFunc__crypt,
-	DynamicFunc__clean_input2_kwik,
-	DynamicFunc__append_from_last_output_to_input2_as_base16,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5,
+	//DynamicFunc__clean_input2_kwik,
+	//DynamicFunc__append_from_last_output_to_input2_as_base16,
+	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
+	DynamicFunc__set_input2_len_32,
+
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
 static struct fmt_tests _Preloads_2[] =
@@ -124,13 +131,19 @@ static struct fmt_tests _Preloads_2[] =
 static DYNAMIC_primitive_funcp _Funcs_3[] =
 {
 	//MGF_KEYS_INPUT
-	DynamicFunc__crypt,
-	DynamicFunc__clean_input2_kwik,
-	DynamicFunc__append_from_last_output_to_input2_as_base16,
-	DynamicFunc__crypt2,
-	DynamicFunc__clean_input2_kwik,
-	DynamicFunc__append_from_last_output2_as_base16,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5,
+	//DynamicFunc__clean_input2_kwik,
+	//DynamicFunc__append_from_last_output_to_input2_as_base16,
+	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
+	DynamicFunc__set_input2_len_32,
+
+	DynamicFunc__crypt2_md5,
+	//DynamicFunc__clean_input2_kwik,
+	//DynamicFunc__append_from_last_output2_as_base16,
+	DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix,
+	DynamicFunc__set_input2_len_32,
+
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
 static struct fmt_tests _Preloads_3[] =
@@ -147,7 +160,7 @@ static DYNAMIC_primitive_funcp _Funcs_4[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_4[] =
@@ -165,7 +178,7 @@ static DYNAMIC_primitive_funcp _Funcs_5[] =
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_5[] =
@@ -183,13 +196,13 @@ static DYNAMIC_primitive_funcp _Funcs_6[] =
 #if ARCH_LITTLE_ENDIAN
 	DynamicFunc__set_input_len_32,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 #else
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_input2_from_input,
 	DynamicFunc__append_salt2,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 #endif
 };
@@ -208,13 +221,13 @@ static DYNAMIC_primitive_funcp _Funcs_7[] =
 #if ARCH_LITTLE_ENDIAN
 	DynamicFunc__set_input_len_32,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 #else
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_input2_from_input,
 	DynamicFunc__append_salt2,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 #endif
 };
@@ -233,7 +246,7 @@ static DYNAMIC_primitive_funcp _Funcs_8[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_8[] =
@@ -252,14 +265,14 @@ static DYNAMIC_primitive_funcp _Funcs_9[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_from_last_output2_to_input1_as_base16,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 #else
 	//MGF_KEYS_BASE16_IN1
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_input2_from_input,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 #endif
 };
@@ -277,11 +290,11 @@ static DYNAMIC_primitive_funcp _Funcs_10[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_salt,
 	DynamicFunc__append_keys,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_from_last_output_to_input2_as_base16,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
 static struct fmt_tests _Preloads_10[] =
@@ -298,11 +311,11 @@ static DYNAMIC_primitive_funcp _Funcs_11[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_from_last_output_to_input2_as_base16,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
 static struct fmt_tests _Preloads_11[] =
@@ -321,7 +334,7 @@ static DYNAMIC_primitive_funcp _Funcs_12[] =
 	DynamicFunc__ToX86,
 	DynamicFunc__overwrite_salt_to_input1_no_size_fix,
 	DynamicFunc__set_input_len_64,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_12[] =
@@ -340,7 +353,7 @@ static DYNAMIC_primitive_funcp _Funcs_13[] =
 	DynamicFunc__ToX86,
 	DynamicFunc__set_input_len_32,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 
 };
@@ -361,7 +374,7 @@ static DYNAMIC_primitive_funcp _Funcs_14[] =
 	DynamicFunc__append_salt,
 	DynamicFunc__append_from_last_output2_to_input1_as_base16,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 #else
 	//MGF_KEYS_BASE16_IN1
@@ -369,7 +382,7 @@ static DYNAMIC_primitive_funcp _Funcs_14[] =
 	DynamicFunc__append_salt2,
 	DynamicFunc__append_input2_from_input,
 	DynamicFunc__append_salt2,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 #endif
 };
@@ -389,7 +402,7 @@ static DYNAMIC_primitive_funcp _Funcs_15[] =
 	DynamicFunc__append_userid,
 	DynamicFunc__append_from_last_output2_to_input1_as_base16,
 	DynamicFunc__append_salt,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_15[] =
@@ -413,11 +426,11 @@ static DYNAMIC_primitive_funcp _Funcs_16[] =
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_input2_from_input,
 	DynamicFunc__append_salt2,
-	DynamicFunc__crypt2,
+	DynamicFunc__crypt2_md5,
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_from_last_output2_as_base16,
 	DynamicFunc__append_2nd_salt2,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
 static struct fmt_tests _Preloads_16[] =
@@ -465,7 +478,7 @@ static DYNAMIC_primitive_funcp _Funcs_18[] =
 	//DynamicFunc__append_keys,
 	//DynamicFunc__append_input1_from_CONST2,
 	//DynamicFunc__append_salt,
-	//DynamicFunc__crypt,
+	//DynamicFunc__crypt_md5,
 
 	//MGF_POSetup
 	// made a 'special' function to speed this up about 20%
@@ -495,7 +508,7 @@ static DYNAMIC_primitive_funcp _Funcs_19[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__append_keys,
 	DynamicFunc__set_input_len_16,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_19[] =
@@ -520,7 +533,7 @@ static DYNAMIC_primitive_funcp _Funcs_20[] =
 	DynamicFunc__append_keys,
 	DynamicFunc__append_salt,
 	DynamicFunc__set_input_len_16,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_20[] =
@@ -545,12 +558,12 @@ static DYNAMIC_primitive_funcp _Funcs_21[] =
 	DynamicFunc__append_fld2,
 	DynamicFunc__append_input1_from_CONST1,
 	DynamicFunc__append_keys,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	DynamicFunc__SSEtoX86_switch_output1,
 	DynamicFunc__clean_input_kwik,
 	DynamicFunc__append_salt,
 	DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_21[] =
@@ -574,7 +587,7 @@ static DYNAMIC_primitive_funcp _Funcs_22[] =
 	DynamicFunc__clean_input2_kwik,
 	DynamicFunc__SHA1_crypt_input1_append_input2_base16,
 	DynamicFunc__X86toSSE_switch_input2,
-	DynamicFunc__crypt_in2_to_out1,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
 };
 static struct fmt_tests _Preloads_22[] =
@@ -590,7 +603,7 @@ static DYNAMIC_primitive_funcp _Funcs_23[] =
 {
 	//MGF_SHA1_40_BYTE_FINISH
 	//MGF_KEYS_INPUT
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	DynamicFunc__SSEtoX86_switch_output1,
 	DynamicFunc__clean_input2,
 	DynamicFunc__append_from_last_output_to_input2_as_base16,
@@ -717,7 +730,7 @@ static DYNAMIC_primitive_funcp _Funcs_29[] =
 	DynamicFunc__clean_input,
 	DynamicFunc__setmode_unicode,
 	DynamicFunc__append_keys,
-	DynamicFunc__crypt,
+	DynamicFunc__crypt_md5,
 	NULL
 };
 static struct fmt_tests _Preloads_29[] =
@@ -741,6 +754,108 @@ static struct fmt_tests _Preloads_29[] =
 	{NULL}
 };
 
+//dynamic_30 --> md4($p)                    // raw-md4
+static DYNAMIC_primitive_funcp _Funcs_30[] =
+{
+	//MGF_KEYS_INPUT
+	DynamicFunc__crypt_md4,
+	NULL
+};
+static struct fmt_tests _Preloads_30[] =
+{
+	{"$dynamic_30$f79e002ac163078c673fa2c321e5e66f","test1"},
+	{"$dynamic_30$921c92ad4664b899470e6f5a8e37b8f8","thatsworking"},
+	{"$dynamic_30$cd23914be346f8d20da217890915809c","test3"},
+	{NULL}
+};
+//dynamic_31 --> md4($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_31[] =
+{
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__crypt_md4,
+	NULL
+};
+static struct fmt_tests _Preloads_31[] =
+{
+	{"$dynamic_31$5f4de0716cc8e0c8ebbd20f5adbdc09f$fHyMBLzW","test1"},
+	{"$dynamic_31$c2dd539797c1cdefdbdd2c83ecb8e841$x84Smbf7","thatsworking"},
+	{"$dynamic_31$3a90c6e0b30cda0df2735267a2cce59c$MgTzwUaX","test3"},
+	{NULL}
+};
+//dynamic_32 --> md4($p.$s)
+static DYNAMIC_primitive_funcp _Funcs_32[] =
+{
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__crypt_md4,
+	NULL
+};
+static struct fmt_tests _Preloads_32[] =
+{
+	{"$dynamic_32$7587e30d68ce5d7e2d4e7d98a8f69ff5$RAkUuD88","test1"},
+	{"$dynamic_32$ac41e895dcebe4b4badc4280c7bbbe21$9i6Xjysc","thatsworking"},
+	{"$dynamic_32$86ea8d1ac762fe341a3c811092eda3d4$IUazKzjG","test3"},
+	{NULL}
+};
+//dynamic_33 --> md4(unicode($p))			// NT
+static DYNAMIC_primitive_funcp _Funcs_33[] =
+{
+	//MGF_UTF8
+	DynamicFunc__clean_input,
+	DynamicFunc__setmode_unicode,
+	DynamicFunc__append_keys,
+	DynamicFunc__crypt_md4,
+	NULL
+};
+static struct fmt_tests _Preloads_33[] =
+{
+	{"$dynamic_33$aacd12d27c87cac8fc0b8538aed6f058","test1"},
+	{"$dynamic_33$2a506e79bc1c0cf0e4da9c4053aa18ce","thatsworking"},
+	{"$dynamic_33$ed78e4bee2001d143286284067c3be3f","test3"},
+/*
+	{"$dynamic_29$16c47151c18ac087cd12b3a70746c790","test1"},
+	// these U= test strings will ONLY be loaded in --encoding=utf8 mode
+	{"U=$dynamic_29$94a4e171de16580742c4d141e6607bf7","\xE2\x82\xAC"},
+	{"U=$dynamic_29$03c60810f0e54d16e826aca385d776c8","\xE2\x82\xAC\xE2\x82\xAC"},
+	{"U=$dynamic_29$2d554433d7cde7ec8d16aaf126c3be6b","\xE2\x82\xAC\xC3\xBC"},
+	{"U=$dynamic_29$8007d9070b27db7b30433df2cd10abc1","\xC3\xBC\xE2\x82\xAC"},
+	// these A= test strings will ONLY be loaded if we are NOT in --encoding=utf8 mode
+	{"A=$dynamic_29$ea7ab2b5c07650badab30790d0c9b63e","\xFC"},
+	{"A=$dynamic_29$f0a0b9f1dea0e458cec9a284ff434d44","\xFC\xFC"},
+	{"A=$dynamic_29$d25a0b436b768777cc9a343d283dbf5a","\xFC\xFC\xFC"},
+	{"A=$dynamic_29$719917322bf12168f8c55939e4fec8de","\xFC\xFC\xFC\xFC"},
+	{"$dynamic_29$d41d8cd98f00b204e9800998ecf8427e",""},
+	{"$dynamic_29$9c3abef89ff76f8acd80eae37b35f64f","test2"},
+	{"$dynamic_29$849ee1b88b5d887bdb058180a666b450","test3"},
+	{"$dynamic_29$8c4cb7e8b33b56a833cdaa8673f3b425","test4"},
+	{"$dynamic_29$537e738b1ac5551f65106368dc301ece","thatsworking"},
+*/
+	{NULL}
+};
+//dynamic_34 --> md5(md4($p))
+static DYNAMIC_primitive_funcp _Funcs_34[] =
+{
+	//MGF_KEYS_INPUT
+	//MGF_SET_INP2LEN32
+	DynamicFunc__crypt_md4,
+	//DynamicFunc__clean_input2_kwik,
+	//DynamicFunc__append_from_last_output_to_input2_as_base16,
+	DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix,
+	DynamicFunc__set_input2_len_32,
+	DynamicFunc__crypt_md5_in2_to_out1,
+	NULL
+};
+static struct fmt_tests _Preloads_34[] =
+{
+	{"$dynamic_34$70bd0343fde5c0ce439b8eaed1c5930d","test1"},
+	{"$dynamic_34$7e716c197034cfc4dcdc1d23234bf65a","thatsworking"},
+	{"$dynamic_34$68fb8e1b89e88a8d006905edf3c3207f","test3"},
+	{NULL}
+};
+
 // Here is a 'dummy' constant array. This will be 'linked' to any dynamic format that does not have any constants.
 static DYNAMIC_Constants _ConstDefault[] =
 {
@@ -756,8 +871,8 @@ static DYNAMIC_Setup Setups[] =
 #else
 	{ "dynamic_1: md5($p.$s)  (joomla) ",         _Funcs_1, _Preloads_1, _ConstDefault, MGF_SALTED },
 #endif
-	{ "dynamic_2: md5(md5($p))  (e107) ",         _Funcs_2, _Preloads_2, _ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
-	{ "dynamic_3: md5(md5(md5($p))) ",            _Funcs_3, _Preloads_3, _ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
+	{ "dynamic_2: md5(md5($p))  (e107) ",         _Funcs_2, _Preloads_2, _ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32 },
+	{ "dynamic_3: md5(md5(md5($p))) ",            _Funcs_3, _Preloads_3, _ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32 },
 #if defined (MMX_COEF)
 	{ "dynamic_4: md5($s.$p)  (OSC) ",            _Funcs_4, _Preloads_4, _ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24, 31  },
 	{ "dynamic_5: md5($s.$p.$s) ",                _Funcs_5, _Preloads_5, _ConstDefault, MGF_SALTED, MGF_NO_FLAG, -12, 31  },
@@ -802,10 +917,21 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_28: Apache MD5",                   _Funcs_28,_Preloads_28,_Const_28,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, 0, 15 },
 #endif
 #if defined (MMX_COEF)
-	{ "dynamic_29: md5(unicode($p))",             _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27 } // if we are in utf8 mode, we triple this in the init() call
+	{ "dynamic_29: md5(unicode($p))",             _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27 }, // if we are in utf8 mode, we triple this in the init() call
 #else
-	{ "dynamic_29: md5(unicode($p))",             _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 40 } // if we are in utf8 mode, we triple this in the init() call
+	{ "dynamic_29: md5(unicode($p))",             _Funcs_29,_Preloads_29,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 40 }, // if we are in utf8 mode, we triple this in the init() call
 #endif
+	{ "dynamic_30: md4($p)  (raw-md4) ",          _Funcs_30,_Preloads_30,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
+#if defined (MMX_COEF)
+	{ "dynamic_31: md4($s.$p)",                   _Funcs_31,_Preloads_31,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -32, 23 },
+	{ "dynamic_32: md4($p.$s)",                   _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -32, 23 },
+	{ "dynamic_33: md4(unicode($p))",             _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27 }, // if we are in utf8 mode, we triple this in the init() call
+#else
+	{ "dynamic_31: md4($s.$p)",                   _Funcs_31,_Preloads_31,_ConstDefault, MGF_SALTED },
+	{ "dynamic_32: md4($p.$s)",                   _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED },
+	{ "dynamic_33: md4(unicode($p))",             _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 40 }, // if we are in utf8 mode, we triple this in the init() call
+#endif
+	{ "dynamic_34: md5(md4($p))",                 _Funcs_34,_Preloads_34,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32 },
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)

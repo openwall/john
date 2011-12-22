@@ -142,6 +142,7 @@
 #include "common.h"
 #include "formats.h"
 #include "md5.h"
+#include "md4.h"
 #include "dynamic.h"
 #include "options.h"
 #include "config.h"
@@ -371,6 +372,9 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #endif
 SHA_CTX sha_ctx;
 
+// simple macro for now.  We can and will improve upon this later.
+#define DoMD4(A,L,C) do{ MD4_CTX ctx; MD4_Init(&ctx); MD4_Update(&ctx,A.x1.b,L); MD4_Final(C.x1.B,&ctx);}while(0)
+
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 #define CIPHERTEXT_LENGTH		32
@@ -531,6 +535,7 @@ typedef struct private_subformat_data
 	int dynamic_base16_upcase;
 	// if set, then we load keys directly into input1 and NOT into the saved_key buffers
 	int store_keys_in_input;
+	int input2_set_len32;
 	int store_keys_in_input_unicode_convert;
 	int store_keys_normal_but_precompute_md5_to_output2;
 	int store_keys_normal_but_precompute_md5_to_output2_base16_to_input1;
@@ -803,6 +808,29 @@ static void init(struct fmt_main *pFmt)
 		MD5_std_init(pFmt);
 	}
 #endif
+
+	if (curdat.input2_set_len32) {
+		for (i = 0; i < MAX_KEYS_PER_CRYPT_X86; ++i)
+			total_len2_X86[i] = 32;
+#ifdef MMX_COEF 
+		for (i = 0; i < BLOCK_LOOPS; ++i) {
+			input_buf2[i][GETPOS(32,0)] = 0x80;
+			input_buf2[i][GETPOS(57,0)] = 0x1;
+			input_buf2[i][GETPOS(32,1)] = 0x80;
+			input_buf2[i][GETPOS(57,1)] = 0x1;
+			total_len2[i*MMX_COEF] = 32;
+			total_len2[i*MMX_COEF+1] = 32;
+#if (MMX_COEF==4)
+			input_buf2[i][GETPOS(32,2)] = 0x80;
+			input_buf2[i][GETPOS(57,2)] = 0x1;
+			input_buf2[i][GETPOS(32,3)] = 0x80;
+			input_buf2[i][GETPOS(57,3)] = 0x1;
+			total_len2[i*MMX_COEF+2] = 32;
+			total_len2[i*MMX_COEF+3] = 32;
+#endif
+		}
+#endif
+	}
 }
 
 
@@ -1369,7 +1397,7 @@ static void crypt_all(int count)
 				md5_unicode_convert = 1;
 			DynamicFunc__append_keys2();
 			md5_unicode_convert = 0;
-			DynamicFunc__crypt2();
+			DynamicFunc__crypt2_md5();
 
 			if (curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1)
 			{
@@ -2953,9 +2981,9 @@ static int __SSE_gen_BenchLowLevMD5(unsigned secs, unsigned which)
 	DynamicFunc__clean_input();
 	DynamicFunc__clean_input2();
 	DynamicFunc__append_keys();
-	DynamicFunc__crypt();
+	DynamicFunc__crypt_md5();
 	DynamicFunc__append_keys2();
-	DynamicFunc__crypt2();
+	DynamicFunc__crypt2_md5();
 
 	sTimer_sTimer(&Timer);
 	sTimer_Start(&Timer, 1);
@@ -3893,7 +3921,7 @@ void SSE_Intrinsics_LoadLens(int side, int i)
  * something like phpass, we would NOT want the conversion
  * to happen at all
  *************************************************************/
-void DynamicFunc__crypt()
+void DynamicFunc__crypt_md5()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -3935,6 +3963,44 @@ void DynamicFunc__crypt()
 		unsigned len = total_len_X86[i];
 #endif
 		DoMD5(input_buf_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
+	}
+}
+void DynamicFunc__crypt_md4()
+{
+	unsigned i;
+#ifdef MMX_COEF
+#ifdef MD4_SSE_PARA
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+				SSEmd4body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key[i]), 1);
+			}
+		} else {
+			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+				SSE_Intrinsics_LoadLens(0, i);
+				SSEmd4body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key[i]), 1);
+			}
+		}
+		return;
+	}
+#else
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; ++i)
+				mdfourmmx_nosizeupdate((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), 1);
+		} else {
+			for (i = 0; i < cnt; ++i)
+				mdfourmmx((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+		}
+		return;
+	}
+#endif
+#endif
+	for (i = 0; i < m_count; ++i) {
+		unsigned len = total_len_X86[i];
+		DoMD4(input_buf_X86[i], len, crypt_key_X86[i]);
 	}
 }
 
@@ -4659,18 +4725,18 @@ void DynamicFunc__PHPassCrypt()
 	// input buffer.  We will then append the keys to that, and never
 	// have to append the keys again (we just make sure we do NOT adjust
 	// the amount of bytes to md5 from this point no
-	DynamicFunc__crypt_to_input_raw();
+	DynamicFunc__crypt_md5_to_input_raw();
 
 	// Now append the pass
 	DynamicFunc__append_keys();
 
 	// NOTE last we do 1 less than the required number of crypts in our loop
-	DynamicFunc__crypt_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE();
+	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE();
 
 #if !ARCH_LITTLE_ENDIAN
 	// from this point on, we want to have the binary blobs in 'native' big endian
 	// format. Thus, we need to 'unswap' them.  Then the call to the
-	// DynamicFunc__crypt_to_input_raw_Overwrite_NoLen will leave the 16 bytes
+	// DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen will leave the 16 bytes
 	// output, in big endian (thus needing no swapping).
 	// we only have to 'fix up' the final crypt results.
 #if MD5_X2
@@ -4681,7 +4747,7 @@ void DynamicFunc__PHPassCrypt()
 
 	--Lcount;
 	while(--Lcount)
-		DynamicFunc__crypt_to_input_raw_Overwrite_NoLen();
+		DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
 
 	// final crypt is to the normal 'output' buffer, since john uses that to find 'hits'.
 #if !ARCH_LITTLE_ENDIAN
@@ -4689,14 +4755,14 @@ void DynamicFunc__PHPassCrypt()
 	// end of the buffer again (it has been put into BE format already.
 	// Thus, simply use the raw_overwrite again, then swap the output that
 	// is found in the input buf to the output buf.
-	DynamicFunc__crypt_to_input_raw_Overwrite_NoLen();
+	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
 #if MD5_X2
 	MD5_swap(input_buf_X86[0].x2.w2, crypt_key_X86[0].x2.w2, 4);
 #endif
 	MD5_swap(input_buf_X86[0].x1.w, crypt_key_X86[0].x1.w, 4);
 #else
 	// little endian can use 'original' crypt function.
-	DynamicFunc__crypt();
+	DynamicFunc__crypt_md5();
 #endif
 }
 void DynamicFunc__POCrypt()
@@ -4707,7 +4773,7 @@ void DynamicFunc__POCrypt()
 	//DynamicFunc__append_keys,
 	//DynamicFunc__append_input1_from_CONST2,
 	//DynamicFunc__append_salt,
-	//DynamicFunc__crypt,
+	//DynamicFunc__crypt_md5,
 
 	unsigned i, len;
 	unsigned char *pBuf = input_buf_X86[0].x1.B;
@@ -4746,7 +4812,7 @@ void DynamicFunc__POCrypt()
  * DYNAMIC primitive helper function
  * Encrypts the data in the 2nd input field into crypt_keys2.
  *************************************************************/
-void DynamicFunc__crypt2()
+void DynamicFunc__crypt2_md5()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -4779,12 +4845,40 @@ void DynamicFunc__crypt2()
 		DoMD5(input_buf2_X86[i>>MD5_X2], len, crypt_key2_X86[i>>MD5_X2]);
 	}
 }
+void DynamicFunc__crypt2_md4()
+{
+	unsigned i;
+#ifdef MMX_COEF
+#ifdef MD4_SSE_PARA
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+			SSE_Intrinsics_LoadLens(1, i);
+			SSEmd4body((unsigned char*)(&input_buf2[i]), (unsigned int*)(&crypt_key2[i]), 1);
+		}
+		return;
+	}
+#else
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		for (i = 0; i < cnt; ++i)
+			mdfourmmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf2[i]), total_len2[i]);
+		return;
+	}
+#endif
+#endif
+	for (i = 0; i < m_count; ++i) {
+
+		unsigned len = total_len2_X86[i];
+		DoMD4(input_buf2_X86[i], len, crypt_key2_X86[i]);
+	}
+}
 
 /**************************************************************
  * DYNAMIC primitive helper function
  * Encrypts the data in the 1st input field      crypt_keys2.
  *************************************************************/
-void DynamicFunc__crypt_in1_to_out2()
+void DynamicFunc__crypt_md5_in1_to_out2()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -4828,12 +4922,50 @@ void DynamicFunc__crypt_in1_to_out2()
 		DoMD5(input_buf_X86[i>>MD5_X2], len, crypt_key2_X86[i>>MD5_X2]);
 	}
 }
+void DynamicFunc__crypt_md4_in1_to_out2()
+{
+	unsigned i;
+#ifdef MMX_COEF
+#ifdef MD4_SSE_PARA
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+				SSEmd4body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+			}
+		} else {
+			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
+				SSE_Intrinsics_LoadLens(0, i);
+				SSEmd4body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+			}
+		}
+		return;
+	}
+#else
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
+		if (curdat.store_keys_in_input) {
+			for (i = 0; i < cnt; ++i)
+				mdfourmmx_nosizeupdate((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), 1);
+		} else {
+			for (i = 0; i < cnt; ++i)
+				mdfourmmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+		}
+		return;
+	}
+#endif
+#endif
+	for (i = 0; i < m_count; ++i) {
+		unsigned len = total_len_X86[i];
+		DoMD4(input_buf_X86[i], len, crypt_key2_X86[i]);
+	}
+}
 
 /**************************************************************
  * DYNAMIC primitive helper function
  * Encrypts the data in the 2nd input field into crypt_keys.
  *************************************************************/
-void DynamicFunc__crypt_in2_to_out1()
+void DynamicFunc__crypt_md5_in2_to_out1()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -4867,8 +4999,36 @@ void DynamicFunc__crypt_in2_to_out1()
 		DoMD5(input_buf2_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
 	}
 }
+void DynamicFunc__crypt_md4_in2_to_out1()
+{
+	unsigned i;
+#ifdef MMX_COEF
+#ifdef MD4_SSE_PARA
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
+		for (i = 0; i < cnt; i += MD4_SSE_PARA)
+		{
+			SSE_Intrinsics_LoadLens(1, i);
+			SSEmd4body((unsigned char*)(&input_buf2[i]), (unsigned int*)(&crypt_key[i]), 1);
+		}
+		return;
+	}
+#else
+	if (dynamic_use_sse==1) {
+		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
+		for (i = 0; i < cnt; ++i)
+			mdfourmmx((unsigned char*)&(crypt_key[i]), (unsigned char*)&(input_buf2[i]), total_len2[i]);
+		return;
+	}
+#endif
+#endif
+	for (i = 0; i < m_count; ++i) {
+		unsigned len = total_len2_X86[i];
+		DoMD4(input_buf2_X86[i], len, crypt_key_X86[i]);
+	}
+}
 
-void DynamicFunc__crypt_to_input_raw()
+void DynamicFunc__crypt_md5_to_input_raw()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -4923,7 +5083,7 @@ void DynamicFunc__crypt_to_input_raw()
 		total_len_X86[i] = 0x10;
 	}
 }
-void DynamicFunc__crypt_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
+void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -4964,7 +5124,7 @@ void DynamicFunc__crypt_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
 	}
 }
 
-void DynamicFunc__crypt_to_input_raw_Overwrite_NoLen()
+void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen()
 {
 	unsigned i;
 #ifdef MMX_COEF
@@ -5313,6 +5473,85 @@ void DynamicFunc__append_from_last_output2_as_base16()
 		total_len2_X86[i] += 32;
 	}
 }
+
+/**************************************************************
+ * DYNAMIC primitive helper function
+ * overwrites start of input2 from the output1 data using base-16
+ * an optimization, if the same thing is done over and over
+ * again, such as md5(md5(md5(md5($p))))  There, we would only
+ * call the copy and set length once, then simply call copy.
+ *************************************************************/
+void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix()
+{
+	unsigned i, j;
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		unsigned idx;
+		for (i = 0; i < m_count; ++i)
+		{
+			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
+			__SSE_overwrite_output_base16_to_input((void*)(&input_buf2[idx]), (unsigned char*)(&crypt_key[idx]), i&(MMX_COEF-1));
+		}
+		return;
+	}
+#endif
+	for (j = 0; j < m_count; ++j)
+	{
+		unsigned char *cpo, *cpi;
+		/* MD5_word *w; */
+#if MD5_X2
+		if (j&1)
+			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key_X86[j>>MD5_X2].x2.B2; /* w=input_buf_X86[j>>MD5_X2].x2.w2; */}
+		else
+#endif
+			{cpo = input_buf2_X86[j>>MD5_X2].x1.B; cpi = crypt_key_X86[j>>MD5_X2].x1.B; /* w=input_buf_X86[j>>MD5_X2].x1.w; */ }
+		for (i = 0; i < 16; ++i, ++cpi)
+		{
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+		}
+		//MD5_swap(w,w,4);
+		// if swapped, then HDAA fails on big endian systems.
+	}
+}
+/**************************************************************
+ * DYNAMIC primitive helper function
+ * overwrites start of input2 from the output2 data using base-16
+ *************************************************************/
+void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix()
+{
+	unsigned i, j;
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		unsigned idx;
+		for (i = 0; i < m_count; ++i)
+		{
+			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
+			__SSE_overwrite_output_base16_to_input((void*)(&input_buf2[idx]), (unsigned char*)(&crypt_key2[idx]), i&(MMX_COEF-1));
+		}
+		return;
+	}
+#endif
+	for (j = 0; j < m_count; ++j)
+	{
+		unsigned char *cpo, *cpi;
+		/* MD5_word *w; */
+#if MD5_X2
+		if (j&1)
+			{cpo = input_buf2_X86[j>>MD5_X2].x2.B2; cpi = crypt_key2_X86[j>>MD5_X2].x2.B2; /* w=input_buf_X86[j>>MD5_X2].x2.w2; */}
+		else
+#endif
+			{cpo = input_buf2_X86[j>>MD5_X2].x1.B; cpi = crypt_key2_X86[j>>MD5_X2].x1.B; /* w=input_buf_X86[j>>MD5_X2].x1.w; */ }
+		for (i = 0; i < 16; ++i, ++cpi)
+		{
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+		}
+		//MD5_swap(w,w,4);
+		// if swapped, then HDAA fails on big endian systems.
+	}
+}
+
 
 /**************************************************************
  * DYNAMIC primitive helper function
@@ -6491,25 +6730,6 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
 
 /**************************************************************
  * DYNAMIC primitive helper function
- * overwrites start of input2 from the output1 data using base-16
- * an optimization, if the same thing is done over and over
- * again, such as md5(md5(md5(md5($p))))  There, we would only
- * call the copy and set length once, then simply call copy.
- *************************************************************/
-void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix()
-{
-	exit(fprintf(stderr, "Error, DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix() primitive has not been implemented\n"));
-}
-/**************************************************************
- * DYNAMIC primitive helper function
- * overwrites start of input2 from the output2 data using base-16
- *************************************************************/
-void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix()
-{
-	exit(fprintf(stderr, "Error, DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix() primitive has not been implemented\n"));
-}
-/**************************************************************
- * DYNAMIC primitive helper function
  * overwrites start of input1 from the output2 data using base-16
  *************************************************************/
 void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix()
@@ -6791,6 +7011,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.plaintext_length = Setup->MaxInputLen;
 
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
+	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
 
 	if (!curdat.store_keys_in_input && Setup->startFlags&MGF_KEYS_INPUT_BE_SAFE)
 		curdat.store_keys_in_input = 3;

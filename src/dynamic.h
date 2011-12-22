@@ -83,6 +83,7 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_FreeBSDMD5Setup              0x0100
 #define MGF_RAW_SHA1_INPUT               0x0200
 #define MGF_KEYS_INPUT_BE_SAFE           0x0400
+#define MGF_SET_INP2LEN32                0x0800
 
 typedef struct DYNAMIC_Setup_t
 {
@@ -135,7 +136,8 @@ extern void DynamicFunc__clean_input();
 extern void DynamicFunc__clean_input_kwik();
 extern void DynamicFunc__clean_input_full();
 extern void DynamicFunc__append_keys();
-extern void DynamicFunc__crypt();
+extern void DynamicFunc__crypt_md5();
+extern void DynamicFunc__crypt_md4();
 extern void DynamicFunc__append_from_last_output_as_base16();
 extern void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix();
 extern void DynamicFunc__append_salt();
@@ -147,7 +149,8 @@ extern void DynamicFunc__clean_input2();
 extern void DynamicFunc__clean_input2_kwik();
 extern void DynamicFunc__clean_input2_full();
 extern void DynamicFunc__append_keys2();
-extern void DynamicFunc__crypt2();
+extern void DynamicFunc__crypt2_md5();
+extern void DynamicFunc__crypt2_md4();
 extern void DynamicFunc__append_from_last_output2_as_base16();
 extern void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix();
 extern void DynamicFunc__append_from_last_output_to_input2_as_base16();
@@ -175,8 +178,10 @@ extern void DynamicFunc__append_2nd_salt2();
 extern void DynamicFunc__append_userid();
 extern void DynamicFunc__append_userid2();
 
-extern void DynamicFunc__crypt_in1_to_out2();
-extern void DynamicFunc__crypt_in2_to_out1();
+extern void DynamicFunc__crypt_md5_in1_to_out2();
+extern void DynamicFunc__crypt_md5_in2_to_out1();
+extern void DynamicFunc__crypt_md4_in1_to_out2();
+extern void DynamicFunc__crypt_md4_in2_to_out1();
 
 extern void DynamicFunc__append_input1_from_CONST1();
 extern void DynamicFunc__append_input1_from_CONST2();
@@ -250,15 +255,15 @@ extern void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL();
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.
-extern void DynamicFunc__crypt_to_input_raw();
-extern void DynamicFunc__crypt_to_input_raw_Overwrite_NoLen();
+extern void DynamicFunc__crypt_md5_to_input_raw();
+extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
 // NOTE, the below line is called 'one' time.  It calls the 'normal' crypt mdfivemmx (and intrinsic loading)
 // for the lengths.  The lengths are not modified, but are need to be set ONCE.  From that point on,
-// we simply call the DynamicFunc__crypt_to_input_raw_Overwrite_NoLen and it calls mdfivemmx_nosizeupdate
+// we simply call the DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen and it calls mdfivemmx_nosizeupdate
 // which is a faster call (and the intrincs do NOT call SSE_Intrinsics_LoadLens within the
-// DynamicFunc__crypt_to_input_raw_Overwrite_NoLen function)   Splitting this up into 2, gives
+// DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen function)   Splitting this up into 2, gives
 // us a 1 or 2% speed increase.
-extern void DynamicFunc__crypt_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE();
+extern void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE();
 
 // special for phpass
 extern void DynamicFunc__PHPassCrypt();

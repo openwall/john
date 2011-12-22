@@ -31,19 +31,26 @@ extern void MD4_Final(unsigned char *result, MD4_CTX *ctx);
 #if (MMX_COEF == 2)
 #ifdef _MSC_VER
 int __fastcall mdfourmmx_VC(unsigned char *out, unsigned char *in, int n);
+int __fastcall mdfourmmx_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
 #define mdfourmmx mdfourmmx_VC
+#define mdfourmmx_nosizeupdate mdfourmmx_nosizeupdate_VC
 #else
 extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+extern int mdfourmmx_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 #endif
 #endif
 
 #if (MMX_COEF == 4)
 #ifdef _MSC_VER
 int __fastcall mdfoursse2_VC(unsigned char *out, unsigned char *in, int n);
+int __fastcall mdfoursse2_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
 #define mdfourmmx mdfoursse2_VC
+#define mdfourmmx_nosizeupdate mdfoursse2_nosizeupdate_VC
 #else
 #define mdfourmmx mdfoursse2
+#define mdfourmmx_nosizeupdate mdfoursse2_nosizeupdate
 extern int mdfoursse2(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+extern int mdfoursse2_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 #endif
 #endif
 
