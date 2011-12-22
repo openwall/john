@@ -2,26 +2,26 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2008,2011 by Solar Designer
  *
- * Intrinsics support added by magnum 2011. This currently does
- * not use OMP. If you want OMP & OpenSSL instead, uncomment
- * the two following lines that undef's SHA1_SSE_PARA & MMX_COEF.
+ * Intrinsics support added by magnum 2011.
  */
-
-#ifdef _OPENMP
-//#undef SHA1_SSE_PARA
-//#undef MMX_COEF
-#endif
 
 #include <string.h>
 
 #include "arch.h"
 
 #ifdef SHA1_SSE_PARA
-#define MMX_COEF	4
+#define MMX_COEF			4
 #include "sse-intrinsics.h"
-#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#define NBKEYS				(MMX_COEF * SHA1_SSE_PARA)
+
+#ifdef _OPENMP
+static unsigned int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE			256
+#endif
+
 #elif MMX_COEF
-#define NBKEYS	MMX_COEF
+#define NBKEYS				MMX_COEF
 #endif
 
 #include "params.h"
@@ -82,17 +82,8 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MMX_COEF
-
-/* Cygwin would not guarantee the alignment if these were declared static */
-#define saved_key rawSHA1_saved_key
-#define crypt_key rawSHA1_crypt_key
-#if defined (_MSC_VER)
-__declspec(align(16)) ARCH_WORD_32 saved_key[80*4*NBKEYS];
-__declspec(align(16)) ARCH_WORD_32 crypt_key[BINARY_SIZE*NBKEYS];
-#else
-ARCH_WORD_32 saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-ARCH_WORD_32 crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
-#endif
+static ARCH_WORD_32 (*saved_key);
+static ARCH_WORD_32 (*crypt_key);
 
 #else
 
@@ -102,6 +93,18 @@ static SHA_CTX ctx_salt;
 static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][5];
 
 #endif
+
+static void init(struct fmt_main *pFmt)
+{
+#ifdef MMX_COEF
+#if defined(SHA1_SSE_PARA) && defined (_OPENMP)
+	omp_t = omp_get_num_threads() * OMP_SCALE;
+	pFmt->params.max_keys_per_crypt = omp_t * NBKEYS;
+#endif
+	saved_key = mem_calloc_tiny(80*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(BINARY_SIZE * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+#endif
+}
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -287,7 +290,11 @@ static void set_salt(void *salt)
 {
 #ifdef MMX_COEF
 	int i;
+#if defined(_OPENMP) && defined(SHA1_SSE_PARA)
+	for (i = 0; i < NBKEYS*omp_t; i++)
+#else
 	for (i = 0; i < NBKEYS; i++)
+#endif
 		saved_key[(i&(MMX_COEF-1)) + (i>>(MMX_COEF>>1))*80*MMX_COEF] = *(ARCH_WORD_32*)salt;
 #else
 	SHA1_Init(&ctx_salt);
@@ -366,9 +373,18 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 #ifdef MMX_COEF
-
-#if SHA1_SSE_PARA
+#ifdef SHA1_SSE_PARA
+#ifdef _OPENMP
+	int i = 0;
+#pragma omp parallel for
+	for (i=0; i < omp_t; i++) {
+		unsigned int *in = &saved_key[i*NBKEYS*80];
+		unsigned int *out = &crypt_key[i*NBKEYS*BINARY_SIZE/4];
+		SSESHA1body(in, out, NULL, 0);
+	}
+#else
 	SSESHA1body(saved_key, crypt_key, NULL, 0);
+#endif
 #else
 	shammx_nosizeupdate_nofinalbyteswap((unsigned char*)crypt_key, (unsigned char*)saved_key, 1);
 #endif
@@ -396,7 +412,11 @@ static int cmp_all(void *binary, int count)
 	unsigned int x,y=0;
 
 #ifdef SHA1_SSE_PARA
+#ifdef _OPENMP
+	for(;y<SHA1_SSE_PARA*omp_t;y++)
+#else
 	for(;y<SHA1_SSE_PARA;y++)
+#endif
 #endif
 	for(x=0;x<MMX_COEF;x++)
 	{
@@ -458,13 +478,13 @@ struct fmt_main fmt_XSHA = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#ifndef MMX_COEF
+#if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
