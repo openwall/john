@@ -74,8 +74,6 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #include <omp.h>
 #endif
 
-struct fmt_main fmt_lotus5;
-
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
@@ -83,17 +81,17 @@ static void init(struct fmt_main *pFmt)
 	if (n < 1)
 		n = 1;
 	n *= 2;
-	if (n > fmt_lotus5.params.max_keys_per_crypt)
+	if (n > pFmt->params.max_keys_per_crypt)
 		n = fmt_lotus5.params.max_keys_per_crypt;
-	fmt_lotus5.params.min_keys_per_crypt = n;
+	pFmt->params.min_keys_per_crypt = n;
 #endif
 
-	crypt_key = mem_alloc_tiny(
+	crypt_key = mem_calloc_tiny(
 	    (sizeof(*crypt_key) + sizeof(*saved_key)) *
-	    fmt_lotus5.params.max_keys_per_crypt,
+	    pFmt->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
 	saved_key = (void *)((char *)crypt_key +
-	    sizeof(*crypt_key) * fmt_lotus5.params.max_keys_per_crypt);
+	    sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt);
 }
 
 /*Utility function to convert hex to bin */
