@@ -96,9 +96,6 @@ __declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
 char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
 char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
-#ifndef SHA1_SSE_PARA
-static unsigned long total_len;
-#endif
 static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
 #else
 
@@ -155,7 +152,7 @@ static void init(struct fmt_main *pFmt)
 #ifdef MMX_COEF
 	memset(saved_key, 0, sizeof(saved_key));
 #else
-	saved_key = mem_alloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
 	if (options.utf8) {
 		fmt_mssql.methods.set_key = set_key_enc;
@@ -187,20 +184,13 @@ static void set_key(char *key, int index) {
 #ifdef MMX_COEF
 	if(index==0)
 	{
+		int j=0;
 #ifdef SHA1_SSE_PARA
-		int j;
-		for (j=0; j<SHA1_SSE_PARA; j++)
+		for (; j<SHA1_SSE_PARA; j++)
+#endif
 			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
-#else
-		memset(saved_key, 0, 60*MMX_COEF);
-		total_len = 0;
-#endif
 	}
-#ifdef SHA1_SSE_PARA
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (2*utf8len+SALT_SIZE)<<3;
-#else
-	total_len += (utf8len*2) << ( ( (32/MMX_COEF) * index ) );
-#endif
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
 	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
@@ -237,21 +227,14 @@ static void set_key_enc(char *key, int index) {
 #ifdef MMX_COEF
 	if(index==0)
 	{
+		int j=0;
 #ifdef SHA1_SSE_PARA
-		int j;
-		for (j=0; j<SHA1_SSE_PARA; j++)
-			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
-#else
-		memset(saved_key, 0, 60*MMX_COEF);
-		total_len = 0;
+		for (; j<SHA1_SSE_PARA; j++)
 #endif
+			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
 	}
 
-#ifdef SHA1_SSE_PARA
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
-#else
-	total_len += (utf16len*2) << ( ( (32/MMX_COEF) * index ) );
-#endif
 	for(i=0;i<utf16len;i++)
 	{
 		saved_key[GETPOS((i*2), index)] = (char)utf16key[i];
@@ -285,33 +268,16 @@ static char *get_key(int index) {
 
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
 	unsigned int x,y=0;
-
+#ifdef SHA1_SSE_PARA
 	for(;y<SHA1_SSE_PARA;y++)
+#endif
 	for(x=0;x<MMX_COEF;x++)
 	{
 		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
 			return 1;
 	}
 	return 0;
-#else
-	int i=0;
-	while(i< (BINARY_SIZE/4) )
-	{
-		if (
-			( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
-#if (MMX_COEF > 3)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
-#endif
-		)
-			return 0;
-		i++;
-	}
-	return 1;
-#endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -324,29 +290,17 @@ static int cmp_exact(char *source, int count){
 static int cmp_one(void * binary, int index)
 {
 #ifdef MMX_COEF
-#if SHA1_SSE_PARA
 	unsigned int x,y;
-	x = index&3;
-	y = index/4;
+	x = index&(MMX_COEF-1);
+	y = index>>(MMX_COEF>>1);
 
-	if( ((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
-		return 0;
-	if( ((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4] )
-		return 0;
-	if( ((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+8] )
-		return 0;
-	if( ((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+12] )
-		return 0;
-	if( ((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+16] )
-		return 0;
-	return 1;
-#else
-	int i = 0;
-	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
+	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5])   |
+	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4]) |
+	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+8]) |
+	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+12])|
+	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+16]) )
 			return 0;
 	return 1;
-#endif
 #else
 	return cmp_all(binary, index);
 #endif
@@ -357,18 +311,14 @@ static void crypt_all(int count) {
 	unsigned i, index;
 	for (index = 0; index < count; ++index)
 	{
-#ifdef SHA1_SSE_PARA
 		unsigned len = (((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) & 0xff) - SALT_SIZE;
-#else
-		unsigned len = (total_len >> ((32/MMX_COEF)*index)) & 0xFF;
-#endif
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}
 #ifdef SHA1_SSE_PARA
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
 #else
-	shammx( (unsigned char *) crypt_key, (unsigned char *) saved_key, total_len + SALT_EXTRA_LEN);
+	shammx_nosizeupdate_nofinalbyteswap( (unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
 #endif
 #else
 	SHA_CTX ctx;
@@ -391,98 +341,31 @@ static void * binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+54])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+55])];
 	}
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xF;
-}
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xf; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xff; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
 
-static int binary_hash_1(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFF;
-}
-
-#ifdef SHA1_SSE_PARA
-static int get_hash_0(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xf;
-}
-static int get_hash_1(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xff;
-}
-static int get_hash_2(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xfff;
-}
-static int get_hash_3(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xffff;
-}
-static int get_hash_4(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*5] & 0xfffff;
-}
+#ifdef MMX_COEF
+#define KEY_OFF ((index/MMX_COEF)*MMX_COEF*5+(index&(MMX_COEF-1)))
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfffff; }
 #else
-static int get_hash_0(int index)
-{
-	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return ((ARCH_WORD_32 *)crypt_key)[index] & 0xFFFFF;
-}
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xfffff; }
 #endif
 
 static int salt_hash(void *salt)

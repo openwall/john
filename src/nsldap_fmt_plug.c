@@ -93,9 +93,6 @@ __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
 unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
-#ifndef SHA1_SSE_PARA
-static unsigned long total_len;
-#endif
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -125,10 +122,6 @@ static void set_key(char *_key, int index)
 	unsigned int len;
 	ARCH_WORD_32 temp;
 
-#ifndef SHA1_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((temp = JOHNSWAP(*key++)) & 0xff000000) {
 		if (!(temp & 0xff0000))
@@ -161,12 +154,7 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-
-#ifdef SHA1_SSE_PARA
 	((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 3;
-#else
-	total_len += len << ( (32/MMX_COEF) * index);
-#endif
 #else
 	strnzcpy(saved_key, _key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -176,11 +164,7 @@ static char *get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i, s;
 
-#ifdef SHA1_SSE_PARA
 	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
-#else
-	s = (total_len >> (((32/MMX_COEF)*(index)))) & 0x3F;
-#endif
 	for(i=0;i<s;i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -242,7 +226,7 @@ static void crypt_all(int count) {
 #if SHA1_SSE_PARA
 	SSESHA1body(saved_key, (ARCH_WORD_32*)crypt_key, NULL, 0);
 #else
-	shammx_nofinalbyteswap((unsigned char*) crypt_key, (unsigned char*) saved_key, total_len);
+	shammx_nosizeupdate_nofinalbyteswap((unsigned char*) crypt_key, (unsigned char*) saved_key, 1);
 #endif
 
 #else

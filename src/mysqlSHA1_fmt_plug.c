@@ -102,15 +102,6 @@ char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
 char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 char interm_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
 #endif
-#ifndef SHA1_SSE_PARA
-static unsigned long total_len;
-#if MMX_COEF > 2
-/* argument to shammx(); all intermediary plaintexts are 20 bytes long */
-#define TMPKEY_LENGTHS 0x14141414
-#else
-#define TMPKEY_LENGTHS 0x00140014
-#endif
-#endif
 
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -147,9 +138,7 @@ static void init(struct fmt_main *pFmt)
 	 */
 	for (i = 0; i < NBKEYS; i++) {
 		interm_key[GETPOS(20,i)] = 0x80;
-#ifdef SHA1_SSE_PARA
 		((unsigned int *)interm_key)[15*MMX_COEF + (i&3) + (i>>2)*80*MMX_COEF] = 20 << 3;
-#endif
 	}
 #endif
 }
@@ -160,25 +149,18 @@ static void set_key(char *key, int index) {
 
 	if (index==0)
 	{
+		int j=0;
 #ifdef SHA1_SSE_PARA
-		int j;
 		for (j=0; j<SHA1_SSE_PARA; j++)
-			memset(saved_key+j*4*80*MMX_COEF, 0, 56*MMX_COEF);
-#else
-		total_len = 0;
-		memset(saved_key, 0, 56*MMX_COEF);
 #endif
+			memset(saved_key+j*4*80*MMX_COEF, 0, 56*MMX_COEF);
 	}
 
 	i = -1;
 	while (key[++i])
 		saved_key[GETPOS(i, index)] = key[i];
 
-#ifdef SHA1_SSE_PARA
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = i << 3;
-#else
-	total_len += i << ( ( (32/MMX_COEF) * index ) );
-#endif
 	saved_key[GETPOS(i, index)] = 0x80;
 #else
 	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
@@ -190,11 +172,7 @@ static char *get_key(int index) {
 	static char out[PLAINTEXT_LENGTH+1];
 	unsigned int i, s;
 
-#ifdef SHA1_SSE_PARA
 	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
-#else
-	s = (total_len >> (((32 / MMX_COEF) * (index)))) & 0xff;
-#endif
 	for (i = 0; i < s; i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
 	out[i] = 0;
@@ -289,9 +267,9 @@ static void crypt_all(int count) {
 	SSESHA1body(interm_key, (unsigned int *)crypt_key, NULL, 0);
 
 #else
-	shammx_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, total_len);
+	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
 	memcpy(interm_key, crypt_key, MMX_COEF*BINARY_SIZE);
-	shammx((unsigned char *) crypt_key, (unsigned char *) interm_key, TMPKEY_LENGTHS);
+	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) interm_key, 1);
 #endif
 #else
 	SHA1_Init(&ctx);
@@ -315,7 +293,7 @@ static void *binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
