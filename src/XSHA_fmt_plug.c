@@ -17,7 +17,7 @@
 #ifdef _OPENMP
 static unsigned int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE			256
+#define OMP_SCALE			128
 #endif
 
 #elif MMX_COEF
@@ -84,6 +84,7 @@ static struct fmt_tests tests[] = {
 #ifdef MMX_COEF
 static ARCH_WORD_32 (*saved_key);
 static ARCH_WORD_32 (*crypt_key);
+static ARCH_WORD_32 cur_salt;
 
 #else
 
@@ -98,7 +99,9 @@ static void init(struct fmt_main *pFmt)
 {
 #ifdef MMX_COEF
 #if defined(SHA1_SSE_PARA) && defined (_OPENMP)
-	omp_t = omp_get_num_threads() * OMP_SCALE;
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt = omp_t * NBKEYS;
+	omp_t *= OMP_SCALE;
 	pFmt->params.max_keys_per_crypt = omp_t * NBKEYS;
 #endif
 	saved_key = mem_calloc_tiny(80*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -289,13 +292,7 @@ static int salt_hash(void *salt)
 static void set_salt(void *salt)
 {
 #ifdef MMX_COEF
-	int i;
-#if defined(_OPENMP) && defined(SHA1_SSE_PARA)
-	for (i = 0; i < NBKEYS*omp_t; i++)
-#else
-	for (i = 0; i < NBKEYS; i++)
-#endif
-		saved_key[(i&(MMX_COEF-1)) + (i>>(MMX_COEF>>1))*80*MMX_COEF] = *(ARCH_WORD_32*)salt;
+	cur_salt = *(ARCH_WORD_32*)salt;
 #else
 	SHA1_Init(&ctx_salt);
 	SHA1_Update(&ctx_salt, salt, SALT_SIZE);
@@ -360,9 +357,11 @@ static char *get_key(int index)
 	static char out[PLAINTEXT_LENGTH + 1];
 
 	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
-	for(i=4;i<s;i++)
-		out[i-4] = ((char*)saved_key)[ GETPOS(i, index) ];
-	out[i-4] = 0;
+
+	for(i = 0; i < (s - SALT_SIZE); i++)
+		out[i] = ((char*)saved_key)[ GETPOS((i + SALT_SIZE), index) ];
+	out[i] = 0;
+
 	return (char *) out;
 #else
 	saved_key[index][saved_key_length[index]] = 0;
@@ -373,22 +372,24 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 #ifdef MMX_COEF
-#ifdef SHA1_SSE_PARA
-#ifdef _OPENMP
 	int i = 0;
-#pragma omp parallel for
+#if defined(SHA1_SSE_PARA) && defined(_OPENMP)
+	#pragma omp parallel for
 	for (i=0; i < omp_t; i++) {
+#endif
 		unsigned int *in = &saved_key[i*NBKEYS*80];
 		unsigned int *out = &crypt_key[i*NBKEYS*BINARY_SIZE/4];
+		unsigned int j;
+		for (j=0; j < NBKEYS; j++)
+			in[(j&(MMX_COEF-1)) + (j>>(MMX_COEF>>1))*80*MMX_COEF] = cur_salt;
+#ifdef SHA1_SSE_PARA
 		SSESHA1body(in, out, NULL, 0);
+#else
+		shammx_nosizeupdate_nofinalbyteswap((unsigned char*)out, (unsigned char*)in, 1);
+#endif
+#if defined(SHA1_SSE_PARA) && defined(_OPENMP)
 	}
-#else
-	SSESHA1body(saved_key, crypt_key, NULL, 0);
 #endif
-#else
-	shammx_nosizeupdate_nofinalbyteswap((unsigned char*)crypt_key, (unsigned char*)saved_key, 1);
-#endif
-
 #else
 	int i;
 
