@@ -373,7 +373,11 @@ extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 SHA_CTX sha_ctx;
 
 // simple macro for now.  We can and will improve upon this later.
+#if MD5_X2
+#define DoMD4(A,L,C) do{ MD4_CTX ctx; MD4_Init(&ctx); MD4_Update(&ctx,A.x1.b,L[0]); MD4_Final(C.x1.B,&ctx); MD4_Init(&ctx); MD4_Update(&ctx,A.x2.b2,L[1]); MD4_Final(C.x2.B2,&ctx);}while(0)
+#else
 #define DoMD4(A,L,C) do{ MD4_CTX ctx; MD4_Init(&ctx); MD4_Update(&ctx,A.x1.b,L); MD4_Final(C.x1.B,&ctx);}while(0)
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -3999,8 +4003,16 @@ void DynamicFunc__crypt_md4()
 #endif
 #endif
 	for (i = 0; i < m_count; ++i) {
+		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
+		// to treat them just like we do in MD5.  The macro hides the details.
+#if MD5_X2
+		unsigned len[2];
+		len[0] = total_len_X86[i++];
+		len[1] = total_len_X86[i];
+#else
 		unsigned len = total_len_X86[i];
-		DoMD4(input_buf_X86[i], len, crypt_key_X86[i]);
+#endif
+		DoMD4(input_buf_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
 	}
 }
 
@@ -4868,9 +4880,16 @@ void DynamicFunc__crypt2_md4()
 #endif
 #endif
 	for (i = 0; i < m_count; ++i) {
-
+		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
+		// to treat them just like we do in MD5.  The macro hides the details.
+#if MD5_X2
+		unsigned len[2];
+		len[0] = total_len2_X86[i++];
+		len[1] = total_len2_X86[i];
+#else
 		unsigned len = total_len2_X86[i];
-		DoMD4(input_buf2_X86[i], len, crypt_key2_X86[i]);
+#endif
+		DoMD4(input_buf2_X86[i>>MD5_X2], len, crypt_key2_X86[i>>MD5_X2]);
 	}
 }
 
@@ -4956,8 +4975,16 @@ void DynamicFunc__crypt_md4_in1_to_out2()
 #endif
 #endif
 	for (i = 0; i < m_count; ++i) {
+		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
+		// to treat them just like we do in MD5.  The macro hides the details.
+#if MD5_X2
+		unsigned len[2];
+		len[0] = total_len_X86[i++];
+		len[1] = total_len_X86[i];
+#else
 		unsigned len = total_len_X86[i];
-		DoMD4(input_buf_X86[i], len, crypt_key2_X86[i]);
+#endif
+		DoMD4(input_buf_X86[i>>MD5_X2], len, crypt_key2_X86[i>>MD5_X2]);
 	}
 }
 
@@ -5023,8 +5050,16 @@ void DynamicFunc__crypt_md4_in2_to_out1()
 #endif
 #endif
 	for (i = 0; i < m_count; ++i) {
+		// MD5_X2 sets our input buffers and crypt keys up in 'double' format. Thus, we HAVE
+		// to treat them just like we do in MD5.  The macro hides the details.
+#if MD5_X2
+		unsigned len[2];
+		len[0] = total_len2_X86[i++];
+		len[1] = total_len2_X86[i];
+#else
 		unsigned len = total_len2_X86[i];
-		DoMD4(input_buf2_X86[i], len, crypt_key_X86[i]);
+#endif
+		DoMD4(input_buf2_X86[i>>MD5_X2], len, crypt_key_X86[i>>MD5_X2]);
 	}
 }
 
