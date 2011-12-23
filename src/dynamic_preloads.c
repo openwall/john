@@ -909,8 +909,8 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_21: HTTP Digest Access Auth",      _Funcs_21,_Preloads_21,_Const_21,     MGF_HDAA_SALT|MGF_FLD2|MGF_FLD3|MGF_SALTED, MGF_NO_FLAG, 0, 26 },
 	{ "dynamic_22: md5(sha1($p))",                _Funcs_22,_Preloads_22,_ConstDefault, MGF_StartInX86Mode, MGF_KEYS_INPUT_BE_SAFE },
 	{ "dynamic_23: sha1(md5($p))",                _Funcs_23,_Preloads_23,_ConstDefault, MGF_SHA1_40_BYTE_FINISH, MGF_KEYS_INPUT },
-	{ "dynamic_24: sha1($p.$s)",                  _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24, 32 },
-	{ "dynamic_25: sha1($s.$p)",                  _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24, 32 },
+	{ "dynamic_24: sha1($p.$s)",                  _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24, 31 },
+	{ "dynamic_25: sha1($s.$p)",                  _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24, 31 },
 	{ "dynamic_26: sha1($p) raw-sha1",            _Funcs_26,_Preloads_26,_ConstDefault, MGF_SHA1_40_BYTE_FINISH, MGF_RAW_SHA1_INPUT },
 #if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                  _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, 0, 15 },
@@ -923,8 +923,8 @@ static DYNAMIC_Setup Setups[] =
 #endif
 	{ "dynamic_30: md4($p)  (raw-md4) ",          _Funcs_30,_Preloads_30,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
 #if defined (MMX_COEF)
-	{ "dynamic_31: md4($s.$p)",                   _Funcs_31,_Preloads_31,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -32, 23 },
-	{ "dynamic_32: md4($p.$s)",                   _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -32, 23 },
+	{ "dynamic_31: md4($s.$p)",                   _Funcs_31,_Preloads_31,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24, 31 },
+	{ "dynamic_32: md4($p.$s)",                   _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24, 31 },
 	{ "dynamic_33: md4(unicode($p))",             _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27 }, // if we are in utf8 mode, we triple this in the init() call
 #else
 	{ "dynamic_31: md4($s.$p)",                   _Funcs_31,_Preloads_31,_ConstDefault, MGF_SALTED },
