@@ -164,39 +164,35 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
 }
 
-static void set_key(char *_key, int index)
+static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
-	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(3, index)];
-	ARCH_WORD_32 *keybuf_word = keybuffer;
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[GETPOS(3, index)];
 	unsigned int len;
 	ARCH_WORD_32 temp;
 
-	if(index==0)
-		memset(saved_len, 0, sizeof(saved_len));
-
 	len = 0;
-	while((temp = JOHNSWAP(*key++)) & 0xff000000) {
-		if (!(temp & 0xff0000))
+	while((temp = *wkey++) & 0xff) {
+		if (!(temp & 0xff00))
 		{
-			*keybuf_word = (temp & 0xff000000) | 0x800000;
+			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
 			len++;
 			goto key_cleaning;
 		}
-		if (!(temp & 0xff00))
+		if (!(temp & 0xff0000))
 		{
-			*keybuf_word = (temp & 0xffff0000) | 0x8000;
+			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
 			len+=2;
 			goto key_cleaning;
 		}
-		if (!(temp & 0xff))
+		if (!(temp & 0xff000000))
 		{
-			*keybuf_word = temp | 0x80;
+			*keybuf_word = JOHNSWAP(temp | (0x80 << 24));
 			len+=3;
 			goto key_cleaning;
 		}
-		*keybuf_word = temp;
+		*keybuf_word = JOHNSWAP(temp);
 		len += 4;
 		keybuf_word += MMX_COEF;
 	}
@@ -211,7 +207,7 @@ key_cleaning:
 
 	saved_len[index] = len;
 #else
-	strnzcpy(saved_key, _key, PLAINTEXT_LENGTH + 1);
+	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
 #endif
 }
 
