@@ -47,7 +47,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define CIPHERTEXT_LENGTH		(32+12)
+#define CIPHERTEXT_LENGTH		32
 
 #define BINARY_SIZE			16
 #define SALT_SIZE			0
@@ -72,9 +72,6 @@
 static unsigned char (*saved_key);
 static unsigned char (*crypt_key);
 static unsigned int (**buf_ptr);
-#ifndef MD5_SSE_PARA
-static unsigned int total_len;
-#endif
 #else
 static MD5_CTX ctx;
 static int saved_key_length;
@@ -166,32 +163,15 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 
-	if (strncmp(ciphertext, "$dynamic_29$", 12) != 0) return 0;
+	if (!strncmp(ciphertext, "$dynamic_29$", 12))
+		ciphertext += 12;
 
-	for (pos = &ciphertext[12]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = ciphertext; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 
 	if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
 	else
 		return 0;
-}
-
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
-{
-	extern struct options_main options;
-	if (!valid(split_fields[1], pFmt)) {
-		if (options.format && !strcmp(options.format, FORMAT_LABEL) && strlen(split_fields[1]) == 32) {
-			char *tmp = mem_alloc(32+12+1);
-			sprintf(tmp, "$dynamic_29$%s", split_fields[1]);
-			if (valid(tmp,pFmt)) {
-				char *cp = str_alloc_copy(tmp);
-				MEM_FREE(tmp);
-				return cp;
-			}
-			MEM_FREE(tmp);
-		}
-	}
-	return split_fields[1];
 }
 
 static void *binary(char *ciphertext)
@@ -221,7 +201,6 @@ static void *binary(char *ciphertext)
 		out[i]=JOHNSWAP(temp);
 #endif
 	}
-//	dump_stuff_msg("binary", out, 16);
 	return out;
 }
 
@@ -233,10 +212,6 @@ static void set_key(char *_key, int index)
 	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len, temp2;
 
-#ifndef MD5_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((temp2 = *key++)) {
 		unsigned int temp;
@@ -264,11 +239,7 @@ key_cleaning:
 		keybuf_word += MMX_COEF;
 	}
 
-#ifdef MD5_SSE_PARA
 	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 #if ARCH_LITTLE_ENDIAN
 	UTF8 *s = (UTF8*)_key;
@@ -287,7 +258,6 @@ key_cleaning:
 	*d = 0;
 	saved_key_length = (int)((char*)d - (char*)saved_key);
 #endif
-//	dump_stuff_msg(_key, saved_key, 24);
 #endif
 }
 
@@ -299,10 +269,6 @@ static void set_key_CP(char *_key, int index)
 	unsigned int *keybuf_word = buf_ptr[index];
 	unsigned int len;
 
-#ifndef MD5_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((*keybuf_word = CP_to_Unicode[*key++])) {
 		unsigned int temp;
@@ -325,11 +291,7 @@ key_cleaning_enc:
 		keybuf_word += MMX_COEF;
 	}
 
-#ifdef MD5_SSE_PARA
 	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 	saved_key_length = enc_to_utf16((UTF16*)&saved_key,
 	                                PLAINTEXT_LENGTH + 1,
@@ -349,10 +311,6 @@ static void set_key_utf8(char *_key, int index)
 	UTF32 chl, chh = 0x80;
 	unsigned int len = 0;
 
-#ifndef MD5_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	while (*source) {
 		chl = *source;
 		if (chl >= 0xC0) {
@@ -429,11 +387,7 @@ static void set_key_utf8(char *_key, int index)
 		keybuf_word += MMX_COEF;
 	}
 
-#ifdef MD5_SSE_PARA
 	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
-#else
-	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
-#endif
 #else
 	saved_key_length = utf8_to_utf16((UTF16*)&saved_key,
 	                                 PLAINTEXT_LENGTH + 1,
@@ -470,9 +424,6 @@ static char *get_key(int index)
 	return (char*)utf16_to_enc(key);
 #else
 #if ARCH_LITTLE_ENDIAN
-//	char *x = utf16_to_enc(saved_key);
-//	printf ("x=%s\n",x);
-//	return x;
 	return (char*)utf16_to_enc(saved_key);
 #else
 	int i;
@@ -484,9 +435,6 @@ static char *get_key(int index)
 	}
 	p2[i] = 0;
 	p2[i+1] = 0;
-//	char *x = utf16_to_enc(Tmp);
-//	printf ("x=%s\n",x);
-//	return x;
 	return (char*)utf16_to_enc(Tmp);
 #endif
 #endif
@@ -550,13 +498,11 @@ static void crypt_all(int count) {
 	SSEmd5body(saved_key, (unsigned int*)crypt_key, 1);
 #endif
 #elif defined(MMX_COEF)
-	mdfourmmx(crypt_key, saved_key, total_len);
+	mdfivemmx_nosizeupdate(crypt_key, saved_key, 1);
 #else
 	MD5_Init( &ctx );
-//	dump_stuff_msg("saved_key", saved_key, saved_key_length);
 	MD5_Update(&ctx, (unsigned char*)saved_key, saved_key_length);
 	MD5_Final((unsigned char*) crypt_key, &ctx);
-//	dump_stuff_msg("crypt_key", crypt_key, 16);
 #endif
 }
 
@@ -647,7 +593,7 @@ struct fmt_main fmt_rawmd5uthick = {
 		tests
 	}, {
 		init,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		split,
 		binary,
