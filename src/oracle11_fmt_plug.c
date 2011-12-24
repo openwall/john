@@ -3,6 +3,8 @@
  * alexandre.hamelin(@)gmail.com
  * Based on saltSHA1 format source.
  *
+ * Intrinsics use added by magnum, 2011
+ *
  * Oracle 11g SHA1 cracker
  *
  * Please note that a much better way to crack Oracle 11g passwords exists than
@@ -46,15 +48,36 @@
 #include <string.h>
 
 #include "arch.h"
+
+#ifdef SHA1_SSE_PARA
+#define MMX_COEF	4
+#include "sse-intrinsics.h"
+#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#elif MMX_COEF
+#define NBKEYS	MMX_COEF
+#endif
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
+#include "johnswap.h"
 #include <ctype.h>
 
 #define FORMAT_LABEL			"oracle11"
 #define FORMAT_NAME			"Oracle 11g"
-#define ALGORITHM_NAME			"oracle11"
+
+#ifdef SHA1_N_STR
+#define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
+#elif defined(MMX_COEF) && MMX_COEF == 4
+#define ALGORITHM_NAME			"SSE2 4x"
+#elif defined(MMX_COEF) && MMX_COEF == 2
+#define ALGORITHM_NAME			"MMX 2x"
+#elif defined(MMX_COEF)
+#define ALGORITHM_NAME			"?"
+#else
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -76,8 +99,14 @@
 #error Incorrect binary sizes or cipher text length.
 #endif
 
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+#endif
 
 static struct fmt_tests tests[] = {
 	/* 160 bits of SHA1, followed by 80 bits of salt. No "S:" prefix. */
@@ -89,11 +118,29 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static unsigned char saved_salt[SALT_SIZE];
+
+#ifdef MMX_COEF
+
+/* Cygwin would not guarantee the alignment if these were declared static */
+#define saved_key mssql05_saved_key
+#define crypt_key mssql05_crypt_key
+#ifdef _MSC_VER
+__declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
+__declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
+#else
+unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
+#endif
+
+#else
+
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int saved_key_length;
-static unsigned char saved_salt[SALT_SIZE];
 static SHA_CTX ctx;
-static ARCH_WORD_32 crypt_out[BINARY_SIZE / 4];
+static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
+
+#endif
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -110,10 +157,10 @@ static void *salt(char *ciphertext)
 	static unsigned char salt[SALT_SIZE];
 	int i;
 
-    for (i = 0; i < SALT_SIZE; i++) {
+	for (i = 0; i < SALT_SIZE; i++) {
 		salt[i] = atoi16[ARCH_INDEX(ciphertext[BINARY_SIZE*2+i*2+0])]*16 +
-				  atoi16[ARCH_INDEX(ciphertext[BINARY_SIZE*2+i*2+1])];
-    }
+			atoi16[ARCH_INDEX(ciphertext[BINARY_SIZE*2+i*2+1])];
+	}
 
 	return (void *)salt;
 }
@@ -123,31 +170,132 @@ static void set_salt(void *salt)
 	memcpy(saved_salt, salt, SALT_SIZE);
 }
 
-static void set_key(char *key, int index) {
+static void set_key(char *key, int index)
+{
+#ifdef MMX_COEF
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	ARCH_WORD_32 *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	unsigned int len;
+
+	len = SALT_SIZE;
+	while((*keybuf_word = JOHNSWAP(*wkey++)) & 0xff000000) {
+		if (!(*keybuf_word & 0xff0000))
+		{
+			len++;
+			goto key_cleaning;
+		}
+		if (!(*keybuf_word & 0xff00))
+		{
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(*keybuf_word & 0xff))
+		{
+			len+=3;
+			goto key_cleaning;
+		}
+		len += 4;
+		keybuf_word += MMX_COEF;
+	}
+
+key_cleaning:
+	keybuf_word += MMX_COEF;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
+	}
+	saved_key[GETPOS(len, index)] = 0x80;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 3;
+#else
 	saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
 		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key, key, saved_key_length);
 	saved_key[saved_key_length] = 0;
+#endif
 }
 
-static char *get_key(int index) {
+static char *get_key(int index)
+{
+#ifdef MMX_COEF
+	unsigned int i,s;
+	static char out[PLAINTEXT_LENGTH + 1];
+
+	s = (((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3) - SALT_SIZE;
+
+	for(i = 0; i < s; i++)
+		out[i] = ((char*)saved_key)[ GETPOS(i, index) ];
+	out[i] = 0;
+
+	return (char *) out;
+#else
+	saved_key[saved_key_length] = 0;
 	return saved_key;
+#endif
 }
 
 static int cmp_all(void *binary, int index) {
-	return !memcmp(binary, crypt_out, BINARY_SIZE);
+#ifdef MMX_COEF
+	unsigned int x,y=0;
+
+#ifdef SHA1_SSE_PARA
+	for(;y<SHA1_SSE_PARA;y++)
+#endif
+	for(x=0;x<MMX_COEF;x++)
+	{
+		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+			return 1;
+	}
+	return 0;
+#else
+	return !memcmp(binary, crypt_key, BINARY_SIZE);
+#endif
 }
 
 static int cmp_exact(char *source, int count) {
 	return 1;
 }
 
+static int cmp_one(void * binary, int index)
+{
+#ifdef MMX_COEF
+	unsigned int x,y;
+	x = index&(MMX_COEF-1);
+	y = index>>(MMX_COEF>>1);
+
+	if( (((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5])   |
+	    (((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+MMX_COEF]) |
+	    (((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+2*MMX_COEF]) |
+	    (((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+3*MMX_COEF])|
+	    (((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4*MMX_COEF]) )
+		return 0;
+	return 1;
+#else
+	return cmp_all(binary, index);
+#endif
+}
+
 static void crypt_all(int count) {
+#ifdef MMX_COEF
+	unsigned i, index;
+	for (index = 0; index < count; ++index)
+	{
+		unsigned len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) - SALT_SIZE;
+		for(i = 0; i < SALT_SIZE; i++)
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+	}
+#ifdef SHA1_SSE_PARA
+	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
+#else
+	shammx_nosizeupdate_nofinalbyteswap( (unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
+#endif
+#else
 	SHA1_Init( &ctx );
 	SHA1_Update( &ctx, (unsigned char *) saved_key, saved_key_length );
 	SHA1_Update( &ctx, saved_salt, SALT_SIZE );
-	SHA1_Final( (unsigned char *)crypt_out, &ctx);
+	SHA1_Final( (unsigned char *)crypt_key, &ctx);
+
+#endif
 }
 
 static void * binary(char *ciphertext)
@@ -159,58 +307,38 @@ static void * binary(char *ciphertext)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
 						atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
+#ifdef MMX_COEF
+	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
+#endif
 	return (void *)realcipher;
 }
 
-static int binary_hash_0(void *binary)
-{
-  return ((ARCH_WORD_32 *)binary)[0] & 0xF;
-}
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xf; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xff; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
-static int binary_hash_1(void *binary)
-{
-  return ((ARCH_WORD_32 *)binary)[0] & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-  return ((ARCH_WORD_32 *)binary)[0] & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-  return ((ARCH_WORD_32 *)binary)[0] & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-  return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFF;
-}
-
-static int get_hash_0(int index)
-{
-  return crypt_out[0] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-  return crypt_out[0] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-  return crypt_out[0] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-  return crypt_out[0] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-  return crypt_out[0] & 0xFFFFF;
-}
+#ifdef MMX_COEF
+#define KEY_OFF ((index/MMX_COEF)*MMX_COEF*5+(index&(MMX_COEF-1)))
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0x7ffffff; }
+#else
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0x7ffffff; }
+#endif
 
 static int salt_hash(void *salt)
 {
@@ -243,7 +371,9 @@ struct fmt_main fmt_oracle11 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -256,10 +386,12 @@ struct fmt_main fmt_oracle11 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
