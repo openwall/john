@@ -58,12 +58,6 @@ typedef struct {
 } MD5_data;
 #endif
 
-#if !defined(MD5_in_sse_intrinsics) && defined(__GNUC__) && \
-    (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4)) && \
-    !defined(USING_ICC_S_FILE)
-#undef MD5_SSE_PARA
-#endif
-
 #ifdef MD5_SSE_PARA
 # ifndef MMX_COEF
 #  define MMX_COEF			4

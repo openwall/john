@@ -8,9 +8,7 @@
 #include <emmintrin.h>
 #include "memory.h"
 #include "md5.h"
-#define MD5_in_sse_intrinsics
 #include "MD5_std.h"
-#undef MD5_in_sse_intrinsics
 
 #ifndef MMX_COEF
 #define MMX_COEF 4

@@ -145,9 +145,12 @@
 #elif defined(__clang__)
 #define MD5_SSE_PARA			4
 #define MD5_N_STR			"16x"
-#elif defined(__GNUC__) || defined (_MSC_VER)
+#elif defined (_MSC_VER) || (defined(__GNUC__) && (__GNUC__ >= 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4)))
 #define MD5_SSE_PARA			3
 #define MD5_N_STR			"12x"
+#elif defined(__GNUC__)
+#define MD5_SSE_PARA			1
+#define MD5_N_STR			"4x"
 #else
 #define MD5_SSE_PARA			2
 #define MD5_N_STR			"8x"
