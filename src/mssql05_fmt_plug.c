@@ -474,6 +474,8 @@ static int binary_hash_1(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x
 static int binary_hash_2(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
 static int binary_hash_3(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
 static int binary_hash_4(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
 #ifdef MMX_COEF
 #define KEY_OFF ((index/MMX_COEF)*MMX_COEF*5+(index&(MMX_COEF-1)))
@@ -482,12 +484,16 @@ static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] &
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfff; }
 static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[KEY_OFF] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xfff; }
 static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xffff; }
 static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[index] & 0x7ffffff; }
 #endif
 
 static int salt_hash(void *salt)
@@ -522,7 +528,9 @@ struct fmt_main fmt_mssql05 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -535,7 +543,9 @@ struct fmt_main fmt_mssql05 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
