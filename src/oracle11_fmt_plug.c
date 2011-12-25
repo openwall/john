@@ -103,6 +103,7 @@
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS_WORD(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF +               (index>>(MMX_COEF>>1))*80*MMX_COEF*4)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -142,6 +143,19 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 
 #endif
 
+static void init(struct fmt_main *pFmt)
+{
+#ifdef MMX_COEF
+	int i;
+	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
+	   if called without setting all keys (in benchmarking). Unset
+	   keys would otherwise get a length of -10 and a salt appended
+	   at pos 4294967286... */
+	for (i=0; i < NBKEYS; i++)
+		((unsigned int *)saved_key)[15*MMX_COEF + (i&3) + (i>>2)*80*MMX_COEF] = 10 << 3;
+#endif
+}
+
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
@@ -174,7 +188,7 @@ static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuf_word = (unsigned int*)&saved_key[GETPOS(3, index)];
+	ARCH_WORD_32 *keybuf_word = (unsigned int*)&saved_key[GETPOS_WORD(0, index)];
 	unsigned int len;
 
 	len = SALT_SIZE;
@@ -277,12 +291,67 @@ static int cmp_one(void * binary, int index)
 
 static void crypt_all(int count) {
 #ifdef MMX_COEF
-	unsigned i, index;
+	unsigned int index;
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) - SALT_SIZE;
-		for(i = 0; i < SALT_SIZE; i++)
+		unsigned int len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) - SALT_SIZE;
+		unsigned int i = 0;
+
+		// 1. Copy a byte at a time until we're aligned in buffer
+		// 2. Copy a whole word, or two!
+		// 3. Copy the stray bytes
+		switch (len & 3)
+		{
+		case 0:
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			i += 4;
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			i += 4;
 			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			break;
+		case 1:
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			i += 4;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			break;
+		case 2:
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			i += 4;
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			break;
+		case 3:
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			i++;
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			i += 4;
+			*(ARCH_WORD_32*)&saved_key[GETPOS_WORD((len+i),index)] =
+				JOHNSWAP(*(ARCH_WORD_32*)&saved_salt[i]);
+			i += 4;
+			saved_key[GETPOS((len+i), index)] = saved_salt[i];
+			break;
+		}
 	}
 #ifdef SHA1_SSE_PARA
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
@@ -360,7 +429,7 @@ struct fmt_main fmt_oracle11 = {
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
