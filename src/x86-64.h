@@ -186,7 +186,7 @@
 #elif defined(__GNUC__) && (__GNUC__ == 4 && __GNUC_MINOR__ == 5)
 #define MD5_SSE_PARA			2
 #define MD5_N_STR			"8x"
-#elif defined(__GNUC__) && (__GNUC__ >= 4 || (__GNUC__ == 4 && (__GNUC_MINOR__ == 4 || __GNUC_MINOR__ > 5)))
+#elif defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && (__GNUC_MINOR__ == 4 || __GNUC_MINOR__ > 5)))
 #define MD5_SSE_PARA			3
 #define MD5_N_STR			"12x"
 #elif defined(__GNUC__)
