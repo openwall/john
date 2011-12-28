@@ -82,9 +82,7 @@ static struct {
 
 static unsigned char salt_map[0x100];
 
-struct fmt_main fmt_trip;
-
-static void init(void)
+static void init(struct fmt_main *pFmt)
 {
 #if !DES_BS
 	char fake_crypt[14];
@@ -95,14 +93,14 @@ static void init(void)
 #if DES_BS
 	DES_bs_init(0, DES_bs_cpt);
 #if DES_bs_mt
-	fmt_trip.params.min_keys_per_crypt = DES_bs_min_kpc;
-	fmt_trip.params.max_keys_per_crypt = DES_bs_min_kpc * TRIPCODE_SCALE;
+	pFmt->params.min_keys_per_crypt = DES_bs_min_kpc;
+	pFmt->params.max_keys_per_crypt = DES_bs_min_kpc * TRIPCODE_SCALE;
 #endif
 
 #undef howmany
 #define howmany(x, y) (((x) + ((y) - 1)) / (y))
 	worst_case_block_count = 0xFFF +
-	    howmany(fmt_trip.params.max_keys_per_crypt - 0xFFF, DES_BS_DEPTH);
+	    howmany(pFmt->params.max_keys_per_crypt - 0xFFF, DES_BS_DEPTH);
 	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) * worst_case_block_count,
 	    MEM_ALIGN_CACHE);
 
@@ -113,7 +111,7 @@ static void init(void)
 	hash_func = NULL;
 	next_hash_func = NULL;
 #else
-	DES_std_init();
+	DES_std_init(pFmt);
 
 	memset(fake_crypt, '.', 13);
 	fake_crypt[13] = 0;
@@ -130,7 +128,7 @@ static void init(void)
 #endif
 
 	buffer = mem_alloc_tiny(sizeof(*buffer) *
-	    fmt_trip.params.max_keys_per_crypt,
+	    pFmt->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
 
 	for (i = 0; i < 0x100; i++) {
@@ -146,7 +144,7 @@ static void init(void)
 	}
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos;
 
@@ -579,6 +577,7 @@ struct fmt_main fmt_trip = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
