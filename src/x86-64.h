@@ -176,6 +176,12 @@
 #define MD5_X2				1
 #define MD5_IMM				1
 
+#ifdef GLOBAL_PARA
+#define MD4_SSE_PARA			GLOBAL_PARA
+#define MD5_SSE_PARA			GLOBAL_PARA
+#define SHA1_SSE_PARA			GLOBAL_PARA
+#endif
+
 #ifndef MD5_SSE_PARA
 #if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
 #define MD5_SSE_PARA			3

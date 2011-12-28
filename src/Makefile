@@ -32,12 +32,12 @@ OMPFLAGS =
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
-ASFLAGS = -c $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lcrypto -lssl -lm -lz $(OMPFLAGS)
+ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lcrypto -lssl -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -114,6 +114,14 @@ BENCH_OBJS = \
 	$(BENCH_BF_OBJS_DEPEND) \
 	bench-t.o best.o common.o config_g.o formats_g.o math.o memory.o \
 	miscnl.o params.o path.o signals.o tty.o
+
+PARA_BENCH_OBJS = \
+	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
+	miscnl.o params.o path.o signals.o tty.o \
+	$(BENCH_PARA_DEPEND)
+
+BENCH_PARA_DEPEND = \
+	sse-intrinsics.o rawMD4_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
 
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o
@@ -1145,8 +1153,23 @@ generic.h:
 		"$(BENCH_MD5_OBJS_DEPEND)" \
 		"$(BENCH_BF_OBJS_DEPEND)"
 
+testpara:
+	$(LN) x86-64.h arch.h
+	./para-best.sh "$(CC)" "$(MAKE)" \
+		"$(BENCH_PARA_DEPEND)" "-msse2"
+
+testpara32:
+# The next line is not a typo. But there might be a better way.
+	$(LN) x86-64.h arch.h
+	CFLAGS="$(CFLAGS) -m32 -msse2" \
+	./para-best.sh "$(CC)" "$(MAKE)" \
+		"$(BENCH_PARA_DEPEND)" "-m32 -msse2"
+
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
+
+para-bench: $(PARA_BENCH_OBJS)
+	$(LD) $(PARA_BENCH_OBJS) $(LDFLAGS) -o para-bench
 
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
@@ -1359,7 +1382,7 @@ test_utf8_verbose:
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
-	$(RM) detect bench generic.h arch.h tmp.s
+	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
 
@@ -1373,11 +1396,11 @@ clean-intrinsics:
 
 sse-intrinsics-64.S:
 	$(LN) x86-64.h arch.h
-	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
+	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 
 sse-intrinsics-32.S:
 	$(LN) x86-ssei.h arch.h
-	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
+	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 
