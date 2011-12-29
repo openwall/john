@@ -63,12 +63,12 @@ void status_ticks_overflow_safety(void)
 	}
 }
 
-void status_update_crypts(unsigned int count)
+void status_update_crypts(int64 *count)
 {
 	unsigned int saved_hi;
 
 	saved_hi = status.crypts.hi;
-	add32to64(&status.crypts, count);
+	add64to64(&status.crypts, count);
 
 	if (status.crypts.hi != saved_hi)
 		status_ticks_overflow_safety();
