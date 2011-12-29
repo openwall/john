@@ -218,7 +218,11 @@ static int crk_password_loop(struct db_salt *salt)
 
 	crk_methods.crypt_all(crk_key_index);
 
-	status_update_crypts(salt->count * crk_key_index);
+	{
+		int64 effective_count;
+		mul32by32(&effective_count, salt->count, crk_key_index);
+		status_update_crypts(&effective_count);
+	}
 
 	if (salt->hash_size < 0) {
 		pw = salt->list;
@@ -295,7 +299,11 @@ int crk_process_key(char *key)
 
 	puts(strnzcpy(crk_stdout_key, key, crk_params.plaintext_length + 1));
 
-	status_update_crypts(1);
+	{
+		int64 one = {1, 0};
+		status_update_crypts(&one);
+	}
+
 	crk_fix_state();
 
 	if (ext_abort)

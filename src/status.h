@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2011 by Solar Designer
  */
 
 /*
@@ -53,7 +53,7 @@ extern void status_ticks_overflow_safety(void);
 /*
  * Updates the crypts count.
  */
-extern void status_update_crypts(unsigned int count);
+extern void status_update_crypts(int64 *count);
 
 /*
  * Returns the elapsed time in seconds.
