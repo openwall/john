@@ -4,6 +4,7 @@
  */
 
 #include <string.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "DES_std.h"
@@ -19,41 +20,99 @@
 #define PLAINTEXT_LENGTH		8
 #define CIPHERTEXT_LENGTH		10
 
+#define SALT_SIZE			0
+
 static struct fmt_tests tests[] = {
 	{"Rk7VUsDT2U", "simpson"},
 	{"3GqYIJ3Obs", "tripcode"},
+	{"Id1gMYGA52", "ponytail"},
 	{NULL}
 };
+
+#if DES_BS
+
+#include "DES_bs.h"
+
+#define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
+
+#define BINARY_SIZE			4
+
+#define TRIPCODE_SCALE			0x40
+
+#define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
+#define MAX_KEYS_PER_CRYPT		(DES_BS_DEPTH * TRIPCODE_SCALE)
+
+static DES_bs_vector (*crypt_out)[64];
+static int block_count;
+static int worst_case_block_count;
+
+#if DES_bs_mt
+static int *l2g;
+#endif
+
+static int (*hash_func)(int index);
+static int (*next_hash_func)(int index);
+
+#else
 
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			ARCH_SIZE
-#define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		0x40
 #define MAX_KEYS_PER_CRYPT		0x1000
 
-typedef struct buffered_key {
+static DES_binary binary_mask;
+
+#endif
+
+static struct {
+#if DES_BS
+	int block, index, hash;
+#else
 	union {
 		double dummy;
 		DES_binary binary;
 	} aligned;
-	struct buffered_key *next;
+#endif
+	int next; /* index of next entry with the same salt */
 	unsigned int salt;
 	char key[PLAINTEXT_LENGTH];
-} buffered_key_t;
+} *buffer;
 
-static buffered_key_t buffer[MAX_KEYS_PER_CRYPT];
-
-static DES_binary binary_mask;
 static unsigned char salt_map[0x100];
+
+struct fmt_main fmt_trip;
 
 static void init(void)
 {
+#if !DES_BS
 	char fake_crypt[14];
 	ARCH_WORD *alt_binary;
+#endif
 	int i;
 
+#if DES_BS
+	DES_bs_init(0, DES_bs_cpt);
+#if DES_bs_mt
+	fmt_trip.params.min_keys_per_crypt = DES_bs_min_kpc;
+	fmt_trip.params.max_keys_per_crypt = DES_bs_min_kpc * TRIPCODE_SCALE;
+#endif
+
+#undef howmany
+#define howmany(x, y) (((x) + ((y) - 1)) / (y))
+	worst_case_block_count = 0xFFF +
+	    howmany(fmt_trip.params.max_keys_per_crypt - 0xFFF, DES_BS_DEPTH);
+	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) * worst_case_block_count,
+	    MEM_ALIGN_CACHE);
+
+#if DES_bs_mt
+	l2g = mem_alloc_tiny(sizeof(*l2g) * DES_bs_max_kpc, MEM_ALIGN_CACHE);
+#endif
+
+	hash_func = NULL;
+	next_hash_func = NULL;
+#else
 	DES_std_init();
 
 	memset(fake_crypt, '.', 13);
@@ -68,6 +127,11 @@ static void init(void)
 		binary_mask[i] ^= ~alt_binary[i];
 		binary_mask[i] &= DES_BINARY_MASK;
 	}
+#endif
+
+	buffer = mem_alloc_tiny(sizeof(*buffer) *
+	    fmt_trip.params.max_keys_per_crypt,
+	    MEM_ALIGN_CACHE);
 
 	for (i = 0; i < 0x100; i++) {
 		char *from = ":;<=>?@[\\]^_`";
@@ -106,8 +170,79 @@ static void *get_binary(char *ciphertext)
 	fake_crypt[2] = '.';
 	memcpy(&fake_crypt[3], ciphertext, 11);
 
+#if DES_BS
+	return DES_bs_get_binary(fake_crypt);
+#else
 	return DES_std_get_binary(fake_crypt);
+#endif
 }
+
+#if DES_BS
+
+static int binary_hash_0(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xF;
+}
+
+static int binary_hash_1(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFF;
+}
+
+static int binary_hash_2(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFF;
+}
+
+static int binary_hash_3(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFF;
+}
+
+static int binary_hash_4(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFFF;
+}
+
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD *)binary & 0x7FFFFFF;
+}
+
+#if DES_bs_mt
+#define MAYBE_T0 \
+	const int t = 0;
+#else
+#define MAYBE_T0
+#endif
+
+#define define_get_hash(NAME, CALL) \
+static int NAME(int index) \
+{ \
+	if (hash_func == CALL) \
+		return buffer[index].hash; \
+	{ \
+		MAYBE_T0; \
+		int block = buffer[index].block; \
+		memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B)); \
+		return (next_hash_func = CALL)(buffer[index].index); \
+	} \
+}
+
+define_get_hash(get_hash_0, DES_bs_get_hash_0)
+define_get_hash(get_hash_1, DES_bs_get_hash_1)
+define_get_hash(get_hash_2, DES_bs_get_hash_2)
+define_get_hash(get_hash_3, DES_bs_get_hash_3)
+define_get_hash(get_hash_4, DES_bs_get_hash_4)
+define_get_hash(get_hash_5, DES_bs_get_hash_5)
+define_get_hash(get_hash_6, DES_bs_get_hash_6)
+
+#else
 
 static int binary_hash_0(void *binary)
 {
@@ -155,12 +290,14 @@ static int get_hash_2(int index)
 #define get_hash_5 NULL
 #define get_hash_6 NULL
 
-static void crypt_all(int count)
+#endif
+
+static MAYBE_INLINE void crypt_link_by_salt(int count)
 {
 	int index;
-	buffered_key_t *salt_bucket[0x1000];
+	int salt_bucket[0x1000];
 
-	memset(salt_bucket, 0, sizeof(salt_bucket));
+	memset(salt_bucket, -1, sizeof(salt_bucket));
 	for (index = count - 1; index >= 0; index--) {
 		char fake_crypt[14];
 
@@ -186,54 +323,192 @@ static void crypt_all(int count)
 
 		{
 			unsigned int salt = DES_raw_get_salt(fake_crypt);
-			if ((buffer[index].next = salt_bucket[salt]))
-				buffer[index].salt = salt_bucket[salt]->salt;
+#if DES_BS
+			buffer[index].salt = salt;
+			buffer[index].next = salt_bucket[salt];
+#else
+			if ((buffer[index].next = salt_bucket[salt]) >= 0)
+				buffer[index].salt =
+				    buffer[salt_bucket[salt]].salt;
 			else
 				buffer[index].salt =
 				    DES_std_get_salt(fake_crypt);
-			salt_bucket[salt] = &buffer[index];
+#endif
+			salt_bucket[salt] = index;
 		}
 	}
+}
 
+static MAYBE_INLINE void crypt_traverse_by_salt(int count)
+{
+	int index;
+#if DES_bs_mt
+	int block_index;
+#endif
+
+#if DES_BS
+	block_count = 0;
+#endif
 	for (index = 0; index < count; index++) {
-		buffered_key_t *key = &buffer[index];
+		int gindex;
+#if DES_BS
+		int lindex;
+#if DES_bs_mt
+		int lindex_mod;
+#else
+		int l2g[DES_BS_DEPTH];
+#endif
+#endif
 
-		if (key->salt == 0xffffffffU) /* already processed */
+		if (buffer[index].salt == 0xFFFFFFFF) /* already processed */
 			continue;
 
-		DES_std_set_salt(key->salt);
+		gindex = index;
+#if DES_BS
+		DES_bs_set_salt(buffer[gindex].salt);
+		lindex = 0;
+#if DES_bs_mt
+		lindex_mod = 0;
+		block_index = block_count;
+#endif
+#else
+		DES_std_set_salt(buffer[gindex].salt);
+#endif
 
 		do {
+#if DES_BS
+#if DES_bs_mt
+			buffer[gindex].block = block_index;
+			buffer[gindex].index = lindex_mod;
+			if (++lindex_mod >= DES_BS_DEPTH) {
+				lindex_mod = 0;
+				block_index++;
+			}
+#else
+			buffer[gindex].block = block_count;
+			buffer[gindex].index = lindex;
+#endif
+			l2g[lindex] = gindex;
+			DES_bs_set_key(buffer[gindex].key, lindex++);
+#if DES_bs_mt
+			if (lindex >= DES_bs_max_kpc ||
+			    buffer[gindex].next < 0) {
+				int n = howmany(lindex, DES_BS_DEPTH);
+				int t;
+#else
+			if (lindex >= DES_BS_DEPTH ||
+			    buffer[gindex].next < 0) {
+#endif
+				int tindex;
+				DES_bs_crypt_25(lindex);
+				for_each_t(n) {
+					memset(&DES_bs_all.B[7], 0,
+					    sizeof(DES_bs_all.B[7]));
+					memset(&DES_bs_all.B[15], 0,
+					    sizeof(DES_bs_all.B[15]));
+					memset(&DES_bs_all.B[23], 0,
+					    sizeof(DES_bs_all.B[23]));
+					memcpy(crypt_out[block_count++],
+					    DES_bs_all.B,
+					    sizeof(DES_bs_all.B));
+					assert(block_count <=
+					    worst_case_block_count);
+				}
+				if (next_hash_func)
+				for (tindex = 0; tindex < lindex; tindex++) {
+					buffer[l2g[tindex]].hash =
+					    next_hash_func(tindex);
+				}
+				hash_func = next_hash_func;
+				lindex = 0;
+			}
+#else
 			unsigned ARCH_WORD *out;
 
-			DES_std_set_key(key->key);
+			DES_std_set_key(buffer[gindex].key);
 
 			DES_std_crypt(DES_KS_current,
-			    out = key->aligned.binary);
+			    out = buffer[gindex].aligned.binary);
 
 			{
 				ARCH_WORD mask;
 #if ARCH_BITS < 64
-				mask = (out[0] ^ out[1]) & key->salt;
+				mask = (out[0] ^ out[1]) & buffer[gindex].salt;
 				out[0] ^= mask;
 				out[1] ^= mask;
-				mask = (out[2] ^ out[3]) & key->salt;
+				mask = (out[2] ^ out[3]) & buffer[gindex].salt;
 				out[2] ^= mask;
 				out[3] ^= mask;
 #else
-				mask = (out[0] ^ (out[0] >> 32)) & key->salt;
+				mask = (out[0] ^ (out[0] >> 32)) &
+				    buffer[gindex].salt;
 				out[0] ^= mask ^ (mask << 32);
-				mask = (out[1] ^ (out[1] >> 32)) & key->salt;
+				mask = (out[1] ^ (out[1] >> 32)) &
+				    buffer[gindex].salt;
 				out[1] ^= mask ^ (mask << 32);
 #endif
 			}
 			out[0] &= binary_mask[0];
+#endif
 
-			key->salt = 0xffffffffU;
-		} while ((key = key->next));
+			buffer[gindex].salt = 0xFFFFFFFF;
+		} while ((gindex = buffer[gindex].next) >= 0);
 	}
+
+#if 0
+	printf("%d / %d = %d\n", count, block_count, count / block_count);
+#endif
 }
 
+static void crypt_all(int count)
+{
+	crypt_link_by_salt(count);
+	crypt_traverse_by_salt(count);
+}
+
+#if DES_BS
+static int cmp_all(void *binary, int count)
+{
+	int block_index;
+
+	next_hash_func = NULL;
+
+	for (block_index = 0; block_index < block_count; block_index++) {
+		MAYBE_T0;
+		memcpy(DES_bs_all.B, crypt_out[block_index],
+		    sizeof(DES_bs_all.B));
+		memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
+		memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
+		memset(&DES_bs_all.B[55], 0, sizeof(DES_bs_all.B[55]));
+		if (DES_bs_cmp_all(binary, DES_BS_DEPTH))
+			return 1;
+	}
+
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	MAYBE_T0;
+	int block = buffer[index].block;
+	memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B));
+	memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
+	memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
+	memset(&DES_bs_all.B[55], 0, sizeof(DES_bs_all.B[55]));
+	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, buffer[index].index);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	MAYBE_T0;
+	int block = buffer[index].block;
+	memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B));
+	memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
+	memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
+	memset(&DES_bs_all.B[55], 0, sizeof(DES_bs_all.B[55]));
+	return DES_bs_cmp_one(get_binary(source), 64, buffer[index].index);
+}
+#else
 static int cmp_all(void *binary, int count)
 {
 	int index;
@@ -264,6 +539,7 @@ static int cmp_exact(char *source, int index)
 
 	return 1;
 }
+#endif
 
 static void set_key(char *key, int index)
 {
@@ -292,7 +568,14 @@ struct fmt_main fmt_trip = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+#if DES_BS && DES_bs_mt
+		FMT_OMP |
+#endif
+#if DES_BS
+		FMT_CASE | FMT_BS,
+#else
 		FMT_CASE,
+#endif
 		tests
 	}, {
 		init,
