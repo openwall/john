@@ -31,19 +31,19 @@ static struct fmt_tests tests[] = {
 #define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		0x40
-#if DES_128K
-#define MAX_KEYS_PER_CRYPT		0x100
-#else
-#define MAX_KEYS_PER_CRYPT		0x80
-#endif
+#define MAX_KEYS_PER_CRYPT		0x1000
 
-static struct {
+typedef struct buffered_key {
 	union {
 		double dummy;
 		DES_binary binary;
 	} aligned;
+	struct buffered_key *next;
+	unsigned int salt;
 	char key[PLAINTEXT_LENGTH];
-} buffer[MAX_KEYS_PER_CRYPT];
+} buffered_key_t;
+
+static buffered_key_t buffer[MAX_KEYS_PER_CRYPT];
 
 static DES_binary binary_mask;
 static unsigned char salt_map[0x100];
@@ -158,11 +158,10 @@ static int get_hash_2(int index)
 static void crypt_all(int count)
 {
 	int index;
+	buffered_key_t *salt_bucket[0x1000];
 
-	for (index = 0; index < count; index++) {
-		static ARCH_WORD prev_salt = -1;
-		ARCH_WORD salt;
-		unsigned ARCH_WORD *out;
+	memset(salt_bucket, 0, sizeof(salt_bucket));
+	for (index = count - 1; index >= 0; index--) {
 		char fake_crypt[14];
 
 		if (!buffer[index].key[0]) {
@@ -184,32 +183,54 @@ static void crypt_all(int count)
 			    salt_map[ARCH_INDEX(buffer[index].key[2])];
 		}
 		fake_crypt[13] = 0;
-		salt = DES_std_get_salt(fake_crypt);
-		if (salt != prev_salt)
-			DES_std_set_salt(prev_salt = salt);
-
-		DES_std_set_key(buffer[index].key);
-
-		DES_std_crypt(DES_KS_current,
-		    out = buffer[index].aligned.binary);
 
 		{
-			ARCH_WORD mask;
-#if ARCH_BITS < 64
-			mask = (out[0] ^ out[1]) & salt;
-			out[0] ^= mask;
-			out[1] ^= mask;
-			mask = (out[2] ^ out[3]) & salt;
-			out[2] ^= mask;
-			out[3] ^= mask;
-#else
-			mask = (out[0] ^ (out[0] >> 32)) & salt;
-			out[0] ^= mask ^ (mask << 32);
-			mask = (out[1] ^ (out[1] >> 32)) & salt;
-			out[1] ^= mask ^ (mask << 32);
-#endif
+			unsigned int salt = DES_raw_get_salt(fake_crypt);
+			if ((buffer[index].next = salt_bucket[salt]))
+				buffer[index].salt = salt_bucket[salt]->salt;
+			else
+				buffer[index].salt =
+				    DES_std_get_salt(fake_crypt);
+			salt_bucket[salt] = &buffer[index];
 		}
-		out[0] &= binary_mask[0];
+	}
+
+	for (index = 0; index < count; index++) {
+		buffered_key_t *key = &buffer[index];
+
+		if (key->salt == 0xffffffffU) /* already processed */
+			continue;
+
+		DES_std_set_salt(key->salt);
+
+		do {
+			unsigned ARCH_WORD *out;
+
+			DES_std_set_key(key->key);
+
+			DES_std_crypt(DES_KS_current,
+			    out = key->aligned.binary);
+
+			{
+				ARCH_WORD mask;
+#if ARCH_BITS < 64
+				mask = (out[0] ^ out[1]) & key->salt;
+				out[0] ^= mask;
+				out[1] ^= mask;
+				mask = (out[2] ^ out[3]) & key->salt;
+				out[2] ^= mask;
+				out[3] ^= mask;
+#else
+				mask = (out[0] ^ (out[0] >> 32)) & key->salt;
+				out[0] ^= mask ^ (mask << 32);
+				mask = (out[1] ^ (out[1] >> 32)) & key->salt;
+				out[1] ^= mask ^ (mask << 32);
+#endif
+			}
+			out[0] &= binary_mask[0];
+
+			key->salt = 0xffffffffU;
+		} while ((key = key->next));
 	}
 }
 
