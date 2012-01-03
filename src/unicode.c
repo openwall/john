@@ -842,7 +842,10 @@ int initUnicode(int type) {
 			options.cp1253 = 1;
 			options.encodingStr = "CP1253";
 		} else
-		if (strcasecmp(options.encoding, "raw") && strcasecmp(options.encoding, "ascii") && strcasecmp(options.encoding, "default")) {
+		if (!strcasecmp(options.encoding, "raw")||!strcasecmp(options.encoding, "ascii")||!strcasecmp(options.encoding, "default")) {
+			options.ascii = 1;
+			options.encodingStr = "raw";
+		} else {
 			fprintf (stderr, "Invalid encoding. ");
 			listEncodings();
 			error();
