@@ -33,7 +33,7 @@
 #define ALGORITHM_NAME			"SSE2i " MD5_N_STR
 #elif defined(MMX_COEF)
 #define NBKEYS				MMX_COEF
-#define DO_MMX_MD5(in, out)		mdfivemmx_nosizeupdate(out, in, 1)
+#define DO_MMX_MD5(in, out)		mdfivemmx_nosizeupdate(out, (unsigned char*)in, 1)
 #if MMX_COEF == 4
 #define ALGORITHM_NAME			"SSE2 4x"
 #elif MMX_COEF == 2
@@ -49,18 +49,19 @@
 #include <omp.h>
 static unsigned int omp_t = 1;
 #ifdef MD5_SSE_PARA
-#define OMP_SCALE			256
+#define OMP_SCALE			128
 #else
-#define OMP_SCALE			1920
+#define OMP_SCALE			2048
 #endif
 #endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define SALT_LENGTH			40	/* the max username length */
+#define SALT_FIELD_LENGTH		40	/* the max listed username length */
+#define SALT_LENGTH			12	/* the max used username length */
 #define PLAINTEXT_LENGTH		8	/* passwordlength max 8 chars */
-#define CIPHERTEXT_LENGTH		SALT_LENGTH + 1 + 16	/* SALT + $ + 2x8 bytes for BCODE-representation */
+#define CIPHERTEXT_LENGTH		SALT_FIELD_LENGTH + 1 + 16	/* SALT + $ + 2x8 bytes for BCODE-representation */
 
 #define BINARY_SIZE			8	/* half of md5 */
 
@@ -100,13 +101,14 @@ unsigned char bcodeArr[BCODE_ARRAY_LENGTH]=
 0xF2,0x88,0x6B,0x99,0xBF,0xCB,0x32,0x1A,0x19,0xD9,0xA7,0x82,0x22,0x49,0xA2,0x51,
 0xE2,0xB7,0x33,0x71,0x8B,0x9F,0x5D,0x01,0x44,0x70,0xAE,0x11,0xEF,0x28,0xF0,0x0D};
 
-static struct fmt_tests sapbcode_tests[] = {
+static struct fmt_tests tests[] = {
  	{"F                                       $E3A65AAA9676060F", "X"},
 	{"JOHNNY                                  $7F7207932E4DE471", "CYBERPUNK"},
 	{"VAN                                     $487A2A40A7BA2258", "HAUSER"},
 	{"RoOT                                    $8366A4E9E6B72CB0", "KID"},
 	{"MAN                                     $9F48E7CE5B184D2E", "U"},
-	{"----------------------------------------$08CEDAFED0C750A0", "-------"},
+//	{"----------------------------------------$08CEDAFED0C750A0", "-------"},
+	{"----------------------------------------$2CF190AF13E858A2", "-------"},
 	{"SAP*                                    $7016BFF7C5472F1B", "MASTER"},
 	{"DDIC                                    $C94E2F7DD0178374", "DDIC"},
 	{"dollar$$$---                            $C3413C498C48EB67", "DOLLAR$$$---"},
@@ -135,11 +137,11 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static struct saltstruct {
 	unsigned int l;
-	unsigned char s[((SALT_LENGTH>>2)+1)<<2];
-} cur_salt;
-#define SALT_SIZE			sizeof(cur_salt)
+	unsigned char s[SALT_LENGTH];
+} *cur_salt;
+#define SALT_SIZE			sizeof(struct saltstruct)
 
-static void sapbcode_init(struct fmt_main *pFmt)
+static void init(struct fmt_main *pFmt)
 {
 #if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
@@ -160,17 +162,17 @@ static void sapbcode_init(struct fmt_main *pFmt)
 	keyLen = mem_calloc_tiny(sizeof(*keyLen) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int sapbcode_valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
 
 	if(strlen(ciphertext)!=CIPHERTEXT_LENGTH)
 		return 0;
 
-	if (ciphertext[SALT_LENGTH]!='$')
+	if (ciphertext[SALT_FIELD_LENGTH]!='$')
 		return 0;
 
-	for (i = SALT_LENGTH+1; i< CIPHERTEXT_LENGTH; i++)
+	for (i = SALT_FIELD_LENGTH+1; i< CIPHERTEXT_LENGTH; i++)
 		if (!(((ciphertext[i]>='A' && ciphertext[i]<='F')) ||
 			((ciphertext[i]>='a' && ciphertext[i]<='f')) ||
 			((ciphertext[i]>='0' && ciphertext[i]<='9')) ))
@@ -178,24 +180,24 @@ static int sapbcode_valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static void sapbcode_set_salt(void *salt)
+static void set_salt(void *salt)
 {
-	memcpy(&cur_salt, salt, SALT_SIZE);
+	cur_salt = salt;
 }
 
-static void sapbcode_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
+	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
 
-static char *sapbcode_get_key(int index) {
+static char *get_key(int index) {
 	saved_plain[index][PLAINTEXT_LENGTH] = 0;
 	enc_strupper(saved_plain[index]);
 	return saved_plain[index];
 }
 
-static int sapbcode_cmp_all(void *binary, int count) {
+static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 #ifdef MD5_SSE_PARA
@@ -220,11 +222,11 @@ static int sapbcode_cmp_all(void *binary, int count) {
 #endif
 }
 
-static int sapbcode_cmp_exact(char *source, int index){
+static int cmp_exact(char *source, int index){
 	return 1;
 }
 
-static int sapbcode_cmp_one(void * binary, int index)
+static int cmp_one(void * binary, int index)
 {
 #ifdef MMX_COEF
 	unsigned int i,x,y;
@@ -239,7 +241,7 @@ static int sapbcode_cmp_one(void * binary, int index)
 #endif
 }
 
-static void sapbcode_crypt_all(int count) {
+static void crypt_all(int count) {
 #if MMX_COEF
 #if defined(_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	int t;
@@ -255,32 +257,37 @@ static void sapbcode_crypt_all(int count) {
 
 		for (index = 0; index < NBKEYS; index++) {
 			int len;
+
 			if ((len = keyLen[ti]) < 0) {
 				int temp;
 				len = 0;
 				unsigned char *key = (unsigned char*)saved_plain[ti];
 				while((temp = *key++) && len < PLAINTEXT_LENGTH) {
-					saved_key[GETPOS(len, ti)] = transtable[CP_up[temp]];
+					temp = transtable[CP_up[temp]];
+					if (temp & 0x80) temp = '^';
+					saved_key[GETPOS(len, ti)] = temp;
 					len++;
 				}
 				keyLen[ti] = len;
 			}
-			for (i = 0; i < cur_salt.l; i++)
-				saved_key[GETPOS((len + i), ti)] = cur_salt.s[i];
+
+			for (i = 0; i < cur_salt->l; i++)
+				saved_key[GETPOS((len + i), ti)] = cur_salt->s[i];
 			saved_key[GETPOS((len + i), ti)] = 0x80;
 			((unsigned int *)saved_key)[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = (len + i) << 3;
+
 			for (i = i + len + 1; i <= clean_pos[ti]; i++)
 				saved_key[GETPOS(i, ti)] = 0;
-			clean_pos[ti] = len + cur_salt.l;
+			clean_pos[ti] = len + cur_salt->l;
 		}
 
 		DO_MMX_MD5(&saved_key[t*NBKEYS*64], &crypt_key[t*NBKEYS*16]);
 
 #if MD5_SSE_PARA
 		for (i = 0; i < MD5_SSE_PARA; i++)
-			memset(&interm_key[t*NBKEYS*64+i*64*MMX_COEF], 0, 48*MMX_COEF);
+			memset(&interm_key[t*64*NBKEYS+i*64*MMX_COEF+32*MMX_COEF], 0, 32*MMX_COEF);
 #else
-		memset(&interm_key[t*NBKEYS*64], 0, 48*MMX_COEF);
+		memset(&interm_key[32*MMX_COEF], 0, 32*MMX_COEF);
 #endif
 		//now: walld0rf-magic [tm], (c), <g>
 		for (index = 0; index < NBKEYS; index++) {
@@ -307,8 +314,8 @@ static void sapbcode_crypt_all(int count) {
 					I1++;
 					revI1++;
 				}
-				if (I3 < cur_salt.l) {
-					interm_key[GETPOS(I2, ti)] = cur_salt.s[I3++];
+				if (I3 < cur_salt->l) {
+					interm_key[GETPOS(I2, ti)] = cur_salt->s[I3++];
 					I2++;
 				}
 
@@ -364,7 +371,7 @@ static void sapbcode_crypt_all(int count) {
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, saved_key[t], keyLen[t]);
-		MD5_Update(&ctx, cur_salt.s, cur_salt.l);
+		MD5_Update(&ctx, cur_salt->s, cur_salt->l);
 		MD5_Final(temp_key,&ctx);
 
 		//some magic in between....yes, #4 is ignored...
@@ -384,8 +391,8 @@ static void sapbcode_crypt_all(int count) {
 				destArray[I2++] = saved_key[t][I1++];
 				revI1--;
 			}
-			if (I3 < cur_salt.l)
-				destArray[I2++] = cur_salt.s[I3++];
+			if (I3 < cur_salt->l)
+				destArray[I2++] = cur_salt->s[I3++];
 
 			I4 = I2 - I1 - I3;
 			I2++;
@@ -406,13 +413,13 @@ static void sapbcode_crypt_all(int count) {
 #undef ti
 }
 
-static void *sapbcode_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	static ARCH_WORD_32 binary[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 	char *realcipher = (char*)binary;
 	int i;
 
-	char* newCiphertextPointer=&ciphertext[SALT_LENGTH+1];
+	char* newCiphertextPointer=&ciphertext[SALT_FIELD_LENGTH+1];
 
 	for(i=0;i<BINARY_SIZE;i++)
 	{
@@ -425,24 +432,30 @@ static void *sapbcode_binary(char *ciphertext)
  * Strip the padding spaces from salt. Usernames w/ spaces at the end are not
  * supported (SAP does not support them either)
  *
+ * In sapB, we truncate salt length to 12 octets.
+ *
  * ciphertext starts with salt
  */
-static void *sapbcode_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	int i;
+	static struct saltstruct out;
 
 	i = SALT_LENGTH - 1;
 	while (ciphertext[i] == ' ')
 		i--;
-	cur_salt.l = i + 1;
+	out.l = i + 1;
 
-	for (i = 0; i < cur_salt.l; ++i)
-		cur_salt.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
+	// Salt is already uppercased in split()
+	for (i = 0; i < out.l; ++i) {
+		out.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
+		if (out.s[i] & 0x80) out.s[i] = '^';
+	}
 
-	return &cur_salt;
+	return &out;
 }
 
-static char *sapbcode_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
   	memset(out, 0, CIPHERTEXT_LENGTH + 1);
@@ -507,14 +520,14 @@ struct fmt_main fmt_sapB = {
 		FMT_OMP |
 #endif
 		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-		sapbcode_tests
+		tests
 	}, {
-		sapbcode_init,
+		init,
 		fmt_default_prepare,
-		sapbcode_valid,
-		sapbcode_split,
-		sapbcode_binary,
-		sapbcode_get_salt,
+		valid,
+		split,
+		binary,
+		get_salt,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -525,11 +538,11 @@ struct fmt_main fmt_sapB = {
 			binary_hash_6
 		},
 		salt_hash,
-		sapbcode_set_salt,
-		sapbcode_set_key,
-		sapbcode_get_key,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		sapbcode_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -539,8 +552,8 @@ struct fmt_main fmt_sapB = {
 			get_hash_5,
 			get_hash_6
 		},
-		sapbcode_cmp_all,
-		sapbcode_cmp_one,
-		sapbcode_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
