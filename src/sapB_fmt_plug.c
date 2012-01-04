@@ -101,17 +101,17 @@ unsigned char bcodeArr[BCODE_ARRAY_LENGTH]=
 0xF2,0x88,0x6B,0x99,0xBF,0xCB,0x32,0x1A,0x19,0xD9,0xA7,0x82,0x22,0x49,0xA2,0x51,
 0xE2,0xB7,0x33,0x71,0x8B,0x9F,0x5D,0x01,0x44,0x70,0xAE,0x11,0xEF,0x28,0xF0,0x0D};
 
+// For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
- 	{"F                                       $E3A65AAA9676060F", "X"},
+ 	{"F           $E3A65AAA9676060F", "X"},
 	{"JOHNNY                                  $7F7207932E4DE471", "CYBERPUNK"},
-	{"VAN                                     $487A2A40A7BA2258", "HAUSER"},
-	{"RoOT                                    $8366A4E9E6B72CB0", "KID"},
-	{"MAN                                     $9F48E7CE5B184D2E", "U"},
-//	{"----------------------------------------$08CEDAFED0C750A0", "-------"},
-	{"----------------------------------------$2CF190AF13E858A2", "-------"},
-	{"SAP*                                    $7016BFF7C5472F1B", "MASTER"},
-	{"DDIC                                    $C94E2F7DD0178374", "DDIC"},
-	{"dollar$$$---                            $C3413C498C48EB67", "DOLLAR$$$---"},
+	{"VAN         $487A2A40A7BA2258", "HAUSER"},
+	{"RoOT        $8366A4E9E6B72CB0", "KID"},
+	{"MAN         $9F48E7CE5B184D2E", "U"},
+	{"------------$2CF190AF13E858A2", "-------"},
+	{"SAP*$7016BFF7C5472F1B", "MASTER"},
+	{"DDIC$C94E2F7DD0178374", "DDIC"},
+	{"dollar$$$---$C3413C498C48EB67", "DOLLAR$$$---"},
 	{NULL}
 };
 
@@ -165,17 +165,20 @@ static void init(struct fmt_main *pFmt)
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
+	char *p;
 
-	if(strlen(ciphertext)!=CIPHERTEXT_LENGTH)
-		return 0;
+	if (!ciphertext) return 0;
 
-	if (ciphertext[SALT_FIELD_LENGTH]!='$')
-		return 0;
+	p = strrchr(ciphertext, '$');
+	if (!p) return 0;
 
-	for (i = SALT_FIELD_LENGTH+1; i< CIPHERTEXT_LENGTH; i++)
-		if (!(((ciphertext[i]>='A' && ciphertext[i]<='F')) ||
-			((ciphertext[i]>='a' && ciphertext[i]<='f')) ||
-			((ciphertext[i]>='0' && ciphertext[i]<='9')) ))
+	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
+
+	p++;
+	for (i = 0; i < BINARY_SIZE * 2; i++)
+		if (!(((p[i]>='A' && p[i]<='F')) ||
+			((p[i]>='a' && p[i]<='f')) ||
+			((p[i]>='0' && p[i]<='9')) ))
 			return 0;
 	return 1;
 }
@@ -418,8 +421,9 @@ static void *binary(char *ciphertext)
 	static ARCH_WORD_32 binary[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 	char *realcipher = (char*)binary;
 	int i;
+	char* newCiphertextPointer;
 
-	char* newCiphertextPointer=&ciphertext[SALT_FIELD_LENGTH+1];
+	newCiphertextPointer = strrchr(ciphertext, '$') + 1;
 
 	for(i=0;i<BINARY_SIZE;i++)
 	{
@@ -439,10 +443,13 @@ static void *binary(char *ciphertext)
 static void *get_salt(char *ciphertext)
 {
 	int i;
+	char *p;
 	static struct saltstruct out;
 
-	i = SALT_LENGTH - 1;
-	while (ciphertext[i] == ' ')
+	p = strrchr(ciphertext, '$') - 1;
+
+	i = (int)(p - ciphertext);
+	while (ciphertext[i] == ' ' || i >= SALT_LENGTH)
 		i--;
 	out.l = i + 1;
 
@@ -451,7 +458,6 @@ static void *get_salt(char *ciphertext)
 		out.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
 		if (out.s[i] & 0x80) out.s[i] = '^';
 	}
-
 	return &out;
 }
 
@@ -459,7 +465,7 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
   	memset(out, 0, CIPHERTEXT_LENGTH + 1);
-	memcpy(out, ciphertext, CIPHERTEXT_LENGTH);
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
 	enc_strupper(out); // username (==salt)
 	return out;
 }

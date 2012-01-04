@@ -91,17 +91,17 @@ unsigned char theMagicArray[MAGIC_ARRAY_SIZE]=
  0xB3, 0xDD, 0x8E, 0x0A, 0x24, 0xBF, 0x51, 0xC3, 0x7C, 0xCD, 0x55, 0x9F, 0x37, 0xAF, 0x94, 0x4C,
  0x29, 0x08, 0x52, 0x82, 0xB2, 0x3B, 0x4E, 0x37, 0x9F, 0x17, 0x07, 0x91, 0x11, 0x3B, 0xFD, 0xCD };
 
+// For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
-	{"F                                       $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
+	{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
 	{"JOHNNY                                  $7D79B478E70CAAE63C41E0824EAB644B9070D10A", "CYBERPUNK"},
-	{"VAN                                     $D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
-	{"ROOT                                    $1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
-	{"MAN                                     $22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
-//	{"----------------------------------------$D594002761406B589A75CE86042A8B4A922AA74F", "-------"},
-	{"----------------------------------------$463BDDCF2D2D6E07FC64C075A0802BD87A39BBA6", "-------"},
-	{"SAP*                                    $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
-	{"DDIC                                    $6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
-	{"DoLlAR$$$---                            $E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
+	{"VAN$D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
+	{"ROOT$1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
+	{"MAN$22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
+	{"------------------------------------$463BDDCF2D2D6E07FC64C075A0802BD87A39BBA6", "-------"},
+	{"SAP*                                $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
+	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
+	{"DoLlAR$$$---$E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
 	{NULL}
 };
 
@@ -173,24 +173,21 @@ static void init(struct fmt_main *pFmt)
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
-	if (NULL==ciphertext)
-		return 0;
+	char *p;
 
-	if (ciphertext[SALT_FIELD_LENGTH]!='$')
-		return 0;
+	if (!ciphertext) return 0;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
-		return 0;
+	p = strrchr(ciphertext, '$');
+	if (!p) return 0;
 
-	for (i = SALT_FIELD_LENGTH + 1; i < CIPHERTEXT_LENGTH; i++){
-		if (!(
-			(('0' <= ciphertext[i])&&(ciphertext[i] <= '9'))
-				|| (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-				|| (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))
-			))
+	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
+
+	p++;
+	for (i = 0; i < BINARY_SIZE * 2; i++)
+		if (!(((p[i]>='A' && p[i]<='F')) ||
+			((p[i]>='a' && p[i]<='f')) ||
+			((p[i]>='0' && p[i]<='9')) ))
 			return 0;
-	}
-
 	return 1;
 }
 
@@ -202,13 +199,17 @@ static void set_salt(void *salt)
 static void *get_salt(char *ciphertext)
 {
 	int i;
+	char *p;
 	static struct saltstruct out;
 
-	i = SALT_LENGTH - 1;
-	while (ciphertext[i] == ' ')
+	p = strrchr(ciphertext, '$') - 1;
+
+	i = (int)(p - ciphertext);
+	while (ciphertext[i] == ' ' || i >= SALT_LENGTH)
 		i--;
 	out.l = i + 1;
 
+	// Salt is already uppercased in split()
 	memcpy(out.s, ciphertext, out.l);
 
 	if (convert) {
@@ -530,7 +531,9 @@ static void *binary(char *ciphertext)
 	static int outbuf[BINARY_SIZE / sizeof(int)];
 	char *realcipher = (char*)outbuf;
 	int i;
-	char* newCiphertextPointer=&ciphertext[SALT_FIELD_LENGTH + 1];
+	char* newCiphertextPointer;
+
+	newCiphertextPointer = strrchr(ciphertext, '$') + 1;
 
 	for(i=0;i<BINARY_SIZE;i++)
 	{
