@@ -91,6 +91,10 @@ JOHN_OBJS = \
 	undrop.o \
 	unique.o
 
+OCL_OBJS = \
+	common-opencl.o NSLDAPS_opencl_fmt.o NT_opencl_fmt.o \
+	rawMD5_opencl_fmt.o rawSHA1_opencl_fmt.o 
+
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
 
@@ -142,6 +146,7 @@ default:
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
 	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
+	@echo "linux-x86-64-opencl      Linux, x86-64 with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
@@ -239,6 +244,15 @@ linux-x86-64-xop:
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -mxop" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+
+linux-x86-64-opencl:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o $(OCL_OBJS)" \
+		CFLAGS="$(CFLAGS) -I/usr/local/cuda/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
+		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -lcrypt -lOpenCL -ldl"
+	/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
@@ -1349,7 +1363,7 @@ test_utf8:
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
+	$(RM) ../run/john.exe john-macosx-* *.o *.bak core ../run/*.cl
 	$(RM) detect bench generic.h arch.h tmp.s
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
