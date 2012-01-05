@@ -87,6 +87,12 @@ extern struct fmt_main fmt_SybaseASE;
 extern struct fmt_main fmt_SKEY;
 #endif
 
+#ifdef CL_VERSION_1_0
+extern struct fmt_main fmt_opencl_NSLDAPS;
+extern struct fmt_main fmt_opencl_rawMD5;
+extern struct fmt_main fmt_opencl_NT;
+extern struct fmt_main fmt_opencl_rawSHA1;
+#endif 
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pdf;
 extern struct fmt_main rar_fmt;
@@ -167,6 +173,13 @@ static void john_register_all(void)
 	john_register_one(&rar_fmt);
 	john_register_one(&zip_fmt);
 	john_register_one(&fmt_dummy);
+
+#ifdef CL_VERSION_1_0
+	john_register_one(&fmt_opencl_NSLDAPS);
+	john_register_one(&fmt_opencl_rawMD5);
+	john_register_one(&fmt_opencl_NT);
+	john_register_one(&fmt_opencl_rawSHA1);
+#endif 
 
 #ifdef HAVE_DL
 	if (options.fmt_dlls)
