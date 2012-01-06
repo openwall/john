@@ -35,7 +35,7 @@
 #endif
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		64
 #define CIPHERTEXT_LENGTH		128
@@ -128,28 +128,41 @@ static void hmacmd5_set_salt(void *salt)
 }
 
 static void hmacmd5_set_key(char *key, int index) {
-	int i;
-	int len;
-
-	len = strlen(key);
-	if(len>PLAINTEXT_LENGTH)
-		len = PLAINTEXT_LENGTH;
-
 #ifdef MMX_COEF
+	ARCH_WORD_32 *ipadp = (ARCH_WORD_32 *)&ipad[GETPOS(0, index)];
+	ARCH_WORD_32 *opadp = (ARCH_WORD_32 *)&opad[GETPOS(0, index)];
+	const ARCH_WORD_32 *keyp = (ARCH_WORD_32 *)key;
+	unsigned int temp;
+
 	if(index==0)
 	{
 		memset(ipad, 0x36, sizeof(ipad));
 		memset(opad, 0x5C, sizeof(opad));
 	}
 
-	for(i=0;i<len;i++)
-	{
-		ipad[GETPOS(i, index)] ^= key[i];
-		opad[GETPOS(i, index)] ^= key[i];
+	while((unsigned char)(temp = *keyp++)) {
+		if (!(temp & 0xff00) || !(temp & 0xff0000))
+		{
+			*ipadp ^= (unsigned short)temp;
+			*opadp ^= (unsigned short)temp;
+			break;
+		}
+		*ipadp ^= temp;
+		*opadp ^= temp;
+		if (!(temp & 0xff000000))
+			break;
+		ipadp += MMX_COEF;
+		opadp += MMX_COEF;
 	}
 #else
+	int i;
+	int len;
+
+	len = strlen(key);
+
 	memset(ipad, 0x36, PLAINTEXT_LENGTH);
 	memset(opad, 0x5C, PLAINTEXT_LENGTH);
+
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
