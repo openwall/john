@@ -36,7 +36,7 @@ while [ $MAX -eq 1 ]; do
 	RES=$(($RES+`./para-bench 4 $TIME`)) || exit 1
     done
     RES=$(($RES/5))
-    if [ $(($RES*100)) -gt $(($MD4_BEST*105)) ]; then
+    if [ $(($RES*100)) -gt $(($MD4_BEST*101)) ]; then
 	MAX=1
 	MD4_PARA_BEST=$MD4_PARA
 	MD4_PARA=$(($MD4_PARA+1))
@@ -47,7 +47,7 @@ while [ $MAX -eq 1 ]; do
 	RES=$(($RES+`./para-bench 2 $TIME`)) || exit 1
     done
     RES=$(($RES/5))
-    if [ $(($RES*100)) -gt $(($MD5_BEST*105)) ]; then
+    if [ $(($RES*100)) -gt $(($MD5_BEST*101)) ]; then
 	MAX=1
 	MD5_PARA_BEST=$MD5_PARA
 	MD5_PARA=$(($MD5_PARA+1))
@@ -58,7 +58,7 @@ while [ $MAX -eq 1 ]; do
 	RES=$(($RES+`./para-bench 6 $TIME`)) || exit 1
     done
     RES=$(($RES/5))
-    if [ $(($RES*100)) -gt $(($SHA1_BEST*105)) ]; then
+    if [ $(($RES*100)) -gt $(($SHA1_BEST*101)) ]; then
 	MAX=1
 	SHA1_PARA_BEST=$SHA1_PARA
 	SHA1_PARA=$(($SHA1_PARA+1))
