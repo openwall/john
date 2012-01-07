@@ -214,13 +214,16 @@ static void *get_salt(char *ciphertext)
 
 	if (convert) {
 		// convert from codepage -> Unicode -> UTF-8
-		UTF16 tmp16[PLAINTEXT_LENGTH + 1];
+		UTF16 tmp16[SALT_LENGTH + 1];
+		UTF8 salt[SALT_LENGTH + 1];
 #if ARCH_LITTLE_ENDIAN
-		enc_to_utf16(tmp16, PLAINTEXT_LENGTH + 1, out.s, out.l);
+		enc_to_utf16(tmp16, SALT_LENGTH + 1, out.s, out.l);
 #else
-		enc_to_utf16_be(tmp16, PLAINTEXT_LENGTH + 1, out.s, out.l);
+		enc_to_utf16_be(tmp16, SALT_LENGTH + 1, out.s, out.l);
 #endif
-		utf16_to_utf8_r(out.s, PLAINTEXT_LENGTH + 1, tmp16);
+		utf16_to_utf8_r(salt, SALT_LENGTH + 1, tmp16);
+		out.l = strlen((char*)salt);
+		memcpy(out.s, salt, out.l);
 	}
 
 	return &out;
