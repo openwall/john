@@ -455,8 +455,10 @@ static void *get_salt(char *ciphertext)
 
 	// Salt is already uppercased in split()
 	for (i = 0; i < out.l; ++i) {
-		out.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
-		if (out.s[i] & 0x80) out.s[i] = '^';
+		if (ciphertext[i] & 0x80)
+			out.s[i] = transtable['^'];
+		else
+			out.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
 	}
 	return &out;
 }
