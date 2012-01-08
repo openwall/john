@@ -7,7 +7,7 @@
  * (c) x7d8 sap loverz, public domain, btw
  * cheers: see test-cases.
  *
- * Heavily modified by magnum 2011 for performance and for
+ * Heavily modified by magnum 2011-2012 for performance and for
  * SIMD, OMP and encodings support. No rights reserved.
  */
 
@@ -23,7 +23,7 @@
 #include "md5.h"
 
 #define FORMAT_LABEL			"sapb"
-#define FORMAT_NAME			"SAP BCODE"
+#define FORMAT_NAME			"SAP CODVN B (BCODE)"
 
 #ifdef MD5_SSE_PARA
 #define MMX_COEF			4
@@ -143,6 +143,10 @@ static struct saltstruct {
 
 static void init(struct fmt_main *pFmt)
 {
+	// This is needed in order NOT to upper-case german double-s
+	// in UTF-8 mode.
+	initUnicode(UNICODE_MS_NEW);
+
 #if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
@@ -264,10 +268,11 @@ static void crypt_all(int count) {
 			if ((len = keyLen[ti]) < 0) {
 				int temp;
 				len = 0;
+				enc_strupper(saved_plain[ti]);
 				unsigned char *key = (unsigned char*)saved_plain[ti];
 				while((temp = *key++) && len < PLAINTEXT_LENGTH) {
-					temp = transtable[CP_up[temp]];
 					if (temp & 0x80) temp = '^';
+					temp = transtable[temp];
 					saved_key[GETPOS(len, ti)] = temp;
 					len++;
 				}
@@ -362,13 +367,18 @@ static void crypt_all(int count) {
 		MD5_CTX ctx;
 
 		if (keyLen[t] < 0) {
+			enc_strupper(saved_plain[t]);
 			keyLen[t] = strlen(saved_plain[t]);
 
 			if (keyLen[t] > PLAINTEXT_LENGTH)
 				keyLen[t] = PLAINTEXT_LENGTH;
 
-			for (i = 0; i < keyLen[t]; i++)
-				saved_key[t][i] = transtable[CP_up[ARCH_INDEX(saved_plain[t][i])]];
+			for (i = 0; i < keyLen[t]; i++) {
+				int temp;
+				temp = saved_plain[t][i];
+				if (temp & 0x80) temp = '^';
+				saved_key[t][i] = transtable[temp];
+			}
 			saved_key[t][i] = 0;
 		}
 
@@ -432,43 +442,46 @@ static void *binary(char *ciphertext)
 	return (void *)realcipher;
 }
 
-/*
- * Strip the padding spaces from salt. Usernames w/ spaces at the end are not
- * supported (SAP does not support them either)
- *
- * In sapB, we truncate salt length to 12 octets.
- *
- * ciphertext starts with salt
- */
+// Salt is already trimmed, uppercased and 8-bit converted in split()
 static void *get_salt(char *ciphertext)
 {
 	int i;
-	char *p;
 	static struct saltstruct out;
 
-	p = strrchr(ciphertext, '$') - 1;
+	out.l = (int)(strrchr(ciphertext, '$') - ciphertext);
 
-	i = (int)(p - ciphertext);
-	while (ciphertext[i] == ' ' || i >= SALT_LENGTH)
-		i--;
-	out.l = i + 1;
+	for (i = 0; i < out.l; ++i)
+		out.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
 
-	// Salt is already uppercased in split()
-	for (i = 0; i < out.l; ++i) {
-		if (ciphertext[i] & 0x80)
-			out.s[i] = transtable['^'];
-		else
-			out.s[i] = transtable[ARCH_INDEX(ciphertext[i])];
-	}
 	return &out;
 }
 
+// Here, we remove any salt padding, trim it to 12 bytes, upper-case it
+// and finally replace any 8-bit character with '^'
 static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
-  	memset(out, 0, CIPHERTEXT_LENGTH + 1);
-	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
-	enc_strupper(out); // username (==salt)
+	char *p;
+	int i;
+
+	p = strrchr(ciphertext, '$');
+
+	i = (int)(p - ciphertext) - 1;
+	while (ciphertext[i] == ' ' || i >= SALT_LENGTH)
+		i--;
+	i++;
+
+	memset(out, 0, sizeof(out));
+	memcpy(out, ciphertext, i);
+	strnzcpy(&out[i], p, CIPHERTEXT_LENGTH + 1 - i);
+
+	enc_strupper(out); // upper-case salt (username) + hash
+
+	p = &out[i];
+	while(--p >= out)
+		if (*p & 0x80)
+			*p = '^';
+
 	return out;
 }
 
