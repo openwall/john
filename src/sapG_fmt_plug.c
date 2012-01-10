@@ -275,12 +275,26 @@ static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHash
 static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray)
 #endif
 {
-	unsigned int i, modSum = 0;
+	unsigned int modSum = 0;
+
+#if MMX_COEF
+	unsigned const char *p = &pbHashArray[GETOUTPOS(3, index)];
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	p += 4*(MMX_COEF - 1);
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	p += 4*(MMX_COEF - 1) + 2;
+	modSum += *p++ % 6;
+	modSum += *p % 6;
+#else
+	unsigned int i;
 
 	for (i=0; i<=9; i++)
-#if MMX_COEF
-		modSum += pbHashArray[GETOUTPOS(i, index)] % 6;
-#else
 		modSum += pbHashArray[i] % 6;
 #endif
 	return modSum + 0x20; //0x20 is hardcoded...
@@ -297,12 +311,26 @@ static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHash
 static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray)
 #endif
 {
-	unsigned int i, modSum = 0;
+	unsigned int modSum = 0;
+
+#if MMX_COEF
+	unsigned const int *p = (unsigned int*)&pbHashArray[GETOUTPOS(11, index)];
+	unsigned int temp;
+
+	temp = *p & 0x0707;
+	modSum += (temp >> 8) + (unsigned char)temp;
+	p += MMX_COEF;
+	temp = *p & 0x07070707;
+	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
+		(unsigned char)(temp >> 8) + (unsigned char)temp;
+	p += MMX_COEF;
+	temp = *p & 0x07070707;
+	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
+		(unsigned char)(temp >> 8) + (unsigned char)temp;
+#else
+	unsigned int i;
 
 	for (i = 19; i >= 10; i--)
-#if MMX_COEF
-		modSum += pbHashArray[GETOUTPOS(i, index)] % 8;
-#else
 		modSum += pbHashArray[i] % 8;
 #endif
 	return modSum;
@@ -388,13 +416,15 @@ static void crypt_all(int count)
 			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
 
 			// Clean rest of this buffer
-			for (i = len + 1; i < (((len+8)>>6)+1)*64; i++)
-				if (i & 3)
-					saved_key[i>>6][GETPOS(i, ti)] = 0;
-				else {
-					*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
-					i += 3;
-				}
+			i = len;
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = 0;
+			for (; i < (((len+8)>>6)+1)*64; i += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
+
+			// This should do good but Valgrind insists it's a waste
+			//if (clean_pos[ti] < i)
+			//	clean_pos[ti] = len + 1;
 
 			if (len > longest)
 				longest = len;
@@ -433,8 +463,9 @@ static void crypt_all(int count)
 		for (index = 0; index < NBKEYS; index++) {
 			unsigned int offsetMagicArray;
 			unsigned int lengthIntoMagicArray;
+			unsigned char *p;
 
-			// If second crypt happens to be 56-61 bytes (or so), this must be clean
+			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
 			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
 
 			len = keyLen[ti];
@@ -442,22 +473,28 @@ static void crypt_all(int count)
 			offsetMagicArray = extractOffsetToMagicArray(interm_crypt, ti);
 
 			// 2.	now, hash again --> sha1($password+$partOfMagicArray+$username) --> this is CODVNG passcode...
-			for (i = 0; i < lengthIntoMagicArray; i++)
-				saved_key[(len+i)>>6][GETPOS((len + i), ti)] = theMagicArray[offsetMagicArray + i];
+			i = len - 1;
+			p = &theMagicArray[offsetMagicArray];
+			// Copy a char at a time until aligned (at destination)...
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = *p++;
+			// ...then a word at a time. This is a good boost, we are copying between 32 and 82 bytes here.
+			for (;i < lengthIntoMagicArray + len; i += 4, p += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = JOHNSWAP(*(ARCH_WORD_32*)p);
+
+			// Now, the salt. This is typically too short for the stunt above.
 			for (i = 0; i < cur_salt->l; i++)
 				saved_key[(len+lengthIntoMagicArray+i)>>6][GETPOS((len + lengthIntoMagicArray + i), ti)] = cur_salt->s[i];
 			len += lengthIntoMagicArray + cur_salt->l;
 			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
 			crypt_len[index] = len;
 
-			// Clean rest of this buffer
-			for (i = len + 1; i < clean_pos[ti]; i++)
-				if (i & 3)
-					saved_key[i>>6][GETPOS(i, ti)] = 0;
-				else {
-					*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
-					i += 3;
-				}
+			// Clean the rest of this buffer as needed
+			i = len;
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = 0;
+			for (; i < clean_pos[ti]; i += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
 
 			clean_pos[ti] = len + 1;
 			if (len > longest)
