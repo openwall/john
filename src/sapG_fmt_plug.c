@@ -467,10 +467,11 @@ static void crypt_all(int count)
 
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
 			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
+			((unsigned int*)saved_key[1])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
 
 			len = keyLen[ti];
-			lengthIntoMagicArray = extractLengthOfMagicArray(interm_crypt, ti);
-			offsetMagicArray = extractOffsetToMagicArray(interm_crypt, ti);
+			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
+			offsetMagicArray = extractOffsetToMagicArray(crypt_key, ti);
 
 			// 2.	now, hash again --> sha1($password+$partOfMagicArray+$username) --> this is CODVNG passcode...
 			i = len - 1;
