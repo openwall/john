@@ -333,6 +333,11 @@ static void crypt_all(int count) {
 				interm_key[GETPOS(I2, ti)] = 0;
 			} while (++I2 < sum20);
 
+			while (I2 > sum20) {
+				interm_key[GETPOS(I2, ti)] = 0;
+				I2--;
+			}
+
 			interm_key[GETPOS(sum20, ti)] = 0x80;
 			((unsigned int *)interm_key)[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = sum20 << 3;
 		}
