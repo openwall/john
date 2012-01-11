@@ -216,8 +216,9 @@ static void bin2ascii(__m64 *conv, __m64 *src)
 
 #else
 
-static void bin2ascii(uint32_t *conv, unsigned char *src)
+static void bin2ascii(uint32_t *conv, uint32_t *source)
 {
+	unsigned char *src = (unsigned char*)source;
 	unsigned int i;
 	unsigned int j = 0;
 	uint32_t t = 0;
@@ -270,7 +271,7 @@ static void crypt_all(int count)
 		__m64 h1[BINARY_SIZE / sizeof(__m64)];
 		__m64 conv[CIPHERTEXT_LENGTH / sizeof(__m64) + 1];
 #else
-		unsigned int h1[BINARY_SIZE / sizeof(unsigned int)];
+		uint32_t h1[BINARY_SIZE / sizeof(uint32_t)];
 		uint32_t conv[(CIPHERTEXT_LENGTH / sizeof(uint32_t)) + 1];
 #endif
 
