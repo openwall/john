@@ -3,7 +3,9 @@
  * Copyright (c) 1996-2003,2005,2006,2009,2010 by Solar Designer
  */
 
+#ifndef __FreeBSD__
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
+#endif
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
