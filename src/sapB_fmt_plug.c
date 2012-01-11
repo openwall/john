@@ -266,7 +266,7 @@ static void crypt_all(int count) {
 			int len;
 
 			if ((len = keyLen[ti]) < 0) {
-				int temp;
+				unsigned int temp;
 				len = 0;
 				enc_strupper(saved_plain[ti]);
 				unsigned char *key = (unsigned char*)saved_plain[ti];
@@ -302,14 +302,15 @@ static void crypt_all(int count) {
 			unsigned int sum20, I1, I2, I3, I4, revI1;
 			int len = keyLen[ti];
 
-			//some magic in between....yes, #4 is ignored...
+			//some magic in between....yes, byte 4 is ignored...
 			//sum20 will be between 0x20 and 0x2F
-			sum20 = crypt_key[GETOUTPOS(5, ti)]%4 + crypt_key[GETOUTPOS(3, ti)]%4 + crypt_key[GETOUTPOS(2, ti)]%4 + crypt_key[GETOUTPOS(1, ti)]%4 + crypt_key[GETOUTPOS(0, ti)]%4 + 0x20;
+			I1 = *(unsigned int*)&crypt_key[GETOUTPOS(0, ti)];
+			I1 &= 0x03030303;
+			sum20 = (unsigned char)((I1 >> 24) + (I1 >> 16) +
+			                        (I1 >> 8) + I1);
+			sum20 += (crypt_key[GETOUTPOS(5, ti)] & 3) | 0x20;
 
-			I1 = 0;
-			I2 = 0;
-			revI1 = 0;
-			I3 = 0;
+			I1 = I2 = I3 = revI1 = 0;
 
 			do {
 				if (I1 < len) {
@@ -333,6 +334,7 @@ static void crypt_all(int count) {
 				interm_key[GETPOS(I2, ti)] = 0;
 			} while (++I2 < sum20);
 
+			// Clean any over-run from the weird loop above
 			while (I2 > sum20) {
 				interm_key[GETPOS(I2, ti)] = 0;
 				I2--;

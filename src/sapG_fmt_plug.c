@@ -207,7 +207,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH + 1);
+	memcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
 
@@ -433,17 +433,14 @@ static void crypt_all(int count)
 		}
 
 #if SHA1_SSE_PARA
-		SSESHA1body(&saved_key[0][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, 0);
+		SSESHA1body(&saved_key[0][t*80*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, 0);
 #else
-		shammx_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[0], 1);
+		shammx_nosizeupdate_nofinalbyteswap(crypt_key, saved_key[0], 1);
 #endif
 
 		// Do another limb if needed
 		if (longest > 55) {
-			// Copy the output that is already finished
-			for (index = 0; index < NBKEYS; index++)
-				if (crypt_len[index] < 56)
-					crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
+			memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
 #if SHA1_SSE_PARA
 			SSESHA1body(&saved_key[1][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
 #else
@@ -453,9 +450,6 @@ static void crypt_all(int count)
 			for (index = 0; index < NBKEYS; index++)
 				if (crypt_len[index] > 55)
 					crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
-		} else {
-			// We can copy all output in one go
-			memcpy(&crypt_key[t*20*NBKEYS], &interm_crypt[t*20*NBKEYS], 20*NBKEYS);
 		}
 
 		longest = 0;
