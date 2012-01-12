@@ -60,12 +60,11 @@ static unsigned int omp_t = 1;
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH		48	/* netweaver 2004s limit */
+#define SALT_LENGTH			(12*3)	/* 12 characters of UTF-8 */
+#define PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
 
 #define BINARY_SIZE			20
-#define SALT_FIELD_LENGTH		40	/* max listed username length */
-#define SALT_LENGTH			(12*3)	/* max username length, 12 characters of UTF-8 */
-#define CIPHERTEXT_LENGTH		SALT_FIELD_LENGTH + 1 + 40	/* SALT + $ + 2x20 bytes for SHA1-representation */
+#define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + 2*BINARY_SIZE)	/* SALT + $ + 2x20 bytes for SHA1-representation */
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
@@ -136,12 +135,16 @@ static struct saltstruct {
 
 static void init(struct fmt_main *pFmt)
 {
+	static int warned = 0;
 #ifdef MMX_COEF
 	int i;
 #endif
 	// This is needed in order NOT to upper-case german double-s
 	// in UTF-8 mode.
 	initUnicode(UNICODE_MS_NEW);
+
+	if (!options.utf8 && !(options.flags & FLG_TEST_CHK) && warned++ == 0)
+		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --encoding=utf8\n");
 
 #if defined (_OPENMP) && (defined(SHA1_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
@@ -405,6 +408,13 @@ static void crypt_all(int count)
 					keybuf_word += MMX_COEF;
 					len += 4;
 				}
+
+				// Back-out of trailing spaces
+				while( saved_plain[ti][len - 1] == ' ' )
+				{
+					saved_plain[ti][--len] = 0;
+					if (len == 0) break;
+				}
 				keyLen[ti] = len;
 			}
 
@@ -540,8 +550,15 @@ static void crypt_all(int count)
 		unsigned char tempVar[PLAINTEXT_LENGTH + MAGIC_ARRAY_SIZE + SALT_LENGTH]; //max size...
 		SHA_CTX ctx;
 
-		if (keyLen[index] < 0)
+		if (keyLen[index] < 0) {
 			keyLen[index] = strlen((char*)saved_key[index]);
+
+			// Back-out of trailing spaces
+			while (saved_key[index][keyLen[index] - 1] == ' ') {
+				saved_key[index][--keyLen[index]] = 0;
+				if (keyLen[index] == 0) break;
+			}
+		}
 
 		//1.	we need to SHA1 the password and username
 		memcpy(tempVar, saved_key[index], keyLen[index]);  //first: the password

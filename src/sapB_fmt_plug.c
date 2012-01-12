@@ -18,8 +18,7 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "unicode.h"
-
+#include "options.h"
 #include "md5.h"
 
 #define FORMAT_LABEL			"sapb"
@@ -143,9 +142,10 @@ static struct saltstruct {
 
 static void init(struct fmt_main *pFmt)
 {
-	// This is needed in order NOT to upper-case german double-s
-	// in UTF-8 mode.
-	initUnicode(UNICODE_MS_NEW);
+	static int warned = 0;
+
+	if (options.utf8 && warned++ == 0)
+		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nConvert your input files to iso-8859-1 instead.\n");
 
 #if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
@@ -200,7 +200,6 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index) {
 	saved_plain[index][PLAINTEXT_LENGTH] = 0;
-	enc_strupper(saved_plain[index]);
 	return saved_plain[index];
 }
 
@@ -267,23 +266,48 @@ static void crypt_all(int count) {
 
 			if ((len = keyLen[ti]) < 0) {
 				unsigned int temp;
+				unsigned char *key;
+
+				// Load key into vector buffer, upper case
+				// (just ASCII will do here) and get length
 				len = 0;
-				enc_strupper(saved_plain[ti]);
-				unsigned char *key = (unsigned char*)saved_plain[ti];
-				while((temp = *key++) && len < PLAINTEXT_LENGTH) {
-					if (temp & 0x80) temp = '^';
-					temp = transtable[temp];
-					saved_key[GETPOS(len, ti)] = temp;
-					len++;
+				key = (unsigned char*)saved_plain[ti];
+				while ((temp = *key))
+				{
+					if (temp >= 'a' && temp <= 'z')
+					{
+						temp ^= 0x20;
+						*key = temp;
+					}
+					else if (temp & 0x80)
+						*key = temp = '^';
+					saved_key[GETPOS(len, ti)] =
+						transtable[temp];
+					key++;
+					if (++len == PLAINTEXT_LENGTH) break;
 				}
+
+				// Back-out of trailing spaces
+				while((temp = *--key) == ' ')
+				{
+					if (len == 0) break;
+					len--;
+					saved_key[GETPOS(len, ti)] = key[1] = 0;
+					temp = *key;
+				}
+
 				keyLen[ti] = len;
 			}
 
+			// Prepend the salt
 			for (i = 0; i < cur_salt->l; i++)
-				saved_key[GETPOS((len + i), ti)] = cur_salt->s[i];
+				saved_key[GETPOS((len + i), ti)] =
+					cur_salt->s[i];
+
 			saved_key[GETPOS((len + i), ti)] = 0x80;
 			((unsigned int *)saved_key)[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = (len + i) << 3;
 
+			// Clean rest of buffer
 			for (i = i + len + 1; i <= clean_pos[ti]; i++)
 				saved_key[GETPOS(i, ti)] = 0;
 			clean_pos[ti] = len + cur_salt->l;
@@ -374,16 +398,31 @@ static void crypt_all(int count) {
 		MD5_CTX ctx;
 
 		if (keyLen[t] < 0) {
-			enc_strupper(saved_plain[t]);
+			unsigned int temp = 0;
+
 			keyLen[t] = strlen(saved_plain[t]);
 
+			// This is not strictly needed in Jumbo
 			if (keyLen[t] > PLAINTEXT_LENGTH)
 				keyLen[t] = PLAINTEXT_LENGTH;
 
+			// Back-out of trailing spaces
+			while ( saved_plain[t][keyLen[t] - 1] == ' ' )
+			{
+				saved_plain[t][--keyLen[t]] = 0;
+				if (keyLen[t] == 0) break;
+			}
+
+			// We do not need encoding-aware upper-casing
+			// Replace any 8-bit character with ^
 			for (i = 0; i < keyLen[t]; i++) {
-				int temp;
 				temp = saved_plain[t][i];
-				if (temp & 0x80) temp = '^';
+				if (temp >= 'a' && temp <= 'z') {
+					temp ^= 0x20;
+					saved_plain[t][i] = temp;
+				}
+				else if (temp & 0x80)
+					saved_plain[t][i] = temp = '^';
 				saved_key[t][i] = transtable[temp];
 			}
 			saved_key[t][i] = 0;
@@ -482,7 +521,7 @@ static char *split(char *ciphertext, int index)
 	memcpy(out, ciphertext, i);
 	strnzcpy(&out[i], p, CIPHERTEXT_LENGTH + 1 - i);
 
-	enc_strupper(out); // upper-case salt (username) + hash
+	strupr(out); // upper-case salt (username) + hash
 
 	p = &out[i];
 	while(--p >= out)
