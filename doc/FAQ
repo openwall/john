@@ -38,15 +38,17 @@ mode, see the passwords it cracked, etc?
 A: See README and EXAMPLES. :-)
 
 Q: How do I "unshadow"?
-A: See EXAMPLES on how to combine your passwd and shadow files, provided
-that you have root access to the target system.
+A: See EXAMPLES on how to combine your passwd and shadow files using the
+supplied "unshadow" tool, provided that you have root access to the
+target system.
 
 Q: Why doesn't John load my password file?  It says "No password hashes
 loaded", "No password hashes loaded (see FAQ)", or "No password hashes
 left to crack (see FAQ)".
-A: Your password file might be shadowed.  You need to get both
-/etc/passwd and the shadow file (typically /etc/shadow), and combine
-them into one file for use with John.  Please refer to EXAMPLES.
+A: Your password file taken from a Unix-like system might be shadowed.
+You need to get both /etc/passwd and the shadow file (typically
+/etc/shadow or /etc/master.passwd), and combine them into one file using
+"unshadow" (which is supplied with John).  Please refer to EXAMPLES.
 A: All of the password hashes found in the file (that are of the same
 type as the very first recognized hash in the file unless you're using
 the "--format=..." option) might be already cracked by previous
@@ -57,20 +59,33 @@ password hash file(s).  To force John to crack those same hashes again,
 remove the john.pot file.
 A: With PWDUMP-format files, John focuses on LM rather than NTLM hashes
 by default, and it might not load any hashes at all if there are no LM
-hashes to crack.  To have JtR Pro or a build of JtR with the jumbo patch
-focus on NTLM hashes instead, you need to pass the "--format=nt" option.
+hashes to crack.  To have JtR Pro or a -jumbo version focus on NTLM
+hashes instead, you need to pass the "--format=nt" option.
 A: The file you're trying to run John on might in fact not be a password
 file at all.
 A: Your command line syntax might be wrong, resulting in John trying to
 load a wrong file.
-A: Your password file format or hash type(s) might not be supported by
-John, or at least by the version and build of John that you're using.
-If you're positive that this is the case, you may want to check the
-contributed resources list on John the Ripper homepage for a suitable
-patch and, if unsuccessful with that, post a note to the mailing list
-(see CONTACT) including a sample password file line that John does not
-load (please make sure that the password is already changed by the time
-you post).
+A: Your password hash or cipher type(s) might not be supported by John,
+or at least by the version and build of John that you're using.  If
+you're using a non-jumbo version, you will likely want to try -jumbo
+instead, which supports a lot of additional hash and cipher types.  If
+unsuccessful with that and other answers (above and below this one)
+don't apply, post a note to the mailing list (see CONTACT) including a
+sample password file line that John does not load (please make sure that
+the password is already changed by the time you post).
+A: John only loads properly formatted text files directly.  It can load
+/etc/passwd and PWDUMP format files.  Starting with version 1.7.6, it
+can also load text files containing one password hash per line (and
+nothing else on that line).  Some other file formats are supported via
+extra tools (supplied with John): unafs (Kerberos AFS database files),
+undrop (Eggdrop IRC bot userfiles), ssh2john (OpenSSH private keys),
+pdf2john (some password-protected PDF files), rar2john (some
+password-protected RAR archives), zip2john (some password-protected
+PKZIP and WinZip archives).  You need -jumbo for most of these.  To use
+the proper one of these (for your file format), run it on your file(s)
+and redirect the output to a new file (using your shell's output
+redirection feature - e.g., "./ssh2john ~/.ssh/id_rsa > sshpasswd").
+Then run John on the resulting file (e.g., "./john sshpasswd").
 
 Q: I am getting the error "fopen: ./all.chr: No such file or directory"
 (or "fopen: ./lanman.chr: No such file or directory").
@@ -234,4 +249,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.27 2011/11/21 02:36:55 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.28 2012/01/12 01:25:40 solar Exp $
