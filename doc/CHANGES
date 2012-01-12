@@ -1,11 +1,14 @@
-The following changes have been made between John 1.7.9 and 1.7.9.1:
+The following changes have been made between John 1.7.9 and 1.7.9.2:
 
+* Enhanced the support for DES-based tripcodes by making use of the bitslice
+DES implementation and supporting OpenMP parallelization.
 * With 32-bit x86 builds and at least MMX enabled, the "two hashes at a time"
 code for bcrypt is now enabled for GCC 4.2 and newer.  This change is made
 based on benchmark results for different builds made with different versions of
 GCC on CPUs ranging from Pentium 3 to Core i7.  Previously, this code was only
 enabled for x86-64 and/or OpenMP-enabled builds.
 * Assorted minor corrections to Cygwin builds were made.
+* Updated the FAQ.
 
 The following changes have been made between John 1.7.8 and 1.7.9:
 
