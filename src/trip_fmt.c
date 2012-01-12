@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2011 by Solar Designer
+ * Copyright (c) 2011,2012 by Solar Designer
  */
 
 #include <string.h>
@@ -186,32 +186,40 @@ static int binary_hash_0(void *binary)
 
 static int binary_hash_1(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFF;
+	unsigned int w = *(ARCH_WORD *)binary;
+	return ((w >> 1) & 0x80) | (w & 0x7F);
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFF;
+	unsigned int w = *(ARCH_WORD *)binary;
+	return ((w >> 1) & 0xF80) | (w & 0x7F);
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFF;
+	unsigned int w = *(ARCH_WORD *)binary;
+	return ((w >> 2) & 0xC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFFF;
+	unsigned int w = *(ARCH_WORD *)binary;
+	return ((w >> 2) & 0xFC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0xFFFFFF;
+	unsigned int w = *(ARCH_WORD *)binary;
+	return ((w >> 3) & 0xE00000) |
+	    ((w >> 2) & 0x1FC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD *)binary & 0x7FFFFFF;
+	unsigned int w = *(ARCH_WORD *)binary;
+	return ((w >> 3) & 0x7E00000) |
+	    ((w >> 2) & 0x1FC000) | ((w >> 1) & 0x3F80) | (w & 0x7F);
 }
 
 #if DES_bs_mt
@@ -235,12 +243,12 @@ static int NAME(int index) \
 }
 
 define_get_hash(get_hash_0, DES_bs_get_hash_0)
-define_get_hash(get_hash_1, DES_bs_get_hash_1)
-define_get_hash(get_hash_2, DES_bs_get_hash_2)
-define_get_hash(get_hash_3, DES_bs_get_hash_3)
-define_get_hash(get_hash_4, DES_bs_get_hash_4)
-define_get_hash(get_hash_5, DES_bs_get_hash_5)
-define_get_hash(get_hash_6, DES_bs_get_hash_6)
+define_get_hash(get_hash_1, DES_bs_get_hash_1t)
+define_get_hash(get_hash_2, DES_bs_get_hash_2t)
+define_get_hash(get_hash_3, DES_bs_get_hash_3t)
+define_get_hash(get_hash_4, DES_bs_get_hash_4t)
+define_get_hash(get_hash_5, DES_bs_get_hash_5t)
+define_get_hash(get_hash_6, DES_bs_get_hash_6t)
 
 #else
 
@@ -402,12 +410,6 @@ static MAYBE_INLINE void crypt_traverse_by_salt(int count)
 				int tindex;
 				DES_bs_crypt_25(lindex);
 				for_each_t(n) {
-					memset(&DES_bs_all.B[7], 0,
-					    sizeof(DES_bs_all.B[7]));
-					memset(&DES_bs_all.B[15], 0,
-					    sizeof(DES_bs_all.B[15]));
-					memset(&DES_bs_all.B[23], 0,
-					    sizeof(DES_bs_all.B[23]));
 					memcpy(crypt_out[block_count++],
 					    DES_bs_all.B,
 					    sizeof(DES_bs_all.B));
@@ -477,9 +479,9 @@ static int cmp_all(void *binary, int count)
 		MAYBE_T0;
 		memcpy(DES_bs_all.B, crypt_out[block_index],
 		    sizeof(DES_bs_all.B));
-		memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
-		memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
-		memset(&DES_bs_all.B[55], 0, sizeof(DES_bs_all.B[55]));
+		memset(&DES_bs_all.B[7], 0, sizeof(DES_bs_all.B[7]));
+		memset(&DES_bs_all.B[15], 0, sizeof(DES_bs_all.B[15]));
+		memset(&DES_bs_all.B[23], 0, sizeof(DES_bs_all.B[23]));
 		if (DES_bs_cmp_all(binary, DES_BS_DEPTH))
 			return 1;
 	}
@@ -492,6 +494,9 @@ static int cmp_one(void *binary, int index)
 	MAYBE_T0;
 	int block = buffer[index].block;
 	memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B));
+	memset(&DES_bs_all.B[7], 0, sizeof(DES_bs_all.B[7]));
+	memset(&DES_bs_all.B[15], 0, sizeof(DES_bs_all.B[15]));
+	memset(&DES_bs_all.B[23], 0, sizeof(DES_bs_all.B[23]));
 	memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
 	memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
 	memset(&DES_bs_all.B[55], 0, sizeof(DES_bs_all.B[55]));
@@ -503,6 +508,9 @@ static int cmp_exact(char *source, int index)
 	MAYBE_T0;
 	int block = buffer[index].block;
 	memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B));
+	memset(&DES_bs_all.B[7], 0, sizeof(DES_bs_all.B[7]));
+	memset(&DES_bs_all.B[15], 0, sizeof(DES_bs_all.B[15]));
+	memset(&DES_bs_all.B[23], 0, sizeof(DES_bs_all.B[23]));
 	memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
 	memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
 	memset(&DES_bs_all.B[55], 0, sizeof(DES_bs_all.B[55]));

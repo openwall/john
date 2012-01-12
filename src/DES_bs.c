@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2002,2005,2010-2012 by Solar Designer
  */
 
 #include <string.h>
@@ -302,7 +302,8 @@ ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext)
 	return DES_bs_get_binary_raw(DES_do_IP(block), 1);
 }
 
-static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
+static MAYBE_INLINE int DES_bs_get_hash(int index, int count,
+    unsigned int trip)
 {
 	int result;
 	DES_bs_vector *b;
@@ -340,6 +341,7 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	result |= MOVE_BIT(4);
 	result |= MOVE_BIT(5);
 	result |= MOVE_BIT(6);
+	b += trip; /* for tripcodes, skip bit 7 */
 	result |= MOVE_BIT(7);
 	if (count == 8) return result;
 
@@ -351,6 +353,7 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 
 	result |= MOVE_BIT(12);
 	result |= MOVE_BIT(13);
+	b += trip; /* for tripcodes, skip bit 15 */
 	result |= MOVE_BIT(14);
 	result |= MOVE_BIT(15);
 	if (count == 16) return result;
@@ -362,6 +365,7 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	if (count == 20) return result;
 
 	result |= MOVE_BIT(20);
+	b += trip; /* for tripcodes, skip bit 23 */
 	result |= MOVE_BIT(21);
 	result |= MOVE_BIT(22);
 	result |= MOVE_BIT(23);
@@ -379,37 +383,37 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 
 int DES_bs_get_hash_0(int index)
 {
-	return DES_bs_get_hash(index, 4);
+	return DES_bs_get_hash(index, 4, 0);
 }
 
 int DES_bs_get_hash_1(int index)
 {
-	return DES_bs_get_hash(index, 8);
+	return DES_bs_get_hash(index, 8, 0);
 }
 
 int DES_bs_get_hash_2(int index)
 {
-	return DES_bs_get_hash(index, 12);
+	return DES_bs_get_hash(index, 12, 0);
 }
 
 int DES_bs_get_hash_3(int index)
 {
-	return DES_bs_get_hash(index, 16);
+	return DES_bs_get_hash(index, 16, 0);
 }
 
 int DES_bs_get_hash_4(int index)
 {
-	return DES_bs_get_hash(index, 20);
+	return DES_bs_get_hash(index, 20, 0);
 }
 
 int DES_bs_get_hash_5(int index)
 {
-	return DES_bs_get_hash(index, 24);
+	return DES_bs_get_hash(index, 24, 0);
 }
 
 int DES_bs_get_hash_6(int index)
 {
-	return DES_bs_get_hash(index, 27);
+	return DES_bs_get_hash(index, 27, 0);
 }
 
 /*
@@ -488,4 +492,34 @@ int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 #undef GET_BIT
 
 	return 1;
+}
+
+int DES_bs_get_hash_1t(int index)
+{
+	return DES_bs_get_hash(index, 8, 1);
+}
+
+int DES_bs_get_hash_2t(int index)
+{
+	return DES_bs_get_hash(index, 12, 1);
+}
+
+int DES_bs_get_hash_3t(int index)
+{
+	return DES_bs_get_hash(index, 16, 1);
+}
+
+int DES_bs_get_hash_4t(int index)
+{
+	return DES_bs_get_hash(index, 20, 1);
+}
+
+int DES_bs_get_hash_5t(int index)
+{
+	return DES_bs_get_hash(index, 24, 1);
+}
+
+int DES_bs_get_hash_6t(int index)
+{
+	return DES_bs_get_hash(index, 27, 1);
 }
