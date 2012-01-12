@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
  */
 
 /*
@@ -159,7 +159,12 @@ extern ARCH_WORD *DES_bs_get_binary(char *ciphertext);
 extern ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext);
 
 /*
- * Calculate a hash for a DES_bs_crypt() output.
+ * Calculate a hash for a DES_bs_crypt*() output.
+ *
+ * "t"-suffixed versions of these functions are for tripcodes (they skip
+ * bits that are part of the base-64 character not included in tripcodes).
+ * There's no DES_bs_get_hash_0t() because it would be exactly the same as
+ * DES_bs_get_hash_0() (all four initial bits are included in tripcodes).
  */
 extern int DES_bs_get_hash_0(int index);
 extern int DES_bs_get_hash_1(int index);
@@ -168,6 +173,12 @@ extern int DES_bs_get_hash_3(int index);
 extern int DES_bs_get_hash_4(int index);
 extern int DES_bs_get_hash_5(int index);
 extern int DES_bs_get_hash_6(int index);
+extern int DES_bs_get_hash_1t(int index);
+extern int DES_bs_get_hash_2t(int index);
+extern int DES_bs_get_hash_3t(int index);
+extern int DES_bs_get_hash_4t(int index);
+extern int DES_bs_get_hash_5t(int index);
+extern int DES_bs_get_hash_6t(int index);
 
 /*
  * Compares 32 bits of a given ciphertext against at least the first count of
