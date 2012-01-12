@@ -100,6 +100,35 @@ file at all.
 A: Your command line syntax might be wrong, resulting in John trying to
 load a wrong file.
 
+Q: John appears to misdetect my hash type.  I have raw MD5 hashes from a
+web application, but John wrongly says they're LM hashes.  How do I get
+them detected correctly?
+A: Some hash and cipher types use ambiguous encodings - e.g., a 32
+hexadecimal character string may correspond to one of many hash types,
+including raw MD5, LM, NTLM, and many others supported in -jumbo.  First
+of all, you need a version and build of John that supports your hash and
+cipher type.  Starting with version 1.7.7 (and 1.7.7-jumbo*) John will
+suggest alternate hash and cipher types for encodings that it finds
+ambiguous (that is, those corresponding to more than one of its
+supported hash and cipher types).  When doing so, it will suggest
+specific "--format=..." options to use.  For example, when you run a
+recent enough -jumbo version on raw MD5 hashes, it loads those as LM
+(because they could in fact be LM, as well as for compatibility with
+non-jumbo), but it suggests that you use "--format=raw-md5", which is
+what you should in fact use in this case.  It makes other suggestions as
+well because it does not know whether your hashes are raw MD5 or
+something else.  You're supposed to know this and choose the right one
+of the suggested "--format=..." options.  If you're not getting a
+suggestion like this from John 1.7.7 or newer even though you're not yet
+using the "--format" option, this means that your version and build of
+John does not recognize the encodings as ambiguous, which may mean that
+it does not support the actual hash or cipher type that you have in
+mind.  If you're already using the "--format" option, try dropping the
+option to receive the suggestions.  If you're using a non-jumbo version
+of John, the first step is for you to try -jumbo instead.  As of this
+writing, you do need -jumbo for some popular hash types such as raw MD5
+and NTLM.
+
 Q: Does John support multi-processing or distributed processing?
 A: Yes, but you need to explicitly enable this if desired.  There's
 currently built-in parallel processing support using OpenMP (to make use
