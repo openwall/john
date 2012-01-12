@@ -481,12 +481,13 @@ int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 #define GET_BIT \
 	((unsigned ARCH_WORD)*(unsigned char *)&b[0] START >> index)
 
-	for (bit = 0; bit < 31; bit++, b++)
+	for (bit = 0; bit < 32; bit++, b++)
 		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
 			return 0;
 
-	for (; bit < count; bit++, b++)
-		if ((GET_BIT ^ (binary[bit >> 5] >> (bit & 0x1F))) & 1)
+	count -= bit;
+	for (bit = 0; bit < count; bit++, b++)
+		if ((GET_BIT ^ (binary[1] >> bit)) & 1)
 			return 0;
 
 #undef GET_BIT
