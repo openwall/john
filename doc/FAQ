@@ -8,9 +8,14 @@ The latest version of this FAQ may be viewed online at:
 	Help!  I can't run John.
 
 If you're not familiar with your OS, you should probably not be using
-John in the first place since John is a tool for system administrators.
-However, here are the answers to a few (not very) common questions to
-avoid having them asked over and over and for amusement.
+John in the first place since John is primarily a tool for system
+administrators.  This is starting to change with the "community
+enhanced" -jumbo versions' support for things such as password-protected
+archives, though.
+
+Here are the answers to a few (not very) common questions to avoid
+having them asked over and over and for amusement.  For more serious
+matters, please skip over to the next section.
 
 Q: When I type "john" (or "john passwd", etc.), it says "command not
 found" (or equivalent)?!
@@ -31,16 +36,11 @@ command-line shell.  On Windows, some of those shells would be cmd.exe,
 command.com, or bash (the latter is available with Cygwin).
 
 
-	Other trivial matters.
+	Other typical new user questions.
 
 Q: How do I start John on my password file, use a specific cracking
 mode, see the passwords it cracked, etc?
 A: See README and EXAMPLES. :-)
-
-Q: How do I "unshadow"?
-A: See EXAMPLES on how to combine your passwd and shadow files using the
-supplied "unshadow" tool, provided that you have root access to the
-target system.
 
 Q: Why doesn't John load my password file?  It says "No password hashes
 loaded", "No password hashes loaded (see FAQ)", or "No password hashes
@@ -61,14 +61,27 @@ A: With PWDUMP-format files, John focuses on LM rather than NTLM hashes
 by default, and it might not load any hashes at all if there are no LM
 hashes to crack.  To have JtR Pro or a -jumbo version focus on NTLM
 hashes instead, you need to pass the "--format=nt" option.
+A: If you're using the "--format" option, try dropping it.  Except for
+the special case mentioned in the answer above, "--format" is normally a
+way to choose one of multiple hash/cipher types found in the same file
+or to clarify the hash/cipher type if it would otherwise be ambiguous
+(e.g., a 32 hexadecimal character string may correspond to one of many
+distinct hash types).  That is, you normally only need to use "--format"
+when John would otherwise misdetect your hash/cipher type (e.g., when it
+says LM and you know that your hashes are in fact raw MD5, you'd use
+"--format=raw-md5" with -jumbo) or if it would load undesired entries
+from the file.  If John does not load anything, then your use of
+"--format" is probably unreasonable (or you should be using a different
+version/build of John - see the answer below).
 A: Your password hash or cipher type(s) might not be supported by John,
 or at least by the version and build of John that you're using.  If
 you're using a non-jumbo version, you will likely want to try -jumbo
-instead, which supports a lot of additional hash and cipher types.  If
-unsuccessful with that and other answers (above and below this one)
-don't apply, post a note to the mailing list (see CONTACT) including a
-sample password file line that John does not load (please make sure that
-the password is already changed by the time you post).
+instead, which supports a lot of additional hash and cipher types (e.g.,
+you currently need -jumbo for raw MD5).  If unsuccessful with that and
+if other answers (above and below this one) don't apply, please post a
+note to the mailing list (see CONTACT) including a sample password file
+line that John does not load (please make sure that the password is
+already changed by the time you post).
 A: John only loads properly formatted text files directly.  It can load
 /etc/passwd and PWDUMP format files.  Starting with version 1.7.6, it
 can also load text files containing one password hash per line (and
@@ -88,36 +101,40 @@ A: Your command line syntax might be wrong, resulting in John trying to
 load a wrong file.
 
 Q: Does John support multi-processing or distributed processing?
-A: There's currently built-in parallel processing support using OpenMP
-(to make use of multiple CPUs and/or CPU cores in a single system) for
-all crypt(3) hash flavors (DES-, MD5-, and Blowfish-based) supported by
-John natively, as well as for LM hashes and, when running on Linux or
+A: Yes, but you need to explicitly enable this if desired.  There's
+currently built-in parallel processing support using OpenMP (to make use
+of multiple CPUs and/or CPU cores in a single system) for all crypt(3)
+hash flavors (DES-, MD5-, and Blowfish-based) supported by John
+natively, as well as for LM hashes and, when running on Linux or
 Solaris, also for the underlying system's thread-safe password hashing
 function.  The latter is only reasonable to use for crypt(3) hash types
 not yet supported by John natively (that is, for glibc 2.7+ SHA-crypt
 hashes as used by recent versions of Fedora and Ubuntu, and for SunMD5
 hashes, which may optionally be enabled on Solaris).  In "community
 enhanced" -jumbo versions, parallelization with OpenMP is also supported
-for many (but not all) of the hash types added in those versions.  To
-use John's OpenMP support, you need to make an OpenMP-enabled build by
-uncommenting one of the OMPFLAGS lines near the beginning of the
-Makefile.  This requires GCC 4.2 or newer, or another OpenMP-capable C
-compiler.  For other hash types and/or to distribute the workload
-between multiple machines, other approaches need to be used.  For a
-small number of nodes (CPUs, CPU cores, and/or machines), it is
-reasonable to use a manual approach.  One of those approaches is to have
-your nodes try different password lengths.  This is easily accomplished
-with "incremental" mode's "MinLen" and "MaxLen" settings (see CONFIG).
-Typically, you would not really need to split the workload for "single
-crack" and wordlist modes since these are relatively quick, although you
-may dedicate one node to those initially.  You may safely run multiple
-instances of John in the same working directory, all writing to the same
-"pot file" (this is a feature).  You do, however, need to assign each of
-them a unique session name, with "--session".  Other approaches, such as
-splitting password files naively (without regard to salts), are
-typically less efficient (in some cases to the extent where there's no
-speedup from using multiple nodes at all).  Some advanced and automated
-approaches are listed on the wiki at:
+for many (but not all) of the hash and cipher types added in those
+versions.  To use John's OpenMP support, you need to either use an
+existing OpenMP-enabled build (e.g., "john-omp.exe" on Windows) or make
+an OpenMP-enabled build by uncommenting one of the OMPFLAGS lines near
+the beginning of Makefile.  This requires GCC 4.2 or newer, or another
+OpenMP-capable C compiler.  For other hash or cipher types and/or to
+distribute the workload between multiple machines, other approaches need
+to be used.  For a small number of nodes (CPUs, CPU cores, and/or
+machines), it is reasonable to use a manual approach.  One of those
+approaches is to have your nodes try different password lengths.  This
+is easily accomplished with "incremental" mode's "MinLen" and "MaxLen"
+settings (see CONFIG).  Typically, you would not really need to split
+the workload for "single crack" and wordlist modes since these are
+relatively quick, although you may dedicate one node to those initially.
+You may safely run multiple instances of John in the same working
+directory, all writing to the same "pot file" (this is a feature).  You
+do, however, need to assign each of them a unique session name, with
+"--session" (please note that doing so does not eliminate the need to
+also distribute the workload manually as discussed above).  Other
+approaches, such as splitting password files naively (without regard to
+salts), are typically less efficient (in some cases to the extent where
+there's no speedup from using multiple nodes at all).  Some advanced and
+automated approaches, such as using MPI, are listed on the wiki at:
 http://openwall.info/wiki/john/parallelization
 
 Q: Where do I get wordlists for use with John?
@@ -134,11 +151,37 @@ Q: How can I contact you (the author)?
 A: See CONTACT.
 
 
-	(Semi-)advanced topics.
+	Questions sometimes asked by existing users.
 
-Q: I've recently switched my system to MD5-based (or Blowfish-based)
-password hashes, but there are still some DES-based hashes in the
-password file.  How do I handle multiple hash types in one file?
+Q: I am running John for 10 days and it is still not finished?!
+Q: How long should I expect John to run?
+A: It primarily depends on the cracking mode(s) and on your password
+files (in particular, the type of hashes and the number of different
+salts, if applicable).  Most importantly, you should note that the
+"incremental" mode, which a default John run (with no command line
+options) proceeds with after being done with the quicker checks, is not
+supposed to terminate in a reasonable time.  It is up to you to decide
+how long you're going to let it run, then consider any uncracked
+passwords strong enough.  "Single crack" mode runs typically take from
+under a second to one day (depending on the type and number of password
+hashes).  Wordlist mode runs may also be quick (under a second) for
+tiny wordlists and fast hashes or they may take multiple days with large
+wordlists, with word mangling rules, and with slow hash types and
+substantial numbers of different salts.  The status line John reports
+whenever you hit a key includes a progress indicator (percent complete)
+for "single crack" and wordlist modes.  With no cracking mode requested
+explicitly, John will start with "single crack" mode (pass 1), then
+proceed with wordlist mode (pass 2), and finally with "incremental" mode
+(pass 3).  The pass numbers are reported on the status line, too.  It is
+reasonable to let John reach "incremental" mode (pass 3) and run that
+for a while (some days).  You will notice that John's success rate (the
+number of passwords cracked per hour or per day) will be dropping
+rapidly.  When you determine that the success rate is low enough, you
+interrupt John.
+
+Q: I've recently switched my system to Blowfish-based password hashes,
+but there are still some DES-based and MD5-based hashes in the password
+file.  How do I handle multiple hash types in one file?
 A: Use the "--format=..." option to tell John which hashes you would
 like it to load.  Unfortunately, you will have to run John for each hash
 type separately.  This requirement may sometimes be avoided with the use
@@ -168,34 +211,8 @@ Q: Why doesn't John display a progress indicator for the "incremental"
 mode?
 A: Do you really want to see a 0% all the time?  As explained in MODES,
 "incremental" mode is not supposed to terminate in a reasonable time.
-(There are a few exceptions to this, so a progress indicator might be
-added at some point.)
-
-Q: I am running John for 10 days and it is still not finished?!
-Q: How long should I expect John to run?
-A: It primarily depends on the cracking mode(s) and on your password
-files (in particular, the type of hashes and the number of different
-salts, if applicable).  Most importantly, you should note that the
-"incremental" mode, which a default John run (with no command line
-options) proceeds with after being done with the quicker checks, is not
-supposed to terminate in a reasonable time.  It is up to you to decide
-how long you're going to let it run, then consider any uncracked
-passwords strong enough.  "Single crack" mode runs typically take from
-under a second to one day (depending on the type and number of password
-hashes).  Wordlist mode runs may also be quick (under a second) for
-tiny wordlists and fast hashes or they may take multiple days with large
-wordlists, with word mangling rules, and with slow hash types and
-substantial numbers of different salts.  The status line John reports
-whenever you hit a key includes a progress indicator (percent complete)
-for "single crack" and wordlist modes.  With no cracking mode requested
-explicitly, John will start with "single crack" mode (pass 1), then
-proceed with wordlist mode (pass 2), and finally with "incremental" mode
-(pass 3).  The pass numbers are reported on the status line, too.  It is
-reasonable to let John reach "incremental" mode (pass 3) and run that
-for a while (some days).  You will notice that John's success rate (the
-number of passwords cracked per hour or per day) will be dropping
-rapidly.  When you determine that the success rate is low enough, you
-interrupt John.
+(There are a few exceptions to this, so a progress indicator has been
+added in -jumbo and it might be added in official versions later.)
 
 Q: Why does John display meaningless c/s values while cracking, instead
 of real "crypts per second" rate?
@@ -243,4 +260,4 @@ trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
 
-$Owl: Owl/packages/john/john/doc/FAQ,v 1.29 2012/01/12 01:32:45 solar Exp $
+$Owl: Owl/packages/john/john/doc/FAQ,v 1.30 2012/01/12 02:32:17 solar Exp $
