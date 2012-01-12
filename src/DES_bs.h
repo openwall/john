@@ -74,7 +74,7 @@ typedef struct {
 #if defined(_OPENMP) && !DES_BS_ASM
 #define DES_bs_mt			1
 #define DES_bs_cpt			32
-#define DES_bs_mt_max			(DES_bs_cpt * 24)
+#define DES_bs_mt_max			(DES_bs_cpt * 576)
 extern int DES_bs_min_kpc, DES_bs_max_kpc;
 extern int DES_bs_nt;
 extern DES_bs_combined *DES_bs_all_p;
