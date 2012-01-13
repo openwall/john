@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2011 by Solar Designer
+ * Copyright (c) 2011,2012 by Solar Designer
  */
 
 #include <string.h>
@@ -35,7 +35,7 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			4
+#define BINARY_SIZE			ARCH_SIZE
 
 #define TRIPCODE_SCALE			0x40
 
