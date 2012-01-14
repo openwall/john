@@ -769,13 +769,7 @@ static void ldr_init_hash(struct db_main *db)
  * hash table) vs. the complexity of DES_bs_cmp_all() for all computed hashes
  * at once (but calling it for each loaded hash individually).
  */
-		threshold = db->format->params.min_keys_per_crypt * 5;
-#if DES_BS_VECTOR
-		threshold /= ARCH_BITS_LOG * DES_BS_VECTOR;
-#else
-		threshold /= ARCH_BITS_LOG;
-#endif
-		threshold++;
+		threshold = 5 * ARCH_BITS / ARCH_BITS_LOG + 1;
 	}
 
 	if ((current = db->salts))
