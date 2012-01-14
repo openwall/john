@@ -1,12 +1,13 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008,2010-2012 by Solar Designer
  */
 
 #include <stdio.h>
 #include <string.h>
 
 #include "params.h"
+#include "memory.h"
 #include "formats.h"
 
 struct fmt_main *fmt_list = NULL;
@@ -28,7 +29,18 @@ void fmt_init(struct fmt_main *format)
 	}
 }
 
-char *fmt_self_test(struct fmt_main *format)
+static int is_misaligned(void *p, int size)
+{
+	unsigned long mask = 0;
+	if (size >= ARCH_SIZE)
+		mask = ARCH_SIZE - 1;
+	else if (size >= 4)
+		mask = 3;
+	return (unsigned long)p & mask;
+}
+
+static char *fmt_self_test_body(struct fmt_main *format,
+    void *binary_copy, void *salt_copy)
 {
 	static char s_size[32];
 	struct fmt_tests *current;
@@ -58,7 +70,18 @@ char *fmt_self_test(struct fmt_main *format)
 		plaintext = current->plaintext;
 
 		binary = format->methods.binary(ciphertext);
+		if (!binary ||
+		    is_misaligned(binary, format->params.binary_size))
+			return "binary";
+		memcpy(binary_copy, binary, format->params.binary_size);
+		binary = binary_copy;
+
 		salt = format->methods.salt(ciphertext);
+		if (!salt ||
+		    is_misaligned(salt, format->params.salt_size))
+			return "salt";
+		memcpy(salt_copy, salt, format->params.salt_size);
+		salt = salt_copy;
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -117,6 +140,37 @@ char *fmt_self_test(struct fmt_main *format)
 	} while (done != 3);
 
 	return NULL;
+}
+
+/*
+ * Allocate memory for a copy of a binary ciphertext or salt with only the
+ * minimum guaranteed alignment.
+ */
+static void *alloc_binary(size_t size, void **alloc)
+{
+	*alloc = mem_alloc(size + 4);
+	if (size >= ARCH_SIZE)
+		return *alloc;
+	if (size >= 4)
+		return *alloc + 4;
+	return *alloc + 1;
+}
+
+char *fmt_self_test(struct fmt_main *format)
+{
+	char *retval;
+	void *binary_alloc, *salt_alloc;
+	void *binary_copy, *salt_copy;
+
+	binary_copy = alloc_binary(format->params.binary_size, &binary_alloc);
+	salt_copy = alloc_binary(format->params.salt_size, &salt_alloc);
+
+	retval = fmt_self_test_body(format, binary_copy, salt_copy);
+
+	MEM_FREE(salt_alloc);
+	MEM_FREE(binary_alloc);
+
+	return retval;
 }
 
 void fmt_default_init(void)
