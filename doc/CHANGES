@@ -2,6 +2,8 @@ The following changes have been made between John 1.7.9 and 1.7.9.2:
 
 * Enhanced the support for DES-based tripcodes by making use of the bitslice
 DES implementation and supporting OpenMP parallelization.
+* Tuned the hash table size thresholds based on testing on saltless hashes on a
+Core 2'ish CPU.
 * With 32-bit x86 builds and at least MMX enabled, the "two hashes at a time"
 code for bcrypt is now enabled for GCC 4.2 and newer.  This change is made
 based on benchmark results for different builds made with different versions of
@@ -288,4 +290,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.76 2012/01/12 03:03:50 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.77 2012/01/14 19:46:02 solar Exp $
