@@ -11,6 +11,7 @@
 #define _JOHN_DES_BS_H
 
 #include "arch.h"
+#include "common.h"
 
 #ifndef DES_BS_ALGORITHM_NAME
 #define DES_BS_ALGORITHM_NAME		ARCH_BITS_STR "/" ARCH_BITS_STR " BS"
@@ -151,12 +152,12 @@ extern void DES_bs_crypt_LM(int keys_count);
  * Converts an ASCII ciphertext to binary to be used with one of the
  * comparison functions.
  */
-extern ARCH_WORD *DES_bs_get_binary(char *ciphertext);
+extern ARCH_WORD_32 *DES_bs_get_binary(char *ciphertext);
 
 /*
  * Similarly, for LM hashes.
  */
-extern ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext);
+extern ARCH_WORD_32 *DES_bs_get_binary_LM(char *ciphertext);
 
 /*
  * Calculate a hash for a DES_bs_crypt*() output.
@@ -184,11 +185,11 @@ extern int DES_bs_get_hash_6t(int index);
  * Compares 32 bits of a given ciphertext against at least the first count of
  * the DES_bs_crypt*() outputs and returns zero if no matches detected.
  */
-extern int DES_bs_cmp_all(ARCH_WORD *binary, int count);
+extern int DES_bs_cmp_all(ARCH_WORD_32 *binary, int count);
 
 /*
  * Compares count bits of a given ciphertext against one of the outputs.
  */
-extern int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index);
+extern int DES_bs_cmp_one(ARCH_WORD_32 *binary, int count, int index);
 
 #endif

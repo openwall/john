@@ -265,9 +265,9 @@ fill2:
 	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
 }
 
-static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
+static ARCH_WORD_32 *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
 {
-	static ARCH_WORD out[2];
+	static ARCH_WORD_32 out[2];
 
 /* For odd iteration counts, swap L and R here instead of doing it one
  * more time in DES_bs_crypt(). */
@@ -278,14 +278,14 @@ static ARCH_WORD *DES_bs_get_binary_raw(ARCH_WORD *raw, int count)
 	return out;
 }
 
-ARCH_WORD *DES_bs_get_binary(char *ciphertext)
+ARCH_WORD_32 *DES_bs_get_binary(char *ciphertext)
 {
 	return DES_bs_get_binary_raw(
 		DES_raw_get_binary(ciphertext),
 		DES_raw_get_count(ciphertext));
 }
 
-ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext)
+ARCH_WORD_32 *DES_bs_get_binary_LM(char *ciphertext)
 {
 	ARCH_WORD block[2], value;
 	int l, h;
@@ -302,8 +302,7 @@ ARCH_WORD *DES_bs_get_binary_LM(char *ciphertext)
 	return DES_bs_get_binary_raw(DES_do_IP(block), 1);
 }
 
-static MAYBE_INLINE int DES_bs_get_hash(int index, int count,
-    unsigned int trip)
+static MAYBE_INLINE int DES_bs_get_hash(int index, int count, int trip)
 {
 	int result;
 	DES_bs_vector *b;
@@ -421,7 +420,7 @@ int DES_bs_get_hash_6(int index)
  * DES_bs_crypt*() outputs in just O(log2(ARCH_BITS)) operations, assuming
  * that DES_BS_VECTOR is 0 or 1. This routine isn't vectorized yet.
  */
-int DES_bs_cmp_all(ARCH_WORD *binary, int count)
+int DES_bs_cmp_all(ARCH_WORD_32 *binary, int count)
 {
 	ARCH_WORD value, mask;
 	int bit;
@@ -465,7 +464,7 @@ next_depth:
 	return 0;
 }
 
-int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
+int DES_bs_cmp_one(ARCH_WORD_32 *binary, int count, int index)
 {
 	DES_bs_vector *b;
 	int depth;
