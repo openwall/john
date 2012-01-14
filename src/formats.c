@@ -29,6 +29,9 @@ void fmt_init(struct fmt_main *format)
 	}
 }
 
+/*
+ * Test pointers returned by binary() and salt() for possible misalignment.
+ */
 static int is_misaligned(void *p, int size)
 {
 	unsigned long mask = 0;
@@ -69,6 +72,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		ciphertext = format->methods.split(current->ciphertext, 0);
 		plaintext = current->plaintext;
 
+/*
+ * Make sure the declared binary_size and salt_size are sufficient to actually
+ * hold the binary ciphertexts and salts.  We do this by copying the values
+ * returned by binary() and salt() only to the declared sizes.
+ */
 		binary = format->methods.binary(ciphertext);
 		if (!binary ||
 		    is_misaligned(binary, format->params.binary_size))
@@ -144,7 +152,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 /*
  * Allocate memory for a copy of a binary ciphertext or salt with only the
- * minimum guaranteed alignment.
+ * minimum guaranteed alignment.  We do this to test that binary_hash*(),
+ * cmp_*(), and salt_hash() do accept such pointers.
  */
 static void *alloc_binary(size_t size, void **alloc)
 {

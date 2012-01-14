@@ -482,8 +482,10 @@ int DES_bs_cmp_one(ARCH_WORD_32 *binary, int count, int index)
 	if ((GET_BIT(bit) ^ (binary[0] >> (bit))) & 1) \
 		return 0;
 
+/* Start by comparing bits that are not part of get_hash*() return value */
 	CMP_BIT(30);
 	CMP_BIT(31);
+/* These three overlap with DES_bs_get_hash_6t() return value, unfortunately */
 	CMP_BIT(27);
 	CMP_BIT(28);
 	CMP_BIT(29);
