@@ -467,7 +467,6 @@ next_depth:
 
 int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 {
-	int bit;
 	DES_bs_vector *b;
 	int depth;
 
@@ -478,19 +477,30 @@ int DES_bs_cmp_one(ARCH_WORD *binary, int count, int index)
 
 	b = (DES_bs_vector *)((unsigned char *)&DES_bs_all.B[0] START + depth);
 
-#define GET_BIT \
-	((unsigned ARCH_WORD)*(unsigned char *)&b[0] START >> index)
+#define GET_BIT(bit) \
+	((unsigned int)*(unsigned char *)&b[(bit)] START >> index)
+#define CMP_BIT(bit) \
+	if ((GET_BIT(bit) ^ (binary[0] >> (bit))) & 1) \
+		return 0;
 
-	for (bit = 0; bit < 32; bit++, b++)
-		if ((GET_BIT ^ (binary[0] >> bit)) & 1)
-			return 0;
+	CMP_BIT(30);
+	CMP_BIT(31);
+	CMP_BIT(27);
+	CMP_BIT(28);
+	CMP_BIT(29);
 
-	count -= bit;
-	for (bit = 0; bit < count; bit++, b++)
-		if ((GET_BIT ^ (binary[1] >> bit)) & 1)
-			return 0;
+	{
+		int bit;
+		for (bit = 26; bit >= 0; bit--)
+			CMP_BIT(bit);
+#undef CMP_BIT
 
+		b += 32; count -= 32;
+		for (bit = 0; bit < count; bit++)
+			if ((GET_BIT(bit) ^ (binary[1] >> bit)) & 1)
+				return 0;
 #undef GET_BIT
+	}
 
 	return 1;
 }
