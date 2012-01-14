@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2010-2012 by Solar Designer
  */
 
 #include <stdio.h>
@@ -411,6 +411,16 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
+static void *alloc_copy_autoalign(size_t size, void *src)
+{
+	size_t align = MEM_ALIGN_NONE;
+	if (size >= ARCH_SIZE)
+		align = MEM_ALIGN_WORD;
+	else if (size >= 4)
+		align = 4;
+	return mem_alloc_copy(size, align, src);
+}
+
 static void ldr_load_pw_line(struct db_main *db, char *line)
 {
 	static int skip_dupe_checking = 0;
@@ -506,9 +516,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				mem_alloc_tiny(salt_size, MEM_ALIGN_WORD);
 			current_salt->next = last_salt;
 
-			current_salt->salt = mem_alloc_copy(
-				format->params.salt_size, MEM_ALIGN_WORD,
-				salt);
+			current_salt->salt = alloc_copy_autoalign(
+				format->params.salt_size, salt);
 
 			current_salt->index = fmt_dummy_hash;
 			current_salt->list = NULL;
@@ -535,8 +544,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		db->password_hash[pw_hash] = current_pw;
 		current_pw->next_hash = last_pw;
 
-		current_pw->binary = mem_alloc_copy(
-			format->params.binary_size, MEM_ALIGN_WORD, binary);
+		current_pw->binary = alloc_copy_autoalign(
+			format->params.binary_size, binary);
 
 		current_pw->source = str_alloc_copy(piece);
 
