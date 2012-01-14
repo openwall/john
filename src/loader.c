@@ -411,6 +411,11 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
+/*
+ * Use a smaller alignment for binary ciphertexts and salts that are smaller
+ * than ARCH_SIZE bytes.  This saves some memory when dealing with 32-bit
+ * values on a 64-bit system.
+ */
 static void *alloc_copy_autoalign(size_t size, void *src)
 {
 	size_t align = MEM_ALIGN_NONE;
