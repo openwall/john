@@ -1,9 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2003,2006,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2003,2006,2010-2012 by Solar Designer
  */
 
 #include <string.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -110,7 +111,7 @@ static void crk_remove_salt(struct db_salt *salt)
 void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 {
 	struct db_password **current;
-	int hash;
+	int hash, count;
 
 	crk_db->password_count--;
 
@@ -121,10 +122,10 @@ void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 	}
 
 /*
- * If there's no hash table for this salt, assume that next_hash fields are
- * unused and don't need to be updated.  Only bother with the list.
+ * If there's no bitmap for this salt, assume that next_hash fields are unused
+ * and don't need to be updated.  Only bother with the list.
  */
-	if (salt->hash_size < 0) {
+	if (!salt->bitmap) {
 		current = &salt->list;
 		while (*current != pw)
 			current = &(*current)->next;
@@ -134,10 +135,28 @@ void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 	}
 
 	hash = crk_db->format->methods.binary_hash[salt->hash_size](pw->binary);
-	current = &salt->hash[hash];
-	while (*current != pw)
-		current = &(*current)->next_hash;
-	*current = pw->next_hash;
+	count = 0;
+	current = &salt->hash[hash >> PASSWORD_HASH_SHR];
+	do {
+		if (crk_db->format->methods.binary_hash[salt->hash_size]
+		    ((*current)->binary) == hash)
+			count++;
+		if (*current == pw)
+			*current = pw->next_hash;
+		else
+			current = &(*current)->next_hash;
+	} while (*current);
+
+	assert(count >= 1);
+
+/*
+ * If we have removed the last entry with the exact hash value from this hash
+ * bucket (which could also contain entries with nearby hash values in case
+ * PASSWORD_HASH_SHR is non-zero), we must also reset the corresponding bit.
+ */
+	if (count == 1)
+		salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &=
+		    ~(1U << (hash % (sizeof(*salt->bitmap) * 8)));
 
 /*
  * If there's a hash table for this salt, assume that the list is only used by
@@ -224,7 +243,7 @@ static int crk_password_loop(struct db_salt *salt)
 		status_update_crypts(&effective_count);
 	}
 
-	if (salt->hash_size < 0) {
+	if (!salt->bitmap) {
 		pw = salt->list;
 		do {
 			if (crk_methods.cmp_all(pw->binary, crk_key_index))
@@ -239,13 +258,17 @@ static int crk_password_loop(struct db_salt *salt)
 		} while ((pw = pw->next));
 	} else
 	for (index = 0; index < crk_key_index; index++) {
-		if ((pw = salt->hash[salt->index(index)]))
-		do {
-			if (crk_methods.cmp_one(pw->binary, index))
-			if (crk_methods.cmp_exact(pw->source, index))
-			if (crk_process_guess(salt, pw, index))
-				return 1;
-		} while ((pw = pw->next_hash));
+		int hash = salt->index(index);
+		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
+		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
+			pw = salt->hash[hash >> PASSWORD_HASH_SHR];
+			do {
+				if (crk_methods.cmp_one(pw->binary, index))
+				if (crk_methods.cmp_exact(pw->source, index))
+				if (crk_process_guess(salt, pw, index))
+					return 1;
+			} while ((pw = pw->next_hash));
+		}
 	}
 
 	return 0;

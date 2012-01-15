@@ -99,9 +99,14 @@ struct db_salt {
 /* Salt in internal representation */
 	void *salt;
 
-/* Pointer to a hash function to get the index of password list to be
- * compared against the crypt_all() method output with given index. The
- * function always returns zero if there's no hash table for this salt. */
+/* Bitmap indicating whether a computed hash is potentially present in the list
+ * and hash table below.  Normally, the bitmap is large enough that most of its
+ * bits are zero. */
+	unsigned int *bitmap;
+
+/* Pointer to a hash function to get the bit index into the bitmap above for
+ * the crypt_all() method output with given index.  The function always returns
+ * zero if there's no bitmap for this salt. */
 	int (*index)(int index);
 
 /* List of passwords with this salt */

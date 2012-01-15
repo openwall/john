@@ -525,6 +525,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				format->params.salt_size, salt);
 
 			current_salt->index = fmt_dummy_hash;
+			current_salt->bitmap = NULL;
 			current_salt->list = NULL;
 			current_salt->hash = &current_salt->list;
 			current_salt->hash_size = -1;
@@ -720,6 +721,7 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 {
 	struct db_password *current;
 	int (*hash_func)(void *binary);
+	int bitmap_size, hash_size;
 	int hash;
 
 	if (salt->hash_size < 0) {
@@ -733,10 +735,21 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 		return;
 	}
 
-	salt->hash = mem_alloc_tiny(password_hash_sizes[salt->hash_size] *
-	    sizeof(struct db_password *), MEM_ALIGN_WORD);
-	memset(salt->hash, 0, password_hash_sizes[salt->hash_size] *
-	    sizeof(struct db_password *));
+	bitmap_size = password_hash_sizes[salt->hash_size];
+	{
+		size_t size = (bitmap_size +
+		    sizeof(*salt->bitmap) * 8 - 1) /
+		    (sizeof(*salt->bitmap) * 8) * sizeof(*salt->bitmap);
+		salt->bitmap = mem_alloc_tiny(size, sizeof(*salt->bitmap));
+		memset(salt->bitmap, 0, size);
+	}
+
+	hash_size = bitmap_size >> PASSWORD_HASH_SHR;
+	if (hash_size > 1) {
+		size_t size = hash_size * sizeof(struct db_password *);
+		salt->hash = mem_alloc_tiny(size, MEM_ALIGN_WORD);
+		memset(salt->hash, 0, size);
+	}
 
 	salt->index = db->format->methods.get_hash[salt->hash_size];
 
@@ -746,8 +759,14 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 	if ((current = salt->list))
 	do {
 		hash = hash_func(current->binary);
-		current->next_hash = salt->hash[hash];
-		salt->hash[hash] = current;
+		salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] |=
+		    1U << (hash % (sizeof(*salt->bitmap) * 8));
+		if (hash_size > 1) {
+			hash >>= PASSWORD_HASH_SHR;
+			current->next_hash = salt->hash[hash];
+			salt->hash[hash] = current;
+		} else
+			current->next_hash = current->next;
 		salt->count++;
 	} while ((current = current->next));
 }
