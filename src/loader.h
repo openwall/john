@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010,2011 by Solar Designer
+ * Copyright (c) 1996-98,2010-2012 by Solar Designer
  */
 
 /*
@@ -43,18 +43,18 @@ struct db_password {
  * Buffered keys hash table entry.
  */
 struct db_keys_hash_entry {
-/* Index of next key with the same hash */
+/* Index of next key with the same hash, or -1 if none */
 	short next;
 
 /* Byte offset of this key in the buffer */
-	short offset;
+	unsigned short offset;
 };
 
 /*
  * Buffered keys hash.
  */
 struct db_keys_hash {
-/* The hash table, maps to indices for the list below */
+/* The hash table, maps to indices for the list below; -1 means empty bucket */
 	short hash[SINGLE_HASH_SIZE];
 
 /* List of keys with the same hash, allocated as min_keys_per_crypt entries */
