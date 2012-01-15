@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2004,2006,2010 by Solar Designer
+ * Copyright (c) 1996-99,2003,2004,2006,2010,2012 by Solar Designer
  */
 
 #include <stdio.h>
@@ -86,7 +86,16 @@ static void single_init(void)
 
 	length = single_db->format->params.plaintext_length;
 	key_count = single_db->format->params.min_keys_per_crypt;
-	if (key_count < SINGLE_HASH_MIN) key_count = SINGLE_HASH_MIN;
+	if (key_count < SINGLE_HASH_MIN)
+		key_count = SINGLE_HASH_MIN;
+/*
+ * We use "short" for buffered key indices and "unsigned short" for buffered
+ * key offsets - make sure these don't overflow.
+ */
+	if (key_count > 0x8000)
+		key_count = 0x8000;
+	while (key_count > 0xffff / length + 1)
+		key_count >>= 1;
 
 	if (rpp_init(rule_ctx, SUBSECTION_SINGLE)) {
 		log_event("! No \"single crack\" mode rules found");
