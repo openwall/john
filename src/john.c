@@ -81,6 +81,8 @@ extern struct fmt_main fmt_XSHA512;
 
 extern struct fmt_main fmt_hmailserver;
 extern struct fmt_main fmt_SybaseASE;
+extern struct fmt_main fmt_dragonfly3;
+extern struct fmt_main fmt_dragonfly4;
 #endif
 
 #ifdef HAVE_SKEY
@@ -158,6 +160,8 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_hmailserver);
 	john_register_one(&fmt_SybaseASE);
+	john_register_one(&fmt_dragonfly3);
+	john_register_one(&fmt_dragonfly4);
 #endif
 
 #ifdef HAVE_CRYPT

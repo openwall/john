@@ -1,0 +1,242 @@
+/*
+ * This file is part of John the Ripper password cracker,
+ * based on rawSHA256_fmt.c code
+ *
+ * This  software is hereby  placed in the public domain.  In case that is not
+ * applicable, it is Copyright © 2011 magnum, and it is hereby released to the
+ * general public under the following terms:  Redistribution and use in source
+ * and binary forms, with or without modification, is permitted.
+ *
+ * The DragonFly BSD crypt-sha2 hashes are seriously broken. See
+ * http://www.openwall.com/lists/john-dev/2012/01/16/1
+ *
+ */
+
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+
+#include <string.h>
+#include <openssl/sha.h>
+
+#include "arch.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
+
+#define FORMAT_LABEL			"dragonfly3"
+#define FORMAT_NAME			"Dragonfly-BSD SHA-256 w/ bug (32-bit)"
+#define ALGORITHM_NAME			"OpenSSL"
+
+#define BENCHMARK_COMMENT		""
+#define BENCHMARK_LENGTH		0
+
+#define PLAINTEXT_LENGTH		125
+#define CIPHERTEXT_LENGTH		44
+
+#define BINARY_SIZE			32
+#define SALT_SIZE			(1+4+8)	// 1st char is length
+
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1
+
+static struct fmt_tests tests[] = {
+	{"$3$z$EBG66iBCGfUfENOfqLUH/r9xQxI1cG373/hRop6j.oWs", "magnum"},
+	{"$3$f6daU5$Xf/u8pKp.sb4VCLKz7tTZMUKJ3J4oOfZgUSHYOFL.M0n", ""},
+	{"$3$PNPA2tJ$ppD4bXqPMYFVdYVYrxXGMWeYB6Xv8e6jmXbvrB5V.okl", "password"},
+	{"$3$jWhDSrS$bad..Dy7UAyabPyfrEi3fgQ2qtT.5fE7C5EMNo/n.Qk5", "John the Ripper"},
+	{"$3$SSYEHO$hkuDmUQHT2Tr0.ai.lUVyb9bCC875Up.CZVa6UJZ.Muv", "DragonFly BSD"},
+	{NULL}
+};
+
+static int saved_key_length;
+static char saved_key[PLAINTEXT_LENGTH + 1];
+static ARCH_WORD_32 crypt_out[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static char *cur_salt;
+static int salt_len;
+
+static int valid(char *ciphertext, struct fmt_main *pFmt)
+{
+	char *pos, *start;
+
+	if (strncmp(ciphertext, "$3$", 3))
+		return 0;
+
+	ciphertext += 3;
+
+	for (pos = ciphertext; *pos && *pos != '$'; pos++);
+	if (!*pos || pos < ciphertext || pos > &ciphertext[8]) return 0;
+
+	start = ++pos;
+	while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
+	if (*pos || pos - start != CIPHERTEXT_LENGTH) return 0;
+
+	return 1;
+}
+
+#define TO_BINARY(b1, b2, b3) \
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	pos += 4; \
+	out[b1] = value >> 16; \
+	out[b2] = value >> 8; \
+	out[b3] = value;
+
+static void *get_binary(char *ciphertext)
+{
+	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
+	ARCH_WORD_32 value;
+	char *pos;
+	unsigned char *out = (unsigned char*)outbuf;
+	int i;
+
+	pos = strrchr(ciphertext, '$') + 1;
+
+	for (i = 0; i < 10; i++) {
+		TO_BINARY(i, i + 11, i + 21);
+	}
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18);
+	out[10] = value >> 16;
+	out[31] = value >> 8;
+
+	return (void *)out;
+}
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFF; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFF; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFF; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFFF; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFFFF; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7FFFFFF; }
+
+static int get_hash_0(int index) { return crypt_out[0] & 0xF; }
+static int get_hash_1(int index) { return crypt_out[0] & 0xFF; }
+static int get_hash_2(int index) { return crypt_out[0] & 0xFFF; }
+static int get_hash_3(int index) { return crypt_out[0] & 0xFFFF; }
+static int get_hash_4(int index) { return crypt_out[0] & 0xFFFFF; }
+static int get_hash_5(int index) { return crypt_out[0] & 0xFFFFFF; }
+static int get_hash_6(int index) { return crypt_out[0] & 0x7FFFFFF; }
+
+static void set_key(char *key, int index)
+{
+	saved_key_length = strlen(key);
+	if (saved_key_length > PLAINTEXT_LENGTH)
+		saved_key_length = PLAINTEXT_LENGTH;
+	memcpy(saved_key, key, saved_key_length);
+}
+
+static char *get_key(int index)
+{
+	saved_key[saved_key_length] = 0;
+	return saved_key;
+}
+
+static void crypt_all(int count)
+{
+	SHA256_CTX ctx;
+	SHA256_Init(&ctx);
+
+	/* First the password */
+	SHA256_Update(&ctx, saved_key, saved_key_length);
+
+	/* Then the salt, including the $3$ magic */
+	SHA256_Update(&ctx, cur_salt, salt_len);
+
+	SHA256_Final((unsigned char*)crypt_out, &ctx);
+}
+
+static void set_salt(void *salt)
+{
+	salt_len = (int)*(char*)salt;
+	cur_salt = salt + 1;
+}
+
+// For 32-bit version of the bug, our salt is "$3$\0salt"
+static void *get_salt(char *ciphertext)
+{
+	static char *out;
+	int len;
+
+	if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+
+	ciphertext += 3;
+	strcpy(&out[1], "$3$");
+	for (len = 0; ciphertext[len] != '$'; len++);
+
+	memcpy(&out[5], ciphertext, len);
+	out[0] = len + 4;
+
+	return out;
+}
+
+static int cmp_all(void *binary, int count)
+{
+	return !memcmp(binary, crypt_out, BINARY_SIZE);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	return 1;
+}
+
+struct fmt_main fmt_dragonfly3 = {
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		fmt_default_init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		get_binary,
+		get_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_all,
+		cmp_exact
+	}
+};
+
+#else
+#ifdef __GNUC__
+#warning Note: dragonfly3 format disabled - it needs OpenSSL 0.9.8 or above
+#endif
+#endif

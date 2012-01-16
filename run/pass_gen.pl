@@ -16,7 +16,7 @@ use Authen::Passphrase::NTHash;
 use Authen::Passphrase::PHPass;
 use Digest::MD4 qw(md4 md4_hex md4_base64);
 use Digest::MD5 qw(md5 md5_hex md5_base64);
-use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha256_hex sha384_hex sha512_hex);
+use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha256 sha256_hex sha384_hex sha512 sha512_hex);
 use Encode;
 use Switch 'Perl5', 'Perl6';
 use POSIX;
@@ -60,7 +60,8 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change mssql oracle
 		oracle_no_upcase_change oracle11 hdaa netntlm_ess openssha
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
-		Dynamic dummy rawsha256 rawsha384 rawsha512));
+		Dynamic dummy rawsha256 rawsha384 rawsha512 dragonfly3_32
+		dragonfly4_32));
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -418,6 +419,40 @@ sub rawsha384 {
 }
 sub rawsha512 {
 	print "u$u-RawSHA512:", sha512_hex($_[0]), ":$u:0:$_[0]::\n";
+}
+sub _crypt_to64 {
+	my $itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	my ($v, $n) = ($_[1], $_[2]);
+	while (--$n >= 0) {
+		$_[0] .= substr($itoa64, $v & 0x3f, 1);
+		$v >>= 6;
+	}
+}
+sub dragonfly3_32 {
+	$salt = randstr(rand(8)+1);
+	my $final = sha256($_[0]."\$3\$\0".$salt);
+	my $out = "";
+	my ($l, $p);
+	for ($i = 0; $i < 10; $i++) {
+		$l = ord(substr($final, $i, 1)) << 16 | ord(substr($final, $i + 11, 1)) << 8 | ord(substr($final, $i + 21, 1));
+		_crypt_to64($out, $l, 4); $p += 4;
+	}
+	$l = ord(substr($final, 10, 1)) << 16 | ord(substr($final, 31, 1)) << 8;
+	_crypt_to64($out, $l, 4);
+	print "u$u-dragonfly3_32:", "\$3\$$salt\$" . $out, ":$u:0:$_[0]::\n";
+}
+sub dragonfly4_32 {
+	$salt = randstr(rand(8)+1);
+	my $final = sha512($_[0]."\$4\$\0".$salt);
+	my $out = "";
+	my ($l, $p);
+	for ($i = 0; $i < 20; $i++) {
+		$l = ord(substr($final, $i, 1)) << 16 | ord(substr($final, $i + 21, 1)) << 8 | ord(substr($final, $i + 42, 1));
+		_crypt_to64($out, $l, 4); $p += 4;
+	}
+	$l = ord(substr($final, 20, 1)) << 16 | ord(substr($final, 41, 1)) << 8;
+	_crypt_to64($out, $l, 4);
+	print "u$u-dragonfly4_32:", "\$4\$$salt\$" . $out, ":$u:0:$_[0]::\n";
 }
 sub mscash {
 	if (defined $argsalt) {

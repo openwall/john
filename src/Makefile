@@ -71,6 +71,8 @@ JOHN_OBJS = \
 	rawSHA224_fmt.o rawSHA256_fmt.o rawSHA384_fmt.o rawSHA512_fmt.o \
 	XSHA512_fmt.o \
 	hmailserver_fmt.o \
+	dragonfly3_fmt.o \
+	dragonfly4_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
