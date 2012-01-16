@@ -1,9 +1,9 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2010 by Solar Designer
- *
- * Raw-MD5 (thick) based on Raw-MD4 w/ mmx/sse/intrinsics, magnum 2011
- * no rights reserved
+ * Raw-MD5 (thick) based on Raw-MD4 w/ mmx/sse/intrinsics
+ * This  software is hereby  placed in the public domain.  In case that is not
+ * applicable, it is Copyright © 2011 magnum, and it is hereby released to the
+ * general public under the following terms:  Redistribution and use in source
+ * and binary forms, with or without modification, is permitted.
  */
 
 #include <string.h>

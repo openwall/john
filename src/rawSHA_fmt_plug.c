@@ -1,5 +1,8 @@
 /*
- * Copyright magnum, 2011, No Rights Reserved.
+ * This  software is hereby  placed in the public domain.  In case that is not
+ * applicable, it is Copyright © 2011 magnum, and it is hereby released to the
+ * general public under the following terms:  Redistribution and use in source
+ * and binary forms, with or without modification, is permitted.
  *
  * Based on Raw-SHA1, but this is OpenSSL only.
  */
@@ -13,7 +16,7 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"raw-sha"
-#define FORMAT_NAME			"Raw SHA"
+#define FORMAT_NAME			"Raw SHA0"
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""

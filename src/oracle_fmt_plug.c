@@ -2,7 +2,11 @@
  * Copyright (c) 2004 Simon Marechal
  * simon.marechal at thales-security.com
  *
- * UTF-8 support by magnum 2011, no rights reserved
+ * UTF-8 support: Copyright magnum 2012 and hereby released to the general
+ * public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted.
  */
 
 #include <string.h>

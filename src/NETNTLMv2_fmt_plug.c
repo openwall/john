@@ -4,8 +4,7 @@
  * Written by JoMo-Kun <jmk at foofus.net> in 2009
  * and placed in the public domain.
  *
- * Modified for performance, OMP and utf-8 support by magnum 2010-2011,
- * no rights reserved
+ * Modified for performance, OMP and utf-8 support by magnum 2010-2011
  *
  * This algorithm is designed for performing brute-force cracking of the NTLMv2
  * challenge/response sets exchanged during network-based authentication

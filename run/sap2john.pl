@@ -1,17 +1,15 @@
 #!/usr/bin/perl -w
-# Usage: sap_prepare.pl csv-input sap-codeB-output sap-codevnG-output
+# Usage: sap2john.pl csv-input sap-codeB-output sap-codevnG-output
 #   csv-input: XLS-exported table USH02 or USR02
 #              tab-speparted e.g. column 4:username column 17:bcode column 24:codvn G
 #   sap-codeB-output:   username:username<spaces>$bcode
 #   sap-codevnG-output: username:Username<spaces>$codvnG
 #
 # (all other formats with the right column names should work)
-# sap uses the username as salt. those have different length, so we needed to come up w/ our
-# own format. that is: username<space-padding-to-40>$HASHCODE
+# sap uses the username as salt. We separate it with a $.
+# That is: username$HASHCODE
 #
 # evil spaghetti code, but works. sorry for the eye cancer ;-)
-
-$SALT_LENGTH = 40;
 
 if ($#ARGV != 2) {
   die ("usage = $0 csv-input sap-codeB-output sap-codevnG-output \n");
@@ -60,8 +58,7 @@ while ($line=<INPUT_FILE>) {
 	}
 	if ($pos_codeg!=-1 && $tmp[$pos_codeg]=~/[a-zA-Z0-9]/) {  # both hashes
  		print "username: $tmp[$pos_bname] codeB: $tmp[$pos_codeb] codeG: $tmp[$pos_codeg] \n";
-		$strN = $tmp[$pos_bname];
-		$strSALT = "$strN"." "x($SALT_LENGTH-length($tmp[$pos_bname]));
+		$strSALT = $tmp[$pos_bname];
 		$strB = "$tmp[$pos_codeb]";
 		$strG = "$tmp[$pos_codeg]";
 		print CODEB_FILE "$strN:$strSALT\$$strB\n";
@@ -69,8 +66,7 @@ while ($line=<INPUT_FILE>) {
 	}
 	elsif ($pos_codeb!=-1 &&  $tmp[$pos_codeb]=~/[a-zA-Z0-9]/ ) { # only bcode
 		print "username: $tmp[$pos_bname] codeB: $tmp[$pos_codeb] \n";
-		$strN = $tmp[$pos_bname];
-		$strSALT = "$strN"." "x($SALT_LENGTH-length($tmp[$pos_bname]));
+		$strSALT = $tmp[$pos_bname];
 		$strB = "$tmp[$pos_codeb]";
 		print CODEB_FILE "$strN:$strSALT\$$strB\n";
 	}
@@ -85,5 +81,3 @@ close CODEG_FILE;
 
 print "\nDone!\n";
 exit 0;
-
-

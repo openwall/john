@@ -26,6 +26,8 @@
 #include <string.h>
 
 #include <openssl/ssl.h>
+#include <openssl/dsa.h>
+#include <openssl/rsa.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
@@ -60,6 +62,7 @@ static void process_file(const char *filename)
 	char *nm = NULL, *header = NULL;
 	unsigned char *data = NULL;
 	EVP_CIPHER_INFO cipher;
+	EVP_PKEY pk;
 	long len;
 	for (;;) {
 		if (!PEM_read_bio(bp, &nm, &header, &data, &len)) {
@@ -72,9 +75,11 @@ static void process_file(const char *filename)
 		}
         /* only PEM encoded DSA and RSA private keys are supported. */
 		if (!strcmp(nm, PEM_STRING_DSA)) {
+			pk.save_type = EVP_PKEY_DSA;
 			break;
 		}
 		if (!strcmp(nm, PEM_STRING_RSA)) {
+			pk.save_type = EVP_PKEY_RSA;
 			break;
 		}
 		OPENSSL_free(nm);
@@ -86,7 +91,26 @@ static void process_file(const char *filename)
 		ERR_print_errors_fp(stderr);
 		return;
 	}
-
+	/* check if key has no password */
+	DSA *dsapkc = NULL;
+	RSA *rsapkc = NULL;
+	const char unsigned *dc = data;
+	if (PEM_do_header(&cipher, data, &len, NULL, (char *) "")) {
+		if (pk.save_type == EVP_PKEY_DSA) {
+			if ((dsapkc = d2i_DSAPrivateKey(NULL, &dc, len)) != NULL) {
+				fprintf(stderr, "%s has no password!\n", filename);
+				DSA_free(dsapkc);
+				return;
+			}
+		}
+		else if (pk.save_type == EVP_PKEY_RSA) {
+			if ((rsapkc = d2i_RSAPrivateKey(NULL, &dc, len)) != NULL) {
+				fprintf(stderr, "%s has no password!\n", filename);
+				RSA_free(rsapkc);
+				return;
+                        }
+                }
+        }
 	/* key has been verified */
 	count = fread(buffer, 1, LINE_BUFFER_SIZE, keyfile);
 	printf("%s:$ssh2$", filename);

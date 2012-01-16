@@ -1,6 +1,8 @@
 /*
  * Copyright (c) 2004 bartavelle
  * bartavelle at bandecon.com
+ *
+ * Optimised set_key() by magnum, 2012
  */
 
 #include <string.h>
@@ -19,6 +21,7 @@
 #include "common.h"
 #include "formats.h"
 #include "sha.h"
+#include "johnswap.h"
 
 #define FORMAT_LABEL			"raw-sha1"
 #define FORMAT_NAME			"Raw SHA-1"
@@ -51,9 +54,6 @@
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-//#define GETPOS(i, index)		( (index)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + ((i)&3) ) //std getpos
-//#define GETPOS(i, index)		( (index)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + (3-((i)&3)) ) //for endianity conversion
-//#define GETPOS(i, index)		( (index&3)*4 + ((i)& (0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>2)*80*MMX_COEF*4 ) //for endianity conversion
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
 #else
@@ -77,13 +77,12 @@ static struct fmt_tests rawsha1_tests[] = {
 #define crypt_key rawSHA1_crypt_key
 #ifdef MMX_COEF
 #if defined (_MSC_VER)
-__declspec(align(16)) char saved_key[80*4*NBKEYS];
-__declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
+__declspec(align(16)) unsigned int saved_key[80*NBKEYS];
+__declspec(align(16)) unsigned int crypt_key[BINARY_SIZE/4*NBKEYS];
 #else
-char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
-char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
+unsigned int saved_key[80*NBKEYS] __attribute__ ((aligned(16)));
+unsigned int crypt_key[BINARY_SIZE/4*NBKEYS] __attribute__ ((aligned(16)));
 #endif
-static unsigned long total_len;
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
@@ -127,42 +126,47 @@ static char *rawsha1_split(char *ciphertext, int index)
 	return out;
 }
 
-static void rawsha1_init(struct fmt_main *pFmt)
-{
-#ifdef MMX_COEF
-	memset(saved_key, 0, sizeof(saved_key));
-#endif
-}
-
 static void rawsha1_set_key(char *key, int index) {
 #ifdef MMX_COEF
-	int len;
-	int i;
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*80*MMX_COEF];
+	ARCH_WORD_32 *keybuf_word = keybuffer;
+	unsigned int len;
+	ARCH_WORD_32 temp;
 
-	if(index==0)
-	{
-		total_len = 0;
-		//memset(saved_key, 0, sizeof(saved_key));
-		i = 0;
-#ifdef SHA1_SSE_PARA
-		for (; i < SHA1_SSE_PARA; ++i)
-#endif
-			memset(&saved_key[i*4*80*MMX_COEF], 0, 56*MMX_COEF);
+	len = 0;
+	while((unsigned char)(temp = *wkey++)) {
+		if (!(temp & 0xff00))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xff) | (0x80 << 8));
+			len++;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff0000))
+		{
+			*keybuf_word = JOHNSWAP((temp & 0xffff) | (0x80 << 16));
+			len+=2;
+			goto key_cleaning;
+		}
+		if (!(temp & 0xff000000))
+		{
+			*keybuf_word = JOHNSWAP(temp | (0x80 << 24));
+			len+=3;
+			goto key_cleaning;
+		}
+		*keybuf_word = JOHNSWAP(temp);
+		len += 4;
+		keybuf_word += MMX_COEF;
 	}
-	len = strlen(key);
-	if(len>PLAINTEXT_LENGTH)
-		len = PLAINTEXT_LENGTH;
+	*keybuf_word = 0x80000000;
 
-	for(i=0;i<len;i++)
-		saved_key[GETPOS(i, index)] = key[i];
-
-	saved_key[GETPOS(i, index)] = 0x80;
-#ifdef SHA1_SSE_PARA
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = i<<3;
-#else
-	total_len += len << ( ( (32/MMX_COEF) * index ) );
-#endif
-
+key_cleaning:
+	keybuf_word += MMX_COEF;
+	while(*keybuf_word) {
+		*keybuf_word = 0;
+		keybuf_word += MMX_COEF;
+	}
+	keybuffer[15*MMX_COEF] = len << 3;
 #else
 	strnzcpy(saved_key, key, PLAINTEXT_LENGTH+1);
 #endif
@@ -172,13 +176,9 @@ static char *rawsha1_get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i,s;
 
-#ifdef SHA1_SSE_PARA
-	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
-#else
-	s = (total_len >> (((32/MMX_COEF)*(index)))) & 0xff;
-#endif
+	s = saved_key[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
 	for(i=0;i<s;i++)
-		out[i] = saved_key[ GETPOS(i, index) ];
+		out[i] = ((unsigned char*)saved_key)[ GETPOS(i, index) ];
 	out[i] = 0;
 	return (char *) out;
 #else
@@ -188,8 +188,6 @@ static char *rawsha1_get_key(int index) {
 
 static int rawsha1_cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-// NOTE the cmp_all and cmp_one can likely work fine, using just the PARA blocks.  however, the original code has been kept (for now)
-# ifdef SHA1_SSE_PARA
 	unsigned int x,y=0;
 
 #ifdef SHA1_SSE_PARA
@@ -197,27 +195,10 @@ static int rawsha1_cmp_all(void *binary, int count) {
 #endif
 	for(x=0;x<MMX_COEF;x++)
 	{
-		if( ((unsigned int *)binary)[0] == ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+		if( ((unsigned int *)binary)[0] == crypt_key[x+y*MMX_COEF*5] )
 			return 1;
 	}
 	return 0;
-# else
-	int i=0;
-	while(i< (BINARY_SIZE/4) )
-	{
-		if (
-			( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+1])
-#   if (MMX_COEF > 3)
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+2])
-			&& ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+3])
-#   endif
-		)
-			return 0;
-		i++;
-	}
-	return 1;
-# endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -230,29 +211,21 @@ static int rawsha1_cmp_exact(char *source, int count){
 static int rawsha1_cmp_one(void * binary, int index)
 {
 #ifdef MMX_COEF
-# if SHA1_SSE_PARA
 	unsigned int x,y;
 	x = index&3;
 	y = index/4;
 
-	if( ((unsigned int *)binary)[0] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] )
+	if( ((unsigned int *)binary)[0] != crypt_key[x+y*MMX_COEF*5] )
 		return 0;
-	if( ((unsigned int *)binary)[1] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+4] )
+	if( ((unsigned int *)binary)[1] != crypt_key[x+y*MMX_COEF*5+MMX_COEF] )
 		return 0;
-	if( ((unsigned int *)binary)[2] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+8] )
+	if( ((unsigned int *)binary)[2] != crypt_key[x+y*MMX_COEF*5+2*MMX_COEF] )
 		return 0;
-	if( ((unsigned int *)binary)[3] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+12] )
+	if( ((unsigned int *)binary)[3] != crypt_key[x+y*MMX_COEF*5+3*MMX_COEF] )
 		return 0;
-	if( ((unsigned int *)binary)[4] != ((unsigned int *)crypt_key)[x+y*MMX_COEF*5+16] )
+	if( ((unsigned int *)binary)[4] != crypt_key[x+y*MMX_COEF*5+4*MMX_COEF] )
 		return 0;
 	return 1;
-# else
-	int i = 0;
-	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((unsigned long *)binary)[i] != ((unsigned long *)crypt_key)[i*MMX_COEF+index] )
-			return 0;
-	return 1;
-# endif
 #else
 	return rawsha1_cmp_all(binary, index);
 #endif
@@ -263,9 +236,9 @@ static void rawsha1_crypt_all(int count) {
 #ifdef MMX_COEF
 
 # if SHA1_SSE_PARA
-	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
+	SSESHA1body(saved_key, crypt_key, NULL, 0);
 # else
-	shammx((unsigned char *) crypt_key, (unsigned char *) saved_key, total_len);
+	shammx_nosizeupdate_nofinalbyteswap((unsigned char *) crypt_key, (unsigned char *) saved_key, 1);
 # endif
 
 #else
@@ -287,9 +260,7 @@ static void * rawsha1_binary(char *ciphertext)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-// if we try to unify the rawsha1_cmp_one() and and rawsha1_cmp_all() functions, we should endian alter for all MMX_COEF.
-// Right now, for MMX/SSE non-para, we keep the older methods.
-#ifdef SHA1_SSE_PARA
+#ifdef MMX_COEF
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
 	return (void *)realcipher;
@@ -304,55 +275,15 @@ static int binary_hash_5(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0
 static int binary_hash_6(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
 #ifdef MMX_COEF
-static int get_hash_0(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0xf;
-}
-static int get_hash_1(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0xff;
-}
-static int get_hash_2(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0xfff;
-}
-static int get_hash_3(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0xffff;
-}
-static int get_hash_4(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0xfffff;
-}
-static int get_hash_5(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0xffffff;
-}
-static int get_hash_6(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*5] & 0x7ffffff;
-}
+#define INDEX	((index&3)+(index>>2)*MMX_COEF*5)
+static int get_hash_0(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0xf; }
+static int get_hash_1(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0xff; }
+static int get_hash_2(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0xfff; }
+static int get_hash_3(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0xffff; }
+static int get_hash_4(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0xfffff; }
+static int get_hash_5(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0xffffff; }
+static int get_hash_6(int index) { return ((unsigned int *)crypt_key)[INDEX] & 0x7ffffff; }
+#undef INDEX
 #else
 static int get_hash_0(int index) { return ((unsigned int *)crypt_key)[0] & 0xf; }
 static int get_hash_1(int index) { return ((unsigned int *)crypt_key)[0] & 0xff; }
@@ -378,7 +309,7 @@ struct fmt_main fmt_rawSHA1 = {
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		rawsha1_tests
 	}, {
-		rawsha1_init,
+		fmt_default_init,
 		fmt_default_prepare,
 		valid,
 		rawsha1_split,

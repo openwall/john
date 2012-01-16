@@ -32,12 +32,12 @@ OMPFLAGS =
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
-ASFLAGS = -c $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lcrypto -lssl -lm -lz $(OMPFLAGS)
+ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lcrypto -lssl -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -71,6 +71,9 @@ JOHN_OBJS = \
 	rawSHA224_fmt.o rawSHA256_fmt.o rawSHA384_fmt.o rawSHA512_fmt.o \
 	XSHA512_fmt.o \
 	hmailserver_fmt.o \
+	dragonfly3_fmt.o \
+	dragonfly4_fmt.o \
+	sha-crypt_256_fmt.o sha-crypt_512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
@@ -90,6 +93,10 @@ JOHN_OBJS = \
 	unafs.o \
 	undrop.o \
 	unique.o
+
+OCL_OBJS = \
+	common-opencl.o NSLDAPS_opencl_fmt.o NT_opencl_fmt.o \
+	rawMD5_opencl_fmt.o rawSHA1_opencl_fmt.o 
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -114,6 +121,14 @@ BENCH_OBJS = \
 	$(BENCH_BF_OBJS_DEPEND) \
 	bench-t.o best.o common.o config_g.o formats_g.o math.o memory.o \
 	miscnl.o params.o path.o signals.o tty.o
+
+PARA_BENCH_OBJS = \
+	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
+	miscnl.o params.o path.o signals.o tty.o \
+	$(BENCH_PARA_DEPEND)
+
+BENCH_PARA_DEPEND = \
+	sse-intrinsics.o rawMD4_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
 
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o
@@ -142,6 +157,7 @@ default:
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
 	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
+	@echo "linux-x86-64-opencl      Linux, x86-64 with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
@@ -239,6 +255,15 @@ linux-x86-64-xop:
 		CFLAGS="$(CFLAGS) -mxop -DHAVE_CRYPT -DHAVE_DL" \
 		ASFLAGS="$(ASFLAGS) -mxop" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+
+linux-x86-64-opencl:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o $(OCL_OBJS)" \
+		CFLAGS="$(CFLAGS) -I/usr/local/cuda/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
+		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -lcrypt -lOpenCL -ldl"
+	/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
@@ -1145,8 +1170,23 @@ generic.h:
 		"$(BENCH_MD5_OBJS_DEPEND)" \
 		"$(BENCH_BF_OBJS_DEPEND)"
 
+testpara:
+	$(LN) x86-64.h arch.h
+	./para-best.sh "$(CC)" "$(MAKE)" \
+		"$(BENCH_PARA_DEPEND)" "-msse2"
+
+testpara32:
+# The next line is not a typo. But there might be a better way.
+	$(LN) x86-64.h arch.h
+	CFLAGS="$(CFLAGS) -m32 -msse2" \
+	./para-best.sh "$(CC)" "$(MAKE)" \
+		"$(BENCH_PARA_DEPEND)" "-m32 -msse2"
+
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
+
+para-bench: $(PARA_BENCH_OBJS)
+	$(LD) $(PARA_BENCH_OBJS) $(LDFLAGS) -o para-bench
 
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
@@ -1358,8 +1398,8 @@ test_utf8_verbose:
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
-	$(RM) detect bench generic.h arch.h tmp.s
+	$(RM) ../run/john.exe john-macosx-* *.o *.bak core ../run/*.cl
+	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
 
@@ -1373,11 +1413,11 @@ clean-intrinsics:
 
 sse-intrinsics-64.S:
 	$(LN) x86-64.h arch.h
-	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
+	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 
 sse-intrinsics-32.S:
 	$(LN) x86-ssei.h arch.h
-	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE -Wall
+	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 

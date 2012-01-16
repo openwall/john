@@ -7,9 +7,80 @@
  * (c) x7d8 sap loverz, public domain, btw
  * cheers: see test-cases.
  *
- * sligthly modified by magnum 2011 to support OMP and --encoding.
- * No rights reserved.
+ * Heavily modified by magnum 2011-2012 for performance and for SIMD, OMP and
+ * encodings support. This is hereby  placed in the public domain.  In case that
+ * is not applicable, it is Copyright © 2011 magnum, and it is hereby released
+ * to the general public under the following terms:  Redistribution and use in
+ * source and binary forms, with or without modification, is permitted.
  */
+
+#include <string.h>
+#include <ctype.h>
+
+#include "arch.h"
+
+#ifdef SHA1_SSE_PARA
+#define MMX_COEF	4
+#include "sse-intrinsics.h"
+#define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
+#elif MMX_COEF
+#define NBKEYS	MMX_COEF
+#endif
+
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "sha.h"
+#include "options.h"
+#include "unicode.h"
+#include "johnswap.h"
+
+#define FORMAT_LABEL			"sapg"
+#define FORMAT_NAME			"SAP CODVN F/G (PASSCODE)"
+
+#ifdef SHA1_SSE_PARA
+#define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
+#elif defined(MMX_COEF) && MMX_COEF == 4
+#define ALGORITHM_NAME			"SSE2 4x"
+#elif defined(MMX_COEF) && MMX_COEF == 2
+#define ALGORITHM_NAME			"MMX 2x"
+#elif defined(MMX_COEF)
+#define ALGORITHM_NAME			"?"
+#else
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
+
+#if defined(_OPENMP) && (defined (SHA1_SSE_PARA) || !defined(MMX_COEF))
+#include <omp.h>
+static unsigned int omp_t = 1;
+#ifdef SHA1_SSE_PARA
+#define OMP_SCALE			128
+#else
+#define OMP_SCALE			2048
+#endif
+#endif
+
+#define BENCHMARK_COMMENT		""
+#define BENCHMARK_LENGTH		0
+
+#define SALT_LENGTH			(12*3)	/* 12 characters of UTF-8 */
+#define PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
+
+#define BINARY_SIZE			20
+#define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + 2*BINARY_SIZE)	/* SALT + $ + 2x20 bytes for SHA1-representation */
+
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETWORDPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 )
+#define GETSTARTPOS(index)		( (index&(MMX_COEF-1))*4 + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 )
+#define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*20*MMX_COEF ) //for endianity conversion
+
+#else
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1
+#endif
 
 //this array is from disp+work (sap's worker process)
 #define MAGIC_ARRAY_SIZE 160
@@ -25,327 +96,577 @@ unsigned char theMagicArray[MAGIC_ARRAY_SIZE]=
  0xB3, 0xDD, 0x8E, 0x0A, 0x24, 0xBF, 0x51, 0xC3, 0x7C, 0xCD, 0x55, 0x9F, 0x37, 0xAF, 0x94, 0x4C,
  0x29, 0x08, 0x52, 0x82, 0xB2, 0x3B, 0x4E, 0x37, 0x9F, 0x17, 0x07, 0x91, 0x11, 0x3B, 0xFD, 0xCD };
 
-
-#include <string.h>
-#include <ctype.h>
-
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
-#include "options.h"
-#include "unicode.h"
-
-#define FORMAT_LABEL			"sapg"
-#define FORMAT_NAME			"SAP CODVN G (PASSCODE)"
-#define ALGORITHM_NAME			"sapg"
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
-
-#define PLAINTEXT_LENGTH		48	/* netweaver 2004s limit */
-
-#define BINARY_SIZE			20
-#define SALT_SIZE			40	/* the max username length */
-#define CIPHERTEXT_LENGTH		SALT_SIZE + 1 + 40	/* SALT + $ + 2x20 bytes for SHA1-representation */
-
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1920
-
-
-static struct fmt_tests sapcodvng_tests[] = {
-	{"F                                       $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
+// For backwards compatibility, we must support salts padded with spaces to a field width of 40
+static struct fmt_tests tests[] = {
+	{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
 	{"JOHNNY                                  $7D79B478E70CAAE63C41E0824EAB644B9070D10A", "CYBERPUNK"},
-	{"VAN                                     $D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
-	{"ROOT                                    $1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
-	{"MAN                                     $22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
-	{"----------------------------------------$D594002761406B589A75CE86042A8B4A922AA74F", "-------"},
-	{"SAP*                                    $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
-	{"DDIC                                    $6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
-	{"DoLlAR$$$---                            $E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
+	{"VAN$D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
+	{"ROOT$1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
+	{"MAN$22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
+	{"------------------------------------$463BDDCF2D2D6E07FC64C075A0802BD87A39BBA6", "-------"},
+	{"SAP*                                $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
+	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
+	{"DoLlAR$$$---$E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static UTF8 (*trPassword)[PLAINTEXT_LENGTH + 1];
-static int (*pwLen);
+static UTF8 (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static int (*keyLen);
+
+#ifdef MMX_COEF
+
+// max intermediate crypt size is 192 bytes
+// multiple key buffers for lengths > 55
+#define LIMB				3
+static unsigned char *saved_key[LIMB];
+static unsigned char *crypt_key;
+static unsigned char *interm_crypt;
+static unsigned int *clean_pos;
+
+#else
+
+static UTF8 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
-static char theSalt[SALT_SIZE];
-static unsigned int unLen;
+#endif
 
-static void sapcodvng_init(struct fmt_main *pFmt)
+static struct saltstruct {
+	unsigned int l;
+	unsigned char s[SALT_LENGTH];
+} *cur_salt;
+#define SALT_SIZE			sizeof(struct saltstruct)
+
+static void init(struct fmt_main *pFmt)
 {
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
-	trPassword = mem_calloc_tiny(sizeof(*trPassword) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
-	pwLen = mem_calloc_tiny(sizeof(*pwLen) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+	static int warned = 0;
+#ifdef MMX_COEF
+	int i;
+#endif
+	// This is needed in order NOT to upper-case german double-s
+	// in UTF-8 mode.
+	initUnicode(UNICODE_MS_NEW);
+
+	if (!options.utf8 && !(options.flags & FLG_TEST_CHK) && warned++ == 0)
+		fprintf(stderr, "Warning: SAP-F/G format should always be UTF-8.\nConvert your input files to UTF-8 and use --encoding=utf8\n");
+
+#if defined (_OPENMP) && (defined(SHA1_SSE_PARA) || !defined(MMX_COEF))
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
+#endif
+
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	keyLen = mem_calloc_tiny(sizeof(*keyLen) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+#ifdef MMX_COEF
+	clean_pos = mem_calloc_tiny(sizeof(*clean_pos) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	for(i = 0; i < LIMB; i++)
+		saved_key[i] = mem_calloc_tiny(80*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	interm_crypt = mem_calloc_tiny(20 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(20 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+#else
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = saved_plain;
+#endif
 }
 
-static int sapcodvng_valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
-	if (NULL==ciphertext)
-		return 0;
+	char *p;
 
-	if (ciphertext[SALT_SIZE]!='$')
-		return 0;
+	if (!ciphertext) return 0;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
-		return 0;
+	p = strrchr(ciphertext, '$');
+	if (!p) return 0;
 
-	for (i = SALT_SIZE+1; i < CIPHERTEXT_LENGTH; i++){
-		if (!(
-			(('0' <= ciphertext[i])&&(ciphertext[i] <= '9'))
-				|| (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-				|| (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))
-			))
+	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
+
+	p++;
+	for (i = 0; i < BINARY_SIZE * 2; i++)
+		if (!(((p[i]>='A' && p[i]<='F')) ||
+			((p[i]>='a' && p[i]<='f')) ||
+			((p[i]>='0' && p[i]<='9')) ))
 			return 0;
-	}
-
 	return 1;
 }
 
-/*
- * this function is needed to determine the actual size of the salt (==username)
- * theSalt has to point at the beginning of the actual salt. no more checks are done; relies on valid()
- * this is needed because, afaik, john only supports salts w/ fixed length. sap uses the username, so we have to
- * "strip" the padding (blanks at the end) for the calculation....
- * usernames w/ spaces at the end are not supported (SAP does not support them either)
- */
-static inline unsigned int calcActualSaltSize_G(const char* theSalt)
+static void set_salt(void *salt)
 {
-	unsigned int i;
-	if (NULL==theSalt)
-		return 0;
-	i=SALT_SIZE-1;
-	while (theSalt[i--]==0x20);
-	return SALT_SIZE-(SALT_SIZE-i)+2;
+	cur_salt = salt;
 }
 
-static void sapcodvng_set_salt(void *salt)
+// Salt is already trimmed and uppercased in split()
+static void *get_salt(char *ciphertext)
 {
-	memcpy(theSalt, salt, SALT_SIZE);
-	unLen = calcActualSaltSize_G(theSalt);
+	char *p;
+	static struct saltstruct out;
+
+	p = strrchr(ciphertext, '$');
+	out.l = (int)(p - ciphertext);
+
+	memset(out.s, 0, sizeof(out.s));
+	memcpy(out.s, ciphertext, out.l);
+
+	return &out;
 }
 
-static void *sapcodvng_get_salt(char *ciphertext)
+static void set_key(char *key, int index)
 {
-	static unsigned char sssalt[SALT_SIZE];
-	memcpy(sssalt, ciphertext, SALT_SIZE);
-	return sssalt;
+	memcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
+	keyLen[index] = -1;
 }
 
-static void sapcodvng_set_key(char *key, int index)
-{
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
-	pwLen[index] = -1;
+static char *get_key(int index) {
+	return (char*)saved_plain[index];
 }
 
-static char *sapcodvng_get_key(int index) {
-	return saved_key[index];
-}
+static int cmp_all(void *binary, int count) {
+#ifdef MMX_COEF
+	unsigned int x,y=0;
 
-static int sapcodvng_cmp_all(void *binary, int count) {
+#ifdef SHA1_SSE_PARA
+#ifdef _OPENMP
+	for(;y<SHA1_SSE_PARA*omp_t;y++)
+#else
+	for(;y<SHA1_SSE_PARA;y++)
+#endif
+#endif
+	for(x=0;x<MMX_COEF;x++)
+	{
+		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*MMX_COEF*5] )
+			return 1;
+	}
+	return 0;
+#else
 	unsigned int index;
 	for (index = 0; index < count; index++)
 		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
 			return 1;
 	return 0;
+#endif
 }
 
-static int sapcodvng_cmp_exact(char *source, int index){
+static int cmp_exact(char *source, int index){
 	return 1;
 }
 
-static int sapcodvng_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
+#ifdef MMX_COEF
+	unsigned int x,y;
+	x = index&(MMX_COEF-1);
+	y = index>>(MMX_COEF>>1);
+
+	if( (((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5])   |
+	    (((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+MMX_COEF]) |
+	    (((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+2*MMX_COEF]) |
+	    (((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+3*MMX_COEF])|
+	    (((unsigned int*)binary)[4] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*5+4*MMX_COEF]) )
+		return 0;
+	return 1;
+#else
 	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
+#endif
 }
 
 /*
  * calculate the length of data that has to be hashed from the magic array. pass the first hash result in here.
  * this is part of the walld0rf-magic
+ * The return value will always be between 32 and 82, inclusive
  */
+#if MMX_COEF
+static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray, unsigned int index)
+#else
 static inline unsigned int extractLengthOfMagicArray(unsigned const char *pbHashArray)
+#endif
 {
-	unsigned int modSum=0, i;
+	unsigned int modSum = 0;
+
+#if MMX_COEF
+	unsigned const char *p = &pbHashArray[GETOUTPOS(3, index)];
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	p += 4*(MMX_COEF - 1);
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	modSum += *p++ % 6;
+	p += 4*(MMX_COEF - 1) + 2;
+	modSum += *p++ % 6;
+	modSum += *p % 6;
+#else
+	unsigned int i;
 
 	for (i=0; i<=9; i++)
-		modSum+=pbHashArray[i]%6;
-
-	return modSum+0x20; //0x20 is hardcoded...
+		modSum += pbHashArray[i] % 6;
+#endif
+	return modSum + 0x20; //0x20 is hardcoded...
 }
 
 /*
  * Calculate the offset into the magic array. pass the first hash result in here
  * part of the walld0rf-magic
+ * The return value will always be between 0 and 70, inclusive
  */
+#if MMX_COEF
+static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray, unsigned int index)
+#else
 static inline unsigned int extractOffsetToMagicArray(unsigned const char *pbHashArray)
+#endif
 {
-	unsigned int modSum=0, i;
+	unsigned int modSum = 0;
 
-	for (i=19; i>=10; i--)
-		modSum+=pbHashArray[i]%8;
+#if MMX_COEF
+	unsigned const int *p = (unsigned int*)&pbHashArray[GETOUTPOS(11, index)];
+	unsigned int temp;
 
+	temp = *p & 0x0707;
+	modSum += (temp >> 8) + (unsigned char)temp;
+	p += MMX_COEF;
+	temp = *p & 0x07070707;
+	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
+		(unsigned char)(temp >> 8) + (unsigned char)temp;
+	p += MMX_COEF;
+	temp = *p & 0x07070707;
+	modSum += (temp >> 24) + (unsigned char)(temp >> 16) +
+		(unsigned char)(temp >> 8) + (unsigned char)temp;
+#else
+	unsigned int i;
+
+	for (i = 19; i >= 10; i--)
+		modSum += pbHashArray[i] % 8;
+#endif
 	return modSum;
 }
 
-static void sapcodvng_crypt_all(int count) {
-	int i;
+#if MMX_COEF
+static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
+{
+	unsigned int i;
+	unsigned const int *s = &source[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*5*MMX_COEF];
+	unsigned int *d = &dest[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*5*MMX_COEF];
+
+	for (i = 0; i < 5; i++) {
+		*d = *s;
+		s += MMX_COEF;
+		d += MMX_COEF;
+	}
+}
+#endif
+
+static void crypt_all(int count)
+{
+#if MMX_COEF
+
+#if defined(_OPENMP) && defined(SHA1_SSE_PARA)
+	int t;
+#pragma omp parallel for
+	for (t = 0; t < omp_t; t++)
+#define ti (t*NBKEYS+index)
+#else
+#define t  0
+#define ti index
+#endif
+	{
+		unsigned int index, i, longest;
+		int len;
+		unsigned int crypt_len[NBKEYS];
+
+		longest = 0;
+
+		for (index = 0; index < NBKEYS; index++) {
+
+			// Store key into vector key buffer
+			if ((len = keyLen[ti]) < 0) {
+				ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[0][GETSTARTPOS(ti)];
+				ARCH_WORD_32 *wkey = (ARCH_WORD_32*)saved_plain[ti];
+				ARCH_WORD_32 temp;
+
+				len = 0;
+				while(((unsigned char)(temp = *wkey++)) && len < PLAINTEXT_LENGTH) {
+					if (!(temp & 0xff00))
+					{
+						*keybuf_word = JOHNSWAP(temp & 0xff);
+						keybuf_word += MMX_COEF;
+						len++;
+						break;
+					}
+					if (!(temp & 0xff0000))
+					{
+						*keybuf_word = JOHNSWAP(temp & 0xffff);
+						keybuf_word += MMX_COEF;
+						len+=2;
+						break;
+					}
+					*keybuf_word = JOHNSWAP(temp);
+					if (!(temp & 0xff000000))
+					{
+						keybuf_word += MMX_COEF;
+						len+=3;
+						break;
+					}
+					keybuf_word += MMX_COEF;
+					len += 4;
+				}
+
+				// Back-out of trailing spaces
+				while( saved_plain[ti][len - 1] == ' ' )
+				{
+					saved_plain[ti][--len] = 0;
+					if (len == 0) break;
+				}
+				keyLen[ti] = len;
+			}
+
+			// 1.	we need to SHA1 the password and username
+			for (i = 0; i < cur_salt->l; i++)
+				saved_key[(len+i)>>6][GETPOS((len + i), ti)] = cur_salt->s[i];
+			len += i;
+
+			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
+
+			// Clean rest of this buffer
+			i = len;
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = 0;
+			for (; i < (((len+8)>>6)+1)*64; i += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
+
+			// This should do good but Valgrind insists it's a waste
+			//if (clean_pos[ti] < i)
+			//	clean_pos[ti] = len + 1;
+
+			if (len > longest)
+				longest = len;
+			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = len << 3;
+			crypt_len[index] = len;
+		}
+
+#if SHA1_SSE_PARA
+		SSESHA1body(&saved_key[0][t*80*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, 0);
+#else
+		shammx_nosizeupdate_nofinalbyteswap(crypt_key, saved_key[0], 1);
+#endif
+
+		// Do another limb if needed
+		if (longest > 55) {
+			memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
+#if SHA1_SSE_PARA
+			SSESHA1body(&saved_key[1][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
+#else
+			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[1], interm_crypt);
+#endif
+			// Copy the new output
+			for (index = 0; index < NBKEYS; index++)
+				if (crypt_len[index] > 55)
+					crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
+		}
+
+		longest = 0;
+
+		for (index = 0; index < NBKEYS; index++) {
+			unsigned int offsetMagicArray;
+			unsigned int lengthIntoMagicArray;
+			unsigned char *p;
+
+			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
+			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
+			((unsigned int*)saved_key[1])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
+
+			len = keyLen[ti];
+			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
+			offsetMagicArray = extractOffsetToMagicArray(crypt_key, ti);
+
+			// 2.	now, hash again --> sha1($password+$partOfMagicArray+$username) --> this is CODVNG passcode...
+			i = len - 1;
+			p = &theMagicArray[offsetMagicArray];
+			// Copy a char at a time until aligned (at destination)...
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = *p++;
+			// ...then a word at a time. This is a good boost, we are copying between 32 and 82 bytes here.
+			for (;i < lengthIntoMagicArray + len; i += 4, p += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = JOHNSWAP(*(ARCH_WORD_32*)p);
+
+			// Now, the salt. This is typically too short for the stunt above.
+			for (i = 0; i < cur_salt->l; i++)
+				saved_key[(len+lengthIntoMagicArray+i)>>6][GETPOS((len + lengthIntoMagicArray + i), ti)] = cur_salt->s[i];
+			len += lengthIntoMagicArray + cur_salt->l;
+			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
+			crypt_len[index] = len;
+
+			// Clean the rest of this buffer as needed
+			i = len;
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = 0;
+			for (; i < clean_pos[ti]; i += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETWORDPOS(i, ti)] = 0;
+
+			clean_pos[ti] = len + 1;
+			if (len > longest)
+				longest = len;
+
+			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = len << 3;
+		}
+
+#if SHA1_SSE_PARA
+		SSESHA1body(&saved_key[0][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, 0);
+#else
+		shammx_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[0], 1);
+#endif
+
+		// Typically, no or very few crypts are done at this point so this is faster than to memcpy the lot
+		for (index = 0; index < NBKEYS; index++)
+			if (crypt_len[index] < 56)
+				crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
+
+		// Do another and possibly a third limb
+		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
+#if SHA1_SSE_PARA
+			SSESHA1body(&saved_key[i][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
+#else
+			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[i], interm_crypt);
+#endif
+			// Copy any output that is done now
+			for (index = 0; index < NBKEYS; index++)
+				if (((crypt_len[index] + 8) >> 6) == i)
+					crypt_done((unsigned int*)interm_crypt, (unsigned int*)crypt_key, ti);
+		}
+	}
+#undef t
+#undef ti
+
+#else
 
 #ifdef _OPENMP
+	int index;
 #pragma omp parallel for
+	for (index = 0; index < count; index++)
+#else
+#define index 0
 #endif
-	for (i = 0; i < count; i++) {
-		unsigned char temp_key[BINARY_SIZE+1];
-		unsigned int offsetMagicArray;
-		unsigned int lengthIntoMagicArray;
-		unsigned char tempVar[PLAINTEXT_LENGTH+MAGIC_ARRAY_SIZE+SALT_SIZE]; //max size...
+	{
+		unsigned int offsetMagicArray, lengthIntoMagicArray;
+		unsigned char temp_key[BINARY_SIZE];
+		unsigned char tempVar[PLAINTEXT_LENGTH + MAGIC_ARRAY_SIZE + SALT_LENGTH]; //max size...
 		SHA_CTX ctx;
 
-		if (pwLen[i] < 0) {
-			if (options.utf8 || options.ascii)
-				strnzcpy((char*)trPassword[i], saved_key[i], PLAINTEXT_LENGTH + 1);
-			else {
-				// convert from codepage -> Unicode -> UTF-8
-				UTF16 tmp16[PLAINTEXT_LENGTH + 1];
-#if ARCH_LITTLE_ENDIAN
-				enc_to_utf16(tmp16, PLAINTEXT_LENGTH + 1, (UTF8*)saved_key[i], strlen(saved_key[i]));
-#else
-				enc_to_utf16_be(tmp16, PLAINTEXT_LENGTH + 1, (UTF8*)saved_key[i], strlen(saved_key[i]));
-#endif
-				utf16_to_utf8_r(trPassword[i], PLAINTEXT_LENGTH + 1, tmp16);
+		if (keyLen[index] < 0) {
+			keyLen[index] = strlen((char*)saved_key[index]);
+
+			// Back-out of trailing spaces
+			while (saved_key[index][keyLen[index] - 1] == ' ') {
+				saved_key[index][--keyLen[index]] = 0;
+				if (keyLen[index] == 0) break;
 			}
-			pwLen[i] = strlen((char*)trPassword[i]);
 		}
 
 		//1.	we need to SHA1 the password and username
-		memcpy(tempVar, trPassword[i], pwLen[i]);  //first: the password
-		memcpy(tempVar+pwLen[i], theSalt, unLen); //second: the salt(username)
+		memcpy(tempVar, saved_key[index], keyLen[index]);  //first: the password
+		memcpy(tempVar + keyLen[index], cur_salt->s, cur_salt->l); //second: the salt(username)
 
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, tempVar, pwLen[i] + unLen);
+		SHA1_Update(&ctx, tempVar, keyLen[index] + cur_salt->l);
 		SHA1_Final((unsigned char*)temp_key, &ctx);
 
-		lengthIntoMagicArray=extractLengthOfMagicArray(temp_key);
-		offsetMagicArray=extractOffsetToMagicArray(temp_key);
+		lengthIntoMagicArray = extractLengthOfMagicArray(temp_key);
+		offsetMagicArray = extractOffsetToMagicArray(temp_key);
 
 		//2.     now, hash again --> sha1($password+$partOfMagicArray+$username) --> this is CODVNG passcode...
-		memcpy(tempVar+pwLen[i], &theMagicArray[offsetMagicArray], lengthIntoMagicArray);
-		memcpy(tempVar+pwLen[i]+lengthIntoMagicArray, theSalt, unLen);
+		memcpy(tempVar + keyLen[index], &theMagicArray[offsetMagicArray], lengthIntoMagicArray);
+		memcpy(tempVar + keyLen[index] + lengthIntoMagicArray, cur_salt->s, cur_salt->l);
 
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, tempVar, pwLen[i]+lengthIntoMagicArray+unLen);
-		SHA1_Final((unsigned char*)crypt_key[i], &ctx);
+		SHA1_Update(&ctx, tempVar, keyLen[index] + lengthIntoMagicArray + cur_salt->l);
+		SHA1_Final((unsigned char*)crypt_key[index], &ctx);
 	}
+#undef index
+
+#endif
 }
 
-static void *sapcodvng_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
-	static char *realcipher;
+	static int outbuf[BINARY_SIZE / sizeof(int)];
+	char *realcipher = (char*)outbuf;
 	int i;
-	char* newCiphertextPointer=&ciphertext[SALT_SIZE+1];
+	char* newCiphertextPointer;
 
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	newCiphertextPointer = strrchr(ciphertext, '$') + 1;
 
 	for(i=0;i<BINARY_SIZE;i++)
 	{
 		realcipher[i] = atoi16[ARCH_INDEX(newCiphertextPointer[i*2])]*16 + atoi16[ARCH_INDEX(newCiphertextPointer[i*2+1])];
 	}
-	return (void *)realcipher;
+#ifdef MMX_COEF
+	alter_endianity((unsigned char*)realcipher, BINARY_SIZE);
+#endif
+	return (void*)realcipher;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xF;
-}
+static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
+static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }
+static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfff; }
+static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffff; }
+static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffff; }
+static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffffff; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0x7ffffff; }
 
-static int binary_hash_1(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFF;
-}
+#ifdef MMX_COEF
+#define KEY_OFF ((index/MMX_COEF)*MMX_COEF*5+(index&(MMX_COEF-1)))
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[KEY_OFF] & 0x7ffffff; }
+#else
+static int get_hash_0(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xf; }
+static int get_hash_1(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xff; }
+static int get_hash_2(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xfff; }
+static int get_hash_3(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xffff; }
+static int get_hash_4(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xfffff; }
+static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xffffff; }
+static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0x7ffffff; }
+#endif
 
-static int binary_hash_2(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return ((ARCH_WORD_32 *)binary)[0] & 0x7FFFFFF;
-}
-
-static int get_hash_0(int index)
-{
-	return crypt_key[index][0] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_key[index][0] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return crypt_key[index][0] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return crypt_key[index][0] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return crypt_key[index][0] & 0xFFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return crypt_key[index][0] & 0xFFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return crypt_key[index][0] & 0x7FFFFFF;
-}
-
-// Public domain hash function by DJ Bernstein (salt is a username)
-static int salt_hash(void *salt)
-{
-	unsigned char *s = (unsigned char*)salt;
-	unsigned int hash = 5381;
-
-	while (*s)
-		hash = ((hash << 5) + hash) ^ *s++;
-
-	return hash & (SALT_HASH_SIZE - 1);
-}
-
-char *sapcodvng_split(char *ciphertext, int index)
+// Here, we remove any salt padding, trim it to 36 bytes and upper-case it
+static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
-  	memset(out, 0, CIPHERTEXT_LENGTH + 1);
-	memcpy(out, ciphertext, CIPHERTEXT_LENGTH);
-	enc_strupper(out); //username (==salt) && resulting hash can be uppercase...
+	char *p;
+	int i;
+
+	p = strrchr(ciphertext, '$');
+
+	i = (int)(p - ciphertext) - 1;
+	while (ciphertext[i] == ' ' || i >= SALT_LENGTH)
+		i--;
+	i++;
+
+	memset(out, 0, sizeof(out));
+	memcpy(out, ciphertext, i);
+	strnzcpy(&out[i], p, CIPHERTEXT_LENGTH + 1 - i);
+
+	enc_strupper(out); // upper-case salt (username) + hash
+
 	return out;
+}
+
+// Public domain hash function by DJ Bernstein
+static int salt_hash(void *salt)
+{
+	struct saltstruct *s = (struct saltstruct*)salt;
+	unsigned int hash = 5381;
+	unsigned int i;
+
+	for (i = 0; i < s->l; i++)
+		hash = ((hash << 5) + hash) ^ s->s[i];
+
+	return hash & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_sapG = {
@@ -360,15 +681,18 @@ struct fmt_main fmt_sapG = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UTF8 | FMT_OMP,
-		sapcodvng_tests
+#if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		tests
 	}, {
-		sapcodvng_init,
+		init,
 		fmt_default_prepare,
-		sapcodvng_valid,
-		sapcodvng_split,
-		sapcodvng_binary,
-		sapcodvng_get_salt,
+		valid,
+		split,
+		binary,
+		get_salt,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -379,11 +703,11 @@ struct fmt_main fmt_sapG = {
 			binary_hash_6
 		},
 		salt_hash,
-		sapcodvng_set_salt,
-		sapcodvng_set_key,
-		sapcodvng_get_key,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		sapcodvng_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -393,8 +717,8 @@ struct fmt_main fmt_sapG = {
 			get_hash_5,
 			get_hash_6
 		},
-		sapcodvng_cmp_all,
-		sapcodvng_cmp_one,
-		sapcodvng_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
