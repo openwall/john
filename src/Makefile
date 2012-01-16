@@ -73,6 +73,7 @@ JOHN_OBJS = \
 	hmailserver_fmt.o \
 	dragonfly3_fmt.o \
 	dragonfly4_fmt.o \
+	sha-crypt_256_fmt.o sha-crypt_512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
