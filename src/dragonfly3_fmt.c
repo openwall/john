@@ -30,7 +30,7 @@
 
 #define FORMAT_LABEL			"dragonfly3"
 #define FORMAT_NAME			"DragonFly BSD SHA-256 w/ bug (32-bit)"
-#define ALGORITHM_NAME			"OpenSSL"
+#define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
