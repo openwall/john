@@ -3,7 +3,11 @@
  * alexandre.hamelin(@)gmail.com
  * Based on saltSHA1 format source.
  *
- * Intrinsics use added by magnum, 2011
+ * Intrinsics use: Copyright magnum 2012 and hereby released to the general
+ * public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted.
  *
  * Oracle 11g SHA1 cracker
  *

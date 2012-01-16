@@ -4,7 +4,7 @@
  * Written by JoMo-Kun <jmk at foofus.net> in 2007
  * and placed in the public domain.
  *
- * Performance and OMP fixes by magnum 2011, no rights reserved
+ * Performance and OMP fixes by magnum 2011
  *
  * This algorithm is designed for performing brute-force cracking of the LM
  * challenge/response pairs exchanged during network-based authentication

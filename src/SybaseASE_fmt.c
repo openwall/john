@@ -1,5 +1,5 @@
 /*
- * Unicode conversion enhancements by magnum, 2011. No Rights Reserved.
+ * Unicode conversion enhancements by magnum, 2011. Licensed as below.
  *
  * Sybase ASE hash support for version 15.0.2 and above, based on hmailserver
  * patch by James Nobis.

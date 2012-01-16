@@ -18,7 +18,11 @@
  * It's a slight improvement over the old hash, but still not something a
  * reasonable DBMS would use for password storage.
  *
- * Use of SSE2 intrinsics added by magnum 2011, no rights reserved
+ * Use of SSE2 intrinsics: Copyright magnum 2012 and hereby released to the
+ * general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted.
  *
  */
 

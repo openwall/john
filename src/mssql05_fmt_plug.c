@@ -5,7 +5,7 @@
  * Modified by Mathieu Perrin (mathieu at tpfh.org) 09/06
  * Microsoft MS-SQL05 password cracker
  *
- * UTF-8 support and use of intrinsics by magnum 2011, no rights reserved
+ * UTF-8 support and use of intrinsics by magnum 2011, same terms as above
  *
  */
 

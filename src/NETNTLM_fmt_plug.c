@@ -5,7 +5,7 @@
  * and placed in the public domain.
  *
  * Modified for performance, support for Extended Session Security, OMP
- * and UTF-8, by magnum 2010-2011. No rights reserved.
+ * and UTF-8, by magnum 2010-2011.
  *
  * This algorithm is designed for performing brute-force cracking of the NTLM
  * (version 1) challenge/response pairs exchanged during network-based

@@ -5,7 +5,6 @@
  * and placed in the public domain.
  *
  * Performance fixes, OMP and utf-8 support by magnum 2010-2011
- * no rights reserved.
  *
  * This algorithm is designed for performing brute-force cracking of the LMv2
  * challenge/response sets exchanged during network-based authentication

@@ -2,7 +2,11 @@
  *
  * Written by Romain Raboin - romain.raboin at gmail.com
  *
- * OMP support added by magnum 2012, no rights reserved
+ * OMP                support: Copyright magnum 2012 and hereby
+ * released to the general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, is permitted.
  */
 
 #include <string.h>

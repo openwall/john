@@ -7,8 +7,11 @@
  * (c) x7d8 sap loverz, public domain, btw
  * cheers: see test-cases.
  *
- * Heavily modified by magnum 2011-2012 for performance and for
- * SIMD, OMP and encodings support. No rights reserved.
+ * Heavily modified by magnum 2011-2012 for performance and for SIMD, OMP and
+ * encodings support. This is hereby  placed in the public domain.  In case that
+ * is not applicable, it is Copyright © 2011 magnum, and it is hereby released
+ * to the general public under the following terms:  Redistribution and use in
+ * source and binary forms, with or without modification, is permitted.
  */
 
 #include <string.h>

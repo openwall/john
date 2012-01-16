@@ -5,7 +5,7 @@
  * and placed in the public domain.
  *
  * Modified for performance, OMP and utf-8 support
- * by magnum 2010-2011, no rights reserved
+ * by magnum 2010-2011
  *
  * This algorithm is designed for performing brute-force cracking of the
  * MSCHAPv2 challenge/response sets exchanged during network-based
