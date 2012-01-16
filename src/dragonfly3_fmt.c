@@ -23,8 +23,13 @@
 #include "common.h"
 #include "formats.h"
 
+#ifdef _OPENMP
+#define OMP_SCALE			256
+#include "omp.h"
+#endif
+
 #define FORMAT_LABEL			"dragonfly3"
-#define FORMAT_NAME			"Dragonfly-BSD SHA-256 w/ bug (32-bit)"
+#define FORMAT_NAME			"DragonFly BSD SHA-256 w/ bug (32-bit)"
 #define ALGORITHM_NAME			"OpenSSL"
 
 #define BENCHMARK_COMMENT		""
@@ -48,11 +53,27 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static int saved_key_length;
-static char saved_key[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 crypt_out[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static int (*saved_key_length);
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static ARCH_WORD_32 (*crypt_out)
+    [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 static char *cur_salt;
 static int salt_len;
+
+static void init(struct fmt_main *pFmt)
+{
+#ifdef _OPENMP
+	int omp_t;
+
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
+#endif
+	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -114,40 +135,49 @@ static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFF
 static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFFFF; }
 static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7FFFFFF; }
 
-static int get_hash_0(int index) { return crypt_out[0] & 0xF; }
-static int get_hash_1(int index) { return crypt_out[0] & 0xFF; }
-static int get_hash_2(int index) { return crypt_out[0] & 0xFFF; }
-static int get_hash_3(int index) { return crypt_out[0] & 0xFFFF; }
-static int get_hash_4(int index) { return crypt_out[0] & 0xFFFFF; }
-static int get_hash_5(int index) { return crypt_out[0] & 0xFFFFFF; }
-static int get_hash_6(int index) { return crypt_out[0] & 0x7FFFFFF; }
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xF; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xFF; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xFFF; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xFFFF; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xFFFFF; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xFFFFFF; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7FFFFFF; }
 
 static void set_key(char *key, int index)
 {
-	saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
+	int len = strlen(key);
+	saved_key_length[index] = len;
+	if (len > PLAINTEXT_LENGTH)
+		len = saved_key_length[index] = PLAINTEXT_LENGTH;
+	memcpy(saved_key[index], key, len);
 }
 
 static char *get_key(int index)
 {
-	saved_key[saved_key_length] = 0;
-	return saved_key;
+	saved_key[index][saved_key_length[index]] = 0;
+	return saved_key[index];
 }
 
 static void crypt_all(int count)
 {
-	SHA256_CTX ctx;
-	SHA256_Init(&ctx);
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		SHA256_CTX ctx;
 
-	/* First the password */
-	SHA256_Update(&ctx, saved_key, saved_key_length);
+		SHA256_Init(&ctx);
 
-	/* Then the salt, including the $3$ magic */
-	SHA256_Update(&ctx, cur_salt, salt_len);
+		/* First the password */
+		SHA256_Update(&ctx, saved_key[index], saved_key_length[index]);
 
-	SHA256_Final((unsigned char*)crypt_out, &ctx);
+		/* Then the salt, including the $3$ magic */
+		SHA256_Update(&ctx, cur_salt, salt_len);
+
+		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
+	}
 }
 
 static void set_salt(void *salt)
@@ -176,12 +206,36 @@ static void *get_salt(char *ciphertext)
 
 static int cmp_all(void *binary, int count)
 {
-	return !memcmp(binary, crypt_out, BINARY_SIZE);
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+			return 1;
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
 	return 1;
+}
+
+// Public domain hash function by DJ Bernstein
+static int salt_hash(void *salt)
+{
+	unsigned char *s = salt + 1;
+	unsigned int hash = 5381;
+	unsigned int i;
+
+	for (i = 0; i < *(unsigned char*)salt; i++)
+		hash = ((hash << 5) + hash) ^ s[i];
+
+	return hash & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_dragonfly3 = {
@@ -196,10 +250,10 @@ struct fmt_main fmt_dragonfly3 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -214,7 +268,7 @@ struct fmt_main fmt_dragonfly3 = {
 			binary_hash_5,
 			binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,
@@ -230,7 +284,7 @@ struct fmt_main fmt_dragonfly3 = {
 			get_hash_6
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
