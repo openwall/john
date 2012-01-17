@@ -101,16 +101,23 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * returned by binary() and salt() only to the declared sizes.
  */
 		binary = format->methods.binary(ciphertext);
-		if (!binary ||
+		if (!binary)
+			return "binary (NULL)";
+		if (format->methods.binary != fmt_default_binary &&
+		    format->methods.binary_hash[0] != fmt_default_binary_hash &&
 		    is_misaligned(binary, format->params.binary_size))
-			return "binary";
+			return "binary (alignment)";
+
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
-		if (!salt ||
+		if (!salt)
+			return "salt (NULL)";
+		if (format->methods.salt != fmt_default_salt &&
+		    format->methods.salt_hash != fmt_default_salt_hash &&
 		    is_misaligned(salt, format->params.salt_size))
-			return "salt";
+			return "salt (alignment)";
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
