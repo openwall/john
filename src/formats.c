@@ -197,7 +197,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
  */
 static void *alloc_binary(size_t size, void **alloc)
 {
-	*alloc = mem_alloc(size + 4);
+	*alloc = mem_alloc(size + 8 + 4);
+
 	if (size >= ARCH_SIZE)
 		return *alloc;
 	if (size >= 4)
@@ -212,10 +213,22 @@ char *fmt_self_test(struct fmt_main *format)
 	void *binary_copy, *salt_copy;
 
 	binary_copy = alloc_binary(format->params.binary_size, &binary_alloc);
+	memset(binary_copy + format->params.binary_size, 0xaa, 8);
+
 	salt_copy = alloc_binary(format->params.salt_size, &salt_alloc);
+	memset(salt_copy + format->params.salt_size, 0x33, 8);
 
 	retval = fmt_self_test_body(format, binary_copy, salt_copy);
-
+	if (!retval) {
+		if (memcmp(binary_copy + format->params.binary_size, "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa", 8)) {
+			dump_stuff_msg("binary", binary_copy + format->params.binary_size - 8, 24);
+			return "Binary buffer overrun";
+		}
+		if (memcmp(salt_copy + format->params.salt_size, "\x33\x33\x33\x33\x33\x33\x33\x33", 8)) {
+			dump_stuff_msg("salt", salt_copy + format->params.salt_size - 8 , 24);
+			return "Salt buffer overrun";
+		}
+	}
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);
 
