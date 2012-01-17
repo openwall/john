@@ -48,8 +48,18 @@ static int valid(char *ciphertext, struct fmt_main *pFmt) {
     return 1;
 }
 
-void init(struct fmt_main *pFmt) {
+static void init(struct fmt_main *pFmt) {
     blowfish_first_init();
+}
+
+
+static void *binary(char *ciphertext)
+{
+	static char *out;
+	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	memcpy(out, ciphertext, BINARY_SIZE);
+	return out;
 }
 
 
@@ -80,48 +90,48 @@ static void crypt_all(int count) {
 }
 
 struct fmt_main fmt_BFEgg = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALG_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_CASE | FMT_8_BIT,
-    tests
-  }, {
-    init,
-	fmt_default_prepare,
-    valid,
-    fmt_default_split,
-    fmt_default_binary,
-    fmt_default_salt,
-    {
-	fmt_default_binary_hash,
-	fmt_default_binary_hash,
-	fmt_default_binary_hash,
-	fmt_default_binary_hash,
-	fmt_default_binary_hash
-    },
-	fmt_default_salt_hash,
-	fmt_default_set_salt,
-	set_key,
-	get_key,
-	fmt_default_clear_keys,
-	crypt_all,
 	{
-	    fmt_default_get_hash,
-	    fmt_default_get_hash,
-	    fmt_default_get_hash,
-	    fmt_default_get_hash,
-	    fmt_default_get_hash
-	},
-	    cmp_all,
-	    cmp_all,
-	    cmp_exact
-  }
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALG_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		fmt_default_salt,
+		{
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		fmt_default_set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_all,
+		cmp_exact
+	}
 };
