@@ -172,8 +172,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char salt[SALT_SIZE];
+	static unsigned char *salt;
 	int i;
+
+	if (!salt) salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
 	for (i = 0; i < SALT_SIZE; i++) {
 		salt[i] = atoi16[ARCH_INDEX(ciphertext[BINARY_SIZE*2+i*2+0])]*16 +

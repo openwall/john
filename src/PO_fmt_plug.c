@@ -169,8 +169,10 @@ static int cmp_exact(char *source, int index)
 
 static void *get_binary(char *ciphertext)
 {
-        static char binarycipher[BINARY_SIZE];
+	static char *binarycipher;
         int i;
+
+	if (!binarycipher) binarycipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
         for(i=0;i<BINARY_SIZE;i++)
         {

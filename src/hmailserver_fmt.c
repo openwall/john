@@ -104,7 +104,8 @@ static void *get_binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-    static unsigned char out[SALT_SIZE];
+    static unsigned *out;
+    if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
     memcpy(out, ciphertext, SALT_SIZE);
 

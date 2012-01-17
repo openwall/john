@@ -28,7 +28,7 @@
 #define PLAINTEXT_LENGTH		120 // worst case UTF-8 is 40 characters of Unicode, that'll do
 
 #define BINARY_SIZE			8
-#define SALT_SIZE			(32 + 4)  // also contain the NULL
+#define SALT_SIZE			(2 + 32 + 2)  // also contains the len
 #define CIPHERTEXT_LENGTH		16
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -274,7 +274,7 @@ static void * oracle_get_salt(char * ciphertext)
 	UTF8 salt[SALT_SIZE + 1];
 	int l;
 
-	if (!out) out = mem_alloc_tiny(SALT_SIZE+2, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 	l = 2;
 	while( ciphertext[l] && (ciphertext[l]!='#') )
 	{
@@ -286,7 +286,7 @@ static void * oracle_get_salt(char * ciphertext)
 
 	// we now upcase the user name in the prepare() function.
 	// So we are going back to 'simple' plain->utf16 convert only.
-	l = enc_to_utf16_be(&out[1], 16, (UTF8 *)salt, l-2);
+	l = enc_to_utf16_be(&out[1], SALT_SIZE - 2, (UTF8 *)salt, l-2);
 	if (l <= 0)
 		l = strlen16(&out[1]);
 
@@ -297,11 +297,11 @@ static void * oracle_get_salt(char * ciphertext)
 // Public domain hash function by DJ Bernstein (salt is a username)
 static int salt_hash(void *salt)
 {
-	UTF16 *s = ((UTF16*)salt) + 1;
+	int i;
 	unsigned int hash = 5381;
 
-	while (*s)
-		hash = ((hash << 5) + hash) ^ *s++;
+	for (i = 0; i < *(unsigned short*)salt; i++)
+		hash = ((hash << 5) + hash) ^ ((unsigned char*)salt)[2+i];
 
 	return hash & (SALT_HASH_SIZE - 1);
 }
