@@ -64,7 +64,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 {
 	static char s_size[32];
 	struct fmt_tests *current;
-	char *ciphertext, *plaintext;
+	char *ciphertext = NULL, *plaintext;
 	int ntests, done, index, max, size;
 	void *binary, *salt;
 
@@ -92,7 +92,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "prepare";
 		if (format->methods.valid(prepared,format) != 1)
 			return "valid";
-		ciphertext = format->methods.split(prepared, 0);
+		/* Ensure we have a misaligned ciphertext */
+		if (!ciphertext)
+			ciphertext = mem_alloc_tiny(LINE_BUFFER_SIZE + 1,
+			                            MEM_ALIGN_WORD) + 1;
+		strcpy(ciphertext, format->methods.split(prepared, 0));
 		plaintext = current->plaintext;
 
 /*
