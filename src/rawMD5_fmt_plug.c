@@ -15,7 +15,7 @@
 #include "formats.h"
 #include "params.h"
 
-#define FORMAT_LABEL		"raw-md5thick"
+#define FORMAT_LABEL		"raw-md5"
 #define FORMAT_NAME			"Raw MD5"
 
 #ifdef MD5_SSE_PARA
