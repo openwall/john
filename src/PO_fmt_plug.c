@@ -183,7 +183,11 @@ static void *get_binary(char *ciphertext)
 
 static char *get_salt(char *ciphertext)
 {
-	return (ciphertext + 32);
+	static char *out;
+
+	if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+	memcpy(out, ciphertext + 32, SALT_SIZE);
+	return out;
 }
 
 static void set_salt(char *salt)

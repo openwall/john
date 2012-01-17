@@ -164,7 +164,7 @@ static struct fmt_tests dominosec_tests[] = {
 	{NULL}
 };
 
-static struct cipher_binary_struct {
+struct cipher_binary_struct {
 	unsigned char salt[SALT_SIZE];
 	unsigned char hash[BINARY_BUFFER_SIZE];
 } cipher_binary;
@@ -349,24 +349,13 @@ static void dominosec_decode(unsigned char *ascii_cipher, unsigned char *binary)
 
 static void *dominosec_binary(char *ciphertext)
 {
-	static char *out;
-
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
-
 	dominosec_decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary);
-
-	memcpy(out, cipher_binary.hash, BINARY_SIZE);
-	return (void*)out;
+	return (void*)cipher_binary.hash;
 }
 
 static void *dominosec_salt(char *ciphertext)
 {
-	static char *out;
-
-	if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
-
-	memcpy(out, cipher_binary.salt, SALT_SIZE);
-	return out;
+	return cipher_binary.salt;
 }
 
 static void dominosec_set_salt(void *salt)

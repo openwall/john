@@ -31,17 +31,77 @@ static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH]; // set by set_salt and 
                                                          // the extra plaintext_length is needed because the
                                                          // current key is copied there before hashing
 
+int valid(char *ciphertext, struct fmt_main *pFmt);
+void* binary(char *ciphertext);
+void* salt(char *ciphertext);
+void set_salt(void *salt);
+void set_key(char *key, int index);
+char* get_key(int index);
+void crypt_all(int count);
+int cmp_all(void *binary, int count);
+int cmp_one(void *binary, int index);
+int cmp_exact(char *source, int index);
 
-static struct fmt_tests global_tests[] =
+struct fmt_tests global_tests[] =
 {
   {"0x5F1D84A6DE97E2BEFB637A3CB5318AFEF0750B856CF1836BD1D4470175BE 0x4D5EFDFA143EDF74193076F174AC47CEBF2F417F", "Abc.!23"},
   {NULL}
 };
 
+// Define john integration
+struct fmt_main fmt_EPI =
+{
+  { // fmt_params
+    "epi",
+    "EPiServer SID Hashes",
+    "SHA-1",
+    "", // benchmark comment
+    0, // benchmark length
+    PLAINTEXT_LENGTH,
+    BINARY_LENGTH,
+    SALT_LENGTH,
+    1,
+    1,
+    FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
+    global_tests
+  },
+  { // fmt_methods
+    fmt_default_init,
+	fmt_default_prepare,
+    valid,
+    fmt_default_split,
+    binary,
+    salt,
+    { // binary_hash[3]
+      fmt_default_binary_hash,
+      fmt_default_binary_hash,
+      fmt_default_binary_hash,
+      fmt_default_binary_hash,
+      fmt_default_binary_hash
+    },
+    fmt_default_salt_hash,
+    set_salt,
+    set_key,
+    get_key,
+    fmt_default_clear_keys,
+    crypt_all,
+    { // get_hash[3]
+      fmt_default_get_hash,
+      fmt_default_get_hash,
+      fmt_default_get_hash,
+      fmt_default_get_hash,
+      fmt_default_get_hash
+    },
+    cmp_all,
+    cmp_one,
+    cmp_exact
+  }
+};
+
 /*
  * Expects ciphertext of format: 0xHEX*60 0xHEX*40
  */
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+int valid(char *ciphertext, struct fmt_main *pFmt)
 {
   unsigned int len, n;
 
@@ -63,7 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
   return n == len;
 }
 
-static void _tobin(char* dst, char *src, unsigned int len)
+void _tobin(char* dst, char *src, unsigned int len)
 {
   unsigned int n;
 
@@ -75,45 +135,41 @@ static void _tobin(char* dst, char *src, unsigned int len)
              atoi16[ARCH_INDEX(src[n*2+1])];
 }
 
-static void* binary(char *ciphertext)
+void* binary(char *ciphertext)
 {
-  static char *bin;
+  static char bin[BINARY_LENGTH];
 
-  if (!bin) bin = mem_alloc_tiny(BINARY_LENGTH, MEM_ALIGN_WORD);
-
-  _tobin(bin, (char*)(ciphertext+65), BINARY_LENGTH);
+  _tobin(bin, (char*)(ciphertext+65), sizeof(bin));
 
   return bin;
 }
 
-static void* salt(char *ciphertext)
+void* salt(char *ciphertext)
 {
-  static char *salt;
+  static char salt[SALT_LENGTH];
 
-  if (!salt) salt = mem_alloc_tiny(SALT_LENGTH, MEM_ALIGN_WORD);
-
-  _tobin(salt, (char*)(ciphertext+2), SALT_LENGTH);
+  _tobin(salt, (char*)(ciphertext+2), sizeof(salt));
 
   return salt;
 }
 
-static void set_salt(void *salt)
+void set_salt(void *salt)
 {
   memcpy(global_salt, salt, SALT_LENGTH);
 }
 
-static void set_key(char *key, int index)
+void set_key(char *key, int index)
 {
   if(!key) return;
   strnzcpy(global_key, key, PLAINTEXT_LENGTH);
 }
 
-static char* get_key(int index)
+char* get_key(int index)
 {
   return global_key;
 }
 
-static void crypt_all(int count)
+void crypt_all(int count)
 {
   static SHA_CTX ctx;
 
@@ -125,7 +181,7 @@ static void crypt_all(int count)
   SHA1_Final((unsigned char*)global_crypt, &ctx);
 }
 
-static int cmp_all(void *binary, int count)
+int cmp_all(void *binary, int count)
 {
   if (((ARCH_WORD *)binary)[0] != global_crypt[0])
     return 0;
@@ -134,63 +190,14 @@ static int cmp_all(void *binary, int count)
     BINARY_LENGTH - ARCH_SIZE);
 }
 
-static int cmp_one(void *binary, int index)
+int cmp_one(void *binary, int index)
 {
   return cmp_all(binary, 0);
 }
 
 // This functions job is done in cmp_all instead
-static int cmp_exact(char *source, int index)
+int cmp_exact(char *source, int index)
 {
   return 1;
 }
 
-// Define john integration
-struct fmt_main fmt_EPI =
-	{
-		{ // fmt_params
-			"epi",
-			"EPiServer SID Hashes",
-			"SHA-1",
-			"", // benchmark comment
-			0, // benchmark length
-			PLAINTEXT_LENGTH,
-			BINARY_LENGTH,
-			SALT_LENGTH,
-			1,
-			1,
-			FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
-			global_tests
-		},
-		{ // fmt_methods
-			fmt_default_init,
-			fmt_default_prepare,
-			valid,
-			fmt_default_split,
-			binary,
-			salt,
-			{ // binary_hash[3]
-				fmt_default_binary_hash,
-				fmt_default_binary_hash,
-				fmt_default_binary_hash,
-				fmt_default_binary_hash,
-				fmt_default_binary_hash
-			},
-			fmt_default_salt_hash,
-			set_salt,
-			set_key,
-			get_key,
-			fmt_default_clear_keys,
-			crypt_all,
-			{ // get_hash[3]
-				fmt_default_get_hash,
-				fmt_default_get_hash,
-				fmt_default_get_hash,
-				fmt_default_get_hash,
-				fmt_default_get_hash
-			},
-			cmp_all,
-			cmp_one,
-			cmp_exact
-		}
-	};

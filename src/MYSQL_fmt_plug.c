@@ -96,15 +96,6 @@ static int mysql_valid(char *ciphertext, struct fmt_main *pFmt) { //returns 0 fo
   return 1;
 }
 
-static void *binary(char *ciphertext)
-{
-	static char *out;
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
-
-	memcpy(out, ciphertext, BINARY_SIZE);
-	return out;
-}
-
 static void mysql_set_key(char *key, int index) {
   strnzcpy(saved_key, key, PLAINTEXT_LENGTH+1);
 }
@@ -224,7 +215,7 @@ struct fmt_main fmt_MYSQL = {
 	  fmt_default_prepare,
       mysql_valid,
       fmt_default_split,
-      binary,
+      fmt_default_binary,
       fmt_default_salt,
       {
 	fmt_default_binary_hash,
