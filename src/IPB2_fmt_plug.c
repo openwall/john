@@ -26,10 +26,8 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 
-#define MD5_BINARY_SIZE		16
-#define MD5_HEX_SIZE		(MD5_BINARY_SIZE * 2)
-
-#define BINARY_SIZE		MD5_BINARY_SIZE
+#define BINARY_SIZE		16
+#define MD5_HEX_SIZE		(BINARY_SIZE * 2)
 
 #define SALT_SIZE		5
 #define PROCESSED_SALT_SIZE	MD5_HEX_SIZE
@@ -88,7 +86,7 @@ static MD5_CTX ctx;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int saved_key_len;
 static char workspace[MD5_HEX_SIZE * 2];
-static ARCH_WORD_32 output[MD5_BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 output[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static int ipb2_valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -116,7 +114,7 @@ static void *ipb2_binary(char *ciphertext)
 	int i;
 
 	ciphertext += 17;
-	for (i = 0; i < MD5_HEX_SIZE; ++i)
+	for (i = 0; i < BINARY_SIZE; ++i)
 		binary_cipher[i] =
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+1])];
@@ -127,7 +125,7 @@ static void *ipb2_binary(char *ciphertext)
 static void *ipb2_salt(char *ciphertext)
 {
 	static unsigned char binary_salt[SALT_SIZE];
-	static unsigned char salt_hash[MD5_BINARY_SIZE];
+	static unsigned char salt_hash[BINARY_SIZE];
 	static unsigned char hex_salt[MD5_HEX_SIZE];
 	int i;
 
@@ -141,7 +139,7 @@ static void *ipb2_salt(char *ciphertext)
 	MD5_Update(&ctx, binary_salt, SALT_SIZE);
 	MD5_Final(salt_hash, &ctx);
 
-	for (i = 0; i < MD5_BINARY_SIZE; ++i) {
+	for (i = 0; i < BINARY_SIZE; ++i) {
 		hex_salt[i*2] = itoa16[ARCH_INDEX(salt_hash[i] >> 4)];
 		hex_salt[i*2+1] = itoa16[ARCH_INDEX(salt_hash[i] & 0x0f)];
 	}
@@ -167,7 +165,7 @@ static int strnfcpy_count(char *dst, char *src, int size)
 
 static void ipb2_set_key(char *key, int index)
 {
-	static unsigned char key_hash[MD5_BINARY_SIZE];
+	static unsigned char key_hash[BINARY_SIZE];
 	unsigned char *kh = key_hash;
 	unsigned char *workspace_ptr = (unsigned char *) (workspace + PROCESSED_SALT_SIZE);
 	unsigned char v;
@@ -179,7 +177,7 @@ static void ipb2_set_key(char *key, int index)
 	MD5_Update(&ctx, saved_key, saved_key_len);
 	MD5_Final(key_hash, &ctx);
 
-	for (i = 0; i < MD5_BINARY_SIZE; ++i) {
+	for (i = 0; i < BINARY_SIZE; ++i) {
 		v = *kh++;
 		*workspace_ptr++ = itoa16_shr_04[ARCH_INDEX(v)];
 		*workspace_ptr++ = itoa16_and_0f[ARCH_INDEX(v)];
@@ -200,7 +198,7 @@ static void ipb2_crypt_all(int count)
 
 static int ipb2_cmp_all(void *binary, int index)
 {
-	return !memcmp(binary, output, MD5_BINARY_SIZE);
+	return !memcmp(binary, output, BINARY_SIZE);
 }
 
 static int ipb2_cmp_exact(char *source, int index)
