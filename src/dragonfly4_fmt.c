@@ -25,7 +25,7 @@
 
 #ifdef _OPENMP
 #define OMP_SCALE			256
-#include "omp.h"
+#include <omp.h>
 #endif
 
 #define FORMAT_LABEL			"dragonfly4"
