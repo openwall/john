@@ -161,6 +161,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 		memcpy(two_salts[index], salt, format->params.salt_size);
 	}
+	format->methods.set_salt(two_salts[0]);
 
 	if (format->params.benchmark_length > 0) {
 		cond = (salts == 1) ? 1 : -1;
@@ -225,7 +226,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	index = salts;
 	max = format->params.max_keys_per_crypt;
-	if (salts == 1) format->methods.set_salt(two_salts[0]);
 	do {
 		if (!--index) {
 			index = salts;
