@@ -8,7 +8,7 @@
  */
 
 /*
- * Architecture specific parameters for x86 with SSE2.
+ * Architecture specific parameters for x86 with SSE2 asm or intrinsics.
  */
 
 #ifndef _JOHN_ARCH_H
@@ -137,6 +137,103 @@
 #define BF_X2				0
 #endif
 #define BF_SCALE			1
+
+#ifdef __GNUC__
+#define GCC_VERSION			(__GNUC__ * 10000 \
+			 + __GNUC_MINOR__ * 100 \
+			 + __GNUC_PATCHLEVEL__)
+#endif
+
+#ifndef MD5_SSE_PARA
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define MD5_SSE_PARA			3
+#define MD5_N_STR			"12x"
+#elif defined(__clang__)
+#define MD5_SSE_PARA			4
+#define MD5_N_STR			"16x"
+#elif defined (_MSC_VER)
+#define MD5_SSE_PARA			3
+#define MD5_N_STR			"12x"
+#elif defined(__GNUC__) && GCC_VERSION < 30406	// 3.4.6
+#undef MD5_SSE_PARA
+#undef MD5_N_STR
+#elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
+#define MD5_SSE_PARA			1
+#define MD5_N_STR			"4x"
+#elif defined(__GNUC__)
+#define MD5_SSE_PARA			3
+#define MD5_N_STR			"12x"
+#else
+#define MD5_SSE_PARA			2
+#define MD5_N_STR			"8x"
+#endif
+#endif
+
+#ifndef MD4_SSE_PARA
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define MD4_SSE_PARA			3
+#define MD4_N_STR			"12x"
+#elif defined(__clang__)
+#define MD4_SSE_PARA			3
+#define MD4_N_STR			"12x"
+#elif defined (_MSC_VER)
+#define MD4_SSE_PARA			3
+#define MD4_N_STR			"12x"
+#elif defined(__GNUC__) && GCC_VERSION < 30406	// 3.4.6
+#undef MD4_SSE_PARA
+#undef MD4_N_STR
+#elif defined(__GNUC__) && GCC_VERSION < 40405	// 4.4.5
+#define MD4_SSE_PARA			1
+#define MD4_N_STR			"4x"
+#elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5
+#define MD4_SSE_PARA			2
+#define MD4_N_STR			"8x"
+#elif defined(__GNUC__)
+#define MD4_SSE_PARA			3
+#define MD4_N_STR			"12x"
+#else
+#define MD4_SSE_PARA			2
+#define MD4_N_STR			"8x"
+#endif
+#endif
+
+#ifndef SHA1_SSE_PARA
+#if defined(__INTEL_COMPILER) || defined(USING_ICC_S_FILE)
+#define SHA1_SSE_PARA			2
+#define SHA1_N_STR			"8x"
+#elif defined(__clang__)
+#define SHA1_SSE_PARA			2
+#define SHA1_N_STR			"8x"
+#elif defined (_MSC_VER)
+#define SHA1_SSE_PARA			2
+#define SHA1_N_STR			"8x"
+#elif defined(__GNUC__) && GCC_VERSION < 30406	// 3.4.6
+#undef SHA1_SSE_PARA
+#undef SHA1_N_STR
+#elif defined(__GNUC__) && GCC_VERSION < 40600 // 4.6
+#define SHA1_SSE_PARA			1
+#define SHA1_N_STR			"4x"
+#elif defined(__GNUC__)
+#define SHA1_SSE_PARA			2
+#define SHA1_N_STR			"8x"
+#else
+#define SHA1_SSE_PARA			1
+#define SHA1_N_STR			"4x"
+#endif
+#endif
+
+#define STR_VALUE(arg)			#arg
+#define PARA_TO_N(n)			"4x" STR_VALUE(n)
+
+#if defined(MD4_SSE_PARA) && !defined(MD4_N_STR)
+#define MD4_N_STR			PARA_TO_N(MD4_SSE_PARA)
+#endif
+#if defined(MD5_SSE_PARA) && !defined(MD5_N_STR)
+#define MD5_N_STR			PARA_TO_N(MD5_SSE_PARA)
+#endif
+#if defined(SHA1_SSE_PARA) && !defined(SHA1_N_STR)
+#define SHA1_N_STR			PARA_TO_N(SHA1_SSE_PARA)
+#endif
 
 #define MMX_TYPE			" SSE2"
 #define MMX_COEF			4
