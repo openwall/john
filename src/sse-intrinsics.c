@@ -14,6 +14,7 @@
 #define MMX_COEF 4
 #endif
 
+#ifdef MD5_SSE_PARA
 #define MD5_SSE_NUM_KEYS	(MMX_COEF*MD5_SSE_PARA)
 #define MD5_PARA_DO(x)	for((x)=0;(x)<MD5_SSE_PARA;(x)++)
 
@@ -406,7 +407,9 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	dispatch(buffers, F, length, saltlen);
 	memcpy(out, F, MD5_SSE_NUM_KEYS*16);
 }
+#endif /* MD5_SSE_PARA */
 
+#ifdef MD4_SSE_PARA
 #define MD4_SSE_NUM_KEYS	(MMX_COEF*MD4_SSE_PARA)
 #define MD4_PARA_DO(x)	for((x)=0;(x)<MD4_SSE_PARA;(x)++)
 
@@ -548,8 +551,9 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 	}
 }
 
+#endif /* MD4_SSE_PARA */
 
-
+#ifdef SHA1_SSE_PARA
 #define SHA1_SSE_NUM_KEYS	(MMX_COEF*SHA1_SSE_PARA)
 #define SHA1_PARA_DO(x)		for((x)=0;(x)<SHA1_SSE_PARA;(x)++)
 
@@ -758,3 +762,4 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 		}
 	}
 }
+#endif /* SHA1_SSE_PARA */
