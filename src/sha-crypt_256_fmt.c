@@ -24,7 +24,7 @@
 
 #ifdef _OPENMP
 #define OMP_SCALE			16
-#include "omp.h"
+#include <omp.h>
 #endif
 
 #define FORMAT_LABEL			"sha-crypt-256"

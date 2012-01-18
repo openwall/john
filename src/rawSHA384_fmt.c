@@ -17,7 +17,7 @@
 
 #ifdef _OPENMP
 #define OMP_SCALE			2048
-#include "omp.h"
+#include <omp.h>
 #endif
 
 #define FORMAT_LABEL			"raw-sha384"
