@@ -28,15 +28,15 @@
 #endif
 
 #define FORMAT_LABEL			"sha-crypt-512"
-#define FORMAT_NAME			"SHA-crypt-512"
+#define FORMAT_NAME			"crypt SHA-512"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"OpenSSL 64/" ARCH_BITS_STR
 #else
 #define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 #endif
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_COMMENT		" rounds=5000"
+#define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
 #define CIPHERTEXT_LENGTH		86

@@ -28,11 +28,11 @@
 #endif
 
 #define FORMAT_LABEL			"sha-crypt-256"
-#define FORMAT_NAME			"SHA-crypt-256"
+#define FORMAT_NAME			"crypt SHA-256"
 #define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_COMMENT		" rounds=5000"
+#define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
 #define CIPHERTEXT_LENGTH		43
