@@ -28,8 +28,10 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"dragonfly3"
-#define FORMAT_NAME			"DragonFly BSD SHA-256 w/ bug (32-bit)"
+#define FORMAT_LABEL_32			"dragonfly3-32"
+#define FORMAT_LABEL_64			"dragonfly3-64"
+#define FORMAT_NAME_32			"DragonFly BSD SHA-256 (w/ bug, 32-bit)"
+#define FORMAT_NAME_64			"DragonFly BSD SHA-256 (w/ bug, 64-bit)"
 #define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
@@ -39,17 +41,27 @@
 #define CIPHERTEXT_LENGTH		44
 
 #define BINARY_SIZE			32
-#define SALT_SIZE			(1+4+8)	// 1st char is length
+#define SALT_SIZE_32			(1+4+8)	// 1st char is length
+#define SALT_SIZE_64			(1+8+8)
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
-static struct fmt_tests tests[] = {
+static struct fmt_tests tests_32[] = {
 	{"$3$z$EBG66iBCGfUfENOfqLUH/r9xQxI1cG373/hRop6j.oWs", "magnum"},
 	{"$3$f6daU5$Xf/u8pKp.sb4VCLKz7tTZMUKJ3J4oOfZgUSHYOFL.M0n", ""},
 	{"$3$PNPA2tJ$ppD4bXqPMYFVdYVYrxXGMWeYB6Xv8e6jmXbvrB5V.okl", "password"},
 	{"$3$jWhDSrS$bad..Dy7UAyabPyfrEi3fgQ2qtT.5fE7C5EMNo/n.Qk5", "John the Ripper"},
 	{"$3$SSYEHO$hkuDmUQHT2Tr0.ai.lUVyb9bCC875Up.CZVa6UJZ.Muv", "DragonFly BSD"},
+	{NULL}
+};
+
+static struct fmt_tests tests_64[] = {
+	{"$3$z$sNV7KLtLxvJRsj2MfBtGZFuzXP3CECITaFq/rvsy.Y.Q", "magnum"},
+	{"$3$f6daU5$eV2SX9vUHTMsoy3Ic7cWiQ4mOxyuyenGjYQWkJmy.AF3", ""},
+	{"$3$PNPA2tJ$GvXjg6zSge3YDh5I35JlYZHoQS2r0/.vn36fQzSY.A0d", "password"},
+	{"$3$jWhDSrS$5yBH7KFPmsg.PhPeDMj1MY4fv9061zdbYumPe2Ve.Y5J", "John the Ripper"},
+	{"$3$SSYEHO$AMYLyanRYs8F2U07FsBrSFuOIygJ4kgqvpBB17BI.61N", "DragonFly BSD"},
 	{NULL}
 };
 
@@ -186,13 +198,13 @@ static void set_salt(void *salt)
 	cur_salt = salt + 1;
 }
 
-// For 32-bit version of the bug, our salt is "$3$\0salt"
-static void *get_salt(char *ciphertext)
+// For 32-bit version of the bug, our magic is "$3$\0" len 4
+static void *get_salt_32(char *ciphertext)
 {
 	static char *out;
 	int len;
 
-	if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(SALT_SIZE_32, MEM_ALIGN_WORD);
 
 	ciphertext += 3;
 	strcpy(&out[1], "$3$");
@@ -200,6 +212,24 @@ static void *get_salt(char *ciphertext)
 
 	memcpy(&out[5], ciphertext, len);
 	out[0] = len + 4;
+
+	return out;
+}
+
+// For 64-bit version of the bug, our magic is "$3$\0sha5" len 8
+static void *get_salt_64(char *ciphertext)
+{
+	static char *out;
+	int len;
+
+	if (!out) out = mem_alloc_tiny(SALT_SIZE_64, MEM_ALIGN_WORD);
+
+	ciphertext += 3;
+	memcpy(&out[1], "$3$\0sha5", 8);
+	for (len = 0; ciphertext[len] != '$'; len++);
+
+	memcpy(&out[9], ciphertext, len);
+	out[0] = len + 8;
 
 	return out;
 }
@@ -238,27 +268,78 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_dragonfly3 = {
+struct fmt_main fmt_dragonfly3_32 = {
 	{
-		FORMAT_LABEL,
-		FORMAT_NAME,
+		FORMAT_LABEL_32,
+		FORMAT_NAME_32,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		SALT_SIZE,
+		SALT_SIZE_32,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		tests
+		tests_32
 	}, {
 		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
-		get_salt,
+		get_salt_32,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
+};
+
+struct fmt_main fmt_dragonfly3_64 = {
+	{
+		FORMAT_LABEL_64,
+		FORMAT_NAME_64,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE_64,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		tests_64
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		get_binary,
+		get_salt_64,
 		{
 			binary_hash_0,
 			binary_hash_1,

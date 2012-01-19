@@ -313,12 +313,14 @@ static int mschapv2_cmp_exact(char *source, int index)
 */
 static void *mschapv2_get_salt(char *ciphertext)
 {
-  static unsigned char binary_salt[SALT_SIZE];
-  static SHA_CTX ctx;
+  static unsigned char *binary_salt;
+  SHA_CTX ctx;
   unsigned char tmp[16];
   int i;
   char *pos = NULL;
   unsigned char digest[20];
+
+  if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
   memset(binary_salt, 0, SALT_SIZE);
   memset(digest, 0, 20);
