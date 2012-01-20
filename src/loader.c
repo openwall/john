@@ -206,17 +206,6 @@ static int ldr_check_shells(struct list_main *list, char *shell)
 	return 0;
 }
 
-static char *trimwhite(char *Str) {
-	char *p = &Str[strlen(Str)-1];
-	while ( p > Str && (*p == ' ' || *p == '\t')) {
-		*p = 0;
-		--p;
-	}
-	while (*Str == ' ' || *Str == '\t')
-		++Str;
-	return Str;
-}
-
 static int ldr_split_line(char **login, char **ciphertext,
 	char **gecos, char **home,
 	char *source, struct fmt_main **format,
@@ -232,30 +221,33 @@ static int ldr_split_line(char **login, char **ciphertext,
 	for (i = 0; i < 10; ++i) {
 		split_fields[i] = ldr_get_field(&line, db_options->field_sep_char);
 		if (!line && i == 1 && split_fields[1][0] == 0) {
-			/* allow a file of 'raw' hashes to work properly */
-			if (strlen(split_fields[0]) < 13 && strncmp(split_fields[0], "$dummy$", 7))
-				return 0;
-			split_fields[1] = trimwhite(split_fields[0]);
-			split_fields[0] = no_username;
-
-// this code was from orignal block.  Not sure exactly what is wanted, so I will
-// leave this hear, but commented out.
-#if 0
-/* Some valid dummy hashes may be shorter than 13 characters, so don't subject
+/* Possible hash on a line on its own (no colons) */
+			char *p = split_fields[0];
+/* Skip leading and trailing whitespace */
+			while (*p == ' ' || *p == '\t') p++;
+			split_fields[1] = p;
+			p += strlen(p) - 1;
+			while (p > split_fields[1] && (*p == ' ' || *p == '\t'))
+				p--;
+			p++;
+/* Some valid dummy hashes may be shorter than 10 characters, so don't subject
  * them to the length checks. */
-		if (strncmp(*ciphertext, "$dummy$", 7) &&
-		    p - *ciphertext != 10 /* not tripcode */) {
+			if (strncmp(split_fields[1], "$dummy$", 7) &&
+			    p - split_fields[1] != 10 /* not tripcode */) {
 /* Check for a special case: possibly a traditional crypt(3) hash with
  * whitespace in its invalid salt.  Only support such hashes at the very start
  * of a line (no leading whitespace other than the invalid salt). */
-			if (p - *ciphertext == 11 && *ciphertext - *login == 2)
-				(*ciphertext)--;
-			if (p - *ciphertext == 12 && *ciphertext - *login == 1)
-				(*ciphertext)--;
-			if (p - *ciphertext < 13)
-				return 0;
-		}
-#endif
+				if (p - split_fields[1] == 11 &&
+				    split_fields[1] - split_fields[0] == 2)
+					split_fields[1]--;
+				if (p - split_fields[1] == 12 &&
+				    split_fields[1] - split_fields[0] == 1)
+					split_fields[1]--;
+				if (p - split_fields[1] < 13)
+					return 0;
+			}
+			*p = 0;
+			split_fields[0] = no_username;
 		}
 		if (i == 1 && source)
 			strcpy(source, line ? line : "");
