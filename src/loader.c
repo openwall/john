@@ -277,7 +277,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		gid = *gecos = *home = shell = "";
 	}
 	else if (SPLFLEN(1) == 0 && SPLFLEN(3) >= 16 && SPLFLEN(4) >= 32 &&
-	         SPLFLEN(4) >= 16) {
+	         SPLFLEN(5) >= 16) {
 		/* l0phtcrack-style input */
 		uid = gid = *home = shell = "";
 		*gecos = split_fields[2]; // in case there's a domain name here
