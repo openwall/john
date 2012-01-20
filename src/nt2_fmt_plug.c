@@ -215,8 +215,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		return 0;
 }
 
-// here to 'handle' the pwdump files:  user:gid:lmhash:ntlmhash:::
-// Note, we do NOT address the group id issues in the lm stuff, inside loader.
+// here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
+// Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	extern struct options_main options;
