@@ -44,6 +44,11 @@ int ldr_in_pot = 0;
 #define RF_ALLOW_MISSING		1
 #define RF_ALLOW_DIR			2
 
+/*
+ * Fast "Strlen" for split_fields[f]
+ */
+#define SPLFLEN(f)	(split_fields[f][0] ? split_fields[f+1] - split_fields[f] - 1 : 0)
+
 static char *no_username = "?";
 
 static void read_file(struct db_main *db, char *name, int flags,
@@ -146,9 +151,10 @@ static void ldr_init_password_hash(struct db_main *db)
 
 static char *ldr_get_field(char **ptr, char field_sep_char)
 {
+	static char *last;
 	char *res, *pos;
 
-	if (!*ptr) return "";
+	if (!*ptr) return last;
 
 	if ((pos = strchr(res = *ptr, field_sep_char))) {
 		*pos++ = 0; *ptr = pos;
@@ -157,6 +163,7 @@ static char *ldr_get_field(char **ptr, char field_sep_char)
 		do {
 			if (*pos == '\r' || *pos == '\n') *pos = 0;
 		} while (*pos++);
+		last = pos - 1;
 		*ptr = NULL;
 	}
 
@@ -262,12 +269,27 @@ static int ldr_split_line(char **login, char **ciphertext,
 	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
 		return 0;
 
-	uid = split_fields[2];
-	gid = split_fields[3];
-
-	*gecos = split_fields[4];
-	*home = split_fields[5];
-	shell = split_fields[6];
+/* SPLFLEN(n) is a macro equiv. of strlen(split_fields[n]) (but faster) */
+	if (SPLFLEN(1) > 0 && SPLFLEN(1) < 7 &&
+	    (SPLFLEN(3) == 32 || SPLFLEN(2) == 32)) {
+		/* uid for pwdump files. */
+		uid = split_fields[1];
+		gid = *gecos = *home = shell = "";
+	}
+	else if (SPLFLEN(1) == 0 && SPLFLEN(3) >= 16 && SPLFLEN(4) >= 32 &&
+	         SPLFLEN(4) >= 16) {
+		/* l0phtcrack-style input */
+		uid = gid = *home = shell = "";
+		*gecos = split_fields[2]; // in case there's a domain name here
+	}
+	else {
+		/* normal passwd-style input */
+		uid = split_fields[2];
+		gid = split_fields[3];
+		*gecos = split_fields[4];
+		*home = split_fields[5];
+		shell = split_fields[6];
+	}
 
 	if (ldr_check_list(db_options->users, *login, uid)) return 0;
 	if (ldr_check_list(db_options->groups, gid, gid)) return 0;

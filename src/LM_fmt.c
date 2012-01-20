@@ -80,8 +80,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-// here to 'handle' the pwdump files:  user:gid:lmhash:ntlmhash:::
-// Note, we do NOT address the group id issues in the lm stuff, inside loader.
+// here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
+// Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	if (!valid(split_fields[1], pFmt) &&
