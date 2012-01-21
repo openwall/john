@@ -7,7 +7,7 @@
  * general public under the following terms:  Redistribution and use in source
  * and binary forms, with or without modification, is permitted.
  *
- * The DragonFly BSD crypt-sha2 hashes are seriously broken. See
+ * The DragonFly BSD 2.10.1-REL crypt-sha2 hashes are seriously broken. See
  * http://www.openwall.com/lists/john-dev/2012/01/16/1
  *
  */
@@ -30,8 +30,8 @@
 
 #define FORMAT_LABEL_32			"dragonfly3-32"
 #define FORMAT_LABEL_64			"dragonfly3-64"
-#define FORMAT_NAME_32			"DragonFly BSD SHA-256 (w/ bug, 32-bit)"
-#define FORMAT_NAME_64			"DragonFly BSD SHA-256 (w/ bug, 64-bit)"
+#define FORMAT_NAME_32			"DragonFly BSD $3$ SHA-256 w/ bug, 32-bit"
+#define FORMAT_NAME_64			"DragonFly BSD $3$ SHA-256 w/ bug, 64-bit"
 #define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
