@@ -138,6 +138,7 @@
 #endif
 #define BF_SCALE			1
 
+#ifndef JOHN_DISABLE_INTRINSICS
 #ifdef __GNUC__
 #define GCC_VERSION			(__GNUC__ * 10000 \
 			 + __GNUC_MINOR__ * 100 \
@@ -234,6 +235,7 @@
 #if defined(SHA1_SSE_PARA) && !defined(SHA1_N_STR)
 #define SHA1_N_STR			PARA_TO_N(SHA1_SSE_PARA)
 #endif
+#endif /* JOHN_DISABLE_INTRINSICS */
 
 #define MMX_TYPE			" SSE2"
 #define MMX_COEF			4

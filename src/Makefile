@@ -163,6 +163,7 @@ default:
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
 	@echo "linux-x86-64-icc         Linux, x86-64 compiled with icc"
 	@echo "linux-x86-64-clang       Linux, x86-64 compiled with clang"
+#	@echo "linux-x86-64-32-sse2asm  Linux, x86-64, 32-bit with asm SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
@@ -308,6 +309,15 @@ linux-x86-64-32-sse2:
 		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
 
+linux-x86-64-32-sse2asm:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -DJOHN_DISABLE_INTRINSICS" \
+		ASFLAGS="$(ASFLAGS) -m32 -msse2" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+
 linux-x86-64-32-sse2i:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -359,12 +369,12 @@ linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 
 linux-x86-sse2i:
-	$(LN) x86-ssei.h arch.h
+	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
@@ -478,11 +488,11 @@ freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 freebsd-x86-sse2i:
-	$(LN) x86-ssei.h arch.h
+	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
@@ -533,11 +543,11 @@ openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 
 openbsd-x86-sse2i:
-	$(LN) x86-ssei.h arch.h
+	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
@@ -724,13 +734,13 @@ solaris-x86-sse2-gcc:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) $(LDFLAGS_SOLARIS)"
 
 solaris-x86-sse2i-gcc:
 	$(RM) arch.h
-	$(LN) x86-ssei.h arch.h
+	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o solaris-x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
@@ -868,13 +878,13 @@ macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m32" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-x86-sse2i:
-	$(LN) x86-ssei.h arch.h
+	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
@@ -987,7 +997,7 @@ john-macosx-x86:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -arch i386 -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -arch i386 -m32" \
 		LDFLAGS="$(LDFLAGS) -arch i386 -m32"
@@ -1072,7 +1082,7 @@ dos-djgpp-x86-any:
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG"
 
 win32-cygwin-x86-sse2i:
-	$(CP) x86-ssei.h arch.h
+	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="sse-intrinsics-32.o $(JOHN_OBJS) x86.o x86-sse.o " \
@@ -1083,7 +1093,7 @@ win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse2 -m32" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
@@ -1105,7 +1115,7 @@ win32-cygwin-x86-any:
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-mingw-x86-sse2i:
-	$(CP) x86-ssei.h arch.h
+	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="sse-intrinsics-32.o $(JOHN_OBJS) x86.o x86-sse.o " \
@@ -1116,7 +1126,7 @@ win32-mingw-x86-sse2:
 	$(CP) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32_MINGW) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
@@ -1416,7 +1426,7 @@ sse-intrinsics-64.S:
 	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 
 sse-intrinsics-32.S:
-	$(LN) x86-ssei.h arch.h
+	$(LN) x86-sse.h arch.h
 	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
