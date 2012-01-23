@@ -111,7 +111,7 @@ static struct fmt_tests tests[] = {
 };
 
 static UTF8 (*saved_plain)[PLAINTEXT_LENGTH + 1];
-static int (*keyLen);
+static int *keyLen;
 
 #ifdef MMX_COEF
 
@@ -386,7 +386,7 @@ static void crypt_all(int count)
 				ARCH_WORD_32 temp;
 
 				len = 0;
-				while(((unsigned char)(temp = *wkey++)) && len < PLAINTEXT_LENGTH) {
+				while(((unsigned char)(temp = *wkey++))) {
 					if (!(temp & 0xff00))
 					{
 						*keybuf_word = JOHNSWAP(temp & 0xff);
@@ -408,8 +408,11 @@ static void crypt_all(int count)
 						len+=3;
 						break;
 					}
-					keybuf_word += MMX_COEF;
 					len += 4;
+					if (len & 63)
+						keybuf_word += MMX_COEF;
+					else
+						keybuf_word = (ARCH_WORD_32*)&saved_key[len>>8][GETSTARTPOS(ti)];
 				}
 
 				// Back-out of trailing spaces
