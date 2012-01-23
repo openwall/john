@@ -55,7 +55,7 @@
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 #if (MMX_COEF==2)
 #define SALT_EXTRA_LEN          0x40004
 #else
@@ -90,10 +90,10 @@ static unsigned char cursalt[SALT_SIZE];
 #define saved_key mssql_saved_key
 #define crypt_key mssql_crypt_key
 #ifdef _MSC_VER
-__declspec(align(16)) char saved_key[80*4*NBKEYS];
+__declspec(align(16)) char saved_key[SHA_BUF_SIZ*4*NBKEYS];
 __declspec(align(16)) char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
 char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 static char plain_keys[NBKEYS][PLAINTEXT_LENGTH*3+1];
@@ -184,13 +184,17 @@ static void set_key(char *key, int index) {
 #ifdef MMX_COEF
 	if(index==0)
 	{
+#if SHA_BUF_SIZ == 16
+		memset(saved_key, 0, sizeof(saved_key));
+#else
 		int j=0;
 #ifdef SHA1_SSE_PARA
 		for (; j<SHA1_SSE_PARA; j++)
 #endif
-			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
+			memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
+#endif
 	}
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (2*utf8len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf8len+SALT_SIZE)<<3;
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
 	saved_key[GETPOS((i*2+SALT_SIZE) , index)] = 0x80;
@@ -227,14 +231,18 @@ static void set_key_enc(char *key, int index) {
 #ifdef MMX_COEF
 	if(index==0)
 	{
+#if SHA_BUF_SIZ == 16
+		memset(saved_key, 0, sizeof(saved_key));
+#else
 		int j=0;
 #ifdef SHA1_SSE_PARA
 		for (; j<SHA1_SSE_PARA; j++)
 #endif
-			memset(saved_key+j*4*80*MMX_COEF, 0, 60*MMX_COEF);
+			memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
+#endif
 	}
 
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
 	for(i=0;i<utf16len;i++)
 	{
 		saved_key[GETPOS((i*2), index)] = (char)utf16key[i];
@@ -311,7 +319,7 @@ static void crypt_all(int count) {
 	unsigned i, index;
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = (((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) & 0xff) - SALT_SIZE;
+		unsigned len = (((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF]) >> 3) & 0xff) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}

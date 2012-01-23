@@ -26,7 +26,7 @@
 #include "formats.h"
 #include "bench.h"
 
-extern struct fmt_main fmt_rawMD4, fmt_MD5, fmt_rawSHA1;
+extern struct fmt_main fmt_rawMD4, fmt_rawMD5, fmt_MD5, fmt_rawSHA1;
 
 int main(int argc, char **argv)
 {
@@ -47,6 +47,10 @@ int main(int argc, char **argv)
 
 	case '4':
 		format = &fmt_rawMD4;
+		break;
+
+	case '5':
+		format = &fmt_rawMD5;
 		break;
 
 	case '6':

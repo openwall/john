@@ -72,9 +72,9 @@ static unsigned int omp_t = 1;
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
-#define GETWORDPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 )
-#define GETSTARTPOS(index)		( (index&(MMX_COEF-1))*4 + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 )
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
+#define GETWORDPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 )
+#define GETSTARTPOS(index)		( (index&(MMX_COEF-1))*4 + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 )
 #define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*20*MMX_COEF ) //for endianity conversion
 
 #else
@@ -161,7 +161,7 @@ static void init(struct fmt_main *pFmt)
 #ifdef MMX_COEF
 	clean_pos = mem_calloc_tiny(sizeof(*clean_pos) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for(i = 0; i < LIMB; i++)
-		saved_key[i] = mem_calloc_tiny(80*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		saved_key[i] = mem_calloc_tiny(SHA_BUF_SIZ*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	interm_crypt = mem_calloc_tiny(20 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(20 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 #else
@@ -444,12 +444,12 @@ static void crypt_all(int count)
 
 			if (len > longest)
 				longest = len;
-			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = len << 3;
+			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
 			crypt_len[index] = len;
 		}
 
 #if SHA1_SSE_PARA
-		SSESHA1body(&saved_key[0][t*80*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, 0);
+		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&crypt_key[t*20*NBKEYS], NULL, 0);
 #else
 		shammx_nosizeupdate_nofinalbyteswap(crypt_key, saved_key[0], 1);
 #endif
@@ -458,7 +458,7 @@ static void crypt_all(int count)
 		if (longest > 55) {
 			memcpy(&interm_crypt[t*20*NBKEYS], &crypt_key[t*20*NBKEYS], 20*NBKEYS);
 #if SHA1_SSE_PARA
-			SSESHA1body(&saved_key[1][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
+			SSESHA1body(&saved_key[1][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
 #else
 			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[1], interm_crypt);
 #endif
@@ -476,8 +476,8 @@ static void crypt_all(int count)
 			unsigned char *p;
 
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
-			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
-			((unsigned int*)saved_key[1])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = 0;
+			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
+			((unsigned int*)saved_key[1])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
 
 			len = keyLen[ti];
 			lengthIntoMagicArray = extractLengthOfMagicArray(crypt_key, ti);
@@ -511,11 +511,11 @@ static void crypt_all(int count)
 			if (len > longest)
 				longest = len;
 
-			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*80*MMX_COEF] = len << 3;
+			((unsigned int*)saved_key[(len+8)>>6])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
 		}
 
 #if SHA1_SSE_PARA
-		SSESHA1body(&saved_key[0][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, 0);
+		SSESHA1body(&saved_key[0][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], NULL, 0);
 #else
 		shammx_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[0], 1);
 #endif
@@ -528,7 +528,7 @@ static void crypt_all(int count)
 		// Do another and possibly a third limb
 		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
 #if SHA1_SSE_PARA
-			SSESHA1body(&saved_key[i][t*80*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
+			SSESHA1body(&saved_key[i][t*SHA_BUF_SIZ*4*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], (unsigned int*)&interm_crypt[t*20*NBKEYS], 0);
 #else
 			shammx_reloadinit_nosizeupdate_nofinalbyteswap(interm_crypt, saved_key[i], interm_crypt);
 #endif

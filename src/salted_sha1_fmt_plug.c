@@ -61,7 +61,7 @@
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -118,10 +118,10 @@ static struct fmt_tests tests[] = {
 #define saved_key SALT_SHA_saved_key
 #define crypt_key SALT_SHA_crypt_key
 #ifdef _MSC_VER
-__declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
+__declspec(align(16)) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
 __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
 unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 static unsigned int saved_len[NBKEYS];
@@ -249,7 +249,7 @@ static char *get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i,s;
 
-//	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
+//	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3;
 	s = saved_len[index];
 	for(i=0;i<s;i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
@@ -322,7 +322,7 @@ static void set_onesalt(int index)
 
 	saved_key[GETPOS(saved_salt.len + saved_len[index], index)] = 0x80;
 
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = (saved_salt.len + saved_len[index])<<3;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (saved_salt.len + saved_len[index])<<3;
 }
 #endif
 

@@ -106,8 +106,8 @@
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
-#define GETPOS_WORD(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF +               (index>>(MMX_COEF>>1))*80*MMX_COEF*4)
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS_WORD(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF +               (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4)
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -131,10 +131,10 @@ static unsigned char saved_salt[SALT_SIZE];
 #define saved_key mssql05_saved_key
 #define crypt_key mssql05_crypt_key
 #ifdef _MSC_VER
-__declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
+__declspec(align(16)) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
 __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
 unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 
@@ -156,7 +156,7 @@ static void init(struct fmt_main *pFmt)
 	   keys would otherwise get a length of -10 and a salt appended
 	   at pos 4294967286... */
 	for (i=0; i < NBKEYS; i++)
-		((unsigned int *)saved_key)[15*MMX_COEF + (i&3) + (i>>2)*80*MMX_COEF] = 10 << 3;
+		((unsigned int *)saved_key)[15*MMX_COEF + (i&3) + (i>>2)*SHA_BUF_SIZ*MMX_COEF] = 10 << 3;
 #endif
 }
 
@@ -225,7 +225,7 @@ key_cleaning:
 		keybuf_word += MMX_COEF;
 	}
 	saved_key[GETPOS(len, index)] = 0x80;
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 3;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
 #else
 	saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -241,7 +241,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = (((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3) - SALT_SIZE;
+	s = (((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3) - SALT_SIZE;
 
 	for(i = 0; i < s; i++)
 		out[i] = ((char*)saved_key)[ GETPOS(i, index) ];
@@ -300,7 +300,7 @@ static void crypt_all(int count) {
 	unsigned int index;
 	for (index = 0; index < count; ++index)
 	{
-		unsigned int len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) - SALT_SIZE;
+		unsigned int len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF]) >> 3) - SALT_SIZE;
 		unsigned int i = 0;
 
 		// 1. Copy a byte at a time until we're aligned in buffer

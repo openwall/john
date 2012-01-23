@@ -122,13 +122,17 @@ BENCH_OBJS = \
 	bench-t.o best.o common.o config_g.o formats_g.o math.o memory.o \
 	miscnl.o params.o path.o signals.o tty.o
 
+PARA_BENCH_32_OBJS = \
+	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
+	miscnl.o params.o path.o signals.o tty.o sha1-mmx.o md4-mmx.o \
+	md5-mmx.o x86.S $(BENCH_PARA_DEPEND)
+
 PARA_BENCH_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals.o tty.o \
-	$(BENCH_PARA_DEPEND)
+	miscnl.o params.o path.o signals.o tty.o $(BENCH_PARA_DEPEND)
 
 BENCH_PARA_DEPEND = \
-	sse-intrinsics.o rawMD4_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
+	sse-intrinsics.o rawMD4_fmt_plug.o rawMD5_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
 
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o
@@ -1183,20 +1187,22 @@ generic.h:
 testpara:
 	$(LN) x86-64.h arch.h
 	./para-best.sh "$(CC)" "$(MAKE)" \
-		"$(BENCH_PARA_DEPEND)" "-msse2"
+		"$(BENCH_PARA_DEPEND)" "-msse2" 64
 
 testpara32:
-# The next line is not a typo. But there might be a better way.
-	$(LN) x86-64.h arch.h
+	$(LN) x86-sse.h arch.h
 	CFLAGS="$(CFLAGS) -m32 -msse2" \
 	./para-best.sh "$(CC)" "$(MAKE)" \
-		"$(BENCH_PARA_DEPEND)" "-m32 -msse2"
+		"$(BENCH_PARA_DEPEND)" "-m32 -msse2" 32
 
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
 
-para-bench: $(PARA_BENCH_OBJS)
+para-bench64: $(PARA_BENCH_OBJS)
 	$(LD) $(PARA_BENCH_OBJS) $(LDFLAGS) -o para-bench
+
+para-bench32: $(PARA_BENCH_32_OBJS)
+	$(LD) $(PARA_BENCH_32_OBJS) $(LDFLAGS) -o para-bench
 
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
@@ -1423,11 +1429,11 @@ clean-intrinsics:
 
 sse-intrinsics-64.S:
 	$(LN) x86-64.h arch.h
-	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
+	icc -S -o sse-intrinsics-64.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 
 sse-intrinsics-32.S:
 	$(LN) x86-sse.h arch.h
-	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
+	icc -m32 -S -o sse-intrinsics-32.S sse-intrinsics.c -O3 -fno-builtin -fno-verbose-asm -openmp -DUSING_ICC_S_FILE $(JOHN_CFLAGS) -Wall
 	perl sse2i_winfix.pl
 	mv sse-intrinsics-win32.S sse-intrinsics-32.S
 

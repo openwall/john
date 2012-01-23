@@ -1,6 +1,8 @@
 /*
  * This software is Copyright © 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ *
+ * New (optional) SHA1 version by JimF 2011, using 16x4 buffer.
  */
 
 #include "arch.h"
@@ -574,6 +576,10 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 
 #define SHA1_I(x,y,z) SHA1_G(x,y,z)
 
+#if SHA_BUF_SIZ == 80
+
+// Bartavelle's original code, using 80x4 words of buffer
+
 #define SHA1_EXPAND(t) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( data[i*80+t-3], data[i*80+t-8] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*80+t-14] ); \
@@ -762,4 +768,260 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 		}
 	}
 }
+#else /* SHA_BUF_SIZ */
+
+// JimF's code, using 16x4 words of buffer just like MD4/5
+
+#define SHA1_EXPAND2a(t) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( data[i*16+t-3], data[i*16+t-8] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-14] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+#define SHA1_EXPAND2b(t) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], data[i*16+t-8] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-14] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+#define SHA1_EXPAND2c(t) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-14] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+#define SHA1_EXPAND2d(t) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], tmpR[i*16+((t-14)&0xF)] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+#define SHA1_EXPAND2(t) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], tmpR[i*16+((t-14)&0xF)] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], tmpR[i*16+((t-16)&0xF)] ); \
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+
+#define SHA1_ROUND2a(a,b,c,d,e,F,t) \
+	SHA1_EXPAND2a(t+16) \
+	F(b,c,d) \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
+	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+#define SHA1_ROUND2b(a,b,c,d,e,F,t) \
+	SHA1_EXPAND2b(t+16) \
+	F(b,c,d) \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
+	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+#define SHA1_ROUND2c(a,b,c,d,e,F,t) \
+	SHA1_EXPAND2c(t+16) \
+	F(b,c,d) \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
+	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+#define SHA1_ROUND2d(a,b,c,d,e,F,t) \
+	SHA1_EXPAND2d(t+16) \
+	F(b,c,d) \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
+	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+#define SHA1_ROUND2(a,b,c,d,e,F,t) \
+	SHA1_PARA_DO(i) tmp3[i] = tmpR[i*16+(t&0xF)]; \
+	SHA1_EXPAND2(t+16) \
+	F(b,c,d) \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp3[i] ); \
+	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+#define SHA1_ROUND2x(a,b,c,d,e,F,t) \
+	F(b,c,d) \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
+	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmpR[i*16+(t&0xF)] ); \
+	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+
+void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state, int input_layout_output)
+{
+	__m128i a[SHA1_SSE_PARA];
+	__m128i b[SHA1_SSE_PARA];
+	__m128i c[SHA1_SSE_PARA];
+	__m128i d[SHA1_SSE_PARA];
+	__m128i e[SHA1_SSE_PARA];
+	__m128i tmp[SHA1_SSE_PARA];
+	__m128i tmp2[SHA1_SSE_PARA];
+	__m128i tmp3[SHA1_SSE_PARA];
+	__m128i tmpR[SHA1_SSE_PARA*16];
+	__m128i	cst;
+	unsigned int i; // ,j;
+
+	if(!reload_state)
+	{
+		SHA1_PARA_DO(i)
+		{
+			a[i] = _mm_set1_epi32(0x67452301);
+			b[i] = _mm_set1_epi32(0xefcdab89);
+			c[i] = _mm_set1_epi32(0x98badcfe);
+			d[i] = _mm_set1_epi32(0x10325476);
+			e[i] = _mm_set1_epi32(0xC3D2E1F0);
+		}
+	}
+	else
+	{
+		SHA1_PARA_DO(i)
+		{
+			a[i] = _mm_load_si128((__m128i *)&reload_state[i*20+0]);
+			b[i] = _mm_load_si128((__m128i *)&reload_state[i*20+4]);
+			c[i] = _mm_load_si128((__m128i *)&reload_state[i*20+8]);
+			d[i] = _mm_load_si128((__m128i *)&reload_state[i*20+12]);
+			e[i] = _mm_load_si128((__m128i *)&reload_state[i*20+16]);
+		}
+	}
+
+	cst = _mm_set1_epi32(0x5A827999);
+	SHA1_ROUND2a( a, b, c, d, e, SHA1_F,  0 );
+	SHA1_ROUND2a( e, a, b, c, d, SHA1_F,  1 );
+	SHA1_ROUND2a( d, e, a, b, c, SHA1_F,  2 );
+	SHA1_ROUND2b( c, d, e, a, b, SHA1_F,  3 );
+	SHA1_ROUND2b( b, c, d, e, a, SHA1_F,  4 );
+	SHA1_ROUND2b( a, b, c, d, e, SHA1_F,  5 );
+	SHA1_ROUND2b( e, a, b, c, d, SHA1_F,  6 );
+	SHA1_ROUND2b( d, e, a, b, c, SHA1_F,  7 );
+	SHA1_ROUND2c( c, d, e, a, b, SHA1_F,  8 );
+	SHA1_ROUND2c( b, c, d, e, a, SHA1_F,  9 );
+	SHA1_ROUND2c( a, b, c, d, e, SHA1_F, 10 );
+	SHA1_ROUND2c( e, a, b, c, d, SHA1_F, 11 );
+	SHA1_ROUND2c( d, e, a, b, c, SHA1_F, 12 );
+	SHA1_ROUND2c( c, d, e, a, b, SHA1_F, 13 );
+	SHA1_ROUND2d( b, c, d, e, a, SHA1_F, 14 );
+	SHA1_ROUND2d( a, b, c, d, e, SHA1_F, 15 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_F, 16 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_F, 17 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_F, 18 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_F, 19 );
+
+	cst = _mm_set1_epi32(0x6ED9EBA1);
+	SHA1_ROUND2( a, b, c, d, e, SHA1_G, 20 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_G, 21 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_G, 22 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_G, 23 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_G, 24 );
+	SHA1_ROUND2( a, b, c, d, e, SHA1_G, 25 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_G, 26 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_G, 27 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_G, 28 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_G, 29 );
+	SHA1_ROUND2( a, b, c, d, e, SHA1_G, 30 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_G, 31 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_G, 32 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_G, 33 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_G, 34 );
+	SHA1_ROUND2( a, b, c, d, e, SHA1_G, 35 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_G, 36 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_G, 37 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_G, 38 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_G, 39 );
+
+	cst = _mm_set1_epi32(0x8F1BBCDC);
+	SHA1_ROUND2( a, b, c, d, e, SHA1_H, 40 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_H, 41 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_H, 42 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_H, 43 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_H, 44 );
+	SHA1_ROUND2( a, b, c, d, e, SHA1_H, 45 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_H, 46 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_H, 47 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_H, 48 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_H, 49 );
+	SHA1_ROUND2( a, b, c, d, e, SHA1_H, 50 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_H, 51 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_H, 52 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_H, 53 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_H, 54 );
+	SHA1_ROUND2( a, b, c, d, e, SHA1_H, 55 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_H, 56 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_H, 57 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_H, 58 );
+	SHA1_ROUND2( b, c, d, e, a, SHA1_H, 59 );
+
+	cst = _mm_set1_epi32(0xCA62C1D6);
+	SHA1_ROUND2( a, b, c, d, e, SHA1_I, 60 );
+	SHA1_ROUND2( e, a, b, c, d, SHA1_I, 61 );
+	SHA1_ROUND2( d, e, a, b, c, SHA1_I, 62 );
+	SHA1_ROUND2( c, d, e, a, b, SHA1_I, 63 );
+	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 64 );
+	SHA1_ROUND2x( a, b, c, d, e, SHA1_I, 65 );
+	SHA1_ROUND2x( e, a, b, c, d, SHA1_I, 66 );
+	SHA1_ROUND2x( d, e, a, b, c, SHA1_I, 67 );
+	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 68 );
+	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 69 );
+	SHA1_ROUND2x( a, b, c, d, e, SHA1_I, 70 );
+	SHA1_ROUND2x( e, a, b, c, d, SHA1_I, 71 );
+	SHA1_ROUND2x( d, e, a, b, c, SHA1_I, 72 );
+	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 73 );
+	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 74 );
+	SHA1_ROUND2x( a, b, c, d, e, SHA1_I, 75 );
+	SHA1_ROUND2x( e, a, b, c, d, SHA1_I, 76 );
+	SHA1_ROUND2x( d, e, a, b, c, SHA1_I, 77 );
+	SHA1_ROUND2x( c, d, e, a, b, SHA1_I, 78 );
+	SHA1_ROUND2x( b, c, d, e, a, SHA1_I, 79 );
+
+	if(!reload_state)
+	{
+		SHA1_PARA_DO(i)
+		{
+			a[i] = _mm_add_epi32(a[i], _mm_set1_epi32(0x67452301));
+			b[i] = _mm_add_epi32(b[i], _mm_set1_epi32(0xefcdab89));
+			c[i] = _mm_add_epi32(c[i], _mm_set1_epi32(0x98badcfe));
+			d[i] = _mm_add_epi32(d[i], _mm_set1_epi32(0x10325476));
+			e[i] = _mm_add_epi32(e[i], _mm_set1_epi32(0xC3D2E1F0));
+		}
+	}
+	else
+	{
+		SHA1_PARA_DO(i)
+		{
+			a[i] = _mm_add_epi32(a[i], _mm_load_si128((__m128i *)&reload_state[i*20+0]));
+			b[i] = _mm_add_epi32(b[i], _mm_load_si128((__m128i *)&reload_state[i*20+4]));
+			c[i] = _mm_add_epi32(c[i], _mm_load_si128((__m128i *)&reload_state[i*20+8]));
+			d[i] = _mm_add_epi32(d[i], _mm_load_si128((__m128i *)&reload_state[i*20+12]));
+			e[i] = _mm_add_epi32(e[i], _mm_load_si128((__m128i *)&reload_state[i*20+16]));
+		}
+	}
+	if (input_layout_output)
+	{
+		SHA1_PARA_DO(i)
+		{
+			_mm_store_si128((__m128i *)&out[i*16*4+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+12], d[i]);
+			_mm_store_si128((__m128i *)&out[i*16*4+16], e[i]);
+		}
+	}
+	else
+	{
+		SHA1_PARA_DO(i)
+		{
+			_mm_store_si128((__m128i *)&out[i*20+0], a[i]);
+			_mm_store_si128((__m128i *)&out[i*20+4], b[i]);
+			_mm_store_si128((__m128i *)&out[i*20+8], c[i]);
+			_mm_store_si128((__m128i *)&out[i*20+12], d[i]);
+			_mm_store_si128((__m128i *)&out[i*20+16], e[i]);
+		}
+	}
+}
+#endif /* SHA_BUF_SIZ */
 #endif /* SHA1_SSE_PARA */

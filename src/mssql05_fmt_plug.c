@@ -57,7 +57,7 @@
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -81,10 +81,10 @@ static unsigned char cursalt[SALT_SIZE];
 #define saved_key mssql05_saved_key
 #define crypt_key mssql05_crypt_key
 #ifdef _MSC_VER
-__declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
+__declspec(align(16)) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
 __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
 unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 #else
@@ -211,7 +211,7 @@ key_cleaning:
 		keybuf_word += MMX_COEF;
 	}
 
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 4;
 #else
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = (UTF16*)saved_key;
@@ -258,7 +258,7 @@ key_cleaning_enc:
 		keybuf_word += MMX_COEF;
 	}
 
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 4;
 #else
 	key_length = enc_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
 	                          (unsigned char*)_key, strlen(_key));
@@ -358,7 +358,7 @@ static void set_key_utf8(char *_key, int index)
 		keybuf_word += MMX_COEF;
 	}
 
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 4;
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 4;
 #else
 	key_length = utf8_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
 	                           (unsigned char*)_key, strlen(_key));
@@ -374,7 +374,7 @@ static char *get_key(int index) {
 	static UTF16 out[PLAINTEXT_LENGTH + 1];
 	unsigned int i,s;
 
-	s = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3) - SALT_SIZE) >> 1;
+	s = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3) - SALT_SIZE) >> 1;
 	for(i=0;i<s;i++) {
 		out[i] = saved_key[GETPOS(i<<1, index)] |
 			(saved_key[GETPOS((i<<1) + 1, index)] << 8);
@@ -433,7 +433,7 @@ static void crypt_all(int count) {
 	unsigned i, index;
 	for (index = 0; index < count; ++index)
 	{
-		unsigned len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF]) >> 3) - SALT_SIZE;
+		unsigned len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF]) >> 3) - SALT_SIZE;
 		for(i=0;i<SALT_SIZE;i++)
 			saved_key[GETPOS((len+i), index)] = cursalt[i];
 	}

@@ -58,7 +58,7 @@ static unsigned int omp_t = 1;
 
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 
 #else
 
@@ -104,7 +104,7 @@ static void init(struct fmt_main *pFmt)
 	omp_t *= OMP_SCALE;
 	pFmt->params.max_keys_per_crypt = omp_t * NBKEYS;
 #endif
-	saved_key = mem_calloc_tiny(80*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_tiny(SHA_BUF_SIZ*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(BINARY_SIZE * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 #endif
 }
@@ -303,7 +303,7 @@ static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*80*MMX_COEF + MMX_COEF];
+	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF + MMX_COEF];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -356,7 +356,7 @@ static char *get_key(int index)
 	unsigned int i,s;
 	static char out[PLAINTEXT_LENGTH + 1];
 
-	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
+	s = ((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3;
 
 	for(i = 0; i < (s - SALT_SIZE); i++)
 		out[i] = ((char*)saved_key)[ GETPOS((i + SALT_SIZE), index) ];
@@ -377,11 +377,11 @@ static void crypt_all(int count)
 	#pragma omp parallel for
 	for (i=0; i < omp_t; i++) {
 #endif
-		unsigned int *in = &saved_key[i*NBKEYS*80];
+		unsigned int *in = &saved_key[i*NBKEYS*SHA_BUF_SIZ];
 		unsigned int *out = &crypt_key[i*NBKEYS*BINARY_SIZE/4];
 		unsigned int j;
 		for (j=0; j < NBKEYS; j++)
-			in[(j&(MMX_COEF-1)) + (j>>(MMX_COEF>>1))*80*MMX_COEF] = cur_salt;
+			in[(j&(MMX_COEF-1)) + (j>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] = cur_salt;
 #ifdef SHA1_SSE_PARA
 		SSESHA1body(in, out, NULL, 0);
 #else

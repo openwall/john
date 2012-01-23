@@ -236,7 +236,7 @@
 #elif defined(__clang__)
 #define SHA1_SSE_PARA			2
 #define SHA1_N_STR			"8x"
-#elif defined(__GNUC__) && GCC_VERSION < 40600	// 4.6.0
+#elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
 #define SHA1_SSE_PARA			1
 #define SHA1_N_STR			"4x"
 #else
@@ -256,6 +256,16 @@
 #endif
 #ifndef SHA1_N_STR
 #define SHA1_N_STR			PARA_TO_N(SHA1_SSE_PARA)
+#endif
+
+#ifndef SHA_BUF_SIZ
+#ifdef SHA1_SSE_PARA
+// This can be 80 (old code) or 16 (new code)
+#define SHA_BUF_SIZ			16
+#else
+// This must be 80
+#define SHA_BUF_SIZ			80
+#endif
 #endif
 
 #define BF_ASM				0
