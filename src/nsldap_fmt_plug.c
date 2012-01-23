@@ -55,7 +55,7 @@
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -90,10 +90,10 @@ static struct fmt_tests tests[] = {
 #define saved_key nsldap_saved_key
 #define crypt_key nsldap_crypt_key
 #if defined (_MSC_VER)
-__declspec(align(16)) unsigned char saved_key[80*4*NBKEYS];
+__declspec(align(16)) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
 __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
 #else
-unsigned char saved_key[80*4*NBKEYS] __attribute__ ((aligned(16)));
+unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
 unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 static unsigned char out[PLAINTEXT_LENGTH + 1];
@@ -157,7 +157,7 @@ key_cleaning:
 		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
-	((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] = len << 3;
+	((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 3;
 #else
 	strnzcpy(saved_key, _key, PLAINTEXT_LENGTH + 1);
 #endif
@@ -167,7 +167,7 @@ static char *get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i, s;
 
-	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
+	s = ((ARCH_WORD_32 *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = saved_key[ GETPOS(i, index) ];
 	out[i] = 0;

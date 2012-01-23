@@ -55,7 +55,7 @@
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 #else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -77,10 +77,10 @@ static struct fmt_tests rawsha1_tests[] = {
 #define crypt_key rawSHA1_crypt_key
 #ifdef MMX_COEF
 #if defined (_MSC_VER)
-__declspec(align(16)) unsigned int saved_key[80*NBKEYS];
+__declspec(align(16)) unsigned int saved_key[SHA_BUF_SIZ*NBKEYS];
 __declspec(align(16)) unsigned int crypt_key[BINARY_SIZE/4*NBKEYS];
 #else
-unsigned int saved_key[80*NBKEYS] __attribute__ ((aligned(16)));
+unsigned int saved_key[SHA_BUF_SIZ*NBKEYS] __attribute__ ((aligned(16)));
 unsigned int crypt_key[BINARY_SIZE/4*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 static unsigned char out[PLAINTEXT_LENGTH + 1];
@@ -129,7 +129,7 @@ static char *rawsha1_split(char *ciphertext, int index)
 static void rawsha1_set_key(char *key, int index) {
 #ifdef MMX_COEF
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
-	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*80*MMX_COEF];
+	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
@@ -176,7 +176,7 @@ static char *rawsha1_get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i,s;
 
-	s = saved_key[15*MMX_COEF + (index&3) + (index>>2)*80*MMX_COEF] >> 3;
+	s = saved_key[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] >> 3;
 	for(i=0;i<s;i++)
 		out[i] = ((unsigned char*)saved_key)[ GETPOS(i, index) ];
 	out[i] = 0;

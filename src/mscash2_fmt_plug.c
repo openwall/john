@@ -125,7 +125,7 @@ static struct fmt_tests tests[] = {
 # endif
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
-#define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*80*MMX_COEF*4 ) //for endianity conversion
+#define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF*4 ) //for endianity conversion
 static unsigned char (*sse_hash1);
 static unsigned char (*sse_crypt1);
 static unsigned char (*sse_crypt2);
@@ -164,7 +164,7 @@ static void init(struct fmt_main *pFmt)
 	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt = mem_calloc_tiny(sizeof(*crypt)*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #if defined (MMX_COEF)
-	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*80*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	sse_crypt = mem_calloc_tiny(sizeof(*sse_crypt)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
@@ -174,7 +174,7 @@ static void init(struct fmt_main *pFmt)
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits
 			// The 64 is for the ipad/opad, the 20 is for the length of the SHA1 buffer that also gets into each crypt
 			// this works for SSEi
-			((unsigned int *)sse_hash1)[15*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*80*MMX_COEF] = (84<<3); // all encrypts are 64+20 bytes.
+			((unsigned int *)sse_hash1)[15*MMX_COEF + (index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF] = (84<<3); // all encrypts are 64+20 bytes.
 			sse_hash1[GETPOS(20,index)] = 0x80;
 		}
 	}
@@ -498,7 +498,7 @@ static void pbkdf2_sse2(int t)
 	t_crypt = &crypt[t * MS_NUM_KEYS * 4];
 	t_sse_crypt1 = &sse_crypt1[t * MS_NUM_KEYS * 20];
 	t_sse_crypt2 = &sse_crypt2[t * MS_NUM_KEYS * 20];
-	t_sse_hash1 = &sse_hash1[t * MS_NUM_KEYS * 80 * 4];
+	t_sse_hash1 = &sse_hash1[t * MS_NUM_KEYS * SHA_BUF_SIZ * 4];
 	i1 = (unsigned int*)t_sse_crypt1;
 	i2 = (unsigned int*)t_sse_crypt2;
 	o1 = (unsigned int*)t_sse_hash1;
@@ -540,11 +540,11 @@ static void pbkdf2_sse2(int t)
 		// now convert this from flat into MMX_COEF buffers.
 		// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 		// so we will need to 'undo' that in the end.
-		o1[(k/MMX_COEF)*MMX_COEF*80+(k&(MMX_COEF-1))]                = t_crypt[k*4+0] = ctx2.h0;
-		o1[(k/MMX_COEF)*MMX_COEF*80+(k&(MMX_COEF-1))+MMX_COEF]       = t_crypt[k*4+1] = ctx2.h1;
-		o1[(k/MMX_COEF)*MMX_COEF*80+(k&(MMX_COEF-1))+(MMX_COEF<<1)]  = t_crypt[k*4+2] = ctx2.h2;
-		o1[(k/MMX_COEF)*MMX_COEF*80+(k&(MMX_COEF-1))+MMX_COEF*3]     = t_crypt[k*4+3] = ctx2.h3;
-		o1[(k/MMX_COEF)*MMX_COEF*80+(k&(MMX_COEF-1))+(MMX_COEF<<2)]                   = ctx2.h4;
+		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))]                = t_crypt[k*4+0] = ctx2.h0;
+		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+MMX_COEF]       = t_crypt[k*4+1] = ctx2.h1;
+		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+(MMX_COEF<<1)]  = t_crypt[k*4+2] = ctx2.h2;
+		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+MMX_COEF*3]     = t_crypt[k*4+3] = ctx2.h3;
+		o1[(k/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ+(k&(MMX_COEF-1))+(MMX_COEF<<2)]                   = ctx2.h4;
 	}
 
 	for(i = 1; i < iteration_cnt; i++)
@@ -554,7 +554,7 @@ static void pbkdf2_sse2(int t)
 		SSESHA1body((unsigned int*)t_sse_hash1, (unsigned int*)t_sse_hash1, (unsigned int*)t_sse_crypt2, 1);
 		// only xor first 16 bytes, since that is ALL this format uses
 		for (k = 0; k < MS_NUM_KEYS; k++) {
-			unsigned *p = &((unsigned int*)t_sse_hash1)[(((k>>2)*80)<<2) + (k&(MMX_COEF-1))];
+			unsigned *p = &((unsigned int*)t_sse_hash1)[(((k>>2)*SHA_BUF_SIZ)<<2) + (k&(MMX_COEF-1))];
 			for(j = 0; j < 4; j++)
 				t_crypt[(k<<2)+j] ^= p[(j<<(MMX_COEF>>1))];
 		}

@@ -205,6 +205,7 @@ typedef union {
 #define MD5_swap(x, y, count)
 #define MD5_swap2(a,b,c,d,e)
 #ifdef SHA1_SSE_PARA
+#define shammx(a,b,c)
 static void SHA1_swap(MD5_word *x, MD5_word *y, int count)
 {
 	do {
@@ -240,7 +241,6 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #ifdef MD5_SSE_PARA
 #undef MMX_COEF
 #define MMX_COEF 4
-#define shammx(a,b,c)
 #endif
 
 #define FORMAT_LABEL		"dynamic"
@@ -426,7 +426,7 @@ __declspec(align(16)) unsigned char input_buf2[BLOCK_LOOPS][64*MMX_COEF];
 __declspec(align(16)) unsigned char crypt_key[BLOCK_LOOPS+1][BINARY_SIZE*MMX_COEF]; // the +1 is so we can directly dump sha1 crypts here. We need an extra buffer on the end, to hold the last buffer overwrite
 __declspec(align(16)) unsigned char crypt_key2[BLOCK_LOOPS][BINARY_SIZE*MMX_COEF];
 // SHA keyspace
-__declspec(align(16)) unsigned char sinput_buf[SHA_BLOCKS][80*4*MMX_COEF];
+__declspec(align(16)) unsigned char sinput_buf[SHA_BLOCKS][SHA_BUF_SIZ*4*MMX_COEF];
 __declspec(align(16)) unsigned char scrypt_key[SHA_BLOCKS][BINARY_SIZE_SHA*MMX_COEF];
 #else
 unsigned char input_buf[BLOCK_LOOPS][64*MMX_COEF] __attribute__ ((aligned(16)));
@@ -434,7 +434,7 @@ unsigned char input_buf2[BLOCK_LOOPS][64*MMX_COEF] __attribute__ ((aligned(16)))
 unsigned char crypt_key[BLOCK_LOOPS+1][BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));  // the +1 is so we can directly dump sha1 crypts here. We need an extra buffer on the end, to hold the last buffer overwrite
 unsigned char crypt_key2[BLOCK_LOOPS][BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));
 // SHA keyspace
-unsigned char sinput_buf[SHA_BLOCKS][80*4*MMX_COEF] __attribute__ ((aligned(16)));
+unsigned char sinput_buf[SHA_BLOCKS][SHA_BUF_SIZ*4*MMX_COEF] __attribute__ ((aligned(16)));
 unsigned char scrypt_key[SHA_BLOCKS][BINARY_SIZE_SHA*MMX_COEF] __attribute__ ((aligned(16)));
 #endif
 static unsigned int total_len[BLOCK_LOOPS];
