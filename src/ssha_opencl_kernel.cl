@@ -1,3 +1,18 @@
+/* Keep values shared by code and the OpenCL kernels here. This file is
+ * prepended to the OpenCL kernels during make. */
+
+#define MD4_NUM_KEYS          1024*2048
+#define MD4_PLAINTEXT_LENGTH  15
+#ifdef MD4
+#define PLAINTEXT_LENGTH      15
+#endif
+
+#define MD5_NUM_KEYS          1024*2048
+#define MD5_PLAINTEXT_LENGTH  15
+#ifdef MD5
+#define PLAINTEXT_LENGTH      15
+#endif
+
 /* 
    This code was taken and merged from pyrit opencl sha1 routines royger's sample ( http://royger.org/opencl/?p=12) 
    and largely inspired from md5_opencl_kernel.cl 
@@ -52,7 +67,6 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
     uint num_keys = data_info[1];
     
     gid = get_global_id(0);
-    uchar msg[64];
     msg_pad = gid * data_info[0];
 
     A = H1;
@@ -61,6 +75,15 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
     D = H4;
     E = H5;
     
+//    prepare_msg(&plain_key[msg_pad],msg, salt, data_info[0]);
+
+
+/*
+Da completare, devo capire come passare la password e il salt direttamente a
+W[t] senza rompermi le balle, manca la parte di padding di quando la password
+non occupa esattamente due registri
+
+*/
     for (t = 2; t < 15; t++){
 	W[t] = 0x00000000;
     }

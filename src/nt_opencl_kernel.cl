@@ -94,7 +94,7 @@ __kernel void nt_crypt(const __global uint *keys , __global uint *output)
 	if(!jump)
 		nt_buffer[nt_index] = 0x80;
 	
-key_cleaning:
+//key_cleaning:
 	nt_index++;
 	for(;nt_index < 12; nt_index++)
 		nt_buffer[nt_index] = 0;

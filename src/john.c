@@ -98,6 +98,8 @@ extern struct fmt_main fmt_opencl_NSLDAPS;
 extern struct fmt_main fmt_opencl_rawMD5;
 extern struct fmt_main fmt_opencl_NT;
 extern struct fmt_main fmt_opencl_rawSHA1;
+extern struct fmt_main fmt_opencl_cryptMD5;
+extern struct fmt_main fmt_opencl_phpass;
 #endif 
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pdf;
@@ -191,6 +193,8 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_rawMD5);
 	john_register_one(&fmt_opencl_NT);
 	john_register_one(&fmt_opencl_rawSHA1);
+	john_register_one(&fmt_opencl_cryptMD5);
+	john_register_one(&fmt_opencl_phpass);
 #endif 
 
 #ifdef HAVE_DL

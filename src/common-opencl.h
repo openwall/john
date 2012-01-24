@@ -6,7 +6,7 @@
 #else
 #include <CL/cl.h>
 #endif
- 
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -14,19 +14,29 @@
 #include "formats.h"
 #include "path.h"
 
-/* common OpenCL variables */
+#define MAXGPUS	4
+/* Comment if you do not want to see OpenCL warnings during kernel compilation */
+#define REPORT_OPENCL_WARNINGS
+
+/* Common OpenCL variables */
+unsigned int gpu_id;
 cl_platform_id platform;
-cl_device_id devices;
-cl_context context;
-cl_program program;
-cl_command_queue queue;
+cl_device_id devices[MAXGPUS];
+cl_context context[MAXGPUS];
+cl_program program[MAXGPUS];
+cl_command_queue queue[MAXGPUS];
 cl_int ret_code;
 cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t max_group_size;
 
-void if_error_log(cl_int ret_code, const char *message);
+void opencl_init(char *kernel_filename, unsigned int dev_id);
 
-void opencl_init(char *kernel_filename, cl_device_type device_type);
+char *get_error_name(cl_int cl_error);
+
+void handle_clerror(cl_int cl_error, const char *message, const char *file,
+    int line);
+/* Use this macro for OpenCL Error handling */
+#define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
 #endif
