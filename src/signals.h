@@ -28,7 +28,7 @@ extern volatile int event_status;	/* Status display requested */
 extern volatile int event_ticksafety;	/* System time in ticks may overflow */
 
 /* Zero if --max-run-time was reached */
-extern int timer_abort;
+extern volatile int timer_abort;
 
 #if !OS_TIMER
 /*
