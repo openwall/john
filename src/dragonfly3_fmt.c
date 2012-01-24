@@ -195,7 +195,7 @@ static void crypt_all(int count)
 static void set_salt(void *salt)
 {
 	salt_len = (int)*(char*)salt;
-	cur_salt = salt + 1;
+	cur_salt = (char*)salt + 1;
 }
 
 // For 32-bit version of the bug, our magic is "$3$\0" len 4
@@ -258,7 +258,7 @@ static int cmp_exact(char *source, int index)
 // Public domain hash function by DJ Bernstein
 static int salt_hash(void *salt)
 {
-	unsigned char *s = salt + 1;
+	unsigned char *s = (unsigned char*)salt + 1;
 	unsigned int hash = 5381;
 	unsigned int i;
 
