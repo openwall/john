@@ -55,7 +55,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global const char *pl
     D = H4;
     E = H5;
     
-    prepare_msg(&plain_key[msg_pad],msg,data_info[0]);
+    prepare_msg((__global uchar*)&plain_key[msg_pad],(char*)msg,data_info[0]);
     
     for (t = 0; t < 16; t++){
         W[t] = ((uchar) msg[ t * 4]) << 24;

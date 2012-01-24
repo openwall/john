@@ -69,8 +69,8 @@ static void find_best_workgroup(void){
 	int i = 0;
 	size_t max_group_size;
 
-	clGetDeviceInfo(devices,CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(max_group_size),&max_group_size,NULL );
-	queue_prof = clCreateCommandQueue( context, devices, CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	clGetDeviceInfo(devices[gpu_id],CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(max_group_size),&max_group_size,NULL );
+	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	printf("Max Group Work Size %d ",(int)max_group_size);
 	local_work_size = 1;
 
@@ -126,45 +126,44 @@ static void rawsha1_set_salt(void *salt)
 
 static void rawsha1_opencl_init(struct fmt_main *pFmt)
 {
-    opencl_init("$JOHN/sha1_opencl_kernel.cl", CL_DEVICE_TYPE_GPU);
+    opencl_init("$JOHN/sha1_opencl_kernel.cl", gpu_id);
 
     // create kernel to execute
-    sha1_crypt_kernel = clCreateKernel(program, "sha1_crypt_kernel", &ret_code);
-    if_error_log(ret_code, "Error creating kernel. Double-check kernel name?");
+    sha1_crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
     // create Page-Locked (Pinned) memory for higher bandwidth between host and device (Nvidia Best Practices)
-    pinned_saved_keys = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (SHA_BLOCK)*SSHA_NUM_KEYS, NULL, &ret_code);
-    if_error_log (ret_code, "Error creating page-locked memory");
-    inbuffer = (char*)clEnqueueMapBuffer(queue, pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (SHA_BLOCK)*SSHA_NUM_KEYS, 0, NULL, NULL, &ret_code);
-    if_error_log (ret_code, "Error mapping page-locked memory inbuffer");
+    pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (SHA_BLOCK)*SSHA_NUM_KEYS, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+    inbuffer = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (SHA_BLOCK)*SSHA_NUM_KEYS, 0, NULL, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error mapping page-locked memory inbuffer");
 
     memset(inbuffer, 0, SHA_BLOCK * SSHA_NUM_KEYS);
 
+    pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * SSHA_NUM_KEYS, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-    pinned_partial_hashes = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * SSHA_NUM_KEYS, NULL, &ret_code);
-    if_error_log(ret_code, "Error creating page-locked memory");
-
-    outbuffer = (cl_uint *) clEnqueueMapBuffer(queue, pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * SSHA_NUM_KEYS, 0, NULL, NULL, &ret_code);
-    if_error_log(ret_code, "Error mapping page-locked memory outbuffer");
+    outbuffer = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * SSHA_NUM_KEYS, 0, NULL, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error mapping page-locked memory outbuffer");
 
     // create and set arguments
-    buffer_keys = clCreateBuffer(context, CL_MEM_READ_ONLY, (SHA_BLOCK) * SSHA_NUM_KEYS, NULL, &ret_code);
-    if_error_log(ret_code, "Error creating buffer keys argument");
+    buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, (SHA_BLOCK) * SSHA_NUM_KEYS, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
 
-    buffer_out = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * SSHA_NUM_KEYS, NULL, &ret_code);
-    if_error_log(ret_code, "Error creating buffer out argument");
+    buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * SSHA_NUM_KEYS, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
-    data_info = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
-    if_error_log(ret_code, "Error creating data_info out argument");
+    data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
-    ret_code = clSetKernelArg(sha1_crypt_kernel, 0, 2 * sizeof(unsigned int), (void *) &data_info);
-    if_error_log(ret_code, "Error setting argument 1");
+    HANDLE_CLERROR(clSetKernelArg(sha1_crypt_kernel, 0, sizeof(data_info), (void *) &data_info),
+		"Error setting argument 0");
 
-    ret_code = clSetKernelArg(sha1_crypt_kernel, 1, sizeof(buffer_keys), (void *) &buffer_keys);
-    if_error_log(ret_code, "Error setting argument 1");
+    HANDLE_CLERROR(clSetKernelArg(sha1_crypt_kernel, 1, sizeof(buffer_keys), (void *) &buffer_keys),
+		 "Error setting argument 1");
 
-    ret_code = clSetKernelArg(sha1_crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out);
-    if_error_log(ret_code, "Error setting argument 2");
+    HANDLE_CLERROR(clSetKernelArg(sha1_crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out),
+		 "Error setting argument 2");
 
     //local_work_size = 256;	// TODO: detect dynamically
 
@@ -215,22 +214,22 @@ static int rawsha1_cmp_one(void *binary, int index)
 	unsigned int c;
 	unsigned int d;
 
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
 	    sizeof(cl_uint) * (1 * SSHA_NUM_KEYS + index), sizeof(a),
 	    (void *) &a, 0, NULL, NULL);
 	if (t[1] != a)
 		return 0;
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
 	    sizeof(cl_uint) * (2 * SSHA_NUM_KEYS + index), sizeof(b),
 	    (void *) &b, 0, NULL, NULL);
 	if (t[2] != b)
 		return 0;
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
 	    sizeof(cl_uint) * (3 * SSHA_NUM_KEYS + index), sizeof(c),
 	    (void *) &c, 0, NULL, NULL);
 	if (t[3] != c)
 		return 0;
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
 	    sizeof(cl_uint) * (4 * SSHA_NUM_KEYS + index), sizeof(d),
 	    (void *) &d, 0, NULL, NULL);
 	return t[4] == d;
@@ -239,39 +238,25 @@ static int rawsha1_cmp_one(void *binary, int index)
 
 static void rawsha1_crypt_all(int count)
 {
-	cl_int code;
-
-	code =
-	    clEnqueueWriteBuffer(queue, data_info, CL_TRUE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
-	if (code != CL_SUCCESS) {
-		printf
-		    ("failed in clEnqueueWriteBuffer data_info with code %d\n",
-		    code);
-		exit(-1);
-	}
-	code =
-	    clEnqueueWriteBuffer(queue, buffer_keys, CL_TRUE, 0,
-	    (SHA_BLOCK) * SSHA_NUM_KEYS, inbuffer, 0, NULL, NULL);
-	if (code != CL_SUCCESS) {
-		printf
-		    ("failed in clEnqueueWriteBuffer inbuffer with code %d\n",
-		    code);
-		exit(-1);
-	}
-	// execute ssha kernel
-	code =
-	    clEnqueueNDRangeKernel(queue, sha1_crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, NULL);
-	if (code != CL_SUCCESS) {
-		printf("failed in clEnqueueNDRangeKernel with code %d\n",
-		    code);
-		exit(-1);
-	}
-	clFinish(queue);
+	HANDLE_CLERROR(
+	    clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
+	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
+	    "failed in clEnqueueWriteBuffer");
+	HANDLE_CLERROR(
+	    clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
+	    (SHA_BLOCK) * SSHA_NUM_KEYS, inbuffer, 0, NULL, NULL),
+	     "failed in clEnqueueWriteBuffer");
+	     
+	HANDLE_CLERROR(
+	    clEnqueueNDRangeKernel(queue[gpu_id], sha1_crypt_kernel, 1, NULL,
+	    &global_work_size, &local_work_size, 0, NULL, NULL),
+	      "failed in clEnqueueNDRangeKernel");
+	      
+	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinnish");
 	// read back partial hashes
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE, 0,
-	    sizeof(cl_uint) * SSHA_NUM_KEYS, outbuffer, 0, NULL, NULL);
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0,
+	    sizeof(cl_uint) * SSHA_NUM_KEYS, outbuffer, 0, NULL, NULL),
+	      "failed in reading data back");
 }
 
 static void *rawsha1_binary(char *ciphertext)
@@ -292,12 +277,16 @@ static int binary_hash_1(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0
 static int binary_hash_2(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
 static int binary_hash_3(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
 static int binary_hash_4(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
+static int binary_hash_5(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
+static int binary_hash_6(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
 static int get_hash_0(int index) { return outbuffer[index] & 0xF; }
 static int get_hash_1(int index) { return outbuffer[index] & 0xFF; }
 static int get_hash_2(int index) { return outbuffer[index] & 0xFFF; }
 static int get_hash_3(int index) { return outbuffer[index] & 0xFFFF; }
 static int get_hash_4(int index) { return outbuffer[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return outbuffer[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return outbuffer[index] & 0x7FFFFFF; }
 
 struct fmt_main fmt_opencl_rawSHA1 = {
 	{
@@ -325,7 +314,9 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		rawsha1_set_salt,
@@ -338,7 +329,9 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		rawsha1_cmp_all,
 		rawsha1_cmp_one,

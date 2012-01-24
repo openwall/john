@@ -92,8 +92,9 @@ JOHN_OBJS = \
 	unique.o
 
 OCL_OBJS = \
-	common-opencl.o NSLDAPS_opencl_fmt.o NT_opencl_fmt.o \
-	rawMD5_opencl_fmt.o rawSHA1_opencl_fmt.o 
+	common-opencl.o \
+	cryptmd5_opencl_fmt.o phpass_opencl_fmt.o rawSHA1_opencl_fmt.o \
+	NT_opencl_fmt.o rawMD5_opencl_fmt.o  NSLDAPS_opencl_fmt.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -155,6 +156,7 @@ default:
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
+	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-sse2[i]        Linux, x86 32-bit with SSE2 (most common, 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
@@ -249,8 +251,8 @@ linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o $(OCL_OBJS)" \
-		CFLAGS="$(CFLAGS) -I/usr/local/cuda/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -lcrypt -lOpenCL -ldl"
 	/bin/sh ./setup-opencl-stuff.sh
 
@@ -343,6 +345,15 @@ linux-x86-xop:
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-opencl:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
+		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86 -L$(NVIDIA_CUDA)/lib -lcrypt -lOpenCL -ldl"
+	/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h

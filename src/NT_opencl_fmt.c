@@ -108,11 +108,6 @@ static int max_key_length = 0;
 static char get_key_saved[PLAINTEXT_LENGTH+1];
 
 //OpenCL variables
-cl_platform_id platform;
-cl_device_id device;
-cl_context context;
-cl_program program;
-cl_command_queue queue;
 cl_kernel nt_crypt_kernel;
 cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
@@ -124,8 +119,8 @@ size_t local_work_size;
 
 static void release_all(void)
 {
-	clEnqueueUnmapMemObject(queue, pinned_bbbs, bbbs, 0, NULL, NULL);
-	clEnqueueUnmapMemObject(queue, pinned_saved_keys, saved_plain, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(queue[gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
 
 	clReleaseMemObject(buffer_keys);
 	clReleaseMemObject(buffer_out);
@@ -133,9 +128,9 @@ static void release_all(void)
 	clReleaseMemObject(pinned_saved_keys);
 
 	clReleaseKernel(nt_crypt_kernel);
-	clReleaseProgram(program);
-	clReleaseCommandQueue(queue);
-	clReleaseContext(context);
+	clReleaseProgram(program[gpu_id]);
+	clReleaseCommandQueue(queue[gpu_id]);
+	clReleaseContext(context[gpu_id]);
 }
 // Find best number of threads per block (named work_group_size or local_work_size)
 // Needed because Nvidia register allocation is per block. This can increase occupancy.
@@ -148,14 +143,14 @@ static void find_best_workgroup(size_t max_group_size)
 	cl_int ret_code;
 	int i = 0;
 
-	cl_command_queue queue_prof = clCreateCommandQueue( context, device, CL_QUEUE_PROFILING_ENABLE, NULL );
+	cl_command_queue queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, NULL );
 	local_work_size = 1;
 
 	// Set keys
 	for (; i < NT_NUM_KEYS; i++)
 		set_key("aaaaaaaa",i);
 	// Fill params. Copy only necesary data
-	clEnqueueWriteBuffer(queue, buffer_keys, CL_TRUE, 0, 12 * NT_NUM_KEYS, saved_plain, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 12 * NT_NUM_KEYS, saved_plain, 0, NULL, NULL);
 
 	// Find minimum time
 	for(;my_work_group <= max_group_size; my_work_group*=2)
@@ -185,14 +180,14 @@ static void nt_crypt_all_opencl(int count)
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 
 	// Fill params. Copy only necesary data
-	clEnqueueWriteBuffer(queue, buffer_keys, CL_TRUE, 0, key_length_mul_4 * NT_NUM_KEYS, saved_plain, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, key_length_mul_4 * NT_NUM_KEYS, saved_plain, 0, NULL, NULL);
 
 	// Execute method
-	clEnqueueNDRangeKernel( queue, nt_crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-	clFinish( queue );
+	clEnqueueNDRangeKernel( queue[gpu_id], nt_crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+	clFinish( queue[gpu_id] );
 
 	// Read partial result
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE, 0, 4*NT_NUM_KEYS, bbbs, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, 4*NT_NUM_KEYS, bbbs, 0, NULL, NULL);
 
 	max_key_length = 0;
 }
@@ -201,37 +196,35 @@ static void nt_crypt_all_opencl(int count)
 #define MAX_KEYS_PER_CRYPT		NT_NUM_KEYS
 
 static void fmt_NT_init(struct fmt_main *pFmt){
-	cl_int ret_code;
-	size_t max_group_size;
 	int argIndex = 0;
 	
 	atexit(release_all);
-    	opencl_init("$JOHN/nt_opencl_kernel.cl", CL_DEVICE_TYPE_GPU);
+    	opencl_init("$JOHN/nt_opencl_kernel.cl", gpu_id);
 
-	nt_crypt_kernel = clCreateKernel( program, "nt_crypt", &ret_code );
-	if_error_log (ret_code,"Error creating kernel");
+	nt_crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
+	HANDLE_CLERROR(ret_code,"Error creating kernel");
 
-	pinned_saved_keys = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code);
-	if_error_log (ret_code,"Error creating page-locked memory");
-	pinned_bbbs = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*NT_NUM_KEYS, NULL, &ret_code);
-	if_error_log (ret_code,"Error creating page-locked memory");
+	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
+	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*NT_NUM_KEYS, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
 
-	saved_plain = (char*) clEnqueueMapBuffer(queue, pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
-	if_error_log (ret_code,"Error mapping page-locked memory");
-	bbbs = (cl_uint*)clEnqueueMapBuffer(queue, pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
-	if_error_log (ret_code,"Error mapping page-locked memory");
+	saved_plain = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
+	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
 
 	// 6. Create and set arguments
-	buffer_keys = clCreateBuffer( context, CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code ); 
-	if_error_log (ret_code,"Error creating buffer argument");
-	buffer_out  = clCreateBuffer( context, CL_MEM_WRITE_ONLY , 4*4*NT_NUM_KEYS, NULL, &ret_code ); 
-	if_error_log (ret_code,"Error creating buffer argument");
+	buffer_keys = clCreateBuffer( context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code ); 
+	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
+	buffer_out  = clCreateBuffer( context[gpu_id], CL_MEM_WRITE_ONLY , 4*4*NT_NUM_KEYS, NULL, &ret_code ); 
+	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
 
 	argIndex = 0;
-	ret_code = clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys);               
-	if_error_log (ret_code,"Error setting argument 1");
-	ret_code = clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out );               
-	if_error_log (ret_code,"Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys),            
+		"Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
+		"Error setting argument 2");
 
 	find_best_workgroup(max_group_size);
 	//local_work_size = 64;
@@ -368,15 +361,15 @@ static int cmp_one(void * binary, int index)
 		return 0;
 
 	//a
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,  sizeof(cl_uint)*(1*NT_NUM_KEYS+index), sizeof(a), (void*)&a, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(1*NT_NUM_KEYS+index), sizeof(a), (void*)&a, 0, NULL, NULL);
 	if (t[0]!=a)
 		return 0;
 	//c
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,  sizeof(cl_uint)*(2*NT_NUM_KEYS+index), sizeof(c), (void*)&c, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(2*NT_NUM_KEYS+index), sizeof(c), (void*)&c, 0, NULL, NULL);
 	if (t[2]!=c)
 		return 0;
 	//d
-	clEnqueueReadBuffer(queue, buffer_out, CL_TRUE,  sizeof(cl_uint)*(3*NT_NUM_KEYS+index), sizeof(d), (void*)&d, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(3*NT_NUM_KEYS+index), sizeof(d), (void*)&d, 0, NULL, NULL);
 	return t[3]==d;
 	if(b!=t[1])
 		return 0;
