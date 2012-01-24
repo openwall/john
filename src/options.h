@@ -188,6 +188,9 @@ struct options_main {
 
 /* Forced min/max_keys_per_crypt (for testing purposes) */
 	int mkpc;
+
+/* Graceful exit after this many seconds of cracking */
+	int max_run_time;
 };
 
 extern struct options_main options;
