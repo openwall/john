@@ -94,7 +94,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "valid";
 		/* Ensure we have a misaligned ciphertext */
 		if (!ciphertext)
-			ciphertext = mem_alloc_tiny(LINE_BUFFER_SIZE + 1,
+			ciphertext = (char*)mem_alloc_tiny(LINE_BUFFER_SIZE + 1,
 			                            MEM_ALIGN_WORD) + 1;
 		strcpy(ciphertext, format->methods.split(prepared, 0));
 		plaintext = current->plaintext;
@@ -202,8 +202,8 @@ static void *alloc_binary(size_t size, void **alloc)
 	if (size >= ARCH_SIZE)
 		return *alloc;
 	if (size >= 4)
-		return *alloc + 4;
-	return *alloc + 1;
+		return (char*)*alloc + 4;
+	return (char*)*alloc + 1;
 }
 
 char *fmt_self_test(struct fmt_main *format)
@@ -213,19 +213,17 @@ char *fmt_self_test(struct fmt_main *format)
 	void *binary_copy, *salt_copy;
 
 	binary_copy = alloc_binary(format->params.binary_size, &binary_alloc);
-	memset(binary_copy + format->params.binary_size, 0xaa, 8);
+	memset((char*)binary_copy + format->params.binary_size, 0xaa, 8);
 
 	salt_copy = alloc_binary(format->params.salt_size, &salt_alloc);
-	memset(salt_copy + format->params.salt_size, 0x33, 8);
+	memset((char*)salt_copy + format->params.salt_size, 0x33, 8);
 
 	retval = fmt_self_test_body(format, binary_copy, salt_copy);
 	if (!retval) {
-		if (memcmp(binary_copy + format->params.binary_size, "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa", 8)) {
-			dump_stuff_msg("binary", binary_copy + format->params.binary_size - 8, 24);
+		if (memcmp((char*)binary_copy + format->params.binary_size, "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa", 8)) {
 			return "Binary buffer overrun";
 		}
-		if (memcmp(salt_copy + format->params.salt_size, "\x33\x33\x33\x33\x33\x33\x33\x33", 8)) {
-			dump_stuff_msg("salt", salt_copy + format->params.salt_size - 8 , 24);
+		if (memcmp((char*)salt_copy + format->params.salt_size, "\x33\x33\x33\x33\x33\x33\x33\x33", 8)) {
 			return "Salt buffer overrun";
 		}
 	}
