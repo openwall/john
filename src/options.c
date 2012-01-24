@@ -39,6 +39,9 @@
 #endif
 #define _PER_NODE ""
 #endif
+#ifdef CL_VERSION_1_0
+extern unsigned int gpu_id;
+#endif
 
 struct options_main options;
 static char *field_sep_char_string;
@@ -125,6 +128,10 @@ static struct opt_entry opt_list[] = {
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.mkpc},
+#ifdef CL_VERSION_1_0
+	{"gpu", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &gpu_id},
+#endif
 	{NULL}
 };
 
@@ -185,6 +192,9 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
 
+#define JOHN_GPUID \
+"--gpu=GPUID               set OpenCL device, 0 - default (Experimental)\n"
+
 static void print_usage(char *name)
 {
 	int column;
@@ -216,8 +226,10 @@ static void print_usage(char *name)
 #ifdef HAVE_DL
 	printf("%s", JOHN_USAGE_PLUGIN);
 #endif
-
-	exit(0);
+#ifdef CL_VERSION_1_0
+	printf("%s", JOHN_GPUID);
+#endif
+exit(0);
 }
 
 void opt_init(char *name, int argc, char **argv)

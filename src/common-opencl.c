@@ -1,60 +1,158 @@
 /* Common OpenCL functions go in this file */
 
 #include "common-opencl.h"
+#include <assert.h>
+#include <string.h>
+#define LOG_SIZE 1024*16
+#define SRC_SIZE 1024*16
 
-void if_error_log(cl_int ret_code, const char *message)
+static char opencl_log[LOG_SIZE];
+static char kernel_source[SRC_SIZE];
+static int kernel_loaded;
+
+void handle_clerror(cl_int cl_error, const char *message, const char *file,
+    int line)
 {
-    if(ret_code != CL_SUCCESS) {
-        printf("\nOpenCL: %s\n", message);
-        exit(-1);
-    }
+	if (cl_error != CL_SUCCESS) {
+		fprintf(stderr,
+		    "OpenCL error (%s) in file (%s) at line (%d) - (%s)\n",
+		    get_error_name(cl_error), file, line, message);
+		exit(EXIT_FAILURE);
+	}
 }
 
-/* TODO: make this function more generic */
-void opencl_init(char *kernel_filename, cl_device_type device_type)
+static void read_kernel_source(char *kernel_filename)
 {
-    // load kernel source
-    char *source = (char*)mem_alloc(1024*16);
-    char *kernel_path = path_expand(kernel_filename);
-    printf("\nKernel path is : %s\n", kernel_path);
-    FILE *fp = fopen(kernel_path,"r");
-    if(!fp)
-        if_error_log(!CL_SUCCESS, "Source kernel not found!");
-    size_t source_size = fread(source, sizeof(char), 1024*16, fp);
-    source[source_size] = 0;
-    fclose(fp);
-
-    // get a platform and its information
-    char log[1024*64];
-    ret_code = clGetPlatformIDs(1, &platform, NULL);
-    if_error_log(ret_code, "No OpenCL platform exist");
-    ret_code = clGetPlatformInfo(platform, CL_PLATFORM_NAME, sizeof(log), log, NULL);
-    if_error_log(ret_code, "Error querying PLATFORM_NAME");
-    printf("\nOpenCL Platform: <<<%s>>>", log);
-
-    // find an OpenCL device
-    ret_code = clGetDeviceIDs(platform, device_type, 1, &devices, NULL);
-    if_error_log(ret_code, "No OpenCL device of that type exist");
-    ret_code = clGetDeviceInfo(devices, CL_DEVICE_NAME, sizeof(log), log, NULL);
-    if_error_log(ret_code, "Error querying DEVICE_NAME");
-    printf(" and device: <<<%s>>>\n",log);
-    ret_code = clGetDeviceInfo(devices, CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size), &max_group_size, NULL);
-    if_error_log(ret_code, "Error querying MAX_WORK_GROUP_SIZE");
-
-    // create a context and command queue on the device.
-    context = clCreateContext(NULL, 1, &devices, NULL, NULL, &ret_code);
-    if_error_log(ret_code, "Error creating context");
-    queue = clCreateCommandQueue(context, devices, 0, &ret_code);
-    if_error_log(ret_code, "Error creating command queue");
-
-    // submit the kernel source for compilation
-    program = clCreateProgramWithSource(context, 1, (const char **)&source, NULL, &ret_code);
-    if_error_log(ret_code,"Error creating program");
-    ret_code = clBuildProgram(program, 1, &devices, NULL, NULL, NULL);
-    if(ret_code != CL_SUCCESS) {
-        printf("failed in clBuildProgram with %d\n", ret_code);
-        clGetProgramBuildInfo(program, devices, CL_PROGRAM_BUILD_LOG, sizeof(log), (void*)log, NULL);
-        printf("compilation log: %s\n", log);
-        exit(-1);
-    }
+	//printf("kernel filename:%s\n",kernel_filename);
+	char *kernel_path = path_expand(kernel_filename);
+	FILE *fp = fopen(kernel_path, "r");
+	if (!fp)
+		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+	size_t source_size = fread(kernel_source, sizeof(char), SRC_SIZE, fp);
+	kernel_source[source_size] = 0;
+	fclose(fp);
+	kernel_loaded = 1;
 }
+
+static void dev_init(unsigned int dev_id)
+{				//dev is 0 or 1
+	assert(dev_id < MAXGPUS);
+	cl_platform_id platform;
+	cl_uint platforms, device_num;
+
+	///Find CPU's
+	HANDLE_CLERROR(clGetPlatformIDs(1, &platform, &platforms),
+	    "No OpenCL platform found");
+	printf("OpenCL Platforms: %d", platforms);
+	HANDLE_CLERROR(clGetPlatformInfo(platform, CL_PLATFORM_NAME,
+		sizeof(opencl_log), opencl_log, NULL),
+	    "Error querying PLATFORM_NAME");
+	printf("\nOpenCL Platform: <<<%s>>>", opencl_log);
+
+	HANDLE_CLERROR(clGetDeviceIDs
+	    (platform, CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+	    "No OpenCL device of that type exist");
+
+	printf(" %d device(s), ", device_num);
+	cl_context_properties properties[] = {
+		CL_CONTEXT_PLATFORM, (cl_context_properties) platform,
+		0
+	};
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+		sizeof(opencl_log), opencl_log, NULL),
+	    "Error querying DEVICE_NAME");
+	printf("using device: <<<%s>>>\n", opencl_log);
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+		CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
+		&max_group_size, NULL), "Error querying MAX_WORK_GROUP_SIZE");
+	///Setup context
+	context[dev_id] =
+	    clCreateContext(properties, 1, &devices[dev_id], NULL, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating context");
+	queue[dev_id] =
+	    clCreateCommandQueue(context[dev_id], devices[dev_id], 0,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating command queue");
+}
+
+
+static void build_kernel(int dev_id)
+{
+	assert(kernel_loaded);
+	const char *srcptr[] = { kernel_source };
+	program[dev_id] =
+	    clCreateProgramWithSource(context[dev_id], 1, srcptr, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating program");
+
+	cl_int build_code;
+	build_code = clBuildProgram(program[dev_id], 0, NULL, "", NULL, NULL);
+
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
+		NULL), "Error while getting build info");
+
+	///Report build errors and warnings
+	if (build_code != CL_SUCCESS)
+		printf("Compilation log: %s\n", opencl_log);
+#ifdef REPORT_OPENCL_WARNINGS
+	else if (strlen(opencl_log) > 0)
+		printf("Compilation log: %s\n", opencl_log);
+#endif
+}
+
+void opencl_init(char *kernel_filename, unsigned int dev_id)
+{
+	//if (!kernel_loaded)
+		read_kernel_source(kernel_filename);
+	dev_init(dev_id);
+	build_kernel(dev_id);
+}
+
+char *get_error_name(cl_int cl_error)
+{
+	static char *err_1[] =
+	    { "CL_SUCCESS", "CL_DEVICE_NOT_FOUND", "CL_DEVICE_NOT_AVAILABLE",
+		"CL_COMPILER_NOT_AVAILABLE",
+		"CL_MEM_OBJECT_ALLOCATION_FAILURE", "CL_OUT_OF_RESOURCES",
+		"CL_OUT_OF_HOST_MEMORY",
+		"CL_PROFILING_INFO_NOT_AVAILABLE", "CL_MEM_COPY_OVERLAP",
+		"CL_IMAGE_FORMAT_MISMATCH",
+		"CL_IMAGE_FORMAT_NOT_SUPPORTED", "CL_BUILD_PROGRAM_FAILURE",
+		"CL_MAP_FAILURE"
+	};
+	static char *err_invalid[] = {
+		"CL_INVALID_VALUE", "CL_INVALID_DEVICE_TYPE",
+		"CL_INVALID_PLATFORM", "CL_INVALID_DEVICE",
+		"CL_INVALID_CONTEXT", "CL_INVALID_QUEUE_PROPERTIES",
+		"CL_INVALID_COMMAND_QUEUE", "CL_INVALID_HOST_PTR",
+		"CL_INVALID_MEM_OBJECT", "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR",
+		"CL_INVALID_IMAGE_SIZE", "CL_INVALID_SAMPLER",
+		"CL_INVALID_BINARY", "CL_INVALID_BUILD_OPTIONS",
+		"CL_INVALID_PROGRAM", "CL_INVALID_PROGRAM_EXECUTABLE",
+		"CL_INVALID_KERNEL_NAME", "CL_INVALID_KERNEL_DEFINITION",
+		"CL_INVALID_KERNEL", "CL_INVALID_ARG_INDEX",
+		"CL_INVALID_ARG_VALUE", "CL_INVALID_ARG_SIZE",
+		"CL_INVALID_KERNEL_ARGS", "CL_INVALID_WORK_DIMENSION",
+		"CL_INVALID_WORK_GROUP_SIZE", "CL_INVALID_WORK_ITEM_SIZE",
+		"CL_INVALID_GLOBAL_OFFSET", "CL_INVALID_EVENT_WAIT_LIST",
+		"CL_INVALID_EVENT", "CL_INVALID_OPERATION",
+		"CL_INVALID_GL_OBJECT", "CL_INVALID_BUFFER_SIZE",
+		"CL_INVALID_MIP_LEVEL", "CL_INVALID_GLOBAL_WORK_SIZE"
+	};
+
+	if (cl_error <= 0 && cl_error >= -12) {
+		cl_error = -cl_error;
+		return err_1[cl_error];
+	}
+	if (cl_error <= -30 && cl_error >= -63) {
+		cl_error = -cl_error;
+		return err_invalid[cl_error - 30];
+	}
+
+	return "UNKNOWN ERROR :(";
+}
+
+#undef LOG_SIZE
+#undef SRC_SIZE
