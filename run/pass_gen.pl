@@ -133,7 +133,7 @@ UsageHelp
 }
 
 if (@ARGV == 0) {
-	die "A format must be specified when running the script";
+	die usage();
 }
 
 if ($arg_utf8) { $arg_codepage="utf8"; }
