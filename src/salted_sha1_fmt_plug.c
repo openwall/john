@@ -1,14 +1,13 @@
 /*
  * generic salted-sha1 support for LDAP style password storage
- * only works with salt that are powers of 2
  *
- * Copyright (c) 2003 Simon Marechal
+ * Copyright (c) 2003 Simon Marechal, salt length fixes (c) 2012 magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
 
-#define MAX_SALT_LEN	16
+#define MAX_SALT_LEN	16	// bytes, the base64 representation is longer
 
 #include <string.h>
 
@@ -52,11 +51,12 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH		32
-#define CIPHERTEXT_LENGTH		48
+#define PLAINTEXT_LENGTH		(55-MAX_SALT_LEN)
 
-#define BINARY_SIZE			20
+#define BINARY_SIZE			20 // this is 28 chars of base64
 #define SALT_SIZE			(MAX_SALT_LEN + sizeof(unsigned int))
+
+#define CIPHERTEXT_LENGTH		((BINARY_SIZE + MAX_SALT_LEN + 2) / 3 * 4)
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
@@ -79,7 +79,7 @@ struct s_salt
 	} data;
 };
 
-static struct s_salt saved_salt;
+static struct s_salt *saved_salt;
 
 static struct fmt_tests tests[] = {
 // Test hashes originally(?) in OPENLDAPS_fmt (openssha) (salt length 4)
@@ -101,14 +101,12 @@ static struct fmt_tests tests[] = {
 	{"{SSHA}cKFVqtf358j0FGpPsEIK1xh3T0mtDNV1kAaBNg==", "salles"},
 	{"{SSHA}W3ipFGmzS3+j6/FhT7ZC39MIfqFcct9Ep0KEGA==", "asddsa123"},
 	{"{SSHA}YbB2R1D2AlzYc9wk/YPtslG7NoiOWaoMOztLHA==", "ripthispassword"},
-#if 0
+
 /*
- * These two were found in john-1.6-nsldaps4.diff.gz and apparently they were
- * supported by that version of they code, but they are not anymore.
+ * These two were found in john-1.6-nsldaps4.diff.gz
  */
-  {"{SSHA}/EExmSfmhQSPHDJaTxwQSdb/uPpzYWx0ZXI=", "secret"},
-  {"{SSHA}gVK8WC9YyFT1gMsQHTGCgT3sSv5zYWx0", "secret"},
-#endif
+	{"{SSHA}/EExmSfmhQSPHDJaTxwQSdb/uPpzYWx0ZXI=", "secret"},
+	{"{SSHA}gVK8WC9YyFT1gMsQHTGCgT3sSv5zYWx0", "secret"},
 
 	{NULL}
 };
@@ -126,30 +124,21 @@ unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
 #endif
 static unsigned int saved_len[NBKEYS];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
-static unsigned int salt_sizes;
-static unsigned int max_salt_size;
+static int last_salt_size;
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-static void init(struct fmt_main *pFmt)
-{
-#ifdef MMX_COEF
-	salt_sizes = 0;
-	max_salt_size = 0;
-#endif
-}
-
 static void * binary(char *ciphertext) {
 	static char *realcipher;
 
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + 9, MEM_ALIGN_WORD);
+	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + SALT_SIZE, MEM_ALIGN_WORD);
 
-	/* stupid overflows */
-	memset(realcipher, 0, BINARY_SIZE + 9);
-	base64_decode(NSLDAP_MAGIC_LENGTH+ciphertext, strlen(ciphertext)-NSLDAP_MAGIC_LENGTH, realcipher);
+	ciphertext += NSLDAP_MAGIC_LENGTH;
+	memset(realcipher, 0, BINARY_SIZE);
+	base64_decode(ciphertext, strlen(ciphertext), realcipher);
 #ifdef MMX_COEF
 	alter_endianity((unsigned char *)realcipher, BINARY_SIZE);
 #endif
@@ -158,9 +147,17 @@ static void * binary(char *ciphertext) {
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-//	printf("%s %s\n", __func__, ciphertext);
-	if(strlen(ciphertext) > (CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH) )
+	int len;
+
+	len = strlen(ciphertext);
+
+	if (len < NSLDAP_MAGIC_LENGTH + (BINARY_SIZE+1+2)/3*4)
 		return 0;
+
+	len -= NSLDAP_MAGIC_LENGTH;
+	if (len & 3 || len > CIPHERTEXT_LENGTH)
+		return 0;
+
 	return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
 }
 
@@ -214,33 +211,22 @@ key_cleaning:
 static void * get_salt(char * ciphertext)
 {
 	static struct s_salt cursalt;
-	char realcipher[BINARY_SIZE + (MAX_SALT_LEN*4/3) + 9];
+	char *p;
+	char realcipher[CIPHERTEXT_LENGTH];
+	int len;
 
-//	printf("%s %s\n", __func__, ciphertext);
-
+	ciphertext += NSLDAP_MAGIC_LENGTH;
 	memset(realcipher, 0, sizeof(realcipher));
 	memset(&cursalt, 0, sizeof(struct s_salt));
-	base64_decode(NSLDAP_MAGIC_LENGTH+ciphertext, strlen(ciphertext) - NSLDAP_MAGIC_LENGTH, realcipher);
-	switch( strlen(ciphertext ) )
-	{
-		case 38:
-			cursalt.len = 4;
-			break;
-		case 46:
-			cursalt.len = 8;
-			break;
-		default:
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "unknown salt size for %s (total len=%ld)\n", ciphertext, (long)strlen(ciphertext));
-			return NULL;
-	}
-#ifdef MMX_COEF
-	salt_sizes |= cursalt.len;
-	if(cursalt.len > max_salt_size)
-		max_salt_size = cursalt.len;
-#endif
+	len = strlen(ciphertext);
+	base64_decode(ciphertext, len, realcipher);
+
+	// We now support any salt length up to SALT_SIZE
+	cursalt.len = (len + 3) / 4 * 3 - BINARY_SIZE;
+	p = &ciphertext[len];
+	while (*--p == '=')
+		cursalt.len--;
+
 	memcpy(cursalt.data.c, realcipher+BINARY_SIZE, cursalt.len);
 	return &cursalt;
 }
@@ -307,30 +293,33 @@ static int cmp_one(void * binary, int index)
 }
 
 static void set_salt(void *salt) {
-	memcpy(&saved_salt, salt, sizeof(struct s_salt));
+	saved_salt = salt;
 }
 
 #ifdef MMX_COEF
-static void set_onesalt(int index)
+static inline void set_onesalt(int index)
 {
 	unsigned int i;
-	for(i=0;i<saved_salt.len;i++)
-		saved_key[GETPOS(i + saved_len[index], index)] = saved_salt.data.c[i];
-	if(saved_salt.len != max_salt_size) /* more than one salt size at the same time */
-		for(i=0;i<max_salt_size-saved_salt.len;i++)
-			saved_key[GETPOS(i+saved_salt.len+saved_len[index], index)] = 0;
 
-	saved_key[GETPOS(saved_salt.len + saved_len[index], index)] = 0x80;
+	for(i=0;i<saved_salt->len;i++)
+		saved_key[GETPOS(i + saved_len[index], index)] = saved_salt->data.c[i];
+	saved_key[GETPOS(i + saved_len[index], index)] = 0x80;
 
-	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (saved_salt.len + saved_len[index])<<3;
+	while (++i <= last_salt_size)
+		saved_key[GETPOS(i + saved_len[index], index)] = 0;
+
+	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (saved_salt->len + saved_len[index])<<3;
 }
 #endif
 
 static void crypt_all(int count) {
 #ifdef MMX_COEF
 	unsigned int i;
+
 	for(i=0;i<NBKEYS;i++)
 		set_onesalt(i);
+	last_salt_size = saved_salt->len;
+
 # if SHA1_SSE_PARA
 	SSESHA1body(saved_key, (unsigned int *)crypt_key, NULL, 0);
 # else
@@ -341,7 +330,7 @@ static void crypt_all(int count) {
 #else
 	SHA1_Init( &ctx );
 	SHA1_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
-	SHA1_Update( &ctx, (unsigned char *) saved_salt.data.c, saved_salt.len);
+	SHA1_Update( &ctx, (unsigned char *) saved_salt->data.c, saved_salt->len);
 	SHA1_Final( (unsigned char *) crypt_key, &ctx);
 //	dump_stuff((unsigned char *)crypt_key, 20);
 //	exit(1);
@@ -397,7 +386,7 @@ struct fmt_main fmt_saltedsha = {
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
-		init,
+		fmt_default_init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

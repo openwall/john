@@ -29,6 +29,7 @@ use Crypt::ECB qw(encrypt PADDING_AUTO PADDING_NONE);
 use Crypt::PBKDF2;
 use Crypt::OpenSSL::PBKDF2;
 use String::CRC32;
+use MIME::Base64;
 
 #############################################################################
 #
@@ -61,7 +62,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		oracle_no_upcase_change oracle11 hdaa netntlm_ess openssha
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
 		Dynamic dummy rawsha256 rawsha384 rawsha512 dragonfly3_32
-		dragonfly4_32));
+		dragonfly4_32 saltedsha1));
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -133,7 +134,7 @@ UsageHelp
 }
 
 if (@ARGV == 0) {
-	die "A format must be specified when running the script";
+	die usage();
 }
 
 if ($arg_utf8) { $arg_codepage="utf8"; }
@@ -266,38 +267,9 @@ sub to64 #unsigned long v, int n)
 	return $str;
 }
 # helper function for nsldap and nsldaps
-sub ns_base64 {
-	my $ret = "";
-	my $n; my @ha = split(//,$h);
-	for ($i = 0; $i <= $_[0]; ++$i) {
-		# the first one gets some unitialized at times.
-		#$n = ord($ha[$i*3+2]) | (ord($ha[$i*3+1])<<8)  | (ord($ha[$i*3])<<16);
-		$n = ord($ha[$i*3])<<16;
-		if (@ha > $i*3+1) {$n |= (ord($ha[$i*3+1])<<8);}
-		if (@ha > $i*3+2) {$n |= ord($ha[$i*3+2]);}
-		$ret .= "$ns_i64[($n>>18)&0x3F]";
-		if ($_[1] == 3 && $i == $_[0]) { $ret .= "="; }
-		else {$ret .= "$ns_i64[($n>>12)&0x3F]"; }
-		if ($_[1] > 1 && $i == $_[0]) { $ret .= "="; }
-		else {$ret .= "$ns_i64[($n>>6)&0x3F]"; }
-		if ($_[1] > 0 && $i == $_[0]) { $ret .= "="; }
-		else {$ret .= "$ns_i64[$n&0x3F]"; }
-	}
-	return $ret;
-}
-#helper function for ns
-sub ns_base64_2 {
-	my $ret = "";
-	my $n; my @ha = split(//,$h);
-	for ($i = 0; $i < $_[0]; ++$i) {
-		# the first one gets some unitialized at times..  Same as the fix in ns_base64
-		#$n = ord($ha[$i*2+1]) | (ord($ha[$i*2])<<8);
-		$n = ord($ha[$i*2])<<8;
-		if (@ha > $i*2+1) { $n |= ord($ha[$i*2+1]); }
-		$ret .= "$ns_i64[($n>>12)&0xF]";
-		$ret .= "$ns_i64[($n>>6)&0x3F]";
-		$ret .= "$ns_i64[$n&0x3F]";
-	}
+sub base64 {
+	my $ret = encode_base64($_[0]);
+	chomp $ret;
 	return $ret;
 }
 # helper function to convert binary to hex.  Many formats store salts and such in hex
@@ -753,7 +725,8 @@ sub mssql_no_upcase_change {
 
 sub nsldap {
 	$h = sha1($_[0]);
-	print "u$u-nsldap:{SHA}", ns_base64(6,1), ":$u:0:$_[0]::\n";
+	#print "u$u-nsldap:{SHA}", ns_base64(6,1), ":$u:0:$_[0]::\n";
+	print "u$u-nsldap:{SHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub nsldaps {
 	if (defined $argsalt) {
@@ -763,7 +736,7 @@ sub nsldaps {
 	}
 	$h = sha1($_[0],$salt);
 	$h .= $salt;
-	print "u$u-nsldap:{SSHA}", ns_base64(9,2), ":$u:0:$_[0]::\n";
+	print "u$u-nsldap:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub openssha {
 	if (defined $argsalt) {
@@ -773,7 +746,17 @@ sub openssha {
 	}
 	$h = sha1($_[0],$salt);
 	$h .= $salt;
-	print "u$u-openssha:{SSHA}", ns_base64(7,0), ":$u:0:$_[0]::\n";
+	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
+}
+sub saltedsha1 {
+	if (defined $argsalt) {
+		$salt = $argsalt;
+	} else {
+		$salt=randstr(rand(16)+1);
+	}
+	$h = sha1($_[0],$salt);
+	$h .= $salt;
+	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub ns {
 	if (defined $argsalt) {
@@ -782,7 +765,7 @@ sub ns {
 		$salt=randstr(3 + rand 4, \@chrHexLo);
 	}
 	$h = md5($salt, ":Administration Tools:", $_[0]);
-	my $hh = ns_base64_2(8);
+	my $hh = base64($h);
 	substr($hh, 0, 0) = 'n';
 	substr($hh, 6, 0) = 'r';
 	substr($hh, 12, 0) = 'c';
