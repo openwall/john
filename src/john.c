@@ -583,7 +583,9 @@ static void john_done(void)
 	if ((options.flags & FLG_CRACKING_CHK) &&
 	    !(options.flags & FLG_STDOUT)) {
 		if (event_abort)
-			log_event("Session aborted");
+			log_event(timer_abort ?
+			          "Session aborted" :
+			          "Session stopped (max run-time reached)");
 		else
 			log_event("Session completed");
 	}

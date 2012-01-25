@@ -47,12 +47,14 @@
 #include "params.h"
 #include "tty.h"
 #include "config.h"
+#include "options.h"
 #include "bench.h"
 
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
 
+volatile int timer_abort;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 
@@ -156,7 +158,10 @@ void check_abort(int be_async_signal_safe)
 	tty_done();
 
 	if (be_async_signal_safe) {
-		write_loop(2, "Session aborted\n", 16);
+		if (timer_abort)
+			write_loop(2, "Session aborted\n", 16);
+		else
+			write_loop(2, "Session stopped (max run-time reached)\n", 39);
 #if defined(HAVE_MPI) && defined(JOHN_MPI_ABORT)
 		if (mpi_p > 1) {
 			write_loop(2, "Aborting other nodes...\n", 24);
@@ -166,7 +171,8 @@ void check_abort(int be_async_signal_safe)
 		_exit(1);
 	}
 
-	fprintf(stderr, "Session aborted\n");
+	fprintf(stderr, "Session %s\n", timer_abort ?
+	        "aborted" : "stopped (max run-time reached)");
 	error();
 }
 
@@ -274,6 +280,9 @@ static void sig_handle_timer(int signum)
 
 		event_save = event_pending = 1;
 	}
+
+	if (!--timer_abort)
+		event_abort = event_pending = 1;
 
 	if (!--timer_ticksafety_value) {
 		timer_ticksafety_value = timer_ticksafety_interval;
