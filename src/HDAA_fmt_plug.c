@@ -2,7 +2,7 @@
  *
  * Written by Romain Raboin - romain.raboin at gmail.com
  *
- * OMP                support: Copyright magnum 2012 and hereby
+ * OMP and intrinsics support: Copyright magnum 2012 and hereby
  * released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -20,6 +20,7 @@
 #endif
 
 #include "arch.h"
+
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -27,10 +28,26 @@
 
 #include "stdint.h"
 
+#ifdef MD5_SSE_PARA
+#define MMX_COEF			4
+#include "sse-intrinsics.h"
+#define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
+#define ALGORITHM_NAME			"SSE2i " MD5_N_STR
+#elif defined(MMX_COEF)
+#define NBKEYS				MMX_COEF
+#if MMX_COEF == 4
+#define ALGORITHM_NAME			"SSE2 4x"
+#elif MMX_COEF == 2
+#define ALGORITHM_NAME			"MMX 2x"
+#elif defined(MMX_COEF)
+#define ALGORITHM_NAME			"?"
+#endif
+#else
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
+
 #define FORMAT_LABEL			"hdaa"
 #define FORMAT_NAME			"HTTP Digest access authentication"
-
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -40,19 +57,32 @@
 
 #define BINARY_SIZE			16
 
-#if defined(_OPENMP)
+#if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
 #include <omp.h>
+static unsigned int omp_t = 1;
+#ifdef MD5_SSE_PARA
+#define OMP_SCALE			256
+#else
 #define OMP_SCALE			64
 #endif
+#endif
 
+#ifdef MMX_COEF
+#define MIN_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&60)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*64*MMX_COEF )
+#define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&0x1c)*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF )
+#else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+#endif
 
 #define SEPARATOR			'$'
 
 #define MAGIC				"$response$"
 #define SIZE_TAB			12
 
+// This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
 #define HTMP				512
 
 typedef struct
@@ -96,21 +126,43 @@ static struct fmt_tests tests[] = {
 /* used by set_key */
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 
-/* store the ciphertext for value currently being tested */
+#ifdef MMX_COEF
+
+#define LIMBS	9
+static unsigned char *saved_key[LIMBS];
+static unsigned int *interm_key;
+static unsigned int *crypt_key;
+
+#else
+
+static int (*saved_len);
 static unsigned char (*crypt_key)[BINARY_SIZE + 1];
+
+#endif
 
 /* Store information about the request ()*/
 static reqinfo_t *rinfo = NULL;
 
 static void init(struct fmt_main *pFmt)
 {
-#if defined (_OPENMP)
-	int omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt = omp_t;
-	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt = omp_t;
+#ifdef MMX_COEF
+	int i;
 #endif
+#if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
+#ifdef MMX_COEF
+	for (i = 0; i < LIMBS; i++)
+		saved_key[i] = mem_calloc_tiny(64 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	interm_key = mem_calloc_tiny(16 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(16 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+#else
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+#endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
@@ -138,7 +190,10 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnzcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
+	strcpy(saved_plain[index], key);
+#ifndef MMX_COEF
+	saved_len[index] = -1;
+#endif
 }
 
 static char *get_key(int index)
@@ -148,17 +203,44 @@ static char *get_key(int index)
 
 static int cmp_all(void *binary, int count)
 {
+#ifdef MMX_COEF
+	unsigned int x,y=0;
+#ifdef MD5_SSE_PARA
+#ifdef _OPENMP
+	for(; y < MD5_SSE_PARA * omp_t; y++)
+#else
+	for(; y < MD5_SSE_PARA; y++)
+#endif
+#endif
+		for(x = 0; x < MMX_COEF; x++)
+		{
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+x] )
+				return 1;
+		}
+	return 0;
+#else
 	int index;
 
 	for (index = 0; index < count; index++)
 		if (!(memcmp(binary, crypt_key[index], BINARY_SIZE)))
 			return 1;
 	return 0;
+#endif
 }
 
 static int cmp_one(void *binary, int index)
 {
+#ifdef MMX_COEF
+	unsigned int i,x,y;
+	x = index&(MMX_COEF-1);
+	y = index/MMX_COEF;
+	for(i=0;i<(BINARY_SIZE/4);i++)
+		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x] )
+			return 0;
+	return 1;
+#else
 	return !(memcmp(binary, crypt_key[index], BINARY_SIZE));
+#endif
 }
 
 static int cmp_exact(char *source, int count)
@@ -169,9 +251,38 @@ static int cmp_exact(char *source, int count)
 
 /* convert hash from binary to ascii */
 
-#ifdef __MMX__
+#ifdef MMX_COEF
 
-static void bin2ascii(__m64 *conv, __m64 *src)
+// This code should be rewritten in intrinsics, reading from
+// MMX or SSE2 output buffers and writing to MMX/SSE2 input buffers.
+static inline void sse_bin2ascii(unsigned char *conv, unsigned char *src)
+{
+	unsigned int index;
+
+	for (index = 0; index < NBKEYS; index++) {
+		unsigned int i, j = 0;
+		for (i = 0; i < BINARY_SIZE; i += 2) {
+			unsigned int t;
+
+			t = (src[GETOUTPOS((i + 1), index)] & 0x0f);
+			t <<= 12;
+			t |= (src[GETOUTPOS((i + 1), index)] & 0xf0);
+			t <<= 4;
+			t |= (src[GETOUTPOS(i, index)] & 0x0f);
+			t <<= 8;
+			t |= ((src[GETOUTPOS(i, index)] & 0xf0) >> 4);
+			t += 0x06060606;
+			t += ((((t >> 4) & 0x01010101) * 0x27) + 0x2a2a2a2a);
+			*(unsigned int*)&conv[GETPOS(j, index)] = t;
+			j+=4;
+		}
+	}
+}
+
+#endif /* MMX_COEF */
+
+#ifdef __MMX__
+static inline void bin2ascii(__m64 *conv, __m64 *src)
 {
 	unsigned int i = 0;
 
@@ -220,7 +331,7 @@ static void bin2ascii(__m64 *conv, __m64 *src)
 
 #else
 
-static void bin2ascii(uint32_t *conv, uint32_t *source)
+static inline void bin2ascii(uint32_t *conv, uint32_t *source)
 {
 	unsigned char *src = (unsigned char*)source;
 	unsigned int i;
@@ -253,8 +364,144 @@ static void bin2ascii(uint32_t *conv, uint32_t *source)
 
 #endif /* MMX */
 
+#if MMX_COEF
+static inline void crypt_done(unsigned const int *source, unsigned int *dest, int index)
+{
+	unsigned int i;
+	unsigned const int *s = &source[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF];
+	unsigned int *d = &dest[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*4*MMX_COEF];
+
+	for (i = 0; i < BINARY_SIZE / 4; i++) {
+		*d = *s;
+		s += MMX_COEF;
+		d += MMX_COEF;
+	}
+}
+#endif
+
 static void crypt_all(int count)
 {
+#if MMX_COEF
+#if defined(_OPENMP) && defined(MD5_SSE_PARA)
+#define ti	(thread*NBKEYS+index)
+	int thread;
+#pragma omp parallel for
+	for (thread = 0; thread < (count+NBKEYS-1)/NBKEYS; thread++)
+#else
+#define thread	0
+#define ti	index
+#endif
+	{
+		static unsigned int crypt_len[NBKEYS];
+		unsigned int index, i, shortest, longest;
+
+		for (index = 0; index < NBKEYS; index++)
+		{
+			int len;
+			char temp;
+			const char *key;
+
+			key = rinfo->h1tmp;
+			for (len = 0; len < rinfo->h1tmplen; len += 4, key += 4)
+				*(ARCH_WORD_32*)&saved_key[len>>6][GETPOS(len, ti)] = *(ARCH_WORD_32*)key;
+			len = rinfo->h1tmplen;
+			key = (char*)&saved_plain[ti];
+			while((temp = *key++)) {
+				saved_key[len>>6][GETPOS(len, ti)] = temp;
+				len++;
+			}
+			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
+
+			// Clean rest of this buffer
+			i = len;
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = 0;
+			for (; i < (((len+8)>>6)+1)*64; i += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
+
+			((unsigned int *)saved_key[(len+8)>>6])[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = len << 3;
+		}
+
+#ifdef MD5_SSE_PARA
+		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &crypt_key[thread*4*NBKEYS], 1);
+#else
+		mdfivemmx_nosizeupdate((unsigned char*)&crypt_key[thread*4*NBKEYS], &saved_key[0][thread*64*NBKEYS], 0);
+#endif
+		sse_bin2ascii((unsigned char*)&saved_key[0][thread*64*NBKEYS], (unsigned char*)&crypt_key[thread*4*NBKEYS]);
+
+		longest = 0; shortest = HTMP;
+		for (index = 0; index < NBKEYS; index++)
+		{
+			const char *key;
+			int i, len;
+
+			len = CIPHERTEXT_LENGTH - 1;
+			key = rinfo->h3tmp + CIPHERTEXT_LENGTH;
+
+			// Copy a char at a time until aligned at destination
+			while (++len & 3)
+				saved_key[len>>6][GETPOS(len, ti)] = *key++;
+
+			// ...then a word at a time. This is a good boost, we are copying over 100 bytes.
+			for (;len < rinfo->h3tmplen; len += 4, key += 4)
+				*(ARCH_WORD_32*)&saved_key[len>>6][GETPOS(len, ti)] = *(ARCH_WORD_32*)key;
+			len = rinfo->h3tmplen;
+			saved_key[len>>6][GETPOS(len, ti)] = 0x80;
+
+			// Clean rest of this buffer
+			i = len;
+			while (++i & 3)
+				saved_key[i>>6][GETPOS(i, ti)] = 0;
+			//for (; i < (((len+8)>>6)+1)*64; i += 4)
+			for (; i <= crypt_len[index]; i += 4)
+				*(ARCH_WORD_32*)&saved_key[i>>6][GETPOS(i, ti)] = 0;
+
+			((unsigned int *)saved_key[(len+8)>>6])[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = len << 3;
+			crypt_len[index] = len;
+			if (len > longest)
+				longest = len;
+			if (len < shortest)
+				shortest = len;
+		}
+
+		// First limb
+#ifdef MD5_SSE_PARA
+		SSEmd5body(&saved_key[0][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], 1);
+#else
+		mdfivemmx_nosizeupdate((unsigned char*)&interm_key[thread*4*NBKEYS], &saved_key[0][thread*64*NBKEYS], 0);
+#endif
+		// Copy any output that is done now
+		if (shortest < 56) {
+			if (longest < 56)
+				memcpy(&crypt_key[thread*4*NBKEYS], &interm_key[thread*4*NBKEYS], 16*NBKEYS);
+			else
+				for (index = 0; index < NBKEYS; index++)
+					if (crypt_len[index] < 56)
+						crypt_done(interm_key, crypt_key, ti);
+		}
+		// Do the rest of the limbs
+		for (i = 1; i < (((longest + 8) >> 6) + 1); i++) {
+#ifdef MD5_SSE_PARA
+			SSEmd5body(&saved_key[i][thread*64*NBKEYS], &interm_key[thread*4*NBKEYS], 0);
+#else
+			mdfivemmx_noinit_nosizeupdate((unsigned char*)&interm_key[thread*4*NBKEYS], &saved_key[i][thread*64*NBKEYS], 0);
+#endif
+			// Copy any output that is done now
+			if (shortest < i*64+56) {
+				if (shortest > (i-1)*64+55 && longest < i*64+56)
+					memcpy(&crypt_key[thread*4*NBKEYS], &interm_key[thread*4*NBKEYS], 16*NBKEYS);
+				else
+					for (index = 0; index < NBKEYS; index++)
+						if (((crypt_len[index] + 8) >> 6) == i)
+							crypt_done(interm_key, crypt_key, ti);
+			}
+		}
+	}
+
+#undef thread
+#undef ti
+#else
+
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -280,7 +527,8 @@ static void crypt_all(int count)
 #endif
 
 		tmp = rinfo->h1tmplen;
-		len = strlen(saved_plain[index]);
+		if ((len = saved_len[index]) < 0)
+			len = saved_len[index] = strlen(saved_plain[index]);
 #ifdef _OPENMP
 		memcpy(h1tmp, rinfo->h1tmp, tmp);
 		memcpy(h3tmp + CIPHERTEXT_LENGTH, rinfo->h3tmp + CIPHERTEXT_LENGTH, rinfo->h3tmplen - CIPHERTEXT_LENGTH);
@@ -296,10 +544,12 @@ static void crypt_all(int count)
 		bin2ascii(conv, h1);
 
 		memcpy(h3tmp, conv, CIPHERTEXT_LENGTH);
+
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, h3tmp, rinfo->h3tmplen);
 		MD5_Final(crypt_key[index], &ctx);
 	}
+#endif
 }
 
 static char *mystrndup(const char *s, size_t n)
@@ -402,6 +652,16 @@ static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff
 static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
 static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
 
+#ifdef MMX_COEF
+#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*4
+static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
+#else
 static int get_hash_0(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0xf; }
 static int get_hash_1(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0xff; }
 static int get_hash_2(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0xfff; }
@@ -409,6 +669,7 @@ static int get_hash_3(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0x
 static int get_hash_4(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0xfffff; }
 static int get_hash_5(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0xffffff; }
 static int get_hash_6(int index) { return *(ARCH_WORD_32*)&crypt_key[index] & 0x7ffffff; }
+#endif
 
 struct fmt_main fmt_HDAA = {
 	{
@@ -422,7 +683,10 @@ struct fmt_main fmt_HDAA = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP | FMT_CASE | FMT_8_BIT,
+#if !defined(MMX_COEF) || defined(MD5_SSE_PARA)
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
