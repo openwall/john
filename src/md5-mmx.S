@@ -13,6 +13,7 @@
 #ifdef UNDERSCORES
 #define mdfivemmx	_mdfivemmx
 #define mdfivemmx_noinit_sizeupdate _mdfivemmx_noinit_sizeupdate
+#define mdfivemmx_noinit_nosizeupdate _mdfivemmx_noinit_nosizeupdate
 #define mdfivemmx_noinit_uniformsizeupdate _mdfivemmx_noinit_uniformsizeupdate
 #define mdfivemmx_nosizeupdate _mdfivemmx_nosizeupdate
 // These are the VC 'param marshalling' function stubs.  They are __fastcall functions, and have
@@ -21,17 +22,20 @@
 #define mdfivemmx_VC @mdfivemmx_VC@12
 #define mdfivemmx_nosizeupdate_VC @mdfivemmx_nosizeupdate_VC@12
 #define mdfivemmx_noinit_sizeupdate_VC @mdfivemmx_noinit_sizeupdate_VC@12
+#define mdfivemmx_noinit_nosizeupdate_VC @mdfivemmx_noinit_nosizeupdate_VC@12
 #define mdfivemmx_noinit_uniformsizeupdate_VC @mdfivemmx_noinit_uniformsizeupdate_VC@12
 #endif
 #endif
 .globl mdfivemmx
 .globl mdfivemmx_noinit_sizeupdate
+.globl mdfivemmx_noinit_nosizeupdate
 .globl mdfivemmx_noinit_uniformsizeupdate
 .globl mdfivemmx_nosizeupdate
 #ifdef __MINGW32__
 .globl mdfivemmx_VC
 .globl mdfivemmx_nosizeupdate_VC
 .globl mdfivemmx_noinit_sizeupdate_VC
+.globl mdfivemmx_noinit_nosizeupdate_VC
 .globl mdfivemmx_noinit_uniformsizeupdate_VC
 #endif
 
@@ -221,6 +225,10 @@ mdfivemmx_noinit_sizeupdate:
 	call sizeupdate
 	jmp mdfivemmx_noinit
 
+mdfivemmx_noinit_nosizeupdate:
+	pusha
+	jmp mdfivemmx_noinit
+
 mdfivemmx_noinit_uniformsizeupdate:
 	pusha
 	call uniformsizeupdate
@@ -278,6 +286,16 @@ mdfivemmx_noinit_sizeupdate_VC:
     call sizeupdate
     jmp mdfivemmx_noinit
     mdfivemmx_noinit_sizeupdate_VC_exit:
+    ret $4
+
+mdfivemmx_noinit_nosizeupdate_VC:
+    lea mdfivemmx_noinit_nosizeupdate_VC_exit, %eax
+    push %eax
+    pusha
+    mov %ecx, %eax
+    mov 40(%esp), %ecx
+    jmp mdfivemmx_noinit
+    mdfivemmx_noinit_nosizeupdate_VC_exit:
     ret $4
 
 mdfivemmx_noinit_uniformsizeupdate_VC:

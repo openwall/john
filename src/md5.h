@@ -50,16 +50,19 @@ extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 int __fastcall mdfivemmx_VC(unsigned char *out, unsigned char *in, int n);
 int __fastcall mdfivemmx_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
 int __fastcall mdfivemmx_noinit_sizeupdate_VC(unsigned char *out, unsigned char *in, int n);
+int __fastcall mdfivemmx_noinit_nosizeupdate_VC(unsigned char *out, unsigned char *in, int n);
 int __fastcall mdfivemmx_noinit_uniformsizeupdate_VC(unsigned char *out, unsigned char *in, int n);
 
 #define mdfivemmx mdfivemmx_VC
 #define mdfivemmx_nosizeupdate mdfivemmx_nosizeupdate_VC
 #define mdfivemmx_noinit_sizeupdate mdfivemmx_noinit_sizeupdate_VC
+#define mdfivemmx_noinit_nosizeupdate mdfivemmx_noinit_nosizeupdate_VC
 #define mdfivemmx_noinit_uniformsizeupdate mdfivemmx_noinit_uniformsizeupdate_VC
 #else
 extern int mdfivemmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 extern int mdfivemmx_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 extern int mdfivemmx_noinit_sizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
+extern int mdfivemmx_noinit_nosizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 extern int mdfivemmx_noinit_uniformsizeupdate(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 #endif
 #endif
