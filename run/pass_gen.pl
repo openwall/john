@@ -839,12 +839,14 @@ sub hdaa {
 	# same as dynamic_21
 	#  	{"$response$679066476e67b5c7c4e88f04be567f8b$user$myrealm$GET$/$8c12bd8f728afe56d45a0ce846b70e5a$00000001$4b61913cec32e2c9$auth", "nocode"},
 	my $user = randusername(20);
-	my $nonce = randstr(32, \@chrHexLo);
-	my $clientNonce = randstr(16, \@chrHexLo);
-	my $h1 = md5_hex($user, ":myrealm:", $_[0]);
-	my $h2 = md5_hex("GET:/");
+	my $realm = randusername(10);
+	my $url = randstr(rand(64)+1);
+	my $nonce = randstr(rand(32)+1, \@chrHexLo);
+	my $clientNonce = randstr(rand(32)+1, \@chrHexLo);
+	my $h1 = md5_hex($user, ":".$realm.":", $_[0]);
+	my $h2 = md5_hex("GET:/$url");
 	my $resp = md5_hex($h1, ":", $nonce, ":00000001:", $clientNonce, ":auth:", $h2);
-	print "u$u-HDAA:\$response\$$resp\$$user\$myrealm\$GET\$/\$$nonce\$00000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
+	print "u$u-HDAA:\$response\$$resp\$$user\$$realm\$GET\$/$url\$$nonce\$00000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
 }
 
 sub setup_des_key
