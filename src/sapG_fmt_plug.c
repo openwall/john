@@ -382,7 +382,7 @@ static void crypt_all(int count)
 			// Store key into vector key buffer
 			if ((len = keyLen[ti]) < 0) {
 				ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[0][GETSTARTPOS(ti)];
-				ARCH_WORD_32 *wkey = (ARCH_WORD_32*)saved_plain[ti];
+				const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)saved_plain[ti];
 				ARCH_WORD_32 temp;
 
 				len = 0;
@@ -473,7 +473,7 @@ static void crypt_all(int count)
 		for (index = 0; index < NBKEYS; index++) {
 			unsigned int offsetMagicArray;
 			unsigned int lengthIntoMagicArray;
-			unsigned char *p;
+			const unsigned char *p;
 
 			// If final crypt ends up to be 56-61 bytes (or so), this must be clean
 			((unsigned int*)saved_key[0])[15*MMX_COEF + (ti&3) + (ti>>2)*SHA_BUF_SIZ*MMX_COEF] = 0;
