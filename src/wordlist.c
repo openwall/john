@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2006,2009 by Solar Designer
  *
- * Heavily modified by JimF and maybe by others.
+ * Heavily modified by JimF, magnum and maybe by others.
  */
 
 #define _POSIX_SOURCE /* for fileno(3) */
@@ -15,6 +15,7 @@
 #pragma warning ( disable : 4996 )
 #endif
 #include <string.h>
+#include <strings.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -200,6 +201,14 @@ static char *dummy_rules_apply(const char *word, char *rule, int split, char *la
 	return (char*)word;
 }
 
+const char *potword(const char *line)
+{
+	const char *p;
+
+	p = strchr(line, ':');
+	return p ? p + 1 : line;
+}
+
 void do_wordlist_crack(struct db_main *db, char *name, int rules)
 {
 	union {
@@ -219,6 +228,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	long file_len;
 	int i, pipe_input=0, max_pipe_words=0, rules_keep=0, init_this_time=1, really_done=0;
 	char msg_buf[128];
+	int forceLoad = 0;
+	int potfile = 0;
 
 #ifdef HAVE_MPI
 	char file_line[LINE_BUFFER_SIZE];
@@ -232,12 +243,34 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 	length = db->format->params.plaintext_length;
 
+	if (db->options->max_wordfile_memory == 0)
+		forceLoad = 1;
+
+	/* If we did not give a name, we read the default pot file */
+	if (!name && !(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK))) {
+		name = options.loader.activepot;
+		forceLoad = 1;
+		potfile = 1;
+		printf("Closed-loop mode: Reading candidates from %s\n", name);
+	}
+
 	if (name) {
 		char *cp, csearch;
 
 		if (!(word_file = fopen(path_expand(name), "rb")))
 			pexit("fopen: %s", path_expand(name));
 		log_event("- Wordlist file: %.100s", path_expand(name));
+
+		/* This lets us use a potfile as a wordlist - it will
+		   automatically adopt and just read the password
+		   column - and discard dupes. */
+		if (!potfile && name && strlen(name) > 4 &&
+		    (!strcasecmp(name + strlen(name) - 4, ".pot")))
+		{
+			forceLoad = 1;
+			potfile = 1;
+			printf("Closed-loop mode: Reading candidates from pot file\n");
+		}
 
 		/* this will both get us the file length, and tell us
 		   of 'invalid' files (i.e. too big in Win32 or other
@@ -259,23 +292,30 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		   trash the buffer */
 		if (!(options.flags & FLG_EXTERNAL_CHK))
 #ifdef HAVE_MPI
-		if ((mpi_p > 1 && file_len > mpi_p * 100 && file_len / mpi_p < db->options->max_wordfile_memory) ||
-		    (file_len < db->options->max_wordfile_memory || db->options->max_wordfile_memory == 0)) {
+		if ((mpi_p > 1 && file_len > mpi_p * 100 && file_len / mpi_p <
+			db->options->max_wordfile_memory) ||
+		    (file_len < db->options->max_wordfile_memory || forceLoad))
+		{
 			// Load only this node's share of words to memory
 			char *aep;
 
-			if (mpi_p > 1 && (file_len > mpi_p * 100 || db->options->max_wordfile_memory == 0)) {
-				// Check size for our share. This depends on line
-				// lengths so we can't just split file_len
-				for (nWordFileLines = 0;; ++nWordFileLines) {
-					if (!fgets(file_line, sizeof(file_line), word_file)) {
+			if (mpi_p > 1 && (file_len > mpi_p * 100 || forceLoad))
+			{
+				/* Check net size for our share. */
+				 for (nWordFileLines = 0;; ++nWordFileLines) {
+					if (!fgets(file_line, sizeof(file_line),
+					           word_file))
+					{
 						if (ferror(word_file))
 							pexit("fgets");
 						else
 							break;
 					}
 					if (nWordFileLines % mpi_p == mpi_id) {
-						my_size += strlen(file_line);
+						if (potfile)
+							my_size += strlen(potword(file_line));
+						else
+							my_size += strlen(file_line);
 					}
 				}
 				fseek(word_file, 0, SEEK_SET);
@@ -291,7 +331,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 							break;
 					}
 					if (myWordFileLines % mpi_p == mpi_id) {
-						strcpy(&word_file_str[i], file_line);
+						if (potfile)
+							strcpy(&word_file_str[i], potword(file_line));
+						else
+							strcpy(&word_file_str[i], file_line);
 						i += (int)strlen(&word_file_str[i]);
 					}
 				}
@@ -320,8 +363,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				}
 			}
 #else
-		if (file_len < db->options->max_wordfile_memory ||
-		    db->options->max_wordfile_memory == 0)
+		if (file_len < db->options->max_wordfile_memory || forceLoad)
 		{
 			char *aep;
 
@@ -351,7 +393,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			log_event("wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
 
 			i = 0;
-			cp = word_file_str;
+			if (potfile)
+				cp = (char*)potword(word_file_str);
+			else
+				cp = word_file_str;
 			do
 			{
 				char *ep = cp, ec;
@@ -377,6 +422,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				}
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
+				if (potfile)
+					cp = (char*)potword(cp);
 			} while (cp < aep);
 			nWordFileLines = i;
 			nCurLine=0;
@@ -487,9 +534,9 @@ GRAB_NEXT_PIPE_LOAD:;
 				distributeRules = 1;
 
 			// Magic debug numbers (should be replaced by proper options)
-			// use --mem = 0 to force split wordlist (no leapfrogging)
-			// use --mem = 1 to force leapfrogging of words
-			// use --mem = 2 to force leapfrogging of rules
+			// use --mem=0 to force split wordlist (no leapfrogging)
+			// use --mem=1 to force leapfrogging of words
+			// use --mem=2 to force leapfrogging of rules
 			if (db->options->max_wordfile_memory == 1) {
 				distributeWords = 1;
 				distributeRules = 0;
@@ -572,9 +619,13 @@ GRAB_NEXT_PIPE_LOAD:;
 			}
 			else {
 				do {
-					if (!fgetl(((char*)line), LINE_BUFFER_SIZE, word_file))
+					if (!fgetl((char*)line, LINE_BUFFER_SIZE, word_file))
 						goto EndOfFile;
 				} while (!strncmp(line, "#!comment", 9));
+
+				if (potfile)
+					memmove((char*)line, potword(line), strlen(potword(line)) + 1);
+
 				if (!rules)
 					((char*)line)[length] = 0;
 			}

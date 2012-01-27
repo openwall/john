@@ -60,7 +60,7 @@ static struct opt_entry opt_list[] = {
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, 0,
 		OPT_FMT_STR_ALLOC, &options.loader.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
-		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.wordlist},
+		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"encoding", FLG_INP_ENCODING, FLG_INP_ENCODING,
 		0, 0, OPT_FMT_STR_ALLOC, &options.encoding},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
