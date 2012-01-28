@@ -69,6 +69,7 @@ JOHN_OBJS = \
 	md4.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o \
 	rawSHA224_fmt.o rawSHA256_fmt.o rawSHA384_fmt.o rawSHA512_fmt.o \
+	hmacSHA224_fmt.o hmacSHA256_fmt.o hmacSHA384_fmt.o hmacSHA512_fmt.o \
 	XSHA512_fmt.o \
 	hmailserver_fmt.o \
 	dragonfly3_fmt.o \

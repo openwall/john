@@ -25,8 +25,10 @@
 
 #define PLAINTEXT_LENGTH		64
 
-#define BINARY_SIZE			32
+#define BINARY_SIZE			(256/8)
 #define SALT_SIZE			64
+
+#define BLOCK_SIZE			64
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -38,9 +40,8 @@ static struct fmt_tests tests[] = {
 };
 
 static char crypt_key[BINARY_SIZE+1];
-static SHA256_CTX ctx;
-static unsigned char opad[PLAINTEXT_LENGTH];
-static unsigned char ipad[PLAINTEXT_LENGTH];
+static unsigned char opad[BLOCK_SIZE];
+static unsigned char ipad[BLOCK_SIZE];
 static unsigned char cursalt[SALT_SIZE];
 static unsigned char out[PLAINTEXT_LENGTH + 1];
 
@@ -74,8 +75,8 @@ static void set_key(char *key, int index)
 
 	len = strlen(key);
 
-	memset(ipad, 0x36, PLAINTEXT_LENGTH);
-	memset(opad, 0x5C, PLAINTEXT_LENGTH);
+	memset(ipad, 0x36, BLOCK_SIZE);
+	memset(opad, 0x5C, BLOCK_SIZE);
 
 	for(i=0;i<len;i++)
 	{
@@ -110,12 +111,15 @@ static int cmp_one(void *binary, int index)
 
 static void crypt_all(int count)
 {
+	SHA256_CTX ctx;
+
 	SHA256_Init( &ctx );
-	SHA256_Update( &ctx, ipad, 64 );
+	SHA256_Update( &ctx, ipad, BLOCK_SIZE );
 	SHA256_Update( &ctx, cursalt, strlen( (char*) cursalt) );
 	SHA256_Final( (unsigned char*) crypt_key, &ctx);
+
 	SHA256_Init( &ctx );
-	SHA256_Update( &ctx, opad, 64 );
+	SHA256_Update( &ctx, opad, BLOCK_SIZE );
 	SHA256_Update( &ctx, crypt_key, BINARY_SIZE);
 	SHA256_Final( (unsigned char*) crypt_key, &ctx);
 }
