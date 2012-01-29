@@ -77,6 +77,11 @@ extern struct fmt_main fmt_rawSHA256;
 extern struct fmt_main fmt_rawSHA384;
 extern struct fmt_main fmt_rawSHA512;
 
+extern struct fmt_main fmt_hmacSHA224;
+extern struct fmt_main fmt_hmacSHA256;
+extern struct fmt_main fmt_hmacSHA384;
+extern struct fmt_main fmt_hmacSHA512;
+
 extern struct fmt_main fmt_XSHA512;
 
 extern struct fmt_main fmt_hmailserver;
@@ -161,6 +166,11 @@ static void john_register_all(void)
 	john_register_one(&fmt_rawSHA256);
 	john_register_one(&fmt_rawSHA384);
 	john_register_one(&fmt_rawSHA512);
+
+	john_register_one(&fmt_hmacSHA224);
+	john_register_one(&fmt_hmacSHA256);
+	john_register_one(&fmt_hmacSHA384);
+	john_register_one(&fmt_hmacSHA512);
 
 	john_register_one(&fmt_XSHA512);
 
