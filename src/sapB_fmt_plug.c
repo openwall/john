@@ -9,7 +9,7 @@
  *
  * Heavily modified by magnum 2011-2012 for performance and for SIMD, OMP and
  * encodings support. This is hereby  placed in the public domain.  In case that
- * is not applicable, it is Copyright © 2011 magnum, and it is hereby released
+ * is not applicable, it is Copyright © 2012 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, is permitted.
  */
@@ -78,30 +78,23 @@ static unsigned int omp_t = 1;
 #endif
 
 /* char transition table for BCODE (from disp+work) */
-#define TRANSTABLE_LENGTH 16*16
-unsigned char transtable[TRANSTABLE_LENGTH]=
-{0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0x3F, 0x40, 0x41, 0x50, 0x43, 0x44, 0x45, 0x4B, 0x47, 0x48, 0x4D, 0x4E, 0x54, 0x51, 0x53, 0x46,
- 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x56, 0x55, 0x5C, 0x49, 0x5D, 0x4A,
- 0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
- 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x58, 0x5B, 0x59, 0xFF, 0x52,
- 0x4C, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
- 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34, 0x57, 0x5E, 0x5A, 0x4F, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
- 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+static const unsigned char transtable[] =
+{ 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+  0x3f, 0x40, 0x41, 0x50, 0x43, 0x44, 0x45, 0x4b, 0x47, 0x48, 0x4d, 0x4e, 0x54, 0x51, 0x53, 0x46,
+  0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x56, 0x55, 0x5c, 0x49, 0x5d, 0x4a,
+  0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x58, 0x5b, 0x59, 0xff, 0x52,
+//0x4c, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
+  0x4c, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+//0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34, 0x57, 0x5e, 0x5a, 0x4f, 0xff
+  0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x57, 0x5e, 0x5a, 0x4f, 0xff };
 
 #define BCODE_ARRAY_LENGTH 3*16
-unsigned char bcodeArr[BCODE_ARRAY_LENGTH]=
-{0x14,0x77,0xF3,0xD4,0xBB,0x71,0x23,0xD0,0x03,0xFF,0x47,0x93,0x55,0xAA,0x66,0x91,
-0xF2,0x88,0x6B,0x99,0xBF,0xCB,0x32,0x1A,0x19,0xD9,0xA7,0x82,0x22,0x49,0xA2,0x51,
-0xE2,0xB7,0x33,0x71,0x8B,0x9F,0x5D,0x01,0x44,0x70,0xAE,0x11,0xEF,0x28,0xF0,0x0D};
+static const unsigned char bcodeArr[BCODE_ARRAY_LENGTH] =
+{ 0x14, 0x77, 0xf3, 0xd4, 0xbb, 0x71, 0x23, 0xd0, 0x03, 0xff, 0x47, 0x93, 0x55, 0xaa, 0x66, 0x91,
+  0xf2, 0x88, 0x6b, 0x99, 0xbf, 0xcb, 0x32, 0x1a, 0x19, 0xd9, 0xa7, 0x82, 0x22, 0x49, 0xa2, 0x51,
+  0xe2, 0xb7, 0x33, 0x71, 0x8b, 0x9f, 0x5d, 0x01, 0x44, 0x70, 0xae, 0x11, 0xef, 0x28, 0xf0, 0x0d };
 
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
@@ -201,8 +194,18 @@ static void set_key(char *key, int index)
 	keyLen[index] = -1;
 }
 
-static char *get_key(int index) {
-	saved_plain[index][PLAINTEXT_LENGTH] = 0;
+static char *get_key(int index)
+{
+	int i;
+
+	for (i = 0; i < keyLen[index]; i++) {
+		if (saved_plain[index][i] >= 'a' && saved_plain[index][i] <= 'z')
+			saved_plain[index][i] ^= 0x20;
+		else if (saved_plain[index][i] & 0x80)
+			saved_plain[index][i] = '^';
+	}
+	saved_plain[index][i] = 0;
+
 	return saved_plain[index];
 }
 
@@ -231,7 +234,8 @@ static int cmp_all(void *binary, int count) {
 #endif
 }
 
-static int cmp_exact(char *source, int index){
+static int cmp_exact(char *source, int index)
+{
 	return 1;
 }
 
@@ -250,7 +254,166 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static unsigned int walld0rf_magic(const int index, const unsigned char *temp_key, unsigned char *destArray)
+{
+	unsigned int sum20, I1, I2, I3;
+	const int len = keyLen[index];
+
+#ifdef MMX_COEF
+#define key(i)	saved_key[GETPOS(i, index)]
+#else
+#define key(i)	saved_key[index][i]
+#endif
+	// some magic in between....yes, byte 4 is ignored...
+	// sum20 will be between 0x20 and 0x2F
+	//sum20 = temp_key[5]%4 + temp_key[3]%4 + temp_key[2]%4 + temp_key[1]%4 + temp_key[0]%4 + 0x20;
+	sum20 = *(unsigned int*)temp_key & 0x03030303;
+	sum20 = (unsigned char)((sum20 >> 24) + (sum20 >> 16) +
+	                        (sum20 >> 8) + sum20);
+	sum20 += (temp_key[5] & 3) | 0x20;
+
+	I1 = I2 = I3 = 0;
+
+	// Some unrolling
+	if (temp_key[15] & 0x01) {
+		destArray[0] = 0x0d; // bcodeArr[47]
+		I2 = 1;
+	}
+	else {
+		I2 = 0;
+	}
+	destArray[I2++] = key(I1); I1++;
+	destArray[I2++] = cur_salt->s[0];
+	destArray[I2] = bcodeArr[I2-2];
+	destArray[++I2] = 0; I2++;
+
+	if (cur_salt->l >= 4 && len >= 4) {
+		if (temp_key[14] & 0x01)
+			destArray[I2++] = 0xf0; /* bcodeArr[46] */
+		destArray[I2++] = key(1);
+		destArray[I2++] = cur_salt->s[1];
+		destArray[I2] = bcodeArr[I2-4];
+		destArray[++I2] = 0; I2++;
+		if (temp_key[13] & 0x01)
+			destArray[I2++] = 0x28; /* bcodeArr[45] */
+		destArray[I2++] = key(2);
+		destArray[I2++] = cur_salt->s[2];
+		destArray[I2] = bcodeArr[I2-6];
+		destArray[++I2] = 0; I2++;
+		if (temp_key[12] & 0x01)
+			destArray[I2++] = 0xef; /* bcodeArr[44] */
+		destArray[I2++] = key(3);
+		destArray[I2++] = cur_salt->s[3];
+		destArray[I2] = bcodeArr[I2-8];
+		destArray[++I2] = 0; I2++;
+		I1 = I3 = 4;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+	} else {
+		// key or salt shorter than 4 bytes
+		I1 = I3 = 1;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+		if (I1 < len) {
+			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+	}
+	// End of unrolling. Now the remaining bytes
+	while(I2 < sum20) {
+		if (I1 < len) {
+			if (temp_key[DEFAULT_OFFSET - I1] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
+			destArray[I2++] = key(I1); I1++;
+		}
+		if (I3 < cur_salt->l)
+			destArray[I2++] = cur_salt->s[I3++];
+		destArray[I2] = bcodeArr[I2 - I1 - I3];
+		destArray[++I2] = 0; I2++;
+	}
+#if MMX_COEF
+	// This may be unaligned here, but after the aligned vector buffer
+	// transfer, we will have no junk left from loop overrun
+	*(unsigned int*)&destArray[sum20] = 0x00000080;
+#endif
+	return sum20;
+}
+
+static void crypt_all(int count)
+{
 #if MMX_COEF
 #if defined(_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	int t;
@@ -268,35 +431,23 @@ static void crypt_all(int count) {
 			int len;
 
 			if ((len = keyLen[ti]) < 0) {
-				unsigned int temp;
 				unsigned char *key;
 
-				// Load key into vector buffer, upper case
-				// (just ASCII will do here) and get length
+				// Load key into vector buffer
 				len = 0;
 				key = (unsigned char*)saved_plain[ti];
-				while ((temp = *key))
+				while (*key)
 				{
-					if (temp >= 'a' && temp <= 'z')
-					{
-						temp ^= 0x20;
-						*key = temp;
-					}
-					else if (temp & 0x80)
-						*key = temp = '^';
 					saved_key[GETPOS(len, ti)] =
-						transtable[temp];
-					key++;
-					if (++len == PLAINTEXT_LENGTH) break;
+						transtable[*key++];
+					len++;
 				}
 
 				// Back-out of trailing spaces
-				while((temp = *--key) == ' ')
+				while(*--key == ' ' && len)
 				{
-					if (len == 0) break;
 					len--;
-					saved_key[GETPOS(len, ti)] = key[1] = 0;
-					temp = *key;
+					saved_key[GETPOS(len, ti)] = 0;
 				}
 
 				keyLen[ti] = len;
@@ -324,50 +475,28 @@ static void crypt_all(int count) {
 #else
 		memset(&interm_key[32*MMX_COEF], 0, 32*MMX_COEF);
 #endif
-		//now: walld0rf-magic [tm], (c), <g>
+
 		for (index = 0; index < NBKEYS; index++) {
-			unsigned int sum20, I1, I2, I3, I4, revI1;
-			int len = keyLen[ti];
+			unsigned int sum20;
+			unsigned char temp_key[BINARY_SIZE*2];
+			unsigned char destArray[TEMP_ARRAY_SIZE];
+			const unsigned int *sw;
+			unsigned int *dw;
 
-			//some magic in between....yes, byte 4 is ignored...
-			//sum20 will be between 0x20 and 0x2F
-			I1 = *(unsigned int*)&crypt_key[GETOUTPOS(0, ti)];
-			I1 &= 0x03030303;
-			sum20 = (unsigned char)((I1 >> 24) + (I1 >> 16) +
-			                        (I1 >> 8) + I1);
-			sum20 += (crypt_key[GETOUTPOS(5, ti)] & 3) | 0x20;
+			// Temporary flat copy of crypt
+			sw = (unsigned int*)&crypt_key[GETOUTPOS(0, ti)];
+			dw = (unsigned int*)temp_key;
+			for (i = 0; i < 4; i++, sw += MMX_COEF)
+				*dw++ = *sw;
 
-			I1 = I2 = I3 = revI1 = 0;
+			//now: walld0rf-magic [tm], (c), <g>
+			sum20 = walld0rf_magic(ti, temp_key, destArray);
 
-			do {
-				if (I1 < len) {
-					if ((crypt_key[GETOUTPOS(DEFAULT_OFFSET - revI1, ti)] % 2) != 0) {
-						interm_key[GETPOS(I2, ti)] = bcodeArr[BCODE_ARRAY_LENGTH - revI1 - 1];
-						I2++;
-					}
-					interm_key[GETPOS(I2, ti)] = saved_key[GETPOS(I1, ti)];
-					I2++;
-					I1++;
-					revI1++;
-				}
-				if (I3 < cur_salt->l) {
-					interm_key[GETPOS(I2, ti)] = cur_salt->s[I3++];
-					I2++;
-				}
+			// Vectorize a word at a time
+			dw = (unsigned int*)&interm_key[GETPOS(0, ti)];
+			for (i = 0;i <= sum20; i += 4, dw += MMX_COEF)
+				*dw = *(ARCH_WORD_32*)&destArray[i];
 
-				I4 = I2 - I1 - I3;
-				interm_key[GETPOS(I2, ti)] = bcodeArr[I4];
-				I2++;
-				interm_key[GETPOS(I2, ti)] = 0;
-			} while (++I2 < sum20);
-
-			// Clean any over-run from the weird loop above
-			while (I2 > sum20) {
-				interm_key[GETPOS(I2, ti)] = 0;
-				I2--;
-			}
-
-			interm_key[GETPOS(sum20, ti)] = 0x80;
 			((unsigned int *)interm_key)[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = sum20 << 3;
 		}
 
@@ -393,21 +522,11 @@ static void crypt_all(int count) {
 		unsigned char final_key[BINARY_SIZE*2];
 		unsigned int i;
 		unsigned int sum20;
-		int I1, I2;
-		int revI1;
-		int I3;
-		char destArray[TEMP_ARRAY_SIZE];
-		int I4;
+		unsigned char destArray[TEMP_ARRAY_SIZE];
 		MD5_CTX ctx;
 
 		if (keyLen[t] < 0) {
-			unsigned int temp = 0;
-
 			keyLen[t] = strlen(saved_plain[t]);
-
-			// This is not strictly needed in Jumbo
-			if (keyLen[t] > PLAINTEXT_LENGTH)
-				keyLen[t] = PLAINTEXT_LENGTH;
 
 			// Back-out of trailing spaces
 			while ( saved_plain[t][keyLen[t] - 1] == ' ' )
@@ -416,19 +535,8 @@ static void crypt_all(int count) {
 				if (keyLen[t] == 0) break;
 			}
 
-			// We do not need encoding-aware upper-casing
-			// Replace any 8-bit character with ^
-			for (i = 0; i < keyLen[t]; i++) {
-				temp = saved_plain[t][i];
-				if (temp >= 'a' && temp <= 'z') {
-					temp ^= 0x20;
-					saved_plain[t][i] = temp;
-				}
-				else if (temp & 0x80)
-					saved_plain[t][i] = temp = '^';
-				saved_key[t][i] = transtable[temp];
-			}
-			saved_key[t][i] = 0;
+			for (i = 0; i < keyLen[t]; i++)
+				saved_key[t][i] = transtable[ARCH_INDEX(saved_plain[t][i])];
 		}
 
 		MD5_Init(&ctx);
@@ -436,32 +544,8 @@ static void crypt_all(int count) {
 		MD5_Update(&ctx, cur_salt->s, cur_salt->l);
 		MD5_Final(temp_key,&ctx);
 
-		//some magic in between....yes, #4 is ignored...
-		//sum20 will be between 0x20 and 0x2F
-		sum20 = temp_key[5]%4 + temp_key[3]%4 + temp_key[2]%4 + temp_key[1]%4 + temp_key[0]%4 + 0x20;
-
-		I1 = 0;
-		I2 = 0;
-		revI1 = 0;
-		I3 = 0;
-
 		//now: walld0rf-magic [tm], (c), <g>
-		do {
-			if (I1 < keyLen[t]) {
-				if ((temp_key[DEFAULT_OFFSET + revI1] % 2) != 0)
-					destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH + revI1 - 1];
-				destArray[I2++] = saved_key[t][I1++];
-				revI1--;
-			}
-			if (I3 < cur_salt->l)
-				destArray[I2++] = cur_salt->s[I3++];
-
-			I4 = I2 - I1 - I3;
-			I2++;
-			destArray[I2-1] = bcodeArr[I4];
-			destArray[I2++] = 0;
-		} while (I2 < sum20);
-		//end of walld0rf-magic [tm], (c), <g>
+		sum20 = walld0rf_magic(t, temp_key, destArray);
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, destArray, sum20);
