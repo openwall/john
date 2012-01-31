@@ -5,7 +5,13 @@
  */
 
 #include <string.h>
-#include <endian.h>
+
+#ifdef BSD
+	 // OSX 
+	 #include <architecture/byte_order.h>
+#else
+	 #include <endian.h>
+#endif
 
 
 #include "path.h"
