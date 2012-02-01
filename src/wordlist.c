@@ -301,6 +301,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			{
 				/* Check net size for our share. */
 				for (nWordFileLines = 0;; ++nWordFileLines) {
+					char *lp;
 					if (!fgets(file_line, sizeof(file_line),
 					           word_file))
 					{
@@ -309,12 +310,16 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 						else
 							break;
 					}
-					if (nWordFileLines % mpi_p == mpi_id) {
-						if (potfile)
-							my_size += strlen(potword(file_line));
-						else
-							my_size += strlen(file_line);
-					}
+					if (!strncmp(line, "#!comment", 9))
+						continue;
+					if (potfile)
+						lp = (char*)potword(file_line);
+					else
+						lp = file_line;
+					if (!rules)
+						lp[length] = 0;
+					if (nWordFileLines % mpi_p == mpi_id)
+						my_size += strlen(lp);
 				}
 				fseek(word_file, 0, SEEK_SET);
 
@@ -322,18 +327,24 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				word_file_str = mem_alloc(my_size + LINE_BUFFER_SIZE + 1);
 				i = 0;
 				for (myWordFileLines = 0;; ++myWordFileLines) {
+					char *lp;
 					if (!fgets(file_line, sizeof(file_line), word_file)) {
 						if (ferror(word_file))
 							pexit("fgets");
 						else
 							break;
 					}
+					if (!strncmp(line, "#!comment", 9))
+						continue;
+					if (potfile)
+						lp = (char*)potword(file_line);
+					else
+						lp = file_line;
+					if (!rules)
+						lp[length] = 0;
 					if (myWordFileLines % mpi_p == mpi_id) {
-						if (potfile)
-							strcpy(&word_file_str[i], potword(file_line));
-						else
-							strcpy(&word_file_str[i], file_line);
-						i += (int)strlen(&word_file_str[i]);
+						strcpy(&word_file_str[i], lp);
+						i += strlen(lp);
 					}
 				}
 				log_event("- loaded this node's share of wordfile %s into memory "
