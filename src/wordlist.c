@@ -201,11 +201,11 @@ static char *dummy_rules_apply(const char *word, char *rule, int split, char *la
 	return (char*)word;
 }
 
-const char *potword(const char *line)
+static inline const char *potword(const char *line)
 {
 	const char *p;
 
-	p = strchr(line, ':');
+	p = strchr(line, options.field_sep_char);
 	return p ? p + 1 : line;
 }
 
@@ -249,7 +249,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	/* If we did not give a name, we read the default pot file */
 	if (!name && !(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK))) {
 		name = options.loader.activepot;
-		forceLoad = 1;
 		potfile = 1;
 		printf("Closed-loop mode: Reading candidates from %s\n", name);
 	}
@@ -267,7 +266,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (!potfile && name && strlen(name) > 4 &&
 		    (!strcasecmp(name + strlen(name) - 4, ".pot")))
 		{
-			forceLoad = 1;
 			potfile = 1;
 			printf("Closed-loop mode: Reading candidates from pot file\n");
 		}
@@ -293,7 +291,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (!(options.flags & FLG_EXTERNAL_CHK))
 #ifdef HAVE_MPI
 		if ((mpi_p > 1 && file_len > mpi_p * 100 && file_len / mpi_p <
-			db->options->max_wordfile_memory) ||
+		     db->options->max_wordfile_memory) ||
 		    (file_len < db->options->max_wordfile_memory || forceLoad))
 		{
 			// Load only this node's share of words to memory
@@ -302,7 +300,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			if (mpi_p > 1 && (file_len > mpi_p * 100 || forceLoad))
 			{
 				/* Check net size for our share. */
-				 for (nWordFileLines = 0;; ++nWordFileLines) {
+				for (nWordFileLines = 0;; ++nWordFileLines) {
 					if (!fgets(file_line, sizeof(file_line),
 					           word_file))
 					{
@@ -393,13 +391,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			log_event("wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
 
 			i = 0;
-			if (potfile)
-				cp = (char*)potword(word_file_str);
-			else
-				cp = word_file_str;
+			cp = word_file_str;
 			do
 			{
-				char *ep = cp, ec;
+				char *ep, ec;
+				if (potfile)
+					cp = (char*)potword(cp);
+				ep = cp;
 				while ((ep < aep) && *ep && *ep != '\n' && *ep != '\r') ep++;
 				ec = *ep;
 				*ep = 0;
@@ -422,8 +420,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				}
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
-				if (potfile)
-					cp = (char*)potword(cp);
 			} while (cp < aep);
 			nWordFileLines = i;
 			nCurLine=0;
@@ -628,6 +624,8 @@ GRAB_NEXT_PIPE_LOAD:;
 
 				if (!rules)
 					((char*)line)[length] = 0;
+
+				if (!strcmp(line, last)) continue;
 			}
 #ifdef HAVE_MPI
 			// MPI distribution - leapfrog words
@@ -638,7 +636,10 @@ GRAB_NEXT_PIPE_LOAD:;
 #endif
 
 			if ((word = apply(line, rule, -1, last))) {
-				last = word;
+				if (nWordFileLines)
+					last = word;
+				else
+					strcpy(last, word);
 
 				if (ext_filter(word))
 				if (crk_process_key(word)) {
