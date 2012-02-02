@@ -539,8 +539,8 @@ static void crypt_all(int count)
 			// Back-out of trailing spaces
 			while ( saved_plain[t][keyLen[t] - 1] == ' ' )
 			{
-				saved_plain[t][--keyLen[t]] = 0;
 				if (keyLen[t] == 0) break;
+				saved_plain[t][--keyLen[t]] = 0;
 			}
 
 			for (i = 0; i < keyLen[t]; i++)
