@@ -636,7 +636,10 @@ GRAB_NEXT_PIPE_LOAD:;
 				if (!rules)
 					((char*)line)[length] = 0;
 
-				if (!strcmp(line, last)) continue;
+				if (!strcmp(line, last)) {
+					line_number++; // needed for MPI sync
+					continue;
+				}
 			}
 #ifdef HAVE_MPI
 			// MPI distribution - leapfrog words
