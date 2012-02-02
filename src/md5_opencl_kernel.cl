@@ -22,16 +22,19 @@
 #define GET(i) (key[(i)])
 
 /* some constants used below magically appear after make */
-#define KEY_LENGTH (MD5_PLAINTEXT_LENGTH + 1)
+//#define KEY_LENGTH (MD5_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy KEY_LENGTH bytes key to be hashed from
  * global to local (thread) memory. Break the key into 16 32-bit (uint)
  * words. MD5 hash of a key is 128 bit (uint4). */
-__kernel void md5(__global const uint * keys, __global uint * hashes)
+__kernel void md5(__global uint *data_info, __global const uint * keys, __global uint * hashes)
 {
 	int id = get_global_id(0);
 	uint key[16] = { 0 };
 	int i;
+	uint num_keys = data_info[1];
+	uint KEY_LENGTH = data_info[0] + 1;
+
 	int base = id * (KEY_LENGTH / 4);
 
 	for (i = 0; i != (KEY_LENGTH / 4) && keys[base + i]; i++)
@@ -125,7 +128,7 @@ __kernel void md5(__global const uint * keys, __global uint * hashes)
 	/* The following hack allows only 1/4 of the hash data to be copied in crypt_all.
 	 * This code doesn't seem to have any performance gains but has other benefits */
 	hashes[id] = a + 0x67452301;
-	hashes[1 * MD5_NUM_KEYS + id] = b + 0xefcdab89;
-	hashes[2 * MD5_NUM_KEYS + id] = c + 0x98badcfe;
-	hashes[3 * MD5_NUM_KEYS + id] = d + 0x10325476;
+	hashes[1 * num_keys + id] = b + 0xefcdab89;
+	hashes[2 * num_keys + id] = c + 0x98badcfe;
+	hashes[3 * num_keys + id] = d + 0x10325476;
 }
