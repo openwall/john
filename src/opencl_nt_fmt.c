@@ -103,16 +103,21 @@ unsigned int *nt_buffer4x, *output4x;
 unsigned int *nt_buffer1x, *output1x;
 
 static cl_uint *bbbs;
+static cl_uint *res_hashes;
 static char *saved_plain;
 static int max_key_length = 0;
 static char get_key_saved[PLAINTEXT_LENGTH+1];
 
 //OpenCL variables
 cl_kernel nt_crypt_kernel;
-cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
+cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys, data_info;
 
+static unsigned int datai[2];
 size_t global_work_size = NT_NUM_KEYS;
 size_t local_work_size;
+static int have_full_hashes;
+
+static int max_keys_per_crypt = NT_NUM_KEYS;
 
 #define ALGORITHM_NAME		"OpenCL 1.0"
 #define NT_CRYPT_FUN		nt_crypt_all_opencl
@@ -132,11 +137,8 @@ static void release_all(void)
 	clReleaseCommandQueue(queue[gpu_id]);
 	clReleaseContext(context[gpu_id]);
 }
-// Find best number of threads per block (named work_group_size or local_work_size)
-// Needed because Nvidia register allocation is per block. This can increase occupancy.
-// ~10% fast clEnqueueNDRangeKernel
-static void find_best_workgroup(size_t max_group_size)
-{
+
+static void find_best_workgroup(size_t max_group_size) {
 	cl_event myEvent;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group = 1;
@@ -150,28 +152,26 @@ static void find_best_workgroup(size_t max_group_size)
 	for (; i < NT_NUM_KEYS; i++)
 		set_key("aaaaaaaa",i);
 	// Fill params. Copy only necesary data
+	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, 12 * NT_NUM_KEYS, saved_plain, 0, NULL, NULL);
 
 	// Find minimum time
-	for(;my_work_group <= max_group_size; my_work_group*=2)
-	{
+	for(;my_work_group <= max_group_size; my_work_group*=2){
 		ret_code = clEnqueueNDRangeKernel( queue_prof, nt_crypt_kernel, 1, NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-		clFinish(queue_prof);
-
 		if(ret_code != CL_SUCCESS)
 			continue;
+		clFinish(queue_prof);
 
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 
-		if((endTime-startTime) < kernelExecTimeNs)
-		{
+		if((endTime-startTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = endTime-startTime;
 			local_work_size = my_work_group;
 		}
 	}
-	printf("LwS = %d\n",local_work_size);
-
+	printf("Optimal Local work size %d\n",(int)local_work_size);
+	//printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
 	clReleaseCommandQueue(queue_prof);
 }
 // TODO: Use concurrent memory copy & execute
@@ -180,16 +180,22 @@ static void nt_crypt_all_opencl(int count)
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 
 	// Fill params. Copy only necesary data
-	clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0, key_length_mul_4 * NT_NUM_KEYS, saved_plain, 0, NULL, NULL);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
+		sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
+		"failed in clEnqueueWriteBuffer data_info");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
+		key_length_mul_4 * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
+		"failed in clEnqueWriteBuffer buffer_keys");
 
 	// Execute method
 	clEnqueueNDRangeKernel( queue[gpu_id], nt_crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 	clFinish( queue[gpu_id] );
 
 	// Read partial result
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, 4*NT_NUM_KEYS, bbbs, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint)*max_keys_per_crypt, bbbs, 0, NULL, NULL);
 
 	max_key_length = 0;
+	have_full_hashes = 0;
 }
 
 #define MIN_KEYS_PER_CRYPT		NT_NUM_KEYS
@@ -209,6 +215,7 @@ static void fmt_NT_init(struct fmt_main *pFmt){
 	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*NT_NUM_KEYS, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
 
+	res_hashes = malloc(sizeof(cl_uint) * 3 * max_keys_per_crypt);
 	saved_plain = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
 	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
@@ -219,15 +226,20 @@ static void fmt_NT_init(struct fmt_main *pFmt){
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
 	buffer_out  = clCreateBuffer( context[gpu_id], CL_MEM_WRITE_ONLY , 4*4*NT_NUM_KEYS, NULL, &ret_code ); 
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
+	data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
 	argIndex = 0;
+	HANDLE_CLERROR(clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(data_info), (void *) &data_info),
+		"Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys),            
 		"Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(nt_crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
 		"Error setting argument 2");
+	datai[0] = PLAINTEXT_LENGTH;
+	datai[1] = max_keys_per_crypt;
 
 	find_best_workgroup(max_group_size);
-	//local_work_size = 64;
 }
 
 static char * nt_split(char *ciphertext, int index)
@@ -272,8 +284,7 @@ static void *get_binary(char *ciphertext)
 	unsigned int temp;
 
 	ciphertext+=4;
-	for (; i<4; i++)
-	{
+	for (; i<4; i++){
  		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
  		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
 		
@@ -302,42 +313,27 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return ((unsigned int *)binary)[1] & 0x0F;
-}
+static int binary_hash_0(void *binary) { return ((unsigned int *)binary)[1] & 0xF; }
+static int binary_hash_1(void *binary) { return ((unsigned int *)binary)[1] & 0xFF; }
+static int binary_hash_2(void *binary) { return ((unsigned int *)binary)[1] & 0xFFF; }
+static int binary_hash_3(void *binary) { return ((unsigned int *)binary)[1] & 0xFFFF; }
+static int binary_hash_4(void *binary) { return ((unsigned int *)binary)[1] & 0xFFFFF; }
+static int binary_hash_5(void *binary) { return ((unsigned int *)binary)[1] & 0xFFFFFF; }
+static int binary_hash_6(void *binary) { return ((unsigned int *)binary)[1] & 0x7FFFFFF; }
 
-static int binary_hash_1(void *binary)
-{
-	return ((unsigned int *)binary)[1] & 0xFF;
-}
+static int get_hash_0(int index) { return bbbs[index] & 0xF; }
+static int get_hash_1(int index) { return bbbs[index] & 0xFF; }
+static int get_hash_2(int index) { return bbbs[index] & 0xFFF; }
+static int get_hash_3(int index) { return bbbs[index] & 0xFFFF; }
+static int get_hash_4(int index) { return bbbs[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return bbbs[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return bbbs[index] & 0x7FFFFFF; }
 
-static int binary_hash_2(void *binary)
-{
-	return ((unsigned int *)binary)[1] & 0x0FFF;
-}
-
-static int get_hash_0(int index)
-{
-	return bbbs[index] & 0x0F;
-}
-
-static int get_hash_1(int index)
-{
-	return bbbs[index] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return bbbs[index] & 0x0FFF;
-}
-
-static int cmp_all(void *binary, int count)
-{
+static int cmp_all(void *binary, int count) {
 	unsigned int i=0;
 	unsigned int b=((unsigned int *)binary)[1];
 
-	for(;i<NT_NUM_KEYS;i++)
+	for(;i<count;i++)
 		if(b==bbbs[i])
 			return 1;
 	return 0;
@@ -346,6 +342,10 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void * binary, int index)
 {
 	unsigned int *t=(unsigned int *)binary;
+	if (t[1]==bbbs[index])
+		return 1;
+	return 0;
+	/*
 	unsigned int a;
 	unsigned int b;
 	unsigned int c;
@@ -373,6 +373,9 @@ static int cmp_one(void * binary, int index)
 	return t[3]==d;
 	if(b!=t[1])
 		return 0;
+        */
+	/* never reached
+        printf("reached\n");
 	b += SQRT_3;b = (b << 15) | (b >> 17);
 	
 	a += (b ^ c ^ d) + buffer[pos1] + SQRT_3; a = (a << 3 ) | (a >> 29);
@@ -385,10 +388,26 @@ static int cmp_one(void * binary, int index)
 	
 	c += (d ^ a ^ b) + buffer[pos3] + SQRT_3; c = (c << 11) | (c >> 21);	
 	return c==t[2];
+	*/
 }
 
-static int cmp_exact(char *source, int index)
-{
+static int cmp_exact(char *source, int count) {
+	unsigned int *t = (unsigned int *) get_binary(source);
+
+	if (!have_full_hashes){
+		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 
+			sizeof(cl_uint) * (max_keys_per_crypt), 
+			sizeof(cl_uint) * 3 * max_keys_per_crypt, res_hashes, 0,
+			NULL, NULL); 
+		have_full_hashes = 1;
+	}
+        
+	if (t[0]!=res_hashes[count])
+		return 0;
+	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
+		return 0;
+	if (t[3]!=res_hashes[2*max_keys_per_crypt+count])
+		return 0;
 	return 1;
 }
 
@@ -396,8 +415,7 @@ static void set_key(char *key, int index)
 {
 	int length = -1;
 
-	do
-	{
+	do {
 		length++;
 		//Save keys in a coalescing friendly way
 		saved_plain[(length/4)*NT_NUM_KEYS*4+index*4+length%4] = key[length];
@@ -447,8 +465,10 @@ struct fmt_main fmt_opencl_NT = {
 			binary_hash_0,
 			binary_hash_1,
 			binary_hash_2,
-			NULL,
-			NULL
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -460,8 +480,10 @@ struct fmt_main fmt_opencl_NT = {
 			get_hash_0,
 			get_hash_1,
 			get_hash_2,
-			NULL,
-			NULL
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

@@ -96,9 +96,9 @@ JOHN_OBJS = \
 	unique.o
 
 OCL_OBJS = \
-	common-opencl.o \
+	common-opencl.o opencl_mysqlsha1_fmt.o \
 	cryptmd5_opencl_fmt.o phpass_opencl_fmt.o opencl_rawsha1_fmt.o \
-	NT_opencl_fmt.o opencl_rawmd5_fmt.o  NSLDAPS_opencl_fmt.o
+	opencl_nt_fmt.o opencl_rawmd5_fmt.o  opencl_nsldaps_fmt.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -272,7 +272,8 @@ linux-x86-64-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -lcrypt -lOpenCL -ldl"
-	/bin/sh ./setup-opencl-stuff.sh
+	$(CP) *.cl ../run/
+	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
@@ -380,7 +381,8 @@ linux-x86-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86 -L$(NVIDIA_CUDA)/lib -lcrypt -lOpenCL -ldl"
-	/bin/sh ./setup-opencl-stuff.sh
+	$(CP) *.cl ../run/
+	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -881,7 +883,8 @@ macosx-x86-64-opencl:
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64  -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include  -DBSD -DCL_VERSION_1_0" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
-	/bin/sh ./setup-opencl-stuff.sh
+	$(CP) *.cl ../run/
+	#/bin/sh ./setup-opencl-stuff.sh
 
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
