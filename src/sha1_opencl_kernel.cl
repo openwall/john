@@ -19,34 +19,15 @@
 #define uint32_t unsigned int
 #endif
 
-void prepare_msg(__global uchar *s, char *dest, int blocksize) {
-    int i;
-    uint ulen;
 
-    for(i = 0; i < blocksize && s[i] != 0x80 ; i++){
-        dest[i] = s[i];
-    }
-    ulen = (i * 8) & 0xFFFFFFFF;
-    dest[i] = (char) 0x80;
-    i=i+1;
-    for(;i<60;i++){
-	dest[i] = (char) 0;
-    }
-    dest[60] = ulen >> 24;
-    dest[61] = ulen >> 16;
-    dest[62] = ulen >> 8;
-    dest[63] = ulen;
-    
-    return;
-}
-
-__kernel void sha1_crypt_kernel(__global uint *data_info,__global const char *plain_key,  __global uint *digest){
+__kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_key,  __global uint *digest){
     int t, gid, msg_pad;
+    int i, stop, mmod;
+    uint ulen;
     uint W[80], temp, A,B,C,D,E;
     uint num_keys = data_info[1];
     
     gid = get_global_id(0);
-    uchar msg[64];
     msg_pad = gid * data_info[0];
 
     A = H1;
@@ -55,14 +36,37 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global const char *pl
     D = H4;
     E = H5;
     
-    prepare_msg((__global uchar*)&plain_key[msg_pad],(char*)msg,data_info[0]);
-    
-    for (t = 0; t < 16; t++){
-        W[t] = ((uchar) msg[ t * 4]) << 24;
-        W[t] |= ((uchar) msg[ t * 4 + 1]) << 16;
-        W[t] |= ((uchar) msg[ t * 4 + 2]) << 8;
-        W[t] |= (uchar) msg[ t * 4 + 3];
+    for (t = 1; t < 15; t++){
+	W[t] = 0x00000000;
     }
+    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
+    }
+
+    stop = i / 4 ;
+    for (t = 0 ; t < stop ; t++){
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 2]) << 8;
+        W[t] |= (uchar)  plain_key[msg_pad + t * 4 + 3];
+    }
+    mmod = i % 4;
+    if ( mmod == 3){
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 2]) << 8;
+        W[t] |=  ((uchar) 0x80) ;
+    } else if (mmod == 2) {
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
+        W[t] |=  0x8000 ;
+    } else if (mmod == 1) {
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |=  0x800000 ;
+    } else if (mmod == 0){
+        W[t] =  0x80000000 ;
+    }
+    ulen = (i * 8) & 0xFFFFFFFF;
+    W[15] =  ulen ;   
 
 #undef R
 #define R(t)                                              \
@@ -190,13 +194,5 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global const char *pl
   digest[gid+2*num_keys] = as_uint(as_uchar4(C + H3).wzyx);
   digest[gid+3*num_keys] = as_uint(as_uchar4(D + H4).wzyx);
   digest[gid+4*num_keys] = as_uint(as_uchar4(E + H5).wzyx);
-/*
-  if (  (as_uint(as_uchar4(B + H2).wzyx) == ckey[1] ) && (as_uint(as_uchar4(C + H3).wzyx) == ckey[2] ) &&
-        (as_uint(as_uchar4(D + H4).wzyx) == ckey[3] ) && (as_uint(as_uchar4(E + H5).wzyx) == ckey[4] ) ){
-     digest[gid+num_keys] = 1;
-} else {
-     digest[gid+num_keys] = 0xFF;
-}
-*/
 
 }

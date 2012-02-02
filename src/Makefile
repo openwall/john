@@ -97,8 +97,8 @@ JOHN_OBJS = \
 
 OCL_OBJS = \
 	common-opencl.o \
-	cryptmd5_opencl_fmt.o phpass_opencl_fmt.o rawSHA1_opencl_fmt.o \
-	NT_opencl_fmt.o rawMD5_opencl_fmt.o  NSLDAPS_opencl_fmt.o
+	cryptmd5_opencl_fmt.o phpass_opencl_fmt.o opencl_rawsha1_fmt.o \
+	NT_opencl_fmt.o opencl_rawmd5_fmt.o  NSLDAPS_opencl_fmt.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
