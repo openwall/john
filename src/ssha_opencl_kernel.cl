@@ -34,30 +34,7 @@
 #define uint32_t unsigned int
 #endif
 
-void prepare_msg(__global uchar *s, char *dest, __global uchar *salt, int blocksize) {
-    int i,k;
-    uint ulen;
 
-    for(i = 0; i < blocksize && s[i] != 0x80 ; i++){
-        dest[i] = s[i];
-    }
-    for(k=0; k<8;k++){
-        dest[i+k] = salt[k];
-    }
-    i = i+k;
-    ulen = (i * 8) & 0xFFFFFFFF;
-    dest[i] = (char) 0x80;
-    i=i+1;
-    for(;i<60;i++){
-	dest[i] = (char) 0;
-    }
-    dest[60] = ulen >> 24;
-    dest[61] = ulen >> 16;
-    dest[62] = ulen >> 8;
-    dest[63] = ulen;
-    
-    return;
-}
 
 __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, __global char *plain_key,  __global uint *digest){
     int t, gid, msg_pad;
@@ -75,19 +52,10 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
     D = H4;
     E = H5;
     
-//    prepare_msg(&plain_key[msg_pad],msg, salt, data_info[0]);
-
-
-/*
-Da completare, devo capire come passare la password e il salt direttamente a
-W[t] senza rompermi le balle, manca la parte di padding di quando la password
-non occupa esattamente due registri
-
-*/
     for (t = 2; t < 15; t++){
 	W[t] = 0x00000000;
     }
-    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x80 ; i++){
+    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
     }
 
     stop = i / 4 ;
