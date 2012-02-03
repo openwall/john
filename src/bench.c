@@ -161,6 +161,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 		memcpy(two_salts[index], salt, format->params.salt_size);
 	}
+	format->methods.set_salt(two_salts[0]);
 
 	if (format->params.benchmark_length > 0) {
 		cond = (salts == 1) ? 1 : -1;
@@ -473,7 +474,7 @@ int benchmark_all(void)
 #endif
 		benchmark_cps(&results_m.count, results_m.real, s_real);
 		benchmark_cps(&results_m.count, results_m.virtual, s_virtual);
-#if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
+#if !defined(__DJGPP__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n",
 			msg_m, s_real, s_virtual);
 #else
@@ -488,7 +489,7 @@ int benchmark_all(void)
 
 		benchmark_cps(&results_1.count, results_1.real, s_real);
 		benchmark_cps(&results_1.count, results_1.virtual, s_virtual);
-#if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
+#if !defined(__DJGPP__) && !defined(__BEOS__)
 		printf("%s:\t%s c/s real, %s c/s virtual\n\n",
 			msg_1, s_real, s_virtual);
 #else

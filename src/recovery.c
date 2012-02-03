@@ -5,8 +5,9 @@
  * ...with changes in the jumbo patch, by JimF.
  */
 
+#ifndef __FreeBSD__
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
-
+#endif
 #include <stdio.h>
 #ifndef _MSC_VER
 #include <unistd.h>
