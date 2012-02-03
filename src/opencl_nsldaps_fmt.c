@@ -38,7 +38,7 @@
 #define NUM_BLOCKS			5
 
 #define PLAINTEXT_LENGTH		32
-#define SSHA_NUM_KEYS         		1024*2048*2
+#define SSHA_NUM_KEYS         		1024*2048
 
 #define MIN_KEYS_PER_CRYPT              1024
 #define MAX_KEYS_PER_CRYPT		SSHA_NUM_KEYS
@@ -337,10 +337,14 @@ static void *binary(char *ciphertext) {
 	return (void *) realcipher;
 }
 
-static void *get_salt(char *ciphertext)
-{
-	static char realcipher[BINARY_SIZE + SALT_SIZE + 9];
-	memset(realcipher, 0, sizeof(realcipher));
+static void *get_salt(char *ciphertext){
+	static char *realcipher;
+
+	// Cludge to be sure to satisfy the salt aligment test of 1.7.9.3 on 64-bit
+	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + SALT_SIZE + 9 + 4, MEM_ALIGN_WORD) + 4;
+
+	memset(realcipher, 0, BINARY_SIZE + SALT_SIZE + 9 + 4);
+
 	base64_decode(NSLDAP_MAGIC_LENGTH + ciphertext, CIPHERTEXT_LENGTH,
 	    realcipher);
 	return (void *) &realcipher[BINARY_SIZE];
