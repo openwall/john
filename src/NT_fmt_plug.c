@@ -1,11 +1,13 @@
 /* NTLM patch for john (performance improvement)
  *
- * Written by Alain Espinosa <alainesp at gmail.com> in 2007.  No copyright
- * is claimed, and the software is hereby placed in the public domain.
- * In case this attempt to disclaim copyright and place the software in the
- * public domain is deemed null and void, then the software is
- * Copyright (c) 2007 Alain Espinosa and it is hereby released to the
- * general public under the following terms:
+ * Written by Alain Espinosa <alainesp at gmail.com> in 2007 and
+ * modified by magnum in 2011.  No copyright is claimed, and the
+ * software is hereby placed in the public domain.
+ * In case this attempt to disclaim copyright and place the software
+ * in the public domain is deemed null and void, then the software is
+ * Copyright (c) 2007 Alain Espinosa
+ * Copyright (c) 2011 magnum
+ * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -13,8 +15,6 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  *
  * (This is a heavily cut-down "BSD license".)
- *
- * UTF-8 support and performance tweaks by magnum 2011, same terms as above.
  *
  */
 
