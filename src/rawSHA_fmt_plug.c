@@ -1,8 +1,7 @@
 /*
- * This  software is hereby  placed in the public domain.  In case that is not
- * applicable, it is Copyright © 2011 magnum, and it is hereby released to the
+ * This  software is Copyright © 2011 magnum, and it is hereby released to the
  * general public under the following terms:  Redistribution and use in source
- * and binary forms, with or without modification, is permitted.
+ * and binary forms, with or without modification, are permitted.
  *
  * Based on Raw-SHA1, but this is OpenSSL only.
  */

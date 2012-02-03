@@ -1,12 +1,12 @@
 /*  HTTP Digest access authentication patch for john
  *
- * Written by Romain Raboin - romain.raboin at gmail.com
+ * Written by Romain Raboin. OMP and intrinsics support by magnum
  *
- * OMP and intrinsics support: Copyright magnum 2012 and hereby
- * released to the general public under the following terms:
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, is permitted.
+ * This software is Copyright © 2008 Romain Raboin - romain.raboin at
+ * gmail.com, and Copyright © 2012 magnum and it is hereby released to
+ * the general public under the following terms:  Redistribution and
+ * use in source and binary forms, with or without modification, are
+ * permitted.
  */
 
 #include <string.h>

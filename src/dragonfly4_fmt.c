@@ -2,10 +2,9 @@
  * This file is part of John the Ripper password cracker,
  * based on rawSHA256_fmt.c code
  *
- * This  software is hereby  placed in the public domain.  In case that is not
- * applicable, it is Copyright © 2011 magnum, and it is hereby released to the
+ * This  software is Copyright © 2012 magnum, and it is hereby released to the
  * general public under the following terms:  Redistribution and use in source
- * and binary forms, with or without modification, is permitted.
+ * and binary forms, with or without modification, are permitted.
  *
  * The DragonFly BSD 2.10.1-REL crypt-sha2 hashes are seriously broken. See
  * http://www.openwall.com/lists/john-dev/2012/01/16/1
