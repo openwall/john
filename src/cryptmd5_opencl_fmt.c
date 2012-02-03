@@ -15,7 +15,7 @@
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 
-#define KEYS_PER_CRYPT 1024*9
+#define KEYS_PER_CRYPT 		1024*9
 #define PLAINTEXT_LENGTH	15
 
 #define MIN(a,b) 		((a)<(b)?(a):(b))
