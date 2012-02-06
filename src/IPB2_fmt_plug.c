@@ -26,11 +26,9 @@
 #define MMX_COEF			4
 #include "sse-intrinsics.h"
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#define DO_MMX_MD5(in, out, init)	SSEmd5body(in, (unsigned int*)out, init)
 #define ALGORITHM_NAME			"SSE2i " MD5_N_STR
 #elif defined(MMX_COEF)
 #define NBKEYS				MMX_COEF
-#define DO_MMX_MD5(in, out, init)	mdfivemmx_nosizeupdate(out, in, init)
 #if MMX_COEF == 4
 #define ALGORITHM_NAME			"SSE2 4x"
 #elif MMX_COEF == 2
@@ -227,7 +225,7 @@ static void *salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-#if MMX_COEF
+#ifdef MMX_COEF
 	cur_salt = salt;
 	new_salt = 1;
 #else
@@ -253,7 +251,7 @@ static inline int strnfcpy_count(char *dst, char *src, int size)
 
 static void set_key(char *key, int index)
 {
-#if MMX_COEF
+#ifdef MMX_COEF
 	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
 	new_key = 1;
 #else
@@ -285,8 +283,8 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-#if MMX_COEF
-#if defined(_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
+#ifdef MMX_COEF
+#if defined(_OPENMP) && defined(MD5_SSE_PARA)
 	int t;
 #pragma omp parallel for
 	for (t = 0; t < omp_t; t++)
@@ -346,8 +344,11 @@ key_cleaning:
 			keybuffer[14*MMX_COEF] = len << 3;
 		}
 
-		DO_MMX_MD5(&key_buf[t*NBKEYS*64], &crypt_key[t*NBKEYS*16], 1);
-
+#ifdef MD5_SSE_PARA
+		SSEmd5body(&key_buf[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], 1);
+#else
+		mdfivemmx_nosizeupdate(crypt_key, key_buf, 0);
+#endif
 		for (index = 0; index < NBKEYS; index++) {
 			// Somehow when I optimised this it got faster in Valgrind but slower IRL
 			for (i = 0; i < BINARY_SIZE; i++) {
@@ -357,8 +358,13 @@ key_cleaning:
 			}
 		}
 
-		DO_MMX_MD5(&saved_key[t*NBKEYS*64], &crypt_key[t*NBKEYS*16], 1);
-		DO_MMX_MD5(empty_key, &crypt_key[t*NBKEYS*16], 0);
+#ifdef MD5_SSE_PARA
+		SSEmd5body(&saved_key[t*NBKEYS*64], (unsigned int*)&crypt_key[t*NBKEYS*16], 1);
+		SSEmd5body(empty_key, (unsigned int*)&crypt_key[t*NBKEYS*16], 0);
+#else
+		mdfivemmx_nosizeupdate(crypt_key, saved_key, 0);
+		mdfivemmx_noinit_nosizeupdate(crypt_key, empty_key, 0);
+#endif
 	}
 	//dump_stuff_mmx_msg("\nfinal ", saved_key, 64, count-1);
 	//dump_out_mmx_msg("result", crypt_key, 16, count-1);
