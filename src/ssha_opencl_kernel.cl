@@ -1,22 +1,14 @@
-/* Keep values shared by code and the OpenCL kernels here. This file is
- * prepended to the OpenCL kernels during make. */
-
-#define MD4_NUM_KEYS          1024*2048
-#define MD4_PLAINTEXT_LENGTH  15
-#ifdef MD4
-#define PLAINTEXT_LENGTH      15
-#endif
-
-#define MD5_NUM_KEYS          1024*2048
-#define MD5_PLAINTEXT_LENGTH  15
-#ifdef MD5
-#define PLAINTEXT_LENGTH      15
-#endif
-
 /* 
-   This code was taken and merged from pyrit opencl sha1 routines royger's sample ( http://royger.org/opencl/?p=12) 
-   and largely inspired from md5_opencl_kernel.cl 
-   by Samuele Giovanni Tonon samu at linuxasylum dot net
+   This code was largely inspired by 
+   pyrit opencl kernel sha1 routines, royger's sha1 sample,
+   and md5_opencl_kernel.cl inside jtr.
+   Copyright 2011 by Samuele Giovanni Tonon 
+   samu at linuxasylum dot net
+   This program comes with ABSOLUTELY NO WARRANTY; express or
+   implied .
+   This is free software, and you are welcome to redistribute it
+   under certain conditions; as expressed here 
+   http://www.gnu.org/licenses/gpl-2.0.html
 */
 
 #define K0  0x5A827999
