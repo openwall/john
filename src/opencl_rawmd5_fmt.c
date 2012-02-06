@@ -93,7 +93,8 @@ static void find_best_workgroup(void){
 			local_work_size = my_work_group;
 		}
 	}
-	printf("Optimal local work size %d\n", (int) local_work_size);
+	printf("Optimal local work size %d\n",(int)local_work_size);
+	printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
 	clReleaseCommandQueue(queue_prof);
 }
 

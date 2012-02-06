@@ -1,37 +1,14 @@
-/* Keep values shared by code and the OpenCL kernels here. This file is
- * prepended to the OpenCL kernels during make. */
-
-#define MD4_NUM_KEYS          1024*2048
-#define MD4_PLAINTEXT_LENGTH  15
-#ifdef MD4
-#define PLAINTEXT_LENGTH      15
-#endif
-
-#define MD5_NUM_KEYS          1024*2048
-#define MD5_PLAINTEXT_LENGTH  15
-#ifdef MD5
-#define PLAINTEXT_LENGTH      15
-#endif
-
-/* Keep values shared by code and the OpenCL kernels here. This file is
- * prepended to the OpenCL kernels during make. */
-
-#define MD4_NUM_KEYS          1024*2048
-#define MD4_PLAINTEXT_LENGTH  15
-#ifdef MD4
-#define PLAINTEXT_LENGTH      15
-#endif
-
-#define MD5_NUM_KEYS          1024*2048
-#define MD5_PLAINTEXT_LENGTH  15
-#ifdef MD5
-#define PLAINTEXT_LENGTH      15
-#endif
-
 /* 
-   This code was taken and merged from pyrit opencl sha1 routines royger's sample ( http://royger.org/opencl/?p=12) 
-   and largely inspired from md5_opencl_kernel.cl 
-   by Samuele Giovanni Tonon samu at linuxasylum dot net
+   This code was largely inspired by 
+   pyrit opencl kernel sha1 routines, royger's sha1 sample,
+   and md5_opencl_kernel.cl inside jtr.
+   Copyright 2011 by Samuele Giovanni Tonon 
+   samu at linuxasylum dot net
+   This program comes with ABSOLUTELY NO WARRANTY; express or
+   implied .
+   This is free software, and you are welcome to redistribute it
+   under certain conditions; as expressed here 
+   http://www.gnu.org/licenses/gpl-2.0.html
 */
 
 #define K0  0x5A827999
@@ -53,7 +30,6 @@
 void sha1_process(uint W[80], uint *TT){
 
   uint temp, A,B,C,D,E;
-//  int x;
 
   A = H1;
   B = H2;
@@ -240,17 +216,9 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_ke
 
     sha1_process(W,Td);
 
-/*
-    digest[gid] = Td[0];
-    digest[gid+1*num_keys] = Td[1];
-    digest[gid+2*num_keys] = Td[2];
-    digest[gid+3*num_keys] = Td[3];
-    digest[gid+4*num_keys] = Td[4];
-*/
     digest[gid] = as_uint(as_uchar4(Td[0]).wzyx);
     digest[gid+1*num_keys] = as_uint(as_uchar4(Td[1]).wzyx);
     digest[gid+2*num_keys] = as_uint(as_uchar4(Td[2]).wzyx);
     digest[gid+3*num_keys] = as_uint(as_uchar4(Td[3]).wzyx);
     digest[gid+4*num_keys] = as_uint(as_uchar4(Td[4]).wzyx);
-
 }

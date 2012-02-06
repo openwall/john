@@ -1,7 +1,11 @@
 /*
- * Copyright (c) 2011 Samuele Giovanni Tonon
+ * Copyright (c) 2012 Samuele Giovanni Tonon
  * samu at linuxasylum dot net
- * Released under GPL license 
+ * This program comes with ABSOLUTELY NO WARRANTY; express or
+ * implied .
+ * This is free software, and you are welcome to redistribute it
+ * under certain conditions; as expressed here 
+ * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
 #include <string.h>
