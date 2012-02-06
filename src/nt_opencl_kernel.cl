@@ -1,11 +1,13 @@
 /* NTLM kernel (OpenCL 1.0 conformant)
  *
- * Written by Alain Espinosa <alainesp at gmail.com> in 2010.  No copyright
- * is claimed, and the software is hereby placed in the public domain.
+ * Written by Alain Espinosa <alainesp at gmail.com> in 2010 and modified 
+ * by Samuele Giovanni Tonon in 2011.  No copyright is claimed, and 
+ * the software is hereby placed in the public domain.
  * In case this attempt to disclaim copyright and place the software in the
  * public domain is deemed null and void, then the software is
- * Copyright (c) 2010 Alain Espinosa and it is hereby released to the
- * general public under the following terms:
+ * Copyright (c) 2010 Alain Espinosa 
+ * Copyright (c) 2011 Samuele Giovanni Tonon
+ * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -42,16 +44,18 @@
 	#define ELEM_3 0
 #endif
 
-__kernel void nt_crypt(const __global uint *keys , __global uint *output)
+__kernel void nt_crypt(__global uint *data_info, const __global uint *keys , __global uint *output)
 {
 	uint i = get_global_id(0);
 	//Max Size 27-4 = 23 for a better use of registers
 	uint nt_buffer[12];
+
 	
 	//set key-------------------------------------------------------------------------
 	uint nt_index = 0;
 	uint md4_size = 0;
 	
+    	uint num_keys = data_info[1];
 	uint key_chars = keys[i];//Coalescing access to global memory
 	uint cache_key = GET_CHAR(key_chars,ELEM_0);
 	//Extract 4 chars by cycle
@@ -87,7 +91,7 @@ __kernel void nt_crypt(const __global uint *keys , __global uint *output)
 		md4_size++;
 		nt_index++;
 		
-		key_chars = keys[(md4_size>>2)*NT_NUM_KEYS+i];//Coalescing access to global memory
+		key_chars = keys[(md4_size>>2)*num_keys+i];//Coalescing access to global memory
 		cache_key = GET_CHAR(key_chars,ELEM_0);
 	}
 	
@@ -173,7 +177,7 @@ __kernel void nt_crypt(const __global uint *keys , __global uint *output)
 	c += (d ^ a ^ b) + nt_buffer[7]  + SQRT_3; c = rotate(c , 11u);
 	
 	//Coalescing writes
-	output[1*NT_NUM_KEYS+i] = a;
-	output[2*NT_NUM_KEYS+i] = c;
-	output[3*NT_NUM_KEYS+i] = d;
+	output[1*num_keys+i] = a;
+	output[2*num_keys+i] = c;
+	output[3*num_keys+i] = d;
 }

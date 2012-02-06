@@ -93,7 +93,8 @@ static void find_best_workgroup(void){
 			local_work_size = my_work_group;
 		}
 	}
-	printf("Optimal local work size %d\n", (int) local_work_size);
+	printf("Optimal local work size %d\n",(int)local_work_size);
+	printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
 	clReleaseCommandQueue(queue_prof);
 }
 
@@ -183,7 +184,7 @@ static void find_best_kpc(void){
 	cl_uint *tmpbuffer;
 
 	printf("Calculating best keys per crypt, this will take a while ");
-	for( num=MD5_NUM_KEYS; num > 4096 ; num -= 2048){
+	for( num=MD5_NUM_KEYS; num > 4096 ; num -= 4096){
 		release_clobj();
 		create_clobj(num);
 		advance_cursor();

@@ -1,7 +1,14 @@
 /* 
-   This code was taken and merged from pyrit opencl sha1 routines royger's sample ( http://royger.org/opencl/?p=12) 
-   and largely inspired from md5_opencl_kernel.cl 
-   by Samuele Giovanni Tonon samu at linuxasylum dot net
+   This code was largely inspired by 
+   pyrit opencl kernel sha1 routines, royger's sha1 sample,
+   and md5_opencl_kernel.cl inside jtr.
+   Copyright 2011 by Samuele Giovanni Tonon 
+   samu at linuxasylum dot net
+   This program comes with ABSOLUTELY NO WARRANTY; express or
+   implied .
+   This is free software, and you are welcome to redistribute it
+   under certain conditions; as expressed here 
+   http://www.gnu.org/licenses/gpl-2.0.html
 */
 
 #define K0  0x5A827999

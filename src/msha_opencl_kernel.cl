@@ -27,95 +27,21 @@
 #endif
 
 
+void sha1_process(uint W[80], uint *TT){
 
-__kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, __global char *plain_key,  __global uint *digest){
-    int t, gid, msg_pad;
-    int i, stop, mmod;
-    uint ulen;
-    uint W[80], temp, A,B,C,D,E;
-    uint num_keys = data_info[1];
-    
-    gid = get_global_id(0);
-    msg_pad = gid * data_info[0];
+  uint temp, A,B,C,D,E;
 
-    A = H1;
-    B = H2;
-    C = H3;
-    D = H4;
-    E = H5;
-    
-    for (t = 2; t < 15; t++){
-	W[t] = 0x00000000;
-    }
-    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
-    }
-
-    stop = i / 4 ;
-    for (t = 0 ; t < stop ; t++){
-        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
-        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
-        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 2]) << 8;
-        W[t] |= (uchar)  plain_key[msg_pad + t * 4 + 3];
-    }
-    mmod = i % 4;
-    if ( mmod == 3){
-        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
-        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
-        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 2]) << 8;
-        W[t] |= (uchar)  salt[0];
-	W[t+2] = ((uchar) salt[5]) << 24;
-        W[t+2] |=  ((uchar)  salt[6]) << 16;
-        W[t+2] |=  ((uchar)  salt[7]) << 8;
-        W[t+2] |=  ((uchar) 0x80) ;
-    	mmod = 4 - mmod;
-    } else if (mmod == 2) {
-        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
-        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
-        W[t] |= ((uchar)  salt[0]) << 8;
-        W[t] |= (uchar)  salt[1];
-        W[t+2] =  ((uchar)  salt[6]) << 24;
-        W[t+2] |=  ((uchar)  salt[7]) << 16;
-        W[t+2] |=  0x8000 ;
-    	mmod = 4 - mmod;
-    } else if (mmod == 1) {
-        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
-        W[t] |= ((uchar)  salt[0]) << 16;
-        W[t] |= ((uchar)  salt[1]) << 8;
-        W[t] |= (uchar)  salt[2];
-        W[t+2] =  ((uchar)  salt[7]) << 24;
-        W[t+2] |=  0x800000 ;
-    	mmod = 4 - mmod;
-    } else if (mmod == 0){
-        W[t+2] =  0x80000000 ;
-	t = t-1;
-    }
-    t = t+1;
-    for(; t < (stop + 2) && mmod < 8 ; t++ ){
-        W[t] = ((uchar)  salt[mmod]) << 24;
-        W[t] |= ((uchar)  salt[mmod + 1]) << 16;
-        W[t] |= ((uchar)  salt[mmod + 2]) << 8;
-        W[t] |= ((uchar)  salt[mmod + 3]);
-        mmod = mmod + 4;
-    }
-
-    i = i+8;
-    ulen = (i * 8) & 0xFFFFFFFF;
-    W[15] =  ulen ;   
-
+  A = H1;
+  B = H2;
+  C = H3;
+  D = H4;
+  E = H5;
 
 #undef R
-#define R(t)                                              \
-(                                                         \
-    temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^       \
-           W[(t - 14) & 0x0F] ^ W[ t      & 0x0F],        \
-    ( W[t & 0x0F] = rotate((int)temp,1) )                 \
-)
+#define R(t)( temp = W[(t -  3) & 0x0F] ^ W[(t - 8) & 0x0F] ^ W[(t - 14) & 0x0F] ^ W[ t & 0x0F], ( W[t & 0x0F] = rotate((int)temp,1) ))
 
 #undef P
-#define P(a,b,c,d,e,x)                                    \
-{                                                         \
-    e += rotate((int)a,5) + F(b,c,d) + K + x; b = rotate((int)b,30);\
-}
+#define P(a,b,c,d,e,x){ e += rotate((int)a,5) + F(b,c,d) + K + x; b = rotate((int)b,30); }
 
 #define F(x,y,z) (z ^ (x & (y ^ z)))
 #define K 0x5A827999
@@ -140,6 +66,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
   P( D, E, A, B, C, R(17) );
   P( C, D, E, A, B, R(18) );
   P( B, C, D, E, A, R(19) );
+
 
 #undef K
 #undef F
@@ -167,7 +94,6 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
   P( D, E, A, B, C, R(37) );
   P( C, D, E, A, B, R(38) );
   P( B, C, D, E, A, R(39) );
-  
 #undef K
 #undef F
   
@@ -224,10 +150,75 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
 
 #undef K
 #undef F
-  digest[gid] = as_uint(as_uchar4(A + H1).wzyx);
-  digest[gid+1*num_keys] = as_uint(as_uchar4(B + H2).wzyx);
-  digest[gid+2*num_keys] = as_uint(as_uchar4(C + H3).wzyx);
-  digest[gid+3*num_keys] = as_uint(as_uchar4(D + H4).wzyx);
-  digest[gid+4*num_keys] = as_uint(as_uchar4(E + H5).wzyx);
+  TT[0] = A + H1;
+  TT[1] = B + H2;
+  TT[2] = C + H3;
+  TT[3] = D + H4;
+  TT[4] = E + H5;
 
+}
+
+__kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_key,  __global uint *digest){
+    int t, gid, msg_pad;
+    int i, stop, mmod;
+    uint ulen;
+    uint W[80];
+    uint Td[5];
+    uint num_keys = data_info[1];
+    
+    gid = get_global_id(0);
+    msg_pad = gid * data_info[0];
+
+    for (t = 0; t < 15; t++){
+	W[t] = 0x00000000;
+    }
+    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
+    }
+
+    stop = i / 4 ;
+    for (t = 0 ; t < stop ; t++){
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 2]) << 8;
+        W[t] |= (uchar)  plain_key[msg_pad + t * 4 + 3];
+    }
+    mmod = i % 4;
+    if ( mmod == 3){
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 2]) << 8;
+        W[t] |=  ((uchar) 0x80) ;
+    } else if (mmod == 2) {
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
+        W[t] |=  0x8000 ;
+    } else if (mmod == 1) {
+        W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
+        W[t] |=  0x800000 ;
+    } else if (mmod == 0){
+        W[t] =  0x80000000 ;
+    }
+    ulen = (i * 8) & 0xFFFFFFFF;
+    W[15] =  ulen ;   
+
+    sha1_process(W,Td);
+    W[0] = Td[0];
+    W[1] = Td[1];
+    W[2] = Td[2];
+    W[3] = Td[3];
+    W[4] = Td[4];
+    W[5] = 0x80000000;
+    for (t = 6; t < 80; t++){
+	W[t] = 0x00000000;
+    }
+    ulen = 160 & 0xFFFFFFFF;
+    W[15] =  ulen ;   
+
+    sha1_process(W,Td);
+
+    digest[gid] = as_uint(as_uchar4(Td[0]).wzyx);
+    digest[gid+1*num_keys] = as_uint(as_uchar4(Td[1]).wzyx);
+    digest[gid+2*num_keys] = as_uint(as_uchar4(Td[2]).wzyx);
+    digest[gid+3*num_keys] = as_uint(as_uchar4(Td[3]).wzyx);
+    digest[gid+4*num_keys] = as_uint(as_uchar4(Td[4]).wzyx);
 }
