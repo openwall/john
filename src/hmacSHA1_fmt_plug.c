@@ -41,8 +41,9 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		64
+#define PLAINTEXT_LENGTH		125
 
+#define PAD_SIZE			64
 #define BINARY_SIZE			20
 #define SALT_SIZE			64
 
@@ -59,6 +60,8 @@
 static struct fmt_tests tests[] = {
 	{"The quick brown fox jumps over the lazy dog#de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9", "key"},
 	{"#fbdb1d1b18aa6c08324b7d64b71fb76370690e1d", ""},
+	// Sample from FIPS PUB 198, 100 byte key
+	{"Sample #3#bcf41eab8bb2d802f3d05caf7cb092ecf8d1a3aa", "PQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3"},
 	{NULL}
 };
 
@@ -81,12 +84,14 @@ unsigned char opad[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
 unsigned char ipad[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
 unsigned char cursalt[SHA_BUF_SIZ*4*SHA1_N] __attribute__ ((aligned(16)));
 unsigned char dump[BINARY_SIZE*SHA1_N] __attribute__((aligned(16)));
+static char saved_plain[SHA1_N][PLAINTEXT_LENGTH + 1];
 #endif
 #else
 static char crypt_key[BINARY_SIZE+1];
-static unsigned char opad[PLAINTEXT_LENGTH];
-static unsigned char ipad[PLAINTEXT_LENGTH];
+static unsigned char opad[PAD_SIZE];
+static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
+static char saved_plain[PLAINTEXT_LENGTH + 1];
 #endif
 
 static void init(struct fmt_main *pFmt)
@@ -103,10 +108,16 @@ static void init(struct fmt_main *pFmt)
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int pos, i;
+	char *p;
 
-	for(i=0;(i<strlen(ciphertext)) && (ciphertext[i]!='#');i++) ;
-	if(i > 55 || i==strlen(ciphertext)) // reject salts longer than 55 bytes
-		return 0;
+	p = strrchr(ciphertext, '#'); // allow # in salt
+	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
+	i = (int)(p - ciphertext);
+#if MMX_COEF
+	if(i > 55) return 0;
+#else
+	if(i > SALT_SIZE) return 0;
+#endif
 	pos = i+1;
 	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
 	for (i = pos; i < BINARY_SIZE*2+pos; i++)
@@ -130,6 +141,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
+	int len;
 #ifdef MMX_COEF
 	ARCH_WORD_32 *ipadp = (ARCH_WORD_32*)&ipad[GETPOS(3, index)];
 	ARCH_WORD_32 *opadp = (ARCH_WORD_32*)&opad[GETPOS(3, index)];
@@ -142,6 +154,28 @@ static void set_key(char *key, int index)
 		memset(opad, 0x5C, sizeof(opad));
 	}
 
+	len = strlen(key);
+	memcpy(saved_plain[index], key, len);
+	saved_plain[index][len] = 0;
+
+	if (len > 64) {
+		unsigned char k0[BINARY_SIZE];
+		SHA_CTX ctx;
+		int i;
+
+		SHA1_Init( &ctx );
+		SHA1_Update( &ctx, key, len);
+		SHA1_Final( k0, &ctx);
+
+		keyp = (unsigned int*)k0;
+		for(i = 0; i < BINARY_SIZE / 4; i++, ipadp += MMX_COEF, opadp += MMX_COEF)
+		{
+			temp = JOHNSWAP(*keyp++);
+			*ipadp ^= temp;
+			*opadp ^= temp;
+		}
+	}
+	else
 	while(((temp = JOHNSWAP(*keyp++)) & 0xff000000)) {
 		if (!(temp & 0x00ff0000) || !(temp & 0x0000ff00))
 		{
@@ -158,13 +192,31 @@ static void set_key(char *key, int index)
 	}
 #else
 	int i;
-	int len;
 
 	len = strlen(key);
+	memcpy(saved_plain, key, len);
+	saved_plain[len] = 0;
 
-	memset(ipad, 0x36, PLAINTEXT_LENGTH);
-	memset(opad, 0x5C, PLAINTEXT_LENGTH);
+	memset(ipad, 0x36, PAD_SIZE);
+	memset(opad, 0x5C, PAD_SIZE);
 
+	if (len > 64) {
+		SHA_CTX ctx;
+		unsigned char k0[BINARY_SIZE];
+
+		SHA1_Init( &ctx );
+		SHA1_Update( &ctx, key, len);
+		SHA1_Final( k0, &ctx);
+
+		len = BINARY_SIZE;
+
+		for(i=0;i<len;i++)
+		{
+			ipad[i] ^= k0[i];
+			opad[i] ^= k0[i];
+		}
+	}
+	else
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
@@ -175,17 +227,11 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-	static unsigned char out[PLAINTEXT_LENGTH + 1];
-	unsigned int i;
-
-	for(i=0;i<PLAINTEXT_LENGTH;i++)
 #ifdef MMX_COEF
-		out[i] = ipad[ GETPOS(i, index) ] ^ 0x36;
+	return saved_plain[index];
 #else
-		out[i] = ipad[ i ] ^ 0x36;
+	return saved_plain;
 #endif
-	out[i] = 0;
-	return (char*) out;
 }
 
 static int cmp_all(void *binary, int count)
@@ -262,7 +308,7 @@ static void *binary(char *ciphertext)
 	static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
-	for(i=0;ciphertext[i]!='#';i++);
+	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
 	for(i=0;i<BINARY_SIZE;i++)
 	{
@@ -277,17 +323,14 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	int i=0;
 #ifdef MMX_COEF
+	int i=0;
 	int j;
 	unsigned total_len=0;
 #endif
 	memset(salt, 0, sizeof(salt));
-	while(ciphertext[i]!='#')
-	{
-		salt[i] = ciphertext[i];
-		i++;
-	}
+	// allow # in salt
+	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
 #ifdef MMX_COEF
 	while(((unsigned char*)salt)[total_len])
 	{
