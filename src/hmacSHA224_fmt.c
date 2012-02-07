@@ -22,12 +22,11 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		64
+#define PLAINTEXT_LENGTH		125
 
+#define PAD_SIZE			64
 #define BINARY_SIZE			(224/8)
-#define SALT_SIZE			64
-
-#define BLOCK_SIZE			64
+#define SALT_SIZE			PAD_SIZE
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -38,21 +37,24 @@ static struct fmt_tests tests[] = {
 };
 
 static char crypt_key[BINARY_SIZE+1];
-static unsigned char opad[BLOCK_SIZE];
-static unsigned char ipad[BLOCK_SIZE];
+static unsigned char opad[PAD_SIZE];
+static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
-static unsigned char out[PLAINTEXT_LENGTH + 1];
+static char saved_plain[PLAINTEXT_LENGTH + 1];
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int pos, i;
+	char *p;
 
-	for(i=0;(i<strlen(ciphertext)) && (ciphertext[i]!='#');i++) ;
-	if(i==strlen(ciphertext))
-		return 0;
+	p = strrchr(ciphertext, '#'); // allow # in salt
+	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
+	i = (int)(p - ciphertext);
+	if(i > SALT_SIZE) return 0;
 	pos = i+1;
 	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
-	for (i = pos; i < BINARY_SIZE*2+pos; i++) {
+	for (i = pos; i < BINARY_SIZE*2+pos; i++)
+	{
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
 		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
 		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
@@ -68,14 +70,33 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	int i;
 	int len;
+	int i;
 
 	len = strlen(key);
+	memcpy(saved_plain, key, len);
+	saved_plain[len] = 0;
 
-	memset(ipad, 0x36, BLOCK_SIZE);
-	memset(opad, 0x5C, BLOCK_SIZE);
+	memset(ipad, 0x36, PAD_SIZE);
+	memset(opad, 0x5C, PAD_SIZE);
 
+	if (len > PAD_SIZE) {
+		SHA256_CTX ctx;
+		unsigned char k0[BINARY_SIZE];
+
+		SHA224_Init( &ctx );
+		SHA224_Update( &ctx, key, len);
+		SHA224_Final( k0, &ctx);
+
+		len = BINARY_SIZE;
+
+		for(i=0;i<len;i++)
+		{
+			ipad[i] ^= k0[i];
+			opad[i] ^= k0[i];
+		}
+	}
+	else
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
@@ -85,11 +106,7 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-	unsigned int i;
-	for(i=0;i<PLAINTEXT_LENGTH;i++)
-		out[i] = ipad[ i ] ^ 0x36;
-	out[i] = 0;
-	return (char*) out;
+	return saved_plain;
 }
 
 static int cmp_all(void *binary, int count)
@@ -112,12 +129,12 @@ static void crypt_all(int count)
 	SHA256_CTX ctx;
 
 	SHA224_Init( &ctx );
-	SHA224_Update( &ctx, ipad, BLOCK_SIZE );
+	SHA224_Update( &ctx, ipad, PAD_SIZE );
 	SHA224_Update( &ctx, cursalt, strlen( (char*) cursalt) );
 	SHA224_Final( (unsigned char*) crypt_key, &ctx);
 
 	SHA224_Init( &ctx );
-	SHA224_Update( &ctx, opad, BLOCK_SIZE );
+	SHA224_Update( &ctx, opad, PAD_SIZE );
 	SHA224_Update( &ctx, crypt_key, BINARY_SIZE);
 	SHA224_Final( (unsigned char*) crypt_key, &ctx);
 }
@@ -127,7 +144,7 @@ static void *binary(char *ciphertext)
 	static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
-	for(i=0;ciphertext[i]!='#';i++);
+	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
 	for(i=0;i<BINARY_SIZE;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];

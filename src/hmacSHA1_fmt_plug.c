@@ -45,7 +45,7 @@
 
 #define PAD_SIZE			64
 #define BINARY_SIZE			20
-#define SALT_SIZE			64
+#define SALT_SIZE			PAD_SIZE
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		SHA1_N
@@ -158,7 +158,7 @@ static void set_key(char *key, int index)
 	memcpy(saved_plain[index], key, len);
 	saved_plain[index][len] = 0;
 
-	if (len > 64) {
+	if (len > PAD_SIZE) {
 		unsigned char k0[BINARY_SIZE];
 		SHA_CTX ctx;
 		int i;
@@ -200,7 +200,7 @@ static void set_key(char *key, int index)
 	memset(ipad, 0x36, PAD_SIZE);
 	memset(opad, 0x5C, PAD_SIZE);
 
-	if (len > 64) {
+	if (len > PAD_SIZE) {
 		SHA_CTX ctx;
 		unsigned char k0[BINARY_SIZE];
 
@@ -244,7 +244,7 @@ static int cmp_all(void *binary, int count)
 #endif
 		for(x=0;x<MMX_COEF;x++)
 		{
-			// NOTE crypt_key is in input format (SHA_BUF_SIZ)
+			// NOTE crypt_key is in input format (SHA_BUF_SIZ*4)
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*SHA_BUF_SIZ] )
 				return 1;
 		}
@@ -264,7 +264,7 @@ static int cmp_one(void *binary, int index)
 #ifdef MMX_COEF
 	int i = 0;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		// NOTE crypt_key is in input format (SHA_BUF_SIZ)
+		// NOTE crypt_key is in input format (SHA_BUF_SIZ*4)
 		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*SHA_BUF_SIZ*MMX_COEF] )
 			return 0;
 	return 1;
@@ -292,12 +292,12 @@ static void crypt_all(int count)
 	SHA_CTX ctx;
 
 	SHA1_Init( &ctx );
-	SHA1_Update( &ctx, ipad, 64 );
+	SHA1_Update( &ctx, ipad, PAD_SIZE );
 	SHA1_Update( &ctx, cursalt, strlen( (char*)cursalt) );
 	SHA1_Final( (unsigned char*) crypt_key, &ctx);
 
 	SHA1_Init( &ctx );
-	SHA1_Update( &ctx, opad, 64 );
+	SHA1_Update( &ctx, opad, PAD_SIZE );
 	SHA1_Update( &ctx, crypt_key, BINARY_SIZE);
 	SHA1_Final( (unsigned char*) crypt_key, &ctx);
 #endif
