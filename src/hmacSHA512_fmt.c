@@ -24,10 +24,9 @@
 
 #define PLAINTEXT_LENGTH		125
 
+#define PAD_SIZE			128
 #define BINARY_SIZE			(512/8)
-#define SALT_SIZE			128
-
-#define BLOCK_SIZE			128
+#define SALT_SIZE			PAD_SIZE
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -35,25 +34,29 @@
 static struct fmt_tests tests[] = {
 	{"what do ya want for nothing?#164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737", "Jefe"}, 
 	{"Reference hashes are keys to success#73a5eff716d0147a440fdf5aff187c52deab8c4dc55073be3d5742e788a99fd6b53a5894725f0f88f3486b5bb63d2af930a0cf6267af572128273daf8eee4cfa", "The magnum"},
+	{"Beppe#Grillo#ab08c46822313481d548412a084f08c7ca3bbf8a98d901d14698759f4c36adb07528348d56caf4f6af654e14fc102ff10dcf50794a82544426386c7be238ceaf", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
 static char crypt_key[BINARY_SIZE+1];
-static unsigned char opad[BLOCK_SIZE];
-static unsigned char ipad[BLOCK_SIZE];
+static unsigned char opad[PAD_SIZE];
+static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
-static unsigned char out[PLAINTEXT_LENGTH + 1];
+static char saved_plain[PLAINTEXT_LENGTH + 1];
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int pos, i;
+	char *p;
 
-	for(i=0;(i<strlen(ciphertext)) && (ciphertext[i]!='#');i++) ;
-	if(i==strlen(ciphertext))
-		return 0;
+	p = strrchr(ciphertext, '#'); // allow # in salt
+	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
+	i = (int)(p - ciphertext);
+	if(i > SALT_SIZE) return 0;
 	pos = i+1;
 	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
-	for (i = pos; i < BINARY_SIZE*2+pos; i++) {
+	for (i = pos; i < BINARY_SIZE*2+pos; i++)
+	{
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
 		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
 		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
@@ -69,14 +72,36 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	int i;
 	int len;
+	int i;
 
 	len = strlen(key);
 
-	memset(ipad, 0x36, BLOCK_SIZE);
-	memset(opad, 0x5C, BLOCK_SIZE);
+	memset(ipad, 0x36, PAD_SIZE);
+	memset(opad, 0x5C, PAD_SIZE);
 
+#if PLAINTEXT_LENGTH > PAD_SIZE
+	memcpy(saved_plain, key, len);
+	saved_plain[len] = 0;
+
+	if (len > PAD_SIZE) {
+		SHA512_CTX ctx;
+		unsigned char k0[BINARY_SIZE];
+
+		SHA512_Init( &ctx );
+		SHA512_Update( &ctx, key, len);
+		SHA512_Final( k0, &ctx);
+
+		len = BINARY_SIZE;
+
+		for(i=0;i<len;i++)
+		{
+			ipad[i] ^= k0[i];
+			opad[i] ^= k0[i];
+		}
+	}
+	else
+#endif /* PLAINTEXT_LENGTH > PAD_SIZE */
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
@@ -86,11 +111,15 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
+#if PLAINTEXT_LENGTH > PAD_SIZE
+	return saved_plain;
+#else
 	unsigned int i;
 	for(i=0;i<PLAINTEXT_LENGTH;i++)
-		out[i] = ipad[ i ] ^ 0x36;
-	out[i] = 0;
-	return (char*) out;
+		saved_plain[i] = ipad[ i ] ^ 0x36;
+	saved_plain[i] = 0;
+	return (char*) saved_plain;
+#endif
 }
 
 static int cmp_all(void *binary, int count)
@@ -113,12 +142,12 @@ static void crypt_all(int count)
 	SHA512_CTX ctx;
 
 	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, ipad, BLOCK_SIZE );
+	SHA512_Update( &ctx, ipad, PAD_SIZE );
 	SHA512_Update( &ctx, cursalt, strlen( (char*) cursalt) );
 	SHA512_Final( (unsigned char*) crypt_key, &ctx);
 
 	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, opad, BLOCK_SIZE );
+	SHA512_Update( &ctx, opad, PAD_SIZE );
 	SHA512_Update( &ctx, crypt_key, BINARY_SIZE);
 	SHA512_Final( (unsigned char*) crypt_key, &ctx);
 }
@@ -128,7 +157,7 @@ static void *binary(char *ciphertext)
 	static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
-	for(i=0;ciphertext[i]!='#';i++);
+	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
 	for(i=0;i<BINARY_SIZE;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
@@ -139,13 +168,10 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	int i=0;
+
 	memset(salt, 0, sizeof(salt));
-	while(ciphertext[i]!='#')
-	{
-		salt[i] = ciphertext[i];
-		i++;
-	}
+	// allow # in salt
+	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
 	return salt;
 }
 

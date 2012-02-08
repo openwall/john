@@ -25,7 +25,7 @@
 #define MD5_N				MMX_COEF
 #endif
 
-#ifdef MD5_N_STR
+#ifdef MD5_SSE_PARA
 #define ALGORITHM_NAME			"SSE2i " MD5_N_STR
 #elif defined(MMX_COEF) && MMX_COEF == 4
 #define ALGORITHM_NAME			"SSE2 4x"
@@ -40,10 +40,11 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		64
+#define PLAINTEXT_LENGTH		125
 
+#define PAD_SIZE			64
 #define BINARY_SIZE			16
-#define SALT_SIZE			64
+#define SALT_SIZE			PAD_SIZE
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		MD5_N
@@ -61,6 +62,7 @@ static struct fmt_tests tests[] = {
 	{"2shXeqDlLdZ2pSMc0CBHfTyA5a9TKuSW#dfeb02c6f8a9ce89b554be60db3a2333", "magnum"},
 	{"#74e6f7298a9c2d168935f58c001bad88", ""},
 	{"The quick brown fox jumps over the lazy dog#80070713463e7749b90c2dc24911e275", "key"},
+	{"Beppe Grillo#f8457c3046c587bbcbd6d7036ba42c81", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
@@ -72,23 +74,25 @@ static struct fmt_tests tests[] = {
 #define cursalt hmacmd5_cursalt
 #define dump hmacmd5_dump
 #ifdef _MSC_VER
-__declspec(align(16)) char crypt_key[64*MD5_N];
+__declspec(align(16)) unsigned char crypt_key[64*MD5_N];
 __declspec(align(16)) unsigned char opad[64*MD5_N];
 __declspec(align(16)) unsigned char ipad[64*MD5_N];
 __declspec(align(16)) unsigned char cursalt[SALT_SIZE*MD5_N];
 __declspec(align(16)) unsigned char dump[BINARY_SIZE*MD5_N];
 #else
-char crypt_key[64*MD5_N] __attribute__ ((aligned(16)));
+unsigned char crypt_key[64*MD5_N] __attribute__ ((aligned(16)));
 unsigned char opad[64*MD5_N] __attribute__ ((aligned(16)));
 unsigned char ipad[64*MD5_N] __attribute__ ((aligned(16)));
 unsigned char cursalt[SALT_SIZE*MD5_N] __attribute__ ((aligned(16)));
 unsigned char dump[BINARY_SIZE*MD5_N] __attribute__((aligned(16)));
+static char saved_plain[MD5_N][PLAINTEXT_LENGTH + 1];
 #endif
 #else
 static char crypt_key[BINARY_SIZE+1];
-static unsigned char opad[PLAINTEXT_LENGTH];
-static unsigned char ipad[PLAINTEXT_LENGTH];
+static unsigned char opad[PAD_SIZE];
+static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
+static char saved_plain[PLAINTEXT_LENGTH + 1];
 #endif
 
 static void init(struct fmt_main *pFmt)
@@ -105,10 +109,16 @@ static void init(struct fmt_main *pFmt)
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int pos, i;
+	char *p;
 
-	for(i=0;(i<strlen(ciphertext)) && (ciphertext[i]!='#');i++) ;
-	if(i > 55 || i==strlen(ciphertext)) // reject salts longer than 55 bytes
-		return 0;
+	p = strrchr(ciphertext, '#'); // allow # in salt
+	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
+	i = (int)(p - ciphertext);
+#if MMX_COEF
+	if(i > 55) return 0;
+#else
+	if(i > SALT_SIZE) return 0;
+#endif
 	pos = i+1;
 	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
 	for (i = pos; i < BINARY_SIZE*2+pos; i++)
@@ -132,6 +142,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
+	int len;
 #ifdef MMX_COEF
 	ARCH_WORD_32 *ipadp = (ARCH_WORD_32*)&ipad[GETPOS(0, index)];
 	ARCH_WORD_32 *opadp = (ARCH_WORD_32*)&opad[GETPOS(0, index)];
@@ -144,6 +155,28 @@ static void set_key(char *key, int index)
 		memset(opad, 0x5C, sizeof(opad));
 	}
 
+	len = strlen(key);
+	memcpy(saved_plain[index], key, len);
+	saved_plain[index][len] = 0;
+
+	if (len > PAD_SIZE) {
+		unsigned char k0[BINARY_SIZE];
+		MD5_CTX ctx;
+		int i;
+
+		MD5_Init( &ctx );
+		MD5_Update( &ctx, key, len);
+		MD5_Final( k0, &ctx);
+
+		keyp = (unsigned int*)k0;
+		for(i = 0; i < BINARY_SIZE / 4; i++, ipadp += MMX_COEF, opadp += MMX_COEF)
+		{
+			temp = *keyp++;
+			*ipadp ^= temp;
+			*opadp ^= temp;
+		}
+	}
+	else
 	while((unsigned char)(temp = *keyp++)) {
 		if (!(temp & 0xff00) || !(temp & 0xff0000))
 		{
@@ -160,13 +193,31 @@ static void set_key(char *key, int index)
 	}
 #else
 	int i;
-	int len;
 
 	len = strlen(key);
+	memcpy(saved_plain, key, len);
+	saved_plain[len] = 0;
 
-	memset(ipad, 0x36, PLAINTEXT_LENGTH);
-	memset(opad, 0x5C, PLAINTEXT_LENGTH);
+	memset(ipad, 0x36, PAD_SIZE);
+	memset(opad, 0x5C, PAD_SIZE);
 
+	if (len > PAD_SIZE) {
+		MD5_CTX ctx;
+		unsigned char k0[BINARY_SIZE];
+
+		MD5_Init( &ctx );
+		MD5_Update( &ctx, key, len);
+		MD5_Final( k0, &ctx);
+
+		len = BINARY_SIZE;
+
+		for(i=0;i<len;i++)
+		{
+			ipad[i] ^= k0[i];
+			opad[i] ^= k0[i];
+		}
+	}
+	else
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
@@ -177,17 +228,11 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-	static unsigned char out[PLAINTEXT_LENGTH + 1];
-	unsigned int i;
-
-	for(i=0;i<PLAINTEXT_LENGTH;i++)
 #ifdef MMX_COEF
-		out[i] = ipad[ GETPOS(i, index) ] ^ 0x36;
+	return saved_plain[index];
 #else
-		out[i] = ipad[ i ] ^ 0x36;
+	return saved_plain;
 #endif
-	out[i] = 0;
-	return (char*) out;
 }
 
 static int cmp_all(void *binary, int count)
@@ -200,7 +245,7 @@ static int cmp_all(void *binary, int count)
 #endif
 		for(x=0;x<MMX_COEF;x++)
 		{
-			// NOTE crypt_key is in input format (SHA_BUF_SIZ)
+			// NOTE crypt_key is in input format (64*MMX_COEF)
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*16] )
 				return 1;
 		}
@@ -220,7 +265,7 @@ static int cmp_one(void *binary, int index)
 #ifdef MMX_COEF
 	int i = 0;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		// NOTE crypt_key is in input format (SHA_BUF_SIZ)
+		// NOTE crypt_key is in input format (64*MMX_COEF)
 		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*16*MMX_COEF] )
 			return 0;
 	return 1;
@@ -255,12 +300,12 @@ static void crypt_all(int count)
 	MD5_CTX ctx;
 
 	MD5_Init( &ctx );
-	MD5_Update( &ctx, ipad, 64 );
+	MD5_Update( &ctx, ipad, PAD_SIZE );
 	MD5_Update( &ctx, cursalt, strlen( (char*)cursalt) );
 	MD5_Final( (unsigned char *) crypt_key, &ctx);
 
 	MD5_Init( &ctx );
-	MD5_Update( &ctx, opad, 64 );
+	MD5_Update( &ctx, opad, PAD_SIZE );
 	MD5_Update( &ctx, crypt_key, BINARY_SIZE);
 	MD5_Final( (unsigned char *) crypt_key, &ctx);
 #endif
@@ -271,29 +316,25 @@ static void *binary(char *ciphertext)
 	static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
-	for(i=0;ciphertext[i]!='#';i++);
+	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
 	for(i=0;i<BINARY_SIZE;i++)
-	{
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
-	}
+
 	return (void*)realcipher;
 }
 
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	int i=0;
 #ifdef MMX_COEF
+	int i=0;
 	int j;
 	unsigned total_len=0;
 #endif
 	memset(salt, 0, sizeof(salt));
-	while(ciphertext[i]!='#')
-	{
-		salt[i] = ciphertext[i];
-		i++;
-	}
+	// allow # in salt
+	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
 #ifdef MMX_COEF
 	while(((unsigned char*)salt)[total_len])
 	{

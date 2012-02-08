@@ -24,35 +24,38 @@
 
 #define PLAINTEXT_LENGTH		125
 
+#define PAD_SIZE			128
 #define BINARY_SIZE			(384/8)
-#define SALT_SIZE			128
-
-#define BLOCK_SIZE			128
+#define SALT_SIZE			PAD_SIZE
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
 	{"what do ya want for nothing?#af45d2e376484031617f78d2b58a6b1b9c7ef464f5a01b47e42ec3736322445e8e2240ca5e69e2c78b3239ecfab21649", "Jefe"}, 
+	{"Beppe#Grillo#8361922c63506e53714f8a8491c6621a76cf0fd6dfead91bf59b420a23dff2745c0a0d5e142d4f937e714ea8c228835b", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
 static char crypt_key[BINARY_SIZE+1];
-static unsigned char opad[BLOCK_SIZE];
-static unsigned char ipad[BLOCK_SIZE];
+static unsigned char opad[PAD_SIZE];
+static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
-static unsigned char out[PLAINTEXT_LENGTH + 1];
+static char saved_plain[PLAINTEXT_LENGTH + 1];
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int pos, i;
+	char *p;
 
-	for(i=0;(i<strlen(ciphertext)) && (ciphertext[i]!='#');i++) ;
-	if(i==strlen(ciphertext))
-		return 0;
+	p = strrchr(ciphertext, '#'); // allow # in salt
+	if (!p || p > &ciphertext[strlen(ciphertext)-1]) return 0;
+	i = (int)(p - ciphertext);
+	if(i > SALT_SIZE) return 0;
 	pos = i+1;
 	if (strlen(ciphertext+pos) != BINARY_SIZE*2) return 0;
-	for (i = pos; i < BINARY_SIZE*2+pos; i++) {
+	for (i = pos; i < BINARY_SIZE*2+pos; i++)
+	{
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
 		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
 		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
@@ -68,14 +71,36 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	int i;
 	int len;
+	int i;
 
 	len = strlen(key);
 
-	memset(ipad, 0x36, BLOCK_SIZE);
-	memset(opad, 0x5C, BLOCK_SIZE);
+	memset(ipad, 0x36, PAD_SIZE);
+	memset(opad, 0x5C, PAD_SIZE);
 
+#if PLAINTEXT_LENGTH > PAD_SIZE
+	memcpy(saved_plain, key, len);
+	saved_plain[len] = 0;
+
+	if (len > PAD_SIZE) {
+		SHA512_CTX ctx;
+		unsigned char k0[BINARY_SIZE];
+
+		SHA384_Init( &ctx );
+		SHA384_Update( &ctx, key, len);
+		SHA384_Final( k0, &ctx);
+
+		len = BINARY_SIZE;
+
+		for(i=0;i<len;i++)
+		{
+			ipad[i] ^= k0[i];
+			opad[i] ^= k0[i];
+		}
+	}
+	else
+#endif /* PLAINTEXT_LENGTH > PAD_SIZE */
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
@@ -85,11 +110,15 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
+#if PLAINTEXT_LENGTH > PAD_SIZE
+	return saved_plain;
+#else
 	unsigned int i;
 	for(i=0;i<PLAINTEXT_LENGTH;i++)
-		out[i] = ipad[ i ] ^ 0x36;
-	out[i] = 0;
-	return (char*) out;
+		saved_plain[i] = ipad[ i ] ^ 0x36;
+	saved_plain[i] = 0;
+	return (char*) saved_plain;
+#endif
 }
 
 static int cmp_all(void *binary, int count)
@@ -112,12 +141,12 @@ static void crypt_all(int count)
 	SHA512_CTX ctx;
 
 	SHA384_Init( &ctx );
-	SHA384_Update( &ctx, ipad, BLOCK_SIZE );
+	SHA384_Update( &ctx, ipad, PAD_SIZE );
 	SHA384_Update( &ctx, cursalt, strlen( (char*) cursalt) );
 	SHA384_Final( (unsigned char*) crypt_key, &ctx);
 
 	SHA384_Init( &ctx );
-	SHA384_Update( &ctx, opad, BLOCK_SIZE );
+	SHA384_Update( &ctx, opad, PAD_SIZE );
 	SHA384_Update( &ctx, crypt_key, BINARY_SIZE);
 	SHA384_Final( (unsigned char*) crypt_key, &ctx);
 }
@@ -127,7 +156,7 @@ static void *binary(char *ciphertext)
 	static unsigned char realcipher[BINARY_SIZE];
 	int i,pos;
 
-	for(i=0;ciphertext[i]!='#';i++);
+	for(i=strlen(ciphertext);ciphertext[i]!='#';i--); // allow # in salt
 	pos=i+1;
 	for(i=0;i<BINARY_SIZE;i++)
 		realcipher[i] = atoi16[ARCH_INDEX(ciphertext[i*2+pos])]*16 + atoi16[ARCH_INDEX(ciphertext[i*2+1+pos])];
@@ -138,13 +167,10 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	int i=0;
+
 	memset(salt, 0, sizeof(salt));
-	while(ciphertext[i]!='#')
-	{
-		salt[i] = ciphertext[i];
-		i++;
-	}
+	// allow # in salt
+	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
 	return salt;
 }
 
