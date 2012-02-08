@@ -33,6 +33,7 @@
 
 static struct fmt_tests tests[] = {
 	{"what do ya want for nothing?#a30e01098bc6dbbf45690f3a7e9e6d0f8bbea2a39e6148008fd05e44", "Jefe"},
+	{"Beppe#Grillo#926e4a97b401242ef674cee4c60d9fc6ff73007f871008d4c11f5b95", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
@@ -155,13 +156,10 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	int i=0;
+
 	memset(salt, 0, sizeof(salt));
-	while(ciphertext[i]!='#')
-	{
-		salt[i] = ciphertext[i];
-		i++;
-	}
+	// allow # in salt
+	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
 	return salt;
 }
 

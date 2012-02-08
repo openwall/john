@@ -60,8 +60,7 @@
 static struct fmt_tests tests[] = {
 	{"The quick brown fox jumps over the lazy dog#de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9", "key"},
 	{"#fbdb1d1b18aa6c08324b7d64b71fb76370690e1d", ""},
-	// Sample from FIPS PUB 198, 100 byte key
-	{"Sample #3#bcf41eab8bb2d802f3d05caf7cb092ecf8d1a3aa", "PQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\x7f\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b\x9c\x9d\x9e\x9f\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf\xb0\xb1\xb2\xb3"},
+	{"Beppe#Grillo#debbdb4d549abe59fab67d0fb76b76fdbc4431f1", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 

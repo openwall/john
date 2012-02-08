@@ -34,6 +34,7 @@
 static struct fmt_tests tests[] = {
 	{"#b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad", ""},
 	{"The quick brown fox jumps over the lazy dog#f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8", "key"},
+	{"Beppe#Grillo#14651ba87c7f7da88bce0df1f89c223975ac0fdf9c35378cb0857a81dfd5c408", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
@@ -156,13 +157,10 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	int i=0;
+
 	memset(salt, 0, sizeof(salt));
-	while(ciphertext[i]!='#')
-	{
-		salt[i] = ciphertext[i];
-		i++;
-	}
+	// allow # in salt
+	memcpy(salt, ciphertext, strrchr(ciphertext, '#') - ciphertext);
 	return salt;
 }
 
