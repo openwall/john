@@ -74,6 +74,7 @@ JOHN_OBJS = \
 	hmailserver_fmt.o \
 	dragonfly3_fmt.o \
 	dragonfly4_fmt.o \
+	drupal7_fmt.o \
 	sha-crypt_256_fmt.o sha-crypt_512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
