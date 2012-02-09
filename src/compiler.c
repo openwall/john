@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2011 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2011,2012 by Solar Designer
  */
 
 #include <stdio.h>
@@ -840,6 +840,7 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 
 		c_code_start = mem_alloc((size_t)c_code_ptr);
 		c_data_start = mem_alloc((size_t)c_data_ptr);
+		memset(c_data_start, 0, (size_t)c_data_ptr);
 	}
 
 	return c_errno;
