@@ -1,4 +1,4 @@
-The following changes have been made between John 1.7.9 and 1.7.9.3:
+The following changes have been made between John 1.7.9 and 1.7.9.4:
 
 * Enhanced the support for DES-based tripcodes by making use of the bitslice
 DES implementation and supporting OpenMP parallelization.
@@ -18,6 +18,8 @@ based on benchmark results for different builds made with different versions of
 GCC on CPUs ranging from Pentium 3 to Core i7.  Previously, this code was only
 enabled for x86-64 and/or OpenMP-enabled builds.
 * Assorted minor corrections to Cygwin builds were made.
+* Fixed a bug in the Keyboard external mode (uninitialized variables on
+"--restore" or when minlength is greater than 1).
 * Updated the FAQ.
 
 The following changes have been made between John 1.7.8 and 1.7.9:
@@ -298,4 +300,4 @@ Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
 
-$Owl: Owl/packages/john/john/doc/CHANGES,v 1.78 2012/01/15 22:12:09 solar Exp $
+$Owl: Owl/packages/john/john/doc/CHANGES,v 1.79 2012/02/09 14:59:44 solar Exp $
