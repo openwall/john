@@ -64,7 +64,7 @@ static unsigned char *cursalt;
 static unsigned loopCnt;
 static unsigned char (*EncKey)[PLAINTEXT_LENGTH + 1];
 static unsigned int *EncKeyLen;
-static char (*crypt_key)[REAL_BINARY_SIZE + PLAINTEXT_LENGTH];
+static char (*crypt_key)[REAL_BINARY_SIZE];
 
 static void init(struct fmt_main *pFmt)
 {
@@ -150,25 +150,26 @@ static void crypt_all(int count)
 #endif
 	{
 		SHA512_CTX ctx;
-		unsigned Lcount;
+		unsigned char tmp[REAL_BINARY_SIZE + PLAINTEXT_LENGTH];
 		int len = EncKeyLen[index];
+		unsigned Lcount = loopCnt - 1;
 
 		SHA512_Init( &ctx );
 		SHA512_Update( &ctx, cursalt, 8 );
 		SHA512_Update( &ctx, EncKey[index], len );
-		SHA512_Final( (unsigned char *) crypt_key[index], &ctx);
-
-		memcpy(&crypt_key[index][REAL_BINARY_SIZE],
-		       ((char*)EncKey[index]), len);
-		Lcount = loopCnt;
+		memcpy(&tmp[REAL_BINARY_SIZE], (char *)EncKey[index], len);
+		SHA512_Final( tmp, &ctx);
 
 		len += REAL_BINARY_SIZE;
 
 		do {
 			SHA512_Init( &ctx );
-			SHA512_Update( &ctx, crypt_key[index], len);
-			SHA512_Final( (unsigned char *) crypt_key[index], &ctx);
+			SHA512_Update( &ctx, tmp, len);
+			SHA512_Final( tmp, &ctx);
 		} while (--Lcount);
+		SHA512_Init( &ctx );
+		SHA512_Update( &ctx, tmp, len);
+		SHA512_Final( (unsigned char *) crypt_key[index], &ctx);
 	}
 }
 
