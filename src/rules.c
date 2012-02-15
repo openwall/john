@@ -130,12 +130,6 @@ static struct {
 // get the uppercase/lowercase and other data for 'non-standard' encodings.
 #include "encoding_data.h"
 
-// this will 'pacify' compiler warnings.
-UTF16 *JunkStuff[] = {ISO_8859_1_to_unicode_high128, ISO_8859_7_to_unicode_high128, ISO_8859_15_to_unicode_high128,
-		      KOI8_R_to_unicode_high128, CP437_to_unicode_high128, CP737_to_unicode_high128,
-		      CP850_to_unicode_high128, CP858_to_unicode_high128, CP866_to_unicode_high128,
-		      CP1251_to_unicode_high128, CP1252_to_unicode_high128, CP1253_to_unicode_high128};
-
 static char *conv_source = CONV_SOURCE;
 static char *conv_shift, *conv_invert, *conv_vowels, *conv_right, *conv_left;
 static char *conv_tolower, *conv_toupper;
