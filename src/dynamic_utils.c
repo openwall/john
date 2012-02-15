@@ -76,11 +76,13 @@ int ishexdigit(char c) {
 	return 0;
 }
 // Only called at load time, so does not have to be overly optimal
-char *dynamic_Demangle(char *Line)
+char *dynamic_Demangle(char *Line, int *Len)
 {
 	char *tmp, *cp, *cp2, digits[3];
-	if (!Line || !strlen(Line))
+	if (!Line || !strlen(Line)) {
+		if (Len) *Len = 0;
 		return str_alloc_copy("");
+	}
 	tmp = str_alloc_copy(Line);
 	cp = tmp;
 	cp2 = Line;
@@ -129,5 +131,6 @@ char *dynamic_Demangle(char *Line)
 		}
 	}
 	*cp = 0;
+	if (Len) *Len = cp-tmp;
 	return tmp;
 }

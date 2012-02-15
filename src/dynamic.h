@@ -27,6 +27,7 @@ typedef void(*DYNAMIC_primitive_funcp)();
 
 typedef struct DYNAMIC_Constants_t
 {
+	int len;
 	char *Const;
 } DYNAMIC_Constants;
 
@@ -122,7 +123,9 @@ int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt);
 char *dynamic_LOAD_PARSER_SIGNATURE(int which);
 
 // extern demange.  Turns \xF7 into 1 char.  Turns \x1BCA into "esc C A" string (3 bytes).  Turns abc\\123 into abc\123, etc.
-char *dynamic_Demangle(char *Line);
+// NOTE, return the length here.  Since we may have this line:  \x1BCA\x00\x01  we have an embedded NULL.  Thus strlen type
+// functions can not be used, and this demangle MUST be used to set the length.
+char *dynamic_Demangle(char *Line, int *Len);
 
 #define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
 

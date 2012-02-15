@@ -496,9 +496,9 @@ static struct fmt_tests _Preloads_18[] =
 static DYNAMIC_Constants _Const_18[] =
 {
 	// constants not needed in the DynamicFunc__POCrypt call, but left here for documentation reasons.
-	{"Y"},
-	{"\xF7"},
-	{NULL}
+	{1, "Y"},
+	{1, "\xF7"},
+	{0, NULL}
 };
 
 //dynamic_19 --> Cisco PIX hash (same as pixMD5_fmt.c)
@@ -575,8 +575,8 @@ static struct fmt_tests _Preloads_21[] =
 static DYNAMIC_Constants _Const_21[] =
 {
 	// constants not needed in the DynamicFunc__POCrypt call, but left here for documentation reasons.
-	{":"},
-	{NULL}
+	{1, ":"},
+	{0, NULL}
 };
 
 //dynamic_22 --> md5(sha1($p))
@@ -694,8 +694,8 @@ static struct fmt_tests _Preloads_27[] =
 };
 static DYNAMIC_Constants _Const_27[] =
 {
-	{"$1$"},
-	{NULL}
+	{3, "$1$"},
+	{0, NULL}
 };
 
 //dynamic_28 --> Apache MD5
@@ -718,8 +718,8 @@ static struct fmt_tests _Preloads_28[] =
 };
 static DYNAMIC_Constants _Const_28[] =
 {
-	{"$apr1$"},
-	{NULL}
+	{6, "$apr1$"},
+	{0, NULL}
 };
 #endif
 
@@ -859,7 +859,7 @@ static struct fmt_tests _Preloads_34[] =
 // Here is a 'dummy' constant array. This will be 'linked' to any dynamic format that does not have any constants.
 static DYNAMIC_Constants _ConstDefault[] =
 {
-	{NULL}
+	{0, NULL}
 };
 
 // Here are the 'prebuilt' dynamic objects, ready to be 'loaded'
