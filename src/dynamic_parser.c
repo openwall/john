@@ -421,7 +421,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			strncmp(Setup.pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].plaintext), cp);
-		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext);
+		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext, NULL);
 		Setup.pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(Setup.pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
@@ -441,7 +441,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			strncmp(Setup.pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].plaintext), cp);
-		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext);
+		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext, NULL);
 		Setup.pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(Setup.pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
@@ -461,7 +461,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			strncmp(Setup.pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].plaintext), cp);
-		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext);
+		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext, NULL);
 		Setup.pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(Setup.pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
@@ -473,7 +473,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 
 	if (c == 'c' && !strncasecmp(Line, "ColonChar=", 10))
 	{
-		char *tmp = dynamic_Demangle(&Line[10]);
+		char *tmp = dynamic_Demangle(&Line[10], NULL);
 		if (!tmp)
 			return !fprintf(stderr, "Error, invalid test line: %s\n", Line);
 		options.loader.field_sep_char = *tmp;
@@ -542,7 +542,8 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, a 'blank' constant is not valid.   Line: %s\n", Line);
 		if (Setup.pConstants[nConst-1].Const)
 			return !fprintf(stderr, "Error, this constant has already entered.   Line: %s\n", Line);
-		Setup.pConstants[nConst-1].Const = dynamic_Demangle(&Line[7]);
+		// we want to know the length here.
+		Setup.pConstants[nConst-1].Const = dynamic_Demangle(&Line[7], &(Setup.pConstants[nConst-1].len));
 		return 1;
 	}
 	return !fprintf(stderr, "Error, unknown line:   %s\n", Line);
