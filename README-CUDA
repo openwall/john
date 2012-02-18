@@ -1,0 +1,14 @@
+README CUDA:
+If you have problems with JtR CUDA support:
+  Please check that paths to yours CUDA library are proper in Makefile:
+    CUDAPATH = /usr/local/cuda/lib
+    CUDA64PATH = /usr/local/cuda/lib64
+  Please check that yours PATH contains cuda lib,bin and include paths.
+  Please check that yours LD_LIBRARY_PATH contains cuda lib path
+
+Performance issues:
+  If you have got Fermi or newer card change "-arch sm_10" to "-arch sm_20" in the NVCC_FLAGS (Makefile).
+  Default THREADS and BLOCKS settings might not be optimal.
+  To get better performance you can experiment with THREADS and BLOCKS macros defined for each format in cuda*.h file.
+
+You can contact me at lukas[dot]odzioba[at]gmail[dot]com or john-dev mailing list
