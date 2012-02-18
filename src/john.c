@@ -87,6 +87,17 @@ extern struct fmt_main fmt_SybaseASE;
 extern struct fmt_main fmt_SKEY;
 #endif
 
+#ifdef HAVE_CUDA
+extern struct fmt_main fmt_cuda_cryptmd5;
+extern struct fmt_main fmt_cuda_phpass;
+extern struct fmt_main fmt_cuda_cryptsha256;
+extern struct fmt_main fmt_cuda_cryptsha512;
+extern struct fmt_main fmt_cuda_mscash;
+extern struct fmt_main fmt_cuda_mscash2;
+extern struct fmt_main fmt_cuda_rawsha256;
+extern struct fmt_main fmt_cuda_rawsha224;
+#endif
+
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pdf;
 extern struct fmt_main rar_fmt;
@@ -168,6 +179,17 @@ static void john_register_all(void)
 	john_register_one(&zip_fmt);
 	john_register_one(&fmt_dummy);
 
+#ifdef HAVE_CUDA
+	john_register_one(&fmt_cuda_cryptmd5);
+	john_register_one(&fmt_cuda_phpass);
+	john_register_one(&fmt_cuda_cryptsha256);
+	john_register_one(&fmt_cuda_cryptsha512);
+	john_register_one(&fmt_cuda_mscash);
+	john_register_one(&fmt_cuda_mscash2);
+	john_register_one(&fmt_cuda_rawsha256);
+	john_register_one(&fmt_cuda_rawsha224);
+#endif
+	
 #ifdef HAVE_DL
 	if (options.fmt_dlls)
 	register_dlls ( options.fmt_dlls,

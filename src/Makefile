@@ -23,6 +23,11 @@ CPPFLAGS = -E
 #CC = mpicc -DHAVE_MPI -DJOHN_MPI_BARRIER -DJOHN_MPI_ABORT
 #MPIOBJ = john-mpi.o
 
+CUDAPATH = /usr/local/cuda/lib
+CUDA64PATH = /usr/local/cuda/lib64
+NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+
+
 OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
@@ -91,6 +96,17 @@ JOHN_OBJS = \
 	undrop.o \
 	unique.o
 
+CUDA_OBJS = \
+	cuda_common.o \
+	cuda_cryptmd5_fmt.o cuda_cryptmd5.o \
+	cuda_phpass_fmt.o cuda_phpass.o \
+	cuda_cryptsha256_fmt.o cuda_cryptsha256.o \
+	cuda_cryptsha512_fmt.o cuda_cryptsha512.o \
+	cuda_mscash2_fmt.o cuda_mscash2.o \
+	cuda_rawsha256_fmt.o cuda_rawsha256.o \
+	cuda_rawsha224_fmt.o cuda_rawsha224.o \
+	cuda_mscash_fmt.o cuda_mscash.o
+
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
 
@@ -142,6 +158,7 @@ default:
 	@echo "	make clean SYSTEM"
 	@echo "where SYSTEM can be one of the following:"
 	@echo "([i] is an optional letter for pre-built intrinsics, eg. -sse2i vs -sse2):"
+	@echo "linux-x86-64-cuda        Linux, x86-64 with SSE2 and CUDA (experimental)"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
@@ -150,6 +167,7 @@ default:
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
+	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA (experimental)"
 	@echo "linux-x86-sse2[i]        Linux, x86 32-bit with SSE2 (most common, 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
@@ -240,6 +258,15 @@ linux-x86-64-xop:
 		ASFLAGS="$(ASFLAGS) -mxop" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 
+
+linux-x86-64-cuda:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -lcrypt -ldl -lcudart"
+
 linux-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -329,6 +356,14 @@ linux-x86-xop:
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
+
+linux-x86-cuda:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH) -lcrypt -ldl -lcudart"
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -1148,6 +1183,67 @@ generic.h:
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
 
+
+cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
+	cd cuda; nvcc $(NVCC_FLAGS) cuda_common.cu
+	mv cuda/cuda_common.o cuda_common.o
+
+cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu
+	cd cuda; nvcc $(NVCC_FLAGS) cryptmd5.cu
+	mv cuda/cryptmd5.o cuda_cryptmd5.o
+
+cuda_cryptmd5_fmt.o: cuda_cryptmd5.o cuda_cryptmd5_fmt.c cuda_cryptmd5.h
+	$(CC)  $(CFLAGS) cuda_cryptmd5_fmt.c
+
+cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu
+	cd cuda; nvcc $(NVCC_FLAGS) phpass.cu
+	mv cuda/phpass.o cuda_phpass.o
+
+cuda_phpass_fmt.o: cuda_phpass.o cuda_phpass_fmt.c cuda_phpass.h
+	$(CC)  $(CFLAGS) cuda_phpass_fmt.c
+
+cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu
+	cd cuda; nvcc $(NVCC_FLAGS) cryptsha256.cu
+	mv cuda/cryptsha256.o cuda_cryptsha256.o
+
+cuda_cryptsha256_fmt.o: cuda_cryptsha256.o cuda_cryptsha256_fmt.c cuda_cryptsha256.h
+	$(CC)  $(CFLAGS) cuda_cryptsha256_fmt.c
+
+cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu
+	cd cuda; nvcc $(NVCC_FLAGS) cryptsha512.cu
+	mv cuda/cryptsha512.o cuda_cryptsha512.o
+
+cuda_cryptsha512_fmt.o: cuda_cryptsha512.o cuda_cryptsha512_fmt.c cuda_cryptsha512.h
+	$(CC)  $(CFLAGS) cuda_cryptsha512_fmt.c
+
+cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) mscash2.cu
+	mv cuda/mscash2.o cuda_mscash2.o
+
+cuda_mscash2_fmt.o: cuda_mscash2.o cuda_mscash2_fmt.c cuda_mscash2.h
+	$(CC)  $(CFLAGS) cuda_mscash2_fmt.c
+
+cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) mscash.cu
+	mv cuda/mscash.o cuda_mscash.o
+
+cuda_mscash_fmt.o: cuda_mscash.o cuda_mscash_fmt.c cuda_mscash.h
+	$(CC)  $(CFLAGS) cuda_mscash_fmt.c
+
+cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) -DSHA256 rawsha256.cu
+	mv cuda/rawsha256.o cuda_rawsha256.o
+
+cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c cuda_rawsha256.h
+	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c
+
+cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) -DSHA224 rawsha256.cu
+	mv cuda/rawsha256.o cuda_rawsha224.o
+
+cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c cuda_rawsha256.h
+	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
+
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
@@ -1350,6 +1446,7 @@ test_utf8:
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
+	$(RM) cuda/*.o cuda/*~ *~
 	$(RM) detect bench generic.h arch.h tmp.s
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
 	$(CP) $(NULL) Makefile.dep
