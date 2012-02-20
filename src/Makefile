@@ -42,7 +42,7 @@ CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JO
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lcrypto -lssl -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
