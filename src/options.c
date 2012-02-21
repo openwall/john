@@ -198,18 +198,28 @@ static struct opt_entry opt_list[] = {
 #define JOHN_GPUID \
 "--gpu=GPUID               set OpenCL device, 0 - default (Experimental)\n"
 
+static int qcmpstr(const void *p1, const void *p2)
+{
+	return strcmp(*(const char**)p1, *(const char**)p2);
+}
+
 static void print_usage(char *name)
 {
 	int column;
 	struct fmt_main *format;
-	int dynamics = 0;
+	int i, dynamics = 0;
+	char **formats_list;
 
-	printf(JOHN_USAGE, name);
+	i = 0;
+	format = fmt_list;
+	while ((format = format->next))
+		i++;
 
-	column = strrchr(JOHN_USAGE, '\0') - strrchr(JOHN_USAGE, '\n') - 1;
+	formats_list = malloc(sizeof(char*) * i);
+
+	i = 0;
 	format = fmt_list;
 	do {
-		int length;
 		char *label = format->params.label;
 		if (!strncmp(label, "dynamic", 7)) {
 			if (dynamics++)
@@ -217,14 +227,28 @@ static void print_usage(char *name)
 			else
 				label = "dynamic_n";
 		}
-		length = strlen(label) + (format->next != NULL);
+		formats_list[i++] = label;
+	} while ((format = format->next));
+	formats_list[i] = NULL;
+
+	qsort(formats_list, i, sizeof(formats_list[0]), qcmpstr);
+
+	printf(JOHN_USAGE, name);
+	column = strrchr(JOHN_USAGE, '\0') - strrchr(JOHN_USAGE, '\n') - 1;
+	i = 0;
+	do {
+		int length;
+		char *label = formats_list[i++];
+		length = strlen(label) + (formats_list[i] != NULL);
 		column += length;
 		if (column > 80) {
 			printf("\n" JOHN_USAGE_INDENT);
 			column = strlen(JOHN_USAGE_INDENT) + length;
 		}
-		printf("%s%c", label, format->next ? '/' : '\n');
-	} while ((format = format->next));
+		printf("%s%c", label, formats_list[i] ? ' ' : '\n');
+	} while (formats_list[i]);
+	free(formats_list);
+
 	printf("%s", JOHN_USAGE_TAIL);
 #ifdef HAVE_DL
 	printf("%s", JOHN_USAGE_PLUGIN);
