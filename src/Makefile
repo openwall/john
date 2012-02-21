@@ -293,7 +293,7 @@ linux-x86-64-gpu:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart"
-	$(CP) *.cl ../run/
+	$(CP) opencl/*.cl ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-64-opencl:
@@ -303,7 +303,7 @@ linux-x86-64-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -lcrypt -lOpenCL -ldl"
-	$(CP) *.cl ../run/
+	$(CP) opencl/*.cl ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-64-cuda:
@@ -420,7 +420,7 @@ linux-x86-gpu:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86 -L$(NVIDIA_CUDA)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
-	$(CP) *.cl ../run/
+	$(CP) opencl/*.cl ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-opencl:
@@ -430,7 +430,7 @@ linux-x86-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(ATISTREAMSDKROOT)/lib/x86 -L$(NVIDIA_CUDA)/lib -lcrypt -lOpenCL -ldl"
-	$(CP) *.cl ../run/
+	$(CP) opencl/*.cl ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-cuda:
@@ -940,7 +940,7 @@ macosx-x86-64-opencl:
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64  -I$(NVIDIA_CUDA)/include -I$(ATISTREAMSDKROOT)/include  -DBSD -DCL_VERSION_1_0" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(ATISTREAMSDKROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
-	$(CP) *.cl ../run/
+	$(CP) opencl/*.cl ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 macosx-x86-64:
