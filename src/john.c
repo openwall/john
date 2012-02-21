@@ -90,6 +90,7 @@ extern struct fmt_main fmt_dragonfly3_64;
 extern struct fmt_main fmt_dragonfly4_64;
 extern struct fmt_main fmt_dragonfly3_32;
 extern struct fmt_main fmt_dragonfly4_32;
+extern struct fmt_main fmt_drupal7;
 extern struct fmt_main fmt_sha_crypt_256;
 extern struct fmt_main fmt_sha_crypt_512;
 #endif
@@ -105,7 +106,19 @@ extern struct fmt_main fmt_opencl_NT;
 extern struct fmt_main fmt_opencl_rawSHA1;
 extern struct fmt_main fmt_opencl_cryptMD5;
 extern struct fmt_main fmt_opencl_phpass;
+extern struct fmt_main fmt_opencl_mysqlsha1;
 #endif 
+#ifdef HAVE_CUDA
+extern struct fmt_main fmt_cuda_cryptmd5;
+extern struct fmt_main fmt_cuda_phpass;
+extern struct fmt_main fmt_cuda_cryptsha256;
+extern struct fmt_main fmt_cuda_cryptsha512;
+extern struct fmt_main fmt_cuda_mscash;
+extern struct fmt_main fmt_cuda_mscash2;
+extern struct fmt_main fmt_cuda_rawsha256;
+extern struct fmt_main fmt_cuda_rawsha224;
+#endif
+
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pdf;
 extern struct fmt_main rar_fmt;
@@ -180,6 +193,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_dragonfly4_64);
 	john_register_one(&fmt_dragonfly3_32);
 	john_register_one(&fmt_dragonfly4_32);
+	john_register_one(&fmt_drupal7);
 	john_register_one(&fmt_sha_crypt_256);
 	john_register_one(&fmt_sha_crypt_512);
 #endif
@@ -205,8 +219,20 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_rawSHA1);
 	john_register_one(&fmt_opencl_cryptMD5);
 	john_register_one(&fmt_opencl_phpass);
+	john_register_one(&fmt_opencl_mysqlsha1);
 #endif 
 
+#ifdef HAVE_CUDA
+	john_register_one(&fmt_cuda_cryptmd5);
+	john_register_one(&fmt_cuda_phpass);
+	john_register_one(&fmt_cuda_cryptsha256);
+	john_register_one(&fmt_cuda_cryptsha512);
+	john_register_one(&fmt_cuda_mscash);
+	john_register_one(&fmt_cuda_mscash2);
+	john_register_one(&fmt_cuda_rawsha256);
+	john_register_one(&fmt_cuda_rawsha224);
+#endif
+	
 #ifdef HAVE_DL
 	if (options.fmt_dlls)
 	register_dlls ( options.fmt_dlls,
