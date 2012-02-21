@@ -1269,13 +1269,13 @@ generic.h:
 
 testpara:
 	$(LN) x86-64.h arch.h
-	./para-best.sh "$(CC)" "$(MAKE)" \
+	perl ./para-best.pl "$(CC)" "$(MAKE)" \
 		"$(BENCH_PARA_DEPEND)" "-msse2" 64
 
 testpara32:
 	$(LN) x86-sse.h arch.h
 	CFLAGS="$(CFLAGS) -m32 -msse2" \
-	./para-best.sh "$(CC)" "$(MAKE)" \
+	perl ./para-best.pl "$(CC)" "$(MAKE)" \
 		"$(BENCH_PARA_DEPEND)" "-m32 -msse2" 32
 
 bench: $(BENCH_OBJS)
