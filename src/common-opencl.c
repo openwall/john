@@ -10,6 +10,14 @@ static char opencl_log[LOG_SIZE];
 static char kernel_source[SRC_SIZE];
 static int kernel_loaded;
 
+void advance_cursor() {
+  static int pos=0;
+  char cursor[4]={'/','-','\\','|'};
+  printf("%c\b", cursor[pos]);
+  fflush(stdout);
+  pos = (pos+1) % 4;
+}
+
 void handle_clerror(cl_int cl_error, const char *message, const char *file,
     int line)
 {

@@ -175,19 +175,6 @@ static void release_clobj(void){
 }
 
 /* 
-   laming spinning cursor 
-   added because it's cute
-*/
-static void advance_cursor() {
-	static int pos=0;
-	char cursor[4]={'/','-','\\','|'};
-	printf("%c\b", cursor[pos]);
-	fflush(stdout);
-	pos = (pos+1) % 4;
-}
-
-
-/* 
    this function could be used to calculated the best num
    of keys per crypt for the given format
 */
@@ -248,7 +235,7 @@ static void fmt_rawsha1_init(struct fmt_main *pFmt) {
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if( (kpc = getenv("LWS")) == NULL){
+	if(((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(SHA_NUM_KEYS);
 		find_best_workgroup();
 		release_clobj();

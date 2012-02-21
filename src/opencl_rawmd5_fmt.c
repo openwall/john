@@ -161,18 +161,6 @@ static void release_clobj(void){
 	free(res_hashes);
 }
 
-/* 
-   laming spinning cursor 
-   added because it's cute
-*/
-static void advance_cursor() {
-	static int pos=0;
-	char cursor[4]={'/','-','\\','|'};
-	printf("%c\b", cursor[pos]);
-	fflush(stdout);
-	pos = (pos+1) % 4;
-}
-
 static void find_best_kpc(void){
 	int num;
 	cl_event myEvent;
@@ -228,7 +216,7 @@ static void fmt_MD5_init(struct fmt_main *pFmt) {
 	opencl_init("$JOHN/md5_opencl_kernel.cl", gpu_id);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	if( (kpc = getenv("LWS")) == NULL){
+	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(MD5_NUM_KEYS);
 		find_best_workgroup();
 		release_clobj();
