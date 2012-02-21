@@ -177,10 +177,10 @@ static struct opt_entry opt_list[] = {
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--pot=NAME                pot file to use\n" \
-"--format=NAME             force hash type NAME: "
+"--format=NAME             force hash type NAME:"
 
 #define JOHN_USAGE_INDENT \
-"                          "
+"                         " // formats are prepended with a space
 
 #define JOHN_USAGE_TAIL \
 "--subformat=LIST          get a listing of all 'dynamic_n' formats\n" \
@@ -239,13 +239,13 @@ static void print_usage(char *name)
 	do {
 		int length;
 		char *label = formats_list[i++];
-		length = strlen(label) + (formats_list[i] != NULL);
+		length = strlen(label) + 1;
 		column += length;
 		if (column > 80) {
 			printf("\n" JOHN_USAGE_INDENT);
 			column = strlen(JOHN_USAGE_INDENT) + length;
 		}
-		printf("%s%c", label, formats_list[i] ? ' ' : '\n');
+		printf(" %s%c", label, formats_list[i] ? 0 : '\n');
 	} while (formats_list[i]);
 	free(formats_list);
 
