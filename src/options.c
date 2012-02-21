@@ -245,7 +245,7 @@ static void print_usage(char *name)
 			printf("\n" JOHN_USAGE_INDENT);
 			column = strlen(JOHN_USAGE_INDENT) + length;
 		}
-		printf(" %s%c", label, formats_list[i] ? 0 : '\n');
+		printf(" %s%s", label, formats_list[i] ? "" : "\n");
 	} while (formats_list[i]);
 	free(formats_list);
 
