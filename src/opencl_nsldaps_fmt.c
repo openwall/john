@@ -117,7 +117,6 @@ static void find_best_workgroup(void)
 	// Set keys
 	for (; i < SSHA_NUM_KEYS; i++) {
 		memcpy(&(inbuffer[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
-		//inbuffer[i * PLAINTEXT_LENGTH + 8] = 0x80;
 	}
 	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
@@ -131,12 +130,11 @@ static void find_best_workgroup(void)
 	    my_work_group *= 2) {
 		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1,
 		    NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-		clFinish(queue_prof);
-
 		if (ret_code != CL_SUCCESS) {
 			printf("Error %d\n", ret_code);
 			continue;
 		}
+		clFinish(queue_prof);
 
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
 		    sizeof(cl_ulong), &startTime, NULL);
@@ -147,7 +145,13 @@ static void find_best_workgroup(void)
 			kernelExecTimeNs = endTime - startTime;
 			local_work_size = my_work_group;
 		}
+		#ifdef DEBUG
+		printf("\nlws %04d time=%10d",(int) my_work_group, endTime-startTime);
+		#endif
 	}
+	#ifdef DEBUG
+	printf("\n");
+	#endif
 	printf("Optimal local work size %d\n",(int)local_work_size);
         printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
 	clReleaseCommandQueue(queue_prof);
@@ -267,8 +271,8 @@ static void find_best_kpc(void){
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = endTime-startTime;
-	tmpbuffer = malloc(sizeof(cl_uint) * 5 * num);
-	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 5 * num, tmpbuffer, 0, NULL, &myEvent);
+	tmpbuffer = malloc(sizeof(cl_uint) * num);
+	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = tmpTime + (endTime-startTime);
