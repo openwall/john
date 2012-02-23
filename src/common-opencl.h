@@ -34,8 +34,9 @@ void opencl_init(char *kernel_filename, unsigned int dev_id);
 
 char *get_error_name(cl_int cl_error);
 
-void handle_clerror(cl_int cl_error, const char *message, const char *file,
-    int line);
+void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
+
+void advance_cursor() ;
 /* Use this macro for OpenCL Error handling */
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
