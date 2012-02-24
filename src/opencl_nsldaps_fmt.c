@@ -292,7 +292,7 @@ static void find_best_kpc(void){
 static void fmt_ssha_init(struct fmt_main *pFmt)
 {
 	char *kpc;
-	opencl_init("$JOHN/ssha_opencl_kernel.cl", gpu_id);
+	opencl_init("$JOHN/ssha_opencl_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);

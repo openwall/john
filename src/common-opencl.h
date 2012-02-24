@@ -15,12 +15,13 @@
 #include "path.h"
 
 #define MAXGPUS	4
+#define MAX_PLATFORMS	4
 /* Comment if you do not want to see OpenCL warnings during kernel compilation */
 #define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
-unsigned int gpu_id;
-cl_platform_id platform;
+unsigned int gpu_id, platform_id;
+cl_platform_id platform[MAX_PLATFORMS];
 cl_device_id devices[MAXGPUS];
 cl_context context[MAXGPUS];
 cl_program program[MAXGPUS];
@@ -30,7 +31,8 @@ cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t max_group_size;
 
-void opencl_init(char *kernel_filename, unsigned int dev_id);
+void opencl_init(char *kernel_filename, unsigned int dev_id,
+                 unsigned int platform_id);
 
 char *get_error_name(cl_int cl_error);
 

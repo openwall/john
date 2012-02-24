@@ -42,28 +42,28 @@ static void read_kernel_source(char *kernel_filename)
 	kernel_loaded = 1;
 }
 
-static void dev_init(unsigned int dev_id)
-{				//dev is 0 or 1
+static void dev_init(unsigned int dev_id, unsigned int platform_id)
+{
 	assert(dev_id < MAXGPUS);
-	cl_platform_id platform;
-	cl_uint platforms, device_num;
+	cl_platform_id platform[MAX_PLATFORMS];
+	cl_uint num_platforms, device_num;
 
 	///Find CPU's
-	HANDLE_CLERROR(clGetPlatformIDs(1, &platform, &platforms),
+	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms),
 	    "No OpenCL platform found");
-	printf("OpenCL Platforms: %d", platforms);
-	HANDLE_CLERROR(clGetPlatformInfo(platform, CL_PLATFORM_NAME,
+	printf("OpenCL Platforms: %d", num_platforms);
+	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id], CL_PLATFORM_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying PLATFORM_NAME");
 	printf("\nOpenCL Platform: <<<%s>>>", opencl_log);
 
 	HANDLE_CLERROR(clGetDeviceIDs
-	    (platform, CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+	    (platform[platform_id], CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
 	    "No OpenCL device of that type exist");
 
 	printf(" %d device(s), ", device_num);
 	cl_context_properties properties[] = {
-		CL_CONTEXT_PLATFORM, (cl_context_properties) platform,
+		CL_CONTEXT_PLATFORM, (cl_context_properties) platform[platform_id],
 		0
 	};
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
@@ -110,11 +110,12 @@ static void build_kernel(int dev_id)
 #endif
 }
 
-void opencl_init(char *kernel_filename, unsigned int dev_id)
+void opencl_init(char *kernel_filename, unsigned int dev_id,
+                 unsigned int platform_id)
 {
 	//if (!kernel_loaded)
 		read_kernel_source(kernel_filename);
-	dev_init(dev_id);
+		dev_init(dev_id, platform_id);
 	build_kernel(dev_id);
 }
 
