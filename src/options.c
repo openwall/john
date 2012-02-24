@@ -40,7 +40,7 @@
 #define _PER_NODE ""
 #endif
 #ifdef CL_VERSION_1_0
-extern unsigned int gpu_id;
+extern unsigned int platform_id, gpu_id;
 #endif
 
 struct options_main options;
@@ -131,6 +131,8 @@ static struct opt_entry opt_list[] = {
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
 #ifdef CL_VERSION_1_0
+	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &platform_id},
 	{"gpu", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &gpu_id},
 #endif
@@ -196,7 +198,8 @@ static struct opt_entry opt_list[] = {
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
 
 #define JOHN_GPUID \
-"--gpu=GPUID               set OpenCL device, 0 - default (Experimental)\n"
+"--platform=ID             set OpenCL platform, 0 - default (Experimental)\n" \
+"--gpu=ID                  set OpenCL device, 0 - default (Experimental)\n"
 
 static int qcmpstr(const void *p1, const void *p2)
 {

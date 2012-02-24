@@ -161,18 +161,6 @@ static void release_clobj(void){
 	free(res_hashes);
 }
 
-/* 
-   laming spinning cursor 
-   added because it's cute
-*/
-static void advance_cursor() {
-	static int pos=0;
-	char cursor[4]={'/','-','\\','|'};
-	printf("%c\b", cursor[pos]);
-	fflush(stdout);
-	pos = (pos+1) % 4;
-}
-
 static void find_best_kpc(void){
 	int num;
 	cl_event myEvent;
@@ -204,8 +192,8 @@ static void find_best_kpc(void){
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 		tmpTime = endTime-startTime;
-		tmpbuffer = malloc(sizeof(cl_uint) * 5 * num);
-		clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 4 * num, tmpbuffer, 0, NULL, &myEvent);
+		tmpbuffer = malloc(sizeof(cl_uint) * num);
+		clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 		tmpTime = tmpTime + (endTime-startTime);
@@ -225,10 +213,10 @@ static void find_best_kpc(void){
 static void fmt_MD5_init(struct fmt_main *pFmt) {
 	char *kpc;
 
-	opencl_init("$JOHN/md5_opencl_kernel.cl", gpu_id);
+	opencl_init("$JOHN/md5_opencl_kernel.cl", gpu_id, platform_id);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	if( (kpc = getenv("LWS")) == NULL){
+	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(MD5_NUM_KEYS);
 		find_best_workgroup();
 		release_clobj();

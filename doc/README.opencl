@@ -96,6 +96,9 @@ Warning ! LWS and KPC are highly dependant on the format you are
 using.
 LWS and KPC are not yet in every opencl format john is using.
 
+- There's no check for LWS and KPC values so you should now how
+  to set them to properly values, if in doubt just use the defaults
+  and unset them
 
 ====================
 Optimization:
@@ -105,6 +108,11 @@ if you plan on using opencl only for incremental mode (which at
 the moment is the one that gives the fastest speed) it could be
 a good idea to set up PLAINTEXT_LENGTH to a lower value than
 32.
+
+- LWS and KPC should be set with numbers that are power of two
+
+- KPC should always be the possible product of LWS: you should always 
+  be able to divide KPC / LWS and get an integer number
 
 
 ============================================================

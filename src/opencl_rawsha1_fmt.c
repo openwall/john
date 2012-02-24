@@ -23,7 +23,7 @@
 #define ALGORITHM_NAME			"raw-sha1-opencl"
 #define SHA_TYPE                        "SHA-1"
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		32
 #define CIPHERTEXT_LENGTH		40
@@ -175,19 +175,6 @@ static void release_clobj(void){
 }
 
 /* 
-   laming spinning cursor 
-   added because it's cute
-*/
-static void advance_cursor() {
-	static int pos=0;
-	char cursor[4]={'/','-','\\','|'};
-	printf("%c\b", cursor[pos]);
-	fflush(stdout);
-	pos = (pos+1) % 4;
-}
-
-
-/* 
    this function could be used to calculated the best num
    of keys per crypt for the given format
 */
@@ -222,8 +209,8 @@ static void find_best_kpc(void){
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 		tmpTime = endTime-startTime;
-		tmpbuffer = malloc(sizeof(cl_uint) * 5 * num);
-		clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * 5 * num, tmpbuffer, 0, NULL, &myEvent);
+		tmpbuffer = malloc(sizeof(cl_uint) * num);
+		clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 		tmpTime = tmpTime + (endTime-startTime);
@@ -242,13 +229,13 @@ static void find_best_kpc(void){
 
 static void fmt_rawsha1_init(struct fmt_main *pFmt) {
 	char *kpc;
-	opencl_init("$JOHN/sha1_opencl_kernel.cl", gpu_id);
+	opencl_init("$JOHN/sha1_opencl_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if( (kpc = getenv("LWS")) == NULL){
+	if(((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(SHA_NUM_KEYS);
 		find_best_workgroup();
 		release_clobj();
