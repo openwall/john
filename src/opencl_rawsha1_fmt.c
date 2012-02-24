@@ -23,7 +23,7 @@
 #define ALGORITHM_NAME			"raw-sha1-opencl"
 #define SHA_TYPE                        "SHA-1"
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		32
 #define CIPHERTEXT_LENGTH		40
