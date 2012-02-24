@@ -42,7 +42,7 @@
 #define NUM_BLOCKS			5
 
 #define PLAINTEXT_LENGTH		32
-#define SSHA_NUM_KEYS         		1024*2048
+#define SSHA_NUM_KEYS         		1024*2048*4
 
 #define MIN_KEYS_PER_CRYPT              1024
 #define MAX_KEYS_PER_CRYPT		SSHA_NUM_KEYS
@@ -251,7 +251,7 @@ static void find_best_kpc(void){
     cl_uint *tmpbuffer;
 
     printf("Calculating best keys per crypt, this will take a while ");
-    for( num=SSHA_NUM_KEYS; num > 4096 ; num -= 4096){
+    for( num=SSHA_NUM_KEYS; num > 4096 ; num -= 16384){
         release_clobj();
 	create_clobj(num);
 	advance_cursor();
