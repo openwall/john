@@ -105,7 +105,7 @@ static void build_kernel(int dev_id)
 	if (build_code != CL_SUCCESS)
 		printf("Compilation log: %s\n", opencl_log);
 #ifdef REPORT_OPENCL_WARNINGS
-	else if (strlen(opencl_log) > 0)
+	else if (strlen(opencl_log) > 1) // Nvidia may return a single '\n' which is not that interesting
 		printf("Compilation log: %s\n", opencl_log);
 #endif
 }
