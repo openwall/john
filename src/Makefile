@@ -80,7 +80,7 @@ JOHN_OBJS = \
 	dragonfly3_fmt.o \
 	dragonfly4_fmt.o \
 	drupal7_fmt.o \
-	sha-crypt_256_fmt.o sha-crypt_512_fmt.o \
+	cryptsha256_fmt.o cryptsha512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
