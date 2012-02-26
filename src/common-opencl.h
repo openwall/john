@@ -20,7 +20,7 @@
 #define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
-unsigned int gpu_id, platform_id;
+int gpu_id, platform_id;
 cl_platform_id platform[MAX_PLATFORMS];
 cl_device_id devices[MAXGPUS];
 cl_context context[MAXGPUS];
@@ -41,5 +41,7 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file, int 
 void advance_cursor() ;
 /* Use this macro for OpenCL Error handling */
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
+
+void listOpenCLdevices();
 
 #endif

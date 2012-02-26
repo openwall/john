@@ -40,7 +40,7 @@
 #define _PER_NODE ""
 #endif
 #ifdef CL_VERSION_1_0
-extern unsigned int platform_id, gpu_id;
+#include "common-opencl.h"
 #endif
 
 struct options_main options;
@@ -132,9 +132,9 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.max_run_time},
 #ifdef CL_VERSION_1_0
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &platform_id},
-	{"gpu", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &gpu_id},
+		OPT_FMT_STR_ALLOC, &options.ocl_platform},
+	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.ocl_device},
 #endif
 	{NULL}
 };
@@ -198,8 +198,8 @@ static struct opt_entry opt_list[] = {
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
 
 #define JOHN_GPUID \
-"--platform=ID             set OpenCL platform, 0 - default (Experimental)\n" \
-"--gpu=ID                  set OpenCL device, 0 - default (Experimental)\n"
+"--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
+"--device=N                set OpenCL device, default 0\n"
 
 static int qcmpstr(const void *p1, const void *p2)
 {
@@ -323,6 +323,18 @@ void opt_init(char *name, int argc, char **argv)
 		exit(0);
 	}
 
+#ifdef CL_VERSION_1_0
+	if ((options.ocl_platform && !strcasecmp(options.ocl_platform, "list")) ||
+	    (options.ocl_device && !strcasecmp(options.ocl_device, "list"))) {
+		listOpenCLdevices();
+		exit(0);
+	} else {
+		if (options.ocl_platform)
+			platform_id = atoi(options.ocl_platform);
+		if (options.ocl_device)
+			gpu_id = atoi(options.ocl_device);
+	}
+#endif
 	if (options.flags & FLG_STATUS_CHK) {
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
