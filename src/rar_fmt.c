@@ -65,11 +65,13 @@ static unsigned char saved_ct[16];
 static int type;  /* type of rar file */
 
 /* for rar -p mode */
+static char command[4096 + 64];
 static unsigned FILE_CRC[4];
 static int PACK_SIZE;
 static int UNP_SIZE;
 static unsigned char *ciphertext;
 static unsigned char *plaintext;
+static char *filename;
 
 static struct fmt_tests rar_tests[] = {
 	{"$rar3$*0*c9dea41b149b53b4*fcbdb66122d8ebdb32532c22ca7ab9ec*24",
@@ -117,7 +119,6 @@ static void set_salt(void *salt)
 			saved_ct[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])]
 			    * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 	} else {
-		char *filename;
 		long pos;
 		FILE *fp;
 		char *p = strtok(NULL, "*");
@@ -164,64 +165,61 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	int i = 0, j = 0;
+	if (type == 0) {
+		int i = 0, j = 0;
+		UTF16 utf16key[PLAINTEXT_LENGTH + 1];
+		char *encoded_key = (char*)utf16key;
+		int plen;
+		unsigned char RawPsw[2 * PLAINTEXT_LENGTH + 8];
+		unsigned char aes_key[16];
+		unsigned char aes_iv[16];
+		int RawLength;
+		SHA_CTX ctx;
+		const int HashRounds = 0x40000;
+		unsigned int digest[5];
 
-	UTF16 utf16key[PLAINTEXT_LENGTH + 1];
-	char *encoded_key = (char*)utf16key;
-	int plen;
-	unsigned char RawPsw[2 * PLAINTEXT_LENGTH + 8];
-	unsigned char aes_key[16];
-	unsigned char aes_iv[16];
-	int RawLength;
-	SHA_CTX ctx;
-	const int HashRounds = 0x40000;
-	unsigned int digest[5];
+		/* UTF-16LE encode the password, encoding aware */
+		plen = enc_to_utf16(utf16key, PLAINTEXT_LENGTH, (UTF8*)saved_key, strlen(saved_key));
+		if (plen <= 0)
+			saved_key[-plen] = 0;
+		if (plen < 0)
+			plen = strlen16(utf16key);
 
-	/* UTF-16LE encode the password, encoding aware */
-	plen = enc_to_utf16(utf16key, PLAINTEXT_LENGTH, (UTF8*)saved_key, strlen(saved_key));
-	if (plen <= 0)
-		saved_key[-plen] = 0;
-	if (plen < 0)
-		plen = strlen16(utf16key);
+		RawLength = (plen <<= 1) + 8;
 
-	RawLength = (plen <<= 1) + 8;
+		/* derive IV and key for AES from saved_key and saved_salt,
+		 * this code block is based on unrarhp's and unrar's sources */
 
-	/* derive IV and key for AES from saved_key and saved_salt,
-	 * this code block is based on unrarhp's and unrar's sources */
-
-	memcpy(RawPsw, encoded_key, plen);
-	memcpy(RawPsw + plen, saved_salt, 8);
-	SHA1_Init(&ctx);
-	for (i = 0; i < HashRounds; i++) {
-		unsigned char PswNum[3];
-		SHA1_Update(&ctx, RawPsw, RawLength);
-		PswNum[0] = (unsigned char) i;
-		PswNum[1] = (unsigned char) (i >> 8);
-		PswNum[2] = (unsigned char) (i >> 16);
-		SHA1_Update(&ctx, PswNum, 3);
-		if (i % (HashRounds / 16) == 0) {
-			SHA_CTX tempctx = ctx;
-			unsigned int digest[5];
-			SHA1_Final((unsigned char *) digest, &tempctx);
-			for (j = 0; j < 5; j++)  /* reverse byte order */
-				digest[j] = BYTESWAP32(digest[j]);
-			aes_iv[i / (HashRounds / 16)] =
-			    (unsigned char) digest[4];
+		memcpy(RawPsw, encoded_key, plen);
+		memcpy(RawPsw + plen, saved_salt, 8);
+		SHA1_Init(&ctx);
+		for (i = 0; i < HashRounds; i++) {
+			unsigned char PswNum[3];
+			SHA1_Update(&ctx, RawPsw, RawLength);
+			PswNum[0] = (unsigned char) i;
+			PswNum[1] = (unsigned char) (i >> 8);
+			PswNum[2] = (unsigned char) (i >> 16);
+			SHA1_Update(&ctx, PswNum, 3);
+			if (i % (HashRounds / 16) == 0) {
+				SHA_CTX tempctx = ctx;
+				unsigned int digest[5];
+				SHA1_Final((unsigned char *) digest, &tempctx);
+				for (j = 0; j < 5; j++)  /* reverse byte order */
+					digest[j] = BYTESWAP32(digest[j]);
+				aes_iv[i / (HashRounds / 16)] =
+				    (unsigned char) digest[4];
+			}
 		}
-	}
-	SHA1_Final((unsigned char *) digest, &ctx);
-	for (j = 0; j < 5; j++)	/* reverse byte order */
-		digest[j] = BYTESWAP32(digest[j]);
-	for (i = 0; i < 4; i++)
-		for (j = 0; j < 4; j++)
-			aes_key[i * 4 + j] =
-			    (unsigned char) (digest[i] >> (j * 8));
-
-	if (type == 0) {	/* use Marc's method for -hp mode */
+		SHA1_Final((unsigned char *) digest, &ctx);
+		for (j = 0; j < 5; j++)	/* reverse byte order */
+			digest[j] = BYTESWAP32(digest[j]);
+		for (i = 0; i < 4; i++)
+			for (j = 0; j < 4; j++)
+				aes_key[i * 4 + j] =
+				    (unsigned char) (digest[i] >> (j * 8));
 		char ct[16];
 		AES_KEY key;
 		unsigned char output[16];
-
 		memcpy(ct, saved_ct, 16);
 		/* AES decrypt, uses aes_iv, aes_key and saved_ct */
 		AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8, &key);	/* AES-128 */
@@ -229,44 +227,51 @@ static void crypt_all(int count)
 		    (unsigned char *) aes_iv, AES_DECRYPT);
 		if (!memcmp(output, "\xc4\x3d\x7b\x00\x40\x07\x00", 7))
 			has_been_cracked = 1;
-	} else {
-		/* use full decryption with CRC check */
-		AES_KEY key;
-		AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8, &key);
-		AES_cbc_encrypt((unsigned char *) ciphertext, plaintext,
-		    PACK_SIZE, &key, (unsigned char *) aes_iv, AES_DECRYPT);
-
-		/* The code above works fine. I did a manual compressed plaintext attack
-		 * with the correct password */
-
-		/* TODO: use unrar's decompression engine (written in C++), this is
-		 * needed to compute CRC and compare it with stored CRC (FILE_CRC). */
-
-		/* TODO: decompress compressed plaintext block using unrar's sources
+	}
+	else {
+		/* Use full decryption with CRC check 
+		 * AES_KEY key;
+		 * AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8, &key);
+		 * AES_cbc_encrypt((unsigned char *) ciphertext, plaintext,
+		 * PACK_SIZE, &key, (unsigned char *) aes_iv, AES_DECRYPT);
+		 *
+		 * The code above works fine. I did a manual compressed plaintext attack
+		 * with the correct password.
+		 *
+		 * TODO: use unrar's decompression engine (written in C++), this is
+		 * needed to compute CRC and compare it with stored CRC (FILE_CRC).
+		 *
+		 * TODO: decompress compressed plaintext block using unrar's sources
 		 *
 		 * Can we avoid writing a full blown rar decompressor by writing some
 		 * sort of probabilistic attacker with some heuristics (correct
 		 * compressed stream tends to have trailing zeroes)?
+		 *
 		 * Can we detect some fixed strings / structures within the recovered
-		 * compressed stream? Does RAR internally use a HMAC (undocumented)? */
+		 * compressed stream? Does RAR internally use a HMAC (undocumented)?
+		 *
+		 * Compute CRC of the decompressed plaintext block
+		 * CRC32_t crc;
+		 * CRC32_Init(&crc);
+		 * CRC32_Update(&crc, plaintext, UNP_SIZE);
+		 * unsigned char crc_out[4];
+		 * CRC32_Final(crc_out, crc);
+		 * printf("saved key : %s, CRC : \n", saved_key);
+		 * for (i = 0; i < 4; i++) {
+		 * 	printf("%02x ", crc_out[i]);
+		 * }
+		 * printf("\n");
+		 *
+		 * TODO: compare computed CRC with stored CRC (FILE_CRC) */
 
-		/* compute CRC of the decompressed plaintext block
-		   CRC32_t crc;
-		   CRC32_Init(&crc);
-		   CRC32_Update(&crc, plaintext, UNP_SIZE);
-		   unsigned char crc_out[4];
-		   CRC32_Final(crc_out, crc);
-		   printf("saved key : %s, CRC : \n", saved_key);
-		   for (i = 0; i < 4; i++) {
-		   printf("%02x ", crc_out[i]);
-		   }
-		   printf("\n"); */
-
-		/* TODO: compare computed CRC with stored CRC (FILE_CRC) */
-
-		/* warn about missing -p mode support */
-		fprintf(stderr, "RAR -p mode support is not complete yet!\n");
-		// error();
+		FILE *fp;
+		int len, ret;
+		len = sprintf(command, "%s%s%s%s", "unrar t -p", saved_key, " -inul ", filename);
+		command[len] = 0;
+		fp = popen(command, "r");
+		ret = pclose(fp);
+		if( ret == 0)
+			has_been_cracked = 1;
 	}
 }
 

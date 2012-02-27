@@ -176,7 +176,10 @@ static void process_file(const char *filename)
 		}
 		/* fp is at ciphertext location */
 		long pos = ftell(fp);
-		printf("*%d*%d*%s*%ld\n",file_header_pack_size, file_header_unp_size, filename, pos);
+		char *filepath = realpath(filename, NULL);
+		printf("*%d*%d*%s*%ld\n",file_header_pack_size, file_header_unp_size, filepath, pos);
+		if(filepath)
+			free(filepath);
 	}
 	fclose(fp);
 }
