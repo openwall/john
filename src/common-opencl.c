@@ -163,6 +163,22 @@ char *get_error_name(cl_int cl_error)
 	return "UNKNOWN ERROR :(";
 }
 
+char *megastring(unsigned long long value) 
+{
+	static char outbuf[16];
+
+	if (value >= 10000000000ULL)
+		sprintf(outbuf, "%llu GB", value>>30);
+	else if (value >= 10000000ULL)
+		sprintf(outbuf, "%llu MB", value>>20);
+	else if (value >= 10000ULL)
+		sprintf(outbuf, "%llu KB", value>>10);
+	else
+		sprintf(outbuf, "%llu bytes", value);
+
+	return outbuf;
+}
+
 #define MAX_OCLINFO_STRING_LEN	64
 void listOpenCLdevices(void) {
 	char dname[MAX_OCLINFO_STRING_LEN];
@@ -217,11 +233,11 @@ void listOpenCLdevices(void) {
 			clGetDeviceInfo(devices[d], CL_DRIVER_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tGlobal Memory:\t\t%llu MB\n", (long long unsigned)long_entries>>20);
+			printf("\tGlobal Memory:\t\t%s\n", megastring((unsigned long long)long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tGlobal Memory Cache:\t%llu MB\n", (long long unsigned)long_entries>>20);
+			printf("\tGlobal Memory Cache:\t%s\n", megastring((unsigned long long)long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tLocal Memory:\t\t%llu KB\n", (long long unsigned)long_entries>>10);
+			printf("\tLocal Memory:\t\t%s\n", megastring((unsigned long long)long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong), &long_entries, NULL);
 			printf("\tMax clock (MHz) :\t%llu\n", (long long unsigned)long_entries);
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
