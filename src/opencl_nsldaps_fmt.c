@@ -65,8 +65,7 @@ cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys,
     len_buffer, data_info, mysalt, mycrypt;
 static cl_uint *outbuffer;
 static cl_uint *outbuffer2;
-static char *inbuffer;
-//static char *saved_key;
+static char *saved_plain;
 static char saved_salt[SALT_SIZE];
 static unsigned int datai[2];
 static int have_full_hashes;
@@ -116,14 +115,14 @@ static void find_best_workgroup(void)
 
 	// Set keys
 	for (; i < SSHA_NUM_KEYS; i++) {
-		memcpy(&(inbuffer[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
+		memcpy(&(saved_plain[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE,
 	    saved_salt, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * SSHA_NUM_KEYS, inbuffer, 0, NULL, NULL);
+	    (PLAINTEXT_LENGTH) * SSHA_NUM_KEYS, saved_plain, 0, NULL, NULL);
 
 	// Find minimum time
 	for (my_work_group = 1; (int) my_work_group <= (int) max_group_size;
@@ -163,10 +162,10 @@ static void create_clobj(int kpc){
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-	inbuffer = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ,
+	saved_plain = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ,
 			 0, (PLAINTEXT_LENGTH) * kpc, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory inbuffer");
-	memset(inbuffer, 0, PLAINTEXT_LENGTH * kpc);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
+	memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
 
 	outbuffer2 = malloc(sizeof(cl_uint) * 4 * kpc);
 
@@ -219,8 +218,8 @@ static void release_clobj(void){
 
     ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, outbuffer, 0,NULL,NULL);
     HANDLE_CLERROR(ret_code, "Error Ummapping outbuffer");
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, inbuffer, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping inbuffer");
+    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
+    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
     ret_code = clReleaseMemObject(buffer_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(buffer_out);
@@ -257,11 +256,11 @@ static void find_best_kpc(void){
 	advance_cursor();
 	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i=0; i < num; i++){
-		memcpy(&(inbuffer[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
+		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
         clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, inbuffer, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, saved_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS){
 		printf("Error %d\n",ret_code);
@@ -374,8 +373,7 @@ static int salt_hash(void *salt){
 }
 
 static void set_key(char *key, int index){
-	//memcpy(&(saved_key[index*PLAINTEXT_LENGTH]), key, PLAINTEXT_LENGTH);
-	memcpy(&(inbuffer[index*PLAINTEXT_LENGTH]), key, PLAINTEXT_LENGTH);
+	memcpy(&(saved_plain[index*PLAINTEXT_LENGTH]), key, PLAINTEXT_LENGTH);
 }
 
 static void set_salt(void *salt){
@@ -383,8 +381,7 @@ static void set_salt(void *salt){
 }
 
 static char *get_key(int index) {
-	//return &(saved_key[index*PLAINTEXT_LENGTH]);
-	return &(inbuffer[index*PLAINTEXT_LENGTH]);
+	return &(saved_plain[index*PLAINTEXT_LENGTH]);
 }
 
 static int cmp_all(void *binary, int index) {
@@ -431,7 +428,6 @@ static int cmp_exact(char *source, int count){
 static void crypt_all(int count)
 {
 	cl_int code;
-	//memcpy(inbuffer,saved_key,PLAINTEXT_LENGTH*count);
 	code = clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer data_info");
@@ -441,8 +437,8 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer mysalt");
 
 	code = clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, inbuffer, 0, NULL, NULL);
-	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer inbuffer");
+	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL);
+	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer saved_plain");
 
 	code = clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 	    &global_work_size, &local_work_size, 0, NULL, NULL);
