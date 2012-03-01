@@ -12,7 +12,7 @@
 #include "cuda_mscash2.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"cuda-mscash2"
+#define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
 #define ALGORITHM_NAME		"GPU"
 
@@ -21,8 +21,8 @@
 
 //#define _MSCASH2_DEBUG
 
-static mscash2_password inbuffer[MAX_KEYS_PER_CRYPT];
-static mscash2_hash outbuffer[MAX_KEYS_PER_CRYPT];
+static mscash2_password *inbuffer;
+static mscash2_hash *outbuffer;
 static mscash2_salt currentsalt;
 
 static struct fmt_tests tests[] = {
@@ -37,8 +37,20 @@ static struct fmt_tests tests[] = {
 
 extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
 
+static void cleanup()
+{
+ free(inbuffer);
+ free(outbuffer);
+}
+
 static void init(struct fmt_main *pFmt)
 {
+  //Alocate memory for hashes and passwords
+  inbuffer=(mscash2_password*)malloc(sizeof(mscash2_password)*MAX_KEYS_PER_CRYPT);
+  outbuffer=(mscash2_hash*)malloc(sizeof(mscash2_hash)*MAX_KEYS_PER_CRYPT);
+  check_mem_allocation(inbuffer,outbuffer);
+  atexit(cleanup);
+  //Initialize CUDA
   cuda_init(gpu_id);
 }
 
@@ -144,6 +156,15 @@ static int binary_hash_4(void *binary)
 	return ((uint32_t *) binary)[0] & 0xfffff;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((uint32_t *) binary)[0] & 0xffffff;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((uint32_t *) binary)[0] & 0x7ffffff;
+}
 
 static int get_hash_0(int index)
 {
@@ -175,6 +196,16 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return outbuffer[index].v[0] & 0xfffff;
+}
+
+static int get_hash_5(int index)
+{
+	return outbuffer[index].v[0] & 0xffffff;
+}
+
+static int get_hash_6(int index)
+{
+	return outbuffer[index].v[0] & 0x7ffffff;
 }
 
 static int cmp_all(void *binary, int count)
@@ -216,6 +247,7 @@ struct fmt_main fmt_cuda_mscash2 = {
 	    tests},
 	{
 		    init,
+		    fmt_default_prepare,
 		    valid,
 		    fmt_default_split,
 		    binary,
@@ -225,7 +257,9 @@ struct fmt_main fmt_cuda_mscash2 = {
 				binary_hash_1,
 				binary_hash_2,
 				binary_hash_3,
-			binary_hash_4},
+			binary_hash_4,
+		    binary_hash_5,
+		    binary_hash_6},
 		    fmt_default_salt_hash,
 		    set_salt,
 		    set_key,
@@ -237,7 +271,9 @@ struct fmt_main fmt_cuda_mscash2 = {
 				get_hash_1,
 				get_hash_2,
 				get_hash_3,
-			get_hash_4},
+			get_hash_4,
+		    get_hash_5,
+		    get_hash_6},
 		    cmp_all,
 		    cmp_one,
 	    cmp_exact}
