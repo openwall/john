@@ -41,6 +41,8 @@
 #endif
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
+#elif defined(HAVE_CUDA)
+extern int gpu_id;
 #endif
 
 struct options_main options;
@@ -133,6 +135,8 @@ static struct opt_entry opt_list[] = {
 #ifdef CL_VERSION_1_0
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
+#endif
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
 	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_device},
 #endif
@@ -197,9 +201,18 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
 
-#define JOHN_GPUID \
+#if defined(CL_VERSION_1_0) && defined(HAVE_CUDA)
+#define JOHN_USAGE_GPU \
+"--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
+"--device=N                set OpenCL or CUDA device, default 0\n"
+#elif defined(CL_VERSION_1_0)
+#define JOHN_USAGE_GPU \
 "--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
 "--device=N                set OpenCL device, default 0\n"
+#elif defined (HAVE_CUDA)
+#define JOHN_USAGE_GPU \
+"--device=N                set CUDA device, default 0\n"
+#endif
 
 static int qcmpstr(const void *p1, const void *p2)
 {
@@ -256,10 +269,11 @@ static void print_usage(char *name)
 #ifdef HAVE_DL
 	printf("%s", JOHN_USAGE_PLUGIN);
 #endif
-#ifdef CL_VERSION_1_0
-	printf("%s", JOHN_GPUID);
+
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	printf("%s", JOHN_USAGE_GPU);
 #endif
-exit(0);
+	exit(0);
 }
 
 void opt_init(char *name, int argc, char **argv)
@@ -328,12 +342,13 @@ void opt_init(char *name, int argc, char **argv)
 	    (options.ocl_device && !strcasecmp(options.ocl_device, "list"))) {
 		listOpenCLdevices();
 		exit(0);
-	} else {
-		if (options.ocl_platform)
-			platform_id = atoi(options.ocl_platform);
-		if (options.ocl_device)
-			gpu_id = atoi(options.ocl_device);
 	}
+	if (options.ocl_platform)
+		platform_id = atoi(options.ocl_platform);
+#endif
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	if (options.ocl_device)
+		gpu_id = atoi(options.ocl_device);
 #endif
 	if (options.flags & FLG_STATUS_CHK) {
 		rec_restore_args(0);

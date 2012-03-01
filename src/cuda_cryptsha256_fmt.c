@@ -13,7 +13,7 @@
 #include "cuda_common.h"
 #include <unistd.h>
 
-#define FORMAT_LABEL		"cuda-cryptsha256"
+#define FORMAT_LABEL		"cryptsha256-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
 
 #define CRYPT_TYPE		"SHA256-based CRYPT"
@@ -33,8 +33,8 @@
 extern void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
     uint32_t * outbuffer, crypt_sha256_salt * host_salt);
 
-static crypt_sha256_password inbuffer[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
-static uint32_t outbuffer[MAX_KEYS_PER_CRYPT * 8];				/** calculated hashes **/
+static crypt_sha256_password *inbuffer;//[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
+static uint32_t *outbuffer;//[MAX_KEYS_PER_CRYPT * 8];				/** calculated hashes **/
 
 static char currentsalt[64];
 static crypt_sha256_salt host_salt;
@@ -81,8 +81,20 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static void cleanup()
+{
+ free(inbuffer);
+ free(outbuffer);
+}
+
 static void init(struct fmt_main *pFmt)
 {
+  //Alocate memory for hashes and passwords
+  inbuffer=(crypt_sha256_password*)malloc(sizeof(crypt_sha256_password)*MAX_KEYS_PER_CRYPT);
+  outbuffer=(uint32_t*)malloc(sizeof(uint32_t)*MAX_KEYS_PER_CRYPT*8);
+  check_mem_allocation(inbuffer,outbuffer);
+  atexit(cleanup);
+  //Initialize CUDA
   cuda_init(gpu_id);
 }
 

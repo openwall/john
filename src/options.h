@@ -194,6 +194,8 @@ struct options_main {
 
 #ifdef CL_VERSION_1_0
 	char *ocl_platform, *ocl_device;
+#elif defined(HAVE_CUDA)
+	char *ocl_device;
 #endif
 };
 
