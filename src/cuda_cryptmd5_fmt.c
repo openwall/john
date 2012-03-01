@@ -12,7 +12,7 @@
 #include "cuda_common.h"
 #include "cuda_cryptmd5.h"
 
-#define FORMAT_LABEL		"cuda-cryptmd5"
+#define FORMAT_LABEL		"cryptmd5-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
 
 #define CRYPT_TYPE		"MD5-based CRYPT"
@@ -27,8 +27,8 @@
 
 void md5_crypt_gpu(crypt_md5_password *,uint32_t *, crypt_md5_salt *);
 
-static crypt_md5_password inbuffer[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
-static uint32_t outbuffer[MAX_KEYS_PER_CRYPT*4];			/** calculated hashes **/
+static crypt_md5_password *inbuffer;//[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
+static uint32_t *outbuffer;//[MAX_KEYS_PER_CRYPT*4];			/** calculated hashes **/
 static crypt_md5_salt host_salt;					/** salt **/
 
 
@@ -90,8 +90,20 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void init(struct fmt_main *pFmt)
+static void cleanup()
 {
+ free(inbuffer);
+ free(outbuffer);
+}
+
+static void init(struct fmt_main *pFmt)
+{  
+  //Alocate memory for hashes and passwords
+  inbuffer=(crypt_md5_password*)malloc(sizeof(crypt_md5_password)*MAX_KEYS_PER_CRYPT);
+  outbuffer=(uint32_t*)malloc(sizeof(uint32_t)*MAX_KEYS_PER_CRYPT*4);
+  check_mem_allocation(inbuffer,outbuffer);
+  atexit(cleanup);
+  //Initialize CUDA
   cuda_init(gpu_id);
 }
 

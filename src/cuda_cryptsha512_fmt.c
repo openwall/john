@@ -11,7 +11,7 @@
 #include "cuda_cryptsha512.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"cuda-cryptsha512"
+#define FORMAT_LABEL		"cryptsha512-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
 
 #define PHPASS_TYPE		"SHA512-based CRYPT"
@@ -30,8 +30,8 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-static crypt_sha512_password inbuffer[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
-static crypt_sha512_hash outbuffer[MAX_KEYS_PER_CRYPT];			/** calculated hashes **/
+static crypt_sha512_password *inbuffer;		/** plaintext ciphertexts **/
+static crypt_sha512_hash *outbuffer;		/** calculated hashes **/
 
 void sha512_crypt_gpu(crypt_sha512_password * inbuffer,
     crypt_sha512_hash * outbuffer, crypt_sha512_salt * host_salt);
@@ -62,9 +62,19 @@ static struct fmt_tests tests[] = {
 
 	{NULL}
 };
-
+static void cleanup()
+{
+ free(inbuffer);
+ free(outbuffer);
+}
 static void init(struct fmt_main *pFmt)
 {
+  //Alocate memory for hashes and passwords
+  inbuffer=(crypt_sha512_password*)malloc(sizeof(crypt_sha512_password)*MAX_KEYS_PER_CRYPT);
+  outbuffer=(crypt_sha512_hash*)malloc(sizeof(crypt_sha512_hash)*MAX_KEYS_PER_CRYPT);
+  check_mem_allocation(inbuffer,outbuffer);
+  atexit(cleanup);
+  //Initialize CUDA
   cuda_init(gpu_id);
 }
 

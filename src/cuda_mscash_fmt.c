@@ -13,14 +13,14 @@
 #include "cuda_mscash.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"cuda-mscash"
+#define FORMAT_LABEL		"mscash-cuda"
 #define ALGORITHM_NAME		""
 
 #define BENCHMARK_COMMENT	" len(pass)=8, len(salt)=13"
 #define BENCHMARK_LENGTH	-1
 
-static mscash_password inbuffer[MAX_KEYS_PER_CRYPT];
-static mscash_hash outbuffer[MAX_KEYS_PER_CRYPT];
+static mscash_password *inbuffer;
+static mscash_hash *outbuffer;
 static mscash_salt currentsalt;
 
 static struct fmt_tests tests[] = {
@@ -30,9 +30,21 @@ static struct fmt_tests tests[] = {
 
 extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *);
 
+static void cleanup()
+{
+ free(inbuffer);
+ free(outbuffer);
+}
+
 static void init(struct fmt_main *pFmt)
 {
-	  cuda_init(gpu_id);
+  //Alocate memory for hashes and passwords
+  inbuffer=(mscash_password*)malloc(sizeof(mscash_password)*MAX_KEYS_PER_CRYPT);
+  outbuffer=(mscash_hash*)malloc(sizeof(mscash_hash)*MAX_KEYS_PER_CRYPT);
+  check_mem_allocation(inbuffer,outbuffer);
+  atexit(cleanup);
+  //Initialize CUDA
+  cuda_init(gpu_id);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)

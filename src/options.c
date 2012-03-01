@@ -39,6 +39,9 @@
 #endif
 #define _PER_NODE ""
 #endif
+#ifdef HAVE_CUDA
+extern unsigned int gpu_id;
+#endif
 
 struct options_main options;
 static char *field_sep_char_string;
@@ -125,6 +128,10 @@ static struct opt_entry opt_list[] = {
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.mkpc},
+#ifdef HAVE_CUDA
+	{"gpu", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &gpu_id},
+#endif
 	{NULL}
 };
 
@@ -184,6 +191,10 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
+#ifdef HAVE_CUDA
+#define JOHN_USAGE_GPU \
+"--gpu=GPUID               set active GPU for execution (CUDA)\n"
+#endif
 
 static void print_usage(char *name)
 {
@@ -215,6 +226,9 @@ static void print_usage(char *name)
 	printf("%s", JOHN_USAGE_TAIL);
 #ifdef HAVE_DL
 	printf("%s", JOHN_USAGE_PLUGIN);
+#endif
+#ifdef HAVE_CUDA
+	printf("%s", JOHN_USAGE_GPU);
 #endif
 
 	exit(0);

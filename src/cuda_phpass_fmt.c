@@ -11,7 +11,7 @@
 #include "cuda_phpass.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"cuda-phpass"
+#define FORMAT_LABEL		"phpass-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
 
 #define PHPASS_TYPE		"PORTABLE-MD5"
@@ -30,8 +30,8 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-static unsigned char inbuffer[MAX_KEYS_PER_CRYPT * sizeof(phpass_password)];			/** plaintext ciphertexts **/
-static uint32_t outbuffer[MAX_KEYS_PER_CRYPT * 4];						/** calculated hashes **/
+static unsigned char *inbuffer;//[MAX_KEYS_PER_CRYPT * sizeof(phpass_password)];			/** plaintext ciphertexts **/
+static uint32_t *outbuffer;//[MAX_KEYS_PER_CRYPT * 4];						/** calculated hashes **/
 
 static char currentsalt[SALT_SIZE];
 static char loopChar = '*';
@@ -72,9 +72,21 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static void cleanup()
+{
+  free(inbuffer);
+  free(outbuffer);
+}
+
 static void init(struct fmt_main *pFmt)
 {
-  cuda_init(gpu_id);
+    //Alocate memory for hashes and passwords
+    inbuffer=(unsigned char*)malloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_password)*sizeof(char));
+    outbuffer=(uint32_t *)malloc(MAX_KEYS_PER_CRYPT*4*sizeof(uint32_t));
+    check_mem_allocation(inbuffer,outbuffer);
+    atexit(cleanup);
+    //Initialize CUDA
+    cuda_init(gpu_id);
 }
 
 static int valid(char *ciphertext,struct fmt_main *pFmt)
