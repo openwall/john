@@ -47,10 +47,10 @@ typedef struct {
 
 cl_command_queue queue_prof;
 cl_int ret_code;
-cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys, data_info;
-static cl_uint *partial_hashes;
+cl_mem pinned_msha_keys, pin_part_msha_hashes, buf_msha_out, buf_msha_keys, data_info;
+static cl_uint *par_msha_hashes;
 static cl_uint *res_hashes;
-static char *saved_plain;
+static char *mysqlsha_plain;
 static size_t global_work_size = SHA_NUM_KEYS;
 static unsigned int datai[2];
 static int have_full_hashes;
@@ -87,10 +87,10 @@ static void find_best_workgroup(void){
 
 	// Set keys
 	for (; i < SHA_NUM_KEYS; i++){
-		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
+		memcpy(&(mysqlsha_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
         clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * SHA_NUM_KEYS, saved_plain, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * SHA_NUM_KEYS, mysqlsha_plain, 0, NULL, NULL);
 
 	// Find minimum time
 	for(my_work_group=1 ;(int) my_work_group <= (int) max_group_size; my_work_group*=2){
@@ -116,25 +116,25 @@ static void find_best_workgroup(void){
 }
 
 static void create_clobj(int kpc){
-    pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
+    pinned_msha_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-    saved_plain = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH)*kpc, 0, NULL, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
-    memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
+    mysqlsha_plain = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_msha_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH)*kpc, 0, NULL, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error mapping page-locked memory mysqlsha_plain");
+    memset(mysqlsha_plain, 0, PLAINTEXT_LENGTH * kpc);
     res_hashes = malloc(sizeof(cl_uint) * 4 * kpc);
-    pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * kpc, NULL, &ret_code);
+    pin_part_msha_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * kpc, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-    partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ,0,sizeof(cl_uint)*kpc, 0, NULL, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");
-    buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
+    par_msha_hashes = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pin_part_msha_hashes, CL_TRUE, CL_MAP_READ,0,sizeof(cl_uint)*kpc, 0, NULL, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error mapping page-locked memory par_msha_hashes");
+    buf_msha_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
-    buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,sizeof(cl_uint)*5*kpc, NULL, &ret_code);
+    buf_msha_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,sizeof(cl_uint)*5*kpc, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
     data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info), (void *) &data_info), "Error setting argument 0");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_keys), (void *) &buffer_keys),"Error setting argument 1");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 2");
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buf_msha_keys), (void *) &buf_msha_keys),"Error setting argument 1");
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buf_msha_out), (void *) &buf_msha_out), "Error setting argument 2");
     datai[0] = PLAINTEXT_LENGTH;
     datai[1] = kpc;
     global_work_size = kpc;
@@ -143,20 +143,20 @@ static void create_clobj(int kpc){
 static void release_clobj(void){
     cl_int ret_code;
 
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping partial_hashes");
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
-    ret_code = clReleaseMemObject(buffer_keys);
-    HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
-    ret_code = clReleaseMemObject(buffer_out);
-    HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
+    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pin_part_msha_hashes, par_msha_hashes, 0,NULL,NULL);
+    HANDLE_CLERROR(ret_code, "Error Ummapping par_msha_hashes");
+    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_msha_keys, mysqlsha_plain, 0, NULL, NULL);
+    HANDLE_CLERROR(ret_code, "Error Ummapping mysqlsha_plain");
+    ret_code = clReleaseMemObject(buf_msha_keys);
+    HANDLE_CLERROR(ret_code, "Error Releasing buf_msha_keys");
+    ret_code = clReleaseMemObject(buf_msha_out);
+    HANDLE_CLERROR(ret_code, "Error Releasing buf_msha_out");
     ret_code = clReleaseMemObject(data_info);
     HANDLE_CLERROR(ret_code, "Error Releasing data_info");
-    ret_code = clReleaseMemObject(pinned_saved_keys);
-    HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
-    ret_code = clReleaseMemObject(pinned_partial_hashes);
-    HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
+    ret_code = clReleaseMemObject(pinned_msha_keys);
+    HANDLE_CLERROR(ret_code, "Error Releasing pinned_msha_keys");
+    ret_code = clReleaseMemObject(pin_part_msha_hashes);
+    HANDLE_CLERROR(ret_code, "Error Releasing pin_part_msha_hashes");
     free(res_hashes);
 }
 
@@ -180,10 +180,10 @@ static void find_best_kpc(void){
 	advance_cursor();
 	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i=0; i < num; i++){
-		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
+		memcpy(&(mysqlsha_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
         clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, saved_plain, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, mysqlsha_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS){
 		printf("Error %d\n",ret_code);
@@ -194,7 +194,7 @@ static void find_best_kpc(void){
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = endTime-startTime;
 	tmpbuffer = malloc(sizeof(cl_uint) * num);
-	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
+	clEnqueueReadBuffer(queue_prof, buf_msha_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = tmpTime + (endTime-startTime);
@@ -269,11 +269,11 @@ static void init(struct fmt_main *pFmt){
 }
 
 static void set_key(char *key, int index) {
-	memcpy(&(saved_plain[index*PLAINTEXT_LENGTH]), key, PLAINTEXT_LENGTH);
+	memcpy(&(mysqlsha_plain[index*PLAINTEXT_LENGTH]), key, PLAINTEXT_LENGTH);
 }
 
 static char *get_key(int index) {
-	return &(saved_plain[index*PLAINTEXT_LENGTH]);
+	return &(mysqlsha_plain[index*PLAINTEXT_LENGTH]);
 }
 
 static void *binary(char *ciphertext)
@@ -296,7 +296,7 @@ static int cmp_all(void *binary, int index)
 	unsigned int b = ((unsigned int *) binary)[0];
 
 	for(; i<index; i++){
-		if(b==partial_hashes[i])
+		if(b==par_msha_hashes[i])
 			return 1;
 	}
 	return 0;
@@ -306,7 +306,7 @@ static int cmp_exact(char *source, int count) {
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 
+		clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE, 
 			sizeof(cl_uint) * (max_keys_per_crypt), 
 			sizeof(cl_uint) * 4 * max_keys_per_crypt, res_hashes, 0,
 			NULL, NULL); 
@@ -327,22 +327,22 @@ static int cmp_exact(char *source, int count) {
 static int cmp_one(void *binary, int index){
 	unsigned int *t = (unsigned int *) binary; 
 
-	if (t[0] == partial_hashes[index])
+	if (t[0] == par_msha_hashes[index])
 		return 1;
 	return 0;
 
 }
 
 static void crypt_all(int count) {
-        //memcpy(saved_plain,saved_key,PLAINTEXT_LENGTH*count);
+        //memcpy(mysqlsha_plain,saved_key,PLAINTEXT_LENGTH*count);
 	HANDLE_CLERROR(
 	    clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
 	    "failed in clEnqueueWriteBuffer data_info");
 	HANDLE_CLERROR(
-	    clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
-	     "failed in clEnqueueWriteBuffer saved_plain");
+	    clEnqueueWriteBuffer(queue[gpu_id], buf_msha_keys, CL_TRUE, 0,
+	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, mysqlsha_plain, 0, NULL, NULL),
+	     "failed in clEnqueueWriteBuffer mysqlsha_plain");
 	     
 	HANDLE_CLERROR(
 	    clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
@@ -351,8 +351,8 @@ static void crypt_all(int count) {
 	      
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0,
-	    sizeof(cl_uint) * max_keys_per_crypt, partial_hashes, 0, NULL, NULL),
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE, 0,
+	    sizeof(cl_uint) * max_keys_per_crypt, par_msha_hashes, 0, NULL, NULL),
 	      "failed in reading data back");
 	have_full_hashes = 0;
 }
@@ -366,13 +366,13 @@ static int binary_hash_4(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0
 static int binary_hash_5(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
 static int binary_hash_6(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
-static int get_hash_0(int index) { return partial_hashes[index] & 0xF; }
-static int get_hash_1(int index) { return partial_hashes[index] & 0xFF; }
-static int get_hash_2(int index) { return partial_hashes[index] & 0xFFF; }
-static int get_hash_3(int index) { return partial_hashes[index] & 0xFFFF; }
-static int get_hash_4(int index) { return partial_hashes[index] & 0xFFFFF; }
-static int get_hash_5(int index) { return partial_hashes[index] & 0xFFFFFF; }
-static int get_hash_6(int index) { return partial_hashes[index] & 0x7FFFFFF; }
+static int get_hash_0(int index) { return par_msha_hashes[index] & 0xF; }
+static int get_hash_1(int index) { return par_msha_hashes[index] & 0xFF; }
+static int get_hash_2(int index) { return par_msha_hashes[index] & 0xFFF; }
+static int get_hash_3(int index) { return par_msha_hashes[index] & 0xFFFF; }
+static int get_hash_4(int index) { return par_msha_hashes[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return par_msha_hashes[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return par_msha_hashes[index] & 0x7FFFFFF; }
 
 struct fmt_main fmt_opencl_mysqlsha1 = {
 	{

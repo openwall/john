@@ -31,7 +31,6 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file,
 
 static void read_kernel_source(char *kernel_filename)
 {
-	//printf("kernel filename:%s\n",kernel_filename);
 	char *kernel_path = path_expand(kernel_filename);
 	FILE *fp = fopen(kernel_path, "r");
 	if (!fp)
