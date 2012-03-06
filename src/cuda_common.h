@@ -7,11 +7,24 @@
 #define _CUDA_COMMON_H
 
 /*
-* CUDA device id specified by -gpu parameter
+* CUDA device id specified by -device parameter
 */
-unsigned int gpu_id;
+#ifdef CL_VERSION_1_0
+extern int gpu_id;
+#else
+int gpu_id;
+#endif
 
 extern void cuda_init(unsigned int gpu_id);
 
-
+#define check_mem_allocation(inbuffer,outbuffer)\
+    if(inbuffer==NULL){\
+      fprintf(stderr,"Cannot alocate memory for passwords file:%s line:%d\n",__FILE__,__LINE__);\
+      exit(1);\
+    }\
+    if(inbuffer==NULL){\
+      fprintf(stderr,"Cannot alocate memory for hashes file:%s line:%d\n",__FILE__,__LINE__);\
+      exit(1);\
+    }
+    
 #endif

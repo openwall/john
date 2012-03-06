@@ -94,11 +94,12 @@ JOHN_OBJS = \
 	dragonfly3_fmt.o \
 	dragonfly4_fmt.o \
 	drupal7_fmt.o \
-	sha-crypt_256_fmt.o sha-crypt_512_fmt.o \
+	cryptsha256_fmt.o cryptsha512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
+	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	$(PLUGFORMATS_OBJS) \
@@ -206,7 +207,7 @@ default:
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
 #	@echo "linux-x86-64-32-any      Linux, x86-64, 32-bit (for regression tests)"
-	@echo "linux-x86-64-gpu         Linux, x86 32-bit with SSE2, CUDA and OpenCL (experimental)"
+	@echo "linux-x86-gpu            Linux, x86 32-bit with SSE2, CUDA and OpenCL (experimental)"
 	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA (experimental)"
 	@echo "linux-x86-sse2[i]        Linux, x86 32-bit with SSE2 (most common, 32-bit)"
@@ -323,7 +324,7 @@ linux-x86-64-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -lcrypt -ldl -lcudart"
 
 linux-x86-64:
@@ -948,12 +949,11 @@ macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics-64.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64  -I$(OCLROOT)/include -I$(OCLROOT)/include  -DBSD -DCL_VERSION_1_0" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
-	#/bin/sh ./setup-opencl-stuff.sh
 
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
@@ -1281,13 +1281,13 @@ generic.h:
 
 testpara:
 	$(LN) x86-64.h arch.h
-	./para-best.sh "$(CC)" "$(MAKE)" \
+	perl ./para-best.pl "$(CC)" "$(MAKE)" \
 		"$(BENCH_PARA_DEPEND)" "-msse2" 64
 
 testpara32:
 	$(LN) x86-sse.h arch.h
 	CFLAGS="$(CFLAGS) -m32 -msse2" \
-	./para-best.sh "$(CC)" "$(MAKE)" \
+	perl ./para-best.pl "$(CC)" "$(MAKE)" \
 		"$(BENCH_PARA_DEPEND)" "-m32 -msse2" 32
 
 bench: $(BENCH_OBJS)

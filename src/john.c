@@ -91,8 +91,8 @@ extern struct fmt_main fmt_dragonfly4_64;
 extern struct fmt_main fmt_dragonfly3_32;
 extern struct fmt_main fmt_dragonfly4_32;
 extern struct fmt_main fmt_drupal7;
-extern struct fmt_main fmt_sha_crypt_256;
-extern struct fmt_main fmt_sha_crypt_512;
+extern struct fmt_main fmt_cryptsha256;
+extern struct fmt_main fmt_cryptsha512;
 #endif
 
 #ifdef HAVE_SKEY
@@ -194,8 +194,8 @@ static void john_register_all(void)
 	john_register_one(&fmt_dragonfly3_32);
 	john_register_one(&fmt_dragonfly4_32);
 	john_register_one(&fmt_drupal7);
-	john_register_one(&fmt_sha_crypt_256);
-	john_register_one(&fmt_sha_crypt_512);
+	john_register_one(&fmt_cryptsha256);
+	john_register_one(&fmt_cryptsha512);
 #endif
 
 #ifdef HAVE_CRYPT

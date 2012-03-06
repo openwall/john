@@ -264,13 +264,20 @@ static int ldr_split_line(char **login, char **ciphertext,
 /* SPLFLEN(n) is a macro equiv. of strlen(split_fields[n]) (but faster) */
 	if (SPLFLEN(1) > 0 && SPLFLEN(1) < 7 &&
 	    (SPLFLEN(3) == 32 || SPLFLEN(2) == 32)) {
-		/* uid for pwdump files. */
+		/* pwdump-style input
+		   user:uid:LMhash:NThash:comment:homedir:
+		*/
 		uid = split_fields[1];
-		gid = *gecos = *home = shell = "";
+		*gecos = split_fields[4];
+		*home = split_fields[5];
+		gid = shell = "";
 	}
 	else if (SPLFLEN(1) == 0 && SPLFLEN(3) >= 16 && SPLFLEN(4) >= 32 &&
 	         SPLFLEN(5) >= 16) {
-		/* l0phtcrack-style input */
+		/* l0phtcrack-style input
+		   user:::lm response:ntlm response:challenge
+		   user::domain:srvr challenge:ntlmv2 response:client challenge
+		 */
 		uid = gid = *home = shell = "";
 		*gecos = split_fields[2]; // in case there's a domain name here
 	}

@@ -23,7 +23,7 @@
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 #ifdef SHA256
-  #define FORMAT_NAME		"cuda-rawsha256"
+  #define FORMAT_NAME		"raw-sha256-cuda"
   #define SHA_TYPE		"SHA256" 
   #define CIPHERTEXT_LENGTH	64 ///256bit
   #define BINARY_SIZE		32
@@ -36,7 +36,7 @@
   };
 #endif
 #ifdef SHA224
-  #define FORMAT_NAME		"cuda-rawsha224"
+  #define FORMAT_NAME		"raw-sha224-cuda"
   #define SHA_TYPE		"SHA224" 
   #define CIPHERTEXT_LENGTH	56 ///224bit
   #define BINARY_SIZE		32 
@@ -49,9 +49,10 @@
   };
 #endif
 extern void gpu_rawsha256(sha256_password *,SHA_HASH*);
+extern void gpu_rawsha224(sha256_password *,SHA_HASH*);
 static char saved_keys[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH+1];		/** plaintext ciphertexts **/
-static sha256_password 	inbuffer[MAX_KEYS_PER_CRYPT];			/** binary ciphertexts **/
-static SHA_HASH	outbuffer[MAX_KEYS_PER_CRYPT];				/** calculated hashes **/
+static sha256_password 	*inbuffer;			/** binary ciphertexts **/
+static SHA_HASH	*outbuffer;				/** calculated hashes **/
 
 static void preproc(char *key, int index){ /// todo - move to gpu
   uint32_t dl=strlen(key),j;
@@ -66,11 +67,19 @@ static void preproc(char *key, int index){ /// todo - move to gpu
     blocks[15]=0x00000000|(dl*8);
 }
 
-static void release_all(void)
-{}
+static void cleanup()
+{
+ free(inbuffer);
+ free(outbuffer);
+}
 
 static void init(struct fmt_main *pFmt){
-  atexit(release_all);
+   //Alocate memory for hashes and passwords
+  inbuffer=(sha256_password*)malloc(sizeof(sha256_password)*MAX_KEYS_PER_CRYPT);
+  outbuffer=(SHA_HASH*)malloc(sizeof(SHA_HASH)*MAX_KEYS_PER_CRYPT);
+  check_mem_allocation(inbuffer,outbuffer);
+  atexit(cleanup);
+  //Initialize CUDA
   cuda_init(gpu_id);
 }
 

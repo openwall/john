@@ -191,6 +191,12 @@ struct options_main {
 
 /* Graceful exit after this many seconds of cracking */
 	int max_run_time;
+
+#ifdef CL_VERSION_1_0
+	char *ocl_platform, *ocl_device;
+#elif defined(HAVE_CUDA)
+	char *ocl_device;
+#endif
 };
 
 extern struct options_main options;

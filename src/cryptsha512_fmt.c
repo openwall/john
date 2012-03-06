@@ -26,7 +26,7 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"sha-crypt-512"
+#define FORMAT_LABEL			"cryptsha512"
 #define FORMAT_NAME			"crypt SHA-512"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"OpenSSL 64/" ARCH_BITS_STR
@@ -394,7 +394,7 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_sha_crypt_512 = {
+struct fmt_main fmt_cryptsha512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -447,6 +447,6 @@ struct fmt_main fmt_sha_crypt_512 = {
 
 #else
 #ifdef __GNUC__
-#warning Note: sha-crypt512 format disabled - it needs OpenSSL 0.9.8 or above
+#warning Note: cryptsha512 format disabled - it needs OpenSSL 0.9.8 or above
 #endif
 #endif

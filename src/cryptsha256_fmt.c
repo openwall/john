@@ -26,7 +26,7 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"sha-crypt-256"
+#define FORMAT_LABEL			"cryptsha256"
 #define FORMAT_NAME			"crypt SHA-256"
 #define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 
@@ -380,7 +380,7 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_sha_crypt_256 = {
+struct fmt_main fmt_cryptsha256 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -433,6 +433,6 @@ struct fmt_main fmt_sha_crypt_256 = {
 
 #else
 #ifdef __GNUC__
-#warning Note: sha-crypt256 format disabled - it needs OpenSSL 0.9.8 or above
+#warning Note: cryptsha256 format disabled - it needs OpenSSL 0.9.8 or above
 #endif
 #endif

@@ -207,7 +207,7 @@ static void fmt_NT_init(struct fmt_main *pFmt){
 	int argIndex = 0;
 	
 	atexit(release_all);
-    	opencl_init("$JOHN/nt_opencl_kernel.cl", gpu_id);
+	opencl_init("$JOHN/nt_opencl_kernel.cl", gpu_id, platform_id);
 
 	nt_crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
@@ -454,7 +454,7 @@ struct fmt_main fmt_opencl_NT = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
 		tests
 	}, {
 		fmt_NT_init,

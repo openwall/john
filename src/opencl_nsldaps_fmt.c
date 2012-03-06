@@ -115,7 +115,7 @@ static void find_best_workgroup(void)
 
 	// Set keys
 	for (; i < SSHA_NUM_KEYS; i++) {
-		memcpy(&(saved_plain[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
+		memcpy(&(inbuffer[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
@@ -291,7 +291,7 @@ static void find_best_kpc(void){
 static void fmt_ssha_init(struct fmt_main *pFmt)
 {
 	char *kpc;
-	opencl_init("$JOHN/ssha_opencl_kernel.cl", gpu_id);
+	opencl_init("$JOHN/ssha_opencl_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);

@@ -41,28 +41,28 @@ static void read_kernel_source(char *kernel_filename)
 	kernel_loaded = 1;
 }
 
-static void dev_init(unsigned int dev_id)
-{				//dev is 0 or 1
+static void dev_init(unsigned int dev_id, unsigned int platform_id)
+{
 	assert(dev_id < MAXGPUS);
-	cl_platform_id platform;
-	cl_uint platforms, device_num;
+	cl_platform_id platform[MAX_PLATFORMS];
+	cl_uint num_platforms, device_num;
 
 	///Find CPU's
-	HANDLE_CLERROR(clGetPlatformIDs(1, &platform, &platforms),
+	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms),
 	    "No OpenCL platform found");
-	printf("OpenCL Platforms: %d", platforms);
-	HANDLE_CLERROR(clGetPlatformInfo(platform, CL_PLATFORM_NAME,
+	printf("OpenCL Platforms: %d", num_platforms);
+	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id], CL_PLATFORM_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying PLATFORM_NAME");
 	printf("\nOpenCL Platform: <<<%s>>>", opencl_log);
 
 	HANDLE_CLERROR(clGetDeviceIDs
-	    (platform, CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+	    (platform[platform_id], CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
 	    "No OpenCL device of that type exist");
 
 	printf(" %d device(s), ", device_num);
 	cl_context_properties properties[] = {
-		CL_CONTEXT_PLATFORM, (cl_context_properties) platform,
+		CL_CONTEXT_PLATFORM, (cl_context_properties) platform[platform_id],
 		0
 	};
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
@@ -104,16 +104,17 @@ static void build_kernel(int dev_id)
 	if (build_code != CL_SUCCESS)
 		printf("Compilation log: %s\n", opencl_log);
 #ifdef REPORT_OPENCL_WARNINGS
-	else if (strlen(opencl_log) > 0)
+	else if (strlen(opencl_log) > 1) // Nvidia may return a single '\n' which is not that interesting
 		printf("Compilation log: %s\n", opencl_log);
 #endif
 }
 
-void opencl_init(char *kernel_filename, unsigned int dev_id)
+void opencl_init(char *kernel_filename, unsigned int dev_id,
+                 unsigned int platform_id)
 {
 	//if (!kernel_loaded)
 		read_kernel_source(kernel_filename);
-	dev_init(dev_id);
+		dev_init(dev_id, platform_id);
 	build_kernel(dev_id);
 }
 
@@ -159,6 +160,92 @@ char *get_error_name(cl_int cl_error)
 	}
 
 	return "UNKNOWN ERROR :(";
+}
+
+char *megastring(unsigned long long value) 
+{
+	static char outbuf[16];
+
+	if (value >= 10000000000ULL)
+		sprintf(outbuf, "%llu GB", value>>30);
+	else if (value >= 10000000ULL)
+		sprintf(outbuf, "%llu MB", value>>20);
+	else if (value >= 10000ULL)
+		sprintf(outbuf, "%llu KB", value>>10);
+	else
+		sprintf(outbuf, "%llu bytes", value);
+
+	return outbuf;
+}
+
+#define MAX_OCLINFO_STRING_LEN	64
+void listOpenCLdevices(void) {
+	char dname[MAX_OCLINFO_STRING_LEN];
+	cl_uint num_platforms, num_devices, entries;
+	cl_ulong long_entries;
+	int i, d;
+	cl_int err;
+	size_t p_size;
+
+	/* Obtain list of platforms available */
+	err = clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms);
+	if (err != CL_SUCCESS)
+	{
+		printf("Error: Failure in clGetPlatformIDs, error code=%d \n", err);
+		return;
+	}
+
+	//printf("%d platforms found\n", num_platforms);
+
+	for(i = 0; i < num_platforms; i++) {
+		/* Obtain information about platform */
+		clGetPlatformInfo(platform[i], CL_PLATFORM_NAME, MAX_OCLINFO_STRING_LEN, dname, NULL);
+		printf("Platform #%d name: %s\n", i, dname);
+		clGetPlatformInfo(platform[i], CL_PLATFORM_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
+		printf("Platform version: %s\n", dname);
+
+		/* Obtain list of devices available on platform */
+		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &num_devices);
+		if (!num_devices) printf("%d devices found\n", num_devices);
+
+		/* Query devices for information */
+		for (d = 0; d < num_devices; ++d) {
+			clGetDeviceInfo(devices[d], CL_DEVICE_NAME, MAX_OCLINFO_STRING_LEN, dname, NULL);
+			printf("\tDevice #%d name:\t\t%s\n", d, dname);
+			clGetDeviceInfo(devices[d], CL_DEVICE_VENDOR, MAX_OCLINFO_STRING_LEN, dname, NULL);
+			printf("\tDevice vendor:\t\t%s\n", dname);
+			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE, sizeof(cl_ulong), &long_entries, NULL);
+			printf("\tDevice type:\t\t");
+			if (long_entries & CL_DEVICE_TYPE_CPU)
+				printf("CPU ");
+			if (long_entries & CL_DEVICE_TYPE_GPU)
+				printf("GPU ");
+			if (long_entries & CL_DEVICE_TYPE_ACCELERATOR)
+				printf("Accelerator ");
+			if (long_entries & CL_DEVICE_TYPE_DEFAULT)
+				printf("Default ");
+			if (long_entries & ~(CL_DEVICE_TYPE_DEFAULT|CL_DEVICE_TYPE_ACCELERATOR|CL_DEVICE_TYPE_GPU|CL_DEVICE_TYPE_CPU))
+				printf("Unknown ");
+			printf("\n");
+			clGetDeviceInfo(devices[d], CL_DEVICE_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
+			printf("\tDevice version:\t\t%s\n", dname);
+			clGetDeviceInfo(devices[d], CL_DRIVER_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
+			printf("\tDriver version:\t\t%s\n", dname);
+			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
+			printf("\tGlobal Memory:\t\t%s\n", megastring((unsigned long long)long_entries));
+			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &long_entries, NULL);
+			printf("\tGlobal Memory Cache:\t%s\n", megastring((unsigned long long)long_entries));
+			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
+			printf("\tLocal Memory:\t\t%s\n", megastring((unsigned long long)long_entries));
+			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong), &long_entries, NULL);
+			printf("\tMax clock (MHz) :\t%llu\n", (long long unsigned)long_entries);
+			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
+			printf("\tMax Work Group Size:\t%d\n", (int)p_size);
+			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &entries, NULL);
+			printf("\tParallel compute cores:\t%d\n\n", entries);
+		}
+	}
+	return;
 }
 
 #undef LOG_SIZE

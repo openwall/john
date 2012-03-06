@@ -40,7 +40,9 @@
 #define _PER_NODE ""
 #endif
 #ifdef CL_VERSION_1_0
-extern unsigned int gpu_id;
+#include "common-opencl.h"
+#elif defined(HAVE_CUDA)
+extern int gpu_id;
 #endif
 
 struct options_main options;
@@ -131,8 +133,12 @@ static struct opt_entry opt_list[] = {
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
 #ifdef CL_VERSION_1_0
-	{"gpu", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &gpu_id},
+	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.ocl_platform},
+#endif
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.ocl_device},
 #endif
 	{NULL}
 };
@@ -177,10 +183,10 @@ static struct opt_entry opt_list[] = {
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--pot=NAME                pot file to use\n" \
-"--format=NAME             force hash type NAME: "
+"--format=NAME             force hash type NAME:"
 
 #define JOHN_USAGE_INDENT \
-"                          "
+"                         " // formats are prepended with a space
 
 #define JOHN_USAGE_TAIL \
 "--subformat=LIST          get a listing of all 'dynamic_n' formats\n" \
@@ -195,21 +201,41 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
 
-#define JOHN_GPUID \
-"--gpu=GPUID               set OpenCL device, 0 - default (Experimental)\n"
+#if defined(CL_VERSION_1_0) && defined(HAVE_CUDA)
+#define JOHN_USAGE_GPU \
+"--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
+"--device=N                set OpenCL or CUDA device, default 0\n"
+#elif defined(CL_VERSION_1_0)
+#define JOHN_USAGE_GPU \
+"--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
+"--device=N                set OpenCL device, default 0\n"
+#elif defined (HAVE_CUDA)
+#define JOHN_USAGE_GPU \
+"--device=N                set CUDA device, default 0\n"
+#endif
+
+static int qcmpstr(const void *p1, const void *p2)
+{
+	return strcmp(*(const char**)p1, *(const char**)p2);
+}
 
 static void print_usage(char *name)
 {
 	int column;
 	struct fmt_main *format;
-	int dynamics = 0;
+	int i, dynamics = 0;
+	char **formats_list;
 
-	printf(JOHN_USAGE, name);
+	i = 0;
+	format = fmt_list;
+	while ((format = format->next))
+		i++;
 
-	column = strrchr(JOHN_USAGE, '\0') - strrchr(JOHN_USAGE, '\n') - 1;
+	formats_list = malloc(sizeof(char*) * i);
+
+	i = 0;
 	format = fmt_list;
 	do {
-		int length;
 		char *label = format->params.label;
 		if (!strncmp(label, "dynamic", 7)) {
 			if (dynamics++)
@@ -217,22 +243,37 @@ static void print_usage(char *name)
 			else
 				label = "dynamic_n";
 		}
-		length = strlen(label) + (format->next != NULL);
+		formats_list[i++] = label;
+	} while ((format = format->next));
+	formats_list[i] = NULL;
+
+	qsort(formats_list, i, sizeof(formats_list[0]), qcmpstr);
+
+	printf(JOHN_USAGE, name);
+	column = strrchr(JOHN_USAGE, '\0') - strrchr(JOHN_USAGE, '\n') - 1;
+	i = 0;
+	do {
+		int length;
+		char *label = formats_list[i++];
+		length = strlen(label) + 1;
 		column += length;
 		if (column > 80) {
 			printf("\n" JOHN_USAGE_INDENT);
 			column = strlen(JOHN_USAGE_INDENT) + length;
 		}
-		printf("%s%c", label, format->next ? '/' : '\n');
-	} while ((format = format->next));
+		printf(" %s%s", label, formats_list[i] ? "" : "\n");
+	} while (formats_list[i]);
+	free(formats_list);
+
 	printf("%s", JOHN_USAGE_TAIL);
 #ifdef HAVE_DL
 	printf("%s", JOHN_USAGE_PLUGIN);
 #endif
-#ifdef CL_VERSION_1_0
-	printf("%s", JOHN_GPUID);
+
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	printf("%s", JOHN_USAGE_GPU);
 #endif
-exit(0);
+	exit(0);
 }
 
 void opt_init(char *name, int argc, char **argv)
@@ -296,6 +337,19 @@ void opt_init(char *name, int argc, char **argv)
 		exit(0);
 	}
 
+#ifdef CL_VERSION_1_0
+	if ((options.ocl_platform && !strcasecmp(options.ocl_platform, "list")) ||
+	    (options.ocl_device && !strcasecmp(options.ocl_device, "list"))) {
+		listOpenCLdevices();
+		exit(0);
+	}
+	if (options.ocl_platform)
+		platform_id = atoi(options.ocl_platform);
+#endif
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	if (options.ocl_device)
+		gpu_id = atoi(options.ocl_device);
+#endif
 	if (options.flags & FLG_STATUS_CHK) {
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;

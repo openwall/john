@@ -213,7 +213,7 @@ static void find_best_kpc(void){
 static void fmt_MD5_init(struct fmt_main *pFmt) {
 	char *kpc;
 
-	opencl_init("$JOHN/md5_opencl_kernel.cl", gpu_id);
+	opencl_init("$JOHN/md5_opencl_kernel.cl", gpu_id, platform_id);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
