@@ -20,10 +20,10 @@
  * for RAR encryption scheme.
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
- * archive_name:$rar3$*type*hex(salt)*hex(partial-file-contents)
+ * archive_name:$rar3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
  *
  * For type = 1 for files encrypted with "rar -p ..." option
- * archive_name:$rar3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*file-offset-for-ciphertext-data*method:::file_name
+ * archive_name:$rar3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
  *
  */
 
@@ -170,7 +170,10 @@ static void set_salt(void *salt)
 		if (ciphertext) free(ciphertext);
 		ciphertext = (unsigned char *) malloc(PACK_SIZE);
 		count = fread(ciphertext, 1, PACK_SIZE, fp);
-		assert(count == PACK_SIZE);
+		if (count != PACK_SIZE) {
+			fprintf(stderr, "Error loading file from archive '%s', expected %d bytes, got %d. Archive possibly damaged.\n", archive_name, PACK_SIZE, count);
+			exit(0);
+		}
 		fclose(fp);
 	}
 	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
