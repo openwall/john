@@ -1,10 +1,11 @@
-/* rar2john utility for RAR 3.x files, written in April of 2011 by Dhiru Kholia for GSoC.
+/* rar2john utility for RAR 3.x files, written in 2011 by Dhiru Kholia for GSoC.
  * rar2john processes input RAR files into a format suitable for use with JtR.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and (c) 2012, magnum
  * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
  * Huge thanks to Marc Bevand <m.bevand (at) gmail.com> for releasing unrarhp
  * (http://www.zorinaq.com/unrarhp/) and documenting the RAR encryption scheme.
@@ -31,13 +32,15 @@
  * Possibly support some file magics (see zip2john)
  *
  * FIXED:
- * Archive starting with a directory is currently not read (skip it, jump to next)
- * Archive starting with a plaintext file is currently not read (skip it, jump to next)
+ * Archive starting with a directory is currently not read (skip it)
+ * Archive starting with a plaintext file is currently not read (skip it)
  * Pick smallest possible file in case of -p mode, just like pkzip do
  * If any of the files is uncompressed, this is preferred even if larger
  * Add METHOD to output
  *
  */
+
+//#define DEBUG
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,6 +58,60 @@
 #include "unicode.h"
 #include "stdint.h"
 
+/* Derived from unrar's encname.cpp */
+void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
+                            UTF16 *NameW, size_t MaxDecSize)
+{
+	unsigned char Flags = 0;
+	unsigned int FlagBits = 0;
+	size_t EncPos = 0, DecPos = 0;
+	unsigned char HighByte = EncName[EncPos++];
+	while (EncPos < EncSize && DecPos < MaxDecSize)
+	{
+		if (FlagBits == 0)
+		{
+			Flags = EncName[EncPos++];
+			FlagBits = 8;
+		}
+		switch(Flags >> 6)
+		{
+		case 0:
+			NameW[DecPos++] = EncName[EncPos++];
+			break;
+		case 1:
+			NameW[DecPos++] = EncName[EncPos++] + (HighByte << 8);
+			break;
+		case 2:
+			NameW[DecPos++] = EncName[EncPos] +
+				(EncName[EncPos+1]<<8);
+			EncPos+=2;
+			break;
+		case 3:
+		{
+			int Length = EncName[EncPos++];
+			if (Length & 0x80)
+			{
+				unsigned char Correction = EncName[EncPos++];
+				for (Length = (Length & 0x7f) + 2;
+				     Length>0 && DecPos < MaxDecSize;
+				     Length--, DecPos++)
+					NameW[DecPos] = ((Name[DecPos] +
+					  Correction) & 0xff) + (HighByte << 8);
+			}
+			else
+				for (Length += 2;
+				     Length>0 && DecPos < MaxDecSize;
+				     Length--,DecPos++)
+					NameW[DecPos] = Name[DecPos];
+		}
+		break;
+		}
+		Flags <<= 2;
+		FlagBits -= 2;
+	}
+	NameW[DecPos < MaxDecSize ? DecPos : MaxDecSize - 1] = 0;
+}
+
 static void process_file(const char *archive_name)
 {
 	FILE *fp;
@@ -65,6 +122,8 @@ static void process_file(const char *archive_name)
 	char best[LINE_BUFFER_SIZE] = "";
 	char *base_aname;
 	uint16_t archive_header_head_flags, file_header_head_flags;
+
+	base_aname = basename(strdup(archive_name));
 
 	if (!(fp = fopen(archive_name, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
@@ -104,7 +163,7 @@ next_file_header:
 	assert(count == 1);
 
 	if (type == 1 && file_header_block[2] == 0x7a) {
-		fprintf(stderr, "! %s: Comment block?\n", archive_name);
+		fprintf(stderr, "! %s: Comment block present?\n", archive_name);
 	}
 	else if (type == 1 && file_header_block[2] != 0x74) {
 		fprintf(stderr, "! %s: Not recognising any more headers.\n", archive_name);
@@ -114,10 +173,12 @@ next_file_header:
 	file_header_head_flags =
 	    file_header_block[4] << 8 | file_header_block[3];
 
-	/* process -hp mode files */
-	if (type == 0) {	/* use Marc's end-of-archive block decrypt trick */
+	/* process -hp mode files
+	   use Marc's end-of-archive block decrypt trick */
+	if (type == 0) {
 		unsigned char buf[24];
-		base_aname = basename(strdup(archive_name));
+
+		fprintf(stderr, "! -hp mode entry found in %s\n", base_aname);
 		printf("%s:$rar3$*%d*", base_aname, type);
 		fseek(fp, -24, SEEK_END);
 		count = fread(buf, 24, 1, fp);
@@ -127,7 +188,8 @@ next_file_header:
 			    itoa16[ARCH_INDEX(buf[i] & 0x0f)]);
 		}
 		printf("*");
-		for (i = 8; i < 24; i++) {  /* encrypted block with known plaintext */
+		/* encrypted block with known plaintext */
+		for (i = 8; i < 24; i++) {
 			printf("%c%c", itoa16[ARCH_INDEX(buf[i] >> 4)],
 			       itoa16[ARCH_INDEX(buf[i] & 0x0f)]);
 		}
@@ -135,7 +197,7 @@ next_file_header:
 	} else {
 		int file_header_pack_size, file_header_unp_size, EXT_TIME_SIZE;
 		uint16_t file_header_head_size, file_name_size;
-		unsigned char file_name[128], SALT[8], FILE_CRC[4];
+		unsigned char file_name[256], SALT[8], FILE_CRC[4];
 		char rejbuf[32];
 		long pos;
 
@@ -148,21 +210,27 @@ next_file_header:
 		    file_header_block[6] << 8 | file_header_block[5];
 		memcpy(&file_header_pack_size, file_header_block + 7, 4);
 		memcpy(&file_header_unp_size, file_header_block + 11, 4);
-		fprintf(stderr, "HEAD_SIZE: %d, PACK_SIZE: %d, UNP_SIZE: %d\n",
-		    file_header_head_size, file_header_pack_size,
-		    file_header_unp_size);
-
+#ifdef DEBUG
+		fprintf(stderr,
+		        "! HEAD_SIZE: %d, PACK_SIZE: %d, UNP_SIZE: %d\n",
+		        file_header_head_size, file_header_pack_size,
+		        file_header_unp_size);
+#endif
 		/* calculate EXT_TIME size */
 		EXT_TIME_SIZE = file_header_head_size - 32;
 
 		if (file_header_head_flags & 0x100) {
+#ifdef DEBUG
 			fprintf(stderr, "! HIGH_PACK_SIZE present\n");
+#endif
 			count = fread(rejbuf, 4, 1, fp);
 			assert(count == 1);
 			EXT_TIME_SIZE -= 4;
 		}
 		if (file_header_head_flags & 0x100) {
+#ifdef DEBUG
 			fprintf(stderr, "! HIGH_UNP_SIZE present\n");
+#endif
 			count = fread(rejbuf, 4, 1, fp);
 			assert(count == 1);
 			EXT_TIME_SIZE -= 4;
@@ -170,29 +238,37 @@ next_file_header:
 		/* file name processing */
 		file_name_size =
 		    file_header_block[27] << 8 | file_header_block[26];
+#ifdef DEBUG
 		fprintf(stderr, "file name size: %d bytes\n", file_name_size);
+#endif
 		count = fread(file_name, file_name_size, 1, fp);
 		assert(count == 1);
 		file_name[file_name_size] = 0;
-		fprintf(stderr, "file name: %s\n", file_name);
 		EXT_TIME_SIZE -= file_name_size;
 
-		/* If this flag is set, file_name is a "usual name"
-		 * plus a Unicode name separated with a null byte, or
-		 * (if no null byte present) there is just one copy,
-		 * encoded using UTF-8. I have seen UTF-8 names with
-		 * this flag unset. */
+		/* If this flag is set, file_name contains some weird
+		   wide char encoding that need to be decoded to UTF16
+		   and then to our currently used encoding */
 		if (file_header_head_flags & 0x200) {
-			int firstlen = strlen((char*)file_name);
-			if (firstlen == file_name_size)
-				fprintf(stderr, "! File name is encoded in UTF-8\n");
-			else {
-				fprintf(stderr, "! Unicode name present. OEM length %u, Unicode length %u\n", firstlen, file_name_size - firstlen - 1);
-				// Something is fishy with these. Need to look at unrar source.
-				//dump_stuff_msg("OEM filename", file_name, firstlen);
-				//dump_stuff_msg("Unicode name", &file_name[firstlen+1], file_name_size - firstlen - 1);
-			}
-		}
+			UTF16 FileNameW[256];
+			int Length = strlen((char*)file_name);
+
+			DecodeFileName(file_name,
+			               file_name + Length + 1,
+			               file_name_size, FileNameW,
+			               255);
+
+			if (*FileNameW) {
+				fprintf(stderr, "OEM name:  %s\n", file_name);
+				utf16_to_utf8_r(file_name, 256, FileNameW);
+				fprintf(stderr, "Unicode:   %s\n", file_name);
+			} else
+				fprintf(stderr, "UTF8 name: %s\n", file_name);
+
+			//dump_stuff_msg("OEM filename", file_name, Length);
+			//dump_stuff_msg("Unicode name", FileNameW, strlen16(FileNameW));
+		} else
+			fprintf(stderr, "file name: %s\n", file_name);
 
 		/* SALT processing */
 		if (file_header_head_flags & 0x400) {
@@ -203,8 +279,10 @@ next_file_header:
 
 		/* EXT_TIME processing */
 		if (file_header_head_flags & 0x1000) {
+#ifdef DEBUG
 			fprintf(stderr, "! EXT_TIME present with size %d\n",
 			    EXT_TIME_SIZE);
+#endif
 			count = fread(rejbuf, EXT_TIME_SIZE, 1, fp);
 			assert(count == 1);
 		}
@@ -219,12 +297,14 @@ next_file_header:
 		}
 
 		if ((file_header_head_flags & 0xe0)>>5 == 7) {
-			fprintf(stderr, "! Is a directory\n");
+			fprintf(stderr, "! Is a directory, skipping\n");
 			fseek(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
-		} else
+		}
+#ifdef DEBUG
+		else
 			fprintf(stderr, "! Dictionary size: %u KB\n", 64<<((file_header_head_flags & 0xe0)>>5));
-
+#endif
 		/* Check if encryption is being used */
 		if (!(file_header_head_flags & 0x04)) {
 			fprintf(stderr, "! not encrypted, skipping\n");
@@ -264,9 +344,10 @@ next_file_header:
 		 *
 		 * m3b means 0x33 and a dictionary size of 128KB (a == 64KB .. g == 4096KB)
 		 */
+#ifdef DEBUG
 		fprintf(stderr, "! METHOD is m%x%c\n", file_header_block[25]-0x30, 'a'+((file_header_head_flags&0xe0)>>5));
 		//fprintf(stderr, "! file_header_flags is 0x%04x\n", file_header_head_flags);
-
+#endif
 		/* fp is at ciphertext location */
 		pos = ftell(fp);
 
@@ -276,10 +357,15 @@ next_file_header:
 		/* Keep looking for better candidates */
 		fseek(fp, file_header_pack_size, SEEK_CUR);
 		goto next_file_header;
-	}
+
 BailOut:
+		if (*best) {
+			puts(best);
+			fprintf(stderr, "Found a valid -p mode candidate in %s\n", base_aname);
+		} else
+			fprintf(stderr, "Did not find a valid encrypted candidate in %s\n", base_aname);
+	}
 	fclose(fp);
-	if (*best) puts(best);
 }
 
 int rar2john(int argc, char **argv)
