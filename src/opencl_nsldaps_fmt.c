@@ -115,7 +115,7 @@ static void find_best_workgroup(void)
 
 	// Set keys
 	for (; i < SSHA_NUM_KEYS; i++) {
-		memcpy(&(inbuffer[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
+		memcpy(&(saved_plain[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
