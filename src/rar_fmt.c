@@ -1,14 +1,16 @@
 /* RAR 3.x cracker patch for JtR. Hacked together during
  * April of 2011 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC.
+ * magnum added -p mode support, using code based on libclamav.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
- * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.
+ * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and (c) 2012, magnum and it is hereby released to the general public under
+ * the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
  * This program uses code present in the public domain unrar utility written by
- * Alexander Roshal (http://www.rarlab.com/rar/unrarsrc-4.0.7.tar.gz). Specifically,
- * lines 240 to 274 from crypt.cpp are used.
+ * Alexander Roshal (http://www.rarlab.com/rar/unrarsrc-4.0.7.tar.gz).
+ * Specifically, lines 240 to 274 from crypt.cpp are used.
  *
  * Huge thanks to Marc Bevand <m.bevand (at) gmail.com> for releasing unrarhp
  * (http://www.zorinaq.com/unrarhp/) and documenting the RAR encryption scheme.
@@ -16,18 +18,6 @@
  *
  * http://anrieff.net/ucbench/technical_qna.html is another useful reference
  * for RAR encryption scheme.
- *
- * rar -p mode support is based on rar's technote.txt documentation and is
- * currently incomplete.
- *
- * http://kthoom.googlecode.com/hg/docs/unrar.html
- * http://acritum.com/winrar/rar-format
- * http://en.wikipedia.org/wiki/Rar
- * http://code.google.com/p/theunarchiver/
- * http://www.win-rar.com/index.php?id=24&kb_article_id=162
- *
- * "PPMd implementation of PPMII by Dmitry Shkarin"
- * "Lempel-Ziv (LZSS)"
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
  * archive_name:$rar3$*type*hex(salt)*hex(partial-file-contents)
@@ -43,9 +33,6 @@
 
 #undef MEM_FREE
 
-/* temporary for dump_print() */
-#include <ctype.h>
-
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -58,33 +45,43 @@
 #include "options.h"
 #include "unicode.h"
 #include "johnswap.h"
+#include "unrar.h"
 
-#define FORMAT_LABEL        "rar"
-#define FORMAT_NAME         "rar"
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
-#define PLAINTEXT_LENGTH    32
-#define BINARY_SIZE         2
-#define SALT_SIZE           512
-#define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  1
+#define FORMAT_LABEL		"rar"
+#define FORMAT_NAME		"RAR3"
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	-1
+#define PLAINTEXT_LENGTH	32
+#define BINARY_SIZE		2
+#define SALT_SIZE		512
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 
-static char saved_key[3 * PLAINTEXT_LENGTH + 1];
-static int has_been_cracked = 0;
+
+/* The reason we want to bump OMP_SCALE in this case is to even out the
+ * difference in processing time for different keys. But this hash is so slow,
+ * we can't set it very high */
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE		4
+#endif
+static int omp_t = 1;
+
+static char (*saved_key)[3 * PLAINTEXT_LENGTH + 1];
+static int (*cracked);
+static unpack_data_t (*unpack_data);
 static unsigned char saved_salt[8];
 static unsigned char saved_ct[16];
 static int type;  /* type of rar file */
 
 /* for rar -p mode */
-static char command[4096 + 64];
-static unsigned char FILE_CRC[4];
+static unsigned int FILE_CRC;
 static int PACK_SIZE;
 static int UNP_SIZE;
 static unsigned char *ciphertext;
-static unsigned char *plaintext;
 static char *archive_name;
-static char *method;
+static int method;
 
 static struct fmt_tests rar_tests[] = {
 	{"$rar3$*0*c9dea41b149b53b4*fcbdb66122d8ebdb32532c22ca7ab9ec*24",
@@ -92,15 +89,30 @@ static struct fmt_tests rar_tests[] = {
 	{NULL}
 };
 
-extern struct fmt_main rar_fmt;
 static void init(struct fmt_main *pFmt)
 {
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+	                            pFmt->params.max_keys_per_crypt,
+	                            MEM_ALIGN_NONE);
+	cracked = mem_calloc_tiny(sizeof(*cracked) *
+	                          pFmt->params.max_keys_per_crypt,
+	                          MEM_ALIGN_WORD);
+	unpack_data = mem_calloc_tiny(sizeof(*unpack_data) *
+	                              pFmt->params.max_keys_per_crypt,
+	                              MEM_ALIGN_WORD);
+
 	/* OpenSSL init, cleanup part is left to OS */
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 	if (options.utf8)
-		rar_fmt.params.plaintext_length = PLAINTEXT_LENGTH * 3;
+		pFmt->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -136,13 +148,18 @@ static void set_salt(void *salt)
 		FILE *fp;
 		char *p = strtok(NULL, "*");
 		for (i = 0; i < 4; i++)
-			FILE_CRC[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-			    atoi16[ARCH_INDEX(p[i * 2 + 1])];
+			((unsigned char*)&FILE_CRC)[i] =
+				atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+				atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		PACK_SIZE = atoi(strtok(NULL, "*"));
 		UNP_SIZE = atoi(strtok(NULL, "*"));
 		archive_name = strtok(NULL, "*");
 		pos = atol(strtok(NULL, "*"));
-		method = strtok(NULL, "*");
+		p = strtok(NULL, "*");
+		method = atoi16[ARCH_INDEX(p[0])] * 16 +
+			atoi16[ARCH_INDEX(p[1])];
+		if (method != 0x30)
+			FILE_CRC = ~FILE_CRC;
 		/* load ciphertext */
 		if (!(fp = fopen(archive_name, "rb"))) {
 			fprintf(stderr, "! %s: %s\n", archive_name,
@@ -151,14 +168,12 @@ static void set_salt(void *salt)
 		}
 		fseek(fp, pos, SEEK_SET);
 		if (ciphertext) free(ciphertext);
-		if (plaintext) free(plaintext);
 		ciphertext = (unsigned char *) malloc(PACK_SIZE);
-		plaintext = (unsigned char *) malloc(PACK_SIZE);
 		count = fread(ciphertext, 1, PACK_SIZE, fp);
 		assert(count == PACK_SIZE);
 		fclose(fp);
 	}
-	has_been_cracked = 0;
+	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 	free(keep_ptr);
 }
 
@@ -170,44 +185,23 @@ static void set_key(char *key, int index)
 	int saved_key_length = strlen(key);
 	if (saved_key_length > 3 * PLAINTEXT_LENGTH)
 		saved_key_length = 3 * PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
-	saved_key[saved_key_length] = 0;
+	memcpy(saved_key[index], key, saved_key_length);
+	saved_key[index][saved_key_length] = 0;
 }
 
 static char *get_key(int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
-
-#if 0
-static void dump_print(void *data, int len)
-{
-	char *p = (char*)data;
-
-	while(len--) {
-		if (isprint(*p))
-			putchar(*p);
-		else
-			putchar('.');
-		p++;
-	}
-	puts("");
-}
-#endif
 
 static void crypt_all(int count)
 {
-	if (type == 1 && method[1] != '0') {
-		FILE *fp;
-		int len, ret;
-
-		len = sprintf(command, "%s%s%s%s", "unrar t -p", saved_key, " -inul ", archive_name);
-		command[len] = 0;
-		fp = popen(command, "r");
-		ret = pclose(fp);
-		if( ret == 0)
-			has_been_cracked = 1;
-	} else {
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
 		int i = 0, j = 0;
 		UTF16 utf16key[PLAINTEXT_LENGTH + 1];
 		char *encoded_key = (char*)utf16key;
@@ -228,9 +222,11 @@ static void crypt_all(int count)
 #endif
 
 		/* UTF-16LE encode the password, encoding aware */
-		plen = enc_to_utf16(utf16key, PLAINTEXT_LENGTH, (UTF8*)saved_key, strlen(saved_key));
+		plen = enc_to_utf16(utf16key, PLAINTEXT_LENGTH,
+		                    (UTF8*)saved_key[index],
+		                    strlen(saved_key[index]));
 		if (plen <= 0)
-			saved_key[-plen] = 0;
+			saved_key[index][-plen] = 0;
 		if (plen < 0)
 			plen = strlen16(utf16key);
 
@@ -278,48 +274,88 @@ static void crypt_all(int count)
 				aes_key[i * 4 + j] =
 					(unsigned char) (digest[i] >> (j * 8));
 		if (type == 0) {
-			char ct[16];
 			AES_KEY key;
 			unsigned char output[16];
 
-			memcpy(ct, saved_ct, 16);
 			/* AES decrypt, uses aes_iv, aes_key and saved_ct */
-			AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8, &key);	/* AES-128 */
-			AES_cbc_encrypt((unsigned char *) ct, output, 16, &key,
-			                (unsigned char *) aes_iv, AES_DECRYPT);
+			AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8,
+			                    &key);	/* AES-128 */
+			AES_cbc_encrypt((unsigned char *) saved_ct, output, 16,
+			                &key, (unsigned char *) aes_iv,
+			                AES_DECRYPT);
 			if (!memcmp(output, "\xc4\x3d\x7b\x00\x40\x07\x00", 7))
-				has_been_cracked = 1;
+				cracked[index] = 1;
 		} else {
 			AES_KEY key;
-			CRC32_t crc;
-			unsigned char crc_out[4];
 
-			/* -p -m0: use full decryption with CRC check */
-			AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8,
-			                    &key);
-			AES_cbc_encrypt((unsigned char *) ciphertext, plaintext,
-			                PACK_SIZE, &key, (unsigned char *)
-			                aes_iv, AES_DECRYPT);
+			if (method == 0x30) { /* stored, not deflated */
+				CRC32_t crc;
+				unsigned char crc_out[4];
+				unsigned char plainbuf[0x8010];
+				unsigned int size = UNP_SIZE;
+				unsigned char *cipher = ciphertext;
 
-			/* compute CRC of the decompressed plaintext block */
-			CRC32_Init(&crc);
-			CRC32_Update(&crc, plaintext, UNP_SIZE);
-			CRC32_Final(crc_out, crc);
+				/* Use full decryption with CRC check.
+				   Compute CRC of the decompressed plaintext */
+				AES_set_decrypt_key((unsigned char *) aes_key,
+				                    16 * 8, &key);
+				CRC32_Init(&crc);
+				while(size) {
+					int len = 0x8000;
+					if (len > size) len = size + 15;
 
-			/* Compare computed CRC with stored CRC (FILE_CRC) */
-			has_been_cracked = !memcmp(crc_out, FILE_CRC, 4);
+					AES_cbc_encrypt(cipher, plainbuf, len,
+					                &key, aes_iv,
+					                AES_DECRYPT);
+
+					if (len > size) len = size;
+					CRC32_Update(&crc, plainbuf, len);
+					cipher += len;
+					size -= len;
+				}
+				CRC32_Final(crc_out, crc);
+				//printf("%08x\n", ~*(unsigned int*)crc_out);
+				//dump_stuff_msg("computed", crc_out, 4);
+				//dump_stuff_msg("stored", &FILE_CRC, 4);
+
+				/* Compare computed CRC with stored CRC
+				   (FILE_CRC) */
+				cracked[index] = !memcmp(crc_out, &FILE_CRC, 4);
+			} else {
+				const int solid = 0;
+				unpack_data_t *unpack_t =
+					&unpack_data[index];
+
+				rar_unpack_init_data(solid, unpack_t);
+				unpack_t->max_size = UNP_SIZE;
+				unpack_t->dest_unp_size = UNP_SIZE;
+				unpack_t->pack_size = PACK_SIZE;
+				unpack_t->iv = aes_iv;
+
+				AES_set_decrypt_key(aes_key, 16 * 8,
+				                    &unpack_t->key);
+				if (rar_unpack29(ciphertext, solid, unpack_t))
+					cracked[index] =
+						!memcmp(&unpack_t->unp_crc,
+						        &FILE_CRC, 4);
+			}
 		}
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return has_been_cracked;
+	int index;
+
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return 1;
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -339,7 +375,7 @@ struct fmt_main rar_fmt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,
 		rar_tests
 	}, {
 		init,

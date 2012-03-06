@@ -60,7 +60,7 @@ static void process_file(const char *archive_name)
 	unsigned char marker_block[7];
 	unsigned char archive_header_block[13];
 	unsigned char file_header_block[40];
-	int i, count, type, bestsize = 0, bestcomp = 0;
+	int i, count, type, bestsize = 0;
 	char best[LINE_BUFFER_SIZE] = "";
 
 	if (!(fp = fopen(archive_name, "rb"))) {
@@ -201,6 +201,15 @@ next_file_header:
 			assert(count == 1);
 		}
 
+		/* Skip solid files (first file is never solid)
+		 * We could probably add support for this
+		 */
+		if (file_header_head_flags & 0x10) {
+			fprintf(stderr, "! Solid, can't handle (currently)\n");
+			fseek(fp, file_header_pack_size, SEEK_CUR);
+			goto next_file_header;
+		}
+
 		if ((file_header_head_flags & 0xe0)>>5 == 7) {
 			fprintf(stderr, "! Is a directory\n");
 			fseek(fp, file_header_pack_size, SEEK_CUR);
@@ -215,15 +224,12 @@ next_file_header:
 			goto next_file_header;
 		}
 
-		if (*best &&
-		    ((file_header_block[25] > 0x30 && bestcomp == 0x30) ||
-		     (bestsize < file_header_pack_size))) {
+		if (*best && (bestsize < file_header_pack_size)) {
 			fseek(fp, file_header_pack_size, SEEK_CUR);
 			goto next_file_header;
 		}
 
 		bestsize = file_header_pack_size;
-		bestcomp = file_header_block[25];
 
 		/* process encrypted data of size "file_header_pack_size" */
 		sprintf(best, "%s:$rar3$*%d*", archive_name, type);
@@ -236,7 +242,6 @@ next_file_header:
 		for (i = 0; i < 4; i++) { /* encode FILE_CRC */
 			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(FILE_CRC[i] >> 4)], itoa16[ARCH_INDEX(FILE_CRC[i] & 0x0f)]);
 		}
-
 		/* Minimal version needed to unpack this file */
 		fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_header_block[24] / 10.);
 
@@ -257,7 +262,7 @@ next_file_header:
 		long pos = ftell(fp);
 
 		/* We duplicate file name to the GECOS field, for single mode */
-		sprintf(&best[strlen(best)], "*%d*%d*%s*%ld*m%x%c:::%s\n", file_header_pack_size, file_header_unp_size, archive_name, pos, file_header_block[25]-0x30, 'a'+((file_header_head_flags&0xe0)>>5), file_name);
+		sprintf(&best[strlen(best)], "*%d*%d*%s*%ld*%c%c:::%s", file_header_pack_size, file_header_unp_size, archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], file_name);
 
 		/* Keep looking for better candidates */
 		fseek(fp, file_header_pack_size, SEEK_CUR);

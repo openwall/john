@@ -85,6 +85,7 @@ JOHN_OBJS = \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
+	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	$(PLUGFORMATS_OBJS) \
