@@ -103,7 +103,10 @@ next_file_header:
 
 	assert(count == 1);
 
-	if (type == 1 && file_header_block[2] != 0x74) {
+	if (type == 1 && file_header_block[2] == 0x7a) {
+		fprintf(stderr, "! %s: Comment block?\n", archive_name);
+	}
+	else if (type == 1 && file_header_block[2] != 0x74) {
 		fprintf(stderr, "! %s: Not recognising any more headers.\n", archive_name);
 		goto BailOut;
 	}
