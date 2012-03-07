@@ -241,9 +241,9 @@ next_file_header:
 #ifdef DEBUG
 		fprintf(stderr, "file name size: %d bytes\n", file_name_size);
 #endif
+		memset(file_name, 0, sizeof(file_name));
 		count = fread(file_name, file_name_size, 1, fp);
 		assert(count == 1);
-		file_name[file_name_size] = 0;
 		EXT_TIME_SIZE -= file_name_size;
 
 		/* If this flag is set, file_name contains some weird
@@ -253,20 +253,21 @@ next_file_header:
 			UTF16 FileNameW[256];
 			int Length = strlen((char*)file_name);
 
-			DecodeFileName(file_name,
-			               file_name + Length + 1,
-			               file_name_size, FileNameW,
-			               255);
+#ifdef DEBUG
+			dump_stuff_msg("Encoded filenames", file_name, file_name_size);
+#endif
+			DecodeFileName(file_name, file_name + Length + 1,
+			               file_name_size, FileNameW, 256);
 
 			if (*FileNameW) {
+#ifdef DEBUG
+				dump_stuff_msg("UTF16 filename", FileNameW, strlen16(FileNameW) << 1);
+#endif
 				fprintf(stderr, "OEM name:  %s\n", file_name);
 				utf16_to_utf8_r(file_name, 256, FileNameW);
 				fprintf(stderr, "Unicode:   %s\n", file_name);
 			} else
 				fprintf(stderr, "UTF8 name: %s\n", file_name);
-
-			//dump_stuff_msg("OEM filename", file_name, Length);
-			//dump_stuff_msg("Unicode name", FileNameW, strlen16(FileNameW));
 		} else
 			fprintf(stderr, "file name: %s\n", file_name);
 
