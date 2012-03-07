@@ -1707,13 +1707,13 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
 	// Ok, we get this:   extern_salt = salt_data$$2salt2$$Uuser ...  where anything can be missing or in any order
 	// the any order has 1 exception of salt_data MUST be first.  So if we get $$2salt2, then we know there is no salt-1 value.
 	unsigned char *salt2=0, *userid=0, *Flds[10];
-	int nsalt2=0, nuserid=0, nFlds[10]={0,0,0,0,0,0,0,0,0,0};
-	unsigned char len = strlen((char*)extern_salt), i, bit;
+	int i, nsalt2=0, nuserid=0, nFlds[10]={0,0,0,0,0,0,0,0,0,0};
+	unsigned char len = strlen((char*)extern_salt), bit;
 	unsigned bit_array=0;
 	unsigned the_real_len = 6;  // 2 bytes base-8 length, and 4 bytes base-8 bitmap.
 
 	// work from back of string to front, looking for the $$X signatures.
-	for (i = len-3; i > 0; --i) {
+	for (i = len-3; i >= 0; --i) {
 		if (extern_salt[i] == '$' && extern_salt[i+1] == '$') {
 			// a 'likely' extra salt value.
 			switch(extern_salt[i+2]) {
