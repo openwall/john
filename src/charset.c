@@ -12,7 +12,6 @@
 #define unlink _unlink
 #endif
 #include <string.h>
-#include <math.h>
 #include <assert.h>
 
 #include "arch.h"

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000,2003,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2000,2003,2005,2010-2012 by Solar Designer
  *
  * ...with heavy changes in the jumbo patch, by various authors
  */
@@ -429,6 +429,21 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
+/*
+ * Use a smaller alignment for binary ciphertexts and salts that are smaller
+ * than ARCH_SIZE bytes.  This saves some memory when dealing with 32-bit
+ * values on a 64-bit system.
+ */
+static void *alloc_copy_autoalign(size_t size, void *src)
+{
+	size_t align = MEM_ALIGN_NONE;
+	if (size >= ARCH_SIZE)
+		align = MEM_ALIGN_WORD;
+	else if (size >= 4)
+		align = 4;
+	return mem_alloc_copy(size, align, src);
+}
+
 static void ldr_load_pw_line(struct db_main *db, char *line)
 {
 	static int skip_dupe_checking = 0;
@@ -530,11 +545,11 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				mem_alloc_tiny(salt_size, MEM_ALIGN_WORD);
 			current_salt->next = last_salt;
 
-			current_salt->salt = mem_alloc_copy(
-				format->params.salt_size, MEM_ALIGN_WORD,
-				salt);
+			current_salt->salt = alloc_copy_autoalign(
+				format->params.salt_size, salt);
 
 			current_salt->index = fmt_dummy_hash;
+			current_salt->bitmap = NULL;
 			current_salt->list = NULL;
 			current_salt->hash = &current_salt->list;
 			current_salt->hash_size = -1;
@@ -559,8 +574,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		db->password_hash[pw_hash] = current_pw;
 		current_pw->next_hash = last_pw;
 
-		current_pw->binary = mem_alloc_copy(
-			format->params.binary_size, MEM_ALIGN_WORD, binary);
+		current_pw->binary = alloc_copy_autoalign(
+			format->params.binary_size, binary);
 
 		current_pw->source = str_alloc_copy(piece);
 
@@ -745,6 +760,7 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 {
 	struct db_password *current;
 	int (*hash_func)(void *binary);
+	int bitmap_size, hash_size;
 	int hash;
 
 	if (salt->hash_size < 0) {
@@ -758,10 +774,21 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 		return;
 	}
 
-	salt->hash = mem_alloc_tiny(password_hash_sizes[salt->hash_size] *
-	    sizeof(struct db_password *), MEM_ALIGN_WORD);
-	memset(salt->hash, 0, password_hash_sizes[salt->hash_size] *
-	    sizeof(struct db_password *));
+	bitmap_size = password_hash_sizes[salt->hash_size];
+	{
+		size_t size = (bitmap_size +
+		    sizeof(*salt->bitmap) * 8 - 1) /
+		    (sizeof(*salt->bitmap) * 8) * sizeof(*salt->bitmap);
+		salt->bitmap = mem_alloc_tiny(size, sizeof(*salt->bitmap));
+		memset(salt->bitmap, 0, size);
+	}
+
+	hash_size = bitmap_size >> PASSWORD_HASH_SHR;
+	if (hash_size > 1) {
+		size_t size = hash_size * sizeof(struct db_password *);
+		salt->hash = mem_alloc_tiny(size, MEM_ALIGN_WORD);
+		memset(salt->hash, 0, size);
+	}
 
 	salt->index = db->format->methods.get_hash[salt->hash_size];
 
@@ -771,8 +798,14 @@ static void ldr_init_hash_for_salt(struct db_main *db, struct db_salt *salt)
 	if ((current = salt->list))
 	do {
 		hash = hash_func(current->binary);
-		current->next_hash = salt->hash[hash];
-		salt->hash[hash] = current;
+		salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] |=
+		    1U << (hash % (sizeof(*salt->bitmap) * 8));
+		if (hash_size > 1) {
+			hash >>= PASSWORD_HASH_SHR;
+			current->next_hash = salt->hash[hash];
+			salt->hash[hash] = current;
+		} else
+			current->next_hash = current->next;
 		salt->count++;
 	} while ((current = current->next));
 }
@@ -794,13 +827,7 @@ static void ldr_init_hash(struct db_main *db)
  * hash table) vs. the complexity of DES_bs_cmp_all() for all computed hashes
  * at once (but calling it for each loaded hash individually).
  */
-		threshold = db->format->params.min_keys_per_crypt * 5;
-#if DES_BS_VECTOR
-		threshold /= ARCH_BITS_LOG * DES_BS_VECTOR;
-#else
-		threshold /= ARCH_BITS_LOG;
-#endif
-		threshold++;
+		threshold = 5 * ARCH_BITS / ARCH_BITS_LOG + 1;
 	}
 
 	if ((current = db->salts))

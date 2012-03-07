@@ -954,7 +954,6 @@ macosx-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -m64  -I$(OCLROOT)/include -I$(OCLROOT)/include  -DBSD -DCL_VERSION_1_0" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
-	#/bin/sh ./setup-opencl-stuff.sh
 
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
@@ -1194,7 +1193,7 @@ win32-cygwin-x86-sse2:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse2 -m32" \
+		CFLAGS="$(CFLAGS) -msse2 -m32" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
 win32-cygwin-x86-mmx:

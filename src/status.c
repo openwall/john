@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2004,2006,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2004,2006,2010-2012 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF.
  */
@@ -111,14 +111,15 @@ void status_ticks_overflow_safety(void)
 	}
 }
 
-void status_update_crypts(unsigned int count)
+void status_update_crypts(int64 *count)
 {
 	unsigned int saved_hi;
 
 	saved_hi = status.crypts.hi;
-	add32to64(&status.crypts, count);
+	add64to64(&status.crypts, count);
 
-	if (status.crypts.hi != saved_hi)
+	if (status.crypts.hi != saved_hi &&
+	    !count->hi && count->lo <= 0x00100000)
 		status_ticks_overflow_safety();
 }
 
