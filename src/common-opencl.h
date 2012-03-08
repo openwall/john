@@ -16,6 +16,8 @@
 
 #define MAXGPUS	4
 #define MAX_PLATFORMS	4
+#define SUBSECTION_OPENCL	":OpenCL"
+
 /* Comment if you do not want to see OpenCL warnings during kernel compilation */
 #define REPORT_OPENCL_WARNINGS
 

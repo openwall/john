@@ -56,6 +56,9 @@
 #include <openssl/opensslv.h>
 #include "unicode.h"
 #include "plugin.h"
+#ifdef CL_VERSION_1_0
+#include "common-opencl.h"
+#endif
 
 #if CPU_DETECT
 extern int CPU_detect(void);
@@ -519,6 +522,18 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.encodingStr && options.encodingStr[0])
 		log_event("- %s input encoding enabled", options.encodingStr);
+
+#ifdef CL_VERSION_1_0
+	if (!options.ocl_platform)
+	if ((options.ocl_platform =
+	     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Platform")))
+		platform_id = atoi(options.ocl_platform);
+
+	if (!options.ocl_device)
+	if ((options.ocl_device =
+	     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
+		gpu_id = atoi(options.ocl_device);
+#endif
 }
 
 static void john_run(void)
