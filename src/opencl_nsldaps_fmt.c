@@ -23,6 +23,7 @@
 #include "params.h"
 #include "formats.h"
 #include "common.h"
+#include "config.h"
 
 #include "sha.h"
 #include "base64.h"
@@ -47,6 +48,8 @@
 #define MIN_KEYS_PER_CRYPT              1024
 #define MAX_KEYS_PER_CRYPT		SSHA_NUM_KEYS
 
+#define LWS_CONFIG			"ssha_LWS"
+#define KPC_CONFIG			"ssha_KPC"
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -152,7 +155,9 @@ static void find_best_workgroup(void)
 	printf("\n");
 	#endif
 	printf("Optimal local work size %d\n",(int)local_work_size);
-        printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
+	printf("(to avoid this test on next run, put \""
+           LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+           SUBSECTION_OPENCL "])\n", (int)local_work_size);
 	clReleaseCommandQueue(queue_prof);
 }
 
@@ -282,7 +287,9 @@ static void find_best_kpc(void){
 	free(tmpbuffer);
 	clReleaseCommandQueue(queue_prof);
     }
-    printf("Optimal keys per crypt %d\n(to avoid this test on next run do export KPC=%d)\n",optimal_kpc,optimal_kpc);
+    printf("Optimal keys per crypt %d\n(to avoid this test on next run, put \""
+           KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+           SUBSECTION_OPENCL "])\n", optimal_kpc, optimal_kpc);
     max_keys_per_crypt = optimal_kpc;
     release_clobj();
     create_clobj(optimal_kpc);
@@ -290,33 +297,42 @@ static void find_best_kpc(void){
 
 static void fmt_ssha_init(struct fmt_main *pFmt)
 {
-	char *kpc;
+	char *temp;
 	opencl_init("$JOHN/ssha_opencl_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	                          LWS_CONFIG)))
+		local_work_size = atoi(temp);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+
+	if (!local_work_size) {
 		create_clobj(SSHA_NUM_KEYS);
 		find_best_workgroup();
 		release_clobj();
-	}else {
-		local_work_size = atoi(kpc);
 	}
-	if( (kpc = getenv("KPC")) == NULL){
+
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	                          KPC_CONFIG)))
+		max_keys_per_crypt = atoi(temp);
+	else
+		max_keys_per_crypt = SSHA_NUM_KEYS;
+
+	if ((temp = getenv("KPC")))
+		max_keys_per_crypt = atoi(temp);
+
+	if (max_keys_per_crypt) {
+		create_clobj(max_keys_per_crypt);
+	} else {
+		//user chose to die of boredom
 		max_keys_per_crypt = SSHA_NUM_KEYS;
 		create_clobj(SSHA_NUM_KEYS);
-	} else {
-		if (atoi(kpc) == 0){
-			//user chose to die of boredom
-			max_keys_per_crypt = SSHA_NUM_KEYS;
-			create_clobj(SSHA_NUM_KEYS);
-			find_best_kpc();
-		} else {
-			max_keys_per_crypt = atoi(kpc);
-			create_clobj(max_keys_per_crypt);
-		}
+		find_best_kpc();
 	}
 	printf("Local work size (LWS) %d, Keys per crypt (KPC) %d\n",(int)local_work_size,max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
