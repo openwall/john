@@ -13,8 +13,11 @@ typedef struct {
 
 
 #define ROTATE_LEFT(x, s)	rotate(x,s)
-#define F(x, y, z)		((z) ^ ((x) & ((y) ^ (z))))
-#define G(x, y, z)		((y) ^ ((z) & ((x) ^ (y))))
+//#define F(x, y, z)		((z) ^ ((x) & ((y) ^ (z))))
+//#define G(x, y, z)		((y) ^ ((z) & ((x) ^ (y))))
+
+#define F(x, y, z) bitselect((z), (y), (x))
+#define G(x, y, z) bitselect((y), (x), (z))
 #define H(x, y, z)		((x) ^ (y) ^ (z))
 #define I(x, y, z)		((y) ^ ((x) | (~z)))
 

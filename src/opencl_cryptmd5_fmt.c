@@ -171,7 +171,7 @@ static void find_best_workgroup()
 	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
 	    CL_QUEUE_PROFILING_ENABLE,
 	    &ret_code);
-	//printf("Max Group Work Size %d\n",(int)max_group_size);
+	printf("Max Group Work Size %d\n",(int)max_group_size);
 	local_work_size = 1;
 
 	/// Set keys
@@ -208,13 +208,13 @@ static void find_best_workgroup()
 		}
 		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
 	}
-	//printf("Optimal Group work Size = %d\n",(int)local_work_size);
+	printf("Optimal Group work Size = %d\n",(int)local_work_size);
 	clReleaseCommandQueue(queue_prof);
 }
 
 static void init(struct fmt_main *pFmt)
 {
-	opencl_init("$JOHN/opencl_cryptmd5_kernel.cl", gpu_id);
+	opencl_init("$JOHN/opencl_cryptmd5_kernel.cl", gpu_id,platform_id);
 
 	///Alocate memory on the GPU
 

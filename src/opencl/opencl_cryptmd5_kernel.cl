@@ -8,8 +8,10 @@
 
 #define ROTATE_LEFT(x, s) rotate(x,s)
 
-#define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
-#define G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
+//#define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
+//#define G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
+#define F(x, y, z) bitselect((z), (y), (x))
+#define G(x, y, z) bitselect((y), (x), (z))
 
 #define H(x, y, z) (x^y^z)
 #define I(x, y, z) (y^(x|~z))
@@ -94,11 +96,8 @@ void ctx_update_private(__private md5_ctx * ctx, __private uint8_t * string,
 {
 	uint8_t *dest = &ctx->buffer[*ctx_buflen];
 	*ctx_buflen += len;
-	int i = len;
-	//while(len--)
-	 // *dest++=*string++;
-	for (i = 0; i < len; i++)
-		dest[i] = string[i];
+	while(len--)
+	  *dest++=*string++;
 }
 void ctx_insert_result(__private md5_ctx * ctx, __private uint8_t * string,uint8_t start)
 {
@@ -229,18 +228,6 @@ void md5_digest(__private md5_ctx * ctx, __private uint32_t * result,uint8_t *ct
 	result[3] = d + 0x10325476;
 }
 
-uint8_t next(int i, uint8_t saltlen,uint8_t passlen)
-{
-  uint8_t ret=0;
-  if ((i & 1) != 0){
-    if (i % 3 != 0)
-      ret+=saltlen;
-    if (i % 7 != 0)
-      ret+=passlen;
-  }
-  return ret;
-}
-
 __kernel void cryptmd5
     (__global const crypt_md5_password * inbuffer,
     __global uint32_t * outbuffer,
@@ -248,7 +235,6 @@ __kernel void cryptmd5
 	uint32_t idx = get_global_id(0);
 	uint32_t i;
 	__global const uint8_t *pass = inbuffer[idx].v;
-	//__global uint32_t *tresult = outbuffer[idx].v;
 
 	__private uint32_t alt_result[4];
 	uint8_t pass_len = inbuffer[idx].length;
@@ -282,77 +268,8 @@ __kernel void cryptmd5
 			ctx.buffer[ctx_buflen++] = pass[0];
 
 	md5_digest(&ctx, alt_result,&ctx_buflen);
-/*
-there are 8 cases:
-altpass
-altpasspass
-altsaltpass
-altsaltpasspass
-passalt
-passpassalt
-passsaltalt
-passsaltpassalt
-*/
-//prepare gtx
-	__private md5_ctx gtx[8];
-	__private alt_start[8];
-	uint8_t gtx_buflen[8];
-	for(i=0;i<4;i++) alt_start[i]=0;
-	for(i=0;i<8;i++) init_ctx(&gtx[i],&gtx_buflen[i]);
-	
-	{//altpass
-	  gtx_buflen[0]+=16;
-	  ctx_update_global(&gtx[0],(__global uint8_t *) pass, pass_len,&gtx_buflen[0]);
-	}
-	{//altpasspass
-	  gtx_buflen[1]+=16;
-	  ctx_update_global(&gtx[1],(__global uint8_t *) pass, pass_len,&gtx_buflen[1]);
-	  ctx_update_global(&gtx[1],(__global uint8_t *) pass, pass_len,&gtx_buflen[1]);
-	}
-	{//altsaltpass
-	  gtx_buflen[2]+=16;
-	  ctx_update_global(&gtx[2],(__global uint8_t *) salt, salt_len,&gtx_buflen[2]);
-	  ctx_update_global(&gtx[2],(__global uint8_t *) pass, pass_len,&gtx_buflen[2]);	
-	}
-	{//altsaltpasspass
-	  gtx_buflen[3]+=16;
-	  ctx_update_global(&gtx[3],(__global uint8_t *) salt, salt_len,&gtx_buflen[3]);
-	  ctx_update_global(&gtx[3],(__global uint8_t *) pass, pass_len,&gtx_buflen[3]);	
-	  ctx_update_global(&gtx[3],(__global uint8_t *) pass, pass_len,&gtx_buflen[3]);
-	}
-	{//passalt
-	  ctx_update_global(&gtx[4],(__global uint8_t *) pass, pass_len,&gtx_buflen[4]);
-	  gtx_buflen[4]+=16;
-	  alt_start[4]=pass_len;
-	}
-	{//passpassalt
-	  ctx_update_global(&gtx[5],(__global uint8_t *) pass, pass_len,&gtx_buflen[5]);
-	  ctx_update_global(&gtx[5],(__global uint8_t *) pass, pass_len,&gtx_buflen[5]);
-	  gtx_buflen[5]+=16;
-	  alt_start[5]=pass_len*2;
-	}
-	{//passsaltalt
-	  ctx_update_global(&gtx[6],(__global uint8_t *) pass, pass_len,&gtx_buflen[6]);	
-	  ctx_update_global(&gtx[6],(__global uint8_t *) salt, salt_len,&gtx_buflen[6]);
-	  gtx_buflen[6]+=16;
-	  alt_start[6]=pass_len+salt_len;
-	}
-	{//passsaltpassalt
-	  ctx_update_global(&gtx[7],(__global uint8_t *) pass, pass_len,&gtx_buflen[7]);	
-	  ctx_update_global(&gtx[7],(__global uint8_t *) salt, salt_len,&gtx_buflen[7]);
-	  ctx_update_global(&gtx[7],(__global uint8_t *) pass, pass_len,&gtx_buflen[7]);
-	  gtx_buflen[7]+=16;
-	  alt_start[7]=pass_len*2+salt_len;
-	}
-	uint8_t seq[]={0,7,3,5,3,7,1,6,3,5,3,7,1,7,2,5,3,7,1,7,3,4,3,7,1,7,3,5,2,7,1,7,3,5,3,6,1,7,3,5,3,7,7,3,5,3,7,1,6};
 
-	
-	for(i=0;i<1000;i++){
-	  int id=seq[i%42];//iteration id in gtx table
-	  ctx_insert_result(&gtx[id], (uint8_t*)alt_result, alt_start[id]);
-	  md5_digest(&gtx[id], alt_result,&gtx_buflen[id]);
-	}
-	/*for (i = 0; i < 1000; i++) {
+	for (i = 0; i < 1000; i++) {
 		init_ctx(&ctx,&ctx_buflen);
 		
 		if ((i & 1) != 0)
@@ -375,7 +292,7 @@ passsaltpassalt
 			ctx_update_global(&ctx, (__global uint8_t *) pass,
 			    pass_len,&ctx_buflen);
 		md5_digest(&ctx, alt_result,&ctx_buflen);
-	}*/
+	}
 	
 #define KEYS_PER_CRYPT 1024*9
 #define address(j,idx) 			(((j)*KEYS_PER_CRYPT)+(idx))
@@ -385,8 +302,4 @@ passsaltpassalt
 
 	K(0) K(1) K(2) K(3)
 	
-//	tresult[0] = alt_result[0];//ctx.A;
-//	tresult[1] = alt_result[1];//ctx.B;
-//	tresult[2] = alt_result[2];//ctx.C;
-//	tresult[3] = alt_result[3];//ctx.D;
 }
