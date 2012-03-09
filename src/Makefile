@@ -118,7 +118,7 @@ JOHN_OBJS = \
 
 OCL_OBJS = \
 	common-opencl.o opencl_mysqlsha1_fmt.o \
-	cryptmd5_opencl_fmt.o phpass_opencl_fmt.o opencl_rawsha1_fmt.o \
+	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
 	opencl_nt_fmt.o opencl_rawmd5_fmt.o  opencl_nsldaps_fmt.o
 
 CUDA_OBJS = \
