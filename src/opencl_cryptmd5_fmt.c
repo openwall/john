@@ -214,7 +214,7 @@ static void find_best_workgroup()
 
 static void init(struct fmt_main *pFmt)
 {
-	opencl_init("$JOHN/opencl_cryptmd5_kernel.cl", gpu_id,platform_id);
+	opencl_init("$JOHN/cryptmd5_kernel.cl", gpu_id,platform_id);
 
 	///Alocate memory on the GPU
 
