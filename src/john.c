@@ -96,6 +96,7 @@ extern struct fmt_main fmt_dragonfly4_32;
 extern struct fmt_main fmt_drupal7;
 extern struct fmt_main fmt_cryptsha256;
 extern struct fmt_main fmt_cryptsha512;
+extern struct fmt_main racf_fmt;
 #endif
 
 #ifdef HAVE_SKEY
@@ -214,6 +215,7 @@ static void john_register_all(void)
 	john_register_one(&rar_fmt);
 	john_register_one(&zip_fmt);
 	john_register_one(&fmt_dummy);
+	john_register_one(&racf_fmt);
 
 #ifdef CL_VERSION_1_0
 	john_register_one(&fmt_opencl_NSLDAPS);
