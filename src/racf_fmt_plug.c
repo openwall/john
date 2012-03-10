@@ -26,6 +26,9 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define FORMAT_LABEL		"racf"
 #define FORMAT_NAME		"RACF"
@@ -35,8 +38,8 @@
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
 #define SALT_SIZE		32
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MIN_KEYS_PER_CRYPT	96
+#define MAX_KEYS_PER_CRYPT	96
 
 static unsigned char a2e[256] = {
 	0,  1,  2,  3, 55, 45, 46, 47, 22,  5, 37, 11, 12, 13, 14, 15,
@@ -121,8 +124,8 @@ static void *get_salt(char *ciphertext)
 
 static unsigned char userid[8 + 1];
 static char unsigned hash[8];
-static char saved_key[8 + 1];
-unsigned char cracked;
+static char saved_key[MAX_KEYS_PER_CRYPT][8 + 1];
+unsigned char cracked[MAX_KEYS_PER_CRYPT];
 
 static void set_salt(void *salt)
 {
@@ -152,61 +155,70 @@ static void set_salt(void *salt)
 	printf("inputhash : ");
 	print_hex(hash, 8);
 #endif
-	cracked = 0;
+	memset(cracked, 0, sizeof(*cracked) * MAX_KEYS_PER_CRYPT);
 	free(keeptr);
 }
 
 static void crypt_all(int count)
 {
-	DES_cblock des_key;
-	memcpy(des_key, saved_key, 8);
-	/* process key */
-#ifdef RACF_DEBUG
-	printf("key in ASCII : %s\n", saved_key);
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
 #endif
-	ascii2ebcdic(des_key);
-	process_key(des_key);
+	{
+		DES_cblock des_key;
+		memcpy(des_key, saved_key[index], 8);
+		/* process key */
 #ifdef RACF_DEBUG
-	printf("processed key in EBCDIC : ");
-	print_hex(des_key, 8);
+		printf("key in ASCII : %s\n", saved_key[index]);
 #endif
-	unsigned char *encrypted = (unsigned char*)malloc(8);
-	DES_key_schedule schedule;
-	DES_cblock ivec;
-	memset(ivec, 0, 8);
-	DES_set_odd_parity(&des_key);
+		ascii2ebcdic(des_key);
+		process_key(des_key);
 #ifdef RACF_DEBUG
-	printf("internally processed Key in EBDIC : ");
-	print_hex(des_key, 8);
+		printf("processed key in EBCDIC : ");
+		print_hex(des_key, 8);
 #endif
-	DES_set_key_checked(&des_key, &schedule);
-	/* do encryption */
-	DES_cbc_encrypt(userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
+		unsigned char *encrypted = (unsigned char*)malloc(8);
+		DES_key_schedule schedule;
+		DES_cblock ivec;
+		memset(ivec, 0, 8);
+		DES_set_odd_parity(&des_key);
 #ifdef RACF_DEBUG
-	printf("saved_key : %s hash : ", saved_key);
-	print_hex(encrypted, 8);
+		printf("internally processed Key in EBDIC : ");
+		print_hex(des_key, 8);
 #endif
-	if(!memcmp(hash, encrypted, 8)) {
-		cracked = 1;
+		DES_set_key_checked(&des_key, &schedule);
+		/* do encryption */
+		DES_cbc_encrypt(userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
 #ifdef RACF_DEBUG
-		printf("cracked : yes\n");
+		printf("saved_key : %s hash : ", saved_key);
+		print_hex(encrypted, 8);
+#endif
+		if(!memcmp(hash, encrypted, 8)) {
+			cracked[index] = 1;
+#ifdef RACF_DEBUG
+			printf("cracked : yes\n");
+#endif
+		}
+#ifdef RACF_DEBUG
+		printf("\n");
 #endif
 	}
-#ifdef RACF_DEBUG
-	printf("\n");
-#endif
 }
 
 static int cmp_all(void *binary, int count)
 {
-	if(cracked)
-		return 1;
+	int index;
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked;
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -214,23 +226,18 @@ static int cmp_exact(char *source, int index)
     return 1;
 }
 
-static void init(struct fmt_main *pFmt)
-{
-
-}
-
 static void racf_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > 8)
 		saved_key_length = 8;
-	memcpy(saved_key, key, saved_key_length);
-	saved_key[saved_key_length] = 0;
+	memcpy(saved_key[index], key, saved_key_length);
+	saved_key[index][saved_key_length] = 0;
 }
 
 static char *get_key(int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
 
 struct fmt_main racf_fmt = {
@@ -248,7 +255,7 @@ struct fmt_main racf_fmt = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		racf_tests
 	}, {
-		init,
+		fmt_default_init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
