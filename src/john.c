@@ -512,6 +512,14 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
+	if (options.subformat && !strcasecmp(options.subformat, "list"))
+	{
+		dynamic_DISPLAY_ALL_FORMATS();
+		// NOTE if we have other 'generics', like sha1, sha2, rc4, ....  then EACH of
+		// them should have a DISPLAY_ALL_FORMATS() function and we can call them here.
+		exit(0);
+	}
+
 	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
 
 	john_register_all(); /* maybe restricted to one format by options */

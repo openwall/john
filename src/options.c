@@ -329,14 +329,6 @@ void opt_init(char *name, int argc, char **argv)
 		return;
 	}
 
-	if (options.subformat && !strcasecmp(options.subformat, "list"))
-	{
-		dynamic_DISPLAY_ALL_FORMATS();
-		// NOTE if we have other 'generics', like sha1, sha2, rc4, ....  then EACH of
-		// them should have a DISPLAY_ALL_FORMATS() function and we can call them here.
-		exit(0);
-	}
-
 #ifdef CL_VERSION_1_0
 	if ((options.ocl_platform && !strcasecmp(options.ocl_platform, "list")) ||
 	    (options.ocl_device && !strcasecmp(options.ocl_device, "list"))) {
@@ -407,6 +399,7 @@ void opt_init(char *name, int argc, char **argv)
 		exit(0);
 	}
 
+	if (!(options.subformat && !strcasecmp(options.subformat, "list")))
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
 #ifdef HAVE_MPI
 		if (mpi_id == 0)
