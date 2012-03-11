@@ -1501,7 +1501,7 @@ john.com: john.asm
 	$(LD) calc_stat.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
 
 SIPdump: SIPdump.o
-	$(LD) SIPdump.o -lpcap -o ../run/SIPdump
+	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
