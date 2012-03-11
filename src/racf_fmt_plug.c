@@ -28,6 +28,7 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
+#define OMP_SCALE               64
 #endif
 
 #define FORMAT_LABEL		"racf"
@@ -38,8 +39,8 @@
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
 #define SALT_SIZE		32
-#define MIN_KEYS_PER_CRYPT	96
-#define MAX_KEYS_PER_CRYPT	96
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 
 static unsigned char a2e[256] = {
 	0,  1,  2,  3, 55, 45, 46, 47, 22,  5, 37, 11, 12, 13, 14, 15,
@@ -112,6 +113,27 @@ static struct fmt_tests racf_tests[] = {
 	{NULL}
 };
 
+static int omp_t = 1;
+static unsigned char userid[8 + 1];
+static char unsigned hash[8];
+static char (*saved_key)[8 + 1];
+unsigned char *cracked;
+
+static void init(struct fmt_main *pFmt)
+{
+
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	cracked = mem_calloc_tiny(sizeof(*cracked) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
+
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	return !strncmp(ciphertext, "$racf$", 6);
@@ -122,10 +144,6 @@ static void *get_salt(char *ciphertext)
 	return ciphertext;
 }
 
-static unsigned char userid[8 + 1];
-static char unsigned hash[8];
-static char saved_key[MAX_KEYS_PER_CRYPT][8 + 1];
-unsigned char cracked[MAX_KEYS_PER_CRYPT];
 
 static void set_salt(void *salt)
 {
@@ -155,7 +173,7 @@ static void set_salt(void *salt)
 	printf("inputhash : ");
 	print_hex(hash, 8);
 #endif
-	memset(cracked, 0, sizeof(*cracked) * MAX_KEYS_PER_CRYPT);
+	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 	free(keeptr);
 }
 
@@ -198,7 +216,7 @@ static void crypt_all(int count)
 		if(!memcmp(hash, encrypted, 8)) {
 			cracked[index] = 1;
 #ifdef RACF_DEBUG
-			printf("cracked : yes\n");
+			printf("cracked : yes, index : %d\n", index);
 #endif
 		}
 #ifdef RACF_DEBUG
@@ -255,7 +273,7 @@ struct fmt_main racf_fmt = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		racf_tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
