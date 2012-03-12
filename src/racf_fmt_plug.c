@@ -65,7 +65,8 @@ static unsigned char a2e[256] = {
 void ascii2ebcdic(unsigned char *str)
 {
 	int i;
-	for (i = 0; i < strlen((const char*)str); ++i)
+	int n = strlen((const char*)str);
+	for (i = 0; i < n; ++i)
 		str[i] = a2e[str[i]];
 }
 
@@ -84,7 +85,7 @@ void process_key(unsigned char *str)
 	/* replace missing characters in key by EBCDIC spaces (0x40) */
 	for (i = strlen((const char*)str); i < 8; ++i)
 		str[i] = 0x40;
-	for (i = 0; i < strlen((const char*)str); ++i) {
+	for (i = 0; i < 8; ++i) {
 		str[i] = str[i] ^ 0x55; /* obfuscate by XOR'ing */
 		str[i] = str[i] << 1; /* left-shift bit which is mostly 1 */
 	}
