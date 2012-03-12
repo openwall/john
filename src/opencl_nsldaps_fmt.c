@@ -117,7 +117,7 @@ static void find_best_workgroup(void)
 	local_work_size = 1;
 
 	// Set keys
-	for (; i < max_keys_per_crypt; i++) {
+	for (; i < SSHA_NUM_KEYS; i++) {
 		memcpy(&(saved_plain[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
@@ -125,7 +125,7 @@ static void find_best_workgroup(void)
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE,
 	    saved_salt, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL);
+	    (PLAINTEXT_LENGTH) * SSHA_NUM_KEYS, saved_plain, 0, NULL, NULL);
 
 	// Find minimum time
 	for (my_work_group = 1; (int) my_work_group <= (int) max_group_size;
@@ -305,15 +305,6 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-	                          KPC_CONFIG)))
-		max_keys_per_crypt = atoi(temp);
-	else
-		max_keys_per_crypt = SSHA_NUM_KEYS;
-
-	if ((temp = getenv("KPC")))
-		max_keys_per_crypt = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 	                          LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
@@ -321,10 +312,19 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 		local_work_size = atoi(temp);
 
 	if (!local_work_size) {
-		create_clobj(max_keys_per_crypt);
+		create_clobj(SSHA_NUM_KEYS);
 		find_best_workgroup();
 		release_clobj();
 	}
+
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+	                          KPC_CONFIG)))
+		max_keys_per_crypt = atoi(temp);
+	else
+		max_keys_per_crypt = SSHA_NUM_KEYS;
+
+	if ((temp = getenv("KPC")))
+		max_keys_per_crypt = atoi(temp);
 
 	if (max_keys_per_crypt) {
 		create_clobj(max_keys_per_crypt);
