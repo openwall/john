@@ -34,7 +34,7 @@
 #define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
 #endif
 
-#define BENCHMARK_COMMENT		" rounds=5000"
+#define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125

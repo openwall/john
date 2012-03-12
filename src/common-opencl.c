@@ -83,6 +83,14 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 }
 
+static char * include_source(char *pathname)
+{
+	static char include[PATH_BUFFER_SIZE];        
+        sprintf(include, "-I %s", path_expand(pathname));        
+        
+        return include;
+}
+
 
 static void build_kernel(int dev_id)
 {
@@ -94,7 +102,8 @@ static void build_kernel(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	cl_int build_code;
-	build_code = clBuildProgram(program[dev_id], 0, NULL, "", NULL, NULL);
+	build_code = clBuildProgram(program[dev_id], 0, NULL, 
+                include_source("$JOHN/"), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,

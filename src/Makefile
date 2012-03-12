@@ -119,7 +119,8 @@ JOHN_OBJS = \
 OCL_OBJS = \
 	common-opencl.o opencl_mysqlsha1_fmt.o \
 	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
-	opencl_nt_fmt.o opencl_rawmd5_fmt.o  opencl_nsldaps_fmt.o
+	opencl_nt_fmt.o opencl_rawmd5_fmt.o  opencl_nsldaps_fmt.o \
+        opencl_cryptsha512_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \
@@ -318,6 +319,7 @@ linux-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl"
 	$(CP) opencl/*.cl ../run/
+	$(CP) opencl_cryptsha512.h ../run/
 
 linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
