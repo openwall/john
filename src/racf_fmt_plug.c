@@ -187,6 +187,7 @@ static void crypt_all(int count)
 #endif
 	{
 		DES_cblock des_key;
+		unsigned char encrypted[8];
 		memcpy(des_key, saved_key[index], 8);
 		/* process key */
 #ifdef RACF_DEBUG
@@ -198,7 +199,6 @@ static void crypt_all(int count)
 		printf("processed key in EBCDIC : ");
 		print_hex(des_key, 8);
 #endif
-		unsigned char *encrypted = (unsigned char*)malloc(8);
 		DES_key_schedule schedule;
 		DES_cblock ivec;
 		memset(ivec, 0, 8);
