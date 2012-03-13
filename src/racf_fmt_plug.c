@@ -117,7 +117,7 @@ static struct fmt_tests racf_tests[] = {
 static int omp_t = 1;
 static unsigned char userid[8 + 1];
 static char unsigned hash[8];
-static char (*saved_key)[8 + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 unsigned char *cracked;
 
 static void init(struct fmt_main *pFmt)
@@ -187,18 +187,20 @@ static void crypt_all(int count)
 #endif
 	{
 		DES_cblock des_key;
-		memcpy(des_key, saved_key[index], 8);
+		unsigned char encrypted[8];
+		unsigned char key[PLAINTEXT_LENGTH+1];
+		strcpy((char*)key, saved_key[index]);
 		/* process key */
 #ifdef RACF_DEBUG
-		printf("key in ASCII : %s\n", saved_key[index]);
+		printf("key in ASCII : %s\n", key);
 #endif
-		ascii2ebcdic(des_key);
-		process_key(des_key);
+		ascii2ebcdic(key);
+		process_key(key);
 #ifdef RACF_DEBUG
 		printf("processed key in EBCDIC : ");
-		print_hex(des_key, 8);
+		print_hex(key, 8);
 #endif
-		unsigned char *encrypted = (unsigned char*)malloc(8);
+		memcpy(des_key, key, 8);
 		DES_key_schedule schedule;
 		DES_cblock ivec;
 		memset(ivec, 0, 8);

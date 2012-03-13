@@ -19,6 +19,11 @@
 #include "params.h"
 #include "options.h"
 #include "sip_fmt_plug.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
 
 #define FORMAT_LABEL		"sip"
 #define FORMAT_NAME		"SIP"
@@ -36,23 +41,29 @@ static struct fmt_tests sip_tests[] = {
 	{NULL}
 };
 
-static char saved_key[PLAINTEXT_LENGTH + 1];
-unsigned char cracked;
-
-/* Hash */
-MD5_CTX md5_ctx;
-static unsigned char md5_bin_hash[MD5_LEN];
-static char static_hash[MD5_LEN_HEX+1], dynamic_hash[MD5_LEN_HEX+1], final_hash[MD5_LEN_HEX+1];
+static int omp_t = 1;
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static unsigned char *cracked;
 static char dynamic_hash_data[DYNAMIC_HASH_SIZE]; /* USER:REALM: */
 static char static_hash_data[STATIC_HASH_SIZE];   /* :nonce:nonce_count:cnonce:qop:static_hash */
 static size_t static_hash_data_len, dynamic_hash_data_len;
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
-static login_t *login;
+static login_t *login = NULL;
 
 static void init(struct fmt_main *pFmt)
 {
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
 	/* Init bin 2 hex table for faster conversions later */
 	init_bin2hex(bin2hex_table);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	cracked = mem_calloc_tiny(sizeof(*cracked) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -69,10 +80,15 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	char **lines;
-	int num_lines;
+	int num_lines, i;
+	MD5_CTX md5_ctx;
+	unsigned char md5_bin_hash[MD5_LEN];
+	char static_hash[MD5_LEN_HEX+1];
 	char *saltcopy = strdup(salt);
 	char *keeptr = saltcopy;
 	saltcopy += 6;	/* skip over "$sip$*" */
+	if(login)
+		free(login);
 	login = (login_t *)malloc(sizeof(login_t));
 	memset(login, 0, sizeof(login_t));
 	lines = stringtoarray(saltcopy, '*', &num_lines);
@@ -124,50 +140,65 @@ static void set_salt(void *salt)
 	printf("Starting bruteforce against user '%s' (%s: '%s')\n",
 			login->user, login->algorithm, login->hash);
 #endif
-	cracked = 0;
+	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 	free(keeptr);
+	for(i = 0; i < num_lines; i++)
+		free(lines[i]);
+	free(lines);
 }
 
 static void crypt_all(int count)
 {
-	/* password */
-	char pw[64];
-	size_t pw_len=0;
-	strcpy(pw, saved_key);
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		/* password */
+		MD5_CTX md5_ctx;
+		unsigned char md5_bin_hash[MD5_LEN];
+		char dynamic_hash[MD5_LEN_HEX+1], final_hash[MD5_LEN_HEX+1];
+		char pw[PLAINTEXT_LENGTH + 1];
+		size_t pw_len=0;
+		strcpy(pw, saved_key[index]);
 
-	/* Generate dynamic hash including pw (see above) */
-	MD5_Init(&md5_ctx);
-	MD5_Update(&md5_ctx, (unsigned char*)dynamic_hash_data, dynamic_hash_data_len);
-	pw_len = strlen(pw);
-	MD5_Update(&md5_ctx,
-			(unsigned char*)pw,
-			(pw[pw_len-2] == 0x0d ? pw_len-2 : pw[pw_len-1] == 0x0a ? pw_len -1 : pw_len));
-	MD5_Final(md5_bin_hash, &md5_ctx);
-	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, dynamic_hash, MD5_LEN_HEX);
+		/* Generate dynamic hash including pw (see above) */
+		MD5_Init(&md5_ctx);
+		MD5_Update(&md5_ctx, (unsigned char*)dynamic_hash_data, dynamic_hash_data_len);
+		pw_len = strlen(pw);
+		MD5_Update(&md5_ctx,
+				(unsigned char*)pw,
+				(pw[pw_len-2] == 0x0d ? pw_len-2 : pw[pw_len-1] == 0x0a ? pw_len -1 : pw_len));
+		MD5_Final(md5_bin_hash, &md5_ctx);
+		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, dynamic_hash, MD5_LEN_HEX);
 
-	/* Generate digest response hash */
-	MD5_Init(&md5_ctx);
-	MD5_Update(&md5_ctx, (unsigned char*)dynamic_hash, MD5_LEN_HEX);
-	MD5_Update(&md5_ctx, (unsigned char*)static_hash_data, static_hash_data_len);
-	MD5_Final(md5_bin_hash, &md5_ctx);
-	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, final_hash, MD5_LEN_HEX);
+		/* Generate digest response hash */
+		MD5_Init(&md5_ctx);
+		MD5_Update(&md5_ctx, (unsigned char*)dynamic_hash, MD5_LEN_HEX);
+		MD5_Update(&md5_ctx, (unsigned char*)static_hash_data, static_hash_data_len);
+		MD5_Final(md5_bin_hash, &md5_ctx);
+		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, final_hash, MD5_LEN_HEX);
 
-	/* Check for match */
-	if(!strncmp(final_hash, login->hash, MD5_LEN_HEX)) {
-		cracked= 1;
+		/* Check for match */
+		if(!strncmp(final_hash, login->hash, MD5_LEN_HEX)) {
+			cracked[index] = 1;
+		}
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	if(cracked)
-		return 1;
+	int index;
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked;
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -178,13 +209,13 @@ static int cmp_exact(char *source, int index)
 static void sip_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
-	memcpy(saved_key, key, saved_key_length);
-	saved_key[saved_key_length] = 0;
+	memcpy(saved_key[index], key, saved_key_length);
+	saved_key[index][saved_key_length] = 0;
 }
 
 static char *get_key(int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
 
 struct fmt_main sip_fmt = {
