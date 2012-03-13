@@ -30,7 +30,7 @@ NVCC_FLAGS = -c -Xptxas -v -arch sm_10
 
 OMPFLAGS =
 # gcc with OpenMP
-#OMPFLAGS = -fopenmp
+OMPFLAGS = -fopenmp
 #OMPFLAGS = -fopenmp -msse2
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
