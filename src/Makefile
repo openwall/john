@@ -310,6 +310,7 @@ linux-x86-64-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart"
 	$(CP) opencl/*.cl ../run/
+	$(CP) opencl_cryptsha512.h ../run/
 
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -956,6 +957,7 @@ macosx-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -m64  -I$(OCLROOT)/include -I$(OCLROOT)/include  -DBSD -DCL_VERSION_1_0" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
+	$(CP) opencl_cryptsha512.h ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 macosx-x86-64:
