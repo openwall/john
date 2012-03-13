@@ -48,7 +48,7 @@ static char dynamic_hash_data[DYNAMIC_HASH_SIZE]; /* USER:REALM: */
 static char static_hash_data[STATIC_HASH_SIZE];   /* :nonce:nonce_count:cnonce:qop:static_hash */
 static size_t static_hash_data_len, dynamic_hash_data_len;
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
-static login_t *login;
+static login_t *login = NULL;
 
 static void init(struct fmt_main *pFmt)
 {
@@ -80,13 +80,15 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	char **lines;
-	int num_lines;
+	int num_lines, i;
 	MD5_CTX md5_ctx;
 	unsigned char md5_bin_hash[MD5_LEN];
 	char static_hash[MD5_LEN_HEX+1];
 	char *saltcopy = strdup(salt);
 	char *keeptr = saltcopy;
 	saltcopy += 6;	/* skip over "$sip$*" */
+	if(login)
+		free(login);
 	login = (login_t *)malloc(sizeof(login_t));
 	memset(login, 0, sizeof(login_t));
 	lines = stringtoarray(saltcopy, '*', &num_lines);
@@ -140,6 +142,9 @@ static void set_salt(void *salt)
 #endif
 	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 	free(keeptr);
+	for(i = 0; i < num_lines; i++)
+		free(lines[i]);
+	free(lines);
 }
 
 static void crypt_all(int count)
