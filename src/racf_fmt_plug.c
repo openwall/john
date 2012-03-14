@@ -151,7 +151,7 @@ static void set_salt(void *salt)
 	int i;
 	char *saltcopy = strdup(salt);
 	char *keeptr = saltcopy;
-	saltcopy += 6;	/* skip over "$racf$*" */
+	saltcopy += 7;	/* skip over "$racf$*" */
 	char *username = strtok(saltcopy, "*");
 	/* process username */
 	strcpy((char*)userid, username);
@@ -206,14 +206,14 @@ static void crypt_all(int count)
 		memset(ivec, 0, 8);
 		DES_set_odd_parity(&des_key);
 #ifdef RACF_DEBUG
-		printf("internally processed Key in EBDIC : ");
+		printf("internally processed key in EBDIC : ");
 		print_hex(des_key, 8);
 #endif
 		DES_set_key_checked(&des_key, &schedule);
 		/* do encryption */
 		DES_cbc_encrypt(userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
 #ifdef RACF_DEBUG
-		printf("saved_key : %s hash : ", saved_key);
+		printf("saved_key : %s hash : ", saved_key[index]);
 		print_hex(encrypted, 8);
 #endif
 		if(!memcmp(hash, encrypted, 8)) {
