@@ -7,11 +7,14 @@
  * are permitted.
  *
  * This patch is inspired by the ssh-privkey-crack program.
- * http://neophob.com/2007/10/ssh-private-key-cracker/ */
-
-/* PEM_read_bio_PrivateKey and related OpenSSL functions are too high
+ * http://neophob.com/2007/10/ssh-private-key-cracker/
+ *
+ * PEM_read_bio_PrivateKey and related OpenSSL functions are too high
  * level for brute-forcing purposes. So we drill down and find suitable
- * low-level OpenSSL functions.*/
+ * low-level OpenSSL functions.
+ *
+ * Making OpenSSL thread-safe code is based on the example at following URL.
+ * http://curl.haxx.se/libcurl/c/threaded-ssl.html */
 
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
@@ -24,9 +27,10 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               4
 #endif
 #include <string.h>
+#include <pthread.h>
 #include "arch.h"
 #include "common.h"
 #include "formats.h"
@@ -47,6 +51,7 @@
 static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 unsigned int *cracked;
+static pthread_mutex_t *lockarray;
 
 static struct custom_salt {
 	long len;
@@ -61,6 +66,37 @@ static struct fmt_tests ssh_tests[] = {
 };
 
 struct fmt_main fmt_ssh;
+
+static void lock_callback(int mode, int type, char *file, int line)
+{
+	(void)file;
+	(void)line;
+	if (mode & CRYPTO_LOCK) {
+		pthread_mutex_lock(&(lockarray[type]));
+	}
+	else {
+		pthread_mutex_unlock(&(lockarray[type]));
+	}
+}
+
+static unsigned long thread_id(void)
+{
+	unsigned long ret;
+	ret=(unsigned long)pthread_self();
+	return(ret);
+}
+
+static void init_locks(void)
+{
+	int i;
+	lockarray=(pthread_mutex_t *)OPENSSL_malloc(CRYPTO_num_locks() *
+			sizeof(pthread_mutex_t));
+	for (i=0; i<CRYPTO_num_locks(); i++) {
+		pthread_mutex_init(&(lockarray[i]),NULL);
+	}
+	CRYPTO_set_id_callback((unsigned long (*)())thread_id);
+	CRYPTO_set_locking_callback((void (*)())lock_callback);
+}
 
 static void init(struct fmt_main *pFmt)
 {
@@ -90,7 +126,7 @@ static void init(struct fmt_main *pFmt)
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-
+	init_locks();
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
