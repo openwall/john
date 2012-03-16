@@ -87,7 +87,7 @@ static void process_file(const char *filename)
 			if (buffer[i+offset+44] == 8 && buffer[i+offset+53] == 0xd) {
 				/* userid begins at index i + 4 */
 				int index = 0;
-				for(j = i + 4; buffer[j] != 0x02; j++)
+				for(j = i + 4; buffer[j] != 0x02 && index < 9; j++)
 					userid[index++] = buffer[j];
 				userid[index] = 0x02;
 				print_userid(userid);
