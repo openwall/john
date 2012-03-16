@@ -103,12 +103,12 @@ static void process_file(const char *filename)
 	free(buffer);
 }
 
-int main(int argc, char **argv)
+int racf2john(int argc, char **argv)
 {
 	int i;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s [RACF binary files]\n", argv[0]);
+		puts("Usage: racf2john [RACF binary files]");
 		return -1;
 	}
 	for (i = 1; i < argc; i++)
