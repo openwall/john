@@ -93,7 +93,11 @@ int EVP_DecryptFinal_ex_safe(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl)
         unsigned int b;
         *outl=0;
 
-        if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
+
+#ifndef EVP_CIPH_FLAG_CUSTOM_CIPHER
+#define EVP_CIPH_FLAG_CUSTOM_CIPHER 0x100000
+#endif
+	if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
 		i = M_do_cipher(ctx, out, NULL, 0);
                 if (i < 0)
                         return 0;
@@ -103,6 +107,9 @@ int EVP_DecryptFinal_ex_safe(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl)
 	}
 
         b=ctx->cipher->block_size;
+#ifndef EVP_CIPH_NO_PADDING
+#define EVP_CIPH_NO_PADDING 0x100
+#endif
         if (ctx->flags & EVP_CIPH_NO_PADDING) {
 		if(ctx->buf_len) {
 			return 0;
