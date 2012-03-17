@@ -11,10 +11,7 @@
  *
  * PEM_read_bio_PrivateKey and related OpenSSL functions are too high
  * level for brute-forcing purposes. So we drill down and find suitable
- * low-level OpenSSL functions.
- *
- * Making OpenSSL thread-safe code is based on the example at following URL.
- * http://curl.haxx.se/libcurl/c/threaded-ssl.html */
+ * low-level OpenSSL functions. */
 
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
@@ -27,10 +24,9 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               4
+#define OMP_SCALE               64
 #endif
 #include <string.h>
-#include <pthread.h>
 #include "arch.h"
 #include "common.h"
 #include "formats.h"
@@ -51,7 +47,6 @@
 static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 unsigned int *cracked;
-static pthread_mutex_t *lockarray;
 
 static struct custom_salt {
 	long len;
@@ -67,37 +62,6 @@ static struct fmt_tests ssh_tests[] = {
 
 struct fmt_main fmt_ssh;
 
-static void lock_callback(int mode, int type, char *file, int line)
-{
-	(void)file;
-	(void)line;
-	if (mode & CRYPTO_LOCK) {
-		pthread_mutex_lock(&(lockarray[type]));
-	}
-	else {
-		pthread_mutex_unlock(&(lockarray[type]));
-	}
-}
-
-static unsigned long thread_id(void)
-{
-	unsigned long ret;
-	ret=(unsigned long)pthread_self();
-	return(ret);
-}
-
-static void init_locks(void)
-{
-	int i;
-	lockarray=(pthread_mutex_t *)OPENSSL_malloc(CRYPTO_num_locks() *
-			sizeof(pthread_mutex_t));
-	for (i=0; i<CRYPTO_num_locks(); i++) {
-		pthread_mutex_init(&(lockarray[i]),NULL);
-	}
-	CRYPTO_set_id_callback((unsigned long (*)())thread_id);
-	CRYPTO_set_locking_callback((void (*)())lock_callback);
-}
-
 static void init(struct fmt_main *pFmt)
 {
 	/* OpenSSL init, cleanup part is left to OS */
@@ -105,17 +69,6 @@ static void init(struct fmt_main *pFmt)
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 
-#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-	if (SSLeay() < 0x10000000) {
-		fprintf(stderr, "Warning: compiled against OpenSSL 1.0+, "
-		    "but running with an older version -\n"
-		    "disabling OpenMP for SSH because of thread-safety issues "
-		    "of older OpenSSL\n");
-		fmt_ssh.params.min_keys_per_crypt =
-		    fmt_ssh.params.max_keys_per_crypt = 1;
-		fmt_ssh.params.flags &= ~FMT_OMP;
-	}
-#endif
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
@@ -126,13 +79,100 @@ static void init(struct fmt_main *pFmt)
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	init_locks();
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	return !strncmp(ciphertext, "$ssh2$", 6);
 }
+
+#define M_do_cipher(ctx, out, in, inl) ctx->cipher->do_cipher(ctx, out, in, inl)
+int EVP_DecryptFinal_ex_safe(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl)
+{
+	int i,n;
+        unsigned int b;
+        *outl=0;
+
+        if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
+		i = M_do_cipher(ctx, out, NULL, 0);
+                if (i < 0)
+                        return 0;
+                else
+                        *outl = i;
+                return 1;
+	}
+
+        b=ctx->cipher->block_size;
+        if (ctx->flags & EVP_CIPH_NO_PADDING) {
+		if(ctx->buf_len) {
+			return 0;
+		}
+		*outl = 0;
+		return 1;
+	}
+        if (b > 1) {
+		if (ctx->buf_len || !ctx->final_used) {
+			return(0);
+		}
+		OPENSSL_assert(b <= sizeof ctx->final);
+                n=ctx->final[b-1];
+                if (n == 0 || n > (int)b) {
+			return(0);
+		}
+                for (i=0; i<n; i++) {
+			if (ctx->final[--b] != n) {
+				return(0);
+			}
+		}
+                n=ctx->cipher->block_size-n;
+		for (i=0; i<n; i++)
+			out[i]=ctx->final[i];
+                *outl=n;
+	}
+	else
+		*outl=0;
+	return(1);
+}
+
+int PEM_do_header_safe(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
+             pem_password_cb *callback,void *u)
+{
+	int i,j,o,klen;
+	long len;
+        EVP_CIPHER_CTX ctx;
+        unsigned char key[EVP_MAX_KEY_LENGTH];
+        char buf[PEM_BUFSIZE];
+
+        len= *plen;
+
+        if (cipher->cipher == NULL) return(1);
+        if (callback == NULL)
+                klen=PEM_def_callback(buf,PEM_BUFSIZE,0,u);
+        else
+                klen=callback(buf,PEM_BUFSIZE,0,u);
+        if (klen <= 0) {
+		return(0);
+	}
+
+        EVP_BytesToKey(cipher->cipher,EVP_md5(),&(cipher->iv[0]),
+                (unsigned char *)buf,klen,1,key,NULL);
+
+        j=(int)len;
+        EVP_CIPHER_CTX_init(&ctx);
+        EVP_DecryptInit_ex(&ctx,cipher->cipher,NULL, key,&(cipher->iv[0]));
+        EVP_DecryptUpdate(&ctx,data,&i,data,j);
+        o=EVP_DecryptFinal_ex_safe(&ctx,&(data[i]),&j);
+        EVP_CIPHER_CTX_cleanup(&ctx);
+        OPENSSL_cleanse((char *)buf,sizeof(buf));
+        OPENSSL_cleanse((char *)key,sizeof(key));
+        j+=i;
+        if (!o) {
+		return(0);
+	}
+	*plen=j;
+	return(1);
+}
+
 
 static void *get_salt(char *ciphertext)
 {
@@ -261,7 +301,7 @@ static void crypt_all(int count)
 		RSA *rsapkc = NULL;
 
 		memcpy(working_data, restored_custom_salt->data, working_len);
-		if (PEM_do_header(&cipher, working_data, &working_len, NULL,
+		if (PEM_do_header_safe(&cipher, working_data, &working_len, NULL,
 			(char *) saved_key[index])) {
 			if (pk.save_type == EVP_PKEY_DSA) {
 				if ((dsapkc =
@@ -309,10 +349,7 @@ struct fmt_main fmt_ssh = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-		FMT_OMP |
-#endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		ssh_tests
 	}, {
 		init,
