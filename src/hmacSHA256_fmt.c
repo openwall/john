@@ -6,6 +6,9 @@
  * Based on hmac-md5 by Bartavelle
  */
 
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+
 #include <string.h>
 
 #include "arch.h"
@@ -210,3 +213,9 @@ struct fmt_main fmt_hmacSHA256 = {
 		cmp_exact
 	}
 };
+
+#else
+#ifdef __GNUC__
+#warning Note: SHA-384 format disabled - it needs OpenSSL 0.9.8 or above
+#endif
+#endif
