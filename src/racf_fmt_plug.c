@@ -38,7 +38,7 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
-#define SALT_SIZE		48
+#define SALT_SIZE		56
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
