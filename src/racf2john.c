@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -69,10 +70,11 @@ static void process_file(const char *filename)
 	}
 
 	off_t  size = sb.st_size;
-	int i, j;
+	int i, j, count;
 	buffer = (unsigned char *)malloc(size);
 	unsigned char userid[9];
-	fread(buffer, size, 1, fp);
+	count = fread(buffer, size, 1, fp);
+	assert(count == 1);
 	int offset;
 
 	for(i = 7; i < size - 62; i++) {

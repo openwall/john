@@ -138,6 +138,7 @@ extern int undrop(int argc, char **argv);
 extern int ssh2john(int argc, char **argv);
 extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
+extern int racf2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
