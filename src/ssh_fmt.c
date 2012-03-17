@@ -69,11 +69,22 @@ static void init(struct fmt_main *pFmt)
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 
-#if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
+	if (SSLeay() < 0x10000000) {
+		fprintf(stderr, "Warning: compiled against OpenSSL 1.0+, "
+		    "but running with an older version -\n"
+		    "disabling OpenMP for SSH because of thread-safety issues "
+		    "of older OpenSSL\n");
+		fmt_ssh.params.min_keys_per_crypt =
+		    fmt_ssh.params.max_keys_per_crypt = 1;
+		fmt_ssh.params.flags &= ~FMT_OMP;
+	}
+	else {
+		omp_t = omp_get_max_threads();
+		pFmt->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		pFmt->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
@@ -356,7 +367,10 @@ struct fmt_main fmt_ssh = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
+		FMT_OMP |
+#endif
+		FMT_CASE | FMT_8_BIT,
 		ssh_tests
 	}, {
 		init,
