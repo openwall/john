@@ -38,7 +38,7 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
-#define SALT_SIZE		32
+#define SALT_SIZE		56
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -62,7 +62,7 @@ static unsigned char a2e[256] = {
 };
 
 /* in-place ascii2ebcdic conversion */
-void ascii2ebcdic(unsigned char *str)
+static void ascii2ebcdic(unsigned char *str)
 {
 	int i;
 	int n = strlen((const char*)str);
@@ -71,7 +71,7 @@ void ascii2ebcdic(unsigned char *str)
 }
 
 /* replace missing characters in userid by EBCDIC spaces (0x40) */
-void process_userid(unsigned char *str)
+static void process_userid(unsigned char *str)
 {
 	int i;
 	for (i = strlen((const char*)str); i < 8; ++i)
@@ -79,7 +79,7 @@ void process_userid(unsigned char *str)
 	str[8] = 0; /* terminate string */
 }
 
-void process_key(unsigned char *str)
+static void process_key(unsigned char *str)
 {
 	int i;
 	/* replace missing characters in key by EBCDIC spaces (0x40) */
@@ -92,13 +92,15 @@ void process_key(unsigned char *str)
 	str[8] = 0; /* terminate string */
 }
 
-void print_hex(unsigned char *str, int len)
+#ifdef RACF_DEBUG
+static void print_hex(unsigned char *str, int len)
 {
 	int i;
 	for (i = 0; i < len; ++i)
 		printf("%02x", str[i]);
 	printf("\n");
 }
+#endif
 
 static struct fmt_tests racf_tests[] = {
 	{"$racf$*AAAAAAA*CA2E330B2FD1820E", "AAAAAAAA"},
@@ -118,7 +120,7 @@ static int omp_t = 1;
 static unsigned char userid[8 + 1];
 static char unsigned hash[8];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-unsigned char *cracked;
+static unsigned char *cracked;
 
 static void init(struct fmt_main *pFmt)
 {

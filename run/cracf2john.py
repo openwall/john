@@ -9,7 +9,7 @@ def process_file(filename):
     with open(filename, "r") as f:
         for line in f.readlines():
             data = line.split();
-            print "%s:$racf$*%s*%s" % (data[0], data[0], data[-1])
+            print "%s:$racf$*%s*%s*%s" % (data[0], data[0], data[-1], data[-2])
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

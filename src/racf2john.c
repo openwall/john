@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -69,10 +70,11 @@ static void process_file(const char *filename)
 	}
 
 	off_t  size = sb.st_size;
-	int i, j;
+	int i, j, count;
 	buffer = (unsigned char *)malloc(size);
 	unsigned char userid[9];
-	fread(buffer, size, 1, fp);
+	count = fread(buffer, size, 1, fp);
+	assert(count == 1);
 	int offset;
 
 	for(i = 7; i < size - 62; i++) {
@@ -87,7 +89,7 @@ static void process_file(const char *filename)
 			if (buffer[i+offset+44] == 8 && buffer[i+offset+53] == 0xd) {
 				/* userid begins at index i + 4 */
 				int index = 0;
-				for(j = i + 4; buffer[j] != 0x02; j++)
+				for(j = i + 4; buffer[j] != 0x02 && index < 9; j++)
 					userid[index++] = buffer[j];
 				userid[index] = 0x02;
 				print_userid(userid);
@@ -103,12 +105,12 @@ static void process_file(const char *filename)
 	free(buffer);
 }
 
-int main(int argc, char **argv)
+int racf2john(int argc, char **argv)
 {
 	int i;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s [RACF binary files]\n", argv[0]);
+		puts("Usage: racf2john [RACF binary files]");
 		return -1;
 	}
 	for (i = 1; i < argc; i++)

@@ -7,27 +7,27 @@
  * are permitted.
  *
  * This patch is inspired by the ssh-privkey-crack program.
- * http://neophob.com/2007/10/ssh-private-key-cracker/ */
-
-/* PEM_read_bio_PrivateKey and related OpenSSL functions are too high
+ * http://neophob.com/2007/10/ssh-private-key-cracker/
+ *
+ * PEM_read_bio_PrivateKey and related OpenSSL functions are too high
  * level for brute-forcing purposes. So we drill down and find suitable
- * low-level OpenSSL functions.*/
+ * low-level OpenSSL functions. */
 
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
-
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
-
 #undef MEM_FREE
-
+#include "options.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
 #include <string.h>
 #include "arch.h"
-
-
 #include "common.h"
 #include "formats.h"
 #include "params.h"
@@ -42,10 +42,11 @@
 #define BINARY_SIZE         0
 #define SALT_SIZE           4224
 #define MIN_KEYS_PER_CRYPT  1
-#define MAX_KEYS_PER_CRYPT  96
+#define MAX_KEYS_PER_CRYPT  1
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static char has_been_cracked[MAX_KEYS_PER_CRYPT];
+static int omp_t = 1;
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int any_cracked, *cracked;
 
 static struct custom_salt {
 	long len;
@@ -78,13 +79,119 @@ static void init(struct fmt_main *pFmt)
 		    fmt_ssh.params.max_keys_per_crypt = 1;
 		fmt_ssh.params.flags &= ~FMT_OMP;
 	}
+	else {
+		omp_t = omp_get_max_threads();
+		pFmt->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		pFmt->params.max_keys_per_crypt *= omp_t;
+	}
 #endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	any_cracked = 0;
+	cracked = mem_calloc_tiny(sizeof(*cracked) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	return !strncmp(ciphertext, "$ssh2$", 6);
 }
+
+#define M_do_cipher(ctx, out, in, inl) ctx->cipher->do_cipher(ctx, out, in, inl)
+int EVP_DecryptFinal_ex_safe(EVP_CIPHER_CTX *ctx, unsigned char *out, int *outl)
+{
+	int i,n;
+        unsigned int b;
+        *outl=0;
+
+
+#ifndef EVP_CIPH_FLAG_CUSTOM_CIPHER
+#define EVP_CIPH_FLAG_CUSTOM_CIPHER 0x100000
+#endif
+	if (ctx->cipher->flags & EVP_CIPH_FLAG_CUSTOM_CIPHER) {
+		i = M_do_cipher(ctx, out, NULL, 0);
+                if (i < 0)
+                        return 0;
+                else
+                        *outl = i;
+                return 1;
+	}
+
+        b=ctx->cipher->block_size;
+#ifndef EVP_CIPH_NO_PADDING
+#define EVP_CIPH_NO_PADDING 0x100
+#endif
+        if (ctx->flags & EVP_CIPH_NO_PADDING) {
+		if(ctx->buf_len) {
+			return 0;
+		}
+		*outl = 0;
+		return 1;
+	}
+        if (b > 1) {
+		if (ctx->buf_len || !ctx->final_used) {
+			return(0);
+		}
+		OPENSSL_assert(b <= sizeof ctx->final);
+                n=ctx->final[b-1];
+                if (n == 0 || n > (int)b) {
+			return(0);
+		}
+                for (i=0; i<n; i++) {
+			if (ctx->final[--b] != n) {
+				return(0);
+			}
+		}
+                n=ctx->cipher->block_size-n;
+		for (i=0; i<n; i++)
+			out[i]=ctx->final[i];
+                *outl=n;
+	}
+	else
+		*outl=0;
+	return(1);
+}
+
+int PEM_do_header_safe(EVP_CIPHER_INFO *cipher, unsigned char *data, long *plen,
+             pem_password_cb *callback,void *u)
+{
+	int i,j,o,klen;
+	long len;
+        EVP_CIPHER_CTX ctx;
+        unsigned char key[EVP_MAX_KEY_LENGTH];
+        char buf[PEM_BUFSIZE];
+
+        len= *plen;
+
+        if (cipher->cipher == NULL) return(1);
+        if (callback == NULL)
+                klen=PEM_def_callback(buf,PEM_BUFSIZE,0,u);
+        else
+                klen=callback(buf,PEM_BUFSIZE,0,u);
+        if (klen <= 0) {
+		return(0);
+	}
+
+        EVP_BytesToKey(cipher->cipher,EVP_md5(),&(cipher->iv[0]),
+                (unsigned char *)buf,klen,1,key,NULL);
+
+        j=(int)len;
+        EVP_CIPHER_CTX_init(&ctx);
+        EVP_DecryptInit_ex(&ctx,cipher->cipher,NULL, key,&(cipher->iv[0]));
+        EVP_DecryptUpdate(&ctx,data,&i,data,j);
+        o=EVP_DecryptFinal_ex_safe(&ctx,&(data[i]),&j);
+        EVP_CIPHER_CTX_cleanup(&ctx);
+        OPENSSL_cleanse((char *)buf,sizeof(buf));
+        OPENSSL_cleanse((char *)key,sizeof(key));
+        j+=i;
+        if (!o) {
+		return(0);
+	}
+	*plen=j;
+	return(1);
+}
+
 
 static void *get_salt(char *ciphertext)
 {
@@ -178,7 +285,11 @@ static void set_salt(void *salt)
 {
 	/* restore custom_salt back */
 	restored_custom_salt = (struct custom_salt *) salt;
-	memset(has_been_cracked, 0, MAX_KEYS_PER_CRYPT);
+	if (any_cracked) {
+		memset(cracked, 0,
+		    sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
+		any_cracked = 0;
+	}
 }
 
 static void ssh_set_key(char *key, int index)
@@ -197,11 +308,12 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	int index;
+	int index = 0;
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-#pragma omp parallel for default(none) private(index) shared(count, has_been_cracked, saved_key, restored_custom_salt)
+#pragma omp parallel for default(none) private(index) shared(count, any_cracked, cracked, saved_key, restored_custom_salt)
+	for (index = 0; index < count; index++)
 #endif
-	for (index = 0; index < count; index++) {
+	{
 		/* copy restored items into working copy */
 		unsigned char working_data[4096];
 		long working_len = restored_custom_salt->len;
@@ -212,21 +324,27 @@ static void crypt_all(int count)
 		RSA *rsapkc = NULL;
 
 		memcpy(working_data, restored_custom_salt->data, working_len);
-		if (PEM_do_header(&cipher, working_data, &working_len, NULL,
+		if (PEM_do_header_safe(&cipher, working_data, &working_len, NULL,
 			(char *) saved_key[index])) {
 			if (pk.save_type == EVP_PKEY_DSA) {
 				if ((dsapkc =
 					d2i_DSAPrivateKey(NULL, &dc,
 					    working_len)) != NULL) {
-					has_been_cracked[index] = 1;
 					DSA_free(dsapkc);
+#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
+#pragma omp critical
+#endif
+					any_cracked = cracked[index] = 1;
 				}
 			} else if (pk.save_type == EVP_PKEY_RSA) {
 				if ((rsapkc =
 					d2i_RSAPrivateKey(NULL, &dc,
 					    working_len)) != NULL) {
-					has_been_cracked[index] = 1;
 					RSA_free(rsapkc);
+#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
+#pragma omp critical
+#endif
+					any_cracked = cracked[index] = 1;
 				}
 			}
 		}
@@ -235,17 +353,17 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	return 1;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return has_been_cracked[index];
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return has_been_cracked[index];
+	return cracked[index];
 }
 
 struct fmt_main fmt_ssh = {

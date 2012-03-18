@@ -67,6 +67,7 @@ static const unsigned char bit_flip[256] = {
 	0x3F, 0xBF, 0x7F, 0xFF
 };
 
+#ifdef VNC_DEBUG
 static void print_hex(unsigned char *str, int len)
 {
 	int i;
@@ -74,6 +75,7 @@ static void print_hex(unsigned char *str, int len)
 		printf("%02x", str[i]);
 	printf("\n");
 }
+#endif
 
 static struct fmt_tests vnc_tests[] = {
 	{"$vnc$*8*ADDC021F444F999B8E27144C0DCE7389*AFAF1BB57588784333962A124668A2C6", "openwall"},

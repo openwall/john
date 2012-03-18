@@ -111,7 +111,7 @@ extern struct fmt_main fmt_opencl_cryptMD5;
 extern struct fmt_main fmt_opencl_phpass;
 extern struct fmt_main fmt_opencl_mysqlsha1;
 extern struct fmt_main fmt_opencl_cryptsha512;
-#endif 
+#endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
 extern struct fmt_main fmt_cuda_phpass;
@@ -138,6 +138,7 @@ extern int undrop(int argc, char **argv);
 extern int ssh2john(int argc, char **argv);
 extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
+extern int racf2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
@@ -225,7 +226,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_phpass);
 	john_register_one(&fmt_opencl_mysqlsha1);
 	john_register_one(&fmt_opencl_cryptsha512);
-#endif 
+#endif
 
 #ifdef HAVE_CUDA
 	john_register_one(&fmt_cuda_cryptmd5);
@@ -237,7 +238,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_rawsha256);
 	john_register_one(&fmt_cuda_rawsha224);
 #endif
-	
+
 #ifdef HAVE_DL
 	if (options.fmt_dlls)
 	register_dlls ( options.fmt_dlls,
@@ -731,6 +732,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "rar2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return rar2john(argc, argv);
+	}
+
+	if (!strcmp(name, "racf2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return racf2john(argc, argv);
 	}
 #endif
 
