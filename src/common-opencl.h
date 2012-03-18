@@ -36,6 +36,11 @@ size_t max_group_size;
 void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 
+cl_ulong get_local_memory_size(int dev_id);
+size_t get_max_work_group_size(int dev_id);
+cl_uint get_max_compute_units(int dev_id);
+cl_device_type get_device_type(int dev_id);
+
 char *get_error_name(cl_int cl_error);
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);

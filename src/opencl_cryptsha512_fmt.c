@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2011 Samuele Giovanni Tonon
- * samu at linuxasylum dot net
- * This program comes with ABSOLUTELY NO WARRANTY; express or
- * implied .
+ * Developed by Claudio André <claudio.andre at correios.net.br> in 2012   
+ * Based on source code provided by Samuele Giovanni Tonon
+ *
+ * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
+ * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
  * This is free software, and you are welcome to redistribute it
  * under certain conditions; as expressed here 
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -10,24 +12,19 @@
 
 #include <string.h>
 #include "common-opencl.h"  
+#include "config.h"
 #include "opencl_cryptsha512.h"
 
-#define FORMAT_LABEL			"cryptsha512-opencl"
-#define FORMAT_NAME			"crypt SHA-512 OpenCL"
+#define FORMAT_LABEL			"cryptsha512-opencl" 
+#define FORMAT_NAME			"crypt SHA-512"
+#define ALGORITHM_NAME			"OpenCL"
+#define SHA_TYPE                        "SHA512"
 
-#if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"OpenSSL 64/" ARCH_BITS_STR
-#else
-#define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
-#endif
-
-#define BENCHMARK_COMMENT		" rounds=5000"
+#define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define BINARY_SIZE                     (3+16+86)       ///TODO: Magic number?
-
-#define MIN_KEYS_PER_CRYPT		1024            
-#define MAX_KEYS_PER_CRYPT		KEYS_PER_CRYPT
+#define LWS_CONFIG			"cryptsha512_LWS"
+#define KPC_CONFIG			"cryptsha512_KPC"
 
 static crypt_sha512_password            *plaintext;     // plaintext ciphertexts
 static crypt_sha512_hash                *out_hashes;    // calculated hashes
@@ -41,7 +38,7 @@ cl_mem pinned_saved_keys, pinned_partial_hashes;
 cl_command_queue queue_prof;
 cl_kernel crypt_kernel;
 
-static size_t max_keys_per_crypt = KEYS_PER_CRYPT;
+static size_t max_keys_per_crypt; //TODO: move to common-opencl? local_work_size is there.
 
 static struct fmt_tests tests[] = {
     {"$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1", "Hello world!"},
@@ -51,6 +48,27 @@ static struct fmt_tests tests[] = {
     {"$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.", ""},
     {NULL}
 }; 
+
+/* ------- Helper functions ------- */
+uint get_task_max_work_group_size(){
+    uint max_available;
+    max_available = get_local_memory_size(gpu_id) / sizeof(working_memory);
+    
+    if (max_available > get_max_work_group_size(gpu_id))
+        return get_max_work_group_size(gpu_id);
+    
+    return max_available;
+}
+
+uint get_task_max_size(){ 
+    uint max_available;
+    max_available = get_max_compute_units(gpu_id);
+
+    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU)
+        return max_available * KEYS_PER_CORE_CPU;
+    
+    return max_available * KEYS_PER_CORE_GPU;
+}
 
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(int kpc) {           
@@ -78,7 +96,7 @@ static void create_clobj(int kpc) {
     salt_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 
             sizeof(crypt_sha512_salt), NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
-    
+     
     buffer_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
             sizeof(crypt_sha512_password) * kpc, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys");
@@ -93,8 +111,11 @@ static void create_clobj(int kpc) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof (cl_mem),
             (void *) &buffer_in), "Error setting argument 1");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
-            (void *) &buffer_out), "Error setting argument 2");
-    
+            (void *) &buffer_out), "Error setting argument 2");     
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
+            sizeof (working_memory) * local_work_size,
+            NULL), "Error setting argument 3");   
+ 
     memset(plaintext, '\0', sizeof(crypt_sha512_password) * kpc);
     salt_data.saltlen = 0;
     salt_data.rounds = 0;
@@ -143,7 +164,12 @@ static char *get_key(int index) {
 /* ------- Try to find the best configuration ------- */
 /* --
   This function could be used to calculated the best num
-  of keys per crypt for the given format
+  for the workgroup
+  Work-items that make up a work-group (also referred to 
+  as the size of the work-group) 
+  LWS should never be a big number since every work-item
+  uses about 400 bytes of local memory. Local memory 
+  is usually 32 KB
 -- */
 static void find_best_workgroup(void) {
     cl_event myEvent;
@@ -153,24 +179,25 @@ static void find_best_workgroup(void) {
     int i;
     size_t max_group_size;
 
-    clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_WORK_GROUP_SIZE, 
-            sizeof (max_group_size), &max_group_size, NULL);
+    max_group_size = get_max_work_group_size(gpu_id);
     queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
             CL_QUEUE_PROFILING_ENABLE, &ret_code);
     printf("Max Group Work Size %d ", (int) max_group_size);
     local_work_size = 1;
 
     // Set keys
-    for (i = 0; i < KEYS_PER_CRYPT; i++) {
+    for (i = 0; i < get_task_max_size(); i++) {
         set_key("aaabaabaaa", i);
     }
     clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_TRUE, 0,
             sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL);
     clEnqueueWriteBuffer(queue_prof, buffer_in, CL_TRUE, 0, 
-            sizeof (crypt_sha512_password) * KEYS_PER_CRYPT, plaintext, 0, NULL, NULL);
+            sizeof (crypt_sha512_password) * get_task_max_size(), 
+            plaintext, 0, NULL, NULL);
 
     // Find minimum time
-    for (my_work_group = 1; (int) my_work_group <= (int) max_group_size; my_work_group *= 2) {
+    for (my_work_group = 1; (int) my_work_group <= (int) get_task_max_work_group_size(); 
+         my_work_group *= 2) {
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
                 1, NULL, &max_keys_per_crypt, &my_work_group, 0, NULL, &myEvent);
         clFinish(queue_prof);
@@ -184,14 +211,17 @@ static void find_best_workgroup(void) {
                 sizeof (cl_ulong), &startTime, NULL);
         clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
                 sizeof (cl_ulong), &endTime, NULL);
-
+        clReleaseEvent (myEvent);
+        
         if ((endTime - startTime) < kernelExecTimeNs) {
             kernelExecTimeNs = endTime - startTime;
             local_work_size = my_work_group;
         }
     }
     printf("Optimal local work size %d\n", (int) local_work_size);
-    printf("(to avoid this test on next run do export LWS=%d)\n", (int) local_work_size);
+    printf("(to avoid this test on next run, put \""
+        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        SUBSECTION_OPENCL "])\n", (int)local_work_size);    
     clReleaseCommandQueue(queue_prof);
 }
 
@@ -200,10 +230,10 @@ static void find_best_workgroup(void) {
   of keys per crypt for the given format
 -- */
 static void find_best_kpc(void) {
-    int num;
+    size_t num;
     cl_event myEvent;
     cl_ulong startTime, endTime, tmpTime;
-    int kernelExecTimeNs = 6969;
+    cl_ulong kernelExecTimeNs = CL_ULONG_MAX;
     cl_int ret_code;
     int optimal_kpc = MIN_KEYS_PER_CRYPT;
     int i;
@@ -211,26 +241,28 @@ static void find_best_kpc(void) {
 
     printf("Calculating best keys per crypt, this will take a while ");
     
-    for (num = MAX_KEYS_PER_CRYPT; num > MIN_KEYS_PER_CRYPT; num -= 4096) {
+    for (num = get_task_max_size(); (int) num > MIN_KEYS_PER_CRYPT; num -= 4096) {
         release_clobj();
         create_clobj(num);
         advance_cursor();
+        tmpbuffer = malloc(sizeof (crypt_sha512_hash) * num);
         queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
                 CL_QUEUE_PROFILING_ENABLE, &ret_code);
-      
+
         // Set keys
         for (i = 0; i < num; i++) {
             set_key("aaabaabaaa", i);
         }
         clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_FALSE, 0,
                 sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL);
-        clEnqueueWriteBuffer(queue_prof, buffer_in, CL_TRUE, 0, 
-                sizeof (crypt_sha512_password) * num, plaintext, 0, NULL, NULL);
-           
+        clEnqueueWriteBuffer(queue_prof, buffer_in, CL_FALSE, 0, 
+                sizeof (crypt_sha512_password) * num, plaintext, 0, NULL, NULL); 
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
-                1, NULL, &max_keys_per_crypt, &local_work_size, 0, NULL, &myEvent);
+                1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
+        clEnqueueReadBuffer(queue_prof, buffer_out, CL_FALSE, 0,
+                sizeof (crypt_sha512_hash) * num, tmpbuffer, 0, NULL, NULL);
         clFinish(queue_prof);
-                
+            
         if (ret_code != CL_SUCCESS) {
             printf("Error %d\n", ret_code);
             continue;
@@ -240,17 +272,9 @@ static void find_best_kpc(void) {
         clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
                 sizeof (cl_ulong), &endTime, NULL);
         
+        clReleaseEvent (myEvent);
         tmpTime = endTime - startTime;
-        tmpbuffer = malloc(sizeof (cl_uint) * num);
-        
-        clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, 
-                sizeof (cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
-        clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
-                sizeof (cl_ulong), &startTime, NULL);
-        clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
-                sizeof (cl_ulong), &endTime, NULL);
-        tmpTime = tmpTime + (endTime - startTime);
-        
+
         if (((int) (((float) (tmpTime) / num) * 10)) <= kernelExecTimeNs) {
             kernelExecTimeNs = ((int) (((float) (tmpTime) / num) * 10));
             optimal_kpc = num;
@@ -259,8 +283,9 @@ static void find_best_kpc(void) {
         clReleaseCommandQueue(queue_prof);
     }
     printf("Optimal keys per crypt %d\n", optimal_kpc);
-    printf("(to avoid this test on next run do \"export KPC=%d\")\n", optimal_kpc);
-
+    printf("to avoid this test on next run, put \""
+        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        SUBSECTION_OPENCL "])\n", optimal_kpc);
     max_keys_per_crypt = optimal_kpc;
     release_clobj();
     create_clobj(optimal_kpc);
@@ -268,36 +293,54 @@ static void find_best_kpc(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    char *kpc;
+    char *tmp_value;
     opencl_init("$JOHN/cryptsha512_kernel.cl", gpu_id, platform_id);
+    max_keys_per_crypt = get_task_max_size();
+    local_work_size = 0;
 
     // create kernel to execute
     crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-    if (((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
-        create_clobj(KEYS_PER_CRYPT);
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
+                                   SUBSECTION_OPENCL, LWS_CONFIG)))
+        local_work_size = atoi(tmp_value);
+    
+    if ((tmp_value = getenv("LWS")))
+        local_work_size = atoi(tmp_value);
+
+    //Check if local_work_size is a valid number.
+    if (local_work_size > get_task_max_work_group_size()){
+        printf("Error: invalid local work size (LWS). Max value allowed is: %u\n" ,
+               get_task_max_work_group_size());
+        local_work_size = 0; //Force find a valid number.
+    }
+    
+    if (!local_work_size) {
+        local_work_size = get_task_max_work_group_size();
+        create_clobj(max_keys_per_crypt);
         find_best_workgroup();
         release_clobj();
-    } else {
-        local_work_size = atoi(kpc);
     }
-    if ((kpc = getenv("KPC")) == NULL) {
-        max_keys_per_crypt = KEYS_PER_CRYPT;
-        create_clobj(KEYS_PER_CRYPT);
-    } else {
-        if (atoi(kpc) == 0) {
-            //user chose to die of boredom
-            max_keys_per_crypt = KEYS_PER_CRYPT;
-            create_clobj(KEYS_PER_CRYPT); 
-            find_best_kpc();
-        } else {
-            max_keys_per_crypt = atoi(kpc);
-            create_clobj(max_keys_per_crypt);
-        }
+
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, 
+                                   SUBSECTION_OPENCL, KPC_CONFIG)))
+        max_keys_per_crypt = atoi(tmp_value);
+
+    if ((tmp_value = getenv("KPC")))
+        max_keys_per_crypt = atoi(tmp_value);
+    
+    if (max_keys_per_crypt)
+        create_clobj(max_keys_per_crypt);
+
+    else {
+        //user chose to die of boredom
+        max_keys_per_crypt = get_task_max_size();
+        create_clobj(max_keys_per_crypt);
+        find_best_kpc();
     }
     printf("Local work size (LWS) %d, Keys per crypt (KPC) %Zd\n", 
-            (int) local_work_size, max_keys_per_crypt);   
+           (int) local_work_size, max_keys_per_crypt);   
     pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
@@ -365,7 +408,7 @@ static void set_salt(void *salt) {
         }
         offset = endp - currentsalt;
     }
-    memcpy(salt_data.salt, currentsalt + offset, 16);
+    memcpy(salt_data.salt, currentsalt + offset, SALT_SIZE);
     salt_data.saltlen = strlen((char *) salt_data.salt);
 }
 
@@ -469,7 +512,7 @@ static void crypt_all(int count) {
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_FALSE, 0,
-            sizeof (crypt_sha512_hash) * max_keys_per_crypt, out_hashes, 0, NULL, NULL),
+            sizeof(crypt_sha512_hash) * max_keys_per_crypt, out_hashes, 0, NULL, NULL),
             "failed in reading data back");
  
     //Do the work
@@ -477,7 +520,7 @@ static void crypt_all(int count) {
 }
 
 /* ------- Binary Hash functions group ------- */
-static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *) binary & 0xF; }
+static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *) binary & 0xF; } 
 static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFF; }
 static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFF; }
 static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFFF; }
