@@ -46,7 +46,7 @@
 
 static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-unsigned int *cracked;
+static int any_cracked, *cracked;
 
 static struct custom_salt {
 	long len;
@@ -88,6 +88,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	any_cracked = 0;
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
@@ -284,7 +285,11 @@ static void set_salt(void *salt)
 {
 	/* restore custom_salt back */
 	restored_custom_salt = (struct custom_salt *) salt;
-	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
+	if (any_cracked) {
+		memset(cracked, 0,
+		    sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
+		any_cracked = 0;
+	}
 }
 
 static void ssh_set_key(char *key, int index)
@@ -305,7 +310,7 @@ static void crypt_all(int count)
 {
 	int index = 0;
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-#pragma omp parallel for default(none) private(index) shared(count, cracked, saved_key, restored_custom_salt)
+#pragma omp parallel for default(none) private(index) shared(count, any_cracked, cracked, saved_key, restored_custom_salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
@@ -325,15 +330,21 @@ static void crypt_all(int count)
 				if ((dsapkc =
 					d2i_DSAPrivateKey(NULL, &dc,
 					    working_len)) != NULL) {
-					cracked[index] = 1;
 					DSA_free(dsapkc);
+#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
+#pragma omp critical
+#endif
+					any_cracked = cracked[index] = 1;
 				}
 			} else if (pk.save_type == EVP_PKEY_RSA) {
 				if ((rsapkc =
 					d2i_RSAPrivateKey(NULL, &dc,
 					    working_len)) != NULL) {
-					cracked[index] = 1;
 					RSA_free(rsapkc);
+#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
+#pragma omp critical
+#endif
+					any_cracked = cracked[index] = 1;
 				}
 			}
 		}
@@ -342,7 +353,7 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	return 1;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
