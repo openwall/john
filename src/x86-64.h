@@ -198,7 +198,7 @@
 #elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
 #define MD5_SSE_PARA			3
 #define MD5_N_STR			"12x"
-#elif defined(__GNUC__) && GCC_VERSION < 40600	// 4.6.0
+#elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
 #define MD5_SSE_PARA			2
 #define MD5_N_STR			"8x"
 #else
@@ -220,7 +220,7 @@
 #elif defined(__GNUC__) && GCC_VERSION < 40500	// 4.5.0
 #define MD4_SSE_PARA			3
 #define MD4_N_STR			"12x"
-#elif defined(__GNUC__) && GCC_VERSION < 40600	// 4.6.0
+#elif defined(__GNUC__) && (GCC_VERSION < 40600 || defined(__XOP__)) // 4.6.0
 #define MD4_SSE_PARA			2
 #define MD4_N_STR			"8x"
 #else

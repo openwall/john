@@ -1,12 +1,20 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-*/
+ * Developed by Claudio André <claudio.andre at correios.net.br> in 2012   
+ * Based on source code provided by Lukas Odzioba
+ *
+ * This software is:
+ * Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+ * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * 
+ * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
+ */
+
 #ifndef _CRYPTSHA512_H 
 #define _CRYPTSHA512_H
 
-//Type names definition. ///TODO: move to a new file and share this new file where needed.
+//Type names definition. 
 #define uint8_t  unsigned char
 #define uint16_t unsigned short
 #define uint32_t unsigned int
@@ -22,7 +30,12 @@
 
 #define SALT_SIZE               16
 #define PLAINTEXT_LENGTH        16     
-#define KEYS_PER_CRYPT          1024*2048
+#define BINARY_SIZE             (3+16+86)       ///TODO: Magic number?
+
+#define KEYS_PER_CORE_CPU       512
+#define KEYS_PER_CORE_GPU       1024
+#define MIN_KEYS_PER_CRYPT	128
+#define MAX_KEYS_PER_CRYPT	2048*2048*128
 
 #define rol(x,n)                ((x << n) | (x >> (64-n)))
 #define ror(x,n)                ((x >> n) | (x << (64-n)))
@@ -75,5 +88,15 @@ typedef struct {
 typedef struct {
 	uint64_t v[8];		//512 bits
 } crypt_sha512_hash;
+
+typedef struct {
+        crypt_sha512_password  pass_info;
+        crypt_sha512_salt      salt_info;
+        sha512_ctx             ctx_info;
+        buffer_64              alt_result[8];
+        buffer_64              temp_result[8];
+        uint8_t                s_sequence[SALT_SIZE];
+        uint8_t                p_sequence[PLAINTEXT_LENGTH];
+} working_memory;
 
 #endif

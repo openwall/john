@@ -3,14 +3,23 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
  * New (optional) SHA1 version by JimF 2011, using 16x4 buffer.
+ * Use of XOP intrinsics added by Solar Designer, 2012.
  */
 
 #include "arch.h"
 #include <string.h>
 #include <emmintrin.h>
+#ifdef __XOP__
+#include <x86intrin.h>
+#endif
 #include "memory.h"
 #include "md5.h"
 #include "MD5_std.h"
+
+#ifndef __XOP__
+#define _mm_roti_epi32(a, s) \
+	_mm_or_si128(_mm_slli_epi32((a), (s)), _mm_srli_epi32((a), 32-(s)))
+#endif
 
 #ifndef MMX_COEF
 #define MMX_COEF 4
@@ -20,15 +29,25 @@
 #define MD5_SSE_NUM_KEYS	(MMX_COEF*MD5_SSE_PARA)
 #define MD5_PARA_DO(x)	for((x)=0;(x)<MD5_SSE_PARA;(x)++)
 
+#ifdef __XOP__
+#define MD5_F(x,y,z) \
+	MD5_PARA_DO(i) tmp[i] = _mm_cmov_si128((y[i]),(z[i]),(x[i]));
+#else
 #define MD5_F(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
 	MD5_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(x[i])); \
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(z[i]));
+#endif
 
+#ifdef __XOP__
+#define MD5_G(x,y,z) \
+	MD5_PARA_DO(i) tmp[i] = _mm_cmov_si128((x[i]),(y[i]),(z[i]));
+#else
 #define MD5_G(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(x[i])); \
 	MD5_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(z[i])); \
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]), (y[i]) );
+#endif
 
 #define MD5_H(x,y,z) \
 	MD5_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
@@ -44,7 +63,7 @@
 	f((b),(c),(d)) \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], tmp[i] ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
-	MD5_PARA_DO(i) a[i] = _mm_or_si128(_mm_slli_epi32((a[i]), (s)), _mm_srli_epi32((a[i]), 32-(s))); \
+	MD5_PARA_DO(i) a[i] = _mm_roti_epi32( a[i], (s) ); \
 	MD5_PARA_DO(i) a[i] = _mm_add_epi32( a[i], b[i] );
 
 unsigned int debug = 0;
@@ -415,10 +434,15 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 #define MD4_SSE_NUM_KEYS	(MMX_COEF*MD4_SSE_PARA)
 #define MD4_PARA_DO(x)	for((x)=0;(x)<MD4_SSE_PARA;(x)++)
 
+#ifdef __XOP__
+#define MD4_F(x,y,z) \
+	MD4_PARA_DO(i) tmp[i] = _mm_cmov_si128((y[i]),(z[i]),(x[i]));
+#else
 #define MD4_F(x,y,z) \
 	MD4_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
 	MD4_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(x[i])); \
 	MD4_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(z[i]));
+#endif
 
 #define MD4_G(x,y,z) \
 	MD4_PARA_DO(i) tmp[i] = _mm_or_si128((y[i]),(z[i])); \
@@ -435,7 +459,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	f((b),(c),(d)) \
 	MD4_PARA_DO(i) a[i] = _mm_add_epi32( a[i], tmp[i] ); \
 	MD4_PARA_DO(i) a[i] = _mm_add_epi32( a[i], data[i*16+x] ); \
-	MD4_PARA_DO(i) a[i] = _mm_or_si128(_mm_slli_epi32((a[i]), (s)), _mm_srli_epi32((a[i]), 32-(s)));
+	MD4_PARA_DO(i) a[i] = _mm_roti_epi32( a[i], (s) );
 
 void SSEmd4body(__m128i* data, unsigned int * out, int init)
 {
@@ -559,10 +583,15 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 #define SHA1_SSE_NUM_KEYS	(MMX_COEF*SHA1_SSE_PARA)
 #define SHA1_PARA_DO(x)		for((x)=0;(x)<SHA1_SSE_PARA;(x)++)
 
+#ifdef __XOP__
+#define SHA1_F(x,y,z) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_cmov_si128((y[i]),(z[i]),(x[i]));
+#else
 #define SHA1_F(x,y,z) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_and_si128((tmp[i]),(x[i])); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(z[i]));
+#endif
 
 #define SHA1_G(x,y,z) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
@@ -584,16 +613,16 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( data[i*80+t-3], data[i*80+t-8] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*80+t-14] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*80+t-16] ); \
-	SHA1_PARA_DO(i) data[i*80+t] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+	SHA1_PARA_DO(i) data[i*80+t] = _mm_roti_epi32(tmp[i], 1);
 
 #define SHA1_ROUND(a,b,c,d,e,F,t) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*80+t] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2)); \
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 
 void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state, int input_layout_output)
 {
@@ -776,82 +805,82 @@ void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state,
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( data[i*16+t-3], data[i*16+t-8] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-14] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
-	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_roti_epi32(tmp[i], 1);
 #define SHA1_EXPAND2b(t) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], data[i*16+t-8] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-14] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
-	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_roti_epi32(tmp[i], 1);
 #define SHA1_EXPAND2c(t) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-14] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
-	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_roti_epi32(tmp[i], 1);
 #define SHA1_EXPAND2d(t) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], tmpR[i*16+((t-14)&0xF)] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], data[i*16+t-16] ); \
-	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_roti_epi32(tmp[i], 1);
 #define SHA1_EXPAND2(t) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmpR[i*16+((t-3)&0xF)], tmpR[i*16+((t-8)&0xF)] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], tmpR[i*16+((t-14)&0xF)] ); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128( tmp[i], tmpR[i*16+((t-16)&0xF)] ); \
-	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_or_si128(_mm_slli_epi32((tmp[i]), 1), _mm_srli_epi32((tmp[i]), 31));
+	SHA1_PARA_DO(i) tmpR[i*16+((t)&0xF)] = _mm_roti_epi32(tmp[i], 1);
 
 #define SHA1_ROUND2a(a,b,c,d,e,F,t) \
 	SHA1_EXPAND2a(t+16) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 #define SHA1_ROUND2b(a,b,c,d,e,F,t) \
 	SHA1_EXPAND2b(t+16) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 #define SHA1_ROUND2c(a,b,c,d,e,F,t) \
 	SHA1_EXPAND2c(t+16) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 #define SHA1_ROUND2d(a,b,c,d,e,F,t) \
 	SHA1_EXPAND2d(t+16) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], data[i*16+t] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 #define SHA1_ROUND2(a,b,c,d,e,F,t) \
 	SHA1_PARA_DO(i) tmp3[i] = tmpR[i*16+(t&0xF)]; \
 	SHA1_EXPAND2(t+16) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp3[i] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 #define SHA1_ROUND2x(a,b,c,d,e,F,t) \
 	F(b,c,d) \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128(_mm_slli_epi32((a[i]), 5), _mm_srli_epi32((a[i]), 27)); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_roti_epi32(a[i], 5); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmp[i] ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], cst ); \
 	SHA1_PARA_DO(i) e[i] = _mm_add_epi32( e[i], tmpR[i*16+(t&0xF)] ); \
-	SHA1_PARA_DO(i) b[i] = _mm_or_si128(_mm_slli_epi32((b[i]), 30), _mm_srli_epi32((b[i]), 2));
+	SHA1_PARA_DO(i) b[i] = _mm_roti_epi32(b[i], 30);
 
 void SSESHA1body(__m128i* data, unsigned int * out, unsigned int * reload_state, int input_layout_output)
 {

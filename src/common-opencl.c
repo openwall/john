@@ -127,6 +127,47 @@ void opencl_init(char *kernel_filename, unsigned int dev_id,
 	build_kernel(dev_id);
 }
 
+cl_ulong get_local_memory_size(int dev_id)
+{    
+        cl_ulong size;        
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_LOCAL_MEM_SIZE,
+                sizeof(cl_ulong), &size, NULL),
+                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");    
+        
+        return size;
+}
+
+size_t get_max_work_group_size(int dev_id)
+{          
+        size_t max_group_size;
+
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_MAX_WORK_GROUP_SIZE, 
+                       sizeof (max_group_size), &max_group_size, NULL),
+                       "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");  
+        
+        return max_group_size;
+}
+
+cl_uint get_max_compute_units(int dev_id)
+{    
+        cl_uint size;        
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_MAX_COMPUTE_UNITS,
+                sizeof(cl_uint), &size, NULL),
+                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");    
+        
+        return size;
+}
+
+cl_device_type get_device_type(int dev_id)
+{    
+        cl_device_type type;        
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
+                sizeof(cl_device_type), &type, NULL),
+                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");    
+        
+        return type;
+}
+
 char *get_error_name(cl_int cl_error)
 {
 	static char *err_1[] =
