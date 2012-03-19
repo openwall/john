@@ -1522,6 +1522,9 @@ john.com: john.asm
 SIPdump: SIPdump.o
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
+vncpcap2john:
+	g++ vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
+
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
 
