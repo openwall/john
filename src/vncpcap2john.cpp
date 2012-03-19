@@ -172,7 +172,7 @@ bool VNC_Auth_Reader::find_next(std::string & id_out,
 
 		// This could be a lot smarter. It would be nice in particular
 		// to handle malformed streams and concurrent handshakes.
-		if (payload.find("VNCAUTH_") != std::string::npos) {
+		if (payload.find("RFB") != std::string::npos) {
 			const std::string from = reader.source_address();
 			const std::string to = reader.destination_address();
 			std::string challenge, response;
@@ -180,7 +180,8 @@ bool VNC_Auth_Reader::find_next(std::string & id_out,
 			{
 				if (from == reader.source_address() &&
 				    to == reader.destination_address() &&
-				    reader.payload().size() == 16) {
+				    reader.payload().size() == 16 &&
+				    reader.payload().find("VNCAUTH_") == std::string::npos) {
 					challenge = reader.payload();
 					break;
 				}
