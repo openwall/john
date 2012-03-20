@@ -38,6 +38,8 @@
 #include <arpa/inet.h>
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
+
+#define __FAVOR_BSD
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
 #include <pcap.h>
@@ -125,7 +127,7 @@ bool Packet_Reader::kick()
 		    const struct tcphdr *>(packet + sizeof(ether_header) +
 		    size_ip);
 
-		size_t size_tcp = tcp->doff * 4;
+		size_t size_tcp = tcp->th_off * 4;
 
 		if (size_tcp < 20)
 			continue;	// bongus TCP header
@@ -140,12 +142,11 @@ bool Packet_Reader::kick()
 		    payload_len);
 
 		std::ostringstream os1;
-		os1 << inet_ntoa(ip_header->ip_src) << "-" << ntohs(tcp->
-		    source);
+		os1 << inet_ntoa(ip_header->ip_src) << "-" << ntohs(tcp->th_sport);
 		src_addr_str = os1.str();
 
 		std::ostringstream os2;
-		os2 << inet_ntoa(ip_header->ip_dst) << "-" << ntohs(tcp->dest);
+		os2 << inet_ntoa(ip_header->ip_dst) << "-" << ntohs(tcp->th_dport);
 		dest_addr_str = os2.str();
 
 		return true;	// sucessfully got a TCP packet of some kind (yay)
