@@ -27,7 +27,7 @@
 #endif
 
 
-void sha1_process(uint W[80], uint *TT){
+void sha1_process(uint W[16], uint *TT){
 
   uint temp, A,B,C,D,E;
 
@@ -162,7 +162,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_ke
     int t, gid, msg_pad;
     int i, stop, mmod;
     uint ulen;
-    uint W[80];
+    uint W[16];
     uint Td[5];
     uint num_keys = data_info[1];
     

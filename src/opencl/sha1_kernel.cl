@@ -31,7 +31,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_ke
     int t, gid, msg_pad;
     int i, stop, mmod;
     uint ulen;
-    uint W[80], temp, A,B,C,D,E;
+    uint W[16], temp, A,B,C,D,E;
     uint num_keys = data_info[1];
     
     gid = get_global_id(0);
