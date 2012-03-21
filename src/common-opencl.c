@@ -260,6 +260,9 @@ void listOpenCLdevices(void) {
 
 		/* Query devices for information */
 		for (d = 0; d < num_devices; ++d) {
+			cl_device_local_mem_type memtype;
+			cl_bool bool;
+
 			clGetDeviceInfo(devices[d], CL_DEVICE_NAME, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice #%d name:\t\t%s\n", d, dname);
 			clGetDeviceInfo(devices[d], CL_DEVICE_VENDOR, MAX_OCLINFO_STRING_LEN, dname, NULL);
@@ -276,19 +279,22 @@ void listOpenCLdevices(void) {
 				printf("Default ");
 			if (long_entries & ~(CL_DEVICE_TYPE_DEFAULT|CL_DEVICE_TYPE_ACCELERATOR|CL_DEVICE_TYPE_GPU|CL_DEVICE_TYPE_CPU))
 				printf("Unknown ");
-			printf("\n");
+			clGetDeviceInfo(devices[d], CL_DEVICE_ENDIAN_LITTLE, sizeof(cl_bool), &bool, NULL);
+			printf("(%s)\n", bool == CL_TRUE ? "LE" : "BE");
 			clGetDeviceInfo(devices[d], CL_DEVICE_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DRIVER_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tGlobal Memory:\t\t%s\n", megastring((unsigned long long)long_entries));
+			clGetDeviceInfo(devices[d], CL_DEVICE_ERROR_CORRECTION_SUPPORT, sizeof(cl_bool), &bool, NULL);
+			printf("\tGlobal Memory:\t\t%s%s\n", megastring((unsigned long long)long_entries), bool == CL_TRUE ? " (ECC)" : "");
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &long_entries, NULL);
 			printf("\tGlobal Memory Cache:\t%s\n", megastring((unsigned long long)long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tLocal Memory:\t\t%s\n", megastring((unsigned long long)long_entries));
+			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_TYPE, sizeof(cl_device_local_mem_type), &memtype, NULL);
+			printf("\tLocal Memory:\t\t%s (%s)\n", megastring((unsigned long long)long_entries), memtype == CL_LOCAL ? "Local" : "Global");
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong), &long_entries, NULL);
-			printf("\tMax clock (MHz) :\t%llu\n", (long long unsigned)long_entries);
+			printf("\tMax clock (MHz) :\t%llu\n", (unsigned long long)long_entries);
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
 			printf("\tMax Work Group Size:\t%d\n", (int)p_size);
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &entries, NULL);
