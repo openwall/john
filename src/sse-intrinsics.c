@@ -17,8 +17,20 @@
 #include "MD5_std.h"
 
 #ifndef __XOP__
+#define _mm_slli_epi32a(a, s) \
+	((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
+#ifdef __SSSE3__
+#include <tmmintrin.h>
+#define rot16_mask _mm_set_epi64x(0x0d0c0f0e09080b0aL, 0x0504070601000302UL)
 #define _mm_roti_epi32(a, s) \
-	_mm_or_si128(_mm_slli_epi32((a), (s)), _mm_srli_epi32((a), 32-(s)))
+	((s) == 16 ? _mm_shuffle_epi8((a), rot16_mask) : \
+	_mm_or_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+#else
+#define _mm_roti_epi32(a, s) \
+	((s) == 16 ? \
+	_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) : \
+	_mm_or_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+#endif
 #endif
 
 #ifndef MMX_COEF
