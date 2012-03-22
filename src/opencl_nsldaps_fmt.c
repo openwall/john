@@ -216,6 +216,10 @@ static void create_clobj(int kpc){
 	datai[0] = PLAINTEXT_LENGTH;
 	datai[1] = kpc;
     	global_work_size = kpc;
+
+	/* We set this here and never again. Used to be in crypt_all() */
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_FALSE, 0,
+	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL), "failed in clEnqueueWriteBuffer data_info");
 }
 
 static void release_clobj(void){
@@ -263,7 +267,6 @@ static void find_best_kpc(void){
 	for (i=0; i < num; i++){
 		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
-        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, saved_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
@@ -394,6 +397,10 @@ static void set_key(char *key, int index){
 
 static void set_salt(void *salt){
 	memcpy(saved_salt, salt, SALT_SIZE);
+
+	/* Used to be in crypt_all() - bad for single salt */
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mysalt, CL_FALSE, 0, SALT_SIZE,
+	    saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer mysalt");
 }
 
 static char *get_key(int index) {
@@ -444,13 +451,6 @@ static int cmp_exact(char *source, int count){
 static void crypt_all(int count)
 {
 	cl_int code;
-	code = clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
-	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer data_info");
-
-	code = clEnqueueWriteBuffer(queue[gpu_id], mysalt, CL_TRUE, 0, SALT_SIZE,
-	    saved_salt, 0, NULL, NULL);
-	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer mysalt");
 
 	code = clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
 	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL);
