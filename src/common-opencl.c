@@ -83,12 +83,26 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 }
 
-static char * include_source(char *pathname)
+cl_device_type get_device_type(int dev_id)
 {
-	static char include[PATH_BUFFER_SIZE];        
-        sprintf(include, "-I %s", path_expand(pathname));        
-        
-        return include;
+	cl_device_type type;
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
+	                               sizeof(cl_device_type), &type, NULL),
+	               "Error querying CL_DEVICE_TYPE");
+
+	return type;
+}
+
+static char * include_source(char *pathname, int dev_id)
+{
+	static char include[PATH_BUFFER_SIZE];
+
+	sprintf(include, "-I %s%s", path_expand(pathname),
+	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
+	        " -DDEVICE_IS_CPU" : "");
+
+	//printf("Options used: %s\n", include);
+	return include;
 }
 
 
@@ -102,8 +116,9 @@ static void build_kernel(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	cl_int build_code;
-	build_code = clBuildProgram(program[dev_id], 0, NULL, 
-                include_source("$JOHN/"), NULL, NULL);
+	build_code = clBuildProgram(program[dev_id], 0, NULL,
+	                            include_source("$JOHN/", dev_id),
+	                            NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
@@ -128,44 +143,34 @@ void opencl_init(char *kernel_filename, unsigned int dev_id,
 }
 
 cl_ulong get_local_memory_size(int dev_id)
-{    
-        cl_ulong size;        
+{
+        cl_ulong size;
         HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_LOCAL_MEM_SIZE,
                 sizeof(cl_ulong), &size, NULL),
-                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");    
-        
+                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");
+
         return size;
 }
 
 size_t get_max_work_group_size(int dev_id)
-{          
+{
         size_t max_group_size;
 
-        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_MAX_WORK_GROUP_SIZE, 
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_MAX_WORK_GROUP_SIZE,
                        sizeof (max_group_size), &max_group_size, NULL),
-                       "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");  
-        
+                       "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
+
         return max_group_size;
 }
 
 cl_uint get_max_compute_units(int dev_id)
-{    
-        cl_uint size;        
+{
+        cl_uint size;
         HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_MAX_COMPUTE_UNITS,
                 sizeof(cl_uint), &size, NULL),
-                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");    
-        
-        return size;
-}
+                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");
 
-cl_device_type get_device_type(int dev_id)
-{    
-        cl_device_type type;        
-        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
-                sizeof(cl_device_type), &type, NULL),
-                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");    
-        
-        return type;
+        return size;
 }
 
 char *get_error_name(cl_int cl_error)
@@ -212,7 +217,7 @@ char *get_error_name(cl_int cl_error)
 	return "UNKNOWN ERROR :(";
 }
 
-char *megastring(unsigned long long value) 
+char *megastring(unsigned long long value)
 {
 	static char outbuf[16];
 
