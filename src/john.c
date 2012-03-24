@@ -102,6 +102,11 @@ extern struct fmt_main fmt_cryptsha512;
 extern struct fmt_main fmt_SKEY;
 #endif
 
+#ifdef HAVE_NSS
+extern struct fmt_main mozilla_fmt;
+extern int mozilla2john(int argc, char **argv);
+#endif
+
 #ifdef CL_VERSION_1_0
 extern struct fmt_main fmt_opencl_NSLDAPS;
 extern struct fmt_main fmt_opencl_rawMD5;
@@ -201,6 +206,10 @@ static void john_register_all(void)
 	john_register_one(&fmt_drupal7);
 	john_register_one(&fmt_cryptsha256);
 	john_register_one(&fmt_cryptsha512);
+#endif
+
+#ifdef HAVE_NSS
+	john_register_one(&mozilla_fmt);
 #endif
 
 #ifdef HAVE_CRYPT
@@ -737,6 +746,13 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "racf2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return racf2john(argc, argv);
+	}
+#endif
+
+#ifdef HAVE_NSS
+	if (!strcmp(name, "mozilla2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return mozilla2john(argc, argv);
 	}
 #endif
 
