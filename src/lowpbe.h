@@ -95,7 +95,7 @@ SEC_BEGIN_PROTOS
  * is returned, otherwise the ciphered contents is returned.
  */
 extern int nsspkcs5_CipherData(struct NSSPKCS5PBEParameter * pbe_param, const unsigned char *pwhash,
-    const unsigned char *encString);
+    const unsigned char *encString, SECItem *pkcs5_pfxpbe, SECItem *secPreHash);
 
 /* Destroys PBE parameter */
 extern void nsspkcs5_DestroyPBEParameter(struct NSSPKCS5PBEParameter * param);
