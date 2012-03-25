@@ -91,7 +91,7 @@ static void set_salt(void *salt)
         // Setup the encrypted password-check string
 	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen );
 	if(CheckMasterPassword("") == true ) {
-		fprintf(stderr, "%s : Master Password is not set\n", salt);
+		fprintf(stderr, "%s : Master Password is not set\n", (char *)salt);
         }
 
         // Calculate partial sha1 data for password hashing
