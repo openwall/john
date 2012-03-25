@@ -361,13 +361,9 @@ struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iter
 int sec_pkcs5_des(const unsigned char *hash, const unsigned char *encString)
 {
 
-	struct DESContext *dctx;
-
-	//dctx = DES_CreateContext(key->data, iv->data, NSS_DES_EDE3_CBC);
-	dctx = DES_CreateContext(hash, hash + 32);	//, NSS_DES_EDE3_CBC);
-
-	return DES_EDE3CBCDe(dctx, encString);
-
+	struct DESContext dctx;
+	DES_CreateContext(&dctx, hash, hash + 32);
+	return DES_EDE3CBCDe(&dctx, encString);
 }
 
 
@@ -389,11 +385,9 @@ int nsspkcs5_CipherData(struct NSSPKCS5PBEParameter * pbe_param, const unsigned 
 
 	unsigned char *hashKey = computeKey(pbe_param, pwhash);
 
-	struct DESContext *dctx;
-	dctx = DES_CreateContext(hashKey, hashKey + 32);	//, NSS_DES_EDE3_CBC);
-
-	return DES_EDE3CBCDe(dctx, encString);
-
+	struct DESContext dctx;
+	DES_CreateContext(&dctx, hashKey, hashKey + 32);
+	return DES_EDE3CBCDe(&dctx, encString);
 }
 
 #endif

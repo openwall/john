@@ -80,7 +80,7 @@ typedef void DESFunc(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned 
 
 void DES_MakeSchedule( HALF * ks, const BYTE * key,   DESDirection direction);
 void DES_Do1Block(     HALF * ks, const BYTE * inbuf, BYTE * outbuf);
-struct DESContext *DES_CreateContext(const BYTE * key, const BYTE *iv); //, int mode);
+struct DESContext *DES_CreateContext(struct DESContext *cx, const BYTE * key, const BYTE *iv); //, int mode);
 void DES_DestroyContext(struct DESContext *cx, PRBool freeit);
 SECStatus DES_Encrypt(struct DESContext *cx, BYTE *out, unsigned int *outLen, unsigned int maxOutLen, const BYTE *in, unsigned int inLen);
 int DES_Decrypt(struct DESContext *cx, BYTE *out, unsigned int *outLen,unsigned int maxOutLen, const BYTE *in, unsigned int inLen);
