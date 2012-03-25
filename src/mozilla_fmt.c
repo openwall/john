@@ -32,11 +32,13 @@
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int cracked;
 static SHA_CTX pctx;
+static SECItem saltItem;
 static unsigned char encString[128];
 struct NSSPKCS5PBEParameter *paramPKCS5 = NULL;
-struct KeyCrackData keyCrackData;
+static struct KeyCrackData keyCrackData;
+static int cleanup_required = 0;
 
-static int CheckMasterPassword(char *password)
+static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {
 	unsigned char passwordHash[SHA1_LENGTH+1];
 	SHA_CTX ctx;
@@ -44,7 +46,7 @@ static int CheckMasterPassword(char *password)
 	memcpy(&ctx, &pctx, sizeof(SHA_CTX) );
 	SHA1_Update(&ctx, (unsigned char *)password, strlen(password));
 	SHA1_Final(passwordHash, &ctx);
-	return nsspkcs5_CipherData(paramPKCS5, passwordHash, encString);
+	return nsspkcs5_CipherData(paramPKCS5, passwordHash, encString, pkcs5_pfxpbe, secPreHash);
 }
 
 static void init(struct fmt_main *pFmt)
@@ -71,8 +73,14 @@ static void set_salt(void *salt)
 	saltcopy += 9;	/* skip over "$mozilla$*" */
 	char *p = strtok(saltcopy, "*");
 	strcpy(path, p);
+	if(cleanup_required == 1) {
+		free(keyCrackData.salt);
+		free(keyCrackData.nickName);
+		free(keyCrackData.oidData);
+		free(keyCrackData.pwCheckStr);
+	}
 
-   	SECItem saltItem;
+
         if(CrackKeyData(path, &keyCrackData) == false) {
                 exit(0);
         }
@@ -80,6 +88,11 @@ static void set_salt(void *salt)
         saltItem.type = (SECItemType) 0;
         saltItem.len  = keyCrackData.saltLen;
         saltItem.data = keyCrackData.salt;
+	if(cleanup_required == 1) {
+		if(paramPKCS5->salt.data)
+			free(paramPKCS5->salt.data);
+		free(paramPKCS5);
+	}
         paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
         if(paramPKCS5 == NULL) {
                 fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
@@ -90,7 +103,15 @@ static void set_salt(void *salt)
         // SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
         // Setup the encrypted password-check string
 	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen );
-	if(CheckMasterPassword("") == true ) {
+	unsigned char data1[256];
+	unsigned char data2[512];
+	SECItem pkcs5_pfxpbe;
+	pkcs5_pfxpbe.data = data2;
+	SECItem secPreHash;
+	secPreHash.data = data1;
+	memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
+	secPreHash.len = saltItem.len + SHA1_LENGTH;
+	if(CheckMasterPassword("", &pkcs5_pfxpbe, &secPreHash) == true ) {
 		fprintf(stderr, "%s : Master Password is not set\n", (char *)salt);
         }
 
@@ -99,12 +120,21 @@ static void set_salt(void *salt)
 	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
 
 	cracked = 0;
+	cleanup_required = 1;
 	free(keeptr);
 }
 
 static void crypt_all(int count)
 {
-	if(CheckMasterPassword(saved_key)) {
+	unsigned char data1[256];
+	unsigned char data2[512];
+	SECItem secPreHash;
+	secPreHash.data = data1;
+	memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
+	secPreHash.len = saltItem.len + SHA1_LENGTH;
+	SECItem pkcs5_pfxpbe;
+	pkcs5_pfxpbe.data = data2;
+	if(CheckMasterPassword(saved_key, &pkcs5_pfxpbe, &secPreHash)) {
 		cracked = 1;
 	}
 }

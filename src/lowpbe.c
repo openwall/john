@@ -43,45 +43,10 @@
 #include "mozilla_des.h"
 #include "alghmac.h"
 
-
-
-// Added by FireMaster
-
-SECItem secPreHash;
-SECItem pkcs5_pfxpbe;
-SHA_CTX ctx;
-
-/* generate bits using any hash
- */
-/*
-SECItem *nsspkcs5_PBKDF1( const unsigned char *pwdHash)
+unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigned char *pwdHash, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {
-    SECItem *preHash = &secPreHash;
-	// copy password hash .....
-	memcpy(preHash->data, pwdHash, SHA1_LENGTH);
-
-	SHA_CTX *lctx = ctx;
-	SHA1_Init(lctx);
-    SHA1_Update(lctx, preHash->data, preHash->len);
-    SHA1_Final(lctx, secHash.data);
-
-    return &secHash;
-}
-
-  */
-/* this bit generation routine is described in PKCS 12 and the proposed
- * extensions to PKCS 5.  an initial hash is generated following the
- * instructions laid out in PKCS 5.  If the number of bits generated is
- * insufficient, then the method discussed in the proposed extensions to
- * PKCS 5 in PKCS 12 are used.  This extension makes use of the HMAC
- * function.  And the P_Hash function from the TLS standard.
- */
-
-
-
-unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigned char *pwdHash)	//SECItem *init_hash);
-{
-	SECItem *ret_bits = &pkcs5_pfxpbe;
+	SECItem *ret_bits = pkcs5_pfxpbe;
+	SHA_CTX ctx;
 
 	unsigned char state[256];
 	unsigned int state_len;
@@ -92,7 +57,7 @@ unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigne
 
 	// First compute pkcs5 hash
 	unsigned char firstHash[SHA1_LENGTH];
-	SECItem *preHash = &secPreHash;
+	SECItem *preHash = secPreHash;
 	// copy password hash .....
 	memcpy(preHash->data, pwdHash, SHA1_LENGTH);
 
@@ -190,24 +155,6 @@ unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigne
 	return ret_bits->data;
 }
 
-/* generate bits for the key and iv determination.  if enough bits
- * are not generated using PKCS 5, then we need to generate more bits
- * based on the extension proposed in PKCS 12
- */
-/*
-SECItem *nsspkcs5_PBKDF1Extended(struct NSSPKCS5PBEParameter *pbe_param, SECItem *pwitem)
-{
-    SECItem * hash;
-    int       bytes_needed;
-
-    bytes_needed = pbe_param->ivLen + pbe_param->keyLen;
-    hash = nsspkcs5_PBKDF1(&pbe_param->salt, pwitem);
-
-    return nsspkcs5_PFXPBE(pbe_param, hash, bytes_needed);
-
-}
-*/
-
 #define HMAC_BUFFER 64
 #define NSSPBE_ROUNDUP(x,y) ((((x)+((y)-1))/(y))*(y))
 #define NSSPBE_MIN(x,y) ((x) < (y) ? (x) : (y))
@@ -223,86 +170,6 @@ static SECStatus nsspkcs5_FillInParam(int algorithm, struct NSSPKCS5PBEParameter
 	pbe_param->ivLen = 8;
 	pbe_param->keyLen = 24;
 	pbe_param->encAlg = SEC_OID_DES_EDE3_CBC;
-
-	/*
-	   switch(algorithm)
-	   {
-	   // DES3 Algorithms
-	   case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_2KEY_TRIPLE_DES_CBC:
-	   pbe_param->is2KeyDES = PR_TRUE;
-	   // fall through
-	   case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_3KEY_TRIPLE_DES_CBC:
-	   pbe_param->pbeType = NSSPKCS5_PKCS12_V2;
-	   // fall through
-	   case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC:
-	   pbe_param->keyLen = 24;
-	   pbe_param->encAlg = SEC_OID_DES_EDE3_CBC;
-	   break;
-
-	   // DES Algorithms
-	   case SEC_OID_PKCS5_PBE_WITH_MD2_AND_DES_CBC:
-	   pbe_param->hashType = HASH_AlgMD2;
-	   goto finish_des;
-	   case SEC_OID_PKCS5_PBE_WITH_MD5_AND_DES_CBC:
-	   pbe_param->hashType = HASH_AlgMD5;
-	   // fall through
-	   case SEC_OID_PKCS5_PBE_WITH_SHA1_AND_DES_CBC:
-	   finish_des:
-	   pbe_param->keyLen = 8;
-	   pbe_param->encAlg =  SEC_OID_DES_CBC;
-	   break;
-
-	   // RC2 Algorithms
-	   case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC:
-	   pbe_param->keyLen = 16;
-	   // fall through
-	   case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC:
-	   pbe_param->pbeType = NSSPKCS5_PKCS12_V2;
-	   break;
-	   case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC2_CBC:
-	   pbe_param->keyLen = 16;
-	   // fall through
-	   case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC2_CBC:
-	   break;
-
-	   // RC4 algorithms
-	   case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_128_BIT_RC4:
-	   skipType = PR_TRUE;
-	   // fall through
-	   case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_128_BIT_RC4:
-	   pbe_param->keyLen = 16;
-	   // fall through
-	   case SEC_OID_PKCS12_V2_PBE_WITH_SHA1_AND_40_BIT_RC4:
-	   if (!skipType) {
-	   pbe_param->pbeType = NSSPKCS5_PKCS12_V2;
-	   }
-	   // fall through
-	   case SEC_OID_PKCS12_PBE_WITH_SHA1_AND_40_BIT_RC4:
-	   pbe_param->ivLen = 0;
-	   pbe_param->encAlg =  SEC_OID_RC4;
-	   break;
-	   default:
-	   return SECFailure;
-	   }
-
-	 */
-
-	// Allocate here itself...
-	// Added by FireMaster
-//      secKey.data = (unsigned char*)malloc(pbe_param->keyLen);
-//      secKey.len  = pbe_param->keyLen;
-
-//    secIV.data  = (unsigned char*)malloc(pbe_param->ivLen);
-//        secIV.len   = pbe_param->ivLen;
-	secPreHash.data = (unsigned char *) malloc(256);
-	pkcs5_pfxpbe.data = (unsigned char *) malloc(512);
-
-
-	if (!secPreHash.data || !pkcs5_pfxpbe.data)
-		return SECFailure;
-
-
-
 
 	return SECSuccess;
 }
@@ -330,6 +197,7 @@ struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iter
 
 	pbe_param->iter = iterator;
 
+	pbe_param->salt.data = NULL;
 	pbe_param->salt.data = (unsigned char *) malloc(salt->len);
 
 	if (pbe_param->salt.data) {
@@ -340,18 +208,6 @@ struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iter
 
 	// Initialize certain variables......
 	pbe_param->keyID = pbeBitGenCipherKey;
-
-	//ctx = SHA1_GetContext();
-
-	// Initialize hash values....
-	memcpy(secPreHash.data + SHA1_LENGTH, salt->data, salt->len);
-	secPreHash.len = salt->len + SHA1_LENGTH;
-
-	// Setup initial state value
-	// Its important to initialize this to zero
-	//memset(initialState, 0, 128);
-	//memcpy(initialState, salt->data, salt->len);
-
 
 	return pbe_param;
 }
@@ -380,10 +236,10 @@ typedef SECItem *(*pkcs5_crypto_func) (SECItem * key, SECItem * iv, SECItem * sr
  */
 /* change this to use PKCS 11? */
 // Optimized for FireMaster....
-int nsspkcs5_CipherData(struct NSSPKCS5PBEParameter * pbe_param, const unsigned char *pwhash, const unsigned char *encString)
+int nsspkcs5_CipherData(struct NSSPKCS5PBEParameter * pbe_param, const unsigned char *pwhash, const unsigned char *encString, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {
 
-	unsigned char *hashKey = computeKey(pbe_param, pwhash);
+	unsigned char *hashKey = computeKey(pbe_param, pwhash, pkcs5_pfxpbe, secPreHash);
 
 	struct DESContext dctx;
 	DES_CreateContext(&dctx, hashKey, hashKey + 32);
