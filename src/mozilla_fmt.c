@@ -17,6 +17,10 @@
 #include <openssl/sha.h>
 #include "lowpbe.h"
 #include "KeyDBCracker.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               32
+#endif
 
 #define FORMAT_LABEL		"mozilla"
 #define FORMAT_NAME		"Mozilla"
@@ -29,8 +33,9 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static char saved_key[PLAINTEXT_LENGTH + 1];
-static int cracked;
+static int omp_t = 1;
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *cracked;
 static SHA_CTX pctx;
 static SECItem saltItem;
 static unsigned char encString[128];
@@ -51,7 +56,16 @@ static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *s
 
 static void init(struct fmt_main *pFmt)
 {
-
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	cracked = mem_calloc_tiny(sizeof(*cracked) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -79,22 +93,23 @@ static void set_salt(void *salt)
 		free(keyCrackData.oidData);
 		free(keyCrackData.pwCheckStr);
 	}
-        if(CrackKeyData(path, &keyCrackData) == false) {
-                exit(0);
-        }
-        // initialize the pkcs5 structure
-        saltItem.type = (SECItemType) 0;
-        saltItem.len  = keyCrackData.saltLen;
-        saltItem.data = keyCrackData.salt;
-        paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
-        if(paramPKCS5 == NULL) {
-                fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
-                exit(0);
-        }
 
-        // Current algorithm is
-        // SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
-        // Setup the encrypted password-check string
+	if(CrackKeyData(path, &keyCrackData) == false) {
+		exit(0);
+	}
+
+	// initialize the pkcs5 structure
+	saltItem.type = (SECItemType) 0;
+	saltItem.len  = keyCrackData.saltLen;
+	saltItem.data = keyCrackData.salt;
+	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
+	if(paramPKCS5 == NULL) {
+		fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
+		exit(0);
+	}
+	// Current algorithm is
+	// SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
+	// Setup the encrypted password-check string
 	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen );
 	unsigned char data1[256];
 	unsigned char data2[512];
@@ -106,40 +121,51 @@ static void set_salt(void *salt)
 	secPreHash.len = saltItem.len + SHA1_LENGTH;
 	if(CheckMasterPassword("", &pkcs5_pfxpbe, &secPreHash) == true ) {
 		fprintf(stderr, "%s : Master Password is not set\n", (char *)salt);
-        }
+	}
 
-        // Calculate partial sha1 data for password hashing
+	// Calculate partial sha1 data for password hashing
 	SHA1_Init(&pctx);
 	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
 
-	cracked = 0;
 	cleanup_required = 1;
+	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 	free(keeptr);
 }
 
 static void crypt_all(int count)
 {
-	unsigned char data1[256];
-	unsigned char data2[512];
-	SECItem secPreHash;
-	secPreHash.data = data1;
-	memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
-	secPreHash.len = saltItem.len + SHA1_LENGTH;
-	SECItem pkcs5_pfxpbe;
-	pkcs5_pfxpbe.data = data2;
-	if(CheckMasterPassword(saved_key, &pkcs5_pfxpbe, &secPreHash)) {
-		cracked = 1;
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		unsigned char data1[256];
+		unsigned char data2[512];
+		SECItem secPreHash;
+		secPreHash.data = data1;
+		memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
+		secPreHash.len = saltItem.len + SHA1_LENGTH;
+		SECItem pkcs5_pfxpbe;
+		pkcs5_pfxpbe.data = data2;
+		if(CheckMasterPassword(saved_key[index], &pkcs5_pfxpbe, &secPreHash)) {
+			cracked[index] = 1;
+		}
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return cracked;
+	int index;
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked;
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)
@@ -152,13 +178,13 @@ static void mozilla_set_key(char *key, int index)
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
 		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
-	saved_key[saved_key_length] = 0;
+	memcpy(saved_key[index], key, saved_key_length);
+	saved_key[index][saved_key_length] = 0;
 }
 
 static char *get_key(int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
 
 struct fmt_main mozilla_fmt = {
@@ -173,7 +199,7 @@ struct fmt_main mozilla_fmt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		NULL
 	}, {
 		init,
