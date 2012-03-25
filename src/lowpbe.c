@@ -176,15 +176,16 @@ static SECStatus nsspkcs5_FillInParam(int algorithm, struct NSSPKCS5PBEParameter
 
 
 
-/* decode the algid and generate a PKCS 5 parameter from it
- */
+/* decode the algid and generate a PKCS 5 parameter from it */
+static struct NSSPKCS5PBEParameter gpbe_param;
+static unsigned char salt_data[4096];
+
 struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iterator)
 {
 	struct NSSPKCS5PBEParameter *pbe_param = NULL;
 	SECStatus rv = SECFailure;
 
-	pbe_param = (struct NSSPKCS5PBEParameter *) malloc(sizeof(struct NSSPKCS5PBEParameter));
-
+	pbe_param = &gpbe_param;
 	if (pbe_param == NULL)
 		return NULL;
 
@@ -198,7 +199,8 @@ struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iter
 	pbe_param->iter = iterator;
 
 	pbe_param->salt.data = NULL;
-	pbe_param->salt.data = (unsigned char *) malloc(salt->len);
+	// pbe_param->salt.data = (unsigned char *) malloc(salt->len);
+	pbe_param->salt.data = salt_data;
 
 	if (pbe_param->salt.data) {
 		memcpy(pbe_param->salt.data, salt->data, salt->len);

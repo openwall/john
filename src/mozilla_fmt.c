@@ -79,8 +79,6 @@ static void set_salt(void *salt)
 		free(keyCrackData.oidData);
 		free(keyCrackData.pwCheckStr);
 	}
-
-
         if(CrackKeyData(path, &keyCrackData) == false) {
                 exit(0);
         }
@@ -88,11 +86,6 @@ static void set_salt(void *salt)
         saltItem.type = (SECItemType) 0;
         saltItem.len  = keyCrackData.saltLen;
         saltItem.data = keyCrackData.salt;
-	if(cleanup_required == 1) {
-		if(paramPKCS5->salt.data)
-			free(paramPKCS5->salt.data);
-		free(paramPKCS5);
-	}
         paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
         if(paramPKCS5 == NULL) {
                 fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
