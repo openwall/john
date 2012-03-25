@@ -31,7 +31,7 @@ static void process_path(char *path)
 	if(stat(path, &psb) == 0 && stat(certpath, &csb) == -1) {
 		/* we can't verify if Master Password is set or not, so warn user */
 		if(S_ISDIR(psb.st_mode)) {
-			printf ("%s is a directory, expecting key3.db file!\n", path);
+			fprintf (stderr, "%s is a directory, expecting key3.db file!\n", path);
 			free(keep_ptr);
 			return;
 		}
@@ -73,7 +73,7 @@ int mozilla2john(int argc, char **argv)
 	int i;
 
 	if (argc < 2) {
-		puts("Usage: mozilla2john [key3.db files]");
+		fprintf(stderr, "Usage: mozilla2john [key3.db files]");
 		return 0;
 	}
 	for (i = 1; i < argc; i++)
