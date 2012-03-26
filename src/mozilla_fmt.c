@@ -39,7 +39,7 @@ static int *cracked;
 static SHA_CTX pctx;
 static SECItem saltItem;
 static unsigned char encString[128];
-struct NSSPKCS5PBEParameter *paramPKCS5 = NULL;
+static struct NSSPKCS5PBEParameter *paramPKCS5 = NULL;
 static struct KeyCrackData keyCrackData;
 static int cleanup_required = 0;
 
@@ -111,17 +111,6 @@ static void set_salt(void *salt)
 	// SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
 	// Setup the encrypted password-check string
 	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen );
-	unsigned char data1[256];
-	unsigned char data2[512];
-	SECItem pkcs5_pfxpbe;
-	pkcs5_pfxpbe.data = data2;
-	SECItem secPreHash;
-	secPreHash.data = data1;
-	memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
-	secPreHash.len = saltItem.len + SHA1_LENGTH;
-	if(CheckMasterPassword("", &pkcs5_pfxpbe, &secPreHash) == true ) {
-		fprintf(stderr, "%s : Master Password is not set\n", (char *)salt);
-	}
 
 	// Calculate partial sha1 data for password hashing
 	SHA1_Init(&pctx);

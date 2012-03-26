@@ -42,7 +42,7 @@ bool OpenKeyDBFile(char *keydbFileName)
 	keyFile = fopen(keydbFileName, "rb");
 
 	if( keyFile == NULL ) {
-		printf("Failed to open file %s\n", keydbFileName);
+		fprintf(stderr, "%s : failed to open file!\n", keydbFileName);
 		return FALSE;
 	}
 	return TRUE;
