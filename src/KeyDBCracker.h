@@ -79,7 +79,7 @@ struct KeyCrackData
 	unsigned char encData[17];   // Encrypted data 16 + 1
 	unsigned char *pwCheckStr;   // Password check string "password-check"
 	unsigned char globalSaltLen; // Global Salt Length ...extra field
-	unsigned char globalSalt[17];// Global Salt  16 + 1
+	unsigned char globalSalt[25];// Global Salt  24 + 1
 };
 
 
