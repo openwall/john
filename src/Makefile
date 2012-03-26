@@ -4,7 +4,7 @@
 #
 # ...with changes in the jumbo patch, by various authors
 #
-
+DEBUG = 1
 CC = gcc
 AS = $(CC)
 LD = $(CC)
@@ -36,13 +36,21 @@ OMPFLAGS =
 #OMPFLAGS = -xopenmp
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
+ifdef DEBUG
+CFLAGS = -c -g -Wall  -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
+else
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS) 
+endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
+ifdef DEBUG
+LDFLAGS = -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
+else
 LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
+endif
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
