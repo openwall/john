@@ -5,67 +5,101 @@
 
 #ifdef HAVE_NSS
 #include <string.h>
-#include <libgen.h>
-#include <assert.h>
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <nss.h>
-#include <pk11pub.h>
-#include <nssb64.h>
-#include <pk11sdr.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include "arch.h"
+#include "misc.h"
+#include "common.h"
+#include "formats.h"
+#include "params.h"
+#include "options.h"
+#include <openssl/sha.h>
+#include "lowpbe.h"
+#include "KeyDBCracker.h"
+
+static SHA_CTX pctx;
+static SECItem saltItem;
+static unsigned char encString[128];
+static struct NSSPKCS5PBEParameter *paramPKCS5 = NULL;
+static struct KeyCrackData keyCrackData;
+
+static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
+{
+	unsigned char passwordHash[SHA1_LENGTH+1];
+	SHA_CTX ctx;
+	memcpy(&ctx, &pctx, sizeof(SHA_CTX) );
+	SHA1_Update(&ctx, (unsigned char *)password, strlen(password));
+	SHA1_Final(passwordHash, &ctx);
+	return nsspkcs5_CipherData(paramPKCS5, passwordHash, encString, pkcs5_pfxpbe, secPreHash);
+}
 
 static void process_path(char *path)
 {
-	void *keySlot;
-	char certpath[4096];
-	char *mpath = strdup(path);
-	char *keep_ptr = mpath;
-	struct stat psb, csb;
-	char *basepath = dirname(mpath);
-	sprintf(certpath, "%s/%s", basepath, "cert8.db");
-
-	if(stat(path, &psb) == 0 && stat(certpath, &csb) == -1) {
-		/* we can't verify if Master Password is set or not, so warn user */
-		if(S_ISDIR(psb.st_mode)) {
-			fprintf (stderr, "%s is a directory, expecting key3.db file!\n", path);
-			free(keep_ptr);
+	int i;
+	struct stat sb;
+	if(stat(path, &sb) == 0) {
+		if(S_ISDIR(sb.st_mode)) {
+			fprintf (stderr, "%s : is a directory, expecting key3.db file!\n", path);
 			return;
 		}
-		fprintf(stderr, "%s missing, can't verify if no Master Password is set!\n", certpath);
-    		printf("%s:$mozilla$*%s\n",path, path);
-		free(keep_ptr);
+	}
+	if(CrackKeyData(path, &keyCrackData) == false) {
 		return;
 	}
-
-	if (NSS_Init(basepath) != SECSuccess) {
-		fprintf(stderr, "%s : NSS_Init failed, check if the given directory contains cert8.db and key3.db files.\n", basepath);
-		free(keep_ptr);
+	// initialize the pkcs5 structure
+	saltItem.type = (SECItemType) 0;
+	saltItem.len  = keyCrackData.saltLen;
+	saltItem.data = keyCrackData.salt;
+	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
+	if(paramPKCS5 == NULL) {
+		fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
 		return;
 	}
-
-	if ((keySlot = PK11_GetInternalKeySlot()) == NULL) {
-		fprintf(stderr, "PK11_GetInternalKeySlot failed, bug?\n");
-		free(keep_ptr);
-		NSS_Shutdown();
-		return;
+	// Current algorithm is
+	// SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
+	// Setup the encrypted password-check string
+	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen);
+	// Calculate partial sha1 data for password hashing
+	SHA1_Init(&pctx);
+	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
+	unsigned char data1[256];
+	unsigned char data2[512];
+	SECItem secPreHash;
+	secPreHash.data = data1;
+	memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
+	secPreHash.len = saltItem.len + SHA1_LENGTH;
+	SECItem pkcs5_pfxpbe;
+	pkcs5_pfxpbe.data = data2;
+	if(CheckMasterPassword("", &pkcs5_pfxpbe, &secPreHash)) {
+		fprintf (stderr, "%s : no Master Password set!\n", path);
+		goto out;
 	}
+	printf("%s:$mozilla$*%d*%d*%d*",path, keyCrackData.version, keyCrackData.saltLen, keyCrackData.nnLen);
+	for (i = 0; i < keyCrackData.saltLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.salt[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.salt[i] & 0x0f)]);
+	printf("*%d*", keyCrackData.oidLen);
+	for (i = 0; i < keyCrackData.oidLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.oidData[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.oidData[i] & 0x0f)]);
 
-	if (PK11_CheckUserPassword(keySlot, "") == SECSuccess) {
-		fprintf(stderr, "%s : Master Password is not set!\n", path);
-		free(keep_ptr);
-		PK11_FreeSlot(keySlot);
-		NSS_Shutdown();
-		return;
-	}
+	printf("*%d*", keyCrackData.encDataLen);
+	for (i = 0; i < keyCrackData.encDataLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.encData[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.encData[i] & 0x0f)]);
+	printf("*%d*", keyCrackData.globalSaltLen);
+	for (i = 0; i < keyCrackData.globalSaltLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.globalSalt[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.globalSalt[i] & 0x0f)]);
+	printf("\n");
 
-	free(keep_ptr);
-	PK11_FreeSlot(keySlot);
-	NSS_Shutdown();
-    	printf("%s:$mozilla$*%s\n",path, path);
+out:
+	free(keyCrackData.salt);
+	free(keyCrackData.oidData);
 }
 
 int mozilla2john(int argc, char **argv)
