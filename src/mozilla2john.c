@@ -39,6 +39,7 @@ static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *s
 
 static void process_path(char *path)
 {
+	int i;
 	struct stat sb;
 	if(stat(path, &sb) == 0) {
 		if(S_ISDIR(sb.st_mode)) {
@@ -61,7 +62,7 @@ static void process_path(char *path)
 	// Current algorithm is
 	// SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
 	// Setup the encrypted password-check string
-	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen );
+	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen);
 	// Calculate partial sha1 data for password hashing
 	SHA1_Init(&pctx);
 	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
@@ -77,13 +78,28 @@ static void process_path(char *path)
 		fprintf (stderr, "%s : no Master Password set!\n", path);
 		goto out;
 	}
-	printf("%s:$mozilla$*%s\n",path, path);
+	printf("%s:$mozilla$*%d*%d*%d*",path, keyCrackData.version, keyCrackData.saltLen, keyCrackData.nnLen);
+	for (i = 0; i < keyCrackData.saltLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.salt[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.salt[i] & 0x0f)]);
+	printf("*%d*", keyCrackData.oidLen);
+	for (i = 0; i < keyCrackData.oidLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.oidData[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.oidData[i] & 0x0f)]);
+
+	printf("*%d*", keyCrackData.encDataLen);
+	for (i = 0; i < keyCrackData.encDataLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.encData[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.encData[i] & 0x0f)]);
+	printf("*%d*", keyCrackData.globalSaltLen);
+	for (i = 0; i < keyCrackData.globalSaltLen; i++)
+		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.globalSalt[i] >> 4)],
+				itoa16[ARCH_INDEX(keyCrackData.globalSalt[i] & 0x0f)]);
+	printf("\n");
 
 out:
 	free(keyCrackData.salt);
-	free(keyCrackData.nickName);
 	free(keyCrackData.oidData);
-	free(keyCrackData.pwCheckStr);
 }
 
 int mozilla2john(int argc, char **argv)
