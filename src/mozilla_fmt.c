@@ -26,14 +26,13 @@
 #define FORMAT_NAME		"Mozilla"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	16
 #define BINARY_SIZE		16
 #define SALT_SIZE		512
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 static SHA_CTX pctx;
@@ -66,6 +65,8 @@ static struct fmt_tests mozilla_tests[] = {
 static void init(struct fmt_main *pFmt)
 {
 #if defined (_OPENMP)
+	int omp_t;
+
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -151,7 +152,6 @@ static void set_salt(void *salt)
 	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
 
 	cleanup_required = 1;
-	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 	free(keeptr);
 }
 
@@ -171,9 +171,9 @@ static void crypt_all(int count)
 		secPreHash.len = saltItem.len + SHA1_LENGTH;
 		SECItem pkcs5_pfxpbe;
 		pkcs5_pfxpbe.data = data2;
-		if(CheckMasterPassword(saved_key[index], &pkcs5_pfxpbe, &secPreHash)) {
-			cracked[index] = 1;
-		}
+		cracked[index] = CheckMasterPassword(saved_key[index],
+		                                     &pkcs5_pfxpbe,
+		                                     &secPreHash);
 	}
 }
 
