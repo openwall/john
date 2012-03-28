@@ -53,6 +53,8 @@ static void process_path(char *path)
 	// initialize the pkcs5 structure
 	saltItem.type = (SECItemType) 0;
 	saltItem.len  = keyCrackData.saltLen;
+	assert(keyCrackData.saltLen < 32);
+	assert(keyCrackData.oidLen < 32);
 	saltItem.data = keyCrackData.salt;
 	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
 	if(paramPKCS5 == NULL) {
@@ -76,7 +78,7 @@ static void process_path(char *path)
 	pkcs5_pfxpbe.data = data2;
 	if(CheckMasterPassword("", &pkcs5_pfxpbe, &secPreHash)) {
 		fprintf (stderr, "%s : no Master Password set!\n", path);
-		goto out;
+		return;
 	}
 	printf("%s:$mozilla$*%d*%d*%d*",path, keyCrackData.version, keyCrackData.saltLen, keyCrackData.nnLen);
 	for (i = 0; i < keyCrackData.saltLen; i++)
@@ -96,10 +98,6 @@ static void process_path(char *path)
 		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.globalSalt[i] >> 4)],
 				itoa16[ARCH_INDEX(keyCrackData.globalSalt[i] & 0x0f)]);
 	printf("\n");
-
-out:
-	free(keyCrackData.salt);
-	free(keyCrackData.oidData);
 }
 
 int mozilla2john(int argc, char **argv)

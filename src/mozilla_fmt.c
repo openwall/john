@@ -40,7 +40,6 @@ static SECItem saltItem;
 static unsigned char encString[128];
 static struct NSSPKCS5PBEParameter *paramPKCS5 = NULL;
 static struct KeyCrackData keyCrackData;
-static int cleanup_required = 0;
 
 static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {
@@ -96,31 +95,23 @@ static void set_salt(void *salt)
 	char *keeptr = saltcopy;
 	saltcopy += 9;	/* skip over "$mozilla$*" */
 	char *p = strtok(saltcopy, "*");
-	if(cleanup_required == 1) {
-		free(keyCrackData.salt);
-		free(keyCrackData.oidData);
-	}
 	keyCrackData.version = atoi(p);
 	p = strtok(NULL, "*");
 	keyCrackData.saltLen = atoi(p);
 	p = strtok(NULL, "*");
 	keyCrackData.nnLen = atoi(p);
 	p = strtok(NULL, "*");
-	unsigned char *ksalt = (unsigned char*)malloc(keyCrackData.saltLen+1);
 	for (i = 0; i < keyCrackData.saltLen; i++)
-		ksalt[i] = atoi16[ARCH_INDEX(p[i * 2])]
+		keyCrackData.salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	ksalt[keyCrackData.saltLen] =0;
-	keyCrackData.salt = ksalt;
+	keyCrackData.salt[keyCrackData.saltLen] =0;
 	p = strtok(NULL, "*");
 	keyCrackData.oidLen = atoi(p);
 	p = strtok(NULL, "*");
-	unsigned char *oidData =  (unsigned char*) malloc(keyCrackData.oidLen+1);
 	for (i = 0; i < keyCrackData.oidLen; i++)
-		oidData[i] = atoi16[ARCH_INDEX(p[i * 2])]
+		keyCrackData.oidData[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	oidData[keyCrackData.oidLen] =0;
-	keyCrackData.oidData = oidData;
+	keyCrackData.oidData[keyCrackData.oidLen] =0;
 	p = strtok(NULL, "*");
 	keyCrackData.encDataLen = atoi(p);
 	p = strtok(NULL, "*");
@@ -151,7 +142,6 @@ static void set_salt(void *salt)
 	SHA1_Init(&pctx);
 	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
 
-	cleanup_required = 1;
 	free(keeptr);
 }
 
