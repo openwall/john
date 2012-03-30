@@ -4,7 +4,7 @@
 #
 # ...with changes in the jumbo patch, by various authors
 #
-DEBUG = 1
+#DEBUG = 1
 CC = gcc
 AS = $(CC)
 LD = $(CC)
@@ -36,7 +36,7 @@ OMPFLAGS =
 #OMPFLAGS = -xopenmp
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
-ifdef DEBUG
+ifeq ($(DEBUG),1)
 CFLAGS = -c -g -Wall  -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 else
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS) 
@@ -140,7 +140,8 @@ CUDA_OBJS = \
 	cuda_mscash2_fmt.o cuda_mscash2.o \
 	cuda_rawsha256_fmt.o cuda_rawsha256.o \
 	cuda_rawsha224_fmt.o cuda_rawsha224.o \
-	cuda_mscash_fmt.o cuda_mscash.o
+	cuda_mscash_fmt.o cuda_mscash.o \
+	cuda_xsha512_fmt.o cuda_xsha512.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -1375,6 +1376,13 @@ cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
 
 cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c cuda_rawsha256.h
 	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
+
+cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) xsha512.cu
+	mv cuda/xsha512.o cuda_xsha512.o
+
+cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c cuda_xsha512.h
+	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
