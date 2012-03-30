@@ -7,6 +7,7 @@
 #include <openssl/sha.h>
 #include "../cuda_xsha512.h"
 #include "cuda_common.cuh"
+#include "cuPrintf.cu"
 
 #include <stdio.h>
 
@@ -79,6 +80,7 @@ __device__ void xsha512_update(xsha512_ctx *ctx, const char *string, uint8_t len
     ctx->buflen += length;
 }
 
+// The function below is from Lukas' crypt512-cuda
 __device__ void sha512_block(xsha512_ctx * ctx)
 {
 	int i;
@@ -166,9 +168,6 @@ __device__ void xsha512_final(uint64_t *hash, xsha512_ctx *ctx)
     buffer64[15] = SWAP64((uint64_t) ctx->buflen * 8); 
 
     sha512_block(ctx);
-	for(uint32_t i = 0; i < 8; ++i)
-		hash[i] = SWAP64(ctx->H[i]);
-    
 }
 
 __device__ void xsha512(const char* password, uint8_t pass_len, uint64_t *hash, uint32_t idx)
@@ -179,12 +178,16 @@ __device__ void xsha512(const char* password, uint8_t pass_len, uint64_t *hash, 
     xsha512_update(&ctx, password, pass_len);
     xsha512_final(hash, &ctx);
 
+	#pragma unroll 8
+	for(uint32_t i = 0; i < 8; ++i) {
+		hash[hash_addr(i, idx)] = SWAP64(ctx.H[i]);
+	}
 }
 
 __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_hash)
 {
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-    xsha512((const char*)cuda_password[idx].v, cuda_password[idx].length, cuda_hash[idx].v, idx);
+    xsha512((const char*)cuda_password[idx].v, cuda_password[idx].length, (uint64_t*)cuda_hash, idx);
 }
 
 void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash) // Posible move cuda_password to constant?
@@ -202,8 +205,10 @@ void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_ha
 
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
-
+//	cudaPrintfInit();
     kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
+//	cudaPrintfDisplay(stdout, true);
+//	cudaPrintfEnd();
     HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
     HANDLE_ERROR(cudaFree(cuda_password));
     HANDLE_ERROR(cudaFree(cuda_hash));

@@ -177,37 +177,37 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	return ghash[index].v[0] & 0xF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	return ghash[index].v[0] & 0xFF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	return ghash[index].v[0] & 0xFFF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	return ghash[index].v[0] & 0xFFFF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	return ghash[index].v[0] & 0xFFFFF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	return ghash[index].v[0] & 0xFFFFFF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	return ghash[index].v[0] & 0x7FFFFFF;
+	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
 static int salt_hash(void *salt)
@@ -244,11 +244,9 @@ static int cmp_all(void *binary, int count)
 {
 	uint64_t b0 = *(uint64_t *)binary;
 	int i;
-
+	uint64_t *h = ghash;
 	for (i = 0; i < count; i++) {
-		if (b0 != ghash[i].v[0])
-			continue;
-		if (!memcmp(binary, ghash[i].v, BINARY_SIZE))
+		if (b0 == h[hash_addr(0, i)])
 			return 1;
 	}
 	return 0;
@@ -256,7 +254,15 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, ghash[index].v, BINARY_SIZE);
+	int i;
+	uint64_t *b = (uint64_t *) binary;
+	uint64_t *t = (uint64_t *)ghash;
+	for (i = 0; i < 8; i++) {
+		if (b[i] != t[hash_addr(i, index)])
+			return 0;
+	}
+	return 1;
+
 }
 
 static int cmp_exact(char *source, int index)

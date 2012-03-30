@@ -12,7 +12,7 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 256
+#define BLOCKS 64
 #define THREADS 128
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
