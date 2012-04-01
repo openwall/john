@@ -158,10 +158,8 @@ bool CrackKeyData(char *profilePath, struct KeyCrackData *keyCrackData)
 	keyCrackData->nnLen   = buffer[index++];
 
 	// Copy the salt
-	unsigned char *salt = (unsigned char*)malloc(keyCrackData->saltLen+1);
-	memcpy(salt, &buffer[index], keyCrackData->saltLen);
-	salt[keyCrackData->saltLen] =0;
-	keyCrackData->salt = salt;
+	memcpy(keyCrackData->salt, &buffer[index], keyCrackData->saltLen);
+	keyCrackData->salt[keyCrackData->saltLen] =0;
 
 	index += keyCrackData->saltLen;
 
@@ -175,10 +173,8 @@ bool CrackKeyData(char *profilePath, struct KeyCrackData *keyCrackData)
 
 	// Copy OID stuff
 	keyCrackData->oidLen = buffer[index++];
-	unsigned char *oidData =  (unsigned char*) malloc(keyCrackData->oidLen+1);
-	memcpy(oidData, &buffer[index], keyCrackData->oidLen);
-	oidData[keyCrackData->oidLen] =0;
-	keyCrackData->oidData = oidData;
+	memcpy(keyCrackData->oidData, &buffer[index], keyCrackData->oidLen);
+	keyCrackData->oidData[keyCrackData->oidLen] =0;
 
 	index +=keyCrackData->oidLen;
 
