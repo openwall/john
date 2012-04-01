@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
@@ -168,7 +168,7 @@ __device__ __host__ void preproc(const uint8_t * key, uint32_t keylen,
 }
 
 __device__ void hmac_sha1(const uint8_t * key, uint32_t keylen,
-    const uint8_t * input, uint32_t inputlen, uint8_t * output,
+    const uint8_t * input, uint32_t inputlen, uint32_t * output,
     uint32_t * ipad_state, uint32_t * opad_state)
 {
 	int i;
@@ -240,28 +240,107 @@ __device__ void hmac_sha1(const uint8_t * key, uint32_t keylen,
 	D += state_D;
 	E += state_E;
 
-	PUT_WORD_32_BE(A, output, 0);
-	PUT_WORD_32_BE(B, output, 4);
-	PUT_WORD_32_BE(C, output, 8);
-	PUT_WORD_32_BE(D, output, 12);
-	PUT_WORD_32_BE(E, output, 16);
+	output[0]=SWAP(A);
+	output[1]=SWAP(B);
+	output[2]=SWAP(C);
+	output[3]=SWAP(D);
+	output[4]=SWAP(E);
 }
 
-__device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
-    int saltlen, uint8_t * out)
+
+__device__ void big_hmac_sha1(
+    uint32_t * input, uint32_t inputlen,
+    uint32_t * ipad_state, uint32_t * opad_state,uint32_t *tmp_out)
 {
-	uint8_t temp[SHA1_DIGEST_LENGTH];
-	__shared__ uint8_t sbuf[THREADS][48];
-	uint8_t* buf=sbuf[threadIdx.x];
+	int i,lo;
+	uint32_t temp, W[16];
+	uint32_t A, B, C, D, E;
+#pragma unroll 5
+	for(i=0;i<5;i++)
+	  W[i]=SWAP(input[i]);
+#pragma unroll 4
+	for(i=0;i<4;i++)
+	tmp_out[i]=SWAP(tmp_out[i]);
+	
+	for(lo=1; lo<ITERATIONS; lo++) {
+
+		A = ipad_state[0];
+		B = ipad_state[1];
+		C = ipad_state[2];
+		D = ipad_state[3];
+		E = ipad_state[4];
+
+		W[5]=0x80000000;
+		W[15]=0x2A0;
+		
+		#pragma unroll 9
+		for (i = 6; i < 15; i++) W[i]=0;
+
+		SHA1(A, B, C, D, E, W);
+
+		A += ipad_state[0];
+		B += ipad_state[1];
+		C += ipad_state[2];
+		D += ipad_state[3];
+		E += ipad_state[4];
+
+		W[0]=A;
+		W[1]=B;
+		W[2]=C;
+		W[3]=D;
+		W[4]=E;
+		W[5]=0x80000000;
+		W[15]=0x2A0;
+		
+		#pragma unroll 9
+		for(i=6;i<15;i++) W[i]=0;
+		
+  
+		A = opad_state[0];
+		B = opad_state[1];
+		C = opad_state[2];
+		D = opad_state[3];
+		E = opad_state[4];
+
+		SHA1(A, B, C, D, E, W);
+
+		A += opad_state[0];
+		B += opad_state[1];
+		C += opad_state[2];
+		D += opad_state[3];
+		E += opad_state[4];
+
+		W[0]=A;
+		W[1]=B;
+		W[2]=C;
+		W[3]=D;
+		W[4]=E;
+	
+		tmp_out[0]^=A;
+		tmp_out[1]^=B;
+		tmp_out[2]^=C;
+		tmp_out[3]^=D;
+	}
+
+#pragma unroll 4
+for(i=0;i<4;i++)
+	tmp_out[i]=SWAP(tmp_out[i]);
+}
+
+
+__device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
+            int saltlen, uint8_t * out)
+{
+	uint8_t buf[48];
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
-	int i, j;
-	uint8_t tmp_out[16];
+	uint32_t tmp_out[5];
+	int i;
 
 	i=48/4;
 	uint32_t *src=(uint32_t*)buf;
 	while(i--)
-	  *src++=0;
+		*src++=0;
 
 	memcpy(buf, salt, saltlen);
 	buf[saltlen + 3] = 0x01;
@@ -269,20 +348,13 @@ __device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
 	preproc(pass, 16, ipad_state, 0x36);
 	preproc(pass, 16, opad_state, 0x5c);
 
-	hmac_sha1(pass, 16, buf, saltlen + 4, temp, ipad_state, opad_state);
+	hmac_sha1(pass, 16, buf, saltlen + 4, tmp_out, ipad_state, opad_state);
 
-	memcpy(tmp_out, temp, 20);
+	big_hmac_sha1( tmp_out, SHA1_DIGEST_LENGTH, ipad_state,opad_state,tmp_out);
 
-	for (i = 1; i < ITERATIONS; i++) {
-		hmac_sha1(pass, 16, temp, SHA1_DIGEST_LENGTH, temp, ipad_state,
-		    opad_state);
-
-#pragma unroll 16
-		for (j = 0; j < 16; j++)
-			tmp_out[j] ^= temp[j];
-	}
-	memcpy(out, tmp_out, 20);
+	memcpy(out, tmp_out, 16);
 }
+
 
 
 __global__ void pbkdf2_kernel(mscash2_password * inbuffer,
@@ -315,8 +387,6 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 		((uint32_t *) salt)[i] =
 		    username[2 * i] | (username[2 * i + 1] << 16);
 	memcpy(host_salt->unicode_salt, salt, 64);
-
-
 
 	for (idx = 0; idx < KEYS_PER_CRYPT; idx++) {
 
@@ -353,9 +423,8 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 		md4_crypt(nt_hash, inbuffer[idx].dcc_hash);
 
 	}
-
-      
     }
+
 __host__ void mscash2_gpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
     mscash2_salt * host_salt)
 {
