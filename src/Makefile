@@ -470,7 +470,7 @@ linux-x86-sse2:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
+		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 
 linux-x86-sse2i:
@@ -1545,6 +1545,9 @@ SIPdump: SIPdump.o
 
 vncpcap2john:
 	g++ vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
+
+office2john:
+	$(CC) `pkg-config --cflags libgsf-1` office2john.c common.o `pkg-config --libs libgsf-1` -o ../run/office2john
 
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
