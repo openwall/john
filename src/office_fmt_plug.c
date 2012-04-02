@@ -20,12 +20,13 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	8
+#define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		256
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#if 0
 static void print_hex(unsigned char *str, int len)
 {
 	int i;
@@ -33,9 +34,10 @@ static void print_hex(unsigned char *str, int len)
 		printf("%02x", str[i]);
 	printf("\n");
 }
+#endif
 
 static struct fmt_tests office_tests[] = {
-	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd86511ee967274442287bc600", "Paswword"},
+	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd86511ee967274442287bc600", "Password"},
 	{NULL}
 };
 
@@ -115,21 +117,22 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	inputBuf = (unsigned char *)malloc(0x14 + 0x04);
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
+	memcpy(inputBuf + 4, hashBuf, 20);
 	for (i = 0; i < 50000; i++) {
-		memcpy(inputBuf, &i, 4);
+		*(int *)inputBuf = i; // XXX: size & endianness
 		// 'append' the previously generated hash to the input buffer
-		memcpy(inputBuf + 4, hashBuf, 20);
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
-		SHA1_Final(hashBuf, &ctx);
+		SHA1_Final(inputBuf + 4, &ctx);
 	}
 	//print_hex(hashBuf, 20);
 
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
 	i = 0;
-	memcpy(inputBuf, hashBuf, 20);
-	memcpy(inputBuf + 20, &i, 4);
+//	memcpy(inputBuf, hashBuf, 20);
+	memmove(inputBuf, inputBuf + 4, 20);
+	memcpy(inputBuf + 20, &i, 4); // XXX: size & endianness
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
 	SHA1_Final(hashBuf, &ctx);
@@ -243,13 +246,13 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
-	unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1("Password");
+	unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1(saved_key);
 	if (PasswordVerifier(encryptionKey)) {
 		// printf("Password verification succeeded!\n");
 		cracked = 1;
 	}
 	else {
-		printf("Password verification failed!\n");
+		// printf("Password verification failed!\n");
 	}
 
 }
@@ -272,8 +275,8 @@ static int cmp_exact(char *source, int index)
 static void office_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
-	if (saved_key_length > 8)
-		saved_key_length = 8;
+	if (saved_key_length > PLAINTEXT_LENGTH)
+		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key, key, saved_key_length);
 	saved_key[saved_key_length] = 0;
 }
