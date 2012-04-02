@@ -1546,6 +1546,9 @@ SIPdump: SIPdump.o
 vncpcap2john:
 	g++ vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
 
+office2john:
+	$(CC) `pkg-config --cflags libgsf-1` office2john.c common.o `pkg-config --libs libgsf-1` -o ../run/office2john
+
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
 
