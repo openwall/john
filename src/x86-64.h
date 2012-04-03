@@ -26,6 +26,7 @@
 #define OS_TIMER			0
 #else
 #define OS_TIMER			1
+#endif
 #define OS_FLOCK			1
 
 #define CPU_DETECT			0
