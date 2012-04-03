@@ -3,11 +3,8 @@
  * Copyright (c) 2008,2011 by Solar Designer
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
 
 #include <string.h>
-#include <openssl/sha.h>
 
 #include "cuda_xsha512.h"
 #include "arch.h"
@@ -35,8 +32,9 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-extern void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
-extern void gpu_xsha512_init();
+extern void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
+extern void cuda_xsha512_init();
+extern int cuda_cmp_all(void *binary, int count);
 
 
 static xsha512_key *gkey;
@@ -48,7 +46,7 @@ static void init(struct fmt_main *pFmt)
 {
 	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*KEYS_PER_CRYPT);
 	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*KEYS_PER_CRYPT);
-	gpu_xsha512_init();
+	cuda_xsha512_init();
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -211,8 +209,7 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	gkey[index].length = length;
 	memcpy(gkey[index].v, key, length);
-//	if(index == 0) 
-		xsha512_key_changed = 1;
+	xsha512_key_changed = 1;
 }
 
 static char *get_key(int index)
@@ -223,20 +220,22 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-    gpu_xsha512(gkey, &gsalt, ghash);
-	xsha512_key_changed = 0;
+    cuda_xsha512(gkey, &gsalt, ghash);
+	if(xsha512_key_changed)
+		xsha512_key_changed = 0;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	uint64_t b0 = *(uint64_t *)binary;
+	/*uint64_t b0 = *(uint64_t *)binary;
 	int i;
 	uint64_t *h = ghash;
 	for (i = 0; i < count; i++) {
 		if (b0 == h[hash_addr(0, i)])
 			return 1;
 	}
-	return 0;
+	return 0;*/
+	return cuda_cmp_all(binary, count);
 }
 
 static int cmp_one(void *binary, int index)
@@ -307,9 +306,3 @@ struct fmt_main fmt_cuda_xsha512 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

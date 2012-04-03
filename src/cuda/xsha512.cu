@@ -8,8 +8,9 @@
 #include "cuda_common.cuh"
 
 
-extern "C" void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
-extern "C" void gpu_xsha512_init();
+extern "C" void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
+extern "C" void cuda_xsha512_init();
+extern "C" int cuda_cmp_all(void *binary, int count);
 
 static xsha512_key *cuda_password;
 static xsha512_hash *cuda_hash;
@@ -60,7 +61,7 @@ __constant__ uint64_t k[] = {
 };
 
 __constant__ xsha512_salt cuda_salt[1];
-
+__constant__ uint64_t cuda_b0[1];
 
 __device__ void xsha512_init(xsha512_ctx *ctx)
 {
@@ -193,19 +194,19 @@ __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_ha
     xsha512((const char*)cuda_password[idx].v, cuda_password[idx].length, (uint64_t*)cuda_hash, idx);
 }
 
-void gpu_xsha512_init()
+void cuda_xsha512_init()
 {
     password_size = sizeof(xsha512_key) * KEYS_PER_CRYPT;
     hash_size = sizeof(xsha512_hash) *KEYS_PER_CRYPT;
 	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
     HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
 }
-void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash) // Posible move cuda_password to constant?
+void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash) 
 {
 	if(xsha512_key_changed) {
 	    HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
-	    HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
 	}
+    HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
 
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
@@ -213,3 +214,29 @@ void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_ha
     HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
 }
 
+__global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
+{
+	uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+	if(idx == 0)
+		*result = 0;
+//	__syncthreads();
+	if(idx < count){
+		if (cuda_b0[0] == hash[hash_addr(0, idx)])
+			*result = 1;
+	}
+}
+
+int cuda_cmp_all(void *binary, int count)
+{
+	uint64_t b0 = *(uint64_t *)binary;
+	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
+	uint8_t result = 0;
+	uint8_t *cuda_result;
+	HANDLE_ERROR(cudaMalloc(&cuda_result, sizeof(uint8_t)));
+    dim3 dimGrid(BLOCKS);
+    dim3 dimBlock(THREADS);
+	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
+	HANDLE_ERROR(cudaMemcpy(&result, cuda_result, sizeof(uint8_t), cudaMemcpyDeviceToHost));
+	return result;
+}
