@@ -27,7 +27,7 @@
 #if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER)
 #define OS_TIMER			0
 #else
-#define OS_TIMER			1
+#define OS_TIMER			0
 #endif
 #define OS_FLOCK			1
 #define CPU_DETECT			1
