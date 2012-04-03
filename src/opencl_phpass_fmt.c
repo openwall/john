@@ -179,7 +179,7 @@ static void find_best_workgroup()
 
 static void init(struct fmt_main *pFmt)
 {
-	//atexit(release_all);
+	atexit(release_all);
 	opencl_init("$JOHN/phpass_kernel.cl", gpu_id,platform_id);
 
 	/// Alocate memory
