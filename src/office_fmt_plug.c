@@ -189,7 +189,6 @@ static int PasswordVerifier(unsigned char * key)
 	int i;
 	for (i = 0; i < 16; i++) {
 		if (decryptedVerifierHash[i] != checkHash[i]) {
-			printf("bad at %d\n", i);
 			return 0;
 		}
 	}

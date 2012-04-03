@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <string.h>
 #define LOG_SIZE 1024*16
-#define SRC_SIZE 1024*16
+#define SRC_SIZE 4096*16
 
 static char opencl_log[LOG_SIZE];
 static char kernel_source[SRC_SIZE];
