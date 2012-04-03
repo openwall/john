@@ -23,6 +23,7 @@
 #define UNRAR_H 1
 
 #include "arch.h"
+#include <openssl/evp.h>
 
 #include <sys/types.h>
 
@@ -181,7 +182,8 @@ typedef struct unpack_data_tag
 	rarvm_data_t rarvm_data;
 	unsigned int unp_crc;
 	unsigned int pack_size;
-	AES_KEY key;
+	EVP_CIPHER_CTX *ctx;
+	unsigned char *key;
 	unsigned char *iv;
 } unpack_data_t;
 
