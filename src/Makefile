@@ -23,11 +23,6 @@ CPPFLAGS = -E
 #CC = mpicc -DHAVE_MPI
 #MPIOBJ = john-mpi.o
 
-CUDAPATH = /usr/local/cuda/lib
-CUDA64PATH = /usr/local/cuda/lib64
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
-
-
 OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
@@ -40,7 +35,26 @@ OMPFLAGS =
 # NSS (and NSPR) flag, un-comment if installed (needed for mozilla format)
 #HAVE_NSS = -DHAVE_NSS
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) `pkg-config --cflags nss`
+# Change sm_10 to sm_20 if you have Fermi support (400 series or later)
+NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+CUDAPATH = /usr/local/cuda/lib
+CUDA64PATH = /usr/local/cuda/lib64
+
+ifdef NVIDIA_CUDA
+OCLROOT = $(NVIDIA_CUDA)
+else
+OCLROOT = /usr/local/cuda
+endif
+ifdef AMDAPPSDKROOT
+AMDAPP = -DAMDAPPSDK
+OCLROOT = $(AMDAPPSDKROOT)
+endif
+ifdef ATISTREAMSDKROOT
+AMDAPP = -DAMDAPPSDK
+OCLROOT = $(ATISTREAMSDKROOT)
+endif
+
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP) `pkg-config --cflags nss`
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
@@ -57,20 +71,6 @@ OPT_INLINE = -Os -funroll-loops -finline-functions
 PLUGFORMATS_SRCS: sh =echo *_plug.c
 PLUGFORMATS_SRCS += $(wildcard *_plug.c)
 PLUGFORMATS_OBJS = $(PLUGFORMATS_SRCS:.c=.o)
-
-ifdef NVIDIA_CUDA
-OCLROOT=$(NVIDIA_CUDA)
-else
-OCLROOT=/usr/local/cuda
-endif
-ifdef AMDAPPSDKROOT
-OCLROOT=$(AMDAPPSDKROOT)
-endif
-ifdef ATISTREAMSDKROOT
-OCLROOT=$(ATISTREAMSDKROOT)
-endif
-
-
 
 JOHN_OBJS = \
 	$(MPIOBJ) \
@@ -124,9 +124,8 @@ JOHN_OBJS = \
 OCL_OBJS = \
 	common-opencl.o opencl_mysqlsha1_fmt.o \
 	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
-	opencl_nt_fmt.o opencl_rawmd5_fmt.o  opencl_nsldaps_fmt.o \
-        opencl_cryptsha512_fmt.o\
-	opencl_MSCASH2_fmt.o
+	opencl_nt_fmt.o opencl_rawmd5_fmt.o opencl_nsldaps_fmt.o \
+	opencl_cryptsha512_fmt.o opencl_MSCASH2_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \
@@ -326,7 +325,7 @@ linux-x86-64-opencl:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl"
 	$(CP) opencl/*.cl ../run/
 	$(CP) opencl_cryptsha512.h ../run/
@@ -963,7 +962,7 @@ macosx-x86-64-opencl:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64  -I$(OCLROOT)/include -I$(OCLROOT)/include  -DBSD -DCL_VERSION_1_0" \
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
 	$(CP) opencl_cryptsha512.h ../run/
