@@ -20,13 +20,14 @@
  * Output Line Format:
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
- * archive_name:$rar3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
+ * archive_name:$RAR3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
  *
  * For type = 1 for files encrypted with "rar -p ..." option
- * archive_name:$rar3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
+ * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*0*archive_name*offset-for-ciphertext*method:type::file_name
  *
- * Note that the PACK_SIZE can be huge which implies that it can't be
- * stored in type 0's compact "rardump" format
+ * or
+ *
+ * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*1*hex(full encrypted file)*method:type::file_name
  *
  * TODO:
  * Possibly support some file magics (see zip2john)
@@ -179,7 +180,7 @@ next_file_header:
 		unsigned char buf[24];
 
 		fprintf(stderr, "! -hp mode entry found in %s\n", base_aname);
-		printf("%s:$rar3$*%d*", base_aname, type);
+		printf("%s:$RAR3$*%d*", base_aname, type);
 		fseek(fp, -24, SEEK_END);
 		count = fread(buf, 24, 1, fp);
 		assert(count == 1);
@@ -323,7 +324,7 @@ next_file_header:
 		base_aname = basename(strdup(archive_name));
 
 		/* process encrypted data of size "file_header_pack_size" */
-		sprintf(best, "%s:$rar3$*%d*", base_aname, type);
+		sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
 		for (i = 0; i < 8; i++) { /* encode SALT */
 			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(SALT[i] >> 4)], itoa16[ARCH_INDEX(SALT[i] & 0x0f)]);
 		}
@@ -352,11 +353,28 @@ next_file_header:
 		/* fp is at ciphertext location */
 		pos = ftell(fp);
 
-		/* We duplicate file name to the GECOS field, for single mode */
-		sprintf(&best[strlen(best)], "*%d*%d*%s*%ld*%c%c:%d::%s", file_header_pack_size, file_header_unp_size, archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type, file_name);
+		sprintf(&best[strlen(best)], "*%d*%d*", file_header_pack_size, file_header_unp_size);
 
+		/* We duplicate file name to the GECOS field, for single mode */
+		/* If small enough, we store it inline */
+		if ((2 * file_header_pack_size) < (LINE_BUFFER_SIZE - strlen(best) - strlen((char*)file_name) - 16)) {
+			char *p;
+			unsigned char s;
+			sprintf(&best[strlen(best)], "1*");
+			p = &best[strlen(best)];
+			for (i = 0; i < file_header_pack_size; i++) {
+				if (fread(&s, 1, 1, fp) != 1)
+					fprintf(stderr, "Error while reading archive: %s\n", strerror(errno));
+				*p++ = itoa16[s >> 4];
+				*p++ = itoa16[s & 0xf];
+			}
+			sprintf(p, "*%c%c:%d::%s", itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type, file_name);
+		} else {
+			sprintf(&best[strlen(best)], "0*%s*%ld*%c%c:%d::%s", archive_name, pos, itoa16[file_header_block[25]>>4], itoa16[file_header_block[25]&0xf], type, file_name);
+
+			fseek(fp, file_header_pack_size, SEEK_CUR);
+		}
 		/* Keep looking for better candidates */
-		fseek(fp, file_header_pack_size, SEEK_CUR);
 		goto next_file_header;
 
 BailOut:

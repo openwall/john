@@ -28,7 +28,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/aes.h>
+#include <openssl/evp.h>
 
 #include "unrar.h"
 #include "unrarppm.h"
@@ -125,14 +125,20 @@ int rar_unp_read_buf(const unsigned char **fd, unpack_data_t *unpack_data)
 	} else {
 		read_size = (MAX_BUF_SIZE-data_size)&~0xf;
 	}
+
 	if (read_size) {
-		rar_dbgmsg("reading %u bytes from %p, iv is %16llx\n", read_size, *fd, *(unsigned long long*)unpack_data->iv);
-		AES_cbc_encrypt(*fd, unpack_data->in_buf+data_size, read_size,
-		                &unpack_data->key, unpack_data->iv, AES_DECRYPT);
+		int outlen;
+
+		EVP_DecryptUpdate(unpack_data->ctx, unpack_data->in_buf + data_size, &outlen, *fd, read_size);
+		if (outlen > read_size - 16) {
+			EVP_DecryptFinal_ex(unpack_data->ctx, unpack_data->in_buf + data_size + outlen, &outlen);
+		} else
+			read_size = outlen;
 		*fd += read_size;
 		unpack_data->read_top += read_size;
 		unpack_data->pack_size -= read_size;
 	}
+
 	unpack_data->read_border = unpack_data->read_top - 30;
 	if(unpack_data->read_border < unpack_data->in_addr) {
 		const ssize_t fill = ((unpack_data->read_top + 30) < MAX_BUF_SIZE) ? 30 : (MAX_BUF_SIZE - unpack_data->read_top);
@@ -842,6 +848,10 @@ void rar_unpack_init_data(int solid, unpack_data_t *unpack_data)
 	unpack_data->true_size = 0;
 	rarvm_init(&unpack_data->rarvm_data);
 	unpack_data->unp_crc = 0xffffffff;
+
+	EVP_DecryptInit_ex(unpack_data->ctx, EVP_aes_128_cbc(), NULL,
+	                   unpack_data->key, unpack_data->iv);
+	EVP_CIPHER_CTX_set_padding(unpack_data->ctx, 0);
 }
 
 int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
@@ -862,6 +872,9 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	unsigned int bits, distance;
 	int retval=1, i, number, length, dist_number, low_dist, ch, next_ch;
 	int length_number, failed;
+#ifdef DEBUG
+	static unsigned long done, tot;
+#endif
 
 	rar_dbgmsg("%s fd: %p\n", __func__, fd);
 	if (!solid) {
@@ -869,11 +882,23 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	}
 	rar_unpack_init_data(solid, unpack_data);
 	if (!rar_unp_read_buf(&fd, unpack_data)) {
+#ifdef DEBUG
+		done += unpack_data->unp_ptr;
+		tot += unpack_data->max_size;
+
+		printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+#endif
 		return 0;
 	}
 	if (!solid || !unpack_data->tables_read) {
 		rar_dbgmsg("Read tables\n");
 		if (!read_tables(&fd, unpack_data)) {
+#ifdef DEBUG
+			done += unpack_data->unp_ptr;
+			tot += unpack_data->max_size;
+
+			printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+#endif
 			return 0;
 		}
 	}
@@ -1072,13 +1097,14 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	}
 	if (retval)
 		unp_write_buf(unpack_data);
+#ifdef DEBUG
+	else
+	{
+		done += unpack_data->unp_ptr;
+		tot += unpack_data->max_size;
 
-#if 0
-	static unsigned long done, tot;
-	done += unpack_data->unp_ptr;
-	tot += unpack_data->max_size;
-
-	printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+		printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+	}
 #endif
 	rar_dbgmsg("Written size: %ld\n", unpack_data->written_size);
 	rar_dbgmsg("True size: %ld\n", unpack_data->true_size);

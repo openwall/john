@@ -103,6 +103,7 @@ enum EncryptionFlags {
 	fDocProps = 8,		// MUST be 0 if document properties are encrypted. Encryption of document properties is specified in section 2.3.5.4.
 	fExternal = 16,		// If extensible encryption is used, MUST be 1. If this field is 1, all other fields in this structure MUST be 0.
 	fAES = 32,		// If the protected content is an [ECMA-376] document, MUST be 1. If the fAES bit is 1, the fCryptoAPI bit MUST also be 1.
+	fAgile = 0x40,
 };
 
 static uint32_t fget32(FILE * fp)
@@ -137,10 +138,17 @@ static void process_file(char *filename, char *parentfile)
 		uint16_t versionMinor = fget16(fp);
 		uint32_t encryptionFlags = fget32(fp);
 		if (encryptionFlags == fExternal) {
-			fprintf(stderr, "%s : An external cryptographic provider is not supported\n", filename);
+			fprintf(stderr, "%s : An external cryptographic provider is not supported\n", parentfile);
+			return;		
+		}
+		if (versionMinor == 0x04 && versionMajor == 0x04) { /* Office 2010 files */
+			fprintf(stderr, "%s : Office 2010 file detected, adding support is in progress!\n", parentfile);
+			if (encryptionFlags != fAgile)
+				fprintf(stderr, "%s : The encryption flags are not consistent with the encryption type\n", parentfile);
+			/* rest of the data is in XML format */
 			return;
 		}
-
+		/* Office 2007 file processing */
 		// Encryption header
 		uint32_t headerLength = fget32(fp);
 		uint32_t skipFlags = fget32(fp);
@@ -175,7 +183,7 @@ static void process_file(char *filename, char *parentfile)
 		else
 			fread(encryptedVerifierHash, 0x20, 1, fp);
 
-		int version = 2007; /* Office 2007 files */
+		int version = 2007;
 		printf("%s:$office$*%d*%d*%d*%d*", parentfile, version, verifierHashSize, keySize, saltSize);
 		print_hex(salt, saltSize);
 		printf("*");
@@ -244,7 +252,7 @@ static int test(char *argv[])
 	GsfOutput *dst;
 	src = gsf_infile_child_by_name(in, "EncryptionInfo");
 	if (!src) {
-		fprintf(stderr, "%s : not encrypted!\n", argv[1]);
+		fprintf(stderr, "%s : is not a Office 2007 / 2010 encrypted file!\n", argv[1]);
 		return 1;
 	}
 

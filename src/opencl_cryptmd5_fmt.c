@@ -238,7 +238,7 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
 	find_best_workgroup();
-	//atexit(release_all);
+	atexit(release_all);
 }
 
 
