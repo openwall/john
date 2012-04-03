@@ -4,13 +4,17 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Thanks to Lukas Odzioba <lukas dot odzioba at gmail dot com>, his code helps me a lot
 */
-#include <openssl/sha.h>
 #include "../cuda_xsha512.h"
 #include "cuda_common.cuh"
 
-#include <stdio.h>
 
 extern "C" void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
+extern "C" void gpu_xsha512_init();
+
+static xsha512_key *cuda_password;
+static xsha512_hash *cuda_hash;
+static size_t password_size;
+static size_t hash_size;
 
 __constant__ uint64_t k[] = {
 	0x428a2f98d728ae22LL, 0x7137449123ef65cdLL, 0xb5c0fbcfec4d3b2fLL,
@@ -189,24 +193,23 @@ __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_ha
     xsha512((const char*)cuda_password[idx].v, cuda_password[idx].length, (uint64_t*)cuda_hash, idx);
 }
 
+void gpu_xsha512_init()
+{
+    password_size = sizeof(xsha512_key) * KEYS_PER_CRYPT;
+    hash_size = sizeof(xsha512_hash) *KEYS_PER_CRYPT;
+	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
+    HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
+}
 void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash) // Posible move cuda_password to constant?
 {
-    xsha512_key *cuda_password;
-    xsha512_hash *cuda_hash;
-    size_t password_size = sizeof(xsha512_key) * KEYS_PER_CRYPT;
-    size_t hash_size = sizeof(xsha512_hash) *KEYS_PER_CRYPT;
-
-    HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
-    HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
-
-    HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
-    HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
+	if(xsha512_key_changed) {
+	    HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
+	    HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
+	}
 
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
     kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
     HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
-    HANDLE_ERROR(cudaFree(cuda_password));
-    HANDLE_ERROR(cudaFree(cuda_hash));
 }
 

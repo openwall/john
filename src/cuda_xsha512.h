@@ -22,6 +22,7 @@
 #define PLAINTEXT_LENGTH		12
 #define CIPHERTEXT_LENGTH		136
 
+extern uint8_t xsha512_key_changed;
 // Thanks for Lukas' code here
 # define SWAP64(n) \
   (((n) << 56)					\

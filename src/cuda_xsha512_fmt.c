@@ -36,16 +36,19 @@ static struct fmt_tests tests[] = {
 };
 
 extern void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
+extern void gpu_xsha512_init();
+
 
 static xsha512_key *gkey;
 static xsha512_hash *ghash;
 static xsha512_salt gsalt;
-
+uint8_t xsha512_key_changed;
 
 static void init(struct fmt_main *pFmt)
 {
 	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*KEYS_PER_CRYPT);
 	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*KEYS_PER_CRYPT);
+	gpu_xsha512_init();
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -208,6 +211,8 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	gkey[index].length = length;
 	memcpy(gkey[index].v, key, length);
+//	if(index == 0) 
+		xsha512_key_changed = 1;
 }
 
 static char *get_key(int index)
@@ -219,6 +224,7 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
     gpu_xsha512(gkey, &gsalt, ghash);
+	xsha512_key_changed = 0;
 }
 
 static int cmp_all(void *binary, int count)

@@ -36,21 +36,23 @@ OMPFLAGS =
 #OMPFLAGS = -xopenmp
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 ifeq ($(DEBUG),1)
-CFLAGS = -c -g -Wall  -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
-else
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS) 
+CFLAGS := $(CFLAGS) -g
+NVCC_FLAGS := $(NVCC_FLAGS) -g
 endif
 
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
-ifdef DEBUG
+
+ifeq ($(DEBUG),1)
 LDFLAGS = -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
 else
 LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS)
 endif
+
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
