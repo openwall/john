@@ -12,14 +12,14 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 64
+#define BLOCKS 256
 #define THREADS 128
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
 #define SALT_SIZE 4
 #define BINARY_SIZE 64
 
-#define PLAINTEXT_LENGTH		107
+#define PLAINTEXT_LENGTH		12
 #define CIPHERTEXT_LENGTH		136
 
 // Thanks for Lukas' code here

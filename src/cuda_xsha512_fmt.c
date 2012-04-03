@@ -16,29 +16,16 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"xsha512-cuda"
-#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
+#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512 CUDA"
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define PLAINTEXT_LENGTH		107
-#define CIPHERTEXT_LENGTH		136
-
-#define BINARY_SIZE			64
-#define SALT_SIZE			4
 
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT	
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-
-#if ARCH_BITS >= 64
-/* 64-bitness happens to correlate with faster memcpy() */
-#define PRECOMPUTE_CTX_FOR_SALT
-#else
-#undef PRECOMPUTE_CTX_FOR_SALT
-#endif
-#undef PRECOMPUTE_CTX_FOR_SALT
 
 
 static struct fmt_tests tests[] = {
@@ -55,16 +42,10 @@ static xsha512_hash *ghash;
 static xsha512_salt gsalt;
 
 
-#ifdef PRECOMPUTE_CTX_FOR_SALT
-static SHA512_CTX ctx_salt;
-#else
-static ARCH_WORD_32 saved_salt;
-#endif
-
 static void init(struct fmt_main *pFmt)
 {
 	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*KEYS_PER_CRYPT);
-	ghash = (xsha512_hash*)malloc(sizeof(xsha512_key)*KEYS_PER_CRYPT);
+	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*KEYS_PER_CRYPT);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)

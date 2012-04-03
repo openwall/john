@@ -7,7 +7,6 @@
 #include <openssl/sha.h>
 #include "../cuda_xsha512.h"
 #include "cuda_common.cuh"
-#include "cuPrintf.cu"
 
 #include <stdio.h>
 
@@ -118,7 +117,7 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 		a = t1 + t2;
 
 	}
-
+    #pragma unroll 64
 	for (i = 16; i < 80; i++) {
 
 		w[i & 15] =sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i -16) & 15] + w[(i - 7) & 15];
@@ -205,10 +204,7 @@ void gpu_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_ha
 
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
-//	cudaPrintfInit();
     kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
-//	cudaPrintfDisplay(stdout, true);
-//	cudaPrintfEnd();
     HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
     HANDLE_ERROR(cudaFree(cuda_password));
     HANDLE_ERROR(cudaFree(cuda_hash));
