@@ -11,6 +11,7 @@
 extern "C" void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
 extern "C" void cuda_xsha512_init();
 extern "C" int cuda_cmp_all(void *binary, int count);
+extern "C" void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
 
 static xsha512_key *cuda_password;
 static xsha512_hash *cuda_hash;
@@ -207,6 +208,12 @@ void cuda_xsha512_init()
 	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
     HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
 }
+
+void cuda_xsha512_cpy_hash(xsha512_hash* host_hash)
+{
+	HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
+}
+
 void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash) 
 {
 	if(xsha512_key_changed) {
@@ -217,7 +224,6 @@ void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_h
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
     kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
-    HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
 }
 
 __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
@@ -226,7 +232,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 
 	if(idx == 0)
 		*result = 0;
-//	__syncthreads();
+	__syncthreads();
 	if(idx < count){
 		if (cuda_b0[0] == hash[hash_addr(0, idx)])
 			*result = 1;

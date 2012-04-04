@@ -42,6 +42,8 @@ static struct fmt_tests tests[] = {
 extern void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
 extern void cuda_xsha512_init();
 extern int cuda_cmp_all(void *binary, int count);
+extern void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
+
 
 
 static xsha512_key *gkey;
@@ -166,36 +168,43 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xF;
 }
 
 static int get_hash_1(int index)
-{
+{	
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
+	cuda_xsha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
@@ -233,14 +242,6 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	/*uint64_t b0 = *(uint64_t *)binary;
-	int i;
-	uint64_t *h = ghash;
-	for (i = 0; i < count; i++) {
-		if (b0 == h[hash_addr(0, i)])
-			return 1;
-	}
-	return 0;*/
 	return cuda_cmp_all(binary, count);
 }
 
@@ -248,6 +249,8 @@ static int cmp_one(void *binary, int index)
 {
 	int i;
 	uint64_t *b = (uint64_t *) binary;
+	
+	cuda_xsha512_cpy_hash(ghash);
 	uint64_t *t = (uint64_t *)ghash;
 	for (i = 0; i < BINARY_SIZE / 8; i++) {
 		if (b[i] != t[hash_addr(i, index)])
