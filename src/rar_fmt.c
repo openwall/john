@@ -131,7 +131,7 @@ static rarfile *cur_file;
 #ifdef CL_VERSION_1_0
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
 #define CPU_GPU_RATIO		10
-static size_t global_work_size = 0;
+static size_t global_work_size = -1;
 static cl_mem unicode_pw, pw_len, cl_salt, cl_aes_key, cl_aes_iv;
 #endif
 
@@ -313,7 +313,7 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem*), (void*) &cl_aes_key), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem*), (void*) &cl_aes_iv), "Error setting argument 4");
 
-	global_work_size = kpc;
+	*mkpc = global_work_size = kpc;
 }
 
 static void release_clobj(void)
@@ -345,6 +345,69 @@ static void set_key(char *key, int index)
 	new_keys = 1;
 #endif
 }
+
+#ifdef CL_VERSION_1_0
+static void find_best_kpc(void)
+{
+	int num;
+	cl_event myEvent;
+	cl_ulong startTime, endTime, tmpTime;
+	unsigned long kernelExecTimeNs = ULONG_MAX;
+	cl_int ret_code;
+	int optimal_kpc = local_work_size;
+	int i = 0;
+	cl_uint *tmpbuffer1, *tmpbuffer2;
+	char teststring[] = "magnum";
+	cl_command_queue queue_prof;
+
+	fprintf(stderr, "Calculating best keys per crypt for LWS %zd, this will take a while ", local_work_size);
+	for (num = local_work_size; num; num <<= 1) {
+		create_clobj(num);
+#ifndef DEBUG
+		//advance_cursor();
+#endif
+		queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+		for (i = 0; i < num; i++)
+			set_key(teststring, i);
+		clEnqueueWriteBuffer(queue_prof, cl_salt, CL_FALSE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
+		clEnqueueWriteBuffer(queue_prof, unicode_pw, CL_FALSE, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL);
+		clEnqueueWriteBuffer(queue_prof, pw_len, CL_FALSE, 0, sizeof(int) * num, saved_len, 0, NULL, NULL);
+		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+		if (ret_code != CL_SUCCESS) {
+			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+			clReleaseCommandQueue(queue_prof);
+			break;
+		}
+		clFinish(queue_prof);
+		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+		tmpTime = endTime - startTime;
+		tmpbuffer1 = malloc(sizeof(cl_char) * 16 * num);
+		tmpbuffer2 = malloc(sizeof(cl_char) * 16 * num);
+		clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, sizeof(cl_char) * 16 * num, tmpbuffer1, 0, NULL, &myEvent);
+		clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_TRUE, 0, sizeof(cl_char) * 16 * num, tmpbuffer2, 0, NULL, &myEvent);
+		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+		free(tmpbuffer1);
+		free(tmpbuffer2);
+		clReleaseCommandQueue(queue_prof);
+		tmpTime = (tmpTime + (endTime - startTime));
+		release_clobj();
+
+		const int sha1perkey = (strlen(teststring) * 2 + 8 + 3) * (0x40000 + 16) / 64;
+		fprintf(stderr, "\nkpc %d\t%lu c/s\t%lu sha1/s\t%.3f sec per crypt_all()", num, (1000000000UL * num / tmpTime), sha1perkey * (1000000000UL * num / tmpTime), (float)tmpTime / 1000000000.);
+
+		if ((tmpTime / num) <= kernelExecTimeNs) {
+			fprintf(stderr, "+");
+			kernelExecTimeNs = (tmpTime / num);
+			optimal_kpc = num;
+		} else
+			break;
+	}
+	fprintf(stderr, "\n");
+	create_clobj(optimal_kpc);
+}
+#endif	/* OpenCL */
 
 static void init(struct fmt_main *pFmt)
 {
@@ -413,11 +476,14 @@ static void init(struct fmt_main *pFmt)
 		}
 	}
 
+	if (global_work_size == 0)
+		find_best_kpc();
+
+	if (global_work_size == -1)
+		global_work_size = local_work_size << 4;
+
 	if (global_work_size && global_work_size < local_work_size)
 		global_work_size = local_work_size;
-
-	if (!global_work_size)
-		global_work_size = local_work_size << 4;
 
 	create_clobj(global_work_size);
 	fprintf(stderr, "Local work size (LWS) %d, Keys per crypt (KPC) %d\n", (int)local_work_size, (int)global_work_size);
