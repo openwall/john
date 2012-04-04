@@ -1,6 +1,13 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2008,2011 by Solar Designer
+ * Mac OS X 10.7+ salted SHA-512 password hashing, CUDA interface.
+ *
+ * Copyright (c) 2008,2011 Solar Designer (original CPU-only code)
+ * Copyright (c) 2012 myrice (interfacing to CUDA)
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 
@@ -13,8 +20,8 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"xsha512-cuda"
-#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512 CUDA"
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
+#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
+#define ALGORITHM_NAME			"CUDA"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -220,9 +227,8 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-    cuda_xsha512(gkey, &gsalt, ghash);
-	if(xsha512_key_changed)
-		xsha512_key_changed = 0;
+	cuda_xsha512(gkey, &gsalt, ghash);
+	xsha512_key_changed = 0;
 }
 
 static int cmp_all(void *binary, int count)
@@ -243,7 +249,7 @@ static int cmp_one(void *binary, int index)
 	int i;
 	uint64_t *b = (uint64_t *) binary;
 	uint64_t *t = (uint64_t *)ghash;
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < BINARY_SIZE / 8; i++) {
 		if (b[i] != t[hash_addr(i, index)])
 			return 0;
 	}
@@ -268,7 +274,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,

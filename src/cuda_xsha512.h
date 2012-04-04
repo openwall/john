@@ -12,14 +12,22 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 256
-#define THREADS 128
+#define BLOCKS 1024
+#define THREADS 480
 #define KEYS_PER_CRYPT BLOCKS*THREADS
 
 #define SALT_SIZE 4
+#if 0
 #define BINARY_SIZE 64
+#else
+#define BINARY_SIZE 8
+#endif
 
+#if 0
+#define PLAINTEXT_LENGTH		107
+#else
 #define PLAINTEXT_LENGTH		12
+#endif
 #define CIPHERTEXT_LENGTH		136
 
 extern uint8_t xsha512_key_changed;
@@ -64,7 +72,7 @@ typedef struct {
 } xsha512_key;
 
 typedef struct {
-    uint64_t v[8]; //512bits
+    uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
 } xsha512_hash;
 
 #endif

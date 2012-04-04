@@ -141,6 +141,7 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 	}
 
 	ctx->H[0] += a;
+#if 0
 	ctx->H[1] += b;
 	ctx->H[2] += c;
 	ctx->H[3] += d;
@@ -148,6 +149,7 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 	ctx->H[5] += f;
 	ctx->H[6] += g;
 	ctx->H[7] += h;
+#endif
 }
 
 __device__ void xsha512_final(uint64_t *hash, xsha512_ctx *ctx)
@@ -182,10 +184,14 @@ __device__ void xsha512(const char* password, uint8_t pass_len, uint64_t *hash, 
     xsha512_update(&ctx, password, pass_len);
     xsha512_final(hash, &ctx);
 
+#if 0
 	#pragma unroll 8
 	for(uint32_t i = 0; i < 8; ++i) {
 		hash[hash_addr(i, idx)] = SWAP64(ctx.H[i]);
 	}
+#else
+	hash[hash_addr(0, idx)] = SWAP64(ctx.H[0]);
+#endif
 }
 
 __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_hash)
