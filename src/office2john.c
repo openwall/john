@@ -67,6 +67,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include "common.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <libxml/xmlmemory.h>
+#include <libxml/parser.h>
 
 static void print_hex(const unsigned char *str, int len)
 {
@@ -74,7 +78,6 @@ static void print_hex(const unsigned char *str, int len)
 	for (i = 0; i < len; ++i)
 		printf("%02x", str[i]);
 }
-
 
 enum AlgId {
 	ByFlags = 0x00,
@@ -127,7 +130,11 @@ static void process_file(char *filename, char *parentfile)
 {
 	FILE *fp;
 	int i;
-
+	struct stat sb;
+	
+	if(stat(filename, &sb) != 0) {
+	}
+	
 	if (!(fp = fopen(filename, "rb"))) {
 		fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
 		return;
@@ -142,10 +149,86 @@ static void process_file(char *filename, char *parentfile)
 			return;		
 		}
 		if (versionMinor == 0x04 && versionMajor == 0x04) { /* Office 2010 files */
-			fprintf(stderr, "%s : Office 2010 file detected, adding support is in progress!\n", parentfile);
 			if (encryptionFlags != fAgile)
 				fprintf(stderr, "%s : The encryption flags are not consistent with the encryption type\n", parentfile);
-			/* rest of the data is in XML format */
+			/* rest of the data is in XML format, dump it to a file */
+			char path[4096];
+			strcpy(path, filename);
+			char *buffer = (char*)malloc(sb.st_size);
+			fread(buffer, sb.st_size - 8, 1, fp);
+			char *xmlfile = strcat(path, ".xml");
+			FILE *ofp;
+			if (!(ofp = fopen(xmlfile, "w"))) {
+				fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
+				return;
+			}
+			fwrite(buffer, sb.st_size - 8, 1, ofp);
+			fclose(ofp);
+			/* process XML file */
+			xmlDocPtr doc;
+			xmlNodePtr cur;
+			doc = xmlParseFile(xmlfile);
+			if (doc == NULL ) {
+				fprintf(stderr, "Document not parsed successfully. \n");
+				return;
+			}
+			cur = xmlDocGetRootElement(doc);
+			if (cur == NULL) {
+				fprintf(stderr, "empty document\n");
+				xmlFreeDoc(doc);
+				return;
+			}
+			cur = cur->xmlChildrenNode;
+			while (cur != NULL) {
+				if ((!xmlStrcmp(cur->name, (const xmlChar *)"keyEncryptors")))
+					break;
+				cur = cur->next;
+			}
+			cur = cur->xmlChildrenNode;	
+			while (cur != NULL) {
+				if ((!xmlStrcmp(cur->name, (const xmlChar *)"keyEncryptor"))) 
+					break;
+				cur = cur->next;
+			}
+			cur = cur->xmlChildrenNode;	
+			/* we are now at "encryptedKey" node */			
+			xmlChar *spinCountXML = xmlGetProp(cur, "spinCount");
+			int spinCount = atoi(spinCountXML);
+			xmlFree(spinCountXML);
+			xmlChar *saltSizeXML = xmlGetProp(cur, "saltSize");
+			int saltSize = atoi(saltSizeXML);
+			xmlFree(saltSizeXML);
+			xmlChar *pkeBlockSizeXML = xmlGetProp(cur, "blockSize");
+			int pkeBlockSize = atoi(pkeBlockSizeXML);
+			xmlFree(pkeBlockSizeXML);
+			xmlChar *pkeKeyBitsXML = xmlGetProp(cur, "keyBits");
+			int pkeKeyBits = atoi(pkeKeyBitsXML);
+			xmlFree(pkeKeyBitsXML); 	
+			xmlChar *pkeHashSizeXML = xmlGetProp(cur, "hashSize");
+			int pkeHashSize = atoi(pkeHashSizeXML);
+			xmlFree(pkeHashSizeXML);		
+			xmlChar *pkeSaltValueXML = xmlGetProp(cur, "saltValue");
+			unsigned char *pkeSaltValue = (unsigned char*)malloc(saltSize);
+			base64_decode(pkeSaltValueXML, strlen(pkeSaltValueXML), pkeSaltValue);
+			xmlFree(pkeSaltValueXML);
+			xmlChar *encryptedVerifierHashInputXML = xmlGetProp(cur, "encryptedVerifierHashInput");
+			unsigned char encryptedVerifierHashInput[16];
+			base64_decode(encryptedVerifierHashInputXML, strlen(encryptedVerifierHashInputXML), encryptedVerifierHashInput);
+			xmlFree(encryptedVerifierHashInputXML);
+			xmlChar *encryptedVerifierHashValueXML = xmlGetProp(cur, "encryptedVerifierHashValue");
+			unsigned char encryptedVerifierHashValue[32];
+			base64_decode(encryptedVerifierHashValueXML, strlen(encryptedVerifierHashValueXML), encryptedVerifierHashValue);
+			xmlFree(encryptedVerifierHashValueXML);
+			int version = 2010;
+			printf("%s:$office$*%d*%d*%d*%d*", parentfile, version, spinCount, pkeKeyBits, saltSize);
+			print_hex(pkeSaltValue, saltSize);
+			printf("*");
+			print_hex(encryptedVerifierHashInput, 16);
+			printf("*");
+			print_hex(encryptedVerifierHashValue, 32);
+			printf("\n");
+			xmlFreeDoc(doc);
+			unlink(xmlfile);
 			return;
 		}
 		/* Office 2007 file processing */
@@ -169,7 +252,6 @@ static void process_file(char *filename, char *parentfile)
 		headerLength -= 4;	// Reserved 2
 		char CSPName[1024];
 		fread(CSPName, headerLength, 1, fp);
-
 		// Encryption verifier
 		uint32_t saltSize = fget32(fp);
 		char salt[1024];
@@ -182,7 +264,6 @@ static void process_file(char *filename, char *parentfile)
 			fread(encryptedVerifierHash, 0x14, 1, fp);
 		else
 			fread(encryptedVerifierHash, 0x20, 1, fp);
-
 		int version = 2007;
 		printf("%s:$office$*%d*%d*%d*%d*", parentfile, version, verifierHashSize, keySize, saltSize);
 		print_hex(salt, saltSize);
