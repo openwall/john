@@ -21,7 +21,7 @@
  * for RAR encryption scheme.
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
- * archive_name:$RAR3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
+ * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*0*archive_name*offset-for-ciphertext*method:type::file_name
  *
  * For type = 1 for files encrypted with "rar -p ..." option
  * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
@@ -32,13 +32,13 @@
  *
  */
 
-/* WARNING! Not defining this will be very beneficial for Single mode and speed up
-   startup, but it will also currently disable self-testing actual GPU mode
-   (all self-tests will run in CPU). This is dangerous, it has bitten me several
-   times. You have been warned. */
+/******************************************************************************
+ * WARNING! Not defining this will be very beneficial for Single mode and speed
+ * up startup, but it will also currently disable self-testing actual GPU mode
+ * (all self-tests will run in CPU). This is dangerous, it has bitten me several
+ * times. You have been warned.
+ */
 #define ALWAYS_OPENCL
-
-//#define DEBUG
 
 #include "arch.h"
 #include <openssl/engine.h>
@@ -247,7 +247,7 @@ static void init_aesni(void)
 	ENGINE_load_builtin_engines();
 	e = ENGINE_by_id(engine_id);
 	if (!e) {
-		fprintf(stderr, "AES-NI engine not available\n");
+		//fprintf(stderr, "AES-NI engine not available\n");
 		return;
 	}
 	if (!ENGINE_init(e)) {
