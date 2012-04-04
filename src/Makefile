@@ -36,10 +36,12 @@ OMPFLAGS =
 #OMPFLAGS = -xopenmp
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 ifeq ($(DEBUG),1)
-CFLAGS := $(CFLAGS) -g
+CFLAGS = -c -g -Wall -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
 NVCC_FLAGS := $(NVCC_FLAGS) -g
+else
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(JOHN_CFLAGS)
+
 endif
 
 # -DHAVE_SKEY
