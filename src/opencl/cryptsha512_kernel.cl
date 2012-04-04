@@ -49,12 +49,12 @@ void init_ctx(__local sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void memcpy_08(__local uint8_t * dest, __local const uint8_t * src, const size_t n) {
+inline void memcpy_08(__local uint8_t * dest, __local const uint8_t * src, const size_t n) {
     for (int i = 0; i < n; i++)
         dest[i] = src[i];
 }
 
-void memcpy_64(__local uint8_t * dest, __local buffer_64 * src, const size_t n) {
+inline void memcpy_64(__local uint8_t * dest, __local buffer_64 * src, const size_t n) {
     for (int i = 0; i < n; i++)
         dest[i] = src->mem_08[i];
 }
@@ -70,7 +70,6 @@ void insert_to_buffer(__local sha512_ctx * ctx,
 }
 
 void sha512_block(__local sha512_ctx * ctx) {
-    int i;
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
     uint64_t c = ctx->H[2];
@@ -82,15 +81,13 @@ void sha512_block(__local sha512_ctx * ctx) {
 
     uint64_t w[16];
 
-    __local uint64_t *data = ctx->buffer->mem_64;  //The same as buffer[0]
-
     #pragma unroll 16
-    for (i = 0; i < 16; i++)
-        w[i] = SWAP64(data[i]);
+    for (int i = 0; i < 16; i++)
+        w[i] = SWAP64(ctx->buffer->mem_64[i]);
 
     uint64_t t1, t2;
     #pragma unroll 16
-    for (i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++) {
         t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
         t2 = Maj(a, b, c) + Sigma0(a);
 
@@ -105,7 +102,7 @@ void sha512_block(__local sha512_ctx * ctx) {
     }
 
     #pragma unroll 64
-    for (i = 16; i < 80; i++) {
+    for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
         t2 = Maj(a, b, c) + Sigma0(a);

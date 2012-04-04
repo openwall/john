@@ -39,6 +39,7 @@ cl_command_queue queue_prof;
 cl_kernel crypt_kernel;
 
 static size_t max_keys_per_crypt; //TODO: move to common-opencl? local_work_size is there.
+static int new_keys;
 
 static struct fmt_tests tests[] = {
     {"$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1", "Hello world!"},
@@ -151,7 +152,8 @@ static void release_clobj(void) {
 static void set_key(char *key, int index) {
     int len = strlen(key);
     plaintext[index].length = len;
-    memcpy(plaintext[index].v, key, len); 
+    memcpy(plaintext[index].v, key, len);
+    new_keys = 1;
 }
 
 static char *get_key(int index) {
@@ -182,6 +184,7 @@ static void find_best_workgroup(void) {
     max_group_size = get_max_work_group_size(gpu_id);
     queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
             CL_QUEUE_PROFILING_ENABLE, &ret_code);
+    HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");    
     printf("Max Group Work Size %d ", (int) max_group_size);
     local_work_size = 1;
 
@@ -189,29 +192,33 @@ static void find_best_workgroup(void) {
     for (i = 0; i < get_task_max_size(); i++) {
         set_key("aaabaabaaa", i);
     }
-    clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_TRUE, 0,
-            sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL);
-    clEnqueueWriteBuffer(queue_prof, buffer_in, CL_TRUE, 0, 
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_TRUE, 0,
+            sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL),
+            "Failed in clEnqueueWriteBuffer I");
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, buffer_in, CL_TRUE, 0, 
             sizeof (crypt_sha512_password) * get_task_max_size(), 
-            plaintext, 0, NULL, NULL);
+            plaintext, 0, NULL, NULL),
+            "Failed in clEnqueueWriteBuffer II");
 
     // Find minimum time
     for (my_work_group = 1; (int) my_work_group <= (int) get_task_max_work_group_size(); 
          my_work_group *= 2) {
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
                 1, NULL, &max_keys_per_crypt, &my_work_group, 0, NULL, &myEvent);
-        clFinish(queue_prof);
+        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
         if (ret_code != CL_SUCCESS) {
             printf("Error %d\n", ret_code); ///Better commented by default.
             break;
         }
         //Get profile information
-        clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
-                sizeof (cl_ulong), &startTime, NULL);
-        clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
-                sizeof (cl_ulong), &endTime, NULL);
-        clReleaseEvent (myEvent);
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
+                sizeof (cl_ulong), &startTime, NULL),
+                "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
+                sizeof (cl_ulong), &endTime, NULL),
+                "Failed in clGetEventProfilingInfo II");
+        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
         
         if ((endTime - startTime) < kernelExecTimeNs) {
             kernelExecTimeNs = endTime - startTime;
@@ -222,7 +229,8 @@ static void find_best_workgroup(void) {
     printf("(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);    
-    clReleaseCommandQueue(queue_prof);
+    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), 
+            "Failed in clReleaseCommandQueue");
 }
 
 /* --
@@ -246,33 +254,45 @@ static void find_best_kpc(void) {
         create_clobj(num);
         advance_cursor();
         tmpbuffer = malloc(sizeof (crypt_sha512_hash) * num);
+        
+        if (tmpbuffer == NULL) {
+            printf ("Failed in malloc inside find_best_kpc\n");
+            exit (EXIT_FAILURE);
+        }
+        
         queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
                 CL_QUEUE_PROFILING_ENABLE, &ret_code);
+        HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
 
         // Set keys
         for (i = 0; i < num; i++) {
             set_key("aaabaabaaa", i);
         }
-        clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_FALSE, 0,
-                sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL);
-        clEnqueueWriteBuffer(queue_prof, buffer_in, CL_FALSE, 0, 
-                sizeof (crypt_sha512_password) * num, plaintext, 0, NULL, NULL); 
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_FALSE, 0,
+                sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL),
+                "Failed in clEnqueueWriteBuffer I");
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, buffer_in, CL_FALSE, 0, 
+                sizeof (crypt_sha512_password) * num, plaintext, 0, NULL, NULL),
+                "Failed in clEnqueueWriteBuffer II");
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
                 1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
-        clEnqueueReadBuffer(queue_prof, buffer_out, CL_FALSE, 0,
-                sizeof (crypt_sha512_hash) * num, tmpbuffer, 0, NULL, NULL);
-        clFinish(queue_prof);
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, buffer_out, CL_FALSE, 0,
+                sizeof (crypt_sha512_hash) * num, tmpbuffer, 0, NULL, NULL),
+                "Failed in clEnqueueReadBuffer");
+        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
             
         if (ret_code != CL_SUCCESS) {
             printf("Error %d\n", ret_code);
             continue;
         }       
-        clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
-                sizeof (cl_ulong), &startTime, NULL);
-        clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
-                sizeof (cl_ulong), &endTime, NULL);
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
+                sizeof (cl_ulong), &startTime, NULL),
+                "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
+                sizeof (cl_ulong), &endTime, NULL),
+                "Failed in clGetEventProfilingInfo II");
         
-        clReleaseEvent (myEvent);
+        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
         tmpTime = endTime - startTime;
 
         if (((int) (((float) (tmpTime) / num) * 10)) <= kernelExecTimeNs) {
@@ -280,7 +300,8 @@ static void find_best_kpc(void) {
             optimal_kpc = num;
         }
         free(tmpbuffer);
-        clReleaseCommandQueue(queue_prof);
+        HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), 
+            "Failed in clReleaseCommandQueue");
     }
     printf("Optimal keys per crypt %d\n", optimal_kpc);
     printf("to avoid this test on next run, put \""
@@ -501,9 +522,10 @@ static void crypt_all(int count) {
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_info, CL_FALSE, 0,
             sizeof (crypt_sha512_salt), &salt_data, 0, NULL, NULL),
             "failed in clEnqueueWriteBuffer data_info");
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_in, CL_FALSE, 0,
-            sizeof(crypt_sha512_password) * max_keys_per_crypt, plaintext, 0, NULL, NULL),
-            "failed in clEnqueueWriteBuffer buffer_in");
+    if (new_keys)
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_in, CL_FALSE, 0,
+                sizeof(crypt_sha512_password) * max_keys_per_crypt, plaintext, 0, NULL, NULL),
+                "failed in clEnqueueWriteBuffer buffer_in");
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
@@ -517,6 +539,7 @@ static void crypt_all(int count) {
  
     //Do the work
     HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+    new_keys = 0;
 }
 
 /* ------- Binary Hash functions group ------- */
