@@ -37,17 +37,14 @@
 #define MIN_KEYS_PER_CRYPT	128
 #define MAX_KEYS_PER_CRYPT	2048*2048*128
 
-#define rol(x,n)                ((x << n) | (x >> (64-n)))
-#define ror(x,n)                ((x >> n) | (x << (64-n)))
+#define rol(x,n)                rotate(x,n) 
+#define ror(x,n)                rotate(x, (ulong) 64-n)
 #define Ch(x,y,z)               ((x & y) ^ ( (~x) & z))
 #define Maj(x,y,z)              ((x & y) ^ (x & z) ^ (y & z))
 #define Sigma0(x)               ((ror(x,28)) ^ (ror(x,34)) ^ (ror(x,39)))
 #define Sigma1(x)               ((ror(x,14)) ^ (ror(x,18)) ^ (ror(x,41)))
 #define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
-
-# define SWAP32(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 # define SWAP64(n) \
   (((n) << 56)					\
