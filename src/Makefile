@@ -36,7 +36,7 @@ OMPFLAGS =
 #HAVE_NSS = -DHAVE_NSS
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+NVCC_FLAGS = -c -Xptxas -v -arch sm_13
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
 
@@ -136,7 +136,8 @@ CUDA_OBJS = \
 	cuda_mscash2_fmt.o cuda_mscash2.o \
 	cuda_rawsha256_fmt.o cuda_rawsha256.o \
 	cuda_rawsha224_fmt.o cuda_rawsha224.o \
-	cuda_mscash_fmt.o cuda_mscash.o
+	cuda_mscash_fmt.o cuda_mscash.o \
+	cuda_xsha512_fmt.o cuda_xsha512.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -1371,6 +1372,13 @@ cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
 
 cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c cuda_rawsha256.h
 	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
+
+cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) xsha512.cu
+	mv cuda/xsha512.o cuda_xsha512.o
+
+cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c cuda_xsha512.h
+	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
