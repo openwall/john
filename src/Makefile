@@ -25,7 +25,7 @@ CPPFLAGS = -E
 
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+NVCC_FLAGS = -c -Xptxas -v -arch sm_13
 
 
 OMPFLAGS =

@@ -12,9 +12,12 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 1024
-#define THREADS 480
-#define KEYS_PER_CRYPT BLOCKS*THREADS
+#define BLOCKS 32
+#define THREADS 512
+#define KEYS_PER_CRYPT (BLOCKS*THREADS)
+
+#define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
+#define MAX_KEYS_PER_CRYPT	(128*KEYS_PER_CRYPT)
 
 #define SALT_SIZE 4
 #if 0
@@ -52,7 +55,7 @@ extern uint8_t xsha512_key_changed;
 #define sigma0(x) ((ror(x,1))  ^ (ror(x,8)) ^(x>>7))
 #define sigma1(x) ((ror(x,19)) ^ (ror(x,61)) ^(x>>6))
 
-#define hash_addr(j,idx) (((j)*(KEYS_PER_CRYPT))+(idx))
+#define hash_addr(j,idx) (((j)*(MAX_KEYS_PER_CRYPT))+(idx))
 
 
 typedef struct { // notice memory align problem

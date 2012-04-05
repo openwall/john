@@ -7,7 +7,6 @@
 #include "../cuda_xsha512.h"
 #include "cuda_common.cuh"
 
-
 extern "C" void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
 extern "C" void cuda_xsha512_init();
 extern "C" int cuda_cmp_all(void *binary, int count);
@@ -153,7 +152,7 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 #endif
 }
 
-__device__ void xsha512_final(uint64_t *hash, xsha512_ctx *ctx)
+__device__ void xsha512_final(xsha512_ctx *ctx)
 {
     //append 1 to ctx buffer
     uint32_t length = ctx->buflen;
@@ -177,13 +176,13 @@ __device__ void xsha512_final(uint64_t *hash, xsha512_ctx *ctx)
     sha512_block(ctx);
 }
 
-__device__ void xsha512(const char* password, uint8_t pass_len, uint64_t *hash, uint32_t idx)
+__device__ void xsha512(const char* password, uint8_t pass_len, uint64_t *hash, uint32_t offset)
 {
     xsha512_ctx ctx;
     xsha512_init(&ctx);
     xsha512_update(&ctx, (const char*)cuda_salt[0].v, SALT_SIZE);
     xsha512_update(&ctx, password, pass_len);
-    xsha512_final(hash, &ctx);
+    xsha512_final(&ctx);
 
 #if 0
 	#pragma unroll 8
@@ -191,20 +190,24 @@ __device__ void xsha512(const char* password, uint8_t pass_len, uint64_t *hash, 
 		hash[hash_addr(i, idx)] = SWAP64(ctx.H[i]);
 	}
 #else
-	hash[hash_addr(0, idx)] = SWAP64(ctx.H[0]);
+	hash[hash_addr(0, offset)] = SWAP64(ctx.H[0]);
 #endif
 }
 
 __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_hash)
 {
+
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-    xsha512((const char*)cuda_password[idx].v, cuda_password[idx].length, (uint64_t*)cuda_hash, idx);
+	for(uint32_t it = 0; it < (MAX_KEYS_PER_CRYPT/KEYS_PER_CRYPT); ++it) {		
+		uint32_t offset = idx+it*KEYS_PER_CRYPT;
+    	xsha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
+	}
 }
 
 void cuda_xsha512_init()
 {
-    password_size = sizeof(xsha512_key) * KEYS_PER_CRYPT;
-    hash_size = sizeof(xsha512_hash) *KEYS_PER_CRYPT;
+    password_size = sizeof(xsha512_key) * MAX_KEYS_PER_CRYPT;
+    hash_size = sizeof(xsha512_hash) * MAX_KEYS_PER_CRYPT;
 	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
     HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
 }
@@ -233,9 +236,12 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 	if(idx == 0)
 		*result = 0;
 	__syncthreads();
-	if(idx < count){
-		if (cuda_b0[0] == hash[hash_addr(0, idx)])
-			*result = 1;
+	for(uint32_t it = 0; it < (MAX_KEYS_PER_CRYPT/KEYS_PER_CRYPT); ++it) {		
+		uint32_t offset = idx+it*KEYS_PER_CRYPT;
+		if(offset < count){
+			if (cuda_b0[0] == hash[hash_addr(0, offset)])
+				*result = 1;
+		}
 	}
 }
 

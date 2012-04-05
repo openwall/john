@@ -27,10 +27,6 @@
 #define BENCHMARK_LENGTH		0
 
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT	
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-
-
 
 static struct fmt_tests tests[] = {
 	{"$LION$bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
@@ -53,8 +49,8 @@ uint8_t xsha512_key_changed;
 
 static void init(struct fmt_main *pFmt)
 {
-	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*KEYS_PER_CRYPT);
-	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*KEYS_PER_CRYPT);
+	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*MAX_KEYS_PER_CRYPT);
+	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*MAX_KEYS_PER_CRYPT);
 	cuda_xsha512_init();
 }
 
@@ -249,7 +245,6 @@ static int cmp_one(void *binary, int index)
 {
 	int i;
 	uint64_t *b = (uint64_t *) binary;
-	
 	cuda_xsha512_cpy_hash(ghash);
 	uint64_t *t = (uint64_t *)ghash;
 	for (i = 0; i < BINARY_SIZE / 8; i++) {
