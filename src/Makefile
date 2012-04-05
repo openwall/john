@@ -36,7 +36,7 @@ OMPFLAGS =
 #HAVE_NSS = -DHAVE_NSS
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+NVCC_FLAGS = -c -Xptxas -v -arch sm_13
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
 
