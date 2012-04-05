@@ -127,6 +127,7 @@ extern struct fmt_main fmt_cuda_mscash;
 extern struct fmt_main fmt_cuda_mscash2;
 extern struct fmt_main fmt_cuda_rawsha256;
 extern struct fmt_main fmt_cuda_rawsha224;
+extern struct fmt_main fmt_cuda_xsha512;
 #endif
 
 extern struct fmt_main fmt_ssh;
@@ -248,6 +249,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_mscash2);
 	john_register_one(&fmt_cuda_rawsha256);
 	john_register_one(&fmt_cuda_rawsha224);
+	john_register_one(&fmt_cuda_xsha512);
 #endif
 
 #ifdef HAVE_DL
