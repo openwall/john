@@ -4,16 +4,15 @@
 #include <assert.h>
 #include <string.h>
 #define LOG_SIZE 1024*16
-#define SRC_SIZE 1024*16
 
 static char opencl_log[LOG_SIZE];
-static char kernel_source[SRC_SIZE];
+static char *kernel_source;
 static int kernel_loaded;
 
 void advance_cursor() {
   static int pos=0;
   char cursor[4]={'/','-','\\','|'};
-  printf("%c\b", cursor[pos]);
+  fprintf(stderr, "%c\b", cursor[pos]);
   fflush(stdout);
   pos = (pos+1) % 4;
 }
@@ -33,10 +32,17 @@ static void read_kernel_source(char *kernel_filename)
 {
 	char *kernel_path = path_expand(kernel_filename);
 	FILE *fp = fopen(kernel_path, "r");
+	size_t source_size, read_size;
+
 	if (!fp)
 		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
-	size_t source_size = fread(kernel_source, sizeof(char), SRC_SIZE, fp);
-	kernel_source[source_size] = 0;
+	fseek(fp, 0, SEEK_END);
+	source_size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	kernel_source = mem_calloc_tiny(source_size, MEM_ALIGN_NONE);
+	read_size = fread(kernel_source, sizeof(char), source_size, fp);
+	if (read_size != source_size)
+		fprintf(stderr, "Error reading source: expected %zu, got %zu bytes.\n", source_size, read_size);
 	fclose(fp);
 	kernel_loaded = 1;
 }
@@ -50,17 +56,13 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	///Find CPU's
 	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms),
 	    "No OpenCL platform found");
-	printf("OpenCL Platforms: %d", num_platforms);
 	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id], CL_PLATFORM_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying PLATFORM_NAME");
-	printf("\nOpenCL Platform: <<<%s>>>", opencl_log);
-
 	HANDLE_CLERROR(clGetDeviceIDs
 	    (platform[platform_id], CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
 	    "No OpenCL device of that type exist");
-
-	printf(" %d device(s), ", device_num);
+	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n", platform_id, opencl_log, device_num);
 	cl_context_properties properties[] = {
 		CL_CONTEXT_PLATFORM, (cl_context_properties) platform[platform_id],
 		0
@@ -68,7 +70,7 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying DEVICE_NAME");
-	printf("using device: <<<%s>>>\n", opencl_log);
+	fprintf(stderr, "Using device %d: %s\n", dev_id, opencl_log);
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
 		CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL), "Error querying MAX_WORK_GROUP_SIZE");
@@ -97,11 +99,12 @@ static char * include_source(char *pathname, int dev_id)
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s%s", path_expand(pathname),
+	sprintf(include, "-I %s %s %s", path_expand(pathname),
 	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
-	        " -DDEVICE_IS_CPU" : "");
+	        "-DDEVICE_IS_CPU" : "",
+	        "-cl-strict-aliasing -cl-mad-enable");
 
-	//printf("Options used: %s\n", include);
+	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
 
@@ -126,10 +129,38 @@ static void build_kernel(int dev_id)
 
 	///Report build errors and warnings
 	if (build_code != CL_SUCCESS)
-		printf("Compilation log: %s\n", opencl_log);
+		fprintf(stderr, "Compilation log: %s\n", opencl_log);
 #ifdef REPORT_OPENCL_WARNINGS
 	else if (strlen(opencl_log) > 1) // Nvidia may return a single '\n' which is not that interesting
-		printf("Compilation log: %s\n", opencl_log);
+		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+#endif
+#if 0
+	FILE *file;
+	size_t source_size;
+	char *source;
+
+	HANDLE_CLERROR(clGetProgramInfo (program[dev_id],
+	                                 CL_PROGRAM_BINARY_SIZES,
+	                                 sizeof(size_t),
+	                                 &source_size,
+	                                 NULL), "error");
+	fprintf(stderr, "source size %zu\n", source_size);
+	source = malloc(source_size);
+
+	HANDLE_CLERROR(clGetProgramInfo (program[dev_id],
+	                                 CL_PROGRAM_BINARIES,
+	                                 sizeof(char*),
+	                                 &source,
+	                                 NULL), "error");
+
+	file = fopen("program.bin", "w");
+	if(file == NULL)
+		fprintf(stderr, "Error opening binary file\n");
+	else
+		if (fwrite(source, source_size, 1, file) != 1)
+			fprintf(stderr, "error writing binary\n");
+	fclose(file);
+	free(source);
 #endif
 }
 
@@ -246,7 +277,7 @@ void listOpenCLdevices(void) {
 	err = clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms);
 	if (err != CL_SUCCESS)
 	{
-		printf("Error: Failure in clGetPlatformIDs, error code=%d \n", err);
+		fprintf(stderr, "Error: Failure in clGetPlatformIDs, error code=%d \n", err);
 		return;
 	}
 

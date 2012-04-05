@@ -1,10 +1,11 @@
 /* RAR 3.x cracker patch for JtR. Hacked together during
  * April of 2011 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC.
- * magnum added -p mode support, using code based on libclamav.
+ * magnum added -p mode support, using code based on libclamav
+ * and OMP, AES-NI and OpenCL support.
  *
  * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and (c) 2012, magnum and it is hereby released to the general public under
- * the following terms:
+ * and Copyright © 2012, magnum and it is hereby released to the general public
+ * under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
@@ -20,23 +21,35 @@
  * for RAR encryption scheme.
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
- * archive_name:$rar3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
+ * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*0*archive_name*offset-for-ciphertext*method:type::file_name
  *
  * For type = 1 for files encrypted with "rar -p ..." option
- * archive_name:$rar3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
+ * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
+ *
+ * or (inlined binary)
+ *
+ * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*1*hex(full encrypted file)*method:type::file_name
  *
  */
 
-#include <openssl/aes.h>
+/******************************************************************************
+ * WARNING! Not defining this will be very beneficial for Single mode and speed
+ * up startup, but it will also currently disable self-testing actual GPU mode
+ * (all self-tests will run in CPU). This is dangerous, it has bitten me several
+ * times. You have been warned.
+ */
+#define ALWAYS_OPENCL
+
+#include "arch.h"
+#include <openssl/engine.h>
+#include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <openssl/ssl.h>
-
 #undef MEM_FREE
 
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include "arch.h"
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
@@ -46,303 +59,655 @@
 #include "unicode.h"
 #include "johnswap.h"
 #include "unrar.h"
+#ifdef CL_VERSION_1_0
+#include "common-opencl.h"
+#endif
+#include "config.h"
 
 #define FORMAT_LABEL		"rar"
 #define FORMAT_NAME		"RAR3"
+#ifdef CL_VERSION_1_0
+#define ALGORITHM_NAME		"OpenCL"
+#else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	16
+#define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		2
-#define SALT_SIZE		512
+#define SALT_SIZE		sizeof(rarfile)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#define LWS_CONFIG		"rar_LWS"
+#define KPC_CONFIG		"rar_KPC"
+
+#define ROUNDS			0x40000
 
 /* The reason we want to bump OMP_SCALE in this case is to even out the
- * difference in processing time for different keys. But this hash is so slow,
- * we can't set it very high */
+   difference in processing time for different length keys. It doesn't
+   boost performance in other ways */
 #ifdef _OPENMP
 #include <omp.h>
+#include <pthread.h>
 #define OMP_SCALE		4
+static pthread_mutex_t *lockarray;
 #endif
-static int omp_t = 1;
 
-static char (*saved_key)[3 * PLAINTEXT_LENGTH + 1];
+static int omp_t = 1;
+static unsigned char *saved_salt;
+static unsigned char *saved_key;
+#ifdef CL_VERSION_1_0
+static int new_keys;
+#endif
 static int (*cracked);
 static unpack_data_t (*unpack_data);
-static unsigned char saved_salt[8];
-static unsigned char saved_ct[16];
-static int type;  /* type of rar file */
 
-/* for rar -p mode */
-static unsigned int FILE_CRC;
-static int PACK_SIZE;
-static int UNP_SIZE;
-static unsigned char *ciphertext;
-static char *archive_name;
-static int method;
+static int *saved_len;
+static unsigned char *aes_key;
+static unsigned char *aes_iv;
 
-static struct fmt_tests rar_tests[] = {
-	{"$rar3$*0*c9dea41b149b53b4*fcbdb66122d8ebdb32532c22ca7ab9ec*24",
-	    "password"},
+typedef struct {
+	int type;	/* 0 = -hp, 1 = -p */
+	unsigned char salt[8];
+	/* for rar -hp mode: */
+	unsigned char saved_ct[16];
+	/* for rar -p mode: */
+	union {
+		unsigned int w;
+		unsigned char c[4];
+	} crc;
+	unsigned int pack_size;
+	unsigned int unp_size;
+	unsigned char *encrypted;
+	char *archive_name;
+	long pos;
+	int method;
+} rarfile;
+
+static rarfile *cur_file;
+
+#ifdef CL_VERSION_1_0
+/* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
+#define CPU_GPU_RATIO		10
+static size_t global_work_size = 0;
+static cl_mem unicode_pw, pw_len, cl_salt, cl_aes_key, cl_aes_iv;
+#endif
+
+struct fmt_main rar_fmt;
+static int *mkpc = &rar_fmt.params.max_keys_per_crypt;
+
+/* cRARk use 4-char passwords for CPU benchmark */
+static struct fmt_tests cpu_tests[] = {
+	{"$RAR3$*0*b109105f5fe0b899*d4f96690b1a8fe1f120b0290a85a2121", "test"},
+	{"$RAR3$*0*42ff7e92f24fb2f8*9d8516c8c847f1b941a0feef064aaf0d", "1234"},
+	{"$RAR3$*0*56ce6de6ddee17fb*4c957e533e00b0e18dfad6accc490ad9", "john"},
+	/* -p mode tests, -m3 and -m0 */
+	{"$RAR3$*1*c47c5bef0bbd1e98*965f1453*48*47*1*c5e987f81d316d9dcfdb6a1b27105ce63fca2c594da5aa2f6fdf2f65f50f0d66314f8a09da875ae19d6c15636b65c815*30", "test"},
+	{"$RAR3$*1*b4eee1a48dc95d12*965f1453*64*47*1*0fe529478798c0960dd88a38a05451f9559e15f0cf20b4cac58260b0e5b56699d5871bdcc35bee099cc131eb35b9a116adaedf5ecc26b1c09cadf5185b3092e6*33", "test"},
+#if 0
+	/* Various lengths, these should be in self-test but not benchmark */
+	{"$RAR3$*0*c203c4d80a8a09dc*49bbecccc08b5d893f308bce7ad36c0f", "sator"},
+	{"$RAR3$*0*672fca155cb74ac3*8d534cd5f47a58f6493012cf76d2a68b", "arepo"},
+	{"$RAR3$*0*c203c4d80a8a09dc*c3055efe7ca6587127fd541a5b88e0e4", "tenet"},
+	{"$RAR3$*0*672fca155cb74ac3*c760267628f94060cca57be5896003c8", "opera"},
+	{"$RAR3$*0*c203c4d80a8a09dc*1f406154556d4c895a8be207fd2b5d0c", "rotas"},
+	{"$RAR3$*0*345f5f573a077ad7*638e388817cc7851e313406fd77730b9", "Boustrophedon"},
+	{"$RAR3$*0*c9dea41b149b53b4*fcbdb66122d8ebdb32532c22ca7ab9ec", "password"},
+	{"$RAR3$*0*7ce241baa2bd521b*f2b26d76424efa351c728b321671d074", "@"},
+	{"$RAR3$*0*ea0ea55ce549c8ab*cf89099c620fcc244bdcbae55a616e76", "ow"},
+	{"$RAR3$*0*ea0ea55ce549c8ab*6a35a76b1ce9ddc4229b9166d60dc113", "aes"},
+	{"$RAR3$*0*ea0ea55ce549c8ab*1830771da109f53e2d6e626be16c2666", "sha1"},
+	{"$RAR3$*0*7e52d3eba9bad316*ee8e1edd435cfa9b8ab861d958a4d588", "fiver"},
+	{"$RAR3$*0*7e52d3eba9bad316*01987735ab0be7b6538470bd5f5fbf80", "magnum"},
+	{"$RAR3$*0*7e52d3eba9bad316*f2fe986ed266c6617c48d04a429cf2e3", "7777777"},
+	{"$RAR3$*0*7e52d3eba9bad316*f0ad6e7fdff9f82fff2aa990105fde21", "password"},
+	{"$RAR3$*0*7ce241baa2bd521b*3eb0017fa8843017952c53a3ac8332b6", "nine9nine"},
+	{"$RAR3$*0*7ce241baa2bd521b*ccbf0c3f8e059274606f33cc388b8a2f", "10tenten10"},
+	{"$RAR3$*0*5fa43f823a60da63*af2630863e12046e42c4501c915636c9", "eleven11111"},
+	{"$RAR3$*0*5fa43f823a60da63*88c0840d0bd98844173d35f867558ec2", "twelve121212"},
+	{"$RAR3$*0*4768100a172fa2b6*48edcb5283ee2e4f0e8edb25d0d85eaa", "subconsciousness"},
+#endif
 	{NULL}
 };
 
+#ifdef CL_VERSION_1_0
+/* cRARk use 6-char passwords for GPU benchmark */
+static struct fmt_tests gpu_tests[] = {
+	{"$RAR3$*0*af24c0c95e9cafc7*e7f207f30dec96a5ad6f917a69d0209e", "magnum"},
+	{"$RAR3$*0*2653b9204daa2a8e*39b11a475f486206e2ec6070698d9bbc", "123456"},
+	{"$RAR3$*0*63f1649f16c2b687*8a89f6453297bcdb66bd756fa10ddd98", "abc123"},
+	/* -p mode tests, -m3 and -m0 */
+	{"$RAR3$*1*575b083d78672e85*965f1453*48*47*1*cd3d8756438f43ab70e668792e28053f0ad7449af1c66863e3e55332bfa304b2c082b9f23b36cd4a8ebc0b743618c5b2*30", "magnum"},
+	{"$RAR3$*1*6f5954680c87535a*965f1453*64*47*1*c9bb398b9a5d54f035fd22be54bc6dc75822f55833f30eb4fb8cc0b8218e41e6d01824e3467475b90b994a5ddb7fe19366d293c9ee305316c2a60c3a7eb3ce5a*33", "magnum"},
+#if 0
+	/* Various lengths, these should be in self-test but not benchmark */
+	{"$RAR3$*0*c203c4d80a8a09dc*49bbecccc08b5d893f308bce7ad36c0f", "sator"},
+	{"$RAR3$*0*672fca155cb74ac3*8d534cd5f47a58f6493012cf76d2a68b", "arepo"},
+	{"$RAR3$*0*c203c4d80a8a09dc*c3055efe7ca6587127fd541a5b88e0e4", "tenet"},
+	{"$RAR3$*0*672fca155cb74ac3*c760267628f94060cca57be5896003c8", "opera"},
+	{"$RAR3$*0*c203c4d80a8a09dc*1f406154556d4c895a8be207fd2b5d0c", "rotas"},
+	{"$RAR3$*0*345f5f573a077ad7*638e388817cc7851e313406fd77730b9", "Boustrophedon"},
+	{"$RAR3$*0*c9dea41b149b53b4*fcbdb66122d8ebdb32532c22ca7ab9ec", "password"},
+	{"$RAR3$*0*7ce241baa2bd521b*f2b26d76424efa351c728b321671d074", "@"},
+	{"$RAR3$*0*ea0ea55ce549c8ab*cf89099c620fcc244bdcbae55a616e76", "ow"},
+	{"$RAR3$*0*ea0ea55ce549c8ab*6a35a76b1ce9ddc4229b9166d60dc113", "aes"},
+	{"$RAR3$*0*ea0ea55ce549c8ab*1830771da109f53e2d6e626be16c2666", "sha1"},
+	{"$RAR3$*0*7e52d3eba9bad316*ee8e1edd435cfa9b8ab861d958a4d588", "fiver"},
+	{"$RAR3$*0*7e52d3eba9bad316*01987735ab0be7b6538470bd5f5fbf80", "magnum"},
+	{"$RAR3$*0*7e52d3eba9bad316*f2fe986ed266c6617c48d04a429cf2e3", "7777777"},
+	{"$RAR3$*0*7e52d3eba9bad316*f0ad6e7fdff9f82fff2aa990105fde21", "password"},
+	{"$RAR3$*0*7ce241baa2bd521b*3eb0017fa8843017952c53a3ac8332b6", "nine9nine"},
+	{"$RAR3$*0*7ce241baa2bd521b*ccbf0c3f8e059274606f33cc388b8a2f", "10tenten10"},
+	{"$RAR3$*0*5fa43f823a60da63*af2630863e12046e42c4501c915636c9", "eleven11111"},
+	{"$RAR3$*0*5fa43f823a60da63*88c0840d0bd98844173d35f867558ec2", "twelve121212"},
+	{"$RAR3$*0*4768100a172fa2b6*48edcb5283ee2e4f0e8edb25d0d85eaa", "subconsciousness"},
+#endif
+	{NULL}
+};
+#endif
+
+#if defined (_OPENMP)
+static void lock_callback(int mode, int type, char *file, int line)
+{
+	(void)file;
+	(void)line;
+	if (mode & CRYPTO_LOCK)
+		pthread_mutex_lock(&(lockarray[type]));
+	else
+		pthread_mutex_unlock(&(lockarray[type]));
+}
+
+static unsigned long thread_id(void)
+{
+	unsigned long ret;
+	ret = (unsigned long) pthread_self();
+	return (ret);
+}
+
+static void init_locks(void)
+{
+	int i;
+	lockarray = (pthread_mutex_t*) OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+	for (i = 0; i < CRYPTO_num_locks(); i++)
+		pthread_mutex_init(&(lockarray[i]), NULL);
+	CRYPTO_set_id_callback((unsigned long (*)()) thread_id);
+	CRYPTO_set_locking_callback((void (*)()) lock_callback);
+}
+#endif	/* _OPENMP */
+
+/* Use AES-NI if available. This is not supported with low-level calls,
+   we have to use EVP) */
+static void init_aesni(void)
+{
+	ENGINE *e;
+	const char *engine_id = "aesni";
+
+	ENGINE_load_builtin_engines();
+	e = ENGINE_by_id(engine_id);
+	if (!e) {
+		//fprintf(stderr, "AES-NI engine not available\n");
+		return;
+	}
+	if (!ENGINE_init(e)) {
+		fprintf(stderr, "AES-NI engine could not init\n");
+		ENGINE_free(e);
+		return;
+	}
+	if (!ENGINE_set_default(e, ENGINE_METHOD_ALL & ~ENGINE_METHOD_RAND)) {
+		/* This should only happen when 'e' can't initialise, but the
+		 * previous statement suggests it did. */
+		fprintf(stderr, "AES-NI engine initialized but then failed\n");
+		abort();
+	}
+	ENGINE_finish(e);
+	ENGINE_free(e);
+}
+
+static void openssl_cleanup(void)
+{
+	ENGINE_cleanup();
+	ERR_free_strings();
+	CRYPTO_cleanup_all_ex_data();
+	EVP_cleanup();
+}
+
+#ifdef CL_VERSION_1_0
+static void create_clobj(int kpc)
+{
+	unicode_pw = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uchar) * UNICODE_LENGTH * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	saved_key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], unicode_pw, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uchar) * UNICODE_LENGTH * kpc, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
+	memset(saved_key, 0, UNICODE_LENGTH * kpc);
+
+	pw_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	saved_len = (int*) clEnqueueMapBuffer(queue[gpu_id], pw_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * kpc, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
+	memset(saved_len, 0, sizeof(cl_int) * kpc);
+
+	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uchar) * 8, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	saved_salt = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uchar) * 8, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
+	memset(saved_salt, 0, 8);
+
+	// aes_key is uchar[16] but kernel treats it as uint[4]
+	cl_aes_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * kpc, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_key");
+	memset(aes_key, 0, 16 * kpc);
+
+	cl_aes_iv = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uchar) * 16 * kpc, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uchar) * 16 * kpc, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
+	memset(aes_iv, 0, 16 * kpc);
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem*), (void*) &unicode_pw), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem*), (void*) &pw_len), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem*), (void*) &cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem*), (void*) &cl_aes_key), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem*), (void*) &cl_aes_iv), "Error setting argument 4");
+
+	global_work_size = kpc;
+}
+
+static void release_clobj(void)
+{
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], unicode_pw, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pw_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+}
+#endif	/* OpenCL */
+
+static void set_key(char *key, int index)
+{
+	int plen;
+	UTF16 buf[PLAINTEXT_LENGTH + 1];
+
+	/* UTF-16LE encode the password, encoding aware */
+	plen = enc_to_utf16(buf, PLAINTEXT_LENGTH, (UTF8*) key, strlen(key));
+
+	if (plen < 0)
+		plen = strlen16(buf);
+
+	memcpy(&saved_key[UNICODE_LENGTH * index], buf, UNICODE_LENGTH);
+
+	saved_len[index] = plen << 1;
+
+#ifdef CL_VERSION_1_0
+	new_keys = 1;
+#endif
+}
+
 static void init(struct fmt_main *pFmt)
 {
+#ifdef CL_VERSION_1_0
+	char *temp;
+
+	opencl_init("$JOHN/rar_kernel.cl", gpu_id, platform_id);
+
+	// create kernel to execute
+	crypt_kernel = clCreateKernel(program[gpu_id], "SetCryptKeys", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+	/* We mimic the lengths of cRARk for comparisons */
+	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
+		pFmt->params.benchmark_comment = " (6 characters)";
+		pFmt->params.tests = gpu_tests;
+#ifndef ALWAYS_OPENCL
+		fprintf(stderr, "Note: will use CPU for self-tests and Single mode.\n");
+#endif
+	} else {
+		pFmt->params.benchmark_comment = " (4 characters)";
+		fprintf(stderr, "Note: OpenCL device is CPU. A non-OpenCL build may be faster.\n");
+	}
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
+		local_work_size = atoi(temp);
+
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, KPC_CONFIG)))
+		global_work_size = atoi(temp);
+
+	if ((temp = getenv("KPC")))
+		global_work_size = atoi(temp);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+
+	if (!local_work_size) {
+		if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
+#if defined (_OPENMP)
+			local_work_size = omp_get_max_threads() < 8 ? 8 : omp_get_max_threads();
+#else
+			local_work_size = 8;
+#endif
+		} else {
+			cl_ulong maxsize, multiple;
+
+			/* This is OpenCL 1.1, we must catch
+			   CL_INVALID_VALUE and use a fallback */
+			ret_code = clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(multiple), &multiple, NULL);
+
+			if (ret_code == CL_INVALID_VALUE)
+				multiple = 8;
+			else
+				HANDLE_CLERROR(ret_code, "Query preferred work group multiple");
+
+			/* Note: we ask for this kernel's max size, not the
+			   devices's! Then we default to using next lower */
+			HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE,sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+
+			fprintf(stderr, "Max local work size %d, best multiple %d\n", (int)maxsize, (int)multiple);
+
+			/* Some implementations consider this a factor rather
+			   than a multiple, i.e.
+			   8, 16, 32, 64  vs.  8, 16, 24, 32
+			   so we use it this way to be safe. */
+			for (local_work_size = multiple; 2 * local_work_size < maxsize; local_work_size *= 2);
+		}
+	}
+
+	if (global_work_size && global_work_size < local_work_size)
+		global_work_size = local_work_size;
+
+	if (!global_work_size)
+		global_work_size = local_work_size << 4;
+
+	create_clobj(global_work_size);
+	fprintf(stderr, "Local work size (LWS) %d, Keys per crypt (KPC) %d\n", (int)local_work_size, (int)global_work_size);
+
+	atexit(release_clobj);
+
+	*mkpc = global_work_size;
+#endif	/* OpenCL */
+
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+#ifndef CL_VERSION_1_0	/* OpenCL gets to decide */
+	*mkpc = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-	                            pFmt->params.max_keys_per_crypt,
-	                            MEM_ALIGN_NONE);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-	                          pFmt->params.max_keys_per_crypt,
-	                          MEM_ALIGN_WORD);
-	unpack_data = mem_calloc_tiny(sizeof(*unpack_data) *
-	                              pFmt->params.max_keys_per_crypt,
-	                              MEM_ALIGN_WORD);
+	init_locks();
+#endif /* _OPENMP */
 
-	/* OpenSSL init, cleanup part is left to OS */
+	if (options.utf8)
+		pFmt->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+
+	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
+	cracked = mem_calloc_tiny(sizeof(*cracked) * *mkpc, MEM_ALIGN_WORD);
+#ifndef CL_VERSION_1_0
+	saved_key = mem_calloc_tiny(UNICODE_LENGTH * *mkpc, MEM_ALIGN_NONE);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * *mkpc, MEM_ALIGN_WORD);
+	saved_salt = mem_calloc_tiny(8, MEM_ALIGN_NONE);
+	aes_key = mem_calloc_tiny(16 * *mkpc, MEM_ALIGN_NONE);
+	aes_iv = mem_calloc_tiny(16 * *mkpc, MEM_ALIGN_NONE);
+#endif
+
+	/* OpenSSL init */
+	init_aesni();
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
-	if (options.utf8)
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+	atexit(openssl_cleanup);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	return !strncmp(ciphertext, "$rar3$*", 7);
+	return !strncmp(ciphertext, "$RAR3$*", 7);
 }
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
+	unsigned int i, count;
+	/* extract data from "salt" */
+	char *encoded_salt;
+	char *saltcopy = strdup(ciphertext);
+	char *keep_ptr = saltcopy;
+	static rarfile rarfile;
+
+	saltcopy += 7;		/* skip over "$RAR3$*" */
+	rarfile.type = atoi(strtok(saltcopy, "*"));
+	encoded_salt = strtok(NULL, "*");
+	for (i = 0; i < 8; i++)
+		rarfile.salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
+	if (rarfile.type == 0) {	/* rar-hp mode */
+		char *encoded_ct = strtok(NULL, "*");
+		for (i = 0; i < 16; i++)
+			rarfile.saved_ct[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
+	} else {
+		char *p = strtok(NULL, "*");
+		int inlined;
+		for (i = 0; i < 4; i++)
+			rarfile.crc.c[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		rarfile.pack_size = atoi(strtok(NULL, "*"));
+		rarfile.unp_size = atoi(strtok(NULL, "*"));
+		inlined = atoi(strtok(NULL, "*"));
+
+		/* load ciphertext. We allocate and load all files here, and
+		   they don't get unloaded until program ends */
+		rarfile.encrypted = (unsigned char*)malloc(rarfile.pack_size);
+		if (inlined) {
+			unsigned char *d = rarfile.encrypted;
+			p = strtok(NULL, "*");
+			for (i = 0; i < rarfile.pack_size; i++)
+				*d++ = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		} else {
+			FILE *fp;
+			rarfile.archive_name = strtok(NULL, "*");
+			rarfile.pos = atol(strtok(NULL, "*"));
+
+			if (!(fp = fopen(rarfile.archive_name, "rb"))) {
+				fprintf(stderr, "! %s: %s\n", rarfile.archive_name, strerror(errno));
+				error();
+			}
+			fseek(fp, rarfile.pos, SEEK_SET);
+			count = fread(rarfile.encrypted, 1, rarfile.pack_size, fp);
+			if (count != rarfile.pack_size) {
+				fprintf(stderr, "Error loading file from archive '%s', expected %u bytes, got %u. Archive possibly damaged.\n", rarfile.archive_name, rarfile.pack_size, count);
+				exit(0);
+			}
+			fclose(fp);
+		}
+		p = strtok(NULL, "*");
+		rarfile.method = atoi16[ARCH_INDEX(p[0])] * 16 + atoi16[ARCH_INDEX(p[1])];
+		if (rarfile.method != 0x30)
+			rarfile.crc.w = ~rarfile.crc.w;
+	}
+	free(keep_ptr);
+	return (void*)&rarfile;
 }
 
 static void set_salt(void *salt)
 {
-	int i, count;
-	/* extract data from "salt" */
-	char *encoded_salt;
-	char *saltcopy = strdup(salt);
-	char *keep_ptr = saltcopy;
-	saltcopy += 7;		/* skip over "$rar3$*" */
-	type = atoi(strtok(saltcopy, "*"));
-	encoded_salt = strtok(NULL, "*");
-	for (i = 0; i < 8; i++)
-		saved_salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16
-		    + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
-	if (type == 0) {	/* rar-hp mode */
-		char *encoded_ct = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			saved_ct[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])]
-			    * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
-	} else {
-		long pos;
-		FILE *fp;
-		char *p = strtok(NULL, "*");
-		for (i = 0; i < 4; i++)
-			((unsigned char*)&FILE_CRC)[i] =
-				atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-				atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		PACK_SIZE = atoi(strtok(NULL, "*"));
-		UNP_SIZE = atoi(strtok(NULL, "*"));
-		archive_name = strtok(NULL, "*");
-		pos = atol(strtok(NULL, "*"));
-		p = strtok(NULL, "*");
-		method = atoi16[ARCH_INDEX(p[0])] * 16 +
-			atoi16[ARCH_INDEX(p[1])];
-		if (method != 0x30)
-			FILE_CRC = ~FILE_CRC;
-		/* load ciphertext */
-		if (!(fp = fopen(archive_name, "rb"))) {
-			fprintf(stderr, "! %s: %s\n", archive_name,
-			    strerror(errno));
-			error();
-		}
-		fseek(fp, pos, SEEK_SET);
-		if (ciphertext) free(ciphertext);
-		ciphertext = (unsigned char *) malloc(PACK_SIZE);
-		count = fread(ciphertext, 1, PACK_SIZE, fp);
-		if (count != PACK_SIZE) {
-			fprintf(stderr, "Error loading file from archive '%s', expected %d bytes, got %d. Archive possibly damaged.\n", archive_name, PACK_SIZE, count);
-			exit(0);
-		}
-		fclose(fp);
-	}
-	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
-	free(keep_ptr);
-}
+	cur_file = (rarfile*)salt;
+	memcpy(saved_salt, cur_file->salt, 8);
 
-/* could be DES set_key of old OpenSSL, which isn't what we mean */
-#undef set_key
-
-static void set_key(char *key, int index)
-{
-	int saved_key_length = strlen(key);
-	if (saved_key_length > 3 * PLAINTEXT_LENGTH)
-		saved_key_length = 3 * PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+#ifdef CL_VERSION_1_0
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+#endif
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
 }
 
 static void crypt_all(int count)
 {
 	int index = 0;
-#ifdef _OPENMP
-#pragma omp parallel for
-	for (index = 0; index < count; index++)
+
+#ifdef CL_VERSION_1_0
+#ifndef ALWAYS_OPENCL
+	if (count >= omp_t * CPU_GPU_RATIO)
 #endif
 	{
-		int i = 0, j = 0;
-		UTF16 utf16key[PLAINTEXT_LENGTH + 1];
-		char *encoded_key = (char*)utf16key;
-		int plen;
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-		unsigned char RawPsw[2 * PLAINTEXT_LENGTH + 8 + sizeof(int)];
-#else
-		unsigned char RawPsw[2 * PLAINTEXT_LENGTH + 8];
-#endif
-		unsigned char aes_key[16];
-		unsigned char aes_iv[16];
-		int RawLength;
-		SHA_CTX ctx;
-		const int HashRounds = 0x40000;
-		unsigned int digest[5];
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-		unsigned int *PswNum;
-#endif
-
-		/* UTF-16LE encode the password, encoding aware */
-		plen = enc_to_utf16(utf16key, PLAINTEXT_LENGTH,
-		                    (UTF8*)saved_key[index],
-		                    strlen(saved_key[index]));
-		if (plen <= 0)
-			saved_key[index][-plen] = 0;
-		if (plen < 0)
-			plen = strlen16(utf16key);
-
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-		RawLength = (plen <<= 1) + 8 + 3;
-		PswNum = (unsigned int*)&RawPsw[plen + 8];
-		*PswNum = 0;
-#else
-		RawLength = (plen <<= 1) + 8;
-#endif
-
-		/* derive IV and key for AES from saved_key and saved_salt,
-		 * this code block is based on unrarhp's and unrar's sources */
-
-		memcpy(RawPsw, encoded_key, plen);
-		memcpy(RawPsw + plen, saved_salt, 8);
-		SHA1_Init(&ctx);
-		for (i = 0; i < HashRounds; i++) {
-#if !(ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED)
-			unsigned char PswNum[3];
-#endif
-
-			SHA1_Update(&ctx, RawPsw, RawLength);
-#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-			*PswNum += 1;
-#else
-			PswNum[0] = (unsigned char) i;
-			PswNum[1] = (unsigned char) (i >> 8);
-			PswNum[2] = (unsigned char) (i >> 16);
-			SHA1_Update(&ctx, PswNum, 3);
-#endif
-			if (i % (HashRounds / 16) == 0) {
-				SHA_CTX tempctx = ctx;
-				unsigned int digest[5];
-				SHA1_Final((unsigned char *) digest, &tempctx);
-				aes_iv[i / (HashRounds / 16)] =
-					(unsigned char)JOHNSWAP(digest[4]);
-			}
+		if (new_keys) {
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], unicode_pw, CL_FALSE, 0, UNICODE_LENGTH * global_work_size, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pw_len, CL_FALSE, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+			new_keys = 0;
 		}
-		SHA1_Final((unsigned char *) digest, &ctx);
-		for (j = 0; j < 5; j++)	/* reverse byte order */
-			digest[j] = JOHNSWAP(digest[j]);
-		for (i = 0; i < 4; i++)
-			for (j = 0; j < 4; j++)
-				aes_key[i * 4 + j] =
-					(unsigned char) (digest[i] >> (j * 8));
-		if (type == 0) {
-			AES_KEY key;
-			unsigned char output[16];
 
-			/* AES decrypt, uses aes_iv, aes_key and saved_ct */
-			AES_set_decrypt_key((unsigned char *) aes_key, 16 * 8,
-			                    &key);	/* AES-128 */
-			AES_cbc_encrypt((unsigned char *) saved_ct, output, 16,
-			                &key, (unsigned char *) aes_iv,
-			                AES_DECRYPT);
-			if (!memcmp(output, "\xc4\x3d\x7b\x00\x40\x07\x00", 7))
-				cracked[index] = 1;
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+
+		// read back aes key & iv
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * global_work_size, aes_key, 0, NULL, NULL), "failed in reading key back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * global_work_size, aes_iv, 0, NULL, NULL), "failed in reading iv back");
+
+	}
+#ifndef ALWAYS_OPENCL
+	else
+#endif
+#endif	/* OpenCL */
+#if !defined (CL_VERSION_1_0) || !defined(ALWAYS_OPENCL)
+	{
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+		for (index = 0; index < count; index++) {
+			int i16 = index*16;
+			unsigned int i, j;
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
+			unsigned char RawPsw[UNICODE_LENGTH + 8 + sizeof(int)];
+#else
+			unsigned char RawPsw[UNICODE_LENGTH + 8];
+#endif
+			int RawLength;
+			SHA_CTX ctx;
+			unsigned int digest[5];
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
+			unsigned int *PswNum;
+#endif
+
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
+			RawLength = saved_len[index] + 8 + 3;
+			PswNum = (unsigned int*) &RawPsw[saved_len[index] + 8];
+			*PswNum = 0;
+#else
+			RawLength = saved_len[index] + 8;
+#endif
+			/* derive IV and key for AES from saved_key and
+			   saved_salt, this code block is based on unrarhp's
+			   and unrar's sources */
+			memcpy(RawPsw, &saved_key[UNICODE_LENGTH * index], saved_len[index]);
+			memcpy(RawPsw + saved_len[index], saved_salt, 8);
+			SHA1_Init(&ctx);
+			for (i = 0; i < ROUNDS; i++) {
+#if !(ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED)
+				unsigned char PswNum[3];
+#endif
+
+				SHA1_Update(&ctx, RawPsw, RawLength);
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
+				*PswNum += 1;
+#else
+				PswNum[0] = (unsigned char) i;
+				PswNum[1] = (unsigned char) (i >> 8);
+				PswNum[2] = (unsigned char) (i >> 16);
+				SHA1_Update(&ctx, PswNum, 3);
+#endif
+				if (i % (ROUNDS / 16) == 0) {
+					SHA_CTX tempctx = ctx;
+					unsigned int tempout[5];
+
+					SHA1_Final((unsigned char*) tempout, &tempctx);
+					aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)JOHNSWAP(tempout[4]);
+				}
+			}
+			SHA1_Final((unsigned char*)digest, &ctx);
+			for (j = 0; j < 5; j++)	/* reverse byte order */
+				digest[j] = JOHNSWAP(digest[j]);
+			for (i = 0; i < 4; i++)
+				for (j = 0; j < 4; j++)
+					aes_key[i16 + i * 4 + j] = (unsigned char)(digest[i] >> (j * 8));
+		}
+	}
+#endif
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (index = 0; index < count; index++) {
+		int i16 = index*16;
+		unsigned int inlen = 16;
+		int outlen;
+		EVP_CIPHER_CTX *aes_ctx = EVP_CIPHER_CTX_new();
+
+		EVP_CIPHER_CTX_init(aes_ctx);
+
+		/* AES decrypt, uses aes_iv, aes_key and saved_ct */
+		if (cur_file->type == 0) {	/* rar-hp mode */
+			unsigned char plain[16];
+
+			outlen = 0;
+
+			EVP_DecryptInit_ex(aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
+			EVP_CIPHER_CTX_set_padding(aes_ctx, 0);
+			EVP_DecryptUpdate(aes_ctx, plain, &outlen, cur_file->saved_ct, inlen);
+			EVP_DecryptFinal_ex(aes_ctx, cur_file->saved_ct + outlen, &outlen);
+
+			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
+
 		} else {
-			AES_KEY key;
 
-			if (method == 0x30) { /* stored, not deflated */
+			if (cur_file->method == 0x30) {	/* stored, not deflated */
 				CRC32_t crc;
 				unsigned char crc_out[4];
-				unsigned char plainbuf[0x8010];
-				unsigned int size = UNP_SIZE;
-				unsigned char *cipher = ciphertext;
+				unsigned char plain[0x8010];
+				unsigned int size = cur_file->unp_size;
+				unsigned char *cipher = cur_file->encrypted;
 
 				/* Use full decryption with CRC check.
 				   Compute CRC of the decompressed plaintext */
-				AES_set_decrypt_key((unsigned char *) aes_key,
-				                    16 * 8, &key);
 				CRC32_Init(&crc);
-				while(size) {
-					int len = 0x8000;
-					if (len > size) len = size + 15;
+				outlen = 0;
+				EVP_DecryptInit_ex(aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
+				EVP_CIPHER_CTX_set_padding(aes_ctx, 0);
 
-					AES_cbc_encrypt(cipher, plainbuf, len,
-					                &key, aes_iv,
-					                AES_DECRYPT);
+				while (size > 0x8000) {
+					inlen = 0x8000;
 
-					if (len > size) len = size;
-					CRC32_Update(&crc, plainbuf, len);
-					cipher += len;
-					size -= len;
+					EVP_DecryptUpdate(aes_ctx, plain, &outlen, cipher, inlen);
+					CRC32_Update(&crc, plain, outlen > size ? size : outlen);
+					size -= outlen;
+					cipher += inlen;
 				}
+				EVP_DecryptUpdate(aes_ctx, plain, &outlen, cipher, (size + 15) & ~0xf);
+				EVP_DecryptFinal_ex(aes_ctx, &plain[outlen], &outlen);
+				size += outlen;
+				CRC32_Update(&crc, plain, size);
 				CRC32_Final(crc_out, crc);
-				//printf("%08x\n", ~*(unsigned int*)crc_out);
-				//dump_stuff_msg("computed", crc_out, 4);
-				//dump_stuff_msg("stored", &FILE_CRC, 4);
 
-				/* Compare computed CRC with stored CRC
-				   (FILE_CRC) */
-				cracked[index] = !memcmp(crc_out, &FILE_CRC, 4);
+				/* Compare computed CRC with stored CRC */
+				cracked[index] = !memcmp(crc_out, &cur_file->crc.c, 4);
 			} else {
 				const int solid = 0;
-				unpack_data_t *unpack_t =
-					&unpack_data[index];
+				unpack_data_t *unpack_t;
 
-				rar_unpack_init_data(solid, unpack_t);
-				unpack_t->max_size = UNP_SIZE;
-				unpack_t->dest_unp_size = UNP_SIZE;
-				unpack_t->pack_size = PACK_SIZE;
-				unpack_t->iv = aes_iv;
-
-				AES_set_decrypt_key(aes_key, 16 * 8,
-				                    &unpack_t->key);
-				if (rar_unpack29(ciphertext, solid, unpack_t))
-					cracked[index] =
-						!memcmp(&unpack_t->unp_crc,
-						        &FILE_CRC, 4);
+#ifdef _OPENMP
+				unpack_t = &unpack_data[omp_get_thread_num()];
+#else
+				unpack_t = unpack_data;
+#endif
+				//rar_unpack_init_data(solid, unpack_t);
+				unpack_t->max_size = cur_file->unp_size;
+				unpack_t->dest_unp_size = cur_file->unp_size;
+				unpack_t->pack_size = cur_file->pack_size;
+				unpack_t->iv = &aes_iv[i16];
+				unpack_t->ctx = aes_ctx;
+				unpack_t->key = &aes_key[i16];
+				if (rar_unpack29(cur_file->encrypted, solid, unpack_t))
+					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
+				else
+					cracked[index] = 0;
 			}
 		}
+		EVP_CIPHER_CTX_free(aes_ctx);
 	}
 }
 
@@ -379,8 +744,8 @@ struct fmt_main rar_fmt = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,
-		rar_tests
-	}, {
+		cpu_tests // Changed in init if GPU
+	},{
 		init,
 		fmt_default_prepare,
 		valid,

@@ -14,8 +14,8 @@
 #include "formats.h"
 #include "path.h"
 
-#define MAXGPUS	4
-#define MAX_PLATFORMS	4
+#define MAXGPUS	8
+#define MAX_PLATFORMS	8
 #define SUBSECTION_OPENCL	":OpenCL"
 
 /* Comment if you do not want to see OpenCL warnings during kernel compilation */

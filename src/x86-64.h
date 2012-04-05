@@ -22,7 +22,11 @@
 #define ARCH_ALLOWS_UNALIGNED		1
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
+#if defined(__CYGWIN32__) || defined(__BEOS__) || defined(__MINGW32__) || defined(_MSC_VER) || (defined(AMDAPPSDK) && defined(CL_VERSION_1_0))
 #define OS_TIMER			0
+#else
+#define OS_TIMER			1
+#endif
 #define OS_FLOCK			1
 
 #define CPU_DETECT			0

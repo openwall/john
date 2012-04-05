@@ -42,7 +42,7 @@ bool OpenKeyDBFile(char *keydbFileName)
 	keyFile = fopen(keydbFileName, "rb");
 
 	if( keyFile == NULL ) {
-		printf("Failed to open file %s\n", keydbFileName);
+		fprintf(stderr, "%s : failed to open file!\n", keydbFileName);
 		return FALSE;
 	}
 	return TRUE;
@@ -158,49 +158,43 @@ bool CrackKeyData(char *profilePath, struct KeyCrackData *keyCrackData)
 	keyCrackData->nnLen   = buffer[index++];
 
 	// Copy the salt
-	unsigned char *salt = (unsigned char*)malloc(keyCrackData->saltLen+1);
-	memcpy(salt, &buffer[index], keyCrackData->saltLen);
-	salt[keyCrackData->saltLen] =0;
-	keyCrackData->salt = salt;
+	memcpy(keyCrackData->salt, &buffer[index], keyCrackData->saltLen);
+	keyCrackData->salt[keyCrackData->saltLen] =0;
 
 	index += keyCrackData->saltLen;
 
 	// copy nick name
-	unsigned char *nickName =  (unsigned char*) malloc(keyCrackData->nnLen+1);
+	/* unsigned char *nickName =  (unsigned char*) malloc(keyCrackData->nnLen+1);
 	memcpy(nickName, &buffer[index], keyCrackData->nnLen);
 	nickName[keyCrackData->nnLen] =0;
-	keyCrackData->nickName = nickName;
+	keyCrackData->nickName = nickName; */
 
 	index +=keyCrackData->nnLen;
 
 	// Copy OID stuff
 	keyCrackData->oidLen = buffer[index++];
-	unsigned char *oidData =  (unsigned char*) malloc(keyCrackData->oidLen+1);
-	memcpy(oidData, &buffer[index], keyCrackData->oidLen);
-	oidData[keyCrackData->oidLen] =0;
-	keyCrackData->oidData = oidData;
+	memcpy(keyCrackData->oidData, &buffer[index], keyCrackData->oidLen);
+	keyCrackData->oidData[keyCrackData->oidLen] =0;
 
 	index +=keyCrackData->oidLen;
 
 	// Copy encrypted string
-	memcpy(keyCrackData->encData, &buffer[index], 16 );
+	memcpy(keyCrackData->encData, &buffer[index], 16);
 	keyCrackData->encData[16] = 0;
 	keyCrackData->encDataLen = 16;
 	index += 16;
 
 	// copy password check string .. currently not used
-	unsigned char *pwCheckStr =  (unsigned char*) malloc( strlen(KEYDB_PW_CHECK_STR) + 1);
+	/* unsigned char *pwCheckStr =  (unsigned char*) malloc( strlen(KEYDB_PW_CHECK_STR) + 1);
 	memcpy(pwCheckStr, KEYDB_PW_CHECK_STR, strlen(KEYDB_PW_CHECK_STR));
 	pwCheckStr[strlen(KEYDB_PW_CHECK_STR)] =0;
-	keyCrackData->pwCheckStr = pwCheckStr;
+	keyCrackData->pwCheckStr = pwCheckStr; */
 
 	index += strlen(KEYDB_PW_CHECK_STR);
 
-
-
 	//=== Just print here what he have got ....====
-	/*
-	int i;
+
+	/* int i;
 	printf("\n Magic offset = 0x%x ", KEYDB_MAGIC_OFFSET);
 	printf("\n Version : %d ", keyCrackData->version);
 
@@ -220,8 +214,8 @@ bool CrackKeyData(char *profilePath, struct KeyCrackData *keyCrackData)
 	printf("\n Algorithm is : \n ");
 	for(i=0; i < keyCrackData->oidLen ; i++)
 		printf("%.2x ",keyCrackData->oidData[i]);
+	printf("\n"); */
 
-	*/
 	fclose(keyFile);
 
 	return TRUE;

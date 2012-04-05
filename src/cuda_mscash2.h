@@ -11,7 +11,7 @@
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
-#define THREADS			128//set 256 on fermi
+#define THREADS			128//set at least 256 on fermi
 #define BLOCKS			14
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
 

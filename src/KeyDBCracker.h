@@ -71,10 +71,10 @@ struct KeyCrackData
 	unsigned char version;       // Version information
 	unsigned char saltLen;       // Salt length
 	unsigned char nnLen;         // Nick name length
-	unsigned char *salt;         // Salt data
+	unsigned char salt[32];      // Salt data
 	unsigned char *nickName;     // Nick name
 	unsigned char oidLen;        // OID Length
-	unsigned char *oidData;      // OID Data
+	unsigned char oidData[32];   // OID Data
 	unsigned char encDataLen;    // Encrypted data length ...extra field
 	unsigned char encData[17];   // Encrypted data 16 + 1
 	unsigned char *pwCheckStr;   // Password check string "password-check"
