@@ -54,6 +54,7 @@ static void process_file(const char *filename)
 	    return;
 	}
 	if(!BIO_read_filename(bp, filename)) {
+	    fprintf(stderr, "OpenSSL BIO_read_filename failure\n");
 	    ERR_print_errors_fp(stderr);
 	    return;
 	}
@@ -70,7 +71,7 @@ static void process_file(const char *filename)
 			    PEM_R_NO_START_LINE) {
 				ERR_print_errors_fp(stderr);
 	            fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
-				return;
+				goto out;
 			}
 		}
         /* only PEM encoded DSA and RSA private keys are supported. */
@@ -85,7 +86,7 @@ static void process_file(const char *filename)
 		OPENSSL_free(nm);
 		OPENSSL_free(header);
 		OPENSSL_free(data);
-		OPENSSL_free(bp);
+		BIO_free(bp);
 	}
 	if (!PEM_get_EVP_CIPHER_INFO(header, &cipher)) {
 		ERR_print_errors_fp(stderr);
@@ -100,14 +101,14 @@ static void process_file(const char *filename)
 			if ((dsapkc = d2i_DSAPrivateKey(NULL, &dc, len)) != NULL) {
 				fprintf(stderr, "%s has no password!\n", filename);
 				DSA_free(dsapkc);
-				return;
+				goto out;
 			}
 		}
 		else if (pk.save_type == EVP_PKEY_RSA) {
 			if ((rsapkc = d2i_RSAPrivateKey(NULL, &dc, len)) != NULL) {
 				fprintf(stderr, "%s has no password!\n", filename);
 				RSA_free(rsapkc);
-				return;
+				goto out;
                         }
                 }
         }
@@ -119,7 +120,10 @@ static void process_file(const char *filename)
 	            itoa16[ARCH_INDEX(buffer[i] & 0x0f)]);
 	}
 	printf("*%d\n", count);
+out:
 	fclose(keyfile);
+	if(bp)
+		BIO_free(bp);
 }
 
 int ssh2john(int argc, char **argv)
