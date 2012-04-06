@@ -2,10 +2,10 @@
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC. Based on sample
  * code by hashcat's atom.
  *
- * This software is Copyright © 2021, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. 
+ * are permitted.
  *
  * Input Format:
  *
@@ -13,9 +13,9 @@
  *
  * Where,
  *
- * version == 0, for EPiServer's standard / .NET <= 3.5 SHA1 hash/salt format.
+ * version == 0, for EPiServer 6.x standard config / .NET <= 3.5 SHA1 hash/salt format.
  * 		 hash =  sha1(salt | utf16bytes(password)). */
- 
+
 #include <openssl/sha.h>
 #include <string.h>
 #include <assert.h>
@@ -121,7 +121,7 @@ static void crypt_all(int count)
 		if(!memcmp(sha1hash, hash, 20))
 			cracked[index] = 1;
 		else
-			cracked[index] = 0;	
+			cracked[index] = 0;
 	}
 }
 
