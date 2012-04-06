@@ -39,7 +39,7 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define SALT_SIZE		256
+#define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -51,11 +51,14 @@ static struct fmt_tests episerver_tests[] = {
 };
 
 static int omp_t = 1;
-static char unsigned esalt[16];
-static char unsigned hash[20];
 static int version;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char *cracked;
+static int *cracked;
+
+static struct custom_salt {
+	char unsigned esalt[16];
+	char unsigned hash[20];
+} *salt_struct;
 
 static void init(struct fmt_main *pFmt)
 {
@@ -79,22 +82,24 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	ctcopy += 12;	/* skip over "$episerver$*" */
+	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	char *p = strtok(ctcopy, "*");
+	version = atoi(p);
+	p = strtok(NULL, "*");
+	base64_decode(p, strlen(p), (char*)salt_struct->esalt);
+	p = strtok(NULL, "*");
+	base64_decode(p, strlen(p), (char*)salt_struct->hash);
+	free(keeptr);
+	return (void *)salt_struct;
 }
 
 
 static void set_salt(void *salt)
 {
-	char *saltcopy = strdup(salt);
-	char *keeptr = saltcopy;
-	saltcopy += 12;	/* skip over "$episerver$*" */
-	char *p = strtok(saltcopy, "*");
-	version = atoi(p);
-	p = strtok(NULL, "*");
-	base64_decode(p, strlen(p), (char*)esalt);
-	p = strtok(NULL, "*");
-	base64_decode(p, strlen(p), (char*)hash);
-	free(keeptr);
+	salt_struct = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -117,10 +122,10 @@ static void crypt_all(int count)
 		unsigned int sha1hash[5];
 		SHA_CTX ctx;
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, esalt, 16);
+		SHA1_Update(&ctx, salt_struct->esalt, 16);
 		SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 		SHA1_Final((unsigned char *)sha1hash, &ctx);
-		if(!memcmp(sha1hash, hash, 20))
+		if(!memcmp(sha1hash, salt_struct->hash, 20))
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
