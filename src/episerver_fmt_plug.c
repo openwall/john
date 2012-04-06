@@ -150,7 +150,7 @@ static void crypt_all(int count)
 			unsigned int sha256hash[8];
 			SHA256_CTX ctx;
 			SHA256_Init(&ctx);
-			// SHA256_Update(&ctx, salt_struct->esalt, 16);
+			SHA256_Update(&ctx, salt_struct->esalt, 16);
 			SHA256_Update(&ctx, passwordBuf, passwordBufSize);
 			SHA256_Final((unsigned char *)sha256hash, &ctx);
 			if(!memcmp(sha256hash, salt_struct->hash, 32))
