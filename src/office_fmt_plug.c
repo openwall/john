@@ -22,7 +22,7 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define SALT_SIZE		256
+#define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -32,18 +32,22 @@ static struct fmt_tests office_tests[] = {
 	{NULL}
 };
 
-static char unsigned oursalt[32]; /* bigger than necessary */
-static char unsigned encryptedVerifier[16];
-static char unsigned encryptedVerifierHash[32];
-static int version;
-static int verifierHashSize;
-static int keySize;
-static int saltSize;
+static struct custom_salt {
+	char unsigned osalt[32]; /* bigger than necessary */
+	char unsigned encryptedVerifier[16];
+	char unsigned encryptedVerifierHash[32];
+	int version;
+	int verifierHashSize;
+	int keySize;
+	int saltSize;
+	/* Office 2010 */
+	int spinCount;
+} *salt_struct;
+
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static int cracked;
 
 /* Office 2010 */
-static int spinCount;
 static unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
 static unsigned char encryptedVerifierHashValueBlockKey[] = { 0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e };
 
@@ -63,7 +67,7 @@ static unsigned char *DeriveKey(unsigned char *hashValue)
 	SHA1_Update(&ctx, derivedKey, 64);
 	SHA1_Final(X1, &ctx);
 
-	if (verifierHashSize > keySize/8)
+	if (salt_struct->verifierHashSize > salt_struct->keySize/8)
 		return X1;
 	for (i = 0; i < 64; i++)
 		derivedKey[i] = (i < 30 ? 0x5C ^ hashValue[i] : 0x5C);
@@ -88,12 +92,12 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 		passwordBuf[position] = c;
 		position += 2;
 	}
-	unsigned char *inputBuf = (unsigned char *)malloc(saltSize + passwordBufSize);
-	memcpy(inputBuf, oursalt, saltSize);
-	memcpy(inputBuf + saltSize, passwordBuf, passwordBufSize);
+	unsigned char *inputBuf = (unsigned char *)malloc(salt_struct->saltSize + passwordBufSize);
+	memcpy(inputBuf, salt_struct->osalt, salt_struct->saltSize);
+	memcpy(inputBuf + salt_struct->saltSize, passwordBuf, passwordBufSize);
 	SHA_CTX ctx;
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, saltSize + passwordBufSize);
+	SHA1_Update(&ctx, inputBuf, salt_struct->saltSize + passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
 	free(inputBuf);
 
@@ -127,12 +131,11 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 
 	// Should handle the case of longer key lengths as shown in 2.3.4.9
 	// Grab the key length bytes of the final hash as the encrypytion key
-	unsigned char *final = (unsigned char *)malloc(keySize/8);
-	memcpy(final, key, keySize/8);
+	unsigned char *final = (unsigned char *)malloc(salt_struct->keySize/8);
+	memcpy(final, key, salt_struct->keySize/8);
 	free(key);
 	return final;
 }
-
 
 static int PasswordVerifier(unsigned char * key)
 {
@@ -143,15 +146,15 @@ static int PasswordVerifier(unsigned char * key)
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
 		return 0;
 	}
-	AES_ecb_encrypt(encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(salt_struct->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
 		return 0;
 	}
 	unsigned char decryptedVerifierHash[32];
-	AES_ecb_encrypt(encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-	AES_ecb_encrypt(encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(salt_struct->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(salt_struct->encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
 
 	/* find SHA1 hash of decryptedVerifier */
 	SHA_CTX ctx;
@@ -181,12 +184,12 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 		passwordBuf[position] = c;
 		position += 2;
 	}
-	unsigned char *inputBuf = (unsigned char *)malloc(saltSize + passwordBufSize);
-	memcpy(inputBuf, oursalt, saltSize);
-	memcpy(inputBuf + saltSize, passwordBuf, passwordBufSize);
+	unsigned char *inputBuf = (unsigned char *)malloc(salt_struct->saltSize + passwordBufSize);
+	memcpy(inputBuf, salt_struct->osalt, salt_struct->saltSize);
+	memcpy(inputBuf + salt_struct->saltSize, passwordBuf, passwordBufSize);
 	SHA_CTX ctx;
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, saltSize + passwordBufSize);
+	SHA1_Update(&ctx, inputBuf, salt_struct->saltSize + passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
 	free(inputBuf);
 
@@ -199,7 +202,7 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(inputBuf + 4, hashBuf, 20);
-	for (i = 0; i < spinCount; i++) {
+	for (i = 0; i < salt_struct->spinCount; i++) {
 		*(int *)inputBuf = i; // XXX: size & endianness
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
@@ -224,7 +227,7 @@ static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, u
 {
 	AES_KEY akey;
 	unsigned char iv[16];
-	memcpy(iv, oursalt, 16);
+	memcpy(iv, salt_struct->osalt, 16);
      	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(verifierInputKey, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
@@ -244,63 +247,63 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
+	int i;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	ctcopy += 9;	/* skip over "$office$*" */
+	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	char *p = strtok(ctcopy, "*");
+	salt_struct->version = atoi(p);
+	p = strtok(NULL, "*");
+	if(salt_struct->version == 2007) {
+		salt_struct->verifierHashSize = atoi(p);
+	}
+	else {
+		salt_struct->spinCount = atoi(p);
+	}
+	p = strtok(NULL, "*");
+	salt_struct->keySize = atoi(p);
+	p = strtok(NULL, "*");
+	salt_struct->saltSize = atoi(p);
+	p = strtok(NULL, "*");
+	for (i = 0; i < salt_struct->saltSize; i++)
+		salt_struct->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
+	for (i = 0; i < 16; i++)
+		salt_struct->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
+	for (i = 0; i < 32; i++)
+		salt_struct->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	free(keeptr);
+	return (void *)salt_struct;
 }
 
 static void set_salt(void *salt)
 {
-	int i;
-	char *saltcopy = strdup(salt);
-	char *keeptr = saltcopy;
-	saltcopy += 9;	/* skip over "$office$*" */
-	char *p = strtok(saltcopy, "*");
-	version = atoi(p);
-	p = strtok(NULL, "*");
-	if(version == 2007) {
-		verifierHashSize = atoi(p);
-	}
-	else {
-		spinCount = atoi(p);
-	}
-	p = strtok(NULL, "*");
-	keySize = atoi(p);
-	p = strtok(NULL, "*");
-	saltSize = atoi(p);
-	p = strtok(NULL, "*");
-	for (i = 0; i < saltSize; i++)
-		oursalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	for (i = 0; i < 16; i++)
-		encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	for (i = 0; i < 32; i++)
-		encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-
-	cracked = 0;
-	free(keeptr);
+	salt_struct = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
 {
-	if(version == 2007) {
+	if(salt_struct->version == 2007) {
 		unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1(saved_key);
 		if (PasswordVerifier(encryptionKey))
 			cracked = 1;
 		else
 			cracked = 0;
 	}
-	else if (version == 2010) {
+	else if (salt_struct->version == 2010) {
 		unsigned char verifierInputKey[16];
-		GenerateAgileEncryptionKey(saved_key, encryptedVerifierHashInputBlockKey, keySize >> 3, verifierInputKey);
+		GenerateAgileEncryptionKey(saved_key, encryptedVerifierHashInputBlockKey, salt_struct->keySize >> 3, verifierInputKey);
 		unsigned char verifierHashKey[16];
-		GenerateAgileEncryptionKey(saved_key, encryptedVerifierHashValueBlockKey, keySize >> 3, verifierHashKey);
+		GenerateAgileEncryptionKey(saved_key, encryptedVerifierHashValueBlockKey, salt_struct->keySize >> 3, verifierHashKey);
 		unsigned char decryptedVerifierHashInputBytes[16];
-		DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+		DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, salt_struct->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
 		unsigned char decryptedVerifierHashBytes[32];
-		DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+		DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, salt_struct->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 		unsigned char hash[20];
 		SHA_CTX ctx;
 		SHA1_Init(&ctx);
