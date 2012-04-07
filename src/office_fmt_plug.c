@@ -14,6 +14,11 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "base64.h"
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               4
+#endif
 
 #define FORMAT_LABEL		"office"
 #define FORMAT_NAME		"Office"
@@ -44,8 +49,11 @@ static struct custom_salt {
 	int spinCount;
 } *salt_struct;
 
-static char saved_key[PLAINTEXT_LENGTH + 1];
-static int cracked;
+#if defined (_OPENMP)
+static int omp_t = 1;
+#endif
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *cracked;
 
 /* Office 2010 */
 static unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
@@ -237,7 +245,16 @@ static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, u
 
 static void init(struct fmt_main *pFmt)
 {
-
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	cracked = mem_calloc_tiny(sizeof(*cracked) *
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -288,48 +305,58 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
-	if(salt_struct->version == 2007) {
-		unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1(saved_key);
-		if (PasswordVerifier(encryptionKey))
-			cracked = 1;
-		else
-			cracked = 0;
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		if(salt_struct->version == 2007) {
+			unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1(saved_key[index]);
+			if (PasswordVerifier(encryptionKey))
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		}
+		else if (salt_struct->version == 2010) {
+			unsigned char verifierInputKey[16];
+			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashInputBlockKey, salt_struct->keySize >> 3, verifierInputKey);
+			unsigned char verifierHashKey[16];
+			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashValueBlockKey, salt_struct->keySize >> 3, verifierHashKey);
+			unsigned char decryptedVerifierHashInputBytes[16];
+			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, salt_struct->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			unsigned char decryptedVerifierHashBytes[32];
+			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, salt_struct->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			unsigned char hash[20];
+			SHA_CTX ctx;
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+			SHA1_Final(hash, &ctx);
+			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		}
 	}
-	else if (salt_struct->version == 2010) {
-		unsigned char verifierInputKey[16];
-		GenerateAgileEncryptionKey(saved_key, encryptedVerifierHashInputBlockKey, salt_struct->keySize >> 3, verifierInputKey);
-		unsigned char verifierHashKey[16];
-		GenerateAgileEncryptionKey(saved_key, encryptedVerifierHashValueBlockKey, salt_struct->keySize >> 3, verifierHashKey);
-		unsigned char decryptedVerifierHashInputBytes[16];
-		DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, salt_struct->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-		unsigned char decryptedVerifierHashBytes[32];
-		DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, salt_struct->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
-		unsigned char hash[20];
-		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
-		SHA1_Final(hash, &ctx);
-		if(!memcmp(hash, decryptedVerifierHashBytes, 20))
-			cracked = 1;
-		else
-			cracked = 0;
-	}
-
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return cracked;
+	int index;
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked;
+	return cracked[index];
 }
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void office_set_key(char *key, int index)
@@ -337,13 +364,13 @@ static void office_set_key(char *key, int index)
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
 		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key, key, saved_key_length);
-	saved_key[saved_key_length] = 0;
+	memcpy(saved_key[index], key, saved_key_length);
+	saved_key[index][saved_key_length] = 0;
 }
 
 static char *get_key(int index)
 {
-	return saved_key;
+	return saved_key[index];
 }
 
 struct fmt_main office_fmt = {
@@ -358,7 +385,7 @@ struct fmt_main office_fmt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		office_tests
 	}, {
 		init,
