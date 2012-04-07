@@ -21,7 +21,7 @@
 
 
 #define FORMAT_LABEL	        "mscash2-opencl"
-#define FORMAT_NAME		"mscash2-OPENCL"
+#define FORMAT_NAME		"MSCASH2-OPENCL"
 #define KERNEL_NAME		"PBKDF2"
 
 #define ALGORITHM_NAME		"PBKDF2_HMAC_SHA1"
@@ -44,7 +44,7 @@
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 typedef struct 
- { char username[MAX_SALT_LENGTH+1];
+ { unsigned char username[MAX_SALT_LENGTH+1];
    unsigned int length;
  } ms_cash2_salt;
 
@@ -61,8 +61,8 @@ static struct fmt_tests tests[] = {
 
  cl_uint *dcc_hash_host;
  cl_uint *dcc2_hash_host;
- char key_host[MAX_KEYS_PER_CRYPT][MAX_PLAINTEXT_LENGTH+1]; 
- char ciphertext_host[MAX_KEYS_PER_CRYPT][MAX_CIPHERTEXT_LENGTH+1];
+ unsigned char key_host[MAX_KEYS_PER_CRYPT][MAX_PLAINTEXT_LENGTH+1]; 
+ unsigned char ciphertext_host[MAX_KEYS_PER_CRYPT][MAX_CIPHERTEXT_LENGTH+1];
  ms_cash2_salt currentsalt;
  cl_platform_id pltfrmid;
  cl_device_id devid[1];
@@ -203,7 +203,7 @@ void DCC(unsigned char *salt,unsigned char *username,unsigned int username_len,u
     unsigned int i;
     unsigned int buffer[16];
     unsigned int nt_hash[16];
-    unsigned int password_len = strlen(password);
+    unsigned int password_len = strlen((const char*)password);
    
 	memset(nt_hash, 0, 64);
     memset(buffer, 0, 64);
@@ -249,8 +249,7 @@ static void init(struct fmt_main *pFmt)
   dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
   memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
   memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-  //CL_init(&pltfrmid,devid,&cntxt,&cmdq,"$JOHN/PBKDF2.cl",&prg);
-  opencl_init("$JOHN/PBKDF2.cl", gpu_id, platform_id);
+  opencl_init("$JOHN/pbkdf2_kernel.cl", gpu_id, platform_id);
   pltfrmid=platform[platform_id];
   devid[0]=devices[gpu_id];
   cntxt=context[gpu_id];
@@ -325,13 +324,13 @@ static void set_key(char *key, int index)
 
 }
 
-static char *get_key(int index )
-{ return key_host[index];
+static  char *get_key(int index )
+{ return (char *)key_host[index];
 }
 
 static void crypt_all(int count)
 {    unsigned int i;
-     char salt_unicode[MAX_SALT_LENGTH*2+1];
+     unsigned char salt_unicode[MAX_SALT_LENGTH*2+1];
 	 cl_uint salt_host[MAX_SALT_LENGTH/2 +1];
 	 memset(salt_unicode,0,MAX_SALT_LENGTH*2+1);
      memset(salt_host,0,(MAX_SALT_LENGTH/2 +1)*sizeof(cl_uint));
@@ -345,9 +344,9 @@ static void crypt_all(int count)
 	for(i=0;i<count;i++) {
                                               DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
                                                    ciphertext_host[i][0]='\0';
-						   strcat(ciphertext_host[i],"$DCC2$");
-						   strcat(ciphertext_host[i],currentsalt.username);
-						   strcat(ciphertext_host[i],"#");
+						   strcat((char*)ciphertext_host[i],"$DCC2$");
+						   strcat((char*)ciphertext_host[i],(const char*)currentsalt.username);
+						   strcat((char*)ciphertext_host[i],"#");
 	                     }
 	memcpy(salt_host,salt_unicode,MAX_SALT_LENGTH*2+1);
 	
@@ -355,7 +354,7 @@ static void crypt_all(int count)
 	
         for(i=0;i<count;i++)
 	{  
-		strcat(ciphertext_host[i],byte2hexstring((unsigned char*)(dcc2_hash_host+4*i),16));
+		strcat((char*)ciphertext_host[i],(const char*)byte2hexstring((unsigned char*)(dcc2_hash_host+4*i),16));
 
 	}
 	
@@ -465,9 +464,9 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int count)
 {   unsigned int length;
-    length=strlen(source);
-	if(length!=strlen(ciphertext_host[count])) return 0;
-	if(strncmp(source,ciphertext_host[count],length)) return 0;
+    length=strlen((const char*)source);
+	if(length!=strlen((const char*)ciphertext_host[count])) return 0;
+	if(strncmp(source,(const char*)ciphertext_host[count],length)) return 0;
 	return 1;
 }
 
