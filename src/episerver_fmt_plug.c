@@ -2,20 +2,33 @@
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC. Based on sample
  * code by hashcat's atom.
  *
- * This software is Copyright © 2021, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. 
+ * are permitted.
  *
- * Input Format:
+ * Obtaining hashes from EPiServer 6.x:
+ *
+ * sqlcmd -L
+ * sqlcmd -S <server> -U sa -P <password> *
+ * 1> SELECT name from sys.databases
+ * 2> go
+ * 1> use <database name>
+ * 2> select Email, PasswordFormat, PasswordSalt, Password from aspnet_Membership
+ * 3> go
+ *
+ * JtR Input Format:
  *
  * user:$episerver$*version*base64(salt)*base64(hash)
  *
  * Where,
  *
- * version == 0, for EPiServer's standard / .NET <= 3.5 SHA1 hash/salt format.
- * 		 hash =  sha1(salt | utf16bytes(password)). */
- 
+ * version == 0, for EPiServer 6.x standard config / .NET <= 3.5 SHA1 hash/salt format.
+ * 		 hash =  sha1(salt | utf16bytes(password)), PasswordFormat == 1 *
+ *
+ * version == 1, EPiServer 6.x + .NET >= 4.x SHA256 hash/salt format,
+ * 		 PasswordFormat == ? */
+
 #include <openssl/sha.h>
 #include <string.h>
 #include <assert.h>
@@ -39,21 +52,28 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define SALT_SIZE		256
+#define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests episerver_tests[] = {
 	{"$episerver$*0*fGJ2wn/5WlzqQoDeCA2kXA==*UQgnz/vPWap9UeD8Dhaw3h/fgFA=", "testPassword"},
+	{"$episerver$*0*fGJ2wn/5WlzqQoDeCA2kXA==*uiP1YrZlVcHESbfsRt/wljwNeYU=", "sss"},
+	{"$episerver$*0*fGJ2wn/5WlzqQoDeCA2kXA==*dxTlKqnxaVHs0210VcX+48QDonA=", "notused"},
 	{NULL}
 };
 
+#if defined (_OPENMP)
 static int omp_t = 1;
-static char unsigned esalt[16];
-static char unsigned hash[20];
-static int version;
+#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char *cracked;
+static int *cracked;
+
+static struct custom_salt {
+	int version;
+	char unsigned esalt[16];
+	char unsigned hash[32]; /* version == 1 */
+} *salt_struct;
 
 static void init(struct fmt_main *pFmt)
 {
@@ -77,22 +97,24 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	ctcopy += 12;	/* skip over "$episerver$*" */
+	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	char *p = strtok(ctcopy, "*");
+	salt_struct->version = atoi(p);
+	p = strtok(NULL, "*");
+	base64_decode(p, strlen(p), (char*)salt_struct->esalt);
+	p = strtok(NULL, "*");
+	base64_decode(p, strlen(p), (char*)salt_struct->hash);
+	free(keeptr);
+	return (void *)salt_struct;
 }
 
 
 static void set_salt(void *salt)
 {
-	char *saltcopy = strdup(salt);
-	char *keeptr = saltcopy;
-	saltcopy += 12;	/* skip over "$episerver$*" */
-	char *p = strtok(saltcopy, "*");
-	version = atoi(p);
-	p = strtok(NULL, "*");
-	base64_decode(p, strlen(p), (char*)esalt);
-	p = strtok(NULL, "*");
-	base64_decode(p, strlen(p), (char*)hash);
-	free(keeptr);
+	salt_struct = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -112,16 +134,30 @@ static void crypt_all(int count)
 			passwordBuf[position] = c;
 			position += 2;
 		}
-		unsigned int sha1hash[5];
-		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, esalt, 16);
-		SHA1_Update(&ctx, passwordBuf, passwordBufSize);
-		SHA1_Final((unsigned char *)sha1hash, &ctx);
-		if(!memcmp(sha1hash, hash, 20))
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;	
+		if(salt_struct->version == 0) {
+			unsigned int sha1hash[5];
+			SHA_CTX ctx;
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, salt_struct->esalt, 16);
+			SHA1_Update(&ctx, passwordBuf, passwordBufSize);
+			SHA1_Final((unsigned char *)sha1hash, &ctx);
+			if(!memcmp(sha1hash, salt_struct->hash, 20))
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		}
+		else if(salt_struct->version == 1) {
+			unsigned int sha256hash[8];
+			SHA256_CTX ctx;
+			SHA256_Init(&ctx);
+			SHA256_Update(&ctx, salt_struct->esalt, 16);
+			SHA256_Update(&ctx, passwordBuf, passwordBufSize);
+			SHA256_Final((unsigned char *)sha256hash, &ctx);
+			if(!memcmp(sha256hash, salt_struct->hash, 32))
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		}
 	}
 }
 

@@ -1,6 +1,6 @@
 /* office2john.c: written by Dhiru Kholia in Summer of 2012 and released
  * under GNU LGPL. Based on test-dump-msole.c (under LPGL) and OoXmlCrypto.cs
- * (under LGPL). 
+ * (under LGPL).
  *
  * test-dump-msole.c: Export a msole file to a directory tree
  *
@@ -131,10 +131,10 @@ static void process_file(char *filename, char *parentfile)
 	FILE *fp;
 	int i;
 	struct stat sb;
-	
+
 	if(stat(filename, &sb) != 0) {
 	}
-	
+
 	if (!(fp = fopen(filename, "rb"))) {
 		fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
 		return;
@@ -146,13 +146,13 @@ static void process_file(char *filename, char *parentfile)
 		uint32_t encryptionFlags = fget32(fp);
 		if (encryptionFlags == fExternal) {
 			fprintf(stderr, "%s : An external cryptographic provider is not supported\n", parentfile);
-			return;		
+			return;
 		}
 		if (versionMinor == 0x04 && versionMajor == 0x04) { /* Office 2010 files */
 			if (encryptionFlags != fAgile)
 				fprintf(stderr, "%s : The encryption flags are not consistent with the encryption type\n", parentfile);
 			/* rest of the data is in XML format, dump it to a file */
-			char path[4096];
+			char path[4096] = { 0 };
 			strcpy(path, filename);
 			char *buffer = (char*)malloc(sb.st_size);
 			fread(buffer, sb.st_size - 8, 1, fp);
@@ -184,14 +184,14 @@ static void process_file(char *filename, char *parentfile)
 					break;
 				cur = cur->next;
 			}
-			cur = cur->xmlChildrenNode;	
+			cur = cur->xmlChildrenNode;
 			while (cur != NULL) {
-				if ((!xmlStrcmp(cur->name, (const xmlChar *)"keyEncryptor"))) 
+				if ((!xmlStrcmp(cur->name, (const xmlChar *)"keyEncryptor")))
 					break;
 				cur = cur->next;
 			}
-			cur = cur->xmlChildrenNode;	
-			/* we are now at "encryptedKey" node */			
+			cur = cur->xmlChildrenNode;
+			/* we are now at "encryptedKey" node */
 			xmlChar *spinCountXML = xmlGetProp(cur, "spinCount");
 			int spinCount = atoi(spinCountXML);
 			xmlFree(spinCountXML);
@@ -203,20 +203,20 @@ static void process_file(char *filename, char *parentfile)
 			xmlFree(pkeBlockSizeXML);
 			xmlChar *pkeKeyBitsXML = xmlGetProp(cur, "keyBits");
 			int pkeKeyBits = atoi(pkeKeyBitsXML);
-			xmlFree(pkeKeyBitsXML); 	
+			xmlFree(pkeKeyBitsXML);
 			xmlChar *pkeHashSizeXML = xmlGetProp(cur, "hashSize");
 			int pkeHashSize = atoi(pkeHashSizeXML);
-			xmlFree(pkeHashSizeXML);		
+			xmlFree(pkeHashSizeXML);
 			xmlChar *pkeSaltValueXML = xmlGetProp(cur, "saltValue");
-			unsigned char *pkeSaltValue = (unsigned char*)malloc(saltSize);
+			unsigned char *pkeSaltValue = (unsigned char*)malloc(16 + 2);
 			base64_decode(pkeSaltValueXML, strlen(pkeSaltValueXML), pkeSaltValue);
 			xmlFree(pkeSaltValueXML);
 			xmlChar *encryptedVerifierHashInputXML = xmlGetProp(cur, "encryptedVerifierHashInput");
-			unsigned char encryptedVerifierHashInput[16];
+			unsigned char encryptedVerifierHashInput[16 + 2];
 			base64_decode(encryptedVerifierHashInputXML, strlen(encryptedVerifierHashInputXML), encryptedVerifierHashInput);
 			xmlFree(encryptedVerifierHashInputXML);
 			xmlChar *encryptedVerifierHashValueXML = xmlGetProp(cur, "encryptedVerifierHashValue");
-			unsigned char encryptedVerifierHashValue[32];
+			unsigned char encryptedVerifierHashValue[32 + 2];
 			base64_decode(encryptedVerifierHashValueXML, strlen(encryptedVerifierHashValueXML), encryptedVerifierHashValue);
 			xmlFree(encryptedVerifierHashValueXML);
 			int version = 2010;
@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
 	int res;
 
 	if (argc < 2) {
-		fprintf(stderr, "%s : infile outdir\n", argv[0]);
+		fprintf(stderr, "Usage: %s <Office 2007 / 2010 encrypted files>\n", argv[0]);
 		return 1;
 	}
 
