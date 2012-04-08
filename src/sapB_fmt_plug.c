@@ -105,7 +105,7 @@ static const unsigned char transtable[] =
 
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
- 	{"F           $E3A65AAA9676060F", "X"},
+	{"F           $E3A65AAA9676060F", "X"},
 	{"JOHNNY                                  $7F7207932E4DE471", "CYBERPUNK"},
 	{"VAN         $487A2A40A7BA2258", "HAUSER"},
 	{"RoOT        $8366A4E9E6B72CB0", "KID"},
@@ -279,125 +279,105 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 	                        (sum20 >> 8) + sum20);
 	sum20 += (temp_key[5] & 3) | 0x20;
 
-	I1 = I2 = I3 = 0;
-
 	// Some unrolling
 	if (temp_key[15] & 0x01) {
-		destArray[0] = 0x0d; // bcodeArr[47]
+		destArray[0] = bcodeArr[47];
 		I2 = 1;
 	}
 	else {
 		I2 = 0;
 	}
-	destArray[I2++] = key(I1); I1++;
+	destArray[I2++] = key(0);
 	destArray[I2++] = cur_salt->s[0];
 	destArray[I2] = bcodeArr[I2-2];
 	destArray[++I2] = 0; I2++;
 
-	if (cur_salt->l >= 4 && len >= 4) {
-		if (temp_key[14] & 0x01)
-			destArray[I2++] = 0xf0; /* bcodeArr[46] */
-		destArray[I2++] = key(1);
-		destArray[I2++] = cur_salt->s[1];
-		destArray[I2] = bcodeArr[I2-4];
-		destArray[++I2] = 0; I2++;
-		if (temp_key[13] & 0x01)
-			destArray[I2++] = 0x28; /* bcodeArr[45] */
-		destArray[I2++] = key(2);
-		destArray[I2++] = cur_salt->s[2];
-		destArray[I2] = bcodeArr[I2-6];
-		destArray[++I2] = 0; I2++;
-		if (temp_key[12] & 0x01)
-			destArray[I2++] = 0xef; /* bcodeArr[44] */
-		destArray[I2++] = key(3);
-		destArray[I2++] = cur_salt->s[3];
-		destArray[I2] = bcodeArr[I2-8];
-		destArray[++I2] = 0; I2++;
-		I1 = I3 = 4;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
+	if( len >= 6) {
+		I1 = 6;
+		if( cur_salt->l >= 4 ) {
+			// key >= 6 bytes, salt >= 4 bytes
+			if (temp_key[14] & 0x01)
+				destArray[I2++] = bcodeArr[46];
+			destArray[I2++] = key(1);
+			destArray[I2++] = cur_salt->s[1];
+			destArray[I2] = bcodeArr[I2-4];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[13] & 0x01)
+				destArray[I2++] = bcodeArr[45];
+			destArray[I2++] = key(2);
+			destArray[I2++] = cur_salt->s[2];
+			destArray[I2] = bcodeArr[I2-6];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[12] & 0x01)
+				destArray[I2++] = bcodeArr[44];
+			destArray[I2++] = key(3);
+			destArray[I2++] = cur_salt->s[3];
+			destArray[I2] = bcodeArr[I2-8];
+			destArray[++I2] = 0; I2++;
+			I3 = 4;
+			if (temp_key[DEFAULT_OFFSET - 4] & 0x01)
+				destArray[I2++] = bcodeArr[43];
+			destArray[I2++] = key(4);
+			if (4 < cur_salt->l)
+				destArray[I2++] = cur_salt->s[I3++];
+			destArray[I2] = bcodeArr[I2 - 5 - I3];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[DEFAULT_OFFSET - 5] & 0x01)
+				destArray[I2++] = bcodeArr[42];
+			destArray[I2++] = key(5);
+			if (5 < cur_salt->l)
+				destArray[I2++] = cur_salt->s[I3++];
+			destArray[I2] = bcodeArr[I2 - 6 - I3];
+			destArray[++I2] = 0; I2++;
+			if (6 < len) {
+				if (temp_key[DEFAULT_OFFSET - 6] & 0x01)
+					destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 7];
+				destArray[I2++] = key(6); I1++;
+			}
+			if (6 < cur_salt->l)
+				destArray[I2++] = cur_salt->s[I3++];
+		} else {
+			// Key >= 6 bytes, salt < 4 Bytes
+			I3 = 1;
+			if (temp_key[DEFAULT_OFFSET - 1] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 2];
+			destArray[I2++] = key(1);
+			if (1 < cur_salt->l)
+				destArray[I2++] = cur_salt->s[I3++];
+			destArray[I2] = bcodeArr[I2 - 2 - I3];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[DEFAULT_OFFSET - 2] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 3];
+			destArray[I2++] = key(2);
+			if (2 < cur_salt->l)
+				destArray[I2++] = cur_salt->s[I3++];
+			destArray[I2] = bcodeArr[I2 - 3 - I3];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[DEFAULT_OFFSET - 3] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 4];
+			destArray[I2++] = key(3);
+			destArray[I2] = bcodeArr[I2 - 4 - I3];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[DEFAULT_OFFSET - 4] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 5];
+			destArray[I2++] = key(4);
+			destArray[I2] = bcodeArr[I2 - 5 - I3];
+			destArray[++I2] = 0; I2++;
+			if (temp_key[DEFAULT_OFFSET - 5] & 0x01)
+				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 6];
+			destArray[I2++] = key(5);
+			destArray[I2] = bcodeArr[I2 - 6 - I3];
+			destArray[++I2] = 0; I2++;
+			if (6 < len) {
+				if (temp_key[DEFAULT_OFFSET - 6] & 0x01)
+					destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - 7];
+				destArray[I2++] = key(6); I1++;
+			}
 		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
 		destArray[I2] = bcodeArr[I2 - I1 - I3];
 		destArray[++I2] = 0; I2++;
 	} else {
-		// key or salt shorter than 4 bytes
 		I1 = I3 = 1;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
-		if (I1 < len) {
-			if ((temp_key[DEFAULT_OFFSET - I1] & 0x01) == 0x01)
-				destArray[I2++] = bcodeArr[BCODE_ARRAY_LENGTH - I1 - 1];
-			destArray[I2++] = key(I1); I1++;
-		}
-		if (I3 < cur_salt->l)
-			destArray[I2++] = cur_salt->s[I3++];
-		destArray[I2] = bcodeArr[I2 - I1 - I3];
-		destArray[++I2] = 0; I2++;
 	}
 	// End of unrolling. Now the remaining bytes
 	while(I2 < sum20) {
