@@ -32,7 +32,8 @@
 
  This is an implementation of RFC2898, which specifies key derivation from
  a password and a salt value.
-*/
+
+ Compile: gcc -DTEST gladman_pwd2key.c gladman_hmac.c -lcrypto */
 
 #include <string.h>
 #include <memory.h>
@@ -126,7 +127,13 @@ struct
         {   0x12, 0x34, 0x56, 0x78, 0x78, 0x56, 0x34, 0x12 },
         {   0xd1, 0xda, 0xa7, 0x86, 0x15, 0xf2, 0x87, 0xe6,
             0xa1, 0xc8, 0xb1, 0x20, 0xd7, 0x06, 0x2a, 0x49 } /* ... */
+    },
+    {   76, 8, 500, (unsigned char*)"All n-entities must communicate with other n-entities via n-1 entiteeheehees",
+        {   0x12, 0x34, 0x56, 0x78, 0x78, 0x56, 0x34, 0x12 },
+        {   0x6A, 0x89, 0x70, 0xBF, 0x68, 0xC9, 0x2C, 0xAE,
+            0xA8, 0x4A, 0x8D, 0xF2, 0x85, 0x10, 0x85, 0x86 } /* ... */
     }
+
 };
 
 int main()
@@ -134,7 +141,7 @@ int main()
     unsigned char   key[256];
 
     printf("\nTest of RFC2898 Password Based Key Derivation");
-    for(i = 0; i < 2; ++i)
+    for(i = 0; i < 3; ++i)
     {
         derive_key(tests[i].pwd, tests[i].pwd_len, tests[i].salt,
                     tests[i].salt_len, tests[i].it_count, key, key_len);
