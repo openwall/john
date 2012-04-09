@@ -40,7 +40,7 @@
 }
 #endif
  
-#define S(x,n) ((x << n) | ((x & 0xFFFFFFFF) >> (32 - n)))
+#define S(x,n) ((x << n) | ((x ) >> (32 - n)))
  
 #define R(t)                                            \
 (                                                       \
@@ -53,11 +53,12 @@
 {                                                       \
     e += S(a,5) + F(b,c,d) + K + x; b = S(b,30);        \
 }
-
-
-
 __kernel void PBKDF2(const __global unsigned int *pass_global, const __global unsigned int *salt, int usrlen, __global unsigned int *out_global)
-{   int id=get_global_id(0);
+{   int id=get_local_id(0);
+    __local unsigned int salt_local[32];
+    if(id==0)  for(id=0;id<=usrlen/2;++id)     salt_local[id]=salt[id];
+    barrier(CLK_LOCAL_MEM_FENCE);
+    id=get_global_id(0);
     unsigned int temp_char[SHA1_DIGEST_LENGTH/4],pass[4],out[4];
     unsigned  int buf[16]={0};
     unsigned int i,j;
@@ -69,15 +70,15 @@ __kernel void PBKDF2(const __global unsigned int *pass_global, const __global un
      { pass[j]=pass_global[i];
        out[j]=out_global[i];
      }
-
+    
    if(usrlen%2==1)
     {   for(i=0;i<=usrlen/2;i++)
-            buf[i]=salt[i];
+            buf[i]=salt_local[i];
                    buf[(usrlen/2)+1] = 0x01<<8;
     }
     else   
     {  for(i=0;i<usrlen/2;i++)
-            buf[i]=salt[i];
+            buf[i]=salt_local[i];
      buf[usrlen/2 ] = 0x01<<24;
     }
      
