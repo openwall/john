@@ -38,7 +38,7 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
-#define SALT_SIZE		56
+#define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -117,14 +117,15 @@ static struct fmt_tests racf_tests[] = {
 };
 
 static int omp_t = 1;
-static unsigned char userid[8 + 1];
-static char unsigned hash[8];
+static struct custom_salt {
+	unsigned char userid[8 + 1];
+	char unsigned hash[8];
+} *salt_struct;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char *cracked;
+static int *cracked;
 
 static void init(struct fmt_main *pFmt)
 {
-
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
@@ -144,40 +145,40 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
+	int i;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	ctcopy += 7;	/* skip over "$racf$*" */
+	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	char *username = strtok(ctcopy, "*");
+	/* process username */
+	strcpy((char*)salt_struct->userid, username);
+#ifdef RACF_DEBUG
+	printf("userid in ASCII : %s\n", salt_struct->userid);
+#endif
+	ascii2ebcdic(salt_struct->userid);
+	process_userid(salt_struct->userid);
+#ifdef RACF_DEBUG
+	printf("userid in EBCDIC : ");
+	print_hex(salt_struct->userid, 8);
+#endif
+	/* process DES hash */
+	char *inputhash = strtok(NULL, "*");
+	for (i = 0; i < 8; i++)
+		salt_struct->hash[i] = atoi16[ARCH_INDEX(inputhash[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(inputhash[i * 2 + 1])];
+#ifdef RACF_DEBUG
+	printf("inputhash : ");
+	print_hex(salt_struct->hash, 8);
+#endif
+	free(keeptr);
+	return (void *)salt_struct;
 }
 
 
 static void set_salt(void *salt)
 {
-	int i;
-	char *saltcopy = strdup(salt);
-	char *keeptr = saltcopy;
-	saltcopy += 7;	/* skip over "$racf$*" */
-	char *username = strtok(saltcopy, "*");
-	/* process username */
-	strcpy((char*)userid, username);
-#ifdef RACF_DEBUG
-	printf("userid in ASCII : %s\n", userid);
-#endif
-	ascii2ebcdic(userid);
-	process_userid(userid);
-#ifdef RACF_DEBUG
-	printf("userid in EBCDIC : ");
-	print_hex(userid, 8);
-#endif
-	/* process DES hash */
-	char *inputhash = strtok(NULL, "*");
-	for (i = 0; i < 8; i++)
-		hash[i] = atoi16[ARCH_INDEX(inputhash[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(inputhash[i * 2 + 1])];
-
-#ifdef RACF_DEBUG
-	printf("inputhash : ");
-	print_hex(hash, 8);
-#endif
-	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
-	free(keeptr);
+	salt_struct = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -193,40 +194,20 @@ static void crypt_all(int count)
 		unsigned char key[PLAINTEXT_LENGTH+1];
 		strcpy((char*)key, saved_key[index]);
 		/* process key */
-#ifdef RACF_DEBUG
-		printf("key in ASCII : %s\n", key);
-#endif
 		ascii2ebcdic(key);
 		process_key(key);
-#ifdef RACF_DEBUG
-		printf("processed key in EBCDIC : ");
-		print_hex(key, 8);
-#endif
 		memcpy(des_key, key, 8);
 		DES_key_schedule schedule;
 		DES_cblock ivec;
 		memset(ivec, 0, 8);
 		DES_set_odd_parity(&des_key);
-#ifdef RACF_DEBUG
-		printf("internally processed key in EBDIC : ");
-		print_hex(des_key, 8);
-#endif
 		DES_set_key_checked(&des_key, &schedule);
 		/* do encryption */
-		DES_cbc_encrypt(userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
-#ifdef RACF_DEBUG
-		printf("saved_key : %s hash : ", saved_key[index]);
-		print_hex(encrypted, 8);
-#endif
-		if(!memcmp(hash, encrypted, 8)) {
+		DES_cbc_encrypt(salt_struct->userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
+		if(!memcmp(salt_struct->hash, encrypted, 8))
 			cracked[index] = 1;
-#ifdef RACF_DEBUG
-			printf("cracked : yes, index : %d\n", index);
-#endif
-		}
-#ifdef RACF_DEBUG
-		printf("\n");
-#endif
+		else
+			cracked[index] = 0;
 	}
 }
 
