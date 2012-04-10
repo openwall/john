@@ -29,6 +29,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
+static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"racf"
@@ -116,7 +117,6 @@ static struct fmt_tests racf_tests[] = {
 	{NULL}
 };
 
-static int omp_t = 1;
 static struct custom_salt {
 	unsigned char userid[8 + 1];
 	char unsigned hash[8];
