@@ -128,7 +128,13 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	if(pad > 8)
 		// "Bad padding byte. You probably have a wrong password"
 		return -1;
-	int n = CTLEN - pad;
+	int n;
+	if(pad == 0 || pad == 1) { // special case
+		n = pad;
+	}
+	else {
+		n = CTLEN - pad;
+	}
 	int i;
 	for(i = n; i < CTLEN; i++)
 		if(out[i] != pad)
