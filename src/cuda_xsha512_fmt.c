@@ -10,8 +10,12 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
 
 #include <string.h>
+#include <openssl/sha.h>
+
 
 #include "cuda_xsha512.h"
 #include "arch.h"
@@ -93,7 +97,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[BINARY_SIZE];
+	static unsigned char out[FULL_BINARY_SIZE];
 	char *p;
 	int i;
 
@@ -257,7 +261,25 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
+	SHA512_CTX ctx;
+	uint64_t crypt_out[8];
+	
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
+	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
+	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
+
+	int i;
+	uint64_t *b = (uint64_t *)get_binary(source);
+	uint64_t *c = (uint64_t *)crypt_out;
+
+	
+	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
+		if (b[i] != c[i])
+			return 0;
+	}
 	return 1;
+
 }
 
 struct fmt_main fmt_cuda_xsha512 = {
@@ -310,3 +332,9 @@ struct fmt_main fmt_cuda_xsha512 = {
 		cmp_exact
 	}
 };
+#else
+#ifdef __GNUC__
+#warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
+#endif
+#endif
+
