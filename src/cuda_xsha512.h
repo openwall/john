@@ -24,6 +24,7 @@
 #define BINARY_SIZE 64
 #else
 #define BINARY_SIZE 8
+#define FULL_BINARY_SIZE 64
 #endif
 
 #if 0
