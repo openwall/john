@@ -245,7 +245,7 @@ inline void memcpy32O(__OUTPUTMEM uint *d, __OUTPUTMEM const uint *s, int len)
 __kernel void SetCryptKeys(
 	__global const uchar *unicode_pw,
 	__global const int *pw_len,
-	__global const uchar *salt,
+	__constant uchar *salt,
 	__global uint *aes_key, __global uchar *aes_iv)
 {
 	uint i, j, len, pwlen, b;
