@@ -81,10 +81,11 @@ static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
-	ctcopy += 11;	/* skip over "$keychain$*" */
 	int i;
+	char *p;
+	ctcopy += 11;	/* skip over "$keychain$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	char *p = strtok(ctcopy, "*");
+	p = strtok(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
@@ -110,6 +111,7 @@ static void set_salt(void *salt)
 static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 {
 	unsigned char out[CTLEN];
+	int pad, n, i;
 	DES_cblock key1, key2, key3;
 	DES_cblock ivec;
 	DES_key_schedule ks1, ks2, ks3;
@@ -124,18 +126,16 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	DES_ede3_cbc_encrypt(data, out, CTLEN, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
 
 	// now check padding
-	int pad = out[47];
+	pad = out[47];
 	if(pad > 8)
 		// "Bad padding byte. You probably have a wrong password"
 		return -1;
-	int n;
 	if(pad == 0 || pad == 1) { // special case
 		n = pad;
 	}
 	else {
 		n = CTLEN - pad;
 	}
-	int i;
 	for(i = n; i < CTLEN; i++)
 		if(out[i] != pad)
 			// "Bad padding. You probably have a wrong password"

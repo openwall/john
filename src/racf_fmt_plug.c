@@ -147,10 +147,10 @@ static void *get_salt(char *ciphertext)
 {
 	int i;
 	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *keeptr = ctcopy, *username, *inputhash;
 	ctcopy += 7;	/* skip over "$racf$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	char *username = strtok(ctcopy, "*");
+	username = strtok(ctcopy, "*");
 	/* process username */
 	strcpy((char*)salt_struct->userid, username);
 #ifdef RACF_DEBUG
@@ -163,7 +163,7 @@ static void *get_salt(char *ciphertext)
 	print_hex(salt_struct->userid, 8);
 #endif
 	/* process DES hash */
-	char *inputhash = strtok(NULL, "*");
+	inputhash = strtok(NULL, "*");
 	for (i = 0; i < 8; i++)
 		salt_struct->hash[i] = atoi16[ARCH_INDEX(inputhash[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(inputhash[i * 2 + 1])];
@@ -192,13 +192,13 @@ static void crypt_all(int count)
 		DES_cblock des_key;
 		unsigned char encrypted[8];
 		unsigned char key[PLAINTEXT_LENGTH+1];
+		DES_key_schedule schedule;
+		DES_cblock ivec;
 		strcpy((char*)key, saved_key[index]);
 		/* process key */
 		ascii2ebcdic(key);
 		process_key(key);
 		memcpy(des_key, key, 8);
-		DES_key_schedule schedule;
-		DES_cblock ivec;
 		memset(ivec, 0, 8);
 		DES_set_odd_parity(&des_key);
 		DES_set_key_checked(&des_key, &schedule);

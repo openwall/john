@@ -225,8 +225,9 @@ static int NAME(int index) \
 	if (hash_func == CALL) \
 		return buffer[index].hash; \
 	{ \
+		int block; \
 		MAYBE_T0; \
-		int block = buffer[index].block; \
+		block = buffer[index].block; \
 		memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B)); \
 		return (next_hash_func = CALL)(buffer[index].index); \
 	} \
@@ -487,8 +488,9 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
+	int block;
 	MAYBE_T0;
-	int block = buffer[index].block;
+	block = buffer[index].block;
 	memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B));
 	memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
 	memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));
@@ -498,8 +500,9 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
+	int block;
 	MAYBE_T0;
-	int block = buffer[index].block;
+	block = buffer[index].block;
 	memcpy(DES_bs_all.B, crypt_out[block], sizeof(DES_bs_all.B));
 	memset(&DES_bs_all.B[39], 0, sizeof(DES_bs_all.B[39]));
 	memset(&DES_bs_all.B[47], 0, sizeof(DES_bs_all.B[47]));

@@ -99,9 +99,10 @@ static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
+	char *p;
 	ctcopy += 12;	/* skip over "$episerver$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	char *p = strtok(ctcopy, "*");
+	p = strtok(ctcopy, "*");
 	salt_struct->version = atoi(p);
 	p = strtok(NULL, "*");
 	base64_decode(p, strlen(p), (char*)salt_struct->esalt);
