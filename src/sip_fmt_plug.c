@@ -24,6 +24,10 @@
 #define OMP_SCALE               64
 #endif
 
+#ifdef _MSC_VER
+#define snprintf _snprintf
+#endif
+
 
 #define FORMAT_LABEL		"sip"
 #define FORMAT_NAME		"SIP"

@@ -11,11 +11,11 @@
 #include <sys/stat.h>
 #ifndef _MSC_VER
 #include <unistd.h>
+#include <strings.h>
 #else
 #pragma warning ( disable : 4996 )
 #endif
 #include <string.h>
-#include <strings.h>
 
 #include "arch.h"
 #include "misc.h"

@@ -83,7 +83,7 @@ static void *get_salt(char *ciphertext)
 	char *p;
 
 	ctcopy += 5;	/* skip over "$pdf$" marker */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	salt_struct = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 
 	/* restore serialized data */
 	salt_struct->e.s_handler = strtok(ctcopy, "*");

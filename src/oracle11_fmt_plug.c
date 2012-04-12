@@ -128,8 +128,8 @@ static unsigned char saved_salt[SALT_SIZE];
 #ifdef MMX_COEF
 
 /* Cygwin would not guarantee the alignment if these were declared static */
-#define saved_key mssql05_saved_key
-#define crypt_key mssql05_crypt_key
+#define saved_key oracle11_saved_key
+#define crypt_key oracle11_crypt_key
 #ifdef _MSC_VER
 __declspec(align(16)) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
 __declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];

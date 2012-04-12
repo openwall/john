@@ -193,13 +193,16 @@ static void crypt_all(int count)
 #endif
 	{
 		unsigned char temp_result[BINARY_SIZE]
-			__attribute__ ((__aligned__ (__alignof__ (ARCH_WORD_32))));
+#if !defined(_MSC_VER)
+			__attribute__ ((__aligned__ (__alignof__ (ARCH_WORD_32))))
+#endif
+				;
 		SHA256_CTX ctx;
 		SHA256_CTX alt_ctx;
 		size_t cnt;
 		char *cp;
-		char *p_bytes;
-		char *s_bytes;
+		char p_bytes[PLAINTEXT_LENGTH+1];
+		char s_bytes[PLAINTEXT_LENGTH+1];
 
 		/* Prepare for the real work.  */
 		SHA256_Init(&ctx);
@@ -257,7 +260,7 @@ static void crypt_all(int count)
 		SHA256_Final(temp_result, &alt_ctx);
 
 		/* Create byte sequence P.  */
-		cp = p_bytes = alloca (saved_key_length[index]);
+		cp = p_bytes;
 		for (cnt = saved_key_length[index]; cnt >= BINARY_SIZE; cnt -= BINARY_SIZE)
 			cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 		memcpy (cp, temp_result, cnt);
@@ -273,7 +276,7 @@ static void crypt_all(int count)
 		SHA256_Final(temp_result, &alt_ctx);
 
 		/* Create byte sequence S.  */
-		cp = s_bytes = alloca (cur_salt->len);
+		cp = s_bytes;
 		for (cnt = cur_salt->len; cnt >= BINARY_SIZE; cnt -= BINARY_SIZE)
 			cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 		memcpy (cp, temp_result, cnt);

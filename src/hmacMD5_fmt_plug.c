@@ -85,8 +85,8 @@ unsigned char opad[64*MD5_N] __attribute__ ((aligned(16)));
 unsigned char ipad[64*MD5_N] __attribute__ ((aligned(16)));
 unsigned char cursalt[SALT_SIZE*MD5_N] __attribute__ ((aligned(16)));
 unsigned char dump[BINARY_SIZE*MD5_N] __attribute__((aligned(16)));
-static char saved_plain[MD5_N][PLAINTEXT_LENGTH + 1];
 #endif
+static char saved_plain[MD5_N][PLAINTEXT_LENGTH + 1];
 #else
 static char crypt_key[BINARY_SIZE+1];
 static unsigned char opad[PAD_SIZE];
