@@ -1,12 +1,9 @@
 /* vncpcap2john utility (modified VNCcrack) written in March of 2012
- * by Dhiru Kholia. vncpcap2john processes input TightVNC pcap dump
- * files into a format suitable for use with JtR.
+ * by Dhiru Kholia. vncpcap2john processes input TightVNC/RealVNC pcap
+ * dump files into a format suitable for use with JtR. Works for all
+ * versions (3.3, 3.7 and 3.8) of RFB protocol.
  *
- * Output Line Format => src to dst address pair:$vnc$*version*challenge*response
- * Where,
- * 	version = 8, for RFB Protocol Version 3.8 (only version supported currently)
- * 	version = 7, for RFB Protocol Version 3.7
- * 	version = 3, for RFB Protocol Version 3.3
+ * Output Line Format => src to dst address pair:$vnc$*challenge*response
  *
  * Compilation Command: g++ vncpcap2john.cpp -o vncpcap2john -lpcap
  *
@@ -226,7 +223,7 @@ void attempt_crack(VNC_Auth_Reader & reader, std::istream & wordlist)
 			continue;
 		const std::string challenge = i->first.first;
 		const std::string response = i->first.second;
-		std::cout << challenge_to_id[challenge] << ":$vnc$*8*";
+		std::cout << challenge_to_id[challenge] << ":$vnc$*";
 		print_hex((const unsigned char*)challenge.c_str(), 16);
 		std::cout<<"*";
 		print_hex((const unsigned char*)response.c_str(), 16);
