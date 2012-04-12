@@ -108,7 +108,7 @@ static struct fmt_tests tests[] = {
 #define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 22*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
 
 #define BINARY_SIZE			16
-#define SALT_SIZE			(11*4)
+#define SALT_SIZE			(11*4+4)
 
 #ifdef MMX_COEF
 
@@ -257,10 +257,26 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	char *cp;
-	if (!strncmp(split_fields[1], "$DCC2$", 6) && valid(split_fields[1], pFmt))
+	int i;
+	if (!strncmp(split_fields[1], "$DCC2$", 6)) {
+		if (valid(split_fields[1], pFmt))
+			return split_fields[1];
+		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
+		cp = mem_alloc(strlen(split_fields[1]) + 7);
+		sprintf(cp, "$DCC2$10240#%s", &(split_fields[1][6]));
+		if (valid(cp, pFmt)) {
+			char *cipher = str_alloc_copy(cp);
+			MEM_FREE(cp);
+			return cipher;
+		}
 		return split_fields[1];
+	}
 	if (!split_fields[0])
 		return split_fields[1];
+	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
+	for (i = 0; i < 32; i++)
+		if (atoi16[ARCH_INDEX(split_fields[1][i])] == 0x7F)
+			return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
 	sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]);
 	if (valid(cp, pFmt))
@@ -696,7 +712,7 @@ struct fmt_main fmt_mscash2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		SALT_SIZE+4,
+		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
