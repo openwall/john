@@ -2,11 +2,15 @@
 *.log
 *.pot
 *.rec
+/run/*.cl
 /run/calc_stat
 /run/genmkvpwd
 /run/john
 /run/mkvcalcproba
+/run/mozilla2john
+/run/opencl_cryptsha512.h
 /run/pdf2john
+/run/racf2john
 /run/rar2john
 /run/ssh2john
 /run/tgtsnarf
@@ -19,3 +23,4 @@
 /src/fmt_externs.h
 /src/fmt_registers.h
 /src/john_build_rule.h
+/test/
