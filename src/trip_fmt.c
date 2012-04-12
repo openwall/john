@@ -250,8 +250,8 @@ static int NAME(int index) \
 	if (hash_func == CALL) \
 		return buffer[index].hash; \
 	{ \
-		MAYBE_T0; \
 		int block = buffer[index].block; \
+		MAYBE_T0; \
 		blkcpy(DES_bs_all.B, crypt_out[block], 27 + 3); \
 		return (next_hash_func = CALL)(buffer[index].index); \
 	} \
@@ -501,16 +501,16 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	MAYBE_T0;
 	int block = buffer[index].block;
+	MAYBE_T0;
 	blkcpy(DES_bs_all.B, crypt_out[block], 32);
 	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, buffer[index].index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	MAYBE_T0;
 	int block = buffer[index].block;
+	MAYBE_T0;
 	blkcpy(DES_bs_all.B, crypt_out[block], 64);
 	return DES_bs_cmp_one(get_binary(source), 64, buffer[index].index);
 }
