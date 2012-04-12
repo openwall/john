@@ -6,32 +6,15 @@
  * forms, with or without modification, are permitted.
  */
 
-//#ifdef TOBEDETERMINED
-//#pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
-//#endif
-
 #define PLAINTEXT_LENGTH	16	/* must match opencl_rar_fmt.c */
 #define ROUNDS			0x40000
 
-/* This depends on GPU card. We need ~192 bytes of BLOCKMEM
-   and ~40 bytes of OUTPUTMEM per thread. For some reason I
-   can't set either to __local on nvidia GTX580. It gets
-   faster, but produces the wrong results. */
-#define __BLOCKMEM	//__local
-#define __OUTPUTMEM	//__local
-
-#if 1 /* This is faster on GTX580, and add is faster than or (MAD?)*/
+/* This is the fastest I've found for GTX580 (it uses mad) */
 inline uint SWAP32(uint x)
 {
 	x = (x << 16) + (x >> 16);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
-#elif 1 /* This is slightly slower */
-# define SWAP32(n) \
-     (((n) << 24) + (((n) & 0xff00) << 8) + (((n) >> 8) & 0xff00) + ((n) >> 24))
-#else /* This is MUCH slower on GTX580 */
-#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
-#endif
 
 /* SHA1 constants and IVs */
 #define K0	0x5A827999
@@ -46,7 +29,7 @@ inline uint SWAP32(uint x)
 #define H5	0xC3D2E1F0
 
 /* raw'n'lean sha1, context kept in output buffer */
-void sha1_block(__BLOCKMEM uint *LW, __OUTPUTMEM uint *output) {
+void sha1_block(uint *LW, uint *output) {
 	uint A, B, C, D, E, temp, W[16];
 
 	A = output[0];
@@ -202,7 +185,7 @@ void sha1_block(__BLOCKMEM uint *LW, __OUTPUTMEM uint *output) {
 	output[4] += E;
 }
 
-inline void sha1_init(__OUTPUTMEM uint *output) {
+inline void sha1_init(uint *output) {
 	output[0] = H1;
 	output[1] = H2;
 	output[2] = H3;
@@ -210,33 +193,26 @@ inline void sha1_init(__OUTPUTMEM uint *output) {
 	output[4] = H5;
 }
 
-void sha1_final(__BLOCKMEM uint *block, __OUTPUTMEM uint *output, int tot_len)
+void sha1_final(uint *block, uint *output, uint tot_len)
 {
-	int len = tot_len & 63;
+	uint len = tot_len & 63;
 
-	((__BLOCKMEM char*)block)[len++] = 0x80;
+	((char*)block)[len++] = 0x80;
 	if (len > 55) {
 		sha1_block(block, output);
 		len = 0;
 	}
 	while (len < 56)
-		((__BLOCKMEM char*)block)[len++] = 0;
+		((char*)block)[len++] = 0;
 
 	block[14] = 0;
 	block[15] = SWAP32(tot_len << 3);
 	sha1_block(block, output);
 }
 
-/* len is given in bytes but will be >>2 without considering loss */
-inline void memcpy32B(__BLOCKMEM uint *d, __BLOCKMEM const uint *s, int len)
+/* len is given in words, not bytes */
+inline void memcpy32(uint *d, const uint *s, uint len)
 {
-	len >>= 2;
-	while(len--)
-		*d++ = *s++;
-}
-inline void memcpy32O(__OUTPUTMEM uint *d, __OUTPUTMEM const uint *s, int len)
-{
-	len >>= 2;
 	while(len--)
 		*d++ = *s++;
 }
@@ -244,16 +220,16 @@ inline void memcpy32O(__OUTPUTMEM uint *d, __OUTPUTMEM const uint *s, int len)
 /* The double block[] buffer saves us a LOT of branching, 20% speedup. */
 __kernel void SetCryptKeys(
 	__global const uchar *unicode_pw,
-	__global const int *pw_len,
+	__global const uint *pw_len,
 	__constant uchar *salt,
 	__global uint *aes_key, __global uchar *aes_iv)
 {
 	uint i, j, len, pwlen, b;
-	__BLOCKMEM union {
+	union {
 		uint w[2][16];
 		uchar c[128];
 	} block;
-	__OUTPUTMEM union {
+	union {
 		uint w[5];
 		uchar c[20];
 	} output;
@@ -280,11 +256,51 @@ __kernel void SetCryptKeys(
 	pwlen += 8;
 
 	sha1_init(output.w);
-	b = len = 0;
 
-	for (j = 0; j < ROUNDS; j++)
+	/* First round is unrolled here. This should not make a difference
+	   (it's one of 262144) but it makes for a 2% boost */
+	block.c[0] = RawPsw[0];
+	block.c[1] = RawPsw[1];
+	block.c[2] = RawPsw[2];
+	block.c[3] = RawPsw[3];
+	block.c[4] = RawPsw[4];
+	block.c[5] = RawPsw[5];
+	block.c[6] = RawPsw[6];
+	block.c[7] = RawPsw[7];
+	block.c[8] = RawPsw[8];
+	block.c[9] = RawPsw[9];
+
+	for (i = 10; i < pwlen; i += 2) {
+		block.c[i] = RawPsw[i];
+		block.c[i + 1] = RawPsw[i + 1];
+	}
+
+	block.c[i++] = 0;
+	block.c[i++] = 0;
+	block.c[i++] = 0;
+
+	len = pwlen + 3;
+	b = 0;
+
 	{
-		/* Password + salt, length is at least 10 and always even */
+		uint tempblock[16];
+		union {
+			uint w[5];
+			uchar c[20];
+		} tempout;
+
+		memcpy32(tempblock, block.w[b], 9);
+		memcpy32(tempout.w, output.w, 5);
+
+		sha1_final(tempblock, tempout.w, len);
+
+		aes_iv[gid * 16] = tempout.c[16];
+	}
+
+	for (j = 1; j < ROUNDS; j++)
+	{
+		/* Password + salt, length is at least 10 and always even so
+		   we unroll it accordingly. */
 		block.c[len++ & 127] = RawPsw[0];
 		block.c[len++ & 127] = RawPsw[1];
 		block.c[len++ & 127] = RawPsw[2];
@@ -295,7 +311,7 @@ __kernel void SetCryptKeys(
 		block.c[len++ & 127] = RawPsw[7];
 		block.c[len++ & 127] = RawPsw[8];
 		block.c[len++ & 127] = RawPsw[9];
-		for (i = 10; i < pwlen; i+=2) {
+		for (i = 10; i < pwlen; i += 2) {
 			block.c[len++ & 127] = RawPsw[i];
 			block.c[len++ & 127] = RawPsw[i + 1];
 		}
@@ -306,8 +322,7 @@ __kernel void SetCryptKeys(
 		block.c[len++ & 127] = j >> 16;
 
 		/* If we have a full buffer, submit it and switch! */
-		if (b == 0 && ((len & 127) > 63) ||
-		    b == 1 && ((len & 127) < 64)) {
+		if ((len & 64) != (b << 6)) {
 			sha1_block(block.w[b], output.w);
 			b = 1 - b;
 		}
@@ -315,15 +330,15 @@ __kernel void SetCryptKeys(
 		/* Every 16K'th round, we do a final and pick one byte of IV */
 		if (j % (ROUNDS >> 4) == 0)
 		{
-			__BLOCKMEM uint tempblock[16];
-			__OUTPUTMEM union {
+			uint tempblock[16];
+			union {
 				uint w[5];
 				uchar c[20];
 			} tempout;
 
-			 /* (len + 3) & 63 is slower than hardcoding 64 here */
-			memcpy32B(tempblock, block.w[b], 64);
-			memcpy32O(tempout.w, output.w, 20);
+			 /* (len + 3) & 15 is slower than hardcoding 16 here */
+			memcpy32(tempblock, block.w[b], 16);
+			memcpy32(tempout.w, output.w, 5);
 
 			sha1_final(tempblock, tempout.w, len);
 

@@ -35,16 +35,11 @@
 //#define DEBUG
 
 #ifdef CL_VERSION_1_0
-/******************************************************************************
- * WARNING! Not defining ALWAYS_OPENCL will be very beneficial for Single mode
- * and speed up self-tests at startup, but it will also currently disable the
- * self-testing of GPU mode (all self-tests will run in CPU). This is dangerous,
- * it has bitten me several times. You have been warned.
- */
-#define ALWAYS_OPENCL
-/* Non-blocking requests may postpone errors, causing confusion */
+/* Not defining ALWAYS_OPENCL will be very beneficial for Single mode
+   and speed up self-tests at startup */
+//#define ALWAYS_OPENCL
 #ifdef DEBUG
-#undef _OPENMP
+/* Non-blocking requests may postpone errors, causing confusion */
 #define BLOCK_IF_DEBUG	CL_TRUE
 #else
 #define BLOCK_IF_DEBUG	CL_FALSE
@@ -115,7 +110,7 @@ static int new_keys;
 static int (*cracked);
 static unpack_data_t (*unpack_data);
 
-static int *saved_len;
+static unsigned int *saved_len;
 static unsigned char *aes_key;
 static unsigned char *aes_iv;
 
@@ -141,7 +136,7 @@ static rarfile *cur_file;
 
 #ifdef CL_VERSION_1_0
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
-#define CPU_GPU_RATIO		10
+#define CPU_GPU_RATIO		32
 static size_t global_work_size = -1;
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_aes_key, cl_aes_iv;
 #endif
@@ -295,9 +290,9 @@ static void create_clobj(int kpc)
 
 	cl_saved_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_len = (int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * kpc, 0, NULL, NULL, &ret_code);
+	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
-	memset(saved_len, 0, sizeof(cl_int) * kpc);
+	memset(saved_len, 0, sizeof(cl_uint) * kpc);
 
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 8, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
@@ -399,7 +394,7 @@ static void find_best_kpc(void)
 		release_clobj();
 
 		const int sha1perkey = (strlen(teststring) * 2 + 8 + 3) * (0x40000 + 16) / 64;
-		fprintf(stderr, "\nkpc %d\t%lu c/s\t%lu sha1/s\t%.3f sec per crypt_all()", num, (1000000000UL * num / tmpTime), sha1perkey * (1000000000UL * num / tmpTime), (float)tmpTime / 1000000000.);
+		fprintf(stderr, "\nkpc %4d\t%4lu c/s%14lu sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / tmpTime), sha1perkey * (1000000000UL * num / tmpTime), (float)tmpTime / 1000000000.);
 
 		if (tmpTime > 10000000000UL)
 			break;
@@ -432,7 +427,7 @@ static void init(struct fmt_main *pFmt)
 	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
 		pFmt->params.benchmark_comment = " (6 characters)";
 		pFmt->params.tests = gpu_tests;
-#ifndef ALWAYS_OPENCL
+#if defined(DEBUG) && !defined(ALWAYS_OPENCL)
 		fprintf(stderr, "Note: will use CPU for self-tests and Single mode.\n");
 #endif
 	} else {
@@ -452,7 +447,7 @@ static void init(struct fmt_main *pFmt)
 		local_work_size = atoi(temp);
 
 	/* Note: we ask for this kernel's max size, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE,sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
 	if (local_work_size) {
 		if (local_work_size > maxsize) {
@@ -499,6 +494,12 @@ static void init(struct fmt_main *pFmt)
 
 	create_clobj(global_work_size);
 	fprintf(stderr, "Local work size (LWS) %d, Keys per crypt (KPC) %d\n", (int)local_work_size, (int)global_work_size);
+
+#ifdef DEBUG
+	cl_ulong loc_mem_size;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_size), &loc_mem_size, NULL), "Query local memory usage");
+	fprintf(stderr, "Kernel using %lu bytes of local memory out of %lu available\n", loc_mem_size * local_work_size, get_local_memory_size(gpu_id));
+#endif
 
 	atexit(release_clobj);
 
@@ -622,7 +623,7 @@ static void crypt_all(int count)
 
 #ifdef CL_VERSION_1_0
 #ifndef ALWAYS_OPENCL
-	if (count >= omp_t * CPU_GPU_RATIO)
+	if (count > global_work_size / CPU_GPU_RATIO)
 #endif
 	{
 		if (new_keys) {
@@ -631,7 +632,7 @@ static void crypt_all(int count)
 			new_keys = 0;
 		}
 #ifdef DEBUG
-		fprintf(stderr, "GPU: gws %d kpc %d lws %d count %d\n", (int)global_work_size, *mkpc, (int)local_work_size, count);
+		fprintf(stderr, "GPU: lws %d gws %d count %d\n", (int)local_work_size, (int)global_work_size, count);
 #endif
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 #ifdef DEBUG

@@ -259,7 +259,7 @@ static void crypt_all(int count)
 		/* Create byte sequence P.  */
 		cp = p_bytes = alloca (saved_key_length[index]);
 		for (cnt = saved_key_length[index]; cnt >= BINARY_SIZE; cnt -= BINARY_SIZE)
-			cp = mempcpy (cp, temp_result, BINARY_SIZE);
+			cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 		memcpy (cp, temp_result, cnt);
 
 		/* Start computation of S byte sequence.  */
@@ -275,7 +275,7 @@ static void crypt_all(int count)
 		/* Create byte sequence S.  */
 		cp = s_bytes = alloca (cur_salt->len);
 		for (cnt = cur_salt->len; cnt >= BINARY_SIZE; cnt -= BINARY_SIZE)
-			cp = mempcpy (cp, temp_result, BINARY_SIZE);
+			cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 		memcpy (cp, temp_result, cnt);
 
 		/* Repeatedly run the collected hash value through SHA256 to

@@ -27,12 +27,6 @@
  * TODO: add support for detecting AESV2 and AESV3 encrypted documents
  * lacking "trailer dictionary" to pdfparser.c */
 
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/err.h>
-
 #undef MEM_FREE
 
 #include <string.h>
@@ -53,11 +47,15 @@
 #define BENCHMARK_LENGTH    -1000
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
-#define SALT_SIZE           5120
+#define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
-static EncData e;
+static struct custom_salt {
+	struct EncData e;
+	unsigned char *userpassword;
+} *salt_struct;
+
 
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static char has_been_cracked;
@@ -69,10 +67,7 @@ static struct fmt_tests pdf_tests[] = {
 
 static void init(struct fmt_main *pFmt)
 {
-	/* OpenSSL init, cleanup part is left to OS */
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
+
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -82,82 +77,71 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	static char copy[SALT_SIZE+1];
-	//char *copy = strdup(ciphertext);  // this causes a crash in debugging MSVC, due to reading past the end of this allocated buffer.  The 'static' is the proper size.
-	strcpy(copy, ciphertext);
-	return (void *) copy;
-}
-
-static void set_salt(void *_salt)
-{
-	unsigned char *salt = (unsigned char*)_salt;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	unsigned char *copy;
-	unsigned char *userpassword = NULL;
 
-#ifdef PDF_FMT_DEBUG
-	printf("%s\n", (char *)salt);
-#endif
-	salt += 5;		/* skip over "$pdf$" marker */
-	copy = (unsigned char*)strdup((char*)salt);
-
-	freeEncData(&e, 1);
+	ctcopy += 5;	/* skip over "$pdf$" marker */
+	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 
 	/* restore serialized data */
-	e.s_handler = strdup(strtok((char*)copy, "*"));
-	e.o_string = (uint8_t *) malloc(32);
+	salt_struct->e.s_handler = strtok(ctcopy, "*");
+	salt_struct->e.o_string = (uint8_t *) malloc(32);
 	p = strtok(NULL, "*");
 	for (i = 0; i < 32; i++)
-		e.o_string[i] =
+		salt_struct->e.o_string[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	e.u_string = (uint8_t *) malloc(32);
+	salt_struct->e.u_string = (uint8_t *) malloc(32);
 	p = strtok(NULL, "*");
 	for (i = 0; i < 32; i++)
-		e.u_string[i] =
+		salt_struct->e.u_string[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	e.fileIDLen = atoi(p);
-	e.fileID = (uint8_t *) malloc(e.fileIDLen);
+	salt_struct->e.fileIDLen = atoi(p);
+	salt_struct->e.fileID = (uint8_t *) malloc(salt_struct->e.fileIDLen);
 	p = strtok(NULL, "*");
-	for (i = 0; i < e.fileIDLen; i++)
-		e.fileID[i] =
+	for (i = 0; i < salt_struct->e.fileIDLen; i++)
+		salt_struct->e.fileID[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	e.encryptMetaData = atoi(p);
+	salt_struct->e.encryptMetaData = atoi(p);
 	p = strtok(NULL, "*");
-	e.work_with_user = atoi(p);
+	salt_struct->e.work_with_user = atoi(p);
 	p = strtok(NULL, "*");
-	e.have_userpassword = atoi(p);
+	salt_struct->e.have_userpassword = atoi(p);
 	p = strtok(NULL, "*");
-	e.version_major = atoi(p);
+	salt_struct->e.version_major = atoi(p);
 	p = strtok(NULL, "*");
-	e.version_minor = atoi(p);
+	salt_struct->e.version_minor = atoi(p);
 	p = strtok(NULL, "*");
-	e.length = atoi(p);
+	salt_struct->e.length = atoi(p);
 	p = strtok(NULL, "*");
-	e.permissions = atoi(p);
+	salt_struct->e.permissions = atoi(p);
 	p = strtok(NULL, "*");
-	e.revision = atoi(p);
+	salt_struct->e.revision = atoi(p);
 	p = strtok(NULL, "*");
-	e.version = atoi(p);
-	if (e.have_userpassword) {
-	    printf("received userpassword\n");
-		userpassword = (unsigned char *)strtok(NULL, "*");
-	}
-#ifdef PDF_FMT_DEBUG
-	printEncData(&e);
-#endif
+	salt_struct->e.version = atoi(p);
+	if (salt_struct->e.have_userpassword)
+		salt_struct->userpassword = (unsigned char *)strtok(NULL, "*");
+	free(keeptr);
+	return (void *)salt_struct;
+}
+
+static void set_salt(void *salt)
+{
+	salt_struct = (struct custom_salt *)salt;
+	// printEncData(&salt_struct->e);
+
 	/* try to initialize the cracking-engine */
-	if (!initPDFCrack(&e, userpassword, e.work_with_user)) {
+	if (!initPDFCrack(&salt_struct->e, salt_struct->userpassword, salt_struct->e.work_with_user)) {
 		cleanPDFCrack();
-		fprintf(stderr, "Wrong userpassword, '%s'\n", userpassword);
+		fprintf(stderr, "Wrong userpassword, '%s'\n", salt_struct->userpassword);
 		exit(-1);
 	}
-	free(copy);
 }
 
 static void pdf_set_key(char *key, int index)
@@ -179,10 +163,6 @@ static void crypt_all(int count)
 {
     /* do the actual crunching */
     has_been_cracked = runCrack(saved_key);
-#ifdef PDF_FMT_DEBUG
-    if(has_been_cracked)
-        printf("*** found password : %s\n", saved_key);
-#endif
 }
 
 static int cmp_all(void *binary, int count)
