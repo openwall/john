@@ -122,8 +122,8 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 		a = t1 + t2;
 
 	}
-    #pragma unroll 64
-	for (i = 16; i < 80; i++) {
+    #pragma unroll 61
+	for (i = 16; i < 77; i++) {
 
 		w[i & 15] =sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i -16) & 15] + w[(i - 7) & 15];
 		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -140,7 +140,7 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 
 	}
 
-	ctx->H[0] += a;
+	ctx->H[0] = a;
 #if 0
 	ctx->H[1] += b;
 	ctx->H[2] += c;
@@ -247,7 +247,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 
 int cuda_cmp_all(void *binary, int count)
 {
-	uint64_t b0 = *(uint64_t *)binary;
+	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
 	uint8_t result = 0;
 	uint8_t *cuda_result;
