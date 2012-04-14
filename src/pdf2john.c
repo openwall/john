@@ -134,7 +134,6 @@ int pdf2john(int argc, char **argv)
 	/* try to initialize the cracking-engine */
 
 	if (!initPDFCrack(&cs)) {
-		cleanPDFCrack();
 		fprintf(stderr, "Wrong userpassword given, '%s'\n",
 		    userpassword);
 		exit(-1);

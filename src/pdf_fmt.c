@@ -125,7 +125,6 @@ static void *get_salt(char *ciphertext)
 	free(keeptr);
 	/* try to initialize the cracking-engine */
 	if (!initPDFCrack(salt_struct)) {
-		cleanPDFCrack();
 		fprintf(stderr, "Wrong userpassword, '%s'\n", salt_struct->userpassword);
 		exit(-1);
 	}
@@ -156,7 +155,7 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	/* do the actual crunching */
-	has_been_cracked = runCrack(saved_key);
+	has_been_cracked = runCrack(saved_key, salt_struct);
 }
 
 static int cmp_all(void *binary, int count)

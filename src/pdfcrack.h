@@ -23,22 +23,6 @@
 #include <stdio.h>
 #include "pdfcrack_common.h"
 
-void cleanPDFCrack(void);
-
-bool runCrackRev2(void);
-
-bool runCrackRev2_o(void);
-
-bool runCrackRev2_of(void);
-
-bool runCrackRev3(void);
-
-bool runCrackRev3_o(void);
-
-bool runCrackRev3_of(void);
-
-int runCrack(char *password);
-
 struct custom_salt {
 	struct EncData e;
 	unsigned char *userpassword;
@@ -53,6 +37,8 @@ struct custom_salt {
 	bool workWithUser;
 };
 
+int runCrack(char *password, struct custom_salt *cs);
 bool initPDFCrack(struct custom_salt *cs);
+void loadPDFCrack(struct custom_salt *cs);
 
 #endif /** _PDFCRACK_H_ */
