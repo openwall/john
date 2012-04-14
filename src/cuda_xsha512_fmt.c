@@ -49,8 +49,8 @@ extern void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
 
 
 
-static xsha512_key *gkey;
-static xsha512_hash *ghash;
+static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
+static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
 uint8_t xsha512_key_changed;
 static uint64_t H[8] = {
@@ -66,8 +66,6 @@ static uint64_t H[8] = {
 
 static void init(struct fmt_main *pFmt)
 {
-	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*MAX_KEYS_PER_CRYPT);
-	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*MAX_KEYS_PER_CRYPT);
 	cuda_xsha512_init();
 }
 
@@ -264,7 +262,6 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	int i;
 	uint64_t *b = (uint64_t *) binary;
 	cuda_xsha512_cpy_hash(ghash);
 	uint64_t *t = (uint64_t *)ghash;
