@@ -198,7 +198,7 @@ __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_ha
 {
 
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-	for(uint32_t it = 0; it < (MAX_KEYS_PER_CRYPT/KEYS_PER_CRYPT); ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
     	xsha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
 	}
@@ -236,7 +236,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 	if(idx == 0)
 		*result = 0;
 	__syncthreads();
-	for(uint32_t it = 0; it < (MAX_KEYS_PER_CRYPT/KEYS_PER_CRYPT); ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
 		if(offset < count){
 			if (cuda_b0[0] == hash[hash_addr(0, offset)])
