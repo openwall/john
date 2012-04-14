@@ -51,17 +51,12 @@
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
-static struct custom_salt {
-	struct EncData e;
-	unsigned char *userpassword;
-} *salt_struct;
-
-
+static struct custom_salt *salt_struct;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static char has_been_cracked;
 
 static struct fmt_tests pdf_tests[] = {
-    {"$pdf$Standard*badad1e86442699427116d3e5d5271bc80a27814fc5e80f815efeef839354c5f*289ece9b5ce451a5d7064693dab3badf101112131415161718191a1b1c1d1e1f*16*34b1b6e593787af681a9b63fa8bf563b*1*1*0*1*4*128*-4*3*2", "test"},
+	{"$pdf$Standard*badad1e86442699427116d3e5d5271bc80a27814fc5e80f815efeef839354c5f*289ece9b5ce451a5d7064693dab3badf101112131415161718191a1b1c1d1e1f*16*34b1b6e593787af681a9b63fa8bf563b*1*1*0*1*4*128*-4*3*2", "test"},
 	{NULL}
 };
 
@@ -128,20 +123,19 @@ static void *get_salt(char *ciphertext)
 	if (salt_struct->e.have_userpassword)
 		salt_struct->userpassword = (unsigned char *)strtok(NULL, "*");
 	free(keeptr);
+	/* try to initialize the cracking-engine */
+	if (!initPDFCrack(salt_struct)) {
+		cleanPDFCrack();
+		fprintf(stderr, "Wrong userpassword, '%s'\n", salt_struct->userpassword);
+		exit(-1);
+	}
 	return (void *)salt_struct;
 }
 
 static void set_salt(void *salt)
 {
 	salt_struct = (struct custom_salt *)salt;
-	// printEncData(&salt_struct->e);
-
-	/* try to initialize the cracking-engine */
-	if (!initPDFCrack(&salt_struct->e, salt_struct->userpassword, salt_struct->e.work_with_user)) {
-		cleanPDFCrack();
-		fprintf(stderr, "Wrong userpassword, '%s'\n", salt_struct->userpassword);
-		exit(-1);
-	}
+	loadPDFCrack(salt_struct);
 }
 
 static void pdf_set_key(char *key, int index)
@@ -161,8 +155,8 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-    /* do the actual crunching */
-    has_been_cracked = runCrack(saved_key);
+	/* do the actual crunching */
+	has_been_cracked = runCrack(saved_key);
 }
 
 static int cmp_all(void *binary, int count)

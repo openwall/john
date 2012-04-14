@@ -53,9 +53,9 @@ static const uint8_t pad[32] = {
 };
 
 /** buffers for stuff that we can precompute before the actual cracking */
-static uint8_t *encKeyWorkSpace;
+static uint8_t encKeyWorkSpace[128];
 static uint8_t password_user[33];
-static uint8_t *rev3TestKey;
+static uint8_t rev3TestKey[16];
 static unsigned int ekwlen;
 
 /* flag used to make sure we do not clean up when we have not called init */
@@ -95,7 +95,6 @@ initEncKeyWorkSpace(const int revision, const bool encMetaData,
    *   [extra padding] | [4] (Special for step 6)
    **/
 	unsigned int size = (revision > 3 && !encMetaData) ? 72 : 68;
-	encKeyWorkSpace = malloc(size + fileIDLen);
 
   /** Just to be sure we have no uninitalized stuff in the workspace */
 	memcpy(encKeyWorkSpace, pad, 32);
@@ -122,25 +121,6 @@ initEncKeyWorkSpace(const int revision, const bool encMetaData,
 
 	return size + fileIDLen;
 }
-
-#if 0
-/** For debug */
-static void printHexString(const uint8_t * str, const unsigned int len)
-{
-	unsigned int i;
-	for (i = 0; i < len; i++)
-		printf("%x ", str[i]);
-	printf("\n");
-}
-
-static void printString(const uint8_t * str, const unsigned int len)
-{
-	unsigned int i;
-	for (i = 0; i < len; i++)
-		printf("%d ", str[i]);
-	printf("\n");
-}
-#endif
 
 /** Common handling of the key for all rev3-functions */
 #define RC4_DECRYPT_REV3(n) {			\
@@ -338,9 +318,9 @@ int runCrack(char *password)
 	uint8_t cpw[32];
 	if (strlen(password) < 32)
 		strcpy((char*)currPW, password);
-    else {
+	else {
 		strncpy((char*)currPW, password, 32);
-    }
+	}
 
 	if (!workWithUser && !knownPassword) {
 		memcpy(cpw, pad, 32);
@@ -373,17 +353,6 @@ void cleanPDFCrack(void)
 	if (!binitPDFCrack_called)
 		return;
 	binitPDFCrack_called = 0;
-	if (rev3TestKey) {
-    /** Do a really ugly const to non-const cast but this one time it should
-	be safe
-    */
-		free((uint8_t *) rev3TestKey);
-		rev3TestKey = NULL;
-	}
-	if (encKeyWorkSpace) {
-		free(encKeyWorkSpace);
-		encKeyWorkSpace = NULL;
-	}
 	knownPassword = false;
 }
 
@@ -391,11 +360,13 @@ void cleanPDFCrack(void)
     runCrack(). Make sure that you run cleanPDFCrack before you call this
     after the first time.
 */
-bool initPDFCrack(const EncData * e, const uint8_t * upw, const bool user)
+bool initPDFCrack(struct custom_salt *cs)
 {
 	uint8_t buf[128];
 	unsigned int upwlen;
-	uint8_t *tmp;
+	EncData *e = &cs->e;
+	const uint8_t * upw = cs->userpassword;
+	bool user = cs->e.work_with_user;
 
 	/* cleans up before we start */
 	cleanPDFCrack();
@@ -433,9 +404,7 @@ bool initPDFCrack(const EncData * e, const uint8_t * upw, const bool user)
 	} else if (e->revision >= 3) {
 		memcpy(buf, pad, 32);
 		memcpy(buf + 32, e->fileID, e->fileIDLen);
-		tmp = malloc(sizeof(uint8_t) * 16);
-		md5(buf, 32 + e->fileIDLen, tmp);
-		rev3TestKey = tmp;
+		md5(buf, 32 + e->fileIDLen, rev3TestKey);
 		if (knownPassword) {
 			if (!isUserPasswordRev3())
 				return false;
@@ -445,5 +414,26 @@ bool initPDFCrack(const EncData * e, const uint8_t * upw, const bool user)
 			knownPassword = isUserPasswordRev3();
 		}
 	}
+
+	/* save data into custom salt */
+	cs->ekwlen = ekwlen;
+	memcpy(cs->encKeyWorkSpace, encKeyWorkSpace, 128);
+	memcpy(cs->password_user, password_user, 33);
+	memcpy(cs->rev3TestKey, rev3TestKey, 16);
+	cs->knownPassword = knownPassword;
+	cs->workWithUser = workWithUser;
 	return true;
+}
+
+void loadPDFCrack(struct custom_salt *cs)
+{
+	/* restore data from custom salt */
+	ekwlen = cs->ekwlen;
+	encdata = &cs->e;
+	setrc4DecryptMethod((unsigned int) cs->e.length);
+	memcpy(encKeyWorkSpace, cs->encKeyWorkSpace, 128);
+	memcpy(password_user, cs->password_user, 33);
+	memcpy(rev3TestKey, cs->rev3TestKey, 16);
+	knownPassword = cs->knownPassword;
+	workWithUser = cs->workWithUser;
 }

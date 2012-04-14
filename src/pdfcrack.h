@@ -23,8 +23,6 @@
 #include <stdio.h>
 #include "pdfcrack_common.h"
 
-bool initPDFCrack(const EncData * e, const uint8_t * upw, const bool user);
-
 void cleanPDFCrack(void);
 
 bool runCrackRev2(void);
@@ -41,9 +39,20 @@ bool runCrackRev3_of(void);
 
 int runCrack(char *password);
 
-bool printProgress(void);
+struct custom_salt {
+	struct EncData e;
+	unsigned char *userpassword;
+	/* load and restore following fields */
+	unsigned int ekwlen;
+	uint8_t encKeyWorkSpace[128];
+	uint8_t password_user[33];
+	uint8_t rev3TestKey[16];
+	unsigned char *currPW;
+	unsigned int currPWLen;
+	bool knownPassword;
+	bool workWithUser;
+};
 
-unsigned int getNrProcessed(void);
-
+bool initPDFCrack(struct custom_salt *cs);
 
 #endif /** _PDFCRACK_H_ */
