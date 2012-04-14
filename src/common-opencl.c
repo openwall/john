@@ -297,7 +297,7 @@ void listOpenCLdevices(void) {
 		/* Query devices for information */
 		for (d = 0; d < num_devices; ++d) {
 			cl_device_local_mem_type memtype;
-			cl_bool bool;
+			cl_bool boolean;
 
 			clGetDeviceInfo(devices[d], CL_DEVICE_NAME, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice #%d name:\t\t%s\n", d, dname);
@@ -315,15 +315,15 @@ void listOpenCLdevices(void) {
 				printf("Default ");
 			if (long_entries & ~(CL_DEVICE_TYPE_DEFAULT|CL_DEVICE_TYPE_ACCELERATOR|CL_DEVICE_TYPE_GPU|CL_DEVICE_TYPE_CPU))
 				printf("Unknown ");
-			clGetDeviceInfo(devices[d], CL_DEVICE_ENDIAN_LITTLE, sizeof(cl_bool), &bool, NULL);
-			printf("(%s)\n", bool == CL_TRUE ? "LE" : "BE");
+			clGetDeviceInfo(devices[d], CL_DEVICE_ENDIAN_LITTLE, sizeof(cl_bool), &boolean, NULL);
+			printf("(%s)\n", boolean == CL_TRUE ? "LE" : "BE");
 			clGetDeviceInfo(devices[d], CL_DEVICE_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DRIVER_VERSION, MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
-			clGetDeviceInfo(devices[d], CL_DEVICE_ERROR_CORRECTION_SUPPORT, sizeof(cl_bool), &bool, NULL);
-			printf("\tGlobal Memory:\t\t%s%s\n", megastring((unsigned long long)long_entries), bool == CL_TRUE ? " (ECC)" : "");
+			clGetDeviceInfo(devices[d], CL_DEVICE_ERROR_CORRECTION_SUPPORT, sizeof(cl_bool), &boolean, NULL);
+			printf("\tGlobal Memory:\t\t%s%s\n", megastring((unsigned long long)long_entries), boolean == CL_TRUE ? " (ECC)" : "");
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong), &long_entries, NULL);
 			printf("\tGlobal Memory Cache:\t%s\n", megastring((unsigned long long)long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &long_entries, NULL);
