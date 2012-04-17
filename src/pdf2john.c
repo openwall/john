@@ -49,16 +49,17 @@ static void printHelp(char *progname)
 int pdf2john(int argc, char **argv)
 {
 	int ret = 0;
+	int c, i;
 	FILE *file = NULL;
 	uint8_t *userpassword = NULL;
 	char *inputfile = NULL;
 	unsigned char *p;
-	EncData *e = calloc(1, sizeof(EncData));
-	e->work_with_user = true;
+	struct custom_salt cs;
+	cs.e.work_with_user = true;
+	cs.e.have_userpassword = false;
 
 	/* parse arguments */
 	while (true) {
-		int c;
 		c = getopt(argc, argv, "op:v");
 		/* Detect the end of the options. */
 		if (c == -1)
@@ -66,12 +67,12 @@ int pdf2john(int argc, char **argv)
 
 		switch (c) {
 		case 'o':
-			e->work_with_user = false;
+			cs.e.work_with_user = false;
 			break;
 		case 'p':
 			userpassword = (uint8_t *) strdup(optarg);
-			e->work_with_user = false;
-			e->have_userpassword = true;
+			cs.e.work_with_user = false;
+			cs.e.have_userpassword = true;
 			break;
 		case 'v':
 			printf("pdfcrack version %d.%d\n", VERSION_MAJOR,
@@ -82,7 +83,7 @@ int pdf2john(int argc, char **argv)
 			ret = 1;
 		}
 	}
-	int i = optind;
+	i = optind;
 	if (i > 0) {
 		if (i < argc)
 			inputfile = strdup(argv[i++]);
@@ -100,13 +101,13 @@ int pdf2john(int argc, char **argv)
 		goto cleanup;
 	}
 
-	if (!openPDF(file, e)) {
+	if (!openPDF(file, &cs.e)) {
 		fprintf(stderr, "Error: Not a valid PDF\n");
 		ret = 3;
 		goto cleanup;
 	}
 
-	ret = getEncryptedInfo(file, e);
+	ret = getEncryptedInfo(file, &cs.e);
 	if (ret) {
 		if (ret == EENCNF)
 			fprintf(stderr,
@@ -116,10 +117,10 @@ int pdf2john(int argc, char **argv)
 			    "Error: Encryption not detected (is the document password protected?)\n");
 		ret = 4;
 		goto cleanup;
-	} else if (e->revision < 2 || (strcmp(e->s_handler, "Standard") != 0)) {
+	} else if (cs.e.revision < 2 || (strcmp(cs.e.s_handler, "Standard") != 0)) {
 		fprintf(stderr,
 		    "The specific version is not supported (%s - %d)\n",
-		    e->s_handler, e->revision);
+		    cs.e.s_handler, cs.e.revision);
 		ret = 5;
 		goto cleanup;
 	}
@@ -128,45 +129,45 @@ int pdf2john(int argc, char **argv)
 		fprintf(stderr, "Error: closing file %s\n", inputfile);
 	}
 #ifdef UNPDF_DEBUG
-	printEncData(e);
+	printEncData(&cs.e);
 #endif
-    /* try to initialize the cracking-engine */
-    if (!initPDFCrack(e, userpassword, e->work_with_user)) {
-        cleanPDFCrack();
-        fprintf(stderr, "Wrong userpassword given, '%s'\n", userpassword);
-        exit(-1);
-    }
+	/* try to initialize the cracking-engine */
+
+	if (!initPDFCrack(&cs)) {
+		fprintf(stderr, "Wrong userpassword given, '%s'\n",
+		    userpassword);
+		exit(-1);
+	}
 
 	/* deep serialize "e" structure */
-	printf("%s:$pdf$%s*", inputfile, e->s_handler);
-	p = e->o_string;
+	printf("%s:$pdf$%s*", inputfile, cs.e.s_handler);
+	p = cs.e.o_string;
 	for (i = 0; i < 32; i++)
 		printf("%c%c", itoa16[ARCH_INDEX(p[i] >> 4)],
 		    itoa16[ARCH_INDEX(p[i] & 0x0f)]);
 	printf("*");
-	p = e->u_string;
+	p = cs.e.u_string;
 	for (i = 0; i < 32; i++)
 		printf("%c%c",
 		    itoa16[ARCH_INDEX(p[i] >> 4)],
 		    itoa16[ARCH_INDEX(p[i] & 0x0f)]);
-	printf("*%d*", e->fileIDLen);
-	p = e->fileID;
-	for (i = 0; i < e->fileIDLen; i++)
+	printf("*%d*", cs.e.fileIDLen);
+	p = cs.e.fileID;
+	for (i = 0; i < cs.e.fileIDLen; i++)
 		printf("%c%c",
 		    itoa16[ARCH_INDEX(p[i] >> 4)],
 		    itoa16[ARCH_INDEX(p[i] & 0x0f)]);
-	printf("*%d*%d*%d*%u*%u*%d*%d*%d*%d", e->encryptMetaData,
-	    e->work_with_user, e->have_userpassword, e->version_major,
-	    e->version_minor, e->length, e->permissions, e->revision,
-	    e->version);
-	if (e->have_userpassword)
+	printf("*%d*%d*%d*%u*%u*%d*%d*%d*%d", cs.e.encryptMetaData,
+	    cs.e.work_with_user, cs.e.have_userpassword, cs.e.version_major,
+	    cs.e.version_minor, cs.e.length, cs.e.permissions, cs.e.revision,
+	    cs.e.version);
+	if (cs.e.have_userpassword)
 		printf("*%s\n", userpassword);
 	else
 		printf("\n");
-
 	exit(0);
 
-cleanup:
+      cleanup:
 
 	return ret;
 }
