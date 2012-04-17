@@ -39,8 +39,7 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define THREADS 128
-#define KEYS_PER_CRYPT (32*THREADS)
+#define KEYS_PER_CRYPT (32*128)
 #define ITERATIONS 8
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
@@ -58,23 +57,13 @@
 
 
 #define SALT_SIZE 4
-#if 0
-#define BINARY_SIZE 64
-#else
+
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
-#endif
-
-#if 0
-#define PLAINTEXT_LENGTH		107
-#else
-#define PLAINTEXT_LENGTH		12
-#endif
-#define CIPHERTEXT_LENGTH		136
 
 
-
-
+#define PLAINTEXT_LENGTH 12 //For one iteration, maximum is 107
+#define CIPHERTEXT_LENGTH 136
 
 typedef struct { // notice memory align problem
 	uint8_t buffer[128];	//1024bits
@@ -151,65 +140,6 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
-static void find_best_workgroup(void){
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i;
-	size_t max_group_size;
-
-    max_group_size = get_max_work_group_size(gpu_id);
-	cl_command_queue queue_prof =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-	    CL_QUEUE_PROFILING_ENABLE,
-	    &ret_code);
-	max_group_size = 128;
-	printf("Max Group Work Size %d\n",(int)max_group_size);
-	local_work_size = 1;
-
-	/// Set keys
-	char *pass = "aaaaaaaa";
-	for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
-		set_key(pass, i);
-	}
-	/// Copy data to GPU
-	HANDLE_CLERROR(clEnqueueWriteBuffer
-	    (queue_prof, mem_in, CL_FALSE, 0, insize, gkey, 0, NULL, NULL),
-	    "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0,
-		SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
-
-	/// Find minimum time
-	my_work_group = 1;
-    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) 
-		my_work_group=32;
-	for (; (int) my_work_group <= (int) max_group_size; my_work_group *= 2) {
-		size_t localworksize = my_work_group;
-		printf("m:%d\n", my_work_group);
-		HANDLE_CLERROR(clEnqueueNDRangeKernel
-		    (queue_prof, crypt_kernel, 1, NULL, &global_work_size,
-			&localworksize, 0, NULL, &myEvent), "Set ND range");
-
-
-		HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-		    sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-		    sizeof(cl_ulong), &endTime, NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		}
-		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
-	}
-	printf("Optimal Group work Size = %d\n",(int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-
-}
-
-
 static void init(struct fmt_main *pFmt)
 {
 	opencl_init("$JOHN/xsha512_kernel.cl", gpu_id, platform_id);
@@ -236,6 +166,10 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
 	//find_best_workgroup();
+    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE,
+               sizeof (local_work_size), &local_work_size, NULL),
+               "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
+	printf("Local work size = %d\n", local_work_size);
 	atexit(release_all);
 
 }
@@ -410,7 +344,7 @@ static void crypt_all(int count)
 
 	///Run kernel
 	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = THREADS;//local_work_size;
+	size_t localworksize = local_work_size;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");

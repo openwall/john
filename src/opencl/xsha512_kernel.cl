@@ -6,24 +6,20 @@
 
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
-#define uint64_t ulong
+#define uint64_t unsigned long
 #define SALT_SIZE 4
-#if 0
-#define BINARY_SIZE 64
-#else
+
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
-#endif
 
-#if 0
-#define PLAINTEXT_LENGTH		107
-#else
-#define PLAINTEXT_LENGTH		12
-#endif
-#define CIPHERTEXT_LENGTH		136
+
+#define PLAINTEXT_LENGTH 12 //For one iteration, maximum is 107
+
+#define CIPHERTEXT_LENGTH 136
 
 #define KEYS_PER_CRYPT (32*128)
 #define ITERATIONS 8
+
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
@@ -66,9 +62,6 @@ typedef struct {
     char v[PLAINTEXT_LENGTH+1];
 } xsha512_key;
 
-typedef struct {
-    uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
-} xsha512_hash;
 
 
 #define hash_addr(j,idx) (((j)*(MAX_KEYS_PER_CRYPT))+(idx))
@@ -118,7 +111,7 @@ __constant uint64_t k[] = {
 };
 
 void xsha512(__global const char* password, uint8_t pass_len, 
-	__global uint64_t* hash, uint32_t offset, __constant const char* salt)
+	__global uint64_t* hash, uint32_t offset, __constant char* salt)
 {
     __private xsha512_ctx ctx;
 	//init
@@ -132,18 +125,17 @@ void xsha512(__global const char* password, uint8_t pass_len,
 	ctx.H[7] = 0x5be0cd19137e2179UL;
 	ctx.buflen = 0;
 
-//    xsha512_update(&ctx, (const char*)salt, SALT_SIZE);
+	//set salt to buffer
 	for (uint32_t i = 0; i < SALT_SIZE; i++) {
 		ctx.buffer[i] = salt[i];
 	}
 	
-//    xsha512_update(&ctx, password, pass_len);
-	for (uint32_t i = 0; i < pass_len; i++) {
+	//set password to buffer
+    for (uint32_t i = 0; i < pass_len; i++) {
 		ctx.buffer[i+SALT_SIZE] = password[i];
 	}
     ctx.buflen = pass_len+SALT_SIZE;
 
-//    xsha512_final(&ctx);
 	//append 1 to ctx buffer
 	uint32_t length = ctx.buflen;
 	uint8_t *buffer8 = &ctx.buffer[length];
@@ -159,11 +151,11 @@ void xsha512(__global const char* password, uint8_t pass_len,
 		*buffer32++=0;
 	}
 
-	//append length to ctx buffer
+	//append length to buffer
 	uint64_t *buffer64 = (uint64_t *)ctx.buffer;
 	buffer64[15] = SWAP64((uint64_t) ctx.buflen * 8); 
 
-//	sha512_block(ctx);
+	// sha512 main
 	int i;
 	uint64_t a = ctx.H[0];
 	uint64_t b = ctx.H[1];
@@ -221,7 +213,7 @@ void xsha512(__global const char* password, uint8_t pass_len,
 __kernel void kernel_xsha512(
 	__global const xsha512_key *password, 
 	__global uint64_t *hash,
-	__constant const char *salt)
+	__constant char *salt)
 {
 
     uint32_t idx = get_global_id(0);
