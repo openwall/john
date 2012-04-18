@@ -17,8 +17,8 @@
 
 #define CIPHERTEXT_LENGTH 136
 
-#define KEYS_PER_CRYPT (32*128)
-#define ITERATIONS 8
+#define KEYS_PER_CRYPT (32*512)
+#define ITERATIONS 128
 
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
@@ -221,6 +221,22 @@ __kernel void kernel_xsha512(
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
     	xsha512((__global const char*)password[offset].v, password[offset].length, 
 			hash, offset, salt);
+	}
+}
+
+__kernel void kernel_cmp(
+	__constant uint64_t* binary, 
+	__global uint64_t *hash,
+	__global uint8_t* result)
+{
+    uint32_t idx = get_global_id(0);
+	if(idx == 0)
+		*result = 0;
+	
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+		uint32_t offset = idx+it*KEYS_PER_CRYPT;
+			if (*binary == hash[offset])
+				*result = 1;
 	}
 }
 
