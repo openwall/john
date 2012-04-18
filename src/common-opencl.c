@@ -199,7 +199,7 @@ cl_uint get_max_compute_units(int dev_id)
         cl_uint size;
         HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_MAX_COMPUTE_UNITS,
                 sizeof(cl_uint), &size, NULL),
-                "Error querying CL_DEVICE_LOCAL_MEM_SIZE");
+                "Error querying CL_DEVICE_MAX_COMPUTE_UNITS");
 
         return size;
 }
