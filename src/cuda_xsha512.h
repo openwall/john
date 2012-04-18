@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2011 Myrice <qqlddg at gmail dot com>
+ * This software is Copyright (c) 2012 Myrice <qqlddg at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Thanks to Lukas Odzioba <lukas dot odzioba at gmail dot com>, his code helps me a lot
@@ -13,11 +13,11 @@
 #define uint64_t unsigned long long int
 
 #define BLOCKS 32
-#define THREADS 512
+#define THREADS 128
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
-
+#define ITERATIONS 8
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
-#define MAX_KEYS_PER_CRYPT	(128*KEYS_PER_CRYPT)
+#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
 #define SALT_SIZE 4
 #if 0
@@ -27,7 +27,7 @@
 #define FULL_BINARY_SIZE 64
 #endif
 
-#if 0
+#if 1
 #define PLAINTEXT_LENGTH		107
 #else
 #define PLAINTEXT_LENGTH		12

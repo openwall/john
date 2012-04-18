@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2011 Myrice <qqlddg at gmail dot com>
+ * This software is Copyright (c) 2012 Myrice <qqlddg at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Thanks to Lukas Odzioba <lukas dot odzioba at gmail dot com>, his code helps me a lot
@@ -122,8 +122,8 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 		a = t1 + t2;
 
 	}
-    #pragma unroll 64
-	for (i = 16; i < 80; i++) {
+    #pragma unroll 61
+	for (i = 16; i < 77; i++) {
 
 		w[i & 15] =sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i -16) & 15] + w[(i - 7) & 15];
 		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -140,7 +140,7 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 
 	}
 
-	ctx->H[0] += a;
+	ctx->H[0] = a;
 #if 0
 	ctx->H[1] += b;
 	ctx->H[2] += c;
@@ -198,7 +198,7 @@ __global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_ha
 {
 
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-	for(uint32_t it = 0; it < (MAX_KEYS_PER_CRYPT/KEYS_PER_CRYPT); ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
     	xsha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
 	}
@@ -236,7 +236,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 	if(idx == 0)
 		*result = 0;
 	__syncthreads();
-	for(uint32_t it = 0; it < (MAX_KEYS_PER_CRYPT/KEYS_PER_CRYPT); ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
 		if(offset < count){
 			if (cuda_b0[0] == hash[hash_addr(0, offset)])
@@ -247,7 +247,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 
 int cuda_cmp_all(void *binary, int count)
 {
-	uint64_t b0 = *(uint64_t *)binary;
+	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
 	uint8_t result = 0;
 	uint8_t *cuda_result;

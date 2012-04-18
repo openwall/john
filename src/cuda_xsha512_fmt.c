@@ -1,5 +1,8 @@
 /*
  * Mac OS X 10.7+ salted SHA-512 password hashing, CUDA interface.
+ * Please note that in current comparison function, we use computed a77
+ * compares with ciphertext d80. For more details, refer to:
+ * http://www.openwall.com/lists/john-dev/2012/04/11/13
  *
  * Copyright (c) 2008,2011 Solar Designer (original CPU-only code)
  * Copyright (c) 2012 myrice (interfacing to CUDA)
@@ -46,15 +49,23 @@ extern void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
 
 
 
-static xsha512_key *gkey;
-static xsha512_hash *ghash;
+static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
+static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
 uint8_t xsha512_key_changed;
+static uint64_t H[8] = {
+	0x6a09e667f3bcc908LL,
+	0xbb67ae8584caa73bLL,
+	0x3c6ef372fe94f82bLL,
+	0xa54ff53a5f1d36f1LL,
+	0x510e527fade682d1LL,
+	0x9b05688c2b3e6c1fLL,
+	0x1f83d9abfb41bd6bLL,
+	0x5be0cd19137e2179LL
+};
 
 static void init(struct fmt_main *pFmt)
 {
-	gkey = (xsha512_key*)malloc(sizeof(xsha512_key)*MAX_KEYS_PER_CRYPT);
-	ghash = (xsha512_hash*)malloc(sizeof(xsha512_hash)*MAX_KEYS_PER_CRYPT);
 	cuda_xsha512_init();
 }
 
@@ -109,7 +120,11 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
+	uint64_t *b = (uint64_t*)out;
+	for (i = 0; i < 8; i++) {
+		uint64_t t = SWAP64(b[i])-H[i];
+		b[i] = SWAP64(t);
+	}
 	return out;
 }
 
@@ -133,37 +148,37 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xF;
+	return *((ARCH_WORD_32 *)binary+6) & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFF;
+	return *((ARCH_WORD_32 *)binary+6) & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
+	return *((ARCH_WORD_32 *)binary+6) & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
+	return *((ARCH_WORD_32 *)binary+6) & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
+	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
+	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+	return *((ARCH_WORD_32 *)binary+6) & 0x7FFFFFF;
 }
 
 static int get_hash_0(int index)
@@ -247,14 +262,11 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	int i;
 	uint64_t *b = (uint64_t *) binary;
 	cuda_xsha512_cpy_hash(ghash);
 	uint64_t *t = (uint64_t *)ghash;
-	for (i = 0; i < BINARY_SIZE / 8; i++) {
-		if (b[i] != t[hash_addr(i, index)])
-			return 0;
-	}
+	if (b[3] != t[hash_addr(0, index)])
+		return 0;
 	return 1;
 
 }
@@ -272,6 +284,11 @@ static int cmp_exact(char *source, int index)
 	int i;
 	uint64_t *b = (uint64_t *)get_binary(source);
 	uint64_t *c = (uint64_t *)crypt_out;
+
+	for (i = 0; i < 8; i++) {
+		uint64_t t = SWAP64(c[i])-H[i];
+		c[i] = SWAP64(t);
+	}
 
 	
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
