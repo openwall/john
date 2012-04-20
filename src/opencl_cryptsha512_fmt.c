@@ -63,8 +63,8 @@ size_t get_current_work_group_size(int dev_id)
 }
 
 /* ------- Helper functions ------- */
-uint get_task_max_work_group_size(){
-    uint max_available;
+unsigned int get_task_max_work_group_size(){
+    unsigned int max_available;
     max_available = get_local_memory_size(gpu_id) /
             (sizeof(working_memory) + sizeof(crypt_sha512_salt));
 
@@ -74,8 +74,8 @@ uint get_task_max_work_group_size(){
     return max_available;
 }
 
-uint get_task_max_size(){ 
-    uint max_available;
+unsigned int get_task_max_size(){ 
+    unsigned int max_available;
     max_available = get_max_compute_units(gpu_id);
 
     if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU)
