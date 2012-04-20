@@ -6,6 +6,13 @@
  * forms, with or without modification, are permitted.
  */
 
+#ifdef cl_khr_byte_addressable_store
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+#endif
+#ifdef cl_nv_pragma_unroll
+#pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
+#endif
+
 #define PLAINTEXT_LENGTH	16	/* must match opencl_rar_fmt.c */
 #define ROUNDS			0x40000
 
@@ -202,9 +209,24 @@ void sha1_final(uint *block, uint *output, uint tot_len)
 		sha1_block(block, output);
 		len = 0;
 	}
+#if 1
+	switch (len & 3) {
+	case 1:
+		((char*)block)[len++] = 0;
+	case 2:
+		((short*)block)[len / 2] = 0;
+		len += 2;
+		break;
+	case 3:
+		((char*)block)[len++] = 0;
+	}
+	len >>= 2;
+	while (len < 14)
+		block[len++] = 0;
+#else
 	while (len < 56)
 		((char*)block)[len++] = 0;
-
+#endif
 	block[14] = 0;
 	block[15] = SWAP32(tot_len << 3);
 	sha1_block(block, output);
@@ -217,16 +239,58 @@ inline void memcpy32(uint *d, const uint *s, uint len)
 		*d++ = *s++;
 }
 
+//#define DEBUG
+#ifdef DEBUG
+void dump_stuff(uchar* x, uint size)
+{
+        uint i;
+        for(i=0;i<size;i++)
+        {
+	        printf("%.2x", x[i]);
+                if( (i%4)==3 )
+                        printf(" ");
+        }
+        printf("\n");
+}
+void dump_stuff_msg(__constant char *msg, uchar *x, uint size) {
+	printf("%s : ", msg);
+	dump_stuff(x, size);
+}
+void dump_stuffL(__local uchar* x, uint size)
+{
+        uint i;
+        for(i=0;i<size;i++)
+        {
+	        printf("%.2x", x[i]);
+                if( (i%4)==3 )
+                        printf(" ");
+        }
+        printf("\n");
+}
+void dump_stuffL_msg(__constant char *msg, __local uchar *x, uint size) {
+	printf("%s : ", msg);
+	dump_stuffL(x, size);
+}
+#endif
+
+typedef union {
+	uint w[(2 * PLAINTEXT_LENGTH + 8) / 4];
+	ushort s[(2 * PLAINTEXT_LENGTH + 8) / 2];
+	uchar c[2 * PLAINTEXT_LENGTH + 8];
+} RawPsw_u;
+
 /* The double block[] buffer saves us a LOT of branching, 20% speedup. */
 __kernel void SetCryptKeys(
-	__global const uchar *unicode_pw,
-	__global const uint *pw_len,
-	__constant uchar *salt,
-	__global uint *aes_key, __global uchar *aes_iv)
+	__global uint *unicode_pw,
+	__global uint *pw_len,
+	__constant ushort *salt,
+	__global uint *aes_key, __global uchar *aes_iv,
+	__local RawPsw_u *locmem)
 {
 	uint i, j, len, pwlen, b;
 	union {
 		uint w[2][16];
+		ushort s[64];
 		uchar c[128];
 	} block;
 	union {
@@ -234,54 +298,42 @@ __kernel void SetCryptKeys(
 		uchar c[20];
 	} output;
 	uint gid = get_global_id(0);
-	uchar RawPsw[2 * PLAINTEXT_LENGTH + 8];
+	__local RawPsw_u *RawPsw = &locmem[get_local_id(0)];
 
 	pwlen = pw_len[gid];
 
 	/* Copy to fast memory */
-	RawPsw[0] = unicode_pw[gid * 2 * PLAINTEXT_LENGTH];
-	RawPsw[1] = unicode_pw[gid * 2 * PLAINTEXT_LENGTH + 1];
-	for (i = 2; i < pwlen; i += 2 ) {
-		RawPsw[i] = unicode_pw[gid * 2 * PLAINTEXT_LENGTH + i];
-		RawPsw[i + 1] = unicode_pw[gid * 2 * PLAINTEXT_LENGTH + i + 1];
-	}
-	RawPsw[pwlen] = salt[0];
-	RawPsw[pwlen + 1] = salt[1];
-	RawPsw[pwlen + 2] = salt[2];
-	RawPsw[pwlen + 3] = salt[3];
-	RawPsw[pwlen + 4] = salt[4];
-	RawPsw[pwlen + 5] = salt[5];
-	RawPsw[pwlen + 6] = salt[6];
-	RawPsw[pwlen + 7] = salt[7];
+	RawPsw->s[0] = ((__global ushort*)unicode_pw)[gid * PLAINTEXT_LENGTH];
+	for (i = 1; i < pwlen / 2; i++)
+		RawPsw->s[i] = ((__global ushort*)unicode_pw)[gid * PLAINTEXT_LENGTH + i];
+	RawPsw->s[pwlen / 2] = ((__constant ushort*)salt)[0];
+	RawPsw->s[pwlen / 2 + 1] = ((__constant ushort*)salt)[1];
+	RawPsw->s[pwlen / 2 + 2] = ((__constant ushort*)salt)[2];
+	RawPsw->s[pwlen / 2 + 3] = ((__constant ushort*)salt)[3];
 	pwlen += 8;
 
+#ifdef DEBUG
+	dump_stuffL_msg("RawPsw", RawPsw->c, pwlen);
+#endif
 	sha1_init(output.w);
 
 	/* First round is unrolled here. This should not make a difference
 	   (it's one of 262144) but it makes for a 2% boost */
-	block.c[0] = RawPsw[0];
-	block.c[1] = RawPsw[1];
-	block.c[2] = RawPsw[2];
-	block.c[3] = RawPsw[3];
-	block.c[4] = RawPsw[4];
-	block.c[5] = RawPsw[5];
-	block.c[6] = RawPsw[6];
-	block.c[7] = RawPsw[7];
-	block.c[8] = RawPsw[8];
-	block.c[9] = RawPsw[9];
+	block.w[0][0] = RawPsw->w[0];
+	block.w[0][1] = RawPsw->w[1];
+	block.s[4] = RawPsw->s[4];
+	for (i = 5; i < pwlen / 2; i++)
+		block.s[i] = RawPsw->s[i];
 
-	for (i = 10; i < pwlen; i += 2) {
-		block.c[i] = RawPsw[i];
-		block.c[i + 1] = RawPsw[i + 1];
-	}
-
-	block.c[i++] = 0;
-	block.c[i++] = 0;
-	block.c[i++] = 0;
+	block.s[i++] = 0;
+	block.c[i * 2] = 0;
 
 	len = pwlen + 3;
 	b = 0;
 
+#ifdef DEBUG
+	dump_stuff_msg("1st", block.c, 64);
+#endif
 	{
 		uint tempblock[16];
 		union {
@@ -289,7 +341,8 @@ __kernel void SetCryptKeys(
 			uchar c[20];
 		} tempout;
 
-		memcpy32(tempblock, block.w[b], 9);
+		memcpy32(tempblock, block.w[0],
+		         (2 * PLAINTEXT_LENGTH + 8 + 3 + 3) & 15);
 		memcpy32(tempout.w, output.w, 5);
 
 		sha1_final(tempblock, tempout.w, len);
@@ -300,26 +353,71 @@ __kernel void SetCryptKeys(
 	for (j = 1; j < ROUNDS; j++)
 	{
 		/* Password + salt, length is at least 10 and always even so
-		   we unroll it accordingly. */
-		block.c[len++ & 127] = RawPsw[0];
-		block.c[len++ & 127] = RawPsw[1];
-		block.c[len++ & 127] = RawPsw[2];
-		block.c[len++ & 127] = RawPsw[3];
-		block.c[len++ & 127] = RawPsw[4];
-		block.c[len++ & 127] = RawPsw[5];
-		block.c[len++ & 127] = RawPsw[6];
-		block.c[len++ & 127] = RawPsw[7];
-		block.c[len++ & 127] = RawPsw[8];
-		block.c[len++ & 127] = RawPsw[9];
-		for (i = 10; i < pwlen; i += 2) {
-			block.c[len++ & 127] = RawPsw[i];
-			block.c[len++ & 127] = RawPsw[i + 1];
+		   we unroll it accordingly. We also take advantage of any
+		   alignment */
+		switch (len & 3) {
+
+		case 0: // aligned to int
+		{
+			uint tlen = len >> 2;
+			block.w[0][tlen & 31] = RawPsw->w[0];
+			block.w[0][(tlen + 1) & 31] = RawPsw->w[1];
+			block.w[0][(tlen + 2) & 31] = RawPsw->w[2];
+			for (i = 3; i <= pwlen / 4; i++)
+				block.w[0][(tlen + i) & 31] = RawPsw->w[i];
+			len += pwlen;
+			break;
+		}
+
+#if 0
+		case 2: // aligned to short
+		{
+			uint tlen = len >> 1;
+			block.s[tlen & 63] = RawPsw->s[0];
+			block.s[(tlen + 1) & 63] = RawPsw->s[1];
+			block.s[(tlen + 2) & 63] = RawPsw->s[2];
+			block.s[(tlen + 3) & 63] = RawPsw->s[3];
+			block.s[(tlen + 4) & 63] = RawPsw->s[4];
+			for (i = 5; i <= pwlen / 2; i++)
+				block.s[(tlen + i) & 63] = RawPsw->s[i];
+			len += pwlen;
+			break;
+		}
+#endif
+		default: // unaligned
+			block.c[len++ & 127] = RawPsw->c[0];
+			block.c[len++ & 127] = RawPsw->c[1];
+			block.c[len++ & 127] = RawPsw->c[2];
+			block.c[len++ & 127] = RawPsw->c[3];
+			block.c[len++ & 127] = RawPsw->c[4];
+			block.c[len++ & 127] = RawPsw->c[5];
+			block.c[len++ & 127] = RawPsw->c[6];
+			block.c[len++ & 127] = RawPsw->c[7];
+			block.c[len++ & 127] = RawPsw->c[8];
+			block.c[len++ & 127] = RawPsw->c[9];
+			for (i = 10; i < pwlen; i += 2) {
+				block.c[len++ & 127] = RawPsw->c[i];
+				block.c[len++ & 127] = RawPsw->c[i + 1];
+			}
 		}
 
 		/* Serial */
+#if 0
+		if (len & 3) {
+			// unaligned
+			block.c[len++ & 127] = j;
+			block.c[len++ & 127] = j >> 8;
+			block.c[len++ & 127] = j >> 16;
+		} else {
+			// aligned to int
+			block.w[0][(len >> 2) & 31] = j;
+			len += 3;
+		}
+#else
 		block.c[len++ & 127] = j;
 		block.c[len++ & 127] = j >> 8;
 		block.c[len++ & 127] = j >> 16;
+#endif
 
 		/* If we have a full buffer, submit it and switch! */
 		if ((len & 64) != (b << 6)) {
@@ -327,6 +425,12 @@ __kernel void SetCryptKeys(
 			b = 1 - b;
 		}
 
+#ifdef DEBUG
+		if (j < 7) {
+			printf("%uth : ", j);
+			dump_stuff(block.c, 128);
+		}
+#endif
 		/* Every 16K'th round, we do a final and pick one byte of IV */
 		if (j % (ROUNDS >> 4) == 0)
 		{

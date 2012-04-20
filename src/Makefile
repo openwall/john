@@ -449,6 +449,7 @@ linux-x86-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
 	$(CP) opencl/*.cl ../run/
+	$(CP) opencl_cryptsha512.h ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-opencl:
@@ -459,6 +460,7 @@ linux-x86-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl"
 	$(CP) opencl/*.cl ../run/
+	$(CP) opencl_cryptsha512.h ../run/
 	#/bin/sh ./setup-opencl-stuff.sh
 
 linux-x86-cuda:
