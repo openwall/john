@@ -7,7 +7,7 @@
  */
 
 #ifdef cl_khr_byte_addressable_store
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
 #endif
 #ifdef cl_nv_pragma_unroll
 #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
@@ -16,7 +16,13 @@
 #define PLAINTEXT_LENGTH	16	/* must match opencl_rar_fmt.c */
 #define ROUNDS			0x40000
 
-/* This is the fastest I've found for GTX580 (it uses mad) */
+/* Macros for reading/writing chars from int32's */
+//#define GETCHAR(buf, index) (((buf)[(index)>>2] & 0xff << (((index) & 3) << 3)) >> (((index) & 3) << 3))
+#define GETCHAR(buf, index) (((__local uchar*)(buf))[(index)])
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((index) & 3) << 3)) | (((val) & 0xff) << (((index) & 3) << 3))
+#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((3 - (index) & 3) << 3))) | (((val) & 0xff) << (((3 - (index) & 3) << 3)))
+
+/* This is the fastest I've found for GTX580 */
 inline uint SWAP32(uint x)
 {
 	x = (x << 16) + (x >> 16);
@@ -36,31 +42,14 @@ inline uint SWAP32(uint x)
 #define H5	0xC3D2E1F0
 
 /* raw'n'lean sha1, context kept in output buffer */
-void sha1_block(uint *LW, uint *output) {
-	uint A, B, C, D, E, temp, W[16];
+void sha1_block(uint *W, uint *output) {
+	uint A, B, C, D, E, temp;
 
 	A = output[0];
 	B = output[1];
 	C = output[2];
 	D = output[3];
 	E = output[4];
-
-	W[0] = SWAP32(LW[0]);
-	W[1] = SWAP32(LW[1]);
-	W[2] = SWAP32(LW[2]);
-	W[3] = SWAP32(LW[3]);
-	W[4] = SWAP32(LW[4]);
-	W[5] = SWAP32(LW[5]);
-	W[6] = SWAP32(LW[6]);
-	W[7] = SWAP32(LW[7]);
-	W[8] = SWAP32(LW[8]);
-	W[9] = SWAP32(LW[9]);
-	W[10] = SWAP32(LW[10]);
-	W[11] = SWAP32(LW[11]);
-	W[12] = SWAP32(LW[12]);
-	W[13] = SWAP32(LW[13]);
-	W[14] = SWAP32(LW[14]);
-	W[15] = SWAP32(LW[15]);
 
 #undef R
 #define R(t)	  \
@@ -202,33 +191,30 @@ inline void sha1_init(uint *output) {
 
 void sha1_final(uint *block, uint *output, uint tot_len)
 {
-	uint len = tot_len & 63;
+	uint len = (tot_len & 63) >> 2;
 
-	((char*)block)[len++] = 0x80;
-	if (len > 55) {
+	switch(tot_len & 3) {
+	case 0:
+		block[len] = 0x80000000;
+		break;
+	case 1:
+		block[len] = block[len] & 0xff000000 | 0x800000;
+		break;
+	case 2:
+		block[len] = block[len] & 0xffff0000 | 0x8000;
+		break;
+	case 3:
+		block[len] = block[len] & 0xffffff00 | 0x80;
+		break;
+	}
+	len++;
+	if (len > 13) {
 		sha1_block(block, output);
 		len = 0;
 	}
-#if 1
-	switch (len & 3) {
-	case 1:
-		((char*)block)[len++] = 0;
-	case 2:
-		((short*)block)[len / 2] = 0;
-		len += 2;
-		break;
-	case 3:
-		((char*)block)[len++] = 0;
-	}
-	len >>= 2;
-	while (len < 14)
+	while (len < 15)
 		block[len++] = 0;
-#else
-	while (len < 56)
-		((char*)block)[len++] = 0;
-#endif
-	block[14] = 0;
-	block[15] = SWAP32(tot_len << 3);
+	block[15] = tot_len << 3;
 	sha1_block(block, output);
 }
 
@@ -239,221 +225,122 @@ inline void memcpy32(uint *d, const uint *s, uint len)
 		*d++ = *s++;
 }
 
-//#define DEBUG
-#ifdef DEBUG
-void dump_stuff(uchar* x, uint size)
-{
-        uint i;
-        for(i=0;i<size;i++)
-        {
-	        printf("%.2x", x[i]);
-                if( (i%4)==3 )
-                        printf(" ");
-        }
-        printf("\n");
-}
-void dump_stuff_msg(__constant char *msg, uchar *x, uint size) {
-	printf("%s : ", msg);
-	dump_stuff(x, size);
-}
-void dump_stuffL(__local uchar* x, uint size)
-{
-        uint i;
-        for(i=0;i<size;i++)
-        {
-	        printf("%.2x", x[i]);
-                if( (i%4)==3 )
-                        printf(" ");
-        }
-        printf("\n");
-}
-void dump_stuffL_msg(__constant char *msg, __local uchar *x, uint size) {
-	printf("%s : ", msg);
-	dump_stuffL(x, size);
-}
-#endif
-
-typedef union {
-	uint w[(2 * PLAINTEXT_LENGTH + 8) / 4];
-	ushort s[(2 * PLAINTEXT_LENGTH + 8) / 2];
-	uchar c[2 * PLAINTEXT_LENGTH + 8];
-} RawPsw_u;
-
 /* The double block[] buffer saves us a LOT of branching, 20% speedup. */
 __kernel void SetCryptKeys(
 	__global uint *unicode_pw,
 	__global uint *pw_len,
-	__constant ushort *salt,
-	__global uint *aes_key, __global uchar *aes_iv,
-	__local RawPsw_u *locmem)
+	__constant uint *salt,
+	__global uint *aes_key, __global uint *aes_iv,
+	__local uint *locmem)
 {
 	uint i, j, len, pwlen, b;
-	union {
-		uint w[2][16];
-		ushort s[64];
-		uchar c[128];
-	} block;
-	union {
-		uint w[5];
-		uchar c[20];
-	} output;
+	uint block[2][16];
+	uint output[5];
 	uint gid = get_global_id(0);
-	__local RawPsw_u *RawPsw = &locmem[get_local_id(0)];
+	__local uint *RawPsw = &locmem[get_local_id(0) * 40];
 
 	pwlen = pw_len[gid];
 
-	/* Copy to fast memory */
-	RawPsw->s[0] = ((__global ushort*)unicode_pw)[gid * PLAINTEXT_LENGTH];
-	for (i = 1; i < pwlen / 2; i++)
-		RawPsw->s[i] = ((__global ushort*)unicode_pw)[gid * PLAINTEXT_LENGTH + i];
-	RawPsw->s[pwlen / 2] = ((__constant ushort*)salt)[0];
-	RawPsw->s[pwlen / 2 + 1] = ((__constant ushort*)salt)[1];
-	RawPsw->s[pwlen / 2 + 2] = ((__constant ushort*)salt)[2];
-	RawPsw->s[pwlen / 2 + 3] = ((__constant ushort*)salt)[3];
-	pwlen += 8;
-
-#ifdef DEBUG
-	dump_stuffL_msg("RawPsw", RawPsw->c, pwlen);
-#endif
-	sha1_init(output.w);
-
-	/* First round is unrolled here. This should not make a difference
-	   (it's one of 262144) but it makes for a 2% boost */
-	block.w[0][0] = RawPsw->w[0];
-	block.w[0][1] = RawPsw->w[1];
-	block.s[4] = RawPsw->s[4];
-	for (i = 5; i < pwlen / 2; i++)
-		block.s[i] = RawPsw->s[i];
-
-	block.s[i++] = 0;
-	block.c[i * 2] = 0;
-
-	len = pwlen + 3;
-	b = 0;
-
-#ifdef DEBUG
-	dump_stuff_msg("1st", block.c, 64);
-#endif
-	{
-		uint tempblock[16];
-		union {
-			uint w[5];
-			uchar c[20];
-		} tempout;
-
-		memcpy32(tempblock, block.w[0],
-		         (2 * PLAINTEXT_LENGTH + 8 + 3 + 3) & 15);
-		memcpy32(tempout.w, output.w, 5);
-
-		sha1_final(tempblock, tempout.w, len);
-
-		aes_iv[gid * 16] = tempout.c[16];
+	/* Copy to fast memory, one version for every aligment need */
+#pragma unroll 2
+	for (i = 0; i < pwlen; i++) {
+		//uint temp = GETCHAR(unicode_pw, gid * 2 * PLAINTEXT_LENGTH + i);
+		uint temp = ((__global uchar*)unicode_pw)[gid * 2 * PLAINTEXT_LENGTH + i];
+		PUTCHAR(RawPsw, i, temp);
+		if (i > 2) PUTCHAR(RawPsw, 40 + i - 3, temp);
+		if (i > 1) PUTCHAR(RawPsw, 80 + i - 2, temp);
+		if (i > 0) PUTCHAR(RawPsw, 120 + i - 1, temp);
 	}
+#pragma unroll 8
+	for (i = 0; i < 8; i++) {
+		//uint temp = GETCHAR(salt, i);
+		uint temp = ((__constant uchar*)salt)[i];
+		PUTCHAR(RawPsw, pwlen + i, temp);
+		PUTCHAR(RawPsw, pwlen + 40 + i - 3, temp);
+		PUTCHAR(RawPsw, pwlen + 80 + i - 2, temp);
+		PUTCHAR(RawPsw, pwlen + 120 + i - 1, temp);
+	}
+	pwlen += 8;
+	b = len = 0;
+	sha1_init(output);
 
-	for (j = 1; j < ROUNDS; j++)
+	for (j = 0; j < ROUNDS; j++)
 	{
-		/* Password + salt, length is at least 10 and always even so
-		   we unroll it accordingly. We also take advantage of any
-		   alignment */
 		switch (len & 3) {
-
-		case 0: // aligned to int
-		{
-			uint tlen = len >> 2;
-			block.w[0][tlen & 31] = RawPsw->w[0];
-			block.w[0][(tlen + 1) & 31] = RawPsw->w[1];
-			block.w[0][(tlen + 2) & 31] = RawPsw->w[2];
-			for (i = 3; i <= pwlen / 4; i++)
-				block.w[0][(tlen + i) & 31] = RawPsw->w[i];
-			len += pwlen;
+		case 0:	/* 32-bit aligned! */
+			block[0][((len >> 2) + 0) & 31] = SWAP32(RawPsw[0]);
+			block[0][((len >> 2) + 1) & 31] = SWAP32(RawPsw[1]);
+			block[0][((len >> 2) + 2) & 31] = SWAP32(RawPsw[2]);
+			for (i = 3; i < (pwlen + 3) >> 2; i++)
+				block[0][((len >> 2) + i) & 31] = SWAP32(RawPsw[i]);
+			break;
+		case 1:	/* unaligned mod 1 */
+			PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR(RawPsw, 0));
+			PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR(RawPsw, 1));
+			PUTCHAR_BE(block[0], (len + 2) & 127, GETCHAR(RawPsw, 2));
+			block[0][((len >> 2) + 0 + 1) & 31] = SWAP32(RawPsw[10 + 0]);
+			block[0][((len >> 2) + 1 + 1) & 31] = SWAP32(RawPsw[10 + 1]);
+			for (i = 2; i < (pwlen + 3) >> 2; i++)
+				block[0][((len >> 2) + i + 1) & 31] = SWAP32(RawPsw[10 + i]);
+			break;
+		case 2:	/* unaligned mod 2 */
+			PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR(RawPsw, 0));
+			PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR(RawPsw, 1));
+			block[0][((len >> 2) + 0 + 1) & 31] = SWAP32(RawPsw[20 + 0]);
+			block[0][((len >> 2) + 1 + 1) & 31] = SWAP32(RawPsw[20 + 1]);
+			for (i = 2; i < (pwlen + 3) >> 2; i++)
+				block[0][((len >> 2) + i + 1) & 31] = SWAP32(RawPsw[20 + i]);
+			break;
+		case 3:	/* unaligned mod 3 */
+			PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR(RawPsw, 0));
+			block[0][((len >> 2) + 0 + 1) & 31] = SWAP32(RawPsw[30 + 0]);
+			block[0][((len >> 2) + 1 + 1) & 31] = SWAP32(RawPsw[30 + 1]);
+			for (i = 2; i < (pwlen + 3) >> 2; i++)
+				block[0][((len >> 2) + i + 1) & 31] = SWAP32(RawPsw[30 + i]);
 			break;
 		}
-
-#if 0
-		case 2: // aligned to short
-		{
-			uint tlen = len >> 1;
-			block.s[tlen & 63] = RawPsw->s[0];
-			block.s[(tlen + 1) & 63] = RawPsw->s[1];
-			block.s[(tlen + 2) & 63] = RawPsw->s[2];
-			block.s[(tlen + 3) & 63] = RawPsw->s[3];
-			block.s[(tlen + 4) & 63] = RawPsw->s[4];
-			for (i = 5; i <= pwlen / 2; i++)
-				block.s[(tlen + i) & 63] = RawPsw->s[i];
-			len += pwlen;
-			break;
-		}
-#endif
-		default: // unaligned
-			block.c[len++ & 127] = RawPsw->c[0];
-			block.c[len++ & 127] = RawPsw->c[1];
-			block.c[len++ & 127] = RawPsw->c[2];
-			block.c[len++ & 127] = RawPsw->c[3];
-			block.c[len++ & 127] = RawPsw->c[4];
-			block.c[len++ & 127] = RawPsw->c[5];
-			block.c[len++ & 127] = RawPsw->c[6];
-			block.c[len++ & 127] = RawPsw->c[7];
-			block.c[len++ & 127] = RawPsw->c[8];
-			block.c[len++ & 127] = RawPsw->c[9];
-			for (i = 10; i < pwlen; i += 2) {
-				block.c[len++ & 127] = RawPsw->c[i];
-				block.c[len++ & 127] = RawPsw->c[i + 1];
-			}
-		}
+		len += pwlen;
 
 		/* Serial */
-#if 0
-		if (len & 3) {
-			// unaligned
-			block.c[len++ & 127] = j;
-			block.c[len++ & 127] = j >> 8;
-			block.c[len++ & 127] = j >> 16;
-		} else {
-			// aligned to int
-			block.w[0][(len >> 2) & 31] = j;
+#ifdef __ENDIAN_LITTLE__
+		if (!(len & 3)) {
+			block[0][(len >> 2) & 31] = SWAP32(j);
 			len += 3;
-		}
-#else
-		block.c[len++ & 127] = j;
-		block.c[len++ & 127] = j >> 8;
-		block.c[len++ & 127] = j >> 16;
+		} else
 #endif
+		{
+			PUTCHAR_BE(block[0], len & 127, j); len++;
+			PUTCHAR_BE(block[0], len & 127, j >> 8); len++;
+			PUTCHAR_BE(block[0], len & 127, j >> 16); len++;
+		}
 
 		/* If we have a full buffer, submit it and switch! */
 		if ((len & 64) != (b << 6)) {
-			sha1_block(block.w[b], output.w);
+			sha1_block(block[b], output);
 			b = 1 - b;
 		}
 
-#ifdef DEBUG
-		if (j < 7) {
-			printf("%uth : ", j);
-			dump_stuff(block.c, 128);
-		}
-#endif
 		/* Every 16K'th round, we do a final and pick one byte of IV */
 		if (j % (ROUNDS >> 4) == 0)
 		{
 			uint tempblock[16];
-			union {
-				uint w[5];
-				uchar c[20];
-			} tempout;
+			uint tempout[5];
 
 			 /* (len + 3) & 15 is slower than hardcoding 16 here */
-			memcpy32(tempblock, block.w[b], 16);
-			memcpy32(tempout.w, output.w, 5);
+			memcpy32(tempblock, block[b], 16);
+			memcpy32(tempout, output, 5);
 
-			sha1_final(tempblock, tempout.w, len);
+			sha1_final(tempblock, tempout, len);
 
-			aes_iv[gid * 16 + (j >> 14)] = tempout.c[16];
+			//PUTCHAR(aes_iv, gid * 16 + (j >> 14), GETCHAR(tempout, 16));
+			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
 		}
 	}
-	sha1_final(block.w[b], output.w, len);
+	sha1_final(block[b], output, len);
 
 	// Non-endian-swapping copy
-	aes_key[gid * 4] = output.w[0];
-	aes_key[gid * 4 + 1] = output.w[1];
-	aes_key[gid * 4 + 2] = output.w[2];
-	aes_key[gid * 4 + 3] = output.w[3];
+	aes_key[gid * 4] = output[0];
+	aes_key[gid * 4 + 1] = output[1];
+	aes_key[gid * 4 + 2] = output[2];
+	aes_key[gid * 4 + 3] = output[3];
 }
