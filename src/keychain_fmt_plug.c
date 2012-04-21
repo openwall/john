@@ -130,16 +130,13 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	if(pad > 8)
 		// "Bad padding byte. You probably have a wrong password"
 		return -1;
-	if(pad == 0 || pad == 1) { // special case
-		n = pad;
-	}
-	else {
-		n = CTLEN - pad;
-	}
+	if(pad != 4) /* possible bug here, is this assumption always valid? */
+		return -1;
+	n = CTLEN - pad;
 	for(i = n; i < CTLEN; i++)
 		if(out[i] != pad)
 			// "Bad padding. You probably have a wrong password"
-			return 1;
+			return -1;
 	return 0;
 }
 
@@ -206,7 +203,7 @@ struct fmt_main keychain_fmt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		keychain_tests
 	}, {
 		init,
