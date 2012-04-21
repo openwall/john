@@ -331,9 +331,9 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_aes_key), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 4");
 #ifdef DEBUG
-	fprintf(stderr, "Allocating %zu bytes of local memory on GPU, for RawPsw\n", (UNICODE_LENGTH + 8) * local_work_size);
+	fprintf(stderr, "Allocating %zu bytes of local memory on GPU, for RawPsw\n", (UNICODE_LENGTH + 8) * 4 * local_work_size);
 #endif
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, (UNICODE_LENGTH + 8) * local_work_size, NULL), "Error setting argument 5");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, (UNICODE_LENGTH + 8) * 4 * local_work_size, NULL), "Error setting argument 5");
 
 	*mkpc = global_work_size = kpc;
 }
