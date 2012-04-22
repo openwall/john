@@ -471,6 +471,9 @@ static void init(struct fmt_main *pFmt)
 	multiple = 8;
 #endif
 
+	while (get_local_memory_size(gpu_id) < ((UNICODE_LENGTH + 8) * 4 * maxsize))
+		maxsize -= multiple;
+
 #ifdef DEBUG
 	fprintf(stderr, "Max allowed local work size %d, best multiple %d\n", (int)maxsize, (int)multiple);
 #endif
@@ -483,14 +486,7 @@ static void init(struct fmt_main *pFmt)
 		if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
 			local_work_size = get_max_compute_units(gpu_id);
 		} else {
-			/* Some implementations consider this a factor rather
-			   than a multiple, i.e.
-			   8, 16, 32, 64  vs.  8, 16, 24, 32.
-			   We use the former to be safe. */
-			//for (local_work_size = multiple; local_work_size < maxsize / 2; local_work_size *= 2);
-
-			// We just do this instead for now and use a higher GWS
-			local_work_size = 2 * multiple;
+			local_work_size = maxsize;
 		}
 	}
 
@@ -503,19 +499,20 @@ static void init(struct fmt_main *pFmt)
 	}
 
 	if (global_work_size == -1)
-		global_work_size = local_work_size * ((get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) ? 16 : 256);
+		global_work_size = local_work_size * get_max_compute_units(gpu_id) * 8;
 
 	if (global_work_size && global_work_size < local_work_size)
 		global_work_size = local_work_size;
 
 	create_clobj(global_work_size);
 
-#ifdef DEBUG
 	fprintf(stderr, "Local work size (LWS) %d, Keys per crypt (KPC) %d\n", (int)local_work_size, (int)global_work_size);
-
-	cl_ulong loc_mem_size;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_size), &loc_mem_size, NULL), "Query local memory usage");
-	fprintf(stderr, "Kernel using %lu bytes of local memory out of %lu available\n", loc_mem_size, get_local_memory_size(gpu_id));
+#ifdef DEBUG
+	{
+		cl_ulong loc_mem_size;
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_size), &loc_mem_size, NULL), "Query local memory usage");
+		fprintf(stderr, "Kernel using %lu bytes of local memory out of %lu available\n", loc_mem_size, get_local_memory_size(gpu_id));
+	}
 #endif
 
 	atexit(release_clobj);
