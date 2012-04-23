@@ -13,12 +13,13 @@
 #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
 #endif
 
-#define PLAINTEXT_LENGTH	16	/* must match opencl_rar_fmt.c */
+/* These MUST match opencl_rar_fmt.c */
+#define PLAINTEXT_LENGTH	16
+#define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
+#define LMEM_PER_THREAD		0 //((UNICODE_LENGTH + 8) * 4)
 
 /* Macros for reading/writing chars from int32's */
-//#define GETCHAR(buf, index) (((buf)[(index)>>2] & 0xffU << (((index) & 3) << 3)) >> (((index) & 3) << 3))
-#define GETCHAR(buf, index) (((__local uchar*)(buf))[(index)])
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((index) & 3) << 3)) | (((val) & 0xff) << (((index) & 3) << 3))
 #define GETCHAR_BE(buf, index) (((buf)[(index)>>2] & 0xffU << ((3 - ((index) & 3)) << 3)) >> ((3 - ((index) & 3)) << 3))
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((3 - (index) & 3) << 3))) | (((val) & 0xff) << (((3 - (index) & 3) << 3)))
@@ -231,14 +232,21 @@ __kernel void SetCryptKeys(
 	__global uint *unicode_pw,
 	__global uint *pw_len,
 	__constant uint *salt,
-	__global uint *aes_key, __global uint *aes_iv,
-	__local uint *locmem)
+	__global uint *aes_key, __global uint *aes_iv
+#if LMEM_PER_THREAD
+	, __local uint *locmem
+#endif
+)
 {
 	uint i, j, len, pwlen, b;
 	uint block[2][16];
 	uint output[5];
 	uint gid = get_global_id(0);
-	__local uint *RawPsw = &locmem[get_local_id(0) * 40];
+#if LMEM_PER_THREAD
+	__local uint *RawPsw = &locmem[get_local_id(0) * LMEM_PER_THREAD / 4];
+#else
+	uint RawPsw[UNICODE_LENGTH + 8];
+#endif
 
 	pwlen = pw_len[gid];
 
@@ -249,11 +257,11 @@ __kernel void SetCryptKeys(
 	}
 #pragma unroll 8
 	for (i = 0; i < 8; i++) {
-		//uint temp = GETCHAR(salt, i);
 		uint temp = ((__constant uchar*)salt)[i];
 		PUTCHAR_BE(RawPsw, pwlen + i, temp);
 	}
 	pwlen += 8;
+
 	for (i = 0; i < ((pwlen + 3) >> 2) - 1; i++) {
 		RawPsw[i + 10] = (RawPsw[i] << 24) + (RawPsw[i + 1] >> 8);
 		RawPsw[i + 20] = (RawPsw[i] << 16) + (RawPsw[i + 1] >> 16);
@@ -286,15 +294,13 @@ __kernel void SetCryptKeys(
 
 	/* Pick first byte of IV */
 	{
-		uint tempblock[16];
 		uint tempout[5];
 
-		memcpy32(tempblock, block[b], (((len + 3) & 63) >> 2));
+		memcpy32(block[1-b], block[b], (((len + 3) & 63) >> 2));
 		memcpy32(tempout, output, 5);
 
-		sha1_final(tempblock, tempout, len);
+		sha1_final(block[1-b], tempout, len);
 
-		//PUTCHAR(aes_iv, gid * 16, GETCHAR(tempout, 16));
 		PUTCHAR(aes_iv, gid * 16, ((uchar*)tempout)[16]);
 	}
 
@@ -358,16 +364,14 @@ __kernel void SetCryptKeys(
 		/* Every 16K'th round, we do a final and pick one byte of IV */
 		if (j % (ROUNDS >> 4) == 0)
 		{
-			uint tempblock[16];
 			uint tempout[5];
 
 			/* hardcoding 16 here might be faster */
-			memcpy32(tempblock, block[b], (((len + 3) & 63) >> 2));
+			memcpy32(block[1-b], block[b], (((len + 3) & 63) >> 2));
 			memcpy32(tempout, output, 5);
 
-			sha1_final(tempblock, tempout, len);
+			sha1_final(block[1-b], tempout, len);
 
-			//PUTCHAR(aes_iv, gid * 16 + (j >> 14), GETCHAR(tempout, 16));
 			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
 		}
 	}

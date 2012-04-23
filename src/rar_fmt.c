@@ -137,8 +137,11 @@ static rarfile *cur_file;
 #ifdef CL_VERSION_1_0
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
 #define CPU_GPU_RATIO		32
+/* Size in bytes of Local Memory buffer per thread */
+#define LMEM_PER_THREAD		0 //((UNICODE_LENGTH + 8) * 4)
 static size_t global_work_size = -1;
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_aes_key, cl_aes_iv;
+cl_command_queue queue_prof;
 #endif
 
 struct fmt_main rar_fmt;
@@ -330,11 +333,13 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_aes_key), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 4");
-#ifdef DEBUG
-	fprintf(stderr, "Allocating %zu bytes of local memory on GPU, for RawPsw\n", (UNICODE_LENGTH + 8) * 4 * local_work_size);
-#endif
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, (UNICODE_LENGTH + 8) * 4 * local_work_size, NULL), "Error setting argument 5");
 
+#if LMEM_PER_THREAD
+#ifdef DEBUG
+	fprintf(stderr, "Allocating %zu bytes of local memory on GPU, for RawPsw\n", LMEM_PER_THREAD * local_work_size);
+#endif
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, LMEM_PER_THREAD * local_work_size, NULL), "Error setting argument 5");
+#endif
 	*mkpc = global_work_size = kpc;
 }
 
@@ -370,6 +375,83 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
+static void find_best_workgroup(void)
+{
+	cl_event myEvent;
+	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+	size_t my_work_group, gws;
+	cl_int ret_code;
+	int i = 0;
+	cl_ulong max_group_size, multiple;
+
+	/* Note: we ask for this kernel's max size, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size), &max_group_size, NULL), "Query max work group size");
+
+#ifdef CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
+	/* This is OpenCL 1.1 */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(multiple), &multiple, NULL), "Query preferred work group multiple");
+
+	if (multiple < 8)
+		multiple = 8;
+#else
+	multiple = 8;
+#endif
+
+	queue_prof =
+	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
+	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
+#ifdef DEBUG
+	fprintf(stderr, "Max allowed local work size %d, best multiple %d\n", (int)max_group_size, (int)multiple);
+#endif
+	local_work_size = multiple;
+
+	gws = global_work_size;
+
+	create_clobj(2 * max_group_size);
+
+	// Set keys
+	for (; i < global_work_size; i++)
+		set_key("magnum", i);
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * global_work_size, saved_key, 0, NULL, NULL), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "Failed transferring lengths");
+
+	// Find minimum time
+	for (my_work_group = multiple; (int)my_work_group <=(int)max_group_size; my_work_group *= 2) {
+		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1,
+		    NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
+		if (ret_code != CL_SUCCESS) {
+			fprintf(stderr, "Error %d\n", ret_code);
+			continue;
+		}
+		clFinish(queue_prof);
+
+		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+		    sizeof(cl_ulong), &startTime, NULL);
+		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+		    sizeof(cl_ulong), &endTime, NULL);
+
+		if ((endTime - startTime) < kernelExecTimeNs) {
+			kernelExecTimeNs = endTime - startTime;
+			local_work_size = my_work_group;
+		}
+#ifdef DEBUG
+		fprintf(stderr, "\nlws %04d time=%10lu",(int) my_work_group, (unsigned long)endTime-startTime);
+#endif
+	}
+#ifdef DEBUG
+	fprintf(stderr, "\n");
+	fprintf(stderr, "Optimal local work size %d\n",(int)local_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+           LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+           SUBSECTION_OPENCL "])\n", (int)local_work_size);
+#endif
+	clReleaseCommandQueue(queue_prof);
+	release_clobj();
+	global_work_size = gws;
+}
+
 static void find_best_kpc(void)
 {
 	int num;
@@ -383,7 +465,8 @@ static void find_best_kpc(void)
 	cl_command_queue queue_prof;
 
 	fprintf(stderr, "Calculating best keys per crypt for LWS %zd, this will take a while ", local_work_size);
-	for (num = local_work_size; num; num <<= 1) {
+
+	for (num = local_work_size; num; num += local_work_size) {
 		create_clobj(num);
 		queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 		for (i = 0; i < num; i++)
@@ -430,7 +513,10 @@ static void init(struct fmt_main *pFmt)
 {
 #ifdef CL_VERSION_1_0
 	char *temp;
-	cl_ulong maxsize, multiple;
+	cl_ulong maxsize;
+#if LMEM_PER_THREAD
+	cl_ulong multiple;
+#endif
 
 	opencl_init("$JOHN/rar_kernel.cl", gpu_id, platform_id);
 
@@ -464,19 +550,24 @@ static void init(struct fmt_main *pFmt)
 	/* Note: we ask for this kernel's max size, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
+#if LMEM_PER_THREAD
 #ifdef CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
 	/* This is OpenCL 1.1 */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(multiple), &multiple, NULL), "Query preferred work group multiple");
+
+	if (multiple < 8)
+		multiple = 8;
 #else
 	multiple = 8;
 #endif
-
-	while (get_local_memory_size(gpu_id) < ((UNICODE_LENGTH + 8) * 4 * maxsize))
+	while (get_local_memory_size(gpu_id) < (LMEM_PER_THREAD * maxsize))
 		maxsize -= multiple;
+#endif
 
 #ifdef DEBUG
 	fprintf(stderr, "Max allowed local work size %d, best multiple %d\n", (int)maxsize, (int)multiple);
 #endif
+
 	if (local_work_size) {
 		if (local_work_size > maxsize) {
 			fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
@@ -486,27 +577,26 @@ static void init(struct fmt_main *pFmt)
 		if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
 			local_work_size = get_max_compute_units(gpu_id);
 		} else {
-			local_work_size = maxsize;
+			find_best_workgroup();
 		}
 	}
 
 	if (global_work_size == 0) {
 		find_best_kpc();
-		printf("Optimal keys per crypt %zu\n(to store this, put \""
+		fprintf(stderr, "Optimal keys per crypt %zu\n(to store this, put \""
 		       KPC_CONFIG " = %zu\" in john.conf, section [" SECTION_OPTIONS
 		       SUBSECTION_OPENCL "])\n", global_work_size, global_work_size);
-		exit(0);
 	}
 
 	if (global_work_size == -1)
-		global_work_size = local_work_size * get_max_compute_units(gpu_id) * 8;
+		global_work_size = local_work_size * get_max_compute_units(gpu_id) * 4;
 
 	if (global_work_size && global_work_size < local_work_size)
 		global_work_size = local_work_size;
 
 	create_clobj(global_work_size);
 
-	fprintf(stderr, "Local work size (LWS) %d, Keys per crypt (KPC) %d\n", (int)local_work_size, (int)global_work_size);
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (KPC) %d\n", (int)local_work_size, (int)global_work_size);
 #ifdef DEBUG
 	{
 		cl_ulong loc_mem_size;
