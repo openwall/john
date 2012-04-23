@@ -412,7 +412,7 @@ static void find_best_kpc(void)
 		const int sha1perkey = (strlen(teststring) * 2 + 8 + 3) * (0x40000 + 16) / 64;
 		fprintf(stderr, "\nkpc %4d\t%4lu c/s%14lu sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / tmpTime), sha1perkey * (1000000000UL * num / tmpTime), (float)tmpTime / 1000000000.);
 
-		if (tmpTime > 5000000000UL)
+		if (tmpTime > 10000000000UL && num > local_work_size * 32)
 			break;
 
 		if ((tmpTime / num) < kernelExecTimeNs) {
