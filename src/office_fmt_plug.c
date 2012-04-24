@@ -15,6 +15,7 @@
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "unicode.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               4
@@ -52,7 +53,8 @@ static struct custom_salt {
 #if defined (_OPENMP)
 static int omp_t = 1;
 #endif
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+/* 3x is needed for worst-case UTF-8 */
+static char (*saved_key)[3 * PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 /* Office 2010 */
@@ -91,16 +93,16 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
 	unsigned char passwordBuf[512] = {0};
-	int passwordBufSize = strlen(password) * 2;
+	int passwordBufSize;
 	int i;
-	unsigned char c;
-	int position = 0;
 	SHA_CTX ctx;
+
 	/* convert key to UTF-16LE */
-	for(i = 0; (c = password[i]); i++) {
-		passwordBuf[position] = c;
-		position += 2;
-	}
+	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	if (passwordBufSize < 0)
+		passwordBufSize = strlen16((UTF16*)passwordBuf);
+	passwordBufSize <<= 1;
+
 	inputBuf = (unsigned char *)malloc(salt_struct->saltSize + passwordBufSize);
 	memcpy(inputBuf, salt_struct->osalt, salt_struct->saltSize);
 	memcpy(inputBuf + salt_struct->saltSize, passwordBuf, passwordBufSize);
@@ -184,16 +186,17 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
 	unsigned char passwordBuf[512] = {0};
-	int passwordBufSize = strlen(password) * 2;
+	int passwordBufSize;
 	int i;
-	unsigned char c, *inputBuf;
-	int position = 0;
+	unsigned char *inputBuf;
 	SHA_CTX ctx;
+
 	/* convert key to UTF-16LE */
-	for(i = 0; (c = password[i]); i++) {
-		passwordBuf[position] = c;
-		position += 2;
-	}
+	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	if (passwordBufSize < 0)
+		passwordBufSize = strlen16((UTF16*)passwordBuf);
+	passwordBufSize <<= 1;
+
 	inputBuf = (unsigned char *)malloc(salt_struct->saltSize + passwordBufSize);
 	memcpy(inputBuf, salt_struct->osalt, salt_struct->saltSize);
 	memcpy(inputBuf + salt_struct->saltSize, passwordBuf, passwordBufSize);
@@ -256,6 +259,9 @@ static void init(struct fmt_main *pFmt)
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+	if (options.utf8)
+		pFmt->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -360,8 +366,10 @@ static int cmp_exact(char *source, int index)
 static void office_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
+	extern struct fmt_main office_fmt;
+
+	if (saved_key_length > office_fmt.params.plaintext_length)
+		saved_key_length = office_fmt.params.plaintext_length;
 	memcpy(saved_key[index], key, saved_key_length);
 	saved_key[index][saved_key_length] = 0;
 }
@@ -383,7 +391,7 @@ struct fmt_main office_fmt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		office_tests
 	}, {
 		init,
