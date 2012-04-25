@@ -141,7 +141,7 @@ static rarfile *cur_file;
 #define CPU_GPU_RATIO		32
 /* Size in bytes of Local Memory buffer per thread */
 #define LMEM_PER_THREAD		0 //((UNICODE_LENGTH + 8) * 4)
-static size_t global_work_size = 1;
+static size_t global_work_size = 0;
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_aes_key, cl_aes_iv;
 #endif
 
@@ -378,83 +378,6 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
-static void find_best_workgroup(void)
-{
-	cl_command_queue queue_prof;
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group, gws;
-	cl_int ret_code;
-	int i = 0;
-	cl_ulong max_group_size, multiple;
-
-	/* Note: we ask for this kernel's max size, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size), &max_group_size, NULL), "Query max work group size");
-
-#ifdef CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
-	/* This is OpenCL 1.1 */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(multiple), &multiple, NULL), "Query preferred work group multiple");
-
-	if (multiple < 8)
-		multiple = 8;
-#else
-	multiple = 8;
-#endif
-
-	queue_prof =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
-
-	local_work_size = multiple;
-
-	gws = global_work_size;
-
-	create_clobj(get_max_compute_units(gpu_id) * max_group_size);
-
-	// Set keys
-	for (; i < global_work_size; i++)
-		set_key("magnum", i);
-
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, CL_TRUE, 0, 8, saved_salt, 0, NULL, NULL), "Failed transferring salt");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_TRUE, 0, UNICODE_LENGTH * global_work_size, saved_key, 0, NULL, NULL), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_TRUE, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "Failed transferring lengths");
-
-	// Find minimum time
-	for (my_work_group = multiple; (int)my_work_group <=(int)max_group_size; my_work_group *= 2) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1,
-		    NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "Error %d\n", ret_code);
-			continue;
-		}
-		clFinish(queue_prof);
-
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-		    sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-		    sizeof(cl_ulong), &endTime, NULL);
-
-#ifdef DEBUG
-		fprintf(stderr, "\nlws %04d time=%10lu",(int) my_work_group, (unsigned long)endTime-startTime);
-#endif
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		} else	if ((endTime - startTime) > 2 * kernelExecTimeNs)
-			break; // it won't get better
-	}
-#ifdef DEBUG
-	fprintf(stderr, "\n");
-#endif
-	fprintf(stderr, "Optimal local work size %d\n",(int)local_work_size);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-           LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-           SUBSECTION_OPENCL "])\n", (int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-	release_clobj();
-	global_work_size = gws;
-}
-
 static void find_best_kpc(int do_benchmark)
 {
 	int num;
@@ -462,7 +385,7 @@ static void find_best_kpc(int do_benchmark)
 	cl_ulong startTime, endTime, run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	cl_int ret_code;
-	int optimal_kpc = local_work_size;
+	int optimal_kpc = local_work_size << 2;
 	int i = 0;
 	cl_command_queue queue_prof;
 	char teststring[] = "magnum";
@@ -473,7 +396,7 @@ static void find_best_kpc(int do_benchmark)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; num;) {
+	for (num = optimal_kpc; num;) {
 		create_clobj(num);
 		queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 		for (i = 0; i < num; i++)
@@ -504,16 +427,17 @@ static void find_best_kpc(int do_benchmark)
 		if (run_time < min_time)
 			min_time = run_time;
 
-		if (do_benchmark) {
+		if (do_benchmark)
 			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
-			if ((run_time > min_time * 3) || (run_time > 10000000000)) {
-				fprintf(stderr, " - too slow\n");
-				break;
-			}
+
+		if (run_time > min_time * (2 + do_benchmark)) {
+			if (do_benchmark) fprintf(stderr, " - too slow\n");
+			break;
 		} else {
-			if (run_time > min_time * 2)
+			if (num > (optimal_kpc << (do_benchmark ? 1 : 5)))
 				break;
 		}
+
 		if (SHAspeed > (1.01 * bestSHAspeed)) {
 			if (do_benchmark)
 				fprintf(stderr, "+");
@@ -526,10 +450,13 @@ static void find_best_kpc(int do_benchmark)
 		} else
 			num *= 2;
 	}
-	fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_kpc);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-	        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-	        SUBSECTION_OPENCL "])\n", (int)optimal_kpc);
+
+	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
+		fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_kpc);
+		fprintf(stderr, "(to avoid this test on next run, put \""
+		        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+		        SUBSECTION_OPENCL "])\n", (int)optimal_kpc);
+	}
 	*mkpc = global_work_size = optimal_kpc;
 }
 #endif	/* OpenCL */
@@ -538,7 +465,7 @@ static void init(struct fmt_main *pFmt)
 {
 #ifdef CL_VERSION_1_0
 	char *temp;
-	cl_ulong maxsize, multiple;
+	cl_ulong maxsize;
 
 	opencl_init("$JOHN/rar_kernel.cl", gpu_id, platform_id);
 
@@ -563,52 +490,38 @@ static void init(struct fmt_main *pFmt)
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, KPC_CONFIG)))
 		global_work_size = atoi(temp);
 
-	if ((temp = getenv("KPC")))
-		global_work_size = atoi(temp);
-
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
+
+	if ((temp = getenv("KPC")))
+		global_work_size = atoi(temp);
 
 	/* Note: we ask for this kernel's max size, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
-#ifdef CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
-	/* This is OpenCL 1.1 */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(multiple), &multiple, NULL), "Query preferred work group multiple");
-
-	if (multiple < 8)
-		multiple = 8;
-#else
-	multiple = 8;
-#endif
 	while (get_local_memory_size(gpu_id) < (LMEM_PER_THREAD * maxsize))
-		maxsize -= multiple;
+		maxsize -= 32;
 
 #ifdef DEBUG
-	fprintf(stderr, "Max allowed local work size %d, best multiple %d\n", (int)maxsize, (int)multiple);
+	fprintf(stderr, "Max allowed local work size %d\n", (int)maxsize);
 #endif
 
-	if (local_work_size) {
-		if (local_work_size > maxsize) {
-			fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
-			local_work_size = maxsize;
-		}
-	} else {
+	if (!local_work_size) {
 		if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
 			local_work_size = get_max_compute_units(gpu_id);
 		} else {
-			find_best_workgroup();
+			local_work_size = 64;
 		}
 	}
 
-	if (global_work_size <= 1) {
-		if (global_work_size == 1 &&
-		    get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
-			global_work_size = local_work_size * 16;
-		} else {
-			find_best_kpc(!global_work_size);
-		}
+	if (local_work_size > maxsize) {
+		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
+		local_work_size = maxsize;
 	}
+
+	if (!global_work_size)
+		find_best_kpc(temp == NULL ? 0 : 1);
+
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
 
