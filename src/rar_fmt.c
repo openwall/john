@@ -81,7 +81,7 @@
 #endif
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	16
+#define PLAINTEXT_LENGTH	32
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		2
 #define SALT_SIZE		sizeof(rarfile)
@@ -286,6 +286,7 @@ static void openssl_cleanup(void)
 #ifdef CL_VERSION_1_0
 static void create_clobj(int kpc)
 {
+	int i;
 #ifdef DEBUG
 	fprintf(stderr, "Creating %d bytes of key buffer\n", UNICODE_LENGTH * kpc);
 #endif
@@ -302,7 +303,8 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
-	memset(saved_len, 0, sizeof(cl_uint) * kpc);
+	for (i = 0; i < kpc; i++)
+		saved_len[i] = 12;
 
 #ifdef DEBUG
 	fprintf(stderr, "Creating 8 bytes of salt buffer\n");
@@ -471,7 +473,7 @@ static void find_best_kpc(int do_benchmark)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; num; num *= 2) {
+	for (num = local_work_size; num;) {
 		create_clobj(num);
 		queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 		for (i = 0; i < num; i++)
@@ -504,7 +506,7 @@ static void find_best_kpc(int do_benchmark)
 
 		if (do_benchmark) {
 			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
-			if (run_time > 10000000000) {
+			if ((run_time > min_time * 3) || (run_time > 10000000000)) {
 				fprintf(stderr, " - too slow\n");
 				break;
 			}
@@ -518,8 +520,11 @@ static void find_best_kpc(int do_benchmark)
 			bestSHAspeed = SHAspeed;
 			optimal_kpc = num;
 		}
-		if (do_benchmark)
+		if (do_benchmark) {
 			fprintf(stderr, "\n");
+			num += local_work_size;
+		} else
+			num *= 2;
 	}
 	fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_kpc);
 	fprintf(stderr, "(to avoid this test on next run, put \""
@@ -597,7 +602,8 @@ static void init(struct fmt_main *pFmt)
 	}
 
 	if (global_work_size <= 1) {
-		if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
+		if (global_work_size == 1 &&
+		    get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
 			global_work_size = local_work_size * 16;
 		} else {
 			find_best_kpc(!global_work_size);
