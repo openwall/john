@@ -10,11 +10,12 @@
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
 #endif
 #ifdef cl_nv_pragma_unroll
+#define NVIDIA
 #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
 #endif
 
 /* These MUST match opencl_rar_fmt.c */
-#define PLAINTEXT_LENGTH	16
+#define PLAINTEXT_LENGTH	32
 #define ROUNDS			0x40000
 #define LMEM_PER_THREAD		0 //((UNICODE_LENGTH + 8) * 4)
 
@@ -25,12 +26,16 @@
 #define GETCHAR_BE(buf, index) (((buf)[(index)>>2] & 0xffU << ((3 - ((index) & 3)) << 3)) >> ((3 - ((index) & 3)) << 3))
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((3 - (index) & 3) << 3))) | (((val) & 0xff) << (((3 - (index) & 3) << 3)))
 
-/* This is the fastest I've found for GTX580 but it might depend on context */
+#ifdef NVIDIA
 inline uint SWAP32(uint x)
 {
-	x = rotate(x, 16U);
+	x = (x << 16) + (x >> 16);
+	//x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
+#else
+#define SWAP32(a) (as_uint(as_uchar4(a).wzyx))
+#endif
 
 /* SHA1 constants and IVs */
 #define K0	0x5A827999
@@ -69,10 +74,10 @@ void sha1_block(uint *W, uint *output) {
 		b = rotate(b, 30U); \
 	}
 
-#if 0 // slower on GTX580
-#define F(x,y,z)	bitselect(z, y, x)
-#else
+#ifdef NVIDIA
 #define F(x,y,z)	(z ^ (x & (y ^ z)))
+#else
+#define F(x,y,z)	bitselect(z, y, x)
 #endif
 
 #define K		0x5A827999
