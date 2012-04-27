@@ -34,7 +34,7 @@ inline uint SWAP32(uint x)
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
-#else /* Optimise for AMD */ // DOUBLE-CHECK THIS ON 7970
+#else
 #define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
 #endif
 
@@ -220,11 +220,25 @@ inline void sha1_final(uint *block, uint *output, const uint tot_len)
 }
 
 /* len is given in words, not bytes */
+#ifdef NVIDIA
+#define AMD_V
 inline void memcpy32(uint *d, const uint *s, uint len)
 {
 	while(len--)
 		*d++ = *s++;
 }
+#else
+#define AMD_V	(uint4*)&
+inline void memcpy32(uint4 *d, const uint4 *s, uint len)
+{
+	while(len >= 4) {
+		*d++ = *s++;
+		len -= 4;
+	}
+	while(len--)
+		*(uint*)d++ = *(uint*)s++;
+}
+#endif
 
 /* The double block[] buffer saves us a LOT of branching, 20% speedup. */
 __kernel void SetCryptKeys(
@@ -300,8 +314,8 @@ __kernel void SetCryptKeys(
 			uint tempout[5];
 
 			/* hardcoding 16 here is faster than considering less */
-			memcpy32(block[1 - b], block[b], 16);
-			memcpy32(tempout, output, 5);
+			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
+			memcpy32(AMD_V tempout, AMD_V output, 5);
 
 			sha1_final(block[1 - b], tempout, len);
 
@@ -349,8 +363,8 @@ __kernel void SetCryptKeys(
 			uint tempout[5];
 
 			/* hardcoding 16 here is faster than considering less */
-			memcpy32(block[1 - b], block[b], 16);
-			memcpy32(tempout, output, 5);
+			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
+			memcpy32(AMD_V tempout, AMD_V output, 5);
 
 			sha1_final(block[1 - b], tempout, len);
 
@@ -387,8 +401,8 @@ __kernel void SetCryptKeys(
 			uint tempout[5];
 
 			/* hardcoding 16 here is faster than considering less */
-			memcpy32(block[1 - b], block[b], 16);
-			memcpy32(tempout, output, 5);
+			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
+			memcpy32(AMD_V tempout, AMD_V output, 5);
 
 			sha1_final(block[1 - b], tempout, len);
 
@@ -436,8 +450,8 @@ __kernel void SetCryptKeys(
 			uint tempout[5];
 
 			/* hardcoding 16 here is faster than considering less */
-			memcpy32(block[1 - b], block[b], 16);
-			memcpy32(tempout, output, 5);
+			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
+			memcpy32(AMD_V tempout, AMD_V output, 5);
 
 			sha1_final(block[1 - b], tempout, len);
 
@@ -500,8 +514,8 @@ __kernel void SetCryptKeys(
 			uint tempout[5];
 
 			/* hardcoding 16 here is faster than considering less */
-			memcpy32(block[1-b], block[b], 16);
-			memcpy32(tempout, output, 5);
+			memcpy32(AMD_V block[1-b], AMD_V block[b], 16);
+			memcpy32(AMD_V tempout, AMD_V output, 5);
 
 			sha1_final(block[1-b], tempout, len);
 
