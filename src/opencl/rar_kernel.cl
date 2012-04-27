@@ -17,14 +17,16 @@
 /* These MUST match opencl_rar_fmt.c */
 #define PLAINTEXT_LENGTH	32
 #define ROUNDS			0x40000
-#define LMEM_PER_THREAD		0 //((UNICODE_LENGTH + 8) * 4)
+//#define LMEM_PER_THREAD		(UNICODE_LENGTH + 8)
 
+//#define FIXED_LEN		6
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 
 /* Macros for reading/writing chars from int32's */
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((index) & 3) << 3)) | (((val) & 0xff) << (((index) & 3) << 3))
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3)) | (((val) & 0xff) << (((index) & 3) << 3))
 #define GETCHAR_BE(buf, index) (((buf)[(index)>>2] & 0xffU << ((3 - ((index) & 3)) << 3)) >> ((3 - ((index) & 3)) << 3))
-#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xff << (((3 - (index) & 3) << 3))) | (((val) & 0xff) << (((3 - (index) & 3) << 3)))
+#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xffU << ((3 - ((index) & 3)) << 3)) | (((val) & 0xff) << ((3 - (index) & 3) << 3))
+#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3)) | (((val) & 0xff) << ((3 - (index) & 3) << 3))
 
 #ifdef NVIDIA
 inline uint SWAP32(uint x)
@@ -204,6 +206,7 @@ inline void sha1_init(uint *output) {
 
 inline void sha1_final(uint *block, uint *output, uint tot_len)
 {
+#ifdef NVIDIA
 	uint len = (tot_len & 63) >> 2;
 
 	switch(tot_len & 3) {
@@ -220,6 +223,12 @@ inline void sha1_final(uint *block, uint *output, uint tot_len)
 		block[len] = block[len] & 0xffffff00 | 0x80;
 		break;
 	}
+#else
+	uint len = (tot_len & 63);
+
+	LASTCHAR_BE(block, len, 0x80);
+	len >>= 2;
+#endif
 	len++;
 	if (len > 13) {
 		sha1_block(block, output);
@@ -244,22 +253,25 @@ __kernel void SetCryptKeys(
 	__global uint *pw_len,
 	__constant uint *salt,
 	__global uint *aes_key, __global uint *aes_iv
-#if LMEM_PER_THREAD
+#ifdef LMEM_PER_THREAD
 	, __local uint *locmem
 #endif
 )
 {
-	uint i, j, len, pwlen, b;
+	uint i, j, len, b;
 	uint block[2][16];
 	uint output[5];
 	uint gid = get_global_id(0);
-#if LMEM_PER_THREAD
+#ifdef LMEM_PER_THREAD
 	__local uint *RawPsw = &locmem[get_local_id(0) * LMEM_PER_THREAD / 4];
 #else
-	uint RawPsw[UNICODE_LENGTH + 8];
+	uint RawPsw[(UNICODE_LENGTH + 8) / 4];
 #endif
-
-	pwlen = pw_len[gid];
+#ifdef FIXED_LEN
+#define pwlen (2 * FIXED_LEN)
+#else
+	uint pwlen = pw_len[gid];
+#endif
 
 	/* Copy to fast memory */
 	RawPsw[0] = SWAP32(unicode_pw[gid * PLAINTEXT_LENGTH / 2]);
@@ -268,17 +280,12 @@ __kernel void SetCryptKeys(
 #pragma unroll 8
 	for (i = 0; i < 8; i++)
 		PUTCHAR_BE(RawPsw, pwlen + i, ((__constant uchar*)salt)[i]);
+#ifdef FIXED_LEN
+#undef pwlen
+#define pwlen ((2 * FIXED_LEN) + 8)
+#else
 	pwlen += 8;
-
-	/* And another version for every aligment need */
-	for (i = 0; i < ((pwlen + 3) >> 2) - 1; i++) {
-		RawPsw[i + 10] = (RawPsw[i] << 24) + (RawPsw[i + 1] >> 8);
-		RawPsw[i + 20] = (RawPsw[i] << 16) + (RawPsw[i + 1] >> 16);
-		RawPsw[i + 30] = (RawPsw[i] << 8) + (RawPsw[i + 1] >> 24);
-	}
-	RawPsw[i + 10] = (RawPsw[i] << 24);
-	RawPsw[i + 20] = (RawPsw[i] << 16);
-	RawPsw[i + 30] = (RawPsw[i] << 8);
+#endif
 
 	b = len = 0;
 	sha1_init(output);
@@ -297,25 +304,28 @@ __kernel void SetCryptKeys(
 			PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
 			PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
 			PUTCHAR_BE(block[0], (len + 2) & 127, GETCHAR_BE(RawPsw, 2));
-			block[0][((len >> 2) + 0 + 1) & 31] = RawPsw[10 + 0];
-			block[0][((len >> 2) + 1 + 1) & 31] = RawPsw[10 + 1];
-			for (i = 2; i < (pwlen + 3) >> 2; i++)
-				block[0][((len >> 2) + i + 1) & 31] = RawPsw[10 + i];
+			block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 24) + (RawPsw[1] >> 8);
+			block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 24) + (RawPsw[2] >> 8);
+			for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+				block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 24) + (RawPsw[i + 1] >> 8);
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 24);
 			break;
 		case 2:	/* unaligned mod 2 */
 			PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
 			PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
-			block[0][((len >> 2) + 0 + 1) & 31] = RawPsw[20 + 0];
-			block[0][((len >> 2) + 1 + 1) & 31] = RawPsw[20 + 1];
-			for (i = 2; i < (pwlen + 3) >> 2; i++)
-				block[0][((len >> 2) + i + 1) & 31] = RawPsw[20 + i];
+			block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 16) + (RawPsw[1] >> 16);
+			block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 16) + (RawPsw[2] >> 16);
+			for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+				block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 16) + (RawPsw[i + 1] >> 16);
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 16);
 			break;
 		case 3:	/* unaligned mod 3 */
 			PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
-			block[0][((len >> 2) + 0 + 1) & 31] = RawPsw[30 + 0];
-			block[0][((len >> 2) + 1 + 1) & 31] = RawPsw[30 + 1];
-			for (i = 2; i < (pwlen + 3) >> 2; i++)
-				block[0][((len >> 2) + i + 1) & 31] = RawPsw[30 + i];
+			block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 8) + (RawPsw[1] >> 24);
+			block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 8) + (RawPsw[2] >> 24);
+			for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+				block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 8) + (RawPsw[i + 1] >> 24);
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 8);
 			break;
 		}
 		len += pwlen;
