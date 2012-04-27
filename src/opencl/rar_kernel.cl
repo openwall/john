@@ -357,20 +357,6 @@ __kernel void SetCryptKeys(
 			b = 1 - b;
 		}
 
-		/* Every 16K'th round, we do a final and pick one byte of IV */
-		if (j % (ROUNDS >> 4) == 0)
-		{
-			uint tempout[5];
-
-			/* hardcoding 16 here is faster than considering less */
-			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
-			memcpy32(AMD_V tempout, AMD_V output, 5);
-
-			sha1_final(block[1 - b], tempout, len);
-
-			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
-		}
-
 		j++;
 
 		/* Third is always aligned at 16-bit */
@@ -393,20 +379,6 @@ __kernel void SetCryptKeys(
 		if ((len & 64) != (b << 6)) {
 			sha1_block(block[b], output);
 			b = 1 - b;
-		}
-
-		/* Every 16K'th round, we do a final and pick one byte of IV */
-		if (j % (ROUNDS >> 4) == 0)
-		{
-			uint tempout[5];
-
-			/* hardcoding 16 here is faster than considering less */
-			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
-			memcpy32(AMD_V tempout, AMD_V output, 5);
-
-			sha1_final(block[1 - b], tempout, len);
-
-			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
 		}
 
 		j++;
@@ -442,20 +414,6 @@ __kernel void SetCryptKeys(
 		if ((len & 64) != (b << 6)) {
 			sha1_block(block[b], output);
 			b = 1 - b;
-		}
-
-		/* Every 16K'th round, we do a final and pick one byte of IV */
-		if (j % (ROUNDS >> 4) == 0)
-		{
-			uint tempout[5];
-
-			/* hardcoding 16 here is faster than considering less */
-			memcpy32(AMD_V block[1 - b], AMD_V block[b], 16);
-			memcpy32(AMD_V tempout, AMD_V output, 5);
-
-			sha1_final(block[1 - b], tempout, len);
-
-			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
 		}
 #else
 		switch (len & 3) {
