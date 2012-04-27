@@ -140,7 +140,7 @@ static rarfile *cur_file;
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
 #define CPU_GPU_RATIO		32
 /* Size in bytes of Local Memory buffer per thread */
-#define LMEM_PER_THREAD		0 //((UNICODE_LENGTH + 8) * 4)
+//#define LMEM_PER_THREAD		(UNICODE_LENGTH + 8)
 static size_t global_work_size = 0;
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_aes_key, cl_aes_iv;
 #endif
@@ -337,7 +337,7 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_aes_key), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 4");
 
-#if LMEM_PER_THREAD
+#ifdef LMEM_PER_THREAD
 #ifdef DEBUG
 	fprintf(stderr, "Allocating %zu bytes of local memory on GPU, for RawPsw\n", LMEM_PER_THREAD * local_work_size);
 #endif
@@ -378,80 +378,186 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
+cl_ulong gws_test(int num)
+{
+	cl_ulong startTime, endTime, run_time;
+	cl_command_queue queue_prof;
+	cl_event myEvent;
+	cl_int ret_code;
+	int i;
+
+	create_clobj(num);
+	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	for (i = 0; i < num; i++)
+		set_key(gpu_tests[0].plaintext, i);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * num, saved_len, 0, NULL, NULL), "Failed transferring lengths");
+	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+	if (ret_code != CL_SUCCESS) {
+		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
+	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
+	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	run_time = endTime - startTime;
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, BLOCK_IF_DEBUG, 0, 16 * num, aes_iv, 0, NULL, &myEvent), "Failed reading iv back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, BLOCK_IF_DEBUG, 0, 16 * num, aes_key, 0, NULL, &myEvent), "Failed reading key back");
+	HANDLE_CLERROR(clFinish(queue_prof), "Failed reading results back");
+	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	clReleaseCommandQueue(queue_prof);
+	release_clobj();
+
+	return (run_time + endTime - startTime);
+}
+
 static void find_best_kpc(int do_benchmark)
 {
 	int num;
-	cl_event myEvent;
-	cl_ulong startTime, endTime, run_time, min_time = CL_ULONG_MAX;
+	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
-	cl_int ret_code;
-	int optimal_kpc = local_work_size << 2;
-	int i = 0;
-	cl_command_queue queue_prof;
-	char teststring[] = "magnum";
-	const int sha1perkey = (strlen(teststring) * 2 + 8 + 3) * (0x40000 + 16) / 64;
+	int optimal_kpc = local_work_size;
+	const int sha1perkey = (strlen(gpu_tests[0].plaintext) * 2 + 8 + 3) * (0x40000 + 16) / 64;
 
-	if (do_benchmark) {
+#ifndef DEBUG
+	if (do_benchmark)
+#endif
+	{
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd\n\n", local_work_size);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = optimal_kpc; num;) {
-		create_clobj(num);
-		queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-		for (i = 0; i < num; i++)
-			set_key(teststring, i);
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "Failed transferring salt");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL), "Failed transferring keys");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * num, saved_len, 0, NULL, NULL), "Failed transferring lengths");
-		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
-		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-			clReleaseCommandQueue(queue_prof);
+	for (num = local_work_size << 1; num; num *= 2) {
+		if (!(run_time = gws_test(num)))
 			break;
-		}
-		HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-		run_time = endTime - startTime;
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, BLOCK_IF_DEBUG, 0, 16 * num, aes_iv, 0, NULL, &myEvent), "Failed reading iv back");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, BLOCK_IF_DEBUG, 0, 16 * num, aes_key, 0, NULL, &myEvent), "Failed reading key back");
-		HANDLE_CLERROR(clFinish(queue_prof), "Failed reading results back");
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		run_time += endTime - startTime;
+
 		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
 
 		if (run_time < min_time)
 			min_time = run_time;
 
+#ifndef DEBUG
 		if (do_benchmark)
-			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+#endif
+		fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
-		if (run_time > min_time * (2 + do_benchmark)) {
-			if (do_benchmark) fprintf(stderr, " - too slow\n");
-			break;
-		} else {
-			if (num > (optimal_kpc << (do_benchmark ? 1 : 5)))
-				break;
-		}
-
-		if (SHAspeed > (1.01 * bestSHAspeed)) {
+		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
+#ifndef DEBUG
 			if (do_benchmark)
-				fprintf(stderr, "+");
+#endif
+			fprintf(stderr, "!\n");
 			bestSHAspeed = SHAspeed;
 			optimal_kpc = num;
-		}
-		if (do_benchmark) {
-			fprintf(stderr, "\n");
-			num += local_work_size;
-		} else
-			num *= 2;
-	}
+		} else {
 
-	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
+			if (((float)run_time / (float)min_time) > 1.8 * ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "\n");
+				break;
+			}
+
+			if (SHAspeed > bestSHAspeed) {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "+");
+				bestSHAspeed = SHAspeed;
+				optimal_kpc = num;
+			}
+#ifndef DEBUG
+			if (do_benchmark)
+#endif
+			fprintf(stderr, "\n");
+		}
+	}
+	if (do_benchmark) {
+		int got_better = 0;
+
+		for (num = optimal_kpc + local_work_size; num; num += local_work_size) {
+			if (!(run_time = gws_test(num)))
+				break;
+
+			SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+
+			if (run_time < min_time)
+				min_time = run_time;
+
+#ifndef DEBUG
+			if (do_benchmark)
+#endif
+			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+
+			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "\n");
+				break;
+			}
+
+			if (SHAspeed > bestSHAspeed && run_time < 10000000000U) {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "+\n");
+				bestSHAspeed = SHAspeed;
+				optimal_kpc = num;
+				got_better = 1;
+			} else {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "\n");
+				break;
+			}
+		}
+		if (!got_better)
+		for (num = optimal_kpc - local_work_size; num; num -= local_work_size) {
+			if (!(run_time = gws_test(num)))
+				break;
+
+			SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+
+			if (run_time < min_time)
+				min_time = run_time;
+
+#ifndef DEBUG
+			if (do_benchmark)
+#endif
+			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+
+			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "\n");
+				break;
+			}
+
+			if (SHAspeed > bestSHAspeed && run_time < 10000000000U) {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "+\n");
+				bestSHAspeed = SHAspeed;
+				optimal_kpc = num;
+				got_better = 1;
+			} else {
+#ifndef DEBUG
+				if (do_benchmark)
+#endif
+				fprintf(stderr, "\n");
+				break;
+			}
+		}
+	}
+	if (get_device_type(gpu_id) != CL_DEVICE_TYPE_CPU) {
 		fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_kpc);
 		fprintf(stderr, "(to avoid this test on next run, put \""
 		        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
@@ -499,8 +605,10 @@ static void init(struct fmt_main *pFmt)
 	/* Note: we ask for this kernel's max size, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
+#ifdef LMEM_PER_THREAD
 	while (get_local_memory_size(gpu_id) < (LMEM_PER_THREAD * maxsize))
-		maxsize -= 32;
+		maxsize -= 64;
+#endif
 
 #ifdef DEBUG
 	fprintf(stderr, "Max allowed local work size %d\n", (int)maxsize);
@@ -853,7 +961,7 @@ static int cmp_exact(char *source, int index)
 }
 
 struct fmt_main rar_fmt = {
-	{
+{
 		FORMAT_LABEL,
 		FORMAT_NAME,
 		ALGORITHM_NAME,
