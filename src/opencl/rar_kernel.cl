@@ -484,8 +484,12 @@ __kernel void SetCryptKeys(
 	sha1_final(block[b], output, len);
 
 	// Non-endian-swapping copy
+#ifdef NVIDIA
 	aes_key[gid * 4] = output[0];
 	aes_key[gid * 4 + 1] = output[1];
 	aes_key[gid * 4 + 2] = output[2];
 	aes_key[gid * 4 + 3] = output[3];
+#else
+	((__global uint4*)aes_key)[gid] = ((uint4*)output)[0];
+#endif
 }
