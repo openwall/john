@@ -23,20 +23,19 @@
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 
 /* Macros for reading/writing chars from int32's */
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3)) | (((val) & 0xff) << (((index) & 3) << 3))
-#define GETCHAR_BE(buf, index) (((buf)[(index)>>2] & 0xffU << ((3 - ((index) & 3)) << 3)) >> ((3 - ((index) & 3)) << 3))
-#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & ~(0xffU << ((3 - ((index) & 3)) << 3)) | (((val) & 0xff) << ((3 - (index) & 3) << 3))
-#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = (buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3)) | (((val) & 0xff) << ((3 - (index) & 3) << 3))
+#define GETCHAR_BE(buf, index) (((buf)[(index)>>2] >> ((3 - ((index) & 3)) << 3)) & 0xffU)
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
+#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
 
 #ifdef NVIDIA
 inline uint SWAP32(uint x)
 {
-	x = (x << 16) + (x >> 16);
-	//x = rotate(x, 16U);
+	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
 }
-#else
-#define SWAP32(a) (as_uint(as_uchar4(a).wzyx))
+#else /* Optimise for AMD */ // DOUBLE-CHECK THIS ON 7970
+#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
 #endif
 
 /* SHA1 constants and IVs */
@@ -204,32 +203,12 @@ inline void sha1_init(uint *output) {
 	output[4] = H5;
 }
 
-inline void sha1_final(uint *block, uint *output, uint tot_len)
+inline void sha1_final(uint *block, uint *output, const uint tot_len)
 {
-#ifdef NVIDIA
-	uint len = (tot_len & 63) >> 2;
+	uint len = ((tot_len & 63) >> 2) + 1;
 
-	switch(tot_len & 3) {
-	case 0:
-		block[len] = 0x80000000;
-		break;
-	case 1:
-		block[len] = block[len] & 0xff000000 | 0x800000;
-		break;
-	case 2:
-		block[len] = block[len] & 0xffff0000 | 0x8000;
-		break;
-	case 3:
-		block[len] = block[len] & 0xffffff00 | 0x80;
-		break;
-	}
-#else
-	uint len = (tot_len & 63);
+	LASTCHAR_BE(block, tot_len & 63, 0x80);
 
-	LASTCHAR_BE(block, len, 0x80);
-	len >>= 2;
-#endif
-	len++;
 	if (len > 13) {
 		sha1_block(block, output);
 		len = 0;
@@ -249,8 +228,8 @@ inline void memcpy32(uint *d, const uint *s, uint len)
 
 /* The double block[] buffer saves us a LOT of branching, 20% speedup. */
 __kernel void SetCryptKeys(
-	__global uint *unicode_pw,
-	__global uint *pw_len,
+	const __global uint *unicode_pw,
+	const __global uint *pw_len,
 	__constant uint *salt,
 	__global uint *aes_key, __global uint *aes_iv
 #ifdef LMEM_PER_THREAD
@@ -290,8 +269,181 @@ __kernel void SetCryptKeys(
 	b = len = 0;
 	sha1_init(output);
 
+	/* At odd characters lengths, aligment is 01230123
+	 * At even lengths, it is 03210321 */
 	for (j = 0; j < ROUNDS; j++)
 	{
+#ifdef FIXED_LEN
+		/* First is always 32-bit aligned */
+		block[0][((len >> 2) + 0) & 31] = RawPsw[0];
+		block[0][((len >> 2) + 1) & 31] = RawPsw[1];
+		block[0][((len >> 2) + 2) & 31] = RawPsw[2];
+		for (i = 3; i < (pwlen + 3) >> 2; i++)
+			block[0][((len >> 2) + i) & 31] = RawPsw[i];
+		len += pwlen;
+
+		/* Serial */
+		PUTCHAR_BE(block[0], len & 127, j & 0xff);
+		PUTCHAR_BE(block[0], (len + 1) & 127, (j >> 8) & 0xff);
+		PUTCHAR_BE(block[0], (len + 2) & 127, j >> 16);
+		len += 3;
+
+		/* If we have a full buffer, submit it and switch! */
+		if ((len & 64) != (b << 6)) {
+			sha1_block(block[b], output);
+			b = 1 - b;
+		}
+
+		/* Every 16K'th round, we do a final and pick one byte of IV */
+		if (j % (ROUNDS >> 4) == 0)
+		{
+			uint tempout[5];
+
+			/* hardcoding 16 here is faster than considering less */
+			memcpy32(block[1 - b], block[b], 16);
+			memcpy32(tempout, output, 5);
+
+			sha1_final(block[1 - b], tempout, len);
+
+			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
+		}
+
+		j++;
+
+#if (FIXED_LEN & 1) == 0
+		/* Second is aligned mod 3 */
+		PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
+		block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 8) + (RawPsw[1] >> 24);
+		block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 8) + (RawPsw[2] >> 24);
+		for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 8) + (RawPsw[i + 1] >> 24);
+		block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 8);
+#else
+		/* Second is aligned mod 1 */
+		PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
+		PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
+		PUTCHAR_BE(block[0], (len + 2) & 127, GETCHAR_BE(RawPsw, 2));
+		block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 24) + (RawPsw[1] >> 8);
+		block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 24) + (RawPsw[2] >> 8);
+		for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 24) + (RawPsw[i + 1] >> 8);
+		block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 24);
+#endif
+		len += pwlen;
+
+		/* Serial */
+		PUTCHAR_BE(block[0], len & 127, j & 0xff);
+		PUTCHAR_BE(block[0], (len + 1) & 127, (j >> 8) & 0xff);
+		PUTCHAR_BE(block[0], (len + 2) & 127, j >> 16);
+		len += 3;
+
+		/* If we have a full buffer, submit it and switch! */
+		if ((len & 64) != (b << 6)) {
+			sha1_block(block[b], output);
+			b = 1 - b;
+		}
+
+		/* Every 16K'th round, we do a final and pick one byte of IV */
+		if (j % (ROUNDS >> 4) == 0)
+		{
+			uint tempout[5];
+
+			/* hardcoding 16 here is faster than considering less */
+			memcpy32(block[1 - b], block[b], 16);
+			memcpy32(tempout, output, 5);
+
+			sha1_final(block[1 - b], tempout, len);
+
+			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
+		}
+
+		j++;
+
+		/* Third is always aligned at 16-bit */
+		PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
+		PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
+		block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 16) + (RawPsw[1] >> 16);
+		block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 16) + (RawPsw[2] >> 16);
+		for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 16) + (RawPsw[i + 1] >> 16);
+		block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 16);
+		len += pwlen;
+
+		/* Serial */
+		PUTCHAR_BE(block[0], len & 127, j & 0xff);
+		PUTCHAR_BE(block[0], (len + 1) & 127, (j >> 8) & 0xff);
+		PUTCHAR_BE(block[0], (len + 2) & 127, j >> 16);
+		len += 3;
+
+		/* If we have a full buffer, submit it and switch! */
+		if ((len & 64) != (b << 6)) {
+			sha1_block(block[b], output);
+			b = 1 - b;
+		}
+
+		/* Every 16K'th round, we do a final and pick one byte of IV */
+		if (j % (ROUNDS >> 4) == 0)
+		{
+			uint tempout[5];
+
+			/* hardcoding 16 here is faster than considering less */
+			memcpy32(block[1 - b], block[b], 16);
+			memcpy32(tempout, output, 5);
+
+			sha1_final(block[1 - b], tempout, len);
+
+			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
+		}
+
+		j++;
+
+#if (FIXED_LEN & 1) == 0
+		/* Fourth is aligned mod 1 */
+		PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
+		PUTCHAR_BE(block[0], (len + 1) & 127, GETCHAR_BE(RawPsw, 1));
+		PUTCHAR_BE(block[0], (len + 2) & 127, GETCHAR_BE(RawPsw, 2));
+		block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 24) + (RawPsw[1] >> 8);
+		block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 24) + (RawPsw[2] >> 8);
+		for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 24) + (RawPsw[i + 1] >> 8);
+		block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 24);
+#else
+		/* Fourth is aligned mod 3 */
+		PUTCHAR_BE(block[0], (len + 0) & 127, GETCHAR_BE(RawPsw, 0));
+		block[0][((len >> 2) + 0 + 1) & 31] = (RawPsw[0] << 8) + (RawPsw[1] >> 24);
+		block[0][((len >> 2) + 1 + 1) & 31] = (RawPsw[1] << 8) + (RawPsw[2] >> 24);
+		for (i = 2; i < ((pwlen + 3) >> 2) - 1; i++)
+			block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 8) + (RawPsw[i + 1] >> 24);
+		block[0][((len >> 2) + i + 1) & 31] = (RawPsw[i] << 8);
+#endif
+		len += pwlen;
+
+		/* Serial */
+		PUTCHAR_BE(block[0], len & 127, j & 0xff);
+		PUTCHAR_BE(block[0], (len + 1) & 127, (j >> 8) & 0xff);
+		PUTCHAR_BE(block[0], (len + 2) & 127, j >> 16);
+		len += 3;
+
+		/* If we have a full buffer, submit it and switch! */
+		if ((len & 64) != (b << 6)) {
+			sha1_block(block[b], output);
+			b = 1 - b;
+		}
+
+		/* Every 16K'th round, we do a final and pick one byte of IV */
+		if (j % (ROUNDS >> 4) == 0)
+		{
+			uint tempout[5];
+
+			/* hardcoding 16 here is faster than considering less */
+			memcpy32(block[1 - b], block[b], 16);
+			memcpy32(tempout, output, 5);
+
+			sha1_final(block[1 - b], tempout, len);
+
+			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
+		}
+#else
 		switch (len & 3) {
 		case 0:	/* 32-bit aligned! */
 			block[0][((len >> 2) + 0) & 31] = RawPsw[0];
@@ -331,9 +483,10 @@ __kernel void SetCryptKeys(
 		len += pwlen;
 
 		/* Serial */
-		PUTCHAR_BE(block[0], len & 127, j); len++;
-		PUTCHAR_BE(block[0], len & 127, j >> 8); len++;
-		PUTCHAR_BE(block[0], len & 127, j >> 16); len++;
+		PUTCHAR_BE(block[0], len & 127, j & 0xff);
+		PUTCHAR_BE(block[0], (len + 1) & 127, (j >> 8) & 0xff);
+		PUTCHAR_BE(block[0], (len + 2) & 127, j >> 16);
+		len += 3;
 
 		/* If we have a full buffer, submit it and switch! */
 		if ((len & 64) != (b << 6)) {
@@ -354,6 +507,7 @@ __kernel void SetCryptKeys(
 
 			PUTCHAR(aes_iv, gid * 16 + (j >> 14), ((uchar*)tempout)[16]);
 		}
+#endif
 	}
 	sha1_final(block[b], output, len);
 
