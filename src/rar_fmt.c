@@ -79,7 +79,7 @@
 #else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (4 characters)"
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
@@ -287,6 +287,8 @@ static void openssl_cleanup(void)
 static void create_clobj(int kpc)
 {
 	int i;
+	int bench_len = strlen(rar_fmt.params.tests[0].plaintext) * 2;
+
 #ifdef DEBUG
 	fprintf(stderr, "Creating %d bytes of key buffer\n", UNICODE_LENGTH * kpc);
 #endif
@@ -304,7 +306,7 @@ static void create_clobj(int kpc)
 	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < kpc; i++)
-		saved_len[i] = 12;
+		saved_len[i] = bench_len;
 
 #ifdef DEBUG
 	fprintf(stderr, "Creating 8 bytes of salt buffer\n");
@@ -389,7 +391,7 @@ cl_ulong gws_test(int num)
 	create_clobj(num);
 	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < num; i++)
-		set_key(gpu_tests[0].plaintext, i);
+		set_key(rar_fmt.params.tests[0].plaintext, i);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "Failed transferring salt");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * num, saved_len, 0, NULL, NULL), "Failed transferring lengths");
@@ -421,7 +423,7 @@ static void find_best_kpc(int do_benchmark)
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	int optimal_kpc = local_work_size;
-	const int sha1perkey = (strlen(gpu_tests[0].plaintext) * 2 + 8 + 3) * (0x40000 + 16) / 64;
+	const int sha1perkey = (strlen(rar_fmt.params.tests[0].plaintext) * 2 + 8 + 3) * (0x40000 + 16) / 64;
 
 #ifndef DEBUG
 	if (do_benchmark)
@@ -586,10 +588,8 @@ static void init(struct fmt_main *pFmt)
 #if defined(DEBUG) && !defined(ALWAYS_OPENCL)
 		fprintf(stderr, "Note: will use CPU for self-tests and Single mode.\n");
 #endif
-	} else {
-		pFmt->params.benchmark_comment = " (4 characters)";
+	} else
 		fprintf(stderr, "Note: OpenCL device is CPU. A non-OpenCL build may be faster.\n");
-	}
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
