@@ -273,7 +273,7 @@ __kernel void SetCryptKeys(
 	 * At even lengths, it is 03210321 */
 	for (j = 0; j < ROUNDS; j++)
 	{
-#ifdef FIXED_LEN
+#if defined(FIXED_LEN) && defined(NVIDIA)
 		/* First is always 32-bit aligned */
 		block[0][((len >> 2) + 0) & 31] = RawPsw[0];
 		block[0][((len >> 2) + 1) & 31] = RawPsw[1];
