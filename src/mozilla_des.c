@@ -685,7 +685,7 @@ void DES_Do1Block(HALF * ks, const BYTE * inbuf, BYTE * outbuf)
 **	right to reduce the number of shifts required during the 16 rounds.
 */
 
-
+#define USE_MEMCPY
 
 #if defined(_X86_)
 /* Intel X86 CPUs do unaligned loads and stores without complaint. */
