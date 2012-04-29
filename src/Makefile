@@ -968,7 +968,7 @@ macosx-x86-64-opencl:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0" \
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
 	$(CP) opencl_cryptsha512.h ../run/
@@ -980,7 +980,7 @@ macosx-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64" \
+		CFLAGS="$(CFLAGS) -m64 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
 
 macosx-x86-64i:
@@ -989,7 +989,7 @@ macosx-x86-64i:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -DUSING_ICC_S_FILE" \
+		CFLAGS="$(CFLAGS) -m64 -DUSING_ICC_S_FILE -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
 
 macosx-x86-sse2:
@@ -998,7 +998,7 @@ macosx-x86-sse2:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m32" \
+		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-x86-sse2i:
@@ -1007,7 +1007,7 @@ macosx-x86-sse2i:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -msse2 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m32 -msse2 -DUSING_ICC_S_FILE" \
+		CFLAGS="$(CFLAGS) -m32 -msse2 -DUSING_ICC_S_FILE -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-x86-mmx:
@@ -1016,7 +1016,7 @@ macosx-x86-mmx:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m32" \
+		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-ppc32-altivec:
