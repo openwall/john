@@ -29,7 +29,15 @@
  * version == 1, EPiServer 6.x + .NET >= 4.x SHA256 hash/salt format,
  * 		 PasswordFormat == ? */
 
+#if defined(__APPLE__) && defined(__MACH__)
+#define COMMON_DIGEST_FOR_OPENSSL
+#include <CommonCrypto/CommonDigest.h>
+#define SHA1 CC_SHA1
+#define SHA256 CC_SHA256
+#else
 #include <openssl/sha.h>
+#endif
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
