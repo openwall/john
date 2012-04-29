@@ -24,7 +24,12 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#if defined(__APPLE__) && defined(__MACH__)
+#define COMMON_DIGEST_FOR_OPENSSL
+#include <CommonCrypto/CommonDigest.h>
+#else
 #include <openssl/sha.h>
+#endif
 
 #define FORMAT_LABEL			"drupal7"
 #define FORMAT_NAME			"Drupal 7 $S$"
