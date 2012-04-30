@@ -107,6 +107,7 @@ JOHN_OBJS = \
 	rar_fmt.o rar2john.o \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
+	hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
 	plugin.o \
@@ -184,24 +185,24 @@ GENMKVPWD_OBJS = \
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
-	../run/tgtsnarf ../run/racf2john ../run/mozilla2john
+	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
-	../run/racf2john.com ../run/mozilla2john.com
+	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe
+	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe
+	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1322,74 +1323,74 @@ cuda_common.o:	cuda/cuda_common.cuh cuda/cuda_common.cu
 	cd cuda; nvcc $(NVCC_FLAGS) cuda_common.cu
 	mv cuda/cuda_common.o cuda_common.o
 
-cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu
+cuda_cryptmd5.o:  cuda_cryptmd5.h cuda/cryptmd5.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) cryptmd5.cu
 	mv cuda/cryptmd5.o cuda_cryptmd5.o
 
-cuda_cryptmd5_fmt.o: cuda_cryptmd5.o cuda_cryptmd5_fmt.c cuda_cryptmd5.h
+cuda_cryptmd5_fmt.o: cuda_cryptmd5.o cuda_cryptmd5_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptmd5_fmt.c
 
-cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu
+cuda_phpass.o:  cuda_phpass.h cuda/phpass.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) phpass.cu
 	mv cuda/phpass.o cuda_phpass.o
 
-cuda_phpass_fmt.o: cuda_phpass.o cuda_phpass_fmt.c cuda_phpass.h
+cuda_phpass_fmt.o: cuda_phpass.o cuda_phpass_fmt.c
 	$(CC)  $(CFLAGS) cuda_phpass_fmt.c
 
-cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu
+cuda_cryptsha256.o:  cuda_cryptsha256.h cuda/cryptsha256.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) cryptsha256.cu
 	mv cuda/cryptsha256.o cuda_cryptsha256.o
 
-cuda_cryptsha256_fmt.o: cuda_cryptsha256.o cuda_cryptsha256_fmt.c cuda_cryptsha256.h
+cuda_cryptsha256_fmt.o: cuda_cryptsha256.o cuda_cryptsha256_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptsha256_fmt.c
 
-cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu
+cuda_cryptsha512.o:  cuda_cryptsha512.h cuda/cryptsha512.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) cryptsha512.cu
 	mv cuda/cryptsha512.o cuda_cryptsha512.o
 
-cuda_cryptsha512_fmt.o: cuda_cryptsha512.o cuda_cryptsha512_fmt.c cuda_cryptsha512.h
+cuda_cryptsha512_fmt.o: cuda_cryptsha512.o cuda_cryptsha512_fmt.c
 	$(CC)  $(CFLAGS) cuda_cryptsha512_fmt.c
 
 cuda_mscash2.o:  cuda_mscash2.h cuda/mscash2.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) mscash2.cu
 	mv cuda/mscash2.o cuda_mscash2.o
 
-cuda_mscash2_fmt.o: cuda_mscash2.o cuda_mscash2_fmt.c cuda_mscash2.h
+cuda_mscash2_fmt.o: cuda_mscash2.o cuda_mscash2_fmt.c
 	$(CC)  $(CFLAGS) cuda_mscash2_fmt.c
 
 cuda_mscash.o:  cuda_mscash.h cuda/mscash.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) mscash.cu
 	mv cuda/mscash.o cuda_mscash.o
 
-cuda_mscash_fmt.o: cuda_mscash.o cuda_mscash_fmt.c cuda_mscash.h
+cuda_mscash_fmt.o: cuda_mscash.o cuda_mscash_fmt.c
 	$(CC)  $(CFLAGS) cuda_mscash_fmt.c
 
 cuda_rawsha256.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) -DSHA256 rawsha256.cu
+	cd cuda; nvcc $(NVCC_FLAGS) -DSHA256 rawsha256.cu -o rawsha256.o
 	mv cuda/rawsha256.o cuda_rawsha256.o
 
-cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c cuda_rawsha256.h
+cuda_rawsha256_fmt.o: cuda_rawsha256.o cuda_rawsha256_fmt.c
 	$(CC)  $(CFLAGS) -DSHA256 cuda_rawsha256_fmt.c
 
 cuda_rawsha224.o:  cuda_rawsha256.h cuda/rawsha256.cu cuda_common.o
-	cd cuda; nvcc $(NVCC_FLAGS) -DSHA224 rawsha256.cu
-	mv cuda/rawsha256.o cuda_rawsha224.o
+	cd cuda; nvcc $(NVCC_FLAGS) -DSHA224 rawsha256.cu -o rawsha224.o
+	mv cuda/rawsha224.o cuda_rawsha224.o
 
-cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c cuda_rawsha256.h
+cuda_rawsha224_fmt.o: cuda_rawsha224.o cuda_rawsha256_fmt.c
 	$(CC)  $(CFLAGS) -DSHA224 cuda_rawsha256_fmt.c -o cuda_rawsha224_fmt.o
 
 cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) xsha512.cu
 	mv cuda/xsha512.o cuda_xsha512.o
 
-cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c cuda_xsha512.h
+cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
-cuda_wpapsk.o:  cuda_common.o
+cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o 
 	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu
 	mv cuda/wpapsk.o cuda_wpapsk.o
 
-cuda_wpapsk_fmt.o: cuda_wpapsk.o
+cuda_wpapsk_fmt.o: cuda_wpapsk.o cuda_wpapsk_fmt.c
 	$(CC)  $(CFLAGS) cuda_wpapsk_fmt.c
 
 ../run/john: $(JOHN_OBJS)
@@ -1433,6 +1434,10 @@ endif
 	$(RM) ../run/racf2john
 	ln -s john ../run/racf2john
 
+../run/hccap2john: ../run/john
+	$(RM) ../run/hccap2john
+	ln -s john ../run/hccap2john
+
 ../run/unique: ../run/john
 	$(RM) ../run/unique
 	ln -s john ../run/unique
@@ -1473,6 +1478,9 @@ endif
 
 ../run/zip2john.com: john.com
 	copy john.com ..\run\zip2john.com
+
+../run/hccap2john.com: john.com
+	copy john.com ..\run\hccap2john.com
 
 ../run/unique.com: john.com
 	copy john.com ..\run\unique.com
@@ -1537,6 +1545,10 @@ endif
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
 	strip ../run/zip2john.exe
+
+../run/hccap2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/hccap2john.exe
+	strip ../run/hccap2john.exe
 
 ../run/unique.exe: symlink.c
 	$(CC) symlink.c -o ../run/unique.exe
