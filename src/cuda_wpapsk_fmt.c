@@ -2,14 +2,18 @@
 * This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
+*
+* Code is based on  Aircrack-ng source
 */
 #include <string.h>
 #include "arch.h"
+#include <assert.h>
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "cuda_wpapsk.h"
 #include "cuda_common.h"
+#include <openssl/hmac.h>
 
 #define FORMAT_LABEL		"wpapsk-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
@@ -18,14 +22,16 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 
-//#define _WPAPSK_DEBUG
+///#define CUDA_WPAPSK_DEBUG
 
 static wpapsk_password *inbuffer;
-static wpapsk_hash *outbuffer;
+static wpapsk_hash *outbuffer;	///table for PMK calculated by GPU
+static mic_t *mic;
 static wpapsk_salt currentsalt;
-
+static hccap_t hccap;
 static struct fmt_tests tests[] = {
-	{"$WPAPSK$administrator#77c05884d12743449e72d75797430053ccb7e5256b9b2a709cf8ee00e71317fc", "a"},
+/// testcase from http://wiki.wireshark.org/SampleCaptures = wpa-Induction.pcap
+	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "Induction"},
 	{NULL}
 };
 
@@ -35,19 +41,22 @@ static void cleanup()
 {
 	free(inbuffer);
 	free(outbuffer);
+	free(mic);
 }
 
 static void init(struct fmt_main *pFmt)
 {
-	//Alocate memory for hashes and passwords
+	assert(sizeof(hccap_t) == HCCAP_SIZE);
+	///Alocate memory for hashes and passwords
 	inbuffer =
 	    (wpapsk_password *) malloc(sizeof(wpapsk_password) *
 	    MAX_KEYS_PER_CRYPT);
 	outbuffer =
 	    (wpapsk_hash *) malloc(sizeof(wpapsk_hash) * MAX_KEYS_PER_CRYPT);
 	check_mem_allocation(inbuffer, outbuffer);
+	mic = (mic_t *) malloc(sizeof(mic_t) * MAX_KEYS_PER_CRYPT);
 	atexit(cleanup);
-	//Initialize CUDA
+	///Initialize CUDA
 	cuda_init(gpu_id);
 }
 
@@ -60,44 +69,74 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (hash == NULL)
 		return 0;
 	while (hash < ciphertext + strlen(ciphertext)) {
-		if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
+		if (atoi64[ARCH_INDEX(*hash++)] == 0x7f)
 			return 0;
 		hashlength++;
 	}
-	if (hashlength != 64)
+	if (hashlength != 475)
 		return 0;
 	return 1;
 }
 
+static void *decode_hccap(char *ciphertext)
+{
+	static hccap_t hccap;
+	char *essid = ciphertext + strlen(wpapsk_prefix);
+	char *hash = strrchr(ciphertext, '#');
+	if (hash == NULL)
+		return &hccap;
+	char *d = hccap.essid;
+	while (essid != hash) {	///copy essid to hccap
+		*d++ = *essid++;
+	}
+	*d = '\0';
+	assert(*essid == '#');
+	char *cap = hash + 1;
+	unsigned char *dst = hccap.mac1;
+	int i;
+
+	for (i = 0; i < 118; i++) {
+		dst[0] =
+		    (atoi64[ARCH_INDEX(cap[0])] << 2) |
+		    (atoi64[ARCH_INDEX(cap[1])] >> 4);
+		dst[1] =
+		    (atoi64[ARCH_INDEX(cap[1])] << 4) |
+		    (atoi64[ARCH_INDEX(cap[2])] >> 2);
+		dst[2] =
+		    (atoi64[ARCH_INDEX(cap[2])] << 6) |
+		    (atoi64[ARCH_INDEX(cap[3])]);
+		dst += 3;
+		cap += 4;
+	}
+	dst[0] =
+	    (atoi64[ARCH_INDEX(cap[0])] << 2) |
+	    (atoi64[ARCH_INDEX(cap[1])] >> 4);
+	dst[1] =
+	    (atoi64[ARCH_INDEX(cap[1])] << 4) |
+	    (atoi64[ARCH_INDEX(cap[2])] >> 2);
+	return &hccap;
+}
+
 static void *binary(char *ciphertext)
 {
-	static uint32_t binary[8];
-	char *hash = strrchr(ciphertext, '#') + 1;
-	if (hash == NULL)
-		return binary;
-	int i;
-	for (i = 0; i < 8; i++) {
-		sscanf(hash + (8 * i), "%08x", &binary[i]);
-		binary[i] = SWAP(binary[i]);
-	}
+	static unsigned char binary[BINARY_SIZE];
+	hccap_t *hccap = decode_hccap(ciphertext);
+	memcpy(binary, hccap->keymic, BINARY_SIZE);
 	return binary;
-
 }
 
 static void *salt(char *ciphertext)
 {
-	static wpapsk_salt salt;
-	char *pos = ciphertext + strlen(wpapsk_prefix);
-	int length = 0;
-	while (*pos != '#')
-		salt.salt[length++] = *pos++;
-	salt.length = length;
-	return &salt;
+	static hccap_t s;
+	memcpy(&s, decode_hccap(ciphertext), SALT_SIZE);
+	return &s;
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(&currentsalt, salt, sizeof(wpapsk_salt));
+	memcpy(&hccap, salt, SALT_SIZE);
+	strcpy((char*)currentsalt.salt, hccap.essid);
+	currentsalt.length = strlen(hccap.essid);
 }
 
 static void set_key(char *key, int index)
@@ -116,21 +155,88 @@ static char *get_key(int index)
 	return ret;
 }
 
+static uint32_t *prf_512(uint32_t * key, uint8_t * data)
+{
+	unsigned int i;
+	static char *text = "Pairwise key expansion";
+	static unsigned char buff[100];
+	static uint32_t ret[20];
+
+	memcpy(buff, text, 22);
+	memcpy(buff + 23, data, 76);
+	buff[22] = 0;
+	for (i = 0; i < 4; i++) {
+		buff[76 + 23] = i;
+		HMAC_CTX ctx;
+		HMAC_Init(&ctx, key, 32, EVP_sha1());
+		HMAC_Update(&ctx, buff, 100);
+		HMAC_Final(&ctx, (unsigned char *) ret + (20 * i), NULL);
+		HMAC_CTX_cleanup(&ctx);
+	}
+	return ret;
+}
+
+static void insert_mac(uint8_t * data)
+{
+	int k = memcmp(hccap.mac1, hccap.mac2, 6);
+	if (k > 0) {
+		memcpy(data, hccap.mac2, 6);
+		memcpy(data + 6, hccap.mac1, 6);
+	} else {
+		memcpy(data, hccap.mac1, 6);
+		memcpy(data + 6, hccap.mac2, 6);
+	}
+}
+
+static void insert_nonce(uint8_t * data)
+{
+	int k = memcmp(hccap.nonce1, hccap.nonce2, 32);
+	if (k > 0) {
+		memcpy(data, hccap.nonce2, 32);
+		memcpy(data + 32, hccap.nonce1, 32);
+	} else {
+		memcpy(data, hccap.nonce1, 32);
+		memcpy(data + 32, hccap.nonce2, 32);
+	}
+}
+
+static void wpapsk_postprocess()
+{
+	int i;
+	uint8_t data[64 + 12];
+	insert_mac(data);
+	insert_nonce(data + 12);
+
+	for (i = 0; i < KEYS_PER_CRYPT; i++) {
+		uint32_t *prf = prf_512(outbuffer[i].v, data);
+		if (hccap.keyver == 1)
+			HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size,
+			    mic[i].keymic, NULL);
+		else
+			HMAC(EVP_sha1(), prf, 16, hccap.eapol,
+			    hccap.eapol_size, mic[i].keymic, NULL);
+	}
+
+}
+
 static void crypt_all(int count)
 {
 	wpapsk_gpu(inbuffer, outbuffer, &currentsalt);
+	wpapsk_postprocess();
 }
+
 
 static int binary_hash_0(void *binary)
 {
-#ifdef _WPAPSK_DEBUG
+#ifdef CUDA_WPAPSK_DEBUG
 	puts("binary");
 	uint32_t i, *b = binary;
-	for (i = 0; i < 8; i++)
+
+	for (i = 0; i < 4; i++)
 		printf("%08x ", b[i]);
 	puts("");
 #endif
-	return (((uint32_t *) binary)[0] & 0xf);
+	return ((uint32_t *) binary)[0] & 0xf;
 }
 
 static int binary_hash_1(void *binary)
@@ -165,60 +271,72 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-#ifdef _WPAPSK_DEBUG
+#ifdef CUDA_WPAPSK_DEBUG
 	int i;
 	puts("get_hash");
-	for (i = 0; i < 8; i++)
-		printf("%08x ", outbuffer[index].v[i]);
+	uint32_t *b = mic[index].keymic;
+	for (i = 0; i < 4; i++)
+		printf("%08x ", b[i]);
 	puts("");
 #endif
-	return outbuffer[index].v[0] & 0xf;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0xf;
 }
 
 static int get_hash_1(int index)
 {
-	return outbuffer[index].v[0] & 0xff;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0xff;
 }
 
 static int get_hash_2(int index)
 {
-	return outbuffer[index].v[0] & 0xfff;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0xfff;
 }
 
 static int get_hash_3(int index)
 {
-	return outbuffer[index].v[0] & 0xffff;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0xffff;
 }
 
 static int get_hash_4(int index)
 {
-	return outbuffer[index].v[0] & 0xfffff;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0xfffff;
 }
 
 static int get_hash_5(int index)
 {
-	return outbuffer[index].v[0] & 0xffffff;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0xffffff;
 }
 
 static int get_hash_6(int index)
 {
-	return outbuffer[index].v[0] & 0x7ffffff;
+	uint32_t *h = (uint32_t *) mic[index].keymic;
+	return h[0] & 0x7ffffff;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	uint32_t i, b = ((uint32_t *) binary)[0];
-	for (i = 0; i < count; i++)
-		if (b == outbuffer[i].v[0])
+	for (i = 0; i < count; i++) {
+		uint32_t *m = (uint32_t*) mic[i].keymic;
+		if (b == m[0])
 			return 1;
+	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	uint32_t i, *b = (uint32_t *) binary;
-	for (i = 0; i < 8; i++)
-		if (b[i] != outbuffer[index].v[i])
+	uint8_t i;
+	uint32_t *b = binary;
+	uint32_t *m = (uint32_t*) mic[index].keymic;
+	for (i = 0; i < BINARY_SIZE / 4; i++)
+		if (b[i] != m[i])
 			return 0;
 	return 1;
 }
