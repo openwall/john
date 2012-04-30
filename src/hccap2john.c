@@ -54,6 +54,7 @@ void process_file(const char *filename)
 		exit(EXIT_FAILURE);
 	}
 	size_t bytes = fread(&hccap, sizeof(hccap_t), 1, f);
+	assert(bytes==HCCAP_SIZE);
 	print_hccap(&hccap);
 	fclose(f);
 }

@@ -1383,7 +1383,7 @@ cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
 cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
-cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o
+cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o 
 	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu
 	mv cuda/wpapsk.o cuda_wpapsk.o
 
