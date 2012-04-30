@@ -15,7 +15,7 @@ Performance issues:
     GTX460	14	128	20	14194 c/s
   For WPAPSK:
     CARD NAME	BLOCKS	THREADS	SM	RESULT
-    GTX460	14	256	20	18254 c/s
+    GTX460	14	256	20	15058 c/s
 
 
 You can contact me at lukas[dot]odzioba[at]gmail[dot]com or john-dev mailing list

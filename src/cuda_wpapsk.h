@@ -3,20 +3,14 @@
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
-#ifndef _WPAPSK_H
-#define _WPAPSK_H
+#ifndef _CUDA_WPAPSK_H
+#define _CUDA_WPAPSK_H
+#include "wpapsk.h"
 
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
 
-#define THREADS			128	//set at least 256 on fermi
+#define THREADS			256	//set at least 256 on fermi
 #define BLOCKS			14
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
-
-#define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
-#define SALT_SIZE		sizeof(wpapsk_salt)
 
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
@@ -292,20 +286,5 @@
 
 #define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
 
-static const char wpapsk_prefix[] = "$WPAPSK$";
-
-typedef struct {
-	uint8_t length;
-	uint8_t v[15];
-} wpapsk_password;
-
-typedef struct {
-	uint32_t v[8];
-} wpapsk_hash;
-
-typedef struct {
-	uint8_t length;
-	uint8_t salt[15];
-} wpapsk_salt;
 
 #endif
