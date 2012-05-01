@@ -132,6 +132,8 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.mkpc},
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
+	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &options.regen_lost_salts},
 #ifdef CL_VERSION_1_0
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
@@ -196,7 +198,8 @@ static struct opt_entry opt_list[] = {
 "--fix-state-delay=N       performance tweak, see documentation\n" \
 "--nolog                   disables creation and writing to john.log file\n" \
 "--crack-status            emit a status line whenever a password is cracked\n" \
-"--max-run-time=N          gracefully exit after this many seconds\n"
+"--max-run-time=N          gracefully exit after this many seconds\n" \
+"--regen-lost-salts=N      regenerate lost salts for some hashes (see OPTIONS)\n"
 
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
@@ -284,6 +287,7 @@ void opt_init(char *name, int argc, char **argv)
 	memset(&options, 0, sizeof(options));
 
 	options.loader.field_sep_char = options.field_sep_char = ':';
+	options.loader.regen_lost_salts = options.regen_lost_salts = 0;
 	options.loader.max_fix_state_delay = 0;
 	options.loader.max_wordfile_memory = 5000000;
 	options.mkpc = 0;
@@ -504,6 +508,8 @@ void opt_init(char *name, int argc, char **argv)
 
 	if (options.loader.activesinglerules == NULL)
 		options.loader.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
+
+	options.loader.regen_lost_salts = options.regen_lost_salts;
 
 	if (field_sep_char_string != NULL)
 	{

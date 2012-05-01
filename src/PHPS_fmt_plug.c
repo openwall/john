@@ -35,6 +35,7 @@
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
+#include "options.h"
 
 #define FORMAT_LABEL		"phps"
 #define FORMAT_NAME			"PHPS -- md5(md5($pass).$salt)"
@@ -62,6 +63,8 @@ static struct fmt_tests phps_tests[] = {
 	{NULL}
 };
 
+extern struct options_main options;
+
 static char Conv_Buf[80];
 static struct fmt_main *pFmt_Dynamic_6;
 static void phps_init(struct fmt_main *pFmt);
@@ -80,7 +83,7 @@ static char *Convert(char *Buf, char *ciphertext)
 		return "*";
 
 	sprintf(Buf, "$dynamic_6$%s$", &cp[1]);
-	for (i = 0; i < 3; ++i)
+	for (i = 0; i < SALT_SIZE; ++i)
 	{
 		char bTmp[3];
 		bTmp[0] = ciphertext[6+i*2];
@@ -98,16 +101,46 @@ static char *our_split(char *ciphertext, int index)
 	return Convert(Conv_Buf, ciphertext);
 }
 
+static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+	int i = strlen(split_fields[1]);
+	if (!pFmt_Dynamic_6)
+		phps_init(pFmt);
+	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
+	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
+	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
+	if (options.regen_lost_salts == 1 && i == 32) {
+		char *Ex = mem_alloc_tiny(CIPHERTEXT_LENGTH+1, MEM_ALIGN_NONE);
+		// add a 'garbage' placeholder salt to this candidate. However, we want ALL of them to 
+		// be setup as the exact same salt (so that all candidate get dumped into one salt block.
+		// We use '   ' as the salt (3 spaces).
+		sprintf(Ex, "$PHPS$202020$%s", split_fields[1]);
+		return Ex;
+	}
+	return pFmt_Dynamic_6->methods.prepare(split_fields, pFmt);
+}
+
 static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
-	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
+	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
 	if (!pFmt_Dynamic_6)
 		phps_init(pFmt);
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) {
+	i = strlen(ciphertext);
+	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
+	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
+	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
+	if (options.regen_lost_salts == 1 && i == 32) {
+		static char Ex[CIPHERTEXT_LENGTH+1];
+		sprintf(Ex, "$PHPS$202020$%s", ciphertext);
+		ciphertext = Ex;
+		i = CIPHERTEXT_LENGTH;
+	}
+
+	if (i != CIPHERTEXT_LENGTH) {
 		return pFmt_Dynamic_6->methods.valid(ciphertext, pFmt_Dynamic_6);
 	}
 
@@ -165,6 +198,7 @@ static void phps_init(struct fmt_main *pFmt)
 		fmt_PHPS.methods.salt   = our_salt;
 		fmt_PHPS.methods.binary = our_binary;
 		fmt_PHPS.methods.split = our_split;
+		fmt_PHPS.methods.prepare = our_prepare;
 		fmt_PHPS.params.algorithm_name = pFmt_Dynamic_6->params.algorithm_name;
 		pFmt->private.initialized = 1;
 	}

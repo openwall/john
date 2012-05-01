@@ -259,6 +259,36 @@ example is for studying which rules give most "hits": Without this options,
 you can't know for sure which rule produced a successful guess when analyzing
 the log file.
 
+--regen-lost-salts=N	Try to find password AND salt in a set of raw hashes.
+
+This option will allow certain types (with short salts), to be found, when
+they are present in a set of raw hashes, but where we have lost the salt value.
+Normally, without the salt, JtR would not be able to do anything with the hash,
+and could not find the password.  In this mode, JtR will load the hashes, giving
+each a 'fake' salt (but all get the same salt).  JtR then builds all of the
+possible salt values for this format, and associates every hash with each one
+of these salts.  So, JtR will now run, and find passwords using all possible
+salts for each of the hashes, thus recreating the salt (and finding the passwords).
+There are only a few types supported.  To properly run, you MUST use one of the
+proper types in the -format=type command, AND use the -regen-lost-salts=N with
+N being set properly.  The valid N's are:
+  --regen-lost-salts=1 --format=PHPS         (form md5($p.$s) s is 3 bytes)
+  --regen-lost-salts=2 --format=OSC          (form md5($s.$p) s is 2 bytes)
+  --regen-lost-salts=3 --format=mediawiki    (user id's from 0 to 999)
+  --regen-lost-salts=4 --format=mediawiki    (user id's from 1000 to 9999)
+  --regen-lost-salts=5 --format=mediawiki    (user id's from 10000 to 99999)
+For types 3, 4, 5, we only look for numeric user id's, of the type:  
+md5($u.'-'.md5($p)) Mediawiki made some changes to use longer 8 byte hex strings
+as salts.  This salt is too long to try to find, so JtR only focuses on the older
+type $B$ with the shorter numeric user id's.   The found lines in john.pot will
+be output as type $dynamic_2$ for the found PHPS (with the salts filled in). It
+will be $dynamic_4$ for the OSC (with salt), and $dynamic_9$ (with user id as 
+salt), for the mediawiki items.
+NOTE, normally the salt is preserved with the hash, and thus JtR can properly
+find them using 'normal' methods.  This new functionality was added to handle
+leaked hashes where the original salt has been lost.  It is VERY slow to run
+in this manner, due to JtR having to check every possible salt, but it does
+allow these hashes to be cracked 'properly'.
 
 	Additional utilities (compiled/installed along with John).
 

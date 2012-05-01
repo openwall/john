@@ -134,3 +134,36 @@ char *dynamic_Demangle(char *Line, int *Len)
 	if (Len) *Len = cp-tmp;
 	return tmp;
 }
+
+// This one is called in the .pot writing.  We 'fixup' salts which contain ':' chars, or other
+// chars which cause problems (like the $ char).
+char *dynamic_FIX_SALT_TO_HEX(char *ciphertext) {
+	char *cp;
+	if (strncmp(ciphertext, "$dynamic_", 9))
+		return ciphertext;  // not a dynamic format, so we can not 'fix' it.
+	// ok, see if this is salted:
+	cp = strchr(&ciphertext[10+16], '$');
+	if (!cp)
+		return ciphertext;  // not a salted format.
+
+	// we will HAVE to get this much more functional.  But for now, we simply convert
+	// anything where we find a ':' or '$' or one of the line feed chars, in the salt,
+	// into a HEX string.  Otherwise the .pot file output can easily be 'broken'.
+	// it would be nice to also handle 'null' bytes (since some salts CAN have them), however
+	// since we are a C program, we already have problems with them. With recent changes
+	// in john, john CAN find them, but I do not think it can properly store them to pot
+	// file, unless the $HEX$ part is maintained (it may be maintained, I have to test that).
+
+	++cp;
+	if ( strchr(cp, ':') || strchr(cp, '$') || strchr(cp, '\n') || strchr(cp, '\r') ) {
+		// ok, we are going to convert to a 'HEX'  The length is length of ciphertext, the null, the HEX$ and 2 bytes per char of salt string.
+		char *cpx, *cpNew = mem_alloc_tiny(strlen(ciphertext) + 1 + 4 + strlen(cp), MEM_ALIGN_NONE);
+		cpx = cpNew;
+		// put the hash, including first '$' into the ouput string, AND the starting HEX$
+		cpx += sprintf(cpNew, "%*.*sHEX$", cp-ciphertext, cp-ciphertext, ciphertext);
+		while (*cp)
+			cpx += sprintf(cpx, "%x", *cp++);
+		return cpNew;
+	}
+	return ciphertext;
+}

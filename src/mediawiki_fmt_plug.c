@@ -45,6 +45,7 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
 #include "common.h"
 #include "formats.h"
 #include "dynamic.h"
+#include "options.h"
 
 #define FORMAT_LABEL		"mediawiki"
 #define FORMAT_NAME			"MediaWiki -- md5($s.'-'.md5($p))"
@@ -79,6 +80,27 @@ static char Conv_Buf[80];
 static struct fmt_main *pFmt_Dynamic_9;
 static void mediawiki_init(struct fmt_main *pFmt);
 
+/* this utility function is used by cracker.c AND loader.c.  Since media-wiki has a variable width salt, of which 
+   in regen_lost_salts mode, we only handle 0 to 99999 as salts, we built a function that will assign the salt from
+   one buffer into another */
+void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_salt_len) {
+	char *cp = source_to_fix;
+	char *cp2 = salt_rec;
+	int i = 0;
+
+	strncpy(Buf, cp, 11+32+1);
+	Buf += (11+32+1);
+	cp += (11+32+1);
+	cp2 += 6;
+	while (++i < max_salt_len && *cp2 != '-') {
+		*Buf++ = *cp2++;
+		++cp;
+	}
+	++cp;
+	*Buf++ = *cp2++;
+	*Buf = 0;
+}
+
 /* this function converts a 'native' mediawiki signature string into a Dynamic_9 syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
@@ -106,6 +128,24 @@ static char *our_split(char *ciphertext, int index)
 	return Convert(Conv_Buf, ciphertext);
 }
 
+static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+	int i = strlen(split_fields[1]);
+	if (!pFmt_Dynamic_9)
+		mediawiki_init(pFmt);
+	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
+	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
+	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
+	if ( (options.regen_lost_salts >= 3 && options.regen_lost_salts <= 5) && i == 32) {
+		char *Ex = mem_alloc_tiny((3+options.regen_lost_salts+1+MD5_HEX_SIZE)+1, MEM_ALIGN_NONE);
+		// add a 'garbage' placeholder salt that is the proper 'max' size for salt.  NOTE
+		// the real saltlen is not known at this time. We are simply making sure there is ENOUGH room.
+		sprintf(Ex, "$B$000%s%s$%s", options.regen_lost_salts>3?"0":"", options.regen_lost_salts>4?"0":"", split_fields[1]);
+		return Ex;
+	}
+	return pFmt_Dynamic_9->methods.prepare(split_fields, pFmt);
+}
+
 static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i;
@@ -115,6 +155,19 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 		return 0;
 	if (!pFmt_Dynamic_9)
 		mediawiki_init(pFmt);
+
+	i = strlen(ciphertext);
+	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
+	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
+	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
+
+	if ( (options.regen_lost_salts >= 3 && options.regen_lost_salts <= 5) && i == 32) {
+		static char Ex[(1+1+1+5+1+MD5_HEX_SIZE)+1];
+		sprintf(Ex, "$B$000%s%s$%s", options.regen_lost_salts>3?"0":"", options.regen_lost_salts>4?"0":"", ciphertext);
+		ciphertext = Ex;
+		i = strlen(ciphertext);
+	}
+
 	if (strncmp(ciphertext, "$B$", 3) != 0) {
 		return pFmt_Dynamic_9->methods.valid(ciphertext, pFmt_Dynamic_9);
 	}
@@ -153,7 +206,7 @@ struct fmt_main fmt_mediawiki =
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		mediawiki_init,
-		fmt_default_prepare,
+		our_prepare,
 		mediawiki_valid
 	}
 };
@@ -166,6 +219,7 @@ static void mediawiki_init(struct fmt_main *pFmt)
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;
+		fmt_mediawiki.methods.prepare = our_prepare;
 		fmt_mediawiki.params.algorithm_name = pFmt_Dynamic_9->params.algorithm_name;
 		pFmt->private.initialized = 1;
 	}
