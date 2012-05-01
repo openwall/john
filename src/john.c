@@ -233,7 +233,9 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_pdf);
+#ifndef _MSC_VER
 	john_register_one(&rar_fmt);
+#endif
 	john_register_one(&zip_fmt);
 	john_register_one(&fmt_dummy);
 
@@ -463,6 +465,11 @@ static void john_load(void)
 		if (database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
 			printf("Remaining %s\n", john_loaded_counts());
+		}
+
+		if (options.regen_lost_salts) {
+			extern void build_fake_salts_for_regen_lost(struct db_salt *);
+			build_fake_salts_for_regen_lost(database.salts);
 		}
 
 		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);

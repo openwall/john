@@ -208,6 +208,32 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 			key = utf8key;
 	}
 
+	// Ok, FIX the salt  ONLY if -regen-lost-salts=X was used.
+	if (options.regen_lost_salts) {
+		if (options.regen_lost_salts == 1)
+		{
+			// 3 byte PHPS salt, the hash is in $dynamic_6$ format.
+			char *cp = pw->source;
+			char *cp2 = *(char**)(salt->salt);
+			memcpy(cp+11+32+1, cp2+6, 3);
+		}
+		else if (options.regen_lost_salts == 2)
+		{
+			// 2 byte osCommerce salt, the hash is in $dynamic_4$ format.
+			char *cp = pw->source;
+			char *cp2 = *(char**)(salt->salt);
+			memcpy(cp+11+32+1, cp2+6, 2);
+		}
+		else if (options.regen_lost_salts >= 3 && options.regen_lost_salts <= 5)
+		{
+			// Media wiki.  Salt len is not known, but 5 bytes or less, and WILL fit into pw-source even after being fixed.. $dynamic_9$ format.
+			char Buf[256];
+			char *cp2 = *(char**)(salt->salt);
+			extern void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_salt_len);
+			mediawiki_fix_salt(Buf, pw->source, cp2, options.regen_lost_salts+1);
+			strcpy(pw->source, Buf);
+		}
+	}
 	log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
 		dupe ? NULL : pw->source, repkey, key, crk_db->options->field_sep_char);
 

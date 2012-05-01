@@ -8,6 +8,8 @@
 static char opencl_log[LOG_SIZE];
 static char *kernel_source;
 static int kernel_loaded;
+static int device_info;
+static int cores_per_MP;
 
 void advance_cursor() {
   static int pos=0;
@@ -85,29 +87,19 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 }
 
-cl_device_type get_device_type(int dev_id)
-{
-	cl_device_type type;
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
-	                               sizeof(cl_device_type), &type, NULL),
-	               "Error querying CL_DEVICE_TYPE");
-
-	return type;
-}
-
 static char * include_source(char *pathname, int dev_id)
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s %s %s", path_expand(pathname),
+	sprintf(include, "-I %s %s %s%d %s", path_expand(pathname),
 	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
 	        "-DDEVICE_IS_CPU" : "",
+                "-DDEVICE_INFO=", device_info,
 	        "-cl-strict-aliasing -cl-mad-enable");
 
 	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
-
 
 static void build_kernel(int dev_id)
 {
@@ -164,13 +156,54 @@ static void build_kernel(int dev_id)
 #endif
 }
 
+void opencl_get_dev_info(unsigned int dev_id)
+{
+        cl_device_type device;
+        
+        device = get_device_type(dev_id);
+        
+        if (device == CL_DEVICE_TYPE_CPU)
+                device_info = CPU;
+        else if (device == CL_DEVICE_TYPE_GPU)
+                device_info = GPU;
+        else if (device == CL_DEVICE_TYPE_ACCELERATOR)
+                device_info = ACCELERATOR;
+
+        device_info += get_vendor_id(dev_id);
+        device_info += get_processor_family(dev_id);
+}
+
+void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
+{
+	dev_init(dev_id, platform_id);        
+        opencl_get_dev_info(dev_id);
+}
+
+void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
+{
+	read_kernel_source(kernel_filename);
+	build_kernel(dev_id);
+}
+
 void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id)
 {
-	//if (!kernel_loaded)
-		read_kernel_source(kernel_filename);
-		dev_init(dev_id, platform_id);
-	build_kernel(dev_id);
+        opencl_init_dev(dev_id, platform_id);
+        opencl_build_kernel(kernel_filename, dev_id);
+}
+
+int get_device_info(){
+    return device_info;
+}
+
+cl_device_type get_device_type(int dev_id)
+{
+	cl_device_type type;
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
+	                               sizeof(cl_device_type), &type, NULL),
+	               "Error querying CL_DEVICE_TYPE");
+
+	return type;
 }
 
 cl_ulong get_local_memory_size(int dev_id)
@@ -194,6 +227,17 @@ size_t get_max_work_group_size(int dev_id)
         return max_group_size;
 }
 
+size_t get_current_work_group_size(int dev_id, cl_kernel crypt_kernel) {
+    size_t max_group_size;
+
+    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[dev_id],
+            CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
+            &max_group_size, NULL),
+            "Error querying clGetKernelWorkGroupInfo");
+
+    return max_group_size;
+}
+
 cl_uint get_max_compute_units(int dev_id)
 {
         cl_uint size;
@@ -202,6 +246,95 @@ cl_uint get_max_compute_units(int dev_id)
                 "Error querying CL_DEVICE_MAX_COMPUTE_UNITS");
 
         return size;
+}
+
+cl_uint get_processors_count(int dev_id)
+{
+        int major = 0, minor = 0;
+        cl_uint core_count = get_max_compute_units(dev_id);
+
+        if (gpu_nvidia(device_info)) {
+                //oclGetDevCap(devices[dev_id], &major, &minor);
+
+                if (major == 1)  
+                        core_count *= (cores_per_MP = 8);
+                else if (major == 2 && minor == 0) 
+                        core_count *= (cores_per_MP = 32);  //2.0
+                else if (major == 2 && minor >= 1) 
+                        core_count *= (cores_per_MP = 48);  //2.1 and up
+                else if (major == 3)
+                        core_count *= (cores_per_MP = 192); //3.0 and up
+                else  
+                        core_count *= (cores_per_MP = 192); //Future use
+
+                if (major == 9999 && minor == 9999)
+                        core_count = 0;
+        }
+        else if (gpu_amd(device_info)) {  
+                core_count *= 16 *   //16 thread processors * 5 SP 
+                        ((amd_gcn(device_info) || amd_vliw4(device_info)) ? 4 : 5); 
+        }
+        else if (gpu(device_info))  //Any other GPU
+                core_count *=8; 
+      
+        return core_count;
+}
+
+cl_uint get_processor_family(int dev_id)
+{       
+        char dname[MAX_OCLINFO_STRING_LEN];
+        
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+                sizeof(dname), dname, NULL),
+                "Error querying CL_DEVICE_NAME");
+
+        if gpu(device_info) {
+            
+                if (gpu_amd(device_info) && (
+                    strstr(dname, "Cedar") ||
+                    strstr(dname, "Redwood") ||
+                    strstr(dname, "Juniper") ||
+                    strstr(dname, "Cypress") ||
+                    strstr(dname, "Hemlock") ||
+                    strstr(dname, "Caicos") ||
+                    strstr(dname, "Turks") ||
+                    strstr(dname, "Barts") ||
+                    strstr(dname, "Cayman") ||
+                    strstr(dname, "Antilles") ||
+                    strstr(dname, "Wrestler") ||
+                    strstr(dname, "Zacate") ||
+                    strstr(dname, "WinterPark") ||
+                    strstr(dname, "BeaverCreek"))) {
+
+                        if (strstr(dname, "Cayman") ||
+                            strstr(dname, "Antilles"))
+                                return AMD_VLIW4;
+                        else
+                                return AMD_VLIW5;
+
+                } else
+                        return AMD_GCN + AMD_VLIW5;    
+        }
+        return UNKNOWN;
+}
+
+int get_vendor_id(int dev_id)
+{
+        char dname[MAX_OCLINFO_STRING_LEN];
+        
+        HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_VENDOR, 
+                sizeof(dname), dname, NULL),
+                "Error querying CL_DEVICE_VENDOR");
+
+        if (strstr (dname, "NVIDIA") != NULL) 
+            return NVIDIA;
+
+        if (strstr (dname, "Advanced Micro") !=NULL ||
+            strstr (dname, "AMD") !=NULL ||
+            strstr (dname, "ATI") != NULL)  
+            return AMD;
+        
+        return UNKNOWN;
 }
 
 char *get_error_name(cl_int cl_error)
@@ -264,7 +397,6 @@ char *megastring(unsigned long long value)
 	return outbuf;
 }
 
-#define MAX_OCLINFO_STRING_LEN	64
 void listOpenCLdevices(void) {
 	char dname[MAX_OCLINFO_STRING_LEN];
 	cl_uint num_platforms, num_devices, entries;
@@ -334,7 +466,10 @@ void listOpenCLdevices(void) {
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &p_size, NULL);
 			printf("\tMax Work Group Size:\t%d\n", (int)p_size);
 			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &entries, NULL);
-			printf("\tParallel compute cores:\t%d\n\n", entries);
+			printf("\tParallel compute cores:\t%d\n", entries);
+                        
+                        opencl_get_dev_info(d);
+                        printf("\tStream processors:\t%d\n\n", get_processors_count(d));
 		}
 	}
 	return;

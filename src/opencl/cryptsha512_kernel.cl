@@ -2,6 +2,8 @@
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012   
  * Based on source code provided by Lukas Odzioba
  *
+ * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
+ *
  * This software is:
  * Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
@@ -125,16 +127,10 @@ void sha512_block(__local sha512_ctx * ctx) {
     uint64_t t1, t2;
     uint64_t w[16];
 
-#ifdef DEVICE_IS_CPU
-    #pragma unroll 16
-    for (int i = 0; i < 16; i++)
-        w[i] = SWAP64(ctx->buffer->mem_64[i]);
-#else
     ulong16  w_vector;
     w_vector = vload16(0, ctx->buffer->mem_64); 
     w_vector = SWAP64(w_vector);
     vstore16(w_vector, 0, w);
-#endif
 
     #pragma unroll 80
     for (int i = 0; i < 80; i++) {
@@ -165,13 +161,24 @@ void sha512_block(__local sha512_ctx * ctx) {
 }
 
 void ctx_append_1(__local sha512_ctx * ctx) {
-    int i = 127 - ctx->buflen;
-    __local uint8_t * d = ctx->buffer->mem_08 + ctx->buflen;
+
+    int length = ctx->buflen;
+    int i = 127 - length;
+    __local uint8_t * d = ctx->buffer->mem_08 + length;
+    __local uint32_t * l;
 
     *d++ = 0x80;
 
-    while (i--) {
-        d[i] = 0;
+    while((++length % 4) != 0)
+    {
+	*d++ = 0;
+	i--;
+    }
+    l = (__local uint32_t*) d;
+
+    while (i > 0) {
+        i-= 4;
+        *l++ = 0;
     }
 }
 
@@ -204,10 +211,10 @@ void ctx_update(__local sha512_ctx * ctx,
 
 void clear_ctx_buffer(__local sha512_ctx * ctx) {
 
-    __local uint32_t *w = ctx->buffer->mem_32;
+    __local uint64_t *w = ctx->buffer->mem_64;
 
-    #pragma unroll 32
-    for (int i = 0; i < 32; i++)
+    //#pragma unroll 16
+    for (int i = 0; i < 16; i++)
         w[i] = 0;
 
     ctx->buflen = 0;
@@ -302,7 +309,7 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
             ctx_update(&ctx, p_sequence->mem_08, passlen);
 
         ctx_update(&ctx, ((i & 1) != 0 ? alt_result->mem_08 : p_sequence->mem_08),
-                          ((i & 1) != 0 ? 64 :                 passlen));
+                         ((i & 1) != 0 ? 64 :                 passlen));
         sha512_digest(&ctx, alt_result->mem_64);
     }
     //Send results to the host.
@@ -315,11 +322,14 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
 #undef rounds   
 #undef pass
 
-__kernel void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
-                           __global   crypt_sha512_password * pass_data,
-                           __global   crypt_sha512_hash   * out_buffer,
-                           __local    crypt_sha512_salt   * salt_data,
-                           __local    working_memory      * fast_tmp_memory) {
+__kernel
+// __attribute__((vec_type_hint(ulong2)))		Not recognized.
+// __attribute__((reqd_work_group_size(32, 1, 1)))	No gain.
+void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
+                  __global   crypt_sha512_password * pass_data,
+                  __global   crypt_sha512_hash   * out_buffer,
+                  __local    crypt_sha512_salt   * salt_data,
+                  __local    working_memory      * fast_tmp_memory) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
@@ -365,6 +375,7 @@ __kernel void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
 *   5%   Remove some unecessary code.
 *  ###   Move almost everything to global and local memory. BAD.
 *   1%   Use vector types in SHA_Block in some variables. 
+*   5%   Use bitselect in SHA_Block. 
 *
 * Conclusions
 * - Compare on GPU: CPU is more efficient for now.

@@ -879,6 +879,46 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	if (strncmp(cpBuilding, "$dynamic_", 9))
 		return split_fields[1];
 
+	/* at this point, we want to convert ANY and all $HEX$hex into values */
+	/* the reason we want to do this, is so that things read from john.pot file will be in proper 'native' format */
+	/* the ONE exception to this, is if there is a NULL byte in the $HEX$ string, then we MUST leave that $HEX$ string */
+	/* alone, and let the later calls in dynamic.c handle them. */
+	if (strstr(cpBuilding, "$HEX$")) {
+		char *ct = mem_alloc_tiny(strlen(cpBuilding)+1, MEM_ALIGN_NONE);
+		char *cp, *cpo;
+		int bGood=1;
+
+		strcpy(ct, cpBuilding);
+		cp = strstr(ct, "$HEX$");
+		cpo = cp;
+		*cpo++ = *cp;
+		cp += 5;
+		while (*cp && bGood) {
+			if (*cp == '0' && cp[1] == '0') {
+				bGood = 0;
+				break;
+			}
+			if (atoi16[ARCH_INDEX(*cp)] != 0x7f && atoi16[ARCH_INDEX(cp[1])] != 0x7f) {
+				*cpo++ = atoi16[ARCH_INDEX(*cp)]*16 + atoi16[ARCH_INDEX(cp[1])];
+				*cpo = 0;
+				cp += 2;
+			} else if (*cp == '$') {
+				while (*cp && strncmp(cp, "$HEX$", 5)) {
+					*cpo++ = *cp++;
+				}
+				*cpo = 0;
+				if (!strncmp(cp, "$HEX$", 5)) {
+					*cpo++ = *cp;
+					cp += 5;
+				}
+			} else {
+				return split_fields[1];
+			}
+		}
+		if (bGood)
+			cpBuilding = ct;
+	}
+
 	if (curdat.nUserName && !strstr(cpBuilding, "$$U")) {
 		char *userName=split_fields[0], *cp;
 		// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
@@ -1623,11 +1663,11 @@ typedef struct {
 typedef struct {
 	dyna_salt_list_main List;
 } SaltHashTab_t;
-static SaltHashTab_t        *SaltHashTab;
-static dyna_salt_list_entry *pSaltHashData, *pSaltHashDataNext;
-static int                   dyna_salt_list_count;
-static unsigned char        *pSaltDataBuf, *pNextSaltDataBuf;
-static int                   nSaltDataBuf;
+static SaltHashTab_t        *SaltHashTab=NULL;
+static dyna_salt_list_entry *pSaltHashData=NULL, *pSaltHashDataNext=NULL;
+static int                   dyna_salt_list_count=0;
+static unsigned char        *pSaltDataBuf=NULL, *pNextSaltDataBuf=NULL;
+static int                   nSaltDataBuf=0;
 
 static unsigned char *AddSaltHash(unsigned char *salt, unsigned len, unsigned int idx) {
 	unsigned char *pRet;

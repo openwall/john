@@ -51,7 +51,14 @@
 #include "arch.h"
 #include <openssl/engine.h>
 #include <openssl/evp.h>
+#if defined(__APPLE__) && defined(__MACH__)
+#define COMMON_DIGEST_FOR_OPENSSL
+#include <CommonCrypto/CommonDigest.h>
+#define SHA1 CC_SHA1
+#else
 #include <openssl/sha.h>
+#endif
+
 #include <openssl/ssl.h>
 #undef MEM_FREE
 

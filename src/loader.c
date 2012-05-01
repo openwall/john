@@ -631,6 +631,22 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 
 	if ((current = db->password_hash[hash]))
 	do {
+		if (db->options->regen_lost_salts) {
+			if (db->options->regen_lost_salts == 1 && !strncmp(current->source, "$dynamic_6$", 11)) {
+				char *cp = current->source;
+				memcpy(&(cp[44]), &(ciphertext[44]), 3);
+			} else if (db->options->regen_lost_salts == 2 && !strncmp(current->source, "$dynamic_4$", 11)) {
+				char *cp = current->source;
+				memcpy(&(cp[44]), &(ciphertext[44]), 2);
+			}
+			else if (db->options->regen_lost_salts >= 3 && db->options->regen_lost_salts <= 5 && !strncmp(current->source, "$dynamic_9$", 11)) {
+				char Buf[256];
+				extern void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_salt_len);
+				mediawiki_fix_salt(Buf, current->source, &(ciphertext[44-6]), db->options->regen_lost_salts+1);
+				strcpy(current->source, Buf);
+			}
+			//else if (db->options->regen_lost_salts == 6 && !strncmp(current->source, "???????????", 11))
+		}
 		if (current->binary && !memcmp(current->binary, binary,
 		    format->params.binary_size) &&
 		    !strcmp(current->source, ciphertext))

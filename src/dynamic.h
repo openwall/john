@@ -118,6 +118,10 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
 int dynamic_IS_PARSER_VALID(int which);
 
+// This one is called in the .pot writing.  We 'fixup' salts which contain ':' chars, or other
+// chars which cause problems (like the $ char).
+char *dynamic_FIX_SALT_TO_HEX(char *ciphertext);
+
 // Here are the 'parser' functions (i.e. user built stuff in john.conf)
 int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt);
 char *dynamic_LOAD_PARSER_SIGNATURE(int which);

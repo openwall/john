@@ -155,6 +155,13 @@ struct options_main {
 	char *salt_param;
 	char field_sep_char;
 
+/* This is a 'special' flag.  It causes john to add 'extra' code to search for some salted types, when we have */
+/* only the hashes.  The only type supported is PHPS (at this time.).  So PHPS will set this to a 1. OTherwise */
+/* it will always be zero.  LIKELY we will add the same type logic for the OSC (mscommerse) type, which has only */
+/* a 2 byte salt.  That will set this field to be a 2.  If we add other types, then we will have other values */
+/* which can be assigned to this variable.  This var is set by the undocummented --regen_lost_salts=# */
+	int regen_lost_salts;
+
 /* wordfile character encoding 'stuff' */
 /* The canonical name of chosen encoding. User might have said 'koi8r' but
    this string will be 'KOI8-R'. An empty string means default/old-style */

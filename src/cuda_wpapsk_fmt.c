@@ -5,11 +5,13 @@
 */
 #include <string.h>
 #include "arch.h"
+#include <assert.h>
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
 #include "cuda_wpapsk.h"
 #include "cuda_common.h"
+
 
 #define FORMAT_LABEL		"wpapsk-cuda"
 #define FORMAT_NAME		FORMAT_LABEL
@@ -18,214 +20,48 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 
-//#define _WPAPSK_DEBUG
+///#define WPAPSK_DEBUG
+extern wpapsk_password *inbuffer;
+extern wpapsk_hash *outbuffer;
+extern wpapsk_salt currentsalt;
+extern hccap_t hccap;
+extern mic_t *mic;
+extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *);
 
-static wpapsk_password *inbuffer;
-static wpapsk_hash *outbuffer;
-static wpapsk_salt currentsalt;
-
-static struct fmt_tests tests[] = {
-	{"$WPAPSK$administrator#77c05884d12743449e72d75797430053ccb7e5256b9b2a709cf8ee00e71317fc", "a"},
+/** testcase from http://wiki.wireshark.org/SampleCaptures = wpa-Induction.pcap **/
+static struct fmt_tests wpapsk_tests[] = {
+	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "Induction"},
 	{NULL}
 };
 
-extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *);
 
 static void cleanup()
 {
 	free(inbuffer);
 	free(outbuffer);
+	free(mic);
 }
 
 static void init(struct fmt_main *pFmt)
 {
-	//Alocate memory for hashes and passwords
+	assert(sizeof(hccap_t) == HCCAP_SIZE);
+	///Alocate memory for hashes and passwords
 	inbuffer =
 	    (wpapsk_password *) malloc(sizeof(wpapsk_password) *
 	    MAX_KEYS_PER_CRYPT);
 	outbuffer =
 	    (wpapsk_hash *) malloc(sizeof(wpapsk_hash) * MAX_KEYS_PER_CRYPT);
 	check_mem_allocation(inbuffer, outbuffer);
+	mic = (mic_t *) malloc(sizeof(mic_t) * MAX_KEYS_PER_CRYPT);
 	atexit(cleanup);
-	//Initialize CUDA
+	///Initialize CUDA
 	cuda_init(gpu_id);
-}
-
-static int valid(char *ciphertext, struct fmt_main *pFmt)
-{
-	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
-		return 0;
-	char *hash = strrchr(ciphertext, '#') + 1;
-	int hashlength = 0;
-	if (hash == NULL)
-		return 0;
-	while (hash < ciphertext + strlen(ciphertext)) {
-		if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
-			return 0;
-		hashlength++;
-	}
-	if (hashlength != 64)
-		return 0;
-	return 1;
-}
-
-static void *binary(char *ciphertext)
-{
-	static uint32_t binary[8];
-	char *hash = strrchr(ciphertext, '#') + 1;
-	if (hash == NULL)
-		return binary;
-	int i;
-	for (i = 0; i < 8; i++) {
-		sscanf(hash + (8 * i), "%08x", &binary[i]);
-		binary[i] = SWAP(binary[i]);
-	}
-	return binary;
-
-}
-
-static void *salt(char *ciphertext)
-{
-	static wpapsk_salt salt;
-	char *pos = ciphertext + strlen(wpapsk_prefix);
-	int length = 0;
-	while (*pos != '#')
-		salt.salt[length++] = *pos++;
-	salt.length = length;
-	return &salt;
-}
-
-static void set_salt(void *salt)
-{
-	memcpy(&currentsalt, salt, sizeof(wpapsk_salt));
-}
-
-static void set_key(char *key, int index)
-{
-	uint8_t length = strlen(key);
-	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, length);
-}
-
-static char *get_key(int index)
-{
-	static char ret[PLAINTEXT_LENGTH + 1];
-	uint8_t length = inbuffer[index].length;
-	memcpy(ret, inbuffer[index].v, length);
-	ret[length] = '\0';
-	return ret;
 }
 
 static void crypt_all(int count)
 {
 	wpapsk_gpu(inbuffer, outbuffer, &currentsalt);
-}
-
-static int binary_hash_0(void *binary)
-{
-#ifdef _WPAPSK_DEBUG
-	puts("binary");
-	uint32_t i, *b = binary;
-	for (i = 0; i < 8; i++)
-		printf("%08x ", b[i]);
-	puts("");
-#endif
-	return (((uint32_t *) binary)[0] & 0xf);
-}
-
-static int binary_hash_1(void *binary)
-{
-	return ((uint32_t *) binary)[0] & 0xff;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return ((uint32_t *) binary)[0] & 0xfff;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return ((uint32_t *) binary)[0] & 0xffff;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return ((uint32_t *) binary)[0] & 0xfffff;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return ((uint32_t *) binary)[0] & 0xffffff;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return ((uint32_t *) binary)[0] & 0x7ffffff;
-}
-
-static int get_hash_0(int index)
-{
-#ifdef _WPAPSK_DEBUG
-	int i;
-	puts("get_hash");
-	for (i = 0; i < 8; i++)
-		printf("%08x ", outbuffer[index].v[i]);
-	puts("");
-#endif
-	return outbuffer[index].v[0] & 0xf;
-}
-
-static int get_hash_1(int index)
-{
-	return outbuffer[index].v[0] & 0xff;
-}
-
-static int get_hash_2(int index)
-{
-	return outbuffer[index].v[0] & 0xfff;
-}
-
-static int get_hash_3(int index)
-{
-	return outbuffer[index].v[0] & 0xffff;
-}
-
-static int get_hash_4(int index)
-{
-	return outbuffer[index].v[0] & 0xfffff;
-}
-
-static int get_hash_5(int index)
-{
-	return outbuffer[index].v[0] & 0xffffff;
-}
-
-static int get_hash_6(int index)
-{
-	return outbuffer[index].v[0] & 0x7ffffff;
-}
-
-static int cmp_all(void *binary, int count)
-{
-	uint32_t i, b = ((uint32_t *) binary)[0];
-	for (i = 0; i < count; i++)
-		if (b == outbuffer[i].v[0])
-			return 1;
-	return 0;
-}
-
-static int cmp_one(void *binary, int index)
-{
-	uint32_t i, *b = (uint32_t *) binary;
-	for (i = 0; i < 8; i++)
-		if (b[i] != outbuffer[index].v[i])
-			return 0;
-	return 1;
-}
-
-static int cmp_exact(char *source, int count)
-{
-	return 1;
+	wpapsk_postprocess(KEYS_PER_CRYPT);
 }
 
 struct fmt_main fmt_cuda_wpapsk = {
@@ -241,7 +77,7 @@ struct fmt_main fmt_cuda_wpapsk = {
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
 		    FMT_CASE | FMT_8_BIT,
-	    tests},
+	    wpapsk_tests},
 	{
 		    init,
 		    fmt_default_prepare,

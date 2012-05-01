@@ -29,10 +29,14 @@
 
 #include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER >= 0x00908000
-
 #include <string.h>
-
+#if defined(__APPLE__) && defined(__MACH__)
+#define COMMON_DIGEST_FOR_OPENSSL
+#include <CommonCrypto/CommonDigest.h>
+#define SHA256 CC_SHA256
+#else
 #include <openssl/sha.h>
+#endif
 
 #include "arch.h"
 #include "params.h"

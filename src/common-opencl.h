@@ -17,6 +17,7 @@
 #define MAXGPUS	8
 #define MAX_PLATFORMS	8
 #define SUBSECTION_OPENCL	":OpenCL"
+#define MAX_OCLINFO_STRING_LEN	64
 
 /* Comment if you do not want to see OpenCL warnings during kernel compilation */
 #define REPORT_OPENCL_WARNINGS
@@ -33,13 +34,44 @@ cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t max_group_size;
 
+cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComputeCapMinor);
+
+void opencl_init_dev(unsigned int dev_id, unsigned int platform_id);
 void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
+void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
 
+int get_device_info();
+cl_device_type get_device_type(int dev_id);
 cl_ulong get_local_memory_size(int dev_id);
 size_t get_max_work_group_size(int dev_id);
+size_t get_current_work_group_size(int dev_id, cl_kernel crypt_kernel);
 cl_uint get_max_compute_units(int dev_id);
-cl_device_type get_device_type(int dev_id);
+cl_uint get_processors_count(int dev_id);
+cl_uint get_processor_family(int dev_id);
+int get_vendor_id(int dev_id);
+
+#define UNKNOWN                 0
+#define CPU                     1
+#define GPU                     2
+#define ACCELERATOR             4
+#define AMD                     64
+#define NVIDIA                  128
+#define INTEL                   256
+#define AMD_GCN                 1024
+#define AMD_VLIW4               2048
+#define AMD_VLIW5               4096 
+        
+#define cpu(n)                  ((n & CPU) == (CPU))
+#define gpu(n)                  ((n & GPU) == (GPU))
+#define gpu_amd(n)              ((n & AMD) && gpu(n))
+#define gpu_amd_64(n)           (0)
+#define gpu_nvidia(n)           ((n & NVIDIA) && gpu(n))
+#define gpu_intel(n)            ((n & INTEL) && gpu(n))
+#define cpu_amd(n)              ((n & AMD) && cpu(n))
+#define amd_gcn(n)              ((n & AMD_GCN) && gpu_amd(n))
+#define amd_vliw4(n)            ((n & AMD_VLIW4) && gpu_amd(n))
+#define amd_vliw5(n)            ((n & AMD_VLIW5) && gpu_amd(n))
 
 char *get_error_name(cl_int cl_error);
 

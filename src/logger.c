@@ -38,6 +38,7 @@
 #include "config.h"
 #include "options.h"
 #include "unicode.h"
+#include "dynamic.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 #endif
@@ -201,11 +202,14 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 
 	in_logger = 1;
 
-	if (pot.fd >= 0 && ciphertext &&
-	    strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
-		count1 = (int)sprintf(pot.ptr,
-			"%s%c%s\n", ciphertext, field_sep, store_plain);
-		if (count1 > 0) pot.ptr += count1;
+	if (pot.fd >= 0 && ciphertext ) {
+		if (!strncmp(ciphertext, "$dynamic_", 9))
+			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
+		if (strlen(ciphertext) + strlen(store_plain) <= LINE_BUFFER_SIZE - 3) {
+			count1 = (int)sprintf(pot.ptr,
+				"%s%c%s\n", ciphertext, field_sep, store_plain);
+			if (count1 > 0) pot.ptr += count1;
+		}
 	}
 
 	if (log.fd >= 0 &&

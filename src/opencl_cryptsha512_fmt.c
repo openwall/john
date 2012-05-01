@@ -2,6 +2,8 @@
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012   
  * Based on source code provided by Samuele Giovanni Tonon
  *
+ * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
+ * 
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
@@ -11,7 +13,7 @@
  */
 
 #include <string.h>
-#include "common-opencl.h"  
+#include "common-opencl.h"
 #include "config.h"
 #include "opencl_cryptsha512.h"
 
@@ -50,26 +52,14 @@ static struct fmt_tests tests[] = {
     {NULL}
 }; 
 
-size_t get_current_work_group_size(int dev_id)
-{
-        size_t max_group_size;
-
-        HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[dev_id],
-                       CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size), 
-                       &max_group_size, NULL),
-                       "Error querying clGetKernelWorkGroupInfo");
-
-        return max_group_size;
-}
-
 /* ------- Helper functions ------- */
 unsigned int get_task_max_work_group_size(){
     unsigned int max_available;
     max_available = get_local_memory_size(gpu_id) /
             (sizeof(working_memory) + sizeof(crypt_sha512_salt));
 
-    if (max_available > get_current_work_group_size(gpu_id))
-        return get_current_work_group_size(gpu_id);
+    if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
+        return get_current_work_group_size(gpu_id, crypt_kernel);
     
     return max_available;
 }
@@ -77,8 +67,8 @@ unsigned int get_task_max_work_group_size(){
 unsigned int get_task_max_size(){ 
     unsigned int max_available;
     max_available = get_max_compute_units(gpu_id);
-
-    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU)
+            
+    if (cpu(get_device_info()))
         return max_available * KEYS_PER_CORE_CPU;
     
     return max_available * KEYS_PER_CORE_GPU;
@@ -165,248 +155,6 @@ static void release_clobj(void) {
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
 }
 
-/* ------- Key functions ------- */
-static void set_key(char *key, int index) {
-    int len = strlen(key);
-    plaintext[index].length = len;
-    memcpy(plaintext[index].pass, key, len);
-    new_keys = 1;
-}
-
-static char *get_key(int index) {
-    static char ret[PLAINTEXT_LENGTH + 1];
-    memcpy(ret, plaintext[index].pass, PLAINTEXT_LENGTH);
-    ret[plaintext[index].length] = '\0';
-    return ret;
-}
-
-/* ------- Try to find the best configuration ------- */
-/* --
-  This function could be used to calculated the best num
-  for the workgroup
-  Work-items that make up a work-group (also referred to 
-  as the size of the work-group) 
-  LWS should never be a big number since every work-item
-  uses about 400 bytes of local memory. Local memory 
-  is usually 32 KB
--- */
-static void find_best_workgroup(void) {
-    cl_event myEvent;
-    cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-    size_t my_work_group = 1;
-    cl_int ret_code;
-    int i;
-    size_t max_group_size;
-
-    max_group_size = get_max_work_group_size(gpu_id);
-    queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
-            CL_QUEUE_PROFILING_ENABLE, &ret_code);
-    HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");    
-    printf("Max Group Work Size %d ", (int) max_group_size);
-    local_work_size = 1;
-
-    // Set keys
-    for (i = 0; i < get_task_max_size(); i++) {
-        set_key("aaabaabaaa", i);
-    }
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_TRUE, 0,
-            sizeof (crypt_sha512_salt), &salt, 0, NULL, NULL),
-            "Failed in clEnqueueWriteBuffer I");
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_TRUE, 0, 
-            sizeof (crypt_sha512_password) * get_task_max_size(), 
-            plaintext, 0, NULL, NULL),
-            "Failed in clEnqueueWriteBuffer II");
-
-    // Find minimum time
-    for (my_work_group = 1; (int) my_work_group <= (int) get_task_max_work_group_size(); 
-         my_work_group *= 2) {
-        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
-                1, NULL, &max_keys_per_crypt, &my_work_group, 0, NULL, &myEvent);
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-
-        if (ret_code != CL_SUCCESS) {
-            printf("Error %d\n", ret_code); ///Better commented by default.
-            break;
-        }
-        //Get profile information
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
-                sizeof (cl_ulong), &startTime, NULL),
-                "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
-                sizeof (cl_ulong), &endTime, NULL),
-                "Failed in clGetEventProfilingInfo II");
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-        
-        if ((endTime - startTime) < kernelExecTimeNs) {
-            kernelExecTimeNs = endTime - startTime;
-            local_work_size = my_work_group;
-        }
-    }
-    printf("Optimal local work size %d\n", (int) local_work_size);
-    printf("(to avoid this test on next run, put \""
-        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-        SUBSECTION_OPENCL "])\n", (int)local_work_size);    
-    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), 
-            "Failed in clReleaseCommandQueue");
-}
-
-/* --
-  This function could be used to calculated the best num
-  of keys per crypt for the given format
--- */
-static void find_best_kpc(void) {
-    size_t num;
-    cl_event myEvent;
-    cl_ulong startTime, endTime, tmpTime;
-    cl_ulong kernelExecTimeNs = CL_ULONG_MAX;
-    cl_int ret_code;
-    int optimal_kpc = MIN_KEYS_PER_CRYPT;
-    int i;
-    cl_uint *tmpbuffer;
-
-    printf("Calculating best keys per crypt, this will take a while ");
-    
-    for (num = get_task_max_size(); (int) num > MIN_KEYS_PER_CRYPT; num -= 4096) {
-        release_clobj();
-        create_clobj(num);
-        advance_cursor();
-        tmpbuffer = malloc(sizeof (crypt_sha512_hash) * num);
-        
-        if (tmpbuffer == NULL) {
-            printf ("Malloc failure in find_best_kpc\n");
-            exit (EXIT_FAILURE);
-        }
-        
-        queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
-                CL_QUEUE_PROFILING_ENABLE, &ret_code);
-        HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
-
-        // Set keys
-        for (i = 0; i < num; i++) {
-            set_key("aaabaabaaa", i);
-        }
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-                sizeof (crypt_sha512_salt), &salt, 0, NULL, NULL),
-                "Failed in clEnqueueWriteBuffer I");
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0, 
-                sizeof (crypt_sha512_password) * num, plaintext, 0, NULL, NULL),
-                "Failed in clEnqueueWriteBuffer II");
-        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
-                1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
-        HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
-                sizeof (crypt_sha512_hash) * num, tmpbuffer, 0, NULL, NULL),
-                "Failed in clEnqueueReadBuffer");
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-            
-        if (ret_code != CL_SUCCESS) {
-            printf("Error %d\n", ret_code);
-            continue;
-        }       
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
-                sizeof (cl_ulong), &startTime, NULL),
-                "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
-                sizeof (cl_ulong), &endTime, NULL),
-                "Failed in clGetEventProfilingInfo II");
-        
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-        tmpTime = endTime - startTime;
-
-        if (((int) (((float) (tmpTime) / num) * 10)) <= kernelExecTimeNs) {
-            kernelExecTimeNs = ((int) (((float) (tmpTime) / num) * 10));
-            optimal_kpc = num;
-        }
-        free(tmpbuffer);
-        HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), 
-            "Failed in clReleaseCommandQueue");
-    }
-    printf("Optimal keys per crypt %d\n", optimal_kpc);
-    printf("to avoid this test on next run, put \""
-        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-        SUBSECTION_OPENCL "])\n", optimal_kpc);
-    max_keys_per_crypt = optimal_kpc;
-    release_clobj();
-    create_clobj(optimal_kpc);
-}
-
-/* ------- Initialization  ------- */
-static void init(struct fmt_main *pFmt) {
-    char *tmp_value;
-    opencl_init("$JOHN/cryptsha512_kernel.cl", gpu_id, platform_id);
-    max_keys_per_crypt = get_task_max_size();
-    local_work_size = 0;
-
-    // create kernel to execute
-    crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, LWS_CONFIG)))
-        local_work_size = atoi(tmp_value);
-    
-    if ((tmp_value = getenv("LWS")))
-        local_work_size = atoi(tmp_value);
-
-    //Check if local_work_size is a valid number.
-    if (local_work_size > get_task_max_work_group_size()){
-        printf("Error: invalid local work size (LWS). Max value allowed is: %u\n" ,
-               get_task_max_work_group_size());
-        local_work_size = 0; //Force find a valid number.
-    }
-    
-    if (!local_work_size) {
-        local_work_size = get_task_max_work_group_size();
-        create_clobj(max_keys_per_crypt);
-        find_best_workgroup();
-        release_clobj();
-    }
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, 
-                                   SUBSECTION_OPENCL, KPC_CONFIG)))
-        max_keys_per_crypt = atoi(tmp_value);
-
-    if ((tmp_value = getenv("KPC")))
-        max_keys_per_crypt = atoi(tmp_value);
-    
-    if (max_keys_per_crypt)
-        create_clobj(max_keys_per_crypt);
-
-    else { 
-        //user chose to die of boredom
-        max_keys_per_crypt = get_task_max_size();
-        create_clobj(max_keys_per_crypt);
-        find_best_kpc();
-    }
-    printf("Local work size (LWS) %d, Keys per crypt (KPC) %Zd\n",
-           (int) local_work_size, max_keys_per_crypt);   
-    pFmt->params.max_keys_per_crypt = max_keys_per_crypt;     
-}
-
-/* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
-static int valid(char *ciphertext, struct fmt_main *pFmt) {
-	uint32_t i, j;
-	int len = strlen(ciphertext);
-
-	if (strncmp(ciphertext, "$6$", 3) != 0)
-		return 0;
-	char *p = strrchr(ciphertext, '$');
-	if (p == NULL)
-		return 0;
-	for (i = p - ciphertext + 1; i < len; i++) {
-		int found = 0;
-		for (j = 0; j < 64; j++)
-			if (itoa64[j] == ARCH_INDEX(ciphertext[i]))
-				found = 1;
-		if (found == 0) {
-			puts("not found");
-			return 0;
-		}
-	}
-	if (len - (p - ciphertext + 1) != 86)
-		return 0;
-	return 1;
-}
-
 /* ------- Salt functions ------- */
 static void *get_salt(char *ciphertext) {
     int end = 0, i, len = strlen(ciphertext);
@@ -451,6 +199,302 @@ static void set_salt(void *salt_info) {
     salt.length = (salt.length > SALT_SIZE ? SALT_SIZE : salt.length);
 }
 
+/* ------- Key functions ------- */
+static void set_key(char *key, int index) {
+    int len = strlen(key);
+    plaintext[index].length = len;
+    memcpy(plaintext[index].pass, key, len);
+    new_keys = 1;
+}
+
+static char *get_key(int index) {
+    static char ret[PLAINTEXT_LENGTH + 1];
+    memcpy(ret, plaintext[index].pass, PLAINTEXT_LENGTH);
+    ret[plaintext[index].length] = '\0';
+    return ret;
+}
+
+/* ------- Try to find the best configuration ------- */
+/* --
+  This function could be used to calculated the best num
+  for the workgroup
+  Work-items that make up a work-group (also referred to 
+  as the size of the work-group) 
+  LWS should never be a big number since every work-item
+  uses about 400 bytes of local memory. Local memory 
+  is usually 32 KB
+-- */
+static void find_best_workgroup(void) {
+    cl_event myEvent;
+    cl_ulong startTime, endTime, min_time = CL_ULONG_MAX;
+    size_t my_work_group = 1;
+    cl_int ret_code;
+    int i;
+    size_t max_group_size;
+
+    max_group_size = get_max_work_group_size(gpu_id);
+    queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
+            CL_QUEUE_PROFILING_ENABLE, &ret_code);
+    HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");    
+    printf("Max Group Work Size %d ", (int) max_group_size);
+    local_work_size = 1;
+    max_group_size = get_task_max_work_group_size();
+    
+    // Set salt.
+    set_salt("$6$saltstring$");
+    
+    // Set keys
+    for (i = 0; i < max_keys_per_crypt; i++) {
+        set_key("aaabaabaaa", i);
+    }
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_TRUE, 0,
+            sizeof (crypt_sha512_salt), &salt, 0, NULL, NULL),
+            "Failed in clEnqueueWriteBuffer I");
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_TRUE, 0, 
+            sizeof (crypt_sha512_password) * max_keys_per_crypt, 
+            plaintext, 0, NULL, NULL),
+            "Failed in clEnqueueWriteBuffer II");
+    
+    if (cpu(get_device_info()))
+        my_work_group = 1;
+    
+    else
+        my_work_group = 16;
+                
+    // Find minimum time
+    for (; (int) my_work_group <= (int) max_group_size; 
+         my_work_group *= 2) {
+        advance_cursor();
+        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
+                1, NULL, &max_keys_per_crypt, &my_work_group, 0, NULL, &myEvent);
+        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+
+        if (ret_code != CL_SUCCESS) {
+
+            if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
+                printf("Error %d\n", ret_code); 
+            continue;
+        }
+        //Get profile information
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, 
+                sizeof (cl_ulong), &startTime, NULL),
+                "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
+                sizeof (cl_ulong), &endTime, NULL),
+                "Failed in clGetEventProfilingInfo II");
+        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
+
+        if ((endTime - startTime) * 1.01 < min_time) {
+            min_time = endTime - startTime;
+            local_work_size = my_work_group;
+        }
+    }
+    printf("Optimal local work size %d\n", (int) local_work_size);
+    printf("(to avoid this test on next run, put \""
+        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        SUBSECTION_OPENCL "])\n", (int)local_work_size);    
+    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), 
+            "Failed in clReleaseCommandQueue");
+}
+
+/* --
+  This function could be used to calculated the best num
+  of keys per crypt for the given format
+-- */
+static void find_best_kpc(void) {
+    size_t num;
+    cl_event myEvent;
+    cl_ulong startTime, endTime, run_time, min_time = CL_ULONG_MAX; 
+    cl_int ret_code;
+    cl_uint *tmpbuffer;
+    int optimal_kpc = MIN_KEYS_PER_CRYPT, i, step = STEP;
+    int do_benchmark = 0;
+    unsigned int SHAspeed, bestSHAspeed = 0; 
+    char *tmp_value; 
+
+    printf("Calculating best keys per crypt, this will take a while ");
+
+    if ((tmp_value = getenv("STEP"))){
+	step = atoi(tmp_value);
+        do_benchmark = 1;
+    }
+    
+    for (num = step; num < MAX_KEYS_PER_CRYPT; num += step) {
+        release_clobj();
+        create_clobj(num);
+        
+        if (! do_benchmark)
+            advance_cursor();
+        
+        tmpbuffer = malloc(sizeof (crypt_sha512_hash) * num);
+        
+        if (tmpbuffer == NULL) {
+            printf ("Malloc failure in find_best_kpc\n");
+            exit (EXIT_FAILURE);
+        }
+        
+        queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], 
+                CL_QUEUE_PROFILING_ENABLE, &ret_code);
+        HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
+        
+        // Set salt.
+        set_salt("$6$saltstring$");
+                
+        // Set keys
+        for (i = 0; i < num; i++) {
+            set_key("aaabaabaaa", i);
+        }
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
+                sizeof (crypt_sha512_salt), &salt, 0, NULL, NULL),
+                "Failed in clEnqueueWriteBuffer I");
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0, 
+                sizeof (crypt_sha512_password) * num, plaintext, 0, NULL, NULL),
+                "Failed in clEnqueueWriteBuffer II");
+        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 
+                1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
+                sizeof (crypt_sha512_hash) * num, tmpbuffer, 0, NULL, NULL),
+                "Failed in clEnqueueReadBuffer");
+        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+            
+        if (ret_code != CL_SUCCESS) {
+            printf("Error %d\n", ret_code);
+            continue;
+        }       
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
+                sizeof (cl_ulong), &startTime, NULL),
+                "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
+                sizeof (cl_ulong), &endTime, NULL),
+                "Failed in clGetEventProfilingInfo II");
+        
+        free(tmpbuffer);
+        HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), 
+            "Failed in clReleaseCommandQueue");
+        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
+
+        run_time = endTime - startTime;
+	SHAspeed = 5000 * num / (run_time / 1000000000.);
+
+        if (run_time < min_time)
+            min_time = run_time;
+
+        if (do_benchmark) {
+            fprintf(stderr, "kpc: %6zu\t%4lu c/s%14u rounds/s%8.3f sec per crypt_all()",
+                    num, (long) (num / (run_time / 1000000000.)), SHAspeed, 
+                    (float) run_time / 1000000000.);
+
+            if (run_time > 10000000000) {
+                fprintf(stderr, " - too slow\n");
+                break;
+            }
+        } else {
+            if (run_time > min_time * 10)
+                break;
+        }
+        if (SHAspeed > (1.01 * bestSHAspeed)) {
+            if (do_benchmark)
+                fprintf(stderr, "+");
+            bestSHAspeed = SHAspeed;
+            optimal_kpc = num;
+        }
+        if (do_benchmark)
+            fprintf(stderr, "\n");
+    }
+    printf("Optimal keys per crypt %d\n", optimal_kpc);
+    printf("(to avoid this test on next run, put \""
+        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        SUBSECTION_OPENCL "])\n", optimal_kpc);
+    max_keys_per_crypt = optimal_kpc;
+    release_clobj();
+    create_clobj(optimal_kpc);
+}
+
+/* ------- Initialization  ------- */
+static void init(struct fmt_main *pFmt) {
+    char *tmp_value;
+    opencl_init_dev(gpu_id, platform_id);
+      
+    if (cpu(get_device_info()))
+        opencl_build_kernel("$JOHN/cryptsha512_CPU_kernel.cl", gpu_id);
+    
+    else
+        opencl_build_kernel("$JOHN/cryptsha512_kernel.cl", gpu_id);
+ 
+    max_keys_per_crypt = get_task_max_size();
+    local_work_size = 32; //Default safe value.
+      
+    // create kernel to execute
+    crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
+                                   SUBSECTION_OPENCL, LWS_CONFIG)))
+        local_work_size = atoi(tmp_value);
+    
+    if ((tmp_value = getenv("LWS")))
+        local_work_size = atoi(tmp_value);
+
+    //Check if local_work_size is a valid number.
+    if (local_work_size > get_task_max_work_group_size()){
+        printf("Error: invalid local work size (LWS). Max value allowed is: %u\n" ,
+               get_task_max_work_group_size());
+        local_work_size = 0; //Force find a valid number.
+    }
+    
+    if (!local_work_size) {
+        local_work_size = get_task_max_work_group_size();
+        create_clobj(max_keys_per_crypt);
+        find_best_workgroup();
+        release_clobj();
+    }
+
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, 
+                                   SUBSECTION_OPENCL, KPC_CONFIG)))
+        max_keys_per_crypt = atoi(tmp_value);
+
+    if ((tmp_value = getenv("KPC")))
+        max_keys_per_crypt = atoi(tmp_value);
+    
+    if (max_keys_per_crypt)
+        create_clobj(max_keys_per_crypt);
+
+    else { 
+        //user chose to die of boredom
+        max_keys_per_crypt = get_task_max_size();
+        create_clobj(max_keys_per_crypt);
+        find_best_kpc();
+    }
+    printf("Local work size (LWS) %d, Keys per crypt (KPC) %Zd\n",
+           (int) local_work_size, max_keys_per_crypt);   
+    pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
+}
+
+/* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
+static int valid(char *ciphertext, struct fmt_main *pFmt) {
+    uint32_t i, j;
+    int len = strlen(ciphertext);
+
+    if (strncmp(ciphertext, "$6$", 3) != 0)
+            return 0;
+    char *p = strrchr(ciphertext, '$');
+    if (p == NULL)
+            return 0;
+    for (i = p - ciphertext + 1; i < len; i++) {
+            int found = 0;
+            for (j = 0; j < 64; j++)
+                    if (itoa64[j] == ARCH_INDEX(ciphertext[i]))
+                            found = 1;
+            if (found == 0) {
+                    puts("not found");
+                    return 0;
+            }
+    }
+    if (len - (p - ciphertext + 1) != 86)
+            return 0;
+    return 1;
+}
+
 /* ------- To binary functions ------- */
 static int findb64(char c) {
     int ret = ARCH_INDEX(atoi64[(uint8_t) c]);
@@ -459,19 +503,19 @@ static int findb64(char c) {
 
 static void magic(char *crypt, unsigned char *alt) {
 #define _24bit_from_b64(I,B2,B1,B0) \
-  {\
-      unsigned char c1=findb64(crypt[I+0]);\
-      unsigned char c2=findb64(crypt[I+1]);\
-      unsigned char c3=findb64(crypt[I+2]);\
-      unsigned char c4=findb64(crypt[I+3]);\
-      unsigned int w=c4<<18|c3<<12|c2<<6|c1;\
-      unsigned char b2=w&0xff;w>>=8;\
-      unsigned char b1=w&0xff;w>>=8;\
-      unsigned char b0=w&0xff;w>>=8;\
-      alt[B2]=b0;\
-      alt[B1]=b1;\
-      alt[B0]=b2;\
-  }
+    {\
+        unsigned char c1=findb64(crypt[I+0]);\
+        unsigned char c2=findb64(crypt[I+1]);\
+        unsigned char c3=findb64(crypt[I+2]);\
+        unsigned char c4=findb64(crypt[I+3]);\
+        unsigned int w=c4<<18|c3<<12|c2<<6|c1;\
+        unsigned char b2=w&0xff;w>>=8;\
+        unsigned char b1=w&0xff;w>>=8;\
+        unsigned char b0=w&0xff;w>>=8;\
+        alt[B2]=b0;\
+        alt[B1]=b1;\
+        alt[B0]=b2;\
+    }
     _24bit_from_b64(0, 0, 21, 42);
     _24bit_from_b64(4, 22, 43, 1);
     _24bit_from_b64(8, 44, 2, 23);
@@ -557,7 +601,7 @@ static void crypt_all(int count) {
  
     //Do the work
     HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
-    new_keys = 0;
+    new_keys = 0;   
 }
 
 /* ------- Binary Hash functions group ------- */

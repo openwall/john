@@ -188,6 +188,13 @@ struct db_options {
 
 /* by default will be ':', but -field-separator-char=c can over ride the default */
 	char field_sep_char;
+
+/* This is a 'special' flag.  It causes john to add 'extra' code to search for some salted types, when we have */
+/* only the hashes.  The only type supported is PHPS (at this time.).  So PHPS will set this to a 1. OTherwise */
+/* it will always be zero.  LIKELY we will add the same type logic for the OSC (mscommerse) type, which has only */
+/* a 2 byte salt.  That will set this field to be a 2.  If we add other types, then we will have other values */
+/* which can be assigned to this variable.  This var is set by the undocummented --regen_lost_salts=# */
+	int regen_lost_salts;
 };
 
 /*
