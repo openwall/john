@@ -67,16 +67,28 @@ static int numbers[CHARSET_LENGTH];
 static void save_state(FILE *file)
 {
 	int pos;
+	unsigned tmp;
+	unsigned long long tmpLL;
 
 	fprintf(file, "%d\n%d\n%d\n", rec_entry, rec_compat, CHARSET_LENGTH);
 	for (pos = 0; pos < CHARSET_LENGTH; pos++)
 		fprintf(file, "%d\n", rec_numbers[pos]);
+	// number added 'after' array, to preserve the try count, so that we can later know the 
+	// values tested, to report progress.  Before this, we could NOT report.
+	if (cand) {
+		tmpLL = try;
+		tmp = (unsigned) (tmpLL>>32);
+		fprintf(file, "%u\n", tmp);
+		tmp = (unsigned)tmpLL;
+		fprintf(file, "%u\n", tmp);
+	}
 }
 
 static int restore_state(FILE *file)
 {
 	int length;
 	int pos;
+	unsigned tmp;
 
 	if (fscanf(file, "%d\n", &rec_entry) != 1) return 1;
 	rec_compat = 1;
@@ -91,8 +103,14 @@ static int restore_state(FILE *file)
 		if (fscanf(file, "%d\n", &rec_numbers[pos]) != 1) return 1;
 		if ((unsigned int)rec_numbers[pos] >= CHARSET_SIZE) return 1;
 	}
+	tmp = 0;
+	if (fscanf(file, "%u\n", &tmp) != 1) { cand = 0; return 0; } // progress reporting don't work after resume so we mute it
+	try = tmp;
+	try <<= 32;
+	tmp = 0;
+	if (fscanf(file, "%u\n", &tmp) != 1) { cand = 0; try = 0; return 0; } // progress reporting don't work after resume so we mute it
+	try += tmp;
 
-	cand = 0; // progress reporting don't work after resume so we mute it
 	return 0;
 }
 
