@@ -5,6 +5,7 @@
 /run/*.cl
 /run/calc_stat
 /run/genmkvpwd
+/run/hccap2john
 /run/john
 /run/mkvcalcproba
 /run/mozilla2john
