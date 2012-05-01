@@ -141,12 +141,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static uint32_t *prf_512(uint32_t * key, uint8_t * data)
+static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 {
 	unsigned int i;
-	static char *text = "Pairwise key expansion";
-	static unsigned char buff[100];
-	static uint32_t ret[20];
+	char *text = "Pairwise key expansion";
+	unsigned char buff[100];
 
 	memcpy(buff, text, 22);
 	memcpy(buff + 23, data, 76);
@@ -156,10 +155,10 @@ static uint32_t *prf_512(uint32_t * key, uint8_t * data)
 		HMAC_CTX ctx;
 		HMAC_Init(&ctx, key, 32, EVP_sha1());
 		HMAC_Update(&ctx, buff, 100);
-		HMAC_Final(&ctx, (unsigned char *) ret + (20 * i), NULL);
+		HMAC_Final(&ctx, (unsigned char *) ret, NULL);
 		HMAC_CTX_cleanup(&ctx);
+		ret += 5;
 	}
-	return ret;
 }
 
 static void set_salt(void *salt)
@@ -215,16 +214,27 @@ static void wpapsk_postprocess(int keys)
 	insert_mac(data);
 	insert_nonce(data + 12);
 
-	for (i = 0; i < keys; i++) {
-		uint32_t *prf = prf_512(outbuffer[i].v, data);
-		if (hccap.keyver == 1)
+	if (hccap.keyver == 1) {
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
+#endif
+		for (i = 0; i < keys; i++) {
+			uint32_t prf[20];
+			prf_512(outbuffer[i].v, data, prf);
 			HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size,
 			    mic[i].keymic, NULL);
-		else
+		}
+	} else {
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
+#endif
+		for (i = 0; i < keys; i++) {
+			uint32_t prf[20];
+			prf_512(outbuffer[i].v, data, prf);
 			HMAC(EVP_sha1(), prf, 16, hccap.eapol,
 			    hccap.eapol_size, mic[i].keymic, NULL);
+		}
 	}
-
 }
 
 static int binary_hash_0(void *binary)
