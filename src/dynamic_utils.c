@@ -160,7 +160,7 @@ char *dynamic_FIX_SALT_TO_HEX(char *ciphertext) {
 		char *cpx, *cpNew = mem_alloc_tiny(strlen(ciphertext) + 1 + 4 + strlen(cp), MEM_ALIGN_NONE);
 		cpx = cpNew;
 		// put the hash, including first '$' into the ouput string, AND the starting HEX$
-		cpx += sprintf(cpNew, "%*.*sHEX$", cp-ciphertext, cp-ciphertext, ciphertext);
+		cpx += sprintf(cpNew, "%*.*sHEX$", (int)(cp-ciphertext), (int)(cp-ciphertext), ciphertext);
 		while (*cp)
 			cpx += sprintf(cpx, "%x", *cp++);
 		return cpNew;
