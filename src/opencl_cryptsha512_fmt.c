@@ -74,6 +74,15 @@ unsigned int get_task_max_size(){
     return max_available * KEYS_PER_CORE_GPU;
 }
 
+size_t get_default_workgroup(){ 
+    
+    if (cpu(get_device_info()))
+        return 1;
+    
+    else
+        return 32;
+}
+
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(int kpc) {           
     pinned_saved_keys = clCreateBuffer(context[gpu_id], 
@@ -255,11 +264,7 @@ static void find_best_workgroup(void) {
             plaintext, 0, NULL, NULL),
             "Failed in clEnqueueWriteBuffer II");
     
-    if (cpu(get_device_info()))
-        my_work_group = 1;
-    
-    else
-        my_work_group = 16;
+    my_work_group = get_default_workgroup();
                 
     // Find minimum time
     for (; (int) my_work_group <= (int) max_group_size; 
@@ -276,7 +281,7 @@ static void find_best_workgroup(void) {
             continue;
         }
         //Get profile information
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_START, 
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, 
                 sizeof (cl_ulong), &startTime, NULL),
                 "Failed in clGetEventProfilingInfo I");
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END, 
@@ -297,6 +302,23 @@ static void find_best_workgroup(void) {
             "Failed in clReleaseCommandQueue");
 }
 
+//Allow me to have a configurable step size.
+static int get_step(size_t num, int step, int startup){
+
+    if (startup) {
+        
+        if (step == 0)
+            return STEP;
+        else
+            return step;
+    }
+    
+    if (step < 1)
+        return num * 2;
+        
+    return num + step;
+}
+
 /* --
   This function could be used to calculated the best num
   of keys per crypt for the given format
@@ -315,11 +337,12 @@ static void find_best_kpc(void) {
     printf("Calculating best keys per crypt, this will take a while ");
 
     if ((tmp_value = getenv("STEP"))){
-	step = atoi(tmp_value);
+        step = atoi(tmp_value);
         do_benchmark = 1;
     }
     
-    for (num = step; num < MAX_KEYS_PER_CRYPT; num += step) {
+    for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT; 
+         num = get_step(num, step, 0)) {
         release_clobj();
         create_clobj(num);
         
@@ -414,22 +437,30 @@ static void find_best_kpc(void) {
 static void init(struct fmt_main *pFmt) {
     char *tmp_value;
     opencl_init_dev(gpu_id, platform_id);
-      
+    //opencl_build_kernel("$JOHN/cryptsha512_kernel_segfault.cl", gpu_id); Segfault on 7970
+
     if (cpu(get_device_info()))
-        opencl_build_kernel("$JOHN/cryptsha512_CPU_kernel.cl", gpu_id);
+        opencl_build_kernel("$JOHN/cryptsha512_kernel_CPU.cl", gpu_id); 
     
-    else
-        opencl_build_kernel("$JOHN/cryptsha512_kernel.cl", gpu_id);
- 
+    else {
+        printf("Building the kernel, this will take a while: "); fflush(stdout);
+        
+        if (gpu_nvidia(get_device_info()))
+            opencl_build_kernel("$JOHN/cryptsha512_kernel_NVIDIA.cl", gpu_id);
+        else
+            opencl_build_kernel("$JOHN/cryptsha512_kernel_AMD_V1.cl", gpu_id);
+            
+        fflush(stdout);
+    }
     max_keys_per_crypt = get_task_max_size();
-    local_work_size = 32; //Default safe value.
+    local_work_size = get_default_workgroup();
       
     // create kernel to execute
     crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, LWS_CONFIG)))
+                                   SUBSECTION_OPENCL, LWS_CONFIG))) 
         local_work_size = atoi(tmp_value);
     
     if ((tmp_value = getenv("LWS")))
@@ -605,7 +636,36 @@ static void crypt_all(int count) {
 }
 
 /* ------- Binary Hash functions group ------- */
-static int binary_hash_0(void * binary) { return *(ARCH_WORD_32 *) binary & 0xF; } 
+#ifdef DEBUG
+static void print_binary(void * binary) {
+    uint64_t *bin = binary;
+    int i;
+    
+    for (i = 0; i < 8; i++)
+        printf("%016lx ", bin[i]);
+    puts("(Ok)");    
+}
+
+static void print_hash() {
+    int i;
+
+    for (i = 0; i < max_keys_per_crypt; i++)
+        if (calculated_hash[i].v[0] == 12)
+            printf("Value: %lu, %d\n ", calculated_hash[i].v[0], i);
+
+    printf("\n");
+    for (i = 0; i < 8; i++)
+        printf("%016lx ", calculated_hash[0].v[i]);
+    puts("");    
+}
+#endif
+
+static int binary_hash_0(void * binary) { 
+#ifdef DEBUG
+    print_binary(binary);
+#endif 
+    return *(ARCH_WORD_32 *) binary & 0xF; 
+} 
 static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFF; }
 static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFF; }
 static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFFF; }
@@ -614,7 +674,12 @@ static int binary_hash_5(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFF
 static int binary_hash_6(void * binary) { return *(ARCH_WORD_32 *) binary & 0x7FFFFFF; }
 
 //Get Hash functions group.
-static int get_hash_0(int index) { return calculated_hash[index].v[0] & 0xF; }
+static int get_hash_0(int index) { 
+#ifdef DEBUG
+    print_hash(index); 
+#endif     
+    return calculated_hash[index].v[0] & 0xF; 
+}
 static int get_hash_1(int index) { return calculated_hash[index].v[0] & 0xFF; }
 static int get_hash_2(int index) { return calculated_hash[index].v[0] & 0xFFF; }
 static int get_hash_3(int index) { return calculated_hash[index].v[0] & 0xFFFF; }

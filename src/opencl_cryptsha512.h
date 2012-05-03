@@ -65,29 +65,7 @@
 #define MAX_KEYS_PER_CRYPT	2048*1024
 
 //Macros.
-#if gpu_amd_64(DEVICE_INFO)
-	#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-	#define ror(x, n) 	amd_bitalign(x, x, (uint64_t) n)
-	#define Ch(x, y, z) 	amd_bytealign(x, y, z)
-	#define Maj(x, y, z) 	amd_bytealign(z ^ x, y, x )
-#elif gpu_amd(DEVICE_INFO)
-	#define Ch(x,y,z)	bitselect(z, y, x)
-	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
-	#define ror(x, n) 	rotate(x, (uint64_t) 64-n)
-#elif gpu_nvidia(DEVICE_INFO)
-        #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
-#else
-	#define Ch(x,y,z)	((x & y) ^ ( (~x) & z))
-	#define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
-        #define ror(x, n)       ((x >> n) | (x << (64-n)))
-#endif
-
-#define Sigma0(x)               ((ror(x,28)) ^ (ror(x,34)) ^ (ror(x,39)))
-#define Sigma1(x)               ((ror(x,14)) ^ (ror(x,18)) ^ (ror(x,41)))
-#define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
-#define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
-
-#define SWAP64(n) \
+#define SWAP(n) \
   (((n) << 56)					\
    | (((n) & 0xff00) << 40)			\
    | (((n) & 0xff0000) << 24)			\
@@ -96,6 +74,36 @@
    | (((n) >> 24) & 0xff0000)			\
    | (((n) >> 40) & 0xff00)			\
    | ((n) >> 56))
+#define SWAP64_V(n)     SWAP(n)
+
+#if gpu_amd_64(DEVICE_INFO)
+        #warning Note: Device type is "gpu_amd_64"
+        #pragma OPENCL EXTENSION cl_amd_media_ops : enable
+	#define ror(x, n) 	amd_bitalign(x, x, (uint64_t) n)
+	#define Ch(x, y, z) 	amd_bytealign(x, y, z)
+	#define Maj(x, y, z) 	amd_bytealign(z ^ x, y, x )
+        #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
+#elif gpu_amd(DEVICE_INFO)
+        #warning Note: Device type is "gpu_amd"
+	#define Ch(x,y,z)	bitselect(z, y, x)
+	#define Maj(x,y,z)      bitselect(x, y, z ^ x)
+	#define ror(x, n) 	rotate(x, (uint64_t) 64-n)
+        #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
+#else
+        #if gpu_nvidia(DEVICE_INFO)
+            #warning Note: Device type is "gpu_nvidia"
+            #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
+        #endif
+	#define Ch(x,y,z)	((x & y) ^ ( (~x) & z))
+	#define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
+        #define ror(x, n)       ((x >> n) | (x << (64-n)))
+        #define SWAP64(n)       SWAP(n)
+#endif
+
+#define Sigma0(x)               ((ror(x,28)) ^ (ror(x,34)) ^ (ror(x,39)))
+#define Sigma1(x)               ((ror(x,14)) ^ (ror(x,18)) ^ (ror(x,41)))
+#define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
+#define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
 
 //Data types.
 typedef union {
@@ -106,32 +114,32 @@ typedef union {
 } buffer_64;
 
 typedef struct {
-	uint32_t        rounds;
-	uint32_t        length;
-	uint8_t         salt[SALT_SIZE];
+    uint32_t            rounds;
+    uint32_t            length;
+    uint8_t             salt[SALT_SIZE];
 } crypt_sha512_salt;
 
 typedef struct {
-	uint32_t        length;
-	uint8_t         pass[PLAINTEXT_LENGTH];
+    uint32_t            length;
+    uint8_t             pass[PLAINTEXT_LENGTH];
 } crypt_sha512_password;
 
 typedef struct {
-	uint64_t        v[8];		//512 bits
+    uint64_t            v[8];		//512 bits
 } crypt_sha512_hash;
 
 typedef struct {
-	uint64_t        H[8];           //512 bits
-	uint32_t        total;
-	uint32_t        buflen;
-	buffer_64       buffer[16];	//1024bits  
+    uint64_t            H[8];           //512 bits
+    uint32_t            total;
+    uint32_t            buflen;
+    buffer_64           buffer[16];     //1024bits  
 } sha512_ctx;
 
 typedef struct {
-        sha512_ctx              ctx_data;
-        crypt_sha512_password   pass_data;
-        buffer_64               alt_result[8];
-        buffer_64               temp_result[8];
-        buffer_64               p_sequence[8];
+    sha512_ctx                  ctx_data;
+    crypt_sha512_password       pass_data;
+    buffer_64                   alt_result[8];
+    buffer_64                   temp_result[8];
+    buffer_64                   p_sequence[8];
 } working_memory;
 #endif
