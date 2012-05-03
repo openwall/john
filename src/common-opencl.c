@@ -91,10 +91,11 @@ static char * include_source(char *pathname, int dev_id)
 {
 	static char include[PATH_BUFFER_SIZE];
 
-	sprintf(include, "-I %s %s %s%d %s", path_expand(pathname),
+	sprintf(include, "-I %s %s %s%d %s %s", path_expand(pathname),
 	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
 	        "-DDEVICE_IS_CPU" : "",
                 "-DDEVICE_INFO=", device_info,
+		gpu_nvidia(device_info) ? "-cl-nv-verbose" : "",
 	        "-cl-strict-aliasing -cl-mad-enable");
 
 	//fprintf(stderr, "Options used: %s\n", include);

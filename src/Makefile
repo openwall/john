@@ -324,7 +324,7 @@ linux-x86-64-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart"
 	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_cryptsha512.h ../run/
+	$(CP) opencl_*.h ../run/
 
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -334,7 +334,7 @@ linux-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl"
 	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_cryptsha512.h ../run/
+	$(CP) opencl_*.h ../run/
 
 linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -451,8 +451,7 @@ linux-x86-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
 	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_cryptsha512.h ../run/
-	#/bin/sh ./setup-opencl-stuff.sh
+	$(CP) opencl_*.h ../run/
 
 linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
@@ -462,8 +461,7 @@ linux-x86-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl"
 	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_cryptsha512.h ../run/
-	#/bin/sh ./setup-opencl-stuff.sh
+	$(CP) opencl_*.h ../run/
 
 linux-x86-cuda:
 	$(LN) x86-sse.h arch.h
@@ -973,8 +971,7 @@ macosx-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_cryptsha512.h ../run/
-	#/bin/sh ./setup-opencl-stuff.sh
+	$(CP) opencl_*.h ../run/
 
 macosx-x86-64:
 	$(LN) x86-64.h arch.h

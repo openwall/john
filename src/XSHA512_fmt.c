@@ -16,6 +16,8 @@
 #else
 #include <openssl/sha.h>
 #endif
+#else
+#include <openssl/sha.h>
 #endif
 #else
 #include <openssl/sha.h>
