@@ -8,7 +8,7 @@
 //#define DEBUG
 
 #define PLAINTEXT_LENGTH	16
-#define FIXED_LEN		4
+//#define FIXED_LEN		4
 
 #define LWS_CONFIG		"rar_LWS"
 #define KPC_CONFIG		"rar_KPC"
