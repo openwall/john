@@ -425,8 +425,9 @@ inline void memcpy32(uint4 *d, const uint4 *s, uint len)
 #warning Notice: Using fixed length and vectorized kernel
 #define SetCryptKeysV	SetCryptKeys
 #else
+#ifdef DEBUG
 #warning Notice: Using variable length and non-vectorized kernel
-
+#endif
 /* The double block[] buffer saves us a LOT of branching, 20% speedup. */
 __kernel void SetCryptKeys(
 	const __global uint *unicode_pw,

@@ -30,10 +30,16 @@
  * 		 PasswordFormat == ? */
 
 #if defined(__APPLE__) && defined(__MACH__)
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define COMMON_DIGEST_FOR_OPENSSL
 #include <CommonCrypto/CommonDigest.h>
-#define SHA1 CC_SHA1
-#define SHA256 CC_SHA256
+#else
+#include <openssl/sha.h>
+#endif
+#else
+#include <openssl/sha.h>
+#endif
 #else
 #include <openssl/sha.h>
 #endif
