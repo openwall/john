@@ -326,7 +326,7 @@ static void crypt_all(int count)
 				cracked[index] = 0;
 		}
 		else if (salt_struct->version == 2010) {
-			unsigned char verifierInputKey[16], verifierHashKey[16], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char verifierInputKey[20], verifierHashKey[20], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[20];
 			SHA_CTX ctx;
 			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashInputBlockKey, salt_struct->keySize >> 3, verifierInputKey);
