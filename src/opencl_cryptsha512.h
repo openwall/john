@@ -64,16 +64,21 @@
 #define MIN_KEYS_PER_CRYPT	128
 #define MAX_KEYS_PER_CRYPT	2048*1024
 
+#ifdef _OPENCL_COMPILER
+       #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
+#endif
+
 //Macros.
 #define SWAP(n) \
-  (((n) << 56)					\
-   | (((n) & 0xff00) << 40)			\
-   | (((n) & 0xff0000) << 24)			\
-   | (((n) & 0xff000000) << 8)			\
-   | (((n) >> 8) & 0xff000000)			\
-   | (((n) >> 24) & 0xff0000)			\
-   | (((n) >> 40) & 0xff00)			\
-   | ((n) >> 56))
+            (((n) << 56)					\
+          | (((n) & 0xff00) << 40)			\
+          | (((n) & 0xff0000) << 24)			\
+          | (((n) & 0xff000000) << 8)			\
+          | (((n) >> 8) & 0xff000000)			\
+          | (((n) >> 24) & 0xff0000)			\
+          | (((n) >> 40) & 0xff00)			\
+          | ((n) >> 56))
+
 #define SWAP64_V(n)     SWAP(n)
 
 #if gpu_amd_64(DEVICE_INFO)
@@ -99,11 +104,14 @@
         #define ror(x, n)       ((x >> n) | (x << (64-n)))
         #define SWAP64(n)       SWAP(n)
 #endif
-
 #define Sigma0(x)               ((ror(x,28)) ^ (ror(x,34)) ^ (ror(x,39)))
 #define Sigma1(x)               ((ror(x,14)) ^ (ror(x,18)) ^ (ror(x,41)))
 #define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
+
+/* Macros for reading/writing chars from int32's. Copied from rar_kernel.cl */
+#define GETCHAR(buf, index) ((buf)[(index)])
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 //Data types.
 typedef union {

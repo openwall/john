@@ -16,6 +16,7 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "opencl_cryptsha512.h"
+#include <time.h>
 
 #define FORMAT_LABEL			"cryptsha512-opencl" 
 #define FORMAT_NAME			"crypt SHA-512"
@@ -437,11 +438,13 @@ static void find_best_kpc(void) {
 static void init(struct fmt_main *pFmt) {
     char *tmp_value;
     opencl_init_dev(gpu_id, platform_id);
-    //opencl_build_kernel("$JOHN/cryptsha512_kernel_segfault.cl", gpu_id); Segfault on 7970
+
+    uint64_t startTime, runtime;
+    startTime = (unsigned long) time(NULL);
 
     if (cpu(get_device_info()))
         opencl_build_kernel("$JOHN/cryptsha512_kernel_CPU.cl", gpu_id); 
-    
+     
     else {
         printf("Building the kernel, this will take a while: "); fflush(stdout);
         
@@ -451,7 +454,12 @@ static void init(struct fmt_main *pFmt) {
             opencl_build_kernel("$JOHN/cryptsha512_kernel_AMD_V1.cl", gpu_id);
             
         fflush(stdout);
-    }
+    }    
+    
+    if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+        printf("Elapsed time: %lu seconds\n", runtime);
+    fflush(stdout);
+
     max_keys_per_crypt = get_task_max_size();
     local_work_size = get_default_workgroup();
       

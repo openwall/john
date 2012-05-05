@@ -52,25 +52,63 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void memcpy(uint8_t       * dest, 
-                   const uint8_t * src, const uint32_t n) {
-    for (uint32_t i = 0; i < n; i++)
-        dest[i] = src[i];
+inline void memcpy(      uint8_t * dest, 
+                   const uint8_t * src, 
+                   const uint32_t  destlen, const uint32_t srclen) {//TODO #######
+    uint32_t * d;
+    uint32_t * s;
+    uint32_t i = 0;
+
+    switch (destlen & 3) {
+        case 3:	/* unaligned mod 3 */
+            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;
+        case 2:	/* unaligned mod 2 */
+            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;
+        case 1:	/* unaligned mod 1 */
+            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;        
+        default:
+            d = (uint32_t *) (dest + i);
+            s = (uint32_t *) (src + i);
+    }
+
+    while(i < srclen) {
+        *d++ = *s++;
+        i += 4;
+    }
 }
 
-inline void memcpy_G(         uint8_t       * dest, 
-                     __global const uint8_t * src, const uint32_t n) {
-    for (uint32_t i = 0; i < n; i++)
-        dest[i] = src[i];
+inline void memcpy_G(               uint8_t * dest, 
+                     __global const uint8_t * src, 
+                     const uint32_t destlen, const uint32_t srclen) {//TODO #######
+    uint32_t * d;
+    __global uint32_t * s;
+    uint32_t i = 0;
+
+    switch (destlen & 3) {
+        case 3:	/* unaligned mod 3 */
+            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;
+        case 2:	/* unaligned mod 2 */
+            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;
+        case 1:	/* unaligned mod 1 */
+            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;        
+        default:
+            d = (uint32_t *) (dest + i);
+            s = (__global uint32_t *) (src + i);
+    }
+
+    while(i < srclen) {
+        *d++ = *s++;
+        i += 4;
+    }
 }
 
 void insert_to_buffer(sha512_ctx    * ctx, 
                       const uint8_t * string,
                       const uint32_t len) {
     uint8_t *d;
-    d = ctx->buffer->mem_08 + ctx->buflen;  //ctx->buffer[buflen] (in char size)
+    d = ctx->buffer->mem_08 + ctx->buflen;
 
-    memcpy(d, string, len);
+    memcpy(d, string, ctx->buflen, len);
     ctx->buflen += len;
 }
 
@@ -78,9 +116,9 @@ void insert_to_buffer_G(         sha512_ctx    * ctx,
                         __global const uint8_t * string,
                                  const uint32_t len) {
     uint8_t *d;
-    d = ctx->buffer->mem_08 + ctx->buflen;  //ctx->buffer[buflen] (in char size)
+    d = ctx->buffer->mem_08 + ctx->buflen;
 
-    memcpy_G(d, string, len);
+    memcpy_G(d, string, ctx->buflen, len);
     ctx->buflen += len;
 }
 
@@ -96,11 +134,11 @@ void sha512_block(sha512_ctx * ctx) {
     uint64_t t1, t2;
     uint64_t w[16];
 
-    #pragma unroll 16
+    #pragma unroll
     for (int i = 0; i < 16; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
 
-    #pragma unroll 16
+    #pragma unroll
     for (int i = 0; i < 16; i++) {
         t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
         t2 = Maj(a, b, c) + Sigma0(a);
@@ -115,7 +153,7 @@ void sha512_block(sha512_ctx * ctx) {
         a = t1 + t2;
     }
 
-    #pragma unroll 64
+    #pragma unroll
     for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -141,14 +179,26 @@ void sha512_block(sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-void ctx_append_1(sha512_ctx * ctx) {
+void ctx_append_1(sha512_ctx * ctx) { //TODO #######
 
     uint32_t length = ctx->buflen;
-    ctx->buffer->mem_08[length] = 0x80;
+    PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0x80);
 
-    while((++length % 8) != 0)
-        ctx->buffer->mem_08[length] = 0;
-   
+    switch (++length & 3) {
+        case 3:	/* unaligned mod 3 */
+            PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0); length++;
+        case 2:	/* unaligned mod 2 */
+            PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0); length++;
+        case 1:	/* unaligned mod 1 */
+            PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0); length++;
+        default:
+
+            if (length & 7) {
+                uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
+                *l = 0;
+                length += 4;
+            }
+    }
     uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {
@@ -157,10 +207,9 @@ void ctx_append_1(sha512_ctx * ctx) {
     }
 }
 
-void ctx_add_length(sha512_ctx * ctx) {
+void ctx_add_length(sha512_ctx * ctx) { //TODO #######
 
-    uint64_t *blocks = ctx->buffer->mem_64;
-    blocks[15] = SWAP64((uint64_t) (ctx->total * 8));
+    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
 void finish_ctx(sha512_ctx * ctx) {
@@ -202,13 +251,11 @@ void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
-void clear_ctx_buffer(sha512_ctx * ctx) {
+void clear_ctx_buffer(sha512_ctx * ctx) { //TODO #######
 
-    uint64_t *w = ctx->buffer->mem_64;
-
-    #pragma unroll 16
+    #pragma unroll
     for (int i = 0; i < 16; i++)
-        w[i] = 0;
+        ctx->buffer->mem_64[i] = 0;
 
     ctx->buflen = 0;
 }
@@ -229,13 +276,13 @@ void sha512_digest(sha512_ctx * ctx,
         sha512_block(ctx);
         clear_ctx_buffer(ctx);
 
-        if (moved)
-            ctx->buffer->mem_08[0] = 0x80; //append 1,the rest is already clean
+        if (moved) //append 1,the rest is already clean //TODO #######
+            PUTCHAR((uint32_t *) ctx->buffer->mem_08, 0, 0);
         ctx_add_length(ctx);
     }
     sha512_block(ctx);
 
-    #pragma unroll 8
+    #pragma unroll
     for (int i = 0; i < 8; i++)
         result[i] = SWAP64(ctx->H[i]);
 }
@@ -287,7 +334,7 @@ void sha512crypt(__global   crypt_sha512_salt * salt_data,
     init_ctx(&ctx);
     
     /* For every character in the password add the entire password. */
-    for (uint32_t i = 0; i < 16 + (alt_result->mem_08)[0]; i++)
+    for (uint32_t i = 0; i < 16 + alt_result->mem_08[0]; i++)
         ctx_update_G(&ctx, salt, saltlen);
 
     /* Finish the digest.  */
@@ -312,7 +359,7 @@ void sha512crypt(__global   crypt_sha512_salt * salt_data,
         sha512_digest(&ctx, alt_result->mem_64);
     }
     //Send results to the host.
-    #pragma unroll 8
+    #pragma unroll
     for (int i = 0; i < 8; i++)
         output->v[i] = alt_result[i].mem_64[0];  
 }
@@ -334,5 +381,5 @@ void kernel_crypt(__global   crypt_sha512_salt     * informed_salt,
     uint32_t gid = get_global_id(0);
 
     //Do the job
-    sha512crypt(informed_salt,  &pass_data[gid], &out_buffer[gid]);
+    sha512crypt(informed_salt,  &pass_data[gid], &out_buffer[gid]); 
 }
