@@ -56,7 +56,10 @@ static void process_path(char *path)
 	assert(keyCrackData.saltLen < 32);
 	assert(keyCrackData.oidLen < 32);
 	saltItem.data = keyCrackData.salt;
-	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
+	struct NSSPKCS5PBEParameter gpbe_param;
+	unsigned char salt_data[4096];
+
+	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1, &gpbe_param, salt_data);
 	if(paramPKCS5 == NULL) {
 		fprintf(stderr, "Failed to initialize NSSPKCS5 structure\n");
 		return;
