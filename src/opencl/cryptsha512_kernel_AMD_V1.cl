@@ -14,10 +14,8 @@
  */
 
 #define _OPENCL_COMPILER
+#define VECTOR_USAGE
 #include "opencl_cryptsha512.h"
-
-void sha512_block_AMD(__local sha512_ctx * ctx);
-void sha512_block_NVIDIA(__local sha512_ctx * ctx); 
 
 __constant uint64_t k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
@@ -56,13 +54,13 @@ void init_ctx(__local sha512_ctx * ctx) {
 }
 
 void insert_to_buffer(__local sha512_ctx    * ctx, 
-                      __local const uint8_t * src,
+                      __local const uint8_t * string,
                       const uint32_t len) {
     __local uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;  //ctx->buffer->mem_08[buflen]
+    dest = ctx->buffer->mem_08 + ctx->buflen;
 
     for (int i = 0; i < len; i++)
-        dest[i] = src[i];
+        PUTCHAR_OLD(dest, i, GETCHAR(string, i));
     ctx->buflen += len;
 }
 
@@ -78,9 +76,16 @@ void sha512_block(__local sha512_ctx * ctx) {
     uint64_t t1, t2;
     uint64_t w[16];
 
-    #pragma unroll 16
+#ifdef VECTOR_USAGE
+    ulong16  w_vector;
+    w_vector = vload16(0, ctx->buffer->mem_64); 
+    w_vector = SWAP64_V(w_vector);
+    vstore16(w_vector, 0, w);
+#else
+    #pragma unroll
     for (int i = 0; i < 16; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
+#endif
 
     #pragma unroll
     for (int i = 0; i < 80; i++) {
@@ -113,11 +118,16 @@ void sha512_block(__local sha512_ctx * ctx) {
 void ctx_append_1(__local sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
-    ctx->buffer->mem_08[length] = 0x80;
+    PUTCHAR_OLD(ctx->buffer->mem_08, length, 0x80);
 
-    while((++length % 8) != 0)
-        ctx->buffer->mem_08[length] = 0;
-   
+    while (++length & 3)
+        PUTCHAR_OLD(ctx->buffer->mem_08, length, 0);
+ 
+    if (length & 7) {
+        __local uint32_t * l = (__local uint32_t *) (ctx->buffer->mem_08 + length);
+        *l = 0;
+        length += 4; 
+    }  
     __local uint64_t * l = (__local uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {
@@ -127,8 +137,8 @@ void ctx_append_1(__local sha512_ctx * ctx) {
 }
 
 void ctx_add_length(__local sha512_ctx * ctx) {
-    __local uint64_t *blocks = ctx->buffer->mem_64;
-    blocks[15] = SWAP64((uint64_t) (ctx->total * 8));
+
+    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
 void finish_ctx(__local sha512_ctx * ctx) {
@@ -155,11 +165,14 @@ void ctx_update(__local sha512_ctx * ctx,
 
 void clear_ctx_buffer(__local sha512_ctx * ctx) {
 
-    __local uint64_t *w = ctx->buffer->mem_64;
-
+#ifdef VECTOR_USAGE
+    ulong16  w_vector = 0; 
+    vstore16(w_vector, 0, ctx->buffer->mem_64);
+#else
     #pragma unroll
     for (int i = 0; i < 16; i++)
-        w[i] = 0;
+        ctx->buffer->mem_64[i] = 0;
+#endif
 
     ctx->buflen = 0;
 }
@@ -180,8 +193,8 @@ void sha512_digest(__local  sha512_ctx * ctx,
         sha512_block(ctx);
         clear_ctx_buffer(ctx);
 
-        if (moved)
-            ctx->buffer->mem_08[0] = 0x80; //append 1,the rest is already clean
+        if (moved) //append 1,the rest is already clean
+            PUTCHAR_OLD(ctx->buffer->mem_08, 0, 0x80);            
         ctx_add_length(ctx);
     }
     sha512_block(ctx);
@@ -196,9 +209,9 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
                  __local  crypt_sha512_salt * salt_data,                  
                  __global crypt_sha512_hash * output) {
 
-#define pass        fast_tmp_memory->pass_data.pass
+#define pass        fast_tmp_memory->pass_data.pass->mem_08
 #define passlen     fast_tmp_memory->pass_data.length
-#define salt        salt_data->salt
+#define salt        salt_data->salt->mem_08
 #define saltlen     salt_data->length
 #define alt_result  fast_tmp_memory->alt_result
 #define temp_result fast_tmp_memory->temp_result
@@ -231,9 +244,11 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
 
     sha512_digest(&ctx, p_sequence->mem_64);
     init_ctx(&ctx);    
-    
+
+    rounds = 16 + alt_result->mem_08[0];
+
     /* For every character in the password add the entire password. */
-    for (int i = 0; i < 16 + (alt_result->mem_08)[0]; i++)
+    for (int i = 0; i < rounds; i++)
         ctx_update(&ctx, salt, saltlen);
 
     /* Finish the digest.  */
@@ -285,8 +300,9 @@ void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
     fast_tmp_memory[lid].pass_data.length = pass_data[gid].length;
 
     #pragma unroll
-    for (int i = 0; i < PLAINTEXT_LENGTH; i++)
-        fast_tmp_memory[lid].pass_data.pass[i] = pass_data[gid].pass[i]; 
+    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
+        fast_tmp_memory[lid].pass_data.pass->mem_64[i] = 
+            pass_data[gid].pass->mem_64[i]; 
  
     if (lid == 0){
         //Copy salt information to fast local memory. Only once in a group.
@@ -294,10 +310,10 @@ void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
         salt_data->rounds = informed_salt->rounds;
 
         #pragma unroll
-        for (int i = 0; i < SALT_SIZE; i++)
-            salt_data->salt[i] = informed_salt->salt[i];
+        for (int i = 0; i < SALT_ARRAY; i++)
+            salt_data->salt->mem_64[i] = informed_salt->salt->mem_64[i];
     }
-    //mem_fence(CLK_LOCAL_MEM_FENCE);
+    mem_fence(CLK_LOCAL_MEM_FENCE);
 
     //Do the job
     sha512crypt(&fast_tmp_memory[lid], salt_data, &out_buffer[gid]);
@@ -322,6 +338,7 @@ void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
 *  ###   Move almost everything to global and local memory. BAD.
 *   1%   Use vector types in SHA_Block in some variables. 
 *   5%   Use bitselect in SHA_Block. 
+*  15%   Use PUTCHAR macro. 
 *
 * Conclusions
 * - Compare on GPU: CPU is more efficient for now.
@@ -333,4 +350,6 @@ void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
 *   so should not expect big gains anyway.
 *   If i have a lot of memory, i might solve more than one hash at once 
 *   (and use more vectors). But it is not possible (at least for a while).
+* - Crack process fails if i use PUTCHAR everywhere. In this case, i created
+*   PUTCHAR_OLD.
 ***/

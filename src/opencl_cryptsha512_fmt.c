@@ -134,9 +134,7 @@ static void create_clobj(int kpc) {
             NULL), "Error setting argument 4");
         
     memset(plaintext, '\0', sizeof(crypt_sha512_password) * kpc);
-    memset(salt.salt, '\0', SALT_SIZE);
-    salt.length = 0;
-    salt.rounds = 0;
+    memset(&salt, '\0', sizeof(crypt_sha512_salt));
     max_keys_per_crypt = kpc;
 }
 
@@ -204,16 +202,20 @@ static void set_salt(void *salt_info) {
         }
         offset = endp - currentsalt;
     }
-    memcpy(salt.salt, currentsalt + offset, SALT_SIZE);
+    memcpy(salt.salt, currentsalt + offset, SALT_LENGTH);
     salt.length = strlen((char *) salt.salt);
-    salt.length = (salt.length > SALT_SIZE ? SALT_SIZE : salt.length);
+    salt.length = (salt.length > SALT_LENGTH ? SALT_LENGTH : salt.length);
 }
 
 /* ------- Key functions ------- */
 static void set_key(char *key, int index) {
     int len = strlen(key);
+    char buf[PLAINTEXT_LENGTH];
+    memset(buf, '\0', PLAINTEXT_LENGTH);
+    
     plaintext[index].length = len;
-    memcpy(plaintext[index].pass, key, len);
+    memcpy(buf, key, len);  //Assure all buffer is clean.
+    memcpy(plaintext[index].pass, buf, PLAINTEXT_LENGTH);
     new_keys = 1;
 }
 
@@ -440,21 +442,23 @@ static void init(struct fmt_main *pFmt) {
     opencl_init_dev(gpu_id, platform_id);
 
     uint64_t startTime, runtime;
+    char * task;
     startTime = (unsigned long) time(NULL);
-
+    
     if (cpu(get_device_info()))
-        opencl_build_kernel("$JOHN/cryptsha512_kernel_CPU.cl", gpu_id); 
+        task = "$JOHN/cryptsha512_kernel_CPU.cl";
      
     else {
-        printf("Building the kernel, this will take a while: "); fflush(stdout);
+        printf("Building the kernel, this could take a while\n");
         
         if (gpu_nvidia(get_device_info()))
-            opencl_build_kernel("$JOHN/cryptsha512_kernel_NVIDIA.cl", gpu_id);
+            task =  "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
-            opencl_build_kernel("$JOHN/cryptsha512_kernel_AMD_V1.cl", gpu_id);
+            task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";
             
-        fflush(stdout);
     }    
+    fflush(stdout);
+    opencl_build_kernel(task, gpu_id);
     
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
         printf("Elapsed time: %lu seconds\n", runtime);
@@ -705,7 +709,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
         BENCHMARK_LENGTH,
         PLAINTEXT_LENGTH,
         BINARY_SIZE,
-        SALT_SIZE,
+        SALT_LENGTH,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT,
