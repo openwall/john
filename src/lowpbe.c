@@ -177,15 +177,13 @@ static SECStatus nsspkcs5_FillInParam(int algorithm, struct NSSPKCS5PBEParameter
 
 
 /* decode the algid and generate a PKCS 5 parameter from it */
-static struct NSSPKCS5PBEParameter gpbe_param;
-static unsigned char salt_data[4096];
 
-struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iterator)
+struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iterator, struct NSSPKCS5PBEParameter *gpbe_param, unsigned char *salt_data)
 {
 	struct NSSPKCS5PBEParameter *pbe_param = NULL;
 	SECStatus rv = SECFailure;
 
-	pbe_param = &gpbe_param;
+	pbe_param = gpbe_param;
 	if (pbe_param == NULL)
 		return NULL;
 

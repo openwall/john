@@ -33,7 +33,7 @@ OMPFLAGS =
 #ICCOMPFLAGS = -openmp
 
 # NSS (and NSPR) flag, un-comment if installed (needed for mozilla format)
-#HAVE_NSS = -DHAVE_NSS
+#HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
@@ -54,7 +54,7 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP) `pkg-config --cflags nss`
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
@@ -1384,7 +1384,7 @@ cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
 cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
-cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o 
+cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu
 	mv cuda/wpapsk.o cuda_wpapsk.o
 
