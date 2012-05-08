@@ -64,6 +64,8 @@
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
  * john.conf, if at all possible.
+ *
+ * Please also note that there is a make target for bash-completion.
  */
 
 /*
