@@ -1,0 +1,283 @@
+# bash completion for john
+#
+# john can either be globally installed (e.g. in /usr/bin/john),
+# or it can be installed locally somewhere in a user's home directory.
+# It can be an official version, or a community encanced (jumbo) version,
+# with a variety of patches.
+#
+# Trying to build a perfect completion script will be hard.
+# So let's start with a first humble attempt.
+# If possible, I'd like to avoid the need to maintain this script whenever
+# john gets a new option.
+#
+# The code is ugly, many things can probably be done more efficiently.
+# At least, grep and sed are the only external commands used
+#
+# FIXME:
+# 	I put this file into the /etc/bash_completion.d directory.
+# 	A proper rollout is probably not that easy.
+# 	(Of course, this file is anything but ready for a rollout to end users.) 
+#
+# TODO:
+#       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
+#         not even pressing [tab] expands this to something useful
+#	Does anybody know a command where tab expansion and globbing works correctly?
+#
+#       --rules= or --single= should use names of existing [List.Rules:...] sections
+#         Currently a hard coded list of section names (NT single wordlist) is used
+#       --incremental should use names of [Incremental:...] sections
+#         Currently a hard coded list is used (All Alpha Digits Alnum LanMan)
+#       --external should use names of [List.External:..-.] sections
+#         (Just sections without a generate() function, if --wordlist, --incremental or --single
+#         is present on the command line; with a generate() function, if none of these
+#         options is used - WHAT IF the user adds a --wordlist option later?)
+#         Currently a hard coded List is used:
+#	  Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard
+#	  DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn
+#       --rules=, --single=, --incremental=, --external= need to take into account a --config file
+#         which might have been specified on the command line, correct default john.conf locations 
+#         (/etc/, ~/.john/, or ./, depending on build options), and included config files...
+#         FIXME: The user might have used -co: instead of --config..., the user might specify 
+#         --config=... later (should we really scan config files for sections referenced by other
+#         command line options, to skip config files which do not have the right sections?)
+#         Currently -opt is expanded to --option or --option=...
+#         FIXME: With includes all this doesn't get easier (what if the john version which is used
+#         doesn't even support these fancy additions?)
+#         FIXME: To be able to locate the correct .conf and .rec files, we might even need a new
+#         john option to know the values of JOHN_SYSTEMWIDE ... (e.g. --build-options)
+#       --format should use supported format names for expansion
+#         FIXME: older john versions used a slash as a separator
+#       --restore should search for existing .rec files
+#       --mkpc and other options which are not mentioned in the usage output are currently ignored
+#       Several other options are still not considered.
+#       Should I support -option instead of --option? (currently -option gets replaced with --option 
+#       during expansion.
+#       Should I support --option:val, -option:val, or even -opt:val instead of just --option=val?
+#
+
+# grep and sed are used to process john's usage info
+have grep && have sed &&
+_john()
+{
+	local first cur options valopts compreplya compreplyb encodings formats subformats
+	COMPREPLY=()
+	_get_comp_words_by_ref -n = cur
+
+# we need to make sure we run the correct program, not some other program 
+# called john which is located somewhere in $PATH
+	first="${COMP_WORDS[0]}"
+
+#	Most options are listed at the begin of the line, but the line with the --pipe option
+#	does have trailing spaces, and --stdin is mentioned after --wordlist=FILE.
+#
+#	all options (the '=' will be emoved for options with an optional value)
+	options=`$first|grep '^ *--'|sed 's#^ *\([a-z=-]*\).*$#\1#'|sed 's#--wordlist=#--wordlist=\n--stdin#'|sed 's#--subformat=#--subformat=LIST#'`
+
+#	Just the options that can be used together with a value, even if that value is optional
+#	(That means, for a jumbo build, --rules doesn't get a trailing space, but for the john version
+#	distributed by fedora16, --rules does get a trailing space during expansion.
+#	The same applies for --show)
+	valopts=`$first|grep '^ *--[a-z\[-]*='|grep -v '^ *--subformat='|sed 's#^ *\([a-z=-]*\).*$#\1#'`
+
+	case "$cur" in
+# --config= could be restricted to *.conf files (or *.ini files on Windows?),
+# --pot= to *.pot files, 
+# --make-charset= should probably excluded, to make overwriting existing files harder
+# (otherwise it should be restricted to *.chr files)
+		--wordlist=*|--config=*|--pot=*|--make-charset=*)
+			cur=${cur#*=}
+			_filedir
+			return 0
+			;;
+		--format=dynamic*)
+			if echo "${options}" | grep ".*--subformat" > /dev/null ; then
+				 subformats=`${first} --subformat=LIST|sed 's#^User##'|sed 's#^Format = \(dynamic_[0-9]*\).*$#\1#'`
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--format=dy|--format=dyn|--format=dyna|--format=dynam|--format=dynami)
+			if echo "${options}" | grep ".*--subformat" > /dev/null ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "dynamic" -- ${cur}) )
+				compopt -o nospace
+			fi
+			return 0
+			;;
+		--format=*)
+			cur=${cur#*=}
+			formats=`${first} |grep -A 100 '^--format='|sed 's#^--format=[A-Za-z]*##'|sed 's#force hash type NAME:##'|sed 's#/# #g'|sed 's#dynamic_n#dynamic#'|grep -v '^--'`
+			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
+			return 0
+			;;
+
+## May be I should not suggest all dynamic formats immediately.
+## Instead, just suggest "dynamic" first, don't append a space 
+## if the current value gets expanded to --format=dynamic,
+## and add a --format=dynamic*) switch before --format=*)
+#			cur=${cur#*=}
+#			formats=`${first} |grep -A 100 '^--format='|sed 's#^--format=[A-Za-z]*##'|sed 's#force hash type NAME:##'|sed 's#/# #g'|sed 's#dynamic_n##'|grep -v '^--'`
+#			if echo "${options}" | grep ".*--subformat" > /dev/null ; then
+#				subformats=`${first} --subformat=LIST|sed 's#^User##'|sed 's#^Format = \(dynamic_[0-9]*\).*$#\1#'`
+#			else
+#				subformats=""
+#			fi
+#			COMPREPLY=( $(compgen -W "${formats} ${subformats}" -- ${cur}) )
+#			return 0
+#			;;
+		--encoding=*)
+			if  echo "${options}" | grep ".*--endoding" > /dev/null ; then
+				cur=${cur#*=}
+				encodings=`${first} --encoding=LIST 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
+				COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--show)
+			if echo "${valopts}" | grep ".*--rules" > /dev/null ; then
+				COMPREPLY=( $(compgen -W "--show --show=LEFT" -- ${cur}) )
+			else
+				COMPREPLY=( $(compgen -W "--show" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--show=l*)
+			if echo "${valopts}" | grep ".*--rules" > /dev/null ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "left" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--show=*)
+			if echo "${valopts}" | grep ".*--rules" > /dev/null ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "LEFT" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--rules)
+			if echo "${valopts}" | grep ".*--rules" > /dev/null ; then
+				COMPREPLY=( $(compgen -W "--rules --rules=NT --rules=single --rules=wordlist" -- ${cur}) )
+			else
+				COMPREPLY=( $(compgen -W "--rules" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--single)
+                        if echo "${valopts}" | grep ".*--rules" > /dev/null ; then
+                                COMPREPLY=( $(compgen -W "--single --single=NT --single=single --single=wordlist" -- ${cur}) )
+                        else
+                                COMPREPLY=( $(compgen -W "--single" -- ${cur}) )
+                        fi
+                        return 0
+                        ;;
+		--rules=*|--single=*)
+			if echo "${valopts}" | grep ".*--rules" > /dev/null ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "NT single wordlist" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--incremental)
+			COMPREPLY=( $(compgen -W "--incremental=" -- ${cur}) )
+			compopt -o nospace
+			return 0
+			;;
+		--incremental=*)
+			cur=${cur#*=}
+			COMPREPLY=( $(compgen -W "All Alpha Digits Alnum LanMan" -- ${cur}) )
+			return 0
+			;;
+		--external=*)
+			cur=${cur#*=}
+			COMPREPLY=( $(compgen -W "Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn" -- ${cur}) )
+			return 0
+			;;
+		--save-memory=*)
+			cur=${cur#*=}
+			COMPREPLY=( $(compgen -W "1 2 3" -- ${cur}) )
+			return 0
+			;;
+		--subformat=*)
+			if echo "${options}" | grep ".*--subformat" > /dev/null ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
+			fi
+			return 0
+			;;
+                --session=|--users=|--groups=|--shells=|--salts=|--mem-file-size=|--field-separator-char=|--fix-state-delay=|--max-run-time=|--regen-lost-salts=)
+			return 0
+			;;
+#--config=FILE             use FILE instead of john.conf or john.ini
+#--wordlist=FILE --stdin   wordlist mode, read words from FILE or stdin
+#--encoding=NAME           the input data is in a 'non-standard' character.
+#--external=MODE           external mode or word filter
+#--session=NAME            give a new session the NAME
+#--make-charset=FILE       make a charset file. It will be overwritten
+#--users=[-]LOGIN|UID[,..] [do not] load this (these) user(s) only
+#--groups=[-]GID[,..]      load users [not] of this (these) group(s) only
+#--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only
+#--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes
+#--pot=NAME                pot file to use
+#--format=NAME             force hash type NAME: afs bf bfegg bsdi crc32 crypt
+#--subformat=LIST          get a listing of all 'dynamic_n' formats
+#--save-memory=LEVEL       enable memory saving, at LEVEL 1..3
+#--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)
+#--field-separator-char=C  use 'C' instead of the ':' in input and pot files
+#--fix-state-delay=N       performance tweak, see documentation
+#--max-run-time=N          gracefully exit after this many seconds
+#--regen-lost-salts=N      regenerate lost salts for some hashes (see OPTIONS)
+#--plugin=NAME[,..]        load this (these) dynamic plugin(s)
+
+	esac
+
+# TODO:
+#	--rules= or --single= should use names of List.Rules: sections
+#	--incremental should use names of Incremental: sections
+#	--external should use names of List.External: sections
+#	  Just sections without generate() function, if --wordlist, --incremental or --single
+#	  is present on the command line; with generate() function, if none of these
+#	  options is used - WHAT IF the user adds a --wordlist option later?
+#	--rules=, --single=, --incremental=, --external= need to take into account a --config file
+#	  which has been specified earlier 
+#	  FIXME: The user might have used -co: instead of --config..., the user might specify 
+#	  --config=... later (should we really scan config files for sections referenced by other
+#	  command line options?
+#	  FIXME: with includes all this doesn't get easier (what if the john version which is used
+#	  diesn't even support these fancy additions?)
+#	  FIXME: To be able to locate the correct .conf and .rec files, we might even need a new
+#	  john option (e.g. --build-options)
+#	--format should use supported format names for expansion
+#	  FIXME: older john versions used a slash as a separator
+#	--restore should search for existing .rec files
+#	--encoding should use the list of supported encodings
+#	--plugin needs to expand to the list of available plugins
+#	  FIXME: how do I get that list 
+#	  (to avoid the output "cannot open shared object file: No such file or directory)
+#	--mkpc=COUNT and other options which are not mentioned in the usage output are currently ignored
+#	  FIXME: is it save to assume --mkpc exists when other jumbo options exist, does it depend on version?
+#	A lot of other options are probably still not considered
+#	Should I support -option instead of --option?
+#	Should I support --option:val, -option:val, or even -opt:val instead of just --option=val?
+#	Or should the expansion be limited to the GNU stype --long-opt[=value]?
+
+	if [[ ${cur} == -* ]] ; then
+		compreplya=`compgen -W "${options}" -- ${cur}`
+		if [[ "_${compreplya}_" == "__" ]] ; then
+			cur="-${cur}"
+			compreplya=`compgen -W "${options}" -- ${cur}`
+		fi
+		compreplyb=`compgen -W "${valopts}" -- ${cur}`
+		COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+		if [[ "_$compreplya" == "_$compreplyb" ]] ; then
+#			the option has a mandatory value, so don't append a space:
+			compopt -o nospace
+		fi
+		return 0
+	else
+		_filedir
+		return 0
+	fi
+} &&
+complete -F _john john
