@@ -127,7 +127,7 @@ _john()
 #			return 0
 #			;;
 		--encoding=*)
-			if  echo "${options}" | grep ".*--endoding" > /dev/null ; then
+			if  echo "${options}" | grep ".*--encoding" > /dev/null ; then
 				cur=${cur#*=}
 				encodings=`${first} --encoding=LIST 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
 				COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
