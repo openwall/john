@@ -128,7 +128,7 @@ OCL_OBJS = \
 	common-opencl.o opencl_mysqlsha1_fmt.o \
 	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
 	opencl_nt_fmt.o opencl_rawmd5_fmt.o opencl_nsldaps_fmt.o \
-	opencl_cryptsha512_fmt.o opencl_MSCASH2_fmt.o opencl_wpapsk_fmt.o \
+	opencl_cryptsha512_fmt.o opencl_mscash2_fmt.o opencl_wpapsk_fmt.o \
 	opencl_xsha512_fmt.o
 
 CUDA_OBJS = \
