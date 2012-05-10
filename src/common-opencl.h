@@ -3,8 +3,10 @@
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
+/* Should there be an alternative cl_ext.h here? */
 #else
 #include <CL/cl.h>
+#include <CL/cl_ext.h>
 #endif
 
 #include "arch.h"
