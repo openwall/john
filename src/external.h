@@ -28,6 +28,12 @@ extern c_int ext_abort, ext_status;
 extern void *f_filter;
 
 /*
+ * Returns true if the external mode has function()
+ * Used for list=ext-filter and list=ext-mode
+ */
+int ext_has_function(char *mode, char *function);
+
+/*
  * Initializes an external mode.
  */
 extern void ext_init(char *mode, struct db_main *db);

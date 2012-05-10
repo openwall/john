@@ -204,6 +204,8 @@ struct options_main {
 #elif defined(HAVE_CUDA)
 	char *ocl_device;
 #endif
+/* -list=WHAT Get a config list (eg. a list of incremental modes available) */
+	char *listconf;
 };
 
 extern struct options_main options;
