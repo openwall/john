@@ -56,7 +56,7 @@
 #define MAX_CIPHERTEXT_LENGTH     54                                               //7 + MAX_SALT_LENGTH + 32
 
 
-#define BINARY_SIZE               16
+#define BINARY_SIZE               4
 
 
 # define SWAP(n) \
@@ -93,8 +93,6 @@ static struct fmt_tests tests[] = {
 	static unsigned int current_numkeys;
 
 	static unsigned char key_host[MAX_KEYS_PER_CRYPT][MAX_PLAINTEXT_LENGTH+1]; 
-
-	static unsigned char ciphertext_host[MAX_KEYS_PER_CRYPT][MAX_CIPHERTEXT_LENGTH+1];
 
 	static ms_cash2_salt currentsalt;
 
@@ -263,7 +261,7 @@ static void find_best_workgroup()
 	/// Set keys
 	static char *pass = "GTX690";
 	
-	for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+	for (i = 0; i < 64000; i++) {
 		set_key(pass, i);
 	}
 	
@@ -283,7 +281,9 @@ static void find_best_workgroup()
 	///Find best local work size
 	while(1)
 	{ _lws=lws; 
-	  crypt_all(MAX_KEYS_PER_CRYPT);
+	 
+	  crypt_all(64000);
+	  
 	  if(lws<=_lws) break;  
 	}
 	
@@ -563,12 +563,8 @@ static  char *get_key(int index )
 
 static void crypt_all(int count)
 {    
-	unsigned int i,j,k,l;
-     
-	cl_uint temp[4];
-	
-	unsigned char *byte;
-	
+	unsigned int i,j;
+     	
 	//struct timeval startc,endc,startg,endg;
 	
 	//gettimeofday(&startc,NULL);
@@ -596,37 +592,21 @@ static void crypt_all(int count)
 	for(i = 0; i < (currentsalt.length >> 1) ; i++)
 	   ((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16);
 	
+	memcpy(salt_host,salt_unicode,MAX_SALT_LENGTH*2+1);
+	
 #ifdef _OPENMP	
-#pragma omp parallel shared(salt_unicode,currentsalt,key_host,dcc_hash_host,salt_host,dcc_hash_host_temp,dcc2_hash_host,ciphertext_host)
+#pragma omp parallel shared(salt_unicode,currentsalt,key_host,dcc_hash_host,salt_host,dcc_hash_host_temp,dcc2_hash_host)
 #endif	   
    {  
 #ifdef _OPENMP     
 #pragma omp for private(i) firstprivate(count)
 #endif
-	for(i=0;i<count;i++) {
-        
-	    DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
-        
-	    ciphertext_host[i][0]='\0';
-	
-	    strcat((char*)ciphertext_host[i],"$DCC2$");
-	
-	    strcat((char*)ciphertext_host[i],(const char*)currentsalt.username);
-	
-	    strcat((char*)ciphertext_host[i],"#");
-	
-       
-	}
-#ifdef _OPENMP
-#pragma omp single nowait 
-#endif        
-	 {
-	  memcpy(salt_host,salt_unicode,MAX_SALT_LENGTH*2+1);
-	  }
+	for(i=0;i<count;i++)    DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
+
 #ifdef _OPENMP	 
 #pragma omp for private(i,j) firstprivate(count)
 #endif
-for(i=0;i<count*4;i++)
+	for(i=0;i<count*4;i++)
 	     {  j=i/4;
 	        if(i%4==1) j+= count ;
 		if(i%4==2) j+=2*count;
@@ -646,22 +626,7 @@ for(i=0;i<count*4;i++)
 	//gettimeofday(&endg,NULL);
 		
 	}
-#ifdef _OPENMP
-#pragma omp for private(i,j,k,l,temp,byte) firstprivate(count) 
-#endif
-	for(i=0;i<count;i++) {  
-	    
-	  for(j=i,k=0;j<4*count;j=j+count,k++)
-		temp[k]=dcc2_hash_host[j];      
-	  
-	    byte=(unsigned char*)temp;
-	   
-	    l=39+currentsalt.length;
-	   
-	    for(k=currentsalt.length+7,j=0;k<l;k=k+2,++j) //32 + 7 +currentsalt.length
-	      sprintf((char*)&ciphertext_host[i][k], "%02x", byte[j]);
-	    
-	   }
+
    }  
    
 	//gettimeofday(&endc, NULL);
@@ -773,12 +738,6 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	unsigned int i,j, *b = (unsigned int *) binary;
-	
-	for (i=index,j = 0; j < 4;i=i+current_numkeys, j++)
-	     if (b[j] != dcc2_hash_host[i])
-		 return 0;
-	
 	return 1;
 }
 
@@ -786,15 +745,19 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int count)
 {   
-      unsigned int length;
-    
-      length=strlen((const char*)source);
-    
-      if(length!=strlen((const char*)ciphertext_host[count])) return 0;
-    
-      if(strncmp(source,(const char*)ciphertext_host[count],length)) return 0;
-    
+      unsigned int *bin;
+      
+      bin=(unsigned int*)binary(source);
+      
+      if(bin[1]!=dcc2_hash_host[count+current_numkeys])   return 0;
+      
+      if(bin[2]!=dcc2_hash_host[count+2*current_numkeys]) return 0;
+      
+      if(bin[3]!=dcc2_hash_host[count+3*current_numkeys]) return 0;
+      
       return 1;
+    
+      
 }
 
 
