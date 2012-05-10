@@ -940,7 +940,9 @@ void c_execute_fast(void *addr)
 #endif
 		int op = 0;
 
-		assert(c_op_return != &&op_return); /* Don't do this twice */
+		/* Needed for -list option */
+		if (c_op_return == &&op_return) return;
+		//assert(c_op_return != &&op_return); /* Don't do this twice */
 
 		c_op_return = &&op_return;
 		c_op_bz = &&op_bz;

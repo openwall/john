@@ -556,6 +556,32 @@ static void john_init(char *name, int argc, char **argv)
 		exit(0);
 	}
 
+	if (options.listconf && !strcasecmp(options.listconf, "inc-modes"))
+	{
+		cfg_print_subsections("Incremental", NULL);
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "rules"))
+	{
+		cfg_print_subsections("List.Rules", NULL);
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "externals"))
+	{
+		cfg_print_subsections("List.External", NULL);
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "ext-filters"))
+	{
+		cfg_print_subsections("List.External", "filter");
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "ext-modes"))
+	{
+		cfg_print_subsections("List.External", "generate");
+		exit(0);
+	}
+
 	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
 
 	john_register_all(); /* maybe restricted to one format by options */

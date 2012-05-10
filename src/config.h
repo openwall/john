@@ -64,6 +64,13 @@ extern void cfg_init(char *name, int allow_missing);
 extern struct cfg_list *cfg_get_list(char *section, char *subsection);
 
 /*
+ * Searches for sections with the supplied name, and prints a list of
+ * valid subsections. If function is non-null, only prints subsections
+ * (ie. external modes) that has function (ie. generate or filter)
+ */
+void cfg_print_subsections(char *section, char *function);
+
+/*
  * Searches for a section with the supplied name and a parameter within the
  * section, and returns the parameter's value, or NULL if not found.
  */
