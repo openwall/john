@@ -558,27 +558,32 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "inc-modes"))
 	{
-		cfg_print_subsections("Incremental", NULL);
+		cfg_print_subsections("Incremental", NULL, NULL);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "rules"))
 	{
-		cfg_print_subsections("List.Rules", NULL);
+		cfg_print_subsections("List.Rules", NULL, NULL);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "externals"))
 	{
-		cfg_print_subsections("List.External", NULL);
+		cfg_print_subsections("List.External", NULL, NULL);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "ext-filters"))
 	{
-		cfg_print_subsections("List.External", "filter");
+		cfg_print_subsections("List.External", "filter", NULL);
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "ext-filters-only"))
+	{
+		cfg_print_subsections("List.External", "filter", "generate");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "ext-modes"))
 	{
-		cfg_print_subsections("List.External", "generate");
+		cfg_print_subsections("List.External", "generate", NULL);
 		exit(0);
 	}
 

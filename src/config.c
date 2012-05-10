@@ -196,7 +196,7 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 	return NULL;
 }
 
-void cfg_print_subsections(char *section, char *function)
+void cfg_print_subsections(char *section, char *function, char *notfunction)
 {
 	struct cfg_section *current;
 	char *p1, *p2;
@@ -209,6 +209,8 @@ void cfg_print_subsections(char *section, char *function)
 		}
 		if (*p1++ != ':') continue;
 		if (!*p1 || *p2) continue;
+		if (notfunction && ext_has_function(p1, notfunction))
+			continue;
 		if (!function || ext_has_function(p1, function))
 			printf("%s\n", p1);
 	} while ((current = current->next));
