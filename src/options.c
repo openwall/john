@@ -114,7 +114,7 @@ static struct opt_entry opt_list[] = {
 	{"subformat", FLG_NONE, FLG_NONE,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.subformat},
-	{"list", FLG_NONE, FLG_NONE, 0, FLG_STDOUT | OPT_REQ_PARAM,
+	{"list", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.listconf},
 #ifdef HAVE_DL
 	{"plugin", FLG_DYNFMT, 0, 0, OPT_REQ_PARAM,

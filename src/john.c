@@ -632,7 +632,7 @@ static void john_init(char *name, int argc, char **argv)
 		       __GNUC_PATCHLEVEL__);
 #endif
 #ifdef __ICC
-		printf("icc version: %d", __ICC);
+		printf("icc version: %d\n", __ICC);
 #endif
 		exit(0);
 	}
