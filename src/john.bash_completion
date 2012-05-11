@@ -53,20 +53,10 @@
 #         but pressing [tab] expands this to something useful
 #         Where to fix this? In john? Some bash config option?
 #
-#       --rules= or --single= should use names of existing [List.Rules:...] sections
-#         Currently a hard coded list of section names (NT single wordlist) is used
-#         Proper fix probably needs support by a new john option (--list=rules?).
-#       --incremental should use names of [Incremental:...] sections
-#         Currently a hard coded list is used (All Alpha Digits Alnum LanMan)
-#         (New john option needed for proper fix)
 #       --external should use names of [List.External:..-.] sections
 #         (Just sections without a generate() function, if --wordlist, --incremental or --single
 #         is present on the command line; with a generate() function, if none of these
 #         options is used - WHAT IF the user adds a --wordlist option later?)
-#         Currently a hard coded List is used:
-#	  Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard
-#	  DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn
-#	  (New john option needed for proper fix)
 #       --rules=, --single=, --incremental=, --external= need to take into account a --config file
 #         which might have been specified on the command line, correct default john.conf locations 
 #         (/etc/, ~/.john/, or ./, depending on build options), and included config files...
@@ -160,8 +150,9 @@ _john()
 			return 0
 			;;
  		--rules|--single)
-			if echo "${valopts}" | grep "^${cur}$" > /dev/null ; then
-				COMPREPLY=( $(compgen -W "${cur} ${cur}=NT ${cur}=single ${cur}=wordlist" -- ${cur}) )
+			if echo "${valopts}" | grep "^${cur%=*}$" > /dev/null ; then
+				COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
+				compopt -o nospace
 			else
 				COMPREPLY=( $(compgen -W "${cur}" -- ${cur}) )
 			fi
@@ -169,19 +160,22 @@ _john()
 			;;
 		--rules=*|--single=*)
 			if echo "${valopts}" | grep "^${cur%=*}$" > /dev/null ; then
+				list=`${first} --list=rules 2>&1`
 				cur=${cur#*=}
-				COMPREPLY=( $(compgen -W "NT single wordlist" -- ${cur}) )
+				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			fi
 			return 0
 			;;
 		--external=*)
 			cur=${cur#*=}
-			COMPREPLY=( $(compgen -W "Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn" -- ${cur}) )
+			list=`${first} --list=externals 2>&1`
+			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
 		--incremental=*)
 			cur=${cur#*=}
-			COMPREPLY=( $(compgen -W "All Alpha Digits Alnum LanMan" -- ${cur}) )
+			list=`${first} --list=inc-modes 2>&1`
+			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
 		--make-charset=*)
@@ -277,7 +271,7 @@ _john()
 			#doesn't exist everywhere
 			#(I'm a bit worried because of the __ at the begin.
 			#May be this function isn't part of an "official" API.)
-			#                                                                         
+			#
 			__expand_tilde_by_ref cur 2>/dev/null
 			_filedir "pot"
 			return 0
