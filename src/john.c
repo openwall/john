@@ -578,7 +578,13 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
 		puts("inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info or <conf section name>");
+		puts("ext-modes, build-info, hidden-options or <conf section name>");
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
+	{
+		puts("--list=NAME               list configuration, rules, etc");
+		puts("--mkpc=N                  force a lower max. keys per crypt");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "inc-modes"))
