@@ -6,17 +6,11 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#if defined(__APPLE__) && defined(__MACH__) && \
+	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
+	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define COMMON_DIGEST_FOR_OPENSSL
 #include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
 #else
 #include <openssl/sha.h>
 #endif
@@ -37,27 +31,26 @@
 #endif
 
 #define FORMAT_LABEL		"pwsafe"
-#define FORMAT_NAME		"Password Safe"
+#define FORMAT_NAME		"Password Safe SHA-256"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static struct fmt_tests passwordsafe_tests[] = {
-	{"$passwordsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
-	{"$passwordsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
+static struct fmt_tests pwsafe_tests[] = {
+	{"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
+	{"$pwsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
 	{NULL}
 };
 
-#if defined (_OPENMP)
+
 static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static int any_cracked, *cracked;
 
 static struct custom_salt {
 	int version;
@@ -68,8 +61,7 @@ static struct custom_salt {
 
 static void init(struct fmt_main *pFmt)
 {
-
-#if defined (_OPENMP)
+#ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -77,13 +69,14 @@ static void init(struct fmt_main *pFmt)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	any_cracked = 0;
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	return !strncmp(ciphertext, "$passwordsafe$", 14);
+	return !strncmp(ciphertext, "$pwsafe$", 8);
 }
 
 static void *get_salt(char *ciphertext)
@@ -92,7 +85,7 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	ctcopy += 15;	/* skip over "$passwordsafe$*" */
+	ctcopy += 9;	/* skip over "$pwsafe$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
 	salt_struct->version = atoi(p);
@@ -115,6 +108,11 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	salt_struct = (struct custom_salt *)salt;
+	if (any_cracked) {
+		memset(cracked, 0,
+		    sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
+		any_cracked = 0;
+	}
 }
 
 static void crypt_all(int count)
@@ -132,28 +130,19 @@ static void crypt_all(int count)
 		SHA256_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA256_Update(&ctx, salt_struct->salt, 32);
 		SHA256_Final(hash, &ctx);
-		for(i = 0; i < salt_struct->iterations; i++)  {
+		for(i = 0; i <= salt_struct->iterations; i++)  {
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, hash, 32);
 			SHA256_Final(hash, &ctx);
 		}
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, hash, 32);
-		SHA256_Final(hash, &ctx);
 		if(!memcmp(hash, salt_struct->hash, 32))
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+			any_cracked = cracked[index] = 1;
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
@@ -163,10 +152,10 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return cracked[index];
 }
 
-static void passwordsafe_set_key(char *key, int index)
+static void pwsafe_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -180,7 +169,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main passwordsafe_fmt = {
+struct fmt_main pwsafe_fmt = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -193,7 +182,7 @@ struct fmt_main passwordsafe_fmt = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		passwordsafe_tests
+		pwsafe_tests
 	}, {
 		init,
 		fmt_default_prepare,
@@ -206,7 +195,7 @@ struct fmt_main passwordsafe_fmt = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		passwordsafe_set_key,
+		pwsafe_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

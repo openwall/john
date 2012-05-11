@@ -171,6 +171,7 @@ extern int ssh2john(int argc, char **argv);
 extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
+extern int pwsafe2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
@@ -863,6 +864,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "racf2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return racf2john(argc, argv);
+	}
+
+	if (!strcmp(name, "pwsafe2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return pwsafe2john(argc, argv);
 	}
 #endif
 

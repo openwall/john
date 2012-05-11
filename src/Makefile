@@ -107,6 +107,7 @@ JOHN_OBJS = \
 	rar_fmt.o rar2john.o \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
+	pwsafe2john.o \
 	hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
@@ -186,24 +187,28 @@ GENMKVPWD_OBJS = \
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
-	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john
+	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
+	../run/pwsafe2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
-	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com
+	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
+	../run/pwsafe2john.com
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe
+	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
+	../run/pwsafe2john.exe
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe
+	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
+	../run/pwsafe2john.exe
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1432,6 +1437,10 @@ endif
 	$(RM) ../run/racf2john
 	ln -s john ../run/racf2john
 
+../run/pwsafe2john: ../run/john
+	$(RM) ../run/pwsafe2john
+	ln -s john ../run/pwsafe2john
+
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
 	ln -s john ../run/hccap2john
@@ -1473,6 +1482,9 @@ endif
 
 ../run/racf2john.com: john.com
 	copy john.com ..\run\racf2john.com
+
+../run/pwsafe2john.com: john.com
+	copy john.com ..\run\pwsafe2john.com
 
 ../run/zip2john.com: john.com
 	copy john.com ..\run\zip2john.com
@@ -1539,6 +1551,10 @@ endif
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
 	strip ../run/racf2john.exe
+
+../run/pwsafe2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/pwsafe2john.exe
+	strip ../run/pwsafe2john.exe
 
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe

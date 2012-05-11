@@ -12,6 +12,7 @@ run/mozilla2john
 run/opencl_cryptsha512.h
 run/pdf2john
 run/racf2john
+run/pwsafe2john
 run/rar2john
 run/ssh2john
 run/tgtsnarf
