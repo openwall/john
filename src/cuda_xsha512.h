@@ -12,10 +12,10 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 32
-#define THREADS 128
+#define BLOCKS 1024
+#define THREADS 512
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
-#define ITERATIONS 8
+#define ITERATIONS 1
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
@@ -27,11 +27,7 @@
 #define FULL_BINARY_SIZE 64
 #endif
 
-#if 1
-#define PLAINTEXT_LENGTH		107
-#else
 #define PLAINTEXT_LENGTH		12
-#endif
 #define CIPHERTEXT_LENGTH		136
 
 extern uint8_t xsha512_key_changed;
