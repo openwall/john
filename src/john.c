@@ -171,6 +171,7 @@ extern int ssh2john(int argc, char **argv);
 extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
+extern int pwsafe2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
@@ -578,7 +579,13 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
 		puts("inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info or <conf section name>");
+		puts("ext-modes, build-info, hidden-options or <conf section name>");
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
+	{
+		puts("--list=NAME               list configuration, rules, etc");
+		puts("--mkpc=N                  force a lower max. keys per crypt");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "inc-modes"))
@@ -857,6 +864,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "racf2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return racf2john(argc, argv);
+	}
+
+	if (!strcmp(name, "pwsafe2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return pwsafe2john(argc, argv);
 	}
 #endif
 

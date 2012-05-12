@@ -9,18 +9,19 @@
 # incorporated.
 #
 #
-# This file needs to be copied to /etc/bash_completion.d/john
-# alternatively, a link /etc/bash_completion.d/john will work as well.
-#
+# This file needs either to be copied into the /etc/bash_completion.d/.
 # To make the new completion rules work, you need to logout and login,
 # or source /etc/bash_completion instead.
 #
-
+# Alternatively, just add a line
+# . <path_to_john's_source_directory>/john.bash_completion
+# to your ~/.bashrc and logout/login.
+#
 # To use the same completion rules not just for john, but for 
 # differently named binaries (say john-omp, john-sse2i, john-avx,
 # john-cuda, john-gpu, ...),
-# just use this command to get the current expansion rule settings:
-#       complete -p |grep " john"
+# just use this command to get the current completion rule settings:
+#       complete -p john
 #
 # If the output is
 #       complete -F _john john
@@ -48,25 +49,28 @@
 #
 # FIXME: is using __expand_tilde_by_ref OK?
 #
+# FIXME: If there is no .rec file in the current directory, completion
+#	 for --restore= and --status= will show all files!
+######## echo _`for f in *.rec; do echo ${f%.rec};done`_
+#
+# FIXME: for some reason completion for --option= only works 
+#	 if the cursor is at the end of the command, 
+#	 i.e. [[ ${COMP_POINT} -eq ${#COMP_LINE} ]]
+#	 not if some words follow the one to be completed...
+#	 If ${cur#*=} is not empty, completion works even in the middle
+#	 of the command line
+#	 This is annoying if I want to complete --rules= in
+#        ./john --rules= --config=test.conf
+#
 # TODO:
 #       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
 #         but pressing [tab] expands this to something useful
 #         Where to fix this? In john? Some bash config option?
 #
-#       --rules= or --single= should use names of existing [List.Rules:...] sections
-#         Currently a hard coded list of section names (NT single wordlist) is used
-#         Proper fix probably needs support by a new john option (--list=rules?).
-#       --incremental should use names of [Incremental:...] sections
-#         Currently a hard coded list is used (All Alpha Digits Alnum LanMan)
-#         (New john option needed for proper fix)
 #       --external should use names of [List.External:..-.] sections
 #         (Just sections without a generate() function, if --wordlist, --incremental or --single
 #         is present on the command line; with a generate() function, if none of these
 #         options is used - WHAT IF the user adds a --wordlist option later?)
-#         Currently a hard coded List is used:
-#	  Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard
-#	  DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn
-#	  (New john option needed for proper fix)
 #       --rules=, --single=, --incremental=, --external= need to take into account a --config file
 #         which might have been specified on the command line, correct default john.conf locations 
 #         (/etc/, ~/.john/, or ./, depending on build options), and included config files...
@@ -76,23 +80,25 @@
 #         Currently -opt is expanded to --option or --option=...
 #         FIXME: To be able to locate the correct .conf and .rec files, we might even need a new
 #         john option to know the values of JOHN_SYSTEMWIDE ... (e.g. --list=build-options)
-#       --restore= and --status= expansion should search for existing .rec files in the correct directory,
-#         instead of $PWD.
+#       --restore= and --status= completion should search for existing .rec files 
+#	  in the correct directory, instead of $PWD.
 #       --mkpc and other options which are not mentioned in the usage output are currently ignored
 #
 #       Should I support -option instead of --option? (currently -option (or -opt) gets replaced 
-#	with --option during expansion.
+#	with --option during completion.
 #	Should I support --option:val, -option:val, or even -opt:val instead of just --option=val?
-#	Should expanding an abbreviated option to its long form also be done by john itself (new option)?
+#	Should expanding an abbreviated option to its long form also be done by john itself
+#	(requires new john option)?
 
 
 # grep and sed are used to process john's usage info the list of .rec files...
 
 # john
-have grep && have sed && 
+## on my system, have() is a dummy function which always return "yes", so get rid of calling it... 
+## have grep && have sed && 
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats subformats
+	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd
 	COMPREPLY=()
 	_get_comp_words_by_ref -n = cur
 
@@ -106,7 +112,7 @@ _john()
 	options=""
 # FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
 	options="`${first}|sed -n '{ s#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1# }; /^--/ p'` --stdin"
-	if [[ "_${options}_" == "__" ]] ; then
+	if [[ "_${options}" == "_" ]] ; then
 		compopt -F _filedir_xspec
 		return 0
 	fi
@@ -115,8 +121,15 @@ _john()
 	valopts=`${first}|grep '^ *--[a-z\[-]*='|grep -v '^ *--subformat='|sed 's#^ *\([a-z=-]*\).*$#\1#'`
 #	This is used to decide whether or not the completion should add a trailing space.
 #	(That means, for a jumbo build, --rules doesn't get a trailing space, but for the john version
-#	distributed by fedora16, --rules does get a trailing space during expansion.
+#	distributed by fedora16, --rules does get a trailing space during completion.
 #	The same applies for --show and single)
+
+#	now add the "hidden options" (not mentioned in the usage output, but in doc/OPTIONS and 
+#       with --list=hidden-options
+#	Currently, all hidden options do have mandatory values (--option=value), this makes
+#       addition of these easier
+	hidden=""
+	hidden=`${first} --list=hidden-options 2>/dev/null|sed 's#^\(--[a-z-]*=\?\).*$#\1#'`
 
 	case "${cur}" in
 		--format=dynamic*)
@@ -142,14 +155,23 @@ _john()
 			return 0
 			;;
 
-		--restore|--status|--incremental)
+		--restore|--status)
 			COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
 			compopt -o nospace
 			return 0
 			;;
 		--restore=*|--status=*)
+# FIXME: If there is no .rec file in the current directory, completion will show all files!
+#	 Where did I see this logic? There must be the same error!
+######## echo _`for f in *.rec; do echo ${f%.rec};done`_
 			cur=${cur#*=}
+## This isn't that easy:
+#			dir=`${first} --list=build-info 2>/dev/null|sed -n '/^\$JOHN is / s#^\$JOHN is ##; p'`
+#			if [[ "_${dir}" == "_" ]] ; then
 			COMPREPLY=( $(compgen -W "$(for f in *.rec; do echo ${f%.rec};done)" -- ${cur}) )
+#			else
+#			COMPREPLY=( $(compgen -W "$( ( cd ${dir}; for f in *.rec; do echo ${f%.rec};done)" -- ${cur}) )
+#			fi
 			return 0
 			;;
 		--wordlist=*)
@@ -161,7 +183,8 @@ _john()
 			;;
  		--rules|--single)
 			if echo "${valopts}" | grep "^${cur}$" > /dev/null ; then
-				COMPREPLY=( $(compgen -W "${cur} ${cur}=NT ${cur}=single ${cur}=wordlist" -- ${cur}) )
+				COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
+				compopt -o nospace
 			else
 				COMPREPLY=( $(compgen -W "${cur}" -- ${cur}) )
 			fi
@@ -169,19 +192,65 @@ _john()
 			;;
 		--rules=*|--single=*)
 			if echo "${valopts}" | grep "^${cur%=*}$" > /dev/null ; then
-				cur=${cur#*=}
-				COMPREPLY=( $(compgen -W "NT single wordlist" -- ${cur}) )
+				cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=rules #"`
+				list=`${cmd} 2>&1`
+				if [[ $? -ne 0 ]] ; then
+					list=`${first} --list=rules 2>&1`
+				fi
+				if [[ $? -eq 0 ]] ; then
+					cur=${cur#*=}
+					COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+				else
+					cur=${cur#*=}
+					COMPREPLY=( $(compgen -W "NT single wordlist" -- ${cur}) )
+				fi
 			fi
 			return 0
 			;;
 		--external=*)
-			cur=${cur#*=}
-			COMPREPLY=( $(compgen -W "Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn" -- ${cur}) )
+			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=externals #"`
+			list=`${cmd} 2>&1`
+			if [[ $? -ne 0 ]] ; then
+				list=`${first} --list=externals 2>&1`
+			fi
+			if [[ $? -eq 0 ]] ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+			else
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "Filter_Alpha Filter_Digits Filter_Alnum Filter_LanMan LanMan Double Parallel Strip Keyboard DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--incremental)
+			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=inc-modes #"`
+			list=`${cmd} 2>&1`
+			list=`${cmd} 2>&1`
+			if [[ $? -ne 0 ]] ; then
+				list=`${first} --list=inc-modes 2>&1`
+			fi
+			if [[ $? -ne 0 ]] ; then
+				list="All Alpha Digits Alnum LanMan"
+			fi
+			list=`echo "${list}"|sed 's# #\n#g'|sed 's#^\(.\)#--incremental=\1#'`
+			list="${list} --incremental"
+#echo "list4_${list}_"
+			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
 		--incremental=*)
-			cur=${cur#*=}
-			COMPREPLY=( $(compgen -W "All Alpha Digits Alnum LanMan" -- ${cur}) )
+			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=inc-modes #"`
+			list=`${cmd} 2>&1`
+			if [[ $? -ne 0 ]] ; then
+				list=`${first} --list=inc-modes 2>&1`
+			fi
+			if [[ $? -eq 0 ]] ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+			else
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "All Alpha Digits Alnum LanMan" -- ${cur}) )
+			fi
 			return 0
 			;;
 		--make-charset=*)
@@ -191,12 +260,16 @@ _john()
 			#(I'm a bit worried because of the __ at the begin.
 			#May be this function isn't part of an "official" API.)
 			__expand_tilde_by_ref cur 2>/dev/null
-# FIXME:		should I just expand directories, not files, 
+# FIXME:		should I just use directories for completion, not files, 
 # FIXME:		to make overwriting existing files harder?
 			_filedir "chr"
 			return 0
 			;;
-		--markov=*)
+		--stdout=*|--markov=*)
+			return 0
+			;;
+		--stdout)
+			COMPREPLY=( $(compgen -W "--stdout --stdout=LENGTH" -- ${cur}) )
 			return 0
 			;;
 		--markov)
@@ -277,7 +350,7 @@ _john()
 			#doesn't exist everywhere
 			#(I'm a bit worried because of the __ at the begin.
 			#May be this function isn't part of an "official" API.)
-			#                                                                         
+			#
 			__expand_tilde_by_ref cur 2>/dev/null
 			_filedir "pot"
 			return 0
@@ -317,14 +390,27 @@ _john()
 		--mem-file-size=*|--field-separator-char=*|--fix-state-delay=*|--max-run-time=*)
 			return 0
 			;;
+		--list=*)
+			if echo "${hidden}" | grep "^--list=" > /dev/null ; then
+				cur=${cur#*=}
+				list=`${first} --list=? 2>/dev/null|sed 's# or .*$# options#; s#,##g'`
+				if [[ $? -eq 0 ]] ; then 
+					COMPREPLY=( $(compgen -W "${list} ?" -- ${cur}) )
+				fi
+			fi
+			return 0
+			;;
+		--mkpc=*)
+			return 0
+			;;
 		-*)
-			compreplya=`compgen -W "${options}" -- ${cur}`
+			compreplya=`compgen -W "${options} ${hidden}" -- ${cur}`
 			if [[ "_${compreplya}_" == "__" ]] ; then
 				cur="-${cur}"
-				compreplya=`compgen -W "${options}" -- ${cur}`
+				compreplya=`compgen -W "${options} ${hidden}" -- ${cur}`
 			fi
-			compreplyb=`compgen -W "${valopts}" -- ${cur}`
-			COMPREPLY=( $(compgen -W "${options}" -- ${cur}) )
+			compreplyb=`compgen -W "${valopts} ${hidden}" -- ${cur}`
+			COMPREPLY=( $(compgen -W "${options} ${hidden}" -- ${cur}) )
 			if [[ "_${compreplya}" == "_${compreplyb}" ]] ; then
 				compopt -o nospace
 			fi
@@ -339,7 +425,7 @@ _john()
 complete -F _john john
 
 # unique
-have head && have grep && have sed &&
+## have grep && have sed &&
 _unique()
 {
 	local first filename cur usage options valopts compreplya compreplyb
@@ -350,10 +436,10 @@ _unique()
 # called unique which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
 	filename=`echo  "${first}"|sed 's#^.*/\(.*\)$#\1#'`
-	usage=`echo ""|${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
+	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
 	case "_${cur}" in
 		_|_${first})
-			if [[ "_${usage}_" != "_OUTPUT-FILE_" ]] ; then
+			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
 				COMPREPLY=( $(compgen -W "${usage}" -- "") )
 			fi
 			return 0

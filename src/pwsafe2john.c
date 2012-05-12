@@ -46,6 +46,7 @@ static void print_hex(unsigned char *str, int len)
 static void process_file(const char *filename)
 {
 	FILE *fp;
+	int count;
 	unsigned char buf[32];
 	unsigned int iterations;
 
@@ -53,31 +54,34 @@ static void process_file(const char *filename)
 		fprintf(stderr, "! %s: %s\n", filename, strerror(errno));
 		return;
 	}
-	fread(buf, 4, 1, fp);
+	count = fread(buf, 4, 1, fp);
+	assert(count == 1);
 	if(memcmp(buf, magic, 4)) {
 		fprintf(stderr, "%s : Couldn't find PWS3 magic string. Is this a Password Safe file?\n", filename);
 		exit(1);
 	}
-	fread(buf, 32, 1, fp);
+	count = fread(buf, 32, 1, fp);
+	assert(count == 1);
 	iterations = fget32(fp);
 
-	printf("%s:$passwordsafe$*3*", filename);
+	printf("%s:$pwsafe$*3*", filename);
 	print_hex(buf, 32);
 	printf("*%d*", iterations);
-	fread(buf, 32, 1, fp);
+	count = fread(buf, 32, 1, fp);
+	assert(count == 1);
 	print_hex(buf,32);
 	printf("\n");
 
 	fclose(fp);
 }
 
-int main(int argc, char **argv)
+int pwsafe2john(int argc, char **argv)
 {
 	int i;
 
 	if (argc < 2) {
 		puts("Usage: pwsafe2john [.psafe3 files]");
-		return 0;
+		return -1;
 	}
 	for (i = 1; i < argc; i++)
 		process_file(argv[i]);
