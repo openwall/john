@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-99,2003,2005,2009,2010 by Solar Designer
+ * Copyright (c) 1996-99,2003,2005,2009,2010,2012 by Solar Designer
  *
  * with changes in -jumbo, by JimF and magnum
  */
@@ -821,6 +821,14 @@ char *rules_apply(const char *word, char *rule, int split, char *last)
 			if (rules_pass == -1) {
 				memmove(rule - 1, rule, strlen(rule) + 1);
 				rule--;
+			}
+			break;
+
+		case '_':
+			{
+				int pos;
+				POSITION(pos)
+				if (length != pos) REJECT
 			}
 			break;
 

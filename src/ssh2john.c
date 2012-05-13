@@ -69,10 +69,14 @@ static void process_file(const char *filename)
 		if (!PEM_read_bio(bp, &nm, &header, &data, &len)) {
 			if (ERR_GET_REASON(ERR_peek_error()) ==
 			    PEM_R_NO_START_LINE) {
-				ERR_print_errors_fp(stderr);
+				/* ERR_print_errors_fp(stderr); */
 	            fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
 				goto out;
 			}
+		}
+		if(!nm) {
+			fprintf(stderr, "! %s : %s\n", filename, "input keyfile validation failed");
+			goto out;
 		}
         /* only PEM encoded DSA and RSA private keys are supported. */
 		if (!strcmp(nm, PEM_STRING_DSA)) {
