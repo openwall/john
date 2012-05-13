@@ -34,9 +34,9 @@
 #include "misc.h"
 
 #define FORMAT_LABEL        "ssh"
-#define FORMAT_NAME         "ssh"
+#define FORMAT_NAME         "SSH"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT   ""
+#define BENCHMARK_COMMENT   " - one 2048-bit and one 1024-bit key"
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
