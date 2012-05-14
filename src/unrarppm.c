@@ -101,7 +101,7 @@ static void sub_allocator_stop_sub_allocator(sub_allocator_t *sub_alloc)
 {
 	if (sub_alloc->sub_allocator_size) {
 		sub_alloc->sub_allocator_size = 0;
-		free(sub_alloc->heap_start);
+		rar_free(sub_alloc->heap_start);
 	}
 }
 
@@ -123,7 +123,7 @@ static int sub_allocator_start_sub_allocator(sub_allocator_t *sub_alloc, int sa_
 	/* Allow for aligned access requirements */
 	alloc_size += UNIT_SIZE;
 #endif
-	if ((sub_alloc->heap_start = (unsigned char *) malloc(alloc_size)) == NULL) {
+	if ((sub_alloc->heap_start = (unsigned char *) rar_malloc(alloc_size)) == NULL) {
 		rar_dbgmsg("sub_alloc start failed\n");
 		return 0;
 	}

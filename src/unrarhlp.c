@@ -38,6 +38,10 @@ void *rar_malloc(size_t size)
     }
 
     alloc = malloc(size);
+#ifdef RAR_HIGH_DEBUG
+    magnum_mchk++;
+    rar_dbgmsg("%s: allocated %zu bytes at %p (%d)\n", __func__, size, alloc, magnum_mchk);
+#endif
 
     if(!alloc) {
 	fprintf(stderr, "UNRAR: rar_malloc(): Can't allocate memory (%lu bytes).\n", size);
@@ -47,8 +51,7 @@ void *rar_malloc(size_t size)
 
 void *rar_realloc2(void *ptr, size_t size)
 {
-	void *alloc;
-
+	void *alloc/*, *oldptr = ptr*/;
 
     if(!size || size > RAR_MAX_ALLOCATION) {
 	rar_dbgmsg("UNRAR: rar_realloc2(): Attempt to allocate %lu bytes. Please report to http://bugs.clamav.net\n", size);
@@ -60,7 +63,25 @@ void *rar_realloc2(void *ptr, size_t size)
     if(!alloc) {
 	fprintf(stderr, "UNRAR: rar_realloc2(): Can't allocate memory (%lu bytes).\n", size);
 	if(ptr)
-	    free(ptr);
+	    rar_free(ptr);
 	return NULL;
-    } else return alloc;
+    }
+#ifdef RAR_HIGH_DEBUG
+    magnum_mchk++;
+
+    rar_dbgmsg("%s: reallocated %p to %zu bytes at %p (%d)\n", __func__, oldptr, size, alloc, magnum_mchk);
+#endif
+
+    return alloc;
+}
+
+void rar_free(void *ptr) {
+	if (ptr != NULL) {
+		free(ptr);
+#ifdef RAR_HIGH_DEBUG
+		magnum_mchk--;
+		printf("%s: freed %p (%d)\n", __func__, ptr, magnum_mchk);
+#endif
+		ptr = NULL;
+	}
 }
