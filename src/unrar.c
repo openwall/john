@@ -79,7 +79,7 @@ static void copy_string(unpack_data_t *unpack_data, unsigned int length, unsigne
 void rar_addbits(unpack_data_t *unpack_data, int bits)
 {
 
-	rar_dbgmsg("rar_addbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
+	//rar_dbgmsg("rar_addbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
 	bits += unpack_data->in_bit;
 	unpack_data->in_addr += bits >> 3;
 	unpack_data->in_bit = bits & 7;
@@ -89,12 +89,12 @@ unsigned int rar_getbits(unpack_data_t *unpack_data)
 {
 	unsigned int bit_field;
 
-	rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
+	//rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
 	bit_field = (unsigned int) unpack_data->in_buf[unpack_data->in_addr] << 16;
 	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
 	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
 	bit_field >>= (8-unpack_data->in_bit);
-	rar_dbgmsg("rar_getbits return(%d)\n", bit_field & 0xffff);
+	//rar_dbgmsg("rar_getbits return(%d)\n", bit_field & 0xffff);
 	return(bit_field & 0xffff);
 }
 
@@ -337,7 +337,7 @@ int rar_decode_number(unpack_data_t *unpack_data, struct Decode *decode)
 	unsigned int bits, bit_field, n;
 
 	bit_field = rar_getbits(unpack_data) & 0xfffe;
-	rar_dbgmsg("rar_decode_number BitField=%u\n", bit_field);
+	//rar_dbgmsg("rar_decode_number BitField=%u\n", bit_field);
 	if (bit_field < decode->DecodeLen[8])
 		if (bit_field < decode->DecodeLen[4])
 			if (bit_field < decode->DecodeLen[2])
@@ -382,14 +382,14 @@ int rar_decode_number(unpack_data_t *unpack_data, struct Decode *decode)
 			else
 				bits=15;
 
-	rar_dbgmsg("rar_decode_number: bits=%d\n", bits);
+	//rar_dbgmsg("rar_decode_number: bits=%d\n", bits);
 
 	rar_addbits(unpack_data, bits);
 	n=decode->DecodePos[bits]+((bit_field-decode->DecodeLen[bits-1])>>(16-bits));
 	if (n >= decode->MaxNum) {
-		n=0;
+		return -1;
 	}
-	rar_dbgmsg("rar_decode_number return(%d)\n", decode->DecodeNum[n]);
+	//rar_dbgmsg("rar_decode_number return(%d)\n", decode->DecodeNum[n]);
 
 	return(decode->DecodeNum[n]);
 }
@@ -460,6 +460,9 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 			}
 		}
 		number = rar_decode_number(unpack_data, (struct Decode *)&unpack_data->BD);
+
+		if (number < 0) return 0;
+
 		if (number < 16) {
 			table[i] = (number+unpack_data->unp_old_table[i]) & 0xf;
 			i++;
@@ -528,7 +531,7 @@ static int read_end_of_block(const unsigned char **fd, unpack_data_t *unpack_dat
 void rar_init_filters(unpack_data_t *unpack_data)
 {
 	if (unpack_data->old_filter_lengths) {
-		free(unpack_data->old_filter_lengths);
+		rar_free(unpack_data->old_filter_lengths);
 		unpack_data->old_filter_lengths = NULL;
 	}
 	unpack_data->old_filter_lengths_size = 0;
@@ -669,10 +672,10 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		}
 		if(!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], vm_codesize, &filter->prg)) {
 		    rar_dbgmsg("unrar: add_vm_code: rarvm_prepare failed\n");
-		    free(vm_code);
+		    rar_free(vm_code);
 		    return 0;
 		}
-		free(vm_code);
+		rar_free(vm_code);
 	}
 	stack_filter->prg.alt_cmd = &filter->prg.cmd.array[0];
 	stack_filter->prg.cmd_count = filter->prg.cmd_count;
@@ -688,7 +691,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	}
 
 	if (stack_filter->prg.global_size < VM_FIXEDGLOBALSIZE) {
-		free(stack_filter->prg.global_data);
+		rar_free(stack_filter->prg.global_data);
 		stack_filter->prg.global_data = rar_malloc(VM_FIXEDGLOBALSIZE);
 		if(!stack_filter->prg.global_data) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.global_data\n");
@@ -763,14 +766,14 @@ static int read_vm_code(unpack_data_t *unpack_data, const unsigned char **fd)
 	for (i=0 ; i < length ; i++) {
 		if (unpack_data->in_addr >= unpack_data->read_top-1 &&
 				!rar_unp_read_buf(fd, unpack_data) && i<length-1) {
-			free(vmcode);
+			rar_free(vmcode);
 			return 0;
 		}
 		vmcode[i] = rar_getbits(unpack_data) >> 8;
 		rar_addbits(unpack_data, 8);
 	}
 	retval = add_vm_code(unpack_data, first_byte, vmcode, length);
-	free(vmcode);
+	rar_free(vmcode);
 	return retval;
 }
 
@@ -810,13 +813,13 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 	for (i=0 ; i < length ; i++) {
 		ch = ppm_decode_char(&unpack_data->ppm_data, fd, unpack_data);
 		if (ch == -1) {
-			free(vmcode);
+			rar_free(vmcode);
 			return 0;
 		}
 		vmcode[i] = ch;
 	}
 	retval = add_vm_code(unpack_data, first_byte, vmcode, length);
-	free(vmcode);
+	rar_free(vmcode);
 	return retval;
 }
 
@@ -848,11 +851,11 @@ void rar_unpack_init_data(int solid, unpack_data_t *unpack_data)
 	unpack_data->true_size = 0;
 	rarvm_init(&unpack_data->rarvm_data);
 	unpack_data->unp_crc = 0xffffffff;
-
-	EVP_DecryptInit_ex(unpack_data->ctx, EVP_aes_128_cbc(), NULL,
-	                   unpack_data->key, unpack_data->iv);
-	EVP_CIPHER_CTX_set_padding(unpack_data->ctx, 0);
 }
+
+#ifdef RAR_HIGH_DEBUG
+int magnum_mchk;
+#endif
 
 int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 {
@@ -872,11 +875,18 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	unsigned int bits, distance;
 	int retval=1, i, number, length, dist_number, low_dist, ch, next_ch;
 	int length_number, failed;
+	int /*worst = 0,*/ numnum = 1, lastnum = -1;
+#define REJECT_THRESHOLD	10
 #ifdef DEBUG
 	static unsigned long done, tot;
 #endif
 
-	rar_dbgmsg("%s fd: %p\n", __func__, fd);
+#ifdef RAR_HIGH_DEBUG
+	magnum_mchk = 0;
+
+	rar_dbgmsg("%s thread %u fd: %p, memcheck %d\n", __func__, omp_get_thread_num(), fd, magnum_mchk);
+#endif
+
 	if (!solid) {
 		rar_dbgmsg("Not solid\n");
 	}
@@ -888,7 +898,8 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 
 		printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
 #endif
-		return 0;
+		retval = 0;
+		goto Bailout;
 	}
 	if (!solid || !unpack_data->tables_read) {
 		rar_dbgmsg("Read tables\n");
@@ -899,14 +910,15 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 
 			printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
 #endif
-			return 0;
+			retval = 0;
+			goto Bailout;
 		}
 	}
 
 	rar_dbgmsg("init done\n");
 	while(1) {
 		unpack_data->unp_ptr &= MAXWINMASK;
-		rar_dbgmsg("UnpPtr = %d\n", unpack_data->unp_ptr);
+		//rar_dbgmsg("UnpPtr = %d\n", unpack_data->unp_ptr);
 		if (unpack_data->in_addr > unpack_data->read_border) {
 			if (!rar_unp_read_buf(&fd, unpack_data)) {
 				retval = 0;
@@ -940,7 +952,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 					}
 					continue;
 				}
-				if (next_ch == 2 || next_ch == -1) {
+				if (next_ch == 2) {
 					break;
 				}
 				if (next_ch == 3) {
@@ -989,7 +1001,30 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 			continue;
 		} else {
 			number = rar_decode_number(unpack_data, (struct Decode *)&unpack_data->LD);
-			rar_dbgmsg("number = %d\n", number);
+			if (number < 0) {
+				retval = 0;
+				break;
+			}
+
+			// Early reject
+			if (number == lastnum) {
+				++numnum;
+				//fprintf(stderr, "repeat %d numnum %d\n", lastnum, numnum);
+				if (numnum > REJECT_THRESHOLD) {
+					retval = 0;
+					break;
+				}
+			} else {
+				numnum = 1;
+				lastnum = number;
+			}
+#if 0
+			if (numnum > worst) {
+				worst = numnum;
+				//fprintf(stderr, "%d worst %d\n", decode->DecodeNum[n], worst);
+			}
+#endif
+			//rar_dbgmsg("number = %d\n", number);
 			if (number < 256) {
 				unpack_data->window[unpack_data->unp_ptr++] = (unsigned char) number;
 				continue;
@@ -1002,6 +1037,29 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 				}
 				dist_number = rar_decode_number(unpack_data,
 							(struct Decode *)&unpack_data->DD);
+				if (dist_number < 0) {
+					retval = 0;
+					break;
+				}
+
+				// Early reject
+				if (dist_number == lastnum) {
+					++numnum;
+					//fprintf(stderr, "repeat %d numnum %d\n", lastnum, numnum);
+					if (numnum > REJECT_THRESHOLD) {
+						retval = 0;
+						break;
+					}
+				} else {
+					numnum = 1;
+					lastnum = dist_number;
+				}
+#if 0
+				if (numnum > worst) {
+					worst = numnum;
+					//fprintf(stderr, "%d worst %d\n", decode->DecodeNum[n], worst);
+				}
+#endif
 				distance = ddecode[dist_number] + 1;
 				if ((bits = dbits[dist_number]) > 0) {
 					if (dist_number > 9) {
@@ -1016,6 +1074,29 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 						} else {
 							low_dist = rar_decode_number(unpack_data,
 								(struct Decode *) &unpack_data->LDD);
+							if (low_dist < 0) {
+								retval = 0;
+								break;
+							}
+
+							// Early reject
+							if (low_dist == lastnum) {
+								++numnum;
+								//fprintf(stderr, "repeat %d numnum %d\n", lastnum, numnum);
+								if (numnum > REJECT_THRESHOLD) {
+									retval = 0;
+									break;
+								}
+							} else {
+								numnum = 1;
+								lastnum = low_dist;
+							}
+#if 0
+							if (numnum > worst) {
+								worst = numnum;
+								//fprintf(stderr, "%d worst %d\n", decode->DecodeNum[n], worst);
+							}
+#endif
 							if (low_dist == 16) {
 								unpack_data->low_dist_rep_count =
 									LOW_DIST_REP_COUNT-1;
@@ -1073,6 +1154,29 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 
 				length_number = rar_decode_number(unpack_data,
 							(struct Decode *)&unpack_data->RD);
+				if (length_number < 0) {
+					retval = 0;
+					break;
+				}
+
+				// Early reject
+				if (length_number == lastnum) {
+					++numnum;
+					//fprintf(stderr, "repeat %d numnum %d\n", lastnum, numnum);
+					if (numnum > REJECT_THRESHOLD) {
+						retval = 0;
+						break;
+					}
+				} else {
+					numnum = 1;
+					lastnum = length_number;
+				}
+#if 0
+				if (numnum > worst) {
+					worst = numnum;
+					//fprintf(stderr, "%d worst %d\n", decode->DecodeNum[n], worst);
+				}
+#endif
 				length = ldecode[length_number]+2;
 				if ((bits = lbits[length_number]) > 0) {
 					length += rar_getbits(unpack_data) >> (16-bits);
@@ -1095,18 +1199,37 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 			}
 		}
 	}
-	if (retval)
+Bailout:
+	if (retval) {
 		unp_write_buf(unpack_data);
+	}
 #ifdef DEBUG
 	else
 	{
+		//fprintf(stderr, "Done. Worst %d\n", worst);
 		done += unpack_data->unp_ptr;
 		tot += unpack_data->max_size;
 
 		printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
 	}
+#elif defined(RAR_HIGH_DEBUG)
+	else
+		printf("Reject\n");
+
 #endif
-	rar_dbgmsg("Written size: %ld\n", unpack_data->written_size);
-	rar_dbgmsg("True size: %ld\n", unpack_data->true_size);
+	rar_dbgmsg("Written size: %ld\n", (long)unpack_data->written_size);
+	rar_dbgmsg("True size: %ld\n", (long)unpack_data->true_size);
+
+	/* Free resources */
+	ppm_destructor(&unpack_data->ppm_data);
+	rarvm_free(&unpack_data->rarvm_data);
+	rar_init_filters(unpack_data);
+
+#ifdef RAR_HIGH_DEBUG
+	if (magnum_mchk != 0) {
+		printf("memcheck %d\n", magnum_mchk);
+		return -1;
+	}
+#endif
 	return retval;
 }

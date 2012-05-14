@@ -8,11 +8,14 @@
 //#define DEBUG
 
 #define PLAINTEXT_LENGTH	16
-//#define FIXED_LEN		4
+//#define FIXED_LEN		6
 
 #define LWS_CONFIG		"rar_LWS"
 #define KPC_CONFIG		"rar_KPC"
 
 #define ROUNDS			0x40000
+
+/* Good for AMD, bad for nvidia */
+//#define RAR_VECTORIZE
 
 #endif /* _OPENCL_RAR_H */

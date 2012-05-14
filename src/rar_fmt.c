@@ -44,7 +44,7 @@
 #else
 #define BLOCK_IF_DEBUG	CL_FALSE
 #endif
-#ifdef FIXED_LEN
+#ifdef RAR_VECTORIZE
 #define VF	4
 #else
 #define VF	1
@@ -869,15 +869,16 @@ static void crypt_all(int count)
 		EVP_CIPHER_CTX aes_ctx;
 
 		EVP_CIPHER_CTX_init(&aes_ctx);
+		EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
+		EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 
+		//fprintf(stderr, "key %s\n", utf16_to_enc((UTF16*)&saved_key[index * UNICODE_LENGTH]));
 		/* AES decrypt, uses aes_iv, aes_key and saved_ct */
 		if (cur_file->type == 0) {	/* rar-hp mode */
 			unsigned char plain[16];
 
 			outlen = 0;
 
-			EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
-			EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->saved_ct, inlen);
 			EVP_DecryptFinal_ex(&aes_ctx, cur_file->saved_ct + outlen, &outlen);
 
@@ -896,8 +897,6 @@ static void crypt_all(int count)
 				   Compute CRC of the decompressed plaintext */
 				CRC32_Init(&crc);
 				outlen = 0;
-				EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
-				EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 
 				while (size > 0x8000) {
 					inlen = 0x8000;
@@ -924,19 +923,32 @@ static void crypt_all(int count)
 #else
 				unpack_t = unpack_data;
 #endif
-				//rar_unpack_init_data(solid, unpack_t);
 				unpack_t->max_size = cur_file->unp_size;
 				unpack_t->dest_unp_size = cur_file->unp_size;
 				unpack_t->pack_size = cur_file->pack_size;
 				unpack_t->iv = &aes_iv[i16];
 				unpack_t->ctx = &aes_ctx;
 				unpack_t->key = &aes_key[i16];
+#if 1
 				if (rar_unpack29(cur_file->encrypted, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 				else
 					cracked[index] = 0;
+#else
+				int aa;
+				if ((aa = rar_unpack29(cur_file->encrypted, solid, unpack_t)))
+					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
+				else
+					cracked[index] = 0;
+
+				if (aa == -1) {
+					puts("memcheck fail");
+					exit(0);
+				}
+#endif
 			}
 		}
+		EVP_CIPHER_CTX_cleanup(&aes_ctx);
 	}
 }
 
