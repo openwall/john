@@ -44,7 +44,7 @@
 #else
 #define BLOCK_IF_DEBUG	CL_FALSE
 #endif
-#ifdef FIXED_LEN
+#ifdef RAR_VECTORIZE
 #define VF	4
 #else
 #define VF	1
