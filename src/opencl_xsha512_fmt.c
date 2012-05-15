@@ -68,9 +68,9 @@
 #define CIPHERTEXT_LENGTH 136
 
 typedef struct { // notice memory align problem
-	uint8_t buffer[128];	//1024bits
-	uint32_t buflen;
 	uint64_t H[8];
+	uint32_t buffer[32];	//1024 bits
+	uint32_t buflen;
 } xsha512_ctx;
 
 
@@ -143,6 +143,73 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
+static void find_best_workgroup()
+{
+	cl_event myEvent;
+	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+	cl_ulong sumStartTime, sumEndTime;
+	size_t my_work_group = 1;
+	cl_int ret_code;
+	int i;
+	size_t max_group_size;
+	size_t work_size = KEYS_PER_CRYPT;
+    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], 
+		CL_KERNEL_WORK_GROUP_SIZE,sizeof (max_group_size), &max_group_size, 
+		NULL), "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
+	
+	cl_command_queue queue_prof =
+	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
+	    CL_QUEUE_PROFILING_ENABLE,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating command queue");
+	
+	/// Set keys
+	char *pass = "password";
+	for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
+		set_key(pass, i);
+	}
+	
+	///Set salt
+	memcpy(gsalt.v, "abcd", SALT_SIZE);
+
+	///Copy data to GPU
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0,
+		insize, gkey, 0, NULL, NULL), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE,
+			0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
+
+	my_work_group = 1;
+	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) 
+		my_work_group = 32;
+
+	///Find best local work size
+	for (; (int) my_work_group <= (int) max_group_size; my_work_group *= 2) {
+		sumStartTime = 0;
+		sumEndTime = 0;
+		for (i = 0; i < 10; ++i) {
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+				1, NULL, &work_size, &my_work_group, 0, NULL,
+				&myEvent), "Run kernel");
+			HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
+			
+			clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+			    sizeof(cl_ulong), &startTime, NULL);
+			clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+			    sizeof(cl_ulong), &endTime, NULL);
+			sumStartTime += startTime;
+			sumEndTime += endTime;
+		}
+		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
+			kernelExecTimeNs = sumEndTime - sumStartTime;
+			local_work_size = my_work_group;
+		}
+		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
+	}
+	printf("Optimal Group work Size = %d\n", (int) local_work_size);
+	clReleaseCommandQueue(queue_prof);
+}
+
+
 static void init(struct fmt_main *pFmt)
 {
 	opencl_init("$JOHN/xsha512_kernel.cl", gpu_id, platform_id);
@@ -165,7 +232,7 @@ static void init(struct fmt_main *pFmt)
 		&ret_code);
 	HANDLE_CLERROR(ret_code,"Error while alocating memory for binary");
 	mem_cmp =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint8_t), NULL,
+		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint32_t), NULL,
 		&ret_code);
 	HANDLE_CLERROR(ret_code,"Error while alocating memory for cmp_all result");
 
@@ -183,11 +250,8 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
-	//find_best_workgroup();
-    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE,
-               sizeof (local_work_size), &local_work_size, NULL),
-               "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
-	printf("Local work size = %d\n", (int)local_work_size);
+	find_best_workgroup();
+
 	printf("Global work size = %lld\n",(long long)global_work_size);
 	atexit(release_all);
 
@@ -377,10 +441,6 @@ static int salt_hash(void *salt)
 
 static void set_salt(void *salt)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
 	memcpy(gsalt.v, (uint8_t*)salt, SALT_SIZE);
 }
 
@@ -401,8 +461,6 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");
-//	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-//		outsize, ghash, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
@@ -424,25 +482,15 @@ static int cmp_all(void *binary, int count)
 	    (queue[gpu_id], cmp_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");
 
-	uint8_t result;
+	uint32_t result;
 	/// Copy result out
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_FALSE, 0,
-		sizeof(uint8_t), &result, 0, NULL, NULL), "Copy data back");
+		sizeof(uint32_t), &result, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
 	
-/*	uint64_t b0 = *((uint64_t *)binary+3);
-	uint64_t* h = (uint64_t*)ghash;
-	int i;
-
-	for (i = 0; i < count; i++) {
-		if (b0 == h[i])
-			return 1;
-	}
-	return 0;
-*/
 }
 
 static int cmp_one(void *binary, int index)

@@ -10,12 +10,17 @@ Performance issues:
   If you have got Fermi or newer card change "-arch sm_10" to "-arch sm_20" in the NVCC_FLAGS (Makefile).
   Default THREADS and BLOCKS settings might not be optimal.
   To get better performance you can experiment with THREADS and BLOCKS macros defined for each format in cuda*.h file.
-  For MSCash2:
+  For MSCash2[1]:
     CARD NAME	BLOCKS	THREADS	SM	RESULT
     GTX460	14	128	20	14194 c/s
-  For WPAPSK:
+  For WPAPSK[1]:
     CARD NAME	BLOCKS	THREADS	SM	RESULT
     GTX460	14	256	20	15058 c/s
+  For XSHA512[2]:
+    CARD NAME	BLOCKS	THREADS	SM	RESULT
+    GTX570	1600	256	??	67385K c/s
 
-
-You can contact me at lukas[dot]odzioba[at]gmail[dot]com or john-dev mailing list
+You can contact us at 
+[1] lukas[dot]odzioba[at]gmail[dot]com 
+[2] qqlddg[at]gmail[dot]com
+or john-dev mailing list
