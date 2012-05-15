@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <openssl/evp.h>
-#include <assert.h> // temporary
 
 #include "unrar.h"
 #include "unrarppm.h"
@@ -613,7 +612,10 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	rar_dbgmsg("new_filter=%d\n", new_filter);
 	if (new_filter) {	// New filter code, never used before since VM reset.
 		// Too many different filters, corrupt archive.
-		assert(filter_pos <= 1024);
+		if (filter_pos > 1024) {
+			rar_dbgmsg("filter_pos > 1024 reject\n");
+			return 0;
+		}
 		if (!rar_filter_array_add(&unpack_data->Filters, 1)) {
 			rar_dbgmsg("rar_filter_array_add failed\n");
 			return 0;
