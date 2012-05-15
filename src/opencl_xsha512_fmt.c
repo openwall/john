@@ -68,9 +68,9 @@
 #define CIPHERTEXT_LENGTH 136
 
 typedef struct { // notice memory align problem
-	uint8_t buffer[128];	//1024bits
-	uint32_t buflen;
 	uint64_t H[8];
+	uint32_t buffer[32];	//1024 bits
+	uint32_t buflen;
 } xsha512_ctx;
 
 
@@ -232,7 +232,7 @@ static void init(struct fmt_main *pFmt)
 		&ret_code);
 	HANDLE_CLERROR(ret_code,"Error while alocating memory for binary");
 	mem_cmp =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint8_t), NULL,
+		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint32_t), NULL,
 		&ret_code);
 	HANDLE_CLERROR(ret_code,"Error while alocating memory for cmp_all result");
 
@@ -461,8 +461,6 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");
-//	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-//		outsize, ghash, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
@@ -484,25 +482,15 @@ static int cmp_all(void *binary, int count)
 	    (queue[gpu_id], cmp_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");
 
-	uint8_t result;
+	uint32_t result;
 	/// Copy result out
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_FALSE, 0,
-		sizeof(uint8_t), &result, 0, NULL, NULL), "Copy data back");
+		sizeof(uint32_t), &result, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
 	
-/*	uint64_t b0 = *((uint64_t *)binary+3);
-	uint64_t* h = (uint64_t*)ghash;
-	int i;
-
-	for (i = 0; i < count; i++) {
-		if (b0 == h[i])
-			return 1;
-	}
-	return 0;
-*/
 }
 
 static int cmp_one(void *binary, int index)
