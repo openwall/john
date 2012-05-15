@@ -4,6 +4,10 @@
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 
+#ifdef cl_khr_byte_addressable_store
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
+#endif
+
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
 #define uint64_t unsigned long
@@ -47,15 +51,10 @@
 
 
 typedef struct { // notice memory align problem
-	uint8_t buffer[128];	//1024 bits
-	uint32_t buflen;
 	uint64_t H[8];
+	uint32_t buffer[32];	//1024 bits
+	uint32_t buflen;
 } xsha512_ctx;
-
-
-typedef struct {
-    uint8_t v[SALT_SIZE]; // 32 bits
-} xsha512_salt;
 
 typedef struct {
     uint8_t length;
@@ -63,8 +62,8 @@ typedef struct {
 } xsha512_key;
 
 
-
-#define hash_addr(j,idx) (((j)*(MAX_KEYS_PER_CRYPT))+(idx))
+/* Macros for reading/writing chars from int32's */
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 
 __constant uint64_t k[] = {
@@ -111,42 +110,28 @@ __constant uint64_t k[] = {
 };
 
 void xsha512(__global const char* password, uint8_t pass_len, 
-	__global uint64_t* hash, uint32_t offset, __constant char* salt)
+	__global uint64_t* hash, uint32_t offset, __constant uint32_t* salt)
 {
     __private xsha512_ctx ctx;
-	//init
-    ctx.H[0] = 0x6a09e667f3bcc908UL;
-	ctx.H[1] = 0xbb67ae8584caa73bUL;
-	ctx.H[2] = 0x3c6ef372fe94f82bUL;
-	ctx.H[3] = 0xa54ff53a5f1d36f1UL;
-	ctx.H[4] = 0x510e527fade682d1UL;
-	ctx.H[5] = 0x9b05688c2b3e6c1fUL;
-	ctx.H[6] = 0x1f83d9abfb41bd6bUL;
-	ctx.H[7] = 0x5be0cd19137e2179UL;
-	ctx.buflen = 0;
-
+	
+	uint32_t* b32 = ctx.buffer;
 	//set salt to buffer
-	for (uint32_t i = 0; i < SALT_SIZE; i++) {
-		ctx.buffer[i] = salt[i];
-	}
+	*b32 = *salt;
 	
 	//set password to buffer
     for (uint32_t i = 0; i < pass_len; i++) {
-		ctx.buffer[i+SALT_SIZE] = password[i];
+		PUTCHAR(b32,i+SALT_SIZE,password[i]);
 	}
     ctx.buflen = pass_len+SALT_SIZE;
 
 	//append 1 to ctx buffer
 	uint32_t length = ctx.buflen;
-	uint8_t *buffer8 = &ctx.buffer[length];
-
-	*buffer8++ = 0x80;
-
-	while(++length % 4 != 0)  {
-		*buffer8++ = 0;
+	PUTCHAR(b32, length, 0x80);
+	while((++length & 3) != 0)  {
+		PUTCHAR(b32, length, 0);
 	}
 
-	uint32_t *buffer32 = (uint32_t*)buffer8;
+	uint32_t* buffer32 = b32+(length>>2);
 	for(uint32_t i = length; i < 128; i+=4) {// append 0 to 128
 		*buffer32++=0;
 	}
@@ -157,19 +142,20 @@ void xsha512(__global const char* password, uint8_t pass_len,
 
 	// sha512 main
 	int i;
-	uint64_t a = ctx.H[0];
-	uint64_t b = ctx.H[1];
-	uint64_t c = ctx.H[2];
-	uint64_t d = ctx.H[3];
-	uint64_t e = ctx.H[4];
-	uint64_t f = ctx.H[5];
-	uint64_t g = ctx.H[6];
-	uint64_t h = ctx.H[7];
-
+	
+	uint64_t a = 0x6a09e667f3bcc908UL;
+	uint64_t b = 0xbb67ae8584caa73bUL;
+	uint64_t c = 0x3c6ef372fe94f82bUL;
+	uint64_t d = 0xa54ff53a5f1d36f1UL;
+	uint64_t e = 0x510e527fade682d1UL;
+	uint64_t f = 0x9b05688c2b3e6c1fUL;
+	uint64_t g = 0x1f83d9abfb41bd6bUL;
+	uint64_t h = 0x5be0cd19137e2179UL;
 
 	__private uint64_t w[16];
 
 	uint64_t *data = (uint64_t *) ctx.buffer;
+
 	#pragma unroll 16
 	for (i = 0; i < 16; i++)
 		w[i] = SWAP64(data[i]);
@@ -206,20 +192,19 @@ void xsha512(__global const char* password, uint8_t pass_len,
 		b = a;
 		a = t1 + t2;
 	}
-	
 	hash[offset] = SWAP64(a);
 }
 
 __kernel void kernel_xsha512(
 	__global const xsha512_key *password, 
 	__global uint64_t *hash,
-	__constant char *salt)
+	__constant uint32_t *salt)
 {
 
     uint32_t idx = get_global_id(0);
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
-    	xsha512((__global const char*)password[offset].v, password[offset].length, 
+    	xsha512(password[offset].v, password[offset].length, 
 			hash, offset, salt);
 	}
 }
@@ -227,7 +212,7 @@ __kernel void kernel_xsha512(
 __kernel void kernel_cmp(
 	__constant uint64_t* binary, 
 	__global uint64_t *hash,
-	__global uint8_t* result)
+	__global uint32_t* result)
 {
     uint32_t idx = get_global_id(0);
 	if(idx == 0)
