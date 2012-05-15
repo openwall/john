@@ -960,6 +960,10 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	if (Reset) {
 		MaxMB = rar_get_char(fd, unpack_data);
 		rar_dbgmsg("ppm_decode_init MaxMB=%d\n", MaxMB);
+		if (MaxMB > 128) {
+			rar_dbgmsg("MaxMB > 128 MB reject\n");
+			return 0;
+		}
 	} else {
 		if (sub_allocator_get_allocated_memory(&ppm_data->sub_alloc) == 0) {
 			return 0;
