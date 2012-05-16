@@ -150,6 +150,8 @@ extern struct fmt_main fmt_cuda_rawsha256;
 extern struct fmt_main fmt_cuda_rawsha224;
 extern struct fmt_main fmt_cuda_xsha512;
 extern struct fmt_main fmt_cuda_wpapsk;
+extern struct fmt_main fmt_cuda_rawsha512;
+
 #endif
 
 extern struct fmt_main fmt_ssh;
@@ -284,6 +286,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_rawsha224);
 	john_register_one(&fmt_cuda_xsha512);
 	john_register_one(&fmt_cuda_wpapsk);
+	john_register_one(&fmt_cuda_rawsha512);
 
 #endif
 
