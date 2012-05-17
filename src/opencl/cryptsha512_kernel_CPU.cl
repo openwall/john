@@ -162,21 +162,9 @@ void ctx_append_1(sha512_ctx * ctx) {
     uint32_t length = ctx->buflen;
     PUTCHAR(ctx->buffer->mem_08, length, 0x80);
 
-    switch (++length & 3) {
-        case 3:	// * unaligned mod 3 * 
-            PUTCHAR(ctx->buffer->mem_08, length, 0); length++;
-        case 2:	// * unaligned mod 2 * 
-            PUTCHAR(ctx->buffer->mem_08, length, 0); length++;
-        case 1:	// * unaligned mod 1 * 
-            PUTCHAR(ctx->buffer->mem_08, length, 0); length++;
-        default:
-
-            if (length & 7) {
-                uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
-                *l = 0;
-                length += 4;
-            }
-    }
+    while (++length & 7)
+        PUTCHAR(ctx->buffer->mem_08, length, 0);
+   
     uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {

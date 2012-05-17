@@ -66,11 +66,6 @@
 #define MIN_KEYS_PER_CRYPT	128
 #define MAX_KEYS_PER_CRYPT	2048*1024
 
-#ifdef _OPENCL_COMPILER
-        //#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable        
-        #define uint64_v ulong2
-#endif
-
 //Macros.
 #define SWAP(n) \
             (((n) << 56)                                \

@@ -14,7 +14,6 @@
  */
 
 #define _OPENCL_COMPILER
-//#define VECTOR_USAGE
 #include "opencl_cryptsha512.h"
 
 __constant uint64_t k[] = {
@@ -147,10 +146,15 @@ void ctx_append_1(__local sha512_ctx * ctx) {
     uint32_t length = ctx->buflen;
     PUTCHAR(ctx->buffer->mem_08, length, 0x80);
 
-    while((++length % 8) != 0)
+    while (++length & 3)
         PUTCHAR(ctx->buffer->mem_08, length, 0);
-   
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+ 
+    if (length & 7) {
+        __local uint32_t * l = (__local uint32_t *) (ctx->buffer->mem_08 + length);
+        *l = 0;
+        length += 4; 
+    }  
+    __local uint64_t * l = (__local uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {
         *l++ = 0;

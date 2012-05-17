@@ -165,9 +165,14 @@ void ctx_append_1(sha512_ctx * ctx) {
     uint32_t length = ctx->buflen;
     PUTCHAR(ctx->buffer->mem_08, length, 0x80);
 
-    while((++length % 8) != 0)
+    while (++length & 3)
         PUTCHAR(ctx->buffer->mem_08, length, 0);
-   
+ 
+    if (length & 7) {
+        uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
+        *l = 0;
+        length += 4; 
+    }  
     uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {
