@@ -452,11 +452,11 @@ static void init(struct fmt_main *pFmt) {
         printf("Building the kernel, this could take a while\n");
         
         if (gpu_nvidia(get_device_info()))
-            task =  "$JOHN/cryptsha512_kernel_NVIDIA.cl";
+            task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
             task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";
             
-    }    
+    }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
     

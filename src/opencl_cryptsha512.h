@@ -67,7 +67,8 @@
 #define MAX_KEYS_PER_CRYPT	2048*1024
 
 #ifdef _OPENCL_COMPILER
-       //#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
+        //#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable        
+        #define uint64_v ulong2
 #endif
 
 //Macros.
@@ -102,16 +103,16 @@
 	#define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
         #define ror(x, n)       ((x >> n) | (x << (64-n)))
         #define SWAP64(n)       SWAP(n)
-#endif
+#endif 
 #define Sigma0(x)               ((ror(x,28)) ^ (ror(x,34)) ^ (ror(x,39)))
 #define Sigma1(x)               ((ror(x,14)) ^ (ror(x,18)) ^ (ror(x,41)))
 #define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
 
-/* Macros for reading/writing chars from int32's. Copied from rar_kernel.cl */
+/* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
+/* Failed to use it in insert_to_buffer on GPU (wrong results). */
 #define GETCHAR(buf, index) ((buf)[(index)])
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-#define PUTCHAR_OLD(buf, index, val) (buf)[(index)] = val
+#define PUTCHAR(buf, index, val) (buf)[(index)] = val
 
 //Data types.
 typedef union {
@@ -140,7 +141,10 @@ typedef struct {
     uint64_t                    H[8];           //512 bits
     uint32_t                    total;
     uint32_t                    buflen;
-    buffer_64                   buffer[16];     //1024bits  
+    buffer_64                   buffer[16];     //1024bits      
+#if cpu(DEVICE_INFO)
+    uint64_t                    safety_trail;   //To avoid memory override
+#endif  
 } sha512_ctx;
 
 typedef struct {

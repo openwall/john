@@ -69,25 +69,14 @@ inline void memcpy(      uint8_t * dest,
 inline void memcpy_G(               uint8_t * dest, 
                      __global const uint8_t * src, 
                      const uint32_t destlen, const uint32_t srclen) {
-    uint32_t * d;
-    __global uint32_t * s;
-    uint32_t i = 0;
+    int i = 0;
 
-    switch (destlen & 3) {
-        case 3:	/* unaligned mod 3 */
-            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;
-        case 2:	/* unaligned mod 2 */
-            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;
-        case 1:	/* unaligned mod 1 */
-            PUTCHAR((uint32_t *) dest, i, GETCHAR(src, i)); i++;        
-        default:
-            d = (uint32_t *) (dest + i);
-            s = (__global uint32_t *) (src + i);
-    }
+    uint64_t * l = (uint64_t *) dest;
+    __global uint64_t * s = (__global uint64_t *) src;
 
-    while(i < srclen) {
-        *d++ = *s++;
-        i += 4;
+    while (i < srclen) {
+        *l++ = *s++;
+        i += 8;
     }
 }
 
@@ -171,15 +160,15 @@ void sha512_block(sha512_ctx * ctx) {
 void ctx_append_1(sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
-    PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0x80);
+    PUTCHAR(ctx->buffer->mem_08, length, 0x80);
 
     switch (++length & 3) {
-        case 3:	/* unaligned mod 3 */
-            PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0); length++;
-        case 2:	/* unaligned mod 2 */
-            PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0); length++;
-        case 1:	/* unaligned mod 1 */
-            PUTCHAR((uint32_t *) (ctx->buffer->mem_08 + length), 0, 0); length++;
+        case 3:	// * unaligned mod 3 * 
+            PUTCHAR(ctx->buffer->mem_08, length, 0); length++;
+        case 2:	// * unaligned mod 2 * 
+            PUTCHAR(ctx->buffer->mem_08, length, 0); length++;
+        case 1:	// * unaligned mod 1 * 
+            PUTCHAR(ctx->buffer->mem_08, length, 0); length++;
         default:
 
             if (length & 7) {
@@ -266,7 +255,7 @@ void sha512_digest(sha512_ctx * ctx,
         clear_ctx_buffer(ctx);
 
         if (moved) //append 1,the rest is already clean
-            PUTCHAR((uint32_t *) ctx->buffer->mem_08, 0, 0x80);
+            PUTCHAR(ctx->buffer->mem_08, 0, 0x80);
         ctx_add_length(ctx);
     }
     sha512_block(ctx);
