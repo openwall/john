@@ -415,7 +415,7 @@ static void find_best_kpc(void) {
                 break;
             }
         } else {
-            if (run_time > min_time * 10)
+            if (run_time > min_time * 5 || run_time > 10000000000)
                 break;
         }
         if (SHAspeed > (1.01 * bestSHAspeed)) {
