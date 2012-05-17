@@ -41,7 +41,7 @@ void rar_filter_array_reset(rar_filter_array_t *filter_a)
 		rar_filter_delete(filter_a->array[i]);
 	}
 	if (filter_a->array) {
-		free(filter_a->array);
+		rar_free(filter_a->array);
 	}
 	filter_a->array = NULL;
 	filter_a->num_items = 0;
@@ -88,11 +88,11 @@ void rar_filter_delete(struct UnpackFilter *filter)
 		return;
 	}
 	if (filter->prg.global_data) {
-		free(filter->prg.global_data);
+		rar_free(filter->prg.global_data);
 	}
 	if (filter->prg.static_data) {
-		free(filter->prg.static_data);
+		rar_free(filter->prg.static_data);
 	}
 	rar_cmd_array_reset(&filter->prg.cmd);
-	free(filter);
+	rar_free(filter);
 }

@@ -82,8 +82,7 @@ SEC_BEGIN_PROTOS
  * keyDB which only support PKCS 5 v1, PFX, and PKCS 12.
  */
 // My Mod
-    struct NSSPKCS5PBEParameter * nsspkcs5_NewParam(int alg, SECItem * salt, int iterator);
-
+struct NSSPKCS5PBEParameter *nsspkcs5_NewParam(int alg, SECItem * salt, int iterator, struct NSSPKCS5PBEParameter *gpbe_param, unsigned char *salt_data);
 
 /* Encrypt/Decrypt data using password based encryption.
  *  algid is the PBE algorithm identifier,

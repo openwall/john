@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2002,2009 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by magnum
  */
 
 #include <stdio.h>
@@ -15,6 +17,7 @@
 #include "memory.h"
 #include "config.h"
 #include "logger.h"
+#include "external.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -193,6 +196,26 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 		return current->list;
 
 	return NULL;
+}
+
+void cfg_print_subsections(char *section, char *function, char *notfunction)
+{
+	struct cfg_section *current;
+	char *p1, *p2;
+
+	if ((current = cfg_database))
+	do {
+		p1 = current->name; p2 = section;
+		while (*p1 && *p1 == tolower((int)(unsigned char)*p2)) {
+			p1++; p2++;
+		}
+		if (*p1++ != ':') continue;
+		if (!*p1 || *p2) continue;
+		if (notfunction && ext_has_function(p1, notfunction))
+			continue;
+		if (!function || ext_has_function(p1, function))
+			printf("%s\n", p1);
+	} while ((current = current->next));
 }
 
 char *cfg_get_param(char *section, char *subsection, char *param)

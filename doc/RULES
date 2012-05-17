@@ -138,6 +138,7 @@ more efficient to use, say, "Az,yes/no," for the same effect.
 
 <N	reject the word unless it is less than N characters long
 >N	reject the word unless it is greater than N characters long
+_N	reject the word unless it is N characters long
 'N	truncate the word at length N
 
 

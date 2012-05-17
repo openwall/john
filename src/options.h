@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-98,2003,2006 by Solar Designer
  *
- * ...with changes in the jumbo patch, by various authors
+ * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  */
 
 /*
@@ -204,6 +204,8 @@ struct options_main {
 #elif defined(HAVE_CUDA)
 	char *ocl_device;
 #endif
+/* -list=WHAT Get a config list (eg. a list of incremental modes available) */
+	char *listconf;
 };
 
 extern struct options_main options;

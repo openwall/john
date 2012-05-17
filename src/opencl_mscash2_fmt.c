@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include "common-opencl.h"
+#include <omp.h>
 
 #define INIT_MD4_A                  0x67452301
 
@@ -55,7 +56,7 @@
 #define MAX_CIPHERTEXT_LENGTH     54                                               //7 + MAX_SALT_LENGTH + 32
 
 
-#define BINARY_SIZE               16
+#define BINARY_SIZE               4
 
 
 # define SWAP(n) \
@@ -93,8 +94,6 @@ static struct fmt_tests tests[] = {
 
 	static unsigned char key_host[MAX_KEYS_PER_CRYPT][MAX_PLAINTEXT_LENGTH+1]; 
 
-	static unsigned char ciphertext_host[MAX_KEYS_PER_CRYPT][MAX_CIPHERTEXT_LENGTH+1];
-
 	static ms_cash2_salt currentsalt;
 
 	static cl_platform_id pltfrmid;
@@ -112,7 +111,10 @@ static struct fmt_tests tests[] = {
 	static cl_int err;
 	
 	static cl_mem pass_gpu,salt_gpu,hash_out_gpu;
-
+	
+	static size_t lws=16;
+	
+	static char PROFILE = 1 ;
 
 
 
@@ -210,60 +212,158 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
     hash[3] = d + INIT_MD4_D;
 }
 
+static void find_best_workgroup(void);
+static void set_key(char*, int);
+static void cleanup(void);
+static  void crypt_all(int);
 
-static unsigned char *byte2hexstring(unsigned char * byte, unsigned int len) {
-    
-	unsigned int i;
-    
-	unsigned char *hexstring;
- 
-	hexstring =(unsigned char*) malloc(len * 2 + 1);
-    
-	memset(hexstring,0, 2 * len + 1);
- 
-	for (i = 0; i < len; i++)
-	    sprintf((char*)&hexstring[2 * i], "%02x", byte[i]);
- 
-	return hexstring;
+
+static void init(struct fmt_main *pFmt)
+{
+	//Alocate memory for hashes and passwords
+	dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+  
+	dcc_hash_host_temp=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+  
+	dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+  
+	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+  
+	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+  
+	opencl_init("$JOHN/pbkdf2_kernel.cl", 0, 0);
+  
+	pltfrmid=platform[0];
+  
+	devid[0]=devices[0];
+  
+	cntxt=context[0];
+  
+	prg=program[0];
+  
+	krnl0=clCreateKernel(prg,"PBKDF2",&err) ;
+	if(err) {printf("Create Kernel PBKDF2 FAILED\n"); return ;}
+
+	find_best_workgroup();
+	
+	cmdq=queue[0];
+	
+	atexit(cleanup);
+  
 }
 
+
+static void find_best_workgroup()
+{	int i;	
+	
+        static size_t _lws;
+	
+	/// Set keys
+	static char *pass = "GTX690";
+	
+	for (i = 0; i < 64000; i++) {
+		set_key(pass, i);
+	}
+	
+	///Set salt
+	memcpy(currentsalt.username, "saltstring", 11);
+	
+	currentsalt.length = 10;
+	
+	cmdq =
+	    clCreateCommandQueue(context[0], devices[0], CL_QUEUE_PROFILING_ENABLE,
+	    &err);
+	
+	HANDLE_CLERROR(err, "Error creating command queue");
+	
+	PROFILE=1;
+	
+	///Find best local work size
+	while(1)
+	{ _lws=lws; 
+	 
+	  crypt_all(64000);
+	  
+	  if(lws<=_lws) break;  
+	}
+	
+	PROFILE=0;		
+	
+	printf("Optimal Group work Size = %d\n",  lws);
+	
+}
 
 
 static void PBKDF2_api(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num)
 { 
 	cl_event evnt;
   
-	size_t N=num,M=64;
-    
-  
+	size_t N=num,M=lws;
+	  
 	pass_gpu=clCreateBuffer(cntxt,CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,4*num*sizeof(cl_uint),pass_api,&err);
-	if((pass_gpu==(cl_mem)0))  {printf("Create Buffer FAILED\n"); return;}
+	if((pass_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); return;}
   
 	salt_gpu=clCreateBuffer(cntxt,CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR,MAX_SALT_LENGTH*sizeof(cl_uint)/2 +1,salt_api,&err);
-	if((salt_gpu==(cl_mem)0)) {printf("Create Buffer FAILED\n"); return;}
+	if((salt_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); return;}
   
 	hash_out_gpu=clCreateBuffer(cntxt,CL_MEM_READ_WRITE|CL_MEM_COPY_HOST_PTR,4*num*sizeof(cl_uint),hash_out_api,&err);
-	if((hash_out_gpu==(cl_mem)0)) {printf("Create Buffer FAILED\n"); return;}
+	if((hash_out_gpu==(cl_mem)0)) {HANDLE_CLERROR(err, "Create Buffer FAILED\n"); return;}
     
   
-	if(clSetKernelArg(krnl0,0,sizeof(cl_mem),&pass_gpu)) {printf("Set Kernel FAILED.krnl0 arg0\n"); return;}
+	HANDLE_CLERROR(clSetKernelArg(krnl0,0,sizeof(cl_mem),&pass_gpu),"Set Kernel FAILED.krnl0 arg0\n");
   
-	if(clSetKernelArg(krnl0,1,sizeof(cl_mem),&salt_gpu)) {printf("Set Kernel FAILED.krnl0 arg1\n"); return;}
+	HANDLE_CLERROR(clSetKernelArg(krnl0,1,sizeof(cl_mem),&salt_gpu),"Set Kernel FAILED.krnl0 arg1\n"); 
   
-	if(clSetKernelArg(krnl0,2,sizeof(cl_uint),&saltlen_api)) {printf("Set Kernel FAILED.krnl0 arg2\n"); return;}
+	HANDLE_CLERROR(clSetKernelArg(krnl0,2,sizeof(cl_uint),&saltlen_api),"Set Kernel FAILED.krnl0 arg2\n");
   
-	if(clSetKernelArg(krnl0,3,sizeof(cl_uint),&num)) {printf("Set Kernel FAILED.krnl0 arg3\n"); return;}
+	HANDLE_CLERROR(clSetKernelArg(krnl0,3,sizeof(cl_uint),&num),"Set Kernel FAILED.krnl0 arg3\n");
+	
+	  
+	HANDLE_CLERROR(clSetKernelArg(krnl0,4,sizeof(cl_mem),&hash_out_gpu),"Set Kernel FAILED.krnl0 arg5\n"); 
   
-	if(clSetKernelArg(krnl0,4,sizeof(cl_mem),&hash_out_gpu))     {printf("Set Kernel FAILED.krnl0 arg4\n"); return;}
+  	if(clEnqueueNDRangeKernel(cmdq,krnl0,1,NULL,&N,&M,0,NULL,&evnt)) 
+	{
+         if(PROFILE)  
+	 {
+	   lws=lws/2;
+	 }
+	 
+	 else	 printf("Enqueue Kernel FAILED.krnl0\n");
+	 
+	 return;
+	}
+
+	HANDLE_CLERROR(CL_SUCCESS!=clWaitForEvents(1,&evnt),"SYNC FAILED\n");
+	
+        if(PROFILE)
+          {
+	   static cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+	   
+	   HANDLE_CLERROR(clFinish(cmdq), "clFinish error");
+	   
+	   clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+	   
+	   clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END,    sizeof(cl_ulong), &endTime, NULL);
+	   
+	   if ((endTime - startTime) < kernelExecTimeNs) {
+	
+	                kernelExecTimeNs = endTime - startTime;
+			
+			//printf("%d\n",(int)kernelExecTimeNs);
+			
+			lws  =lws*2;
+			
+	     
+	        }
+		
+           }
   
-  
-	if(clEnqueueNDRangeKernel(cmdq,krnl0,1,NULL,&N,&M,0,NULL,&evnt)) {printf("Enqueue Kernel FAILED.krnl0\n"); return;}
-	if(CL_SUCCESS!=clWaitForEvents(1,&evnt)) printf("SYNC FAILED\n");
-  
-  
-	if(clEnqueueReadBuffer(cmdq,hash_out_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),hash_out_api, 0, NULL, NULL)) {printf("Write Read FAILED\n"); return;} 
-     
+	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq,hash_out_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),hash_out_api, 0, NULL, NULL),"Write Read FAILED\n");  
+	
 }
+
+
+
 
 static void DCC(unsigned char *salt,unsigned char *username,unsigned int username_len,unsigned char *password,unsigned int *dcc_hash,unsigned int id)
 {
@@ -347,40 +447,6 @@ static void cleanup()
 	
 	
 }
-
-
-static void init(struct fmt_main *pFmt)
-{
-	//Alocate memory for hashes and passwords
-	dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-  
-	dcc_hash_host_temp=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-  
-	dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-  
-	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-  
-	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-  
-	opencl_init("$JOHN/pbkdf2_kernel.cl", gpu_id, platform_id);
-  
-	pltfrmid=platform[platform_id];
-  
-	devid[0]=devices[gpu_id];
-  
-	cntxt=context[gpu_id];
-  
-	cmdq=queue[gpu_id];
-  
-	prg=program[gpu_id];
-  
-	krnl0=clCreateKernel(prg,"PBKDF2",&err) ;
-	if(err) {printf("Create Kernel PBKDF2 FAILED\n"); return ;}
-	
-	atexit(cleanup);
-  
-}
-
 
 
 static int valid(char *ciphertext,struct fmt_main *pFmt)
@@ -497,12 +563,14 @@ static  char *get_key(int index )
 
 static void crypt_all(int count)
 {    
-	unsigned int i,j,k;
-     
-	cl_uint temp[4];
+	unsigned int i,j;
+     	
+	//struct timeval startc,endc,startg,endg;
+	
+	//gettimeofday(&startc,NULL);
           
-	if(count%64!=0)     
-	  count=(count/64 + 1)*64;
+	if(count%lws!=0)     
+	  count=(count/lws + 1)*lws;
      
 	current_numkeys=count;
      
@@ -523,47 +591,48 @@ static void crypt_all(int count)
        
 	for(i = 0; i < (currentsalt.length >> 1) ; i++)
 	   ((unsigned int *)salt_unicode)[i] = currentsalt.username[2 * i] | (currentsalt.username[2 * i + 1] << 16);
-	 
-	for(i=0;i<count;i++) {
-        
-	    DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
-        
-	    ciphertext_host[i][0]='\0';
-	
-	    strcat((char*)ciphertext_host[i],"$DCC2$");
-	
-	    strcat((char*)ciphertext_host[i],(const char*)currentsalt.username);
-	
-	    strcat((char*)ciphertext_host[i],"#");
-	
-       
-	}
 	
 	memcpy(salt_host,salt_unicode,MAX_SALT_LENGTH*2+1);
 	
-	for(i=0,j=0;i<count*4;i=i+4,j++)
-	dcc_hash_host_temp[j]=dcc_hash_host[i];
-	
-	for(i=1,j=count;i<count*4;i=i+4,j++)
-	dcc_hash_host_temp[j]=dcc_hash_host[i];
-	
-	for(i=2,j=2*count;i<count*4;i=i+4,j++)
-	dcc_hash_host_temp[j]=dcc_hash_host[i];
-	
-	for(i=3,j=3*count;i<count*4;i=i+4,j++)
-	dcc_hash_host_temp[j]=dcc_hash_host[i];
+#ifdef _OPENMP	
+#pragma omp parallel shared(salt_unicode,currentsalt,key_host,dcc_hash_host,salt_host,dcc_hash_host_temp,dcc2_hash_host)
+#endif	   
+   {  
+#ifdef _OPENMP     
+#pragma omp for private(i) firstprivate(count)
+#endif
+	for(i=0;i<count;i++)    DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
+
+#ifdef _OPENMP	 
+#pragma omp for private(i,j) firstprivate(count)
+#endif
+	for(i=0;i<count*4;i++)
+	     {  j=i/4;
+	        if(i%4==1) j+= count ;
+		if(i%4==2) j+=2*count;
+		if(i%4==3) j+=3*count;
+	        dcc_hash_host_temp[j]=dcc_hash_host[i];
+	    
+	     }
+#ifdef _OPENMP
+#pragma omp single firstprivate(count)
+#endif
+	{
+		
+	//gettimeofday(&startg,NULL);
 	
 	PBKDF2_api(dcc_hash_host_temp,salt_host,currentsalt.length,dcc2_hash_host,count);
 	
-	for(i=0;i<count;i++) {  
-	   
-	    for(j=i,k=0;j<4*count;j=j+count,k++)
-		temp[k]=dcc2_hash_host[j];      
-	  
-	    strcat((char*)ciphertext_host[i],(const char*)byte2hexstring((unsigned char*)(temp),16));
+	//gettimeofday(&endg,NULL);
+		
+	}
 
-	  }
+   }  
+   
+	//gettimeofday(&endc, NULL);
 	
+	//printf("\nGPU:%f  ",(endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000);
+	//printf("CPU:%f  ",(endc.tv_sec-startc.tv_sec)+(double)(endc.tv_usec-startc.tv_usec)/1000000.000 - ((endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000));
 }
 
 
@@ -669,12 +738,6 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	unsigned int i,j, *b = (unsigned int *) binary;
-	
-	for (i=index,j = 0; j < 4;i=i+current_numkeys, j++)
-	     if (b[j] != dcc2_hash_host[i])
-		 return 0;
-	
 	return 1;
 }
 
@@ -682,15 +745,19 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int count)
 {   
-      unsigned int length;
-    
-      length=strlen((const char*)source);
-    
-      if(length!=strlen((const char*)ciphertext_host[count])) return 0;
-    
-      if(strncmp(source,(const char*)ciphertext_host[count],length)) return 0;
-    
+      unsigned int *bin;
+      
+      bin=(unsigned int*)binary(source);
+      
+      if(bin[1]!=dcc2_hash_host[count+current_numkeys])   return 0;
+      
+      if(bin[2]!=dcc2_hash_host[count+2*current_numkeys]) return 0;
+      
+      if(bin[3]!=dcc2_hash_host[count+3*current_numkeys]) return 0;
+      
       return 1;
+    
+      
 }
 
 
@@ -737,7 +804,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		    MAX_SALT_LENGTH*2+1,
 		    MAX_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT ,
+		    FMT_CASE | FMT_8_BIT|FMT_OMP ,
 	            tests
 	},{
 		    init,

@@ -23,5 +23,6 @@
 
 void *rar_malloc(size_t size);
 void *rar_realloc2(void *ptr, size_t size);
+void rar_free(void *ptr);
 
 #endif /* __UNRARHLP_H */

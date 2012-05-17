@@ -29,27 +29,42 @@
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	16
 #define BINARY_SIZE		16
-#define SALT_SIZE		512
+#define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
-static SHA_CTX pctx;
-static SECItem saltItem;
-static unsigned char encString[128];
-static struct NSSPKCS5PBEParameter *paramPKCS5 = NULL;
-static struct KeyCrackData keyCrackData;
+
+struct custom_salt {
+	SHA_CTX pctx;
+	SECItem saltItem;
+	unsigned char encString[128];
+	struct NSSPKCS5PBEParameter *paramPKCS5;;
+	struct KeyCrackData keyCrackData;
+	struct NSSPKCS5PBEParameter gpbe_param;
+	unsigned char salt_data[4096];
+} *salt_struct;
+
+#ifdef DEBUF
+static void print_hex(unsigned char *str, int len)
+{
+	int i;
+	for (i = 0; i < len; ++i)
+		printf("%02x", str[i]);
+	printf("\n");
+}
+#endif
 
 static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {
 	unsigned char passwordHash[SHA1_LENGTH+1];
 	SHA_CTX ctx;
 	// Copy already calculated partial hash data..
-	memcpy(&ctx, &pctx, sizeof(SHA_CTX) );
+	memcpy(&ctx, &salt_struct->pctx, sizeof(SHA_CTX) );
 	SHA1_Update(&ctx, (unsigned char *)password, strlen(password));
 	SHA1_Final(passwordHash, &ctx);
-	return nsspkcs5_CipherData(paramPKCS5, passwordHash, encString, pkcs5_pfxpbe, secPreHash);
+	return nsspkcs5_CipherData(salt_struct->paramPKCS5, passwordHash, salt_struct->encString, pkcs5_pfxpbe, secPreHash);
 }
 
 
@@ -84,65 +99,66 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
-}
-
-
-static void set_salt(void *salt)
-{
 	int i;
-	char *saltcopy = strdup(salt);
-	char *keeptr = saltcopy;
-	saltcopy += 9;	/* skip over "$mozilla$*" */
-	char *p = strtok(saltcopy, "*");
-	keyCrackData.version = atoi(p);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	ctcopy += 9;	/* skip over "$vnc$*" */
+	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	char *p = strtok(ctcopy, "*");
+	salt_struct->keyCrackData.version = atoi(p);
 	p = strtok(NULL, "*");
-	keyCrackData.saltLen = atoi(p);
+	salt_struct->keyCrackData.saltLen = atoi(p);
 	p = strtok(NULL, "*");
-	keyCrackData.nnLen = atoi(p);
+	salt_struct->keyCrackData.nnLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < keyCrackData.saltLen; i++)
-		keyCrackData.salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < salt_struct->keyCrackData.saltLen; i++)
+		salt_struct->keyCrackData.salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	keyCrackData.salt[keyCrackData.saltLen] =0;
+	salt_struct->keyCrackData.salt[salt_struct->keyCrackData.saltLen] = 0;
 	p = strtok(NULL, "*");
-	keyCrackData.oidLen = atoi(p);
+	salt_struct->keyCrackData.oidLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < keyCrackData.oidLen; i++)
-		keyCrackData.oidData[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < salt_struct->keyCrackData.oidLen; i++)
+		salt_struct->keyCrackData.oidData[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	keyCrackData.oidData[keyCrackData.oidLen] =0;
+	salt_struct->keyCrackData.oidData[salt_struct->keyCrackData.oidLen] =0;
 	p = strtok(NULL, "*");
-	keyCrackData.encDataLen = atoi(p);
+	salt_struct->keyCrackData.encDataLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < keyCrackData.oidLen; i++)
-		keyCrackData.encData[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < salt_struct->keyCrackData.oidLen; i++)
+		salt_struct->keyCrackData.encData[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	keyCrackData.globalSaltLen = atoi(p);
+	salt_struct->keyCrackData.globalSaltLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < keyCrackData.globalSaltLen; i++)
-		keyCrackData.globalSalt[i] = atoi16[ARCH_INDEX(p[i * 2])]
+	for (i = 0; i < salt_struct->keyCrackData.globalSaltLen; i++)
+		salt_struct->keyCrackData.globalSalt[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	// initialize the pkcs5 structure
-	saltItem.type = (SECItemType) 0;
-	saltItem.len  = keyCrackData.saltLen;
-	saltItem.data = keyCrackData.salt;
-	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
-	if(paramPKCS5 == NULL) {
+	salt_struct->saltItem.type = (SECItemType) 0;
+	salt_struct->saltItem.len  = salt_struct->keyCrackData.saltLen;
+	salt_struct->saltItem.data = salt_struct->keyCrackData.salt;
+	salt_struct->paramPKCS5 = nsspkcs5_NewParam(0, &salt_struct->saltItem, 1, &salt_struct->gpbe_param, salt_struct->salt_data);
+	if(salt_struct->paramPKCS5 == NULL) {
 		fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
 		exit(0);
 	}
 	// Current algorithm is
 	// SEC_OID_PKCS12_PBE_WITH_SHA1_AND_TRIPLE_DES_CBC
 	// Setup the encrypted password-check string
-	memcpy(encString, keyCrackData.encData, keyCrackData.encDataLen );
-
+	memcpy(salt_struct->encString, salt_struct->keyCrackData.encData, salt_struct->keyCrackData.encDataLen );
 	// Calculate partial sha1 data for password hashing
-	SHA1_Init(&pctx);
-	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
+	SHA1_Init(&salt_struct->pctx);
+	SHA1_Update(&salt_struct->pctx, salt_struct->keyCrackData.globalSalt, salt_struct->keyCrackData.globalSaltLen);
 
 	free(keeptr);
+	return (void *)salt_struct;
+}
+
+
+static void set_salt(void *salt)
+{
+	salt_struct = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -157,8 +173,8 @@ static void crypt_all(int count)
 		unsigned char data2[512];
 		SECItem secPreHash;
 		secPreHash.data = data1;
-		memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
-		secPreHash.len = saltItem.len + SHA1_LENGTH;
+		memcpy(secPreHash.data + SHA1_LENGTH, salt_struct->saltItem.data, salt_struct->saltItem.len);
+		secPreHash.len = salt_struct->saltItem.len + SHA1_LENGTH;
 		SECItem pkcs5_pfxpbe;
 		pkcs5_pfxpbe.data = data2;
 		cracked[index] = CheckMasterPassword(saved_key[index],

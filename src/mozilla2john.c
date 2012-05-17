@@ -56,9 +56,12 @@ static void process_path(char *path)
 	assert(keyCrackData.saltLen < 32);
 	assert(keyCrackData.oidLen < 32);
 	saltItem.data = keyCrackData.salt;
-	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1);
+	struct NSSPKCS5PBEParameter gpbe_param;
+	unsigned char salt_data[4096];
+
+	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1, &gpbe_param, salt_data);
 	if(paramPKCS5 == NULL) {
-		fprintf(stderr, "\nFailed to initialize NSSPKCS5 structure");
+		fprintf(stderr, "Failed to initialize NSSPKCS5 structure\n");
 		return;
 	}
 	// Current algorithm is
@@ -105,8 +108,8 @@ int mozilla2john(int argc, char **argv)
 	int i;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: mozilla2john [key3.db files]");
-		return 0;
+		fprintf(stderr, "Usage: mozilla2john [key3.db files]\n");
+		return -1;
 	}
 	for (i = 1; i < argc; i++)
 		process_path(argv[i]);

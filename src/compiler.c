@@ -53,20 +53,20 @@ struct c_fixup {
 
 static int c_pass;
 
-static union c_insn *c_code_start;
+static union c_insn *c_code_start = NULL;
 static union c_insn *c_code_ptr;
 static union c_insn *c_pc;
 
-static c_int *c_data_start;
+static c_int *c_data_start = NULL;
 static c_int *c_data_ptr;
 
 static union c_insn c_stack[C_STACK_SIZE];
 static union c_insn *c_sp;
 
 static union c_insn *c_loop_start;
-static struct c_fixup *c_break_fixups;
+static struct c_fixup *c_break_fixups = NULL;
 
-static struct c_ident *c_funcs;
+static struct c_ident *c_funcs = NULL;
 
 static char c_unget_buffer[C_UNGET_SIZE];
 static int c_unget_count;
@@ -109,6 +109,9 @@ struct c_op {
 
 #ifdef __GNUC__
 static struct c_op c_ops[];
+#ifndef PRINT_INSNS
+static int c_ops_initialized = 0;
+#endif
 #else
 #ifdef PRINT_INSNS
 static struct c_op c_ops[52];
@@ -814,14 +817,18 @@ int c_compile(int (*ext_getchar)(void), void (*ext_rewind)(void),
 	struct c_ident *externs)
 {
 #if defined(__GNUC__) && !defined(PRINT_INSNS)
-	c_execute_fast(NULL);
+	if (!c_ops_initialized)
+		c_execute_fast(NULL);
 #endif
 
 	c_ext_getchar = ext_getchar;
 	c_ext_rewind = ext_rewind;
 
-	c_code_start = NULL;
-	c_data_start = NULL;
+	MEM_FREE(c_code_start);
+	MEM_FREE(c_data_start);
+	c_free_ident(c_funcs, NULL);
+	c_pass = 0; /* Tell c_free_fixup() that we're just freeing memory */
+	c_free_fixup(c_break_fixups, NULL);
 
 	for (c_pass = 0; c_pass < 2; c_pass++) {
 		c_init();
@@ -940,7 +947,8 @@ void c_execute_fast(void *addr)
 #endif
 		int op = 0;
 
-		assert(c_op_return != &&op_return); /* Don't do this twice */
+		assert(!c_ops_initialized); /* Don't do this twice */
+		c_ops_initialized = 1;
 
 		c_op_return = &&op_return;
 		c_op_bz = &&op_bz;

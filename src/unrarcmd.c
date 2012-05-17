@@ -37,7 +37,7 @@ void rar_cmd_array_reset(rar_cmd_array_t *cmd_a)
 		return;
 	}
 	if (cmd_a->array) {
-		free(cmd_a->array);
+		rar_free(cmd_a->array);
 	}
 	cmd_a->array = NULL;
 	cmd_a->num_items = 0;

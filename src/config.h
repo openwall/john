@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2009 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by magnum
  */
 
 /*
@@ -62,6 +64,15 @@ extern void cfg_init(char *name, int allow_missing);
  * structure, or NULL if the search fails.
  */
 extern struct cfg_list *cfg_get_list(char *section, char *subsection);
+
+/*
+ * Searches for sections with the supplied name, and prints a list of
+ * valid subsections. If function is non-null, only prints subsections
+ * (ie. external modes) that has function (ie. generate or filter).
+ * If notfunction is non-null, that function must NOT be present (ie.
+ * for listing external modes that has filter() but not generate() )
+ */
+void cfg_print_subsections(char *section, char *function, char *notfunction);
 
 /*
  * Searches for a section with the supplied name and a parameter within the

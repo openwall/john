@@ -205,7 +205,7 @@ int rarvm_init(rarvm_data_t *rarvm_data)
 void rarvm_free(rarvm_data_t *rarvm_data)
 {
 	if (rarvm_data && rarvm_data->mem) {
-		free(rarvm_data->mem);
+		rar_free(rarvm_data->mem);
 		rarvm_data->mem = NULL;
 	}
 }
@@ -920,7 +920,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 	prg->filtered_data_size = new_size;
 
 	if (prg->global_data) {
-		free(prg->global_data);
+		rar_free(prg->global_data);
 		prg->global_data = NULL;
 		prg->global_size = 0;
 	}

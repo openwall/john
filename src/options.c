@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2011 by Solar Designer
  *
- * ...with changes in the jumbo patch, by various authors
+ * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  */
 
 #include <stdio.h>
@@ -114,6 +114,8 @@ static struct opt_entry opt_list[] = {
 	{"subformat", FLG_NONE, FLG_NONE,
 		0, FLG_STDOUT | OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.subformat},
+	{"list", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.listconf},
 #ifdef HAVE_DL
 	{"plugin", FLG_DYNFMT, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI,	&options.fmt_dlls},
@@ -403,7 +405,8 @@ void opt_init(char *name, int argc, char **argv)
 		exit(0);
 	}
 
-	if (!(options.subformat && !strcasecmp(options.subformat, "list")))
+	if (!(options.subformat && !strcasecmp(options.subformat, "list")) &&
+	    (!options.listconf))
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
 #ifdef HAVE_MPI
 		if (mpi_id == 0)

@@ -19,7 +19,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9-jumbo-5"
+#define JOHN_VERSION			"1.7.9-jumbo-5+unstable"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:
@@ -64,6 +64,8 @@
  * "$JOHN" is supposed to be expanded at runtime.  Please do not replace
  * it with a specific path, neither in this file nor in the default
  * john.conf, if at all possible.
+ *
+ * Please also note that there is a make target for bash-completion.
  */
 
 /*

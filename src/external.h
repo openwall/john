@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by magnum
  */
 
 /*
@@ -26,6 +28,12 @@ extern c_int ext_abort, ext_status;
  * Defined for use in the ext_filter() macro, below.
  */
 extern void *f_filter;
+
+/*
+ * Returns true if the external mode has function()
+ * Used for list=ext-filter and list=ext-mode
+ */
+int ext_has_function(char *mode, char *function);
 
 /*
  * Initializes an external mode.

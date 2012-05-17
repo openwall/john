@@ -101,7 +101,7 @@ static void sub_allocator_stop_sub_allocator(sub_allocator_t *sub_alloc)
 {
 	if (sub_alloc->sub_allocator_size) {
 		sub_alloc->sub_allocator_size = 0;
-		free(sub_alloc->heap_start);
+		rar_free(sub_alloc->heap_start);
 	}
 }
 
@@ -123,7 +123,7 @@ static int sub_allocator_start_sub_allocator(sub_allocator_t *sub_alloc, int sa_
 	/* Allow for aligned access requirements */
 	alloc_size += UNIT_SIZE;
 #endif
-	if ((sub_alloc->heap_start = (unsigned char *) malloc(alloc_size)) == NULL) {
+	if ((sub_alloc->heap_start = (unsigned char *) rar_malloc(alloc_size)) == NULL) {
 		rar_dbgmsg("sub_alloc start failed\n");
 		return 0;
 	}
@@ -950,12 +950,20 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	int max_order, Reset, MaxMB = 0;
 
 	max_order = rar_get_char(fd, unpack_data);
+	if (max_order >= 64) {
+		rar_dbgmsg("max_order >= 64 reject\n");
+		return 0;
+	}
 	rar_dbgmsg("ppm_decode_init max_order=%d\n", max_order);
 	Reset = (max_order & 0x20) ? 1 : 0;
 	rar_dbgmsg("ppm_decode_init Reset=%d\n", Reset);
 	if (Reset) {
 		MaxMB = rar_get_char(fd, unpack_data);
 		rar_dbgmsg("ppm_decode_init MaxMB=%d\n", MaxMB);
+		if (MaxMB > 128) {
+			rar_dbgmsg("MaxMB > 128 MB reject\n");
+			return 0;
+		}
 	} else {
 		if (sub_allocator_get_allocated_memory(&ppm_data->sub_alloc) == 0) {
 			return 0;

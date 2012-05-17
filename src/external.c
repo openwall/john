@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2003,2004,2006,2011 by Solar Designer
+ *
+ * ...with changes in the jumbo patch, by magnum
  */
 
 #include <stdio.h>
@@ -85,6 +87,23 @@ static void ext_rewind(void)
 {
 	ext_line = ext_source->head;
 	ext_pos = 0;
+}
+
+int ext_has_function(char *mode, char *function)
+{
+	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
+		fprintf(stderr, "Unknown external mode: %s\n", mode);
+		error();
+	}
+	if (c_compile(ext_getchar, ext_rewind, &ext_globals)) {
+		if (!ext_line) ext_line = ext_source->tail;
+
+		fprintf(stderr, "Compiler error in %s at line %d: %s\n",
+			ext_line->cfg_name, ext_line->number,
+			c_errors[c_errno]);
+		error();
+	}
+	return (c_lookup(function) != NULL);
 }
 
 void ext_init(char *mode, struct db_main *db)

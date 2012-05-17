@@ -33,7 +33,7 @@ OMPFLAGS =
 #ICCOMPFLAGS = -openmp
 
 # NSS (and NSPR) flag, un-comment if installed (needed for mozilla format)
-#HAVE_NSS = -DHAVE_NSS
+#HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
@@ -54,7 +54,7 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP) `pkg-config --cflags nss`
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
@@ -107,6 +107,7 @@ JOHN_OBJS = \
 	rar_fmt.o rar2john.o \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
+	pwsafe2john.o \
 	hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
@@ -128,7 +129,7 @@ OCL_OBJS = \
 	common-opencl.o opencl_mysqlsha1_fmt.o \
 	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
 	opencl_nt_fmt.o opencl_rawmd5_fmt.o opencl_nsldaps_fmt.o \
-	opencl_cryptsha512_fmt.o opencl_MSCASH2_fmt.o opencl_wpapsk_fmt.o \
+	opencl_cryptsha512_fmt.o opencl_mscash2_fmt.o opencl_wpapsk_fmt.o \
 	opencl_xsha512_fmt.o
 
 CUDA_OBJS = \
@@ -186,24 +187,28 @@ GENMKVPWD_OBJS = \
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
-	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john
+	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
+	../run/pwsafe2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
-	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com
+	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
+	../run/pwsafe2john.com
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe
+	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
+	../run/pwsafe2john.exe
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
-	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe
+	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
+	../run/pwsafe2john.exe
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1384,7 +1389,7 @@ cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
 cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
-cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o 
+cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu
 	mv cuda/wpapsk.o cuda_wpapsk.o
 
@@ -1432,6 +1437,10 @@ endif
 	$(RM) ../run/racf2john
 	ln -s john ../run/racf2john
 
+../run/pwsafe2john: ../run/john
+	$(RM) ../run/pwsafe2john
+	ln -s john ../run/pwsafe2john
+
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
 	ln -s john ../run/hccap2john
@@ -1473,6 +1482,9 @@ endif
 
 ../run/racf2john.com: john.com
 	copy john.com ..\run\racf2john.com
+
+../run/pwsafe2john.com: john.com
+	copy john.com ..\run\pwsafe2john.com
 
 ../run/zip2john.com: john.com
 	copy john.com ..\run\zip2john.com
@@ -1539,6 +1551,10 @@ endif
 ../run/racf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/racf2john.exe
 	strip ../run/racf2john.exe
+
+../run/pwsafe2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/pwsafe2john.exe
+	strip ../run/pwsafe2john.exe
 
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
@@ -1646,6 +1662,16 @@ test_full_verbose:
 
 test_utf8_verbose:
 	cd ../test && perl jtrts.pl -type utf-8
+
+/etc/bash_completion.d/john.bash_completion:	john.bash_completion
+	@echo
+	@echo NOTE: Administrative priviledges required for this make target.
+	$(CP) john.bash_completion /etc/bash_completion.d/
+	@echo
+	@echo Bash-completion for JtR successfully installed.
+	@echo Source /etc/bash_completion or logout/login to activate the changes
+
+bash-completion:	/etc/bash_completion.d/john.bash_completion
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
