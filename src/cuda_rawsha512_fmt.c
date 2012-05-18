@@ -25,7 +25,7 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"rawsha512-cuda"
+#define FORMAT_LABEL			"raw-sha512-cuda"
 #define FORMAT_NAME			"Raw SHA-512"
 #define ALGORITHM_NAME			"CUDA"
 

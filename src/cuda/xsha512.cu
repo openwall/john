@@ -16,6 +16,8 @@ static xsha512_key *cuda_password;
 static xsha512_hash *cuda_hash;
 static size_t password_size;
 static size_t hash_size;
+static uint8_t *cuda_result;
+
 
 __constant__ uint64_t k[] = {
 	0x428a2f98d728ae22LL, 0x7137449123ef65cdLL, 0xb5c0fbcfec4d3b2fLL,
@@ -210,6 +212,7 @@ void cuda_xsha512_init()
     hash_size = sizeof(xsha512_hash) * MAX_KEYS_PER_CRYPT;
 	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
     HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
+	HANDLE_ERROR(cudaMalloc(&cuda_result, sizeof(uint8_t)));
 }
 
 void cuda_xsha512_cpy_hash(xsha512_hash* host_hash)
@@ -250,8 +253,6 @@ int cuda_cmp_all(void *binary, int count)
 	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
 	uint8_t result = 0;
-	uint8_t *cuda_result;
-	HANDLE_ERROR(cudaMalloc(&cuda_result, sizeof(uint8_t)));
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
 	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
