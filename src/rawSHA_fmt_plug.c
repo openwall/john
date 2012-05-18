@@ -34,7 +34,7 @@
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
-static struct fmt_tests rawsha_tests[] = {
+static struct fmt_tests tests[] = {
 	{"17e7ba749415d4d332447a43830ef39ac8100ab8", "magnum"},
 	{FORMAT_TAG "f96cea198ad1dd5617ac084a3d92c6107708c0ef", ""},
 	{NULL}
@@ -63,7 +63,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *rawsha_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -80,35 +80,35 @@ static char *rawsha_split(char *ciphertext, int index)
 	return out;
 }
 
-static void rawsha_set_key(char *key, int index) {
+static void set_key(char *key, int index) {
 	strnzcpy(saved_key, key, PLAINTEXT_LENGTH+1);
 }
 
-static char *rawsha_get_key(int index) {
+static char *get_key(int index) {
 	return saved_key;
 }
 
-static int rawsha_cmp_all(void *binary, int count) {
+static int cmp_all(void *binary, int count) {
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 }
 
-static int rawsha_cmp_exact(char *source, int count){
+static int cmp_exact(char *source, int count){
   return (1);
 }
 
-static int rawsha_cmp_one(void * binary, int index)
+static int cmp_one(void * binary, int index)
 {
-	return rawsha_cmp_all(binary, index);
+	return cmp_all(binary, index);
 }
 
-static void rawsha_crypt_all(int count)
+static void crypt_all(int count)
 {
 	SHA_Init( &ctx );
 	SHA_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
 	SHA_Final( (unsigned char *) crypt_key, &ctx);
 }
 
-static void * rawsha_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	static unsigned char realcipher[BINARY_SIZE];
 	int i;
@@ -151,13 +151,13 @@ struct fmt_main fmt_rawSHA = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-		rawsha_tests
+		tests
 	}, {
 		fmt_default_init,
 		fmt_default_prepare,
 		valid,
-		rawsha_split,
-		rawsha_binary,
+		split,
+		binary,
 		fmt_default_salt,
 		{
 			binary_hash_0,
@@ -170,10 +170,10 @@ struct fmt_main fmt_rawSHA = {
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
-		rawsha_set_key,
-		rawsha_get_key,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		rawsha_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -183,8 +183,8 @@ struct fmt_main fmt_rawSHA = {
 			get_hash_5,
 			get_hash_6
 		},
-		rawsha_cmp_all,
-		rawsha_cmp_one,
-		rawsha_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
