@@ -134,6 +134,19 @@ which will append the string "yes/no".  Of course, it is simpler and
 more efficient to use, say, "Az,yes/no," for the same effect.
 
 
+	Arbitrary characters commands.
+
+Any 8-bit character can be used, inside of a Ax"str", a $c or ^c
+or within preprocessor $[c...] or ^[c...] settings. The method used
+within john, is similar to emitting an arbitrary character within
+the C language.  This syntax is \xhh where hh is 2 hex characters.
+So, Az"\x1b[2J" would append then ansi escape sequence to clear the
+screen to the end of the current password.  Or something like $\x10
+would append a new line character to the end of the word. These 
+escaped characters also work properly in all character class commands
+(listed later).
+
+
 	Length control commands.
 
 <N	reject the word unless it is less than N characters long
@@ -321,7 +334,10 @@ have the range processed "in parallel" with the immediately preceding
 range, and "\r" to allow the range to produce repeated characters.  The
 "\r" escape is only useful if the range is "parallel" to another one or
 if there's at least one other range "parallel" to this one, because you
-should not want to actually produce duplicate rules.
+should not want to actually produce duplicate rules.  Also the \xhh
+escape works properly within the preprocessor, to allow any character.
+The preprocess rule [\x01-\xff] will be replaced with 255 characters
+(missing the NULL byte, which can not be handled by JtR)
 
 Please refer to the default configuration file for John the Ripper for
 many example uses of the features described in here.

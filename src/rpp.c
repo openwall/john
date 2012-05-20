@@ -9,6 +9,7 @@
 #include "params.h"
 #include "config.h"
 #include "rpp.h"
+#include "common.h"
 
 int rpp_init(struct rpp_context *ctx, char *subsection)
 {
@@ -84,7 +85,12 @@ static void rpp_process_rule(struct rpp_context *ctx)
 			}
 			/* fall through */
 		default:
-			*output++ = c;
+			if (c == 'x' && atoi16[*input] != 0x7f && atoi16[input[1]] != 0x7f) {
+				// handle hex char
+				*output++ = ((atoi16[*input]<<4)+atoi16[input[1]]);
+				input += 2;
+			} else
+				*output++ = c;
 		}
 		break;
 
@@ -107,7 +113,11 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		while (*input && *input != ']')
 		switch (*input) {
 		case '\\':
-			if (*++input) rpp_add_char(range, c1 = *input++);
+			if (input[1] == 'x' && atoi16[input[2]] != 0x7F && atoi16[input[3]] != 0x7F) {
+				rpp_add_char(range, ((atoi16[input[2]]<<4)+atoi16[input[3]]));
+				input += 4;
+			} else 
+				if (*++input) rpp_add_char(range, c1 = *input++);
 			break;
 
 		case '-':
