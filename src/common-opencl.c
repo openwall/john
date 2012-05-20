@@ -186,7 +186,8 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 
 void opencl_init(char *kernel_filename, unsigned int dev_id,
     unsigned int platform_id)
-{
+{	
+	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
 	opencl_build_kernel(kernel_filename, dev_id);
 }

@@ -3,6 +3,7 @@
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
+* Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.  
 */
 
 #define ITERATIONS                  10240
@@ -127,9 +128,89 @@
    W[15] = S1((W[12] ^ W[7] ^ W[1] ^ W[15])  ) \
 )
 
+#define Q0                                              \
+(                                                       \
+    W[0] = S1((W[2] ^ W[0]))   \
+)
+
+#define Q1                                              \
+(                                                       \
+     W[1] = S1((W[3] ^ W[1]))  \
+)
+
+#define Q2                                              \
+(                                                       \
+     W[2] = S1((W[15] ^ W[4] ^ W[2]))  \
+)
+
+#define Q3                                              \
+(                                                       \
+    W[3] = S1((W[0] ^ W[5] ^ W[3]))   \
+)
+
+#define Q4                                              \
+(                                                       \
+    W[4] = S1((W[1] ^ W[4]))   \
+)
+
+#define Q5                                              \
+(                                                       \
+    W[5] = S1((W[2] ^ W[5]))   \
+)
+
+#define Q6                                              \
+(                                                       \
+    W[6] = S1((W[3] ))  \
+)
+
+#define Q7                                              \
+(                                                       \
+    W[7] = S1((W[4] ^ W[15]))  \
+)
+
+#define Q8                                              \
+(                                                       \
+   W[8] = S1((W[5] ^ W[0] ))                            \
+)
+
+#define Q9                                              \
+(                                                       \
+   W[9] = S1((W[6] ^ W[1] ) )                           \
+)
+
+#define QA                                              \
+(                                                       \
+   W[10] = S1((W[7] ^ W[2] ) ) \
+)
+
+#define QB                                              \
+(                                                       \
+   W[11] = S1((W[8] ^ W[3] ) ) \
+)
+
+#define QC                                              \
+(                                                       \
+   W[12]  = S1((W[9] ^ W[4] )) \
+)
+
+#define QD                                              \
+(                                                       \
+   W[13] = S1(( W[10] ^ W[5] ^ W[15] ) ) \
+)
+
+#define QE                                              \
+(                                                       \
+   W[14] = S1((W[11] ^ W[6] ^ W[0] ) ) \
+)
+
 #define P(a,b,c,d,e,x)                                  \
 {                                                       \
     e += S5(a) + F(b,c,d) + K + x; b = S30(b);        \
+}
+
+#define PZ(a,b,c,d,e)                                  \
+{                                                       \
+    e += S5(a) + F(b,c,d) + K ; b = S30(b);        \
 }
 
 #define SHA1_part0(A,B,C,D,E,W) \
@@ -220,6 +301,51 @@
 	P(C, D, E, A, B, RE);\
 	P(B, C, D, E, A, RF);
 
+#define SHA1_digest_part0(A,B,C,D,E,W) \
+        P(A, B, C, D, E, W[0]);\
+	P(E, A, B, C, D, W[1]);\
+	P(D, E, A, B, C, W[2]);\
+	P(C, D, E, A, B, W[3]);\
+	P(B, C, D, E, A, W[4]);\
+	P(A, B, C, D, E, W[5]);\
+	PZ(E, A, B, C, D);\
+	PZ(D, E, A, B, C);\
+	PZ(C, D, E, A, B);\
+	PZ(B, C, D, E, A);\
+	PZ(A, B, C, D, E);\
+	PZ(E, A, B, C, D);\
+	PZ(D, E, A, B, C);\
+	PZ(C, D, E, A, B);\
+	PZ(B, C, D, E, A);\
+	P(A, B, C, D, E, W[15]);\
+	P(E, A, B, C, D, Q0);\
+	P(D, E, A, B, C, Q1);\
+	P(C, D, E, A, B, Q2);\
+	P(B, C, D, E, A, Q3);
+
+
+#define SHA1_digest_part1(A,B,C,D,E) \
+        P(A, B, C, D, E, Q4);\
+	P(E, A, B, C, D, Q5);\
+	P(D, E, A, B, C, Q6);\
+	P(C, D, E, A, B, Q7);\
+	P(B, C, D, E, A, Q8);\
+	P(A, B, C, D, E, Q9);\
+	P(E, A, B, C, D, QA);\
+	P(D, E, A, B, C, QB);\
+	P(C, D, E, A, B, QC);\
+	P(B, C, D, E, A, QD);\
+	P(A, B, C, D, E, QE);\
+	P(E, A, B, C, D, RF);\
+	P(D, E, A, B, C, R0);\
+	P(C, D, E, A, B, R1);\
+	P(B, C, D, E, A, R2);\
+	P(A, B, C, D, E, R3);\
+	P(E, A, B, C, D, R4);\
+	P(D, E, A, B, C, R5);\
+	P(C, D, E, A, B, R6);\
+	P(B, C, D, E, A, R7);
+
 inline void SHA1(__private uint *A,__private uint *W)
 {
 #define F(x,y,z) (z ^ (x & (y ^ z)))
@@ -231,6 +357,34 @@ inline void SHA1(__private uint *A,__private uint *W)
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0x6ED9EBA1
 	SHA1_part1(A[0],A[1],A[2],A[3],A[4]);
+#undef K
+#undef F
+
+#define F(x,y,z) ((x & y) | (z & (x | y)))
+#define K 0x8F1BBCDC
+	SHA1_part2(A[0],A[1],A[2],A[3],A[4]);
+#undef K
+#undef F
+
+#define F(x,y,z) (x ^ y ^ z)
+#define K 0xCA62C1D6
+	SHA1_part3(A[0],A[1],A[2],A[3],A[4]);
+#undef K
+#undef F
+
+}
+
+inline void SHA1_digest(__private uint *A,__private uint *W)
+{
+#define F(x,y,z) (z ^ (x & (y ^ z)))
+#define K 0x5A827999
+	SHA1_digest_part0(A[0],A[1],A[2],A[3],A[4],W);
+#undef K
+#undef F
+
+#define F(x,y,z) (x ^ y ^ z)
+#define K 0x6ED9EBA1
+	SHA1_digest_part1(A[0],A[1],A[2],A[3],A[4]);
 #undef K
 #undef F
 
@@ -366,19 +520,19 @@ SHA1(A,W);
 	GET_WORD_32_BE(W[2], buf, 2);
 	GET_WORD_32_BE(W[3], buf, 3);
 	GET_WORD_32_BE(W[4], buf, 4);
-	GET_WORD_32_BE(W[5], buf, 5);
-	GET_WORD_32_BE(W[6], buf, 6);
-	GET_WORD_32_BE(W[7], buf, 7);
-	GET_WORD_32_BE(W[8], buf, 8);
-	GET_WORD_32_BE(W[9], buf, 9);
-	GET_WORD_32_BE(W[10], buf, 10);
-	GET_WORD_32_BE(W[11], buf, 11);
-	GET_WORD_32_BE(W[12], buf, 12);
-	GET_WORD_32_BE(W[13], buf, 13);
-	GET_WORD_32_BE(W[14], buf, 14);
-	GET_WORD_32_BE(W[15], buf, 15);
-	
-SHA1(A,W);
+	W[5] = 0x80000000;
+        W[6]=0;
+	W[7]=0;
+	W[8]=0;
+	W[9]=0;
+	W[10]=0;
+	W[11]=0;
+	W[12]=0;
+	W[13]=0;
+	W[14]=0;
+	W[15] = 0x2A0;  
+
+SHA1_digest(A,W);
 
 	A[0] += state[0];
 	A[1] += state[1];
@@ -407,7 +561,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 	
 	unsigned int i, j;
 	
-	__local unsigned int salt_local[32];
+	__local unsigned int salt_local[40];
 	  
 	if (lid == 0)
 	    for (i = 0; i <= usrlen / 2; ++i)
@@ -430,16 +584,11 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 	
 	unsigned int opad[16];
           
-	/*for (i = id, j = 0; i < 4 * num_keys; i = i + num_keys, j++)
-		pass[j] = pass_global[i];*/
-
-	pass[0]=pass_global[id];
-	id+=num_keys;
-	pass[1]=pass_global[id];
-	id+=num_keys;
-	pass[2]=pass_global[id];
-	id+=num_keys;
-	pass[3]=pass_global[id];
+	i=4*id;
+        pass[0]=pass_global[i++];
+        pass[1]=pass_global[i++];     
+        pass[2]=pass_global[i++];
+	pass[3]=pass_global[i];
 	
 
 	if (usrlen % 2 == 1) {
@@ -466,7 +615,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 		buf[usrlen / 2 + 1] = 0x80 | buf[usrlen / 2 + 1];
 
 
-	PUT_WORD_32_BE((64 + usrlen * 2 + 4) << 3, buf, 60 / 4);
+	PUT_WORD_32_BE((64 + usrlen * 2 + 4) << 3, buf,15);
 
 	
 	 for (j = 0; j < 4; j++) {
@@ -496,7 +645,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 
 		buf[SHA1_DIGEST_LENGTH_by_4] =  0x80 | buf[SHA1_DIGEST_LENGTH_by_4];
 		
-		PUT_WORD_32_BE((64 + SHA1_DIGEST_LENGTH) << 3, buf, 15);
+		PUT_WORD_32_BE(0x2A0, buf, 15);
 
 		hmac_sha1(ipad,opad,state,buf,temp_char);
 
@@ -507,12 +656,25 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 
 	}
 	
-	out_global[id]=out[3];
-	id-=num_keys;
-	out_global[id]=out[2];
-	id-=num_keys;
-	out_global[id]=out[1];
-	id-=num_keys;
-	out_global[id]=out[0];
-	id-=num_keys;
+	i=id*4;
+	out_global[i++]=out[0];
+	out_global[i++]=out[1];
+	out_global[i++]=out[2];
+	out_global[i]=out[3];
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
