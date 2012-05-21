@@ -91,7 +91,7 @@
 ## have grep && have sed && 
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3
+	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev
 	COMPREPLY=()
 	_get_comp_words_by_ref -n = cur
 
@@ -152,6 +152,14 @@ _john()
 			if [[ "_${__john_completion}" == "_2" ]] ; then
 				COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
 				compopt -o nospace
+			else
+				prev="${cur}"
+				cur=""
+				_filedir "rec"
+				for (( i=0; i < ${#COMPREPLY[@]}; i++)); do
+					COMPREPLY[$i]="${prev}=${COMPREPLY[$i]%*.rec}"
+				done
+				COMPREPLY[${#COMPREPLY[@]}]="${prev}"
 			fi
 			return 0
 			;;
@@ -172,10 +180,9 @@ _john()
 			return 0
 			;;
 		--wordlist=*)
-			#cur=${cur#*=}
-			#_filedir expansion of --wordlist=~/te doesn't work
-			# _filedir_xspec "_xspecs: bad array subscript" written to stderr
-			_filedir_xspec 2> /dev/null
+			cur=${cur#*=}
+			 __expand_tilde_by_ref cur 2>/dev/null
+			_filedir
 			return 0
 			;;
  		--rules|--single)
