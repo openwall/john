@@ -2,11 +2,10 @@
  * This software is Copyright (c) 2012 Myrice <qqlddg at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Thanks to Lukas Odzioba <lukas dot odzioba at gmail dot com>, his code helps me a lot
 */
 
-#ifndef _CUDA_XSHA512_H
-#define _CUDA_XSHA512_H
+#ifndef _CUDA_SHA512_H
+#define _CUDA_SHA512_H
 
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
@@ -17,24 +16,18 @@
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
 #define ITERATIONS 1
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
-#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT) //Hope this can be divided by 16
+#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
-#define SALT_SIZE 4
-#if 0
-#define BINARY_SIZE 64
-#else
+#define SALT_SIZE		0
+
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
-#endif
 
-#define PLAINTEXT_LENGTH		16
-#define MAX_PLAINTEXT_LENGTH	125
-#define EXTEND_PLAINTEXT_LENGT	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
+#define PLAINTEXT_LENGTH		12
+#define CIPHERTEXT_LENGTH		128
 
-#define CIPHERTEXT_LENGTH		136
+extern uint8_t sha512_key_changed;
 
-extern uint8_t xsha512_key_changed;
-// Thanks for Lukas' code here
 # define SWAP64(n) \
   (((n) << 56)					\
    | (((n) & 0xff00) << 40)			\
@@ -62,23 +55,15 @@ typedef struct { // notice memory align problem
 	uint8_t buffer[128];	//1024bits
 	uint32_t buflen;
 	uint64_t H[8];
-} xsha512_ctx;
-
-
-typedef struct {
-    uint8_t v[SALT_SIZE]; // 32bits
-} xsha512_salt;
+} sha512_ctx;
 
 typedef struct {
     uint8_t length;
     char v[PLAINTEXT_LENGTH+1];
-} xsha512_key;
+} sha512_key;
 
-typedef char xsha512_extend_key[EXTEND_PLAINTEXT_LENGT+1];
+typedef uint64_t sha512_hash[BINARY_SIZE / 8]; // up to 512 bits
 
-typedef struct {
-    uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
-} xsha512_hash;
 
 #endif
 

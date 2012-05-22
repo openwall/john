@@ -133,7 +133,7 @@ OCL_OBJS = \
 	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
 	opencl_nt_fmt.o opencl_rawmd5_fmt.o opencl_nsldaps_fmt.o \
 	opencl_cryptsha512_fmt.o opencl_mscash2_fmt.o opencl_wpapsk_fmt.o \
-	opencl_xsha512_fmt.o
+	opencl_xsha512_fmt.o opencl_rawsha512_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \
@@ -146,7 +146,8 @@ CUDA_OBJS = \
 	cuda_rawsha224_fmt.o cuda_rawsha224.o \
 	cuda_mscash_fmt.o cuda_mscash.o \
 	cuda_xsha512_fmt.o cuda_xsha512.o \
-	cuda_wpapsk_fmt.o cuda_wpapsk.o
+	cuda_wpapsk_fmt.o cuda_wpapsk.o \
+	cuda_rawsha512_fmt.o cuda_rawsha512.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -1398,6 +1399,14 @@ cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o
 
 cuda_wpapsk_fmt.o: cuda_wpapsk.o cuda_wpapsk_fmt.c
 	$(CC)  $(CFLAGS) cuda_wpapsk_fmt.c
+
+cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) rawsha512.cu
+	mv cuda/rawsha512.o cuda_rawsha512.o
+
+cuda_rawsha512_fmt.o: cuda_rawsha512.o cuda_rawsha512_fmt.c
+	$(CC) $(CFLAGS) cuda_rawsha512_fmt.c -o cuda_rawsha512_fmt.o
+
 
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
