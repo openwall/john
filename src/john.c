@@ -138,6 +138,7 @@ extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_xsha512;
+extern struct fmt_main fmt_opencl_rawsha512;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -273,6 +274,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_xsha512);
+	john_register_one(&fmt_opencl_rawsha512);
 #endif
 
 #ifdef HAVE_CUDA
