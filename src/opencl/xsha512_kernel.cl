@@ -27,7 +27,10 @@
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
+/// Warning: This version of SWAP64(n) is slow and avoid bugs on AMD GPUs(7970)
+#define SWAP64(n)       as_ulong(as_uchar8(n).s76543210) 
 
+/*
 #define SWAP64(n) \
   (((n) << 56)					\
    | (((n) & 0xff00) << 40)			\
@@ -37,7 +40,7 @@
    | (((n) >> 24) & 0xff0000)			\
    | (((n) >> 40) & 0xff00)			\
    | ((n) >> 56))
-
+*/
 
 #define rol(x,n) ((x << n) | (x >> (64-n)))
 #define ror(x,n) ((x >> n) | (x << (64-n)))
