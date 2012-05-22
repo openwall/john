@@ -56,11 +56,18 @@ static struct fmt_tests tests[] = {
 /* ------- Helper functions ------- */
 unsigned int get_task_max_work_group_size(){
     unsigned int max_available;
-    max_available = get_local_memory_size(gpu_id) /
-            (sizeof(working_memory) + sizeof(crypt_sha512_salt));
-
-    if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
-        return get_current_work_group_size(gpu_id, crypt_kernel);
+            
+    if (gpu_amd(get_device_info()))
+        max_available = (get_local_memory_size(gpu_id) - 
+                sizeof(crypt_sha512_salt)) / 
+                sizeof(working_memory);    
+    else
+        max_available = (get_local_memory_size(gpu_id) - 
+                sizeof(crypt_sha512_salt)) / 
+                sizeof(crypt_sha512_password);         
+    
+   if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
+       return get_current_work_group_size(gpu_id, crypt_kernel);
     
     return max_available;
 }
@@ -126,13 +133,15 @@ static void create_clobj(int kpc) {
             (void *) &pass_buffer), "Error setting argument 1");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
-            sizeof (crypt_sha512_salt),
-            NULL), "Error setting argument 3");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
-            sizeof (working_memory) * local_work_size,
-            NULL), "Error setting argument 4");
-        
+    
+    if (gpu_amd(get_device_info())) {
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
+           sizeof (crypt_sha512_salt),
+           NULL), "Error setting argument 3");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
+           sizeof (working_memory) * local_work_size,
+           NULL), "Error setting argument 4");
+    }
     memset(plaintext, '\0', sizeof(crypt_sha512_password) * kpc);
     memset(&salt, '\0', sizeof(crypt_sha512_salt));
     max_keys_per_crypt = kpc;
@@ -268,7 +277,7 @@ static void find_best_workgroup(void) {
             "Failed in clEnqueueWriteBuffer II");
     
     my_work_group = get_default_workgroup();
-                
+
     // Find minimum time
     for (; (int) my_work_group <= (int) max_group_size; 
          my_work_group *= 2) {
@@ -454,8 +463,7 @@ static void init(struct fmt_main *pFmt) {
         if (gpu_nvidia(get_device_info()))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
-            task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";
-            
+            task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";            
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);

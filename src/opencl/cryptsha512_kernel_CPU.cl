@@ -80,26 +80,6 @@ inline void memcpy_G(               uint8_t * dest,
     }
 }
 
-void insert_to_buffer(sha512_ctx    * ctx, 
-                      const uint8_t * string,
-                      const uint32_t len) {
-    uint8_t *d;
-    d = ctx->buffer->mem_08 + ctx->buflen;
-
-    memcpy(d, string, ctx->buflen, len);
-    ctx->buflen += len;
-}
-
-void insert_to_buffer_G(         sha512_ctx    * ctx, 
-                        __global const uint8_t * string,
-                                 const uint32_t len) {
-    uint8_t *d;
-    d = ctx->buffer->mem_08 + ctx->buflen;
-
-    memcpy_G(d, string, ctx->buflen, len);
-    ctx->buflen += len;
-}
-
 void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
@@ -157,32 +137,25 @@ void sha512_block(sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-void ctx_append_1(sha512_ctx * ctx) {
 
-    uint32_t length = ctx->buflen;
-    PUTCHAR(ctx->buffer->mem_08, length, 0x80);
+void insert_to_buffer(sha512_ctx    * ctx, 
+                      const uint8_t * string,
+                      const uint32_t len) {
+    uint8_t *d;
+    d = ctx->buffer->mem_08 + ctx->buflen;
 
-    while (++length & 7)
-        PUTCHAR(ctx->buffer->mem_08, length, 0);
-   
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
-
-    while (length < 128) {
-        *l++ = 0;
-        length += 8;
-    }
+    memcpy(d, string, ctx->buflen, len);
+    ctx->buflen += len;
 }
 
-void ctx_add_length(sha512_ctx * ctx) {
+void insert_to_buffer_G(         sha512_ctx    * ctx, 
+                        __global const uint8_t * string,
+                                 const uint32_t len) {
+    uint8_t *d;
+    d = ctx->buffer->mem_08 + ctx->buflen;
 
-    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
-}
-
-void finish_ctx(sha512_ctx * ctx) {
-
-    ctx_append_1(ctx);
-    ctx_add_length(ctx);
-    ctx->buflen = 0;
+    memcpy_G(d, string, ctx->buflen, len);
+    ctx->buflen += len;
 }
 
 void ctx_update(sha512_ctx * ctx, 
@@ -215,6 +188,34 @@ void ctx_update_G(         sha512_ctx * ctx,
         ctx->buflen = 0;
         insert_to_buffer_G(ctx, (string + offset), len - offset);
     }
+}
+
+void ctx_append_1(sha512_ctx * ctx) {
+
+    uint32_t length = ctx->buflen;
+    PUTCHAR(ctx->buffer->mem_08, length, 0x80);
+
+    while (++length & 7)
+        PUTCHAR(ctx->buffer->mem_08, length, 0);
+   
+    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+
+    while (length < 128) {
+        *l++ = 0;
+        length += 8;
+    }
+}
+
+void ctx_add_length(sha512_ctx * ctx) {
+
+    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
+}
+
+void finish_ctx(sha512_ctx * ctx) {
+
+    ctx_append_1(ctx);
+    ctx_add_length(ctx);
+    ctx->buflen = 0;
 }
 
 void clear_ctx_buffer(sha512_ctx * ctx) {
@@ -284,7 +285,7 @@ void sha512crypt(__global   crypt_sha512_salt * salt_data,
 
     for (uint32_t i = passlen; i > 0; i >>= 1) {
 
-	if ((i & 1) != 0)
+	if (i & 1) 
             ctx_update(&ctx, alt_result->mem_08, 64);
 	else
             ctx_update_G(&ctx, pass, passlen);
@@ -311,17 +312,17 @@ void sha512crypt(__global   crypt_sha512_salt * salt_data,
     for (uint32_t i = 0; i < rounds; i++) {
         init_ctx(&ctx);
 
-        ctx_update(&ctx, ((i & 1) != 0 ? p_sequence->mem_08 : alt_result->mem_08),
-                         ((i & 1) != 0 ? passlen : 64)); 
+        ctx_update(&ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
+                         ((i & 1) ? passlen : 64)); 
 
-        if ((i % 3) != 0)
+        if (i % 3) 
             ctx_update(&ctx, temp_result->mem_08, saltlen);
 
-        if ((i % 7) != 0)
+        if (i % 7) 
             ctx_update(&ctx, p_sequence->mem_08, passlen);
 
-        ctx_update(&ctx, ((i & 1) != 0 ? alt_result->mem_08 : p_sequence->mem_08),
-                         ((i & 1) != 0 ? 64 :                 passlen));
+        ctx_update(&ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
+                         ((i & 1) ? 64 :                 passlen));
         sha512_digest(&ctx, alt_result->mem_64);
     }
     //Send results to the host.
@@ -335,13 +336,9 @@ void sha512crypt(__global   crypt_sha512_salt * salt_data,
 #undef pass
 
 __kernel
-// __attribute__((vec_type_hint(ulong2)))		Not recognized.
-// __attribute__((reqd_work_group_size(32, 1, 1)))	No gain.
 void kernel_crypt(__global   crypt_sha512_salt     * informed_salt,
                   __global   crypt_sha512_password * pass_data,
-                  __global   crypt_sha512_hash   * out_buffer,
-                  __local    crypt_sha512_salt   * salt_data,
-                  __local    working_memory      * fast_tmp_memory) {
+                  __global   crypt_sha512_hash     * out_buffer) {
 
     //Get the task to be done
     uint32_t gid = get_global_id(0);
