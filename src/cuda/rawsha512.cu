@@ -2,28 +2,21 @@
  * This software is Copyright (c) 2012 Myrice <qqlddg at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Thanks to Lukas Odzioba <lukas dot odzioba at gmail dot com>, his code helps me a lot
 */
-#include "../cuda_xsha512.h"
+
+#include "../cuda_rawsha512.h"
 #include "cuda_common.cuh"
 
-extern "C" void cuda_xsha512(xsha512_key *host_password,
-                         xsha512_salt *host_salt,
-                         xsha512_hash* host_hash,
-                         xsha512_extend_key *host_ext_password,
-                         uint8_t use_extend);
+extern "C" void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash);
+extern "C" void cuda_sha512_init();
+extern "C" int cuda_sha512_cmp_all(void *binary, int count);
+extern "C" void cuda_sha512_cpy_hash(sha512_hash* host_hash);
 
-extern "C" void cuda_xsha512_init();
-extern "C" int cuda_cmp_all(void *binary, int count);
-extern "C" void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
-
-static xsha512_key *cuda_password;
-static xsha512_hash *cuda_hash;
+static sha512_key *cuda_password;
+static sha512_hash *cuda_hash;
 static size_t password_size;
 static size_t hash_size;
 static uint8_t *cuda_result;
-static xsha512_extend_key *cuda_ext_password;
-
 
 __constant__ uint64_t k[] = {
 	0x428a2f98d728ae22LL, 0x7137449123ef65cdLL, 0xb5c0fbcfec4d3b2fLL,
@@ -68,11 +61,9 @@ __constant__ uint64_t k[] = {
 	    0x6c44198c4a475817LL,
 };
 
-__constant__ xsha512_salt cuda_salt[1];
 __constant__ uint64_t cuda_b0[1];
-__constant__ uint8_t cuda_use_ext[1];
 
-__device__ void xsha512_init(xsha512_ctx *ctx)
+__device__ static void sha512_init(sha512_ctx *ctx)
 {
     ctx->H[0] = 0x6a09e667f3bcc908LL;
 	ctx->H[1] = 0xbb67ae8584caa73bLL;
@@ -86,15 +77,14 @@ __device__ void xsha512_init(xsha512_ctx *ctx)
 }
 
 
-__device__ void xsha512_update(xsha512_ctx *ctx, const char *string, uint8_t length)
+__device__ static void sha512_update(sha512_ctx *ctx, const char *string, uint8_t length)
 {
     uint8_t *off = &ctx->buffer[ctx->buflen];
     memcpy(off, string, length);
     ctx->buflen += length;
 }
 
-// The function below is from Lukas' crypt512-cuda
-__device__ void sha512_block(xsha512_ctx * ctx)
+__device__ static void sha512_block(sha512_ctx * ctx)
 {
 	int i;
 	uint64_t a = ctx->H[0];
@@ -161,16 +151,18 @@ __device__ void sha512_block(xsha512_ctx * ctx)
 #endif
 }
 
-__device__ void xsha512_final(xsha512_ctx *ctx, uint32_t offs)
+__device__ static void sha512_final(sha512_ctx *ctx)
 {
     //append 1 to ctx buffer
     uint32_t length = ctx->buflen;
     uint8_t *buffer8 = &ctx->buffer[length];
+
     *buffer8++ = 0x80;
 
     while(++length % 4 != 0)  {
         *buffer8++ = 0;
     }
+
     uint32_t *buffer32 = (uint32_t*)buffer8;
     for(uint32_t i = length; i < 128; i+=4) {// append 0 to 128
         *buffer32++=0;
@@ -183,19 +175,12 @@ __device__ void xsha512_final(xsha512_ctx *ctx, uint32_t offs)
     sha512_block(ctx);
 }
 
-__device__ void xsha512(const char* password, uint8_t pass_len, 
-	uint64_t *hash, uint32_t offset, const char* pass_ext)
+__device__ static void sha512(const char* password, uint8_t pass_len, uint64_t *hash, uint32_t offset)
 {
-    xsha512_ctx ctx;
-    xsha512_init(&ctx);
-    xsha512_update(&ctx, (const char*)cuda_salt[0].v, SALT_SIZE);
-	if (pass_len > PLAINTEXT_LENGTH) {
-		xsha512_update(&ctx, password, PLAINTEXT_LENGTH);
-		xsha512_update(&ctx, pass_ext, pass_len-PLAINTEXT_LENGTH);
-	}
-	else
-	    xsha512_update(&ctx, password, pass_len);
-    xsha512_final(&ctx, offset);
+    sha512_ctx ctx;
+    sha512_init(&ctx);
+    sha512_update(&ctx, password, pass_len);
+    sha512_final(&ctx);
 
 #if 0
 	#pragma unroll 8
@@ -207,54 +192,40 @@ __device__ void xsha512(const char* password, uint8_t pass_len,
 #endif
 }
 
-__global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_hash, xsha512_extend_key *cuda_ext_pass)
+__global__ static void kernel_sha512(sha512_key *cuda_password, sha512_hash *cuda_hash)
 {
 
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
-    	xsha512((const char*)cuda_password[offset].v, 
-			cuda_password[offset].length, (uint64_t*)cuda_hash, 
-			offset, (const char*)(cuda_ext_pass[offset]));
+    	sha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
 	}
 }
 
-void cuda_xsha512_init()
+void cuda_sha512_init()
 {
-    password_size = sizeof(xsha512_key) * MAX_KEYS_PER_CRYPT;
-    hash_size = sizeof(xsha512_hash) * MAX_KEYS_PER_CRYPT;
+    password_size = sizeof(sha512_key) * MAX_KEYS_PER_CRYPT;
+    hash_size = sizeof(sha512_hash) * MAX_KEYS_PER_CRYPT;
 	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
     HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
 	HANDLE_ERROR(cudaMalloc(&cuda_result, sizeof(uint8_t)));
-	HANDLE_ERROR(cudaMalloc(&cuda_ext_password, 
-		sizeof(xsha512_extend_key)*MAX_KEYS_PER_CRYPT));
 }
 
-void cuda_xsha512_cpy_hash(xsha512_hash* host_hash)
+void cuda_sha512_cpy_hash(sha512_hash* host_hash)
 {
 	HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
 }
 
-void cuda_xsha512(xsha512_key *host_password,
-                         xsha512_salt *host_salt,
-                         xsha512_hash* host_hash,
-                         xsha512_extend_key *host_ext_password,
-                         uint8_t use_extend)
-{
-	if (xsha512_key_changed) {
+void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash) 
+{	if(sha512_key_changed) 
 	    HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
-        if (use_extend) {
-            HANDLE_ERROR(cudaMemcpy(cuda_ext_password, host_ext_password, MAX_KEYS_PER_CRYPT*sizeof(xsha512_extend_key), cudaMemcpyHostToDevice));
-        }
-	}
-    HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
-    HANDLE_ERROR(cudaMemcpyToSymbol(cuda_use_ext, &use_extend, sizeof(uint8_t)));
+
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
-    kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash, cuda_ext_password);
+    kernel_sha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
 }
 
-__global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
+__global__ static void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 {
 	uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -270,7 +241,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 	}
 }
 
-int cuda_cmp_all(void *binary, int count)
+int cuda_sha512_cmp_all(void *binary, int count)
 {
 	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
@@ -281,3 +252,5 @@ int cuda_cmp_all(void *binary, int count)
 	HANDLE_ERROR(cudaMemcpy(&result, cuda_result, sizeof(uint8_t), cudaMemcpyDeviceToHost));
 	return result;
 }
+
+
