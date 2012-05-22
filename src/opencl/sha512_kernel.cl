@@ -11,7 +11,7 @@
 #define uint8_t  unsigned char
 #define uint32_t unsigned int
 #define uint64_t unsigned long
-#define SALT_SIZE 4
+#define SALT_SIZE 0
 
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
@@ -19,19 +19,19 @@
 
 #define PLAINTEXT_LENGTH 12 //For one iteration, maximum is 107
 
-#define CIPHERTEXT_LENGTH 136
+#define CIPHERTEXT_LENGTH 128
 
-#define KEYS_PER_CRYPT (32*512)
-#define ITERATIONS 128
+#define KEYS_PER_CRYPT (1024*512)
+#define ITERATIONS 1
 
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
 
+
 /// Warning: This version of SWAP64(n) is slow and avoid bugs on AMD GPUs(7970)
 #define SWAP64(n)       as_ulong(as_uchar8(n).s76543210) 
 
-/*
-#define SWAP64(n) \
+/*#define SWAP64(n) \
   (((n) << 56)					\
    | (((n) & 0xff00) << 40)			\
    | (((n) & 0xff0000) << 24)			\
@@ -40,7 +40,9 @@
    | (((n) >> 24) & 0xff0000)			\
    | (((n) >> 40) & 0xff00)			\
    | ((n) >> 56))
-*/
+   */
+
+
 
 #define rol(x,n) ((x << n) | (x >> (64-n)))
 #define ror(x,n) ((x >> n) | (x << (64-n)))
@@ -57,12 +59,12 @@ typedef struct { // notice memory align problem
 	uint64_t H[8];
 	uint32_t buffer[32];	//1024 bits
 	uint32_t buflen;
-} xsha512_ctx;
+} sha512_ctx;
 
 typedef struct {
     uint8_t length;
     char v[PLAINTEXT_LENGTH+1];
-} xsha512_key;
+} sha512_key;
 
 
 /* Macros for reading/writing chars from int32's */
@@ -112,20 +114,18 @@ __constant uint64_t k[] = {
 	    0x6c44198c4a475817UL,
 };
 
-void xsha512(__global const char* password, uint8_t pass_len, 
-	__global uint64_t* hash, uint32_t offset, __constant uint32_t* salt)
+void sha512(__global const char* password, uint8_t pass_len, 
+	__global uint64_t* hash, uint32_t offset)
 {
-    __private xsha512_ctx ctx;
+    __private sha512_ctx ctx;
 	
 	uint32_t* b32 = ctx.buffer;
-	//set salt to buffer
-	*b32 = *salt;
 	
 	//set password to buffer
     for (uint32_t i = 0; i < pass_len; i++) {
-		PUTCHAR(b32,i+SALT_SIZE,password[i]);
+		PUTCHAR(b32,i,password[i]);
 	}
-    ctx.buflen = pass_len+SALT_SIZE;
+    ctx.buflen = pass_len;
 
 	//append 1 to ctx buffer
 	uint32_t length = ctx.buflen;
@@ -198,17 +198,16 @@ void xsha512(__global const char* password, uint8_t pass_len,
 	hash[offset] = SWAP64(a);
 }
 
-__kernel void kernel_xsha512(
-	__global const xsha512_key *password, 
-	__global uint64_t *hash,
-	__constant uint32_t *salt)
+__kernel void kernel_sha512(
+	__global const sha512_key *password, 
+	__global uint64_t *hash)
 {
 
     uint32_t idx = get_global_id(0);
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
-    	xsha512(password[offset].v, password[offset].length, 
-			hash, offset, salt);
+    	sha512(password[offset].v, password[offset].length, 
+			hash, offset);
 	}
 }
 
@@ -227,4 +226,5 @@ __kernel void kernel_cmp(
 				*result = 1;
 	}
 }
+
 
