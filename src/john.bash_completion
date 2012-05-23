@@ -60,6 +60,9 @@
 #
 # FIXME: should completion for --make-charset really list existing .chr files?
 #
+# FIXME: should I generally use LC_ALL=C, not just in a few places?
+#	 (This could also be a little bit faster.)
+#
 # TODO:
 #       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
 #         but pressing [tab] expands this to something useful
@@ -430,13 +433,35 @@ _john()
 			return 0
 			;;
 		--subformat=*)
-			if echo "${options}" | grep "^--subformat=" > /dev/null ; then
+			if echo "${valopts}" | grep "^--subformat=" > /dev/null ; then
 				cur=${cur#*=}
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			fi
 			return 0
 			;;
 		--session=*|--mem-file-size=*|--field-separator-char=*|--fix-state-delay=*|--max-run-time=*|--mkpc=*)
+			return 0
+			;;
+		--platform=L*|--device=L*|--platform=l*|--device=l*)
+			# CUDA doesn't allow --device=LIST
+			# workaround: check if --platform= is allowed
+			if echo "${valopts}" | grep "^--platform=$" > /dev/null ; then
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "LIST list" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--platform=|--device=)
+			# --device=LIST isn't supported for CUDA, but for CUDA
+			# --platform= is not a valid option
+			if echo "${valopts}" | grep "^--platform=$" > /dev/null ; then
+				# Calling john --platform=LIST just to find possible completions
+				# will take too long
+				COMPREPLY=( $(compgen -W "${cur}N ${cur}LIST" -- ${cur}) )
+			fi
+			return 0
+			;;
+		--platform=*|--device=*)
 			return 0
 			;;
 		--list=*)
@@ -478,14 +503,13 @@ complete -F _john john
 ## have grep && have sed &&
 _unique()
 {
-	local first filename cur usage options valopts compreplya compreplyb
+	local first cur usage options valopts compreplya compreplyb
         COMPREPLY=()
         _get_comp_words_by_ref -n = cur
 
 # we need to make sure we run the correct program, not some other program 
 # called unique which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
-	filename=`echo  "${first}"|sed 's#^.*/\(.*\)$#\1#'`
 	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
 	case "_${cur}" in
 		_|_${first})
