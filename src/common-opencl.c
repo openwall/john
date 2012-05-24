@@ -8,8 +8,6 @@
 static char opencl_log[LOG_SIZE];
 static char *kernel_source;
 static int kernel_loaded;
-static int device_info;
-static int cores_per_MP;
 
 void advance_cursor()
 {
@@ -99,8 +97,8 @@ static char *include_source(char *pathname, int dev_id)
 	sprintf(include, "-I %s %s %s%d %s %s", path_expand(pathname),
 	    get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
 	    "-DDEVICE_IS_CPU" : "",
-	    "-DDEVICE_INFO=", device_info,
-	    gpu_nvidia(device_info) ? "-cl-nv-verbose" : "",
+	    "-DDEVICE_INFO=", device_info[dev_id],
+	    gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
 	    "-cl-strict-aliasing -cl-mad-enable");
 
 	//fprintf(stderr, "Options used: %s\n", include);
@@ -162,14 +160,14 @@ void opencl_get_dev_info(unsigned int dev_id)
 	device = get_device_type(dev_id);
 
 	if (device == CL_DEVICE_TYPE_CPU)
-		device_info = CPU;
+		device_info[dev_id] = CPU;
 	else if (device == CL_DEVICE_TYPE_GPU)
-		device_info = GPU;
+		device_info[dev_id] = GPU;
 	else if (device == CL_DEVICE_TYPE_ACCELERATOR)
-		device_info = ACCELERATOR;
+		device_info[dev_id] = ACCELERATOR;
 
-	device_info += get_vendor_id(dev_id);
-	device_info += get_processor_family(dev_id);
+	device_info[dev_id] += get_vendor_id(dev_id);
+	device_info[dev_id] += get_processor_family(dev_id);
 }
 
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
@@ -190,11 +188,6 @@ void opencl_init(char *kernel_filename, unsigned int dev_id,
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
 	opencl_build_kernel(kernel_filename, dev_id);
-}
-
-int get_device_info()
-{
-	return device_info;
 }
 
 cl_device_type get_device_type(int dev_id)
@@ -270,28 +263,28 @@ cl_uint get_processors_count(int dev_id)
 {
 	cl_uint core_count = get_max_compute_units(dev_id);
 
-	cores_per_MP = 0;
+	cores_per_MP[dev_id] = 0;
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
-	if (gpu_nvidia(device_info)) {
+	if (gpu_nvidia(device_info[dev_id])) {
 		unsigned int major = 0, minor = 0;
 
 		get_compute_capability(dev_id, &major, &minor);
 		if (major == 1)
-			core_count *= (cores_per_MP = 8);
+			core_count *= (cores_per_MP[dev_id] = 8);
 		else if (major == 2 && minor == 0)
-			core_count *= (cores_per_MP = 32);	//2.0
+			core_count *= (cores_per_MP[dev_id] = 32);	//2.0
 		else if (major == 2 && minor >= 1)
-			core_count *= (cores_per_MP = 48);	//2.1
+			core_count *= (cores_per_MP[dev_id] = 48);	//2.1
 		else if (major == 3)
-			core_count *= (cores_per_MP = 192);	//3.0
+			core_count *= (cores_per_MP[dev_id] = 192);	//3.0
 	} else
 #endif
-	if (gpu_amd(device_info)) {
-		core_count *= (cores_per_MP = (16 *	//16 thread proc * 5 SP
-			((amd_gcn(device_info) ||
-				amd_vliw4(device_info)) ? 4 : 5)));
-	} else if (gpu(device_info))	//Any other GPU
-		core_count *= (cores_per_MP = 8);
+	if (gpu_amd(device_info[dev_id])) {
+		core_count *= (cores_per_MP[dev_id] = (16 *	//16 thread proc * 5 SP
+			((amd_gcn(device_info[dev_id]) ||
+				amd_vliw4(device_info[dev_id])) ? 4 : 5)));
+	} else if (gpu(device_info[dev_id]))	//Any other GPU
+		core_count *= (cores_per_MP[dev_id] = 8);
 
 	return core_count;
 }
@@ -303,10 +296,9 @@ cl_uint get_processor_family(int dev_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
-	if gpu
-		(device_info) {
+	if gpu (device_info[dev_id]) {
 
-		if (gpu_amd(device_info) && (strstr(dname, "Cedar") ||
+		if (gpu_amd(device_info[dev_id]) && (strstr(dname, "Cedar") ||
 			strstr(dname, "Redwood") ||
 			strstr(dname, "Juniper") ||
 			strstr(dname, "Cypress") ||
@@ -516,13 +508,13 @@ void listOpenCLdevices(void)
 
 			opencl_get_dev_info(d);
 			long_entries = get_processors_count(d);
-			if (cores_per_MP)
+			if (cores_per_MP[d])
 				printf
 				    ("\tStream processors:\t%lu  (%d x %d)\n",
-				    long_entries, entries, cores_per_MP);
+				    long_entries, entries, cores_per_MP[d]);
 
 #ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
-			if (gpu_nvidia(device_info)) {
+			if (gpu_nvidia(device_info[d])) {
 				unsigned int major = 0, minor = 0;
 
 				clGetDeviceInfo(devices[d],
