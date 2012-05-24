@@ -457,7 +457,8 @@ _john()
 			if echo "${valopts}" | grep "^--platform=$" > /dev/null ; then
 				# Calling john --platform=LIST just to find possible completions
 				# will take too long
-				COMPREPLY=( $(compgen -W "${cur}N ${cur}LIST" -- ${cur}) )
+				cur=${cur#*=}
+				COMPREPLY=( $(compgen -W "LIST N" -- ${cur}) )
 			fi
 			return 0
 			;;
