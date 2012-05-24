@@ -57,7 +57,7 @@ static struct fmt_tests tests[] = {
 unsigned int get_task_max_work_group_size(){
     unsigned int max_available;
 
-    if (gpu_amd(get_device_info()))
+    if (gpu_amd(device_info[gpu_id]))
         max_available = (get_local_memory_size(gpu_id) -
                 sizeof(sha512_salt)) /
                 sizeof(working_memory);
@@ -76,7 +76,7 @@ unsigned int get_task_max_size(){
     unsigned int max_available;
     max_available = get_max_compute_units(gpu_id);
 
-    if (cpu(get_device_info()))
+    if (cpu(device_info[gpu_id]))
         return max_available * KEYS_PER_CORE_CPU;
 
     return max_available * KEYS_PER_CORE_GPU;
@@ -84,7 +84,7 @@ unsigned int get_task_max_size(){
 
 size_t get_default_workgroup(){
 
-    if (cpu(get_device_info()))
+    if (cpu(device_info[gpu_id]))
         return 1;
 
     else
@@ -134,7 +134,7 @@ static void create_clobj(int kpc) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu_amd(get_device_info())) {
+    if (gpu_amd(device_info[gpu_id])) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
            sizeof (sha512_salt),
            NULL), "Error setting argument 3");
@@ -454,13 +454,13 @@ static void init(struct fmt_main *pFmt) {
     char * task;
     startTime = (unsigned long) time(NULL);
 
-    if (cpu(get_device_info()))
+    if (cpu(device_info[gpu_id]))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
 
     else {
         printf("Building the kernel, this could take a while\n");
 
-        if (gpu_nvidia(get_device_info()))
+        if (gpu_nvidia(device_info[gpu_id]))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
             task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";
