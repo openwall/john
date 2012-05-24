@@ -1,15 +1,15 @@
 /*
- * Developed by Claudio André <claudio.andre at correios.net.br> in 2012   
+ * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  * Based on source code provided by Lukas Odzioba
  *
  * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
  *
  * This software is:
- * Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+ * Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * 
+ *
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
  */
 
@@ -53,10 +53,10 @@ void init_ctx(__local sha512_ctx * ctx) {
 }
 
 void copy_data_to_local_memory(
-                  __constant crypt_sha512_salt     * informed_salt,
-                  __global   crypt_sha512_password * pass_data,
-                  __local    crypt_sha512_salt     * salt_data,
-                  __local    working_memory        * fast_tmp_memory) {
+                  __constant sha512_salt     * informed_salt,
+                  __global   sha512_password * pass_data,
+                  __local    sha512_salt     * salt_data,
+                  __local    working_memory  * fast_tmp_memory) {
 
     //Transfer data to faster memory
     //Password information
@@ -64,12 +64,12 @@ void copy_data_to_local_memory(
 
     #pragma unroll
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_tmp_memory->pass_data.pass->mem_64[i] = 
-            pass_data->pass->mem_64[i]; 
- 
+        fast_tmp_memory->pass_data.pass->mem_64[i] =
+            pass_data->pass->mem_64[i];
+
     if (get_local_id(0) == 0){
         //Copy salt information to fast local memory. Only once in a group.
-        salt_data->length = informed_salt->length;  
+        salt_data->length = informed_salt->length;
         salt_data->rounds = informed_salt->rounds;
 
         #pragma unroll
@@ -77,17 +77,6 @@ void copy_data_to_local_memory(
             salt_data->salt->mem_64[i] = informed_salt->salt->mem_64[i];
     }
     mem_fence(CLK_LOCAL_MEM_FENCE);
-}
-
-void insert_to_buffer(__local sha512_ctx    * ctx, 
-                      __local const uint8_t * string,
-                      const uint32_t len) {
-    __local uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;
-
-    for (int i = 0; i < len; i++)
-        PUTCHAR(dest, i, GETCHAR(string, i));
-    ctx->buflen += len;
 }
 
 void sha512_block(__local sha512_ctx * ctx) {
@@ -98,13 +87,13 @@ void sha512_block(__local sha512_ctx * ctx) {
     uint64_t e = ctx->H[4];
     uint64_t f = ctx->H[5];
     uint64_t g = ctx->H[6];
-    uint64_t h = ctx->H[7];    
+    uint64_t h = ctx->H[7];
     uint64_t t1, t2;
     uint64_t w[16];
 
 #ifdef VECTOR_USAGE
     ulong16  w_vector;
-    w_vector = vload16(0, ctx->buffer->mem_64); 
+    w_vector = vload16(0, ctx->buffer->mem_64);
     w_vector = SWAP64_V(w_vector);
     vstore16(w_vector, 0, w);
 #else
@@ -141,6 +130,33 @@ void sha512_block(__local sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
+void insert_to_buffer(__local sha512_ctx    * ctx,
+                      __local const uint8_t * string,
+                      const uint32_t len) {
+    __local uint8_t * dest;
+    dest = ctx->buffer->mem_08 + ctx->buflen;
+
+    for (int i = 0; i < len; i++)
+        PUTCHAR(dest, i, GETCHAR(string, i));
+    ctx->buflen += len;
+}
+
+void ctx_update(__local sha512_ctx * ctx,
+                __local uint8_t    * string, uint32_t len) {
+
+    ctx->total += len;
+    uint32_t startpos = ctx->buflen;
+
+    insert_to_buffer(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
+
+    if (ctx->buflen == 128) {  //Branching.
+        sha512_block(ctx);
+        ctx->buflen = 0;
+        uint32_t offset = 128 - startpos;
+        insert_to_buffer(ctx, (string + offset), len - offset);
+    }
+}
+
 void ctx_append_1(__local sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
@@ -148,12 +164,12 @@ void ctx_append_1(__local sha512_ctx * ctx) {
 
     while (++length & 3)
         PUTCHAR(ctx->buffer->mem_08, length, 0);
- 
+
     if (length & 7) {
         __local uint32_t * l = (__local uint32_t *) (ctx->buffer->mem_08 + length);
         *l = 0;
-        length += 4; 
-    }  
+        length += 4;
+    }
     __local uint64_t * l = (__local uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {
@@ -173,26 +189,10 @@ void finish_ctx(__local sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void ctx_update(__local sha512_ctx * ctx, 
-                __local uint8_t    * string, uint32_t len) {
-
-    ctx->total += len;
-    uint32_t startpos = ctx->buflen;
-
-    insert_to_buffer(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
-
-    if (ctx->buflen == 128) {  //Branching.
-        sha512_block(ctx);
-        ctx->buflen = 0;
-        uint32_t offset = 128 - startpos;
-        insert_to_buffer(ctx, (string + offset), len - offset);
-    }
-}
-
 void clear_ctx_buffer(__local sha512_ctx * ctx) {
 
 #ifdef VECTOR_USAGE
-    ulong16  w_vector = 0; 
+    ulong16  w_vector = 0;
     vstore16(w_vector, 0, ctx->buffer->mem_64);
 #else
     #pragma unroll
@@ -203,7 +203,7 @@ void clear_ctx_buffer(__local sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void sha512_digest(__local  sha512_ctx * ctx, 
+void sha512_digest(__local  sha512_ctx * ctx,
                    __local  uint64_t   * result) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
@@ -220,7 +220,7 @@ void sha512_digest(__local  sha512_ctx * ctx,
         clear_ctx_buffer(ctx);
 
         if (moved) //append 1,the rest is already clean
-            PUTCHAR(ctx->buffer->mem_08, 0, 0x80);            
+            PUTCHAR(ctx->buffer->mem_08, 0, 0x80);
         ctx_add_length(ctx);
     }
     sha512_block(ctx);
@@ -231,9 +231,9 @@ void sha512_digest(__local  sha512_ctx * ctx,
 
 }
 
-void sha512crypt(__local  working_memory    * fast_tmp_memory, 
-                 __local  crypt_sha512_salt * salt_data,                  
-                 __global crypt_sha512_hash * output) {
+void sha512crypt(__local  working_memory * fast_tmp_memory,
+                 __local  sha512_salt    * salt_data,
+                 __global sha512_hash    * output) {
 
 #define pass        fast_tmp_memory->pass_data.pass->mem_08
 #define passlen     fast_tmp_memory->pass_data.length
@@ -244,7 +244,6 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
 #define p_sequence  fast_tmp_memory->p_sequence
 #define ctx         fast_tmp_memory->ctx_data
 
-    int rounds;
     init_ctx(&ctx);
 
     ctx_update(&ctx, pass, passlen);
@@ -259,8 +258,8 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
     ctx_update(&ctx, alt_result->mem_08, passlen);
 
     for (int i = passlen; i > 0; i >>= 1) {
-        ctx_update(&ctx, ((i & 1) != 0 ? alt_result->mem_08 : pass),
-                         ((i & 1) != 0 ? 64 :                 passlen));
+        ctx_update(&ctx, ((i & 1) ? alt_result->mem_08 : pass),
+                         ((i & 1) ? 64 :                 passlen));
     }
     sha512_digest(&ctx, alt_result->mem_64);
     init_ctx(&ctx);
@@ -269,71 +268,67 @@ void sha512crypt(__local  working_memory    * fast_tmp_memory,
         ctx_update(&ctx, pass, passlen);
 
     sha512_digest(&ctx, p_sequence->mem_64);
-    init_ctx(&ctx);    
-
-    rounds = 16 + alt_result->mem_08[0];
+    init_ctx(&ctx);
 
     /* For every character in the password add the entire password. */
-    for (int i = 0; i < rounds; i++)
+    for (int i = 0; i < 16 + alt_result->mem_08[0]; i++)
         ctx_update(&ctx, salt, saltlen);
 
-    /* Finish the digest.  */
+    /* Finish the digest. */
     sha512_digest(&ctx, temp_result->mem_64);
-    
-    rounds = salt_data->rounds;
 
-    /* Repeatedly run the collected hash value through SHA512 to burn CPU cycles. */
-    for (int i = 0; i < rounds; i++) {
+    /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
+    for (int i = 0; i < salt_data->rounds; i++) {
         init_ctx(&ctx);
 
-        ctx_update(&ctx, ((i & 1) != 0 ? p_sequence->mem_08 : alt_result->mem_08),
-                         ((i & 1) != 0 ? passlen : 64)); 
+        ctx_update(&ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
+                         ((i & 1) ? passlen : 64));
 
-        if ((i % 3) != 0)
+        if (i % 3)
             ctx_update(&ctx, temp_result->mem_08, saltlen);
 
-        if ((i % 7) != 0)
+        if (i % 7)
             ctx_update(&ctx, p_sequence->mem_08, passlen);
 
-        ctx_update(&ctx, ((i & 1) != 0 ? alt_result->mem_08 : p_sequence->mem_08),
-                         ((i & 1) != 0 ? 64 :                 passlen));
+        ctx_update(&ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
+                         ((i & 1) ? 64 :                 passlen));
         sha512_digest(&ctx, alt_result->mem_64);
     }
     //Send results to the host.
     #pragma unroll
     for (int i = 0; i < 8; i++)
-        output->v[i] = alt_result[i].mem_64[0];  
+        output->v[i] = alt_result[i].mem_64[0];
 }
-#undef salt       
-#undef saltlen    
+#undef salt
+#undef saltlen
 #undef pass
 
 __kernel
 // __attribute__((vec_type_hint(ulong2)))		Not recognized.
 // __attribute__((reqd_work_group_size(32, 1, 1)))	No gain.
-void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
-                  __global   crypt_sha512_password * pass_data,
-                  __global   crypt_sha512_hash   * out_buffer,
-                  __local    crypt_sha512_salt   * salt_data,
-                  __local    working_memory      * fast_tmp_memory) {
+void kernel_crypt(__constant sha512_salt     * salt,
+                  __global   sha512_password * keys_buffer,
+                  __global   sha512_hash     * out_buffer,
+                  __local    sha512_salt     * salt_data,
+                  __local    working_memory  * tmp_memory) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
 
-    //Copy to faster memory
-    copy_data_to_local_memory(informed_salt,  &pass_data[gid], salt_data, &fast_tmp_memory[lid]); 
+    //Copy data to faster memory
+    copy_data_to_local_memory(salt,  &keys_buffer[gid], salt_data, &tmp_memory[lid]);
 
     //Do the job
-    sha512crypt(&fast_tmp_memory[lid], salt_data, &out_buffer[gid]);
+    sha512crypt(&tmp_memory[lid], salt_data, &out_buffer[gid]);
 }
 
 /***
-*    To improve performance, it uses __local memory to keep working variables 
-* (password, temp buffers, etc). In SHA 512 it means about 350 bytes per 
-* "thread". It improves performance, but, local memory is a scarce 
-* resource. 
-*    It means the max group size allowed in OpenCL SHA 512 is going to be 
+*    To improve performance, it uses __local memory to keep working variables
+* (password, temp buffers, etc). In SHA 512 it means about 350 bytes per
+* "thread". It improves performance, but, local memory is a scarce
+* resource.
+*    It means the max group size allowed in OpenCL SHA 512 is going to be
 * 64 (it depends on hardware local memory size).
 *
 * Gain   Optimizations
@@ -345,9 +340,9 @@ void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
 *  ###   Do the compare task on GPU.
 *   5%   Remove some unecessary code.
 *  ###   Move almost everything to global and local memory. BAD.
-*   1%   Use vector types in SHA_Block in some variables. 
-*   5%   Use bitselect in SHA_Block. 
-*  15%   Use PUTCHAR macro, only on CPU. 
+*   1%   Use vector types in SHA_Block in some variables.
+*   5%   Use bitselect in SHA_Block.
+*  15%   Use PUTCHAR macro, only on CPU.
 *
 * Conclusions
 * - Compare on GPU: CPU is more efficient for now.
@@ -355,9 +350,13 @@ void kernel_crypt(__constant crypt_sha512_salt     * informed_salt,
 * - No register spilling happens after optimization. Although, might need to use less registers.
 * - Tried to use less local memory. Got register spilling again.
 * - Vectorized do not give better performance, but result in less instructions.
-*   In reality, I'm not doing vector operations (doing the same thing in n bytes), 
+*   In reality, I'm not doing vector operations (doing the same thing in n bytes),
 *   so should not expect big gains anyway.
-*   If i have a lot of memory, i might solve more than one hash at once 
+*   If i have a lot of memory, i might solve more than one hash at once
 *   (and use more vectors). But it is not possible (at least for a while).
-* - Crack process fails if i use PUTCHAR everywhere (seems GPU memory alignment). 
+* - Crack process fails if i use PUTCHAR everywhere (seems GPU memory alignment).
+* - Tried to break this program into 3 kernels controled by CPU (for i=0; i<rounds on CPU).
+*   No gain, but the final performance was almost the same of this version.
+* - Tried to break this program into 2 kernels (prepare and crypt). Prepare do the job done
+*   outside the for loop. The gain was only 1%.
 ***/

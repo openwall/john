@@ -72,7 +72,8 @@ LWS is the local work size aka, the number of "threads" the job
 will be split and sent to the GPU.
 
 - if $LWS is not setted john will try to get the one 
-  best for your system
+  best for your system. On some slow hashes, a good default
+  is going to be picked.
 
 KPC is the Keys Per Crypt, the number of keys they will be tried
 at the same time .
@@ -114,6 +115,28 @@ a good idea to set up PLAINTEXT_LENGTH to a lower value than
 - KPC should always be the possible product of LWS: you should always 
   be able to divide KPC / LWS and get an integer number
 
+====================
+Supported formats:
+====================
+
+More information about supported hashes can be seen at:
+http://openwall.info/wiki/john/GPU
+
+Currently John the Ripper supports OpenCL enabled devices for 
+the following hashes:
+- crypt MD5
+- crypt SHA-512 (http://openwall.info/wiki/john/OpenCL-SHA-512)
+- Mac OS X 10.7+ salted SHA-512
+- MsCash2
+- MySQL 4.1 double-SHA-1
+- Netscape LDAP SSHA
+- NT MD4
+- phpass
+- RAR3
+- Raw MD4
+- Raw MD5
+- Raw SHA-1 
+- WPA-PSK
 
 ============================================================
 Following is the verbatim original content of this file:
