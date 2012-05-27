@@ -58,7 +58,8 @@
 #define PLAINTEXT_LENGTH        16
 #define SALT_ARRAY              (SALT_LENGTH / 8)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
-#define BINARY_SIZE             (3+16+86)       ///TODO: Magic number?
+#define BINARY_SIZE             (3+16+86)       //TODO: Magic number?
+#define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
 
 #define KEYS_PER_CORE_CPU       128
