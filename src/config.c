@@ -198,6 +198,7 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 	return NULL;
 }
 
+#ifndef BENCH_BUILD
 void cfg_print_subsections(char *section, char *function, char *notfunction)
 {
 	struct cfg_section *current;
@@ -217,7 +218,7 @@ void cfg_print_subsections(char *section, char *function, char *notfunction)
 			printf("%s\n", p1);
 	} while ((current = current->next));
 }
-
+#endif
 char *cfg_get_param(char *section, char *subsection, char *param)
 {
 	struct cfg_section *current_section;
