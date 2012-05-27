@@ -62,13 +62,13 @@
 #endif
 
 static struct fmt_tests rawsha1_tests[] = {
-	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
-	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	{FORMAT_TAG "A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
-	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	{FORMAT_TAG "c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
+	{FORMAT_TAG "2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
+	{FORMAT_TAG "a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
+	{FORMAT_TAG "f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
+	{FORMAT_TAG "1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
+	{FORMAT_TAG "095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
+	{FORMAT_TAG "dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
 	{NULL}
 };
 
@@ -294,6 +294,31 @@ static int get_hash_5(int index) { return ((unsigned int *)crypt_key)[0] & 0xfff
 static int get_hash_6(int index) { return ((unsigned int *)crypt_key)[0] & 0x7ffffff; }
 #endif
 
+static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+{
+	unsigned char realcipher[BINARY_SIZE];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	memcpy(realcipher, bin, BINARY_SIZE);
+#ifdef MMX_COEF
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
+
+	cpi = realcipher;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 struct fmt_main fmt_rawSHA1 = {
 	{
 		FORMAT_LABEL,
@@ -342,6 +367,6 @@ struct fmt_main fmt_rawSHA1 = {
 		rawsha1_cmp_all,
 		rawsha1_cmp_one,
 		rawsha1_cmp_exact,
-		fmt_default_get_source
+		get_source
 	}
 };
