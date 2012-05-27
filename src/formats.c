@@ -53,6 +53,26 @@ char *fmt_self_test(struct fmt_main *format)
 	int ntests, done, index, max, size;
 	void *binary, *salt;
 
+	// validate that there are no NULL function pointers
+	if (format->methods.init == NULL)       return "method init NULL";
+	if (format->methods.prepare == NULL)    return "method prepare NULL";
+	if (format->methods.valid == NULL)      return "method valid NULL";
+	if (format->methods.split == NULL)      return "method split NULL";
+	if (format->methods.binary == NULL)     return "method binary NULL";
+	if (format->methods.salt == NULL)       return "method salt NULL";
+	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
+	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
+	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
+	if (format->methods.set_key == NULL)    return "method set_key NULL";
+	if (format->methods.get_key == NULL)    return "method get_key NULL";
+	if (format->methods.clear_keys == NULL) return "method clear_keys NULL";
+	if (format->methods.crypt_all == NULL)  return "method crypt_all NULL";
+	if (format->methods.get_hash[0]==NULL)  return "method get_hash[0] NULL";
+	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
+	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
+	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
+	if (format->methods.get_source == NULL) return "method get_source NULL";
+
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
 
@@ -198,4 +218,10 @@ void fmt_default_clear_keys(void)
 int fmt_default_get_hash(int index)
 {
 	return 0;
+}
+
+char *fmt_default_get_source(void *binary_hash, void *salt, char ReturnBuf[LINE_BUFFER_SIZE]) 
+{
+	*ReturnBuf = 0;
+	return ReturnBuf;
 }

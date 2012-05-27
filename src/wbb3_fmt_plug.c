@@ -18,7 +18,7 @@
 #define COMMON_DIGEST_FOR_OPENSSL
 #include <CommonCrypto/CommonDigest.h>
 #else
-#include <openssl/sha.h>
+#include "sha.h"
 #endif
 
 #include <string.h>
@@ -99,8 +99,8 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	ctcopy += 7;	/* skip over "$wbb3$*" */
 	static struct custom_salt cs;
+	ctcopy += 7;	/* skip over "$wbb3$*" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
@@ -134,7 +134,7 @@ static void crypt_all(int count)
 #endif
 	{
 		unsigned char hash[20];
-		unsigned char hexhash[40];
+		unsigned char hexhash[40+1];
 		SHA_CTX ctx;
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
@@ -218,6 +218,7 @@ struct fmt_main wbb3_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };

@@ -178,9 +178,9 @@ bool runCrackRev3_o(struct custom_salt *cs, unsigned char *currPW)
 	uint8_t test[32], enckey[16], tmpkey[16];
 	unsigned int j, length;
 	int i;
+	unsigned int currPWLen;
 
 	length = cs->e.length / 8;
-	unsigned int currPWLen;
 	currPWLen = strlen((const char *)currPW);
 	if(currPWLen > 32)
 	    currPWLen = 32;
@@ -224,9 +224,9 @@ bool runCrackRev3_of(struct custom_salt *cs, unsigned char *currPW)
 	uint8_t test[32], enckey[16], tmpkey[16];
 	unsigned int j, length;
 	int i;
+	unsigned int currPWLen;
 
 	length = cs->e.length / 8;
-	unsigned int currPWLen;
 	currPWLen = strlen((const char *)currPW);
 	if(currPWLen > 32)
 	    currPWLen = 32;
@@ -253,9 +253,9 @@ bool runCrackRev3(struct custom_salt *cs, unsigned char *currPW)
 	uint8_t test[16], enckey[16], tmpkey[16];
 	unsigned int j, length;
 	int i;
+	unsigned int currPWLen;
 
 	length = cs->e.length / 8;
-	unsigned int currPWLen;
 	currPWLen = strlen((const char *)currPW);
 	if(currPWLen > 32)
 	    currPWLen = 32;

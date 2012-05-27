@@ -83,14 +83,14 @@ static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
-	char *p;
-	ctcopy += 9;	/* skip over "$django$*" */
+	char *p, *t;
 	static struct custom_salt cs;
+	ctcopy += 9;	/* skip over "$django$*" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
 	/* break up 'p' */
-	char *t = strtok(p, "$");
+	t = strtok(p, "$");
 	t = strtok(NULL, "$");
 	cs.iterations = atoi(t);
 	t = strtok(NULL, "$");
@@ -198,6 +198,7 @@ struct fmt_main django_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };

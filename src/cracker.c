@@ -37,6 +37,16 @@ static struct db_keys *crk_guesses;
 static int64 *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 
+static char *get_source(struct db_password *current_pw)
+{
+	static char SourceBuf[LINE_BUFFER_SIZE];
+	char *cp;
+	if (current_pw->source) return current_pw->source;
+	cp = crk_db->format->methods.get_source(current_pw->binary, NULL, SourceBuf);
+	current_pw->source = str_alloc_copy(cp);
+	return current_pw->source;
+}
+
 static void crk_dummy_set_salt(void *salt)
 {
 }
@@ -216,7 +226,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		}
 	}
 	log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
-		dupe ? NULL : pw->source, repkey, key, crk_db->options->field_sep_char);
+		dupe ? NULL : get_source(pw), repkey, key, crk_db->options->field_sep_char);
 
 	if (options.flags & FLG_CRKSTAT)
 		event_pending = event_status = 1;
@@ -287,7 +297,7 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_all(pw->binary, crk_key_index))
 			for (index = 0; index < crk_key_index; index++)
 			if (crk_methods.cmp_one(pw->binary, index))
-			if (crk_methods.cmp_exact(pw->source, index)) {
+			if (!pw->source || crk_methods.cmp_exact(pw->source, index)) {
 				if (crk_process_guess(salt, pw, index))
 					return 1;
 				else {
@@ -301,7 +311,7 @@ static int crk_password_loop(struct db_salt *salt)
 		if ((pw = salt->hash[salt->index(index)]))
 		do {
 			if (crk_methods.cmp_one(pw->binary, index))
-			if (crk_methods.cmp_exact(pw->source, index))
+			if (!pw->source || crk_methods.cmp_exact(pw->source, index))
 			if (crk_process_guess(salt, pw, index))
 				return 1;
 		} while ((pw = pw->next_hash));

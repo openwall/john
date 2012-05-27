@@ -5,7 +5,7 @@
  * SIP digest authentication password (hash) cracker
  * See doc/SIPcrack-LICENSE */
 
-#include <openssl/md5.h>
+#include "md5.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -257,6 +257,7 @@ struct fmt_main sip_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };
