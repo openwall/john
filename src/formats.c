@@ -105,7 +105,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		char *prepared;
+		char *prepared, *sourced, Buf[LINE_BUFFER_SIZE];
 		current->flds[1] = current->ciphertext;
 		prepared = format->methods.prepare(current->flds, format);
 		if (!prepared || strlen(prepared) < 7) // $dummy$ can be just 7 bytes long.
@@ -144,6 +144,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "salt (alignment)";
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
+		if (format->methods.get_source != fmt_default_get_source) {
+			sourced = format->methods.get_source(binary, salt, Buf);
+			if (strcmp(sourced, prepared))
+				return "get_source";
+		}
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
