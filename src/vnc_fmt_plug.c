@@ -115,10 +115,10 @@ static void *get_salt(char *ciphertext)
 {
 	int i;
 	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *p, *keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$vnc$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	char *p = strtok(ctcopy, "*");
+	p = strtok(ctcopy, "*");
 	for (i = 0; i < 16; i++)
 		salt_struct->challenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
@@ -145,6 +145,8 @@ static void crypt_all(int count)
 	{
 		int i;
 		DES_cblock des_key;
+		DES_key_schedule schedule;
+		DES_cblock ivec;
 		unsigned char encrypted_challenge[16] = { 0 };
 		unsigned char key[PLAINTEXT_LENGTH+1];
 		strcpy((char*)key, saved_key[index]);
@@ -152,8 +154,6 @@ static void crypt_all(int count)
 		for(i = 0; i < strlen((const char*)key); i++)
 			key[i] = bit_flip[key[i]];
 		memcpy(des_key, key, 8);
-		DES_key_schedule schedule;
-		DES_cblock ivec;
 		memset(ivec, 0, 8);
 		DES_set_odd_parity(&des_key);
 		DES_set_key_checked(&des_key, &schedule);
@@ -239,6 +239,7 @@ struct fmt_main vnc_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };

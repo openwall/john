@@ -47,9 +47,9 @@
 # It can be an official version, or a community encanced (jumbo) version,
 # with a variety of patches.
 #
-# FIXME: is using __expand_tilde_by_ref OK?
+# FIXME: Is using __expand_tilde_by_ref OK?
 #
-# FIXME: for some reason completion for --option= only works 
+# FIXME: For some reason completion for --option= only works 
 #	 if the cursor is at the end of the command, 
 #	 i.e. [[ ${COMP_POINT} -eq ${#COMP_LINE} ]]
 #	 not if some words follow the one to be completed...
@@ -58,9 +58,13 @@
 #	 This is annoying if I want to complete --rules= in
 #        ./john --rules= --config=test.conf
 #
-# FIXME: should completion for --make-charset really list existing .chr files?
+# FIXME: If there is a word -- preceding the current word 
+#        which is to be completed, it cannot be an option, so file names
+#        should be used for completion.
 #
-# FIXME: should I generally use LC_ALL=C, not just in a few places?
+# FIXME: Should completion for --make-charset really list existing .chr files?
+#
+# FIXME: Should I generally use LC_ALL=C, not just in a few places?
 #	 (This could also be a little bit faster.)
 #
 # TODO:
@@ -95,6 +99,7 @@
 _john()
 {
 	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev
+
 	COMPREPLY=()
 	_get_comp_words_by_ref -n = cur
 
@@ -104,7 +109,7 @@ _john()
 #	Most options are listed at the begin of the line, but the line with the --pipe option
 #	does have trailing spaces, and --stdin is mentioned after --wordlist=FILE.
 #
-#	All options (the '=' will be emoved for options with an optional value)
+#	All options (the '=' will be removed for options with an optional value)
 	options=""
 # FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
 	options="`${first} 2>/dev/null|sed -n '{ s#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1# }; /^--/ p'` --stdin"
@@ -128,7 +133,7 @@ _john()
 	hidden=`${first} --list=hidden-options 2>/dev/null|sed 's#^\(--[a-z-]*=\?\).*$#\1#'`
 
 	case "${cur}" in
-		--format=dynamic*)
+		-?(-)fo?(r|rm|rma|rmat)=dynamic*)
 			if echo "${options}" | grep "^--subformat" > /dev/null ; then
 				 subformats=`${first} --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
 				cur=${cur#*=}
@@ -136,7 +141,7 @@ _john()
 			fi
 			return 0
 			;;
-		--format=dy|--format=dyn|--format=dyna|--format=dynam|--format=dynami)
+		-?(-)fo?(r|rm|rma|rmat)=dy?(n|na|nam|nami))
 			if echo "${options}" | grep "^--subformat" > /dev/null ; then
 				cur=${cur#*=}
 				COMPREPLY=( $(compgen -W "dynamic" -- ${cur}) )
@@ -144,7 +149,7 @@ _john()
 			fi
 			return 0
 			;;
-		--format=*)
+		-?(-)fo?(r|rm|rma|rmat)=*)
 			cur=${cur#*=}
 			formats=`${first} |sed -n '/^--format/,$ { s#^--format=[ A-Za-z]*:##; /^--/ b; s#^ *##; s#\<dynamic_n\>#dynamic#; s#[/ ]#\n#g; p }'`
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
@@ -166,7 +171,7 @@ _john()
 			fi
 			return 0
 			;;
-		--restore=*|--status=*)
+		-?(-)res?(t|to|tor|tore)=*|-?(-)sta?(t|tu|tus)=*)
 # If there is no .rec file in the current directory, the old completion logic will show all files:
 ##echo _`for f in *.rec; do echo ${f%.rec};done`_
 			cur=${cur#*=}
@@ -182,7 +187,7 @@ _john()
 			done
 			return 0
 			;;
-		--wordlist=*)
+		-?(-)w?(o|or|ord|ordl|ordli|ordlis|ordlist)=*)
 			cur=${cur#*=}
 			 __expand_tilde_by_ref cur 2>/dev/null
 			_filedir
@@ -211,15 +216,17 @@ _john()
 			fi
 			return 0
 			;;
-		--rules=*|--single=*)
-			if echo "${valopts}" | grep "^${cur%=*}$" > /dev/null ; then
+		-?(-)ru?(l|le|les)=*|-?(-)si?(n|ng|ngl|ngle)=*)
+			# let's assume every john version which supports --single= 
+			# also supports --rules=, and vice versa
+			if echo "${valopts}" | grep "^--rules$" > /dev/null ; then
 				cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=rules #"`
 				list=`${cmd} 2>/dev/null`
 				if [[ $? -ne 0 ]] ; then
 					list=`${first} --list=rules 2>/dev/null`
 				fi
 				if [[ $? -eq 0 ]] ; then
-					cur=${cur#*=}
+					cur=`echo ${cur#*=}|LC_ALL=C tr [A-Z] [a-z]`
 					COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 				else
 					cur=${cur#*=}
@@ -228,7 +235,7 @@ _john()
 			fi
 			return 0
 			;;
-		--external=*)
+		-?(-)ex?(t|te|ter|tern|terna|ternal)=*)
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=externals #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
@@ -261,8 +268,10 @@ _john()
 						list="${list} DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn AutoAbort AutoStatus"
 					fi
 				fi
+				cur=${cur#*=}
+			else
+				cur=`echo ${cur#*=}|LC_ALL=C tr [A-Z] [a-z]`
 			fi
-			cur=${cur#*=}
 			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
@@ -285,14 +294,14 @@ _john()
 			fi
 			return 0
 			;;
-		--incremental=*)
+		-?(-)i?(n|nc|ncr|ncre|ncrem|ncreme|ncremen|ncrement|ncrementa|ncremental)=*)
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=inc-modes #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
 				list=`${first} --list=inc-modes 2>/dev/null`
 			fi
 			if [[ $? -eq 0 ]] ; then
-				cur=${cur#*=}
+				cur=`echo ${cur#*=}|LC_ALL=C tr [A-Z] [a-z]`
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			else
 				cur=${cur#*=}
@@ -300,7 +309,7 @@ _john()
 			fi
 			return 0
 			;;
-		--make-charset=*)
+		-?(-)mak?(e|e-|e-c|e-ch|e-cha|e-char|e-chars|e-charse|e-charset)=*)
 			cur=${cur#*=}
 			#redirect stderr just in case __expand_tilde_by_ref
 			#doesn't exist everywhere
@@ -341,14 +350,14 @@ _john()
 			fi
 			return 0
 			;;
-		--show=l*)
+		-?(-)sho?(w)=l*)
 			if echo "${valopts}" | grep "^--show$" > /dev/null ; then
 				cur=${cur#*=}
 				COMPREPLY=( $(compgen -W "left" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--show=*)
+		-?(-)sho?(w)=*)
 			if echo "${valopts}" | grep "^--show$" > /dev/null ; then
 				cur=${cur#*=}
 				COMPREPLY=( $(compgen -W "LEFT" -- ${cur}) )
@@ -378,7 +387,7 @@ _john()
 			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
 			return 0
 			;;
-		--encoding=*)
+		-?(-)en?(c|co|cod|codi|codin|coding)=*)
 			if  echo "${options}" | grep "^--encoding=" > /dev/null ; then
 				# --encoding=LIST writes to stderr
 				encodings=`${first} --encoding=LIST 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
@@ -392,7 +401,7 @@ _john()
 			fi
 			return 0
 			;;
-		--pot=*)
+		-?(-)po?(t)=*)
 			# if --pot= is used, john always looks for the file $PWD
 			# (tested with system-wide and local build of john)
 			cur=${cur#*=}
@@ -405,7 +414,7 @@ _john()
 			_filedir "pot"
 			return 0
 			;;
-		--config=*)
+		-?(-)co?(n|nf|nfi|nfig)=*)
 			# if --config= is used, john always looks for files in $PWD
 			# (tested for system-wide and local builds)
 			cur=${cur#*=}
@@ -413,12 +422,12 @@ _john()
 			_filedir '@(conf|ini)'
 			return 0
 			;;
-		--save-memory=*)
+		-?(-)sav?(e|e-|e-m|e-me|e-mem|e-memo|e-memor|e-memory)=*)
 			cur=${cur#*=}
 			COMPREPLY=( $(compgen -W "1 2 3" -- ${cur}) )
 			return 0
 			;;
-		--regen-lost-salts=*)
+		-?(-)reg?(e|en|en-|en-l|en-lo|en-los|en-lost|en-lost-|en-lost-s|en-lost-sa|en-lost-sal|en-lost-salt|en-lost-salts)=*)
 			if echo "${options}" | grep "^--regen-lost-salts=" > /dev/null ; then
 				cur=${cur#*=}
 				COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
@@ -442,7 +451,7 @@ _john()
 		--session=*|--mem-file-size=*|--field-separator-char=*|--fix-state-delay=*|--max-run-time=*|--mkpc=*)
 			return 0
 			;;
-		--platform=L*|--device=L*|--platform=l*|--device=l*)
+		-?(-)pla?(t|tf|tfo|tfor|tform)=+(L|l)*|-?(-)dev?(i|ic|ice)=+(L|l)*)
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
 			if echo "${valopts}" | grep "^--platform=$" > /dev/null ; then
@@ -465,7 +474,7 @@ _john()
 		--platform=*|--device=*)
 			return 0
 			;;
-		--list=*)
+		-?(-)l?(i|is|ist)=*)
 			if echo "${hidden}" | grep "^--list=" > /dev/null ; then
 				cur=${cur#*=}
 				# the --list=? output changed, that's why a more complex regex is used

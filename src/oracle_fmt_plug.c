@@ -369,6 +369,7 @@ struct fmt_main fmt_oracle = {
 		},
 		oracle_cmp_all,
 		oracle_cmp_all,
-		oracle_cmp_exact
+		oracle_cmp_exact,
+		fmt_default_get_source
 	}
 };

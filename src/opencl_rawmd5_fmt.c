@@ -439,5 +439,7 @@ struct fmt_main fmt_opencl_rawMD5 = {
 		get_hash_6},
 		cmp_all,
 		cmp_one,
-	cmp_exact}
+		cmp_exact,
+		fmt_default_get_source
+	}
 };

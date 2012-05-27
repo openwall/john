@@ -218,27 +218,18 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 // Note, we address the user id inside loader.
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
+	static char out[33+5];
 	extern struct options_main options;
 	if (!valid(split_fields[1], pFmt)) {
 		if (strlen(split_fields[3]) == 32) {
-			char *tmp = mem_alloc(32+5);
-			sprintf(tmp, "$NT$%s", split_fields[3]);
-			if (valid(tmp,pFmt)) {
-				char *cp = str_alloc_copy(tmp);
-				MEM_FREE(tmp);
-				return cp;
-			}
-			MEM_FREE(tmp);
+			sprintf(out, "$NT$%s", split_fields[3]);
+			if (valid(out,pFmt))
+				return out;
 		}
 		if (options.format && !strcmp(options.format, FORMAT_LABEL) && strlen(split_fields[1]) == 32) {
-			char *tmp = mem_alloc(32+5);
-			sprintf(tmp, "$NT$%s", split_fields[1]);
-			if (valid(tmp,pFmt)) {
-				char *cp = str_alloc_copy(tmp);
-				MEM_FREE(tmp);
-				return cp;
-			}
-			MEM_FREE(tmp);
+			sprintf(out, "$NT$%s", split_fields[1]);
+			if (valid(out,pFmt))
+				return out;
 		}
 	}
 	return split_fields[1];
@@ -728,6 +719,7 @@ struct fmt_main fmt_magnumNT = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };

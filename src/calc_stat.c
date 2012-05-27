@@ -87,7 +87,7 @@ int main(int argc, char * * argv)
 			}
 			if(C2I(ligne[i])>127)
 			{
-				fprintf(stderr, "Warning, non US ascii character line %d : %s\n", nb_lignes, ligne);
+				if (!npflag) fprintf(stderr, "Warning, non US ascii character line %d : %s\n", nb_lignes, ligne);
 				np += 1;
 			}
 			if((i>0) && (C2I(ligne[i-1])<32))

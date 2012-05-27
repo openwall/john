@@ -845,10 +845,11 @@ static void init(struct fmt_main *pFmt)
  *********************************************************************************/
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
+	static char ct[512];
 	char Tmp[80];
 	int i;
 
-	char *cpBuilding=split_fields[1], *cpTmp=NULL;
+	char *cpBuilding=split_fields[1];
 
 	init(pFmt);
 
@@ -865,7 +866,6 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	// $dynamic_x$ will be written out (into .pot, output lines, etc).
 	if (!strncmp(cpBuilding, "md5_gen(", 8))
 	{
-		char *ct = mem_alloc_tiny(strlen(cpBuilding) + 6, MEM_ALIGN_NONE);
 		char *cp = &cpBuilding[8], *cpo = &ct[sprintf(ct, "$dynamic_")];
 		while (*cp >= '0' && *cp <= '9')
 			*cpo++ = *cp++;
@@ -884,7 +884,6 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	/* the ONE exception to this, is if there is a NULL byte in the $HEX$ string, then we MUST leave that $HEX$ string */
 	/* alone, and let the later calls in dynamic.c handle them. */
 	if (strstr(cpBuilding, "$HEX$")) {
-		char *ct = mem_alloc_tiny(strlen(cpBuilding)+1, MEM_ALIGN_NONE);
 		char *cp, *cpo;
 		int bGood=1;
 
@@ -926,16 +925,14 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		if (cp)
 			userName = &cp[1];
 		userName = HandleCase(userName, curdat.nUserName);
-		cpTmp = mem_alloc_tiny(strlen(cpBuilding) + 1 + 3 + strlen(userName), MEM_ALIGN_NONE);
-		sprintf (cpTmp, "%s$$U%s", cpBuilding, userName);
-		cpBuilding = cpTmp;
+		sprintf (ct, "%s$$U%s", cpBuilding, userName);
+		cpBuilding = ct;
 	}
 	for (i = 0; i <= 8; ++i) {
 		sprintf(Tmp, "$$F%d", i);
 		if ( split_fields[i] &&  (curdat.FldMask&(MGF_FLDx_BIT<<i)) && !strstr(cpBuilding, Tmp)) {
-			cpTmp = mem_alloc_tiny(strlen(cpBuilding) + 1 + 4 + strlen(split_fields[i]), MEM_ALIGN_NONE);
-			sprintf (cpTmp, "%s$$F%d%s", cpBuilding, i, split_fields[i]);
-			cpBuilding = cpTmp;
+			sprintf (ct, "%s$$F%d%s", cpBuilding, i, split_fields[i]);
+			cpBuilding = ct;
 		}
 	}
 	return cpBuilding;
@@ -2099,6 +2096,39 @@ static void *binary(char *_ciphertext)
 	}
 	return (void *)realcipher;
 }
+
+static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+{
+	char *cpo = Buf;
+	unsigned char *cpi;
+	int i;
+	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+	cpi = (unsigned char*)bin;
+	for (i = 0; i < 16; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
+static char *get_source_sha(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+{
+	char *cpo = Buf;
+	unsigned char *cpi;
+	int i;
+	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+	cpi = (unsigned char*)bin;
+	for (i = 0; i < 20; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 /*********************************************************************************
  * Gets the binary value from a base-64 hash (such as phpass)
  *********************************************************************************/
@@ -2268,7 +2298,8 @@ struct fmt_main fmt_Dynamic =
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };
 
@@ -6945,6 +6976,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->methods.binary = binary;
 	pFmt->methods.cmp_all=cmp_all;
 	pFmt->methods.cmp_one=cmp_one;
+	pFmt->methods.get_source=fmt_default_get_source;
 	pFmt->methods.salt = salt;
 	pFmt->methods.set_salt = set_salt;
 	pFmt->methods.salt_hash = salt_hash;
@@ -7092,6 +7124,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
+
+	if (Setup->startFlags&MGF_GET_SOURCE) pFmt->methods.get_source = get_source;
+	if (Setup->startFlags&MGF_GET_SOURCE_SHA) pFmt->methods.get_source = get_source_sha;
 
 	if (!curdat.store_keys_in_input && Setup->startFlags&MGF_KEYS_INPUT_BE_SAFE)
 		curdat.store_keys_in_input = 3;
@@ -7578,6 +7613,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	pFmt->methods.cmp_all    = pFmtLocal->methods.cmp_all;
 	pFmt->methods.cmp_one    = pFmtLocal->methods.cmp_one;
 	pFmt->methods.cmp_exact  = pFmtLocal->methods.cmp_exact;
+	pFmt->methods.get_source = pFmtLocal->methods.get_source;
 	pFmt->methods.set_salt   = pFmtLocal->methods.set_salt;
 	pFmt->methods.salt       = pFmtLocal->methods.salt;
 	pFmt->methods.salt_hash  = pFmtLocal->methods.salt_hash;
