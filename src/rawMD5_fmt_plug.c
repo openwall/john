@@ -49,10 +49,10 @@
 #define TAG_LENGTH				11
 
 static struct fmt_tests tests[] = {
-	{"5a105e8b9d40e1329780d62ea2265d8a","test1"},
+	{FORMAT_TAG "5a105e8b9d40e1329780d62ea2265d8a","test1"},
 	{FORMAT_TAG "378e2c4a07968da2eca692320136433d","thatsworking"},
 	{FORMAT_TAG "8ad8757baa8564dc136c1e07507f4a98","test3"},
-	{"d41d8cd98f00b204e9800998ecf8427e", ""},
+	{FORMAT_TAG "d41d8cd98f00b204e9800998ecf8427e", ""},
 	{NULL}
 };
 
@@ -279,6 +279,26 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
+static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+{
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
+
+	cpi = (unsigned char*)bin;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 struct fmt_main fmt_rawMD5 = {
 	{
 		FORMAT_LABEL,
@@ -327,6 +347,6 @@ struct fmt_main fmt_rawMD5 = {
 		cmp_all,
 		cmp_one,
 		cmp_exact,
-		fmt_default_get_source
+		get_source
 	}
 };
