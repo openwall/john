@@ -388,7 +388,7 @@ _john()
 			return 0
 			;;
 		-?(-)en?(c|co|cod|codi|codin|coding)=*)
-			if  echo "${options}" | grep "^--encoding=" > /dev/null ; then
+			if  echo "${valopts}" | grep "^--encoding=" > /dev/null ; then
 				# --encoding=LIST writes to stderr
 				encodings=`${first} --encoding=LIST 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
 			cur=${cur#*=}
@@ -402,24 +402,27 @@ _john()
 			return 0
 			;;
 		-?(-)po?(t)=*)
-			# if --pot= is used, john always looks for the file $PWD
-			# (tested with system-wide and local build of john)
-			cur=${cur#*=}
-			#redirect stderr just in case __expand_tilde_by_ref
-			#doesn't exist everywhere
-			#(I'm a bit worried because of the __ at the begin.
-			#May be this function isn't part of an "official" API.)
-			#
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir "pot"
+			if  echo "${valopts}" | grep "^--encoding=" > /dev/null ; then
+				# if --pot= is used, john always looks for the file $PWD
+				# (tested with system-wide and local build of john)
+				cur=${cur#*=}
+				#redirect stderr just in case __expand_tilde_by_ref
+				#doesn't exist everywhere
+				#(I'm a bit worried because of the __ at the begin.
+				#May be this function isn't part of an "official" API.)
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir "pot"
+			fi
 			return 0
 			;;
 		-?(-)co?(n|nf|nfi|nfig)=*)
-			# if --config= is used, john always looks for files in $PWD
-			# (tested for system-wide and local builds)
-			cur=${cur#*=}
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir '@(conf|ini)'
+			if  echo "${valopts}" | grep "^--encoding=" > /dev/null ; then
+				# if --config= is used, john always looks for files in $PWD
+				# (tested for system-wide and local builds)
+				cur=${cur#*=}
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir '@(conf|ini)'
+			fi
 			return 0
 			;;
 		-?(-)sav?(e|e-|e-m|e-me|e-mem|e-memo|e-memor|e-memory)=*)
@@ -428,7 +431,7 @@ _john()
 			return 0
 			;;
 		-?(-)reg?(e|en|en-|en-l|en-lo|en-los|en-lost|en-lost-|en-lost-s|en-lost-sa|en-lost-sal|en-lost-salt|en-lost-salts)=*)
-			if echo "${options}" | grep "^--regen-lost-salts=" > /dev/null ; then
+			if echo "${valopts}" | grep "^--regen-lost-salts=" > /dev/null ; then
 				cur=${cur#*=}
 				COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
 			fi
