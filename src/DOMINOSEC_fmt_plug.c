@@ -456,7 +456,6 @@ struct fmt_main fmt_DOMINOSEC = {
 		},
 		dominosec_cmp_all,
 		dominosec_cmp_all,
-		dominosec_cmp_exact,
-		fmt_default_get_source
+		dominosec_cmp_exact
 	}
 };

@@ -439,7 +439,6 @@ struct fmt_main fmt_NETNTLM = {
     },
     netntlm_cmp_all,
     netntlm_cmp_one,
-    netntlm_cmp_exact,
-	fmt_default_get_source
+    netntlm_cmp_exact
   }
 };

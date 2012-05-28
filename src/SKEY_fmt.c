@@ -251,8 +251,7 @@ struct fmt_main fmt_SKEY = {
 		},
 		skey_cmp_all,
 		skey_cmp_one,
-		skey_cmp_exact,
-		fmt_default_get_source
+		skey_cmp_exact
 	}
 };
 

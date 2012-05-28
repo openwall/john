@@ -51,15 +51,6 @@ int ldr_in_pot = 0;
 
 static char *no_username = "?";
 
-static char *get_source(struct db_main *db, struct db_password *current_pw) {
-	static char SourceBuf[LINE_BUFFER_SIZE];
-	char *cp;
-	if (current_pw->source) return current_pw->source;
-	cp = db->format->methods.get_source(current_pw->binary, NULL, SourceBuf);
-	current_pw->source = str_alloc_copy(cp);
-	return current_pw->source;
-}
-
 static void read_file(struct db_main *db, char *name, int flags,
 	void (*process_line)(struct db_main *db, char *line))
 {
@@ -571,10 +562,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		current_pw->binary = mem_alloc_copy(
 			format->params.binary_size, MEM_ALIGN_WORD, binary);
 
-		if (format->methods.get_source == fmt_default_get_source)
-			current_pw->source = str_alloc_copy(piece);
-		else
-			current_pw->source = NULL;
+		current_pw->source = str_alloc_copy(piece);
 
 		if (db->options->flags & DB_WORDS) {
 			if (!words)
@@ -644,10 +632,9 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 			}
 			//else if (db->options->regen_lost_salts == 6 && !strncmp(current->source, "???????????", 11))
 		}
-		// NOTE, if !current->source, then it is a get_source() hash, so we have not stored it, so we avoid the strcmp of the original source strings.
 		if (current->binary && !memcmp(current->binary, binary,
 		    format->params.binary_size) &&
-		    (!current->source || !strcmp(current->source, ciphertext)))
+		    !strcmp(current->source, ciphertext))
 			current->binary = NULL;
 	} while ((current = current->next_hash));
 }
@@ -717,9 +704,9 @@ static void ldr_remove_marked(struct db_main *db)
 					if (!options.utf8 && options.report_utf8) {
 						UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 						enc_to_utf8_r(current_pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
-						printf("%s%c%s\n",utf8login,db->options->field_sep_char,get_source(db, current_pw));
+						printf("%s%c%s\n",utf8login,db->options->field_sep_char,current_pw->source);
 					} else
-						printf("%s%c%s\n",current_pw->login,db->options->field_sep_char,get_source(db, current_pw));
+						printf("%s%c%s\n",current_pw->login,db->options->field_sep_char,current_pw->source);
 				}
 			}
 		} while ((current_pw = current_pw->next));

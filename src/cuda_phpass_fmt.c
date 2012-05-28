@@ -327,7 +327,5 @@ struct fmt_main fmt_cuda_phpass = {
 		    get_hash_6},
 		    cmp_all,
 		    cmp_one,
-	    cmp_exact,
-		fmt_default_get_source
-	}
+	    cmp_exact}
 };

@@ -669,26 +669,6 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x7ffffff; }
 #endif
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
-{
-	unsigned char *cpi;
-	char *cpo;
-	int i;
-
-	strcpy(Buf, "$NT$");
-	cpo = &Buf[4];
-
-	cpi = (unsigned char*)bin;
-
-	for (i = 0; i < 16; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
-
 struct fmt_main fmt_magnumNT = {
 	{
 		FORMAT_LABEL,
@@ -739,7 +719,6 @@ struct fmt_main fmt_magnumNT = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };

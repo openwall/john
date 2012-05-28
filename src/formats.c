@@ -10,8 +10,6 @@
 
 #include "params.h"
 #include "formats.h"
-#include "memory.h"
-#include "misc.h"
 #ifndef BENCH_BUILD
 #include "options.h"
 #endif
@@ -55,26 +53,6 @@ char *fmt_self_test(struct fmt_main *format)
 	int ntests, done, index, max, size;
 	void *binary, *salt;
 
-	// validate that there are no NULL function pointers
-	if (format->methods.init == NULL)       return "method init NULL";
-	if (format->methods.prepare == NULL)    return "method prepare NULL";
-	if (format->methods.valid == NULL)      return "method valid NULL";
-	if (format->methods.split == NULL)      return "method split NULL";
-	if (format->methods.binary == NULL)     return "method binary NULL";
-	if (format->methods.salt == NULL)       return "method salt NULL";
-	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
-	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
-	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
-	if (format->methods.set_key == NULL)    return "method set_key NULL";
-	if (format->methods.get_key == NULL)    return "method get_key NULL";
-	if (format->methods.clear_keys == NULL) return "method clear_keys NULL";
-	if (format->methods.crypt_all == NULL)  return "method crypt_all NULL";
-	if (format->methods.get_hash[0]==NULL)  return "method get_hash[0] NULL";
-	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
-	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
-	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
-	if (format->methods.get_source == NULL) return "method get_source NULL";
-
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
 
@@ -92,7 +70,7 @@ char *fmt_self_test(struct fmt_main *format)
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		char *prepared, *sourced, Buf[LINE_BUFFER_SIZE];
+		char *prepared;
 		current->flds[1] = current->ciphertext;
 		prepared = format->methods.prepare(current->flds, format);
 		if (!prepared || strlen(prepared) < 7) // $dummy$ can be just 7 bytes long.
@@ -104,24 +82,6 @@ char *fmt_self_test(struct fmt_main *format)
 
 		binary = format->methods.binary(ciphertext);
 		salt = format->methods.salt(ciphertext);
-		if (format->methods.get_source != fmt_default_get_source) {
-			sourced = format->methods.get_source(binary, salt, Buf);
-			if (strcasecmp(sourced, ciphertext)) {
-				void *binary2;
-				if (format->methods.valid(sourced,format) != 1) return "get_source";
-				binary2 = mem_alloc_tiny(format->params.binary_size, MEM_ALIGN_NONE);
-				memcpy(binary2, binary, format->params.binary_size);
-				binary = format->methods.binary(sourced);
-				if (memcmp(binary,binary2,format->params.binary_size)) return "get_source";
-				if (format->params.salt_size) {
-					void *salt2;
-					salt2 = mem_alloc_tiny(format->params.salt_size, MEM_ALIGN_NONE);
-					memcpy(salt2, salt, format->params.salt_size);
-					salt = format->methods.salt(sourced);
-					if (memcmp(salt,salt2,format->params.salt_size)) return "get_source";
-				}
-			}
-		}
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -238,10 +198,4 @@ void fmt_default_clear_keys(void)
 int fmt_default_get_hash(int index)
 {
 	return 0;
-}
-
-char *fmt_default_get_source(void *binary_hash, void *salt, char ReturnBuf[LINE_BUFFER_SIZE]) 
-{
-	*ReturnBuf = 0;
-	return ReturnBuf;
 }

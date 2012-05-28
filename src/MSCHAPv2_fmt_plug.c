@@ -471,7 +471,6 @@ struct fmt_main fmt_MSCHAPv2 = {
     },
     mschapv2_cmp_all,
     mschapv2_cmp_one,
-    mschapv2_cmp_exact,
-	fmt_default_get_source
+    mschapv2_cmp_exact
   }
 };

@@ -294,31 +294,6 @@ static int get_hash_5(int index) { return ((unsigned int *)crypt_key)[0] & 0xfff
 static int get_hash_6(int index) { return ((unsigned int *)crypt_key)[0] & 0x7ffffff; }
 #endif
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
-{
-	unsigned char realcipher[BINARY_SIZE];
-	unsigned char *cpi;
-	char *cpo;
-	int i;
-
-	memcpy(realcipher, bin, BINARY_SIZE);
-#ifdef MMX_COEF
-	alter_endianity(realcipher, BINARY_SIZE);
-#endif
-	strcpy(Buf, FORMAT_TAG);
-	cpo = &Buf[TAG_LENGTH];
-
-	cpi = realcipher;
-
-	for (i = 0; i < BINARY_SIZE; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
-
 struct fmt_main fmt_rawSHA1 = {
 	{
 		FORMAT_LABEL,
@@ -366,7 +341,6 @@ struct fmt_main fmt_rawSHA1 = {
 		},
 		rawsha1_cmp_all,
 		rawsha1_cmp_one,
-		rawsha1_cmp_exact,
-		get_source
+		rawsha1_cmp_exact
 	}
 };

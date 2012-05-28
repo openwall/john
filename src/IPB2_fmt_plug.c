@@ -515,7 +515,6 @@ struct fmt_main fmt_IPB2 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

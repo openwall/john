@@ -440,7 +440,6 @@ struct fmt_main fmt_BSDI = {
 		cmp_all,
 #endif
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

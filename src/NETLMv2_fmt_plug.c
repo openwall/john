@@ -490,7 +490,6 @@ struct fmt_main fmt_NETLMv2 = {
     },
     netlmv2_cmp_all,
     netlmv2_cmp_one,
-    netlmv2_cmp_exact,
-	fmt_default_get_source
+    netlmv2_cmp_exact
   }
 };

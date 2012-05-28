@@ -263,7 +263,6 @@ struct fmt_main fmt_MYSQL_fast =
 		},
 		mysql_cmp_all,
 		mysql_cmp_one,
-		mysql_cmp_exact,
-		fmt_default_get_source
+		mysql_cmp_exact
 	}
 };

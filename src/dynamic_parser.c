@@ -357,9 +357,6 @@ static MD5Gen_Str_Flag_t MD5Gen_Str_sFlag[] =  {
 	{ "MGF_RAW_SHA1_INPUT",               MGF_RAW_SHA1_INPUT },
 	{ "MGF_KEYS_INPUT_BE_SAFE",           MGF_KEYS_INPUT_BE_SAFE },  // big endian safe, i.e. the input will NEVER get swapped.  Only SHA1 is 'safe'.
 	{ "MGF_SET_INP2LEN32",                MGF_SET_INP2LEN32 }, // this sets the input2 lens (in SSE2) to 32 bytes long, but only in init() call
-	{ "MGF_GET_SOURCE",                   MGF_GET_SOURCE },
-	{ "MGF_GET_SOURCE_SHA",               MGF_GET_SOURCE_SHA },
-
 	{ NULL, 0 }};
 
 static DYNAMIC_Setup Setup;

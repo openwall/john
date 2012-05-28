@@ -354,8 +354,7 @@ struct fmt_main fmt_KRB5 = {
         },
         krb5_cmp_all,
         krb5_cmp_one,
-        krb5_cmp_exact,
-		fmt_default_get_source
+        krb5_cmp_exact
     }
 };
 // }}}
