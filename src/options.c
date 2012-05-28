@@ -66,7 +66,12 @@ static struct opt_entry opt_list[] = {
 	{"encoding", FLG_INP_ENCODING, FLG_INP_ENCODING,
 		0, 0, OPT_FMT_STR_ALLOC, &options.encoding},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.loader.sharedmemoryfilename},
+#else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
+#endif
 	{"rules", FLG_RULES, FLG_RULES, FLG_WORDLIST_CHK, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &options.loader.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
