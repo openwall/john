@@ -865,7 +865,7 @@ static DYNAMIC_Constants _ConstDefault[] =
 // Here are the 'prebuilt' dynamic objects, ready to be 'loaded'
 static DYNAMIC_Setup Setups[] =
 {
-	{ "dynamic_0: md5($p)  (raw-md5) ",           _Funcs_0, _Preloads_0, _ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT },
+	{ "dynamic_0: md5($p)  (raw-md5) ",           _Funcs_0, _Preloads_0, _ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_GET_SOURCE },
 #if defined (MMX_COEF)
 	{ "dynamic_1: md5($p.$s)  (joomla) ",         _Funcs_1, _Preloads_1, _ConstDefault, MGF_SALTED, MGF_NO_FLAG, -32, 23 },
 #else

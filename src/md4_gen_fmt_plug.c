@@ -272,6 +272,7 @@ struct fmt_main fmt_md4_gen = {
 		},
 		cmp_all,
 		cmp_all,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };

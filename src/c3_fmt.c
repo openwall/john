@@ -512,6 +512,7 @@ struct fmt_main fmt_crypt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact
+		cmp_exact,
+		fmt_default_get_source
 	}
 };

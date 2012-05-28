@@ -349,6 +349,7 @@ struct fmt_main fmt_NETHALFLM = {
     },
     nethalflm_cmp_all,
     nethalflm_cmp_one,
-    nethalflm_cmp_exact
+    nethalflm_cmp_exact,
+	fmt_default_get_source
   }
 };

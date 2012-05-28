@@ -122,6 +122,7 @@ struct fmt_main fmt_BFEgg = {
 	},
 	    cmp_all,
 	    cmp_all,
-	    cmp_exact
+	    cmp_exact,
+		fmt_default_get_source
   }
 };
