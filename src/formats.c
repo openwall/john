@@ -11,6 +11,8 @@
 #include "params.h"
 #include "memory.h"
 #include "formats.h"
+#include "memory.h"
+#include "misc.h"
 #ifndef BENCH_BUILD
 #include "options.h"
 #endif
@@ -146,8 +148,21 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		salt = salt_copy;
 		if (format->methods.get_source != fmt_default_get_source) {
 			sourced = format->methods.get_source(binary, salt, Buf);
-			if (strcmp(sourced, prepared))
-				return "get_source";
+			if (strcasecmp(sourced, ciphertext)) {
+				void *binary2;
+				if (format->methods.valid(sourced,format) != 1) return "get_source";
+				binary2 = mem_alloc_tiny(format->params.binary_size, MEM_ALIGN_NONE);
+				memcpy(binary2, binary, format->params.binary_size);
+				binary = format->methods.binary(sourced);
+				if (memcmp(binary,binary2,format->params.binary_size)) return "get_source";
+				if (format->params.salt_size) {
+					void *salt2;
+					salt2 = mem_alloc_tiny(format->params.salt_size, MEM_ALIGN_NONE);
+					memcpy(salt2, salt, format->params.salt_size);
+					salt = format->methods.salt(sourced);
+					if (memcmp(salt,salt2,format->params.salt_size)) return "get_source";
+				}
+			}
 		}
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
