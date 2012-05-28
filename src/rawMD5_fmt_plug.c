@@ -279,26 +279,6 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
-{
-	unsigned char *cpi;
-	char *cpo;
-	int i;
-
-	strcpy(Buf, FORMAT_TAG);
-	cpo = &Buf[TAG_LENGTH];
-
-	cpi = (unsigned char*)bin;
-
-	for (i = 0; i < BINARY_SIZE; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
-
 struct fmt_main fmt_rawMD5 = {
 	{
 		FORMAT_LABEL,
@@ -346,7 +326,6 @@ struct fmt_main fmt_rawMD5 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };

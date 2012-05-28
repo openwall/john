@@ -244,7 +244,6 @@ struct fmt_main episerver_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -337,7 +337,6 @@ struct fmt_main fmt_DMD5 = {
 		},
 		dmd5_cmp_all,
 		dmd5_cmp_all,
-		dmd5_cmp_exact,
-		fmt_default_get_source
+		dmd5_cmp_exact
 	}
 };

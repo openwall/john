@@ -286,7 +286,6 @@ struct fmt_main fmt_KRB4 = {
 		},
 		krb4_cmp_all,
 		krb4_cmp_one,
-		krb4_cmp_exact,
-		fmt_default_get_source
+		krb4_cmp_exact
 	}
 };

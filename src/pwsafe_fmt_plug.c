@@ -204,7 +204,6 @@ struct fmt_main pwsafe_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -630,37 +630,6 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
-{
-	unsigned int out[4];
-	unsigned char *cpi;
-	char *cpo;
-	int i;
-
-	strcpy(Buf, "$NT$");
-	cpo = &Buf[4];
-
-	// we have to 'undo' the stuff done in the get_binary() function, to get back to the 'original' hash value.
-	memcpy(out, bin, 16);
-	out[1] += SQRT_3;
-	out[1]  = (out[1] >> 17) | (out[1] << 15);
-	out[1] += SQRT_3 + (out[2] ^ out[3] ^ out[0]);
-	out[1]  = (out[1] >> 17) | (out[1] << 15);
-	out[0] += INIT_A;
-	out[1] += INIT_B;
-	out[2] += INIT_C;
-	out[3] += INIT_D;
-
-	cpi = (unsigned char*)out;
-
-	for (i = 0; i < 16; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
 
 // This is common code for the SSE/MMX/generic variants of non-UTF8 set_key
 static inline void set_key_helper(unsigned int * keybuffer,
@@ -999,7 +968,6 @@ struct fmt_main fmt_NT = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };

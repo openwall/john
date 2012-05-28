@@ -85,8 +85,6 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_RAW_SHA1_INPUT               0x0200
 #define MGF_KEYS_INPUT_BE_SAFE           0x0400
 #define MGF_SET_INP2LEN32                0x0800
-#define MGF_GET_SOURCE                   0x2000
-#define MGF_GET_SOURCE_SHA               0x4000
 
 typedef struct DYNAMIC_Setup_t
 {

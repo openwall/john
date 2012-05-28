@@ -302,7 +302,6 @@ struct fmt_main fmt_NS = {
 		},
 		NS_cmp_all,
 		NS_cmp_all,
-		NS_cmp_exact,
-		fmt_default_get_source
+		NS_cmp_exact
 	}
 };
