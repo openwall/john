@@ -122,6 +122,7 @@ JOHN_OBJS = \
 	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
 	fake_salts.o \
+	win32_memmap.o \
 	unicode.o \
 	unshadow.o \
 	unafs.o \
