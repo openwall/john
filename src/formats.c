@@ -11,6 +11,7 @@
 #include "params.h"
 #include "formats.h"
 #include "memory.h"
+#include "misc.h"
 #ifndef BENCH_BUILD
 #include "options.h"
 #endif
@@ -105,7 +106,7 @@ char *fmt_self_test(struct fmt_main *format)
 		salt = format->methods.salt(ciphertext);
 		if (format->methods.get_source != fmt_default_get_source) {
 			sourced = format->methods.get_source(binary, salt, Buf);
-			if (stricmp(sourced, ciphertext)) {
+			if (strcasecmp(sourced, ciphertext)) {
 				void *binary2;
 				if (format->methods.valid(sourced,format) != 1) return "get_source";
 				binary2 = mem_alloc_tiny(format->params.binary_size, MEM_ALIGN_NONE);
