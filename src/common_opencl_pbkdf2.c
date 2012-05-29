@@ -96,7 +96,7 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 	
 	PROFILE=0;	
 	
-	printf("Optimal Work Group Size:%d\n",lws[pltform_no][dev_no]);	
+	printf("Optimal Work Group Size:%zu\n",lws[pltform_no][dev_no]);
 	printf("Kernel Execution Speed (Higher is better):%Lf\n",exec_time_inv[pltform_no][dev_no]);
 	free(dcc_hash_host);
 	free(dcc2_hash_host);
@@ -296,4 +296,3 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	 
 	 return gpu_buffer[platform_no][dev_no];
 	}      
-	      
