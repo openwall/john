@@ -505,7 +505,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			do {
 				if (!memcmp(current_pw->binary, binary,
 				    format->params.binary_size) &&
-				    (!pw->source ||
+				    (!current_pw->source ||
 				     !strcmp(current_pw->source, piece))) {
 					db->options->flags |= DB_NODUP;
 					break;
