@@ -477,10 +477,10 @@ static void john_load(void)
 		if (database.password_count) {
 			if (database.format->params.flags & FMT_UNICODE)
 				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			        NULL, "UnicodeStoreUTF8", 0);
+			        SUBSECTION_JUMBO, "UnicodeStoreUTF8", 0);
 			else
 				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			        NULL, "CPstoreUTF8", 0);
+			        SUBSECTION_JUMBO, "CPstoreUTF8", 0);
 		}
 		if (!options.utf8) {
 			if (options.report_utf8 && options.log_passwords)
@@ -672,6 +672,10 @@ static void john_init(char *name, int argc, char **argv)
 		cfg_print_subsections(options.listconf, NULL, NULL);
 		exit(0);
 	}
+	/* This is --crack-status. We toggle here, so if it's enabled in
+	   john.conf, we can disable it using the command line option */
+	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_JUMBO, "CrackStatus", 0))
+		options.flags ^= FLG_CRKSTAT;
 
 	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
 
@@ -721,13 +725,13 @@ static void john_run(void)
 #if defined(HAVE_MPI) && defined(_OPENMP)
 		if (database.format->params.flags & FMT_OMP &&
 		    omp_get_max_threads() > 1 && mpi_p > 1) {
-			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
-				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPmutex", 1)) {
+				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
 				   mpi_id == 0)
 					fprintf(stderr, "MPI in use, disabling OMP (see doc/README.mpi)\n");
 				omp_set_num_threads(1);
 			} else
-				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
 				   mpi_id == 0)
 					fprintf(stderr, "Note: Running both MPI and OMP (see doc/README.mpi)\n");
 		}

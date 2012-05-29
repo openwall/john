@@ -853,9 +853,9 @@ int initUnicode(int type) {
 	}
 
 	options.log_passwords = cfg_get_bool(SECTION_OPTIONS,
-	    NULL, "LogCrackedPasswords", 0);
+	    SUBSECTION_JUMBO, "LogCrackedPasswords", 0);
 	options.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
-	    NULL, "AlwaysReportUTF8", 0);
+	    SUBSECTION_JUMBO, "AlwaysReportUTF8", 0);
 
 	memset(ucs2_upcase, 0, sizeof(ucs2_upcase));
 	memset(ucs2_downcase, 0, sizeof(ucs2_downcase));

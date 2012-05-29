@@ -368,15 +368,15 @@ int benchmark_all(void)
 #if defined(HAVE_MPI) && defined(_OPENMP)
 		if (format->params.flags & FMT_OMP &&
 		    ompt_start > 1 && mpi_p > 1 && haveWarned++ == 0) {
-			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
+			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPmutex", 1)) {
 				omp_set_num_threads(1);
 				ompt_start = 1;
-				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
 				   mpi_id == 0) {
 					printf("MPI in use, disabling OMP (see doc/README.mpi)\n\n");
 				}
 			} else {
-				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
 				   mpi_id == 0) {
 					printf("Note: Running both MPI and OMP (see doc/README.mpi)\n\n");
 				}
