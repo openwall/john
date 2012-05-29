@@ -63,11 +63,13 @@ unsigned int get_task_max_work_group_size(){
         max_available = (get_local_memory_size(gpu_id) -
                 sizeof(sha512_salt)) /
                 sizeof(working_memory);
-    else
+    else if (gpu_nvidia(device_info[gpu_id]))
         max_available = (get_local_memory_size(gpu_id) -
                 sizeof(sha512_salt)) /
                 sizeof(sha512_password);
-
+    else
+        max_available = get_max_work_group_size(gpu_id);
+                
     if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
         return get_current_work_group_size(gpu_id, crypt_kernel);
 
@@ -143,6 +145,14 @@ static void create_clobj(int kpc) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
            sizeof (working_memory) * local_work_size,
            NULL), "Error setting argument 4");
+
+    } else if (gpu_nvidia(device_info[gpu_id])) {
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
+           sizeof (sha512_salt),
+           NULL), "Error setting argument 3");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
+           sizeof (sha512_password) * local_work_size,
+           NULL), "Error setting argument 4");                
     }
     memset(plaintext, '\0', sizeof(sha512_password) * kpc);
     memset(&salt, '\0', sizeof(sha512_salt));
