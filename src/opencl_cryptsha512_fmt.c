@@ -29,9 +29,9 @@
 #define LWS_CONFIG			"cryptsha512_LWS"
 #define KPC_CONFIG			"cryptsha512_KPC"
 
-static sha512_salt                salt;
-static sha512_password            *plaintext;        // plaintext ciphertexts
-static sha512_hash                *calculated_hash;  // calculated hashes
+static sha512_salt         salt;
+static sha512_password     *plaintext;        // plaintext ciphertexts
+static sha512_hash         *calculated_hash;  // calculated hashes
 
 cl_mem salt_buffer;        //Salt information.
 cl_mem pass_buffer;        //Plaintext buffer.
@@ -41,7 +41,8 @@ cl_mem pinned_saved_keys, pinned_partial_hashes;
 cl_command_queue queue_prof;
 cl_kernel crypt_kernel;
 
-static size_t max_keys_per_crypt; //TODO: move to common-opencl? local_work_size is there.
+//TODO: move to common-opencl? local_work_size is there.
+static size_t max_keys_per_crypt;
 static int new_keys;
 
 static struct fmt_tests tests[] = {
@@ -67,8 +68,8 @@ unsigned int get_task_max_work_group_size(){
                 sizeof(sha512_salt)) /
                 sizeof(sha512_password);
 
-   if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
-       return get_current_work_group_size(gpu_id, crypt_kernel);
+    if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
+        return get_current_work_group_size(gpu_id, crypt_kernel);
 
     return max_available;
 }
@@ -213,7 +214,7 @@ static void set_salt(void *salt_info) {
         offset = endp - currentsalt;
     }
     memcpy(salt.salt, currentsalt + offset, SALT_LENGTH);
-    salt.length = strlen((char *) salt.salt);
+    salt.length = strlen(currentsalt + offset);
     salt.length = (salt.length > SALT_LENGTH ? SALT_LENGTH : salt.length);
 }
 
