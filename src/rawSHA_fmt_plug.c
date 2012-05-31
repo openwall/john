@@ -110,7 +110,8 @@ static void crypt_all(int count)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static ARCH_WORD_32 outb[BINARY_SIZE / 4];
+	unsigned char *realcipher = (unsigned char*)outb;
 	int i;
 
 	ciphertext += TAG_LENGTH;

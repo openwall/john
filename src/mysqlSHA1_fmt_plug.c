@@ -287,7 +287,8 @@ static void crypt_all(int count) {
 
 static void *binary(char *ciphertext)
 {
-	static char realcipher[BINARY_SIZE];
+	static ARCH_WORD_32 outb[BINARY_SIZE / 4];
+	char *realcipher = (char*)outb;
 	int i;
 
 	// ignore first character '*'
