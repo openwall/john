@@ -228,7 +228,7 @@ static void set_salt(void *salt) {
 	salt_buffer=salt;
 }
 
-static void * get_salt(char *_ciphertext)
+static void *get_salt(char *_ciphertext)
 {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
 	// length=11 for save memory
@@ -271,7 +271,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 	unsigned char input[19*3+1];
 	int utf16len, md4_size;
 
-	memset(out, 0, sizeof(out));
+	memset(out, 0, sizeof(outb));
 
 	ciphertext += 2;
 
@@ -344,7 +344,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned int out[4];
 	unsigned int i=0;
 	unsigned int temp;
-	unsigned int * salt=fmt_mscash.methods.salt(ciphertext);
+	unsigned int *salt=fmt_mscash.methods.salt(ciphertext);
 
 	for(;ciphertext[0]!='#';ciphertext++);
 
