@@ -117,6 +117,10 @@ extern struct fmt_main fmt_cryptsha256;
 extern struct fmt_main fmt_cryptsha512;
 #endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+extern struct fmt_main fmt_django;
+#endif
+
 #ifdef HAVE_SKEY
 extern struct fmt_main fmt_SKEY;
 #endif
@@ -241,6 +245,10 @@ static void john_register_all(void)
 	john_register_one(&fmt_drupal7);
 	john_register_one(&fmt_cryptsha256);
 	john_register_one(&fmt_cryptsha512);
+#endif
+
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+	john_register_one(&fmt_django);
 #endif
 
 #ifdef HAVE_NSS
