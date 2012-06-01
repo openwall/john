@@ -16,6 +16,8 @@
 
 
 #include <openssl/evp.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -163,7 +165,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main django_fmt = {
+struct fmt_main fmt_django = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -202,3 +204,4 @@ struct fmt_main django_fmt = {
 		fmt_default_get_source
 	}
 };
+#endif

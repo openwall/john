@@ -101,6 +101,7 @@ JOHN_OBJS = \
 	dragonfly3_fmt.o \
 	dragonfly4_fmt.o \
 	drupal7_fmt.o \
+	django_fmt.o \
 	cryptsha256_fmt.o cryptsha512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
@@ -1688,7 +1689,8 @@ bash-completion:	/etc/bash_completion.d/john.bash_completion
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) ../run/john.exe john-macosx-* *.o *.bak core ../run/*.cl
+	$(RM) ../run/john.exe john-macosx-* *.o *.bak core 
+	$(RM) ../run/*.cl ../run/*.h
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~ ../run/SIPdump
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
