@@ -499,7 +499,7 @@ static void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platfor
 
 void opencl_BF_std_crypt(BF_salt *salt, int n)
 {
-	int index=0,i,j,k,_index_S;
+	int index=0,i,_index_S;
 	unsigned int salt_api[4];
 	unsigned int rounds=salt->rounds;
 	salt_api[0]=salt->salt[0];

@@ -1,8 +1,14 @@
-
+/*
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz@openwall.com> 
+* and it is hereby released to the general public under the following terms:
+* Redistribution and use in source and binary forms, with or without modification, are permitted.
+*/
 #define PLAINTEXT_LENGTH	15
 #define SALT_SIZE		8
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
 
 typedef struct {
+	//uint v[4]; //15 bytes password + last byte for length
 	uchar v[PLAINTEXT_LENGTH];
 	uchar length;
 } phpass_password;
@@ -10,7 +16,6 @@ typedef struct {
 typedef struct {
 	uint v[4];
 } phpass_hash;
-
 
 #define ROTATE_LEFT(x, s)	rotate(x,s)
 //#define F(x, y, z)		((z) ^ ((x) & ((y) ^ (z))))
@@ -184,13 +189,33 @@ __kernel void phpass
 	__global const uchar *password2=data[idx*4+2].v;
 	__global const uchar *password3=data[idx*4+3].v;
 
+
+
 	length.s0=data[idx*4+0].length;
 	length.s1=data[idx*4+1].length;
 	length.s2=data[idx*4+2].length;
 	length.s3=data[idx*4+3].length;
 
-	__private uchar *buff = (uchar *) sx;
- 	#define K(q)\
+	__private uint *buff2=(uint*)sx;
+	#define K1(q)\
+		clean_ctx(sx);\
+		buff2[0]=(setting[3]<<24)|setting[2]<<16|setting[1]<<8|setting[0];\
+		buff2[1]=(setting[7]<<24)|setting[6]<<16|setting[5]<<8|setting[4];\
+		buff2[2]=(password##q[3]<<24)|password##q[2]<<16|password##q[1]<<8|password##q[0];\
+		buff2[3]=(password##q[7]<<24)|password##q[6]<<16|password##q[5]<<8|password##q[4];\
+		buff2[4]=(password##q[11]<<24)|password##q[10]<<16|password##q[9]<<8|password##q[8];\
+		buff2[5]=password##q[14]<<16|password##q[13]<<8|password##q[12];\
+		for ( i = 0; i < 8; i++)\
+			x[i].s##q=sx[i];
+		K1(0);
+		K1(1);
+		K1(2);
+		K1(3);
+	#undef K1 
+
+
+/*
+ 	#define K1(q)\
 		clean_ctx(sx);\
 		for (i = 0; i < 8; i++)\
 			buff[i] = setting[i];\
@@ -198,11 +223,12 @@ __kernel void phpass
 			buff[i] = password##q[i - 8];\
 		for ( i = 0; i < 8; i++)\
 			x[i].s##q=sx[i];
-		K(0);
-		K(1);
-		K(2);
-		K(3);
-	#undef K
+		K1(0);
+		K1(1);
+		K1(2);
+		K1(3);
+	#undef K1 
+*/
 
 	uint4 len=length+(uint4)(8);
 
@@ -213,17 +239,34 @@ __kernel void phpass
 
 	md5(len, x, x);
 
-#define K(q)\
+
+
+/*#define K2(q)\
 		clean_ctx(sx);\
 		for(i=0;i<length.s##q;i++)\
 			buff[i]=password##q[i];\
 		for(i=0;i<2;i++)\
 			x[i+4].s##q=sx[i];
-	K(0);
-	K(1);
-	K(2);
-	K(3);
-#undef K
+	K2(0);
+	K2(1);
+	K2(2);
+	K2(3);
+#undef K2
+*/
+
+#define K2(q)\
+		clean_ctx(sx);\
+		buff2[0]=(password##q[3]<<24)|password##q[2]<<16|password##q[1]<<8|password##q[0];\
+		buff2[1]=(password##q[7]<<24)|password##q[6]<<16|password##q[5]<<8|password##q[4];\
+		buff2[2]=(password##q[11]<<24)|password##q[10]<<16|password##q[9]<<8|password##q[8];\
+		buff2[3]=password##q[14]<<16|password##q[13]<<8|password##q[12];\
+		for(i=0;i<2;i++)\
+			x[i+4].s##q=sx[i];
+	K2(0);
+	K2(1);
+	K2(2);
+	K2(3);
+#undef K2
 
 	len = 16 + length;
 	x[len.s0 / 4].s0 |= (((uint) 0x80) << ((len.s0 & 0x3) << 3));
@@ -235,14 +278,14 @@ __kernel void phpass
 	  md5(len, x, x);
 	} while (--count);
 
-#define K(q)\
+#define K3(q)\
 	data_out[idx*4+q].v[0]=x[0].s##q;\
 	data_out[idx*4+q].v[1]=x[1].s##q;\
 	data_out[idx*4+q].v[2]=x[2].s##q;\
 	data_out[idx*4+q].v[3]=x[3].s##q;
-	K(0)
-	K(1)
-	K(2)
-	K(3)
-#undef K
+	K3(0)
+	K3(1)
+	K3(2)
+	K3(3)
+#undef K3
 }
