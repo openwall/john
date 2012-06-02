@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 *
@@ -13,9 +13,6 @@
 
 #include "common-opencl.h"
 #include "wpapsk.h"
-// #define uint8_t			unsigned char
-// #define uint16_t		unsigned short
-// #define uint32_t		unsigned int
 
 #define FORMAT_LABEL		"wpapsk-opencl"
 #define FORMAT_NAME		FORMAT_LABEL
@@ -28,27 +25,8 @@
 #define	KEYS_PER_CRYPT		1024*9
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-// #define BINARY_SIZE		16
-// #define PLAINTEXT_LENGTH	15
-/*#define SALT_SIZE		sizeof(wpapsk_salt)*/
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
-// static const char wpapsk_prefix[] = "$WPAPSK$";
-
-// typedef struct {
-// 	uint8_t length;
-// 	uint8_t v[15];
-// } wpapsk_password;
-// 
-// typedef struct {
-// 	uint32_t v[8];
-// } wpapsk_hash;
-// 
-// typedef struct {
-// 	uint8_t length;
-// 	uint8_t salt[15];
-// } wpapsk_salt;
-
 
 //#define _WPAPSK_DEBUG
 
@@ -78,66 +56,6 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
-}
-
-static void find_best_workgroup()
-{
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i;
-	size_t max_group_size;
-	cl_device_type device_type;
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_TYPE,
-	    sizeof(device_type), &device_type, NULL);   
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_WORK_GROUP_SIZE,
-	    sizeof(max_group_size), &max_group_size, NULL);
-	cl_command_queue queue_prof =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-	    CL_QUEUE_PROFILING_ENABLE,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating command queue");
-	local_work_size = 1;
-	/// Set keys
-	static char *pass = "dupa";
-	for (i = 0; i < KEYS_PER_CRYPT; i++) {
-		set_key(pass, i);
-	}
-	///Set salt
-	memcpy(currentsalt.salt, "saltstring", 10);
-	currentsalt.length = 10;
-	///Copy data to GPU
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_setting, CL_FALSE,
-		0, settingsize, &currentsalt, 0, NULL, NULL),
-	    "Copy setting to gpu");
-
-	///Find best local work size
-	my_work_group = 1;
-	if(device_type==CL_DEVICE_TYPE_GPU) my_work_group=32;
-	for (; (int) my_work_group <= (int) max_group_size;
-	    my_work_group *= 2) {
-
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-			1, NULL, &global_work_size, &my_work_group, 0, NULL,
-			&myEvent), "Run kernel");
-
-		HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-		    sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-		    sizeof(cl_ulong), &endTime, NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		}
-		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
-	}
-	printf("Optimal Group work Size = %d\n", (int) local_work_size);
-	clReleaseCommandQueue(queue_prof);
 }
 
 
@@ -171,14 +89,15 @@ static void init(struct fmt_main *pFmt)
 
 	crypt_kernel = clCreateKernel(program[gpu_id], "wpapsk", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
-	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
-	clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting), &mem_setting);
-	find_best_workgroup();
-
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
+		&mem_setting), "Error while setting mem_salt kernel argument");
+	opencl_find_best_workgroup(pFmt);
 
 	atexit(release_all);
-
 }
 
 static void crypt_all(int count)
@@ -192,7 +111,7 @@ static void crypt_all(int count)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, NULL),
+		NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
 	    "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
