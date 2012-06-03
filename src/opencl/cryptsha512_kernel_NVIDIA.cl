@@ -341,14 +341,13 @@ void sha512crypt(__local  sha512_password * pass_data,
 __kernel
 void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
-                  __global   sha512_hash     * out_buffer) {
+                  __global   sha512_hash     * out_buffer,
+                  __local    sha512_salt     * salt_data,
+                  __local    sha512_password * tmp_memory) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
-
-    __local    sha512_salt      salt_data[1];
-    __local    sha512_password  tmp_memory[512];
 
     //Copy data to faster memory
     copy_data_to_local_memory(salt,  &keys_buffer[gid], salt_data, &tmp_memory[lid]);
