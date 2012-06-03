@@ -115,7 +115,7 @@ static void build_kernel(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	cl_int build_code;
-	build_code = clBuildProgram(program[dev_id], 0, NULL,
+	build_code = clBuildProgram(program[dev_id], 1, &devices[dev_id], 
 	    include_source("$JOHN/", dev_id), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
