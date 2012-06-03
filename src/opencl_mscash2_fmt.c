@@ -5,6 +5,8 @@
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
 * This format supports salts upto 19 characters.
 * Minor bugs in original S3nf implementation limits salts upto 8 characters.
+* 
+* Note: When cracking in single mode keep set MAX_KEYS_PER_CRYPT equal to 65536 or less or use the cpu version instead.  
 */
 
 #include "formats.h"
@@ -14,7 +16,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include "common_opencl_pbkdf2.h"
-#include <omp.h>
+
 
 #define INIT_MD4_A                  0x67452301
 
@@ -45,10 +47,6 @@
 
 #define MSCASH2_PREFIX            "$DCC2$"
 
-
-#define MAX_KEYS_PER_CRYPT        65536*4
-
-#define MIN_KEYS_PER_CRYPT        65536*4
 
 #define MAX_PLAINTEXT_LENGTH      40
 
@@ -81,6 +79,8 @@ static struct fmt_tests tests[] = {
 	{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" }, //max salt_length
 	{"$DCC2$nineteen_characters#87136ae0a18b2dafe4a41d555425b2ed", "w00t"},
 	{"$DCC2$administrator#56f8c24c5a914299db41f70e9b43f36d", "w00t" },
+	{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" },   //Salt and hash are lowercased
+	{"$DCC2$TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },    // salt is lowercased before hashing
 	{"$DCC2$eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
 	{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
 	
@@ -214,6 +214,7 @@ static void init(struct fmt_main *pFmt)
 	///select default platform=0 and default device=0
 	select_default_device();
 	
+	
 	atexit(cleanup);
   
 }
@@ -278,10 +279,12 @@ static void DCC(unsigned char *salt,unsigned char *username,unsigned int usernam
 
 
 static void cleanup()
-{
+{	
 	free(dcc_hash_host);
 	
 	free(dcc2_hash_host);
+	
+	clean_all_buffer();
 	
 			
 }
@@ -313,6 +316,24 @@ static int valid(char *ciphertext,struct fmt_main *pFmt)
 	
 	return 1;
 }
+
+static char * split(char *ciphertext, int index)
+{
+	static char out[MAX_CIPHERTEXT_LENGTH + 1];
+	int i = 0;
+
+	for(; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+		out[i] = ciphertext[i];
+
+	out[i] = 0;
+
+	// lowercase salt as well as hash, encoding-aware
+	enc_strlwr(&out[6]);
+
+	return out;
+}
+
+
 
 
 
@@ -424,9 +445,6 @@ static void crypt_all(int count)
 	
 	memcpy(salt_host,salt_unicode,MAX_SALT_LENGTH*2+1);
 	
-#ifdef _OPENMP	
-#pragma omp parallel for private(i) firstprivate(count) shared(salt_unicode,currentsalt,key_host,dcc_hash_host)
-#endif	   
 	for(i=0;i<count;i++)    DCC(salt_unicode,currentsalt.username,currentsalt.length,key_host[i],dcc_hash_host,i);
 	
 #ifdef _DEBUG
@@ -612,7 +630,16 @@ void clear_keys()
 		memset(key_host[i],0,MAX_PLAINTEXT_LENGTH );
   
 }
+static int salt_hash(void *salt)
+{       ms_cash2_salt *_s=(ms_cash2_salt *)salt;   
+	unsigned char *s = _s->username;
+	unsigned int hash = 5381;
 
+	while (*s != '\0')
+		hash = ((hash << 5) + hash) ^ *s++;
+
+	return hash & (SALT_HASH_SIZE - 1);
+}
 
 struct fmt_main fmt_opencl_mscash2 = {
 	{
@@ -623,16 +650,16 @@ struct fmt_main fmt_opencl_mscash2 = {
 		    BENCHMARK_LENGTH,
 		    MAX_PLAINTEXT_LENGTH,
 		    BINARY_SIZE,
-		    MAX_SALT_LENGTH*2+1,
+		    sizeof(ms_cash2_salt),
 		    MAX_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT|FMT_OMP ,
+		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE ,
 	            tests
 	},{
 		    init,
 		    prepare,
 		    valid,
-		    fmt_default_split,
+		    split,
 		    binary,
 		    salt,
 		    {
@@ -645,7 +672,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		                binary_hash_6
 		      
 		    },
-		    fmt_default_salt_hash,
+		    salt_hash,
 		    set_salt,
 		    set_key,
 		    get_key,
