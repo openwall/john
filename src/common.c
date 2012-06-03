@@ -14,6 +14,8 @@ char atoi64[0x100];
 
 char itoa16[16] =
 	"0123456789abcdef";
+char itoa16u[16] =
+	"0123456789ABCDEF";
 char atoi16[0x100];
 
 static int initialized = 0;

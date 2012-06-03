@@ -1,5 +1,18 @@
 The following changes have been made between John 1.7.9 and 1.7.9.4:
 
+* Enhanced scalablity, by reducing memory usage for many formats.  Added a
+new get_source() method to the fmt_main structure.  If a format defines this
+method, it will be passed a db_password pointer (and a memory buffer). The
+get_source method is then charged with reconstructing the 'original' source
+hash. Original here means the hash as it would be done, after a call to
+prepare() and a call to split() (other fmt_main methods).  With this new
+method, core JtR will no longer allocate memory for the original hash string
+for EVERY hash loaded (a huge amount of memory used).  It will allow the
+format itself to recostruct this string, saving all that memory.  This also
+entails JtR's loader code pointing the source pointer, to the current salt
+object, which will be used by the get_source() method, and is needed to 
+properly handle any salted format.  This enhancement greatly reduces the
+amount of memory used, and can even speed up searches.
 * Enhanced the support for DES-based tripcodes by making use of the bitslice
 DES implementation and supporting OpenMP parallelization.
 * Implemented bitmaps for fast initial comparison of computed hashes against

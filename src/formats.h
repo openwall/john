@@ -16,6 +16,7 @@
 #include "misc.h"
 
 struct fmt_main;
+struct db_password;
 
 /*
  * Format property flags.
@@ -178,14 +179,17 @@ struct fmt_methods {
 	int (*cmp_exact)(char *source, int index);
 
 /* The format is able to reconstruct the original source hash, from the binary,
- * and salt. The format will have to store the entire binary in the return from
- * binary().  This is an optional method, and if set DOES cause JtR to have 
- * different behavoior. If this pointer is set to fmt_default_get_source, then
- * JtR will operate in legacy mode.  If this method IS implemented by a format,
- * then JtR will no longer store the source hashes in memory, and will not call
- * the cmp_exact() function (i.e. cmp_one must return true only for a FULL match)
- * and this function must be able to reconstruct the original source hash. */
-	char *(*get_source)(void *binary_hash, void *salt, char ReturnBuf[LINE_BUFFER_SIZE]);
+ * and salt (the salt is stored in the 'source' pointer for the format IF
+ * this method IS implemented within a format. The format will have to store
+ * the entire binary in the return from binary().  This is an optional method.
+ * If this pointer is set to fmt_default_get_source, then JtR will operate in
+ * legacy mode, storing the FULL source string in source.  The fmt_default_get_source
+ * simply returns the source. If this method IS implemented by a format,
+ * then JtR will no longer store the source hashes into source, but puts a pointer
+ * to the PROPER salt into this pointer. Then the format within get_source can
+ * rebuild the source from the pw->binary and pw->source (the pw->source is the salt).
+ */
+	char *(*get_source)(struct db_password *current_pw, char ReturnBuf[LINE_BUFFER_SIZE]);
 };
 
 /*
@@ -242,8 +246,7 @@ extern int fmt_default_salt_hash(void *salt);
 extern void fmt_default_set_salt(void *salt);
 extern void fmt_default_clear_keys(void);
 extern int fmt_default_get_hash(int index);
-extern char *fmt_default_get_source(void *binary_hash, void *salt, char ReturnBuf[LINE_BUFFER_SIZE]);
-
+extern char *fmt_default_get_source(struct db_password *current_pw, char ReturnBuf[LINE_BUFFER_SIZE]);
 
 /*
  * Dummy hash function to use for salts with no hash table.

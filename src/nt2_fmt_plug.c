@@ -669,7 +669,7 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x7ffffff; }
 #endif
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned char *cpi;
 	char *cpo;
@@ -678,7 +678,7 @@ static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
 	strcpy(Buf, "$NT$");
 	cpo = &Buf[4];
 
-	cpi = (unsigned char*)bin;
+	cpi = (unsigned char*)(pw->binary);
 
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
@@ -704,7 +704,7 @@ struct fmt_main fmt_magnumNT = {
 #if (BLOCK_LOOPS > 1) && defined(SSE_MD4_PARA)
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	}, {
 		init,

@@ -2097,13 +2097,14 @@ static void *binary(char *_ciphertext)
 	return (void *)realcipher;
 }
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+// NOTE NOTE NOTE, we have currently ONLY implemented a non-salted function!!!
+static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)bin;
+	cpi = (unsigned char*)(pw->binary);
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2113,13 +2114,13 @@ static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
 	return Buf;
 }
 
-static char *get_source_sha(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+static char *get_source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)bin;
+	cpi = (unsigned char*)(pw->binary);
 	for (i = 0; i < 20; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];

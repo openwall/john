@@ -22,6 +22,7 @@
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
+#include "loader.h"
 
 #define FORMAT_LABEL			"raw-sha1"
 #define FORMAT_NAME			"Raw SHA-1"
@@ -294,14 +295,14 @@ static int get_hash_5(int index) { return ((unsigned int *)crypt_key)[0] & 0xfff
 static int get_hash_6(int index) { return ((unsigned int *)crypt_key)[0] & 0x7ffffff; }
 #endif
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned char realcipher[BINARY_SIZE];
 	unsigned char *cpi;
 	char *cpo;
 	int i;
 
-	memcpy(realcipher, bin, BINARY_SIZE);
+	memcpy(realcipher, pw->binary, BINARY_SIZE);
 #ifdef MMX_COEF
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif

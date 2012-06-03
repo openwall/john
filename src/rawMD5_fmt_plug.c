@@ -13,6 +13,7 @@
 #include "common.h"
 #include "formats.h"
 #include "params.h"
+#include "loader.h"
 
 #define FORMAT_LABEL		"raw-md5"
 #define FORMAT_NAME			"Raw MD5"
@@ -279,7 +280,7 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
+static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned char *cpi;
 	char *cpo;
@@ -288,7 +289,7 @@ static char *get_source(void *bin, void *salt, char Buf[LINE_BUFFER_SIZE] )
 	strcpy(Buf, FORMAT_TAG);
 	cpo = &Buf[TAG_LENGTH];
 
-	cpi = (unsigned char*)bin;
+	cpi = (unsigned char*)(pw->binary);
 
 	for (i = 0; i < BINARY_SIZE; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];

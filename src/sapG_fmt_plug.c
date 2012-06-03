@@ -608,6 +608,33 @@ static void *binary(char *ciphertext)
 	return (void*)realcipher;
 }
 
+static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+{
+	struct saltstruct *salt_s = (struct saltstruct*)(pw->source);
+	unsigned char realcipher[BINARY_SIZE];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	memcpy(realcipher, pw->binary, BINARY_SIZE);
+#ifdef MMX_COEF
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
+	memcpy(Buf, salt_s->s, salt_s->l);
+	cpo = &Buf[salt_s->l];
+	*cpo++ = '$';
+
+	cpi = realcipher;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16u[(*cpi)>>4];
+		*cpo++ = itoa16u[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
 static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }
 static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfff; }
@@ -722,6 +749,6 @@ struct fmt_main fmt_sapG = {
 		cmp_all,
 		cmp_one,
 		cmp_exact,
-		fmt_default_get_source
+		get_source
 	}
 };

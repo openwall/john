@@ -31,6 +31,8 @@ struct db_password {
 	void *binary;
 
 /* ASCII ciphertext for exact comparison and saving with cracked passwords */
+/* NOTE, for formats which implement get_source(), this pointer will point */
+/* to a salt. NOTE, it is (void *salt, so should be retypecast to void*    */
 	char *source;
 
 /* Login field from the password file, with ":1" or ":2" appended if the

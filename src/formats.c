@@ -69,6 +69,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	char *ciphertext = NULL, *plaintext;
 	int ntests, done, index, max, size;
 	void *binary, *salt;
+	struct db_password pw;
 
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
@@ -107,7 +108,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		char *prepared, *sourced, Buf[LINE_BUFFER_SIZE];
+		char *prepared, Buf[LINE_BUFFER_SIZE];
 		current->flds[1] = current->ciphertext;
 		prepared = format->methods.prepare(current->flds, format);
 		if (!prepared || strlen(prepared) < 7) // $dummy$ can be just 7 bytes long.
@@ -146,24 +147,20 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "salt (alignment)";
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
-		if (format->methods.get_source != fmt_default_get_source) {
-			sourced = format->methods.get_source(binary, salt, Buf);
-			if (strcasecmp(sourced, ciphertext)) {
-				void *binary2;
-				if (format->methods.valid(sourced,format) != 1) return "get_source";
-				binary2 = mem_alloc_tiny(format->params.binary_size, MEM_ALIGN_NONE);
-				memcpy(binary2, binary, format->params.binary_size);
-				binary = format->methods.binary(sourced);
-				if (memcmp(binary,binary2,format->params.binary_size)) return "get_source";
-				if (format->params.salt_size) {
-					void *salt2;
-					salt2 = mem_alloc_tiny(format->params.salt_size, MEM_ALIGN_NONE);
-					memcpy(salt2, salt, format->params.salt_size);
-					salt = format->methods.salt(sourced);
-					if (memcmp(salt,salt2,format->params.salt_size)) return "get_source";
-				}
-			}
-		}
+
+/* 
+ * get_source testing is a little 'different', because the source pointer
+ * of the db_password structure will point to either the source or to the
+ * salt, depending upon if the get_source is implemented or not. For
+ * testing, we HAVE to observe the exact same behavior here.
+ */
+		pw.binary = binary;
+		if (format->methods.get_source == fmt_default_get_source)
+			pw.source = ciphertext;
+		else
+			pw.source = (char*)salt;
+		if (strcmp(format->methods.get_source(&pw, Buf), ciphertext)) 
+			return "get_source";
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -325,8 +322,7 @@ int fmt_default_get_hash(int index)
 	return 0;
 }
 
-char *fmt_default_get_source(void *binary_hash, void *salt, char ReturnBuf[LINE_BUFFER_SIZE]) 
+char *fmt_default_get_source(struct db_password *current_pw, char ReturnBuf[LINE_BUFFER_SIZE]) 
 {
-	*ReturnBuf = 0;
-	return ReturnBuf;
+	return current_pw->source;
 }

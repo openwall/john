@@ -28,6 +28,7 @@
 #include "common.h"
 #include "formats.h"
 #include "pkzip.h"  // includes the 'inline' crc table.
+#include "loader.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -139,6 +140,16 @@ static void *salt(char *ciphertext)
 	return out;
 }
 
+static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+{
+	ARCH_WORD_32 s = *(ARCH_WORD_32*)(pw->source);
+	ARCH_WORD_32 b = *(ARCH_WORD_32*)(pw->binary);
+	s = ~s;
+	b = ~b;
+	sprintf(Buf, "$crc32$%08x.%08x", s,b);
+	return Buf;
+}
+
 static void set_salt(void *salt)
 {
 	crcsalt = *((ARCH_WORD_32 *)salt);
@@ -239,6 +250,6 @@ struct fmt_main fmt_crc32 = {
 		cmp_all,
 		cmp_one,
 		cmp_exact,
-		fmt_default_get_source
+		get_source
 	}
 };

@@ -51,15 +51,6 @@ int ldr_in_pot = 0;
 
 static char *no_username = "?";
 
-static char *get_source(struct db_main *db, struct db_password *current_pw) {
-	static char SourceBuf[LINE_BUFFER_SIZE];
-	char *cp;
-	if (current_pw->source) return current_pw->source;
-	cp = db->format->methods.get_source(current_pw->binary, NULL, SourceBuf);
-	current_pw->source = str_alloc_copy(cp);
-	return current_pw->source;
-}
-
 static void read_file(struct db_main *db, char *name, int flags,
 	void (*process_line)(struct db_main *db, char *line))
 {
@@ -459,7 +450,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct fmt_main *format;
 	int index, count;
 	char *login, *ciphertext, *gecos, *home;
-	char *piece;
+	char *piece, get_src_buf[LINE_BUFFER_SIZE];
 	void *binary, *salt;
 	int salt_hash, pw_hash;
 	struct db_salt *current_salt, *last_salt;
@@ -505,8 +496,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			do {
 				if (!memcmp(current_pw->binary, binary,
 				    format->params.binary_size) &&
-				    (!current_pw->source ||
-				     !strcmp(current_pw->source, piece))) {
+				    !strcmp(format->methods.get_source(current_pw, get_src_buf), piece)) {
 					db->options->flags |= DB_NODUP;
 					break;
 				}
@@ -590,7 +580,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		if (format->methods.get_source == fmt_default_get_source)
 			current_pw->source = str_alloc_copy(piece);
 		else
-			current_pw->source = NULL;
+			current_pw->source = (char*)current_salt->salt;
 
 		if (db->options->flags & DB_WORDS) {
 			if (!words)
@@ -624,7 +614,7 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
-	char *ciphertext, *unprepared;
+	char *ciphertext, *unprepared, get_src_buf[LINE_BUFFER_SIZE];
 	void *binary;
 	int hash;
 	struct db_password *current;
@@ -660,10 +650,9 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 			}
 			//else if (db->options->regen_lost_salts == 6 && !strncmp(current->source, "???????????", 11))
 		}
-		// NOTE, if !current->source, then it is a get_source() hash, so we have not stored it, so we avoid the strcmp of the original source strings.
 		if (current->binary && !memcmp(current->binary, binary,
 		    format->params.binary_size) &&
-		    (!current->source || !strcmp(current->source, ciphertext)))
+			!strcmp(format->methods.get_source(current, get_src_buf), ciphertext))
 			current->binary = NULL;
 	} while ((current = current->next_hash));
 }
@@ -712,6 +701,7 @@ static void ldr_remove_marked(struct db_main *db)
 {
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
+	char get_src_buf[LINE_BUFFER_SIZE];
 
 	last_salt = NULL;
 	if ((current_salt = db->salts))
@@ -733,9 +723,9 @@ static void ldr_remove_marked(struct db_main *db)
 					if (!options.utf8 && options.report_utf8) {
 						UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 						enc_to_utf8_r(current_pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
-						printf("%s%c%s\n",utf8login,db->options->field_sep_char,get_source(db, current_pw));
+						printf("%s%c%s\n",utf8login,db->options->field_sep_char,db->format->methods.get_source(current_pw, get_src_buf));
 					} else
-						printf("%s%c%s\n",current_pw->login,db->options->field_sep_char,get_source(db, current_pw));
+						printf("%s%c%s\n",current_pw->login,db->options->field_sep_char,db->format->methods.get_source(current_pw, get_src_buf));
 				}
 			}
 		} while ((current_pw = current_pw->next));

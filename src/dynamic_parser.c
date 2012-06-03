@@ -64,7 +64,6 @@
 #include "formats.h"
 #include "config.h"
 #include "md5.h"
-#include "loader.h"
 #include "options.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
