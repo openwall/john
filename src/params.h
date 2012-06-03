@@ -163,6 +163,9 @@
  * Configuration file section names.
  */
 #define SECTION_OPTIONS			"Options"
+#define SUBSECTION_MARKOV		":Markov"
+#define SUBSECTION_MPI			":MPI"
+#define SUBSECTION_JUMBO		":Jumbo"
 #define SECTION_RULES			"List.Rules:"
 #define SUBSECTION_SINGLE		"Single"
 #define SUBSECTION_WORDLIST		"Wordlist"

@@ -985,10 +985,10 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		unify = format->params.flags & FMT_SPLIT_UNIFIES_CASE;
 		if (format->params.flags & FMT_UNICODE)
 			options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			    NULL, "UnicodeStoreUTF8", 0);
+			    SUBSECTION_JUMBO, "UnicodeStoreUTF8", 0);
 		else
 			options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			    NULL, "CPstoreUTF8", 0);
+			    SUBSECTION_JUMBO, "CPstoreUTF8", 0);
 	} else {
 		split = fmt_default_split;
 		count = 1;

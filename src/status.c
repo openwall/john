@@ -83,14 +83,14 @@ void status_init(int (*get_progress)(int *), int start)
 
 	status_get_progress = get_progress;
 
-	if (!(timeformat = cfg_get_param(SECTION_OPTIONS, NULL, "TimeFormat")))
+	if (!(timeformat = cfg_get_param(SECTION_OPTIONS, SUBSECTION_JUMBO, "TimeFormat")))
 		timeformat = "%c";
 
-	if ((cfg_threshold = cfg_get_param(SECTION_OPTIONS, NULL, "ETAthreshold")))
+	if ((cfg_threshold = cfg_get_param(SECTION_OPTIONS, SUBSECTION_JUMBO, "ETAthreshold")))
 		if ((ETAthreshold = atof(cfg_threshold)) < 0.01)
 			ETAthreshold = 0.01;
 
-	showcand = cfg_get_bool(SECTION_OPTIONS, NULL, "StatusShowCandidates", 0);
+	showcand = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_JUMBO, "StatusShowCandidates", 0);
 
 	clk_tck_init();
 
