@@ -12,8 +12,19 @@
 
 #define MAX_DEVICES_PER_PLATFORM 8
 
+#define MAX_KEYS_PER_CRYPT        65536*4
+
+#define MIN_KEYS_PER_CRYPT        65536*4
+
 #define MAX_SALT_LENGTH 20
 
+typedef struct 
+	{ cl_mem pass_gpu;
+	  cl_mem salt_gpu;
+	  cl_mem hash_out_gpu;
+	} gpu_mem_buffer;
+
+	
 /* select_device(int platform_no,int device_no)
  * Use clinfo to view all available platfroms and devices.
  * platform_no = i selects the (i+1)th platform  e.g. platform_no = 1 selects second platform if available and so on..
@@ -39,6 +50,7 @@ extern size_t select_default_device(void);
   */
 extern void pbkdf2_divide_work(cl_uint*,cl_uint*,cl_uint,cl_uint*,cl_uint);
 
+extern void clean_all_buffer(void);
 
 /*IMPORTANT NOTE:
  *  1. Max Keys per crypt must be an integral multiple of 8192. Preferred multiple is 65536 for higher performance.  
