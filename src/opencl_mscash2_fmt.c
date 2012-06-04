@@ -15,6 +15,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/time.h>
+#include "unicode.h"
 #include "common_opencl_pbkdf2.h"
 
 
@@ -192,8 +193,8 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
     hash[3] = d + INIT_MD4_D;
 }
 
-static void set_key(char*, int);
-static void cleanup(void);
+static 	void set_key(char*,int);
+static 	void cleanup(void);
 static  void crypt_all(int);
 
 
@@ -631,8 +632,11 @@ void clear_keys()
   
 }
 static int salt_hash(void *salt)
-{       ms_cash2_salt *_s=(ms_cash2_salt *)salt;   
+{       
+	ms_cash2_salt *_s=(ms_cash2_salt *)salt;   
+	
 	unsigned char *s = _s->username;
+	
 	unsigned int hash = 5381;
 
 	while (*s != '\0')

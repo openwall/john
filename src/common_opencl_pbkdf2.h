@@ -18,11 +18,14 @@
 
 #define MAX_SALT_LENGTH 20
 
-typedef struct 
-	{ cl_mem pass_gpu;
-	  cl_mem salt_gpu;
-	  cl_mem hash_out_gpu;
-	} gpu_mem_buffer;
+typedef struct { 
+	cl_mem pass_gpu;
+ 
+	cl_mem salt_gpu;
+	 
+	cl_mem hash_out_gpu;
+	
+} gpu_mem_buffer;
 
 	
 /* select_device(int platform_no,int device_no)
@@ -50,6 +53,8 @@ extern size_t select_default_device(void);
   */
 extern void pbkdf2_divide_work(cl_uint*,cl_uint*,cl_uint,cl_uint*,cl_uint);
 
+/*Clean all OpenCL GPU buffers.
+ */
 extern void clean_all_buffer(void);
 
 /*IMPORTANT NOTE:
