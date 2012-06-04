@@ -196,7 +196,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john
+	../run/pwsafe2john ../run/raw2dyna
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -209,14 +209,14 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe
+	../run/pwsafe2john.exe ../run/raw2dyna.exe
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe
+	../run/pwsafe2john.exe ../run/raw2dyna.exe
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1607,6 +1607,12 @@ endif
 
 ../run/calc_stat.exe: calc_stat.o
 	$(LD) calc_stat.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
+
+../run/raw2dyna: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna
+
+../run/raw2dyna.exe: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna.exe
 
 SIPdump: SIPdump.o
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump

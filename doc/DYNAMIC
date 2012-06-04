@@ -27,6 +27,25 @@ The format of the input file lines will be:
 
 userID:$dynamic_#$base_16_hash[$salt]
 
+Salts can contain some problematic characters. Some of these would be 
+characters such as:  :  \r \n \ NULL, etc.  The : (colon) char is used
+by JtR as a field separator. If it exists in the salt, it will split
+the salt into multiple fields (i.e. wrong).  A carriage return or line
+feed, will cause the line to split, and JtR to not read it right.
+NULL bytes are a problem in any C file, using normal 'string' functions.
+The \ char, is used as a quoting char within dynamic, and can cause issues.
+DUE to all of these problems, dynamic has been expanded to take this as
+the salt:    $dyanamic_#$base_16_hash$HEX$hex_bytes_of_salt.  In this 
+format, if the salt was 1234, then $HEX$31323334 would be the equivelent
+value.  This allows salts such as $\x0:\r\nBadSalt to actually be encoded.
+This salt CAN be used, if you use the representation: 
+$HEX$003a0a0d42616453616c74.
+There is an application in ./run which can 'help' This is ./run/raw2dyna
+This process will convert files in the format of hashCsalt (c can be any char),
+into the proper $dynamic_#$hash$salt   It can also handle saltChash (if
+salt is a fixed size).  It also properly handle the problematic characters,
+and uses the $HEX$hex_salt method, if there are bad characters in the salt.
+
 There may be a 2nd salt added in the near future, but not sure how it
 will be implemented.
 
