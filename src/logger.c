@@ -172,7 +172,7 @@ void log_init(char *log_name, char *pot_name, char *session)
 		cfg_beep = cfg_get_bool(SECTION_OPTIONS, NULL, "Beep", 0);
 	}
 
-	cfg_log_passwords = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_JUMBO,
+	cfg_log_passwords = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                                 "LogCrackedPasswords", 0);
 
 	in_logger = 0;

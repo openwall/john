@@ -477,10 +477,10 @@ static void john_load(void)
 		if (database.password_count) {
 			if (database.format->params.flags & FMT_UNICODE)
 				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			        SUBSECTION_JUMBO, "UnicodeStoreUTF8", 0);
+			        NULL, "UnicodeStoreUTF8", 0);
 			else
 				options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
-			        SUBSECTION_JUMBO, "CPstoreUTF8", 0);
+			        NULL, "CPstoreUTF8", 0);
 		}
 		if (!options.utf8) {
 			if (options.report_utf8 && options.log_passwords)
@@ -674,7 +674,7 @@ static void john_init(char *name, int argc, char **argv)
 	}
 	/* This is --crack-status. We toggle here, so if it's enabled in
 	   john.conf, we can disable it using the command line option */
-	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_JUMBO, "CrackStatus", 0))
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
 		options.flags ^= FLG_CRKSTAT;
 
 	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
