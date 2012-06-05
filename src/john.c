@@ -554,13 +554,12 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
-		puts("inc-modes, rules, externals, ext-filters, ext-filters-only,");
+		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
 		puts("ext-modes, build-info, hidden-options, <conf section name>");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
 	{
-		puts("--list=NAME               list configuration, rules, etc");
 		puts("--mkpc=N                  force a lower max. keys per crypt");
 		exit(0);
 	}
@@ -627,7 +626,8 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	if (options.subformat && !strcasecmp(options.subformat, "list"))
+	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
+	    (options.listconf && !strcasecmp(options.listconf, "subformats")))
 	{
 		dynamic_DISPLAY_ALL_FORMATS();
 		/* NOTE if we have other 'generics', like sha1, sha2, rc4, ...
