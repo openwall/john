@@ -186,7 +186,7 @@ cracked) for hashes of the "faster" types (as compared to the "slower"
 ones loaded for cracking at the same time).  So you are advised to use
 separate invocations of John, one per hash type.
 
---subformat=LIST displays all the built-in dynamic formats, and exits
+--list=subformats displays all the built-in dynamic formats, and exits
 
 --save-memory=LEVEL		enable memory saving, at LEVEL 1..3
 
@@ -258,6 +258,12 @@ from the format's default. For most purposes, you would use 1. One good
 example is for studying which rules give most "hits": Without this options,
 you can't know for sure which rule produced a successful guess when analyzing
 the log file.
+
+--list=WHAT             list capabilities
+
+This option can be used to gain information about what rules, modes etc are
+available. Use --list=? for a list of valid arguments. For example, the now
+deprecated --subformat=LIST is now --list=subformats.
 
 --regen-lost-salts=N	Try to find password AND salt in a set of raw hashes.
 

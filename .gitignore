@@ -30,3 +30,4 @@ src/fmt_externs.h
 src/fmt_registers.h
 src/john_build_rule.h
 test/
+run/raw2dyna
