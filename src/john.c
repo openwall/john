@@ -117,6 +117,10 @@ extern struct fmt_main fmt_cryptsha256;
 extern struct fmt_main fmt_cryptsha512;
 #endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+extern struct fmt_main fmt_django;
+#endif
+
 #ifdef HAVE_SKEY
 extern struct fmt_main fmt_SKEY;
 #endif
@@ -138,6 +142,9 @@ extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_xsha512;
+extern struct fmt_main fmt_opencl_rawsha512;
+extern struct fmt_main fmt_opencl_bf;
+extern struct fmt_main fmt_opencl_pwsafe;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -150,6 +157,8 @@ extern struct fmt_main fmt_cuda_rawsha256;
 extern struct fmt_main fmt_cuda_rawsha224;
 extern struct fmt_main fmt_cuda_xsha512;
 extern struct fmt_main fmt_cuda_wpapsk;
+extern struct fmt_main fmt_cuda_rawsha512;
+extern struct fmt_main fmt_cuda_pwsafe;
 #endif
 
 extern struct fmt_main fmt_ssh;
@@ -161,6 +170,7 @@ extern struct fmt_main zip_fmt;
 
 extern struct fmt_main fmt_hmacMD5;
 extern struct fmt_main fmt_hmacSHA1;
+extern struct fmt_main fmt_rawSHA0;
 
 extern int unique(int argc, char **argv);
 extern int unshadow(int argc, char **argv);
@@ -214,6 +224,7 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
+	john_register_one(&fmt_rawSHA0);
 
 #if OPENSSL_VERSION_NUMBER >= 0x00908000
 	john_register_one(&fmt_rawSHA224);
@@ -237,6 +248,10 @@ static void john_register_all(void)
 	john_register_one(&fmt_drupal7);
 	john_register_one(&fmt_cryptsha256);
 	john_register_one(&fmt_cryptsha512);
+#endif
+
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+	john_register_one(&fmt_django);
 #endif
 
 #ifdef HAVE_NSS
@@ -271,6 +286,9 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_xsha512);
+	john_register_one(&fmt_opencl_rawsha512);
+	john_register_one(&fmt_opencl_bf);
+	john_register_one(&fmt_opencl_pwsafe);
 #endif
 
 #ifdef HAVE_CUDA
@@ -284,7 +302,8 @@ static void john_register_all(void)
 	john_register_one(&fmt_cuda_rawsha224);
 	john_register_one(&fmt_cuda_xsha512);
 	john_register_one(&fmt_cuda_wpapsk);
-
+	john_register_one(&fmt_cuda_rawsha512);
+	john_register_one(&fmt_cuda_pwsafe);
 #endif
 
 #ifdef HAVE_DL
@@ -537,13 +556,13 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
-		puts("inc-modes, rules, externals, ext-filters, ext-filters-only,");
+		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
 		puts("ext-modes, build-info, hidden-options, <conf section name>");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
 	{
-		puts("--list=NAME               list configuration, rules, etc");
+		puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 		puts("--mkpc=N                  force a lower max. keys per crypt");
 		exit(0);
 	}
@@ -610,7 +629,8 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	if (options.subformat && !strcasecmp(options.subformat, "list"))
+	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
+	    (options.listconf && !strcasecmp(options.listconf, "subformats")))
 	{
 		dynamic_DISPLAY_ALL_FORMATS();
 		/* NOTE if we have other 'generics', like sha1, sha2, rc4, ...
@@ -655,6 +675,10 @@ static void john_init(char *name, int argc, char **argv)
 		cfg_print_subsections(options.listconf, NULL, NULL);
 		exit(0);
 	}
+	/* This is --crack-status. We toggle here, so if it's enabled in
+	   john.conf, we can disable it using the command line option */
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
+		options.flags ^= FLG_CRKSTAT;
 
 	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
 
@@ -704,13 +728,13 @@ static void john_run(void)
 #if defined(HAVE_MPI) && defined(_OPENMP)
 		if (database.format->params.flags & FMT_OMP &&
 		    omp_get_max_threads() > 1 && mpi_p > 1) {
-			if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPmutex", 1)) {
-				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+			if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPmutex", 1)) {
+				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
 				   mpi_id == 0)
 					fprintf(stderr, "MPI in use, disabling OMP (see doc/README.mpi)\n");
 				omp_set_num_threads(1);
 			} else
-				if(cfg_get_bool(SECTION_OPTIONS, NULL, "MPIOMPverbose", 1) &&
+				if(cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIOMPverbose", 1) &&
 				   mpi_id == 0)
 					fprintf(stderr, "Note: Running both MPI and OMP (see doc/README.mpi)\n");
 		}

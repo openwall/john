@@ -5,7 +5,7 @@
  * SIP digest authentication password (hash) cracker
  * See doc/SIPcrack-LICENSE */
 
-#include <openssl/md5.h>
+#include "md5.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

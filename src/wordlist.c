@@ -17,6 +17,11 @@
 #endif
 #include <string.h>
 
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+#include "win32_memmap.h"
+#undef MEM_FREE
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "math.h"
@@ -119,7 +124,10 @@ static void fix_state(void)
 {
 	if (nWordFileLines) {
 		rec_rule = rule_number;
-		rec_pos = words[nCurLine] - words[0];
+		if (nCurLine)
+			rec_pos = words[nCurLine-1] - words[0];
+		else
+			rec_pos = words[nCurLine] - words[0];
 		return;
 	}
 
@@ -223,10 +231,13 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 #endif
 	char *last = aligned.buffer[1];
 	struct rpp_context ctx;
-	char *prerule, *rule, *word;
-	char *(*apply)(const char *word, char *rule, int split, char *last);
+	char *prerule="", *rule, *word;
+	char *(*apply)(const char *word, char *rule, int split, char *last)=NULL;
 	long file_len;
 	int i, pipe_input=0, max_pipe_words=0, rules_keep=0, init_this_time=1, really_done=0;
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+	IPC_Item *pIPC=NULL;
+#endif
 	char msg_buf[128];
 	int forceLoad = 0;
 	int potfile = 0;
@@ -448,6 +459,15 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			log_event("- Reading candidate passwords from stdin");
 		} else {
 			pipe_input = 1;
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+			if (db->options->sharedmemoryfilename != NULL) {
+				init_sharedmem(db->options->sharedmemoryfilename);
+				rules_keep = rules;
+				max_pipe_words = IPC_MM_MAX_WORDS+2;
+				words = mem_alloc(max_pipe_words*sizeof(char*));
+				goto MEM_MAP_LOAD;
+			}
+#endif
 			if (db->options->max_wordfile_memory < 0x20000)
 				db->options->max_wordfile_memory = 0x20000;
 			if (length < 16)
@@ -460,6 +480,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			rules_keep = rules;
 
 GRAB_NEXT_PIPE_LOAD:;
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+			if (db->options->sharedmemoryfilename != NULL)
+				goto MEM_MAP_LOAD;
+#endif
 			{
 				char *cpi, *cpe;
 
@@ -498,6 +522,32 @@ GRAB_NEXT_PIPE_LOAD:;
 				sprintf(msg_buf, "- Read block of %d candidate passwords from pipe", nWordFileLines);
 				log_event("%s", msg_buf);
 			}
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+			goto SKIP_MEM_MAP_LOAD;
+MEM_MAP_LOAD:;
+			{
+				if (nWordFileLines)
+					init_this_time = 0;
+				rules = rules_keep;
+				nWordFileLines = 0;
+				log_event("- Reading next block of candidate from the memory mapped file");
+				release_sharedmem_object(pIPC);
+				pIPC = next_sharedmem_object();
+				if (!pIPC || pIPC->n == 0) {
+					pipe_input = 0; /* We are now done.  After processing, do NOT goto the GRAB_NEXT... again */
+					shutdown_sharedmem();
+					goto EndOfFile;
+				} else {
+					int i;
+					nWordFileLines = pIPC->n;
+					words[0] = pIPC->Data;
+					for (i = 1; i < nWordFileLines; ++i) {
+						words[i] = words[i-1] + pIPC->WordOff[i-1];
+					}
+				}
+			}
+SKIP_MEM_MAP_LOAD:;
+#endif
 		}
 	}
 

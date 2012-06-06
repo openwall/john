@@ -35,10 +35,9 @@
 #
 #
 # The code is still ugly, many things can probably be done more efficiently.
-# Currently, grep and sed are the only external commands used.
-#
-#
+# Currently, grep, tr, and sed are the only external commands used.
 # Trying to build a perfect completion script will be hard.
+#
 # If possible, I'd like to avoid the need to maintain this script whenever
 # john gets a new option.
 #
@@ -47,40 +46,38 @@
 # It can be an official version, or a community encanced (jumbo) version,
 # with a variety of patches.
 #
-# FIXME: is using __expand_tilde_by_ref OK?
+# FIXME: Is using __expand_tilde_by_ref OK?
 #
-# FIXME: for some reason completion for --option= only works 
+# FIXME: For some reason completion for --option= only works 
 #	 if the cursor is at the end of the command, 
 #	 i.e. [[ ${COMP_POINT} -eq ${#COMP_LINE} ]]
 #	 not if some words follow the one to be completed...
 #	 If ${cur#*=} is not empty, completion works even in the middle
 #	 of the command line
 #	 This is annoying if I want to complete --rules= in
-#        ./john --rules= --config=test.conf
+#	 ./john --rules= --config=test.conf
 #
-# FIXME: should completion for --make-charset really list existing .chr files?
+# FIXME: If there is a word -- preceding the current word 
+#	 which is to be completed, it cannot be an option, so file names
+#	 should be used for completion.
+#
+# FIXME: Should completion for --make-charset really list existing .chr files?
+#
+# FIXME: Should I generally use LC_ALL=C, not just in a few places?
+#	 (This could also be a little bit faster.)
 #
 # TODO:
 #       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
-#         but pressing [tab] expands this to something useful
-#         Where to fix this? In john? Some bash config option?
+#	  but pressing [tab] expands this to something useful
+#	  Where to fix this? In john? Some bash config option?
 #
-#       --external should use names of [List.External:..-.] sections
-#         (Just sections without a generate() function, if --wordlist, --incremental or --single
-#         is present on the command line; with a generate() function, if none of these
-#         options is used - WHAT IF the user adds a --wordlist option later?)
-#       --restore= and --status= completion should search for existing .rec files 
-#	  in the correct directory, instead of $PWD.
-#       --mkpc and other options which are not mentioned in the usage output are currently ignored
+#       --external should not use all names of [List.External:..-.] sections, but
+#	  just sections without a generate() function, if --wordlist, --incremental or --single
+#	  is present on the command line; and just those with a generate() function,
+#	  if none of these options is used - WHAT IF the user adds a --wordlist option later?
 #
-#       Should I support -option instead of --option? (currently -option (or -opt) gets replaced 
-#	with --option during completion.
-#	Should I support --option:val, -option:val, or even -opt:val instead of just --option=val?
 #	Should expanding an abbreviated option to its long form also be done by john itself
 #	(requires new john option)?
-
-
-# grep and sed are used to process john's usage info the list of .rec files...
 
 # different implementations for completion logic for these options:
 # --rules --single --incremental --restore --status
@@ -88,12 +85,32 @@
 #
 # john
 ## on my system, have() is a dummy function which always return "yes", so get rid of calling it... 
-## have grep && have sed && 
+## have grep && have sed && have tr 
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3
+	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev words
+
 	COMPREPLY=()
-	_get_comp_words_by_ref -n = cur
+
+	if [[ "${COMP_WORDBREAKS}" == *:* ]] ; then
+		_get_comp_words_by_ref -n := cur prev words
+	else
+		_get_comp_words_by_ref -n = cur prev words
+		# If the colon is not part of COMP_WORDBREAKS, e.g., due to
+		# including this line into your ~/.bashrc, as mentioned in
+		# /etc/bash_completion ...
+		# 	export COMP_WORDBREAKS="${COMP_WORDBREAKS//:}"
+		# just replace : with = in -opt:val
+		if [[ "${cur}" == -*:* ]] ; then
+			if [[ "${cur}" == -*[:=]*[:=]* ]] ; then
+				return 0
+			fi
+			cur="${cur//:/=}"
+			COMPREPLY=( $(compgen -W "${cur}" -- ${cur}) )
+			compopt -o nospace
+			return 0
+		fi
+	fi
 
 #	We need to make sure we run the correct program, not some other program 
 #	called john which is located somewhere in $PATH
@@ -101,7 +118,7 @@ _john()
 #	Most options are listed at the begin of the line, but the line with the --pipe option
 #	does have trailing spaces, and --stdin is mentioned after --wordlist=FILE.
 #
-#	All options (the '=' will be emoved for options with an optional value)
+#	All options (the '=' will be removed for options with an optional value)
 	options=""
 # FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
 	options="`${first} 2>/dev/null|sed -n '{ s#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1# }; /^--/ p'` --stdin"
@@ -121,28 +138,43 @@ _john()
 #       with --list=hidden-options
 #	Currently, all hidden options do have mandatory values (--option=value), this makes
 #       addition of these easier
-	hidden=""
 	hidden=`${first} --list=hidden-options 2>/dev/null|sed 's#^\(--[a-z-]*=\?\).*$#\1#'`
 
 	case "${cur}" in
-		--format=dynamic*)
-			if echo "${options}" | grep "^--subformat" > /dev/null ; then
+		-?(-)f?(o|or|orm|orma|ormat)+(=|:)dynamic*)
+			if [[ "${options}" == *--subformat* ]] ; then
+				if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
+					if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+						return 0
+					fi
+				fi
 				 subformats=`${first} --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
-				cur=${cur#*=}
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--format=dy|--format=dyn|--format=dyna|--format=dynam|--format=dynami)
-			if echo "${options}" | grep "^--subformat" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)f?(o|or|orm|orma|ormat)+(=|:)dy?(n|na|nam|nami))
+			if [[ "${options}" == *--subformat* ]] ; then
+				if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
+					if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+						return 0
+					fi
+				fi
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "dynamic" -- ${cur}) )
 				compopt -o nospace
 			fi
 			return 0
 			;;
-		--format=*)
-			cur=${cur#*=}
+		-?(-)f?(o|or|orm|orma|ormat)+(=|:)*)
+
+			if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
+				if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+					return 0
+				fi
+			fi
+			cur=${cur#*[=:]}
 			formats=`${first} |sed -n '/^--format/,$ { s#^--format=[ A-Za-z]*:##; /^--/ b; s#^ *##; s#\<dynamic_n\>#dynamic#; s#[/ ]#\n#g; p }'`
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
 			return 0
@@ -152,13 +184,26 @@ _john()
 			if [[ "_${__john_completion}" == "_2" ]] ; then
 				COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
 				compopt -o nospace
+			else
+				prev="${cur}"
+				cur=""
+				_filedir "rec"
+				for (( i=0; i < ${#COMPREPLY[@]}; i++)); do
+					COMPREPLY[$i]="${prev}=${COMPREPLY[$i]%*.rec}"
+				done
+				COMPREPLY[${#COMPREPLY[@]}]="${prev}"
 			fi
 			return 0
 			;;
-		--restore=*|--status=*)
+		-?(-)re?(s|st|sto|stor|store)+(=|:)*|-?(-)sta?(t|tu|tus)+(=|:)*)
+			if [[ "${cur}" == -re[=:]* || "${cur}" == --re[=:]* ]] ; then
+				if [[ `echo "${valopts}"|grep -c "^--re"` -ne 1 ]] ; then
+					return 0
+				fi
+			fi
 # If there is no .rec file in the current directory, the old completion logic will show all files:
 ##echo _`for f in *.rec; do echo ${f%.rec};done`_
-			cur=${cur#*=}
+			cur=${cur#*[=:]}
 # cd $JOHN/ or Private home for system-wide builds, if ./john --list=build-info works?
 # NO, this would be wrong!
 # .rec files are stored in the current directory (or a subdirectory if the session name contains a slash)
@@ -171,15 +216,14 @@ _john()
 			done
 			return 0
 			;;
-		--wordlist=*)
-			#cur=${cur#*=}
-			#_filedir expansion of --wordlist=~/te doesn't work
-			# _filedir_xspec "_xspecs: bad array subscript" written to stderr
-			_filedir_xspec 2> /dev/null
+		-?(-)w?(o|or|ord|ordl|ordli|ordlis|ordlist)+(=|:)*)
+			cur=${cur#*[=:]}
+			 __expand_tilde_by_ref cur 2>/dev/null
+			_filedir
 			return 0
 			;;
  		--rules|--single)
-			if echo "${valopts}" | grep "^${cur}$" > /dev/null ; then
+			if [[ "${valopts}" == *${cur}* ]] ; then
 				if [[ "_${__john_completion}" == "_2" ]] ; then
 					COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
 					compopt -o nospace
@@ -201,24 +245,31 @@ _john()
 			fi
 			return 0
 			;;
-		--rules=*|--single=*)
-			if echo "${valopts}" | grep "^${cur%=*}$" > /dev/null ; then
+		-?(-)ru?(l|le|les)+(=|:)*|-?(-)si?(n|ng|ngl|ngle)+(=|:)*)
+			# let's assume every john version which supports --single= 
+			# also supports --rules=, and vice versa
+			if [[ "${valopts}" == *--rules* ]] ; then
 				cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=rules #"`
 				list=`${cmd} 2>/dev/null`
 				if [[ $? -ne 0 ]] ; then
 					list=`${first} --list=rules 2>/dev/null`
 				fi
 				if [[ $? -eq 0 ]] ; then
-					cur=${cur#*=}
+					cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 					COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 				else
-					cur=${cur#*=}
+					cur=${cur#*[=:]}
 					COMPREPLY=( $(compgen -W "NT single wordlist" -- ${cur}) )
 				fi
 			fi
 			return 0
 			;;
-		--external=*)
+		-?(-)e?(x|xt|xte|xter|xtern|xterna|xternal)+(=|:)*)
+			if [[ "${cur}" == -e[=:]* || "${cur}" == --e[=:]* ]] ; then
+				if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+					return 0
+				fi
+			fi
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=externals #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
@@ -251,8 +302,10 @@ _john()
 						list="${list} DumbForce KnownForce DateTime Repeats Subsets AtLeast1-Simple AtLeast1-Generic Policy AppendLuhn AutoAbort AutoStatus"
 					fi
 				fi
+				cur=${cur#*[=:]}
+			else
+				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 			fi
-			cur=${cur#*=}
 			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
@@ -275,23 +328,28 @@ _john()
 			fi
 			return 0
 			;;
-		--incremental=*)
+		-?(-)i?(n|nc|ncr|ncre|ncrem|ncreme|ncremen|ncrement|ncrementa|ncremental)+(=|:)*)
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=inc-modes #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
 				list=`${first} --list=inc-modes 2>/dev/null`
 			fi
 			if [[ $? -eq 0 ]] ; then
-				cur=${cur#*=}
+				cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			else
-				cur=${cur#*=}
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "All Alpha Digits Alnum LanMan" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--make-charset=*)
-			cur=${cur#*=}
+		-?(-)m?(a|ak|ake|ake-|ake-c|ake-ch|ake-cha|ake-char|ake-chars|ake-charse|ake-charset)+(=|:)*)
+			if [[ "${cur#*[=:]}" != *e* ]] ; then
+				if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+					return 0
+				fi
+			fi
+			cur=${cur#*[=:]}
 			#redirect stderr just in case __expand_tilde_by_ref
 			#doesn't exist everywhere
 			#(I'm a bit worried because of the __ at the begin.
@@ -302,21 +360,18 @@ _john()
 			_filedir "chr"
 			return 0
 			;;
-		--stdout=*|--markov=*)
-			return 0
-			;;
 		--stdout)
 			COMPREPLY=( $(compgen -W "--stdout --stdout=LENGTH" -- ${cur}) )
 			return 0
 			;;
 		--markov)
-			if echo "${options}" | grep "^${cur}$" > /dev/null ; then
+			if [[ "${valopts}" == *${cur}* ]] ; then
 				COMPREPLY=( $(compgen -W "--markov --markov=LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
 			fi
 			return 0
 			;;
 		--test)
-			if echo "${valopts}" | grep "^${cur}$" > /dev/null ; then
+			if [[ "${valopts}" == *${cur}* ]] ; then
 				COMPREPLY=( $(compgen -W "--test --test=SECONDS" -- ${cur}) )
 			else
 				COMPREPLY=( $(compgen -W "${cur}" -- ${cur}) )
@@ -324,31 +379,36 @@ _john()
 			return 0
 			;;
 		--show)
-			if echo "${valopts}" | grep "^--show$" > /dev/null ; then
-				COMPREPLY=( $(compgen -W "--show --show=LEFT" -- ${cur}) )
+			if [[ "${valopts}" == *${cur}* ]] ; then
+				if [[ "_${__john_completion}" == "_2" ]] ; then
+                                	COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
+                                	compopt -o nospace
+                        	else
+					COMPREPLY=( $(compgen -W "--show --show=LEFT" -- ${cur}) )
+				fi
 			else
 				COMPREPLY=( $(compgen -W "--show" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--show=l*)
-			if echo "${valopts}" | grep "^--show$" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)sho?(w)+(=|:)l*)
+			if [[ "${valopts}" == *--show* ]] ; then
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "left" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--show=*)
-			if echo "${valopts}" | grep "^--show$" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)sho?(w)+(=|:)*)
+			if [[ "${valopts}" == *--show* ]] ; then
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "LEFT" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--users=L*|--users=U*|--users=-*|--groups=G*|--groups=-*|--shells=S*|--shells=-*|--salts=C*|--salts=-*)
+		--users=?(-)+(L|U)*|--groups=+(-|G)*|--shells=+(-|S)*|--salts=+(-|C)*)
 			return 0
 			;;
-		--users=*)
+		--users=?(-))
 			cur=${cur#*=}
 			COMPREPLY=( $(compgen -W "LOGIN,... UID,... -LOGIN,... -UID,..." -- ${cur}) )
 			return 0
@@ -368,11 +428,11 @@ _john()
 			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
 			return 0
 			;;
-		--encoding=*)
-			if  echo "${options}" | grep "^--encoding=" > /dev/null ; then
+		-?(-)en?(c|co|cod|codi|codin|coding)+(=|:)*)
+			if [[ "${valopts}" == *--encoding=* ]] ; then
 				# --encoding=LIST writes to stderr
 				encodings=`${first} --encoding=LIST 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
-			cur=${cur#*=}
+			cur=${cur#*[=:]}
 				if [[ ${COMP_CWORD} -eq 2 || ${COMP_CWORD} -eq 3 && "_${cur}" != "_" ]] ; then
 					encodings="${encodings} LIST"
 					# make sure LIST will be the first option:
@@ -382,59 +442,79 @@ _john()
 			fi
 			return 0
 			;;
-		--pot=*)
-			# if --pot= is used, john always looks for the file $PWD
-			# (tested with system-wide and local build of john)
-			cur=${cur#*=}
-			#redirect stderr just in case __expand_tilde_by_ref
-			#doesn't exist everywhere
-			#(I'm a bit worried because of the __ at the begin.
-			#May be this function isn't part of an "official" API.)
-			#
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir "pot"
+		-?(-)po?(t)+(=|:)*)
+			if  [[ "${valopts}" == *--pot=* ]] ; then
+				# if --pot= is used, john always looks for the file $PWD
+				# (tested with system-wide and local build of john)
+				cur=${cur#*[=:]}
+				#redirect stderr just in case __expand_tilde_by_ref
+				#doesn't exist everywhere
+				#(I'm a bit worried because of the __ at the begin.
+				#May be this function isn't part of an "official" API.)
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir "pot"
+			fi
 			return 0
 			;;
-		--config=*)
-			# if --config= is used, john always looks for files in $PWD
-			# (tested for system-wide and local builds)
-			cur=${cur#*=}
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir '@(conf|ini)'
+		-?(-)co?(n|nf|nfi|nfig)+(=|:)*)
+			if [[ "${valopts}" == *--config=* ]] ; then
+				# if --config= is used, john always looks for files in $PWD
+				# (tested for system-wide and local builds)
+				cur=${cur#*[=:]}
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir '@(conf|ini)'
+			fi
 			return 0
 			;;
-		--save-memory=*)
-			cur=${cur#*=}
+		-?(-)sav?(e|e-|e-m|e-me|e-mem|e-memo|e-memor|e-memory)+(=|:)*)
+			cur=${cur#*[=:]}
 			COMPREPLY=( $(compgen -W "1 2 3" -- ${cur}) )
 			return 0
 			;;
-		--regen-lost-salts=*)
-			if echo "${options}" | grep "^--regen-lost-salts=" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)reg?(e|en|en-|en-l|en-lo|en-los|en-lost|en-lost-|en-lost-s|en-lost-sa|en-lost-sal|en-lost-salt|en-lost-salts)+(=|:)*)
+			if [[ "${valopts}" == *--regen-lost-salts=* ]] ; then
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--subformat=l*)
-			if echo "${options}" | grep "^--subformat=" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)su?(b|bf|bfo|bfor|bform|bforma|bformat)+(=|:)l*)
+			if [[ "${options}" == *--subformat=* ]] ; then
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "list" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--subformat=*)
-			if echo "${options}" | grep "^--subformat=" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)su?(b|bf|bfo|bfor|bform|bforma|bformat)+(=|:)*)
+			if [[ "${options}" == *--subformat=* ]] ; then
+				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			fi
 			return 0
 			;;
-		--session=*|--mem-file-size=*|--field-separator-char=*|--fix-state-delay=*|--max-run-time=*|--mkpc=*)
+		-?(-)pla?(t|tf|tfo|tfor|tform)+(=|:)+(L|l)*|-?(-)dev?(i|ic|ice)+(=|:)+(L|l)*)
+			# CUDA doesn't allow --device=LIST
+			# workaround: check if --platform= is allowed
+			if [[ "${valopts}" == *--platform=* ]] ; then
+				cur=${cur#*[=:]}
+				COMPREPLY=( $(compgen -W "LIST list" -- ${cur}) )
+			fi
 			return 0
 			;;
-		--list=*)
-			if echo "${hidden}" | grep "^--list=" > /dev/null ; then
-				cur=${cur#*=}
+		-?(-)platform+(=|:)|-?(-)device+(=|:))
+			# --device=LIST isn't supported for CUDA, but for CUDA
+			# --platform= is not a valid option
+			if [[ "${valopts}" == *--platform=* ]] ; then
+				# Calling john --platform=LIST just to find possible completions
+				# will take too long
+				cur=${cur#*[=:]}
+				COMPREPLY=( $(compgen -W "LIST N" -- ${cur}) )
+			fi
+			return 0
+			;;
+		-?(-)l?(i|is|ist)+(=|:)*)
+			if [[ "${hidden}" == *--list=* ]] ; then
+				cur=${cur#*[=:]}
 				# the --list=? output changed, that's why a more complex regex is used
 				# to cover all cases
 				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
@@ -445,6 +525,9 @@ _john()
 				fi
 			fi
 			return 0
+			;;
+		-*+(=|:))
+			return 0;
 			;;
 		-*)
 			compreplya=`compgen -W "${options} ${hidden}" -- ${cur}`
@@ -471,14 +554,15 @@ complete -F _john john
 ## have grep && have sed &&
 _unique()
 {
-	local first filename cur usage options valopts compreplya compreplyb
-        COMPREPLY=()
-        _get_comp_words_by_ref -n = cur
+	local first cur usage options valopts compreplya compreplyb
+
+	COMPREPLY=()
+
+	_get_comp_words_by_ref -n = cur
 
 # we need to make sure we run the correct program, not some other program 
 # called unique which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
-	filename=`echo  "${first}"|sed 's#^.*/\(.*\)$#\1#'`
 	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
 	case "_${cur}" in
 		_|_${first})
@@ -491,7 +575,7 @@ _unique()
 			return 0
 			;;
 		_-inp=*|_-ex_file=*|_-ex_file_only=*)
-                        cur=${cur#*=}
+			cur=${cur#*=}
 			__expand_tilde_by_ref cur 2>/dev/null
 			_filedir
 			return 0

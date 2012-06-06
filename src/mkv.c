@@ -246,7 +246,7 @@ void do_markov_crack(struct db_main *db, unsigned int mkv_level, unsigned long l
 	unsigned long long mkv_size;
 #endif
 	if(mkv_level == 0)
-		if( (mkv_level = cfg_get_int("Options", NULL, "MkvLvl")) == -1 )
+		if( (mkv_level = cfg_get_int("Options", SUBSECTION_MARKOV, "MkvLvl")) == -1 )
 		{
 			log_event("no markov level defined!");
 #ifdef HAVE_MPI
@@ -257,7 +257,7 @@ void do_markov_crack(struct db_main *db, unsigned int mkv_level, unsigned long l
 		}
 
 	if(mkv_maxlen == 0)
-		if( (mkv_maxlen = cfg_get_int("Options", NULL, "MkvMaxLen")) == -1 )
+		if( (mkv_maxlen = cfg_get_int("Options", SUBSECTION_MARKOV, "MkvMaxLen")) == -1 )
 		{
 			log_event("no markov max length defined!");
 #ifdef HAVE_MPI
@@ -267,7 +267,7 @@ void do_markov_crack(struct db_main *db, unsigned int mkv_level, unsigned long l
 			error();
 		}
 
-	statfile = cfg_get_param("Options", NULL, "Statsfile");
+	statfile = cfg_get_param("Options", SUBSECTION_MARKOV, "Statsfile");
 	if(statfile == NULL)
 	{
 		log_event("statfile not defined");

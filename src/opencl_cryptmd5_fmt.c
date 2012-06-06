@@ -1,10 +1,11 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include <string.h>
 #include <unistd.h>
+#include <assert.h>
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
@@ -52,17 +53,10 @@ typedef struct {
 	uint32_t v[4];		/** 128 bits **/
 } crypt_md5_hash;
 
-typedef struct {
-#define ctx_buffsize 64
-	uint8_t buffer[ctx_buffsize];
-	uint32_t buflen;
-	uint32_t len;
-	uint32_t A, B, C, D;
-} md5_ctx;
 
-static crypt_md5_password inbuffer[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
-static uint32_t outbuffer[4*MAX_KEYS_PER_CRYPT];			/** calculated hashes **/
-static crypt_md5_salt host_salt;					/** salt **/
+static crypt_md5_password *inbuffer;			/** plaintext ciphertexts **/
+static crypt_md5_hash *outbuffer;			/** calculated hashes **/
+static crypt_md5_salt host_salt;			/** salt **/
 
 static const char md5_salt_prefix[] = "$1$";
 static const char apr1_salt_prefix[] = "$apr1$";
@@ -115,7 +109,7 @@ static struct fmt_tests tests[] = {
 	   {"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/","claudia"},
 	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"}, 
 	 
-																  	   //tests from MD5_fmt.c
+																		  	   //tests from MD5_fmt.c
 *//*       {"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	   {"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
 	   {"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
@@ -139,6 +133,8 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
+	free(inbuffer);
+	free(outbuffer);
 }
 
 static void set_key(char *key, int index)
@@ -156,88 +152,43 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void find_best_workgroup()
-{
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i;
-	size_t max_group_size;
-
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_WORK_GROUP_SIZE,
-	    sizeof(max_group_size), &max_group_size, NULL);
-	cl_command_queue queue_prof =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-	    CL_QUEUE_PROFILING_ENABLE,
-	    &ret_code);
-	printf("Max Group Work Size %d\n",(int)max_group_size);
-	local_work_size = 1;
-
-	/// Set keys
-	char *pass = "aaaaaaaa";
-	for (i = 0; i < KEYS_PER_CRYPT; i++) {
-		set_key(pass, i);
-	}
-	/// Copy data to GPU
-	HANDLE_CLERROR(clEnqueueWriteBuffer
-	    (queue_prof, mem_in, CL_FALSE, 0, insize, inbuffer, 0, NULL, NULL),
-	    "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0,
-		saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
-
-	/// Find minimum time
-	for (my_work_group = 1; (int) my_work_group <= (int) max_group_size;
-	    my_work_group *= 2) {
-
-		size_t localworksize = my_work_group;
-		HANDLE_CLERROR(clEnqueueNDRangeKernel
-		    (queue_prof, crypt_kernel, 1, NULL, &global_work_size,
-			&localworksize, 0, NULL, &myEvent), "Set ND range");
-
-
-		HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-		    sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-		    sizeof(cl_ulong), &endTime, NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		}
-		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
-	}
-	printf("Optimal Group work Size = %d\n",(int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-}
-
 static void init(struct fmt_main *pFmt)
 {
-	opencl_init("$JOHN/cryptmd5_kernel.cl", gpu_id,platform_id);
+	opencl_init("$JOHN/cryptmd5_kernel.cl", gpu_id, platform_id);
 
+	///Alocate memory on the CPU side
+	inbuffer =
+	    (crypt_md5_password *) calloc(MAX_KEYS_PER_CRYPT,
+	    sizeof(crypt_md5_password));
+	assert(inbuffer != NULL);
+	outbuffer =
+	    (crypt_md5_hash *) calloc(MAX_KEYS_PER_CRYPT,
+	    sizeof(crypt_md5_hash));
+	assert(inbuffer != NULL);
 	///Alocate memory on the GPU
-
 	mem_salt =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for salt");
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for salt");
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for passwords");
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for passwords");
 	mem_out =
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for hashes");
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
 	///Assign kernel parameters 
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating kernel");
-	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
-	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
+	HANDLE_CLERROR(ret_code, "Error while creating kernel");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
+		&mem_salt), "Error while setting mem_salt kernel argument");
 
-	find_best_workgroup();
+	opencl_find_best_workgroup(pFmt);
 	atexit(release_all);
 }
 
@@ -389,7 +340,7 @@ static void crypt_all(int count)
 	size_t localworksize = local_work_size;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
-		0, NULL, NULL), "Set ND range");
+		0, NULL, &profilingEvent), "Set ND range");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, outbuffer, 0, NULL, NULL), "Copy data back");
 
@@ -399,53 +350,44 @@ static void crypt_all(int count)
 
 static int get_hash_0(int index)
 {
-  	return outbuffer[address(0, index)] & 0xf;// = alt_result[q];
-
-  //	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xf;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xf;
 }
 
 static int get_hash_1(int index)
 {
-  return outbuffer[address(0, index)] & 0xff;
-	//return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xff;
 }
 
 static int get_hash_2(int index)
 {
-return outbuffer[address(0, index)] & 0xfff;	
-  //return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xfff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xfff;
 }
 
 static int get_hash_3(int index)
 {
-return outbuffer[address(0, index)] & 0xffff;	
-  //return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xffff;
 }
 
 static int get_hash_4(int index)
 {
-  return outbuffer[address(0, index)] & 0xfffff;
-	//return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xfffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xfffff;
 }
 
 static int get_hash_5(int index)
 {
-return outbuffer[address(0, index)] & 0xffffff;	
-  //return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xffffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0xffffff;
 }
 
 static int get_hash_6(int index)
 {
-return outbuffer[address(0, index)] & 0x7ffffff;;	
-  //return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0x7ffffff;
+	return ((ARCH_WORD_32 *) outbuffer[index].v)[0] & 0x7ffffff;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	uint32_t i, b = ((uint32_t *) binary)[0];
 	for (i = 0; i < count; i++)
-		if(b==outbuffer[address(0, i)])
-		///if (b == outbuffer[i].v[0])
+		if (b == outbuffer[i].v[0])
 			return 1;
 	return 0;
 }
@@ -454,9 +396,7 @@ static int cmp_one(void *binary, int index)
 {
 	uint32_t i, *t = (uint32_t *) binary;
 	for (i = 0; i < 4; i++)
-	if (t[i] != outbuffer[address(i,index)])
-			
-	  //if (t[i] != outbuffer[index].v[i])
+		if (t[i] != outbuffer[index].v[i])
 			return 0;
 	return 1;
 }

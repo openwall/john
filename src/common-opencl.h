@@ -33,6 +33,7 @@ cl_program program[MAXGPUS];
 cl_command_queue queue[MAXGPUS];
 cl_int ret_code;
 cl_kernel crypt_kernel;
+cl_event profilingEvent;
 size_t local_work_size;
 size_t max_group_size;
 
@@ -45,6 +46,8 @@ void opencl_init_dev(unsigned int dev_id, unsigned int platform_id);
 void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
+void opencl_find_best_workgroup(struct fmt_main *pFmt);
+
 
 cl_device_type get_device_type(int dev_id);
 cl_ulong get_local_memory_size(int dev_id);

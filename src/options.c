@@ -66,7 +66,12 @@ static struct opt_entry opt_list[] = {
 	{"encoding", FLG_INP_ENCODING, FLG_INP_ENCODING,
 		0, 0, OPT_FMT_STR_ALLOC, &options.encoding},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.loader.sharedmemoryfilename},
+#else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
+#endif
 	{"rules", FLG_RULES, FLG_RULES, FLG_WORDLIST_CHK, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &options.loader.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
@@ -193,7 +198,7 @@ static struct opt_entry opt_list[] = {
 "                         " // formats are prepended with a space
 
 #define JOHN_USAGE_TAIL \
-"--subformat=LIST          get a listing of all 'dynamic_n' formats\n" \
+"--list=WHAT               list capabilities, see doc/OPTIONS or --list=?\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)\n" \
 "--field-separator-char=C  use 'C' instead of the ':' in input and pot files\n" \
@@ -201,7 +206,7 @@ static struct opt_entry opt_list[] = {
 "--nolog                   disables creation and writing to john.log file\n" \
 "--crack-status            emit a status line whenever a password is cracked\n" \
 "--max-run-time=N          gracefully exit after this many seconds\n" \
-"--regen-lost-salts=N      regenerate lost salts for some hashes (see OPTIONS)\n"
+"--regen-lost-salts=N      regenerate lost salts for some hashes (see doc/OPTIONS)\n"
 
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"

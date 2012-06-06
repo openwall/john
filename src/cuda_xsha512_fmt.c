@@ -17,6 +17,7 @@
 #if OPENSSL_VERSION_NUMBER >= 0x00908000
 
 #include <string.h>
+#include <assert.h>
 #include <openssl/sha.h>
 
 
@@ -39,10 +40,16 @@ static struct fmt_tests tests[] = {
 	{"$LION$bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
 	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},
 	{"5e3ab14c8bd0f210eddafbe3c57c0003147d376bf4caf75dbffa65d1891e39b82c383d19da392d3fcc64ea16bf8203b1fc3f2b14ab82c095141bb6643de507e18ebe7489", "boobies"},
+	{"$LION$bb0489df4db05dbdc7be8afeef531f141ce28a00d7d5994693f7a9cf1fbbf98b45bb73ed10e00975b3bafd795fff667e3b3319517cc2f618ce92ff0e5c72032098fe1e75", "passwordandpassword"},
 	{NULL}
 };
 
-extern void cuda_xsha512(xsha512_key *host_password, xsha512_salt *host_salt, xsha512_hash* host_hash);
+extern void cuda_xsha512(xsha512_key *host_password,
+                         xsha512_salt *host_salt,
+                         xsha512_hash* host_hash,
+                         xsha512_extend_key *host_ext_password,
+                         uint8_t use_extend);
+
 extern void cuda_xsha512_init();
 extern int cuda_cmp_all(void *binary, int count);
 extern void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
@@ -50,9 +57,11 @@ extern void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
 
 
 static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
+static xsha512_extend_key g_ext_key[MAX_KEYS_PER_CRYPT];
 static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
 uint8_t xsha512_key_changed;
+static uint8_t use_extend;
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
 	0xbb67ae8584caa73bLL,
@@ -236,10 +245,19 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	int length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
+	if (length > MAX_PLAINTEXT_LENGTH)
+		length = MAX_PLAINTEXT_LENGTH;
 	gkey[index].length = length;
-	memcpy(gkey[index].v, key, length);
+	use_extend = 0;
+	if (length > PLAINTEXT_LENGTH) {
+		memcpy(gkey[index].v, key, PLAINTEXT_LENGTH);
+		key += PLAINTEXT_LENGTH;
+		memcpy(g_ext_key[index], key, length-PLAINTEXT_LENGTH);
+		if (!use_extend)
+			use_extend = 1;
+	}
+	else
+		memcpy(gkey[index].v, key, length);
 	xsha512_key_changed = 1;
 }
 
@@ -251,7 +269,7 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	cuda_xsha512(gkey, &gsalt, ghash);
+	cuda_xsha512(gkey, &gsalt, ghash, g_ext_key, use_extend);
 	xsha512_key_changed = 0;
 }
 
@@ -278,7 +296,12 @@ static int cmp_exact(char *source, int index)
 	
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
-	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
+	if (gkey[index].length > PLAINTEXT_LENGTH) {
+		SHA512_Update(&ctx, gkey[index].v, PLAINTEXT_LENGTH);
+		SHA512_Update(&ctx, g_ext_key[index], gkey[index].length-PLAINTEXT_LENGTH);
+	}
+	else
+		SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
 
 	int i;

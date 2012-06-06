@@ -228,7 +228,7 @@ static void set_salt(void *salt) {
 	salt_buffer=salt;
 }
 
-static void * get_salt(char *_ciphertext)
+static void *get_salt(char *_ciphertext)
 {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
 	// length=11 for save memory
@@ -266,11 +266,12 @@ static void * get_salt(char *_ciphertext)
 
 static void *get_salt_encoding(char *_ciphertext) {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	static UTF16 out[19+3]; // same sized 'out' value, as in get_salt.
+	static ARCH_WORD_32 outb[(19+3)/2]; // same sized 'out' value, as in get_salt.
+	UTF16 *out = (UTF16*)&outb;
 	unsigned char input[19*3+1];
 	int utf16len, md4_size;
 
-	memset(out, 0, sizeof(out));
+	memset(out, 0, sizeof(outb));
 
 	ciphertext += 2;
 
@@ -292,7 +293,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 	swap((unsigned int*)out, (unsigned int*)out, (md4_size>>1)+1);
 #endif
 
-	((unsigned int*)out)[10] = (8 + utf16len) << 4;
+	outb[10] = (8 + utf16len) << 4;
 
 //	dump_stuff(out, 44);
 
@@ -343,7 +344,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned int out[4];
 	unsigned int i=0;
 	unsigned int temp;
-	unsigned int * salt=fmt_mscash.methods.salt(ciphertext);
+	unsigned int *salt=fmt_mscash.methods.salt(ciphertext);
 
 	for(;ciphertext[0]!='#';ciphertext++);
 

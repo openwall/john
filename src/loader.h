@@ -190,6 +190,14 @@ struct db_options {
 /* a 2 byte salt.  That will set this field to be a 2.  If we add other types, then we will have other values */
 /* which can be assigned to this variable.  This var is set by the undocummented --regen_lost_salts=# */
 	int regen_lost_salts;
+
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
+	/* if built for Win32, then the pipe/stdin is VERY slow.  We allow special processing */
+	/* to use the pipe command, but in a -pipe=sharedmemoryfilename so that the producer  */
+	/* app, and JtR can be written to work properly with named shared memory, which is    */
+	/* MUCH faster than using a pipe to xfer data between the 2 apps.                     */
+	char *sharedmemoryfilename;
+#endif
 };
 
 /*

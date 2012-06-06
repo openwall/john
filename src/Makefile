@@ -53,13 +53,16 @@ ifdef ATISTREAMSDKROOT
 AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
+ifdef HAVE_NSS
+NSS_LDFLAGS = `pkg-config --libs nss`
+endif
 
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) `pkg-config --libs nss`
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -98,6 +101,7 @@ JOHN_OBJS = \
 	dragonfly3_fmt.o \
 	dragonfly4_fmt.o \
 	drupal7_fmt.o \
+	django_fmt.o \
 	cryptsha256_fmt.o cryptsha512_fmt.o \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
@@ -105,6 +109,7 @@ JOHN_OBJS = \
 	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
+	rawSHA0_fmt.c \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	pwsafe2john.o \
@@ -119,6 +124,7 @@ JOHN_OBJS = \
 	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
 	fake_salts.o \
+	win32_memmap.o \
 	unicode.o \
 	unshadow.o \
 	unafs.o \
@@ -126,11 +132,12 @@ JOHN_OBJS = \
 	unique.o
 
 OCL_OBJS = \
-	common-opencl.o opencl_mysqlsha1_fmt.o \
+	common-opencl.o common_opencl_pbkdf2.o opencl_mysqlsha1_fmt.o \
 	opencl_cryptmd5_fmt.o opencl_phpass_fmt.o opencl_rawsha1_fmt.o \
 	opencl_nt_fmt.o opencl_rawmd5_fmt.o opencl_nsldaps_fmt.o \
 	opencl_cryptsha512_fmt.o opencl_mscash2_fmt.o opencl_wpapsk_fmt.o \
-	opencl_xsha512_fmt.o
+	opencl_xsha512_fmt.o opencl_rawsha512_fmt.o opencl_bf_std.o opencl_bf_fmt.o \
+	opencl_pwsafe_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \
@@ -143,7 +150,9 @@ CUDA_OBJS = \
 	cuda_rawsha224_fmt.o cuda_rawsha224.o \
 	cuda_mscash_fmt.o cuda_mscash.o \
 	cuda_xsha512_fmt.o cuda_xsha512.o \
-	cuda_wpapsk_fmt.o cuda_wpapsk.o
+	cuda_wpapsk_fmt.o cuda_wpapsk.o \
+	cuda_rawsha512_fmt.o cuda_rawsha512.o \
+	cuda_pwsafe_fmt.o cuda_pwsafe.o
 
 BENCH_DES_OBJS_ORIG = \
 	DES_fmt.o DES_std.o
@@ -188,7 +197,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john
+	../run/pwsafe2john ../run/raw2dyna
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -201,14 +210,14 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe
+	../run/pwsafe2john.exe ../run/raw2dyna.exe
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe
+	../run/pwsafe2john.exe ../run/raw2dyna.exe
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1396,6 +1405,20 @@ cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o
 cuda_wpapsk_fmt.o: cuda_wpapsk.o cuda_wpapsk_fmt.c
 	$(CC)  $(CFLAGS) cuda_wpapsk_fmt.c
 
+cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) rawsha512.cu
+	mv cuda/rawsha512.o cuda_rawsha512.o
+
+cuda_rawsha512_fmt.o: cuda_rawsha512.o cuda_rawsha512_fmt.c
+	$(CC) $(CFLAGS) cuda_rawsha512_fmt.c -o cuda_rawsha512_fmt.o
+
+cuda_pwsafe.o: cuda/pwsafe.cu cuda_common.o
+	cd cuda; nvcc $(NVCC_FLAGS) pwsafe.cu
+	mv cuda/pwsafe.o cuda_pwsafe.o
+
+cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
+	$(CC)  $(CFLAGS) cuda_pwsafe_fmt.c
+
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
@@ -1586,6 +1609,12 @@ endif
 ../run/calc_stat.exe: calc_stat.o
 	$(LD) calc_stat.o $(LDFLAGS_MKV) -o ../run/calc_stat.exe
 
+../run/raw2dyna: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna
+
+../run/raw2dyna.exe: raw2dyna.o
+	$(LD) raw2dyna.o $(LDFLAGS) -o ../run/raw2dyna.exe
+
 SIPdump: SIPdump.o
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
@@ -1663,19 +1692,20 @@ test_full_verbose:
 test_utf8_verbose:
 	cd ../test && perl jtrts.pl -type utf-8
 
-/etc/bash_completion.d/john.bash_completion:	john.bash_completion
+/etc/bash_completion.d/john.bash_completion:	../run/john.bash_completion
 	@echo
 	@echo NOTE: Administrative priviledges required for this make target.
-	$(CP) john.bash_completion /etc/bash_completion.d/
+	$(CP) ../run/john.bash_completion /etc/bash_completion.d/
 	@echo
 	@echo Bash-completion for JtR successfully installed.
-	@echo Source /etc/bash_completion or logout/login to activate the changes
+	@echo Source \". /etc/bash_completion\" or logout/login to activate the changes
 
 bash-completion:	/etc/bash_completion.d/john.bash_completion
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) ../run/john.exe john-macosx-* *.o *.bak core ../run/*.cl
+	$(RM) ../run/john.exe john-macosx-* *.o *.bak core 
+	$(RM) ../run/*.cl ../run/*.h
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~ ../run/SIPdump
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h

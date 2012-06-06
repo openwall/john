@@ -17,7 +17,7 @@
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
 #define ITERATIONS 1
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
-#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
+#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT) //Hope this can be divided by 16
 
 #define SALT_SIZE 4
 #if 0
@@ -27,7 +27,10 @@
 #define FULL_BINARY_SIZE 64
 #endif
 
-#define PLAINTEXT_LENGTH		12
+#define PLAINTEXT_LENGTH		16
+#define MAX_PLAINTEXT_LENGTH	125
+#define EXTEND_PLAINTEXT_LENGT	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
+
 #define CIPHERTEXT_LENGTH		136
 
 extern uint8_t xsha512_key_changed;
@@ -70,6 +73,8 @@ typedef struct {
     uint8_t length;
     char v[PLAINTEXT_LENGTH+1];
 } xsha512_key;
+
+typedef char xsha512_extend_key[EXTEND_PLAINTEXT_LENGT+1];
 
 typedef struct {
     uint64_t v[BINARY_SIZE / 8]; // up to 512 bits

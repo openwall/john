@@ -163,6 +163,8 @@
  * Configuration file section names.
  */
 #define SECTION_OPTIONS			"Options"
+#define SUBSECTION_MARKOV		":Markov"
+#define SUBSECTION_MPI			":MPI"
 #define SECTION_RULES			"List.Rules:"
 #define SUBSECTION_SINGLE		"Single"
 #define SUBSECTION_WORDLIST		"Wordlist"
@@ -244,9 +246,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Hash and buffer sizes for unique.
  */
-#define UNIQUE_HASH_LOG			26
+#define UNIQUE_HASH_LOG			21
 #define UNIQUE_HASH_SIZE		(1 << UNIQUE_HASH_LOG)
-#define UNIQUE_BUFFER_SIZE		0x30000000
+#define UNIQUE_BUFFER_SIZE		0x8000000
 
 /*
  * Maximum number of GECOS words per password to load.
