@@ -142,33 +142,23 @@ _john()
 
 	case "${cur}" in
 		-?(-)f?(o|or|orm|orma|ormat)+(=|:)dynamic*)
-			if [[ "${options}" == *--subformat* ]] ; then
-				if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
-					if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
-						return 0
-					fi
+			if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
+				if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+					return 0
 				fi
-				 subformats=`${first} --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
-				cur=${cur#*[=:]}
-				COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
 			fi
-			return 0
-			;;
-		-?(-)f?(o|or|orm|orma|ormat)+(=|:)dy?(n|na|nam|nami))
-			if [[ "${options}" == *--subformat* ]] ; then
-				if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
-					if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
-						return 0
-					fi
+			subformats=`${first} --list=subformats|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
+			if [[ "_${subformats}" != _dynamic_0* ]] ; then
+				subformats=`${first} --subformat=LIST|sed 's#^\(User\)\?Format = \(dynamic_[0-9]*\).*$#\2#'`
+				if [[ "_${subformats}" != _dynamic_0* ]] ; then
+					return 0
 				fi
-				cur=${cur#*[=:]}
-				COMPREPLY=( $(compgen -W "dynamic" -- ${cur}) )
-				compopt -o nospace
 			fi
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
 			return 0
 			;;
 		-?(-)f?(o|or|orm|orma|ormat)+(=|:)*)
-
 			if [[ "${cur#*f}" == [=:]* || "${cur#*f}" == o[=:]* || "${cur#*f}" == or[=:]* ]] ; then
 				if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
 					return 0
@@ -177,6 +167,9 @@ _john()
 			cur=${cur#*[=:]}
 			formats=`${first} |sed -n '/^--format/,$ { s#^--format=[ A-Za-z]*:##; /^--/ b; s#^ *##; s#\<dynamic_n\>#dynamic#; s#[/ ]#\n#g; p }'`
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
+			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
+				compopt -o nospace
+			fi 
 			return 0
 			;;
 
@@ -478,17 +471,24 @@ _john()
 			fi
 			return 0
 			;;
-		-?(-)su?(b|bf|bfo|bfor|bform|bforma|bformat)+(=|:)l*)
-			if [[ "${options}" == *--subformat=* ]] ; then
-				cur=${cur#*[=:]}
-				COMPREPLY=( $(compgen -W "list" -- ${cur}) )
-			fi
-			return 0
-			;;
 		-?(-)su?(b|bf|bfo|bfor|bform|bforma|bformat)+(=|:)*)
-			if [[ "${options}" == *--subformat=* ]] ; then
+			if [[ "${options}" == *--subformat=LIST* ]] ; then
 				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
+			else
+				if [[ "${hidden}" == *--subformat=* ]] ; then
+					cur=${cur#*[=:]}
+					# Should I test if --format=crypt (or -fo:crypt ...) is specified?
+					# Should I really parse the output of
+					# 	$[first} --test --format=crypt --subformat=?
+					# (BTW: The output is wrong. It lists upper case formats,
+					# but expects lower case instead)
+					# should I even test this (with --test=0, and filter out those
+					# with a message:
+					# appears to be unsupported on this system; will not load such hashes.
+					subformats=`${first}  --test=0 --format=crypt --subformat=? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
+					COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
+				fi
 			fi
 			return 0
 			;;
@@ -513,7 +513,7 @@ _john()
 			return 0
 			;;
 		-?(-)l?(i|is|ist)+(=|:)*)
-			if [[ "${hidden}" == *--list=* ]] ; then
+			if [[ "${hidden}" == *--list=* || "${valopts}" == *--list=* ]] ; then
 				cur=${cur#*[=:]}
 				# the --list=? output changed, that's why a more complex regex is used
 				# to cover all cases
