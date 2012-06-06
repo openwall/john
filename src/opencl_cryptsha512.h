@@ -130,13 +130,13 @@ typedef struct {
 } sha512_password;
 
 typedef struct {
-    buffer_64                   v[8];           //512 bits
+    uint64_t                    v[8];           //512 bits
 } sha512_hash;
 
 typedef struct {
+    uint64_t                    H[8];           //512 bits
     uint32_t                    total;
     uint32_t                    buflen;
-    uint64_t                    H[8];           //512 bits
     buffer_64                   buffer[16];     //1024bits
 #if cpu(DEVICE_INFO)
     uint64_t                    safety_trail;   //To avoid memory override
@@ -157,15 +157,4 @@ typedef struct {
     buffer_64                   temp_result[8];
     buffer_64                   p_sequence[8];
 } sha512_buffer;
-
-typedef struct {
-    buffer_64                   alt_result[8];
-    buffer_64                   temp_result[8];
-    buffer_64                   p_sequence[8];
-} sha512_buffers;
-
-typedef struct {
-    sha512_ctx                  ctx_data;
-    sha512_password             pass_data;    
-} sha512_cache;
 #endif
