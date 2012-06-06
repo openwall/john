@@ -358,7 +358,7 @@ static void find_best_gws(void) {
     unsigned int SHAspeed, bestSHAspeed = 0;
     char *tmp_value;
 
-    printf("Calculating best keys per crypt, this will take a while ");
+    printf("Calculating best global work size, this will take a while ");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -448,7 +448,7 @@ static void find_best_gws(void) {
         if (do_benchmark)
             fprintf(stderr, "\n");
     }
-    printf("Optimal keys per crypt %d\n", optimal_gws);
+    printf("Optimal global work size %d\n", optimal_gws);
     printf("(to avoid this test on next run, put \""
         GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
@@ -530,7 +530,7 @@ static void init(struct fmt_main *pFmt) {
     }
     printf("Local work size (LWS) %d, global work size (GWS) %Zd\n",
            (int) local_work_size, global_work_size);
-    pFmt->params.global_work_size = global_work_size;
+    pFmt->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
