@@ -300,7 +300,6 @@ static int get_hash_5(int index) { return ((unsigned int *)crypt_key)[1] & 0xfff
 static int get_hash_6(int index) { return ((unsigned int *)crypt_key)[1] & 0x7ffffff; }
 #endif
 
-/*
 static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned char realcipher[BINARY_SIZE];
@@ -325,7 +324,6 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-*/
 
 struct fmt_main fmt_rawSHA1_LI = {
 	{
@@ -375,6 +373,6 @@ struct fmt_main fmt_rawSHA1_LI = {
 		rawsha1_cmp_all,
 		rawsha1_cmp_one,
 		rawsha1_cmp_exact,
-//		get_source
+		get_source
 	}
 };
