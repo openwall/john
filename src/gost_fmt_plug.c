@@ -180,12 +180,12 @@ static void crypt_all(int count)
 		gost_ctx ctx;
 
 		if (is_cryptopro)
-			gost_cryptopro_init(&ctx);
+			john_gost_cryptopro_init(&ctx);
 		else
-			gost_init(&ctx);
-		gost_update(&ctx, (const unsigned char*)saved_key[index],
+			john_gost_init(&ctx);
+		john_gost_update(&ctx, (const unsigned char*)saved_key[index],
 			    strlen(saved_key[index]));
-		gost_final(&ctx, (unsigned char *)crypt_out[index]);
+		john_gost_final(&ctx, (unsigned char *)crypt_out[index]);
 	}
 }
 

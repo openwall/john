@@ -25,7 +25,7 @@ extern unsigned rhash_gost_sbox_cryptpro[4][256];
  *
  * @param ctx context to initalize
  */
-void gost_init(gost_ctx *ctx)
+void john_gost_init(gost_ctx *ctx)
 {
 	memset(ctx, 0, sizeof(gost_ctx));
 }
@@ -35,9 +35,9 @@ void gost_init(gost_ctx *ctx)
  *
  * @param ctx context to initalize
  */
-void gost_cryptopro_init(gost_ctx *ctx)
+void john_gost_cryptopro_init(gost_ctx *ctx)
 {
-	gost_init(ctx);
+	john_gost_init(ctx);
 	ctx->cryptpro = 1;
 }
 
@@ -340,7 +340,7 @@ static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* bloc
  * @param msg message chunk
  * @param size length of the message chunk
  */
-void gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size)
+void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size)
 {
 	unsigned index = (unsigned)ctx->length & 31;
 	ctx->length += size;
@@ -387,7 +387,7 @@ void gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size)
  * @param ctx the algorithm context containing current hashing state
  * @param result calculated hash in binary form
  */
-void gost_final(gost_ctx *ctx, unsigned char result[32])
+void john_gost_final(gost_ctx *ctx, unsigned char result[32])
 {
 	unsigned  index = (unsigned)ctx->length & 31;
 	unsigned* msg32 = (unsigned*)ctx->message;
