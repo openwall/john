@@ -168,10 +168,10 @@ typedef struct gost_ctx
 
 /* hash functions */
 
-void gost_init(gost_ctx *ctx);
-void gost_cryptopro_init(gost_ctx *ctx);
-void gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size);
-void gost_final(gost_ctx *ctx, unsigned char result[32]);
+void john_gost_init(gost_ctx *ctx);
+void john_gost_cryptopro_init(gost_ctx *ctx);
+void john_gost_update(gost_ctx *ctx, const unsigned char* msg, size_t size);
+void john_gost_final(gost_ctx *ctx, unsigned char result[32]);
 
 void gost_init_table(void); /* initialize algorithm static data */
 
