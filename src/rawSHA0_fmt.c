@@ -139,7 +139,7 @@ static int get_hash_4(int index) { return ((unsigned int *)crypt_key)[0] & 0xfff
 static int get_hash_5(int index) { return ((unsigned int *)crypt_key)[0] & 0xffffff; }
 static int get_hash_6(int index) { return ((unsigned int *)crypt_key)[0] & 0x7ffffff; }
 
-struct fmt_main fmt_rawSHA = {
+struct fmt_main fmt_rawSHA0 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

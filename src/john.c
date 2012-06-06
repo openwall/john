@@ -170,6 +170,7 @@ extern struct fmt_main zip_fmt;
 
 extern struct fmt_main fmt_hmacMD5;
 extern struct fmt_main fmt_hmacSHA1;
+extern struct fmt_main fmt_rawSHA0;
 
 extern int unique(int argc, char **argv);
 extern int unshadow(int argc, char **argv);
@@ -223,6 +224,7 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
+	john_register_one(&fmt_rawSHA0);
 
 #if OPENSSL_VERSION_NUMBER >= 0x00908000
 	john_register_one(&fmt_rawSHA224);
