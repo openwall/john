@@ -124,7 +124,10 @@ static void fix_state(void)
 {
 	if (nWordFileLines) {
 		rec_rule = rule_number;
-		rec_pos = words[nCurLine] - words[0];
+		if (nCurLine)
+			rec_pos = words[nCurLine-1] - words[0];
+		else
+			rec_pos = words[nCurLine] - words[0];
 		return;
 	}
 
