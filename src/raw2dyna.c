@@ -36,7 +36,7 @@ usage %s [options] < input > output\n\
 }
 
 int main(int argc, char **argv) {
-	char Buf[256], *cps, *cph;
+	char Buf[256], *cps, *cph, *dummy;
 
 	// if no input redirection then give usage. I 'guess' we could allow
 	// a user to type in hashes, but is that really likely?  It is almost
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 		usage(argv[0]);
 
 	ParseOptions(argc, argv);
-	fgets(Buf, sizeof(Buf), stdin);
+	dummy = fgets(Buf, sizeof(Buf), stdin);
 	while (!feof(stdin)) {
 		strtok(Buf, "\r\n");
 		if (!leading_salt) {
@@ -59,8 +59,9 @@ int main(int argc, char **argv) {
 			if (salt_sep && *cph == salt_sep) {*cph++ = 0;}
 		}
 		printf("$dynamic_%d$%32.32s$%s\n", dyna_num, cph, GetSalt(cps));
-		fgets(Buf, sizeof(Buf), stdin);
+		dummy = fgets(Buf, sizeof(Buf), stdin);
 	}
+	(void) dummy;
 	return 0;
 }
 
