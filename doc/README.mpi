@@ -19,25 +19,25 @@ PRELUDE:
 ====================
 COMPILING:
 ====================
-    Unless using OMP, you should consider applying the nsk-3 patch, also known
-    as "Faster bitslice DES key setup".
-
-    To enable MPI in John, un-comment these two line in Makefile:
-
-----8<--------------8<--------------8<--------------8<--------------8<----------
-# Uncomment the TWO lines below for MPI (can be used together with OMP as well)
-CC = mpicc -DHAVE_MPI
-MPIOBJ = john-mpi.o
-----8<--------------8<--------------8<--------------8<--------------8<----------
-
     You must have an operational MPI environment prior to both compiling and
     using the MPI version; configuring one is outside the scope of this
     document but for a single, multi-core, host you don't need much
     configuration. MPICH2 or OpenMPI seems to do the job fine, for example.
     Most testing of fullmpi is now done under latest stable OpenMPI.
 
-    Debian Linux example for installing OpenMPI:
+    Debian/Ubuntu/Mint Linux example for installing OpenMPI:
     sudo apt-get install libopenmpi-dev openmpi-bin
+
+    To enable MPI in John, un-comment these two lines in Makefile (the last two
+    of the five below):
+
+----8<--------------8<--------------8<--------------8<--------------8<----------
+## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
+## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
+## For experimental MPI_Abort support, add -DJOHN_MPI_ABORT too.
+CC = mpicc -DHAVE_MPI
+MPIOBJ = john-mpi.o
+----8<--------------8<--------------8<--------------8<--------------8<----------
 
     Note that this patch works just fine together with OMP enabled as well.
     When MPI is in use (with more than one process), OMP is (by default)
@@ -106,6 +106,8 @@ USAGE:
     same terminal.
 
     skill -USR1 -c mpiexec
+    - or -
+    pkill -USR1 mpiexec
 
     Another approach would be to do a normal status print. This must be done
     with mpiexec and using the same -np as used for starting the job:
@@ -113,7 +115,7 @@ USAGE:
     mpiexec -np 4 ./john --status
 
     Which will dump the status of each process as recorded in the .rec files.
-    This way you also get a line with total statistics.
+    This way you also get an extra line with total statistics.
 
 ====================
 CAVEATS:
@@ -128,14 +130,14 @@ CAVEATS:
       with that many real cores.
     - There is no inter-process communication of cracked hashes yet. This means
       that if one node cracks a hash, all other nodes will continue to waste
-      time on it. The current workaround is aborting and restarting the jobs
+      time on it. The current workaround is aborting and resuming the jobs
       regularly. This also means that you may have to manually stop some or all
       nodes after all hashes are cracked.
     - Aborting a job using ctrl-c will often kill all nodes without updating
       state files and logs. I have tried to mitigate this but it is still a
       good idea to send a -USR1 to the parent before killing them. You should
       lower the SAVE parameter in john.conf to 60 (seconds) if running MPI,
-      this will be the maximum time of repeated work after restarting.
+      this will be the maximum time of repeated work after resuming.
 
 ============================================================
 Following is the verbatim original content of this file:
