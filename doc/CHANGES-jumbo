@@ -2,7 +2,7 @@ The following major changes was made since Jumbo-5:
 
 New formats:
 * Raw-SHA1 "LinkedIn" format (partial hashes, 20 bit zeroed) (Jim Fougeron)
-* GOST 3411. Authors: Jim, Sergey and Dhiru. (Dhiru Kholia)
+* GOST 3411. (JimF, Sergey V and Dhiru Kholia)
 * Blowfish OpenCL (Sayantan Datta)
 * Raw SHA512 CUDA format (Myrice)
 * Django 1.4 hashes. (Dhiru)
@@ -16,8 +16,7 @@ New formats:
 * mscash2-cuda (Lukas)
 * xsha512 for CUDA and OpenCL (Myrice)
 * Mozilla Firefox, Thunderbird and SeaMonkey master passwords. (Dhiru)
-* Integrate VNCcrack (http://www.randombit.net/code/vnccrack/) into JtR. JtR
-can now crack RFB Protocol Version 3.8 authentication. (Dhiru)
+* Integrate VNCcrack (http://www.randombit.net/code/vnccrack/) (Dhiru)
 * OpenCL cryptsha512 (Claudio André)
 * CUDA formats: cryptmd5, cryptsha256/512, mscash, mscash2, phpass,
 raw-sha224/256 (Lukas)
