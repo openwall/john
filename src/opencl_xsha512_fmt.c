@@ -64,10 +64,10 @@
 #define FULL_BINARY_SIZE 64
 
 
-#define PLAINTEXT_LENGTH 12 //For one iteration, maximum is 107
+#define PLAINTEXT_LENGTH 12	//For one iteration, maximum is 107
 #define CIPHERTEXT_LENGTH 136
 
-typedef struct { // notice memory align problem
+typedef struct {		// notice memory align problem
 	uint64_t H[8];
 	uint32_t buffer[32];	//1024 bits
 	uint32_t buflen;
@@ -75,16 +75,16 @@ typedef struct { // notice memory align problem
 
 
 typedef struct {
-    uint8_t v[SALT_SIZE]; // 32bits
+	uint8_t v[SALT_SIZE];	// 32bits
 } xsha512_salt;
 
 typedef struct {
-    uint8_t length;
-    char v[PLAINTEXT_LENGTH+1];
+	uint8_t length;
+	char v[PLAINTEXT_LENGTH + 1];
 } xsha512_key;
 
 typedef struct {
-    uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
+	uint64_t v[BINARY_SIZE / 8];	// up to 512 bits
 } xsha512_hash;
 
 
@@ -133,7 +133,7 @@ static void set_key(char *key, int index)
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	gkey[index].length = length;
-	memcpy(gkey[index].v, key, length);
+	//memcpy(gkey[index].v, key, length);
 	xsha512_key_changed = 1;
 }
 
@@ -153,22 +153,23 @@ static void find_best_workgroup()
 	int i;
 	size_t max_group_size;
 	size_t work_size = KEYS_PER_CRYPT;
-    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], 
-		CL_KERNEL_WORK_GROUP_SIZE,sizeof (max_group_size), &max_group_size, 
-		NULL), "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
-	
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
+		&max_group_size, NULL),
+	    "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
+
 	cl_command_queue queue_prof =
 	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
 	    CL_QUEUE_PROFILING_ENABLE,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating command queue");
-	
+
 	/// Set keys
 	char *pass = "password";
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
 		set_key(pass, i);
 	}
-	
+
 	///Set salt
 	memcpy(gsalt.v, "abcd", SALT_SIZE);
 
@@ -176,10 +177,10 @@ static void find_best_workgroup()
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0,
 		insize, gkey, 0, NULL, NULL), "Copy data to gpu");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE,
-			0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
+		0, SALT_SIZE, &gsalt, 0, NULL, NULL), "Copy memsalt");
 
 	my_work_group = 1;
-	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) 
+	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU)
 		my_work_group = 32;
 
 	///Find best local work size
@@ -187,15 +188,18 @@ static void find_best_workgroup()
 		sumStartTime = 0;
 		sumEndTime = 0;
 		for (i = 0; i < 10; ++i) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-				1, NULL, &work_size, &my_work_group, 0, NULL,
-				&myEvent), "Run kernel");
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof,
+				crypt_kernel, 1, NULL, &work_size,
+				&my_work_group, 0, NULL, &myEvent),
+			    "Run kernel");
 			HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
-			
-			clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-			    sizeof(cl_ulong), &startTime, NULL);
-			clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-			    sizeof(cl_ulong), &endTime, NULL);
+
+			clGetEventProfilingInfo(myEvent,
+			    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong),
+			    &startTime, NULL);
+			clGetEventProfilingInfo(myEvent,
+			    CL_PROFILING_COMMAND_END, sizeof(cl_ulong),
+			    &endTime, NULL);
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 		}
@@ -216,43 +220,45 @@ static void init(struct fmt_main *pFmt)
 
 	///Alocate memory on the GPU
 	mem_salt =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for salt");
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for salt");
 	mem_in =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for passwords");
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for passwords");
 	mem_out =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for hashes");
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
 	mem_binary =
-		clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t), NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for binary");
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(uint64_t),
+	    NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while alocating memory for binary");
 	mem_cmp =
-		clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(uint32_t), NULL,
-		&ret_code);
-	HANDLE_CLERROR(ret_code,"Error while alocating memory for cmp_all result");
+	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+	    sizeof(uint32_t), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+	    "Error while alocating memory for cmp_all result");
 
 	///Assign crypt kernel parameters 
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating crypt_kernel");
+	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
 	///Assign cmp kernel parameters 
-	cmp_kernel = clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code,"Error while creating cmp_kernel");
+	cmp_kernel =
+	    clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating cmp_kernel");
 	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
 	find_best_workgroup();
 
-	printf("Global work size = %lld\n",(long long)global_work_size);
+	printf("Global work size = %lld\n", (long long) global_work_size);
 	atexit(release_all);
 
 }
@@ -266,19 +272,22 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (strncmp(pos, "$LION$", 6))
 		return 0;
 	pos += 6;
-	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
+	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' ||
+		*pos >= 'a'))
 		pos++;
-	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH+6;
+	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH + 6;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
+static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
 	char Buf[200];
 	if (!strncmp(split_fields[1], "$LION$", 6))
 		return split_fields[1];
 	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[0]);
 		if (valid(Buf, pFmt)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
+			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
+			    MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
 			return cp;
 		}
@@ -286,7 +295,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[1]);
 		if (valid(Buf, pFmt)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
+			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
+			    MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
 			return cp;
 		}
@@ -304,13 +314,12 @@ static void *get_binary(char *ciphertext)
 	p = ciphertext + 8;
 	for (i = 0; i < sizeof(out); i++) {
 		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	uint64_t *b = (uint64_t*)out;
+	uint64_t *b = (uint64_t *) out;
 	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(b[i])-H[i];
+		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
 	}
 	return out;
@@ -326,8 +335,7 @@ static void *salt(char *ciphertext)
 	p = ciphertext;
 	for (i = 0; i < sizeof(out); i++) {
 		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 
@@ -336,37 +344,37 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0x7FFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0x7FFFFFF;
 }
 
 static int get_hash_0(int index)
@@ -374,15 +382,15 @@ static int get_hash_0(int index)
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-	return ((uint64_t*)ghash)[index] & 0xF;
+	return ((uint64_t *) ghash)[index] & 0xF;
 }
 
 static int get_hash_1(int index)
-{	
+{
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-	return ((uint64_t*)ghash)[index] & 0xFF;
+	return ((uint64_t *) ghash)[index] & 0xFF;
 }
 
 static int get_hash_2(int index)
@@ -391,7 +399,7 @@ static int get_hash_2(int index)
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
@@ -400,7 +408,7 @@ static int get_hash_3(int index)
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
@@ -409,7 +417,7 @@ static int get_hash_4(int index)
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
@@ -418,7 +426,7 @@ static int get_hash_5(int index)
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
@@ -427,7 +435,7 @@ static int get_hash_6(int index)
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
 static int salt_hash(void *salt)
@@ -436,12 +444,12 @@ static int salt_hash(void *salt)
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
+	return *(ARCH_WORD_32 *) salt & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(gsalt.v, (uint8_t*)salt, SALT_SIZE);
+	memcpy(gsalt.v, (uint8_t *) salt, SALT_SIZE);
 }
 
 static void crypt_all(int count)
@@ -472,8 +480,9 @@ static void crypt_all(int count)
 static int cmp_all(void *binary, int count)
 {
 	///Copy binary to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary, CL_FALSE,
-		0, sizeof(uint64_t), ((uint64_t*)binary)+3, 0, NULL, NULL), "Copy mem_binary");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary,
+		CL_FALSE, 0, sizeof(uint64_t), ((uint64_t *) binary) + 3, 0,
+		NULL, NULL), "Copy mem_binary");
 
 	///Run kernel
 	size_t worksize = KEYS_PER_CRYPT;
@@ -490,7 +499,7 @@ static int cmp_all(void *binary, int count)
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
-	
+
 }
 
 static int cmp_one(void *binary, int index)
@@ -500,7 +509,7 @@ static int cmp_one(void *binary, int index)
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
 	uint64_t *b = (uint64_t *) binary;
-	uint64_t *t = (uint64_t *)ghash;
+	uint64_t *t = (uint64_t *) ghash;
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
@@ -511,23 +520,23 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
-	
+
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
-	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
+	SHA512_Final((unsigned char *) (crypt_out), &ctx);
 
 	int i;
-	uint64_t *b = (uint64_t *)get_binary(source);
-	uint64_t *c = (uint64_t *)crypt_out;
+	uint64_t *b = (uint64_t *) get_binary(source);
+	uint64_t *c = (uint64_t *) crypt_out;
 
 	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(c[i])-H[i];
+		uint64_t t = SWAP64(c[i]) - H[i];
 		c[i] = SWAP64(t);
 	}
 
-	
-	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
+
+	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) {	//examin 512bits
 		if (b[i] != c[i])
 			return 0;
 	}
@@ -548,7 +557,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		tests
+	    tests
 	}, {
 		init,
 		prepare,
@@ -590,4 +599,3 @@ struct fmt_main fmt_opencl_xsha512 = {
 #warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
 #endif
 #endif
-
