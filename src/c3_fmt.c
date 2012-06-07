@@ -78,7 +78,7 @@ static void init(struct fmt_main *pFmt)
 			tests[2].ciphertext = "$1$dXc3I7Rw$is1mVIAEtAhIzSdfn5JOO0";
 			tests[3].ciphertext = "$1$eQT9Hwbt$XtuElNJD.eW5MN5UCWyTQ0";
 			tests[4].ciphertext = "$1$Eu.GHtia$CFkL/nE1BYTlEPiVx1VWX0";
-		} else if ((strcasecmp(options.subformat, "raw-sha256")==0) ||
+		} else if ((strcasecmp(options.subformat, "cryptsha256")==0) ||
 		           (strcasecmp(options.subformat, "sha-256")==0) ||
 		           (strcasecmp(options.subformat, "sha256")==0)) {
 			fmt_crypt.params.benchmark_comment = " SHA-256 rounds=5000";
@@ -87,7 +87,7 @@ static void init(struct fmt_main *pFmt)
 			tests[2].ciphertext = "$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A";
 			tests[3].ciphertext = "$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA";
 			tests[4].ciphertext = "$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43";
-		} else if ((strcasecmp(options.subformat, "raw-sha512")==0) ||
+		} else if ((strcasecmp(options.subformat, "cryptsha512")==0) ||
 		           (strcasecmp(options.subformat, "sha-512")==0) ||
 		           (strcasecmp(options.subformat, "sha512")==0)) {
 			fmt_crypt.params.benchmark_comment = " SHA-512 rounds=5000";
@@ -106,7 +106,7 @@ static void init(struct fmt_main *pFmt)
 			tests[3].ciphertext = "$2a$05$.WRrXibc1zPgIdRXYfv.4uu6TD1KWf0VnHzq/0imhUhuxSxCyeBs2";
 			tests[4].ciphertext = "$2a$05$Otz9agnajgrAe0.kFVF9V.tzaStZ2s1s4ZWi/LY4sw2k/MTVFj/IO";
 		} else if (strcasecmp(options.subformat, "des")) {
-			fprintf(stderr, "Subformat unknown to John. Currently supported: des, md5, bf, raw-sha256, raw-sha512\n\n");
+			fprintf(stderr, "Subformat unknown to John. Currently supported: des, md5, bf, cryptsha256, cryptsha512\n\n");
 			error();
 		}
 	}
