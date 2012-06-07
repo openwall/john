@@ -23,7 +23,7 @@ static size_t password_size;
 static size_t hash_size;
 static uint8_t *cuda_result;
 static xsha512_extend_key *cuda_ext_password;
-
+static uint8_t cracked_hash_copy_out;
 
 __constant__ uint64_t k[] = {
 	0x428a2f98d728ae22LL, 0x7137449123ef65cdLL, 0xb5c0fbcfec4d3b2fLL,
@@ -232,7 +232,10 @@ void cuda_xsha512_init()
 
 void cuda_xsha512_cpy_hash(xsha512_hash* host_hash)
 {
-	HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
+	if (!cracked_hash_copy_out) {
+		HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
+		cracked_hash_copy_out = 1;
+	}
 }
 
 void cuda_xsha512(xsha512_key *host_password,
@@ -252,6 +255,7 @@ void cuda_xsha512(xsha512_key *host_password,
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
     kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash, cuda_ext_password);
+	cracked_hash_copy_out = 0;
 }
 
 __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
