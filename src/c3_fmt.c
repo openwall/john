@@ -71,40 +71,42 @@ struct fmt_main fmt_crypt;
 static void init(struct fmt_main *pFmt)
 {
 	if (options.subformat) {
-		if (strncmp(options.subformat, "md5", 4)==0) {
+		if (strcasecmp(options.subformat, "md5")==0) {
 			fmt_crypt.params.benchmark_comment = " MD5";
 			tests[0].ciphertext = "$1$dXc3I7Rw$ctlgjDdWJLMT.qwHsWhXR1";
 			tests[1].ciphertext = "$1$dXc3I7Rw$94JPyQc/eAgQ3MFMCoMF.0";
 			tests[2].ciphertext = "$1$dXc3I7Rw$is1mVIAEtAhIzSdfn5JOO0";
 			tests[3].ciphertext = "$1$eQT9Hwbt$XtuElNJD.eW5MN5UCWyTQ0";
 			tests[4].ciphertext = "$1$Eu.GHtia$CFkL/nE1BYTlEPiVx1VWX0";
-		} else if ((strncmp(options.subformat, "sha-256", 8)==0) ||
-		           (strncmp(options.subformat, "sha256", 7)==0)) {
+		} else if ((strcasecmp(options.subformat, "cryptsha256")==0) ||
+		           (strcasecmp(options.subformat, "sha-256")==0) ||
+		           (strcasecmp(options.subformat, "sha256")==0)) {
 			fmt_crypt.params.benchmark_comment = " SHA-256 rounds=5000";
 			tests[0].ciphertext = "$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9";
 			tests[1].ciphertext = "$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.";
 			tests[2].ciphertext = "$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A";
 			tests[3].ciphertext = "$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA";
 			tests[4].ciphertext = "$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43";
-		} else if ((strncmp(options.subformat, "sha-512", 8)==0) ||
-	            (strncmp(options.subformat, "sha512", 7)==0)) {
+		} else if ((strcasecmp(options.subformat, "cryptsha512")==0) ||
+		           (strcasecmp(options.subformat, "sha-512")==0) ||
+		           (strcasecmp(options.subformat, "sha512")==0)) {
 			fmt_crypt.params.benchmark_comment = " SHA-512 rounds=5000";
 			tests[0].ciphertext = "$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0";
 			tests[1].ciphertext = "$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1";
 			tests[2].ciphertext = "$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/";
 			tests[3].ciphertext = "$6$OmBOuxFYBZCYAadG$WCckkSZok9xhp4U1shIZEV7CCVwQUwMVea7L3A77th6SaE9jOPupEMJB.z0vIWCDiN9WLh2m9Oszrj5G.gt330";
 			tests[4].ciphertext = "$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.";
-		} else if ((strncmp(options.subformat, "bf", 3)==0) ||
-	            (strncmp(options.subformat, "blowfish", 9)==0) ||
-	            (strncmp(options.subformat, "bcrypt", 7)==0)) {
+		} else if ((strcasecmp(options.subformat, "bf")==0) ||
+		           (strcasecmp(options.subformat, "blowfish")==0) ||
+		           (strcasecmp(options.subformat, "bcrypt")==0)) {
 			fmt_crypt.params.benchmark_comment = " BF x32";
 			tests[0].ciphertext = "$2a$05$c92SVSfjeiCD6F2nAD6y0uBpJDjdRkt0EgeC4/31Rf2LUZbDRDE.O";
 			tests[1].ciphertext = "$2a$05$WY62Xk2TXZ7EvVDQ5fmjNu7b0GEzSzUXUh2cllxJwhtOeMtWV3Ujq";
 			tests[2].ciphertext = "$2a$05$Fa0iKV3E2SYVUlMknirWU.CFYGvJ67UwVKI1E2FP6XeLiZGcH3MJi";
 			tests[3].ciphertext = "$2a$05$.WRrXibc1zPgIdRXYfv.4uu6TD1KWf0VnHzq/0imhUhuxSxCyeBs2";
 			tests[4].ciphertext = "$2a$05$Otz9agnajgrAe0.kFVF9V.tzaStZ2s1s4ZWi/LY4sw2k/MTVFj/IO";
-		} else if (strncmp(options.subformat, "des", 4)) {
-			fprintf(stderr, "Subformat unknown to John. Currently supported: DES, MD5, BF, SHA-256, SHA-512\n\n");
+		} else if (strcasecmp(options.subformat, "des")) {
+			fprintf(stderr, "Subformat unknown to John. Currently supported: des, md5, bf, cryptsha256, cryptsha512\n\n");
 			error();
 		}
 	}
