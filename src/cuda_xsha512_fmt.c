@@ -256,13 +256,23 @@ static void set_key(char *key, int index)
 			use_extend = 1;
 	} else
 		memcpy(gkey[index].v, key, length);
-	xsha512_key_changed = 1;
+	if (!xsha512_key_changed)
+		xsha512_key_changed = 1;
 }
 
 static char *get_key(int index)
 {
-	gkey[index].v[gkey[index].length] = 0;
-	return gkey[index].v;
+	static char key[MAX_PLAINTEXT_LENGTH];
+	if (gkey[index].length > PLAINTEXT_LENGTH) {
+		memcpy(key, gkey[index].v, PLAINTEXT_LENGTH);
+		memcpy(key+PLAINTEXT_LENGTH, g_ext_key[index], EXTEND_PLAINTEXT_LENGTH);
+		key[gkey[index].length] = 0;
+		return key;
+	}
+	else {
+		gkey[index].v[gkey[index].length] = 0;
+		return gkey[index].v;
+	}
 }
 
 static void crypt_all(int count)
@@ -327,7 +337,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH,
+		MAX_PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,

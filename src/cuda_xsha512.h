@@ -29,7 +29,7 @@
 
 #define PLAINTEXT_LENGTH		16
 #define MAX_PLAINTEXT_LENGTH	125
-#define EXTEND_PLAINTEXT_LENGT	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
+#define EXTEND_PLAINTEXT_LENGTH	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
 
 #define CIPHERTEXT_LENGTH		136
 
@@ -74,7 +74,7 @@ typedef struct {
 	char v[PLAINTEXT_LENGTH + 1];
 } xsha512_key;
 
-typedef char xsha512_extend_key[EXTEND_PLAINTEXT_LENGT + 1];
+typedef char xsha512_extend_key[EXTEND_PLAINTEXT_LENGTH + 1];
 
 typedef struct {
 	uint64_t v[BINARY_SIZE / 8];	// up to 512 bits
