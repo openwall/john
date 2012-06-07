@@ -17,7 +17,7 @@
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
 #define ITERATIONS 1
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
-#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT) //Hope this can be divided by 16
+#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)	//Hope this can be divided by 16
 
 #define SALT_SIZE 4
 #if 0
@@ -29,13 +29,13 @@
 
 #define PLAINTEXT_LENGTH		16
 #define MAX_PLAINTEXT_LENGTH	125
-#define EXTEND_PLAINTEXT_LENGT	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
+#define EXTEND_PLAINTEXT_LENGTH	(MAX_PLAINTEXT_LENGTH-PLAINTEXT_LENGTH)
 
 #define CIPHERTEXT_LENGTH		136
 
 extern uint8_t xsha512_key_changed;
 // Thanks for Lukas' code here
-# define SWAP64(n) \
+#define SWAP64(n) \
   (((n) << 56)					\
    | (((n) & 0xff00) << 40)			\
    | (((n) & 0xff0000) << 24)			\
@@ -58,7 +58,7 @@ extern uint8_t xsha512_key_changed;
 #define hash_addr(j,idx) (((j)*(MAX_KEYS_PER_CRYPT))+(idx))
 
 
-typedef struct { // notice memory align problem
+typedef struct {		// notice memory align problem
 	uint8_t buffer[128];	//1024bits
 	uint32_t buflen;
 	uint64_t H[8];
@@ -66,19 +66,18 @@ typedef struct { // notice memory align problem
 
 
 typedef struct {
-    uint8_t v[SALT_SIZE]; // 32bits
+	uint8_t v[SALT_SIZE];	// 32bits
 } xsha512_salt;
 
 typedef struct {
-    uint8_t length;
-    char v[PLAINTEXT_LENGTH+1];
+	uint8_t length;
+	char v[PLAINTEXT_LENGTH + 1];
 } xsha512_key;
 
-typedef char xsha512_extend_key[EXTEND_PLAINTEXT_LENGT+1];
+typedef char xsha512_extend_key[EXTEND_PLAINTEXT_LENGTH + 1];
 
 typedef struct {
-    uint64_t v[BINARY_SIZE / 8]; // up to 512 bits
+	uint64_t v[BINARY_SIZE / 8];	// up to 512 bits
 } xsha512_hash;
 
 #endif
-

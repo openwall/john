@@ -44,17 +44,14 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-extern void cuda_xsha512(xsha512_key *host_password,
-                         xsha512_salt *host_salt,
-                         xsha512_hash* host_hash,
-                         xsha512_extend_key *host_ext_password,
-                         uint8_t use_extend);
+extern void cuda_xsha512(xsha512_key * host_password,
+    xsha512_salt * host_salt,
+    xsha512_hash * host_hash,
+    xsha512_extend_key * host_ext_password, uint8_t use_extend);
 
 extern void cuda_xsha512_init();
 extern int cuda_cmp_all(void *binary, int count);
-extern void cuda_xsha512_cpy_hash(xsha512_hash* host_hash);
-
-
+extern void cuda_xsha512_cpy_hash(xsha512_hash * host_hash);
 
 static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
 static xsha512_extend_key g_ext_key[MAX_KEYS_PER_CRYPT];
@@ -87,19 +84,22 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (strncmp(pos, "$LION$", 6))
 		return 0;
 	pos += 6;
-	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
+	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' ||
+		*pos >= 'a'))
 		pos++;
-	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH+6;
+	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH + 6;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
+static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
 	char Buf[200];
 	if (!strncmp(split_fields[1], "$LION$", 6))
 		return split_fields[1];
 	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[0]);
 		if (valid(Buf, pFmt)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
+			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
+			    MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
 			return cp;
 		}
@@ -107,7 +107,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[1]);
 		if (valid(Buf, pFmt)) {
-			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
+			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
+			    MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
 			return cp;
 		}
@@ -125,13 +126,12 @@ static void *get_binary(char *ciphertext)
 	p = ciphertext + 8;
 	for (i = 0; i < sizeof(out); i++) {
 		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	uint64_t *b = (uint64_t*)out;
+	uint64_t *b = (uint64_t *) out;
 	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(b[i])-H[i];
+		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
 	}
 	return out;
@@ -147,8 +147,7 @@ static void *salt(char *ciphertext)
 	p = ciphertext;
 	for (i = 0; i < sizeof(out); i++) {
 		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 
@@ -157,89 +156,89 @@ static void *salt(char *ciphertext)
 
 static int binary_hash_0(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xF;
 }
 
 static int binary_hash_1(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFF;
 }
 
 static int binary_hash_2(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFF;
 }
 
 static int binary_hash_3(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFF;
 }
 
 static int binary_hash_4(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFF;
 }
 
 static int binary_hash_5(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0xFFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0xFFFFFF;
 }
 
 static int binary_hash_6(void *binary)
 {
-	return *((ARCH_WORD_32 *)binary+6) & 0x7FFFFFF;
+	return *((ARCH_WORD_32 *) binary + 6) & 0x7FFFFFF;
 }
 
 static int get_hash_0(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xF;
 }
 
 static int get_hash_1(int index)
-{	
+{
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
 	cuda_xsha512_cpy_hash(ghash);
-	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
+	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
 static int salt_hash(void *salt)
 {
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
+	return *(ARCH_WORD_32 *) salt & (SALT_HASH_SIZE - 1);
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(gsalt.v, (uint8_t*)salt, SALT_SIZE);
+	memcpy(gsalt.v, (uint8_t *) salt, SALT_SIZE);
 }
 
 static void set_key(char *key, int index)
@@ -252,19 +251,28 @@ static void set_key(char *key, int index)
 	if (length > PLAINTEXT_LENGTH) {
 		memcpy(gkey[index].v, key, PLAINTEXT_LENGTH);
 		key += PLAINTEXT_LENGTH;
-		memcpy(g_ext_key[index], key, length-PLAINTEXT_LENGTH);
+		memcpy(g_ext_key[index], key, length - PLAINTEXT_LENGTH);
 		if (!use_extend)
 			use_extend = 1;
-	}
-	else
+	} else
 		memcpy(gkey[index].v, key, length);
-	xsha512_key_changed = 1;
+	if (!xsha512_key_changed)
+		xsha512_key_changed = 1;
 }
 
 static char *get_key(int index)
 {
-	gkey[index].v[gkey[index].length] = 0;
-	return gkey[index].v;
+	static char key[MAX_PLAINTEXT_LENGTH];
+	if (gkey[index].length > PLAINTEXT_LENGTH) {
+		memcpy(key, gkey[index].v, PLAINTEXT_LENGTH);
+		memcpy(key+PLAINTEXT_LENGTH, g_ext_key[index], EXTEND_PLAINTEXT_LENGTH);
+		key[gkey[index].length] = 0;
+		return key;
+	}
+	else {
+		gkey[index].v[gkey[index].length] = 0;
+		return gkey[index].v;
+	}
 }
 
 static void crypt_all(int count)
@@ -282,7 +290,7 @@ static int cmp_one(void *binary, int index)
 {
 	uint64_t *b = (uint64_t *) binary;
 	cuda_xsha512_cpy_hash(ghash);
-	uint64_t *t = (uint64_t *)ghash;
+	uint64_t *t = (uint64_t *) ghash;
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
@@ -293,28 +301,28 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
-	
+
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
 	if (gkey[index].length > PLAINTEXT_LENGTH) {
 		SHA512_Update(&ctx, gkey[index].v, PLAINTEXT_LENGTH);
-		SHA512_Update(&ctx, g_ext_key[index], gkey[index].length-PLAINTEXT_LENGTH);
-	}
-	else
+		SHA512_Update(&ctx, g_ext_key[index],
+		    gkey[index].length - PLAINTEXT_LENGTH);
+	} else
 		SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
-	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
+	SHA512_Final((unsigned char *) (crypt_out), &ctx);
 
 	int i;
-	uint64_t *b = (uint64_t *)get_binary(source);
-	uint64_t *c = (uint64_t *)crypt_out;
+	uint64_t *b = (uint64_t *) get_binary(source);
+	uint64_t *c = (uint64_t *) crypt_out;
 
 	for (i = 0; i < 8; i++) {
-		uint64_t t = SWAP64(c[i])-H[i];
+		uint64_t t = SWAP64(c[i]) - H[i];
 		c[i] = SWAP64(t);
 	}
 
-	
-	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
+
+	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) {	//examin 512bits
 		if (b[i] != c[i])
 			return 0;
 	}
@@ -329,7 +337,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH,
+		MAX_PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
@@ -377,4 +385,3 @@ struct fmt_main fmt_cuda_xsha512 = {
 #warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
 #endif
 #endif
-
