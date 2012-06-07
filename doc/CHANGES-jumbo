@@ -1,12 +1,18 @@
 The following major changes was made since Jumbo-5:
 
 New formats:
-* Password Safe files. (Dhiru Kholia)
+* Raw-SHA1 "LinkedIn" format (partial hashes, 20 bit zeroed) (Jim Fougeron)
+* GOST 3411. Authors: Jim, Sergey and Dhiru. (Dhiru Kholia)
+* Blowfish OpenCL (Sayantan Datta)
+* Raw SHA512 CUDA format (Myrice)
+* Django 1.4 hashes. (Dhiru)
+* WoltLab Burning Board 3 hashes. (Dhiru)
+* Password Safe files. (Dhiru)
 * WPAPSK format for CUDA and OpenCL (Lukas Odzioba)
 * Mac OS X Keychain cracker with OMP support. (Dhiru)
 * Office 2007/2010 documents. (Dhiru)
 * Add support for *new* EPiServer's default hashes. (Dhiru)
-* mscash2-opencl format added (Sayantan Datta)
+* mscash2-opencl format added (Sayantan)
 * mscash2-cuda (Lukas)
 * xsha512 for CUDA and OpenCL (Myrice)
 * Mozilla Firefox, Thunderbird and SeaMonkey master passwords. (Dhiru)
@@ -27,9 +33,20 @@ ssha (Samuele, Lukas)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
 Other changes:
+* c3_fmt.c: improve --subformat= handling (Frank Dittrich)
+* wordlist.c: Status bug fix (JimF)
+* Add --list=subformats and deprecate --subformat=list (magnum)
+* raw2dyna added. This is a helper program that converts raw hashes to dynamic 
+format. (JimF)
+* Add new john.conf options subsections Markov and MPI and add a new 
+config item CrackStatus under Options:Jumbo. Note: If CrackStatus=Y in 
+john.conf, the --crack-status option disables it. (magnum)
+* Win32 SharedMemory patch (only affects _MSC_VER, __CYGWIN32__ or __MINGW32__ 
+builds) (JimF)
+* SHA512 opencl implementation (Myrice)
+* Arbitrary characters in rules, using \xnn (JimF)
 * Added a new rule _N, to reject a word unless it is length N. (JimF)
-* bash-completion for JtR (to install: "sudo make bash-completion") (Frank
-Dittrich)
+* bash-completion for JtR (to install: "sudo make bash-completion") (Frank)
 * New (hidden) options: --list= to be used by bash completion as well as GUI's
 and other things. (magnum)
 * -regenerate-lost-salts=N option, for cracking hashes where we do not have the
@@ -58,8 +75,7 @@ info for user formats. (magnum)
 * john-1.7.9-dynamic-unameonly-1.diff (JimF)
 * rar2john: Handle Unicode file names. Less output unless -DDEBUG. (magnum)
 * rar2john: fix failure for RAR files with comment present. (Dhiru)
-* loader.c: Read gecos and homedir from pwdump-style input.
-http://www.openwall.com/lists/john-users/2012/02/22/1 (magnum)
+* loader.c: Read gecos and homedir from pwdump-style input. (magnum)
 * options.c: Sort formats list (magnum)
 * CUDA support added (Lukas)
 * Dynamic: Support null bytes in constants. (JimF)
