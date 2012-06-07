@@ -11,11 +11,12 @@
 //#define FIXED_LEN		6
 
 #define LWS_CONFIG		"rar_LWS"
-#define KPC_CONFIG		"rar_KPC"
+#define GWS_CONFIG		"rar_GWS"
 
 #define ROUNDS			0x40000
 
-/* Good for AMD, bad for nvidia */
+/* Good for AMD, bad for nvidia. Note that this can't be used until
+   we support fixed-length kernels, this was only a test */
 //#define RAR_VECTORIZE
 
 #endif /* _OPENCL_RAR_H */

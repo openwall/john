@@ -294,28 +294,29 @@ static void openssl_cleanup(void)
 }
 
 #ifdef CL_VERSION_1_0
-static void create_clobj(int kpc)
+static void create_clobj(int gws)
 {
 	int i;
 	int bench_len = strlen(rar_fmt.params.tests[0].plaintext) * 2;
 
+	*mkpc = VF * (global_work_size = gws);
 #ifdef DEBUG
-	fprintf(stderr, "Creating %d bytes of key buffer\n", UNICODE_LENGTH * kpc);
+	fprintf(stderr, "Creating %d bytes of key buffer\n", UNICODE_LENGTH * *mkpc);
 #endif
-	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * kpc, NULL , &ret_code);
+	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * *mkpc, NULL , &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * kpc, 0, NULL, NULL, &ret_code);
+	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
-	memset(saved_key, 0, UNICODE_LENGTH * kpc);
+	memset(saved_key, 0, UNICODE_LENGTH * *mkpc);
 
 #ifdef DEBUG
-	fprintf(stderr, "Creating %lu bytes of key_len buffer\n", sizeof(cl_int) * kpc);
+	fprintf(stderr, "Creating %lu bytes of key_len buffer\n", sizeof(cl_int) * *mkpc);
 #endif
-	cl_saved_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * kpc, NULL, &ret_code);
+	cl_saved_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * kpc, 0, NULL, NULL, &ret_code);
+	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
-	for (i = 0; i < kpc; i++)
+	for (i = 0; i < *mkpc; i++)
 		saved_len[i] = bench_len;
 
 #ifdef DEBUG
@@ -328,28 +329,26 @@ static void create_clobj(int kpc)
 	memset(saved_salt, 0, 8);
 
 #ifdef DEBUG
-	fprintf(stderr, "Creating %d bytes each of aes_key and aes_iv buffers\n", 16 * kpc);
+	fprintf(stderr, "Creating %d bytes each of aes_key and aes_iv buffers\n", 16 * *mkpc);
 #endif
 	// aes_key is uchar[16] but kernel treats it as uint[4]
-	cl_aes_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * kpc, NULL, &ret_code);
+	cl_aes_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * kpc, 0, NULL, NULL, &ret_code);
+	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_key");
-	memset(aes_key, 0, 16 * kpc);
+	memset(aes_key, 0, 16 * *mkpc);
 
-	cl_aes_iv = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * kpc, NULL, &ret_code);
+	cl_aes_iv = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * kpc, 0, NULL, NULL, &ret_code);
+	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
-	memset(aes_iv, 0, 16 * kpc);
+	memset(aes_iv, 0, 16 * *mkpc);
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_aes_key), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 4");
-
-	global_work_size = (*mkpc = kpc) / VF;
 }
 
 static void release_clobj(void)
@@ -384,15 +383,16 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
-cl_ulong gws_test(int num)
+cl_ulong gws_test(int gws)
 {
 	cl_ulong startTime, endTime, run_time;
 	cl_command_queue queue_prof;
 	cl_event myEvent;
 	cl_int ret_code;
 	int i;
+	int num = VF * gws;
 
-	create_clobj(num);
+	create_clobj(gws);
 	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < num; i++)
 		set_key(rar_fmt.params.tests[0].plaintext, i);
@@ -421,12 +421,12 @@ cl_ulong gws_test(int num)
 	return (run_time + endTime - startTime);
 }
 
-static void find_best_kpc(int do_benchmark)
+static void find_best_gws(int do_benchmark)
 {
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
-	int optimal_kpc = local_work_size * VF;
+	int optimal_gws = local_work_size;
 	const int sha1perkey = (strlen(rar_fmt.params.tests[0].plaintext) * 2 + 8 + 3) * (0x40000 + 16) / 64;
 
 #ifndef DEBUG
@@ -437,7 +437,7 @@ static void find_best_kpc(int do_benchmark)
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size * VF; num; num *= 2) {
+	for (num = local_work_size; num; num *= 2) {
 		if (!(run_time = gws_test(num)))
 			break;
 
@@ -449,7 +449,7 @@ static void find_best_kpc(int do_benchmark)
 #ifndef DEBUG
 		if (do_benchmark)
 #endif
-		fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+		fprintf(stderr, "gws %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 #ifndef DEBUG
@@ -457,7 +457,7 @@ static void find_best_kpc(int do_benchmark)
 #endif
 			fprintf(stderr, "!\n");
 			bestSHAspeed = SHAspeed;
-			optimal_kpc = num;
+			optimal_gws = num;
 		} else {
 
 			if (((float)run_time / (float)min_time) > 1.8 * ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
@@ -474,7 +474,7 @@ static void find_best_kpc(int do_benchmark)
 #endif
 				fprintf(stderr, "+");
 				bestSHAspeed = SHAspeed;
-				optimal_kpc = num;
+				optimal_gws = num;
 			}
 #ifndef DEBUG
 			if (do_benchmark)
@@ -485,7 +485,7 @@ static void find_best_kpc(int do_benchmark)
 	if (do_benchmark) {
 		int got_better = 0;
 
-		for (num = optimal_kpc + VF * local_work_size; num; num += VF * local_work_size) {
+		for (num = optimal_gws + local_work_size; num; num += local_work_size) {
 			if (!(run_time = gws_test(num)))
 				break;
 
@@ -497,7 +497,7 @@ static void find_best_kpc(int do_benchmark)
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
-			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
 #ifndef DEBUG
@@ -513,7 +513,7 @@ static void find_best_kpc(int do_benchmark)
 #endif
 				fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
-				optimal_kpc = num;
+				optimal_gws = num;
 				got_better = 1;
 			} else {
 #ifndef DEBUG
@@ -524,7 +524,7 @@ static void find_best_kpc(int do_benchmark)
 			}
 		}
 		if (!got_better)
-		for (num = optimal_kpc - VF * local_work_size; num; num -= VF * local_work_size) {
+		for (num = optimal_gws - local_work_size; num; num -= local_work_size) {
 			if (!(run_time = gws_test(num)))
 				break;
 
@@ -536,7 +536,7 @@ static void find_best_kpc(int do_benchmark)
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
-			fprintf(stderr, "kpc %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
 #ifndef DEBUG
@@ -552,7 +552,7 @@ static void find_best_kpc(int do_benchmark)
 #endif
 				fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
-				optimal_kpc = num;
+				optimal_gws = num;
 				got_better = 1;
 			} else {
 #ifndef DEBUG
@@ -564,12 +564,13 @@ static void find_best_kpc(int do_benchmark)
 		}
 	}
 	if (get_device_type(gpu_id) != CL_DEVICE_TYPE_CPU) {
-		fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_kpc);
+		fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_gws);
 		fprintf(stderr, "(to avoid this test on next run, put \""
-		        KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-		        SUBSECTION_OPENCL "])\n", (int)optimal_kpc);
+		        GWS_CONFIG " = %d\" in john.conf, section ["
+		        SECTION_OPTIONS
+		        SUBSECTION_OPENCL "])\n", (int)optimal_gws);
 	}
-	global_work_size = (*mkpc = optimal_kpc) / VF;
+	*mkpc = VF * (global_work_size = optimal_gws);
 }
 #endif	/* OpenCL */
 
@@ -597,14 +598,14 @@ static void init(struct fmt_main *pFmt)
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, KPC_CONFIG)))
-		global_work_size = atoi(temp) / VF;
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
+		global_work_size = atoi(temp);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
 
-	if ((temp = getenv("KPC")))
-		global_work_size = atoi(temp) / VF;
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
 
 	/* Note: we ask for this kernel's max size, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
@@ -627,14 +628,14 @@ static void init(struct fmt_main *pFmt)
 	}
 
 	if (!global_work_size)
-		find_best_kpc(temp == NULL ? 0 : 1);
+		find_best_gws(temp == NULL ? 0 : 1);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
 
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize %d, KPC %d\n", (int)local_work_size, (int)global_work_size, VF * (int)global_work_size);
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	create_clobj(VF * global_work_size);
+	create_clobj(global_work_size);
 
 #ifdef DEBUG
 	{
@@ -776,7 +777,7 @@ static void crypt_all(int count)
 			new_keys = 0;
 		}
 #ifdef DEBUG
-		fprintf(stderr, "GPU: lws %d gws %d kpc %d count %d\n", (int)local_work_size, (int)global_work_size, *mkpc, count);
+		fprintf(stderr, "GPU: lws %d gws %d gws %d count %d\n", (int)local_work_size, (int)global_work_size, *mkpc, count);
 #endif
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 #ifdef DEBUG
@@ -794,7 +795,7 @@ static void crypt_all(int count)
 #if !defined (CL_VERSION_1_0) || !defined(ALWAYS_OPENCL)
 	{
 #ifdef DEBUG
-		fprintf(stderr, "CPU: kpc %d count %d\n", *mkpc, count);
+		fprintf(stderr, "CPU: gws %d count %d\n", *mkpc, count);
 #endif
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -929,23 +930,11 @@ static void crypt_all(int count)
 				unpack_t->iv = &aes_iv[i16];
 				unpack_t->ctx = &aes_ctx;
 				unpack_t->key = &aes_key[i16];
-#if 1
+
 				if (rar_unpack29(cur_file->encrypted, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 				else
 					cracked[index] = 0;
-#else
-				int aa;
-				if ((aa = rar_unpack29(cur_file->encrypted, solid, unpack_t)))
-					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
-				else
-					cracked[index] = 0;
-
-				if (aa == -1) {
-					puts("memcheck fail");
-					exit(0);
-				}
-#endif
 			}
 		}
 		EVP_CIPHER_CTX_cleanup(&aes_ctx);

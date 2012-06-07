@@ -49,7 +49,7 @@
 #define MAX_KEYS_PER_CRYPT		SSHA_NUM_KEYS
 
 #define LWS_CONFIG			"ssha_LWS"
-#define KPC_CONFIG			"ssha_KPC"
+#define GWS_CONFIG			"ssha_GWS"
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -291,7 +291,7 @@ static void find_best_kpc(void){
 	clReleaseCommandQueue(queue_prof);
     }
     printf("Optimal keys per crypt %d\n(to avoid this test on next run, put \""
-           KPC_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+           GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
            SUBSECTION_OPENCL "])\n", optimal_kpc, optimal_kpc);
     max_keys_per_crypt = optimal_kpc;
     release_clobj();
@@ -321,12 +321,12 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 	}
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-	                          KPC_CONFIG)))
+	                          GWS_CONFIG)))
 		max_keys_per_crypt = atoi(temp);
 	else
 		max_keys_per_crypt = SSHA_NUM_KEYS;
 
-	if ((temp = getenv("KPC")))
+	if ((temp = getenv("GWS")))
 		max_keys_per_crypt = atoi(temp);
 
 	if (max_keys_per_crypt) {
@@ -337,7 +337,7 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 		create_clobj(SSHA_NUM_KEYS);
 		find_best_kpc();
 	}
-	printf("Local work size (LWS) %d, Keys per crypt (KPC) %d\n",(int)local_work_size,max_keys_per_crypt);
+	printf("Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 

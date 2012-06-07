@@ -205,7 +205,7 @@ static void find_best_kpc(void){
 	free(tmpbuffer);
     	clReleaseCommandQueue(queue_prof);
     }
-    printf("Optimal keys per crypt %d\n(to avoid this test on next run do export KPC=%d)\n",optimal_kpc,optimal_kpc);
+    printf("Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
     max_keys_per_crypt = optimal_kpc;
     release_clobj();
     create_clobj(optimal_kpc);
@@ -249,7 +249,7 @@ static void init(struct fmt_main *pFmt){
 		local_work_size = atoi(kpc);
 	}
 
-	if( (kpc = getenv("KPC")) == NULL){
+	if( (kpc = getenv("GWS")) == NULL){
 		max_keys_per_crypt = SHA_NUM_KEYS;
 		create_clobj(SHA_NUM_KEYS);
 	} else {
@@ -263,7 +263,7 @@ static void init(struct fmt_main *pFmt){
 	    		create_clobj(max_keys_per_crypt);
 		}
 	}
-	printf("Local work size (LWS) %d, Keys per crypt (KPC) %d\n",(int)local_work_size,max_keys_per_crypt);
+	printf("Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 
 }
