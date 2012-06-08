@@ -164,8 +164,8 @@ _john()
 					return 0
 				fi
 			fi
-			cur=${cur#*[=:]}
-			formats=`${first} |sed -n '/^--format/,$ { s#^--format=[ A-Za-z]*:##; /^--/ b; s#^ *##; s#\<dynamic_n\>#dynamic#; s#[/ ]#\n#g; p }'`
+			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+			formats=`${first} |sed -n '/^--format/,$ { s#^--format=[ A-Za-z]*:##; /^--/ b; s#^ *##; s#\<dynamic_n\>#dynamic#; s#^\(.*\)$#\L\1#; s#[/ ]#\n#g; p }'`
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
@@ -384,16 +384,9 @@ _john()
 			fi
 			return 0
 			;;
-		-?(-)sho?(w)+(=|:)l*)
+		-?(-)sho?(w)+(=|:)?([Ll]|[Ll][Ee]|[Ll][Ee][Ff]|[Ll][Ee][Ff][Tt]))
 			if [[ "${valopts}" == *--show* ]] ; then
-				cur=${cur#*[=:]}
-				COMPREPLY=( $(compgen -W "left" -- ${cur}) )
-			fi
-			return 0
-			;;
-		-?(-)sho?(w)+(=|:)*)
-			if [[ "${valopts}" == *--show* ]] ; then
-				cur=${cur#*[=:]}
+				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
 				COMPREPLY=( $(compgen -W "LEFT" -- ${cur}) )
 			fi
 			return 0
@@ -473,11 +466,11 @@ _john()
 			;;
 		-?(-)su?(b|bf|bfo|bfor|bform|bforma|bformat)+(=|:)*)
 			if [[ "${options}" == *--subformat=LIST* ]] ; then
-				cur=${cur#*[=:]}
+				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			else
 				if [[ "${hidden}" == *--subformat=* ]] ; then
-					cur=${cur#*[=:]}
+					cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 					# Should I test if --format=crypt (or -fo:crypt ...) is specified?
 					# Should I really parse the output of
 					# 	$[first} --test --format=crypt --subformat=?
@@ -492,16 +485,16 @@ _john()
 			fi
 			return 0
 			;;
-		-?(-)pla?(t|tf|tfo|tfor|tform)+(=|:)+(L|l)*|-?(-)dev?(i|ic|ice)+(=|:)+(L|l)*)
+		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:)[Ll]?([Ii]|[Ii][Ss]|[Ii][Ss][Tt]))
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
 			if [[ "${valopts}" == *--platform=* ]] ; then
-				cur=${cur#*[=:]}
-				COMPREPLY=( $(compgen -W "LIST list" -- ${cur}) )
+				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
+				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			fi
 			return 0
 			;;
-		-?(-)platform+(=|:)|-?(-)device+(=|:))
+		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:))
 			# --device=LIST isn't supported for CUDA, but for CUDA
 			# --platform= is not a valid option
 			if [[ "${valopts}" == *--platform=* ]] ; then
