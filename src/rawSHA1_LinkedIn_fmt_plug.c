@@ -245,7 +245,7 @@ static int rawsha1_cmp_one(void * binary, int index)
 		return 0;
 	if( ((ARCH_WORD_32*)binary)[3] != crypt_key[3] )
 		return 0;
-	if( ((ARCH_WORD_32*)binary)[4] != crypt_key[3] )
+	if( ((ARCH_WORD_32*)binary)[4] != crypt_key[4] )
 		return 0;
 	return 1;
 #endif
