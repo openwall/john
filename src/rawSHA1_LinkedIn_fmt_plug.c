@@ -146,7 +146,6 @@ static void rawsha1_set_key(char *key, int index) {
 	ARCH_WORD_32 temp;
 
 	len = 0;
-	key_count = index;
 	while((unsigned char)(temp = *wkey++)) {
 		if (!(temp & 0xff00))
 		{
@@ -222,6 +221,7 @@ static int rawsha1_cmp_exact(char *source, int count){
 
 static int rawsha1_cmp_one(void * binary, int index)
 {
+	key_count = index;
 #ifdef MMX_COEF
 	unsigned int x,y;
 	x = index&3;
