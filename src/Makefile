@@ -1519,7 +1519,7 @@ endif
 	copy john.com ..\run\unique.com
 
 ../run/john.local.conf:
-	$(CP) $(NULL) ../run/john.local.conf
+	touch ../run/john.local.conf
 
 john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
