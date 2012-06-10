@@ -175,7 +175,7 @@ static struct opt_entry opt_list[] = {
 "                --pipe    like --stdin, but bulk reads, and allows rules\n" \
 "--encoding=NAME           the input data is in a 'non-standard' character.\n" \
 "                          encoding. NAME = utf-8, koi8-r, and others. For a\n" \
-"                          full list, use --encoding=LIST\n" \
+"                          full list, use --list=encodings\n" \
 "--rules[=SECTION]         enable word mangling rules for wordlist mode\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
 "--markov[=LEVEL[:opts]]   \"Markov\" mode (see documentation)\n" \
@@ -206,22 +206,22 @@ static struct opt_entry opt_list[] = {
 "--nolog                   disables creation and writing to john.log file\n" \
 "--crack-status            emit a status line whenever a password is cracked\n" \
 "--max-run-time=N          gracefully exit after this many seconds\n" \
-"--regen-lost-salts=N      regenerate lost salts for some hashes (see doc/OPTIONS)\n"
+"--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)\n"
 
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
 
 #if defined(CL_VERSION_1_0) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
-"--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
-"--device=N                set OpenCL or CUDA device, default 0\n"
+"--platform=N              set OpenCL platform (list using --list=opencl-devices)\n" \
+"--device=N                set OpenCL or CUDA device\n"
 #elif defined(CL_VERSION_1_0)
 #define JOHN_USAGE_GPU \
-"--platform=N (or =LIST)   set OpenCL platform, default 0\n" \
-"--device=N                set OpenCL device, default 0\n"
+"--platform=N              set OpenCL platform\n" \
+"--device=N                set OpenCL device (list using --list=opencl-devices)\n"
 #elif defined (HAVE_CUDA)
 #define JOHN_USAGE_GPU \
-"--device=N                set CUDA device, default 0\n"
+"--device=N                set CUDA device\n"
 #endif
 
 static int qcmpstr(const void *p1, const void *p2)
@@ -341,11 +341,6 @@ void opt_init(char *name, int argc, char **argv)
 	}
 
 #ifdef CL_VERSION_1_0
-	if ((options.ocl_platform && !strcasecmp(options.ocl_platform, "list")) ||
-	    (options.ocl_device && !strcasecmp(options.ocl_device, "list"))) {
-		listOpenCLdevices();
-		exit(0);
-	}
 	if (options.ocl_platform)
 		platform_id = atoi(options.ocl_platform);
 #endif

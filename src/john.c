@@ -557,7 +557,13 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
 		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info, hidden-options, <conf section name>");
+		puts("ext-modes, build-info, hidden-options, encodings, <conf section name>");
+#ifdef CL_VERSION_1_0
+		puts("opencl-devices");
+#endif
+//#ifdef HAVE_CUDA
+//		puts("cuda-devices");
+//#endif
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
@@ -669,9 +675,29 @@ static void john_init(char *name, int argc, char **argv)
 		cfg_print_subsections("List.External", "generate", NULL);
 		exit(0);
 	}
+	if (options.listconf && !strcasecmp(options.listconf, "encodings"))
+	{
+		listEncodings();
+		exit(0);
+	}
+#ifdef CL_VERSION_1_0
+	if (options.listconf && !strcasecmp(options.listconf, "opencl-devices"))
+	{
+		listOpenCLdevices();
+		exit(0);
+	}
+#endif
+//#ifdef HAVE_CUDA // yet to be implemented
+//	if (options.listconf && !strcasecmp(options.listconf, "cuda-devices"))
+//	{
+//		cuda_device_list();
+//		exit(0);
+//	}
+//#endif
 	/* Catch-all for any other john.conf section name :-) */
 	if (options.listconf)
 	{
+		printf("Subsections of [%s]:\n", options.listconf);
 		cfg_print_subsections(options.listconf, NULL, NULL);
 		exit(0);
 	}
