@@ -10,13 +10,13 @@
 
 #include "common-opencl.h"
 
-#define MAX_DEVICES_PER_PLATFORM 8
+#define MAX_DEVICES_PER_PLATFORM  8
 
 #define MAX_KEYS_PER_CRYPT        65536*4
 
 #define MIN_KEYS_PER_CRYPT        65536*4
 
-#define MAX_SALT_LENGTH 20
+#define MAX_SALT_LENGTH           19
 
 typedef struct { 
 	cl_mem pass_gpu;
