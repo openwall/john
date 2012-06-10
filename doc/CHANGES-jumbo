@@ -32,6 +32,9 @@ ssha (Samuele, Lukas)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
 Other changes:
+* Source $JOHN/john.local.conf by default. This file is never overwritten but
+will be created empty when building, if it does not exist. It must *not* be
+included in any release tarball. (magnum)
 * c3_fmt.c: improve --subformat= handling (Frank Dittrich)
 * wordlist.c: Status bug fix (JimF)
 * Add --list=subformats and deprecate --subformat=list (magnum)
