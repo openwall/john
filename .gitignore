@@ -7,6 +7,7 @@ run/calc_stat
 run/genmkvpwd
 run/hccap2john
 run/john
+run/john.local.conf
 run/mkvcalcproba
 run/mozilla2john
 run/office2john
@@ -17,6 +18,7 @@ run/pdf2john
 run/pwsafe2john
 run/racf2john
 run/rar2john
+run/raw2dyna
 run/ssh2john
 run/tgtsnarf
 run/unafs
@@ -30,4 +32,3 @@ src/fmt_externs.h
 src/fmt_registers.h
 src/john_build_rule.h
 test/
-run/raw2dyna
