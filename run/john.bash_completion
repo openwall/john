@@ -550,12 +550,11 @@ _john()
 			return 0
 			;;
 		*)
-			_filedir
 			return 0
 			;;
 	esac
 } &&
-complete -F _john john
+complete -o bashdefault -o default -F _john john
 
 # unique
 ## have grep && have sed &&
@@ -606,9 +605,8 @@ _unique()
 			return 0
 			;;
 		_*)
-			_filedir
 			return 0
 			;;
 	esac
 } &&
-complete -F _unique unique
+complete -o bashdefault -o default -F _unique unique
