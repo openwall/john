@@ -138,8 +138,8 @@ typedef struct {
 		unsigned int w;
 		unsigned char c[4];
 	} crc;
-	unsigned int pack_size;
-	unsigned int unp_size;
+	unsigned long long pack_size;
+	unsigned long long unp_size;
 	unsigned char *encrypted;
 	char *archive_name;
 	long pos;
@@ -688,7 +688,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	unsigned int i, count;
+	unsigned int i;
+	size_t count;
 	/* extract data from "salt" */
 	char *encoded_salt;
 	char *saltcopy = strdup(ciphertext);
@@ -709,8 +710,8 @@ static void *get_salt(char *ciphertext)
 		int inlined;
 		for (i = 0; i < 4; i++)
 			rarfile.crc.c[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		rarfile.pack_size = atoi(strtok(NULL, "*"));
-		rarfile.unp_size = atoi(strtok(NULL, "*"));
+		rarfile.pack_size = atoll(strtok(NULL, "*"));
+		rarfile.unp_size = atoll(strtok(NULL, "*"));
 		inlined = atoi(strtok(NULL, "*"));
 
 		/* load ciphertext. We allocate and load all files here, and
@@ -733,7 +734,7 @@ static void *get_salt(char *ciphertext)
 			fseek(fp, rarfile.pos, SEEK_SET);
 			count = fread(rarfile.encrypted, 1, rarfile.pack_size, fp);
 			if (count != rarfile.pack_size) {
-				fprintf(stderr, "Error loading file from archive '%s', expected %u bytes, got %u. Archive possibly damaged.\n", rarfile.archive_name, rarfile.pack_size, count);
+				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", rarfile.archive_name, rarfile.pack_size, count);
 				exit(0);
 			}
 			fclose(fp);
@@ -891,7 +892,7 @@ static void crypt_all(int count)
 				CRC32_t crc;
 				unsigned char crc_out[4];
 				unsigned char plain[0x8010];
-				unsigned int size = cur_file->unp_size;
+				unsigned long long size = cur_file->unp_size;
 				unsigned char *cipher = cur_file->encrypted;
 
 				/* Use full decryption with CRC check.

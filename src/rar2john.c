@@ -119,7 +119,8 @@ static void process_file(const char *archive_name)
 	unsigned char marker_block[7];
 	unsigned char archive_header_block[13];
 	unsigned char file_header_block[40];
-	int i, count, type, bestsize = 0;
+	int i, count, type;
+	size_t bestsize = 0;
 	char best[LINE_BUFFER_SIZE] = "";
 	char *base_aname;
 	uint16_t archive_header_head_flags, file_header_head_flags;
@@ -196,7 +197,8 @@ next_file_header:
 		}
 		printf(":%d::::%s\n", type, archive_name);
 	} else {
-		int file_header_pack_size, file_header_unp_size, EXT_TIME_SIZE;
+		size_t file_header_pack_size, file_header_unp_size;
+		int EXT_TIME_SIZE;
 		uint16_t file_header_head_size, file_name_size;
 		unsigned char file_name[256], SALT[8], FILE_CRC[4];
 		char rejbuf[32];
@@ -213,7 +215,7 @@ next_file_header:
 		memcpy(&file_header_unp_size, file_header_block + 11, 4);
 #ifdef DEBUG
 		fprintf(stderr,
-		        "! HEAD_SIZE: %d, PACK_SIZE: %d, UNP_SIZE: %d\n",
+		        "! HEAD_SIZE: %d, PACK_SIZE: %zu, UNP_SIZE: %zu\n",
 		        file_header_head_size, file_header_pack_size,
 		        file_header_unp_size);
 #endif
@@ -353,7 +355,7 @@ next_file_header:
 		/* fp is at ciphertext location */
 		pos = ftell(fp);
 
-		sprintf(&best[strlen(best)], "*%d*%d*", file_header_pack_size, file_header_unp_size);
+		sprintf(&best[strlen(best)], "*%zu*%zu*", file_header_pack_size, file_header_unp_size);
 
 		/* We duplicate file name to the GECOS field, for single mode */
 		/* If small enough, we store it inline */
