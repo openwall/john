@@ -558,19 +558,22 @@ _unique()
 	first="${COMP_WORDS[0]}"
 	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
 	case "_${cur}" in
-		_|_${first})
-			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
-				COMPREPLY=( $(compgen -W "${usage}" -- "") )
-			fi
-			return 0
-			;;
+#		_|_${first})
+#			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
+#				COMPREPLY=( $(compgen -W "${usage}" -- "") )
+#				_filedir
+#			fi
+#			return 0
+#			;;
 		_-cut=*|_-mem=*)
 			return 0
 			;;
 		_-inp=*|_-ex_file=*|_-ex_file_only=*)
-			cur=${cur#*=}
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir
+			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
+				cur=${cur#*=}
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir
+			fi
 			return 0
 			;;
 		_-*)
@@ -589,6 +592,7 @@ _unique()
 			return 0
 			;;
 		_*)
+			_filedir
 			return 0
 			;;
 	esac
