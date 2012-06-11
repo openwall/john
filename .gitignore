@@ -2,6 +2,11 @@
 *.log
 *.pot
 *.rec
+*~
+*.patch
+*.diff
+*.rej
+*.orig
 run/*.cl
 run/calc_stat
 run/genmkvpwd
