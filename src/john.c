@@ -557,13 +557,15 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
 		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info, hidden-options, encodings, <conf section name>");
+		puts("ext-modes, build-info, hidden-options, encodings, formats,");
+		printf("<conf section name>");
 #ifdef CL_VERSION_1_0
-		puts("opencl-devices");
+		printf(", opencl-devices");
 #endif
 //#ifdef HAVE_CUDA
-//		puts("cuda-devices");
+//		printf(", cuda-devices");
 //#endif
+		printf("\n");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
@@ -635,6 +637,14 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
+	/* This is --crack-status. We toggle here, so if it's enabled in
+	   john.conf, we can disable it using the command line option */
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
+		options.flags ^= FLG_CRKSTAT;
+
+	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
+
+	john_register_all(); /* maybe restricted to one format by options */
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
 	    (options.listconf && !strcasecmp(options.listconf, "subformats")))
 	{
@@ -694,21 +704,58 @@ static void john_init(char *name, int argc, char **argv)
 //		exit(0);
 //	}
 //#endif
-	/* Catch-all for any other john.conf section name :-) */
+	if (options.listconf &&
+	    !strcasecmp(options.listconf, "formats")) {
+		int column;
+		struct fmt_main *format;
+		int i, dynamics = 0;
+		char **formats_list;
+
+		i = 0;
+		format = fmt_list;
+		while ((format = format->next))
+			i++;
+
+		formats_list = malloc(sizeof(char*) * i);
+
+		i = 0;
+		format = fmt_list;
+		do {
+			char *label = format->params.label;
+			if (!strncmp(label, "dynamic", 7)) {
+				if (dynamics++)
+					continue;
+				else
+					label = "dynamic_n";
+			}
+			formats_list[i++] = label;
+		} while ((format = format->next));
+		formats_list[i] = NULL;
+
+		column = 0;
+		i = 0;
+		do {
+			int length;
+			char *label = formats_list[i++];
+			length = strlen(label) + 2;
+			column += length;
+			if (column > 78) {
+				printf("\n");
+				column = length;
+			}
+			printf("%s%s", label, formats_list[i] ? ", " : "\n");
+		} while (formats_list[i]);
+		free(formats_list);
+		exit(0);
+	}
+	/* --list last resort: list subsections of any john.conf section name */
 	if (options.listconf)
 	{
 		printf("Subsections of [%s]:\n", options.listconf);
 		cfg_print_subsections(options.listconf, NULL, NULL);
 		exit(0);
 	}
-	/* This is --crack-status. We toggle here, so if it's enabled in
-	   john.conf, we can disable it using the command line option */
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
-		options.flags ^= FLG_CRKSTAT;
 
-	initUnicode(UNICODE_UNICODE); /* Init the unicode system */
-
-	john_register_all(); /* maybe restricted to one format by options */
 	common_init();
 	sig_init();
 
