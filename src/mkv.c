@@ -37,6 +37,8 @@
 #define LLd "%lld"
 #endif
 
+#define SUBSECTION_DEFAULT	"Default"
+
 extern struct fmt_main fmt_LM;
 
 static long long tidx;
@@ -304,7 +306,7 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 
 
 	if(mkv_level == 0)
-		if( (mkv_level = cfg_get_int("Options", SUBSECTION_MARKOV, "MkvLvl")) == -1 )
+		if( (mkv_level = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvLvl")) == -1 )
 		{
 			log_event("no markov level defined!");
 #ifdef HAVE_MPI
@@ -315,7 +317,7 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 		}
 
 	if(mkv_maxlen == 0)
-		if( (mkv_maxlen = cfg_get_int("Options", SUBSECTION_MARKOV, "MkvMaxLen")) == -1 )
+		if( (mkv_maxlen = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvMaxLen")) == -1 )
 		{
 			log_event("no markov max length defined!");
 #ifdef HAVE_MPI
@@ -325,7 +327,7 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 			error();
 		}
 
-	statfile = cfg_get_param("Options", SUBSECTION_MARKOV, "Statsfile");
+	statfile = cfg_get_param(SECTION_MARKOV, SUBSECTION_DEFAULT, "Statsfile");
 	if(statfile == NULL)
 	{
 		log_event("statfile not defined");
