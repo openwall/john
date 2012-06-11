@@ -550,13 +550,12 @@ _john()
 			return 0
 			;;
 		*)
-			_filedir
+			compopt  -o bashdefault -o default 
 			return 0
 			;;
 	esac
 } &&
 complete -F _john john
-
 # unique
 ## have grep && have sed &&
 _unique()
@@ -576,6 +575,8 @@ _unique()
 #			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
 #				COMPREPLY=( $(compgen -W "${usage}" -- "") )
 #				_filedir
+#			else
+#				compopt -o bashdefault -o default
 #			fi
 #			return 0
 #			;;
@@ -588,6 +589,10 @@ _unique()
 				__expand_tilde_by_ref cur 2>/dev/null
 				_filedir
 			fi
+			return 0
+			;;
+		_-*=)
+			compopt -o bashdefault -o default 
 			return 0
 			;;
 		_-*)
@@ -606,7 +611,7 @@ _unique()
 			return 0
 			;;
 		_*)
-			_filedir
+			compopt -o bashdefault -o default
 			return 0
 			;;
 	esac

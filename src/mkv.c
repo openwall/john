@@ -37,6 +37,8 @@
 #define LLd "%lld"
 #endif
 
+#define SUBSECTION_DEFAULT	"Default"
+
 extern struct fmt_main fmt_LM;
 
 static long long tidx;
@@ -238,15 +240,73 @@ static int get_progress(int *hundth_perc)
 }
 
 
-void do_markov_crack(struct db_main *db, unsigned int mkv_level, unsigned long long mkv_start, unsigned long long mkv_end, unsigned int mkv_maxlen, unsigned int mkv_minlevel, unsigned int mkv_minlen)
+void do_markov_crack(struct db_main *db, char * mkv_param)
 {
 	char * statfile;
+	unsigned int mkv_minlevel, mkv_level,  mkv_maxlen, mkv_minlen;
+	unsigned long long mkv_start, mkv_end;
 
 #ifdef HAVE_MPI
 	unsigned long long mkv_size;
 #endif
+	char * token;
+
+	mkv_level = 0;
+	mkv_start = 0;
+	mkv_end = 0;
+	mkv_maxlen = 0;
+	mkv_minlevel = 0;
+	mkv_minlen = 0;
+	if (mkv_param)
+	{
+		token = strtok(mkv_param, ":");
+		if(sscanf(token, "%d-%d", &mkv_minlevel, &mkv_level) != 2)
+		{
+			mkv_minlevel = 0;
+			if (sscanf(token, "%d", &mkv_level) != 1)
+			{
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
+				fprintf(stderr, "Could not parse markov parameters\n");
+				error();
+			}
+		}
+		token = strtok(NULL, ":");
+		if( (token != NULL) && (sscanf(token, LLd, &mkv_start)==1) )
+		{
+			token = strtok(NULL, ":");
+			if( (token != NULL) && (sscanf(token, LLd, &mkv_end)==1) )
+			{
+				token = strtok(NULL, ":");
+				if( (token != NULL) && (sscanf(token, "%d-%d", &mkv_minlen, &mkv_maxlen)!=2) )
+				{
+					mkv_minlen = 0;
+					sscanf(token, "%d", &mkv_maxlen);
+				}
+			}
+		}
+	}
+	if(mkv_level<mkv_minlevel)
+	{
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: max level(%d) < min level(%d), min level set to %d\n", mkv_level, mkv_minlevel, mkv_level);
+		mkv_minlevel = mkv_level;
+	}
+	if(mkv_minlen > mkv_maxlen)
+	{
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: minimum length(%d) < maximum length(%d), minimum length set to %d\n", mkv_minlen, mkv_maxlen, mkv_maxlen);
+		mkv_minlen = mkv_maxlen;
+	}
+
+
 	if(mkv_level == 0)
-		if( (mkv_level = cfg_get_int("Options", SUBSECTION_MARKOV, "MkvLvl")) == -1 )
+		if( (mkv_level = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvLvl")) == -1 )
 		{
 			log_event("no markov level defined!");
 #ifdef HAVE_MPI
@@ -257,7 +317,7 @@ void do_markov_crack(struct db_main *db, unsigned int mkv_level, unsigned long l
 		}
 
 	if(mkv_maxlen == 0)
-		if( (mkv_maxlen = cfg_get_int("Options", SUBSECTION_MARKOV, "MkvMaxLen")) == -1 )
+		if( (mkv_maxlen = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvMaxLen")) == -1 )
 		{
 			log_event("no markov max length defined!");
 #ifdef HAVE_MPI
@@ -267,7 +327,7 @@ void do_markov_crack(struct db_main *db, unsigned int mkv_level, unsigned long l
 			error();
 		}
 
-	statfile = cfg_get_param("Options", SUBSECTION_MARKOV, "Statsfile");
+	statfile = cfg_get_param(SECTION_MARKOV, SUBSECTION_DEFAULT, "Statsfile");
 	if(statfile == NULL)
 	{
 		log_event("statfile not defined");

@@ -138,12 +138,6 @@ struct options_main {
 
 /* Markov stuff */
 	char *mkv_param;
-	unsigned long long mkv_start;
-	unsigned long long mkv_end;
-	unsigned int mkv_level;
-	unsigned int mkv_maxlen;
-	unsigned int mkv_minlevel;
-	unsigned int mkv_minlen;
 
 /* Maximum plaintext length for stdout mode */
 	int length;

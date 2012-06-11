@@ -74,11 +74,31 @@ proportionnal with the CPU's cracking speed.
 
 
 CONFIGURATION OPTIONS
-New options are available in the john.conf file:
+Default options for values not specified on the command line are available
+in the john.conf file.
+Unlike previous john versions which required these values to be specified
+in the general [Options] section, starting from this version, these values
+have to be specified in the [Markov:Default] secion.
+
+These are the values that can be specified:
+
 Statsfile - This is the path of the "stat" file.
+
+Specifying a Statsfile in the [Markov:Default] section is mandatory 
+for Markov mode, because the Statsfile cannot be specified as a 
+command line parameter with --markov=<params>.
+
 MkvLvl - the default level
+
+MkvLvl should be specified in this section, as a fallback for the maximum
+Markov level when using --markov (without any additional parameters)
+
 MkvMaxLen - the default length
 
+MkvMaxLen should also be specified in this section, as a fallback for the
+maximum password length when using --markov (without any additional
+parameters), --markov=<level>, or similar options that don't include a
+value for the password length.
 
 WHAT IS THE STAT FILE?
 The markov mode is based on statistical data from real passwords. This data is

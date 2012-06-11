@@ -163,13 +163,13 @@
  * Configuration file section names.
  */
 #define SECTION_OPTIONS			"Options"
-#define SUBSECTION_MARKOV		":Markov"
 #define SUBSECTION_MPI			":MPI"
 #define SECTION_RULES			"List.Rules:"
 #define SUBSECTION_SINGLE		"Single"
 #define SUBSECTION_WORDLIST		"Wordlist"
 #define SECTION_INC			"Incremental:"
 #define SECTION_EXT			"List.External:"
+#define SECTION_MARKOV			"Markov:"
 
 /*
  * Number of different password hash table sizes.
