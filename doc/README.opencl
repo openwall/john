@@ -66,7 +66,7 @@ in allocating memory; i strongly recommend using opencl patch
 in wordlist and incremental modes only.
 
 On some opencl formats there are two variables you can adjust:
-these are $LWS and $KPC 
+these are $LWS and $GWS 
 
 LWS is the local work size aka, the number of "threads" the job
 will be split and sent to the GPU.
@@ -75,29 +75,29 @@ will be split and sent to the GPU.
   best for your system. On some slow hashes, a good default
   is going to be picked.
 
-KPC is the Keys Per Crypt, the number of keys they will be tried
-at the same time .
-- If you unset KPC, john will use a default Keys per Crypt, which
-  at the moment is 1024 * 2048 .
-- if KPC is setted to 0 john will try to get the one best for
+GWS is the Global Work Size. For non-vectorized format it is the same as
+Keys Per Crypt, the number of keys that will be tried in a GPU call.
+- If you unset GWS, john will use a default work size, which depends on
+  what format is used.
+- if GWS is set to 0 john will try to get the one best for
   you system, BEWARE it will take a couple of minutes
-- KPC is highly dependant on you PCI-E bandwith rate which at the
+- GWS is highly dependant on you PCI-E bandwith rate which at the
   moment is one of the biggest bottleneck for opencl in john
 
 
-once you have found the best LWS or KPC for your system you can
+once you have found the best LWS or GWS for your system you can
 do 
 export LWS=NUM1
 or 
-export KPC=NUM2
+export GWS=NUM2
 
 to avoid testing.
 
-Warning ! LWS and KPC are highly dependant on the format you are
+Warning ! LWS and GWS are highly dependant on the format you are
 using.
-LWS and KPC are not yet in every opencl format john is using.
+LWS and GWS are not yet in every opencl format john is using.
 
-- There's no check for LWS and KPC values so you should now how
+- There's no check for LWS and GWS values so you should now how
   to set them to properly values, if in doubt just use the defaults
   and unset them
 
@@ -110,10 +110,10 @@ the moment is the one that gives the fastest speed) it could be
 a good idea to set up PLAINTEXT_LENGTH to a lower value than
 32.
 
-- LWS and KPC should be set with numbers that are power of two
+- LWS and GWS should be set with numbers that are power of two
 
-- KPC should always be the possible product of LWS: you should always 
-  be able to divide KPC / LWS and get an integer number
+- GWS should always be the possible product of LWS: you should always 
+  be able to divide GWS / LWS and get an integer number
 
 ====================
 Supported formats:
