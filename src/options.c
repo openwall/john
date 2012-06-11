@@ -48,15 +48,6 @@ extern int gpu_id;
 struct options_main options;
 static char *field_sep_char_string;
 
-#if defined (__MINGW32__) || defined (_MSC_VER)
-// Later versions of MSVC can handle %lld but some older
-// ones can only handle %I64d.  Easiest to simply use
-// %I64d then all versions of MSVC will handle it just fine
-#define LLd "%I64d"
-#else
-#define LLd "%lld"
-#endif
-
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, 0,
@@ -423,62 +414,6 @@ void opt_init(char *name, int argc, char **argv)
 		fprintf(stderr, "Password files specified, "
 			"but no option would use them\n");
 		error();
-	}
-
-	if (options.flags & FLG_MKV_CHK) {
-		char * token;
-
-		options.mkv_start = 0;
-		options.mkv_end = 0;
-		options.mkv_maxlen = 0;
-		options.mkv_minlevel = 0;
-		options.mkv_minlen = 0;
-		if (options.mkv_param)
-		{
-			token = strtok(options.mkv_param, ":");
-			if(sscanf(token, "%d-%d", &options.mkv_minlevel, &options.mkv_level) != 2)
-			{
-				options.mkv_minlevel = 0;
-				if (sscanf(token, "%d", &options.mkv_level) != 1)
-				{
-#ifdef HAVE_MPI
-					if (mpi_id == 0)
-#endif
-					fprintf(stderr, "Could not parse markov parameters\n");
-					error();
-				}
-			}
-			token = strtok(NULL, ":");
-			if( (token != NULL) && (sscanf(token, LLd, &options.mkv_start)==1) )
-			{
-				token = strtok(NULL, ":");
-				if( (token != NULL) && (sscanf(token, LLd, &options.mkv_end)==1) )
-				{
-					token = strtok(NULL, ":");
-					if( (token != NULL) && (sscanf(token, "%d-%d", &options.mkv_minlen, &options.mkv_maxlen)!=2) )
-					{
-						options.mkv_minlen = 0;
-						sscanf(token, "%d", &options.mkv_maxlen);
-					}
-				}
-			}
-		}
-		if(options.mkv_level<options.mkv_minlevel)
-		{
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Warning: max level(%d) < min level(%d), min level set to %d\n", options.mkv_level, options.mkv_minlevel, options.mkv_level);
-			options.mkv_minlevel = options.mkv_level;
-		}
-		if(options.mkv_minlen > options.mkv_maxlen)
-		{
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Warning: minimum length(%d) < maximum length(%d), minimum length set to %d\n", options.mkv_minlen, options.mkv_maxlen, options.mkv_maxlen);
-			options.mkv_minlen = options.mkv_maxlen;
-		}
 	}
 
 #ifdef HAVE_MPI

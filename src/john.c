@@ -823,7 +823,7 @@ static void john_run(void)
 			do_incremental_crack(&database, options.charset);
 		else
 		if (options.flags & FLG_MKV_CHK)
-			do_markov_crack(&database, options.mkv_level, options.mkv_start, options.mkv_end, options.mkv_maxlen, options.mkv_minlevel, options.mkv_minlen);
+			do_markov_crack(&database, options.mkv_param);
 		else
 		if (options.flags & FLG_EXTERNAL_CHK)
 			do_external_crack(&database);
