@@ -417,12 +417,21 @@ _john()
 		-?(-)en?(c|co|cod|codi|codin|coding)+(=|:)*)
 			if [[ "${valopts}" == *--encoding=* ]] ; then
 				# --encoding=LIST writes to stderr
-				encodings=`${first} --encoding=LIST 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
+				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+				if [[ "_${list}" == *encoding* ]] ; then
+					cmd="${first} --list=encodings"
+				else
+					cmd="${first} --encoding=LIST"
+				fi
+				encodings=`${cmd} 2>&1|grep -v 'Supported encodings'|sed 's#[,)]##g'|sed 's#(or ##g'`
 			cur=${cur#*[=:]}
 				if [[ ${COMP_CWORD} -eq 2 || ${COMP_CWORD} -eq 3 && "_${cur}" != "_" ]] ; then
-					encodings="${encodings} LIST"
-					# make sure LIST will be the first option:
-					LC_ALL=C
+					# Don't add LIST if --list=encodings is supported
+					if [[ "_${list}" != *encoding* ]] ; then
+						encodings="${encodings} LIST"
+						# make sure LIST will be the first option:
+						LC_ALL=C
+					fi
 				fi
 				COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
 			fi
@@ -486,18 +495,23 @@ _john()
 			return 0
 			;;
 		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:)[Ll]?([Ii]|[Ii][Ss]|[Ii][Ss][Tt]))
+			list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+			# Only complete to lIST if --list=cuda-devices and --list=opencl-devices don't exist
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
-			if [[ "${valopts}" == *--platform=* ]] ; then
+			if [[ "${valopts}" == *--platform=* && "_${list}" != *-devices* ]] ; then
 				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			fi
 			return 0
 			;;
 		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:))
+			list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+			# Only list possible completions if --list=cuda-devices 
+			# and --list=opencl-devices don't exist.
 			# --device=LIST isn't supported for CUDA, but for CUDA
 			# --platform= is not a valid option
-			if [[ "${valopts}" == *--platform=* ]] ; then
+			if [[ "${valopts}" == *--platform=* && "_${list}" != *-devices* ]] ; then
 				# Calling john --platform=LIST just to find possible completions
 				# will take too long
 				cur=${cur#*[=:]}
@@ -558,19 +572,22 @@ _unique()
 	first="${COMP_WORDS[0]}"
 	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
 	case "_${cur}" in
-		_|_${first})
-			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
-				COMPREPLY=( $(compgen -W "${usage}" -- "") )
-			fi
-			return 0
-			;;
+#		_|_${first})
+#			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
+#				COMPREPLY=( $(compgen -W "${usage}" -- "") )
+#				_filedir
+#			fi
+#			return 0
+#			;;
 		_-cut=*|_-mem=*)
 			return 0
 			;;
 		_-inp=*|_-ex_file=*|_-ex_file_only=*)
-			cur=${cur#*=}
-			__expand_tilde_by_ref cur 2>/dev/null
-			_filedir
+			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
+				cur=${cur#*=}
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir
+			fi
 			return 0
 			;;
 		_-*)
@@ -589,6 +606,7 @@ _unique()
 			return 0
 			;;
 		_*)
+			_filedir
 			return 0
 			;;
 	esac
