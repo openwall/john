@@ -287,7 +287,8 @@ void opt_init(char *name, int argc, char **argv)
 	options.loader.field_sep_char = options.field_sep_char = ':';
 	options.loader.regen_lost_salts = options.regen_lost_salts = 0;
 	options.loader.max_fix_state_delay = 0;
-	options.loader.max_wordfile_memory = 5000000;
+	options.loader.max_wordfile_memory =
+		WORDLIST_BUFFER_DEFAULT >> mem_saving_level;
 	options.mkpc = 0;
 	options.max_run_time = 0;
 

@@ -203,10 +203,10 @@ avoid using them unless John doesn't work or gets into swap otherwise.
 One of the significant performance improvements for some builds of
 john, is preloading the wordlist file into memory, instead of reading
 line by line. This is especially true when running with a large list
-of --rules.  The default max size file is 5 million bytes.  Using this
-option allows making this larger.  A special value is --mem-file-size=0.
+of --rules.  The default max size file is 80 MB.  Using this option
+allows making this larger.  A special value is --mem-file-size=0.
 This will force loading to memory regardless of file size.  NOTE if
---save-memory is used, then memory file processing is turned off.
+--save-memory is used, the default file size will half for each level.
 
 --field-separator-char=c	Use 'c' instead of the char ':'
 
