@@ -217,6 +217,86 @@ static inline const char *potword(const char *line)
 	return p ? p + 1 : line;
 }
 
+static int hash_log, hash_size, hash_mask;
+#define ENTRY_END_HASH	0xFFFFFFFF
+#define ENTRY_END_LIST	0xFFFFFFFE
+
+/* Copied from unique.c (and modified) */
+static unsigned int line_hash(char *line)
+{
+	unsigned int hash, extra;
+	char *p;
+
+	p = line + 2;
+	hash = (unsigned char)line[0];
+	if (!hash)
+		goto out;
+	extra = (unsigned char)line[1];
+	if (!extra)
+		goto out;
+
+	while (*p) {
+		hash <<= 3; extra <<= 2;
+		hash += (unsigned char)p[0];
+		if (!p[1]) break;
+		extra += (unsigned char)p[1];
+		p += 2;
+		if (hash & 0xe0000000) {
+			hash ^= hash >> hash_log;
+			extra ^= extra >> hash_log;
+			hash &= hash_mask;
+		}
+	}
+
+	hash -= extra;
+	hash ^= extra << (hash_log / 2);
+
+	hash ^= hash >> hash_log;
+
+	hash &= hash_mask;
+out:
+	return hash;
+}
+
+typedef struct {
+	unsigned int next;
+	unsigned int line;
+} element_st;
+
+static struct {
+	unsigned int *hash;
+	element_st *data;
+} buffer;
+
+static inline int wbuf_unique(char *line)
+{
+	static unsigned int index = 0;
+	unsigned int current, last, linehash;
+
+	linehash = line_hash(line);
+	current = buffer.hash[linehash];
+	last = current;
+	while (current != ENTRY_END_HASH) {
+		if (!strcmp(line, word_file_str + buffer.data[current].line))
+			break;
+		last = current;
+		current = buffer.data[current].next;
+	}
+	if (current != ENTRY_END_HASH)
+		return 0;
+
+	if (last == ENTRY_END_HASH)
+		buffer.hash[linehash] = index;
+	else
+		buffer.data[last].next = index;
+
+	buffer.data[index].line = line - word_file_str;
+	buffer.data[index].next = ENTRY_END_HASH;
+	index++;
+
+	return 1;
+}
+
 void do_wordlist_crack(struct db_main *db, char *name, int rules)
 {
 	union {
@@ -261,7 +341,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (!name && !(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK))) {
 		name = options.loader.activepot;
 		potfile = 1;
-		printf("Closed-loop mode: Reading candidates from %s\n", name);
+		fprintf(stderr, "Closed-loop mode: Reading candidates from %s\n", name);
+		if (!forceLoad && (db->options->max_wordfile_memory ==
+		     (WORDLIST_BUFFER_DEFAULT >> mem_saving_level)))
+			db->options->max_wordfile_memory = 0x40000000 >>
+				mem_saving_level;
 	}
 
 	if (name) {
@@ -278,7 +362,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		    (!strcasecmp(name + strlen(name) - 4, ".pot")))
 		{
 			potfile = 1;
-			printf("Closed-loop mode: Reading candidates from pot file\n");
+			fprintf(stderr, "Closed-loop mode: Reading candidates from pot file\n");
+			if (!forceLoad && (db->options->max_wordfile_memory ==
+			     (WORDLIST_BUFFER_DEFAULT >> mem_saving_level)))
+				db->options->max_wordfile_memory = 0x40000000 >>
+					mem_saving_level;
 		}
 
 		/* this will both get us the file length, and tell us
@@ -293,6 +381,11 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		if (file_len < 0)
 		{
 			fprintf(stderr, "Error, dictionary file is too large for john to read (probably a 32 bit OS issue)\n");
+			error();
+		}
+		if (file_len == 0)
+		{
+			fprintf(stderr, "Error, dictionary file is empty\n");
 			error();
 		}
 		/* If the file is < max_wordfile_memory, then we work from a
@@ -414,6 +507,18 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 			i = 0;
 			cp = word_file_str;
+
+			hash_log = 8; // minimum 8 unless we modify line_hash()
+			while (((1 << hash_log) < (nWordFileLines>>1)) &&
+			       hash_log < 23)
+				hash_log++;
+			hash_size = (1 << hash_log);
+			hash_mask = (hash_size - 1);
+			log_event("Size %d log 1<<%d mask %08x, %d lines, allocating %lu bytes\n", hash_size, hash_log, hash_mask, nWordFileLines, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
+			buffer.hash = mem_alloc(hash_size * sizeof(unsigned int));
+			buffer.data = mem_alloc(nWordFileLines * sizeof(element_st));
+			memset(buffer.hash, 0xff, hash_size * sizeof(unsigned int));
+
 			do
 			{
 				char *ep, ec;
@@ -427,7 +532,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					if (!rules) {
 						if (ep - cp >= length)
 							cp[length] = 0;
-						if (!i || strcmp(cp, words[i-1])) {
+						if (wbuf_unique(cp)) {
 							words[i++] = cp;
 							if (i == nWordFileLines)
 								break;
@@ -435,14 +540,21 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					} else {
 						if (ep - cp >= LINE_BUFFER_SIZE)
 							cp[LINE_BUFFER_SIZE-1] = 0;
-						words[i++] = cp;
-						if (i == nWordFileLines)
-							break;
+						if (wbuf_unique(cp)) {
+							words[i++] = cp;
+							if (i == nWordFileLines)
+								break;
+						}
 					}
-				}
+				} else
+					nWordFileLines--;
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
 			} while (cp < aep);
+			if (nWordFileLines - i)
+				fprintf(stderr, "Suppressed %u duplicate lines.\n", nWordFileLines - i);
+			free(buffer.hash);
+			free(buffer.data);
 			nWordFileLines = i;
 			nCurLine=0;
 		}

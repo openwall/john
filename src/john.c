@@ -562,9 +562,9 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef CL_VERSION_1_0
 		printf(", opencl-devices");
 #endif
-//#ifdef HAVE_CUDA
-//		printf(", cuda-devices");
-//#endif
+#ifdef HAVE_CUDA
+		printf(", cuda-devices");
+#endif
 		printf("\n");
 		exit(0);
 	}
@@ -697,13 +697,13 @@ static void john_init(char *name, int argc, char **argv)
 		exit(0);
 	}
 #endif
-//#ifdef HAVE_CUDA // yet to be implemented
-//	if (options.listconf && !strcasecmp(options.listconf, "cuda-devices"))
-//	{
-//		cuda_device_list();
-//		exit(0);
-//	}
-//#endif
+#ifdef HAVE_CUDA
+	if (options.listconf && !strcasecmp(options.listconf, "cuda-devices"))
+	{
+		cuda_device_list();
+		exit(0);
+	}
+#endif
 	if (options.listconf &&
 	    !strcasecmp(options.listconf, "formats")) {
 		int column;
