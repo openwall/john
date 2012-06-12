@@ -342,7 +342,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned int out[4];
+	static unsigned long out_[16/sizeof(unsigned long)];
+	unsigned int *out = (unsigned int*) out_;
 	unsigned int i=0;
 	unsigned int temp;
 
@@ -652,6 +653,8 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	out[3] += INIT_D;
 
 	cpi = (unsigned char*)out;
+
+	alter_endianity_to_LE(out,4);
 
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];

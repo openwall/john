@@ -118,5 +118,14 @@ void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int i
 void alter_endianity(void * x, unsigned int size);
 #endif
 
+void alter_endianity_w(void *x, unsigned int count);
+#if (ARCH_LITTLE_ENDIAN==0)
+#define alter_endianity_to_BE(a,b)
+#define alter_endianity_to_LE(a,b) do{alter_endianity_w(a,b);}while(0)
+#else
+#define alter_endianity_to_BE(a,b) do{alter_endianity_w(a,b);}while(0)
+#define alter_endianity_to_LE(a,b)
+#endif
+
 
 #endif

@@ -692,6 +692,9 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
+	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
+		return 1;
+
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
@@ -846,6 +849,7 @@ static void init(struct fmt_main *pFmt)
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	static char ct[512];
+	private_subformat_data *pPriv = pFmt->private.data;
 	char Tmp[80];
 	int i;
 
@@ -853,7 +857,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	init(pFmt);
 
-	if (!pFmt->private.data)
+	if (!pPriv)
 		return split_fields[1];
 
 	if (pFmt->params.salt_size && !strchr(split_fields[1], '$')) {
@@ -878,6 +882,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	cpBuilding = FixupIfNeeded(cpBuilding, &curdat);
 	if (strncmp(cpBuilding, "$dynamic_", 9))
 		return split_fields[1];
+
+	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
+		return cpBuilding;
 
 	/* at this point, we want to convert ANY and all $HEX$hex into values */
 	/* the reason we want to do this, is so that things read from john.pot file will be in proper 'native' format */
@@ -1872,8 +1879,11 @@ static void *salt(char *ciphertext)
 	unsigned char *saltp;
 	unsigned the_real_len;
 
-	memset(Salt, 0, SALT_SIZE+1);
 	memset(salt_p, 0, sizeof(salt_p));
+	if ( (curdat.pSetup->flags&MGF_SALTED) == 0)
+		return salt_p;
+
+	memset(Salt, 0, SALT_SIZE+1);
 
 	// Ok, see if the wrong dynamic type is loaded (such as the 'last' dynamic type).
 	if (!strncmp(ciphertext, "$dynamic_", 9)) {
@@ -2063,6 +2073,9 @@ static int salt_hash(void *salt)
 {
 	unsigned long H;
 	if (!salt) return 0;
+	if ( (curdat.pSetup->flags&MGF_SALTED) == 0)
+		return 0;
+
 	// salt is now a pointer, but WORD aligned.  We remove that word alingment, and simply use the next bits
 	H = *((unsigned long*)salt);
 
@@ -7313,7 +7326,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			curdat.store_keys_normal_but_precompute_md5_to_output2_base16_to_input1 = 0;
 			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
 			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__append_keys;
-			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt;
+			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__crypt_md5;
 			curdat.dynamic_FUNCTIONS[j++] = DynamicFunc__clean_input;
 			Setup->pFuncs[0] = DynamicFunc__append_from_last_output_as_base16;
 		}

@@ -77,7 +77,8 @@ static int mysql_valid(char* ciphertext, struct fmt_main *pFmt)
 
 static void* mysql_get_binary(char* ciphertext)
 {
-	static unsigned char buff[BINARY_SIZE / 2];
+	static unsigned long buff_[BINARY_SIZE / sizeof(unsigned long)];
+	unsigned char *buff = (unsigned char *)buff_;
 	unsigned int i;
 
 	for (i = 0; i < BINARY_SIZE / 2; i++)

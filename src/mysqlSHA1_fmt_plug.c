@@ -287,7 +287,8 @@ static void crypt_all(int count) {
 
 static void *binary(char *ciphertext)
 {
-	static ARCH_WORD_32 outb[BINARY_SIZE / 4];
+	static unsigned long outb_[BINARY_SIZE / sizeof(unsigned long)];
+	ARCH_WORD_32 *outb = (ARCH_WORD_32*)outb_;
 	char *realcipher = (char*)outb;
 	int i;
 

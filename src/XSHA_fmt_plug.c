@@ -122,7 +122,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned int outbuf[BINARY_SIZE / sizeof(int)];
+	static unsigned long outbuf[BINARY_SIZE / sizeof(long)];
 	unsigned char *out = (unsigned char*)outbuf;
 	char *p;
 	int i;

@@ -341,7 +341,8 @@ static void * get_salt_utf8(char *_ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned int out[4];
+	static unsigned long out_[16/sizeof(unsigned long)];
+	unsigned int *out = (unsigned int*)out_;
 	unsigned int i=0;
 	unsigned int temp;
 	unsigned int *salt=fmt_mscash.methods.salt(ciphertext);

@@ -531,3 +531,15 @@ int main()
 }
 #endif
 
+#ifndef __GLIBC__
+void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length) {
+	int i;
+	unsigned int *pO, *pI;
+	pO = (unsigned int *)to;
+	pI = (unsigned int *)from;
+	length>>=2;
+	for (i = 0; i < length; ++i) {
+		*pO++ = bswap_32(*pI++);
+	}
+}
+#endif

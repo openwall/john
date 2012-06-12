@@ -113,7 +113,8 @@ static int NS_valid(char *ciphertext, struct fmt_main *pFmt)
 
 static ARCH_WORD_32 *NS_std_get_binary(char *ciphertext)
 {
-	static ARCH_WORD_32 out[4];
+	static unsigned long out_[16/sizeof(unsigned long)];
+	ARCH_WORD_32 *out = (ARCH_WORD_32*)out_;
 	char unscrambled[24];
 	int i;
         MD5_u32plus a, b, c;

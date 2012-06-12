@@ -1,10 +1,10 @@
 /*
  * GOST 3411 cracker patch for JtR. Hacked together during
  * May of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>,
- * Sergey V. <sftp.mtuci at gmail com>
+ * Sergey V. <sftp.mtuci at gmail com>, and JimF
  *
  * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
- * Sergey V. <sftp.mtuci at gmail com>,
+ * Sergey V. <sftp.mtuci at gmail com>, and JimF
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
@@ -79,7 +79,7 @@ static void init(struct fmt_main *pFmt)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -117,12 +117,13 @@ static char *split(char *ciphertext, int index)
 
 static void *get_salt(char *ciphertext)
 {
-	static char p[2] = {0, 1};
+	static char i;
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		return &p[0];
-
-	return &p[1];
+		i=0;
+	else
+		i=1;
+	return &i;
 }
 
 static void set_salt(void *salt)
@@ -185,6 +186,7 @@ static void crypt_all(int count)
 			john_gost_init(&ctx);
 		john_gost_update(&ctx, (const unsigned char*)saved_key[index],
 			    strlen(saved_key[index]));
+
 		john_gost_final(&ctx, (unsigned char *)crypt_out[index]);
 	}
 }
