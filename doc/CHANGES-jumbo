@@ -32,6 +32,21 @@ ssha (Samuele, Lukas)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
 Other changes:
+* wordlist.c: True dupe suppression for buffer mode, code based on unique.c 
+(magnum)
+* CUDA device lister, show them with --list=cuda-devices (Lukas Odzioba)
+* Move markov option handling to mkv.c (do_markov_crack). Use [Markov:Default]
+instead of [Options:Markov] (Frank Dittrich)
+* Add --list=[encodings|opencl-devices]. Deprecate --encodings=LIST (but it's 
+still supported). We will later support --list=cuda-devices too. Drop 
+--device=list and --platforms=list (not supported from now on). For the 
+catch-all of --list=<subsection>, add a header "Subsections of...". (magnum)
+* External:Keyboard: Fixes for 8-bit characters vs signed char constants. 
+http://www.openwall.com/lists/john-users/2012/02/26/2 (magnum)
+* Create a rule section "Extra" for the previously commented-out rules for 
+Single mode. Also, add new rules "Single-Extra" (consisting of Single plus 
+Extra) and "Jumbo" (consisting of all rules we have, including NT). I preserved 
+the name "All" for local use, thus using "Jumbo" instead. (magnum)
 * Source $JOHN/john.local.conf by default. This file is never overwritten but
 will be created empty when building, if it does not exist. It must *not* be
 included in any release tarball. (magnum)
@@ -62,7 +77,7 @@ salt (JimF)
 or if mingw is used to build 64-bit Windows build. (magnum)
 * RAR format: Proper support for -p mode. OpenCL support added (in the same
 one format). Added inline storing of RAR data in input file when files are
-small enough. (magnum)
+small enough. Support files larger than 2 GB. (magnum)
 * New pre-built intrinsics for latest sse-intrinsics.c (magnum)
 * sse-intrinsics.c: Take advantage of some SSE2 and SSSE3 intructions if
 available http://www.openwall.com/lists/john-dev/2012/03/21/4 (followup) (Solar)
