@@ -53,7 +53,18 @@ extern "C"
 void cuda_device_list()
 {
 	int i, devices;
-	cudaGetDeviceCount(&devices);
+	cudaError_t ret;
+
+	ret = cudaGetDeviceCount(&devices);
+	if (ret == cudaErrorNoDevice) {
+		puts("Error: No CUDA-capable devices were detected by the installed CUDA driver.\n");
+		exit(1);
+	}
+	if (ret == cudaErrorInsufficientDriver) {
+		puts("Error: The installed NVIDIA CUDA driver is older than the CUDA runtime library.\nThis is not a supported configuration. Update your display driver.\n");
+		exit(1);
+	}
+
 	printf("%d CUDA devices found:\n", devices);
 	for (i = 0; i < devices; i++) {
 		cudaDeviceProp devProp;
