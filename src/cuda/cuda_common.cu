@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -7,31 +7,75 @@
 #define _CUDA_COMMON_CU
 
 #include <stdio.h>
+#include <assert.h>
 #include "cuda_common.cuh"
 
 extern "C" 
 void HandleError(cudaError_t err, const char *file, int line)
 {
 	if (err != cudaSuccess) {
-		printf("%s in %s at line %d\n", cudaGetErrorString(err), file,
-		    line);
+		fprintf(stderr, "%s in %s at line %d\n",
+		    cudaGetErrorString(err), file, line);
 		exit(EXIT_FAILURE);
 	}
 }
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 
+static char *human_format(size_t size)
+{
+	char pref[] = { ' ', 'k', 'M', 'G' };
+	int prefid = 0;
+	while (size > 1024) {
+		size /= 1024;
+		prefid++;
+	}
+	assert(prefid <= 3);
+	static char ret[32];
+	sprintf(ret, "%d.%d %cB", size, (size%1024)/100,pref[prefid]);
+	return ret;
+}
+
 extern "C" 
 void cuda_init(unsigned int gpu_id)
 {
 	int devices;
 	HANDLE_ERROR(cudaGetDeviceCount(&devices));
-	if (gpu_id < devices && devices > 0 )
+	if (gpu_id < devices && devices > 0)
 		cudaSetDevice(gpu_id);
 	else {
-		printf("Invalid CUDA device id = %u\n", gpu_id);
-		//fprintf(stderr,
+		fprintf(stderr, "Invalid CUDA device id = %d\n", gpu_id);
 		exit(1);
+	}
+}
+
+extern "C" 
+void cuda_device_list()
+{
+	int i, devices;
+	cudaGetDeviceCount(&devices);
+	printf("%d CUDA devices found:\n", devices);
+	for (i = 0; i < devices; i++) {
+		cudaDeviceProp devProp;
+		cudaGetDeviceProperties(&devProp, i);
+		printf("\nCUDA Device #%d\n", i);
+		printf("\tName:                          %s\n", devProp.name);
+		printf("\tCompute capability:            sm_%d%d\n",
+		    devProp.major, devProp.minor);
+		printf("\tNumber of multiprocessors:     %d\n",
+		    devProp.multiProcessorCount);
+		printf("\tClock rate:                    %d Mhz\n",
+		    devProp.clockRate/1024);
+		printf("\tTotal global memory:           %s\n",
+		    human_format(devProp.totalGlobalMem+200000000));
+		printf("\tTotal shared memory per block: %s\n",
+		    human_format(devProp.sharedMemPerBlock));
+		printf("\tTotal constant memory:         %s\n",
+		    human_format(devProp.totalConstMem));
+		printf("\tKernel execution timeout:      %s\n",
+		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
+		printf("\tConcurrent copy and execution: %s\n",
+		    (devProp.deviceOverlap ? "Yes" : "No"));
 	}
 }
 

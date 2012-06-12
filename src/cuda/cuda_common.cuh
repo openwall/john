@@ -13,5 +13,6 @@ void HandleError(cudaError_t err, const char *file, int line);
 
 extern "C" 
 void cuda_init(unsigned int gpu_id);
-
+extern "C"
+void cuda_device_list();
 #endif
