@@ -362,7 +362,7 @@ static void *get_binary(char *ciphertext)
 		out[i] = temp;
 	}
 #ifdef MMX_COEF
-	alter_endianity(out, sizeof(out));
+	alter_endianity(out, sizeof(out_));
 #endif
 	return out;
 }
