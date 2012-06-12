@@ -237,7 +237,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned int out[4];
+	static unsigned long out_[16/sizeof(unsigned long)];
+	unsigned int *out = (unsigned int*)out_;
 	unsigned int i;
 	unsigned int temp;
 

@@ -222,7 +222,8 @@ static void * binary(char *ciphertext)
 
 static void * salt(char *ciphertext)
 {
-	static unsigned char salt[SALT_SIZE + 1];
+	static unsigned long salt_[(SALT_SIZE/sizeof(unsigned long))+1];
+	unsigned char *salt = (unsigned char*)salt_;
 	// store off the 'real' 8 bytes of salt
 	memcpy(salt, &ciphertext[4], 8);
 	// append the 1 byte of loop count information.

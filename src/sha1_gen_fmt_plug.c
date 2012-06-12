@@ -79,7 +79,8 @@ static void *get_binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char out[SALT_SIZE];
+	static unsigned long out_[SALT_SIZE/sizeof(unsigned long)];
+	unsigned char *out = (unsigned char*)out_;
 	char *p;
 	int length;
 

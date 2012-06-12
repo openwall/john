@@ -216,3 +216,35 @@ void dump_out_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int i
 }
 
 #endif
+
+void alter_endianity_w(void *_x, unsigned int count) {
+	int i = -1;
+	ARCH_WORD_32 *x = (ARCH_WORD_32*)_x;
+#if ARCH_ALLOWS_UNALIGNED
+	while (++i < count) {
+		x[i] = JOHNSWAP(x[i]);
+	}
+#else
+	unsigned char *cpX, c;
+	long l;
+	l = (long)x;
+	if ( (l & (sizeof(ARCH_WORD_32)-1)) == 0) {
+		// we are in alignment.
+		while (++i < count) {
+			x[i] = JOHNSWAP(x[i]);
+		}
+		return;
+	}
+	// non-aligned data :(
+	cpX = (unsigned char*)x;
+	while (++i < count) {
+		c = *cpX;
+		*cpX = cpX[3];
+		cpX[3] = c;
+		c = cpX[1];
+		cpX[1] = cpX[2];
+		cpX[2] = c;
+		cpX += 4;
+	}
+#endif
+}

@@ -6,7 +6,6 @@
  */
 
 #include <string.h>
-
 #include "arch.h"
 
 #ifdef SHA1_SSE_PARA
@@ -251,7 +250,8 @@ static void rawsha1_crypt_all(int count) {
 
 static void * rawsha1_binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static unsigned long realcipher_[BINARY_SIZE/sizeof(unsigned long)];
+	unsigned char *realcipher = (unsigned char*)realcipher_;
 	int i;
 
 	ciphertext += TAG_LENGTH;
