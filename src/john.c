@@ -59,6 +59,9 @@
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
 #endif
+#ifdef HAVE_CUDA
+extern void cuda_device_list();
+#endif
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
 #else
@@ -558,14 +561,16 @@ static void john_init(char *name, int argc, char **argv)
 	{
 		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
 		puts("ext-modes, build-info, hidden-options, encodings, formats,");
-		printf("<conf section name>");
 #ifdef CL_VERSION_1_0
-		printf(", opencl-devices");
+		printf("opencl-devices, ");
 #endif
 #ifdef HAVE_CUDA
-		printf(", cuda-devices");
+		printf("cuda-devices, ");
 #endif
-		printf("\n");
+		/* NOTE: The following must end the list. Anything listed
+		   after <conf section name> will be ignored by current
+		   bash completion scripts. */
+		puts("<conf section name>");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
