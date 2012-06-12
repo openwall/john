@@ -32,7 +32,7 @@ static char *human_format(size_t size)
 	}
 	assert(prefid <= 3);
 	static char ret[32];
-	sprintf(ret, "%d.%d %cB", size, (size%1024)/100,pref[prefid]);
+	sprintf(ret, "%zd.%zd %cB", size, (size%1024)/100, pref[prefid]);
 	return ret;
 }
 
@@ -77,8 +77,9 @@ void cuda_device_list()
 		    devProp.multiProcessorCount);
 		printf("\tClock rate:                    %d Mhz\n",
 		    devProp.clockRate/1024);
-		printf("\tTotal global memory:           %s\n",
-		    human_format(devProp.totalGlobalMem+200000000));
+		printf("\tTotal global memory:           %s%s\n",
+		    human_format(devProp.totalGlobalMem+200000000),
+		    devProp.ECCEnabled ? " (ECC)" : "");
 		printf("\tTotal shared memory per block: %s\n",
 		    human_format(devProp.sharedMemPerBlock));
 		printf("\tTotal constant memory:         %s\n",
@@ -87,6 +88,9 @@ void cuda_device_list()
 		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
 		printf("\tConcurrent copy and execution: %s\n",
 		    (devProp.deviceOverlap ? "Yes" : "No"));
+		printf("\tWarp size:                     %d\n",
+		    devProp.warpSize);
+		puts("");
 	}
 }
 
