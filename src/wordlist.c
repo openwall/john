@@ -514,7 +514,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				hash_log++;
 			hash_size = (1 << hash_log);
 			hash_mask = (hash_size - 1);
-			log_event("Size %d log 1<<%d mask %08x, %d lines, allocating %lu bytes\n", hash_size, hash_log, hash_mask, nWordFileLines, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
+			log_event("Size %d log 1<<%d mask %08x, %d lines, allocating %zd bytes\n", hash_size, hash_log, hash_mask, nWordFileLines, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
 			buffer.hash = mem_alloc(hash_size * sizeof(unsigned int));
 			buffer.data = mem_alloc(nWordFileLines * sizeof(element_st));
 			memset(buffer.hash, 0xff, hash_size * sizeof(unsigned int));
