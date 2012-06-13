@@ -79,7 +79,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
+static char saved_key[(BF_N)][PLAINTEXT_LENGTH + 1];
 static char keys_mode;
 static int sign_extension_bug;
 static BF_salt saved_salt;
@@ -90,6 +90,7 @@ static void init(struct fmt_main *pFmt)
 	keys_mode = 'a';
 	sign_extension_bug = 0;
 	printf("*****See 'opencl_bf_std.h' for device specific optimizations******\n");
+	atexit(BF_clear_buffer);
 }
 
 static int valid(char *ciphertext,struct fmt_main *pFmt)
@@ -209,8 +210,8 @@ static char *get_key(int index)
 }
 
 static void crypt_all(int count)
-{
-	if (keys_mode != saved_salt.subtype) {
+{		
+	 if (keys_mode != saved_salt.subtype) {
 		int i;
 
 		keys_mode = saved_salt.subtype;
