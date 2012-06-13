@@ -449,7 +449,7 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 		if (do_benchmark)
 #endif
-		fprintf(stderr, "gws %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+		fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 #ifndef DEBUG
@@ -460,7 +460,7 @@ static void find_best_gws(int do_benchmark)
 			optimal_gws = num;
 		} else {
 
-			if (((float)run_time / (float)min_time) > 1.8 * ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
+			if (((float)run_time / (float)min_time) > 1.8 * ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
 #ifndef DEBUG
 				if (do_benchmark)
 #endif
@@ -497,9 +497,9 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
-			fprintf(stderr, "gws %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
-			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
+			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
 #ifndef DEBUG
 				if (do_benchmark)
 #endif
@@ -507,7 +507,7 @@ static void find_best_gws(int do_benchmark)
 				break;
 			}
 
-			if (SHAspeed > bestSHAspeed && run_time < 10000000000U) {
+			if (SHAspeed > bestSHAspeed && run_time < 10000000000ULL) {
 #ifndef DEBUG
 				if (do_benchmark)
 #endif
@@ -536,9 +536,9 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
-			fprintf(stderr, "gws %6d\t%4lu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000UL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
-			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000U) {
+			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
 #ifndef DEBUG
 				if (do_benchmark)
 #endif
@@ -546,7 +546,7 @@ static void find_best_gws(int do_benchmark)
 				break;
 			}
 
-			if (SHAspeed > bestSHAspeed && run_time < 10000000000U) {
+			if (SHAspeed > bestSHAspeed && run_time < 10000000000ULL) {
 #ifndef DEBUG
 				if (do_benchmark)
 #endif
