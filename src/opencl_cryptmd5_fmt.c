@@ -65,7 +65,6 @@ static cl_mem mem_in, mem_out, mem_salt;
 static size_t insize = sizeof(crypt_md5_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(crypt_md5_hash) * KEYS_PER_CRYPT;
 static size_t saltsize = sizeof(crypt_md5_salt);
-static size_t global_work_size = KEYS_PER_CRYPT;
 
 
 //tests are unified for 8+8 length

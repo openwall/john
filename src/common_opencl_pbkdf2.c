@@ -118,7 +118,7 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 	
 	PROFILE=0;	
 	
-	printf("Optimal Work Group Size:%d\n",lws[pltform_no][dev_no]);	
+	printf("Optimal Work Group Size:%d\n",(int)lws[pltform_no][dev_no]);
 	
 	printf("Kernel Execution Speed (Higher is better):%Lf\n",exec_time_inv[pltform_no][dev_no]);
 	

@@ -209,7 +209,6 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
 		
-		size_t localworksize = my_work_group;
 		clGetEventProfilingInfo(profilingEvent,
 		    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 		    NULL);
@@ -594,8 +593,9 @@ void listOpenCLdevices(void)
 			long_entries = get_processors_count(d);
 			if (cores_per_MP[d])
 				printf
-				    ("\tStream processors:\t%lu  (%d x %d)\n",
-				    long_entries, entries, cores_per_MP[d]);
+				    ("\tStream processors:\t%llu  (%d x %d)\n",
+				    (unsigned long long)long_entries, entries,
+				     cores_per_MP[d]);
 
 #ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
 			if (gpu_nvidia(device_info[d])) {
@@ -604,13 +604,14 @@ void listOpenCLdevices(void)
 				clGetDeviceInfo(devices[d],
 				    CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
 				    &long_entries, NULL);
-				printf("\tWarp size:\t\t%lu\n", long_entries);
+				printf("\tWarp size:\t\t%llu\n",
+				       (unsigned long long)long_entries);
 
 				clGetDeviceInfo(devices[d],
 				    CL_DEVICE_REGISTERS_PER_BLOCK_NV,
 				    sizeof(cl_uint), &long_entries, NULL);
-				printf("\tMax. GPRs/work-group:\t%lu\n",
-				    long_entries);
+				printf("\tMax. GPRs/work-group:\t%llu\n",
+				    (unsigned long long)long_entries);
 
 				get_compute_capability(d, &major, &minor);
 				printf

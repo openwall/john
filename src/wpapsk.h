@@ -23,6 +23,7 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 
+/** if you want to change hccap_t structure is also defined in hccap2john.c **/
 typedef struct
 {
   char          essid[36];
@@ -83,7 +84,8 @@ static hccap_t *decode_hccap(char *ciphertext)
 	*d = '\0';
 	assert(*essid == '#');
 	char *cap = hash + 1;
-	unsigned char *dst = hccap.mac1;
+	unsigned char tbuf[sizeof(hccap_t)];
+	unsigned char *dst = tbuf;
 	int i;
 
 	for (i = 0; i < 118; i++) {
@@ -105,6 +107,7 @@ static hccap_t *decode_hccap(char *ciphertext)
 	dst[1] =
 	    (atoi64[ARCH_INDEX(cap[1])] << 4) |
 	    (atoi64[ARCH_INDEX(cap[2])] >> 2);
+	memcpy(&hccap.mac1,tbuf,sizeof(hccap_t)-36);
 	return &hccap;
 }
 
