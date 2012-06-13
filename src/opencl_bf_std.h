@@ -4,21 +4,11 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
 
-/*NOTE: Changing the following parameters to improve performance for different GPUs. WAVEFRONT_SIZE , NUM_CHANNELS and OFFSET here must be same as that in 'bf_kernel.cl'. 
+/*NOTE: Changing the following parameters to improve performance for different GPUs WORK_GROUP_SIZE, WAVEFRONT_SIZE, NUM_CHANNELS and OFFSET here must be same as that in 'bf_kernel.cl'. 
  *      Threrefore if the above three parameters are changed here,it must be also changed in the kernel file.
  *  
- * WORK_GROUP_SIZE : Increase or decrease in multiples of 64
- * WAVEFRONT_SIZE  : For Nvidia GPUs it may be also called warp size.
- *                   Wavfront size is 64 for AMD GPUs.
- *                   Warp size is 32 for Nvidia GPUs.
- *                   Set it to integral multiple of 32 for Nv GPUs and integral multiple of 64 for AMD GPUs.
- *                   Size of 64 works well for both AMD and Nv GPUs.
- * NUM_CHANNELS    : Number of memory channels available for the device. eg  for GTX570 set it 10 +/- 1
- *                                                                           for HD4890 set it  8 +/- 1
- *									     for hd7970 set it 12 +/- 1										    
- * 	             Increasing or decreasing this parameter by 1 may improve performance.
+ * WORK_GROUP_SIZE : Increase or decrease in multiples of 4. For GTX570 it is best to use 4. For 7970 use 8.
  * MULTIPLIER      : Use this to increase BF_N		
- * OFFSET          : This is to fine tune performance.Set it between 0 to WAVEFRONT_SIZE inclusive 0.
  * 
  */
 
@@ -45,15 +35,15 @@ typedef struct {
  */
 typedef BF_word BF_binary[6];
 
-#define WORK_GROUP_SIZE                  64
+#define WORK_GROUP_SIZE                  8
 
-#define WAVEFRONT_SIZE                   64
+#define WAVEFRONT_SIZE                   1         
 
-#define NUM_CHANNELS                     13
+#define NUM_CHANNELS                     1
 
 #define OFFSET                           0
 
-#define MULTIPLIER                       4
+#define MULTIPLIER                       1024
 
 #define CHANNEL_INTERLEAVE              WAVEFRONT_SIZE*NUM_CHANNELS
 
@@ -97,6 +87,14 @@ extern void *opencl_BF_std_get_salt(char *ciphertext);
  */
 extern void *opencl_BF_std_get_binary(char *ciphertext);
 
+/*
+ * BF_select_device(platform_no,device_no)
+ */
 extern void BF_select_device(int,int);
+
+/*
+ * Clean all gpu buffer
+ */
+extern void BF_clear_buffer(void);
 
 #endif
