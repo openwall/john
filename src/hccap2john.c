@@ -15,7 +15,20 @@
 #include <unistd.h>
 #include <assert.h>
 #include "common.h"
-#include "wpapsk.h"
+
+#define HCCAP_SIZE		392
+typedef struct
+{
+  char          essid[36];
+  unsigned char mac1[6];
+  unsigned char mac2[6];
+  unsigned char nonce1[32];
+  unsigned char nonce2[32];
+  unsigned char eapol[256];
+  int           eapol_size;
+  int           keyver;
+  unsigned char keymic[16];
+} hccap_t;
 
 void code_block(unsigned char *in, unsigned char b)
 {
@@ -32,7 +45,7 @@ void print_hccap(hccap_t * cap)
 {
 	int i;
 	unsigned char *w = (unsigned char *) cap;
-	printf("%s%s#", wpapsk_prefix, cap->essid);
+	printf("$WPAPSK$%s#", cap->essid);
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
 		code_block(&w[i], 1);
 	code_block(&w[i], 0);

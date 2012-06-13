@@ -1,6 +1,7 @@
 The following major changes was made since Jumbo-5:
 
 New formats:
+* PWSAFE CPU, CUDA and OpenCL (Dhiru and Lukas)
 * Raw-SHA1 "LinkedIn" format (partial hashes, 20 bit zeroed) (Jim Fougeron)
 * GOST 3411. (JimF, Sergey V and Dhiru Kholia)
 * Blowfish OpenCL (Sayantan Datta)
@@ -8,7 +9,7 @@ New formats:
 * Django 1.4 hashes. (Dhiru)
 * WoltLab Burning Board 3 hashes. (Dhiru)
 * Password Safe files. (Dhiru)
-* WPAPSK format for CUDA and OpenCL (Lukas Odzioba)
+* WPAPSK format for CUDA and OpenCL (Lukas)
 * Mac OS X Keychain cracker with OMP support. (Dhiru)
 * Office 2007/2010 documents. (Dhiru)
 * Add support for *new* EPiServer's default hashes. (Dhiru)

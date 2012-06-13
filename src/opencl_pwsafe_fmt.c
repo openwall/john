@@ -68,7 +68,6 @@ static cl_mem mem_in, mem_out, mem_salt;
 static size_t insize = sizeof(pwsafe_pass) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(pwsafe_hash) * KEYS_PER_CRYPT;
 static size_t saltsize = sizeof(pwsafe_salt);
-static size_t global_work_size = KEYS_PER_CRYPT;
 
 static int any_cracked;
 static pwsafe_pass *host_pass;				/** binary ciphertexts **/
@@ -91,8 +90,6 @@ static void pwsafe_set_key(char *key, int index)
 	memcpy(host_pass[index].v, key, saved_key_length);
 	host_pass[index].length = saved_key_length;
 }
-
-static void find_best_workgroup(struct fmt_main *pFmt);
 
 static void init(struct fmt_main *pFmt)
 {

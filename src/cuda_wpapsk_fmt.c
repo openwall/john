@@ -28,6 +28,8 @@ extern hccap_t hccap;
 extern mic_t *mic;
 extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *);
 
+extern void *salt(char *ciphertext);
+
 /** testcase from http://wiki.wireshark.org/SampleCaptures = wpa-Induction.pcap **/
 static struct fmt_tests wpapsk_tests[] = {
 	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "Induction"},

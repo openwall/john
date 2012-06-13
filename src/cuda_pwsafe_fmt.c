@@ -41,7 +41,7 @@ static int any_cracked;
 static pwsafe_pass *host_pass;                          /** binary ciphertexts **/
 static pwsafe_salt *host_salt;                          /** salt **/
 static pwsafe_hash *host_hash;                          /** calculated hashes **/
-
+extern void gpu_pwpass(pwsafe_pass *, pwsafe_salt *, pwsafe_hash *);
 static void init(struct fmt_main *pFmt)
 {
         host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));

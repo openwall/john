@@ -209,7 +209,6 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
 		
-		size_t localworksize = my_work_group;
 		clGetEventProfilingInfo(profilingEvent,
 		    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 		    NULL);
