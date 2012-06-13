@@ -328,7 +328,7 @@ static int valid(char *ciphertext,struct fmt_main *pFmt)
 		return 0; 
 	  
 		saltlength++; 
-		*pos++;
+		pos++;
 	      } 
 	
 	return 1;
