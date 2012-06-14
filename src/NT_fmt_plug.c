@@ -342,8 +342,11 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned long out_[16/sizeof(unsigned long)];
-	unsigned int *out = (unsigned int*) out_;
+	static union {
+		unsigned long u64[16/sizeof(unsigned long)];
+		unsigned int u32[16/sizeof(unsigned int)];
+	} outbuf;
+	unsigned int *out = (unsigned int*)outbuf.u32;
 	unsigned int i=0;
 	unsigned int temp;
 
