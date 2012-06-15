@@ -248,6 +248,14 @@ void log_event(char *format, ...)
 	va_list args;
 	int count1, count2;
 
+	if (options.flags & FLG_LOG_STDERR) {
+		va_start(args, format);
+		vfprintf(stderr, format, args);
+		va_end(args);
+		fprintf(stderr, "\n");
+		return;
+	}
+
 	if (log.fd < 0) return;
 
 /*

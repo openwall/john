@@ -125,6 +125,7 @@ static struct opt_entry opt_list[] = {
 	{"config", FLG_CONFIG_CLI, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.config},
 	{"nolog", FLG_NOLOG, FLG_NOLOG},
+	{"log-stderr", FLG_LOG_STDERR, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.mkpc},
@@ -195,6 +196,7 @@ static struct opt_entry opt_list[] = {
 "--field-separator-char=C  use 'C' instead of the ':' in input and pot files\n" \
 "--fix-state-delay=N       performance tweak, see documentation\n" \
 "--nolog                   disables creation and writing to john.log file\n" \
+"--log-stderr              log to screen instead of file\n" \
 "--crack-status            emit a status line whenever a password is cracked\n" \
 "--max-run-time=N          gracefully exit after this many seconds\n" \
 "--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)\n"
