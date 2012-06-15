@@ -239,31 +239,29 @@ static int get_progress(int *hundth_perc)
 	return per;
 }
 
-
-void do_markov_crack(struct db_main *db, char * mkv_param)
+void get_markov_options(struct db_main *db,
+                        char *mkv_param,
+                        unsigned int *minlevel, unsigned int *level,
+                        unsigned long long *start, unsigned long long *end,
+                        unsigned int *minlen, unsigned int *maxlen,
+                        char **statfile)
 {
-	char * statfile;
-	unsigned int mkv_minlevel, mkv_level,  mkv_maxlen, mkv_minlen;
-	unsigned long long mkv_start, mkv_end;
-
-#ifdef HAVE_MPI
-	unsigned long long mkv_size;
-#endif
 	char * token;
 
-	mkv_level = 0;
-	mkv_start = 0;
-	mkv_end = 0;
-	mkv_maxlen = 0;
-	mkv_minlevel = 0;
-	mkv_minlen = 0;
+	*level = 0;
+	*start = 0;
+	*end = 0;
+	*maxlen = 0;
+	*minlevel = 0;
+	*minlen = 0;
+
 	if (mkv_param)
 	{
 		token = strtok(mkv_param, ":");
-		if(sscanf(token, "%d-%d", &mkv_minlevel, &mkv_level) != 2)
+		if(sscanf(token, "%d-%d", minlevel, level) != 2)
 		{
-			mkv_minlevel = 0;
-			if (sscanf(token, "%d", &mkv_level) != 1)
+			*minlevel = 0;
+			if (sscanf(token, "%d", level) != 1)
 			{
 #ifdef HAVE_MPI
 				if (mpi_id == 0)
@@ -273,40 +271,23 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 			}
 		}
 		token = strtok(NULL, ":");
-		if( (token != NULL) && (sscanf(token, LLd, &mkv_start)==1) )
+		if( (token != NULL) && (sscanf(token, LLd, start)==1) )
 		{
 			token = strtok(NULL, ":");
-			if( (token != NULL) && (sscanf(token, LLd, &mkv_end)==1) )
+			if( (token != NULL) && (sscanf(token, LLd, end)==1) )
 			{
 				token = strtok(NULL, ":");
-				if( (token != NULL) && (sscanf(token, "%d-%d", &mkv_minlen, &mkv_maxlen)!=2) )
+				if( (token != NULL) && (sscanf(token, "%d-%d", minlen, maxlen)!=2) )
 				{
-					mkv_minlen = 0;
-					sscanf(token, "%d", &mkv_maxlen);
+					*minlen = 0;
+					sscanf(token, "%d", maxlen);
 				}
 			}
 		}
 	}
-	if(mkv_level<mkv_minlevel)
-	{
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Warning: max level(%d) < min level(%d), min level set to %d\n", mkv_level, mkv_minlevel, mkv_level);
-		mkv_minlevel = mkv_level;
-	}
-	if(mkv_minlen > mkv_maxlen)
-	{
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Warning: minimum length(%d) < maximum length(%d), minimum length set to %d\n", mkv_minlen, mkv_maxlen, mkv_maxlen);
-		mkv_minlen = mkv_maxlen;
-	}
 
-
-	if(mkv_level == 0)
-		if( (mkv_level = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvLvl")) == -1 )
+	if(*level == 0)
+		if( (*level = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvLvl")) == -1 )
 		{
 			log_event("no markov level defined!");
 #ifdef HAVE_MPI
@@ -316,8 +297,17 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 			error();
 		}
 
-	if(mkv_maxlen == 0)
-		if( (mkv_maxlen = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvMaxLen")) == -1 )
+	if (*level > MAX_MKV_LVL) {
+		log_event("! Level = %d is too large (max=%d)", *level, MAX_MKV_LVL);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", *level, MAX_MKV_LVL);
+		*level = MAX_MKV_LVL;
+	}
+
+	if(*maxlen == 0)
+		if( (*maxlen = cfg_get_int(SECTION_MARKOV, SUBSECTION_DEFAULT, "MkvMaxLen")) == -1 )
 		{
 			log_event("no markov max length defined!");
 #ifdef HAVE_MPI
@@ -327,8 +317,48 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 			error();
 		}
 
-	statfile = cfg_get_param(SECTION_MARKOV, SUBSECTION_DEFAULT, "Statsfile");
-	if(statfile == NULL)
+	if (db->format->params.plaintext_length <= MAX_MKV_LEN &&
+	    *maxlen > db->format->params.plaintext_length) {
+		log_event("! MaxLen = %d is too large for this hash type",
+			*maxlen);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: "
+			"MaxLen = %d is too large for the current hash type, "
+			"reduced to %d\n",
+			*maxlen, db->format->params.plaintext_length);
+		*maxlen = db->format->params.plaintext_length;
+	}
+	else
+	if (*maxlen > MAX_MKV_LEN) {
+		log_event("! MaxLen = %d is too large (max=%d)", *maxlen, MAX_MKV_LEN);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: Maxlen = %d is too large (max = %d)\n", *maxlen, MAX_MKV_LEN);
+		*maxlen = MAX_MKV_LEN;
+	}
+
+	if(*level<*minlevel)
+	{
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: max level(%d) < min level(%d), min level set to %d\n", *level, *minlevel, *level);
+		*minlevel = *level;
+	}
+	if(*minlen > *maxlen)
+	{
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: minimum length(%d) < maximum length(%d), minimum length set to %d\n", *minlen, *maxlen, *maxlen);
+		*minlen = *maxlen;
+	}
+
+	*statfile = cfg_get_param(SECTION_MARKOV, SUBSECTION_DEFAULT, "Statsfile");
+	if(*statfile == NULL)
 	{
 		log_event("statfile not defined");
 #ifdef HAVE_MPI
@@ -337,37 +367,21 @@ void do_markov_crack(struct db_main *db, char * mkv_param)
 		fprintf(stderr, "Statfile not defined\n");
 		error();
 	}
+}
+void do_markov_crack(struct db_main *db, char *mkv_param)
+{
+	char *statfile = NULL;
+	unsigned int mkv_minlevel, mkv_level,  mkv_maxlen, mkv_minlen;
+	unsigned long long mkv_start, mkv_end;
 
-	if (mkv_maxlen > db->format->params.plaintext_length) {
-		log_event("! MaxLen = %d is too large for this hash type",
-			mkv_maxlen);
 #ifdef HAVE_MPI
-		if (mpi_id == 0)
+	unsigned long long mkv_size;
 #endif
-		fprintf(stderr, "Warning: "
-			"MaxLen = %d is too large for the current hash type, "
-			"reduced to %d\n",
-			mkv_maxlen, db->format->params.plaintext_length);
-		mkv_maxlen = db->format->params.plaintext_length;
-	}
 
-	if (mkv_maxlen > MAX_MKV_LEN) {
-		log_event("! MaxLen = %d is too large (max=%d)", mkv_maxlen, MAX_MKV_LEN);
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Warning: Maxlen = %d is too large (max = %d)\n", mkv_maxlen, MAX_MKV_LEN);
-		mkv_maxlen = MAX_MKV_LEN;
-	}
-
-	if (mkv_level > MAX_MKV_LVL) {
-		log_event("! Level = %d is too large (max=%d)", mkv_level, MAX_MKV_LVL);
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", mkv_level, MAX_MKV_LVL);
-		mkv_level = MAX_MKV_LVL;
-	}
+	get_markov_options(db,
+	                   mkv_param,
+	                   &mkv_minlevel, &mkv_level, &mkv_start, &mkv_end,
+	                   &mkv_minlen, &mkv_maxlen, &statfile);
 
 	gidx = 0;
 	status_init(get_progress, 0);
