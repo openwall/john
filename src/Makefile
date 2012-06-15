@@ -230,6 +230,7 @@ default:
 	@echo "linux-x86-64-cuda        Linux, x86-64 with SSE2 and CUDA (experimental)"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
+	@echo "linux-x86-64-native      Linux, x86-64 with any feature you've got"
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
 	@echo "linux-x86-64-icc         Linux, x86-64 compiled with icc"
 	@echo "linux-x86-64-clang       Linux, x86-64 compiled with clang"
@@ -358,6 +359,14 @@ linux-x86-64-cuda:
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -lcrypt -ldl -lcudart"
+
+linux-x86-64-native:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
