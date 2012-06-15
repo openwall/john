@@ -1,3 +1,5 @@
+#if defined(__SSE4_1__) && defined(__GNUC__)
+
 #include <stdbool.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
@@ -470,7 +472,7 @@ static int sha1_fmt_binary4(uint32_t *binary) { return binary[4] & 0x000FFFFF; }
 static int sha1_fmt_binary5(uint32_t *binary) { return binary[4] & 0x00FFFFFF; }
 static int sha1_fmt_binary6(uint32_t *binary) { return binary[4] & 0x07FFFFFF; }
 
-struct fmt_main sha1_fmt_main = {
+struct fmt_main sha1_fmt_taviso = {
     .params                 = {
         .label              = "rawsha1_sse4",
         .format_name        = "Raw SHA-1 (taviso sse4 build)",
@@ -521,3 +523,8 @@ struct fmt_main sha1_fmt_main = {
         .cmp_exact          = sha1_fmt_cmp_exact,
     },
 };
+#else
+#ifdef __GNUC__
+#warning Note: rawsha1_ssse4 disabled, needs SSSE4
+#endif
+#endif
