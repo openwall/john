@@ -230,7 +230,7 @@ int main(int argc, char * * argv)
 
 	if(max_lvl==0)
 	{
-		for(max_lvl=100;max_lvl<400;max_lvl++)
+		for(max_lvl=100;max_lvl<=MAX_MKV_LVL;max_lvl++)
 		{
 			nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
 			printf("lvl=%u (%lu KB for nbparts) ", max_lvl, 256UL*(max_lvl+1)*(max_len+1)*sizeof(long long)/1024);
@@ -247,6 +247,10 @@ int main(int argc, char * * argv)
 			free(nbparts);
 		}
 		goto fin;
+	}
+	if(max_lvl>MAX_MKV_LVL) {
+		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", max_lvl, MAX_MKV_LVL);
+		max_lvl = MAX_MKV_LVL;
 	}
 
 	nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
