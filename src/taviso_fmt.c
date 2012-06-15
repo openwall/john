@@ -399,11 +399,13 @@ static void sha1_fmt_crypt_all(int count)
     return;
 }
 
+#ifndef __INTEL_COMPILER
 // This intrinsic is not always available in GCC, so define it here.
 static inline int _mm_testz_si128 (__m128i __M, __m128i __V)
 {
     return __builtin_ia32_ptestz128 ((__v2di)__M, (__v2di)__V);
 }
+#endif
 
 // This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
 // Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
