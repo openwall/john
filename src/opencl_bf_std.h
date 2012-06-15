@@ -3,15 +3,6 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
-
-/*NOTE: Changing the following parameters to improve performance for different GPUs WORK_GROUP_SIZE, WAVEFRONT_SIZE, NUM_CHANNELS and OFFSET here must be same as that in 'bf_kernel.cl'. 
- *      Threrefore if the above three parameters are changed here,it must be also changed in the kernel file.
- *  
- * WORK_GROUP_SIZE : Increase or decrease in multiples of 4. For GTX570 it is best to use 4. For 7970 use 8.
- * MULTIPLIER      : Use this to increase BF_N		
- * 
- */
-
 #ifndef _OPENCL_BF_STD_H
 #define _OPENCL_BF_STD_H
 
@@ -35,21 +26,22 @@ typedef struct {
  */
 typedef BF_word BF_binary[6];
 
-#define WORK_GROUP_SIZE                  8
+/*NOTE: If you change the WORK_GROUP_SIZE here it must also be changed in bf_kernel.cl*/
+/*
+ * WORK_GROUP_SIZE: Use trial and error to find best work group size. In any case it should not exceed 16.
+ *                  E.g. For 7970 set it 8.
+ *                       For 570  set it 4.
+ * MULTIPLIER:      Increase keys per crypt using this parameter.
+ * 
+ */ 
 
-#define WAVEFRONT_SIZE                   1         
-
-#define NUM_CHANNELS                     1
-
-#define OFFSET                           0
-
-#define MULTIPLIER                       1024
-
+#define WORK_GROUP_SIZE                 8
+#define NUM_CHANNELS                    1
+#define WAVEFRONT_SIZE                  1 
 #define CHANNEL_INTERLEAVE              WAVEFRONT_SIZE*NUM_CHANNELS
-
+#define MULTIPLIER                      1024
 #define BF_N				CHANNEL_INTERLEAVE*MULTIPLIER
-
-#define MAX_DEVICES_PER_PLATFORM         8
+#define MAX_DEVICES_PER_PLATFORM        8
 
 /*
  * BF_std_crypt() output buffer.
@@ -88,12 +80,13 @@ extern void *opencl_BF_std_get_salt(char *ciphertext);
 extern void *opencl_BF_std_get_binary(char *ciphertext);
 
 /*
- * BF_select_device(platform_no,device_no)
+ * Select a device: BF_select_device(platform_id,device_id)
  */
+
 extern void BF_select_device(int,int);
 
 /*
- * Clean all gpu buffer
+ * Clear all GPU Buffers
  */
 extern void BF_clear_buffer(void);
 
