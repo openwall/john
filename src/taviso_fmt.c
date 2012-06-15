@@ -1,0 +1,530 @@
+#if defined(__SSE4_1__) && defined(__GNUC__)
+
+#include <stdbool.h>
+#include <emmintrin.h>
+#include <smmintrin.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdint.h>
+
+#include "params.h"
+#include "formats.h"
+#include "memory.h"
+#include "sha.h"
+
+//
+// Alternative SSE2 optimised raw SHA-1 implementation for John The Ripper.
+//
+// This plugin requires -msse4 in CFLAGS.
+//
+// Copyright (C) 2012 Tavis Ormandy <taviso@cmpxchg8b.com>
+//
+// This library is free software; you can redistribute it and/or
+// modify it under the terms of the GNU Library General Public
+// License as published by the Free Software Foundation; either
+// version 2 of the License, or (at your option) any later version.
+//
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// Library General Public License for more details.
+//
+// You should have received a copy of the GNU Library General Public
+// License along with this library; if not, write to the
+// Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+// Boston, MA  02110-1301, USA.
+//
+
+#if defined(__SSE4_1__) && defined(__GNUC__)
+# warning Experimental rawsha1_sse4 plugin, send bug reports to taviso@cmpxchg8b.com.
+#else
+# error This plugin has not been tested on your platform.
+#endif
+
+#define SHA1_BLOCK_SIZE         64
+#define SHA1_BLOCK_WORDS        16
+#define SHA1_DIGEST_SIZE        20
+#define SHA1_DIGEST_WORDS        5
+#define SHA1_PARALLEL_HASH       4
+
+#define __aligned __attribute__((aligned(16)))
+
+#define X(X0, X2, X8, X13) do {                                                                         \
+    X0  = _mm_xor_si128(X0, X8);                                                                        \
+    X0  = _mm_xor_si128(X0, X13);                                                                       \
+    X0  = _mm_xor_si128(X0, X2);                                                                        \
+    X0  = _mm_xor_si128(_mm_slli_epi32(X0, 1), _mm_srli_epi32(X0,31));                                  \
+} while (false)
+
+#define R1(W, A, B, C, D, E) do {                                                                       \
+    E   = _mm_add_epi32(E, K);                                                                          \
+    E   = _mm_add_epi32(E, _mm_and_si128(C, B));                                                        \
+    E   = _mm_add_epi32(E, _mm_andnot_si128(B, D));                                                     \
+    E   = _mm_add_epi32(E, W);                                                                          \
+    B   = _mm_xor_si128(_mm_slli_epi32(B, 30), _mm_srli_epi32(B, 2));                                   \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_slli_epi32(A, 5), _mm_srli_epi32(A, 27)));                 \
+} while (false)
+
+#define R2(W, A, B, C, D, E) do {                                                                       \
+    E   = _mm_add_epi32(E, K);                                                                          \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_xor_si128(B, C), D));                                      \
+    E   = _mm_add_epi32(E, W);                                                                          \
+    B   = _mm_xor_si128(_mm_slli_epi32(B, 30), _mm_srli_epi32(B, 2));                                   \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_slli_epi32(A, 5), _mm_srli_epi32(A, 27)));                 \
+} while (false)
+
+#define R3(W, A, B, C, D, E) do {                                                                       \
+    E   = _mm_add_epi32(E, K);                                                                          \
+    E   = _mm_add_epi32(E, _mm_or_si128(_mm_and_si128(_mm_or_si128(B, D), C), _mm_and_si128(B, D)));    \
+    E   = _mm_add_epi32(E, W);                                                                          \
+    B   = _mm_xor_si128(_mm_slli_epi32(B, 30), _mm_srli_epi32(B, 2));                                   \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_slli_epi32(A, 5), _mm_srli_epi32(A, 27)));                 \
+} while (false)
+
+#define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {                                                       \
+    __m128i T0, T1, T2, T3;                                                                             \
+    T0  = _mm_unpacklo_epi32(R0, R1);                                                                   \
+    T1  = _mm_unpacklo_epi32(R2, R3);                                                                   \
+    T2  = _mm_unpackhi_epi32(R0, R1);                                                                   \
+    T3  = _mm_unpackhi_epi32(R2, R3);                                                                   \
+    R0  = _mm_unpacklo_epi64(T0, T1);                                                                   \
+    R1  = _mm_unpackhi_epi64(T0, T1);                                                                   \
+    R2  = _mm_unpacklo_epi64(T2, T3);                                                                   \
+    R3  = _mm_unpackhi_epi64(T2, T3);                                                                   \
+} while (false)
+
+#define _mm_load_si128(x) _mm_load_si128((void *)(x))
+#define _mm_store_si128(x, y) _mm_store_si128((void *)(x), (y))
+
+static uint32_t __aligned M[SHA1_PARALLEL_HASH][4];
+static uint32_t __aligned N[SHA1_PARALLEL_HASH][4];
+static uint32_t __aligned MD[SHA1_PARALLEL_HASH];
+
+static struct fmt_tests sha1_fmt_tests[] = {
+    { "f8252c7b6035a71242b4047782247faabfccb47b", "taviso"         },
+    { "b47f363e2b430c0647f14deea3eced9b0ef300ce", "is"             },
+    { "03d67c263c27a453ef65b29e30334727333ccbcd", "awesome"        },
+    { "7a73673e78669ea238ca550814dca7000d7026cc", "!!!!1111eleven" },
+    { "da39a3ee5e6b4b0d3255bfef95601890afd80709", ""               },
+    { "AC80BAA235B7FB7BDFC593A976D40B24B851F924", "CAPSLOCK"       },
+    { NULL, NULL }
+};
+
+static inline uint32_t __attribute__((const)) rotateright(uint32_t value, uint8_t count)
+{
+    register uint32_t result;
+
+    asm("ror    %%cl, %0"
+        : "=r" (result)
+        : "0"  (value),
+          "c"  (count));
+
+    return result;
+}
+
+static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t count)
+{
+    register uint32_t result;
+
+    asm("rol    %%cl, %0"
+        : "=r" (result)
+        : "0"  (value),
+          "c"  (count));
+
+    return result;
+}
+
+static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
+{
+    // This routine is not hot, verify this only contains hex digits.
+    if (strspn(ciphertext, "0123456789aAbBcCdDeEfF") != SHA1_DIGEST_SIZE * 2)
+        return 0;
+
+    return 1;
+}
+
+static void * sha1_fmt_binary(char *ciphertext)
+{
+    uint32_t *result    = mem_alloc_tiny(SHA1_DIGEST_SIZE, MEM_ALIGN_SIMD);
+    uint8_t  *binary    = result;
+    char      byte[3]   = {0};
+
+    // Convert ascii representation into binary. This routine is not hot, so
+    // it's okay to keep this simple.
+    for (; *ciphertext; ciphertext += 2, binary += 1) {
+        *binary = strtoul(memcpy(byte, ciphertext, 2), NULL, 16);
+    }
+
+    // Now subtract the SHA-1 IV, returning this hash to the R80 state. This
+    // means we save 4 SIMD additions for every crypt(), because we don't have
+    // to do it there.
+    result[0] = __builtin_bswap32(result[0]) - 0x67452301;
+    result[1] = __builtin_bswap32(result[1]) - 0xEFCDAB89;
+    result[2] = __builtin_bswap32(result[2]) - 0x98BADCFE;
+    result[3] = __builtin_bswap32(result[3]) - 0x10325476;
+
+    // One additional preprocessing step, if we calculate E80 rol 2 here, we
+    // can compare it against A75 and save 5 rounds.
+    result[4] = rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
+
+    return result;
+}
+
+// This function is called when John wants us to buffer a crypt() operation
+// on the specified key. We also preprocess it for SHA-1 as we load it.
+//
+// This implementation is hardcoded to only accept passwords under 15
+// characters. This is because we can create a new message block in just two
+// MOVDQA instructions (we need 15 instead of 16 because we must append a bit
+// to the message).
+//
+// This routine assumes that key is not on an unmapped page boundary, but
+// doesn't require it to be 16 byte aligned (although that would be nice).
+static void sha1_fmt_set_key(char *key, int index)
+{
+    __m128i  Z   = _mm_setzero_si128();
+    __m128i  X   = _mm_loadu_si128(key);
+    __m128i  B   = _mm_set_epi32(1 << 31, 0, 0, 0);
+    uint32_t len = _mm_movemask_epi8(_mm_cmpeq_epi8(X, Z));
+
+    // First, find the length of the key by scanning for a zero byte.
+    len = __builtin_ctz(len);
+
+    // Zero out the rest of the DQWORD in X by making a mask. First, set all
+    // the bits by comparing to itself, then shift it down N bits.
+    Z = _mm_cmpeq_epi8(Z, Z);
+
+    // XXX: PSRLDQ requires an imm8 shift count. Is there a way to do this
+    //      without the branch? We can use PSRLQ, but then how do I reset the
+    //      other QWORD?
+    switch (len) {
+        case  0: Z = _mm_slli_si128(Z,  0); B = _mm_srli_si128(B, 15); break;
+        case  1: Z = _mm_slli_si128(Z,  1); B = _mm_srli_si128(B, 14); break;
+        case  2: Z = _mm_slli_si128(Z,  2); B = _mm_srli_si128(B, 13); break;
+        case  3: Z = _mm_slli_si128(Z,  3); B = _mm_srli_si128(B, 12); break;
+        case  4: Z = _mm_slli_si128(Z,  4); B = _mm_srli_si128(B, 11); break;
+        case  5: Z = _mm_slli_si128(Z,  5); B = _mm_srli_si128(B, 10); break;
+        case  6: Z = _mm_slli_si128(Z,  6); B = _mm_srli_si128(B,  9); break;
+        case  7: Z = _mm_slli_si128(Z,  7); B = _mm_srli_si128(B,  8); break;
+        case  8: Z = _mm_slli_si128(Z,  8); B = _mm_srli_si128(B,  7); break;
+        case  9: Z = _mm_slli_si128(Z,  9); B = _mm_srli_si128(B,  6); break;
+        case 10: Z = _mm_slli_si128(Z, 10); B = _mm_srli_si128(B,  5); break;
+        case 11: Z = _mm_slli_si128(Z, 11); B = _mm_srli_si128(B,  4); break;
+        case 12: Z = _mm_slli_si128(Z, 12); B = _mm_srli_si128(B,  3); break;
+        case 13: Z = _mm_slli_si128(Z, 13); B = _mm_srli_si128(B,  2); break;
+        case 14: Z = _mm_slli_si128(Z, 14); B = _mm_srli_si128(B,  1); break;
+        case 15: Z = _mm_slli_si128(Z, 15); break;
+        default: __builtin_trap();
+    }
+
+    // Now we have this:
+    // B = 00 00 00 00 00 80 00 00 00 00 00 00 00 00 00
+    // Z = 00 00 00 00 00 ff ff ff ff ff ff ff ff ff ff
+    // X = 41 41 41 41 41 00 12 34 56 78 12 34 56 78 9A
+    //     <---------------> <------------------------>
+    //      key bytes w/nul       junk from stack.
+
+    // Use PANDN to apply the mask, then POR to append the trailing bit
+    // required by SHA-1, which leaves us with this:
+    // X = 41 41 41 41 41 80 00 00 00 00 00 00 00 00 00
+    X = _mm_or_si128(_mm_andnot_si128(Z, X), B);
+
+    // SHA-1 requires us to bswap all the 32bit words in the message, which we
+    // can do now.
+    // FIXME: Do this with PSHUFB, this will do for now. SHA-1 requires this
+    //        byte order for input words.
+    X = _mm_set_epi32(__builtin_bswap32(_mm_cvtsi128_si32(_mm_srli_si128(X, 12))),
+                      __builtin_bswap32(_mm_cvtsi128_si32(_mm_srli_si128(X, 8))),
+                      __builtin_bswap32(_mm_cvtsi128_si32(_mm_srli_si128(X, 4))),
+                      __builtin_bswap32(_mm_cvtsi128_si32(X)));
+
+    // Store the result and it's length into the message buffer, we need the
+    // length in bits because SHA-1 requires the length be part of the final
+    // message block (or only message block, in this case).
+    _mm_store_si128(&M[index], X);
+    _mm_store_si128(&N[index], _mm_set_epi32(len * CHAR_BIT, 0, 0, 0));
+
+    return;
+}
+
+static char * sha1_fmt_get_key(int index)
+{
+    static uint32_t key[4];
+
+    // This function is not hot, we can do this slowly. First, restore
+    // endianness.
+    key[0] = __builtin_bswap32(M[index][0]);
+    key[1] = __builtin_bswap32(M[index][1]);
+    key[2] = __builtin_bswap32(M[index][2]);
+    key[3] = __builtin_bswap32(M[index][3]);
+
+    // Skip backwards until we hit the trailing bit, then remove it.
+    memset(memrchr(key, 0x80, sizeof key),
+           0x00,
+           1);
+
+    // Return pointer to static buffer.
+    return key;
+}
+
+static void sha1_fmt_crypt_all(int count)
+{
+    __m128i W[SHA1_BLOCK_WORDS];
+    __m128i A, B, C, D, E;
+    __m128i K;
+
+    // Zero the unused parts of W.
+    W[4]  = W[5] = W[6]  = W[7]  = _mm_setzero_si128();
+    W[8]  = W[9] = W[10] = W[11] = _mm_setzero_si128();
+
+    // Fetch the lengths and keys, we can use a 4x4 matrix transpose to shuffle
+    // the words into the correct position.
+    W[12] = _mm_load_si128(&N[0]);
+    W[13] = _mm_load_si128(&N[1]);
+    W[14] = _mm_load_si128(&N[2]);
+    W[15] = _mm_load_si128(&N[3]);
+
+    _MM_TRANSPOSE4_EPI32(W[12], W[13], W[14], W[15]);
+
+    // Fetch the message.
+    W[0]  = _mm_load_si128(&M[0]);
+    W[1]  = _mm_load_si128(&M[1]);
+    W[2]  = _mm_load_si128(&M[2]);
+    W[3]  = _mm_load_si128(&M[3]);
+
+    _MM_TRANSPOSE4_EPI32(W[0],  W[1],  W[2],  W[3]);
+
+    A = _mm_set1_epi32(0x67452301);
+    B = _mm_set1_epi32(0xEFCDAB89);
+    C = _mm_set1_epi32(0x98BADCFE);
+    D = _mm_set1_epi32(0x10325476);
+    E = _mm_set1_epi32(0xC3D2E1F0);
+    K = _mm_set1_epi32(0x5A827999);
+
+    R1(W[0],  A, B, C, D, E);
+    R1(W[1],  E, A, B, C, D);
+    R1(W[2],  D, E, A, B, C);
+    R1(W[3],  C, D, E, A, B);
+    R1(W[4],  B, C, D, E, A);
+    R1(W[5],  A, B, C, D, E);                                   // 5
+    R1(W[6],  E, A, B, C, D);
+    R1(W[7],  D, E, A, B, C);
+    R1(W[8],  C, D, E, A, B);
+    R1(W[9],  B, C, D, E, A);
+    R1(W[10], A, B, C, D, E);                                   // 10
+    R1(W[11], E, A, B, C, D);
+    R1(W[12], D, E, A, B, C);
+    R1(W[13], C, D, E, A, B);
+    R1(W[14], B, C, D, E, A);
+    R1(W[15], A, B, C, D, E);                                   // 15
+
+    X(W[0],  W[2],  W[8],  W[13]);  R1(W[0],  E, A, B, C, D);
+    X(W[1],  W[3],  W[9],  W[14]);  R1(W[1],  D, E, A, B, C);
+    X(W[2],  W[4],  W[10], W[15]);  R1(W[2],  C, D, E, A, B);
+    X(W[3],  W[5],  W[11], W[0]);   R1(W[3],  B, C, D, E, A);
+
+    K = _mm_set1_epi32(0x6ED9EBA1);
+
+    X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  A, B, C, D, E);   // 20
+    X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  E, A, B, C, D);
+    X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  D, E, A, B, C);
+    X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  C, D, E, A, B);
+    X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  B, C, D, E, A);
+    X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  A, B, C, D, E);   // 25
+    X(W[10], W[12], W[2],  W[7]);   R2(W[10], E, A, B, C, D);
+    X(W[11], W[13], W[3],  W[8]);   R2(W[11], D, E, A, B, C);
+    X(W[12], W[14], W[4],  W[9]);   R2(W[12], C, D, E, A, B);
+    X(W[13], W[15], W[5],  W[10]);  R2(W[13], B, C, D, E, A);
+    X(W[14], W[0],  W[6],  W[11]);  R2(W[14], A, B, C, D, E);   // 30
+    X(W[15], W[1],  W[7],  W[12]);  R2(W[15], E, A, B, C, D);
+    X(W[0],  W[2],  W[8],  W[13]);  R2(W[0],  D, E, A, B, C);
+    X(W[1],  W[3],  W[9],  W[14]);  R2(W[1],  C, D, E, A, B);
+    X(W[2],  W[4],  W[10], W[15]);  R2(W[2],  B, C, D, E, A);
+    X(W[3],  W[5],  W[11], W[0]);   R2(W[3],  A, B, C, D, E);   // 35
+    X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  E, A, B, C, D);
+    X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  D, E, A, B, C);
+    X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  C, D, E, A, B);
+    X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  B, C, D, E, A);
+
+    K = _mm_set1_epi32(0x8F1BBCDC);
+
+    X(W[8],  W[10], W[0],  W[5]);   R3(W[8],  A, B, C, D, E);   // 40
+    X(W[9],  W[11], W[1],  W[6]);   R3(W[9],  E, A, B, C, D);
+    X(W[10], W[12], W[2],  W[7]);   R3(W[10], D, E, A, B, C);
+    X(W[11], W[13], W[3],  W[8]);   R3(W[11], C, D, E, A, B);
+    X(W[12], W[14], W[4],  W[9]);   R3(W[12], B, C, D, E, A);
+    X(W[13], W[15], W[5],  W[10]);  R3(W[13], A, B, C, D, E);   // 45
+    X(W[14], W[0],  W[6],  W[11]);  R3(W[14], E, A, B, C, D);
+    X(W[15], W[1],  W[7],  W[12]);  R3(W[15], D, E, A, B, C);
+    X(W[0],  W[2],  W[8],  W[13]);  R3(W[0],  C, D, E, A, B);
+    X(W[1],  W[3],  W[9],  W[14]);  R3(W[1],  B, C, D, E, A);
+    X(W[2],  W[4],  W[10], W[15]);  R3(W[2],  A, B, C, D, E);   // 50
+    X(W[3],  W[5],  W[11], W[0]);   R3(W[3],  E, A, B, C, D);
+    X(W[4],  W[6],  W[12], W[1]);   R3(W[4],  D, E, A, B, C);
+    X(W[5],  W[7],  W[13], W[2]);   R3(W[5],  C, D, E, A, B);
+    X(W[6],  W[8],  W[14], W[3]);   R3(W[6],  B, C, D, E, A);
+    X(W[7],  W[9],  W[15], W[4]);   R3(W[7],  A, B, C, D, E);   // 55
+    X(W[8],  W[10], W[0],  W[5]);   R3(W[8],  E, A, B, C, D);
+    X(W[9],  W[11], W[1],  W[6]);   R3(W[9],  D, E, A, B, C);
+    X(W[10], W[12], W[2],  W[7]);   R3(W[10], C, D, E, A, B);
+    X(W[11], W[13], W[3],  W[8]);   R3(W[11], B, C, D, E, A);
+
+    K = _mm_set1_epi32(0xCA62C1D6);
+
+    X(W[12], W[14], W[4],  W[9]);   R2(W[12], A, B, C, D, E);   // 60
+    X(W[13], W[15], W[5],  W[10]);  R2(W[13], E, A, B, C, D);
+    X(W[14], W[0],  W[6],  W[11]);  R2(W[14], D, E, A, B, C);
+    X(W[15], W[1],  W[7],  W[12]);  R2(W[15], C, D, E, A, B);
+    X(W[0],  W[2],  W[8],  W[13]);  R2(W[0],  B, C, D, E, A);
+    X(W[1],  W[3],  W[9],  W[14]);  R2(W[1],  A, B, C, D, E);   // 65
+    X(W[2],  W[4],  W[10], W[15]);  R2(W[2],  E, A, B, C, D);
+    X(W[3],  W[5],  W[11], W[0]);   R2(W[3],  D, E, A, B, C);
+    X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  C, D, E, A, B);
+    X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  B, C, D, E, A);
+    X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  A, B, C, D, E);   // 70
+    X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  E, A, B, C, D);
+    X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  D, E, A, B, C);
+    X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  C, D, E, A, B);
+    X(W[10], W[12], W[2],  W[7]);   R2(W[10], B, C, D, E, A);
+    X(W[11], W[13], W[3],  W[8]);   R2(W[11], A, B, C, D, E);   // 75
+
+    // A75 has an interesting property, it is the first word that is (almost)
+    // part of the final MD (E79 ror 2). The common case will be that this
+    // doesn't match, so we stop here and save 5 rounds.
+    //
+    // Note that I'm using E due to the displacement caused by vectorization,
+    // this is A in standard SHA-1.
+    _mm_store_si128(MD, E);
+
+    return;
+}
+
+// This intrinsic is not always available in GCC, so define it here.
+static inline int _mm_testz_si128 (__m128i __M, __m128i __V)
+{
+    return __builtin_ia32_ptestz128 ((__v2di)__M, (__v2di)__V);
+}
+
+// This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
+// Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
+// is zero using a branchless algorithm. -- taviso.
+static inline int _mm_testz_epi32 (__m128i __X)
+{
+    __m128i M = _mm_cmpeq_epi32(__X, __X);
+    __m128i Z = _mm_srli_epi32(M, 1);
+    __m128i Y = _mm_andnot_si128(_mm_or_si128(_mm_or_si128(_mm_add_epi32(_mm_and_si128(__X, Z), Z), __X), Z), M);
+    return ! _mm_testz_si128(Y, M);
+}
+
+static int sha1_fmt_cmp_all(uint32_t *binary, int count)
+{
+    __m128i A = _mm_cmpeq_epi32(_mm_set1_epi32(binary[4]), _mm_load_si128(MD));
+
+    // This function is hot, we need to do this quickly. We use PCMP to find
+    // out if any of the dwords in A75 matched E in the input hash.
+    //
+    // We can actually check for any hits using a branchless algorithm,
+    // assuming gcc inlines this, it should just be a combination of PTEST /
+    // SETNZ.
+    return _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+}
+
+// This function is not hot, and will only be called for arounf 1:2^30 random
+// crypts (because we do 4 simultaneously). Use a real SHA-1 implementation to
+// verify the result.
+static int sha1_fmt_cmp_one(void *binary, int index)
+{
+    uint32_t full_sha1_digest[SHA1_DIGEST_WORDS];
+    SHA_CTX ctx;
+    SHA1_Init(&ctx);
+    SHA1_Update(&ctx, sha1_fmt_get_key(index), strlen(sha1_fmt_get_key(index)));
+    SHA1_Final(full_sha1_digest, &ctx);
+
+    // Remove IV
+    full_sha1_digest[0] = __builtin_bswap32(full_sha1_digest[0]) - 0x67452301;
+    full_sha1_digest[1] = __builtin_bswap32(full_sha1_digest[1]) - 0xEFCDAB89;
+    full_sha1_digest[2] = __builtin_bswap32(full_sha1_digest[2]) - 0x98BADCFE;
+    full_sha1_digest[3] = __builtin_bswap32(full_sha1_digest[3]) - 0x10325476;
+    full_sha1_digest[4] = rotateleft(__builtin_bswap32(full_sha1_digest[4]) - 0xC3D2E1F0, 2);
+
+    // Compare result.
+    return memcmp(binary, full_sha1_digest, sizeof full_sha1_digest) == 0;
+}
+
+static int sha1_fmt_cmp_exact(char *source, int cuont)
+{
+    return 1;
+}
+
+static int sha1_fmt_get_hash0(int index) { return MD[index] & 0x0000000F; }
+static int sha1_fmt_get_hash1(int index) { return MD[index] & 0x000000FF; }
+static int sha1_fmt_get_hash2(int index) { return MD[index] & 0x00000FFF; }
+static int sha1_fmt_get_hash3(int index) { return MD[index] & 0x0000FFFF; }
+static int sha1_fmt_get_hash4(int index) { return MD[index] & 0x000FFFFF; }
+static int sha1_fmt_get_hash5(int index) { return MD[index] & 0x00FFFFFF; }
+static int sha1_fmt_get_hash6(int index) { return MD[index] & 0x07FFFFFF; }
+
+static int sha1_fmt_binary0(uint32_t *binary) { return binary[4] & 0x0000000F; }
+static int sha1_fmt_binary1(uint32_t *binary) { return binary[4] & 0x000000FF; }
+static int sha1_fmt_binary2(uint32_t *binary) { return binary[4] & 0x00000FFF; }
+static int sha1_fmt_binary3(uint32_t *binary) { return binary[4] & 0x0000FFFF; }
+static int sha1_fmt_binary4(uint32_t *binary) { return binary[4] & 0x000FFFFF; }
+static int sha1_fmt_binary5(uint32_t *binary) { return binary[4] & 0x00FFFFFF; }
+static int sha1_fmt_binary6(uint32_t *binary) { return binary[4] & 0x07FFFFFF; }
+
+struct fmt_main sha1_fmt_taviso = {
+    .params                 = {
+        .label              = "rawsha1_sse4",
+        .format_name        = "Raw SHA-1 (taviso sse4 build)",
+        .algorithm_name     = "rawsha1_sse4",
+        .benchmark_comment  = "",
+        .benchmark_length   = -1,
+        .plaintext_length   = sizeof(__m128i) - 1,
+        .binary_size        = SHA1_DIGEST_SIZE,
+        .salt_size          = 0,
+        .min_keys_per_crypt = 4,
+        .max_keys_per_crypt = 4,
+        .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+        .tests              = sha1_fmt_tests,
+    },
+    .methods                = {
+        .init               = fmt_default_init,
+        .prepare            = fmt_default_prepare,
+        .valid              = sha1_fmt_valid,
+        .split              = fmt_default_split,
+        .binary             = sha1_fmt_binary,
+        .salt               = fmt_default_salt,
+        .salt_hash          = fmt_default_salt_hash,
+        .set_salt           = fmt_default_set_salt,
+        .set_key            = sha1_fmt_set_key,
+        .get_key            = sha1_fmt_get_key,
+        .clear_keys         = fmt_default_clear_keys,
+        .crypt_all          = sha1_fmt_crypt_all,
+        .get_hash           = {
+            [0] = sha1_fmt_get_hash0,
+            [1] = sha1_fmt_get_hash1,
+            [2] = sha1_fmt_get_hash2,
+            [3] = sha1_fmt_get_hash3,
+            [4] = sha1_fmt_get_hash4,
+            [5] = sha1_fmt_get_hash5,
+            [6] = sha1_fmt_get_hash6,
+        },
+        .binary_hash        = {
+            [0] = sha1_fmt_binary0,
+            [1] = sha1_fmt_binary1,
+            [2] = sha1_fmt_binary2,
+            [3] = sha1_fmt_binary3,
+            [4] = sha1_fmt_binary4,
+            [5] = sha1_fmt_binary5,
+            [6] = sha1_fmt_binary6,
+        },
+        .cmp_all            = sha1_fmt_cmp_all,
+        .cmp_one            = sha1_fmt_cmp_one,
+        .cmp_exact          = sha1_fmt_cmp_exact,
+    },
+};
+#else
+#ifdef __GNUC__
+#warning Note: rawsha1_ssse4 disabled, needs SSSE4
+#endif
+#endif

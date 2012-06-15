@@ -124,6 +124,10 @@ extern struct fmt_main fmt_cryptsha512;
 extern struct fmt_main fmt_django;
 #endif
 
+#if defined(__SSE4_1__) && defined(__GNUC__)
+extern struct fmt_main sha1_fmt_taviso;
+#endif
+
 #ifdef HAVE_SKEY
 extern struct fmt_main fmt_SKEY;
 #endif
@@ -255,6 +259,10 @@ static void john_register_all(void)
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 	john_register_one(&fmt_django);
+#endif
+
+#if defined(__SSE4_1__) && defined(__GNUC__)
+	john_register_one(&sha1_fmt_taviso);
 #endif
 
 #ifdef HAVE_NSS
@@ -440,10 +448,9 @@ static void john_load(void)
 		    status.pass <= 1)
 			options.loader.flags |= DB_WORDS;
 		else
-		if (mem_saving_level) {
+		if (mem_saving_level)
 			options.loader.flags &= ~DB_LOGIN;
-			options.loader.max_wordfile_memory = 0;
-		}
+
 		ldr_init_database(&database, &options.loader);
 
 		if ((current = options.passwd->head))

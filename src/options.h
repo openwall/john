@@ -94,6 +94,8 @@
 #define FLG_CONFIG_CLI      0x10000000
 /* Turn off logging */
 #define FLG_NOLOG			0x20000000
+/* Log to stderr */
+#define FLG_LOG_STDERR			0x00800000
 /* Markov mode enabled */
 #define FLG_MKV_CHK			0x40000000
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)

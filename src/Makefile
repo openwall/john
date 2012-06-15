@@ -116,6 +116,7 @@ JOHN_OBJS = \
 	hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
+	taviso_fmt.o \
 	plugin.o \
 	dummy.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
