@@ -390,6 +390,7 @@ linux-x86-64-icc:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_DL $(ICCOMPFLAGS)" \
+		ASFLAGS="$(CFLAGS)" \
 		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl $(ICCOMPFLAGS) -s" \
 		CPP="icc" CC="icc" AS="icc" LD="icc"
 
