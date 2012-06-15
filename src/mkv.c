@@ -388,12 +388,20 @@ void get_markov_options(struct db_main *db,
 void do_markov_crack(struct db_main *db, char *mkv_param)
 {
 	char *statfile = NULL;
+	char *param = NULL;
 	unsigned int mkv_minlevel, mkv_level,  mkv_maxlen, mkv_minlen;
 	unsigned long long mkv_start, mkv_end;
 
 #ifdef HAVE_MPI
 	unsigned long long mkv_size;
 #endif
+
+	if(mkv_param != NULL)
+	{
+		param = str_alloc_copy(mkv_param);
+		if(param == NULL)
+			param = mkv_param;
+	}
 
 	get_markov_options(db,
 	                   mkv_param,
@@ -444,7 +452,7 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 
 #ifdef HAVE_MPI
 	if (mpi_id == 0) {
-		fprintf(stderr, "MKV start (lvl=");
+		fprintf(stderr, "MKV start (stats=%s, lvl=", statfile);
 		if(mkv_minlevel>0) fprintf(stderr, "%d-", mkv_minlevel);
 		fprintf(stderr, "%d len=", mkv_level);
 		if(mkv_minlen>0) fprintf(stderr, "%d-", mkv_minlen);
@@ -463,12 +471,22 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	gend = mkv_end + 10; /* omg !! */
 
 #ifndef HAVE_MPI
-	fprintf(stderr, "MKV start (lvl=");
+	fprintf(stderr, "MKV start (stats=%s, lvl=", statfile);
 	if(mkv_minlevel>0) fprintf(stderr, "%d-", mkv_minlevel);
 	fprintf(stderr, "%d len=", mkv_level);
 	if(mkv_minlen>0) fprintf(stderr, "%d-", mkv_minlen);
 	fprintf(stderr, "%d pwd="LLd")\n", mkv_maxlen, mkv_end-mkv_start);
 #endif
+
+	if(param)
+		log_event("Proceeding with Markov mode %s", param);
+	else
+		log_event("Proceeding with Markov mode");
+
+	log_event("- Statsfile: %s", statfile);
+	log_event("- Markov level: %d - %d", mkv_minlevel, mkv_level);
+	log_event("- Length: %d - %d", mkv_minlen, mkv_maxlen);
+	log_event("- Start-End: "LLd" - "LLd, mkv_start, mkv_end);
 
 	show_pwd(mkv_start);
 
