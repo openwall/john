@@ -440,10 +440,9 @@ static void john_load(void)
 		    status.pass <= 1)
 			options.loader.flags |= DB_WORDS;
 		else
-		if (mem_saving_level) {
+		if (mem_saving_level)
 			options.loader.flags &= ~DB_LOGIN;
-			options.loader.max_wordfile_memory = 0;
-		}
+
 		ldr_init_database(&database, &options.loader);
 
 		if ((current = options.passwd->head))
