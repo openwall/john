@@ -246,7 +246,9 @@ void get_markov_options(struct db_main *db,
                         unsigned int *minlen, unsigned int *maxlen,
                         char **statfile)
 {
-	char * token;
+	//struct cfg_section *section;
+	char *token;
+	//char *mode;
 
 	*level = 0;
 	*start = 0;
@@ -254,6 +256,29 @@ void get_markov_options(struct db_main *db,
 	*maxlen = 0;
 	*minlevel = 0;
 	*minlen = 0;
+
+	if(cfg_get_section(SECTION_MARKOV, SUBSECTION_DEFAULT) == NULL)
+	{
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr,
+		        "Section [" SECTION_MARKOV "%s] not found\n",
+		        SUBSECTION_DEFAULT);
+		error();
+	}
+	*statfile = cfg_get_param(SECTION_MARKOV, SUBSECTION_DEFAULT, "Statsfile");
+	if(*statfile == NULL)
+	{
+		log_event("Statsfile not defined");
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr,
+		        "Statsfile not defined in section ["
+		        SECTION_MARKOV SUBSECTION_DEFAULT "]\n");
+		error();
+	}
 
 	if (mkv_param)
 	{
@@ -318,7 +343,8 @@ void get_markov_options(struct db_main *db,
 		}
 
 	if (db->format->params.plaintext_length <= MAX_MKV_LEN &&
-	    *maxlen > db->format->params.plaintext_length) {
+	    *maxlen > db->format->params.plaintext_length)
+	{
 		log_event("! MaxLen = %d is too large for this hash type",
 			*maxlen);
 #ifdef HAVE_MPI
@@ -331,7 +357,8 @@ void get_markov_options(struct db_main *db,
 		*maxlen = db->format->params.plaintext_length;
 	}
 	else
-	if (*maxlen > MAX_MKV_LEN) {
+	if (*maxlen > MAX_MKV_LEN)
+	{
 		log_event("! MaxLen = %d is too large (max=%d)", *maxlen, MAX_MKV_LEN);
 #ifdef HAVE_MPI
 		if (mpi_id == 0)
@@ -357,16 +384,6 @@ void get_markov_options(struct db_main *db,
 		*minlen = *maxlen;
 	}
 
-	*statfile = cfg_get_param(SECTION_MARKOV, SUBSECTION_DEFAULT, "Statsfile");
-	if(*statfile == NULL)
-	{
-		log_event("statfile not defined");
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Statfile not defined\n");
-		error();
-	}
 }
 void do_markov_crack(struct db_main *db, char *mkv_param)
 {

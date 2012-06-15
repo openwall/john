@@ -59,6 +59,12 @@ extern char *cfg_name;
  */
 extern void cfg_init(char *name, int allow_missing);
 
+
+/*
+ * Returns a section list entry, or NULL if not found
+ */
+extern struct cfg_section *cfg_get_section(char *section, char *subsection);
+
 /*
  * Searches for a section with the supplied name, and returns its line list
  * structure, or NULL if the search fails.

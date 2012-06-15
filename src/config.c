@@ -162,7 +162,7 @@ void cfg_init(char *name, int allow_missing)
 	if (fclose(file)) pexit("fclose");
 }
 
-static struct cfg_section *cfg_get_section(char *section, char *subsection)
+struct cfg_section *cfg_get_section(char *section, char *subsection)
 {
 	struct cfg_section *current;
 	char *p1, *p2;
