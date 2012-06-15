@@ -440,14 +440,23 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	log_event("Proceeding with \"incremental\" mode: %.100s", mode);
 
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
-		log_event("! No charset defined");
+		if(cfg_get_section(SECTION_INC, mode) == NULL) {
+			log_event("! Unknown incremental mode: %s", mode);
 #ifdef HAVE_MPI
-		if (mpi_id == 0)
+			if (mpi_id == 0)
 #endif
-		fprintf(stderr, "No charset defined for mode: %s\n", mode);
-		error();
+			fprintf(stderr, "Unknown incremental mode: %s\n", mode);
+			error();
+		}
+		else {
+			log_event("! No charset defined");
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
+			fprintf(stderr, "No charset defined for mode: %s\n", mode);
+			error();
+		}
 	}
-
 	extra = cfg_get_param(SECTION_INC, mode, "Extra");
 
 	if ((min_length = cfg_get_int(SECTION_INC, mode, "MinLen")) < 0)
