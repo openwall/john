@@ -228,12 +228,13 @@ default:
 	@echo "linux-x86-64-gpu         Linux, x86-64 with SSE2, CUDA and OpenCL (experimental)"
 	@echo "linux-x86-64-opencl      Linux, x86-64 with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-64-cuda        Linux, x86-64 with SSE2 and CUDA (experimental)"
+	@echo "linux-x86-64-native      Linux, x86-64 with all CPU features you've got"
 	@echo "linux-x86-64-avx         Linux, x86-64 with AVX (2011+ Intel CPUs)"
 	@echo "linux-x86-64-xop         Linux, x86-64 with AVX and XOP (2011+ AMD CPUs)"
-	@echo "linux-x86-64-native      Linux, x86-64 with any feature you've got"
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
 	@echo "linux-x86-64-icc         Linux, x86-64 compiled with icc"
 	@echo "linux-x86-64-clang       Linux, x86-64 compiled with clang"
+#	@echo "linux-x86-64-32-native   Linux, x86-64, 32-bit with everything (for regression tests)"
 #	@echo "linux-x86-64-32-sse2asm  Linux, x86-64, 32-bit with asm SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-mmx      Linux, x86-64, 32-bit with MMX (for regression tests)"
@@ -241,6 +242,7 @@ default:
 	@echo "linux-x86-gpu            Linux, x86 32-bit with SSE2, CUDA and OpenCL (experimental)"
 	@echo "linux-x86-opencl         Linux, x86 32-bit with SSE2 and OpenCL (experimental)"
 	@echo "linux-x86-cuda           Linux, x86 32-bit with SSE2 and CUDA (experimental)"
+	@echo "linux-x86-native         Linux, x86 32-bit, with all CPU features you've got"
 	@echo "linux-x86-sse2[i]        Linux, x86 32-bit with SSE2 (most common, 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
@@ -403,6 +405,15 @@ linux-x86-64-icc:
 		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl $(ICCOMPFLAGS) -s" \
 		CPP="icc" CC="icc" AS="icc" LD="icc"
 
+linux-x86-64-32-native:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
+		ASFLAGS="$(ASFLAGS) -m32 -msse2 -march=native" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -495,6 +506,15 @@ linux-x86-cuda:
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH) -lcrypt -ldl -lcudart"
+
+linux-x86-native:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o -march=native" \
+		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
+		ASFLAGS="$(ASFLAGS) -march=native"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
