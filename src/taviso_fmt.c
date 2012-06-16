@@ -525,6 +525,7 @@ struct fmt_main sha1_fmt_taviso = {
         .cmp_all            = sha1_fmt_cmp_all,
         .cmp_one            = sha1_fmt_cmp_one,
         .cmp_exact          = sha1_fmt_cmp_exact,
+        .get_source         = fmt_default_get_source,
     },
 };
 #else
