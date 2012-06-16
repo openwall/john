@@ -1,6 +1,7 @@
 The following major changes was made since Jumbo-5:
 
 New formats:
+* rawsha1_sse4 (Tavis Ormandy)
 * PWSAFE CPU, CUDA and OpenCL (Dhiru and Lukas)
 * Raw-SHA1 "LinkedIn" format (partial hashes, 20 bit zeroed) (Jim Fougeron)
 * GOST 3411. (JimF, Sergey V and Dhiru Kholia)
@@ -33,6 +34,17 @@ ssha (Samuele, Lukas)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
 Other changes:
+* Add an experimental linux-x86-64-native build target (magnum)
+* Markov: different error messages for missing [Markov:Default] section and for 
+missing Statsfile definition in an existing [Markov:Default] section (Frank 
+Dittrich)
+* genmkvpwd should use MAX_MKV_LVL (Frank Dittrich)
+* Markov mode: move parameter validation into new function get_markov_options 
+Additionaly, the logic has been changed so that the max. values for level and 
+length are adjusted prior to checking min. values, to avoid adjusting min. 
+value to a max. value which is changed afterwards: (Frank Dittrich)
+* New option: --log-stderr (magnum)
+* Loads of minor fixes for Sparc (endianness, alignment) (JimF)
 * wordlist.c: True dupe suppression for buffer mode, code based on unique.c 
 (magnum)
 * CUDA device lister, show them with --list=cuda-devices (Lukas Odzioba)
@@ -189,3 +201,4 @@ buffer if a word got longer) (magnum)
 * Update src/hmacMD5_fmt_plug.c (JimF)
 * dynamic non contiguious number issues BE (JimF)
 * Update src/dynamic_utils.c (JimF)
+
