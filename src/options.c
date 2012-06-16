@@ -125,7 +125,7 @@ static struct opt_entry opt_list[] = {
 	{"config", FLG_CONFIG_CLI, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.config},
 	{"nolog", FLG_NOLOG, FLG_NOLOG},
-	{"log-stderr", FLG_LOG_STDERR, FLG_LOG_STDERR},
+	{"log-stderr", FLG_LOG_STDERR | FLG_NOLOG, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.mkpc},
