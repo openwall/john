@@ -3,9 +3,7 @@
 #include <stdbool.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
-#define __USE_GNU /* for memrchr (although man page said _GNU_SOURCE) */
 #include <string.h>
-#undef __USE_GNU
 #include <stdint.h>
 #include <stdint.h>
 
@@ -37,17 +35,16 @@
 // Boston, MA  02110-1301, USA.
 //
 
-#if defined(__SSE4_1__) && defined(__GNUC__)
-# warning Experimental rawsha1_sse4 plugin, send bug reports to taviso@cmpxchg8b.com.
-#else
-# error This plugin has not been tested on your platform.
-#endif
-
 #define SHA1_BLOCK_SIZE         64
 #define SHA1_BLOCK_WORDS        16
 #define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH       4
+
+/* The $dynamic_12$ tag is an unfortunate legacy from the thin format */
+#define FORMAT_TAG		"$dynamic_12$"
+#define TAG_LENGTH		12
+#define CIPHERTEXT_LENGTH	(SHA1_DIGEST_SIZE * 2 + TAG_LENGTH)
 
 #define __aligned __attribute__((aligned(16)))
 
@@ -138,6 +135,9 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 
 static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
 {
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
     // This routine is not hot, verify this only contains hex digits.
     if (strspn(ciphertext, "0123456789aAbBcCdDeEfF") != SHA1_DIGEST_SIZE * 2)
         return 0;
@@ -150,6 +150,8 @@ static void * sha1_fmt_binary(char *ciphertext)
     uint32_t *result    = mem_alloc_tiny(SHA1_DIGEST_SIZE, MEM_ALIGN_SIMD);
     uint8_t  *binary    = (uint8_t*)result;
     char      byte[3]   = {0};
+
+	ciphertext += TAG_LENGTH;
 
     // Convert ascii representation into binary. This routine is not hot, so
     // it's okay to keep this simple.
@@ -170,6 +172,23 @@ static void * sha1_fmt_binary(char *ciphertext)
     result[4] = rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
 
     return result;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
+		ciphertext += TAG_LENGTH;
+
+	strncpy(out, FORMAT_TAG, sizeof(out));
+
+	memcpy(&out[TAG_LENGTH], ciphertext, SHA1_DIGEST_SIZE * 2);
+	out[CIPHERTEXT_LENGTH] = 0;
+
+	strlwr(&out[TAG_LENGTH]);
+
+	return out;
 }
 
 // This function is called when John wants us to buffer a crypt() operation
@@ -261,9 +280,7 @@ static char * sha1_fmt_get_key(int index)
     key[3] = __builtin_bswap32(M[index][3]);
 
     // Skip backwards until we hit the trailing bit, then remove it.
-    memset(memrchr(key, 0x80, sizeof key),
-           0x00,
-           1);
+    memset(strrchr((char*)key, 0x80), 0x00, 1);
 
     // Return pointer to static buffer.
     return (char*)key;
@@ -479,8 +496,8 @@ static int sha1_fmt_binary6(void *binary) { return ((uint32_t*)binary)[4] & 0x07
 struct fmt_main sha1_fmt_taviso = {
     .params                 = {
         .label              = "rawsha1_sse4",
-        .format_name        = "Raw SHA-1 (taviso sse4 build)",
-        .algorithm_name     = "rawsha1_sse4",
+        .format_name        = "Raw SHA-1",
+        .algorithm_name     = "taviso sse4",
         .benchmark_comment  = "",
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,
@@ -495,7 +512,7 @@ struct fmt_main sha1_fmt_taviso = {
         .init               = fmt_default_init,
         .prepare            = fmt_default_prepare,
         .valid              = sha1_fmt_valid,
-        .split              = fmt_default_split,
+        .split              = split,
         .binary             = sha1_fmt_binary,
         .salt               = fmt_default_salt,
         .salt_hash          = fmt_default_salt_hash,
@@ -529,6 +546,6 @@ struct fmt_main sha1_fmt_taviso = {
 };
 #else
 #ifdef __GNUC__
-#warning Note: rawsha1_ssse4 disabled, needs SSSE4
+#warning Note: rawsha1_sse4 disabled, needs SSE4
 #endif
 #endif
