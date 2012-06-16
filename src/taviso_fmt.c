@@ -3,7 +3,9 @@
 #include <stdbool.h>
 #include <emmintrin.h>
 #include <smmintrin.h>
+#define __USE_GNU /* for memrchr (although man page said _GNU_SOURCE) */
 #include <string.h>
+#undef __USE_GNU
 #include <stdint.h>
 #include <stdint.h>
 
@@ -146,7 +148,7 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
 static void * sha1_fmt_binary(char *ciphertext)
 {
     uint32_t *result    = mem_alloc_tiny(SHA1_DIGEST_SIZE, MEM_ALIGN_SIMD);
-    uint8_t  *binary    = result;
+    uint8_t  *binary    = (uint8_t*)result;
     char      byte[3]   = {0};
 
     // Convert ascii representation into binary. This routine is not hot, so
@@ -183,7 +185,7 @@ static void * sha1_fmt_binary(char *ciphertext)
 static void sha1_fmt_set_key(char *key, int index)
 {
     __m128i  Z   = _mm_setzero_si128();
-    __m128i  X   = _mm_loadu_si128(key);
+    __m128i  X   = _mm_loadu_si128((void*)key);
     __m128i  B   = _mm_set_epi32(1 << 31, 0, 0, 0);
     uint32_t len = _mm_movemask_epi8(_mm_cmpeq_epi8(X, Z));
 
@@ -264,7 +266,7 @@ static char * sha1_fmt_get_key(int index)
            1);
 
     // Return pointer to static buffer.
-    return key;
+    return (char*)key;
 }
 
 static void sha1_fmt_crypt_all(int count)
@@ -418,9 +420,9 @@ static inline int _mm_testz_epi32 (__m128i __X)
     return ! _mm_testz_si128(Y, M);
 }
 
-static int sha1_fmt_cmp_all(uint32_t *binary, int count)
+static int sha1_fmt_cmp_all(void *binary, int count)
 {
-    __m128i A = _mm_cmpeq_epi32(_mm_set1_epi32(binary[4]), _mm_load_si128(MD));
+    __m128i A = _mm_cmpeq_epi32(_mm_set1_epi32(((int32_t*)binary)[4]), _mm_load_si128(MD));
 
     // This function is hot, we need to do this quickly. We use PCMP to find
     // out if any of the dwords in A75 matched E in the input hash.
@@ -440,7 +442,7 @@ static int sha1_fmt_cmp_one(void *binary, int index)
     SHA_CTX ctx;
     SHA1_Init(&ctx);
     SHA1_Update(&ctx, sha1_fmt_get_key(index), strlen(sha1_fmt_get_key(index)));
-    SHA1_Final(full_sha1_digest, &ctx);
+    SHA1_Final((unsigned char*)full_sha1_digest, &ctx);
 
     // Remove IV
     full_sha1_digest[0] = __builtin_bswap32(full_sha1_digest[0]) - 0x67452301;
@@ -466,13 +468,13 @@ static int sha1_fmt_get_hash4(int index) { return MD[index] & 0x000FFFFF; }
 static int sha1_fmt_get_hash5(int index) { return MD[index] & 0x00FFFFFF; }
 static int sha1_fmt_get_hash6(int index) { return MD[index] & 0x07FFFFFF; }
 
-static int sha1_fmt_binary0(uint32_t *binary) { return binary[4] & 0x0000000F; }
-static int sha1_fmt_binary1(uint32_t *binary) { return binary[4] & 0x000000FF; }
-static int sha1_fmt_binary2(uint32_t *binary) { return binary[4] & 0x00000FFF; }
-static int sha1_fmt_binary3(uint32_t *binary) { return binary[4] & 0x0000FFFF; }
-static int sha1_fmt_binary4(uint32_t *binary) { return binary[4] & 0x000FFFFF; }
-static int sha1_fmt_binary5(uint32_t *binary) { return binary[4] & 0x00FFFFFF; }
-static int sha1_fmt_binary6(uint32_t *binary) { return binary[4] & 0x07FFFFFF; }
+static int sha1_fmt_binary0(void *binary) { return ((uint32_t*)binary)[4] & 0x0000000F; }
+static int sha1_fmt_binary1(void *binary) { return ((uint32_t*)binary)[4] & 0x000000FF; }
+static int sha1_fmt_binary2(void *binary) { return ((uint32_t*)binary)[4] & 0x00000FFF; }
+static int sha1_fmt_binary3(void *binary) { return ((uint32_t*)binary)[4] & 0x0000FFFF; }
+static int sha1_fmt_binary4(void *binary) { return ((uint32_t*)binary)[4] & 0x000FFFFF; }
+static int sha1_fmt_binary5(void *binary) { return ((uint32_t*)binary)[4] & 0x00FFFFFF; }
+static int sha1_fmt_binary6(void *binary) { return ((uint32_t*)binary)[4] & 0x07FFFFFF; }
 
 struct fmt_main sha1_fmt_taviso = {
     .params                 = {
