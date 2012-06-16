@@ -147,7 +147,7 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
 
 static void * sha1_fmt_binary(char *ciphertext)
 {
-    uint32_t *result    = mem_alloc_tiny(SHA1_DIGEST_SIZE, MEM_ALIGN_SIMD);
+    static uint32_t result[SHA1_DIGEST_SIZE/sizeof(uint32_t)];
     uint8_t  *binary    = (uint8_t*)result;
     char      byte[3]   = {0};
 
