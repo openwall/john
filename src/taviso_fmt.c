@@ -12,11 +12,25 @@
 #ifdef __SSE4_1__
 # include <smmintrin.h>
 #endif
+#ifdef __XOP__
+# include <x86intrin.h>
+#endif
 
 #include "params.h"
 #include "formats.h"
 #include "memory.h"
 #include "sha.h"
+
+#ifndef __XOP__
+#define _mm_slli_epi32a(a, s) \
+	((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
+#define _mm_roti_epi32(a, s) \
+	((s) == 16 ? \
+	_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) : \
+	_mm_xor_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+#define _mm_roti_epi16(a, s) \
+	_mm_xor_si128(_mm_srli_epi16((a), (s)), _mm_slli_epi16((a), 16-(s)))
+#endif
 
 //
 // Alternative SSE2 optimised raw SHA-1 implementation for John The Ripper.
@@ -53,32 +67,42 @@
     X0  = _mm_xor_si128(X0, X8);                                                                        \
     X0  = _mm_xor_si128(X0, X13);                                                                       \
     X0  = _mm_xor_si128(X0, X2);                                                                        \
-    X0  = _mm_xor_si128(_mm_slli_epi32(X0, 1), _mm_srli_epi32(X0,31));                                  \
+    X0  = _mm_roti_epi32(X0, 1);                                  \
 } while (false)
 
+#ifdef __XOP__
+#define R1(W, A, B, C, D, E) do {                                                                       \
+    E   = _mm_add_epi32(E, K);                                                                          \
+    E   = _mm_add_epi32(E, _mm_cmov_si128(C, D, B));                                                        \
+    E   = _mm_add_epi32(E, W);                                                                          \
+    B   = _mm_roti_epi32(B, 30);                                   \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
+} while (false)
+#else
 #define R1(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_and_si128(C, B));                                                        \
     E   = _mm_add_epi32(E, _mm_andnot_si128(B, D));                                                     \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_xor_si128(_mm_slli_epi32(B, 30), _mm_srli_epi32(B, 2));                                   \
-    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_slli_epi32(A, 5), _mm_srli_epi32(A, 27)));                 \
+    B   = _mm_roti_epi32(B, 30);                                   \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
 } while (false)
+#endif
 
 #define R2(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_xor_si128(_mm_xor_si128(B, C), D));                                      \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_xor_si128(_mm_slli_epi32(B, 30), _mm_srli_epi32(B, 2));                                   \
-    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_slli_epi32(A, 5), _mm_srli_epi32(A, 27)));                 \
+    B   = _mm_roti_epi32(B, 30);                                   \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
 } while (false)
 
 #define R3(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_or_si128(_mm_and_si128(_mm_or_si128(B, D), C), _mm_and_si128(B, D)));    \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_xor_si128(_mm_slli_epi32(B, 30), _mm_srli_epi32(B, 2));                                   \
-    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_slli_epi32(A, 5), _mm_srli_epi32(A, 27)));                 \
+    B   = _mm_roti_epi32(B, 30);                                   \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
 } while (false)
 
 #define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {                                                       \
@@ -290,9 +314,8 @@ static void sha1_fmt_set_key(char *key, int index)
     // we do here.
     //  X = 40 41 42 44 45 80 00 00 00 00 00 00 00 00 00    // What we have.
     //  X = 44 42 41 40 00 00 80 45 00 00 00 00 00 00 00    // What we want.
-    X = _mm_shufflelo_epi16(X, _MM_SHUFFLE(2, 3, 0, 1));
-    X = _mm_shufflehi_epi16(X, _MM_SHUFFLE(2, 3, 0, 1));
-    X = _mm_or_si128(_mm_srli_epi16(X, 8), _mm_slli_epi16(X, 8));
+    X = _mm_roti_epi32(X, 16);
+    X = _mm_roti_epi16(X, 8);
 
     // Store the result and it's length into the message buffer, we need the
     // length in bits because SHA-1 requires the length be part of the final

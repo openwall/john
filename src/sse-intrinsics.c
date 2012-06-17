@@ -21,7 +21,7 @@
 	((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
 #ifdef __SSSE3__
 #include <tmmintrin.h>
-#define rot16_mask _mm_set_epi64x(0x0d0c0f0e09080b0aL, 0x0504070601000302UL)
+#define rot16_mask _mm_set_epi32(0x0d0c0f0e, 0x09080b0a, 0x05040706, 0x01000302)
 #define _mm_roti_epi32(a, s) \
 	((s) == 16 ? _mm_shuffle_epi8((a), rot16_mask) : \
 	_mm_or_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
