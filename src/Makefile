@@ -367,9 +367,9 @@ linux-x86-64-native:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native -mtune=native" \
+		ASFLAGS="$(ASFLAGS) -march=native -mtune=native" \
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mtune=native"
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
@@ -411,9 +411,9 @@ linux-x86-64-32-native:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
-		ASFLAGS="$(ASFLAGS) -m32 -msse2 -march=native" \
-		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl"
+		CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native -mtune=native" \
+		ASFLAGS="$(ASFLAGS) -m32 -msse2 -march=native -mtune=native" \
+		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl -march=native -mtune=native"
 
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
@@ -512,10 +512,10 @@ linux-x86-native:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o -march=native" \
-		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native"
-		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native -mtune=native" \
+		ASFLAGS="$(ASFLAGS) -march=native -mtune=native"
+		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native -mtune=native"
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
