@@ -124,7 +124,7 @@ extern struct fmt_main fmt_cryptsha512;
 extern struct fmt_main fmt_django;
 #endif
 
-#if defined(__SSE4_1__) && defined(__GNUC__)
+#if defined(__GNUC__)
 extern struct fmt_main sha1_fmt_taviso;
 #endif
 
@@ -261,7 +261,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_django);
 #endif
 
-#if defined(__SSE4_1__) && defined(__GNUC__)
+#if defined(__GNUC__)
 	john_register_one(&sha1_fmt_taviso);
 #endif
 
