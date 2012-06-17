@@ -41,8 +41,8 @@
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH       4
 
-/* The $dynamic_12$ tag is an unfortunate legacy from the thin format */
-#define FORMAT_TAG		"$dynamic_12$"
+/* The $dynamic_26$ tag is an unfortunate legacy from the thin format */
+#define FORMAT_TAG		"$dynamic_26$"
 #define TAG_LENGTH		12
 #define CIPHERTEXT_LENGTH	(SHA1_DIGEST_SIZE * 2 + TAG_LENGTH)
 

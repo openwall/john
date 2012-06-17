@@ -41,7 +41,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define FORMAT_TAG			"$dynamic_12$"
+#define FORMAT_TAG			"$dynamic_26$"
 #define TAG_LENGTH			12
 
 #define PLAINTEXT_LENGTH		55
