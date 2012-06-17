@@ -4,7 +4,7 @@
  *
  * Optimised set_key() by magnum, 2012
  *
- * This file 'hacked' to work with the LinkedIn hash leak. Those hashes had 
+ * This file 'hacked' to work with the LinkedIn hash leak. Those hashes had
  * a lot of partial hashes in there. 00000 was overwritten on hashes that
  * were cracked. In this change, we simply ignore the first 20 bits of the
  * hash, when doing a compare.  JimF June, 2012.

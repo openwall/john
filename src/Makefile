@@ -1550,7 +1550,7 @@ endif
 ../run/unique.com: john.com
 	copy john.com ..\run\unique.com
 
-john.local.conf: ../run/john.local.conf
+john.local.conf:
 	[ -f ../run/john.local.conf ] || touch ../run/john.local.conf
 
 john.com: john.asm
