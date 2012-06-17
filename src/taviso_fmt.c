@@ -270,7 +270,7 @@ static void sha1_fmt_set_key(char *key, int index)
 
 static char * sha1_fmt_get_key(int index)
 {
-    static uint32_t key[4];
+    static uint32_t key[5];
 
     // This function is not hot, we can do this slowly. First, restore
     // endianness.
@@ -278,6 +278,9 @@ static char * sha1_fmt_get_key(int index)
     key[1] = __builtin_bswap32(M[index][1]);
     key[2] = __builtin_bswap32(M[index][2]);
     key[3] = __builtin_bswap32(M[index][3]);
+
+    // We need a null byte for the strrchr
+    key[4] = 0;
 
     // Skip backwards until we hit the trailing bit, then remove it.
     memset(strrchr((char*)key, 0x80), 0x00, 1);
