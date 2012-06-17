@@ -1,7 +1,8 @@
 The following major changes was made since Jumbo-5:
 
 New formats:
-* rawsha1_sse4 (Tavis Ormandy)
+* ODF files. (Dhiru Kholia)
+* rawsha1_sse4 (Tavis Ormandy, XOP support by Solar)
 * PWSAFE CPU, CUDA and OpenCL (Dhiru and Lukas)
 * Raw-SHA1 "LinkedIn" format (partial hashes, 20 bit zeroed) (Jim Fougeron)
 * GOST 3411. (JimF, Sergey V and Dhiru Kholia)
@@ -34,7 +35,7 @@ ssha (Samuele, Lukas)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
 Other changes:
-* Add an experimental linux-x86-64-native build target (magnum)
+* Add experimental linux -native build targets (magnum)
 * Markov: different error messages for missing [Markov:Default] section and for 
 missing Statsfile definition in an existing [Markov:Default] section (Frank 
 Dittrich)
@@ -201,4 +202,4 @@ buffer if a word got longer) (magnum)
 * Update src/hmacMD5_fmt_plug.c (JimF)
 * dynamic non contiguious number issues BE (JimF)
 * Update src/dynamic_utils.c (JimF)
-
+--
