@@ -1,4 +1,4 @@
-#if defined(__GNUC__)
+#if defined(__GNUC__) && defined(__SSE2__)
 
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE
