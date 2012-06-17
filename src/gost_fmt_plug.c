@@ -31,8 +31,6 @@
 
 #define FORMAT_LABEL		"gost"
 #define FORMAT_NAME		"GOST 3411"
-#define FORMAT_LABEL_CP		"gost-cp"
-#define FORMAT_NAME_CP		"GOST 3411 CryptoPro"
 
 #define FORMAT_TAG		"$gost$"
 #define TAG_LENGTH		6
