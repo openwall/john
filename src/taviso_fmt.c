@@ -1,11 +1,17 @@
-#if defined(__SSE4_1__) && defined(__GNUC__)
+#if defined(__GNUC__) && defined(__SSE2__)
 
-#include <stdbool.h>
-#include <emmintrin.h>
-#include <smmintrin.h>
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
+#endif
+
 #include <string.h>
+#include <stdbool.h>
 #include <stdint.h>
-#include <stdint.h>
+#include <emmintrin.h>
+
+#ifdef __SSE4_1__
+# include <smmintrin.h>
+#endif
 
 #include "params.h"
 #include "formats.h"
@@ -39,12 +45,7 @@
 #define SHA1_BLOCK_WORDS        16
 #define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
-#define SHA1_PARALLEL_HASH       4
-
-/* The $dynamic_26$ tag is an unfortunate legacy from the thin format */
-#define FORMAT_TAG		"$dynamic_26$"
-#define TAG_LENGTH		12
-#define CIPHERTEXT_LENGTH	(SHA1_DIGEST_SIZE * 2 + TAG_LENGTH)
+#define SHA1_PARALLEL_HASH     256 // This must be a multiple of 4.
 
 #define __aligned __attribute__((aligned(16)))
 
@@ -92,12 +93,22 @@
     R3  = _mm_unpackhi_epi64(T2, T3);                                                                   \
 } while (false)
 
+// Disable type checking for SIMD load and store operations.
 #define _mm_load_si128(x) _mm_load_si128((void *)(x))
+#define _mm_loadu_si128(x) _mm_loadu_si128((void *)(x))
 #define _mm_store_si128(x, y) _mm_store_si128((void *)(x), (y))
 
+// M and N contain the first and last 128bits of a 512bit SHA-1 message block
+// respectively. The remaining 256bits are always zero, and so are not stored
+// here to avoid the load overhead.
 static uint32_t __aligned M[SHA1_PARALLEL_HASH][4];
 static uint32_t __aligned N[SHA1_PARALLEL_HASH][4];
+
+// MD contains the state of the SHA-1 A register at R75 for each of the input
+// messages.
 static uint32_t __aligned MD[SHA1_PARALLEL_HASH];
+
+static const char kFormatTag[] = "$dynamic_26$";
 
 static struct fmt_tests sha1_fmt_tests[] = {
     { "f8252c7b6035a71242b4047782247faabfccb47b", "taviso"         },
@@ -135,10 +146,11 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 
 static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
 {
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
+    // Test for tag prefix in ciphertext.
+    if (!strncmp(ciphertext, kFormatTag, strlen(kFormatTag)))
+        ciphertext += strlen(kFormatTag);
 
-    // This routine is not hot, verify this only contains hex digits.
+    // Verify this only contains hex digits.
     if (strspn(ciphertext, "0123456789aAbBcCdDeEfF") != SHA1_DIGEST_SIZE * 2)
         return 0;
 
@@ -147,14 +159,19 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
 
 static void * sha1_fmt_binary(char *ciphertext)
 {
-    static uint32_t result[SHA1_DIGEST_SIZE/sizeof(uint32_t)];
-    uint8_t  *binary    = (uint8_t*)result;
-    char      byte[3]   = {0};
+    char      byte[3];
+    uint8_t  *binary;
 
-	ciphertext += TAG_LENGTH;
+    // Static buffer storing the binary representation of ciphertext.
+    static uint32_t result[SHA1_DIGEST_WORDS];
+
+    // Skip over tag.
+    ciphertext  += strlen(kFormatTag);
+    binary       = (void *)(result);
 
     // Convert ascii representation into binary. This routine is not hot, so
-    // it's okay to keep this simple.
+    // it's okay to keep this simple. We copy two digits out of ciphertext at a
+    // time, which can be stored in one byte.
     for (; *ciphertext; ciphertext += 2, binary += 1) {
         *binary = strtoul(memcpy(byte, ciphertext, 2), NULL, 16);
     }
@@ -174,21 +191,20 @@ static void * sha1_fmt_binary(char *ciphertext)
     return result;
 }
 
-static char *split(char *ciphertext, int index)
+static char *sha1_fmt_split(char *ciphertext, int index)
 {
-	static char out[CIPHERTEXT_LENGTH + 1];
+    static char result[sizeof(kFormatTag) + SHA1_DIGEST_SIZE * 2];
 
-	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
-		ciphertext += TAG_LENGTH;
+    // Test for tag prefix already present in ciphertext.
+    if (strncmp(ciphertext, kFormatTag, strlen(kFormatTag)) == 0)
+        ciphertext += strlen(kFormatTag);
 
-	strncpy(out, FORMAT_TAG, sizeof(out));
+    // Add the hash.
+    strnzcpy(result, kFormatTag, sizeof result);
+    strnzcat(result, ciphertext, sizeof result);
 
-	memcpy(&out[TAG_LENGTH], ciphertext, SHA1_DIGEST_SIZE * 2);
-	out[CIPHERTEXT_LENGTH] = 0;
-
-	strlwr(&out[TAG_LENGTH]);
-
-	return out;
+    // Return lowercase result.
+    return strlwr(result);
 }
 
 // This function is called when John wants us to buffer a crypt() operation
@@ -204,39 +220,59 @@ static char *split(char *ciphertext, int index)
 static void sha1_fmt_set_key(char *key, int index)
 {
     __m128i  Z   = _mm_setzero_si128();
-    __m128i  X   = _mm_loadu_si128((void*)key);
-    __m128i  B   = _mm_set_epi32(1 << 31, 0, 0, 0);
+    __m128i  X   = _mm_loadu_si128(key);
+    __m128i  B;
     uint32_t len = _mm_movemask_epi8(_mm_cmpeq_epi8(X, Z));
+
+    // Create a lookup tables to find correct masks for each supported input
+    // length. It would be nice if could use 128 bit shifts to produce these
+    // dynamically, but they require an immediate operand.
+    static const __aligned uint32_t kTrailingBitTable[][4] = {
+        { 0x00000080, 0x00000000, 0x00000000, 0x00000000 },
+        { 0x00008000, 0x00000000, 0x00000000, 0x00000000 },
+        { 0x00800000, 0x00000000, 0x00000000, 0x00000000 },
+        { 0x80000000, 0x00000000, 0x00000000, 0x00000000 },
+        { 0x00000000, 0x00000080, 0x00000000, 0x00000000 },
+        { 0x00000000, 0x00008000, 0x00000000, 0x00000000 },
+        { 0x00000000, 0x00800000, 0x00000000, 0x00000000 },
+        { 0x00000000, 0x80000000, 0x00000000, 0x00000000 },
+        { 0x00000000, 0x00000000, 0x00000080, 0x00000000 },
+        { 0x00000000, 0x00000000, 0x00008000, 0x00000000 },
+        { 0x00000000, 0x00000000, 0x00800000, 0x00000000 },
+        { 0x00000000, 0x00000000, 0x80000000, 0x00000000 },
+        { 0x00000000, 0x00000000, 0x00000000, 0x00000080 },
+        { 0x00000000, 0x00000000, 0x00000000, 0x00008000 },
+        { 0x00000000, 0x00000000, 0x00000000, 0x00800000 },
+        { 0x00000000, 0x00000000, 0x00000000, 0x80000000 },
+    };
+
+    static const __aligned uint32_t kUsedBytesTable[][4] = {
+        { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0xFF000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0x00000000, 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0x00000000, 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0x00000000, 0xFF000000, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0x00000000, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF },
+        { 0x00000000, 0x00000000, 0xFFFFFF00, 0xFFFFFFFF },
+        { 0x00000000, 0x00000000, 0xFFFF0000, 0xFFFFFFFF },
+        { 0x00000000, 0x00000000, 0xFF000000, 0xFFFFFFFF },
+        { 0x00000000, 0x00000000, 0x00000000, 0xFFFFFF00 },
+        { 0x00000000, 0x00000000, 0x00000000, 0xFFFF0000 },
+        { 0x00000000, 0x00000000, 0x00000000, 0xFF000000 },
+        { 0x00000000, 0x00000000, 0x00000000, 0x00000000 },
+    };
 
     // First, find the length of the key by scanning for a zero byte.
     len = __builtin_ctz(len);
 
-    // Zero out the rest of the DQWORD in X by making a mask. First, set all
-    // the bits by comparing to itself, then shift it down N bits.
-    Z = _mm_cmpeq_epi8(Z, Z);
+    // Zero out the rest of the DQWORD in X by making a suitable mask.
+    Z = _mm_load_si128(kUsedBytesTable[len]);
 
-    // XXX: PSRLDQ requires an imm8 shift count. Is there a way to do this
-    //      without the branch? We can use PSRLQ, but then how do I reset the
-    //      other QWORD?
-    switch (len) {
-        case  0: Z = _mm_slli_si128(Z,  0); B = _mm_srli_si128(B, 15); break;
-        case  1: Z = _mm_slli_si128(Z,  1); B = _mm_srli_si128(B, 14); break;
-        case  2: Z = _mm_slli_si128(Z,  2); B = _mm_srli_si128(B, 13); break;
-        case  3: Z = _mm_slli_si128(Z,  3); B = _mm_srli_si128(B, 12); break;
-        case  4: Z = _mm_slli_si128(Z,  4); B = _mm_srli_si128(B, 11); break;
-        case  5: Z = _mm_slli_si128(Z,  5); B = _mm_srli_si128(B, 10); break;
-        case  6: Z = _mm_slli_si128(Z,  6); B = _mm_srli_si128(B,  9); break;
-        case  7: Z = _mm_slli_si128(Z,  7); B = _mm_srli_si128(B,  8); break;
-        case  8: Z = _mm_slli_si128(Z,  8); B = _mm_srli_si128(B,  7); break;
-        case  9: Z = _mm_slli_si128(Z,  9); B = _mm_srli_si128(B,  6); break;
-        case 10: Z = _mm_slli_si128(Z, 10); B = _mm_srli_si128(B,  5); break;
-        case 11: Z = _mm_slli_si128(Z, 11); B = _mm_srli_si128(B,  4); break;
-        case 12: Z = _mm_slli_si128(Z, 12); B = _mm_srli_si128(B,  3); break;
-        case 13: Z = _mm_slli_si128(Z, 13); B = _mm_srli_si128(B,  2); break;
-        case 14: Z = _mm_slli_si128(Z, 14); B = _mm_srli_si128(B,  1); break;
-        case 15: Z = _mm_slli_si128(Z, 15); break;
-        default: __builtin_trap();
-    }
+    // Find the correct position for the trailing bit required by SHA-1.
+    B = _mm_load_si128(kTrailingBitTable[len]);
 
     // Now we have this:
     // B = 00 00 00 00 00 80 00 00 00 00 00 00 00 00 00
@@ -250,27 +286,26 @@ static void sha1_fmt_set_key(char *key, int index)
     // X = 41 41 41 41 41 80 00 00 00 00 00 00 00 00 00
     X = _mm_or_si128(_mm_andnot_si128(Z, X), B);
 
-    // SHA-1 requires us to bswap all the 32bit words in the message, which we
-    // can do now.
-    // FIXME: Do this with PSHUFB, this will do for now. SHA-1 requires this
-    //        byte order for input words.
-    X = _mm_set_epi32(__builtin_bswap32(_mm_cvtsi128_si32(_mm_srli_si128(X, 12))),
-                      __builtin_bswap32(_mm_cvtsi128_si32(_mm_srli_si128(X, 8))),
-                      __builtin_bswap32(_mm_cvtsi128_si32(_mm_srli_si128(X, 4))),
-                      __builtin_bswap32(_mm_cvtsi128_si32(X)));
+    // SHA-1 requires us to byte swap all the 32bit words in the message, which
+    // we do here.
+    //  X = 40 41 42 44 45 80 00 00 00 00 00 00 00 00 00    // What we have.
+    //  X = 44 42 41 40 00 00 80 45 00 00 00 00 00 00 00    // What we want.
+    X = _mm_shufflelo_epi16(X, _MM_SHUFFLE(2, 3, 0, 1));
+    X = _mm_shufflehi_epi16(X, _MM_SHUFFLE(2, 3, 0, 1));
+    X = _mm_or_si128(_mm_srli_epi16(X, 8), _mm_slli_epi16(X, 8));
 
     // Store the result and it's length into the message buffer, we need the
     // length in bits because SHA-1 requires the length be part of the final
     // message block (or only message block, in this case).
     _mm_store_si128(&M[index], X);
-    _mm_store_si128(&N[index], _mm_set_epi32(len * CHAR_BIT, 0, 0, 0));
+    _mm_store_si128(&N[index], _mm_set_epi32(len << 3, 0, 0, 0));
 
     return;
 }
 
 static char * sha1_fmt_get_key(int index)
 {
-    static uint32_t key[5];
+    static uint32_t key[4];
 
     // This function is not hot, we can do this slowly. First, restore
     // endianness.
@@ -279,14 +314,10 @@ static char * sha1_fmt_get_key(int index)
     key[2] = __builtin_bswap32(M[index][2]);
     key[3] = __builtin_bswap32(M[index][3]);
 
-    // We need a null byte for the strrchr
-    key[4] = 0;
-
     // Skip backwards until we hit the trailing bit, then remove it.
-    memset(strrchr((char*)key, 0x80), 0x00, 1);
+    memset(memrchr(key, 0x80, sizeof key), 0x00, 1);
 
-    // Return pointer to static buffer.
-    return (char*)key;
+    return (char *) key;
 }
 
 static void sha1_fmt_crypt_all(int count)
@@ -294,140 +325,147 @@ static void sha1_fmt_crypt_all(int count)
     __m128i W[SHA1_BLOCK_WORDS];
     __m128i A, B, C, D, E;
     __m128i K;
+    int32_t i;
 
-    // Zero the unused parts of W.
-    W[4]  = W[5] = W[6]  = W[7]  = _mm_setzero_si128();
-    W[8]  = W[9] = W[10] = W[11] = _mm_setzero_si128();
-
-    // Fetch the lengths and keys, we can use a 4x4 matrix transpose to shuffle
-    // the words into the correct position.
-    W[12] = _mm_load_si128(&N[0]);
-    W[13] = _mm_load_si128(&N[1]);
-    W[14] = _mm_load_si128(&N[2]);
-    W[15] = _mm_load_si128(&N[3]);
-
-    _MM_TRANSPOSE4_EPI32(W[12], W[13], W[14], W[15]);
-
-    // Fetch the message.
-    W[0]  = _mm_load_si128(&M[0]);
-    W[1]  = _mm_load_si128(&M[1]);
-    W[2]  = _mm_load_si128(&M[2]);
-    W[3]  = _mm_load_si128(&M[3]);
-
-    _MM_TRANSPOSE4_EPI32(W[0],  W[1],  W[2],  W[3]);
-
-    A = _mm_set1_epi32(0x67452301);
-    B = _mm_set1_epi32(0xEFCDAB89);
-    C = _mm_set1_epi32(0x98BADCFE);
-    D = _mm_set1_epi32(0x10325476);
-    E = _mm_set1_epi32(0xC3D2E1F0);
-    K = _mm_set1_epi32(0x5A827999);
-
-    R1(W[0],  A, B, C, D, E);
-    R1(W[1],  E, A, B, C, D);
-    R1(W[2],  D, E, A, B, C);
-    R1(W[3],  C, D, E, A, B);
-    R1(W[4],  B, C, D, E, A);
-    R1(W[5],  A, B, C, D, E);                                   // 5
-    R1(W[6],  E, A, B, C, D);
-    R1(W[7],  D, E, A, B, C);
-    R1(W[8],  C, D, E, A, B);
-    R1(W[9],  B, C, D, E, A);
-    R1(W[10], A, B, C, D, E);                                   // 10
-    R1(W[11], E, A, B, C, D);
-    R1(W[12], D, E, A, B, C);
-    R1(W[13], C, D, E, A, B);
-    R1(W[14], B, C, D, E, A);
-    R1(W[15], A, B, C, D, E);                                   // 15
-
-    X(W[0],  W[2],  W[8],  W[13]);  R1(W[0],  E, A, B, C, D);
-    X(W[1],  W[3],  W[9],  W[14]);  R1(W[1],  D, E, A, B, C);
-    X(W[2],  W[4],  W[10], W[15]);  R1(W[2],  C, D, E, A, B);
-    X(W[3],  W[5],  W[11], W[0]);   R1(W[3],  B, C, D, E, A);
-
-    K = _mm_set1_epi32(0x6ED9EBA1);
-
-    X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  A, B, C, D, E);   // 20
-    X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  E, A, B, C, D);
-    X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  D, E, A, B, C);
-    X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  C, D, E, A, B);
-    X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  B, C, D, E, A);
-    X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  A, B, C, D, E);   // 25
-    X(W[10], W[12], W[2],  W[7]);   R2(W[10], E, A, B, C, D);
-    X(W[11], W[13], W[3],  W[8]);   R2(W[11], D, E, A, B, C);
-    X(W[12], W[14], W[4],  W[9]);   R2(W[12], C, D, E, A, B);
-    X(W[13], W[15], W[5],  W[10]);  R2(W[13], B, C, D, E, A);
-    X(W[14], W[0],  W[6],  W[11]);  R2(W[14], A, B, C, D, E);   // 30
-    X(W[15], W[1],  W[7],  W[12]);  R2(W[15], E, A, B, C, D);
-    X(W[0],  W[2],  W[8],  W[13]);  R2(W[0],  D, E, A, B, C);
-    X(W[1],  W[3],  W[9],  W[14]);  R2(W[1],  C, D, E, A, B);
-    X(W[2],  W[4],  W[10], W[15]);  R2(W[2],  B, C, D, E, A);
-    X(W[3],  W[5],  W[11], W[0]);   R2(W[3],  A, B, C, D, E);   // 35
-    X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  E, A, B, C, D);
-    X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  D, E, A, B, C);
-    X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  C, D, E, A, B);
-    X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  B, C, D, E, A);
-
-    K = _mm_set1_epi32(0x8F1BBCDC);
-
-    X(W[8],  W[10], W[0],  W[5]);   R3(W[8],  A, B, C, D, E);   // 40
-    X(W[9],  W[11], W[1],  W[6]);   R3(W[9],  E, A, B, C, D);
-    X(W[10], W[12], W[2],  W[7]);   R3(W[10], D, E, A, B, C);
-    X(W[11], W[13], W[3],  W[8]);   R3(W[11], C, D, E, A, B);
-    X(W[12], W[14], W[4],  W[9]);   R3(W[12], B, C, D, E, A);
-    X(W[13], W[15], W[5],  W[10]);  R3(W[13], A, B, C, D, E);   // 45
-    X(W[14], W[0],  W[6],  W[11]);  R3(W[14], E, A, B, C, D);
-    X(W[15], W[1],  W[7],  W[12]);  R3(W[15], D, E, A, B, C);
-    X(W[0],  W[2],  W[8],  W[13]);  R3(W[0],  C, D, E, A, B);
-    X(W[1],  W[3],  W[9],  W[14]);  R3(W[1],  B, C, D, E, A);
-    X(W[2],  W[4],  W[10], W[15]);  R3(W[2],  A, B, C, D, E);   // 50
-    X(W[3],  W[5],  W[11], W[0]);   R3(W[3],  E, A, B, C, D);
-    X(W[4],  W[6],  W[12], W[1]);   R3(W[4],  D, E, A, B, C);
-    X(W[5],  W[7],  W[13], W[2]);   R3(W[5],  C, D, E, A, B);
-    X(W[6],  W[8],  W[14], W[3]);   R3(W[6],  B, C, D, E, A);
-    X(W[7],  W[9],  W[15], W[4]);   R3(W[7],  A, B, C, D, E);   // 55
-    X(W[8],  W[10], W[0],  W[5]);   R3(W[8],  E, A, B, C, D);
-    X(W[9],  W[11], W[1],  W[6]);   R3(W[9],  D, E, A, B, C);
-    X(W[10], W[12], W[2],  W[7]);   R3(W[10], C, D, E, A, B);
-    X(W[11], W[13], W[3],  W[8]);   R3(W[11], B, C, D, E, A);
-
-    K = _mm_set1_epi32(0xCA62C1D6);
-
-    X(W[12], W[14], W[4],  W[9]);   R2(W[12], A, B, C, D, E);   // 60
-    X(W[13], W[15], W[5],  W[10]);  R2(W[13], E, A, B, C, D);
-    X(W[14], W[0],  W[6],  W[11]);  R2(W[14], D, E, A, B, C);
-    X(W[15], W[1],  W[7],  W[12]);  R2(W[15], C, D, E, A, B);
-    X(W[0],  W[2],  W[8],  W[13]);  R2(W[0],  B, C, D, E, A);
-    X(W[1],  W[3],  W[9],  W[14]);  R2(W[1],  A, B, C, D, E);   // 65
-    X(W[2],  W[4],  W[10], W[15]);  R2(W[2],  E, A, B, C, D);
-    X(W[3],  W[5],  W[11], W[0]);   R2(W[3],  D, E, A, B, C);
-    X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  C, D, E, A, B);
-    X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  B, C, D, E, A);
-    X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  A, B, C, D, E);   // 70
-    X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  E, A, B, C, D);
-    X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  D, E, A, B, C);
-    X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  C, D, E, A, B);
-    X(W[10], W[12], W[2],  W[7]);   R2(W[10], B, C, D, E, A);
-    X(W[11], W[13], W[3],  W[8]);   R2(W[11], A, B, C, D, E);   // 75
-
-    // A75 has an interesting property, it is the first word that is (almost)
-    // part of the final MD (E79 ror 2). The common case will be that this
-    // doesn't match, so we stop here and save 5 rounds.
+    // To reduce the overhead of multiple function calls, we buffer lots of
+    // passwords, and then hash them in multiples of 4 all at once.
     //
-    // Note that I'm using E due to the displacement caused by vectorization,
-    // this is A in standard SHA-1.
-    _mm_store_si128(MD, E);
+    for (i = 0; i < count; i += 4) {
+        // Zero the unused parts of W, the plaintext expansion.
+        W[4]  = W[5] = W[6]  = W[7]  = _mm_setzero_si128();
+        W[8]  = W[9] = W[10] = W[11] = _mm_setzero_si128();
 
+        // Fetch the lengths and keys, we can use a 4x4 matrix transpose to shuffle
+        // the words into the correct position.
+        W[12] = _mm_load_si128(&N[i + 0]);
+        W[13] = _mm_load_si128(&N[i + 1]);
+        W[14] = _mm_load_si128(&N[i + 2]);
+        W[15] = _mm_load_si128(&N[i + 3]);
+
+        _MM_TRANSPOSE4_EPI32(W[12], W[13], W[14], W[15]);
+
+        // Fetch the message.
+        W[0]  = _mm_load_si128(&M[i + 0]);
+        W[1]  = _mm_load_si128(&M[i + 1]);
+        W[2]  = _mm_load_si128(&M[i + 2]);
+        W[3]  = _mm_load_si128(&M[i + 3]);
+
+        _MM_TRANSPOSE4_EPI32(W[0],  W[1],  W[2],  W[3]);
+
+        A = _mm_set1_epi32(0x67452301);
+        B = _mm_set1_epi32(0xEFCDAB89);
+        C = _mm_set1_epi32(0x98BADCFE);
+        D = _mm_set1_epi32(0x10325476);
+        E = _mm_set1_epi32(0xC3D2E1F0);
+        K = _mm_set1_epi32(0x5A827999);
+
+        R1(W[0],  A, B, C, D, E);
+        R1(W[1],  E, A, B, C, D);
+        R1(W[2],  D, E, A, B, C);
+        R1(W[3],  C, D, E, A, B);
+        R1(W[4],  B, C, D, E, A);
+        R1(W[5],  A, B, C, D, E);                                   // 5
+        R1(W[6],  E, A, B, C, D);
+        R1(W[7],  D, E, A, B, C);
+        R1(W[8],  C, D, E, A, B);
+        R1(W[9],  B, C, D, E, A);
+        R1(W[10], A, B, C, D, E);                                   // 10
+        R1(W[11], E, A, B, C, D);
+        R1(W[12], D, E, A, B, C);
+        R1(W[13], C, D, E, A, B);
+        R1(W[14], B, C, D, E, A);
+        R1(W[15], A, B, C, D, E);                                   // 15
+
+        X(W[0],  W[2],  W[8],  W[13]);  R1(W[0],  E, A, B, C, D);
+        X(W[1],  W[3],  W[9],  W[14]);  R1(W[1],  D, E, A, B, C);
+        X(W[2],  W[4],  W[10], W[15]);  R1(W[2],  C, D, E, A, B);
+        X(W[3],  W[5],  W[11], W[0]);   R1(W[3],  B, C, D, E, A);
+
+        K = _mm_set1_epi32(0x6ED9EBA1);
+
+        X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  A, B, C, D, E);   // 20
+        X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  E, A, B, C, D);
+        X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  D, E, A, B, C);
+        X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  C, D, E, A, B);
+        X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  B, C, D, E, A);
+        X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  A, B, C, D, E);   // 25
+        X(W[10], W[12], W[2],  W[7]);   R2(W[10], E, A, B, C, D);
+        X(W[11], W[13], W[3],  W[8]);   R2(W[11], D, E, A, B, C);
+        X(W[12], W[14], W[4],  W[9]);   R2(W[12], C, D, E, A, B);
+        X(W[13], W[15], W[5],  W[10]);  R2(W[13], B, C, D, E, A);
+        X(W[14], W[0],  W[6],  W[11]);  R2(W[14], A, B, C, D, E);   // 30
+        X(W[15], W[1],  W[7],  W[12]);  R2(W[15], E, A, B, C, D);
+        X(W[0],  W[2],  W[8],  W[13]);  R2(W[0],  D, E, A, B, C);
+        X(W[1],  W[3],  W[9],  W[14]);  R2(W[1],  C, D, E, A, B);
+        X(W[2],  W[4],  W[10], W[15]);  R2(W[2],  B, C, D, E, A);
+        X(W[3],  W[5],  W[11], W[0]);   R2(W[3],  A, B, C, D, E);   // 35
+        X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  E, A, B, C, D);
+        X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  D, E, A, B, C);
+        X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  C, D, E, A, B);
+        X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  B, C, D, E, A);
+
+        K = _mm_set1_epi32(0x8F1BBCDC);
+
+        X(W[8],  W[10], W[0],  W[5]);   R3(W[8],  A, B, C, D, E);   // 40
+        X(W[9],  W[11], W[1],  W[6]);   R3(W[9],  E, A, B, C, D);
+        X(W[10], W[12], W[2],  W[7]);   R3(W[10], D, E, A, B, C);
+        X(W[11], W[13], W[3],  W[8]);   R3(W[11], C, D, E, A, B);
+        X(W[12], W[14], W[4],  W[9]);   R3(W[12], B, C, D, E, A);
+        X(W[13], W[15], W[5],  W[10]);  R3(W[13], A, B, C, D, E);   // 45
+        X(W[14], W[0],  W[6],  W[11]);  R3(W[14], E, A, B, C, D);
+        X(W[15], W[1],  W[7],  W[12]);  R3(W[15], D, E, A, B, C);
+        X(W[0],  W[2],  W[8],  W[13]);  R3(W[0],  C, D, E, A, B);
+        X(W[1],  W[3],  W[9],  W[14]);  R3(W[1],  B, C, D, E, A);
+        X(W[2],  W[4],  W[10], W[15]);  R3(W[2],  A, B, C, D, E);   // 50
+        X(W[3],  W[5],  W[11], W[0]);   R3(W[3],  E, A, B, C, D);
+        X(W[4],  W[6],  W[12], W[1]);   R3(W[4],  D, E, A, B, C);
+        X(W[5],  W[7],  W[13], W[2]);   R3(W[5],  C, D, E, A, B);
+        X(W[6],  W[8],  W[14], W[3]);   R3(W[6],  B, C, D, E, A);
+        X(W[7],  W[9],  W[15], W[4]);   R3(W[7],  A, B, C, D, E);   // 55
+        X(W[8],  W[10], W[0],  W[5]);   R3(W[8],  E, A, B, C, D);
+        X(W[9],  W[11], W[1],  W[6]);   R3(W[9],  D, E, A, B, C);
+        X(W[10], W[12], W[2],  W[7]);   R3(W[10], C, D, E, A, B);
+        X(W[11], W[13], W[3],  W[8]);   R3(W[11], B, C, D, E, A);
+
+        K = _mm_set1_epi32(0xCA62C1D6);
+
+        X(W[12], W[14], W[4],  W[9]);   R2(W[12], A, B, C, D, E);   // 60
+        X(W[13], W[15], W[5],  W[10]);  R2(W[13], E, A, B, C, D);
+        X(W[14], W[0],  W[6],  W[11]);  R2(W[14], D, E, A, B, C);
+        X(W[15], W[1],  W[7],  W[12]);  R2(W[15], C, D, E, A, B);
+        X(W[0],  W[2],  W[8],  W[13]);  R2(W[0],  B, C, D, E, A);
+        X(W[1],  W[3],  W[9],  W[14]);  R2(W[1],  A, B, C, D, E);   // 65
+        X(W[2],  W[4],  W[10], W[15]);  R2(W[2],  E, A, B, C, D);
+        X(W[3],  W[5],  W[11], W[0]);   R2(W[3],  D, E, A, B, C);
+        X(W[4],  W[6],  W[12], W[1]);   R2(W[4],  C, D, E, A, B);
+        X(W[5],  W[7],  W[13], W[2]);   R2(W[5],  B, C, D, E, A);
+        X(W[6],  W[8],  W[14], W[3]);   R2(W[6],  A, B, C, D, E);   // 70
+        X(W[7],  W[9],  W[15], W[4]);   R2(W[7],  E, A, B, C, D);
+        X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  D, E, A, B, C);
+        X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  C, D, E, A, B);
+        X(W[10], W[12], W[2],  W[7]);   R2(W[10], B, C, D, E, A);
+        X(W[11], W[13], W[3],  W[8]);   R2(W[11], A, B, C, D, E);   // 75
+
+        // A75 has an interesting property, it is the first word that is (almost)
+        // part of the final MD (E79 ror 2). The common case will be that this
+        // doesn't match, so we stop here and save 5 rounds.
+        //
+        // Note that I'm using E due to the displacement caused by vectorization,
+        // this is A in standard SHA-1.
+        _mm_store_si128(&MD[i], E);
+    }
     return;
 }
 
-#ifndef __INTEL_COMPILER
+#if defined(__SSE4_1__)
+
+# if !defined(__INTEL_COMPILER)
 // This intrinsic is not always available in GCC, so define it here.
 static inline int _mm_testz_si128 (__m128i __M, __m128i __V)
 {
     return __builtin_ia32_ptestz128 ((__v2di)__M, (__v2di)__V);
 }
-#endif
+# endif
 
 // This is a modified SSE2 port of Algorithm 6-2 from "Hackers Delight" by
 // Henry Warren, ISBN 0-201-91465-4. Returns non-zero if any double word in X
@@ -440,17 +478,47 @@ static inline int _mm_testz_epi32 (__m128i __X)
     return ! _mm_testz_si128(Y, M);
 }
 
+#else
+# warning not using optimized sse4.1 compare because -msse4 was not specified
+static inline int _mm_testz_epi32 (__m128i __X)
+{
+    uint32_t __aligned words[4]; _mm_store_si128(words, __X);
+    return !words[0] || !words[1] || !words[2] || !words[3];
+}
+#endif
+
 static int sha1_fmt_cmp_all(void *binary, int count)
 {
-    __m128i A = _mm_cmpeq_epi32(_mm_set1_epi32(((int32_t*)binary)[4]), _mm_load_si128(MD));
+    int32_t *input  = binary;
+    int32_t  result = 0;
+    int32_t  i;
+    __m128i  B;
 
     // This function is hot, we need to do this quickly. We use PCMP to find
     // out if any of the dwords in A75 matched E in the input hash.
+    // First, Load the target hash into an XMM register
+    // B = 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff
+    B = _mm_loadu_si128(&input[1]);
+
+    // We only test the final dword here, so duplicate it.
+    // B = cc dd ee ff cc dd ee ff cc dd ee ff cc dd ee ff
+    B = _mm_shuffle_epi32(B, _MM_SHUFFLE(3, 3, 3, 3));
+
+    // We can test these 4 at a time, and we may have many to test. As the
+    // common case will be that there is _no_ match, we don't test it after
+    // every compare, reducing the number of branches.
     //
-    // We can actually check for any hits using a branchless algorithm,
-    // assuming gcc inlines this, it should just be a combination of PTEST /
-    // SETNZ.
-    return _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+    // This might seem counterintuitive, because if there is a match we could
+    // of finished early, but saving a branch for the common case is a better
+    // choice.
+    for (i = 0; i < count; i += 4) {
+        __m128i A = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i]));
+
+        // We can actually check for any hits using a branchless algorithm.
+        result |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+    }
+
+    return result;
 }
 
 // This function is not hot, and will only be called for arounf 1:2^30 random
@@ -459,10 +527,12 @@ static int sha1_fmt_cmp_all(void *binary, int count)
 static int sha1_fmt_cmp_one(void *binary, int index)
 {
     uint32_t full_sha1_digest[SHA1_DIGEST_WORDS];
+    char *key = sha1_fmt_get_key(index);
+
     SHA_CTX ctx;
     SHA1_Init(&ctx);
-    SHA1_Update(&ctx, sha1_fmt_get_key(index), strlen(sha1_fmt_get_key(index)));
-    SHA1_Final((unsigned char*)full_sha1_digest, &ctx);
+    SHA1_Update(&ctx, key, strlen(key));
+    SHA1_Final((unsigned char *)(full_sha1_digest), &ctx);
 
     // Remove IV
     full_sha1_digest[0] = __builtin_bswap32(full_sha1_digest[0]) - 0x67452301;
@@ -507,7 +577,7 @@ struct fmt_main sha1_fmt_taviso = {
         .binary_size        = SHA1_DIGEST_SIZE,
         .salt_size          = 0,
         .min_keys_per_crypt = 4,
-        .max_keys_per_crypt = 4,
+        .max_keys_per_crypt = SHA1_PARALLEL_HASH,
         .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
         .tests              = sha1_fmt_tests,
     },
@@ -515,7 +585,7 @@ struct fmt_main sha1_fmt_taviso = {
         .init               = fmt_default_init,
         .prepare            = fmt_default_prepare,
         .valid              = sha1_fmt_valid,
-        .split              = split,
+        .split              = sha1_fmt_split,
         .binary             = sha1_fmt_binary,
         .salt               = fmt_default_salt,
         .salt_hash          = fmt_default_salt_hash,
@@ -548,8 +618,5 @@ struct fmt_main sha1_fmt_taviso = {
         .get_source         = fmt_default_get_source,
     },
 };
-#else
-#ifdef __GNUC__
-#warning Note: rawsha1_sse4 disabled, needs SSE4
-#endif
-#endif
+
+#endif // __GNUC__

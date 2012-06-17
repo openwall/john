@@ -198,27 +198,27 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john ../run/raw2dyna ../run/john.local.conf
+	../run/pwsafe2john ../run/raw2dyna john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
-	../run/pwsafe2john.com ../run/john.local.conf
+	../run/pwsafe2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe
+	../run/pwsafe2john.exe ../run/raw2dyna.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/john.local.conf
+	../run/pwsafe2john.exe ../run/raw2dyna.exe john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -368,6 +368,7 @@ linux-x86-64-native:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -march=native" \
+		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
 
 linux-x86-64:
@@ -1549,8 +1550,8 @@ endif
 ../run/unique.com: john.com
 	copy john.com ..\run\unique.com
 
-../run/john.local.conf:
-	touch ../run/john.local.conf
+john.local.conf: ../run/john.local.conf
+	[ -f ../run/john.local.conf ] || touch ../run/john.local.conf
 
 john.com: john.asm
 	@echo Use Borland TASM/TLINK to make JOHN.COM
