@@ -8,6 +8,10 @@
  * a lot of partial hashes in there. 00000 was overwritten on hashes that
  * were cracked. In this change, we simply ignore the first 20 bits of the
  * hash, when doing a compare.  JimF June, 2012.
+ *
+ * NOTE! This format will write complete (repaired) SHA-1 hashes to the .pot
+ * file. To show all cracked password properly, you need to *not* specify this
+ * format but raw-sha1.
  */
 
 #include <string.h>
@@ -67,21 +71,22 @@
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-static struct fmt_tests rawsha1_tests[] = {
+/* We can't have crippled hashes in the tests, due to how JtR core works */
+static struct fmt_tests tests[] = {
 	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
-	{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
+	//{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	{"00000eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
+	//{"00000eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
 	{FORMAT_TAG "A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-	{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
+	//{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
 	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
+	//{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
 	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
-	{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
+	//{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
 	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
+	//{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
 	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
-	{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	//{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
 	{NULL}
 };
 
@@ -122,7 +127,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *rawsha1_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -134,12 +139,16 @@ static char *rawsha1_split(char *ciphertext, int index)
 	memcpy(&out[TAG_LENGTH], ciphertext, HASH_LENGTH);
 	out[CIPHERTEXT_LENGTH] = 0;
 
+	// 'normalize' these hashes to all 'appear' to be 00000xxxxxx hashes.
+	// on the get_source() function, we later 'fix' these up.
+	memcpy(&out[TAG_LENGTH], "00000", 5);
+
 	strlwr(&out[TAG_LENGTH]);
 
 	return out;
 }
 
-static void rawsha1_set_key(char *key, int index) {
+static void set_key(char *key, int index) {
 #ifdef MMX_COEF
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
 	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF];
@@ -185,7 +194,7 @@ key_cleaning:
 #endif
 }
 
-static char *rawsha1_get_key(int index) {
+static char *get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i,s;
 
@@ -199,7 +208,7 @@ static char *rawsha1_get_key(int index) {
 #endif
 }
 
-static int rawsha1_cmp_all(void *binary, int count) {
+static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
@@ -217,12 +226,12 @@ static int rawsha1_cmp_all(void *binary, int count) {
 #endif
 }
 
-static int rawsha1_cmp_exact(char *source, int count)
+static int cmp_exact(char *source, int count)
 {
 	return (1);
 }
 
-static int rawsha1_cmp_one(void * binary, int index)
+static int cmp_one(void * binary, int index)
 {
 #ifdef MMX_COEF
 	unsigned int x,y;
@@ -241,11 +250,19 @@ static int rawsha1_cmp_one(void * binary, int index)
 		return 0;
 	return 1;
 #else
-	return rawsha1_cmp_all(binary, index);
+	if( ((ARCH_WORD_32*)binary)[1] != crypt_key[1] )
+		return 0;
+	if( ((ARCH_WORD_32*)binary)[2] != crypt_key[2] )
+		return 0;
+	if( ((ARCH_WORD_32*)binary)[3] != crypt_key[3] )
+		return 0;
+	if( ((ARCH_WORD_32*)binary)[4] != crypt_key[4] )
+		return 0;
+	return 1;
 #endif
 }
 
-static void rawsha1_crypt_all(int count) {
+static void crypt_all(int count) {
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF
 
@@ -263,10 +280,13 @@ static void rawsha1_crypt_all(int count) {
 
 }
 
-static void * rawsha1_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static unsigned char *realcipher;
 	int i;
+
+	if (!realcipher)
+		realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += TAG_LENGTH;
 
@@ -315,6 +335,25 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	char *cpo;
 	int i;
 
+#ifdef MMX_COEF
+	for (i = 0; i <= NBKEYS; ++i) {
+		if (crypt_key[(i/4)*20+4+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[1]) {
+			// Ok, we may have found it.  Check the next 3 DWORDS
+			if (crypt_key[(i/4)*20+8+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[2] && 
+			    crypt_key[(i/4)*20+12+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
+			    crypt_key[(i/4)*20+16+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[4]) {
+				((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[(i/4)*20+(i%4)];
+				break;
+			}
+		}
+	}
+#else
+	if (crypt_key[1] == ((ARCH_WORD_32*)(*pw).binary)[1] &&
+		crypt_key[2] == ((ARCH_WORD_32*)(*pw).binary)[2] && 
+		crypt_key[3] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
+		crypt_key[4] == ((ARCH_WORD_32*)(*pw).binary)[4])
+		   ((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[0];
+#endif
 	memcpy(realcipher, pw->binary, BINARY_SIZE);
 #ifdef MMX_COEF
 	alter_endianity(realcipher, BINARY_SIZE);
@@ -346,13 +385,13 @@ struct fmt_main fmt_rawSHA1_LI = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-		rawsha1_tests
+		tests
 	}, {
 		fmt_default_init,
 		fmt_default_prepare,
 		valid,
-		rawsha1_split,
-		rawsha1_binary,
+		split,
+		binary,
 		fmt_default_salt,
 		{
 			binary_hash_0,
@@ -365,10 +404,10 @@ struct fmt_main fmt_rawSHA1_LI = {
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
-		rawsha1_set_key,
-		rawsha1_get_key,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		rawsha1_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -378,9 +417,9 @@ struct fmt_main fmt_rawSHA1_LI = {
 			get_hash_5,
 			get_hash_6
 		},
-		rawsha1_cmp_all,
-		rawsha1_cmp_one,
-		rawsha1_cmp_exact,
+		cmp_all,
+		cmp_one,
+		cmp_exact,
 		get_source
 	}
 };
