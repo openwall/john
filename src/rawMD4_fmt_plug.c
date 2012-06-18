@@ -1,9 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2010 by Solar Designer
+ * Copyright (c) 2011, 2012 by magnum
  *
- * Use of Bartavelle's mmx/sse2/intrinsics added by magnum in 2011,
- * no rights reserved
+ * Use of Bartavelle's mmx/sse2/intrinsics and reduced binary size by
+ * magnum in 2011-2012.
  */
 
 #include <string.h>
@@ -43,7 +44,8 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE			16
+#define BINARY_SIZE			4
+#define DIGEST_SIZE			16
 #define SALT_SIZE			0
 
 static struct fmt_tests tests[] = {
@@ -65,7 +67,7 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MMX_COEF
-#define PLAINTEXT_LENGTH		54
+#define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF*4 )
@@ -81,10 +83,10 @@ static struct fmt_tests tests[] = {
 #define crypt_key rawmd4_crypt_key
 #if defined (_MSC_VER)
 __declspec(align(16)) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
-__declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT];
+__declspec(align(16)) unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT];
 #else
 unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
-unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
+unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
 #endif
 #ifndef MD4_SSE_PARA
 static unsigned int total_len;
@@ -131,10 +133,10 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + 5;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -144,135 +146,41 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
-}
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32*)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32*)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32*)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32*)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32*)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32*)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32*)binary & 0x7ffffff; }
 
 #ifdef MMX_COEF
-static int get_hash_0(int index)
-{
-	unsigned int x,y;
-	x = index&3;
-	y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xf;
-}
-static int get_hash_1(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xff;
-}
-static int get_hash_2(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xfff;
-}
-static int get_hash_3(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xffff;
-}
-static int get_hash_4(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xfffff;
-}
-static int get_hash_5(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0xffffff;
-}
-static int get_hash_6(int index)
-{
-	unsigned int x,y;
-        x = index&3;
-        y = index/4;
-	return ((unsigned int *)crypt_key)[x+y*MMX_COEF*4] & 0x7ffffff;
-}
+#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*4
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
 #else
-static int get_hash_0(int index)
-{
-	return crypt_out[0] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_out[0] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return crypt_out[0] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return crypt_out[0] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return crypt_out[0] & 0xFFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return crypt_out[0] & 0xFFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return crypt_out[0] & 0x7FFFFFF;
-}
+static int get_hash_0(int index) { 	return crypt_out[0] & 0xf; }
+static int get_hash_1(int index) { 	return crypt_out[0] & 0xff; }
+static int get_hash_2(int index) { 	return crypt_out[0] & 0xfff; }
+static int get_hash_3(int index) { 	return crypt_out[0] & 0xffff; }
+static int get_hash_4(int index) { 	return crypt_out[0] & 0xfffff; }
+static int get_hash_5(int index) { 	return crypt_out[0] & 0xffffff; }
+static int get_hash_6(int index) { 	return crypt_out[0] & 0x7ffffff; }
 #endif
 
 static void set_key(char *_key, int index)
 {
 #ifdef MMX_COEF
-	const unsigned int *key = (unsigned int*)_key;
-	unsigned int *keybuffer = (unsigned int*)&saved_key[GETPOS(0, index)];
-	unsigned int *keybuf_word = keybuffer;
-	unsigned int len, temp;
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(0, index)];
+	ARCH_WORD_32 *keybuf_word = keybuffer;
+	unsigned int len;
+	ARCH_WORD_32 temp;
 
 #ifndef MD4_SSE_PARA
 	if (!index)
@@ -354,61 +262,50 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
-#ifdef MD4_SSE_PARA
 	unsigned int x,y=0;
-
+#ifdef MD4_SSE_PARA
 	for(; y < MD4_SSE_PARA; y++)
+#endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
-			if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x+y*MMX_COEF*4] )
+			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+x] )
 				return 1;
 		}
 	return 0;
 #else
-	unsigned int x;
-
-	for(x = 0; x < MMX_COEF; x++)
-	{
-		if( ((unsigned int*)binary)[0] == ((unsigned int*)crypt_key)[x] )
-			return 1;
-	}
-	return 0;
-#endif
-#else
 	return !memcmp(binary, crypt_out, BINARY_SIZE);
 #endif
-}
-
-static int cmp_exact(char *source, int count){
-	return (1);
 }
 
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
-#if MD4_SSE_PARA
-	unsigned int x,y;
-	x = index&3;
-	y = index/4;
-
-	if( ((unsigned int*)binary)[0] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4] )
-		return 0;
-	if( ((unsigned int*)binary)[1] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4+4] )
-		return 0;
-	if( ((unsigned int*)binary)[2] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4+8] )
-		return 0;
-	if( ((unsigned int*)binary)[3] != ((unsigned int*)crypt_key)[x+y*MMX_COEF*4+12] )
-		return 0;
-	return 1;
-#else
-	int i = 0;
+	unsigned int i,x,y;
+	x = index&(MMX_COEF-1);
+	y = index/MMX_COEF;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		if ( ((unsigned long*)binary)[i] != ((unsigned long*)crypt_key)[i*MMX_COEF+index] )
+		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x] )
 			return 0;
 	return 1;
-#endif
 #else
 	return !memcmp(binary, crypt_out, BINARY_SIZE);
+#endif
+}
+
+static int cmp_exact(char *source, int index){
+#ifdef MMX_COEF
+	unsigned int i,x,y;
+	ARCH_WORD_32 *full_binary;
+
+	full_binary = (ARCH_WORD_32*)get_binary(source);
+	x = index&(MMX_COEF-1);
+	y = index/MMX_COEF;
+	for(i=0;i<(DIGEST_SIZE/4);i++)
+		if (full_binary[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x])
+			return 0;
+	return 1;
+#else
+	return !memcmp(get_binary(source), crypt_out, DIGEST_SIZE);
 #endif
 }
 

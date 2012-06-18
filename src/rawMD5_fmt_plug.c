@@ -15,18 +15,18 @@
 #include "params.h"
 #include "loader.h"
 
-#define FORMAT_LABEL		"raw-md5"
+#define FORMAT_LABEL			"raw-md5"
 #define FORMAT_NAME			"Raw MD5"
 
 #ifdef MD5_SSE_PARA
-#  define MMX_COEF				4
+#  define MMX_COEF			4
 #  include "sse-intrinsics.h"
-#  define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#  define DO_MMX_MD5(in, out)	SSEmd5body(in, (unsigned int*)out, 1)
+#  define NBKEYS			(MMX_COEF * MD5_SSE_PARA)
+#  define DO_MMX_MD5(in, out)		SSEmd5body(in, (unsigned int*)out, 1)
 #  define ALGORITHM_NAME		"SSE2i " MD5_N_STR
 #elif defined(MMX_COEF)
-#  define NBKEYS				MMX_COEF
-#  define DO_MMX_MD5(in, out)	mdfivemmx_nosizeupdate(out, in, 1)
+#  define NBKEYS			MMX_COEF
+#  define DO_MMX_MD5(in, out)		mdfivemmx_nosizeupdate(out, in, 1)
 #  if MMX_COEF == 4
 #    define ALGORITHM_NAME		"SSE2 4x"
 #  elif MMX_COEF == 2
@@ -43,11 +43,12 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE				16
-#define SALT_SIZE				0
+#define BINARY_SIZE			4
+#define DIGEST_SIZE			16
+#define SALT_SIZE			0
 
-#define FORMAT_TAG				"$dynamic_0$"
-#define TAG_LENGTH				11
+#define FORMAT_TAG			"$dynamic_0$"
+#define TAG_LENGTH			11
 
 static struct fmt_tests tests[] = {
 	{"5a105e8b9d40e1329780d62ea2265d8a","test1"},
@@ -74,10 +75,10 @@ static struct fmt_tests tests[] = {
 #define crypt_key rawmd5_crypt_key
 #if defined (_MSC_VER)
 __declspec(align(16)) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
-__declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT];
+__declspec(align(16)) unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT];
 #else
 unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
-unsigned char crypt_key[BINARY_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
+unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
 #endif
 #else
 static MD5_CTX ctx;
@@ -121,10 +122,10 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + TAG_LENGTH;
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -134,23 +135,23 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
-static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
-static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
-static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
-static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
-static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
-static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32*)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32*)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32*)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32*)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32*)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32*)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32*)binary & 0x7ffffff; }
 
 #ifdef MMX_COEF
 #define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*4
-static int get_hash_0(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xf; }
-static int get_hash_1(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xff; }
-static int get_hash_2(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfff; }
-static int get_hash_3(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffff; }
-static int get_hash_4(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xfffff; }
-static int get_hash_5(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0xffffff; }
-static int get_hash_6(int index) { return ((ARCH_WORD_32 *)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
+static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xf; }
+static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xff; }
+static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfff; }
+static int get_hash_3(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xffff; }
+static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfffff; }
+static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xffffff; }
+static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
 #else
 static int get_hash_0(int index) { 	return crypt_out[0] & 0xf; }
 static int get_hash_1(int index) { 	return crypt_out[0] & 0xff; }
@@ -240,7 +241,7 @@ static void crypt_all(int count)
 #else
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, saved_key, saved_key_length);
-	MD5_Final((unsigned char *)crypt_out, &ctx);
+	MD5_Final((unsigned char*)crypt_out, &ctx);
 #endif
 }
 
@@ -261,10 +262,6 @@ static int cmp_all(void *binary, int count) {
 #endif
 }
 
-static int cmp_exact(char *source, int count){
-	return (1);
-}
-
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
@@ -277,6 +274,23 @@ static int cmp_one(void *binary, int index)
 	return 1;
 #else
 	return !memcmp(binary, crypt_out, BINARY_SIZE);
+#endif
+}
+
+static int cmp_exact(char *source, int index){
+#ifdef MMX_COEF
+	unsigned int i,x,y;
+	ARCH_WORD_32 *full_binary;
+
+	full_binary = (ARCH_WORD_32*)get_binary(source);
+	x = index&(MMX_COEF-1);
+	y = index/MMX_COEF;
+	for(i=0;i<(DIGEST_SIZE/4);i++)
+		if (full_binary[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x])
+			return 0;
+	return 1;
+#else
+	return !memcmp(get_binary(source), crypt_out, DIGEST_SIZE);
 #endif
 }
 
