@@ -113,7 +113,7 @@ static int NS_valid(char *ciphertext, struct fmt_main *pFmt)
 
 static ARCH_WORD_32 *NS_std_get_binary(char *ciphertext)
 {
-	static unsigned long out_[16/sizeof(unsigned long)];
+	static unsigned long out_[BINARY_SIZE/sizeof(unsigned long)];
 	ARCH_WORD_32 *out = (ARCH_WORD_32*)out_;
 	char unscrambled[24];
 	int i;
