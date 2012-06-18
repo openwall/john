@@ -88,8 +88,8 @@ static unsigned char out[PLAINTEXT_LENGTH + 1];
 #else
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
-#endif
 static SHA_CTX ctx;
+#endif
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -314,31 +314,23 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0x7ffffff; }
 #endif
 
-struct fmt_main fmt_rawSHA1;
-
 static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
-	unsigned char realcipher[DIGEST_SIZE];
-	unsigned char *cpi = pw->binary;
+	unsigned char realcipher[BINARY_SIZE];
+	unsigned char *cpi;
 	char *cpo;
 	int i;
 
-	for (i = 0; i < fmt_rawSHA1.params.max_keys_per_crypt; i++) {
-		if (cmp_one(pw->binary, i)) {
-			char *key = get_key(i);
-
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, key, strlen(key));
-			SHA1_Final(realcipher, &ctx);
-			cpi = realcipher;
-			break;
-		}
-	}
-
+	memcpy(realcipher, pw->binary, BINARY_SIZE);
+#ifdef MMX_COEF
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
 	strcpy(Buf, FORMAT_TAG);
 	cpo = &Buf[TAG_LENGTH];
 
-	for (i = 0; i < DIGEST_SIZE; ++i) {
+	cpi = realcipher;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
 		++cpi;

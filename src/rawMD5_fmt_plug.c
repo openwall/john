@@ -81,11 +81,11 @@ unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*
 unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
 #endif
 #else
+static MD5_CTX ctx;
 static int saved_key_length;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_out[4];
 #endif
-static MD5_CTX ctx;
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
@@ -299,31 +299,18 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
-struct fmt_main fmt_rawMD5;
-
 static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
-	unsigned char cipher[DIGEST_SIZE];
-	unsigned char *cpi = pw->binary;
+	unsigned char *cpi;
 	char *cpo;
 	int i;
-
-	for (i = 0; i < fmt_rawMD5.params.max_keys_per_crypt; i++) {
-		if (cmp_one(pw->binary, i)) {
-			char *key = get_key(i);
-
-			MD5_Init(&ctx);
-			MD5_Update(&ctx, key, strlen(key));
-			MD5_Final(cipher, &ctx);
-			cpi = cipher;
-			break;
-		}
-	}
 
 	strcpy(Buf, FORMAT_TAG);
 	cpo = &Buf[TAG_LENGTH];
 
-	for (i = 0; i < DIGEST_SIZE; ++i) {
+	cpi = (unsigned char*)(pw->binary);
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
 		++cpi;

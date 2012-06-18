@@ -79,11 +79,11 @@ static unsigned int (**buf_ptr);
 static unsigned int total_len;
 #endif
 #else
+static MD4_CTX ctx;
 static int saved_key_length;
 static UTF16 saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
 #endif
-static MD4_CTX ctx;
 
 // Note: the ISO-8859-1 plaintexts will be replaced in init() if running UTF-8
 static struct fmt_tests tests[] = {
@@ -682,33 +682,18 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x7ffffff; }
 #endif
 
-struct fmt_main fmt_magnumNT;
-
 static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
-	unsigned char cipher[DIGEST_SIZE];
-	unsigned char *cpi = pw->binary;
+	unsigned char *cpi;
 	char *cpo;
 	int i;
-
-	for (i = 0; i < fmt_magnumNT.params.max_keys_per_crypt; i++) {
-		if (cmp_one(pw->binary, i)) {
-			UTF16 ucskey[PLAINTEXT_LENGTH + 1];
-			char *key = get_key(i);
-
-			enc_to_utf16(ucskey, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
-			MD4_Init(&ctx);
-			MD4_Update(&ctx, ucskey, strlen16(ucskey) * 2);
-			MD4_Final(cipher, &ctx);
-			cpi = cipher;
-			break;
-		}
-	}
 
 	strcpy(Buf, "$NT$");
 	cpo = &Buf[4];
 
-	for (i = 0; i < DIGEST_SIZE; ++i) {
+	cpi = (unsigned char*)(pw->binary);
+
+	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
 		++cpi;
