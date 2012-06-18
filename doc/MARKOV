@@ -1,19 +1,44 @@
 BASIC USAGE
 The Markov mode is based from [1], tested and applied to "classical" password
 cracking in [2]. This mode similar to the "wordlist" mode because it will only
-crack a fixed quantity of passwords. Its parameters are:
+crack a fixed quantity of passwords.
 
---markov:LEVEL:START:END:LENGTH
+Specify the --markov option on the ommand line to use Markov mode.
+
+You can use any of these forms of the --markov option
+
+--markov[=LEVEL[:START[:END[:LENGTH]]]]
+--markov=MODE[:LEVEL[:START[:END[:LENGTH]]]]
 
 Where:
-* LEVEL is the "Markov level". This value is the maximum strength of passwords
-that are going to be cracked. When LEVEL increases, the quantity of passwords
+* MODE is a particular Markov mode corresponding to a config file section
+[Markov:MODE]. The Markov mode name is not case sensitive.
+If the mode name is not specified, the default mode as specified in section
+[Markov:Default] is used.
+
+* LEVEL is the "Markov level".
+It can be specified as MIN_LEVEL-MAX_LEVEL or as MAX_LEVEL.
+MAX_LEVEL determines the maximum strength of passwords
+that are going to be cracked. When MAX_LEVEL increases, the quantity of passwords
 that are going to be tested increases exponentially.
+MIN_LEVEL determines the minimum strength of passwords that are generated.
+If LEVEL is 0 or not specified on the command line, the LEVEL interval is
+read from config variables in the [Markov:mode] section, or [Markov:Default] section
+if MODE is not specified on the command line, see CONFIGURATION OPTIONS.
+
 * START is the index of the first password that is going to be tested, starting
 with 0.
+
 * END is the index of the last password that is going to be tested. When it is
 set to 0, it will represent the last possible password.
-* LENGTH is the maximum length of the tested passwords.
+
+* LENGTH determines the length of passwords generated.
+It can be specified as MIN_LENGTH-MAX_LENGTH or as MAX_LENGTH.
+MAX_LENGTH the maximum length of the tested passwords.
+MIN_LENGTH is the minimum length of the tested passwords.
+If LENGTH is 0 or not specified on the command line, the LENGTH interval is
+read from config variables in the [Markov:mode] section, or [Markov:Default] section
+if MODE is not specified on the command line, see CONFIGURATION OPTIONS.
 
 using --markov:100:0:0:12 will let john check every password whose length is 12
 or less and whose "Markov strength" is 100 or less.
@@ -78,34 +103,58 @@ Default options for values not specified on the command line are available
 in the john.conf file.
 Unlike previous john versions which required these values to be specified
 in the general [Options] section, starting from this version, these values
-have to be specified in the [Markov:Default] secion.
+have to be specified in the [Markov:Default] secion, if MODE has not been
+specified on the command line.
+Otherwise the Markov options have to be specified in a config file section
+[Markov:MODE].
+
 
 These are the values that can be specified:
 
 Statsfile - This is the path of the "stat" file.
 
-Specifying a Statsfile in the [Markov:Default] section is mandatory 
-for Markov mode, because the Statsfile cannot be specified as a 
-command line parameter with --markov=<params>.
+Specifying a Statsfile is mandatory for Markov mode, because the Statsfile
+cannot be specified as a command line parameter with --markov=<params>.
 
-MkvLvl - the default level
+MkvLvl - the default max. level
 
-MkvLvl should be specified in this section, as a fallback for the maximum
-Markov level when using --markov (without any additional parameters)
+MkvLvl should be specified, as a fallback for the maximum Markov level
+when using --markov or --markov=mode (without any additional parameters),
+or if the Markov level specified on the command line is 0.
 
-MkvMaxLen - the default length
+MkvMaxLen - the default max. length
 
-MkvMaxLen should also be specified in this section, as a fallback for the
-maximum password length when using --markov (without any additional
-parameters), --markov=<level>, or similar options that don't include a
-value for the password length.
+MkvMaxLen should also be specified, as a fallback for the maximum password
+length when using --markov or --markov=mode (without any additional
+parameters), --markov=<level> or --markov=mode:<level>, or similar options
+that don't include a value for the password length, or if the password length
+specified on the command line is 0.
+
+MkvMinLvl - the default min. level
+
+This value is used to determine the min. level if no Markov level was specified
+or if the Markov level specified on the command line was 0.
+(In other words, when the max. Markov level is read from the Markov mode section,
+the min. Markov level will be read from the Markov mode section as well.)
+If it is not found, the default min. Markov level will be 0.
+
+MkvMinLen - the default min. length
+
+This value is used to determine the min. length of passwords generated if no
+password length was specified or if the password length specified on the
+command line was 0.
+(In other words, when the max. password length is read from the Markov mode
+section, the min. password length will be read from the Markov mode section
+as well.)
+If it is not found, the default min. password length will be 0.
+
 
 WHAT IS THE STAT FILE?
 The markov mode is based on statistical data from real passwords. This data is
 stored in the "stat" file. In order to generate a custom stat file, it is
 recommanded to use the new calc_stat command:
 
-./calc_stat "dictionnary file" stats
+./calc_stat <dictionary_file> stats
 
 
 MKVCALCPROBA USAGE

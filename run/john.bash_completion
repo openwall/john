@@ -359,7 +359,34 @@ _john()
 			;;
 		--markov)
 			if [[ "${valopts}" == *${cur}* ]] ; then
-				COMPREPLY=( $(compgen -W "--markov --markov=LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
+				if [[ "_${__john_completion}" == "_2" ]] ; then
+					COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
+					compopt -o nospace
+				else
+					# FIXME: Should I mention [MIN_LEVEL-] and [MIN_LENGTH-]?
+					#        I think not all jumbo versions support these.
+					# FIXME: How to find out whether --markov=MODE is
+					#        supported?
+					#        Assume it is supported if at least one
+					#        section [Markov:mode] exists, e.g. [Markov:Default]?
+					COMPREPLY=( $(compgen -W "--markov --markov=LEVEL[:START[:END[:LENGTH]]] --markov=MODE --markov=MODE:LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
+				fi
+			fi
+			return 0
+			;;
+		-?(-)mar?(k|ko|kov)+(:|=)*)
+			if [[ "${valopts}" == *--markov* ]] ; then
+				# Ignore the  --markov=[MINLVL-]LEVEL[:START[:END[:[MINLEN-]LENGTH]]]?
+				# Just try completion for --markov=MODE for all [Markov:...] sections?
+				if [[ "${hidden}" == *--list=* || "${valopts}" == *--list=* ]] ; then
+					cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
+					# Don't include subsection names that contain a ':' or that
+					# contain just '-' and digits
+					list=`${first} --list=Markov 2>/dev/null | LC_ALL=C sed 's#^.*:.*$##'|LC_ALL=C sed 's#^[-0-9]*$##'`
+					COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+					# no trailing space, just in case the user wants to add :lvl...
+					compopt -o nospace
+				fi
 			fi
 			return 0
 			;;
