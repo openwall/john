@@ -35,5 +35,6 @@ run/zip2john
 src/arch.h
 src/fmt_externs.h
 src/fmt_registers.h
+src/generic.h
 src/john_build_rule.h
 test/
