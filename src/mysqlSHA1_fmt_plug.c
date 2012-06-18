@@ -287,10 +287,11 @@ static void crypt_all(int count) {
 
 static void *binary(char *ciphertext)
 {
-	static unsigned long outb_[BINARY_SIZE / sizeof(unsigned long)];
-	ARCH_WORD_32 *outb = (ARCH_WORD_32*)outb_;
-	char *realcipher = (char*)outb;
+	static unsigned char *realcipher;
 	int i;
+
+	if (!realcipher)
+		realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	// ignore first character '*'
 	ciphertext += 1;

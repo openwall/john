@@ -84,7 +84,7 @@ static void *salt(char *ciphertext)
 	char *p;
 	int length;
 
-	memset(out, 0, sizeof(out));
+	memset(out, 0, SALT_SIZE);
 	p = ciphertext + 7;
 	length = strrchr(ciphertext, '$') - p;
 	out[0] = length;

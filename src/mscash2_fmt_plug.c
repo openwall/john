@@ -328,7 +328,7 @@ static void *get_salt(char *_ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned long out_[16/sizeof(unsigned long)];
+	static unsigned long out_[BINARY_SIZE/sizeof(unsigned long)];
 	unsigned int *out = (unsigned int*)out_;
 	unsigned int i = 0;
 	unsigned int temp;
@@ -362,7 +362,7 @@ static void *get_binary(char *ciphertext)
 		out[i] = temp;
 	}
 #ifdef MMX_COEF
-	alter_endianity(out, sizeof(out_));
+	alter_endianity(out, BINARY_SIZE);
 #endif
 	return out;
 }

@@ -175,7 +175,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned long out_[16/sizeof(unsigned long)];
+	static unsigned long out_[BINARY_SIZE/sizeof(unsigned long)];
 	unsigned int *out = (unsigned int*)out_;
 	unsigned int i;
 	unsigned int temp;
