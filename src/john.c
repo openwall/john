@@ -125,7 +125,7 @@ extern struct fmt_main fmt_django;
 #endif
 
 #if defined(__GNUC__) && defined(__SSE2__)
-extern struct fmt_main sha1_fmt_taviso;
+extern struct fmt_main sha1_fmt_ng;
 #endif
 
 #ifdef HAVE_SKEY
@@ -262,7 +262,7 @@ static void john_register_all(void)
 #endif
 
 #if defined(__GNUC__) && defined(__SSE2__)
-	john_register_one(&sha1_fmt_taviso);
+	john_register_one(&sha1_fmt_ng);
 #endif
 
 #ifdef HAVE_NSS
