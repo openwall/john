@@ -592,7 +592,11 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static int cmp_exact(char *source, int index){
+static int cmp_exact(char *source, int index)
+{
+#if BINARY_SIZE == DIGEST_SIZE
+	return 1;
+#else
 #ifdef MMX_COEF
 	unsigned int i,x,y;
 	ARCH_WORD_32 *full_binary;
@@ -606,6 +610,7 @@ static int cmp_exact(char *source, int index){
 	return 1;
 #else
 	return !memcmp(binary(source), crypt_key, DIGEST_SIZE);
+#endif
 #endif
 }
 
