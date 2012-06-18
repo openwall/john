@@ -148,20 +148,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
-/* 
- * get_source testing is a little 'different', because the source pointer
- * of the db_password structure will point to either the source or to the
- * salt, depending upon if the get_source is implemented or not. For
- * testing, we HAVE to observe the exact same behavior here.
- */
-		pw.binary = binary;
-		if (format->methods.get_source == fmt_default_get_source)
-			pw.source = ciphertext;
-		else
-			pw.source = (char*)salt;
-		if (strcmp(format->methods.get_source(&pw, Buf), ciphertext)) 
-			return "get_source";
-
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
 			return "salt_hash";
@@ -195,6 +181,20 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			sprintf(s_size, "get_key(%d)", index);
 			return s_size;
 		}
+
+/* 
+ * get_source testing is a little 'different', because the source pointer
+ * of the db_password structure will point to either the source or to the
+ * salt, depending upon if the get_source is implemented or not. For
+ * testing, we HAVE to observe the exact same behavior here.
+ */
+		pw.binary = binary;
+		if (format->methods.get_source == fmt_default_get_source)
+			pw.source = ciphertext;
+		else
+			pw.source = (char*)salt;
+		if (strcmp(format->methods.get_source(&pw, Buf), ciphertext)) 
+			return "self test fail: get_source";
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
