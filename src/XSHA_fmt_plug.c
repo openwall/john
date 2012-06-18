@@ -122,10 +122,12 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned long outbuf[BINARY_SIZE / sizeof(long)];
-	unsigned char *out = (unsigned char*)outbuf;
+	static unsigned char *out;
 	char *p;
 	int i;
+
+	if (!out)
+		out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	p = ciphertext + 8;
 	for (i = 0; i < BINARY_SIZE; i++) {
