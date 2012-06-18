@@ -491,7 +491,7 @@ void get_markov_options(struct db_main *db,
 #ifdef HAVE_MPI
 		if (mpi_id == 0)
 #endif
-		fprintf(stderr, "Warning: minimum length(%d) < maximum length(%d), minimum length set to %d\n", minlen, maxlen, maxlen);
+		fprintf(stderr, "Warning: minimum length(%d) > maximum length(%d), minimum length set to %d\n", minlen, maxlen, maxlen);
 		minlen = maxlen;
 	}
 
