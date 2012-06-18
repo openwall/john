@@ -336,7 +336,7 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	int i;
 
 #ifdef MMX_COEF
-	for (i = 0; i <= NBKEYS; ++i) {
+	for (i = 0; i < NBKEYS; ++i) {
 		if (crypt_key[(i/4)*20+4+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[1]) {
 			// Ok, we may have found it.  Check the next 3 DWORDS
 			if (crypt_key[(i/4)*20+8+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[2] && 
