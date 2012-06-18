@@ -43,7 +43,7 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE			4
+#define BINARY_SIZE			16 // get_source()
 #define DIGEST_SIZE			16
 #define SALT_SIZE			0
 

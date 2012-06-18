@@ -49,7 +49,7 @@
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define DIGEST_SIZE			20
-#define BINARY_SIZE			4
+#define BINARY_SIZE			20 // get_source()
 #define SALT_SIZE			0
 
 #ifdef MMX_COEF
