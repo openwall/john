@@ -12,6 +12,7 @@
 #ifdef __SSE4_1__
 # include <smmintrin.h>
 #endif
+
 #ifdef __XOP__
 # include <x86intrin.h>
 #endif
@@ -22,14 +23,14 @@
 #include "sha.h"
 
 #ifndef __XOP__
-#define _mm_slli_epi32a(a, s) \
-	((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
-#define _mm_roti_epi32(a, s) \
-	((s) == 16 ? \
-	_mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) : \
-	_mm_xor_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
-#define _mm_roti_epi16(a, s) \
-	_mm_xor_si128(_mm_srli_epi16((a), (s)), _mm_slli_epi16((a), 16-(s)))
+# define _mm_slli_epi32a(a, s)                                                                          \
+    ((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
+#define _mm_roti_epi32(a, s)                                                                            \
+    ((s) == 16 ?                                                                                        \
+    _mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) :                                         \
+    _mm_xor_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+#define _mm_roti_epi16(a, s)                                                                            \
+    _mm_xor_si128(_mm_srli_epi16((a), (s)), _mm_slli_epi16((a), 16-(s)))
 #endif
 
 //
@@ -67,16 +68,16 @@
     X0  = _mm_xor_si128(X0, X8);                                                                        \
     X0  = _mm_xor_si128(X0, X13);                                                                       \
     X0  = _mm_xor_si128(X0, X2);                                                                        \
-    X0  = _mm_roti_epi32(X0, 1);                                  \
+    X0  = _mm_roti_epi32(X0, 1);                                                                        \
 } while (false)
 
 #ifdef __XOP__
 #define R1(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
-    E   = _mm_add_epi32(E, _mm_cmov_si128(C, D, B));                                                        \
+    E   = _mm_add_epi32(E, _mm_cmov_si128(C, D, B));                                                    \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_roti_epi32(B, 30);                                   \
-    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
+    B   = _mm_roti_epi32(B, 30);                                                                        \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 #else
 #define R1(W, A, B, C, D, E) do {                                                                       \
@@ -84,8 +85,8 @@
     E   = _mm_add_epi32(E, _mm_and_si128(C, B));                                                        \
     E   = _mm_add_epi32(E, _mm_andnot_si128(B, D));                                                     \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_roti_epi32(B, 30);                                   \
-    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
+    B   = _mm_roti_epi32(B, 30);                                                                        \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 #endif
 
@@ -93,16 +94,16 @@
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_xor_si128(_mm_xor_si128(B, C), D));                                      \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_roti_epi32(B, 30);                                   \
-    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
+    B   = _mm_roti_epi32(B, 30);                                                                        \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 
 #define R3(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_or_si128(_mm_and_si128(_mm_or_si128(B, D), C), _mm_and_si128(B, D)));    \
     E   = _mm_add_epi32(E, W);                                                                          \
-    B   = _mm_roti_epi32(B, 30);                                   \
-    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                 \
+    B   = _mm_roti_epi32(B, 30);                                                                        \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 
 #define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {                                                       \
@@ -589,9 +590,9 @@ static int sha1_fmt_binary4(void *binary) { return ((uint32_t*)binary)[4] & 0x00
 static int sha1_fmt_binary5(void *binary) { return ((uint32_t*)binary)[4] & 0x00FFFFFF; }
 static int sha1_fmt_binary6(void *binary) { return ((uint32_t*)binary)[4] & 0x07FFFFFF; }
 
-struct fmt_main sha1_fmt_taviso = {
+struct fmt_main sha1_fmt_ng = {
     .params                 = {
-        .label              = "rawsha1_sse4",
+        .label              = "raw-sha1-ng",
         .format_name        = "Raw SHA-1",
         .algorithm_name     = "taviso sse4",
         .benchmark_comment  = "",
