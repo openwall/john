@@ -356,7 +356,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		    (!strcasecmp(name + strlen(name) - 4, ".pot")))
 		{
 			potfile = 1;
-			fprintf(stderr, "Closed-loop mode: Reading candidates from pot file\n");
+			fprintf(stderr, "Closed-loop mode: Reading candidates from pot file %s\n", name);
 			if (!forceLoad && (db->options->max_wordfile_memory ==
 			     (WORDLIST_BUFFER_DEFAULT >> mem_saving_level)))
 				db->options->max_wordfile_memory =
