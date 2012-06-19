@@ -15,8 +15,8 @@
 #include "wpapsk.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
-#define FORMAT_NAME		FORMAT_LABEL
-#define ALGORITHM_NAME		"GPU - OpenCL"
+#define FORMAT_NAME		"WPA-PSK"
+#define ALGORITHM_NAME		"OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

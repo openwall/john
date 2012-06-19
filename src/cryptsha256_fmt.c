@@ -28,7 +28,7 @@
 
 #define FORMAT_LABEL			"cryptsha256"
 #define FORMAT_NAME			"crypt SHA-256"
-#define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1

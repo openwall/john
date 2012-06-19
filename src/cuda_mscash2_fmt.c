@@ -13,8 +13,8 @@
 #include "cuda_common.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
-#define FORMAT_NAME		FORMAT_LABEL
-#define ALGORITHM_NAME		"GPU"
+#define FORMAT_NAME		"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

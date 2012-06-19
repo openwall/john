@@ -46,8 +46,8 @@
 #include "formats.h"
 
 #define FORMAT_LABEL		"skey"
-#define FORMAT_NAME		"S/Key"
-#define ALGORITHM_NAME		"MD4/MD5/SHA1/RMD160"
+#define FORMAT_NAME		"S/Key MD4/MD5/SHA-1/RMD160"
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

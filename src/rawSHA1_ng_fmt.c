@@ -594,7 +594,18 @@ struct fmt_main sha1_fmt_ng = {
     .params                 = {
         .label              = "raw-sha1-ng",
         .format_name        = "Raw SHA-1",
-        .algorithm_name     = "taviso sse4",
+        .algorithm_name     =
+	"128/128 "
+#if defined(__XOP__)
+	"XOP"
+#elif defined(__AVX__)
+	"AVX"
+#elif defined(__SSE4_1__)
+	"SSE4.1"
+#else
+	"SSE2"
+#endif
+	" intrinsics 4x",
         .benchmark_comment  = "",
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,

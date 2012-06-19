@@ -29,6 +29,11 @@ extern "C" {
 # endif
 #endif
 
+#if defined(__GNUC__) && defined(CPU_IA32) && !defined(RHASH_NO_ASM)
+# define USE_GCC_ASM_IA32
+#elif defined(__GNUC__) && defined(CPU_X64) && !defined(RHASH_NO_ASM)
+# define USE_GCC_ASM_X64
+#endif
 
 /* detect CPU endianness */
 #if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \

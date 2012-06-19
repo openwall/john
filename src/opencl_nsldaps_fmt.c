@@ -30,8 +30,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL			"ssha-opencl"
-#define FORMAT_NAME			"Netscape LDAP SSHA OPENCL"
-#define SHA_TYPE                        "salted SHA-1"
+#define FORMAT_NAME			"Netscape LDAP salted SHA-1"
+#define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -472,7 +472,7 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    SHA_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,

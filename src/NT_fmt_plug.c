@@ -141,7 +141,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 	unsigned int nt_buffer1x[16*NT_NUM_KEYS1];
 	unsigned int output1x[4*NT_NUM_KEYS1];
 
-	#define ALGORITHM_NAME		"128/128 SSE2 + 32/32"
+	#define ALGORITHM_NAME		"128/128 SSE2 + 32/" ARCH_BITS_STR
 	#define NT_CRYPT_FUN		nt_crypt_all_sse2
 	extern void nt_crypt_all_sse2(int count);
 #else
@@ -149,7 +149,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 	unsigned int nt_buffer1x[16*NT_NUM_KEYS];
 	unsigned int output1x[4*NT_NUM_KEYS];
 
-	#define ALGORITHM_NAME		"32/32"
+	#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 	#define NT_CRYPT_FUN		nt_crypt_all_generic
 	static void nt_crypt_all_generic(int count)
 	{

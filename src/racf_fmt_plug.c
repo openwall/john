@@ -33,10 +33,10 @@ static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"racf"
-#define FORMAT_NAME		"RACF"
+#define FORMAT_NAME		"RACF DES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*salt_struct)
@@ -204,6 +204,7 @@ static void crypt_all(int count)
 		DES_set_key_checked(&des_key, &schedule);
 		/* do encryption */
 		DES_cbc_encrypt(salt_struct->userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
+/* XXX: this is broken (assumes exactly one hash per salt) */
 		if(!memcmp(salt_struct->hash, encrypted, 8))
 			cracked[index] = 1;
 		else

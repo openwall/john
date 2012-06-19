@@ -49,10 +49,6 @@
 
 #include <string.h>
 #include "arch.h"
-#ifdef SHA1_SSE_PARA
-#define MMX_COEF			4
-#include "sse-intrinsics.h"
-#endif
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
@@ -67,6 +63,11 @@
 #include <openssl/md4.h>
 #endif
 #include "unicode.h"
+
+#ifdef SHA1_SSE_PARA
+#define MMX_COEF			4
+#endif
+#include "sse-intrinsics.h"
 
 #if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))
 #undef _OPENMP
@@ -99,7 +100,7 @@ static struct fmt_tests tests[] = {
 };
 
 #define FORMAT_LABEL			"mscash2"
-#define FORMAT_NAME			"M$ Cache Hash 2 (DCC2)"
+#define FORMAT_NAME			"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -110,18 +111,13 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			16
 #define SALT_SIZE			(11*4+4)
 
-#ifdef MMX_COEF
+#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
+#ifdef MMX_COEF
 # ifdef SHA1_SSE_PARA
-#   define ALGORITHM_NAME		"SSE2i " SHA1_N_STR
 #  define MS_NUM_KEYS			(MMX_COEF*SHA1_SSE_PARA)
 # else
 #  define MS_NUM_KEYS			MMX_COEF
-#  if MMX_COEF==4
-#   define ALGORITHM_NAME		"SSE2 4x"
-#  else
-#   define ALGORITHM_NAME		"MMX 2x"
-#  endif
 # endif
 // Ok, now we have our MMX/SSE2/intr buffer.
 // this version works properly for MMX, SSE2 (.S) and SSE2 intrinsic.
@@ -132,7 +128,6 @@ static unsigned char (*sse_crypt2);
 static unsigned char (*sse_crypt);
 
 #else
-# define ALGORITHM_NAME			"Generic 1x"
 # define MS_NUM_KEYS			1
 #endif
 

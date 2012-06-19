@@ -23,7 +23,7 @@
 #endif
 
 #define FORMAT_LABEL		"mozilla"
-#define FORMAT_NAME		"Mozilla"
+#define FORMAT_NAME		"Mozilla SHA-1 3DES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0

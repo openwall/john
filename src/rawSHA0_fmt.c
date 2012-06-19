@@ -15,7 +15,7 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"raw-sha"
-#define FORMAT_NAME			"Raw SHA0"
+#define FORMAT_NAME			"Raw SHA-0"
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""

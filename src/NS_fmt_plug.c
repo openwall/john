@@ -40,7 +40,7 @@
 
 #define FORMAT_LABEL			"md5ns"
 #define FORMAT_NAME			"Netscreen MD5"
-#define NS_ALGORITHM_NAME               "NS MD5"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -264,7 +264,7 @@ struct fmt_main fmt_NS = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		NS_ALGORITHM_NAME,
+		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

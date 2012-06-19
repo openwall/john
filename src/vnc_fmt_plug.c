@@ -33,7 +33,7 @@ static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"vnc"
-#define FORMAT_NAME		"VNC"
+#define FORMAT_NAME		"VNC DES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -79,6 +79,7 @@ static void print_hex(unsigned char *str, int len)
 #endif
 
 static struct fmt_tests vnc_tests[] = {
+/* XXX: need more test vectors, then try benchmarking for "many salts" */
 	{"$vnc$*ADDC021F444F999B8E27144C0DCE7389*AFAF1BB57588784333962A124668A2C6", "openwall"},
 	{NULL}
 };

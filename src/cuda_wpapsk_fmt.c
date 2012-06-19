@@ -14,8 +14,8 @@
 
 
 #define FORMAT_LABEL		"wpapsk-cuda"
-#define FORMAT_NAME		FORMAT_LABEL
-#define ALGORITHM_NAME		"GPU"
+#define FORMAT_NAME		"WPA-PSK"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

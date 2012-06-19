@@ -9,13 +9,11 @@
 
 #include "arch.h"
 #include "misc.h"
-#include "MD5_std.h"
 #include "common.h"
 #include "formats.h"
 
-#ifdef MD5_SSE_PARA
 #include "sse-intrinsics.h"
-#endif
+#include "MD5_std.h"
 
 #if defined(_OPENMP) && defined(MD5_SSE_PARA)
 #define OMP_SCALE			4

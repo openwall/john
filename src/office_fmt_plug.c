@@ -22,7 +22,7 @@
 #endif
 
 #define FORMAT_LABEL		"office"
-#define FORMAT_NAME		"Office"
+#define FORMAT_NAME		"Office 2007/2010 SHA-1/AES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

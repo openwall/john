@@ -26,7 +26,7 @@
 #endif
 
 #define FORMAT_LABEL		"keychain"
-#define FORMAT_NAME		"Mac OS X Keychain"
+#define FORMAT_NAME		"Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

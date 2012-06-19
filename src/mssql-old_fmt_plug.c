@@ -14,11 +14,11 @@
 
 #ifdef SHA1_SSE_PARA
 #define MMX_COEF	4
-#include "sse-intrinsics.h"
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS	MMX_COEF
 #endif
+#include "sse-intrinsics.h"
 
 #include "misc.h"
 #include "params.h"
@@ -29,19 +29,9 @@
 #include "sha.h"
 
 #define FORMAT_LABEL			"mssql"
-#define FORMAT_NAME			"MS-SQL"
+#define FORMAT_NAME			"MS SQL SHA-1"
 
-#ifdef SHA1_N_STR
-#define ALGORITHM_NAME			"SSE2i " SHA1_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define ALGORITHM_NAME			"SSE2 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define ALGORITHM_NAME			"MMX 2x"
-#elif defined(MMX_COEF)
-#define ALGORITHM_NAME			"?"
-#else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

@@ -29,7 +29,7 @@
 #include "gladman_fileenc.h"
 
 #define FORMAT_LABEL        "zip"
-#define FORMAT_NAME         "zip"
+#define FORMAT_NAME         "WinZip PBKDF2-HMAC-SHA-1"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1

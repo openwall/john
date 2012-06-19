@@ -31,8 +31,8 @@
 
 //johntr defines
 #define FORMAT_LABEL "mysql"
-#define FORMAT_NAME "MYSQL"
-#define ALGORITHM_NAME "mysql"
+#define FORMAT_NAME "MySQL"
+#define ALGORITHM_NAME "32/" ARCH_BITS_STR " (label mysql)"
 
 #define BENCHMARK_COMMENT ""
 #define BENCHMARK_LENGTH -1

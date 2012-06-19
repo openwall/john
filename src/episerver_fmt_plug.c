@@ -60,10 +60,10 @@
 #endif
 
 #define FORMAT_LABEL		"episerver"
-#define FORMAT_NAME		"EPiServer"
+#define FORMAT_NAME		"EPiServer salted SHA-1/SHA-256"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*salt_struct)
@@ -156,6 +156,7 @@ static void crypt_all(int count)
 			SHA1_Update(&ctx, salt_struct->esalt, 16);
 			SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 			SHA1_Final((unsigned char *)sha1hash, &ctx);
+/* XXX: this is broken (assumes exactly one hash per salt) */
 			if(!memcmp(sha1hash, salt_struct->hash, 20))
 				cracked[index] = 1;
 			else
@@ -168,6 +169,7 @@ static void crypt_all(int count)
 			SHA256_Update(&ctx, salt_struct->esalt, 16);
 			SHA256_Update(&ctx, passwordBuf, passwordBufSize);
 			SHA256_Final((unsigned char *)sha256hash, &ctx);
+/* XXX: this is broken (assumes exactly one hash per salt) */
 			if(!memcmp(sha256hash, salt_struct->hash, 32))
 				cracked[index] = 1;
 			else

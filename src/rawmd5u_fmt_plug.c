@@ -13,11 +13,11 @@
 
 #ifdef MD5_SSE_PARA
 #define MMX_COEF			4
-#include "sse-intrinsics.h"
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS				MMX_COEF
 #endif
+#include "sse-intrinsics.h"
 
 #include "md5.h"
 #include "misc.h"
@@ -31,17 +31,7 @@
 #define FORMAT_LABEL			"raw-md5u"
 #define FORMAT_NAME			"md5(unicode($p))"
 
-#ifdef MD5_SSE_PARA
-#define ALGORITHM_NAME			"SSE2i " MD5_N_STR
-#elif defined(MMX_COEF) && MMX_COEF == 4
-#define ALGORITHM_NAME			"SSE2 4x"
-#elif defined(MMX_COEF) && MMX_COEF == 2
-#define ALGORITHM_NAME			"MMX 2x"
-#elif defined(MMX_COEF)
-#define ALGORITHM_NAME			"?"
-#else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

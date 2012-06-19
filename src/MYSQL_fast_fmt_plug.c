@@ -26,8 +26,8 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"mysql-fast"
-#define FORMAT_NAME			"MYSQL_fast"
-#define ALGORITHM_NAME			"mysql-fast"
+#define FORMAT_NAME			"MySQL"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " (label mysql-fast)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -50,6 +50,12 @@ static struct fmt_tests mysql_tests[] = {
 	{"1b38cd9c2f809809", "hacktivity2008"},
 	{"1b38cd9c2f809809", "hacktivity 2008"},
 	{"6fc81597422015a8", "johnmodule"},
+	{"30f098972cc8924d", "http://guh.nu"},
+	{"3fc56f6037218993", "Andrew Hintz"},
+	{"697a7de87c5390b2", "drew"},
+	{"1eb71cf460712b3e", "http://4tphi.net"},
+	{"28ff8d49159ffbaf", "http://violating.us"},
+	{"5d2e19393cc5ef67", "password"},
 	{NULL}
 };
 

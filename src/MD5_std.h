@@ -63,8 +63,8 @@ typedef struct {
 #  define MMX_COEF			4
 # endif
 # define MD5_N				(MD5_SSE_PARA*MMX_COEF)
-# define MD5_ALGORITHM_NAME		"SSE2i " MD5_N_STR
 #else
+# undef MD5_ALGORITHM_NAME
 # if MD5_X2
 #  define MD5_N				2
 #  define MD5_ALGORITHM_NAME		"32/" ARCH_BITS_STR " X2"

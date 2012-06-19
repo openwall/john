@@ -24,21 +24,12 @@
 
 #ifdef MD5_SSE_PARA
 #define MMX_COEF			4
-#include "sse-intrinsics.h"
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
-#define ALGORITHM_NAME			"SSE2i " MD5_N_STR
 #elif defined(MMX_COEF)
 #define NBKEYS				MMX_COEF
-#if MMX_COEF == 4
-#define ALGORITHM_NAME			"SSE2 4x"
-#elif MMX_COEF == 2
-#define ALGORITHM_NAME			"MMX 2x"
-#elif defined(MMX_COEF)
-#define ALGORITHM_NAME			"?"
 #endif
-#else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
+#include "sse-intrinsics.h"
+#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
