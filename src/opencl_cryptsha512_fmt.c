@@ -21,7 +21,6 @@
 #define FORMAT_LABEL			"cryptsha512-opencl"
 #define FORMAT_NAME			"crypt SHA-512"
 #define ALGORITHM_NAME			"OpenCL"
-#define SHA_TYPE                        "SHA512"
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1

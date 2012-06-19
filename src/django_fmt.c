@@ -34,10 +34,10 @@
 #endif
 
 #define FORMAT_LABEL		"django"
-#define FORMAT_NAME		"Django"
+#define FORMAT_NAME		"Django PBKDF2-HMAC-SHA-256"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_COMMENT	" (x10000)"
+#define BENCHMARK_LENGTH	-1 /* XXX: change to 0 once we have multiple test vectors */
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -45,6 +45,7 @@
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests django_tests[] = {
+/* XXX: need more test vectors */
 	{"$django$*1*pbkdf2_sha256$10000$qPmFbibfAY06$x/geVEkdZSlJMqvIYJ7G6i5l/6KJ0UpvLUU6cfj83VM=", "openwall"},
 	{NULL}
 };
@@ -98,7 +99,7 @@ static void *get_salt(char *ciphertext)
 	t = strtok(NULL, "$");
 	strcpy((char*)cs.salt, t);
 	t = strtok(NULL, "$");
-	base64_decode(t, strlen(t), (char*)cs.hash);
+	base64_decode(t, strlen(t), (char*)cs.hash); /* XXX: actually use it */
 
 	free(keeptr);
 	return (void *)&cs;
@@ -126,11 +127,12 @@ static void crypt_all(int count)
 		unsigned char out[32];
 		if(PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
 			salt_struct->salt, strlen((char*)salt_struct->salt), salt_struct->iterations, EVP_sha256(), 32, out) != 0 ) {
+/* XXX: this is broken (assumes exactly one hash per salt) */
 			if(!memcmp(out, salt_struct->hash, 32))
 				any_cracked = cracked[index] = 1;
 		}
 		else {
-			fprintf(stderr, "PKCS5_PBKDF2_HMAC_SHA1 failed\n");
+			fprintf(stderr, "PKCS5_PBKDF2_HMAC failed\n");
 			exit(-1);
 		}
 	}

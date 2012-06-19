@@ -15,9 +15,11 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"bf-opencl"
-#define FORMAT_NAME			"OpenBSD Blowfish OpenCL"
+#define FORMAT_NAME			"OpenBSD Blowfish"
 
-#define BENCHMARK_COMMENT		""
+#define ALGORITHM_NAME			"OpenCL"
+
+#define BENCHMARK_COMMENT		" (x32)"
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		72
@@ -28,8 +30,6 @@
 
 #define MIN_KEYS_PER_CRYPT		BF_N
 #define MAX_KEYS_PER_CRYPT		BF_N
-
-#define OPENCL_BF_ALGORITHM_NAME        "BF_OPENCL"
 
 static struct fmt_tests tests[] = {
 	{"$2a$05$CCCCCCCCCCCCCCCCCCCCC.E5YPO9kmyuRGyh0XouQYb4YMJKvyOeW",
@@ -249,7 +249,7 @@ struct fmt_main fmt_opencl_bf = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		OPENCL_BF_ALGORITHM_NAME,
+		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

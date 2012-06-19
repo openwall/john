@@ -12,8 +12,8 @@
 #include "blowfish.c"
 
 #define FORMAT_LABEL			"bfegg"
-#define FORMAT_NAME			"Eggdrop"
-#define ALG_NAME			"blowfish"
+#define FORMAT_NAME			"Eggdrop Blowfish"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -83,7 +83,7 @@ struct fmt_main fmt_BFEgg = {
   {
     FORMAT_LABEL,
     FORMAT_NAME,
-    ALG_NAME,
+    ALGORITHM_NAME,
     BENCHMARK_COMMENT,
     BENCHMARK_LENGTH,
     PLAINTEXT_LENGTH,

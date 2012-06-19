@@ -59,7 +59,7 @@
 
 #define FORMAT_LABEL         "netlmv2"
 #define FORMAT_NAME          "LMv2 C/R MD4 HMAC-MD5"
-#define ALGORITHM_NAME       "netlmv2"
+#define ALGORITHM_NAME       "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     125 /* lmcons.h - PWLEN (256) ? 127 ? */

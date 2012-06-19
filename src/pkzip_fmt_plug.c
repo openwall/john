@@ -31,8 +31,8 @@
 #endif
 
 #define FORMAT_LABEL			"pkzip"
-#define FORMAT_NAME				"pkzip"
-#define ALGORITHM_NAME			"N/A"
+#define FORMAT_NAME			"PKZIP"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1000

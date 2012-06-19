@@ -47,8 +47,8 @@
 #define MAX_PASS_LEN        64
 
 #define FORMAT_LABEL        "krb5"
-#define FORMAT_NAME         "Kerberos v5 TGT"
-#define ALGORITHM_NAME      "krb5 3DES (des3-cbc-sha1)"
+#define FORMAT_NAME         "Kerberos v5 TGT 3DES"
+#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define PLAINTEXT_LENGTH    32

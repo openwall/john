@@ -46,8 +46,8 @@
 #define TGT_LENGTH		16	/* 2 des_cblock's */
 
 #define FORMAT_LABEL		"krb4"
-#define FORMAT_NAME		"Kerberos v4 TGT"
-#define ALGORITHM_NAME		"krb4 DES"
+#define FORMAT_NAME		"Kerberos v4 TGT DES"
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

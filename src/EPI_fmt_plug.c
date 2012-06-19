@@ -53,8 +53,8 @@ struct fmt_main fmt_EPI =
 {
   { // fmt_params
     "epi",
-    "EPiServer SID Hashes",
-    "SHA-1",
+    "EPiServer SID salted SHA-1",
+    "32/" ARCH_BITS_STR,
     "", // benchmark comment
     0, // benchmark length
     PLAINTEXT_LENGTH,

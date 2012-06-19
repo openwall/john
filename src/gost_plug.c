@@ -41,12 +41,6 @@ void john_gost_cryptopro_init(gost_ctx *ctx)
 	ctx->cryptpro = 1;
 }
 
-#if defined(__GNUC__) && defined(CPU_IA32) && !defined(RHASH_NO_ASM)
-# define USE_GCC_ASM_IA32
-#elif defined(__GNUC__) && defined(CPU_X64) && !defined(RHASH_NO_ASM)
-# define USE_GCC_ASM_X64
-#endif
-
 /*
  *  A macro that performs a full encryption round of GOST 28147-89.
  *  Temporary variables tmp assumed and variables r and l for left and right

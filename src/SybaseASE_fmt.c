@@ -54,7 +54,7 @@
 #include "unicode.h"
 
 #define FORMAT_LABEL        "sybasease"
-#define FORMAT_NAME         "sybasease"
+#define FORMAT_NAME         "Sybase ASE salted SHA-256"
 
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 

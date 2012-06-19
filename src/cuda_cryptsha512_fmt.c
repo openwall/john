@@ -12,9 +12,9 @@
 #include "cuda_common.h"
 
 #define FORMAT_LABEL		"cryptsha512-cuda"
-#define FORMAT_NAME		FORMAT_LABEL
+#define FORMAT_NAME		"crypt SHA-512"
 
-#define PHPASS_TYPE		"SHA512-based CRYPT"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -334,7 +334,7 @@ struct fmt_main fmt_cuda_cryptsha512 = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    PHPASS_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,

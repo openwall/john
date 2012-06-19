@@ -55,8 +55,8 @@
 #include "rc4.h"
 
 #define FORMAT_LABEL       "mskrb5"
-#define FORMAT_NAME        "MS Kerberos 5 AS-REQ Pre-Auth"
-#define ALGORITHM_NAME     "mskrb5"
+#define FORMAT_NAME        "MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4"
+#define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0
 #define PLAINTEXT_LENGTH   125

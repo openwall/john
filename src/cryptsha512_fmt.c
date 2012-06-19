@@ -43,9 +43,9 @@
 #define FORMAT_LABEL			"cryptsha512"
 #define FORMAT_NAME			"crypt SHA-512"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"OpenSSL 64/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME			"OpenSSL 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"

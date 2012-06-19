@@ -25,8 +25,8 @@
 #include "common.h"
 
 #define FORMAT_LABEL		"dominosec"
-#define FORMAT_NAME		"More Secure Internet Password"
-#define ALGORITHM_NAME		"RSA MD defined by BSAFE 1.x - Lotus v6"
+#define FORMAT_NAME		"Lotus Notes/Domino 6 More Secure Internet Password"
+#define ALGORITHM_NAME		"8/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0

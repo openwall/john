@@ -254,31 +254,39 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #define BSD_BLKS 1
 #endif
 
+#include "sse-intrinsics.h"
 #if (MMX_COEF == 2)
 #define BLOCK_LOOPS			64
-#define ALGORITHM_NAME		"MMX 64x2"
-#else // MMX_COEF != 2
+#define ALGORITHM_NAME			"64/64 " SSE_type " 64x2"
+#elif MMX_COEF == 4
 #define BLOCK_LOOPS			32
 #ifdef MD5_SSE_PARA
-#include "sse-intrinsics.h"
 #if (MD5_SSE_PARA==1)
-#define ALGORITHM_NAME		"SSE2i 32x4x1"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 32x4x1"
 #elif (MD5_SSE_PARA==2)
-#define ALGORITHM_NAME		"SSE2i 16x4x2"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 16x4x2"
 #elif (MD5_SSE_PARA==3)
-#define ALGORITHM_NAME		"SSE2i 10x4x3"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 10x4x3"
 #elif (MD5_SSE_PARA==4)
-#define ALGORITHM_NAME		"SSE2i 8x4x4"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 8x4x4"
 #elif (MD5_SSE_PARA==5)
-#define ALGORITHM_NAME		"SSE2i 6x4x5"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 6x4x5"
 #elif (MD5_SSE_PARA==6)
-#define ALGORITHM_NAME		"SSE2i 5x4x6"
-#else //if (MD5_SSE_PARA==8)
-#define ALGORITHM_NAME		"SSE2i 4x4x8"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 5x4x6"
+#elif (MD5_SSE_PARA==8)
+#define ALGORITHM_NAME			"128/128 " SSE_type " 4x4x8"
+#else
+#define ALGORITHM_NAME			"128/128 " SSE_type
 #endif // MD5_SSE_PARA
 #else  // !MD5_SSE_PARA
-#define ALGORITHM_NAME		"SSE2 32x4"
+#define ALGORITHM_NAME			"128/128 " SSE_type " 32x4"
 #endif // PARA
+#else // MMX_COEF == 4
+#if MMX_COEF != 1
+#error Unsupported value of MMX_COEF
+#endif
+#define BLOCK_LOOPS			64
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " 64x1"
 #endif // MMX_COEF == 4
 
 #define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
@@ -308,7 +316,7 @@ extern void MD5_body_for_thread(int t, MD5_word x[15], MD5_word x2[15], MD5_word
 #else
 extern void MD5_body(MD5_word x[15], MD5_word x2[15], MD5_word out[4], MD5_word out2[4]);
 #endif
-#define ALGORITHM_NAME_X86		"64x2 (MD5_Body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 64x2 (MD5_Body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L[0])<55&&(L[1])<55) {A.x1.b[L[0]]=0x80;A.x2.b2[L[1]]=0x80;A.x1.w[14]=(L[0]<<3);A.x2.w2[14]=(L[1]<<3);MD5_swap(A.x1.w,A.x1.w,(L[0]+4)>>2);MD5_swap(A.x2.w2,A.x2.w2,(L[1]+4)>>2);MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);MD5_swap2(C.x1.w,C.x2.w2,C.x1.w,C.x2.w2,4);} else {MD5_Go2(A.x1.B,L[0],C.x1.B); MD5_Go2(A.x2.B2,L[1],C.x2.B2);} }while(0)
 #define DoMD5o(A,L,C) do{if((L[0])<55&&(L[1])<55) {MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);} else {MD5_Go2(A.x1.B,L[0],C.x1.B); MD5_Go2(A.x2.B2,L[1],C.x2.B2);} }while(0)
 #if ARCH_LITTLE_ENDIAN
@@ -326,7 +334,7 @@ extern void MD5_body_for_thread(int t, ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #else
 extern void MD5_body(ARCH_WORD_32 x[15], ARCH_WORD_32 out[4]);
 #endif
-#define ALGORITHM_NAME_X86		"128x1 (MD5_Body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 128x1 (MD5_Body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L)<55) {A.x1.b[L]=0x80;A.x1.w[14]=(L<<3);MD5_swap(A.x1.w,A.x1.w,((L+4)>>2));MD5_body(A.x1.w,C.x1.w);MD5_swap(C.x1.w,C.x1.w,4);} else MD5_Go2(A.x1.B,L,C.x1.B); }while(0)
 #define DoMD5o(A,L,C) do{if((L)<55) {MD5_body(A.x1.w,C.x1.w);} else MD5_Go2(A.x1.B,L,C.x1.B); }while(0)
 #if ARCH_LITTLE_ENDIAN
@@ -350,7 +358,7 @@ extern void MD5_body_for_thread(int t, ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15],
 #else
 extern void MD5_body(ARCH_WORD_32 x1[15], ARCH_WORD_32 x2[15], ARCH_WORD_32 out1[4], ARCH_WORD_32 out2[4]);
 #endif
-#define ALGORITHM_NAME_X86		"64x2 (MD5_body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 64x2 (MD5_body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L[0])<55&&(L[1])<55) {A.x1.b[L[0]]=0x80;A.x2.b2[L[1]]=0x80;A.x1.w[14]=(L[0]<<3);A.x2.w2[14]=(L[1]<<3);MD5_swap(A.x1.w,A.x1.w,(L[0]+4)>>2);MD5_swap(A.x2.w2,A.x2.w2,(L[1]+4)>>2);MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);MD5_swap2(C.x1.w,C.x2.w2,C.x1.w,C.x2.w2,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L[0]); MD5_Final((unsigned char *)(C.x1.b),&ctx); MD5_Init(&ctx); MD5_Update(&ctx,A.x2.b2,L[1]); MD5_Final((unsigned char *)(C.x2.b2),&ctx);} }while(0)
 #define DoMD5o(A,L,C) do{if((L[0])<55&&(L[1])<55) {MD5_body(A.x1.w,A.x2.w2,C.x1.w,C.x2.w2);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L[0]); MD5_Final((unsigned char *)(C.x1.b),&ctx); MD5_Init(&ctx); MD5_Update(&ctx,A.x2.b2,L[1]); MD5_Final((unsigned char *)(C.x2.b2),&ctx);} }while(0)
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,A->x2.w2,C->x1.w,C->x2.w2);}while(0)
@@ -363,7 +371,7 @@ extern void MD5_body_for_thread(int t, MD5_word x[15],MD5_word out[4]);
 #else
 extern void MD5_body(MD5_word x[15],MD5_word out[4]);
 #endif
-#define ALGORITHM_NAME_X86		"128x1 (MD5_body)"
+#define ALGORITHM_NAME_X86		"32/" ARCH_BITS_STR " 128x1 (MD5_body)"
 #define DoMD5(A,L,C) do{if(!force_md5_ctx&&(L)<55) {A.x1.b[L]=0x80;A.x1.w[14]=(L<<3);MD5_swap(A.x1.w,A.x1.w,((L+4)>>2));MD5_body(A.x1.w,C.x1.w);MD5_swap(C.x1.w,C.x1.w,4);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
 #define DoMD5o(A,L,C) do{if((L)<55) {MD5_body(A.x1.w,C.x1.w);} else {MD5_CTX ctx; MD5_Init(&ctx); MD5_Update(&ctx,A.x1.b,L); MD5_Final((unsigned char *)(C.x1.b),&ctx); } }while(0)
 #define DoMD5a(A,L,C) do{MD5_body(A->x1.w,C->x1.w);}while(0)
@@ -7187,28 +7195,28 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	{
 #ifdef MMX_COEF
 #if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "MMX 2x1";
+		pFmt->params.algorithm_name = SSE_type " 2x1";
 		pFmt->params.max_keys_per_crypt = 2;
 #elif (MD5_SSE_PARA==1)
-		pFmt->params.algorithm_name = "SSE2i 4x1";
+		pFmt->params.algorithm_name = SSE_type " 4x1";
 		pFmt->params.max_keys_per_crypt = 4;
 #elif (MD5_SSE_PARA==2)
-		pFmt->params.algorithm_name = "SSE2i 4x2";
+		pFmt->params.algorithm_name = SSE_type " 4x2";
 		pFmt->params.max_keys_per_crypt = 8;
 #elif (MD5_SSE_PARA==3)
-		pFmt->params.algorithm_name = "SSE2i 4x3";
+		pFmt->params.algorithm_name = SSE_type " 4x3";
 		pFmt->params.max_keys_per_crypt = 12;
 #elif (MD5_SSE_PARA==4)
-		pFmt->params.algorithm_name = "SSE2i 4x4";
+		pFmt->params.algorithm_name = SSE_type " 4x4";
 		pFmt->params.max_keys_per_crypt = 16;
 #elif (MD5_SSE_PARA==5)
-		pFmt->params.algorithm_name = "SSE2i 4x5";
+		pFmt->params.algorithm_name = SSE_type " 4x5";
 		pFmt->params.max_keys_per_crypt = 20;
 #elif (MD5_SSE_PARA==6)
-		pFmt->params.algorithm_name = "SSE2i 4x6";
+		pFmt->params.algorithm_name = SSE_type " 4x6";
 		pFmt->params.max_keys_per_crypt = 24;
 #else
-		pFmt->params.algorithm_name = "SSE2 4x1";
+		pFmt->params.algorithm_name = SSE_type " 4x1";
 		pFmt->params.max_keys_per_crypt = 4;
 #endif
 #else
@@ -7236,24 +7244,24 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		// by doing more than simple 1 set of MMX_COEF
 		pFmt->params.max_keys_per_crypt = 16;
 #if (MMX_COEF==2)
-		pFmt->params.algorithm_name = "MMX 8x2";
+		pFmt->params.algorithm_name = SSE_type " 8x2";
 #elif (MD5_SSE_PARA==1)
-		pFmt->params.algorithm_name = "SSE2i 4x4x1";
+		pFmt->params.algorithm_name = SSE_type " 4x4x1";
 #elif (MD5_SSE_PARA==2)
-		pFmt->params.algorithm_name = "SSE2i 2x4x2";
+		pFmt->params.algorithm_name = SSE_type " 2x4x2";
 #elif (MD5_SSE_PARA==3)
-		pFmt->params.algorithm_name = "SSE2i 2x4x3";
+		pFmt->params.algorithm_name = SSE_type " 2x4x3";
 		pFmt->params.max_keys_per_crypt = 24;
 #elif (MD5_SSE_PARA==4)
-		pFmt->params.algorithm_name = "SSE2i 1x4x4";
+		pFmt->params.algorithm_name = SSE_type " 1x4x4";
 #elif (MD5_SSE_PARA==5)
-		pFmt->params.algorithm_name = "SSE2i 1x4x5";
+		pFmt->params.algorithm_name = SSE_type " 1x4x5";
 		pFmt->params.max_keys_per_crypt = 20;
 #elif (MD5_SSE_PARA==6)
-		pFmt->params.algorithm_name = "SSE2i 1x4x6";
+		pFmt->params.algorithm_name = SSE_type " 1x4x6";
 		pFmt->params.max_keys_per_crypt = 24;
 #else
-		pFmt->params.algorithm_name = "SSE2 4x4";
+		pFmt->params.algorithm_name = SSE_type " 4x4";
 #endif
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if

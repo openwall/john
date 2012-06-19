@@ -30,7 +30,11 @@
 
 #define FORMAT_LABEL			"xsha512"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
+#if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR
+#else
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

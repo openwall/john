@@ -13,9 +13,9 @@
 #include "cuda_cryptmd5.h"
 
 #define FORMAT_LABEL		"cryptmd5-cuda"
-#define FORMAT_NAME		FORMAT_LABEL
+#define FORMAT_NAME		"Crypt-MD5"
 
-#define CRYPT_TYPE		"MD5-based CRYPT"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -323,7 +323,7 @@ struct fmt_main fmt_cuda_cryptmd5 = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    CRYPT_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,

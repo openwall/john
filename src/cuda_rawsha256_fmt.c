@@ -23,8 +23,8 @@
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 #ifdef SHA256
-  #define FORMAT_NAME		"raw-sha256-cuda"
-  #define SHA_TYPE		"SHA256" 
+  #define FORMAT_LABEL		"raw-sha256-cuda"
+  #define FORMAT_NAME		"Raw SHA-256"
   #define CIPHERTEXT_LENGTH	64 ///256bit
   #define BINARY_SIZE		32
   #define SHA_HASH		sha256_hash
@@ -36,8 +36,8 @@
   };
 #endif
 #ifdef SHA224
-  #define FORMAT_NAME		"raw-sha224-cuda"
-  #define SHA_TYPE		"SHA224" 
+  #define FORMAT_LABEL		"raw-sha224-cuda"
+  #define FORMAT_NAME		"Raw SHA-224"
   #define CIPHERTEXT_LENGTH	56 ///224bit
   #define BINARY_SIZE		32 
   #define SHA_HASH 		sha224_hash
@@ -48,6 +48,8 @@
   {NULL}  
   };
 #endif
+#define ALGORITHM_NAME		"CUDA"
+
 extern void gpu_rawsha256(sha256_password *,SHA_HASH*);
 extern void gpu_rawsha224(sha256_password *,SHA_HASH*);
 static char saved_keys[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH+1];		/** plaintext ciphertexts **/
@@ -207,9 +209,9 @@ static int cmp_exact(char *source,int count){
 
 struct fmt_main FMT_MAIN={
   {
+    FORMAT_LABEL,
     FORMAT_NAME,
-    FORMAT_NAME,
-    SHA_TYPE,
+    ALGORITHM_NAME,
     BENCHMARK_COMMENT,
     BENCHMARK_LENGTH,
     PLAINTEXT_LENGTH,

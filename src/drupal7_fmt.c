@@ -40,14 +40,14 @@
 #endif
 
 #define FORMAT_LABEL			"drupal7"
-#define FORMAT_NAME			"Drupal 7 $S$"
+#define FORMAT_NAME			"Drupal 7 $S$ SHA-512"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR
 #else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 #endif
 
-#define BENCHMARK_COMMENT		" (SHA-512 x 16385)"
+#define BENCHMARK_COMMENT		" (x16385)"
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		63

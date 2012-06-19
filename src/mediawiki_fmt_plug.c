@@ -48,7 +48,7 @@ userName2:$B$107$dd494cb03ac1c5b8f8d2dddafca2f7a6:1552:0::emailaddress@gmail.com
 #include "options.h"
 
 #define FORMAT_LABEL		"mediawiki"
-#define FORMAT_NAME			"MediaWiki -- md5($s.'-'.md5($p))"
+#define FORMAT_NAME		"MediaWiki md5($s.'-'.md5($p))"
 
 #define ALGORITHM_NAME		"?" /* filled in by md5-gen */
 #define BENCHMARK_COMMENT	""

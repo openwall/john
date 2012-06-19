@@ -19,8 +19,8 @@
 #include "unicode.h"
 
 #define FORMAT_LABEL			"oracle"
-#define FORMAT_NAME			"Oracle"
-#define ALGORITHM_NAME			"oracle"
+#define FORMAT_NAME			"Oracle 10 DES"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

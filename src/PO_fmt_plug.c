@@ -42,6 +42,7 @@ extern MD5_binary MD5_out;
 
 #define FORMAT_LABEL			"po"
 #define FORMAT_NAME			"Post.Office MD5"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -208,7 +209,7 @@ struct fmt_main fmt_PO = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
-		"STD",
+		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,

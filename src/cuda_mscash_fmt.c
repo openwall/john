@@ -14,7 +14,8 @@
 #include "cuda_common.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
-#define ALGORITHM_NAME		""
+#define FORMAT_NAME		"M$ Cache Hash MD4"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	" len(pass)=8, len(salt)=13"
 #define BENCHMARK_LENGTH	-1
@@ -204,7 +205,7 @@ static int cmp_exact(char *source, int count)
 struct fmt_main fmt_cuda_mscash = {
 	{
 		    FORMAT_LABEL,
-		    FORMAT_LABEL,
+		    FORMAT_NAME,
 		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,

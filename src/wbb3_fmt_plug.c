@@ -37,10 +37,10 @@
 #endif
 
 #define FORMAT_LABEL		"wbb3"
-#define FORMAT_NAME		"WoltLab BB3 SHA-1"
+#define FORMAT_NAME		"WoltLab BB3 salted SHA-1"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	-1 /* change to 0 once there's any speedup for "many salts" */
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -49,6 +49,11 @@
 
 static struct fmt_tests wbb3_tests[] = {
 	{"$wbb3$*1*0b053db07dc02bc6f6e24e00462f17e3c550afa9*e2063f7c629d852302d3020599376016ff340399", "123456"},
+	{"$wbb3$*1*a710463f75bf4568d398db32a53f9803007388a3*2c56d23b44eb122bb176dfa2a1452afaf89f1143", "123456"},
+	{"$wbb3$*1*1039145e9e785ddb2ac7ccca89ac1b159b595cc1*2596b5f8e7cdaf4b15604ad336b810e8e2935b1d", "12345678"},
+	{"$wbb3$*1*db763342e23f8ccdbd9c90d1cc7896d80b7e0a44*26496a87c1a7dd68f7beceb2fc40b6fc4223a453", "12345678"},
+	{"$wbb3$*1*bf2c7d0c8fb6cb146adf8933e32da012d31b5bbb*d945c02cf85738b7db4f4f05edd676283280a513", "123456789"},
+	{"$wbb3$*1*d132b22d3f1d942b99cc1f5fbd5cc3eb0824d608*e3e03fe02223c5030e834f81997f614b43441853", "1234567890"},
 	{NULL}
 };
 
@@ -117,6 +122,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
+/* may pre-populate ctx with salt here */
 	salt_struct = (struct custom_salt *)salt;
 	if (any_cracked) {
 		memset(cracked, 0,
@@ -149,6 +155,7 @@ static void crypt_all(int count)
 		SHA1_Update(&ctx, salt_struct->salt, 40);
 		SHA1_Update(&ctx, hexhash, 40);
 		SHA1_Final(hash, &ctx);
+/* XXX: this is broken (assumes exactly one hash per salt) */
 		if(!memcmp(hash, salt_struct->hash, 20))
 			any_cracked = cracked[index] = 1;
 	}

@@ -18,12 +18,12 @@
 #include <openssl/sha.h>
 
 #define FORMAT_LABEL			"hmac-sha224"
-#define FORMAT_NAME			"HMAC SHA224"
+#define FORMAT_NAME			"HMAC SHA-224"
 
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		125
 

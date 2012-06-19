@@ -90,7 +90,7 @@
 #include "config.h"
 
 #define FORMAT_LABEL		"rar"
-#define FORMAT_NAME		"RAR3"
+#define FORMAT_NAME		"RAR3 SHA-1 AES"
 #ifdef CL_VERSION_1_0
 #define ALGORITHM_NAME		"OpenCL"
 #else

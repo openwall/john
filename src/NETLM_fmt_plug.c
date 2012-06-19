@@ -51,7 +51,7 @@
 
 #define FORMAT_LABEL         "netlm"
 #define FORMAT_NAME          "LM C/R DES"
-#define ALGORITHM_NAME       "netlm"
+#define ALGORITHM_NAME       "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     14

@@ -30,7 +30,7 @@
 
 
 #define FORMAT_LABEL		"sip"
-#define FORMAT_NAME		"SIP"
+#define FORMAT_NAME		"SIP MD5"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -41,6 +41,7 @@
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests sip_tests[] = {
+/* XXX: need more test vectors, then try benchmarking for "many salts" */
 	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104*46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
 	{NULL}
 };

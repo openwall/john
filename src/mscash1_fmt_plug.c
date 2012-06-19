@@ -27,7 +27,7 @@
 #include "options.h"
 
 #define FORMAT_LABEL			"mscash"
-#define FORMAT_NAME			"M$ Cache Hash"
+#define FORMAT_NAME			"M$ Cache Hash MD4"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -53,7 +53,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#define ALGORITHM_NAME			"Generic 1x"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BINARY_SIZE			16
 #define SALT_SIZE			(11*4)

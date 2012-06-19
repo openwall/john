@@ -48,7 +48,7 @@
 #include "formats.h"
 
 #define FORMAT_LABEL        "hmailserver"
-#define FORMAT_NAME         "hmailserver"
+#define FORMAT_NAME         "hMailServer salted SHA-256"
 
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 

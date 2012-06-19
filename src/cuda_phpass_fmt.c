@@ -11,12 +11,12 @@
 #include "cuda_phpass.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"phpass-cuda"
-#define FORMAT_NAME		FORMAT_LABEL
+#define FORMAT_LABEL		"phpass-opencl"
+#define FORMAT_NAME		"phpass MD5"
 
-#define PHPASS_TYPE		"PORTABLE-MD5"
+#define ALGORITHM_NAME		"CUDA"
 
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" ($P$9 lengths 1 to 15)"
 #define BENCHMARK_LENGTH	-1
 
 #define PLAINTEXT_LENGTH	15
@@ -286,7 +286,7 @@ struct fmt_main fmt_cuda_phpass = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    PHPASS_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,

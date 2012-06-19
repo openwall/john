@@ -11,8 +11,8 @@
 
 /*preprocessor constants that John The Ripper likes*/
 #define FORMAT_LABEL                   "lotus5"
-#define FORMAT_NAME                    "Lotus5"
-#define ALGORITHM_NAME			"Lotus v5 Proprietary"
+#define FORMAT_NAME                    "Lotus Notes/Domino 5"
+#define ALGORITHM_NAME                 "8/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT              ""
 #define BENCHMARK_LENGTH               -1
 #define PLAINTEXT_LENGTH               16

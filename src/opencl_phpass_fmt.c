@@ -15,9 +15,12 @@
 #define uint32_t		unsigned int
 #define uint8_t			unsigned char
 
-#define PHPASS_TYPE		"PORTABLE-MD5"
+#define FORMAT_LABEL		"phpass-opencl"
+#define FORMAT_NAME		"phpass MD5"
 
-#define BENCHMARK_COMMENT	""
+#define ALGORITHM_NAME		"OpenCL"
+
+#define BENCHMARK_COMMENT	" ($P$9 length 8)"
 #define BENCHMARK_LENGTH	-1
 
 #define PLAINTEXT_LENGTH	15
@@ -28,8 +31,6 @@
 #define KEYS_PER_CRYPT		1024*9*4
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define FORMAT_LABEL		"phpass-opencl"
-#define FORMAT_NAME		"PHPASS-OPENCL"
 
 //#define _PHPASS_DEBUG
 
@@ -393,7 +394,7 @@ struct fmt_main fmt_opencl_phpass = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    PHPASS_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,
