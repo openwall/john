@@ -511,7 +511,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				hash_log++;
 			hash_size = (1 << hash_log);
 			hash_mask = (hash_size - 1);
-			log_event("%u lines, hash size %u, temporarily allocating %zd bytes for dupe suppression\n", nWordFileLines, hash_size, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
+			log_event("%u lines, hash size %u, temporarily allocating %zd bytes for dupe suppression", nWordFileLines, hash_size, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
 			buffer.hash = mem_alloc(hash_size * sizeof(unsigned int));
 			buffer.data = mem_alloc(nWordFileLines * sizeof(element_st));
 			memset(buffer.hash, 0xff, hash_size * sizeof(unsigned int));
@@ -540,7 +540,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				if (ec == '\r' && *cp == '\n') cp++;
 			} while (cp < aep);
 			if (nWordFileLines - i)
-				log_event("Suppressed %u duplicate lines and/or comments from wordlist.\n", nWordFileLines - i);
+				log_event("Suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
 			free(buffer.hash);
 			free(buffer.data);
 			nWordFileLines = i;
