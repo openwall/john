@@ -12,8 +12,8 @@
 #include "cuda_common.h"
 #include "cuda_cryptmd5.h"
 
-#define FORMAT_LABEL		"cryptmd5-cuda"
-#define FORMAT_NAME		"Crypt-MD5"
+#define FORMAT_LABEL		"md5crypt-cuda"
+#define FORMAT_NAME		"md5crypt"
 
 #define ALGORITHM_NAME		"CUDA"
 

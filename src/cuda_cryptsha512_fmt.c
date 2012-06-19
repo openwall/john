@@ -11,12 +11,12 @@
 #include "cuda_cryptsha512.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"cryptsha512-cuda"
-#define FORMAT_NAME		"crypt SHA-512"
+#define FORMAT_LABEL		"sha512crypt-cuda"
+#define FORMAT_NAME		"sha512crypt"
 
 #define ALGORITHM_NAME		"CUDA"
 
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (rounds=5000)"
 #define BENCHMARK_LENGTH	-1
 
 #define PLAINTEXT_LENGTH	15
