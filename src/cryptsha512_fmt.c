@@ -40,8 +40,8 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"cryptsha512"
-#define FORMAT_NAME			"crypt SHA-512"
+#define FORMAT_LABEL			"sha512crypt"
+#define FORMAT_NAME			"sha512crypt"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR
 #else

@@ -18,8 +18,8 @@
 #include "opencl_cryptsha512.h"
 #include <time.h>
 
-#define FORMAT_LABEL			"cryptsha512-opencl"
-#define FORMAT_NAME			"crypt SHA-512"
+#define FORMAT_LABEL			"sha512crypt-opencl"
+#define FORMAT_NAME			"sha512crypt"
 #define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"

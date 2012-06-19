@@ -13,12 +13,12 @@
 #include "cuda_common.h"
 #include <unistd.h>
 
-#define FORMAT_LABEL		"cryptsha256-cuda"
-#define FORMAT_NAME		"crypt SHA-256"
+#define FORMAT_LABEL		"sha256crypt-cuda"
+#define FORMAT_NAME		"sha256crypt"
 
 #define ALGORITHM_NAME		"CUDA"
 
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (rounds=5000)"
 #define BENCHMARK_LENGTH	-1
 
 #define PLAINTEXT_LENGTH	15
