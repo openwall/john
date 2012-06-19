@@ -495,8 +495,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				csearch = '\r';
 				cp = memchr(word_file_str, csearch, file_len);
 			}
-			for (nWordFileLines = 1; cp; ++nWordFileLines)
+			for (nWordFileLines = 0; cp; ++nWordFileLines)
 				cp = memchr(&cp[1], csearch, file_len - (cp - word_file_str) - 1);
+			if (aep[-1] != csearch)
+				++nWordFileLines;
 			words = mem_alloc( (nWordFileLines+1) * sizeof(char*));
 			log_event("wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
 
