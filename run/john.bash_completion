@@ -548,6 +548,12 @@ _john()
 			;;
 		-?(-)l?(i|is|ist)+(=|:)*)
 			if [[ "${hidden}" == *--list=* || "${valopts}" == *--list=* ]] ; then
+				#meanwhile, there can be more than one option name starting with l...
+				if [[ "${cur#*[=:]}" != *i* ]] ; then
+					if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
+						return 0
+					fi
+				fi
 				cur=${cur#*[=:]}
 				# the --list=? output changed, that's why a more complex regex is used
 				# to cover all cases
