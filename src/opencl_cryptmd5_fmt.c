@@ -23,10 +23,10 @@
 #define MAX(a,b) 		((a)>(b)?(a):(b))
 
 #define FORMAT_LABEL		"cryptmd5-opencl"
-#define FORMAT_NAME		"CRYPTMD5-OPENCL"
+#define FORMAT_NAME		"Crypt-MD5"
 #define KERNEL_NAME		"cryptmd5"
 
-#define CRYPT_TYPE		"MD5-based CRYPT"
+#define ALGORITHM_NAME		"OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -409,7 +409,7 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    CRYPT_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,

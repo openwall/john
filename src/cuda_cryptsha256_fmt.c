@@ -14,9 +14,9 @@
 #include <unistd.h>
 
 #define FORMAT_LABEL		"cryptsha256-cuda"
-#define FORMAT_NAME		FORMAT_LABEL
+#define FORMAT_NAME		"crypt SHA-256"
 
-#define CRYPT_TYPE		"SHA256-based CRYPT"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -353,7 +353,7 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 	{
 		    FORMAT_LABEL,
 		    FORMAT_NAME,
-		    CRYPT_TYPE,
+		    ALGORITHM_NAME,
 		    BENCHMARK_COMMENT,
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,

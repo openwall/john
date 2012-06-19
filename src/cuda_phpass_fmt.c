@@ -14,7 +14,7 @@
 #define FORMAT_LABEL		"phpass-opencl"
 #define FORMAT_NAME		"phpass MD5"
 
-#define ALGORITHM_NAME		"OpenCL"
+#define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	" ($P$9 lengths 1 to 15)"
 #define BENCHMARK_LENGTH	-1
