@@ -22,17 +22,6 @@
 #include "memory.h"
 #include "sha.h"
 
-#ifndef __XOP__
-# define _mm_slli_epi32a(a, s)                                                                          \
-    ((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
-#define _mm_roti_epi32(a, s)                                                                            \
-    ((s) == 16 ?                                                                                        \
-    _mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) :                                         \
-    _mm_xor_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
-#define _mm_roti_epi16(a, s)                                                                            \
-    _mm_xor_si128(_mm_srli_epi16((a), (s)), _mm_slli_epi16((a), 16-(s)))
-#endif
-
 //
 // Alternative SSE2 optimised raw SHA-1 implementation for John The Ripper.
 //
@@ -64,6 +53,17 @@
 
 #define __aligned __attribute__((aligned(16)))
 
+#ifndef __XOP__
+# define _mm_slli_epi32a(a, s)                                                                          \
+    ((s) == 1 ? _mm_add_epi32((a), (a)) : _mm_slli_epi32((a), (s)))
+# define _mm_roti_epi32(a, s)                                                                           \
+    ((s) == 16 ?                                                                                        \
+    _mm_shufflelo_epi16(_mm_shufflehi_epi16((a), 0xb1), 0xb1) :                                         \
+    _mm_xor_si128(_mm_slli_epi32a((a), (s)), _mm_srli_epi32((a), 32-(s))))
+# define _mm_roti_epi16(a, s)                                                                           \
+    _mm_xor_si128(_mm_srli_epi16((a), (s)), _mm_slli_epi16((a), 16-(s)))
+#endif
+
 #define X(X0, X2, X8, X13) do {                                                                         \
     X0  = _mm_xor_si128(X0, X8);                                                                        \
     X0  = _mm_xor_si128(X0, X13);                                                                       \
@@ -72,7 +72,7 @@
 } while (false)
 
 #ifdef __XOP__
-#define R1(W, A, B, C, D, E) do {                                                                       \
+# define R1(W, A, B, C, D, E) do {                                                                      \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_cmov_si128(C, D, B));                                                    \
     E   = _mm_add_epi32(E, W);                                                                          \
@@ -80,7 +80,7 @@
     E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 #else
-#define R1(W, A, B, C, D, E) do {                                                                       \
+# define R1(W, A, B, C, D, E) do {                                                                      \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_and_si128(C, B));                                                        \
     E   = _mm_add_epi32(E, _mm_andnot_si128(B, D));                                                     \
@@ -320,7 +320,8 @@ static void sha1_fmt_set_key(char *key, int index)
 
     // Store the result and it's length into the message buffer, we need the
     // length in bits because SHA-1 requires the length be part of the final
-    // message block (or only message block, in this case).
+    // message block (or only message block, in this case). The << 3 is to find
+    // the length in bits (multiply by 8).
     _mm_store_si128(&M[index], X);
     _mm_store_si128(&N[index], _mm_set_epi32(len << 3, 0, 0, 0));
 
@@ -545,35 +546,6 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     return result;
 }
 
-// This function is not hot, and will only be called for arounf 1:2^30 random
-// crypts (because we do 4 simultaneously). Use a real SHA-1 implementation to
-// verify the result.
-static int sha1_fmt_cmp_one(void *binary, int index)
-{
-    uint32_t full_sha1_digest[SHA1_DIGEST_WORDS];
-    char *key = sha1_fmt_get_key(index);
-
-    SHA_CTX ctx;
-    SHA1_Init(&ctx);
-    SHA1_Update(&ctx, key, strlen(key));
-    SHA1_Final((unsigned char *)(full_sha1_digest), &ctx);
-
-    // Remove IV
-    full_sha1_digest[0] = __builtin_bswap32(full_sha1_digest[0]) - 0x67452301;
-    full_sha1_digest[1] = __builtin_bswap32(full_sha1_digest[1]) - 0xEFCDAB89;
-    full_sha1_digest[2] = __builtin_bswap32(full_sha1_digest[2]) - 0x98BADCFE;
-    full_sha1_digest[3] = __builtin_bswap32(full_sha1_digest[3]) - 0x10325476;
-    full_sha1_digest[4] = rotateleft(__builtin_bswap32(full_sha1_digest[4]) - 0xC3D2E1F0, 2);
-
-    // Compare result.
-    return memcmp(binary, full_sha1_digest, sizeof full_sha1_digest) == 0;
-}
-
-static int sha1_fmt_cmp_exact(char *source, int cuont)
-{
-    return 1;
-}
-
 static int sha1_fmt_get_hash0(int index) { return MD[index] & 0x0000000F; }
 static int sha1_fmt_get_hash1(int index) { return MD[index] & 0x000000FF; }
 static int sha1_fmt_get_hash2(int index) { return MD[index] & 0x00000FFF; }
@@ -589,6 +561,46 @@ static int sha1_fmt_binary3(void *binary) { return ((uint32_t*)binary)[4] & 0x00
 static int sha1_fmt_binary4(void *binary) { return ((uint32_t*)binary)[4] & 0x000FFFFF; }
 static int sha1_fmt_binary5(void *binary) { return ((uint32_t*)binary)[4] & 0x00FFFFFF; }
 static int sha1_fmt_binary6(void *binary) { return ((uint32_t*)binary)[4] & 0x07FFFFFF; }
+
+// This function is not hot, and will only be called for around 1:2^30 random
+// crypts (because we do 4 simultaneously). Use a real SHA-1 implementation to
+// verify the result.
+static int sha1_fmt_cmp_one(void *binary, int index)
+{
+    uint32_t  full_sha1_digest[SHA1_DIGEST_WORDS];
+    SHA_CTX ctx;
+    char *key;
+
+    // We can quickly check if it will be worth doing a full comparison here,
+    // this lets us turn up SHA1_PARALLEL_HASH without too much overhead when a
+    // partial match occurs.
+    if (sha1_fmt_binary6(binary) != sha1_fmt_get_hash6(index)) {
+        // Not worth it, the full MD will not match.
+        return 0;
+    }
+
+    // Fetch the original input to hash.
+    key = sha1_fmt_get_key(index);
+
+    SHA1_Init(&ctx);
+    SHA1_Update(&ctx, key, strlen(key));
+    SHA1_Final((unsigned char *)(full_sha1_digest), &ctx);
+
+    // Remove IV to match the format I generate in binary().
+    full_sha1_digest[0] = __builtin_bswap32(full_sha1_digest[0]) - 0x67452301;
+    full_sha1_digest[1] = __builtin_bswap32(full_sha1_digest[1]) - 0xEFCDAB89;
+    full_sha1_digest[2] = __builtin_bswap32(full_sha1_digest[2]) - 0x98BADCFE;
+    full_sha1_digest[3] = __builtin_bswap32(full_sha1_digest[3]) - 0x10325476;
+    full_sha1_digest[4] = rotateleft(__builtin_bswap32(full_sha1_digest[4]) - 0xC3D2E1F0, 2);
+
+    // Compare result.
+    return memcmp(binary, full_sha1_digest, sizeof full_sha1_digest) == 0;
+}
+
+static int sha1_fmt_cmp_exact(char *source, int cuont)
+{
+    return 1;
+}
 
 struct fmt_main sha1_fmt_ng = {
     .params                 = {
