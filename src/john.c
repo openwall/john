@@ -567,7 +567,7 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
 		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info, hidden-options, encodings, formats,");
+		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
 #ifdef CL_VERSION_1_0
 		printf("opencl-devices, ");
 #endif
@@ -758,6 +758,35 @@ static void john_init(char *name, int argc, char **argv)
 			printf("%s%s", label, formats_list[i] ? ", " : "\n");
 		} while (formats_list[i]);
 		free(formats_list);
+		exit(0);
+	}
+	if (options.listconf &&
+	    !strcasecmp(options.listconf, "format-details")) {
+		struct fmt_main *format;
+		int i;
+
+		i = 0;
+		format = fmt_list;
+		while ((format = format->next))
+			i++;
+
+		i = 0;
+		format = fmt_list;
+		do {
+			/*
+			 * FIXME: Are other parameters more important?
+			 *        Should I use hexadecimal output
+			 *        for the FMT_flags?
+			 */
+			printf("%s\t%s\t%s\t%d\t%d\t%d\t%d\n",
+			       format->params.label,
+			       format->params.format_name,
+			       format->params.algorithm_name,
+			       format->params.plaintext_length,
+			       format->params.flags,
+			       format->params.max_keys_per_crypt,
+			       format->params.min_keys_per_crypt);
+		} while ((format = format->next));
 		exit(0);
 	}
 	/* --list last resort: list subsections of any john.conf section name */
