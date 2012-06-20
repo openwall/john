@@ -778,14 +778,14 @@ static void john_init(char *name, int argc, char **argv)
 			 *        Should I use hexadecimal output
 			 *        for the FMT_flags?
 			 */
-			printf("%s\t%s\t%s\t%d\t%d\t%d\t%d\n",
+			printf("%s\t%d\t%d\t%d\t%d\t%s\t%s\n",
 			       format->params.label,
-			       format->params.format_name,
-			       format->params.algorithm_name,
 			       format->params.plaintext_length,
-			       format->params.flags,
+			       format->params.min_keys_per_crypt,
 			       format->params.max_keys_per_crypt,
-			       format->params.min_keys_per_crypt);
+			       format->params.flags,
+			       format->params.algorithm_name,
+			       format->params.format_name);
 		} while ((format = format->next));
 		exit(0);
 	}
