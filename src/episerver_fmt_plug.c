@@ -29,19 +29,13 @@
  * version == 1, EPiServer 6.x + .NET >= 4.x SHA256 hash/salt format,
  * 		 PasswordFormat == ? */
 
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#if defined(__APPLE__) && defined(__MACH__) && \
+	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
+	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define COMMON_DIGEST_FOR_OPENSSL
 #include <CommonCrypto/CommonDigest.h>
 #else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
+#include "sha.h"
 #endif
 
 #include <string.h>
@@ -63,10 +57,10 @@
 #define FORMAT_NAME		"EPiServer salted SHA-1/SHA-256"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(*salt_struct)
+#define BINARY_SIZE		32 /* larger of the two */
+#define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -77,22 +71,19 @@ static struct fmt_tests episerver_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int version;
-	char unsigned esalt[16];
-	char unsigned hash[32]; /* version == 1 */
-} *salt_struct;
+	unsigned char esalt[16];
+} *cur_salt;
 
 static void init(struct fmt_main *pFmt)
 {
 
 #if defined (_OPENMP)
+	static int omp_t = 1;
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -100,8 +91,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -115,21 +105,43 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	ctcopy += 12;	/* skip over "$episerver$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	static struct custom_salt cs;
 	p = strtok(ctcopy, "*");
-	salt_struct->version = atoi(p);
+	cs.version = atoi(p);
 	p = strtok(NULL, "*");
-	base64_decode(p, strlen(p), (char*)salt_struct->esalt);
-	p = strtok(NULL, "*");
-	base64_decode(p, strlen(p), (char*)salt_struct->hash);
+	base64_decode(p, strlen(p), (char*)cs.esalt);
 	free(keeptr);
-	return (void *)salt_struct;
+	return (void *)&cs;
 }
 
+static void *get_binary(char *ciphertext)
+{
+	static unsigned char out[BINARY_SIZE+1];
+	char *p;
+	p = strrchr(ciphertext, '*') + 1;
+	base64_decode(p, strlen(p), (char*)out);
+	return out;
+}
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -149,52 +161,42 @@ static void crypt_all(int count)
 			passwordBuf[position] = c;
 			position += 2;
 		}
-		if(salt_struct->version == 0) {
-			unsigned int sha1hash[5];
+		if(cur_salt->version == 0) {
 			SHA_CTX ctx;
 			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, salt_struct->esalt, 16);
+			SHA1_Update(&ctx, cur_salt->esalt, 16);
 			SHA1_Update(&ctx, passwordBuf, passwordBufSize);
-			SHA1_Final((unsigned char *)sha1hash, &ctx);
-/* XXX: this is broken (assumes exactly one hash per salt) */
-			if(!memcmp(sha1hash, salt_struct->hash, 20))
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 		}
-		else if(salt_struct->version == 1) {
-			unsigned int sha256hash[8];
+		else if(cur_salt->version == 1) {
 			SHA256_CTX ctx;
 			SHA256_Init(&ctx);
-			SHA256_Update(&ctx, salt_struct->esalt, 16);
+			SHA256_Update(&ctx, cur_salt->esalt, 16);
 			SHA256_Update(&ctx, passwordBuf, passwordBufSize);
-			SHA256_Final((unsigned char *)sha256hash, &ctx);
-/* XXX: this is broken (assumes exactly one hash per salt) */
-			if(!memcmp(sha256hash, salt_struct->hash, 32))
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 		}
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], 20)) /* BUG: lesser of the two */
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(binary, crypt_out[index], 20); /* BUG: lesser of the two */
 }
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void episerver_set_key(char *key, int index)
@@ -230,10 +232,16 @@ struct fmt_main episerver_fmt = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 		{
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -242,7 +250,13 @@ struct fmt_main episerver_fmt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
