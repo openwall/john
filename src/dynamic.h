@@ -107,7 +107,7 @@ void dynamic_RESET(struct fmt_main *);
 void dynamic_DISPLAY_ALL_FORMATS();
 
 // Function used to 'link' a thin format into dynamic.  See PHPS_fmt.c for an example.
-struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig);
+struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);
 int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
 
 // We need access to this global to get functions and data which we 'link' to

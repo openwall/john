@@ -234,10 +234,11 @@ static void *get_salt(char *_ciphertext)
 	// length=11 for save memory
 	// position 10 = length
 	// 0-9 = 1-19 Unicode characters + EOS marker (0x80)
-	static unsigned int out[11];
+	static unsigned int *out=0;
 	unsigned int md4_size=0;
 
-	memset(out,0,44);
+	if (!out) out = mem_alloc_tiny(11*sizeof(unsigned int), MEM_ALIGN_WORD);
+	memset(out,0,11*sizeof(unsigned int));
 
 	ciphertext+=2;
 
@@ -266,12 +267,12 @@ static void *get_salt(char *_ciphertext)
 
 static void *get_salt_encoding(char *_ciphertext) {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	static ARCH_WORD_32 outb[(19+3)/2]; // same sized 'out' value, as in get_salt.
-	UTF16 *out = (UTF16*)&outb;
 	unsigned char input[19*3+1];
 	int utf16len, md4_size;
+	static UTF16 *out=0;
 
-	memset(out, 0, sizeof(outb));
+	if (!out) out = mem_alloc_tiny(22*sizeof(UTF16), MEM_ALIGN_WORD);
+	memset(out, 0, 22*sizeof(UTF16));
 
 	ciphertext += 2;
 
@@ -293,7 +294,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 	swap((unsigned int*)out, (unsigned int*)out, (md4_size>>1)+1);
 #endif
 
-	outb[10] = (8 + utf16len) << 4;
+	((unsigned int*)out)[10] = (8 + utf16len) << 4;
 
 //	dump_stuff(out, 44);
 
@@ -304,12 +305,14 @@ static void *get_salt_encoding(char *_ciphertext) {
 static void * get_salt_utf8(char *_ciphertext)
 {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	static ARCH_WORD_32 out[11];
 	unsigned int md4_size=0;
 	UTF16 ciphertext_utf16[21];
 	int len;
+	static ARCH_WORD_32 *out=0;
 
-	memset(out,0,sizeof(out));
+	if (!out) out = mem_alloc_tiny(11*sizeof(ARCH_WORD_32), MEM_ALIGN_WORD);
+	memset(out, 0, 11*sizeof(ARCH_WORD_32));
+
 	ciphertext+=2;
 	len = ((unsigned char*)strchr((char*)ciphertext, '#')) - ciphertext;
 	utf8_to_utf16(ciphertext_utf16, 20, ciphertext, len+1);

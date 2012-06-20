@@ -38,6 +38,7 @@ static struct fmt_tests pixmd5_tests[] = {
 static char Conv_Buf[80];
 static struct fmt_main *pFmt_Dynamic_19;
 static void pixmd5_init(struct fmt_main *pFmt);
+static void get_ptr();
 
 /* this function converts a 'native' pixmd5 signature string into a Dynamic_19 syntax string */
 static char *Convert(char *Buf, char *ciphertext) {
@@ -56,6 +57,7 @@ static char *our_split(char *ciphertext, int index) {
 	return Convert(Conv_Buf, ciphertext);
 }
 static void * our_salt(char *ciphertext) {
+	get_ptr();
 	return pFmt_Dynamic_19->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 
@@ -64,8 +66,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt) {
 
 	if (!ciphertext)
 		return 0;
-	if (!pFmt_Dynamic_19)
-		pixmd5_init(pFmt);
+	get_ptr();
 	i = strlen(ciphertext);
 	if (i > CIPHERTEXT_LENGTH)
 		return pFmt_Dynamic_19->methods.valid(ciphertext, pFmt_Dynamic_19);
@@ -97,12 +98,21 @@ struct fmt_main fmt_pixMD5 = {
 static void pixmd5_init(struct fmt_main *pFmt)
 {
 	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5");
+		pFmt_Dynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 1);
 		fmt_pixMD5.methods.salt   = our_salt;
 		fmt_pixMD5.methods.binary = our_binary;
 		fmt_pixMD5.methods.split = our_split;
 		fmt_pixMD5.params.algorithm_name = pFmt_Dynamic_19->params.algorithm_name;
 		pFmt->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pFmt_Dynamic_19) {
+		pFmt_Dynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 0);
+		fmt_pixMD5.methods.salt   = our_salt;
+		fmt_pixMD5.methods.binary = our_binary;
+		fmt_pixMD5.methods.split = our_split;
 	}
 }
 

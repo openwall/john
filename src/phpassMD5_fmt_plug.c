@@ -75,6 +75,7 @@ static struct fmt_tests phpassmd5_tests[] = {
 static char Conv_Buf[80];
 static struct fmt_main *pFmt_Dynamic_17;
 static void phpassmd5_init(struct fmt_main *pFmt);
+static void get_ptr();
 
 /* this function converts a 'native' phpass signature string into a $dynamic_17$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
@@ -98,10 +99,7 @@ static int phpassmd5_valid(char *ciphertext, struct fmt_main *pFmt)
 
 		if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 				return 0;
-
-		if (!pFmt_Dynamic_17)
-			phpassmd5_init(pFmt);
-
+		get_ptr();
 		if (strlen(ciphertext) != CIPHERTEXT_LENGTH) {
 			return pFmt_Dynamic_17->methods.valid(ciphertext, pFmt_Dynamic_17);
 		}
@@ -122,6 +120,7 @@ static int phpassmd5_valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void * our_salt(char *ciphertext)
 {
+	get_ptr();
 	return pFmt_Dynamic_17->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
@@ -149,11 +148,20 @@ struct fmt_main fmt_phpassmd5 =
 static void phpassmd5_init(struct fmt_main *pFmt)
 {
 	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_17 = dynamic_THIN_FORMAT_LINK(&fmt_phpassmd5, Convert(Conv_Buf, phpassmd5_tests[0].ciphertext), "phpass");
+		pFmt_Dynamic_17 = dynamic_THIN_FORMAT_LINK(&fmt_phpassmd5, Convert(Conv_Buf, phpassmd5_tests[0].ciphertext), "phpass", 1);
 		fmt_phpassmd5.methods.salt   = our_salt;
 		fmt_phpassmd5.methods.binary = our_binary;
 		fmt_phpassmd5.methods.split = our_split;
 		fmt_phpassmd5.params.algorithm_name = pFmt_Dynamic_17->params.algorithm_name;
 		pFmt->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pFmt_Dynamic_17) {
+		pFmt_Dynamic_17 = dynamic_THIN_FORMAT_LINK(&fmt_phpassmd5, Convert(Conv_Buf, phpassmd5_tests[0].ciphertext), "phpass", 0);
+		fmt_phpassmd5.methods.salt   = our_salt;
+		fmt_phpassmd5.methods.binary = our_binary;
+		fmt_phpassmd5.methods.split = our_split;
 	}
 }
