@@ -137,6 +137,10 @@ static void crypt_all(int count)
 	{
 		unsigned char key[32];
 		unsigned char hash[20];
+		BF_KEY bf_key;
+		int bf_ivec_pos;
+		unsigned char ivec[8];
+		unsigned char output[1024];
 		SHA_CTX ctx;
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
@@ -145,10 +149,6 @@ static void crypt_all(int count)
 				salt_struct->salt_length,
 				salt_struct->iterations, key,
 				salt_struct->key_size);
-		BF_KEY bf_key;
-		int bf_ivec_pos;
-		unsigned char ivec[8];
-    		unsigned char output[1024];
     		bf_ivec_pos = 0;
 		memcpy(ivec, salt_struct->iv, 8);
     		BF_set_key(&bf_key, salt_struct->key_size, key);

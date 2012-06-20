@@ -361,7 +361,7 @@ static MD5Gen_Str_Flag_t MD5Gen_Str_sFlag[] =  {
 
 	{ NULL, 0 }};
 
-static DYNAMIC_Setup Setup;
+static DYNAMIC_Setup *pSetup;
 static int nPreloadCnt;
 static int nFuncCnt;
 static char SetupName[128], SetupNameID[128];
@@ -418,16 +418,16 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	{
 		char *cp;
 		cp = convert_old_name_if_needed(&Line[5]);
-		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].ciphertext), cp);
-		if (!Setup.pPreloads[nPreloadCnt].ciphertext ||
-			strncmp(Setup.pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
+		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||
+			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
-		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].plaintext), cp);
-		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext, NULL);
-		Setup.pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(Setup.pPreloads[nPreloadCnt].ciphertext);
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
+		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
+		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-			cp = GetFld(&(Setup.pPreloads[nPreloadCnt].flds[j]), cp);
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
 		}
 		++nPreloadCnt;
 		return 1;
@@ -438,16 +438,16 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		if (!options.utf8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
-		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].ciphertext), cp);
-		if (!Setup.pPreloads[nPreloadCnt].ciphertext ||
-			strncmp(Setup.pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
+		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||
+			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
-		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].plaintext), cp);
-		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext, NULL);
-		Setup.pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(Setup.pPreloads[nPreloadCnt].ciphertext);
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
+		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
+		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-			cp = GetFld(&(Setup.pPreloads[nPreloadCnt].flds[j]), cp);
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
 		}
 		++nPreloadCnt;
 		return 1;
@@ -458,16 +458,16 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		if (options.utf8)
 			return 1;
 		cp = convert_old_name_if_needed(&Line[6]);
-		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].ciphertext), cp);
-		if (!Setup.pPreloads[nPreloadCnt].ciphertext ||
-			strncmp(Setup.pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].ciphertext), cp);
+		if (!pSetup->pPreloads[nPreloadCnt].ciphertext ||
+			strncmp(pSetup->pPreloads[nPreloadCnt].ciphertext, SetupName, strlen(SetupName)))
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
-		cp = GetFld(&(Setup.pPreloads[nPreloadCnt].plaintext), cp);
-		Setup.pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(Setup.pPreloads[nPreloadCnt].plaintext, NULL);
-		Setup.pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(Setup.pPreloads[nPreloadCnt].ciphertext);
+		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
+		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
+		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-			cp = GetFld(&(Setup.pPreloads[nPreloadCnt].flds[j]), cp);
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
 		}
 		++nPreloadCnt;
 		return 1;
@@ -488,7 +488,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		{
 			if (!strcmp(MD5Gen_Predicate[i].name, &Line[5]))
 			{
-				Setup.pFuncs[nFuncCnt++] = MD5Gen_Predicate[i].func;
+				pSetup->pFuncs[nFuncCnt++] = MD5Gen_Predicate[i].func;
 				return 1;
 			}
 		}
@@ -501,7 +501,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		{
 			if (!strcmp(MD5Gen_Str_Flag[i].name, &Line[5]))
 			{
-				Setup.flags |= MD5Gen_Str_Flag[i].flag_bit;
+				pSetup->flags |= MD5Gen_Str_Flag[i].flag_bit;
 				return 1;
 			}
 		}
@@ -509,7 +509,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 		{
 			if (!strcmp(MD5Gen_Str_sFlag[i].name, &Line[5]))
 			{
-				Setup.startFlags |= MD5Gen_Str_sFlag[i].flag_bit;
+				pSetup->startFlags |= MD5Gen_Str_sFlag[i].flag_bit;
 				return 1;
 			}
 		}
@@ -517,13 +517,13 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	}
 	if (c == 's' && !strncasecmp(Line, "SaltLen=", 8))
 	{
-		if (sscanf(&Line[7], "=%d", &Setup.SaltLen) == 1)
+		if (sscanf(&Line[7], "=%d", &pSetup->SaltLen) == 1)
 			return 1;
 		return !fprintf(stderr, "Error, Invalid SaltLen= line:  %s  \n", Line);
 	}
 	if (c == 'm' && !strncasecmp(Line, "MaxInputLen=", 12))
 	{
-		if (sscanf(&Line[11], "=%d", &Setup.MaxInputLen) == 1)
+		if (sscanf(&Line[11], "=%d", &pSetup->MaxInputLen) == 1)
 			return 1;
 		return !fprintf(stderr, "Error, Invalid MaxInputLen= line:  %s  \n", Line);
 	}
@@ -531,7 +531,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	{
 		char tmp[256];
 		sprintf(tmp, "%s %s", SetupNameID, &Line[11]);
-		Setup.szFORMAT_NAME = str_alloc_copy(tmp);
+		pSetup->szFORMAT_NAME = str_alloc_copy(tmp);
 		return 1;
 	}
 	if (c == 'c' && !strncasecmp(Line, "const", 5))
@@ -542,10 +542,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, only constants from 1 to 8 are valid.   Line: %s\n", Line);
 		if (strlen(Line) == 7)
 			return !fprintf(stderr, "Error, a 'blank' constant is not valid.   Line: %s\n", Line);
-		if (Setup.pConstants[nConst-1].Const)
+		if (pSetup->pConstants[nConst-1].Const)
 			return !fprintf(stderr, "Error, this constant has already entered.   Line: %s\n", Line);
 		// we want to know the length here.
-		Setup.pConstants[nConst-1].Const = dynamic_Demangle(&Line[7], &(Setup.pConstants[nConst-1].len));
+		pSetup->pConstants[nConst-1].Const = dynamic_Demangle(&Line[7], &(pSetup->pConstants[nConst-1].len));
 		return 1;
 	}
 	return !fprintf(stderr, "Error, unknown line:   %s\n", Line);
@@ -625,6 +625,8 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
+	pSetup = mem_alloc_tiny(sizeof(DYNAMIC_Setup), MEM_ALIGN_NONE);
+
 	if (!dynamic_LOAD_PARSER_SIGNATURE(which))
 	{
 #ifdef HAVE_MPI
@@ -637,29 +639,29 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	// Setup the 'default' format name
 	sprintf(SetupName, "$dynamic_%d$", which);
 	sprintf(SetupNameID, "dynamic_%d", which);
-	Setup.szFORMAT_NAME = str_alloc_copy(SetupName);
+	pSetup->szFORMAT_NAME = str_alloc_copy(SetupName);
 
 	// allocate (and set null) enough file pointers
 	cnt = Count_Items("Func=");
-	Setup.pFuncs = mem_alloc_tiny((cnt+1)*sizeof(DYNAMIC_primitive_funcp), MEM_ALIGN_WORD);
-	memset(Setup.pFuncs, 0, (cnt+1)*sizeof(DYNAMIC_primitive_funcp));
+	pSetup->pFuncs = mem_alloc_tiny((cnt+1)*sizeof(DYNAMIC_primitive_funcp), MEM_ALIGN_WORD);
+	memset(pSetup->pFuncs, 0, (cnt+1)*sizeof(DYNAMIC_primitive_funcp));
 
 	// allocate (and set null) enough Preloads
 	cnt = Count_Items("Test=");
 	cnt += Count_Items("TestU=");
 	cnt += Count_Items("TestA=");
-	Setup.pPreloads = mem_alloc_tiny((cnt+1)*sizeof(struct fmt_tests), MEM_ALIGN_WORD);
-	memset(Setup.pPreloads, 0, (cnt+1)*sizeof(struct fmt_tests));
+	pSetup->pPreloads = mem_alloc_tiny((cnt+1)*sizeof(struct fmt_tests), MEM_ALIGN_WORD);
+	memset(pSetup->pPreloads, 0, (cnt+1)*sizeof(struct fmt_tests));
 
 	// allocate (and set null) enough constants (if we have 8, we still need a null to specify the end of the list)
 	cnt = Count_Items("CONST");
-	Setup.pConstants = mem_alloc_tiny((cnt+1)*sizeof(DYNAMIC_Constants), MEM_ALIGN_WORD);
-	memset(Setup.pConstants, 0, (cnt+1)*sizeof(DYNAMIC_Constants));
+	pSetup->pConstants = mem_alloc_tiny((cnt+1)*sizeof(DYNAMIC_Constants), MEM_ALIGN_WORD);
+	memset(pSetup->pConstants, 0, (cnt+1)*sizeof(DYNAMIC_Constants));
 
-	Setup.flags = 0;
-	Setup.startFlags = 0;
-	Setup.SaltLen = 0;
-	Setup.MaxInputLen = 0;
+	pSetup->flags = 0;
+	pSetup->startFlags = 0;
+	pSetup->SaltLen = 0;
+	pSetup->MaxInputLen = 0;
 
 	// Ok, now 'grind' through the data  I do know know how to use
 	// the config stuff too much, so will grind for now, and later
@@ -679,7 +681,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 		gen_line = gen_line->next;
 	}
 
-	ret = dynamic_SETUP(&Setup, pFmt);
+	ret = dynamic_SETUP(pSetup, pFmt);
 
 	return ret;
 }

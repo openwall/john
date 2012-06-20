@@ -58,6 +58,7 @@ extern struct options_main options;
 static char Conv_Buf[80];
 static struct fmt_main *pFmt_Dynamic_4;
 static void osc_init(struct fmt_main *pFmt);
+static void get_ptr();
 
 /* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
@@ -94,8 +95,7 @@ static char *our_split(char *ciphertext, int index)
 static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	int i = strlen(split_fields[1]);
-	if (!pFmt_Dynamic_4)
-		osc_init(pFmt);
+	get_ptr();
 	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
 	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
 	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
@@ -116,9 +116,7 @@ static int osc_valid(char *ciphertext, struct fmt_main *pFmt)
 	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
-	if (!pFmt_Dynamic_4)
-		osc_init(pFmt);
-
+	get_ptr();
 	i = strlen(ciphertext);
 	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
 	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
@@ -148,14 +146,13 @@ static int osc_valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(ciphertext[i+5+1+SALT_SIZE*2])] == 0x7F)
 			return 0;
 
-	if (!pFmt_Dynamic_4)
-		osc_init(pFmt);
 	return pFmt_Dynamic_4->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_4);
 }
 
 
 static void * our_salt(char *ciphertext)
 {
+	get_ptr();
 	return pFmt_Dynamic_4->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
@@ -180,17 +177,26 @@ struct fmt_main fmt_OSC =
 	}
 };
 
-
 static void osc_init(struct fmt_main *pFmt)
 {
 	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_4 = dynamic_THIN_FORMAT_LINK(&fmt_OSC, Convert(Conv_Buf, osc_tests[0].ciphertext), "osc");
+		pFmt_Dynamic_4 = dynamic_THIN_FORMAT_LINK(&fmt_OSC, Convert(Conv_Buf, osc_tests[0].ciphertext), "osc", 1);
 		fmt_OSC.methods.salt   = our_salt;
 		fmt_OSC.methods.binary = our_binary;
 		fmt_OSC.methods.split = our_split;
 		fmt_OSC.methods.prepare = our_prepare;
 		fmt_OSC.params.algorithm_name = pFmt_Dynamic_4->params.algorithm_name;
 		pFmt->private.initialized = 1;
+	}
+}
+
+static void get_ptr() {
+	if (!pFmt_Dynamic_4) {
+		pFmt_Dynamic_4 = dynamic_THIN_FORMAT_LINK(&fmt_OSC, Convert(Conv_Buf, osc_tests[0].ciphertext), "osc", 0);
+		fmt_OSC.methods.salt   = our_salt;
+		fmt_OSC.methods.binary = our_binary;
+		fmt_OSC.methods.split = our_split;
+		fmt_OSC.methods.prepare = our_prepare;
 	}
 }
 

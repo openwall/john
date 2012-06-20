@@ -650,9 +650,12 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	{
 		// jgypwqm.JsMssPLiS8YQ00$BaaaaaSX
 		int i;
-		for (i = 0; i < 22; ++i)
+		for (i = 0; i < 22; ++i) {
 			if (atoi64[ARCH_INDEX(cp[i])] == 0x7F)
 				return 0;
+		}
+		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
+			return 1;
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[22] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[23]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -665,9 +668,12 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	{
 		// h3mJrcH0901pqX/m$alex
 		int i;
-		for (i = 0; i < 16; ++i)
+		for (i = 0; i < 16; ++i) {
 			if (atoi64[ARCH_INDEX(cp[i])] == 0x7F)
 				return 0;
+		}
+		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
+			return 1;
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[16] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[17]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -723,7 +729,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
 		char *cpX;
 		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
-			if (HEX_valid(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -pPriv->dynamic_FIXED_SALT_SIZE)
+			if (HEX_valid(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE) )
 				return 0;
 		} else {
 			cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
@@ -863,13 +869,11 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	char *cpBuilding=split_fields[1];
 
-	init(pFmt);
-
 	if (!pPriv)
 		return split_fields[1];
 
 	if (pFmt->params.salt_size && !strchr(split_fields[1], '$')) {
-		if (!curdat.nUserName && !curdat.FldMask)
+		if (!pPriv->nUserName && !pPriv->FldMask)
 			return split_fields[1];
 	}
 
@@ -887,7 +891,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		cpBuilding = ct;
 	}
 
-	cpBuilding = FixupIfNeeded(cpBuilding, &curdat);
+	cpBuilding = FixupIfNeeded(cpBuilding, pPriv);
 	if (strncmp(cpBuilding, "$dynamic_", 9))
 		return split_fields[1];
 
@@ -933,19 +937,19 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 			cpBuilding = ct;
 	}
 
-	if (curdat.nUserName && !strstr(cpBuilding, "$$U")) {
+	if (pPriv->nUserName && !strstr(cpBuilding, "$$U")) {
 		char *userName=split_fields[0], *cp;
 		// assume field[0] is in format: username OR DOMAIN\\username  If we find a \\, then  use the username 'following' it.
 		cp = strchr(split_fields[0], '\\');
 		if (cp)
 			userName = &cp[1];
-		userName = HandleCase(userName, curdat.nUserName);
+		userName = HandleCase(userName, pPriv->nUserName);
 		sprintf (ct, "%s$$U%s", cpBuilding, userName);
 		cpBuilding = ct;
 	}
 	for (i = 0; i <= 8; ++i) {
 		sprintf(Tmp, "$$F%d", i);
-		if ( split_fields[i] &&  (curdat.FldMask&(MGF_FLDx_BIT<<i)) && !strstr(cpBuilding, Tmp)) {
+		if ( split_fields[i] &&  (pPriv->FldMask&(MGF_FLDx_BIT<<i)) && !strstr(cpBuilding, Tmp)) {
 			sprintf (ct, "%s$$F%d%s", cpBuilding, i, split_fields[i]);
 			cpBuilding = ct;
 		}
@@ -1881,22 +1885,26 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
  *********************************************************************************/
 static void *salt(char *ciphertext)
 {
-	static unsigned char salt_p[sizeof(unsigned char*)];
 	char Salt[SALT_SIZE+1], saltIntBuf[SALT_SIZE+1];
 	int off, possible_neg_one=0;
 	unsigned char *saltp;
 	unsigned the_real_len;
+	static union x {
+		unsigned char salt_p[sizeof(unsigned char*)];
+		unsigned long p[1];
+	} union_x;
 
-	memset(salt_p, 0, sizeof(salt_p));
-	if ( (curdat.pSetup->flags&MGF_SALTED) == 0)
-		return salt_p;
+	if ( (curdat.pSetup->flags&MGF_SALTED) == 0) {
+		memset(union_x.salt_p, 0, sizeof(union_x.salt_p));
+		return union_x.salt_p;
+	}
 
 	memset(Salt, 0, SALT_SIZE+1);
 
 	// Ok, see if the wrong dynamic type is loaded (such as the 'last' dynamic type).
 	if (!strncmp(ciphertext, "$dynamic_", 9)) {
-		char *cp1 = ciphertext;
-		char *cp2 = curdat.dynamic_WHICH_TYPE_SIG;
+		char *cp1 = &ciphertext[9];
+		char *cp2 = &curdat.dynamic_WHICH_TYPE_SIG[9];
 		while (*cp2 && *cp2 == *cp1) {
 			++cp1; ++cp2;
 		}
@@ -1913,15 +1921,14 @@ static void *salt(char *ciphertext)
 			nFmtNum = -1;
 			sscanf(subformat, "$dynamic_%d", &nFmtNum);
 			if (nFmtNum==-1)
-				return salt_p;
+				return union_x.salt_p;
 			pFmtLocal = dynamic_Get_fmt_main(nFmtNum);
-			if (pFmtLocal)
-				init(pFmtLocal);
+			memcpy(&curdat, pFmtLocal->private.data, sizeof(private_subformat_data));
 		}
 	}
 
 	if (curdat.dynamic_FIXED_SALT_SIZE==0 && !curdat.nUserName && !curdat.FldMask)
-		return salt_p;
+		return union_x.salt_p;
 	if (!strncmp(ciphertext, "$dynamic_", 9))
 		off=curdat.dynamic_SALT_OFFSET;
 	else
@@ -2047,8 +2054,8 @@ static void *salt(char *ciphertext)
 
 	// Now convert this into a stored salt, or find the 'already' stored same salt.
 	saltp = HashSalt((unsigned char*)saltIntBuf, the_real_len);
-	memcpy(salt_p, &saltp, sizeof(saltp));
-	return salt_p;
+	memcpy(union_x.salt_p, &saltp, sizeof(saltp));
+	return union_x.salt_p;
 }
 /*********************************************************************************
  * 'special' get salt function for phpass. We return the 8 bytes salt, followed by
@@ -2059,8 +2066,12 @@ static void *salt(char *ciphertext)
  *********************************************************************************/
 static void *salt_phpass(char *ciphertext)
 {
-	static char salt_p[sizeof(unsigned char*)];
-	static unsigned char salt[20], *saltp;
+	unsigned char salt[20], *saltp;
+	static union x {
+		unsigned char salt_p[sizeof(unsigned char*)];
+		unsigned long p[1];
+	} union_x;
+
 	if (!strncmp(ciphertext, "$dynamic_", 9)) {
 		ciphertext += 9;
 		while (*ciphertext != '$')
@@ -2070,8 +2081,8 @@ static void *salt_phpass(char *ciphertext)
 
 	// Now convert this into a stored salt, or find the 'already' stored same salt.
 	saltp = HashSalt(salt, 15);
-	memcpy(salt_p, &saltp, sizeof(saltp));
-	return salt_p;
+	memcpy(union_x.salt_p, &saltp, sizeof(saltp));
+	return union_x.salt_p;
 }
 
 /*********************************************************************************
@@ -7025,7 +7036,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->params.max_keys_per_crypt = MAX_KEYS_PER_CRYPT_X86;
 	pFmt->params.algorithm_name = ALGORITHM_NAME_X86;
 #endif
-	Setup->flags ^= MGF_NOTSSE2Safe;
 	dynamic_use_sse = curdat.dynamic_use_sse;
 
 	// Ok, set the new 'constants' data
@@ -7511,6 +7521,11 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	pFmt->private.data = mem_alloc_tiny(sizeof(private_subformat_data), MEM_ALIGN_WORD);
 	memcpy(pFmt->private.data, &curdat, sizeof(private_subformat_data));
 
+	if (strncmp(curdat.dynamic_WHICH_TYPE_SIG, pFmt->params.tests[0].ciphertext, strlen(curdat.dynamic_WHICH_TYPE_SIG)))
+	{
+		fprintf(stderr, "ERROR, when loading dynamic formats, the wrong curdat item was linked to this type:\nTYPE_SIG=%s\nTest_Dat=%s\n",
+				curdat.dynamic_WHICH_TYPE_SIG, pFmt->params.tests[0].ciphertext);
+	}
 	return 1;
 }
 
@@ -7601,7 +7616,7 @@ void dynamic_RESET(struct fmt_main *fmt)
  * format is part of the md5-generic 'class' of functions.
  */
 
-struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig)
+struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso)
 {
 	int i, valid, nFmtNum;
 	struct fmt_main *pFmtLocal;
@@ -7651,11 +7666,11 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 		pFmt->methods.get_hash[i]    = pFmtLocal->methods.get_hash[i];
 	}
 
-	init(pFmtLocal);
+	if (bInitAlso)
+		init(pFmtLocal);
 
 	pFmt->private.data = mem_alloc_tiny(sizeof(private_subformat_data), MEM_ALIGN_WORD);
-	memcpy(pFmt->private.data, &curdat, sizeof(private_subformat_data));
-
+	memcpy(pFmt->private.data, pFmtLocal->private.data, sizeof(private_subformat_data));
 
 	return pFmtLocal;
 }

@@ -192,11 +192,12 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char temp_result[BINARY_SIZE]
-#if !defined(_MSC_VER)
-			__attribute__ ((__aligned__ (__alignof__ (ARCH_WORD_32))))
-#endif
-				;
+		// portably align temp_result char * pointer to 32 bits.
+		union xx {
+			unsigned char c[BINARY_SIZE];
+			ARCH_WORD_32 a[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+		} u;
+		unsigned char *temp_result = u.c;
 		SHA256_CTX ctx;
 		SHA256_CTX alt_ctx;
 		size_t cnt;

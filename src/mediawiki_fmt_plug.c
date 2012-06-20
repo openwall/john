@@ -79,6 +79,7 @@ static struct fmt_tests mediawiki_tests[] = {
 static char Conv_Buf[80];
 static struct fmt_main *pFmt_Dynamic_9;
 static void mediawiki_init(struct fmt_main *pFmt);
+static void get_ptr();
 
 /* this utility function is used by cracker.c AND loader.c.  Since media-wiki has a variable width salt, of which 
    in regen_lost_salts mode, we only handle 0 to 99999 as salts, we built a function that will assign the salt from
@@ -131,8 +132,7 @@ static char *our_split(char *ciphertext, int index)
 static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
 	int i = strlen(split_fields[1]);
-	if (!pFmt_Dynamic_9)
-		mediawiki_init(pFmt);
+	get_ptr();
 	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
 	/* in this type run, we load the passwords, then run EVERY salt against them, as though*/
 	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
@@ -153,8 +153,8 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 
 	if (!ciphertext)
 		return 0;
-	if (!pFmt_Dynamic_9)
-		mediawiki_init(pFmt);
+	get_ptr();
+
 
 	i = strlen(ciphertext);
 	/* this 'special' code added to do a 'DEEP' test of hashes which have lost their salts */
@@ -187,6 +187,7 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void * our_salt(char *ciphertext)
 {
+	get_ptr();
 	return pFmt_Dynamic_9->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
@@ -215,15 +216,26 @@ struct fmt_main fmt_mediawiki =
 static void mediawiki_init(struct fmt_main *pFmt)
 {
 	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki");
+		pFmt_Dynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 1);
+		pFmt->private.initialized = 1;
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;
 		fmt_mediawiki.methods.prepare = our_prepare;
 		fmt_mediawiki.params.algorithm_name = pFmt_Dynamic_9->params.algorithm_name;
-		pFmt->private.initialized = 1;
 	}
 }
+
+static void get_ptr() {
+	if (!pFmt_Dynamic_9) {
+		pFmt_Dynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 0);
+		fmt_mediawiki.methods.salt   = our_salt;
+		fmt_mediawiki.methods.binary = our_binary;
+		fmt_mediawiki.methods.split = our_split;
+		fmt_mediawiki.methods.prepare = our_prepare;
+	}
+}
+
 
 /**
  * GNU Emacs settings: K&R with 1 tab indent.
