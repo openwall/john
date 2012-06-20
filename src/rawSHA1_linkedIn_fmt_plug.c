@@ -255,8 +255,11 @@ static void rawsha1_crypt_all(int count) {
 
 static void * rawsha1_binary(char *ciphertext)
 {
-	static unsigned char realcipher[BINARY_SIZE];
+	static unsigned char *realcipher;
 	int i;
+
+	if (!realcipher)
+		realcipher = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
 	ciphertext += TAG_LENGTH;
 
