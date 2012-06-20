@@ -253,8 +253,8 @@ static inline unsigned int line_hash(char *line)
 
 	hash ^= hash >> hash_log;
 
-	hash &= hash_mask;
 out:
+	hash &= hash_mask;
 	return hash;
 }
 
@@ -476,7 +476,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			char *aep;
 
 			/* probably should only be debug message, but I left it in */
-			log_event("loading wordfile %s into memory (%lu bytes, max_size=%u)", name, file_len, db->options->max_wordfile_memory);
+			log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)", name, file_len, db->options->max_wordfile_memory);
 
 			word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
 			if (fread(word_file_str, 1, file_len, word_file) != file_len) {
@@ -500,18 +500,19 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			if (aep[-1] != csearch)
 				++nWordFileLines;
 			words = mem_alloc( (nWordFileLines+1) * sizeof(char*));
-			log_event("wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
+			log_event("- wordfile had %u lines and required %lu bytes for index.", nWordFileLines, (unsigned long)(nWordFileLines * sizeof(char*)));
 
 			i = 0;
 			cp = word_file_str;
 
-			hash_log = 8; // minimum 8 unless we modify line_hash()
-			while (((1 << hash_log) < (nWordFileLines >> mem_saving_level)) &&
+			hash_log = 1;
+			while (((1 << hash_log) <
+			        (nWordFileLines >> mem_saving_level)) &&
 			       hash_log < (27 - mem_saving_level))
 				hash_log++;
 			hash_size = (1 << hash_log);
 			hash_mask = (hash_size - 1);
-			log_event("%u lines, hash size %u, temporarily allocating %zd bytes for dupe suppression", nWordFileLines, hash_size, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
+			log_event("- %u lines, hash size %u, temporarily allocating %zd bytes for dupe suppression", nWordFileLines, hash_size, (hash_size * sizeof(unsigned int)) + (nWordFileLines * sizeof(element_st)));
 			buffer.hash = mem_alloc(hash_size * sizeof(unsigned int));
 			buffer.data = mem_alloc(nWordFileLines * sizeof(element_st));
 			memset(buffer.hash, 0xff, hash_size * sizeof(unsigned int));
@@ -540,7 +541,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				if (ec == '\r' && *cp == '\n') cp++;
 			} while (cp < aep);
 			if (nWordFileLines - i)
-				log_event("Suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
+				log_event("- suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
 			free(buffer.hash);
 			free(buffer.data);
 			nWordFileLines = i;
