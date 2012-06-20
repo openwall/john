@@ -38,10 +38,12 @@ void fmt_init(struct fmt_main *format)
 	if (options.mkpc) {
 		if (options.mkpc <= format->params.max_keys_per_crypt)
 			format->params.min_keys_per_crypt =
-				format->params.max_keys_per_crypt =
-				options.mkpc;
+			    format->params.max_keys_per_crypt = options.mkpc;
 		else {
-			fprintf(stderr, "Can't set mkpc larger than %u for %s format\n", format->params.max_keys_per_crypt, format->params.label);
+			fprintf(stderr,
+			    "Can't set mkpc larger than %u for %s format\n",
+			    format->params.max_keys_per_crypt,
+			    format->params.label);
 			error();
 		}
 	}
@@ -118,7 +120,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		/* Ensure we have a misaligned ciphertext */
 		if (!ciphertext)
 			ciphertext = (char*)mem_alloc_tiny(LINE_BUFFER_SIZE + 1,
-			                            MEM_ALIGN_WORD) + 1;
+			    MEM_ALIGN_WORD) + 1;
 		strcpy(ciphertext, format->methods.split(prepared, 0));
 		plaintext = current->plaintext;
 
@@ -191,7 +193,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			sprintf(s_size, "cmp_exact(%d)", index);
 			return s_size;
 		}
-		if (strncmp(format->methods.get_key(index), plaintext, format->params.plaintext_length)) {
+		if (strncmp(format->methods.get_key(index), plaintext,
+			format->params.plaintext_length)) {
 			sprintf(s_size, "get_key(%d)", index);
 			return s_size;
 		}
@@ -239,8 +242,8 @@ static void *alloc_binary(size_t size, void **alloc)
 	if (size >= ARCH_SIZE)
 		return *alloc;
 	if (size >= 4)
-		return (char*)*alloc + 4;
-	return (char*)*alloc + 1;
+		return (void*)*alloc + 4;
+	return (void*)*alloc + 1;
 }
 
 char *fmt_self_test(struct fmt_main *format)
@@ -250,19 +253,19 @@ char *fmt_self_test(struct fmt_main *format)
 	void *binary_copy, *salt_copy;
 
 	binary_copy = alloc_binary(format->params.binary_size, &binary_alloc);
-	memset((char*)binary_copy + format->params.binary_size, 0xaa, 8);
+	memset((char*)binary_copy + format->params.binary_size, 'b', 8);
 
 	salt_copy = alloc_binary(format->params.salt_size, &salt_alloc);
-	memset((char*)salt_copy + format->params.salt_size, 0x33, 8);
+	memset((char*)salt_copy + format->params.salt_size, 's', 8);
 
 	retval = fmt_self_test_body(format, binary_copy, salt_copy);
 	if (!retval) {
-		if (memcmp((char*)binary_copy + format->params.binary_size, "\xaa\xaa\xaa\xaa\xaa\xaa\xaa\xaa", 8)) {
+		if (memcmp((char*)binary_copy + format->params.binary_size,
+			"bbbbbbbb", 8))
 			return "Binary buffer overrun";
-		}
-		if (memcmp((char*)salt_copy + format->params.salt_size, "\x33\x33\x33\x33\x33\x33\x33\x33", 8)) {
+		if (memcmp((char*)salt_copy + format->params.salt_size,
+			"ssssssss", 8))
 			return "Salt buffer overrun";
-		}
 	}
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);
