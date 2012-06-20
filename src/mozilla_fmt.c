@@ -1,12 +1,15 @@
 /* Mozilla cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>
  *
+ * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and it is hereby released under GPL license.
+ *
  * Uses code from FireMasterLinux project.
  * (http://code.google.com/p/rainbowsandpwnies/wiki/FiremasterLinux)
  * Team Members: broseidon, endeavormac, oldgregg, MustardBedroomWrench
  *
  * FireMaster :  Firefox Master Password Recovery Tool
- * Copyright (C) 2006  Nagareshwar Y Talekar ( tnagareshwar@gmail.com )
+ * Copyright (C) 2006  Nagareshwar Y Talekar ( tnagareshwar at gmail.com )
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

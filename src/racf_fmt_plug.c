@@ -38,8 +38,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	8
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(*salt_struct)
+#define BINARY_SIZE		8
+#define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -119,10 +119,9 @@ static struct fmt_tests racf_tests[] = {
 
 static struct custom_salt {
 	unsigned char userid[8 + 1];
-	char unsigned hash[8];
-} *salt_struct;
+} *cur_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static void init(struct fmt_main *pFmt)
 {
@@ -134,8 +133,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -145,40 +143,58 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static void *get_salt(char *ciphertext)
 {
-	int i;
 	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy, *username, *inputhash;
+	char *keeptr = ctcopy, *username;
 	ctcopy += 7;	/* skip over "$racf$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	static struct custom_salt cs;
 	username = strtok(ctcopy, "*");
 	/* process username */
-	strcpy((char*)salt_struct->userid, username);
-#ifdef RACF_DEBUG
-	printf("userid in ASCII : %s\n", salt_struct->userid);
-#endif
-	ascii2ebcdic(salt_struct->userid);
-	process_userid(salt_struct->userid);
+	strcpy((char*)cs.userid, username);
+	ascii2ebcdic(cs.userid);
+	process_userid(cs.userid);
 #ifdef RACF_DEBUG
 	printf("userid in EBCDIC : ");
-	print_hex(salt_struct->userid, 8);
-#endif
-	/* process DES hash */
-	inputhash = strtok(NULL, "*");
-	for (i = 0; i < 8; i++)
-		salt_struct->hash[i] = atoi16[ARCH_INDEX(inputhash[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(inputhash[i * 2 + 1])];
-#ifdef RACF_DEBUG
-	printf("inputhash : ");
-	print_hex(salt_struct->hash, 8);
+	print_hex(cs.userid, 8);
 #endif
 	free(keeptr);
-	return (void *)salt_struct;
+	return (void *)&cs;
 }
 
+static void *get_binary(char *ciphertext)
+{
+	static unsigned char out[BINARY_SIZE+1];
+	char *p;
+	int i;
+	p = strrchr(ciphertext, '*') + 1;
+		for (i = 0; i < sizeof(out); i++) {
+		out[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+	return out;
+}
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -190,7 +206,6 @@ static void crypt_all(int count)
 #endif
 	{
 		DES_cblock des_key;
-		unsigned char encrypted[8];
 		unsigned char key[PLAINTEXT_LENGTH+1];
 		DES_key_schedule schedule;
 		DES_cblock ivec;
@@ -203,32 +218,29 @@ static void crypt_all(int count)
 		DES_set_odd_parity(&des_key);
 		DES_set_key_checked(&des_key, &schedule);
 		/* do encryption */
-		DES_cbc_encrypt(salt_struct->userid, encrypted, 8, &schedule, &ivec, DES_ENCRYPT);
-/* XXX: this is broken (assumes exactly one hash per salt) */
-		if(!memcmp(salt_struct->hash, encrypted, 8))
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+		DES_cbc_encrypt(cur_salt->userid, (unsigned char*)crypt_out[index], 8, &schedule, &ivec, DES_ENCRYPT);
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void racf_set_key(char *key, int index)
@@ -264,10 +276,16 @@ struct fmt_main racf_fmt = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 		{
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -276,7 +294,13 @@ struct fmt_main racf_fmt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
