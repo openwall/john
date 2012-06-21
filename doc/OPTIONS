@@ -183,8 +183,8 @@ type may get detected unless you specify this option).
 
 When benchmarking "--format=crypt", it will default to benchmark DES.
 The "--subformat=TYPE" can be added for benchmarking other types, given
-they are supported by the system. Currently supported TYPEs are MD5, BF,
-SHA-256 and SHA-512.
+they are supported by the system. Currently supported TYPEs are
+md5crypt, bcrypt, sha256crypt and sha512crypt.
 
 "--format=crypt" is also a way to make John crack crypt(3) hashes of
 different types at the same time, but doing so results in poor
