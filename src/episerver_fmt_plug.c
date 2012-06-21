@@ -104,8 +104,8 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	ctcopy += 12;	/* skip over "$episerver$*" */
 	static struct custom_salt cs;
+	ctcopy += 12;	/* skip over "$episerver$*" */
 	p = strtok(ctcopy, "*");
 	cs.version = atoi(p);
 	p = strtok(NULL, "*");

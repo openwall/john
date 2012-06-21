@@ -10,9 +10,9 @@
 #	include <byteswap.h>
 #	define JOHNSWAP(x)	bswap_32((x))
 #elif _MSC_VER
-#	if !defined (MD5_SSE_PARA)
-#		include <intrin.h>
-#	endif
+//#	if !defined (MD5_SSE_PARA)
+//#		include <intrin.h>
+//#	endif
 #	define JOHNSWAP(x)	_byteswap_ulong((x))
 #else
 #	define JOHNSWAP(x)	john_bswap_32((x))

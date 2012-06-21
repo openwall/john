@@ -10,6 +10,8 @@
 #define SSE_type			"XOP intrinsics"
 #elif defined(__AVX__)
 #define SSE_type			"AVX intrinsics"
+#elif defined(MMX_COEF) && MMX_COEF == 2
+#define SSE_type			"MMX"
 #else
 #define SSE_type			"SSE2 intrinsics"
 #endif
