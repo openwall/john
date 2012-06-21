@@ -38,7 +38,7 @@ static int omp_t = 1;
 #define FORMAT_NAME		"Django PBKDF2-HMAC-SHA-256"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	" (x10000)"
-#define BENCHMARK_LENGTH	-1 /* XXX: change to 0 once we have multiple test vectors */
+#define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
@@ -46,8 +46,10 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests django_tests[] = {
-/* XXX: need more test vectors */
 	{"$django$*1*pbkdf2_sha256$10000$qPmFbibfAY06$x/geVEkdZSlJMqvIYJ7G6i5l/6KJ0UpvLUU6cfj83VM=", "openwall"},
+	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd7$2nTDwPhSsDKOwpKiV04teVtf+a14Rs7na/lIB3KnHkM=", "123"},
+	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd1$bkdQo9RoatRomupPFP+XEo+Guuirq4mi+R1cFcV0U3M=", "openwall"},
+	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd6$Uq33DAHOFHUED+32IIqCqm+ITU1mhsGOJ7YwFf6h+6k=", "password"},
 	{NULL}
 };
 
