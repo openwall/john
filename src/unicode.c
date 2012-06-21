@@ -787,7 +787,7 @@ int initUnicode(int type) {
 	// by 'default' we are setup in 7 bit ascii mode (for rules).
 	options.ascii = 1;
 	options.encodingStr = "";
-	if ( (options.flags & FLG_INP_ENCODING) && options.encoding) {
+	if (options.encoding) {
 		// Ok, check a 'few' valid things for utf8
 		options.ascii = 0;
 		if (!strcasecmp(options.encoding, "utf8")||!strcasecmp(options.encoding, "utf-8")) {

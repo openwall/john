@@ -448,8 +448,10 @@ static void john_load(void)
 		    status.pass <= 1)
 			options.loader.flags |= DB_WORDS;
 		else
-		if (mem_saving_level)
+		if (mem_saving_level) {
 			options.loader.flags &= ~DB_LOGIN;
+			options.loader.max_wordfile_memory = 0;
+		}
 
 		ldr_init_database(&database, &options.loader);
 
@@ -584,6 +586,7 @@ static void john_init(char *name, int argc, char **argv)
 	{
 		puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 		puts("--mkpc=N                  force a lower max. keys per crypt");
+		puts("--length=N                force a lower max. length");
 		exit(0);
 	}
 
@@ -631,7 +634,7 @@ static void john_init(char *name, int argc, char **argv)
 			exit(0);
 		}
 
-		if (options.flags & FLG_CONFIG_CLI)
+		if (options.config)
 		{
 			path_init_ex(options.config);
 			cfg_init(options.config, 1);

@@ -31,36 +31,36 @@
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
+static int omp_t = 1;
 #endif
 
 #define FORMAT_LABEL		"django"
 #define FORMAT_NAME		"Django PBKDF2-HMAC-SHA-256"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	" (x10000)"
-#define BENCHMARK_LENGTH	-1 /* XXX: change to 0 once we have multiple test vectors */
+#define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
+#define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests django_tests[] = {
-/* XXX: need more test vectors */
 	{"$django$*1*pbkdf2_sha256$10000$qPmFbibfAY06$x/geVEkdZSlJMqvIYJ7G6i5l/6KJ0UpvLUU6cfj83VM=", "openwall"},
+	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd7$2nTDwPhSsDKOwpKiV04teVtf+a14Rs7na/lIB3KnHkM=", "123"},
+	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd1$bkdQo9RoatRomupPFP+XEo+Guuirq4mi+R1cFcV0U3M=", "openwall"},
+	{"$django$*1*pbkdf2_sha256$10000$BVmpZMBhRSd6$Uq33DAHOFHUED+32IIqCqm+ITU1mhsGOJ7YwFf6h+6k=", "password"},
 	{NULL}
 };
 
-
-static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int any_cracked, *cracked;
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int type;
 	int iterations;
 	unsigned char salt[32];
-	unsigned char hash[32];
-} *salt_struct;
+} *cur_salt;
 
 static void init(struct fmt_main *pFmt)
 {
@@ -72,9 +72,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	any_cracked = 0;
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -98,22 +96,40 @@ static void *get_salt(char *ciphertext)
 	cs.iterations = atoi(t);
 	t = strtok(NULL, "$");
 	strcpy((char*)cs.salt, t);
-	t = strtok(NULL, "$");
-	base64_decode(t, strlen(t), (char*)cs.hash); /* XXX: actually use it */
 
 	free(keeptr);
 	return (void *)&cs;
 }
 
+static void *get_binary(char *ciphertext)
+{
+	static unsigned char out[BINARY_SIZE+1];
+	char *p;
+
+	p = strrchr(ciphertext, '$') + 1;
+	base64_decode(p, strlen(p), (char*)out);
+	return out;
+}
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
-	if (any_cracked) {
-		memset(cracked, 0,
-		    sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
-		any_cracked = 0;
-	}
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -124,33 +140,32 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char out[32];
-		if(PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
-			salt_struct->salt, strlen((char*)salt_struct->salt), salt_struct->iterations, EVP_sha256(), 32, out) != 0 ) {
-/* XXX: this is broken (assumes exactly one hash per salt) */
-			if(!memcmp(out, salt_struct->hash, 32))
-				any_cracked = cracked[index] = 1;
-		}
-		else {
-			fprintf(stderr, "PKCS5_PBKDF2_HMAC failed\n");
-			exit(-1);
-		}
+		PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]),
+			cur_salt->salt, strlen((char*)cur_salt->salt),
+			cur_salt->iterations, EVP_sha256(), 32, (unsigned char*)crypt_out[index]);
+
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
 static void django_set_key(char *key, int index)
@@ -186,10 +201,16 @@ struct fmt_main fmt_django = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 		{
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -198,7 +219,13 @@ struct fmt_main fmt_django = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

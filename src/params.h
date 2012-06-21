@@ -343,9 +343,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define MAX_MKV_LVL 400
 #define MAX_MKV_LEN 30
 
-/* Default maximum size of wordlist memory buffer.
-   We shift it according to --save-memory */
-#define WORDLIST_BUFFER_DEFAULT		0x5000000
-#define WORDLIST_BUFFER_POTMODE		0x40000000
+/* Default maximum size of wordlist memory buffer. */
+#define WORDLIST_BUFFER_DEFAULT		5000000
 
 #endif

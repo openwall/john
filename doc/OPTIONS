@@ -30,17 +30,28 @@ Enables the "single crack" mode, using rules from the configuration
 file section [List.Rules:Single].  If --single=Single_2 then the rules
 from [List.Rules:Single_2] section would be used.
 
---wordlist=FILE			wordlist mode, read words from FILE,
+--wordlist[=FILE]		wordlist mode, read words from FILE,
 --stdin				or from stdin
 
-These are used to enable the wordlist mode. If the filename ends in .pot
-(eg. john.pot) it will be parsed as a password output file, so only the
-actual password part of each line will be used, and duplicates will be
-suppressed. If no filename is specified, john.pot will be used, thus triggering
-that "Closed-loop" mode. This is very effective for applying rules to further
-permute words that has been successful, or without rules after a run using
---salts in case the cracks are successful on other salts than the ones that
-has already been attacked.
+These are used to enable the wordlist mode. If FILE is not specified,
+the default batch-mode one (from john.conf) will be used.
+
+--dupe-suppression              suppress all duplicates from wordlist
+
+Normally, consecutive duplicates are ignored when reading a wordlist file.
+This switch enables full dupe suppression, using some memory and a little
+extra start-up time. This option implies preload regardless of file size,
+see the --mem-file-size option.
+
+--loopback[=FILE]               use a pot file as a wordlist
+
+This mode implies --dupe-suppression. This is a special variant of Wordlist
+mode. Parse the file as a .pot file, so only the actual password part of
+each line will be used. If FILE is not specified, the active .pot file will
+be used. This is very effective for applying rules to further permute words
+that has been successful, or without rules after a run using --salts in case
+the cracks are successful on other salts than the ones that has already been
+attacked.
 
 --encoding=NAME
 
@@ -210,14 +221,11 @@ avoid using them unless John doesn't work or gets into swap otherwise.
 One of the significant performance improvements for some builds of
 john, is preloading the wordlist file into memory, instead of reading
 line by line. This is especially true when running with a large list of
---rules. Another feature that is triggered by memory buffering is full
-dupe suppression (as opposed to only suppressing consecutive dupes).
-The default max size file is 80 MB (or, for -pot files, 1 GB).
-Using this option allows making this larger.  A special value is
---mem-file-size=0. This will force loading to memory regardless of file
-size (take care not to exceed your physical memory limits, or think will
-just run much slower).  NOTE if --save-memory is used, the default file
-size will half for each level.
+--rules. The default max size file is 5000000 bytes. Using this option
+allows making this larger.  A special value is --mem-file-size=0. This
+will force loading to memory regardless of file size (take care not to
+exceed your physical memory limits, or things will just run much slower).
+NOTE if --save-memory is used, preload will be disabled.
 
 --field-separator-char=c	Use 'c' instead of the char ':'
 

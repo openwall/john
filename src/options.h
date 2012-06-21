@@ -34,12 +34,15 @@
 #define FLG_CRACKING_SUP		0x00000040
 #define FLG_CRACKING_SET \
 	(FLG_CRACKING_CHK | FLG_CRACKING_SUP | FLG_ACTION | FLG_PWD_REQ)
-/* Wordlist mode enabled, options.wordlist is set to the file name or NULL
- * if reading from stdin. */
+/* Wordlist mode enabled, options.wordlist is set to the file name, or
+ * we get it from john.conf */
 #define FLG_WORDLIST_CHK		0x00000080
 #define FLG_WORDLIST_SET		(FLG_WORDLIST_CHK | FLG_CRACKING_SET)
-/* non default encoding used.  Valid items are: UTF-8 (or utf8), iso-8859-1 (or ansi, or 8859-1) mode enabled, affects some formats and rules */
-#define FLG_INP_ENCODING		0x00000010
+/* .pot file used as wordlist, options.wordlist is set to the file name, or
+ * we use the active .pot file */
+#define FLG_LOOPBACK_CHK		0x00000010
+#define FLG_LOOPBACK_SET	  \
+	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET)
 /* Wordlist mode enabled, reading from stdin */
 #define FLG_STDIN_CHK			0x00000100
 #define FLG_STDIN_SET			(FLG_STDIN_CHK | FLG_WORDLIST_SET)
@@ -90,8 +93,6 @@
 #define FLG_SAVEMEM			0x04000000
 /* Dynamic load of foreign format module */
 #define FLG_DYNFMT			0x08000000
-/* Command-line config file */
-#define FLG_CONFIG_CLI      0x10000000
 /* Turn off logging */
 #define FLG_NOLOG			0x20000000
 /* Log to stderr */
@@ -101,6 +102,11 @@
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
 /* Emit a status line for every password cracked */
 #define FLG_CRKSTAT			0x00080000
+/* Wordlist dupe suppression */
+#define FLG_DUPESUPP			0x10000000
+
+/* NOTE: the following is defined in getopt.h, it's taken! */
+//#define OPT_REQ_PARAM			0x80000000
 
 /*
  * Structure with option flags and all the parameters.
@@ -190,7 +196,10 @@ struct options_main {
 #endif
 
 /* Forced min/max_keys_per_crypt (for testing purposes) */
-	int mkpc;
+	int force_maxkeys;
+
+/* Forced plaintext_length (for testing purposes) */
+	int force_maxlength;
 
 /* Graceful exit after this many seconds of cracking */
 	int max_run_time;
