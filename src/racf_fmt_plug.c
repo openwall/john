@@ -170,7 +170,7 @@ static void *get_binary(char *ciphertext)
 	char *p;
 	int i;
 	p = strrchr(ciphertext, '*') + 1;
-		for (i = 0; i < sizeof(out); i++) {
+		for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
