@@ -203,7 +203,6 @@ static struct opt_entry opt_list[] = {
 "--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)\n" \
 "--fix-state-delay=N       performance tweak, see documentation\n" \
 "--nolog                   disables creation and writing to john.log file\n" \
-"--log-stderr              log to screen instead of file\n" \
 "--crack-status            emit a status line whenever a password is cracked\n" \
 "--max-run-time=N          gracefully exit after this many seconds\n" \
 "--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)\n"
