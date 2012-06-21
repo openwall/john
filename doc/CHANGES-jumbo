@@ -2,16 +2,16 @@ The following major changes was made since Jumbo-5:
 
 New formats:
 * ODF files. (Dhiru Kholia)
-* rawsha1_sse4 (Tavis Ormandy, XOP support by Solar)
+* raw-sha1-ng (Tavis Ormandy, XOP support by Solar)
 * PWSAFE CPU, CUDA and OpenCL (Dhiru and Lukas)
-* Raw-SHA1 "LinkedIn" format (partial hashes, 20 bit zeroed) (Jim Fougeron)
+* Raw-SHA1-LinkedIn format (partial hashes, 20 bit zeroed) (Jim Fougeron)
 * GOST 3411. (JimF, Sergey V and Dhiru Kholia)
 * Blowfish OpenCL (Sayantan Datta)
 * Raw SHA512 CUDA format (Myrice)
 * Django 1.4 hashes. (Dhiru)
 * WoltLab Burning Board 3 hashes. (Dhiru)
 * Password Safe files. (Dhiru)
-* WPAPSK format for CUDA and OpenCL (Lukas)
+* WPA-PSK format for CUDA and OpenCL (Lukas)
 * Mac OS X Keychain cracker with OMP support. (Dhiru)
 * Office 2007/2010 documents. (Dhiru)
 * Add support for *new* EPiServer's default hashes. (Dhiru)
@@ -20,17 +20,17 @@ New formats:
 * xsha512 for CUDA and OpenCL (Myrice)
 * Mozilla Firefox, Thunderbird and SeaMonkey master passwords. (Dhiru)
 * Integrate VNCcrack (http://www.randombit.net/code/vnccrack/) (Dhiru)
-* OpenCL cryptsha512 (Claudio André)
-* CUDA formats: cryptmd5, cryptsha256/512, mscash, mscash2, phpass,
+* OpenCL sha512crypt (Claudio André)
+* CUDA formats: md5crypt, sha256/512crypt, mscash, mscash2, phpass,
 raw-sha224/256 (Lukas)
-* OpenCL formats: cryptmd5, mysql-sha1, NT, phpass, raw-md5, raw-sha1,
+* OpenCL formats: md5crypt, mysql-sha1, NT, phpass, raw-md5, raw-sha1,
 ssha (Samuele, Lukas)
 * Integrate SIPcrack 0.4 into JtR. (Dhiru)
 * RACF password cracker patch for JtR. (Dhiru)
 * Drupal7 (magnum)
 * hmac-sha224/384/512 (magnum)
 * hmac-sha1 and hmac-sha256 (magnum)
-* Crypt-SHA2 formats (for CPU) (magnum)
+* sha256/512crypt formats (for CPU) (magnum)
 * DragonFly BSD crypt-SHA2 formats (magnum)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
