@@ -157,7 +157,7 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_USAGE \
 "John the Ripper password cracker, ver: " JOHN_VERSION _MP_VERSION " [" JOHN_BLD "]\n" \
-"Copyright (c) 1996-2011 by " JOHN_COPYRIGHT "\n" \
+"Copyright (c) 1996-2012 by " JOHN_COPYRIGHT "\n" \
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n" \
