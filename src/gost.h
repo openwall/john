@@ -1,7 +1,7 @@
 /* gost.h */
 #ifndef GOST_H
 #define GOST_H
-#include <stdint.h>
+#include "stdint.h"
 #include <stdlib.h>
 #ifdef __GLIBC__
 # include <endian.h>

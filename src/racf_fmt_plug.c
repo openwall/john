@@ -145,8 +145,8 @@ static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *username;
-	ctcopy += 7;	/* skip over "$racf$*" */
 	static struct custom_salt cs;
+	ctcopy += 7;	/* skip over "$racf$*" */
 	username = strtok(ctcopy, "*");
 	/* process username */
 	strcpy((char*)cs.userid, username);

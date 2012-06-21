@@ -27,7 +27,7 @@
 // For proper VC 'param marshalling' function stubs.
 #ifdef __MINGW32__
 #define mdfourmmx_VC @mdfourmmx_VC@12
-#define mdfourmmx_nosizeupdate_VC _mdfourmmx_nosizeupdate_VC@12
+#define mdfourmmx_nosizeupdate_VC @mdfourmmx_nosizeupdate_VC@12
 .globl mdfourmmx_VC
 .globl mdfourmmx_nosizeupdate_VC
 #endif
