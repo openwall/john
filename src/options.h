@@ -190,7 +190,10 @@ struct options_main {
 #endif
 
 /* Forced min/max_keys_per_crypt (for testing purposes) */
-	int mkpc;
+	int force_maxkeys;
+
+/* Forced plaintext_length (for testing purposes) */
+	int force_maxlength;
 
 /* Graceful exit after this many seconds of cracking */
 	int max_run_time;

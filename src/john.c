@@ -584,6 +584,7 @@ static void john_init(char *name, int argc, char **argv)
 	{
 		puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 		puts("--mkpc=N                  force a lower max. keys per crypt");
+		puts("--length=N                force a lower max. length");
 		exit(0);
 	}
 

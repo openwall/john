@@ -128,7 +128,9 @@ static struct opt_entry opt_list[] = {
 	{"log-stderr", FLG_LOG_STDERR | FLG_NOLOG, FLG_LOG_STDERR},
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		"%u", &options.mkpc},
+		"%u", &options.force_maxkeys},
+	{"length", FLG_NONE, FLG_NONE, 0, FLG_STDOUT | OPT_REQ_PARAM,
+		"%u", &options.force_maxlength},
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
 	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
@@ -290,7 +292,7 @@ void opt_init(char *name, int argc, char **argv)
 	options.loader.regen_lost_salts = options.regen_lost_salts = 0;
 	options.loader.max_fix_state_delay = 0;
 	options.loader.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
-	options.mkpc = 0;
+	options.force_maxkeys = options.force_maxlength = 0;
 	options.max_run_time = 0;
 
 	list_init(&options.passwd);
