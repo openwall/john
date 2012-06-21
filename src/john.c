@@ -172,6 +172,7 @@ extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pdf;
 extern struct fmt_main rar_fmt;
 extern struct fmt_main zip_fmt;
+extern struct fmt_main fmt_wpapsk;
 
 #include "fmt_externs.h"
 
@@ -279,6 +280,7 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_pdf);
+	john_register_one(&fmt_wpapsk);
 #ifndef _MSC_VER
 	john_register_one(&rar_fmt);
 #endif
