@@ -209,6 +209,13 @@ _john()
 			done
 			return 0
 			;;
+		--wordlist)
+			if [[ "${valopts}" == *${cur}=* || "_${__john_completion}" == "_2" ]] ; then
+				COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
+				compopt -o nospace
+			fi
+			return 0
+			;;
 		-?(-)w?(o|or|ord|ordl|ordli|ordlis|ordlist)+(=|:)*)
 			cur=${cur#*[=:]}
 			 __expand_tilde_by_ref cur 2>/dev/null
@@ -485,6 +492,21 @@ _john()
 				cur=${cur#*[=:]}
 				__expand_tilde_by_ref cur 2>/dev/null
 				_filedir '@(conf|ini)'
+			fi
+			return 0
+			;;
+		--loopback)
+			if [[ "${valopts}" == *--loopback* && "_${__john_completion}" == "_2" ]] ; then
+				COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
+				compopt -o nospace
+			fi
+			return 0
+			;;
+		-?(-)loo?(p|pb|pba|pbac|pback)+(=|:)*)
+			if [[ "${valopts}" == *--loopback* ]] ; then
+				cur=${cur#*[=:]}
+				__expand_tilde_by_ref cur 2>/dev/null
+				_filedir "pot"
 			fi
 			return 0
 			;;
