@@ -11,7 +11,7 @@
 #include "cuda_phpass.h"
 #include "cuda_common.h"
 
-#define FORMAT_LABEL		"phpass-opencl"
+#define FORMAT_LABEL		"phpass-cuda"
 #define FORMAT_NAME		"phpass MD5"
 
 #define ALGORITHM_NAME		"CUDA"
