@@ -102,10 +102,12 @@ static void *get_salt(char *ciphertext)
 }
 
 static void *get_binary(char *ciphertext)
-{
-	static unsigned char out[BINARY_SIZE+1];
+{	static union {
+		unsigned char c[BINARY_SIZE+1];
+		ARCH_WORD dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
-
 	p = strrchr(ciphertext, '$') + 1;
 	base64_decode(p, strlen(p), (char*)out);
 	return out;
