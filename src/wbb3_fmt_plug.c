@@ -114,12 +114,15 @@ static void *get_salt(char *ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[BINARY_SIZE];
+	static union {
+		unsigned char c[BINARY_SIZE+1];
+		ARCH_WORD dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
-
 	p = strrchr(ciphertext, '*') + 1;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
