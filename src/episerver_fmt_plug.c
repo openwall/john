@@ -76,7 +76,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int version;
-	unsigned char esalt[16];
+	unsigned char esalt[16+1];
 } *cur_salt;
 
 static void init(struct fmt_main *pFmt)
