@@ -234,6 +234,7 @@ default:
 	@echo "linux-x86-64[i]          Linux, x86-64 with SSE2 (most common)"
 	@echo "linux-x86-64-icc         Linux, x86-64 compiled with icc"
 	@echo "linux-x86-64-clang       Linux, x86-64 compiled with clang"
+#	@echo "linux-x86-64-clang-debug Linux, x86-64 compiled with clang (with debugging options)
 #	@echo "linux-x86-64-32-native   Linux, x86-64, 32-bit with everything (for regression tests)"
 #	@echo "linux-x86-64-32-sse2asm  Linux, x86-64, 32-bit with asm SSE2 (for regression tests)"
 #	@echo "linux-x86-64-32-sse2[i]  Linux, x86-64, 32-bit with SSE2 (for regression tests)"
@@ -247,6 +248,7 @@ default:
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
 	@echo "linux-x86-clang          Linux, x86 32-bit with SSE2, compiled with clang"
+#	@echo "linux-x86-clang-debug    Linux, x86 32-bit with SSE2, compiled with clang (with debugging options)
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
