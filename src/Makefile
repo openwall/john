@@ -246,6 +246,7 @@ default:
 	@echo "linux-x86-sse2[i]        Linux, x86 32-bit with SSE2 (most common, 32-bit)"
 	@echo "linux-x86-mmx            Linux, x86 32-bit with MMX (for old computers)"
 	@echo "linux-x86-any            Linux, x86 32-bit (for truly ancient computers)"
+	@echo "linux-x86-clang          Linux, x86 32-bit with SSE2, compiled with clang"
 	@echo "linux-alpha              Linux, Alpha"
 	@echo "linux-sparc              Linux, SPARC 32-bit"
 	@echo "linux-ppc32-altivec      Linux, PowerPC w/AltiVec (best)"
@@ -394,6 +395,15 @@ linux-x86-64-clang:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		CFLAGS="-c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="-lm -lssl -lcrypto -lcrypt -ldl" \
+		CPP="clang" CC="clang" AS="clang" LD="clang"
+
+linux-x86-64-clang-debug:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="-c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL" \
+		LDFLAGS="-lm -lssl -lcrypto -lcrypt -ldl -lz -faddress-sanitizer" \
 		CPP="clang" CC="clang" AS="clang" LD="clang"
 
 linux-x86-64-icc:
@@ -549,6 +559,24 @@ linux-x86-any:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
+
+linux-x86-clang:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="-c -O2 -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL" \
+		LDFLAGS="-lm -lssl -lcrypto -lcrypt -ldl -lz" \
+		CPP="clang" CC="clang" AS="clang" LD="clang"
+
+linux-x86-clang-debug:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		CFLAGS="-c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL" \
+		LDFLAGS="-lm -lssl -lcrypto -lcrypt -ldl -lz -faddress-sanitizer" \
+		CPP="clang" CC="clang" AS="clang" LD="clang"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
@@ -1739,7 +1767,7 @@ bash-completion:	/etc/bash_completion.d/john.bash_completion
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
-	$(RM) ../run/john.exe john-macosx-* *.o *.bak core 
+	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
 	$(RM) ../run/*.cl ../run/*.h
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~ ../run/SIPdump
