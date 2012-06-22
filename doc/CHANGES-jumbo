@@ -11,7 +11,7 @@ New formats:
 * Django 1.4 hashes. (Dhiru)
 * WoltLab Burning Board 3 hashes. (Dhiru)
 * Password Safe files. (Dhiru)
-* WPA-PSK format for CUDA and OpenCL (Lukas)
+* WPA-PSK CPU, CUDA and OpenCL (Lukas)
 * Mac OS X Keychain cracker with OMP support. (Dhiru)
 * Office 2007/2010 documents. (Dhiru)
 * Add support for *new* EPiServer's default hashes. (Dhiru)

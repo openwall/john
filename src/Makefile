@@ -113,7 +113,7 @@ JOHN_OBJS = \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	pwsafe2john.o \
-	hccap2john.o \
+	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
 	rawSHA1_ng_fmt.o \
