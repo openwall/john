@@ -289,6 +289,27 @@ The different variants of list externals may be worth mentioning:
 --list=ext-modes        list external modes [has a generate()]
 --list=ext-filters      list external filters, including modes with a filter
 --list=ext-filters-only list external filters [lacks a generate()]
+--list=formats          list all the supported formats in the sequence they
+                        are registered (this is also the sequence that will
+                        be used to identify the first format which detects
+                        a valid ciphertext (password hash) in the input file
+                        if john is started without the --format=NAME option)
+--list=format-details   list all the suported formats in the same sequence as
+                        with --list=formats, but with additional details
+                        -format label
+                         this is to be used as NAME in --format=NAME
+                        -maximum supported password length in bytes
+                         for performance reasond, the maximum length
+                         supported by John the Ripper can be shorter than
+                         the maximum length supported by the application
+                         which uses this format
+                        -minimum keys per crypt
+                        -maximum keys per crypt
+                        -format flags
+                        -number of hard coded test cases for --test
+                        -algorithm name
+                        -format name
+                        (the individual columns are separated by [tab])
 
 
 --regen-lost-salts=N	Try to find password AND salt in a set of raw hashes.
