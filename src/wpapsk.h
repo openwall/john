@@ -15,7 +15,7 @@
 #define HCCAP_SIZE		392
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
-#define uint32_t		unsigned int
+#define uint32_t		ARCH_WORD_32
 
 #define BINARY_SIZE		sizeof(mic_t)
 #define PLAINTEXT_LENGTH	15
@@ -174,6 +174,8 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
+	if (length > PLAINTEXT_LENGTH)
+		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
 }
@@ -233,9 +235,11 @@ static void wpapsk_postprocess(int keys)
 #endif
 		for (i = 0; i < keys; i++) {
 			uint32_t prf[20];
+			unsigned char keymic[20];
 			prf_512(outbuffer[i].v, data, prf);
 			HMAC(EVP_sha1(), prf, 16, hccap.eapol,
-			    hccap.eapol_size, mic[i].keymic, NULL);
+			    hccap.eapol_size, keymic, NULL);
+			memcpy(mic[i].keymic, keymic, 16);
 		}
 	}
 }
@@ -288,7 +292,7 @@ static int get_hash_0(int index)
 #ifdef WPAPSK_DEBUG
 	int i;
 	puts("get_hash");
-	uint32_t *b = mic[index].keymic;
+	uint32_t *b = (uint32_t *)mic[index].keymic;
 	for (i = 0; i < 4; i++)
 		printf("%08x ", b[i]);
 	puts("");

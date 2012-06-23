@@ -15,7 +15,7 @@
 #include "wpapsk.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
-#define FORMAT_NAME		"WPA-PSK"
+#define FORMAT_NAME		"WPA-PSK PBKDF2-HMAC-SHA-1"
 #define ALGORITHM_NAME		"OpenCL"
 
 #define BENCHMARK_COMMENT	""
@@ -69,6 +69,16 @@ static void init(struct fmt_main *pFmt)
 	outbuffer =
 	    (wpapsk_hash *) malloc(sizeof(wpapsk_hash) * MAX_KEYS_PER_CRYPT);
 	mic = (mic_t *) malloc(sizeof(mic_t) * MAX_KEYS_PER_CRYPT);
+
+/*
+ * Zeroize the lengths in case crypt_all() is called with some keys still
+ * not set.  This may happen during self-tests.
+ */
+	{
+		int i;
+		for (i = 0; i < pFmt->params.max_keys_per_crypt; i++)
+			inbuffer[i].length = 0;
+	}
 
 	//listOpenCLdevices();
 	opencl_init("$JOHN/wpapsk_kernel.cl", gpu_id, platform_id);

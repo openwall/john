@@ -12,9 +12,8 @@
 #include "cuda_wpapsk.h"
 #include "cuda_common.h"
 
-
 #define FORMAT_LABEL		"wpapsk-cuda"
-#define FORMAT_NAME		"WPA-PSK"
+#define FORMAT_NAME		"WPA-PSK PBKDF2-HMAC-SHA-1"
 #define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
@@ -56,6 +55,17 @@ static void init(struct fmt_main *pFmt)
 	check_mem_allocation(inbuffer, outbuffer);
 	mic = (mic_t *) malloc(sizeof(mic_t) * MAX_KEYS_PER_CRYPT);
 	atexit(cleanup);
+
+/*
+ * Zeroize the lengths in case crypt_all() is called with some keys still
+ * not set.  This may happen during self-tests.
+ */
+	{
+		int i;
+		for (i = 0; i < pFmt->params.max_keys_per_crypt; i++)
+			inbuffer[i].length = 0;
+	}
+
 	///Initialize CUDA
 	cuda_init(gpu_id);
 }
