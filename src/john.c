@@ -770,14 +770,9 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf &&
 	    !strcasecmp(options.listconf, "format-details")) {
 		struct fmt_main *format;
-		int i;
-
-		i = 0;
 		format = fmt_list;
 		do {
-			int ntests;
-			struct fmt_tests *current;
-			ntests = 0;
+			int ntests = 0;
 
 			if(format->params.tests) {
 				while (format->params.tests[ntests++].ciphertext);
