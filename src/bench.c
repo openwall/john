@@ -155,12 +155,14 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			prepared = format->methods.prepare(current->flds, format);
 			ciphertext = format->methods.split(prepared, 0);
 			salt = format->methods.salt(ciphertext);
+			++current;
 		}
 		else
 			salt = two_salts[0];
 
 		memcpy(two_salts[index], salt, format->params.salt_size);
 	}
+	format->methods.set_salt(two_salts[0]);
 
 	if (format->params.benchmark_length > 0) {
 		cond = (salts == 1) ? 1 : -1;
