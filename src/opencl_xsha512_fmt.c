@@ -133,7 +133,7 @@ static void set_key(char *key, int index)
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	gkey[index].length = length;
-	//memcpy(gkey[index].v, key, length);
+	memcpy(gkey[index].v, key, length);
 	xsha512_key_changed = 1;
 }
 
