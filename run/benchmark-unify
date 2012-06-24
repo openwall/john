@@ -1,0 +1,140 @@
+#!/usr/bin/perl -w
+#
+# John the Ripper benchmark output conversion tool, revision 1
+# Copyrigth (c) 2012, Frank Dittrich
+# Some code might be borrowed from the relbench script,
+# Copyright (2) 2011 Solar Designer, because the code has
+# originally been added as a patch to relbench.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.  (This is a heavily cut-down "BSD license".)
+#
+# The script is used to unify the benchmark (./john --test) output
+# of different John the Ripper versions (official or Jumbo)
+# so that the format names match those used in the newest (Jumbo) version.
+#
+# This allows to use two files with benchmark output to be used
+# with relbench.
+#
+# This Perl script reads "john --test" benchmark output from STDIN
+# and writes the converted benchmark output to STDOUT.
+#
+# You can either use
+#
+# ./john --test > benchmark-orig.txt
+#
+# ./benchmark-unify < benchmark-orig.txt > benchmark-converted.txt
+#
+# Or, you can use
+#
+# ./john --test | ./benchmark-unify > benchmark-converted.txt
+#
+# in case you don't need the original file
+#
+# If you want to create a file with benchmark output and see the
+# benchmark output on the screen while the benchmark runs, you can
+# also use
+#
+# ./john --test | ./benchmark-unify | tee benchmark-converted.txt
+#
+# Two of those converted benchmark output files can be used with
+# relbench, usually resulting in a higher number of matching
+# format names which allow to compare the benchmark results
+# of different benchmark runs.
+#
+
+sub parse
+{
+	chomp;
+	($name,$end) = /^Benchmarking: (.*[^ ]) +(\[.*\].*)$/;
+	if (defined($name) && defined($end)) {
+		$name =~ s/\s+/ /g;
+		$name =~ s/\[/(/;
+		$name =~ s/\]/)/;
+
+		if (defined($renamed{$name})) {
+			$name = $renamed{$name};
+		}
+		print "Benchmarking: $name $end\n";
+	}
+	else {
+		print "$_\n";
+	}
+}
+
+$_ = '';
+
+while(<DATA>) {
+	chomp;
+	($old_format, $new_format) = /^(.*)	(.*)$/;
+	if(defined($new_format) && defined($old_format)) {
+		# FIXME: Should I check that no format name appears
+		#        both as an old name and as a new name?
+		#        I don't want to map
+		#        old -> new -> even newer
+		#        or old -> new and new -> old
+		$renamed{$old_format} = $new_format;
+	}
+}
+
+$_ = '';
+
+while (<>) {
+	parse();
+}
+
+# Mapping old format names to new ones, separated by \t
+# old	new
+# Currently not mapped john-1.7.9-jumbo-5 format names:
+#
+# HMAC MD5	HMAC MD5
+# format name unchanged, but benchmark changed from Raw: to
+# Only one salt: / Many salts:
+#
+# MYSQL	MySQL
+# 2 different versions for john-1.7.9-jumbo-5, for next jumbo
+# the MYSQL_fast survived as MySQL, the MYSQL got moved to unused
+#
+# NT	NT (label nt)
+# format name not yet changed
+#
+# NT v2	NT (label nt2)
+# format name not yet changed
+#
+#
+# ssh	SSH RSA/DSA
+# test vector has changed: (one 2048-bit RSA and one 1024-bit DSA key)
+#
+# For readability, please keep this list sorted by old format name
+__DATA__
+DIGEST-MD5	DIGEST-MD5 C/R
+EPiServer SID Hashes	EPiServer SID salted SHA-1
+Eggdrop	Eggdrop Blowfish
+HTTP Digest access authentication	HTTP Digest access authentication MD5
+IPB2 MD5	Invision Power Board 2.x salted MD5
+Kerberos v4 TGT	Kerberos v4 TGT DES
+Kerberos v5 TGT	Kerberos v5 TGT 3DES
+Lotus5	Lotus Notes/Domino 5
+M$ Cache Hash	M$ Cache Hash MD4
+M$ Cache Hash 2 (DCC2)	M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
+MS Kerberos 5 AS-REQ Pre-Auth	MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4
+MS-SQL	MS SQL SHA-1
+MS-SQL05	MS SQL 2005 SHA-1
+MYSQL_fast	MySQL
+MediaWiki -- md5($s.'-'.md5($p))	MediaWiki md5($s.'-'.md5($p))
+More Secure Internet Password	Lotus Notes/Domino 6 More Secure Internet Password
+Netscape LDAP SHA	Netscape LDAP SHA-1
+Oracle	Oracle 10 DES
+Oracle 11g	Oracle 11g SHA-1
+PHPS -- md5(md5($pass).$salt)	PHPS md5(md5($pass).$salt)
+PHPass MD5	phpass MD5 ($P$9)
+Raw SHA	Raw SHA-0
+SAP BCODE	SAP CODVN B (BCODE)
+SAP CODVN G (PASSCODE)	SAP CODVN F/G (PASSCODE)
+generic crypt(3)	generic crypt(3) DES
+hmailserver	hMailServer salted SHA-256
+pdf	PDF MD5 RC4
+pkzip	PKZIP
+rar	RAR3 SHA-1 AES (4 characters)
+sybasease	Sybase ASE salted SHA-256
+zip	WinZip PBKDF2-HMAC-SHA-1

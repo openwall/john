@@ -770,27 +770,26 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf &&
 	    !strcasecmp(options.listconf, "format-details")) {
 		struct fmt_main *format;
-		int i;
-
-		i = 0;
-		format = fmt_list;
-		while ((format = format->next))
-			i++;
-
-		i = 0;
 		format = fmt_list;
 		do {
+			int ntests = 0;
+
+			if(format->params.tests) {
+				while (format->params.tests[ntests++].ciphertext);
+				ntests--;
+			}
 			/*
 			 * FIXME: Are other parameters more important?
 			 *        Should I use hexadecimal output
 			 *        for the FMT_flags?
 			 */
-			printf("%s\t%d\t%d\t%d\t%d\t%s\t%s\n",
+			printf("%s\t%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
 			       format->params.max_keys_per_crypt,
 			       format->params.flags,
+			       ntests,
 			       format->params.algorithm_name,
 			       format->params.format_name);
 		} while ((format = format->next));

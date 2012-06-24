@@ -11,19 +11,20 @@
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
+//#define WPAPSK_DEBUG
 #include "wpapsk.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define FORMAT_LABEL		"wpapsk"
-#define FORMAT_NAME		FORMAT_LABEL
-#define ALGORITHM_NAME		"OpenSSL"
+#define FORMAT_NAME		"WPA-PSK PBKDF2-HMAC-SHA-1"
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 
-#define	KEYS_PER_CRYPT		1
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-
-//#define WPAPSK_DEBUG
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 
 extern wpapsk_password *inbuffer;
 extern wpapsk_hash *outbuffer;
@@ -38,95 +39,116 @@ static struct fmt_tests tests[] = {
 
 static void init(struct fmt_main *pFmt)
 {
+#ifdef _OPENMP
+	int omp_t = omp_get_max_threads();
+	pFmt->params.min_keys_per_crypt *= omp_t;
+	pFmt->params.max_keys_per_crypt *= omp_t;
+#endif
+
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
-	inbuffer =
-	    (wpapsk_password *) malloc(sizeof(wpapsk_password) *
-	    MAX_KEYS_PER_CRYPT);
-	outbuffer =
-	    (wpapsk_hash *) malloc(sizeof(wpapsk_hash) * MAX_KEYS_PER_CRYPT);
-	mic = (mic_t *) malloc(sizeof(mic_t) * MAX_KEYS_PER_CRYPT);
-	if (inbuffer == NULL || outbuffer == NULL || mic == NULL) {
-		fprintf(stderr, "Memory alocation error\n");
-		exit(1);
+
+	inbuffer = mem_alloc(sizeof(*inbuffer) *
+	    pFmt->params.max_keys_per_crypt);
+	outbuffer = mem_alloc(sizeof(*outbuffer) *
+	    pFmt->params.max_keys_per_crypt);
+	mic = mem_alloc(sizeof(*mic) *
+	    pFmt->params.max_keys_per_crypt);
+
+/*
+ * Zeroize the lengths in case crypt_all() is called with some keys still
+ * not set.  This may happen during self-tests.
+ */
+	{
+		int i;
+		for (i = 0; i < pFmt->params.max_keys_per_crypt; i++)
+			inbuffer[i].length = 0;
 	}
 }
 
-static void wpapsk_cpu(wpapsk_password * in, wpapsk_hash * out,
-    wpapsk_salt * salt)
+static MAYBE_INLINE void wpapsk_cpu(int count,
+    wpapsk_password * in, wpapsk_hash * out, wpapsk_salt * salt)
 {
-	int i, j, k;
-	unsigned char essid[32 + 4];
-	unsigned char buffer[64];
+	int j;
 	int slen = salt->length + 4;
 
-	memset(essid, 0, 32 + 4);
-	memcpy(essid, salt->salt, salt->length);
-
-	for (j = 0; j < KEYS_PER_CRYPT; j++) {
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(j) shared(count, slen, salt, in, out)
+#endif
+	for (j = 0; j < count; j++) {
+		int i, k;
+		unsigned char essid[32 + 4];
+		union {
+			unsigned char c[64];
+			uint32_t i[16];
+		} buffer;
+		union {
+			unsigned char c[40];
+			uint32_t i[10];
+		} outbuf;
 		SHA_CTX ctx_ipad;
 		SHA_CTX ctx_opad;
 		SHA_CTX sha1_ctx;
-		memset(buffer, 0, 64);
-		memcpy(buffer, in[j].v, in[j].length);
+
+		memset(essid, 0, 32 + 4);
+		memcpy(essid, salt->salt, salt->length);
+		memset(&buffer, 0, 64);
+		memcpy(&buffer, in[j].v, in[j].length);
 
 		SHA1_Init(&ctx_ipad);
 		SHA1_Init(&ctx_opad);
 
-		for (i = 0; i < 64; i++)
-			buffer[i] ^= 0x36;
-		SHA1_Update(&ctx_ipad, buffer, 64);
+		for (i = 0; i < 16; i++)
+			buffer.i[i] ^= 0x36363636;
+		SHA1_Update(&ctx_ipad, buffer.c, 64);
 
-		for (i = 0; i < 64; i++)
-			buffer[i] ^= 0x6a;
-		SHA1_Update(&ctx_opad, buffer, 64);
+		for (i = 0; i < 16; i++)
+			buffer.i[i] ^= 0x6a6a6a6a;
+		SHA1_Update(&ctx_opad, buffer.c, 64);
 
 		essid[slen - 1] = 1;
 		HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen,
-		    (unsigned char *) out[j].v, NULL);
-		memcpy(buffer, out[j].v, 20);
+		    outbuf.c, NULL);
+		memcpy(&buffer, &outbuf, 20);
 
 		for (i = 1; i < 4096; i++) {
 			memcpy(&sha1_ctx, &ctx_ipad, sizeof(sha1_ctx));
-			SHA1_Update(&sha1_ctx, buffer, 20);
-			SHA1_Final(buffer, &sha1_ctx);
+			SHA1_Update(&sha1_ctx, buffer.c, 20);
+			SHA1_Final(buffer.c, &sha1_ctx);
 
 			memcpy(&sha1_ctx, &ctx_opad, sizeof(sha1_ctx));
-			SHA1_Update(&sha1_ctx, buffer, 20);
-			SHA1_Final(buffer, &sha1_ctx);
+			SHA1_Update(&sha1_ctx, buffer.c, 20);
+			SHA1_Final(buffer.c, &sha1_ctx);
 
-			for (k = 0; k < 5; k++) {
-				unsigned int *p = (unsigned int *) buffer;
-				out[j].v[k] ^= p[k];
-			}
+			for (k = 0; k < 5; k++)
+				outbuf.i[k] ^= buffer.i[k];
 		}
 		essid[slen - 1] = 2;
 		HMAC(EVP_sha1(), in[j].v, in[j].length, essid, slen,
-		    (unsigned char *) out[j].v + 5 * 4, NULL);
-		memcpy(buffer, out[j].v + 5, 20);
+		    &outbuf.c[20], NULL);
+		memcpy(&buffer, &outbuf.c[20], 20);
 
 		for (i = 1; i < 4096; i++) {
 			memcpy(&sha1_ctx, &ctx_ipad, sizeof(sha1_ctx));
-			SHA1_Update(&sha1_ctx, buffer, 20);
-			SHA1_Final(buffer, &sha1_ctx);
+			SHA1_Update(&sha1_ctx, buffer.c, 20);
+			SHA1_Final(buffer.c, &sha1_ctx);
 
 			memcpy(&sha1_ctx, &ctx_opad, sizeof(sha1_ctx));
-			SHA1_Update(&sha1_ctx, buffer, 20);
-			SHA1_Final(buffer, &sha1_ctx);
+			SHA1_Update(&sha1_ctx, buffer.c, 20);
+			SHA1_Final(buffer.c, &sha1_ctx);
 
-			for (k = 5; k < 8; k++) {
-				unsigned int *p = (unsigned int *) buffer;
-				outbuffer[j].v[k] ^= p[k - 5];
-			}
+			for (k = 5; k < 8; k++)
+				outbuf.i[k] ^= buffer.i[k - 5];
 		}
+
+		memcpy(&out[j], &outbuf, 32);
 	}
 }
 
 static void crypt_all(int count)
 {
-	wpapsk_cpu(inbuffer, outbuffer, &currentsalt);
+	wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
 	wpapsk_postprocess(count);
 }
-
 
 struct fmt_main fmt_wpapsk = {
 	{
@@ -140,7 +162,7 @@ struct fmt_main fmt_wpapsk = {
 		    SALT_SIZE,
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
+		    FMT_CASE | FMT_8_BIT | FMT_OMP,
 		    tests
 	},
 	{
@@ -177,6 +199,6 @@ struct fmt_main fmt_wpapsk = {
 		    cmp_all,
 		    cmp_one,
 		    cmp_exact,
-			fmt_default_get_source
+		    fmt_default_get_source
 	}
 };

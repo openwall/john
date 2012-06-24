@@ -150,6 +150,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		two_salts[index] = mem_alloc(format->params.salt_size);
 
 		if ((ciphertext = format->params.tests[index].ciphertext)) {
+			struct fmt_tests *current =
+			    &format->params.tests[index];
 			char *prepared;
 			current->flds[1] = current->ciphertext;
 			prepared = format->methods.prepare(current->flds, format);
@@ -427,16 +429,19 @@ int benchmark_all(void)
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
 		switch (format->params.benchmark_length) {
+		case 0:
+		case -1000:
+			if (format->params.tests[1].ciphertext) {
+				msg_m = "Many salts";
+				msg_1 = "Only one salt";
+				break;
+			}
+			/* fall through */
+
 		case -1:
 		case -1001:
 			msg_m = "Raw";
 			msg_1 = NULL;
-			break;
-
-		case 0:
-		case -1000:
-			msg_m = "Many salts";
-			msg_1 = "Only one salt";
 			break;
 
 		default:
