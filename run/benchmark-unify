@@ -91,17 +91,6 @@ while (<>) {
 # format name unchanged, but benchmark changed from Raw: to
 # Only one salt: / Many salts:
 #
-# MYSQL	MySQL
-# 2 different versions for john-1.7.9-jumbo-5, for next jumbo
-# the MYSQL_fast survived as MySQL, the MYSQL got moved to unused
-#
-# NT	NT (label nt)
-# format name not yet changed
-#
-# NT v2	NT (label nt2)
-# format name not yet changed
-#
-#
 # ssh	SSH RSA/DSA
 # test vector has changed: (one 2048-bit RSA and one 1024-bit DSA key)
 #
@@ -120,9 +109,11 @@ M$ Cache Hash 2 (DCC2)	M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
 MS Kerberos 5 AS-REQ Pre-Auth	MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4
 MS-SQL	MS SQL SHA-1
 MS-SQL05	MS SQL 2005 SHA-1
+MYSQL	MySQL
 MYSQL_fast	MySQL
 MediaWiki -- md5($s.'-'.md5($p))	MediaWiki md5($s.'-'.md5($p))
 More Secure Internet Password	Lotus Notes/Domino 6 More Secure Internet Password
+NT v2	NT MD4
 Netscape LDAP SHA	Netscape LDAP SHA-1
 Oracle	Oracle 10 DES
 Oracle 11g	Oracle 11g SHA-1
