@@ -57,9 +57,10 @@ static void wpapsk_cpu(wpapsk_password * in, wpapsk_hash * out,
 	int i, j, k;
 	unsigned char essid[32 + 4];
 	unsigned char buffer[64];
+	int slen = salt->length + 4;
+
 	memset(essid, 0, 32 + 4);
 	memcpy(essid, salt->salt, salt->length);
-	int slen = salt->length + 4;
 
 	for (j = 0; j < KEYS_PER_CRYPT; j++) {
 		SHA_CTX ctx_ipad;

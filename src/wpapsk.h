@@ -75,18 +75,19 @@ static hccap_t *decode_hccap(char *ciphertext)
 	static hccap_t hccap;
 	char *essid = ciphertext + strlen(wpapsk_prefix);
 	char *hash = strrchr(ciphertext, '#');
+	char *d = hccap.essid;
+	char *cap = hash + 1;
+	unsigned char tbuf[sizeof(hccap_t)];
+	unsigned char *dst = tbuf;
+	int i;
+
 	if (hash == NULL)
 		return &hccap;
-	char *d = hccap.essid;
 	while (essid != hash) {	///copy essid to hccap
 		*d++ = *essid++;
 	}
 	*d = '\0';
 	assert(*essid == '#');
-	char *cap = hash + 1;
-	unsigned char tbuf[sizeof(hccap_t)];
-	unsigned char *dst = tbuf;
-	int i;
 
 	for (i = 0; i < 118; i++) {
 		dst[0] =
@@ -128,10 +129,10 @@ static void *salt(char *ciphertext)
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
-		return 0;
 	char *hash = strrchr(ciphertext, '#') + 1;
 	int hashlength = 0;
+	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
+		return 0;
 	if (hash == NULL)
 		return 0;
 	while (hash < ciphertext + strlen(ciphertext)) {
@@ -154,8 +155,8 @@ static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 	memcpy(buff + 23, data, 76);
 	buff[22] = 0;
 	for (i = 0; i < 4; i++) {
-		buff[76 + 23] = i;
 		HMAC_CTX ctx;
+		buff[76 + 23] = i;
 		HMAC_Init(&ctx, key, 32, EVP_sha1());
 		HMAC_Update(&ctx, buff, 100);
 		HMAC_Final(&ctx, (unsigned char *) ret, NULL);

@@ -252,8 +252,8 @@ static void *alloc_binary(size_t size, void **alloc)
 	if (size >= ARCH_SIZE)
 		return *alloc;
 	if (size >= 4)
-		return (void*)*alloc + 4;
-	return (void*)*alloc + 1;
+		return (((char*)*alloc)+4);
+	return (((char*)*alloc)+1);
 }
 
 char *fmt_self_test(struct fmt_main *format)
