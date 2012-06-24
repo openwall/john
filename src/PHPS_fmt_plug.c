@@ -17,7 +17,7 @@
  *    my $a =  substr $fields[5], 0, 1;
  *    my $b =  substr $fields[5], 1, 1;
  *    my $c =  substr $fields[5], 2, 1;
- *    printf "%s:\$IPB2\$%02x%02x%02x\$%s\n", $fields[1], ord($a), ord($b), ord($c), $fields[4];
+ *    printf "%s:\$PHPS\$%02x%02x%02x\$%s\n", $fields[1], ord($a), ord($b), ord($c), $fields[4];
  * }
  *
  * BUGS: Can't handle usernames with ':' in them.
@@ -60,6 +60,7 @@
 
 static struct fmt_tests phps_tests[] = {
 	{"$PHPS$433925$5d756853cd63acee76e6dcd6d3728447", "welcome"},
+	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
 	{NULL}
 };
 
