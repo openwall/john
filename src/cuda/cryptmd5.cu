@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -131,8 +131,7 @@ __device__ void md5_digest(md5_ctx * ctx, uint32_t * result,
 }
 
 
-__device__ void md5crypt(const char *gpass, size_t keysize, uint32_t * result,
-    uint32_t idx)
+__device__ void md5crypt(const char *gpass, size_t keysize, char *result)
 {
 
 	uint32_t i;
@@ -141,21 +140,21 @@ __device__ void md5crypt(const char *gpass, size_t keysize, uint32_t * result,
 
 	uint8_t ctx_buflen;
 	char *pass = spass[threadIdx.x];
-	memcpy(pass, gpass, 16);
+	memcpy(pass, gpass, 15);
 	uint8_t pass_len = keysize;
-	uint8_t salt_len = cuda_salt[0].saltlen;
+	uint8_t salt_len = cuda_salt[0].length;
 	char *salt = cuda_salt[0].salt;
 	md5_ctx ctx;
 	ctx_init(&ctx, &ctx_buflen);
-	
+
 	ctx_update(&ctx, pass, pass_len, &ctx_buflen);
 	ctx_update(&ctx, salt, salt_len, &ctx_buflen);
 	ctx_update(&ctx, pass, pass_len, &ctx_buflen);
 	md5_digest(&ctx, alt_result[threadIdx.x], &ctx_buflen);
-		
+
 	ctx_init(&ctx, &ctx_buflen);
 
-		
+
 	ctx_update(&ctx, pass, pass_len, &ctx_buflen);
 	if (cuda_salt[0].prefix == '1') {
 		ctx_update(&ctx, md5_salt_prefix_cu, 3, &ctx_buflen);
@@ -163,7 +162,7 @@ __device__ void md5crypt(const char *gpass, size_t keysize, uint32_t * result,
 		ctx_update(&ctx, apr1_salt_prefix_cu, 6, &ctx_buflen);
 
 	ctx_update(&ctx, salt, salt_len, &ctx_buflen);
-	
+
 
 	ctx_update(&ctx, (const char *) alt_result[threadIdx.x], pass_len,
 	    &ctx_buflen);
@@ -203,20 +202,21 @@ __device__ void md5crypt(const char *gpass, size_t keysize, uint32_t * result,
 			ctx_update(&ctx, pass, pass_len, &ctx_buflen);
 		md5_digest(&ctx, alt_result[threadIdx.x], &ctx_buflen);
 	}
-
-	result[address(0, idx)] = alt_result[threadIdx.x][0];
-	result[address(1, idx)] = alt_result[threadIdx.x][1];
-	result[address(2, idx)] = alt_result[threadIdx.x][2];
-	result[address(3, idx)] = alt_result[threadIdx.x][3];
+	char cracked = 1;
+	cracked &= (alt_result[threadIdx.x][0] == cuda_salt[0].hash[0]);
+	cracked &= (alt_result[threadIdx.x][1] == cuda_salt[0].hash[1]);
+	cracked &= (alt_result[threadIdx.x][2] == cuda_salt[0].hash[2]);
+	cracked &= (alt_result[threadIdx.x][3] == cuda_salt[0].hash[3]);
+	*result = cracked;
 }
 
 
 __global__ void kernel_crypt_r(crypt_md5_password * inbuffer,
-    uint32_t * outbuffer)
+    crypt_md5_crack * outbuffer)
 {
 	uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 	md5crypt((char *) inbuffer[idx].v, inbuffer[idx].length,
-	    outbuffer, idx);
+	    &outbuffer[idx].cracked);
 }
 
 __host__ void md5_crypt_gpu(crypt_md5_password * inbuffer,
@@ -225,18 +225,19 @@ __host__ void md5_crypt_gpu(crypt_md5_password * inbuffer,
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt,
 		sizeof(crypt_md5_salt)));
 	crypt_md5_password *cuda_inbuffer;
-	uint32_t *cuda_outbuffer;
+	crypt_md5_crack *cuda_outbuffer;
 
 	size_t insize = sizeof(crypt_md5_password) * KEYS_PER_CRYPT;
-	size_t outsize = sizeof(crypt_md5_hash) * KEYS_PER_CRYPT;
+	size_t outsize = sizeof(crypt_md5_crack) * KEYS_PER_CRYPT;
 
 	HANDLE_ERROR(cudaMalloc(&cuda_inbuffer, insize));
 	HANDLE_ERROR(cudaMalloc(&cuda_outbuffer, outsize));
+
+
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
 
-	kernel_crypt_r <<< BLOCKS, THREADS >>> (cuda_inbuffer,
-	    cuda_outbuffer);
+	kernel_crypt_r <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,
 		cudaMemcpyDeviceToHost));

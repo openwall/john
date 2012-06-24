@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -10,56 +10,32 @@
 #include "../cuda_phpass.h"
 #include "cuda_common.cuh"
 
-const uint SETTING_SIZE = 12;
 const uint DATA_IN_SIZE = KEYS_PER_CRYPT * sizeof(phpass_password);
-const uint DATA_OUT_SIZE = KEYS_PER_CRYPT * sizeof(phpass_hash);
+const uint DATA_OUT_SIZE = KEYS_PER_CRYPT * sizeof(phpass_crack);
 
-__device__ unsigned char *cuda_data = NULL;
-__device__ uint32_t *cuda_data_out = NULL;
-__device__ char *cuda_setting = NULL;
+__device__ __constant__ phpass_salt cuda_salt[1];
 
-unsigned char *host_data = NULL;
-uint32_t *host_data_out = NULL;
+__global__ void kernel_phpass(unsigned char *, phpass_crack *);
 
-extern "C" void mem_init(unsigned char *, uint32_t *, char *, char *, int);
-extern "C" void mem_clear(void);
-extern "C" void gpu_phpass(void);
-
-__global__ void kernel_phpass(unsigned char *data, uint32_t * data_out,
-    char *, int);
-
-int cuda_count_log2;
-__host__ void gpu_phpass(void)
+extern "C" void gpu_phpass(uint8_t * host_data, phpass_salt * salt,
+    phpass_crack * host_data_out)
 {
-	dim3 dimGrid(BLOCKS);
-	dim3 dimBlock(THREADS);
-	kernel_phpass <<< dimGrid, dimBlock >>> (cuda_data, cuda_data_out,
-	    cuda_setting, cuda_count_log2);
-	HANDLE_ERROR(cudaThreadSynchronize());
-}
-
-__host__ void mem_init(unsigned char *p, uint32_t * h, char *setting,
-    char *itoa, int count_log2)
-{
-	cuda_count_log2 = count_log2;
-	host_data = p;
-	host_data_out = h;
-	HANDLE_ERROR(cudaMalloc(&cuda_setting, SETTING_SIZE));
+	uint8_t *cuda_data;
+	phpass_crack *cuda_data_out;
 	HANDLE_ERROR(cudaMalloc(&cuda_data, DATA_IN_SIZE));
 	HANDLE_ERROR(cudaMalloc(&cuda_data_out, DATA_OUT_SIZE));
+
 	HANDLE_ERROR(cudaMemcpy(cuda_data, host_data, DATA_IN_SIZE,
 		cudaMemcpyHostToDevice));
-	HANDLE_ERROR(cudaMemcpy(cuda_setting, setting, SETTING_SIZE,
-		cudaMemcpyHostToDevice));
-}
+	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, salt, SALT_SIZE));
 
-__host__ void mem_clear()
-{
+	kernel_phpass <<< BLOCKS, THREADS >>> (cuda_data, cuda_data_out);
+
+	HANDLE_ERROR(cudaThreadSynchronize());
 	HANDLE_ERROR(cudaMemcpy(host_data_out, cuda_data_out, DATA_OUT_SIZE,
 		cudaMemcpyDeviceToHost));
 	HANDLE_ERROR(cudaFree(cuda_data));
 	HANDLE_ERROR(cudaFree(cuda_data_out));
-	HANDLE_ERROR(cudaFree(cuda_setting));
 }
 
 __device__ void cuda_md5(char len, uint32_t * internal_ret, uint32_t * x)
@@ -162,8 +138,7 @@ __device__ void clear_ctx(uint32_t * x)
 		*x++ = 0;
 }
 
-__global__ void kernel_phpass(unsigned char *password, uint32_t * data_out,
-    char *setting, int count_log2)
+__global__ void kernel_phpass(unsigned char *password, phpass_crack * data_out)
 {
 	uint32_t x[8];
 	clear_ctx(x);
@@ -176,17 +151,16 @@ __global__ void kernel_phpass(unsigned char *password, uint32_t * data_out,
 
 #pragma unroll 8
 	for (i = 0; i < 8; i++)
-		buff[i] = setting[i + 4];
+		buff[i] = cuda_salt[0].salt[i];
 
 	for (i = 8; i < 8 + length; i++) {
 		buff[i] = password[address(i - 8, idx)];
 	}
 
 	cuda_md5(8 + length, x, x);
-	count = 1 << count_log2;
+	count = cuda_salt[0].rounds;
 	for (i = 16; i < 16 + length; i++)
 		buff[i] = password[address(i - 16, idx)];
-
 
 	uint32_t a, b, c, d, x0, x1, x2, x3, x4, x5, x6, x7;
 	uint32_t len = 16 + length;
@@ -290,9 +264,10 @@ __global__ void kernel_phpass(unsigned char *password, uint32_t * data_out,
 
 	} while (--count);
 
-	data_out[address(0, idx)] = x0;
-	data_out[address(1, idx)] = x1;
-	data_out[address(2, idx)] = x2;
-	data_out[address(3, idx)] = x3;
-
+	char cracked = 1;
+	cracked &= (x0 == cuda_salt[0].hash[0]);
+	cracked &= (x1 == cuda_salt[0].hash[1]);
+	cracked &= (x2 == cuda_salt[0].hash[2]);
+	cracked &= (x3 == cuda_salt[0].hash[3]);
+	data_out[idx].cracked = cracked;
 }
