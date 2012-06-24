@@ -1,7 +1,8 @@
 #!/usr/bin/perl -w
 #
-# John the Ripper benchmark output comparison tool, revision 4
+# John the Ripper benchmark output comparison tool, revision 4.1
 # Copyright (c) 2011 Solar Designer
+# Enhancements for revision 4.1, copyright (c) 2012 Frank Dittrich
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.  (This is a heavily cut-down "BSD license".)
 #
@@ -82,8 +83,8 @@ parse();
 while (<B1>) {
 	parse();
 	next unless (defined($id));
-	if(defined($b2r{$id})) {
-		print STDERR "More than one benchmark for $id in file 2\n";
+	if(defined($b1r{$id})) {
+		print STDERR "More than one benchmark for $id in file 1\n";
 		if($real > $b1r{$id} || ($real == $b1r{$id} && $virtual > $b1v{$id})) {
 			$b1r{$id} = $real;
 			$b1v{$id} = $virtual;

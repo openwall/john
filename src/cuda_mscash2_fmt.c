@@ -46,7 +46,7 @@ static void cleanup()
 static void init(struct fmt_main *pFmt)
 {
   //Alocate memory for hashes and passwords
-  inbuffer=(mscash2_password*)malloc(sizeof(mscash2_password)*MAX_KEYS_PER_CRYPT);
+  inbuffer=(mscash2_password*)calloc(MAX_KEYS_PER_CRYPT,sizeof(mscash2_password));
   outbuffer=(mscash2_hash*)malloc(sizeof(mscash2_hash)*MAX_KEYS_PER_CRYPT);
   check_mem_allocation(inbuffer,outbuffer);
   atexit(cleanup);

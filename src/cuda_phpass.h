@@ -1,6 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba
-* <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -11,9 +10,10 @@
 #define uint32_t 			unsigned int
 
 #define ROTATE_LEFT(x, s) 		((x << s) | (x >> (32 - s)))
-#define BLOCKS 				126*3	//it must be always something*3
+#define BLOCKS 				126
 #define THREADS 			256
 #define KEYS_PER_CRYPT 			BLOCKS*THREADS
+#define SALT_SIZE			sizeof(phpass_salt)
 
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
 #define G(x, y, z)			((y) ^ ((z) & ((x) ^ (y))))
@@ -70,12 +70,18 @@
 static char phpass_prefix[] = "$P$";
 
 typedef struct {
-	unsigned char v[15];
-	unsigned char length;
+	uint8_t v[15];
+	uint8_t length;
 } phpass_password;
 
 typedef struct {
-	uint32_t v[4];		///128bits for hash
-} phpass_hash;
+	uint8_t salt[8];
+	uint32_t hash[4];
+	uint32_t rounds;
+} phpass_salt;
+
+typedef struct {
+	uint8_t cracked;
+} phpass_crack;
 
 #endif

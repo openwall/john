@@ -209,7 +209,7 @@ static void find_best_workgroup()
 		}
 		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
 	}
-	printf("Optimal Group work Size = %d\n", (int) local_work_size);
+	printf("Optimal local work size= %d\n", (int) local_work_size);
 	clReleaseCommandQueue(queue_prof);
 }
 

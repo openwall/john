@@ -1,14 +1,14 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
-#ifndef _CRYPTMD5_H
-#define _CRYPTMD5_H
+#ifndef _CUDA_CRYPTMD5_H
+#define _CUDA_CRYPTMD5_H
 #include <assert.h>
-#include "common.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include "common.h"
 
 #define uint32_t unsigned int
 #define uint8_t unsigned char
@@ -16,25 +16,26 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
-#define BLOCKS (28)
-#define THREADS 256 
-#define KEYS_PER_CRYPT BLOCKS*THREADS
+#define BLOCKS			28*3
+#define THREADS 		256
+#define KEYS_PER_CRYPT		BLOCKS*THREADS
 #define PLAINTEXT_LENGTH	15
 
 typedef struct {
-	unsigned char saltlen;
+	uint32_t hash[4];	//hash that we are looking for
+	uint8_t length;   //salt length
 	char salt[8];
 	char prefix;		// 'a' when $apr1$ or '1' when $1$
 } crypt_md5_salt;
 
 typedef struct {
-	unsigned char length;
-	unsigned char v[PLAINTEXT_LENGTH];
+	uint8_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } crypt_md5_password;
 
 typedef struct {
-	uint32_t v[4];		//128 bits
-} crypt_md5_hash;
+	  char cracked;
+} crypt_md5_crack;
 
 typedef struct __attribute__((__aligned__(4))){
 	uint8_t buffer[64];
@@ -42,8 +43,6 @@ typedef struct __attribute__((__aligned__(4))){
 
 static const char md5_salt_prefix[] = "$1$";
 static const char apr1_salt_prefix[] = "$apr1$";
-
-#define address(j,idx) 			(((j)*KEYS_PER_CRYPT)+(idx))
 
 #define ROTATE_LEFT(x, s) ((x << s) | (x >> (32 - s)))
 

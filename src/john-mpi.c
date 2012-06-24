@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 int mpi_p, mpi_id, namesize;
 char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];
