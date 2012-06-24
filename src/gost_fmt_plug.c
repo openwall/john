@@ -30,7 +30,7 @@
 #endif
 
 #define FORMAT_LABEL		"gost"
-#define FORMAT_NAME		"GOST 3411"
+#define FORMAT_NAME		"GOST R 34.11-94"
 
 #define FORMAT_TAG		"$gost$"
 #define TAG_LENGTH		6
