@@ -67,13 +67,14 @@ since vBulletin salts can contain that character.  However, the
 above dynamic_6 works for this document, since *.* salt does not
 have a ':'
 
-Expressions can be added to john.conf (john.ini) to allow an end
-user to add a new format type, without having to do ANY coding
-at all.  The end user would have to learn the $dynamic_n$
+Expressions can be added to john.conf (john.ini), dynamic.conf
+(included by john.conf) or john.local.conf to allow an end user
+to add a new format type, without having to do ANY coding at all.
+The end user would have to learn the $dynamic_n$
 primitives, and how the data is used (input data, key data,
 encryption data, etc).  Also, the user would have to build
 properly formatted SAMPLE test values (john requires this).
-For the full 'HOW TO USE' documentation, see the john.conf.
+For the full 'HOW TO USE' documentation, see the dynamic.conf.
 
 
 How to build the 'test' value is beyond the scope of this readme,
@@ -87,7 +88,27 @@ md5(5a105e8b9d40e1329780d62ea2265d8a5a105e8b9d40e1329780d62ea2265d8a)
 which equals 478b10974f15e7295883224fd286ccba
 so a proper 'test' line is:
 Test=$dynamic_1003$478b10974f15e7295883224fd286ccba:test1
-( as can be seen in john.conf for dynamic_1003 )
+( as can be seen in dynamic.conf for dynamic_1003 )
+
+To get a list of all dynamic formats, you can use
+
+./john --list=subformats
+
+This command will create output like this:
+
+Format = dynamic_0   type = dynamic_0: md5($p) (raw-md5)
+Format = dynamic_1   type = dynamic_1: md5($p.$s) (joomla)
+Format = dynamic_2   type = dynamic_2: md5(md5($p)) (e107)
+...
+Format = dynamic_32  type = dynamic_32: md4($p.$s)
+Format = dynamic_33  type = dynamic_33: md4(unicode($p))
+Format = dynamic_34  type = dynamic_34: md5(md4($p))
+UserFormat = dynamic_1001  type = dynamic_1001 md5(md5(md5(md5($p))))
+UserFormat = dynamic_1002  type = dynamic_1002 md5(md5(md5(md5(md5($p)))))
+UserFormat = dynamic_1003  type = dynamic_1003 md5(md5($p).md5($p))
+
+The "Format = ..." lines list builtin formats, the lines "UserFormat = ..."
+list user formats (or sample formats).
 
 The builtiin formats that john has right now are:
 
@@ -121,13 +142,19 @@ dynamic_23  | sha1(md5($p))           | No    | Requires a 40 byte hex number (v
 dynamic_24  | sha1($p.$s)             | Yes   | Requires a 40 byte hex number (valid sha1 input)
 dynamic_25  | sha1($s.$p)             | Yes   | Requires a 40 byte hex number (valid sha1 input)
 dynamic_26  | sha1($p) (raw-sha1)     | No    | Requires a 40 byte hex number (valid sha1 input)
-dynamic_27  } FreeBSD md5             | Yes   |
+dynamic_27  | FreeBSD md5             | Yes   |
 dynamic_28  | Apache MD5              | Yes   |
+dynamic_29  | md5(unicode($p))        | No    |
+dynamic_30  | md4($p) (raw-md4)       | No    |
+dynamic_31  | md4($s.$p)              | Yes   |
+dynamic_32  | md4($p.$s)              | Yes   |
+dynamic_33  | md4(unicode($p))        | No    |
+dynamic_34  | md5(md4($p))            | No    |
 
 ........    | RESERVED                | UNK   |
 dynamic_999 | RESERVED                | UNK   |
 
-The 'samples' stored in john.conf (to be used as is, or as examples) are:
+The 'samples' stored in dynamic.conf (to be used as is, or as examples) are:
 
 dynamic_1001  md5(md5(md5(md5($p))))
 dynamic_1002  md5(md5(md5(md5(md5($p)))))
@@ -135,16 +162,16 @@ dynamic_1003  md5(md5($p).md5($p))
 dynamic_1004  md5(md5(md5(md5(md5(md5($p))))))
 dynamic_1005  md5(md5(md5(md5(md5(md5(md5($p)))))))
 dynamic_1006  md5(md5(md5(md5(md5(md5(md5(md5($p))))))))
-dynamic_1007  md5(md5($p).$s) [vBulletin]
-dynamic_1008  md5($p.$s) [joomla]
+dynamic_1007  md5(md5($p).$s) (vBulletin)
+dynamic_1008  md5($p.$s) (joomla)
 
 
 
-NOTE the documentation section of john.conf is listed here.  It shows
+NOTE the documentation section of dynamic.conf is listed here.  It shows
 how to setup dynamiceric functions (above 1000).  All of the primitives
 are defined, the data structures are defined, the expression, flags,
 saltlen, etc.  Following the 'howto use' section, are some working
-examples (this whole list is also found in john.conf).
+examples (this whole list is also found in dynamic.conf).
 
 ####################################################################
 ####################################################################
@@ -808,7 +835,8 @@ examples (this whole list is also found in john.conf).
 ####################################################################
 ####################################################################
 #  Here are some additional 'test' formats.  To use these, simply
-#  cut them and place them at the bottom of john.ini (john.conf).
+#  cut them and place them under a new name at the bottom of
+#  dynamic.conf.
 #  These require john-1.7.7 jumbo2 + to work properly
 ####################################################################
 ####################################################################
