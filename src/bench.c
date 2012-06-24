@@ -157,7 +157,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			prepared = format->methods.prepare(current->flds, format);
 			ciphertext = format->methods.split(prepared, 0);
 			salt = format->methods.salt(ciphertext);
-			++current;
 		}
 		else
 			salt = two_salts[0];
