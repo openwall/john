@@ -190,7 +190,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	printf("Max Group Work Size %d\n", (int) max_group_size);
+	printf("Max local work size %d\n", (int) max_group_size);
 	local_work_size = 1;
 
 	/// Set keys - first key from tests will be benchmarked
@@ -232,7 +232,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
-	printf("Optimal Group work Size = %d\n", (int) local_work_size);
+	printf("Optimal local work size = %d\n", (int) local_work_size);
 }
 
 

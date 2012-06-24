@@ -78,7 +78,7 @@ static void find_best_workgroup(void){
 
 	clGetDeviceInfo(devices[gpu_id],CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(max_group_size),&max_group_size,NULL );
 	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	printf("Max Group Work Size %d ",(int)max_group_size);
+	printf("Max local work size %d ",(int)max_group_size);
 	local_work_size = 1;
 
 	// Set keys
