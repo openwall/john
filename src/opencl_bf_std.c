@@ -538,7 +538,7 @@ void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,in
 
 void opencl_BF_std_crypt(BF_salt *salt, int n)
 {
-	int index=0,i,j,_index_P;
+	int index=0,j;
 	static unsigned int salt_api[4];
 	unsigned int rounds=salt->rounds;
 		
