@@ -82,8 +82,8 @@ parse();
 while (<B1>) {
 	parse();
 	next unless (defined($id));
-	if(defined($b2r{$id})) {
-		print STDERR "More than one benchmark for $id in file 2\n";
+	if(defined($b1r{$id})) {
+		print STDERR "More than one benchmark for $id in file 1\n";
 		if($real > $b1r{$id} || ($real == $b1r{$id} && $virtual > $b1v{$id})) {
 			$b1r{$id} = $real;
 			$b1v{$id} = $virtual;
