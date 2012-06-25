@@ -463,34 +463,13 @@ void get_markov_options(struct db_main *db,
 	*mkv_minlevel = minlevel;
 	*mkv_level = level;
 }
-void do_markov_crack(struct db_main *db, char *mkv_param)
+void get_markov_start_end(char *start_token, char *end_token,
+                          unsigned long long mkv_max,
+                          unsigned long long *mkv_start, unsigned long long *mkv_end)
 {
-	char *statfile = NULL;
-	char *start_token = NULL;
-	char *end_token = NULL;
-	char *param = NULL;
-	unsigned int mkv_minlevel, mkv_level,  mkv_maxlen, mkv_minlen;
-	unsigned long long mkv_start, mkv_end;
-
-#ifdef HAVE_MPI
-	unsigned long long mkv_size;
-#endif
-
-	if(mkv_param != NULL)
+	if((start_token != NULL) && (sscanf(start_token, LLd, mkv_start)==1) )
 	{
-		param = str_alloc_copy(mkv_param);
-		if(param == NULL)
-			param = mkv_param;
-	}
-
-	get_markov_options(db,
-	                   mkv_param,
-	                   &mkv_minlevel, &mkv_level, &start_token, &end_token,
-	                   &mkv_minlen, &mkv_maxlen, &statfile);
-
-	if((start_token != NULL) && (sscanf(start_token, LLd, &mkv_start)==1) )
-	{
-		if((end_token != NULL) && (sscanf(end_token, LLd, &mkv_end)==1) )
+		if((end_token != NULL) && (sscanf(end_token, LLd, mkv_end)==1) )
 		{
 		}
 		else if(end_token != NULL)
@@ -522,6 +501,90 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 		error();
 	}
 
+	if (start_token[strlen(start_token)-1] == '%') {
+		if (*mkv_start >= 100) {
+			log_event("! Start = %s is too large (max < 100%%)", end_token);
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
+			fprintf(stderr, "Error: Start = %s is too large (max < 100%%)\n", start_token);
+				exit(1);
+		} else if (*mkv_start > 0) {
+			*mkv_start *= mkv_max / 100;
+			log_event("- Start: %s converted to "LLd, start_token, *mkv_start);
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
+			fprintf(stderr, "Start: %s converted to "LLd"\n", start_token, *mkv_start);
+		}
+	}
+	if (end_token[strlen(end_token)-1] == '%') {
+		if (*mkv_end >= 100) {
+			if (*mkv_end > 100) {
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
+				fprintf(stderr, "Warning: End = %s is too large (max = 100%%)\n", end_token);
+			}
+			*mkv_end = 0;
+		} else if (*mkv_end > 0) {
+			*mkv_end *= mkv_max / 100;
+			log_event("- End: %s converted to "LLd"", end_token, *mkv_end);
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
+			fprintf(stderr, "End: %s converted to "LLd"\n", end_token, *mkv_end);
+		}
+	}
+	if(*mkv_end == 0)
+		*mkv_end = mkv_max;
+
+	if(*mkv_end > mkv_max)
+	{
+		log_event("! End = "LLd" is too large (max="LLd")", *mkv_end, mkv_max);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Warning: End = "LLd" is too large (max = "LLd")\n", *mkv_end, mkv_max);
+		*mkv_end = mkv_max;
+	}
+
+	if(*mkv_start > *mkv_end)
+	{
+		log_event("! MKV start > end ("LLd" > "LLd")", *mkv_start, *mkv_end);
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Error: MKV start > end ("LLd" > "LLd")\n", *mkv_start, *mkv_end);
+		error();
+	}
+}
+
+void do_markov_crack(struct db_main *db, char *mkv_param)
+{
+	char *statfile = NULL;
+	char *start_token = NULL;
+	char *end_token = NULL;
+	char *param = NULL;
+	unsigned int mkv_minlevel, mkv_level,  mkv_maxlen, mkv_minlen;
+	unsigned long long mkv_start, mkv_end;
+
+#ifdef HAVE_MPI
+	unsigned long long mkv_size;
+#endif
+
+	if(mkv_param != NULL)
+	{
+		param = str_alloc_copy(mkv_param);
+		if(param == NULL)
+			param = mkv_param;
+	}
+
+	get_markov_options(db,
+	                   mkv_param,
+	                   &mkv_minlevel, &mkv_level, &start_token, &end_token,
+	                   &mkv_minlen, &mkv_maxlen, &statfile);
+
 	gidx = 0;
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
@@ -536,70 +599,12 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	gmin_level = mkv_minlevel;
 	gmin_len = mkv_minlen;
 
-
 	nbparts = mem_alloc(256*(mkv_level+1)*sizeof(long long)*(mkv_maxlen+1));
 	memset(nbparts, 0, 256*(mkv_level+1)*(mkv_maxlen+1)*sizeof(long long));
 
 	nb_parts(0, 0, 0, mkv_level, mkv_maxlen);
 
-	if (start_token[strlen(start_token)-1] == '%') {
-		if (mkv_start >= 100) {
-			log_event("! Start = %s is too large (max < 100%%)", end_token);
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Error: Start = %s is too large (max < 100%%)\n", start_token);
-				exit(1);
-		} else if (mkv_start > 0) {
-			mkv_start = nbparts[0] / 100 * mkv_start;
-			log_event("- Start: %s converted to "LLd, start_token, mkv_start);
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Start: %s converted to "LLd"\n", start_token, mkv_start);
-		}
-	}
-	if (end_token[strlen(end_token)-1] == '%') {
-		if (mkv_end >= 100) {
-			if (mkv_end > 100) {
-#ifdef HAVE_MPI
-				if (mpi_id == 0)
-#endif
-				fprintf(stderr, "Warning: End = %s is too large (max = 100%%)\n", end_token);
-			}
-			mkv_end = 0;
-		} else if (mkv_end > 0) {
-			mkv_end = nbparts[0] / 100 * mkv_end;
-			log_event("- End: %s converted to "LLd"", end_token, mkv_end);
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "End: %s converted to "LLd"\n", end_token, mkv_end);
-		}
-	}
-
-	if(mkv_end==0)
-		mkv_end = nbparts[0];
-
-	if(mkv_end>nbparts[0])
-	{
-		log_event("! End = "LLd" is too large (max="LLd")", mkv_end, nbparts[0]);
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Warning: End = "LLd" is too large (max = "LLd")\n", mkv_end, nbparts[0]);
-		mkv_end = nbparts[0];
-	}
-
-	if(mkv_start>mkv_end)
-	{
-		log_event("! MKV start > end ("LLd" > "LLd")", mkv_start, mkv_end);
-#ifdef HAVE_MPI
-		if (mpi_id == 0)
-#endif
-		fprintf(stderr, "Error: MKV start > end ("LLd" > "LLd")\n", mkv_start, mkv_end);
-		error();
-	}
+	get_markov_start_end(start_token, end_token, nbparts[0], &mkv_start, &mkv_end);
 
 #ifdef HAVE_MPI
 	if (mpi_id == 0) {
