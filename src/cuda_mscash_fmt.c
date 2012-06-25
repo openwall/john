@@ -12,6 +12,7 @@
 #include "misc.h"
 #include "cuda_mscash.h"
 #include "cuda_common.h"
+#include "unicode.h"
 
 #define FORMAT_LABEL		"mscash-cuda"
 #define FORMAT_NAME		"M$ Cache Hash MD4"
@@ -246,7 +247,7 @@ struct fmt_main fmt_cuda_mscash = {
 		    SALT_SIZE,
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
+		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
 	    tests},
 	{
 		    init,
