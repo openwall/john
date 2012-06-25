@@ -28,9 +28,10 @@
 #define BINARY_SIZE		16
 #define SALT_SIZE		8
 
-#define KEYS_PER_CRYPT		1024*9*4
+#define KEYS_PER_CRYPT		1024*9
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+
 
 //#define _PHPASS_DEBUG
 
@@ -57,7 +58,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(phpass_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(phpass_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(uint8_t) * SALT_SIZE + 4;
-static size_t global_work_size = KEYS_PER_CRYPT/4;
+static size_t global_work_size = KEYS_PER_CRYPT;
 
 
 static struct fmt_tests tests[] = {
@@ -252,7 +253,7 @@ static void crypt_all(int count)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
+		NULL, &global_work_size, &local_work_size, 0, NULL, NULL),
 	    "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
