@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall dot net>
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -15,16 +15,6 @@
 #define uint32_t		unsigned int
 #define uint8_t			unsigned char
 
-#define PHPASS_TYPE		"PORTABLE-MD5"
-
-#define PLAINTEXT_LENGTH	15
-#define CIPHERTEXT_LENGTH	34	/// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
-#define BINARY_SIZE		16
-#define SALT_SIZE		8
-
-#define KEYS_PER_CRYPT		1024*9
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define FORMAT_LABEL		"phpass-opencl"
 #define FORMAT_NAME		"phpass MD5"
 
@@ -33,6 +23,14 @@
 #define BENCHMARK_COMMENT	" ($P$9 length 8)"
 #define BENCHMARK_LENGTH	-1
 
+#define PLAINTEXT_LENGTH	15
+#define CIPHERTEXT_LENGTH	34	/// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
+#define BINARY_SIZE		16
+#define SALT_SIZE		8
+
+#define KEYS_PER_CRYPT		1024*9*4
+#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 //#define _PHPASS_DEBUG
 
@@ -45,8 +43,8 @@ typedef struct {
 	uint32_t v[4];		///128bits for hash
 } phpass_hash;
 
-static phpass_password inbuffer[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
-static phpass_hash outbuffer[MAX_KEYS_PER_CRYPT];			/** calculated hashes **/
+static phpass_password *inbuffer;//[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
+static phpass_hash *outbuffer;//[MAX_KEYS_PER_CRYPT];			/** calculated hashes **/
 static const char phpass_prefix[] = "$P$";
 static char currentsalt[SALT_SIZE + 1];
 
@@ -59,7 +57,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(phpass_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(phpass_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(uint8_t) * SALT_SIZE + 4;
-static size_t global_work_size = KEYS_PER_CRYPT;
+static size_t global_work_size = KEYS_PER_CRYPT/4;
 
 
 static struct fmt_tests tests[] = {
@@ -74,15 +72,15 @@ static struct fmt_tests tests[] = {
 	   {"$P$9sadli2.wzQIuzsR2nYVhUSlHNKgG/0", "john"},
 	   {"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""}, */
 
-	{"$P$9saltstriAcRMGl.91RgbAD6WSq64z.", "a"},
+	/*{"$P$9saltstriAcRMGl.91RgbAD6WSq64z.", "a"},
 	   {"$P$9saltstriMljTzvdluiefEfDeGGQEl/", "ab"},
 	   {"$P$9saltstrikCftjZCE7EY2Kg/pjbl8S.", "abc"},
 	   {"$P$9saltstriV/GXRIRi9UVeMLMph9BxF0", "abcd"},
 	   {"$P$9saltstri3JPgLni16rBZtI03oeqT.0", "abcde"},
 	   {"$P$9saltstri0D3A6JyITCuY72ZoXdejV.", "abcdef"},
-	   {"$P$9saltstriXeNc.xV8N.K9cTs/XEn13.", "abcdefg"},
+	   {"$P$9saltstriXeNc.xV8N.K9cTs/XEn13.", "abcdefg"}, */
 	{"$P$9saltstrinwvfzVRP3u1gxG2gTLWqv.", "abcdefgh"},
-
+	/*
 	   {"$P$9saltstriSUQTD.yC2WigjF8RU0Q.Z.", "abcdefghi"},
 	   {"$P$9saltstriWPpGLG.jwJkwGRwdKNEsg.", "abcdefghij"},
 	   {"$P$9saltstrizjDEWUMXTlQHQ3/jhpR4C.", "abcdefghijk"},
@@ -90,7 +88,7 @@ static struct fmt_tests tests[] = {
 	   {"$P$9saltstriq7s97e2m7dXnTEx2mtPzx.", "abcdefghijklm"},
 	   {"$P$9saltstriTWMzWKsEeiE7CKOVVU.rS0", "abcdefghijklmn"},
 	   {"$P$9saltstriXt7EDPKtkyRVOqcqEW5UU.", "abcdefghijklmno"}, 
-
+	 */
 	{NULL}
 };
 
@@ -101,6 +99,8 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
+	free(inbuffer);
+	free(outbuffer);
 }
 
 static void set_key(char *key, int index)
@@ -121,71 +121,21 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void find_best_workgroup()
-{
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i;
-	size_t max_group_size;
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_WORK_GROUP_SIZE,
-	    sizeof(max_group_size), &max_group_size, NULL);
-	cl_command_queue queue_prof =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-	    CL_QUEUE_PROFILING_ENABLE,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating command queue");
-	local_work_size = 1;
-	/// Set keys
-	char *pass = "aaaaaaaa";
-	for (i = 0; i < KEYS_PER_CRYPT; i++) {
-		set_key(pass, i);
-	}
-	///Set salt
-	memcpy(currentsalt, "saltstri9", 9);
-	char setting[SALT_SIZE + 3 + 1] = { 0 };
-	strcpy(setting, currentsalt);
-	strcpy(setting + SALT_SIZE, phpass_prefix);
-	setting[SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
-
-	///Copy data to GPU
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_setting, CL_FALSE,
-		0, settingsize, setting, 0, NULL, NULL),
-	    "Copy setting to gpu");
-
-	///Find best local work size
-	for (my_work_group = 1; (int) my_work_group <= (int) max_group_size;
-	    my_work_group *= 2) {
-
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-			1, NULL, &global_work_size, &my_work_group, 0, NULL,
-			&myEvent), "Run kernel");
-
-		HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-		    sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-		    sizeof(cl_ulong), &endTime, NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		}
-		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
-	}
-	printf("Optimal local work size = %d\n", (int) local_work_size);
-	clReleaseCommandQueue(queue_prof);
-}
-
 static void init(struct fmt_main *pFmt)
 {
-	//atexit(release_all);
+	atexit(release_all);
 	opencl_init("$JOHN/phpass_kernel.cl", gpu_id,platform_id);
 
 	/// Alocate memory
+	inbuffer =
+	    (phpass_password *) calloc(MAX_KEYS_PER_CRYPT,
+	    sizeof(phpass_password));
+	assert(inbuffer != NULL);
+	outbuffer =
+	    (phpass_hash *) calloc(MAX_KEYS_PER_CRYPT,
+	    sizeof(phpass_hash));
+	assert(inbuffer != NULL);
+
 	cl_int cl_error;
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -203,11 +153,14 @@ static void init(struct fmt_main *pFmt)
 	/// Setup kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], "phpass", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
-	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
-	clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting), &mem_setting);
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
+		&mem_in), "Error while setting mem_in");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
+		&mem_out), "Error while setting mem_out");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
+		&mem_setting), "Error while setting mem_setting");
 
-	find_best_workgroup();
+	opencl_find_best_workgroup(pFmt);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -299,7 +252,7 @@ static void crypt_all(int count)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, NULL),
+		NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
 	    "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
