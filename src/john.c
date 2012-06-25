@@ -136,6 +136,7 @@ extern struct fmt_main fmt_SKEY;
 extern struct fmt_main mozilla_fmt;
 extern int mozilla2john(int argc, char **argv);
 #endif
+extern int hccap2john(int argc, char **argv);
 
 #ifdef CL_VERSION_1_0
 extern struct fmt_main fmt_opencl_NSLDAPS;
@@ -1034,6 +1035,10 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
+	}
+	if (!strcmp(name, "hccap2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return hccap2john(argc, argv);
 	}
 
 #ifdef HAVE_MPI
