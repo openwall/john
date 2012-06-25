@@ -542,6 +542,23 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 
 	nb_parts(0, 0, 0, mkv_level, mkv_maxlen);
 
+	if (start_token[strlen(start_token)-1] == '%') {
+		if (mkv_start >= 100) {
+			log_event("! Start = %s is too large (max < 100%%)", end_token);
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
+			fprintf(stderr, "Error: Start = %s is too large (max < 100%%)\n", start_token);
+				exit(1);
+		} else if (mkv_start > 0) {
+			mkv_start = nbparts[0] / 100 * mkv_start;
+			log_event("- Start: %s converted to "LLd, start_token, mkv_start);
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
+			fprintf(stderr, "Start: %s converted to "LLd"\n", start_token, mkv_start);
+		}
+	}
 	if (end_token[strlen(end_token)-1] == '%') {
 		if (mkv_end >= 100) {
 			if (mkv_end > 100) {
@@ -560,24 +577,6 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 			fprintf(stderr, "End: %s converted to "LLd"\n", end_token, mkv_end);
 		}
 	}
-	if (start_token[strlen(start_token)-1] == '%') {
-		if (mkv_start >= 100) {
-			log_event("! Start = %s is too large (max < 100%%)", end_token);
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Error: Start = %s is too large (max < 100%%)\n", start_token);
-				exit(1);
-		} else if (mkv_start > 0) {
-			mkv_start = nbparts[0] / 100 * mkv_start;
-			log_event("- Start: %s converted to "LLd, start_token, mkv_start);
-#ifdef HAVE_MPI
-			if (mpi_id == 0)
-#endif
-			fprintf(stderr, "Start: %s converted to "LLd"\n", start_token, mkv_start);
-		}
-	}
-
 
 	if(mkv_end==0)
 		mkv_end = nbparts[0];
