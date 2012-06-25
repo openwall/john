@@ -214,7 +214,7 @@ static void mysql_crypt_all(int count)
 			while (*p == ' ' || *p == '\t')
 				p++;
 			tmp = (ARCH_WORD_32) (unsigned char) *p++;
-			nr = 1345345333 ^ ((((1345345333 & 63) + 7) * tmp) + (1345345333 << 8));
+			nr = 1345345333 ^ ((((1345345333 & 63) + 7) * tmp) + (1345345333U << 8));
 			add = 7 + tmp;
 			for (; *p; p++) {
 				if (*p == ' ' || *p == '\t')
