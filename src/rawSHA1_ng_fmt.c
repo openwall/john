@@ -605,7 +605,7 @@ static int sha1_fmt_cmp_exact(char *source, int cuont)
 struct fmt_main sha1_fmt_ng = {
     .params                 = {
         .label              = "raw-sha1-ng",
-        .format_name        = "Raw SHA-1",
+        .format_name        = "Raw SHA-1 (pwlen <= 15)",
         .algorithm_name     =
 	"128/128 "
 #if defined(__XOP__)
