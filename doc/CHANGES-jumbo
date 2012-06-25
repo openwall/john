@@ -39,11 +39,11 @@ Other changes:
 Dittrich)
 * Move MYSQL_fmt_plug.c to unused/, rename MYSQL_fast_fmt_plug.c to
 mysql_fmt_plug.c and change its label to just mysql (magnum)
-* Several enhancements for relbench (Frank Dittrich)
+* Several enhancements for relbench (Frank)
 * benchmark-unify: a Perl script to convert benchmark output for relbench
-(Frank Dittrich)
+(Frank)
 * Add three more make targets. linux-x86-clang-debug is super good for
-debugging. (Dhiru Kholia)
+debugging. (Dhiru)
 * Make --log-stderr a hidden option (magnum)
 * Move --field-separator-char to hidden option (magnum)
 * Add new options --loopback[=FILE] and --dupe-suppression (the former implies
@@ -52,25 +52,24 @@ the latter) and revert some stuff for backwards compatibility. (magnum)
 mostly for testing purposes. (magnum)
 * Sparc porting and other fixes (JimF)
 * Fix a cosmetical off-by-one bug in wordlist.c (JimF)
-* Add --list=format-details (Frank Dittrich)
+* Add --list=format-details (Frank)
 * Reduced binary for raw-md4, raw-md5, raw-sha1 and NT2. This decreases memory
 usage with 12 bytes per loaded hash for NT/MD4/MD5 and 16 bytes for SHA1 and
 should help keeping good stuff in cache. (magnum)
-* Implement --markov=MODE[:<options>] (Frank Dittrich)
+* Implement --markov=MODE[:<options>] (Frank)
 * Add experimental linux -native build targets (magnum)
 * Markov: different error messages for missing [Markov:Default] section and for
-missing Statsfile definition in an existing [Markov:Default] section (Frank
-Dittrich)
-* genmkvpwd should use MAX_MKV_LVL (Frank Dittrich)
+missing Statsfile definition in an existing [Markov:Default] section (Frank)
+* genmkvpwd should use MAX_MKV_LVL (Frank)
 * Markov mode: move parameter validation into new function get_markov_options
 Additionaly, the logic has been changed so that the max. values for level and
 length are adjusted prior to checking min. values, to avoid adjusting min.
-value to a max. value which is changed afterwards: (Frank Dittrich)
+value to a max. value which is changed afterwards: (Frank)
 * New option: --log-stderr (magnum)
 * Loads of minor fixes for Sparc (endianness, alignment) (JimF)
-* CUDA device lister, show them with --list=cuda-devices (Lukas Odzioba)
+* CUDA device lister, show them with --list=cuda-devices (Lukas)
 * Move markov option handling to mkv.c (do_markov_crack). Use [Markov:Default]
-instead of [Options:Markov] (Frank Dittrich)
+instead of [Options:Markov] (Frank)
 * Add --list=[encodings|opencl-devices]. Deprecate --encodings=LIST (but it's
 still supported). We will later support --list=cuda-devices too. Drop
 --device=list and --platforms=list (not supported from now on). For the
@@ -84,7 +83,7 @@ the name "All" for local use, thus using "Jumbo" instead. (magnum)
 * Source $JOHN/john.local.conf by default. This file is never overwritten but
 will be created empty when building, if it does not exist. It must *not* be
 included in any release tarball. (magnum)
-* c3_fmt.c: improve --subformat= handling (Frank Dittrich)
+* c3_fmt.c: improve --subformat= handling (Frank)
 * wordlist.c: Status bug fix (JimF)
 * Add --list=subformats and deprecate --subformat=list (magnum)
 * raw2dyna added. This is a helper program that converts raw hashes to dynamic
