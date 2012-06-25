@@ -77,7 +77,7 @@ int hccap2john(int argc, char **argv)
 	int i;
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 	if (argc < 2) {
-		puts("Usage: hccap2john [RACF binary files]");
+		fprintf(stderr, "Usage: hccap2john [RACF binary files]\n");
 		return -1;
 	}
 	for (i = 1; i < argc; i++)

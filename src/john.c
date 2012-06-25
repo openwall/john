@@ -136,6 +136,7 @@ extern struct fmt_main fmt_SKEY;
 extern struct fmt_main mozilla_fmt;
 extern int mozilla2john(int argc, char **argv);
 #endif
+extern int hccap2john(int argc, char **argv);
 
 #ifdef CL_VERSION_1_0
 extern struct fmt_main fmt_opencl_NSLDAPS;
@@ -570,8 +571,9 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
-		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
+		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only, ");
+		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details, ");
+		puts("format-all-details, ");
 #ifdef CL_VERSION_1_0
 		printf("opencl-devices, ");
 #endif
@@ -792,6 +794,43 @@ static void john_init(char *name, int argc, char **argv)
 			       ntests,
 			       format->params.algorithm_name,
 			       format->params.format_name);
+		} while ((format = format->next));
+		exit(0);
+	}
+	if (options.listconf &&
+	    !strcasecmp(options.listconf, "format-all-details")) {
+		struct fmt_main *format;
+		format = fmt_list;
+		do {
+			int ntests = 0;
+
+			if(format->params.tests) {
+				while (format->params.tests[ntests++].ciphertext);
+				ntests--;
+			}
+			/*
+			 * attributes should be printed in the same sequence
+			 * as with format-details, but human-readable
+			 */
+			printf("Format label                    \t%s\n", format->params.label);
+			printf("Max. password length in bytes   \t%d\n", format->params.plaintext_length);
+			printf("Min. keys per crypt             \t%d\n", format->params.min_keys_per_crypt);
+			printf("Max. keys per crypt             \t%d\n", format->params.max_keys_per_crypt);
+			printf("Flags\n");
+			printf("    Case sensitive              \t%s\n", (format->params.flags & FMT_CASE) ? "yes" : "no");
+			printf("    8-bit                       \t%s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
+			printf("    Converts 8859-1 (to unicode)\t%s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
+			printf("    Honours --encoding=utf8     \t%s\n", (format->params.flags & FMT_UTF8) ? "yes" : "no");
+			printf("    False positives possible    \t%s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
+			printf("    Uses bitslice implementation\t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
+			printf("    split() unifies case        \t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
+#ifdef _OPENMP
+			printf("    Parallelized with OpenMP    \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
+#endif
+			printf("Number of test cases for --test \t%d\n", ntests);
+			printf("Algorithm name                  \t%s\n", format->params.algorithm_name);
+			printf("Format name                     \t%s\n", format->params.format_name);
+			printf("\n");
 		} while ((format = format->next));
 		exit(0);
 	}
@@ -1034,6 +1073,10 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
+	}
+	if (!strcmp(name, "hccap2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return hccap2john(argc, argv);
 	}
 
 #ifdef HAVE_MPI
