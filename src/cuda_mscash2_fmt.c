@@ -14,6 +14,7 @@
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
+#define MAX_CIPHERTEXT_LENGTH    (7+19+32)
 #define ALGORITHM_NAME		"CUDA"
 
 #define BENCHMARK_COMMENT	""
@@ -27,7 +28,9 @@ static mscash2_salt currentsalt;
 
 static struct fmt_tests tests[] = {
 	//{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
-	{"$DCC2$administrator#a150f71752b5d605ef0b2a1e98945611","a"},
+	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
+
+	//{"$DCC2$administrator#a150f71752b5d605ef0b2a1e98945611","a"},
 	//{"$DCC2$administrator#c14eb8279e4233ec14e9d393637b65e2","ab"},
 	//{"$DCC2$administrator#8ce9c0279b4e6f226f52d559f9c2c5f3","abc"},
 	//{"$DCC2$administrator#2fc788d09fad7e26a92d12356fa44bdf","abcd"},
@@ -39,22 +42,25 @@ extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
 
 static void cleanup()
 {
- free(inbuffer);
- free(outbuffer);
+	free(inbuffer);
+	free(outbuffer);
 }
 
 static void init(struct fmt_main *pFmt)
 {
-  //Alocate memory for hashes and passwords
-  inbuffer=(mscash2_password*)calloc(MAX_KEYS_PER_CRYPT,sizeof(mscash2_password));
-  outbuffer=(mscash2_hash*)malloc(sizeof(mscash2_hash)*MAX_KEYS_PER_CRYPT);
-  check_mem_allocation(inbuffer,outbuffer);
-  atexit(cleanup);
-  //Initialize CUDA
-  cuda_init(gpu_id);
+	//Alocate memory for hashes and passwords
+	inbuffer =
+	    (mscash2_password *) calloc(MAX_KEYS_PER_CRYPT,
+	    sizeof(mscash2_password));
+	outbuffer =
+	    (mscash2_hash *) malloc(sizeof(mscash2_hash) * MAX_KEYS_PER_CRYPT);
+	check_mem_allocation(inbuffer, outbuffer);
+	atexit(cleanup);
+	//Initialize CUDA
+	cuda_init(gpu_id);
 }
 
-static int valid(char *ciphertext,struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	if (strncmp(ciphertext, mscash2_prefix, strlen(mscash2_prefix)) != 0)
 		return 0;
@@ -70,6 +76,38 @@ static int valid(char *ciphertext,struct fmt_main *pFmt)
 	if (hashlength != 32)
 		return 0;
 	return 1;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[MAX_CIPHERTEXT_LENGTH + 1];
+	int i = 0;
+
+	for (; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+		out[i] = ciphertext[i];
+	out[i] = 0;
+	// lowercase salt as well as hash, encoding-aware
+	enc_strlwr(&out[6]);
+	return out;
+}
+
+static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+	char *cp;
+	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
+	    valid(split_fields[1], pFmt))
+		return split_fields[1];
+	if (!split_fields[0])
+		return split_fields[1];
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
+	sprintf(cp, "$DCC2$%s#%s", split_fields[0], split_fields[1]);
+	if (valid(cp, pFmt)) {
+		char *cipher = str_alloc_copy(cp);
+		MEM_FREE(cp);
+		return cipher;
+	}
+	MEM_FREE(cp);
+	return split_fields[1];
 }
 
 static void *binary(char *ciphertext)
@@ -243,13 +281,13 @@ struct fmt_main fmt_cuda_mscash2 = {
 		    SALT_SIZE,
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
-	    tests},
+		    FMT_CASE | FMT_8_BIT,tests
+	},
 	{
 		    init,
-		    fmt_default_prepare,
+		    prepare,
 		    valid,
-		    fmt_default_split,
+		    split,
 		    binary,
 		    salt,
 		    {
@@ -257,9 +295,10 @@ struct fmt_main fmt_cuda_mscash2 = {
 				binary_hash_1,
 				binary_hash_2,
 				binary_hash_3,
-			binary_hash_4,
-		    binary_hash_5,
-		    binary_hash_6},
+				binary_hash_4,
+				binary_hash_5,
+				binary_hash_6
+		    },
 		    fmt_default_salt_hash,
 		    set_salt,
 		    set_key,
@@ -271,9 +310,10 @@ struct fmt_main fmt_cuda_mscash2 = {
 				get_hash_1,
 				get_hash_2,
 				get_hash_3,
-			get_hash_4,
-		    get_hash_5,
-		    get_hash_6},
+				get_hash_4,
+				get_hash_5,
+				get_hash_6
+		    },
 		    cmp_all,
 		    cmp_one,
 	    cmp_exact,
