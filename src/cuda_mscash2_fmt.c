@@ -11,6 +11,7 @@
 #include "misc.h"
 #include "cuda_mscash2.h"
 #include "cuda_common.h"
+#include "unicode.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
@@ -281,7 +282,8 @@ struct fmt_main fmt_cuda_mscash2 = {
 		    SALT_SIZE,
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,tests
+		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		    tests
 	},
 	{
 		    init,
