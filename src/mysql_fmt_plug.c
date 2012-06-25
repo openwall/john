@@ -32,9 +32,9 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"mysql-fast"
+#define FORMAT_LABEL			"mysql"
 #define FORMAT_NAME			"MySQL"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " (label mysql-fast)"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
