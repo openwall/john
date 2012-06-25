@@ -28,13 +28,15 @@ if MODE is not specified on the command line, see CONFIGURATION OPTIONS.
 
 * START is the index of the first password that is going to be tested, starting
 with 0.
-You can specify an integer value < 100, followed by a percent sign, e.g. 10%.
+Alternatively, you can specify an integer value < 100, followed by a percent sign,
+e.g. 10%.
 This will be converted into the correct start word depending on the total number
 of words.
 
 * END is the index of the last password that is going to be tested. When it is
 set to 0, it will represent the last possible password.
-You can specify an integer value <= 100, followed by a percent sign, e.g. 20%.
+Alternatively, you can specify an integer value <= 100, followed by a percent sign,
+e.g. 20%.
 This will be converted into the correct end word depending on the total number
 of words.
 
