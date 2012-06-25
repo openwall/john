@@ -16,7 +16,7 @@
 #define FORMAT_LABEL		"mscash-cuda"
 #define FORMAT_NAME		"M$ Cache Hash MD4"
 #define ALGORITHM_NAME		"CUDA"
-
+#define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
 #define BENCHMARK_COMMENT	" len(pass)=8, len(salt)=13"
 #define BENCHMARK_LENGTH	-1
 
@@ -57,6 +57,38 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[(int)*hash++] == 0x7f)
 			return 0;
 	return 1;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[MAX_CIPHERTEXT_LENGTH + 1];
+	int i = 0;
+
+	for (; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+		out[i] = ciphertext[i];
+	out[i] = 0;
+	// lowercase salt as well as hash, encoding-aware
+	enc_strlwr(&out[6]);
+	return out;
+}
+
+static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+	char *cp;
+	if (!strncmp(split_fields[1], "M$", 2) &&
+	    valid(split_fields[1], pFmt))
+		return split_fields[1];
+	if (!split_fields[0])
+		return split_fields[1];
+	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
+	sprintf(cp, "M$%s#%s", split_fields[0], split_fields[1]);
+	if (valid(cp, pFmt)) {
+		char *cipher = str_alloc_copy(cp);
+		MEM_FREE(cp);
+		return cipher;
+	}
+	MEM_FREE(cp);
+	return split_fields[1];
 }
 
 static void *binary(char *ciphertext)
@@ -218,9 +250,9 @@ struct fmt_main fmt_cuda_mscash = {
 	    tests},
 	{
 		    init,
-		    fmt_default_prepare,
+		    prepare,
 		    valid,
-		    fmt_default_split,
+		    split,
 		    binary,
 		    salt,
 		    {

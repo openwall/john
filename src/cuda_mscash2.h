@@ -195,7 +195,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t length;
-	uint8_t salt[15];
+	uint8_t salt[19];
 	uint8_t unicode_salt[64];
 } mscash2_salt;
 
