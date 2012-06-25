@@ -32,9 +32,9 @@
 #include "common.h"
 #include "formats.h"
 
-#define FORMAT_LABEL			"mysql-fast"
+#define FORMAT_LABEL			"mysql"
 #define FORMAT_NAME			"MySQL"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " (label mysql-fast)"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -214,7 +214,7 @@ static void mysql_crypt_all(int count)
 			while (*p == ' ' || *p == '\t')
 				p++;
 			tmp = (ARCH_WORD_32) (unsigned char) *p++;
-			nr = 1345345333 ^ ((((1345345333 & 63) + 7) * tmp) + (1345345333 << 8));
+			nr = 1345345333 ^ ((((1345345333 & 63) + 7) * tmp) + (1345345333U << 8));
 			add = 7 + tmp;
 			for (; *p; p++) {
 				if (*p == ' ' || *p == '\t')
