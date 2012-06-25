@@ -571,7 +571,7 @@ _john()
 		-?(-)l?(i|is|ist)+(=|:)*)
 			if [[ "${hidden}" == *--list=* || "${valopts}" == *--list=* ]] ; then
 				#meanwhile, there can be more than one option name starting with l...
-				if [[ "${cur#*[=:]}" != *i* ]] ; then
+				if [[ "${cur#*l}" == [=:]* ]] ; then
 					if [[ `echo "${valopts}"|grep -c "^-*${cur%[=:]*}"` -ne 1 ]] ; then
 						return 0
 					fi
