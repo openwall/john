@@ -571,9 +571,9 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
-		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only, ");
-		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details, ");
-		puts("format-all-details, ");
+		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
+		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
+		printf("format-all-details, ");
 #ifdef CL_VERSION_1_0
 		printf("opencl-devices, ");
 #endif
