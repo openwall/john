@@ -199,8 +199,9 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 }
 
 #ifndef BENCH_BUILD
-void cfg_print_subsections(char *section, char *function, char *notfunction)
+int cfg_print_subsections(char *section, char *function, char *notfunction, int print_heading)
 {
+	int ret = 0;
 	struct cfg_section *current;
 	char *p1, *p2;
 
@@ -214,9 +215,14 @@ void cfg_print_subsections(char *section, char *function, char *notfunction)
 		if (!*p1 || *p2) continue;
 		if (notfunction && ext_has_function(p1, notfunction))
 			continue;
-		if (!function || ext_has_function(p1, function))
+		if (!function || ext_has_function(p1, function)) {
+			if (ret == 0 && print_heading != 0)
+				printf("Subsections of [%s]:\n", section);
+			ret++;
 			printf("%s\n", p1);
+		}
 	} while ((current = current->next));
+	return ret;
 }
 #endif
 char *cfg_get_param(char *section, char *subsection, char *param)

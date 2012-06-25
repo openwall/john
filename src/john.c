@@ -676,32 +676,32 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "inc-modes"))
 	{
-		cfg_print_subsections("Incremental", NULL, NULL);
+		cfg_print_subsections("Incremental", NULL, NULL, 0);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "rules"))
 	{
-		cfg_print_subsections("List.Rules", NULL, NULL);
+		cfg_print_subsections("List.Rules", NULL, NULL, 0);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "externals"))
 	{
-		cfg_print_subsections("List.External", NULL, NULL);
+		cfg_print_subsections("List.External", NULL, NULL, 0);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "ext-filters"))
 	{
-		cfg_print_subsections("List.External", "filter", NULL);
+		cfg_print_subsections("List.External", "filter", NULL, 0);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "ext-filters-only"))
 	{
-		cfg_print_subsections("List.External", "filter", "generate");
+		cfg_print_subsections("List.External", "filter", "generate", 0);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "ext-modes"))
 	{
-		cfg_print_subsections("List.External", "generate", NULL);
+		cfg_print_subsections("List.External", "generate", NULL, 0);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "encodings"))
@@ -798,9 +798,11 @@ static void john_init(char *name, int argc, char **argv)
 	/* --list last resort: list subsections of any john.conf section name */
 	if (options.listconf)
 	{
-		printf("Subsections of [%s]:\n", options.listconf);
-		cfg_print_subsections(options.listconf, NULL, NULL);
-		exit(0);
+		//printf("Subsections of [%s]:\n", options.listconf);
+		if (cfg_print_subsections(options.listconf, NULL, NULL, 1))
+			exit(0);
+		else
+			exit(1);
 	}
 
 	common_init();
