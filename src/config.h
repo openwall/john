@@ -78,7 +78,7 @@ extern struct cfg_list *cfg_get_list(char *section, char *subsection);
  * If notfunction is non-null, that function must NOT be present (ie.
  * for listing external modes that has filter() but not generate() )
  */
-void cfg_print_subsections(char *section, char *function, char *notfunction);
+int cfg_print_subsections(char *section, char *function, char *notfunction, int print_heading);
 
 /*
  * Searches for a section with the supplied name and a parameter within the
