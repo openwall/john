@@ -64,7 +64,6 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
-
 	for (; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
 		out[i] = ciphertext[i];
 	out[i] = 0;
@@ -110,8 +109,10 @@ static void *salt(char *ciphertext)
 	static mscash_salt salt;
 	char *pos = ciphertext + strlen(mscash_prefix);
 	int length = 0;
-	while (*pos != '#')
-		salt.salt[length++] = *pos++;
+	while (*pos != '#'){
+	    if(length == SALT_LENGTH) return NULL;
+	  salt.salt[length++] = *pos++;
+	}
 	salt.length = length;
 	return &salt;
 }
@@ -125,7 +126,7 @@ static void set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
 	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, length);
+	memcpy(inbuffer[index].v, key, MIN(length,PLAINTEXT_LENGTH));
 }
 
 static char *get_key(int index)

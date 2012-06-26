@@ -134,7 +134,7 @@ __host__ void md4_crypt(uint32_t * buffer, uint32_t * hash)
 	hash[3] = d + INIT_D;
 }
 
-__device__ __host__ void preproc(const uint8_t * key, uint32_t keylen,
+__device__ __host__ void preproc(const uint8_t * key,
     uint32_t * state, uint8_t var)
 {
 	int i;
@@ -144,7 +144,7 @@ __device__ __host__ void preproc(const uint8_t * key, uint32_t keylen,
 	for (i = 0; i < 64; i++)
 		ipad[i] = var;
 
-	for (i = 0; i < keylen; i++)
+	for (i = 0; i < 16; i++)
 		ipad[i] = ipad[i] ^ key[i];
 
 #pragma unroll 16
@@ -335,9 +335,7 @@ __device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
-	int i;
-
-	i=48/4;
+	int i=48/4;
 	uint32_t *src=(uint32_t*)buf;
 	while(i--)
 		*src++=0;
@@ -345,8 +343,8 @@ __device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
 	memcpy(buf, salt, saltlen);
 	buf[saltlen + 3] = 0x01;
 
-	preproc(pass, 16, ipad_state, 0x36);
-	preproc(pass, 16, opad_state, 0x5c);
+	preproc(pass, ipad_state, 0x36);
+	preproc(pass, opad_state, 0x5c);
 
 	hmac_sha1(pass, 16, buf, saltlen + 4, tmp_out, ipad_state, opad_state);
 
@@ -381,9 +379,11 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 	memset(salt,0,64);
 	uint8_t *username = host_salt->salt;
 	uint32_t username_len = (uint32_t) host_salt->length;
-	
-
-	for (i = 0; i < (username_len >> 1) + 1; i++)
+	//printf("username len=%d\n",username_len<<1);
+	int r=0;
+	if(username_len%2==1)
+	    r=1;
+	for (i = 0; i < (username_len >> 1) + r; i++)
 		((uint32_t *) salt)[i] =
 		    username[2 * i] | (username[2 * i + 1] << 16);
 	memcpy(host_salt->unicode_salt, salt, 64);
@@ -405,8 +405,9 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 			buffer[i] = 0x80;
 
 		buffer[14] = password_len << 4;
-
+	//	printf("buffer[14]= %d\n",buffer[14]);
 		md4_crypt(buffer, nt_hash);
+       //printf("buffer = %08x \n",((unsigned int *)buffer)[0]);
 
 		memcpy((uint8_t *) nt_hash + 16, salt, username_len << 1);
 
@@ -443,6 +444,14 @@ __host__ void mscash2_gpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
+
+	//int i;
+	//printf("usename len=%d dcc:\n",host_salt[0].length << 1);
+	//for(i=0;i<4;i++)
+	// printf("%08x ",inbuffer[0].dcc_hash[i]);
+	//puts("");
+	//for(i=0;i<64;i++)
+	//  printf("%d ",host_salt[0].unicode_salt[i]);
 
 	pbkdf2_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
 

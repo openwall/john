@@ -16,7 +16,7 @@
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
 
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	27
 #define SALT_SIZE		sizeof(mscash2_salt)
 
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
@@ -185,7 +185,7 @@ static const char mscash2_prefix[] = "$DCC2$";
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[PLAINTEXT_LENGTH];
 	uint32_t dcc_hash[4];
 } mscash2_password;
 
