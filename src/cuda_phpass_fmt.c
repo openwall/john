@@ -42,7 +42,7 @@ static struct fmt_tests tests[] = {
 	{"$P$900000000m6YEJzWtTmNBBL4jypbHv1", "openwall"},
 	{"$P$900000000zgzuX4Dc2091D8kak8RdR0", "h3ll00"},
 	{"$P$900000000qZTL5A0XQUX9hq0t8SoKE0", "1234567890"},
-	{"$P$900112200B9LMtPy2FSq910c1a6BrH0", "1234567890"},
+	{"$H$900112200B9LMtPy2FSq910c1a6BrH0", "1234567890"},
 	{"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
 	{"$P$9sadli2.wzQIuzsR2nYVhUSlHNKgG/0", "john"},
 	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
@@ -89,10 +89,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	uint32_t i, count_log2;
 
+	int prefix=0;
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
-	if (strncmp(ciphertext, phpass_prefix, 3) != 0)
-		return 0;
+	if (strncmp(ciphertext, "$P$", 3) == 0)
+		prefix=1;
+	if (strncmp(ciphertext, "$H$", 3) == 0)
+		prefix=1;
+	if(prefix==0) return 0;
 
 	for (i = 3; i < CIPHERTEXT_LENGTH; i++)
 		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
