@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2012 by Solar Designer
+ * Copyright (c) 1996-2011 by Solar Designer
  *
  * ...with changes in the jumbo patch, by various authors
  */
@@ -200,31 +200,21 @@
 
 /*
  * Password hash table thresholds.  These are the counts of entries required
- * to enable the corresponding bitmap size.  The corresponding hash table size
- * may be smaller as determined by PASSWORD_HASH_SHR.
+ * to enable the corresponding hash table size.
  */
 #define PASSWORD_HASH_THRESHOLD_0	3
-#define PASSWORD_HASH_THRESHOLD_1	3
-#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 25)
-#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 20)
-#define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 10)
-#define PASSWORD_HASH_THRESHOLD_5	(PASSWORD_HASH_SIZE_4 / 15)
-#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 5)
+#define PASSWORD_HASH_THRESHOLD_1	PASSWORD_HASH_SIZE_0
+#define PASSWORD_HASH_THRESHOLD_2	(PASSWORD_HASH_SIZE_1 / 5)
+#define PASSWORD_HASH_THRESHOLD_3	(PASSWORD_HASH_SIZE_2 / 3)
+#define PASSWORD_HASH_THRESHOLD_4	(PASSWORD_HASH_SIZE_3 / 2)
+#define PASSWORD_HASH_THRESHOLD_5	PASSWORD_HASH_SIZE_4
+#define PASSWORD_HASH_THRESHOLD_6	(PASSWORD_HASH_SIZE_5 / 2)
 
 /*
  * Tables of the above values.
  */
 extern int password_hash_sizes[PASSWORD_HASH_SIZES];
 extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
-
-/*
- * How much smaller should the hash tables be than bitmaps in terms of entry
- * count.  Setting this to 0 will result in them having the same number of
- * entries, 1 will make the hash tables twice smaller than bitmaps, etc.
- * 5 or 6 will make them the same size in bytes on systems with 32-bit or
- * 64-bit pointers, respectively.
- */
-#define PASSWORD_HASH_SHR		2
 
 /*
  * Cracked password hash size, used while loading.
