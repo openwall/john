@@ -592,6 +592,7 @@ static void john_init(char *name, int argc, char **argv)
 		puts("--mkpc=N                  force a lower max. keys per crypt");
 		puts("--length=N                force a lower max. length");
 		puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
+		puts("--fix-state-delay=N       performance tweak, see documentation");
 		puts("--log-stderr              log to screen instead of file\n");
 		exit(0);
 	}

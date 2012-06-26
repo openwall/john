@@ -201,7 +201,6 @@ static struct opt_entry opt_list[] = {
 "--list=WHAT               list capabilities, see doc/OPTIONS or --list=?\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)\n" \
-"--fix-state-delay=N       performance tweak, see documentation\n" \
 "--nolog                   disables creation and writing to john.log file\n" \
 "--crack-status            emit a status line whenever a password is cracked\n" \
 "--max-run-time=N          gracefully exit after this many seconds\n" \
