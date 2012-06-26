@@ -818,13 +818,13 @@ static void john_init(char *name, int argc, char **argv)
 			printf("Min. keys per crypt             \t%d\n", format->params.min_keys_per_crypt);
 			printf("Max. keys per crypt             \t%d\n", format->params.max_keys_per_crypt);
 			printf("Flags\n");
-			printf("    Case sensitive              \t%s\n", (format->params.flags & FMT_CASE) ? "yes" : "no");
-			printf("    8-bit                       \t%s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
-			printf("    Converts 8859-1 (to unicode)\t%s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
-			printf("    Honours --encoding=utf8     \t%s\n", (format->params.flags & FMT_UTF8) ? "yes" : "no");
-			printf("    False positives possible    \t%s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
-			printf("    Uses bitslice implementation\t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
-			printf("    split() unifies case        \t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
+			printf(" Case sensitive                 \t%s\n", (format->params.flags & FMT_CASE) ? "yes" : "no");
+			printf(" Supports 8-bit characters      \t%s\n", (format->params.flags & FMT_8_BIT) ? "yes" : "no");
+			printf(" Converts 8859-1 to UTF-16/UCS-2\t%s\n", (format->params.flags & FMT_UNICODE) ? "yes" : "no");
+			printf(" Honours --encoding=NAME        \t%s\n", (format->params.flags & FMT_UTF8) ? "yes" : "no");
+			printf(" False positives possible       \t%s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
+			printf(" Uses a bitslice implementation \t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
+			printf(" The split() method unifies case\t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 #ifdef _OPENMP
 			printf("    Parallelized with OpenMP    \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
 #endif
