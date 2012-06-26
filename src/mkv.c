@@ -467,6 +467,9 @@ void get_markov_start_end(char *start_token, char *end_token,
                           unsigned long long mkv_max,
                           unsigned long long *mkv_start, unsigned long long *mkv_end)
 {
+	*mkv_start = 0;
+	*mkv_end = 0;
+
 	if((start_token != NULL) && (sscanf(start_token, LLd, mkv_start)==1) )
 	{
 		if((end_token != NULL) && (sscanf(end_token, LLd, mkv_end)==1) )
@@ -501,7 +504,7 @@ void get_markov_start_end(char *start_token, char *end_token,
 		error();
 	}
 
-	if (start_token[strlen(start_token)-1] == '%') {
+	if (start_token != NULL && start_token[strlen(start_token)-1] == '%') {
 		if (*mkv_start >= 100) {
 			log_event("! Start = %s is too large (max < 100%%)", end_token);
 #ifdef HAVE_MPI
@@ -518,7 +521,7 @@ void get_markov_start_end(char *start_token, char *end_token,
 			fprintf(stderr, "Start: %s converted to "LLd"\n", start_token, *mkv_start);
 		}
 	}
-	if (end_token[strlen(end_token)-1] == '%') {
+	if (end_token != NULL && end_token[strlen(end_token)-1] == '%') {
 		if (*mkv_end >= 100) {
 			if (*mkv_end > 100) {
 #ifdef HAVE_MPI

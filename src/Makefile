@@ -529,7 +529,7 @@ linux-x86-native:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -msse2 -DHAVE_CRYPT -DHAVE_DL -march=native" \
-		ASFLAGS="$(ASFLAGS) -march=native"
+		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl -march=native"
 
 linux-x86-sse2:

@@ -631,12 +631,18 @@ static void john_init(char *name, int argc, char **argv)
 			printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX,
 			       CHARSET_MAX);
 			printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
+#ifdef __VERSION__
+		printf("Compiler version: %s\n", __VERSION__);
+#endif
 #ifdef __GNUC__
 			printf("gcc version: %d.%d.%d\n", __GNUC__,
 			       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #endif
 #ifdef __ICC
 			printf("icc version: %d\n", __ICC);
+#endif
+#ifdef __clang_version__
+			printf("clang version: %s\n", __clang_version__);
 #endif
 			exit(0);
 		}
@@ -781,12 +787,7 @@ static void john_init(char *name, int argc, char **argv)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			/*
-			 * FIXME: Are other parameters more important?
-			 *        Should I use hexadecimal output
-			 *        for the FMT_flags?
-			 */
-			printf("%s\t%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\n",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
