@@ -9,18 +9,17 @@
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
+#include "unicode.h"
 #include "cuda_mscash2.h"
 #include "cuda_common.h"
-#include "unicode.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
 #define MAX_CIPHERTEXT_LENGTH    (7+19+32)
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"CUDA, unreliable, may miss guesses"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-
 //#define _MSCASH2_DEBUG
 
 static mscash2_password *inbuffer;
@@ -28,14 +27,38 @@ static mscash2_hash *outbuffer;
 static mscash2_salt currentsalt;
 
 static struct fmt_tests tests[] = {
-	//{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
 	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
+	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
+	{"$DCC2$#59137848828d14b1fca295a5032b52a1", "a" },                                   //Empty Salt
+	{"$DCC2$administrator#a150f71752b5d605ef0b2a1e98945611","a"},
+	{"$DCC2$administrator#c14eb8279e4233ec14e9d393637b65e2","ab"},
+	{"$DCC2$administrator#8ce9c0279b4e6f226f52d559f9c2c5f3","abc"},
+	{"$DCC2$administrator#2fc788d09fad7e26a92d12356fa44bdf","abcd"},
+	{"$DCC2$administrator#6aa19842ffea11f0f0c89f8ca8d245bd","abcde"},
+	{"$DCC2$test#a86012faf7d88d1fc037a69764a92cac", "password"},
+	{"$DCC2$test3#360e51304a2d383ea33467ab0b639cc4", "test3" },
+	{"$DCC2$test4#6f79ee93518306f071c47185998566ae", "test4" },
+	{"$DCC2$january#26b5495b21f9ad58255d99b5e117abe2", "verylongpassword" },
+	{"$DCC2$february#469375e08b5770b989aa2f0d371195ff", "(##)(&#*%%" },
+	{"$DCC2$TEST2#c6758e5be7fc943d00b97972a8a97620", "test2" },   // salt is lowercased before hashing
+	{"$DCC2$john#ef9a549b7077f12143c18aecb8487d68","w00t"},
 
-	//{"$DCC2$administrator#a150f71752b5d605ef0b2a1e98945611","a"},
-	//{"$DCC2$administrator#c14eb8279e4233ec14e9d393637b65e2","ab"},
-	//{"$DCC2$administrator#8ce9c0279b4e6f226f52d559f9c2c5f3","abc"},
-	//{"$DCC2$administrator#2fc788d09fad7e26a92d12356fa44bdf","abcd"},
-	//{"$DCC2$administrator#6aa19842ffea11f0f0c89f8ca8d245bd","abcde"},
+	//{"$DCC2$administrator#56f8c24c5a914299db41f70e9b43f36d", "w00t" },
+	//{"$DCC2$AdMiNiStRaToR#56f8C24c5A914299Db41F70e9b43f36d", "w00t" },                   //Salt and hash are lowercased
+
+	/*{"$DCC2$nineteen_characters#c4201b8267d74a2db1d5d19f5c9f7b57", "verylongpassword" }, //max salt_length
+	{"$DCC2$nineteen_characters#87136ae0a18b2dafe4a41d555425b2ed", "w00t"},
+*///
+	//{"$DCC2$eighteencharacters#fc5df74eca97afd7cd5abb0032496223", "w00t" },
+	//{"$DCC2$john-the-ripper#495c800a038d11e55fafc001eb689d1d", "batman#$@#1991" },
+///	  {"$DCC2$jack#dc70386d419fc48442e6d0f64fa5f3da","Skipping and& Dipping"},		//passlen = 21
+///	  {"$DCC2$john#d089ffa28f7508f67dcbb85f46b26886","0123456789012345678901234"}, //passlen =25
+///	  {"$DCC2$john#51708f1b4587d6e0fb62f71b256692b5","012345678901234567890123456"}, //passlen 27
+	  //{"$DCC2$john#e7eb0fe73504d06f796615e6de083963","0123456789012345678901234567"}, //passlen 28
+	  //{"$DCC2$john#799c528e18017c5bc2e8d272de8e94ba","012345678901234567890123456789"}, //passlen= 30
+	  //{"$DCC2$john#caf1f2deef864f10a67c30be23087fa1","012345678901234567890123456789_"}, //passlen = 31
+
+
 	{NULL}
 };
 
@@ -76,6 +99,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 	if (hashlength != 32)
 		return 0;
+
+	int saltlength = 0;
+	char *pos = ciphertext + strlen(mscash2_prefix);
+	while (*pos++ != '#') {
+		if (saltlength == 19)
+			return 0;
+		saltlength++;
+	}
 	return 1;
 }
 
@@ -123,7 +154,6 @@ static void *binary(char *ciphertext)
 		binary[i] = SWAP(binary[i]);
 	}
 	return binary;
-
 }
 
 static void *salt(char *ciphertext)
@@ -131,9 +161,13 @@ static void *salt(char *ciphertext)
 	static mscash2_salt salt;
 	char *pos = ciphertext + strlen(mscash2_prefix);
 	int length = 0;
-	while (*pos != '#')
+	while (*pos != '#') {
+		if (length == 19)
+			return NULL;
 		salt.salt[length++] = *pos++;
+	}
 	salt.length = length;
+	//printf("salt len=%d\n",salt.length);
 	return &salt;
 }
 
@@ -144,9 +178,12 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
+#ifdef _MSCASH2_DEBUG
+	printf("set_key(%d) = [%s]\n",index,key);
+#endif
 	uint8_t length = strlen(key);
 	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, length);
+	memcpy(inbuffer[index].v, key, MIN(length,PLAINTEXT_LENGTH));
 }
 
 static char *get_key(int index)
@@ -282,9 +319,7 @@ struct fmt_main fmt_cuda_mscash2 = {
 		    SALT_SIZE,
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
-		    tests
-	},
+	    FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE, tests},
 	{
 		    init,
 		    prepare,
@@ -299,8 +334,7 @@ struct fmt_main fmt_cuda_mscash2 = {
 				binary_hash_3,
 				binary_hash_4,
 				binary_hash_5,
-				binary_hash_6
-		    },
+			binary_hash_6},
 		    fmt_default_salt_hash,
 		    set_salt,
 		    set_key,
@@ -314,8 +348,7 @@ struct fmt_main fmt_cuda_mscash2 = {
 				get_hash_3,
 				get_hash_4,
 				get_hash_5,
-				get_hash_6
-		    },
+			get_hash_6},
 		    cmp_all,
 		    cmp_one,
 	    cmp_exact,

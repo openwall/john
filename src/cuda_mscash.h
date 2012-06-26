@@ -17,7 +17,8 @@
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
 
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	27
+#define SALT_LENGTH		19
 #define SALT_SIZE		sizeof(mscash_salt)
 
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
@@ -41,7 +42,7 @@ static const char mscash_prefix[] = "M$";
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[PLAINTEXT_LENGTH];
 } mscash_password;
 
 typedef struct {
@@ -50,7 +51,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t length;
-	uint8_t salt[19];
+	uint8_t salt[SALT_LENGTH];
 } mscash_salt;
 
 #endif
