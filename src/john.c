@@ -781,12 +781,7 @@ static void john_init(char *name, int argc, char **argv)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			/*
-			 * FIXME: Are other parameters more important?
-			 *        Should I use hexadecimal output
-			 *        for the FMT_flags?
-			 */
-			printf("%s\t%d\t%d\t%d\t%d\t%d\t%s\t%s\n",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\n",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
