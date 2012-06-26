@@ -826,7 +826,7 @@ static void john_init(char *name, int argc, char **argv)
 			printf(" Uses a bitslice implementation \t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case\t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
 #ifdef _OPENMP
-			printf("    Parallelized with OpenMP    \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
+			printf(" Parallelized with OpenMP       \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
 #endif
 			printf("Number of test cases for --test \t%d\n", ntests);
 			printf("Algorithm name                  \t%s\n", format->params.algorithm_name);
