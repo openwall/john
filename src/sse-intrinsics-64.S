@@ -194,36 +194,31 @@ dispatch:
 ..___tag_value_dispatch.48:
         pushq     %rbp
 ..___tag_value_dispatch.50:
-        subq      $24, %rsp
+        subq      $40, %rsp
 ..___tag_value_dispatch.52:
+        movq      %rdx, %r8
+        movl      $23, %edx
         xorl      %eax, %eax
-        movl      %eax, %r13d
-        movq      %rdx, %r15
-        movl      %ecx, %r14d
-        movq      %rsi, %r12
-        movq      %rdi, %rbx
+        movl      %ecx, 24(%rsp)
+        movl      %eax, %r14d
+        movl      %edx, %r13d
+        movq      %rsi, %rbp
+        movq      %rdi, %r12
+        movq      %r8, %r15
 ..B4.2:
-        movl      %r13d, %ebp
-        movl      $818089009, %eax
-        shrl      $1, %ebp
-        mull      %ebp
-        shrl      $2, %edx
-        imull     $42, %edx, %ebp
-        negl      %ebp
-        addl      %r13d, %ebp
-        cmpl      $40, %ebp
+        cmpl      $40, %r14d
         ja        ..B4.54
 ..B4.3:
-        jmp       *..1..TPKT.6_0.0.6(,%rbp,8)
+        jmp       *..1..TPKT.6_0.0.6(,%r14,8)
 ..1.6_0.TAG.015.0.6:
 ..B4.19:
         movl      $1, %esi
-        movq      %rbx, %rdi
+        movq      %r12, %rdi
         movq      %r15, %rdx
         movl      %esi, %ecx
         xorl      %r8d, %r8d
-        movq      %r12, %r9
-        movl      $1, %ebp
+        movq      %rbp, %r9
+        movl      $1, %ebx
 ..___tag_value_dispatch.53:
         call      mmxput3
 ..___tag_value_dispatch.54:
@@ -232,18 +227,18 @@ dispatch:
 ..1.6_0.TAG.0e.0.6:
 ..B4.25:
         xorl      %ecx, %ecx
-        movl      $5, %ebp
-        movl      %r13d, (%rsp)
-        movl      %ecx, %r13d
-        movq      %r15, 8(%rsp)
-        movl      %ecx, %r15d
-        movl      %r14d, 16(%rsp)
+        movl      $5, %ebx
+        movl      %r14d, (%rsp)
         movl      %ecx, %r14d
+        movl      %r13d, 8(%rsp)
+        movl      %ecx, %r13d
+        movq      %r15, 16(%rsp)
+        movl      %ecx, %r15d
 ..B4.26:
         movl      $64, %edx
         movl      %r14d, %esi
-        addq      %r12, %rsi
-        lea       3840(%rbx,%r13), %rdi
+        addq      %rbp, %rsi
+        lea       3840(%r12,%r13), %rdi
 ..___tag_value_dispatch.55:
         call      memcpy
 ..___tag_value_dispatch.56:
@@ -254,20 +249,20 @@ dispatch:
         cmpl      $3, %r15d
         jb        ..B4.26
 ..B4.28:
-        movl      (%rsp), %r13d
-        movq      8(%rsp), %r15
-        movl      16(%rsp), %r14d
+        movl      (%rsp), %r14d
+        movl      8(%rsp), %r13d
+        movq      16(%rsp), %r15
         jmp       ..B4.55
 ..1.6_0.TAG.023.0.6:
 ..1.6_0.TAG.07.0.6:
 ..B4.34:
-        movq      %rbx, %rdi
+        movq      %r12, %rdi
         movl      $4, %esi
         movq      %r15, %rdx
         movl      $1, %ecx
-        movl      %r14d, %r8d
-        movq      %r12, %r9
-        movl      $4, %ebp
+        movq      %rbp, %r9
+        movl      $4, %ebx
+        movl      24(%rsp), %r8d
 ..___tag_value_dispatch.57:
         call      mmxput3
 ..___tag_value_dispatch.58:
@@ -280,18 +275,18 @@ dispatch:
 ..1.6_0.TAG.06.0.6:
 ..B4.36:
         xorl      %ecx, %ecx
-        movl      $3, %ebp
-        movl      %r13d, (%rsp)
-        movl      %ecx, %r13d
-        movq      %r15, 8(%rsp)
-        movl      %ecx, %r15d
-        movl      %r14d, 16(%rsp)
+        movl      $3, %ebx
+        movl      %r14d, (%rsp)
         movl      %ecx, %r14d
+        movl      %r13d, 8(%rsp)
+        movl      %ecx, %r13d
+        movq      %r15, 16(%rsp)
+        movl      %ecx, %r15d
 ..B4.37:
         movl      $64, %edx
         movl      %r14d, %esi
-        addq      %r12, %rsi
-        lea       2304(%rbx,%r13), %rdi
+        addq      %rbp, %rsi
+        lea       2304(%r12,%r13), %rdi
 ..___tag_value_dispatch.59:
         call      memcpy
 ..___tag_value_dispatch.60:
@@ -302,9 +297,9 @@ dispatch:
         cmpl      $3, %r15d
         jb        ..B4.37
 ..B4.39:
-        movl      (%rsp), %r13d
-        movq      8(%rsp), %r15
-        movl      16(%rsp), %r14d
+        movl      (%rsp), %r14d
+        movl      8(%rsp), %r13d
+        movq      16(%rsp), %r15
         jmp       ..B4.55
 ..1.6_0.TAG.027.0.6:
 ..1.6_0.TAG.021.0.6:
@@ -314,12 +309,12 @@ dispatch:
 ..1.6_0.TAG.03.0.6:
 ..B4.42:
         movl      $2, %esi
-        movq      %rbx, %rdi
+        movq      %r12, %rdi
         movq      %r15, %rdx
         movl      %esi, %ecx
         xorl      %r8d, %r8d
-        movq      %r12, %r9
-        movl      $2, %ebp
+        movq      %rbp, %r9
+        movl      $2, %ebx
 ..___tag_value_dispatch.61:
         call      mmxput3
 ..___tag_value_dispatch.62:
@@ -338,18 +333,18 @@ dispatch:
 ..1.6_0.TAG.02.0.6:
 ..B4.44:
         xorl      %ecx, %ecx
-        movl      $6, %ebp
-        movl      %r13d, (%rsp)
-        movl      %ecx, %r13d
-        movq      %r15, 8(%rsp)
-        movl      %ecx, %r15d
-        movl      %r14d, 16(%rsp)
+        movl      $6, %ebx
+        movl      %r14d, (%rsp)
         movl      %ecx, %r14d
+        movl      %r13d, 8(%rsp)
+        movl      %ecx, %r13d
+        movq      %r15, 16(%rsp)
+        movl      %ecx, %r15d
 ..B4.45:
         movl      $64, %edx
         movl      %r14d, %esi
-        addq      %r12, %rsi
-        lea       4608(%rbx,%r13), %rdi
+        addq      %rbp, %rsi
+        lea       4608(%r12,%r13), %rdi
 ..___tag_value_dispatch.63:
         call      memcpy
 ..___tag_value_dispatch.64:
@@ -360,67 +355,82 @@ dispatch:
         cmpl      $3, %r15d
         jb        ..B4.45
 ..B4.47:
-        movl      (%rsp), %r13d
-        movq      8(%rsp), %r15
-        movl      16(%rsp), %r14d
+        movl      (%rsp), %r14d
+        movl      8(%rsp), %r13d
+        movq      16(%rsp), %r15
         jmp       ..B4.55
 ..1.6_0.TAG.00.0.6:
 ..B4.50:
         xorl      %ecx, %ecx
-        xorl      %ebp, %ebp
-        movl      %r13d, (%rsp)
-        movl      %ecx, %r13d
-        movq      %r15, 8(%rsp)
-        movl      %ecx, %r15d
-        movl      %r14d, 16(%rsp)
+        xorl      %ebx, %ebx
+        movl      %r14d, (%rsp)
         movl      %ecx, %r14d
+        movl      %r13d, 8(%rsp)
+        movl      %ecx, %r13d
+        movq      %r15, 16(%rsp)
+        movl      %ecx, %r15d
 ..B4.51:
-        movl      %r14d, %edi
+        movl      %r13d, %edi
         movl      $64, %edx
-        movl      %r15d, %esi
-        addq      %rbx, %rdi
-        addq      %r12, %rsi
+        movl      %r14d, %esi
+        addq      %r12, %rdi
+        addq      %rbp, %rsi
 ..___tag_value_dispatch.65:
         call      memcpy
 ..___tag_value_dispatch.66:
 ..B4.52:
-        incl      %r13d
-        addl      $64, %r15d
-        addl      $256, %r14d
-        cmpl      $3, %r13d
+        incl      %r15d
+        addl      $64, %r14d
+        addl      $256, %r13d
+        cmpl      $3, %r15d
         jb        ..B4.51
 ..B4.53:
-        movl      (%rsp), %r13d
-        movq      8(%rsp), %r15
-        movl      16(%rsp), %r14d
+        movl      (%rsp), %r14d
+        movl      8(%rsp), %r13d
+        movq      16(%rsp), %r15
         jmp       ..B4.55
 ..1.6_0.TAG.DEFAULT.0.6:
 ..B4.54:
-        movq      %rbx, %rdi
+        movq      %r12, %rdi
         movl      $7, %esi
         movq      %r15, %rdx
         movl      $2, %ecx
-        movl      %r14d, %r8d
-        movq      %r12, %r9
-        movl      $7, %ebp
+        movq      %rbp, %r9
+        movl      $7, %ebx
+        movl      24(%rsp), %r8d
 ..___tag_value_dispatch.67:
         call      mmxput3
 ..___tag_value_dispatch.68:
 ..B4.55:
-        movq      %r12, %rsi
-        lea       (%rbp,%rbp,2), %rdi
+        movq      %rbp, %rsi
+        lea       (%rbx,%rbx,2), %rdi
         shlq      $8, %rdi
         movl      $1, %edx
-        addq      %rbx, %rdi
+        addq      %r12, %rdi
 ..___tag_value_dispatch.69:
         call      SSEmd5body
 ..___tag_value_dispatch.70:
 ..B4.56:
-        incl      %r13d
-        cmpl      $1000, %r13d
+        incl      %r14d
+        lea       -1(%r14), %ecx
+        cmpl      $33, %ecx
         jb        ..B4.2
 ..B4.57:
-        addq      $24, %rsp
+        cmpl      $34, %r14d
+        jne       ..B4.60
+..B4.58:
+        testl     %r13d, %r13d
+        je        ..B4.61
+..B4.59:
+        decl      %r13d
+        jmp       ..B4.2
+..B4.60:
+        xorl      %ecx, %ecx
+        cmpl      $42, %r14d
+        cmovae    %ecx, %r14d
+        jmp       ..B4.2
+..B4.61:
+        addq      $40, %rsp
 ..___tag_value_dispatch.71:
         popq      %rbp
 ..___tag_value_dispatch.73:
@@ -3413,12 +3423,11 @@ md5cryptsse:
 ..___tag_value_md5cryptsse.131:
         subq      $6808, %rsp
 ..___tag_value_md5cryptsse.133:
+        movq      %rdx, %r14
         movq      %rsi, %r15
-        movq      %rdx, 6488(%rsp)
-        lea       6144(%rsp), %r14
-        movq      %rdi, %r13
-        movq      %r14, %rdi
+        movq      %rdi, %rbp
         xorl      %esi, %esi
+        lea       6304(%rsp), %rdi
         movl      $192, %edx
         movl      %ecx, %ebx
 ..___tag_value_md5cryptsse.134:
@@ -3426,8 +3435,7 @@ md5cryptsse:
 ..___tag_value_md5cryptsse.135:
 ..B7.2:
         xorl      %esi, %esi
-        lea       (%rsp), %rbp
-        movq      %rbp, %rdi
+        lea       (%rsp), %rdi
         movl      $6144, %edx
 ..___tag_value_md5cryptsse.136:
         call      memset
@@ -3437,7 +3445,7 @@ md5cryptsse:
 ..___tag_value_md5cryptsse.138:
         call      strlen
 ..___tag_value_md5cryptsse.139:
-..B7.202:
+..B7.206:
         movq      %rax, %rcx
 ..B7.4:
         movl      %ecx, %eax
@@ -3446,804 +3454,374 @@ md5cryptsse:
         movl      %eax, %ecx
         shrl      $1, %ecx
         movl      %eax, %r12d
-        movl      %ecx, 6696(%rsp)
-        movq      %rsi, 6704(%rsp)
+        movl      %ecx, 6744(%rsp)
+        movq      %rsi, 6752(%rsp)
         lea       (,%rax,8), %edi
-        movl      %edi, 6712(%rsp)
-        movq      %r13, 6720(%rsp)
-        movq      %r15, 6728(%rsp)
-        movl      %ebx, 6736(%rsp)
+        movl      %edi, 6760(%rsp)
+        movq      %rbp, 6768(%rsp)
+        movq      %r15, 6776(%rsp)
+        movq      %r14, 6296(%rsp)
+        movl      %ebx, 6784(%rsp)
         movl      %edx, %ebx
 ..B7.5:
         movl      %ebx, %r14d
         shlq      $4, %r14
-        addq      6720(%rsp), %r14
+        addq      6768(%rsp), %r14
         movq      %r14, %rdi
 ..___tag_value_md5cryptsse.140:
         call      strlen
 ..___tag_value_md5cryptsse.141:
+..B7.207:
+        movq      %rax, 6736(%rsp)
 ..B7.6:
-        movl      %ebx, %r15d
-        movl      %eax, %edi
-        shrl      $2, %r15d
-        movl      %r15d, %esi
-        shll      $8, %esi
-        movl      %ebx, %r13d
-        testl     %edi, %edi
-        movl      %edi, 6752(%rsp,%r13,4)
-        lea       (%rsp,%rsi), %r8
+        movl      %ebx, %ebp
+        shrl      $2, %ebp
+        movl      %ebp, %edi
+        shll      $8, %edi
+        movq      6736(%rsp), %r15
+        testl     %r15d, %r15d
+        lea       (%rsp,%rdi), %rsi
         jbe       ..B7.13
 ..B7.7:
-        movl      %edi, %eax
-        movl      %ebx, %ebp
-        shrl      $1, %eax
-        andl      $3, %ebp
-        movl      $1, %ecx
-        xorl      %r11d, %r11d
-        testl     %eax, %eax
+        movl      %r15d, %ecx
+        movl      %ebx, %r13d
+        shrl      $1, %ecx
+        xorl      %edx, %edx
+        andl      $3, %r13d
+        movl      $1, %r8d
+        testl     %ecx, %ecx
         jbe       ..B7.11
 ..B7.9:
-        lea       16(%r11,%r11), %r10d
-        movl      %r10d, %ecx
-        lea       (%r11,%r11), %r9d
-        andl      $-4, %ecx
+        lea       16(%rdx,%rdx), %r10d
+        movl      %r10d, %r9d
         andl      $3, %r10d
-        shll      $2, %ecx
-        lea       1(%r11,%r11), %edx
-        lea       (%rcx,%rbp,4), %ecx
-        addl      %r10d, %ecx
-        movb      (%r9,%r14), %r9b
-        movb      %r9b, (%rcx,%r8)
-        lea       17(%r11,%r11), %ecx
-        movl      %ecx, %r10d
-        andl      $3, %ecx
-        andl      $-4, %r10d
-        incl      %r11d
-        shll      $2, %r10d
-        lea       (%r10,%rbp,4), %r9d
-        addl      %ecx, %r9d
-        cmpl      %eax, %r11d
-        movb      (%rdx,%r14), %cl
-        movb      %cl, (%r9,%r8)
+        andl      $-4, %r9d
+        lea       (%rdx,%rdx), %r8d
+        shll      $2, %r9d
+        lea       (%r9,%r13,4), %r11d
+        addl      %r10d, %r11d
+        lea       17(%rdx,%rdx), %r10d
+        movl      %r10d, %r9d
+        andl      $3, %r10d
+        andl      $-4, %r9d
+        shll      $2, %r9d
+        movb      (%r8,%r14), %r8b
+        movb      %r8b, (%r11,%rsi)
+        lea       1(%rdx,%rdx), %r8d
+        lea       (%r9,%r13,4), %r9d
+        addl      %r10d, %r9d
+        incl      %edx
+        cmpl      %ecx, %edx
+        movb      (%r8,%r14), %r8b
+        movb      %r8b, (%r9,%rsi)
         jb        ..B7.9
 ..B7.10:
-        lea       1(%r11,%r11), %ecx
+        lea       1(%rdx,%rdx), %r8d
 ..B7.11:
-        cmpl      %edi, %ecx
+        cmpl      %r15d, %r8d
         ja        ..B7.14
 ..B7.12:
-        lea       15(%rcx), %r9d
-        decl      %ecx
-        movl      %r9d, %r10d
-        andl      $3, %r9d
-        andl      $-4, %r10d
-        addl      %ebp, %r10d
-        movb      (%rcx,%r14), %cl
-        lea       (%r9,%r10,4), %r11d
-        movb      %cl, (%r11,%r8)
-        jmp       ..B7.14
-..B7.13:
-        movl      %ebx, %ebp
-        andl      $3, %ebp
-..B7.14:
-        lea       16(%rdi), %ecx
+        lea       15(%r8), %ecx
+        decl      %r8d
         movl      %ecx, %r9d
         andl      $3, %ecx
         andl      $-4, %r9d
-        addl      %ebp, %r9d
-        testl     %edi, %edi
-        lea       (%rcx,%r9,4), %ecx
-        movb      $128, (%rcx,%r8)
+        addl      %r13d, %r9d
+        lea       (%rcx,%r9,4), %r10d
+        movb      (%r8,%r14), %r11b
+        movb      %r11b, (%r10,%rsi)
+        jmp       ..B7.14
+..B7.13:
+        movl      %ebx, %r13d
+        andl      $3, %r13d
+..B7.14:
+        lea       16(%r15), %r8d
+        movl      %r8d, %ecx
+        andl      $-4, %r8d
+        andl      $3, %ecx
+        addl      %r13d, %r8d
+        testl     %r15d, %r15d
+        lea       (%rcx,%r8,4), %r9d
+        movb      $128, (%r9,%rsi)
         jbe       ..B7.21
 ..B7.15:
-        movl      %edi, %eax
-        movl      $1, %r9d
-        shrl      $1, %eax
-        xorl      %edx, %edx
-        testl     %eax, %eax
+        movl      %r15d, %r8d
+        xorl      %r10d, %r10d
+        shrl      $1, %r8d
+        movl      $1, %ecx
+        testl     %r8d, %r8d
         jbe       ..B7.19
 ..B7.17:
-        lea       (%rdx,%rdx), %r9d
-        movl      %r9d, %r10d
-        andl      $-4, %r10d
-        shll      $2, %r10d
-        movl      %r9d, %r11d
-        andl      $3, %r9d
-        lea       (%r10,%rbp,4), %r10d
-        addl      %r9d, %r10d
-        movb      (%r11,%r14), %r11b
-        movb      %r11b, 768(%r10,%r8)
-        lea       1(%rdx,%rdx), %r10d
-        movl      %r10d, %r11d
-        incl      %edx
+        lea       (%r10,%r10), %eax
+        movl      %eax, %r11d
         andl      $-4, %r11d
         shll      $2, %r11d
-        movl      %r10d, %r9d
-        andl      $3, %r10d
-        lea       (%r11,%rbp,4), %r11d
-        addl      %r10d, %r11d
-        cmpl      %eax, %edx
-        movb      (%r9,%r14), %r9b
-        movb      %r9b, 768(%r11,%r8)
+        movl      %eax, %ecx
+        andl      $3, %eax
+        lea       (%r11,%r13,4), %r11d
+        addl      %eax, %r11d
+        movb      (%rcx,%r14), %cl
+        movb      %cl, 768(%r11,%rsi)
+        lea       1(%r10,%r10), %r11d
+        movl      %r11d, %ecx
+        incl      %r10d
+        andl      $-4, %ecx
+        shll      $2, %ecx
+        movl      %r11d, %edx
+        andl      $3, %r11d
+        lea       (%rcx,%r13,4), %ecx
+        addl      %r11d, %ecx
+        cmpl      %r8d, %r10d
+        movb      (%rdx,%r14), %r11b
+        movb      %r11b, 768(%rcx,%rsi)
         jb        ..B7.17
 ..B7.18:
-        lea       1(%rdx,%rdx), %r9d
+        lea       1(%r10,%r10), %ecx
 ..B7.19:
-        cmpl      %edi, %r9d
-        ja        ..B7.211
+        cmpl      %r15d, %ecx
+        ja        ..B7.215
 ..B7.20:
-        decl      %r9d
-        movl      %r9d, %r10d
-        andl      $-4, %r10d
-        movl      %r9d, %r11d
-        addl      %ebp, %r10d
-        andl      $3, %r9d
-        lea       (%r9,%r10,4), %r9d
-        movb      (%r11,%r14), %r10b
-        movb      %r10b, 768(%r9,%r8)
-        movb      $128, 768(%rcx,%r8)
-        lea       1536(%rsp,%rsi), %rcx
+        decl      %ecx
+        lea       1536(%rsp,%rdi), %rax
+        movl      %ecx, %r8d
+        andl      $-4, %r8d
+        movl      %ecx, %r10d
+        andl      $3, %ecx
+        addl      %r13d, %r8d
+        movb      (%r10,%r14), %r11b
+        lea       (%rcx,%r8,4), %ecx
+        movb      %r11b, 768(%rcx,%rsi)
+        movb      $128, 768(%r9,%rsi)
         jmp       ..B7.22
 ..B7.21:
-        movb      $128, 768(%rcx,%r8)
-        lea       1536(%rsp,%rsi), %rcx
+        movb      $128, 768(%r9,%rsi)
+        lea       1536(%rsp,%rdi), %rax
         jbe       ..B7.34
 ..B7.22:
-        movl      %edi, %eax
-        movl      $1, %r9d
-        shrl      $1, %eax
-        xorl      %edx, %edx
-        testl     %eax, %eax
+        movl      %r15d, %r8d
+        xorl      %r9d, %r9d
+        shrl      $1, %r8d
+        movl      $1, %ecx
+        testl     %r8d, %r8d
         jbe       ..B7.26
 ..B7.24:
-        lea       (%rdx,%rdx), %r9d
-        movl      %r9d, %r10d
+        lea       (%r9,%r9), %r11d
+        movl      %r11d, %r10d
         andl      $-4, %r10d
         shll      $2, %r10d
-        movl      %r9d, %r11d
-        andl      $3, %r9d
-        lea       (%r10,%rbp,4), %r10d
-        addl      %r9d, %r10d
-        movb      (%r11,%r14), %r11b
-        movb      %r11b, (%r10,%rcx)
-        lea       1(%rdx,%rdx), %r10d
-        movl      %r10d, %r11d
-        incl      %edx
+        movl      %r11d, %ecx
+        andl      $3, %r11d
+        lea       (%r10,%r13,4), %r10d
+        addl      %r11d, %r10d
+        movb      (%rcx,%r14), %cl
+        movb      %cl, (%r10,%rax)
+        lea       1(%r9,%r9), %ecx
+        movl      %ecx, %r11d
+        incl      %r9d
         andl      $-4, %r11d
         shll      $2, %r11d
-        movl      %r10d, %r9d
-        andl      $3, %r10d
-        lea       (%r11,%rbp,4), %r11d
-        addl      %r10d, %r11d
-        cmpl      %eax, %edx
-        movb      (%r9,%r14), %r9b
-        movb      %r9b, (%r11,%rcx)
+        movl      %ecx, %edx
+        andl      $3, %ecx
+        lea       (%r11,%r13,4), %r10d
+        addl      %ecx, %r10d
+        cmpl      %r8d, %r9d
+        movb      (%rdx,%r14), %cl
+        movb      %cl, (%r10,%rax)
         jb        ..B7.24
 ..B7.25:
-        lea       1(%rdx,%rdx), %r9d
+        lea       1(%r9,%r9), %ecx
 ..B7.26:
-        cmpl      %edi, %r9d
+        cmpl      %r15d, %ecx
         ja        ..B7.28
 ..B7.27:
-        decl      %r9d
-        movl      %r9d, %r10d
-        andl      $-4, %r10d
-        movl      %r9d, %r11d
-        addl      %ebp, %r10d
-        andl      $3, %r9d
-        lea       (%r9,%r10,4), %r9d
-        movb      (%r11,%r14), %r10b
-        movb      %r10b, (%r9,%rcx)
+        decl      %ecx
+        movl      %ecx, %r8d
+        andl      $-4, %r8d
+        movl      %ecx, %r9d
+        andl      $3, %ecx
+        addl      %r13d, %r8d
+        movb      (%r9,%r14), %r10b
+        lea       (%rcx,%r8,4), %ecx
+        movb      %r10b, (%rcx,%rax)
 ..B7.28:
-        movl      %edi, %r10d
-        movl      $1, %r9d
-        shrl      $1, %r10d
-        xorl      %r11d, %r11d
-        testl     %r10d, %r10d
+        movl      %r15d, %r8d
+        xorl      %r9d, %r9d
+        shrl      $1, %r8d
+        movl      $1, %ecx
+        testl     %r8d, %r8d
         jbe       ..B7.32
-..B7.29:
-        movl      %r12d, 6800(%rsp)
 ..B7.30:
-        lea       (%rdi,%r11,2), %r9d
-        movl      %r9d, %r12d
-        movl      %r9d, %eax
-        andl      $-4, %r12d
-        lea       (%r11,%r11), %edx
-        shll      $2, %r12d
-        andl      $3, %eax
-        incl      %r9d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %eax, %r12d
-        movb      (%rdx,%r14), %al
-        movb      %al, (%r12,%rcx)
-        movl      %r9d, %r12d
-        andl      $-4, %r12d
-        lea       1(%r11,%r11), %eax
-        shll      $2, %r12d
-        andl      $3, %r9d
-        incl      %r11d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %r9d, %r12d
-        cmpl      %r10d, %r11d
-        movb      (%rax,%r14), %r9b
-        movb      %r9b, (%r12,%rcx)
-        jb        ..B7.30
-..B7.31:
-        movl      6800(%rsp), %r12d
-        lea       1(%r11,%r11), %r9d
-..B7.32:
-        cmpl      %edi, %r9d
-        ja        ..B7.34
-..B7.33:
-        lea       -1(%rdi,%r9), %r10d
-        decl      %r9d
+        lea       (%r15,%r9,2), %r10d
         movl      %r10d, %r11d
-        andl      $3, %r10d
+        lea       (%r9,%r9), %ecx
         andl      $-4, %r11d
-        addl      %ebp, %r11d
-        lea       (%r10,%r11,4), %r10d
-        movb      (%r9,%r14), %r9b
-        movb      %r9b, (%r10,%rcx)
-..B7.34:
-        lea       16(%rdi,%rdi), %r9d
-        movl      %r9d, %r10d
-        andl      $3, %r9d
-        andl      $-4, %r10d
-        lea       (%rdi,%rdi), %ecx
-        addl      %ebp, %r10d
-        testl     %edi, %edi
-        lea       (%r9,%r10,4), %r9d
-        movb      $128, 1536(%r9,%r8)
-        jbe       ..B7.47
-..B7.35:
-        movl      %edi, %eax
-        movl      $1, %r10d
-        shrl      $1, %eax
-        xorl      %edx, %edx
-        testl     %eax, %eax
-        jbe       ..B7.39
-..B7.36:
-        movl      %r12d, 6800(%rsp)
-..B7.37:
-        lea       16(%rdx,%rdx), %r10d
+        shll      $2, %r11d
+        lea       (%r11,%r13,4), %edx
         movl      %r10d, %r11d
-        lea       (%rdx,%rdx), %r12d
+        andl      $3, %r11d
+        incl      %r10d
+        addl      %r11d, %edx
+        movl      %r10d, %r11d
         andl      $-4, %r11d
         andl      $3, %r10d
         shll      $2, %r11d
-        lea       (%r11,%rbp,4), %r11d
-        addl      %r10d, %r11d
-        movb      (%r12,%r14), %r10b
-        movb      %r10b, 2304(%r11,%r8)
-        lea       17(%rdx,%rdx), %r11d
-        movl      %r11d, %r12d
-        lea       1(%rdx,%rdx), %r10d
-        andl      $-4, %r12d
-        andl      $3, %r11d
-        shll      $2, %r12d
+        movb      (%rcx,%r14), %cl
+        movb      %cl, (%rdx,%rax)
+        lea       1(%r9,%r9), %edx
+        lea       (%r11,%r13,4), %ecx
+        addl      %r10d, %ecx
+        incl      %r9d
+        cmpl      %r8d, %r9d
+        movb      (%rdx,%r14), %r10b
+        movb      %r10b, (%rcx,%rax)
+        jb        ..B7.30
+..B7.31:
+        lea       1(%r9,%r9), %ecx
+..B7.32:
+        cmpl      %r15d, %ecx
+        ja        ..B7.34
+..B7.33:
+        lea       -1(%rcx,%r15), %r8d
+        decl      %ecx
+        movl      %r8d, %r9d
+        andl      $3, %r8d
+        andl      $-4, %r9d
+        addl      %r13d, %r9d
+        lea       (%r8,%r9,4), %r10d
+        movb      (%rcx,%r14), %r11b
+        movb      %r11b, (%r10,%rax)
+..B7.34:
+        lea       16(%r15,%r15), %r8d
+        movl      %r8d, %r9d
+        andl      $3, %r8d
+        andl      $-4, %r9d
+        lea       (%r15,%r15), %ecx
+        addl      %r13d, %r9d
+        testl     %r15d, %r15d
+        lea       (%r8,%r9,4), %r8d
+        movb      $128, 1536(%r8,%rsi)
+        jbe       ..B7.47
+..B7.35:
+        movl      %r15d, %eax
+        xorl      %edx, %edx
+        shrl      $1, %eax
+        movl      $1, %r9d
+        testl     %eax, %eax
+        jbe       ..B7.39
+..B7.37:
+        lea       16(%rdx,%rdx), %r9d
+        movl      %r9d, %r10d
+        lea       (%rdx,%rdx), %r11d
+        andl      $-4, %r10d
+        andl      $3, %r9d
+        shll      $2, %r10d
+        lea       (%r10,%r13,4), %r10d
+        addl      %r9d, %r10d
+        movb      (%r11,%r14), %r9b
+        movb      %r9b, 2304(%r10,%rsi)
+        lea       17(%rdx,%rdx), %r10d
+        movl      %r10d, %r11d
+        lea       1(%rdx,%rdx), %r9d
+        andl      $-4, %r11d
+        andl      $3, %r10d
+        shll      $2, %r11d
         incl      %edx
-        lea       (%r12,%rbp,4), %r12d
-        addl      %r11d, %r12d
+        lea       (%r11,%r13,4), %r11d
+        addl      %r10d, %r11d
         cmpl      %eax, %edx
-        movb      (%r10,%r14), %r10b
-        movb      %r10b, 2304(%r12,%r8)
+        movb      (%r9,%r14), %r9b
+        movb      %r9b, 2304(%r11,%rsi)
         jb        ..B7.37
 ..B7.38:
-        movl      6800(%rsp), %r12d
-        lea       1(%rdx,%rdx), %r10d
+        lea       1(%rdx,%rdx), %r9d
 ..B7.39:
-        cmpl      %edi, %r10d
+        cmpl      %r15d, %r9d
         ja        ..B7.41
 ..B7.40:
-        lea       15(%r10), %r11d
-        decl      %r10d
-        movl      %r11d, %eax
-        andl      $3, %r11d
-        andl      $-4, %eax
-        addl      %ebp, %eax
-        lea       (%r11,%rax,4), %r11d
-        movb      (%r10,%r14), %r10b
-        movb      %r10b, 2304(%r11,%r8)
+        lea       15(%r9), %r10d
+        decl      %r9d
+        movl      %r10d, %r11d
+        andl      $3, %r10d
+        andl      $-4, %r11d
+        addl      %r13d, %r11d
+        lea       (%r10,%r11,4), %r10d
+        movb      (%r9,%r14), %r9b
+        movb      %r9b, 2304(%r10,%rsi)
 ..B7.41:
-        movl      %edi, %eax
-        movl      $1, %r10d
-        shrl      $1, %eax
+        movl      %r15d, %eax
         xorl      %edx, %edx
+        shrl      $1, %eax
+        movl      $1, %r9d
         testl     %eax, %eax
         jbe       ..B7.45
 ..B7.42:
-        movl      %ebx, 6664(%rsp)
-        movl      %r12d, 6800(%rsp)
+        movl      %r12d, 6728(%rsp)
 ..B7.43:
+        lea       (%r15,%rdx,2), %r12d
+        lea       16(%r12), %r11d
+        addl      $17, %r12d
+        movl      %r11d, %r9d
         lea       (%rdx,%rdx), %r10d
-        lea       16(%r10,%rdi), %r11d
-        movl      %r11d, %r12d
-        movl      %r11d, %ebx
-        andl      $-4, %r12d
-        andl      $3, %ebx
-        shll      $2, %r12d
-        incl      %r11d
-        movb      (%r10,%r14), %r10b
-        lea       (%r12,%rbp,4), %r12d
-        addl      %ebx, %r12d
-        lea       1(%rdx,%rdx), %ebx
-        incl      %edx
-        movb      %r10b, 2304(%r12,%r8)
-        movl      %r11d, %r10d
-        andl      $-4, %r10d
+        andl      $-4, %r9d
         andl      $3, %r11d
+        shll      $2, %r9d
+        lea       (%r9,%r13,4), %r9d
+        addl      %r11d, %r9d
+        movb      (%r10,%r14), %r11b
+        movl      %r12d, %r10d
+        andl      $-4, %r10d
+        andl      $3, %r12d
         shll      $2, %r10d
-        lea       (%r10,%rbp,4), %r12d
-        addl      %r11d, %r12d
+        movb      %r11b, 2304(%r9,%rsi)
+        lea       1(%rdx,%rdx), %r9d
+        lea       (%r10,%r13,4), %r11d
+        addl      %r12d, %r11d
+        incl      %edx
         cmpl      %eax, %edx
-        movb      (%rbx,%r14), %r11b
-        movb      %r11b, 2304(%r12,%r8)
+        movb      (%r9,%r14), %r12b
+        movb      %r12b, 2304(%r11,%rsi)
         jb        ..B7.43
 ..B7.44:
-        movl      6664(%rsp), %ebx
-        lea       1(%rdx,%rdx), %r10d
-        movl      6800(%rsp), %r12d
+        movl      6728(%rsp), %r12d
+        lea       1(%rdx,%rdx), %r9d
 ..B7.45:
-        cmpl      %edi, %r10d
-        ja        ..B7.210
+        cmpl      %r15d, %r9d
+        ja        ..B7.214
 ..B7.46:
-        lea       15(%r10,%rdi), %r11d
-        decl      %r10d
-        movl      %r11d, %eax
-        andl      $3, %r11d
-        andl      $-4, %eax
-        addl      %ebp, %eax
-        lea       (%r11,%rax,4), %r11d
-        movb      (%r10,%r14), %r10b
-        movb      %r10b, 2304(%r11,%r8)
-        movb      $128, 2304(%r9,%r8)
-        lea       3072(%rsp,%rsi), %r9
+        lea       15(%r9,%r15), %r10d
+        decl      %r9d
+        movl      %r10d, %r11d
+        andl      $3, %r10d
+        andl      $-4, %r11d
+        addl      %r13d, %r11d
+        lea       (%r10,%r11,4), %r10d
+        movb      (%r9,%r14), %r9b
+        movb      %r9b, 2304(%r10,%rsi)
+        movb      $128, 2304(%r8,%rsi)
+        lea       3072(%rsp,%rdi), %r8
         jmp       ..B7.48
 ..B7.47:
-        movb      $128, 2304(%r9,%r8)
-        lea       3072(%rsp,%rsi), %r9
+        movb      $128, 2304(%r8,%rsi)
+        lea       3072(%rsp,%rdi), %r8
         jbe       ..B7.54
 ..B7.48:
-        movl      %edi, %eax
-        movl      $1, %r10d
-        shrl      $1, %eax
-        xorl      %edx, %edx
-        testl     %eax, %eax
-        jbe       ..B7.52
-..B7.49:
-        movl      %r12d, 6800(%rsp)
-..B7.50:
-        lea       (%rdx,%rdx), %r10d
-        movl      %r10d, %r11d
-        andl      $-4, %r11d
-        shll      $2, %r11d
-        movl      %r10d, %r12d
-        andl      $3, %r10d
-        lea       (%r11,%rbp,4), %r11d
-        addl      %r10d, %r11d
-        movb      (%r12,%r14), %r12b
-        movb      %r12b, (%r11,%r9)
-        lea       1(%rdx,%rdx), %r11d
-        movl      %r11d, %r12d
-        incl      %edx
-        andl      $-4, %r12d
-        shll      $2, %r12d
-        movl      %r11d, %r10d
-        andl      $3, %r11d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %r11d, %r12d
-        cmpl      %eax, %edx
-        movb      (%r10,%r14), %r10b
-        movb      %r10b, (%r12,%r9)
-        jb        ..B7.50
-..B7.51:
-        movl      6800(%rsp), %r12d
-        lea       1(%rdx,%rdx), %r10d
-..B7.52:
-        cmpl      %edi, %r10d
-        ja        ..B7.54
-..B7.53:
-        decl      %r10d
-        movl      %r10d, %r11d
-        andl      $-4, %r11d
-        movl      %r10d, %edx
-        addl      %ebp, %r11d
-        andl      $3, %r10d
-        lea       (%r10,%r11,4), %r10d
-        movb      (%rdx,%r14), %r11b
-        movb      %r11b, (%r10,%r9)
-..B7.54:
-        testl     %r12d, %r12d
-        jbe       ..B7.61
-..B7.55:
-        movl      $1, %edx
+        movl      %r15d, %edx
         xorl      %eax, %eax
-        cmpl      $0, 6696(%rsp)
-        jbe       ..B7.59
-..B7.56:
-        movq      %r14, 6672(%rsp)
-        movl      %ebx, 6664(%rsp)
-        movl      %r12d, 6800(%rsp)
-        movl      6696(%rsp), %r10d
-        movq      6728(%rsp), %r11
-..B7.57:
-        lea       (%rdi,%rax,2), %r12d
-        movl      %r12d, %r14d
-        movl      %r12d, %edx
-        andl      $-4, %r14d
-        lea       (%rax,%rax), %ebx
-        shll      $2, %r14d
-        andl      $3, %edx
-        incl      %r12d
-        lea       (%r14,%rbp,4), %r14d
-        addl      %edx, %r14d
-        lea       1(%rax,%rax), %edx
-        incl      %eax
-        movb      (%rbx,%r11), %bl
-        movb      %bl, (%r14,%r9)
-        movl      %r12d, %ebx
-        andl      $-4, %ebx
-        andl      $3, %r12d
-        shll      $2, %ebx
-        lea       (%rbx,%rbp,4), %r14d
-        addl      %r12d, %r14d
-        cmpl      %r10d, %eax
-        movb      (%rdx,%r11), %r12b
-        movb      %r12b, (%r14,%r9)
-        jb        ..B7.57
-..B7.58:
-        movq      6672(%rsp), %r14
-        lea       1(%rax,%rax), %edx
-        movl      6664(%rsp), %ebx
-        movl      6800(%rsp), %r12d
-..B7.59:
-        cmpl      %r12d, %edx
-        ja        ..B7.61
-..B7.60:
-        lea       -1(%rdi,%rdx), %r10d
-        decl      %edx
-        movl      %r10d, %r11d
-        andl      $3, %r10d
-        andl      $-4, %r11d
-        addl      %ebp, %r11d
-        lea       (%r10,%r11,4), %r10d
-        movq      6728(%rsp), %r11
-        movb      (%rdx,%r11), %r11b
-        movb      %r11b, (%r10,%r9)
-..B7.61:
-        lea       16(%r12,%rdi), %edx
-        movl      %edx, %r11d
-        movl      %edx, %r10d
-        andl      $-4, %r11d
-        andl      $3, %r10d
-        addl      %ebp, %r11d
-        lea       (%r12,%rdi), %r9d
-        movl      %r9d, 6744(%rsp)
-        testl     %r12d, %r12d
-        lea       (%r10,%r11,4), %eax
-        movb      $128, 3072(%rax,%r8)
-        jbe       ..B7.71
-..B7.62:
-        movl      $1, %r11d
-        xorl      %r10d, %r10d
-        cmpl      $0, 6696(%rsp)
-        jbe       ..B7.66
-..B7.63:
-        movl      %ebx, 6664(%rsp)
-        movq      %r14, 6672(%rsp)
-        movl      %r12d, 6800(%rsp)
-        movl      6696(%rsp), %ebx
-        movq      6728(%rsp), %r9
-..B7.64:
-        lea       16(%r10,%r10), %r11d
-        movl      %r11d, %r12d
-        lea       (%r10,%r10), %r14d
-        andl      $-4, %r12d
-        andl      $3, %r11d
-        shll      $2, %r12d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %r11d, %r12d
-        movb      (%r14,%r9), %r11b
-        movb      %r11b, 3840(%r12,%r8)
-        lea       17(%r10,%r10), %r12d
-        movl      %r12d, %r14d
-        lea       1(%r10,%r10), %r11d
-        andl      $-4, %r14d
-        andl      $3, %r12d
-        shll      $2, %r14d
-        incl      %r10d
-        lea       (%r14,%rbp,4), %r14d
-        addl      %r12d, %r14d
-        cmpl      %ebx, %r10d
-        movb      (%r11,%r9), %r11b
-        movb      %r11b, 3840(%r14,%r8)
-        jb        ..B7.64
-..B7.65:
-        movq      6672(%rsp), %r14
-        lea       1(%r10,%r10), %r11d
-        movl      6664(%rsp), %ebx
-        movl      6800(%rsp), %r12d
-..B7.66:
-        cmpl      %r12d, %r11d
-        ja        ..B7.69
-..B7.67:
-        lea       15(%r11), %r10d
-        decl      %r11d
-        movl      %r10d, %r9d
-        andl      $3, %r10d
-        andl      $-4, %r9d
-        addl      %ebp, %r9d
-        testl     %edi, %edi
-        lea       (%r10,%r9,4), %r9d
-        movq      6728(%rsp), %r10
-        movb      (%r11,%r10), %r11b
-        movb      %r11b, 3840(%r9,%r8)
-        ja        ..B7.72
-..B7.68:
-        movb      $128, 3840(%rax,%r8)
-        lea       4608(%rsp,%rsi), %rax
-        jmp       ..B7.79
-..B7.69:
-        testl     %edi, %edi
-        ja        ..B7.72
-..B7.70:
-        movb      $128, 3840(%rax,%r8)
-        lea       4608(%rsp,%rsi), %rax
-        jmp       ..B7.79
-..B7.71:
-        testl     %edi, %edi
-        jbe       ..B7.85
-..B7.72:
-        movl      %edi, %r9d
-        movl      $1, %r11d
-        shrl      $1, %r9d
-        xorl      %r10d, %r10d
-        testl     %r9d, %r9d
-        jbe       ..B7.76
-..B7.73:
-        movl      %edi, 6680(%rsp)
-        movq      %r13, 6688(%rsp)
-        movl      %ebx, 6664(%rsp)
-..B7.74:
-        lea       (%r12,%r10,2), %r13d
-        lea       16(%r13), %r11d
-        addl      $17, %r13d
-        movl      %r11d, %ebx
-        lea       (%r10,%r10), %edi
-        andl      $-4, %ebx
-        andl      $3, %r11d
-        shll      $2, %ebx
-        lea       (%rbx,%rbp,4), %ebx
-        addl      %r11d, %ebx
-        movb      (%rdi,%r14), %r11b
-        movl      %r13d, %edi
-        andl      $-4, %edi
-        andl      $3, %r13d
-        shll      $2, %edi
-        movb      %r11b, 3840(%rbx,%r8)
-        lea       1(%r10,%r10), %ebx
-        lea       (%rdi,%rbp,4), %r11d
-        addl      %r13d, %r11d
-        incl      %r10d
-        cmpl      %r9d, %r10d
-        movb      (%rbx,%r14), %r13b
-        movb      %r13b, 3840(%r11,%r8)
-        jb        ..B7.74
-..B7.75:
-        movl      6680(%rsp), %edi
-        lea       1(%r10,%r10), %r11d
-        movq      6688(%rsp), %r13
-        movl      6664(%rsp), %ebx
-..B7.76:
-        cmpl      %edi, %r11d
-        ja        ..B7.78
-..B7.77:
-        lea       15(%r12,%r11), %r9d
-        decl      %r11d
-        movl      %r9d, %r10d
-        andl      $3, %r9d
-        andl      $-4, %r10d
-        addl      %ebp, %r10d
-        lea       (%r9,%r10,4), %r9d
-        movb      (%r11,%r14), %r11b
-        movb      %r11b, 3840(%r9,%r8)
-..B7.78:
-        movb      $128, 3840(%rax,%r8)
-        lea       4608(%rsp,%rsi), %rax
-        testl     %r12d, %r12d
-        jbe       ..B7.208
-..B7.79:
-        movl      $1, %esi
-        xorl      %r9d, %r9d
-        cmpl      $0, 6696(%rsp)
-        jbe       ..B7.83
-..B7.80:
-        movl      %ebx, 6664(%rsp)
-        movl      %r12d, 6800(%rsp)
-        movl      6696(%rsp), %ebx
-        movq      6728(%rsp), %rsi
-..B7.81:
-        lea       16(%r9,%r9), %r10d
-        movl      %r10d, %r11d
-        lea       (%r9,%r9), %r12d
-        andl      $-4, %r11d
-        andl      $3, %r10d
-        shll      $2, %r11d
-        lea       (%r11,%rbp,4), %r11d
-        addl      %r10d, %r11d
-        movb      (%r12,%rsi), %r10b
-        movb      %r10b, (%r11,%rax)
-        lea       17(%r9,%r9), %r11d
-        movl      %r11d, %r12d
-        lea       1(%r9,%r9), %r10d
-        andl      $-4, %r12d
-        andl      $3, %r11d
-        shll      $2, %r12d
-        incl      %r9d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %r11d, %r12d
-        cmpl      %ebx, %r9d
-        movb      (%r10,%rsi), %r10b
-        movb      %r10b, (%r12,%rax)
-        jb        ..B7.81
-..B7.82:
-        movl      6664(%rsp), %ebx
-        lea       1(%r9,%r9), %esi
-        movl      6800(%rsp), %r12d
-..B7.83:
-        cmpl      %r12d, %esi
-        ja        ..B7.208
-..B7.84:
-        lea       15(%rsi), %r9d
-        decl      %esi
-        movl      %r9d, %r10d
-        andl      $3, %r9d
-        andl      $-4, %r10d
-        addl      %ebp, %r10d
-        testl     %edi, %edi
-        lea       (%r9,%r10,4), %r11d
-        movq      6728(%rsp), %r9
-        movb      (%rsi,%r9), %sil
-        movb      %sil, (%r11,%rax)
-        ja        ..B7.87
-        jmp       ..B7.99
-..B7.85:
-        movb      $128, 3840(%rax,%r8)
-        lea       4608(%rsp,%rsi), %rax
-..B7.86:
-        jbe       ..B7.99
-..B7.87:
-        movl      %edi, %esi
-        movl      $1, %r10d
-        shrl      $1, %esi
-        xorl      %r9d, %r9d
-        testl     %esi, %esi
-        jbe       ..B7.91
-..B7.88:
-        movq      %r13, 6688(%rsp)
-        movl      %ebx, 6664(%rsp)
-..B7.89:
-        lea       (%r12,%r9,2), %r13d
-        lea       16(%r13), %r11d
-        addl      $17, %r13d
-        movl      %r11d, %ebx
-        lea       (%r9,%r9), %r10d
-        andl      $-4, %ebx
-        andl      $3, %r11d
-        shll      $2, %ebx
-        lea       (%rbx,%rbp,4), %ebx
-        addl      %r11d, %ebx
-        movb      (%r10,%r14), %r11b
-        movl      %r13d, %r10d
-        andl      $-4, %r10d
-        andl      $3, %r13d
-        shll      $2, %r10d
-        movb      %r11b, (%rbx,%rax)
-        lea       1(%r9,%r9), %ebx
-        lea       (%r10,%rbp,4), %r11d
-        addl      %r13d, %r11d
-        incl      %r9d
-        cmpl      %esi, %r9d
-        movb      (%rbx,%r14), %r13b
-        movb      %r13b, (%r11,%rax)
-        jb        ..B7.89
-..B7.90:
-        movq      6688(%rsp), %r13
-        lea       1(%r9,%r9), %r10d
-        movl      6664(%rsp), %ebx
-..B7.91:
-        cmpl      %edi, %r10d
-        ja        ..B7.93
-..B7.92:
-        lea       15(%r12,%r10), %esi
-        decl      %r10d
-        movl      %esi, %r9d
-        andl      $3, %esi
-        andl      $-4, %r9d
-        addl      %ebp, %r9d
-        movb      (%r10,%r14), %r10b
-        lea       (%rsi,%r9,4), %r11d
-        movb      %r10b, (%r11,%rax)
-..B7.93:
-        movl      %edi, %esi
-        movl      $1, %r10d
-        shrl      $1, %esi
-        xorl      %r9d, %r9d
-        testl     %esi, %esi
-        jbe       ..B7.97
-..B7.94:
-        movl      %ebx, 6664(%rsp)
-        movl      %r12d, 6800(%rsp)
-..B7.95:
-        lea       (%rdx,%r9,2), %r11d
-        movl      %r11d, %r12d
-        movl      %r11d, %ebx
-        andl      $-4, %r12d
-        lea       (%r9,%r9), %r10d
-        shll      $2, %r12d
-        andl      $3, %ebx
-        incl      %r11d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %ebx, %r12d
-        lea       1(%r9,%r9), %ebx
-        incl      %r9d
-        movb      (%r10,%r14), %r10b
-        movb      %r10b, (%r12,%rax)
-        movl      %r11d, %r10d
-        andl      $-4, %r10d
-        andl      $3, %r11d
-        shll      $2, %r10d
-        lea       (%r10,%rbp,4), %r12d
-        addl      %r11d, %r12d
-        cmpl      %esi, %r9d
-        movb      (%rbx,%r14), %r11b
-        movb      %r11b, (%r12,%rax)
-        jb        ..B7.95
-..B7.96:
-        movl      6664(%rsp), %ebx
-        lea       1(%r9,%r9), %r10d
-        movl      6800(%rsp), %r12d
-..B7.97:
-        cmpl      %edi, %r10d
-        ja        ..B7.99
-..B7.98:
-        lea       -1(%rdx,%r10), %esi
-        decl      %r10d
-        movl      %esi, %r9d
-        andl      $3, %esi
-        andl      $-4, %r9d
-        addl      %ebp, %r9d
-        lea       (%rsi,%r9,4), %r11d
-        movb      (%r10,%r14), %sil
-        movb      %sil, (%r11,%rax)
-..B7.99:
-        lea       16(%r12,%rdi,2), %esi
-        movl      %esi, %r9d
-        andl      $3, %esi
-        andl      $-4, %r9d
-        addl      %ebp, %r9d
-        testl     %edi, %edi
-        lea       (%rsi,%r9,4), %esi
-        movb      $128, 4608(%rsi,%r8)
-        jbe       ..B7.107
-..B7.100:
-        movl      %edi, %edx
-        movl      $1, %r9d
         shrl      $1, %edx
-        xorl      %eax, %eax
+        movl      $1, %r9d
         testl     %edx, %edx
-        jbe       ..B7.104
-..B7.102:
+        jbe       ..B7.52
+..B7.50:
         lea       (%rax,%rax), %r9d
         movl      %r9d, %r10d
         andl      $-4, %r10d
         shll      $2, %r10d
         movl      %r9d, %r11d
         andl      $3, %r9d
-        lea       (%r10,%rbp,4), %r10d
+        lea       (%r10,%r13,4), %r10d
         addl      %r9d, %r10d
         movb      (%r11,%r14), %r11b
-        movb      %r11b, 5376(%r10,%r8)
+        movb      %r11b, (%r10,%r8)
         lea       1(%rax,%rax), %r10d
         movl      %r10d, %r11d
         incl      %eax
@@ -4251,28 +3829,436 @@ md5cryptsse:
         shll      $2, %r11d
         movl      %r10d, %r9d
         andl      $3, %r10d
-        lea       (%r11,%rbp,4), %r11d
+        lea       (%r11,%r13,4), %r11d
         addl      %r10d, %r11d
         cmpl      %edx, %eax
         movb      (%r9,%r14), %r9b
-        movb      %r9b, 5376(%r11,%r8)
-        jb        ..B7.102
-..B7.103:
+        movb      %r9b, (%r11,%r8)
+        jb        ..B7.50
+..B7.51:
         lea       1(%rax,%rax), %r9d
-..B7.104:
-        cmpl      %edi, %r9d
-        ja        ..B7.106
-..B7.105:
+..B7.52:
+        cmpl      %r15d, %r9d
+        ja        ..B7.54
+..B7.53:
         decl      %r9d
         movl      %r9d, %r10d
         andl      $-4, %r10d
         movl      %r9d, %r11d
-        addl      %ebp, %r10d
+        addl      %r13d, %r10d
         andl      $3, %r9d
-        testl     %r12d, %r12d
         lea       (%r9,%r10,4), %r9d
         movb      (%r11,%r14), %r10b
-        movb      %r10b, 5376(%r9,%r8)
+        movb      %r10b, (%r9,%r8)
+..B7.54:
+        testl     %r12d, %r12d
+        jbe       ..B7.61
+..B7.55:
+        xorl      %eax, %eax
+        movl      $1, %edx
+        cmpl      $0, 6744(%rsp)
+        jbe       ..B7.59
+..B7.56:
+        movl      %ebx, 6696(%rsp)
+        movl      %r12d, 6728(%rsp)
+        movl      6744(%rsp), %r9d
+        movq      6776(%rsp), %r10
+..B7.57:
+        lea       (%r15,%rax,2), %r11d
+        movl      %r11d, %r12d
+        movl      %r11d, %edx
+        andl      $-4, %r12d
+        lea       (%rax,%rax), %ebx
+        shll      $2, %r12d
+        andl      $3, %edx
+        incl      %r11d
+        lea       (%r12,%r13,4), %r12d
+        addl      %edx, %r12d
+        lea       1(%rax,%rax), %edx
+        incl      %eax
+        movb      (%rbx,%r10), %bl
+        movb      %bl, (%r12,%r8)
+        movl      %r11d, %ebx
+        andl      $-4, %ebx
+        andl      $3, %r11d
+        shll      $2, %ebx
+        lea       (%rbx,%r13,4), %r12d
+        addl      %r11d, %r12d
+        cmpl      %r9d, %eax
+        movb      (%rdx,%r10), %r11b
+        movb      %r11b, (%r12,%r8)
+        jb        ..B7.57
+..B7.58:
+        movl      6696(%rsp), %ebx
+        lea       1(%rax,%rax), %edx
+        movl      6728(%rsp), %r12d
+..B7.59:
+        cmpl      %r12d, %edx
+        ja        ..B7.61
+..B7.60:
+        lea       -1(%rdx,%r15), %r9d
+        decl      %edx
+        movl      %r9d, %r10d
+        andl      $3, %r9d
+        andl      $-4, %r10d
+        addl      %r13d, %r10d
+        lea       (%r9,%r10,4), %r11d
+        movq      6776(%rsp), %r9
+        movb      (%rdx,%r9), %r9b
+        movb      %r9b, (%r11,%r8)
+..B7.61:
+        lea       16(%r12,%r15), %edx
+        movl      %edx, %r10d
+        movl      %edx, %r9d
+        andl      $-4, %r10d
+        andl      $3, %r9d
+        addl      %r13d, %r10d
+        lea       (%r12,%r15), %r8d
+        movl      %r8d, 6792(%rsp)
+        testl     %r12d, %r12d
+        lea       (%r9,%r10,4), %eax
+        movb      $128, 3072(%rax,%rsi)
+        jbe       ..B7.71
+..B7.62:
+        xorl      %r9d, %r9d
+        movl      $1, %r8d
+        cmpl      $0, 6744(%rsp)
+        jbe       ..B7.66
+..B7.63:
+        movl      %ebx, 6696(%rsp)
+        movl      %r12d, 6728(%rsp)
+        movl      6744(%rsp), %ebx
+        movq      6776(%rsp), %r8
+..B7.64:
+        lea       16(%r9,%r9), %r10d
+        movl      %r10d, %r11d
+        lea       (%r9,%r9), %r12d
+        andl      $-4, %r11d
+        andl      $3, %r10d
+        shll      $2, %r11d
+        lea       (%r11,%r13,4), %r11d
+        addl      %r10d, %r11d
+        movb      (%r12,%r8), %r10b
+        movb      %r10b, 3840(%r11,%rsi)
+        lea       17(%r9,%r9), %r11d
+        movl      %r11d, %r12d
+        lea       1(%r9,%r9), %r10d
+        andl      $-4, %r12d
+        andl      $3, %r11d
+        shll      $2, %r12d
+        incl      %r9d
+        lea       (%r12,%r13,4), %r12d
+        addl      %r11d, %r12d
+        cmpl      %ebx, %r9d
+        movb      (%r10,%r8), %r10b
+        movb      %r10b, 3840(%r12,%rsi)
+        jb        ..B7.64
+..B7.65:
+        movl      6696(%rsp), %ebx
+        lea       1(%r9,%r9), %r8d
+        movl      6728(%rsp), %r12d
+..B7.66:
+        cmpl      %r12d, %r8d
+        ja        ..B7.69
+..B7.67:
+        lea       15(%r8), %r9d
+        decl      %r8d
+        movl      %r9d, %r10d
+        andl      $3, %r9d
+        andl      $-4, %r10d
+        addl      %r13d, %r10d
+        testl     %r15d, %r15d
+        lea       (%r9,%r10,4), %r11d
+        movq      6776(%rsp), %r9
+        movb      (%r8,%r9), %r8b
+        movb      %r8b, 3840(%r11,%rsi)
+        ja        ..B7.72
+..B7.68:
+        movb      $128, 3840(%rax,%rsi)
+        lea       4608(%rsp,%rdi), %r9
+        jmp       ..B7.79
+..B7.69:
+        testl     %r15d, %r15d
+        ja        ..B7.72
+..B7.70:
+        movb      $128, 3840(%rax,%rsi)
+        lea       4608(%rsp,%rdi), %r9
+        jmp       ..B7.79
+..B7.71:
+        testl     %r15d, %r15d
+        jbe       ..B7.85
+..B7.72:
+        movl      %r15d, %r9d
+        xorl      %r8d, %r8d
+        shrl      $1, %r9d
+        movl      $1, %r10d
+        testl     %r9d, %r9d
+        jbe       ..B7.76
+..B7.73:
+        movl      %ebp, 6704(%rsp)
+        movl      %ebx, 6696(%rsp)
+..B7.74:
+        lea       (%r12,%r8,2), %r11d
+        lea       16(%r11), %r10d
+        addl      $17, %r11d
+        movl      %r10d, %ebx
+        lea       (%r8,%r8), %ebp
+        andl      $-4, %ebx
+        andl      $3, %r10d
+        shll      $2, %ebx
+        lea       (%rbx,%r13,4), %ebx
+        addl      %r10d, %ebx
+        movb      (%rbp,%r14), %r10b
+        movl      %r11d, %ebp
+        andl      $-4, %ebp
+        andl      $3, %r11d
+        shll      $2, %ebp
+        movb      %r10b, 3840(%rbx,%rsi)
+        lea       1(%r8,%r8), %ebx
+        lea       (%rbp,%r13,4), %r10d
+        addl      %r11d, %r10d
+        incl      %r8d
+        cmpl      %r9d, %r8d
+        movb      (%rbx,%r14), %r11b
+        movb      %r11b, 3840(%r10,%rsi)
+        jb        ..B7.74
+..B7.75:
+        movl      6704(%rsp), %ebp
+        lea       1(%r8,%r8), %r10d
+        movl      6696(%rsp), %ebx
+..B7.76:
+        cmpl      %r15d, %r10d
+        ja        ..B7.78
+..B7.77:
+        lea       15(%r12,%r10), %r8d
+        decl      %r10d
+        movl      %r8d, %r9d
+        andl      $3, %r8d
+        andl      $-4, %r9d
+        addl      %r13d, %r9d
+        movb      (%r10,%r14), %r10b
+        lea       (%r8,%r9,4), %r11d
+        movb      %r10b, 3840(%r11,%rsi)
+..B7.78:
+        movb      $128, 3840(%rax,%rsi)
+        lea       4608(%rsp,%rdi), %r9
+        testl     %r12d, %r12d
+        jbe       ..B7.212
+..B7.79:
+        xorl      %r8d, %r8d
+        movl      $1, %edi
+        cmpl      $0, 6744(%rsp)
+        jbe       ..B7.83
+..B7.80:
+        movl      %r12d, 6728(%rsp)
+        movl      6744(%rsp), %eax
+        movq      6776(%rsp), %rdi
+..B7.81:
+        lea       16(%r8,%r8), %r10d
+        movl      %r10d, %r11d
+        lea       (%r8,%r8), %r12d
+        andl      $-4, %r11d
+        andl      $3, %r10d
+        shll      $2, %r11d
+        lea       (%r11,%r13,4), %r11d
+        addl      %r10d, %r11d
+        movb      (%r12,%rdi), %r10b
+        movb      %r10b, (%r11,%r9)
+        lea       17(%r8,%r8), %r11d
+        movl      %r11d, %r12d
+        lea       1(%r8,%r8), %r10d
+        andl      $-4, %r12d
+        andl      $3, %r11d
+        shll      $2, %r12d
+        incl      %r8d
+        lea       (%r12,%r13,4), %r12d
+        addl      %r11d, %r12d
+        cmpl      %eax, %r8d
+        movb      (%r10,%rdi), %r10b
+        movb      %r10b, (%r12,%r9)
+        jb        ..B7.81
+..B7.82:
+        movl      6728(%rsp), %r12d
+        lea       1(%r8,%r8), %edi
+..B7.83:
+        cmpl      %r12d, %edi
+        ja        ..B7.212
+..B7.84:
+        lea       15(%rdi), %r8d
+        decl      %edi
+        movl      %r8d, %r10d
+        andl      $3, %r8d
+        andl      $-4, %r10d
+        addl      %r13d, %r10d
+        testl     %r15d, %r15d
+        lea       (%r8,%r10,4), %r11d
+        movq      6776(%rsp), %r8
+        movb      (%rdi,%r8), %dil
+        movb      %dil, (%r11,%r9)
+        ja        ..B7.87
+        jmp       ..B7.99
+..B7.85:
+        movb      $128, 3840(%rax,%rsi)
+        lea       4608(%rsp,%rdi), %r9
+..B7.86:
+        jbe       ..B7.99
+..B7.87:
+        movl      %r15d, %eax
+        xorl      %edi, %edi
+        shrl      $1, %eax
+        movl      $1, %r8d
+        testl     %eax, %eax
+        jbe       ..B7.91
+..B7.88:
+        movl      %ebx, 6696(%rsp)
+..B7.89:
+        lea       (%r12,%rdi,2), %r11d
+        lea       16(%r11), %r10d
+        addl      $17, %r11d
+        movl      %r10d, %ebx
+        lea       (%rdi,%rdi), %r8d
+        andl      $-4, %ebx
+        andl      $3, %r10d
+        shll      $2, %ebx
+        lea       (%rbx,%r13,4), %ebx
+        addl      %r10d, %ebx
+        movb      (%r8,%r14), %r10b
+        movl      %r11d, %r8d
+        andl      $-4, %r8d
+        andl      $3, %r11d
+        shll      $2, %r8d
+        movb      %r10b, (%rbx,%r9)
+        lea       1(%rdi,%rdi), %ebx
+        lea       (%r8,%r13,4), %r10d
+        addl      %r11d, %r10d
+        incl      %edi
+        cmpl      %eax, %edi
+        movb      (%rbx,%r14), %r11b
+        movb      %r11b, (%r10,%r9)
+        jb        ..B7.89
+..B7.90:
+        movl      6696(%rsp), %ebx
+        lea       1(%rdi,%rdi), %r8d
+..B7.91:
+        cmpl      %r15d, %r8d
+        ja        ..B7.93
+..B7.92:
+        lea       15(%r12,%r8), %edi
+        decl      %r8d
+        movl      %edi, %r10d
+        andl      $3, %edi
+        andl      $-4, %r10d
+        addl      %r13d, %r10d
+        lea       (%rdi,%r10,4), %r11d
+        movb      (%r8,%r14), %dil
+        movb      %dil, (%r11,%r9)
+..B7.93:
+        movl      %r15d, %r11d
+        xorl      %r10d, %r10d
+        shrl      $1, %r11d
+        movl      $1, %edi
+        testl     %r11d, %r11d
+        jbe       ..B7.97
+..B7.94:
+        movl      %r12d, 6728(%rsp)
+..B7.95:
+        lea       (%rdx,%r10,2), %r8d
+        movl      %r8d, %r12d
+        movl      %r8d, %eax
+        andl      $-4, %r12d
+        lea       (%r10,%r10), %edi
+        shll      $2, %r12d
+        andl      $3, %eax
+        incl      %r8d
+        lea       (%r12,%r13,4), %r12d
+        addl      %eax, %r12d
+        lea       1(%r10,%r10), %eax
+        incl      %r10d
+        movb      (%rdi,%r14), %dil
+        movb      %dil, (%r12,%r9)
+        movl      %r8d, %edi
+        andl      $-4, %edi
+        andl      $3, %r8d
+        shll      $2, %edi
+        lea       (%rdi,%r13,4), %r12d
+        addl      %r8d, %r12d
+        cmpl      %r11d, %r10d
+        movb      (%rax,%r14), %r8b
+        movb      %r8b, (%r12,%r9)
+        jb        ..B7.95
+..B7.96:
+        movl      6728(%rsp), %r12d
+        lea       1(%r10,%r10), %edi
+..B7.97:
+        cmpl      %r15d, %edi
+        ja        ..B7.99
+..B7.98:
+        lea       -1(%rdx,%rdi), %r8d
+        decl      %edi
+        movl      %r8d, %r10d
+        andl      $3, %r8d
+        andl      $-4, %r10d
+        addl      %r13d, %r10d
+        movb      (%rdi,%r14), %dil
+        lea       (%r8,%r10,4), %r11d
+        movb      %dil, (%r11,%r9)
+..B7.99:
+        lea       16(%r12,%r15,2), %edi
+        movl      %edi, %r8d
+        andl      $3, %edi
+        andl      $-4, %r8d
+        addl      %r13d, %r8d
+        testl     %r15d, %r15d
+        lea       (%rdi,%r8,4), %eax
+        movb      $128, 4608(%rax,%rsi)
+        jbe       ..B7.107
+..B7.100:
+        movl      %r15d, %r9d
+        xorl      %r8d, %r8d
+        shrl      $1, %r9d
+        movl      $1, %edi
+        testl     %r9d, %r9d
+        jbe       ..B7.104
+..B7.102:
+        lea       (%r8,%r8), %r11d
+        movl      %r11d, %r10d
+        andl      $-4, %r10d
+        shll      $2, %r10d
+        movl      %r11d, %edi
+        andl      $3, %r11d
+        lea       (%r10,%r13,4), %r10d
+        addl      %r11d, %r10d
+        movb      (%rdi,%r14), %dil
+        movb      %dil, 5376(%r10,%rsi)
+        lea       1(%r8,%r8), %edi
+        movl      %edi, %r11d
+        incl      %r8d
+        andl      $-4, %r11d
+        shll      $2, %r11d
+        movl      %edi, %edx
+        andl      $3, %edi
+        lea       (%r11,%r13,4), %r10d
+        addl      %edi, %r10d
+        cmpl      %r9d, %r8d
+        movb      (%rdx,%r14), %dil
+        movb      %dil, 5376(%r10,%rsi)
+        jb        ..B7.102
+..B7.103:
+        lea       1(%r8,%r8), %edi
+..B7.104:
+        cmpl      %r15d, %edi
+        ja        ..B7.106
+..B7.105:
+        decl      %edi
+        movl      %edi, %r8d
+        andl      $-4, %r8d
+        movl      %edi, %r9d
+        addl      %r13d, %r8d
+        andl      $3, %edi
+        testl     %r12d, %r12d
+        movb      (%r9,%r14), %r10b
+        lea       (%rdi,%r8,4), %edi
+        movb      %r10b, 5376(%rdi,%rsi)
         ja        ..B7.108
         jmp       ..B7.115
 ..B7.106:
@@ -4283,127 +4269,123 @@ md5cryptsse:
         testl     %r12d, %r12d
         jbe       ..B7.121
 ..B7.108:
-        movl      $1, %edx
-        xorl      %eax, %eax
-        cmpl      $0, 6696(%rsp)
+        xorl      %r11d, %r11d
+        movl      $1, %edi
+        cmpl      $0, 6744(%rsp)
         jbe       ..B7.112
 ..B7.109:
-        movl      %ebx, 6664(%rsp)
-        movl      %r12d, 6800(%rsp)
-        movl      6696(%rsp), %r9d
-        movq      6728(%rsp), %r10
+        movl      %r12d, 6728(%rsp)
+        movl      6744(%rsp), %r8d
+        movq      6776(%rsp), %r9
 ..B7.110:
-        lea       (%rdi,%rax,2), %r11d
-        movl      %r11d, %r12d
-        movl      %r11d, %edx
+        lea       (%r15,%r11,2), %r10d
+        movl      %r10d, %r12d
+        lea       (%r11,%r11), %edi
         andl      $-4, %r12d
-        lea       (%rax,%rax), %ebx
         shll      $2, %r12d
-        andl      $3, %edx
+        lea       (%r12,%r13,4), %edx
+        movl      %r10d, %r12d
+        andl      $3, %r12d
+        incl      %r10d
+        addl      %r12d, %edx
+        movl      %r10d, %r12d
+        andl      $-4, %r12d
+        andl      $3, %r10d
+        shll      $2, %r12d
+        movb      (%rdi,%r9), %dil
+        movb      %dil, 5376(%rdx,%rsi)
+        lea       1(%r11,%r11), %edx
+        lea       (%r12,%r13,4), %edi
+        addl      %r10d, %edi
         incl      %r11d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %edx, %r12d
-        lea       1(%rax,%rax), %edx
-        incl      %eax
-        movb      (%rbx,%r10), %bl
-        movb      %bl, 5376(%r12,%r8)
-        movl      %r11d, %ebx
-        andl      $-4, %ebx
-        andl      $3, %r11d
-        shll      $2, %ebx
-        lea       (%rbx,%rbp,4), %r12d
-        addl      %r11d, %r12d
-        cmpl      %r9d, %eax
-        movb      (%rdx,%r10), %r11b
-        movb      %r11b, 5376(%r12,%r8)
+        cmpl      %r8d, %r11d
+        movb      (%rdx,%r9), %r10b
+        movb      %r10b, 5376(%rdi,%rsi)
         jb        ..B7.110
 ..B7.111:
-        movl      6664(%rsp), %ebx
-        lea       1(%rax,%rax), %edx
-        movl      6800(%rsp), %r12d
+        movl      6728(%rsp), %r12d
+        lea       1(%r11,%r11), %edi
 ..B7.112:
-        cmpl      %r12d, %edx
+        cmpl      %r12d, %edi
         ja        ..B7.114
 ..B7.113:
-        lea       -1(%rdi,%rdx), %r9d
-        decl      %edx
+        movq      6776(%rsp), %r11
+        lea       -1(%rdi,%r15), %r8d
+        movl      %r8d, %r9d
+        decl      %edi
+        andl      $-4, %r9d
+        andl      $3, %r8d
+        addl      %r13d, %r9d
+        lea       (%r8,%r9,4), %r10d
+        movb      (%rdi,%r11), %dil
+        movb      %dil, 5376(%r10,%rsi)
+..B7.114:
+        testl     %r15d, %r15d
+        jbe       ..B7.121
+..B7.115:
+        movl      %r15d, %r10d
+        xorl      %r11d, %r11d
+        shrl      $1, %r10d
+        movl      $1, %r8d
+        testl     %r10d, %r10d
+        jbe       ..B7.119
+..B7.116:
+        movl      %r12d, 6728(%rsp)
+        movl      6792(%rsp), %r8d
+..B7.117:
+        lea       (%r8,%r11,2), %r9d
+        movl      %r9d, %r12d
+        lea       (%r11,%r11), %edi
+        andl      $-4, %r12d
+        shll      $2, %r12d
+        lea       (%r12,%r13,4), %edx
+        movl      %r9d, %r12d
+        andl      $3, %r12d
+        incl      %r9d
+        addl      %r12d, %edx
+        movl      %r9d, %r12d
+        andl      $-4, %r12d
+        andl      $3, %r9d
+        shll      $2, %r12d
+        movb      (%rdi,%r14), %dil
+        movb      %dil, 5376(%rdx,%rsi)
+        lea       1(%r11,%r11), %edx
+        lea       (%r12,%r13,4), %edi
+        addl      %r9d, %edi
+        incl      %r11d
+        cmpl      %r10d, %r11d
+        movb      (%rdx,%r14), %r9b
+        movb      %r9b, 5376(%rdi,%rsi)
+        jb        ..B7.117
+..B7.118:
+        movl      6728(%rsp), %r12d
+        lea       1(%r11,%r11), %r8d
+..B7.119:
+        cmpl      %r15d, %r8d
+        ja        ..B7.121
+..B7.120:
+        movl      6792(%rsp), %edi
+        lea       -1(%rdi,%r8), %r9d
+        decl      %r8d
         movl      %r9d, %r10d
         andl      $3, %r9d
         andl      $-4, %r10d
-        addl      %ebp, %r10d
+        addl      %r13d, %r10d
         lea       (%r9,%r10,4), %r11d
-        movq      6728(%rsp), %r9
-        movb      (%rdx,%r9), %r9b
-        movb      %r9b, 5376(%r11,%r8)
-..B7.114:
-        testl     %edi, %edi
-        jbe       ..B7.121
-..B7.115:
-        movl      %edi, %eax
-        movl      $1, %r10d
-        shrl      $1, %eax
-        xorl      %edx, %edx
-        testl     %eax, %eax
-        jbe       ..B7.119
-..B7.116:
-        movl      %ebx, 6664(%rsp)
-        movl      %r12d, 6800(%rsp)
-        movl      6744(%rsp), %r10d
-..B7.117:
-        lea       (%r10,%rdx,2), %r11d
-        movl      %r11d, %r12d
-        movl      %r11d, %ebx
-        andl      $-4, %r12d
-        lea       (%rdx,%rdx), %r9d
-        shll      $2, %r12d
-        andl      $3, %ebx
-        incl      %r11d
-        lea       (%r12,%rbp,4), %r12d
-        addl      %ebx, %r12d
-        lea       1(%rdx,%rdx), %ebx
-        incl      %edx
-        movb      (%r9,%r14), %r9b
-        movb      %r9b, 5376(%r12,%r8)
-        movl      %r11d, %r9d
-        andl      $-4, %r9d
-        andl      $3, %r11d
-        shll      $2, %r9d
-        lea       (%r9,%rbp,4), %r12d
-        addl      %r11d, %r12d
-        cmpl      %eax, %edx
-        movb      (%rbx,%r14), %r11b
-        movb      %r11b, 5376(%r12,%r8)
-        jb        ..B7.117
-..B7.118:
-        movl      6664(%rsp), %ebx
-        lea       1(%rdx,%rdx), %r10d
-        movl      6800(%rsp), %r12d
-..B7.119:
-        cmpl      %edi, %r10d
-        ja        ..B7.121
-..B7.120:
-        movl      6744(%rsp), %r9d
-        lea       -1(%r9,%r10), %r11d
-        decl      %r10d
-        movl      %r11d, %r9d
-        andl      $3, %r11d
-        andl      $-4, %r9d
-        addl      %ebp, %r9d
-        lea       (%r11,%r9,4), %r9d
-        movb      (%r10,%r14), %r10b
-        movb      %r10b, 5376(%r9,%r8)
+        movb      (%r8,%r14), %dil
+        movb      %dil, 5376(%r11,%rsi)
 ..B7.121:
-        movb      $128, 5376(%rsi,%r8)
-        movl      %r15d, %esi
+        movb      $128, 5376(%rax,%rsi)
+        movl      %ebp, %esi
         shll      $6, %esi
-        lea       128(,%rdi,8), %r9d
-        lea       128(,%rcx,8), %r10d
-        lea       56(%rbp,%rsi), %r8d
-        movl      6712(%rsp), %esi
-        lea       128(%rsi,%rdi,8), %r11d
         lea       6496(%rsp), %rdi
-        movl      %r9d, (%rsp,%r8,4)
+        lea       128(,%r15,8), %r9d
+        lea       128(,%rcx,8), %r10d
+        lea       56(%r13,%rsi), %r8d
+        movl      6760(%rsp), %esi
+        lea       128(%rsi,%r15,8), %r11d
         lea       128(%rsi,%rcx,8), %ecx
+        movl      %r9d, (%rsp,%r8,4)
         movl      %r9d, 768(%rsp,%r8,4)
         movl      %r10d, 1536(%rsp,%r8,4)
         movl      %r10d, 2304(%rsp,%r8,4)
@@ -4415,15 +4397,16 @@ md5cryptsse:
         call      MD5_Init
 ..___tag_value_md5cryptsse.143:
 ..B7.122:
-        movq      %r14, %rsi
+        movl      6736(%rsp), %edx
         lea       6496(%rsp), %rdi
-        movl      6752(%rsp,%r13,4), %edx
+        movq      %r14, %rsi
+        movq      %rdx, 6800(%rsp)
 ..___tag_value_md5cryptsse.144:
         call      MD5_Update
 ..___tag_value_md5cryptsse.145:
 ..B7.123:
-        cmpl      $1, 6736(%rsp)
-        je        ..B7.199
+        cmpl      $1, 6784(%rsp)
+        je        ..B7.203
 ..B7.124:
         movl      $.L_2__STRING.2, %esi
         lea       6496(%rsp), %rdi
@@ -4432,57 +4415,57 @@ md5cryptsse:
         call      MD5_Update
 ..___tag_value_md5cryptsse.147:
 ..B7.125:
-        movq      6728(%rsp), %rsi
+        movq      6776(%rsp), %rsi
         lea       6496(%rsp), %rdi
-        movq      6704(%rsp), %rdx
+        movq      6752(%rsp), %rdx
 ..___tag_value_md5cryptsse.148:
         call      MD5_Update
 ..___tag_value_md5cryptsse.149:
 ..B7.126:
-        lea       6336(%rsp), %rdi
+        lea       6144(%rsp), %rdi
 ..___tag_value_md5cryptsse.150:
         call      MD5_Init
 ..___tag_value_md5cryptsse.151:
 ..B7.127:
         movq      %r14, %rsi
-        lea       6336(%rsp), %rdi
-        movl      6752(%rsp,%r13,4), %edx
+        lea       6144(%rsp), %rdi
+        movq      6800(%rsp), %rdx
 ..___tag_value_md5cryptsse.152:
         call      MD5_Update
 ..___tag_value_md5cryptsse.153:
 ..B7.128:
-        movq      6728(%rsp), %rsi
-        lea       6336(%rsp), %rdi
-        movq      6704(%rsp), %rdx
+        movq      6776(%rsp), %rsi
+        lea       6144(%rsp), %rdi
+        movq      6752(%rsp), %rdx
 ..___tag_value_md5cryptsse.154:
         call      MD5_Update
 ..___tag_value_md5cryptsse.155:
 ..B7.129:
         movq      %r14, %rsi
-        lea       6336(%rsp), %rdi
-        movl      6752(%rsp,%r13,4), %edx
+        lea       6144(%rsp), %rdi
+        movq      6800(%rsp), %rdx
 ..___tag_value_md5cryptsse.156:
         call      MD5_Update
 ..___tag_value_md5cryptsse.157:
 ..B7.130:
-        lea       6648(%rsp), %rdi
-        lea       6336(%rsp), %rsi
+        lea       6712(%rsp), %rdi
+        lea       6144(%rsp), %rsi
 ..___tag_value_md5cryptsse.158:
         call      MD5_Final
 ..___tag_value_md5cryptsse.159:
 ..B7.131:
-        movl      6752(%rsp,%r13,4), %edx
+        movq      6800(%rsp), %rdx
         lea       6496(%rsp), %rdi
-        lea       6648(%rsp), %rsi
+        lea       6712(%rsp), %rsi
 ..___tag_value_md5cryptsse.160:
         call      MD5_Update
 ..___tag_value_md5cryptsse.161:
 ..B7.132:
-        movl      6752(%rsp,%r13,4), %r13d
-        testl     %r13d, %r13d
+        testl     %r15d, %r15d
+        movl      %r15d, 6648(%rsp,%rbx,4)
         je        ..B7.139
 ..B7.134:
-        testl     $1, %r13d
+        testl     $1, %r15d
         je        ..B7.136
 ..B7.135:
         movl      $.L_2__STRING.3, %esi
@@ -4500,62 +4483,53 @@ md5cryptsse:
         call      MD5_Update
 ..___tag_value_md5cryptsse.165:
 ..B7.137:
-        shrl      $1, %r13d
-        testl     %r13d, %r13d
+        shrl      $1, %r15d
+        testl     %r15d, %r15d
         jne       ..B7.134
 ..B7.139:
-        lea       6648(%rsp), %rdi
+        lea       6712(%rsp), %rdi
         lea       6496(%rsp), %rsi
 ..___tag_value_md5cryptsse.166:
         call      MD5_Final
 ..___tag_value_md5cryptsse.167:
 ..B7.140:
-        shll      $4, %r15d
+        shll      $4, %ebp
         incl      %ebx
-        movl      6648(%rsp), %esi
+        movl      6712(%rsp), %esi
         cmpl      $12, %ebx
-        movl      6652(%rsp), %r8d
-        movl      6656(%rsp), %r10d
-        movl      6660(%rsp), %r11d
-        lea       (%rbp,%r15), %ecx
-        lea       4(%r15,%rbp), %edi
-        lea       8(%r15,%rbp), %r9d
-        lea       12(%r15,%rbp), %ebp
-        movl      %esi, 6144(%rsp,%rcx,4)
-        movl      %r8d, 6144(%rsp,%rdi,4)
-        movl      %r10d, 6144(%rsp,%r9,4)
-        movl      %r11d, 6144(%rsp,%rbp,4)
+        movl      6716(%rsp), %r8d
+        movl      6720(%rsp), %r10d
+        movl      6724(%rsp), %r11d
+        lea       (%r13,%rbp), %ecx
+        lea       4(%rbp,%r13), %edi
+        lea       8(%rbp,%r13), %r9d
+        lea       12(%rbp,%r13), %ebp
+        movl      %esi, 6304(%rsp,%rcx,4)
+        movl      %r8d, 6304(%rsp,%rdi,4)
+        movl      %r10d, 6304(%rsp,%r9,4)
+        movl      %r11d, 6304(%rsp,%rbp,4)
         jb        ..B7.5
 ..B7.141:
+        xorl      %ebp, %ebp
         movl      %r12d, %eax
-        lea       (%rsp), %rbp
-        xorl      %r13d, %r13d
-        lea       6144(%rsp), %r14
+        movl      $23, %ebx
         movl      %eax, %r12d
-        lea       2304(%rsp), %rdx
-        lea       4608(%rsp), %rbx
+        xorl      %r15d, %r15d
+        lea       (%rsp), %r13
 ..B7.142:
-        movl      %r13d, %ecx
-        movl      $818089009, %eax
-        shrl      $1, %ecx
-        mull      %ecx
-        shrl      $2, %edx
-        imull     $42, %edx, %edx
-        negl      %edx
-        addl      %r13d, %edx
-        cmpl      $40, %edx
+        cmpl      $40, %ebp
         ja        ..B7.194
 ..B7.143:
-        jmp       *..1..TPKT.6_0.0.6.38(,%rdx,8)
+        jmp       *..1..TPKT.6_0.0.6.38(,%rbp,8)
 ..1.6_0.TAG.015.0.6.38:
 ..B7.159:
         movl      $1, %esi
-        movq      %rbp, %rdi
+        movq      %r13, %rdi
         movl      %esi, %ecx
-        lea       6752(%rsp), %rdx
+        lea       6648(%rsp), %rdx
         xorl      %r8d, %r8d
-        movq      %r14, %r9
-        movl      $1, %r15d
+        lea       6304(%rsp), %r9
+        movl      $1, %r14d
 ..___tag_value_md5cryptsse.168:
         call      mmxput3
 ..___tag_value_md5cryptsse.169:
@@ -4563,45 +4537,50 @@ md5cryptsse:
 ..1.6_0.TAG.01c.0.6.38:
 ..1.6_0.TAG.0e.0.6.38:
 ..B7.165:
-        xorl      %ecx, %ecx
-        movl      $5, %r15d
+        movl      %r15d, %ecx
+        movl      $5, %r14d
+        movl      %ecx, %edx
+        movl      %ecx, %r15d
+        movl      %edx, %eax
+        lea       6304(%rsp), %r13
+        movl      %ebp, 6696(%rsp)
+        movl      %edx, %ebp
+        movl      %ebx, 6704(%rsp)
         lea       3840(%rsp), %rbx
-        movl      %ecx, %ebp
-        movl      %r13d, 6664(%rsp)
-        movl      %ecx, %r13d
-        movl      %r12d, 6800(%rsp)
-        movl      %ecx, %r12d
+        movl      %r12d, 6728(%rsp)
+        movl      %eax, %r12d
 ..B7.166:
-        movl      %r13d, %edi
+        movl      %r12d, %edi
         movl      $64, %edx
         movl      %ebp, %esi
         addq      %rbx, %rdi
-        addq      %r14, %rsi
+        addq      %r13, %rsi
 ..___tag_value_md5cryptsse.170:
         call      memcpy
 ..___tag_value_md5cryptsse.171:
 ..B7.167:
-        incl      %r12d
+        incl      %r15d
         addl      $64, %ebp
-        addl      $256, %r13d
-        cmpl      $3, %r12d
+        addl      $256, %r12d
+        cmpl      $3, %r15d
         jb        ..B7.166
 ..B7.168:
-        movl      6664(%rsp), %r13d
-        lea       4608(%rsp), %rbx
-        movl      6800(%rsp), %r12d
-        lea       (%rsp), %rbp
+        movl      6696(%rsp), %ebp
+        xorl      %r15d, %r15d
+        movl      6704(%rsp), %ebx
+        lea       (%rsp), %r13
+        movl      6728(%rsp), %r12d
         jmp       ..B7.195
 ..1.6_0.TAG.023.0.6.38:
 ..1.6_0.TAG.07.0.6.38:
 ..B7.174:
-        movq      %rbp, %rdi
+        movq      %r13, %rdi
         movl      $4, %esi
         movl      $1, %ecx
-        lea       6752(%rsp), %rdx
+        lea       6648(%rsp), %rdx
         movl      %r12d, %r8d
-        movq      %r14, %r9
-        movl      $4, %r15d
+        lea       6304(%rsp), %r9
+        movl      $4, %r14d
 ..___tag_value_md5cryptsse.172:
         call      mmxput3
 ..___tag_value_md5cryptsse.173:
@@ -4613,34 +4592,39 @@ md5cryptsse:
 ..1.6_0.TAG.0c.0.6.38:
 ..1.6_0.TAG.06.0.6.38:
 ..B7.176:
-        xorl      %ecx, %ecx
-        movl      $3, %r15d
+        movl      %r15d, %ecx
+        movl      $3, %r14d
+        movl      %ecx, %edx
+        movl      %ecx, %r15d
+        movl      %edx, %eax
+        lea       6304(%rsp), %r13
+        movl      %ebp, 6696(%rsp)
+        movl      %edx, %ebp
+        movl      %ebx, 6704(%rsp)
         lea       2304(%rsp), %rbx
-        movl      %ecx, %ebp
-        movl      %r13d, 6664(%rsp)
-        movl      %ecx, %r13d
-        movl      %r12d, 6800(%rsp)
-        movl      %ecx, %r12d
+        movl      %r12d, 6728(%rsp)
+        movl      %eax, %r12d
 ..B7.177:
-        movl      %r13d, %edi
+        movl      %r12d, %edi
         movl      $64, %edx
         movl      %ebp, %esi
         addq      %rbx, %rdi
-        addq      %r14, %rsi
+        addq      %r13, %rsi
 ..___tag_value_md5cryptsse.174:
         call      memcpy
 ..___tag_value_md5cryptsse.175:
 ..B7.178:
-        incl      %r12d
+        incl      %r15d
         addl      $64, %ebp
-        addl      $256, %r13d
-        cmpl      $3, %r12d
+        addl      $256, %r12d
+        cmpl      $3, %r15d
         jb        ..B7.177
 ..B7.179:
-        movl      6664(%rsp), %r13d
-        lea       4608(%rsp), %rbx
-        movl      6800(%rsp), %r12d
-        lea       (%rsp), %rbp
+        movl      6696(%rsp), %ebp
+        xorl      %r15d, %r15d
+        movl      6704(%rsp), %ebx
+        lea       (%rsp), %r13
+        movl      6728(%rsp), %r12d
         jmp       ..B7.195
 ..1.6_0.TAG.027.0.6.38:
 ..1.6_0.TAG.021.0.6.38:
@@ -4650,12 +4634,12 @@ md5cryptsse:
 ..1.6_0.TAG.03.0.6.38:
 ..B7.182:
         movl      $2, %esi
-        movq      %rbp, %rdi
+        movq      %r13, %rdi
         movl      %esi, %ecx
-        lea       6752(%rsp), %rdx
+        lea       6648(%rsp), %rdx
         xorl      %r8d, %r8d
-        movq      %r14, %r9
-        movl      $2, %r15d
+        lea       6304(%rsp), %r9
+        movl      $2, %r14d
 ..___tag_value_md5cryptsse.176:
         call      mmxput3
 ..___tag_value_md5cryptsse.177:
@@ -4673,95 +4657,122 @@ md5cryptsse:
 ..1.6_0.TAG.04.0.6.38:
 ..1.6_0.TAG.02.0.6.38:
 ..B7.184:
-        xorl      %ecx, %ecx
-        movl      $6, %r15d
-        movl      %ecx, %ebp
-        movl      %r13d, 6664(%rsp)
-        movl      %ecx, %r13d
-        movl      %r12d, 6800(%rsp)
-        movl      %ecx, %r12d
+        movl      %r15d, %ecx
+        movl      $6, %r14d
+        movl      %ecx, %edx
+        movl      %ecx, %r15d
+        movl      %edx, %eax
+        lea       6304(%rsp), %r13
+        movl      %ebp, 6696(%rsp)
+        movl      %edx, %ebp
+        movl      %ebx, 6704(%rsp)
+        lea       4608(%rsp), %rbx
+        movl      %r12d, 6728(%rsp)
+        movl      %eax, %r12d
 ..B7.185:
         movl      %r12d, %edi
         movl      $64, %edx
-        movl      %r13d, %esi
+        movl      %ebp, %esi
         addq      %rbx, %rdi
-        addq      %r14, %rsi
+        addq      %r13, %rsi
 ..___tag_value_md5cryptsse.178:
         call      memcpy
 ..___tag_value_md5cryptsse.179:
 ..B7.186:
-        incl      %ebp
-        addl      $64, %r13d
+        incl      %r15d
+        addl      $64, %ebp
         addl      $256, %r12d
-        cmpl      $3, %ebp
+        cmpl      $3, %r15d
         jb        ..B7.185
 ..B7.187:
-        movl      6664(%rsp), %r13d
-        lea       (%rsp), %rbp
-        movl      6800(%rsp), %r12d
+        movl      6696(%rsp), %ebp
+        xorl      %r15d, %r15d
+        movl      6704(%rsp), %ebx
+        lea       (%rsp), %r13
+        movl      6728(%rsp), %r12d
         jmp       ..B7.195
 ..1.6_0.TAG.00.0.6.38:
 ..B7.190:
-        xorl      %ecx, %ecx
-        xorl      %r15d, %r15d
-        movl      %ecx, %ebx
-        movl      %r13d, 6664(%rsp)
-        movl      %ecx, %r13d
-        movl      %r12d, 6800(%rsp)
-        movl      %ecx, %r12d
+        movl      %r15d, %ecx
+        xorl      %r14d, %r14d
+        movl      %ecx, %edx
+        movl      %ecx, %r15d
+        movl      %edx, %eax
+        movl      %ebp, 6696(%rsp)
+        movl      %edx, %ebp
+        movl      %ebx, 6704(%rsp)
+        lea       6304(%rsp), %rbx
+        movl      %r12d, 6728(%rsp)
+        movl      %eax, %r12d
 ..B7.191:
         movl      %r12d, %edi
         movl      $64, %edx
-        movl      %r13d, %esi
-        addq      %rbp, %rdi
-        addq      %r14, %rsi
+        movl      %ebp, %esi
+        addq      %r13, %rdi
+        addq      %rbx, %rsi
 ..___tag_value_md5cryptsse.180:
         call      memcpy
 ..___tag_value_md5cryptsse.181:
 ..B7.192:
-        incl      %ebx
-        addl      $64, %r13d
+        incl      %r15d
+        addl      $64, %ebp
         addl      $256, %r12d
-        cmpl      $3, %ebx
+        cmpl      $3, %r15d
         jb        ..B7.191
 ..B7.193:
-        movl      6664(%rsp), %r13d
-        lea       4608(%rsp), %rbx
-        movl      6800(%rsp), %r12d
+        movl      6696(%rsp), %ebp
+        xorl      %r15d, %r15d
+        movl      6704(%rsp), %ebx
+        movl      6728(%rsp), %r12d
         jmp       ..B7.195
 ..1.6_0.TAG.DEFAULT.0.6.38:
 ..B7.194:
-        movq      %rbp, %rdi
+        movq      %r13, %rdi
         movl      $7, %esi
         movl      $2, %ecx
-        lea       6752(%rsp), %rdx
+        lea       6648(%rsp), %rdx
         movl      %r12d, %r8d
-        movq      %r14, %r9
-        movl      $7, %r15d
+        lea       6304(%rsp), %r9
+        movl      $7, %r14d
 ..___tag_value_md5cryptsse.182:
         call      mmxput3
 ..___tag_value_md5cryptsse.183:
 ..B7.195:
-        movq      %r14, %rsi
-        lea       (%r15,%r15,2), %rdi
-        shlq      $8, %rdi
         movl      $1, %edx
-        addq      %rbp, %rdi
+        lea       (%r14,%r14,2), %rdi
+        shlq      $8, %rdi
+        lea       6304(%rsp), %rsi
+        addq      %r13, %rdi
 ..___tag_value_md5cryptsse.184:
         call      SSEmd5body
 ..___tag_value_md5cryptsse.185:
 ..B7.196:
-        incl      %r13d
-        cmpl      $1000, %r13d
+        incl      %ebp
+        lea       -1(%rbp), %edx
+        cmpl      $33, %edx
         jb        ..B7.142
 ..B7.197:
-        movq      %r14, %rsi
+        cmpl      $34, %ebp
+        jne       ..B7.200
+..B7.198:
+        testl     %ebx, %ebx
+        je        ..B7.201
+..B7.199:
+        decl      %ebx
+        jmp       ..B7.142
+..B7.200:
+        cmpl      $42, %ebp
+        cmovae    %r15d, %ebp
+        jmp       ..B7.142
+..B7.201:
+        movq      6296(%rsp), %r14
+        movq      %r14, %rdi
         movl      $192, %edx
-        movq      6488(%rsp), %rdi
+        lea       6304(%rsp), %rsi
 ..___tag_value_md5cryptsse.186:
         call      memcpy
 ..___tag_value_md5cryptsse.187:
-..B7.198:
+..B7.202:
         addq      $6808, %rsp
 ..___tag_value_md5cryptsse.188:
         popq      %rbp
@@ -4778,7 +4789,7 @@ md5cryptsse:
 ..___tag_value_md5cryptsse.200:
         ret       
 ..___tag_value_md5cryptsse.201:
-..B7.199:
+..B7.203:
         movl      $.L_2__STRING.1, %esi
         lea       6496(%rsp), %rdi
         movl      $6, %edx
@@ -4786,15 +4797,15 @@ md5cryptsse:
         call      MD5_Update
 ..___tag_value_md5cryptsse.209:
         jmp       ..B7.125
-..B7.208:
-        testl     %edi, %edi
+..B7.212:
+        testl     %r15d, %r15d
         ja        ..B7.87
         jmp       ..B7.99
-..B7.210:
-        testl     %edi, %edi
+..B7.214:
+        testl     %r15d, %r15d
         jmp       ..B7.47
-..B7.211:
-        testl     %edi, %edi
+..B7.215:
+        testl     %r15d, %r15d
         jmp       ..B7.21
         .align    16,0x90
 ..___tag_value_md5cryptsse.210:
@@ -11371,7 +11382,7 @@ debug:
 	.4byte 0x380e0786
 	.byte 0x04
 	.4byte ..___tag_value_dispatch.52-..___tag_value_dispatch.50
-	.2byte 0x500e
+	.2byte 0x600e
 	.byte 0x04
 	.4byte ..___tag_value_dispatch.71-..___tag_value_dispatch.52
 	.4byte 0x04c6380e
