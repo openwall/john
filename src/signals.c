@@ -54,7 +54,7 @@ volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
 
-volatile int timer_abort;
+volatile int timer_abort = -1;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 

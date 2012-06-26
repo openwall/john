@@ -93,9 +93,6 @@ void status_init(int (*get_progress)(int *), int start)
 	showcand = cfg_get_bool(SECTION_OPTIONS, NULL, "StatusShowCandidates", 0);
 
 	clk_tck_init();
-
-	/* This makes --max-run-time disregard loading time */
-	timer_abort = options.max_run_time;
 }
 
 void status_ticks_overflow_safety(void)

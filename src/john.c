@@ -1085,6 +1085,10 @@ int main(int argc, char **argv)
 	mpi_setup(argc, argv);
 #endif
 	john_init(name, argc, argv);
+
+	/* --max-run-time disregards load times */
+	timer_abort = options.max_run_time + 1;
+
 	john_run();
 	john_done();
 
