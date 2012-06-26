@@ -24,12 +24,15 @@ struct fmt_main;
 #define FMT_CASE			0x00000001
 /* Supports 8-bit characters in passwords (does not ignore the 8th bit) */
 #define FMT_8_BIT			0x00000002
-/* Originally uses internal 8859-1 conversion (typically to Unicode) */
+/* This flag must be set for formats that do UCS-2, UTF-16 or some other wide
+   encoding internally (eg. most Microsoft formats) */
 #define FMT_UNICODE			0x00000004
-/* Honours the --encoding=utf8 flag (typically changes the 8859-1 behaviour above) */
+/* Honors the --encoding=NAME option. NOTE: Nowadays this means it can handle
+   codepages (like cp1251) as well as UTF-8 */
 #define FMT_UTF8			0x00000008
-/* Format has false positive matches.  Thus, do not remove hashes when a likely PW is found */
-#define FMT_NOT_EXACT		0x00000100
+/* Format has false positive matches. Thus, do not remove hashes
+   when a likely PW is found */
+#define FMT_NOT_EXACT			0x00000100
 /* Uses a bitslice implementation */
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
