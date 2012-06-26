@@ -1,15 +1,33 @@
-﻿/* keepass2john utility (modified KeeCrack) written in March of 2012
- * by Dhiru Kholia. keepass2john processes input KeePass 2.x database
- * files into a format suitable for use with JtR. KeePass 1.x support is
- * currently TODO.
+﻿/* keepass2john utility (modified KeeCracker) written in March of 2012
+ * by Dhiru Kholia. keepass2john processes input KeePass 1.x and 2.x
+ * database files into a format suitable for use with JtR. This software
+ * is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com> and it
+ * is hereby released under GPL license.
  *
- * KeeCrack - The KeePass 2 Database Cracker, http://keecracker.zxq.net/ */
+ * KeePass 2.x support is based on KeeCracker - The KeePass 2 Database
+ * Cracker, http://keecracker.mbw.name/
+ *
+ * KeePass 1.x support is based on kppy -  A Python-module to provide
+ * an API to KeePass 1.x files. http://gitorious.org/kppy/kppy
+ * Copyright (C) 2012 Karsten-Kai König <kkoenig@posteo.de>
+ *
+ * kppy is free software: you can redistribute it and/or modify it under the terms
+ * of the GNU General Public License as published by the Free Software Foundation,
+ * either version 3 of the License, or at your option) any later version.
+ *
+ * kppy is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * kppy. If not, see <http://www.gnu.org/licenses/>. */
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <errno.h>
+#include <assert.h>
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -81,6 +99,55 @@ static uint16_t fget16(FILE * fp)
 	return v;
 }
 
+/* process KeePass 1.x databases */
+void process_old_database(FILE *fp, char* encryptedDatabase)
+{
+	uint32_t enc_flag;
+	uint32_t version;
+	unsigned char final_randomseed[16];
+	unsigned char enc_iv[16];
+	unsigned char contents_hash[32];
+	unsigned char transf_randomseed[32];
+	uint32_t num_groups;
+	uint32_t num_entries;
+	uint32_t key_transf_rounds;
+	int count;
+	enc_flag = fget32(fp);
+	version = fget32(fp);
+	count = fread(final_randomseed, 16, 1, fp);
+	assert(count == 1);
+	count = fread(enc_iv, 16, 1, fp);
+	assert(count == 1);
+	num_groups = fget32(fp);
+	num_entries = fget32(fp);
+	(void)num_groups;
+	(void)num_entries;
+	count = fread(contents_hash, 32, 1, fp);
+	assert(count == 1);
+	count = fread(transf_randomseed, 32, 1, fp);
+	assert(count == 1);
+	key_transf_rounds = fget32(fp);
+	/* Check if the database is supported */
+	if((version & 0xFFFFFF00) != (0x00030002 & 0xFFFFFF00)) {
+		fprintf(stderr, "! %s : Unsupported file version!\n", encryptedDatabase);
+		return;
+	}
+	else if(!(enc_flag & 2)) {
+		fprintf(stderr, "! %s : Unsupported file encryption!\n", encryptedDatabase);
+		return;
+	}
+	printf("%s:$keepass$*1*%d*%d*",encryptedDatabase, key_transf_rounds, 124);
+	print_hex(final_randomseed, 16);
+	printf("*");
+	print_hex(transf_randomseed, 32);
+	printf("*");
+	print_hex(enc_iv, 16);
+	printf("*");
+	print_hex(contents_hash, 32);
+	printf("*0*%s", encryptedDatabase); /* data is not inline */
+	printf("\n");
+}
+
 void process_database(char* encryptedDatabase)
 {
 	long dataStartOffset;
@@ -102,7 +169,7 @@ void process_database(char* encryptedDatabase)
 	uint32_t uSig1 = fget32(fp);
 	uint32_t uSig2 = fget32(fp);
 	if ((uSig1 == FileSignatureOld1) && (uSig2 == FileSignatureOld2)) {
-		fprintf(stderr, "! %s : Old format, not supported currently\n", encryptedDatabase);
+		process_old_database(fp, encryptedDatabase);
 		fclose(fp);
 		return;
 	}
@@ -200,7 +267,7 @@ int main(int argc, char **argv)
 	int i;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage: %s <KeePass 2 databases>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <KeePass databases>\n", argv[0]);
 		return -1;
 	}
 	for(i = 1; i < argc; i++) {

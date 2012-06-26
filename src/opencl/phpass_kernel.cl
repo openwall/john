@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz@openwall.com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -13,15 +13,12 @@ typedef struct {
 	unsigned int v[4];
 } phpass_hash;
 
-#define ROTATE_LEFT(x, s)	rotate(x,s)
-//#define F(x, y, z)		((z) ^ ((x) & ((y) ^ (z))))
-//#define G(x, y, z)		((y) ^ ((z) & ((x) ^ (y))))
+#define ROTATE_LEFT(x, s)	rotate(x,(unsigned int)s)
 
-#define F(x, y, z) bitselect((z), (y), (x))
-#define G(x, y, z) bitselect((y), (x), (z))
+#define F(x, y, z)		bitselect((z), (y), (x))
+#define G(x, y, z)		bitselect((y), (x), (z))
 #define H(x, y, z)		((x) ^ (y) ^ (z))
 #define I(x, y, z)		((y) ^ ((x) | (~z)))
-
 
 #define FF(a, b, c, d, x, s, ac) \
   {(a) += F ((b), (c), (d)) + (x) + (uint32_t)(ac); \
@@ -69,8 +66,6 @@ typedef struct {
 #define AC4pCb				0xb18b7a77
 #define MASK1				0x77777777
 
-
-
 inline void md5(char len,__private uint32_t * internal_ret,__private uint32_t * x)
 {
 	x[len / 4] |= (((uint32_t) 0x80) << ((len & 0x3) << 3));
@@ -81,10 +76,10 @@ inline void md5(char len,__private uint32_t * internal_ret,__private uint32_t * 
 	uint32_t c = 0x98badcfe;
 	uint32_t d = 0x10325476;
 
-FF(a, b, c, d, x[0], S11, 0xd76aa478);
-    FF(d, a, b, c, x[1], S12, 0xe8c7b756);
-   FF(c, d, a, b, x[2], S13, 0x242070db);
-    FF(b, c, d, a, x[3], S14, 0xc1bdceee);
+	FF(a, b, c, d, x[0], S11, 0xd76aa478);
+	FF(d, a, b, c, x[1], S12, 0xe8c7b756);
+	FF(c, d, a, b, x[2], S13, 0x242070db);
+	FF(b, c, d, a, x[3], S14, 0xc1bdceee);
 	FF(a, b, c, d, x[4], S11, 0xf57c0faf);
 	FF(d, a, b, c, x[5], S12, 0x4787c62a);
 	FF(c, d, a, b, x[6], S13, 0xa8304613);
@@ -162,8 +157,6 @@ inline void clear_ctx(__private uint32_t * x)
 		*x++ = 0;
 }
 
-
-
 __kernel void phpass
     (   __global    const   phpass_password*    data
     ,   __global            phpass_hash*    	data_out
@@ -193,7 +186,6 @@ __kernel void phpass
 	count = 1 << setting[SALT_SIZE+3];
 	for (i = 16; i < 16 + length; i++)
 		buff[i] = password[i - 16];
-
 
 	uint32_t len = 16 + length;
 	uint32_t x14 = len << 3;
