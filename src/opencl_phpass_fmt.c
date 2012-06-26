@@ -168,10 +168,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	uint32_t i, j, count_log2, found;
 
+	int prefix=0;
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
-	if (strncmp(ciphertext, phpass_prefix, 3) != 0)
-		return 0;
+	if (strncmp(ciphertext, "$P$", 3) == 0)
+		prefix=1;
+	if (strncmp(ciphertext, "$H$", 3) == 0)
+		prefix=1;
+	if(prefix==0) return 0;
 
 	for (i = 3; i < CIPHERTEXT_LENGTH; i++) {
 		found = 0;

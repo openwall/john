@@ -280,12 +280,12 @@ void mmxput3(void * buf, unsigned int bid, unsigned int * offset, int mult, int 
 
 void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS], unsigned int f[4*MD5_SSE_NUM_KEYS], unsigned int length[MD5_SSE_NUM_KEYS], unsigned int saltlen)
 {
-	unsigned int j;
+	unsigned int i, j;
 	unsigned int bufferid;
 
-	for(j=0;j<1000;j++)
-	{
-		switch(j%42)
+	i = 1000 / 42; j = 0;
+	do {
+		switch(j)
 		{
 			case 0:
 				bufferid = 0;
@@ -344,7 +344,17 @@ void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS], unsigned int f[4*MD
 				break;
 		}
 		SSEmd5body((__m128i*)&buffers[bufferid], f, 1);
-	}
+		if (j++ < 1000 % 42 - 1)
+			continue;
+		if (j == 1000 % 42) {
+			if (!i)
+				break;
+			i--;
+			continue;
+		}
+		if (j >= 42)
+			j = 0;
+	} while (1);
 }
 
 
@@ -370,63 +380,64 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char * salt, 
 	saltlen = strlen((char *)salt);
 	for(i=0;i<MD5_SSE_NUM_KEYS;i++)
 	{
-		length[i] = strlen((char *)pwd[i]);
+		unsigned int length_i = strlen((char *)pwd[i]);
 		/* cas 0 fs */
-		mmxput(buffers, i, 0, 16, pwd[i], length[i]);
-		mmxput(buffers, i, 0, length[i]+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 0, 16, pwd[i], length_i);
+		mmxput(buffers, i, 0, length_i+16, (unsigned char *)"\x80", 1);
 		/* cas 1 sf */
-		mmxput(buffers, i, 1, 0, pwd[i], length[i]);
-		mmxput(buffers, i, 1, length[i]+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 1, 0, pwd[i], length_i);
+		mmxput(buffers, i, 1, length_i+16, (unsigned char *)"\x80", 1);
 		/* cas 2 ssf */
-		mmxput(buffers, i, 2, 0, pwd[i], length[i]);
-		mmxput(buffers, i, 2, length[i], pwd[i], length[i]);
-		mmxput(buffers, i, 2, length[i]*2+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 2, 0, pwd[i], length_i);
+		mmxput(buffers, i, 2, length_i, pwd[i], length_i);
+		mmxput(buffers, i, 2, length_i*2+16, (unsigned char *)"\x80", 1);
 		/* cas 3 fss */
-		mmxput(buffers, i, 3, 16, pwd[i], length[i]);
-		mmxput(buffers, i, 3, 16+length[i], pwd[i], length[i]);
-		mmxput(buffers, i, 3, length[i]*2+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 3, 16, pwd[i], length_i);
+		mmxput(buffers, i, 3, 16+length_i, pwd[i], length_i);
+		mmxput(buffers, i, 3, length_i*2+16, (unsigned char *)"\x80", 1);
 		/* cas 4 scf */
-		mmxput(buffers, i, 4, 0, pwd[i], length[i]);
-		mmxput(buffers, i, 4, length[i], salt, saltlen);
-		mmxput(buffers, i, 4, saltlen+length[i]+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 4, 0, pwd[i], length_i);
+		mmxput(buffers, i, 4, length_i, salt, saltlen);
+		mmxput(buffers, i, 4, saltlen+length_i+16, (unsigned char *)"\x80", 1);
 		/* cas 5 fcs */
 		mmxput(buffers, i, 5, 16, salt, saltlen);
-		mmxput(buffers, i, 5, 16+saltlen, pwd[i], length[i]);
-		mmxput(buffers, i, 5, saltlen+length[i]+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 5, 16+saltlen, pwd[i], length_i);
+		mmxput(buffers, i, 5, saltlen+length_i+16, (unsigned char *)"\x80", 1);
 		/* cas 6 fcss */
 		mmxput(buffers, i, 6, 16, salt, saltlen);
-		mmxput(buffers, i, 6, 16+saltlen, pwd[i], length[i]);
-		mmxput(buffers, i, 6, 16+saltlen+length[i], pwd[i], length[i]);
-		mmxput(buffers, i, 6, saltlen+2*length[i]+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 6, 16+saltlen, pwd[i], length_i);
+		mmxput(buffers, i, 6, 16+saltlen+length_i, pwd[i], length_i);
+		mmxput(buffers, i, 6, saltlen+2*length_i+16, (unsigned char *)"\x80", 1);
 		/* cas 7 scsf */
-		mmxput(buffers, i, 7, 0, pwd[i], length[i]);
-		mmxput(buffers, i, 7, length[i], salt, saltlen);
-		mmxput(buffers, i, 7, length[i]+saltlen, pwd[i], length[i]);
-		mmxput(buffers, i, 7, saltlen+2*length[i]+16, (unsigned char *)"\x80", 1);
+		mmxput(buffers, i, 7, 0, pwd[i], length_i);
+		mmxput(buffers, i, 7, length_i, salt, saltlen);
+		mmxput(buffers, i, 7, length_i+saltlen, pwd[i], length_i);
+		mmxput(buffers, i, 7, saltlen+2*length_i+16, (unsigned char *)"\x80", 1);
 
-		bt = (unsigned int *) &buffers[0]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]+16)<<3;
-		bt = (unsigned int *) &buffers[1]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]+16)<<3;
-		bt = (unsigned int *) &buffers[2]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]*2+16)<<3;
-		bt = (unsigned int *) &buffers[3]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]*2+16)<<3;
-		bt = (unsigned int *) &buffers[4]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]+saltlen+16)<<3;
-		bt = (unsigned int *) &buffers[5]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]+saltlen+16)<<3;
-		bt = (unsigned int *) &buffers[6]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]*2+saltlen+16)<<3;
-		bt = (unsigned int *) &buffers[7]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length[i]*2+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[0]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+16)<<3;
+		bt = (unsigned int *) &buffers[1]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+16)<<3;
+		bt = (unsigned int *) &buffers[2]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+16)<<3;
+		bt = (unsigned int *) &buffers[3]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+16)<<3;
+		bt = (unsigned int *) &buffers[4]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[5]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[6]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+saltlen+16)<<3;
+		bt = (unsigned int *) &buffers[7]; bt[14*MMX_COEF + (i&3) + (i>>2)*64] = (length_i*2+saltlen+16)<<3;
 
 		MD5_Init(&ctx);
-		MD5_Update(&ctx, pwd[i], length[i]);
+		MD5_Update(&ctx, pwd[i], length_i);
 		if(md5_type == MD5_TYPE_APACHE)
 			MD5_Update(&ctx, "$apr1$", 6);
 		else
 			MD5_Update(&ctx, "$1$", 3);
 		MD5_Update(&ctx, salt, saltlen);
 		MD5_Init(&tctx);
-		MD5_Update(&tctx, pwd[i], length[i]);
+		MD5_Update(&tctx, pwd[i], length_i);
 		MD5_Update(&tctx, salt, saltlen);
-		MD5_Update(&tctx, pwd[i], length[i]);
+		MD5_Update(&tctx, pwd[i], length_i);
 		MD5_Final((unsigned char *)tf, &tctx);
-		MD5_Update(&ctx, tf, length[i]);
-		for(j=length[i];j;j>>=1)
+		MD5_Update(&ctx, tf, length_i);
+		length[i] = length_i;
+		for(j=length_i;j;j>>=1)
 			if(j&1)
 				MD5_Update(&ctx, "\0", 1);
 			else

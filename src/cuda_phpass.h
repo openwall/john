@@ -66,9 +66,6 @@
 #define AC4pCb				0xb18b7a77
 #define MASK1				0x77777777
 
-
-static char phpass_prefix[] = "$P$";
-
 typedef struct {
 	uint8_t v[15];
 	uint8_t length;

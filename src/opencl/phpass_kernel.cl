@@ -13,12 +13,14 @@ typedef struct {
 	unsigned int v[4];
 } phpass_hash;
 
+#define ROTATE_LEFT(x, s)	rotate(x,s)
+//#define F(x, y, z)		((z) ^ ((x) & ((y) ^ (z))))
+//#define G(x, y, z)		((y) ^ ((z) & ((x) ^ (y))))
 
-#define ROTATE_LEFT(x, s) ((x << s) | (x >> (32 - s)))
-#define F(x, y, z) (((x) & (y)) | ((~x) & (z)))
-#define G(x, y, z) (((x) & (z)) | ((y) & (~z)))
-#define H(x, y, z) ((x) ^ (y) ^ (z))
-#define I(x, y, z) ((y) ^ ((x) | (~z)))
+#define F(x, y, z) bitselect((z), (y), (x))
+#define G(x, y, z) bitselect((y), (x), (z))
+#define H(x, y, z)		((x) ^ (y) ^ (z))
+#define I(x, y, z)		((y) ^ ((x) | (~z)))
 
 
 #define FF(a, b, c, d, x, s, ac) \
@@ -69,7 +71,7 @@ typedef struct {
 
 
 
-inline void cuda_md5(char len,__private uint32_t * internal_ret,__private uint32_t * x)
+inline void md5(char len,__private uint32_t * internal_ret,__private uint32_t * x)
 {
 	x[len / 4] |= (((uint32_t) 0x80) << ((len & 0x3) << 3));
 	uint32_t x14 = len << 3;
@@ -187,7 +189,7 @@ __kernel void phpass
 		buff[i] = password[i - 8];
 	}
 
-	cuda_md5(8 + length, x, x);
+	md5(8 + length, x, x);
 	count = 1 << setting[SALT_SIZE+3];
 	for (i = 16; i < 16 + length; i++)
 		buff[i] = password[i - 16];
@@ -211,7 +213,6 @@ do {
 		c = 0x98badcfe;
 		d = 0x10325476;
 
-// FF(a, b, c, d, x0, S11, 0xd76aa478);
 		a = AC1 + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;
