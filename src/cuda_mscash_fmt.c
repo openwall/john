@@ -16,7 +16,7 @@
 
 #define FORMAT_LABEL		"mscash-cuda"
 #define FORMAT_NAME		"M$ Cache Hash MD4"
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"CUDA, unreliable, may miss guesses"
 #define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
 #define BENCHMARK_COMMENT	" len(pass)=8, len(salt)=13"
 #define BENCHMARK_LENGTH	-1
