@@ -882,7 +882,7 @@ static void crypt_all(int count)
 			outlen = 0;
 
 			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->saved_ct, inlen);
-			EVP_DecryptFinal_ex(&aes_ctx, cur_file->saved_ct + outlen, &outlen);
+			EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
 			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
 
