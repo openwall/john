@@ -13,6 +13,7 @@ run/genmkvpwd
 run/hccap2john
 run/john
 run/john.local.conf
+run/keepass2john
 run/mkvcalcproba
 run/mozilla2john
 run/office2john
