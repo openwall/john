@@ -55,9 +55,12 @@ void print_hccap(hccap_t * cap)
 void process_file(const char *filename)
 {
 	hccap_t hccap;
-	memset(&hccap, '0', sizeof(hccap_t));
-	FILE *f = fopen(filename, "r");
+	FILE *f;
 	struct stat sb;
+	size_t bytes;
+
+	memset(&hccap, '0', sizeof(hccap_t));
+	f = fopen(filename, "r");
 	if (stat(filename, &sb) == -1) {
 		perror("stat() error");
 		exit(EXIT_FAILURE);
@@ -66,7 +69,7 @@ void process_file(const char *filename)
 		perror("file %s has wrong size");
 		exit(EXIT_FAILURE);
 	}
-	size_t bytes = fread(&hccap, sizeof(hccap_t), 1, f);
+	bytes = fread(&hccap, sizeof(hccap_t), 1, f);
 	assert(bytes==HCCAP_SIZE);
 	print_hccap(&hccap);
 	fclose(f);
