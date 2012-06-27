@@ -26,10 +26,14 @@
 void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 	if (options.regen_lost_salts == 1)  // this is for PHPS, with a raw 32 byte hash input file (i.e. missing the salts)
 	{
-		static struct db_salt *sp, fake_salts[('~'-' '+1)*('~'-' '+1)*('~'-' '+1)+1];
+		static struct db_salt *sp, *fake_salts;
 		int i, j, k, idx=0;
 		char *buf, *cp;
 		unsigned long *ptr;
+
+		if (!fake_salts)
+			fake_salts = mem_calloc_tiny(sizeof(struct db_salt) * (('~'-' '+1)*('~'-' '+1)*('~'-' '+1)+1), MEM_ALIGN_WORD);
+
 		// Find the 'real' salt. We loaded ALL of the file into 1 salt.
 		// we then take THAT salt record, and build a list pointing to these fake salts, 
 		// AND build 'proper' dynamic salts for all of our data.
@@ -65,10 +69,14 @@ void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 	}
 	else if (options.regen_lost_salts == 2)  // this is for osCommerce, with a raw 32 byte hash input file (i.e. missing the salts)
 	{
-		static struct db_salt *sp, fake_salts[('~'-' '+1)*('~'-' '+1)+1];
+		static struct db_salt *sp, *fake_salts;
 		int i, j, idx=0;
 		char *buf, *cp;
 		unsigned long *ptr;
+
+		if (!fake_salts)
+			fake_salts = mem_calloc_tiny(sizeof(struct db_salt) * (('~'-' '+1)*('~'-' '+1)+1), MEM_ALIGN_WORD);
+
 		// Find the 'real' salt. We loaded ALL of the file into 1 salt.
 		// we then take THAT salt record, and build a list pointing to these fake salts, 
 		// AND build 'proper' dynamic salts for all of our data.
