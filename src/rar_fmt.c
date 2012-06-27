@@ -679,6 +679,12 @@ static void init(struct fmt_main *pFmt)
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
 	atexit(openssl_cleanup);
+
+	/* CRC-32 table init, do it before we start multithreading */
+	{
+		CRC32_t crc;
+		CRC32_Init(&crc);
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
