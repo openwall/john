@@ -44,7 +44,6 @@
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
-static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
 static size_t cracked_size;
@@ -82,6 +81,7 @@ static void init(struct fmt_main *pFmt)
 		fmt_ssh.params.flags &= ~FMT_OMP;
 	}
 	else {
+		int omp_t = 1;
 		omp_t = omp_get_max_threads();
 		pFmt->params.min_keys_per_crypt *= omp_t;
 		omp_t *= OMP_SCALE;
