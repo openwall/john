@@ -291,12 +291,12 @@ static void process_database(char* encryptedDatabase)
 	fclose(fp);
 }
 
-int main(int argc, char **argv)
+int keepass2john(int argc, char **argv)
 {
 	int i;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage: %s <KeePass databases>\n", argv[0]);
+		fprintf(stderr, "Usage: keepass2john [KeePass database(s)]\n");
 		return -1;
 	}
 	for(i = 1; i < argc; i++) {

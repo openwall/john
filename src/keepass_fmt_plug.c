@@ -72,10 +72,10 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 	unsigned char out[32];
 	unsigned char hash[32];
 	int i;
+	AES_KEY akey;
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, masterkey, strlen(masterkey));
 	SHA256_Final(hash, &ctx);
-	AES_KEY akey;
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_encrypt_key(csp->transf_randomseed, 256, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
@@ -125,8 +125,8 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	ctcopy += 10;	/* skip over "$keepass$*" */
 	static struct custom_salt cs;
+	ctcopy += 10;	/* skip over "$keepass$*" */
 	p = strtok(ctcopy, "*");
 	cs.version = atoi(p);
 	if(cs.version == 1) {
@@ -193,9 +193,9 @@ static void crypt_all(int count)
 		unsigned char out[32];
 		int pad_byte;
 		int datasize;
+		AES_KEY akey;
 		transform_key(saved_key[index], cur_salt, final_key);
 		/* AES decrypt cur_salt->contents with final_key */
-		AES_KEY akey;
 		memcpy(iv, cur_salt->enc_iv, 16);
 		memset(&akey, 0, sizeof(AES_KEY));
 		if(AES_set_decrypt_key(final_key, 256, &akey) < 0) {
