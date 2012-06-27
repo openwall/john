@@ -69,7 +69,6 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 {
         // First, hash the masterkey
 	SHA256_CTX ctx;
-	unsigned char out[32];
 	unsigned char hash[32];
 	int i;
 	AES_KEY akey;
@@ -81,10 +80,21 @@ static void transform_key(char *masterkey, struct custom_salt *csp, unsigned cha
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
 	}
         // Next, encrypt the created hash
-	for(i = 0; i < csp->key_transf_rounds; i++) {
-		AES_ecb_encrypt(hash, out, &akey, AES_ENCRYPT);
-		AES_ecb_encrypt(hash+16, out+16, &akey, AES_ENCRYPT);
-		memcpy(hash, out, 32);
+	i = csp->key_transf_rounds >> 2;
+	while (i--) {
+		AES_encrypt(hash, hash, &akey);
+		AES_encrypt(hash, hash, &akey);
+		AES_encrypt(hash, hash, &akey);
+		AES_encrypt(hash, hash, &akey);
+		AES_encrypt(hash+16, hash+16, &akey);
+		AES_encrypt(hash+16, hash+16, &akey);
+		AES_encrypt(hash+16, hash+16, &akey);
+		AES_encrypt(hash+16, hash+16, &akey);
+	}
+	i = csp->key_transf_rounds & 3;
+	while (i--) {
+		AES_encrypt(hash, hash, &akey);
+		AES_encrypt(hash+16, hash+16, &akey);
 	}
         // Finally, hash it again...
 	SHA256_Init(&ctx);
