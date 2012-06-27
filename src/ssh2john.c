@@ -43,12 +43,22 @@ static void process_file(const char *filename)
 	FILE *keyfile;
 	int i, count;
 	unsigned char buffer[LINE_BUFFER_SIZE];
+	BIO *bp;
+	char *nm = NULL, *header = NULL;
+	unsigned char *data = NULL;
+	EVP_CIPHER_INFO cipher;
+	EVP_PKEY pk;
+	long len;
+	DSA *dsapkc = NULL;
+	RSA *rsapkc = NULL;
+	const char unsigned *dc;
+
 	if (!(keyfile = fopen(filename, "rb"))) {
 	    fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
 	    return;
 	}
 	/* verify input files using OpenSSL */
-	BIO *bp = BIO_new(BIO_s_file());
+	bp = BIO_new(BIO_s_file());
 	if(!bp) {
 	    fprintf(stderr, "OpenSSL BIO allocation failure\n");
 	    return;
@@ -60,11 +70,6 @@ static void process_file(const char *filename)
 	}
 	/* PEM_bytes_read_bio function in crypto/pem/pem_lib.c
 	 * check_pem function in crypto/pem/pem_lib.c */
-	char *nm = NULL, *header = NULL;
-	unsigned char *data = NULL;
-	EVP_CIPHER_INFO cipher;
-	EVP_PKEY pk;
-	long len;
 	for (;;) {
 		if (!PEM_read_bio(bp, &nm, &header, &data, &len)) {
 			if (ERR_GET_REASON(ERR_peek_error()) ==
@@ -97,9 +102,7 @@ static void process_file(const char *filename)
 		return;
 	}
 	/* check if key has no password */
-	DSA *dsapkc = NULL;
-	RSA *rsapkc = NULL;
-	const char unsigned *dc = data;
+	dc = data;
 	if (PEM_do_header(&cipher, data, &len, NULL, (char *) "")) {
 		if (pk.save_type == EVP_PKEY_DSA) {
 			if ((dsapkc = d2i_DSAPrivateKey(NULL, &dc, len)) != NULL) {

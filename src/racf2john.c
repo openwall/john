@@ -63,19 +63,20 @@ static void process_file(const char *filename)
 	FILE *fp = fopen(filename, "r");
 	struct stat sb;
 	unsigned char *buffer;
+	off_t size;
+	unsigned char userid[9];
+	int i, j, count;
+	int offset;
 
 	if(stat(filename, &sb) == -1) {
 		perror("stat");
 		exit(EXIT_FAILURE);
 	}
 
-	off_t  size = sb.st_size;
-	int i, j, count;
+	size = sb.st_size;
 	buffer = (unsigned char *)malloc(size);
-	unsigned char userid[9];
 	count = fread(buffer, size, 1, fp);
 	assert(count == 1);
-	int offset;
 
 	for(i = 7; i < size - 62; i++) {
 		if (buffer[i-7] == 0xc2 && buffer[i-6] == 0xc1 &&

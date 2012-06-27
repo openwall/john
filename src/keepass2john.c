@@ -181,22 +181,24 @@ static void process_database(char* encryptedDatabase)
 {
 	long dataStartOffset;
 	unsigned long transformRounds;
-	unsigned char *masterSeed;
-	int masterSeedLength;
-	unsigned char *transformSeed;
-	int transformSeedLength;
-	unsigned char *initializationVectors;
-	int initializationVectorsLength;
-	unsigned char *expectedStartBytes;
-	int expectedStartBytesLength;
+	unsigned char *masterSeed = NULL;
+	int masterSeedLength = 0;
+	unsigned char *transformSeed = NULL;
+	int transformSeedLength = 0;
+	unsigned char *initializationVectors = NULL;
+	int initializationVectorsLength = 0;
+	unsigned char *expectedStartBytes = NULL;
+	int endReached, expectedStartBytesLength = 0;
+	uint32_t uSig1, uSig2, uVersion;
+	FILE *fp;
 
-	FILE *fp = fopen(encryptedDatabase, "rb");
+	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
 		fprintf(stderr, "! %s : %s\n", encryptedDatabase, strerror(errno));
 		return;
 	}
-	uint32_t uSig1 = fget32(fp);
-	uint32_t uSig2 = fget32(fp);
+	uSig1 = fget32(fp);
+	uSig2 = fget32(fp);
 	if ((uSig1 == FileSignatureOld1) && (uSig2 == FileSignatureOld2)) {
 		process_old_database(fp, encryptedDatabase);
 		fclose(fp);
@@ -211,25 +213,27 @@ static void process_database(char* encryptedDatabase)
 		fclose(fp);
 		return;
 	}
-        uint32_t uVersion = fget32(fp);
+        uVersion = fget32(fp);
 	if ((uVersion & FileVersionCriticalMask) > (FileVersion32 & FileVersionCriticalMask)) {
 		fprintf(stderr, "! %s : Unknown format: File version unsupported\n", encryptedDatabase);
 		fclose(fp);
 		return;
 	}
-	int endReached = 0;
+	endReached = 0;
 	while (!endReached)
 	{
 		unsigned char btFieldID = fgetc(fp);
                 uint16_t uSize = fget16(fp);
-
+                enum Kdb4HeaderFieldID kdbID;
 		unsigned char *pbData = NULL;
+
 		if (uSize > 0)
 		{
 			pbData = (unsigned char*)malloc(uSize);
-			fread(pbData, uSize, 1, fp);
+			if (fread(pbData, uSize, 1, fp) != 1)
+				fprintf(stderr, "error reading pbData\n");
 		}
-		enum Kdb4HeaderFieldID kdbID = btFieldID;
+		kdbID = btFieldID;
 		switch (kdbID)
 		{
 			case EndOfHeader:
