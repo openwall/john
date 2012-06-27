@@ -181,14 +181,14 @@ static void process_database(char* encryptedDatabase)
 {
 	long dataStartOffset;
 	unsigned long transformRounds;
-	unsigned char *masterSeed;
-	int masterSeedLength;
-	unsigned char *transformSeed;
-	int transformSeedLength;
-	unsigned char *initializationVectors;
-	int initializationVectorsLength;
-	unsigned char *expectedStartBytes;
-	int expectedStartBytesLength;
+	unsigned char *masterSeed = NULL;
+	int masterSeedLength = 0;
+	unsigned char *transformSeed = NULL;
+	int transformSeedLength = 0;
+	unsigned char *initializationVectors = NULL;
+	int initializationVectorsLength = 0;
+	unsigned char *expectedStartBytes = NULL;
+	int expectedStartBytesLength = 0;
 
 	FILE *fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
@@ -227,7 +227,8 @@ static void process_database(char* encryptedDatabase)
 		if (uSize > 0)
 		{
 			pbData = (unsigned char*)malloc(uSize);
-			fread(pbData, uSize, 1, fp);
+			if (fread(pbData, uSize, 1, fp) != 1)
+				fprintf(stderr, "error reading pbData\n");
 		}
 		enum Kdb4HeaderFieldID kdbID = btFieldID;
 		switch (kdbID)
