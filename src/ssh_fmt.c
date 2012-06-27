@@ -40,13 +40,14 @@
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
-#define SALT_SIZE           4224
+#define SALT_SIZE           sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
 static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
+static size_t cracked_size;
 
 static struct custom_salt {
 	long len;
@@ -90,8 +91,8 @@ static void init(struct fmt_main *pFmt)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	any_cracked = 0;
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	cracked_size = sizeof(*cracked) * pFmt->params.max_keys_per_crypt;
+	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -287,8 +288,7 @@ static void set_salt(void *salt)
 	/* restore custom_salt back */
 	restored_custom_salt = (struct custom_salt *) salt;
 	if (any_cracked) {
-		memset(cracked, 0,
-		    sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
+		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
 }
