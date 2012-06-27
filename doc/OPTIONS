@@ -312,6 +312,10 @@ The different variants of list externals may be worth mentioning:
                           -number of hard coded test cases for --test
                           -algorithm name
                           -format name
+                          -benchmark comment
+                          -benchmark length
+                          -binary size
+                          -salt size
                           (the individual columns are separated by [tab])
 --list=format-all-details list all the suported formats and their attributes
                           in the same sequence as with --list=format-details,

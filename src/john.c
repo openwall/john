@@ -787,7 +787,7 @@ static void john_init(char *name, int argc, char **argv)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\n",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d\n",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
@@ -795,7 +795,11 @@ static void john_init(char *name, int argc, char **argv)
 			       format->params.flags,
 			       ntests,
 			       format->params.algorithm_name,
-			       format->params.format_name);
+			       format->params.format_name,
+			       format->params.benchmark_comment,
+			       format->params.benchmark_length,
+			       format->params.binary_size,
+			       format->params.salt_size);
 		} while ((format = format->next));
 		exit(0);
 	}
@@ -832,6 +836,10 @@ static void john_init(char *name, int argc, char **argv)
 			printf("Number of test cases for --test \t%d\n", ntests);
 			printf("Algorithm name                  \t%s\n", format->params.algorithm_name);
 			printf("Format name                     \t%s\n", format->params.format_name);
+			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment);
+			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
+			printf("Binary size                     \t%d\n", format->params.binary_size);
+			printf("Salt size                       \t%d\n", format->params.salt_size);
 			printf("\n");
 		} while ((format = format->next));
 		exit(0);
