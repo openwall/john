@@ -28,6 +28,10 @@
 #include <stdint.h>
 #include <errno.h>
 #include <assert.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include "params.h"
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -62,6 +66,16 @@ enum Kdb4HeaderFieldID
 	EncryptionIV = 7,
 	StreamStartBytes = 9,
 };
+
+static off_t get_file_size(char * filename)
+{
+	struct stat sb;
+	if (stat(filename, & sb) != 0) {
+		fprintf(stderr, "! %s : stat failed, %s\n", filename, strerror(errno));
+		exit(-2);
+	}
+	return sb.st_size;
+}
 
 static void print_hex(unsigned char *str, int len)
 {
@@ -100,7 +114,7 @@ static uint16_t fget16(FILE * fp)
 }
 
 /* process KeePass 1.x databases */
-void process_old_database(FILE *fp, char* encryptedDatabase)
+static void process_old_database(FILE *fp, char* encryptedDatabase)
 {
 	uint32_t enc_flag;
 	uint32_t version;
@@ -111,7 +125,10 @@ void process_old_database(FILE *fp, char* encryptedDatabase)
 	uint32_t num_groups;
 	uint32_t num_entries;
 	uint32_t key_transf_rounds;
+	unsigned char buffer[LINE_BUFFER_SIZE];
 	int count;
+	long long filesize;
+	long long datasize;
 	enc_flag = fget32(fp);
 	version = fget32(fp);
 	count = fread(final_randomseed, 16, 1, fp);
@@ -144,11 +161,23 @@ void process_old_database(FILE *fp, char* encryptedDatabase)
 	print_hex(enc_iv, 16);
 	printf("*");
 	print_hex(contents_hash, 32);
-	printf("*0*%s", encryptedDatabase); /* data is not inline */
+	filesize = (long long)get_file_size(encryptedDatabase);
+	datasize = filesize - 124;
+	if(filesize < (LINE_BUFFER_SIZE - 128)) {
+		/* we can inline the content with the hash */
+		printf("*1*%lld*", datasize);
+		fseek(fp, 124, SEEK_SET);
+		count = fread(buffer, datasize, 1, fp);
+		assert(count == 1);
+		print_hex(buffer, datasize);
+	}
+	else {
+		printf("*0*%s", encryptedDatabase); /* data is not inline */
+	}
 	printf("\n");
 }
 
-void process_database(char* encryptedDatabase)
+static void process_database(char* encryptedDatabase)
 {
 	long dataStartOffset;
 	unsigned long transformRounds;
@@ -262,12 +291,12 @@ void process_database(char* encryptedDatabase)
 	fclose(fp);
 }
 
-int main(int argc, char **argv)
+int keepass2john(int argc, char **argv)
 {
 	int i;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage: %s <KeePass databases>\n", argv[0]);
+		fprintf(stderr, "Usage: keepass2john [KeePass database(s)]\n");
 		return -1;
 	}
 	for(i = 1; i < argc; i++) {
