@@ -25,6 +25,7 @@ run/pwsafe2john
 run/racf2john
 run/rar2john
 run/raw2dyna
+run/SIPdump
 run/ssh2john
 run/tgtsnarf
 run/unafs
