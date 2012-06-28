@@ -49,7 +49,7 @@
 #define SHA1_BLOCK_WORDS        16
 #define SHA1_DIGEST_SIZE        20
 #define SHA1_DIGEST_WORDS        5
-#define SHA1_PARALLEL_HASH     256 // This must be a multiple of 4.
+#define SHA1_PARALLEL_HASH     512 // This must be a multiple of 4.
 
 #define __aligned __attribute__((aligned(16)))
 
@@ -389,20 +389,8 @@ static void sha1_fmt_crypt_all(int count)
     // To reduce the overhead of multiple function calls, we buffer lots of
     // passwords, and then hash them in multiples of 4 all at once.
     for (i = 0; i < count; i += 4) {
-        // Zero the unused parts of W, the plaintext expansion.
-        W[4]  = W[5] = W[6]  = W[7]  = _mm_setzero_si128();
-        W[8]  = W[9] = W[10] = W[11] = _mm_setzero_si128();
-
-        // Fetch the lengths and keys, we can use a 4x4 matrix transpose to shuffle
-        // the words into the correct position.
-        W[12] = _mm_load_si128(&N[i + 0]);
-        W[13] = _mm_load_si128(&N[i + 1]);
-        W[14] = _mm_load_si128(&N[i + 2]);
-        W[15] = _mm_load_si128(&N[i + 3]);
-
-        _MM_TRANSPOSE4_EPI32(W[12], W[13], W[14], W[15]);
-
-        // Fetch the message.
+        // Fetch the message, then use a 4x4 matrix transpose to shuffle them
+        // into place.
         W[0]  = _mm_load_si128(&M[i + 0]);
         W[1]  = _mm_load_si128(&M[i + 1]);
         W[2]  = _mm_load_si128(&M[i + 2]);
@@ -420,14 +408,24 @@ static void sha1_fmt_crypt_all(int count)
         R1(W[0],  A, B, C, D, E);
         R1(W[1],  E, A, B, C, D);
         R1(W[2],  D, E, A, B, C);
-        R1(W[3],  C, D, E, A, B);
-        R1(W[4],  B, C, D, E, A);
-        R1(W[5],  A, B, C, D, E);                                   // 5
-        R1(W[6],  E, A, B, C, D);
-        R1(W[7],  D, E, A, B, C);
-        R1(W[8],  C, D, E, A, B);
-        R1(W[9],  B, C, D, E, A);
-        R1(W[10], A, B, C, D, E);                                   // 10
+        R1(W[3],  C, D, E, A, B); W[4]  = _mm_setzero_si128();
+        R1(W[4],  B, C, D, E, A); W[5]  = _mm_setzero_si128();
+        R1(W[5],  A, B, C, D, E); W[6]  = _mm_setzero_si128();      // 5
+        R1(W[6],  E, A, B, C, D); W[7]  = _mm_setzero_si128();
+        R1(W[7],  D, E, A, B, C); W[8]  = _mm_setzero_si128();
+        R1(W[8],  C, D, E, A, B); W[9]  = _mm_setzero_si128();
+        R1(W[9],  B, C, D, E, A); W[10] = _mm_setzero_si128();
+        R1(W[10], A, B, C, D, E); W[11] = _mm_setzero_si128();      // 10
+
+        // Fetch the message lengths, we can use a 4x4 matrix transpose to
+        // shuffle the words into the correct position.
+        W[12] = _mm_load_si128(&N[i + 0]);
+        W[13] = _mm_load_si128(&N[i + 1]);
+        W[14] = _mm_load_si128(&N[i + 2]);
+        W[15] = _mm_load_si128(&N[i + 3]);
+
+        _MM_TRANSPOSE4_EPI32(W[12], W[13], W[14], W[15]);
+
         R1(W[11], E, A, B, C, D);
         R1(W[12], D, E, A, B, C);
         R1(W[13], C, D, E, A, B);
