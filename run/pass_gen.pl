@@ -16,12 +16,11 @@ use Authen::Passphrase::NTHash;
 use Authen::Passphrase::PHPass;
 use Digest::MD4 qw(md4 md4_hex md4_base64);
 use Digest::MD5 qw(md5 md5_hex md5_base64);
-use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha256 sha256_hex sha384_hex sha512 sha512_hex);
+use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha224 sha224_hex sha256 sha256_hex sha384 sha384_hex sha512 sha512_hex);
 use Encode;
 use Switch 'Perl5', 'Perl6';
 use POSIX;
 use Getopt::Long;
-#use Digest::HMAC_MD5 qw(hmac_md5 hmac_md5_hex);
 use Crypt::RC4;
 use Crypt::CBC;
 use Crypt::DES;
@@ -30,6 +29,7 @@ use Crypt::PBKDF2;
 use Crypt::OpenSSL::PBKDF2;
 use String::CRC32;
 use MIME::Base64;
+use Digest::GOST qw(gost_hex);
 
 #############################################################################
 #
@@ -61,8 +61,10 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change mssql oracle
 		oracle_no_upcase_change oracle11 hdaa netntlm_ess openssha
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
-		Dynamic dummy rawsha256 rawsha384 rawsha512 dragonfly3_32
-		dragonfly4_32 saltedsha1));
+		Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512 dragonfly3_32
+		dragonfly4_32 saltedsha1 gost gost_cp hmac_sha1 hmac_sha224 hmac_sha256
+		hmac_sha384 hmac_sha512));
+		
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -120,14 +122,14 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     -utf8         shortcut to -codepage=utf8.
     -codepage=CP  Read and write files in CP encoding.
 
-    Options are:
+	Options are:
     -minlen <n>   Discard lines shorter than <n> characters  (0)
     -maxlen <n>   Discard lines longer than <n> characters (128)
     -count <n>    Stop when we have produced <n> hashes   (1320)
 
-    -salt <s>     Force a single salt (only supported in a few formats)
+	-salt <s>     Force a single salt (only supported in a few formats)
     -dictfile <s> Put name of dict file into the first line comment
-    -nocomment    eliminate the first line comment
+	-nocomment    eliminate the first line comment
 
     -help         shows this help screen.
 UsageHelp
@@ -272,6 +274,40 @@ sub base64 {
 	chomp $ret;
 	return $ret;
 }
+#sub ns_base64 {
+#	my $ret = "";
+#	my $n; my @ha = split(//,$h);
+#	for ($i = 0; $i <= $_[0]; ++$i) {
+#		# the first one gets some unitialized at times.
+#		#$n = ord($ha[$i*3+2]) | (ord($ha[$i*3+1])<<8)  | (ord($ha[$i*3])<<16);
+#		$n = ord($ha[$i*3])<<16;
+#		if (@ha > $i*3+1) {$n |= (ord($ha[$i*3+1])<<8);}
+#		if (@ha > $i*3+2) {$n |= ord($ha[$i*3+2]);}
+#		$ret .= "$ns_i64[($n>>18)&0x3F]";
+#		if ($_[1] == 3 && $i == $_[0]) { $ret .= "="; }
+#		else {$ret .= "$ns_i64[($n>>12)&0x3F]"; }
+#		if ($_[1] > 1 && $i == $_[0]) { $ret .= "="; }
+#		else {$ret .= "$ns_i64[($n>>6)&0x3F]"; }
+#		if ($_[1] > 0 && $i == $_[0]) { $ret .= "="; }
+#		else {$ret .= "$ns_i64[$n&0x3F]"; }
+#	}
+#	return $ret;
+#}
+##helper function for ns
+#sub ns_base64_2 {
+#	my $ret = "";
+#	my $n; my @ha = split(//,$h);
+#	for ($i = 0; $i < $_[0]; ++$i) {
+#		# the first one gets some unitialized at times..  Same as the fix in ns_base64
+#		#$n = ord($ha[$i*2+1]) | (ord($ha[$i*2])<<8);
+#		$n = ord($ha[$i*2])<<8;
+#		if (@ha > $i*2+1) { $n |= ord($ha[$i*2+1]); }
+#		$ret .= "$ns_i64[($n>>12)&0xF]";
+#		$ret .= "$ns_i64[($n>>6)&0x3F]";
+#		$ret .= "$ns_i64[$n&0x3F]";
+#	}
+#	return $ret;
+#}
 # helper function to convert binary to hex.  Many formats store salts and such in hex
 sub saltToHex {
 	my $ret = "";
@@ -288,7 +324,11 @@ sub saltToHex {
 #  all salted formats choose 'random' salts, in one way or another.
 #############################################################################
 sub des {
-	$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_random => 12);
+	if ($argsalt && length($argsalt)==2) {
+		$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_base64 => $argsalt);
+	} else {
+		$h = Authen::Passphrase::DESCrypt->new(passphrase => $_[0], salt_random => 12);
+	}
 	print "u$u-DES:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub bigcrypt {
@@ -385,6 +425,9 @@ sub rawsha1u {
 }
 sub rawsha256 {
 	print "u$u-RawSHA256:", sha256_hex($_[0]), ":$u:0:$_[0]::\n";
+}
+sub rawsha224 {
+	print "u$u-RawSHA224:", sha224_hex($_[0]), ":$u:0:$_[0]::\n";
 }
 sub rawsha384 {
 	print "u$u-RawSHA384:", sha384_hex($_[0]), ":$u:0:$_[0]::\n";
@@ -586,6 +629,54 @@ sub hmacmd5 {
 	my $bin = _hmacmd5($_[0], $salt);
 	print "u$u-hmacMD5:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
+sub _hmac_shas {
+	my ($crypt, $pad_sz, $key, $data) = @_;
+	my $ipad; my $opad;
+	for ($i = 0; $i < length($key); ++$i) {
+		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
+		$opad .= chr(ord(substr($key, $i, 1)) ^ 0x5C);
+	}
+	while ($i++ < $pad_sz) {
+		$ipad .= chr(0x36);
+		$opad .= chr(0x5C);
+	}
+	if ($crypt==224) {
+		return sha224($opad,sha224($ipad,$data));
+	} elsif ($crypt==256) {
+		return sha256($opad,sha256($ipad,$data));
+	} elsif ($crypt==384) {
+		return sha384($opad,sha384($ipad,$data));
+	} elsif ($crypt==512) {
+		return sha512($opad,sha512($ipad,$data));
+	} elsif ($crypt==1) {
+		return sha1($opad,sha1($ipad,$data));
+	}
+}
+sub hmac_sha1 {
+	$salt = randstr(24);
+	my $bin = _hmac_shas(1, 64, $_[0], $salt);
+	print "u$u-hmacSHA1:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
+sub hmac_sha224 {
+	$salt = randstr(32);
+	my $bin = _hmac_shas(224, 64, $_[0], $salt);
+	print "u$u-hmacSHA224:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
+sub hmac_sha256 {
+	$salt = randstr(32);
+	my $bin = _hmac_shas(256, 64, $_[0], $salt);
+	print "u$u-hmacSHA256:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
+sub hmac_sha384 {
+	$salt = randstr(32);
+	my $bin = _hmac_shas(384, 128, $_[0], $salt);
+	print "u$u-hmacSHA384:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
+sub hmac_sha512 {
+	$salt = randstr(32);
+	my $bin = _hmac_shas(512, 128, $_[0], $salt);
+	print "u$u-hmacSHA512:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
 sub mskrb5 {
 	my $password = shift;
 	my $datestring = sprintf('20%02u%02u%02u%02u%02u%02uZ', rand(100), rand(12)+1, rand(31)+1, rand(24), rand(60), rand(60));
@@ -736,6 +827,7 @@ sub nsldaps {
 	}
 	$h = sha1($_[0],$salt);
 	$h .= $salt;
+	#print "u$u-nsldap:{SSHA}", ns_base64(9,2), ":$u:0:$_[0]::\n";
 	print "u$u-nsldap:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub openssha {
@@ -746,6 +838,7 @@ sub openssha {
 	}
 	$h = sha1($_[0],$salt);
 	$h .= $salt;
+	#print "u$u-openssha:{SSHA}", ns_base64(7,0), ":$u:0:$_[0]::\n";
 	print "u$u-openssha:{SSHA}", base64($h), ":$u:0:$_[0]::\n";
 }
 sub saltedsha1 {
@@ -765,6 +858,7 @@ sub ns {
 		$salt=randstr(3 + rand 4, \@chrHexLo);
 	}
 	$h = md5($salt, ":Administration Tools:", $_[0]);
+	#my $hh = ns_base64_2(8);
 	my $hh = base64($h);
 	substr($hh, 0, 0) = 'n';
 	substr($hh, 6, 0) = 'r';
@@ -957,7 +1051,13 @@ sub crc_32 {
 sub dummy {
     print "$u-dummy:", '$dummy$', unpack('H*', $_[0]), "\n";
 }
-
+sub gost {
+	my $pwd = shift;
+	printf("$u-gost:\$gost\$%s:0:0:100:%s:\n", gost_hex($pwd), $pwd);
+}
+#sub gost_cp {
+#	# HMMM.  Not sure how to do this at this time in perl.
+#}
 ############################################################
 #  DYNAMIC code.  Quite a large block.  Many 'fixed' formats, and then a parser
 ############################################################
