@@ -180,7 +180,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 static void process_database(char* encryptedDatabase)
 {
 	long dataStartOffset;
-	unsigned long transformRounds;
+	unsigned long transformRounds = 0;
 	unsigned char *masterSeed = NULL;
 	int masterSeedLength = 0;
 	unsigned char *transformSeed = NULL;
