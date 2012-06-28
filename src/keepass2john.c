@@ -1,4 +1,4 @@
-﻿/* keepass2john utility (modified KeeCracker) written in March of 2012
+/* keepass2john utility (modified KeeCracker) written in March of 2012
  * by Dhiru Kholia. keepass2john processes input KeePass 1.x and 2.x
  * database files into a format suitable for use with JtR. This software
  * is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com> and it
