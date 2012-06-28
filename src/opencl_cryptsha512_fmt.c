@@ -494,7 +494,7 @@ static void init(struct fmt_main *pFmt) {
         if (gpu_nvidia(device_info[gpu_id]))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
-            task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";
+            task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
