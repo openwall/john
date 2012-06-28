@@ -1,7 +1,8 @@
 The following major changes was made since Jumbo-5:
 
 New formats:
-* ODF files. (Dhiru Kholia)
+* KeePass 1.x files. (Dhiru Kholia)
+* ODF files. (Dhiru)
 * raw-sha1-ng (Tavis Ormandy, XOP support by Solar)
 * PWSAFE CPU, CUDA and OpenCL (Dhiru and Lukas)
 * Raw-SHA1-LinkedIn format (partial hashes, 20 bit zeroed) (Jim Fougeron)
@@ -34,18 +35,15 @@ ssha (Samuele, Lukas)
 * DragonFly BSD crypt-SHA2 formats (magnum)
 * Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
 
-Other changes:
-* Use a different format name for raw-sha1-ng, due to max. pwlen 15 (Frank
-Dittrich)
+Other assorted changes:
 * Move MYSQL_fmt_plug.c to unused/, rename MYSQL_fast_fmt_plug.c to
 mysql_fmt_plug.c and change its label to just mysql (magnum)
-* Several enhancements for relbench (Frank)
+* Several enhancements for relbench (Frank Dittrich)
 * benchmark-unify: a Perl script to convert benchmark output for relbench
 (Frank)
 * Add three more make targets. linux-x86-clang-debug is super good for
 debugging. (Dhiru)
-* Make --log-stderr a hidden option (magnum)
-* Move --field-separator-char to hidden option (magnum)
+* Move --field-separator-char and --fix-state-delay=N to hidden options (magnum)
 * Add new options --loopback[=FILE] and --dupe-suppression (the former implies
 the latter) and revert some stuff for backwards compatibility. (magnum)
 * New (hidden) option --length=N for reducing plaintext length of a format,
@@ -56,20 +54,12 @@ mostly for testing purposes. (magnum)
 * Reduced binary for raw-md4, raw-md5, raw-sha1 and NT2. This decreases memory
 usage with 12 bytes per loaded hash for NT/MD4/MD5 and 16 bytes for SHA1 and
 should help keeping good stuff in cache. (magnum)
-* Implement --markov=MODE[:<options>] (Frank)
-* Add experimental linux -native build targets (magnum)
-* Markov: different error messages for missing [Markov:Default] section and for
-missing Statsfile definition in an existing [Markov:Default] section (Frank)
-* genmkvpwd should use MAX_MKV_LVL (Frank)
-* Markov mode: move parameter validation into new function get_markov_options
-Additionaly, the logic has been changed so that the max. values for level and
-length are adjusted prior to checking min. values, to avoid adjusting min.
-value to a max. value which is changed afterwards: (Frank)
+* Implement --markov=MODE[:<options>] and allow start and/or end to be specified
+in percent (Frank)
+* Add linux -native build targets (magnum)
 * New option: --log-stderr (magnum)
 * Loads of minor fixes for Sparc (endianness, alignment) (JimF)
 * CUDA device lister, show them with --list=cuda-devices (Lukas)
-* Move markov option handling to mkv.c (do_markov_crack). Use [Markov:Default]
-instead of [Options:Markov] (Frank)
 * Add --list=[encodings|opencl-devices]. Deprecate --encodings=LIST (but it's
 still supported). We will later support --list=cuda-devices too. Drop
 --device=list and --platforms=list (not supported from now on). For the
@@ -88,9 +78,9 @@ included in any release tarball. (magnum)
 * Add --list=subformats and deprecate --subformat=list (magnum)
 * raw2dyna added. This is a helper program that converts raw hashes to dynamic
 format. (JimF)
-* Add new john.conf options subsections Markov and MPI and add a new
-config item CrackStatus under Options:Jumbo. Note: If CrackStatus=Y in
-john.conf, the --crack-status option disables it. (magnum)
+* Add new john.conf options subsection MPI and add a new config item
+CrackStatus under Options:Jumbo. Note: If CrackStatus=Y in john.conf, the
+--crack-status option disables it. (magnum)
 * Win32 SharedMemory patch (only affects _MSC_VER, __CYGWIN32__ or __MINGW32__
 builds) (JimF)
 * SHA512 opencl implementation (Myrice)
