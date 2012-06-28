@@ -168,8 +168,10 @@ static void set_key(char *key, int index)
 	while(((temp = JOHNSWAP(*keyp++)) & 0xff000000)) {
 		if (!(temp & 0x00ff0000) || !(temp & 0x0000ff00))
 		{
-			*ipadp ^= (unsigned short)temp;
-			*opadp ^= (unsigned short)temp;
+			((unsigned short*)ipadp)[1] ^=
+				(unsigned short)(temp>>16);
+			((unsigned short*)opadp)[1] ^=
+				(unsigned short)(temp>>16);
 			break;
 		}
 		*ipadp ^= temp;
