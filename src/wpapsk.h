@@ -8,7 +8,11 @@
 */
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
+
+#include "arch.h"
 #include "common.h"
+#include "johnswap.h"
+
 #include <assert.h>
 #include <openssl/hmac.h>
 
@@ -109,6 +113,12 @@ static hccap_t *decode_hccap(char *ciphertext)
 	    (atoi64[ARCH_INDEX(cap[1])] << 4) |
 	    (atoi64[ARCH_INDEX(cap[2])] >> 2);
 	memcpy(&hccap.mac1,tbuf,sizeof(hccap_t)-36);
+
+#if !ARCH_LITTLE_ENDIAN
+	hccap.eapol_size = JOHNSWAP(hccap.eapol_size);
+	hccap.keyver = JOHNSWAP(hccap.keyver);
+#endif
+
 	return &hccap;
 }
 
