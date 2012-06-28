@@ -96,6 +96,7 @@ JOHN_OBJS = \
 	rawSHA224_fmt.o rawSHA256_fmt.o rawSHA384_fmt.o rawSHA512_fmt.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
 	hmacSHA224_fmt.o hmacSHA256_fmt.o hmacSHA384_fmt.o hmacSHA512_fmt.o \
+	episerver_fmt.o keepass_fmt.o pwsafe_fmt.o \
 	XSHA512_fmt.o \
 	hmailserver_fmt.o \
 	dragonfly3_fmt.o \

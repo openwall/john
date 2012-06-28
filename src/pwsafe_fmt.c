@@ -6,6 +6,9 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+
 #if defined(__APPLE__) && defined(__MACH__) && \
 	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
 	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
@@ -208,3 +211,8 @@ struct fmt_main pwsafe_fmt = {
 		fmt_default_get_source
 	}
 };
+#else
+#ifdef __GNUC__
+#warning Note: pwsafe format disabled - it needs OpenSSL 0.9.8 or above
+#endif
+#endif

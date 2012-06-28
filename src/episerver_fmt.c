@@ -29,6 +29,9 @@
  * version == 1, EPiServer 6.x + .NET >= 4.x SHA256 hash/salt format,
  * 		 PasswordFormat == ? */
 
+#include <openssl/opensslv.h>
+#if OPENSSL_VERSION_NUMBER >= 0x00908000
+
 #if defined(__APPLE__) && defined(__MACH__) && \
 	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
 	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
@@ -268,3 +271,8 @@ struct fmt_main episerver_fmt = {
 		fmt_default_get_source
 	}
 };
+#else
+#ifdef __GNUC__
+#warning Note: episerver format disabled - it needs OpenSSL 0.9.8 or above
+#endif
+#endif
