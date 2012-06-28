@@ -41,6 +41,13 @@ static void process_path(char *path)
 {
 	int i;
 	struct stat sb;
+	struct NSSPKCS5PBEParameter gpbe_param;
+	unsigned char salt_data[4096];
+	unsigned char data1[256];
+	unsigned char data2[512];
+	SECItem secPreHash;
+	SECItem pkcs5_pfxpbe;
+
 	if(stat(path, &sb) == 0) {
 		if(S_ISDIR(sb.st_mode)) {
 			fprintf (stderr, "%s : is a directory, expecting key3.db file!\n", path);
@@ -56,8 +63,6 @@ static void process_path(char *path)
 	assert(keyCrackData.saltLen < 32);
 	assert(keyCrackData.oidLen < 32);
 	saltItem.data = keyCrackData.salt;
-	struct NSSPKCS5PBEParameter gpbe_param;
-	unsigned char salt_data[4096];
 
 	paramPKCS5 = nsspkcs5_NewParam(0, &saltItem, 1, &gpbe_param, salt_data);
 	if(paramPKCS5 == NULL) {
@@ -71,13 +76,9 @@ static void process_path(char *path)
 	// Calculate partial sha1 data for password hashing
 	SHA1_Init(&pctx);
 	SHA1_Update(&pctx, keyCrackData.globalSalt, keyCrackData.globalSaltLen);
-	unsigned char data1[256];
-	unsigned char data2[512];
-	SECItem secPreHash;
 	secPreHash.data = data1;
 	memcpy(secPreHash.data + SHA1_LENGTH, saltItem.data, saltItem.len);
 	secPreHash.len = saltItem.len + SHA1_LENGTH;
-	SECItem pkcs5_pfxpbe;
 	pkcs5_pfxpbe.data = data2;
 	if(CheckMasterPassword("", &pkcs5_pfxpbe, &secPreHash)) {
 		fprintf (stderr, "%s : no Master Password set!\n", path);

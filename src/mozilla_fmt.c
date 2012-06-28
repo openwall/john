@@ -121,11 +121,12 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void *get_salt(char *ciphertext)
 {
 	int i;
+	char *p;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	ctcopy += 9;	/* skip over "$vnc$*" */
 	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	char *p = strtok(ctcopy, "*");
+	p = strtok(ctcopy, "*");
 	salt_struct->keyCrackData.version = atoi(p);
 	p = strtok(NULL, "*");
 	salt_struct->keyCrackData.saltLen = atoi(p);
@@ -193,10 +194,11 @@ static void crypt_all(int count)
 		unsigned char data1[256];
 		unsigned char data2[512];
 		SECItem secPreHash;
+		SECItem pkcs5_pfxpbe;
+
 		secPreHash.data = data1;
 		memcpy(secPreHash.data + SHA1_LENGTH, salt_struct->saltItem.data, salt_struct->saltItem.len);
 		secPreHash.len = salt_struct->saltItem.len + SHA1_LENGTH;
-		SECItem pkcs5_pfxpbe;
 		pkcs5_pfxpbe.data = data2;
 		cracked[index] = CheckMasterPassword(saved_key[index],
 		                                     &pkcs5_pfxpbe,

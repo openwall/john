@@ -47,13 +47,16 @@ unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigne
 {
 	SECItem *ret_bits = pkcs5_pfxpbe;
 	SHA_CTX ctx;
-
 	unsigned char state[256];
 	unsigned int state_len;
-
 	unsigned char *saltData = pbe_param->salt.data;
 	unsigned int saltLen = pbe_param->salt.len;
-
+	SHA_CTX *fctx;
+	struct HMACContext cx;
+	SHA_CTX lctx;
+	SHA_CTX ctx1, ctx2, ctx3;
+	unsigned char *ret_data;
+	int k;
 
 	// First compute pkcs5 hash
 	unsigned char firstHash[SHA1_LENGTH];
@@ -61,7 +64,7 @@ unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigne
 	// copy password hash .....
 	memcpy(preHash->data, pwdHash, SHA1_LENGTH);
 
-	SHA_CTX *fctx = &ctx;
+	fctx = &ctx;
 	SHA1_Init(fctx);
 	SHA1_Update(fctx, preHash->data, preHash->len);
 	SHA1_Final(firstHash, fctx);
@@ -77,26 +80,16 @@ unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigne
 	memset(state, 0, state_len);
 	memcpy(state, saltData, saltLen);
 
-
-	struct HMACContext cx;
-	SHA_CTX lctx;
-
 	memset(cx.ipad, 0x36, HMAC_PAD_SIZE);
 	memset(cx.opad, 0x5c, HMAC_PAD_SIZE);
 
 	/* fold secret into padding */
-	int k;
 	for (k = 0; k < SHA1_LENGTH; k++) {
 		cx.ipad[k] ^= firstHash[k];
 		cx.opad[k] ^= firstHash[k];
 	}
 
-
-
-
 	// Unrolled looop...........twice
-	SHA_CTX ctx1, ctx2, ctx3;
-
 	SHA1_Init(&lctx);
 	SHA1_Update(&lctx, cx.ipad, HMAC_PAD_SIZE);
 
@@ -110,7 +103,7 @@ unsigned char *computeKey(struct NSSPKCS5PBEParameter * pbe_param, const unsigne
 	memcpy(&ctx2, &lctx, sizeof(SHA_CTX));
 
 	SHA1_Update(&lctx, saltData, saltLen);
-	unsigned char *ret_data = ret_bits->data;
+	ret_data = ret_bits->data;
 	SHA1_Final(ret_data, &lctx);
 
 	SHA1_Init(&lctx);
