@@ -99,7 +99,8 @@ static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)
               "00000000000000000000000000000000", 32) == 0)
 	  return 0; // This is NTLM ESS C/R
 
-  for (pos = &ciphertext[28]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+  for (pos = &ciphertext[28]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++)
+	  ;
     if (!*pos && pos - ciphertext - 28 == CIPHERTEXT_LENGTH) {
 	    return 1;
     }
