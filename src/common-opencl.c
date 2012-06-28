@@ -52,10 +52,10 @@ static void read_kernel_source(char *kernel_filename)
 
 static void dev_init(unsigned int dev_id, unsigned int platform_id)
 {
-	assert(dev_id < MAXGPUS);
 	cl_platform_id platform[MAX_PLATFORMS];
 	cl_uint num_platforms, device_num;
 
+	assert(dev_id < MAXGPUS);
 	///Find CPU's
 	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
 		&num_platforms), "No OpenCL platform found");
