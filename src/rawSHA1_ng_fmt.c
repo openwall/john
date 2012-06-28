@@ -199,7 +199,7 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
         return 0;
 
     // Verify the length matches.
-    return strlen(ciphertext) == SHA1_DIGEST_SIZE * 2;;
+    return strlen(ciphertext) == SHA1_DIGEST_SIZE * 2;
 }
 
 static void * sha1_fmt_binary(char *ciphertext)
