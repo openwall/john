@@ -186,13 +186,13 @@ static void release_clobj(void) {
 /* ------- Salt functions ------- */
 static void *get_salt(char *ciphertext) {
     int end = 0, i, len = strlen(ciphertext);
+    static unsigned char ret[50];
     for (i = len - 1; i >= 0; i--)
         if (ciphertext[i] == '$') {
             end = i;
             break;
         }
 
-    static unsigned char ret[50];
     for (i = 0; i < end; i++)
         ret[i] = ciphertext[i];
     ret[end] = 0;
@@ -459,10 +459,10 @@ static void find_best_gws(void) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
     char *tmp_value;
-    opencl_init_dev(gpu_id, platform_id);
-
     uint64_t startTime, runtime;
     char * task;
+
+    opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
 
     if (cpu(device_info[gpu_id]))
@@ -536,12 +536,11 @@ static void init(struct fmt_main *pFmt) {
 static int valid(char *ciphertext, struct fmt_main *pFmt) {
     uint32_t i, j;
     int len = strlen(ciphertext);
+    char *p = strrchr(ciphertext, '$');
 
     if (strncmp(ciphertext, "$6$", 3) != 0)
             return 0;
-    char *p = strrchr(ciphertext, '$');
-    if (p == NULL)
-            return 0;
+
     for (i = p - ciphertext + 1; i < len; i++) {
             int found = 0;
             for (j = 0; j < 64; j++)
@@ -558,60 +557,50 @@ static int valid(char *ciphertext, struct fmt_main *pFmt) {
 }
 
 /* ------- To binary functions ------- */
-static int findb64(char c) {
-    int ret = ARCH_INDEX(atoi64[(uint8_t) c]);
-    return ret != 0x7f ? ret : 0;
-}
-
-static void magic(char *crypt, unsigned char *alt) {
-#define _24bit_from_b64(I,B2,B1,B0) \
-    {\
-        unsigned char c1=findb64(crypt[I+0]);\
-        unsigned char c2=findb64(crypt[I+1]);\
-        unsigned char c3=findb64(crypt[I+2]);\
-        unsigned char c4=findb64(crypt[I+3]);\
-        unsigned int w=c4<<18|c3<<12|c2<<6|c1;\
-        unsigned char b2=w&0xff;w>>=8;\
-        unsigned char b1=w&0xff;w>>=8;\
-        unsigned char b0=w&0xff;w>>=8;\
-        alt[B2]=b0;\
-        alt[B1]=b1;\
-        alt[B0]=b2;\
-    }
-    _24bit_from_b64(0, 0, 21, 42);
-    _24bit_from_b64(4, 22, 43, 1);
-    _24bit_from_b64(8, 44, 2, 23);
-    _24bit_from_b64(12, 3, 24, 45);
-    _24bit_from_b64(16, 25, 46, 4);
-    _24bit_from_b64(20, 47, 5, 26);
-    _24bit_from_b64(24, 6, 27, 48);
-    _24bit_from_b64(28, 28, 49, 7);
-    _24bit_from_b64(32, 50, 8, 29);
-    _24bit_from_b64(36, 9, 30, 51);
-    _24bit_from_b64(40, 31, 52, 10);
-    _24bit_from_b64(44, 53, 11, 32);
-    _24bit_from_b64(48, 12, 33, 54);
-    _24bit_from_b64(52, 34, 55, 13);
-    _24bit_from_b64(56, 56, 14, 35);
-    _24bit_from_b64(60, 15, 36, 57);
-    _24bit_from_b64(64, 37, 58, 16);
-    _24bit_from_b64(68, 59, 17, 38);
-    _24bit_from_b64(72, 18, 39, 60);
-    _24bit_from_b64(76, 40, 61, 19);
-    _24bit_from_b64(80, 62, 20, 41);
-
-    uint32_t w = findb64(crypt[85]) << 6 | findb64(crypt[84]) << 0;
-    alt[63] = (w & 0xff);
-}
+#define TO_BINARY(b1, b2, b3) \
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+	pos += 4; \
+	out[b1] = value >> 16; \
+	out[b2] = value >> 8; \
+	out[b3] = value;
 
 static void * get_binary(char *ciphertext) {
-    static unsigned char b[BINARY_SIZE];
-    memset(b, 0, BINARY_SIZE);
-    char *p = strrchr(ciphertext, '$');
+	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
+	ARCH_WORD_32 value;
+	char *pos;
+	unsigned char *out = (unsigned char*)outbuf;
 
-    if (p != NULL)
-        magic(p + 1, b);
-    return (void *) b;
+	pos = strrchr(ciphertext, '$') + 1;
+
+	TO_BINARY(0, 21, 42);
+	TO_BINARY(22, 43, 1);
+	TO_BINARY(44, 2, 23);
+	TO_BINARY(3, 24, 45);
+	TO_BINARY(25, 46, 4);
+	TO_BINARY(47, 5, 26);
+	TO_BINARY(6, 27, 48);
+	TO_BINARY(28, 49, 7);
+	TO_BINARY(50, 8, 29);
+	TO_BINARY(9, 30, 51);
+	TO_BINARY(31, 52, 10);
+	TO_BINARY(53, 11, 32);
+	TO_BINARY(12, 33, 54);
+	TO_BINARY(34, 55, 13);
+	TO_BINARY(56, 14, 35);
+	TO_BINARY(15, 36, 57);
+	TO_BINARY(37, 58, 16);
+	TO_BINARY(59, 17, 38);
+	TO_BINARY(18, 39, 60);
+	TO_BINARY(40, 61, 19);
+	TO_BINARY(62, 20, 41);
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
+	out[63] = value; \
+	return (void *) out;
 }
 
 /* ------- Compare functins ------- */
