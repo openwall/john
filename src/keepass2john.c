@@ -1,4 +1,4 @@
-/* keepass2john utility (modified KeeCracker) written in March of 2012
+﻿/* keepass2john utility (modified KeeCracker) written in March of 2012
  * by Dhiru Kholia. keepass2john processes input KeePass 1.x and 2.x
  * database files into a format suitable for use with JtR. This software
  * is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com> and it
@@ -191,6 +191,7 @@ static void process_database(char* encryptedDatabase)
 	int endReached, expectedStartBytesLength = 0;
 	uint32_t uSig1, uSig2, uVersion;
 	FILE *fp;
+	unsigned char out[32];
 
 	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
@@ -287,6 +288,11 @@ static void process_database(char* encryptedDatabase)
 	print_hex(initializationVectors, initializationVectorsLength);
 	printf("*");
 	print_hex(expectedStartBytes, expectedStartBytesLength);
+	if (fread(out, 32, 1, fp) != 1) {
+		fprintf(stderr, "error reading encrypted data!\n");
+	}
+	printf("*");
+	print_hex(out, 32);
 	printf("\n");
 	free(masterSeed);
 	free(transformSeed);
