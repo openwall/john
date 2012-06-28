@@ -1785,7 +1785,7 @@ bash-completion:	/etc/bash_completion.d/john.bash_completion
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
-	$(RM) ../run/*.cl ../run/*.h
+	$(RM) ../run/*.cl ../run/*.h ../run/office2john ../run/vncpcap2john
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~ ../run/SIPdump
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
