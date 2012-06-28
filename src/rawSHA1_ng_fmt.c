@@ -188,6 +188,20 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
     return result;
 }
 
+// GCC < 4.3 does not have __builtin_bswap32(), provide an alternative.
+#if !defined(__INTEL_COMPILER) && GCC_VERSION < 40300
+# define __builtin_bswap32(x) bswap32(x)
+static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
+{
+    register uint32_t result;
+
+    asm("bswap %0" : "=r" (result) : "0" (value));
+
+    return result;
+}
+#endif
+
+
 static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
 {
     // Test for tag prefix in ciphertext.
