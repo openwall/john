@@ -131,6 +131,44 @@ static void process_file(char *filename, char *parentfile)
 	FILE *fp;
 	int i;
 	struct stat sb;
+	uint16_t versionMajor;
+	uint16_t versionMinor;
+	char path[4096] = { 0 };
+	uint32_t encryptionFlags;
+	char *buffer, *xmlfile;
+	FILE *ofp;
+	xmlDocPtr doc;
+	xmlNodePtr cur;
+	int spinCount;
+	int pkeBlockSize;
+	int pkeKeyBits;
+	int pkeHashSize;
+	unsigned char *pkeSaltValue;
+	unsigned char encryptedVerifierHashInput[16 + 2];
+	unsigned char encryptedVerifierHashValue[32 + 2];
+	int version;
+	xmlChar *spinCountXML;
+	xmlChar *saltSizeXML;
+	xmlChar *pkeBlockSizeXML;
+	xmlChar *pkeKeyBitsXML;
+	xmlChar *pkeHashSizeXML;
+	xmlChar *pkeSaltValueXML;
+	xmlChar *encryptedVerifierHashInputXML;
+	xmlChar *encryptedVerifierHashValueXML;
+
+	uint32_t headerLength;
+	uint32_t skipFlags;
+	uint32_t sizeExtra;
+	uint32_t algId;
+	uint32_t algHashId;
+	uint32_t keySize;
+	uint32_t providerType;
+	char CSPName[1024];
+	uint32_t saltSize;
+	char salt[1024];
+	char encryptedVerifier[16];
+	uint32_t verifierHashSize;
+	char encryptedVerifierHash[64];
 
 	if(stat(filename, &sb) != 0) {
 	}
@@ -141,9 +179,9 @@ static void process_file(char *filename, char *parentfile)
 	}
 
 	while (!feof(fp)) {
-		uint16_t versionMajor = fget16(fp);
-		uint16_t versionMinor = fget16(fp);
-		uint32_t encryptionFlags = fget32(fp);
+		versionMajor = fget16(fp);
+		versionMinor = fget16(fp);
+		encryptionFlags = fget32(fp);
 		if (encryptionFlags == fExternal) {
 			fprintf(stderr, "%s : An external cryptographic provider is not supported\n", parentfile);
 			return;
@@ -152,12 +190,10 @@ static void process_file(char *filename, char *parentfile)
 			if (encryptionFlags != fAgile)
 				fprintf(stderr, "%s : The encryption flags are not consistent with the encryption type\n", parentfile);
 			/* rest of the data is in XML format, dump it to a file */
-			char path[4096] = { 0 };
 			strcpy(path, filename);
-			char *buffer = (char*)malloc(sb.st_size);
+			buffer = (char*)malloc(sb.st_size);
 			fread(buffer, sb.st_size - 8, 1, fp);
-			char *xmlfile = strcat(path, ".xml");
-			FILE *ofp;
+			xmlfile = strcat(path, ".xml");
 			if (!(ofp = fopen(xmlfile, "w"))) {
 				fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
 				return;
@@ -165,8 +201,6 @@ static void process_file(char *filename, char *parentfile)
 			fwrite(buffer, sb.st_size - 8, 1, ofp);
 			fclose(ofp);
 			/* process XML file */
-			xmlDocPtr doc;
-			xmlNodePtr cur;
 			doc = xmlParseFile(xmlfile);
 			if (doc == NULL ) {
 				fprintf(stderr, "Document not parsed successfully. \n");
@@ -192,34 +226,32 @@ static void process_file(char *filename, char *parentfile)
 			}
 			cur = cur->xmlChildrenNode;
 			/* we are now at "encryptedKey" node */
-			xmlChar *spinCountXML = xmlGetProp(cur, "spinCount");
-			int spinCount = atoi(spinCountXML);
+			spinCountXML = xmlGetProp(cur, "spinCount");
+			spinCount = atoi(spinCountXML);
 			xmlFree(spinCountXML);
-			xmlChar *saltSizeXML = xmlGetProp(cur, "saltSize");
-			int saltSize = atoi(saltSizeXML);
+			saltSizeXML = xmlGetProp(cur, "saltSize");
+			saltSize = atoi(saltSizeXML);
 			xmlFree(saltSizeXML);
-			xmlChar *pkeBlockSizeXML = xmlGetProp(cur, "blockSize");
-			int pkeBlockSize = atoi(pkeBlockSizeXML);
+			pkeBlockSizeXML = xmlGetProp(cur, "blockSize");
+			pkeBlockSize = atoi(pkeBlockSizeXML);
 			xmlFree(pkeBlockSizeXML);
-			xmlChar *pkeKeyBitsXML = xmlGetProp(cur, "keyBits");
-			int pkeKeyBits = atoi(pkeKeyBitsXML);
+			pkeKeyBitsXML = xmlGetProp(cur, "keyBits");
+			pkeKeyBits = atoi(pkeKeyBitsXML);
 			xmlFree(pkeKeyBitsXML);
-			xmlChar *pkeHashSizeXML = xmlGetProp(cur, "hashSize");
-			int pkeHashSize = atoi(pkeHashSizeXML);
+			pkeHashSizeXML = xmlGetProp(cur, "hashSize");
+			pkeHashSize = atoi(pkeHashSizeXML);
 			xmlFree(pkeHashSizeXML);
-			xmlChar *pkeSaltValueXML = xmlGetProp(cur, "saltValue");
-			unsigned char *pkeSaltValue = (unsigned char*)malloc(16 + 2);
+			pkeSaltValueXML = xmlGetProp(cur, "saltValue");
+			pkeSaltValue = (unsigned char*)malloc(16 + 2);
 			base64_decode(pkeSaltValueXML, strlen(pkeSaltValueXML), pkeSaltValue);
 			xmlFree(pkeSaltValueXML);
-			xmlChar *encryptedVerifierHashInputXML = xmlGetProp(cur, "encryptedVerifierHashInput");
-			unsigned char encryptedVerifierHashInput[16 + 2];
+			encryptedVerifierHashInputXML = xmlGetProp(cur, "encryptedVerifierHashInput");
 			base64_decode(encryptedVerifierHashInputXML, strlen(encryptedVerifierHashInputXML), encryptedVerifierHashInput);
 			xmlFree(encryptedVerifierHashInputXML);
-			xmlChar *encryptedVerifierHashValueXML = xmlGetProp(cur, "encryptedVerifierHashValue");
-			unsigned char encryptedVerifierHashValue[32 + 2];
+			encryptedVerifierHashValueXML = xmlGetProp(cur, "encryptedVerifierHashValue");
 			base64_decode(encryptedVerifierHashValueXML, strlen(encryptedVerifierHashValueXML), encryptedVerifierHashValue);
 			xmlFree(encryptedVerifierHashValueXML);
-			int version = 2010;
+			version = 2010;
 			printf("%s:$office$*%d*%d*%d*%d*", parentfile, version, spinCount, pkeKeyBits, saltSize);
 			print_hex(pkeSaltValue, saltSize);
 			printf("*");
@@ -233,38 +265,34 @@ static void process_file(char *filename, char *parentfile)
 		}
 		/* Office 2007 file processing */
 		// Encryption header
-		uint32_t headerLength = fget32(fp);
-		uint32_t skipFlags = fget32(fp);
+		headerLength = fget32(fp);
+		skipFlags = fget32(fp);
 		headerLength -= 4;
-		uint32_t sizeExtra = fget32(fp);
+		sizeExtra = fget32(fp);
 		headerLength -= 4;
-		uint32_t algId = fget32(fp);
+		algId = fget32(fp);
 		headerLength -= 4;
-		uint32_t algHashId = fget32(fp);
+		algHashId = fget32(fp);
 		headerLength -= 4;
-		uint32_t keySize = fget32(fp);
+		keySize = fget32(fp);
 		headerLength -= 4;
-		uint32_t providerType = fget32(fp);
+		providerType = fget32(fp);
 		headerLength -= 4;
 		(void)fget32(fp);
 		headerLength -= 4;	// Reserved 1
 		(void)fget32(fp);
 		headerLength -= 4;	// Reserved 2
-		char CSPName[1024];
 		fread(CSPName, headerLength, 1, fp);
 		// Encryption verifier
-		uint32_t saltSize = fget32(fp);
-		char salt[1024];
+		saltSize = fget32(fp);
 		fread(salt, saltSize, 1, fp);
-		char encryptedVerifier[16];
 		fread(encryptedVerifier, 16, 1, fp);
-		uint32_t verifierHashSize = fget32(fp);
-		char encryptedVerifierHash[64];
+		verifierHashSize = fget32(fp);
 		if(providerType == PTRC4)
 			fread(encryptedVerifierHash, 0x14, 1, fp);
 		else
 			fread(encryptedVerifierHash, 0x20, 1, fp);
-		int version = 2007;
+		version = 2007;
 		printf("%s:$office$*%d*%d*%d*%d*", parentfile, version, verifierHashSize, keySize, saltSize);
 		print_hex(salt, saltSize);
 		printf("*");
@@ -309,6 +337,14 @@ static int test(char *argv[])
 	GsfInfile *infile;
 	GsfOutfile *outfile;
 	GError *err = NULL;
+	GsfInfile *in;
+	GsfInput *src;
+	GsfOutput *dst;
+	char template[] = "office2johnXXXXXX";
+	char *dirname;
+	char outpath[4096];
+	int ret;
+	GsfOutfile *out;
 
 	input = gsf_input_stdio_new(argv[1], &err);
 	if (input == NULL) {
@@ -328,17 +364,14 @@ static int test(char *argv[])
 		return 1;
 	}
 
-	GsfInfile *in = GSF_INFILE(infile);
-	GsfInput *src;
-	GsfOutput *dst;
+	in = GSF_INFILE(infile);
 	src = gsf_infile_child_by_name(in, "EncryptionInfo");
 	if (!src) {
 		fprintf(stderr, "%s : is not a Office 2007 / 2010 encrypted file!\n", argv[1]);
 		return 1;
 	}
 
-	char template[] = "office2johnXXXXXX";
-	char *dirname = mktemp(template);
+	dirname = mktemp(template);
 	if (!dirname) {
 		perror("mkdtemp");
 		exit(-1);
@@ -351,17 +384,16 @@ static int test(char *argv[])
 		return 1;
 	}
 
-	GsfOutfile *out = GSF_OUTFILE(outfile);
+	out = GSF_OUTFILE(outfile);
 
 	dst = gsf_outfile_new_child(out, "EncryptionInfo", FALSE);
 	clone(src, dst);
 
-	char outpath[4096];
 	sprintf(outpath, "%s/EncryptionInfo", dirname);
 
 	process_file(outpath, argv[1]);
 
-	int ret = unlink(outpath);
+	ret = unlink(outpath);
 	ret = rmdir(dirname);
 	return 0;
 }
@@ -371,7 +403,7 @@ int main(int argc, char *argv[])
 	int res;
 
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <Office 2007 / 2010 encrypted files>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <Office 2007 / 2010 encrypted files\n", argv[0]);
 		return 1;
 	}
 
