@@ -17,7 +17,7 @@
 
 #include <openssl/aes.h>
 #include <string.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <assert.h>
 #include <errno.h>
 #include "arch.h"
@@ -30,6 +30,10 @@
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
+#endif
+
+#ifdef _MSC_VER
+#define atoll (unsigned long long)_atoi64
 #endif
 
 #define FORMAT_LABEL		"keepass"
