@@ -362,6 +362,7 @@ static void release_clobj(void)
 }
 #endif	/* OpenCL */
 
+#undef set_key
 static void set_key(char *key, int index)
 {
 	int plen;

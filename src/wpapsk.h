@@ -172,6 +172,7 @@ static void set_salt(void *salt)
 	currentsalt.length = strlen(hccap.essid);
 }
 
+#undef set_key
 static void set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
