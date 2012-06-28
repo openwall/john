@@ -61,9 +61,11 @@ static void (*rec_save_mode)(FILE *file);
 
 static void rec_name_complete(void)
 {
-	if (rec_name_completed) return;
 #ifdef HAVE_MPI
 	char *mpi_suffix;
+#endif
+	if (rec_name_completed) return;
+#ifdef HAVE_MPI
 	mpi_suffix = mem_alloc_tiny(strlen(id2string()) + 1 +
 	    strlen(RECOVERY_SUFFIX) + 1, MEM_ALIGN_NONE);
 	mpi_suffix[0] = 0;
