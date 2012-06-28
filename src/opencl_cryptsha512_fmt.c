@@ -42,7 +42,7 @@ cl_kernel crypt_kernel;
 
 //TODO: move to common-opencl? local_work_size is there.
 static size_t global_work_size;
-static int new_keys;
+static int new_keys, new_salt;
 
 static struct fmt_tests tests[] = {
     {"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},
@@ -233,20 +233,29 @@ static void set_salt(void *salt_info) {
         }
         offset = endp - currentsalt;
     }
-    memcpy(salt.salt, currentsalt + offset, SALT_LENGTH);
-    salt.length = strlen(currentsalt + offset);
-    salt.length = (salt.length > SALT_LENGTH ? SALT_LENGTH : salt.length);
+    //Assure buffer has no "trash data".	
+    memset(salt.salt, '\0', SALT_LENGTH);
+    len = strlen(currentsalt + offset);
+    len = (len > SALT_LENGTH ? SALT_LENGTH : len);
+
+    //Put the tranfered salt on salt buffer.
+    memcpy(salt.salt, currentsalt + offset, len);
+    salt.length = len ;
+    new_salt = 1;          
 }
 
 /* ------- Key functions ------- */
 static void set_key(char *key, int index) {
-    int len = strlen(key);
-    char buf[PLAINTEXT_LENGTH];
-    memset(buf, '\0', PLAINTEXT_LENGTH);
+    int len;
+    
+    //Assure buffer has no "trash data".
+    memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
+    len = strlen(key);
+    len = (len > PLAINTEXT_LENGTH ? PLAINTEXT_LENGTH : len);
 
-    plaintext[index].length = len;
-    memcpy(buf, key, len);  //Assure all buffer is clean.
-    memcpy(plaintext[index].pass, buf, PLAINTEXT_LENGTH);
+    //Put the tranfered key on password buffer.
+    memcpy(plaintext[index].pass, key, len);
+    plaintext[index].length = len ;
     new_keys = 1;
 }
 
