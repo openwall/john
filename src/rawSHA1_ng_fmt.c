@@ -123,6 +123,10 @@
 #define _mm_loadu_si128(x) _mm_loadu_si128((void *)(x))
 #define _mm_store_si128(x, y) _mm_store_si128((void *)(x), (y))
 
+#ifndef __INTEL_COMPILER
+# pragma GCC optimize 3
+#endif
+
 // M and N contain the first and last 128bits of a 512bit SHA-1 message block
 // respectively. The remaining 256bits are always zero, and so are not stored
 // here to avoid the load overhead.
@@ -136,12 +140,27 @@ static uint32_t __aligned MD[SHA1_PARALLEL_HASH];
 static const char kFormatTag[] = "$dynamic_26$";
 
 static struct fmt_tests sha1_fmt_tests[] = {
-    { "f8252c7b6035a71242b4047782247faabfccb47b", "taviso"         },
-    { "b47f363e2b430c0647f14deea3eced9b0ef300ce", "is"             },
-    { "03d67c263c27a453ef65b29e30334727333ccbcd", "awesome"        },
-    { "7a73673e78669ea238ca550814dca7000d7026cc", "!!!!1111eleven" },
-    { "da39a3ee5e6b4b0d3255bfef95601890afd80709", ""               },
-    { "AC80BAA235B7FB7BDFC593A976D40B24B851F924", "CAPSLOCK"       },
+    { "da39a3ee5e6b4b0d3255bfef95601890afd80709", ""                },
+    { "AC80BAA235B7FB7BDFC593A976D40B24B851F924", "CAPSLOCK"        },
+    { "86f7e437faa5a7fce15d1ddcb9eaeaea377667b8", "a"               },
+    { "da23614e02469a0d7c7bd1bdab5c9c474b1904dc", "ab"              },
+    { "a9993e364706816aba3e25717850c26c9cd0d89d", "abc"             },
+    { "81fe8bfe87576c3ecb22426f8e57847382917acf", "abcd"            },
+    { "03de6c570bfe24bfc328ccd7ca46b76eadaf4334", "abcde"           },
+    { "1f8ac10f23c5b5bc1167bda84b833e5c057a77d2", "abcdef"          },
+    { "2fb5e13419fc89246865e7a324f476ec624e8740", "abcdefg"         },
+    { "425af12a0743502b322e93a015bcf868e324d56a", "abcdefgh"        },
+    { "c63b19f1e4c8b5f76b25c49b8b87f57d8e4872a1", "abcdefghi"       },
+    { "d68c19a0a345b7eab78d5e11e991c026ec60db63", "abcdefghij"      },
+    { "5dfac39f71ad4d35a153ba4fc12d943a0e178e6a", "abcdefghijk"     },
+    { "eb4608cebfcfd4df81410cbd06507ea6af978d9c", "abcdefghijkl"    },
+    { "4b9892b6527214afc655b8aa52f4d203c15e7c9c", "abcdefghijklm"   },
+    { "85d7c5ff403abe72df5b8a2708821ee33cd0bcce", "abcdefghijklmn"  },
+    { "2938dcc2e3aa77987c7e5d4a0f26966706d06782", "abcdefghijklmno" },
+    { "f8252c7b6035a71242b4047782247faabfccb47b", "taviso"          },
+    { "b47f363e2b430c0647f14deea3eced9b0ef300ce", "is"              },
+    { "03d67c263c27a453ef65b29e30334727333ccbcd", "awesome"         },
+    { "7a73673e78669ea238ca550814dca7000d7026cc", "!!!!1111eleven"  },
     { NULL, NULL }
 };
 
@@ -179,13 +198,14 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
     if (strspn(ciphertext, "0123456789aAbBcCdDeEfF") != SHA1_DIGEST_SIZE * 2)
         return 0;
 
-    return 1;
+    // Verify the length matches.
+    return strlen(ciphertext) == SHA1_DIGEST_SIZE * 2;
 }
 
 static void * sha1_fmt_binary(char *ciphertext)
 {
-    char      byte[3];
-    uint8_t  *binary;
+    static char byte[3];
+    uint8_t    *binary;
 
     // Static buffer storing the binary representation of ciphertext.
     static uint32_t result[SHA1_DIGEST_WORDS];
@@ -354,7 +374,6 @@ static void sha1_fmt_crypt_all(int count)
 
     // To reduce the overhead of multiple function calls, we buffer lots of
     // passwords, and then hash them in multiples of 4 all at once.
-    //
     for (i = 0; i < count; i += 4) {
         // Zero the unused parts of W, the plaintext expansion.
         W[4]  = W[5] = W[6]  = W[7]  = _mm_setzero_si128();
@@ -507,7 +526,8 @@ static inline int _mm_testz_epi32 (__m128i __X)
 # warning not using optimized sse4.1 compare because -msse4 was not specified
 static inline int _mm_testz_epi32 (__m128i __X)
 {
-    uint32_t __aligned words[4]; _mm_store_si128(words, __X);
+    uint32_t __aligned words[4];
+    _mm_store_si128(words, __X);
     return !words[0] || !words[1] || !words[2] || !words[3];
 }
 #endif
@@ -546,38 +566,48 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     return result;
 }
 
-static int sha1_fmt_get_hash0(int index) { return MD[index] & 0x0000000F; }
-static int sha1_fmt_get_hash1(int index) { return MD[index] & 0x000000FF; }
-static int sha1_fmt_get_hash2(int index) { return MD[index] & 0x00000FFF; }
-static int sha1_fmt_get_hash3(int index) { return MD[index] & 0x0000FFFF; }
-static int sha1_fmt_get_hash4(int index) { return MD[index] & 0x000FFFFF; }
-static int sha1_fmt_get_hash5(int index) { return MD[index] & 0x00FFFFFF; }
-static int sha1_fmt_get_hash6(int index) { return MD[index] & 0x07FFFFFF; }
+static inline int sha1_fmt_get_hash(int index)
+{
+    return MD[index];
+}
 
-static int sha1_fmt_binary0(void *binary) { return ((uint32_t*)binary)[4] & 0x0000000F; }
-static int sha1_fmt_binary1(void *binary) { return ((uint32_t*)binary)[4] & 0x000000FF; }
-static int sha1_fmt_binary2(void *binary) { return ((uint32_t*)binary)[4] & 0x00000FFF; }
-static int sha1_fmt_binary3(void *binary) { return ((uint32_t*)binary)[4] & 0x0000FFFF; }
-static int sha1_fmt_binary4(void *binary) { return ((uint32_t*)binary)[4] & 0x000FFFFF; }
-static int sha1_fmt_binary5(void *binary) { return ((uint32_t*)binary)[4] & 0x00FFFFFF; }
-static int sha1_fmt_binary6(void *binary) { return ((uint32_t*)binary)[4] & 0x07FFFFFF; }
+static int sha1_fmt_get_hash0(int index) { return sha1_fmt_get_hash(index) & 0x0000000F; }
+static int sha1_fmt_get_hash1(int index) { return sha1_fmt_get_hash(index) & 0x000000FF; }
+static int sha1_fmt_get_hash2(int index) { return sha1_fmt_get_hash(index) & 0x00000FFF; }
+static int sha1_fmt_get_hash3(int index) { return sha1_fmt_get_hash(index) & 0x0000FFFF; }
+static int sha1_fmt_get_hash4(int index) { return sha1_fmt_get_hash(index) & 0x000FFFFF; }
+static int sha1_fmt_get_hash5(int index) { return sha1_fmt_get_hash(index) & 0x00FFFFFF; }
+static int sha1_fmt_get_hash6(int index) { return sha1_fmt_get_hash(index) & 0x07FFFFFF; }
 
-// This function is not hot, and will only be called for around 1:2^30 random
-// crypts (because we do 4 simultaneously). Use a real SHA-1 implementation to
-// verify the result.
+static inline int sha1_fmt_get_binary(void *binary)
+{
+    return ((uint32_t *)(binary))[4];
+}
+
+static int sha1_fmt_binary0(void *binary) { return sha1_fmt_get_binary(binary) & 0x0000000F; }
+static int sha1_fmt_binary1(void *binary) { return sha1_fmt_get_binary(binary) & 0x000000FF; }
+static int sha1_fmt_binary2(void *binary) { return sha1_fmt_get_binary(binary) & 0x00000FFF; }
+static int sha1_fmt_binary3(void *binary) { return sha1_fmt_get_binary(binary) & 0x0000FFFF; }
+static int sha1_fmt_binary4(void *binary) { return sha1_fmt_get_binary(binary) & 0x000FFFFF; }
+static int sha1_fmt_binary5(void *binary) { return sha1_fmt_get_binary(binary) & 0x00FFFFFF; }
+static int sha1_fmt_binary6(void *binary) { return sha1_fmt_get_binary(binary) & 0x07FFFFFF; }
+
 static int sha1_fmt_cmp_one(void *binary, int index)
 {
-    uint32_t  full_sha1_digest[SHA1_DIGEST_WORDS];
-    SHA_CTX ctx;
-    char *key;
-
     // We can quickly check if it will be worth doing a full comparison here,
     // this lets us turn up SHA1_PARALLEL_HASH without too much overhead when a
     // partial match occurs.
-    if (sha1_fmt_binary6(binary) != sha1_fmt_get_hash6(index)) {
-        // Not worth it, the full MD will not match.
-        return 0;
-    }
+    return sha1_fmt_get_binary(binary) == sha1_fmt_get_hash(index);
+}
+
+// This function is not hot, and will only be called for around 1:2^32 random
+// crypts. Use a real SHA-1 implementation to verify the result exactly. This
+// routine is only called by John when cmp_one succeeds.
+static int sha1_fmt_cmp_exact(char *source, int index)
+{
+    uint32_t full_sha1_digest[SHA1_DIGEST_WORDS];
+    SHA_CTX ctx;
+    char *key;
 
     // Fetch the original input to hash.
     key = sha1_fmt_get_key(index);
@@ -594,30 +624,24 @@ static int sha1_fmt_cmp_one(void *binary, int index)
     full_sha1_digest[4] = rotateleft(__builtin_bswap32(full_sha1_digest[4]) - 0xC3D2E1F0, 2);
 
     // Compare result.
-    return memcmp(binary, full_sha1_digest, sizeof full_sha1_digest) == 0;
-}
-
-static int sha1_fmt_cmp_exact(char *source, int cuont)
-{
-    return 1;
+    return memcmp(sha1_fmt_binary(source), full_sha1_digest, sizeof full_sha1_digest) == 0;
 }
 
 struct fmt_main sha1_fmt_ng = {
     .params                 = {
         .label              = "raw-sha1-ng",
         .format_name        = "Raw SHA-1 (pwlen <= 15)",
-        .algorithm_name     =
-	"128/128 "
+        .algorithm_name     = "128/128 "
 #if defined(__XOP__)
-	"XOP"
+    "XOP"
 #elif defined(__AVX__)
-	"AVX"
+    "AVX"
 #elif defined(__SSE4_1__)
-	"SSE4.1"
+    "SSE4.1"
 #else
-	"SSE2"
+    "SSE2"
 #endif
-	" intrinsics 4x",
+    " intrinsics 4x",
         .benchmark_comment  = "",
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,
