@@ -123,9 +123,9 @@
 #define _mm_loadu_si128(x) _mm_loadu_si128((void *)(x))
 #define _mm_store_si128(x, y) _mm_store_si128((void *)(x), (y))
 
-#if (!defined(__INTEL_COMPILER) && defined(__GNUC__)) && \
-	(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
-#pragma GCC optimize 3
+#if !defined(__INTEL_COMPILER) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
+# pragma GCC optimize 3
+# pragma GCC optimize "-fprefetch-loop-arrays"
 #endif
 
 // M and N contain the first and last 128bits of a 512bit SHA-1 message block
