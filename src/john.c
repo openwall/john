@@ -118,6 +118,10 @@ extern struct fmt_main fmt_dragonfly4_32;
 extern struct fmt_main fmt_drupal7;
 extern struct fmt_main fmt_cryptsha256;
 extern struct fmt_main fmt_cryptsha512;
+
+extern struct fmt_main episerver_fmt;
+extern struct fmt_main KeePass_fmt;
+extern struct fmt_main pwsafe_fmt;
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
@@ -258,6 +262,10 @@ static void john_register_all(void)
 	john_register_one(&fmt_drupal7);
 	john_register_one(&fmt_cryptsha256);
 	john_register_one(&fmt_cryptsha512);
+
+	john_register_one(&episerver_fmt);
+	john_register_one(&KeePass_fmt);
+	john_register_one(&pwsafe_fmt);
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
