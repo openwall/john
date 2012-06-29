@@ -107,6 +107,7 @@ JOHN_OBJS = \
 	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
+	pfx_fmt.o \
 	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
