@@ -1,10 +1,10 @@
 /*
 * This software is Copyright (c) 2011 Lukas Odzioba
-* <lukas dot odzioba at gmail dot com> 
+* <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
-* This file is shared by cuda-rawsha224 and cuda-rawsha256 formats, 
-* SHA256 definition is used to distinguish between them. 
+* This file is shared by cuda-rawsha224 and cuda-rawsha256 formats,
+* SHA256 definition is used to distinguish between them.
 */
 #include <string.h>
 #include "arch.h"
@@ -19,7 +19,7 @@
 #define PLAINTEXT_LENGTH	54
 #define SALT_SIZE		0
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT	
+#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 #ifdef SHA256
@@ -32,23 +32,23 @@
   #define FMT_MAIN		fmt_cuda_rawsha256
   static struct fmt_tests sha256_tests[]={
   {"a49c2c9d0c006c8cb55a9a7a38822b83e0cd442614cb416af952fa50156761dc","openwall"},
-  {NULL}  
+  {NULL}
   };
 #endif
 #ifdef SHA224
   #define FORMAT_LABEL		"raw-sha224-cuda"
   #define FORMAT_NAME		"Raw SHA-224"
   #define CIPHERTEXT_LENGTH	56 ///224bit
-  #define BINARY_SIZE		32 
+  #define BINARY_SIZE		32
   #define SHA_HASH 		sha224_hash
   #define TESTS			sha224_tests
   #define FMT_MAIN		fmt_cuda_rawsha224
   static struct fmt_tests sha224_tests[]={
   {"d6d8ff02342ea04cf65f8ab446b22c4064984c29fe86f858360d0319","openwall"},
-  {NULL}  
+  {NULL}
   };
 #endif
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"CUDA, unreliable, may miss guesses"
 
 extern void gpu_rawsha256(sha256_password *,SHA_HASH*);
 extern void gpu_rawsha224(sha256_password *,SHA_HASH*);
@@ -142,7 +142,7 @@ static int binary_hash_6(void *binary){
 
 static void set_salt(void *salt){}
 static void set_key(char *key, int index){
-    memset(saved_keys[index],0,PLAINTEXT_LENGTH+1);	
+    memset(saved_keys[index],0,PLAINTEXT_LENGTH+1);
     strnzcpy(saved_keys[index],key,PLAINTEXT_LENGTH);
     preproc(key,index);
 }
@@ -230,9 +230,9 @@ struct fmt_main FMT_MAIN={
     binary,
     fmt_default_salt,
     {
-      binary_hash_0,	
-      binary_hash_1,	
-      binary_hash_2,	
+      binary_hash_0,
+      binary_hash_1,
+      binary_hash_2,
       binary_hash_3,
       binary_hash_4,
       binary_hash_5,
@@ -241,12 +241,12 @@ struct fmt_main FMT_MAIN={
     fmt_default_salt_hash,
     set_salt,
     set_key,
-    get_key,	
+    get_key,
     fmt_default_clear_keys,
     crypt_all,
     {
-      get_hash_0,	
-      get_hash_1,	
+      get_hash_0,
+      get_hash_1,
       get_hash_2,
       get_hash_3,
       get_hash_4,
@@ -256,6 +256,6 @@ struct fmt_main FMT_MAIN={
     cmp_all,	
     cmp_one,	
     cmp_exact,
-	fmt_default_get_source
+    fmt_default_get_source
   }
 };

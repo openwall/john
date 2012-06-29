@@ -4,7 +4,7 @@
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
- * under certain conditions; as expressed here 
+ * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
@@ -239,7 +239,7 @@ static void init(struct fmt_main *pFmt){
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-    
+
 	// we run find_best_workgroup even if LWS is setted to 0
 	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(SHA_NUM_KEYS);
@@ -306,13 +306,13 @@ static int cmp_exact(char *source, int count) {
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
-		clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE, 
-			sizeof(cl_uint) * (max_keys_per_crypt), 
+		clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE,
+			sizeof(cl_uint) * (max_keys_per_crypt),
 			sizeof(cl_uint) * 4 * max_keys_per_crypt, res_hashes, 0,
-			NULL, NULL); 
+			NULL, NULL);
 		have_full_hashes = 1;
 	}
-        
+
 	if (t[1]!=res_hashes[count])
 		return 0;
 	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
@@ -325,7 +325,7 @@ static int cmp_exact(char *source, int count) {
 }
 
 static int cmp_one(void *binary, int index){
-	unsigned int *t = (unsigned int *) binary; 
+	unsigned int *t = (unsigned int *) binary;
 
 	if (t[0] == par_msha_hashes[index])
 		return 1;
@@ -343,12 +343,12 @@ static void crypt_all(int count) {
 	    clEnqueueWriteBuffer(queue[gpu_id], buf_msha_keys, CL_TRUE, 0,
 	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, mysqlsha_plain, 0, NULL, NULL),
 	     "failed in clEnqueueWriteBuffer mysqlsha_plain");
-	     
+
 	HANDLE_CLERROR(
 	    clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 	    &global_work_size, &local_work_size, 0, NULL, NULL),
 	      "failed in clEnqueueNDRangeKernel");
-	      
+
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE, 0,

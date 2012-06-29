@@ -67,8 +67,8 @@ int get_vendor_id(int dev_id);
 #define INTEL                   256
 #define AMD_GCN                 1024
 #define AMD_VLIW4               2048
-#define AMD_VLIW5               4096 
-        
+#define AMD_VLIW5               4096
+
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
 #define gpu_amd(n)              ((n & AMD) && gpu(n))

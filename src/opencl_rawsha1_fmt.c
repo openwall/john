@@ -4,7 +4,7 @@
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
- * under certain conditions; as expressed here 
+ * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
@@ -174,7 +174,7 @@ static void release_clobj(void){
 	free(res_hashes);
 }
 
-/* 
+/*
    this function could be used to calculated the best num
    of keys per crypt for the given format
 */
@@ -295,13 +295,13 @@ static int cmp_exact(char *source, int count){
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 
-			sizeof(cl_uint) * (max_keys_per_crypt), 
+		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
+			sizeof(cl_uint) * (max_keys_per_crypt),
 			sizeof(cl_uint) * 4 * max_keys_per_crypt, res_hashes, 0,
-			NULL, NULL); 
+			NULL, NULL);
 		have_full_hashes = 1;
 	}
-        
+
 	if (t[1]!=res_hashes[count])
 		return 0;
 	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
@@ -328,11 +328,11 @@ static void crypt_all(int count){
 	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
 		(PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer saved_plain");
-	     
+
 	HANDLE_CLERROR( clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 		&global_work_size, &local_work_size, 0, NULL, NULL),
 		"failed in clEnqueueNDRangeKernel");
-	      
+
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0,

@@ -68,7 +68,7 @@ unsigned int get_task_max_work_group_size(){
                 sizeof(sha512_password);
     else
         max_available = get_max_work_group_size(gpu_id);
-                
+
     if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
         return get_current_work_group_size(gpu_id, crypt_kernel);
 
@@ -85,13 +85,25 @@ unsigned int get_task_max_size(){
     return max_available * KEYS_PER_CORE_GPU;
 }
 
-size_t get_default_workgroup(){
+size_t get_safe_workgroup(){
 
     if (cpu(device_info[gpu_id]))
         return 1;
 
     else
         return 32;
+}
+
+size_t get_default_workgroup(){
+    unsigned int max_available;
+    max_available = get_task_max_work_group_size();
+
+    if (gpu_nvidia(device_info[gpu_id])) {
+        global_work_size = (global_work_size / max_available) * max_available; //Find a multiple.
+        return max_available;
+
+    } else
+        return get_safe_workgroup();
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -151,7 +163,7 @@ static void create_clobj(int gws) {
            NULL), "Error setting argument 3");
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
            sizeof (sha512_password) * local_work_size,
-           NULL), "Error setting argument 4");                
+           NULL), "Error setting argument 4");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     memset(&salt, '\0', sizeof(sha512_salt));
@@ -287,7 +299,7 @@ static void find_best_workgroup(void) {
             plaintext, 0, NULL, NULL),
             "Failed in clEnqueueWriteBuffer II");
 
-    my_work_group = get_default_workgroup();
+    my_work_group = get_safe_workgroup();
 
     // Find minimum time
     for (; (int) my_work_group <= (int) max_group_size;
@@ -483,12 +495,12 @@ static void init(struct fmt_main *pFmt) {
         printf("Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
 
-    global_work_size = get_task_max_size();
-    local_work_size = get_default_workgroup();
-
     // create kernel to execute
     crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+    global_work_size = get_task_max_size();
+    local_work_size = get_default_workgroup();
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))

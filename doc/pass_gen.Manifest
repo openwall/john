@@ -17,23 +17,23 @@ v1.14 Dec 21, 2011  magnum.  Added SHA-256/384/512 and dummy. I was planning to 
 v1.13 Oct 7, 2011  JimF.  Changed md5_gen to dynamic.  All strings, vars, function names, etc
       were changed.  All output signatures were also changed
 	  Added Crc32 'format' to the test.  Uses CPAN String::CRC32 module.
-	  
+
 v1.12 Not sure, version info not updated.
 
-v1.11 Aug 1, 2011  JimF.  Changed args to get -codepage=CP so that any 'valid' 
+v1.11 Aug 1, 2011  JimF.  Changed args to get -codepage=CP so that any 'valid'
       codepage can be used. NOTE, will likely ONLY work for unicode formats.
-	  
+
 	  Created 2 'new' formats.  These are oracle_no_upcase_change and mssql_no_upcase_change
-	  these will NOT do upcasing of passwords.  For this to work, the script requires 
+	  these will NOT do upcasing of passwords.  For this to work, the script requires
 	  that the input dictionary already be upcased in the PROPER codepage.  Also, there
 	  is a new command line switch -hiddencp=  This is to be used IN STEAD OF the -codepage=
-	  command line switch.  This is so that the input is done in raw, then later, within 
+	  command line switch.  This is so that the input is done in raw, then later, within
 	  the 2 new formats, we can use Encode::decode() function to properly get the conversion
 	  into UTF16.  This is the ONLY way to deal with issues where there are letters which
 	  DO have casing in Unicode, but which DO NOT have casing withing the code pages.
 	  This change was REQUIRED to get mssql and oracle hashes that are 'proper' in -codepage=
 	  formats (well, in john, it's  -encoding=CP format).
-	  
+
 v1.10 July 13, 2011  JimF.  Set max username length on HDAA and md5_gen(21) to 20 bytes.
       Added rawsha1-unicode.  Fixed so that md5_gen 'alone' will show md5_gen usage screen.
 	  Before, it required running md5_gen= to get the usage screen.  Added password 'case'

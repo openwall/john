@@ -64,7 +64,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512 dragonfly3_32
 		dragonfly4_32 saltedsha1 gost gost_cp hmac_sha1 hmac_sha224 hmac_sha256
 		hmac_sha384 hmac_sha512));
-		
+
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -78,10 +78,10 @@ my @i64 = ('.','/','0'..'9','A'..'Z','a'..'z');
 my @ns_i64 = ('A'..'Z', 'a'..'z','0'..'9','+','/',);
 my @userNames = (
 	"admin", "root", "bin", "Joe", "fi15_characters", "Babeface", "Herman", "lexi Conrad", "jack", "John", "sz110",
-	"fR14characters", "Thirteenchars", "Twelve_chars", "elev__chars", "teN__chars", "six16_characters", 
+	"fR14characters", "Thirteenchars", "Twelve_chars", "elev__chars", "teN__chars", "six16_characters",
 #	"Bãrtin",
-	"ninechars", "eightchr", "sevench", "barney", "C0ffee", "deadcafe", "user", "01234", "nineteen_characters", 
-	"eight18_characters", "seven17characters", "u1", "harvey", "john", "ripper", "a", "Hank", "1", "u2", "u3", 
+	"ninechars", "eightchr", "sevench", "barney", "C0ffee", "deadcafe", "user", "01234", "nineteen_characters",
+	"eight18_characters", "seven17characters", "u1", "harvey", "john", "ripper", "a", "Hank", "1", "u2", "u3",
 	"2", "3", "usr", "usrx", "usry", "skippy", "Bing", "Johnson", "addams", "anicocls", "twentyXXX_characters",
 	"twentyoneX_characters", "twentytwoXX_characters");
 
@@ -910,7 +910,7 @@ sub oracle_no_upcase_change {
 	if (!defined $arg_hidden_cp) { print "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
 
 	my $pass = $username . Encode::decode(":".$arg_hidden_cp, $_[0]);
-	
+
 	my $userpass = encode("UTF-16BE", $pass);
 	$userpass .= pack('C', 0) while (length($userpass) % 8);
 	my $key = pack('H*', "0123456789ABCDEF");
@@ -1041,7 +1041,7 @@ sub mschapv2 {
 }
 sub crc_32 {
 	my $pwd = shift;
-	if (rand(256) > 245) { 
+	if (rand(256) > 245) {
 		my $init = rand(2000000000);
 		printf("$u-crc32:\$crc32\$%08x.%08x:0:0:100:%s:\n", $init, crc32($pwd,$init), $pwd);
 	} else {

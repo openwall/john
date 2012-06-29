@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net> 
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -88,7 +88,7 @@ static struct fmt_tests tests[] = {
 	   {"$P$9saltstriGLUwnE6bl91BPJP6sxyka.", "abcdefghijkl"},
 	   {"$P$9saltstriq7s97e2m7dXnTEx2mtPzx.", "abcdefghijklm"},
 	   {"$P$9saltstriTWMzWKsEeiE7CKOVVU.rS0", "abcdefghijklmn"},
-	   {"$P$9saltstriXt7EDPKtkyRVOqcqEW5UU.", "abcdefghijklmno"}, 
+	   {"$P$9saltstriXt7EDPKtkyRVOqcqEW5UU.", "abcdefghijklmno"},
 	 */
 	{NULL}
 };

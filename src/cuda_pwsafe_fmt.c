@@ -1,5 +1,5 @@
 /* Password Safe cracker patch for JtR. Hacked together during May of
- * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.  
+ * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * CUDA port by Lukas Odzioba <ukasz@openwall.net>
  *

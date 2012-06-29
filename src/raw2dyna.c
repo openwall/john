@@ -1,4 +1,4 @@
-// convert a 'raw' file of hash:salt or hash$salt or $dynamic_n$hash$salt into JtR dynamic format.  
+// convert a 'raw' file of hash:salt or hash$salt or $dynamic_n$hash$salt into JtR dynamic format.
 // It will make sure the salt does not contain any 'bad' characters, and if so, it will convert
 // the salt into the $HEX$ format.
 

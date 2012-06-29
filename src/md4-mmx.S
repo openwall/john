@@ -5,7 +5,7 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
- 
+
 #include "arch.h"
 
 #ifdef __sun
@@ -148,17 +148,17 @@ mdfourmmx_nosizeupdate_VC:
     pusha
     mov %ecx, %eax
     mov 40(%esp), %ecx
-    
+
     jmp mdfourmmx_no_size
 mdfourmmx_nosizeupdate_VC_exit:
     ret $4
-    
+
 #endif
 
 mdfourmmx_nosizeupdate:
 	pusha
 	jmp mdfourmmx_no_size
-	
+
 mdfourmmx:
 	 //MD4 Init
 	pusha

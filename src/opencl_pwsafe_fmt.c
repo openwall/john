@@ -1,5 +1,5 @@
 /* Password Safe cracker patch for JtR. Hacked together during May of
- * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.  
+ * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * OpenCL port by Lukas Odzioba <ukasz@openwall.net>
  *
@@ -114,7 +114,7 @@ static void init(struct fmt_main *pFmt)
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
-	///Assign kernel parameters 
+	///Assign kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);

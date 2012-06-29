@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net> 
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -85,7 +85,7 @@ static struct fmt_tests tests[] = {
 //         {"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/","abcde"},
 
 //         {"$1$salt1234$lzB83HS4FjzbcD4yMcjl01","abcdef"},
-//          {"$1$salt1234$bklJHN73KS04Kh6j6qPnr.","abcdefg"}, 
+//          {"$1$salt1234$bklJHN73KS04Kh6j6qPnr.","abcdefg"},
 	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},	//saltlen=8,passlen=8
 //         {"$1$salt1234$QjP48HUerU7aUYc/aJnre1","abcdefghi"},
 //         {"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.","abcdefghij"},
@@ -106,8 +106,8 @@ static struct fmt_tests tests[] = {
 	   {"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490","bitch1"},
 	   {"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/","crystal"},
 	   {"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/","claudia"},
-	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"}, 
-	 
+	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"},
+
 																		  	   //tests from MD5_fmt.c
 *//*       {"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	   {"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
@@ -177,7 +177,7 @@ static void init(struct fmt_main *pFmt)
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
-	///Assign kernel parameters 
+	///Assign kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),

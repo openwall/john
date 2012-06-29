@@ -9,7 +9,7 @@
  * In that mode (-regen-lost-salts=2) JtR will load the flat hash data
  * (without the salts), and then will create a salt record for ALL valid
  * salts from '  ' to '~~', and point ALL of the hashes to these salts.
- * Then john will test all hashes, using ALL salts, thus will find all 
+ * Then john will test all hashes, using ALL salts, thus will find all
  * md5($s.$p) where the $s is a 2 byte salt.  NOTE there are 95^2 salts
  * (9025 salts).
  *
@@ -101,7 +101,7 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
 	if (options.regen_lost_salts == 2 && i == 32) {
 		char *Ex = mem_alloc_tiny(CIPHERTEXT_LENGTH+1, MEM_ALIGN_NONE);
-		// add a 'garbage' placeholder salt to this candidate. However, we want ALL of them to 
+		// add a 'garbage' placeholder salt to this candidate. However, we want ALL of them to
 		// be setup as the exact same salt (so that all candidate get dumped into one salt block.
 		// We use '   ' as the salt (3 spaces).
 		sprintf(Ex, "$OSC$2020$%s", split_fields[1]);

@@ -5,7 +5,7 @@
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
- 
+
 #include "arch.h"
 
 // extern int mdfivemmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));

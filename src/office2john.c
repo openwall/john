@@ -402,9 +402,13 @@ int main(int argc, char *argv[])
 {
 	int res;
 
-	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <Office 2007 / 2010 encrypted files\n", argv[0]);
-		return 1;
+	if (argc != 2) {
+		puts("Usage: office2john OFFICE-2007-OR-2010-ENCRYPTED-FILE");
+
+		if (argc <= 1)
+			return 0;
+		else
+			return 1;
 	}
 
 	gsf_init();
