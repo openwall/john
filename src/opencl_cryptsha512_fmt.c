@@ -42,17 +42,28 @@ cl_kernel crypt_kernel;
 
 //TODO: move to common-opencl? local_work_size is there.
 static size_t global_work_size;
-static int new_keys;
+static int new_keys, new_salt;
 
 static struct fmt_tests tests[] = {
-    {"$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1", "Hello world!"},
     {"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},
     {"$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1", "U*U***U"},
+    {"$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/", "U*U***U*"},
     {"$6$OmBOuxFYBZCYAadG$WCckkSZok9xhp4U1shIZEV7CCVwQUwMVea7L3A77th6SaE9jOPupEMJB.z0vIWCDiN9WLh2m9Oszrj5G.gt330", "*U*U*U*U"},
     {"$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.", ""},
-    {"$6$rounds=4900$saltstring$p3pnU2njiDujK0Pp5us7qlUvkjVaAM0GilTprwyZ1ZiyGKvsfNyDCnlmc.9ahKmDqyqKXMH3frK1I/oEiEbTK/", "Hello world!"},
     {NULL}
 };
+
+/*** Special test cases.
+ * static struct fmt_tests extended_tests[] = {
+ *     {"$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1", "Hello world!"},
+ *     {"$6$rounds=391939$saltstring$P5HDSEq.sTdSBNmknrLQpg6UHp.9.vuEv6QibJNP8ecoNGo9Wa.3XuR7LKu8FprtxGDpGv17Y27RfTHvER4kI0", "amy"},
+ *     {"$6$rounds=391939$saltstring$JAjUHgEFBJB1lSM25mYGFdH42OOBZ8eytTvKCleaR4jI5cSs0KbATSYyhLj3tkMhmU.fUKfsZkT5y0EYbTLcr1", "amy99"},
+ *     {"$6$TtrrO3IN$D7Qz38n3JOn4Cc6y0340giveWD8uUvBAdPeCI0iC1cGYCmYHDrVXUEoSf3Qp5TRgo7x0BXN4lKNEj7KOvFTZV1", ">7fSy+N\\W=o@Wd&"},
+ *     {"$6$yRihAbCh$V5Gr/BhMSMkl6.fBt4TV5lWYY6MhjqApHxDL04HeTgeAX.mZT/0pDDYvArvmCfmMVa/XxzzOBXf1s7TGa2FDL0", "0H@<:IS:BfM\"V"},
+ *     {"$6$rounds=4900$saltstring$p3pnU2njiDujK0Pp5us7qlUvkjVaAM0GilTprwyZ1ZiyGKvsfNyDCnlmc.9ahKmDqyqKXMH3frK1I/oEiEbTK/", "Hello world!"},
+ *     {NULL}
+ * };
+ ***/ 
 
 /* ------- Helper functions ------- */
 unsigned int get_task_max_work_group_size(){
@@ -234,20 +245,29 @@ static void set_salt(void *salt_info) {
         }
         offset = endp - currentsalt;
     }
-    memcpy(salt.salt, currentsalt + offset, SALT_LENGTH);
-    salt.length = strlen(currentsalt + offset);
-    salt.length = (salt.length > SALT_LENGTH ? SALT_LENGTH : salt.length);
+    //Assure buffer has no "trash data".	
+    memset(salt.salt, '\0', SALT_LENGTH);
+    len = strlen(currentsalt + offset);
+    len = (len > SALT_LENGTH ? SALT_LENGTH : len);
+
+    //Put the tranfered salt on salt buffer.
+    memcpy(salt.salt, currentsalt + offset, len);
+    salt.length = len ;
+    new_salt = 1;          
 }
 
 /* ------- Key functions ------- */
 static void set_key(char *key, int index) {
-    int len = strlen(key);
-    char buf[PLAINTEXT_LENGTH];
-    memset(buf, '\0', PLAINTEXT_LENGTH);
+    int len;
+    
+    //Assure buffer has no "trash data".
+    memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
+    len = strlen(key);
+    len = (len > PLAINTEXT_LENGTH ? PLAINTEXT_LENGTH : len);
 
-    plaintext[index].length = len;
-    memcpy(buf, key, len);  //Assure all buffer is clean.
-    memcpy(plaintext[index].pass, buf, PLAINTEXT_LENGTH);
+    //Put the tranfered key on password buffer.
+    memcpy(plaintext[index].pass, key, len);
+    plaintext[index].length = len ;
     new_keys = 1;
 }
 
@@ -442,12 +462,12 @@ static void find_best_gws(void) {
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
-            if (run_time > 10000000000LL) {
+            if (run_time > 10000000000UL) {
                 fprintf(stderr, " - too slow\n");
                 break;
             }
         } else {
-            if (run_time > min_time * 7 || run_time > 10000000000LL)
+            if (run_time > min_time * 10 || run_time > 10000000000UL)
                 break;
         }
         if (SHAspeed > (1.01 * bestSHAspeed)) {
@@ -486,7 +506,7 @@ static void init(struct fmt_main *pFmt) {
         if (gpu_nvidia(device_info[gpu_id]))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
-            task = "$JOHN/cryptsha512_kernel_AMD_V1.cl";
+            task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
