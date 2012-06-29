@@ -61,6 +61,7 @@ static void release_all(void)
 
 static void init(struct fmt_main *pFmt)
 {
+	cl_int cl_error;
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
 	inbuffer =
@@ -83,7 +84,6 @@ static void init(struct fmt_main *pFmt)
 	//listOpenCLdevices();
 	opencl_init("$JOHN/wpapsk_kernel.cl", gpu_id, platform_id);
 	/// Alocate memory
-	cl_int cl_error;
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);

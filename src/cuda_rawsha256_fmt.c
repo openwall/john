@@ -1,6 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba
-* <lukas dot odzioba at gmail dot com>
+* This software is Copyright (c) 2011 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * This file is shared by cuda-rawsha224 and cuda-rawsha256 formats,
@@ -101,8 +100,8 @@ static int valid(char * ciphertext,struct fmt_main *pFmt){
 
 static void *binary(char *ciphertext){
   static char realcipher[BINARY_SIZE];
-  memset(realcipher,0,BINARY_SIZE);
   int i;
+  memset(realcipher,0,BINARY_SIZE);
   for(i=0;i<BINARY_SIZE;i+=4){
       realcipher[i]=atoi16[ARCH_INDEX(ciphertext[(i+3)*2])]*16+atoi16[ARCH_INDEX(ciphertext[(i+3)*2+1])];
       realcipher[i+1]=atoi16[ARCH_INDEX(ciphertext[(i+2)*2])]*16+atoi16[ARCH_INDEX(ciphertext[(i+2)*2+1])];
