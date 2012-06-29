@@ -165,7 +165,7 @@ static void crypt_all(int count)
 {
 	int index = 0;
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-#pragma omp parallel for default(none) private(index) shared(count, any_cracked, cracked, saved_key, restored_custom_salt)
+#pragma omp parallel for
 	for (index = 0; index < count; index++)
 #endif
 	{
