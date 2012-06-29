@@ -174,6 +174,7 @@ extern struct fmt_main fmt_cuda_pwsafe;
 #endif
 
 extern struct fmt_main fmt_ssh;
+extern struct fmt_main fmt_pfx;
 extern struct fmt_main fmt_pdf;
 extern struct fmt_main rar_fmt;
 extern struct fmt_main zip_fmt;
@@ -289,6 +290,7 @@ static void john_register_all(void)
 #endif
 
 	john_register_one(&fmt_ssh);
+	john_register_one(&fmt_pfx);
 	john_register_one(&fmt_pdf);
 	john_register_one(&fmt_wpapsk);
 #ifndef _MSC_VER
