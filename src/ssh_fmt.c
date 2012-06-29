@@ -215,7 +215,6 @@ static void *get_salt(char *ciphertext)
 	}
 	filelength = atoi(strtok(NULL, "*"));
 	encoded_data += 6;	/* skip over "$ssh2$ marker */
-	/* decode base64 data */
 	decoded_data = (char *) malloc(filelength + 1);
 	for (i = 0; i < filelength; i++)
 		decoded_data[i] =
@@ -229,7 +228,7 @@ static void *get_salt(char *ciphertext)
 		fprintf(stderr, "OpenSSL BIO allocation failure\n");
 		exit(-2);
 	}
-	BIO_puts(bp, decoded_data);
+	BIO_write(bp, decoded_data, filelength);
 
 	/* PEM_bytes_read_bio function in crypto/pem/pem_lib.c
 	 * check_pem function in crypto/pem/pem_lib.c */
