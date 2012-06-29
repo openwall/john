@@ -147,19 +147,20 @@ static void find_best_workgroup()
 	cl_int ret_code;
 	int i;
 	size_t max_group_size;
+	char *pass;
 	size_t work_size = KEYS_PER_CRYPT;
-    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
-		CL_KERNEL_WORK_GROUP_SIZE,sizeof (max_group_size), &max_group_size,
-		NULL), "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
-
 	cl_command_queue queue_prof =
 	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
 	    CL_QUEUE_PROFILING_ENABLE,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating command queue");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+		CL_KERNEL_WORK_GROUP_SIZE,sizeof (max_group_size), &max_group_size,
+		NULL), "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
+
 
 	/// Set keys
-	char *pass = "password";
+	pass = "password";
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
 		set_key(pass, i);
 	}
@@ -260,6 +261,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned char out[FULL_BINARY_SIZE];
 	char *p;
 	int i;
+	uint64_t *b;
 
 	p = ciphertext;
 	for (i = 0; i < sizeof(out); i++) {
@@ -268,7 +270,7 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	uint64_t *b = (uint64_t*)out;
+	b = (uint64_t*)out;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i])-H[i];
 		b[i] = SWAP64(t);
@@ -375,6 +377,8 @@ static int get_hash_6(int index)
 
 static void crypt_all(int count)
 {
+	size_t worksize = KEYS_PER_CRYPT;
+	size_t localworksize = local_work_size;
 	///Copy data to GPU memory
 	if (sha512_key_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer
@@ -383,8 +387,6 @@ static void crypt_all(int count)
 	}
 
 	///Run kernel
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");
@@ -398,18 +400,18 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
+	size_t worksize = KEYS_PER_CRYPT;
+	size_t localworksize = local_work_size;
+	uint32_t result;
 	///Copy binary to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary, CL_FALSE,
 		0, sizeof(uint64_t), ((uint64_t*)binary)+3, 0, NULL, NULL), "Copy mem_binary");
 
 	///Run kernel
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], cmp_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, NULL), "Set ND range");
 
-	uint32_t result;
 	/// Copy result out
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cmp, CL_FALSE, 0,
 		sizeof(uint32_t), &result, 0, NULL, NULL), "Copy data back");
@@ -422,12 +424,13 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
+	uint64_t *b = (uint64_t *) binary;
+	uint64_t *t = (uint64_t *)ghash;
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	uint64_t *b = (uint64_t *) binary;
-	uint64_t *t = (uint64_t *)ghash;
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
@@ -436,15 +439,14 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
-	uint64_t crypt_out[8];
-
+	uint64_t *b,*c,crypt_out[8];
+	int i;
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *)(crypt_out), &ctx);
 
-	int i;
-	uint64_t *b = (uint64_t *)get_binary(source);
-	uint64_t *c = (uint64_t *)crypt_out;
+	b = (uint64_t *)get_binary(source);
+	c = (uint64_t *)crypt_out;
 
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(c[i])-H[i];

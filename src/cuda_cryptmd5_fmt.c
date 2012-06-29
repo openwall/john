@@ -115,6 +115,7 @@ static void init(struct fmt_main *pFmt)
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	uint8_t i, len = strlen(ciphertext), prefix = 0;
+	char *p;
 
 	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0)
 		prefix |= 1;
@@ -123,7 +124,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		prefix |= 2;
 	if (prefix == 0)
 		return 0;
-	char *p = strrchr(ciphertext, '$');
+	p = strrchr(ciphertext, '$');
 	if (p == NULL)
 		return 0;
 	for (i = p - ciphertext + 1; i < len; i++) {
@@ -147,32 +148,36 @@ static void to_binary(char *crypt, char *alt)
 
 #define _24bit_from_b64(I,B2,B1,B0) \
   {\
-      unsigned char c1=findb64(crypt[I+0]);\
-      unsigned char c2=findb64(crypt[I+1]);\
-      unsigned char c3=findb64(crypt[I+2]);\
-      unsigned char c4=findb64(crypt[I+3]);\
-      unsigned int w=c4<<18|c3<<12|c2<<6|c1;\
-      unsigned char b2=w&0xff;w>>=8;\
-      unsigned char b1=w&0xff;w>>=8;\
-      unsigned char b0=w&0xff;w>>=8;\
+      uint8_t c1,c2,c3,c4,b0,b1,b2;\
+      uint32_t w;\
+      c1=findb64(crypt[I+0]);\
+      c2=findb64(crypt[I+1]);\
+      c3=findb64(crypt[I+2]);\
+      c4=findb64(crypt[I+3]);\
+      w=c4<<18|c3<<12|c2<<6|c1;\
+      b2=w&0xff;w>>=8;\
+      b1=w&0xff;w>>=8;\
+      b0=w&0xff;w>>=8;\
       alt[B2]=b0;\
       alt[B1]=b1;\
       alt[B0]=b2;\
   }
+	uint32_t w;
 	_24bit_from_b64(0, 0, 6, 12);
 	_24bit_from_b64(4, 1, 7, 13);
 	_24bit_from_b64(8, 2, 8, 14);
 	_24bit_from_b64(12, 3, 9, 15);
 	_24bit_from_b64(16, 4, 10, 5);
-	uint32_t w = findb64(crypt[21]) << 6 | findb64(crypt[20]) << 0;
+	w = findb64(crypt[21]) << 6 | findb64(crypt[20]) << 0;
 	alt[11] = (w & 0xff);
 }
 
 static void *binary(char *ciphertext)
 {
 	static char b[BINARY_SIZE];
+	char *p;
 	memset(b, 0, BINARY_SIZE);
-	char *p = strrchr(ciphertext, '$') + 1;
+	p = strrchr(ciphertext, '$') + 1;
 	to_binary(p, b);
 	return (void *) b;
 }
@@ -185,7 +190,7 @@ static void *salt(char *ciphertext)
 #endif
 	static crypt_md5_salt ret;
 	uint8_t i, *pos = (uint8_t *) ciphertext, *end;
-	char *dest = ret.salt;
+	char *p,*dest = ret.salt;
 	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
 		pos += strlen(md5_salt_prefix);
 		ret.prefix = '1';
@@ -200,7 +205,7 @@ static void *salt(char *ciphertext)
 	while (pos != end)
 		*dest++ = *pos++;
 	ret.length = i;
-	char *p = strrchr(ciphertext, '$') + 1;
+	p = strrchr(ciphertext, '$') + 1;
 	to_binary(p,(char*) ret.hash);
 #ifdef CUDA_DEBUG
 	puts("salted:");

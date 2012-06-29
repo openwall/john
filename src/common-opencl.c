@@ -54,7 +54,7 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 {
 	cl_platform_id platform[MAX_PLATFORMS];
 	cl_uint num_platforms, device_num;
-
+	cl_context_properties properties[3];
 	assert(dev_id < MAXGPUS);
 	///Find CPU's
 	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
@@ -67,11 +67,10 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	    "No OpenCL device of that type exist");
 	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n", platform_id,
 	    opencl_log, device_num);
-	cl_context_properties properties[] = {
-		CL_CONTEXT_PLATFORM,
-		    (cl_context_properties) platform[platform_id],
-		0
-	};
+
+	properties[0] = CL_CONTEXT_PLATFORM;
+	properties[1] = (cl_context_properties) platform[platform_id];
+	properties[2] = 0;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying DEVICE_NAME");
@@ -107,14 +106,14 @@ static char *include_source(char *pathname, int dev_id)
 
 static void build_kernel(int dev_id)
 {
-	assert(kernel_loaded);
+	cl_int build_code;
 	const char *srcptr[] = { kernel_source };
+	assert(kernel_loaded);
 	program[dev_id] =
 	    clCreateProgramWithSource(context[dev_id], 1, srcptr, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	cl_int build_code;
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
 	    include_source("$JOHN/", dev_id), NULL, NULL);
 
@@ -162,11 +161,6 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	int i;
 	size_t max_group_size, wg_multiple;
 
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
-		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
-		&max_group_size, NULL),
-	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
-
 #if __OPENCL_VERSION__ < 110
 	cl_device_type device_type;
 	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_TYPE,
@@ -181,6 +175,12 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		sizeof(wg_multiple), &wg_multiple, NULL),
 	    "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 #endif
+
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
+		&max_group_size, NULL),
+	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
+
 	///Command Queue changing:
 	///1) Delete old CQ
 	clReleaseCommandQueue(queue[gpu_id]);

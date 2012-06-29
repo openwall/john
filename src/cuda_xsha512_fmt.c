@@ -121,6 +121,7 @@ static void *get_binary(char *ciphertext)
 {
 	static unsigned char out[FULL_BINARY_SIZE];
 	char *p;
+	uint64_t *b;
 	int i;
 
 	ciphertext += 6;
@@ -130,7 +131,7 @@ static void *get_binary(char *ciphertext)
 		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	uint64_t *b = (uint64_t *) out;
+	b = (uint64_t *) out;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
@@ -290,8 +291,8 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 	uint64_t *b = (uint64_t *) binary;
-	cuda_xsha512_cpy_hash(ghash);
 	uint64_t *t = (uint64_t *) ghash;
+	cuda_xsha512_cpy_hash(ghash);
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
@@ -302,6 +303,8 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
+	int i;
+	uint64_t *b,*c;
 
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
@@ -313,9 +316,8 @@ static int cmp_exact(char *source, int index)
 		SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *) (crypt_out), &ctx);
 
-	int i;
-	uint64_t *b = (uint64_t *) get_binary(source);
-	uint64_t *c = (uint64_t *) crypt_out;
+	b = (uint64_t *) get_binary(source);
+	c = (uint64_t *) crypt_out;
 
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(c[i]) - H[i];

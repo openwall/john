@@ -124,6 +124,7 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *pFmt)
 {
+	cl_int cl_error;
 	atexit(release_all);
 	opencl_init("$JOHN/phpass_kernel.cl", gpu_id,platform_id);
 
@@ -136,8 +137,6 @@ static void init(struct fmt_main *pFmt)
 	    (phpass_hash *) calloc(MAX_KEYS_PER_CRYPT,
 	    sizeof(phpass_hash));
 	assert(inbuffer != NULL);
-
-	cl_int cl_error;
 	mem_in =
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -198,10 +197,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void *binary(char *ciphertext)
 {
 	static unsigned char b[BINARY_SIZE];
-	memset(b, 0, BINARY_SIZE);
 	int i, bidx = 0;
 	unsigned sixbits;
 	char *pos = &ciphertext[3 + 1 + 8];
+	memset(b, 0, BINARY_SIZE);
 
 	for (i = 0; i < 5; i++) {
 		sixbits = atoi64[ARCH_INDEX(*pos++)];

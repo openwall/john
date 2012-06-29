@@ -74,16 +74,17 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	cl_device_type dTyp;
 
-	event_ctr=0;
-
-	HANDLE_CLERROR(clGetDeviceInfo(devid[pltform_no][dev_no],CL_DEVICE_TYPE,sizeof(cl_device_type),&dTyp,NULL),"Failed Device Info");
-
-	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
 	cl_uint *dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*64000);
 
 	cl_uint *dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*64000);
 
 	cl_uint salt_api[9],length=10;
+
+	event_ctr=0;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devid[pltform_no][dev_no],CL_DEVICE_TYPE,sizeof(cl_device_type),&dTyp,NULL),"Failed Device Info");
+
+	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
 
 	memset(dcc_hash_host,0xb5,4*sizeof(cl_uint)*64000);
 
@@ -306,9 +307,9 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 
         if(PROFILE){
 
-		HANDLE_CLERROR(CL_SUCCESS!=clWaitForEvents(1,&evnt),"SYNC FAILED\n");
-
 		cl_ulong startTime, endTime;
+
+		HANDLE_CLERROR(CL_SUCCESS!=clWaitForEvents(1,&evnt),"SYNC FAILED\n");
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
 
