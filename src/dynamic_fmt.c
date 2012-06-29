@@ -833,7 +833,7 @@ static void init(struct fmt_main *pFmt)
 	if (curdat.input2_set_len32) {
 		for (i = 0; i < MAX_KEYS_PER_CRYPT_X86; ++i)
 			total_len2_X86[i] = 32;
-#ifdef MMX_COEF 
+#ifdef MMX_COEF
 		for (i = 0; i < BLOCK_LOOPS; ++i) {
 			input_buf2[i][GETPOS(32,0)] = 0x80;
 			input_buf2[i][GETPOS(57,0)] = 0x1;

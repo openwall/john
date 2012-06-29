@@ -68,7 +68,7 @@ unsigned int get_task_max_work_group_size(){
                 sizeof(sha512_password);
     else
         max_available = get_max_work_group_size(gpu_id);
-                
+
     if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
         return get_current_work_group_size(gpu_id, crypt_kernel);
 
@@ -163,7 +163,7 @@ static void create_clobj(int gws) {
            NULL), "Error setting argument 3");
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
            sizeof (sha512_password) * local_work_size,
-           NULL), "Error setting argument 4");                
+           NULL), "Error setting argument 4");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     memset(&salt, '\0', sizeof(sha512_salt));

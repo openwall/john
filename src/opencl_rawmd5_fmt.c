@@ -3,7 +3,7 @@
  * Copyright (c) 2010 by Solar Designer
  *
  * MD5 OpenCL code is based on Alain Espinosa's OpenCL patches.
- * 
+ *
  */
 
 #include <string.h>
@@ -68,7 +68,7 @@ static void find_best_workgroup(void){
 			PLAINTEXT_LENGTH + 1);
 		saved_plain[i * (PLAINTEXT_LENGTH + 1) + 8] = 0x80;
 	}
-        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, 
+        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
 		sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0,
 		(PLAINTEXT_LENGTH + 1) * MD5_NUM_KEYS, saved_plain, 0, NULL, NULL);
@@ -108,7 +108,7 @@ static void create_clobj(int kpc){
 		(PLAINTEXT_LENGTH + 1) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	res_hashes = malloc(sizeof(cl_uint) * 3 * kpc);
-	
+
 	pinned_partial_hashes = clCreateBuffer(context[gpu_id],
 		CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
@@ -125,11 +125,11 @@ static void create_clobj(int kpc){
 	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
 		BINARY_SIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
-	
+
 	data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info), 
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info),
 		(void *) &data_info), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_keys),
 		(void *) &buffer_keys), "Error setting argument 1");
@@ -379,13 +379,13 @@ static int cmp_exact(char *source, int count){
 	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 
-		sizeof(cl_uint) * (max_keys_per_crypt), 
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
+		sizeof(cl_uint) * (max_keys_per_crypt),
 		sizeof(cl_uint) * 3 * max_keys_per_crypt, res_hashes, 0,
-		NULL, NULL); 
+		NULL, NULL);
 		have_full_hashes = 1;
 	}
-        
+
 	if (t[1]!=res_hashes[count])
 		return 0;
 	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])

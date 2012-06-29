@@ -35,7 +35,7 @@ void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 			fake_salts = mem_calloc_tiny(sizeof(struct db_salt) * (('~'-' '+1)*('~'-' '+1)*('~'-' '+1)+1), MEM_ALIGN_WORD);
 
 		// Find the 'real' salt. We loaded ALL of the file into 1 salt.
-		// we then take THAT salt record, and build a list pointing to these fake salts, 
+		// we then take THAT salt record, and build a list pointing to these fake salts,
 		// AND build 'proper' dynamic salts for all of our data.
 		sp = salts;
 		while (sp->next) {
@@ -78,7 +78,7 @@ void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 			fake_salts = mem_calloc_tiny(sizeof(struct db_salt) * (('~'-' '+1)*('~'-' '+1)+1), MEM_ALIGN_WORD);
 
 		// Find the 'real' salt. We loaded ALL of the file into 1 salt.
-		// we then take THAT salt record, and build a list pointing to these fake salts, 
+		// we then take THAT salt record, and build a list pointing to these fake salts,
 		// AND build 'proper' dynamic salts for all of our data.
 		sp = salts;
 		while (sp->next) {
@@ -117,7 +117,7 @@ void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 		unsigned long *ptr;
 		int max, min;
 		// Find the 'real' salt. We loaded ALL of the file into 1 salt.
-		// we then take THAT salt record, and build a list pointing to these fake salts, 
+		// we then take THAT salt record, and build a list pointing to these fake salts,
 		// AND build 'proper' dynamic salts for all of our data.
 		sp = salts;
 		while (sp->next) {
@@ -139,7 +139,7 @@ void build_fake_salts_for_regen_lost(struct db_salt *salts) {
 
 		fake_salts = mem_calloc_tiny( ((max-min)+1) * sizeof(struct db_salt), MEM_ALIGN_WORD);
 
-		// for type 3, we do not use 100% of this buffer, but we do use 'most' of it. 
+		// for type 3, we do not use 100% of this buffer, but we do use 'most' of it.
 		buf = mem_alloc_tiny(((max-min)+1)*(7+options.regen_lost_salts), MEM_ALIGN_NONE);
 		cp = buf;
 		for (i = min; i < max; ++i) {

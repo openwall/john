@@ -1,0 +1,5 @@
+To use John the Ripper on Office 2007/2010 encrypted files, first build
+the included office2john program with "make office2john" in the src/
+directory.  Please note that it has extra prerequisites compared to John
+itself, which is why it is not being built by default.  Thus, you will
+need to install additional "development" packages first.

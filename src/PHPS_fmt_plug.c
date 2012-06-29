@@ -112,7 +112,7 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	/* all of the hashes were available for ALL salts. We also only want 1 salt            */
 	if (options.regen_lost_salts == 1 && i == 32) {
 		char *Ex = mem_alloc_tiny(CIPHERTEXT_LENGTH+1, MEM_ALIGN_NONE);
-		// add a 'garbage' placeholder salt to this candidate. However, we want ALL of them to 
+		// add a 'garbage' placeholder salt to this candidate. However, we want ALL of them to
 		// be setup as the exact same salt (so that all candidate get dumped into one salt block.
 		// We use '   ' as the salt (3 spaces).
 		sprintf(Ex, "$PHPS$202020$%s", split_fields[1]);

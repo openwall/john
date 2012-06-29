@@ -1,16 +1,16 @@
 /**
-This file is shared by cuda-rawsha224 and cuda-rawsha256 formats 
+This file is shared by cuda-rawsha224 and cuda-rawsha256 formats
 */
 #ifndef _SHA256_H
 #define _SHA256_H
 
 #ifndef uint32_t
-  #define uint32_t unsigned int  
+  #define uint32_t unsigned int
 #endif
 
 #define rol(x,n) ((x << n) | (x >> (32-n)))
 #define ror(x,n) ((x >> n) | (x << (32-n)))
-#define Ch(x,y,z) ((x & y) ^ ( (~x) & z)) 
+#define Ch(x,y,z) ((x & y) ^ ( (~x) & z))
 #define Maj(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
 #define Sigma0(x) ((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
 #define Sigma1(x) ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))

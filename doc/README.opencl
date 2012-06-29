@@ -11,7 +11,7 @@ either install fglrx or nvidia dkms package or go directly with the
 ones provided by nvidia and ati.
 
 This code is still highly experimental, therefore we suggest you
-to try at your own risk. 
+to try at your own risk.
 GPU should not get overheated due to some limitation from the hardware
 however keep checking your temperature .
 
@@ -28,23 +28,23 @@ OpenCL won't:
 - work with ATI and a remote console unser some certain condition
   (see http://goo.gl/4L8Tt for more information )
 - make this world a better place
-   
+
 
 ====================
 COMPILING:
 ====================
 
 Ati/AMD suggest you to use ATISTREAMSDKROOT env variable to
-provide where you have installed their SDK root. 
+provide where you have installed their SDK root.
 nvidia simply install it in /usr/local/nvidia .
 
 Makefile assume you have $ATISTREAMSDKROOT setted up to point
 to your ati installation or you have $NVIDIA_CUDA pointing to
 nvidia installation.
 
-In in doubt do a 
+In in doubt do a
 
-#updatedb && locate CL/cl.h && locate libOpenCL.so 
+#updatedb && locate CL/cl.h && locate libOpenCL.so
 
 to locate your path to the includes and libOpenCL .
 
@@ -66,12 +66,12 @@ in allocating memory; i strongly recommend using opencl patch
 in wordlist and incremental modes only.
 
 On some opencl formats there are two variables you can adjust:
-these are $LWS and $GWS 
+these are $LWS and $GWS
 
 LWS is the local work size aka, the number of "threads" the job
 will be split and sent to the GPU.
 
-- if $LWS is not setted john will try to get the one 
+- if $LWS is not setted john will try to get the one
   best for your system. On some slow hashes, a good default
   is going to be picked.
 
@@ -86,9 +86,9 @@ Keys Per Crypt, the number of keys that will be tried in a GPU call.
 
 
 once you have found the best LWS or GWS for your system you can
-do 
+do
 export LWS=NUM1
-or 
+or
 export GWS=NUM2
 
 to avoid testing.
@@ -112,7 +112,7 @@ a good idea to set up PLAINTEXT_LENGTH to a lower value than
 
 - LWS and GWS should be set with numbers that are power of two
 
-- GWS should always be the possible product of LWS: you should always 
+- GWS should always be the possible product of LWS: you should always
   be able to divide GWS / LWS and get an integer number
 
 ====================
@@ -122,7 +122,7 @@ Supported formats:
 More information about supported hashes can be seen at:
 http://openwall.info/wiki/john/GPU
 
-Currently John the Ripper supports OpenCL enabled devices for 
+Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
 - crypt MD5
 - crypt SHA-512 (http://openwall.info/wiki/john/OpenCL-SHA-512)
@@ -135,7 +135,7 @@ the following hashes:
 - RAR3
 - Raw MD4
 - Raw MD5
-- Raw SHA-1 
+- Raw SHA-1
 - WPA-PSK
 
 ============================================================
@@ -144,7 +144,7 @@ Following is the verbatim original content of this file:
 
 This distribution of John the Ripper requires OpenCL to compile.
 
-If you don't have OpenCL, download install and configure it before 
+If you don't have OpenCL, download install and configure it before
 proceeeding.
 
 Any bugs, patches, comments or love letters should be sent to

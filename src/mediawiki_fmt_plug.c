@@ -81,7 +81,7 @@ static struct fmt_main *pFmt_Dynamic_9;
 static void mediawiki_init(struct fmt_main *pFmt);
 static void get_ptr();
 
-/* this utility function is used by cracker.c AND loader.c.  Since media-wiki has a variable width salt, of which 
+/* this utility function is used by cracker.c AND loader.c.  Since media-wiki has a variable width salt, of which
    in regen_lost_salts mode, we only handle 0 to 99999 as salts, we built a function that will assign the salt from
    one buffer into another */
 void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_salt_len) {

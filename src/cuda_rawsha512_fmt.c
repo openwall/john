@@ -27,7 +27,7 @@
 
 #define FORMAT_LABEL			"raw-sha512-cuda"
 #define FORMAT_NAME			"Raw SHA-512"
-#define ALGORITHM_NAME			"CUDA"
+#define ALGORITHM_NAME			"CUDA, unreliable, will miss guesses"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -140,7 +140,7 @@ static int get_hash_0(int index)
 }
 
 static int get_hash_1(int index)
-{	
+{
 	cuda_sha512_cpy_hash(ghash);
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFF;
 }
@@ -216,10 +216,10 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
-	
+
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
-	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
+	SHA512_Final((unsigned char *)(crypt_out), &ctx);
 
 	int i;
 	uint64_t *b = (uint64_t *)get_binary(source);
@@ -230,7 +230,7 @@ static int cmp_exact(char *source, int index)
 		c[i] = SWAP64(t);
 	}
 
-	
+
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
 		if (b[i] != c[i])
 			return 0;

@@ -116,7 +116,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 			if (input[1] == 'x' && atoi16[input[2]] != 0x7F && atoi16[input[3]] != 0x7F) {
 				rpp_add_char(range, ((atoi16[input[2]]<<4)+atoi16[input[3]]));
 				input += 4;
-			} else 
+			} else
 				if (*++input) rpp_add_char(range, c1 = *input++);
 			break;
 

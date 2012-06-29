@@ -32,12 +32,12 @@ typedef BF_word BF_binary[6];
  *                  E.g. For 7970 set it 8.
  *                       For 570  set it 4.
  * MULTIPLIER:      Increase keys per crypt using this parameter.
- * 
- */ 
+ *
+ */
 
 #define WORK_GROUP_SIZE                 8
 #define NUM_CHANNELS                    1
-#define WAVEFRONT_SIZE                  1 
+#define WAVEFRONT_SIZE                  1
 #define CHANNEL_INTERLEAVE              WAVEFRONT_SIZE*NUM_CHANNELS
 #define MULTIPLIER                      1024
 #define BF_N				CHANNEL_INTERLEAVE*MULTIPLIER

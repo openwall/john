@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -26,5 +26,5 @@ extern void cuda_init(unsigned int gpu_id);
       fprintf(stderr,"Cannot alocate memory for hashes file:%s line:%d\n",__FILE__,__LINE__);\
       exit(1);\
     }
-    
+
 #endif

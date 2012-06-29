@@ -4,14 +4,14 @@
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
- * under certain conditions; as expressed here 
+ * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
 #include <string.h>
 
 #ifdef BSD
-	 // OSX 
+	 // OSX
 	 #include <architecture/byte_order.h>
 #else
 	 #include <endian.h>
@@ -411,7 +411,7 @@ static int cmp_all(void *binary, int index) {
 	unsigned int i = 0;
 	unsigned int b = ((unsigned int *) binary)[0];
 	for (; i < index; i++) {
-		if (b == outbuffer[i]) 
+		if (b == outbuffer[i])
 			return 1;
 	}
 	return 0;
@@ -420,7 +420,7 @@ static int cmp_all(void *binary, int index) {
 static int cmp_one(void *binary, int index){
 	unsigned int *t = (unsigned int *) binary;
 
-	if (t[0] == outbuffer[index]) 
+	if (t[0] == outbuffer[index])
 		return 1;
 	return 0;
 }

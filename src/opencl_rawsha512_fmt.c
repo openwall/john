@@ -28,7 +28,7 @@
 
 #define FORMAT_LABEL			"raw-sha512-opencl"
 #define FORMAT_NAME			"Raw SHA-512"
-#define ALGORITHM_NAME			"OpenCL"
+#define ALGORITHM_NAME			"OpenCL, unreliable, will miss guesses"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -148,29 +148,29 @@ static void find_best_workgroup()
 	int i;
 	size_t max_group_size;
 	size_t work_size = KEYS_PER_CRYPT;
-    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], 
-		CL_KERNEL_WORK_GROUP_SIZE,sizeof (max_group_size), &max_group_size, 
+    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+		CL_KERNEL_WORK_GROUP_SIZE,sizeof (max_group_size), &max_group_size,
 		NULL), "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
-	
+
 	cl_command_queue queue_prof =
 	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
 	    CL_QUEUE_PROFILING_ENABLE,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating command queue");
-	
+
 	/// Set keys
 	char *pass = "password";
 	for (i = 0; i < MAX_KEYS_PER_CRYPT; i++) {
 		set_key(pass, i);
 	}
-	
+
 
 	///Copy data to GPU
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0,
 		insize, gkey, 0, NULL, NULL), "Copy data to gpu");
 
 	my_work_group = 1;
-	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) 
+	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU)
 		my_work_group = 32;
 
 	///Find best local work size
@@ -182,7 +182,7 @@ static void find_best_workgroup()
 				1, NULL, &work_size, &my_work_group, 0, NULL,
 				&myEvent), "Run kernel");
 			HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
-			
+
 			clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
 			    sizeof(cl_ulong), &startTime, NULL);
 			clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
@@ -223,13 +223,13 @@ static void init(struct fmt_main *pFmt)
 		&ret_code);
 	HANDLE_CLERROR(ret_code,"Error while alocating memory for cmp_all result");
 
-	///Assign crypt kernel parameters 
+	///Assign crypt kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error while creating crypt_kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 
-	///Assign cmp kernel parameters 
+	///Assign cmp kernel parameters
 	cmp_kernel = clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error while creating cmp_kernel");
 	clSetKernelArg(cmp_kernel, 0, sizeof(mem_binary), &mem_binary);
@@ -321,7 +321,7 @@ static int get_hash_0(int index)
 }
 
 static int get_hash_1(int index)
-{	
+{
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, ghash, 0, NULL, NULL), "Copy data back");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
@@ -417,7 +417,7 @@ static int cmp_all(void *binary, int count)
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	return result;
-	
+
 }
 
 static int cmp_one(void *binary, int index)
@@ -437,10 +437,10 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
-	
+
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
-	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
+	SHA512_Final((unsigned char *)(crypt_out), &ctx);
 
 	int i;
 	uint64_t *b = (uint64_t *)get_binary(source);
@@ -451,7 +451,7 @@ static int cmp_exact(char *source, int index)
 		c[i] = SWAP64(t);
 	}
 
-	
+
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
 		if (b[i] != c[i])
 			return 0;

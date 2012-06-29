@@ -208,7 +208,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 
 		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
-		
+
 		clGetEventProfilingInfo(profilingEvent,
 		    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 		    NULL);
@@ -267,7 +267,7 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 
 void opencl_init(char *kernel_filename, unsigned int dev_id,
     unsigned int platform_id)
-{	
+{
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
 	opencl_build_kernel(kernel_filename, dev_id);

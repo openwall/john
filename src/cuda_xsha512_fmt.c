@@ -29,7 +29,7 @@
 
 #define FORMAT_LABEL			"xsha512-cuda"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
-#define ALGORITHM_NAME			"CUDA"
+#define ALGORITHM_NAME			"CUDA, unreliable, will miss guesses"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

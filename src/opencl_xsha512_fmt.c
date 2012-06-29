@@ -28,7 +28,7 @@
 
 #define FORMAT_LABEL			"xsha512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
-#define ALGORITHM_NAME			"OpenCL"
+#define ALGORITHM_NAME			"OpenCL, unreliable, will miss guesses"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -241,14 +241,14 @@ static void init(struct fmt_main *pFmt)
 	HANDLE_CLERROR(ret_code,
 	    "Error while alocating memory for cmp_all result");
 
-	///Assign crypt kernel parameters 
+	///Assign crypt kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
-	///Assign cmp kernel parameters 
+	///Assign cmp kernel parameters
 	cmp_kernel =
 	    clCreateKernel(program[gpu_id], CMP_KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating cmp_kernel");

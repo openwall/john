@@ -1,4 +1,4 @@
-#ifndef _OPENCL_RAR_H 
+#ifndef _OPENCL_RAR_H
 #define _OPENCL_RAR_H
 
 /* NOTE if you alter this file, touch rar_fmt.c too, or make clean */

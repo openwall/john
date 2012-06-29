@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 *
@@ -41,7 +41,7 @@ typedef struct
   unsigned char keymic[16];
 } hccap_t;
 
-typedef struct 
+typedef struct
 {
   unsigned char keymic[16];
 } mic_t;
