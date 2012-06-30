@@ -199,7 +199,7 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 
 	  int i;
 
-	  uint work_part,work_offset=0,lws_max=max_lws();
+	  unsigned int work_part,work_offset=0,lws_max=max_lws();
 
 	  cl_int ret;
 
