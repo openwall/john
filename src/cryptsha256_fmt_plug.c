@@ -26,7 +26,7 @@
 
 #define FORMAT_LABEL			"sha256crypt"
 #define FORMAT_NAME			"sha256crypt"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
@@ -178,14 +178,14 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void hex_out(char *head, unsigned char *cp, int cnt) {
-	int i;
-	printf("%s", head);
-	for (i = 0; i < cnt; ++i) {
-		printf ("%c%c", itoa16[cp[i]>>4], itoa16[cp[i]&0xF]);
-	}
-	printf("\n");
-}
+//static void hex_out(char *head, unsigned char *cp, int cnt) {
+//	int i;
+//	printf("%s", head);
+//	for (i = 0; i < cnt; ++i) {
+//		printf ("%c%c", itoa16[cp[i]>>4], itoa16[cp[i]&0xF]);
+//	}
+//	printf("\n");
+//}
 
 static void crypt_all(int count)
 {

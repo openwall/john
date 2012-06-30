@@ -18,7 +18,7 @@
 
 #define FORMAT_LABEL			"raw-sha224"
 #define FORMAT_NAME			"Raw SHA-224"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

@@ -20,14 +20,18 @@
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
 #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define COMMON_DIGEST_FOR_OPENSSL
+#define SHA2_LIB "CommonCrypto"
 #include <CommonCrypto/CommonDigest.h>
 #else
+#define SHA2_LIB "OpenSSL"
 #include <openssl/sha.h>
 #endif
 #else
+#define SHA2_LIB "OpenSSL"
 #include <openssl/sha.h>
 #endif
 #else
+#define SHA2_LIB "OpenSSL"
 #include <openssl/sha.h>
 #endif
 
@@ -41,6 +45,8 @@
 #include <sys/param.h>
 #endif
 #include <sys/types.h>
+
+#define SHA2_LIB "generic"
 
 // Does sha256 AND sha224. Sha224 is same, but only returns
 // 224 bits, and has a different init IV. Other than that

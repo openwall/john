@@ -19,9 +19,9 @@
 #define FORMAT_LABEL			"raw-sha384"
 #define FORMAT_NAME			"Raw SHA-384"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		""

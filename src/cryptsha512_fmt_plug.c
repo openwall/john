@@ -27,9 +27,9 @@
 #define FORMAT_LABEL			"sha512crypt"
 #define FORMAT_NAME			"sha512crypt"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"

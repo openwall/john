@@ -25,7 +25,7 @@
 
 #define FORMAT_LABEL		"pwsafe"
 #define FORMAT_NAME		"Password Safe SHA-256"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
