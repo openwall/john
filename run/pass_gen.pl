@@ -63,8 +63,8 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
 		Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512 dragonfly3_32
 		dragonfly4_32 saltedsha1 gost gost_cp hmac_sha1 hmac_sha224 hmac_sha256
-		hmac_sha384 hmac_sha512));
-
+		hmac_sha384 hmac_sha512 sha256crypt sha512crypt));
+		
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
 my @chrAsciiTextLo=('a'..'z');
@@ -78,10 +78,10 @@ my @i64 = ('.','/','0'..'9','A'..'Z','a'..'z');
 my @ns_i64 = ('A'..'Z', 'a'..'z','0'..'9','+','/',);
 my @userNames = (
 	"admin", "root", "bin", "Joe", "fi15_characters", "Babeface", "Herman", "lexi Conrad", "jack", "John", "sz110",
-	"fR14characters", "Thirteenchars", "Twelve_chars", "elev__chars", "teN__chars", "six16_characters",
+	"fR14characters", "Thirteenchars", "Twelve_chars", "elev__chars", "teN__chars", "six16_characters", 
 #	"Bãrtin",
-	"ninechars", "eightchr", "sevench", "barney", "C0ffee", "deadcafe", "user", "01234", "nineteen_characters",
-	"eight18_characters", "seven17characters", "u1", "harvey", "john", "ripper", "a", "Hank", "1", "u2", "u3",
+	"ninechars", "eightchr", "sevench", "barney", "C0ffee", "deadcafe", "user", "01234", "nineteen_characters", 
+	"eight18_characters", "seven17characters", "u1", "harvey", "john", "ripper", "a", "Hank", "1", "u2", "u3", 
 	"2", "3", "usr", "usrx", "usry", "skippy", "Bing", "Johnson", "addams", "anicocls", "twentyXXX_characters",
 	"twentyoneX_characters", "twentytwoXX_characters");
 
@@ -630,7 +630,7 @@ sub hmacmd5 {
 	print "u$u-hmacMD5:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub _hmac_shas {
-	my ($crypt, $pad_sz, $key, $data) = @_;
+	my ($func, $pad_sz, $key, $data) = @_;
 	my $ipad; my $opad;
 	for ($i = 0; $i < length($key); ++$i) {
 		$ipad .= chr(ord(substr($key, $i, 1)) ^ 0x36);
@@ -640,42 +640,169 @@ sub _hmac_shas {
 		$ipad .= chr(0x36);
 		$opad .= chr(0x5C);
 	}
-	if ($crypt==224) {
-		return sha224($opad,sha224($ipad,$data));
-	} elsif ($crypt==256) {
-		return sha256($opad,sha256($ipad,$data));
-	} elsif ($crypt==384) {
-		return sha384($opad,sha384($ipad,$data));
-	} elsif ($crypt==512) {
-		return sha512($opad,sha512($ipad,$data));
-	} elsif ($crypt==1) {
-		return sha1($opad,sha1($ipad,$data));
-	}
+	return $func->($opad,$func->($ipad,$data));
 }
 sub hmac_sha1 {
 	$salt = randstr(24);
-	my $bin = _hmac_shas(1, 64, $_[0], $salt);
+	my $bin = _hmac_shas(\&sha1, 64, $_[0], $salt);
 	print "u$u-hmacSHA1:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha224 {
 	$salt = randstr(32);
-	my $bin = _hmac_shas(224, 64, $_[0], $salt);
+	my $bin = _hmac_shas(\&sha224, 64, $_[0], $salt);
 	print "u$u-hmacSHA224:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha256 {
 	$salt = randstr(32);
-	my $bin = _hmac_shas(256, 64, $_[0], $salt);
+	my $bin = _hmac_shas(\&sha256, 64, $_[0], $salt);
 	print "u$u-hmacSHA256:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha384 {
 	$salt = randstr(32);
-	my $bin = _hmac_shas(384, 128, $_[0], $salt);
+	my $bin = _hmac_shas(\&sha384, 128, $_[0], $salt);
 	print "u$u-hmacSHA384:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
 }
 sub hmac_sha512 {
 	$salt = randstr(32);
-	my $bin = _hmac_shas(512, 128, $_[0], $salt);
+	my $bin = _hmac_shas(\&sha512, 128, $_[0], $salt);
 	print "u$u-hmacSHA512:$salt#", binToHex($bin), ":$u:0:$_[0]::\n";
+}
+sub _sha_crypts {
+	my $a; my $b, my $c, my $tmp; my $i; my $ds; my $dp; my $p; my $s;
+	my ($func, $bits, $key, $salt) = @_;
+	my $bytes = $bits/8;
+	
+	$b = $func->($key.$salt.$key);
+	
+	# Add for any character in the key one byte of the alternate sum.
+	$tmp = $key . $salt;
+	for ($i = length($key); $i > 0; $i -= $bytes) {
+		if ($i > $bytes) { $tmp .= $b; }
+		else { $tmp .= substr($b,0,$i); }
+	}
+	
+	# Take the binary representation of the length of the key and for every 1 add the alternate sum, for every 0 the key.
+	for ($i = length($key); $i > 0; $i >>= 1) {
+		if (($i & 1) != 0) { $tmp .= $b; }
+		else { $tmp .= $key; }
+	}
+	$a = $func->($tmp);
+	# NOTE, this will be the 'initial' $c value in the inner loop.
+	
+	# For every character in the password add the entire password.  produces DP
+	$tmp = "";
+	for ($i = 0; $i < length($key); ++$i) {
+		$tmp .= $key;
+	}
+	$dp = $func->($tmp);
+	# Create byte sequence P.
+	$p = "";
+	for ($i = length($key); $i > 0; $i -= $bytes) {
+		if ($i > $bytes) { $p .= $dp; }
+		else { $p .= substr($dp,0,$i); }
+	}
+	# produce ds
+	$tmp = "";
+	my $til = 16 + ord(substr($a,0,1));
+	for ($i = 0; $i < $til; ++$i) {
+		$tmp .= $salt;
+	}
+	$ds = $func->($tmp);
+	
+	# Create byte sequence S.
+	for ($i = length($salt); $i > 0; $i -= $bytes) {
+		if ($i > $bytes) { $s .= $ds; }
+		else { $s .= substr($ds,0,$i); }
+	}
+	
+	$c = $a; # Ok, we saved this, which will 'seed' our crypt value here in the loop.
+	# now we do 5000 iterations of md5.
+	for ($i = 0; $i < 5000; ++$i) {
+		if ($i&1) { $tmp  = $p; }
+		else      { $tmp  = $c; }
+		if ($i%3) { $tmp .= $s; }
+		if ($i%7) { $tmp .= $p; }
+		if ($i&1) { $tmp .= $c; }
+		else      { $tmp .= $p; }
+#		printf ("%02d=" . unpack("H*", $tmp) . "\n", $i);  # for debugging.
+		$c = $func->($tmp);
+	}
+#	printf ("F =" . unpack("H*", $c) . "\n");  # final value.
+	
+	# $c now contains the 'proper' sha_X_crypt hash.  However, a strange transposition and 
+	# base-64 conversion. We do the same here, to get the same hash.  sha256 and sha512 use
+	# a different key schedule.  I have come up with a way to do this, that is not using a
+	# table, but using modular walking of the data, 3 values at a time.
+	# seel http://www.akkadia.org/drepper/SHA-crypt.txt for information
+	
+	my $inc1; my $inc2; my $mod; my $end;
+	if ($bits==256) { $inc1=10;$inc2=21;$mod=30;$end=0;  }
+	else            { $inc1=21;$inc2=22;$mod=63;$end=21; }
+	$i = 0;
+	$tmp = "";
+	do {
+		$tmp .= to64((ord(substr($c,$i,1))<<16) | (ord(substr($c,($i+$inc1)%$mod,1))<<8) | ord(substr($c,($i+$inc1*2)%$mod,1)),4);
+		$i = ($i + $inc2) % $mod;
+	} while ($i != $end);
+	if ($bits==256) { $tmp .= to64((ord(substr($c,31,1))<<8) | ord(substr($c,30,1)),3); }
+	else            { $tmp .= to64(ord(substr($c,63,1)),2); }
+
+# old code. The above little loop should do the 'same' thing.	
+#	if ($bits == 256) {	
+#		$i = (ord(substr($c,0,1))<<16)  | (ord(substr($c,10,1))<<8) | ord(substr($c,20,1)); $tmp  = to64($i,4);
+#		$i = (ord(substr($c,21,1))<<16) | (ord(substr($c,1,1))<<8)  | ord(substr($c,11,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,12,1))<<16) | (ord(substr($c,22,1))<<8) | ord(substr($c,2,1));  $tmp .= to64($i,4);
+#		$i = (ord(substr($c,3,1))<<16)  | (ord(substr($c,13,1))<<8) | ord(substr($c,23,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,24,1))<<16) | (ord(substr($c,4,1))<<8)  | ord(substr($c,14,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,15,1))<<16) | (ord(substr($c,25,1))<<8) | ord(substr($c,5,1));  $tmp .= to64($i,4);
+#		$i = (ord(substr($c,6,1))<<16)  | (ord(substr($c,16,1))<<8) | ord(substr($c,26,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,27,1))<<16) | (ord(substr($c,7,1))<<8)  | ord(substr($c,17,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,18,1))<<16) | (ord(substr($c,28,1))<<8) | ord(substr($c,8,1));  $tmp .= to64($i,4);
+#		$i = (ord(substr($c,9,1))<<16)  | (ord(substr($c,19,1))<<8) | ord(substr($c,29,1)); $tmp .= to64($i,4);
+#		$i =                             (ord(substr($c,31,1))<<8)  | ord(substr($c,30,1)); $tmp .= to64($i,3);
+#	} elsif ($bits == 512) {
+#		$i = (ord(substr($c,0,1))<<16)  | (ord(substr($c,21,1))<<8) | ord(substr($c,42,1)); $tmp  = to64($i,4);
+#		$i = (ord(substr($c,22,1))<<16) | (ord(substr($c,43,1))<<8) | ord(substr($c,1,1));  $tmp .= to64($i,4);
+#		$i = (ord(substr($c,44,1))<<16) | (ord(substr($c,2,1))<<8)  | ord(substr($c,23,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,3,1))<<16)  | (ord(substr($c,24,1))<<8) | ord(substr($c,45,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,25,1))<<16) | (ord(substr($c,46,1))<<8) | ord(substr($c,4,1));  $tmp .= to64($i,4);
+#		$i = (ord(substr($c,47,1))<<16) | (ord(substr($c,5,1))<<8)  | ord(substr($c,26,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,6,1))<<16)  | (ord(substr($c,27,1))<<8) | ord(substr($c,48,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,28,1))<<16) | (ord(substr($c,49,1))<<8) | ord(substr($c,7,1));  $tmp .= to64($i,4);
+#		$i = (ord(substr($c,50,1))<<16) | (ord(substr($c,8,1))<<8)  | ord(substr($c,29,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,9,1))<<16)  | (ord(substr($c,30,1))<<8) | ord(substr($c,51,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,31,1))<<16) | (ord(substr($c,52,1))<<8) | ord(substr($c,10,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,53,1))<<16) | (ord(substr($c,11,1))<<8) | ord(substr($c,32,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,12,1))<<16) | (ord(substr($c,33,1))<<8) | ord(substr($c,54,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,34,1))<<16) | (ord(substr($c,55,1))<<8) | ord(substr($c,13,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,56,1))<<16) | (ord(substr($c,14,1))<<8) | ord(substr($c,35,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,15,1))<<16) | (ord(substr($c,36,1))<<8) | ord(substr($c,57,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,37,1))<<16) | (ord(substr($c,58,1))<<8) | ord(substr($c,16,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,59,1))<<16) | (ord(substr($c,17,1))<<8) | ord(substr($c,38,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,18,1))<<16) | (ord(substr($c,39,1))<<8) | ord(substr($c,60,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,40,1))<<16) | (ord(substr($c,61,1))<<8) | ord(substr($c,19,1)); $tmp .= to64($i,4);
+#		$i = (ord(substr($c,62,1))<<16) | (ord(substr($c,20,1))<<8) | ord(substr($c,41,1)); $tmp .= to64($i,4);
+#		$i =                                                          ord(substr($c,63,1)); $tmp .= to64($i,2);
+#	}
+	return $tmp;
+}
+sub sha256crypt {
+	if (defined $argsalt) {
+		$salt = $argsalt;
+	} else {
+		$salt=randstr(16);
+	}
+	my $bin = _sha_crypts(\&sha256, 256, $_[0], $salt);
+	print "u$u-sha256crypt:\$5\$$salt\$$bin:$u:0:$_[0]::\n";
+}
+sub sha512crypt {
+	if (defined $argsalt) {
+		$salt = $argsalt;
+	} else {
+		$salt=randstr(16);
+	}
+	my $bin = _sha_crypts(\&sha512, 512, $_[0], $salt);
+	print "u$u-sha512crypt:\$6\$$salt\$$bin:$u:0:$_[0]::\n";
 }
 sub mskrb5 {
 	my $password = shift;
@@ -910,7 +1037,7 @@ sub oracle_no_upcase_change {
 	if (!defined $arg_hidden_cp) { print "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
 
 	my $pass = $username . Encode::decode(":".$arg_hidden_cp, $_[0]);
-
+	
 	my $userpass = encode("UTF-16BE", $pass);
 	$userpass .= pack('C', 0) while (length($userpass) % 8);
 	my $key = pack('H*', "0123456789ABCDEF");
@@ -1041,7 +1168,7 @@ sub mschapv2 {
 }
 sub crc_32 {
 	my $pwd = shift;
-	if (rand(256) > 245) {
+	if (rand(256) > 245) { 
 		my $init = rand(2000000000);
 		printf("$u-crc32:\$crc32\$%08x.%08x:0:0:100:%s:\n", $init, crc32($pwd,$init), $pwd);
 	} else {
