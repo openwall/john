@@ -243,6 +243,7 @@ struct fmt_main fmt_SKEY = {
 		skey_set_salt,
 		skey_set_key,
 		skey_get_key,
+		fmt_default_clear_keys,
 		skey_crypt_all,
 		{
 			fmt_default_get_hash,
