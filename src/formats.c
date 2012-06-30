@@ -222,6 +222,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (index >= max) {
 			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
 			done |= 1;
+			format->methods.clear_keys();
 		}
 
 		if (!(++current)->ciphertext) {
@@ -234,6 +235,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 			current = format->params.tests;
 			done |= 2;
+			format->methods.clear_keys();
 		}
 	} while (done != 3);
 

@@ -4,24 +4,21 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
-#include <openssl/sha.h>
+#include "sha2.h"
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 
 #ifdef _OPENMP
 #define OMP_SCALE			2048
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"raw-sha384"
-#define FORMAT_NAME			"Raw SHA-384"
+#define FORMAT_LABEL			"raw-sha512"
+#define FORMAT_NAME			"Raw SHA-512"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR
 #else
@@ -32,17 +29,17 @@
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		96
+#define CIPHERTEXT_LENGTH		128
 
-#define BINARY_SIZE			48
+#define BINARY_SIZE			64
 #define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"a8b64babd0aca91a59bdbb7761b421d4f2bb38280d3a75ba0f21f2bebc45583d446c598660c94ce680c47d19c30783a7", "password"},
-	{"$SHA384$8cafed2235386cc5855e75f0d34f103ccc183912e5f02446b77c66539f776e4bf2bf87339b4518a7cb1c2441c568b0f8", "12345678"},
+	{"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
+	{"$SHA512$fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
 	{NULL}
 };
 
@@ -50,6 +47,11 @@ static int (*saved_key_length);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
+
+#ifndef _OPENMP
+#define SHA_SPEED_TEST
+SHA512_CTX ctx;
+#endif
 
 static void init(struct fmt_main *pFmt)
 {
@@ -71,7 +73,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$SHA384$", 8))
+	if (!strncmp(p, "$SHA512$", 8))
 		p += 8;
 
 	q = p;
@@ -87,10 +89,10 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$SHA384$", 8))
+	if (!strncmp(ciphertext, "$SHA512$", 8))
 		return ciphertext;
 
-	memcpy(out, "$SHA384$", 8);
+	memcpy(out, "$SHA512$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
@@ -110,6 +112,14 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+#ifdef SHA_SPEED_TEST
+	{
+		unsigned long long *p = (unsigned long long *)out;
+		int i;
+		for (i = 0; i < 8; ++i)
+			p[i] = JOHNSWAP64(p[i]);
+	}
+#endif
 
 	return out;
 }
@@ -149,39 +159,45 @@ static int binary_hash_6(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
+#ifndef SHA_SPEED_TEST
+#define CMP_PTR crypt_out[index]
+#else
+#define CMP_PTR ctx.h
+#endif
+
 static int get_hash_0(int index)
 {
-	return crypt_out[index][0] & 0xF;
+	return CMP_PTR[0] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	return crypt_out[index][0] & 0xFF;
+	return CMP_PTR[0] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	return crypt_out[index][0] & 0xFFF;
+	return CMP_PTR[0] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	return crypt_out[index][0] & 0xFFFF;
+	return CMP_PTR[0] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	return crypt_out[index][0] & 0xFFFFF;
+	return CMP_PTR[0] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	return crypt_out[index][0] & 0xFFFFFF;
+	return CMP_PTR[0] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	return crypt_out[index][0] & 0x7FFFFFF;
+	return CMP_PTR[0] & 0x7FFFFFF;
 }
 
 static void set_key(char *key, int index)
@@ -206,13 +222,21 @@ static void crypt_all(int count)
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
 #endif
+#ifndef SHA_SPEED_TEST
 	{
 		SHA512_CTX ctx;
-
-		SHA384_Init(&ctx);
-		SHA384_Update(&ctx, saved_key[index], saved_key_length[index]);
-		SHA384_Final((unsigned char *)crypt_out[index], &ctx);
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
+		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
 	}
+#else
+	// Calling OpenSSL with this NULL, stops it from doing byte swapping
+	// and writing any results. We simply use the ctx.h value instead,
+	// AND we have to have our binary in BE format.
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
+	SHA512_Final(NULL, &ctx);
+#endif
 }
 
 static int cmp_all(void *binary, int count)
@@ -221,14 +245,14 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (!memcmp(binary, CMP_PTR, BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, CMP_PTR, BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -236,7 +260,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_rawSHA384 = {
+struct fmt_main fmt_rawSHA512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -287,9 +311,3 @@ struct fmt_main fmt_rawSHA384 = {
 		fmt_default_get_source
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-384 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

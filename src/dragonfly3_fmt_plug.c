@@ -11,11 +11,9 @@
  *
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
+#include "sha2.h"
 
 #include <string.h>
-#include <openssl/sha.h>
 
 #include "arch.h"
 #include "params.h"
@@ -27,24 +25,19 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL_32			"dragonfly4-32"
-#define FORMAT_LABEL_64			"dragonfly4-64"
-#define FORMAT_NAME_32			"DragonFly BSD $4$ SHA-512 w/ bugs, 32-bit"
-#define FORMAT_NAME_64			"DragonFly BSD $4$ SHA-512 w/ bugs, 64-bit"
-#if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
-#else
+#define FORMAT_LABEL_32			"dragonfly3-32"
+#define FORMAT_LABEL_64			"dragonfly3-64"
+#define FORMAT_NAME_32			"DragonFly BSD $3$ SHA-256 w/ bug, 32-bit"
+#define FORMAT_NAME_64			"DragonFly BSD $3$ SHA-256 w/ bug, 64-bit"
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		84
+#define CIPHERTEXT_LENGTH		44
 
-#define BINARY_SIZE			64
-#define USED_BINARY_SIZE		62	// Due to base64 bug in DragonBSD crypt-sha512.c
+#define BINARY_SIZE			32
 #define SALT_SIZE_32			(1+4+8)	// 1st char is length
 #define SALT_SIZE_64			(1+8+8)
 
@@ -52,20 +45,20 @@
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests_32[] = {
-	{"$4$7E48ul$K4u43llx1P184KZBoILl2hnFLBHj6.486TtxWA.EA1pLZuQS7P5k0LQqyEULux47.5vttDbSo/Cbpsez.AUI", "magnum"},
-	{"$4$Hz$5U1s18ntUYE24mF3JN44BYZPN34HBCMw57.Yw2JeKoiBkTVSGBDZEPT325hvR7iw8QYHy9kG7WUW8LCM.6UD", ""},
-	{"$4$W$79ddF.iDXVPcf/uf8bMFl15leilo1GE8C2KnEAWs3isK930rVy1EZZS2veHgU17NRt4qpKTtZRCA.QC7.68j", "password"},
-	{"$4$dw7uRHW$Cs6rbZqAVEEp9dsYOl4w/U84YydqdsEYyxHNvAtd2bcLz2Eem9L7FI/aGD2ayAybmprtYZLq2AtdXBio.cX0", "John the Ripper"},
-	{"$4$2tgCi76D$zy7ms.v1Y8HcsasTaR8n/Ng8GH4dhPv4ozihbM4JMNSJUmw7wVKbcqksefn7nVT.WrN18fV8i1yh7Gmq.cXC", "DragonFly BSD"},
+	{"$3$z$EBG66iBCGfUfENOfqLUH/r9xQxI1cG373/hRop6j.oWs", "magnum"},
+	{"$3$f6daU5$Xf/u8pKp.sb4VCLKz7tTZMUKJ3J4oOfZgUSHYOFL.M0n", ""},
+	{"$3$PNPA2tJ$ppD4bXqPMYFVdYVYrxXGMWeYB6Xv8e6jmXbvrB5V.okl", "password"},
+	{"$3$jWhDSrS$bad..Dy7UAyabPyfrEi3fgQ2qtT.5fE7C5EMNo/n.Qk5", "John the Ripper"},
+	{"$3$SSYEHO$hkuDmUQHT2Tr0.ai.lUVyb9bCC875Up.CZVa6UJZ.Muv", "DragonFly BSD"},
 	{NULL}
 };
 
 static struct fmt_tests tests_64[] = {
-	{"$4$7E48ul$9or6.L/T.iChtPIGY4.vIgdYEmMkTW7Ru4OJxtGJtonCQo.wu3.bS4UPlUc2B8CAfGo1Oi5PgQvfhzNQ.A8v", "magnum"},
-	{"$4$Hz$Mujq0GrjuRtPhcM/0rOfbr2l9fXGfVwKAuL9oL5IH.RnOO1zcgG/S6rSIrebK4g0BEgKGKc0zmWpnk3O..uR", ""},
-	{"$4$W$.eHqh7OeyhVkBG0lCuUFnEShQq3tZt1QOLUx/9vIt3p56rUMCu2w7iQof7HwWa1pJwcBpPG.7KK3Pcce.oFX", "password"},
-	{"$4$dw7uRHW$17b2EzV3m0ziCLQoSKzUElTVgkL7cHXQzZzeeuNnkee/bchs0VHGqzjXrMZtWVfK2OW8.GfHvtZgzqGF.IUZ", "John the Ripper"},
-	{"$4$2tgCi76D$NL8CBWreQkoaVeGVL/a27ZrwYq6M8mlNt.uqc9E9.OiANu6JHdQy2r6J4uAZuD7wKqAQier1YVL7M0IF.gvi", "DragonFly BSD"},
+	{"$3$z$sNV7KLtLxvJRsj2MfBtGZFuzXP3CECITaFq/rvsy.Y.Q", "magnum"},
+	{"$3$f6daU5$eV2SX9vUHTMsoy3Ic7cWiQ4mOxyuyenGjYQWkJmy.AF3", ""},
+	{"$3$PNPA2tJ$GvXjg6zSge3YDh5I35JlYZHoQS2r0/.vn36fQzSY.A0d", "password"},
+	{"$3$jWhDSrS$5yBH7KFPmsg.PhPeDMj1MY4fv9061zdbYumPe2Ve.Y5J", "John the Ripper"},
+	{"$3$SSYEHO$AMYLyanRYs8F2U07FsBrSFuOIygJ4kgqvpBB17BI.61N", "DragonFly BSD"},
 	{NULL}
 };
 
@@ -95,7 +88,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos, *start;
 
-	if (strncmp(ciphertext, "$4$", 3))
+	if (strncmp(ciphertext, "$3$", 3))
 		return 0;
 
 	ciphertext += 3;
@@ -120,8 +113,6 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	out[b2] = value >> 8; \
 	out[b3] = value;
 
-// Don't copy this code without realising it mimics bugs in the original code!
-// We are actually missing the last 16 bits with this implementation.
 static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
@@ -132,15 +123,15 @@ static void *get_binary(char *ciphertext)
 
 	pos = strrchr(ciphertext, '$') + 1;
 
-	for (i = 0; i < 20; i++) {
-		TO_BINARY(i, i + 21, i + 42);
+	for (i = 0; i < 10; i++) {
+		TO_BINARY(i, i + 11, i + 21);
 	}
 	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18);
-	out[20] = value >> 16;
-	out[41] = value >> 8;
+	out[10] = value >> 16;
+	out[31] = value >> 8;
 
 	return (void *)out;
 }
@@ -184,17 +175,17 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		SHA512_CTX ctx;
+		SHA256_CTX ctx;
 
-		SHA512_Init(&ctx);
+		SHA256_Init(&ctx);
 
 		/* First the password */
-		SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
+		SHA256_Update(&ctx, saved_key[index], saved_key_length[index]);
 
-		/* Then the salt, including the $4$ magic */
-		SHA512_Update(&ctx, cur_salt, salt_len);
+		/* Then the salt, including the $3$ magic */
+		SHA256_Update(&ctx, cur_salt, salt_len);
 
-		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
+		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 	}
 }
 
@@ -204,7 +195,7 @@ static void set_salt(void *salt)
 	cur_salt = (char*)salt + 1;
 }
 
-// For 32-bit version of the bug, our magic is "$4$\0"
+// For 32-bit version of the bug, our magic is "$3$\0" len 4
 static void *get_salt_32(char *ciphertext)
 {
 	static char *out;
@@ -213,7 +204,7 @@ static void *get_salt_32(char *ciphertext)
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_32, MEM_ALIGN_WORD);
 
 	ciphertext += 3;
-	strcpy(&out[1], "$4$");
+	strcpy(&out[1], "$3$");
 	for (len = 0; ciphertext[len] != '$'; len++);
 
 	memcpy(&out[5], ciphertext, len);
@@ -222,7 +213,7 @@ static void *get_salt_32(char *ciphertext)
 	return out;
 }
 
-// For 64-bit version of the bug, our magic is "$4$\0/etc"
+// For 64-bit version of the bug, our magic is "$3$\0sha5" len 8
 static void *get_salt_64(char *ciphertext)
 {
 	static char *out;
@@ -231,7 +222,7 @@ static void *get_salt_64(char *ciphertext)
 	if (!out) out = mem_alloc_tiny(SALT_SIZE_64, MEM_ALIGN_WORD);
 
 	ciphertext += 3;
-	memcpy(&out[1], "$4$\0/etc", 8);
+	memcpy(&out[1], "$3$\0sha5", 8);
 	for (len = 0; ciphertext[len] != '$'; len++);
 
 	memcpy(&out[9], ciphertext, len);
@@ -246,14 +237,14 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], USED_BINARY_SIZE))
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], USED_BINARY_SIZE);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -274,7 +265,7 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_dragonfly4_32 = {
+struct fmt_main fmt_dragonfly3_32 = {
 	{
 		FORMAT_LABEL_32,
 		FORMAT_NAME_32,
@@ -326,7 +317,7 @@ struct fmt_main fmt_dragonfly4_32 = {
 	}
 };
 
-struct fmt_main fmt_dragonfly4_64 = {
+struct fmt_main fmt_dragonfly3_64 = {
 	{
 		FORMAT_LABEL_64,
 		FORMAT_NAME_64,
@@ -377,9 +368,3 @@ struct fmt_main fmt_dragonfly4_64 = {
 		fmt_default_get_source
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: dragonfly4 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

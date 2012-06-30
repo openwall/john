@@ -4,25 +4,7 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
-
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
+#include "sha2.h"
 
 #include "arch.h"
 #include "params.h"
@@ -34,8 +16,8 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"raw-sha512"
-#define FORMAT_NAME			"Raw SHA-512"
+#define FORMAT_LABEL			"raw-sha384"
+#define FORMAT_NAME			"Raw SHA-384"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME			"64/" ARCH_BITS_STR
 #else
@@ -46,17 +28,17 @@
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		128
+#define CIPHERTEXT_LENGTH		96
 
-#define BINARY_SIZE			64
+#define BINARY_SIZE			48
 #define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
-	{"$SHA512$fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
+	{"a8b64babd0aca91a59bdbb7761b421d4f2bb38280d3a75ba0f21f2bebc45583d446c598660c94ce680c47d19c30783a7", "password"},
+	{"$SHA384$8cafed2235386cc5855e75f0d34f103ccc183912e5f02446b77c66539f776e4bf2bf87339b4518a7cb1c2441c568b0f8", "12345678"},
 	{NULL}
 };
 
@@ -85,7 +67,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$SHA512$", 8))
+	if (!strncmp(p, "$SHA384$", 8))
 		p += 8;
 
 	q = p;
@@ -101,10 +83,10 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$SHA512$", 8))
+	if (!strncmp(ciphertext, "$SHA384$", 8))
 		return ciphertext;
 
-	memcpy(out, "$SHA512$", 8);
+	memcpy(out, "$SHA384$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
@@ -223,9 +205,9 @@ static void crypt_all(int count)
 	{
 		SHA512_CTX ctx;
 
-		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
-		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
+		SHA384_Init(&ctx);
+		SHA384_Update(&ctx, saved_key[index], saved_key_length[index]);
+		SHA384_Final((unsigned char *)crypt_out[index], &ctx);
 	}
 }
 
@@ -250,7 +232,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_rawSHA512 = {
+struct fmt_main fmt_rawSHA384 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -301,9 +283,3 @@ struct fmt_main fmt_rawSHA512 = {
 		fmt_default_get_source
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-512 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

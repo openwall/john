@@ -340,6 +340,7 @@ static MD5Gen_Str_Flag_t MD5Gen_Str_Flag[] =  {
 	{ "MGF_UTF8",                         MGF_UTF8 },
 	{ "MGF_PASSWORD_UPCASE",              MGF_PASSWORD_UPCASE },
 	{ "MGF_PASSWORD_LOCASE",              MGF_PASSWORD_LOCASE },
+	{ "MGF_FULL_CLEAN_REQUIRED",          MGF_FULL_CLEAN_REQUIRED },
 	{ NULL, 0 }};
 
 static MD5Gen_Str_Flag_t MD5Gen_Str_sFlag[] =  {

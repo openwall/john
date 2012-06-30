@@ -900,7 +900,7 @@ static DYNAMIC_Setup Setups[] =
 #else
 	{ "dynamic_14: md5($s.md5($p).$s)",          _Funcs_14,_Preloads_14,_ConstDefault, MGF_SALTED, MGF_KEYS_BASE16_IN1 },
 #endif
-	{ "dynamic_15: md5($u.md5($p).$s)",          _Funcs_15,_Preloads_15,_ConstDefault, MGF_SALTED|MGF_USERNAME|MGF_NOTSSE2Safe, MGF_KEYS_CRYPT_IN2, -26, 32 }, // 26 is 12+12+2 so 24+52 'fits'
+	{ "dynamic_15: md5($u.md5($p).$s)",          _Funcs_15,_Preloads_15,_ConstDefault, MGF_SALTED|MGF_USERNAME|MGF_NOTSSE2Safe|MGF_FULL_CLEAN_REQUIRED, MGF_KEYS_CRYPT_IN2, -26, 32 }, // 26 is 12+12+2 so 24+52 'fits
 	{ "dynamic_16: md5(md5(md5($p).$s).$s2)",    _Funcs_16,_Preloads_16,_ConstDefault, MGF_SALTED|MGF_SALTED2|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1, -26, 32 },
 	{ "dynamic_17: phpass ($P$ or $H$)",         _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38 },
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s)(Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 32 },

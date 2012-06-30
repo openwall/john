@@ -91,20 +91,10 @@ JOHN_OBJS = \
 	rc4.o \
 	hmacmd5.o \
 	base64.o \
-	md4.o \
+	md4.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o \
-	rawSHA224_fmt.o rawSHA256_fmt.o rawSHA384_fmt.o rawSHA512_fmt.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
-	hmacSHA224_fmt.o hmacSHA256_fmt.o hmacSHA384_fmt.o hmacSHA512_fmt.o \
-	episerver_fmt.o keepass_fmt.o pwsafe_fmt.o \
-	XSHA512_fmt.o \
-	hmailserver_fmt.o \
-	dragonfly3_fmt.o \
-	dragonfly4_fmt.o \
-	drupal7_fmt.o \
 	django_fmt.o \
-	cryptsha256_fmt.o cryptsha512_fmt.o \
-	SybaseASE_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o \

@@ -15,29 +15,12 @@
  * Based on [old thick] phpass-md5.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
+#include "sha2.h"
 
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
 
 #define FORMAT_LABEL			"drupal7"
 #define FORMAT_NAME			"Drupal 7 $S$ SHA-512"
@@ -296,9 +279,3 @@ struct fmt_main fmt_drupal7 = {
 		fmt_default_get_source
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: Drupal7 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

@@ -1167,10 +1167,10 @@ key_cleaning2:
 		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
 			len = 55;
 
-		if(index==0) {
+//		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
-			DynamicFunc__clean_input_full();
-		}
+//			DynamicFunc__clean_input_full();
+//		}
 #if MD5_X2
 		if (index & 1)
 			strnzcpy(input_buf_X86[index>>MD5_X2].x2.b2, key, len+1);
@@ -1184,15 +1184,31 @@ key_cleaning2:
 		len = strlen(key);
 		if (len > 55 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
 			len = 55;
-		if(index==0) {
-			DynamicFunc__clean_input();
-		}
+//		if(index==0) {
+//			DynamicFunc__clean_input();
+//		}
 		keys_dirty = 1;
 		strnzcpy(((char*)(saved_key[index])), key, len+1);
 		saved_key_len[index] = len;
 	}
 }
 
+void clear_keys(void) {
+#ifdef MMX_COEF
+	if (curdat.store_keys_in_input) {
+		if (curdat.store_keys_in_input) {
+			if (dynamic_use_sse==1 || dynamic_use_sse==1)
+				return;
+		}
+	}
+	if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED)
+		DynamicFunc__clean_input_full();
+	else
+		DynamicFunc__clean_input_kwik();
+#else
+	DynamicFunc__clean_input_full();
+#endif
+}
 
 /*********************************************************************************
  * Returns the key.  NOTE how it gets it depends upon if we are storing
@@ -2318,7 +2334,7 @@ struct fmt_main fmt_Dynamic =
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
