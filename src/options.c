@@ -265,7 +265,7 @@ static void print_usage(char *name)
 		char *label = formats_list[i++];
 		length = strlen(label) + 1;
 		column += length;
-		if (column > 80) {
+		if (column > 79) { /* silly Redmond Bug[tm] if we use 80 */
 			printf("\n" JOHN_USAGE_INDENT);
 			column = strlen(JOHN_USAGE_INDENT) + length;
 		}
