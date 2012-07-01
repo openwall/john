@@ -220,34 +220,37 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
     return strlen(ciphertext) == SHA1_DIGEST_SIZE * 2;
 }
 
-static void * sha1_fmt_binary(char *ciphertext)
+
+static void * sha1_fmt_binary_full(void *result, char *ciphertext)
 {
     static char byte[3];
     uint8_t    *binary;
 
+    // Convert ascii representation into binary. This routine is not hot, so
+    // it's okay to keep this simple. We copy two digits out of ciphertext at a
+    // time, which can be stored in one byte.
+    for (binary = result; *ciphertext; ciphertext += 2, binary += 1) {
+        *binary = strtoul(memcpy(byte, ciphertext, 2), NULL, 16);
+    }
+
+    return result;
+}
+
+static void * sha1_fmt_binary(char *ciphertext)
+{
     // Static buffer storing the binary representation of ciphertext.
     static uint32_t result[SHA1_DIGEST_WORDS];
 
     // Skip over tag.
-    ciphertext  += strlen(kFormatTag);
-    binary       = (void *)(result);
+    ciphertext += strlen(kFormatTag);
 
-    // Convert ascii representation into binary. This routine is not hot, so
-    // it's okay to keep this simple. We copy two digits out of ciphertext at a
-    // time, which can be stored in one byte.
-    for (; *ciphertext; ciphertext += 2, binary += 1) {
-        *binary = strtoul(memcpy(byte, ciphertext, 2), NULL, 16);
-    }
+    // Convert ascii representation into binary.
+    sha1_fmt_binary_full(result, ciphertext);
 
     // One preprocessing step, if we calculate E80 rol 2 here, we
     // can compare it against A75 and save 5 rounds in crypt_all().
-    result[4] = rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
+    result[3] = result[2] = result[1] = result[0] = rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
 
-    // Now we swap position 4 with position 0, so that the most important
-    // dword is first.
-    result[0] ^= result[4];
-    result[4] ^= result[0];
-    result[0] ^= result[4];
     return result;
 }
 
@@ -547,7 +550,6 @@ static inline int _mm_testz_epi32 (__m128i __X)
 
 static int sha1_fmt_cmp_all(void *binary, int count)
 {
-    int32_t *input  = binary;
     int32_t  result = 0;
     int32_t  i;
     __m128i  B;
@@ -555,7 +557,7 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     // This function is hot, we need to do this quickly. We use PCMP to find
     // out if any of the dwords in A75 matched E in the input hash.
     // First, Load the target hash into an XMM register
-    B = _mm_set1_epi32(*input);
+    B = _mm_loadu_si128(binary);
 
     // We can test these 4 at a time, and we may have many to test. As the
     // common case will be that there is _no_ match, we don't test it after
@@ -610,6 +612,7 @@ static int sha1_fmt_cmp_one(void *binary, int index)
 static int sha1_fmt_cmp_exact(char *source, int index)
 {
     uint32_t full_sha1_digest[SHA1_DIGEST_WORDS];
+    uint32_t orig_sha1_digest[SHA1_DIGEST_WORDS];
     SHA_CTX ctx;
     char *key;
 
@@ -620,14 +623,10 @@ static int sha1_fmt_cmp_exact(char *source, int index)
     SHA1_Update(&ctx, key, strlen(key));
     SHA1_Final((unsigned char *)(full_sha1_digest), &ctx);
 
-    // Remove IV and swap dwords to match the format I generate in binary().
-    full_sha1_digest[4]  = rotateleft(__builtin_bswap32(full_sha1_digest[4]) - 0xC3D2E1F0, 2);
-    full_sha1_digest[0] ^= full_sha1_digest[4];
-    full_sha1_digest[4] ^= full_sha1_digest[0];
-    full_sha1_digest[0] ^= full_sha1_digest[4];
-
     // Compare result.
-    return memcmp(sha1_fmt_binary(source), full_sha1_digest, sizeof full_sha1_digest) == 0;
+    return memcmp(sha1_fmt_binary_full(orig_sha1_digest, source + strlen(kFormatTag)),
+                  full_sha1_digest,
+                  sizeof full_sha1_digest) == 0;
 }
 
 struct fmt_main sha1_fmt_ng = {
@@ -648,7 +647,7 @@ struct fmt_main sha1_fmt_ng = {
         .benchmark_comment  = "",
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,
-        .binary_size        = sizeof(uint32_t),
+        .binary_size        = sizeof(__m128i),
         .salt_size          = 0,
         .min_keys_per_crypt = 1,
         .max_keys_per_crypt = SHA1_PARALLEL_HASH,
