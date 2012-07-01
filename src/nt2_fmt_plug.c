@@ -570,13 +570,18 @@ static int cmp_all(void *binary, int count) {
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
-	unsigned int i,x,y;
-	x = index&(MMX_COEF-1);
-	y = index/MMX_COEF;
-	for(i=0;i<(BINARY_SIZE/4);i++)
+	unsigned int x = index&(MMX_COEF-1);
+	unsigned int y = index/MMX_COEF;
+
+#if BINARY_SIZE < DIGEST_SIZE
+	return ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4];
+#else
+	int i;
+	for(i=0;i<(DIGEST_SIZE/4);i++)
 		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x] )
 			return 0;
 	return 1;
+#endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -588,7 +593,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 #else
 #ifdef MMX_COEF
-	unsigned int i,x,y;
+	unsigned int i, x, y;
 	ARCH_WORD_32 *full_binary;
 
 	full_binary = (ARCH_WORD_32*)binary(source);

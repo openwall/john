@@ -123,7 +123,8 @@
 #define _mm_loadu_si128(x) _mm_loadu_si128((void *)(x))
 #define _mm_store_si128(x, y) _mm_store_si128((void *)(x), (y))
 
-#if !defined(__INTEL_COMPILER) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 4))
+// These compilers claim to be __GNUC__ but warn on gcc pragmas.
+#if !defined(__INTEL_COMPILER) && !defined(__clang__)
 # pragma GCC optimize 3
 # pragma GCC optimize "-fprefetch-loop-arrays"
 #endif
@@ -191,12 +192,14 @@ static inline uint32_t __attribute__((const)) rotateleft(uint32_t value, uint8_t
 
 // GCC < 4.3 does not have __builtin_bswap32(), provide an alternative.
 #if !defined(__INTEL_COMPILER) && GCC_VERSION < 40300
-# define __builtin_bswap32(x) bswap32(x)
+# define __builtin_bswap32 bswap32
 static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
 {
     register uint32_t result;
 
-    asm("bswap %0" : "=r" (result) : "0" (value));
+    asm("bswap %0"
+        : "=r" (result)
+        : "0" (value));
 
     return result;
 }
@@ -217,36 +220,36 @@ static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
     return strlen(ciphertext) == SHA1_DIGEST_SIZE * 2;
 }
 
-static void * sha1_fmt_binary(char *ciphertext)
+
+static void * sha1_fmt_binary_full(void *result, char *ciphertext)
 {
     static char byte[3];
     uint8_t    *binary;
 
+    // Convert ascii representation into binary. This routine is not hot, so
+    // it's okay to keep this simple. We copy two digits out of ciphertext at a
+    // time, which can be stored in one byte.
+    for (binary = result; *ciphertext; ciphertext += 2, binary += 1) {
+        *binary = strtoul(memcpy(byte, ciphertext, 2), NULL, 16);
+    }
+
+    return result;
+}
+
+static void * sha1_fmt_binary(char *ciphertext)
+{
     // Static buffer storing the binary representation of ciphertext.
     static uint32_t result[SHA1_DIGEST_WORDS];
 
     // Skip over tag.
-    ciphertext  += strlen(kFormatTag);
-    binary       = (void *)(result);
+    ciphertext += strlen(kFormatTag);
 
-    // Convert ascii representation into binary. This routine is not hot, so
-    // it's okay to keep this simple. We copy two digits out of ciphertext at a
-    // time, which can be stored in one byte.
-    for (; *ciphertext; ciphertext += 2, binary += 1) {
-        *binary = strtoul(memcpy(byte, ciphertext, 2), NULL, 16);
-    }
+    // Convert ascii representation into binary.
+    sha1_fmt_binary_full(result, ciphertext);
 
-    // Now subtract the SHA-1 IV, returning this hash to the R80 state. This
-    // means we save 4 SIMD additions for every crypt(), because we don't have
-    // to do it there.
-    result[0] = __builtin_bswap32(result[0]) - 0x67452301;
-    result[1] = __builtin_bswap32(result[1]) - 0xEFCDAB89;
-    result[2] = __builtin_bswap32(result[2]) - 0x98BADCFE;
-    result[3] = __builtin_bswap32(result[3]) - 0x10325476;
-
-    // One additional preprocessing step, if we calculate E80 rol 2 here, we
-    // can compare it against A75 and save 5 rounds.
-    result[4] = rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
+    // One preprocessing step, if we calculate E80 rol 2 here, we
+    // can compare it against A75 and save 5 rounds in crypt_all().
+    result[3] = result[2] = result[1] = result[0] = rotateleft(__builtin_bswap32(result[4]) - 0xC3D2E1F0, 2);
 
     return result;
 }
@@ -547,7 +550,6 @@ static inline int _mm_testz_epi32 (__m128i __X)
 
 static int sha1_fmt_cmp_all(void *binary, int count)
 {
-    int32_t *input  = binary;
     int32_t  result = 0;
     int32_t  i;
     __m128i  B;
@@ -555,20 +557,11 @@ static int sha1_fmt_cmp_all(void *binary, int count)
     // This function is hot, we need to do this quickly. We use PCMP to find
     // out if any of the dwords in A75 matched E in the input hash.
     // First, Load the target hash into an XMM register
-    // B = 00 11 22 33 44 55 66 77 88 99 aa bb cc dd ee ff
-    B = _mm_loadu_si128(&input[1]);
-
-    // We only test the final dword here, so duplicate it.
-    // B = cc dd ee ff cc dd ee ff cc dd ee ff cc dd ee ff
-    B = _mm_shuffle_epi32(B, _MM_SHUFFLE(3, 3, 3, 3));
+    B = _mm_loadu_si128(binary);
 
     // We can test these 4 at a time, and we may have many to test. As the
     // common case will be that there is _no_ match, we don't test it after
     // every compare, reducing the number of branches.
-    //
-    // This might seem counterintuitive, because if there is a match we could
-    // of finished early, but saving a branch for the common case is a better
-    // choice.
     for (i = 0; i < count; i += 4) {
         __m128i A = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i]));
 
@@ -594,7 +587,7 @@ static int sha1_fmt_get_hash6(int index) { return sha1_fmt_get_hash(index) & 0x0
 
 static inline int sha1_fmt_get_binary(void *binary)
 {
-    return ((uint32_t *)(binary))[4];
+    return *(uint32_t *)(binary);
 }
 
 static int sha1_fmt_binary0(void *binary) { return sha1_fmt_get_binary(binary) & 0x0000000F; }
@@ -619,6 +612,7 @@ static int sha1_fmt_cmp_one(void *binary, int index)
 static int sha1_fmt_cmp_exact(char *source, int index)
 {
     uint32_t full_sha1_digest[SHA1_DIGEST_WORDS];
+    uint32_t orig_sha1_digest[SHA1_DIGEST_WORDS];
     SHA_CTX ctx;
     char *key;
 
@@ -629,15 +623,10 @@ static int sha1_fmt_cmp_exact(char *source, int index)
     SHA1_Update(&ctx, key, strlen(key));
     SHA1_Final((unsigned char *)(full_sha1_digest), &ctx);
 
-    // Remove IV to match the format I generate in binary().
-    full_sha1_digest[0] = __builtin_bswap32(full_sha1_digest[0]) - 0x67452301;
-    full_sha1_digest[1] = __builtin_bswap32(full_sha1_digest[1]) - 0xEFCDAB89;
-    full_sha1_digest[2] = __builtin_bswap32(full_sha1_digest[2]) - 0x98BADCFE;
-    full_sha1_digest[3] = __builtin_bswap32(full_sha1_digest[3]) - 0x10325476;
-    full_sha1_digest[4] = rotateleft(__builtin_bswap32(full_sha1_digest[4]) - 0xC3D2E1F0, 2);
-
     // Compare result.
-    return memcmp(sha1_fmt_binary(source), full_sha1_digest, sizeof full_sha1_digest) == 0;
+    return memcmp(sha1_fmt_binary_full(orig_sha1_digest, source + strlen(kFormatTag)),
+                  full_sha1_digest,
+                  sizeof full_sha1_digest) == 0;
 }
 
 struct fmt_main sha1_fmt_ng = {
@@ -658,9 +647,9 @@ struct fmt_main sha1_fmt_ng = {
         .benchmark_comment  = "",
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,
-        .binary_size        = SHA1_DIGEST_SIZE,
+        .binary_size        = sizeof(__m128i),
         .salt_size          = 0,
-        .min_keys_per_crypt = 4,
+        .min_keys_per_crypt = 1,
         .max_keys_per_crypt = SHA1_PARALLEL_HASH,
         .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
         .tests              = sha1_fmt_tests,
