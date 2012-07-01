@@ -63,7 +63,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
 		Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512 dragonfly3_32
 		dragonfly4_32 saltedsha1 gost gost_cp hmac_sha1 hmac_sha224 hmac_sha256
-		hmac_sha384 hmac_sha512 sha256crypt sha512crypt));
+		hmac_sha384 hmac_sha512 sha256crypt sha512crypt XSHA512));
 		
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -747,43 +747,6 @@ sub _sha_crypts {
 	if ($bits==256) { $tmp .= to64((ord(substr($c,31,1))<<8) | ord(substr($c,30,1)),3); }
 	else            { $tmp .= to64(ord(substr($c,63,1)),2); }
 
-# old code. The above little loop should do the 'same' thing.	
-#	if ($bits == 256) {	
-#		$i = (ord(substr($c,0,1))<<16)  | (ord(substr($c,10,1))<<8) | ord(substr($c,20,1)); $tmp  = to64($i,4);
-#		$i = (ord(substr($c,21,1))<<16) | (ord(substr($c,1,1))<<8)  | ord(substr($c,11,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,12,1))<<16) | (ord(substr($c,22,1))<<8) | ord(substr($c,2,1));  $tmp .= to64($i,4);
-#		$i = (ord(substr($c,3,1))<<16)  | (ord(substr($c,13,1))<<8) | ord(substr($c,23,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,24,1))<<16) | (ord(substr($c,4,1))<<8)  | ord(substr($c,14,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,15,1))<<16) | (ord(substr($c,25,1))<<8) | ord(substr($c,5,1));  $tmp .= to64($i,4);
-#		$i = (ord(substr($c,6,1))<<16)  | (ord(substr($c,16,1))<<8) | ord(substr($c,26,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,27,1))<<16) | (ord(substr($c,7,1))<<8)  | ord(substr($c,17,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,18,1))<<16) | (ord(substr($c,28,1))<<8) | ord(substr($c,8,1));  $tmp .= to64($i,4);
-#		$i = (ord(substr($c,9,1))<<16)  | (ord(substr($c,19,1))<<8) | ord(substr($c,29,1)); $tmp .= to64($i,4);
-#		$i =                             (ord(substr($c,31,1))<<8)  | ord(substr($c,30,1)); $tmp .= to64($i,3);
-#	} elsif ($bits == 512) {
-#		$i = (ord(substr($c,0,1))<<16)  | (ord(substr($c,21,1))<<8) | ord(substr($c,42,1)); $tmp  = to64($i,4);
-#		$i = (ord(substr($c,22,1))<<16) | (ord(substr($c,43,1))<<8) | ord(substr($c,1,1));  $tmp .= to64($i,4);
-#		$i = (ord(substr($c,44,1))<<16) | (ord(substr($c,2,1))<<8)  | ord(substr($c,23,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,3,1))<<16)  | (ord(substr($c,24,1))<<8) | ord(substr($c,45,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,25,1))<<16) | (ord(substr($c,46,1))<<8) | ord(substr($c,4,1));  $tmp .= to64($i,4);
-#		$i = (ord(substr($c,47,1))<<16) | (ord(substr($c,5,1))<<8)  | ord(substr($c,26,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,6,1))<<16)  | (ord(substr($c,27,1))<<8) | ord(substr($c,48,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,28,1))<<16) | (ord(substr($c,49,1))<<8) | ord(substr($c,7,1));  $tmp .= to64($i,4);
-#		$i = (ord(substr($c,50,1))<<16) | (ord(substr($c,8,1))<<8)  | ord(substr($c,29,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,9,1))<<16)  | (ord(substr($c,30,1))<<8) | ord(substr($c,51,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,31,1))<<16) | (ord(substr($c,52,1))<<8) | ord(substr($c,10,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,53,1))<<16) | (ord(substr($c,11,1))<<8) | ord(substr($c,32,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,12,1))<<16) | (ord(substr($c,33,1))<<8) | ord(substr($c,54,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,34,1))<<16) | (ord(substr($c,55,1))<<8) | ord(substr($c,13,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,56,1))<<16) | (ord(substr($c,14,1))<<8) | ord(substr($c,35,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,15,1))<<16) | (ord(substr($c,36,1))<<8) | ord(substr($c,57,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,37,1))<<16) | (ord(substr($c,58,1))<<8) | ord(substr($c,16,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,59,1))<<16) | (ord(substr($c,17,1))<<8) | ord(substr($c,38,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,18,1))<<16) | (ord(substr($c,39,1))<<8) | ord(substr($c,60,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,40,1))<<16) | (ord(substr($c,61,1))<<8) | ord(substr($c,19,1)); $tmp .= to64($i,4);
-#		$i = (ord(substr($c,62,1))<<16) | (ord(substr($c,20,1))<<8) | ord(substr($c,41,1)); $tmp .= to64($i,4);
-#		$i =                                                          ord(substr($c,63,1)); $tmp .= to64($i,2);
-#	}
 	return $tmp;
 }
 sub sha256crypt {
@@ -803,6 +766,18 @@ sub sha512crypt {
 	}
 	my $bin = _sha_crypts(\&sha512, 512, $_[0], $salt);
 	print "u$u-sha512crypt:\$6\$$salt\$$bin:$u:0:$_[0]::\n";
+}
+sub xsha512 {
+# simple 4 byte salted crypt.  No seperator char, just raw hash. Also 'may' have $LION$.  We altenate, and every other 
+# hash get $LION$ (all even ones)
+	if (defined $argsalt) {
+		$salt = $argsalt;
+	} else {
+		$salt=randstr(4);
+	}
+	print "u$u-XSHA512:";
+	if ($u&1) { print ("\$LION\$"); }
+	print "" . unpack("H*", $salt) . sha512_hex($salt . $_[0]) . ":$u:0:$_[0]::\n";
 }
 sub mskrb5 {
 	my $password = shift;
