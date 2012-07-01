@@ -137,7 +137,6 @@ void sha512_block(sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-
 void insert_to_buffer(sha512_ctx    * ctx,
                       const uint8_t * string,
                       const uint32_t len) {
@@ -254,21 +253,18 @@ void sha512_digest(sha512_ctx * ctx,
         result[i] = SWAP64(ctx->H[i]);
 }
 
-void sha512crypt(__global   sha512_salt     * salt_data,
-                 __global   sha512_password * pass_data,
-                 __global   sha512_hash     * output) {
+void sha512_prepare(__global   sha512_salt     * salt_data,
+                    __global   sha512_password * pass_data,
+                               sha512_buffer   * fast_tmp_memory) {
 
 #define pass        pass_data->pass->mem_08
 #define passlen     pass_data->length
 #define salt        salt_data->salt->mem_08
 #define saltlen     salt_data->length
-#define rounds      salt_data->rounds
-#define alt_result  fast_tmp_memory.alt_result
-#define temp_result fast_tmp_memory.temp_result
-#define p_sequence  fast_tmp_memory.p_sequence
-#define ctx         fast_tmp_memory.ctx_data
-
-    working_memory fast_tmp_memory;
+#define alt_result  fast_tmp_memory->alt_result
+#define temp_result fast_tmp_memory->temp_result
+#define p_sequence  fast_tmp_memory->p_sequence
+#define ctx         fast_tmp_memory->ctx_data
 
     init_ctx(&ctx);
 
@@ -306,14 +302,24 @@ void sha512crypt(__global   sha512_salt     * salt_data,
 
     /* Finish the digest.  */
     sha512_digest(&ctx, temp_result->mem_64);
+}
+#undef salt
+#undef pass
+#undef saltlen
+#undef passlen
 
-    /* Repeatedly run the collected hash value through SHA512 to
-       burn CPU cycles.  */
+void sha512_crypt(__global   sha512_salt     * salt_data,
+                  __global   sha512_password * pass_data,
+                             sha512_buffer   * fast_tmp_memory,
+                  const uint32_t saltlen, const uint32_t passlen,
+                  const uint32_t rounds) {
+
+    /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = 0; i < rounds; i++) {
         init_ctx(&ctx);
 
         ctx_update(&ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
-                         ((i & 1) ? passlen : 64));
+                         ((i & 1) ? passlen : 64U));
 
         if (i % 3)
             ctx_update(&ctx, temp_result->mem_08, saltlen);
@@ -322,27 +328,107 @@ void sha512crypt(__global   sha512_salt     * salt_data,
             ctx_update(&ctx, p_sequence->mem_08, passlen);
 
         ctx_update(&ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
-                         ((i & 1) ? 64 :                 passlen));
+                         ((i & 1) ? 64U :                passlen));
         sha512_digest(&ctx, alt_result->mem_64);
     }
-    //Send results to the host.
-    #pragma unroll
-    for (int i = 0; i < 8; i++)
-        output->v[i] = alt_result[i].mem_64[0];
 }
-#undef salt
-#undef saltlen
-#undef rounds
-#undef pass
+
+void sha512_crypt_turbo(__global   sha512_salt     * salt_data,
+                        __global   sha512_password * pass_data,
+                                   sha512_buffer   * fast_tmp_memory,
+                        __constant int             * modulus,
+                        const uint32_t saltlen, const uint32_t passlen,
+                        const uint32_t rounds) {
+
+
+    /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
+    for (uint32_t i = 0; i < rounds; i++) {
+        //Set: 0
+        init_ctx(&ctx);
+        ctx_update(&ctx, alt_result->mem_08, 64U);
+
+        if (modulus[i] & MOD_3_0)
+            ctx_update(&ctx, temp_result->mem_08, saltlen);
+
+        if (modulus[i] & MOD_7_0)
+            ctx_update(&ctx, p_sequence->mem_08, passlen);
+
+        ctx_update(&ctx, p_sequence->mem_08, passlen);
+        sha512_digest(&ctx, alt_result->mem_64);
+
+        //Set: 1
+        init_ctx(&ctx);
+        ctx_update(&ctx, p_sequence->mem_08, passlen);
+
+        if (modulus[i] & MOD_3_1)
+            ctx_update(&ctx, temp_result->mem_08, saltlen);
+
+        if (modulus[i] & MOD_7_1)
+            ctx_update(&ctx, p_sequence->mem_08, passlen);
+
+        ctx_update(&ctx, alt_result->mem_08, 64U);
+        sha512_digest(&ctx, alt_result->mem_64);
+
+        //Set: 2
+        init_ctx(&ctx);
+        ctx_update(&ctx, alt_result->mem_08, 64U);
+
+        if (modulus[i] & MOD_3_2)
+            ctx_update(&ctx, temp_result->mem_08, saltlen);
+
+        if (modulus[i] & MOD_7_2)
+            ctx_update(&ctx, p_sequence->mem_08, passlen);
+
+        ctx_update(&ctx, p_sequence->mem_08, passlen);
+        sha512_digest(&ctx, alt_result->mem_64);
+
+        //Set: 3
+        init_ctx(&ctx);
+        ctx_update(&ctx, p_sequence->mem_08, passlen);
+
+        if (modulus[i] & MOD_3_3)
+            ctx_update(&ctx, temp_result->mem_08, saltlen);
+
+        if (modulus[i] & MOD_7_3)
+            ctx_update(&ctx, p_sequence->mem_08, passlen);
+
+        ctx_update(&ctx, alt_result->mem_08, 64U);
+        sha512_digest(&ctx, alt_result->mem_64);
+    }
+}
+#undef alt_result
+#undef temp_result
+#undef p_sequence
+#undef ctx
 
 __kernel
-void kernel_crypt(__global   sha512_salt     * informed_salt,
+void kernel_crypt(__global   sha512_salt     * salt,
                   __global   sha512_password * pass_data,
-                  __global   sha512_hash     * out_buffer) {
+                  __global   sha512_hash     * out_buffer,
+                  __constant int             * modulus) {
+
+    bool traditional;
+
+    //Compute buffers (on CPU, better private)
+    sha512_buffer buffers;
 
     //Get the task to be done
     uint32_t gid = get_global_id(0);
 
     //Do the job
-    sha512crypt(informed_salt,  &pass_data[gid], &out_buffer[gid]);
+    sha512_prepare(salt, &pass_data[gid], &buffers);
+    traditional = ((salt->rounds > ROUNDS_DEFAULT) || (salt->rounds % 4));
+
+    if (traditional)
+        sha512_crypt(salt, &pass_data[gid], &buffers,
+                     salt->length, pass_data[gid].length, salt->rounds);
+    else
+        sha512_crypt_turbo(salt, &pass_data[gid], &buffers,
+                           modulus, salt->length, pass_data[gid].length, 
+                           salt->rounds / 4);
+
+    //Send results to the host.
+    #pragma unroll
+    for (int i = 0; i < 8; i++)
+        out_buffer[gid].v[i] = buffers.alt_result[i].mem_64[0];
 }

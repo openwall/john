@@ -29,16 +29,21 @@
 #define GWS_CONFIG			"cryptsha512_GWS"
 
 static sha512_salt         salt;
-static sha512_password     *plaintext;        // plaintext ciphertexts
-static sha512_hash         *calculated_hash;  // calculated hashes
+static sha512_password     * plaintext;             // plaintext ciphertexts
+static sha512_hash         * calculated_hash;       // calculated hashes
+static int                 modulus[ROUNDS_CACHE];   // modulus value.
+static int                 fast_mode = FALSE;
+static int                 batch_mode, batch_size;
 
 cl_mem salt_buffer;        //Salt information.
 cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Hash keys (output)
+cl_mem hash_buffer;        //Hash keys (output).
+cl_mem mod_buffer;         //Pre computed modulus value.
+cl_mem work_buffer;        //Temporary memory         
 cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
-cl_kernel crypt_kernel;
+cl_kernel prepare_kernel, crypt_kernel;
 
 //TODO: move to common-opencl? local_work_size is there.
 static size_t global_work_size;
@@ -66,28 +71,31 @@ static struct fmt_tests tests[] = {
  ***/ 
 
 /* ------- Helper functions ------- */
-unsigned int get_task_max_work_group_size(){
-    unsigned int max_available;
+unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
+
+    return (dividend / divisor) * divisor;
+}
+
+size_t get_task_max_work_group_size(){
+    size_t max_available;
 
     if (gpu_amd(device_info[gpu_id]))
-        max_available = (get_local_memory_size(gpu_id) -
-                sizeof(sha512_salt)) /
-                sizeof(working_memory);
+        max_available = get_local_memory_size(gpu_id) /
+                (sizeof(sha512_password) + sizeof(sha512_ctx));///TODO: use all localmemory
     else if (gpu_nvidia(device_info[gpu_id]))
-        max_available = (get_local_memory_size(gpu_id) -
-                sizeof(sha512_salt)) /
+        max_available = get_local_memory_size(gpu_id) /
                 sizeof(sha512_password);
     else
         max_available = get_max_work_group_size(gpu_id);
-                
+
     if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
         return get_current_work_group_size(gpu_id, crypt_kernel);
 
     return max_available;
 }
 
-unsigned int get_task_max_size(){
-    unsigned int max_available;
+size_t get_task_max_size(){
+    size_t max_available;
     max_available = get_max_compute_units(gpu_id);
 
     if (cpu(device_info[gpu_id]))
@@ -96,13 +104,25 @@ unsigned int get_task_max_size(){
     return max_available * KEYS_PER_CORE_GPU;
 }
 
-size_t get_default_workgroup(){
+size_t get_safe_workgroup(){
 
     if (cpu(device_info[gpu_id]))
         return 1;
 
     else
         return 32;
+}
+
+size_t get_default_workgroup(){ ///TODO: fast mode
+    size_t max_available;
+    max_available = get_task_max_work_group_size();
+
+    if (gpu_nvidia(device_info[gpu_id])) {
+        global_work_size = get_multiple(global_work_size, max_available);
+        return max_available;
+
+    } else 
+        return get_safe_workgroup();
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -130,7 +150,7 @@ static void create_clobj(int gws) {
     // create arguments (buffers)
     salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
             sizeof(sha512_salt), NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
+    HANDLE_CLERROR(ret_code, "Error creating salt_buffer out argument");
 
     pass_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
             sizeof(sha512_password) * gws, NULL, &ret_code);
@@ -140,6 +160,18 @@ static void create_clobj(int gws) {
             sizeof(sha512_hash) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
+    work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, ///TODO: um dos dois esta errado
+            sizeof(sha512_buffer) * gws, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+    
+    mod_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+            sizeof(int) * ROUNDS_CACHE, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument mod_buffer");
+
+    work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
+            sizeof(sha512_buffers) * gws, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument work_buffer");
+         
     //Set kernel arguments
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof (cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -147,22 +179,41 @@ static void create_clobj(int gws) {
             (void *) &pass_buffer), "Error setting argument 1");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof (cl_mem),
+            (void *) &mod_buffer), "Error setting argument 3");
 
-    if (gpu_amd(device_info[gpu_id])) {
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
-           sizeof (sha512_salt),
-           NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
-           sizeof (working_memory) * local_work_size,
+    if (batch_mode) {
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof (cl_mem),
+            (void *) &work_buffer), "Error setting argument 4");
+
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof (cl_mem),
+            (void *) &salt_buffer), "Error setting argument 0");
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof (cl_mem),
+            (void *) &pass_buffer), "Error setting argument 1");
+
+        
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,   //Fast working memory.
+           sizeof (sha512_cache) * local_work_size,
            NULL), "Error setting argument 4");
-
-    } else if (gpu_nvidia(device_info[gpu_id])) {
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   //Fast working memory.
-           sizeof (sha512_salt),
-           NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5, sizeof (cl_mem),
+            (void *) &work_buffer), "Error setting argument 5");         
+    }
+    ///TODO: criar if gpu
+    if (gpu_amd(device_info[gpu_id])) {
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
            sizeof (sha512_password) * local_work_size,
-           NULL), "Error setting argument 4");                
+           NULL), "Error setting argument 5");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
+           sizeof (sha512_ctx) * local_work_size,
+           NULL), "Error setting argument 6");
+
+    } else if (gpu_nvidia(device_info[gpu_id])) {        
+        
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
+           sizeof (sha512_password) * local_work_size,
+           NULL), "Error setting argument 4");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     memset(&salt, '\0', sizeof(sha512_salt));
@@ -175,7 +226,6 @@ static void release_clobj(void) {
     ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
             calculated_hash, 0, NULL, NULL);
     HANDLE_CLERROR(ret_code, "Error Ummapping out_hashes");
-
     ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
             plaintext, 0, NULL, NULL);
     HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
@@ -186,10 +236,13 @@ static void release_clobj(void) {
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(hash_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-
+    ret_code = clReleaseMemObject(mod_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing mod_buffer");
+    ret_code = clReleaseMemObject(work_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing work_buffer");
+         
     ret_code = clReleaseMemObject(pinned_saved_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
-
     ret_code = clReleaseMemObject(pinned_partial_hashes);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
 }
@@ -306,8 +359,11 @@ static void find_best_workgroup(void) {
             sizeof (sha512_password) * global_work_size,
             plaintext, 0, NULL, NULL),
             "Failed in clEnqueueWriteBuffer II");
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mod_buffer, CL_TRUE, 0,
+            sizeof(int) * ROUNDS_CACHE, modulus, 0, NULL, NULL),
+            "failed in clEnqueueWriteBuffer mod_buffer");
 
-    my_work_group = get_default_workgroup();
+    my_work_group = get_safe_workgroup();
 
     // Find minimum time
     for (; (int) my_work_group <= (int) max_group_size;
@@ -416,6 +472,11 @@ static void find_best_gws(void) {
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
                 sizeof (sha512_password) * num, plaintext, 0, NULL, NULL),
                 "Failed in clEnqueueWriteBuffer II");
+	
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mod_buffer, CL_FALSE, 0,
+                sizeof(int) * ROUNDS_CACHE, modulus, 0, NULL, NULL),
+                "failed in clEnqueueWriteBuffer mod_buffer");
+
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
                 1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
         HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
@@ -446,7 +507,7 @@ static void find_best_gws(void) {
             min_time = run_time;
 
         if (do_benchmark) {
-            fprintf(stderr, "gws: %6zu\t%4lu c/s%14u rounds/s%8.3f sec per crypt_all()",
+            fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
@@ -478,37 +539,58 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    char *tmp_value;
-    uint64_t startTime, runtime;
+    int i, source_in_use = DEFAULT;
+    char * tmp_value;
     char * task;
+    uint64_t startTime, runtime;
 
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
 
-    if (cpu(device_info[gpu_id]))
+    if ((tmp_value = getenv("TYPE")))
+        source_in_use = atoi(tmp_value);
+    ///TODO: ter um novo default, tratar fast, source_in_use é local
+    if ((cpu(device_info[gpu_id]) && source_in_use == DEFAULT) ||
+         cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
 
     else {
         printf("Building the kernel, this could take a while\n");
 
-        if (gpu_nvidia(device_info[gpu_id]))
+        if ((gpu_nvidia(device_info[gpu_id]) && source_in_use == 0) || 
+             gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
+    printf("Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
+    if (source_in_use != DEFAULT)
+        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
+    
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
 
+    if (source_in_use != DEFAULT)
+        device_info[gpu_id] = source_in_use;
+            
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
         printf("Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
 
+    // create kernel(s) to execute
+    if (batch_mode) {
+        prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating kernel prepare. Double-check kernel name?");
+       
+        crypt_kernel = clCreateKernel(program[gpu_id], "kernel_phase", &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");       
+    
+    } else {
+        crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+    }
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
-
-    // create kernel to execute
-    crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
@@ -519,7 +601,7 @@ static void init(struct fmt_main *pFmt) {
 
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
-        printf("Error: invalid local work size (LWS). Max value allowed is: %u\n" ,
+        printf("Error: invalid local work size (LWS). Max value allowed is: %Zd\n" ,
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
@@ -547,9 +629,29 @@ static void init(struct fmt_main *pFmt) {
         create_clobj(global_work_size);
         find_best_gws();
     }
-    printf("Local work size (LWS) %d, global work size (GWS) %Zd\n",
-           (int) local_work_size, global_work_size);
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    printf("Local work size (LWS) %Zd, global work size (GWS) %Zd\n",
+           local_work_size, global_work_size);
+    pFmt->params.max_keys_per_crypt = global_work_size;         
+    
+    //Pre compute modulus values.
+    for (i = 0; i < ROUNDS_CACHE; i++) {
+        //Set: 0
+        modulus[i]  = ((i*4) % 3) ? MOD_3_0 : 0;
+        modulus[i] += ((i*4) % 7) ? MOD_7_0 : 0;
+
+        //Set: 1
+        modulus[i] += ((i*4+1) % 3) ? MOD_3_1 : 0;
+        modulus[i] += ((i*4+1) % 7) ? MOD_7_1 : 0;
+        
+        //Set: 2
+        modulus[i] += ((i*4+2) % 3) ? MOD_3_2 : 0;
+        modulus[i] += ((i*4+2) % 7) ? MOD_7_2 : 0;
+        
+        //Set: 3
+        modulus[i] += ((i*4+3) % 3) ? MOD_3_3 : 0;
+        modulus[i] += ((i*4+3) % 7) ? MOD_7_3 : 0;          
+    }
+    new_salt = 1;
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
@@ -578,48 +680,48 @@ static int valid(char *ciphertext, struct fmt_main *pFmt) {
 
 /* ------- To binary functions ------- */
 #define TO_BINARY(b1, b2, b3) \
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
-	pos += 4; \
-	out[b1] = value >> 16; \
-	out[b2] = value >> 8; \
-	out[b3] = value;
+    value =  (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] | \
+            ((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) | \
+            ((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12) | \
+            ((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[3])] << 18); \
+    pos += 4; \
+    out[b1] = value >> 16; \
+    out[b2] = value >> 8; \
+    out[b3] = value;
 
 static void * get_binary(char *ciphertext) {
-	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
-	ARCH_WORD_32 value;
-	char *pos;
-	unsigned char *out = (unsigned char*)outbuf;
+    static ARCH_WORD_32 outbuf[BINARY_SIZE / 4];
+    ARCH_WORD_32 value;
+    char *pos;
+    unsigned char *out = (unsigned char*) outbuf;
 
-	pos = strrchr(ciphertext, '$') + 1;
+    pos = strrchr(ciphertext, '$') + 1;
 
-	TO_BINARY(0, 21, 42);
-	TO_BINARY(22, 43, 1);
-	TO_BINARY(44, 2, 23);
-	TO_BINARY(3, 24, 45);
-	TO_BINARY(25, 46, 4);
-	TO_BINARY(47, 5, 26);
-	TO_BINARY(6, 27, 48);
-	TO_BINARY(28, 49, 7);
-	TO_BINARY(50, 8, 29);
-	TO_BINARY(9, 30, 51);
-	TO_BINARY(31, 52, 10);
-	TO_BINARY(53, 11, 32);
-	TO_BINARY(12, 33, 54);
-	TO_BINARY(34, 55, 13);
-	TO_BINARY(56, 14, 35);
-	TO_BINARY(15, 36, 57);
-	TO_BINARY(37, 58, 16);
-	TO_BINARY(59, 17, 38);
-	TO_BINARY(18, 39, 60);
-	TO_BINARY(40, 61, 19);
-	TO_BINARY(62, 20, 41);
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
-	out[63] = value; \
+    TO_BINARY(0, 21, 42);
+    TO_BINARY(22, 43, 1);
+    TO_BINARY(44, 2, 23);
+    TO_BINARY(3, 24, 45);
+    TO_BINARY(25, 46, 4);
+    TO_BINARY(47, 5, 26);
+    TO_BINARY(6, 27, 48);
+    TO_BINARY(28, 49, 7);
+    TO_BINARY(50, 8, 29);
+    TO_BINARY(9, 30, 51);
+    TO_BINARY(31, 52, 10);
+    TO_BINARY(53, 11, 32);
+    TO_BINARY(12, 33, 54);
+    TO_BINARY(34, 55, 13);
+    TO_BINARY(56, 14, 35);
+    TO_BINARY(15, 36, 57);
+    TO_BINARY(37, 58, 16);
+    TO_BINARY(59, 17, 38);
+    TO_BINARY(18, 39, 60);
+    TO_BINARY(40, 61, 19);
+    TO_BINARY(62, 20, 41);
+    value =  (ARCH_WORD_32) atoi64[ARCH_INDEX(pos[0])] |
+            ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[1])] << 6) |
+            ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[2])] << 12);
+    out[63] = value; \
 	return (void *) out;
 }
 
@@ -651,17 +753,37 @@ static int cmp_exact(char *source, int count) {
 
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
-    //Send data to the dispositive
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
+    int i;
+    
+    //Send data to device.
+    if (new_salt)
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
             sizeof (sha512_salt), &salt, 0, NULL, NULL),
-            "failed in clEnqueueWriteBuffer data_info");
+            "failed in clEnqueueWriteBuffer salt_buffer");
+
     if (new_keys)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
                 sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
-                "failed in clEnqueueWriteBuffer buffer_in");
+                "failed in clEnqueueWriteBuffer pass_buffer");
+
+    if (new_salt)
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mod_buffer, CL_FALSE, 0,
+            sizeof(int) * ROUNDS_CACHE, modulus, 0, NULL, NULL),
+            "failed in clEnqueueWriteBuffer mod_buffer");
 
     //Enqueue the kernel
-    HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
+    if (batch_mode) {
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
+            &max_keys_per_crypt, &local_work_size, 0, NULL, NULL),
+            "failed in clEnqueueNDRangeKernel prepare_kernel");
+
+        for (i = 0; i < salt.rounds; i += batch_size)
+            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
+                &max_keys_per_crypt, &local_work_size, 0, NULL, NULL),
+                "failed in clEnqueueNDRangeKernel");        
+        
+    } else
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
@@ -673,6 +795,7 @@ static void crypt_all(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
     new_keys = 0;
+    new_salt = 0;
 }
 
 /* ------- Binary Hash functions group ------- */

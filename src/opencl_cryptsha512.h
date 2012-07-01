@@ -27,6 +27,7 @@
 #define AMD_GCN                 1024
 #define AMD_VLIW4               2048
 #define AMD_VLIW5               4096
+#define BYTE_ADDRESSABLE        8192
 
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
@@ -38,6 +39,7 @@
 #define amd_gcn(n)              ((n & AMD_GCN) && gpu_amd(n))
 #define amd_vliw4(n)            ((n & AMD_VLIW4) && gpu_amd(n))
 #define amd_vliw5(n)            ((n & AMD_VLIW5) && gpu_amd(n))
+#define no_byte_addressable(n)  (n & BYTE_ADDRESSABLE)
 
 //Type names definition.
 #define uint8_t  unsigned char
@@ -50,7 +52,10 @@
 #define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Constants.
+#define DEFAULT                 0
+#define FALSE                   0
 #define ROUNDS_DEFAULT          5000
+#define ROUNDS_CACHE            ROUNDS_DEFAULT / 4
 #define ROUNDS_MIN              1000
 #define ROUNDS_MAX              999999999
 
@@ -61,6 +66,14 @@
 #define BINARY_SIZE             (3+16+86)       //TODO: Magic number?
 #define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
+#define MOD_3_0                 1
+#define MOD_7_0                 2
+#define MOD_3_1                 4
+#define MOD_7_1                 8
+#define MOD_3_2                 16
+#define MOD_7_2                 32
+#define MOD_3_3                 64
+#define MOD_7_3                 128
 
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       512
@@ -145,16 +158,14 @@ typedef struct {
 
 typedef struct {
     sha512_ctx                  ctx_data;
-    sha512_password             pass_data;
-    buffer_64                   alt_result[8];
-    buffer_64                   temp_result[8];
-    buffer_64                   p_sequence[8];
-} working_memory;
-
-typedef struct {
-    sha512_ctx                  ctx_data;
     buffer_64                   alt_result[8];
     buffer_64                   temp_result[8];
     buffer_64                   p_sequence[8];
 } sha512_buffer;
+
+typedef struct {
+    buffer_64                   alt_result[8];
+    buffer_64                   temp_result[8];
+    buffer_64                   p_sequence[8];
+} sha512_buffers;
 #endif
