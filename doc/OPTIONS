@@ -320,7 +320,11 @@ The different variants of list externals may be worth mentioning:
 --list=format-all-details list all the suported formats and their attributes
                           in the same sequence as with --list=format-details,
                           but in a more descriptive form readable by humans
-
+--list=format-methods[:WHICH]
+                          list all methods which are NOT default for each
+                          format.  If 'WHICH' is set, then this listing
+                          will ONLY be formats which have the 'WHICH' format
+                          overridden.
 
 --regen-lost-salts=N	Try to find password AND salt in a set of raw hashes.
 
