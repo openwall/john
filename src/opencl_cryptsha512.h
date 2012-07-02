@@ -27,7 +27,7 @@
 #define AMD_GCN                 1024
 #define AMD_VLIW4               2048
 #define AMD_VLIW5               4096
-#define BYTE_ADDRESSABLE        8192
+#define NO_BYTE_ADDRESSABLE     8192
 
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
@@ -39,7 +39,7 @@
 #define amd_gcn(n)              ((n & AMD_GCN) && gpu_amd(n))
 #define amd_vliw4(n)            ((n & AMD_VLIW4) && gpu_amd(n))
 #define amd_vliw5(n)            ((n & AMD_VLIW5) && gpu_amd(n))
-#define no_byte_addressable(n)  (n & BYTE_ADDRESSABLE)
+#define no_byte_addressable(n)  (n & NO_BYTE_ADDRESSABLE)
 
 //Type names definition.
 #define uint8_t  unsigned char

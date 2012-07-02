@@ -114,7 +114,7 @@ size_t get_safe_workgroup(){
         return 32;
 }
 
-size_t get_default_workgroup(){ ///TODO: fast mode
+size_t get_default_workgroup(){
     size_t max_available;
     max_available = get_task_max_work_group_size();
 
@@ -557,13 +557,12 @@ static void init(struct fmt_main *pFmt) {
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
     else {
         printf("Building the kernel, this could take a while\n");
-
+        task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
+        
         if (gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
-        else 
-            task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";        
     }task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";     
     printf("Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
     fflush(stdout);
