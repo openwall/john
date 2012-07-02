@@ -52,7 +52,6 @@
 #define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Constants.
-#define DEFAULT                 0
 #define FALSE                   0
 #define ROUNDS_DEFAULT          5000
 #define ROUNDS_CACHE            ROUNDS_DEFAULT / 4

@@ -535,7 +535,7 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    int i, source_in_use = DEFAULT;
+    int i, source_in_use = device_info[gpu_id];
     char * tmp_value;
     char * task;
     uint64_t startTime, runtime;
@@ -546,25 +546,24 @@ static void init(struct fmt_main *pFmt) {
     ///TODO: ter um novo default, tratar fast
     if ((tmp_value = getenv("TYPE")))
         source_in_use = atoi(tmp_value);
-    
-    if ((cpu(device_info[gpu_id]) && source_in_use == DEFAULT) ||
-         cpu(source_in_use))
+        
+    if (cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
-
     else {
         printf("Building the kernel, this could take a while\n");
 
-        if ((gpu_nvidia(device_info[gpu_id]) && source_in_use == 0) || 
-             gpu_nvidia(source_in_use))
+        if (gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-        else
+        else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
+        else 
+            task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";        
     }
     printf("Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
 
-    if (source_in_use != DEFAULT) {
+    if (source_in_use != device_info[gpu_id]) {
         device_info[gpu_id] = source_in_use;
         printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
     }
