@@ -187,7 +187,6 @@ static void create_clobj(int gws) {
             (void *) &salt_buffer), "Error setting argument 0");
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof (cl_mem),
             (void *) &pass_buffer), "Error setting argument 1");
-
         
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,   //Fast working memory.
            sizeof (sha512_buffers) * local_work_size,
@@ -544,9 +543,10 @@ static void init(struct fmt_main *pFmt) {
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
 
+    ///TODO: ter um novo default, tratar fast
     if ((tmp_value = getenv("TYPE")))
         source_in_use = atoi(tmp_value);
-    ///TODO: ter um novo default, tratar fast, source_in_use é local
+    
     if ((cpu(device_info[gpu_id]) && source_in_use == DEFAULT) ||
          cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
