@@ -802,12 +802,34 @@ examples (this whole list is also found in dynamic.conf).
 #
 ####################################################################
 #
+#   SaltLenX86=# line   (Optional, but required IF the format needs it)
+#
+#################
+#
+#  This is almost never needed.  But if needed to have a different
+#  salt size on non-MMX/SSE builds, then this is how to do it.
+#
+####################################################################
+#
 #   MaxInputLen=# line   (Optional, but required IF the format needs it)
 #
 #################
 #
 #  If a format has a 'max' length of password (such as Cisco PIX has
-#  a max length of 16 byte PW), then this must be set.
+#  a max length of 16 byte PW), then this must be set.  If this is
+#  not set, then the format will have a max password allowed to be
+#  55-abs(saltlen)  (80-abs(saltlen) if not an SSE/MMX build)
+#
+####################################################################
+#
+#   MaxInputLenX86=# line   (Optional, but required IF the format needs it)
+#
+#################
+#
+#  Similar to the SaltLenX86, in that it allows a different password
+#  length to be force set in non-SSE builds.  So if a format should
+#  ONLY have 16 byte passwords, and no salt, then you would need
+#  to set MaxInputLen=16  and have a MaxInputLenX86=16 set also.
 #
 ####################################################################
 #

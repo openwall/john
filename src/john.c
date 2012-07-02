@@ -786,6 +786,7 @@ static void john_init(char *name, int argc, char **argv)
 			printf(" False positives possible       \t%s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
 			printf(" Uses a bitslice implementation \t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case\t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
+			printf(" A $dynamic$ format             \t%s\n", (format->params.flags & FMT_DYNAMIC) ? "yes" : "no");
 #ifdef _OPENMP
 			printf(" Parallelized with OpenMP       \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
 #endif
@@ -795,7 +796,12 @@ static void john_init(char *name, int argc, char **argv)
 			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment);
 			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
 			printf("Binary size                     \t%d\n", format->params.binary_size);
-			printf("Salt size                       \t%d\n", format->params.salt_size);
+			if ( (format->params.flags & FMT_DYNAMIC) && format->params.salt_size) {
+				// salts are handled internally within the format. We want to know the 'real' salt size/
+				// dynamic will alway set params.salt_size to 0 or sizeof a pointer.
+				printf("Salt size                       \t%d\n", dynamic_real_salt_length(format));
+			} else
+				printf("Salt size                       \t%d\n", format->params.salt_size);
 			printf("\n");
 		} while ((format = format->next));
 		exit(0);

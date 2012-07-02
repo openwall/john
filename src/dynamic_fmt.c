@@ -7161,14 +7161,20 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		}
 	}
 
-#ifdef MMX_COEF
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH;
-#else
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH_X86;
-#endif
-
 	if (Setup->MaxInputLen)
 		pFmt->params.plaintext_length = Setup->MaxInputLen;
+	else
+		pFmt->params.plaintext_length = 55 - abs(Setup->SaltLen);
+#ifndef MMX_COEF
+	if (Setup->MaxInputLenX86) {
+		pFmt->params.plaintext_length = Setup->MaxInputLenX86;
+	} else {
+		if (Setup->SaltLenX86)
+			pFmt->params.plaintext_length = 80 - abs(Setup->SaltLenX86);
+		else
+			pFmt->params.plaintext_length = 80 - abs(Setup->SaltLen);
+	}
+#endif
 
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
@@ -7497,6 +7503,9 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 	dynamic_RESET(pFmt);
 
+	// Ok we need to list this as a dynamic format (even for the 'thin' formats)
+	pFmt->params.flags |= FMT_DYNAMIC;
+
 	if (idx < 1000) {
 		if (dynamic_RESERVED_PRELOAD_SETUP(idx, pFmt) != 1)
 			return 0;
@@ -7745,4 +7754,15 @@ static char *HandleCase(char *cp, int caseType)
 			return cp;
 	}
 	return (char*)dest;
+}
+
+int dynamic_real_salt_length(struct fmt_main *pFmt) {
+	if (pFmt->params.flags & FMT_DYNAMIC) {
+		private_subformat_data *pPriv = pFmt->private.data;
+		if (pPriv == NULL || pPriv->pSetup == NULL)
+			return -1;  // not a dynamic format, or called before we have loaded them!!
+		return abs(pPriv->pSetup->SaltLen);
+	}
+	// NOT a dynamic format
+	return -1;
 }

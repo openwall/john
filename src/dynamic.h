@@ -100,12 +100,15 @@ typedef struct DYNAMIC_Setup_t
 	DYNAMIC_Constants *pConstants;
 	unsigned flags;
 	unsigned startFlags;
-	int SaltLen;
-	int MaxInputLen;
+	int SaltLen;			// these are SSE lengths
+	int MaxInputLen;		// SSE length.  If 0, then set to 55-abs(SaltLen)
+	int MaxInputLenX86;		// if zero, then use PW len set to 80-abs(SaltLen) (or 80-abs(SaltLenX86), if it is not 0)
+	int SaltLenX86;			// if zero, then use salt len of SSE
 } DYNAMIC_Setup;
 
 int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
 int dynamic_IS_VALID(int i);
+int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_RESET(struct fmt_main *);
 void dynamic_DISPLAY_ALL_FORMATS();
 

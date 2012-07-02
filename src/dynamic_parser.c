@@ -522,11 +522,23 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return 1;
 		return !fprintf(stderr, "Error, Invalid SaltLen= line:  %s  \n", Line);
 	}
+	if (c == 's' && !strncasecmp(Line, "SaltLenX86=", 11))
+	{
+		if (sscanf(&Line[10], "=%d", &pSetup->SaltLenX86) == 1)
+			return 1;
+		return !fprintf(stderr, "Error, Invalid SaltLenX86= line:  %s  \n", Line);
+	}
 	if (c == 'm' && !strncasecmp(Line, "MaxInputLen=", 12))
 	{
 		if (sscanf(&Line[11], "=%d", &pSetup->MaxInputLen) == 1)
 			return 1;
 		return !fprintf(stderr, "Error, Invalid MaxInputLen= line:  %s  \n", Line);
+	}
+	if (c == 'm' && !strncasecmp(Line, "MaxInputLenX86=", 15))
+	{
+		if (sscanf(&Line[14], "=%d", &pSetup->MaxInputLenX86) == 1)
+			return 1;
+		return !fprintf(stderr, "Error, Invalid MaxInputLenX86= line:  %s  \n", Line);
 	}
 	if (c == 'e' && !strncasecmp(Line, "Expression=", 11))
 	{
@@ -626,7 +638,7 @@ int dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt)
 	nPreloadCnt = 0;
 	nFuncCnt = 0;
 
-	pSetup = mem_alloc_tiny(sizeof(DYNAMIC_Setup), MEM_ALIGN_NONE);
+	pSetup = mem_calloc_tiny(sizeof(DYNAMIC_Setup), MEM_ALIGN_NONE);
 
 	if (!dynamic_LOAD_PARSER_SIGNATURE(which))
 	{
