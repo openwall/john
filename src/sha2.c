@@ -7,11 +7,8 @@
 
 #include <stdio.h>
 #include "arch.h"
+#define FORCE_GENERIC_SHA2
 #include "sha2.h"
-
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-// we are using openssl, and NOT this code.
-#else
 
 #include "params.h"
 #include "common.h"
@@ -525,5 +522,3 @@ void sha512_final(void *_output, sha512_ctx *ctx)
         OUTBE64( ctx->h[7], output, 56 );
     }
 }
-
-#endif

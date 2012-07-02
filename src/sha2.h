@@ -9,12 +9,16 @@
  * use differnt names, (and #defines to map), we run the risk
  * of having multiple defined functions/data.
  *
+ * NOTE, if FORCE_GENERIC_SHA2 is defined before this header is
+ * included, then the generic data_types/functions are used.
+ *
  */
 
 #include <string.h>
 
 #include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
+
+#if OPENSSL_VERSION_NUMBER >= 0x00908000 && !defined(FORCE_GENERIC_SHA2)
 
 #if defined(__APPLE__) && defined(__MACH__)
 #ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
@@ -35,6 +39,8 @@
 #include <openssl/sha.h>
 #endif
 
+#undef GENERIC_SHA2
+
 #else	// OPENSSL_VERSION_NUMBER ! >= 0x00908000
 
 #include "johnswap.h"
@@ -47,6 +53,7 @@
 #include <sys/types.h>
 
 #define SHA2_LIB "generic"
+#define GENERIC_SHA2
 
 // Does sha256 AND sha224. Sha224 is same, but only returns
 // 224 bits, and has a different init IV. Other than that
@@ -56,7 +63,9 @@
 typedef struct
 {
     ARCH_WORD_32 h[8];          // SHA256 state
+	ARCH_WORD_32 Nl,Nh;			// UNUSED but here to be compatible with oSSL
     unsigned char buffer[64];   // current/building data 'block'
+	unsigned int num,md_len;	// UNUSED but here to be compatible with oSSL
     unsigned int total;         // number of bytes processed
     int bIs256;                 // if 1 SHA256, else SHA224
 } sha256_ctx;
