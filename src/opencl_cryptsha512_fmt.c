@@ -81,7 +81,8 @@ size_t get_task_max_work_group_size(){
 
     if (gpu_amd(device_info[gpu_id]))
         max_available = get_local_memory_size(gpu_id) /
-                (sizeof(sha512_password) + sizeof(sha512_ctx));///TODO: use all localmemory
+                (sizeof(sha512_password) + sizeof(sha512_ctx) + 
+                 sizeof(sha512_buffers));
     else if (gpu_nvidia(device_info[gpu_id]))
         max_available = get_local_memory_size(gpu_id) /
                 sizeof(sha512_password);
@@ -94,7 +95,7 @@ size_t get_task_max_work_group_size(){
     return max_available;
 }
 
-size_t get_task_max_size(){
+size_t get_task_max_size(){///TODO: if > 10k, divide
     size_t max_available;
     max_available = get_max_compute_units(gpu_id);
 
@@ -159,11 +160,7 @@ static void create_clobj(int gws) {
     hash_buffer = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
             sizeof(sha512_hash) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
-
-    work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, ///TODO: um dos dois esta errado
-            sizeof(sha512_buffer) * gws, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
-    
+   
     mod_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
             sizeof(int) * ROUNDS_CACHE, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument mod_buffer");
@@ -193,7 +190,7 @@ static void create_clobj(int gws) {
 
         
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,   //Fast working memory.
-           sizeof (sha512_cache) * local_work_size,
+           sizeof (sha512_buffers) * local_work_size,
            NULL), "Error setting argument 4");
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument 5");         
@@ -448,7 +445,7 @@ static void find_best_gws(void) {
         if (! do_benchmark)
             advance_cursor();
 
-        tmpbuffer = malloc(sizeof (sha512_hash) * num);
+        tmpbuffer = malloc(sizeof(sha512_hash) * num);
 
         if (tmpbuffer == NULL) {
             printf ("Malloc failure in find_best_gws\n");
@@ -564,15 +561,14 @@ static void init(struct fmt_main *pFmt) {
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
     printf("Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
-    if (source_in_use != DEFAULT)
-        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
-    
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
 
-    if (source_in_use != DEFAULT)
+    if (source_in_use != DEFAULT) {
         device_info[gpu_id] = source_in_use;
-            
+        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
+    }
+    
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
         printf("Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
@@ -739,7 +735,7 @@ static int cmp_all(void *binary, int count) {
 static int cmp_one(void *binary, int index) {
     int i;
     uint64_t *t = (uint64_t *) binary;
-
+    
     for (i = 0; i < 8; i++) {
         if (t[i] != calculated_hash[index].v[i])
             return 0;
@@ -774,12 +770,12 @@ static void crypt_all(int count) {
     //Enqueue the kernel
     if (batch_mode) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
-            &max_keys_per_crypt, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel prepare_kernel");
 
         for (i = 0; i < salt.rounds; i += batch_size)
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-                &max_keys_per_crypt, &local_work_size, 0, NULL, NULL),
+                &global_work_size, &local_work_size, 0, NULL, NULL),
                 "failed in clEnqueueNDRangeKernel");        
         
     } else

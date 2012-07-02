@@ -126,7 +126,7 @@ void sha512_block(__local sha512_ctx * ctx) {
         a = t1 + t2;
     }
 
-    #pragma unroll
+    //#pragma unroll TODO::
     for (int i = 16; i < 80; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
