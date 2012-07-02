@@ -379,9 +379,9 @@ cl_uint get_processor_family(int dev_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
-	if gpu (device_info[dev_id]) {
+	if gpu_amd(device_info[dev_id]) {
 
-		if (gpu_amd(device_info[dev_id]) && (strstr(dname, "Cedar") ||
+		if ((strstr(dname, "Cedar") ||
 			strstr(dname, "Redwood") ||
 			strstr(dname, "Juniper") ||
 			strstr(dname, "Cypress") ||
