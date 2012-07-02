@@ -28,7 +28,7 @@
 
 #define FORMAT_LABEL			"xsha512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
-#define ALGORITHM_NAME			"OpenCL, unreliable, will miss guesses"
+#define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
