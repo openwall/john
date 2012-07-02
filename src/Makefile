@@ -97,7 +97,7 @@ JOHN_OBJS = \
 	django_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
-	pfx_fmt.o \
+	pfx_fmt.o pfx2john.o \
 	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
@@ -191,27 +191,31 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john john.local.conf
+	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
+	john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
-	../run/pwsafe2john.com ../run/keepass2john.com john.local.conf
+	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
+	john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe john.local.conf
+	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
+	../run/pfx2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
 	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
-	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe john.local.conf
+	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
+	../run/pfx2john.exe john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1496,6 +1500,10 @@ cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(RM) ../run/ssh2john
 	ln -s john ../run/ssh2john
 
+../run/pfx2john: ../run/john
+	$(RM) ../run/pfx2john
+	ln -s john ../run/pfx2john
+
 ../run/keepass2john: ../run/john
 	$(RM) ../run/keepass2john
 	ln -s john ../run/keepass2john
@@ -1553,6 +1561,9 @@ endif
 
 ../run/ssh2john.com: john.com
 	copy john.com ..\run\ssh2john.com
+
+../run/pfx2john.com: john.com
+	copy john.com ..\run\pfx2john.com
 
 ../run/keepass2john.com: john.com
 	copy john.com ..\run\keepass2john.com
@@ -1624,6 +1635,10 @@ john.com: john.asm
 ../run/ssh2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/ssh2john.exe
 	strip ../run/ssh2john.exe
+
+../run/pfx2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/pfx2john.exe
+	strip ../run/pfx2john.exe
 
 ../run/keepass2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keepass2john.exe

@@ -96,7 +96,7 @@ static void process_file(const char *filename)
 		BIO_free(in);
 }
 
-int main(int argc, char **argv)
+int pfx2john(int argc, char **argv)
 {
 	int i;
 
