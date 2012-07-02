@@ -53,6 +53,7 @@
 
 //Constants.
 #define FALSE                   0
+#define TRUE                    1
 #define ROUNDS_DEFAULT          5000
 #define ROUNDS_CACHE            ROUNDS_DEFAULT / 4
 #define ROUNDS_MIN              1000

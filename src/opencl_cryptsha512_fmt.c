@@ -119,7 +119,7 @@ size_t get_default_workgroup(){ ///TODO: fast mode
     max_available = get_task_max_work_group_size();
 
     if (gpu_nvidia(device_info[gpu_id]) || fast_mode) {
-        global_work_size = get_multiple(global_work_size, max_available);printf("%d, %d:\n", global_work_size, max_available);exit(0);
+        global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
     } else 
@@ -543,10 +543,16 @@ static void init(struct fmt_main *pFmt) {
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
 
-    ///TODO: ter um novo default, tratar fast
+    ///TODO: tratar fast
     if ((tmp_value = getenv("TYPE")))
         source_in_use = atoi(tmp_value);
-        
+
+    if ((tmp_value = getenv("FAST")))
+        fast_mode = TRUE;
+
+    if ((tmp_value = getenv("BATCH")))
+        batch_mode = atoi(tmp_value);
+    
     if (cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
     else {
