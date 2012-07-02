@@ -121,6 +121,7 @@
 /* Failed to use it in insert_to_buffer on GPU (wrong results). */
 #define GETCHAR(buf, index) ((buf)[(index)])
 #define PUTCHAR(buf, index, val) (buf)[(index)] = val
+#define PUT(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 //Data types.
 typedef union {
