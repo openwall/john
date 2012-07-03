@@ -154,11 +154,9 @@ void sha512_block(__local sha512_ctx * ctx) {
 
 void insert_to_buffer_L(__local sha512_ctx    * ctx,
                         __local const uint8_t * string, const uint32_t len) {
-    __local uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;  //ctx->buffer[buflen] (in char size)
 
     for (uint32_t i = 0; i < len; i++)
-        PUTCHAR(dest, i, GETCHAR(string, i));
+        PUTCHAR(ctx->buffer->mem_08, ctx->buflen + i, GETCHAR(string, i));
 
     ctx->buflen += len;
 }
@@ -181,11 +179,10 @@ void ctx_update_L(__local sha512_ctx * ctx,
 
 void insert_to_buffer_C(__local    sha512_ctx    * ctx,
                         __constant const uint8_t * string, const uint32_t len) {
-    __local uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;
 
-    for (int i = 0; i < len; i++)
-        PUTCHAR(dest, i, GETCHAR(string, i));
+    for (uint32_t i = 0; i < len; i++)
+        PUTCHAR(ctx->buffer->mem_08, ctx->buflen + i, GETCHAR(string, i));
+
     ctx->buflen += len;
 }
 

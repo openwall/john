@@ -52,16 +52,40 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void get_host_data(__global   sha512_password * pass_data,
-                   __local    sha512_password * fast_tmp_memory) {
+void get_host_data(__global sha512_password * keys_data,
+                   __local  sha512_password * fast_keys) {
 
     //Transfer data to faster memory
     //Password information
-    fast_tmp_memory->length = pass_data->length;
+    fast_keys->length = keys_data->length;
 
     #pragma unroll
     for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_tmp_memory->pass->mem_64[i] = pass_data->pass->mem_64[i];
+        fast_keys->pass->mem_64[i] = keys_data->pass->mem_64[i];
+}
+
+void get_results(__global sha512_buffers * tmp_memory,
+                          sha512_buffers * fast_memory) {
+
+    __global uint64_t * src = (__global uint64_t *) tmp_memory;
+    uint64_t * dst = (uint64_t *) fast_memory;
+
+    int size = sizeof(sha512_buffers) / 8;
+
+    for (int i = 0; i < size; i++)
+        dst[i] = src[i];
+}
+
+void save_results(__global sha512_buffers * tmp_memory,
+                           sha512_buffers * fast_memory) {
+
+    __global uint64_t * dst = (__global uint64_t *) tmp_memory;
+    uint64_t * src = (uint64_t *) fast_memory;
+
+    int size = sizeof(sha512_buffers) / 8;
+
+    for (int i = 0; i < size; i++)
+        dst[i] = src[i];
 }
 
 void sha512_block(sha512_ctx * ctx) {
@@ -76,9 +100,16 @@ void sha512_block(sha512_ctx * ctx) {
     uint64_t t1, t2;
     uint64_t w[16];
 
+#ifdef VECTOR_USAGE
+    ulong16  w_vector;
+    w_vector = vload16(0, ctx->buffer->mem_64);
+    w_vector = SWAP64_V(w_vector);
+    vstore16(w_vector, 0, w);
+#else
     #pragma unroll
     for (int i = 0; i < 16; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
+#endif
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
@@ -123,11 +154,9 @@ void sha512_block(sha512_ctx * ctx) {
 
 void insert_to_buffer_R(sha512_ctx    * ctx,
                         const uint8_t * string, const uint32_t len) {
-    uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;  //ctx->buffer[buflen] (in char size)
 
     for (uint32_t i = 0; i < len; i++)
-        PUTCHAR(dest, i, GETCHAR(string, i));
+        PUTCHAR(ctx->buffer->mem_08, ctx->buflen + i, GETCHAR(string, i));
 
     ctx->buflen += len;
 }
@@ -150,11 +179,9 @@ void ctx_update_R(sha512_ctx * ctx,
 
 void insert_to_buffer_L(        sha512_ctx    * ctx,
                         __local const uint8_t * string, const uint32_t len) {
-    uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;  //ctx->buffer[buflen] (in char size)
 
     for (uint32_t i = 0; i < len; i++)
-        PUTCHAR(dest, i, GETCHAR(string, i));
+        PUTCHAR(ctx->buffer->mem_08, ctx->buflen + i, GETCHAR(string, i));
 
     ctx->buflen += len;
 }
@@ -177,11 +204,10 @@ void ctx_update_L(        sha512_ctx * ctx,
 
 void insert_to_buffer_C(           sha512_ctx    * ctx,
                         __constant const uint8_t * string, const uint32_t len) {
-    uint8_t * dest;
-    dest = ctx->buffer->mem_08 + ctx->buflen;
 
-    for (int i = 0; i < len; i++)
-        PUTCHAR(dest, i, GETCHAR(string, i));
+    for (uint32_t i = 0; i < len; i++)
+        PUTCHAR(ctx->buffer->mem_08, ctx->buflen + i, GETCHAR(string, i));
+
     ctx->buflen += len;
 }
 
@@ -236,9 +262,14 @@ void finish_ctx(sha512_ctx * ctx) {
 
 void clear_ctx_buffer(sha512_ctx * ctx) {
 
+#ifdef VECTOR_USAGE
+    ulong16  w_vector = 0;
+    vstore16(w_vector, 0, ctx->buffer->mem_64);
+#else
     #pragma unroll
     for (int i = 0; i < 16; i++)
         ctx->buffer->mem_64[i] = 0;
+#endif
 
     ctx->buflen = 0;
 }
@@ -271,185 +302,251 @@ void sha512_digest(sha512_ctx * ctx,
 }
 
 void sha512_prepare(__constant sha512_salt     * salt_data,
-                    __local    sha512_password * pass_data,
-                               sha512_buffer   * tmp_memory) {
+                    __local    sha512_password * keys_data,
+                               sha512_buffers  * fast_buffers,
+                               sha512_ctx      * ctx) {
 
-#define pass        pass_data->pass->mem_08
-#define passlen     pass_data->length
+#define pass        keys_data->pass->mem_08
+#define passlen     keys_data->length
 #define salt        salt_data->salt->mem_08
 #define saltlen     salt_data->length
-#define alt_result  tmp_memory->alt_result
-#define temp_result tmp_memory->temp_result
-#define p_sequence  tmp_memory->p_sequence
-#define ctx         tmp_memory->ctx_data
+#define alt_result  fast_buffers->alt_result
+#define temp_result fast_buffers->temp_result
+#define p_sequence  fast_buffers->p_sequence
 
-    init_ctx(&ctx);
+    init_ctx(ctx);
 
-    ctx_update_L(&ctx, pass, passlen);
-    ctx_update_C(&ctx, salt, saltlen);
-    ctx_update_L(&ctx, pass, passlen);
+    ctx_update_L(ctx, pass, passlen);
+    ctx_update_C(ctx, salt, saltlen);
+    ctx_update_L(ctx, pass, passlen);
 
-    sha512_digest(&ctx, alt_result->mem_64);
-    init_ctx(&ctx);
+    sha512_digest(ctx, alt_result->mem_64);
+    init_ctx(ctx);
 
-    ctx_update_L(&ctx, pass, passlen);
-    ctx_update_C(&ctx, salt, saltlen);
-    ctx_update_R(&ctx, alt_result->mem_08, passlen);
+    ctx_update_L(ctx, pass, passlen);
+    ctx_update_C(ctx, salt, saltlen);
+    ctx_update_R(ctx, alt_result->mem_08, passlen);
 
     for (uint32_t i = passlen; i > 0; i >>= 1) {
 
 	if (i & 1)
-            ctx_update_R(&ctx, alt_result->mem_08, 64U);
+            ctx_update_R(ctx, alt_result->mem_08, 64U);
 	else
-            ctx_update_L(&ctx, pass, passlen);
+            ctx_update_L(ctx, pass, passlen);
     }
-    sha512_digest(&ctx, alt_result->mem_64);
-    init_ctx(&ctx);
+    sha512_digest(ctx, alt_result->mem_64);
+    init_ctx(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
-        ctx_update_L(&ctx, pass, passlen);
+        ctx_update_L(ctx, pass, passlen);
 
-    sha512_digest(&ctx, p_sequence->mem_64);
-    init_ctx(&ctx);
+    sha512_digest(ctx, p_sequence->mem_64);
+    init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
     for (int i = 0; i < 16U + alt_result->mem_08[0]; i++)
-        ctx_update_C(&ctx, salt, saltlen);
+        ctx_update_C(ctx, salt, saltlen);
 
-    /* Finish the digest.  */
-    sha512_digest(&ctx, temp_result->mem_64);
+    /* Finish the digest. */
+    sha512_digest(ctx, temp_result->mem_64);
 }
 #undef salt
 #undef pass
 #undef saltlen
 #undef passlen
 
-void sha512_crypt(__local    sha512_password * pass_data,
-                             sha512_buffer   * tmp_memory,
+void sha512_crypt(sha512_buffers  * fast_buffers,
+                  sha512_ctx      * ctx,                  
                   const uint32_t saltlen, const uint32_t passlen,
-                  const uint32_t rounds) {
+                  const uint32_t start, const uint32_t rounds) {
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = 0; i < rounds; i++) {
-        init_ctx(&ctx);
+        init_ctx(ctx);
 
-        ctx_update_R(&ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
-                           ((i & 1) ? passlen : 64U));
+        ctx_update_R(ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
+                          ((i & 1) ? passlen : 64U));
 
         if (i % 3)
-            ctx_update_R(&ctx, temp_result->mem_08, saltlen);
+            ctx_update_R(ctx, temp_result->mem_08, saltlen);
 
         if (i % 7)
-            ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+            ctx_update_R(ctx, p_sequence->mem_08, passlen);
 
-        ctx_update_R(&ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
-                           ((i & 1) ? 64U :                passlen));
-        sha512_digest(&ctx, alt_result->mem_64);
+        ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
+                          ((i & 1) ? 64U :                passlen));
+        sha512_digest(ctx, alt_result->mem_64);
     }
 }
 
-void sha512_crypt_turbo(__local    sha512_password * pass_data,
-                                   sha512_buffer   * tmp_memory,
-                        __constant int             * modulus,
+/*********
+void sha512_crypt_turbo(__local sha512_buffers  * fast_buffers,
+                        __local sha512_ctx      * ctx,
+                        __constant int          * modulus,
                         const uint32_t saltlen, const uint32_t passlen,
-                        const uint32_t rounds) {
+                        const uint32_t start, const uint32_t rounds) {
 
-    /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
+    / * Repeatedly run the collected hash value through SHA512 to burn cycles. * /
     for (uint32_t i = 0; i < rounds; i++) {
         //Set: 0
-        init_ctx(&ctx);
-        ctx_update_R(&ctx, alt_result->mem_08, 64U);
+        init_ctx(ctx);
+        ctx_update_L(ctx, alt_result->mem_08, 64U);
 
         if (modulus[i] & MOD_3_0)
-            ctx_update_R(&ctx, temp_result->mem_08, saltlen);
+            ctx_update_L(ctx, temp_result->mem_08, saltlen);
 
         if (modulus[i] & MOD_7_0)
-            ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+            ctx_update_L(ctx, p_sequence->mem_08, passlen);
 
-        ctx_update_R(&ctx, p_sequence->mem_08, passlen);
-        sha512_digest(&ctx, alt_result->mem_64);
+        ctx_update_L(ctx, p_sequence->mem_08, passlen);
+        sha512_digest(ctx, alt_result->mem_64);
 
         //Set: 1
-        init_ctx(&ctx);
-        ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+        init_ctx(ctx);
+        ctx_update_L(ctx, p_sequence->mem_08, passlen);
 
         if (modulus[i] & MOD_3_1)
-            ctx_update_R(&ctx, temp_result->mem_08, saltlen);
+            ctx_update_L(ctx, temp_result->mem_08, saltlen);
 
         if (modulus[i] & MOD_7_1)
-            ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+            ctx_update_L(ctx, p_sequence->mem_08, passlen);
 
-        ctx_update_R(&ctx, alt_result->mem_08, 64U);
-        sha512_digest(&ctx, alt_result->mem_64);
+        ctx_update_L(ctx, alt_result->mem_08, 64U);
+        sha512_digest(ctx, alt_result->mem_64);
 
         //Set: 2
-        init_ctx(&ctx);
-        ctx_update_R(&ctx, alt_result->mem_08, 64U);
+        init_ctx(ctx);
+        ctx_update_L(ctx, alt_result->mem_08, 64U);
 
         if (modulus[i] & MOD_3_2)
-            ctx_update_R(&ctx, temp_result->mem_08, saltlen);
+            ctx_update_L(ctx, temp_result->mem_08, saltlen);
 
         if (modulus[i] & MOD_7_2)
-            ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+            ctx_update_L(ctx, p_sequence->mem_08, passlen);
 
-        ctx_update_R(&ctx, p_sequence->mem_08, passlen);
-        sha512_digest(&ctx, alt_result->mem_64);
+        ctx_update_L(ctx, p_sequence->mem_08, passlen);
+        sha512_digest(ctx, alt_result->mem_64);
 
         //Set: 3
-        init_ctx(&ctx);
-        ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+        init_ctx(ctx);
+        ctx_update_L(ctx, p_sequence->mem_08, passlen);
 
         if (modulus[i] & MOD_3_3)
-            ctx_update_R(&ctx, temp_result->mem_08, saltlen);
+            ctx_update_L(ctx, temp_result->mem_08, saltlen);
 
         if (modulus[i] & MOD_7_3)
-            ctx_update_R(&ctx, p_sequence->mem_08, passlen);
+            ctx_update_L(ctx, p_sequence->mem_08, passlen);
 
-        ctx_update_R(&ctx, alt_result->mem_08, 64U);
-        sha512_digest(&ctx, alt_result->mem_64);
+        ctx_update_L(ctx, alt_result->mem_08, 64U);
+        sha512_digest(ctx, alt_result->mem_64);
     }
 }
+*********/
 #undef alt_result
+#undef temp_result
+#undef p_sequence
 
+/*********
 __kernel
 void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __constant int             * modulus,
-                  __local    sha512_password * tmp_memory) {
+                  __local    sha512_password * fast_keys) {
 
-    //bool traditional;
+    bool traditional;
 
     //Compute buffers (on Nvidia, better private)
-    sha512_buffer buffers;
+    sha512_buffers buffers;
+    sha512_ctx  ctx;
 
     //Get the task to be done
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
 
     //Transfer host data to faster memory
-    get_host_data(&keys_buffer[gid], &tmp_memory[lid]);
+    get_host_data(&keys_buffer[gid], &fast_keys[lid]);
 
     //Do the job
-    sha512_prepare(salt, &tmp_memory[lid], &buffers);
-    //traditional = 1;//((salt->rounds > ROUNDS_DEFAULT) || (salt->rounds % 4));
+    sha512_prepare(salt, &fast_keys[lid], &fast_buffers[lid], &ctx_data[lid]);
 
-    //if (traditional)
-        sha512_crypt(&tmp_memory[lid], &buffers,
-                     salt->length, keys_buffer[gid].length, salt->rounds);
-    //else
-    //    sha512_crypt_turbo(&tmp_memory[lid], &buffers, modulus,
-    //                       salt->length, keys_buffer[gid].length, salt->rounds / 4);
-/*
-    if (salt->rounds > ROUNDS_DEFAULT)
-        sha512_crypt(&tmp_memory[lid], &buffers,
-                     salt->length, tmp_memory[lid].length, salt->rounds);
+    //Do the job
+    traditional = (salt->rounds > ROUNDS_DEFAULT || (salt->rounds % 4));
+
+    if (traditional)
+        sha512_crypt(&fast_buffers[lid], &ctx_data[lid],
+                     salt->length, fast_keys[lid].length, 
+                     0, salt->rounds);
     else
-        sha512_crypt_turbo(&tmp_memory[lid], &buffers, modulus,
-                           salt->length, tmp_memory[lid].length, salt->rounds);
-*/
+        sha512_crypt_turbo(&fast_buffers[lid], &ctx_data[lid],
+                           modulus, salt->length, fast_keys[lid].length, 
+                           0, salt->rounds / 4);
+
     //Send results to the host.
     #pragma unroll
     for (int i = 0; i < 8; i++)
-        out_buffer[gid].v[i] = buffers.alt_result[i].mem_64[0];
+        out_buffer[gid].v[i] = fast_buffers[lid].alt_result[i].mem_64[0];
+}
+*********/
+
+__kernel
+void kernel_prepare(__constant sha512_salt     * salt,
+                    __global   sha512_password * keys_buffer,
+                    __global   sha512_buffers  * tmp_buffers,
+                    __local    sha512_password * fast_keys) {
+
+    //Compute buffers (on Nvidia, better private)
+    sha512_buffers fast_buffers;
+    sha512_ctx     ctx;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
+
+    //Transfer host data to faster memory
+    get_host_data(&keys_buffer[gid], &fast_keys[lid]);
+
+    //Do the job
+    sha512_prepare(salt, &fast_keys[lid], &fast_buffers, &ctx);
+
+    //Save parcial results.
+    save_results(&tmp_buffers[gid], &fast_buffers);
+}
+
+__kernel
+void kernel_phase(__constant sha512_salt     * salt,
+                  __global   sha512_password * keys_buffer,
+                  __global   sha512_hash     * out_buffer,
+                  __constant int             * modulus,
+                  __global   sha512_buffers  * tmp_buffers) {
+
+    //Compute buffers (on Nvidia, better private)
+    sha512_buffers fast_buffers;
+    sha512_ctx     ctx;
+
+    //bool traditional;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
+
+    //Transfer temporary data to faster memory
+    get_results(&tmp_buffers[gid], &fast_buffers);
+
+    //Do the job
+    //traditional = (salt->rounds > ROUNDS_DEFAULT || (salt->rounds % 4));
+
+    //if (traditional)
+        sha512_crypt(&fast_buffers, &ctx,
+                     salt->length, keys_buffer[gid].length, 
+                     0, salt->rounds);
+    //else
+    //    sha512_crypt_turbo(&fast_buffers[lid], &ctx_data[lid],
+    //                       modulus, salt->length, keys_buffer[gid].length, 
+    //                       0, salt->rounds / 4);
+
+    //Send results to the host.
+    #pragma unroll
+    for (int i = 0; i < 8; i++)
+        out_buffer[gid].v[i] = fast_buffers.alt_result[i].mem_64[0];
 }

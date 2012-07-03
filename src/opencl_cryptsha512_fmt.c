@@ -33,7 +33,7 @@ static sha512_password     * plaintext;             // plaintext ciphertexts
 static sha512_hash         * calculated_hash;       // calculated hashes
 static int                 modulus[ROUNDS_CACHE];   // modulus value.
 static int                 fast_mode = FALSE;
-static int                 batch_mode, batch_size;
+static int                 batch_mode;
 
 cl_mem salt_buffer;        //Salt information.
 cl_mem pass_buffer;        //Plaintext buffer.
@@ -186,14 +186,16 @@ static void create_clobj(int gws) {
     if (batch_mode) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument 4");
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-           sizeof (sha512_buffers) * local_work_size,
-           NULL), "Error setting argument 5");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
-           sizeof (sha512_ctx) * local_work_size,
-           NULL), "Error setting argument 6");
         
+        if (gpu_amd(device_info[gpu_id])) {
+            //Fast working memory.
+            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
+                sizeof (sha512_buffers) * local_work_size,
+                NULL), "Error setting argument 5");
+            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
+                sizeof (sha512_ctx) * local_work_size,
+                NULL), "Error setting argument 6");
+        }
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof (cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof (cl_mem),
@@ -204,13 +206,15 @@ static void create_clobj(int gws) {
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
            sizeof (sha512_password) * local_work_size,
            NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
-           sizeof (sha512_buffers) * local_work_size,
-           NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
-           sizeof (sha512_ctx) * local_work_size,
-           NULL), "Error setting argument 5");
         
+        if (gpu_amd(device_info[gpu_id])) {
+            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
+                sizeof (sha512_buffers) * local_work_size,
+                NULL), "Error setting argument 4");
+            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
+                sizeof (sha512_ctx) * local_work_size,
+                NULL), "Error setting argument 5");
+        }
     } else if (gpu_amd(device_info[gpu_id])) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
@@ -774,8 +778,6 @@ static int cmp_exact(char *source, int count) {
 
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
-    int i;
-    
     //Send data to device.
     if (new_salt)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
@@ -798,10 +800,9 @@ static void crypt_all(int count) {
             &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel prepare_kernel");
 
-        //for (i = 0; i < salt.rounds; i += batch_size)
-            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-                &global_work_size, &local_work_size, 0, NULL, NULL),
-                "failed in clEnqueueNDRangeKernel");        
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
+            &global_work_size, &local_work_size, 0, NULL, NULL),
+            "failed in clEnqueueNDRangeKernel");        
         
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
