@@ -8,7 +8,7 @@
  *
  * Input Format => user:$radmin2$hash */
 
-#include <openssl/md5.h>
+#include "md5.h"
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
