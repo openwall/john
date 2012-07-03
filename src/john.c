@@ -567,6 +567,29 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 #else
 #define CPU_detect_or_fallback(argv, make_check)
 #endif
+static void john_list_options()
+{
+	/*
+	 * Should this list be sorted alphabetically?
+	 * Sould we add --list=help, providing a more detailed list than --list=?
+	 * (including a description similar to information currently only available
+	 * in doc/OPTIONS)?
+	 */
+#ifdef CL_VERSION_1_0
+	puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
+	puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
+	printf("format-all-details, format-methods[:WHICH], ");
+#ifdef CL_VERSION_1_0
+	printf("opencl-devices, ");
+#endif
+#ifdef HAVE_CUDA
+	printf("cuda-devices, ");
+#endif
+	/* NOTE: The following must end the list. Anything listed
+	   <conf section name> will be ignored by current
+	   bash completion scripts. */
+	puts("<conf section name>");
+}
 
 static void john_init(char *name, int argc, char **argv)
 {
@@ -583,19 +606,7 @@ static void john_init(char *name, int argc, char **argv)
 
 	if (options.listconf && !strcasecmp(options.listconf, "?"))
 	{
-		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
-		printf("format-all-details, format-methods[:WHICH], ");
-#ifdef CL_VERSION_1_0
-		printf("opencl-devices, ");
-#endif
-#ifdef HAVE_CUDA
-		printf("cuda-devices, ");
-#endif
-		/* NOTE: The following must end the list. Anything listed
-		   after <conf section name> will be ignored by current
-		   bash completion scripts. */
-		puts("<conf section name>");
+		john_list_options();
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
@@ -987,8 +998,14 @@ static void john_init(char *name, int argc, char **argv)
 		//printf("Subsections of [%s]:\n", options.listconf);
 		if (cfg_print_subsections(options.listconf, NULL, NULL, 1))
 			exit(0);
-		else
+		else {
+			/* Just in case the user specified an invalid value
+			 * like help or list...
+			 * print the same list as with --list=?, but exit(1)
+			 */
+			john_list_options();
 			exit(1);
+		}
 	}
 
 	common_init();
