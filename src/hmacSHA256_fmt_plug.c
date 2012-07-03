@@ -6,21 +6,17 @@
  * Based on hmac-md5 by Bartavelle
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
+#include "sha2.h"
 
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include <openssl/sha.h>
 
 #define FORMAT_LABEL			"hmac-sha256"
 #define FORMAT_NAME			"HMAC SHA-256"
 
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -213,9 +209,3 @@ struct fmt_main fmt_hmacSHA256 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-384 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

@@ -6,17 +6,7 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#if defined(__APPLE__) && defined(__MACH__) && \
-	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
+#include "sha2.h"
 
 #include <openssl/aes.h>
 #include <string.h>
@@ -41,7 +31,7 @@
 
 #define FORMAT_LABEL		"keepass"
 #define FORMAT_NAME		"KeePass SHA-256 AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
@@ -350,8 +340,3 @@ struct fmt_main KeePass_fmt = {
 		cmp_exact
 	}
 };
-#else
-#ifdef __GNUC__
-#warning Note: keepass format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

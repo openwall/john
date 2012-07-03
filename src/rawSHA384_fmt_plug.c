@@ -4,11 +4,7 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
-#include <openssl/sha.h>
+#include "sha2.h"
 
 #include "arch.h"
 #include "params.h"
@@ -23,9 +19,9 @@
 #define FORMAT_LABEL			"raw-sha384"
 #define FORMAT_NAME			"Raw SHA-384"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -286,9 +282,3 @@ struct fmt_main fmt_rawSHA384 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-384 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

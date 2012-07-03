@@ -11,11 +11,9 @@
  *
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
+#include "sha2.h"
 
 #include <string.h>
-#include <openssl/sha.h>
 
 #include "arch.h"
 #include "params.h"
@@ -31,7 +29,7 @@
 #define FORMAT_LABEL_64			"dragonfly3-64"
 #define FORMAT_NAME_32			"DragonFly BSD $3$ SHA-256 w/ bug, 32-bit"
 #define FORMAT_NAME_64			"DragonFly BSD $3$ SHA-256 w/ bug, 64-bit"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -368,9 +366,3 @@ struct fmt_main fmt_dragonfly3_64 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: dragonfly3 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

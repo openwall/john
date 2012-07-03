@@ -4,30 +4,13 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
-
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
+#include "sha2.h"
 
 #include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "johnswap.h"
 
 #ifdef _OPENMP
 #define OMP_SCALE			2048
@@ -37,9 +20,9 @@
 #define FORMAT_LABEL			"raw-sha512"
 #define FORMAT_NAME			"Raw SHA-512"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
 
 #define BENCHMARK_COMMENT		""
@@ -300,9 +283,3 @@ struct fmt_main fmt_rawSHA512 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-512 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

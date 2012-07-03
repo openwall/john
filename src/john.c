@@ -96,34 +96,6 @@ extern struct fmt_main fmt_dummy;
 
 extern struct fmt_main fmt_MD5gen;
 
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-extern struct fmt_main fmt_rawSHA224;
-extern struct fmt_main fmt_rawSHA256;
-extern struct fmt_main fmt_rawSHA384;
-extern struct fmt_main fmt_rawSHA512;
-
-extern struct fmt_main fmt_hmacSHA224;
-extern struct fmt_main fmt_hmacSHA256;
-extern struct fmt_main fmt_hmacSHA384;
-extern struct fmt_main fmt_hmacSHA512;
-
-extern struct fmt_main fmt_XSHA512;
-
-extern struct fmt_main fmt_hmailserver;
-extern struct fmt_main fmt_SybaseASE;
-extern struct fmt_main fmt_dragonfly3_64;
-extern struct fmt_main fmt_dragonfly4_64;
-extern struct fmt_main fmt_dragonfly3_32;
-extern struct fmt_main fmt_dragonfly4_32;
-extern struct fmt_main fmt_drupal7;
-extern struct fmt_main fmt_cryptsha256;
-extern struct fmt_main fmt_cryptsha512;
-
-extern struct fmt_main episerver_fmt;
-extern struct fmt_main KeePass_fmt;
-extern struct fmt_main pwsafe_fmt;
-#endif
-
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern struct fmt_main fmt_django;
 #endif
@@ -241,34 +213,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
 	john_register_one(&fmt_rawSHA0);
-
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-	john_register_one(&fmt_rawSHA224);
-	john_register_one(&fmt_rawSHA256);
-	john_register_one(&fmt_rawSHA384);
-	john_register_one(&fmt_rawSHA512);
-
-	john_register_one(&fmt_hmacSHA224);
-	john_register_one(&fmt_hmacSHA256);
-	john_register_one(&fmt_hmacSHA384);
-	john_register_one(&fmt_hmacSHA512);
-
-	john_register_one(&fmt_XSHA512);
-
-	john_register_one(&fmt_hmailserver);
-	john_register_one(&fmt_SybaseASE);
-	john_register_one(&fmt_dragonfly3_64);
-	john_register_one(&fmt_dragonfly4_64);
-	john_register_one(&fmt_dragonfly3_32);
-	john_register_one(&fmt_dragonfly4_32);
-	john_register_one(&fmt_drupal7);
-	john_register_one(&fmt_cryptsha256);
-	john_register_one(&fmt_cryptsha512);
-
-	john_register_one(&episerver_fmt);
-	john_register_one(&KeePass_fmt);
-	john_register_one(&pwsafe_fmt);
-#endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 	john_register_one(&fmt_django);
