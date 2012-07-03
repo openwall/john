@@ -925,11 +925,13 @@ char *dynamic_PRELOAD_SIGNATURE(int cnt)
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 {
 	char Type[20];
-	sprintf(Type, "dynamic_%d", cnt);
+	int len;
+	sprintf(Type, "dynamic_%d:", cnt);
+	len = strlen(Type);
 	if (cnt < 0 || cnt > 1000)
 		return 0;
-	if (cnt >= ARRAY_COUNT(Setups)) {
-		int j,len, bGood=0;
+	if (cnt >= ARRAY_COUNT(Setups) || strncmp(Type, Setups[cnt].szFORMAT_NAME, len)) {
+		int j,bGood=0;
 		len=strlen(Type);
 		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
 			if (!strncmp(Type, Setups[j].szFORMAT_NAME, len)) {
