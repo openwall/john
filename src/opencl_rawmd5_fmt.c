@@ -78,7 +78,7 @@ static void find_best_workgroup(void){
 		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL,
 			&global_work_size, &my_work_group, 0, NULL, &myEvent);
 		if (ret_code != CL_SUCCESS) {
-			printf("Error %d\n", ret_code);
+			HANDLE_CLERROR(ret_code, "Error running kernel in find_best_workgroup()");
 			continue;
 		}
 		clFinish(queue_prof);
@@ -184,8 +184,8 @@ static void find_best_kpc(void){
         	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 		clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH + 1) * num, saved_plain, 0, NULL, NULL);
     		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
-		if(ret_code != CL_SUCCESS){
-			printf("Error %d\n",ret_code);
+		if(ret_code != CL_SUCCESS) {
+			HANDLE_CLERROR(ret_code, "Error running kernel in find_best_KPC()");
 			continue;
 		}
 		clFinish(queue_prof);
