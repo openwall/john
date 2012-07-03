@@ -121,7 +121,8 @@ size_t get_default_workgroup(){
     size_t max_available;
     max_available = get_task_max_work_group_size();
 
-    if (gpu_nvidia(device_info[gpu_id]) || fast_mode) {
+    if (gpu_nvidia(device_info[gpu_id]) || 
+       (!cpu(device_info[gpu_id]) && fast_mode)) {
         global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
@@ -185,30 +186,44 @@ static void create_clobj(int gws) {
     if (batch_mode) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument 4");
-
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
+           sizeof (sha512_buffers) * local_work_size,
+           NULL), "Error setting argument 5");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
+           sizeof (sha512_ctx) * local_work_size,
+           NULL), "Error setting argument 6");
+        
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof (cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof (cl_mem),
             (void *) &pass_buffer), "Error setting argument 1");
-        
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,   //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof (cl_mem),
+            (void *) &work_buffer), "Error setting argument 2");         
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
+           sizeof (sha512_password) * local_work_size,
+           NULL), "Error setting argument 3");
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
            sizeof (sha512_buffers) * local_work_size,
            NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5, sizeof (cl_mem),
-            (void *) &work_buffer), "Error setting argument 5");         
-    }
-    ///TODO: criar if gpu
-    if (gpu_amd(device_info[gpu_id])) {
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
+           sizeof (sha512_ctx) * local_work_size,
+           NULL), "Error setting argument 5");
+        
+    } else if (gpu_amd(device_info[gpu_id])) {
         //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
            sizeof (sha512_password) * local_work_size,
+           NULL), "Error setting argument 4");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
+           sizeof (sha512_buffers) * local_work_size,
            NULL), "Error setting argument 5");
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
            sizeof (sha512_ctx) * local_work_size,
            NULL), "Error setting argument 6");
 
-    } else if (gpu_nvidia(device_info[gpu_id])) {        
-        
+    } else if (gpu_nvidia(device_info[gpu_id])) {                
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
            sizeof (sha512_password) * local_work_size,
@@ -538,35 +553,38 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    int i, source_in_use = device_info[gpu_id];
+    int i, source_in_use;
     char * tmp_value;
     char * task;
     uint64_t startTime, runtime;
 
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
+    source_in_use = device_info[gpu_id];
 
-    ///TODO: tratar fast
-    if ((tmp_value = getenv("TYPE")))
+    if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if ((tmp_value = getenv("FAST")))
+    if ((tmp_value = getenv("_FAST")))
         fast_mode = TRUE;
 
-    if ((tmp_value = getenv("BATCH")))
+    if ((tmp_value = getenv("_BATCH")))
         batch_mode = atoi(tmp_value);
-    
+    batch_mode = 1;
     if (cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
     else {
-        printf("Building the kernel, this could take a while\n");
-        task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
-        
-        if (gpu_nvidia(source_in_use))
+        printf("Building the kernel, this could take a while\n");        
+
+        if (no_byte_addressable(source_in_use))
+            task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
+        else if (gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
-    }task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";     
+        else
+            task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
+    }    
     printf("Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
@@ -780,7 +798,7 @@ static void crypt_all(int count) {
             &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel prepare_kernel");
 
-        for (i = 0; i < salt.rounds; i += batch_size)
+        //for (i = 0; i < salt.rounds; i += batch_size)
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
                 &global_work_size, &local_work_size, 0, NULL, NULL),
                 "failed in clEnqueueNDRangeKernel");        
