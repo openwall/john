@@ -19,7 +19,7 @@
 /*
  * John's version number.
  */
-#define JOHN_VERSION			"1.7.9-jumbo-6+unstable"
+#define JOHN_VERSION			"1.7.9-jumbo-7RC"
 
 /*
  * Notes to packagers of John for *BSD "ports", Linux distributions, etc.:

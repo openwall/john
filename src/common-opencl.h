@@ -22,7 +22,7 @@
 #define MAX_OCLINFO_STRING_LEN	64
 
 /* Comment if you do not want to see OpenCL warnings during kernel compilation */
-#define REPORT_OPENCL_WARNINGS
+//#define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
 int gpu_id, platform_id;
