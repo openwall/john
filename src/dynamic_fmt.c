@@ -1167,10 +1167,10 @@ key_cleaning2:
 		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
 			len = 55;
 
-		if(index==0) {
+//		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
-			DynamicFunc__clean_input_full();
-		}
+//			DynamicFunc__clean_input_full();
+//		}
 #if MD5_X2
 		if (index & 1)
 			strnzcpy(input_buf_X86[index>>MD5_X2].x2.b2, key, len+1);
@@ -1184,15 +1184,31 @@ key_cleaning2:
 		len = strlen(key);
 		if (len > 55 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
 			len = 55;
-		if(index==0) {
-			DynamicFunc__clean_input();
-		}
+//		if(index==0) {
+//			DynamicFunc__clean_input();
+//		}
 		keys_dirty = 1;
 		strnzcpy(((char*)(saved_key[index])), key, len+1);
 		saved_key_len[index] = len;
 	}
 }
 
+void clear_keys(void) {
+#ifdef MMX_COEF
+	if (curdat.store_keys_in_input) {
+		if (curdat.store_keys_in_input) {
+			if (dynamic_use_sse==1 || dynamic_use_sse==1)
+				return;
+		}
+	}
+	if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED)
+		DynamicFunc__clean_input_full();
+	else
+		DynamicFunc__clean_input_kwik();
+#else
+	DynamicFunc__clean_input_full();
+#endif
+}
 
 /*********************************************************************************
  * Returns the key.  NOTE how it gets it depends upon if we are storing
@@ -2284,7 +2300,7 @@ struct fmt_main fmt_Dynamic =
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
@@ -7109,14 +7125,20 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		}
 	}
 
-#ifdef MMX_COEF
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH;
-#else
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH_X86;
-#endif
-
 	if (Setup->MaxInputLen)
 		pFmt->params.plaintext_length = Setup->MaxInputLen;
+	else
+		pFmt->params.plaintext_length = 55 - abs(Setup->SaltLen);
+#ifndef MMX_COEF
+	if (Setup->MaxInputLenX86) {
+		pFmt->params.plaintext_length = Setup->MaxInputLenX86;
+	} else {
+		if (Setup->SaltLenX86)
+			pFmt->params.plaintext_length = 80 - abs(Setup->SaltLenX86);
+		else
+			pFmt->params.plaintext_length = 80 - abs(Setup->SaltLen);
+	}
+#endif
 
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
@@ -7442,6 +7464,9 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 	dynamic_RESET(pFmt);
 
+	// Ok we need to list this as a dynamic format (even for the 'thin' formats)
+	pFmt->params.flags |= FMT_DYNAMIC;
+
 	if (idx < 1000) {
 		if (dynamic_RESERVED_PRELOAD_SETUP(idx, pFmt) != 1)
 			return 0;
@@ -7689,4 +7714,15 @@ static char *HandleCase(char *cp, int caseType)
 			return cp;
 	}
 	return (char*)dest;
+}
+
+int dynamic_real_salt_length(struct fmt_main *pFmt) {
+	if (pFmt->params.flags & FMT_DYNAMIC) {
+		private_subformat_data *pPriv = pFmt->private.data;
+		if (pPriv == NULL || pPriv->pSetup == NULL)
+			return -1;  // not a dynamic format, or called before we have loaded them!!
+		return abs(pPriv->pSetup->SaltLen);
+	}
+	// NOT a dynamic format
+	return -1;
 }

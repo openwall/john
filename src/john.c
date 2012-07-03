@@ -585,7 +585,7 @@ static void john_init(char *name, int argc, char **argv)
 	{
 		puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
 		puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
-		printf("format-all-details, ");
+		printf("format-all-details, format-methods[:WHICH], ");
 #ifdef CL_VERSION_1_0
 		printf("opencl-devices, ");
 #endif
@@ -842,6 +842,7 @@ static void john_init(char *name, int argc, char **argv)
 			printf(" False positives possible       \t%s\n", (format->params.flags & FMT_NOT_EXACT) ? "yes" : "no");
 			printf(" Uses a bitslice implementation \t%s\n", (format->params.flags & FMT_BS) ? "yes" : "no");
 			printf(" The split() method unifies case\t%s\n", (format->params.flags & FMT_SPLIT_UNIFIES_CASE) ? "yes" : "no");
+			printf(" A $dynamic$ format             \t%s\n", (format->params.flags & FMT_DYNAMIC) ? "yes" : "no");
 #ifdef _OPENMP
 			printf(" Parallelized with OpenMP       \t%s\n", (format->params.flags & FMT_OMP) ? "yes" : "no");
 #endif
@@ -851,8 +852,132 @@ static void john_init(char *name, int argc, char **argv)
 			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment);
 			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
 			printf("Binary size                     \t%d\n", format->params.binary_size);
+			if ( (format->params.flags & FMT_DYNAMIC) && format->params.salt_size) {
+				// salts are handled internally within the format. We want to know the 'real' salt size/
+				// dynamic will alway set params.salt_size to 0 or sizeof a pointer.
+				printf("Salt size                       \t%d\n", dynamic_real_salt_length(format));
+			} else
 			printf("Salt size                       \t%d\n", format->params.salt_size);
 			printf("\n");
+		} while ((format = format->next));
+		exit(0);
+	}
+	if (options.listconf &&
+	    !strncasecmp(options.listconf, "format-methods", 14)) {
+		struct fmt_main *format;
+		format = fmt_list;
+		do {
+			int ShowIt = 1, i;
+			if (options.listconf[14] == '=' || options.listconf[14] == ':') {
+				ShowIt = 0;
+				if (!strcasecmp(&options.listconf[15], "set_key")   ||
+					!strcasecmp(&options.listconf[15], "get_key")   ||
+					!strcasecmp(&options.listconf[15], "crypt_all") ||
+					!strcasecmp(&options.listconf[15], "cmp_all")   ||
+					!strcasecmp(&options.listconf[15], "cmp_one")  ||
+					!strcasecmp(&options.listconf[15], "cmp_exact"))
+					ShowIt = 1;
+				else if (strcasecmp(&options.listconf[15], "init") && strcasecmp(&options.listconf[15], "prepare") &&
+					strcasecmp(&options.listconf[15], "valid") && strcasecmp(&options.listconf[15], "split") &&
+					strcasecmp(&options.listconf[15], "binary") && strcasecmp(&options.listconf[15], "clear_keys") &&
+					strcasecmp(&options.listconf[15], "salt") && strcasecmp(&options.listconf[15], "get_hash") &&
+					strcasecmp(&options.listconf[15], "get_hash[0]") && strcasecmp(&options.listconf[15], "get_hash[1]") &&
+					strcasecmp(&options.listconf[15], "get_hash[2]") && strcasecmp(&options.listconf[15], "get_hash[3]") &&
+					strcasecmp(&options.listconf[15], "get_hash[4]") && strcasecmp(&options.listconf[15], "get_hash[5]") &&
+					strcasecmp(&options.listconf[15], "set_salt") && strcasecmp(&options.listconf[15], "binary_hash") &&
+					strcasecmp(&options.listconf[15], "binary_hash[0]") && strcasecmp(&options.listconf[15], "binary_hash[1]") &&
+					strcasecmp(&options.listconf[15], "binary_hash[2]") && strcasecmp(&options.listconf[15], "binary_hash[3]") &&
+					strcasecmp(&options.listconf[15], "binary_hash[3]") && strcasecmp(&options.listconf[15], "binary_hash[5]") &&
+					strcasecmp(&options.listconf[15], "salt_hash"))
+				{
+					fprintf(stderr, "Error, invalid option (invalid method name) %s\n", options.listconf);
+					exit(1);
+				}
+				if (format->methods.init != fmt_default_init && !strcasecmp(&options.listconf[15], "init"))
+					ShowIt = 1;
+				if (format->methods.prepare != fmt_default_prepare && !strcasecmp(&options.listconf[15], "prepare"))
+					ShowIt = 1;
+				if (format->methods.valid != fmt_default_valid && !strcasecmp(&options.listconf[15], "valid"))
+					ShowIt = 1;
+				if (format->methods.split != fmt_default_split && !strcasecmp(&options.listconf[15], "split"))
+					ShowIt = 1;
+				if (format->methods.binary != fmt_default_binary && !strcasecmp(&options.listconf[15], "binary"))
+					ShowIt = 1;
+				if (format->methods.salt != fmt_default_salt && !strcasecmp(&options.listconf[15], "salt"))
+					ShowIt = 1;
+				if (format->methods.clear_keys != fmt_default_clear_keys && !strcasecmp(&options.listconf[15], "clear_keys"))
+					ShowIt = 1;
+				for (i = 0; i < 6; ++i) {
+					char Buf[20];
+					sprintf(Buf, "get_hash[%d]", i);
+					if (format->methods.get_hash[i] && format->methods.get_hash[i] != fmt_default_get_hash && !strcasecmp(&options.listconf[15], Buf))
+						ShowIt = 1;
+				}
+				if (format->methods.get_hash[0] && format->methods.get_hash[0] != fmt_default_get_hash && !strcasecmp(&options.listconf[15], "get_hash"))
+					ShowIt = 1;
+
+				for (i = 0; i < 6; ++i) {
+					char Buf[20];
+					sprintf(Buf, "binary_hash[%d]", i);
+					if (format->methods.binary_hash[i] && format->methods.binary_hash[i] != fmt_default_binary_hash && !strcasecmp(&options.listconf[15], Buf))
+						ShowIt = 1;
+				}
+				if (format->methods.binary_hash[0] && format->methods.binary_hash[0] != fmt_default_binary_hash && !strcasecmp(&options.listconf[15], "binary_hash"))
+					ShowIt = 1;
+				if (format->methods.salt_hash != fmt_default_salt_hash && !strcasecmp(&options.listconf[15], "salt_hash"))
+					ShowIt = 1;
+				if (format->methods.set_salt != fmt_default_set_salt && !strcasecmp(&options.listconf[15], "set_salt"))
+					ShowIt = 1;
+			}
+			if (ShowIt) {
+				int i;
+				printf("Methods overridden for:   %s [%s] %s\n", format->params.label, format->params.algorithm_name, format->params.format_name);
+				if (format->methods.init != fmt_default_init)
+					printf("\tinit()\n");
+				if (format->methods.prepare != fmt_default_prepare)
+					printf("\tprepare()\n");
+				if (format->methods.valid != fmt_default_valid)
+					printf("\tvalid()\n");
+				if (format->methods.split != fmt_default_split)
+					printf("\tsplit()\n");
+				if (format->methods.binary != fmt_default_binary)
+					printf("\tbinary()\n");
+				if (format->methods.salt != fmt_default_salt)
+					printf("\tsalt()\n");
+				for (i = 0; i < 6; ++i)
+					if (format->methods.binary_hash[i] != fmt_default_binary_hash) {
+						if (format->methods.binary_hash[i])
+							printf("\t\tbinary_hash[%d]()\n", i);
+						else
+							printf("\t\tbinary_hash[%d]()  (NULL pointer)\n", i);
+					}
+				if (format->methods.salt_hash != fmt_default_salt_hash)
+					printf("\tsalt_hash()\n");
+				if (format->methods.set_salt != fmt_default_set_salt)
+					printf("\tset_salt()\n");
+				// there is no default for set_key() it must be defined.
+				printf("\tset_key()\n");
+				// there is no default for get_key() it must be defined.
+				printf("\tget_key()\n");
+				if (format->methods.clear_keys != fmt_default_clear_keys)
+					printf("\tclear_keys()\n");
+				for (i = 0; i < 6; ++i)
+					if (format->methods.get_hash[i] != fmt_default_get_hash) {
+						if (format->methods.get_hash[i])
+							printf("\t\tget_hash[%d]()\n", i);
+						else
+							printf("\t\tget_hash[%d]()  (NULL pointer)\n", i);
+					}
+				// there is no default for crypt_all() it must be defined.
+				printf("\tcrypt_all()\n");
+				// there is no default for cmp_all() it must be defined.
+				printf("\tcmp_all()\n");
+				// there is no default for cmp_one() it must be defined.
+				printf("\tcmp_one()\n");
+				// there is no default for cmp_exact() it must be defined.
+				printf("\tcmp_exact()\n");
+				printf("\n\n");
+			}
 		} while ((format = format->next));
 		exit(0);
 	}

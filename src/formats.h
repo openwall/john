@@ -37,6 +37,8 @@ struct fmt_main;
 #define FMT_BS				0x00010000
 /* The split() method unifies the case of characters in hash encodings */
 #define FMT_SPLIT_UNIFIES_CASE		0x00020000
+/* Is this format a dynamic_x format (or a 'thin' format using dynamic code) ? */
+#define FMT_DYNAMIC				0x00100000
 /* Parallelized with OpenMP */
 #ifdef _OPENMP
 #define FMT_OMP				0x01000000

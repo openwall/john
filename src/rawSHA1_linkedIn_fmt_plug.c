@@ -375,7 +375,6 @@ struct fmt_main fmt_rawSHA1_LI = {
 		},
 		rawsha1_cmp_all,
 		rawsha1_cmp_one,
-		rawsha1_cmp_exact,
-//		get_source
+		rawsha1_cmp_exact
 	}
 };

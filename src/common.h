@@ -53,6 +53,7 @@ typedef unsigned int ARCH_WORD_32;
  */
 extern char itoa64[64], atoi64[0x100];
 extern char itoa16[16], atoi16[0x100];
+extern char itoa16u[16]; // uppercase
 
 /*
  * Initializes the tables.
