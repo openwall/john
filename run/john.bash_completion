@@ -568,6 +568,33 @@ _john()
 			fi
 			return 0
 			;;
+		-?(-)li?(s|st)+(=|:)format-methods)
+			if [[ "_${__john_completion}" == "_2" && "${valopts}" == *--list=* ]] ; then
+				list=`${first} --list=? 2>/dev/null`
+				if [[ "_${list}" == _*format-methods* ]] ; then
+					cur=${cur#*[=:]}
+					COMPREPLY=( $(compgen -W "${cur}:" -- ${cur}) )
+					compopt -o nospace
+				fi
+			fi
+			return 0
+			;;
+		-?(-)li?(s|st)+(+(=|:)format-methods:|=format-methods=)*)
+			# --list=format-methods has been introduced after --list= got moved
+			# into the main usage output, so there's no need to check ${hidden}
+			if [[ "${valopts}" == *--list=* ]] ; then
+				list=`${first} --list=? 2>/dev/null`
+				if [[ "_${list}" == _*format-methods* ]] ; then
+					cur=${cur#*[=:]}
+					cur=${cur#*[=:]}
+					# for now, a hard coded list of methods produced with
+					# $ ./john --list=format-methods| \
+					#   sed -n '/^\s/ s#^\s*\([^(\[]*\).*$#\1# p'|sort -u
+					COMPREPLY=( $(compgen -W "binary binary_hash clear_keys cmp_all cmp_exact cmp_one crypt_all get_hash get_key get_source init prepare salt salt_hash set_key set_salt split valid" -- ${cur}) )
+				fi
+			fi
+			return 0
+			;;
 		-?(-)l?(i|is|ist)+(=|:)*)
 			if [[ "${hidden}" == *--list=* || "${valopts}" == *--list=* ]] ; then
 				#meanwhile, there can be more than one option name starting with l...
@@ -578,12 +605,25 @@ _john()
 				fi
 				cur=${cur#*[=:]}
 				# the --list=? output changed, that's why a more complex regex is used
-				# to cover all cases
-				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+				# to cover all cases.
+				# Meanwhile, even --list=format-methods[:WHICH] works
+				# (or --list:format-methods[:WHICH] or --list:format-methods=WHICH, but
+				# not --list:format-methods=WHICH)
+				# format-methods[:WHICH],
+				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\(or\)\?[ ]*[<].*$##; s#,##g'`
 				if [[ $? -eq 0 ]] ; then
 					# add "?" to the list of possible completions, but don't add any
 					# section names like "Options"...
 					COMPREPLY=( $(compgen -W "${list} ?" -- ${cur}) )
+					# if the only value contains a ':', special treatment required
+					if [[ ${#COMPREPLY[@]} -eq 1 && "_${COMPREPLY[0]}" == _*:* ]] ; then
+						if [[ "_${COMPREPLY[0]}" == _*\[:* ]] ; then
+							COMPREPLY[0]=${COMPREPLY[0]%\[*}
+						else
+							COMPREPLY[0]=${COMPREPLY[0]%:*}:
+						fi
+						compopt -o nospace
+					fi
 				fi
 			fi
 			return 0
