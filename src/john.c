@@ -575,7 +575,6 @@ static void john_list_options()
 	 * (including a description similar to information currently only available
 	 * in doc/OPTIONS)?
 	 */
-#ifdef CL_VERSION_1_0
 	puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
 	puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
 	printf("format-all-details, format-methods[:WHICH], ");
