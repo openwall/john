@@ -1,5 +1,5 @@
-Cracking Password Safe 3.x databases with john
-==============================================
+Cracking Password Safe 3.x and Password Gorilla databases with john
+===================================================================
 
 1. Run pwsafe2john on .psafe3 files.
 
