@@ -633,7 +633,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return split_fields[1];
 }
 
-void clear_keys()
+static void clear_keys()
 {
 	int i;
 
