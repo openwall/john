@@ -999,6 +999,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (cfg_print_subsections(options.listconf, NULL, NULL, 1))
 			exit(0);
 		else {
+			fprintf(stderr, "Section [%s] not found.\n", options.listconf);
 			/* Just in case the user specified an invalid value
 			 * like help or list...
 			 * print the same list as with --list=?, but exit(1)
