@@ -2,6 +2,11 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md4
  * This code is in public domain.
  *
+ * This software is Copyright © 2010, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted.
+ *
  * Useful References:
  * 1  nt_opencl_kernel.c (written by Alain Espinosa <alainesp at gmail.com>)
  * 2. http://tools.ietf.org/html/rfc1320
