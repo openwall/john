@@ -1378,6 +1378,11 @@ testpara:
 	perl ./para-best.pl "$(CC)" "$(MAKE)" \
 		"$(BENCH_PARA_DEPEND)" "-msse2" 64
 
+testpara-native:
+	$(LN) x86-64.h arch.h
+	perl ./para-best.pl "$(CC)" "$(MAKE)" \
+		"$(BENCH_PARA_DEPEND)" "-march=native" 64
+
 testpara32:
 	$(LN) x86-sse.h arch.h
 	CFLAGS="$(CFLAGS) -m32 -msse2" \

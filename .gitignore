@@ -21,6 +21,7 @@ run/opencl_bf_std.h
 run/opencl_cryptsha512.h
 run/opencl_rar.h
 run/pdf2john
+run/pfx2john
 run/pwsafe2john
 run/racf2john
 run/rar2john
@@ -39,5 +40,5 @@ src/fmt_externs.h
 src/fmt_registers.h
 src/generic.h
 src/john_build_rule.h
+src/para-bench
 test/
-run/pfx2john
