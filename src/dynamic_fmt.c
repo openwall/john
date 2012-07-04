@@ -1195,9 +1195,13 @@ key_cleaning2:
 
 static void clear_keys(void) {
 #ifdef MMX_COEF
+	if (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED) {
+		DynamicFunc__clean_input_full();
+		return;
+	}
 	if (curdat.store_keys_in_input==1 || curdat.store_keys_in_input==3)
 		return;
-	if ( (curdat.pSetup->flags & MGF_FULL_CLEAN_REQUIRED) || curdat.md5_startup_in_x86)
+	if (curdat.md5_startup_in_x86)
 		DynamicFunc__clean_input_full();
 	else
 		DynamicFunc__clean_input_kwik();
