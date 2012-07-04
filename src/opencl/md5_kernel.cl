@@ -1,6 +1,11 @@
 /* MD5 OpenCL kernel based on Solar Designer's MD5 algorithm implementation at:
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  *
+ * This software is Copyright © 2010, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted.
+ *
  * Useful References:
  * 1. CUDA MD5 Hashing Experiments, http://majuric.org/software/cudamd5/
  * 2. oclcrack, http://sghctoma.extra.hu/index.php?p=entry&id=11
