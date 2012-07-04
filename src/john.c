@@ -511,27 +511,37 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 #else
 #define CPU_detect_or_fallback(argv, make_check)
 #endif
+
+/*
+ * FIXME: Should all the john_list_*() functions get an additional stream parameter,
+ *        so that they can write to stderr instead of stdout in case fo an error?
+ */
 static void john_list_options()
 {
-	/*
-	 * Should this list be sorted alphabetically?
-	 * Sould we add --list=help, providing a more detailed list than --list=?
-	 * (including a description similar to information currently only available
-	 * in doc/OPTIONS)?
-	 */
-	puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-	puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
-	printf("format-all-details, format-methods[:WHICH], ");
+	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-filters,");
+	puts("ext-filters-only, ext-modes, build-info, hidden-options, encodings, formats,");
+	puts("format-details, format-all-details, format-methods[:WHICH],");
 #ifdef CL_VERSION_1_0
 	printf("opencl-devices, ");
 #endif
 #ifdef HAVE_CUDA
 	printf("cuda-devices, ");
 #endif
-	/* NOTE: The following must end the list. Anything listed
+	/* NOTE: The following must end the list. Anything listed after
 	   <conf section name> will be ignored by current
 	   bash completion scripts. */
 	puts("<conf section name>");
+}
+
+static void john_list_help_options()
+{
+	puts("help, format-methods");
+}
+
+static void john_list_method_names()
+{
+	puts("init, prepare, valid, split, binary, salt, binary_hash, salt_hash, set_salt,");
+	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 }
 
 static void john_init(char *name, int argc, char **argv)
@@ -547,10 +557,38 @@ static void john_init(char *name, int argc, char **argv)
 		john_register_all(); /* for printing by opt_init() */
 	opt_init(name, argc, argv);
 
-	if (options.listconf && !strcasecmp(options.listconf, "?"))
+	/*
+	 * --list=? needs to be supported, because it has been supported in the released
+	 * john-1.7.9-jumbo-6 version, and it is used by the bash completion script.
+	 * --list=? is, however, not longer mentioned in doc/OPTIONS and in the usage
+	 * output. Instead, --list=help is.
+	 */
+	if (options.listconf &&
+	    (!strcasecmp(options.listconf, "help") ||
+	     !strcmp(options.listconf, "?")))
 	{
 		john_list_options();
 		exit(0);
+	}
+	if (options.listconf &&
+	    (!strcasecmp(options.listconf, "help:help") ||
+	     !strcasecmp(options.listconf, "help:")))
+	{
+		john_list_help_options();
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "help:format-methods"))
+	{
+		john_list_method_names();
+		exit(0);
+	}
+	if (options.listconf && !strncasecmp(options.listconf, "help:", 5))
+	{
+		fprintf(stderr,
+		        "%s is not a --list option that supports additional values.\nSupported options:\n",
+			options.listconf+5);
+		john_list_help_options();
+		exit(1);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
 	{
@@ -845,6 +883,8 @@ static void john_init(char *name, int argc, char **argv)
 					strcasecmp(&options.listconf[15], "salt_hash"))
 				{
 					fprintf(stderr, "Error, invalid option (invalid method name) %s\n", options.listconf);
+					fprintf(stderr, "Valid method names are:\n");
+					john_list_method_names();
 					exit(1);
 				}
 				if (format->methods.init != fmt_default_init && !strcasecmp(&options.listconf[15], "init"))

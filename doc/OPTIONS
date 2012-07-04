@@ -282,7 +282,7 @@ the log file.
 --list=WHAT               list capabilities
 
 This option can be used to gain information about what rules, modes etc are
-available. Use --list=? for a list of valid arguments. For example, the now
+available. Use --list=help for a list of valid arguments. For example, the now
 deprecated --subformat=LIST is now --list=subformats.
 The different variants of list externals may be worth mentioning:
 
