@@ -26,6 +26,7 @@
 #define COMMON_DIGEST_FOR_OPENSSL
 #define SHA2_LIB "CommonCrypto"
 #include <CommonCrypto/CommonDigest.h>
+#define JTR_INC_COMMON_CRYPTO_SHA2
 #else
 #define SHA2_LIB "OpenSSL"
 #include <openssl/sha.h>
@@ -111,11 +112,6 @@ extern void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], in
 
 #if ARCH_LITTLE_ENDIAN
 #define OUTBE32(n,b,i) do { (b)[i] = ((n)>>24); (b)[i+1] = ((n)>>16); (b)[i+2] = ((n)>>8); (b)[i+3] = (n); } while(0)
-///*
-#define OUTBE64(n,b,i) do { (b)[i] = ((n)>>56); (b)[i+1] = ((n)>>48); (b)[i+2] = ((n)>>40);(b)[i+3] = ((n)>>32); \
-                            (b)[i+4]=((n)>>24); (b)[i+5] = ((n)>>16); (b)[i+6] = ((n)>>8); (b)[i+7] = (n); } while(0)
-//*/
-/*
 #define OUTBE64(n,b,i) do {                     \
     (b)[(i)]   = (unsigned char) ( (n) >> 56 ); \
     (b)[(i)+1] = (unsigned char) ( (n) >> 48 ); \
@@ -126,7 +122,6 @@ extern void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], in
     (b)[(i)+6] = (unsigned char) ( (n) >>  8 ); \
     (b)[(i)+7] = (unsigned char) ( (n)       ); \
 } while(0)
-*/
 
 #else
 #define OUTBE32(n,b,i) *((ARCH_WORD_32*)&(b[i]))=n
