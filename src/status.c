@@ -431,6 +431,10 @@ static void status_print_cracking(char *percent)
 	unsigned int time = status_get_time();
 	char *key, saved_key[PLAINTEXT_BUFFER_SIZE] = "";
 	char s_cps[64], cand[32] = "";
+#ifdef HAVE_MPI
+	char nodeid[11] = "";
+	char trying[256];
+#endif
 
 	emms();
 
@@ -443,11 +447,9 @@ static void status_print_cracking(char *percent)
 
 #ifdef HAVE_MPI
 	// we need to print until cr in one call, otherwise output gets interleaved
-	char nodeid[11] = "";
 	if (mpi_p > 1)
 		snprintf(nodeid, sizeof(nodeid), "%3d: ", mpi_id);
 	nodeid[sizeof(nodeid)-1] = 0;
-	char trying[256];
 	if ((options.flags & FLG_STATUS_CHK) ||
 	    !(status.crypts.lo | status.crypts.hi))
 		trying[0] = 0;
