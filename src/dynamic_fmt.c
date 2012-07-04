@@ -1193,7 +1193,7 @@ key_cleaning2:
 	}
 }
 
-void clear_keys(void) {
+static void clear_keys(void) {
 #ifdef MMX_COEF
 	if (curdat.store_keys_in_input==1 || curdat.store_keys_in_input==3)
 		return;
