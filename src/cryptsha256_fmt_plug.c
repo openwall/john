@@ -245,7 +245,7 @@ static void LoadCryptStruct(int index, char *p_bytes, char *s_bytes) {
 	unsigned len_pc, len_ppsc, len_ppc, len_psc; // length of 'data'
 	unsigned tot_pc, tot_ppsc, tot_ppc, tot_psc; // length of entire block to crypt (64 or 128)
 	unsigned off_pc, off_pspc, off_ppc, off_psc; // offset to the crypt ptr for these 4 'types'.
-	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block (or actual len for common_crypt, since it uses SHA256_Final()
+	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block (or actual len for CommonCrypto, since it uses SHA256_Final()
 	unsigned plen=saved_key_length[index];
 	unsigned char *cp = crypt_struct[index].buf;
 	cryptloopstruct *pstr = &(crypt_struct[index]);
