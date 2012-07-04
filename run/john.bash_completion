@@ -63,9 +63,6 @@
 #
 # FIXME: Should completion for --make-charset really list existing .chr files?
 #
-# FIXME: Should I generally use LC_ALL=C, not just in a few places?
-#	 (This could also be a little bit faster.)
-#
 # TODO:
 #       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
 #	  but pressing [tab] expands this to something useful
@@ -89,6 +86,9 @@
 _john()
 {
 	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev words
+
+	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
+	LC_ALL=C
 
 	COMPREPLY=()
 
@@ -451,7 +451,7 @@ _john()
 		-?(-)en?(c|co|cod|codi|codin|coding)+(=|:)*)
 			if [[ "${valopts}" == *--encoding=* ]] ; then
 				# --encoding=LIST writes to stderr
-				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+				list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 				if [[ "_${list}" == *encoding* ]] ; then
 					cmd="${first} --list=encodings"
 				else
@@ -537,14 +537,14 @@ _john()
 					# should I even test this (with --test=0, and filter out those
 					# with a message:
 					# appears to be unsupported on this system; will not load such hashes.
-					subformats=`${first}  --test=0 --format=crypt --subformat=? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
+					subformats=`${first} --test=0 --format=crypt --subformat=? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
 					COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
 				fi
 			fi
 			return 0
 			;;
 		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:)[Ll]?([Ii]|[Ii][Ss]|[Ii][Ss][Tt]))
-			list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 			# Only complete to lIST if --list=cuda-devices and --list=opencl-devices don't exist
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
@@ -555,7 +555,7 @@ _john()
 			return 0
 			;;
 		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:))
-			list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 			# Only list possible completions if --list=cuda-devices
 			# and --list=opencl-devices don't exist.
 			# --device=LIST isn't supported for CUDA, but for CUDA
@@ -568,30 +568,13 @@ _john()
 			fi
 			return 0
 			;;
-		-?(-)li?(s|st)+(=|:)format-methods)
-			if [[ "_${__john_completion}" == "_2" && "${valopts}" == *--list=* ]] ; then
-				list=`${first} --list=? 2>/dev/null`
-				if [[ "_${list}" == _*format-methods* ]] ; then
-					cur=${cur#*[=:]}
-					COMPREPLY=( $(compgen -W "${cur}:" -- ${cur}) )
-					compopt -o nospace
-				fi
-			fi
-			return 0
-			;;
-		-?(-)li?(s|st)+(+(=|:)format-methods:|=format-methods=)*)
-			# --list=format-methods has been introduced after --list= got moved
-			# into the main usage output, so there's no need to check ${hidden}
-			if [[ "${valopts}" == *--list=* ]] ; then
-				list=`${first} --list=? 2>/dev/null`
-				if [[ "_${list}" == _*format-methods* ]] ; then
-					cur=${cur#*[=:]}
-					cur=${cur#*[=:]}
-					# for now, a hard coded list of methods produced with
-					# $ ./john --list=format-methods| \
-					#   sed -n '/^\s/ s#^\s*\([^(\[]*\).*$#\1# p'|sort -u
-					COMPREPLY=( $(compgen -W "binary binary_hash clear_keys cmp_all cmp_exact cmp_one crypt_all get_hash get_key get_source init prepare salt salt_hash set_key set_salt split valid" -- ${cur}) )
-				fi
+		-?(-)li?(s|st)+(+(=|:)+([a-z_-]):|:+([a-z_-])=)*([a-z_-]))
+			cur=${cur#*[=:]}
+			cmd=${cur%[=:]*}
+			cur=${cur#*[=:]}
+			list=`${first} --list=help:${cmd} 2>/dev/null |sed 's#,# #g'`
+			if [[ $? -eq 0 ]] ; then
+				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			fi
 			return 0
 			;;
@@ -610,15 +593,24 @@ _john()
 				# (or --list:format-methods[:WHICH] or --list:format-methods=WHICH, but
 				# not --list:format-methods=WHICH)
 				# format-methods[:WHICH],
-				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\(or\)\?[ ]*[<].*$##; s#,##g'`
+				list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\(or\)\?[ ]*[<].*$##; s#,##g'`
 				if [[ $? -eq 0 ]] ; then
 					# add "?" to the list of possible completions, but don't add any
 					# section names like "Options"...
-					COMPREPLY=( $(compgen -W "${list} ?" -- ${cur}) )
+					if [[ "${list}" == *help* ]] ; then
+						# Don't advertise --list=?
+						COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+					else
+						# Add "?" to the possible completions
+						COMPREPLY=( $(compgen -W "${list} ?" -- ${cur}) )
+					fi
 					# if the only value contains a ':', special treatment required
 					if [[ ${#COMPREPLY[@]} -eq 1 && "_${COMPREPLY[0]}" == _*:* ]] ; then
 						if [[ "_${COMPREPLY[0]}" == _*\[:* ]] ; then
 							COMPREPLY[0]=${COMPREPLY[0]%\[*}
+							if [[ "_${__john_completion}" == "_2" && "_${COMPREPLY[0]}" == _${cur} ]] ; then
+								COMPREPLY[0]=${COMPREPLY[0]%:*}:
+							fi
 						else
 							COMPREPLY[0]=${COMPREPLY[0]%:*}:
 						fi
