@@ -541,7 +541,8 @@ static void john_list_help_options()
 static void john_list_method_names()
 {
 	puts("init, prepare, valid, split, binary, salt, binary_hash, salt_hash, set_salt,");
-	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
+	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact,");
+	puts("get_source");
 }
 
 static void john_init(char *name, int argc, char **argv)
