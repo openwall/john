@@ -40,3 +40,4 @@ src/fmt_registers.h
 src/generic.h
 src/john_build_rule.h
 test/
+run/pfx2john
