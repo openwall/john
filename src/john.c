@@ -570,14 +570,13 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 static void john_list_options()
 {
 	/*
-	 * Should this list be sorted alphabetically?
-	 * Sould we add --list=help, providing a more detailed list than --list=?
-	 * (including a description similar to information currently only available
-	 * in doc/OPTIONS)?
+	 * Put "help" up front. For now, add the optional [:format-methods] hard coded.
+	 * Think about a general solution if more such option appear.
+	 * May be just change it to "help[:WHAT]" instead.
 	 */
-	puts("subformats, inc-modes, rules, externals, ext-filters, ext-filters-only,");
-	puts("ext-modes, build-info, hidden-options, encodings, formats, format-details,");
-	printf("format-all-details, format-methods[:WHICH], ");
+	puts("help[:format-methods], subformats, inc-modes, rules, externals, ext-filters,");
+	puts("ext-filters-only, ext-modes, build-info, hidden-options, encodings, formats,");
+	puts("format-details, format-all-details, format-methods[:WHICH],");
 #ifdef CL_VERSION_1_0
 	printf("opencl-devices, ");
 #endif
@@ -603,9 +602,23 @@ static void john_init(char *name, int argc, char **argv)
 		john_register_all(); /* for printing by opt_init() */
 	opt_init(name, argc, argv);
 
-	if (options.listconf && !strcasecmp(options.listconf, "?"))
+	/*
+	 * --list=? needs to be supported, because it has been supported in the released
+	 * john-1.7.9-jumbo-6 version, and it is used by the bash completion script.
+	 * --list=? is, however, not longer mentioned in doc/OPTIONS and in the usage
+	 * output. Instead, --list=help is.
+	 */
+	if (options.listconf &&
+	    (!strcasecmp(options.listconf, "help") ||
+	    (!strcmp(options.listconf, "?"))))
 	{
 		john_list_options();
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "help:format-methods"))
+	{
+		puts("init, prepare, valid, split, binary, salt, binary_hash, salt_hash, set_salt,");
+		puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
