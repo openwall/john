@@ -222,6 +222,11 @@ void sha256_final(void *_output, sha256_ctx *ctx)
     sha256_update(ctx, (unsigned char *) padding, padcnt);
     sha256_update(ctx, m.mlen, 8);
 
+	// the SHA2_GENERIC_DO_NOT_BUILD_ALIGNED == 1 is to force build on
+	// required aligned systems without doing the alignment checking.
+	// it IS faster (about 2.5%), and once the data is properly aligned
+	// in the formats, the alignment checking is nore needed any more.
+#if ARCH_ALLOWS_UNALIGNED == 1 || SHA2_GENERIC_DO_NOT_BUILD_ALIGNED == 1
     OUTBE32(ctx->h[0], output,  0);
     OUTBE32(ctx->h[1], output,  4);
     OUTBE32(ctx->h[2], output,  8);
@@ -229,9 +234,39 @@ void sha256_final(void *_output, sha256_ctx *ctx)
     OUTBE32(ctx->h[4], output, 16);
     OUTBE32(ctx->h[5], output, 20);
     OUTBE32(ctx->h[6], output, 24);
-
 	if(ctx->bIs256)
         OUTBE32(ctx->h[7], output, 28);
+#else
+	if (is_aligned(output,sizeof(ARCH_WORD_32))) {
+		OUTBE32(ctx->h[0], output,  0);
+		OUTBE32(ctx->h[1], output,  4);
+		OUTBE32(ctx->h[2], output,  8);
+		OUTBE32(ctx->h[3], output, 12);
+		OUTBE32(ctx->h[4], output, 16);
+		OUTBE32(ctx->h[5], output, 20);
+		OUTBE32(ctx->h[6], output, 24);
+		if(ctx->bIs256)
+			OUTBE32(ctx->h[7], output, 28);
+	} else {
+		union {
+			ARCH_WORD_32 x[8];
+			unsigned char c[64];
+		} m;
+		unsigned char *tmp = m.c;
+		OUTBE32(ctx->h[0], tmp,  0);
+		OUTBE32(ctx->h[1], tmp,  4);
+		OUTBE32(ctx->h[2], tmp,  8);
+		OUTBE32(ctx->h[3], tmp, 12);
+		OUTBE32(ctx->h[4], tmp, 16);
+		OUTBE32(ctx->h[5], tmp, 20);
+		OUTBE32(ctx->h[6], tmp, 24);
+		if(ctx->bIs256) {
+			OUTBE32(ctx->h[7], tmp, 28);
+			memcpy(output, tmp, 32);
+		} else
+			memcpy(output, tmp, 28);
+	}
+#endif
 }
 
 /*********************************************************************/
@@ -247,8 +282,8 @@ void sha256_final(void *_output, sha256_ctx *ctx)
 #undef F1
 #undef R
 
-#define S0(x) (ROR64(x, 1) ^ ROR64(x, 8) ^  (x>>7))
-#define S1(x) (ROR64(x,19) ^ ROR64(x,61) ^  (x>>6))
+#define S0(x) (ROR64(x, 1) ^ ROR64(x, 8) ^ (x>>7))
+#define S1(x) (ROR64(x,19) ^ ROR64(x,61) ^ (x>>6))
 
 #define S2(x) (ROR64(x,28) ^ ROR64(x,34) ^ ROR64(x,39))
 #define S3(x) (ROR64(x,14) ^ ROR64(x,18) ^ ROR64(x,41))
@@ -262,7 +297,7 @@ void sha256_final(void *_output, sha256_ctx *ctx)
     d += tmp;                             \
 } while(0)
 
-static const unsigned long long K[80] =
+static const ARCH_WORD_64 K[80] =
 {
     0x428A2F98D728AE22ULL,  0x7137449123EF65CDULL,
     0xB5C0FBCFEC4D3B2FULL,  0xE9B5DBA58189DBBCULL,
@@ -308,13 +343,13 @@ static const unsigned long long K[80] =
 
 void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perform_endian_swap)
 {
-    unsigned long long A, B, C, D, E, F, G, H, tmp, W[80];
+    ARCH_WORD_64 A, B, C, D, E, F, G, H, tmp, W[80];
     int i;
 
 #if ARCH_LITTLE_ENDIAN
 	if (perform_endian_swap) {
 		for(i = 0; i < 16; i++) {
-			W[i] = JOHNSWAP64(*((unsigned long long*)&(data[i<<3])));
+			W[i] = JOHNSWAP64(*((ARCH_WORD_64 *)&(data[i<<3])));
 		}
 	} else
 #endif
@@ -323,10 +358,8 @@ void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perfo
 		memcpy(W, data, 128);
 	}
 
-    for(; i < 80; i++) {
-        W[i] = S1(W[i -  2]) + W[i -  7] +
-               S0(W[i - 15]) + W[i - 16];
-    }
+    for(; i < 80; i++)
+        W[i] = S1(W[i - 2]) + W[i - 7] + S0(W[i - 15]) + W[i - 16];
 
     A = ctx->h[0];
     B = ctx->h[1];
@@ -493,9 +526,9 @@ void sha512_update(sha512_ctx *ctx, const void *_input, int ilenlft)
 void sha512_final(void *_output, sha512_ctx *ctx)
 {
     ARCH_WORD_32 last, padcnt;
-    unsigned long long bits;
+    ARCH_WORD_64 bits;
 	union {
-		unsigned long long wlen[2];
+		ARCH_WORD_64 wlen[2];
 		unsigned char mlen[16];  // need aligned on sparc
 	} m;
 	unsigned char *output = (unsigned char *)_output;
@@ -511,6 +544,12 @@ void sha512_final(void *_output, sha512_ctx *ctx)
     sha512_update(ctx, m.mlen, 16);
 
 	if (!output) return;
+
+	// the SHA2_GENERIC_DO_NOT_BUILD_ALIGNED == 1 is to force build on
+	// required aligned systems without doing the alignment checking.
+	// it IS faster (about 2.5%), and once the data is properly aligned
+	// in the formats, the alignment checking is nore needed any more.
+#if ARCH_ALLOWS_UNALIGNED == 1 || SHA2_GENERIC_DO_NOT_BUILD_ALIGNED == 1
     OUTBE64(ctx->h[0], output,  0);
     OUTBE64(ctx->h[1], output,  8);
     OUTBE64(ctx->h[2], output, 16);
@@ -521,4 +560,36 @@ void sha512_final(void *_output, sha512_ctx *ctx)
         OUTBE64( ctx->h[6], output, 48 );
         OUTBE64( ctx->h[7], output, 56 );
     }
+#else
+	if (is_aligned(output,sizeof(ARCH_WORD_64))) {
+		OUTBE64(ctx->h[0], output,  0);
+		OUTBE64(ctx->h[1], output,  8);
+		OUTBE64(ctx->h[2], output, 16);
+		OUTBE64(ctx->h[3], output, 24);
+		OUTBE64(ctx->h[4], output, 32);
+		OUTBE64(ctx->h[5], output, 40);
+		if(ctx->bIs512) {
+			OUTBE64( ctx->h[6], output, 48 );
+			OUTBE64( ctx->h[7], output, 56 );
+		}
+	} else {
+		union {
+			ARCH_WORD_64 x[8];
+			unsigned char c[64];
+		} m;
+		unsigned char *tmp = m.c;
+		OUTBE64(ctx->h[0], tmp,  0);
+		OUTBE64(ctx->h[1], tmp,  8);
+		OUTBE64(ctx->h[2], tmp, 16);
+		OUTBE64(ctx->h[3], tmp, 24);
+		OUTBE64(ctx->h[4], tmp, 32);
+		OUTBE64(ctx->h[5], tmp, 40);
+		if(ctx->bIs512) {
+			OUTBE64(ctx->h[6], tmp, 48);
+			OUTBE64(ctx->h[7], tmp, 56);
+			memcpy(output, tmp, 64);
+		} else
+			memcpy(output, tmp, 48);
+	}
+#endif
 }
