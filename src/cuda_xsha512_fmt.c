@@ -42,6 +42,7 @@ static struct fmt_tests tests[] = {
 	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},
 	{"5e3ab14c8bd0f210eddafbe3c57c0003147d376bf4caf75dbffa65d1891e39b82c383d19da392d3fcc64ea16bf8203b1fc3f2b14ab82c095141bb6643de507e18ebe7489", "boobies"},
 	{"$LION$bb0489df4db05dbdc7be8afeef531f141ce28a00d7d5994693f7a9cf1fbbf98b45bb73ed10e00975b3bafd795fff667e3b3319517cc2f618ce92ff0e5c72032098fe1e75", "passwordandpassword"},
+	{"$LION$74646d77d2d52596eb45e290e32329960fa295e475bc014638ef44c7727c24b5171fb47bbd27fbb6f1a3ad458793ae6edf60ed558f098406d56ac34adf0281e2ded9749e", "Skipping and& Dipping"},
 	{NULL}
 };
 
@@ -58,8 +59,8 @@ static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
 static xsha512_extend_key g_ext_key[MAX_KEYS_PER_CRYPT];
 static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
-uint8_t xsha512_key_changed;
-static uint8_t use_extend;
+uint8_t xsha512_key_changed = 0;
+static uint8_t use_extend = 0;
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
 	0xbb67ae8584caa73bLL,
@@ -131,6 +132,7 @@ static void *get_binary(char *ciphertext)
 		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+
 	b = (uint64_t *) out;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i]) - H[i];
@@ -246,10 +248,11 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	int length = strlen(key);
+	if (index == 0)
+		use_extend = 0;
 	if (length > MAX_PLAINTEXT_LENGTH)
 		length = MAX_PLAINTEXT_LENGTH;
 	gkey[index].length = length;
-	use_extend = 0;
 	if (length > PLAINTEXT_LENGTH) {
 		memcpy(gkey[index].v, key, PLAINTEXT_LENGTH);
 		key += PLAINTEXT_LENGTH;
@@ -285,7 +288,8 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	return cuda_cmp_all(binary, count);
+	int t1 = cuda_cmp_all(binary, count); 
+	return t1;
 }
 
 static int cmp_one(void *binary, int index)
@@ -296,7 +300,6 @@ static int cmp_one(void *binary, int index)
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
-
 }
 
 static int cmp_exact(char *source, int index)
