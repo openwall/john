@@ -64,7 +64,7 @@ typedef struct
 {
     ARCH_WORD_32 h[8];          // SHA256 state
 	ARCH_WORD_32 Nl,Nh;			// UNUSED but here to be compatible with oSSL
-    unsigned char buffer[64];   // current/building data 'block'
+    unsigned char buffer[64];   // current/building data 'block'. It IS in alignment
 	unsigned int num,md_len;	// UNUSED but here to be compatible with oSSL
     unsigned int total;         // number of bytes processed
     int bIs256;                 // if 1 SHA256, else SHA224
@@ -87,8 +87,10 @@ extern void sha256_hash_block(sha256_ctx *ctx, const unsigned char data[64], int
 // Does sha512 and sha384
 typedef struct
 {
-    unsigned long long h[8];    // SHA512 state
-    unsigned char buffer[128];  // current/building data 'block'
+    ARCH_WORD_64 h[8];          // SHA512 state
+	ARCH_WORD_64 Nl,Nh;			// UNUSED but here to be compatible with oSSL
+    unsigned char buffer[128];  // current/building data 'block'.  It IS in alignment
+	unsigned int num,md_len;	// UNUSED but here to be compatible with oSSL
     unsigned int total;         // number of bytes processed
     int bIs512;                 // if 1 SHA512, else SHA384
 } sha512_ctx;
@@ -109,25 +111,26 @@ extern void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], in
 
 #if ARCH_LITTLE_ENDIAN
 #define OUTBE32(n,b,i) do { (b)[i] = ((n)>>24); (b)[i+1] = ((n)>>16); (b)[i+2] = ((n)>>8); (b)[i+3] = (n); } while(0)
-/*
+///*
 #define OUTBE64(n,b,i) do { (b)[i] = ((n)>>56); (b)[i+1] = ((n)>>48); (b)[i+2] = ((n)>>40);(b)[i+3] = ((n)>>32); \
                             (b)[i+4]=((n)>>24); (b)[i+5] = ((n)>>16); (b)[i+6] = ((n)>>8); (b)[i+7] = (n); } while(0)
+//*/
+/*
+#define OUTBE64(n,b,i) do {                     \
+    (b)[(i)]   = (unsigned char) ( (n) >> 56 ); \
+    (b)[(i)+1] = (unsigned char) ( (n) >> 48 ); \
+    (b)[(i)+2] = (unsigned char) ( (n) >> 40 ); \
+    (b)[(i)+3] = (unsigned char) ( (n) >> 32 ); \
+    (b)[(i)+4] = (unsigned char) ( (n) >> 24 ); \
+    (b)[(i)+5] = (unsigned char) ( (n) >> 16 ); \
+    (b)[(i)+6] = (unsigned char) ( (n) >>  8 ); \
+    (b)[(i)+7] = (unsigned char) ( (n)       ); \
+} while(0)
 */
-#define OUTBE64(n,b,i)                            \
-{                                                       \
-    (b)[(i)    ] = (unsigned char) ( (n) >> 56 );       \
-    (b)[(i) + 1] = (unsigned char) ( (n) >> 48 );       \
-    (b)[(i) + 2] = (unsigned char) ( (n) >> 40 );       \
-    (b)[(i) + 3] = (unsigned char) ( (n) >> 32 );       \
-    (b)[(i) + 4] = (unsigned char) ( (n) >> 24 );       \
-    (b)[(i) + 5] = (unsigned char) ( (n) >> 16 );       \
-    (b)[(i) + 6] = (unsigned char) ( (n) >>  8 );       \
-    (b)[(i) + 7] = (unsigned char) ( (n)       );       \
-}
 
 #else
 #define OUTBE32(n,b,i) *((ARCH_WORD_32*)&(b[i]))=n
-#define OUTBE64(n,b,i) *((unsigned long long*)&(b[i]))=n
+#define OUTBE64(n,b,i) *((ARCH_WORD_64*)&(b[i]))=n
 #endif
 
 #endif

@@ -40,7 +40,11 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char crypt_key[BINARY_SIZE+1];
+static union xx {
+	unsigned char c[BINARY_SIZE+1];
+	ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)+1];
+} u;
+static char *crypt_key = u.c;  // Requires alignment on generic sha2.c
 static unsigned char opad[PAD_SIZE];
 static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];

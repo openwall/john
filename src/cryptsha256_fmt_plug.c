@@ -490,10 +490,10 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		// portably align temp_result char * pointer to 32 bits.
+		// portably align temp_result char * pointer machine word size.
 		union xx {
 			unsigned char c[BINARY_SIZE];
-			ARCH_WORD_32 a[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+			ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)];
 		} u;
 		unsigned char *temp_result = u.c;
 		SHA256_CTX ctx;
