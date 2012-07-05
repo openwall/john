@@ -153,7 +153,7 @@ static void nt_crypt_all_opencl(int count)
 		"failed in clEnqueWriteBuffer buffer_keys");
 
 	// Execute method
-	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent);
 	clFinish( queue[gpu_id] );
 
 	// Read partial result
