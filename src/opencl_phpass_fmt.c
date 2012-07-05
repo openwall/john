@@ -106,7 +106,7 @@ static void release_all(void)
 static void set_key(char *key, int index)
 {
 #ifdef _PHPASS_DEBUG
-	printf("set_key(%d) = %s\n", index, key);
+	fprintf(stderr, "set_key(%d) = %s\n", index, key);
 #endif
 	int length = strlen(key);
 	inbuffer[index].length = length;
@@ -242,7 +242,7 @@ static void set_salt(void *salt)
 static void crypt_all(int count)
 {
 #ifdef _PHPASS_DEBUG
-	printf("crypt_all(%d)\n", count);
+	fprintf(stderr, "crypt_all(%d)\n", count);
 #endif
 	///Prepare setting format: salt+prefix+count_log2
 	char setting[SALT_SIZE + 3 + 1] = { 0 };
@@ -273,11 +273,11 @@ static void crypt_all(int count)
 static int binary_hash_0(void *binary)
 {
 #ifdef _PHPASS_DEBUG
-	printf("binary_hash_0 ");
+	fprintf(stderr, "binary_hash_0 ");
 	int i;
 	uint32_t *b = binary;
 	for (i = 0; i < 4; i++)
-		printf("%08x ", b[i]);
+		fprintf(stderr, "%08x ", b[i]);
 	puts("");
 #endif
 	return (((ARCH_WORD_32 *) binary)[0] & 0xf);
@@ -316,10 +316,10 @@ static int binary_hash_6(void *binary)
 static int get_hash_0(int index)
 {
 #ifdef _PHPASS_DEBUG
-	printf("get_hash_0:   ");
+	fprintf(stderr, "get_hash_0:   ");
 	int i;
 	for (i = 0; i < 4; i++)
-		printf("%08x ", outbuffer[index].v[i]);
+		fprintf(stderr, "%08x ", outbuffer[index].v[i]);
 	puts("");
 #endif
 	return outbuffer[index].v[0] & 0xf;
