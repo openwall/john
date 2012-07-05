@@ -40,7 +40,7 @@ static void read_kernel_source(char *kernel_filename)
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	kernel_source = mem_calloc_tiny(source_size, MEM_ALIGN_NONE);
+	kernel_source = mem_calloc_tiny(source_size + 1, MEM_ALIGN_NONE);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
