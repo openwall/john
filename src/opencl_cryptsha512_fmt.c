@@ -492,6 +492,8 @@ static void init(struct fmt_main *pFmt) {
     uint64_t startTime, runtime;
     char * task;
 
+    global_work_size = 0;
+
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
 
