@@ -652,7 +652,29 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 			exit(0);
 		}
+	}
 
+	if (options.listconf && !strcasecmp(options.listconf, "encodings"))
+	{
+		listEncodings();
+		exit(0);
+	}
+#ifdef CL_VERSION_1_0
+	if (options.listconf && !strcasecmp(options.listconf, "opencl-devices"))
+	{
+		listOpenCLdevices();
+		exit(0);
+	}
+#endif
+#ifdef HAVE_CUDA
+	if (options.listconf && !strcasecmp(options.listconf, "cuda-devices"))
+	{
+		cuda_device_list();
+		exit(0);
+	}
+#endif
+
+	if (!make_check) {
 		if (options.config)
 		{
 			path_init_ex(options.config);
@@ -719,25 +741,7 @@ static void john_init(char *name, int argc, char **argv)
 		cfg_print_subsections("List.External", "generate", NULL, 0);
 		exit(0);
 	}
-	if (options.listconf && !strcasecmp(options.listconf, "encodings"))
-	{
-		listEncodings();
-		exit(0);
-	}
-#ifdef CL_VERSION_1_0
-	if (options.listconf && !strcasecmp(options.listconf, "opencl-devices"))
-	{
-		listOpenCLdevices();
-		exit(0);
-	}
-#endif
-#ifdef HAVE_CUDA
-	if (options.listconf && !strcasecmp(options.listconf, "cuda-devices"))
-	{
-		cuda_device_list();
-		exit(0);
-	}
-#endif
+
 	if (options.listconf &&
 	    !strcasecmp(options.listconf, "formats")) {
 		int column;
