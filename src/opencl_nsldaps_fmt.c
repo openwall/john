@@ -72,7 +72,6 @@ static char *saved_plain;
 static char saved_salt[SALT_SIZE];
 static unsigned int datai[2];
 static int have_full_hashes;
-static size_t global_work_size = SSHA_NUM_KEYS;
 
 static int max_keys_per_crypt = SSHA_NUM_KEYS;
 
@@ -98,71 +97,6 @@ static struct fmt_tests tests[] = {
 #endif
 	{NULL}
 };
-
-static void find_best_workgroup(void)
-{
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i = 0;
-	size_t max_group_size;
-
-	clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
-	                         CL_KERNEL_WORK_GROUP_SIZE,
-	                         sizeof(max_group_size), &max_group_size, NULL);
-	queue_prof =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	printf("Max local work size %d ", (int) max_group_size);
-	local_work_size = 1;
-
-	// Set keys
-	for (; i < SSHA_NUM_KEYS; i++) {
-		memcpy(&(saved_plain[i * PLAINTEXT_LENGTH]), "igottago", PLAINTEXT_LENGTH);
-	}
-	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE,
-	    saved_salt, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * SSHA_NUM_KEYS, saved_plain, 0, NULL, NULL);
-
-	// Find minimum time
-	for (my_work_group = 1; (int) my_work_group <= (int) max_group_size;
-	    my_work_group *= 2) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1,
-		    NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-		if (ret_code != CL_SUCCESS) {
-			printf("Error %d\n", ret_code);
-			continue;
-		}
-		clFinish(queue_prof);
-
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-		    sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-		    sizeof(cl_ulong), &endTime, NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		}
-		#ifdef DEBUG
-		printf("\nlws %04d time=%10d",(int) my_work_group, endTime-startTime);
-		#endif
-	}
-	#ifdef DEBUG
-	printf("\n");
-	#endif
-	printf("Optimal local work size %d\n",(int)local_work_size);
-	printf("(to avoid this test on next run, put \""
-           LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-           SUBSECTION_OPENCL "])\n", (int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-}
-
-
 
 static void create_clobj(int kpc){
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
@@ -302,6 +236,9 @@ static void find_best_kpc(void){
 static void fmt_ssha_init(struct fmt_main *pFmt)
 {
 	char *temp;
+
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	opencl_init("$JOHN/ssha_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
@@ -317,7 +254,7 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 
 	if (!local_work_size) {
 		create_clobj(SSHA_NUM_KEYS);
-		find_best_workgroup();
+		opencl_find_best_workgroup(pFmt);
 		release_clobj();
 	}
 

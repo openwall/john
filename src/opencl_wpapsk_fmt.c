@@ -39,7 +39,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(wpapsk_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(wpapsk_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(wpapsk_salt);
-static size_t global_work_size = KEYS_PER_CRYPT;
 
 static struct fmt_tests tests[] = {
 /// testcase from http://wiki.wireshark.org/SampleCaptures = wpa-Induction.pcap
@@ -62,6 +61,9 @@ static void release_all(void)
 static void init(struct fmt_main *pFmt)
 {
 	cl_int cl_error;
+
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
 	inbuffer =

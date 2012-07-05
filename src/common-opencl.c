@@ -40,7 +40,9 @@ static void read_kernel_source(char *kernel_filename)
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	kernel_source = mem_calloc_tiny(source_size + 1, MEM_ALIGN_NONE);
+	if (kernel_source != NULL)
+		free(kernel_source);
+	kernel_source = calloc(source_size + 1, 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
@@ -159,13 +161,13 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	size_t my_work_group, optimal_work_group = 1;
 	cl_int ret_code;
 	int i;
-	size_t max_group_size, wg_multiple;
+	size_t orig_group_size, max_group_size, wg_multiple;
 
 #if __OPENCL_VERSION__ < 110
 	cl_device_type device_type;
 	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_TYPE,
 	    sizeof(device_type), &device_type, NULL);
-	wg_multiple = 1;
+	wg_multiple = 8; // Recommended by Intel
 	if (device_type == CL_DEVICE_TYPE_GPU)
 		wg_multiple = 32;
 
@@ -175,6 +177,8 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		sizeof(wg_multiple), &wg_multiple, NULL),
 	    "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 #endif
+
+	orig_group_size = global_work_size;
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
@@ -190,8 +194,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	printf("Max local work size %d\n", (int) max_group_size);
-	local_work_size = 1;
+	fprintf(stderr, "Max local work size %d\n", (int) max_group_size);
 
 	/// Set keys - first key from tests will be benchmarked
 	for (i = 0; i < pFmt->params.max_keys_per_crypt; i++) {
@@ -209,6 +212,8 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
 
+		global_work_size = local_work_size = my_work_group;
+
 		clGetEventProfilingInfo(profilingEvent,
 		    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 		    NULL);
@@ -223,7 +228,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 			kernelExecTimeNs = endTime - startTime;
 			optimal_work_group = my_work_group;
 		}
-		//printf("%d time=%lld\n",(int) my_work_group, endTime-startTime);
+		//fprintf(stderr, "%d time=%lld\n",(int) my_work_group, endTime-startTime);
 		}
 	///Release profiling queue and create new with profiling disabled
 	clReleaseCommandQueue(queue[gpu_id]);
@@ -232,7 +237,8 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
-	printf("Optimal local work size = %d\n", (int) local_work_size);
+	fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
+	global_work_size = orig_group_size;
 }
 
 
