@@ -471,8 +471,8 @@ static void crypt_all(int count)
 #ifdef _DEBUG
 	gettimeofday(&endg,NULL);
 	gettimeofday(&endc, NULL);
-	printf("\nGPU:%f  ",(endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000);
-	printf("CPU:%f  ",(endc.tv_sec-startc.tv_sec)+(double)(endc.tv_usec-startc.tv_usec)/1000000.000 - ((endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000));
+	fprintf(stderr, "\nGPU:%f  ",(endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000);
+	fprintf(stderr, "CPU:%f  ",(endc.tv_sec-startc.tv_sec)+(double)(endc.tv_usec-startc.tv_usec)/1000000.000 - ((endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000));
 #endif
 }
 
@@ -484,7 +484,7 @@ static int binary_hash_0(void *binary)
 	puts("binary");
 	unsigned int i, *b = binary;
 	for (i = 0; i < 4; i++)
-		printf("%08x ", b[i]);
+		fprintf(stderr, "%08x ", b[i]);
 	puts("");
 #endif
 	return (((unsigned int *) binary)[0] & 0xf);
@@ -528,7 +528,7 @@ static int get_hash_0(int index)
 	int i;
 	puts("get_hash");
 	for (i = 0; i < 4; i++)
-		printf("%08x ", dcc2_hash_host[index]);
+		fprintf(stderr, "%08x ", dcc2_hash_host[index]);
 	puts("");
 #endif
 	return dcc2_hash_host[4*index]& 0xf;

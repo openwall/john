@@ -128,7 +128,7 @@ static void find_best_kpc(void){
     int i = 0;
     cl_uint *tmpbuffer;
 
-    printf("Calculating best keys per crypt, this will take a while ");
+    fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
     for( num=SHA_NUM_KEYS; num > 4096 ; num -= 4096){
         release_clobj();
 	create_clobj(num);
@@ -141,7 +141,7 @@ static void find_best_kpc(void){
 	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, mysqlsha_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS){
-		printf("Error %d\n",ret_code);
+		fprintf(stderr, "Error %d\n",ret_code);
 		continue;
 	}
 	clFinish(queue_prof);
@@ -160,7 +160,7 @@ static void find_best_kpc(void){
 	free(tmpbuffer);
     	clReleaseCommandQueue(queue_prof);
     }
-    printf("Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
+    fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
     max_keys_per_crypt = optimal_kpc;
     release_clobj();
     create_clobj(optimal_kpc);
@@ -220,7 +220,7 @@ static void init(struct fmt_main *pFmt){
 	    		create_clobj(max_keys_per_crypt);
 		}
 	}
-	printf("Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
+	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 
 }

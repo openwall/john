@@ -340,7 +340,7 @@ static int cmp_one(void * binary, int index)
 		return 0;
         */
 	/* never reached
-        printf("reached\n");
+        fprintf(stderr, "reached\n");
 	b += SQRT_3;b = (b << 15) | (b >> 17);
 
 	a += (b ^ c ^ d) + buffer[pos1] + SQRT_3; a = (a << 3 ) | (a >> 29);

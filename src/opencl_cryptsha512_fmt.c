@@ -298,7 +298,7 @@ static void find_best_workgroup(void) {
     queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id],
             CL_QUEUE_PROFILING_ENABLE, &ret_code);
     HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
-    printf("Max local work size %d ", (int) max_group_size);
+    fprintf(stderr, "Max local work size %d ", (int) max_group_size);
     local_work_size = 1;
     max_group_size = get_task_max_work_group_size();
 
@@ -330,7 +330,7 @@ static void find_best_workgroup(void) {
         if (ret_code != CL_SUCCESS) {
 
             if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
-                printf("Error %d\n", ret_code);
+                fprintf(stderr, "Error %d\n", ret_code);
             continue;
         }
         //Get profile information
@@ -347,8 +347,8 @@ static void find_best_workgroup(void) {
             local_work_size = my_work_group;
         }
     }
-    printf("Optimal local work size %d\n", (int) local_work_size);
-    printf("(to avoid this test on next run, put \""
+    fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
+    fprintf(stderr, "(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
     HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
@@ -387,7 +387,7 @@ static void find_best_gws(void) {
     unsigned int SHAspeed, bestSHAspeed = 0;
     char *tmp_value;
 
-    printf("Calculating best global work size, this will take a while ");
+    fprintf(stderr, "Calculating best global work size, this will take a while ");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -434,7 +434,7 @@ static void find_best_gws(void) {
         HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
         if (ret_code != CL_SUCCESS) {
-            printf("Error %d\n", ret_code);
+            fprintf(stderr, "Error %d\n", ret_code);
             continue;
         }
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
@@ -477,8 +477,8 @@ static void find_best_gws(void) {
         if (do_benchmark)
             fprintf(stderr, "\n");
     }
-    printf("Optimal global work size %d\n", optimal_gws);
-    printf("(to avoid this test on next run, put \""
+    fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+    fprintf(stderr, "(to avoid this test on next run, put \""
         GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
     global_work_size = optimal_gws;
@@ -501,7 +501,7 @@ static void init(struct fmt_main *pFmt) {
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
 
     else {
-        printf("Building the kernel, this could take a while\n");
+        fprintf(stderr, "Building the kernel, this could take a while\n");
 
         if (gpu_nvidia(device_info[gpu_id]))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
@@ -512,7 +512,7 @@ static void init(struct fmt_main *pFmt) {
     opencl_build_kernel(task, gpu_id);
 
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-        printf("Elapsed time: %lu seconds\n", runtime);
+        fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
 
     // create kernel to execute
@@ -531,7 +531,7 @@ static void init(struct fmt_main *pFmt) {
 
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
-        printf("Error: invalid local work size (LWS). Max value allowed is: %u\n" ,
+        fprintf(stderr, "Error: invalid local work size (LWS). Max value allowed is: %u\n" ,
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
@@ -559,7 +559,7 @@ static void init(struct fmt_main *pFmt) {
         create_clobj(global_work_size);
         find_best_gws();
     }
-    printf("Local work size (LWS) %d, global work size (GWS) %Zd\n",
+    fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %Zd\n",
            (int) local_work_size, global_work_size);
     pFmt->params.max_keys_per_crypt = global_work_size;
 }
@@ -694,7 +694,7 @@ static void print_binary(void * binary) {
     int i;
 
     for (i = 0; i < 8; i++)
-        printf("%016lx ", bin[i]);
+        fprintf(stderr, "%016lx ", bin[i]);
     puts("(Ok)");
 }
 
@@ -703,11 +703,11 @@ static void print_hash() {
 
     for (i = 0; i < global_work_size; i++)
         if (calculated_hash[i].v[0] == 12)
-            printf("Value: %lu, %d\n ", calculated_hash[i].v[0], i);
+            fprintf(stderr, "Value: %lu, %d\n ", calculated_hash[i].v[0], i);
 
-    printf("\n");
+    fprintf(stderr, "\n");
     for (i = 0; i < 8; i++)
-        printf("%016lx ", calculated_hash[0].v[i]);
+        fprintf(stderr, "%016lx ", calculated_hash[0].v[i]);
     puts("");
 }
 #endif

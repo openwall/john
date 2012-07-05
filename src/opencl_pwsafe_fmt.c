@@ -180,7 +180,7 @@ static void crypt_all(int count)
 	for (i = 0; i < 8; i++) {
 		dst[i] = SWAP32(src[i]);
 	}
-//printf("rounds = %d\n",host_salt->iterations);
+//fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer
 	    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,

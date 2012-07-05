@@ -131,7 +131,7 @@ static void find_best_kpc(void){
 	int i = 0;
 	cl_uint *tmpbuffer;
 
-	printf("Calculating best keys per crypt, this will take a while ");
+	fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
 	for( num=MD4_NUM_KEYS; num > 4096 ; num -= 4096){
 		release_clobj();
 		create_clobj(num);
@@ -164,7 +164,7 @@ static void find_best_kpc(void){
 		free(tmpbuffer);
 		clReleaseCommandQueue(queue_prof);
 	}
-	printf("Optimal keys per crypt %d\n(to avoid this test on next run do \"export GWS=%d\")\n",optimal_kpc,optimal_kpc);
+	fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do \"export GWS=%d\")\n",optimal_kpc,optimal_kpc);
 	max_keys_per_crypt = optimal_kpc;
 	release_clobj();
 	create_clobj(optimal_kpc);
@@ -199,7 +199,7 @@ static void init(struct fmt_main *pFmt) {
 			create_clobj(max_keys_per_crypt);
 		}
 	}
-	printf("Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
+	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
@@ -284,12 +284,12 @@ static void crypt_all(int count)
 	unsigned char *p = (unsigned char *) saved_plain;
 	count--;
 	for (i = 0; i < count + 1; i++) {
-		printf("\npassword : ");
+		fprintf(stderr, "\npassword : ");
 		for (j = 0; j < 64; j++) {
-			printf("%02x ", p[i * 64 + j]);
+			fprintf(stderr, "%02x ", p[i * 64 + j]);
 		}
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
 #endif
 	// copy keys to the device
 	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
@@ -312,11 +312,11 @@ static void crypt_all(int count)
 #ifdef DEBUGVERBOSE
 	p = (unsigned char *) partial_hashes;
 	for (i = 0; i < 2; i++) {
-		printf("\n\npartial_hashes : ");
+		fprintf(stderr, "\n\npartial_hashes : ");
 		for (j = 0; j < 16; j++)
-			printf("%02x ", p[i * 16 + j]);
+			fprintf(stderr, "%02x ", p[i * 16 + j]);
 	}
-	printf("\n");;
+	fprintf(stderr, "\n");;
 #endif
 }
 
