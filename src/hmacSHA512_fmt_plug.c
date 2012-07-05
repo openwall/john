@@ -42,7 +42,7 @@ static struct fmt_tests tests[] = {
 };
 
 static union xx {
-	unsigned char c[BINARY_SIZE+1];
+	char c[BINARY_SIZE+1];
 	ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)+1];
 } u;
 static char *crypt_key = u.c;  // Requires alignment on generic sha2.c
