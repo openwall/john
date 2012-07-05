@@ -115,7 +115,6 @@ static uint64_t H[8] = {
 static cl_mem mem_in, mem_out, mem_salt, mem_binary, mem_cmp;
 static size_t insize = sizeof(xsha512_key) * MAX_KEYS_PER_CRYPT;
 static size_t outsize = sizeof(xsha512_hash) * MAX_KEYS_PER_CRYPT;
-static size_t global_work_size = MAX_KEYS_PER_CRYPT;
 cl_kernel cmp_kernel;
 
 static void release_all(void)
@@ -215,6 +214,8 @@ static void find_best_workgroup()
 
 static void init(struct fmt_main *pFmt)
 {
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	opencl_init("$JOHN/xsha512_kernel.cl", gpu_id, platform_id);
 
 	///Alocate memory on the GPU
