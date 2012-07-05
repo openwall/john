@@ -188,7 +188,7 @@ static void init(struct fmt_main *pFmt)
 
 	opencl_find_best_workgroup(pFmt);
 
-	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, global_work_size);
+	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 	atexit(release_all);
 
 }
