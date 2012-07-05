@@ -179,6 +179,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 #endif
 
 	orig_group_size = global_work_size;
+	global_work_size = pFmt->params.max_keys_per_crypt;
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
@@ -212,7 +213,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
 
-		global_work_size = local_work_size = my_work_group;
+		local_work_size = my_work_group;
 
 		clGetEventProfilingInfo(profilingEvent,
 		    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
