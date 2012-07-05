@@ -170,7 +170,6 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	wg_multiple = 8; // Recommended by Intel
 	if (device_type == CL_DEVICE_TYPE_GPU)
 		wg_multiple = 32;
-
 #else
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
 		CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
@@ -186,6 +185,10 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		&max_group_size, NULL),
 	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
 
+	// Safety harness
+	if (wg_multiple > max_group_size)
+		wg_multiple = max_group_size;
+
 	///Command Queue changing:
 	///1) Delete old CQ
 	clReleaseCommandQueue(queue[gpu_id]);
@@ -195,7 +198,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	fprintf(stderr, "Max local work size %d\n", (int) max_group_size);
+	//fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
 	/// Set keys - first key from tests will be benchmarked
 	for (i = 0; i < pFmt->params.max_keys_per_crypt; i++) {
@@ -204,6 +207,10 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	/// Set salt
 	pFmt->methods.set_salt(pFmt->methods.salt(pFmt->params.tests[0].
 		ciphertext));
+
+	/// Warm-up run
+	local_work_size = wg_multiple;
+	pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
 
 	/// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
@@ -238,7 +245,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
-	fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
+	//fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
 	global_work_size = orig_group_size;
 }
 
