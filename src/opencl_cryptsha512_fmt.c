@@ -40,8 +40,6 @@ cl_mem pinned_saved_keys, pinned_partial_hashes;
 cl_command_queue queue_prof;
 cl_kernel crypt_kernel;
 
-//TODO: move to common-opencl? local_work_size is there.
-static size_t global_work_size;
 static int new_keys, new_salt;
 
 static struct fmt_tests tests[] = {

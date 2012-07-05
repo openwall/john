@@ -35,6 +35,7 @@ cl_int ret_code;
 cl_kernel crypt_kernel;
 cl_event profilingEvent;
 size_t local_work_size;
+size_t global_work_size;
 size_t max_group_size;
 
 int device_info[MAXGPUS];
