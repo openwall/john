@@ -58,7 +58,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(phpass_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(phpass_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(uint8_t) * SALT_SIZE + 4;
-static size_t global_work_size = KEYS_PER_CRYPT;
 
 
 static struct fmt_tests tests[] = {
@@ -125,6 +124,9 @@ static char *get_key(int index)
 static void init(struct fmt_main *pFmt)
 {
 	cl_int cl_error;
+
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	atexit(release_all);
 	opencl_init("$JOHN/phpass_kernel.cl", gpu_id,platform_id);
 

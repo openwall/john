@@ -52,7 +52,6 @@ cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys, data_i
 static cl_uint *partial_hashes;
 static cl_uint *res_hashes;
 static char *saved_plain;
-static size_t global_work_size = SHA_NUM_KEYS;
 static unsigned int datai[2];
 static int have_full_hashes;
 
@@ -67,51 +66,6 @@ static struct fmt_tests tests[] = {
 };
 
 //static char *saved_key;
-
-static void find_best_workgroup(void){
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i = 0;
-	size_t max_group_size;
-
-	clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
-	                         CL_KERNEL_WORK_GROUP_SIZE,
-	                         sizeof(max_group_size), &max_group_size, NULL);
-	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	printf("Max local work size %d ",(int)max_group_size);
-	local_work_size = 1;
-
-	// Set keys
-	for (; i < SHA_NUM_KEYS; i++){
-		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"aaaaaaaa",PLAINTEXT_LENGTH);
-	}
-        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * SHA_NUM_KEYS, saved_plain, 0, NULL, NULL);
-
-	// Find minimum time
-	for(my_work_group=1 ;(int) my_work_group <= (int) max_group_size; my_work_group*=2){
-    		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-		clFinish(queue_prof);
-
-		if(ret_code != CL_SUCCESS){
-			printf("Errore %d\n",ret_code);
-			continue;
-		}
-
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-
-		if((endTime-startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime-startTime;
-			local_work_size = my_work_group;
-		}
-	}
-	printf("Optimal local work size %d\n",(int)local_work_size);
-	printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-}
 
 static int valid(char *ciphertext, struct fmt_main *pFmt){
 	int i;
@@ -231,6 +185,9 @@ static void find_best_kpc(void){
 
 static void fmt_rawsha1_init(struct fmt_main *pFmt) {
 	char *kpc;
+
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	opencl_init("$JOHN/sha1_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
@@ -239,7 +196,7 @@ static void fmt_rawsha1_init(struct fmt_main *pFmt) {
 
 	if(((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(SHA_NUM_KEYS);
-		find_best_workgroup();
+		opencl_find_best_workgroup(pFmt);
 		release_clobj();
 	}else {
 		local_work_size = atoi(kpc);
