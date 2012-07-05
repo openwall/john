@@ -158,7 +158,7 @@ static void build_kernel(int dev_id)
 void opencl_find_best_workgroup(struct fmt_main *pFmt)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group, optimal_work_group = 1;
+	size_t my_work_group, optimal_work_group;
 	cl_int ret_code;
 	int i;
 	size_t orig_group_size, max_group_size, wg_multiple;
@@ -205,7 +205,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		ciphertext));
 
 	/// Find minimum time
-	for (my_work_group = wg_multiple;
+	for (optimal_work_group = my_work_group = wg_multiple;
 	    (int) my_work_group <= (int) max_group_size;
 	    my_work_group += wg_multiple) {
 
