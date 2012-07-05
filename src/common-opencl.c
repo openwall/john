@@ -154,14 +154,15 @@ static void build_kernel(int dev_id)
 #endif
 }
 
-/* Remember to use profilingEvent in your crypt_all() if you want to use this function */
+/* NOTE: Remember to use profilingEvent in your crypt_all() if you want to use
+   this function */
 void opencl_find_best_workgroup(struct fmt_main *pFmt)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
 	cl_int ret_code;
-	int i;
-	size_t orig_group_size, max_group_size, wg_multiple;
+	int i, numloops;
+	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
 
 #if __OPENCL_VERSION__ < 110
 	cl_device_type device_type;
@@ -212,6 +213,20 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	local_work_size = wg_multiple;
 	pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
 
+	// Timing run
+	pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	clGetEventProfilingInfo(profilingEvent,
+	    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+	    NULL);
+	clGetEventProfilingInfo(profilingEvent,
+	    CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+	    NULL);
+	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
+	if (numloops < 1)
+		numloops = 1;
+	//fprintf(stderr, "%zu, %zu, time: %zu, loops: %d\n", endTime, startTime, (endTime-startTime), numloops);
+
 	/// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
 	    (int) my_work_group <= (int) max_group_size;
@@ -220,24 +235,31 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
 
-		local_work_size = my_work_group;
+		sumStartTime = 0;
+		sumEndTime = 0;
 
-		clGetEventProfilingInfo(profilingEvent,
-		    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-		    NULL);
+		for (i = 0; i < numloops; i++) {
+			local_work_size = my_work_group;
 
-		pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
+			pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
 
-		clGetEventProfilingInfo(profilingEvent,
-		    CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-		    NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
+			HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+			clGetEventProfilingInfo(profilingEvent,
+			                        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+			                        NULL);
+			clGetEventProfilingInfo(profilingEvent,
+			                        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			                        NULL);
+			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime, startTime, (endTime-startTime));
+			sumStartTime += startTime;
+			sumEndTime += endTime;
+		}
+		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
+			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
 		}
-		//fprintf(stderr, "%d time=%lld\n",(int) my_work_group, endTime-startTime);
-		}
+		//fprintf(stderr, "%d time=%llu\n",(int) my_work_group, (unsigned long long)sumEndTime-sumStartTime);
+	}
 	///Release profiling queue and create new with profiling disabled
 	clReleaseCommandQueue(queue[gpu_id]);
 	queue[gpu_id] =

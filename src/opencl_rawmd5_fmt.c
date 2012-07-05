@@ -288,7 +288,7 @@ static void crypt_all(int count)
 	    "failed in clEnqueueWriteBuffer buffer_keys");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, NULL),
+	    &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
 	    "failed in clEnqueueNDRangeKernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 	// read back partial hashes

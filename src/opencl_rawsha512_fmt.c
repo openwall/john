@@ -326,7 +326,7 @@ static void crypt_all(int count)
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
-		0, NULL, NULL), "Set ND range");
+		0, NULL, &profilingEvent), "Set ND range");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
