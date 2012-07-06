@@ -165,7 +165,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
 
         if (get_device_version(gpu_id) < 110) {
-	    wg_multiple = 8; // Recommended by Intel
+            wg_multiple = 8; // Recommended by Intel
 
 	    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU)
 		wg_multiple = 32;
