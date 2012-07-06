@@ -8,6 +8,7 @@
 static char opencl_log[LOG_SIZE];
 static char *kernel_source;
 static int kernel_loaded;
+static size_t program_size;
 
 void advance_cursor()
 {
@@ -36,7 +37,11 @@ static void read_kernel_source(char *kernel_filename)
 	size_t source_size, read_size;
 
 	if (!fp)
+		fp = fopen(kernel_path, "rb");
+	
+	if (!fp)	
 		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+	
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
@@ -49,6 +54,7 @@ static void read_kernel_source(char *kernel_filename)
 		    "Error reading source: expected %zu, got %zu bytes.\n",
 		    source_size, read_size);
 	fclose(fp);
+	program_size = source_size;
 	kernel_loaded = 1;
 }
 
@@ -152,6 +158,33 @@ static void build_kernel(int dev_id)
 	fclose(file);
 	free(source);
 #endif
+}
+
+static void build_kernel_from_binary(int dev_id)
+{
+	cl_int build_code;
+	const char *srcptr[] = { kernel_source };
+	assert(kernel_loaded);
+	program[dev_id] =
+	    clCreateProgramWithBinary( context[dev_id], 1, &devices[dev_id], &program_size,
+                                       (const unsigned char**)srcptr, NULL, &ret_code );
+	HANDLE_CLERROR(ret_code, "Error while creating program");
+
+	build_code = clBuildProgram(program[dev_id], 0, NULL,
+	    include_source("$JOHN/", dev_id), NULL, NULL);
+
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
+		NULL), "Error while getting build info");
+
+	///Report build errors and warnings
+	if (build_code != CL_SUCCESS)
+		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+#ifdef REPORT_OPENCL_WARNINGS
+	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
+		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+#endif
+
 }
 
 /* NOTE: Remember to use profilingEvent in your crypt_all() if you want to use
@@ -300,12 +333,26 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 	build_kernel(dev_id);
 }
 
+void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
+{
+	read_kernel_source(kernel_filename);
+	build_kernel_from_binary(dev_id);
+}
+
 void opencl_init(char *kernel_filename, unsigned int dev_id,
     unsigned int platform_id)
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
 	opencl_build_kernel(kernel_filename, dev_id);
+}
+
+void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
+    unsigned int platform_id)
+{
+	kernel_loaded=0;
+	opencl_init_dev(dev_id, platform_id);
+	opencl_build_kernel_from_binary(kernel_filename, dev_id);
 }
 
 cl_device_type get_device_type(int dev_id)
