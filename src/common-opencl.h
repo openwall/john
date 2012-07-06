@@ -58,6 +58,7 @@ cl_uint get_max_compute_units(int dev_id);
 cl_uint get_processors_count(int dev_id);
 cl_uint get_processor_family(int dev_id);
 int get_vendor_id(int dev_id);
+int get_device_version(int dev_id);
 
 #define UNKNOWN                 0
 #define CPU                     1
