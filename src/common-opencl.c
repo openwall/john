@@ -164,19 +164,17 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	int i, numloops;
 	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
 
-#if __OPENCL_VERSION__ < 110
-	cl_device_type device_type;
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_TYPE,
-	    sizeof(device_type), &device_type, NULL);
-	wg_multiple = 8; // Recommended by Intel
-	if (device_type == CL_DEVICE_TYPE_GPU)
+        if (get_device_version(gpu_id) < 110) {
+            wg_multiple = 8; // Recommended by Intel
+
+	    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU)
 		wg_multiple = 32;
-#else
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
-		CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-		sizeof(wg_multiple), &wg_multiple, NULL),
-	    "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
-#endif
+        } else {
+	    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+		    sizeof(wg_multiple), &wg_multiple, NULL),
+	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+        }
 
 	orig_group_size = global_work_size;
 	global_work_size = pFmt->params.max_keys_per_crypt;
@@ -239,6 +237,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		sumEndTime = 0;
 
 		for (i = 0; i < numloops; i++) {
+                        advance_cursor();
 			local_work_size = my_work_group;
 
 			pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
@@ -460,6 +459,23 @@ int get_vendor_id(int dev_id)
 		return AMD;
 
 	return UNKNOWN;
+}
+
+int get_device_version(int dev_id)
+{
+	char dname[MAX_OCLINFO_STRING_LEN];
+
+        clGetDeviceInfo(devices[dev_id], CL_DEVICE_VERSION,
+                MAX_OCLINFO_STRING_LEN, dname, NULL);
+
+        if (strstr(dname, "1.0"))
+                return 100;
+        if (strstr(dname, "1.1"))
+                return 110;
+        if (strstr(dname, "1.2"))
+                return 120;
+
+        return UNKNOWN;
 }
 
 char *get_error_name(cl_int cl_error)
