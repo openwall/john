@@ -284,9 +284,9 @@ static void print_usage(char *name)
 	exit(0);
 }
 
-void opt_init(char *name, int argc, char **argv)
+void opt_init(char *name, int argc, char **argv, int show_usage)
 {
-	if (argc < 2)
+	if (show_usage)
 		print_usage(name);
 
 	memset(&options, 0, sizeof(options));
