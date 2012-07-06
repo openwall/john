@@ -288,9 +288,6 @@ static char *get_key(int index) {
 -- */
 static void find_best_workgroup(struct fmt_main *pFmt) {
 
-    //size_t max_group_size;
-
-    //max_group_size = ;
     fprintf(stderr, "Max local work size %d ", (int) get_max_work_group_size(gpu_id));
 
     //Call the default function.
@@ -438,8 +435,6 @@ static void init(struct fmt_main *pFmt) {
     char *tmp_value;
     uint64_t startTime, runtime;
     char * task;
-
-    //global_work_size = 0;
 
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
