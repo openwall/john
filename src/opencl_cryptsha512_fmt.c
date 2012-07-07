@@ -288,7 +288,7 @@ static char *get_key(int index) {
 -- */
 static void find_best_workgroup(struct fmt_main *pFmt) {
 
-    fprintf(stderr, "Max local work size %d ", (int) get_max_work_group_size(gpu_id));
+    fprintf(stderr, "Max local work size %d, ", (int) get_task_max_work_group_size());
 
     //Call the default function.
     opencl_find_best_workgroup(pFmt);
@@ -331,7 +331,7 @@ static void find_best_gws(void) {
     unsigned int SHAspeed, bestSHAspeed = 0;
     char *tmp_value;
 
-    fprintf(stderr, "Calculating best global work size, this will take a while ");
+    fprintf(stderr, "Calculating best global work size, this will take a while\n");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -400,7 +400,7 @@ static void find_best_gws(void) {
             min_time = run_time;
 
         if (do_benchmark) {
-            fprintf(stderr, "gws: %6zu\t%4lu c/s%14u rounds/s%8.3f sec per crypt_all()",
+            fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
@@ -608,21 +608,21 @@ static int cmp_exact(char *source, int count) {
 static void crypt_all(int count) {
     //Send data to the dispositive
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-            sizeof (sha512_salt), &salt, 0, NULL, NULL),
+            sizeof (sha512_salt), &salt, 0, NULL, &profilingEvent),
             "failed in clEnqueueWriteBuffer data_info");
     if (new_keys)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
+                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, &profilingEvent),
                 "failed in clEnqueueWriteBuffer buffer_in");
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, NULL),
+            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, &profilingEvent),
             "failed in reading data back");
 
     //Do the work
