@@ -61,7 +61,7 @@ static struct fmt_tests tests[] = {
  *     {"$6$rounds=4900$saltstring$p3pnU2njiDujK0Pp5us7qlUvkjVaAM0GilTprwyZ1ZiyGKvsfNyDCnlmc.9ahKmDqyqKXMH3frK1I/oEiEbTK/", "Hello world!"},
  *     {NULL}
  * };
- ***/ 
+ ***/
 
 /* ------- Helper functions ------- */
 unsigned int get_task_max_work_group_size(){
@@ -243,7 +243,7 @@ static void set_salt(void *salt_info) {
         }
         offset = endp - currentsalt;
     }
-    //Assure buffer has no "trash data".	
+    //Assure buffer has no "trash data".
     memset(salt.salt, '\0', SALT_LENGTH);
     len = strlen(currentsalt + offset);
     len = (len > SALT_LENGTH ? SALT_LENGTH : len);
@@ -251,13 +251,13 @@ static void set_salt(void *salt_info) {
     //Put the tranfered salt on salt buffer.
     memcpy(salt.salt, currentsalt + offset, len);
     salt.length = len ;
-    new_salt = 1;          
+    new_salt = 1;
 }
 
 /* ------- Key functions ------- */
 static void set_key(char *key, int index) {
     int len;
-    
+
     //Assure buffer has no "trash data".
     memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
     len = strlen(key);
@@ -286,73 +286,17 @@ static char *get_key(int index) {
   uses about 400 bytes of local memory. Local memory
   is usually 32 KB
 -- */
-static void find_best_workgroup(void) {
-    cl_event myEvent;
-    cl_ulong startTime, endTime, min_time = CL_ULONG_MAX;
-    size_t my_work_group = 1;
-    cl_int ret_code;
-    int i;
-    size_t max_group_size;
+static void find_best_workgroup(struct fmt_main *pFmt) {
 
-    max_group_size = get_max_work_group_size(gpu_id);
-    queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-            CL_QUEUE_PROFILING_ENABLE, &ret_code);
-    HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
-    fprintf(stderr, "Max local work size %d ", (int) max_group_size);
-    local_work_size = 1;
-    max_group_size = get_task_max_work_group_size();
+    fprintf(stderr, "Max local work size %d, ", (int) get_task_max_work_group_size());
 
-    // Set salt.
-    set_salt("$6$saltstring$");
+    //Call the default function.
+    opencl_find_best_workgroup(pFmt);
 
-    // Set keys
-    for (i = 0; i < global_work_size; i++) {
-        set_key("aaabaabaaa", i);
-    }
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_TRUE, 0,
-            sizeof (sha512_salt), &salt, 0, NULL, NULL),
-            "Failed in clEnqueueWriteBuffer I");
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_TRUE, 0,
-            sizeof (sha512_password) * global_work_size,
-            plaintext, 0, NULL, NULL),
-            "Failed in clEnqueueWriteBuffer II");
-
-    my_work_group = get_safe_workgroup();
-
-    // Find minimum time
-    for (; (int) my_work_group <= (int) max_group_size;
-         my_work_group *= 2) {
-        advance_cursor();
-        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-                1, NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-
-        if (ret_code != CL_SUCCESS) {
-
-            if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
-                fprintf(stderr, "Error %d\n", ret_code);
-            continue;
-        }
-        //Get profile information
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-                sizeof (cl_ulong), &startTime, NULL),
-                "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-                sizeof (cl_ulong), &endTime, NULL),
-                "Failed in clGetEventProfilingInfo II");
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-
-        if ((endTime - startTime) * 1.01 < min_time) {
-            min_time = endTime - startTime;
-            local_work_size = my_work_group;
-        }
-    }
     fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
-    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");
 }
 
 //Allow me to have a configurable step size.
@@ -387,7 +331,7 @@ static void find_best_gws(void) {
     unsigned int SHAspeed, bestSHAspeed = 0;
     char *tmp_value;
 
-    fprintf(stderr, "Calculating best global work size, this will take a while ");
+    fprintf(stderr, "Calculating best global work size, this will take a while\n");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -456,7 +400,7 @@ static void find_best_gws(void) {
             min_time = run_time;
 
         if (do_benchmark) {
-            fprintf(stderr, "gws: %6zu\t%4lu c/s%14u rounds/s%8.3f sec per crypt_all()",
+            fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
@@ -491,8 +435,6 @@ static void init(struct fmt_main *pFmt) {
     char *tmp_value;
     uint64_t startTime, runtime;
     char * task;
-
-    global_work_size = 0;
 
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
@@ -535,11 +477,12 @@ static void init(struct fmt_main *pFmt) {
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
+    pFmt->params.max_keys_per_crypt = global_work_size;
 
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
         create_clobj(global_work_size);
-        find_best_workgroup();
+        find_best_workgroup(pFmt);
         release_clobj();
     }
 
@@ -665,21 +608,21 @@ static int cmp_exact(char *source, int count) {
 static void crypt_all(int count) {
     //Send data to the dispositive
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-            sizeof (sha512_salt), &salt, 0, NULL, NULL),
+            sizeof (sha512_salt), &salt, 0, NULL, &profilingEvent),
             "failed in clEnqueueWriteBuffer data_info");
     if (new_keys)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
+                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, &profilingEvent),
                 "failed in clEnqueueWriteBuffer buffer_in");
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, NULL),
+            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, &profilingEvent),
             "failed in reading data back");
 
     //Do the work

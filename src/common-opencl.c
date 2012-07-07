@@ -8,6 +8,7 @@
 static char opencl_log[LOG_SIZE];
 static char *kernel_source;
 static int kernel_loaded;
+static size_t program_size;
 
 void advance_cursor()
 {
@@ -36,7 +37,11 @@ static void read_kernel_source(char *kernel_filename)
 	size_t source_size, read_size;
 
 	if (!fp)
+		fp = fopen(kernel_path, "rb");
+	
+	if (!fp)	
 		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+	
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
@@ -49,6 +54,7 @@ static void read_kernel_source(char *kernel_filename)
 		    "Error reading source: expected %zu, got %zu bytes.\n",
 		    source_size, read_size);
 	fclose(fp);
+	program_size = source_size;
 	kernel_loaded = 1;
 }
 
@@ -154,6 +160,33 @@ static void build_kernel(int dev_id)
 #endif
 }
 
+static void build_kernel_from_binary(int dev_id)
+{
+	cl_int build_code;
+	const char *srcptr[] = { kernel_source };
+	assert(kernel_loaded);
+	program[dev_id] =
+	    clCreateProgramWithBinary( context[dev_id], 1, &devices[dev_id], &program_size,
+                                       (const unsigned char**)srcptr, NULL, &ret_code );
+	HANDLE_CLERROR(ret_code, "Error while creating program");
+
+	build_code = clBuildProgram(program[dev_id], 0, NULL,
+	    include_source("$JOHN/", dev_id), NULL, NULL);
+
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
+		NULL), "Error while getting build info");
+
+	///Report build errors and warnings
+	if (build_code != CL_SUCCESS)
+		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+#ifdef REPORT_OPENCL_WARNINGS
+	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
+		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+#endif
+
+}
+
 /* NOTE: Remember to use profilingEvent in your crypt_all() if you want to use
    this function */
 void opencl_find_best_workgroup(struct fmt_main *pFmt)
@@ -164,19 +197,17 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	int i, numloops;
 	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
 
-#if __OPENCL_VERSION__ < 110
-	cl_device_type device_type;
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_TYPE,
-	    sizeof(device_type), &device_type, NULL);
-	wg_multiple = 8; // Recommended by Intel
-	if (device_type == CL_DEVICE_TYPE_GPU)
+        if (get_device_version(gpu_id) < 110) {
+            wg_multiple = 8; // Recommended by Intel
+
+	    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU)
 		wg_multiple = 32;
-#else
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
-		CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-		sizeof(wg_multiple), &wg_multiple, NULL),
-	    "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
-#endif
+        } else {
+	    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+		    sizeof(wg_multiple), &wg_multiple, NULL),
+	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+        }
 
 	orig_group_size = global_work_size;
 	global_work_size = pFmt->params.max_keys_per_crypt;
@@ -239,6 +270,7 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		sumEndTime = 0;
 
 		for (i = 0; i < numloops; i++) {
+                        advance_cursor();
 			local_work_size = my_work_group;
 
 			pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
@@ -301,12 +333,26 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 	build_kernel(dev_id);
 }
 
+void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
+{
+	read_kernel_source(kernel_filename);
+	build_kernel_from_binary(dev_id);
+}
+
 void opencl_init(char *kernel_filename, unsigned int dev_id,
     unsigned int platform_id)
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
 	opencl_build_kernel(kernel_filename, dev_id);
+}
+
+void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
+    unsigned int platform_id)
+{
+	kernel_loaded=0;
+	opencl_init_dev(dev_id, platform_id);
+	opencl_build_kernel_from_binary(kernel_filename, dev_id);
 }
 
 cl_device_type get_device_type(int dev_id)
@@ -460,6 +506,23 @@ int get_vendor_id(int dev_id)
 		return AMD;
 
 	return UNKNOWN;
+}
+
+int get_device_version(int dev_id)
+{
+	char dname[MAX_OCLINFO_STRING_LEN];
+
+        clGetDeviceInfo(devices[dev_id], CL_DEVICE_VERSION,
+                MAX_OCLINFO_STRING_LEN, dname, NULL);
+
+        if (strstr(dname, "1.0"))
+                return 100;
+        if (strstr(dname, "1.1"))
+                return 110;
+        if (strstr(dname, "1.2"))
+                return 120;
+
+        return UNKNOWN;
 }
 
 char *get_error_name(cl_int cl_error)

@@ -46,6 +46,8 @@ cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComp
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id);
 void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
+void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
+                 unsigned int platform_id);
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
 void opencl_find_best_workgroup(struct fmt_main *pFmt);
 
@@ -58,6 +60,7 @@ cl_uint get_max_compute_units(int dev_id);
 cl_uint get_processors_count(int dev_id);
 cl_uint get_processor_family(int dev_id);
 int get_vendor_id(int dev_id);
+int get_device_version(int dev_id);
 
 #define UNKNOWN                 0
 #define CPU                     1

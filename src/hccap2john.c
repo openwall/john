@@ -15,6 +15,7 @@
 #ifndef _MSC_VER
 #include <unistd.h>
 #endif
+#include <errno.h>
 #include <assert.h>
 #include "common.h"
 
@@ -32,7 +33,7 @@ typedef struct
   unsigned char keymic[16];
 } hccap_t;
 
-void code_block(unsigned char *in, unsigned char b)
+static void code_block(unsigned char *in, unsigned char b)
 {
 	putchar(itoa64[in[0] >> 2]);
 	putchar(itoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)]);
@@ -43,7 +44,7 @@ void code_block(unsigned char *in, unsigned char b)
 		putchar(itoa64[((in[1] & 0x0f) << 2)]);
 }
 
-void print_hccap(hccap_t * cap)
+static void print_hccap(hccap_t * cap)
 {
 	int i;
 	unsigned char *w = (unsigned char *) cap;
@@ -54,38 +55,47 @@ void print_hccap(hccap_t * cap)
 	puts("");
 }
 
-void process_file(const char *filename)
+static void process_file(const char *filename)
 {
 	hccap_t hccap;
 	FILE *f;
 	struct stat sb;
-	size_t bytes;
 
-	memset(&hccap, '0', sizeof(hccap_t));
 	f = fopen(filename, "r");
 	if (stat(filename, &sb) == -1) {
-		perror("stat() error");
+		perror("stat");
 		exit(EXIT_FAILURE);
 	}
-	if (sb.st_size != sizeof(hccap_t)) {
-		perror("file %s has wrong size");
+	if (sb.st_size != sizeof(hccap)) {
+		puts("file has wrong size");
 		exit(EXIT_FAILURE);
 	}
-	bytes = fread(&hccap, sizeof(hccap_t), 1, f);
-	assert(bytes==HCCAP_SIZE);
-	print_hccap(&hccap);
+	errno = 0;
+	if (fread(&hccap, sizeof(hccap), 1, f) != 1) {
+		if (ferror(f) && errno)
+			perror("fread");
+		else
+			puts("file read error");
+		exit(EXIT_FAILURE);
+	}
 	fclose(f);
+
+	print_hccap(&hccap);
 }
 
 int hccap2john(int argc, char **argv)
 {
 	int i;
+
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
+
 	if (argc < 2) {
-		fprintf(stderr, "Usage: hccap2john [RACF binary files]\n");
-		return -1;
+		fprintf(stderr, "Usage: hccap2john [hccap format binary files]\n");
+		return 1;
 	}
+
 	for (i = 1; i < argc; i++)
 		process_file(argv[i]);
+
 	return 0;
 }
