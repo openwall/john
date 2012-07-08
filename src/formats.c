@@ -15,6 +15,8 @@
 #include "misc.h"
 #ifndef BENCH_BUILD
 #include "options.h"
+#else
+#include "loader.h"
 #endif
 
 struct fmt_main *fmt_list = NULL;

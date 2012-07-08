@@ -12,9 +12,11 @@
 #ifndef _JOHN_LOADER_H
 #define _JOHN_LOADER_H
 
+#ifndef BENCH_BUILD
 #include "params.h"
 #include "list.h"
 #include "formats.h"
+#endif
 
 /*
  * Password list (with a fixed salt) entry.
