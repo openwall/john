@@ -303,7 +303,6 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	global_work_size = orig_group_size;
 }
 
-
 void opencl_get_dev_info(unsigned int dev_id)
 {
 	cl_device_type device;
@@ -319,6 +318,7 @@ void opencl_get_dev_info(unsigned int dev_id)
 
 	device_info[dev_id] += get_vendor_id(dev_id);
 	device_info[dev_id] += get_processor_family(dev_id);
+        device_info[dev_id] += get_byte_addressable(dev_id);
 }
 
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
@@ -461,9 +461,9 @@ cl_uint get_processor_family(int dev_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
-	if gpu (device_info[dev_id]) {
+	if gpu_amd(device_info[dev_id]) {
 
-		if (gpu_amd(device_info[dev_id]) && (strstr(dname, "Cedar") ||
+		if ((strstr(dname, "Cedar") ||
 			strstr(dname, "Redwood") ||
 			strstr(dname, "Juniper") ||
 			strstr(dname, "Cypress") ||
@@ -487,6 +487,20 @@ cl_uint get_processor_family(int dev_id)
 		} else
 			return AMD_GCN + AMD_VLIW5;
 		}
+	return UNKNOWN;
+}
+
+int get_byte_addressable(int dev_id)
+{
+	char dname[MAX_OCLINFO_STRING_LEN];
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_EXTENSIONS,
+		sizeof(dname), dname, NULL),
+	    "Error querying CL_DEVICE_EXTENSIONS");
+
+	if (strstr(dname, "cl_khr_byte_addressable_store") == NULL)
+		return NO_BYTE_ADDRESSABLE;
+
 	return UNKNOWN;
 }
 

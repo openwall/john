@@ -27,6 +27,7 @@
 #define AMD_GCN                 1024
 #define AMD_VLIW4               2048
 #define AMD_VLIW5               4096
+#define NO_BYTE_ADDRESSABLE     8192
 
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
@@ -38,6 +39,7 @@
 #define amd_gcn(n)              ((n & AMD_GCN) && gpu_amd(n))
 #define amd_vliw4(n)            ((n & AMD_VLIW4) && gpu_amd(n))
 #define amd_vliw5(n)            ((n & AMD_VLIW5) && gpu_amd(n))
+#define no_byte_addressable(n)  (n & NO_BYTE_ADDRESSABLE)
 
 //Type names definition.
 #define uint8_t  unsigned char
@@ -106,9 +108,9 @@
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
-/* Failed to use it in insert_to_buffer on GPU (wrong results). */
 #define GETCHAR(buf, index) ((buf)[(index)])
 #define PUTCHAR(buf, index, val) (buf)[(index)] = val
+ #define PUT(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 //Data types.
 typedef union {
