@@ -42,11 +42,9 @@
 }
 #endif
 
-#define S1(x) ((x << 1) | ((x ) >> 31))
-
-#define S5(x) ((x << 5) | ((x ) >> 27))
-
-#define S30(x) ((x << 30) | ((x ) >> 2))
+#define S1(x) rotate((x), (uint)1)
+#define S5(x) rotate((x), (uint)5)
+#define S30(x) rotate((x), (uint)30)
 
 #define R0                                              \
 (                                                       \
@@ -348,7 +346,8 @@
 
 inline void SHA1(__private uint *A,__private uint *W)
 {
-#define F(x,y,z) (z ^ (x & (y ^ z)))
+//#define F(x,y,z) (z ^ (x & (y ^ z)))
+#define F(x,y,z) bitselect(z, y, x)
 #define K 0x5A827999
 	SHA1_part0(A[0],A[1],A[2],A[3],A[4],W);
 #undef K
@@ -402,26 +401,26 @@ inline void SHA1_digest(__private uint *A,__private uint *W)
 
 }
 
-inline void hmac_sha1(__private uint *ipad,__private uint *opad,__private uint *state,private uint *buf, __private uint *temp_char){
-	
-        uint A[5],W[16];
-        
-        GET_WORD_32_BE(W[0], ipad, 0);
-	GET_WORD_32_BE(W[1], ipad, 1);
-	GET_WORD_32_BE(W[2], ipad, 2);
-	GET_WORD_32_BE(W[3], ipad, 3);
-	GET_WORD_32_BE(W[4], ipad, 4);
-	GET_WORD_32_BE(W[5], ipad, 5);
-	GET_WORD_32_BE(W[6], ipad, 6);
-	GET_WORD_32_BE(W[7], ipad, 7);
-	GET_WORD_32_BE(W[8], ipad, 8);
-	GET_WORD_32_BE(W[9], ipad, 9);
-	GET_WORD_32_BE(W[10], ipad, 10);
-	GET_WORD_32_BE(W[11], ipad, 11);
-	GET_WORD_32_BE(W[12], ipad, 12);
-	GET_WORD_32_BE(W[13], ipad, 13);
-	GET_WORD_32_BE(W[14], ipad, 14);
-	GET_WORD_32_BE(W[15], ipad, 15);
+inline void sha1_pad(__private uint *pad, __private uint *state)
+{
+	uint A[5], W[16];
+
+	GET_WORD_32_BE(W[0], pad, 0);
+	GET_WORD_32_BE(W[1], pad, 1);
+	GET_WORD_32_BE(W[2], pad, 2);
+	GET_WORD_32_BE(W[3], pad, 3);
+	GET_WORD_32_BE(W[4], pad, 4);
+	GET_WORD_32_BE(W[5], pad, 5);
+	GET_WORD_32_BE(W[6], pad, 6);
+	GET_WORD_32_BE(W[7], pad, 7);
+	GET_WORD_32_BE(W[8], pad, 8);
+	GET_WORD_32_BE(W[9], pad, 9);
+	GET_WORD_32_BE(W[10], pad, 10);
+	GET_WORD_32_BE(W[11], pad, 11);
+	GET_WORD_32_BE(W[12], pad, 12);
+	GET_WORD_32_BE(W[13], pad, 13);
+	GET_WORD_32_BE(W[14], pad, 14);
+	GET_WORD_32_BE(W[15], pad, 15);
 
 	A[0] = INIT_SHA1_A;
 	A[1] = INIT_SHA1_B;
@@ -429,7 +428,7 @@ inline void hmac_sha1(__private uint *ipad,__private uint *opad,__private uint *
 	A[3] = INIT_SHA1_D;
 	A[4] = INIT_SHA1_E;
 
-SHA1(A,W);
+	SHA1(A, W);
 
 	A[0] += INIT_SHA1_A;
 	A[1] += INIT_SHA1_B;
@@ -442,6 +441,17 @@ SHA1(A,W);
 	state[2] = A[2];
 	state[3] = A[3];
 	state[4] = A[4];
+}
+
+inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private uint *buf)
+{
+	uint A[5], W[16];
+
+	A[0] = istate[0];
+	A[1] = istate[1];
+	A[2] = istate[2];
+	A[3] = istate[3];
+	A[4] = istate[4];
 
 	GET_WORD_32_BE(W[0], buf, 0);
 	GET_WORD_32_BE(W[1], buf, 1);
@@ -460,13 +470,13 @@ SHA1(A,W);
 	GET_WORD_32_BE(W[14], buf, 14);
 	GET_WORD_32_BE(W[15], buf, 15);
 
-SHA1(A,W);
+	SHA1(A, W);
 
-	A[0] += state[0];
-	A[1] += state[1];
-	A[2] += state[2];
-	A[3] += state[3];
-	A[4] += state[4];
+	A[0] += istate[0];
+	A[1] += istate[1];
+	A[2] += istate[2];
+	A[3] += istate[3];
+	A[4] += istate[4];
 
 	PUT_WORD_32_BE(A[0], buf, 0);
 	PUT_WORD_32_BE(A[1], buf, 1);
@@ -478,42 +488,11 @@ SHA1(A,W);
 
 	PUT_WORD_32_BE(0x2A0, buf, 15);
 
-	GET_WORD_32_BE(W[0], opad, 0);
-	GET_WORD_32_BE(W[1], opad, 1);
-	GET_WORD_32_BE(W[2], opad, 2);
-	GET_WORD_32_BE(W[3], opad, 3);
-	GET_WORD_32_BE(W[4], opad, 4);
-	GET_WORD_32_BE(W[5], opad, 5);
-	GET_WORD_32_BE(W[6], opad, 6);
-	GET_WORD_32_BE(W[7], opad, 7);
-	GET_WORD_32_BE(W[8], opad, 8);
-	GET_WORD_32_BE(W[9], opad, 9);
-	GET_WORD_32_BE(W[10], opad, 10);
-	GET_WORD_32_BE(W[11], opad, 11);
-	GET_WORD_32_BE(W[12], opad, 12);
-	GET_WORD_32_BE(W[13], opad, 13);
-	GET_WORD_32_BE(W[14], opad, 14);
-	GET_WORD_32_BE(W[15], opad, 15);
-
-	A[0] = INIT_SHA1_A;
-	A[1] = INIT_SHA1_B;
-	A[2] = INIT_SHA1_C;
-	A[3] = INIT_SHA1_D;
-	A[4] = INIT_SHA1_E;
-
-SHA1(A,W);
-
-	A[0] += INIT_SHA1_A;
-	A[1] += INIT_SHA1_B;
-	A[2] += INIT_SHA1_C;
-	A[3] += INIT_SHA1_D;
-	A[4] += INIT_SHA1_E;
-
-	state[0] = A[0];
-	state[1] = A[1];
-	state[2] = A[2];
-	state[3] = A[3];
-	state[4] = A[4];
+	A[0] = ostate[0];
+	A[1] = ostate[1];
+	A[2] = ostate[2];
+	A[3] = ostate[3];
+	A[4] = ostate[4];
 
 	GET_WORD_32_BE(W[0], buf, 0);
 	GET_WORD_32_BE(W[1], buf, 1);
@@ -521,31 +500,99 @@ SHA1(A,W);
 	GET_WORD_32_BE(W[3], buf, 3);
 	GET_WORD_32_BE(W[4], buf, 4);
 	W[5] = 0x80000000;
-        W[6]=0;
-	W[7]=0;
-	W[8]=0;
-	W[9]=0;
-	W[10]=0;
-	W[11]=0;
-	W[12]=0;
-	W[13]=0;
-	W[14]=0;
-	W[15] = 0x2A0;  
+        W[6] = 0;
+	W[7] = 0;
+	W[8] = 0;
+	W[9] = 0;
+	W[10] = 0;
+	W[11] = 0;
+	W[12] = 0;
+	W[13] = 0;
+	W[14] = 0;
+	W[15] = 0x2A0;
 
-SHA1_digest(A,W);
+	SHA1_digest(A, W);
 
-	A[0] += state[0];
-	A[1] += state[1];
-	A[2] += state[2];
-	A[3] += state[3];
-	A[4] += state[4];
+	A[0] += ostate[0];
+	A[1] += ostate[1];
+	A[2] += ostate[2];
+	A[3] += ostate[3];
+	A[4] += ostate[4];
 
-        PUT_WORD_32_BE(A[0], temp_char, 0);
-	PUT_WORD_32_BE(A[1], temp_char, 1);
-	PUT_WORD_32_BE(A[2], temp_char, 2);
-	PUT_WORD_32_BE(A[3], temp_char, 3);
-	PUT_WORD_32_BE(A[4], temp_char, 4);
+        PUT_WORD_32_BE(A[0], buf, 0);
+	PUT_WORD_32_BE(A[1], buf, 1);
+	PUT_WORD_32_BE(A[2], buf, 2);
+	PUT_WORD_32_BE(A[3], buf, 3);
+	PUT_WORD_32_BE(A[4], buf, 4);
+}
 
+inline void hmac_sha1_iter(__private uint *istate, __private uint *ostate, __private uint *buf, __private uint *out)
+{
+	unsigned int i;
+	uint A[5], W[16];
+
+	for (i = 1; i < ITERATIONS; i++) {
+		W[0] = buf[0];
+		W[1] = buf[1];
+		W[2] = buf[2];
+		W[3] = buf[3];
+		W[4] = buf[4];
+		W[5] = 0x80000000;
+		W[6] = 0;
+		W[7] = 0;
+		W[8] = 0;
+		W[9] = 0;
+		W[10] = 0;
+		W[11] = 0;
+		W[12] = 0;
+		W[13] = 0;
+		W[14] = 0;
+		W[15] = 0x2A0;
+
+		A[0] = istate[0];
+		A[1] = istate[1];
+		A[2] = istate[2];
+		A[3] = istate[3];
+		A[4] = istate[4];
+
+		SHA1_digest(A, W);
+
+		W[0] = A[0] + istate[0];
+		W[1] = A[1] + istate[1];
+		W[2] = A[2] + istate[2];
+		W[3] = A[3] + istate[3];
+		W[4] = A[4] + istate[4];
+		W[5] = 0x80000000;
+		W[6] = 0;
+		W[7] = 0;
+		W[8] = 0;
+		W[9] = 0;
+		W[10] = 0;
+		W[11] = 0;
+		W[12] = 0;
+		W[13] = 0;
+		W[14] = 0;
+		W[15] = 0x2A0;
+
+		A[0] = ostate[0];
+		A[1] = ostate[1];
+		A[2] = ostate[2];
+		A[3] = ostate[3];
+		A[4] = ostate[4];
+
+		SHA1_digest(A, W);
+
+		buf[0] = A[0] + ostate[0];
+		buf[1] = A[1] + ostate[1];
+		buf[2] = A[2] + ostate[2];
+		buf[3] = A[3] + ostate[3];
+		buf[4] = A[4] + ostate[4];
+
+		out[0] ^= buf[0];
+		out[1] ^= buf[1];
+		out[2] ^= buf[2];
+		out[3] ^= buf[3];
+	}
 }
 
 __kernel 
@@ -576,9 +623,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 
 #define SHA1_DIGEST_LENGTH_by_4 SHA1_DIGEST_LENGTH/4
 	
-	uint temp_char[SHA1_DIGEST_LENGTH_by_4];
-	
-	unsigned int state[5],out[4];
+	unsigned int istate[5], ostate[5], out[4];
 	
 	unsigned int ipad[16];
 	
@@ -623,42 +668,24 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 		opad[j] = opad[j] ^ pass[j];
 	  }
 
-	hmac_sha1(ipad,opad,state,buf,temp_char);
-	
-	out[0] = temp_char[0];
-	out[1] = temp_char[1];
-	out[2] = temp_char[2];
-	out[3] = temp_char[3];
+	sha1_pad(ipad, istate);
+	sha1_pad(opad, ostate);
 
-        for (i = 0; i < 16; i++) 
-		buf[i] = 0;
-	
-     
-	for (i = 1; i < ITERATIONS; i++) {
-			
-		
-		buf[0] = temp_char[0];
-		buf[1] = temp_char[1];
-		buf[2] = temp_char[2];
-		buf[3] = temp_char[3];
-		buf[4] = temp_char[4];
+	hmac_sha1(istate, ostate, buf);
 
-		buf[SHA1_DIGEST_LENGTH_by_4] =  0x80 | buf[SHA1_DIGEST_LENGTH_by_4];
-		
-		PUT_WORD_32_BE(0x2A0, buf, 15);
+        for (i = 0; i < 5; i++)
+		GET_WORD_32_BE(buf[i], buf, i);
 
-		hmac_sha1(ipad,opad,state,buf,temp_char);
+	out[0] = buf[0];
+	out[1] = buf[1];
+	out[2] = buf[2];
+	out[3] = buf[3];
 
-		out[0] ^= temp_char[0];
-		out[1] ^= temp_char[1];
-		out[2] ^= temp_char[2];
-		out[3] ^= temp_char[3];
+	hmac_sha1_iter(istate, ostate, buf, out);
 
-	}
-	
-	i=id*4;
-	out_global[i++]=out[0];
-	out_global[i++]=out[1];
-	out_global[i++]=out[2];
-	out_global[i]=out[3];
+	i = id * 4;
+	PUT_WORD_32_BE(out[0], out_global, i++);
+	PUT_WORD_32_BE(out[1], out_global, i++);
+	PUT_WORD_32_BE(out[2], out_global, i++);
+	PUT_WORD_32_BE(out[3], out_global, i);
 }
