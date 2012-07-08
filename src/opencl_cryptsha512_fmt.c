@@ -294,7 +294,7 @@ static char *get_key(int index) {
 -- */
 static void find_best_workgroup(struct fmt_main *pFmt) {
 
-/*  For a while reeverted usage of common find_best_workgroup.
+/*  For a while reverted usage of common find_best_workgroup.
  *
     fprintf(stderr, "Max local work size %d, ", (int) get_task_max_work_group_size());
 
@@ -410,6 +410,7 @@ static void find_best_gws(void) {
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
+        step = get_multiple(step, local_work_size);
         do_benchmark = 1;
     }
 
