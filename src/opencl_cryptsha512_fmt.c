@@ -64,6 +64,11 @@ static struct fmt_tests tests[] = {
  ***/
 
 /* ------- Helper functions ------- */
+unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
+
+    return (dividend / divisor) * divisor;
+}
+
 unsigned int get_task_max_work_group_size(){
     unsigned int max_available;
 
@@ -109,7 +114,7 @@ size_t get_default_workgroup(){
     max_available = get_task_max_work_group_size();
 
     if (gpu_nvidia(device_info[gpu_id])) {
-        global_work_size = (global_work_size / max_available) * max_available; //Find a multiple.
+        global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
     } else
