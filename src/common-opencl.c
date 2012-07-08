@@ -191,6 +191,11 @@ static void build_kernel_from_binary(int dev_id)
    this function */
 void opencl_find_best_workgroup(struct fmt_main *pFmt)
 {
+    opencl_find_best_workgroup_limit(pFmt, UINT_MAX);
+}
+
+void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_limit)
+{
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
 	cl_int ret_code;
@@ -216,6 +221,10 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
+
+        if (max_group_size > group_size_limit)
+            //Needed to deal (at least) with cryptsha512-opencl limits.
+            max_group_size = group_size_limit;
 
 	// Safety harness
 	if (wg_multiple > max_group_size)
@@ -254,8 +263,11 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	    CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	    NULL);
 	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
+
 	if (numloops < 1)
 		numloops = 1;
+        else if (numloops > 10)
+		numloops = 10;
 	//fprintf(stderr, "%zu, %zu, time: %zu, loops: %d\n", endTime, startTime, (endTime-startTime), numloops);
 
 	/// Find minimum time
@@ -303,7 +315,6 @@ void opencl_find_best_workgroup(struct fmt_main *pFmt)
 	global_work_size = orig_group_size;
 }
 
-
 void opencl_get_dev_info(unsigned int dev_id)
 {
 	cl_device_type device;
@@ -319,6 +330,7 @@ void opencl_get_dev_info(unsigned int dev_id)
 
 	device_info[dev_id] += get_vendor_id(dev_id);
 	device_info[dev_id] += get_processor_family(dev_id);
+        device_info[dev_id] += get_byte_addressable(dev_id);
 }
 
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
@@ -461,9 +473,9 @@ cl_uint get_processor_family(int dev_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
-	if gpu (device_info[dev_id]) {
+	if gpu_amd(device_info[dev_id]) {
 
-		if (gpu_amd(device_info[dev_id]) && (strstr(dname, "Cedar") ||
+		if ((strstr(dname, "Cedar") ||
 			strstr(dname, "Redwood") ||
 			strstr(dname, "Juniper") ||
 			strstr(dname, "Cypress") ||
@@ -487,6 +499,20 @@ cl_uint get_processor_family(int dev_id)
 		} else
 			return AMD_GCN + AMD_VLIW5;
 		}
+	return UNKNOWN;
+}
+
+int get_byte_addressable(int dev_id)
+{
+	char dname[MAX_OCLINFO_STRING_LEN];
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_EXTENSIONS,
+		sizeof(dname), dname, NULL),
+	    "Error querying CL_DEVICE_EXTENSIONS");
+
+	if (strstr(dname, "cl_khr_byte_addressable_store") == NULL)
+		return NO_BYTE_ADDRESSABLE;
+
 	return UNKNOWN;
 }
 
