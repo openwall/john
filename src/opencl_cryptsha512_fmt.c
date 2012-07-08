@@ -64,6 +64,11 @@ static struct fmt_tests tests[] = {
  ***/
 
 /* ------- Helper functions ------- */
+unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
+
+    return (dividend / divisor) * divisor;
+}
+
 unsigned int get_task_max_work_group_size(){
     unsigned int max_available;
 
@@ -84,14 +89,15 @@ unsigned int get_task_max_work_group_size(){
     return max_available;
 }
 
-unsigned int get_task_max_size(){
-    unsigned int max_available;
+size_t get_task_max_size(){
+    size_t max_available;
     max_available = get_max_compute_units(gpu_id);
 
     if (cpu(device_info[gpu_id]))
         return max_available * KEYS_PER_CORE_CPU;
 
-    return max_available * KEYS_PER_CORE_GPU;
+    else
+        return max_available * get_current_work_group_size(gpu_id, crypt_kernel);
 }
 
 size_t get_safe_workgroup(){
@@ -108,7 +114,7 @@ size_t get_default_workgroup(){
     max_available = get_task_max_work_group_size();
 
     if (gpu_nvidia(device_info[gpu_id])) {
-        global_work_size = (global_work_size / max_available) * max_available; //Find a multiple.
+        global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
     } else
@@ -287,9 +293,9 @@ static char *get_key(int index) {
   is usually 32 KB
 -- */
 static void find_best_workgroup(struct fmt_main *pFmt) {
-    
-/*  For a while reeverted usage of common find_best_workgroup. 
- * 
+
+/*  For a while reverted usage of common find_best_workgroup.
+ *
     fprintf(stderr, "Max local work size %d, ", (int) get_task_max_work_group_size());
 
     //Call the default function.
@@ -299,7 +305,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
     fprintf(stderr, "(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
-**/     
+**/
     cl_event myEvent;
     cl_ulong startTime, endTime, min_time = CL_ULONG_MAX;
     size_t my_work_group = 1;
@@ -365,7 +371,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
     HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");    
+            "Failed in clReleaseCommandQueue");
 }
 
 //Allow me to have a configurable step size.
@@ -404,6 +410,7 @@ static void find_best_gws(void) {
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
+        step = get_multiple(step, local_work_size);
         do_benchmark = 1;
     }
 
@@ -501,34 +508,45 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    char *tmp_value;
-    uint64_t startTime, runtime;
+    int source_in_use;
+    char * tmp_value;
     char * task;
+    uint64_t startTime, runtime;
 
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
+    source_in_use = device_info[gpu_id];
 
-    if (cpu(device_info[gpu_id]))
+    if ((tmp_value = getenv("_TYPE")))
+        source_in_use = atoi(tmp_value);
+
+    if (cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
 
     else {
         fprintf(stderr, "Building the kernel, this could take a while\n");
+        task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
 
-        if (gpu_nvidia(device_info[gpu_id]))
+        if (gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-        else
+        else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
-
-    if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-        fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
 
     // create kernel to execute
     crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+    if (source_in_use != device_info[gpu_id]) {
+        device_info[gpu_id] = source_in_use;
+        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
+    }
+
+    if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+        fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
