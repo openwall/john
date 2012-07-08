@@ -287,9 +287,9 @@ static char *get_key(int index) {
   is usually 32 KB
 -- */
 static void find_best_workgroup(struct fmt_main *pFmt) {
-    
-/*  For a while reeverted usage of common find_best_workgroup. 
- * 
+
+/*  For a while reeverted usage of common find_best_workgroup.
+ *
     fprintf(stderr, "Max local work size %d, ", (int) get_task_max_work_group_size());
 
     //Call the default function.
@@ -299,7 +299,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
     fprintf(stderr, "(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
-**/     
+**/
     cl_event myEvent;
     cl_ulong startTime, endTime, min_time = CL_ULONG_MAX;
     size_t my_work_group = 1;
@@ -365,7 +365,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
     HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");    
+            "Failed in clReleaseCommandQueue");
 }
 
 //Allow me to have a configurable step size.
@@ -501,34 +501,45 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    char *tmp_value;
-    uint64_t startTime, runtime;
+    int source_in_use;
+    char * tmp_value;
     char * task;
+    uint64_t startTime, runtime;
 
     opencl_init_dev(gpu_id, platform_id);
     startTime = (unsigned long) time(NULL);
+    source_in_use = device_info[gpu_id];
 
-    if (cpu(device_info[gpu_id]))
+    if ((tmp_value = getenv("_TYPE")))
+        source_in_use = atoi(tmp_value);
+
+    if (cpu(source_in_use))
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
 
     else {
         fprintf(stderr, "Building the kernel, this could take a while\n");
+        task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
 
-        if (gpu_nvidia(device_info[gpu_id]))
+        if (gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-        else
+        else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
-
-    if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-        fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
 
     // create kernel to execute
     crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+    if (source_in_use != device_info[gpu_id]) {
+        device_info[gpu_id] = source_in_use;
+        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
+    }
+
+    if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+        fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
