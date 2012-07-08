@@ -84,14 +84,15 @@ unsigned int get_task_max_work_group_size(){
     return max_available;
 }
 
-unsigned int get_task_max_size(){
-    unsigned int max_available;
+size_t get_task_max_size(){
+    size_t max_available;
     max_available = get_max_compute_units(gpu_id);
 
     if (cpu(device_info[gpu_id]))
         return max_available * KEYS_PER_CORE_CPU;
 
-    return max_available * KEYS_PER_CORE_GPU;
+    else
+        return max_available * get_current_work_group_size(gpu_id, crypt_kernel);
 }
 
 size_t get_safe_workgroup(){
