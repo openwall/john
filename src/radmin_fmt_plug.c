@@ -20,7 +20,7 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1
 #endif
 
 #define FORMAT_LABEL		"radmin"
@@ -28,12 +28,12 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	100
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		0
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	64
 
 static struct fmt_tests radmin_tests[] = {
 	{"$radmin2$B137F09CF92F465CABCA06AB1B283C1F", "lastwolf"},
@@ -45,7 +45,7 @@ static struct fmt_tests radmin_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH];
 static ARCH_WORD_32 (*crypt_out)[8];
 
 static void init(struct fmt_main *pFmt)
@@ -108,25 +108,21 @@ static void crypt_all(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
-		unsigned char input[100] = { 0 };
 		MD5_CTX ctx;
 		MD5_Init(&ctx);
-		strcpy((char*)input, (const char*)saved_key[index]);
-		MD5_Update(&ctx, input, 100);
+		MD5_Update(&ctx, saved_key[index], sizeof(saved_key[index]));
 		MD5_Final((unsigned char *)crypt_out[index], &ctx);
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index = 0;
-#ifdef _OPENMP
-	for (; index < count; index++)
-#endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+	int index;
+	for (index = 0; index < count; index++)
+		if (*(ARCH_WORD_32 *)binary == crypt_out[index][0])
 			return 1;
 	return 0;
 }
@@ -143,16 +139,16 @@ static int cmp_exact(char *source, int index)
 
 static void radmin_set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	/* NUL padding is intentional */
+	strncpy(saved_key[index], key, sizeof(saved_key[index]));
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	static char out[PLAINTEXT_LENGTH + 1];
+	memcpy(out, saved_key[index], PLAINTEXT_LENGTH);
+	out[PLAINTEXT_LENGTH] = 0;
+	return out;
 }
 
 struct fmt_main radmin_fmt = {

@@ -157,6 +157,7 @@ extern void DynamicFunc__append_salt();
 extern void DynamicFunc__set_input_len_16();
 extern void DynamicFunc__set_input_len_32();
 extern void DynamicFunc__set_input_len_64();
+extern void DynamicFunc__set_input_len_100();
 
 extern void DynamicFunc__clean_input2();
 extern void DynamicFunc__clean_input2_kwik();

@@ -136,6 +136,7 @@ static MD5Gen_Predicate_t MD5Gen_Predicate[] =  {
 	{ "DynamicFunc__set_input_len_16", DynamicFunc__set_input_len_16},
 	{ "DynamicFunc__set_input2_len_16", DynamicFunc__set_input2_len_16},
 	{ "DynamicFunc__set_input_len_64", DynamicFunc__set_input_len_64 },
+	{ "DynamicFunc__set_input_len_100", DynamicFunc__set_input_len_100 },
 	{ "DynamicFunc__set_input2_len_64", DynamicFunc__set_input2_len_64 },
 	{ "DynamicFunc__overwrite_salt_to_input1_no_size_fix", DynamicFunc__overwrite_salt_to_input1_no_size_fix },
 	{ "DynamicFunc__overwrite_salt_to_input2_no_size_fix", DynamicFunc__overwrite_salt_to_input2_no_size_fix },

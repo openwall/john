@@ -3899,6 +3899,21 @@ void DynamicFunc__set_input_len_64()
 		total_len_X86[j] = 64;
 	}
 }
+
+void DynamicFunc__set_input_len_100()
+{
+	unsigned j;
+#ifdef MMX_COEF
+	if (dynamic_use_sse==1) {
+		exit(!!fprintf(stderr, "Error, in your DYNAMIC script.\nIt is NOT valid to call DynamicFunc__set_input_len_100 in SSE2/MMX mode\n"));
+	}
+#endif
+	for (j = 0; j < m_count; ++j)
+	{
+		total_len_X86[j] = 100;
+	}
+}
+
 void DynamicFunc__set_input2_len_64()
 {
 	unsigned j;
