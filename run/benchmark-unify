@@ -48,6 +48,7 @@ sub parse
 	chomp;
 	($name,$end) = /^Benchmarking: (.*[^ ]) +(\[.*\].*)$/;
 	if (defined($name) && defined($end)) {
+		$name =~ s/(dynamic_[0-9]+) /$1: /;
 		$name =~ s/\s+/ /g;
 		$name =~ s/\[/(/;
 		$name =~ s/\]/)/;
