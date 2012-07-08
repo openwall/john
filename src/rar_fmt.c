@@ -427,7 +427,7 @@ static void find_best_gws(int do_benchmark)
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	int optimal_gws = local_work_size;
-	const int sha1perkey = (strlen(rar_fmt.params.tests[0].plaintext) * 2 + 8 + 3) * (0x40000 + 16) / 64;
+	const int sha1perkey = (strlen(rar_fmt.params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
 
 #ifndef DEBUG
 	if (do_benchmark)
