@@ -6,15 +6,10 @@
 * Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.  
 */
 
+///Comment it to use manual bitselct
+#define USE_LIBRARY_BITSELECT
+
 #define ITERATIONS                  10240
-
-#define INIT_MD4_A                  0x67452301
-#define INIT_MD4_B                  0xefcdab89
-#define INIT_MD4_C                  0x98badcfe
-#define INIT_MD4_D                  0x10325476
-
-#define SQRT_2                      0x5a827999
-#define SQRT_3                      0x6ed9eba1
 
 #define SHA1_DIGEST_LENGTH          20
 
@@ -42,9 +37,11 @@
 }
 #endif
 
+
 #define S1(x) rotate((x), (uint)1)
 #define S5(x) rotate((x), (uint)5)
 #define S30(x) rotate((x), (uint)30)
+
 
 #define R0                                              \
 (                                                       \
@@ -346,8 +343,11 @@
 
 inline void SHA1(__private uint *A,__private uint *W)
 {
-//#define F(x,y,z) (z ^ (x & (y ^ z)))
+#ifdef USE_LIBRARY_BITSELECT
 #define F(x,y,z) bitselect(z, y, x)
+#else
+#define F(x,y,z) (z ^ (x & (y ^ z)))
+#endif
 #define K 0x5A827999
 	SHA1_part0(A[0],A[1],A[2],A[3],A[4],W);
 #undef K
@@ -359,7 +359,11 @@ inline void SHA1(__private uint *A,__private uint *W)
 #undef K
 #undef F
 
+#ifdef USE_LIBRARY_BITSELECT
+#define F(x,y,z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
+#else
 #define F(x,y,z) ((x & y) | (z & (x | y)))
+#endif
 #define K 0x8F1BBCDC
 	SHA1_part2(A[0],A[1],A[2],A[3],A[4]);
 #undef K
@@ -375,7 +379,11 @@ inline void SHA1(__private uint *A,__private uint *W)
 
 inline void SHA1_digest(__private uint *A,__private uint *W)
 {
+#ifdef USE_LIBRARY_BITSELECT
+#define F(x,y,z) bitselect(z, y, x)
+#else
 #define F(x,y,z) (z ^ (x & (y ^ z)))
+#endif
 #define K 0x5A827999
 	SHA1_digest_part0(A[0],A[1],A[2],A[3],A[4],W);
 #undef K
@@ -387,7 +395,11 @@ inline void SHA1_digest(__private uint *A,__private uint *W)
 #undef K
 #undef F
 
+#ifdef USE_LIBRARY_BITSELECT
+#define F(x,y,z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
+#else
 #define F(x,y,z) ((x & y) | (z & (x | y)))
+#endif
 #define K 0x8F1BBCDC
 	SHA1_part2(A[0],A[1],A[2],A[3],A[4]);
 #undef K
@@ -673,7 +685,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 
 	hmac_sha1(istate, ostate, buf);
 
-        for (i = 0; i < 5; i++)
+        for (i = 0; i < 5; i++) 
 		GET_WORD_32_BE(buf[i], buf, i);
 
 	out[0] = buf[0];
