@@ -11,7 +11,6 @@
 #include "params.h"
 #include "memory.h"
 #include "formats.h"
-#include "memory.h"
 #include "misc.h"
 #ifndef BENCH_BUILD
 #include "options.h"

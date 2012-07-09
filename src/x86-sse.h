@@ -121,10 +121,14 @@
 
 #ifdef _OPENMP
 #define MD5_ASM				0
+#define MD5_X2				1
 #else
+// NOTE, for some newer gcc compiliers, setting MD5_ASM to 2 and MD5_X2 to 1 is faster.
 #define MD5_ASM				1
-#endif
 #define MD5_X2				0
+#endif
+// Also, for some compiliers, and possibly CPU's, MD5_IMM 0 would be faster.
+// MORE testing needs done for these 3 items, OR
 #define MD5_IMM				1
 
 #if defined(_OPENMP) || defined(_MSC_VER) || \

@@ -1287,7 +1287,7 @@ win32-cygwin-x86-sse2:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ_WIN32) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -msse2 -m32" \
+		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=4 -msse2 -m32" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
 win32-cygwin-x86-mmx:

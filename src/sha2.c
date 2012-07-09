@@ -1,4 +1,19 @@
 /*
+ *
+ * This software was written by JimF jfoug AT cox dot net
+ * in 2012. No copyright is claimed, and the software is hereby
+ * placed in the public domain. In case this attempt to disclaim
+ * copyright and place the software in the public domain is deemed
+ * null and void, then the software is Copyright © 2012 JimF
+ * and it is hereby released to the general public under the following
+ * terms:
+ *
+ * This software may be modified, redistributed, and used for any
+ * purpose, in source and binary forms, with or without modification.
+ */
+
+
+/*
  *  FIPS-180-2 compliant SHA-256 implementation
  *  The SHA-256 Secure Hash Standard was published by NIST in 2002.
  *
@@ -12,6 +27,7 @@
 
 #include "params.h"
 #include "common.h"
+#include "johnswap.h"
 
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
 
@@ -276,25 +292,26 @@ void sha256_final(void *_output, sha256_ctx *ctx)
 /*********************************************************************/
 #undef S0
 #undef S1
-#undef S2
-#undef S3
+#undef R0
+#undef R1
 #undef F0
 #undef F1
 #undef R
 
-#define S0(x) (ROR64(x, 1) ^ ROR64(x, 8) ^ (x>>7))
-#define S1(x) (ROR64(x,19) ^ ROR64(x,61) ^ (x>>6))
 
-#define S2(x) (ROR64(x,28) ^ ROR64(x,34) ^ ROR64(x,39))
-#define S3(x) (ROR64(x,14) ^ ROR64(x,18) ^ ROR64(x,41))
+
+#define S0(x) (ROR64(x,28) ^ ROR64(x,34) ^ ROR64(x,39))
+#define S1(x) (ROR64(x,14) ^ ROR64(x,18) ^ ROR64(x,41))
+#define R0(x) (ROR64(x, 1) ^ ROR64(x, 8) ^ (x>>7))
+#define R1(x) (ROR64(x,19) ^ ROR64(x,61) ^ (x>>6))
 
 #define F0(x,y,z) ((x & y) | (z & (x | y)))
 #define F1(x,y,z) (z ^ (x & (y ^ z)))
 
-#define R(a,b,c,d,e,f,g,h,x,K) do{        \
-    tmp = h + S3(e) + F1(e,f,g) + K + x;  \
-    h = S2(a) + F0(a,b,c) + tmp;          \
-    d += tmp;                             \
+#define R(n,a,b,c,d,e,f,g,h) do{                \
+    tmp = h + S1(e) + F1(e,f,g) + K[n] + W[n];  \
+    h = S0(a) + F0(a,b,c) + tmp;                \
+    d += tmp;                                   \
 } while(0)
 
 static const ARCH_WORD_64 K[80] =
@@ -359,7 +376,7 @@ void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perfo
 	}
 
     for(; i < 80; i++)
-        W[i] = S1(W[i - 2]) + W[i - 7] + S0(W[i - 15]) + W[i - 16];
+        W[i] = R1(W[i - 2]) + W[i - 7] + R0(W[i - 15]) + W[i - 16];
 
     A = ctx->h[0];
     B = ctx->h[1];
@@ -370,86 +387,86 @@ void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], int perfo
     G = ctx->h[6];
     H = ctx->h[7];
 
-    R(A, B, C, D, E, F, G, H, W[0], K[0]);
-    R(H, A, B, C, D, E, F, G, W[1], K[1]);
-    R(G, H, A, B, C, D, E, F, W[2], K[2]);
-    R(F, G, H, A, B, C, D, E, W[3], K[3]);
-    R(E, F, G, H, A, B, C, D, W[4], K[4]);
-    R(D, E, F, G, H, A, B, C, W[5], K[5]);
-    R(C, D, E, F, G, H, A, B, W[6], K[6]);
-    R(B, C, D, E, F, G, H, A, W[7], K[7]);
-    R(A, B, C, D, E, F, G, H, W[8], K[8]);
-    R(H, A, B, C, D, E, F, G, W[9], K[9]);
-    R(G, H, A, B, C, D, E, F, W[10], K[10]);
-    R(F, G, H, A, B, C, D, E, W[11], K[11]);
-    R(E, F, G, H, A, B, C, D, W[12], K[12]);
-    R(D, E, F, G, H, A, B, C, W[13], K[13]);
-    R(C, D, E, F, G, H, A, B, W[14], K[14]);
-    R(B, C, D, E, F, G, H, A, W[15], K[15]);
-    R(A, B, C, D, E, F, G, H, W[16], K[16]);
-    R(H, A, B, C, D, E, F, G, W[17], K[17]);
-    R(G, H, A, B, C, D, E, F, W[18], K[18]);
-    R(F, G, H, A, B, C, D, E, W[19], K[19]);
-    R(E, F, G, H, A, B, C, D, W[20], K[20]);
-    R(D, E, F, G, H, A, B, C, W[21], K[21]);
-    R(C, D, E, F, G, H, A, B, W[22], K[22]);
-    R(B, C, D, E, F, G, H, A, W[23], K[23]);
-    R(A, B, C, D, E, F, G, H, W[24], K[24]);
-    R(H, A, B, C, D, E, F, G, W[25], K[25]);
-    R(G, H, A, B, C, D, E, F, W[26], K[26]);
-    R(F, G, H, A, B, C, D, E, W[27], K[27]);
-    R(E, F, G, H, A, B, C, D, W[28], K[28]);
-    R(D, E, F, G, H, A, B, C, W[29], K[29]);
-    R(C, D, E, F, G, H, A, B, W[30], K[30]);
-    R(B, C, D, E, F, G, H, A, W[31], K[31]);
-	R(A, B, C, D, E, F, G, H, W[32], K[32]);
-    R(H, A, B, C, D, E, F, G, W[33], K[33]);
-    R(G, H, A, B, C, D, E, F, W[34], K[34]);
-    R(F, G, H, A, B, C, D, E, W[35], K[35]);
-    R(E, F, G, H, A, B, C, D, W[36], K[36]);
-    R(D, E, F, G, H, A, B, C, W[37], K[37]);
-    R(C, D, E, F, G, H, A, B, W[38], K[38]);
-    R(B, C, D, E, F, G, H, A, W[39], K[39]);
-    R(A, B, C, D, E, F, G, H, W[40], K[40]);
-    R(H, A, B, C, D, E, F, G, W[41], K[41]);
-    R(G, H, A, B, C, D, E, F, W[42], K[42]);
-    R(F, G, H, A, B, C, D, E, W[43], K[43]);
-    R(E, F, G, H, A, B, C, D, W[44], K[44]);
-    R(D, E, F, G, H, A, B, C, W[45], K[45]);
-    R(C, D, E, F, G, H, A, B, W[46], K[46]);
-    R(B, C, D, E, F, G, H, A, W[47], K[47]);
-    R(A, B, C, D, E, F, G, H, W[48], K[48]);
-    R(H, A, B, C, D, E, F, G, W[49], K[49]);
-    R(G, H, A, B, C, D, E, F, W[50], K[50]);
-    R(F, G, H, A, B, C, D, E, W[51], K[51]);
-    R(E, F, G, H, A, B, C, D, W[52], K[52]);
-    R(D, E, F, G, H, A, B, C, W[53], K[53]);
-    R(C, D, E, F, G, H, A, B, W[54], K[54]);
-    R(B, C, D, E, F, G, H, A, W[55], K[55]);
-    R(A, B, C, D, E, F, G, H, W[56], K[56]);
-    R(H, A, B, C, D, E, F, G, W[57], K[57]);
-    R(G, H, A, B, C, D, E, F, W[58], K[58]);
-    R(F, G, H, A, B, C, D, E, W[59], K[59]);
-    R(E, F, G, H, A, B, C, D, W[60], K[60]);
-    R(D, E, F, G, H, A, B, C, W[61], K[61]);
-    R(C, D, E, F, G, H, A, B, W[62], K[62]);
-    R(B, C, D, E, F, G, H, A, W[63], K[63]);
-    R(A, B, C, D, E, F, G, H, W[64], K[64]);
-    R(H, A, B, C, D, E, F, G, W[65], K[65]);
-    R(G, H, A, B, C, D, E, F, W[66], K[66]);
-    R(F, G, H, A, B, C, D, E, W[67], K[67]);
-    R(E, F, G, H, A, B, C, D, W[68], K[68]);
-    R(D, E, F, G, H, A, B, C, W[69], K[69]);
-    R(C, D, E, F, G, H, A, B, W[70], K[70]);
-    R(B, C, D, E, F, G, H, A, W[71], K[71]);
-    R(A, B, C, D, E, F, G, H, W[72], K[72]);
-    R(H, A, B, C, D, E, F, G, W[73], K[73]);
-    R(G, H, A, B, C, D, E, F, W[74], K[74]);
-    R(F, G, H, A, B, C, D, E, W[75], K[75]);
-    R(E, F, G, H, A, B, C, D, W[76], K[76]);
-    R(D, E, F, G, H, A, B, C, W[77], K[77]);
-    R(C, D, E, F, G, H, A, B, W[78], K[78]);
-    R(B, C, D, E, F, G, H, A, W[79], K[79]);
+	R( 0, A, B, C, D, E, F, G, H);
+	R( 1, H, A, B, C, D, E, F, G);
+	R( 2, G, H, A, B, C, D, E, F);
+	R( 3, F, G, H, A, B, C, D, E);
+	R( 4, E, F, G, H, A, B, C, D);
+	R( 5, D, E, F, G, H, A, B, C);
+	R( 6, C, D, E, F, G, H, A, B);
+	R( 7, B, C, D, E, F, G, H, A);
+	R( 8, A, B, C, D, E, F, G, H);
+	R( 9, H, A, B, C, D, E, F, G);
+	R(10, G, H, A, B, C, D, E, F);
+	R(11, F, G, H, A, B, C, D, E);
+	R(12, E, F, G, H, A, B, C, D);
+	R(13, D, E, F, G, H, A, B, C);
+	R(14, C, D, E, F, G, H, A, B);
+	R(15, B, C, D, E, F, G, H, A);
+	R(16, A, B, C, D, E, F, G, H);
+	R(17, H, A, B, C, D, E, F, G);
+	R(18, G, H, A, B, C, D, E, F);
+	R(19, F, G, H, A, B, C, D, E);
+	R(20, E, F, G, H, A, B, C, D);
+	R(21, D, E, F, G, H, A, B, C);
+	R(22, C, D, E, F, G, H, A, B);
+	R(23, B, C, D, E, F, G, H, A);
+	R(24, A, B, C, D, E, F, G, H);
+	R(25, H, A, B, C, D, E, F, G);
+	R(26, G, H, A, B, C, D, E, F);
+	R(27, F, G, H, A, B, C, D, E);
+	R(28, E, F, G, H, A, B, C, D);
+	R(29, D, E, F, G, H, A, B, C);
+	R(30, C, D, E, F, G, H, A, B);
+	R(31, B, C, D, E, F, G, H, A);
+	R(32, A, B, C, D, E, F, G, H);
+	R(33, H, A, B, C, D, E, F, G);
+	R(34, G, H, A, B, C, D, E, F);
+	R(35, F, G, H, A, B, C, D, E);
+	R(36, E, F, G, H, A, B, C, D);
+	R(37, D, E, F, G, H, A, B, C);
+	R(38, C, D, E, F, G, H, A, B);
+	R(39, B, C, D, E, F, G, H, A);
+	R(40, A, B, C, D, E, F, G, H);
+	R(41, H, A, B, C, D, E, F, G);
+	R(42, G, H, A, B, C, D, E, F);
+	R(43, F, G, H, A, B, C, D, E);
+	R(44, E, F, G, H, A, B, C, D);
+	R(45, D, E, F, G, H, A, B, C);
+	R(46, C, D, E, F, G, H, A, B);
+	R(47, B, C, D, E, F, G, H, A);
+	R(48, A, B, C, D, E, F, G, H);
+	R(49, H, A, B, C, D, E, F, G);
+	R(50, G, H, A, B, C, D, E, F);
+	R(51, F, G, H, A, B, C, D, E);
+	R(52, E, F, G, H, A, B, C, D);
+	R(53, D, E, F, G, H, A, B, C);
+	R(54, C, D, E, F, G, H, A, B);
+	R(55, B, C, D, E, F, G, H, A);
+	R(56, A, B, C, D, E, F, G, H);
+	R(57, H, A, B, C, D, E, F, G);
+	R(58, G, H, A, B, C, D, E, F);
+	R(59, F, G, H, A, B, C, D, E);
+	R(60, E, F, G, H, A, B, C, D);
+	R(61, D, E, F, G, H, A, B, C);
+	R(62, C, D, E, F, G, H, A, B);
+	R(63, B, C, D, E, F, G, H, A);
+	R(64, A, B, C, D, E, F, G, H);
+	R(65, H, A, B, C, D, E, F, G);
+	R(66, G, H, A, B, C, D, E, F);
+	R(67, F, G, H, A, B, C, D, E);
+	R(68, E, F, G, H, A, B, C, D);
+	R(69, D, E, F, G, H, A, B, C);
+	R(70, C, D, E, F, G, H, A, B);
+	R(71, B, C, D, E, F, G, H, A);
+	R(72, A, B, C, D, E, F, G, H);
+	R(73, H, A, B, C, D, E, F, G);
+	R(74, G, H, A, B, C, D, E, F);
+	R(75, F, G, H, A, B, C, D, E);
+	R(76, E, F, G, H, A, B, C, D);
+	R(77, D, E, F, G, H, A, B, C);
+	R(78, C, D, E, F, G, H, A, B);
+	R(79, B, C, D, E, F, G, H, A);
 
     ctx->h[0] += A;
     ctx->h[1] += B;
