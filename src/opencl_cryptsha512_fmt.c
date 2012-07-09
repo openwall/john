@@ -295,83 +295,19 @@ static char *get_key(int index) {
 static void find_best_workgroup(struct fmt_main *pFmt) {
 
 /*  For a while reverted usage of common find_best_workgroup.
- *
-    fprintf(stderr, "Max local work size %d, ", (int) get_task_max_work_group_size());
+ */
+    size_t max_group_size;
+        
+    max_group_size = get_task_max_work_group_size();
+    fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
     //Call the default function.
-    opencl_find_best_workgroup(pFmt);
+    opencl_find_best_workgroup_limit(pFmt, max_group_size);
 
     fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
-**/
-    cl_event myEvent;
-    cl_ulong startTime, endTime, min_time = CL_ULONG_MAX;
-    size_t my_work_group = 1;
-    cl_int ret_code;
-    int i;
-    size_t max_group_size;
-
-    max_group_size = get_task_max_work_group_size();
-    queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-            CL_QUEUE_PROFILING_ENABLE, &ret_code);
-    HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
-    fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
-    local_work_size = 1;
-    max_group_size = get_task_max_work_group_size();
-
-    // Set salt.
-    set_salt("$6$saltstring$");
-
-    // Set keys
-    for (i = 0; i < global_work_size; i++) {
-        set_key("aaabaabaaa", i);
-    }
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_TRUE, 0,
-            sizeof (sha512_salt), &salt, 0, NULL, NULL),
-            "Failed in clEnqueueWriteBuffer I");
-    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_TRUE, 0,
-            sizeof (sha512_password) * global_work_size,
-            plaintext, 0, NULL, NULL),
-            "Failed in clEnqueueWriteBuffer II");
-
-    my_work_group = get_safe_workgroup();
-
-    // Find minimum time
-    for (; (int) my_work_group <= (int) max_group_size;
-         my_work_group *= 2) {
-        advance_cursor();
-        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-                1, NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-
-        if (ret_code != CL_SUCCESS) {
-
-            if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
-                fprintf(stderr, "Error %d\n", ret_code);
-            continue;
-        }
-        //Get profile information
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-                sizeof (cl_ulong), &startTime, NULL),
-                "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-                sizeof (cl_ulong), &endTime, NULL),
-                "Failed in clGetEventProfilingInfo II");
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-
-        if ((endTime - startTime) * 1.01 < min_time) {
-            min_time = endTime - startTime;
-            local_work_size = my_work_group;
-        }
-    }
-    fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
-    fprintf(stderr, "(to avoid this test on next run, put \""
-        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-        SUBSECTION_OPENCL "])\n", (int)local_work_size);
-    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");
 }
 
 //Allow me to have a configurable step size.
