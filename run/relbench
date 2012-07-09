@@ -33,6 +33,7 @@ $onlyin2 = 0;
 sub parse
 {
 	chomp;
+	s/\r$//;  # strip CR for non-Windows
 	if (/^$/) {
 		undef $id;
 		undef $name;
