@@ -399,13 +399,29 @@ static struct fmt_tests _Preloads_14[] =
 //dynamic_15 --> md5($u.md5($p).$s)
 static DYNAMIC_primitive_funcp _Funcs_15[] =
 {
-	// MGF_KEYS_CRYPT_IN2
-	DynamicFunc__clean_input,
-	DynamicFunc__append_userid,
-	DynamicFunc__append_from_last_output2_to_input1_as_base16,
-	DynamicFunc__append_salt,
-	DynamicFunc__crypt_md5,
+//#if defined (MMX_COEF)
+//	// -any    Many salts: 3264K Only one salt:  1677K
+//	// -sse2i  Many salts: 3195K Only one salt:  1638K  (md5_asm 1, md5_x2 0  md5_imm 1)
+//  // generic Many salts: 3539K Only one salt:  1843K  (md5_asm 0, md5_x2 1  md5_imm 1)
+//	// MGF_KEYS_CRYPT_IN2
+//	DynamicFunc__clean_input,
+//	DynamicFunc__append_userid,
+//	DynamicFunc__append_from_last_output2_to_input1_as_base16,
+//	DynamicFunc__append_salt,
+//	DynamicFunc__crypt_md5,
+//	NULL
+//#else
+	// -any    Many salts: 3401K Only one salt:  1515K
+	// -sse2i  Many salts: 3412K Only one salt:  1510K  (md5_asm 1, md5_x2 0  md5_imm 1)
+	// generic Many salts: 3688K Only one salt:  1666K  (md5_asm 0, md5_x2 1  md5_imm 1)
+	// MGF_KEYS_BASE16_IN1
+	DynamicFunc__clean_input2,
+	DynamicFunc__append_userid2,
+	DynamicFunc__append_input2_from_input,
+	DynamicFunc__append_salt2,
+	DynamicFunc__crypt_md5_in2_to_out1,
 	NULL
+//#endif
 };
 static struct fmt_tests _Preloads_15[] =
 {
@@ -891,7 +907,7 @@ static DYNAMIC_Setup Setups[] =
 #else
 	{ "dynamic_14: md5($s.md5($p).$s)",          _Funcs_14,_Preloads_14,_ConstDefault, MGF_SALTED, MGF_KEYS_BASE16_IN1, -11, 55, 80, -24},
 #endif
-	{ "dynamic_15: md5($u.md5($p).$s)",         _Funcs_15,_Preloads_15,_ConstDefault, MGF_SALTED|MGF_USERNAME|MGF_NOTSSE2Safe|MGF_FULL_CLEAN_REQUIRED, MGF_KEYS_CRYPT_IN2, -12, 55, 80 }, // 26 is 12+12+2 so 24+52 'fits
+	{ "dynamic_15: md5($u.md5($p).$s)",         _Funcs_15,_Preloads_15,_ConstDefault, MGF_SALTED|MGF_USERNAME|MGF_NOTSSE2Safe|MGF_FULL_CLEAN_REQUIRED, MGF_KEYS_BASE16_IN1, -12, 55, 80 }, // 26 is 12+12+2 so 24+52 'fits
 	{ "dynamic_16: md5(md5(md5($p).$s).$s2)",   _Funcs_16,_Preloads_16,_ConstDefault, MGF_SALTED|MGF_SALTED2|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1, -23, 55, 80 },
 	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38 },
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s)(Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 32 },

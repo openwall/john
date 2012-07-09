@@ -4,6 +4,25 @@
 /* reqired for the john_bswap_32 ARCH_WORD_32 declaration */
 #include "common.h"
 
+/* if x86 compatible cpu */
+#if defined(i386) || defined(__i386__) || defined(__i486__) || \
+	defined(__i586__) || defined(__i686__) || defined(__pentium__) || \
+	defined(__pentiumpro__) || defined(__pentium4__) || \
+	defined(__nocona__) || defined(prescott) || defined(__core2__) || \
+	defined(__k6__) || defined(__k8__) || defined(__athlon__) || \
+	defined(__amd64) || defined(__amd64__) || \
+	defined(__x86_64) || defined(__x86_64__) || defined(_M_IX86) || \
+	defined(_M_AMD64) || defined(_M_IA64) || defined(_M_X64)
+/* detect if x86-64 instruction set is supported */
+# if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
+	defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
+#  define CPU_X64 1
+# else
+#  define CPU_IA32 1
+# endif
+# define CPU_INTEL_LE 1
+#endif
+
 #if defined __GNUC__ && ((__GNUC__ == 4 && __GNUC_MINOR__ >= 3) || (__GNUC__ > 4))
 #	define JOHNSWAP(x)		__builtin_bswap32((x))
 #	define JOHNSWAP64(x)	__builtin_bswap64((x))

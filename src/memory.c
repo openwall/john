@@ -226,7 +226,7 @@ void alter_endianity_w(void *_x, unsigned int count) {
 	}
 #else
 	unsigned char *cpX, c;
-	if (isaligned(x,sizeof(ARCH_WORD_32))) {
+	if (is_aligned(x,sizeof(ARCH_WORD_32))) {
 		// we are in alignment.
 		while (++i < count) {
 			x[i] = JOHNSWAP(x[i]);
