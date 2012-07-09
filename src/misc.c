@@ -125,6 +125,20 @@ char *strnzcpy(char *dst, const char *src, int size)
 	return dst;
 }
 
+int strnzcpyn(char *dst, const char *src, int size)
+{
+	char *dptr;
+	if (!size) return 0;
+
+	dptr = dst;
+
+	while (--size)
+		if (!(*dptr++ = *src++)) break;
+	*dptr = 0;
+
+	return (dptr-dst)-1;
+}
+
 char *strnzcat(char *dst, const char *src, int size)
 {
 	char *dptr = dst;

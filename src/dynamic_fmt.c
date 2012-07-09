@@ -3864,7 +3864,6 @@ void DynamicFunc__set_input_len_64()
 		total_len_X86[j] = 64;
 	}
 }
-
 void DynamicFunc__set_input_len_100()
 {
 	unsigned j;
@@ -3875,10 +3874,18 @@ void DynamicFunc__set_input_len_100()
 #endif
 	for (j = 0; j < m_count; ++j)
 	{
+		unsigned char *cp;
+#if MD5_X2
+		if (j&1)
+			cp = &(input_buf_X86[j>>MD5_X2].x2.B2[total_len_X86[j]+1]);
+		else
+#endif
+			cp = &(input_buf_X86[j>>MD5_X2].x1.B[total_len_X86[j]+1]);
+		while (*cp)
+			*cp++ = 0;
 		total_len_X86[j] = 100;
 	}
 }
-
 void DynamicFunc__set_input2_len_64()
 {
 	unsigned j;
@@ -4821,7 +4828,7 @@ void DynamicFunc__PHPassCrypt()
 
 	Lcount = atoi64[ARCH_INDEX(cursalt[8])];
 	if (Lcount < 7 || Lcount > 31)
-		exit(fprintf(stderr, "Error, invalid loop byte in a php salt %s\n",cursalt));
+		exit(!!fprintf(stderr, "Error, invalid loop byte in a php salt %s\n",cursalt));
 	Lcount = (1<<Lcount);
 
 	DynamicFunc__clean_input();
@@ -6869,19 +6876,19 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
  *************************************************************/
 void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix()
 {
-	exit(fprintf(stderr, "Error, DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix() primitive has not been implemented\n"));
+	exit(!!fprintf(stderr, "Error, DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix() primitive has not been implemented\n"));
 }
 void DynamicFunc__append2_from_last_output2_as_raw()
 {
-	exit(fprintf(stderr, "Error, DynamicFunc__append2_from_last_output2_as_raw() primitive has not been implemented\n"));
+	exit(!!fprintf(stderr, "Error, DynamicFunc__append2_from_last_output2_as_raw() primitive has not been implemented\n"));
 }
 void DynamicFunc__append_from_last_output1_as_raw()
 {
-	exit(fprintf(stderr, "Error, DynamicFunc__append_from_last_output1_as_raw() primitive has not been implemented\n"));
+	exit(!!fprintf(stderr, "Error, DynamicFunc__append_from_last_output1_as_raw() primitive has not been implemented\n"));
 }
 void DynamicFunc__append2_from_last_output1_as_raw()
 {
-	exit(fprintf(stderr, "Error, DynamicFunc__append2_from_last_output1_as_raw() primitive has not been implemented\n"));
+	exit(!!fprintf(stderr, "Error, DynamicFunc__append2_from_last_output1_as_raw() primitive has not been implemented\n"));
 }
 
 /**************************************************************
@@ -7109,7 +7116,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if ( (Setup->flags & MGF_SALT_AS_HEX_TO_SALT2) == MGF_SALT_AS_HEX_TO_SALT2) {
 		curdat.dynamic_salt_as_hex = 2;
 		if (curdat.b2Salts)
-			exit(fprintf(stderr, "Error, MGF_SALT_AS_HEX_TO_SALT2 and MGF_SALTED2 are not valid to use in same format\n"));
+			return !fprintf(stderr, "Error invalid format %s: MGF_SALT_AS_HEX_TO_SALT2 and MGF_SALTED2 are not valid to use in same format\n", Setup->szFORMAT_NAME);
 		curdat.b2Salts = 2;
 	}
 	if ( (Setup->flags & MGF_SALT_UNICODE_B4_CRYPT) == MGF_SALT_UNICODE_B4_CRYPT && curdat.dynamic_salt_as_hex)
@@ -7163,7 +7170,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.store_keys_in_input_unicode_convert = !!(Setup->startFlags&MGF_KEYS_UNICODE_B4_CRYPT);
 	if (curdat.store_keys_in_input_unicode_convert && curdat.store_keys_in_input)
-		return !!fprintf(stderr, "Invalid format.  Using MGF_KEYS_INPUT and MGF_KEYS_UNICODE_B4_CRYPT in same format is NOT valid\n");
+		return !fprintf(stderr, "Error invalid format %s: Using MGF_KEYS_INPUT and MGF_KEYS_UNICODE_B4_CRYPT in same format is NOT valid\n", Setup->szFORMAT_NAME);
 
 	curdat.store_keys_normal_but_precompute_md5_to_output2 = !!(Setup->startFlags&MGF_KEYS_CRYPT_IN2);
 
@@ -7300,12 +7307,12 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			Setup->pFuncs[0] != DynamicFunc__clean_input_kwik &&
 			Setup->pFuncs[0] != DynamicFunc__clean_input2_kwik &&
 			Setup->pFuncs[0] != DynamicFunc__clean_input_full)
-			return !!fprintf(stderr, "Invalid format.  The first command MUST be a clean of input 1 or input 2\nOR a special key 2 input loader function\n");
+			return !fprintf(stderr, "Error invalid format %s: The first command MUST be a clean of input 1 or input 2 OR a special key 2 input loader function\n", Setup->szFORMAT_NAME);
 	}
 	if ( (Setup->flags&MGF_SALTED2)==MGF_SALTED2 && (Setup->flags&MGF_SALT_AS_HEX) == MGF_SALT_AS_HEX)
 	{
 		// if the user wants salt_as_hex, then here can NOT be 2 salts.
-			return !!fprintf(stderr, "Invalid format.  If using MGF_SALT_AS_HEX flag, then you can NOT have a 2nd salt.\n");
+		return !fprintf(stderr, "Error invalid format %s: If using MGF_SALT_AS_HEX flag, then you can NOT have a 2nd salt.\n", Setup->szFORMAT_NAME);
 	}
 
 	if (Setup->pFuncs && Setup->pFuncs[0])
@@ -7360,51 +7367,51 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			if (curdat.store_keys_in_input)
 			{
 				if (Setup->pFuncs[i] == DynamicFunc__append_keys)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but append_keys called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but append_keys called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__append_keys2)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but append_keys2 called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but append_keys2 called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__clean_input)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but clean_input called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but clean_input called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__append_salt)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but append_salt called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but append_salt called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__append_from_last_output2_to_input1_as_base16)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but append_from_last_output2_to_input1_as_base16 called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but append_from_last_output2_to_input1_as_base16 called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but overwrite_from_last_output2_to_input1_as_base16_no_size_fix called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but overwrite_from_last_output2_to_input1_as_base16_no_size_fix called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__append_from_last_output_as_base16)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but append_from_last_output_as_base16s called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but append_from_last_output_as_base16s called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but overwrite_from_last_output_as_base16_no_size_fix called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but overwrite_from_last_output_as_base16_no_size_fix called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__append_2nd_salt)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but append_2nd_salt called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but append_2nd_salt called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__set_input_len_32)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__set_input_len_64)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__overwrite_salt_to_input1_no_size_fix)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n", Setup->szFORMAT_NAME);
 				if (Setup->pFuncs[i] == DynamicFunc__append_input_from_input2)
-					return !!fprintf(stderr, "MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n");
+					return !fprintf(stderr, "Error invalid format %s: MGF_KEYS_INPUT used, but DynamicFunc__set_input_len_32 called and that is invalid\n", Setup->szFORMAT_NAME);
 			}
 			// Ok if copy constants are set, make SURE we have that many constants.
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST1 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST1) && curdat.nConsts == 0)
-				return !!fprintf(stderr, "Append Constant function called, but NO constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant function called, but NO constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST2 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST2) && curdat.nConsts < 2)
-				return !!fprintf(stderr, "Append Constant #2 function called, but NO constants, or less than 2 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #2 function called, but NO constants, or less than 2 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST3 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST3) && curdat.nConsts < 3)
-				return !!fprintf(stderr, "Append Constant #3 function called, but NO constants, or less than 3 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #3 function called, but NO constants, or less than 3 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST4 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST4) && curdat.nConsts < 4)
-				return !!fprintf(stderr, "Append Constant #4 function called, but NO constants, or less than 4 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #4 function called, but NO constants, or less than 4 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST5 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST5) && curdat.nConsts < 5)
-				return !!fprintf(stderr, "Append Constant #5 function called, but NO constants, or less than 5 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #5 function called, but NO constants, or less than 5 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST6 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST6) && curdat.nConsts < 6)
-				return !!fprintf(stderr, "Append Constant #6 function called, but NO constants, or less than 6 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #6 function called, but NO constants, or less than 6 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST7 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST7) && curdat.nConsts < 7)
-				return !!fprintf(stderr, "Append Constant #7 function called, but NO constants, or less than 7 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #7 function called, but NO constants, or less than 7 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_input1_from_CONST8 || Setup->pFuncs[i] == DynamicFunc__append_input2_from_CONST8) && curdat.nConsts < 8)
-				return !!fprintf(stderr, "Append Constant #8 function called, but NO constants, or less than 8 constants in the format\n");
+				return !fprintf(stderr, "Error invalid format %s: Append Constant #8 function called, but NO constants, or less than 8 constants in the format\n", Setup->szFORMAT_NAME);
 			if ( (Setup->pFuncs[i] == DynamicFunc__append_2nd_salt || Setup->pFuncs[i] == DynamicFunc__append_2nd_salt2) && curdat.b2Salts == 0)
-				return !!fprintf(stderr, "A call to one of the 'salt-2' functions, but this format does not have MFG_SALT2 flag set\n");
+				return !fprintf(stderr, "Error invalid format %s: A call to one of the 'salt-2' functions, but this format does not have MFG_SALT2 flag set\n", Setup->szFORMAT_NAME);
 
 			// Ok, if we have made it here, the function is 'currently' still valid.  Load this pointer into our array of pointers.
 			pFuncs = ConvertFuncs(Setup->pFuncs[i], &cnt2);
@@ -7418,14 +7425,14 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 				curdat.dynamic_FUNCTIONS[j-1] == DynamicFunc__SHA1_crypt_input2_to_output1_FINAL)
 			{
 				if (Setup->pFuncs[i+1])
-					return !!fprintf(stderr, "DynamicFunc__SHA1_crypt_inputX_to_output1_FINAL, can ONLY be used as the last function in a script\n");
+					return !fprintf(stderr, "Error invalid format %s: DynamicFunc__SHA1_crypt_inputX_to_output1_FINAL, can ONLY be used as the last function in a script\n", Setup->szFORMAT_NAME);
 			}
 		}
 		curdat.dynamic_FUNCTIONS[j] = NULL;
 	}
 	if (!Setup->pPreloads || Setup->pPreloads[0].ciphertext == NULL)
 	{
-		return !!fprintf(stderr, "Error, no validation hash(s) for this format\n");
+		return !fprintf(stderr, "Error invalid format %s: Error, no validation hash(s) for this format\n", Setup->szFORMAT_NAME);
 	}
 	cnt = 0;
 
@@ -7526,6 +7533,7 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	{
 		fprintf(stderr, "ERROR, when loading dynamic formats, the wrong curdat item was linked to this type:\nTYPE_SIG=%s\nTest_Dat=%s\n",
 				curdat.dynamic_WHICH_TYPE_SIG, pFmt->params.tests[0].ciphertext);
+		return 0;
 	}
 	return 1;
 }

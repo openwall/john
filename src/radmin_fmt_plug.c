@@ -28,7 +28,7 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	100
+#define PLAINTEXT_LENGTH	99
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		0
@@ -45,7 +45,7 @@ static struct fmt_tests radmin_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH];
+static char (*saved_key)[PLAINTEXT_LENGTH+1];
 static ARCH_WORD_32 (*crypt_out)[8];
 
 static void init(struct fmt_main *pFmt)
@@ -105,7 +105,7 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void crypt_all(int count)
 {
-	int index = 0;
+	int index;
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -139,16 +139,16 @@ static int cmp_exact(char *source, int index)
 
 static void radmin_set_key(char *key, int index)
 {
-	/* NUL padding is intentional */
-	strncpy(saved_key[index], key, sizeof(saved_key[index]));
+	// this code assures that both saved_key[index] gets null-terminated (without buffer overflow)
+	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH)+1];
+	// and is null padded up to 100 bytes.  We simply clean up prior buffer, up to element 99, but that element will never be written to
+	while (*cp) *cp++ = 0;
 }
 
 static char *get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
-	memcpy(out, saved_key[index], PLAINTEXT_LENGTH);
-	out[PLAINTEXT_LENGTH] = 0;
-	return out;
+	// assured null teminated string.  Just return it.
+	return saved_key[index];
 }
 
 struct fmt_main radmin_fmt = {
