@@ -361,7 +361,7 @@ static void find_best_gws(void) {
         tmpbuffer = malloc(sizeof (sha512_hash) * num);
 
         if (tmpbuffer == NULL) {
-            printf ("Malloc failure in find_best_gws\n");
+            fprintf (stderr, "Malloc failure in find_best_gws\n");
             exit (EXIT_FAILURE);
         }
 
