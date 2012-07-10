@@ -6,8 +6,9 @@
 * Modified to support salts upto 19 characters. Bug in orginal code allowed only upto 8 characters.  
 */
 
-///Comment it to use manual bitselct
-#define USE_LIBRARY_BITSELECT
+#ifdef cl_nv_pragma_unroll
+#define NVIDIA
+#endif
 
 #define ITERATIONS                  10240
 
@@ -343,7 +344,7 @@
 
 inline void SHA1(__private uint *A,__private uint *W)
 {
-#ifdef USE_LIBRARY_BITSELECT
+#ifndef NVIDIA
 #define F(x,y,z) bitselect(z, y, x)
 #else
 #define F(x,y,z) (z ^ (x & (y ^ z)))
@@ -359,7 +360,7 @@ inline void SHA1(__private uint *A,__private uint *W)
 #undef K
 #undef F
 
-#ifdef USE_LIBRARY_BITSELECT
+#ifndef NVIDIA
 #define F(x,y,z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
 #else
 #define F(x,y,z) ((x & y) | (z & (x | y)))
@@ -379,7 +380,7 @@ inline void SHA1(__private uint *A,__private uint *W)
 
 inline void SHA1_digest(__private uint *A,__private uint *W)
 {
-#ifdef USE_LIBRARY_BITSELECT
+#ifndef NVIDIA
 #define F(x,y,z) bitselect(z, y, x)
 #else
 #define F(x,y,z) (z ^ (x & (y ^ z)))
@@ -395,7 +396,7 @@ inline void SHA1_digest(__private uint *A,__private uint *W)
 #undef K
 #undef F
 
-#ifdef USE_LIBRARY_BITSELECT
+#ifndef NVIDIA
 #define F(x,y,z) (bitselect(x, y, z) ^ bitselect(x, (uint)0, y))
 #else
 #define F(x,y,z) ((x & y) | (z & (x | y)))
