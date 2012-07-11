@@ -327,12 +327,12 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 
 #ifdef MMX_COEF
 	for (i = 0; i < NBKEYS; ++i) {
-		if (crypt_key[(i/4)*20+4+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[1]) {
+		if (crypt_key[(i/MMX_COEF)*20+MMX_COEF+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[1]) {
 			// Ok, we may have found it.  Check the next 3 DWORDS
-			if (crypt_key[(i/4)*20+8+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[2] && 
-			    crypt_key[(i/4)*20+12+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
-			    crypt_key[(i/4)*20+16+(i%4)] == ((ARCH_WORD_32*)(*pw).binary)[4]) {
-				((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[(i/4)*20+(i%4)];
+			if (crypt_key[(i/MMX_COEF)*20+MMX_COEF*2+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[2] &&
+			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*3+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
+			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*4+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[4]) {
+				((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[(i/MMX_COEF)*20+(i%MMX_COEF)];
 				break;
 			}
 		}
