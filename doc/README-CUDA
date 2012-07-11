@@ -22,8 +22,12 @@ Performance issues:
   For XSHA512[2]:
     CARD NAME	BLOCKS	THREADS	SM	RESULT
     GTX570	1600	256	??	67385K c/s
+  For RAWSHA256[1]:
+    CARD NAME   BLOCKS  THREADS SM      RESULT
+    GTX570      7680    128     10      27561K c/s
 
 You can contact us at
 [1] lukas[dot]odzioba[at]gmail[dot]com
 [2] qqlddg[at]gmail[dot]com
 or john-dev mailing list
+or irc #openwall@freenode
