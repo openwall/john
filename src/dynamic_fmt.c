@@ -152,6 +152,9 @@
 #include "johnswap.h"
 #include "pkzip.h"
 
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
+
 extern struct fmt_main fmt_Dynamic;
 static struct fmt_main *pFmts;
 static int nFmts;
@@ -247,59 +250,70 @@ static void __SSE_gen_BenchLowLevelFunctions();
 #define FORMAT_NAME         "Generic MD5"
 
 #ifdef MMX_COEF
-
-#ifdef MD5_SSE_PARA
-#define BSD_BLKS (MD5_SSE_PARA)
-#else
-#define BSD_BLKS 1
-#endif
-
-#include "sse-intrinsics.h"
-#if (MMX_COEF == 2)
-#define BLOCK_LOOPS			64
-#define ALGORITHM_NAME			"64/64 " SSE_type " 64x2"
-#elif MMX_COEF == 4
-#define BLOCK_LOOPS			32
-#ifdef MD5_SSE_PARA
-#if (MD5_SSE_PARA==1)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 32x4x1"
-#elif (MD5_SSE_PARA==2)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 16x4x2"
-#elif (MD5_SSE_PARA==3)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 10x4x3"
-#elif (MD5_SSE_PARA==4)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 8x4x4"
-#elif (MD5_SSE_PARA==5)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 6x4x5"
-#elif (MD5_SSE_PARA==6)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 5x4x6"
-#elif (MD5_SSE_PARA==8)
-#define ALGORITHM_NAME			"128/128 " SSE_type " 4x4x8"
-#else
-#define ALGORITHM_NAME			"128/128 " SSE_type
-#endif // MD5_SSE_PARA
-#else  // !MD5_SSE_PARA
-#define ALGORITHM_NAME			"128/128 " SSE_type " 32x4"
-#endif // PARA
-#else // MMX_COEF == 4
-#if MMX_COEF != 1
-#error Unsupported value of MMX_COEF
-#endif
-#define BLOCK_LOOPS			64
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " 64x1"
-#endif // MMX_COEF == 4
-
-#define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
-#define MIN_KEYS_PER_CRYPT	1
-#ifdef MD5_SSE_PARA
+# include "sse-intrinsics.h"
+# define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + ((i)&3) )
+# define SHAGETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) ) //for endianity conversion
+# define MIN_KEYS_PER_CRYPT	1
+# if (MMX_COEF == 2)
+#  define BLOCK_LOOPS			64
+#  define ALGORITHM_NAME		"64/64 " MD5_SSE_type  " 64x2"
+#  define ALGORITHM_NAME_S		"64/64 " SHA1_SSE_type " 64x2"
+#  define ALGORITHM_NAME_4		"64/64 " MD4_SSE_type  " 64x2"
+#  define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#  define BSD_BLKS 1
+# elif MMX_COEF == 4
+#  define BLOCK_LOOPS			32
+#  if !defined MD5_SSE_PARA || MD5_SSE_PARA==1
+#   define BY_X			32
+#  elif MD5_SSE_PARA==2
+#   define BY_X			16
+#  elif MD5_SSE_PARA==3
+#   define BY_X			10
+#  elif MD5_SSE_PARA==4
+#   define BY_X			8
+#  elif MD5_SSE_PARA==5
+#   define BY_X			6
+#  elif MD5_SSE_PARA==6
+#   define BY_X			5
+#  endif
+#define LOOP_STR
+#  ifdef MD5_SSE_PARA
+#   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD5_SSE_PARA)
+#   define BSD_BLKS (MD5_SSE_PARA)
+#  else
+#   define ALGORITHM_NAME		"128/128 " MD5_SSE_type  " " STRINGIZE(BY_X) "x4"
+#   define BSD_BLKS 1
+#  endif
+#  ifdef SHA1_SSE_PARA
+#   define ALGORITHM_NAME_S		"128/128 " SHA1_SSE_type " " STRINGIZE(BY_X) "x4x" STRINGIZE(SHA1_SSE_PARA)
+#  else
+#   define ALGORITHM_NAME_S		"128/128 " SHA1_SSE_type " " STRINGIZE(BY_X) "x4"
+#  endif
+#  ifdef MD4_SSE_PARA
+#   define ALGORITHM_NAME_4		"128/128 " MD4_SSE_type  " " STRINGIZE(BY_X) "x4x" STRINGIZE(MD4_SSE_PARA)
+#  else
+#   define ALGORITHM_NAME_4		"128/128 " MD4_SSE_type  " " STRINGIZE(BY_X) "x4"
+#  endif
+#  define PLAINTEXT_LENGTH	(27*3+1) // for worst-case UTF-8
+#  ifdef MD5_SSE_PARA
 // gives us 16 'loops' for para=2 and 10 loops for para==3 (or max of 128 for 2 and 120 for 3)
-#define MAX_KEYS_PER_CRYPT	(((MMX_COEF*BLOCK_LOOPS)/(MD5_SSE_PARA*4))*(MD5_SSE_PARA*4))
-#else
-#define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#   define MAX_KEYS_PER_CRYPT	(((MMX_COEF*BLOCK_LOOPS)/(MD5_SSE_PARA*4))*(MD5_SSE_PARA*4))
+#  else
+#   define MAX_KEYS_PER_CRYPT	MMX_COEF*BLOCK_LOOPS
+#  endif
+# else
+#  error "Invalid MMX_COEF  Only valid is 2 or 4"
+# endif
+#else // !MMX_COEF
+# define BLOCK_LOOPS			128
+# define ALGORITHM_NAME			"32/" ARCH_BITS_STR " 128x1"
+# define ALGORITHM_NAME_S		"32/" ARCH_BITS_STR " 128x1"
+# define ALGORITHM_NAME_4		"32/" ARCH_BITS_STR " 128x1"
 #endif
-#define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + ((i)&3) )
-#define SHAGETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF + (3-((i)&3)) ) //for endianity conversion
-#endif 	// MMX_COEF
+
+#define ALGORITHM_NAME_X86_S	"32/" ARCH_BITS_STR " 128x1"
+#define ALGORITHM_NAME_X86_4	"32/" ARCH_BITS_STR " 128x1"
+
 // Would LOVE to go to 128 bytes (would allow md5(md5($p).md5($p).md5($p).md5($p)) but
 // due to other parts of john, we can only go to 128-3 as max sized plaintext.
 #define PLAINTEXT_LENGTH_X86		124
@@ -6959,6 +6973,27 @@ static DYNAMIC_primitive_funcp *ConvertFuncs(DYNAMIC_primitive_funcp p, int *cou
 	return fncs;
 }
 
+static int isSHA1Func(DYNAMIC_primitive_funcp p) {
+	if (p==DynamicFunc__SHA1_crypt_input1_append_input2_base16 ||
+		p==DynamicFunc__SHA1_crypt_input2_append_input1_base16 ||
+		p==DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 ||
+		p==DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16 ||
+		p==DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16 ||
+		p==DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16 ||
+		p==DynamicFunc__SHA1_crypt_input1_to_output1_FINAL ||
+		p==DynamicFunc__SHA1_crypt_input2_to_output1_FINAL)
+		return 1;
+	return 0;
+}
+static int isMD4Func(DYNAMIC_primitive_funcp p) {
+	if (p==DynamicFunc__crypt_md4 ||
+		p==DynamicFunc__crypt2_md4 ||
+		p==DynamicFunc__crypt_md4_in1_to_out2 ||
+		p==DynamicFunc__crypt_md4_in2_to_out1)
+		return 1;
+	return 0;
+}
+
 int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 {
 	int i, j, cnt, cnt2, x;
@@ -7194,14 +7229,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		curdat.store_keys_in_input = 2;
 #ifdef MMX_COEF
 		pFmt->params.max_keys_per_crypt = MMX_COEF*SHA_BLOCKS;
-#if (SHA_BLOCKS < 2)
-		pFmt->params.algorithm_name = "4x1";
-#elif (SHA_BLOCKS == 2)
-		pFmt->params.algorithm_name = "4x2";
-#elif (SHA_BLOCKS == 3)
-		pFmt->params.algorithm_name = "4x3";
-#elif (SHA_BLOCKS == 4)
-		pFmt->params.algorithm_name = "4x4";
+#if (MMX_COEF==2)
+		pFmt->params.algorithm_name = "64/64 " SHA1_SSE_type " 2x" STRINGIZE(SHA_BLOCKS);
+#else
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 4x" STRINGIZE(SHA_BLOCKS);
 #endif
 #endif
 	}
@@ -7210,28 +7241,13 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	{
 #ifdef MMX_COEF
 #if (MMX_COEF==2)
-		pFmt->params.algorithm_name = SSE_type " 2x1";
+		pFmt->params.algorithm_name = "64/64 " SHA1_SSE_type " 2x1";
 		pFmt->params.max_keys_per_crypt = 2;
-#elif (MD5_SSE_PARA==1)
-		pFmt->params.algorithm_name = SSE_type " 4x1";
-		pFmt->params.max_keys_per_crypt = 4;
-#elif (MD5_SSE_PARA==2)
-		pFmt->params.algorithm_name = SSE_type " 4x2";
-		pFmt->params.max_keys_per_crypt = 8;
-#elif (MD5_SSE_PARA==3)
-		pFmt->params.algorithm_name = SSE_type " 4x3";
-		pFmt->params.max_keys_per_crypt = 12;
-#elif (MD5_SSE_PARA==4)
-		pFmt->params.algorithm_name = SSE_type " 4x4";
-		pFmt->params.max_keys_per_crypt = 16;
-#elif (MD5_SSE_PARA==5)
-		pFmt->params.algorithm_name = SSE_type " 4x5";
-		pFmt->params.max_keys_per_crypt = 20;
-#elif (MD5_SSE_PARA==6)
-		pFmt->params.algorithm_name = SSE_type " 4x6";
-		pFmt->params.max_keys_per_crypt = 24;
+#elif defined (MD5_SSE_PARA)
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.max_keys_per_crypt = 4*MD5_SSE_PARA;
 #else
-		pFmt->params.algorithm_name = SSE_type " 4x1";
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 4x1";
 		pFmt->params.max_keys_per_crypt = 4;
 #endif
 #else
@@ -7240,9 +7256,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.max_keys_per_crypt = 1;
 #if MD5_X2
 		pFmt->params.max_keys_per_crypt = 2;
-		pFmt->params.algorithm_name = "2x1 (MD5_body)";
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " X2 (MD5_body)";
 #else
-		pFmt->params.algorithm_name = "1x1 (MD5_body)";
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
 #endif
 #endif
 		pFmt->params.min_keys_per_crypt = 1;
@@ -7257,26 +7273,15 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 #ifdef MMX_COEF
 		// no reason to do 128 crypts, causes slow validity checking.  But we do get some gains
 		// by doing more than simple 1 set of MMX_COEF
-		pFmt->params.max_keys_per_crypt = 16;
 #if (MMX_COEF==2)
-		pFmt->params.algorithm_name = SSE_type " 8x2";
-#elif (MD5_SSE_PARA==1)
-		pFmt->params.algorithm_name = SSE_type " 4x4x1";
-#elif (MD5_SSE_PARA==2)
-		pFmt->params.algorithm_name = SSE_type " 2x4x2";
-#elif (MD5_SSE_PARA==3)
-		pFmt->params.algorithm_name = SSE_type " 2x4x3";
-		pFmt->params.max_keys_per_crypt = 24;
-#elif (MD5_SSE_PARA==4)
-		pFmt->params.algorithm_name = SSE_type " 1x4x4";
-#elif (MD5_SSE_PARA==5)
-		pFmt->params.algorithm_name = SSE_type " 1x4x5";
-		pFmt->params.max_keys_per_crypt = 20;
-#elif (MD5_SSE_PARA==6)
-		pFmt->params.algorithm_name = SSE_type " 1x4x6";
-		pFmt->params.max_keys_per_crypt = 24;
+		pFmt->params.algorithm_name = "64/64 " SHA1_SSE_type " 8x2";
+		pFmt->params.max_keys_per_crypt = 16;
+#elif defined (MD5_SSE_PARA)
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 4x4x" STRINGIZE(MD5_SSE_PARA);
+		pFmt->params.max_keys_per_crypt = 16*MD5_SSE_PARA;
 #else
-		pFmt->params.algorithm_name = SSE_type " 4x4";
+		pFmt->params.algorithm_name = "128/128 " SHA1_SSE_type " 4x4";
+		pFmt->params.max_keys_per_crypt = 16;
 #endif
 #else
 		// In non-sse mode, 1 test runs as fast as 128. But validity checking is MUCH faster if
@@ -7284,9 +7289,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->params.max_keys_per_crypt = 1;
 #if MD5_X2
 		pFmt->params.max_keys_per_crypt = 2;
-		pFmt->params.algorithm_name = "2x1 (MD5_body)";
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " X2  (MD5_body)";
 #else
-		pFmt->params.algorithm_name = "1x1 (MD5_body)";
+		pFmt->params.algorithm_name = "32/" ARCH_BITS_STR " (MD5_body)";
 #endif
 #endif
 		pFmt->params.min_keys_per_crypt = 1;
@@ -7419,6 +7424,18 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 				curdat.dynamic_FUNCTIONS[j++] = pFuncs[x];
 				if (pFuncs[x] == DynamicFunc__setmode_unicode)
 					pFmt->params.flags |= FMT_UNICODE;
+				if (isSHA1Func(pFuncs[x])) {
+					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_S;
+					else if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_S;
+				}
+				if (isMD4Func(pFuncs[x])) {
+					if (!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_4;
+					else if(!strcmp(pFmt->params.algorithm_name, ALGORITHM_NAME_X86))
+						pFmt->params.algorithm_name = ALGORITHM_NAME_X86_4;
+				}
 			}
 
 			if (curdat.dynamic_FUNCTIONS[j-1] == DynamicFunc__SHA1_crypt_input1_to_output1_FINAL ||
