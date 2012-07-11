@@ -263,5 +263,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 			fmt_default_get_hash},
 		    cmp_all,
 		    cmp_one,
-	    cmp_exact}
+		    cmp_exact,
+		    fmt_default_get_source
+	}
 };
