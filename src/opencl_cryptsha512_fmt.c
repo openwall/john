@@ -463,10 +463,13 @@ static void init(struct fmt_main *pFmt) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
         task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
 
-        if (gpu_nvidia(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-        else if (gpu_amd(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_AMD.cl";
+        if (! no_byte_addressable(source_in_use)) {
+
+            if (gpu_nvidia(source_in_use))
+                task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
+            else if (gpu_amd(source_in_use))
+                task = "$JOHN/cryptsha512_kernel_AMD.cl";
+        }
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
