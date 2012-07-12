@@ -63,7 +63,7 @@ my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
 		Dynamic dummy rawsha224 rawsha256 rawsha384 rawsha512 dragonfly3_32
 		dragonfly4_32 saltedsha1 gost gost_cp hmac_sha1 hmac_sha224 hmac_sha256
-		hmac_sha384 hmac_sha512 sha256crypt sha512crypt XSHA512));
+		hmac_sha384 hmac_sha512 sha256crypt sha512crypt XSHA512  dynamic_27 dynamic_28));
 		
 my $i; my $h; my $u; my $salt;
 my @chrAsciiText=('a'..'z','A'..'Z');
@@ -342,9 +342,18 @@ sub bsdi {
 	print "u$u-BSDI:", $h->as_crypt, ":$u:0:$_[0]::\n";
 }
 sub md5_1 {
+#	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
+#	$h = Authen::Passphrase::MD5Crypt->new(passphrase => $_[0], salt_random => 1);
+#	print "u$u-MD5:", $h->as_crypt, ":$u:0:$_[0]::\n";
+
 	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
-	$h = Authen::Passphrase::MD5Crypt->new(passphrase => $_[0], salt_random => 1);
-	print "u$u-MD5:", $h->as_crypt, ":$u:0:$_[0]::\n";
+	if (defined $argsalt) {
+		$salt = $argsalt;
+	} else {
+		$salt=randstr(8);
+	}
+	$h = md5_a_hash($_[0], $salt, "\$1\$");
+	print "u$u-MD5:$h:$u:0:$_[0]::\n";
 }
 sub bfx_fix_pass {
 	my $pass = $_[0];
@@ -544,15 +553,12 @@ sub md5_a_hash {
 	# have to use md5() function to get the 'raw' md5s, and do our 1000 loops.
 	# md5("a","b","c") == md5("abc");
 	my $b, my $c, my $tmp;
-	if (defined $argsalt) {
-		$salt = $argsalt;
-	} else {
-		$salt=randstr(8);
-	}
+	my $type = $_[2];
+	my $salt = $_[1];
 	#create $b
 	$b = md5($_[0],$salt,$_[0]);
 	#create $a
-	$tmp = $_[0] . q"$apr1$" . $salt;  # if this is $1$ then we have 'normal' BSD MD5
+	$tmp = $_[0] . $type . $salt;  # if this is $1$ then we have 'normal' BSD MD5
 	for ($i = length($_[0]); $i > 0; $i -= 16) {
 		if ($i > 16) { $tmp .= $b; }
 		else { $tmp .= substr($b,0,$i); }
@@ -587,7 +593,7 @@ sub md5_a_hash {
 	$tmp .= to64($i,4);
 	$i =                                                         ord(substr($c,11,1));
 	$tmp .= to64($i,2);
-	my $ret = "\$apr1\$$salt\$$tmp";
+	my $ret = "$type$salt\$$tmp";
 	return $ret;
 }
 sub md5_a {
@@ -597,7 +603,7 @@ sub md5_a {
 	} else {
 		$salt=randstr(8);
 	}
-	$h = md5_a_hash($_[0], $salt);
+	$h = md5_a_hash($_[0], $salt, "\$apr1\$");
 	print "u$u-md5a:$h:$u:0:$_[0]::\n";
 }
 sub binToHex {
@@ -1231,11 +1237,20 @@ sub dynamic_21 { #HDAA HTTP Digest  access authentication
 	print "$user:dynamic_21$resp\$$nonce\$\$U$user\$\$F2myrealm\$\$F3GET\$/\$\$F400000001\$$clientNonce\$auth:$u:0:$_[0]::\n";
 }
 sub dynamic_27 { #dynamic_27 --> OpenBSD MD5
+	#if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
+	#$h = Authen::Passphrase::MD5Crypt->new(salt_random => 1, passphrase => $_[0]);
+	#my $hh = $h->as_crypt;
+	#$salt = substr($hh,3,8);
+	#print "u$u-dynamic_27:\$dynamic_27\$", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
+
 	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
-	$h = Authen::Passphrase::MD5Crypt->new(salt_random => 1, passphrase => $_[0]);
-	my $hh = $h->as_crypt;
-	$salt = substr($hh,3,8);
-	print "u$u-dynamic_27:dynamic_27", substr($hh,12), "\$$salt:$u:0:$_[0]::\n";
+	if (defined $argsalt) {
+		$salt = $argsalt;
+	} else {
+		$salt=randstr(8);
+	}
+	$h = md5_a_hash($_[0], $salt, "\$1\$");
+	print "u$u-dynamic_27:\$dynamic_27\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_28 { # Apache MD5
 	if (length($_[0]) > 15) { print "Warning, john can only handle 15 byte passwords for this format!\n"; }
@@ -1244,8 +1259,8 @@ sub dynamic_28 { # Apache MD5
 	} else {
 		$salt=randstr(8);
 	}
-	$h = md5_a_hash($_[0], $salt);
-	print "u$u-dynamic_28:dynamic_28", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
+	$h = md5_a_hash($_[0], $salt, "\$apr1\$");
+	print "u$u-dynamic_28:\$dynamic_28\$", substr($h,15), "\$$salt:$u:0:$_[0]::\n";
 }
 sub dynamic_compile {
 	my $dynamic_args = $_[0];
