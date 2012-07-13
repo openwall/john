@@ -208,7 +208,7 @@ struct fmt_private {
 /*
  * A structure to keep a list of supported ciphertext formats.
  */
-#define FMT_MAIN_VERSION 9		/* change if structure changes */
+#define FMT_MAIN_VERSION 10		/* change if structure changes */
 struct fmt_main {
 	struct fmt_params params;
 	struct fmt_methods methods;

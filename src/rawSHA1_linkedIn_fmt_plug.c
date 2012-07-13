@@ -339,7 +339,7 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	}
 #else
 	if (crypt_key[1] == ((ARCH_WORD_32*)(*pw).binary)[1] &&
-		crypt_key[2] == ((ARCH_WORD_32*)(*pw).binary)[2] && 
+		crypt_key[2] == ((ARCH_WORD_32*)(*pw).binary)[2] &&
 		crypt_key[3] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
 		crypt_key[4] == ((ARCH_WORD_32*)(*pw).binary)[4])
 		   ((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[0];

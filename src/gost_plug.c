@@ -468,6 +468,12 @@ void gost_init_table(void)
 		{ 13, 14,  4,  1,  7,  0,  5, 10,  3, 12,  8, 15,  6,  2,  9, 11 },
 		{  1,  3, 10,  9,  5, 11,  4, 15,  8,  6,  7, 14, 13,  0,  2, 12 }
 	};
+	/* allow this to be called multiple times, in case multiple formats use this
+	   code during a run.  Right now, gost_fmt_plug.c uses it, but I am adding it
+	   to dynamic, and thus, this function 'can' get called several times */
+	static int init_called=0;
+	if (init_called) return;
+	init_called=1;
 
 	rhash_gost_fill_sbox(rhash_gost_sbox, sbox);
 	rhash_gost_fill_sbox(rhash_gost_sbox_cryptpro, sbox_cryptpro);
@@ -527,7 +533,7 @@ int main()
 
 #ifndef __GLIBC__
 void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length) {
-	int i;
+	size_t i;
 	unsigned int *pO, *pI;
 	pO = (unsigned int *)to;
 	pI = (unsigned int *)from;
