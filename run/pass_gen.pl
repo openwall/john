@@ -1283,17 +1283,19 @@ sub dynamic_compile {
 		print "        Added \$s2 (if 2nd salt is defined),\n";
 		print "        Added \$c1 to \$c9 for constants (must be defined in const#= values)\n";
 		print "        Added \$u if user name (normal, upper/lower case or unicode convert)\n";
-		print "        Handle md5, sha1, and md4 algorithms.\n";
-		print "        Handle MD5, SHA1 and MD4 which are hex output in uppercase.\n";
-		print "        Handle md5u, sha1u and md4u which encode to UTF16LE prior to hashing.\n";
-		print "          warning, be careful with md5u and usrname=uni, they will 'clash'\n";
-		print "        Handle md5_64, sha1_64 and md4_64 which output in 'standard'\n";
-		print "          base-64 which is \"./0-9A-Za-z\"\n";
-		print "        Handle md5_64e, sha1_64e and md4_64e which output in 'standard'\n";
-		print "          base-64 which is \"./0-9A-Za-z\" with '=' padding up to even\n";
+		print "        Handle md5, sha1, md4 sha224 and sha256 crypts.\n";
+		print "        Handle MD5, SHA1, MD4 SHA224 and SHA256 which output hex in uppercase.\n";
+		print "        Handle md5u, sha1u md4u, sha224u, sha256u which encode to UTF16LE.\n";
+		print "          prior to hashing. Warning, be careful with md5u and usrname=uni,\n";
+		print "          they will 'clash'\n";
+		print "        Handle md5_64, sha1_64, md4_64, sha224_64 and sha256_64 which output in\n";
+		print "          'standard' base-64 which is \"./0-9A-Za-z\"\n";
+		print "        Handle md5_64e, sha1_64e, md4_64e, sha224_64 and sha256_64 which output in\n";
+		print "          'standard' base-64 which is \"./0-9A-Za-z\" with '=' padding up to even\n";
 		print "          4 character (similar to mime-base64\n";
-		print "        Handle md5_raw, sha1_raw and md4_raw which output is the 'binary'\n";
-		print "          16 or 20 bytes of data.  CAN not be used as 'outside' function\n";
+		print "        Handle md5_raw, sha1_raw, md4_raw, sha224_raw and sha256_raw which output\n";
+		print "          is the 'binary' 16 or 20 bytes of data.  CAN not be used as 'outside'\n";
+		print "           function\n";
 		print "    User names are handled by usrname=  if true, then \'normal\' user names\n";
 		print "    used, if lc, then user names are converted to lowercase, if uc then\n";
 		print "    they are converted to UPPER case. if uni they are converted into unicode\n";
@@ -1339,12 +1341,35 @@ sub dynamic_compile {
 			$dynamic_args==24 && do {$fmt='sha1($p.$s)';				last SWITCH; };
 			$dynamic_args==25 && do {$fmt='sha1($s.$p)';				last SWITCH; };
 			$dynamic_args==26 && do {$fmt='sha1($p)';					last SWITCH; };
+			$dynamic_args==29 && do {$fmt='md5u($p)';					last SWITCH; };
+			$dynamic_args==30 && do {$fmt='md4($p)';					last SWITCH; };
+			$dynamic_args==31 && do {$fmt='md4($s.$p)';					last SWITCH; };
+			$dynamic_args==32 && do {$fmt='md4($p.$s)';					last SWITCH; };
+			$dynamic_args==33 && do {$fmt='md4u($p)';					last SWITCH; };
+			$dynamic_args==34 && do {$fmt='md5(md4($p))';				last SWITCH; };
+			$dynamic_args==35 && do {$fmt='sha1($u.$c1.$p),usrname=uc,const1=:';	last SWITCH; };
+			$dynamic_args==36 && do {$fmt='sha1($u.$c1.$p),usrname=true,const1=:';	last SWITCH; };
+			$dynamic_args==37 && do {$fmt='sha1($u.$p),usrname=lc';		last SWITCH; };
+			$dynamic_args==38 && do {$fmt='sha1($s.sha1($s.sha1($p))),saltlen=20';	last SWITCH; };
+			$dynamic_args==39 && do {$fmt='sha256($s.$p),saltlen=2';	last SWITCH; };
 			# 7, 17, 19, 20, 21, 27, 28 are still handled by 'special' functions.
+
+			# since these are in dynamic.conf, and treatly 'like' builtins, we might as well put them here.
+			$dynamic_args==1001 && do {$fmt='md5(md5(md5(md5($p))))';	last SWITCH; };
+			$dynamic_args==1002 && do {$fmt='md5(md5(md5(md5(md5($p)))))';	last SWITCH; };
+			$dynamic_args==1003 && do {$fmt='md5(md5($p).md5($p))';		last SWITCH; };
+			$dynamic_args==1004 && do {$fmt='md5(md5(md5(md5(md5(md5($p))))))';	last SWITCH; };
+			$dynamic_args==1005 && do {$fmt='md5(md5(md5(md5(md5(md5(md5($p)))))))';	last SWITCH; };
+			$dynamic_args==1006 && do {$fmt='md5(md5(md5(md5(md5(md5(md5(md5($p))))))))';	last SWITCH; };
+			$dynamic_args==1007 && do {$fmt='md5(md5($p).$s)';			last SWITCH; };
+			$dynamic_args==1008 && do {$fmt='md5($p.$s),saltlen=16';	last SWITCH; };
+			$dynamic_args==1009 && do {$fmt='md5($s.$p),saltlen=16';	last SWITCH; };
+			$dynamic_args==1010 && do {$fmt='sha256($s.$p),saltlen=2';	last SWITCH; };
+			# dyna-1010 not handled yet (the pad null to 100 bytes)
 			return $func;
 		}
 		# allow the generic compiler to handle these types.
 		$dynamic_args = $prefmt.$fmt;
-
 	}
 
 	# now compile.
@@ -1402,11 +1427,22 @@ sub do_dynamic_GetToken {
 		if (substr($exprStr, 0, 3) eq "md5")     { push(@gen_toks, "f5h"); return substr($exprStr, 3); }
 		if (substr($exprStr, 0, 3) eq "MD5")     { push(@gen_toks, "f5H"); return substr($exprStr, 3); }
 	} elsif ($stmp eq "SHA") {
-		if (substr($exprStr, 0, 8) eq "sha1_64e"){ push(@gen_toks, "f1e"); return substr($exprStr, 8); }
-		if (substr($exprStr, 0, 7) eq "sha1_64") { push(@gen_toks, "f16"); return substr($exprStr, 7); }
-		if (substr($exprStr, 0, 5) eq "sha1u")   { push(@gen_toks, "f1u"); return substr($exprStr, 5); }
-		if (substr($exprStr, 0, 4) eq "SHA1")    { push(@gen_toks, "f1H"); return substr($exprStr, 4); }
-		if (substr($exprStr, 0, 4) eq "sha1")    { push(@gen_toks, "f1h"); return substr($exprStr, 4); }
+		if (substr($exprStr, 0, 8) eq "sha1_64e")  { push(@gen_toks, "f1e");   return substr($exprStr, 8); }
+		if (substr($exprStr, 0, 7) eq "sha1_64")   { push(@gen_toks, "f16");   return substr($exprStr, 7); }
+		if (substr($exprStr, 0, 5) eq "sha1u")     { push(@gen_toks, "f1u");   return substr($exprStr, 5); }
+		if (substr($exprStr, 0, 4) eq "SHA1")      { push(@gen_toks, "f1H");   return substr($exprStr, 4); }
+		if (substr($exprStr, 0, 4) eq "sha1")      { push(@gen_toks, "f1h");   return substr($exprStr, 4); }
+		if (substr($exprStr, 0,10) eq "sha224_64e"){ push(@gen_toks, "f224e"); return substr($exprStr, 10); }
+		if (substr($exprStr, 0, 9) eq "sha224_64") { push(@gen_toks, "f2246"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 7) eq "sha224u")   { push(@gen_toks, "f224u"); return substr($exprStr, 7); }
+		if (substr($exprStr, 0, 6) eq "SHA224")    { push(@gen_toks, "f224H"); return substr($exprStr, 6); }
+		if (substr($exprStr, 0, 6) eq "sha224")    { push(@gen_toks, "f224h"); return substr($exprStr, 6); }
+		if (substr($exprStr, 0,10) eq "sha256_64e"){ push(@gen_toks, "f256e"); return substr($exprStr, 10); }
+		if (substr($exprStr, 0, 9) eq "sha256_64") { push(@gen_toks, "f2566"); return substr($exprStr, 9); }
+		if (substr($exprStr, 0, 7) eq "sha256u")   { push(@gen_toks, "f256u"); return substr($exprStr, 7); }
+		if (substr($exprStr, 0, 6) eq "SHA256")    { push(@gen_toks, "f256H"); return substr($exprStr, 6); }
+		if (substr($exprStr, 0, 6) eq "sha256")    { push(@gen_toks, "f256h"); return substr($exprStr, 6); }
+
 	} elsif ($stmp eq "MD4") {
 		if (substr($exprStr, 0, 7) eq "md4_64e") { push(@gen_toks, "f4e"); return substr($exprStr, 7); }
 		if (substr($exprStr, 0, 6) eq "md4_64")  { push(@gen_toks, "f46"); return substr($exprStr, 6); }
@@ -1416,9 +1452,11 @@ sub do_dynamic_GetToken {
 	}
 
 	$gen_lastTokIsFunc=2; # a func, but can NOT be the 'outside' function.
-	if (substr($exprStr, 0, 7) eq "md5_raw")  { push(@gen_toks, "f5r"); return substr($exprStr, 7); }
-	if (substr($exprStr, 0, 8) eq "sha1_raw") { push(@gen_toks, "f1r"); return substr($exprStr, 8); }
-	if (substr($exprStr, 0, 7) eq "md4_raw")  { push(@gen_toks, "f4r"); return substr($exprStr, 7); }
+	if (substr($exprStr, 0, 7) eq "md5_raw")    { push(@gen_toks, "f5r");   return substr($exprStr, 7); }
+	if (substr($exprStr, 0, 8) eq "sha1_raw")   { push(@gen_toks, "f1r");   return substr($exprStr, 8); }
+	if (substr($exprStr, 0, 7) eq "md4_raw")    { push(@gen_toks, "f4r");   return substr($exprStr, 7); }
+	if (substr($exprStr, 0,10) eq "sha224_raw") { push(@gen_toks, "f224r"); return substr($exprStr,10); }
+	if (substr($exprStr, 0,10) eq "sha256_raw") { push(@gen_toks, "f256r"); return substr($exprStr, 8); }
 
 	$gen_lastTokIsFunc=0;
 	push(@gen_toks, "X");
@@ -1776,8 +1814,8 @@ sub dynamic_load_salt2() {
 }
 ##########################################################################
 #  Here are the ACTUAL pCode primative functions.  These handle pretty
-# much everything dealing with hashing expressions for md5/md4/sha1. There
-# are some variables which will be properly prepared prior to any of these
+# much everything dealing with hashing expressions for md5/md4/sha1/sha224/sha256.
+# There are some variables which will be properly prepared prior to any of these
 # pCode functions.  These are $gen_pw (the password, possibly in unicode
 # format).  $gen_s (the salt), $gen_s2 (the 2nd salt), $gen_u the username
 # (possibly in unicode), and @gen_c (array of constants).  Also, prior to
@@ -1828,3 +1866,15 @@ sub dynamic_f4u    { $h = pop @gen_Stack; $h = md4_hex(encode("UTF-16LE",$h)); $
 sub dynamic_f5r    { $h = pop @gen_Stack; $h = md5($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f1r    { $h = pop @gen_Stack; $h = sha1($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
 sub dynamic_f4r    { $h = pop @gen_Stack; $h = md4($h);  $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f224h  { $h = pop @gen_Stack; $h = sha224_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f224H  { $h = pop @gen_Stack; $h = uc sha224_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f2246  { $h = pop @gen_Stack; $h = sha224_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f224e  { $h = pop @gen_Stack; $h = sha224_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f224u  { $h = pop @gen_Stack; $h = sha224_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f224r  { $h = pop @gen_Stack; $h = sha224($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f256h  { $h = pop @gen_Stack; $h = sha256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f256H  { $h = pop @gen_Stack; $h = uc sha256_hex($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f2566  { $h = pop @gen_Stack; $h = sha256_base64($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f256e  { $h = pop @gen_Stack; $h = sha256_base64($h); while (length($h)%4) { $h .= "="; } $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f256u  { $h = pop @gen_Stack; $h = sha256_hex(encode("UTF-16LE",$h)); $gen_Stack[@gen_Stack-1] .= $h; return $h; }
+sub dynamic_f256r  { $h = pop @gen_Stack; $h = sha256($h); $gen_Stack[@gen_Stack-1] .= $h; return $h; }

@@ -60,12 +60,11 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_FLD7                    (0x00400000|MGF_SALTED)
 #define MGF_FLD8                    (0x00800000|MGF_SALTED)
 #define MGF_FLD9                    (0x01000000|MGF_SALTED)
-#define MGF_SHA1_40_BYTE_FINISH      0x02000000
-#define MGF_INPBASE64a               0x04000000
-#define MGF_UTF8                     0x08000000
-#define MGF_PASSWORD_UPCASE          0x10000000
-#define MGF_PASSWORD_LOCASE          0x20000000
-#define MGF_FULL_CLEAN_REQUIRED      0x40000000
+#define MGF_INPBASE64a               0x02000000
+#define MGF_UTF8                     0x04000000
+#define MGF_PASSWORD_UPCASE          0x08000000
+#define MGF_PASSWORD_LOCASE          0x10000000
+#define MGF_FULL_CLEAN_REQUIRED      0x20000000
 
 // These are special loader flags.  They specify that keys loads are 'special', and
 // do MORE than simply load keys into the keys[] array.  They may preload the keys
@@ -79,15 +78,20 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_KEYS_BASE16_X86_IN1          0x0010
 #define MGF_KEYS_BASE16_X86_IN1_Offset32 0x0020
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
-#define MGF_KEYS_UNICODE_B4_CRYPT        0x1000
-#define MGF_PHPassSetup                  0x0040
-#define MGF_POSetup                      0x0080
-#define MGF_FreeBSDMD5Setup              0x0100
-#define MGF_RAW_SHA1_INPUT               0x0200
-#define MGF_KEYS_INPUT_BE_SAFE           0x0400
-#define MGF_SET_INP2LEN32                0x0800
-#define MGF_GET_SOURCE                   0x2000
-#define MGF_GET_SOURCE_SHA               0x4000
+#define MGF_KEYS_UNICODE_B4_CRYPT        0x01000
+#define MGF_PHPassSetup                  0x00040
+#define MGF_POSetup                      0x00080
+#define MGF_FreeBSDMD5Setup              0x00100
+#define MGF_RAW_SHA1_INPUT               0x00200
+#define MGF_KEYS_INPUT_BE_SAFE           0x00400
+#define MGF_SET_INP2LEN32                0x00800
+#define MGF_GET_SOURCE                   0x02000
+#define MGF_GET_SOURCE_SHA               0x04000
+#define MGF_GET_SOURCE_SHA224            0x08000
+#define MGF_GET_SOURCE_SHA256            0x10000
+#define MGF_SHA1_40_BYTE_FINISH          0x20000
+#define MGF_SHA224_56_BYTE_FINISH        0x40000
+#define MGF_SHA256_64_BYTE_FINISH        0x80000
 
 typedef struct DYNAMIC_Setup_t
 {
@@ -266,6 +270,23 @@ extern void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16();
 extern void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL();
 extern void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL();
 
+extern void DynamicFunc__SHA224_crypt_input1_append_input2_base16();
+extern void DynamicFunc__SHA224_crypt_input2_append_input1_base16();
+extern void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16();
+extern void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16();
+extern void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16();
+extern void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16();
+extern void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL();
+extern void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL();
+
+extern void DynamicFunc__SHA256_crypt_input1_append_input2_base16();
+extern void DynamicFunc__SHA256_crypt_input2_append_input1_base16();
+extern void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16();
+extern void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16();
+extern void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16();
+extern void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16();
+extern void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL();
+extern void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL();
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.

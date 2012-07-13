@@ -147,6 +147,7 @@
 #include "options.h"
 #include "config.h"
 #include "sha.h"
+#include "sha2.h"
 #include "memory.h"
 #include "unicode.h"
 #include "johnswap.h"
@@ -581,6 +582,9 @@ typedef struct private_subformat_data
 	// if the external hash is sha1()  (such as sha1(md5($p)) then we want 40 byte input hashes.
 	// We only 'use' 32 bytes of it to compare, but we should only run against 40byte hashes.
 	int dynamic_40_byte_sha1;
+	// set to 1 if sha224 or sha256 'input' hashes are used
+	int dynamic_64_byte_sha256;
+	int dynamic_56_byte_sha224;
 	// Some formats have 'constants'.  A good example is the MD5 Post Office format dynamic_18
 	// There can be 8 constants which can be put into the strings being built.  Most formats do
 	// not have constants.
@@ -715,6 +719,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	cipherTextLen = CIPHERTEXT_LENGTH;
 	if (pPriv->dynamic_40_byte_sha1) {
 		cipherTextLen = 40;
+	} else if (pPriv->dynamic_64_byte_sha256) {
+		cipherTextLen = 64;
+	} else if (pPriv->dynamic_56_byte_sha224) {
+		cipherTextLen = 56;
 	}
 	for (i = 0; i < cipherTextLen; i++){
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
@@ -2184,6 +2192,36 @@ static char *get_source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
 	cpi = (unsigned char*)(pw->binary);
 	for (i = 0; i < 20; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+static char *get_source_sha224(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+{
+	char *cpo = Buf;
+	unsigned char *cpi;
+	int i;
+	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+	cpi = (unsigned char*)(pw->binary);
+	for (i = 0; i < 28; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+static char *get_source_sha256(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+{
+	char *cpo = Buf;
+	unsigned char *cpi;
+	int i;
+	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+	cpi = (unsigned char*)(pw->binary);
+	for (i = 0; i < 32; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
 		++cpi;
@@ -6572,8 +6610,9 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 
 void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6614,8 +6653,9 @@ void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 }
 void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6656,8 +6696,9 @@ void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 }
 void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6697,8 +6738,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 }
 void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6738,8 +6780,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 }
 void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6777,11 +6820,11 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 		DynamicFunc__X86toSSE_switch_input1();
 	}
 }
-
 void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6819,11 +6862,11 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 		DynamicFunc__X86toSSE_switch_input2();
 	}
 }
-
 void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20];
 	int i;
 
 	if (switchback == 1) {
@@ -6866,8 +6909,9 @@ void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL()
 }
 void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20];
 	int i;
 
 	if (switchback == 1) {
@@ -6900,6 +6944,498 @@ void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
 		// That is why the name of the function is *_FINAL()  it is meant to be
 		// something like sha1(md5($p))  and then we simply compare 16 bytes
 		// of hash (instead of the full 20).
+#if (MD5_X2)
+		if (i & 1)
+			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
+		else
+#endif
+			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
+	}
+}
+
+/********************************************************************
+ ****  Here are the SHA224 and SHA256 functions!!!
+ *******************************************************************/
+void DynamicFunc__SHA224_crypt_input1_append_input2_base16() {
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]);
+		}
+		else
+#endif
+		{
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
+		}
+		SHA224_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 28; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len2_X86[i] += 56;
+	}
+}
+void DynamicFunc__SHA256_crypt_input1_append_input2_base16() {
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x2.b2[total_len2_X86[i]]);
+		}
+		else
+#endif
+		{
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
+		}
+		SHA256_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 32; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len2_X86[i] += 64;
+	}
+}
+void DynamicFunc__SHA224_crypt_input2_append_input1_base16() {
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+		}
+		else
+#endif
+		{
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+		}
+		SHA224_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 28; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len_X86[i] += 56;
+	}
+}
+void DynamicFunc__SHA256_crypt_input2_append_input1_base16() {
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x2.b2[total_len_X86[i]]);
+		}
+		else
+#endif
+		{
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
+		}
+		SHA256_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 32; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len_X86[i] += 64;
+	}
+}
+void DynamicFunc__SHA224_crypt_input1_overwrite_input1_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+		}
+		SHA224_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 28; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len_X86[i] = 56;
+	}
+}
+void DynamicFunc__SHA256_crypt_input1_overwrite_input1_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+		}
+		SHA256_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 32; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len_X86[i] = 64;
+	}
+}
+void DynamicFunc__SHA224_crypt_input1_overwrite_input2_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+		}
+		SHA224_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 28; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len2_X86[i] = 56;
+	}
+}
+void DynamicFunc__SHA256_crypt_input1_overwrite_input2_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+		}
+		SHA256_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 32; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len2_X86[i] = 64;
+	}
+}
+void DynamicFunc__SHA224_crypt_input2_overwrite_input1_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+		}
+		SHA224_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 28; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len_X86[i] = 56;
+	}
+}
+void DynamicFunc__SHA256_crypt_input2_overwrite_input1_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
+		}
+		SHA256_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 32; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len_X86[i] = 64;
+	}
+}
+void DynamicFunc__SHA224_crypt_input2_overwrite_input2_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+		}
+		SHA224_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 28; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len2_X86[i] = 56;
+	}
+}
+void DynamicFunc__SHA256_crypt_input2_overwrite_input2_base16(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	int i, j;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1) {
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x2.b2;
+		}
+		else
+#endif
+		{
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
+		}
+		SHA256_Final(crypt_out, &ctx);
+		cpi = crypt_out;
+		for (j = 0; j < 32; ++j) {
+			*cpo++ = md5gen_itoa16[*cpi>>4];
+			*cpo++ = md5gen_itoa16[*cpi&0xF];
+			++cpi;
+		}
+		*cpo = 0;
+		total_len2_X86[i] = 64;
+	}
+}
+void DynamicFunc__SHA224_crypt_input1_to_output1_FINAL(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
+	int i;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1)
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+		else
+#endif
+			SHA224_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+		SHA224_Final(crypt_out, &ctx);
+
+		// Only copies the first 16 out of 28 bytes.  Thus we do not have
+		// the entire SHA224. It would NOT be valid to continue from here. However
+		// it is valid (and 128 bit safe), to simply check the first 128 bits
+		// of SHA224 hash (vs the whole 224 bits), with cmp_all/cmp_one, and if it
+		// matches, then we can 'assume' we have a hit.
+		// That is why the name of the function is *_FINAL()  it is meant to be
+		// something like sha1(md5($p))  and then we simply compare 16 bytes
+		// of hash (instead of the full 28).
+#if (MD5_X2)
+		if (i & 1)
+			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
+		else
+#endif
+			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
+	}
+}
+void DynamicFunc__SHA256_crypt_input1_to_output1_FINAL(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
+	int i;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1)
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x2.b2, total_len_X86[i]);
+		else
+#endif
+			SHA256_Update(&ctx, input_buf_X86[i>>MD5_X2].x1.b, total_len_X86[i]);
+		SHA256_Final(crypt_out, &ctx);
+
+		// Only copies the first 16 out of 32 bytes.  Thus we do not have
+		// the entire SHA256. It would NOT be valid to continue from here. However
+		// it is valid (and 128 bit safe), to simply check the first 128 bits
+		// of SHA256 hash (vs the whole 256 bits), with cmp_all/cmp_one, and if it
+		// matches, then we can 'assume' we have a hit.
+		// That is why the name of the function is *_FINAL()  it is meant to be
+		// something like sha1(md5($p))  and then we simply compare 16 bytes
+		// of hash (instead of the full 32).
+#if (MD5_X2)
+		if (i & 1)
+			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
+		else
+#endif
+			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
+	}
+}
+void DynamicFunc__SHA224_crypt_input2_to_output1_FINAL(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
+	int i;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA224_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1)
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+		else
+#endif
+			SHA224_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+		SHA224_Final(crypt_out, &ctx);
+
+		// Only copies the first 16 out of 28 bytes.  Thus we do not have
+		// the entire SHA224. It would NOT be valid to continue from here. However
+		// it is valid (and 128 bit safe), to simply check the first 128 bits
+		// of SHA224 hash (vs the whole 224 bits), with cmp_all/cmp_one, and if it
+		// matches, then we can 'assume' we have a hit.
+		// That is why the name of the function is *_FINAL()  it is meant to be
+		// something like sha1(md5($p))  and then we simply compare 16 bytes
+		// of hash (instead of the full 28).
+#if (MD5_X2)
+		if (i & 1)
+			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
+		else
+#endif
+			memcpy(crypt_key_X86[i>>MD5_X2].x1.b, crypt_out, 16);
+	}
+}
+void DynamicFunc__SHA256_crypt_input2_to_output1_FINAL(){
+	union xx { unsigned char u[32]; ARCH_WORD a[32/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
+	int i;
+	SHA256_CTX ctx;
+
+	for (i = 0; i < m_count; ++i) {
+		SHA256_Init(&ctx);
+#if (MD5_X2)
+		if (i & 1)
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x2.b2, total_len2_X86[i]);
+		else
+#endif
+			SHA256_Update(&ctx, input_buf2_X86[i>>MD5_X2].x1.b, total_len2_X86[i]);
+		SHA256_Final(crypt_out, &ctx);
+
+		// Only copies the first 16 out of 32 bytes.  Thus we do not have
+		// the entire SHA256. It would NOT be valid to continue from here. However
+		// it is valid (and 128 bit safe), to simply check the first 128 bits
+		// of SHA256 hash (vs the whole 256 bits), with cmp_all/cmp_one, and if it
+		// matches, then we can 'assume' we have a hit.
+		// That is why the name of the function is *_FINAL()  it is meant to be
+		// something like sha1(md5($p))  and then we simply compare 16 bytes
+		// of hash (instead of the full 32).
 #if (MD5_X2)
 		if (i & 1)
 			memcpy(crypt_key_X86[i>>MD5_X2].x2.b2, crypt_out, 16);
@@ -7056,7 +7592,10 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		Setup->startFlags |= MGF_KEYS_BASE16_IN1_Offset32;
 
 	curdat.dynamic_hdaa_salt     = ((Setup->flags&MGF_HDAA_SALT)==MGF_HDAA_SALT) ? 1 : 0;
-	curdat.dynamic_40_byte_sha1  = ((Setup->flags&MGF_SHA1_40_BYTE_FINISH)==MGF_SHA1_40_BYTE_FINISH) ? 1 : 0;
+	curdat.dynamic_40_byte_sha1  = ((Setup->startFlags&MGF_SHA1_40_BYTE_FINISH)==MGF_SHA1_40_BYTE_FINISH) ? 1 : 0;
+	curdat.dynamic_64_byte_sha256 = ((Setup->startFlags&MGF_SHA256_64_BYTE_FINISH)==MGF_SHA256_64_BYTE_FINISH) ? 1 : 0;
+	curdat.dynamic_56_byte_sha224 = ((Setup->startFlags&MGF_SHA224_56_BYTE_FINISH)==MGF_SHA224_56_BYTE_FINISH) ? 1 : 0;
+
 	curdat.b2Salts               = ((Setup->flags&MGF_SALTED2)==MGF_SALTED2) ? 1 : 0;
 	curdat.dynamic_base16_upcase = ((Setup->flags&MGF_BASE_16_OUTPUT_UPCASE)==MGF_BASE_16_OUTPUT_UPCASE) ? 1 : 0;
 	curdat.FldMask              |= ((Setup->flags&MGF_FLD0)==MGF_FLD0) ? MGF_FLD0 : 0;
@@ -7238,6 +7777,8 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	if (Setup->startFlags&MGF_GET_SOURCE) pFmt->methods.get_source = get_source;
 	if (Setup->startFlags&MGF_GET_SOURCE_SHA) pFmt->methods.get_source = get_source_sha;
+	if (Setup->startFlags&MGF_GET_SOURCE_SHA224) pFmt->methods.get_source = get_source_sha224;
+	if (Setup->startFlags&MGF_GET_SOURCE_SHA256) pFmt->methods.get_source = get_source_sha256;
 
 	if (!curdat.store_keys_in_input && Setup->startFlags&MGF_KEYS_INPUT_BE_SAFE)
 		curdat.store_keys_in_input = 3;
@@ -7579,6 +8120,10 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 16 + 1;
 	else if (curdat.dynamic_40_byte_sha1)
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 40 + 1;
+	else if (curdat.dynamic_64_byte_sha256)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 64 + 1;
+	else if (curdat.dynamic_56_byte_sha224)
+		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 56 + 1;
 	else
 		curdat.dynamic_SALT_OFFSET = curdat.dynamic_HASH_OFFSET + 32 + 1;
 
