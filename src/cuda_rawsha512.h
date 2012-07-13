@@ -23,7 +23,7 @@
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
 
-#define PLAINTEXT_LENGTH		12
+#define PLAINTEXT_LENGTH		20
 #define CIPHERTEXT_LENGTH		128
 
 extern uint8_t sha512_key_changed;
