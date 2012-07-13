@@ -620,11 +620,18 @@ void SSEmd4body(__m128i* data, unsigned int * out, int init)
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((y[i]),(z[i])); \
 	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(x[i]));
 
+#ifdef __XOP__
+#define SHA1_H(x,y,z) \
+	SHA1_PARA_DO(i) tmp[i] = _mm_cmov_si128((x[i]),(y[i]),(z[i])); \
+	SHA1_PARA_DO(i) tmp2[i] = _mm_andnot_si128((x[i]),(y[i])); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_xor_si128((tmp[i]),(tmp2[i]));
+#else
 #define SHA1_H(x,y,z) \
 	SHA1_PARA_DO(i) tmp[i] = _mm_and_si128((x[i]),(y[i])); \
 	SHA1_PARA_DO(i) tmp2[i] = _mm_or_si128((x[i]),(y[i])); \
 	SHA1_PARA_DO(i) tmp2[i] = _mm_and_si128((tmp2[i]),(z[i])); \
-	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128((tmp[i]),(tmp2[i])); \
+	SHA1_PARA_DO(i) tmp[i] = _mm_or_si128((tmp[i]),(tmp2[i]));
+#endif
 
 #define SHA1_I(x,y,z) SHA1_G(x,y,z)
 
