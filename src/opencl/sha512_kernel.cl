@@ -17,7 +17,7 @@
 #define FULL_BINARY_SIZE 64
 
 
-#define PLAINTEXT_LENGTH 12 //For one iteration, maximum is 107
+#define PLAINTEXT_LENGTH 20
 
 #define CIPHERTEXT_LENGTH 128
 
