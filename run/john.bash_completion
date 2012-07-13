@@ -9,7 +9,20 @@
 # incorporated.
 #
 #
-# This file needs to be copied into the /etc/bash_completion.d/.
+# This bash completion script requires bash version >= 4,
+# and extended pattern matching features enabled. If
+# 	shopt -p extglob
+# prints
+#	shopt -s extglob
+# then the extended pattern matching features enabled. If this command
+# prints
+# 	shopt -u extglob
+# then they are disabled.
+#
+# This file needs to be copied into the /etc/bash_completion.d/ directory,
+# or wherever $BASH_COMPLETION_DIR points to - check the output of
+# 	set | grep BASH_COMPLETION_DIR
+#
 # To make the new completion rules work, you need to logout and login,
 # or source /etc/bash_completion instead.
 #
@@ -68,21 +81,23 @@
 #	  but pressing [tab] expands this to something useful
 #	  Where to fix this? In john? Some bash config option?
 #
-#       --external should not use all names of [List.External:..-.] sections, but
-#	  just sections without a generate() function, if --wordlist, --incremental or --single
-#	  is present on the command line; and just those with a generate() function,
-#	  if none of these options is used - WHAT IF the user adds a --wordlist option later?
+#       --external should not use all names of [List.External:..-.] sections,
+#         but just sections without a generate() function, if --wordlist,
+#         --incremental, --single or --markov is present on the command line;
+#         and just those with a generate() function, if none of these options
+#         is used
+#         (WHAT IF the user intends to add a --wordlist option later?)
 #
-#	Should expanding an abbreviated option to its long form also be done by john itself
-#	(requires new john option)?
 
 # different implementations for completion logic for these options:
-# --rules --single --incremental --restore --status
+# --rules --single --incremental --restore --status, --markov,
+# --wordlist (if value is not mandatory for the john version), --show,
+# --loopback, and some --list=... options like --list=help[:WHAT]
 # for __john_completion=[2|any other value]
 #
 # john
 ## on my system, have() is a dummy function which always return "yes", so get rid of calling it...
-## have grep && have sed && have tr
+## have grep && have sed && have tr &&
 _john()
 {
 	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev words
