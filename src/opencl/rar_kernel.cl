@@ -142,7 +142,11 @@ void sha1_blockV(uint4 *W, uint4 *output)
 #undef K
 #undef F
 
+#ifdef NVIDIA
 #define F(x,y,z)	((x & y) | (z & (x | y)))
+#else
+#define F(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#endif
 #define K		0x8F1BBCDC
 
 	P( A, B, C, D, E, R(40) );
@@ -318,7 +322,11 @@ void sha1_block(uint *W, uint *output) {
 #undef K
 #undef F
 
+#ifdef NVIDIA
 #define F(x,y,z)	((x & y) | (z & (x | y)))
+#else
+#define F(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#endif
 #define K		0x8F1BBCDC
 
 	P( A, B, C, D, E, R(40) );
