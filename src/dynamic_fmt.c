@@ -6537,8 +6537,9 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 
 void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6579,8 +6580,9 @@ void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 }
 void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6621,8 +6623,9 @@ void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 }
 void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6662,8 +6665,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 }
 void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6703,8 +6707,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 }
 void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6742,11 +6747,11 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 		DynamicFunc__X86toSSE_switch_input1();
 	}
 }
-
 void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u, *cpi, *cpo;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20], *cpi, *cpo;
 	int i, j;
 
 	if (dynamic_use_sse == 1) {
@@ -6784,11 +6789,11 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 		DynamicFunc__X86toSSE_switch_input2();
 	}
 }
-
 void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20];
 	int i;
 
 	if (switchback == 1) {
@@ -6831,8 +6836,9 @@ void DynamicFunc__SHA1_crypt_input1_to_output1_FINAL()
 }
 void DynamicFunc__SHA1_crypt_input2_to_output1_FINAL()
 {
+	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
+	unsigned char *crypt_out=u.u;
 	int switchback=dynamic_use_sse;
-	unsigned char crypt_out[20];
 	int i;
 
 	if (switchback == 1) {

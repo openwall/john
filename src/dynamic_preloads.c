@@ -994,9 +994,9 @@ static DYNAMIC_primitive_funcp _Funcs_38[] =
 };
 static struct fmt_tests _Preloads_38[] =
 {
-	{"$dynamic_38$bab8593dac0464705b29461045371b0e6d48c85f$650d5993d496f1d8d635a739e0348725","test1"},
-	{"$dynamic_38$f584e79755984ac550f329529cc9538e94243903$61a6afef6f758b00d0416518ff8f1068","thatsworking"},
-	{"$dynamic_38$c496c498a26c9519ffa622b6b6364703052e69c0$da237aa8f1b13d67038c7bb504d58049","test3"},
+	{"$dynamic_38$79b98004be7a360a35e69dda2d86e7720487c01e$HQfznIvQwrbwcMTTaRDG","test1"},
+	{"$dynamic_38$5b5ff54803ea99f576756f047bd94132b7858f9c$3AD2Ku2yshwOp9S5bLXn","thatsworking"},
+	{"$dynamic_38$9656b9adf1ec60575c965eda08a93d6150088c18$R264F5yaxjS9hfhIvc5D","test3"},
 	{NULL}
 };
 
@@ -1058,7 +1058,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_SHA1_40_BYTE_FINISH|MGF_USERNAME_UPCASE, MGF_NO_FLAG, -23, 32 },
 	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_SHA1_40_BYTE_FINISH|MGF_USERNAME, MGF_NO_FLAG, -23, 32 },
 	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_SHA1_40_BYTE_FINISH|MGF_USERNAME, MGF_NO_FLAG, -23, 32 },
-	{ "dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SHA1_40_BYTE_FINISH|MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG },
+	{ "dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SHA1_40_BYTE_FINISH|MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -23, 40 },
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)
