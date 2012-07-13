@@ -1,5 +1,18 @@
 /*
  *
+ * This software was written by JimF jfoug AT cox dot net
+ * in 2012. No copyright is claimed, and the software is hereby
+ * placed in the public domain. In case this attempt to disclaim
+ * copyright and place the software in the public domain is deemed
+ * null and void, then the software is Copyright © 2012 JimF
+ * and it is hereby released to the general public under the following
+ * terms:
+ *
+ * This software may be modified, redistributed, and used for any
+ * purpose, in source and binary forms, with or without modification.
+ */
+
+/*
  * SHA-224 and SHA-256 hash function.
  * Will use Openssl if the openssl version is great enough.
  * otherwise, we use C code, in ssh2.c, and some #defines

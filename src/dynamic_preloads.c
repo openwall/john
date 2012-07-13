@@ -994,9 +994,29 @@ static DYNAMIC_primitive_funcp _Funcs_38[] =
 };
 static struct fmt_tests _Preloads_38[] =
 {
-	{"$dynamic_38$bab8593dac0464705b29461045371b0e6d48c85f$650d5993d496f1d8d635a739e0348725","test1"},
-	{"$dynamic_38$f584e79755984ac550f329529cc9538e94243903$61a6afef6f758b00d0416518ff8f1068","thatsworking"},
-	{"$dynamic_38$c496c498a26c9519ffa622b6b6364703052e69c0$da237aa8f1b13d67038c7bb504d58049","test3"},
+	{"$dynamic_38$79b98004be7a360a35e69dda2d86e7720487c01e$HQfznIvQwrbwcMTTaRDG","test1"},
+	{"$dynamic_38$5b5ff54803ea99f576756f047bd94132b7858f9c$3AD2Ku2yshwOp9S5bLXn","thatsworking"},
+	{"$dynamic_38$9656b9adf1ec60575c965eda08a93d6150088c18$R264F5yaxjS9hfhIvc5D","test3"},
+	{NULL}
+};
+
+//	{ "dynamic_39: sha256($s.$p)",               _Funcs_39,_Preloads_39,_ConstDefault, MGF_SHA256_64_BYTE_FINISH|MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG, -32 },
+static DYNAMIC_primitive_funcp _Funcs_39[] =
+{
+	//MGF_SHA256_64_BYTE_FINISH
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__SHA256_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_39[] =
+{
+	{"$dynamic_39$2a4fa0bf8c6a01dd625d3141746451ba51e07f99dc9143f1e25a37f65cb02eb4$RA","test1"},
+	{"$dynamic_39$ab3637d2c1f8b12eb4c297b464bac96f6055d71b51e951bfe00dc5a9db9bf864$XX","thatsworking"},
+	{"$dynamic_39$a07ccf2b46550d0e7c444f987edad70f90b1b76dd64cbc04fb48c10dc5e15cff$nq","test3"},
 	{NULL}
 };
 
@@ -1041,10 +1061,10 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_20: Cisco PIX (MD5 salted)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
 	{ "dynamic_21: HTTP Digest Access Auth",    _Funcs_21,_Preloads_21,_Const_21,     MGF_HDAA_SALT|MGF_FLD2|MGF_FLD3|MGF_SALTED, MGF_NO_FLAG, 0, 26, 26 },
 	{ "dynamic_22: md5(sha1($p))",              _Funcs_22,_Preloads_22,_ConstDefault, MGF_StartInX86Mode, MGF_KEYS_INPUT_BE_SAFE },
-	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_SHA1_40_BYTE_FINISH, MGF_KEYS_INPUT, },
-	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24 },
-	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED|MGF_SHA1_40_BYTE_FINISH, MGF_NO_FLAG, -24 },
-	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_SHA1_40_BYTE_FINISH, MGF_RAW_SHA1_INPUT },
+	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_NO_FLAG, MGF_SHA1_40_BYTE_FINISH|MGF_KEYS_INPUT, },
+	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
+	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_SALTED, MGF_NO_FLAG|MGF_SHA1_40_BYTE_FINISH, -24 },
+	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_NO_FLAG, MGF_RAW_SHA1_INPUT|MGF_SHA1_40_BYTE_FINISH },
 #if ARCH_LITTLE_ENDIAN
 	{ "dynamic_27: FreeBSD MD5",                _Funcs_27,_Preloads_27,_Const_27,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15 },
 	{ "dynamic_28: Apache MD5",                 _Funcs_28,_Preloads_28,_Const_28,     MGF_SALTED|MGF_INPBASE64a|MGF_StartInX86Mode, MGF_FreeBSDMD5Setup, -8, 15 },
@@ -1055,10 +1075,11 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_32: md4($p.$s)",                 _Funcs_32,_Preloads_32,_ConstDefault, MGF_SALTED, MGF_NO_FLAG, -24 },
 	{ "dynamic_33: md4(unicode($p))",           _Funcs_33,_Preloads_33,_ConstDefault, MGF_UTF8, MGF_NO_FLAG, 0, 27, 40 }, // if we are in utf8 mode, we triple this in the init() call
 	{ "dynamic_34: md5(md4($p))",               _Funcs_34,_Preloads_34,_ConstDefault, MGF_NO_FLAG, MGF_KEYS_INPUT|MGF_SET_INP2LEN32 },
-	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_SHA1_40_BYTE_FINISH|MGF_USERNAME_UPCASE, MGF_NO_FLAG, -23, 32 },
-	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_SHA1_40_BYTE_FINISH|MGF_USERNAME, MGF_NO_FLAG, -23, 32 },
-	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_SHA1_40_BYTE_FINISH|MGF_USERNAME, MGF_NO_FLAG, -23, 32 },
-	{ "dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SHA1_40_BYTE_FINISH|MGF_SALTED|MGF_NOTSSE2Safe, MGF_NO_FLAG },
+	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_USERNAME_UPCASE, MGF_SHA1_40_BYTE_FINISH, -23, 32 },
+	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_USERNAME, MGF_SHA1_40_BYTE_FINISH, -23, 32 },
+	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault, MGF_USERNAME, MGF_SHA1_40_BYTE_FINISH, -23, 32 },
+	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA1_40_BYTE_FINISH|MGF_NO_FLAG, -23, 40 },
+	{ "dynamic_39: sha256($s.$p)",               _Funcs_39,_Preloads_39,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_SHA256_64_BYTE_FINISH, -20, 35 },
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)

@@ -1,4 +1,19 @@
 /*
+ *
+ * This software was written by JimF jfoug AT cox dot net
+ * in 2012. No copyright is claimed, and the software is hereby
+ * placed in the public domain. In case this attempt to disclaim
+ * copyright and place the software in the public domain is deemed
+ * null and void, then the software is Copyright © 2012 JimF
+ * and it is hereby released to the general public under the following
+ * terms:
+ *
+ * This software may be modified, redistributed, and used for any
+ * purpose, in source and binary forms, with or without modification.
+ */
+
+
+/*
  *  FIPS-180-2 compliant SHA-256 implementation
  *  The SHA-256 Secure Hash Standard was published by NIST in 2002.
  *
