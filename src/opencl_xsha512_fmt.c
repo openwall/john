@@ -40,8 +40,8 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define KEYS_PER_CRYPT (32*512)
-#define ITERATIONS 128
+#define KEYS_PER_CRYPT (1024*512)
+#define ITERATIONS 1
 
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
@@ -64,7 +64,7 @@
 #define FULL_BINARY_SIZE 64
 
 
-#define PLAINTEXT_LENGTH 12	//For one iteration, maximum is 107
+#define PLAINTEXT_LENGTH 20	
 #define CIPHERTEXT_LENGTH 136
 
 typedef struct {		// notice memory align problem
@@ -99,6 +99,7 @@ static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
 static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
 uint8_t xsha512_key_changed;
+static uint8_t hash_copy_back;
 
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
@@ -124,6 +125,15 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
+}
+
+static void copy_hash_back()
+{
+    if (!hash_copy_back) {
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,outsize, ghash, 0, NULL, NULL), "Copy data back");
+        HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+        hash_copy_back = 1;
+    }
 }
 
 static void set_key(char *key, int index)
@@ -309,71 +319,48 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+    copy_hash_back();
 	return ((uint64_t *) ghash)[index] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+    copy_hash_back();
 	return ((uint64_t *) ghash)[index] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
+    copy_hash_back();
 	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
+    copy_hash_back();
 	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
+    copy_hash_back();
 	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
+    copy_hash_back();
 	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
+    copy_hash_back();
 	return ((uint64_t *) ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
 static int salt_hash(void *salt)
 {
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
 	return *(ARCH_WORD_32 *) salt & (SALT_HASH_SIZE - 1);
 }
 
@@ -403,8 +390,9 @@ static void crypt_all(int count)
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
-	/// Reset key to unchanged
+	/// Reset key to unchanged and hashes uncopy to host
 	xsha512_key_changed = 0;
+    hash_copy_back = 0;
 }
 
 static int cmp_all(void *binary, int count)
@@ -437,10 +425,8 @@ static int cmp_one(void *binary, int index)
 {
 	uint64_t *b = (uint64_t *) binary;
 	uint64_t *t = (uint64_t *) ghash;
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
-		outsize, ghash, 0, NULL, NULL), "Copy data back");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 
+    copy_hash_back();
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;

@@ -49,7 +49,7 @@ static struct fmt_tests tests[] = {
 extern void cuda_xsha512(xsha512_key * host_password,
     xsha512_salt * host_salt,
     xsha512_hash * host_hash,
-    xsha512_extend_key * host_ext_password, uint8_t use_extend);
+    xsha512_extend_key * host_ext_password, int count);
 
 extern void cuda_xsha512_init();
 extern int cuda_cmp_all(void *binary, int count);
@@ -60,7 +60,8 @@ static xsha512_extend_key g_ext_key[MAX_KEYS_PER_CRYPT];
 static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
 uint8_t xsha512_key_changed = 0;
-static uint8_t use_extend = 0;
+uint8_t use_extend = 0;
+
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
 	0xbb67ae8584caa73bLL,
@@ -282,7 +283,7 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	cuda_xsha512(gkey, &gsalt, ghash, g_ext_key, use_extend);
+	cuda_xsha512(gkey, &gsalt, ghash, g_ext_key, count);
 	xsha512_key_changed = 0;
 }
 

@@ -50,6 +50,8 @@ extern void cuda_sha512_cpy_hash(sha512_hash* host_hash);
 static sha512_key gkey[MAX_KEYS_PER_CRYPT];
 static sha512_hash ghash[MAX_KEYS_PER_CRYPT];
 uint8_t sha512_key_changed;
+static uint8_t hash_copy_back;
+
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
 	0xbb67ae8584caa73bLL,
@@ -66,6 +68,13 @@ static void init(struct fmt_main *pFmt)
 	cuda_sha512_init();
 }
 
+static void copy_hash_back()
+{
+    if (!hash_copy_back) {
+        cuda_sha512_cpy_hash(ghash);
+        hash_copy_back = 1;
+    }
+}
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos = ciphertext;
@@ -132,43 +141,43 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
@@ -192,6 +201,7 @@ static void crypt_all(int count)
 {
 	cuda_sha512(gkey, ghash);
 	sha512_key_changed = 0;
+    hash_copy_back = 0;
 }
 
 static int cmp_all(void *binary, int count)
@@ -202,7 +212,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 	uint64_t *t,*b = (uint64_t *) binary;
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	t = (uint64_t *)ghash;
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
