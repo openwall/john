@@ -11,7 +11,7 @@ extern "C" void cuda_xsha512(xsha512_key *host_password,
                          xsha512_salt *host_salt,
                          xsha512_hash* host_hash,
                          xsha512_extend_key *host_ext_password,
-                         uint8_t use_extend);
+                         int count);
 
 extern "C" void cuda_xsha512_init();
 extern "C" int cuda_cmp_all(void *binary, int count);
@@ -207,15 +207,17 @@ __device__ void xsha512(const char* password, uint8_t pass_len,
 #endif
 }
 
-__global__ void kernel_xsha512(xsha512_key *cuda_password, xsha512_hash *cuda_hash, xsha512_extend_key *cuda_ext_pass)
+__global__ void kernel_xsha512(int count, xsha512_key *cuda_password, xsha512_hash *cuda_hash, xsha512_extend_key *cuda_ext_pass)
 {
 
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
-    	xsha512((const char*)cuda_password[offset].v, 
-			cuda_password[offset].length, (uint64_t*)cuda_hash, 
-			offset, (const char*)(cuda_ext_pass[offset]));
+		if (offset < count) {
+	    	xsha512((const char*)cuda_password[offset].v, 
+				cuda_password[offset].length, (uint64_t*)cuda_hash, 
+				offset, (const char*)(cuda_ext_pass[offset]));
+		}
 	}
 }
 
@@ -242,7 +244,7 @@ void cuda_xsha512(xsha512_key *host_password,
                          xsha512_salt *host_salt,
                          xsha512_hash* host_hash,
                          xsha512_extend_key *host_ext_password,
-                         uint8_t use_extend)
+                         int count)
 {
 	if (xsha512_key_changed) {
 	    HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
@@ -252,9 +254,9 @@ void cuda_xsha512(xsha512_key *host_password,
 	}
     HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
     HANDLE_ERROR(cudaMemcpyToSymbol(cuda_use_ext, &use_extend, sizeof(uint8_t)));
-    dim3 dimGrid(BLOCKS);
+    dim3 dimGrid((count-1)/THREADS+1);
     dim3 dimBlock(THREADS);
-    kernel_xsha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash, cuda_ext_password);
+    kernel_xsha512 <<< dimGrid, dimBlock >>> (count, cuda_password, cuda_hash, cuda_ext_password);
 	cracked_hash_copy_out = 0;
 }
 
@@ -279,7 +281,7 @@ int cuda_cmp_all(void *binary, int count)
 	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
 	uint8_t result = 0;
-    dim3 dimGrid(BLOCKS);
+    dim3 dimGrid((count-1)/THREADS+1);
     dim3 dimBlock(THREADS);
 	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
 	HANDLE_ERROR(cudaMemcpy(&result, cuda_result, sizeof(uint8_t), cudaMemcpyDeviceToHost));
