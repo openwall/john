@@ -98,6 +98,15 @@
     E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 
+#ifdef __XOP__
+#define R3(W, A, B, C, D, E) do {                                                                       \
+    E   = _mm_add_epi32(E, K);                                                                          \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_cmov_si128(D, B, C), _mm_andnot_si128(D, B))); \
+    E   = _mm_add_epi32(E, W);                                                                          \
+    B   = _mm_roti_epi32(B, 30);                                                                        \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
+} while (false)
+#else
 #define R3(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
     E   = _mm_add_epi32(E, _mm_or_si128(_mm_and_si128(_mm_or_si128(B, D), C), _mm_and_si128(B, D)));    \
@@ -105,6 +114,7 @@
     B   = _mm_roti_epi32(B, 30);                                                                        \
     E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
+#endif
 
 #define _MM_TRANSPOSE4_EPI32(R0, R1, R2, R3) do {                                                       \
     __m128i T0, T1, T2, T3;                                                                             \
