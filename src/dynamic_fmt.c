@@ -716,7 +716,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (pPriv->dynamic_40_byte_sha1) {
 		cipherTextLen = 40;
 	}
-	for (i = 0; i < cipherTextLen; i++){
+	for (i = 0; i < cipherTextLen; i++) {
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
@@ -981,9 +981,34 @@ static char *split(char *ciphertext, int index)
 	if (!strncmp(ciphertext, "md5_gen(", 8)) {
 		ciphertext += 8;
 		do ++ciphertext; while (*ciphertext != ')')	;
+		++ciphertext;
 	}
 	sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
 
+	return out;
+}
+
+// This split unifies case.
+static char *split_UC(char *ciphertext, int index)
+{
+	static char out[1024];
+
+	if (!strncmp(ciphertext, "$dynamic", 8)) {
+		strcpy(out, ciphertext);
+	} else {
+		if (!strncmp(ciphertext, "md5_gen(", 8)) {
+			ciphertext += 8;
+			do ++ciphertext; while (*ciphertext != ')')	;
+			++ciphertext;
+		}
+		sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+	}
+	ciphertext = strchr(&out[8], '$')+1;
+	while (*ciphertext && *ciphertext != '$') {
+		if (*ciphertext >= 'A' && *ciphertext <= 'Z')
+			*ciphertext += 0x20; // ASCII specific, but I really do not care.
+		++ciphertext;
+	}
 	return out;
 }
 
@@ -7127,6 +7152,11 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		pFmt->methods.binary_hash[6] = NULL;
 		pFmt->methods.get_hash[6] = NULL;
 
+	}
+	if ( (Setup->flags & (MGF_INPBASE64|MGF_INPBASE64_4x6|MGF_INPBASE64a)) == 0)  {
+		pFmt->params.flags |= FMT_SPLIT_UNIFIES_CASE;
+		if (pFmt->methods.split == split)
+			pFmt->methods.split = split_UC;
 	}
 	if (Setup->flags & MGF_UTF8)
 		pFmt->params.flags |= FMT_UTF8;
