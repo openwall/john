@@ -97,6 +97,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
+		if (strcmp(ciphertext,
+		    format->methods.source(ciphertext, binary)))
+			return "source";
+
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
 			return "salt_hash";
@@ -215,6 +219,11 @@ void *fmt_default_binary(char *ciphertext)
 void *fmt_default_salt(char *ciphertext)
 {
 	return ciphertext;
+}
+
+char *fmt_default_source(char *source, void *binary)
+{
+	return source;
 }
 
 int fmt_default_binary_hash(void *binary)

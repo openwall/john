@@ -293,6 +293,7 @@ struct fmt_main fmt_BF = {
 		fmt_default_split,
 		BF_std_get_binary,
 		BF_std_get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

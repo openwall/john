@@ -435,6 +435,7 @@ struct fmt_main fmt_crypt = {
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

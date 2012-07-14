@@ -248,6 +248,7 @@ struct fmt_main fmt_MD5 = {
 		fmt_default_split,
 		(void *(*)(char *))MD5_std_get_binary,
 		(void *(*)(char *))MD5_std_get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

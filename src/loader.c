@@ -514,9 +514,10 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			int collisions = 0;
 			if ((current_pw = db->password_hash[pw_hash]))
 			do {
-				if (!memcmp(current_pw->binary, binary,
+				if (!memcmp(binary, current_pw->binary,
 				    format->params.binary_size) &&
-				    !strcmp(current_pw->source, piece)) {
+				    !strcmp(piece, format->methods.source(
+				    current_pw->source, current_pw->binary))) {
 					db->options->flags |= DB_NODUP;
 					break;
 				}
@@ -588,10 +589,18 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		db->password_hash[pw_hash] = current_pw;
 		current_pw->next_hash = last_pw;
 
-		current_pw->binary = alloc_copy_autoalign(
-			format->params.binary_size, binary);
+/* If we're not going to use the source field for its usual purpose, see if we
+ * can pack the binary value in it. */
+		if (format->methods.source != fmt_default_source &&
+		    sizeof(current_pw->source) >= format->params.binary_size)
+			current_pw->binary = memcpy(&current_pw->source,
+				binary, format->params.binary_size);
+		else
+			current_pw->binary = alloc_copy_autoalign(
+				format->params.binary_size, binary);
 
-		current_pw->source = str_alloc_copy(piece);
+		if (format->methods.source == fmt_default_source)
+			current_pw->source = str_alloc_copy(piece);
 
 		if (db->options->flags & DB_WORDS) {
 			if (!words)
@@ -639,10 +648,14 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 
 	if ((current = db->password_hash[hash]))
 	do {
-		if (current->binary && !memcmp(current->binary, binary,
-		    format->params.binary_size) &&
-		    !strcmp(current->source, ciphertext))
-			current->binary = NULL;
+		if (!current->binary) /* already marked for removal */
+			continue;
+		if (memcmp(binary, current->binary, format->params.binary_size))
+			continue;
+		if (strcmp(ciphertext,
+		    format->methods.source(current->source, current->binary)))
+			continue;
+		current->binary = NULL; /* mark for removal */
 	} while ((current = current->next_hash));
 }
 
