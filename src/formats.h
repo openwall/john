@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
  */
 
 /*
@@ -37,6 +37,7 @@
  */
 struct fmt_tests {
 	char *ciphertext, *plaintext;
+	char *fields[10];
 };
 
 /*
@@ -81,22 +82,39 @@ struct fmt_params {
 };
 
 /*
+ * fmt_main is declared for real further down this file, but we refer to it in
+ * function prototypes in fmt_methods.
+ */
+struct fmt_main;
+
+/*
  * Functions to implement a cracking algorithm.
  *
  * When passing binary ciphertexts or salts in internal representation, these
- * should be word aligned; the functions may assume such alignment.
+ * should be ARCH_WORD aligned if their size is that of ARCH_WORD or larger,
+ * 4-byte aligned if they are smaller than ARCH_WORD but are at least 4 bytes,
+ * or not necessarily aligned otherwise.  The functions may assume such
+ * alignment.
  */
 struct fmt_methods {
-/* Initializes the algorithm's internal structures; valid() and split() are
- * the only methods that are allowed to be called before a call to init().
- * Note that initializing an algorithm might de-initialize some others (if
- * a shared underlying resource is used). */
-	void (*init)(void);
+/* Initializes the algorithm's internal structures.
+ * prepare(), valid(), and split() are the only methods that are allowed to be
+ * called before a call to init().
+ * Note that initializing an algorithm might de-initialize some others (if a
+ * shared underlying resource is used). */
+	void (*init)(struct fmt_main *self);
 
-/* Checks if an ASCII ciphertext is valid for this format. Returns zero for
- * invalid ciphertexts, or a number of parts the ciphertext should be split
+/* Extracts the ciphertext string out of the input file fields.  Normally, this
+ * will simply return field[1], but in some special cases it may use another
+ * field (e.g., when the hash type is commonly used with PWDUMP rather than
+ * /etc/passwd format files) or/and it may also extract and include the
+ * username, etc. */
+	char *(*prepare)(char *fields[10], struct fmt_main *self);
+
+/* Checks if an ASCII ciphertext is valid for this format.  Returns zero for
+ * invalid ciphertexts, or the number of parts the ciphertext should be split
  * into (up to 9, will usually be 1). */
-	int (*valid)(char *ciphertext);
+	int (*valid)(char *ciphertext, struct fmt_main *self);
 
 /* Splits a ciphertext into several pieces and returns the piece with given
  * index, starting from 0 (will usually return the ciphertext unchanged).
@@ -104,7 +122,7 @@ struct fmt_methods {
  * irrespective of the case of characters (upper/lower/mixed) used in their
  * encoding, split() must unify the case (e.g., convert to all-lowercase)
  * and FMT_SPLIT_UNIFIES_CASE must be set. */
-	char *(*split)(char *ciphertext, int index);
+	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 
 /* Converts an ASCII ciphertext to binary, possibly using the salt */
 	void *(*binary)(char *ciphertext);
@@ -198,9 +216,11 @@ extern char *fmt_self_test(struct fmt_main *format);
 /*
  * Default methods.
  */
-extern void fmt_default_init(void);
-extern int fmt_default_valid(char *ciphertext);
-extern char *fmt_default_split(char *ciphertext, int index);
+extern void fmt_default_init(struct fmt_main *self);
+extern char *fmt_default_prepare(char *fields[10], struct fmt_main *self);
+extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
+extern char *fmt_default_split(char *ciphertext, int index,
+    struct fmt_main *self);
 extern void *fmt_default_binary(char *ciphertext);
 extern void *fmt_default_salt(char *ciphertext);
 extern int fmt_default_binary_hash(void *binary);

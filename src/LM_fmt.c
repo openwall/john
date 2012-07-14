@@ -48,7 +48,7 @@ static struct fmt_tests tests[] = {
 struct fmt_main fmt_LM;
 #endif
 
-static void init(void)
+static void init(struct fmt_main *self)
 {
 	DES_bs_init(1, DES_bs_cpt);
 #if DES_bs_mt
@@ -57,7 +57,14 @@ static void init(void)
 #endif
 }
 
-static int valid(char *ciphertext)
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	if (fields[2] && strlen(fields[2]) == 32)
+		return fields[2];
+	return fields[1];
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	char lower[CIPHERTEXT_LENGTH - 16 + 1];
@@ -80,7 +87,7 @@ static int valid(char *ciphertext)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[21];
 
@@ -194,6 +201,7 @@ struct fmt_main fmt_LM = {
 		tests
 	}, {
 		init,
+		prepare,
 		valid,
 		split,
 		get_binary,

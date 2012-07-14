@@ -38,7 +38,7 @@ static struct fmt_tests tests[] = {
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, c;
 
@@ -272,6 +272,7 @@ struct fmt_main fmt_dummy = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,

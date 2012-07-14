@@ -74,7 +74,7 @@ static struct {
 
 struct fmt_main fmt_BSDI;
 
-static void init(void)
+static void init(struct fmt_main *self)
 {
 	DES_std_init();
 
@@ -96,7 +96,7 @@ static void init(void)
 	    MEM_ALIGN_CACHE);
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -400,6 +400,7 @@ struct fmt_main fmt_BSDI = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		(void *(*)(char *))

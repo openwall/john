@@ -90,7 +90,7 @@ static union {
 } AFS_long_KS;
 static DES_binary AFS_long_IV_binary;
 
-static void init(void)
+static void init(struct fmt_main *self)
 {
 	ARCH_WORD_32 block[2];
 #if !ARCH_LITTLE_ENDIAN
@@ -113,7 +113,7 @@ static void init(void)
 	memcpy(AFS_long_IV_binary, DES_IV, sizeof(DES_binary));
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	int index, count;
@@ -445,6 +445,7 @@ struct fmt_main fmt_AFS = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,

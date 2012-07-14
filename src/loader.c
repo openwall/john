@@ -217,11 +217,11 @@ static int ldr_split_line(char **login, char **ciphertext,
 	struct db_options *options, char *line)
 {
 	struct fmt_main *alt;
-	char *uid = NULL, *gid = NULL, *shell = NULL;
-	int retval;
+	char *fields[10], *uid, *gid, *shell;
+	int i, retval;
 
-	*login = ldr_get_field(&line);
-	*ciphertext = ldr_get_field(&line);
+	fields[0] = *login = ldr_get_field(&line);
+	fields[1] = *ciphertext = ldr_get_field(&line);
 
 /* Check for NIS stuff */
 	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
@@ -255,32 +255,51 @@ static int ldr_split_line(char **login, char **ciphertext,
 		*login = no_username;
 	}
 
-	if (source) strcpy(source, line ? line : "");
-
-	uid = ldr_get_field(&line);
-
-	if (strlen(uid) == 32) {
-		char *tmp = *ciphertext;
-		*ciphertext = uid;
-		uid = tmp;
-
-		if (!strncmp(*ciphertext, "NO PASSWORD", 11))
-			*ciphertext = "";
-
-		if (source) sprintf(source, "%s:%s", uid, line);
-	}
+	if (source)
+		strcpy(source, line ? line : "");
 
 	if ((options->flags & DB_WORDS) || options->shells->head) {
-		gid = ldr_get_field(&line);
-		do {
-			*gecos = ldr_get_field(&line);
-			*home = ldr_get_field(&line);
-			shell = ldr_get_field(&line);
-		} while (!**gecos &&
-			!strcmp(*home, "0") && !strcmp(shell, "0"));
-	} else
-	if (options->groups->head) {
-		gid = ldr_get_field(&line);
+		for (i = 2; i < 10; i++)
+			fields[i] = ldr_get_field(&line);
+	} else {
+		for (i = 2; i < 4; i++)
+			fields[i] = ldr_get_field(&line);
+		for (; i < 10; i++)
+			fields[i] = "/";
+	}
+
+	/* /etc/passwd */
+	uid = fields[2];
+	gid = fields[3];
+	*gecos = fields[4];
+	*home = fields[5];
+	shell = fields[6];
+
+	if (fields[5][0] != '/' &&
+	    ((!strcmp(fields[5], "0") && !strcmp(fields[6], "0")) ||
+	    fields[8][0] == '/' ||
+	    fields[9][0] == '/')) {
+		/* /etc/master.passwd */
+		*gecos = fields[7];
+		*home = fields[8];
+		shell = fields[9];
+	} else if (fields[3] - fields[2] == 32 + 1) {
+		/* PWDUMP */
+		uid = fields[1];
+		*ciphertext = fields[2];
+		if (!strncmp(*ciphertext, "NO PASSWORD", 11))
+			*ciphertext = "";
+		gid = shell = "";
+		*gecos = fields[4];
+		*home = fields[5];
+
+		/* Re-introduce the previously removed uid field */
+		if (source) {
+			int shift = strlen(uid);
+			memmove(source + shift, source, strlen(source) + 1);
+			memcpy(source, uid, shift);
+			source[shift] = ':';
+		}
 	}
 
 	if (ldr_check_list(options->users, *login, uid)) return 0;
@@ -288,48 +307,60 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (ldr_check_shells(options->shells, shell)) return 0;
 
 	if (*format) {
-		int valid = (*format)->methods.valid(*ciphertext);
-		if (!valid) {
-			alt = fmt_list;
-			do {
-				if (alt == *format)
-					continue;
-				if (alt->params.flags & FMT_WARNED)
-					continue;
-#ifdef HAVE_CRYPT
-				if (alt == &fmt_crypt &&
-#ifdef __sun
-				    strncmp(*ciphertext, "$md5$", 5) &&
-				    strncmp(*ciphertext, "$md5,", 5) &&
-#endif
-				    strncmp(*ciphertext, "$5$", 3) &&
-				    strncmp(*ciphertext, "$6$", 3))
-					continue;
-#endif
-				if (alt->methods.valid(*ciphertext)) {
-					alt->params.flags |= FMT_WARNED;
-					fprintf(stderr,
-					    "Warning: only loading hashes "
-					    "of type \"%s\", but also saw "
-					    "type \"%s\"\n"
-					    "Use the "
-					    "\"--format=%s\" option to force "
-					    "loading hashes of that type "
-					    "instead\n",
-					    (*format)->params.label,
-					    alt->params.label,
-					    alt->params.label);
-					break;
-				}
-			} while ((alt = alt->next));
+		char *prepared;
+		int valid;
+
+		prepared = (*format)->methods.prepare(fields, *format);
+		if (prepared)
+			valid = (*format)->methods.valid(prepared, *format);
+		else
+			valid = 0;
+
+		if (valid) {
+			*ciphertext = prepared;
+			return valid;
 		}
-		return valid;
+
+		alt = fmt_list;
+		do {
+			if (alt == *format)
+				continue;
+			if (alt->params.flags & FMT_WARNED)
+				continue;
+#ifdef HAVE_CRYPT
+			if (alt == &fmt_crypt &&
+#ifdef __sun
+			    strncmp(*ciphertext, "$md5$", 5) &&
+			    strncmp(*ciphertext, "$md5,", 5) &&
+#endif
+			    strncmp(*ciphertext, "$5$", 3) &&
+			    strncmp(*ciphertext, "$6$", 3))
+				continue;
+#endif
+			prepared = alt->methods.prepare(fields, alt);
+			if (alt->methods.valid(prepared, alt)) {
+				alt->params.flags |= FMT_WARNED;
+				fprintf(stderr,
+				    "Warning: only loading hashes of type "
+				    "\"%s\", but also saw type \"%s\"\n"
+				    "Use the \"--format=%s\" option to force "
+				    "loading hashes of that type instead\n",
+				    (*format)->params.label,
+				    alt->params.label,
+				    alt->params.label);
+				break;
+			}
+		} while ((alt = alt->next));
+
+		return 0;
 	}
 
 	retval = -1;
 	if ((alt = fmt_list))
 	do {
+		char *prepared;
 		int valid;
+
 #ifdef HAVE_CRYPT
 /*
  * Only probe for support by the current system's crypt(3) if this is forced
@@ -347,11 +378,18 @@ static int ldr_split_line(char **login, char **ciphertext,
 		    strncmp(*ciphertext, "$6$", 3))
 			continue;
 #endif
-		if (!(valid = alt->methods.valid(*ciphertext)))
+
+		prepared = alt->methods.prepare(fields, alt);
+		if (!prepared)
 			continue;
+		valid = alt->methods.valid(prepared, alt);
+		if (!valid)
+			continue;
+
 		if (retval < 0) {
-			fmt_init(*format = alt);
 			retval = valid;
+			*ciphertext = prepared;
+			fmt_init(*format = alt);
 #ifdef LDR_WARN_AMBIGUOUS
 			if (!source) /* not --show */
 				continue;
@@ -467,7 +505,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		ldr_init_password_hash(db);
 
 	for (index = 0; index < count; index++) {
-		piece = format->methods.split(ciphertext, index);
+		piece = format->methods.split(ciphertext, index, format);
 
 		binary = format->methods.binary(piece);
 		pw_hash = db->password_hash_func(binary);
@@ -593,9 +631,9 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line);
-	if (format->methods.valid(ciphertext) != 1) return;
+	if (format->methods.valid(ciphertext, format) != 1) return;
 
-	ciphertext = format->methods.split(ciphertext, 0);
+	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
@@ -856,7 +894,7 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
 		if (!fmt_list->next &&
-		    !fmt_list->methods.valid(ciphertext))
+		    !fmt_list->methods.valid(ciphertext, fmt_list))
 			return;
 
 		pos = line;
@@ -898,7 +936,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	int show;
 	char source[LINE_BUFFER_SIZE];
 	struct fmt_main *format;
-	char *(*split)(char *ciphertext, int index);
+	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 	int index, count, unify;
 	char *login, *ciphertext, *gecos, *home;
 	char *piece;
@@ -933,7 +971,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	} else
 	for (found = pass = 0; pass == 0 || (pass == 1 && found); pass++)
 	for (index = 0; index < count; index++) {
-		piece = split(ciphertext, index);
+		piece = split(ciphertext, index, format);
 		if (unify)
 			piece = strcpy(mem_alloc(strlen(piece) + 1), piece);
 
@@ -941,15 +979,16 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 		if ((current = db->cracked_hash[hash]))
 		do {
-			if (!strcmp(current->ciphertext, piece))
+			char *pot = current->ciphertext;
+			if (!strcmp(pot, piece))
 				break;
 /* This extra check, along with ldr_cracked_hash() being case-insensitive,
  * is only needed for matching some pot file records produced by older
  * versions of John and contributed patches where split() didn't unify the
  * case of hex-encoded hashes. */
 			if (unify &&
-			    format->methods.valid(current->ciphertext) == 1 &&
-			    !strcmp(split(current->ciphertext, 0), piece))
+			    format->methods.valid(pot, format) == 1 &&
+			    !strcmp(split(pot, 0, format), piece))
 				break;
 		} while ((current = current->next));
 
