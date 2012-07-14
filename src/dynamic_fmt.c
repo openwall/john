@@ -8395,6 +8395,11 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		if (pFmt->methods.split == split)
 			pFmt->methods.split = split_UC;
 	}
+	if ( (Setup->flags & (MGF_INPBASE64|MGF_INPBASE64_4x6|MGF_INPBASE64a)) == 0)  {
+		pFmt->params.flags |= FMT_SPLIT_UNIFIES_CASE;
+		if (pFmt->methods.split == split)
+			pFmt->methods.split = split_UC;
+	}
 	if (Setup->flags & MGF_UTF8)
 		pFmt->params.flags |= FMT_UTF8;
 	if (Setup->flags & MGF_INPBASE64a) {
