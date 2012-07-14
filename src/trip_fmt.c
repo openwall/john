@@ -84,7 +84,7 @@ static unsigned char salt_map[0x100];
 
 struct fmt_main fmt_trip;
 
-static void init(void)
+static void init(struct fmt_main *self)
 {
 #if !DES_BS
 	char fake_crypt[14];
@@ -147,7 +147,7 @@ static void init(void)
 	}
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -587,6 +587,7 @@ struct fmt_main fmt_trip = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,

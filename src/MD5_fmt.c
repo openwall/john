@@ -46,7 +46,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 struct fmt_main fmt_MD5;
 
-static void init(void)
+static void init(struct fmt_main *self)
 {
 	MD5_std_init();
 
@@ -60,7 +60,7 @@ static void init(void)
 	    MEM_ALIGN_CACHE);
 }
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos, *start;
 
@@ -243,6 +243,7 @@ struct fmt_main fmt_MD5 = {
 		tests
 	}, {
 		init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		(void *(*)(char *))MD5_std_get_binary,

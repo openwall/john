@@ -24,7 +24,7 @@ void fmt_register(struct fmt_main *format)
 void fmt_init(struct fmt_main *format)
 {
 	if (!format->private.initialized) {
-		format->methods.init();
+		format->methods.init(format);
 		format->private.initialized = 1;
 	}
 }
@@ -54,7 +54,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
 
-	if (format->methods.valid("*")) return "valid";
+	if (format->methods.valid("*", format))
+		return "valid";
 
 	fmt_init(format);
 
@@ -67,9 +68,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		if (format->methods.valid(current->ciphertext) != 1)
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		ciphertext = format->methods.prepare(current->fields, format);
+		if (!ciphertext || strlen(ciphertext) < 7)
+			return "prepare";
+		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
-		ciphertext = format->methods.split(current->ciphertext, 0);
+		ciphertext = format->methods.split(ciphertext, 0, format);
 		plaintext = current->plaintext;
 
 /*
@@ -182,16 +188,21 @@ char *fmt_self_test(struct fmt_main *format)
 	return retval;
 }
 
-void fmt_default_init(void)
+void fmt_default_init(struct fmt_main *self)
 {
 }
 
-int fmt_default_valid(char *ciphertext)
+char *fmt_default_prepare(char *fields[10], struct fmt_main *self)
+{
+	return fields[1];
+}
+
+int fmt_default_valid(char *ciphertext, struct fmt_main *self)
 {
 	return 0;
 }
 
-char *fmt_default_split(char *ciphertext, int index)
+char *fmt_default_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return ciphertext;
 }

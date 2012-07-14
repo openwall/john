@@ -62,7 +62,7 @@ static char crypt_out[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
 static struct crypt_data *crypt_data[MAX_THREADS];
 #endif
 
-static int valid(char *ciphertext)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int length, count_base64, id, pw_length;
 	char pw[PLAINTEXT_LENGTH + 1], *new_ciphertext;
@@ -430,6 +430,7 @@ struct fmt_main fmt_crypt = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
