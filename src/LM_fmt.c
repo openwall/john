@@ -38,7 +38,7 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			sizeof(ARCH_WORD_32)
+#define BINARY_SIZE			(sizeof(ARCH_WORD_32) * 2)
 #define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
@@ -113,9 +113,14 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	return DES_bs_get_binary_LM(ciphertext + 4);
+}
+
+static char *source(char *source, void *binary)
+{
+	return split(DES_bs_get_source_LM(binary), 0, NULL);
 }
 
 static int binary_hash_0(void *binary)
@@ -155,12 +160,12 @@ static int binary_hash_6(void *binary)
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
+	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 64, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return DES_bs_cmp_one(get_binary(source), 64, index);
+	return 1;
 }
 
 static char *get_key(int index)
@@ -204,9 +209,9 @@ struct fmt_main fmt_LM = {
 		prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,
