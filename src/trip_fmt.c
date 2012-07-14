@@ -592,6 +592,7 @@ struct fmt_main fmt_trip = {
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

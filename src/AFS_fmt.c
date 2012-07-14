@@ -450,6 +450,7 @@ struct fmt_main fmt_AFS = {
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -373,6 +373,7 @@ struct fmt_main fmt_DES = {
 			DES_std_get_binary,
 #endif
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

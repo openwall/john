@@ -178,7 +178,8 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	key = crk_methods.get_key(index);
 
 	log_guess(crk_db->options->flags & DB_LOGIN ? pw->login : "?",
-		dupe ? NULL : pw->source, key);
+	    dupe ? NULL :
+	    crk_methods.source(pw->source, pw->binary), key);
 
 	crk_db->guess_count++;
 	status.guess_count++;
@@ -249,7 +250,8 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_all(pw->binary, crk_key_index))
 			for (index = 0; index < crk_key_index; index++)
 			if (crk_methods.cmp_one(pw->binary, index))
-			if (crk_methods.cmp_exact(pw->source, index)) {
+			if (crk_methods.cmp_exact(crk_methods.source(
+			    pw->source, pw->binary), index)) {
 				if (crk_process_guess(salt, pw, index))
 					return 1;
 				else
@@ -264,7 +266,8 @@ static int crk_password_loop(struct db_salt *salt)
 			pw = salt->hash[hash >> PASSWORD_HASH_SHR];
 			do {
 				if (crk_methods.cmp_one(pw->binary, index))
-				if (crk_methods.cmp_exact(pw->source, index))
+				if (crk_methods.cmp_exact(crk_methods.source(
+				    pw->source, pw->binary), index))
 				if (crk_process_guess(salt, pw, index))
 					return 1;
 			} while ((pw = pw->next_hash));

@@ -130,6 +130,10 @@ struct fmt_methods {
 /* Converts an ASCII salt to its internal representation */
 	void *(*salt)(char *ciphertext);
 
+/* Reconstructs the ASCII ciphertext from its binary (saltless only).
+ * Alternatively, in the simplest case simply returns "source" as-is. */
+	char *(*source)(char *source, void *binary);
+
 /* These functions calculate a hash out of a binary ciphertext. To be used
  * for hash table initialization. One of them should be selected depending
  * on the hash table size. */
@@ -223,6 +227,7 @@ extern char *fmt_default_split(char *ciphertext, int index,
     struct fmt_main *self);
 extern void *fmt_default_binary(char *ciphertext);
 extern void *fmt_default_salt(char *ciphertext);
+extern char *fmt_default_source(char *source, void *binary);
 extern int fmt_default_binary_hash(void *binary);
 extern int fmt_default_salt_hash(void *salt);
 extern void fmt_default_set_salt(void *salt);
