@@ -160,6 +160,11 @@ extern ARCH_WORD_32 *DES_bs_get_binary(char *ciphertext);
 extern ARCH_WORD_32 *DES_bs_get_binary_LM(char *ciphertext);
 
 /*
+ * The reverse of DES_bs_get_binary_LM().
+ */
+extern char *DES_bs_get_source_LM(ARCH_WORD_32 *raw);
+
+/*
  * Calculate a hash for a DES_bs_crypt*() output.
  *
  * "t"-suffixed versions of these functions are for tripcodes (they skip
