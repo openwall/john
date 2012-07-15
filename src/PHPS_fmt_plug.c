@@ -67,8 +67,8 @@ static struct fmt_tests phps_tests[] = {
 extern struct options_main options;
 
 static char Conv_Buf[80];
-static struct fmt_main *pFmt_Dynamic_6;
-static void phps_init(struct fmt_main *pFmt);
+static struct fmt_main *self_Dynamic_6;
+static void phps_init(struct fmt_main *self);
 static void get_ptr();
 
 /* this function converts a 'native' phps signature string into a $dynamic_6$ syntax string */
@@ -77,7 +77,7 @@ static char *Convert(char *Buf, char *ciphertext)
 	unsigned long val, i;
 	char *cp;
 
-	if (text_in_dynamic_format_already(pFmt_Dynamic_6, ciphertext))
+	if (text_in_dynamic_format_already(self_Dynamic_6, ciphertext))
 		return ciphertext;
 
 	cp = strchr(&ciphertext[7], '$');
@@ -98,12 +98,12 @@ static char *Convert(char *Buf, char *ciphertext)
 	return Buf;
 }
 
-static char *our_split(char *ciphertext, int index)
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return Convert(Conv_Buf, ciphertext);
 }
 
-static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	int i = strlen(split_fields[1]);
 	get_ptr();
@@ -118,10 +118,10 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
 		sprintf(Ex, "$PHPS$202020$%s", split_fields[1]);
 		return Ex;
 	}
-	return pFmt_Dynamic_6->methods.prepare(split_fields, pFmt);
+	return self_Dynamic_6->methods.prepare(split_fields, self);
 }
 
-static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
+static int phps_valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	if (!ciphertext ) // || strlen(ciphertext) < CIPHERTEXT_LENGTH)
@@ -140,7 +140,7 @@ static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 
 	if (i != CIPHERTEXT_LENGTH) {
-		return pFmt_Dynamic_6->methods.valid(ciphertext, pFmt_Dynamic_6);
+		return self_Dynamic_6->methods.valid(ciphertext, self_Dynamic_6);
 	}
 
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
@@ -157,18 +157,18 @@ static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(ciphertext[i+6+1+SALT_SIZE*2])] == 0x7F)
 			return 0;
 
-	return pFmt_Dynamic_6->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_6);
+	return self_Dynamic_6->methods.valid(Convert(Conv_Buf, ciphertext), self_Dynamic_6);
 }
 
 
 static void * our_salt(char *ciphertext)
 {
 	get_ptr();
-	return pFmt_Dynamic_6->methods.salt(Convert(Conv_Buf, ciphertext));
+	return self_Dynamic_6->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return pFmt_Dynamic_6->methods.binary(Convert(Conv_Buf, ciphertext));
+	return self_Dynamic_6->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_PHPS =
@@ -188,22 +188,22 @@ struct fmt_main fmt_PHPS =
 	}
 };
 
-static void phps_init(struct fmt_main *pFmt)
+static void phps_init(struct fmt_main *self)
 {
-	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 1);
+	if (self->private.initialized == 0) {
+		self_Dynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 1);
 		fmt_PHPS.methods.salt   = our_salt;
 		fmt_PHPS.methods.binary = our_binary;
 		fmt_PHPS.methods.split = our_split;
 		fmt_PHPS.methods.prepare = our_prepare;
-		fmt_PHPS.params.algorithm_name = pFmt_Dynamic_6->params.algorithm_name;
-		pFmt->private.initialized = 1;
+		fmt_PHPS.params.algorithm_name = self_Dynamic_6->params.algorithm_name;
+		self->private.initialized = 1;
 	}
 }
 
 static void get_ptr() {
-	if (!pFmt_Dynamic_6) {
-		pFmt_Dynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 0);
+	if (!self_Dynamic_6) {
+		self_Dynamic_6 = dynamic_THIN_FORMAT_LINK(&fmt_PHPS, Convert(Conv_Buf, phps_tests[0].ciphertext), "phps", 0);
 		fmt_PHPS.methods.salt   = our_salt;
 		fmt_PHPS.methods.binary = our_binary;
 		fmt_PHPS.methods.split = our_split;

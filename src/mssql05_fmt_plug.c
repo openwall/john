@@ -85,7 +85,7 @@ static int key_length;
 
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -105,7 +105,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 // [other] mssql format should be registered before this one. If there are
 // old-style hashes we should crack them first using that format, then run
 // mssql05 with -ru:nt just like LM -> NT format
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH)
 		return split_fields[1];
@@ -114,7 +114,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		char cp[CIPHERTEXT_LENGTH + 1];
 		strnzcpy(cp, split_fields[1], CIPHERTEXT_LENGTH + 1);
 
-		if (valid(cp,pFmt)) {
+		if (valid(cp,self)) {
 			char *cp2 = str_alloc_copy(cp);
 			return cp2;
 		}
@@ -146,7 +146,7 @@ static void * get_salt(char * ciphertext)
 static void set_key_CP(char *_key, int index);
 static void set_key_utf8(char *_key, int index);
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	memset(saved_key, 0, sizeof(saved_key));
@@ -154,14 +154,14 @@ static void init(struct fmt_main *pFmt)
 	saved_key = mem_calloc_tiny(PLAINTEXT_LENGTH*2 + 1 + SALT_SIZE, MEM_ALIGN_WORD);
 #endif
 	if (options.utf8) {
-		pFmt->methods.set_key = set_key_utf8;
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+		self->methods.set_key = set_key_utf8;
+		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 	}
 	else if (options.iso8859_1 || options.ascii) {
 		; // do nothing
 	}
 	else {
-		pFmt->methods.set_key = set_key_CP;
+		self->methods.set_key = set_key_CP;
 	}
 }
 
@@ -513,6 +513,7 @@ struct fmt_main fmt_mssql05 = {
 		fmt_default_split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -539,7 +540,6 @@ struct fmt_main fmt_mssql05 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -44,7 +44,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -63,7 +63,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -160,6 +160,7 @@ struct fmt_main fmt_rawSHA0 = {
 		split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -186,7 +187,6 @@ struct fmt_main fmt_rawSHA0 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

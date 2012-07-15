@@ -90,14 +90,14 @@ static union {
 } AFS_long_KS;
 static DES_binary AFS_long_IV_binary;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	ARCH_WORD_32 block[2];
 #if !ARCH_LITTLE_ENDIAN
 	ARCH_WORD_32 tmp;
 #endif
 
-	DES_std_init(pFmt);
+	DES_std_init();
 
 	AFS_salt_binary = DES_std_get_salt(AFS_SALT);
 
@@ -113,7 +113,7 @@ static void init(struct fmt_main *pFmt)
 	memcpy(AFS_long_IV_binary, DES_IV, sizeof(DES_binary));
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	int index, count;
@@ -450,6 +450,7 @@ struct fmt_main fmt_AFS = {
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -476,7 +477,6 @@ struct fmt_main fmt_AFS = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

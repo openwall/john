@@ -125,7 +125,7 @@ static struct saltstruct {
 } *cur_salt;
 #define SALT_SIZE			sizeof(struct saltstruct)
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	static int warned = 0;
 #ifdef MMX_COEF
@@ -140,26 +140,26 @@ static void init(struct fmt_main *pFmt)
 
 #if defined (_OPENMP) && (defined(SHA1_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
+	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
+	self->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
 #endif
 
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	keyLen = mem_calloc_tiny(sizeof(*keyLen) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	keyLen = mem_calloc_tiny(sizeof(*keyLen) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #ifdef MMX_COEF
-	clean_pos = mem_calloc_tiny(sizeof(*clean_pos) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	clean_pos = mem_calloc_tiny(sizeof(*clean_pos) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	for(i = 0; i < LIMB; i++)
-		saved_key[i] = mem_calloc_tiny(SHA_BUF_SIZ*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	interm_crypt = mem_calloc_tiny(20 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(20 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		saved_key[i] = mem_calloc_tiny(SHA_BUF_SIZ*4 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	interm_crypt = mem_calloc_tiny(20 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(20 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = saved_plain;
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	char *p;
@@ -598,7 +598,7 @@ static void *binary(char *ciphertext)
 	return (void*)realcipher;
 }
 
-static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	struct saltstruct *salt_s = (struct saltstruct*)(pw->source);
 	unsigned char realcipher[BINARY_SIZE];
@@ -653,7 +653,7 @@ static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0x7
 #endif
 
 // Here, we remove any salt padding, trim it to 36 bytes and upper-case it
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 	char *p;
@@ -712,6 +712,7 @@ struct fmt_main fmt_sapG = {
 		split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -738,7 +739,6 @@ struct fmt_main fmt_sapG = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };

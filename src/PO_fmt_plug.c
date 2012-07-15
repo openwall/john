@@ -68,11 +68,11 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static int saved_key_len;
 static char po_buf[SALT_SIZE * 2 + 2 + PLAINTEXT_LENGTH + 128 /* MD5 scratch space */];
 
-static void po_init(struct fmt_main *pFmt) {
+static void po_init(struct fmt_main *self) {
 	/* Do nothing */
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	if (strlen(ciphertext) == 64 &&
 	    strspn(ciphertext, "0123456789abcdef") == 64) {
@@ -226,6 +226,7 @@ struct fmt_main fmt_PO = {
 		fmt_default_split,
 		get_binary,
 		(void *(*)(char *))get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -248,8 +249,7 @@ struct fmt_main fmt_PO = {
 		},
 		cmp_all,
 		cmp_all,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };
 

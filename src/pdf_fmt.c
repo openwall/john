@@ -60,12 +60,12 @@ static struct fmt_tests pdf_tests[] = {
 	{NULL}
 };
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$pdf$", 5);
 }
@@ -195,6 +195,7 @@ struct fmt_main fmt_pdf = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
@@ -209,7 +210,6 @@ struct fmt_main fmt_pdf = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

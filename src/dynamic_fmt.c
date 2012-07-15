@@ -919,7 +919,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return cpBuilding;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[1024];
 
@@ -937,7 +937,7 @@ static char *split(char *ciphertext, int index)
 }
 
 // This split unifies case.
-static char *split_UC(char *ciphertext, int index)
+static char *split_UC(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[1024];
 
@@ -2133,7 +2133,7 @@ static void *binary(char *_ciphertext)
 }
 
 // NOTE NOTE NOTE, we have currently ONLY implemented a non-salted function!!!
-static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2149,7 +2149,7 @@ static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	return Buf;
 }
 
-static char *get_source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2164,7 +2164,7 @@ static char *get_source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-static char *get_source_sha224(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha224(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2179,7 +2179,7 @@ static char *get_source_sha224(struct db_password *pw, char Buf[LINE_BUFFER_SIZE
 	*cpo = 0;
 	return Buf;
 }
-static char *get_source_sha256(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha256(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2194,7 +2194,7 @@ static char *get_source_sha256(struct db_password *pw, char Buf[LINE_BUFFER_SIZE
 	*cpo = 0;
 	return Buf;
 }
-static char *get_source_sha384(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha384(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2209,7 +2209,7 @@ static char *get_source_sha384(struct db_password *pw, char Buf[LINE_BUFFER_SIZE
 	*cpo = 0;
 	return Buf;
 }
-static char *get_source_sha512(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha512(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2224,7 +2224,7 @@ static char *get_source_sha512(struct db_password *pw, char Buf[LINE_BUFFER_SIZE
 	*cpo = 0;
 	return Buf;
 }
-static char *get_source_gost(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_gost(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	char *cpo = Buf;
 	unsigned char *cpi;
@@ -2383,6 +2383,7 @@ struct fmt_main fmt_Dynamic =
 		split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -2409,8 +2410,7 @@ struct fmt_main fmt_Dynamic =
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };
 
@@ -8425,7 +8425,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	pFmt->methods.binary = binary;
 	pFmt->methods.cmp_all=cmp_all;
 	pFmt->methods.cmp_one=cmp_one;
-	pFmt->methods.get_source=fmt_default_get_source;
+	pFmt->methods.source=fmt_default_source;
 	pFmt->methods.salt = salt;
 	pFmt->methods.set_salt = set_salt;
 	pFmt->methods.salt_hash = salt_hash;
@@ -8584,13 +8584,15 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
 
-	if (Setup->startFlags&MGF_GET_SOURCE) pFmt->methods.get_source = get_source;
-	if (Setup->startFlags&MGF_GET_SOURCE_SHA) pFmt->methods.get_source = get_source_sha;
-	if (Setup->startFlags&MGF_GET_SOURCE_SHA224) pFmt->methods.get_source = get_source_sha224;
-	if (Setup->startFlags&MGF_GET_SOURCE_SHA256) pFmt->methods.get_source = get_source_sha256;
-	if (Setup->startFlags&MGF_GET_SOURCE_SHA384) pFmt->methods.get_source = get_source_sha384;
-	if (Setup->startFlags&MGF_GET_SOURCE_SHA512) pFmt->methods.get_source = get_source_sha512;
-	if (Setup->startFlags&MGF_GET_SOURCE_GOST)   pFmt->methods.get_source = get_source_gost;
+#if 0
+	if (Setup->startFlags&MGF_SOURCE) pFmt->methods.source = source;
+	if (Setup->startFlags&MGF_SOURCE_SHA) pFmt->methods.source = source_sha;
+	if (Setup->startFlags&MGF_SOURCE_SHA224) pFmt->methods.source = source_sha224;
+	if (Setup->startFlags&MGF_SOURCE_SHA256) pFmt->methods.source = source_sha256;
+	if (Setup->startFlags&MGF_SOURCE_SHA384) pFmt->methods.source = source_sha384;
+	if (Setup->startFlags&MGF_SOURCE_SHA512) pFmt->methods.source = source_sha512;
+	if (Setup->startFlags&MGF_SOURCE_GOST)   pFmt->methods.source = source_gost;
+#endif
 
 	if (!curdat.store_keys_in_input && Setup->startFlags&MGF_KEYS_INPUT_BE_SAFE)
 		curdat.store_keys_in_input = 3;
@@ -8885,7 +8887,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 				pfx[cnt].ciphertext = str_alloc_copy(Setup->pPreloads[i].ciphertext);
 			pfx[cnt].plaintext = str_alloc_copy(Setup->pPreloads[i].plaintext);
 			for (j = 0; j < 10; ++j)
-				pfx[cnt].flds[j] = Setup->pPreloads[i].flds[j]  ? str_alloc_copy(Setup->pPreloads[i].flds[j]) : "";
+				pfx[cnt].fields[j] = Setup->pPreloads[i].fields[j]  ? str_alloc_copy(Setup->pPreloads[i].fields[j]) : "";
 		}
 		pfx[cnt].ciphertext = NULL;
 		pfx[cnt].plaintext = NULL;
@@ -9089,7 +9091,7 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	pFmt->methods.cmp_all    = pFmtLocal->methods.cmp_all;
 	pFmt->methods.cmp_one    = pFmtLocal->methods.cmp_one;
 	pFmt->methods.cmp_exact  = pFmtLocal->methods.cmp_exact;
-	pFmt->methods.get_source = pFmtLocal->methods.get_source;
+	pFmt->methods.source     = pFmtLocal->methods.source;
 	pFmt->methods.set_salt   = pFmtLocal->methods.set_salt;
 	pFmt->methods.salt       = pFmtLocal->methods.salt;
 	pFmt->methods.salt_hash  = pFmtLocal->methods.salt_hash;

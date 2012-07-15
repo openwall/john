@@ -147,7 +147,7 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
@@ -184,14 +184,14 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	fprintf(stderr, "Global work size = %lld\n",(long long)global_work_size);
 	atexit(release_all);
 
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -414,6 +414,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -440,8 +441,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };
 #else

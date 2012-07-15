@@ -45,9 +45,9 @@ int ldr_in_pot = 0;
 #define RF_ALLOW_DIR			2
 
 /*
- * Fast "Strlen" for split_fields[f]
+ * Fast "Strlen" for fields[f]
  */
-#define SPLFLEN(f)	(split_fields[f][0] ? split_fields[f+1] - split_fields[f] - 1 : 0)
+#define SPLFLEN(f)	(fields[f][0] ? fields[f+1] - fields[f] - 1 : 0)
 
 static char *no_username = "?";
 
@@ -209,68 +209,92 @@ static int ldr_check_shells(struct list_main *list, char *shell)
 static int ldr_split_line(char **login, char **ciphertext,
 	char **gecos, char **home,
 	char *source, struct fmt_main **format,
-	struct db_options *db_options, char *line)
+	struct db_options *options, char *line)
 {
 	struct fmt_main *alt;
-	char *uid = NULL, *gid = NULL, *shell = NULL;
-	char *split_fields[10];
-	int i, retval, valid;
+	char *fields[10], *uid, *gid, *shell;
+	int i, retval;
 
-	// Note, only 7 are 'defined' in the passwd format.  We load 10, so that
-	// other formats can add specific extra stuff.
-	for (i = 0; i < 10; ++i) {
-		split_fields[i] = ldr_get_field(&line, db_options->field_sep_char);
-		if (!line && i == 1 && split_fields[1][0] == 0) {
-/* Possible hash on a line on its own (no colons) */
-			char *p = split_fields[0];
-/* Skip leading and trailing whitespace */
-			while (*p == ' ' || *p == '\t') p++;
-			split_fields[1] = p;
-			p += strlen(p) - 1;
-			while (p > split_fields[1] && (*p == ' ' || *p == '\t'))
-				p--;
-			p++;
-/* Some valid dummy hashes may be shorter than 10 characters, so don't subject
- * them to the length checks. */
-			if (strncmp(split_fields[1], "$dummy$", 7) &&
-			    p - split_fields[1] != 10 /* not tripcode */) {
-/* Check for a special case: possibly a traditional crypt(3) hash with
- * whitespace in its invalid salt.  Only support such hashes at the very start
- * of a line (no leading whitespace other than the invalid salt). */
-				if (p - split_fields[1] == 11 &&
-				    split_fields[1] - split_fields[0] == 2)
-					split_fields[1]--;
-				if (p - split_fields[1] == 12 &&
-				    split_fields[1] - split_fields[0] == 1)
-					split_fields[1]--;
-				if (p - split_fields[1] < 13)
-					return 0;
-			}
-			*p = 0;
-			split_fields[0] = no_username;
-		}
-		if (i == 1 && source)
-			strcpy(source, line ? line : "");
-	}
-
-	*login = split_fields[0];
-	*ciphertext = split_fields[1];
+	fields[0] = *login = ldr_get_field(&line, options->field_sep_char);
+	fields[1] = *ciphertext = ldr_get_field(&line, options->field_sep_char);
 
 /* Check for NIS stuff */
 	if ((!strcmp(*login, "+") || !strncmp(*login, "+@", 2)) &&
 	    strlen(*ciphertext) < 10 && strncmp(*ciphertext, "$dummy$", 7))
 		return 0;
 
-/* SPLFLEN(n) is a macro equiv. of strlen(split_fields[n]) (but faster) */
-	if (SPLFLEN(1) > 0 && SPLFLEN(1) < 7 &&
-	    (SPLFLEN(3) == 32 || SPLFLEN(2) == 32)) {
-		/* pwdump-style input
-		   user:uid:LMhash:NThash:comment:homedir:
-		*/
-		uid = split_fields[1];
-		*gecos = split_fields[4];
-		*home = split_fields[5];
+	if (!**ciphertext && !line) {
+/* Possible hash on a line on its own (no colons) */
+		char *p = *login;
+/* Skip leading and trailing whitespace */
+		while (*p == ' ' || *p == '\t') p++;
+		*ciphertext = p;
+		p += strlen(p) - 1;
+		while (p > *ciphertext && (*p == ' ' || *p == '\t')) p--;
+		p++;
+/* Some valid dummy hashes may be shorter than 10 characters, so don't subject
+ * them to the length checks. */
+		if (strncmp(*ciphertext, "$dummy$", 7) &&
+		    p - *ciphertext != 10 /* not tripcode */) {
+/* Check for a special case: possibly a traditional crypt(3) hash with
+ * whitespace in its invalid salt.  Only support such hashes at the very start
+ * of a line (no leading whitespace other than the invalid salt). */
+			if (p - *ciphertext == 11 && *ciphertext - *login == 2)
+				(*ciphertext)--;
+			if (p - *ciphertext == 12 && *ciphertext - *login == 1)
+				(*ciphertext)--;
+			if (p - *ciphertext < 13)
+				return 0;
+		}
+		*p = 0;
+		*login = no_username;
+	}
+
+	if (source)
+		strcpy(source, line ? line : "");
+
+	if ((options->flags & DB_WORDS) || options->shells->head) {
+		for (i = 2; i < 10; i++)
+			fields[i] = ldr_get_field(&line, options->field_sep_char);
+	} else {
+		for (i = 2; i < 4; i++)
+			fields[i] = ldr_get_field(&line, options->field_sep_char);
+		for (; i < 10; i++)
+			fields[i] = "/";
+	}
+
+	/* /etc/passwd */
+	uid = fields[2];
+	gid = fields[3];
+	*gecos = fields[4];
+	*home = fields[5];
+	shell = fields[6];
+
+	if (fields[5][0] != '/' &&
+	    ((!strcmp(fields[5], "0") && !strcmp(fields[6], "0")) ||
+	    fields[8][0] == '/' ||
+	    fields[9][0] == '/')) {
+		/* /etc/master.passwd */
+		*gecos = fields[7];
+		*home = fields[8];
+		shell = fields[9];
+	} else if (fields[3] - fields[2] == 32 + 1) {
+		/* PWDUMP */
+		uid = fields[1];
+		*ciphertext = fields[2];
+		if (!strncmp(*ciphertext, "NO PASSWORD", 11))
+			*ciphertext = "";
 		gid = shell = "";
+		*gecos = fields[4];
+		*home = fields[5];
+
+		/* Re-introduce the previously removed uid field */
+		if (source) {
+			int shift = strlen(uid);
+			memmove(source + shift, source, strlen(source) + 1);
+			memcpy(source, uid, shift);
+			source[shift] = ':';
+		}
 	}
 	else if (SPLFLEN(1) == 0 && SPLFLEN(3) >= 16 && SPLFLEN(4) >= 32 &&
 	         SPLFLEN(5) >= 16) {
@@ -279,71 +303,71 @@ static int ldr_split_line(char **login, char **ciphertext,
 		   user::domain:srvr challenge:ntlmv2 response:client challenge
 		 */
 		uid = gid = *home = shell = "";
-		*gecos = split_fields[2]; // in case there's a domain name here
-	}
-	else {
-		/* normal passwd-style input */
-		uid = split_fields[2];
-		gid = split_fields[3];
-		*gecos = split_fields[4];
-		*home = split_fields[5];
-		shell = split_fields[6];
+		*gecos = fields[2]; // in case there's a domain name here
 	}
 
-	if (ldr_check_list(db_options->users, *login, uid)) return 0;
-	if (ldr_check_list(db_options->groups, gid, gid)) return 0;
-	if (ldr_check_shells(db_options->shells, shell)) return 0;
+	if (ldr_check_list(options->users, *login, uid)) return 0;
+	if (ldr_check_list(options->groups, gid, gid)) return 0;
+	if (ldr_check_shells(options->shells, shell)) return 0;
 
 	if (*format) {
-		*ciphertext = (*format)->methods.prepare(split_fields, *format);
-		valid = (*format)->methods.valid(*ciphertext, *format);
-		if (!valid) {
-			alt = fmt_list;
-			do {
-				if (alt == *format)
-					continue;
-				if (alt->params.flags & FMT_WARNED)
-					continue;
-#ifdef HAVE_CRYPT
-				if (alt == &fmt_crypt &&
-#ifdef __sun
-				    strncmp(*ciphertext, "$md5$", 5) &&
-				    strncmp(*ciphertext, "$md5,", 5) &&
-#endif
-				    strncmp(*ciphertext, "$5$", 3) &&
-				    strncmp(*ciphertext, "$6$", 3))
-					continue;
-#endif
-				if (alt->methods.valid(*ciphertext,alt)) {
-					alt->params.flags |= FMT_WARNED;
-#ifdef HAVE_MPI
-					if (mpi_id == 0)
-#endif
-					fprintf(stderr,
-					    "Warning: only loading hashes "
-					    "of type \"%s\", but also saw "
-					    "type \"%s\"\n"
-					    "Use the "
-					    "\"--format=%s\" option to force "
-					    "loading hashes of that type "
-					    "instead\n",
-					    (*format)->params.label,
-					    alt->params.label,
-					    alt->params.label);
-					break;
-				}
-			} while ((alt = alt->next));
+		char *prepared;
+		int valid;
+
+		prepared = (*format)->methods.prepare(fields, *format);
+		if (prepared)
+			valid = (*format)->methods.valid(prepared, *format);
+		else
+			valid = 0;
+
+		if (valid) {
+			*ciphertext = prepared;
+			return valid;
 		}
-		return valid;
+
+		alt = fmt_list;
+		do {
+			if (alt == *format)
+				continue;
+			if (alt->params.flags & FMT_WARNED)
+				continue;
+#ifdef HAVE_CRYPT
+			if (alt == &fmt_crypt &&
+#ifdef __sun
+			    strncmp(*ciphertext, "$md5$", 5) &&
+			    strncmp(*ciphertext, "$md5,", 5) &&
+#endif
+			    strncmp(*ciphertext, "$5$", 3) &&
+			    strncmp(*ciphertext, "$6$", 3))
+				continue;
+#endif
+			prepared = alt->methods.prepare(fields, alt);
+			if (alt->methods.valid(prepared, alt)) {
+				alt->params.flags |= FMT_WARNED;
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
+				fprintf(stderr,
+				    "Warning: only loading hashes of type "
+				    "\"%s\", but also saw type \"%s\"\n"
+				    "Use the \"--format=%s\" option to force "
+				    "loading hashes of that type instead\n",
+				    (*format)->params.label,
+				    alt->params.label,
+				    alt->params.label);
+				break;
+			}
+		} while ((alt = alt->next));
+
+		return 0;
 	}
 
 	retval = -1;
 	if ((alt = fmt_list))
 	do {
+		char *prepared;
 		int valid;
-		char *prepared_CT = alt->methods.prepare(split_fields, alt);
-		if (!prepared_CT || !*prepared_CT)
-			continue;
+
 #ifdef HAVE_CRYPT
 /*
  * Only probe for support by the current system's crypt(3) if this is forced
@@ -354,19 +378,25 @@ static int ldr_split_line(char **login, char **ciphertext,
 		if (alt == &fmt_crypt &&
 		    fmt_list != &fmt_crypt /* not forced */ &&
 #ifdef __sun
-		    strncmp(prepared_CT, "$md5$", 5) &&
-		    strncmp(prepared_CT, "$md5,", 5) &&
+		    strncmp(*ciphertext, "$md5$", 5) &&
+		    strncmp(*ciphertext, "$md5,", 5) &&
 #endif
-		    strncmp(prepared_CT, "$5$", 3) &&
-		    strncmp(prepared_CT, "$6$", 3))
+		    strncmp(*ciphertext, "$5$", 3) &&
+		    strncmp(*ciphertext, "$6$", 3))
 			continue;
 #endif
-		if (!(valid = alt->methods.valid(prepared_CT, alt)))
+
+		prepared = alt->methods.prepare(fields, alt);
+		if (!prepared)
 			continue;
+		valid = alt->methods.valid(prepared, alt);
+		if (!valid)
+			continue;
+
 		if (retval < 0) {
-			fmt_init(*format = alt);
 			retval = valid;
-			*ciphertext = prepared_CT;
+			*ciphertext = prepared;
+			fmt_init(*format = alt);
 #ifdef LDR_WARN_AMBIGUOUS
 			if (!source) /* not --show */
 				continue;
@@ -450,7 +480,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	struct fmt_main *format;
 	int index, count;
 	char *login, *ciphertext, *gecos, *home;
-	char *piece, get_src_buf[LINE_BUFFER_SIZE];
+	char *piece;
 	void *binary, *salt;
 	int salt_hash, pw_hash;
 	struct db_salt *current_salt, *last_salt;
@@ -485,7 +515,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		ldr_init_password_hash(db);
 
 	for (index = 0; index < count; index++) {
-		piece = format->methods.split(ciphertext, index);
+		piece = format->methods.split(ciphertext, index, format);
 
 		binary = format->methods.binary(piece);
 		pw_hash = db->password_hash_func(binary);
@@ -494,9 +524,10 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			int collisions = 0;
 			if ((current_pw = db->password_hash[pw_hash]))
 			do {
-				if (!memcmp(current_pw->binary, binary,
+				if (!memcmp(binary, current_pw->binary,
 				    format->params.binary_size) &&
-				    !strcmp(format->methods.get_source(current_pw, get_src_buf), piece)) {
+				    !strcmp(piece, format->methods.source(
+				    current_pw->source, current_pw->binary))) {
 					db->options->flags |= DB_NODUP;
 					break;
 				}
@@ -574,13 +605,18 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 		db->password_hash[pw_hash] = current_pw;
 		current_pw->next_hash = last_pw;
 
-		current_pw->binary = alloc_copy_autoalign(
-			format->params.binary_size, binary);
-
-		if (format->methods.get_source == fmt_default_get_source)
-			current_pw->source = str_alloc_copy(piece);
+/* If we're not going to use the source field for its usual purpose, see if we
+ * can pack the binary value in it. */
+		if (format->methods.source != fmt_default_source &&
+		    sizeof(current_pw->source) >= format->params.binary_size)
+			current_pw->binary = memcpy(&current_pw->source,
+				binary, format->params.binary_size);
 		else
-			current_pw->source = (char*)current_salt->salt;
+			current_pw->binary = alloc_copy_autoalign(
+				format->params.binary_size, binary);
+
+		if (format->methods.source == fmt_default_source)
+			current_pw->source = str_alloc_copy(piece);
 
 		if (db->options->flags & DB_WORDS) {
 			if (!words)
@@ -614,21 +650,15 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
-	char *ciphertext, *unprepared, get_src_buf[LINE_BUFFER_SIZE];
+	char *ciphertext;
 	void *binary;
 	int hash;
 	struct db_password *current;
-	char *flds[10];
-	int i;
 
-	unprepared = ldr_get_field(&line, db->options->field_sep_char);
-	for (i = 0; i < 10; ++i)
-		flds[i] = "";
-	flds[1] = unprepared;
-	ciphertext = format->methods.prepare(flds, format);
-	if (format->methods.valid(ciphertext,format) != 1) return;
+	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
+	if (format->methods.valid(ciphertext, format) != 1) return;
 
-	ciphertext = format->methods.split(ciphertext, 0);
+	ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
@@ -653,10 +683,14 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 			}
 			//else if (db->options->regen_lost_salts == 7 && !strncmp(current->source, "???????????", 11))
 		}
-		if (current->binary && !memcmp(current->binary, binary,
-		    format->params.binary_size) &&
-			!strcmp(format->methods.get_source(current, get_src_buf), ciphertext))
-			current->binary = NULL;
+		if (!current->binary) /* already marked for removal */
+			continue;
+		if (memcmp(binary, current->binary, format->params.binary_size))
+			continue;
+		if (strcmp(ciphertext,
+		    format->methods.source(current->source, current->binary)))
+			continue;
+		current->binary = NULL; /* mark for removal */
 	} while ((current = current->next_hash));
 }
 
@@ -704,7 +738,6 @@ static void ldr_remove_marked(struct db_main *db)
 {
 	struct db_salt *current_salt, *last_salt;
 	struct db_password *current_pw, *last_pw;
-	char get_src_buf[LINE_BUFFER_SIZE];
 
 	last_salt = NULL;
 	if ((current_salt = db->salts))
@@ -726,9 +759,9 @@ static void ldr_remove_marked(struct db_main *db)
 					if (!options.utf8 && options.report_utf8) {
 						UTF8 utf8login[PLAINTEXT_BUFFER_SIZE + 1];
 						enc_to_utf8_r(current_pw->login, utf8login, PLAINTEXT_BUFFER_SIZE);
-						printf("%s%c%s\n",utf8login,db->options->field_sep_char,db->format->methods.get_source(current_pw, get_src_buf));
+						printf("%s%c%s\n", utf8login, db->options->field_sep_char, db->format->methods.source(current_pw->source, current_pw->binary));
 					} else
-						printf("%s%c%s\n",current_pw->login,db->options->field_sep_char,db->format->methods.get_source(current_pw, get_src_buf));
+						printf("%s%c%s\n", current_pw->login, db->options->field_sep_char, db->format->methods.source(current_pw->source, current_pw->binary));
 				}
 			}
 		} while ((current_pw = current_pw->next));
@@ -921,7 +954,7 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
 		if (!fmt_list->next &&
-		    !fmt_list->methods.valid(ciphertext,fmt_list))
+		    !fmt_list->methods.valid(ciphertext, fmt_list))
 			return;
 
 		pos = line;
@@ -963,7 +996,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	int show;
 	char source[LINE_BUFFER_SIZE];
 	struct fmt_main *format;
-	char *(*split)(char *ciphertext, int index);
+	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 	int index, count, unify;
 	char *login, *ciphertext, *gecos, *home;
 	char *piece;
@@ -1012,7 +1045,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	} else
 	for (found = pass = 0; pass == 0 || (pass == 1 && found); pass++)
 	for (index = 0; index < count; index++) {
-		piece = split(ciphertext, index);
+		piece = split(ciphertext, index, format);
 		if (unify)
 			piece = strcpy(mem_alloc(strlen(piece) + 1), piece);
 
@@ -1020,15 +1053,16 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 		if ((current = db->cracked_hash[hash]))
 		do {
-			if (!strcmp(current->ciphertext, piece))
+			char *pot = current->ciphertext;
+			if (!strcmp(pot, piece))
 				break;
 /* This extra check, along with ldr_cracked_hash() being case-insensitive,
  * is only needed for matching some pot file records produced by older
  * versions of John and contributed patches where split() didn't unify the
  * case of hex-encoded hashes. */
 			if (unify &&
-			    format->methods.valid(current->ciphertext,format) == 1 &&
-			    !strcmp(split(current->ciphertext, 0), piece))
+			    format->methods.valid(pot, format) == 1 &&
+			    !strcmp(split(pot, 0, format), piece))
 				break;
 		} while ((current = current->next));
 

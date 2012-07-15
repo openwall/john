@@ -98,7 +98,7 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -117,7 +117,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -130,7 +130,7 @@ static char *split(char *ciphertext, int index)
 	out[CIPHERTEXT_LENGTH] = 0;
 
 	// 'normalize' these hashes to all 'appear' to be 00000xxxxxx hashes.
-	// on the get_source() function, we later 'fix' these up.
+	// on the source() function, we later 'fix' these up.
 	memcpy(&out[TAG_LENGTH], "00000", 5);
 
 	strlwr(&out[TAG_LENGTH]);
@@ -318,7 +318,7 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0x7ffffff; }
 #endif
 
-static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned char realcipher[BINARY_SIZE];
 	unsigned char *cpi;
@@ -383,6 +383,7 @@ struct fmt_main fmt_rawSHA1_LI = {
 		split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -409,7 +410,6 @@ struct fmt_main fmt_rawSHA1_LI = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };

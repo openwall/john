@@ -39,7 +39,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static MD4_CTX ctx;
 static ARCH_WORD_32 crypt_out[4];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
@@ -246,6 +246,7 @@ struct fmt_main fmt_md4_gen = {
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -272,7 +273,6 @@ struct fmt_main fmt_md4_gen = {
 		},
 		cmp_all,
 		cmp_all,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

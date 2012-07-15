@@ -397,13 +397,13 @@ static MD5Gen_Str_Flag_t MD5Gen_Str_sFlag[] =  {
 	{ "MGF_RAW_SHA1_INPUT",               MGF_RAW_SHA1_INPUT },
 	{ "MGF_KEYS_INPUT_BE_SAFE",           MGF_KEYS_INPUT_BE_SAFE },  // big endian safe, i.e. the input will NEVER get swapped.  Only SHA1 is 'safe'.
 	{ "MGF_SET_INP2LEN32",                MGF_SET_INP2LEN32 }, // this sets the input2 lens (in SSE2) to 32 bytes long, but only in init() call
-	{ "MGF_GET_SOURCE",                   MGF_GET_SOURCE },
-	{ "MGF_GET_SOURCE_SHA",               MGF_GET_SOURCE_SHA },
-	{ "MGF_GET_SOURCE_SHA224",            MGF_GET_SOURCE_SHA224 },
-	{ "MGF_GET_SOURCE_SHA256",            MGF_GET_SOURCE_SHA256 },
-	{ "MGF_GET_SOURCE_SHA384",            MGF_GET_SOURCE_SHA384 },
-	{ "MGF_GET_SOURCE_SHA512",            MGF_GET_SOURCE_SHA512 },
-	{ "MGF_GET_SOURCE_GOST",              MGF_GET_SOURCE_GOST },
+	{ "MGF_SOURCE",                       MGF_SOURCE },
+	{ "MGF_SOURCE_SHA",                   MGF_SOURCE_SHA },
+	{ "MGF_SOURCE_SHA224",                MGF_SOURCE_SHA224 },
+	{ "MGF_SOURCE_SHA256",                MGF_SOURCE_SHA256 },
+	{ "MGF_SOURCE_SHA384",                MGF_SOURCE_SHA384 },
+	{ "MGF_SOURCE_SHA512",                MGF_SOURCE_SHA512 },
+	{ "MGF_SOURCE_GOST",                  MGF_SOURCE_GOST },
 	{ "MGF_SHA1_40_BYTE_FINISH",          MGF_SHA1_40_BYTE_FINISH },
 	{ "MGF_SHA224_56_BYTE_FINISH",        MGF_SHA224_56_BYTE_FINISH },
 	{ "MGF_SHA256_64_BYTE_FINISH",        MGF_SHA256_64_BYTE_FINISH },
@@ -475,10 +475,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
+		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
 		}
 		++nPreloadCnt;
 		return 1;
@@ -495,10 +495,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
+		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
 		}
 		++nPreloadCnt;
 		return 1;
@@ -515,10 +515,10 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 			return !fprintf(stderr, "Error, invalid test line (wrong generic type):  %s\n", Line);
 		cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].plaintext), cp);
 		pSetup->pPreloads[nPreloadCnt].plaintext = dynamic_Demangle(pSetup->pPreloads[nPreloadCnt].plaintext, NULL);
-		pSetup->pPreloads[nPreloadCnt].flds[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
+		pSetup->pPreloads[nPreloadCnt].fields[1] = str_alloc_copy(pSetup->pPreloads[nPreloadCnt].ciphertext);
 		for (j = 0; j < 10; ++j) {
 			if (j==1) continue;
-			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].flds[j]), cp);
+			cp = GetFld(&(pSetup->pPreloads[nPreloadCnt].fields[j]), cp);
 		}
 		++nPreloadCnt;
 		return 1;

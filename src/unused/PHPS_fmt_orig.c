@@ -99,7 +99,7 @@ static int saved_key_len;
 static char workspace[MD5_HEX_SIZE * 2];
 static char output[MD5_BINARY_SIZE];
 
-static int phps_valid(char *ciphertext, struct fmt_main *pFmt)
+static int phps_valid(char *ciphertext, struct fmt_main *self)
 {
 	if (!ciphertext)
 		return 0;

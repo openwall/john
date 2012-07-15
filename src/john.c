@@ -190,14 +190,14 @@ static void john_register_one(struct fmt_main *format)
 static void john_register_all(void)
 {
 	int i, cnt;
-	struct fmt_main *pFmts;
+	struct fmt_main *selfs;
 
 	if (options.format) strlwr(options.format);
 
 	// NOTE, this MUST happen, before ANY format that links a 'thin' format to dynamic.
 	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
 	// generic format first
-	cnt = dynamic_Register_formats(&pFmts);
+	cnt = dynamic_Register_formats(&selfs);
 
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
@@ -207,7 +207,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_LM);
 
 	for (i = 0; i < cnt; ++i)
-		john_register_one(&(pFmts[i]));
+		john_register_one(&(selfs[i]));
 
 #include "fmt_registers.h"
 
@@ -542,9 +542,9 @@ static void john_list_help_options()
 
 static void john_list_method_names()
 {
-	puts("init, prepare, valid, split, binary, salt, binary_hash, salt_hash, set_salt,");
-	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact,");
-	puts("get_source");
+	puts("init, prepare, valid, split, binary, salt, source, binary_hash, salt_hash,");
+	puts("set_salt, set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one,");
+	puts("cmp_exact");
 }
 
 static void john_init(char *name, int argc, char **argv)
@@ -897,7 +897,7 @@ static void john_init(char *name, int argc, char **argv)
 					strcasecmp(&options.listconf[15], "binary_hash[0]") && strcasecmp(&options.listconf[15], "binary_hash[1]") &&
 					strcasecmp(&options.listconf[15], "binary_hash[2]") && strcasecmp(&options.listconf[15], "binary_hash[3]") &&
 					strcasecmp(&options.listconf[15], "binary_hash[3]") && strcasecmp(&options.listconf[15], "binary_hash[5]") &&
-					strcasecmp(&options.listconf[15], "salt_hash") && strcasecmp(&options.listconf[15], "get_source"))
+					strcasecmp(&options.listconf[15], "salt_hash") && strcasecmp(&options.listconf[15], "source"))
 				{
 					fprintf(stderr, "Error, invalid option (invalid method name) %s\n", options.listconf);
 					fprintf(stderr, "Valid method names are:\n");
@@ -939,7 +939,7 @@ static void john_init(char *name, int argc, char **argv)
 					ShowIt = 1;
 				if (format->methods.set_salt != fmt_default_set_salt && !strcasecmp(&options.listconf[15], "set_salt"))
 					ShowIt = 1;
-				if (format->methods.get_source != fmt_default_get_source && !strcasecmp(&options.listconf[15], "get_source"))
+				if (format->methods.source != fmt_default_source && !strcasecmp(&options.listconf[15], "source"))
 					ShowIt = 1;
 			}
 			if (ShowIt) {
@@ -989,8 +989,8 @@ static void john_init(char *name, int argc, char **argv)
 				printf("\tcmp_one()\n");
 				// there is no default for cmp_exact() it must be defined.
 				printf("\tcmp_exact()\n");
-				if (format->methods.get_source != fmt_default_get_source)
-					printf("\tget_source()\n");
+				if (format->methods.source != fmt_default_source)
+					printf("\tsource()\n");
 				printf("\n\n");
 			}
 		} while ((format = format->next));

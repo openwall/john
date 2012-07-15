@@ -86,7 +86,7 @@ static BF_salt saved_salt;
 struct fmt_main fmt_BF;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = BF_Nmin * omp_get_max_threads(), max;
@@ -105,7 +105,7 @@ static void init(struct fmt_main *pFmt)
 	sign_extension_bug = 0;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int rounds;
 	char *pos;
@@ -293,6 +293,7 @@ struct fmt_main fmt_BF = {
 		fmt_default_split,
 		BF_std_get_binary,
 		BF_std_get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -319,7 +320,6 @@ struct fmt_main fmt_BF = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -65,14 +65,14 @@ static UTF16 prep_key[MAX_KEYS_PER_CRYPT][518 / sizeof(UTF16)];
 static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][8];
 
 extern struct fmt_main fmt_SybaseASE;
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
     if (options.utf8)
         fmt_SybaseASE.params.plaintext_length = 125;
 }
 
 // TODO: strengthen checks
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
     if(strncmp(ciphertext, "0xc007", 6)!=0)
         return 0;
@@ -275,6 +275,7 @@ struct fmt_main fmt_SybaseASE = {
         fmt_default_split,
         get_binary,
         salt,
+        fmt_default_source,
         {
             binary_hash_0,
             binary_hash_1,
@@ -301,7 +302,6 @@ struct fmt_main fmt_SybaseASE = {
         },
         cmp_all,
         cmp_one,
-        cmp_exact,
-		fmt_default_get_source
+        cmp_exact
     }
 };

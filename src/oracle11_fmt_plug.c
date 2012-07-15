@@ -137,7 +137,7 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	int i;
@@ -150,7 +150,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -431,6 +431,7 @@ struct fmt_main fmt_oracle11 = {
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -457,7 +458,6 @@ struct fmt_main fmt_oracle11 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

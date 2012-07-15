@@ -67,7 +67,7 @@ static struct fmt_tests tests[] = {
 
 //static char *saved_key;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt){
+static int valid(char *ciphertext, struct fmt_main *self){
 	int i;
 
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
@@ -183,7 +183,7 @@ static void find_best_kpc(void){
 	create_clobj(optimal_kpc);
 }
 
-static void fmt_rawsha1_init(struct fmt_main *pFmt) {
+static void fmt_rawsha1_init(struct fmt_main *self) {
 	char *kpc;
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
@@ -196,7 +196,7 @@ static void fmt_rawsha1_init(struct fmt_main *pFmt) {
 
 	if(((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(SHA_NUM_KEYS);
-		opencl_find_best_workgroup(pFmt);
+		opencl_find_best_workgroup(self);
 		release_clobj();
 	}else {
 		local_work_size = atoi(kpc);
@@ -216,7 +216,7 @@ static void fmt_rawsha1_init(struct fmt_main *pFmt) {
 		}
 	}
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
-	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
+	self->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
 static void set_key(char *key, int index){
@@ -337,6 +337,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		fmt_default_split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 		     	binary_hash_0,
 			binary_hash_1,
@@ -363,8 +364,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 
 };

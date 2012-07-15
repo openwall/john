@@ -166,7 +166,7 @@ static void nt_crypt_all_opencl(int count)
 #define MIN_KEYS_PER_CRYPT		NT_NUM_KEYS
 #define MAX_KEYS_PER_CRYPT		NT_NUM_KEYS
 
-static void fmt_NT_init(struct fmt_main *pFmt){
+static void fmt_NT_init(struct fmt_main *self){
 	int argIndex = 0;
 
 	atexit(release_all);
@@ -204,10 +204,10 @@ static void fmt_NT_init(struct fmt_main *pFmt){
 	datai[0] = PLAINTEXT_LENGTH;
 	datai[1] = max_keys_per_crypt;
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 }
 
-static char * nt_split(char *ciphertext, int index)
+static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
@@ -227,7 +227,7 @@ static char * nt_split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
         char *pos;
 
@@ -426,6 +426,7 @@ struct fmt_main fmt_opencl_NT = {
 		nt_split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -452,7 +453,6 @@ struct fmt_main fmt_opencl_NT = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -79,10 +79,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 {
 	static char s_size[32];
 	struct fmt_tests *current;
-	char *ciphertext = NULL, *plaintext;
+	char *ciphertext, *plaintext;
 	int ntests, done, index, max, size;
 	void *binary, *salt;
-	struct db_password pw;
 
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
@@ -91,6 +90,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.split == NULL)      return "method split NULL";
 	if (format->methods.binary == NULL)     return "method binary NULL";
 	if (format->methods.salt == NULL)       return "method salt NULL";
+	if (format->methods.source == NULL)     return "method source NULL";
 	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
 	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
 	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
@@ -102,12 +102,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
 	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
 	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
-	if (format->methods.get_source == NULL) return "method get_source NULL";
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
 
-	if (format->methods.valid("*",format)) return "valid";
+	if (format->methods.valid("*", format))
+		return "valid";
 
 	fmt_init(format);
 
@@ -121,18 +121,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		char *prepared, Buf[LINE_BUFFER_SIZE];
-		current->flds[1] = current->ciphertext;
-		prepared = format->methods.prepare(current->flds, format);
-		if (!prepared || strlen(prepared) < 7) // $dummy$ can be just 7 bytes long.
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		ciphertext = format->methods.prepare(current->fields, format);
+		if (!ciphertext || strlen(ciphertext) < 7)
 			return "prepare";
-		if (format->methods.valid(prepared,format) != 1)
+		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
-		/* Ensure we have a misaligned ciphertext */
-		if (!ciphertext)
-			ciphertext = (char*)mem_alloc_tiny(LINE_BUFFER_SIZE + 1,
-			    MEM_ALIGN_WORD) + 1;
-		strcpy(ciphertext, format->methods.split(prepared, 0));
+		ciphertext = format->methods.split(ciphertext, 0, format);
 		plaintext = current->plaintext;
 
 /*
@@ -161,19 +157,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
-/* 
- * get_source testing is a little 'different', because the source pointer
- * of the db_password structure will point to either the source or to the
- * salt, depending upon if the get_source is implemented or not. For
- * testing, we HAVE to observe the exact same behavior here.
- */
-		pw.binary = binary;
-		if (format->methods.get_source == fmt_default_get_source)
-			pw.source = ciphertext;
-		else
-			pw.source = (char*)salt;
-		if (strcmp(format->methods.get_source(&pw, Buf), ciphertext)) 
-			return "get_source";
+		if (strcmp(ciphertext,
+		    format->methods.source(ciphertext, binary)))
+			return "source";
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -250,8 +236,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
  */
 static void *alloc_binary(size_t size, void **alloc)
 {
-	*alloc = mem_alloc(size + 8 + 4);
-
+	*alloc = mem_alloc(size + 4);
 	if (size >= ARCH_SIZE)
 		return *alloc;
 	if (size >= 4)
@@ -266,41 +251,31 @@ char *fmt_self_test(struct fmt_main *format)
 	void *binary_copy, *salt_copy;
 
 	binary_copy = alloc_binary(format->params.binary_size, &binary_alloc);
-	memset((char*)binary_copy + format->params.binary_size, 'b', 8);
-
 	salt_copy = alloc_binary(format->params.salt_size, &salt_alloc);
-	memset((char*)salt_copy + format->params.salt_size, 's', 8);
 
 	retval = fmt_self_test_body(format, binary_copy, salt_copy);
-	if (!retval) {
-		if (memcmp((char*)binary_copy + format->params.binary_size,
-			"bbbbbbbb", 8))
-			return "Binary buffer overrun";
-		if (memcmp((char*)salt_copy + format->params.salt_size,
-			"ssssssss", 8))
-			return "Salt buffer overrun";
-	}
+
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);
 
 	return retval;
 }
 
-void fmt_default_init(struct fmt_main *pFmt)
+void fmt_default_init(struct fmt_main *self)
 {
 }
 
-char *fmt_default_prepare(char *split_fields[10], struct fmt_main *pFmt)
+char *fmt_default_prepare(char *fields[10], struct fmt_main *self)
 {
-	return split_fields[1];
+	return fields[1];
 }
 
-int fmt_default_valid(char *ciphertext, struct fmt_main *pFmt)
+int fmt_default_valid(char *ciphertext, struct fmt_main *self)
 {
 	return 0;
 }
 
-char *fmt_default_split(char *ciphertext, int index)
+char *fmt_default_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return ciphertext;
 }
@@ -313,6 +288,11 @@ void *fmt_default_binary(char *ciphertext)
 void *fmt_default_salt(char *ciphertext)
 {
 	return ciphertext;
+}
+
+char *fmt_default_source(char *source, void *binary)
+{
+	return source;
 }
 
 int fmt_default_binary_hash(void *binary)
@@ -336,9 +316,4 @@ void fmt_default_clear_keys(void)
 int fmt_default_get_hash(int index)
 {
 	return 0;
-}
-
-char *fmt_default_get_source(struct db_password *current_pw, char ReturnBuf[LINE_BUFFER_SIZE]) 
-{
-	return current_pw->source;
 }

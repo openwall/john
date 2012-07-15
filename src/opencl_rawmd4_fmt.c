@@ -170,7 +170,7 @@ static void find_best_kpc(void){
 	create_clobj(optimal_kpc);
 }
 
-static void init(struct fmt_main *pFmt) {
+static void init(struct fmt_main *self) {
 	char *kpc;
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
@@ -180,7 +180,7 @@ static void init(struct fmt_main *pFmt) {
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(MD4_NUM_KEYS);
-		opencl_find_best_workgroup(pFmt);
+		opencl_find_best_workgroup(self);
 		release_clobj();
 	}else {
 		local_work_size = atoi(kpc);
@@ -200,10 +200,10 @@ static void init(struct fmt_main *pFmt) {
 		}
 	}
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
-	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
+	self->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt) {
+static int valid(char *ciphertext, struct fmt_main *self) {
 	char *p, *q;
 	p = ciphertext;
 	if (!strncmp(p, "$MD4$", 5))
@@ -214,7 +214,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt) {
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index) {
+static char *split(char *ciphertext, int index, struct fmt_main *self) {
 	static char out[5 + CIPHERTEXT_LENGTH + 1];
 
 	if (!strncmp(ciphertext, "$MD4$", 5))
@@ -378,6 +378,7 @@ struct fmt_main fmt_opencl_rawMD4 = {
 		split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -404,7 +405,6 @@ struct fmt_main fmt_opencl_rawMD4 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

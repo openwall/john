@@ -88,7 +88,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[4];
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
@@ -105,7 +105,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[5 + CIPHERTEXT_LENGTH + 1];
 
@@ -330,6 +330,7 @@ struct fmt_main fmt_rawMD4 = {
 		split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -356,7 +357,6 @@ struct fmt_main fmt_rawMD4 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

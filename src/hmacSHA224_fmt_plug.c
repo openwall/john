@@ -46,7 +46,7 @@ static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
 static char saved_plain[PLAINTEXT_LENGTH + 1];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int pos, i;
 	char *p;
@@ -187,6 +187,7 @@ struct fmt_main fmt_hmacSHA224 = {
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -209,7 +210,6 @@ struct fmt_main fmt_hmacSHA224 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

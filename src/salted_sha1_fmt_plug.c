@@ -135,7 +135,7 @@ static void * binary(char *ciphertext) {
 	return (void *)realcipher;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int len;
 
@@ -382,6 +382,7 @@ struct fmt_main fmt_saltedsha = {
 		fmt_default_split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -408,7 +409,6 @@ struct fmt_main fmt_saltedsha = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

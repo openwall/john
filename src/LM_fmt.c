@@ -38,7 +38,7 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
-#define BINARY_SIZE			sizeof(ARCH_WORD_32)
+#define BINARY_SIZE			(sizeof(ARCH_WORD_32) * 2)
 #define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
@@ -48,7 +48,7 @@ static struct fmt_tests tests[] = {
 struct fmt_main fmt_LM;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	DES_bs_init(1, DES_bs_cpt);
 #if DES_bs_mt
@@ -57,7 +57,14 @@ static void init(struct fmt_main *pFmt)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	if (fields[2] && strlen(fields[2]) == 32)
+		return fields[2];
+	return fields[1];
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	char lower[CIPHERTEXT_LENGTH - 16 + 1];
@@ -80,17 +87,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-// here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
-// Note, we address the user id inside loader.
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
-{
-	if (!valid(split_fields[1], pFmt) &&
-	    split_fields[2] && valid(split_fields[2], pFmt))
-		return split_fields[2];
-	return split_fields[1];
-}
-
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[21];
 
@@ -116,9 +113,14 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	return DES_bs_get_binary_LM(ciphertext + 4);
+}
+
+static char *source(char *source, void *binary)
+{
+	return split(DES_bs_get_source_LM(binary), 0, NULL);
 }
 
 static int binary_hash_0(void *binary)
@@ -158,12 +160,12 @@ static int binary_hash_6(void *binary)
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
+	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 64, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return DES_bs_cmp_one(get_binary(source), 64, index);
+	return 1;
 }
 
 static char *get_key(int index)
@@ -207,8 +209,9 @@ struct fmt_main fmt_LM = {
 		prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -235,7 +238,6 @@ struct fmt_main fmt_LM = {
 		},
 		(int (*)(void *, int))DES_bs_cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

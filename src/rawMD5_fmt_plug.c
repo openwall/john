@@ -34,7 +34,7 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE			16 // get_source()
+#define BINARY_SIZE			16 // source()
 #define DIGEST_SIZE			16
 #define SALT_SIZE			0
 
@@ -78,7 +78,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_out[4];
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
@@ -95,7 +95,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
@@ -295,7 +295,7 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
-static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned char *cpi;
 	char *cpo;
@@ -336,6 +336,7 @@ struct fmt_main fmt_rawMD5 = {
 		split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -362,7 +363,6 @@ struct fmt_main fmt_rawMD5 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };
