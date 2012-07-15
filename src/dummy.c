@@ -24,7 +24,9 @@ typedef struct {
 } dummy_binary;
 
 #define BINARY_SIZE			sizeof(dummy_binary)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
@@ -265,7 +267,9 @@ struct fmt_main fmt_dummy = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

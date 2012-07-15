@@ -166,7 +166,7 @@ struct fmt_main fmt_OSC =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, SALT_SIZE+1, 1, 1, FMT_CASE | FMT_8_BIT, osc_tests
+		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT, osc_tests
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010 by Solar Designer
+ * Copyright (c) 1996-98,2010,2012 by Solar Designer
  */
 
 #include <stdio.h>
@@ -61,32 +61,45 @@ void *mem_alloc(size_t size)
 
 void *mem_alloc_tiny(size_t size, size_t align)
 {
-	static unsigned long buffer, bufree = 0;
-	unsigned long start, end;
+	static char *buffer = NULL;
+	static size_t bufree = 0;
+	size_t mask;
+	char *p;
 
 #if ARCH_ALLOWS_UNALIGNED
-	if (mem_saving_level > 2) align = MEM_ALIGN_NONE;
+	if (mem_saving_level > 2)
+		align = MEM_ALIGN_NONE;
 #endif
 
-	start = buffer + --align; start &= ~align;
-	end = start + size;
+	mask = align - 1;
 
-	if (bufree >= end - buffer) {
-		bufree -= end - buffer;
-		buffer = end;
-	} else
-	if (size + align <= MEM_ALLOC_SIZE && bufree <= MEM_ALLOC_MAX_WASTE) {
-		buffer = (unsigned long)mem_alloc(MEM_ALLOC_SIZE);
+	do {
+		if (buffer) {
+			size_t need =
+			    size + mask - (((size_t)buffer + mask) & mask);
+			if (bufree >= need) {
+				p = buffer;
+				p += mask;
+				p -= (size_t)p & mask;
+				bufree -= need;
+				buffer = p + size;
+				return p;
+			}
+		}
+
+		if (size + mask > MEM_ALLOC_SIZE ||
+		    bufree > MEM_ALLOC_MAX_WASTE)
+			break;
+
+		buffer = mem_alloc(MEM_ALLOC_SIZE);
 		add_memory_link((void*)buffer);
 		bufree = MEM_ALLOC_SIZE;
-		return mem_alloc_tiny(size, align + 1);
-	} else {
-		start = ((unsigned long) mem_alloc(size + align) + align);
-		add_memory_link((void*)(start-align));
-		start &= ~align;
-	}
+	} while (1);
 
-	return (void *)start;
+	p = mem_alloc(size + mask);
+	p += mask;
+	p -= (size_t)p & mask;
+	return p;
 }
 
 void *mem_calloc_tiny(size_t size, size_t align) {
@@ -95,7 +108,7 @@ void *mem_calloc_tiny(size_t size, size_t align) {
 	return cp;
 }
 
-void *mem_alloc_copy(size_t size, size_t align, void *src)
+void *mem_alloc_copy(void *src, size_t size, size_t align)
 {
 	return memcpy(mem_alloc_tiny(size, align), src, size);
 }

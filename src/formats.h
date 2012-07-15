@@ -19,6 +19,15 @@ struct fmt_main;
 struct db_password;
 
 /*
+ * Default alignment (used unless known)
+ */
+#ifdef ARCH_ALLOWS_UNALIGNED
+#define DEFAULT_ALIGN MEM_ALIGN_NONE
+#else
+#define DEFAULT_ALIGN MEM_ALIGN_WORD
+#endif
+
+/*
  * Format property flags.
  */
 /* Uses case-sensitive passwords */
@@ -80,11 +89,13 @@ struct fmt_params {
 /* Maximum length of a plaintext password */
 	int plaintext_length;
 
-/* Size of binary ciphertext used for fast comparison, in bytes */
+/* Size and alignment of binary ciphertext, in bytes */
 	int binary_size;
+	int binary_align;
 
-/* Size of internal salt representation, in bytes */
+/* Size and alignment of internal salt representation, in bytes */
 	int salt_size;
+	int salt_align;
 
 /* Number of plaintexts hashed by a single crypt_all() method call */
 	int min_keys_per_crypt;
@@ -106,12 +117,6 @@ struct fmt_main;
 
 /*
  * Functions to implement a cracking algorithm.
- *
- * When passing binary ciphertexts or salts in internal representation, these
- * should be ARCH_WORD aligned if their size is that of ARCH_WORD or larger,
- * 4-byte aligned if they are smaller than ARCH_WORD but are at least 4 bytes,
- * or not necessarily aligned otherwise.  The functions may assume such
- * alignment.
  */
 struct fmt_methods {
 /* Initializes the algorithm's internal structures.

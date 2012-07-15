@@ -51,52 +51,54 @@ struct fmt_tests global_tests[] =
 // Define john integration
 struct fmt_main fmt_EPI =
 {
-  { // fmt_params
-    "epi",
-    "EPiServer SID salted SHA-1",
-    "32/" ARCH_BITS_STR,
-    "", // benchmark comment
-    0, // benchmark length
-    PLAINTEXT_LENGTH,
-    BINARY_LENGTH,
-    SALT_LENGTH,
-    1,
-    1,
-    FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
-    global_tests
-  },
-  { // fmt_methods
-    fmt_default_init,
-	fmt_default_prepare,
-    valid,
-    fmt_default_split,
-    binary,
-    salt,
-    fmt_default_source,
-    { // binary_hash[3]
-      fmt_default_binary_hash,
-      fmt_default_binary_hash,
-      fmt_default_binary_hash,
-      fmt_default_binary_hash,
-      fmt_default_binary_hash
-    },
-    fmt_default_salt_hash,
-    set_salt,
-    set_key,
-    get_key,
-    fmt_default_clear_keys,
-    crypt_all,
-    { // get_hash[3]
-      fmt_default_get_hash,
-      fmt_default_get_hash,
-      fmt_default_get_hash,
-      fmt_default_get_hash,
-      fmt_default_get_hash
-    },
-    cmp_all,
-    cmp_one,
-    cmp_exact
-  }
+	{ // fmt_params
+		"epi",
+		"EPiServer SID salted SHA-1",
+		"32/" ARCH_BITS_STR,
+		"", // benchmark comment
+		0, // benchmark length
+		PLAINTEXT_LENGTH,
+		BINARY_LENGTH,
+		DEFAULT_ALIGN,
+		SALT_LENGTH,
+		DEFAULT_ALIGN,
+		1,
+		1,
+		FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
+		global_tests
+	},
+	{ // fmt_methods
+		fmt_default_init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		salt,
+		fmt_default_source,
+		{ // binary_hash[3]
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{ // get_hash[3]
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
 
 /*

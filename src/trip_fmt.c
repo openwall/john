@@ -21,6 +21,7 @@
 #define CIPHERTEXT_LENGTH		10
 
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 static struct fmt_tests tests[] = {
 	{"Rk7VUsDT2U", "simpson"},
@@ -36,6 +37,7 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
 #define BINARY_SIZE			sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 
 #define TRIPCODE_SCALE			0x40
 
@@ -58,6 +60,7 @@ static int (*next_hash_func)(int index);
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			ARCH_SIZE
+#define BINARY_ALIGN			ARCH_SIZE
 
 #define MIN_KEYS_PER_CRYPT		0x40
 #define MAX_KEYS_PER_CRYPT		0x1000
@@ -571,7 +574,9 @@ struct fmt_main fmt_trip = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if DES_BS && DES_bs_mt

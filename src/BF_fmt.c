@@ -22,7 +22,9 @@
 #define CIPHERTEXT_LENGTH		60
 
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(BF_salt)
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
@@ -278,7 +280,9 @@ struct fmt_main fmt_BF = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if BF_mt > 1
