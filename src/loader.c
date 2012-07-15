@@ -91,8 +91,8 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 {
 	db->loaded = 0;
 
-	db->options = mem_alloc_copy(sizeof(struct db_options),
-		MEM_ALIGN_WORD, options);
+	db->options = mem_alloc_copy(options,
+	    sizeof(struct db_options), MEM_ALIGN_WORD);
 
 	db->salts = NULL;
 
@@ -449,21 +449,6 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	return words;
 }
 
-/*
- * Use a smaller alignment for binary ciphertexts and salts that are smaller
- * than ARCH_SIZE bytes.  This saves some memory when dealing with 32-bit
- * values on a 64-bit system.
- */
-static void *alloc_copy_autoalign(size_t size, void *src)
-{
-	size_t align = MEM_ALIGN_NONE;
-	if (size >= ARCH_SIZE)
-		align = MEM_ALIGN_WORD;
-	else if (size >= 4)
-		align = 4;
-	return mem_alloc_copy(size, align, src);
-}
-
 static void ldr_load_pw_line(struct db_main *db, char *line)
 {
 	static int skip_dupe_checking = 0;
@@ -560,8 +545,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 				mem_alloc_tiny(salt_size, MEM_ALIGN_WORD);
 			current_salt->next = last_salt;
 
-			current_salt->salt = alloc_copy_autoalign(
-				format->params.salt_size, salt);
+			current_salt->salt = mem_alloc_copy(salt,
+				format->params.salt_size,
+				format->params.salt_align);
 
 			current_salt->index = fmt_dummy_hash;
 			current_salt->bitmap = NULL;
@@ -596,8 +582,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			current_pw->binary = memcpy(&current_pw->source,
 				binary, format->params.binary_size);
 		else
-			current_pw->binary = alloc_copy_autoalign(
-				format->params.binary_size, binary);
+			current_pw->binary = mem_alloc_copy(binary,
+				format->params.binary_size,
+				format->params.binary_align);
 
 		if (format->methods.source == fmt_default_source)
 			current_pw->source = str_alloc_copy(piece);
