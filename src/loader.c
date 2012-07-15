@@ -259,6 +259,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 	} else {
 		for (i = 2; i < 4; i++)
 			fields[i] = ldr_get_field(&line, options->field_sep_char);
+		// Next line needed for l0phtcrack (in Jumbo)
+		for (; i < 6; i++)
+			fields[i] = ldr_get_field(&line, options->field_sep_char);
 		for (; i < 10; i++)
 			fields[i] = "/";
 	}
