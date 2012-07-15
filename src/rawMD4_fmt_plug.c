@@ -34,25 +34,28 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE			4
+#define BINARY_SIZE			16 // source()
 #define DIGEST_SIZE			16
 #define SALT_SIZE			0
 
+#define FORMAT_TAG			"$MD4$"
+#define TAG_LENGTH			5
+
 static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},
-	{"$MD4$6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
-	{"$MD4$31d6cfe0d16ae931b73c59d7e0c089c0", "" },
-	{"$MD4$934eb897904769085af8101ad9dabca2", "John the ripper" },
-	{"$MD4$cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
-	{"$MD4$585028aa0f794af812ee3be8804eb14a", "123456" },
-	{"$MD4$23580e2a459f7ea40f9efa148b63cafb", "12345" },
-	{"$MD4$2ae523785d0caf4d2fb557c12016185c", "123456789" },
-	{"$MD4$f3e80e83b29b778bc092bf8a7c6907fe", "iloveyou" },
-	{"$MD4$4d10a268a303379f224d8852f2d13f11", "princess" },
-	{"$MD4$bf75555ca19051f694224f2f5e0b219d", "1234567" },
-	{"$MD4$41f92cf74e3d2c3ba79183629a929915", "rockyou" },
-	{"$MD4$012d73e0fab8d26e0f4d65e36077511e", "12345678" },
-	{"$MD4$0ceb1fd260c35bd50005341532748de6", "abc123" },
+	{FORMAT_TAG "6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
+	{FORMAT_TAG "31d6cfe0d16ae931b73c59d7e0c089c0", "" },
+	{FORMAT_TAG "934eb897904769085af8101ad9dabca2", "John the ripper" },
+	{FORMAT_TAG "cafbb81fb64d9dd286bc851c4c6e0d21", "lolcode" },
+	{FORMAT_TAG "585028aa0f794af812ee3be8804eb14a", "123456" },
+	{FORMAT_TAG "23580e2a459f7ea40f9efa148b63cafb", "12345" },
+	{FORMAT_TAG "2ae523785d0caf4d2fb557c12016185c", "123456789" },
+	{FORMAT_TAG "f3e80e83b29b778bc092bf8a7c6907fe", "iloveyou" },
+	{FORMAT_TAG "4d10a268a303379f224d8852f2d13f11", "princess" },
+	{FORMAT_TAG "bf75555ca19051f694224f2f5e0b219d", "1234567" },
+	{FORMAT_TAG "41f92cf74e3d2c3ba79183629a929915", "rockyou" },
+	{FORMAT_TAG "012d73e0fab8d26e0f4d65e36077511e", "12345678" },
+	{FORMAT_TAG "0ceb1fd260c35bd50005341532748de6", "abc123" },
 	{NULL}
 };
 
@@ -93,8 +96,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$MD4$", 5))
-		p += 5;
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
 
 	q = p;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
@@ -107,13 +110,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[5 + CIPHERTEXT_LENGTH + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$MD4$", 5))
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
 
-	memcpy(out, "$MD4$", 5);
-	memcpy(out + 5, ciphertext, CIPHERTEXT_LENGTH + 1);
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
 
@@ -125,7 +128,7 @@ static void *binary(char *ciphertext)
 
 	if (!out) out = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
-	p = ciphertext + 5;
+	p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < DIGEST_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -309,6 +312,27 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
+static char *source(char *source, void *binary)
+{
+	static char Buf[CIPHERTEXT_LENGTH + TAG_LENGTH + 1];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
+
+	cpi = (unsigned char*)(binary);
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 struct fmt_main fmt_rawMD4 = {
 	{
 		FORMAT_LABEL,
@@ -330,7 +354,7 @@ struct fmt_main fmt_rawMD4 = {
 		split,
 		binary,
 		fmt_default_salt,
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,
