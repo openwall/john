@@ -598,6 +598,7 @@ static void *binary(char *ciphertext)
 	return (void*)realcipher;
 }
 
+#if 0 // Not possible with current interface
 static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	struct saltstruct *salt_s = (struct saltstruct*)(pw->source);
@@ -624,6 +625,7 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
+#endif
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
 static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }

@@ -635,8 +635,9 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(char *source, void *binary)
 {
+	static char Buf[CIPHERTEXT_LENGTH + 1];
 	unsigned int out[4];
 	unsigned char *cpi;
 	char *cpo;
@@ -646,7 +647,7 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	cpo = &Buf[4];
 
 	// we have to 'undo' the stuff done in the get_binary() function, to get back to the 'original' hash value.
-	memcpy(out, pw->binary, 16);
+	memcpy(out, binary, 16);
 	out[1] += SQRT_3;
 	out[1]  = (out[1] >> 17) | (out[1] << 15);
 	out[1] += SQRT_3 + (out[2] ^ out[3] ^ out[0]);
@@ -980,7 +981,7 @@ struct fmt_main fmt_NT = {
 		nt_split,
 		get_binary,
 		fmt_default_salt,
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

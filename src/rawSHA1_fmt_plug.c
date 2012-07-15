@@ -304,14 +304,15 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0x7ffffff; }
 #endif
 
-static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(char *source, void *binary)
 {
+	static char Buf[CIPHERTEXT_LENGTH + 1];
 	unsigned char realcipher[BINARY_SIZE];
 	unsigned char *cpi;
 	char *cpo;
 	int i;
 
-	memcpy(realcipher, pw->binary, BINARY_SIZE);
+	memcpy(realcipher, binary, BINARY_SIZE);
 #ifdef MMX_COEF
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
@@ -350,7 +351,7 @@ struct fmt_main fmt_rawSHA1 = {
 		split,
 		binary,
 		fmt_default_salt,
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -2133,13 +2133,14 @@ static void *binary(char *_ciphertext)
 }
 
 // NOTE NOTE NOTE, we have currently ONLY implemented a non-salted function!!!
-static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(char *source, void *binary)
 {
+	static char Buf[32 + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2149,13 +2150,14 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	return Buf;
 }
 
-static char *source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha(char *source, void *binary)
 {
+	static char Buf[40 + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 20; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2164,13 +2166,14 @@ static char *source_sha(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha224(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha224(char *source, void *binary)
 {
+	static char Buf[(224/8*2) + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 28; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2179,13 +2182,14 @@ static char *source_sha224(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha256(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha256(char *source, void *binary)
 {
+	static char Buf[(256/8*2) + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 32; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2194,13 +2198,14 @@ static char *source_sha256(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha384(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha384(char *source, void *binary)
 {
+	static char Buf[(384/8*2) + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 48; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2209,13 +2214,14 @@ static char *source_sha384(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-static char *source_sha512(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_sha512(char *source, void *binary)
 {
+	static char Buf[(512/8*2) + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 64; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2224,13 +2230,14 @@ static char *source_sha512(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	*cpo = 0;
 	return Buf;
 }
-static char *source_gost(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source_gost(char *source, void *binary)
 {
+	static char Buf[32 * 2 + 8 + 6 + 1];
 	char *cpo = Buf;
 	unsigned char *cpi;
 	int i;
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 32; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -8584,7 +8591,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
 
-#if 0
 	if (Setup->startFlags&MGF_SOURCE) pFmt->methods.source = source;
 	if (Setup->startFlags&MGF_SOURCE_SHA) pFmt->methods.source = source_sha;
 	if (Setup->startFlags&MGF_SOURCE_SHA224) pFmt->methods.source = source_sha224;
@@ -8592,7 +8598,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	if (Setup->startFlags&MGF_SOURCE_SHA384) pFmt->methods.source = source_sha384;
 	if (Setup->startFlags&MGF_SOURCE_SHA512) pFmt->methods.source = source_sha512;
 	if (Setup->startFlags&MGF_SOURCE_GOST)   pFmt->methods.source = source_gost;
-#endif
 
 	if (!curdat.store_keys_in_input && Setup->startFlags&MGF_KEYS_INPUT_BE_SAFE)
 		curdat.store_keys_in_input = 3;

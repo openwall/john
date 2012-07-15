@@ -318,8 +318,9 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0x7ffffff; }
 #endif
 
-static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(char *source, void *binary)
 {
+	static char Buf[CIPHERTEXT_LENGTH + 1];
 	unsigned char realcipher[BINARY_SIZE];
 	unsigned char *cpi;
 	char *cpo;
@@ -327,24 +328,24 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 
 #ifdef MMX_COEF
 	for (i = 0; i < NBKEYS; ++i) {
-		if (crypt_key[(i/MMX_COEF)*20+MMX_COEF+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[1]) {
+		if (crypt_key[(i/MMX_COEF)*20+MMX_COEF+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[1]) {
 			// Ok, we may have found it.  Check the next 3 DWORDS
-			if (crypt_key[(i/MMX_COEF)*20+MMX_COEF*2+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[2] &&
-			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*3+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
-			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*4+(i%MMX_COEF)] == ((ARCH_WORD_32*)(*pw).binary)[4]) {
-				((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[(i/MMX_COEF)*20+(i%MMX_COEF)];
+			if (crypt_key[(i/MMX_COEF)*20+MMX_COEF*2+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[2] &&
+			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*3+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[3] &&
+			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*4+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[4]) {
+				((ARCH_WORD_32*)binary)[0] = crypt_key[(i/MMX_COEF)*20+(i%MMX_COEF)];
 				break;
 			}
 		}
 	}
 #else
-	if (crypt_key[1] == ((ARCH_WORD_32*)(*pw).binary)[1] &&
-		crypt_key[2] == ((ARCH_WORD_32*)(*pw).binary)[2] &&
-		crypt_key[3] == ((ARCH_WORD_32*)(*pw).binary)[3] &&
-		crypt_key[4] == ((ARCH_WORD_32*)(*pw).binary)[4])
-		   ((ARCH_WORD_32*)(*pw).binary)[0] = crypt_key[0];
+	if (crypt_key[1] == ((ARCH_WORD_32*)binary)[1] &&
+		crypt_key[2] == ((ARCH_WORD_32*)binary)[2] &&
+		crypt_key[3] == ((ARCH_WORD_32*)binary)[3] &&
+		crypt_key[4] == ((ARCH_WORD_32*)binary)[4])
+		   ((ARCH_WORD_32*)binary)[0] = crypt_key[0];
 #endif
-	memcpy(realcipher, pw->binary, BINARY_SIZE);
+	memcpy(realcipher, binary, BINARY_SIZE);
 #ifdef MMX_COEF
 	alter_endianity(realcipher, BINARY_SIZE);
 #endif
@@ -383,7 +384,7 @@ struct fmt_main fmt_rawSHA1_LI = {
 		split,
 		binary,
 		fmt_default_salt,
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

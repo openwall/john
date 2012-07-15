@@ -677,8 +677,9 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x7ffffff; }
 #endif
 
-static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+static char *source(char *source, void *binary)
 {
+	static char Buf[CIPHERTEXT_LENGTH + 1];
 	unsigned char *cpi;
 	char *cpo;
 	int i;
@@ -686,7 +687,7 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 	strcpy(Buf, "$NT$");
 	cpo = &Buf[4];
 
-	cpi = (unsigned char*)(pw->binary);
+	cpi = (unsigned char*)(binary);
 
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
@@ -721,7 +722,7 @@ struct fmt_main fmt_magnumNT = {
 		split,
 		binary,
 		fmt_default_salt,
-		fmt_default_source,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,
