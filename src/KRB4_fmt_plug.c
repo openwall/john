@@ -102,7 +102,7 @@ static struct key_st {
 
 
 static int
-krb4_valid(char *ciphertext, struct fmt_main *pFmt)
+krb4_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *tgt;
 
@@ -264,6 +264,7 @@ struct fmt_main fmt_KRB4 = {
 		fmt_default_split,
 		fmt_default_binary,
 		krb4_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -286,7 +287,6 @@ struct fmt_main fmt_KRB4 = {
 		},
 		krb4_cmp_all,
 		krb4_cmp_one,
-		krb4_cmp_exact,
-		fmt_default_get_source
+		krb4_cmp_exact
 	}
 };

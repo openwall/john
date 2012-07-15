@@ -264,7 +264,7 @@ static void domino_big_md(unsigned char * saved_key, int size, unsigned char * c
 	memcpy(crypt_key, state, 16);
 }
 
-static int dominosec_valid(char *ciphertext, struct fmt_main *pFmt)
+static int dominosec_valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned char ch;
@@ -434,6 +434,7 @@ struct fmt_main fmt_DOMINOSEC = {
 		fmt_default_split,
 		dominosec_binary,
 		dominosec_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -456,7 +457,6 @@ struct fmt_main fmt_DOMINOSEC = {
 		},
 		dominosec_cmp_all,
 		dominosec_cmp_all,
-		dominosec_cmp_exact,
-		fmt_default_get_source
+		dominosec_cmp_exact
 	}
 };

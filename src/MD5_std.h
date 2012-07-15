@@ -140,7 +140,7 @@ extern MD5_std_combined MD5_std_all;
  * Initializes the internal structures.
  */
 struct fmt_main;
-extern void MD5_std_init(struct fmt_main *pFmt);
+extern void MD5_std_init(struct fmt_main *self);
 
 /*
  * Sets a salt for MD5_std_crypt().

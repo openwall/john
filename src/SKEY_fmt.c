@@ -75,7 +75,7 @@ static unsigned char	saved_key[SKEY_BINKEY_SIZE];
 static char	saved_pass[PLAINTEXT_LENGTH];
 
 static int
-skey_valid(char *ciphertext, struct fmt_main *pFmt)
+skey_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, buf[24];
 
@@ -234,6 +234,7 @@ struct fmt_main fmt_SKEY = {
 		fmt_default_split,
 		fmt_default_binary,
 		skey_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -252,8 +253,7 @@ struct fmt_main fmt_SKEY = {
 		},
 		skey_cmp_all,
 		skey_cmp_one,
-		skey_cmp_exact,
-		fmt_default_get_source
+		skey_cmp_exact
 	}
 };
 

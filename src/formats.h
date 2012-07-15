@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012 by Solar Designer
  *
  * ...with a change in the jumbo patch, by JimF
  */
@@ -54,7 +54,7 @@ struct db_password;
  */
 struct fmt_tests {
 	char *ciphertext, *plaintext;
-	char *flds[10];
+	char *fields[10];
 };
 
 /*
@@ -99,31 +99,39 @@ struct fmt_params {
 };
 
 /*
+ * fmt_main is declared for real further down this file, but we refer to it in
+ * function prototypes in fmt_methods.
+ */
+struct fmt_main;
+
+/*
  * Functions to implement a cracking algorithm.
  *
  * When passing binary ciphertexts or salts in internal representation, these
- * should be word aligned; the functions may assume such alignment.
+ * should be ARCH_WORD aligned if their size is that of ARCH_WORD or larger,
+ * 4-byte aligned if they are smaller than ARCH_WORD but are at least 4 bytes,
+ * or not necessarily aligned otherwise.  The functions may assume such
+ * alignment.
  */
 struct fmt_methods {
-/* Initializes the algorithm's internal structures; valid() prepare() and split()
- * are the only methods that are allowed to be called before a call to init().
- * Note that initializing an algorithm might de-initialize some others (if
- * a shared underlying resource is used). */
-	void (*init)(struct fmt_main *);
+/* Initializes the algorithm's internal structures.
+ * prepare(), valid(), and split() are the only methods that are allowed to be
+ * called before a call to init().
+ * Note that initializing an algorithm might de-initialize some others (if a
+ * shared underlying resource is used). */
+	void (*init)(struct fmt_main *self);
 
-/* returns a prepared ciphertext if this format is 'possible' to be used.
- * The 'split_fields array, is the actual contents of the fields, read from
- * the The default returns split_fields[1].  However, this function CAN
- * return significantly different data than is in field[1].  It may append
- * a signature, it may put the user name into the ciphertext, etc.  This
- * function (and valid) are/may be called prior to the calling the init()
- * function. This function (and valid), MUST be able to stand on their own. */
-	char * (*prepare)(char *split_fields[10], struct fmt_main *pFmt);
+/* Extracts the ciphertext string out of the input file fields.  Normally, this
+ * will simply return field[1], but in some special cases it may use another
+ * field (e.g., when the hash type is commonly used with PWDUMP rather than
+ * /etc/passwd format files) or/and it may also extract and include the
+ * username, etc. */
+	char *(*prepare)(char *fields[10], struct fmt_main *self);
 
-/* Checks if an ASCII ciphertext is valid for this format. Returns zero for
- * invalid ciphertexts, or a number of parts the ciphertext should be split
+/* Checks if an ASCII ciphertext is valid for this format.  Returns zero for
+ * invalid ciphertexts, or the number of parts the ciphertext should be split
  * into (up to 9, will usually be 1). */
-	int (*valid)(char *ciphertext, struct fmt_main *);
+	int (*valid)(char *ciphertext, struct fmt_main *self);
 
 /* Splits a ciphertext into several pieces and returns the piece with given
  * index, starting from 0 (will usually return the ciphertext unchanged).
@@ -131,13 +139,17 @@ struct fmt_methods {
  * irrespective of the case of characters (upper/lower/mixed) used in their
  * encoding, split() must unify the case (e.g., convert to all-lowercase)
  * and FMT_SPLIT_UNIFIES_CASE must be set. */
-	char *(*split)(char *ciphertext, int index);
+	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 
 /* Converts an ASCII ciphertext to binary, possibly using the salt */
 	void *(*binary)(char *ciphertext);
 
 /* Converts an ASCII salt to its internal representation */
 	void *(*salt)(char *ciphertext);
+
+/* Reconstructs the ASCII ciphertext from its binary (saltless only).
+ * Alternatively, in the simplest case simply returns "source" as-is. */
+	char *(*source)(char *source, void *binary);
 
 /* These functions calculate a hash out of a binary ciphertext. To be used
  * for hash table initialization. One of them should be selected depending
@@ -182,19 +194,6 @@ struct fmt_methods {
 
 /* Compares an ASCII ciphertext against a particular crypt_all() output */
 	int (*cmp_exact)(char *source, int index);
-
-/* The format is able to reconstruct the original source hash, from the binary,
- * and salt (the salt is stored in the 'source' pointer for the format IF
- * this method IS implemented within a format. The format will have to store
- * the entire binary in the return from binary().  This is an optional method.
- * If this pointer is set to fmt_default_get_source, then JtR will operate in
- * legacy mode, storing the FULL source string in source.  The fmt_default_get_source
- * simply returns the source. If this method IS implemented by a format,
- * then JtR will no longer store the source hashes into source, but puts a pointer
- * to the PROPER salt into this pointer. Then the format within get_source can
- * rebuild the source from the pw->binary and pw->source (the pw->source is the salt).
- */
-	char *(*get_source)(struct db_password *current_pw, char ReturnBuf[LINE_BUFFER_SIZE]);
 };
 
 /*
@@ -240,18 +239,19 @@ extern char *fmt_self_test(struct fmt_main *format);
 /*
  * Default methods.
  */
-extern void fmt_default_init(struct fmt_main *pFmt);
-extern char *fmt_default_prepare(char *split_fields[10], struct fmt_main *pFmt);
-extern int fmt_default_valid(char *ciphertext, struct fmt_main *pFmt);
-extern char *fmt_default_split(char *ciphertext, int index);
+extern void fmt_default_init(struct fmt_main *self);
+extern char *fmt_default_prepare(char *fields[10], struct fmt_main *self);
+extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
+extern char *fmt_default_split(char *ciphertext, int index,
+    struct fmt_main *self);
 extern void *fmt_default_binary(char *ciphertext);
 extern void *fmt_default_salt(char *ciphertext);
+extern char *fmt_default_source(char *source, void *binary);
 extern int fmt_default_binary_hash(void *binary);
 extern int fmt_default_salt_hash(void *salt);
 extern void fmt_default_set_salt(void *salt);
 extern void fmt_default_clear_keys(void);
 extern int fmt_default_get_hash(int index);
-extern char *fmt_default_get_source(struct db_password *current_pw, char ReturnBuf[LINE_BUFFER_SIZE]);
 
 /*
  * Dummy hash function to use for salts with no hash table.

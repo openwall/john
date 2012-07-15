@@ -63,7 +63,7 @@ static uint64_t H[8] = {
 	0x5be0cd19137e2179LL
 };
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cuda_sha512_init();
 }
@@ -75,7 +75,7 @@ static void copy_hash_back()
         hash_copy_back = 1;
     }
 }
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos = ciphertext;
 	/* Require lowercase hex digits (assume ASCII) */
@@ -268,6 +268,7 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -294,8 +295,7 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };
 #else

@@ -233,7 +233,7 @@ static void find_best_kpc(void){
     create_clobj(optimal_kpc);
 }
 
-static void fmt_ssha_init(struct fmt_main *pFmt)
+static void fmt_ssha_init(struct fmt_main *self)
 {
 	char *temp;
 
@@ -254,7 +254,7 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 
 	if (!local_work_size) {
 		create_clobj(SSHA_NUM_KEYS);
-		opencl_find_best_workgroup(pFmt);
+		opencl_find_best_workgroup(self);
 		release_clobj();
 	}
 
@@ -276,7 +276,7 @@ static void fmt_ssha_init(struct fmt_main *pFmt)
 		find_best_kpc();
 	}
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
-	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
+	self->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
 
@@ -302,7 +302,7 @@ static void *get_salt(char *ciphertext){
 	return (void *) &realcipher[BINARY_SIZE];
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	if (ciphertext && strlen(ciphertext) == CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH)
 		return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
@@ -408,51 +408,52 @@ static void crypt_all(int count)
 
 struct fmt_main fmt_opencl_NSLDAPS = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
-	    tests}, {
-		    fmt_ssha_init,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    binary,
-		    get_salt,
-		    {
-				binary_hash_0,
-				binary_hash_1,
-				binary_hash_2,
-				binary_hash_3,
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		fmt_ssha_init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		get_salt,
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
 			binary_hash_4,
 			binary_hash_5,
 			binary_hash_6
-		    },
-		    salt_hash,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
+		},
+		salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
 			get_hash_4,
 			get_hash_5,
 			get_hash_6
-		    },
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact,
-		fmt_default_get_source
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

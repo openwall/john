@@ -236,7 +236,7 @@ static void set_key_utf8(char *_key, int index);
 static void set_key_encoding(char *_key, int index);
 extern struct fmt_main fmt_NT;
 
-static void fmt_NT_init(struct fmt_main *pFmt)
+static void fmt_NT_init(struct fmt_main *self)
 {
 	memset(last_i,0,4*NT_NUM_KEYS);
 #if defined(NT_X86_64)
@@ -284,7 +284,7 @@ static void fmt_NT_init(struct fmt_main *pFmt)
 	}
 }
 
-static char * nt_split(char *ciphertext, int index)
+static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
@@ -304,7 +304,7 @@ static char * nt_split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -321,19 +321,19 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 // here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
 // Note, we address the user id inside loader.
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[33+5];
 	extern struct options_main options;
-	if (!valid(split_fields[1], pFmt)) {
+	if (!valid(split_fields[1], self)) {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[3]);
-			if (valid(out,pFmt))
+			if (valid(out,self))
 				return out;
 		}
 		if (options.format && !strcmp(options.format, "nt") && strlen(split_fields[1]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[1]);
-			if (valid(out,pFmt))
+			if (valid(out,self))
 				return out;
 		}
 	}
@@ -634,7 +634,8 @@ static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
-static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 {
 	unsigned int out[4];
 	unsigned char *cpi;
@@ -979,6 +980,7 @@ struct fmt_main fmt_NT = {
 		nt_split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -1005,7 +1007,6 @@ struct fmt_main fmt_NT = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		get_source
+		cmp_exact
 	}
 };

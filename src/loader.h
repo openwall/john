@@ -19,29 +19,30 @@
 #endif
 
 /*
- * Password list (with a fixed salt) entry.
+ * Password hash list entry (with a fixed salt).
  */
 struct db_password {
-/* Pointer to next password with the same salt */
+/* Pointer to next password hash with the same salt */
 	struct db_password *next;
 
-/* Pointer to next password with the same salt and hash (used for a different
- * purpose while loading). */
+/* After loading is completed: pointer to next password hash with the same salt
+ * and hash-of-hash.
+ * While loading: pointer to next password hash with the same hash-of-hash. */
 	struct db_password *next_hash;
 
-/* Some bytes of binary ciphertext for fast comparison */
+/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
 	void *binary;
 
-/* ASCII ciphertext for exact comparison and saving with cracked passwords */
-/* NOTE, for formats which implement get_source(), this pointer will point */
-/* to a salt. NOTE, it is (void *salt, so should be retypecast to void*    */
+/* ASCII ciphertext for exact comparison and saving with cracked passwords.
+ * Alternatively, when the source() method is non-default this field is either
+ * unused or this pointer may be reused to hold the binary value above. */
 	char *source;
 
 /* Login field from the password file, with ":1" or ":2" appended if the
  * ciphertext was split into two parts. */
 	char *login;
 
-/* Words from GECOS field -- loaded for "single crack" mode only */
+/* Words from the GECOS field (loaded for "single crack" mode only) */
 	struct list_main *words;
 };
 

@@ -137,7 +137,7 @@ static void *salt(char *ciphertext)
 	return &s;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *hash = strrchr(ciphertext, '#') + 1;
 	int hashlength = 0;

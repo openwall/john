@@ -84,7 +84,7 @@ static char keys_mode;
 static int sign_extension_bug;
 static BF_salt saved_salt;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {	// BF_select_device(platform,device);
         BF_select_device(platform_id,gpu_id);
 	keys_mode = 'a';
@@ -93,7 +93,7 @@ static void init(struct fmt_main *pFmt)
 	atexit(BF_clear_buffer);
 }
 
-static int valid(char *ciphertext,struct fmt_main *pFmt)
+static int valid(char *ciphertext,struct fmt_main *self)
 {
 	int rounds;
 	char *pos;
@@ -266,6 +266,7 @@ struct fmt_main fmt_opencl_bf = {
 		fmt_default_split,
 		opencl_BF_std_get_binary,
 		opencl_BF_std_get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -292,7 +293,6 @@ struct fmt_main fmt_opencl_bf = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

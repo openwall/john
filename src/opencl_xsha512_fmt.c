@@ -152,7 +152,7 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
@@ -196,14 +196,14 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 	atexit(release_all);
 
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -218,14 +218,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH + 6;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char Buf[200];
 	if (!strncmp(split_fields[1], "$LION$", 6))
 		return split_fields[1];
 	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[0]);
-		if (valid(Buf, pFmt)) {
+		if (valid(Buf, self)) {
 			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
 			    MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
@@ -234,7 +234,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	}
 	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[1]);
-		if (valid(Buf, pFmt)) {
+		if (valid(Buf, self)) {
 			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH + 7,
 			    MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
@@ -480,6 +480,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -506,8 +507,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };
 #else

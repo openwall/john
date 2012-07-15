@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2012 by Solar Designer
  */
 
 #include <string.h>
@@ -460,7 +460,7 @@ static void init_KS(void)
 	memcpy(DES_KS_current, DES_KS_table, sizeof(DES_KS));
 }
 
-void DES_std_init(struct fmt_main *pFmt)
+void DES_std_init(void)
 {
 	init_SPE();
 	init_IP_E();
@@ -1080,6 +1080,22 @@ ARCH_WORD *DES_do_IP(ARCH_WORD in[2])
 	out[0] = out[1] = 0;
 	for (dst = 0; dst < 64; dst++) {
 		src = DES_IP[dst ^ 0x20];
+
+		if (in[src >> 5] & (1 << (src & 0x1F)))
+			out[dst >> 5] |= 1 << (dst & 0x1F);
+	}
+
+	return out;
+}
+
+ARCH_WORD *DES_do_FP(ARCH_WORD in[2])
+{
+	static ARCH_WORD out[2];
+	int src, dst;
+
+	out[0] = out[1] = 0;
+	for (src = 0; src < 64; src++) {
+		dst = DES_IP[src ^ 0x20];
 
 		if (in[src >> 5] & (1 << (src & 0x1F)))
 			out[dst >> 5] |= 1 << (dst & 0x1F);

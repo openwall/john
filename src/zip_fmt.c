@@ -53,7 +53,7 @@ static struct fmt_tests zip_tests[] = {
 
 struct fmt_main zip_fmt;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$zip$*", 6);
 }
@@ -170,6 +170,7 @@ struct fmt_main zip_fmt = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
@@ -184,7 +185,6 @@ struct fmt_main zip_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

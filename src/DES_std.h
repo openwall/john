@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2000 by Solar Designer
+ * Copyright (c) 1996-2000,2012 by Solar Designer
  */
 
 /*
@@ -124,8 +124,7 @@ extern ARCH_WORD DES_count;
 /*
  * Initializes the internal structures.
  */
-struct fmt_main;
-extern void DES_std_init(struct fmt_main *pFmt);
+extern void DES_std_init(void);
 
 /*
  * Sets a salt for DES_std_crypt().
@@ -177,11 +176,16 @@ extern ARCH_WORD DES_std_get_salt(char *ciphertext);
 extern ARCH_WORD DES_raw_get_count(char *ciphertext);
 
 /*
- * Does the Initial Permutation; to be used at startup only (doesn't
- * require that DES_std_init() has been called, is not as fast as it
- * could be).
+ * Does the Initial Permutation; to be used at startup only (doesn't require
+ * that DES_std_init() has been called, is by far not as fast as it could be).
  */
 extern ARCH_WORD *DES_do_IP(ARCH_WORD in[2]);
+
+/*
+ * Ditto for Final Permutation; to be used for reconstruction of source from
+ * binary ciphertext at startup and when a password is successfully cracked.
+ */
+extern ARCH_WORD *DES_do_FP(ARCH_WORD in[2]);
 
 /*
  * Converts an ASCII ciphertext to binary.

@@ -110,7 +110,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static int dmd5_valid(char *ciphertext, struct fmt_main *pFmt)
+static int dmd5_valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned char *c = (unsigned char *)ciphertext + 12;
 	unsigned char f = 0;
@@ -319,6 +319,7 @@ struct fmt_main fmt_DMD5 = {
 		fmt_default_split,
 		dmd5_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -337,7 +338,6 @@ struct fmt_main fmt_DMD5 = {
 		},
 		dmd5_cmp_all,
 		dmd5_cmp_all,
-		dmd5_cmp_exact,
-		fmt_default_get_source
+		dmd5_cmp_exact
 	}
 };

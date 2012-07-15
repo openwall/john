@@ -120,7 +120,7 @@ static unsigned EncKeyLen;
 static unsigned loopCnt;
 static char out[PLAINTEXT_LENGTH+1];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 		int i;
 		unsigned count_log2;
@@ -142,7 +142,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		return 1;
 }
 
-static void phpassmd5_init(struct fmt_main *pFmt) {
+static void phpassmd5_init(struct fmt_main *self) {
 #ifdef MMX_COEF
 		memset(cursalt, 0, sizeof(cursalt));
 		memset(crypt_key, 0, sizeof(crypt_key));

@@ -31,7 +31,7 @@ static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH]; // set by set_salt and 
                                                          // the extra plaintext_length is needed because the
                                                          // current key is copied there before hashing
 
-int valid(char *ciphertext, struct fmt_main *pFmt);
+int valid(char *ciphertext, struct fmt_main *self);
 void* binary(char *ciphertext);
 void* salt(char *ciphertext);
 void set_salt(void *salt);
@@ -72,6 +72,7 @@ struct fmt_main fmt_EPI =
     fmt_default_split,
     binary,
     salt,
+    fmt_default_source,
     { // binary_hash[3]
       fmt_default_binary_hash,
       fmt_default_binary_hash,
@@ -94,15 +95,14 @@ struct fmt_main fmt_EPI =
     },
     cmp_all,
     cmp_one,
-    cmp_exact,
-	fmt_default_get_source
+    cmp_exact
   }
 };
 
 /*
  * Expects ciphertext of format: 0xHEX*60 0xHEX*40
  */
-int valid(char *ciphertext, struct fmt_main *pFmt)
+int valid(char *ciphertext, struct fmt_main *self)
 {
   unsigned int len, n;
 

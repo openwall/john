@@ -61,7 +61,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static SHA256_CTX ctx;
 static ARCH_WORD_32 crypt_out[8] = {0}; // 8 * 32 = 256
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
     int i;
 
@@ -244,6 +244,7 @@ struct fmt_main fmt_hmailserver = {
         fmt_default_split,
         get_binary,
         salt,
+        fmt_default_source,
         {
             binary_hash_0,
             binary_hash_1,
@@ -270,7 +271,6 @@ struct fmt_main fmt_hmailserver = {
         },
         cmp_all,
         cmp_all,
-        cmp_exact,
-		fmt_default_get_source
+        cmp_exact
     }
 };

@@ -41,14 +41,14 @@ int zerolengthkey = 0;
 static char crypt_key[BINARY_SIZE + 1];
 static char saved_key[PLAINTEXT_LENGTH + 1];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt) {
+static int valid(char *ciphertext, struct fmt_main *self) {
     if (strncmp(ciphertext, "+", 1) != 0) return 0;
     if (strlen(ciphertext) != 13) return 0;
 
     return 1;
 }
 
-void init(struct fmt_main *pFmt) {
+void init(struct fmt_main *self) {
     blowfish_first_init();
 }
 
@@ -100,6 +100,7 @@ struct fmt_main fmt_BFEgg = {
     fmt_default_split,
     fmt_default_binary,
     fmt_default_salt,
+    fmt_default_source,
     {
 	fmt_default_binary_hash,
 	fmt_default_binary_hash,
@@ -122,7 +123,6 @@ struct fmt_main fmt_BFEgg = {
 	},
 	    cmp_all,
 	    cmp_all,
-	    cmp_exact,
-		fmt_default_get_source
+	    cmp_exact
   }
 };

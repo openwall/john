@@ -84,7 +84,7 @@ binary(char *ciphertext) {
 }
 
 static int
-valid(char *ciphertext, struct fmt_main *pFmt)
+valid(char *ciphertext, struct fmt_main *self)
 {
   if(ciphertext && strlen(ciphertext) == CIPHERTEXT_LENGTH)
     return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);

@@ -307,6 +307,32 @@ ARCH_WORD_32 *DES_bs_get_binary_LM(char *ciphertext)
 	return DES_bs_get_binary_raw(DES_do_IP(block), 1);
 }
 
+char *DES_bs_get_source_LM(ARCH_WORD_32 *raw)
+{
+	static char out[17];
+	char *p;
+	ARCH_WORD swapped[2], *block, value;
+	int l, h;
+	int index;
+
+	swapped[0] = raw[1];
+	swapped[1] = raw[0];
+
+	block = DES_do_FP(swapped);
+
+	p = out;
+	for (index = 0; index < 16; index += 2) {
+		value = (block[index >> 3] >> ((index << 2) & 0x18)) & 0xff;
+		l = DES_LM_reverse[value & 0xf];
+		h = DES_LM_reverse[value >> 4];
+		*p++ = itoa16[l];
+		*p++ = itoa16[h];
+	}
+	*p = 0;
+
+	return out;
+}
+
 static MAYBE_INLINE int DES_bs_get_hash(int index, int count, int trip)
 {
 	int result;

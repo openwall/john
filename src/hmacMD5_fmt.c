@@ -85,7 +85,7 @@ static unsigned char cursalt[SALT_SIZE];
 static char saved_plain[PLAINTEXT_LENGTH + 1];
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	int i;
@@ -96,7 +96,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int pos, i;
 	char *p;
@@ -370,6 +370,7 @@ struct fmt_main fmt_hmacMD5 = {
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -392,7 +393,6 @@ struct fmt_main fmt_hmacMD5 = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2004,2006,2008-2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2004,2006,2008-2012 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum
  */
@@ -150,15 +150,13 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		two_salts[index] = mem_alloc(format->params.salt_size);
 
 		if ((ciphertext = format->params.tests[index].ciphertext)) {
-			struct fmt_tests *current =
-			    &format->params.tests[index];
-			char *prepared;
-			current->flds[1] = current->ciphertext;
-			prepared = format->methods.prepare(current->flds, format);
-			ciphertext = format->methods.split(prepared, 0);
+			char **fields = format->params.tests[index].fields;
+			if (!fields[1])
+				fields[1] = ciphertext;
+			ciphertext = format->methods.split(
+			    format->methods.prepare(fields, format), 0, format);
 			salt = format->methods.salt(ciphertext);
-		}
-		else
+		} else
 			salt = two_salts[0];
 
 		memcpy(two_salts[index], salt, format->params.salt_size);

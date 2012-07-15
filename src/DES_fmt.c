@@ -74,7 +74,7 @@ static struct {
 struct fmt_main fmt_DES;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	DES_bs_init(0, DES_bs_cpt);
 #if DES_bs_mt
@@ -85,7 +85,7 @@ static void init(struct fmt_main *pFmt)
 
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -109,7 +109,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[14];
 
@@ -373,6 +373,7 @@ struct fmt_main fmt_DES = {
 			DES_std_get_binary,
 #endif
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -411,7 +412,6 @@ struct fmt_main fmt_DES = {
 		cmp_all,
 #endif
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

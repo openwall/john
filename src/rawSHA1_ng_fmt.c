@@ -264,7 +264,7 @@ static void * sha1_fmt_binary(char *ciphertext)
     return result;
 }
 
-static char *sha1_fmt_split(char *ciphertext, int index)
+static char *sha1_fmt_split(char *ciphertext, int index, struct fmt_main *self)
 {
     static char result[sizeof(kFormatTag) + SHA1_DIGEST_SIZE * 2];
 
@@ -671,6 +671,7 @@ struct fmt_main sha1_fmt_ng = {
         .split              = sha1_fmt_split,
         .binary             = sha1_fmt_binary,
         .salt               = fmt_default_salt,
+        .source             = fmt_default_source,
         .salt_hash          = fmt_default_salt_hash,
         .set_salt           = fmt_default_set_salt,
         .set_key            = sha1_fmt_set_key,
@@ -697,8 +698,7 @@ struct fmt_main sha1_fmt_ng = {
         },
         .cmp_all            = sha1_fmt_cmp_all,
         .cmp_one            = sha1_fmt_cmp_one,
-        .cmp_exact          = sha1_fmt_cmp_exact,
-        .get_source         = fmt_default_get_source,
+        .cmp_exact          = sha1_fmt_cmp_exact
     },
 };
 

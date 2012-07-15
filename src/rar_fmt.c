@@ -574,7 +574,7 @@ static void find_best_gws(int do_benchmark)
 }
 #endif	/* OpenCL */
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef CL_VERSION_1_0
 	char *temp;
@@ -590,8 +590,8 @@ static void init(struct fmt_main *pFmt)
 
 	/* We mimic the lengths of cRARk for comparisons */
 	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
-		pFmt->params.benchmark_comment = " (6 characters)";
-		pFmt->params.tests = gpu_tests;
+		self->params.benchmark_comment = " (6 characters)";
+		self->params.tests = gpu_tests;
 #if defined(DEBUG) && !defined(ALWAYS_OPENCL)
 		fprintf(stderr, "Note: will use CPU for self-tests and Single mode.\n");
 #endif
@@ -655,7 +655,7 @@ static void init(struct fmt_main *pFmt)
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 #ifndef CL_VERSION_1_0	/* OpenCL gets to decide */
 	*mkpc = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
 #endif
@@ -663,7 +663,7 @@ static void init(struct fmt_main *pFmt)
 #endif /* _OPENMP */
 
 	if (options.utf8)
-		pFmt->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 
 	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) * *mkpc, MEM_ALIGN_WORD);
@@ -689,7 +689,7 @@ static void init(struct fmt_main *pFmt)
 	}
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$RAR3$*", 7);
 }
@@ -991,6 +991,7 @@ struct fmt_main rar_fmt = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
@@ -1005,7 +1006,6 @@ struct fmt_main rar_fmt = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

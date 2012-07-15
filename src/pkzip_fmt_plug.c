@@ -202,7 +202,7 @@ unsigned get_hex_num(const u8 *cp) {
 /*                                                                                   */
 /* NOTE, we may want to later make a 'prepare()' function, and do all file loading   */
 /* there, so that we have a 'complete' format line, with the zip data contained.     */
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	u8 *p, *cp;
 	int cnt, len, data_len;
@@ -358,7 +358,7 @@ static u8 *buf_copy (char *p, int len) {
 	memcpy(op, p, len);
 	return op;
 }
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	unsigned short n=0;
 	/*
@@ -1597,6 +1597,7 @@ struct fmt_main fmt_pkzip = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash0,
 			NULL,
@@ -1619,7 +1620,6 @@ struct fmt_main fmt_pkzip = {
 		},
 		cmp_all,
 		cmp_one,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -85,13 +85,13 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SET_INP2LEN32                0x00000800
 // the unicode_b4_crypt does a unicode convert, prior to crypt_in2, base16-in1, etc.  It can NOT be used with KEYS_INPUT.
 #define MGF_KEYS_UNICODE_B4_CRYPT        0x00001000
-#define MGF_GET_SOURCE                   0x00002000
-#define MGF_GET_SOURCE_SHA               0x00004000
-#define MGF_GET_SOURCE_SHA224            0x00008000
-#define MGF_GET_SOURCE_SHA256            0x00010000
-#define MGF_GET_SOURCE_SHA384            0x00020000
-#define MGF_GET_SOURCE_SHA512            0x00040000
-#define MGF_GET_SOURCE_GOST              0x00080000
+#define MGF_SOURCE                       0x00002000
+#define MGF_SOURCE_SHA                   0x00004000
+#define MGF_SOURCE_SHA224                0x00008000
+#define MGF_SOURCE_SHA256                0x00010000
+#define MGF_SOURCE_SHA384                0x00020000
+#define MGF_SOURCE_SHA512                0x00040000
+#define MGF_SOURCE_GOST                  0x00080000
 #define MGF_SHA1_40_BYTE_FINISH          0x00100000
 #define MGF_SHA224_56_BYTE_FINISH        0x00200000
 #define MGF_SHA256_64_BYTE_FINISH        0x00400000
@@ -116,21 +116,21 @@ typedef struct DYNAMIC_Setup_t
 	int SaltLenX86;			// if zero, then use salt len of SSE
 } DYNAMIC_Setup;
 
-int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
+int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *self);
 int dynamic_IS_VALID(int i);
-int dynamic_real_salt_length(struct fmt_main *pFmt);
+int dynamic_real_salt_length(struct fmt_main *self);
 void dynamic_RESET(struct fmt_main *);
 void dynamic_DISPLAY_ALL_FORMATS();
 
 // Function used to 'link' a thin format into dynamic.  See PHPS_fmt.c for an example.
-struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);
-int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
+struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *self, char *ciphertext, char *orig_sig, int bInitAlso);
+int text_in_dynamic_format_already(struct fmt_main *self, char *ciphertext);
 
 // We need access to this global to get functions and data which we 'link' to
 //extern struct fmt_main fmt_MD5gen;
 int dynamic_Register_formats(struct fmt_main **ptr);
 
-int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
+int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *self);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
 int dynamic_IS_PARSER_VALID(int which);
 
@@ -139,7 +139,7 @@ int dynamic_IS_PARSER_VALID(int which);
 char *dynamic_FIX_SALT_TO_HEX(char *ciphertext);
 
 // Here are the 'parser' functions (i.e. user built stuff in john.conf)
-int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt);
+int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *self);
 char *dynamic_LOAD_PARSER_SIGNATURE(int which);
 
 // extern demange.  Turns \xF7 into 1 char.  Turns \x1BCA into "esc C A" string (3 bytes).  Turns abc\\123 into abc\123, etc.

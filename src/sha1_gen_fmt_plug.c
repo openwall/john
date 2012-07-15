@@ -39,7 +39,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static SHA_CTX ctx;
 static ARCH_WORD_32 crypt_out[5];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
@@ -251,6 +251,7 @@ struct fmt_main fmt_sha1_gen = {
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -277,7 +278,6 @@ struct fmt_main fmt_sha1_gen = {
 		},
 		cmp_all,
 		cmp_all,
-		cmp_exact,
-		fmt_default_get_source
+		cmp_exact
 	}
 };

@@ -69,21 +69,21 @@ static struct fmt_tests mysql_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
 
-static void mysql_init(struct fmt_main *pFmt)
+static void mysql_init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
 	if (omp_t > 1) {
-		pFmt->params.min_keys_per_crypt *= omp_t;
+		self->params.min_keys_per_crypt *= omp_t;
 		omp_t *= OMP_SCALE;
-		pFmt->params.max_keys_per_crypt *= omp_t;
+		self->params.max_keys_per_crypt *= omp_t;
 	}
 #endif
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
-	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+	saved_key = mem_alloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 }
 
-static int mysql_valid(char* ciphertext, struct fmt_main *pFmt)
+static int mysql_valid(char* ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 
@@ -97,7 +97,7 @@ static int mysql_valid(char* ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *mysql_split(char *ciphertext, int index)
+static char *mysql_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -322,6 +322,7 @@ struct fmt_main fmt_MYSQL_fast =
 		mysql_split,
 		mysql_get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			mysql_binary_hash_0,
 			mysql_binary_hash_1,
@@ -348,7 +349,6 @@ struct fmt_main fmt_MYSQL_fast =
 		},
 		mysql_cmp_all,
 		mysql_cmp_one,
-		mysql_cmp_exact,
-		fmt_default_get_source
+		mysql_cmp_exact
 	}
 };
