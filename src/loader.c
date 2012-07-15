@@ -248,6 +248,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		}
 		*p = 0;
 		*login = no_username;
+		fields[1] = *ciphertext;
 	}
 
 	if (source)
