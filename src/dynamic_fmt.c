@@ -66,7 +66,6 @@ ahead of time.
 #include "gost.h"
 #include "memory.h"
 #include "unicode.h"
-#undef CPU_IA32
 #include "johnswap.h"
 #include "pkzip.h"
 
@@ -919,9 +918,10 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return cpBuilding;
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
 	static char out[1024];
+	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (!strncmp(ciphertext, "$dynamic", 8))
 		return ciphertext;
@@ -931,15 +931,16 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		do ++ciphertext; while (*ciphertext != ')')	;
 		++ciphertext;
 	}
-	sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+	sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 
 	return out;
 }
 
 // This split unifies case.
-static char *split_UC(char *ciphertext, int index, struct fmt_main *self)
+static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 {
 	static char out[1024];
+	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (!strncmp(ciphertext, "$dynamic", 8)) {
 		strcpy(out, ciphertext);
@@ -949,7 +950,7 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *self)
 			do ++ciphertext; while (*ciphertext != ')')	;
 			++ciphertext;
 		}
-		sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+		sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 	}
 	ciphertext = strchr(&out[8], '$')+1;
 	while (*ciphertext && *ciphertext != '$') {
@@ -2135,12 +2136,12 @@ static void *binary(char *_ciphertext)
 // NOTE NOTE NOTE, we have currently ONLY implemented a non-salted function!!!
 static char *source(char *source, void *binary)
 {
-	static char Buf[32 + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 16; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2152,12 +2153,12 @@ static char *source(char *source, void *binary)
 
 static char *source_sha(char *source, void *binary)
 {
-	static char Buf[40 + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 20; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2168,12 +2169,12 @@ static char *source_sha(char *source, void *binary)
 }
 static char *source_sha224(char *source, void *binary)
 {
-	static char Buf[(224/8*2) + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 28; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2184,12 +2185,12 @@ static char *source_sha224(char *source, void *binary)
 }
 static char *source_sha256(char *source, void *binary)
 {
-	static char Buf[(256/8*2) + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 32; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2200,12 +2201,12 @@ static char *source_sha256(char *source, void *binary)
 }
 static char *source_sha384(char *source, void *binary)
 {
-	static char Buf[(384/8*2) + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 48; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2216,12 +2217,12 @@ static char *source_sha384(char *source, void *binary)
 }
 static char *source_sha512(char *source, void *binary)
 {
-	static char Buf[(512/8*2) + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 64; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -2232,12 +2233,12 @@ static char *source_sha512(char *source, void *binary)
 }
 static char *source_gost(char *source, void *binary)
 {
-	static char Buf[32 * 2 + 8 + 6 + 1];
+	static char Buf[256];
+	unsigned char *cpi= (unsigned char*)(binary);
 	char *cpo = Buf;
-	unsigned char *cpi;
 	int i;
+
 	cpo += sprintf(Buf, "%s", curdat.dynamic_WHICH_TYPE_SIG);
-	cpi = (unsigned char*)(binary);
 	for (i = 0; i < 32; ++i) {
 		*cpo++ = itoa16[(*cpi)>>4];
 		*cpo++ = itoa16[*cpi&0xF];
@@ -8593,8 +8594,8 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	curdat.store_keys_in_input = !!(Setup->startFlags&MGF_KEYS_INPUT );
 	curdat.input2_set_len32 = !!(Setup->startFlags&MGF_SET_INP2LEN32);
 
-	if (Setup->startFlags&MGF_SOURCE) pFmt->methods.source = source;
-	if (Setup->startFlags&MGF_SOURCE_SHA) pFmt->methods.source = source_sha;
+	if (Setup->startFlags&MGF_SOURCE)        pFmt->methods.source = source;
+	if (Setup->startFlags&MGF_SOURCE_SHA)    pFmt->methods.source = source_sha;
 	if (Setup->startFlags&MGF_SOURCE_SHA224) pFmt->methods.source = source_sha224;
 	if (Setup->startFlags&MGF_SOURCE_SHA256) pFmt->methods.source = source_sha256;
 	if (Setup->startFlags&MGF_SOURCE_SHA384) pFmt->methods.source = source_sha384;
@@ -8893,7 +8894,9 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 			else
 				pfx[cnt].ciphertext = str_alloc_copy(Setup->pPreloads[i].ciphertext);
 			pfx[cnt].plaintext = str_alloc_copy(Setup->pPreloads[i].plaintext);
-			for (j = 0; j < 10; ++j)
+			pfx[cnt].fields[0] = Setup->pPreloads[i].fields[0]  ? str_alloc_copy(Setup->pPreloads[i].fields[0]) : "";
+			pfx[cnt].fields[1] = pfx[cnt].ciphertext;
+			for (j = 2; j < 10; ++j)
 				pfx[cnt].fields[j] = Setup->pPreloads[i].fields[j]  ? str_alloc_copy(Setup->pPreloads[i].fields[j]) : "";
 		}
 		pfx[cnt].ciphertext = NULL;

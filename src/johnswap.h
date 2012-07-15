@@ -16,10 +16,13 @@
 /* detect if x86-64 instruction set is supported */
 # if defined(_LP64) || defined(__LP64__) || defined(__x86_64) || \
 	defined(__x86_64__) || defined(_M_AMD64) || defined(_M_X64)
+#  undef CPU_X64
 #  define CPU_X64 1
 # else
+#  undef CPU_IA32
 #  define CPU_IA32 1
 # endif
+# undef CPU_INTEL_LE
 # define CPU_INTEL_LE 1
 #endif
 

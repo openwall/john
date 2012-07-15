@@ -116,21 +116,21 @@ typedef struct DYNAMIC_Setup_t
 	int SaltLenX86;			// if zero, then use salt len of SSE
 } DYNAMIC_Setup;
 
-int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *self);
+int dynamic_SETUP(DYNAMIC_Setup *, struct fmt_main *pFmt);
 int dynamic_IS_VALID(int i);
-int dynamic_real_salt_length(struct fmt_main *self);
+int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_RESET(struct fmt_main *);
 void dynamic_DISPLAY_ALL_FORMATS();
 
 // Function used to 'link' a thin format into dynamic.  See PHPS_fmt.c for an example.
-struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *self, char *ciphertext, char *orig_sig, int bInitAlso);
-int text_in_dynamic_format_already(struct fmt_main *self, char *ciphertext);
+struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);
+int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
 
 // We need access to this global to get functions and data which we 'link' to
 //extern struct fmt_main fmt_MD5gen;
 int dynamic_Register_formats(struct fmt_main **ptr);
 
-int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *self);
+int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
 char *dynamic_PRELOAD_SIGNATURE(int cnt);
 int dynamic_IS_PARSER_VALID(int which);
 
@@ -139,7 +139,7 @@ int dynamic_IS_PARSER_VALID(int which);
 char *dynamic_FIX_SALT_TO_HEX(char *ciphertext);
 
 // Here are the 'parser' functions (i.e. user built stuff in john.conf)
-int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *self);
+int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt);
 char *dynamic_LOAD_PARSER_SIGNATURE(int which);
 
 // extern demange.  Turns \xF7 into 1 char.  Turns \x1BCA into "esc C A" string (3 bytes).  Turns abc\\123 into abc\123, etc.
