@@ -633,16 +633,6 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return split_fields[1];
 }
 
-static void clear_keys()
-{
-	int i;
-
-	memset(dcc2_hash_host,0,MAX_KEYS_PER_CRYPT);
-
-	for(i=0;i<MAX_KEYS_PER_CRYPT;i++)
-		memset(key_host[i],0,MAX_PLAINTEXT_LENGTH );
-
-}
 static int salt_hash(void *salt)
 {
 	ms_cash2_salt *_s=(ms_cash2_salt *)salt;
@@ -692,7 +682,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		    set_salt,
 		    set_key,
 		    get_key,
-		    clear_keys,
+		    fmt_default_clear_keys,
 		    crypt_all,
 		    {
 				get_hash_0,
