@@ -29,6 +29,14 @@ void fmt_init(struct fmt_main *format)
 	}
 }
 
+void fmt_done(struct fmt_main *format)
+{
+	if (format->private.initialized) {
+		format->methods.done();
+		format->private.initialized = 0;
+	}
+}
+
 static int is_poweroftwo(size_t align)
 {
 	return align != 0 && (align & (align - 1)) == 0;
@@ -221,6 +229,10 @@ char *fmt_self_test(struct fmt_main *format)
 }
 
 void fmt_default_init(struct fmt_main *self)
+{
+}
+
+void fmt_default_done(void)
 {
 }
 
