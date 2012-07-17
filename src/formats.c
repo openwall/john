@@ -29,17 +29,14 @@ void fmt_init(struct fmt_main *format)
 	}
 }
 
-/*
- * Test pointers returned by binary() and salt() for possible misalignment.
- */
-static int is_misaligned(void *p, int size)
+static int is_poweroftwo(size_t align)
 {
-	unsigned long mask = 0;
-	if (size >= ARCH_SIZE)
-		mask = ARCH_SIZE - 1;
-	else if (size >= 4)
-		mask = 3;
-	return (unsigned long)p & mask;
+	return align != 0 && (align & (align - 1)) == 0;
+}
+
+static int is_aligned(void *p, size_t align)
+{
+	return ((size_t)p & (align - 1)) == 0;
 }
 
 static char *fmt_self_test_body(struct fmt_main *format,
@@ -51,8 +48,15 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int ntests, done, index, max, size;
 	void *binary, *salt;
 
-	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
-		return "length";
+	if (format->params.plaintext_length < 1 ||
+	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
+		return "plaintext_length";
+
+	if (!is_poweroftwo(format->params.binary_align))
+		return "binary_align";
+
+	if (!is_poweroftwo(format->params.salt_align))
+		return "salt_align";
 
 	if (format->methods.valid("*", format))
 		return "valid";
@@ -85,14 +89,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
  */
 		binary = format->methods.binary(ciphertext);
 		if (!binary ||
-		    is_misaligned(binary, format->params.binary_size))
+		    !is_aligned(binary, format->params.binary_align))
 			return "binary";
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
 		if (!salt ||
-		    is_misaligned(salt, format->params.salt_size))
+		    !is_aligned(salt, format->params.salt_align))
 			return "salt";
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
@@ -165,14 +169,21 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * minimum guaranteed alignment.  We do this to test that binary_hash*(),
  * cmp_*(), and salt_hash() do accept such pointers.
  */
-static void *alloc_binary(size_t size, void **alloc)
+static void *alloc_binary(void **alloc, size_t size, size_t align)
 {
-	*alloc = mem_alloc(size + 4);
-	if (size >= ARCH_SIZE)
-		return *alloc;
-	if (size >= 4)
-		return *alloc + 4;
-	return *alloc + 1;
+	size_t mask = align - 1;
+	char *p;
+
+/* Ensure minimum required alignment and leave room for "align" bytes more */
+	p = *alloc = mem_alloc(size + mask + align);
+	p += mask;
+	p -= (size_t)p & mask;
+
+/* If the alignment is too great, reduce it to the minimum */
+	if (!((size_t)p & align))
+		p += align;
+
+	return p;
 }
 
 char *fmt_self_test(struct fmt_main *format)
@@ -181,8 +192,10 @@ char *fmt_self_test(struct fmt_main *format)
 	void *binary_alloc, *salt_alloc;
 	void *binary_copy, *salt_copy;
 
-	binary_copy = alloc_binary(format->params.binary_size, &binary_alloc);
-	salt_copy = alloc_binary(format->params.salt_size, &salt_alloc);
+	binary_copy = alloc_binary(&binary_alloc,
+	    format->params.binary_size, format->params.binary_align);
+	salt_copy = alloc_binary(&salt_alloc,
+	    format->params.salt_size, format->params.salt_align);
 
 	retval = fmt_self_test_body(format, binary_copy, salt_copy);
 

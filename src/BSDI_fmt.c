@@ -43,7 +43,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
 
 #define BINARY_SIZE			sizeof(ARCH_WORD_32)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 #define SALT_SIZE			(ARCH_SIZE * 2)
+#define SALT_ALIGN			ARCH_SIZE
 
 #define MIN_KEYS_PER_CRYPT		DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT		DES_BS_DEPTH
@@ -53,7 +55,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			ARCH_SIZE
+#define BINARY_ALIGN			ARCH_SIZE
 #define SALT_SIZE			(ARCH_SIZE * 2)
+#define SALT_ALIGN			ARCH_SIZE
 
 #define MIN_KEYS_PER_CRYPT		4
 #define MAX_KEYS_PER_CRYPT		8
@@ -386,7 +390,9 @@ struct fmt_main fmt_BSDI = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if DES_BS && DES_bs_mt
