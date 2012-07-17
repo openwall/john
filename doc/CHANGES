@@ -1,4 +1,4 @@
-The following changes have been made between John 1.7.9 and 1.7.9.5:
+The following changes have been made between John 1.7.9 and 1.7.9.6:
 
 * Enhanced the support for DES-based tripcodes by making use of the bitslice
 DES implementation and supporting OpenMP parallelization.
