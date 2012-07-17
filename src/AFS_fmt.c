@@ -36,7 +36,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			(3 * ARCH_SIZE)
+#define BINARY_ALIGN			ARCH_SIZE
 #define SALT_SIZE			40
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		0x80
 #define MAX_KEYS_PER_CRYPT		0x100
@@ -438,7 +440,9 @@ struct fmt_main fmt_AFS = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

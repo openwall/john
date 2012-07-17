@@ -21,7 +21,9 @@
 #define CIPHERTEXT_LENGTH		22
 
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 #define SALT_SIZE			9
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		MD5_N
 #define MAX_KEYS_PER_CRYPT		MD5_N
@@ -233,7 +235,9 @@ struct fmt_main fmt_MD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if MD5_std_mt
