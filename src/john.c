@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006,2009-2011 by Solar Designer
+ * Copyright (c) 1996-2004,2006,2009-2012 by Solar Designer
  */
 
 #include <stdio.h>
@@ -316,8 +316,14 @@ static void john_run(void)
 		int remaining = database.password_count;
 
 		if (!(options.flags & FLG_STDOUT)) {
-			status_init(NULL, 1);
+			char *where = fmt_self_test(database.format);
+			if (where) {
+				fprintf(stderr, "Self test failed (%s)\n",
+				    where);
+				error();
+			}
 			log_init(LOG_NAME, POT_NAME, options.session);
+			status_init(NULL, 1);
 			john_log_format();
 			if (idle_requested(database.format))
 				log_event("- Configured to use otherwise idle "
