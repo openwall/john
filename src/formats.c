@@ -47,6 +47,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	char *ciphertext, *plaintext;
 	int ntests, done, index, max, size;
 	void *binary, *salt;
+	int binary_align_warned = 0, salt_align_warned = 0;
 
 	if (format->params.plaintext_length < 1 ||
 	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
@@ -88,16 +89,20 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * returned by binary() and salt() only to the declared sizes.
  */
 		binary = format->methods.binary(ciphertext);
-		if (!binary ||
-		    !is_aligned(binary, format->params.binary_align))
-			return "binary";
+		if (!is_aligned(binary, format->params.binary_align) &&
+		    !binary_align_warned) {
+			puts("Warning: binary() returned misaligned pointer");
+			binary_align_warned = 1;
+		}
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
-		if (!salt ||
-		    !is_aligned(salt, format->params.salt_align))
-			return "salt";
+		if (!is_aligned(salt, format->params.salt_align) &&
+		    !salt_align_warned) {
+			puts("Warning: salt() returned misaligned pointer");
+			salt_align_warned = 1;
+		}
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
