@@ -259,10 +259,17 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (source)
 		strcpy(source, line ? line : "");
 
+/*
+ * This check is just a loader performance optimization, so that we can parse
+ * fewer fields when we know we won't need the rest.  It should be revised or
+ * removed when there are formats that use higher-numbered fields in prepare().
+ */
 	if ((options->flags & DB_WORDS) || options->shells->head) {
+		/* Parse all fields */
 		for (i = 2; i < 10; i++)
 			fields[i] = ldr_get_field(&line);
 	} else {
+		/* Parse some fields only */
 		for (i = 2; i < 4; i++)
 			fields[i] = ldr_get_field(&line);
 		for (; i < 10; i++)
