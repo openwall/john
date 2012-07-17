@@ -91,8 +91,8 @@ void ldr_init_database(struct db_main *db, struct db_options *options)
 {
 	db->loaded = 0;
 
-	db->options = mem_alloc_copy(sizeof(struct db_options),
-		MEM_ALIGN_WORD, options);
+	db->options = mem_alloc_copy(options,
+	    sizeof(struct db_options), MEM_ALIGN_WORD);
 
 	db->salts = NULL;
 
@@ -461,7 +461,7 @@ static void *alloc_copy_autoalign(size_t size, void *src)
 		align = MEM_ALIGN_WORD;
 	else if (size >= 4)
 		align = 4;
-	return mem_alloc_copy(size, align, src);
+	return mem_alloc_copy(src, size, align);
 }
 
 static void ldr_load_pw_line(struct db_main *db, char *line)

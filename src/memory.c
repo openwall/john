@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010 by Solar Designer
+ * Copyright (c) 1996-98,2010,2012 by Solar Designer
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	return (void *)start;
 }
 
-void *mem_alloc_copy(size_t size, size_t align, void *src)
+void *mem_alloc_copy(void *src, size_t size, size_t align)
 {
 	return memcpy(mem_alloc_tiny(size, align), src, size);
 }
