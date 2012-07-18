@@ -312,7 +312,7 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffer size for fgets().
  */
-#define LINE_BUFFER_SIZE		0x4000
+#define LINE_BUFFER_SIZE		0x10000
 
 /*
  * john.pot and log file buffer sizes, can be zero.
