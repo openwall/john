@@ -559,7 +559,7 @@ static void find_best_gws(void) {
 static void init(struct fmt_main *pFmt) {
     int i, source_in_use;
     char * tmp_value;
-    char * task;
+    char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
     uint64_t startTime, runtime;
 
     opencl_init_dev(gpu_id, platform_id);
@@ -575,28 +575,18 @@ static void init(struct fmt_main *pFmt) {
     if ((tmp_value = getenv("_BATCH")))
         batch_mode = atoi(tmp_value);
     batch_mode = 1;
-    if (cpu(source_in_use))
-        task = "$JOHN/cryptsha512_kernel_CPU.cl";
-    else {
-        printf("Building the kernel, this could take a while\n");        
+    
+    if (! cpu(source_in_use)) {
+        fprintf(stderr, "Building the kernel, this could take a while\n");
 
-        if (no_byte_addressable(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
-        else if (gpu_nvidia(source_in_use))
+        if (gpu_nvidia(source_in_use))
             task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
         else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha512_kernel_AMD.cl";
-        else
-            task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
     }    
     printf("Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
-
-    if (source_in_use != device_info[gpu_id]) {
-        device_info[gpu_id] = source_in_use;
-        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
-    }
     
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
         printf("Elapsed time: %lu seconds\n", runtime);
@@ -617,6 +607,12 @@ static void init(struct fmt_main *pFmt) {
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
 
+    
+    if (source_in_use != device_info[gpu_id]) {
+        device_info[gpu_id] = source_in_use;
+        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
+    }
+    
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
         local_work_size = atoi(tmp_value);
