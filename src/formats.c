@@ -80,6 +80,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	fmt_init(format);
 
+	format->methods.reset(NULL);
+
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
 	while ((current++)->ciphertext)
@@ -233,6 +235,10 @@ void fmt_default_init(struct fmt_main *self)
 }
 
 void fmt_default_done(void)
+{
+}
+
+void fmt_default_reset(struct db_main *db)
 {
 }
 

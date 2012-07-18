@@ -13,6 +13,12 @@
 #include "params.h"
 
 /*
+ * The reset() format method accepts a pointer to struct db_main, yet we can't
+ * just include loader.h here because that would be a circular dependency.
+ */
+struct db_main;
+
+/*
  * Format property flags.
  */
 /* Uses case-sensitive passwords */
@@ -102,6 +108,14 @@ struct fmt_methods {
 
 /* De-initializes this format, which must have been previously initialized */
 	void (*done)(void);
+
+/* Called whenever the set of password hashes being cracked changes, such as
+ * after self-test, but before actual cracking starts.  When called before a
+ * self-test or benchmark rather than before actual cracking, db may be NULL.
+ * Normally, this is a no-op since a format implementation shouldn't mess with
+ * the database unnecessarily.  However, when there is a good reason to do so
+ * this may e.g. transfer the salts and hashes onto a GPU card. */
+	void (*reset)(struct db_main *db);
 
 /* Extracts the ciphertext string out of the input file fields.  Normally, this
  * will simply return field[1], but in some special cases it may use another
@@ -226,6 +240,7 @@ extern char *fmt_self_test(struct fmt_main *format);
  */
 extern void fmt_default_init(struct fmt_main *self);
 extern void fmt_default_done(void);
+extern void fmt_default_reset(struct db_main *db);
 extern char *fmt_default_prepare(char *fields[10], struct fmt_main *self);
 extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
 extern char *fmt_default_split(char *ciphertext, int index,
