@@ -155,7 +155,7 @@ static void crypt_all(int count)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		unsigned char pass[40];
+		unsigned char pass[40+1];
 		unsigned char out[80];
 		int i;
 		int idx = 0;

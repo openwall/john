@@ -16,7 +16,6 @@
 #include "misc.h"
 
 struct fmt_main;
-struct db_password;
 
 /*
  * Default alignment (used unless known)

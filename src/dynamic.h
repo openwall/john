@@ -1,27 +1,30 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
- * Generic MD5 hashes cracker
+ * Generic 'scriptable' hash cracker for JtR
  *
  * Interface functions and data structures required to make this
  * work, since it is split over multiple .c source files.
  *
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
- *
+ * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
+ * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
  */
 
 #if !defined (__DYNAMIC___H)
 #define __DYNAMIC___H
+
+#include <openssl/opensslv.h>
 
 typedef void(*DYNAMIC_primitive_funcp)();
 
@@ -92,12 +95,14 @@ typedef struct DYNAMIC_Constants_t
 #define MGF_SOURCE_SHA384                0x00020000
 #define MGF_SOURCE_SHA512                0x00040000
 #define MGF_SOURCE_GOST                  0x00080000
-#define MGF_SHA1_40_BYTE_FINISH          0x00100000
-#define MGF_SHA224_56_BYTE_FINISH        0x00200000
-#define MGF_SHA256_64_BYTE_FINISH        0x00400000
-#define MGF_SHA384_96_BYTE_FINISH        0x00800000
-#define MGF_SHA512_128_BYTE_FINISH       0x01000000
-#define MGF_GOST_64_BYTE_FINISH          0x02000000
+#define MGF_SOURCE_WHIRLPOOL             0x00100000
+#define MGF_SHA1_40_BYTE_FINISH          0x00200000
+#define MGF_SHA224_56_BYTE_FINISH        0x00400000
+#define MGF_SHA256_64_BYTE_FINISH        0x00800000
+#define MGF_SHA384_96_BYTE_FINISH        0x01000000
+#define MGF_SHA512_128_BYTE_FINISH       0x02000000
+#define MGF_GOST_64_BYTE_FINISH          0x04000000
+#define MGF_WHIRLPOOL_128_BYTE_FINISH    0x08000000
 
 typedef struct DYNAMIC_Setup_t
 {
@@ -126,8 +131,6 @@ void dynamic_DISPLAY_ALL_FORMATS();
 struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);
 int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
 
-// We need access to this global to get functions and data which we 'link' to
-//extern struct fmt_main fmt_MD5gen;
 int dynamic_Register_formats(struct fmt_main **ptr);
 
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);
@@ -320,6 +323,17 @@ extern void DynamicFunc__GOST_crypt_input1_overwrite_input2_base16();
 extern void DynamicFunc__GOST_crypt_input2_overwrite_input1_base16();
 extern void DynamicFunc__GOST_crypt_input1_to_output1_FINAL();
 extern void DynamicFunc__GOST_crypt_input2_to_output1_FINAL();
+
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16();
+extern void DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL();
+extern void DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL();
+#endif
 
 // These 3 dump the raw crypt back into input (only at the head of it).
 // they are for phpass, wordpress, etc.

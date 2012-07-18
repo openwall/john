@@ -94,8 +94,6 @@ extern struct fmt_main fmt_crypt;
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 
-extern struct fmt_main fmt_MD5gen;
-
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern struct fmt_main fmt_django;
 #endif
