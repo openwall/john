@@ -228,8 +228,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int count, struct db_salt *salt)
 {
+	return count;
 }
 
 static int cmp_all(void *binary, int count)

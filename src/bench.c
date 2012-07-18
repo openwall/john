@@ -179,7 +179,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		}
 
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
-		format->methods.crypt_all(max);
+		(void)format->methods.crypt_all(max, NULL);
 		format->methods.cmp_all(binary, max);
 
 		add32to64(&count, max);

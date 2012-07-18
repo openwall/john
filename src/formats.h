@@ -13,10 +13,11 @@
 #include "params.h"
 
 /*
- * The reset() format method accepts a pointer to struct db_main, yet we can't
- * just include loader.h here because that would be a circular dependency.
+ * Some format methods accept pointers to these, yet we can't just include
+ * loader.h here because that would be a circular dependency.
  */
 struct db_main;
+struct db_salt;
 
 /*
  * Format property flags.
@@ -170,10 +171,18 @@ struct fmt_methods {
  * a call to clear_keys() the keys are undefined. */
 	void (*clear_keys)(void);
 
-/* Calculates the ciphertexts for given salt and plaintexts. This may
- * always calculate at least min_keys_per_crypt ciphertexts regardless of
- * the requested count, for some formats. */
-	void (*crypt_all)(int count);
+/* Computes the ciphertexts for given salt and plaintexts.
+ * For implementation reasons, this may happen to always compute at least
+ * min_keys_per_crypt ciphertexts even if the requested count is lower,
+ * although it is preferable for implementations to obey the count whenever
+ * practical and also for callers not to call crypt_all() with fewer than
+ * min_keys_per_crypt keys whenever practical.
+ * Returns the last output index for which there might be a match (against the
+ * supplied salt's hashes) plus 1.  A return value of zero indicates no match.
+ * If an implementation does not use the salt parameter or if salt is NULL
+ * (as it may be during self-test and benchmark), the return value must always
+ * be exactly count. */
+	int (*crypt_all)(int count, struct db_salt *salt);
 
 /* These functions calculate a hash out of a ciphertext that has just been
  * generated with the crypt_all() method. To be used while cracking. */
