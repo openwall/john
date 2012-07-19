@@ -698,12 +698,16 @@ static void john_init(char *name, int argc, char **argv)
 			puts("Private home: " JOHN_PRIVATE_HOME);
 #endif
 			printf("$JOHN is %s\n", path_expand("$JOHN/"));
+			printf("Format interface version: %d\n", FMT_MAIN_VERSION);
 			puts("Rec file version: " RECOVERY_V);
+			puts("Charset file version: " CHARSET_V);
 			printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN,
 			       CHARSET_MIN);
 			printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX,
 			       CHARSET_MAX);
 			printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
+			printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
+			printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
 #ifdef __VERSION__
 		printf("Compiler version: %s\n", __VERSION__);
 #endif
