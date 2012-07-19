@@ -72,6 +72,31 @@ extern struct cfg_section *cfg_get_section(char *section, char *subsection);
 extern struct cfg_list *cfg_get_list(char *section, char *subsection);
 
 /*
+ * Prints a list of all section names, if which == 0.
+ *
+ * If which == 1, only names of sections which don't contain
+ * list lines (and which should contain parameters instead) get printed,
+ * unless these sections are empty (no parameter definitions).
+ *
+ * If which == 2, only names of sections which should contain
+ * list lines, not parameter definitions, get printed.
+ */
+void cfg_print_section_names(int which);
+
+/*
+ * Prints all the parameter definitions of a section,
+ * returns the number of parameter definitions found, or -1
+ * if the section doesn't exist.
+ */
+int cfg_print_section_params(char *section, char *subsection);
+
+/*
+ * Prints the contents of a section's list, returns the number
+ * of lines printed, or -1 if the section doesn't exist.
+ */
+int cfg_print_section_list_lines(char *section, char *subsection);
+
+/*
  * Searches for sections with the supplied name, and prints a list of
  * valid subsections. If function is non-null, only prints subsections
  * (ie. external modes) that has function (ie. generate or filter).
