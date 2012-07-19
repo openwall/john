@@ -824,7 +824,7 @@ static void john_init(char *name, int argc, char **argv)
 				while (format->params.tests[ntests++].ciphertext);
 				ntests--;
 			}
-			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d\n",
+			printf("%s\t%d\t%d\t%d\t%08x\t%d\t%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\n",
 			       format->params.label,
 			       format->params.plaintext_length,
 			       format->params.min_keys_per_crypt,
@@ -839,7 +839,9 @@ static void john_init(char *name, int argc, char **argv)
 			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
 			       // salts are handled internally within the format. We want to know the 'real' salt size
 			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
-			       dynamic_real_salt_length(format) : format->params.salt_size);
+			       dynamic_real_salt_length(format) : format->params.salt_size,
+			       format->params.binary_align,
+			       format->params.salt_align);
 		} while ((format = format->next));
 		exit(0);
 	}
@@ -885,6 +887,8 @@ static void john_init(char *name, int argc, char **argv)
 			       // salts are handled internally within the format. We want to know the 'real' salt size/
 			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
 			       dynamic_real_salt_length(format) : format->params.salt_size);
+			printf("Alignment of binary ciphertext  \t%d\n", format->params.binary_align);
+			printf("Alignment of internal salt repr.\t%d\n", format->params.salt_align);
 			printf("\n");
 		} while ((format = format->next));
 		exit(0);
