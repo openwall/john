@@ -583,8 +583,8 @@ _john()
 			fi
 			return 0
 			;;
-		-?(-)li?(s|st)+(+(=|:)+([a-z_-]):|:+([a-z._-])=)*([a-z0-9:._-]))
-			cur=${cur#*[=:]}
+		-?(-)li?(s|st)+(+(=|:)+([a-z_-]):|:+([a-z._-])=)*([A-Za-z0-9:._-]))
+			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 			cmd=${cur%[=:]*}
 			prefix=""
 			if [[ "_${cmd}" == _*:* ]] ; then
