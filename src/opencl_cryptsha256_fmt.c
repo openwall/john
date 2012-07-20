@@ -220,7 +220,7 @@ static void release_clobj(void) {
 }
 
 /* ------- Salt functions ------- */
-static void * get_salt(char * ciphertext) {///TODO: rever.
+static void * get_salt(char * ciphertext) {
     static sha256_salt out;
     int len;
 
@@ -252,7 +252,7 @@ static void * get_salt(char * ciphertext) {///TODO: rever.
     return &out;    
 }
 
-static void set_salt(void * salt_info) {///TODO: rever.
+static void set_salt(void * salt_info) {
     
     salt = salt_info;
     new_salt = 1;          
@@ -544,7 +544,7 @@ static void init(struct fmt_main *pFmt) {
 }
 
 /* ------- Check if the ciphertext if a valid SHA-256 crypt ------- */
-static int valid(char *ciphertext, struct fmt_main *pFmt) {///TODO: usar código do Magnum?
+static int valid(char *ciphertext, struct fmt_main *pFmt) {
     char *pos, *start;
 
     if (strncmp(ciphertext, "$5$", 3))
@@ -620,7 +620,7 @@ static int cmp_all(void * binary, int count) {
     return 0;
 }
 
-static int cmp_one(void * binary, int index) { ///TODO: usar memcpy?
+static int cmp_one(void * binary, int index) {
     return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE); 
 }
 

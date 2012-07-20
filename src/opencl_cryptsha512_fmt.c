@@ -258,52 +258,41 @@ static void release_clobj(void) {
 
 /* ------- Salt functions ------- */
 static void * get_salt(char * ciphertext) {
-    int end = 0, i, len = strlen(ciphertext);
-    static unsigned char ret[50];
-    for (i = len - 1; i >= 0; i--)
-        if (ciphertext[i] == '$') {
-            end = i;
-            break;
-        }
+    static sha256_salt out;
+    int len;
 
-    for (i = 0; i < end; i++)
-        ret[i] = ciphertext[i];
-    ret[end] = 0;
-    return (void *) ret;
-}
-
-static void set_salt(void * salt_info) {
-    int len = strlen(salt_info);
-    unsigned char offset = 0;
-    static char currentsalt[64];
-
-    memcpy(currentsalt, (char *) salt_info, len + 1);
-    salt.rounds = ROUNDS_DEFAULT;
-
-    if (strncmp((char *) "$6$", (char *) currentsalt, 3) == 0)
-        offset += 3;
-
-    if (strncmp((char *) currentsalt + offset, (char *) "rounds=", 7) == 0) {
-        const char *num = currentsalt + offset + 7;
+    out.rounds = ROUNDS_DEFAULT;
+    ciphertext += 3;
+    if (!strncmp(ciphertext, ROUNDS_PREFIX,
+            sizeof(ROUNDS_PREFIX) - 1)) {
+        const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
         char *endp;
         unsigned long int srounds = strtoul(num, &endp, 10);
-
         if (*endp == '$') {
-            endp += 1;
-            salt.rounds =
-                    MAX(ROUNDS_MIN, MIN(srounds, ROUNDS_MAX));
+            ciphertext = endp + 1;
+            out.rounds = srounds < ROUNDS_MIN ?
+                    ROUNDS_MIN : srounds;
+            out.rounds = srounds > ROUNDS_MAX ?
+                    ROUNDS_MAX : srounds;
         }
-        offset = endp - currentsalt;
     }
-    //Assure buffer has no "trash data".
-    memset(salt.salt, '\0', SALT_LENGTH);
-    len = strlen(currentsalt + offset);
+
+    for (len = 0; ciphertext[len] != '$'; len++);
+    
+    //Assure buffer has no "trash data".	
+    memset(out.salt, '\0', SALT_LENGTH);
     len = (len > SALT_LENGTH ? SALT_LENGTH : len);
 
     //Put the tranfered salt on salt buffer.
-    memcpy(salt.salt, currentsalt + offset, len);
-    salt.length = len ;
-    new_salt = 1;
+    memcpy(out.salt, ciphertext, len);
+    out.length = len;
+    return &out;    
+}
+
+static void set_salt(void * salt_info) {
+    
+    salt = salt_info;
+    new_salt = 1;          
 }
 
 /* ------- Key functions ------- */
@@ -611,25 +600,30 @@ static void init(struct fmt_main *pFmt) {
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
 static int valid(char *ciphertext, struct fmt_main *pFmt) {
-    uint32_t i, j;
-    int len = strlen(ciphertext);
-    char *p = strrchr(ciphertext, '$');
+    char *pos, *start;
 
-    if (strncmp(ciphertext, "$6$", 3) != 0)
+    if (strncmp(ciphertext, "$6$", 3))
+        return 0;
+
+    ciphertext += 3;
+
+    if (!strncmp(ciphertext, ROUNDS_PREFIX,
+            sizeof (ROUNDS_PREFIX) - 1)) {
+        const char *num = ciphertext + sizeof (ROUNDS_PREFIX) - 1;
+        char *endp;
+        if (!strtoul(num, &endp, 10))
             return 0;
-
-    for (i = p - ciphertext + 1; i < len; i++) {
-            int found = 0;
-            for (j = 0; j < 64; j++)
-                    if (itoa64[j] == ARCH_INDEX(ciphertext[i]))
-                            found = 1;
-            if (found == 0) {
-                    puts("not found");
-                    return 0;
-            }
+        if (*endp == '$')
+            ciphertext = endp + 1;
     }
-    if (len - (p - ciphertext + 1) != 86)
-            return 0;
+
+    for (pos = ciphertext; *pos && *pos != '$'; pos++);
+    if (!*pos || pos < ciphertext || pos > &ciphertext[SALT_LENGTH]) return 0;
+
+    start = ++pos;
+    while (atoi64[ARCH_INDEX(*pos)] != 0x7F) pos++;
+    if (*pos || pos - start != CIPHERTEXT_LENGTH) return 0;
+
     return 1;
 }
 
@@ -692,14 +686,7 @@ static int cmp_all(void *binary, int count) {
 }
 
 static int cmp_one(void *binary, int index) {
-    int i;
-    uint64_t *t = (uint64_t *) binary;
-
-    for (i = 0; i < 8; i++) {
-        if (t[i] != calculated_hash[index].v[i])
-            return 0;
-    }
-    return 1;
+    return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE); 
 }
 
 static int cmp_exact(char *source, int count) {
