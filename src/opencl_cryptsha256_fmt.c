@@ -348,7 +348,7 @@ static void find_best_gws(void) {
     unsigned int SHAspeed, bestSHAspeed = 0;
     char *tmp_value;
 
-    fprintf(stderr, "Calculating best global work size, this will take a while. ");
+    fprintf(stderr, "Calculating best global work size, this will take a while\n");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -666,12 +666,12 @@ static void crypt_all(int count) {
             sizeof(sha256_hash) * global_work_size, calculated_hash, 0, NULL, NULL),
             "failed in reading data back");
 
-    //Do the work
+    //Do the workx
     HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
     new_keys = 0;
     new_salt = 0;
 }
-//#define DEBUG
+
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {

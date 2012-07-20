@@ -14,22 +14,18 @@
 #define _OPENCL_COMPILER
 #include "opencl_cryptsha256.h"
 
-#pragma OPENCL EXTENSION cl_amd_printf : enable
-//#define FAST
-#define UNROLL
-
 #if cpu(DEVICE_INFO)
     #define UNROLL
-    //#define FAST
+    #define FAST
 #endif
 
-/*#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTBYTE
-    #define BUFFER      ctx->buffer->mem_32
-#else*/
+#if no_byte_addressable(DEVICE_INFO)
     #define PUT         PUTCHAR
+    #define BUFFER      ctx->buffer->mem_32
+#else
+    #define PUT         ATTRIB
     #define BUFFER      ctx->buffer->mem_08
-//#endif
+#endif
 
 __constant uint32_t k[] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
@@ -230,8 +226,6 @@ void ctx_append_1(sha256_ctx * ctx) {
 void ctx_add_length(sha256_ctx * ctx) {
 
     ctx->buffer->mem_32[15] = SWAP32(ctx->total * 8);
-//	uint32_t *blocks = (uint32_t *) ctx->buffer;
-//	blocks[15] = SWAP(ctx->total * 8);
 }
 
 void finish_ctx(sha256_ctx * ctx) {
@@ -243,12 +237,14 @@ void finish_ctx(sha256_ctx * ctx) {
 
 void clear_ctx_buffer(sha256_ctx * ctx) {
 
+    uint64_t * l = (uint64_t *) ctx->buffer;
+
 #ifdef UNROLL
     #pragma unroll
 #endif
-    for (int i = 0; i < 16; i++) //TODO: mais rápido com 64 bits?
-        ctx->buffer->mem_32[i] = 0;
-
+    for (int i = 0; i < 8; i++)
+        *l++ = 0;
+    
     ctx->buflen = 0;
 }
 
@@ -386,14 +382,6 @@ void kernel_crypt(__global   sha256_salt     * salt,
 #ifdef UNROLL
     #pragma unroll
 #endif
-    for (int i = 0; i < 4; i++) {
-        out_buffer[gid].v[i*2] = fast_buffers.alt_result[i].mem_32[0];
-        out_buffer[gid].v[i*2+1] = fast_buffers.alt_result[i].mem_32[1];
-}
-/*
-    printf("\n32: ");
-    for (int i = 0; i < 4; i++) {
-        printf("%08x ", fast_buffers.alt_result[i].mem_32[0]);
-        printf("%08x ", fast_buffers.alt_result[i].mem_32[1]);
-}   */
+    for (int i = 0; i < 8; i++)
+        out_buffer[gid].v[i] = fast_buffers.alt_result[i].mem_32[0];
 }

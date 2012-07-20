@@ -85,14 +85,15 @@
           | (((n) & 0xff00) << 8)       \
           | (((n) >> 8) & 0xff00)       \
           | ((n) >> 24))  
-                  
-/* #if gpu_amd(DEVICE_INFO)
-        #pragma OPENCL EXTENSION cl_amd_media_ops : enable
-        #define Ch(x, y, z)     amd_bytealign(x, y, z)
-        #define Maj(x, y, z)    amd_bytealign(z ^ x, y, x )
-        #define ror(x, n)       amd_bitalign(x, x, (uint32_t) n)
+
+#define SWAP32_V(n)             SWAP(n)
+
+#if gpu_amd(DEVICE_INFO)
+        #define Ch(x,y,z)       bitselect(z, y, x)
+        #define Maj(x, y, z)    bitselect(x, y, z ^ x)
+        #define ror(x, n)       rotate(x, (uint32_t) 32-n)
         #define SWAP32(n)       (as_uint(as_uchar4(n).s3210))
-#else */
+#else
         #if gpu_nvidia(DEVICE_INFO)
             #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
         #endif
@@ -100,7 +101,7 @@
         #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
         #define ror(x, n)       ((x >> n) | (x << (32-n)))
         #define SWAP32(n)       SWAP(n)
-//#endif 
+#endif
 #define Sigma0(x)               ((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
 #define Sigma1(x)               ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
 #define sigma0(x)               ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
@@ -108,15 +109,14 @@
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
-#define PUTCHAR(buf, index, val) (buf)[(index)] = val
-#define PUTBYTE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#define ATTRIB(buf, index, val) (buf)[(index)] = val
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 //Data types.
 typedef union {
-    uint8_t                     mem_08[8];
-    uint16_t                    mem_16[4];
-    uint32_t                    mem_32[2];
-    uint64_t                    mem_64[1];
+    uint8_t                     mem_08[4];
+    uint16_t                    mem_16[2];
+    uint32_t                    mem_32[1];
 } buffer_32;
 
 typedef struct {
