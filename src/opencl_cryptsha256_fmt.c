@@ -41,7 +41,6 @@ cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
 cl_kernel crypt_kernel;
-static size_t global_work_size;
 static int new_keys, new_salt;
 
 static struct fmt_tests tests[] = {
@@ -97,10 +96,8 @@ static size_t get_task_max_size(){
     if (cpu(device_info[gpu_id]))
         return max_available * KEYS_PER_CORE_CPU;
 
-    if (fast_mode)
-        return max_available * get_current_work_group_size(gpu_id, crypt_kernel);
     else
-       return max_available * KEYS_PER_CORE_GPU;
+        return max_available * get_current_work_group_size(gpu_id, crypt_kernel);
 }
 
 static size_t get_safe_workgroup(){
@@ -351,7 +348,7 @@ static void find_best_gws(void) {
     unsigned int SHAspeed, bestSHAspeed = 0;
     char *tmp_value;
 
-    fprintf(stderr, "Calculating best global work size, this will take a while\n");
+    fprintf(stderr, "Calculating best global work size, this will take a while. ");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -682,7 +679,7 @@ static void print_binary(void * binary) {
     int i;
 
     for (i = 0; i < 8; i++)
-        printf("%016x ", bin[i]);
+        fprintf(stderr, "%016x ", bin[i]);
     puts("(Ok)");
 }
 
@@ -691,11 +688,11 @@ static void print_hash() {
 
     for (i = 0; i < global_work_size; i++)
         if (calculated_hash[i].v[0] == 12)
-            printf("Value: %u, %d\n ", calculated_hash[i].v[0], i);
+            fprintf(stderr, "Value: %u, %d\n ", calculated_hash[i].v[0], i);
 
-    printf("\n");
+    fprintf(stderr, "\n");
     for (i = 0; i < 8; i++)
-        printf("%016x ", calculated_hash[0].v[i]);
+        fprintf(stderr, "%016x ", calculated_hash[0].v[i]);
     puts("");
 }
 #endif
