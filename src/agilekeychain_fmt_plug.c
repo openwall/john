@@ -121,7 +121,7 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 	unsigned char key[16];
 	unsigned char iv[16];
 	unsigned char out[CTLEN];
-	int pad, n, i;
+	int pad, n, i, key_size;
 	AES_KEY akey;
 	memcpy(key, derived_key, 16);
 	memcpy(iv, derived_key + 16, 16);
@@ -139,6 +139,10 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 		// "Bad padding byte. You probably have a wrong password"
 		return -1;
 	n = CTLEN - pad;
+	key_size = n / 8;
+	if(key_size != 128 && key_size != 192 && key_size != 256)
+		// "invalid key size"
+		return -1;
 	for(i = n; i < CTLEN; i++)
 		if(out[i] != pad)
 			// "Bad padding. You probably have a wrong password"
