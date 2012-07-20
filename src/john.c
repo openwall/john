@@ -127,6 +127,7 @@ extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_keychain;
+extern struct fmt_main fmt_opencl_agilekeychain;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
 extern struct fmt_main fmt_opencl_bf;
@@ -259,6 +260,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_keychain);
+	john_register_one(&fmt_opencl_agilekeychain);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_bf);
