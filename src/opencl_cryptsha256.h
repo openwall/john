@@ -120,8 +120,8 @@ typedef union {
 } buffer_32;
 
 typedef struct {
-    uint32_t                    rounds;
     uint32_t                    length;
+    uint32_t                    rounds;
     buffer_32                   salt[SALT_ARRAY];
 } sha256_salt;
 

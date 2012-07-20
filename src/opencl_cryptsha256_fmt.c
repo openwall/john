@@ -27,7 +27,7 @@
 #define LWS_CONFIG			"sha256crypt_LWS"
 #define GWS_CONFIG			"sha256crypt_GWS"
 
-static sha256_salt         salt;
+static sha256_salt         * salt;
 static sha256_password     * plaintext;             // plaintext ciphertexts
 static sha256_hash         * calculated_hash;       // calculated hashes
 static int                 modulus[ROUNDS_CACHE];   // modulus value.
@@ -190,7 +190,7 @@ static void create_clobj(int gws) {
            NULL), "Error setting argument 4");
     }*/
     memset(plaintext, '\0', sizeof(sha256_password) * gws);
-    memset(&salt, '\0', sizeof(sha256_salt));
+    //memset(salt, '\0', sizeof(sha256_salt));
     global_work_size = gws;
 }
 
@@ -218,53 +218,43 @@ static void release_clobj(void) {
     ret_code = clReleaseMemObject(pinned_partial_hashes);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
 }
+
 /* ------- Salt functions ------- */
 static void * get_salt(char * ciphertext) {///TODO: rever.
-    int end = 0, i, len = strlen(ciphertext);
-    static unsigned char ret[50];
-    for (i = len - 1; i >= 0; i--)
-        if (ciphertext[i] == '$') {
-            end = i;
-            break;
-        }
+    static sha256_salt out;
+    int len;
 
-    for (i = 0; i < end; i++)
-        ret[i] = ciphertext[i];
-    ret[end] = 0;
-    return (void *) ret;
-}
-
-static void set_salt(void * salt_info) {///TODO: rever.
-    int len = strlen(salt_info);
-    unsigned char offset = 0;
-    static char currentsalt[64];
-
-    memcpy(currentsalt, (char *) salt_info, len + 1);
-    salt.rounds = ROUNDS_DEFAULT;
-
-    if (strncmp((char *) "$5$", (char *) currentsalt, 3) == 0)
-        offset += 3;
-
-    if (strncmp((char *) currentsalt + offset, (char *) ROUNDS_PREFIX, 7) == 0) {
-        const char *num = currentsalt + offset + 7;
+    out.rounds = ROUNDS_DEFAULT;
+    ciphertext += 3;
+    if (!strncmp(ciphertext, ROUNDS_PREFIX,
+            sizeof(ROUNDS_PREFIX) - 1)) {
+        const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
         char *endp;
         unsigned long int srounds = strtoul(num, &endp, 10);
-
         if (*endp == '$') {
-            endp += 1;
-            salt.rounds =
-                    MAX(ROUNDS_MIN, MIN(srounds, ROUNDS_MAX));
+            ciphertext = endp + 1;
+            out.rounds = srounds < ROUNDS_MIN ?
+                    ROUNDS_MIN : srounds;
+            out.rounds = srounds > ROUNDS_MAX ?
+                    ROUNDS_MAX : srounds;
         }
-        offset = endp - currentsalt;
     }
+
+    for (len = 0; ciphertext[len] != '$'; len++);
+    
     //Assure buffer has no "trash data".	
-    memset(salt.salt, '\0', SALT_LENGTH);
-    len = strlen(currentsalt + offset);
+    memset(out.salt, '\0', SALT_LENGTH);
     len = (len > SALT_LENGTH ? SALT_LENGTH : len);
 
     //Put the tranfered salt on salt buffer.
-    memcpy(salt.salt, currentsalt + offset, len);
-    salt.length = len ;
+    memcpy(out.salt, ciphertext, len);
+    out.length = len;
+    return &out;    
+}
+
+static void set_salt(void * salt_info) {///TODO: rever.
+    
+    salt = salt_info;
     new_salt = 1;          
 }
 
@@ -383,7 +373,7 @@ static void find_best_gws(void) {
             set_key("aaabaabaaa", i);
         }
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
-                sizeof(sha256_salt), &salt, 0, NULL, NULL),
+                sizeof(sha256_salt), salt, 0, NULL, NULL),
                 "Failed in clEnqueueWriteBuffer I");
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
                 sizeof(sha256_password) * num, plaintext, 0, NULL, NULL),
@@ -643,7 +633,7 @@ static void crypt_all(int count) {
     //Send data to device.
     if (new_salt)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-            sizeof(sha256_salt), &salt, 0, NULL, NULL),
+            sizeof(sha256_salt), salt, 0, NULL, NULL),
             "failed in clEnqueueWriteBuffer salt_buffer");
 
     if (new_keys)
