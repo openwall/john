@@ -54,6 +54,7 @@
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
 #include <openssl/opensslv.h>
+#include <openssl/crypto.h>
 #include "unicode.h"
 #include "plugin.h"
 #ifdef CL_VERSION_1_0
@@ -715,6 +716,18 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 #ifdef __clang_version__
 			printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef OPENSSL_VERSION_NUMBER
+			// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
+			// gcc insists it is int.
+			printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+			// FIXME: How do I detect a missing library?
+			// Even if if is extremely unlikely that openssl is missing,
+			// at least flush all output buffers...
+			fflush(NULL);
+			if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
+				printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+			printf("\n");
 #endif
 			exit(0);
 		}
