@@ -1,16 +1,14 @@
 /*
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
- * Based on source code provided by Lukas Odzioba
  *
  * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
  *
- * This software is:
- * Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
- * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification, are permitted.
- *
- * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
+ * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
+ * 
+ * This is free software, and you are welcome to redistribute it
+ * under certain conditions; as expressed here
+ * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
 #ifndef _CRYPTSHA512_H
@@ -32,7 +30,6 @@
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
 #define gpu_amd(n)              ((n & AMD) && gpu(n))
-#define gpu_amd_64(n)           (0)
 #define gpu_nvidia(n)           ((n & NVIDIA) && gpu(n))
 #define gpu_intel(n)            ((n & INTEL) && gpu(n))
 #define cpu_amd(n)              ((n & AMD) && cpu(n))
@@ -63,7 +60,7 @@
 #define PLAINTEXT_LENGTH        16
 #define SALT_ARRAY              (SALT_LENGTH / 8)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
-#define BINARY_SIZE             (3+16+86)       //TODO: Magic number?
+#define BINARY_SIZE             64
 #define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
 #define MOD_3_0                 1
@@ -91,15 +88,9 @@
           | (((n) >> 40) & 0xff00)            \
           | ((n) >> 56))
 
-#define SWAP64_V(n)     SWAP(n)
+#define SWAP64_V(n)             SWAP(n)
 
-#if gpu_amd_64(DEVICE_INFO)
-        #pragma OPENCL EXTENSION cl_amd_media_ops : enable
-        #define ror(x, n)       amd_bitalign(x, x, (uint64_t) n)
-        #define Ch(x, y, z)     amd_bytealign(x, y, z)
-        #define Maj(x, y, z)    amd_bytealign(z ^ x, y, x )
-        #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
-#elif gpu_amd(DEVICE_INFO)
+#if gpu_amd(DEVICE_INFO)
         #define Ch(x,y,z)       bitselect(z, y, x)
         #define Maj(x,y,z)      bitselect(x, y, z ^ x)
         #define ror(x, n)       rotate(x, (uint64_t) 64-n)
@@ -120,8 +111,8 @@
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
-#define PUTCHAR(buf, index, val) (buf)[(index)] = val
-#define PUTBYTE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#define ATTRIB(buf, index, val) (buf)[(index)] = val
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 //Data types.
 typedef union {
@@ -155,13 +146,6 @@ typedef struct {
     uint64_t                    safety_trail;   //To avoid memory override
 #endif
 } sha512_ctx;
-
-typedef struct {
-    sha512_ctx                  ctx_data;
-    buffer_64                   alt_result[8];
-    buffer_64                   temp_result[8];
-    buffer_64                   p_sequence[8];
-} sha512_buffer;
 
 typedef struct {
     buffer_64                   alt_result[8];
