@@ -3,7 +3,7 @@
  * Copyright (c) 2010 by Solar Designer
  *
  * MD5 OpenCL code is based on Alain Espinosa's OpenCL patches.
- * 
+ *
  */
 
 #include <string.h>
@@ -35,7 +35,6 @@ static char get_key_saved[PLAINTEXT_LENGTH + 1];
 
 #define MIN_KEYS_PER_CRYPT      2048
 #define MAX_KEYS_PER_CRYPT      MD5_NUM_KEYS
-static size_t global_work_size = MD5_NUM_KEYS;
 static unsigned int datai[2];
 static int have_full_hashes;
 
@@ -47,57 +46,6 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void find_best_workgroup(void){
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i = 0;
-	size_t max_group_size;
-
-	clGetDeviceInfo(devices[gpu_id], CL_DEVICE_MAX_WORK_GROUP_SIZE,
-		sizeof(max_group_size), &max_group_size, NULL);
-	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id],
-		CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	printf("Max local work size %d ", (int) max_group_size);
-	local_work_size = 1;
-
-	// Set keys
-	for (; i < MD5_NUM_KEYS; i++) {
-		memcpy(&(saved_plain[i * (PLAINTEXT_LENGTH + 1)]), "aaaaaaaa",
-			PLAINTEXT_LENGTH + 1);
-		saved_plain[i * (PLAINTEXT_LENGTH + 1) + 8] = 0x80;
-	}
-        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, 
-		sizeof(unsigned int)*2, datai, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0,
-		(PLAINTEXT_LENGTH + 1) * MD5_NUM_KEYS, saved_plain, 0, NULL, NULL);
-
-	// Find minimum time
-	for (my_work_group = 1; (int) my_work_group <= (int) max_group_size; my_work_group *= 2) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL,
-			&global_work_size, &my_work_group, 0, NULL, &myEvent);
-		if (ret_code != CL_SUCCESS) {
-			printf("Error %d\n", ret_code);
-			continue;
-		}
-		clFinish(queue_prof);
-
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-			sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-			sizeof(cl_ulong), &endTime, NULL);
-
-		if ((endTime - startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime - startTime;
-			local_work_size = my_work_group;
-		}
-	}
-	printf("Optimal local work size %d\n",(int)local_work_size);
-	printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-}
-
 static void create_clobj(int kpc){
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 		(PLAINTEXT_LENGTH + 1) * kpc, NULL, &ret_code);
@@ -108,7 +56,7 @@ static void create_clobj(int kpc){
 		(PLAINTEXT_LENGTH + 1) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	res_hashes = malloc(sizeof(cl_uint) * 3 * kpc);
-	
+
 	pinned_partial_hashes = clCreateBuffer(context[gpu_id],
 		CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
@@ -125,11 +73,11 @@ static void create_clobj(int kpc){
 	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
 		BINARY_SIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
-	
+
 	data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info), 
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info),
 		(void *) &data_info), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_keys),
 		(void *) &buffer_keys), "Error setting argument 1");
@@ -171,7 +119,7 @@ static void find_best_kpc(void){
 	int i = 0;
 	cl_uint *tmpbuffer;
 
-	printf("Calculating best keys per crypt, this will take a while ");
+	fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
 	for( num=MD5_NUM_KEYS; num > 4096 ; num -= 4096){
 		release_clobj();
 		create_clobj(num);
@@ -184,8 +132,8 @@ static void find_best_kpc(void){
         	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 		clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH + 1) * num, saved_plain, 0, NULL, NULL);
     		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
-		if(ret_code != CL_SUCCESS){
-			printf("Error %d\n",ret_code);
+		if(ret_code != CL_SUCCESS) {
+			HANDLE_CLERROR(ret_code, "Error running kernel in find_best_KPC()");
 			continue;
 		}
 		clFinish(queue_prof);
@@ -204,7 +152,7 @@ static void find_best_kpc(void){
 		free(tmpbuffer);
 		clReleaseCommandQueue(queue_prof);
 	}
-	printf("Optimal keys per crypt %d\n(to avoid this test on next run do \"export GWS=%d\")\n",optimal_kpc,optimal_kpc);
+	fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do \"export GWS=%d\")\n",optimal_kpc,optimal_kpc);
 	max_keys_per_crypt = optimal_kpc;
 	release_clobj();
 	create_clobj(optimal_kpc);
@@ -213,12 +161,14 @@ static void find_best_kpc(void){
 static void fmt_MD5_init(struct fmt_main *pFmt) {
 	char *kpc;
 
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	opencl_init("$JOHN/md5_kernel.cl", gpu_id, platform_id);
 	crypt_kernel = clCreateKernel(program[gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(MD5_NUM_KEYS);
-		find_best_workgroup();
+		opencl_find_best_workgroup(pFmt);
 		release_clobj();
 	}else {
 		local_work_size = atoi(kpc);
@@ -237,7 +187,7 @@ static void fmt_MD5_init(struct fmt_main *pFmt) {
 			create_clobj(max_keys_per_crypt);
 		}
 	}
-	printf("Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
+	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
@@ -322,12 +272,12 @@ static void crypt_all(int count)
 	unsigned char *p = (unsigned char *) saved_plain;
 	count--;
 	for (i = 0; i < count + 1; i++) {
-		printf("\npassword : ");
+		fprintf(stderr, "\npassword : ");
 		for (j = 0; j < 64; j++) {
-			printf("%02x ", p[i * 64 + j]);
+			fprintf(stderr, "%02x ", p[i * 64 + j]);
 		}
 	}
-	printf("\n");
+	fprintf(stderr, "\n");
 #endif
 	// copy keys to the device
 	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
@@ -338,7 +288,7 @@ static void crypt_all(int count)
 	    "failed in clEnqueueWriteBuffer buffer_keys");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, NULL),
+	    &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
 	    "failed in clEnqueueNDRangeKernel");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 	// read back partial hashes
@@ -350,11 +300,11 @@ static void crypt_all(int count)
 #ifdef DEBUGVERBOSE
 	p = (unsigned char *) partial_hashes;
 	for (i = 0; i < 2; i++) {
-		printf("\n\npartial_hashes : ");
+		fprintf(stderr, "\n\npartial_hashes : ");
 		for (j = 0; j < 16; j++)
-			printf("%02x ", p[i * 16 + j]);
+			fprintf(stderr, "%02x ", p[i * 16 + j]);
 	}
-	printf("\n");;
+	fprintf(stderr, "\n");;
 #endif
 }
 
@@ -379,13 +329,13 @@ static int cmp_exact(char *source, int count){
 	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 
-		sizeof(cl_uint) * (max_keys_per_crypt), 
+	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
+		sizeof(cl_uint) * (max_keys_per_crypt),
 		sizeof(cl_uint) * 3 * max_keys_per_crypt, res_hashes, 0,
-		NULL, NULL); 
+		NULL, NULL);
 		have_full_hashes = 1;
 	}
-        
+
 	if (t[1]!=res_hashes[count])
 		return 0;
 	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])

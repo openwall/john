@@ -35,6 +35,7 @@ cl_int ret_code;
 cl_kernel crypt_kernel;
 cl_event profilingEvent;
 size_t local_work_size;
+size_t global_work_size;
 size_t max_group_size;
 
 int device_info[MAXGPUS];
@@ -47,7 +48,7 @@ void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
 void opencl_find_best_workgroup(struct fmt_main *pFmt);
-
+void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_limit);
 
 cl_device_type get_device_type(int dev_id);
 cl_ulong get_local_memory_size(int dev_id);
@@ -57,6 +58,7 @@ cl_uint get_max_compute_units(int dev_id);
 cl_uint get_processors_count(int dev_id);
 cl_uint get_processor_family(int dev_id);
 int get_vendor_id(int dev_id);
+int get_device_version(int dev_id);
 int get_byte_addressable(int dev_id);
 
 #define UNKNOWN                 0
@@ -74,7 +76,6 @@ int get_byte_addressable(int dev_id);
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
 #define gpu_amd(n)              ((n & AMD) && gpu(n))
-#define gpu_amd_64(n)           (0)
 #define gpu_nvidia(n)           ((n & NVIDIA) && gpu(n))
 #define gpu_intel(n)            ((n & INTEL) && gpu(n))
 #define cpu_amd(n)              ((n & AMD) && cpu(n))

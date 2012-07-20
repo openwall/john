@@ -4,7 +4,7 @@
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
- * under certain conditions; as expressed here 
+ * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
@@ -51,7 +51,6 @@ cl_mem pinned_msha_keys, pin_part_msha_hashes, buf_msha_out, buf_msha_keys, data
 static cl_uint *par_msha_hashes;
 static cl_uint *res_hashes;
 static char *mysqlsha_plain;
-static size_t global_work_size = SHA_NUM_KEYS;
 static unsigned int datai[2];
 static int have_full_hashes;
 
@@ -70,50 +69,6 @@ static struct fmt_tests tests[] = {
   	{"*F7D70FD3341C2D268E98119ED2799185F9106F5C", "tVDZsHSG"},
 	{NULL}
 };
-
-
-static void find_best_workgroup(void){
-	cl_event myEvent;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	size_t my_work_group = 1;
-	cl_int ret_code;
-	int i = 0;
-	size_t max_group_size;
-
-	clGetDeviceInfo(devices[gpu_id],CL_DEVICE_MAX_WORK_GROUP_SIZE,sizeof(max_group_size),&max_group_size,NULL );
-	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	printf("Max local work size %d ",(int)max_group_size);
-	local_work_size = 1;
-
-	// Set keys
-	for (; i < SHA_NUM_KEYS; i++){
-		memcpy(&(mysqlsha_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
-	}
-        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * SHA_NUM_KEYS, mysqlsha_plain, 0, NULL, NULL);
-
-	// Find minimum time
-	for(my_work_group=1 ;(int) my_work_group <= (int) max_group_size; my_work_group*=2){
-    		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &my_work_group, 0, NULL, &myEvent);
-		clFinish(queue_prof);
-
-		if(ret_code != CL_SUCCESS){
-			printf("Error %d\n",ret_code);
-			continue;
-		}
-
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-
-		if((endTime-startTime) < kernelExecTimeNs) {
-			kernelExecTimeNs = endTime-startTime;
-			local_work_size = my_work_group;
-		}
-	}
-	printf("Optimal local work size %d\n",(int)local_work_size);
-        printf("(to avoid this test on next run do export LWS=%d)\n",(int)local_work_size);
-	clReleaseCommandQueue(queue_prof);
-}
 
 static void create_clobj(int kpc){
     pinned_msha_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
@@ -173,7 +128,7 @@ static void find_best_kpc(void){
     int i = 0;
     cl_uint *tmpbuffer;
 
-    printf("Calculating best keys per crypt, this will take a while ");
+    fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
     for( num=SHA_NUM_KEYS; num > 4096 ; num -= 4096){
         release_clobj();
 	create_clobj(num);
@@ -186,7 +141,7 @@ static void find_best_kpc(void){
 	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, mysqlsha_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS){
-		printf("Error %d\n",ret_code);
+		fprintf(stderr, "Error %d\n",ret_code);
 		continue;
 	}
 	clFinish(queue_prof);
@@ -205,7 +160,7 @@ static void find_best_kpc(void){
 	free(tmpbuffer);
     	clReleaseCommandQueue(queue_prof);
     }
-    printf("Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
+    fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
     max_keys_per_crypt = optimal_kpc;
     release_clobj();
     create_clobj(optimal_kpc);
@@ -234,16 +189,18 @@ static void set_salt(void *salt){
 static void init(struct fmt_main *pFmt){
 	char *kpc;
 
+	global_work_size = MAX_KEYS_PER_CRYPT;
+
 	opencl_init("$JOHN/msha_kernel.cl", gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-    
+
 	// we run find_best_workgroup even if LWS is setted to 0
 	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(SHA_NUM_KEYS);
-		find_best_workgroup();
+		opencl_find_best_workgroup(pFmt);
 		release_clobj();
 	}else {
 		local_work_size = atoi(kpc);
@@ -263,7 +220,7 @@ static void init(struct fmt_main *pFmt){
 	    		create_clobj(max_keys_per_crypt);
 		}
 	}
-	printf("Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
+	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
 	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
 
 }
@@ -306,13 +263,13 @@ static int cmp_exact(char *source, int count) {
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
-		clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE, 
-			sizeof(cl_uint) * (max_keys_per_crypt), 
+		clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE,
+			sizeof(cl_uint) * (max_keys_per_crypt),
 			sizeof(cl_uint) * 4 * max_keys_per_crypt, res_hashes, 0,
-			NULL, NULL); 
+			NULL, NULL);
 		have_full_hashes = 1;
 	}
-        
+
 	if (t[1]!=res_hashes[count])
 		return 0;
 	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
@@ -325,7 +282,7 @@ static int cmp_exact(char *source, int count) {
 }
 
 static int cmp_one(void *binary, int index){
-	unsigned int *t = (unsigned int *) binary; 
+	unsigned int *t = (unsigned int *) binary;
 
 	if (t[0] == par_msha_hashes[index])
 		return 1;
@@ -343,12 +300,12 @@ static void crypt_all(int count) {
 	    clEnqueueWriteBuffer(queue[gpu_id], buf_msha_keys, CL_TRUE, 0,
 	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, mysqlsha_plain, 0, NULL, NULL),
 	     "failed in clEnqueueWriteBuffer mysqlsha_plain");
-	     
+
 	HANDLE_CLERROR(
 	    clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, NULL),
+	    &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
 	      "failed in clEnqueueNDRangeKernel");
-	      
+
 	HANDLE_CLERROR(clFinish(queue[gpu_id]),"failed in clFinish");
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buf_msha_out, CL_TRUE, 0,
