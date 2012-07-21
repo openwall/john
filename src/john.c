@@ -168,6 +168,7 @@ extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
 extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
+extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
 extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
@@ -1213,6 +1214,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "pfx2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pfx2john(argc, argv);
+	}
+
+	if (!strcmp(name, "keychain2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return keychain2john(argc, argv);
 	}
 
 	if (!strcmp(name, "keepass2john")) {
