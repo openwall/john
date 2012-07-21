@@ -51,6 +51,7 @@
 //Constants.
 #define FALSE                   0
 #define TRUE                    1
+#define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
 #define ROUNDS_CACHE            ROUNDS_DEFAULT / 4
 #define ROUNDS_MIN              1000
@@ -58,6 +59,7 @@
 
 #define SALT_LENGTH             16
 #define PLAINTEXT_LENGTH        16
+#define CIPHERTEXT_LENGTH	86
 #define SALT_ARRAY              (SALT_LENGTH / 8)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             64

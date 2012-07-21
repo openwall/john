@@ -213,8 +213,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_l
 		pFmt->methods.set_key(pFmt->params.tests[0].plaintext, i);
 	}
 	/// Set salt
-	pFmt->methods.set_salt(pFmt->methods.salt(pFmt->params.tests[0].
-		ciphertext));
+        pFmt->methods.set_salt(
+	    pFmt->methods.salt(pFmt->methods.salt(pFmt->params.tests[0].
+		ciphertext)));
 
 	/// Warm-up run
 	local_work_size = wg_multiple;

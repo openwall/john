@@ -28,7 +28,7 @@
 #define LWS_CONFIG			"sha512crypt_LWS"
 #define GWS_CONFIG			"sha512crypt_GWS"
 
-static sha512_salt         salt;
+static sha512_salt         * salt;
 static sha512_password     * plaintext;             // plaintext ciphertexts
 static sha512_hash         * calculated_hash;       // calculated hashes
 static int                 modulus[ROUNDS_CACHE];   // modulus value.
@@ -229,7 +229,6 @@ static void create_clobj(int gws) {
            NULL), "Error setting argument 4");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
-    memset(&salt, '\0', sizeof(sha512_salt));
     global_work_size = gws;
 }
 
@@ -258,7 +257,7 @@ static void release_clobj(void) {
 
 /* ------- Salt functions ------- */
 static void * get_salt(char * ciphertext) {
-    static sha256_salt out;
+    static sha512_salt out;
     int len;
 
     out.rounds = ROUNDS_DEFAULT;
@@ -410,7 +409,7 @@ static void find_best_gws(void) {
             set_key("aaabaabaaa", i);
         }
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
-                sizeof(sha512_salt), &salt, 0, NULL, NULL),
+                sizeof(sha512_salt), salt, 0, NULL, NULL),
                 "Failed in clEnqueueWriteBuffer I");
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
                 sizeof(sha512_password) * num, plaintext, 0, NULL, NULL),
@@ -698,7 +697,7 @@ static void crypt_all(int count) {
     //Send data to device.
     if (new_salt)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-            sizeof(sha512_salt), &salt, 0, NULL, &profilingEvent),
+            sizeof(sha512_salt), salt, 0, NULL, &profilingEvent),
             "failed in clEnqueueWriteBuffer salt_buffer");
 
     if (new_keys)
