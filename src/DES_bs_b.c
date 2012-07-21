@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2010-2012 by Solar Designer
  */
 
 #include "arch.h"
@@ -1452,8 +1452,9 @@ static MAYBE_INLINE void DES_bs_finalize_keys_LM(void)
 #define kd				[0]
 #endif
 
-int DES_bs_crypt_LM(int keys_count, struct db_salt *salt)
+int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 {
+	int keys_count = *pcount;
 #if DES_bs_mt
 	int retval = (salt && salt->bitmap) ? 0 : keys_count;
 	int t, n = (keys_count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;

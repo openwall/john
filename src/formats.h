@@ -163,7 +163,12 @@ struct fmt_methods {
 /* Sets a plaintext, with index from 0 to fmt_params.max_keys_per_crypt - 1 */
 	void (*set_key)(char *key, int index);
 
-/* Returns a plaintext previously set with set_key() */
+/* Returns a plaintext previously set with and potentially altered by
+ * set_key() (e.g., converted to all-uppercase and truncated at 7 for LM
+ * hashes).  The plaintext may also have been generated or altered by
+ * crypt_all().  Depending on crypt_all() implementation, the index used here
+ * does not have to match an index previously used with set_key(), although
+ * for most formats it does.  See the description of crypt_all() below. */
 	char *(*get_key)(int index);
 
 /* Allow the previously set keys to be dropped if that would help improve
@@ -179,10 +184,21 @@ struct fmt_methods {
  * min_keys_per_crypt keys whenever practical.
  * Returns the last output index for which there might be a match (against the
  * supplied salt's hashes) plus 1.  A return value of zero indicates no match.
+ * Note that output indices don't have to match input indices (although they
+ * may and usually do).  The indices passed to get_key(), get_hash[](),
+ * cmp_one(), and cmp_exact() must be in the 0 to crypt_all() return value
+ * minus 1 range, although for infrequent status reporting get_key() may also
+ * be called on indices previously supplied to set_key() as well as on indices
+ * up to the updated *count minus 1 even if they're beyond this range.
+ * The count passed to cmp_all() must be equal to crypt_all()'s return value.
  * If an implementation does not use the salt parameter or if salt is NULL
  * (as it may be during self-test and benchmark), the return value must always
- * be exactly count. */
-	int (*crypt_all)(int count, struct db_salt *salt);
+ * match *count the way it is after the crypt_all() call.
+ * The count is passed by reference and must be updated by crypt_all() if it
+ * computes other than the requested count (such as if it generates additional
+ * candidate passwords on its own).  The updated count is used for c/s rate
+ * calculation.  The return value is thus in the 0 to updated *count range. */
+	int (*crypt_all)(int *count, struct db_salt *salt);
 
 /* These functions calculate a hash out of a ciphertext that has just been
  * generated with the crypt_all() method. To be used while cracking. */

@@ -233,7 +233,7 @@ static int crk_process_event(void)
 static int crk_password_loop(struct db_salt *salt)
 {
 	struct db_password *pw;
-	int match, index;
+	int count, match, index;
 
 #if !OS_TIMER
 	sig_timer_emu_tick();
@@ -244,11 +244,13 @@ static int crk_password_loop(struct db_salt *salt)
 	if (event_pending)
 	if (crk_process_event()) return 1;
 
-	match = crk_methods.crypt_all(crk_key_index, salt);
+	count = crk_key_index;
+	match = crk_methods.crypt_all(&count, salt);
+	crk_last_key = count;
 
 	{
 		int64 effective_count;
-		mul32by32(&effective_count, salt->count, crk_key_index);
+		mul32by32(&effective_count, salt->count, count);
 		status_update_crypts(&effective_count);
 	}
 
@@ -298,7 +300,7 @@ static int crk_salt_loop(void)
 		if (crk_password_loop(salt)) return 1;
 	} while ((salt = salt->next));
 
-	crk_last_key = crk_key_index; crk_key_index = 0;
+	crk_key_index = 0;
 	crk_last_salt = NULL;
 	crk_fix_state();
 
@@ -401,7 +403,7 @@ char *crk_get_key1(void)
 
 char *crk_get_key2(void)
 {
-	if (crk_key_index > 1)
+	if (crk_key_index > 1 && crk_key_index < crk_last_key)
 		return crk_methods.get_key(crk_key_index - 1);
 	else
 	if (crk_last_key > 1)

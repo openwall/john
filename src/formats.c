@@ -135,8 +135,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		format->methods.set_salt(salt);
 		format->methods.set_key(current->plaintext, index);
 
-		if (format->methods.crypt_all(index + 1, NULL) != index + 1)
-			return "crypt_all";
+		{
+			int count = index + 1;
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
+		}
 
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 		if (format->methods.binary_hash[size] &&
