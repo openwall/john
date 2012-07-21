@@ -175,8 +175,6 @@ static void create_clobj(int gws) {
             (void *) &pass_buffer), "Error setting argument 1");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
-    //HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-    //        (void *) &mod_buffer), "Error setting argument 3");
 
     if (batch_mode) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
@@ -212,15 +210,15 @@ static void create_clobj(int gws) {
         }
     } else if (gpu_amd(device_info[gpu_id])) {
         //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha512_password) * local_work_size,
+           NULL), "Error setting argument 3");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
+           sizeof(sha512_buffers) * local_work_size,
            NULL), "Error setting argument 4");
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-           sizeof(sha512_buffers) * local_work_size,
-           NULL), "Error setting argument 5");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
            sizeof(sha512_ctx) * local_work_size,
-           NULL), "Error setting argument 6");
+           NULL), "Error setting argument 5");
 
     } else if (gpu_nvidia(device_info[gpu_id])) {
         //Fast working memory.
@@ -579,20 +577,12 @@ static void init(struct fmt_main *pFmt) {
     //Pre compute modulus values.
     for (i = 0; i < ROUNDS_CACHE; i++) {
         //Set: 0
-        modulus[i]  = ((i*4) % 3) ? MOD_3_0 : 0;
-        modulus[i] += ((i*4) % 7) ? MOD_7_0 : 0;
+        modulus[i]  = ((i*2) % 3) ? MOD_3_0 : 0;
+        modulus[i] += ((i*2) % 7) ? MOD_7_0 : 0;
 
         //Set: 1
-        modulus[i] += ((i*4+1) % 3) ? MOD_3_1 : 0;
-        modulus[i] += ((i*4+1) % 7) ? MOD_7_1 : 0;
-
-        //Set: 2
-        modulus[i] += ((i*4+2) % 3) ? MOD_3_2 : 0;
-        modulus[i] += ((i*4+2) % 7) ? MOD_7_2 : 0;
-
-        //Set: 3
-        modulus[i] += ((i*4+3) % 3) ? MOD_3_3 : 0;
-        modulus[i] += ((i*4+3) % 7) ? MOD_7_3 : 0;
+        modulus[i] += ((i*2+1) % 3) ? MOD_3_1 : 0;
+        modulus[i] += ((i*2+1) % 7) ? MOD_7_1 : 0;
     }
 }
 
@@ -734,7 +724,7 @@ static void crypt_all(int count) {
     new_keys = 0;
     new_salt = 0;
 }
-
+//#define DEBUG
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {

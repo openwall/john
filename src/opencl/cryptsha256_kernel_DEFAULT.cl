@@ -297,11 +297,11 @@ void sha256_digest(sha256_ctx * ctx,
         finish_ctx(ctx);
 
     } else {
-        bool moved = 1;
+        bool moved = true;
 
         if (ctx->buflen < 64) { //data and 0x80 fits in one block
             ctx_append_1(ctx);
-            moved = 0;
+            moved = false;
         }
         sha256_block(ctx);
         clear_ctx_buffer(ctx);
@@ -359,11 +359,10 @@ void sha256_prepare(__constant sha256_salt     * salt_data,
         ctx_update_G(ctx, pass, passlen);
 
     sha256_digest(ctx, p_sequence->mem_32);
-
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
-    for (uint32_t i = 0; i < 16 + alt_result->mem_08[0]; i++)
+    for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
         ctx_update_C(ctx, salt, saltlen);
 
     /* Finish the digest.  */

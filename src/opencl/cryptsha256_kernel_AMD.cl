@@ -207,11 +207,16 @@ void finish_ctx(__local sha256_ctx * ctx) {
 
 void clear_ctx_buffer(__local sha256_ctx * ctx) {
 
+#ifdef VECTOR_USAGE
+    ulong16  w_vector = 0;
+    vstore16(w_vector, 0, ctx->buffer->mem_64);
+#else
     __local uint64_t * l = (__local uint64_t *) ctx->buffer;
 
     #pragma unroll
     for (int i = 0; i < 8; i++)
         *l++ = 0;
+#endif
 
     ctx->buflen = 0;
 }
@@ -223,11 +228,11 @@ void sha256_digest(__local sha256_ctx * ctx,
         finish_ctx(ctx);
 
     } else {
-        bool moved = 1;
+        bool moved = true;
 
         if (ctx->buflen < 64) { //data and 0x80 fits in one block
             ctx_append_1(ctx);
-            moved = 0;
+            moved = false;
         }
         sha256_block(ctx);
         clear_ctx_buffer(ctx);
@@ -270,11 +275,8 @@ void sha256_prepare(__constant sha256_salt     * salt_data,
     ctx_update_L(ctx, alt_result->mem_08, passlen);
 
     for (uint32_t i = passlen; i > 0; i >>= 1) {
-
-	if (i & 1)
-            ctx_update_L(ctx, alt_result->mem_08, 32U);
-	else
-            ctx_update_L(ctx, pass, passlen);
+        ctx_update_L(ctx, ((i & 1) ? alt_result->mem_08 : pass),
+                          ((i & 1) ? 32U :                passlen));
     }
     sha256_digest(ctx, alt_result->mem_32);
     init_ctx(ctx);
@@ -283,11 +285,10 @@ void sha256_prepare(__constant sha256_salt     * salt_data,
         ctx_update_L(ctx, pass, passlen);
 
     sha256_digest(ctx, p_sequence->mem_32);
-
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
-    for (uint32_t i = 0; i < 16 + alt_result->mem_08[0]; i++)
+    for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
         ctx_update_C(ctx, salt, saltlen);
 
     /* Finish the digest.  */

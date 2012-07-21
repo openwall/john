@@ -53,7 +53,7 @@
 #define TRUE                    1
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
-#define ROUNDS_CACHE            ROUNDS_DEFAULT / 4
+#define ROUNDS_CACHE            ROUNDS_DEFAULT / 2
 #define ROUNDS_MIN              1000
 #define ROUNDS_MAX              999999999
 
