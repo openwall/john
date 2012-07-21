@@ -25,8 +25,8 @@
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define LWS_CONFIG			"cryptsha512_LWS"
-#define GWS_CONFIG			"cryptsha512_GWS"
+#define LWS_CONFIG			"sha512crypt_LWS"
+#define GWS_CONFIG			"sha512crypt_GWS"
 
 static sha512_salt         salt;
 static sha512_password     *plaintext;        // plaintext ciphertexts

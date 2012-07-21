@@ -82,7 +82,7 @@ static void process_file(const char *filename)
 	while(1) {
 		fseek(fp, -8, SEEK_CUR);
 		if(fread(buf, 4, 1, fp) == 0) {
-			fprintf(stderr, "%s : Couldn't find db key. Is a keychain file?\n", filename);
+			fprintf(stderr, "%s : Couldn't find db key. Is it a keychain file?\n", filename);
 			exit(1);
 		}
 		if(!memcmp(buf, magic, 4))
@@ -122,13 +122,13 @@ static void process_file(const char *filename)
 	fclose(fp);
 }
 
-int main(int argc, char **argv)
+int keychain2john(int argc, char **argv)
 {
 	int i;
 
 	if (argc < 2) {
 		puts("Usage: keychain2john [keychain files]");
-		return 0;
+		return -1;
 	}
 	for (i = 1; i < argc; i++)
 		process_file(argv[i]);

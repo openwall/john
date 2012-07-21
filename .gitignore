@@ -22,6 +22,7 @@ run/opencl_cryptsha512.h
 run/opencl_rar.h
 run/pdf2john
 run/pfx2john
+run/keychain2john
 run/pwsafe2john
 run/racf2john
 run/rar2john

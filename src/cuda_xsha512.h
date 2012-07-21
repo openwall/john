@@ -12,8 +12,8 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 1024
-#define THREADS 512
+#define BLOCKS 4096
+#define THREADS 128
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
 #define ITERATIONS 1
 #define MIN_KEYS_PER_CRYPT	(32*32)

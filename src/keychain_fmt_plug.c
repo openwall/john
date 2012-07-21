@@ -18,7 +18,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "gladman_fileenc.h"
+#include "keychain.h"
 #include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -30,7 +30,7 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	15
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
@@ -149,9 +149,9 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char master[24];
-		derive_key((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master, 24);
-		if(kcdecrypt(master, salt_struct->iv, salt_struct->ct) == 0)
+		unsigned int master[8];
+		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, master);
+		if(kcdecrypt((unsigned char*)master, salt_struct->iv, salt_struct->ct) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;

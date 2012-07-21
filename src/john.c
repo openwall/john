@@ -124,6 +124,8 @@ extern struct fmt_main fmt_opencl_mysqlsha1;
 extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
+extern struct fmt_main fmt_opencl_keychain;
+extern struct fmt_main fmt_opencl_agilekeychain;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
 extern struct fmt_main fmt_opencl_bf;
@@ -164,6 +166,7 @@ extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
 extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
+extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
 extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
@@ -255,6 +258,8 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_cryptsha512);
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
+	john_register_one(&fmt_opencl_keychain);
+	john_register_one(&fmt_opencl_agilekeychain);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_bf);
@@ -1212,6 +1217,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "pfx2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pfx2john(argc, argv);
+	}
+
+	if (!strcmp(name, "keychain2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return keychain2john(argc, argv);
 	}
 
 	if (!strcmp(name, "keepass2john")) {
