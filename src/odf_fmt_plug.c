@@ -27,7 +27,7 @@
 #endif
 
 #define FORMAT_LABEL		"odf"
-#define FORMAT_NAME		"ODF SHA-1 Blowfish"
+#define FORMAT_NAME		"ODF SHA-1 Blowfish / SHA-256 AES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
