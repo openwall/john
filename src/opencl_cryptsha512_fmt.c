@@ -31,15 +31,11 @@
 static sha512_salt         * salt;
 static sha512_password     * plaintext;             // plaintext ciphertexts
 static sha512_hash         * calculated_hash;       // calculated hashes
-static int                 modulus[ROUNDS_CACHE];   // modulus value.
 static int                 fast_mode = FALSE;
-static int                 batch_mode;
 
 cl_mem salt_buffer;        //Salt information.
 cl_mem pass_buffer;        //Plaintext buffer.
 cl_mem hash_buffer;        //Hash keys (output).
-cl_mem mod_buffer;         //Pre computed modulus value.
-cl_mem work_buffer;        //Temporary memory
 cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
@@ -160,14 +156,6 @@ static void create_clobj(int gws) {
             sizeof(sha512_hash) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
-    mod_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-            sizeof(int) * ROUNDS_CACHE, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating buffer argument mod_buffer");
-
-    work_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
-            sizeof(sha512_buffers) * gws, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating buffer argument work_buffer");
-
     //Set kernel arguments
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -176,39 +164,7 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (batch_mode) {
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
-            (void *) &work_buffer), "Error setting argument 4");
-
     if (gpu_amd(device_info[gpu_id])) {
-            //Fast working memory.
-            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-                sizeof(sha512_buffers) * local_work_size,
-                NULL), "Error setting argument 5");
-            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6,
-                sizeof(sha512_ctx) * local_work_size,
-                NULL), "Error setting argument 6");
-        }
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
-            (void *) &salt_buffer), "Error setting argument 0");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
-            (void *) &pass_buffer), "Error setting argument 1");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
-            (void *) &work_buffer), "Error setting argument 2");
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
-           sizeof(sha512_password) * local_work_size,
-           NULL), "Error setting argument 3");
-
-        if (gpu_amd(device_info[gpu_id])) {
-            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
-                sizeof(sha512_buffers) * local_work_size,
-           NULL), "Error setting argument 4");
-            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
-                sizeof(sha512_ctx) * local_work_size,
-                NULL), "Error setting argument 5");
-        }
-    } else if (gpu_amd(device_info[gpu_id])) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha512_password) * local_work_size,
@@ -222,9 +178,9 @@ static void create_clobj(int gws) {
 
     } else if (gpu_nvidia(device_info[gpu_id])) {
         //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha512_password) * local_work_size,
-           NULL), "Error setting argument 4");
+           NULL), "Error setting argument 3");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     global_work_size = gws;
@@ -413,10 +369,6 @@ static void find_best_gws(void) {
                 sizeof(sha512_password) * num, plaintext, 0, NULL, NULL),
                 "Failed in clEnqueueWriteBuffer II");
 
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mod_buffer, CL_FALSE, 0,
-                sizeof(int) * ROUNDS_CACHE, modulus, 0, NULL, NULL),
-                "failed in clEnqueueWriteBuffer mod_buffer");
-
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
                 1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
         HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
@@ -479,7 +431,7 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
-    int i, source_in_use;
+    int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
     uint64_t startTime, runtime;
@@ -513,17 +465,9 @@ static void init(struct fmt_main *pFmt) {
     fflush(stdout);
 
     // create kernel(s) to execute
-    if (batch_mode) {
-        prepare_kernel = clCreateKernel(program[gpu_id], "kernel_prepare", &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating kernel prepare. Double-check kernel name?");
+    crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-        crypt_kernel = clCreateKernel(program[gpu_id], "kernel_phase", &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-    } else {
-        crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-    }
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
 
@@ -573,17 +517,6 @@ static void init(struct fmt_main *pFmt) {
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %Zd\n",
            (int) local_work_size, global_work_size);
     pFmt->params.max_keys_per_crypt = global_work_size;
-
-    //Pre compute modulus values.
-    for (i = 0; i < ROUNDS_CACHE; i++) {
-        //Set: 0
-        modulus[i]  = ((i*2) % 3) ? MOD_3_0 : 0;
-        modulus[i] += ((i*2) % 7) ? MOD_7_0 : 0;
-
-        //Set: 1
-        modulus[i] += ((i*2+1) % 3) ? MOD_3_1 : 0;
-        modulus[i] += ((i*2+1) % 7) ? MOD_7_1 : 0;
-    }
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
@@ -694,23 +627,8 @@ static void crypt_all(int count) {
                 sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, &profilingEvent),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
-    if (new_salt)
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mod_buffer, CL_FALSE, 0,
-            sizeof(int) * ROUNDS_CACHE, modulus, 0, NULL, &profilingEvent),
-            "failed in clEnqueueWriteBuffer mod_buffer");
-
     //Enqueue the kernel
-    if (batch_mode) {
-        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
-            "failed in clEnqueueNDRangeKernel prepare_kernel");
-
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
-            "failed in clEnqueueNDRangeKernel");
-
-    } else
-        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
