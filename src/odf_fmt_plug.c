@@ -4,9 +4,7 @@
  * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.
- *
- * TODO: add support for AES encrypted ODF files */
+ * are permitted.  */
 
 #include <string.h>
 #include <assert.h>
@@ -32,8 +30,8 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(*salt_struct)
+#define BINARY_SIZE		20
+#define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -47,7 +45,7 @@ static struct fmt_tests odf_tests[] = {
 static int omp_t = 1;
 #endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int cipher_type;
@@ -56,15 +54,13 @@ static struct custom_salt {
 	int key_size;
 	int iv_length;
 	int salt_length;
-	unsigned char checksum[64];
 	unsigned char iv[16];
 	unsigned char salt[32];
 	unsigned char content[1024];
-} *salt_struct;
+} *cur_salt;
 
 static void init(struct fmt_main *pFmt)
 {
-
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
@@ -73,8 +69,7 @@ static void init(struct fmt_main *pFmt)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -88,45 +83,85 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
+	static struct custom_salt cs;
 	ctcopy += 6;	/* skip over "$odf$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
-	salt_struct->cipher_type = atoi(p);
+	cs.cipher_type = atoi(p);
 	p = strtok(NULL, "*");
-	salt_struct->checksum_type = atoi(p);
+	cs.checksum_type = atoi(p);
 	p = strtok(NULL, "*");
-	salt_struct->iterations = atoi(p);
+	cs.iterations = atoi(p);
 	p = strtok(NULL, "*");
-	salt_struct->key_size = atoi(p);
+	cs.key_size = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < 20; i++)
-		salt_struct->checksum[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	/* skip checksum field */
+	p = strtok(NULL, "*");
+	cs.iv_length = atoi(p);
+	p = strtok(NULL, "*");
+	for (i = 0; i < cs.iv_length; i++)
+		cs.iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	salt_struct->iv_length = atoi(p);
+	cs.salt_length = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->iv_length; i++)
-		salt_struct->iv[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	salt_struct->salt_length = atoi(p);
-	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->salt_length; i++)
-		salt_struct->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < cs.salt_length; i++)
+		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	p = strtok(NULL, "*");
 	for (i = 0; i < 1024; i++)
-		salt_struct->content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	free(keeptr);
-	return (void *)salt_struct;
+	return (void *)&cs;
 }
 
+static void *get_binary(char *ciphertext)
+{
+	static union {
+		unsigned char c[BINARY_SIZE+1];
+		ARCH_WORD dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	ctcopy += 6;	/* skip over "$odf$*" */
+	p = strtok(ctcopy, "*");
+	p = strtok(NULL, "*");
+	p = strtok(NULL, "*");
+	p = strtok(NULL, "*");
+	p = strtok(NULL, "*");
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	free(keeptr);
+	return out;
+}
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -143,22 +178,22 @@ static void crypt_all(int count)
 		int bf_ivec_pos;
 		unsigned char ivec[8];
 		unsigned char output[1024];
-		if(salt_struct->checksum_type == 0 && salt_struct->cipher_type == 0) {
+		if(cur_salt->checksum_type == 0 && cur_salt->cipher_type == 0) {
 			SHA_CTX ctx;
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
 			SHA1_Final((unsigned char *)hash, &ctx);
-			derive_key(hash, 20, salt_struct->salt,
-					salt_struct->salt_length,
-					salt_struct->iterations, key,
-					salt_struct->key_size);
+			derive_key(hash, 20, cur_salt->salt,
+					cur_salt->salt_length,
+					cur_salt->iterations, key,
+					cur_salt->key_size);
 			bf_ivec_pos = 0;
-			memcpy(ivec, salt_struct->iv, 8);
-			BF_set_key(&bf_key, salt_struct->key_size, key);
-			BF_cfb64_encrypt(salt_struct->content, output, 1024, &bf_key, ivec, &bf_ivec_pos, 0);
+			memcpy(ivec, cur_salt->iv, 8);
+			BF_set_key(&bf_key, cur_salt->key_size, key);
+			BF_cfb64_encrypt(cur_salt->content, output, 1024, &bf_key, ivec, &bf_ivec_pos, 0);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, output, 1024);
-			SHA1_Final(hash, &ctx);
+			SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 		}
 		else {
 			SHA256_CTX ctx;
@@ -167,44 +202,42 @@ static void crypt_all(int count)
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
 			SHA256_Final((unsigned char *)hash, &ctx);
-			derive_key(hash, 32, salt_struct->salt,
-					salt_struct->salt_length,
-					salt_struct->iterations, key,
-					salt_struct->key_size);
-			memcpy(iv, salt_struct->iv, 32);
+			derive_key(hash, 32, cur_salt->salt,
+					cur_salt->salt_length,
+					cur_salt->iterations, key,
+					cur_salt->key_size);
+			memcpy(iv, cur_salt->iv, 32);
 			memset(&akey, 0, sizeof(AES_KEY));
 			if(AES_set_decrypt_key(key, 256, &akey) < 0) {
 				fprintf(stderr, "AES_set_derypt_key failed!\n");
 			}
-			AES_cbc_encrypt(salt_struct->content, output, 1024, &akey, iv, AES_DECRYPT);
+			AES_cbc_encrypt(cur_salt->content, output, 1024, &akey, iv, AES_DECRYPT);
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, output, 1024);
-			SHA256_Final(hash, &ctx);
+			SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 		}
-		if(!memcmp(hash, salt_struct->checksum, 20))
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void odf_set_key(char *key, int index)
@@ -240,10 +273,16 @@ struct fmt_main odf_fmt = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 		{
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -252,7 +291,13 @@ struct fmt_main odf_fmt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
