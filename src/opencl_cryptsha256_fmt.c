@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
- * 
+ *
  * This is free software, and you are welcome to redistribute it
  * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -34,7 +34,7 @@ static int                 fast_mode = FALSE;
 
 cl_mem salt_buffer;        //Salt information.
 cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Hash keys (output).  
+cl_mem hash_buffer;        //Hash keys (output).
 cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
@@ -60,7 +60,7 @@ static struct fmt_tests tests[] = {
  *     {"$6$rounds=4900$saltstring$p3pnU2njiDujK0Pp5us7qlUvkjVaAM0GilTprwyZ1ZiyGKvsfNyDCnlmc.9ahKmDqyqKXMH3frK1I/oEiEbTK/", "Hello world!"},
  *     {NULL}
  * };
- ***/ 
+ ***/
 
 /* ------- Helper functions ------- */
 static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
@@ -73,7 +73,7 @@ static size_t get_task_max_work_group_size(){
 
     if (gpu_amd(device_info[gpu_id]))
         max_available = get_local_memory_size(gpu_id) /
-                (sizeof(sha256_password) + sizeof(sha256_ctx) + 
+                (sizeof(sha256_password) + sizeof(sha256_ctx) +
                  sizeof(sha256_buffers));
     else if (gpu_nvidia(device_info[gpu_id]))
         max_available = get_local_memory_size(gpu_id) /
@@ -111,12 +111,12 @@ static size_t get_default_workgroup(){
     size_t max_available;
     max_available = get_task_max_work_group_size();
 
-    if (gpu_nvidia(device_info[gpu_id]) || 
+    if (gpu_nvidia(device_info[gpu_id]) ||
        (!cpu(device_info[gpu_id]) && fast_mode)) {
         global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
-    } else 
+    } else
         return get_safe_workgroup();
 }
 
@@ -154,7 +154,7 @@ static void create_clobj(int gws) {
     hash_buffer = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
             sizeof(sha256_hash) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
-            
+
     //Set kernel arguments
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -165,13 +165,13 @@ static void create_clobj(int gws) {
 
     if (gpu_amd(device_info[gpu_id])) {
         //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,   
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha256_password) * local_work_size,
            NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,   
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
            sizeof(sha256_buffers) * local_work_size,
            NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,   
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
            sizeof(sha256_ctx) * local_work_size,
            NULL), "Error setting argument 5");
 
@@ -201,7 +201,7 @@ static void release_clobj(void) {
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(hash_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-         
+
     ret_code = clReleaseMemObject(pinned_saved_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
     ret_code = clReleaseMemObject(pinned_partial_hashes);
@@ -230,27 +230,27 @@ static void * get_salt(char * ciphertext) {
     }
 
     for (len = 0; ciphertext[len] != '$'; len++);
-    
-    //Assure buffer has no "trash data".	
+
+    //Assure buffer has no "trash data".
     memset(out.salt, '\0', SALT_LENGTH);
     len = (len > SALT_LENGTH ? SALT_LENGTH : len);
 
     //Put the tranfered salt on salt buffer.
     memcpy(out.salt, ciphertext, len);
     out.length = len;
-    return &out;    
+    return &out;
 }
 
 static void set_salt(void * salt_info) {
-    
+
     salt = salt_info;
-    new_salt = 1;          
+    new_salt = 1;
 }
 
 /* ------- Key functions ------- */
 static void set_key(char * key, int index) {
     int len;
-    
+
     //Assure buffer has no "trash data".
     memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
     len = strlen(key);
@@ -282,7 +282,7 @@ static char * get_key(int index) {
 static void find_best_workgroup(struct fmt_main *pFmt) {
 
     size_t max_group_size;
-        
+
     max_group_size = get_task_max_work_group_size();
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
@@ -443,7 +443,7 @@ static void init(struct fmt_main *pFmt) {
 
     if ((tmp_value = getenv("_FAST")))
         fast_mode = TRUE;
-    
+
     if (! cpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
 
@@ -451,10 +451,10 @@ static void init(struct fmt_main *pFmt) {
             task = "$JOHN/cryptsha256_kernel_NVIDIA.cl";
         else if (gpu_amd(source_in_use))
             task = "$JOHN/cryptsha256_kernel_AMD.cl";
-    }    
+    }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
-    
+
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
         fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
@@ -465,12 +465,12 @@ static void init(struct fmt_main *pFmt) {
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
-    
+
     if (source_in_use != device_info[gpu_id]) {
         device_info[gpu_id] = source_in_use;
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
     }
-    
+
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
         local_work_size = atoi(tmp_value);
@@ -485,7 +485,7 @@ static void init(struct fmt_main *pFmt) {
         local_work_size = 0; //Force find a valid number.
     }
     pFmt->params.max_keys_per_crypt = global_work_size;
-    
+
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
         create_clobj(global_work_size);
@@ -511,7 +511,7 @@ static void init(struct fmt_main *pFmt) {
     }
     fprintf(stderr, "Local work size (LWS) %Zd, global work size (GWS) %Zd\n",
            local_work_size, global_work_size);
-    pFmt->params.max_keys_per_crypt = global_work_size;         
+    pFmt->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Check if the ciphertext if a valid SHA-256 crypt ------- */
@@ -592,7 +592,7 @@ static int cmp_all(void * binary, int count) {
 }
 
 static int cmp_one(void * binary, int index) {
-    return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE); 
+    return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int count) {

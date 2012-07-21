@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
- * 
+ *
  * This is free software, and you are welcome to redistribute it
  * under certain conditions; as expressed here
  * http://www.gnu.org/licenses/gpl-2.0.html
@@ -84,7 +84,7 @@
             (((n) << 24)                \
           | (((n) & 0xff00) << 8)       \
           | (((n) >> 8) & 0xff00)       \
-          | ((n) >> 24))  
+          | ((n) >> 24))
 
 #define SWAP32_V(n)             SWAP(n)
 

@@ -277,21 +277,21 @@ static void * get_salt(char * ciphertext) {
     }
 
     for (len = 0; ciphertext[len] != '$'; len++);
-    
-    //Assure buffer has no "trash data".	
+
+    //Assure buffer has no "trash data".
     memset(out.salt, '\0', SALT_LENGTH);
     len = (len > SALT_LENGTH ? SALT_LENGTH : len);
 
     //Put the tranfered salt on salt buffer.
     memcpy(out.salt, ciphertext, len);
     out.length = len;
-    return &out;    
+    return &out;
 }
 
 static void set_salt(void * salt_info) {
-    
+
     salt = salt_info;
-    new_salt = 1;          
+    new_salt = 1;
 }
 
 /* ------- Key functions ------- */
@@ -329,7 +329,7 @@ static char * get_key(int index) {
 static void find_best_workgroup(struct fmt_main *pFmt) {
 
     size_t max_group_size;
-        
+
     max_group_size = get_task_max_work_group_size();
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
@@ -530,7 +530,7 @@ static void init(struct fmt_main *pFmt) {
         device_info[gpu_id] = source_in_use;
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
     }
-    
+
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
         local_work_size = atoi(tmp_value);
@@ -681,7 +681,7 @@ static int cmp_all(void *binary, int count) {
 }
 
 static int cmp_one(void *binary, int index) {
-    return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE); 
+    return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int count) {

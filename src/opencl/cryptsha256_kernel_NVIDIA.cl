@@ -237,7 +237,7 @@ void clear_ctx_buffer(sha256_ctx * ctx) {
     #pragma unroll
     for (int i = 0; i < 8; i++)
         *l++ = 0;
-    
+
     ctx->buflen = 0;
 }
 

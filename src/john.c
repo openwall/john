@@ -258,7 +258,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_cryptMD5);
 	john_register_one(&fmt_opencl_phpass);
 	john_register_one(&fmt_opencl_mysqlsha1);
-        john_register_one(&fmt_opencl_cryptsha256);
+	john_register_one(&fmt_opencl_cryptsha256);
 	john_register_one(&fmt_opencl_cryptsha512);
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);

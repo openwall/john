@@ -38,10 +38,10 @@ static void read_kernel_source(char *kernel_filename)
 
 	if (!fp)
 		fp = fopen(kernel_path, "rb");
-	
-	if (!fp)	
+
+	if (!fp)
 		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
-	
+
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
