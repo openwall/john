@@ -175,8 +175,8 @@ static void create_clobj(int gws) {
             (void *) &pass_buffer), "Error setting argument 1");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
-            (void *) &mod_buffer), "Error setting argument 3");
+    //HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+    //        (void *) &mod_buffer), "Error setting argument 3");
 
     if (batch_mode) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem),
@@ -402,7 +402,7 @@ static void find_best_gws(void) {
         HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
 
         // Set salt.
-        set_salt("$6$saltstring$");
+        set_salt(get_salt("$6$saltstring$"));
 
         // Set keys
         for (i = 0; i < num; i++) {
@@ -499,10 +499,13 @@ static void init(struct fmt_main *pFmt) {
     if (! cpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
 
-        if (gpu_nvidia(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-        else if (gpu_amd(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_AMD.cl";
+        if (! no_byte_addressable(source_in_use)) {
+
+            if (gpu_nvidia(source_in_use))
+                task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
+            else if (gpu_amd(source_in_use))
+                task = "$JOHN/cryptsha512_kernel_AMD.cl";
+        }
     }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
