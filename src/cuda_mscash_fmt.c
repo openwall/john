@@ -1,6 +1,6 @@
 /*
 * This software is Copyright (c) 2011 Lukas Odzioba
-* <lukas dot odzioba at gmail dot com> 
+* <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
@@ -51,13 +51,14 @@ static void init(struct fmt_main *pFmt)
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
+	char *hash, *p;
 	if (strncmp(ciphertext, mscash_prefix, strlen(mscash_prefix)) != 0)
 		return 0;
-	char *hash = strrchr(ciphertext, '#') + 1;
-	while (hash < ciphertext + strlen(ciphertext))
-		if (atoi16[(int)*hash++] == 0x7f)
+	hash = p = strrchr(ciphertext, '#') + 1;
+	while (*p)
+		if (atoi16[ARCH_INDEX(*p++)] == 0x7f)
 			return 0;
-	return 1;
+	return p - hash == 32;
 }
 
 static char *split(char *ciphertext, int index)

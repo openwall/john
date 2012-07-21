@@ -191,6 +191,7 @@ static void process_database(char* encryptedDatabase)
 	int endReached, expectedStartBytesLength = 0;
 	uint32_t uSig1, uSig2, uVersion;
 	FILE *fp;
+	unsigned char out[32];
 
 	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
@@ -287,6 +288,11 @@ static void process_database(char* encryptedDatabase)
 	print_hex(initializationVectors, initializationVectorsLength);
 	printf("*");
 	print_hex(expectedStartBytes, expectedStartBytesLength);
+	if (fread(out, 32, 1, fp) != 1) {
+		fprintf(stderr, "error reading encrypted data!\n");
+	}
+	printf("*");
+	print_hex(out, 32);
 	printf("\n");
 	free(masterSeed);
 	free(transformSeed);

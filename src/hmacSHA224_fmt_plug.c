@@ -6,59 +6,41 @@
  * Based on hmac-md5 by Bartavelle
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
+#include "sha2.h"
 
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
 
-#define FORMAT_LABEL			"hmac-sha512"
-#define FORMAT_NAME			"HMAC SHA-512"
+#define FORMAT_LABEL			"hmac-sha224"
+#define FORMAT_NAME			"HMAC SHA-224"
 
-#if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"64/" ARCH_BITS_STR
-#else
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
 #define PLAINTEXT_LENGTH		125
 
-#define PAD_SIZE			128
-#define BINARY_SIZE			(512/8)
+#define PAD_SIZE			64
+#define BINARY_SIZE			(224/8)
 #define SALT_SIZE			PAD_SIZE
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"what do ya want for nothing?#164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737", "Jefe"}, 
-	{"Reference hashes are keys to success#73a5eff716d0147a440fdf5aff187c52deab8c4dc55073be3d5742e788a99fd6b53a5894725f0f88f3486b5bb63d2af930a0cf6267af572128273daf8eee4cfa", "The magnum"},
-	{"Beppe#Grillo#ab08c46822313481d548412a084f08c7ca3bbf8a98d901d14698759f4c36adb07528348d56caf4f6af654e14fc102ff10dcf50794a82544426386c7be238ceaf", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"what do ya want for nothing?#a30e01098bc6dbbf45690f3a7e9e6d0f8bbea2a39e6148008fd05e44", "Jefe"},
+	{"Beppe#Grillo#926e4a97b401242ef674cee4c60d9fc6ff73007f871008d4c11f5b95", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
-static char crypt_key[BINARY_SIZE+1];
+static union xx {
+	char c[BINARY_SIZE+1];
+	ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)+1];
+} u;
+static char *crypt_key = u.c;  // Requires alignment on generic sha2.c
 static unsigned char opad[PAD_SIZE];
 static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
@@ -96,21 +78,19 @@ static void set_key(char *key, int index)
 	int i;
 
 	len = strlen(key);
+	memcpy(saved_plain, key, len);
+	saved_plain[len] = 0;
 
 	memset(ipad, 0x36, PAD_SIZE);
 	memset(opad, 0x5C, PAD_SIZE);
 
-#if PLAINTEXT_LENGTH > PAD_SIZE
-	memcpy(saved_plain, key, len);
-	saved_plain[len] = 0;
-
 	if (len > PAD_SIZE) {
-		SHA512_CTX ctx;
+		SHA256_CTX ctx;
 		unsigned char k0[BINARY_SIZE];
 
-		SHA512_Init( &ctx );
-		SHA512_Update( &ctx, key, len);
-		SHA512_Final( k0, &ctx);
+		SHA224_Init( &ctx );
+		SHA224_Update( &ctx, key, len);
+		SHA224_Final( k0, &ctx);
 
 		len = BINARY_SIZE;
 
@@ -121,7 +101,6 @@ static void set_key(char *key, int index)
 		}
 	}
 	else
-#endif /* PLAINTEXT_LENGTH > PAD_SIZE */
 	for(i=0;i<len;i++)
 	{
 		ipad[i] ^= key[i];
@@ -131,15 +110,7 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-#if PLAINTEXT_LENGTH > PAD_SIZE
 	return saved_plain;
-#else
-	unsigned int i;
-	for(i=0;i<PLAINTEXT_LENGTH;i++)
-		saved_plain[i] = ipad[ i ] ^ 0x36;
-	saved_plain[i] = 0;
-	return (char*) saved_plain;
-#endif
 }
 
 static int cmp_all(void *binary, int count)
@@ -159,17 +130,17 @@ static int cmp_one(void *binary, int index)
 
 static void crypt_all(int count)
 {
-	SHA512_CTX ctx;
+	SHA256_CTX ctx;
 
-	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, ipad, PAD_SIZE );
-	SHA512_Update( &ctx, cursalt, strlen( (char*) cursalt) );
-	SHA512_Final( (unsigned char*) crypt_key, &ctx);
+	SHA224_Init( &ctx );
+	SHA224_Update( &ctx, ipad, PAD_SIZE );
+	SHA224_Update( &ctx, cursalt, strlen( (char*) cursalt) );
+	SHA224_Final( (unsigned char*) crypt_key, &ctx);
 
-	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, opad, PAD_SIZE );
-	SHA512_Update( &ctx, crypt_key, BINARY_SIZE);
-	SHA512_Final( (unsigned char*) crypt_key, &ctx);
+	SHA224_Init( &ctx );
+	SHA224_Update( &ctx, opad, PAD_SIZE );
+	SHA224_Update( &ctx, crypt_key, BINARY_SIZE);
+	SHA224_Final( (unsigned char*) crypt_key, &ctx);
 }
 
 static void *binary(char *ciphertext)
@@ -195,7 +166,7 @@ static void *salt(char *ciphertext)
 	return salt;
 }
 
-struct fmt_main fmt_hmacSHA512 = {
+struct fmt_main fmt_hmacSHA224 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -241,9 +212,3 @@ struct fmt_main fmt_hmacSHA512 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-384 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

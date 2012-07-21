@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -82,10 +82,11 @@ static int valid(char *ciphertext,struct fmt_main *pFmt)
 {
 	uint32_t i, j;
 	int len = strlen(ciphertext);
+	char *p;
 
 	if (strncmp(ciphertext, "$6$", 3) != 0)
 		return 0;
-	char *p = strrchr(ciphertext, '$');
+	p = strrchr(ciphertext, '$');
 	if (p == NULL)
 		return 0;
 	for (i = p - ciphertext + 1; i < len; i++) {
@@ -114,18 +115,21 @@ static void magic(char *crypt, unsigned char *alt)
 
 #define _24bit_from_b64(I,B2,B1,B0) \
   {\
-      unsigned char c1=findb64(crypt[I+0]);\
-      unsigned char c2=findb64(crypt[I+1]);\
-      unsigned char c3=findb64(crypt[I+2]);\
-      unsigned char c4=findb64(crypt[I+3]);\
-      unsigned int w=c4<<18|c3<<12|c2<<6|c1;\
-      unsigned char b2=w&0xff;w>>=8;\
-      unsigned char b1=w&0xff;w>>=8;\
-      unsigned char b0=w&0xff;w>>=8;\
+      uint8_t c1,c2,c3,c4,b0,b1,b2;\
+      uint32_t w;\
+      c1=findb64(crypt[I+0]);\
+      c2=findb64(crypt[I+1]);\
+      c3=findb64(crypt[I+2]);\
+      c4=findb64(crypt[I+3]);\
+      w=c4<<18|c3<<12|c2<<6|c1;\
+      b2=w&0xff;w>>=8;\
+      b1=w&0xff;w>>=8;\
+      b0=w&0xff;w>>=8;\
       alt[B2]=b0;\
       alt[B1]=b1;\
       alt[B0]=b2;\
   }
+	uint32_t w;
 	_24bit_from_b64(0, 0, 21, 42);
 	_24bit_from_b64(4, 22, 43, 1);
 	_24bit_from_b64(8, 44, 2, 23);
@@ -148,8 +152,7 @@ static void magic(char *crypt, unsigned char *alt)
 	_24bit_from_b64(76, 40, 61, 19);
 	_24bit_from_b64(80, 62, 20, 41);
 
-
-	uint32_t w = findb64(crypt[85]) << 6 | findb64(crypt[84]) << 0;
+	w = findb64(crypt[85]) << 6 | findb64(crypt[84]) << 0;
 	alt[63] = (w & 0xff);
 }
 
@@ -157,8 +160,8 @@ static void magic(char *crypt, unsigned char *alt)
 static void *binary(char *ciphertext)
 {
 	static unsigned char b[BINARY_SIZE];
-	memset(b, 0, BINARY_SIZE);
 	char *p = strrchr(ciphertext, '$');
+	memset(b, 0, BINARY_SIZE);
 	if(p!=NULL)
 	  magic(p+1, b);
 	return (void *) b;
@@ -168,13 +171,13 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	int end = 0, i, len = strlen(ciphertext);
+	static unsigned char ret[50];
 	for (i = len - 1; i >= 0; i--)
 		if (ciphertext[i] == '$') {
 			end = i;
 			break;
 		}
 
-	static unsigned char ret[50];
 	for (i = 0; i < end; i++)
 		ret[i] = ciphertext[i];
 	ret[end] = 0;
@@ -220,9 +223,9 @@ static void set_salt(void *salt)
 {
 	unsigned char *s = salt;
 	int len = strlen(salt);
-	memcpy(currentsalt,s,len+1);
 	unsigned char offset = 0;
 	_salt.rounds = ROUNDS_DEFAULT;
+	memcpy(currentsalt,s,len+1);
 
 	if (strncmp((char *) "$6$", (char *) currentsalt, 3) == 0)
 		offset += 3;

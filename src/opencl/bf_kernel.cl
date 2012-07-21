@@ -25,15 +25,15 @@
 
 #define BF_ROUND(ctx_S,ctx_P, L, R, N, tmp1, tmp2, tmp3, tmp4) \
 	tmp1 = L & 0xff; \
-	tmp1 = ctx_S[_index_S_local + 768 + tmp1];\
+	tmp1 = Sptr4[tmp1];\
 	tmp2 =  L >> 8; \
         tmp3=  (tmp2>>8);\
 	tmp4=  tmp3>>8;   \
         tmp2=  tmp2 & 0xff; \
-        tmp2 = ctx_S[_index_S_local + 512 + tmp2]; \
+        tmp2 = Sptr3[tmp2]; \
 	tmp3 = tmp3 & 0xff; \
 	tmp4 = tmp4 & 0xff; \
-	tmp3 = ctx_S[_index_S_local + 256 + tmp3]+ctx_S[_index_S_local + tmp4]; \
+	tmp3 = Sptr2[tmp3]+Sptr[tmp4]; \
         tmp3 ^= tmp2; \
 	R =R ^ ctx_P[N + 1]; \
 	tmp3 = tmp3 + tmp1; \
@@ -63,58 +63,48 @@
 
 #define BF_body() \
 	L0 = R0 = 0; \
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[0]= L0;\
 	BF_current_P[1]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[2]= L0;\
 	BF_current_P[3]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[4]= L0;\
 	BF_current_P[5]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[6]= L0;\
 	BF_current_P[7]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[8]= L0;\
 	BF_current_P[9]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[10]= L0;\
 	BF_current_P[11]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[12]= L0;\
 	BF_current_P[13]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[14]= L0;\
 	BF_current_P[15]= R0;\
-	BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
+	BF_ENCRYPT(Sptr ,BF_current_P , L0, R0);\
 	BF_current_P[16]= L0;\
 	BF_current_P[17]= R0;\
 \
-	for(i=0;i<256;i=i+2)\
-	    { BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
-              S_Buffer[_index_S_local + (i&0xff)] = L0;\
-              S_Buffer[_index_S_local + ((i+1)&0xff)] = R0;\
-	    }\
-        j= _index_S_local + 256;\
-	for(i=256;i<512;i=i+2)\
-	    { BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
-              S_Buffer[j + (i&0xff)] = L0;\
-              S_Buffer[j + ((i+1)&0xff)] = R0;\
-	    }\
-         j= _index_S_local + 512;\
-         for(i=512;i<768;i=i+2)\
-	    { BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
-              S_Buffer[j + (i&0xff)] = L0;\
-              S_Buffer[j + ((i+1)&0xff)] = R0;\
-	    }\
-         j= _index_S_local + 768;\
-	 for(i=768;i<1023;i=i+2)\
-	    { BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);\
-              S_Buffer[j + (i&0xff)] = L0;\
-              S_Buffer[j + ((i+1)&0xff)] = R0;\
-	    }      
-
+	for(i = 0; i < 1024; i += 8) \
+	    { BF_ENCRYPT(Sptr, BF_current_P, L0, R0);\
+              Sptr[i] = L0;\
+              Sptr[i + 1] = R0;\
+	      BF_ENCRYPT(Sptr, BF_current_P, L0, R0);\
+              Sptr[i + 2] = L0;\
+              Sptr[i + 3] = R0;\
+	      BF_ENCRYPT(Sptr, BF_current_P, L0, R0);\
+              Sptr[i + 4] = L0;\
+              Sptr[i + 5] = R0;\
+	      BF_ENCRYPT(Sptr, BF_current_P, L0, R0);\
+              Sptr[i + 6] = L0;\
+              Sptr[i + 7] = R0;\
+	    }
 
 __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))),
 		       constant uint *P_box __attribute__((max_constant_size(72))),
@@ -137,6 +127,10 @@ __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))
 		uint BF_current_P[18];
 
 		__local uint S_Buffer[WORK_GROUP_SIZE*1024];
+		__local uint *Sptr = S_Buffer + _index_S_local;
+		__local uint *Sptr2 = Sptr + 256;
+		__local uint *Sptr3 = Sptr + 512;
+		__local uint *Sptr4 = Sptr + 768;
 
 		for(i=0;i<18;i++){ 
 			tmp0=BF_current_P_global [pos_P(i)];
@@ -158,7 +152,7 @@ __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))
 		for (i = 0; i < (BF_ROUNDS + 2); i += 2) {
 			L0 ^= salt[i & 2];
 			R0 ^= salt[(i & 2) + 1];
-			BF_ENCRYPT(S_Buffer,BF_current_P , L0, R0);
+			BF_ENCRYPT(Sptr, BF_current_P, L0, R0);
 			BF_current_P[i] = L0;
 			BF_current_P[i + 1] = R0;
 		}
@@ -167,12 +161,12 @@ __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))
 			j=i>>8;
 			L0 ^= salt[(BF_ROUNDS + 2) & 3];
 			R0 ^= salt[(BF_ROUNDS + 3) & 3];
-			BF_ENCRYPT(S_Buffer,BF_current_P , L0, R0);
+			BF_ENCRYPT(Sptr, BF_current_P, L0, R0);
 			S_Buffer[pos_S_local(j,(i&0xff))] = L0;
 			S_Buffer[pos_S_local(j,((i+1)&0xff))] = R0;
 			L0 ^= salt[(BF_ROUNDS + 4) & 3];
 			R0 ^= salt[(BF_ROUNDS + 5) & 3];
-			BF_ENCRYPT(S_Buffer,BF_current_P  , L0, R0);
+			BF_ENCRYPT(Sptr, BF_current_P, L0, R0);
 			S_Buffer[pos_S_local(j,((i+2)&0xff))] = L0;
 			S_Buffer[pos_S_local(j,((i+3)&0xff))] = R0;
 		      
@@ -237,7 +231,7 @@ __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))
 		count = 64;
 		
 		do {
-			BF_ENCRYPT(S_Buffer ,BF_current_P , L0, R0);
+			BF_ENCRYPT(Sptr, BF_current_P, L0, R0);
 		} while (--count);
 		
 		BF_out[2*index]=L0;
@@ -252,8 +246,3 @@ __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))
 		}
 
 }
-
-
-
-
-  

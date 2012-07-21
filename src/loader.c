@@ -629,8 +629,11 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 				extern void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_salt_len);
 				mediawiki_fix_salt(Buf, current->source, &(ciphertext[44-6]), db->options->regen_lost_salts+1);
 				strcpy(current->source, Buf);
+			} else if (db->options->regen_lost_salts == 6 && !strncmp(current->source, "$dynamic_61$", 12)) {
+				char *cp = current->source;
+				memcpy(&(cp[77]), &(ciphertext[77]), 2);
 			}
-			//else if (db->options->regen_lost_salts == 6 && !strncmp(current->source, "???????????", 11))
+			//else if (db->options->regen_lost_salts == 7 && !strncmp(current->source, "???????????", 11))
 		}
 		if (current->binary && !memcmp(current->binary, binary,
 		    format->params.binary_size) &&

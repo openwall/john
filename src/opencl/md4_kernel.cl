@@ -2,10 +2,21 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md4
  * This code is in public domain.
  *
+ * This software is Copyright © 2010, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted.
+ *
  * Useful References:
  * 1  nt_opencl_kernel.c (written by Alain Espinosa <alainesp at gmail.com>)
  * 2. http://tools.ietf.org/html/rfc1320
  * 3. http://en.wikipedia.org/wiki/MD4  */
+
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
+
+/* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
+#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 /* The basic MD4 functions */
 #define F(x, y, z)          ((z) ^ ((x) & ((y) ^ (z))))
@@ -20,16 +31,19 @@
 #define GET(i) (key[(i)])
 
 /* some constants used below magically appear after make */
-#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
+//#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
 /* OpenCL kernel entry point. Copy KEY_LENGTH bytes key to be hashed from
  * global to local memory. Break the key into 16 32-bit (uint) words.
  * MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(const __global uint * keys, __global uint * output)
+__kernel void md4(__global uint *data_info, __global const uint * keys, __global uint * hashes)
 {
 	int id = get_global_id(0);
 	uint key[16] = { 0 };
-	int i = 0;
+	uint i;
+	uint num_keys = data_info[1];
+	uint KEY_LENGTH = data_info[0] + 1;
+
 	int base = id * (KEY_LENGTH / 4);
 
 	for (i = 0; i != (KEY_LENGTH / 4) && keys[base + i]; i++)
@@ -38,9 +52,14 @@ __kernel void md4(const __global uint * keys, __global uint * output)
 	/* padding code (borrowed from MD5_eq.c) */
 	char *p = (char *) key;
 	for (i = 0; i != 64 && p[i]; i++);
-	p[i] = 0x80;
-	p[56] = i << 3;
-	p[57] = i >> 5;
+            
+	//p[i] = 0x80;
+	//p[56] = i << 3;
+	//p[57] = i >> 5;
+
+        PUTCHAR(key, i, 0x80);
+        PUTCHAR(key, 56, i << 3);
+        PUTCHAR(key, 57, i >> 5);
 
 	uint a, b, c, d;
 	a = 0x67452301;
@@ -104,8 +123,8 @@ __kernel void md4(const __global uint * keys, __global uint * output)
 
 	/* The following hack allows only 1/4 of the hash data to be copied in crypt_all.
 	 * This code doesn't seem to have any performance gains but has other benefits */
-	output[id] = a + 0x67452301;
-	output[1 * MD4_NUM_KEYS + id] = b + 0xefcdab89;
-	output[2 * MD4_NUM_KEYS + id] = c + 0x98badcfe;
-	output[3 * MD4_NUM_KEYS + id] = d + 0x10325476;
+	hashes[id] = a + 0x67452301;
+	hashes[1 * num_keys + id] = b + 0xefcdab89;
+	hashes[2 * num_keys + id] = c + 0x98badcfe;
+	hashes[3 * num_keys + id] = d + 0x10325476;
 }

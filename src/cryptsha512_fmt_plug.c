@@ -9,12 +9,10 @@
  *
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
+#include "sha2.h"
 
 #define _GNU_SOURCE
 #include <string.h>
-#include <openssl/sha.h>
 
 #include "arch.h"
 #include "params.h"
@@ -26,33 +24,37 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"sha256crypt"
-#define FORMAT_NAME			"sha256crypt"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define FORMAT_LABEL			"sha512crypt"
+#define FORMAT_NAME			"sha512crypt"
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME			"64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		43
+#define CIPHERTEXT_LENGTH		86
 
-#define BINARY_SIZE			32
+#define BINARY_SIZE			64
 #define SALT_LENGTH			16
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9", "U*U*U*U*"},
-	{"$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.", "U*U***U"},
-	{"$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A", "U*U***U*"},
-	{"$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA", "*U*U*U*U"},
-	{"$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43", ""},
+	{"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},
+	{"$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1", "U*U***U"},
+	{"$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/", "U*U***U*"},
+	{"$6$OmBOuxFYBZCYAadG$WCckkSZok9xhp4U1shIZEV7CCVwQUwMVea7L3A77th6SaE9jOPupEMJB.z0vIWCDiN9WLh2m9Oszrj5G.gt330", "*U*U*U*U"},
+	{"$6$ojWH1AiTee9x1peC$QVEnTvRVlPRhcLQCk/HnHaZmlGAAjCfrAN0FtOsOnUk5K5Bn/9eLHHiRzrTzaIKjW9NTLNIBUCtNVOowWS2mN.", ""},
 	{NULL}
 };
 
 /* Prefix for optional rounds specification.  */
-static const char sha256_rounds_prefix[] = "rounds=";
+static const char sha512_rounds_prefix[] = "rounds=";
 
 /* Default number of rounds if not explicitly specified.  */
 #define ROUNDS_DEFAULT 5000
@@ -91,14 +93,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *pos, *start;
 
-	if (strncmp(ciphertext, "$5$", 3))
+	if (strncmp(ciphertext, "$6$", 3))
 		return 0;
 
 	ciphertext += 3;
 
-	if (!strncmp(ciphertext, sha256_rounds_prefix,
-	             sizeof(sha256_rounds_prefix) - 1)) {
-		const char *num = ciphertext + sizeof(sha256_rounds_prefix) - 1;
+	if (!strncmp(ciphertext, sha512_rounds_prefix,
+	             sizeof(sha512_rounds_prefix) - 1)) {
+		const char *num = ciphertext + sizeof(sha512_rounds_prefix) - 1;
 		char *endp;
 		if (!strtoul(num, &endp, 10))
 			return 0;
@@ -130,26 +132,18 @@ static void *get_binary(char *ciphertext)
 {
 	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
 	ARCH_WORD_32 value;
-	char *pos;
+	char *pos = strrchr(ciphertext, '$') + 1;
 	unsigned char *out = (unsigned char*)outbuf;
+	int i = 0;
 
-	pos = strrchr(ciphertext, '$') + 1;
-
-	TO_BINARY(0, 10, 20);
-	TO_BINARY(21, 1, 11);
-	TO_BINARY(12, 22, 2);
-	TO_BINARY(3, 13, 23);
-	TO_BINARY(24, 4, 14);
-	TO_BINARY(15, 25, 5);
-	TO_BINARY(6, 16, 26);
-	TO_BINARY(27, 7, 17);
-	TO_BINARY(18, 28, 8);
-	TO_BINARY(9, 19, 29);
+	do {
+		TO_BINARY(i, (i+21)%63, (i+42)%63);
+		i = (i+22)%63;
+	} while (i != 21);
 	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
-	out[31] = value >> 8; \
-	out[30] = value; \
+	out[63] = value; \
 	return (void *)out;
 }
 
@@ -192,73 +186,73 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		// portably align temp_result char * pointer to 32 bits.
+		// portably align temp_result char * pointer machine word size.
 		union xx {
 			unsigned char c[BINARY_SIZE];
-			ARCH_WORD_32 a[BINARY_SIZE/sizeof(ARCH_WORD_32)];
+			ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)];
 		} u;
 		unsigned char *temp_result = u.c;
-		SHA256_CTX ctx;
-		SHA256_CTX alt_ctx;
+		SHA512_CTX ctx;
+		SHA512_CTX alt_ctx;
 		size_t cnt;
 		char *cp;
 		char p_bytes[PLAINTEXT_LENGTH+1];
 		char s_bytes[PLAINTEXT_LENGTH+1];
 
 		/* Prepare for the real work.  */
-		SHA256_Init(&ctx);
+		SHA512_Init(&ctx);
 
 		/* Add the key string.  */
-		SHA256_Update(&ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
+		SHA512_Update(&ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
 
 		/* The last part is the salt string.  This must be at most 16
 		   characters and it ends at the first `$' character (for
 		   compatibility with existing implementations).  */
-		SHA256_Update(&ctx, cur_salt->salt, cur_salt->len);
+		SHA512_Update(&ctx, cur_salt->salt, cur_salt->len);
 
 
-		/* Compute alternate SHA256 sum with input KEY, SALT, and KEY.  The
+		/* Compute alternate SHA512 sum with input KEY, SALT, and KEY.  The
 		   final result will be added to the first context.  */
-		SHA256_Init(&alt_ctx);
+		SHA512_Init(&alt_ctx);
 
 		/* Add key.  */
-		SHA256_Update(&alt_ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
+		SHA512_Update(&alt_ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
 
 		/* Add salt.  */
-		SHA256_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
+		SHA512_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
 		/* Add key again.  */
-		SHA256_Update(&alt_ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
+		SHA512_Update(&alt_ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
 
-		/* Now get result of this (32 bytes) and add it to the other
+		/* Now get result of this (64 bytes) and add it to the other
 		   context.  */
-		SHA256_Final((unsigned char*)crypt_out[index], &alt_ctx);
+		SHA512_Final((unsigned char*)crypt_out[index], &alt_ctx);
 
 		/* Add for any character in the key one byte of the alternate sum.  */
 		for (cnt = saved_key_length[index]; cnt > BINARY_SIZE; cnt -= BINARY_SIZE)
-			SHA256_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
-		SHA256_Update(&ctx, (unsigned char*)crypt_out[index], cnt);
+			SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
+		SHA512_Update(&ctx, (unsigned char*)crypt_out[index], cnt);
 
 		/* Take the binary representation of the length of the key and for every
 		   1 add the alternate sum, for every 0 the key.  */
 		for (cnt = saved_key_length[index]; cnt > 0; cnt >>= 1)
 			if ((cnt & 1) != 0)
-				SHA256_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
+				SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
 			else
-				SHA256_Update(&ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
+				SHA512_Update(&ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
 
 		/* Create intermediate result.  */
-		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
+		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
 
 		/* Start computation of P byte sequence.  */
-		SHA256_Init(&alt_ctx);
+		SHA512_Init(&alt_ctx);
 
 		/* For every character in the password add the entire password.  */
 		for (cnt = 0; cnt < saved_key_length[index]; ++cnt)
-			SHA256_Update(&alt_ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
+			SHA512_Update(&alt_ctx, (unsigned char*)saved_key[index], saved_key_length[index]);
 
 		/* Finish the digest.  */
-		SHA256_Final(temp_result, &alt_ctx);
+		SHA512_Final(temp_result, &alt_ctx);
 
 		/* Create byte sequence P.  */
 		cp = p_bytes;
@@ -267,14 +261,14 @@ static void crypt_all(int count)
 		memcpy (cp, temp_result, cnt);
 
 		/* Start computation of S byte sequence.  */
-		SHA256_Init(&alt_ctx);
+		SHA512_Init(&alt_ctx);
 
 		/* For every character in the password add the entire password.  */
 		for (cnt = 0; cnt < 16 + ((unsigned char*)crypt_out[index])[0]; ++cnt)
-			SHA256_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
+			SHA512_Update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
 		/* Finish the digest.  */
-		SHA256_Final(temp_result, &alt_ctx);
+		SHA512_Final(temp_result, &alt_ctx);
 
 		/* Create byte sequence S.  */
 		cp = s_bytes;
@@ -282,35 +276,35 @@ static void crypt_all(int count)
 			cp = (char *) memcpy (cp, temp_result, BINARY_SIZE) + BINARY_SIZE;
 		memcpy (cp, temp_result, cnt);
 
-		/* Repeatedly run the collected hash value through SHA256 to
+		/* Repeatedly run the collected hash value through SHA512 to
 		   burn CPU cycles.  */
 		for (cnt = 0; cnt < cur_salt->rounds; ++cnt)
 			{
 				/* New context.  */
-				SHA256_Init(&ctx);
+				SHA512_Init(&ctx);
 
 				/* Add key or last result.  */
 				if ((cnt & 1) != 0)
-					SHA256_Update(&ctx, p_bytes, saved_key_length[index]);
+					SHA512_Update(&ctx, p_bytes, saved_key_length[index]);
 				else
-					SHA256_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
+					SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
 
 				/* Add salt for numbers not divisible by 3.  */
 				if (cnt % 3 != 0)
-					SHA256_Update(&ctx, s_bytes, cur_salt->len);
+					SHA512_Update(&ctx, s_bytes, cur_salt->len);
 
 				/* Add key for numbers not divisible by 7.  */
 				if (cnt % 7 != 0)
-					SHA256_Update(&ctx, p_bytes, saved_key_length[index]);
+					SHA512_Update(&ctx, p_bytes, saved_key_length[index]);
 
 				/* Add key or last result.  */
 				if ((cnt & 1) != 0)
-					SHA256_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
+					SHA512_Update(&ctx, (unsigned char*)crypt_out[index], BINARY_SIZE);
 				else
-					SHA256_Update(&ctx, p_bytes, saved_key_length[index]);
+					SHA512_Update(&ctx, p_bytes, saved_key_length[index]);
 
 				/* Create intermediate [SIC] result.  */
-				SHA256_Final((unsigned char*)crypt_out[index], &ctx);
+				SHA512_Final((unsigned char*)crypt_out[index], &ctx);
 			}
 	}
 }
@@ -327,9 +321,9 @@ static void *get_salt(char *ciphertext)
 
 	out.rounds = ROUNDS_DEFAULT;
 	ciphertext += 3;
-	if (!strncmp(ciphertext, sha256_rounds_prefix,
-	             sizeof(sha256_rounds_prefix) - 1)) {
-		const char *num = ciphertext + sizeof(sha256_rounds_prefix) - 1;
+	if (!strncmp(ciphertext, sha512_rounds_prefix,
+	             sizeof(sha512_rounds_prefix) - 1)) {
+		const char *num = ciphertext + sizeof(sha512_rounds_prefix) - 1;
 		char *endp;
 		unsigned long int srounds = strtoul(num, &endp, 10);
 		if (*endp == '$')
@@ -384,7 +378,7 @@ static int salt_hash(void *salt)
 	return hash & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_cryptsha256 = {
+struct fmt_main fmt_cryptsha512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -434,9 +428,3 @@ struct fmt_main fmt_cryptsha256 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: cryptsha256 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

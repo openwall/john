@@ -73,7 +73,7 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n%d\n%d\n", rec_entry, rec_compat, CHARSET_LENGTH);
 	for (pos = 0; pos < CHARSET_LENGTH; pos++)
 		fprintf(file, "%d\n", rec_numbers[pos]);
-	// number added 'after' array, to preserve the try count, so that we can later know the 
+	// number added 'after' array, to preserve the try count, so that we can later know the
 	// values tested, to report progress.  Before this, we could NOT report.
 	if (cand) {
 		tmpLL = try;

@@ -142,7 +142,7 @@ within john, is similar to emitting an arbitrary character within
 the C language.  This syntax is \xhh where hh is 2 hex characters.
 So, Az"\x1b[2J" would append then ansi escape sequence to clear the
 screen to the end of the current password.  Or something like $\x10
-would append a new line character to the end of the word. These 
+would append a new line character to the end of the word. These
 escaped characters also work properly in all character class commands
 (listed later).
 

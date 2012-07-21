@@ -2,14 +2,27 @@
 #
 # This software is Copyright © 2012 Frank Dittrich
 # and hereby released to the general public under the following terms:
-# Redistribution and use in source and binary forms, with or without 
+# Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 #
 # Minor improvements suggested by Aleksey Cherepanov have been
 # incorporated.
 #
 #
-# This file needs to be copied into the /etc/bash_completion.d/.
+# This bash completion script requires bash version >= 4,
+# and extended pattern matching features enabled. If
+# 	shopt -p extglob
+# prints
+#	shopt -s extglob
+# then the extended pattern matching features enabled. If this command
+# prints
+# 	shopt -u extglob
+# then they are disabled.
+#
+# This file needs to be copied into the /etc/bash_completion.d/ directory,
+# or wherever $BASH_COMPLETION_DIR points to - check the output of
+# 	set | grep BASH_COMPLETION_DIR
+#
 # To make the new completion rules work, you need to logout and login,
 # or source /etc/bash_completion instead.
 #
@@ -17,7 +30,7 @@
 # . <path_to_john's_source_directory>/john.bash_completion
 # to your ~/.bashrc and logout/login.
 #
-# To use the same completion rules not just for john, but for 
+# To use the same completion rules not just for john, but for
 # differently named binaries (say john-omp, john-sse2i, john-avx,
 # john-cuda, john-gpu, ...),
 # just use this command to get the current completion rule settings:
@@ -48,8 +61,8 @@
 #
 # FIXME: Is using __expand_tilde_by_ref OK?
 #
-# FIXME: For some reason completion for --option= only works 
-#	 if the cursor is at the end of the command, 
+# FIXME: For some reason completion for --option= only works
+#	 if the cursor is at the end of the command,
 #	 i.e. [[ ${COMP_POINT} -eq ${#COMP_LINE} ]]
 #	 not if some words follow the one to be completed...
 #	 If ${cur#*=} is not empty, completion works even in the middle
@@ -57,38 +70,40 @@
 #	 This is annoying if I want to complete --rules= in
 #	 ./john --rules= --config=test.conf
 #
-# FIXME: If there is a word -- preceding the current word 
+# FIXME: If there is a word -- preceding the current word
 #	 which is to be completed, it cannot be an option, so file names
 #	 should be used for completion.
 #
 # FIXME: Should completion for --make-charset really list existing .chr files?
-#
-# FIXME: Should I generally use LC_ALL=C, not just in a few places?
-#	 (This could also be a little bit faster.)
 #
 # TODO:
 #       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
 #	  but pressing [tab] expands this to something useful
 #	  Where to fix this? In john? Some bash config option?
 #
-#       --external should not use all names of [List.External:..-.] sections, but
-#	  just sections without a generate() function, if --wordlist, --incremental or --single
-#	  is present on the command line; and just those with a generate() function,
-#	  if none of these options is used - WHAT IF the user adds a --wordlist option later?
+#       --external should not use all names of [List.External:..-.] sections,
+#         but just sections without a generate() function, if --wordlist,
+#         --incremental, --single or --markov is present on the command line;
+#         and just those with a generate() function, if none of these options
+#         is used
+#         (WHAT IF the user intends to add a --wordlist option later?)
 #
-#	Should expanding an abbreviated option to its long form also be done by john itself
-#	(requires new john option)?
 
 # different implementations for completion logic for these options:
-# --rules --single --incremental --restore --status
+# --rules --single --incremental --restore --status, --markov,
+# --wordlist (if value is not mandatory for the john version), --show,
+# --loopback, and some --list=... options like --list=help[:WHAT]
 # for __john_completion=[2|any other value]
 #
 # john
-## on my system, have() is a dummy function which always return "yes", so get rid of calling it... 
-## have grep && have sed && have tr 
+## on my system, have() is a dummy function which always return "yes", so get rid of calling it...
+## have grep && have sed && have tr &&
 _john()
 {
 	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev words
+
+	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
+	LC_ALL=C
 
 	COMPREPLY=()
 
@@ -112,7 +127,7 @@ _john()
 		fi
 	fi
 
-#	We need to make sure we run the correct program, not some other program 
+#	We need to make sure we run the correct program, not some other program
 #	called john which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
 #	Most options are listed at the begin of the line, but the line with the --pipe option
@@ -134,7 +149,7 @@ _john()
 #	distributed by fedora16, --rules does get a trailing space during completion.
 #	The same applies for --show and single)
 
-#	now add the "hidden options" (not mentioned in the usage output, but in doc/OPTIONS and 
+#	now add the "hidden options" (not mentioned in the usage output, but in doc/OPTIONS and
 #       with --list=hidden-options
 #	Currently, all hidden options do have mandatory values (--option=value), this makes
 #       addition of these easier
@@ -169,7 +184,7 @@ _john()
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
-			fi 
+			fi
 			return 0
 			;;
 
@@ -246,7 +261,7 @@ _john()
 			return 0
 			;;
 		-?(-)ru?(l|le|les)+(=|:)*|-?(-)si?(n|ng|ngl|ngle)+(=|:)*)
-			# let's assume every john version which supports --single= 
+			# let's assume every john version which supports --single=
 			# also supports --rules=, and vice versa
 			if [[ "${valopts}" == *--rules* ]] ; then
 				cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=rules #"`
@@ -355,7 +370,7 @@ _john()
 			#(I'm a bit worried because of the __ at the begin.
 			#May be this function isn't part of an "official" API.)
 			__expand_tilde_by_ref cur 2>/dev/null
-# FIXME:		should I just use directories for completion, not files, 
+# FIXME:		should I just use directories for completion, not files,
 # FIXME:		to make overwriting existing files harder?
 			_filedir "chr"
 			return 0
@@ -451,7 +466,7 @@ _john()
 		-?(-)en?(c|co|cod|codi|codin|coding)+(=|:)*)
 			if [[ "${valopts}" == *--encoding=* ]] ; then
 				# --encoding=LIST writes to stderr
-				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+				list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 				if [[ "_${list}" == *encoding* ]] ; then
 					cmd="${first} --list=encodings"
 				else
@@ -537,14 +552,14 @@ _john()
 					# should I even test this (with --test=0, and filter out those
 					# with a message:
 					# appears to be unsupported on this system; will not load such hashes.
-					subformats=`${first}  --test=0 --format=crypt --subformat=? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
+					subformats=`${first} --test=0 --format=crypt --subformat=? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
 					COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
 				fi
 			fi
 			return 0
 			;;
 		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:)[Ll]?([Ii]|[Ii][Ss]|[Ii][Ss][Tt]))
-			list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
 			# Only complete to lIST if --list=cuda-devices and --list=opencl-devices don't exist
 			# CUDA doesn't allow --device=LIST
 			# workaround: check if --platform= is allowed
@@ -555,8 +570,8 @@ _john()
 			return 0
 			;;
 		-?(-)+(pla?(t|tf|tfo|tfor|tform)|d?(e|ev|evi|evic|evice))+(=|:))
-			list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
-			# Only list possible completions if --list=cuda-devices 
+			list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+			# Only list possible completions if --list=cuda-devices
 			# and --list=opencl-devices don't exist.
 			# --device=LIST isn't supported for CUDA, but for CUDA
 			# --platform= is not a valid option
@@ -565,6 +580,16 @@ _john()
 				# will take too long
 				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "LIST N" -- ${cur}) )
+			fi
+			return 0
+			;;
+		-?(-)li?(s|st)+(+(=|:)+([a-z_-]):|:+([a-z_-])=)*([a-z_-]))
+			cur=${cur#*[=:]}
+			cmd=${cur%[=:]*}
+			cur=${cur#*[=:]}
+			list=`${first} --list=help:${cmd} 2>/dev/null |sed 's#,# #g'`
+			if [[ $? -eq 0 ]] ; then
+				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			fi
 			return 0
 			;;
@@ -578,12 +603,34 @@ _john()
 				fi
 				cur=${cur#*[=:]}
 				# the --list=? output changed, that's why a more complex regex is used
-				# to cover all cases
-				list=`${first} --list=? 2>/dev/null|sed 's#\(,\)\?\( or\)\?[ ]*[<].*$##; s#,##g'`
+				# to cover all cases.
+				# Meanwhile, even --list=format-methods[:WHICH] works
+				# (or --list:format-methods[:WHICH] or --list:format-methods=WHICH, but
+				# not --list:format-methods=WHICH)
+				# format-methods[:WHICH],
+				list=`${first} --list=\? 2>/dev/null|sed 's#\(,\)\?\(or\)\?[ ]*[<].*$##; s#,##g'`
 				if [[ $? -eq 0 ]] ; then
 					# add "?" to the list of possible completions, but don't add any
 					# section names like "Options"...
-					COMPREPLY=( $(compgen -W "${list} ?" -- ${cur}) )
+					if [[ "${list}" == *help* ]] ; then
+						# Don't advertise --list=?
+						COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
+					else
+						# Add "?" to the possible completions
+						COMPREPLY=( $(compgen -W "${list} ?" -- ${cur}) )
+					fi
+					# if the only value contains a ':', special treatment required
+					if [[ ${#COMPREPLY[@]} -eq 1 && "_${COMPREPLY[0]}" == _*:* ]] ; then
+						if [[ "_${COMPREPLY[0]}" == _*\[:* ]] ; then
+							COMPREPLY[0]=${COMPREPLY[0]%\[*}
+							if [[ "_${__john_completion}" == "_2" && "_${COMPREPLY[0]}" == _${cur} ]] ; then
+								COMPREPLY[0]=${COMPREPLY[0]%:*}:
+							fi
+						else
+							COMPREPLY[0]=${COMPREPLY[0]%:*}:
+						fi
+						compopt -o nospace
+					fi
 				fi
 			fi
 			return 0
@@ -605,7 +652,7 @@ _john()
 			return 0
 			;;
 		*)
-			compopt  -o bashdefault -o default 
+			compopt  -o bashdefault -o default
 			return 0
 			;;
 	esac
@@ -621,7 +668,7 @@ _unique()
 
 	_get_comp_words_by_ref -n = cur
 
-# we need to make sure we run the correct program, not some other program 
+# we need to make sure we run the correct program, not some other program
 # called unique which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
 	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
@@ -647,7 +694,7 @@ _unique()
 			return 0
 			;;
 		_-*=)
-			compopt -o bashdefault -o default 
+			compopt -o bashdefault -o default
 			return 0
 			;;
 		_-*)

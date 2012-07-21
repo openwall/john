@@ -4,11 +4,7 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
-#include <openssl/sha.h>
+#include "sha2.h"
 
 #include "arch.h"
 #include "params.h"
@@ -20,25 +16,25 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"raw-sha256"
-#define FORMAT_NAME			"Raw SHA-256"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define FORMAT_LABEL			"raw-sha224"
+#define FORMAT_NAME			"Raw SHA-224"
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		125
-#define CIPHERTEXT_LENGTH		64
+#define CIPHERTEXT_LENGTH		56
 
-#define BINARY_SIZE			32
+#define BINARY_SIZE			28
 #define SALT_SIZE			0
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
-	{"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
-	{"$SHA256$ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
+	{"d63dc919e201d7bc4c825630d2cf25fdc93d4b2f0d46706d29038d01", "password"},
+	{"$SHA224$7e6a4309ddf6e8866679f61ace4f621b0e3455ebac2e831a60f13cd1", "12345678"},
 	{NULL}
 };
 
@@ -67,7 +63,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, "$SHA256$", 8))
+	if (!strncmp(p, "$SHA224$", 8))
 		p += 8;
 
 	q = p;
@@ -83,10 +79,10 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$SHA256$", 8))
+	if (!strncmp(ciphertext, "$SHA224$", 8))
 		return ciphertext;
 
-	memcpy(out, "$SHA256$", 8);
+	memcpy(out, "$SHA224$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
@@ -205,9 +201,9 @@ static void crypt_all(int count)
 	{
 		SHA256_CTX ctx;
 
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, saved_key[index], saved_key_length[index]);
-		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
+		SHA224_Init(&ctx);
+		SHA224_Update(&ctx, saved_key[index], saved_key_length[index]);
+		SHA224_Final((unsigned char *)crypt_out[index], &ctx);
 	}
 }
 
@@ -232,7 +228,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_rawSHA256 = {
+struct fmt_main fmt_rawSHA224 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -282,9 +278,3 @@ struct fmt_main fmt_rawSHA256 = {
 		cmp_exact
 	}
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: SHA-256 format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

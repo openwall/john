@@ -51,6 +51,7 @@ static struct fmt_tests tests[] = {
 	{"The quick brown fox jumps over the lazy dog#de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9", "key"},
 	{"#fbdb1d1b18aa6c08324b7d64b71fb76370690e1d", ""},
 	{"Beppe#Grillo#debbdb4d549abe59fab67d0fb76b76fdbc4431f1", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"7oTwG04WUjJ0BTDFFIkTJlgl#293b75c1f28def530c17fc8ae389008179bf4091", "late*night"}, // from the test suite
 	{NULL}
 };
 
@@ -168,8 +169,10 @@ static void set_key(char *key, int index)
 	while(((temp = JOHNSWAP(*keyp++)) & 0xff000000)) {
 		if (!(temp & 0x00ff0000) || !(temp & 0x0000ff00))
 		{
-			*ipadp ^= (unsigned short)temp;
-			*opadp ^= (unsigned short)temp;
+			((unsigned short*)ipadp)[1] ^=
+				(unsigned short)(temp>>16);
+			((unsigned short*)opadp)[1] ^=
+				(unsigned short)(temp>>16);
 			break;
 		}
 		*ipadp ^= temp;

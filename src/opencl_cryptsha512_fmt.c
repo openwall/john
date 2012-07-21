@@ -496,18 +496,14 @@ static void init(struct fmt_main *pFmt) {
     if ((tmp_value = getenv("_FAST")))
         fast_mode = TRUE;
 
-    if ((tmp_value = getenv("_BATCH")))
-        batch_mode = atoi(tmp_value);
-
     if (! cpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
 
-            if (gpu_nvidia(source_in_use))
-                task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-            else if (gpu_amd(source_in_use))
-                task = "$JOHN/cryptsha512_kernel_AMD.cl";
-        }
-    fprintf(stderr, "Selected runtime id %d, source (%s)\n", device_info[gpu_id], task);
+        if (gpu_nvidia(source_in_use))
+            task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
+        else if (gpu_amd(source_in_use))
+            task = "$JOHN/cryptsha512_kernel_AMD.cl";
+    }
     fflush(stdout);
     opencl_build_kernel(task, gpu_id);
 
@@ -524,8 +520,8 @@ static void init(struct fmt_main *pFmt) {
         HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
     } else {
-    crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+        crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
     }
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();

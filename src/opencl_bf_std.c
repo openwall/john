@@ -2,7 +2,7 @@
 * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
-* Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8 
+* Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8
 */
 
 #include <stdlib.h>
@@ -18,28 +18,28 @@
 #define INDEX				[index]
 
 #define pos_S(row,col)\
-	_index_S + (row*256+col)*(CHANNEL_INTERLEAVE) 
-	
+	_index_S + (row*256+col)*(CHANNEL_INTERLEAVE)
+
 #define for_each_index() \
-	for (index = 0; index < BF_N; index++)	
-	
+	for (index = 0; index < BF_N; index++)
+
 #define pos_P(i)\
         _index_P + i
-	
+
 static unsigned int CC_CACHE_ALIGN BF_current_S[BF_N*1024];
 static unsigned int CC_CACHE_ALIGN BF_current_P[BF_N*18];
 static unsigned int CC_CACHE_ALIGN BF_init_key[BF_N*18];
 BF_binary opencl_BF_out[BF_N];
 
-typedef struct 
-	{  
+typedef struct
+	{
 	   cl_mem salt_gpu;
 	   cl_mem P_box_gpu;
 	   cl_mem S_box_gpu;
 	   cl_mem out_gpu;
 	   cl_mem BF_current_S_gpu;
 	   cl_mem BF_current_P_gpu;
-		  
+
 	} gpu_buffer;
 
 /*
@@ -55,17 +55,17 @@ static BF_word BF_magic_w[6] = {
  * P-box and S-box tables initialized with digits of Pi.
  */
 
-static uint P_box[18] = {
-	
+static unsigned int P_box[18] = {
+
 		0x243f6a88, 0x85a308d3, 0x13198a2e, 0x03707344,
 		0xa4093822, 0x299f31d0, 0x082efa98, 0xec4e6c89,
 		0x452821e6, 0x38d01377, 0xbe5466cf, 0x34e90c6c,
 		0xc0ac29b7, 0xc97c50dd, 0x3f84d5b5, 0xb5470917,
 		0x9216d5d9, 0x8979fb1b
-	
-};  
 
-static uint S_box[1024] ={
+};
+
+static unsigned int S_box[1024] ={
 			0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7,
 			0xb8e1afed, 0x6a267e96, 0xba7c9045, 0xf12c7f99,
 			0x24a19947, 0xb3916cf7, 0x0801f2e2, 0x858efc16,
@@ -130,7 +130,7 @@ static uint S_box[1024] ={
 			0x08ba6fb5, 0x571be91f, 0xf296ec6b, 0x2a0dd915,
 			0xb6636521, 0xe7b9f9b6, 0xff34052e, 0xc5855664,
 			0x53b02d5d, 0xa99f8fa1, 0x08ba4799, 0x6e85076a,
-		
+
 			0x4b7a70e9, 0xb5b32944, 0xdb75092e, 0xc4192623,
 			0xad6ea6b0, 0x49a7df7d, 0x9cee60b8, 0x8fedb266,
 			0xecaa8c71, 0x699a17ff, 0x5664526c, 0xc2b19ee1,
@@ -195,7 +195,7 @@ static uint S_box[1024] ={
 			0xdb73dbd3, 0x105588cd, 0x675fda79, 0xe3674340,
 			0xc5c43465, 0x713e38d8, 0x3d28f89e, 0xf16dff20,
 			0x153e21e7, 0x8fb03d4a, 0xe6e39f2b, 0xdb83adf7,
-		
+
 			0xe93d5a68, 0x948140f7, 0xf64c261c, 0x94692934,
 			0x411520f7, 0x7602d4f7, 0xbcf46b2e, 0xd4a20068,
 			0xd4082471, 0x3320f46a, 0x43b7d4b7, 0x500061af,
@@ -260,7 +260,7 @@ static uint S_box[1024] ={
 			0x1e50ef5e, 0xb161e6f8, 0xa28514d9, 0x6c51133c,
 			0x6fd5c7e7, 0x56e14ec4, 0x362abfce, 0xddc6c837,
 			0xd79a3234, 0x92638212, 0x670efa8e, 0x406000e0,
-		
+
 			0x3a39ce37, 0xd3faf5cf, 0xabc27737, 0x5ac52d1b,
 			0x5cb0679e, 0x4fa33742, 0xd3822740, 0x99bc9bbe,
 			0xd5118e9d, 0xbf0f7315, 0xd62d1c7e, 0xc700c47b,
@@ -343,7 +343,7 @@ unsigned char opencl_BF_atoi64[0x80] = {
 	43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 64, 64, 64, 64, 64
 };
 
-        static cl_platform_id pltfrmid[MAX_PLATFORMS]; 
+        static cl_platform_id pltfrmid[MAX_PLATFORMS];
 
 	static cl_device_id devid[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
@@ -352,15 +352,15 @@ unsigned char opencl_BF_atoi64[0x80] = {
 	static cl_command_queue cmdq[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
 	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
-	
+
 	static cl_program prg[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
-	
+
 	static cl_int err;
-	
+
 	static int devno,pltfrmno;
-	
+
 	static gpu_buffer buffers[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
-	
+
 static void BF_swap(BF_word *x, int count)
 {
 	BF_word tmp;
@@ -413,79 +413,79 @@ static void BF_swap(BF_word *x, int count)
 	u4 = R; \
 	R = L; \
 	L = u4 ^ ctx_P[pos_P((BF_ROUNDS+1))];
-	
+
 static void clean_gpu_buffer(gpu_buffer *pThis)
-{ 
+{
 	HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu),"Release Memory Object FAILED.");
 
 	HANDLE_CLERROR(clReleaseMemObject(pThis-> P_box_gpu),"Release Memory Object FAILED.");
-	
+
 	HANDLE_CLERROR(clReleaseMemObject(pThis-> S_box_gpu),"Release Memory Object FAILED.");
-	        
+
 	HANDLE_CLERROR(clReleaseMemObject(pThis->out_gpu),"Release Memory Object FAILED.");
-	
+
 	HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_S_gpu),"Release Memory Object FAILED.");
-	
+
 	HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_P_gpu),"Release Memory Object FAILED.");
 }
 
-	
+
 void BF_clear_buffer()
 {
   clean_gpu_buffer(&buffers[pltfrmno][devno]);
-}	
+}
 
 void BF_select_device(int platform_no,int dev_no)
-{		
+{
 	devno=dev_no;pltfrmno=platform_no;
-	
+
 	opencl_init("$JOHN/bf_kernel.cl", dev_no, platform_no);
-	
+
 	pltfrmid[platform_no]=platform[platform_no];
-	
+
 	devid[platform_no][dev_no]=devices[dev_no];
-	
+
 	cntxt[platform_no][dev_no]=context[dev_no];
-	
+
 	prg[platform_no][dev_no]=program[dev_no];
-        
+
 	krnl[platform_no][dev_no]=clCreateKernel(prg[platform_no][dev_no],"blowfish",&err) ;
-	
+
 	if(err) {printf("Create Kernel blowfish FAILED\n"); return ;}
-	
+
 	cmdq[platform_no][dev_no]=queue[dev_no];
-		
+
 	buffers[platform_no][dev_no].salt_gpu=clCreateBuffer(cntxt[platform_no][dev_no],CL_MEM_READ_ONLY, 4*sizeof(cl_uint), NULL, &err);
 	if((buffers[platform_no][dev_no].salt_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-  
+
 	buffers[platform_no][dev_no].P_box_gpu=clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint)*18, P_box, &err);
 	if((buffers[platform_no][dev_no].P_box_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	buffers[platform_no][dev_no].S_box_gpu=clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_ONLY|CL_MEM_COPY_HOST_PTR, sizeof(cl_uint)*1024, S_box, &err);
 	if((buffers[platform_no][dev_no].S_box_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	buffers[platform_no][dev_no].out_gpu=clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, BF_N*sizeof(cl_uint)*2, NULL, &err);
 	if((buffers[platform_no][dev_no].out_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	buffers[platform_no][dev_no].BF_current_S_gpu=clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, BF_N*1024*sizeof(unsigned int), NULL, &err);
 	if((buffers[platform_no][dev_no].BF_current_S_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	buffers[platform_no][dev_no].BF_current_P_gpu=clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, BF_N*sizeof(unsigned int)*18, NULL, &err);
 	if((buffers[platform_no][dev_no].BF_current_P_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&buffers[platform_no][dev_no].salt_gpu),"Set Kernel Arg FAILED arg0\n");
-  
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&buffers[platform_no][dev_no].P_box_gpu),"Set Kernel Arg FAILED arg2\n");
-  
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_mem),&buffers[platform_no][dev_no].out_gpu),"Set Kernel Arg FAILED arg3\n");
-		  
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&buffers[platform_no][dev_no].BF_current_S_gpu),"Set Kernel Arg FAILED arg4\n"); 
-	
+
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&buffers[platform_no][dev_no].BF_current_S_gpu),"Set Kernel Arg FAILED arg4\n");
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],4,sizeof(cl_mem),&buffers[platform_no][dev_no].BF_current_P_gpu),"Set Kernel Arg FAILED arg5\n");
-	
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],6,sizeof(cl_mem),&buffers[platform_no][dev_no].S_box_gpu),"Set Kernel Arg FAILED arg7\n");
-	
-	
+
+
 }
 
 void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
@@ -493,7 +493,7 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
 	char *ptr = key;
 	int i, j,_index_P=index*18;
 	BF_word tmp;
-	
+
 	for (i = 0; i < BF_ROUNDS + 2; i++) {
 		tmp = 0;
 		for (j = 0; j < 4; j++) {
@@ -513,27 +513,27 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
 void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,int dev_no)
 {
 	cl_event evnt;
-  
+
 	size_t N=BF_N,M=WORK_GROUP_SIZE;
-	
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].salt_gpu,CL_TRUE,0,4*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Failed Copy data to gpu");
-	
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].BF_current_P_gpu,CL_TRUE,0,BF_N*sizeof(unsigned int)*18,BF_init_key,0,NULL,NULL ), "Failed Copy data to gpu");
-	
+
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],5,sizeof(cl_uint),&rounds),"Set Kernel Arg FAILED arg6\n");
-	
+
 	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no],1,NULL,&N,&M,0,NULL,&evnt);
-	
+
 	clWaitForEvents(1,&evnt);
-	
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].out_gpu,CL_FALSE,0,2*BF_N*sizeof(cl_uint),BF_out, 0, NULL, NULL),"Write FAILED\n");
-	
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].BF_current_P_gpu,CL_FALSE,0,BF_N*sizeof(unsigned int)*18,BF_current_P, 0, NULL, NULL),"Write FAILED\n");
-	
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].BF_current_S_gpu,CL_TRUE,0,BF_N*1024*sizeof(unsigned int),BF_current_S, 0, NULL, NULL),"Write FAILED\n");
-	
+
 	clFinish(cmdq[platform_no][dev_no]);
-	
+
 }
 
 void opencl_BF_std_crypt(BF_salt *salt, int n)
@@ -541,16 +541,15 @@ void opencl_BF_std_crypt(BF_salt *salt, int n)
 	int index=0,j;
 	static unsigned int salt_api[4];
 	unsigned int rounds=salt->rounds;
-		
+	static unsigned int BF_out[2*BF_N];
+
 	salt_api[0]=salt->salt[0];
 	salt_api[1]=salt->salt[1];
 	salt_api[2]=salt->salt[2];
 	salt_api[3]=salt->salt[3];
-	
-	static unsigned int BF_out[2*BF_N];
-	
+
 	exec_bf(salt_api,BF_out,rounds,pltfrmno,devno);
-        
+
 	for_each_index(){ j=2*index;
 		 opencl_BF_out INDEX[0]=BF_out[j++];
 		 opencl_BF_out INDEX[1]=BF_out[j];

@@ -1,5 +1,5 @@
 /* Password Safe cracker patch for JtR. Hacked together during May of
- * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.  
+ * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * OpenCL port by Lukas Odzioba <ukasz@openwall.net>
  *
@@ -114,7 +114,7 @@ static void init(struct fmt_main *pFmt)
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
-	///Assign kernel parameters 
+	///Assign kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
@@ -123,7 +123,6 @@ static void init(struct fmt_main *pFmt)
 
 	opencl_find_best_workgroup(pFmt);
 	//local_work_size=256;
-
 	atexit(release_all);
 }
 
@@ -140,9 +139,9 @@ static void *get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	pwsafe_salt *salt_struct =
 	    mem_alloc_tiny(sizeof(pwsafe_salt), MEM_ALIGN_WORD);
+	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	p = strtok(ctcopy, "*");
 	salt_struct->version = atoi(p);
 	p = strtok(NULL, "*");
@@ -172,15 +171,16 @@ static void set_salt(void *salt)
 static void crypt_all(int count)
 {
 	int i;
-	any_cracked = 0;
-
+	size_t worksize = KEYS_PER_CRYPT;
+	size_t localworksize = local_work_size;
 	unsigned int *src = (unsigned int *) host_salt->hash;
 	unsigned int *dst = (unsigned int *) host_salt->hash;
+	any_cracked = 0;
 
 	for (i = 0; i < 8; i++) {
 		dst[i] = SWAP32(src[i]);
 	}
-//printf("rounds = %d\n",host_salt->iterations);
+//fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer
 	    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
@@ -189,8 +189,6 @@ static void crypt_all(int count)
 		0, saltsize, host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, &profilingEvent), "Set ND range");

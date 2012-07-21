@@ -29,15 +29,8 @@
  * version == 1, EPiServer 6.x + .NET >= 4.x SHA256 hash/salt format,
  * 		 PasswordFormat == ? */
 
-#if defined(__APPLE__) && defined(__MACH__) && \
-	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	__MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
 #include "sha.h"
-#endif
-
+#include "sha2.h"
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -55,7 +48,7 @@
 
 #define FORMAT_LABEL		"episerver"
 #define FORMAT_NAME		"EPiServer salted SHA-1/SHA-256"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32

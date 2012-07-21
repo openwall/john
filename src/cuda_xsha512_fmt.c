@@ -37,17 +37,19 @@
 
 
 static struct fmt_tests tests[] = {
+	{"$LION$bb0489dfbaaec946f441d4ea0d6acb50ee556103d9bdcc3f950d5a1112f1dd660ba1bca6a1954d0164cdc3b6a116b9bf8240cd1abec4abc73a6693799740de83544dd49e", "1952"},
 	{"$LION$bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
 	{"$LION$74911f723bd2f66a3255e0af4b85c639776d510b63f0b939c432ab6e082286c47586f19b4e2f3aab74229ae124ccb11e916a7a1c9b29c64bd6b0fd6cbd22e7b1f0ba1673", "hello"},
 	{"5e3ab14c8bd0f210eddafbe3c57c0003147d376bf4caf75dbffa65d1891e39b82c383d19da392d3fcc64ea16bf8203b1fc3f2b14ab82c095141bb6643de507e18ebe7489", "boobies"},
 	{"$LION$bb0489df4db05dbdc7be8afeef531f141ce28a00d7d5994693f7a9cf1fbbf98b45bb73ed10e00975b3bafd795fff667e3b3319517cc2f618ce92ff0e5c72032098fe1e75", "passwordandpassword"},
+	{"$LION$74646d77d2d52596eb45e290e32329960fa295e475bc014638ef44c7727c24b5171fb47bbd27fbb6f1a3ad458793ae6edf60ed558f098406d56ac34adf0281e2ded9749e", "Skipping and& Dipping"},
 	{NULL}
 };
 
 extern void cuda_xsha512(xsha512_key * host_password,
     xsha512_salt * host_salt,
     xsha512_hash * host_hash,
-    xsha512_extend_key * host_ext_password, uint8_t use_extend);
+    xsha512_extend_key * host_ext_password, int count);
 
 extern void cuda_xsha512_init();
 extern int cuda_cmp_all(void *binary, int count);
@@ -57,8 +59,9 @@ static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
 static xsha512_extend_key g_ext_key[MAX_KEYS_PER_CRYPT];
 static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
 static xsha512_salt gsalt;
-uint8_t xsha512_key_changed;
-static uint8_t use_extend;
+uint8_t xsha512_key_changed = 0;
+uint8_t use_extend = 0;
+
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
 	0xbb67ae8584caa73bLL,
@@ -120,6 +123,7 @@ static void *get_binary(char *ciphertext)
 {
 	static unsigned char out[FULL_BINARY_SIZE];
 	char *p;
+	uint64_t *b;
 	int i;
 
 	ciphertext += 6;
@@ -129,7 +133,8 @@ static void *get_binary(char *ciphertext)
 		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	uint64_t *b = (uint64_t *) out;
+
+	b = (uint64_t *) out;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
@@ -244,10 +249,11 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	int length = strlen(key);
+	if (index == 0)
+		use_extend = 0;
 	if (length > MAX_PLAINTEXT_LENGTH)
 		length = MAX_PLAINTEXT_LENGTH;
 	gkey[index].length = length;
-	use_extend = 0;
 	if (length > PLAINTEXT_LENGTH) {
 		memcpy(gkey[index].v, key, PLAINTEXT_LENGTH);
 		key += PLAINTEXT_LENGTH;
@@ -277,30 +283,32 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	cuda_xsha512(gkey, &gsalt, ghash, g_ext_key, use_extend);
+	cuda_xsha512(gkey, &gsalt, ghash, g_ext_key, count);
 	xsha512_key_changed = 0;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return cuda_cmp_all(binary, count);
+	int t1 = cuda_cmp_all(binary, count); 
+	return t1;
 }
 
 static int cmp_one(void *binary, int index)
 {
 	uint64_t *b = (uint64_t *) binary;
-	cuda_xsha512_cpy_hash(ghash);
 	uint64_t *t = (uint64_t *) ghash;
+	cuda_xsha512_cpy_hash(ghash);
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
-
 }
 
 static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
+	int i;
+	uint64_t *b,*c;
 
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gsalt.v, SALT_SIZE);
@@ -312,15 +320,13 @@ static int cmp_exact(char *source, int index)
 		SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
 	SHA512_Final((unsigned char *) (crypt_out), &ctx);
 
-	int i;
-	uint64_t *b = (uint64_t *) get_binary(source);
-	uint64_t *c = (uint64_t *) crypt_out;
+	b = (uint64_t *) get_binary(source);
+	c = (uint64_t *) crypt_out;
 
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(c[i]) - H[i];
 		c[i] = SWAP64(t);
 	}
-
 
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) {	//examin 512bits
 		if (b[i] != c[i])
@@ -338,7 +344,7 @@ struct fmt_main fmt_cuda_xsha512 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		MAX_PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		FULL_BINARY_SIZE,
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,

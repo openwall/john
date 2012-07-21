@@ -27,7 +27,7 @@ The format of the input file lines will be:
 
 userID:$dynamic_#$base_16_hash[$salt]
 
-Salts can contain some problematic characters. Some of these would be 
+Salts can contain some problematic characters. Some of these would be
 characters such as:  :  \r \n \ NULL, etc.  The : (colon) char is used
 by JtR as a field separator. If it exists in the salt, it will split
 the salt into multiple fields (i.e. wrong).  A carriage return or line
@@ -35,10 +35,10 @@ feed, will cause the line to split, and JtR to not read it right.
 NULL bytes are a problem in any C file, using normal 'string' functions.
 The \ char, is used as a quoting char within dynamic, and can cause issues.
 DUE to all of these problems, dynamic has been expanded to take this as
-the salt:    $dyanamic_#$base_16_hash$HEX$hex_bytes_of_salt.  In this 
+the salt:    $dyanamic_#$base_16_hash$HEX$hex_bytes_of_salt.  In this
 format, if the salt was 1234, then $HEX$31323334 would be the equivelent
 value.  This allows salts such as $\x0:\r\nBadSalt to actually be encoded.
-This salt CAN be used, if you use the representation: 
+This salt CAN be used, if you use the representation:
 $HEX$003a0a0d42616453616c74.
 There is an application in ./run which can 'help' This is ./run/raw2dyna
 This process will convert files in the format of hashCsalt (c can be any char),
@@ -802,12 +802,34 @@ examples (this whole list is also found in dynamic.conf).
 #
 ####################################################################
 #
+#   SaltLenX86=# line   (Optional, but required IF the format needs it)
+#
+#################
+#
+#  This is almost never needed.  But if needed to have a different
+#  salt size on non-MMX/SSE builds, then this is how to do it.
+#
+####################################################################
+#
 #   MaxInputLen=# line   (Optional, but required IF the format needs it)
 #
 #################
 #
 #  If a format has a 'max' length of password (such as Cisco PIX has
-#  a max length of 16 byte PW), then this must be set.
+#  a max length of 16 byte PW), then this must be set.  If this is
+#  not set, then the format will have a max password allowed to be
+#  55-abs(saltlen)  (80-abs(saltlen) if not an SSE/MMX build)
+#
+####################################################################
+#
+#   MaxInputLenX86=# line   (Optional, but required IF the format needs it)
+#
+#################
+#
+#  Similar to the SaltLenX86, in that it allows a different password
+#  length to be force set in non-SSE builds.  So if a format should
+#  ONLY have 16 byte passwords, and no salt, then you would need
+#  to set MaxInputLen=16  and have a MaxInputLenX86=16 set also.
 #
 ####################################################################
 #

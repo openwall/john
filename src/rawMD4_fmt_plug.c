@@ -85,7 +85,7 @@ static unsigned int total_len;
 static MD4_CTX ctx;
 static int saved_key_length;
 static char saved_key[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 crypt_out[4];
+static ARCH_WORD_32 crypt_key[4];
 #endif
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -117,7 +117,7 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	static unsigned char *out;
 	char *p;
@@ -154,13 +154,13 @@ static int get_hash_4(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET
 static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xffffff; }
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0x7ffffff; }
 #else
-static int get_hash_0(int index) { 	return crypt_out[0] & 0xf; }
-static int get_hash_1(int index) { 	return crypt_out[0] & 0xff; }
-static int get_hash_2(int index) { 	return crypt_out[0] & 0xfff; }
-static int get_hash_3(int index) { 	return crypt_out[0] & 0xffff; }
-static int get_hash_4(int index) { 	return crypt_out[0] & 0xfffff; }
-static int get_hash_5(int index) { 	return crypt_out[0] & 0xffffff; }
-static int get_hash_6(int index) { 	return crypt_out[0] & 0x7ffffff; }
+static int get_hash_0(int index) { return crypt_key[0] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[0] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[0] & 0x7ffffff; }
 #endif
 
 static void set_key(char *_key, int index)
@@ -246,7 +246,7 @@ static void crypt_all(int count)
 #else
 	MD4_Init(&ctx);
 	MD4_Update(&ctx, saved_key, saved_key_length);
-	MD4_Final((unsigned char *)crypt_out, &ctx);
+	MD4_Final((unsigned char *)crypt_key, &ctx);
 #endif
 }
 
@@ -263,22 +263,27 @@ static int cmp_all(void *binary, int count) {
 		}
 	return 0;
 #else
-	return !memcmp(binary, crypt_out, BINARY_SIZE);
+	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
 }
 
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
-	unsigned int i,x,y;
-	x = index&(MMX_COEF-1);
-	y = index/MMX_COEF;
-	for(i=0;i<(BINARY_SIZE/4);i++)
+	unsigned int x = index&(MMX_COEF-1);
+	unsigned int y = index/MMX_COEF;
+
+#if BINARY_SIZE < DIGEST_SIZE
+	return ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*4];
+#else
+	int i;
+	for(i=0;i<(DIGEST_SIZE/4);i++)
 		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[y*MMX_COEF*4+i*MMX_COEF+x] )
 			return 0;
 	return 1;
+#endif
 #else
-	return !memcmp(binary, crypt_out, BINARY_SIZE);
+	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
 }
 
@@ -288,10 +293,10 @@ static int cmp_exact(char *source, int index)
 	return 1;
 #else
 #ifdef MMX_COEF
-	unsigned int i,x,y;
+	unsigned int i, x, y;
 	ARCH_WORD_32 *full_binary;
 
-	full_binary = (ARCH_WORD_32*)get_binary(source);
+	full_binary = (ARCH_WORD_32*)binary(source);
 	x = index&(MMX_COEF-1);
 	y = index/MMX_COEF;
 	for(i=0;i<(DIGEST_SIZE/4);i++)
@@ -299,7 +304,7 @@ static int cmp_exact(char *source, int index)
 			return 0;
 	return 1;
 #else
-	return !memcmp(get_binary(source), crypt_out, DIGEST_SIZE);
+	return !memcmp(binary(source), crypt_key, DIGEST_SIZE);
 #endif
 #endif
 }
@@ -323,7 +328,7 @@ struct fmt_main fmt_rawMD4 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
 		{
 			binary_hash_0,

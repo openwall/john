@@ -69,7 +69,7 @@ ARCH_WORD_32 MD5_bitswapped_out[4];
  * memory accesses is just an optimization.  Nothing will break if it
  * doesn't work.
  */
-#if defined(__i386__) || defined(__x86_64__) || defined(__vax__)
+#if ARCH_ALLOWS_UNALIGNED==1
 #define SET(n) \
 	(*(MD5_u32plus *)&ptr[(n) * 4])
 #define GET(n) \

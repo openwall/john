@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net> 
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -85,7 +85,7 @@ static struct fmt_tests tests[] = {
 //         {"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/","abcde"},
 
 //         {"$1$salt1234$lzB83HS4FjzbcD4yMcjl01","abcdef"},
-//          {"$1$salt1234$bklJHN73KS04Kh6j6qPnr.","abcdefg"}, 
+//          {"$1$salt1234$bklJHN73KS04Kh6j6qPnr.","abcdefg"},
 	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},	//saltlen=8,passlen=8
 //         {"$1$salt1234$QjP48HUerU7aUYc/aJnre1","abcdefghi"},
 //         {"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.","abcdefghij"},
@@ -106,8 +106,8 @@ static struct fmt_tests tests[] = {
 	   {"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490","bitch1"},
 	   {"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/","crystal"},
 	   {"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/","claudia"},
-	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"}, 
-	 
+	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"},
+
 																		  	   //tests from MD5_fmt.c
 *//*       {"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	   {"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
@@ -177,7 +177,7 @@ static void init(struct fmt_main *pFmt)
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
-	///Assign kernel parameters 
+	///Assign kernel parameters
 	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
@@ -195,7 +195,7 @@ static void init(struct fmt_main *pFmt)
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	uint8_t i, len = strlen(ciphertext), prefix = 0;
-
+	char *p;
 	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0)
 		prefix |= 1;
 	if (strncmp(ciphertext, apr1_salt_prefix,
@@ -204,7 +204,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (prefix == 0)
 		return 0;
 
-	char *p = strrchr(ciphertext, '$');
+	p = strrchr(ciphertext, '$');
 	for (i = p - ciphertext + 1; i < len; i++) {
 		uint8_t z = ARCH_INDEX(ciphertext[i]);
 		if (ARCH_INDEX(atoi64[z]) == 0x7f)
@@ -226,33 +226,35 @@ static void to_binary(char *crypt, char *alt)
 
 #define _24bit_from_b64(I,B2,B1,B0) \
   {\
-      unsigned char c1=findb64(crypt[I+0]);\
-      unsigned char c2=findb64(crypt[I+1]);\
-      unsigned char c3=findb64(crypt[I+2]);\
-      unsigned char c4=findb64(crypt[I+3]);\
-      unsigned int w=c4<<18|c3<<12|c2<<6|c1;\
-      unsigned char b2=w&0xff;w>>=8;\
-      unsigned char b1=w&0xff;w>>=8;\
-      unsigned char b0=w&0xff;w>>=8;\
+      uint8_t c1,c2,c3,c4,b0,b1,b2;\
+      uint32_t w;\
+      c1=findb64(crypt[I+0]);\
+      c2=findb64(crypt[I+1]);\
+      c3=findb64(crypt[I+2]);\
+      c4=findb64(crypt[I+3]);\
+      w=c4<<18|c3<<12|c2<<6|c1;\
+      b2=w&0xff;w>>=8;\
+      b1=w&0xff;w>>=8;\
+      b0=w&0xff;w>>=8;\
       alt[B2]=b0;\
       alt[B1]=b1;\
       alt[B0]=b2;\
   }
-
+	uint32_t w;
 	_24bit_from_b64(0, 0, 6, 12);
 	_24bit_from_b64(4, 1, 7, 13);
 	_24bit_from_b64(8, 2, 8, 14);
 	_24bit_from_b64(12, 3, 9, 15);
 	_24bit_from_b64(16, 4, 10, 5);
-	uint32_t w = findb64(crypt[21]) << 6 | findb64(crypt[20]) << 0;
+	w = findb64(crypt[21]) << 6 | findb64(crypt[20]) << 0;
 	alt[11] = (w & 0xff);
 }
 
 static void *binary(char *ciphertext)
 {
 	static char b[BINARY_SIZE];
-	memset(b, 0, BINARY_SIZE);
 	char *p = strrchr(ciphertext, '$') + 1;
+	memset(b, 0, BINARY_SIZE);
 	to_binary(p, b);
 	return (void *) b;
 }
@@ -261,8 +263,8 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static uint8_t ret[SALT_SIZE];
-	memset(ret, 0, SALT_SIZE);
 	uint8_t i, *pos = (uint8_t *) ciphertext, *dest = ret, *end;
+	memset(ret, 0, SALT_SIZE);
 
 	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
 		pos += strlen(md5_salt_prefix);
@@ -327,6 +329,8 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
+	size_t worksize = KEYS_PER_CRYPT;
+	size_t localworksize = local_work_size;
 	///Copy data to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer
 	    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, inbuffer, 0, NULL,
@@ -335,8 +339,6 @@ static void crypt_all(int count)
 		0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, &profilingEvent), "Set ND range");

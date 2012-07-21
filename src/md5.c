@@ -26,6 +26,7 @@
 
 #include <string.h>
 
+#include "arch.h"
 #include "md5.h"
 
 /*
@@ -56,7 +57,7 @@
  * memory accesses is just an optimization.  Nothing will break if it
  * doesn't work.
  */
-#if defined(__i386__) || defined(__x86_64__) || defined(__vax__)
+#if ARCH_ALLOWS_UNALIGNED==1
 #define SET(n) \
 	(*(MD5_u32plus *)&ptr[(n) * 4])
 #define GET(n) \

@@ -21,7 +21,7 @@
 #include "sip_fmt_plug.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE		1
 #endif
 
 #ifdef _MSC_VER
@@ -38,7 +38,7 @@
 #define BINARY_SIZE		16
 #define SALT_SIZE		256
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	64
 
 static struct fmt_tests sip_tests[] = {
 /* XXX: need more test vectors, then try benchmarking for "many salts" */
@@ -57,7 +57,7 @@ static login_t *login = NULL;
 
 static void init(struct fmt_main *pFmt)
 {
-#if defined (_OPENMP)
+#ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	pFmt->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -157,9 +157,8 @@ static void crypt_all(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
-	{
+	for (index = 0; index < count; index++) {
 		/* password */
 		MD5_CTX md5_ctx;
 		unsigned char md5_bin_hash[MD5_LEN];

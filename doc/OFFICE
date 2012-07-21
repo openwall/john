@@ -1,0 +1,42 @@
+To use John the Ripper on Office 2007/2010 encrypted files, first build
+the included office2john program with "make office2john" in the src/
+directory.  Please note that it has extra prerequisites compared to John
+itself, which is why it is not being built by default.  Thus, you will
+need to install additional "development" packages first.
+
+Follow steps below to successfully build and run office2john program.
+
+1. Install libgsf library
+
+   a) On Ubuntu, do
+
+   $ sudo apt-get install libgsf-1-dev
+
+   b) On CentOS / RHEL / Fedora, do
+
+   $ sudo yum install libgsf-devel
+
+   c) On Arch Linux, do
+
+   $ sudo pacman -S libgsf
+
+2. Install libxml2 library
+
+   a) On Ubuntu, do
+
+   $ sudo apt-get install libxml2-dev
+
+   b) On CentOS / RHEL / Fedora, do
+
+   $ sudo yum install libxml2-devel
+
+   c) On Arch Linux, do
+
+   $ sudo pacman -S libxml2
+
+3. Run "make office2john" in the src/ directory
+
+4. Run office2john on Office 2007 / 2010 files.
+
+5. Run john on the output of office2john.
+

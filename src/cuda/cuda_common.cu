@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net> 
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -32,7 +32,7 @@ static char *human_format(size_t size)
 	}
 	assert(prefid <= 3);
 	static char ret[32];
-	sprintf(ret, "%zd.%zd %cB", size, (size%1024)/100, pref[prefid]);
+	sprintf(ret, "%zd.%zd %cB", size, (size % 1024) / 100, pref[prefid]);
 	return ret;
 }
 
@@ -76,9 +76,9 @@ void cuda_device_list()
 		printf("\tNumber of multiprocessors:     %d\n",
 		    devProp.multiProcessorCount);
 		printf("\tClock rate:                    %d Mhz\n",
-		    devProp.clockRate/1024);
+		    devProp.clockRate / 1024);
 		printf("\tTotal global memory:           %s%s\n",
-		    human_format(devProp.totalGlobalMem+200000000),
+		    human_format(devProp.totalGlobalMem + 200000000),
 		    devProp.ECCEnabled ? " (ECC)" : "");
 		printf("\tTotal shared memory per block: %s\n",
 		    human_format(devProp.sharedMemPerBlock));
@@ -94,4 +94,28 @@ void cuda_device_list()
 	}
 }
 
+extern "C"
+void *cuda_pageLockedMalloc(void *w, unsigned int size)
+{
+	HANDLE_ERROR(cudaHostAlloc((void **) &w, size, cudaHostAllocDefault));
+	return w;
+}
+
+extern "C"
+void cuda_pageLockedFree(void *w)
+{
+	HANDLE_ERROR(cudaFreeHost(w));
+}
+
+/* cuda init must be called first to set device */
+extern "C"
+int cuda_getAsyncEngineCount()
+{
+	cudaDeviceProp prop;
+	int dev;
+	cudaGetDevice(&dev);
+	cudaGetDeviceProperties(&prop,dev);
+	return prop.asyncEngineCount;
+	//if CUDA<4.0 we should use prop.overlapSupported
+}
 #endif

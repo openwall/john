@@ -50,9 +50,6 @@ afs_cmu_StringToKey (char *str, char *cell, DES_cblock *key)
     int   i;
     int   passlen;
 
-    memset(key, 0, sizeof(key));
-    memset(password, 0, sizeof(password));
-
     strncpy (password, cell, 8);
     password[8] = '\0';
     passlen = strlen (str);

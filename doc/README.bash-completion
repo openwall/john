@@ -32,7 +32,7 @@ For a jumbo build, it supports completion for the command line options
 which only exist for the jumbo version.
 
 
-The bash completion for john supports file name completion for 
+The bash completion for john supports file name completion for
 password (hash) files.
 It also supports completion for the command line options.
 
@@ -66,7 +66,7 @@ AFS    BF     BSDI   crypt  DES    LM     MD5
 
 $ john --format=D[tab]
 will be completed to
-$ john --format=DES 
+$ john --format=DES
 
 
 For a jumbo version, e.g. 1.7.9-jumbo-5,
@@ -106,12 +106,12 @@ hdaa          mysql         po            trip
 hmac-md5      mysql-fast    rar           xsha
 hmailserver   mysql-sha1    raw-md4       xsha512
 ipb2          nethalflm     raw-md5       zip
-krb4          netlm         raw-md5thick  
-krb5          netlmv2       raw-md5u      
+krb4          netlm         raw-md5thick
+krb5          netlmv2       raw-md5u
 
 $ ./john --format=a[tab]
 will become
-$ ./john --format=afs 
+$ ./john --format=afs
 
 To get possible completions for values of an option, it is not required
 to use the full name of that option.
@@ -123,7 +123,7 @@ character (equal sign) to separate option name and value, because john
 also supports this character as a separator between option and value.
 (The completion logic for options with a colon as a separator depends on
 the value of the environment variable COMP_WORDBREAKS.
-The default logic explained here assumes that COMP_WORDBREAKS contains 
+The default logic explained here assumes that COMP_WORDBREAKS contains
 the colon. The logic used when COMP_WORDBREAKS doen't contain the colon
 is mentioned in the last chapter ("Config variables") of this document.)
 
@@ -144,7 +144,7 @@ $ john --fo=
 
 For a jumbo build, the first 4 examples will not work, because the option name
 is ambiguous.
-A jumbo version also has the options --field-separator-char= and 
+A jumbo version also has the options --field-separator-char= and
 --fix-state-delay=, so at least the first two letters of the option name
 must be specified.
 
@@ -154,12 +154,12 @@ even more letters need to be specified.
 Similarly, for an official john version 1.7.8 build,
 $ john -f:c[tab]
 would become
-$ john -f:crypt 
+$ john -f:crypt
 
 And
 $ john -fo=D[tab]
 will become
-$ john -fo=DES 
+$ john -fo=DES
 
 That means, only the value will be completed, the option name and the separator
 between option name and value remain unchanged.
@@ -168,7 +168,7 @@ as long as it is not ambiguous.
 
 
 If the john version supports the --list=hidden-options option, then the
-hidden options (not mentioned in john's usage output) are also considered as 
+hidden options (not mentioned in john's usage output) are also considered as
 valid completions for option names.
 
 
@@ -176,7 +176,7 @@ valid completions for option names.
 
 	--format=
 
-As mentioned above in the general description of the completion logic, 
+As mentioned above in the general description of the completion logic,
 the completion logic considers all the supported formats, as listed
 in john's usage output.
 For the jumbo version, there is a special handling for the dynamic formats
@@ -218,16 +218,16 @@ the next word (e.g., an option or file name) on the command line.
 Jumbo versions, however, support an optional value, as indicated by
 john's usage output (--rules[=SECTION] and --single[=SECTION]).
 
-For a jumbo version, the completion logic for options --rules 
-and --single depends on the contents of the environment variable 
-__john_completion, see the last chapter ("Config variables") 
+For a jumbo version, the completion logic for options --rules
+and --single depends on the contents of the environment variable
+__john_completion, see the last chapter ("Config variables")
 of this document.
 The default logic works like this:
 
 $ ./john --rules[tab][tab]
 will list possible completions like this:
 $ ./john --rules
---rules           --rules=single    
+--rules           --rules=single
 --rules=NT        --rules=wordlist
 
 In the above example, the upper case section name NT indicates that
@@ -235,18 +235,18 @@ the list of rules sections is a hard coded list of sections known to
 exist in (almost) every john version.
 
 
-For more recent versions which support the --list=rules option, 
+For more recent versions which support the --list=rules option,
 the list of section names will be obtained by interpreting the config
-file (default john.conf or john.ini, unless another config file is 
+file (default john.conf or john.ini, unless another config file is
 specified on the command line, see john's option --config=...)
 
 In this case, the list of possible completions looks like this:
 
 $ ./john --rules
---rules           --rules=single    
+--rules           --rules=single
 --rules=nt        --rules=wordlist
 
-(Please note that in this case all section names are lower case, 
+(Please note that in this case all section names are lower case,
 because john doesn't distinguish upper and lower case characters
 in section names.)
 
@@ -278,12 +278,12 @@ $ ./john --conf=my.conf --rules
 --rules=more_rules
 
 The same possible completions are listed of you switch the sequence
-of the options on the command line, place the cursor immediately after 
+of the options on the command line, place the cursor immediately after
 the word "--rules", and press the  [tab] key twice.
 
 $ ./john --rules[tab][tab] --config=my.conf
 will list possible completions like this:
-$ ./john --rules --config=my.conf 
+$ ./john --rules --config=my.conf
 --rules             --rules=some_rules
 --rules=more_rules
 
@@ -316,7 +316,7 @@ $ ./john --incremental
 --incremental=All     --incremental=Alpha   --incremental=LanMan
 
 If the john version supports --list=inc-modes, the possible completions
-will be obtained by interpreting the config file (default john.conf or 
+will be obtained by interpreting the config file (default john.conf or
 john.ini, unless another config file is specified on the command line,
 see john's option --config=...).
 
@@ -330,13 +330,13 @@ $ ./john --incremental
 
 $ ./john --incremental=l[tab]
 will become
-$ ./john --incremental=lanman 
+$ ./john --incremental=lanman
 
 If all the incremental mode names are listed in lower case, you can also
 use
 $ ./john --incremental=L[tab]
 This will become
-$ ./john --incremental=lanman 
+$ ./john --incremental=lanman
 as well.
 
 
@@ -366,7 +366,7 @@ dumb32                    strip
 dumbforce                 subsets
 
 (A config file specified on the command line will be taken into account when
-determining the possible completions, see the description of the completion 
+determining the possible completions, see the description of the completion
 for the options --incremental, --rules and --single.)
 
 
@@ -389,17 +389,17 @@ $ john --external=
 AppendLuhn        DumbForce         Keyboard          Repeats
 AtLeast1-Generic  Filter_Alnum      KnownForce        Strip
 AtLeast1-Simple   Filter_Alpha      LanMan            Subsets
-DateTime          Filter_Digits     Parallel          
+DateTime          Filter_Digits     Parallel
 Double            Filter_LanMan     Policy
 
 $ john --external=Da[tab]
 will become
-$ john --external=DateTime 
+$ john --external=DateTime
 
 
 	--make-charset=
 
-Completion will list names of .chr files and directories in the 
+Completion will list names of .chr files and directories in the
 current directory for completion.
 
 $ ./john --make-charset=[tab][tab]
@@ -409,7 +409,7 @@ $ ./john --make-charset=
 all.chr     alpha.chr   lanman.chr
 alnum.chr   digits.chr  subdir/
 
-Please note that an existing file will be overwritten 
+Please note that an existing file will be overwritten
 when executing the command. So please be careful!
 
 
@@ -438,11 +438,11 @@ Since names of john sessions are possible completions,
 the possible completions are derived from .rec file names.
 In addition, names of sub directories are also considered, since .rec files
 might be located in a sub directory.
-(For --restore=, only names of sessions not currently running should be 
+(For --restore=, only names of sessions not currently running should be
 considered. This is not yet implemented.)
 
-The completion logic for these options depends on the contents of the 
-environment variable __john_completion, see the last chapter 
+The completion logic for these options depends on the contents of the
+environment variable __john_completion, see the last chapter
 ("Config variables") of this document.
 
 The default logic works like this:
@@ -508,7 +508,7 @@ $ echo $COMP_WORDBREAKS
 the variable also contains a line feed character.)
 
 
-The completion logic implemented for john depends on whether or not 
+The completion logic implemented for john depends on whether or not
 COMP_WORDBREAKS contains the colon character (':').
 
 If COMP_WORDBREAKS doesn't contain the colon, this is the completion logic:
@@ -521,7 +521,7 @@ $ john -opt:[tab]
 becomes
 $ john -opt=
 
-This means, for an option (beginning with at least one '-' char) followed 
+This means, for an option (beginning with at least one '-' char) followed
 by a colon (':') as a delimiter, possibly followed by other characters
 (except '=' or ':') the colon will be replaced by an equal sign.
 Pressing the  [tab] key again will then invoke the normal completion logic
@@ -553,7 +553,7 @@ These options are
 --status
 --incremental
 
-Furthermore, in jumbo versions, these options can be used with or 
+Furthermore, in jumbo versions, these options can be used with or
 without a value:
 --rules
 --single
@@ -590,7 +590,7 @@ the file name from the option name.
 To further expand the option instead, you'll have to type the '='
 (equal sign).
 
-If __john_completion has the value 2, the following alternative completion 
+If __john_completion has the value 2, the following alternative completion
 logic is implemented for options that can be used with or without a value.
 
 $ ./john --show[tab]
@@ -603,7 +603,7 @@ Completion of --option= does not depend on the value of  __john_completion.
 Since there is just one possible value for --show=,
 $ ./john --show=[tab]
 will become
-$ ./john --show=LEFT 
+$ ./john --show=LEFT
 
 (A space character will be added after "--show=LEFT".)
 

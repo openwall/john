@@ -1,11 +1,22 @@
 /* MD5 OpenCL kernel based on Solar Designer's MD5 algorithm implementation at:
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  *
+ * This software is Copyright © 2010, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted.
+ *
  * Useful References:
  * 1. CUDA MD5 Hashing Experiments, http://majuric.org/software/cudamd5/
  * 2. oclcrack, http://sghctoma.extra.hu/index.php?p=entry&id=11
  * 3. http://people.eku.edu/styere/Encrypt/JS-MD5.html
  * 4. http://en.wikipedia.org/wiki/MD5#Algorithm */
+
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
+
+/* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
+#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 /* The basic MD5 functions */
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
@@ -31,7 +42,7 @@ __kernel void md5(__global uint *data_info, __global const uint * keys, __global
 {
 	int id = get_global_id(0);
 	uint key[16] = { 0 };
-	int i;
+	uint i;
 	uint num_keys = data_info[1];
 	uint KEY_LENGTH = data_info[0] + 1;
 
@@ -43,9 +54,14 @@ __kernel void md5(__global uint *data_info, __global const uint * keys, __global
 	/* padding code (borrowed from MD5_eq.c) */
 	char *p = (char *) key;
 	for (i = 0; i != 64 && p[i]; i++);
-	p[i] = 0x80;
-	p[56] = i << 3;
-	p[57] = i >> 5;
+            
+	//p[i] = 0x80;
+	//p[56] = i << 3;
+	//p[57] = i >> 5;
+
+        PUTCHAR(key, i, 0x80);
+        PUTCHAR(key, 56, i << 3);
+        PUTCHAR(key, 57, i >> 5);
 
 	uint a, b, c, d;
 	a = 0x67452301;

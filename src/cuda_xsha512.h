@@ -12,11 +12,11 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 1024
-#define THREADS 512
+#define BLOCKS 4096
+#define THREADS 128
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
 #define ITERATIONS 1
-#define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
+#define MIN_KEYS_PER_CRYPT	(32*32)
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)	//Hope this can be divided by 16
 
 #define SALT_SIZE 4
@@ -34,6 +34,8 @@
 #define CIPHERTEXT_LENGTH		136
 
 extern uint8_t xsha512_key_changed;
+extern uint8_t use_extend;
+
 // Thanks for Lukas' code here
 #define SWAP64(n) \
   (((n) << 56)					\

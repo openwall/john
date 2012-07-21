@@ -1,7 +1,7 @@
 /* Password Safe cracker patch for JtR. Hacked together during May of
- * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.  
+ * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * CUDA port by Lukas Odzioba <ukasz@openwall.net>
+ * CUDA port by Lukas Odzioba <ukasz at openwall dot net>
  *
  * This software is Copyright Â© 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
@@ -61,9 +61,9 @@ static void *get_salt(char *ciphertext)
         char *keeptr = ctcopy;
         char *p;
         int i;
-        ctcopy += 9;            /* skip over "$pwsafe$*" */
         pwsafe_salt *salt_struct =
             mem_alloc_tiny(sizeof(pwsafe_salt), MEM_ALIGN_WORD);
+	ctcopy += 9;            /* skip over "$pwsafe$*" */
         p = strtok(ctcopy, "*");
         salt_struct->version = atoi(p);
         p = strtok(NULL, "*");
@@ -81,22 +81,18 @@ static void *get_salt(char *ciphertext)
         return (void *) salt_struct;
 }
 
-
 static void set_salt(void *salt)
 {
         memcpy(host_salt, salt, SALT_SIZE);
         any_cracked = 0;
 }
 
-
-
 static void crypt_all(int count)
 {
         int i;
-        any_cracked = 0;
-
         unsigned int *src = (unsigned int *) host_salt->hash;
         unsigned int *dst = (unsigned int *) host_salt->hash;
+        any_cracked = 0;
 
         for (i = 0; i < 8; i++) {
                 dst[i] = SWAP32(src[i]);

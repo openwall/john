@@ -95,7 +95,7 @@ int pdf2john(int argc, char **argv)
 		goto cleanup;
 	}
 
-	if ((file = fopen(inputfile, "r")) == 0) {
+	if ((file = fopen(inputfile, "r")) == NULL) {
 		fprintf(stderr, "Error: file %s not found\n", inputfile);
 		ret = 2;
 		goto cleanup;

@@ -217,11 +217,18 @@ static int cmp_all(void *binary, int count) {
 static int cmp_one(void *binary, int index)
 {
 #ifdef MMX_COEF
-	unsigned int x, y;
-	x = index&3;
-	y = index/4;
+	unsigned int x = index&3;
+	unsigned int y = index/4;
 
+#if BINARY_SIZE < DIGEST_SIZE
 	return ((ARCH_WORD_32*)binary)[0] == crypt_key[x+y*MMX_COEF*5];
+#else
+	int i;
+	for(i=0;i<(DIGEST_SIZE/4);i++)
+		if ( ((ARCH_WORD_32*)binary)[i] != crypt_key[y*MMX_COEF*5+i*MMX_COEF+x] )
+			return 0;
+	return 1;
+#endif
 #else
 	return !memcmp(binary, crypt_key, BINARY_SIZE);
 #endif
@@ -233,23 +240,16 @@ static int cmp_exact(char *source, int index)
 	return 1;
 #else
 #ifdef MMX_COEF
-	unsigned int x, y;
+	unsigned int x, y, i;
 	ARCH_WORD_32 *full_binary;
 
 	full_binary = (ARCH_WORD_32*)binary(source);
 	x = index&3;
 	y = index/4;
 
-	if( ((ARCH_WORD_32*)full_binary)[0] != crypt_key[x+y*MMX_COEF*5] )
-		return 0;
-	if( ((ARCH_WORD_32*)full_binary)[1] != crypt_key[x+y*MMX_COEF*5+MMX_COEF] )
-		return 0;
-	if( ((ARCH_WORD_32*)full_binary)[2] != crypt_key[x+y*MMX_COEF*5+2*MMX_COEF] )
-		return 0;
-	if( ((ARCH_WORD_32*)full_binary)[3] != crypt_key[x+y*MMX_COEF*5+3*MMX_COEF] )
-		return 0;
-	if( ((ARCH_WORD_32*)full_binary)[4] != crypt_key[x+y*MMX_COEF*5+4*MMX_COEF] )
-		return 0;
+	for(i=0;i<(DIGEST_SIZE/4);i++)
+		if ( ((ARCH_WORD_32*)full_binary)[i] != crypt_key[y*MMX_COEF*5+i*MMX_COEF+x] )
+			return 0;
 	return 1;
 #else
 	return !memcmp(binary(source), crypt_key, DIGEST_SIZE);

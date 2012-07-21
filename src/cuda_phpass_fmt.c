@@ -112,10 +112,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 ///code from historical JtR phpass patch
 static void pbinary(char *ciphertext, unsigned char *out)
 {
-	memset(out, 0, BINARY_SIZE);
 	int i, bidx = 0;
 	unsigned sixbits;
 	char *pos = &ciphertext[3 + 1 + 8];
+	memset(out, 0, BINARY_SIZE);
 
 	for (i = 0; i < 5; i++) {
 		sixbits = atoi64[ARCH_INDEX(*pos++)];

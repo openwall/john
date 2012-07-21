@@ -50,6 +50,8 @@ extern void cuda_sha512_cpy_hash(sha512_hash* host_hash);
 static sha512_key gkey[MAX_KEYS_PER_CRYPT];
 static sha512_hash ghash[MAX_KEYS_PER_CRYPT];
 uint8_t sha512_key_changed;
+static uint8_t hash_copy_back;
+
 static uint64_t H[8] = {
 	0x6a09e667f3bcc908LL,
 	0xbb67ae8584caa73bLL,
@@ -66,12 +68,17 @@ static void init(struct fmt_main *pFmt)
 	cuda_sha512_init();
 }
 
+static void copy_hash_back()
+{
+    if (!hash_copy_back) {
+        cuda_sha512_cpy_hash(ghash);
+        hash_copy_back = 1;
+    }
+}
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	char *pos;
-
+	char *pos = ciphertext;
 	/* Require lowercase hex digits (assume ASCII) */
-	pos = ciphertext;
 	while (atoi16[ARCH_INDEX(*pos)] != 0x7F && (*pos <= '9' || *pos >= 'a'))
 		pos++;
 	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH;
@@ -80,17 +87,16 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char out[FULL_BINARY_SIZE];
-	char *p;
+	char *p = ciphertext;
 	int i;
-
-	p = ciphertext;
+	uint64_t *b;
 	for (i = 0; i < sizeof(out); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	uint64_t *b = (uint64_t*)out;
+	b = (uint64_t*)out;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i])-H[i];
 		b[i] = SWAP64(t);
@@ -135,43 +141,43 @@ static int binary_hash_6(void *binary)
 
 static int get_hash_0(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xF;
 }
 
 static int get_hash_1(int index)
-{	
-	cuda_sha512_cpy_hash(ghash);
+{
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	cuda_sha512_cpy_hash(ghash);
+	copy_hash_back();
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
@@ -195,6 +201,7 @@ static void crypt_all(int count)
 {
 	cuda_sha512(gkey, ghash);
 	sha512_key_changed = 0;
+    hash_copy_back = 0;
 }
 
 static int cmp_all(void *binary, int count)
@@ -204,9 +211,9 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	uint64_t *b = (uint64_t *) binary;
-	cuda_sha512_cpy_hash(ghash);
-	uint64_t *t = (uint64_t *)ghash;
+	uint64_t *t,*b = (uint64_t *) binary;
+	copy_hash_back();
+	t = (uint64_t *)ghash;
 	if (b[3] != t[hash_addr(0, index)])
 		return 0;
 	return 1;
@@ -216,21 +223,22 @@ static int cmp_exact(char *source, int index)
 {
 	SHA512_CTX ctx;
 	uint64_t crypt_out[8];
-	
+	int i;
+	uint64_t *b,*c;
+
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, gkey[index].v, gkey[index].length);
-	SHA512_Final((unsigned char *)(crypt_out), &ctx);	
+	SHA512_Final((unsigned char *)(crypt_out), &ctx);
 
-	int i;
-	uint64_t *b = (uint64_t *)get_binary(source);
-	uint64_t *c = (uint64_t *)crypt_out;
+	b = (uint64_t *)get_binary(source);
+	c = (uint64_t *)crypt_out;
 
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(c[i])-H[i];
 		c[i] = SWAP64(t);
 	}
 
-	
+
 	for (i = 0; i < FULL_BINARY_SIZE / 8; i++) { //examin 512bits
 		if (b[i] != c[i])
 			return 0;
@@ -247,7 +255,7 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		BINARY_SIZE,
+		FULL_BINARY_SIZE,
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,

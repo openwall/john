@@ -338,7 +338,7 @@ void rar_make_decode_tables(unsigned char *len_tab, struct Decode *decode, int s
 		// Store the left aligned upper limit code.
 		decode->DecodeLen[i]=(unsigned int)m;
 		// Every item of this array contains the sum of all preceding items.
-		// So it contains the start position in code list for every bit length. 
+		// So it contains the start position in code list for every bit length.
 		tmp_pos[i]=decode->DecodePos[i]=decode->DecodePos[i-1]+len_count[i-1];
 	}
 
@@ -675,7 +675,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		stack_filter->block_length = rarvm_read_data(&rarvm_input);
 	} else {
 		// Set the data block size to same value as the previous block size
-		// for same filter. It is possible on corrupt data to access here a new 
+		// for same filter. It is possible on corrupt data to access here a new
 		// and not filled yet item of OldFilterLengths array. This is why above
 		// we set new OldFilterLengths items to zero.
 		stack_filter->block_length = filter_pos < unpack_data->old_filter_lengths_size ?

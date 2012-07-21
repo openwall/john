@@ -11,8 +11,8 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define BLOCKS 1024
-#define THREADS 512
+#define BLOCKS 4096
+#define THREADS 128
 #define KEYS_PER_CRYPT (BLOCKS*THREADS)
 #define ITERATIONS 1
 #define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
@@ -23,7 +23,7 @@
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
 
-#define PLAINTEXT_LENGTH		12
+#define PLAINTEXT_LENGTH		20
 #define CIPHERTEXT_LENGTH		128
 
 extern uint8_t sha512_key_changed;

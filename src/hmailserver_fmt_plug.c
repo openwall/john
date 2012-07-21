@@ -23,24 +23,7 @@
  * Copyright (c) 2010 by Solar Designer
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
-#include <string.h>
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
-#define COMMON_DIGEST_FOR_OPENSSL
-#include <CommonCrypto/CommonDigest.h>
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
-#else
-#include <openssl/sha.h>
-#endif
+#include "sha2.h"
 
 #include "arch.h"
 #include "params.h"
@@ -50,7 +33,7 @@
 #define FORMAT_LABEL        "hmailserver"
 #define FORMAT_NAME         "hMailServer salted SHA-256"
 
-#define ALGORITHM_NAME      "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "32/" ARCH_BITS_STR " " SHA2_LIB
 
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0
@@ -290,9 +273,3 @@ struct fmt_main fmt_hmailserver = {
         cmp_exact
     }
 };
-
-#else
-#ifdef __GNUC__
-#warning Note: hmailserver format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

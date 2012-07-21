@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
@@ -86,10 +86,12 @@ static void init(struct fmt_main *pFmt)
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
+	char *pos,*hash = strrchr(ciphertext, '#') + 1;
+	int hashlength = 0;
+	int saltlength = 0;
 	if (strncmp(ciphertext, mscash2_prefix, strlen(mscash2_prefix)) != 0)
 		return 0;
-	char *hash = strrchr(ciphertext, '#') + 1;
-	int hashlength = 0;
+
 	if (hash == NULL)
 		return 0;
 	while (hash < ciphertext + strlen(ciphertext)) {
@@ -100,8 +102,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (hashlength != 32)
 		return 0;
 
-	int saltlength = 0;
-	char *pos = ciphertext + strlen(mscash2_prefix);
+	pos = ciphertext + strlen(mscash2_prefix);
 	while (*pos++ != '#') {
 		if (saltlength == 19)
 			return 0;
@@ -146,9 +147,9 @@ static void *binary(char *ciphertext)
 {
 	static uint32_t binary[4];
 	char *hash = strrchr(ciphertext, '#') + 1;
+	int i;
 	if (hash == NULL)
 		return binary;
-	int i;
 	for (i = 0; i < 4; i++) {
 		sscanf(hash + (8 * i), "%08x", &binary[i]);
 		binary[i] = SWAP(binary[i]);

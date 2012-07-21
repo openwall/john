@@ -282,7 +282,7 @@ the log file.
 --list=WHAT               list capabilities
 
 This option can be used to gain information about what rules, modes etc are
-available. Use --list=? for a list of valid arguments. For example, the now
+available. Use --list=help for a list of valid arguments. For example, the now
 deprecated --subformat=LIST is now --list=subformats.
 The different variants of list externals may be worth mentioning:
 
@@ -320,7 +320,11 @@ The different variants of list externals may be worth mentioning:
 --list=format-all-details list all the suported formats and their attributes
                           in the same sequence as with --list=format-details,
                           but in a more descriptive form readable by humans
-
+--list=format-methods[:WHICH]
+                          list all methods which are NOT default for each
+                          format.  If 'WHICH' is set, then this listing
+                          will ONLY be formats which have the 'WHICH' format
+                          overridden.
 
 --regen-lost-salts=N	Try to find password AND salt in a set of raw hashes.
 
@@ -340,12 +344,12 @@ N being set properly.  The valid N's are:
   --regen-lost-salts=3 --format=mediawiki    (user id's from 0 to 999)
   --regen-lost-salts=4 --format=mediawiki    (user id's from 1000 to 9999)
   --regen-lost-salts=5 --format=mediawiki    (user id's from 10000 to 99999)
-For types 3, 4, 5, we only look for numeric user id's, of the type:  
+For types 3, 4, 5, we only look for numeric user id's, of the type:
 md5($u.'-'.md5($p)) Mediawiki made some changes to use longer 8 byte hex strings
 as salts.  This salt is too long to try to find, so JtR only focuses on the older
 type $B$ with the shorter numeric user id's.   The found lines in john.pot will
 be output as type $dynamic_2$ for the found PHPS (with the salts filled in). It
-will be $dynamic_4$ for the OSC (with salt), and $dynamic_9$ (with user id as 
+will be $dynamic_4$ for the OSC (with salt), and $dynamic_9$ (with user id as
 salt), for the mediawiki items.
 NOTE, normally the salt is preserved with the hash, and thus JtR can properly
 find them using 'normal' methods.  This new functionality was added to handle

@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 *
@@ -8,7 +8,11 @@
 */
 #ifndef _WPAPSK_H
 #define _WPAPSK_H
+
+#include "arch.h"
 #include "common.h"
+#include "johnswap.h"
+
 #include <assert.h>
 #include <openssl/hmac.h>
 
@@ -37,7 +41,7 @@ typedef struct
   unsigned char keymic[16];
 } hccap_t;
 
-typedef struct 
+typedef struct
 {
   unsigned char keymic[16];
 } mic_t;
@@ -109,6 +113,12 @@ static hccap_t *decode_hccap(char *ciphertext)
 	    (atoi64[ARCH_INDEX(cap[1])] << 4) |
 	    (atoi64[ARCH_INDEX(cap[2])] >> 2);
 	memcpy(&hccap.mac1,tbuf,sizeof(hccap_t)-36);
+
+#if !ARCH_LITTLE_ENDIAN
+	hccap.eapol_size = JOHNSWAP(hccap.eapol_size);
+	hccap.keyver = JOHNSWAP(hccap.keyver);
+#endif
+
 	return &hccap;
 }
 
@@ -172,6 +182,7 @@ static void set_salt(void *salt)
 	currentsalt.length = strlen(hccap.essid);
 }
 
+#undef set_key
 static void set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);

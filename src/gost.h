@@ -101,11 +101,12 @@ static inline uint32_t bswap_32(uint32_t x) {
 #elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
 # define bswap_32(x) _byteswap_ulong((unsigned long)x)
 #elif !defined(__STRICT_ANSI__)
-/* general bswap_32 definition */
-static inline uint32_t bswap_32(uint32_t x) {
+/* general bswap_32 definition.  Note, bswap_32 already defined as inline in GCC 3.4.4, but it sux. */
+static inline uint32_t _JtR_Swap_32(uint32_t x) {
 	x = ((x << 8) & 0xFF00FF00) | ((x >> 8) & 0x00FF00FF);
 	return (x >> 16) | (x << 16);
 }
+# define bswap_32(x) _JtR_Swap_32(x)
 #else
 #define bswap_32(x) ((((x) & 0xff000000) >> 24) | (((x) & 0x00ff0000) >>  8) | \
 	(((x) & 0x0000ff00) <<  8) | (((x) & 0x000000ff) << 24))
@@ -116,7 +117,8 @@ static inline uint32_t bswap_32(uint32_t x) {
 #elif (_MSC_VER > 1300) && (defined(CPU_IA32) || defined(CPU_X64)) /* MS VC */
 # define bswap_64(x) _byteswap_uint64((__int64)x)
 #elif !defined(__STRICT_ANSI__)
-static inline uint64_t bswap_64(uint64_t x) {
+/* general bswap_64 definition.  Note, bswap_64 already defined as inline in GCC 3.4.4, but it sux. */
+static inline uint64_t _JtR_Swap_64(uint64_t x) {
 	union {
 		uint64_t ll;
 		uint32_t l[2];
@@ -126,6 +128,7 @@ static inline uint64_t bswap_64(uint64_t x) {
 	r.l[1] = bswap_32(w.l[0]);
 	return r.ll;
 }
+# define bswap_64(x) _JtR_Swap_64(x)
 #else
 #error "bswap_64 unsupported"
 #endif
