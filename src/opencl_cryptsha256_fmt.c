@@ -484,7 +484,8 @@ static void init(struct fmt_main *pFmt) {
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
-
+    pFmt->params.max_keys_per_crypt = global_work_size;
+    
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
         create_clobj(global_work_size);
