@@ -312,7 +312,7 @@ void sha256_prepare(__constant sha256_salt     * salt_data,
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
-    for (uint32_t i = 0; i < 16 + alt_result->mem_08[0]; i++)
+    for (uint32_t i = 0; i < 16U + alt_result->mem_08[0]; i++)
         ctx_update_C(ctx, salt, saltlen);
 
     /* Finish the digest.  */
