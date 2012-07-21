@@ -450,9 +450,9 @@ static void init(struct fmt_main *pFmt) {
         if (! no_byte_addressable(source_in_use)) {
 
             if (gpu_nvidia(source_in_use))
-                task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
+                task = "$JOHN/cryptsha256_kernel_NVIDIA.cl";
             else if (gpu_amd(source_in_use))
-                task = "$JOHN/cryptsha512_kernel_AMD.cl";
+                task = "$JOHN/cryptsha256_kernel_AMD.cl";
         }
     }
     fflush(stdout);

@@ -208,8 +208,8 @@ void finish_ctx(__local sha256_ctx * ctx) {
 void clear_ctx_buffer(__local sha256_ctx * ctx) {
 
 #ifdef VECTOR_USAGE
-    ulong16  w_vector = 0;
-    vstore16(w_vector, 0, ctx->buffer->mem_64);
+    uint16  w_vector = 0;
+    vstore16(w_vector, 0, ctx->buffer->mem_32);
 #else
     __local uint64_t * l = (__local uint64_t *) ctx->buffer;
 
