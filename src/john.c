@@ -131,6 +131,7 @@ extern struct fmt_main fmt_opencl_keychain;
 extern struct fmt_main fmt_opencl_agilekeychain;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
+extern struct fmt_main fmt_opencl_rawsha512_ng;
 extern struct fmt_main fmt_opencl_bf;
 extern struct fmt_main fmt_opencl_pwsafe;
 #endif
@@ -266,6 +267,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_agilekeychain);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
+	john_register_one(&fmt_opencl_rawsha512_ng);        
 	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 #endif
