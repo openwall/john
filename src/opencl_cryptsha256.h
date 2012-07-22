@@ -65,14 +65,6 @@
 #define BINARY_SIZE             32
 #define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
-#define MOD_3_0                 1
-#define MOD_7_0                 2
-#define MOD_3_1                 4
-#define MOD_7_1                 8
-#define MOD_3_2                 16
-#define MOD_7_2                 32
-#define MOD_3_3                 64
-#define MOD_7_3                 128
 
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       512
