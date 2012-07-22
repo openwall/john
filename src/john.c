@@ -54,6 +54,7 @@
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
 #include <openssl/opensslv.h>
+#include <openssl/crypto.h>
 #include "unicode.h"
 #include "plugin.h"
 #ifdef CL_VERSION_1_0
@@ -665,6 +666,18 @@ static void john_init(char *name, int argc, char **argv)
 #ifdef __clang_version__
 			printf("clang version: %s\n", __clang_version__);
 #endif
+#ifdef OPENSSL_VERSION_NUMBER
+			// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
+			// gcc insists it is int.
+			printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+			// FIXME: How do I detect a missing library?
+			// Even if if is extremely unlikely that openssl is missing,
+			// at least flush all output buffers...
+			fflush(NULL);
+			if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
+				printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+			printf("\n");
+#endif
 			exit(0);
 		}
 	}
@@ -824,7 +837,10 @@ static void john_init(char *name, int argc, char **argv)
 			       format->params.benchmark_comment,
 			       format->params.benchmark_length,
 			       format->params.binary_size,
-			       format->params.salt_size);
+			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
+			       // salts are handled internally within the format. We want to know the 'real' salt size
+			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
+			       dynamic_real_salt_length(format) : format->params.salt_size);
 		} while ((format = format->next));
 		exit(0);
 	}
@@ -865,12 +881,11 @@ static void john_init(char *name, int argc, char **argv)
 			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment);
 			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
 			printf("Binary size                     \t%d\n", format->params.binary_size);
-			if ( (format->params.flags & FMT_DYNAMIC) && format->params.salt_size) {
-				// salts are handled internally within the format. We want to know the 'real' salt size/
-				// dynamic will alway set params.salt_size to 0 or sizeof a pointer.
-				printf("Salt size                       \t%d\n", dynamic_real_salt_length(format));
-			} else
-				printf("Salt size                       \t%d\n", format->params.salt_size);
+			printf("Salt size                       \t%d\n",
+			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
+			       // salts are handled internally within the format. We want to know the 'real' salt size/
+			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
+			       dynamic_real_salt_length(format) : format->params.salt_size);
 			printf("\n");
 		} while ((format = format->next));
 		exit(0);
