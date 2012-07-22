@@ -14,6 +14,7 @@ run/hccap2john
 run/john
 run/john.local.conf
 run/keepass2john
+run/keychain2john
 run/mkvcalcproba
 run/mozilla2john
 run/office2john
@@ -30,6 +31,7 @@ run/raw2dyna
 run/SIPdump
 run/ssh2john
 run/tgtsnarf
+run/truecrypt_volume2john
 run/unafs
 run/undrop
 run/unique
