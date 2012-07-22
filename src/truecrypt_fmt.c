@@ -14,6 +14,8 @@
  *
  * (This is a heavily cut-down "BSD license".)
  */
+#include <openssl/evp.h>
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
 
 #include <string.h>
 #include "arch.h"
@@ -22,8 +24,6 @@
 #include "common.h"
 #include "formats.h"
 #include "crc32.h"
-#include <openssl/evp.h>
-
 
 #define PLAINTEXT_LENGTH					31
 #define MAX_CIPHERTEXT_LENGTH		(512*2+32)
@@ -47,21 +47,21 @@ static void init(struct fmt_main *pFmt)
 static void init_ripemd160(struct fmt_main *pFmt)
 {
 	init(pFmt);
-	
+
 	md = EVP_get_digestbyname("RIPEMD160");
 	num_iterations = 2000;
 }
 static void init_sha512(struct fmt_main *pFmt)
 {
 	init(pFmt);
-	
+
 	md = EVP_get_digestbyname("SHA512");
 	num_iterations = 1000;
 }
 static void init_whirlpool(struct fmt_main *pFmt)
 {
 	init(pFmt);
-	
+
 	md = EVP_get_digestbyname("whirlpool");
 	num_iterations = 1000;
 }
@@ -80,7 +80,7 @@ static char* ms_split(char *ciphertext, int index, struct fmt_main *self)
 		out[i] = ciphertext[i];
 
 	out[i] = 0;
-	
+
 	return out;
 }
 
@@ -95,7 +95,7 @@ static int valid(char* ciphertext, int pos)
 	for (i = 0; i < 512*2; i++)
 		if (atoi16[ARCH_INDEX((ciphertext+pos)[i])] == 0x7F)
 			return 0;
-			
+
 	return 1;
 }
 static int valid_ripemd160(char* ciphertext, struct fmt_main *pFmt)
@@ -103,7 +103,7 @@ static int valid_ripemd160(char* ciphertext, struct fmt_main *pFmt)
 	// Not a supported hashing
 	if (strncmp(ciphertext, "truecrypt_RIPEMD_160$", 21))
 		return 0;
-	
+
 	return valid(ciphertext, 21);
 }
 static int valid_sha512(char* ciphertext, struct fmt_main *pFmt)
@@ -111,7 +111,7 @@ static int valid_sha512(char* ciphertext, struct fmt_main *pFmt)
 	// Not a supported hashing
 	if (strncmp(ciphertext, "truecrypt_SHA_512$", 18))
 		return 0;
-	
+
 	return valid(ciphertext, 18);
 }
 static int valid_whirlpool(char* ciphertext, struct fmt_main *pFmt)
@@ -119,7 +119,7 @@ static int valid_whirlpool(char* ciphertext, struct fmt_main *pFmt)
 	// Not a supported hashing
 	if (strncmp(ciphertext, "truecrypt_WHIRLPOOL$", 20))
 		return 0;
-	
+
 	return valid(ciphertext, 20);
 }
 
@@ -132,7 +132,7 @@ static void* get_salt(char *ciphertext)
 {
 	static unsigned char out[SALT_SIZE];
 	unsigned int i;
-	
+
 	while(*ciphertext != '$') ciphertext++;
 	ciphertext++;
 
@@ -147,7 +147,7 @@ static void *get_binary(char *ciphertext)
 {
 	static unsigned char out[BINARY_SIZE];
 	unsigned int i;
-	
+
 	while(*ciphertext != '$') ciphertext++;
 	ciphertext += 1+64*2;
 
@@ -177,7 +177,7 @@ static int cmp_all(void* binary, int count)
 	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	int outlen;
 	unsigned char first_block_dec[16];
-	
+
 	for(i = 0; i < count; i++)
 	{
 		EVP_CIPHER_CTX cipher_context;
@@ -187,7 +187,7 @@ static int cmp_all(void* binary, int count)
 		// Try to decrypt using AES
 		EVP_CIPHER_CTX_init(&cipher_context);
 		EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
-		EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16); 
+		EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
 		// If first 4 bytes is 'TRUE' sucefull decryption
 		if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
 			return 1;
@@ -202,7 +202,7 @@ static int cmp_one(void* binary, int index)
 	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	int outlen;
 	unsigned char first_block_dec[16];
-	
+
 	EVP_CIPHER_CTX cipher_context;
 	// Key Strengthening
 	PKCS5_PBKDF2_HMAC(key_buffer[index], strlen(key_buffer[index]), salt_buffer, 64, num_iterations, md, sizeof(key), key);
@@ -220,12 +220,12 @@ static int cmp_one(void* binary, int index)
 		// unsigned char* bin_ptr = ((unsigned char*)binary)+256;
 		// CRC32_t check_sum;
 		// CRC32_Init(&check_sum);
-		
+
 		// know_crc32[0] = first_block_dec[8];
 		// know_crc32[1] = first_block_dec[9];
 		// know_crc32[2] = first_block_dec[10];
 		// know_crc32[3] = first_block_dec[11];
-		
+
 		////Check that crc32 checksum are valid
 		// for(i = 0; i < 16; i++, bin_ptr+=16)
 		// {
@@ -233,11 +233,11 @@ static int cmp_one(void* binary, int index)
 			// EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, bin_ptr, 16);
 			// CRC32_Update(&check_sum, first_block_dec, 16);
 		// }
-		
+
 		// CRC32_Final(crc32, check_sum);
 		// printf("Real: %i %i %i %i Decrypt: %i %i %i %i\n", (int)know_crc32[0], (int)know_crc32[1], (int)know_crc32[2], (int)know_crc32[3],
 		// (int)crc32[0], (int)crc32[1], (int)crc32[2], (int)crc32[3]);
-		
+
 		// TODO: Not use this code, use the commented up
 		if(!first_block_dec[12] && !first_block_dec[13] && !first_block_dec[14] && !first_block_dec[15])
 			return 1;
@@ -282,7 +282,7 @@ static struct fmt_tests tests_whirlpool[] = {
 {"truecrypt_WHIRLPOOL$0650595770851981d70b088ff6ef4bf90573e08d03c8cac8b2dfded22e1653f5c45103758c68be344fdccae42b4683087da083a3841b92fb79856798eaee793c04cd95ae556d9616684da17e47bd2f775d8128f94b80b781e4cab4921b12c620721cf719ca72d3997cea829fd29b429282b597d5719c13423cdf7bd717fa12a56b8eddcf7b1ad2796c4ad078ab3a9bd944a694aa4b0078ed160440dd3db13dd1d04a7aaaa4dc016a95bd1cfafcd833ae933c627bf5512ae55c76069af7190823dba0133d6fe02e4421d3684ff2a2493da990a3cc5eed40a9e8c48c7a89a2f47030d45c324a3d78b941e772e24b285af6739ae1f5953ff838edaa69e79939f55d0fe00cd0e3a20a46db3a232009eabc800711342f7e580ba909f16c2039d4900fd4025845a385641a6037ceb6420fe7d37868e8c06e6146eddec9e6cb97e71048da5fa5898dac08152516ea1c6729e85d31596cd226aa218ce693989efb9fa8b05404bcc2debbc75c429a03fe31bfc49f10d595b898436ff6b02fc01d745b91280f26ae94a4969ce7f86c12e6b562c7b5377e3fb3247a8cda11a930c2a9e80f24966925de01afad5987ebee9c3de1d41667c6dc35cebbbc963f263c700d06a647ab7020385e3a7e30406f3e7a9b3142d39e0439c98948134d11166b621dfd3ea9d3a84d985b2aa7732b7ad9beba44334dd86292b0c94befb2cb8aa72a823129cb", "123" },
 	{NULL}
 };
-	
+
 struct fmt_main fmt_truecrypt = {
 	{
 		"tc_ripemd160",						// FORMAT_LABEL
@@ -432,3 +432,5 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		cmp_exact
 	}
 };
+
+#endif
