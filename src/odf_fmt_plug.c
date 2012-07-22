@@ -45,7 +45,7 @@ static struct fmt_tests odf_tests[] = {
 static int omp_t = 1;
 #endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int cipher_type;
