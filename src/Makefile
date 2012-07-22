@@ -95,6 +95,7 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
 	django_fmt.o \
+	truecrypt_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \

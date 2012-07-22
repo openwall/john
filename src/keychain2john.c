@@ -71,13 +71,18 @@ static void print_hex(unsigned char *str, int len)
 static void process_file(const char *filename)
 {
 	FILE *fp;
+	unsigned char buf[4];
+	unsigned char salt[SALTLEN];
+	unsigned char iv[IVLEN];
+	unsigned char ct[CTLEN];
+	long pos, cipheroff;
+	size_t bytes;
 
 	if (!(fp = fopen(filename, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", filename, strerror(errno));
 		return;
 	}
 	fseek(fp, -4, SEEK_END);
-	unsigned char buf[4];
 
 	while(1) {
 		fseek(fp, -8, SEEK_CUR);
@@ -89,27 +94,33 @@ static void process_file(const char *filename)
 			break;
 	}
 
-	long pos = ftell(fp) - 4;
+	pos = ftell(fp) - 4;
 
 	// ciphertext offset
 	fseek(fp, pos + 8, SEEK_SET);
-	long cipheroff = fget32(fp);
+	cipheroff = fget32(fp);
 
 	// salt
 	fseek(fp, pos + 44, SEEK_SET);
-	unsigned char salt[SALTLEN];
-	fread(salt, SALTLEN, 1, fp);
-
+	bytes = fread(salt, SALTLEN, 1, fp);
+	if(bytes != SALTLEN){
+		fprintf(stderr, "Something went wrong - fread(salt) error\n");
+		exit(1);
+	}
 	// IV
 	fseek(fp, pos + 64, SEEK_SET);
-	unsigned char iv[IVLEN];
-	fread(iv, IVLEN, 1, fp);
-
+	bytes = fread(iv, IVLEN, 1, fp);
+	if(bytes != IVLEN){
+		fprintf(stderr, "Something went wrong - fread(iv) error\n");
+		exit(1);
+	}
 	// ciphertext
 	fseek(fp, pos + cipheroff, SEEK_SET);
-	unsigned char ct[CTLEN];
-	fread(ct, CTLEN, 1, fp);
-
+	bytes = fread(ct, CTLEN, 1, fp);
+	if(bytes != CTLEN){
+		fprintf(stderr, "Something went wrong - fread(ct) error\n");
+		exit(1);
+	}
 	// output
 	printf("%s:$keychain$*", filename);
 	print_hex(salt, SALTLEN);
