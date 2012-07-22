@@ -71,7 +71,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return split_fields[1];
 }
 
-static char* ms_split(char *ciphertext, int index)
+static char* ms_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i;
@@ -292,7 +292,9 @@ struct fmt_main fmt_truecrypt = {
 		0,											// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,
@@ -304,6 +306,7 @@ struct fmt_main fmt_truecrypt = {
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash,
 			binary_hash,
@@ -339,7 +342,9 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		0,											// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,
@@ -351,6 +356,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash,
 			binary_hash,
@@ -386,7 +392,9 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		0,												// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8,
@@ -398,6 +406,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash,
 			binary_hash,
