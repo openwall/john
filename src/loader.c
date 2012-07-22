@@ -247,17 +247,24 @@ static int ldr_split_line(char **login, char **ciphertext,
 				return 0;
 		}
 		*p = 0;
-		*login = no_username;
+		fields[0] = *login = no_username;
 		fields[1] = *ciphertext;
 	}
 
 	if (source)
 		strcpy(source, line ? line : "");
 
+/*
+ * This check is just a loader performance optimization, so that we can parse
+ * fewer fields when we know we won't need the rest.  It should be revised or
+ * removed when there are formats that use higher-numbered fields in prepare().
+ */
 	if ((options->flags & DB_WORDS) || options->shells->head) {
+		/* Parse all fields */
 		for (i = 2; i < 10; i++)
 			fields[i] = ldr_get_field(&line, options->field_sep_char);
 	} else {
+		/* Parse some fields only */
 		for (i = 2; i < 4; i++)
 			fields[i] = ldr_get_field(&line, options->field_sep_char);
 		// Next line needed for l0phtcrack (in Jumbo)

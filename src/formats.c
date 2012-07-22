@@ -79,6 +79,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	char *ciphertext, *plaintext;
 	int ntests, done, index, max, size;
 	void *binary, *salt;
+	int binary_align_warned = 0, salt_align_warned = 0;
 
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
@@ -141,23 +142,20 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * returned by binary() and salt() only to the declared sizes.
  */
 		binary = format->methods.binary(ciphertext);
-		if (!binary)
-			return "binary (NULL)";
-		if (format->methods.binary != fmt_default_binary &&
-		    format->methods.binary_hash[0] != fmt_default_binary_hash &&
-		    !is_aligned(binary, format->params.binary_align))
-			return "binary (alignment)";
-
+		if (!is_aligned(binary, format->params.binary_align) &&
+		    !binary_align_warned) {
+			puts("Warning: binary() returned misaligned pointer");
+			binary_align_warned = 1;
+		}
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
 		salt = format->methods.salt(ciphertext);
-		if (!salt)
-			return "salt (NULL)";
-		if (format->methods.salt != fmt_default_salt &&
-		    format->methods.salt_hash != fmt_default_salt_hash &&
-		    !is_aligned(salt, format->params.salt_align))
-			return "salt (alignment)";
+		if (!is_aligned(salt, format->params.salt_align) &&
+		    !salt_align_warned) {
+			puts("Warning: salt() returned misaligned pointer");
+			salt_align_warned = 1;
+		}
 		memcpy(salt_copy, salt, format->params.salt_size);
 		salt = salt_copy;
 
