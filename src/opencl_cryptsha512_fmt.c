@@ -642,7 +642,7 @@ static void crypt_all(int count) {
     new_keys = 0;
     new_salt = 0;
 }
-//#define DEBUG
+
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {
