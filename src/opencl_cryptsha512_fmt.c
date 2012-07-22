@@ -64,12 +64,12 @@ static struct fmt_tests tests[] = {
  ***/
 
 /* ------- Helper functions ------- */
-unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
+static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 
     return (dividend / divisor) * divisor;
 }
 
-size_t get_task_max_work_group_size(){
+static size_t get_task_max_work_group_size(){
     size_t max_available;
 
     if (gpu_amd(device_info[gpu_id]))
@@ -88,7 +88,7 @@ size_t get_task_max_work_group_size(){
     return max_available;
 }
 
-size_t get_task_max_size(){
+static size_t get_task_max_size(){
     size_t max_available;
     max_available = get_max_compute_units(gpu_id);
 
@@ -99,7 +99,7 @@ size_t get_task_max_size(){
         return max_available * get_current_work_group_size(gpu_id, crypt_kernel);
 }
 
-size_t get_safe_workgroup(){
+static size_t get_safe_workgroup(){
 
     if (cpu(device_info[gpu_id]))
         return 1;
@@ -108,7 +108,7 @@ size_t get_safe_workgroup(){
         return 32;
 }
 
-size_t get_default_workgroup(){
+static size_t get_default_workgroup(){
     size_t max_available;
     max_available = get_task_max_work_group_size();
 
