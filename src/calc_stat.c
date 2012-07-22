@@ -82,12 +82,18 @@ int main(int argc, char * * argv)
 			np = 0;
 			if(C2I(ligne[i])<32)
 			{
-				if (!npflag) fprintf(stderr, "Warning, non printable character line %d : %s\n", nb_lignes, ligne);
+				if (!npflag)
+					fprintf(stderr,
+					        "Warning, non printable character 0x%02x line %d offset %d: %s\n",
+					        (unsigned char)ligne[i], nb_lignes, i, ligne);
 				np += 1;
 			}
 			if(C2I(ligne[i])>127)
 			{
-				if (!npflag) fprintf(stderr, "Warning, non US ascii character line %d : %s\n", nb_lignes, ligne);
+				if (!npflag)
+					fprintf(stderr,
+					        "Warning, non US ascii character 0x%02x line %d offset %d: %s\n",
+					        (unsigned char)ligne[i], nb_lignes, i, ligne);
 				np += 1;
 			}
 			if((i>0) && (C2I(ligne[i-1])<32))

@@ -100,7 +100,7 @@
 ## have grep && have sed && have tr &&
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev words
+	local first cur options valopts compreplya compreplyb encodings formats subformats list hidden dir cmd i ver ver1 ver2 ver3 prev words prefix
 
 	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
 	LC_ALL=C
@@ -583,11 +583,24 @@ _john()
 			fi
 			return 0
 			;;
-		-?(-)li?(s|st)+(+(=|:)+([a-z_-]):|:+([a-z_-])=)*([a-z_-]))
-			cur=${cur#*[=:]}
+		-?(-)li?(s|st)+(+(=|:)+([a-z_-]):|:+([a-z._-])=)*([A-Za-z0-9:._-]))
+			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 			cmd=${cur%[=:]*}
+			prefix=""
+			if [[ "_${cmd}" == _*:* ]] ; then
+				prefix=${cmd#*:}
+				prefix=${prefix#*:}
+				cmd=${cmd%:*}
+				cur=${cur#*[=:]}
+			fi
 			cur=${cur#*[=:]}
-			list=`${first} --list=help:${cmd} 2>/dev/null |sed 's#,# #g'`
+			# Q&D fix, a general solution will take longer:
+			if [[ ( "_${cmd}" == _parameters || "_${cmd}" == _list-data ) && "_${prefix}" != "_" ]] ; then
+				# list subsection names
+				list=`${first} --list=${prefix} 2>/dev/null|sed 's#^.*\s.*$##'`
+			else
+				list=`${first} --list=help:${cmd} 2>/dev/null |sed 's#,#\n#g'`
+			fi
 			if [[ $? -eq 0 ]] ; then
 				COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			fi
