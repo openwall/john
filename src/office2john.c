@@ -373,7 +373,7 @@ static int test(char *argv[])
 
 	dirname = mktemp(template);
 	if (!dirname) {
-		perror("mkdtemp");
+		perror("mktemp");
 		exit(-1);
 	}
 	outfile = gsf_outfile_stdio_new(dirname, &err);
