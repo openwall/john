@@ -199,6 +199,56 @@ struct cfg_list *cfg_get_list(char *section, char *subsection)
 }
 
 #ifndef BENCH_BUILD
+void cfg_print_section_names(int which)
+{
+	struct cfg_section *current;
+
+	if ((current = cfg_database))
+	do {
+		if ((which == 0) ||
+		    (which == 1 && current->params != NULL) ||
+		    (which == 2 && current->list != NULL))
+			printf("%s\n", current->name);
+	} while ((current = current->next));
+}
+
+int cfg_print_section_params(char *section, char *subsection)
+{
+	struct cfg_section *current;
+	struct cfg_param *param;
+	int param_count = 0;
+
+	if ((current = cfg_get_section(section, subsection))) {
+		if((param = current->params))
+		do {
+			printf("%s = %s\n", param->name, param->value);
+			param_count++;
+		} while ((param = param-> next));
+		return param_count;
+	}
+	else return -1;
+
+}
+
+int cfg_print_section_list_lines(char *section, char *subsection)
+{
+	struct cfg_section *current;
+	struct cfg_line *line;
+	int line_count = 0;
+
+	if ((current = cfg_get_section(section, subsection))) {
+		if (current->list && (line = current->list->head))
+		do {
+			// we only want to see the line contents
+			// printf("%s-%d_%d:%s\n", line->cfg_name, line->id, line->number, line->data);
+			printf("%s\n", line->data);
+			line_count++;
+		} while((line = line->next));
+		return line_count;
+	}
+	else return -1;
+}
+
 int cfg_print_subsections(char *section, char *function, char *notfunction, int print_heading)
 {
 	int ret = 0;
