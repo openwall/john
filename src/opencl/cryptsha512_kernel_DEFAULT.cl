@@ -414,7 +414,7 @@ void kernel_crypt(__constant sha512_salt     * salt,
     sha512_ctx     ctx;
 
     //Get the task to be done
-    uint32_t gid = get_global_id(0);
+    size_t gid = get_global_id(0);
 
     //Do the job
     sha512_prepare(salt, &keys_buffer[gid], &fast_buffers, &ctx);
