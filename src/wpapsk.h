@@ -141,6 +141,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *hash = strrchr(ciphertext, '#') + 1;
 	int hashlength = 0;
+	hccap_t *hccap;
+
 	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
 		return 0;
 	if (hash == NULL)
@@ -152,7 +154,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 	if (hashlength != 475)
 		return 0;
-	hccap_t *hccap = decode_hccap(ciphertext);
+	hccap = decode_hccap(ciphertext);
 #if !ARCH_LITTLE_ENDIAN
 	hccap.eapol_size = JOHNSWAP(hccap->eapol_size);
 #endif
