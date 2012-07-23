@@ -88,6 +88,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 	memcpy(out, "$SHA384$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(out + 8);
 	return out;
 }
 
