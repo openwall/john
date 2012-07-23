@@ -152,6 +152,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 	if (hashlength != 475)
 		return 0;
+	hccap_t *hccap = decode_hccap(ciphertext);
+#if !ARCH_LITTLE_ENDIAN
+	hccap.eapol_size = JOHNSWAP(hccap->eapol_size);
+#endif
+	if(hccap->eapol_size > 256)
+		return 0;
+	if(hccap->eapol_size < 0)
+		return 0;
 	return 1;
 }
 
