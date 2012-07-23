@@ -36,6 +36,7 @@
 #define PAD_SIZE			64
 #define BINARY_SIZE			20
 #define SALT_SIZE			PAD_SIZE
+#define CIPHERTEXT_LENGTH		(SALT_SIZE + 1 + BINARY_SIZE * 2)
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		SHA1_N
@@ -50,7 +51,7 @@
 static struct fmt_tests tests[] = {
 	{"The quick brown fox jumps over the lazy dog#de7c9b85b8b78aa6bc8a7a36f70a90701c9db4d9", "key"},
 	{"#fbdb1d1b18aa6c08324b7d64b71fb76370690e1d", ""},
-	{"Beppe#Grillo#debbdb4d549abe59fab67d0fb76b76fdbc4431f1", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"Beppe#Grillo#DEBBDB4D549ABE59FAB67D0FB76B76FDBC4431F1", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{"7oTwG04WUjJ0BTDFFIkTJlgl#293b75c1f28def530c17fc8ae389008179bf4091", "late*night"}, // from the test suite
 	{NULL}
 };
@@ -118,6 +119,16 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 	}
 	return 1;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(strrchr(out, '#'));
+
+	return out;
 }
 
 static void set_salt(void *salt)
@@ -359,13 +370,13 @@ struct fmt_main fmt_hmacSHA1 = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		salt,
 		{
