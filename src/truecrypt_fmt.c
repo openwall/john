@@ -15,7 +15,7 @@
  * (This is a heavily cut-down "BSD license".)
  */
 #include <openssl/evp.h>
-#if OPENSSL_VERSION_NUMBER >= 0x10000000
+#if OPENSSL_VERSION_NUMBER >= 0x10001000
 
 #include <string.h>
 #include "arch.h"

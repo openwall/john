@@ -99,6 +99,8 @@ extern struct fmt_main fmt_MD5gen;
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern struct fmt_main fmt_django;
+#endif
+#if OPENSSL_VERSION_NUMBER >= 0x10001000
 extern struct fmt_main fmt_truecrypt;
 extern struct fmt_main fmt_truecrypt_sha512;
 extern struct fmt_main fmt_truecrypt_whirlpool;
@@ -225,6 +227,8 @@ static void john_register_all(void)
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 	john_register_one(&fmt_django);
+#endif
+#if OPENSSL_VERSION_NUMBER >= 0x10001000
 	john_register_one(&fmt_truecrypt);
 	john_register_one(&fmt_truecrypt_sha512);
 	john_register_one(&fmt_truecrypt_whirlpool);
