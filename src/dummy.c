@@ -17,6 +17,7 @@
 
 /* Max 125, but 95 typically produces fewer L1 data cache tag collisions */
 #define PLAINTEXT_LENGTH		95
+#define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 3) // 125
 
 typedef struct {
 	ARCH_WORD_32 hash;
@@ -39,6 +40,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+static int warned = 0;
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -68,9 +70,30 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 /* We won't be able to crack passwords longer than PLAINTEXT_LENGTH.
  * Also, we rely on this check having been performed before decode(). */
-	if (((q - p) >> 1) > PLAINTEXT_LENGTH)
+	if (((q - p) >> 1) > PLAINTEXT_LENGTH) {
+		/*
+		 * Warn if the dummy hash is not supported due to the maximum
+		 * password length, but otherwise would be valid.
+		 * Would one warning for each invalid hash be better?
+		 */
+		if (warned < 2 && ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
+			warned = 2;
+			fprintf(stderr,
+			        "dummy password length %d > max. supported lengh %d\n",
+				((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
+		}
+		else if (warned == 0 && ((q - p) >> 1) > PLAINTEXT_LENGTH) {
+			warned = 1;
+			/*
+			 * Should a hint to recompile with adjusted PLAINTEXT_LENGTH
+			 * be added here? Or is dummy format only used by experts anyway?
+			 */
+			fprintf(stderr,
+			        "dummy password length %d > currently supported length %d\n",
+			        ((q - p) >> 1), PLAINTEXT_LENGTH);
+		}
 		return 0;
-
+	}
 	return 1;
 }
 
