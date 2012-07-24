@@ -119,7 +119,7 @@ char *strnzcpy(char *dst, const char *src, int size)
 
 	if (size)
 		while (--size)
-			if (!(*dptr++ = *src++)) break;
+			if (!(*dptr++ = *src++)) return dst;
 	*dptr = 0;
 
 	return dst;
@@ -133,7 +133,7 @@ int strnzcpyn(char *dst, const char *src, int size)
 	dptr = dst;
 
 	while (--size)
-		if (!(*dptr++ = *src++)) break;
+		if (!(*dptr++ = *src++)) return (dptr-dst)-1;
 	*dptr = 0;
 
 	return (dptr-dst)-1;
