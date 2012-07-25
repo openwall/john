@@ -50,6 +50,7 @@
 
 //Constants.
 #define PLAINTEXT_LENGTH        16
+#define PLAINTEXT_TEXT          "16"
 #define CIPHERTEXT_LENGTH	128
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             64
@@ -59,7 +60,7 @@
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
 #define MIN_KEYS_PER_CRYPT      1024
-#define MAX_KEYS_PER_CRYPT      2048*1024*2//10000000
+#define MAX_KEYS_PER_CRYPT      2048*1024+1
 
 //Macros.
 #define SWAP(n) \

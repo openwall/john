@@ -16,9 +16,10 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "opencl_rawsha512-ng.h"
+#include "sha2.h"
 
 #define FORMAT_LABEL			"raw-sha512-ng-opencl"
-#define FORMAT_NAME			"Raw SHA-512 (pwlen <= 16)"
+#define FORMAT_NAME			"Raw SHA-512 (pwlen <= " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		""
@@ -28,15 +29,19 @@
 #define GWS_CONFIG			"rawsha512_GWS"
 
 static sha512_password     * plaintext;             // plaintext ciphertexts
-static sha512_hash         * calculated_hash;       // calculated hashes
+static int                 * calculated_hash;       // calculated hashes
 
 cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Hash keys (output).
+cl_mem c_hash_buffer;      //Complete hash keys buffer.
+cl_mem p_hash_buffer;      //Partial hash keys (output).
+cl_mem binary_buffer;      //To compare binary.
+cl_mem p_binary_buffer;    //To compare partial binary ([3]).
+cl_mem result_buffer;      //To get the if a hash was found.
 cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
-cl_kernel crypt_kernel;
-static int new_keys;
+cl_kernel crypt_kernel, cmp_kernel;
+static int hash_found;
 
 static struct fmt_tests tests[] = {
     {"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
@@ -50,22 +55,15 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
     return (dividend / divisor) * divisor;
 }
 
+static uint64_t get_partial_binary(void * binary) {
+    uint64_t * b = (uint64_t *) binary;
+
+    return (SWAP64(b[3]) - 0xa54ff53a5f1d36f1UL);
+}
+
 static size_t get_task_max_work_group_size(){
-    size_t max_available;
-return get_current_work_group_size(gpu_id, crypt_kernel);//TODO.
-    if (gpu_amd(device_info[gpu_id]))
-        max_available = get_local_memory_size(gpu_id) /
-                (sizeof(sha512_password) + sizeof(sha512_ctx));
-    else if (gpu_nvidia(device_info[gpu_id]))
-        max_available = get_local_memory_size(gpu_id) /
-                sizeof(sha512_password);
-    else
-        max_available = get_max_work_group_size(gpu_id);
 
-    if (max_available > get_current_work_group_size(gpu_id, crypt_kernel))
-        return get_current_work_group_size(gpu_id, crypt_kernel);
-
-    return max_available;
+    return get_current_work_group_size(gpu_id, crypt_kernel);
 }
 
 static size_t get_task_max_size(){
@@ -112,15 +110,15 @@ static void create_clobj(int gws) {
             pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0,
             sizeof(sha512_password) * gws, 0, NULL, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
-    
+
     pinned_partial_hashes = clCreateBuffer(context[gpu_id],
             CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-            sizeof(sha512_hash) * gws, NULL, &ret_code);
+            sizeof(uint32_t) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
-    calculated_hash = (sha512_hash *) clEnqueueMapBuffer(queue[gpu_id],
+    calculated_hash = (int *) clEnqueueMapBuffer(queue[gpu_id],
             pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0,
-            sizeof(sha512_hash) * gws, 0, NULL, NULL, &ret_code);
+            sizeof(int) * gws, 0, NULL, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error mapping page-locked memory out_hashes");
 
     // create arguments (buffers)
@@ -128,34 +126,43 @@ static void create_clobj(int gws) {
             sizeof(sha512_password) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys");
 
-    hash_buffer = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+    p_hash_buffer = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+            sizeof(uint32_t) * gws, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument p_hash_buffer");
+    c_hash_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE,
             sizeof(sha512_hash) * gws, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
-
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument c_hash_buffer");
+    
+    binary_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+            sizeof(sha512_hash), NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument binary_buffer");
+    p_binary_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+            sizeof(uint64_t), NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument p_binary_buffer");
+    
+    result_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+            sizeof(int), NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument result_buffer");
+    
     //Set kernel arguments
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
             (void *) &pass_buffer), "Error setting argument 0");
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
-            (void *) &hash_buffer), "Error setting argument 1");
-/* ///TODO
-    if (gpu_amd(device_info[gpu_id])) {
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
-           sizeof(sha512_password) * local_work_size,
-           NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
-           sizeof(sha512_buffers) * local_work_size,
-           NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-           sizeof(sha512_ctx) * local_work_size,
-           NULL), "Error setting argument 5");
-
-    } else if (gpu_nvidia(device_info[gpu_id])) {
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
-           sizeof(sha512_password) * local_work_size,
-           NULL), "Error setting argument 3");
-    } */
+            (void *) &c_hash_buffer), "Error setting argument 1");
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+            (void *) &p_hash_buffer), "Error setting argument 2");
+    
+    HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 0, sizeof(cl_mem),
+            (void *) &c_hash_buffer), "Error setting argument 0");
+    HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 1, sizeof(cl_mem),
+            (void *) &binary_buffer), "Error setting argument 1");
+    HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
+            (void *) &p_binary_buffer), "Error setting argument 2");    
+    HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 3, sizeof(cl_mem),
+            (void *) &result_buffer), "Error setting argument 3");
+    HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 4, sizeof(cl_mem),
+            (void *) &pass_buffer), "Error setting argument 4");
+    
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     global_work_size = gws;
 }
@@ -163,18 +170,24 @@ static void create_clobj(int gws) {
 static void release_clobj(void) {
     cl_int ret_code;
 
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes,
-            calculated_hash, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping out_hashes");
     ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
             plaintext, 0, NULL, NULL);
     HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
 
     ret_code = clReleaseMemObject(pass_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
-    ret_code = clReleaseMemObject(hash_buffer);
-    HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-
+    ret_code = clReleaseMemObject(c_hash_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing c_hash_buffer");
+    ret_code = clReleaseMemObject(p_hash_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing p_hash_buffer");
+    
+    ret_code = clReleaseMemObject(binary_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing binary_buffer");
+    ret_code = clReleaseMemObject(p_binary_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing p_binary_buffer");    
+    ret_code = clReleaseMemObject(result_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing result_buffer");
+    
     ret_code = clReleaseMemObject(pinned_saved_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
     ret_code = clReleaseMemObject(pinned_partial_hashes);
@@ -184,7 +197,7 @@ static void release_clobj(void) {
 /* ------- Key functions ------- */
 static void set_key(char * key, int index) {
     int len;
-
+//TODO: aqui não preciso limpar, conferi novamente. O append_1 faz isto.
     //Assure buffer has no "trash data".
     memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
     len = strlen(key);
@@ -193,7 +206,6 @@ static void set_key(char * key, int index) {
     //Put the tranfered key on password buffer.
     memcpy(plaintext[index].pass, key, len);
     plaintext[index].length = len ;
-    new_keys = 1;
 }
 
 static char * get_key(int index) {
@@ -251,7 +263,7 @@ static int get_step(size_t num, int step, int startup){
   of keys per crypt for the given format
 -- */
 static void find_best_gws(void) {
-    size_t num; 
+    size_t num;
     cl_event myEvent;
     cl_ulong startTime, endTime, run_time, min_time = CL_ULONG_MAX;
     cl_int ret_code;
@@ -298,13 +310,15 @@ static void find_best_gws(void) {
 
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
                 1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
-        HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
-                sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, NULL),
+        HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, p_hash_buffer, CL_FALSE, 0,
+                sizeof(uint32_t) * num, tmpbuffer, 0, NULL, NULL),
                 "Failed in clEnqueueReadBuffer");
         HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
         if (ret_code != CL_SUCCESS) {
-            fprintf(stderr, "Error %d\n", ret_code);
+
+            if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
+                fprintf(stderr, "Error %d\n", ret_code);
             continue;
         }
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
@@ -324,7 +338,7 @@ static void find_best_gws(void) {
 
         if (run_time < min_time)
             min_time = run_time;
-  
+
         if (do_benchmark) {
             fprintf(stderr, "gws: %8zu\t%8lu c/s %8.3f ms per crypt_all()",
                     num, (long) (num / (run_time / 1000000000.)),
@@ -338,7 +352,7 @@ static void find_best_gws(void) {
             if (run_time > min_time * 10 || run_time > 5000000000UL)
                 break;
         }
-        if ((SHAspeed - bestSHAspeed) > 10000) {
+        if (((long) SHAspeed - bestSHAspeed) > 10000) {
             if (do_benchmark)
                 fprintf(stderr, "+");
             bestSHAspeed = SHAspeed;
@@ -367,6 +381,8 @@ static void init(struct fmt_main *pFmt) {
     // create kernel(s) to execute
     crypt_kernel = clCreateKernel(program[gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+    cmp_kernel = clCreateKernel(program[gpu_id], "kernel_cmp", &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating kernel_cmp. Double-check kernel name?");
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
@@ -423,11 +439,8 @@ static int valid(char * ciphertext, struct fmt_main * pFmt) {
         p += 8;
 
     q = p;
-    while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-        if (*q >= 'A' && *q <= 'F') /* support lowercase only */
-            return 0;
-        q++;
-    }
+    while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+        q++;    
     return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
@@ -439,6 +452,7 @@ static char * split(char * ciphertext, int index) {
 
     memcpy(out, "$SHA512$", 8);
     memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
+    strlwr(out + 8);
     return out;
 }
 
@@ -461,50 +475,80 @@ static void * get_binary(char *ciphertext) {
     return out;
 }
 
-/* ------- Compare functins ------- */
-static int cmp_all(void *binary, int count) {
-    uint32_t i;
-    uint64_t b = ((uint64_t *) binary)[0];
-
-    for (i = 0; i < count; i++)
-        if (b == calculated_hash[i].v[0])
-            return 1;
-    return 0;
-}
-
-static int cmp_one(void *binary, int index) {
-    return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE);
-}
-
-static int cmp_exact(char *source, int count) {
-    return 1;
-}
-
 /* ------- Crypt function ------- */
-static void crypt_all(int count) {
+static void crypt_all(int count) {    
     //Send data to device.
-    if (new_keys)
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer, CL_FALSE, 0,
                 sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, &profilingEvent),
                 "failed in clEnqueueWriteBuffer pass_buffer");
-
+            
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
-    HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, &profilingEvent),
+    HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], p_hash_buffer, CL_FALSE, 0,
+            sizeof(int) * global_work_size, calculated_hash, 0, NULL, &profilingEvent),
             "failed in reading data back");
-
+            
     //Do the work
     HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
-    new_keys = 0;
 }
-//#define DEBUG
+
+/* ------- Compare functins ------- */
+static int cmp_all(void * binary, int count) {    
+    return 1;
+}
+
+static int cmp_one(void *binary, int index) {   
+    uint64_t partial_binary;
+
+    partial_binary = get_partial_binary(binary);
+    hash_found = 0;
+    
+    //Send data to device.
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], binary_buffer, CL_FALSE, 0,
+            sizeof(sha512_hash), binary, 0, NULL, NULL),
+            "failed in clEnqueueWriteBuffer binary_buffer");
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], p_binary_buffer, CL_FALSE, 0,
+            sizeof(uint64_t), &partial_binary, 0, NULL, NULL),
+            "failed in clEnqueueWriteBuffer p_binary_buffer");
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], result_buffer, CL_FALSE, 0, 
+            sizeof(int), &hash_found, 0, NULL, NULL),
+            "failed in clEnqueueWriteBuffer p_binary_buffer");
+        
+    //Enqueue the kernel
+    HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel, 1, NULL,
+            &global_work_size, &local_work_size, 0, NULL, NULL),
+            "failed in clEnqueueNDRangeKernel");
+
+    //Read results back.
+    HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], result_buffer, CL_FALSE, 0,
+            sizeof(int), &hash_found, 0, NULL, NULL),
+            "failed in reading data back");
+    
+    //Do the work
+    HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");        
+       
+    return hash_found;
+}
+
+static int cmp_exact(char *source, int index) {
+    return 1;
+}
+
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
+
+static void crypt_one(int index) {
+    SHA512_CTX ctx;
+
+    SHA512_Init(&ctx);
+    SHA512_Update(&ctx, plaintext[index].pass, plaintext[index].length);
+    SHA512_Final((unsigned char *) (&calculated_hash), &ctx);
+}
+
 static void print_binary(void * binary) {
     uint64_t *bin = binary;
     int i;
@@ -517,13 +561,9 @@ static void print_binary(void * binary) {
 static void print_hash() {
     int i;
 
-    for (i = 0; i < global_work_size; i++)
-        if (calculated_hash[i].v[0] == 12)
-            fprintf(stderr, "Value: %lu, %d\n ", calculated_hash[i].v[0], i);
-
     fprintf(stderr, "\n");
     for (i = 0; i < 8; i++)
-        fprintf(stderr, "%016lx ", calculated_hash[0].v[i]);
+        fprintf(stderr, "%016lx ", calculated_hash.v[i]);
     puts("");
 }
 #endif
@@ -532,28 +572,29 @@ static int binary_hash_0(void * binary) {
 #ifdef DEBUG
     print_binary(binary);
 #endif
-    return *(ARCH_WORD_32 *) binary & 0xF;
+
+    return (int) get_partial_binary(binary) & 0xF;
 }
-static int binary_hash_1(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFF; }
-static int binary_hash_2(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFF; }
-static int binary_hash_3(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFFF; }
-static int binary_hash_4(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFFFF; }
-static int binary_hash_5(void * binary) { return *(ARCH_WORD_32 *) binary & 0xFFFFFF; }
-static int binary_hash_6(void * binary) { return *(ARCH_WORD_32 *) binary & 0x7FFFFFF; }
+static int binary_hash_1(void * binary) { return (int) get_partial_binary(binary) & 0xFF; }
+static int binary_hash_2(void * binary) { return (int) get_partial_binary(binary) & 0xFFF; }
+static int binary_hash_3(void * binary) { return (int) get_partial_binary(binary) & 0xFFFF; }
+static int binary_hash_4(void * binary) { return (int) get_partial_binary(binary) & 0xFFFFF; }
+static int binary_hash_5(void * binary) { return (int) get_partial_binary(binary) & 0xFFFFFF; }
+static int binary_hash_6(void * binary) { return (int) get_partial_binary(binary) & 0x7FFFFFF; }
 
 //Get Hash functions group.
 static int get_hash_0(int index) {
 #ifdef DEBUG
     print_hash(index);
 #endif
-    return calculated_hash[index].v[0] & 0xF;
+    return calculated_hash[index] & 0xF;
 }
-static int get_hash_1(int index) { return calculated_hash[index].v[0] & 0xFF; }
-static int get_hash_2(int index) { return calculated_hash[index].v[0] & 0xFFF; }
-static int get_hash_3(int index) { return calculated_hash[index].v[0] & 0xFFFF; }
-static int get_hash_4(int index) { return calculated_hash[index].v[0] & 0xFFFFF; }
-static int get_hash_5(int index) { return calculated_hash[index].v[0] & 0xFFFFFF; }
-static int get_hash_6(int index) { return calculated_hash[index].v[0] & 0x7FFFFFF; }
+static int get_hash_1(int index) { return calculated_hash[index] & 0xFF; }
+static int get_hash_2(int index) { return calculated_hash[index] & 0xFFF; }
+static int get_hash_3(int index) { return calculated_hash[index] & 0xFFFF; }
+static int get_hash_4(int index) { return calculated_hash[index] & 0xFFFFF; }
+static int get_hash_5(int index) { return calculated_hash[index] & 0xFFFFFF; }
+static int get_hash_6(int index) { return calculated_hash[index] & 0x7FFFFFF; }
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_rawsha512_ng = {

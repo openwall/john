@@ -13,12 +13,8 @@
 
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
-    #define UNROLL
-    #define FAST
-#if cpu(DEVICE_INFO)
-    #define UNROLL
-    #define FAST
-#endif
+
+#define UNROLL
 
 #if no_byte_addressable(DEVICE_INFO)
     #define PUT         PUTCHAR
@@ -63,34 +59,6 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void memcpy_R(      uint8_t * dest,
-                     const uint8_t * src,
-                     const uint32_t srclen) {
-    int i = 0;
-
-    uint64_t * l = (uint64_t *) dest;
-    uint64_t * s = (uint64_t *) src;
-
-    while (i < srclen) {
-        *l++ = *s++;
-        i += 8;
-    }
-}
-
-inline void memcpy_C(                 uint8_t * dest,
-                     __constant const uint8_t * src,
-                     const uint32_t srclen) {
-    int i = 0;
-
-    uint64_t * l = (uint64_t *) dest;
-    __constant uint64_t * s = (__constant uint64_t *) src;
-
-    while (i < srclen) {
-        *l++ = *s++;
-        i += 8;
-    }
-}
-
 inline void memcpy_G(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
@@ -106,14 +74,62 @@ inline void memcpy_G(               uint8_t * dest,
 }
 
 void sha512_block(sha512_ctx * ctx) {
-    uint64_t a = ctx->H[0];
-    uint64_t b = ctx->H[1];
-    uint64_t c = ctx->H[2];
-    uint64_t d = ctx->H[3];
-    uint64_t e = ctx->H[4];
-    uint64_t f = ctx->H[5];
-    uint64_t g = ctx->H[6];
-    uint64_t h = ctx->H[7];
+#define  a   ctx->H[0]
+#define  b   ctx->H[1]
+#define  c   ctx->H[2]
+#define  d   ctx->H[3]
+#define  e   ctx->H[4]
+#define  f   ctx->H[5]
+#define  g   ctx->H[6]
+#define  h   ctx->H[7]
+
+    uint64_t t1, t2;
+    uint64_t w[16];
+
+#ifdef UNROLL
+    #pragma unroll
+#endif
+    for (int i = 0; i < 16; i++)
+        w[i] = SWAP64(ctx->buffer->mem_64[i]);
+
+#ifdef UNROLL
+    #pragma unroll
+#endif
+    for (int i = 0; i < 16; i++) {
+        t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
+        t2 = Maj(a, b, c) + Sigma0(a);
+
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+
+#ifdef UNROLL
+    #pragma unroll
+#endif
+    for (int i = 16; i < 77; i++) {
+        w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
+        t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
+        t2 = Maj(a, b, c) + Sigma0(a);
+
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
+}
+
+void sha512_final(sha512_ctx * ctx) {
+
     uint64_t t1, t2;
     uint64_t w[16];
 
@@ -157,26 +173,22 @@ void sha512_block(sha512_ctx * ctx) {
         b = a;
         a = t1 + t2;
     }
-    /* Put checksum in context given as argument. */
-    ctx->H[0] += a;
-    ctx->H[1] += b;
-    ctx->H[2] += c;
-    ctx->H[3] += d;
-    ctx->H[4] += e;
-    ctx->H[5] += f;
-    ctx->H[6] += g;
-    ctx->H[7] += h;
+   /* Put checksum in context given as argument. */
+    ctx->H[0] += 0x6a09e667f3bcc908UL;
+    ctx->H[1] += 0xbb67ae8584caa73bUL;
+    ctx->H[2] += 0x3c6ef372fe94f82bUL;
+    ctx->H[3] += 0xa54ff53a5f1d36f1UL;
+    ctx->H[4] += 0x510e527fade682d1UL;
+    ctx->H[5] += 0x9b05688c2b3e6c1fUL;
+    ctx->H[6] += 0x1f83d9abfb41bd6bUL;
+    ctx->H[7] += 0x5be0cd19137e2179UL;
 }
 
 void insert_to_buffer_G(         sha512_ctx    * ctx,
                         __global const uint8_t * string,
                                  const uint32_t len) {
-#ifdef FAST
-    memcpy_G(ctx->buffer->mem_08 + ctx->buflen, string, len);
-#else
-    for (uint32_t i = 0; i < len; i++)
-        PUT(BUFFER, ctx->buflen + i, string[i]);
-#endif
+
+    memcpy_G(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
     ctx->buflen += len;
 }
 
@@ -237,28 +249,106 @@ void sha512_crypt(__global sha512_password * keys_data,
     /* Run the collected hash value through SHA512. */
     sha512_block(ctx);
 }
-#undef alt_result
-#undef temp_result
-#undef p_sequence
-#undef ctx
+
+void sha512_finish(__global sha512_password * keys_data,
+                            sha512_ctx      * ctx,
+                   __global sha512_hash     * partial_hash) {
+    init_ctx(ctx);
+
+    //Get saved data.
+#ifdef UNROLL
+   // #pragma unroll
+#endif
+//    for (int i = 0; i < 8; i++)
+//        ctx->H[i] = partial_hash->v[i];
+
+    ctx->buflen = 0;
+
+    ctx_update_G(ctx, pass, passlen);
+    finish_ctx(ctx);
+    sha512_final(ctx);
+}
+
+bool sha512_compare(           sha512_ctx      * ctx,                  
+                    __constant sha512_hash     * complete_binary) {
+
+    //Check if a hash was found.
+    if (complete_binary->v[0] == SWAP64(ctx->H[0]) &&
+        complete_binary->v[1] == SWAP64(ctx->H[1]) &&
+        complete_binary->v[2] == SWAP64(ctx->H[2]) &&
+        complete_binary->v[3] == SWAP64(ctx->H[3]) &&
+        complete_binary->v[4] == SWAP64(ctx->H[4]) &&
+        complete_binary->v[5] == SWAP64(ctx->H[5]) &&
+        complete_binary->v[6] == SWAP64(ctx->H[6]) &&
+        complete_binary->v[7] == SWAP64(ctx->H[7])) {
+        return true; 
+    } else
+        return false;
+}
 
 __kernel
 void kernel_crypt(__global   sha512_password * keys_buffer,
-                  __global   sha512_hash     * out_buffer) {
+                  __global   sha512_hash     * out_buffer,
+                  __global   int             * partial_hash) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
     sha512_ctx     ctx;
 
     //Get the task to be done
-    uint32_t gid = get_global_id(0);
+    size_t gid = get_global_id(0);
 
     //Do the job
     sha512_crypt(&keys_buffer[gid], &ctx);
 
-    //Send results to the host.
+    //Save parcial results.
+    partial_hash[gid] = (int) ctx.H[0];
+
 #ifdef UNROLL
     #pragma unroll
 #endif
     for (int i = 0; i < 8; i++)
-        out_buffer[gid].v[i] = SWAP64(ctx.H[i]);
+        out_buffer[gid].v[i] = ctx.H[i];
+}
+
+__kernel
+void kernel_cmp(__global   sha512_hash     * complete_hash, 
+                __constant sha512_hash     * complete_binary, 
+                __constant uint64_t        * partial_binary, 
+	        __global   int             * result,
+                __global   sha512_password * keys_buffer) {
+
+    //Compute buffers (on CPU and NVIDIA, better private)
+    sha512_ctx     ctx;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+
+    //Compare with partial computed hash.
+    if (*partial_binary == complete_hash[gid].v[0]) {
+        //Finish hash computation
+        sha512_finish(&keys_buffer[gid], &ctx, &complete_hash[gid]);
+
+//---------------
+//TODO printf("\nKernel 0: %d, %d %016lx %016lx ", *full_computed, *result, complete_binary->v[0], complete_hash[gid].v[0]);
+//---------------
+        
+//---------------
+//TODO printf("\nKernel 1: %d, %d %016lx %016lx ", *full_computed, *result, *partial_binary, partial_hash[gid].v[0]);
+//---------------
+
+        //Do the job
+        if (sha512_compare(&ctx, complete_binary)) {
+            //Tell the host we found the hash. Otherwise, nothing to do.
+
+//---------------
+            //TODO printf("\nKernel 2: %d, %d ", *result, *index);
+//---------------
+
+        //Barrier point
+            *result = 1; 
+
+//---------------
+            //TODO printf(" => achou: %d, indice: %d ", *result, *index);
+        }
+    }
 }
