@@ -26,13 +26,14 @@
 #define PAD_SIZE			64
 #define BINARY_SIZE			(224/8)
 #define SALT_SIZE			PAD_SIZE
+#define CIPHERTEXT_LENGTH		(SALT_SIZE + 1 + BINARY_SIZE * 2)
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
 static struct fmt_tests tests[] = {
 	{"what do ya want for nothing?#a30e01098bc6dbbf45690f3a7e9e6d0f8bbea2a39e6148008fd05e44", "Jefe"},
-	{"Beppe#Grillo#926e4a97b401242ef674cee4c60d9fc6ff73007f871008d4c11f5b95", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"Beppe#Grillo#926E4A97B401242EF674CEE4C60D9FC6FF73007F871008D4C11F5B95", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
@@ -65,6 +66,16 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 	}
 	return 1;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(strrchr(out, '#'));
+
+	return out;
 }
 
 static void set_salt(void *salt)
@@ -178,13 +189,13 @@ struct fmt_main fmt_hmacSHA224 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		fmt_default_init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		salt,
 		{

@@ -53,6 +53,12 @@ displayed (just like on a keypress), respectively.  These actions are
 taken after having tested at least all of the candidate passwords that
 were in external mode's "word" so far.  In other words, the actions may
 be delayed in order to process any buffered candidate passwords.
+From 1.7.9.5-jumbo-7 on, a third variable is defined: "cipher_limit".
+This variable is of type "int". It contains the maximum password length
+in bytes, either from the format definition or from --stdout[=LENGTH].
+This variable should not be changed by the external mode.
+Instead, it can be used to stop generating new candidates should the
+password length get larger than "cipher_limit".
 
 
 	The language.

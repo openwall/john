@@ -54,6 +54,7 @@
 #endif /* _OPENMP */
 #endif /* HAVE_MPI */
 #include <openssl/opensslv.h>
+#include <openssl/crypto.h>
 #include "unicode.h"
 #include "plugin.h"
 #ifdef CL_VERSION_1_0
@@ -99,6 +100,11 @@ extern struct fmt_main fmt_MD5gen;
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern struct fmt_main fmt_django;
 #endif
+#if OPENSSL_VERSION_NUMBER >= 0x10001000
+extern struct fmt_main fmt_truecrypt;
+extern struct fmt_main fmt_truecrypt_sha512;
+extern struct fmt_main fmt_truecrypt_whirlpool;
+#endif
 
 #if defined(__GNUC__) && defined(__SSE2__)
 extern struct fmt_main sha1_fmt_ng;
@@ -129,6 +135,7 @@ extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_keychain;
 extern struct fmt_main fmt_opencl_agilekeychain;
+extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
 extern struct fmt_main fmt_opencl_rawsha512_ng;
@@ -223,6 +230,11 @@ static void john_register_all(void)
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 	john_register_one(&fmt_django);
 #endif
+#if OPENSSL_VERSION_NUMBER >= 0x10001000
+	john_register_one(&fmt_truecrypt);
+	john_register_one(&fmt_truecrypt_sha512);
+	john_register_one(&fmt_truecrypt_whirlpool);
+#endif
 
 #if defined(__GNUC__) && defined(__SSE2__)
 	john_register_one(&sha1_fmt_ng);
@@ -265,6 +277,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_keychain);
 	john_register_one(&fmt_opencl_agilekeychain);
+	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);        
@@ -530,8 +543,12 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 static void john_list_options()
 {
 	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-filters,");
-	puts("ext-filters-only, ext-modes, build-info, hidden-options, encodings, formats,");
-	puts("format-details, format-all-details, format-methods[:WHICH],");
+	puts("ext-filters-only, ext-modes, build-info, hidden-options, encodings,");
+	puts("formats, format-details, format-all-details, format-methods[:WHICH],");
+	// With "opencl-devices, cuda-devices, <conf section name>" added,
+	// the resulting line will get too long
+	// printf("sections, parameters:SECTION, list-data:SECTION, ");
+	puts("sections, parameters:SECTION, list-data:SECTION,");
 #ifdef CL_VERSION_1_0
 	printf("opencl-devices, ");
 #endif
@@ -541,12 +558,16 @@ static void john_list_options()
 	/* NOTE: The following must end the list. Anything listed after
 	   <conf section name> will be ignored by current
 	   bash completion scripts. */
+
+	/* FIXME: Should all the section names get printed instead?
+	 *        But that would require a valid config.
+	 */
 	puts("<conf section name>");
 }
 
 static void john_list_help_options()
 {
-	puts("help, format-methods");
+	puts("help, format-methods, parameters, list-data");
 }
 
 static void john_list_method_names()
@@ -603,11 +624,15 @@ static void john_init(char *name, int argc, char **argv)
 	}
 	if (options.listconf && !strncasecmp(options.listconf, "help:", 5))
 	{
-		fprintf(stderr,
-		        "%s is not a --list option that supports additional values.\nSupported options:\n",
-			options.listconf+5);
-		john_list_help_options();
-		exit(1);
+		if (strcasecmp(options.listconf, "help:parameters") &&
+		    strcasecmp(options.listconf, "help:list-data"))
+		{
+			fprintf(stderr,
+			        "%s is not a --list option that supports additional values.\nSupported options:\n",
+			        options.listconf+5);
+			john_list_help_options();
+			exit(1);
+		}
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
 	{
@@ -650,12 +675,16 @@ static void john_init(char *name, int argc, char **argv)
 			puts("Private home: " JOHN_PRIVATE_HOME);
 #endif
 			printf("$JOHN is %s\n", path_expand("$JOHN/"));
+			printf("Format interface version: %d\n", FMT_MAIN_VERSION);
 			puts("Rec file version: " RECOVERY_V);
+			puts("Charset file version: " CHARSET_V);
 			printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN,
 			       CHARSET_MIN);
 			printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX,
 			       CHARSET_MAX);
 			printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
+			printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
+			printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
 #ifdef __VERSION__
 		printf("Compiler version: %s\n", __VERSION__);
 #endif
@@ -668,6 +697,18 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 #ifdef __clang_version__
 			printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef OPENSSL_VERSION_NUMBER
+			// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
+			// gcc insists it is int.
+			printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+			// FIXME: How do I detect a missing library?
+			// Even if if is extremely unlikely that openssl is missing,
+			// at least flush all output buffers...
+			fflush(NULL);
+			if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
+				printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+			printf("\n");
 #endif
 			exit(0);
 		}
@@ -743,6 +784,27 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "externals"))
 	{
 		cfg_print_subsections("List.External", NULL, NULL, 0);
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "sections"))
+	{
+		cfg_print_section_names(0);
+		exit(0);
+	}
+	if (options.listconf &&
+	    !strncasecmp(options.listconf, "parameters", 10) &&
+	    (options.listconf[10] == '=' || options.listconf[10] == ':') &&
+	    options.listconf[11] != '\0')
+	{
+		cfg_print_section_params(&options.listconf[11], NULL);
+		exit(0);
+	}
+	if (options.listconf &&
+	    !strncasecmp(options.listconf, "list-data", 9) &&
+	    (options.listconf[9] == '=' || options.listconf[9] == ':') &&
+	    options.listconf[10] != '\0')
+	{
+		cfg_print_section_list_lines(&options.listconf[10], NULL);
 		exit(0);
 	}
 	if (options.listconf && !strcasecmp(options.listconf, "ext-filters"))
@@ -828,7 +890,10 @@ static void john_init(char *name, int argc, char **argv)
 			       format->params.benchmark_comment,
 			       format->params.benchmark_length,
 			       format->params.binary_size,
-			       format->params.salt_size);
+			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
+			       // salts are handled internally within the format. We want to know the 'real' salt size
+			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
+			       dynamic_real_salt_length(format) : format->params.salt_size);
 		} while ((format = format->next));
 		exit(0);
 	}
@@ -869,12 +934,11 @@ static void john_init(char *name, int argc, char **argv)
 			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment);
 			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
 			printf("Binary size                     \t%d\n", format->params.binary_size);
-			if ( (format->params.flags & FMT_DYNAMIC) && format->params.salt_size) {
-				// salts are handled internally within the format. We want to know the 'real' salt size/
-				// dynamic will alway set params.salt_size to 0 or sizeof a pointer.
-				printf("Salt size                       \t%d\n", dynamic_real_salt_length(format));
-			} else
-				printf("Salt size                       \t%d\n", format->params.salt_size);
+			printf("Salt size                       \t%d\n",
+			       ((format->params.flags & FMT_DYNAMIC) && format->params.salt_size) ?
+			       // salts are handled internally within the format. We want to know the 'real' salt size/
+			       // dynamic will alway set params.salt_size to 0 or sizeof a pointer.
+			       dynamic_real_salt_length(format) : format->params.salt_size);
 			printf("\n");
 		} while ((format = format->next));
 		exit(0);
@@ -1000,6 +1064,21 @@ static void john_init(char *name, int argc, char **argv)
 		} while ((format = format->next));
 		exit(0);
 	}
+	/*
+	 * Other --list=help:WHAT are processed earlier, but these require
+	 * a valid config:
+	 */
+	if (options.listconf && !strcasecmp(options.listconf, "help:parameters"))
+	{
+		cfg_print_section_names(1);
+		exit(0);
+	}
+	if (options.listconf && !strcasecmp(options.listconf, "help:list-data"))
+	{
+		cfg_print_section_names(2);
+		exit(0);
+	}
+
 	/* --list last resort: list subsections of any john.conf section name */
 	if (options.listconf)
 	{

@@ -69,17 +69,11 @@ def process_file(filename):
     iv = binascii.hexlify(base64.decodestring(iv))
     salt = binascii.hexlify(base64.decodestring(salt))
 
-    # extract and save content.xml, used later by john
     try:
         content = zf.open("content.xml").read()
     except KeyError:
         print >> sys.stderr, "%s is not an encrypted OpenOffice file, content.xml missing!" % filename
         return 5
-    # folder = os.path.dirname(os.path.realpath(filename))
-    # handle, fn = tempfile.mkstemp(suffix='-content.xml', dir=folder)
-    # fhandle = os.fdopen(handle, "wb")
-    # fhandle.write(content)
-    # fhandle.close()
 
     if algorithm_name.find("Blowfish CFB") > -1:
         algorithm_type = 0
@@ -89,9 +83,9 @@ def process_file(filename):
         print >> sys.stderr, "%s uses un-supported encryption!" % filename
         return 6
 
-    if checksum_type.find("SHA1") > -1:
+    if checksum_type.upper().find("SHA1") > -1:
         checksum_type = 0
-    elif checksum_type.find("SHA256") > -1:
+    elif checksum_type.upper().find("SHA256") > -1:
         checksum_type = 1
     else:
         print >> sys.stderr, "%s uses un-supported checksum algorithm!" % filename

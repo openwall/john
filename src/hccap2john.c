@@ -1,11 +1,11 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
+* This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 *
 * hccap2john processes input hccap files into a format suitable for use with JtR.
 * hccap format was introduced by oclHashcat-plus, and it is described here: http://hashcat.net/wiki/hccap
- * racfdump format => $WPAPSK$essid#base64 encoded hccap_t
+* hccap format => $WPAPSK$essid#base64 encoded hccap_t
 */
 #include <stdio.h>
 #include <stdlib.h>

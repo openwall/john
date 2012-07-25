@@ -35,6 +35,7 @@
 #define PAD_SIZE			64
 #define BINARY_SIZE			16
 #define SALT_SIZE			PAD_SIZE
+#define CIPHERTEXT_LENGTH		(SALT_SIZE + 1 + BINARY_SIZE * 2)
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		MD5_N
@@ -52,7 +53,7 @@ static struct fmt_tests tests[] = {
 	{"2shXeqDlLdZ2pSMc0CBHfTyA5a9TKuSW#dfeb02c6f8a9ce89b554be60db3a2333", "magnum"},
 	{"#74e6f7298a9c2d168935f58c001bad88", ""},
 	{"The quick brown fox jumps over the lazy dog#80070713463e7749b90c2dc24911e275", "key"},
-	{"Beppe Grillo#f8457c3046c587bbcbd6d7036ba42c81", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"Beppe Grillo#F8457C3046C587BBCBD6D7036BA42C81", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
@@ -119,6 +120,16 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 	}
 	return 1;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(strrchr(out, '#'));
+
+	return out;
 }
 
 static void set_salt(void *salt)
@@ -361,13 +372,13 @@ struct fmt_main fmt_hmacMD5 = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		salt,
 		{

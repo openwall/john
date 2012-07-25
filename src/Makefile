@@ -95,6 +95,7 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o \
 	hmacMD5_fmt.o hmacSHA1_fmt.o \
 	django_fmt.o \
+	truecrypt_fmt.o \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \
@@ -134,7 +135,7 @@ OCL_OBJS = \
 	opencl_xsha512_fmt.o opencl_rawsha512_fmt.o opencl_bf_std.o \
 	opencl_bf_fmt.o opencl_pwsafe_fmt.o opencl_rawmd4_fmt.o \
 	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o opencl_cryptsha256_fmt.o \
-	opencl_rawsha512-ng_fmt.o
+	opencl_rawsha512-ng_fmt.o opencl_zip_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \

@@ -30,6 +30,7 @@
 #define PAD_SIZE			128
 #define BINARY_SIZE			(512/8)
 #define SALT_SIZE			PAD_SIZE
+#define CIPHERTEXT_LENGTH		(SALT_SIZE + 1 + BINARY_SIZE * 2)
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -37,7 +38,7 @@
 static struct fmt_tests tests[] = {
 	{"what do ya want for nothing?#164b7a7bfcf819e2e395fbe73b56e0a387bd64222e831fd610270cd7ea2505549758bf75c05a994a6d034f65f8f0e6fdcaeab1a34d4a6b4b636e070a38bce737", "Jefe"},
 	{"Reference hashes are keys to success#73a5eff716d0147a440fdf5aff187c52deab8c4dc55073be3d5742e788a99fd6b53a5894725f0f88f3486b5bb63d2af930a0cf6267af572128273daf8eee4cfa", "The magnum"},
-	{"Beppe#Grillo#ab08c46822313481d548412a084f08c7ca3bbf8a98d901d14698759f4c36adb07528348d56caf4f6af654e14fc102ff10dcf50794a82544426386c7be238ceaf", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
+	{"Beppe#Grillo#AB08C46822313481D548412A084F08C7CA3BBF8A98D901D14698759F4C36ADB07528348D56CAF4F6AF654E14FC102FF10DCF50794A82544426386C7BE238CEAF", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{NULL}
 };
 
@@ -70,6 +71,16 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			return 0;
 	}
 	return 1;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(strrchr(out, '#'));
+
+	return out;
 }
 
 static void set_salt(void *salt)
@@ -194,13 +205,13 @@ struct fmt_main fmt_hmacSHA512 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		fmt_default_init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		binary,
 		salt,
 		{

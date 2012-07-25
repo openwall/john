@@ -19,6 +19,7 @@
 #include "config.h"
 #include "cracker.h"
 #include "external.h"
+#include "options.h"
 #ifdef HAVE_MPI
 #include "john-mpi.h"
 
@@ -32,7 +33,7 @@ unsigned int ext_flags = 0;
 static char *ext_mode;
 
 static c_int ext_word[PLAINTEXT_BUFFER_SIZE];
-c_int ext_abort, ext_status;
+c_int ext_abort, ext_status, ext_cipher_limit;
 
 static struct c_ident ext_ident_status = {
 	NULL,
@@ -46,8 +47,13 @@ static struct c_ident ext_ident_abort = {
 	&ext_abort
 };
 
-static struct c_ident ext_globals = {
+static struct c_ident ext_ident_cipher_limit = {
 	&ext_ident_abort,
+	"cipher_limit",
+	&ext_cipher_limit
+};
+static struct c_ident ext_globals = {
+	&ext_ident_cipher_limit,
 	"word",
 	ext_word
 };
@@ -108,9 +114,12 @@ int ext_has_function(char *mode, char *function)
 
 void ext_init(char *mode, struct db_main *db)
 {
-	if (db) {
-		maxlen = db->format->params.plaintext_length;
+	if (db!= NULL && db->format != NULL) {
+		ext_cipher_limit = maxlen = db->format->params.plaintext_length;
 		return;
+	}
+	else {
+		ext_cipher_limit = options.length;
 	}
 
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {

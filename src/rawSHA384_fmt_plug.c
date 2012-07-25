@@ -71,11 +71,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		p += 8;
 
 	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
-		if (*q >= 'A' && *q <= 'F') /* support lowercase only */
-			return 0;
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	}
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
@@ -88,6 +85,7 @@ static char *split(char *ciphertext, int index)
 
 	memcpy(out, "$SHA384$", 8);
 	memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
+	strlwr(out + 8);
 	return out;
 }
 
