@@ -1,7 +1,7 @@
 /*
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  *
- * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
@@ -13,8 +13,6 @@
 
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
-
-#define UNROLL
 
 #if no_byte_addressable(DEVICE_INFO)
     #define PUT         PUTCHAR
@@ -86,15 +84,11 @@ void sha512_block(sha512_ctx * ctx) {
     uint64_t t1, t2;
     uint64_t w[16];
 
-#ifdef UNROLL
     #pragma unroll
-#endif
     for (int i = 0; i < 16; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
 
-#ifdef UNROLL
     #pragma unroll
-#endif
     for (int i = 0; i < 16; i++) {
         t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
         t2 = Maj(a, b, c) + Sigma0(a);
@@ -109,9 +103,7 @@ void sha512_block(sha512_ctx * ctx) {
         a = t1 + t2;
     }
 
-#ifdef UNROLL
     #pragma unroll
-#endif
     for (int i = 16; i < 77; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -126,62 +118,6 @@ void sha512_block(sha512_ctx * ctx) {
         b = a;
         a = t1 + t2;
     }
-}
-
-void sha512_final(sha512_ctx * ctx) {
-
-    uint64_t t1, t2;
-    uint64_t w[16];
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 0; i < 16; i++)
-        w[i] = SWAP64(ctx->buffer->mem_64[i]);
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 0; i < 16; i++) {
-        t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
-        t2 = Maj(a, b, c) + Sigma0(a);
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
-    }
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 16; i < 80; i++) {
-        w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
-        t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
-        t2 = Maj(a, b, c) + Sigma0(a);
-
-        h = g;
-        g = f;
-        f = e;
-        e = d + t1;
-        d = c;
-        c = b;
-        b = a;
-        a = t1 + t2;
-    }
-   /* Put checksum in context given as argument. */
-    ctx->H[0] += 0x6a09e667f3bcc908UL;
-    ctx->H[1] += 0xbb67ae8584caa73bUL;
-    ctx->H[2] += 0x3c6ef372fe94f82bUL;
-    ctx->H[3] += 0xa54ff53a5f1d36f1UL;
-    ctx->H[4] += 0x510e527fade682d1UL;
-    ctx->H[5] += 0x9b05688c2b3e6c1fUL;
-    ctx->H[6] += 0x1f83d9abfb41bd6bUL;
-    ctx->H[7] += 0x5be0cd19137e2179UL;
 }
 
 void insert_to_buffer(         sha512_ctx    * ctx,
@@ -227,9 +163,7 @@ void finish_ctx(sha512_ctx * ctx) {
 
 void clear_ctx_buffer(sha512_ctx * ctx) {
 
-#ifdef UNROLL
     #pragma unroll
-#endif
     for (int i = 0; i < 16; i++)
         ctx->buffer->mem_64[i] = 0;
 
@@ -248,38 +182,6 @@ void sha512_crypt(__global sha512_password * keys_data,
 
     /* Run the collected hash value through SHA512. */
     sha512_block(ctx);
-}
-
-void sha512_finish(__global sha512_password * keys_data,
-                            sha512_ctx      * ctx) {
-
-    init_ctx(ctx);
-
-    ctx_update(ctx, pass, passlen);
-    finish_ctx(ctx);
-
-    /* Run the collected hash value through SHA512. */
-    sha512_final(ctx);
-}
-
-bool sha512_compare(           sha512_ctx      * ctx,
-                    __constant sha512_hash     * complete_binary) {
-
-    //Prevent short circuit.
-    bool cond = complete_binary->v[0] == SWAP64(ctx->H[0]) &&
-        complete_binary->v[1] == SWAP64(ctx->H[1]) &&
-        complete_binary->v[2] == SWAP64(ctx->H[2]) &&
-        complete_binary->v[3] == SWAP64(ctx->H[3]) &&
-        complete_binary->v[4] == SWAP64(ctx->H[4]) &&
-        complete_binary->v[5] == SWAP64(ctx->H[5]) &&
-        complete_binary->v[6] == SWAP64(ctx->H[6]) &&
-        complete_binary->v[7] == SWAP64(ctx->H[7]);
-
-    //Check if a hash was found.
-    if (cond) {
-        return true;
-    } else
-        return false;
 }
 
 __kernel
@@ -306,22 +208,12 @@ void kernel_cmp(__global   uint64_t        * partial_hash,
 	        __global   int             * result,
                 __global   sha512_password * keys_buffer) {
 
-    //Compute buffers (on CPU and NVIDIA, better private)
-    sha512_ctx     ctx;
-
     //Get the task to be done
     size_t gid = get_global_id(0);
 
     //Compare with partial computed hash.
     if (*partial_binary == partial_hash[gid]) {
-        //Finish hash computation
-        //sha512_finish(&keys_buffer[gid], &ctx);
-
-        //Do the job
-        //if (sha512_compare(&ctx, complete_binary)) {
-            //Tell the host we found the hash. Otherwise, nothing to do.
-            //Barrier point. FIX IT
-            *result = 1;
-        //}
+        //Barrier point. FIX IT
+        *result = 1;
     }
 }

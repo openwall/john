@@ -1,7 +1,7 @@
 /*
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  *
- * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
