@@ -251,45 +251,40 @@ void sha512_crypt(__global sha512_password * keys_data,
 }
 
 void sha512_finish(__global sha512_password * keys_data,
-                            sha512_ctx      * ctx,
-                   __global sha512_hash     * partial_hash) {
+                            sha512_ctx      * ctx) {
+
     init_ctx(ctx);
-
-    //Get saved data.
-#ifdef UNROLL
-   // #pragma unroll
-#endif
-//    for (int i = 0; i < 8; i++)
-//        ctx->H[i] = partial_hash->v[i];
-
-    ctx->buflen = 0;
 
     ctx_update_G(ctx, pass, passlen);
     finish_ctx(ctx);
+
+    /* Run the collected hash value through SHA512. */
     sha512_final(ctx);
 }
 
-bool sha512_compare(           sha512_ctx      * ctx,                  
+bool sha512_compare(           sha512_ctx      * ctx,
                     __constant sha512_hash     * complete_binary) {
 
-    //Check if a hash was found.
-    if (complete_binary->v[0] == SWAP64(ctx->H[0]) &&
+    //Prevent short circuit.
+    bool cond = complete_binary->v[0] == SWAP64(ctx->H[0]) &&
         complete_binary->v[1] == SWAP64(ctx->H[1]) &&
         complete_binary->v[2] == SWAP64(ctx->H[2]) &&
         complete_binary->v[3] == SWAP64(ctx->H[3]) &&
         complete_binary->v[4] == SWAP64(ctx->H[4]) &&
         complete_binary->v[5] == SWAP64(ctx->H[5]) &&
         complete_binary->v[6] == SWAP64(ctx->H[6]) &&
-        complete_binary->v[7] == SWAP64(ctx->H[7])) {
-        return true; 
+        complete_binary->v[7] == SWAP64(ctx->H[7]);
+
+    //Check if a hash was found.
+    if (cond) {
+        return true;
     } else
         return false;
 }
 
 __kernel
 void kernel_crypt(__global   sha512_password * keys_buffer,
-                  __global   sha512_hash     * out_buffer,
-                  __global   int             * partial_hash) {
+                  __global   uint64_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
     sha512_ctx     ctx;
@@ -301,19 +296,13 @@ void kernel_crypt(__global   sha512_password * keys_buffer,
     sha512_crypt(&keys_buffer[gid], &ctx);
 
     //Save parcial results.
-    partial_hash[gid] = (int) ctx.H[0];
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 0; i < 8; i++)
-        out_buffer[gid].v[i] = ctx.H[i];
+    out_buffer[gid] = ctx.H[0];
 }
 
 __kernel
-void kernel_cmp(__global   sha512_hash     * complete_hash, 
-                __constant sha512_hash     * complete_binary, 
-                __constant uint64_t        * partial_binary, 
+void kernel_cmp(__global   uint64_t        * partial_hash,
+                __constant sha512_hash     * complete_binary,
+                __constant uint64_t        * partial_binary,
 	        __global   int             * result,
                 __global   sha512_password * keys_buffer) {
 
@@ -324,31 +313,15 @@ void kernel_cmp(__global   sha512_hash     * complete_hash,
     size_t gid = get_global_id(0);
 
     //Compare with partial computed hash.
-    if (*partial_binary == complete_hash[gid].v[0]) {
+    if (*partial_binary == partial_hash[gid]) {
         //Finish hash computation
-        sha512_finish(&keys_buffer[gid], &ctx, &complete_hash[gid]);
-
-//---------------
-//TODO printf("\nKernel 0: %d, %d %016lx %016lx ", *full_computed, *result, complete_binary->v[0], complete_hash[gid].v[0]);
-//---------------
-        
-//---------------
-//TODO printf("\nKernel 1: %d, %d %016lx %016lx ", *full_computed, *result, *partial_binary, partial_hash[gid].v[0]);
-//---------------
+        sha512_finish(&keys_buffer[gid], &ctx);
 
         //Do the job
         if (sha512_compare(&ctx, complete_binary)) {
             //Tell the host we found the hash. Otherwise, nothing to do.
-
-//---------------
-            //TODO printf("\nKernel 2: %d, %d ", *result, *index);
-//---------------
-
-        //Barrier point
-            *result = 1; 
-
-//---------------
-            //TODO printf(" => achou: %d, indice: %d ", *result, *index);
+            //Barrier point. FIX IT
+            *result = 1;
         }
     }
 }
