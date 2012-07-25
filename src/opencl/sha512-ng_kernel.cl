@@ -315,13 +315,13 @@ void kernel_cmp(__global   uint64_t        * partial_hash,
     //Compare with partial computed hash.
     if (*partial_binary == partial_hash[gid]) {
         //Finish hash computation
-        sha512_finish(&keys_buffer[gid], &ctx);
+        //sha512_finish(&keys_buffer[gid], &ctx);
 
         //Do the job
-        if (sha512_compare(&ctx, complete_binary)) {
+        //if (sha512_compare(&ctx, complete_binary)) {
             //Tell the host we found the hash. Otherwise, nothing to do.
             //Barrier point. FIX IT
             *result = 1;
-        }
+        //}
     }
 }
