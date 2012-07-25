@@ -59,7 +59,7 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void memcpy_G(               uint8_t * dest,
+inline void memcpy(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
     int i = 0;
@@ -184,18 +184,18 @@ void sha512_final(sha512_ctx * ctx) {
     ctx->H[7] += 0x5be0cd19137e2179UL;
 }
 
-void insert_to_buffer_G(         sha512_ctx    * ctx,
+void insert_to_buffer(         sha512_ctx    * ctx,
                         __global const uint8_t * string,
                                  const uint32_t len) {
 
-    memcpy_G(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
+    memcpy(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
     ctx->buflen += len;
 }
 
-void ctx_update_G(         sha512_ctx * ctx,
+void ctx_update(         sha512_ctx * ctx,
                   __global uint8_t    * string, uint32_t len) {
 
-    insert_to_buffer_G(ctx, string, len);
+    insert_to_buffer(ctx, string, len);
 }
 
 void ctx_append_1(sha512_ctx * ctx) {
@@ -243,7 +243,7 @@ void sha512_crypt(__global sha512_password * keys_data,
 
     init_ctx(ctx);
 
-    ctx_update_G(ctx, pass, passlen);
+    ctx_update(ctx, pass, passlen);
     finish_ctx(ctx);
 
     /* Run the collected hash value through SHA512. */
@@ -255,7 +255,7 @@ void sha512_finish(__global sha512_password * keys_data,
 
     init_ctx(ctx);
 
-    ctx_update_G(ctx, pass, passlen);
+    ctx_update(ctx, pass, passlen);
     finish_ctx(ctx);
 
     /* Run the collected hash value through SHA512. */
