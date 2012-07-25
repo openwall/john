@@ -77,8 +77,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (warned < 2 && ((q - p) >> 1) > MAX_PLAINTEXT_LENGTH) {
 			warned = 2;
 			fprintf(stderr,
-			        "dummy password length %ld > max. supported lengh %d\n",
-				((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
+			        "dummy password length %d > max. supported lengh %d\n",
+				(int)((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
 		}
 		else if (warned == 0 && ((q - p) >> 1) > PLAINTEXT_LENGTH) {
 			warned = 1;
@@ -87,8 +87,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			 * be added here? Or is dummy format only used by experts anyway?
 			 */
 			fprintf(stderr,
-			        "dummy password length %ld > currently supported length %d\n",
-			        ((q - p) >> 1), PLAINTEXT_LENGTH);
+			        "dummy password length %d > currently supported length %d\n",
+			        (int)((q - p) >> 1), PLAINTEXT_LENGTH);
 		}
 		return 0;
 	}
