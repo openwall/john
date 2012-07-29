@@ -135,7 +135,7 @@ OCL_OBJS = \
 	opencl_xsha512_fmt.o opencl_rawsha512_fmt.o opencl_bf_std.o \
 	opencl_bf_fmt.o opencl_pwsafe_fmt.o opencl_rawmd4_fmt.o \
 	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o opencl_zip_fmt.o \
-	opencl_encfs_fmt.o opencl_odf_fmt.o
+	opencl_encfs_fmt.o opencl_odf_fmt.o opencl_sxc_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \
