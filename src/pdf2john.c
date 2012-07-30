@@ -55,6 +55,7 @@ int pdf2john(int argc, char **argv)
 	char *inputfile = NULL;
 	unsigned char *p;
 	struct custom_salt cs;
+	memset(&cs, 0, sizeof(cs));
 	cs.e.work_with_user = true;
 	cs.e.have_userpassword = false;
 
@@ -95,7 +96,7 @@ int pdf2john(int argc, char **argv)
 		goto cleanup;
 	}
 
-	if ((file = fopen(inputfile, "r")) == NULL) {
+	if ((file = fopen(inputfile, "rb")) == NULL) {
 		fprintf(stderr, "Error: file %s not found\n", inputfile);
 		ret = 2;
 		goto cleanup;
