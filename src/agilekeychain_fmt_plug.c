@@ -161,7 +161,7 @@ static void crypt_all(int count)
 	{
 		unsigned int master[8];
 		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]),
-				cur_salt->salt[0], cur_salt->saltlen[0], master);
+				cur_salt->salt[0], cur_salt->saltlen[0], cur_salt->iterations[0], master);
 		if(akcdecrypt((unsigned char*)master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
 		else

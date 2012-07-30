@@ -150,7 +150,7 @@ static void crypt_all(int count)
 #endif
 	{
 		unsigned int master[8];
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, master);
+		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master);
 		if(kcdecrypt((unsigned char*)master, salt_struct->iv, salt_struct->ct) == 0)
 			cracked[index] = 1;
 		else

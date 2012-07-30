@@ -11,8 +11,6 @@
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define ITERATIONS		1000
-
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
 #define INIT_C			0x98badcfe
@@ -387,7 +385,7 @@ static void hmac_sha1_(uint32_t * output,
 
 static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
     uint32_t * ipad_state,
-    uint32_t * opad_state, uint32_t * tmp_out)
+    uint32_t * opad_state, uint32_t * tmp_out, int iterations)
 {
 	int i, lo;
 	uint32_t temp, W[16];
@@ -396,7 +394,7 @@ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 	for (i = 0; i < 5; i++)
 		W[i] = input[i];
 
-	for (lo = 1; lo < ITERATIONS; lo++) {
+	for (lo = 1; lo < iterations; lo++) {
 
 		A = ipad_state[0];
 		B = ipad_state[1];
@@ -455,7 +453,7 @@ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 }
 
 static void pbkdf2(const uint8_t * pass, int passlen,
-    const uint8_t * salt, int saltlen, uint32_t * out)
+    const uint8_t * salt, int saltlen, int n, uint32_t * out)
 {
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
@@ -468,7 +466,7 @@ static void pbkdf2(const uint8_t * pass, int passlen,
 	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out);
+	    tmp_out, n);
 
 	for (i = 0; i < 5; i++)
 		out[i] = tmp_out[i];
@@ -476,7 +474,7 @@ static void pbkdf2(const uint8_t * pass, int passlen,
 	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
 
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out);
+	    tmp_out, n);
 
 	for (i = 5; i < 8; i++)
 		out[i] = tmp_out[i - 5];
