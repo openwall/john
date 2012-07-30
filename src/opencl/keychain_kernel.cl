@@ -13,8 +13,6 @@
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define ITERATIONS		1000
-
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
 #define INIT_C			0x98badcfe
@@ -292,6 +290,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[20];
+	int iterations;
 } keychain_salt;
 
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
@@ -406,7 +405,7 @@ inline void hmac_sha1(__private uint32_t * output,
 
 inline void big_hmac_sha1(__private uint32_t * input, uint32_t inputlen,
     __private uint32_t * ipad_state,
-    __private uint32_t * opad_state, __private uint32_t * tmp_out)
+    __private uint32_t * opad_state, __private uint32_t * tmp_out, int iterations)
 {
 	int i, lo;
 	uint32_t temp, W[16];
@@ -415,7 +414,7 @@ inline void big_hmac_sha1(__private uint32_t * input, uint32_t inputlen,
 	for (i = 0; i < 5; i++)
 		W[i] = input[i];
 
-	for (lo = 1; lo < ITERATIONS; lo++) {
+	for (lo = 1; lo < iterations; lo++) {
 
 		A = ipad_state[0];
 		B = ipad_state[1];
@@ -474,7 +473,7 @@ inline void big_hmac_sha1(__private uint32_t * input, uint32_t inputlen,
 }
 
 inline void pbkdf2(__global const uint8_t * pass, int passlen,
-    __global const uint8_t * salt, int saltlen, __global uint32_t * out)
+    __global const uint8_t * salt, int saltlen, int n, __global uint32_t * out)
 {
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
@@ -486,7 +485,7 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out);
+	    tmp_out, n);
 
 	//memcpy(out, tmp_out, 20);
 	for (int i = 0; i < 5; i++)
@@ -495,7 +494,7 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
 
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out);
+	    tmp_out, n);
 
 	//memcpy(out+20, tmp_out, 12);
 	for (int i = 5; i < 8; i++)
@@ -508,5 +507,5 @@ __kernel void keychain(__global const keychain_password * inbuffer,
 	uint32_t idx = get_global_id(0);
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
-	    salt->salt, salt->length, outbuffer[idx].v);
+	    salt->salt, salt->length, salt->iterations, outbuffer[idx].v);
 }

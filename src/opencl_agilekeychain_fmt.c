@@ -58,6 +58,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[20];
+	int iterations;
 } keychain_salt;
 
 static int *cracked;
@@ -182,6 +183,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->saltlen[0]);
 	currentsalt.length = cur_salt->saltlen[0];
+	currentsalt.iterations = cur_salt->iterations[0];
 }
 
 #undef set_key
