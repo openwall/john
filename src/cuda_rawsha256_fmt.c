@@ -71,7 +71,7 @@ static void cleanup()
 	}
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cuda_init(gpu_id);
 	if (cuda_getAsyncEngineCount() > 0) {
@@ -95,7 +95,7 @@ static void init(struct fmt_main *pFmt)
 	atexit(cleanup);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
@@ -257,52 +257,51 @@ static int cmp_exact(char *source, int count)
 
 struct fmt_main FMT_MAIN = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
-		    TESTS
-	},
-	{
-		    init,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    binary,
-		    fmt_default_salt,
-		    {
-				binary_hash_0,
-				binary_hash_1,
-				binary_hash_2,
-				binary_hash_3,
-				binary_hash_4,
-				binary_hash_5,
-				binary_hash_6
-		    },
-		    fmt_default_salt_hash,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
-				get_hash_4,
-				get_hash_5,
-				get_hash_6
-		    },
-		    cmp_all,
-		    cmp_one,
-		    cmp_exact
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		TESTS
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		fmt_default_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

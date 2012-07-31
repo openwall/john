@@ -146,26 +146,26 @@ static unsigned char(*md4hash); // allows the md4 of user, and salt to be append
 static unsigned int (*crypt);
 static int omp_t = 1;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	omp_t = OMP_LOOPS * omp_get_max_threads();
 	if (omp_t < 1)
 		omp_t = 1;
-	pFmt->params.max_keys_per_crypt = omp_t * MS_NUM_KEYS;
+	self->params.max_keys_per_crypt = omp_t * MS_NUM_KEYS;
 #endif
 
-	key = mem_calloc_tiny(sizeof(*key)*PLAIN_KEY_LEN*pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	crypt = mem_calloc_tiny(sizeof(*crypt)*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	key = mem_calloc_tiny(sizeof(*key)*PLAIN_KEY_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	md4hash = mem_calloc_tiny(sizeof(*md4hash)*HASH_LEN*self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt = mem_calloc_tiny(sizeof(*crypt)*4*self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #if defined (MMX_COEF)
-	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	sse_crypt = mem_calloc_tiny(sizeof(*sse_crypt)*20*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_hash1 = mem_calloc_tiny(sizeof(*sse_hash1)*SHA_BUF_SIZ*4*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_crypt1 = mem_calloc_tiny(sizeof(*sse_crypt1)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_crypt2 = mem_calloc_tiny(sizeof(*sse_crypt2)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	sse_crypt = mem_calloc_tiny(sizeof(*sse_crypt)*20*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	{
 		int index;
-		for (index = 0; index < pFmt->params.max_keys_per_crypt; ++index) {
+		for (index = 0; index < self->params.max_keys_per_crypt; ++index) {
 			// set the length of all hash1 SSE buffer to 64+20 * 8 bits
 			// The 64 is for the ipad/opad, the 20 is for the length of the SHA1 buffer that also gets into each crypt
 			// this works for SSEi
@@ -179,7 +179,7 @@ static void init(struct fmt_main *pFmt)
 
 	if (options.utf8) {
 		// UTF8 may be up to three bytes per character
-		pFmt->params.plaintext_length = PLAIN_KEY_LEN - 1;
+		self->params.plaintext_length = PLAIN_KEY_LEN - 1;
 		tests[1].plaintext = "\xc3\xbc";         // German u-umlaut in UTF-8
 		tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
 		tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
@@ -210,7 +210,7 @@ static char * ms_split(char *ciphertext, int index)
 }
 
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned int l;
@@ -249,17 +249,17 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	int i;
 	if (!strncmp(split_fields[1], "$DCC2$", 6)) {
-		if (valid(split_fields[1], pFmt))
+		if (valid(split_fields[1], self))
 			return split_fields[1];
 		// see if this is a form $DCC2$salt#hash.  If so, make it $DCC2$10240#salt#hash and retest (insert 10240# into the line).
 		cp = mem_alloc(strlen(split_fields[1]) + 7);
 		sprintf(cp, "$DCC2$10240#%s", &(split_fields[1][6]));
-		if (valid(cp, pFmt)) {
+		if (valid(cp, self)) {
 			char *cipher = str_alloc_copy(cp);
 			MEM_FREE(cp);
 			return cipher;
@@ -274,7 +274,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 			return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
 	sprintf (cp, "$DCC2$10240#%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, pFmt))
+	if (valid(cp, self))
 	{
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);

@@ -89,7 +89,7 @@ static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static uchar (*output)[PARTIAL_BINARY_SIZE];
 static uchar *challenge;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
@@ -97,18 +97,18 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
+	self->params.min_keys_per_crypt = n;
 	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	self->params.max_keys_per_crypt = n;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int netlm_valid(char *ciphertext, struct fmt_main *pFmt)
+static int netlm_valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
@@ -127,7 +127,7 @@ static int netlm_valid(char *ciphertext, struct fmt_main *pFmt)
       return 0;
 }
 
-static char *netlm_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *netlm_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	if (!strncmp(split_fields[1], "$NETLM$", 7))
@@ -148,7 +148,7 @@ static char *netlm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	cp = mem_alloc(7+strlen(split_fields[3])+1+strlen(split_fields[5])+1);
 	sprintf(cp, "$NETLM$%s$%s", split_fields[5], split_fields[3]);
 
-	if (netlm_valid(cp,pFmt)) {
+	if (netlm_valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
 		free(cp);
 		return cp2;
@@ -355,48 +355,48 @@ static int get_hash_4(int index)
 }
 
 struct fmt_main fmt_NETLM = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALGORITHM_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-    tests
-  }, {
-    init,
-	netlm_prepare,
-    netlm_valid,
-    netlm_split,
-    netlm_get_binary,
-    netlm_get_salt,
-    {
-	    binary_hash_0,
-	    binary_hash_1,
-	    binary_hash_2,
-	    binary_hash_3,
-	    binary_hash_4
-    },
-    salt_hash,
-    netlm_set_salt,
-    netlm_set_key,
-    netlm_get_key,
-    fmt_default_clear_keys,
-    netlm_crypt_all,
-    {
-	    get_hash_0,
-	    get_hash_1,
-	    get_hash_2,
-	    get_hash_3,
-	    get_hash_4
-    },
-    netlm_cmp_all,
-    netlm_cmp_one,
-    netlm_cmp_exact
-  }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		tests
+	}, {
+		init,
+		netlm_prepare,
+		netlm_valid,
+		netlm_split,
+		netlm_get_binary,
+		netlm_get_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
+		},
+		salt_hash,
+		netlm_set_salt,
+		netlm_set_key,
+		netlm_get_key,
+		fmt_default_clear_keys,
+		netlm_crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
+		},
+		netlm_cmp_all,
+		netlm_cmp_one,
+		netlm_cmp_exact
+	}
 };

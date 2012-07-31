@@ -216,7 +216,7 @@ static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
 #endif
 
 
-static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
+static int sha1_fmt_valid(char *ciphertext, struct fmt_main *self)
 {
     // Test for tag prefix in ciphertext.
     if (!strncmp(ciphertext, kFormatTag, strlen(kFormatTag)))
@@ -249,7 +249,8 @@ static void * sha1_fmt_binary_full(void *result, char *ciphertext)
 static void * sha1_fmt_binary(char *ciphertext)
 {
     // Static buffer storing the binary representation of ciphertext.
-    static uint32_t result[SHA1_DIGEST_WORDS];
+	static uint32_t *result = NULL;
+	if (!result) result = mem_alloc_tiny(SHA1_DIGEST_WORDS*sizeof(uint32_t), 16);
 
     // Skip over tag.
     ciphertext += strlen(kFormatTag);

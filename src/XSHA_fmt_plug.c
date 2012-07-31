@@ -85,21 +85,21 @@ static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][5];
 
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 #if defined(SHA1_SSE_PARA) && defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt = omp_t * NBKEYS;
+	self->params.min_keys_per_crypt = omp_t * NBKEYS;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt = omp_t * NBKEYS;
+	self->params.max_keys_per_crypt = omp_t * NBKEYS;
 #endif
-	saved_key = mem_calloc_tiny(SHA_BUF_SIZ*4 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(BINARY_SIZE * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_tiny(SHA_BUF_SIZ*4 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(BINARY_SIZE * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 

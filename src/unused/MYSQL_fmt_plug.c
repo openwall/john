@@ -79,7 +79,7 @@ static char crypt_key[BINARY_SIZE+1];
 //used by set_key
 static char saved_key[PLAINTEXT_LENGTH + 1];
 
-static int mysql_valid(char *ciphertext, struct fmt_main *pFmt) { //returns 0 for invalid ciphertexts
+static int mysql_valid(char *ciphertext, struct fmt_main *self) { //returns 0 for invalid ciphertexts
 
   int i; //used as counter in loop
 

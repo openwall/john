@@ -65,7 +65,7 @@ static unsigned char ipad[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
 static char saved_plain[PLAINTEXT_LENGTH + 1];
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int pos, i;
 	char *p;

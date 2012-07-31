@@ -212,7 +212,7 @@ static void * krb5_salt(char *ciphertext) {
  * int krb5_valid                                                   // {{{
  *
  */
-static int krb5_valid(char *ciphertext, struct fmt_main *pFmt) {
+static int krb5_valid(char *ciphertext, struct fmt_main *self) {
 
     if (strncmp(ciphertext, MAGIC_PREFIX, strlen(MAGIC_PREFIX)) != 0)
         return 0;
@@ -294,7 +294,7 @@ static int krb5_cmp_exact(char *source, int index) {
  * void krb5_init                                                   // {{{
  *
  */
-static void krb5_init(struct fmt_main *pFmt) {
+static void krb5_init(struct fmt_main *self) {
 
     memset(&ivec, 0x00, sizeof(ivec));
     memset(&skey, 0x00, sizeof(skey));
@@ -312,50 +312,50 @@ static void krb5_init(struct fmt_main *pFmt) {
  * fmt_main struct with KRB5 values                                     // {{{
  */
 struct fmt_main fmt_KRB5 = {
-    {
-        FORMAT_LABEL,
-        FORMAT_NAME,
-        ALGORITHM_NAME,
-        BENCHMARK_COMMENT,
-        BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
-        BINARY_SIZE,
-        SALT_SIZE,
-        MIN_KEYS_PER_CRYPT,
-        MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT,
-        KRB5_fmt_tests
-    }, {
-        krb5_init,
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		KRB5_fmt_tests
+	}, {
+		krb5_init,
 		fmt_default_prepare,
-        krb5_valid,
-        fmt_default_split,
-        fmt_default_binary,
-        krb5_salt,
-        {
-            fmt_default_binary_hash,
-            fmt_default_binary_hash,
-            fmt_default_binary_hash,
-            fmt_default_binary_hash,
-            fmt_default_binary_hash
-        },
-        fmt_default_salt_hash,
-        krb5_set_salt,
-        krb5_set_key,
-        krb5_get_key,
-	    fmt_default_clear_keys,
-        krb5_crypt_all,
-        {
-            fmt_default_get_hash,
-            fmt_default_get_hash,
-            fmt_default_get_hash,
-            fmt_default_get_hash,
-            fmt_default_get_hash
-        },
-        krb5_cmp_all,
-        krb5_cmp_one,
-        krb5_cmp_exact
-    }
+		krb5_valid,
+		fmt_default_split,
+		fmt_default_binary,
+		krb5_salt,
+		{
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		krb5_set_salt,
+		krb5_set_key,
+		krb5_get_key,
+		fmt_default_clear_keys,
+		krb5_crypt_all,
+		{
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash
+		},
+		krb5_cmp_all,
+		krb5_cmp_one,
+		krb5_cmp_exact
+	}
 };
 // }}}
 

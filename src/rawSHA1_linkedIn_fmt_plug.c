@@ -57,7 +57,7 @@
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
-static struct fmt_tests rawsha1_tests[] = {
+static struct fmt_tests tests[] = {
 	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
@@ -93,7 +93,7 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -112,7 +112,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *rawsha1_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -129,7 +129,7 @@ static char *rawsha1_split(char *ciphertext, int index)
 	return out;
 }
 
-static void rawsha1_set_key(char *key, int index) {
+static void set_key(char *key, int index) {
 #ifdef MMX_COEF
 	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
 	ARCH_WORD_32 *keybuffer = &saved_key[(index&(MMX_COEF-1)) + (index>>(MMX_COEF>>1))*SHA_BUF_SIZ*MMX_COEF];
@@ -175,7 +175,7 @@ key_cleaning:
 #endif
 }
 
-static char *rawsha1_get_key(int index) {
+static char *get_key(int index) {
 #ifdef MMX_COEF
 	unsigned int i,s;
 
@@ -189,7 +189,7 @@ static char *rawsha1_get_key(int index) {
 #endif
 }
 
-static int rawsha1_cmp_all(void *binary, int count) {
+static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 
@@ -207,12 +207,12 @@ static int rawsha1_cmp_all(void *binary, int count) {
 #endif
 }
 
-static int rawsha1_cmp_exact(char *source, int count)
+static int cmp_exact(char *source, int count)
 {
 	return (1);
 }
 
-static int rawsha1_cmp_one(void * binary, int index)
+static int cmp_one(void * binary, int index)
 {
 #ifdef MMX_COEF
 	unsigned int x,y;
@@ -231,11 +231,19 @@ static int rawsha1_cmp_one(void * binary, int index)
 		return 0;
 	return 1;
 #else
-	return rawsha1_cmp_all(binary, index);
+	if( ((ARCH_WORD_32*)binary)[1] != crypt_key[1] )
+		return 0;
+	if( ((ARCH_WORD_32*)binary)[2] != crypt_key[2] )
+		return 0;
+	if( ((ARCH_WORD_32*)binary)[3] != crypt_key[3] )
+		return 0;
+	if( ((ARCH_WORD_32*)binary)[4] != crypt_key[4] )
+		return 0;
+	return 1;
 #endif
 }
 
-static void rawsha1_crypt_all(int count) {
+static void crypt_all(int count) {
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF
 
@@ -253,7 +261,7 @@ static void rawsha1_crypt_all(int count) {
 
 }
 
-static void * rawsha1_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
 	int i;
@@ -301,32 +309,6 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0x7ffffff; }
 #endif
 
-/*
-static char *get_source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
-{
-	unsigned char realcipher[BINARY_SIZE];
-	unsigned char *cpi;
-	char *cpo;
-	int i;
-
-	memcpy(realcipher, pw->binary, BINARY_SIZE);
-#ifdef MMX_COEF
-	alter_endianity(realcipher, BINARY_SIZE);
-#endif
-	strcpy(Buf, FORMAT_TAG);
-	cpo = &Buf[TAG_LENGTH];
-
-	cpi = realcipher;
-
-	for (i = 0; i < BINARY_SIZE; ++i) {
-		*cpo++ = itoa16[(*cpi)>>4];
-		*cpo++ = itoa16[*cpi&0xF];
-		++cpi;
-	}
-	*cpo = 0;
-	return Buf;
-}
-*/
 
 struct fmt_main fmt_rawSHA1_LI = {
 	{
@@ -341,13 +323,13 @@ struct fmt_main fmt_rawSHA1_LI = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-		rawsha1_tests
+		tests
 	}, {
 		fmt_default_init,
 		fmt_default_prepare,
 		valid,
-		rawsha1_split,
-		rawsha1_binary,
+		split,
+		binary,
 		fmt_default_salt,
 		{
 			binary_hash_0,
@@ -360,10 +342,10 @@ struct fmt_main fmt_rawSHA1_LI = {
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
-		rawsha1_set_key,
-		rawsha1_get_key,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		rawsha1_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -373,8 +355,8 @@ struct fmt_main fmt_rawSHA1_LI = {
 			get_hash_5,
 			get_hash_6
 		},
-		rawsha1_cmp_all,
-		rawsha1_cmp_one,
-		rawsha1_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

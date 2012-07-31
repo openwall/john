@@ -66,14 +66,12 @@ static char crypt_out[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
 static struct crypt_data *crypt_data[MAX_THREADS];
 #endif
 
-struct fmt_main fmt_crypt;
-
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	if (options.subformat) {
 		if (strcasecmp(options.subformat, "md5crypt")==0 ||
 		    strcasecmp(options.subformat, "md5")==0) {
-			fmt_crypt.params.benchmark_comment = " MD5";
+			self->params.benchmark_comment = " MD5";
 			tests[0].ciphertext = "$1$dXc3I7Rw$ctlgjDdWJLMT.qwHsWhXR1";
 			tests[1].ciphertext = "$1$dXc3I7Rw$94JPyQc/eAgQ3MFMCoMF.0";
 			tests[2].ciphertext = "$1$dXc3I7Rw$is1mVIAEtAhIzSdfn5JOO0";
@@ -82,7 +80,7 @@ static void init(struct fmt_main *pFmt)
 		} else if ((strcasecmp(options.subformat, "sha256crypt")==0) ||
 		           (strcasecmp(options.subformat, "sha-256")==0) ||
 		           (strcasecmp(options.subformat, "sha256")==0)) {
-			fmt_crypt.params.benchmark_comment = " SHA-256 rounds=5000";
+			self->params.benchmark_comment = " SHA-256 rounds=5000";
 			tests[0].ciphertext = "$5$LKO/Ute40T3FNF95$U0prpBQd4PloSGU0pnpM4z9wKn4vZ1.jsrzQfPqxph9";
 			tests[1].ciphertext = "$5$LKO/Ute40T3FNF95$fdgfoJEBoMajNxCv3Ru9LyQ0xZgv0OBMQoq80LQ/Qd.";
 			tests[2].ciphertext = "$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A";
@@ -91,7 +89,7 @@ static void init(struct fmt_main *pFmt)
 		} else if ((strcasecmp(options.subformat, "sha512crypt")==0) ||
 		           (strcasecmp(options.subformat, "sha-512")==0) ||
 		           (strcasecmp(options.subformat, "sha512")==0)) {
-			fmt_crypt.params.benchmark_comment = " SHA-512 rounds=5000";
+			self->params.benchmark_comment = " SHA-512 rounds=5000";
 			tests[0].ciphertext = "$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0";
 			tests[1].ciphertext = "$6$LKO/Ute40T3FNF95$wK80cNqkiAUzFuVGxW6eFe8J.fSVI65MD5yEm8EjYMaJuDrhwe5XXpHDJpwF/kY.afsUs1LlgQAaOapVNbggZ1";
 			tests[2].ciphertext = "$6$LKO/Ute40T3FNF95$YS81pp1uhOHTgKLhSMtQCr2cDiUiN03Ud3gyD4ameviK1Zqz.w3oXsMgO6LrqmIEcG3hiqaUqHi/WEE2zrZqa/";
@@ -100,7 +98,7 @@ static void init(struct fmt_main *pFmt)
 		} else if ((strcasecmp(options.subformat, "bf")==0) ||
 		           (strcasecmp(options.subformat, "blowfish")==0) ||
 		           (strcasecmp(options.subformat, "bcrypt")==0)) {
-			fmt_crypt.params.benchmark_comment = " BF x32";
+			self->params.benchmark_comment = " BF x32";
 			tests[0].ciphertext = "$2a$05$c92SVSfjeiCD6F2nAD6y0uBpJDjdRkt0EgeC4/31Rf2LUZbDRDE.O";
 			tests[1].ciphertext = "$2a$05$WY62Xk2TXZ7EvVDQ5fmjNu7b0GEzSzUXUh2cllxJwhtOeMtWV3Ujq";
 			tests[2].ciphertext = "$2a$05$Fa0iKV3E2SYVUlMknirWU.CFYGvJ67UwVKI1E2FP6XeLiZGcH3MJi";
@@ -114,7 +112,7 @@ static void init(struct fmt_main *pFmt)
 	}
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int length, count_base64, id, pw_length;
 	char pw[PLAINTEXT_LENGTH + 1], *new_ciphertext;

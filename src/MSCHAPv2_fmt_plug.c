@@ -92,7 +92,7 @@ static int keys_prepared;
 
 #include "unicode.h"
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
@@ -100,19 +100,19 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
+	self->params.min_keys_per_crypt = n;
 	n = n * (n << 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	self->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_alloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_alloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int mschapv2_valid(char *ciphertext, struct fmt_main *pFmt)
+static int mschapv2_valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos, *pos2;
 
@@ -153,7 +153,7 @@ static int mschapv2_valid(char *ciphertext, struct fmt_main *pFmt)
   return 1;
 }
 
-static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *username, *cp;
 
@@ -175,7 +175,7 @@ static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
       username++;
 	cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+strlen(split_fields[5])+1+strlen(username)+1);
 	sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4], split_fields[5], username);
-	if (mschapv2_valid(cp,pFmt)) {
+	if (mschapv2_valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
 		MEM_FREE(cp);
 		return cp2;
@@ -429,48 +429,48 @@ static int get_hash_4(int index)
 }
 
 struct fmt_main fmt_MSCHAPv2 = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALGORITHM_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
-    tests
-  }, {
-    init,
-	mschapv2_prepare,
-    mschapv2_valid,
-    mschapv2_split,
-    mschapv2_get_binary,
-    mschapv2_get_salt,
-    {
-	    binary_hash_0,
-	    binary_hash_1,
-	    binary_hash_2,
-	    binary_hash_3,
-	    binary_hash_4
-    },
-    salt_hash,
-    mschapv2_set_salt,
-    mschapv2_set_key,
-    mschapv2_get_key,
-    fmt_default_clear_keys,
-    mschapv2_crypt_all,
-    {
-	    get_hash_0,
-	    get_hash_1,
-	    get_hash_2,
-	    get_hash_3,
-	    get_hash_4
-    },
-    mschapv2_cmp_all,
-    mschapv2_cmp_one,
-    mschapv2_cmp_exact
-  }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+		tests
+	}, {
+		init,
+		mschapv2_prepare,
+		mschapv2_valid,
+		mschapv2_split,
+		mschapv2_get_binary,
+		mschapv2_get_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
+		},
+		salt_hash,
+		mschapv2_set_salt,
+		mschapv2_set_key,
+		mschapv2_get_key,
+		fmt_default_clear_keys,
+		mschapv2_crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
+		},
+		mschapv2_cmp_all,
+		mschapv2_cmp_one,
+		mschapv2_cmp_exact
+	}
 };

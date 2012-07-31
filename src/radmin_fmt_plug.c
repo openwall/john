@@ -48,21 +48,21 @@ static struct fmt_tests radmin_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH+1];
 static ARCH_WORD_32 (*crypt_out)[8];
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$radmin2$", 9);
 }
@@ -129,12 +129,13 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *(ARCH_WORD_32 *)binary == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	void *binary = get_binary(source);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static void radmin_set_key(char *key, int index)

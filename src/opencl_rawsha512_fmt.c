@@ -147,7 +147,7 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
@@ -184,14 +184,14 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	fprintf(stderr, "Global work size = %lld\n",(long long)global_work_size);
 	atexit(release_all);
 
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 

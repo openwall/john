@@ -127,34 +127,34 @@ static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #if MMX_COEF
 	int i;
 #endif
 #if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #if MMX_COEF
-	key_buf = mem_calloc_tiny(64 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(BINARY_SIZE * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	saved_key = mem_calloc_tiny(64 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	key_buf = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(BINARY_SIZE * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	saved_key = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	empty_key = mem_calloc_tiny(64 * NBKEYS, MEM_ALIGN_SIMD);
 	for (i = 0; i < NBKEYS; ++i) {
 		empty_key[GETPOS(0, i)] = 0x80;
 		((unsigned int*)empty_key)[14*MMX_COEF + (i&3) + (i>>2)*16*MMX_COEF] = (2 * MD5_HEX_SIZE)<<3;
 	}
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;

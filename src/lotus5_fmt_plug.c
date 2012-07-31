@@ -74,24 +74,24 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 #include <omp.h>
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = omp_get_max_threads();
 	if (n < 1)
 		n = 1;
 	n *= 2;
-	if (n > pFmt->params.max_keys_per_crypt)
-		n = pFmt->params.max_keys_per_crypt;
-	pFmt->params.min_keys_per_crypt = n;
+	if (n > self->params.max_keys_per_crypt)
+		n = self->params.max_keys_per_crypt;
+	self->params.min_keys_per_crypt = n;
 #endif
 
 	crypt_key = mem_calloc_tiny(
 	    (sizeof(*crypt_key) + sizeof(*saved_key)) *
-	    pFmt->params.max_keys_per_crypt,
+	    self->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
 	saved_key = (void *)((char *)crypt_key +
-	    sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt);
+	    sizeof(*crypt_key) * self->params.max_keys_per_crypt);
 }
 
 /*Utility function to convert hex to bin */
@@ -107,7 +107,7 @@ static void * binary (char *ciphertext)
 /*Another function required by JTR: decides whether we have a valid
  * ciphertext */
 static int
-valid (char *ciphertext, struct fmt_main *pFmt)
+valid (char *ciphertext, struct fmt_main *self)
 {
   int i;
 

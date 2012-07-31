@@ -48,12 +48,13 @@ static int mode;
 
 static struct fmt_tests zip_tests[] = {
 	{"$zip$*0*1*8005b1b7d077708d*dee4", "testpassword#"},
+	{"$zip$*0*3*e3bd6c1a4c4950d0c35c1b0ca2bd5e84*061f", "testpassword#"},
 	{NULL}
 };
 
 struct fmt_main zip_fmt;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$zip$*", 6);
 }

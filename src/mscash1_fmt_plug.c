@@ -109,7 +109,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 }
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = omp_get_max_threads(), nmin, nmax;
@@ -169,7 +169,7 @@ static char * ms_split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned int l;
@@ -200,7 +200,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	int i;
@@ -214,7 +214,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 			return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
 	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, pFmt))
+	if (valid(cp, self))
 	{
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);

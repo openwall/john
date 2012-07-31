@@ -126,17 +126,17 @@ static struct fmt_tests tests[] = {
 static void set_key_utf8(char *_key, int index);
 static void set_key_CP(char *_key, int index);
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #if MMX_COEF
 	int i;
 #endif
 	if (options.utf8) {
 		/* This avoids an if clause for every set_key */
-		pFmt->methods.set_key = set_key_utf8;
+		self->methods.set_key = set_key_utf8;
 #if MMX_COEF
 		/* kick it up from 27. We will truncate in setkey_utf8() */
-		pFmt->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 #endif
 		tests[1].plaintext = "\xC3\xBC";	// German u-umlaut in UTF-8
 		tests[1].ciphertext = "$NT$8bd6e4fb88e01009818749c5443ea712";
@@ -149,7 +149,7 @@ static void init(struct fmt_main *pFmt)
 	} else {
 		if (!options.ascii && !options.iso8859_1) {
 			/* This avoids an if clause for every set_key */
-			pFmt->methods.set_key = set_key_CP;
+			self->methods.set_key = set_key_CP;
 		}
 		if (CP_to_Unicode[0xfc] == 0x00fc) {
 			tests[1].plaintext = "\xFC";	// German u-umlaut in UTF-8
@@ -163,10 +163,10 @@ static void init(struct fmt_main *pFmt)
 		}
 	}
 #if MMX_COEF
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * DIGEST_SIZE*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * pFmt->params.max_keys_per_crypt, sizeof(*buf_ptr));
-	for (i=0; i<pFmt->params.max_keys_per_crypt; i++)
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * DIGEST_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * self->params.max_keys_per_crypt, sizeof(*buf_ptr));
+	for (i=0; i<self->params.max_keys_per_crypt; i++)
 		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
 #endif
 }
@@ -191,7 +191,7 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -207,19 +207,19 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 // here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
 // Note, we address the user id inside loader.
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[33+5];
 	extern struct options_main options;
-	if (!valid(split_fields[1], pFmt)) {
+	if (!valid(split_fields[1], self)) {
 		if (strlen(split_fields[3]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[3]);
-			if (valid(out,pFmt))
+			if (valid(out,self))
 				return out;
 		}
 		if (options.format && !strcmp(options.format, FORMAT_LABEL) && strlen(split_fields[1]) == 32) {
 			sprintf(out, "$NT$%s", split_fields[1]);
-			if (valid(out,pFmt))
+			if (valid(out,self))
 				return out;
 		}
 	}

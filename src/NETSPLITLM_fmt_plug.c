@@ -69,7 +69,7 @@ static uchar (*output)[BINARY_SIZE];
 static uchar *challenge;
 
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
@@ -77,18 +77,18 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
+	self->params.min_keys_per_crypt = n;
 	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	self->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_pre = mem_calloc_tiny(sizeof(*saved_pre) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_pre = mem_calloc_tiny(sizeof(*saved_pre) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)
+static int nethalflm_valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
@@ -108,7 +108,7 @@ static int nethalflm_valid(char *ciphertext, struct fmt_main *pFmt)
       return 0;
 }
 
-static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *tmp;
 
@@ -131,7 +131,7 @@ static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	tmp = (char *) mem_alloc(12 + strlen(split_fields[3]) + strlen(split_fields[5]) + 1);
 	sprintf(tmp, "$NETHALFLM$%s$%s", split_fields[5], split_fields[3]);
 
-	if (nethalflm_valid(tmp,pFmt)) {
+	if (nethalflm_valid(tmp,self)) {
 		char *cp2 = str_alloc_copy(tmp);
 		free(tmp);
 		return cp2;
@@ -308,48 +308,48 @@ static int get_hash_4(int index)
 }
 
 struct fmt_main fmt_NETHALFLM = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALGORITHM_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-    tests
-  }, {
-    init,
-	nethalflm_prepare,
-    nethalflm_valid,
-    nethalflm_split,
-    nethalflm_get_binary,
-    nethalflm_get_salt,
-    {
-	    binary_hash_0,
-	    binary_hash_1,
-	    binary_hash_2,
-	    binary_hash_3,
-	    binary_hash_4
-    },
-    salt_hash,
-    nethalflm_set_salt,
-    nethalflm_set_key,
-    nethalflm_get_key,
-    fmt_default_clear_keys,
-    nethalflm_crypt_all,
-    {
-	    get_hash_0,
-	    get_hash_1,
-	    get_hash_2,
-	    get_hash_3,
-	    get_hash_4
-    },
-    nethalflm_cmp_all,
-    nethalflm_cmp_one,
-    nethalflm_cmp_exact
-  }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		tests
+	}, {
+		init,
+		nethalflm_prepare,
+		nethalflm_valid,
+		nethalflm_split,
+		nethalflm_get_binary,
+		nethalflm_get_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
+		},
+		salt_hash,
+		nethalflm_set_salt,
+		nethalflm_set_key,
+		nethalflm_get_key,
+		fmt_default_clear_keys,
+		nethalflm_crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
+		},
+		nethalflm_cmp_all,
+		nethalflm_cmp_one,
+		nethalflm_cmp_exact
+	}
 };

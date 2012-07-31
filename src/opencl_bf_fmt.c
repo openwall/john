@@ -84,7 +84,7 @@ static char keys_mode;
 static int sign_extension_bug;
 static BF_salt saved_salt;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {	// BF_select_device(platform,device);
         BF_select_device(platform_id,gpu_id);
 	keys_mode = 'a';
@@ -93,7 +93,7 @@ static void init(struct fmt_main *pFmt)
 	atexit(BF_clear_buffer);
 }
 
-static int valid(char *ciphertext,struct fmt_main *pFmt)
+static int valid(char *ciphertext,struct fmt_main *self)
 {
 	int rounds;
 	char *pos;

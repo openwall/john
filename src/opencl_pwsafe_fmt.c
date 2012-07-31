@@ -91,7 +91,7 @@ static void pwsafe_set_key(char *key, int index)
 	host_pass[index].length = saved_key_length;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
 	host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
@@ -121,14 +121,14 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 	//local_work_size=256;
 	atexit(release_all);
 }
 
 
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$pwsafe$", 8);
 }
@@ -233,35 +233,39 @@ static char *get_key(int index)
 
 struct fmt_main fmt_opencl_pwsafe = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    KEYS_PER_CRYPT,
-		    KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
-	    pwsafe_tests}, {
-		    init,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    fmt_default_binary,
-		    get_salt,
-		    {
-			fmt_default_binary_hash},
-		    fmt_default_salt_hash,
-		    set_salt,
-		    pwsafe_set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-			fmt_default_get_hash},
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact}
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		KEYS_PER_CRYPT,
+		KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		pwsafe_tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		fmt_default_binary,
+		get_salt,
+		{
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		pwsafe_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

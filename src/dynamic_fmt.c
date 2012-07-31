@@ -1,137 +1,57 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
- * Generic MD5 hashes cracker
- *
- * It uses the openSSL md5 for x86, and MMX/SSE2 md5 from md5-mmx.S
- *
- *  TODO's
- *    All done (right now)!
-
- *
- *  recently DONE's
- *    1.  in the MMX/SSE2 builds, ALSO make sure native x86 (using OpenSSL), is built.
- *        Then if the format is a NON-SSE safe format, link the functions to the non-x86 versions.
- *        In x86 mode, we DO NOT need to have the SSE2 code, since it is not valid to call anyway.
- *    2.  Add SSE Intrisic code.  MD5_PARA (as built by simon), IS now working.
- *    3.  Start making 'thin' _fmt.c files for other 'formats'.
- *          Easy formats:
- *            DMD5               (Is a challenge/response, so may need to simply be 'redone'
- *            MD5_apache_fmt.c   (DONE)
- *            md5_fmt.c          (DONE)
- *            HDAA_fmt.c         (DONE)
- *            pixMD5_fmt.c       (DONE)
- *            raw_md5_fmt.c      (DONE)
- *            PO_fmt.c           (DONE)
- *            phpassMD5_fmt.c    (DONE)
- *            PHPS_fmt.c         (DONE)
- *            IPB2_fmt.c         (DONE)
- *    4.  Made 10 primatives which allow us to switch back and forth from SSE (1 MD5 buffer), to X86, multiple buffers. Thus, we
- *        can write SSE formats, and when they overflow, switch to x86, perform the MD5, and switch back.  A good example is type
- *        dynamic_13 md5(md5($p).md5($s))   Here, we preload $s, so it does not play a part in the runtime.  However, the
- *        first md5($p) CAN be done in SSE mode. Then we switch to x86, and perform the MD5 of the 64 byte string.  This increases
- *        throughput about 150%.
- *    5.  Found and fixed a bug in the MMX string concatentation code.
- *    6.  Generated a 'test-suite' format.
- *    7.  Add in 'real' utf8 to unicode conversion.  Added MGF_UTF8, and set FMT_UTF8 and FMT_UNICODE into the format's structure
- *        if this flag (or the uncode switch function), is used.
- *    8.  Put some ability into the formats, so that test strings can be switched out in utf8 mode,
- *        and so that any 8859-1 which would 'fail' in utf8 mode could be switched out. In the preloads, U= and A= are used at the
- *        start of the cipher strings. In the john.conf, there are now Test= TestA= and TestU= for always use, using only if non-utf8
- *        and use ONLY if utf8.  The TestA= and TestU= were documented.  A= and U= in the preload.c file are internal, and need
- *        NO documentation to end users.
- *    9.  Added raw-md5-unicode.
- *   10.  max salt len not working (not a fixed size, just max len, i.e. saltlen = neg number).
- *   11.  upcase of user name (currently only up/lo case we do), is not handled with code found in unicode.c.
- *   12.  Allow upcasing and low casing of strings (like passwords).  Do this using unicode
- *        upcasing from unicode.c
- *   13.  Fix x86-64 'broken' formats. Right now, they 'work' but only with SSE turned off.
- *        The broken formats are 12/13/21-26
- *
- * Only valid up to 54 bytes max string length (salts, rehashes,
- * passwords, etc) if using SSE2.  96 byte keys (appended salts,
- * keys, re-hashes, etc), if running under x86 mode.  NOTE some
- * hashes will NOT run properly under SSE2.  A hash such as
- * md5(md5($p).md5($s)) would fail under SSE2, since it always
- * would need at least 64 bytes to complete but even md5($p) would
- * fail in SSE2 if the password is over 54 bytes.  NOTE no run-time
- * checks are made so if you provide data too large, it will not find
- * the hash, and will 'overwrite' some of the hashes being worked on,
- * and cause them to have invalid results. This is a bug that 'might'
- * be worked on, but I do not want do slow the cracking down performing
- * checks.
- *
- * This code has gone through a few iterations, and now is quite a bit
- * more mature.  It has been designed with an array for keys (which
- * is optionally used), a slot for the current salt, 2 arrays for
- * input buffers (there is optional loading that loads keys directly
- * into input buffer #1 as an optimization for certain formats), and
- * a pair of arrays for crypt outputs.  The 'first' output buffer array
- * is used to return the final results.  There is also 2 arrays of lengths
- * of input buffers.  There are then 'primative' functions. These can
- * append keys, append salts, blank out keys, move from input 1 to input
- * 2, crypt input 1 -> output 1, (or from 1->2 or 2->2 or 2->1, etc).
- * There are functions that do base 16 conversions of the outputs back
- * into inputs (O1->I1 in base 16, 1->2 2->2 2->1, etc).  There are
- * functions that over write the start of an input buffer from outputs
- * without 'adjusting' the lengths.  There are a few special functions
- * to do phpass work.
- *
- * Then there are helper functions which allow another format to 'use'
- * the generic MD5 code.  So, we can make a VERY thin raw-md5 (or phpass
- * md5), where it simply has a format structure (which does not need to be
- * 'heavily' filled out, and that format only needs to implement a few
- * functions on its own.  It would need to implement init, valid, salt
- * and binary.  Then there needs to be a 'conversion' function that
- * converts from the 'native' format, into the native GENERIC format.
- * Then, within the init function, that format would hook into the
- * generic md5, by calling the dynamic_RESET_LINK() function, passing
- * in its Format structure to have functions pointed into the md5 generic
- * stuff.  The conversion function is likely very trivial. For phpass, we
- * convert from
- * $H$9aaaaaSXBjgypwqm.JsMssPLiS8YQ00
- * to
- * $dynamic_17$jgypwqm.JsMssPLiS8YQ00$9aaaaaSXB
- *
- *  Here is that convert function:
- * static char *Convert(char *Buf, char *ciphertext) {
- *    sprintf(Buf, "$dynamic_17$%s%10.10s", &ciphertext[3+8+1], &ciphertext[2]);
- *    return Buf;
- * }
- *
- *
- * Generic MD5 can now be user expanded.  The first 1000 dynamic_# are
- * reserved as 'built-in' functions for john. Above 1000 is free to use
- * for anyone wanting to do so.  NO programming changes are needed to
- * add a format. All that is needed is modifcations to john.conf.  There is
- * FULL documentation about how to do this in doc/DYNAMIC.  There is
- * no parser 'generation' logic.  A person would have to understand the
- * primitive functions and how they work.  But the format can be added
- * without a rebuild of john.  There are 7 (or 8) examples already done
- * in john.conf at this time, which should make it pretty easy for someone
- * wanting to do a new or obscure format.
- *
- * Recent additions / fixes
- *
- *   SSE2 intrinsics
- *   Faster (double speed) for a couple formats
- *   Addition of PO format (Native and using constants)
- *   Addition of 8 'constant' fields'
- *   In MD5_COEF builds, the not-SSE-safe formats now work (using x86 code)
- *   MD5_go functions used (10% faster than OpenSSL).
+ * Generic 'scriptable' hash cracker for JtR
  *
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
  *
+ * There used to be a todo list, and other commenting here. It has been
+ * moved to ./docs/dynamic_history.txt
+ *
+ * KNOWN issues, and things to do.
+ *
+ *   1. MD5 and MD4 MUST both be using same SSE_PARA values, and built the
+ *      same (I think).  If not, then MD4 should fall back to X86 mode.
+ *   2. Add more crypt types, using the SHA1 'model'.  Currently, all
+ *      sha2 crypts have been added (sha224, sha256, sha384, sha512).
+ *      others could be any from oSSL, or any that we can get hash files
+ *      for (such as GOST, IDA, IDEA, AES, CAST, Whirlpool, etc, etc)
+ *   3. create a new optimize flag, MGF_PASS_AFTER_FIXEDSALT and
+ *      MGF_PASS_BEFORE_FIXEDSALT.  Then create DynamicFunc__appendsalt_after_pass[12]
+ *      These would only be valid for a FIXED length salted format. Then
+ *      we can write the pass right into the buffer, and get_key() would read
+ *      it back from there, either skipping over the salt, or removing the salt
+ *      from the end. This would allow crypt($s.$p) and crypt($p.s) to be optimized
+ *      in the way of string loading, and many fewer buffer copies.  So dyna_1 could
+ *      be optimized to something like:
+
+ // dynamic_1  Joomla md5($p.$s)
+static DYNAMIC_primitive_funcp _Funcs_1[] =
+{
+	//Flags=MGF_PASS_BEFORE_FIXEDSALT | MGF_SALTED
+	// saltlen=3 (or whatever).  This fixed size is 'key'
+	DynamicFunc__appendsalt_after_pass1,
+	DynamicFunc__crypt_md5,
+	NULL
+};
+
+WELL, the fixed size salt, it 'may' not be key for the MGF_PASS_BEFORE_FIXEDSALT, I think I can
+make that 'work' for variable sized salts.  But for the MGF_PASS_AFTER_FIXEDSALT, i.e. crypt($s.$p)
+the fixed size salt IS key.  I would like to store all PW's at salt_len offset in the buffer, and
+simply overwrite the first part of each buffer with the salt, never moving the password after the
+first time it is written. THEN it is very important this ONLY be allowed when we KNOW the salt length
+ahead of time.
+
  */
 
 #include <string.h>
@@ -6438,6 +6358,29 @@ void DynamicFunc__base16_convert_upcase() {
  **************************************************************
  **************************************************************/
 
+// NOTE, cpo must be at least in_byte_cnt*2+1 bytes of buffer
+static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
+	int j;
+	for (j = 0; j < in_byte_cnt; ++j) {
+		*cpo++ = md5gen_itoa16[*cpi>>4];
+		*cpo++ = md5gen_itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return cpo; // returns pointer TO the null byte, not past it.
+
+}
+// NOTE, cpo must be at least in_byte_cnt*2 bytes of buffer
+static inline unsigned char *hex_out_buf_no_null(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
+	int j;
+	for (j = 0; j < in_byte_cnt; ++j) {
+		*cpo++ = md5gen_itoa16[*cpi>>4];
+		*cpo++ = md5gen_itoa16[*cpi&0xF];
+		++cpi;
+	}
+	return cpo;
+}
+
 #ifdef MMX_COEF
 void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86],
 					MD5_IN out[MAX_KEYS_PER_CRYPT_X86]  , unsigned int olen[MAX_KEYS_PER_CRYPT_X86], int append)
@@ -6563,9 +6506,9 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6590,13 +6533,7 @@ void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		*cpo = 0;
+		hex_out_buf(crypt_out, cpo, 20);
 		total_len2_X86[i] += 40;
 	}
 	if (switchback==1) {
@@ -6606,9 +6543,9 @@ void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6633,13 +6570,7 @@ void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		*cpo = 0;
+		hex_out_buf(crypt_out, cpo, 20);
 		total_len_X86[i] += 40;
 	}
 	if (switchback==1) {
@@ -6649,9 +6580,9 @@ void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6675,13 +6606,8 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		memset(cpo, 0, 16);
+		cpo = hex_out_buf_no_null(crypt_out, cpo, 20);
+		//memset(cpo, 0, 16);
 		total_len_X86[i] = 40;
 	}
 	if (switchback==1) {
@@ -6691,9 +6617,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6717,13 +6643,8 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		memset(cpo, 0, 16);
+		cpo = hex_out_buf_no_null(crypt_out, cpo, 20);
+		//memset(cpo, 0, 16);
 		total_len2_X86[i] = 40;
 	}
 	if (switchback==1) {
@@ -6733,9 +6654,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input2();
@@ -6759,13 +6680,8 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		memset(cpo, 0, 16);
+		cpo = hex_out_buf_no_null(crypt_out, cpo, 20);
+		//memset(cpo, 0, 16);
 		total_len_X86[i] = 40;
 	}
 	if (switchback==1) {
@@ -6775,9 +6691,9 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input2();
@@ -6801,13 +6717,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		*cpo = 0;
+		hex_out_buf_no_null(crypt_out, cpo, 20);
 		total_len2_X86[i] = 40;
 	}
 	if (switchback==1) {

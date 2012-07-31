@@ -96,7 +96,7 @@ static char *plain_keys[1];
 
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -136,7 +136,7 @@ static void * get_salt(char * ciphertext)
 static void set_key_enc(char *_key, int index);
 extern struct fmt_main fmt_mssql;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	initUnicode(UNICODE_MS_OLD);
 #ifdef MMX_COEF

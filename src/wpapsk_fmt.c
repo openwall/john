@@ -37,22 +37,22 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
 	inbuffer = mem_alloc(sizeof(*inbuffer) *
-	    pFmt->params.max_keys_per_crypt);
+	    self->params.max_keys_per_crypt);
 	outbuffer = mem_alloc(sizeof(*outbuffer) *
-	    pFmt->params.max_keys_per_crypt);
+	    self->params.max_keys_per_crypt);
 	mic = mem_alloc(sizeof(*mic) *
-	    pFmt->params.max_keys_per_crypt);
+	    self->params.max_keys_per_crypt);
 
 /*
  * Zeroize the lengths in case crypt_all() is called with some keys still
@@ -60,7 +60,7 @@ static void init(struct fmt_main *pFmt)
  */
 	{
 		int i;
-		for (i = 0; i < pFmt->params.max_keys_per_crypt; i++)
+		for (i = 0; i < self->params.max_keys_per_crypt; i++)
 			inbuffer[i].length = 0;
 	}
 }
