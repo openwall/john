@@ -110,12 +110,16 @@ int pdf2john(int argc, char **argv)
 
 	ret = getEncryptedInfo(file, &cs.e);
 	if (ret) {
-		if (ret == EENCNF)
+		if (ret == 42)
+			fprintf(stderr,
+			    "Document uses AES encryption which is not supported by this program!\n");
+		else if (ret == EENCNF)
 			fprintf(stderr,
 			    "Error: Could not extract encryption information\n");
 		else if (ret == ETRANF || ret == ETRENF || ret == ETRINF)
 			fprintf(stderr,
 			    "Error: Encryption not detected (is the document password protected?)\n");
+
 		ret = 4;
 		goto cleanup;
 	} else if (cs.e.revision < 2 || (strcmp(cs.e.s_handler, "Standard") != 0)) {
@@ -133,7 +137,6 @@ int pdf2john(int argc, char **argv)
 	printEncData(&cs.e);
 #endif
 	/* try to initialize the cracking-engine */
-
 	if (!initPDFCrack(&cs)) {
 		fprintf(stderr, "Wrong userpassword given, '%s'\n",
 		    userpassword);
