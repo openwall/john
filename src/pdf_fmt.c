@@ -144,6 +144,9 @@ static void *get_salt(char *ciphertext)
 	cs.e.version = atoi(p);
 	if (cs.e.have_userpassword)
 		cs.userpassword = (unsigned char *)strtok(NULL, "*");
+	else
+		cs.userpassword = NULL;
+	cs.knownPassword = false;
 	free(keeptr);
 	/* try to initialize the cracking-engine */
 	if (!initPDFCrack(&cs)) {
