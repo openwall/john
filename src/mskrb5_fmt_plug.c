@@ -203,7 +203,7 @@ static void set_salt(void *salt)
 	saltblob = salt;
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index)
 {
 	static char out[TOTAL_LENGTH + 1];
 	char *data;

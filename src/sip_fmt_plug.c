@@ -59,7 +59,6 @@ static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned char *cracked;
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
-static login_t *login = NULL;
 
 static void init(struct fmt_main *self)
 {
