@@ -135,7 +135,7 @@ static void * binary(char *ciphertext) {
 	return (void *)realcipher;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int len;
 

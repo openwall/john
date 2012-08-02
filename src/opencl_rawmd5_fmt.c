@@ -158,7 +158,7 @@ static void find_best_kpc(void){
 	create_clobj(optimal_kpc);
 }
 
-static void fmt_MD5_init(struct fmt_main *pFmt) {
+static void fmt_MD5_init(struct fmt_main *self) {
 	char *kpc;
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
@@ -168,7 +168,7 @@ static void fmt_MD5_init(struct fmt_main *pFmt) {
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
 		create_clobj(MD5_NUM_KEYS);
-		opencl_find_best_workgroup(pFmt);
+		opencl_find_best_workgroup(self);
 		release_clobj();
 	}else {
 		local_work_size = atoi(kpc);
@@ -188,10 +188,10 @@ static void fmt_MD5_init(struct fmt_main *pFmt) {
 		}
 	}
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
-	pFmt->params.max_keys_per_crypt = max_keys_per_crypt;
+	self->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt) {
+static int valid(char *ciphertext, struct fmt_main *self) {
 	char *p, *q;
 	p = ciphertext;
 	if (!strncmp(p, "$MD5$", 5))
@@ -358,7 +358,8 @@ struct fmt_main fmt_opencl_rawMD5 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-	tests}, {
+		tests
+	}, {
 		fmt_MD5_init,
 		fmt_default_prepare,
 		valid,
@@ -366,13 +367,14 @@ struct fmt_main fmt_opencl_rawMD5 = {
 		get_binary,
 		fmt_default_salt,
 		{
-		binary_hash_0,
-		binary_hash_1,
-		binary_hash_2,
-		binary_hash_3,
-		binary_hash_4,
-		binary_hash_5,
-		binary_hash_6},
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
 		fmt_default_salt_hash,
 		set_salt,
 		set_key,
@@ -380,14 +382,16 @@ struct fmt_main fmt_opencl_rawMD5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-		get_hash_0,
-		get_hash_1,
-		get_hash_2,
-		get_hash_3,
-		get_hash_4,
-		get_hash_5,
-		get_hash_6},
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
 		cmp_all,
 		cmp_one,
-	cmp_exact}
+		cmp_exact
+	}
 };

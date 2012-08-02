@@ -221,6 +221,13 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 			char *cp2 = *(char**)(salt->salt);
 			memcpy(cp+12+64+1, cp2+6, 2);
 		}
+		else if (options.regen_lost_salts == 6)
+		{
+			// formspring sha256($s.$p), $dynamic_61$, where $s is ?d?d (2 digits).
+			char *cp = pw->source;
+			char *cp2 = *(char**)(salt->salt);
+			memcpy(cp+12+64+1, cp2+6, 2);
+		}
 	}
 	log_guess(crk_db->options->flags & DB_LOGIN ? replogin : "?",
 		dupe ? NULL : pw->source, repkey, key, crk_db->options->field_sep_char);

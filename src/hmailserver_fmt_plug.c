@@ -61,7 +61,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static SHA256_CTX ctx;
 static ARCH_WORD_32 crypt_out[8] = {0}; // 8 * 32 = 256
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
     int i;
 

@@ -48,7 +48,7 @@ static struct fmt_tests tests[] = {
 struct fmt_main fmt_LM;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	DES_bs_init(1, DES_bs_cpt);
 #if DES_bs_mt
@@ -57,7 +57,14 @@ static void init(struct fmt_main *pFmt)
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	if (fields[2] && strlen(fields[2]) == 32)
+		return fields[2];
+	return fields[1];
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 	char lower[CIPHERTEXT_LENGTH - 16 + 1];
@@ -78,16 +85,6 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (*pos || pos - ciphertext != 20) return 0;
 
 	return 1;
-}
-
-// here to 'handle' the pwdump files:  user:uid:lmhash:ntlmhash:::
-// Note, we address the user id inside loader.
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
-{
-	if (!valid(split_fields[1], pFmt) &&
-	    split_fields[2] && valid(split_fields[2], pFmt))
-		return split_fields[2];
-	return split_fields[1];
 }
 
 static char *split(char *ciphertext, int index)
@@ -116,7 +113,7 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	return DES_bs_get_binary_LM(ciphertext + 4);
 }
@@ -163,7 +160,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return DES_bs_cmp_one(get_binary(source), 64, index);
+	return DES_bs_cmp_one(binary(source), 64, index);
 }
 
 static char *get_key(int index)
@@ -207,7 +204,7 @@ struct fmt_main fmt_LM = {
 		prepare,
 		valid,
 		split,
-		get_binary,
+		binary,
 		fmt_default_salt,
 		{
 			binary_hash_0,

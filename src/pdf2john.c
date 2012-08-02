@@ -24,8 +24,9 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#ifndef _MSC_VER
 #include <unistd.h>
-
+#endif
 #include "common.h"
 
 #include "pdfparser.h"
@@ -46,6 +47,33 @@ static void printHelp(char *progname)
 	    "-v, --version\t\tPrint version and exit\n", progname);
 }
 
+#ifdef _MSC_VER
+// Horrible getopt, but 'good enough' to get VC working to help ease debugging.
+// WOrked for me (JimF). If not good enough for some otehr VC user, then fix it ;)
+char *optarg;
+int optind = 1;
+int getopt(int argc, char **argv, char *ignore) {
+	static int arg = 1;
+	char *cp, ret;
+	if (optind == argc) return -1;
+	cp = argv[optind];
+	if (*cp == '-') ++cp;
+	if (*cp == '-') ++cp;
+	ret = *cp;
+	if (*cp == 'p') {
+		if (!strncmp(cp, "password=", 9)) {
+			optarg = &cp[9];
+		} else {
+			optarg = argv[++optind];
+		}
+	}
+	if (ret != 'v' && ret != 'o' && ret != 'v')
+		return -1;
+	++optind;
+	return ret;
+}
+#endif
+
 int pdf2john(int argc, char **argv)
 {
 	int ret = 0;
@@ -55,6 +83,8 @@ int pdf2john(int argc, char **argv)
 	char *inputfile = NULL;
 	unsigned char *p;
 	struct custom_salt cs;
+
+	// cs MUST be memset, or later pointer checks are used against random stack memory (i.e. uninitialze pointers)
 	memset(&cs, 0, sizeof(cs));
 	cs.e.work_with_user = true;
 	cs.e.have_userpassword = false;

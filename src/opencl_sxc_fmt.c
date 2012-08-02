@@ -93,7 +93,7 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
 }
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 
@@ -113,9 +113,9 @@ static void init(struct fmt_main *pFmt)
 			inbuffer[i].length = 0;
 	}
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
 	opencl_init("$JOHN/odf_kernel.cl", gpu_id, platform_id);
@@ -141,12 +141,12 @@ static void init(struct fmt_main *pFmt)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	atexit(release_all);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$sxc$", 5);
 }

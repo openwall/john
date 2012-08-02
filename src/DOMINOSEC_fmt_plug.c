@@ -264,7 +264,7 @@ static void domino_big_md(unsigned char * saved_key, int size, unsigned char * c
 	memcpy(crypt_key, state, 16);
 }
 
-static int dominosec_valid(char *ciphertext, struct fmt_main *pFmt)
+static int dominosec_valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned char ch;

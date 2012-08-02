@@ -74,7 +74,7 @@ static struct {
 struct fmt_main fmt_DES;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	DES_bs_init(0, DES_bs_cpt);
 #if DES_bs_mt
@@ -85,7 +85,7 @@ static void init(struct fmt_main *pFmt)
 
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 

@@ -69,21 +69,21 @@ static struct fmt_tests mysql_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
 
-static void mysql_init(struct fmt_main *pFmt)
+static void mysql_init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
 	if (omp_t > 1) {
-		pFmt->params.min_keys_per_crypt *= omp_t;
+		self->params.min_keys_per_crypt *= omp_t;
 		omp_t *= OMP_SCALE;
-		pFmt->params.max_keys_per_crypt *= omp_t;
+		self->params.max_keys_per_crypt *= omp_t;
 	}
 #endif
-	saved_key = mem_alloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
-	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+	saved_key = mem_alloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
+	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 }
 
-static int mysql_valid(char* ciphertext, struct fmt_main *pFmt)
+static int mysql_valid(char* ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 

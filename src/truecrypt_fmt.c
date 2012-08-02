@@ -37,36 +37,36 @@ static unsigned char* salt_buffer;
 static const EVP_MD* md = NULL;
 static int num_iterations;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	/* OpenSSL init, cleanup part is left to OS */
 	//SSL_load_error_strings();
 	//SSL_library_init();
 	OpenSSL_add_all_algorithms();
 }
-static void init_ripemd160(struct fmt_main *pFmt)
+static void init_ripemd160(struct fmt_main *self)
 {
-	init(pFmt);
+	init(self);
 
 	md = EVP_get_digestbyname("RIPEMD160");
 	num_iterations = 2000;
 }
-static void init_sha512(struct fmt_main *pFmt)
+static void init_sha512(struct fmt_main *self)
 {
-	init(pFmt);
+	init(self);
 
 	md = EVP_get_digestbyname("SHA512");
 	num_iterations = 1000;
 }
-static void init_whirlpool(struct fmt_main *pFmt)
+static void init_whirlpool(struct fmt_main *self)
 {
-	init(pFmt);
+	init(self);
 
 	md = EVP_get_digestbyname("whirlpool");
 	num_iterations = 1000;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	return split_fields[1];
 }
@@ -98,7 +98,7 @@ static int valid(char* ciphertext, int pos)
 
 	return 1;
 }
-static int valid_ripemd160(char* ciphertext, struct fmt_main *pFmt)
+static int valid_ripemd160(char* ciphertext, struct fmt_main *self)
 {
 	// Not a supported hashing
 	if (strncmp(ciphertext, "truecrypt_RIPEMD_160$", 21))
@@ -106,7 +106,7 @@ static int valid_ripemd160(char* ciphertext, struct fmt_main *pFmt)
 
 	return valid(ciphertext, 21);
 }
-static int valid_sha512(char* ciphertext, struct fmt_main *pFmt)
+static int valid_sha512(char* ciphertext, struct fmt_main *self)
 {
 	// Not a supported hashing
 	if (strncmp(ciphertext, "truecrypt_SHA_512$", 18))
@@ -114,7 +114,7 @@ static int valid_sha512(char* ciphertext, struct fmt_main *pFmt)
 
 	return valid(ciphertext, 18);
 }
-static int valid_whirlpool(char* ciphertext, struct fmt_main *pFmt)
+static int valid_whirlpool(char* ciphertext, struct fmt_main *self)
 {
 	// Not a supported hashing
 	if (strncmp(ciphertext, "truecrypt_WHIRLPOOL$", 20))

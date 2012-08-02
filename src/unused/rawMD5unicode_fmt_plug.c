@@ -123,7 +123,7 @@ static unsigned char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1 + 128 /*
 static unsigned int saved_key_len[MAX_KEYS_PER_CRYPT];
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -140,7 +140,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 static void rawmd5_set_key_enc(char *_key, int index);
 extern struct fmt_main fmt_rawMD5unicode;
 
-static void rawmd5_init(struct fmt_main *pFmt)
+static void rawmd5_init(struct fmt_main *self)
 {
 	if (options.utf8) {
 		fmt_rawMD5unicode.methods.set_key = rawmd5_set_key_enc;

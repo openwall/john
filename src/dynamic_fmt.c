@@ -1,27 +1,32 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
+ * Generic 'scriptable' hash cracker for JtR
+ *
+ * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
+ * at the present time.  More crypt types 'may' be added later.
+ *
  * There used to be a todo list, and other commenting here. It has been
  * moved to ./docs/dynamic_history.txt
  *
  * KNOWN issues, and things to do.
  *
- *   1. MD5 and MD4 MUST both be using same SSE_PARA values, and built the 
+ *   1. MD5 and MD4 MUST both be using same SSE_PARA values, and built the
  *      same (I think).  If not, then MD4 should fall back to X86 mode.
  *   2. Add more crypt types, using the SHA1 'model'.  Currently, all
  *      sha2 crypts have been added (sha224, sha256, sha384, sha512).
  *      others could be any from oSSL, or any that we can get hash files
  *      for (such as GOST, IDA, IDEA, AES, CAST, Whirlpool, etc, etc)
- *   3. create a new optimize flag, MGF_PASS_AFTER_FIXEDSALT and 
+ *   3. create a new optimize flag, MGF_PASS_AFTER_FIXEDSALT and
  *      MGF_PASS_BEFORE_FIXEDSALT.  Then create DynamicFunc__appendsalt_after_pass[12]
  *      These would only be valid for a FIXED length salted format. Then
  *      we can write the pass right into the buffer, and get_key() would read
@@ -40,7 +45,7 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 	NULL
 };
 
-WELL, the fixed size salt, it 'may' not be key for the MGF_PASS_BEFORE_FIXEDSALT, I think I can 
+WELL, the fixed size salt, it 'may' not be key for the MGF_PASS_BEFORE_FIXEDSALT, I think I can
 make that 'work' for variable sized salts.  But for the MGF_PASS_AFTER_FIXEDSALT, i.e. crypt($s.$p)
 the fixed size salt IS key.  I would like to store all PW's at salt_len offset in the buffer, and
 simply overwrite the first part of each buffer with the salt, never moving the password after the
@@ -6386,6 +6391,29 @@ void DynamicFunc__base16_convert_upcase() {
  **************************************************************
  **************************************************************/
 
+// NOTE, cpo must be at least in_byte_cnt*2+1 bytes of buffer
+static inline unsigned char *hex_out_buf(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
+	int j;
+	for (j = 0; j < in_byte_cnt; ++j) {
+		*cpo++ = md5gen_itoa16[*cpi>>4];
+		*cpo++ = md5gen_itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return cpo; // returns pointer TO the null byte, not past it.
+
+}
+// NOTE, cpo must be at least in_byte_cnt*2 bytes of buffer
+static inline unsigned char *hex_out_buf_no_null(unsigned char *cpi, unsigned char *cpo, int in_byte_cnt) {
+	int j;
+	for (j = 0; j < in_byte_cnt; ++j) {
+		*cpo++ = md5gen_itoa16[*cpi>>4];
+		*cpo++ = md5gen_itoa16[*cpi&0xF];
+		++cpi;
+	}
+	return cpo;
+}
+
 #ifdef MMX_COEF
 void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_KEYS_PER_CRYPT_X86],
 					MD5_IN out[MAX_KEYS_PER_CRYPT_X86]  , unsigned int olen[MAX_KEYS_PER_CRYPT_X86], int append)
@@ -6511,9 +6539,9 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6538,13 +6566,7 @@ void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 			cpo = (unsigned char *)&(input_buf2_X86[i>>MD5_X2].x1.b[total_len2_X86[i]]);
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		*cpo = 0;
+		hex_out_buf(crypt_out, cpo, 20);
 		total_len2_X86[i] += 40;
 	}
 	if (switchback==1) {
@@ -6554,9 +6576,9 @@ void DynamicFunc__SHA1_crypt_input1_append_input2_base16()
 void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6581,13 +6603,7 @@ void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 			cpo = (unsigned char *)&(input_buf_X86[i>>MD5_X2].x1.b[total_len_X86[i]]);
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		*cpo = 0;
+		hex_out_buf(crypt_out, cpo, 20);
 		total_len_X86[i] += 40;
 	}
 	if (switchback==1) {
@@ -6597,9 +6613,9 @@ void DynamicFunc__SHA1_crypt_input2_append_input1_base16()
 void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6623,13 +6639,8 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		memset(cpo, 0, 16);
+		cpo = hex_out_buf_no_null(crypt_out, cpo, 20);
+		//memset(cpo, 0, 16);
 		total_len_X86[i] = 40;
 	}
 	if (switchback==1) {
@@ -6639,9 +6650,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16()
 void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input1();
@@ -6665,13 +6676,8 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		memset(cpo, 0, 16);
+		cpo = hex_out_buf_no_null(crypt_out, cpo, 20);
+		//memset(cpo, 0, 16);
 		total_len2_X86[i] = 40;
 	}
 	if (switchback==1) {
@@ -6681,9 +6687,9 @@ void DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16()
 void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input2();
@@ -6707,13 +6713,8 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 			cpo = (unsigned char *)input_buf_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		memset(cpo, 0, 16);
+		cpo = hex_out_buf_no_null(crypt_out, cpo, 20);
+		//memset(cpo, 0, 16);
 		total_len_X86[i] = 40;
 	}
 	if (switchback==1) {
@@ -6723,9 +6724,9 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16()
 void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 {
 	union xx { unsigned char u[20]; ARCH_WORD a[20/sizeof(ARCH_WORD)]; } u;
-	unsigned char *crypt_out=u.u, *cpi, *cpo;
+	unsigned char *crypt_out=u.u, *cpo;
 	int switchback=dynamic_use_sse;
-	int i, j;
+	int i;
 
 	if (dynamic_use_sse == 1) {
 		DynamicFunc__SSEtoX86_switch_input2();
@@ -6749,13 +6750,7 @@ void DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16()
 			cpo = (unsigned char *)input_buf2_X86[i>>MD5_X2].x1.b;
 		}
 		SHA1_Final(crypt_out, &sha_ctx);
-		cpi = crypt_out;
-		for (j = 0; j < 20; ++j) {
-			*cpo++ = md5gen_itoa16[*cpi>>4];
-			*cpo++ = md5gen_itoa16[*cpi&0xF];
-			++cpi;
-		}
-		*cpo = 0;
+		hex_out_buf_no_null(crypt_out, cpo, 20);
 		total_len2_X86[i] = 40;
 	}
 	if (switchback==1) {

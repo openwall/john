@@ -95,8 +95,6 @@ extern struct fmt_main fmt_crypt;
 extern struct fmt_main fmt_trip;
 extern struct fmt_main fmt_dummy;
 
-extern struct fmt_main fmt_MD5gen;
-
 #if OPENSSL_VERSION_NUMBER >= 0x10000000
 extern struct fmt_main fmt_django;
 #endif
@@ -180,11 +178,11 @@ extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
-extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
 #endif
+extern int pdf2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 
 static struct db_main database;
@@ -203,14 +201,14 @@ static void john_register_one(struct fmt_main *format)
 static void john_register_all(void)
 {
 	int i, cnt;
-	struct fmt_main *pFmts;
+	struct fmt_main *selfs;
 
 	if (options.format) strlwr(options.format);
 
 	// NOTE, this MUST happen, before ANY format that links a 'thin' format to dynamic.
 	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
 	// generic format first
-	cnt = dynamic_Register_formats(&pFmts);
+	cnt = dynamic_Register_formats(&selfs);
 
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
@@ -220,7 +218,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_LM);
 
 	for (i = 0; i < cnt; ++i)
-		john_register_one(&(pFmts[i]));
+		john_register_one(&(selfs[i]));
 
 #include "fmt_registers.h"
 
@@ -1313,11 +1311,6 @@ int main(int argc, char **argv)
 		return keepass2john(argc, argv);
 	}
 
- 	if (!strcmp(name, "pdf2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pdf2john(argc, argv);
-	}
-
 	if (!strcmp(name, "rar2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return rar2john(argc, argv);
@@ -1340,6 +1333,11 @@ int main(int argc, char **argv)
 		return mozilla2john(argc, argv);
 	}
 #endif
+
+ 	if (!strcmp(name, "pdf2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return pdf2john(argc, argv);
+	}
 
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);

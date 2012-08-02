@@ -58,7 +58,7 @@ static void release_all(void)
 }
 
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 
@@ -79,7 +79,7 @@ static void init(struct fmt_main *pFmt)
  */
 	{
 		int i;
-		for (i = 0; i < pFmt->params.max_keys_per_crypt; i++)
+		for (i = 0; i < self->params.max_keys_per_crypt; i++)
 			inbuffer[i].length = 0;
 	}
 
@@ -107,7 +107,7 @@ static void init(struct fmt_main *pFmt)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	atexit(release_all);
 }
@@ -142,48 +142,51 @@ static void crypt_all(int count)
 
 struct fmt_main fmt_opencl_wpapsk = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT | FMT_OMP,
-	    tests},
-	{
-		    init,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    binary,
-		    salt,
-		    {
-				binary_hash_0,
-				binary_hash_1,
-				binary_hash_2,
-				binary_hash_3,
-				binary_hash_4,
-				binary_hash_5,
-			binary_hash_6},
-		    fmt_default_salt_hash,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
-				get_hash_4,
-				get_hash_5,
-			get_hash_6},
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact}
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

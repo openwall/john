@@ -58,14 +58,14 @@ static SHA512_CTX ctx_salt;
 static ARCH_WORD_32 saved_salt;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 
@@ -79,13 +79,13 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return !*pos && pos - ciphertext == CIPHERTEXT_LENGTH+6;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
+static char *prepare(char *split_fields[10], struct fmt_main *self) {
 	char Buf[200];
 	if (!strncmp(split_fields[1], "$LION$", 6))
 		return split_fields[1];
 	if (split_fields[0] && strlen(split_fields[0]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[0]);
-		if (valid(Buf, pFmt)) {
+		if (valid(Buf, self)) {
 			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
 			return cp;
@@ -93,7 +93,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	}
 	if (strlen(split_fields[1]) == CIPHERTEXT_LENGTH) {
 		sprintf(Buf, "$LION$%s", split_fields[1]);
-		if (valid(Buf, pFmt)) {
+		if (valid(Buf, self)) {
 			char *cp = mem_alloc_tiny(CIPHERTEXT_LENGTH+7, MEM_ALIGN_NONE);
 			strcpy(cp, Buf);
 			return cp;

@@ -80,7 +80,7 @@ static ARCH_WORD_32 crypt_key[DIGEST_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 

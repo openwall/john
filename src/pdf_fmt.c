@@ -72,22 +72,22 @@ static struct fmt_tests pdf_tests[] = {
 	{NULL}
 };
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	any_cracked = 0;
-	cracked_size = sizeof(*cracked) * pFmt->params.max_keys_per_crypt;
+	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$pdf$", 5);
 }

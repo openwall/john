@@ -301,7 +301,8 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 	p->offex = 30 + filename_length + extrafield_length;
 
 	// we only handle implode or store.
-	if ( (version == 0x14||version==0xA) && (flags & 1) && (p->cmptype == 8 || p->cmptype == 0)) {
+	// 0x314 was seen at 2012 CMIYC ?? I have to look into that one.
+	if ( (version == 0x14||version==0xA||version == 0x314) && (flags & 1) && (p->cmptype == 8 || p->cmptype == 0)) {
 		uint16_t extra_len_used = 0;
 		if (flags & 8) {
 			while (extra_len_used < extrafield_length) {

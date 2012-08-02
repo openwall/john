@@ -110,7 +110,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static int dmd5_valid(char *ciphertext, struct fmt_main *pFmt)
+static int dmd5_valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned char *c = (unsigned char *)ciphertext + 12;
 	unsigned char f = 0;

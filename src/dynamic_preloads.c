@@ -1,18 +1,18 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
- * Generic MD5 hashes cracker
+ * Generic 'scriptable' hash cracker for JtR
  *
- * Preloaded types md5gen(0) to md5gen(100) are 'reserved' types.
+ * Preloaded types dynamic_0 to dynamic_999 are 'reserved' types.
  * They are loaded from this file. If someone tryes to build a 'custom'
  * type in their john.ini file using one of those, john will abort
  * the run.
@@ -74,6 +74,10 @@
 //dynamic_32 --> md4($p.$s)
 //dynamic_33 --> md4(unicode($p))			// NT
 //dynamic_34 --> md5(md4($p))
+//dynamic_35 -->sha1(uc($u).:.$p) (ManGOS)
+//dynamic_36 -->sha1($u.:.$p) (ManGOS2)
+//dynamic_37 -->sha1(lc($u).$p) (SMF)
+//dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB)
 
 static DYNAMIC_primitive_funcp _Funcs_0[] =
 {
@@ -1407,16 +1411,16 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 	return dynamic_SETUP(&Setups[cnt], pFmt);
 }
 
-// -1 is NOT valid
+// -1 is NOT valid  ( num > 5000 is 'hidden' values )
 // 0 is valid, but NOT usable by this build (i.e. no SSE2)
 // 1 is valid.
 int dynamic_IS_VALID(int i)
 {
 	char Type[20];
 	sprintf(Type, "dynamic_%d", i);
-	if (i < 0 || (i > 100 && i < 1000) || i > 2000)
+	if (i < 0 || i > 5000)
 		return -1;
-	if (i < 1000 && i >= ARRAY_COUNT(Setups)) {
+	if (i < 1000) {
 		int j,len;
 		len=strlen(Type);
 		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
@@ -1425,11 +1429,7 @@ int dynamic_IS_VALID(int i)
 		}
 		return -1;
 	}
-	if (i >= 1000) {
-		if (!dynamic_IS_PARSER_VALID(i))
-			return 0;
-		return 1;
-	}
-
+	if (!dynamic_IS_PARSER_VALID(i))
+		return 0;
 	return 1;
 }

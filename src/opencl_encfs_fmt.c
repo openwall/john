@@ -239,7 +239,7 @@ static int streamDecode(unsigned char *buf, int size,
 	return 1;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 
@@ -260,7 +260,7 @@ static void init(struct fmt_main *pFmt)
 	}
 
 	any_cracked = 0;
-	cracked_size = sizeof(*cracked) * pFmt->params.max_keys_per_crypt;
+	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
@@ -287,12 +287,12 @@ static void init(struct fmt_main *pFmt)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	atexit(release_all);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$encfs$", 5);
 }

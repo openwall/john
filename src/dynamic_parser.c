@@ -1,30 +1,30 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
- * Generic MD5 hashes cracker
+ * Generic 'scriptable' hash cracker for JtR
  *
  * This file implements code that allows 'dynamic' building of
  * generic MD5 functions.  john.conf is used to store the 'script'
  * and supporting data (like the expression, or 'flags' needed to
  * make the format work).
  *
- * To make this work, you simply add a "section" to the john.conf
- * file of this format:
+ * To make this work, you simply add a "section" to the dynamic.conf,
+ * or better yet, to the john.local.conf file of this format:
  *
  *  [List.Generic:dynamic_NUM   ( [List.Generic:md5_gen(NUM)] depricated but 'works')
  *
- * Num has to be replaced with a number, greater than 1000, since
- * dynamic_0 to dynamic_1000 are reserved for 'built-in' and any
- * user defined dynamic_# functions need to start at 1001 or more.
+ * Num has to be replaced with a number, greater than 999, since
+ * dynamic_0 to dynamic_999 are reserved for 'built-in' and any
+ * user defined dynamic_# functions need to start at 1000 or more.
  *
  * Then under the new section, add the script.  There are 2 required
  * data types, and 2 optional.  The required are a list of Func=
@@ -36,16 +36,16 @@
  * [List.Generic:dynamic_1001]
  * Expression=md5(md5(md5(md5($p))))
  * Flag=MGF_KEYS_INPUT
- * Func=DynamicFunc__crypt
+ * Func=DynamicFunc__crypt_md5
  * Func=DynamicFunc__clean_input2
  * Func=DynamicFunc__append_from_last_output_to_input2_as_base16
- * Func=DynamicFunc__crypt2
+ * Func=DynamicFunc__crypt2_md5
  * Func=DynamicFunc__clean_input2_kwik
  * Func=DynamicFunc__append_from_last_output2_as_base16
- * Func=DynamicFunc__crypt2
+ * Func=DynamicFunc__crypt2_md5
  * Func=DynamicFunc__clean_input2_kwik
  * Func=DynamicFunc__append_from_last_output2_as_base16
- * Func=DynamicFunc__crypt_in2_to_out1
+ * Func=DynamicFunc__crypt_md5_in2_to_out1
  * Test=$dynamic_1001$57200e13b490d4ae47d5e19be026b057:test1
  * Test=$dynamic_1001$c6cc44f9e7fb7efcde62ba2e627a49c6:thatsworking
  * Test=$dynamic_1001$0ae9549604e539a249c1fa9f5e5fb73b:test3
@@ -72,20 +72,20 @@
 #define DEFINE_MD5_PREDICATE_POINTERS
 #include "dynamic.h"
 
-typedef struct MD5Gen_Predicate_t
+typedef struct Dynamic_Predicate_t
 {
 	char *name;
 	void(*func)();
-} MD5Gen_Predicate_t;
+} Dynamic_Predicate_t;
 
-typedef struct MD5Gen_Str_Flag_t
+typedef struct Dynamic_Str_Flag_t
 {
 	char *name;
 	unsigned flag_bit;
-} MD5Gen_Str_Flag_t;
+} Dynamic_Str_Flag_t;
 
 
-static MD5Gen_Predicate_t MD5Gen_Predicate[] =  {
+static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__clean_input",  DynamicFunc__clean_input },
 	{ "DynamicFunc__clean_input_kwik", DynamicFunc__clean_input_kwik },
 	{ "DynamicFunc__clean_input_full", DynamicFunc__clean_input_full },
@@ -349,7 +349,7 @@ static MD5Gen_Predicate_t MD5Gen_Predicate[] =  {
 
 	{ NULL, NULL }};
 
-static MD5Gen_Str_Flag_t MD5Gen_Str_Flag[] =  {
+static Dynamic_Str_Flag_t Dynamic_Str_Flag[] =  {
 	{ "MGF_NOTSSE2Safe",                  MGF_NOTSSE2Safe },
 	{ "MGF_StartInX86Mode",               MGF_StartInX86Mode },
 	{ "MGF_ColonNOTValid",                MGF_ColonNOTValid },
@@ -383,7 +383,7 @@ static MD5Gen_Str_Flag_t MD5Gen_Str_Flag[] =  {
 	{ "MGF_FULL_CLEAN_REQUIRED",          MGF_FULL_CLEAN_REQUIRED },
 	{ NULL, 0 }};
 
-static MD5Gen_Str_Flag_t MD5Gen_Str_sFlag[] =  {
+static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_KEYS_INPUT",                   MGF_KEYS_INPUT },
 	{ "MGF_KEYS_CRYPT_IN2",               MGF_KEYS_CRYPT_IN2 },
 	{ "MGF_KEYS_BASE16_IN1",              MGF_KEYS_BASE16_IN1 },
@@ -535,11 +535,11 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	if (c == 'f' && !strncasecmp(Line, "Func=", 5))
 	{
 		int i;
-		for (i = 0; MD5Gen_Predicate[i].name; ++i)
+		for (i = 0; Dynamic_Predicate[i].name; ++i)
 		{
-			if (!strcmp(MD5Gen_Predicate[i].name, &Line[5]))
+			if (!strcmp(Dynamic_Predicate[i].name, &Line[5]))
 			{
-				pSetup->pFuncs[nFuncCnt++] = MD5Gen_Predicate[i].func;
+				pSetup->pFuncs[nFuncCnt++] = Dynamic_Predicate[i].func;
 				return 1;
 			}
 		}
@@ -548,19 +548,19 @@ int dynamic_LOAD_PARSER_FUNCTIONS_LoadLINE(struct cfg_line *_line)
 	if (c == 'f' && !strncasecmp(Line, "Flag=", 5))
 	{
 		int i;
-		for (i = 0; MD5Gen_Str_Flag[i].name; ++i)
+		for (i = 0; Dynamic_Str_Flag[i].name; ++i)
 		{
-			if (!strcmp(MD5Gen_Str_Flag[i].name, &Line[5]))
+			if (!strcmp(Dynamic_Str_Flag[i].name, &Line[5]))
 			{
-				pSetup->flags |= MD5Gen_Str_Flag[i].flag_bit;
+				pSetup->flags |= Dynamic_Str_Flag[i].flag_bit;
 				return 1;
 			}
 		}
-		for (i = 0; MD5Gen_Str_sFlag[i].name; ++i)
+		for (i = 0; Dynamic_Str_sFlag[i].name; ++i)
 		{
-			if (!strcmp(MD5Gen_Str_sFlag[i].name, &Line[5]))
+			if (!strcmp(Dynamic_Str_sFlag[i].name, &Line[5]))
 			{
-				pSetup->startFlags |= MD5Gen_Str_sFlag[i].flag_bit;
+				pSetup->startFlags |= Dynamic_Str_sFlag[i].flag_bit;
 				return 1;
 			}
 		}

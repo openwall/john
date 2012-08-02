@@ -62,22 +62,22 @@ static unsigned char (*EncKey)[PLAINTEXT_LENGTH + 1];
 static unsigned int *EncKeyLen;
 static char (*crypt_key)[DIGEST_SIZE];
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
 	int omp_t;
 
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	EncKey = mem_calloc_tiny(sizeof(*EncKey) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	EncKeyLen = mem_calloc_tiny(sizeof(*EncKeyLen) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	EncKey = mem_calloc_tiny(sizeof(*EncKey) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	EncKeyLen = mem_calloc_tiny(sizeof(*EncKeyLen) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	unsigned count_log2;

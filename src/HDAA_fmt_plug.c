@@ -134,30 +134,30 @@ static unsigned char (*crypt_key)[BINARY_SIZE + 1];
 /* Store information about the request ()*/
 static reqinfo_t *rinfo = NULL;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	int i;
 #endif
 #if defined (_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 #ifdef MMX_COEF
 	for (i = 0; i < LIMBS; i++)
-		saved_key[i] = mem_calloc_tiny(64 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	interm_key = mem_calloc_tiny(16 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(16 * pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+		saved_key[i] = mem_calloc_tiny(64 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	interm_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 #else
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int nb = 0;
 	int i;

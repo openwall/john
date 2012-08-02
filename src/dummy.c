@@ -40,7 +40,7 @@ static struct fmt_tests tests[] = {
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 static int warned = 0;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, c;
 

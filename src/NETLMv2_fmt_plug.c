@@ -116,7 +116,7 @@ static unsigned char *challenge;
 
 #include "byteorder.h"
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
@@ -124,19 +124,19 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
+	self->params.min_keys_per_crypt = n;
 	n = n * n * ((n >> 1) + 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	self->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int netlmv2_valid(char *ciphertext, struct fmt_main *pFmt)
+static int netlmv2_valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos, *pos2;
 
@@ -180,7 +180,7 @@ static int netlmv2_valid(char *ciphertext, struct fmt_main *pFmt)
   return 1;
 }
 
-static char *netlmv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *netlmv2_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *srv_challenge = split_fields[3];
 	char *nethashv2     = split_fields[4];
@@ -218,7 +218,7 @@ static char *netlmv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	sprintf(tmp, "$NETLMv2$%s$%s$%s$%s", identity, srv_challenge, nethashv2, cli_challenge);
 	MEM_FREE(identity);
 
-	if (netlmv2_valid(tmp, pFmt)) {
+	if (netlmv2_valid(tmp, self)) {
 		char *cp = str_alloc_copy(tmp);
 		MEM_FREE(tmp);
 		return cp;
@@ -448,48 +448,48 @@ static int get_hash_4(int index)
 }
 
 struct fmt_main fmt_NETLMv2 = {
-  {
-    FORMAT_LABEL,
-    FORMAT_NAME,
-    ALGORITHM_NAME,
-    BENCHMARK_COMMENT,
-    BENCHMARK_LENGTH,
-    PLAINTEXT_LENGTH,
-    BINARY_SIZE,
-    SALT_SIZE,
-    MIN_KEYS_PER_CRYPT,
-    MAX_KEYS_PER_CRYPT,
-    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
-    tests
-  }, {
-    init,
-	netlmv2_prepare,
-    netlmv2_valid,
-    netlmv2_split,
-    netlmv2_get_binary,
-    netlmv2_get_salt,
-    {
-	    binary_hash_0,
-	    binary_hash_1,
-	    binary_hash_2,
-	    binary_hash_3,
-	    binary_hash_4
-    },
-    salt_hash,
-    netlmv2_set_salt,
-    netlmv2_set_key,
-    netlmv2_get_key,
-    fmt_default_clear_keys,
-    netlmv2_crypt_all,
-    {
-	    get_hash_0,
-	    get_hash_1,
-	    get_hash_2,
-	    get_hash_3,
-	    get_hash_4
-    },
-    netlmv2_cmp_all,
-    netlmv2_cmp_one,
-    netlmv2_cmp_exact
-  }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+		tests
+	}, {
+		init,
+		netlmv2_prepare,
+		netlmv2_valid,
+		netlmv2_split,
+		netlmv2_get_binary,
+		netlmv2_get_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4
+		},
+		salt_hash,
+		netlmv2_set_salt,
+		netlmv2_set_key,
+		netlmv2_get_key,
+		fmt_default_clear_keys,
+		netlmv2_crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4
+		},
+		netlmv2_cmp_all,
+		netlmv2_cmp_one,
+		netlmv2_cmp_exact
+	}
 };

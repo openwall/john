@@ -159,16 +159,16 @@ char *fmt_self_test(struct fmt_main *format)
 	return NULL;
 }
 
-void fmt_default_init(struct fmt_main *pFmt)
+void fmt_default_init(struct fmt_main *self)
 {
 }
 
-char *fmt_default_prepare(char *split_fields[10], struct fmt_main *pFmt)
+char *fmt_default_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	return split_fields[1];
 }
 
-int fmt_default_valid(char *ciphertext, struct fmt_main *pFmt)
+int fmt_default_valid(char *ciphertext, struct fmt_main *self)
 {
 	return 0;
 }

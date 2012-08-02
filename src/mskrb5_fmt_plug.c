@@ -102,7 +102,7 @@ static unsigned char *saltblob = NULL;
 #define CHECKSUM  saltblob
 #define TIMESTAMP &saltblob[CHECKSUM_SIZE]
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
@@ -110,16 +110,16 @@ static void init(struct fmt_main *pFmt)
 		n = MIN_KEYS_PER_CRYPT;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.min_keys_per_crypt = n;
+	self->params.min_keys_per_crypt = n;
 	n = n * (n << 1) * THREAD_RATIO;
 	if (n > MAX_KEYS_PER_CRYPT)
 		n = MAX_KEYS_PER_CRYPT;
-	pFmt->params.max_keys_per_crypt = n;
+	self->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	output = mem_calloc_tiny(sizeof(*output) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	if (options.utf8) {
 		tests[1].plaintext = "\xC3\xBC"; // German u-umlaut in UTF-8
@@ -226,7 +226,7 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *data = ciphertext, *p;
 

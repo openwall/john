@@ -1,16 +1,16 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
- * Generic MD5 hashes cracker
+ * Generic 'scriptable' hash cracker for JtR
  *
  * Interface functions and data structures required to make this
  * work, since it is split over multiple .c source files.
@@ -126,8 +126,6 @@ void dynamic_DISPLAY_ALL_FORMATS();
 struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);
 int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext);
 
-// We need access to this global to get functions and data which we 'link' to
-//extern struct fmt_main fmt_MD5gen;
 int dynamic_Register_formats(struct fmt_main **ptr);
 
 int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt);

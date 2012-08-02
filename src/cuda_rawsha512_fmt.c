@@ -63,7 +63,7 @@ static uint64_t H[8] = {
 	0x5be0cd19137e2179LL
 };
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cuda_sha512_init();
 }
@@ -75,7 +75,7 @@ static void copy_hash_back()
         hash_copy_back = 1;
     }
 }
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos = ciphertext;
 	/* Require lowercase hex digits (assume ASCII) */

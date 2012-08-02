@@ -12,6 +12,9 @@ extern "C" {
 #endif
 
 /* if x86 compatible cpu */
+	// NOTE, we should get this from johnswap.h, but I have not done so 'yet'
+	// A lot (all??) of the swapping code should also come from johnswap.h
+#if !defined (CPU_X64) && !defined (CPU_IA32)
 #if defined(i386) || defined(__i386__) || defined(__i486__) || \
 	defined(__i586__) || defined(__i686__) || defined(__pentium__) || \
 	defined(__pentiumpro__) || defined(__pentium4__) || \
@@ -27,6 +30,7 @@ extern "C" {
 # else
 #  define CPU_IA32
 # endif
+#endif
 #endif
 
 #if defined(__GNUC__) && defined(CPU_IA32) && !defined(RHASH_NO_ASM)

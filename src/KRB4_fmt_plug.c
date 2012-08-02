@@ -102,7 +102,7 @@ static struct key_st {
 
 
 static int
-krb4_valid(char *ciphertext, struct fmt_main *pFmt)
+krb4_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *tgt;
 

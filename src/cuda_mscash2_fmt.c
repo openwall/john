@@ -70,7 +70,7 @@ static void cleanup()
 	free(outbuffer);
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	//Alocate memory for hashes and passwords
 	inbuffer =
@@ -84,7 +84,7 @@ static void init(struct fmt_main *pFmt)
 	cuda_init(gpu_id);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos,*hash = strrchr(ciphertext, '#') + 1;
 	int hashlength = 0;
@@ -124,17 +124,17 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	if (!strncmp(split_fields[1], "$DCC2$", 6) &&
-	    valid(split_fields[1], pFmt))
+	    valid(split_fields[1], self))
 		return split_fields[1];
 	if (!split_fields[0])
 		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 14);
 	sprintf(cp, "$DCC2$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, pFmt)) {
+	if (valid(cp, self)) {
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);
 		return cipher;
@@ -310,47 +310,51 @@ static int cmp_exact(char *source, int count)
 
 struct fmt_main fmt_cuda_mscash2 = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-	    FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE, tests},
-	{
-		    init,
-		    prepare,
-		    valid,
-		    split,
-		    binary,
-		    salt,
-		    {
-				binary_hash_0,
-				binary_hash_1,
-				binary_hash_2,
-				binary_hash_3,
-				binary_hash_4,
-				binary_hash_5,
-			binary_hash_6},
-		    fmt_default_salt_hash,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
-				get_hash_4,
-				get_hash_5,
-			get_hash_6},
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact}
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		tests
+	}, {
+		init,
+		prepare,
+		valid,
+		split,
+		binary,
+		salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

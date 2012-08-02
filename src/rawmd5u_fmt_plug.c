@@ -86,17 +86,17 @@ static struct fmt_tests tests[] = {
 static void set_key_utf8(char *_key, int index);
 static void set_key_CP(char *_key, int index);
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #if MMX_COEF
 	int i;
 #endif
 	if (options.utf8) {
 		/* This avoids an if clause for every set_key */
-		pFmt->methods.set_key = set_key_utf8;
+		self->methods.set_key = set_key_utf8;
 #if MMX_COEF
 		/* kick it up from 27. We will truncate in setkey_utf8() */
-		pFmt->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
 #endif
 		tests[1].ciphertext = "94a4e171de16580742c4d141e6607bf7";
 		tests[1].plaintext = "\xE2\x82\xAC";	// Euro sign
@@ -109,7 +109,7 @@ static void init(struct fmt_main *pFmt)
 	} else {
 		if (!options.ascii && !options.iso8859_1) {
 			/* This avoids an if clause for every set_key */
-			pFmt->methods.set_key = set_key_CP;
+			self->methods.set_key = set_key_CP;
 		}
 		if (CP_to_Unicode[0xfc] == 0x00fc) {
 			tests[1].ciphertext = "ea7ab2b5c07650badab30790d0c9b63e";
@@ -123,10 +123,10 @@ static void init(struct fmt_main *pFmt)
 		}
 	}
 #if MMX_COEF
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * BINARY_SIZE*pFmt->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
-	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * pFmt->params.max_keys_per_crypt, sizeof(*buf_ptr));
-	for (i=0; i<pFmt->params.max_keys_per_crypt; i++)
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 64*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * BINARY_SIZE*self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	buf_ptr = mem_calloc_tiny(sizeof(*buf_ptr) * self->params.max_keys_per_crypt, sizeof(*buf_ptr));
+	for (i=0; i<self->params.max_keys_per_crypt; i++)
 		buf_ptr[i] = (unsigned int*)&saved_key[GETPOS(0, i)];
 #endif
 }
@@ -148,7 +148,7 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
 

@@ -169,7 +169,7 @@ static void set_key_utf8(char *_key, int index);
 static void *get_salt_utf8(char *ciphertext);
 struct fmt_main fmt_mscash2;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = omp_get_max_threads();
@@ -213,7 +213,7 @@ static char * ms_split(char *ciphertext, int index)
 }
 
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned int l;
@@ -244,14 +244,14 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 	if (!strncmp(split_fields[1], "M$", 2))
 		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
 	sprintf (cp, "M$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, pFmt))
+	if (valid(cp, self))
 	{
 		char *cipher = str_alloc_copy(cp);
 		MEM_FREE(cp);

@@ -89,14 +89,14 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	if (ciphertext && strlen(ciphertext) == CIPHERTEXT_LENGTH)
 		return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
 	return 0;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	memset(saved_key, 0, sizeof(saved_key));

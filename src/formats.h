@@ -117,7 +117,7 @@ struct fmt_methods {
  * a signature, it may put the user name into the ciphertext, etc.  This
  * function (and valid) are/may be called prior to the calling the init()
  * function. This function (and valid), MUST be able to stand on their own. */
-	char * (*prepare)(char *split_fields[10], struct fmt_main *pFmt);
+	char * (*prepare)(char *split_fields[10], struct fmt_main *self);
 
 /* Checks if an ASCII ciphertext is valid for this format. Returns zero for
  * invalid ciphertexts, or a number of parts the ciphertext should be split
@@ -226,9 +226,9 @@ extern char *fmt_self_test(struct fmt_main *format);
 /*
  * Default methods.
  */
-extern void fmt_default_init(struct fmt_main *pFmt);
-extern char *fmt_default_prepare(char *split_fields[10], struct fmt_main *pFmt);
-extern int fmt_default_valid(char *ciphertext, struct fmt_main *pFmt);
+extern void fmt_default_init(struct fmt_main *self);
+extern char *fmt_default_prepare(char *split_fields[10], struct fmt_main *self);
+extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
 extern char *fmt_default_split(char *ciphertext, int index);
 extern void *fmt_default_binary(char *ciphertext);
 extern void *fmt_default_salt(char *ciphertext);
