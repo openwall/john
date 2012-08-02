@@ -133,6 +133,9 @@ extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_keychain;
 extern struct fmt_main fmt_opencl_agilekeychain;
 extern struct fmt_main fmt_opencl_zip;
+extern struct fmt_main fmt_opencl_encfs;
+extern struct fmt_main fmt_opencl_odf;
+extern struct fmt_main fmt_opencl_sxc;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
 extern struct fmt_main fmt_opencl_bf;
@@ -175,11 +178,11 @@ extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
-extern int pdf2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
 #endif
+extern int pdf2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 
 static struct db_main database;
@@ -273,6 +276,9 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_keychain);
 	john_register_one(&fmt_opencl_agilekeychain);
 	john_register_one(&fmt_opencl_zip);
+	john_register_one(&fmt_opencl_encfs);
+	john_register_one(&fmt_opencl_odf);
+	john_register_one(&fmt_opencl_sxc);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_bf);
@@ -639,6 +645,8 @@ static void john_init(char *name, int argc, char **argv)
 		puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 		puts("--fix-state-delay=N       performance tweak, see documentation");
 		puts("--log-stderr              log to screen instead of file\n");
+		puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
+		puts("                          always treat raw hashes as valid.");
 		exit(0);
 	}
 
@@ -1312,11 +1320,6 @@ int main(int argc, char **argv)
 		return keepass2john(argc, argv);
 	}
 
- 	if (!strcmp(name, "pdf2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pdf2john(argc, argv);
-	}
-
 	if (!strcmp(name, "rar2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return rar2john(argc, argv);
@@ -1339,6 +1342,11 @@ int main(int argc, char **argv)
 		return mozilla2john(argc, argv);
 	}
 #endif
+
+ 	if (!strcmp(name, "pdf2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return pdf2john(argc, argv);
+	}
 
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);

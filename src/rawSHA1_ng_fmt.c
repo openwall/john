@@ -216,7 +216,7 @@ static inline uint32_t __attribute__((const)) bswap32(uint32_t value)
 #endif
 
 
-static int sha1_fmt_valid(char *ciphertext, struct fmt_main *format)
+static int sha1_fmt_valid(char *ciphertext, struct fmt_main *self)
 {
     // Test for tag prefix in ciphertext.
     if (!strncmp(ciphertext, kFormatTag, strlen(kFormatTag)))

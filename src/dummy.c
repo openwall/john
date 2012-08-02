@@ -80,7 +80,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			warned = 2;
 			fprintf(stderr,
 			        "dummy password length %d > max. supported lengh %d\n",
-				((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
+				(int)((q - p) >> 1), MAX_PLAINTEXT_LENGTH);
 		}
 		else if (warned == 0 && ((q - p) >> 1) > PLAINTEXT_LENGTH) {
 			warned = 1;
@@ -90,7 +90,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			 */
 			fprintf(stderr,
 			        "dummy password length %d > currently supported length %d\n",
-			        ((q - p) >> 1), PLAINTEXT_LENGTH);
+			        (int)((q - p) >> 1), PLAINTEXT_LENGTH);
 		}
 		return 0;
 	}

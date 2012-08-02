@@ -129,12 +129,13 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *(ARCH_WORD_32 *)binary == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	void *binary = get_binary(source);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static void radmin_set_key(char *key, int index)

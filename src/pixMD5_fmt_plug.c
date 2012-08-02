@@ -36,14 +36,14 @@ static struct fmt_tests pixmd5_tests[] = {
 };
 
 static char Conv_Buf[80];
-static struct fmt_main *self_Dynamic_19;
+static struct fmt_main *pDynamic_19;
 static void pixmd5_init(struct fmt_main *self);
 static void get_ptr();
 
 /* this function converts a 'native' pixmd5 signature string into a Dynamic_19 syntax string */
 static char *Convert(char *Buf, char *ciphertext) {
 	// 2KFQnbNIdI.2KYOU -> $dynamic_19$2KFQnbNIdI.2KYOU
-	if (text_in_dynamic_format_already(self_Dynamic_19, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_19, ciphertext))
 		return ciphertext;
 
 	if (strlen(ciphertext) == CIPHERTEXT_LENGTH) {
@@ -59,7 +59,7 @@ static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 }
 static void * our_salt(char *ciphertext) {
 	get_ptr();
-	return self_Dynamic_19->methods.salt(Convert(Conv_Buf, ciphertext));
+	return pDynamic_19->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 
 static int valid(char *ciphertext, struct fmt_main *self) {
@@ -70,14 +70,14 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 	get_ptr();
 	i = strlen(ciphertext);
 	if (i > CIPHERTEXT_LENGTH)
-		return self_Dynamic_19->methods.valid(ciphertext, self_Dynamic_19);
+		return pDynamic_19->methods.valid(ciphertext, pDynamic_19);
 	if (i == CIPHERTEXT_LENGTH)
-		return self_Dynamic_19->methods.valid(Convert(Conv_Buf, ciphertext), self_Dynamic_19);
+		return pDynamic_19->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_19);
 	return 0;
 }
 
 static void * our_binary(char *ciphertext) {
-	return self_Dynamic_19->methods.binary(Convert(Conv_Buf, ciphertext));
+	return pDynamic_19->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_pixMD5 = {
@@ -99,18 +99,18 @@ struct fmt_main fmt_pixMD5 = {
 static void pixmd5_init(struct fmt_main *self)
 {
 	if (self->private.initialized == 0) {
-		self_Dynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 1);
+		pDynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 1);
 		fmt_pixMD5.methods.salt   = our_salt;
 		fmt_pixMD5.methods.binary = our_binary;
 		fmt_pixMD5.methods.split = our_split;
-		fmt_pixMD5.params.algorithm_name = self_Dynamic_19->params.algorithm_name;
+		fmt_pixMD5.params.algorithm_name = pDynamic_19->params.algorithm_name;
 		self->private.initialized = 1;
 	}
 }
 
 static void get_ptr() {
-	if (!self_Dynamic_19) {
-		self_Dynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 0);
+	if (!pDynamic_19) {
+		pDynamic_19 = dynamic_THIN_FORMAT_LINK(&fmt_pixMD5, Convert(Conv_Buf, pixmd5_tests[0].ciphertext), "pix-md5", 0);
 		fmt_pixMD5.methods.salt   = our_salt;
 		fmt_pixMD5.methods.binary = our_binary;
 		fmt_pixMD5.methods.split = our_split;

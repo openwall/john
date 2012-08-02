@@ -22,6 +22,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include "md5.h"
 
 #include "pdfcrack.h"
 #include "pdfcrack_md5.h"
@@ -53,7 +54,6 @@ static const uint8_t pad[32] = {
 };
 
 /** buffers for stuff that we can precompute before the actual cracking */
-static uint8_t encKeyWorkSpace[128];
 
 /**
  * Initialisation of the encryption key workspace to manage a bit faster
@@ -62,7 +62,7 @@ static uint8_t encKeyWorkSpace[128];
 static unsigned int
 initEncKeyWorkSpace(const int revision, const bool encMetaData,
     const int permissions, const uint8_t * ownerkey,
-    const uint8_t * fileID, const unsigned int fileIDLen)
+    const uint8_t * fileID, const unsigned int fileIDLen, struct custom_salt *cs)
 {
   /**
    *   Algorithm 3.2 Computing an encryption key (PDF Reference, v 1.7, p.125)
@@ -79,28 +79,27 @@ initEncKeyWorkSpace(const int revision, const bool encMetaData,
 	unsigned int size = (revision > 3 && !encMetaData) ? 72 : 68;
 
   /** Just to be sure we have no uninitalized stuff in the workspace */
-	memcpy(encKeyWorkSpace, pad, 32);
+	memcpy(cs->encKeyWorkSpace, pad, 32);
 
   /** 3 */
-	memcpy(encKeyWorkSpace + 32, ownerkey, 32);
+	memcpy(cs->encKeyWorkSpace + 32, ownerkey, 32);
 
   /** 4 */
-	encKeyWorkSpace[64] = permissions & 0xff;
-	encKeyWorkSpace[65] = (permissions >> 8) & 0xff;
-	encKeyWorkSpace[66] = (permissions >> 16) & 0xff;
-	encKeyWorkSpace[67] = (permissions >> 24) & 0xff;
+	cs->encKeyWorkSpace[64] = permissions & 0xff;
+	cs->encKeyWorkSpace[65] = (permissions >> 8) & 0xff;
+	cs->encKeyWorkSpace[66] = (permissions >> 16) & 0xff;
+	cs->encKeyWorkSpace[67] = (permissions >> 24) & 0xff;
 
   /** 5 */
-	memcpy(encKeyWorkSpace + 68, fileID, fileIDLen);
+	memcpy(cs->encKeyWorkSpace + 68, fileID, fileIDLen);
 
   /** 6 */
 	if (revision > 3 && !encMetaData) {
-		encKeyWorkSpace[68 + fileIDLen] = 0xff;
-		encKeyWorkSpace[69 + fileIDLen] = 0xff;
-		encKeyWorkSpace[70 + fileIDLen] = 0xff;
-		encKeyWorkSpace[71 + fileIDLen] = 0xff;
+		cs->encKeyWorkSpace[68 + fileIDLen] = 0xff;
+		cs->encKeyWorkSpace[69 + fileIDLen] = 0xff;
+		cs->encKeyWorkSpace[70 + fileIDLen] = 0xff;
+		cs->encKeyWorkSpace[71 + fileIDLen] = 0xff;
 	}
-
 	return size + fileIDLen;
 }
 
@@ -120,7 +119,7 @@ static bool isUserPasswordRev2(struct custom_salt *cs)
 {
 	uint8_t enckey[16];
 
-	md5(encKeyWorkSpace, cs->ekwlen, enckey);
+	md5(cs->encKeyWorkSpace, cs->ekwlen, enckey);
 
 	return rc4Match40b(enckey, cs->e.u_string, pad);
 }
@@ -128,20 +127,19 @@ static bool isUserPasswordRev2(struct custom_salt *cs)
 /** Checks if the rev3-password set up in encKeyWorkSpace is the correct one
     and return true if it is and false otherwise.
 */
-static bool isUserPasswordRev3(struct custom_salt *cs)
+static bool isUserPasswordRev3(struct custom_salt *cs, unsigned char *buf)
 {
 	uint8_t test[16], enckey[16], tmpkey[16];
 	int i;
 	unsigned int length, j;
 
 	length = cs->e.length / 8;
-	md5(cs->encKeyWorkSpace, cs->ekwlen, enckey);
+	md5(buf, cs->ekwlen, enckey);
 	md5_50(enckey);
 	memcpy(test, cs->e.u_string, 16);
 
 	RC4_DECRYPT_REV3(PARTIAL_TEST_SIZE);
-
-  /** if partial test succeeds we make a full check to be sure */
+	/** if partial test succeeds we make a full check to be sure */
 	if (unlikely(memcmp(test, cs->rev3TestKey, PARTIAL_TEST_SIZE) == 0)) {
 		memcpy(test, cs->e.u_string, 16);
 		RC4_DECRYPT_REV3(16);
@@ -163,10 +161,10 @@ bool runCrackRev2_o(struct custom_salt *cs, unsigned char *currPW)
 
 	md5(currPW, 32, enckey);
 
-	rc4Decrypt(enckey, cs->e.o_string, 32, encKeyWorkSpace);
-	md5(encKeyWorkSpace, cs->ekwlen, enckey);
+	rc4Decrypt(enckey, cs->e.o_string, 32, currPW);
+	md5(currPW, cs->ekwlen, enckey);
 	if (rc4Match40b(enckey, cs->e.u_string, pad)) {
-		memcpy(cs->password_user, encKeyWorkSpace, 32);
+		memcpy(cs->password_user, cs->encKeyWorkSpace, 32);
 		return true;
 	}
 
@@ -179,6 +177,7 @@ bool runCrackRev3_o(struct custom_salt *cs, unsigned char *currPW)
 	unsigned int j, length;
 	int i;
 	unsigned int currPWLen;
+	unsigned char buf[128];
 
 	length = cs->e.length / 8;
 	currPWLen = strlen((const char *)currPW);
@@ -191,10 +190,12 @@ bool runCrackRev3_o(struct custom_salt *cs, unsigned char *currPW)
 
 	memcpy(test, cs->e.o_string, 32);
 	RC4_DECRYPT_REV3(32);
-	memcpy(encKeyWorkSpace, test, 32);
+	// memcpy(cs->encKeyWorkSpace, test, 32);
+	memcpy(buf, cs->encKeyWorkSpace, 128);
+	memcpy(buf, test, 32);
 
-	if (isUserPasswordRev3(cs)) {
-		memcpy(cs->password_user, encKeyWorkSpace, 32);
+	if (isUserPasswordRev3(cs, buf)) {
+		memcpy(cs->password_user, cs->encKeyWorkSpace, 32);
 		return true;
 	}
 
@@ -210,7 +211,7 @@ bool runCrackRev2_of(struct custom_salt *cs, unsigned char *currPW)
 	    currPWLen = 32;
 	memcpy(currPW + currPWLen, pad, 32 - currPWLen);
 
-	md5(encKeyWorkSpace, 32, enckey);
+	md5(currPW, 32, enckey);
 
 	/* Algorithm 3.4 reversed */
 	if (rc4Match40b(enckey, cs->e.o_string, cs->password_user))
@@ -232,13 +233,13 @@ bool runCrackRev3_of(struct custom_salt *cs, unsigned char *currPW)
 	    currPWLen = 32;
 	memcpy(currPW + currPWLen, pad, 32 - currPWLen);
 
-	md5(encKeyWorkSpace, 32, enckey);
+	md5(currPW, 32, enckey);
 	md5_50(enckey);
 
 	memcpy(test, cs->e.o_string, 32);
 	RC4_DECRYPT_REV3(PARTIAL_TEST_SIZE);
 
-      /** if partial test succeeds we make a full check to be sure */
+	/** if partial test succeeds we make a full check to be sure */
 	if (unlikely(memcmp(test, cs->password_user, PARTIAL_TEST_SIZE) == 0)) {
 		memcpy(test, cs->e.o_string, 32);
 		RC4_DECRYPT_REV3(32);
@@ -261,19 +262,20 @@ bool runCrackRev3(struct custom_salt *cs, unsigned char *currPW)
 	    currPWLen = 32;
 	memcpy(currPW + currPWLen, pad, 32 - currPWLen);
 
-	md5(encKeyWorkSpace, cs->ekwlen, enckey);
+	md5(currPW, cs->ekwlen, enckey);
 	md5_50(enckey);
 	memcpy(test, cs->e.u_string, 16);
 
-     /** Algorithm 3.5 reversed */
+	/** Algorithm 3.5 reversed */
 	RC4_DECRYPT_REV3(PARTIAL_TEST_SIZE);
 
-      /** if partial test succeeds we make a full check to be sure */
+	/** if partial test succeeds we make a full check to be sure */
 	if (unlikely(memcmp(test, cs->rev3TestKey, PARTIAL_TEST_SIZE) == 0)) {
 		memcpy(test, cs->e.u_string, 16);
 		RC4_DECRYPT_REV3(16);
-		if (memcmp(test, cs->rev3TestKey, 16) == 0)
+		if (memcmp(test, cs->rev3TestKey, 16) == 0) {
 			return true;
+		}
 	}
 	return false;
 }
@@ -287,9 +289,7 @@ bool runCrackRev2(struct custom_salt *cs, unsigned char *currPW)
 	if(currPWLen > 32)
 	    currPWLen = 32;
 	memcpy(currPW + currPWLen, pad, 32 - currPWLen);
-
-	md5(encKeyWorkSpace, cs->ekwlen, enckey);
-
+	md5(currPW, cs->ekwlen, enckey);
 	/* Algorithm 3.4 reversed */
 	if (rc4Match40b(enckey, cs->e.u_string, pad))
 		return true;
@@ -303,32 +303,33 @@ bool runCrackRev2(struct custom_salt *cs, unsigned char *currPW)
 int runCrack(char *password, struct custom_salt *cs)
 {
 	bool found = false;
-	uint8_t cpw[32];
+	uint8_t cpw[128];
+	memcpy(cpw, cs->encKeyWorkSpace, 128);
+
 	if (strlen(password) < 32)
-		strcpy((char*)cs->currPW, password);
+		strcpy((char*)cpw, password);
 	else {
-		strncpy((char*)cs->currPW, password, 32);
+		strncpy((char*)cpw, password, 32);
 	}
 
 	if (!cs->workWithUser && !cs->knownPassword) {
 		memcpy(cpw, pad, 32);
-		cs->currPW = cpw;
 		if (cs->e.revision == 2)
-			found = runCrackRev2_o(cs, cs->currPW);
+			found = runCrackRev2_o(cs, cpw);
 		else
-			found = runCrackRev3_o(cs, cs->currPW);
+			found = runCrackRev3_o(cs, cpw);
 	} else if (cs->e.revision == 2) {
 		if (cs->workWithUser)
-			found = runCrackRev2(cs, cs->currPW);
+			found = runCrackRev2(cs, cpw);
 		else
-	     /** knownPassword */
-			found = runCrackRev2_of(cs, cs->currPW);
+			/** knownPassword */
+			found = runCrackRev2_of(cs, cpw);
 	} else {
 		if (cs->workWithUser)
-			found = runCrackRev3(cs, cs->currPW);
+			found = runCrackRev3(cs, cpw);
 		else
-	     /** knownPassword */
-			found = runCrackRev3_of(cs, cs->currPW);
+			/** knownPassword */
+			found = runCrackRev3_of(cs, cpw);
 	}
 	return found;
 }
@@ -346,8 +347,7 @@ bool initPDFCrack(struct custom_salt *cs)
 	bool user = cs->e.work_with_user;
 
 	cs->ekwlen = initEncKeyWorkSpace(e->revision, e->encryptMetaData,
-			e->permissions, e->o_string, e->fileID, e->fileIDLen);
-	cs->currPW = encKeyWorkSpace;
+			e->permissions, e->o_string, e->fileID, e->fileIDLen, cs);
 	cs->workWithUser = user;
 	setrc4DecryptMethod((unsigned int) e->length);
 	if (upw) {
@@ -356,15 +356,14 @@ bool initPDFCrack(struct custom_salt *cs)
 			upwlen = 32;
 		memcpy(cs->password_user, upw, upwlen);
 		memcpy(cs->password_user + upwlen, pad, 32 - upwlen);
-		memcpy(encKeyWorkSpace, cs->password_user, 32);
+		memcpy(cs->encKeyWorkSpace, cs->password_user, 32);
 		cs->knownPassword = true;
 	}
-
 	if (cs->e.revision == 2) {
 		if (cs->knownPassword) {
 			if (!isUserPasswordRev2(cs))
 				return false;
-			memcpy(encKeyWorkSpace, pad, 32);
+			memcpy(cs->encKeyWorkSpace, pad, 32);
 		} else {
 			memcpy(cs->password_user, pad, 32);
 			cs->knownPassword = isUserPasswordRev2(cs);
@@ -374,23 +373,18 @@ bool initPDFCrack(struct custom_salt *cs)
 		memcpy(buf + 32, e->fileID, e->fileIDLen);
 		md5(buf, 32 + e->fileIDLen, cs->rev3TestKey);
 		if (cs->knownPassword) {
-			if (!isUserPasswordRev3(cs))
+			if (!isUserPasswordRev3(cs, cs->encKeyWorkSpace))
 				return false;
-			memcpy(encKeyWorkSpace, pad, 32);
+			memcpy(cs->encKeyWorkSpace, pad, 32);
 		} else {
 			memcpy(cs->password_user, pad, 32);
-			cs->knownPassword = isUserPasswordRev3(cs);
+			cs->knownPassword = isUserPasswordRev3(cs, cs->encKeyWorkSpace);
 		}
 	}
-
-	/* save data into custom salt */
-	memcpy(cs->encKeyWorkSpace, encKeyWorkSpace, 128);
 	return true;
 }
 
 void loadPDFCrack(struct custom_salt *cs)
 {
-	/* restore data from custom salt */
 	setrc4DecryptMethod((unsigned int) cs->e.length);
-	memcpy(encKeyWorkSpace, cs->encKeyWorkSpace, 128);
 }

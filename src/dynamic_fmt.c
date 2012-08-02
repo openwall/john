@@ -9019,9 +9019,9 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	cp = strchr(label_id, '$');
 	*cp = 0;
 
-	if (!options.format || strncmp(options.format, "dynamic_", 8))
-		pFmt->params.label = str_alloc_copy("dynamic");
-	else
+//	if (!options.format || strncmp(options.format, "dynamic_", 8))
+//		pFmt->params.label = str_alloc_copy("dynamic");
+//	else
 		pFmt->params.label = str_alloc_copy(label_id);
 
 	strcpy(curdat.dynamic_WHICH_TYPE_SIG, label);
@@ -9069,6 +9069,10 @@ int dynamic_Register_formats(struct fmt_main **ptr)
 		sscanf(options.format, "dynamic_%d", &single);
 	if (options.format && options.subformat  && !strcmp(options.format, "dynamic") && !strncmp(options.subformat, "dynamic_", 8))
 		sscanf(options.subformat, "dynamic_%d", &single);
+	if (options.dynamic_raw_hashes_always_valid == 'Y')
+		m_allow_rawhash_fixup = 1;
+	else if (options.dynamic_raw_hashes_always_valid != 'N'  && cfg_get_bool(SECTION_OPTIONS, NULL, "DynamicAlwaysUseRawHashes", 1))
+		m_allow_rawhash_fixup = 1;
 
 	if (single != -1) {
 		// user wanted only a 'specific' format.  Simply load that one.

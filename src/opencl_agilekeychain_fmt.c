@@ -58,6 +58,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[20];
+	int iterations;
 } keychain_salt;
 
 static int *cracked;
@@ -92,7 +93,7 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
 }
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 
@@ -139,12 +140,12 @@ static void init(struct fmt_main *pFmt)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 
 	atexit(release_all);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$agilekeychain$", 15);
 }
@@ -182,6 +183,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->saltlen[0]);
 	currentsalt.length = cur_salt->saltlen[0];
+	currentsalt.iterations = cur_salt->iterations[0];
 }
 
 #undef set_key

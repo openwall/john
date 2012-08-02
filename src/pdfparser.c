@@ -615,7 +615,7 @@ getEncryptedInfo(FILE *file, EncData *e) {
   int e_pos = -1;
   bool ret;
 
-  if(fseek(file, 0L, SEEK_END-1024))
+  if(fseek(file, -1024, SEEK_END))
     e_pos = findTrailer(file, e);
   if(e_pos < 0) {
     rewind(file);

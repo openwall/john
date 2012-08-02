@@ -43,24 +43,22 @@ typedef struct {
 	char hash[MD5_LEN_HEX+1];
 } login_t;
 
-char **stringtoarray(char *string, char delimiter, int *size)
+int stringtoarray(char **array, char *string, char delimiter)
 {
-	char **array = NULL;
 	char *ptr, *oldptr;
 	int flag = 1;
 	int count;
-	*size = 0;
+	int size = 0;
 	ptr = string;
 	for(count=0 ; flag ; count++) {
 		for (oldptr=ptr;*ptr&&*ptr!=delimiter;(void)*ptr++)
 			;
 		if (!*ptr) flag = 0;
 		*ptr++ = 0x00;
-		(*size)++;
-		array = realloc(array, (count+1)*sizeof(char *));
-		array[count] = strdup(oldptr);
+		size++;
+		array[count] = oldptr;
 	}
-	return array;
+	return size;
 }
 
 /* init bin 2 hex table */

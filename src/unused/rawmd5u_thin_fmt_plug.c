@@ -56,13 +56,13 @@ static struct fmt_tests rawmd5u_tests[] = {
 };
 
 static char Conv_Buf[80];
-static struct fmt_main *self_Dynamic_29;
+static struct fmt_main *pDynamic_29;
 static void rawmd5u_init(struct fmt_main *self);
 
 /* this function converts a 'native' raw md5 signature string into a $dynamic_29$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
-	if (text_in_dynamic_format_already(self_Dynamic_29, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_29, ciphertext))
 		return ciphertext;
 	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return "*";
@@ -78,10 +78,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
-	if (!self_Dynamic_29)
+	if (!pDynamic_29)
 		rawmd5u_init(self);
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) {
-		return self_Dynamic_29->methods.valid(ciphertext, self_Dynamic_29);
+		return pDynamic_29->methods.valid(ciphertext, pDynamic_29);
 	}
 
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++){
@@ -89,16 +89,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 					(('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))  ))
 			return 0;
 	}
-	return self_Dynamic_29->methods.valid(Convert(Conv_Buf, ciphertext), self_Dynamic_29);
+	return pDynamic_29->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_29);
 }
 
 static void * our_salt(char *ciphertext)
 {
-	return self_Dynamic_29->methods.salt(Convert(Conv_Buf, ciphertext));
+	return pDynamic_29->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return self_Dynamic_29->methods.binary(Convert(Conv_Buf, ciphertext));
+	return pDynamic_29->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_rawmd5u =
@@ -141,11 +141,11 @@ static void rawmd5u_init(struct fmt_main *self)
 		}
 	}
 	if (self->private.initialized == 0) {
-		self_Dynamic_29 = dynamic_THIN_FORMAT_LINK(&fmt_rawmd5u, Convert(Conv_Buf, rawmd5u_tests[0].ciphertext), "thin");
+		pDynamic_29 = dynamic_THIN_FORMAT_LINK(&fmt_rawmd5u, Convert(Conv_Buf, rawmd5u_tests[0].ciphertext), "thin");
 		fmt_rawmd5u.methods.binary = our_binary;
 		fmt_rawmd5u.methods.salt = our_salt;
-		fmt_rawmd5u.params.algorithm_name = self_Dynamic_29->params.algorithm_name;
-		fmt_rawmd5u.params.plaintext_length = self_Dynamic_29->params.plaintext_length;
+		fmt_rawmd5u.params.algorithm_name = pDynamic_29->params.algorithm_name;
+		fmt_rawmd5u.params.plaintext_length = pDynamic_29->params.plaintext_length;
 		self->private.initialized = 1;
 	}
 }

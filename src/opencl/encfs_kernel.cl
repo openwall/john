@@ -1,5 +1,5 @@
 /*
- * Modified by Dhiru Kholia <dhiru at openwall.com> for Keychain format.
+ * Modified by Dhiru Kholia <dhiru at openwall.com> for ZIP AES format.
  *
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
  * and it is hereby released to the general public under the following terms:
@@ -9,6 +9,22 @@
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
+
+typedef struct {
+	uint8_t length;
+	uint8_t v[24];
+} encfs_password;
+
+typedef struct {
+	uint32_t v[17];		// 16*4=64
+} encfs_hash;
+
+typedef struct {
+	uint8_t length;
+	uint8_t salt[64];
+	int iterations;
+} encfs_salt;
+
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
@@ -278,21 +294,6 @@
 #define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
 
 
-typedef struct {
-	uint8_t length;
-	uint8_t v[15];
-} keychain_password;
-
-typedef struct {
-	uint32_t v[8];
-} keychain_hash;
-
-typedef struct {
-	uint8_t length;
-	uint8_t salt[20];
-	int iterations;
-} keychain_salt;
-
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
     __private uint32_t * state, uint8_t var1, uint32_t var4)
 {
@@ -327,7 +328,7 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 
 }
 
-inline void hmac_sha1(__private uint32_t * output,
+inline void hmac_sha1_(__private uint32_t * output,
     __private uint32_t * ipad_state,
     __private uint32_t * opad_state,
     __global const uint8_t * salt, int saltlen, uint8_t add)
@@ -478,31 +479,37 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
+	int i;
 
 	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
 
-	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
+	uint8_t rnd = 0x01;
+	__global unsigned char *dst = (__global unsigned char*)out;
+	unsigned char *src;
+	for (; rnd < 0x04;) {
+		hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen,
+		    rnd++);
 
+		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state,
+		    opad_state, tmp_out, n);
+
+		// memcpy(out2, tmp_out, 20);
+		src = (unsigned char*)tmp_out;
+		for(i = 0; i < 20; i++)
+			dst[i] = src[i];
+		dst+=(5*4);
+	}
+	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x04);
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
 	    tmp_out, n);
-
-	//memcpy(out, tmp_out, 20);
-	for (int i = 0; i < 5; i++)
-		out[i] = tmp_out[i];
-
-	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
-
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
-
-	//memcpy(out+20, tmp_out, 12);
-	for (int i = 5; i < 8; i++)
-		out[i] = tmp_out[i - 5];
+	// memcpy(out2, tmp_out, 6);
+	for(i = 0; i < 6; i++)
+		dst[i] = src[i];
 }
 
-__kernel void keychain(__global const keychain_password * inbuffer,
-    __global keychain_hash * outbuffer, __global const keychain_salt * salt)
+__kernel void encfs(__global const encfs_password * inbuffer,
+    __global encfs_hash * outbuffer, __global const encfs_salt * salt)
 {
 	uint32_t idx = get_global_id(0);
 
