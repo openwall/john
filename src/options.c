@@ -140,6 +140,8 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.max_run_time},
 	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.regen_lost_salts},
+	{"raw-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%c", &options.dynamic_raw_hashes_always_valid},
 #ifdef CL_VERSION_1_0
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
@@ -297,6 +299,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.loader.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
 	options.force_maxkeys = options.force_maxlength = 0;
 	options.max_run_time = -2;
+	options.dynamic_raw_hashes_always_valid = 0;
 
 	list_init(&options.passwd);
 
@@ -453,6 +456,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 
 	if (options.loader.activesinglerules == NULL)
 		options.loader.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
+
+	if (options.dynamic_raw_hashes_always_valid == 'Y' || options.dynamic_raw_hashes_always_valid == 'y' || 
+		options.dynamic_raw_hashes_always_valid == '1' || options.dynamic_raw_hashes_always_valid == 't' || options.dynamic_raw_hashes_always_valid == 'T')
+		options.dynamic_raw_hashes_always_valid = 'Y';
+	else if (options.dynamic_raw_hashes_always_valid == 'N' || options.dynamic_raw_hashes_always_valid == 'n' || 
+		options.dynamic_raw_hashes_always_valid == '0' || options.dynamic_raw_hashes_always_valid == 'f' || options.dynamic_raw_hashes_always_valid == 'F')
+		options.dynamic_raw_hashes_always_valid = 'N';
 
 	options.loader.regen_lost_salts = options.regen_lost_salts;
 
