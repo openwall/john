@@ -204,6 +204,12 @@ struct options_main {
 /* Graceful exit after this many seconds of cracking */
 	int max_run_time;
 
+/* Force dynamic format to always treat raw hashes as valid. If not set
+   then dynamic format only uses raw hashes if -form=dynamic_xxx is used.
+   If this is 'N', then original logic used.  If 'Y' or 'y' then we always
+   use raw hashes as valid in dynamic. */
+	char dynamic_raw_hashes_always_valid;
+
 #ifdef CL_VERSION_1_0
 	char *ocl_platform, *ocl_device;
 #elif defined(HAVE_CUDA)
