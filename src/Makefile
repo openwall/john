@@ -16,6 +16,7 @@ TR = tr
 SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
+LC_ALL = C
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
