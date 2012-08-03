@@ -2,8 +2,8 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2009-2011 by Solar Designer
  *
- * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
- * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
+ * FIXME: Simon and Jim, add licence burps here
+ *
  */
 
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
@@ -375,9 +375,13 @@ struct fmt_main fmt_sunmd5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-        BINARY_ALIGN,
+#if FMT_MAIN_VERSION > 9
+		BINARY_ALIGN,
+#endif
 		SALT_SIZE,
-        SALT_ALIGN,
+#if FMT_MAIN_VERSION > 9
+		SALT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -389,7 +393,9 @@ struct fmt_main fmt_sunmd5 = {
 		fmt_default_split,
 		binary,
 		salt,
-        fmt_default_source,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

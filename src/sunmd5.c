@@ -26,11 +26,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifdef _MSC_VER
 #include <string.h>
 #include <stdio.h>
 #include "misc.h"
-#else
+#ifndef _MSC_VER
 #include <unistd.h>
 #include <strings.h>
 #include <pwd.h>
@@ -158,12 +157,7 @@ getrounds(const char *s)
 	 */
 	if (errno != 0 || val < 0 ||
 	    !(*e == '\0' || *e == ',' || *e == '$')) {
-#ifdef _MSC_VER
-			fprintf(stderr, "crypt_sunmd5: invalid rounds specification \"%s\"", s);
-#else
-		syslog(LOG_WARNING,
-		    "crypt_sunmd5: invalid rounds specification \"%s\"", s);
-#endif
+		fprintf(stderr, "crypt_sunmd5: invalid rounds specification \"%s\"", s);
 		return (0);
 	}
 
