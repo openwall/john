@@ -2,8 +2,8 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 2009-2011 by Solar Designer
  *
- * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
- * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
+ * FIXME: Simon and Jim, add licence burps here
+ *
  */
 
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
