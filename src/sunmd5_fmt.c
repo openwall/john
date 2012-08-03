@@ -16,7 +16,12 @@
 #include <crypt.h>
 #include <omp.h> /* for omp_get_thread_num() */
 #else
+#ifdef _MSC_VER
+#include <stdio.h>
+#include "misc.h"
+#else
 #include <unistd.h>
+#endif
 #endif
 
 #include "options.h"
@@ -45,18 +50,30 @@
 #define SALT_SIZE          BINARY_SIZE
 #define SALT_ALIGN         1
 
+#if defined (HAVE_MPI) || defined (_OPENMP)
 #define MIN_KEYS_PER_CRYPT		96
 #define MAX_KEYS_PER_CRYPT		96
+#else
+#define MIN_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		1
+#endif
 
-#define MAGIC "$md5,rounds=904$"
+#define MAGIC  "$md5,rounds=904$"
+#define MAGIC2 "$md5$rounds=904$"
+
+// THIS one IS a depricated sun string, but for real:  $md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0: Sun MD5 "password"
+
+// $md5,rounds=5000$GUBv0xjJ$$mSwgIswdjlTY0YxV7HBVm0   passwd  This one was the python code from http://packages.python.org/passlib/lib/passlib.hash.sun_md5_crypt.html, but the rounds are busted.
 
 static struct fmt_tests tests[] = {
-    {"$md5,rounds=904$wJgYZWew8c3bxmMI$n5Zwu52lkRub0VVV.2WyP/", "test"},
+//    {"$md5,rounds=904$wJgYZWew8c3bxmMI$n5Zwu52lkRub0VVV.2WyP/", "test"},
+	// this one came from CMIYC
+	{"$md5$rounds=904$Vc3VgyFx44iS8.Yu$Scf90iLWN6O6mT9TA06NK/", "test"},
 	{NULL}
 };
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
-static char saved_salt[SALT_SIZE];
+static char saved_salt[SALT_SIZE+1];
 static char crypt_out[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
 
 #if defined(_OPENMP) && defined(__GLIBC__)
@@ -74,7 +91,7 @@ static void init(struct fmt_main *pFmt)
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-    if(memcmp(ciphertext, MAGIC, sizeof(MAGIC)-1))
+    if(memcmp(ciphertext, MAGIC, sizeof(MAGIC)-1) && memcmp(ciphertext, MAGIC2, sizeof(MAGIC2)-1))
     {
         return 0;
     }
@@ -138,6 +155,7 @@ static void *salt(char *ciphertext)
 				/* NUL padding is required */
 				memset(out, 0, sizeof(out));
 				memcpy(out, ciphertext, ++p - ciphertext);
+//				out[4] = ',';
 /*
  * Workaround what looks like a bug in sunmd5.c: crypt_genhash_impl() where it
  * takes a different substring as salt depending on whether the optional
@@ -250,6 +268,7 @@ static int salt_hash(void *salt)
 
 static void set_salt(void *salt)
 {
+	memset(saved_salt, 0, sizeof(saved_salt));
 	strcpy(saved_salt, salt);
 }
 

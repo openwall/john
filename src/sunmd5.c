@@ -26,14 +26,20 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifdef _MSC_VER
+#include <string.h>
+#include <stdio.h>
+#include "misc.h"
+#else
 #include <unistd.h>
 #include <strings.h>
 #include <pwd.h>
+#include <syslog.h>
+#include <crypt.h>
+#endif
 #include <errno.h>
 #include <stdlib.h>
-#include <syslog.h>
 
-#include <crypt.h>
 #include "md5.h"
 #include "arch.h"
 
@@ -152,8 +158,12 @@ getrounds(const char *s)
 	 */
 	if (errno != 0 || val < 0 ||
 	    !(*e == '\0' || *e == ',' || *e == '$')) {
+#ifdef _MSC_VER
+			fprintf(stderr, "crypt_sunmd5: invalid rounds specification \"%s\"", s);
+#else
 		syslog(LOG_WARNING,
 		    "crypt_sunmd5: invalid rounds specification \"%s\"", s);
+#endif
 		return (0);
 	}
 
@@ -161,6 +171,7 @@ getrounds(const char *s)
 }
 
 /* ARGSUSED3 */
+#if 0
 char *
 crypt_gensalt_impl(char *gsbuffer,
 	    size_t gsbufflen,
@@ -234,7 +245,7 @@ fail:
 	bzero(gsbuffer, gsbufflen);
 	return (NULL);
 }
-
+#endif
 
 /*ARGSUSED4*/
 char *
@@ -312,8 +323,10 @@ crypt_genhash_impl(char *ctbuffer,
 
 	/* update with the (publically known) salt */
 
-	MD5_Update(&data.context, (unsigned char *)puresalt, strlen(puresalt));
-
+	//MD5_Update(&data.context, (unsigned char *)puresalt, strlen(puresalt));
+	// this -1 is correct for the CMIYC2012 data.  I am not sure exactly 'which'
+	// format is correct.
+	MD5_Update(&data.context, (unsigned char *)puresalt, strlen(puresalt)-1);
 
 	/* compute the digest */
 
@@ -424,7 +437,8 @@ crypt_genhash_impl(char *ctbuffer,
 
 		/* digest a decimal sprintf of the current roundcount */
 
-		(void) snprintf(data.roundascii, ROUND_BUFFER_LEN, "%d", round);
+//		(void) snprintf(data.roundascii, ROUND_BUFFER_LEN, "%d", round);
+		(void) sprintf(data.roundascii, "%d", round);
 		MD5_Update(&data.context,
 		    (unsigned char *) data.roundascii, strlen(data.roundascii));
 
@@ -442,7 +456,8 @@ crypt_genhash_impl(char *ctbuffer,
 	(void) printf("\n");
 #endif
 
-	(void) snprintf(ctbuffer, ctbufflen, "%s", puresalt);
+//	(void) snprintf(ctbuffer, ctbufflen, "%s", puresalt);
+	(void) sprintf(ctbuffer, "%s", puresalt);
 	p = ctbuffer + strlen(ctbuffer);
 
 	l = (data.digest[ 0]<<16) | (data.digest[ 6]<<8) | data.digest[12];
