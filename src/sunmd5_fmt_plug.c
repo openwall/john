@@ -202,6 +202,8 @@ static const char constant_phrase[] =
 	"The fair Ophelia!--Nymph, in thy orisons\n"
 	"Be all my sins remember'd.\n";
 
+static unsigned char mod5[0x100];
+
 static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
@@ -224,6 +226,12 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	saved_salt = mem_calloc_tiny(SALT_SIZE+1, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+	{
+		int i;
+		for (i = 0; i < 0x100; i++)
+			mod5[i] = i % 5;
+	}
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -505,7 +513,7 @@ static void crypt_all(int count)
 				int j;
 			/* offset 3 -> occasionally span more than 1 int32 fetch */
 				j = (i + 3) & 0xF;
-				px->shift_4[i] = px->digest[j] % 5;
+				px->shift_4[i] = mod5[px->digest[j]];
 				px->shift_7[i] = (px->digest[j] >> (px->digest[i] & 7)) & 0x01;
 			}
 
