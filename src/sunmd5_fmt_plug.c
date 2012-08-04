@@ -36,6 +36,7 @@
 #include "formats.h"
 #include "loader.h"
 #include "memory.h"
+#include "md5.h"
 
 /*
  * these 2 are for testing non-MMX mode. if we
@@ -45,15 +46,13 @@
 //#undef MMX_COEF
 
 #define FORMAT_LABEL			"sunmd5"
-#define FORMAT_NAME			    "sunmd5"
-#ifdef MMX_COEF
+#define FORMAT_NAME			"sunmd5"
 #include "sse-intrinsics.h"
-#define ALGORITHM_NAME			"SSE2"
-#else
-#define ALGORITHM_NAME			"?/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
 
-#include "md5.h"
+#ifdef MD5_SSE_PARA
+#define MMX_COEF			4
+#endif
 
 #ifndef MD5_CBLOCK
 #define MD5_CBLOCK 64
