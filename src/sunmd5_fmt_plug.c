@@ -1,7 +1,4 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009-2011 by Solar Designer
- *
  * First cut, which was oSSL only, and done in 2 source files, by
  * Bartavelle  (please change to proper cite).
  * Corrections, and re-write into SSE2, JimF.
@@ -64,11 +61,12 @@
 #define PLAINTEXT_LENGTH		120
 
 /* JtR actually only 'uses' 4 byte binaries from this format, but for cmp_exact we need full binary */
-#define BINARY_SIZE				16
-#define BINARY_ALIGN			1
+#define FULL_BINARY_SIZE		16
+#define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 /* salt==48 allows $md5$ (5) rounds=999999$ (14) salt (16) null(1) (40 allows for 19 byte salt) */
-#define SALT_SIZE				40
-#define SALT_ALIGN				1
+#define SALT_SIZE			40
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #if defined (MMX_COEF)
@@ -78,14 +76,14 @@
 #endif
 
 #define FORMAT_LABEL			"sunmd5"
-#define FORMAT_NAME				"sunmd5"
+#define FORMAT_NAME			"SunMD5"
 #ifdef MMX_COEF
 #define ALGORITHM_NAME			MD5_ALGORITHM_NAME " x" STRINGIZE(MAX_KEYS_PER_CRYPT)
 #else
 #define ALGORITHM_NAME			MD5_ALGORITHM_NAME
 #endif
 
-#define BENCHMARK_COMMENT		" MD5"
+#define BENCHMARK_COMMENT		""
 // it is salted, but very slow, AND there is no differnce between 1 and multi salts, so simply turn off salt benchmarks
 #define BENCHMARK_LENGTH		-1
 
@@ -156,7 +154,7 @@ unsigned char out_buf[BLK_CNT*MD5_DIGEST_LENGTH]    __attribute__ ((aligned(16))
 #endif
 
 /* allocated in init() */
-static char (*crypt_out)[BINARY_SIZE];
+static char (*crypt_out)[FULL_BINARY_SIZE];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char *saved_salt;
 
@@ -231,10 +229,8 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *cp;
-	if(memcmp(ciphertext, MAGIC, sizeof(MAGIC)-1) && memcmp(ciphertext, MAGIC2, sizeof(MAGIC2)-1))
-	{
+	if (strncmp(ciphertext, MAGIC, strlen(MAGIC)) && strncmp(ciphertext, MAGIC2, strlen(MAGIC2)))
 		return 0;
-	}
 	cp = strrchr(ciphertext, '$');
 	if (!cp) return 0;
 	if (strlen(cp) != 23) return 0;
@@ -244,7 +240,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-long from64 (unsigned char *s, int n) {
+static long from64 (unsigned char *s, int n) {
 	long l = 0;
 	while (--n >= 0) {
 		l <<= 6;
@@ -252,26 +248,30 @@ long from64 (unsigned char *s, int n) {
 	}
 	return l;
 }
+
 static void *binary(char *ciphertext)
 {
-	static char out[BINARY_SIZE];
+	static union {
+		char c[FULL_BINARY_SIZE];
+		ARCH_WORD_32 w[FULL_BINARY_SIZE / sizeof(ARCH_WORD_32)];
+	} out;
 	unsigned l;
 	unsigned char *cp;
 	cp = (unsigned char*)strrchr(ciphertext, '$');
 	++cp;
 	l = from64(cp, 4);
-	out[0] = l>>16;  out[6] = (l>>8)&0xFF;  out[12] = l&0xFF;
+	out.c[0] = l>>16;  out.c[6] = (l>>8)&0xFF;  out.c[12] = l&0xFF;
 	l = from64(&cp[4], 4);
-	out[1] = l>>16;  out[7] = (l>>8)&0xFF;  out[13] = l&0xFF;
+	out.c[1] = l>>16;  out.c[7] = (l>>8)&0xFF;  out.c[13] = l&0xFF;
 	l = from64(&cp[8], 4);
-	out[2] = l>>16;  out[8] = (l>>8)&0xFF;  out[14] = l&0xFF;
+	out.c[2] = l>>16;  out.c[8] = (l>>8)&0xFF;  out.c[14] = l&0xFF;
 	l = from64(&cp[12], 4);
-	out[3] = l>>16;  out[9] = (l>>8)&0xFF;  out[15] = l&0xFF;
+	out.c[3] = l>>16;  out.c[9] = (l>>8)&0xFF;  out.c[15] = l&0xFF;
 	l = from64(&cp[16], 4);
-	out[4] = l>>16;  out[10] = (l>>8)&0xFF;  out[5] = l&0xFF;
+	out.c[4] = l>>16;  out.c[10] = (l>>8)&0xFF;  out.c[5] = l&0xFF;
 	l = from64(&cp[20], 2);
-	out[11] = l;
-	return out;
+	out.c[11] = l;
+	return out.c;
 }
 
 static void *salt(char *ciphertext)
@@ -284,21 +284,20 @@ static void *salt(char *ciphertext)
 	return out;
 }
 
-
 static int get_hash_0(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xf; }
 static int get_hash_1(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xff; }
 static int get_hash_2(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xfff; }
 static int get_hash_3(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xffff; }
 static int get_hash_4(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xfffff; }
 static int get_hash_5(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xffffff; }
-static int get_hash_6(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0xfffffff; }
+static int get_hash_6(int index) { return *((ARCH_WORD_32*)(crypt_out[index])) & 0x7ffffff; }
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
 static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }
 static int binary_hash_2(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfff; }
 static int binary_hash_3(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffff; }
 static int binary_hash_4(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffff; }
 static int binary_hash_5(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xffffff; }
-static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xfffffff; }
+static int binary_hash_6(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0x7ffffff; }
 
 static int salt_hash(void *salt)
 {
@@ -350,8 +349,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	void *bin = binary(source);
-	return !memcmp(bin, crypt_out[index], 16);
+	return !memcmp(binary(source), crypt_out[index], FULL_BINARY_SIZE);
 }
 
 
@@ -802,8 +800,7 @@ static void crypt_all(int count)
 #endif
 	for (idx = 0; idx < count; ++idx) {
 		pConx px = &data[idx];
-		char *p = crypt_out[idx];
-		memcpy(p, px->digest, 16);
+		memcpy(crypt_out[idx], px->digest, FULL_BINARY_SIZE);
 	}
 }
 
@@ -815,7 +812,7 @@ struct fmt_main fmt_sunmd5 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
-		4, //BINARY_SIZE,
+		BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
 		BINARY_ALIGN,
 #endif
