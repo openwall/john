@@ -124,19 +124,26 @@ char *str_alloc_copy(char *src)
 	return (char *)memcpy(mem_alloc_tiny(size, MEM_ALIGN_NONE), src, size);
 }
 
+void dump_stuff_noeol(void *x, unsigned int size) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i]);
+		if( (i%4)==3 )
+		printf(" ");
+	}
+}
 void dump_stuff(void* x, unsigned int size)
 {
-        unsigned int i;
-        for(i=0;i<size;i++)
-        {
-	        printf("%.2x", ((unsigned char*)x)[i]);
-                if( (i%4)==3 )
-                        printf(" ");
-        }
-        printf("\n");
+	dump_stuff_noeol(x,size);
+	printf("\n");
 }
 void dump_stuff_msg(void *msg, void *x, unsigned int size) {
 	printf("%s : ", (char *)msg);
+	dump_stuff(x, size);
+}
+void dump_stuff_msg_sepline(void *msg, void *x, unsigned int size) {
+	printf("%s :\n", (char *)msg);
 	dump_stuff(x, size);
 }
 
@@ -166,8 +173,7 @@ void alter_endianity(void * _x, unsigned int size)
 #define GETPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*64*MMX_COEF  )
 #define GETOUTPOS(i, index)		( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3) )*MMX_COEF +    ((i)&3)  + (index>>(MMX_COEF>>1))*16*MMX_COEF  )
 
-void dump_stuff_mmx(void *buf, unsigned int size, unsigned int index)
-{
+void dump_stuff_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
@@ -175,10 +181,20 @@ void dump_stuff_mmx(void *buf, unsigned int size, unsigned int index)
 		if( (i%4)==3 )
 			printf(" ");
 	}
+}
+void dump_stuff_mmx(void *buf, unsigned int size, unsigned int index) {
+	dump_stuff_mmx_noeol(buf, size, index);
 	printf("\n");
 }
-void dump_out_mmx(void *buf, unsigned int size, unsigned int index)
-{
+void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
+	dump_stuff_mmx(buf, size, index);
+}
+void dump_stuff_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s :\n", (char*)msg);
+	dump_stuff_mmx(buf, size, index);
+}
+void dump_out_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
@@ -186,19 +202,53 @@ void dump_out_mmx(void *buf, unsigned int size, unsigned int index)
 		if( (i%4)==3 )
 			printf(" ");
 	}
-	printf("\n");
 }
-void dump_stuff_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
-	printf("%s : ", (char*)msg);
-	dump_stuff_mmx(buf, size, index);
+void dump_out_mmx(void *buf, unsigned int size, unsigned int index) {
+	dump_out_mmx_noeol(buf,size,index);
+	printf("\n");
 }
 void dump_out_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
 	printf("%s : ", (char*)msg);
 	dump_out_mmx(buf, size, index);
 }
+void dump_out_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s :\n", (char*)msg);
+	dump_out_mmx(buf, size, index);
+}
 
-void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index)
-{
+#if defined (MD5_SSE_PARA)
+#define GETPOSMPARA(i, index)	( (index&(MMX_COEF-1))*4 + (((i)&(0xffffffff-3))%64)*MMX_COEF + (i/64)*MMX_COEF*MD5_SSE_PARA*64 +    ((i)&3)  + (index>>(MMX_COEF>>1))*64*MMX_COEF  )
+// multiple para blocks
+void dump_stuff_mpara_mmx_noeol(void *buf, unsigned int size, unsigned int index) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)buf)[GETPOSMPARA(i, index)]);
+		if( (i%4)==3 )
+			printf(" ");
+	}
+}
+void dump_stuff_mpara_mmx(void *buf, unsigned int size, unsigned int index) {
+	dump_stuff_mpara_mmx_noeol(buf, size, index);
+	printf("\n");
+}
+// obuf has to be at lease size long.  This function will unwind the SSE-para buffers into a flat.
+void getbuf_stuff_mpara_mmx(unsigned char *oBuf, void *buf, unsigned int size, unsigned int index) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+		*oBuf++ = ((unsigned char*)buf)[GETPOSMPARA(i, index)];
+}
+void dump_stuff_mpara_mmx_msg(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s : ", (char*)msg);
+	dump_stuff_mpara_mmx(buf, size, index);
+}
+void dump_stuff_mpara_mmx_msg_sepline(void *msg, void *buf, unsigned int size, unsigned int index) {
+	printf("%s :\n", (char*)msg);
+	dump_stuff_mpara_mmx(buf, size, index);
+}
+#endif
+
+void dump_stuff_shammx(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{
@@ -212,8 +262,7 @@ void dump_stuff_shammx_msg(void *msg, void *buf, unsigned int size, unsigned int
 	printf("%s : ", (char*)msg);
 	dump_stuff_shammx(buf, size, index);
 }
-void dump_out_shammx(void *buf, unsigned int size, unsigned int index)
-{
+void dump_out_shammx(void *buf, unsigned int size, unsigned int index) {
 	unsigned int i;
 	for(i=0;i<size;i++)
 	{

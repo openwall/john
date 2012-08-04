@@ -37,6 +37,12 @@
 #include "loader.h"
 #include "memory.h"
 #include "md5.h"
+#include "sse-intrinsics.h"
+
+// 'bug' in arch.h for 64 bit builds.  WE NEED TO FIX that in the arch file.
+#ifdef MD5_SSE_PARA
+#define MMX_COEF	4
+#endif
 
 /*
  * these 2 are for testing non-MMX mode. if we
@@ -45,15 +51,6 @@
 //#undef MD5_SSE_PARA
 //#undef MMX_COEF
 
-#define FORMAT_LABEL			"sunmd5"
-#define FORMAT_NAME			"sunmd5"
-#include "sse-intrinsics.h"
-#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
-
-#ifdef MD5_SSE_PARA
-#define MMX_COEF			4
-#endif
-
 #ifndef MD5_CBLOCK
 #define MD5_CBLOCK 64
 #endif
@@ -61,17 +58,17 @@
 #define MD5_DIGEST_LENGTH 16
 #endif
 
-#define BENCHMARK_COMMENT		" MD5"
-#define BENCHMARK_LENGTH		-1
+#define STRINGIZE2(s) #s
+#define STRINGIZE(s) STRINGIZE2(s)
 
 #define PLAINTEXT_LENGTH		120
 
 /* JtR actually only 'uses' 4 byte binaries from this format, but for cmp_exact we need full binary */
-#define BINARY_SIZE			16
+#define BINARY_SIZE				16
 #define BINARY_ALIGN			1
 /* salt==48 allows $md5$ (5) rounds=999999$ (14) salt (16) null(1) (40 allows for 19 byte salt) */
-#define SALT_SIZE			40
-#define SALT_ALIGN			1
+#define SALT_SIZE				40
+#define SALT_ALIGN				1
 
 #define MIN_KEYS_PER_CRYPT		1
 #if defined (MMX_COEF)
@@ -80,6 +77,19 @@
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
+#define FORMAT_LABEL			"sunmd5"
+#define FORMAT_NAME				"sunmd5"
+#ifdef MMX_COEF
+#define ALGORITHM_NAME			MD5_ALGORITHM_NAME " x" STRINGIZE(MAX_KEYS_PER_CRYPT)
+#else
+#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
+#endif
+
+#define BENCHMARK_COMMENT		" MD5"
+// it is salted, but very slow, AND there is no differnce between 1 and multi salts, so simply turn off salt benchmarks
+#define BENCHMARK_LENGTH		-1
+
+// There 'ARE' more types, but we only handle these 2, at this time.
 #define MAGIC  "$md5,rounds=904$"
 #define MAGIC2 "$md5$rounds=904$"
 
@@ -589,18 +599,32 @@ static void crypt_all(int count)
 		 * The choice to use 512 MAX_KEYS seems about right.
 		 */
 
+		/********************************************/
 		/* get the little ones out of the way first */
+		/********************************************/
+
+		/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
+		for (j = 0; j < BLK_CNT; ++j) {
+			unsigned char *cpo = &input_buf[PARAGETPOS(0, j)];
+			int k;
+			for (k = 0; k < roundasciilen; ++k) {
+				cpo[GETPOS0(k+16)] = roundascii[k];
+			}
+			cpo[GETPOS0(k+16)] = 0x80;
+#if COEF==4
+			((ARCH_WORD_32*)cpo)[56]=((16+roundasciilen)<<3);
+#else
+			((ARCH_WORD_32*)cpo)[28]=((16+roundasciilen)<<3);
+#endif
+		}
+		/* now do the 'loop' for the small 1-limb blocks. */
 		i = 0;
 		if (nsmall > MIN_DROP_BACK) {
 		for (; i < nsmall-MIN_DROP_BACK; i += BLK_CNT) {
 			for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
-				ARCH_WORD_32 *pi, *po;
-				unsigned char *cpo;
-				int k;
 				pConx px = &data[smalls[zs++]];
-				/* copy last digest to first part of input buffer */
-				pi = (ARCH_WORD_32*)px->digest;
-				po = (ARCH_WORD_32*)&input_buf[PARAGETPOS(0, j)];
+				ARCH_WORD_32 *pi = (ARCH_WORD_32*)px->digest;
+				ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf[PARAGETPOS(0, j)];
 				/*
 				 * digest is flat, input buf is SSE_COEF.
 				 * input_buf is po (output) here, we are writing to it.
@@ -609,17 +633,6 @@ static void crypt_all(int count)
 				po[COEF] = pi[1];
 				po[COEF+COEF] = pi[2];
 				po[COEF+COEF+COEF] = pi[3];
-
-				cpo = (unsigned char*)po;
-				for (k = 0; k < roundasciilen; ++k) {
-					cpo[GETPOS0(k+16)] = roundascii[k];
-				}
-				cpo[GETPOS0(k+16)] = 0x80;
-#if COEF==4
-				po[56]=((16+roundasciilen)<<3);
-#else
-				po[28]=((16+roundasciilen)<<3);
-#endif
 			}
 #ifdef MD5_SSE_PARA
 			SSEmd5body(input_buf, (unsigned int *)out_buf, 1);
@@ -650,7 +663,7 @@ static void crypt_all(int count)
 			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
 			MD5_Final(px->digest, &px->context);
 		}
-		/*
+		/*****************************************************************************
 		 * Now do the big ones.  These are more complex that the little ones
 		 * (much more complex actually).  Here, we have to insert the prior crypt
 		 * into the first 16 bytes (just like in the little ones, but then we have
@@ -660,16 +673,63 @@ static void crypt_all(int count)
 		 * SSE_PARA buffer blocks, so there is quite a bit more manipluation of where
 		 * in the buffer to write this.  This is most noted in the text number, where
 		 * it spills over from buffer 24 to 25.
-		 */
+		 *****************************************************************************/
+
+		/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
+		for (j = 0; j < BLK_CNT; ++j) {
+			unsigned char *cpo23 = &(input_buf_big[23][PARAGETPOS(0, j)]);
+			unsigned char *cpo24 = &(input_buf_big[24][PARAGETPOS(0, j)]);
+			*((ARCH_WORD_32*)cpo24) = 0; /* key clean */
+			cpo23[GETPOS0(61)] = roundascii[0];
+			switch(roundasciilen) {
+				case 1:
+					cpo23[GETPOS0(62)] = 0x80;
+					cpo23[GETPOS0(63)] = 0; /* key clean. */
+					break;
+				case 2:
+					cpo23[GETPOS0(62)] = roundascii[1];
+					cpo23[GETPOS0(63)] = 0x80;
+					break;
+				case 3:
+					cpo23[GETPOS0(62)] = roundascii[1];
+					cpo23[GETPOS0(63)] = roundascii[2];
+					cpo24[GETPOS0(0)] = 0x80;
+					break;
+				case 4:
+					cpo23[GETPOS0(62)] = roundascii[1];
+					cpo23[GETPOS0(63)] = roundascii[2];
+					cpo24[GETPOS0(0)] = roundascii[3];
+					cpo24[GETPOS0(1)] = 0x80;
+					break;
+				case 5:
+					cpo23[GETPOS0(62)] = roundascii[1];
+					cpo23[GETPOS0(63)] = roundascii[2];
+					cpo24[GETPOS0(0)] = roundascii[3];
+					cpo24[GETPOS0(1)] = roundascii[4];
+					cpo24[GETPOS0(2)] = 0x80;
+					break;
+				case 6:
+					cpo23[GETPOS0(62)] = roundascii[1];
+					cpo23[GETPOS0(63)] = roundascii[2];
+					cpo24[GETPOS0(0)] = roundascii[3];
+					cpo24[GETPOS0(1)] = roundascii[4];
+					cpo24[GETPOS0(2)] = roundascii[5];
+					cpo24[GETPOS0(3)] = 0x80;
+					break;
+			}
+#if COEF==4
+			((ARCH_WORD_32*)cpo24)[56]=((16+1517+roundasciilen)<<3);
+#else
+			((ARCH_WORD_32*)cpo24)[28]=((16+1517+roundasciilen)<<3);
+#endif
+		}
 		i = 0;
 		if (nbig > MIN_DROP_BACK) {
 		for (; i < nbig-MIN_DROP_BACK; i += BLK_CNT) {
 			for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
 				pConx px = &data[bigs[zb++]];
-				ARCH_WORD_32 *po, *pi = (ARCH_WORD_32 *)px->digest;
-				unsigned char *cpo23, *cpo24;
-
-				po = (ARCH_WORD_32*)&input_buf_big[0][PARAGETPOS(0, j)];
+				ARCH_WORD_32 *pi = (ARCH_WORD_32 *)px->digest;
+				ARCH_WORD_32 *po = (ARCH_WORD_32*)&input_buf_big[0][PARAGETPOS(0, j)];
 				/*
 				 * digest is flat, input buf is SSE_COEF.
 				 * input_buf is po (output) here, we are writing to it.
@@ -678,52 +738,6 @@ static void crypt_all(int count)
 				po[COEF] = pi[1];
 				po[COEF+COEF] = pi[2];
 				po[COEF+COEF+COEF] = pi[3];
-
-				cpo23 = &(input_buf_big[23][PARAGETPOS(0, j)]);
-				cpo24 = &(input_buf_big[24][PARAGETPOS(0, j)]);
-				*((ARCH_WORD_32*)cpo24) = 0; /* key clean */
-				cpo23[GETPOS0(61)] = roundascii[0];
-				switch(roundasciilen) {
-					case 1:
-						cpo23[GETPOS0(62)] = 0x80;
-						cpo23[GETPOS0(63)] = 0; /* key clean. */
-						break;
-					case 2:
-						cpo23[GETPOS0(62)] = roundascii[1];
-						cpo23[GETPOS0(63)] = 0x80;
-						break;
-					case 3:
-						cpo23[GETPOS0(62)] = roundascii[1];
-						cpo23[GETPOS0(63)] = roundascii[2];
-						cpo24[GETPOS0(0)] = 0x80;
-						break;
-					case 4:
-						cpo23[GETPOS0(62)] = roundascii[1];
-						cpo23[GETPOS0(63)] = roundascii[2];
-						cpo24[GETPOS0(0)] = roundascii[3];
-						cpo24[GETPOS0(1)] = 0x80;
-						break;
-					case 5:
-						cpo23[GETPOS0(62)] = roundascii[1];
-						cpo23[GETPOS0(63)] = roundascii[2];
-						cpo24[GETPOS0(0)] = roundascii[3];
-						cpo24[GETPOS0(1)] = roundascii[4];
-						cpo24[GETPOS0(2)] = 0x80;
-						break;
-					case 6:
-						cpo23[GETPOS0(62)] = roundascii[1];
-						cpo23[GETPOS0(63)] = roundascii[2];
-						cpo24[GETPOS0(0)] = roundascii[3];
-						cpo24[GETPOS0(1)] = roundascii[4];
-						cpo24[GETPOS0(2)] = roundascii[5];
-						cpo24[GETPOS0(3)] = 0x80;
-						break;
-				}
-#if COEF==4
-				((ARCH_WORD_32*)cpo24)[56]=((16+1517+roundasciilen)<<3);
-#else
-				((ARCH_WORD_32*)cpo24)[28]=((16+1517+roundasciilen)<<3);
-#endif
 			}
 #ifdef MD5_SSE_PARA
 			SSEmd5body(input_buf_big[0], (unsigned int *)out_buf, 1);
