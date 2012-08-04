@@ -156,7 +156,6 @@ extern struct fmt_main fmt_cuda_rawsha512;
 extern struct fmt_main fmt_cuda_pwsafe;
 #endif
 
-extern struct fmt_main fmt_sunmd5;
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pfx;
 extern struct fmt_main fmt_pdf;
@@ -252,7 +251,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_SKEY);
 #endif
 
-	john_register_one(&fmt_sunmd5);
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_pfx);
 	john_register_one(&fmt_pdf);
