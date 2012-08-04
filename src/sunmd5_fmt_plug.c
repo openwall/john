@@ -26,9 +26,9 @@
 #include <unistd.h>
 #endif
 
+#include "arch.h"
 #include "misc.h"
 #include "options.h"
-#include "arch.h"
 #include "misc.h"
 #include "params.h"
 #include "memory.h"
@@ -36,6 +36,7 @@
 #include "formats.h"
 #include "loader.h"
 #include "memory.h"
+#include "md5.h"
 
 /*
  * these 2 are for testing non-MMX mode. if we
@@ -45,15 +46,9 @@
 //#undef MMX_COEF
 
 #define FORMAT_LABEL			"sunmd5"
-#define FORMAT_NAME			    "sunmd5"
-#ifdef MMX_COEF
+#define FORMAT_NAME			"sunmd5"
 #include "sse-intrinsics.h"
-#define ALGORITHM_NAME			"SSE2"
-#else
-#define ALGORITHM_NAME			"?/" ARCH_BITS_STR
-#endif
-
-#include "md5.h"
+#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
 
 #ifndef MD5_CBLOCK
 #define MD5_CBLOCK 64
@@ -62,18 +57,17 @@
 #define MD5_DIGEST_LENGTH 16
 #endif
 
-
 #define BENCHMARK_COMMENT		" MD5"
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		120
 
 /* JtR actually only 'uses' 4 byte binaries from this format, but for cmp_exact we need full binary */
-#define BINARY_SIZE				16
+#define BINARY_SIZE			16
 #define BINARY_ALIGN			1
 /* salt==48 allows $md5$ (5) rounds=999999$ (14) salt (16) null(1) (40 allows for 19 byte salt) */
-#define SALT_SIZE				40
-#define SALT_ALIGN				1
+#define SALT_SIZE			40
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #if defined (MMX_COEF)
@@ -122,7 +116,6 @@ static struct fmt_tests tests[] = {
 #else
 #define MIN_DROP_BACK 1
 #endif
-#include "sse-intrinsics.h"
 //#define GETPOS(i, index)		    ( ((index)&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) )
 //#define PARAGETPOS(i, index)		( ((index)&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + ((index)>>(MMX_COEF>>1))*MMX_COEF*64 )
 // these next 2 defines are same as above, but faster (on my gcc). Speed went fro 282 to 292, abotu 3.5% improvement.  Shifts vs mults.
@@ -222,10 +215,10 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *cp;
-    if(memcmp(ciphertext, MAGIC, sizeof(MAGIC)-1) && memcmp(ciphertext, MAGIC2, sizeof(MAGIC2)-1))
-    {
-        return 0;
-    }
+	if(memcmp(ciphertext, MAGIC, sizeof(MAGIC)-1) && memcmp(ciphertext, MAGIC2, sizeof(MAGIC2)-1))
+	{
+		return 0;
+	}
 	cp = strrchr(ciphertext, '$');
 	if (!cp) return 0;
 	if (strlen(cp) != 23) return 0;
@@ -803,9 +796,13 @@ struct fmt_main fmt_sunmd5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		4, //BINARY_SIZE,
-        BINARY_ALIGN,
+#if FMT_MAIN_VERSION > 9
+		BINARY_ALIGN,
+#endif
 		SALT_SIZE,
-        SALT_ALIGN,
+#if FMT_MAIN_VERSION > 9
+		SALT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -817,7 +814,9 @@ struct fmt_main fmt_sunmd5 = {
 		fmt_default_split,
 		binary,
 		salt,
-        fmt_default_source,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
