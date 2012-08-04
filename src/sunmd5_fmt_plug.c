@@ -36,7 +36,6 @@
 #include "formats.h"
 #include "loader.h"
 #include "memory.h"
-#include "md5.h"
 
 /*
  * these 2 are for testing non-MMX mode. if we
@@ -46,9 +45,15 @@
 //#undef MMX_COEF
 
 #define FORMAT_LABEL			"sunmd5"
-#define FORMAT_NAME			"sunmd5"
+#define FORMAT_NAME			    "sunmd5"
+#ifdef MMX_COEF
 #include "sse-intrinsics.h"
-#define ALGORITHM_NAME			MD5_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SSE2"
+#else
+#define ALGORITHM_NAME			"?/" ARCH_BITS_STR
+#endif
+
+#include "md5.h"
 
 #ifndef MD5_CBLOCK
 #define MD5_CBLOCK 64
@@ -91,6 +96,8 @@ static struct fmt_tests tests[] = {
 	{"$md5$rounds=904$/KP7bVaKYTOcplkx$i74NBQdysLaDTUSEu5FtQ.", "people"},
 	{"$md5$rounds=904$/p4qqfWbTQcUqjNc$leW.8/vzyDpFQxSZrV0x.0", "me"},
 	{"$md5$rounds=904$wOyGLc0NMRiXJTvI$v69lVSnLif78hZbZWhuEG1", "private"},
+	// from pass_gen.pl 120 bytes long.
+	{"$md5$rounds=904$Vc3VgyFx44iS8.Yu$mEyEet31IlEkO4HTeobmq0", "012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789"},
 
 	{NULL}
 };
@@ -102,8 +109,8 @@ static struct fmt_tests tests[] = {
 #endif
 
 #ifdef MMX_COEF
-#define BLK_CNT (MD5_SSE_PARA*MMX_COEF)
 #define COEF MMX_COEF
+#define BLK_CNT (PARA*COEF)
 #if PARA > 1
 /*
  * for para-3 32 bit at MAX_KEYS=1k,  0==281 1==292 2==284 3==284 4==283 5==282
@@ -618,7 +625,7 @@ static void crypt_all(int count)
 #ifdef MD5_SSE_PARA
 			SSEmd5body(input_buf, (unsigned int *)out_buf, 1);
 #else
-			mdfivemmx_nosizeupdate(out_buf[0], input_buf[0], 1);
+			mdfivemmx_nosizeupdate(out_buf, input_buf, 1);
 #endif
 			/*
 			 * we convert from COEF back to flat. since this data will later be used
@@ -724,9 +731,9 @@ static void crypt_all(int count)
 			for (j = 1; j < 25; ++j)
 				SSEmd5body(input_buf_big[j], (unsigned int *)out_buf, 0);
 #else
-			mdfivemmx_nosizeupdate((unsigned int *)out_buf, input_buf_big, 1);
+			mdfivemmx_nosizeupdate(out_buf, input_buf_big[0], 1);
 			for (j = 1; j < 25; ++j)
-				mdfivemmx_noinit_nosizeupdate_VC((unsigned int *)out_buf, input_buf_big[j], 1);
+				mdfivemmx_noinit_nosizeupdate(out_buf, input_buf_big[j], 1);
 #endif
 /*
 			{
