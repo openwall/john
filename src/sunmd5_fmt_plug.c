@@ -165,6 +165,7 @@ static char *saved_salt;
  * ANSI-C string constant concatenation is a requirement here.
  */
 
+#define constant_phrase_size 1517
 static const char constant_phrase[] =
 	"To be, or not to be,--that is the question:--\n"
 	"Whether 'tis nobler in the mind to suffer\n"
@@ -218,7 +219,7 @@ static void init(struct fmt_main *self)
 	out_buf       = mem_calloc_tiny(BLK_CNT*MD5_DIGEST_LENGTH, MEM_ALIGN_SIMD);
 
 	/* not super optimal, but only done one time, at program startup, so speed is not important */
-	for (i = 0; i < 1517; ++i) {
+	for (i = 0; i < constant_phrase_size; ++i) {
 		for (j = 0; j < BLK_CNT; ++j)
 			input_buf_big[(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
 	}
@@ -385,7 +386,7 @@ md5bit(unsigned char *digest, int bit_num)
 }
 
 #define	ROUNDS		"rounds="
-#define	ROUNDSLEN	(sizeof (ROUNDS) - 1)
+#define	ROUNDSLEN	7
 
 /*
  * get the integer value after rounds= where ever it occurs in the string.
@@ -472,7 +473,7 @@ static void crypt_all(int count)
 
 	maxrounds += getrounds(saved_salt);
 
-	for (idx = 0; idx < MAX_KEYS_PER_CRYPT; ++idx) {
+	for (idx = 0; idx < count; ++idx) {
 		/* initialise the context */
 
 		MD5_Init(&data[idx].context);
@@ -569,7 +570,7 @@ static void crypt_all(int count)
 
 			/* optional, add a constant string. This is what makes the 'long' crypt loops */
 			if (px->bit_a ^ px->bit_b)
-				MD5_Update(&px->context, (unsigned char *) constant_phrase, sizeof (constant_phrase));
+				MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
 			/* Add a decimal current roundcount */
 			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
 			MD5_Final(px->digest, &px->context);
@@ -724,9 +725,9 @@ static void crypt_all(int count)
 					break;
 			}
 #if COEF==4
-			((ARCH_WORD_32*)cpo24)[56]=((16+1517+roundasciilen)<<3);
+			((ARCH_WORD_32*)cpo24)[56]=((16+constant_phrase_size+roundasciilen)<<3);
 #else
-			((ARCH_WORD_32*)cpo24)[28]=((16+1517+roundasciilen)<<3);
+			((ARCH_WORD_32*)cpo24)[28]=((16+constant_phrase_size+roundasciilen)<<3);
 #endif
 		}
 		i = 0;
@@ -796,7 +797,7 @@ static void crypt_all(int count)
 			pConx px = &data[bigs[zb++]];
 			MD5_Init(&px->context);
 			MD5_Update(&px->context, px->digest, sizeof (px->digest));
-			MD5_Update(&px->context, (unsigned char *) constant_phrase, sizeof (constant_phrase));
+			MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
 			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
 			MD5_Final(px->digest, &px->context);
 		}
