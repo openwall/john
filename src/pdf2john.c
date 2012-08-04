@@ -142,7 +142,10 @@ int pdf2john(int argc, char **argv)
 	if (ret) {
 		if (ret == 42)
 			fprintf(stderr,
-			    "Document uses AES encryption which is not supported by this program!\n");
+			    "%s : Document uses AES encryption which is not supported by this program!\n", inputfile);
+		else if (ret == 43)
+			fprintf(stderr,
+			    "%s : Document uses encryption type which is not supported by this program!\n", inputfile);
 		else if (ret == EENCNF)
 			fprintf(stderr,
 			    "Error: Could not extract encryption information\n");
