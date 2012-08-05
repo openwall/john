@@ -18,7 +18,6 @@
 #define FORMAT_NAME			"HMAC MD5"
 
 #ifdef MD5_SSE_PARA
-#define MMX_COEF 4
 #define MD5_N				(MD5_SSE_PARA*MMX_COEF)
 #else
 #define MD5_N				MMX_COEF

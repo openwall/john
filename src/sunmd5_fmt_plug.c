@@ -36,11 +36,6 @@
 #include "md5.h"
 #include "sse-intrinsics.h"
 
-// 'bug' in arch.h for 64 bit builds.  WE NEED TO FIX that in the arch file.
-#ifdef MD5_SSE_PARA
-#define MMX_COEF	4
-#endif
-
 /*
  * these 2 are for testing non-MMX mode. if we
  * undefine these 2, then we force build oSSL model.
