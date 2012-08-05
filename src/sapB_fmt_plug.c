@@ -27,7 +27,6 @@
 #define FORMAT_NAME			"SAP CODVN B (BCODE)"
 
 #ifdef MD5_SSE_PARA
-#define MMX_COEF			4
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
 #define DO_MMX_MD5(in, out)		SSEmd5body(in, (unsigned int*)out, 1)
 #elif defined(MMX_COEF)

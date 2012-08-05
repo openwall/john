@@ -164,11 +164,6 @@ static int __SSE_gen_bBenchThisTime;
 static void __SSE_gen_BenchLowLevelFunctions();
 #endif
 
-#ifdef MD5_SSE_PARA
-#undef MMX_COEF
-#define MMX_COEF 4
-#endif
-
 #define FORMAT_LABEL		"dynamic"
 #define FORMAT_NAME         "Generic MD5"
 

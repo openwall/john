@@ -63,10 +63,6 @@
 #include <openssl/md4.h>
 #endif
 #include "unicode.h"
-
-#ifdef SHA1_SSE_PARA
-#define MMX_COEF			4
-#endif
 #include "sse-intrinsics.h"
 
 #if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))

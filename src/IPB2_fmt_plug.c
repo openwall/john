@@ -23,7 +23,6 @@
 #define FORMAT_NAME			"Invision Power Board 2.x salted MD5"
 
 #ifdef MD5_SSE_PARA
-#define MMX_COEF			4
 #define NBKEYS				(MMX_COEF * MD5_SSE_PARA)
 #elif defined(MMX_COEF)
 #define NBKEYS				MMX_COEF

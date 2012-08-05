@@ -12,7 +12,6 @@
 #include "arch.h"
 
 #ifdef MD4_SSE_PARA
-#define MMX_COEF			4
 #define NBKEYS				(MMX_COEF * MD4_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS				MMX_COEF

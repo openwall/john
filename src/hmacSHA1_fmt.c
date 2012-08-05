@@ -19,7 +19,6 @@
 #define FORMAT_NAME			"HMAC SHA-1"
 
 #ifdef SHA1_SSE_PARA
-#define MMX_COEF 4
 #define SHA1_N				(SHA1_SSE_PARA*MMX_COEF)
 #else
 #define SHA1_N				MMX_COEF
