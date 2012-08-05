@@ -1188,7 +1188,6 @@ static int check_inflate_CODE1(u8 *next, int left) {
                 bits += 8;
             }
             here = distfix[hold & 0x1F];
-          dodist:
             op = (unsigned)(here.bits);
             hold >>= op;
             bits -= op;
