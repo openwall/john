@@ -1215,30 +1215,19 @@ static int check_inflate_CODE1(u8 *next, int left) {
 					return 0;  /*invalid distance too far back*/
                 hold >>= op;
                 bits -= op;
-				whave += dist;
+		whave += len;
             }
-            else if ((op & 64) == 0) {	/* 2nd level distance code */
-                here = distfix[here.val + (hold & ((1U << op) - 1))];
-                goto dodist;
-            }
+//          else if ((op & 64) == 0) {	/* 2nd level distance code not present in distfix */
+//          }
             else
-				return 0;		/*invalid distance code*/
+		return 0;		/*invalid distance code*/
         }
-		else if (op & 64) {
-			// 2nd level length code.
-            //here = lcode[here.val + (hold & ((1U << op) - 1))];
-            //goto dolen;
-
-			// this causes an infinite loop. Also, I VERY seriously doubt, this will EVER happen in the first
-			// 24 bytes of code.  NOTE, there may be problems, in the fact this causes a inf loop!, but for now,
-			// simply return 0, then debug later.
-			return 0;
-		}
+//		else if ((op & 64) == 0) {  // 2nd level length code - not present in lenfix
+//		}
 		else if (op & 32) {
-			// end of block  NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
-			// It is VERY likely we do SHOULD NOT EVER hit this. If that is the case, return that this block is bogus.
-			// check next OP (if we have enough bits left), if CODE=3, fail.  If code==0, check
-			return 0;
+			// end of block may present in short sequences, but only at the end.NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
+			if (left == 0) return 1;
+			else return 0;
 		}
 		else {
 			return 0; // invalid literal/length code.
