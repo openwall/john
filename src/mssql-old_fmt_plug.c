@@ -156,6 +156,20 @@ static void init(struct fmt_main *self)
 	}
 }
 
+#ifdef MMX_COEF
+static void clear_keys(void) {
+#if SHA_BUF_SIZ == 16
+	memset(saved_key, 0, sizeof(saved_key));
+#else
+	int j=0;
+#ifdef SHA1_SSE_PARA
+	for (; j<SHA1_SSE_PARA; j++)
+#endif
+		memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
+#endif
+}
+#endif
+
 static void set_key(char *key, int index) {
 	UTF8 utf8[PLAINTEXT_LENGTH+1];
 	int utf8len, orig_len;
@@ -171,18 +185,6 @@ static void set_key(char *key, int index) {
 		return;
 
 #ifdef MMX_COEF
-	if(index==0)
-	{
-#if SHA_BUF_SIZ == 16
-		memset(saved_key, 0, sizeof(saved_key));
-#else
-		int j=0;
-#ifdef SHA1_SSE_PARA
-		for (; j<SHA1_SSE_PARA; j++)
-#endif
-			memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
-#endif
-	}
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf8len+SALT_SIZE)<<3;
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
@@ -218,19 +220,6 @@ static void set_key_enc(char *key, int index) {
 		utf16len *= -1;
 
 #ifdef MMX_COEF
-	if(index==0)
-	{
-#if SHA_BUF_SIZ == 16
-		memset(saved_key, 0, sizeof(saved_key));
-#else
-		int j=0;
-#ifdef SHA1_SSE_PARA
-		for (; j<SHA1_SSE_PARA; j++)
-#endif
-			memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
-#endif
-	}
-
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
 	for(i=0;i<utf16len;i++)
 	{
@@ -403,7 +392,11 @@ struct fmt_main fmt_mssql = {
 		set_salt,
 		set_key,
 		get_key,
+#ifdef MMX_COEF
+		clear_keys,
+#else
 		fmt_default_clear_keys,
+#endif
 		crypt_all,
 		{
 			get_hash_0,
