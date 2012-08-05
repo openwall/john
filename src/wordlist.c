@@ -557,6 +557,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				}
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
+				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
 			if (nWordFileLines - i)
 				log_event("- suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
