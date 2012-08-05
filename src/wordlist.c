@@ -509,6 +509,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			i = 0;
 			cp = word_file_str;
 
+			if (csearch == '\n')
+				while (*cp == '\r') cp++;
+
 			if (dupeCheck) {
 				hash_log = 1;
 				while (((1 << hash_log) < (nWordFileLines))

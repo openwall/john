@@ -15,7 +15,7 @@
 #include "rc4.h"
 #include "pdfcrack_md5.h"
 #include <openssl/aes.h>
-#include <openssl/sha.h>
+#include "sha2.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
