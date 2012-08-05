@@ -102,21 +102,21 @@ static void process_file(const char *filename)
 
 	// salt
 	fseek(fp, pos + 44, SEEK_SET);
-	bytes = fread(salt, SALTLEN, 1, fp);
+	bytes = fread(salt, 1, SALTLEN, fp);
 	if(bytes != SALTLEN){
 		fprintf(stderr, "Something went wrong - fread(salt) error\n");
 		exit(1);
 	}
 	// IV
 	fseek(fp, pos + 64, SEEK_SET);
-	bytes = fread(iv, IVLEN, 1, fp);
+	bytes = fread(iv, 1, IVLEN, fp);
 	if(bytes != IVLEN){
 		fprintf(stderr, "Something went wrong - fread(iv) error\n");
 		exit(1);
 	}
 	// ciphertext
 	fseek(fp, pos + cipheroff, SEEK_SET);
-	bytes = fread(ct, CTLEN, 1, fp);
+	bytes = fread(ct, 1, CTLEN, fp);
 	if(bytes != CTLEN){
 		fprintf(stderr, "Something went wrong - fread(ct) error\n");
 		exit(1);
