@@ -19,7 +19,7 @@
 #include "options.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               4
+#define OMP_SCALE               1
 #endif
 #include <string.h>
 #include "arch.h"
@@ -35,7 +35,9 @@
 #define BENCHMARK_LENGTH    -1001
 #define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
+#define BINARY_ALIGN        1
 #define SALT_SIZE           sizeof(struct custom_salt)
+#define SALT_ALIGN          DEFAULT_ALIGN
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -68,8 +70,6 @@ static struct fmt_tests encfs_tests[] = {
 	{NULL}
 };
 
-struct fmt_main fmt_encfs;
-
 #ifdef DEBUG
 static void print_hex(unsigned char *str, int len)
 {
@@ -80,7 +80,7 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
-void setIVec( unsigned char *ivec, uint64_t seed,
+static void setIVec( unsigned char *ivec, uint64_t seed,
         unsigned char *key)
 {
 	unsigned char md[EVP_MAX_MD_SIZE];
@@ -111,7 +111,7 @@ static void unshuffleBytes(unsigned char *buf, int size)
 		buf[i] ^= buf[i-1];
 }
 
-int MIN_(int a, int b)
+static int MIN_(int a, int b)
 {
 	return (a < b) ? a : b;
 }
@@ -177,7 +177,7 @@ static uint64_t MAC_64( const unsigned char *data, int len,
 	return tmp;
 }
 
-unsigned int MAC_32( unsigned char *src, int len,
+static unsigned int MAC_32( unsigned char *src, int len,
 		unsigned char *key )
 {
 	uint64_t *chainedIV = NULL;
@@ -218,7 +218,6 @@ int streamDecode(unsigned char *buf, int size,
 
 	return 1;
 }
-
 
 static void init(struct fmt_main *self)
 {
@@ -390,15 +389,12 @@ struct fmt_main fmt_encfs = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
-		FMT_OMP |
-#endif
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		encfs_tests
 	}, {
 		init,

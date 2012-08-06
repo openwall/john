@@ -20,11 +20,7 @@ struct fmt_main;
 /*
  * Default alignment (used unless known)
  */
-#ifdef ARCH_ALLOWS_UNALIGNED
-#define DEFAULT_ALIGN MEM_ALIGN_NONE
-#else
 #define DEFAULT_ALIGN MEM_ALIGN_WORD
-#endif
 
 /*
  * Format property flags.

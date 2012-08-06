@@ -22,7 +22,9 @@
 #define CIPHERTEXT_LENGTH		33
 
 #define BINARY_SIZE			13
+#define BINARY_ALIGN			1
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -88,9 +90,9 @@ struct fmt_main fmt_BFEgg = {
     BENCHMARK_LENGTH,
     PLAINTEXT_LENGTH,
     BINARY_SIZE,
-    DEFAULT_ALIGN,
+    BINARY_ALIGN,
     SALT_SIZE,
-    DEFAULT_ALIGN,
+    SALT_ALIGN,
     MIN_KEYS_PER_CRYPT,
     MAX_KEYS_PER_CRYPT,
     FMT_CASE | FMT_8_BIT,

@@ -41,7 +41,9 @@ static unsigned int omp_t = 1;
 #define CIPHERTEXT_LENGTH		48
 
 #define BINARY_SIZE			20
+#define BINARY_ALIGN			4
 #define SALT_SIZE			4
+#define SALT_ALIGN			4
 
 #ifdef MMX_COEF
 
@@ -467,9 +469,9 @@ struct fmt_main fmt_XSHA = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
