@@ -1334,7 +1334,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
- 	if (!strcmp(name, "pdf2john")) {
+	if (!strcmp(name, "pdf2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pdf2john(argc, argv);
 	}

@@ -108,7 +108,8 @@ static int restore_state(FILE *file)
 			}
 		}
 		else {
-			if (fseek(word_file, rec_pos, SEEK_SET)) pexit("fseek");
+			if (fseek(word_file, rec_pos, SEEK_SET))
+				pexit("fseek");
 #ifdef HAVE_MPI
 			line_number = rec_pos ? mpi_id : 0;    // we just need the correct modulus
 #endif
@@ -730,7 +731,7 @@ SKIP_MEM_MAP_LOAD:;
 			if (db->options->max_wordfile_memory == 1) {
 				distributeWords = 1;
 				distributeRules = 0;
-			}
+			} else
 			if (rule_count >= mpi_p && db->options->max_wordfile_memory == 2) {
 				distributeWords = 0;
 				distributeRules = 1;
