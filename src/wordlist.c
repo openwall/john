@@ -419,8 +419,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 						lp = (char*)potword(file_line);
 					else
 						lp = file_line;
-					if (!rules)
-						lp[length] = 0;
+					if (!rules) {
+						lp[length] = '\n';
+						lp[length + 1] = 0;
+					}
 					if (nWordFileLines % mpi_p == mpi_id)
 						my_size += strlen(lp);
 				}
@@ -443,13 +445,21 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 						lp = (char*)potword(file_line);
 					else
 						lp = file_line;
-					if (!rules)
-						lp[length] = 0;
+					if (!rules) {
+						lp[length] = '\n';
+						lp[length + 1] = 0;
+					}
 					if (myWordFileLines % mpi_p == mpi_id) {
 						strcpy(&word_file_str[i], lp);
 						i += strlen(lp);
 					}
+					if (i > my_size) {
+						fprintf(stderr, "Error: wordlist grew as we read it - aborting\n");
+						error();
+					}
 				}
+				if (nWordFileLines != myWordFileLines)
+					fprintf(stderr, "Warning: wordlist changed as we read it\n");
 				log_event("- loaded this node's share of wordfile %s into memory "
 				          "(%lu bytes of %lu, max_size=%u avg/node)",
 				          name, my_size, file_len, db->options->max_wordfile_memory);
