@@ -24,7 +24,7 @@
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL        "ppk"
+#define FORMAT_LABEL        "putty"
 #define FORMAT_NAME         "PuTTY Private Key SHA-1 / AES"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
@@ -65,8 +65,9 @@ static struct custom_salt {
 	unsigned char private_blob[4096];
 } *cur_salt;
 
-static struct fmt_tests ppk_tests[] = {
-	{"$ppk$1*16*1*0*10c434c33cf160352b7a5b3a1ecd8434f1066cac*432*000000077373682d647373000000806bb7ed4d03163f5be550dba68e0f1af7dae4b49f736ab452552a1163210c1366fd1f65a31bb526b1d3028a31d30b3315c19dc02417db99336f00b1f9565431d02fc59cd756ab6fe506b959df3799e4a70fcbe54ad9ef34d338014add8ac1f57f2a6dce8403c93709cb23d3c379f5de4f9fc45a73b3f9a43e6c1cc220bd38274b0000001500b4bf70cda203027a13135d43e459872eed384a3d0000008049a7d8e8d1db1630f9a9f6b1bf275d01e4287a4c2f038707d8c07ab664dbd264f6b4676de93c1f003bb57146a82314ab6c426628498209fa33c68a881abfd90dc1e978d430c9ace78d6c9895938494e91e3ca50132c9bde8fae4381e6fe59d03a9feee39b10cb2fea4e4d5f5ef10e523d34925f105eff665db2ac35e6cf0a1ac000000800def6e4f7ed4af0f1f8ed9524595d3fecd0a191ea9a6402d4235ee59ff2000011e36b5936280a3b5dc0b8d8ea7747e04ad92e46be8cb374d931c1e78bbdafea4ac16aba2e4b3cbd0779d28a609e848fb54332a169f24fac5e4c736c3dae4f95afe0aacaffb2d4829956fbd17d514614a45f8eefdd0d7d4982d101d72002f05fd*32*b38180c482949f3b4f44a20fd599c2cb411c671b4b120663bef9a61b360e442a*ssh-dss*aes256-cbc*dsa-key-20120721", "password"},
+static struct fmt_tests putty_tests[] = {
+	{"$putty$1*16*1*0*10c434c33cf160352b7a5b3a1ecd8434f1066cac*432*000000077373682d647373000000806bb7ed4d03163f5be550dba68e0f1af7dae4b49f736ab452552a1163210c1366fd1f65a31bb526b1d3028a31d30b3315c19dc02417db99336f00b1f9565431d02fc59cd756ab6fe506b959df3799e4a70fcbe54ad9ef34d338014add8ac1f57f2a6dce8403c93709cb23d3c379f5de4f9fc45a73b3f9a43e6c1cc220bd38274b0000001500b4bf70cda203027a13135d43e459872eed384a3d0000008049a7d8e8d1db1630f9a9f6b1bf275d01e4287a4c2f038707d8c07ab664dbd264f6b4676de93c1f003bb57146a82314ab6c426628498209fa33c68a881abfd90dc1e978d430c9ace78d6c9895938494e91e3ca50132c9bde8fae4381e6fe59d03a9feee39b10cb2fea4e4d5f5ef10e523d34925f105eff665db2ac35e6cf0a1ac000000800def6e4f7ed4af0f1f8ed9524595d3fecd0a191ea9a6402d4235ee59ff2000011e36b5936280a3b5dc0b8d8ea7747e04ad92e46be8cb374d931c1e78bbdafea4ac16aba2e4b3cbd0779d28a609e848fb54332a169f24fac5e4c736c3dae4f95afe0aacaffb2d4829956fbd17d514614a45f8eefdd0d7d4982d101d72002f05fd*32*b38180c482949f3b4f44a20fd599c2cb411c671b4b120663bef9a61b360e442a*ssh-dss*aes256-cbc*dsa-key-20120721", "password"},
+	{"$putty$1*16*1*0*0dbfd7b4ec870df2fb8becc9efa6feeec683cd98*149*000000077373682d727361000000012500000081008ffc01db52ff6543a67b747e9882d04c32dc769b0b1fa575e1e838133d0bc381291af654b112a6ead07b157e5556d2052c7d516b605415687769f1095e2107067e08cc569e6382b31a42d93bbb4c189c01469872b65e50af3f81ed651cb4144c556cadefda8706f00c65699a074fc4fa5843a8370852d04b8f5575f0f2186611*352*9df7f3992f46922e9e03ee381a9ba06082fcf07f572f5a742400fdbdb8fd850161b0dd877ce1fb5433311c097463a8b0c0d7e98f58d361ca1579a01d30878c8b934653ee1278942ee1fbba092e495d2c8b2f5903b7cb3fd1b5c0445d993e3139fa3741dd51e968fb8cc9cc5c257d25cb94d404e448ec334fc1be713c3156a8c9110280623687a7f3c5a8dede7efa98d4bfd12ae8cef634c0c51dcdccf2a9f65e14bd3f5cb34270ad1ea02732d653073fc2e772e3dfea14fa29a50052831bafedd10bd73a13c52db956e2b674115d9620cc1136432edc4e2968681d177278999cda7cc6aeb9e2427a11f2aee67990c02a400144fab0cf4546d19726247a076423384bd98c3d6fb810ab5ee7ff248b8a87a6652dff7deb38349b9929ba29375dcdd90c7e01ad6900b48cf48300dd157cc80ae94a1d6e7545ec7fcaf96e0172acf08ee7e21e494ca601f5890ad9e8ca5ff89141aa50ae188842da52ae000d38d1fa*ssh-rsa*aes256-cbc*rsa-key-20120721", "openwall"},
 	{NULL}
 };
 
@@ -87,7 +88,7 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$ppk$", 5);
+	return !strncmp(ciphertext, "$putty$", 7);
 }
 
 static void *get_salt(char *ciphertext)
@@ -97,7 +98,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
-	ctcopy += 5;	/* skip over "$ppk$" marker */
+	ctcopy += 7;	/* skip over "$putty$" marker */
 	p = strtok(ctcopy, "*");
 	cs.cipher = atoi(p);
 	p = strtok(NULL, "*");
@@ -143,7 +144,7 @@ static void set_salt(void *salt)
 	}
 }
 
-static void ppk_set_key(char *key, int index)
+static void putty_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -247,18 +248,11 @@ static int LAME_ssh2_load_userkey(char *passphrase)
                         HMAC_Update(&ctx, macdata, maclen);
                         HMAC_Final(&ctx, binary, &length);
                         HMAC_CTX_cleanup(&ctx);
-
-
-                        //hmac_sha1_simple(mackey, 20, macdata, maclen, binary);
-
-                        // memset(mackey, 0, sizeof(mackey));
-                        // memset(&s, 0, sizeof(s));
                 } else {
                         SHA_Simple(macdata, maclen, binary);
                 }
 
                 if (free_macdata) {
-                        // memset(macdata, 0, maclen);
                         free(macdata);
                 }
                 for (i = 0; i < 20; i++)
@@ -301,7 +295,7 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
-struct fmt_main fmt_ppk = {
+struct fmt_main fmt_putty = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -320,7 +314,7 @@ struct fmt_main fmt_ppk = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		ppk_tests
+		putty_tests
 	},
 	{
 		init,
@@ -337,7 +331,7 @@ struct fmt_main fmt_ppk = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		ppk_set_key,
+		putty_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
