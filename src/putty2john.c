@@ -369,7 +369,7 @@ static void LAME_ssh2_load_userkey(char *filename, const char **errorstr)
 	}
 
 	{
-		printf("%s:$ppk$%d*%d*%d*%d*%s*%d*", filename, cipher,cipherblk, is_mac, old_fmt, mac, public_blob_len);
+		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", filename, cipher,cipherblk, is_mac, old_fmt, mac, public_blob_len);
 		print_hex(public_blob, public_blob_len);
 		printf("*%d*", private_blob_len);
 		print_hex(private_blob, private_blob_len);
