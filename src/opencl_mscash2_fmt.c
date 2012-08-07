@@ -324,8 +324,12 @@ static int valid(char *ciphertext,struct fmt_main *self)
 
 	while (*pos != '#')
 	      {
-		if(saltlength==(MAX_SALT_LENGTH))
-		return 0;
+		      if(saltlength==(MAX_SALT_LENGTH)) {
+			      static int warned = 0;
+			      if (warned++ == 1)
+				      fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
+			      return 0;
+		      }
 
 		saltlength++;
 		pos++;
