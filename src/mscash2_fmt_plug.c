@@ -238,8 +238,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	while (ciphertext[i] && ciphertext[i] != '#') ++i;
 	++i;
 	saltlen = enc_to_utf16(realsalt, 22, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
-	if (saltlen < 0 || saltlen > 22)
+	if (saltlen < 0 || saltlen > 22) {
+		static int warned = 0;
+		if (warned++ == 1)
+			fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
 		return 0;
+	}
 
 	// iteration count must be less than 2^16. It must fit in a UTF16 (salt[1]);
 	sscanf(&ciphertext[6], "%d", &i);

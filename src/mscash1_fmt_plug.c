@@ -194,8 +194,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	// This is tricky: Max supported salt length is 19 characters of Unicode
 	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
-	if (saltlen < 0 || saltlen > 19)
-			return 0;
+	if (saltlen < 0 || saltlen > 19) {
+		static int warned = 0;
+		if (warned++ == 1)
+			fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
+		return 0;
+	}
 
 	return 1;
 }
