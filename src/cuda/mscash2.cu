@@ -8,7 +8,8 @@
 #include <stdio.h>
 #include "../cuda_mscash2.h"
 #include "cuda_common.cuh"
-extern "C" void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
+extern "C" void mscash2_gpu(mscash2_password *, mscash2_hash *,
+    mscash2_salt *);
 
 __constant__ mscash2_salt cuda_salt[1];
 
@@ -150,7 +151,7 @@ __device__ __host__ void preproc(const uint8_t * key,
 #pragma unroll 16
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], ipad, i * 4);
-	
+
 	uint32_t A = INIT_A;
 	uint32_t B = INIT_B;
 	uint32_t C = INIT_C;
@@ -174,12 +175,10 @@ __device__ void hmac_sha1(const uint8_t * key, uint32_t keylen,
 	int i;
 	uint32_t temp, W[16];
 	uint32_t A, B, C, D, E;
-	uint32_t state_A,state_B,state_C,state_D,state_E;
+	uint32_t state_A, state_B, state_C, state_D, state_E;
 	uint8_t buf[64];
-	uint32_t *src=(uint32_t*)buf;
-	i=64/4;
-	while(i--)
-	  *src++=0;
+	for (i = 0; i < 64; i++)
+		buf[i] = 0;
 
 	memcpy(buf, input, inputlen);
 	buf[inputlen] = 0x80;
@@ -190,12 +189,12 @@ __device__ void hmac_sha1(const uint8_t * key, uint32_t keylen,
 	C = ipad_state[2];
 	D = ipad_state[3];
 	E = ipad_state[4];
-	
-	state_A=A;
-	state_B=B;
-	state_C=C;
-	state_D=D;
-	state_E=E;
+
+	state_A = A;
+	state_B = B;
+	state_C = C;
+	state_D = D;
+	state_E = E;
 
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], buf, i * 4);
@@ -208,61 +207,50 @@ __device__ void hmac_sha1(const uint8_t * key, uint32_t keylen,
 	D += state_D;
 	E += state_E;
 
-	PUT_WORD_32_BE(A, buf, 0);
-	PUT_WORD_32_BE(B, buf, 4);
-	PUT_WORD_32_BE(C, buf, 8);
-	PUT_WORD_32_BE(D, buf, 12);
-	PUT_WORD_32_BE(E, buf, 16);
-
-	buf[20] = 0x80;
-	PUT_WORD_32_BE(0x2A0, buf, 60);
+	W[0] = A;
+	W[1] = B;
+	W[2] = C;
+	W[3] = D;
+	W[4] = E;
+	W[5] = 0x80000000;
+	W[15] = 0x2A0;
 
 	A = opad_state[0];
 	B = opad_state[1];
 	C = opad_state[2];
 	D = opad_state[3];
 	E = opad_state[4];
-	
-	state_A=A;
-	state_B=B;
-	state_C=C;
-	state_D=D;
-	state_E=E;
 
-	for (i = 0; i < 16; i++)
-		GET_WORD_32_BE(W[i], buf, i * 4);
+	SHA1_simply(A, B, C, D, E, W);
 
-	SHA1(A, B, C, D, E, W);
+	A += opad_state[0];
+	B += opad_state[1];
+	C += opad_state[2];
+	D += opad_state[3];
+	E += opad_state[4];
 
-	A += state_A;
-	B += state_B;
-	C += state_C;
-	D += state_D;
-	E += state_E;
-
-	output[0]=SWAP(A);
-	output[1]=SWAP(B);
-	output[2]=SWAP(C);
-	output[3]=SWAP(D);
-	output[4]=SWAP(E);
+	output[0] = SWAP(A);
+	output[1] = SWAP(B);
+	output[2] = SWAP(C);
+	output[3] = SWAP(D);
+	output[4] = SWAP(E);
 }
 
 
-__device__ void big_hmac_sha1(
-    uint32_t * input, uint32_t inputlen,
-    uint32_t * ipad_state, uint32_t * opad_state,uint32_t *tmp_out)
+__device__ void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
+    uint32_t * ipad_state, uint32_t * opad_state, uint32_t * tmp_out)
 {
-	int i,lo;
+	int i, lo;
 	uint32_t temp, W[16];
 	uint32_t A, B, C, D, E;
 #pragma unroll 5
-	for(i=0;i<5;i++)
-	  W[i]=SWAP(input[i]);
+	for (i = 0; i < 5; i++)
+		W[i] = SWAP(input[i]);
 #pragma unroll 4
-	for(i=0;i<4;i++)
-	tmp_out[i]=SWAP(tmp_out[i]);
-	
-	for(lo=1; lo<ITERATIONS; lo++) {
+	for (i = 0; i < 4; i++)
+		tmp_out[i] = SWAP(tmp_out[i]);
+
+	for (lo = 1; lo < cuda_salt[0].rounds; lo++) {
 
 		A = ipad_state[0];
 		B = ipad_state[1];
@@ -270,75 +258,56 @@ __device__ void big_hmac_sha1(
 		D = ipad_state[3];
 		E = ipad_state[4];
 
-		W[5]=0x80000000;
-		W[15]=0x2A0;
-		
-		#pragma unroll 9
-		for (i = 6; i < 15; i++) W[i]=0;
+		W[5] = 0x80000000;
+		W[15] = 0x2A0;
 
-		SHA1(A, B, C, D, E, W);
+		SHA1_simply(A, B, C, D, E, W);
 
-		A += ipad_state[0];
-		B += ipad_state[1];
-		C += ipad_state[2];
-		D += ipad_state[3];
-		E += ipad_state[4];
+		W[0] = A + ipad_state[0];
+		W[1] = B + ipad_state[1];
+		W[2] = C + ipad_state[2];
+		W[3] = D + ipad_state[3];
+		W[4] = E + ipad_state[4];
+		W[5] = 0x80000000;
+		W[15] = 0x2A0;
 
-		W[0]=A;
-		W[1]=B;
-		W[2]=C;
-		W[3]=D;
-		W[4]=E;
-		W[5]=0x80000000;
-		W[15]=0x2A0;
-		
-		#pragma unroll 9
-		for(i=6;i<15;i++) W[i]=0;
-		
-  
 		A = opad_state[0];
 		B = opad_state[1];
 		C = opad_state[2];
 		D = opad_state[3];
 		E = opad_state[4];
 
-		SHA1(A, B, C, D, E, W);
+		SHA1_simply(A, B, C, D, E, W);
 
-		A += opad_state[0];
-		B += opad_state[1];
-		C += opad_state[2];
-		D += opad_state[3];
-		E += opad_state[4];
+		W[0] = A + opad_state[0];
+		W[1] = B + opad_state[1];
+		W[2] = C + opad_state[2];
+		W[3] = D + opad_state[3];
+		W[4] = E + opad_state[4];
 
-		W[0]=A;
-		W[1]=B;
-		W[2]=C;
-		W[3]=D;
-		W[4]=E;
-	
-		tmp_out[0]^=A;
-		tmp_out[1]^=B;
-		tmp_out[2]^=C;
-		tmp_out[3]^=D;
+		tmp_out[0] ^= W[0];
+		tmp_out[1] ^= W[1];
+		tmp_out[2] ^= W[2];
+		tmp_out[3] ^= W[3];
 	}
 
 #pragma unroll 4
-for(i=0;i<4;i++)
-	tmp_out[i]=SWAP(tmp_out[i]);
+	for (i = 0; i < 4; i++)
+		tmp_out[i] = SWAP(tmp_out[i]);
 }
 
 
 __device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
-            int saltlen, uint8_t * out)
+    int saltlen, uint8_t * out)
 {
 	uint8_t buf[48];
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
-	int i=48/4;
-	uint32_t *src=(uint32_t*)buf;
-	while(i--)
-		*src++=0;
+	int i = 48 / 4;
+	uint32_t *src = (uint32_t *) buf;
+	while (i--)
+		*src++ = 0;
 
 	memcpy(buf, salt, saltlen);
 	buf[saltlen + 3] = 0x01;
@@ -348,7 +317,8 @@ __device__ void pbkdf2(const uint8_t * pass, const uint8_t * salt,
 
 	hmac_sha1(pass, 16, buf, saltlen + 4, tmp_out, ipad_state, opad_state);
 
-	big_hmac_sha1( tmp_out, SHA1_DIGEST_LENGTH, ipad_state,opad_state,tmp_out);
+	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
+	    tmp_out);
 
 	memcpy(out, tmp_out, 16);
 }
@@ -370,19 +340,18 @@ __global__ void pbkdf2_kernel(mscash2_password * inbuffer,
 
 __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
     mscash2_salt * host_salt)
-    {
-      
-      int i,idx = 0;
+{
+
+	int i, idx = 0;
 	uint32_t buffer[16];
 	uint32_t nt_hash[16];
 	uint8_t salt[64];
-	memset(salt,0,64);
+	memset(salt, 0, 64);
 	uint8_t *username = host_salt->salt;
 	uint32_t username_len = (uint32_t) host_salt->length;
-	//printf("username len=%d\n",username_len<<1);
-	int r=0;
-	if(username_len%2==1)
-	    r=1;
+	int r = 0;
+	if (username_len % 2 == 1)
+		r = 1;
 	for (i = 0; i < (username_len >> 1) + r; i++)
 		((uint32_t *) salt)[i] =
 		    username[2 * i] | (username[2 * i + 1] << 16);
@@ -405,9 +374,7 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 			buffer[i] = 0x80;
 
 		buffer[14] = password_len << 4;
-	//	printf("buffer[14]= %d\n",buffer[14]);
 		md4_crypt(buffer, nt_hash);
-       //printf("buffer = %08x \n",((unsigned int *)buffer)[0]);
 
 		memcpy((uint8_t *) nt_hash + 16, salt, username_len << 1);
 
@@ -422,36 +389,27 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 		nt_hash[14] = i << 4;
 
 		md4_crypt(nt_hash, inbuffer[idx].dcc_hash);
-
 	}
-    }
+}
 
-__host__ void mscash2_gpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
-    mscash2_salt * host_salt)
+__host__ void mscash2_gpu(mscash2_password * inbuffer,
+    mscash2_hash * outbuffer, mscash2_salt * host_salt)
 {
-	
-	mscash_cpu(inbuffer,outbuffer,host_salt);
+
+	mscash_cpu(inbuffer, outbuffer, host_salt);
 	mscash2_password *cuda_inbuffer;
 	mscash2_hash *cuda_outbuffer;
 	size_t insize = sizeof(mscash2_password) * KEYS_PER_CRYPT;
 	size_t outsize = sizeof(mscash2_hash) * KEYS_PER_CRYPT;
-	
+
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt,
 		sizeof(mscash2_salt)));
-	
+
 	HANDLE_ERROR(cudaMalloc(&cuda_inbuffer, insize));
 	HANDLE_ERROR(cudaMalloc(&cuda_outbuffer, outsize));
 
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
-
-	//int i;
-	//printf("usename len=%d dcc:\n",host_salt[0].length << 1);
-	//for(i=0;i<4;i++)
-	// printf("%08x ",inbuffer[0].dcc_hash[i]);
-	//puts("");
-	//for(i=0;i<64;i++)
-	//  printf("%d ",host_salt[0].unicode_salt[i]);
 
 	pbkdf2_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
 

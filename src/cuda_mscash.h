@@ -51,7 +51,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t length;
-	uint8_t salt[SALT_LENGTH];
+	char salt[SALT_LENGTH+1];
 } mscash_salt;
 
 #endif
