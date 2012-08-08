@@ -27,7 +27,7 @@
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define ITERATIONS		10240
+#define DEFAULT_ROUNDS		10240
 
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
@@ -79,24 +79,119 @@
     ( W[t & 0x0F] = S(temp,1) )                         \
 )
 
-#define P1(a,b,c,d,e,x)                                  \
+#define R16                                             \
+(                                                       \
+    temp = W[2] ^ W[0],                                 \
+    ( W[0] = S(temp,1) )                                \
+)
+
+#define R17                                             \
+(                                                       \
+    temp = W[3] ^ W[1],                                 \
+    ( W[1] = S(temp,1) )                                \
+)
+
+#define R18                                             \
+(                                                       \
+    temp = W[15] ^ W[4] ^ W[2],                         \
+    ( W[2] = S(temp,1) )                                \
+)
+
+#define R19                                             \
+(                                                       \
+    temp = W[0] ^ W[5] ^ W[3],                          \
+    ( W[3] = S(temp,1) )                                \
+)
+
+#define R20                                             \
+(                                                       \
+    temp = W[1] ^ W[4],                                 \
+    ( W[4] = S(temp,1) )                                \
+)
+
+#define R21                                             \
+(                                                       \
+    temp = W[2] ^ W[5],                                 \
+    ( W[5] = S(temp,1) )                                \
+)
+
+#define R22                                             \
+(                                                       \
+    temp = W[3],                                        \
+    ( W[6] = S(temp,1) )                                \
+)
+
+#define R23                                             \
+(                                                       \
+    temp = W[4] ^ W[15],                                \
+    ( W[7] = S(temp,1) )                                \
+)
+
+#define R24                                             \
+(                                                       \
+    temp = W[5] ^ W[0],                                 \
+    ( W[8] = S(temp,1) )                                \
+)
+
+#define R25                                             \
+(                                                       \
+    temp = W[6] ^ W[1],                                 \
+    ( W[9] = S(temp,1) )                                \
+)
+
+#define R26                                             \
+(                                                       \
+    temp = W[7] ^ W[2],                                 \
+    ( W[10] = S(temp,1) )                               \
+)
+
+#define R27                                             \
+(                                                       \
+    temp = W[8] ^ W[3],                                 \
+    ( W[11] = S(temp,1) )                               \
+)
+
+#define R28                                             \
+(                                                       \
+    temp = W[9] ^ W[4],                                 \
+    ( W[12] = S(temp,1) )                               \
+)
+
+#define R29                                             \
+(                                                       \
+    temp = W[10] ^ W[5] ^ W[15],                        \
+    ( W[13] = S(temp,1) )                               \
+)
+
+#define R30                                             \
+(                                                       \
+    temp = W[11] ^ W[6] ^ W[0],                         \
+    ( W[14] = S(temp,1) )                               \
+)
+
+#define P1(a,b,c,d,e,x)                                 \
 {                                                       \
-    e += S(a,5) + F1(b,c,d) + K1 + x; b = S(b,30);        \
+    e += S(a,5) + F1(b,c,d) + K1 + x; b = S(b,30);      \
 }
 
-#define P2(a,b,c,d,e,x)                                  \
+#define S1(a,b,c,d,e)                                   \
 {                                                       \
-    e += S(a,5) + F2(b,c,d) + K2 + x; b = S(b,30);        \
+    e += S(a,5) + F1(b,c,d) + K1; b = S(b,30);          \
 }
 
-#define P3(a,b,c,d,e,x)                                  \
+#define P2(a,b,c,d,e,x)                                 \
 {                                                       \
-    e += S(a,5) + F3(b,c,d) + K3 + x; b = S(b,30);        \
+    e += S(a,5) + F2(b,c,d) + K2 + x; b = S(b,30);      \
 }
 
-#define P4(a,b,c,d,e,x)                                  \
+#define P3(a,b,c,d,e,x)                                 \
 {                                                       \
-    e += S(a,5) + F4(b,c,d) + K4 + x; b = S(b,30);        \
+    e += S(a,5) + F3(b,c,d) + K3 + x; b = S(b,30);      \
+}
+
+#define P4(a,b,c,d,e,x)                                 \
+{                                                       \
+    e += S(a,5) + F4(b,c,d) + K4 + x; b = S(b,30);      \
 }
 
 #define SHA1(A,B,C,D,E,W) \
@@ -181,6 +276,88 @@
     P4(C, D, E, A, B, R(78));\
     P4(B, C, D, E, A, R(79));
 
+#define SHA1_simply(A,B,C,D,E,W) \
+    P1(A, B, C, D, E, W[0] );\
+    P1(E, A, B, C, D, W[1] );\
+    P1(D, E, A, B, C, W[2] );\
+    P1(C, D, E, A, B, W[3] );\
+    P1(B, C, D, E, A, W[4] );\
+    P1(A, B, C, D, E, W[5] );\
+    S1(E, A, B, C, D);\
+    S1(D, E, A, B, C);\
+    S1(C, D, E, A, B);\
+    S1(B, C, D, E, A);\
+    S1(A, B, C, D, E);\
+    S1(E, A, B, C, D);\
+    S1(D, E, A, B, C);\
+    S1(C, D, E, A, B);\
+    S1(B, C, D, E, A);\
+    P1(A, B, C, D, E, W[15]);\
+    P1(E, A, B, C, D, R16);\
+    P1(D, E, A, B, C, R17);\
+    P1(C, D, E, A, B, R18);\
+    P1(B, C, D, E, A, R19);\
+    P2(A, B, C, D, E, R20);\
+    P2(E, A, B, C, D, R21);\
+    P2(D, E, A, B, C, R22);\
+    P2(C, D, E, A, B, R23);\
+    P2(B, C, D, E, A, R24);\
+    P2(A, B, C, D, E, R25);\
+    P2(E, A, B, C, D, R26);\
+    P2(D, E, A, B, C, R27);\
+    P2(C, D, E, A, B, R28);\
+    P2(B, C, D, E, A, R29);\
+    P2(A, B, C, D, E, R30);\
+    P2(E, A, B, C, D, R(31));\
+    P2(D, E, A, B, C, R(32));\
+    P2(C, D, E, A, B, R(33));\
+    P2(B, C, D, E, A, R(34));\
+    P2(A, B, C, D, E, R(35));\
+    P2(E, A, B, C, D, R(36));\
+    P2(D, E, A, B, C, R(37));\
+    P2(C, D, E, A, B, R(38));\
+    P2(B, C, D, E, A, R(39));\
+    P3(A, B, C, D, E, R(40));\
+    P3(E, A, B, C, D, R(41));\
+    P3(D, E, A, B, C, R(42));\
+    P3(C, D, E, A, B, R(43));\
+    P3(B, C, D, E, A, R(44));\
+    P3(A, B, C, D, E, R(45));\
+    P3(E, A, B, C, D, R(46));\
+    P3(D, E, A, B, C, R(47));\
+    P3(C, D, E, A, B, R(48));\
+    P3(B, C, D, E, A, R(49));\
+    P3(A, B, C, D, E, R(50));\
+    P3(E, A, B, C, D, R(51));\
+    P3(D, E, A, B, C, R(52));\
+    P3(C, D, E, A, B, R(53));\
+    P3(B, C, D, E, A, R(54));\
+    P3(A, B, C, D, E, R(55));\
+    P3(E, A, B, C, D, R(56));\
+    P3(D, E, A, B, C, R(57));\
+    P3(C, D, E, A, B, R(58));\
+    P3(B, C, D, E, A, R(59));\
+    P4(A, B, C, D, E, R(60));\
+    P4(E, A, B, C, D, R(61));\
+    P4(D, E, A, B, C, R(62));\
+    P4(C, D, E, A, B, R(63));\
+    P4(B, C, D, E, A, R(64));\
+    P4(A, B, C, D, E, R(65));\
+    P4(E, A, B, C, D, R(66));\
+    P4(D, E, A, B, C, R(67));\
+    P4(C, D, E, A, B, R(68));\
+    P4(B, C, D, E, A, R(69));\
+    P4(A, B, C, D, E, R(70));\
+    P4(E, A, B, C, D, R(71));\
+    P4(D, E, A, B, C, R(72));\
+    P4(C, D, E, A, B, R(73));\
+    P4(B, C, D, E, A, R(74));\
+    P4(A, B, C, D, E, R(75));\
+    P4(E, A, B, C, D, R(76));\
+    P4(D, E, A, B, C, R(77));\
+    P4(C, D, E, A, B, R(78));\
+    P4(B, C, D, E, A, R(79));
+
 static const char mscash2_prefix[] = "$DCC2$";
 
 typedef struct {
@@ -197,6 +374,7 @@ typedef struct {
 	uint8_t length;
 	uint8_t salt[19];
 	uint8_t unicode_salt[64];
+	uint32_t rounds;
 } mscash2_salt;
 
 #endif
