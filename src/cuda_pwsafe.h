@@ -27,7 +27,7 @@
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 typedef struct {
-        uint8_t v[15];
+        uint8_t v[32];
         uint8_t length;
 } pwsafe_pass;
 
