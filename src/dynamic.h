@@ -121,6 +121,7 @@ int dynamic_IS_VALID(int i);
 int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_RESET(struct fmt_main *);
 void dynamic_DISPLAY_ALL_FORMATS();
+char *RemoveHEX(char *output, char *input);
 
 // Function used to 'link' a thin format into dynamic.  See PHPS_fmt.c for an example.
 struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertext, char *orig_sig, int bInitAlso);

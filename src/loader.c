@@ -32,6 +32,7 @@
 #include "john-mpi.h"
 #endif
 #include "unicode.h"
+#include "dynamic.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -596,21 +597,18 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
-	char *ciphertext, *unprepared;
+	char *ciphertext;
 	void *binary;
 	int hash;
 	struct db_password *current;
-	char *flds[10];
-	int i;
 
-	unprepared = ldr_get_field(&line, db->options->field_sep_char);
-	for (i = 0; i < 10; ++i)
-		flds[i] = "";
-	flds[1] = unprepared;
-	ciphertext = format->methods.prepare(flds, format);
-	if (format->methods.valid(ciphertext,format) != 1) return;
-
-	ciphertext = format->methods.split(ciphertext, 0);
+	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
+	if (format->methods.valid(ciphertext, format) != 1) {
+		ciphertext = format->methods.split(ciphertext, 0);
+		if (format->methods.valid(ciphertext, format) != 1)
+			return;
+	} else
+		ciphertext = format->methods.split(ciphertext, 0);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
@@ -887,10 +885,17 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
+	if (strstr(ciphertext, "dynamic_") && strstr(ciphertext, "$HEX$")) {
+		char Tmp[16384];
+		RemoveHEX(Tmp, ciphertext);
+		// tmp will always be 'shorter' or equal length to ciphertext
+		strcpy(ciphertext, Tmp);
+	}
+
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
 		if (!fmt_list->next &&
-		    !fmt_list->methods.valid(ciphertext,fmt_list))
+		    !fmt_list->methods.valid(ciphertext, fmt_list))
 			return;
 
 		pos = line;
