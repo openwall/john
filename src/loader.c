@@ -32,6 +32,7 @@
 #include "john-mpi.h"
 #endif
 #include "unicode.h"
+#include "dynamic.h"
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
@@ -654,9 +655,12 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	struct db_password *current;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
-	if (format->methods.valid(ciphertext, format) != 1) return;
-
-	ciphertext = format->methods.split(ciphertext, 0, format);
+	if (format->methods.valid(ciphertext, format) != 1) {
+		ciphertext = format->methods.split(ciphertext, 0);
+		if (format->methods.valid(ciphertext, format) != 1)
+			return;
+	} else
+		ciphertext = format->methods.split(ciphertext, 0);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
@@ -948,6 +952,13 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	struct db_cracked *current, *last;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
+
+	if (strstr(ciphertext, "dynamic_") && strstr(ciphertext, "$HEX$")) {
+		char Tmp[16384];
+		RemoveHEX(Tmp, ciphertext);
+		// tmp will always be 'shorter' or equal length to ciphertext
+		strcpy(ciphertext, Tmp);
+	}
 
 	if (line) {
 /* If just one format was forced on the command line, insist on it */
