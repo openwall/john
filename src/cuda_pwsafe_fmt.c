@@ -18,13 +18,14 @@
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "memory.h"
 #include "cuda_pwsafe.h"
 #define FORMAT_LABEL            "pwsafe-cuda"
 #define FORMAT_NAME             "Password Safe SHA-256"
-#define ALGORITHM_NAME          "CUDA, unreliable, may miss guesses"
+#define ALGORITHM_NAME          "CUDA"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
-#define PLAINTEXT_LENGTH        32
+#define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             32
 #define SALT_SIZE               sizeof(pwsafe_salt)
 #define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
@@ -78,6 +79,9 @@ static void *get_salt(char *ciphertext)
                     + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
         free(keeptr);
+
+	alter_endianity(salt_struct->hash, 32);
+
         return (void *) salt_struct;
 }
 
@@ -90,13 +94,7 @@ static void set_salt(void *salt)
 static void crypt_all(int count)
 {
         int i;
-        unsigned int *src = (unsigned int *) host_salt->hash;
-        unsigned int *dst = (unsigned int *) host_salt->hash;
         any_cracked = 0;
-
-        for (i = 0; i < 8; i++) {
-                dst[i] = SWAP32(src[i]);
-        }
 
         gpu_pwpass(host_pass, host_salt, host_hash);
         for (i = 0; i < count; i++) {
