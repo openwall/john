@@ -21,7 +21,7 @@
 #include "cuda_pwsafe.h"
 #define FORMAT_LABEL            "pwsafe-cuda"
 #define FORMAT_NAME             "Password Safe SHA-256"
-#define ALGORITHM_NAME          "CUDA"
+#define ALGORITHM_NAME          "CUDA, unreliable, may miss guesses"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        32
