@@ -19,7 +19,7 @@
 #include "options.h"
 #include "base64.h"
 #include "common-opencl.h"
-
+#include "memory.h"
 
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int
@@ -156,6 +156,7 @@ static void *get_salt(char *ciphertext)
 		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	free(keeptr);
+        alter_endianity(salt_struct->hash, 32);
 	return (void *) salt_struct;
 }
 
@@ -173,13 +174,8 @@ static void crypt_all(int count)
 	int i;
 	size_t worksize = KEYS_PER_CRYPT;
 	size_t localworksize = local_work_size;
-	unsigned int *src = (unsigned int *) host_salt->hash;
-	unsigned int *dst = (unsigned int *) host_salt->hash;
 	any_cracked = 0;
 
-	for (i = 0; i < 8; i++) {
-		dst[i] = SWAP32(src[i]);
-	}
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer
