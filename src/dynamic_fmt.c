@@ -788,6 +788,46 @@ static void init(struct fmt_main *pFmt)
 	}
 }
 
+char *RemoveHEX(char *output, char *input) {
+	char *cpi = input;
+	char *cpo = output;
+	char *cpH = strstr(input, "$HEX$");
+
+	if (!cpH) {
+		// should never get here, we have a check performed before this function is called.
+		strcpy(output, input);
+		return output;
+	}
+
+	while (cpi < cpH)
+		*cpo++ = *cpi++;
+
+	*cpo++ = *cpi;
+	cpi += 5;
+	while (*cpi) {
+		if (*cpi == '0' && cpi[1] == '0') {
+			strcpy(output, input);
+			return output;
+		}
+		if (atoi16[ARCH_INDEX(*cpi)] != 0x7f && atoi16[ARCH_INDEX(cpi[1])] != 0x7f) {
+			*cpo++ = atoi16[ARCH_INDEX(*cpi)]*16 + atoi16[ARCH_INDEX(cpi[1])];
+			cpi += 2;
+		} else if (*cpi == '$') {
+			while (*cpi && strncmp(cpi, "$HEX$", 5)) {
+				*cpo++ = *cpi++;
+			}
+			if (!strncmp(cpi, "$HEX$", 5)) {
+				*cpo++ = *cpi;
+				cpi += 5;
+			}
+		} else {
+			strcpy(output, input);
+			return output;
+		}
+	}
+	*cpo = 0;
+	return output;
+}
 
 /*********************************************************************************
  * This function will add a $dynamic_#$ IF there is not one, and if we have a specific
@@ -895,15 +935,21 @@ static char *split(char *ciphertext, int index)
 {
 	static char out[1024];
 
-	if (!strncmp(ciphertext, "$dynamic", 8))
+	if (!strncmp(ciphertext, "$dynamic", 8)) {
+		if (strstr(ciphertext, "$HEX$"))
+			return RemoveHEX(out, ciphertext);
 		return ciphertext;
-
+	}
 	if (!strncmp(ciphertext, "md5_gen(", 8)) {
 		ciphertext += 8;
 		do ++ciphertext; while (*ciphertext != ')')	;
 		++ciphertext;
 	}
-	sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+	if (strstr(ciphertext, "$HEX$")) {
+		char *cp = out + sprintf(out, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+		RemoveHEX(cp, ciphertext);
+	} else
+		sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
 
 	return out;
 }
@@ -914,14 +960,21 @@ static char *split_UC(char *ciphertext, int index)
 	static char out[1024];
 
 	if (!strncmp(ciphertext, "$dynamic", 8)) {
-		strcpy(out, ciphertext);
+		if (strstr(ciphertext, "$HEX$"))
+			RemoveHEX(out, ciphertext);
+		else
+			strcpy(out, ciphertext);
 	} else {
 		if (!strncmp(ciphertext, "md5_gen(", 8)) {
 			ciphertext += 8;
 			do ++ciphertext; while (*ciphertext != ')')	;
 			++ciphertext;
 		}
-		sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+		if (strstr(ciphertext, "$HEX$")) {
+			char *cp = out + sprintf(out, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+			RemoveHEX(cp, ciphertext);
+		} else
+			sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
 	}
 	ciphertext = strchr(&out[8], '$')+1;
 	while (*ciphertext && *ciphertext != '$') {
@@ -6963,6 +7016,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.dynamic_hdaa_salt     = ((Setup->flags&MGF_HDAA_SALT)==MGF_HDAA_SALT) ? 1 : 0;
 	curdat.dynamic_40_byte_sha1  = ((Setup->flags&MGF_SHA1_40_BYTE_FINISH)==MGF_SHA1_40_BYTE_FINISH) ? 1 : 0;
+	curdat.FldMask = 0;
 	curdat.b2Salts               = ((Setup->flags&MGF_SALTED2)==MGF_SALTED2) ? 1 : 0;
 	curdat.dynamic_base16_upcase = ((Setup->flags&MGF_BASE_16_OUTPUT_UPCASE)==MGF_BASE_16_OUTPUT_UPCASE) ? 1 : 0;
 	curdat.FldMask              |= ((Setup->flags&MGF_FLD0)==MGF_FLD0) ? MGF_FLD0 : 0;
@@ -6978,7 +7032,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 	curdat.dynamic_base64_inout = 0;
 	curdat.dynamic_salt_as_hex = 0;
-	curdat.FldMask = 0;
 	curdat.force_md5_ctx = 0;
 	curdat.nUserName = 0;
 	curdat.nPassCase = 1;
@@ -7471,9 +7524,9 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	cp = strchr(label_id, '$');
 	*cp = 0;
 
-	if (!options.format || strncmp(options.format, "dynamic_", 8))
-		pFmt->params.label = str_alloc_copy("dynamic");
-	else
+//	if (!options.format || strncmp(options.format, "dynamic_", 8))
+//		pFmt->params.label = str_alloc_copy("dynamic");
+//	else
 		pFmt->params.label = str_alloc_copy(label_id);
 
 	strcpy(curdat.dynamic_WHICH_TYPE_SIG, label);
