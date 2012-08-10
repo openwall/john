@@ -981,10 +981,10 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		++ciphertext;
 	}
 	if (strstr(ciphertext, "$HEX$")) {
-		char *cp = out + sprintf(out, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+		char *cp = out + sprintf(out, "%s", pPriv->dynamic_WHICH_TYPE_SIG);
 		RemoveHEX(cp, ciphertext);
 	} else
-		sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+		sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 
 	return out;
 }
@@ -1007,10 +1007,10 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 			++ciphertext;
 		}
 		if (strstr(ciphertext, "$HEX$")) {
-			char *cp = out + sprintf(out, "%s", curdat.dynamic_WHICH_TYPE_SIG);
+			char *cp = out + sprintf(out, "%s", pPriv->dynamic_WHICH_TYPE_SIG);
 			RemoveHEX(cp, ciphertext);
 		} else
-			sprintf(out, "%s%s", curdat.dynamic_WHICH_TYPE_SIG, ciphertext);
+			sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 	}
 	ciphertext = strchr(&out[8], '$')+1;
 	while (*ciphertext && *ciphertext != '$') {

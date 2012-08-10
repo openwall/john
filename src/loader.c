@@ -656,11 +656,11 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 	if (format->methods.valid(ciphertext, format) != 1) {
-		ciphertext = format->methods.split(ciphertext, 0);
+		ciphertext = format->methods.split(ciphertext, 0, format);
 		if (format->methods.valid(ciphertext, format) != 1)
 			return;
 	} else
-		ciphertext = format->methods.split(ciphertext, 0);
+		ciphertext = format->methods.split(ciphertext, 0, format);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
