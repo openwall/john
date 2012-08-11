@@ -481,7 +481,7 @@ static void init(struct fmt_main *self) {
 
     if (source_in_use != device_info[gpu_id]) {
         device_info[gpu_id] = source_in_use;
-        printf("Selected runtime id %d, source (%s)\n", source_in_use, task);
+        fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
     }
 
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)

@@ -451,7 +451,7 @@ void BF_select_device(int platform_no,int dev_no)
 
 	krnl[platform_no][dev_no]=clCreateKernel(prg[platform_no][dev_no],"blowfish",&err) ;
 
-	if(err) {printf("Create Kernel blowfish FAILED\n"); return ;}
+	if(err) {fprintf(stderr, "Create Kernel blowfish FAILED\n"); return ;}
 
 	cmdq[platform_no][dev_no]=queue[dev_no];
 
