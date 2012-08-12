@@ -38,7 +38,6 @@ static struct fmt_tests pwsafe_tests[] = {
 };
 
 
-static int any_cracked;
 static pwsafe_pass *host_pass;                          /** binary ciphertexts **/
 static pwsafe_salt *host_salt;                          /** salt **/
 static pwsafe_hash *host_hash;                          /** calculated hashes **/
@@ -48,7 +47,6 @@ static void init(struct fmt_main *self)
         host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
         host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
         host_salt = calloc(1, sizeof(pwsafe_salt));
-        any_cracked = 1;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -88,24 +86,22 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
         memcpy(host_salt, salt, SALT_SIZE);
-        any_cracked = 0;
 }
 
 static void crypt_all(int count)
 {
-        int i;
-        any_cracked = 0;
-
         gpu_pwpass(host_pass, host_salt, host_hash);
-        for (i = 0; i < count; i++) {
-                if (host_hash[i].cracked == 1)
-                        any_cracked = 1;
-        }
 }
 
 static int cmp_all(void *binary, int count)
 {
-        return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (host_hash[i].cracked)
+			return 1;
+
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)

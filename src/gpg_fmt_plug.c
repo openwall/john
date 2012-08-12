@@ -32,6 +32,7 @@
 #include <openssl/aes.h>
 #include <assert.h>
 #include <openssl/blowfish.h>
+#include <openssl/ripemd.h>
 #include <openssl/cast.h>
 #include <openssl/bn.h>
 #include "sha2.h"
@@ -76,24 +77,29 @@ enum {
 
 
 enum {
-        PKA_UNKOWN = 0,
-        PKA_RSA_ENCSIGN = 1,
-        PKA_DSA = 17
+	PKA_UNKOWN = 0,
+	PKA_RSA_ENCSIGN = 1,
+	PKA_DSA = 17
 };
 
 enum {
-        CIPHER_UNKOWN = -1,
-        CIPHER_CAST5 = 3,
-        CIPHER_BLOWFISH = 4,
-        CIPHER_AES128 = 7,
-        CIPHER_AES192 = 8,
-        CIPHER_AES256 = 9
+	CIPHER_UNKOWN = -1,
+	CIPHER_CAST5 = 3,
+	CIPHER_BLOWFISH = 4,
+	CIPHER_AES128 = 7,
+	CIPHER_AES192 = 8,
+	CIPHER_AES256 = 9
 };
 
 enum {
-        HASH_UNKOWN = -1,
-        HASH_MD5 = 1,
-        HASH_SHA1 = 2
+	HASH_UNKOWN = -1,
+	HASH_MD5 = 1,
+	HASH_SHA1 = 2,
+	HASH_RIPEMD160 = 3,
+	HASH_SHA256 = 8,
+	HASH_SHA384 = 9,
+	HASH_SHA512 = 10,
+	HASH_SHA224 = 11
 };
 
 static struct custom_salt {
@@ -158,6 +164,12 @@ static uint32_t digestSize(char algorithm)
 			return 16;
 		case HASH_SHA1:
 			return 20;
+		case HASH_SHA512:
+			return 64;
+		case HASH_SHA256:
+			return 32;
+		case HASH_RIPEMD160:
+			return 20;
 		default: break;
 	}
 	return 0;
@@ -166,6 +178,8 @@ static uint32_t digestSize(char algorithm)
 static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*1*348*1024*e5fbff62d94b41de7fc9f3dd93685aa6e03a2c0fcd75282b25892c74922ec66c7327933087304d34d1f5c0acca5659b704b34a67b0d8dedcb53a10aee14c2615527696705d3ab826d53af457b346206c96ef4980847d02129677c5e21045abe1a57be8c0bf7495b2040d7db0169c70f59994bba4c9a13451d38b14bd13d8fe190cdc693ee207d8adfd8f51023b7502c7c8df5a3c46275acad6314d4d528df37896f7b9e53adf641fe444e18674d59cf46d5a6dffdc2f05e077346bf42fe35937e95f644a58a2370012d993c5008e6d6ff0c66c6d0d0b2f1c22961b6d12563a117897675f6b317bc71e4f2dbf6b9fff23186da2724a584d70401136e8c500784df462ea6548db4eecc782e79afe52fd8c1106c7841c085b8d44465d7a1910161d6c707a377a72f85c39fcb4ee58e6b2f617b6c4b173a52f171854f0e1927fa9fcd9d5799e16d840f06234698cfc333f0ad42129e618c2b9c5b29b17b7*3*254*2*3*8*7353cf09958435f9*9961472*efadea6cd5f3e5a7", "openwall"},
 	{"$gpg$*1*668*2048*97b296b60904f6d505344b5b0aa277b0f40de05788a39cd9c39b14a56b607bd5db65e8da6111149a1725d06a4b52bdddf0e467e26fe13f72aa5570a0ea591eec2e24d3e9dd7534f26ec9198c8056ea1c03a88161fec88afd43474d31bf89756860c2bc6a6bc9e2a4a2fc6fef30f8cd2f74da6c301ccd5863f3240d1a2db7cbaa2df3a8efe0950f6200cbc10556393583a6ebb2e041095fc62ae3a9e4a0c5c830d73faa72aa8167b7b714ab85d927382d77bbfffb3f7c8184711e81cf9ec2ca03906e151750181500238f7814d2242721b2307baa9ea66e39b10a4fdad30ee6bff50d79ceac604618e74469ae3c80e7711c16fc85233a9eac39941a564b38513c1591502cde7cbd47a4d02a5d7d5ceceb7ff920ee40c29383bd7779be1e00b60354dd86ca514aa30e8f1523efcffdac1292198fe96983cb989a259a4aa475ed9b4ce34ae2282b3ba0169b2e82f9dee476eff215db33632cdcc72a65ba2e68d8e3f1fed90aaa68c4c886927b733144fb7225f1208cd6a108e675cc0cb11393db7451d883abb6adc58699393b8b7b7e19c8584b6fc95720ced39eabaa1124f423cc70f38385c4e9c4b4eeb39e73e891da01299c0e6ce1e97e1750a5c615e28f486c6a0e4da52c15285e7cf26ac859f5f4190e2804ad81ba4f8403e6358fbf1d48c7d593c3bac20a403010926877db3b9d7d0aaacd713a2b9833aff88d1e6b4d228532a66fe68449ad0d706ca7563fe8c2ec77062cc33244a515f2023701c052f0dd172b7914d497fdaefabd91a199d6cb2b62c71472f52c65d6a67d97d7713d39e91f347d2bc73b421fb5c6c6ba028555e5a92a535aabf7a4234d6ea8a315d8e6dcc82087cc76ec8a7b2366cecf176647538968e804541b79a1b602156970d1b943eb2641f2b123e45d7cace9f2dc84b704938fa8c7579a859ef87eca46*3*254*2*3*8*d911a3f73b050340*2097152*347e15bee29eb77d", "password"},
+	{"$gpg$*1*348*1024*8f58917c41a894a4a3cdc138161c111312e404a1a27bb19f3234656c805ca9374bbfce59750688c6d84ba2387a4cd48330f504812cf074eba9c4da11d057d0a2662e3c7d9969e1256e40a56cce925fba29f4975ddb8619004def3502a0e7cf2ec818695c158243f21da34440eea1fec20418c7cf7dbe2230279ba9858201c00ae1d412aea1f59a66538fb739a15297ff9de39860e2782bf60a3979a5577a448925a0bc2d24c6bf3d09500046487a60bf5945e1a37b73a93eebb15cfd08c5279a942e150affbbe0d3084ab8aef2b6d9f16dc37b84334d91b80cf6f7b6c2e82d3c2be42afd39827dac16b4581be2d2f01d9703f2b19c16e149414fdfdcf8794aa90804e4b1dac8725bd0b0be52513848973eeadd5ec06d8a1da8ac072800fcc9c579172b58d39db5bc00bc0d7a21cf85fb6c7ce10f64edde425074cb9d1b4b078790aed2a46e79dc7fa4b8f3751111a2ff06f083a20c7d73d6bbc747e0*3*254*8*9*16*5b68d216aa46f2c1ed0f01234ebb6e06*131072*6c18b4661b884405", "openwall"},
+	{"$gpg$*1*348*1024*7fc751702c5b678089bbd667000172649b029906ed59ba163bb4418cf384f6e39d07cd4763f874f1afbdacf1ed33544321ad9e664d6428c1865b8ea7d9026b558cc1f9c139ca771c6ceca03d57af635fc9140a3f5d2bec7117a98e6561cbe7efedcee129cf7dc1de39a7b92b7d3e17f45c54bba8ce8b0c8eb73611af8f44d5551c101ebe3d7466e1ae393fbf928bb297de0ce7e64f180bc76c770e72ca5da0c27a3abaf208d51c831f9f9f885269d28aa73a93c2be0185cc71f99381635a8e7c4c48fbe77620bb19a829c62dfed5e9e088fad12ea99003117886715c88a2f9926580d47d99a7f2b38f518bc011051c57c6c6c407bf9944b279db8456a6a4d1d5811558aaf8c108c6157cbeb297d26ab407c8c5d6a0038374f903a93e78ba857d97dc71d709faf0824d7bf092a36c4df2932bb4fd2c967fcbeb296a4ee3f45e550de04e62371ed9874068d9025e0fcf136a823ef0af9ce24f7ed4cc8b*3*254*3*9*16*3a9305fd67934b258d749739a360a6dd*131072*316217f7c4782365", "openwall"},
 	{NULL}
 };
 
@@ -301,7 +315,137 @@ static void S2KItSaltedSHA1Generator(char *password, unsigned char *key, int len
 }
 
 
+static void S2KItSaltedSHA256Generator(char *password, unsigned char *key, int length)
+{
+	unsigned char keybuf[KEYBUFFER_LENGTH];
+	SHA256_CTX ctx;
+	int i, j;
+	int32_t tl;
+	int32_t mul;
+	int32_t bs;
+	uint8_t *bptr;
+	int32_t n;
 
+	uint32_t numHashes = (length + SHA256_DIGEST_LENGTH - 1) / SHA256_DIGEST_LENGTH;
+	memcpy(keybuf, cur_salt->salt, 8);
+
+	// TODO: This is not very efficient with multiple hashes
+	for (i = 0; i < numHashes; i++) {
+		SHA256_Init(&ctx);
+		for (j = 0; j < i; j++) {
+			SHA256_Update(&ctx, "\0", 1);
+		}
+		// Find multiplicator
+		tl = strlen(password) + 8;
+		mul = 1;
+		while (mul < tl && ((64 * mul) % tl)) {
+			++mul;
+		}
+		// Try to feed the hash function with 64-byte blocks
+		bs = mul * 64;
+		bptr = keybuf + tl;
+		n = bs / tl;
+		memcpy(keybuf + 8, password, strlen(password));
+		while (n-- > 1) {
+			memcpy(bptr, keybuf, tl);
+			bptr += tl;
+		}
+		n = cur_salt->count / bs;
+		while (n-- > 0) {
+			SHA256_Update(&ctx, keybuf, bs);
+		}
+		SHA256_Update(&ctx, keybuf, cur_salt->count % bs);
+		SHA256_Final(key + (i * SHA256_DIGEST_LENGTH), &ctx);
+	}
+}
+
+static void S2KItSaltedSHA512Generator(char *password, unsigned char *key, int length)
+{
+	unsigned char keybuf[KEYBUFFER_LENGTH];
+	SHA512_CTX ctx;
+	int i, j;
+	int32_t tl;
+	int32_t mul;
+	int32_t bs;
+	uint8_t *bptr;
+	int32_t n;
+
+	uint32_t numHashes = (length + SHA512_DIGEST_LENGTH - 1) / SHA512_DIGEST_LENGTH;
+	memcpy(keybuf, cur_salt->salt, 8);
+
+	// TODO: This is not very efficient with multiple hashes
+	for (i = 0; i < numHashes; i++) {
+		SHA512_Init(&ctx);
+		for (j = 0; j < i; j++) {
+			SHA512_Update(&ctx, "\0", 1);
+		}
+		// Find multiplicator
+		tl = strlen(password) + 8;
+		mul = 1;
+		while (mul < tl && ((64 * mul) % tl)) {
+			++mul;
+		}
+		// Try to feed the hash function with 64-byte blocks
+		bs = mul * 64;
+		bptr = keybuf + tl;
+		n = bs / tl;
+		memcpy(keybuf + 8, password, strlen(password));
+		while (n-- > 1) {
+			memcpy(bptr, keybuf, tl);
+			bptr += tl;
+		}
+		n = cur_salt->count / bs;
+		while (n-- > 0) {
+			SHA512_Update(&ctx, keybuf, bs);
+		}
+		SHA512_Update(&ctx, keybuf, cur_salt->count % bs);
+		SHA512_Final(key + (i * SHA512_DIGEST_LENGTH), &ctx);
+	}
+}
+
+static void S2KItSaltedRIPEMD160Generator(char *password, unsigned char *key, int length)
+{
+	unsigned char keybuf[KEYBUFFER_LENGTH];
+	RIPEMD160_CTX ctx;
+	int i, j;
+	int32_t tl;
+	int32_t mul;
+	int32_t bs;
+	uint8_t *bptr;
+	int32_t n;
+
+	uint32_t numHashes = (length + RIPEMD160_DIGEST_LENGTH - 1) / RIPEMD160_DIGEST_LENGTH;
+	memcpy(keybuf, cur_salt->salt, 8);
+
+	// TODO: This is not very efficient with multiple hashes
+	for (i = 0; i < numHashes; i++) {
+		RIPEMD160_Init(&ctx);
+		for (j = 0; j < i; j++) {
+			RIPEMD160_Update(&ctx, "\0", 1);
+		}
+		// Find multiplicator
+		tl = strlen(password) + 8;
+		mul = 1;
+		while (mul < tl && ((64 * mul) % tl)) {
+			++mul;
+		}
+		// Try to feed the hash function with 64-byte blocks
+		bs = mul * 64;
+		bptr = keybuf + tl;
+		n = bs / tl;
+		memcpy(keybuf + 8, password, strlen(password));
+		while (n-- > 1) {
+			memcpy(bptr, keybuf, tl);
+			bptr += tl;
+		}
+		n = cur_salt->count / bs;
+		while (n-- > 0) {
+			RIPEMD160_Update(&ctx, keybuf, bs);
+		}
+		RIPEMD160_Update(&ctx, keybuf, cur_salt->count % bs);
+		RIPEMD160_Final(key + (i * RIPEMD160_DIGEST_LENGTH), &ctx);
+	}
+}
 static void S2KItSaltedMD5Generator(char *password, unsigned char *key, int length)
 {
 	MD5_CTX ctx;
@@ -398,6 +542,15 @@ static void *get_salt(char *ciphertext)
 						break;
 					case HASH_MD5:
 						cs.s2kfun = S2KItSaltedMD5Generator;
+						break;
+					case HASH_SHA256:
+						cs.s2kfun = S2KItSaltedSHA256Generator;
+						break;
+					case HASH_RIPEMD160:
+						cs.s2kfun = S2KItSaltedRIPEMD160Generator;
+						break;
+					case HASH_SHA512:
+						cs.s2kfun = S2KItSaltedSHA512Generator;
 						break;
 					default: break;
 				}
