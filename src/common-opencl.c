@@ -106,7 +106,7 @@ static char *include_source(char *pathname, int dev_id)
 	    "-DDEVICE_IS_CPU" : "",
 	    "-DDEVICE_INFO=", device_info[dev_id],
 	    gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
-	    "-cl-strict-aliasing -cl-mad-enable");
+	    OPENCLBUILDOPTIONS);
 
 	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
@@ -130,8 +130,12 @@ static void build_kernel(int dev_id)
 		NULL), "Error while getting build info");
 
 	///Report build errors and warnings
-	if (build_code != CL_SUCCESS)
+	if (build_code != CL_SUCCESS) {
+		// Give us much info about error and exit
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
+	}
 #ifdef REPORT_OPENCL_WARNINGS
 	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
