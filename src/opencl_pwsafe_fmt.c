@@ -33,7 +33,7 @@
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             32
 #define KERNEL_NAME             "pwsafe"
-#define KEYS_PER_CRYPT		1024
+#define KEYS_PER_CRYPT		512*112
 #define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 # define SWAP32(n) \
@@ -69,7 +69,6 @@ static size_t insize = sizeof(pwsafe_pass) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(pwsafe_hash) * KEYS_PER_CRYPT;
 static size_t saltsize = sizeof(pwsafe_salt);
 
-static int any_cracked;
 static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
@@ -96,7 +95,6 @@ static void init(struct fmt_main *self)
 	host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
 	host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
 	host_salt = calloc(1, sizeof(pwsafe_salt));
-	any_cracked = 1;
 
 	opencl_init("$JOHN/pwsafe_kernel.cl", gpu_id, platform_id);
 
@@ -164,17 +162,14 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	memcpy(host_salt, salt, SALT_SIZE);
-	any_cracked = 0;
 }
 
 
 
 static void crypt_all(int count)
 {
-	int i;
 	size_t worksize = KEYS_PER_CRYPT;
 	size_t localworksize = local_work_size;
-	any_cracked = 0;
 
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
@@ -194,18 +189,16 @@ static void crypt_all(int count)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
-
-	//gpu_pwpass(host_pass, host_salt, host_hash);
-	for (i = 0; i < count; i++) {
-		if (host_hash[i].cracked == 1)
-			any_cracked = 1;
-	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (host_hash[i].cracked == 1)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
