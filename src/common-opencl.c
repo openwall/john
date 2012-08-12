@@ -106,7 +106,7 @@ static char *include_source(char *pathname, int dev_id)
 	    "-DDEVICE_IS_CPU" : "",
 	    "-DDEVICE_INFO=", device_info[dev_id],
 	    gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
-	    "-cl-strict-aliasing -cl-mad-enable");
+	    OPENCLBUILDOPTIONS);
 
 	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
