@@ -597,18 +597,21 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 static void ldr_load_pot_line(struct db_main *db, char *line)
 {
 	struct fmt_main *format = db->format;
-	char *ciphertext;
+	char *ciphertext, *unprepared;
 	void *binary;
 	int hash;
 	struct db_password *current;
+	char *flds[10];
+	int i;
 
-	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
-	if (format->methods.valid(ciphertext, format) != 1) {
-		ciphertext = format->methods.split(ciphertext, 0);
-		if (format->methods.valid(ciphertext, format) != 1)
-			return;
-	} else
-		ciphertext = format->methods.split(ciphertext, 0);
+	unprepared = ldr_get_field(&line, db->options->field_sep_char);
+	for (i = 0; i < 10; ++i)
+		flds[i] = "";
+	flds[1] = unprepared;
+	ciphertext = format->methods.prepare(flds, format);
+	if (format->methods.valid(ciphertext,format) != 1) return;
+
+	ciphertext = format->methods.split(ciphertext, 0);
 	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
