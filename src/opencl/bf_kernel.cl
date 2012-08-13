@@ -4,6 +4,13 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of bf_std.c in jtr-v1.7.8 
  */
+
+#ifdef DEVICE_IS_CPU
+#define MAYBE_LOCAL
+#else
+#define MAYBE_LOCAL	__local
+#endif
+
 #define BF_ROUNDS          16
 
 #define WORK_GROUP_SIZE    8
@@ -126,11 +133,11 @@ __kernel void blowfish(constant uint *salt __attribute__((max_constant_size(16))
 		uint BF_key_exp[18];
 		uint BF_current_P[18];
 
-		__local uint S_Buffer[WORK_GROUP_SIZE*1024];
-		__local uint *Sptr = S_Buffer + _index_S_local;
-		__local uint *Sptr2 = Sptr + 256;
-		__local uint *Sptr3 = Sptr + 512;
-		__local uint *Sptr4 = Sptr + 768;
+		MAYBE_LOCAL uint S_Buffer[WORK_GROUP_SIZE*1024];
+		MAYBE_LOCAL uint *Sptr = S_Buffer + _index_S_local;
+		MAYBE_LOCAL uint *Sptr2 = Sptr + 256;
+		MAYBE_LOCAL uint *Sptr3 = Sptr + 512;
+		MAYBE_LOCAL uint *Sptr4 = Sptr + 768;
 
 		for(i=0;i<18;i++){ 
 			tmp0=BF_current_P_global [pos_P(i)];
