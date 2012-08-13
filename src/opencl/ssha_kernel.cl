@@ -11,6 +11,25 @@
    http://www.gnu.org/licenses/gpl-2.0.html
 */
 
+#ifdef cl_khr_byte_addressable_store
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
+#endif
+
+#ifdef cl_nv_pragma_unroll
+#define NVIDIA
+#pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
+#endif
+
+#ifdef NVIDIA
+inline uint SWAP32(uint x)
+{
+	x = rotate(x, 16U);
+	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
+}
+#else
+#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
+#endif
+
 #define K0  0x5A827999
 #define K1  0x6ED9EBA1
 #define K2  0x8F1BBCDC
@@ -30,11 +49,11 @@
 
 __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, __global char *plain_key,  __global uint *digest){
     int t, gid, msg_pad;
-    int i, stop, mmod;
-    uint ulen;
+    int stop, mmod;
+    uint i, ulen;
     uint W[16], temp, A,B,C,D,E;
     uint num_keys = data_info[1];
-    
+
     gid = get_global_id(0);
     msg_pad = gid * data_info[0];
 
@@ -43,8 +62,9 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
     C = H3;
     D = H4;
     E = H5;
-    
-    for (t = 2; t < 15; t++){
+
+#pragma unroll
+    for (t = 3; t < 15; t++){
 	W[t] = 0x00000000;
     }
     for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
@@ -67,7 +87,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
         W[t+2] |=  ((uchar)  salt[6]) << 16;
         W[t+2] |=  ((uchar)  salt[7]) << 8;
         W[t+2] |=  ((uchar) 0x80) ;
-    	mmod = 4 - mmod;
+	mmod = 4 - mmod;
     } else if (mmod == 2) {
         W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
         W[t] |= ((uchar) plain_key[msg_pad + t * 4 + 1]) << 16;
@@ -76,7 +96,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
         W[t+2] =  ((uchar)  salt[6]) << 24;
         W[t+2] |=  ((uchar)  salt[7]) << 16;
         W[t+2] |=  0x8000 ;
-    	mmod = 4 - mmod;
+	mmod = 4 - mmod;
     } else if (mmod == 1) {
         W[t] = ((uchar)  plain_key[msg_pad + t * 4]) << 24;
         W[t] |= ((uchar)  salt[0]) << 16;
@@ -84,8 +104,8 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
         W[t] |= (uchar)  salt[2];
         W[t+2] =  ((uchar)  salt[7]) << 24;
         W[t+2] |=  0x800000 ;
-    	mmod = 4 - mmod;
-    } else if (mmod == 0){
+	mmod = 4 - mmod;
+    } else /*if (mmod == 0)*/ {
         W[t+2] =  0x80000000 ;
 	t = t-1;
     }
@@ -100,8 +120,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
 
     i = i+8;
     ulen = (i * 8) & 0xFFFFFFFF;
-    W[15] =  ulen ;   
-
+    W[15] =  ulen ;
 
 #undef R
 #define R(t)                                              \
@@ -117,9 +136,13 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
     e += rotate((int)a,5) + F(b,c,d) + K + x; b = rotate((int)b,30);\
 }
 
-#define F(x,y,z) (z ^ (x & (y ^ z)))
+#ifdef NVIDIA
+#define F(x,y,z)	(z ^ (x & (y ^ z)))
+#else
+#define F(x,y,z)	bitselect(z, y, x)
+#endif
 #define K 0x5A827999
-  
+
   P( A, B, C, D, E, W[0]  );
   P( E, A, B, C, D, W[1]  );
   P( D, E, A, B, C, W[2]  );
@@ -146,7 +169,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
 
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0x6ED9EBA1
-  
+
   P( A, B, C, D, E, R(20) );
   P( E, A, B, C, D, R(21) );
   P( D, E, A, B, C, R(22) );
@@ -167,13 +190,17 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
   P( D, E, A, B, C, R(37) );
   P( C, D, E, A, B, R(38) );
   P( B, C, D, E, A, R(39) );
-  
+
 #undef K
 #undef F
-  
-#define F(x,y,z) ((x & y) | (z & (x | y)))
+
+#ifdef NVIDIA
+#define F(x,y,z)	((x & y) | (z & (x | y)))
+#else
+#define F(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#endif
 #define K 0x8F1BBCDC
-  
+
   P( A, B, C, D, E, R(40) );
   P( E, A, B, C, D, R(41) );
   P( D, E, A, B, C, R(42) );
@@ -194,13 +221,13 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
   P( D, E, A, B, C, R(57) );
   P( C, D, E, A, B, R(58) );
   P( B, C, D, E, A, R(59) );
-  
+
 #undef K
 #undef F
 
 #define F(x,y,z) (x ^ y ^ z)
 #define K 0xCA62C1D6
-  
+
   P( A, B, C, D, E, R(60) );
   P( E, A, B, C, D, R(61) );
   P( D, E, A, B, C, R(62) );
@@ -224,10 +251,9 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
 
 #undef K
 #undef F
-  digest[gid] = as_uint(as_uchar4(A + H1).wzyx);
-  digest[gid+1*num_keys] = as_uint(as_uchar4(B + H2).wzyx);
-  digest[gid+2*num_keys] = as_uint(as_uchar4(C + H3).wzyx);
-  digest[gid+3*num_keys] = as_uint(as_uchar4(D + H4).wzyx);
-  digest[gid+4*num_keys] = as_uint(as_uchar4(E + H5).wzyx);
-
+  digest[gid] = SWAP32(A + H1);
+  digest[gid+1*num_keys] = SWAP32(B + H2);
+  digest[gid+2*num_keys] = SWAP32(C + H3);
+  digest[gid+3*num_keys] = SWAP32(D + H4);
+  digest[gid+4*num_keys] = SWAP32(E + H5);
 }
