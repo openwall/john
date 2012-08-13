@@ -96,7 +96,11 @@
 #else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #endif
+#ifdef DEBUG
+#define BENCHMARK_COMMENT	" (1-16 characters)"
+#else
 #define BENCHMARK_COMMENT	" (4 characters)"
+#endif
 #define BENCHMARK_LENGTH	-1
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
@@ -598,13 +602,15 @@ static void init(struct fmt_main *self)
 
 	/* We mimic the lengths of cRARk for comparisons */
 	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
+#ifndef DEBUG
 		self->params.benchmark_comment = " (6 characters)";
+#endif
 		self->params.tests = gpu_tests;
 #if defined(DEBUG) && !defined(ALWAYS_OPENCL)
-		fprintf(stderr, "Note: will use CPU for self-tests and Single mode.\n");
+		fprintf(stderr, "Note: will use CPU for some self-tests, and Single mode.\n");
 #endif
-	} else
-		fprintf(stderr, "Note: OpenCL device is CPU. A non-OpenCL build may be faster.\n");
+	}
+
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
