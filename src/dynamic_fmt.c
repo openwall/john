@@ -555,6 +555,47 @@ static private_subformat_data curdat;
  *********************************************************************************
  *********************************************************************************/
 
+char *RemoveHEX(char *output, char *input) {
+	char *cpi = input;
+	char *cpo = output;
+	char *cpH = strstr(input, "$HEX$");
+
+	if (!cpH) {
+		// should never get here, we have a check performed before this function is called.
+		strcpy(output, input);
+		return output;
+	}
+
+	while (cpi < cpH)
+		*cpo++ = *cpi++;
+
+	*cpo++ = *cpi;
+	cpi += 5;
+	while (*cpi) {
+		if (*cpi == '0' && cpi[1] == '0') {
+			strcpy(output, input);
+			return output;
+		}
+		if (atoi16[ARCH_INDEX(*cpi)] != 0x7f && atoi16[ARCH_INDEX(cpi[1])] != 0x7f) {
+			*cpo++ = atoi16[ARCH_INDEX(*cpi)]*16 + atoi16[ARCH_INDEX(cpi[1])];
+			cpi += 2;
+		} else if (*cpi == '$') {
+			while (*cpi && strncmp(cpi, "$HEX$", 5)) {
+				*cpo++ = *cpi++;
+			}
+			if (!strncmp(cpi, "$HEX$", 5)) {
+				*cpo++ = *cpi;
+				cpi += 5;
+			}
+		} else {
+			strcpy(output, input);
+			return output;
+		}
+	}
+	*cpo = 0;
+	return output;
+}
+
 /*********************************************************************************
  * Detects a 'valid' md5-gen format. This function is NOT locked to anything. It
  * takes it's detection logic from the provided fmt_main pointer. Within there,
@@ -563,33 +604,10 @@ static private_subformat_data curdat;
  * john will call valid on EACH of those formats, asking each one if a string is
  * valid. Each format has a 'private' properly setup data object.
  *********************************************************************************/
-static int HEX_valid(char *Hex) {
-	// Ok, we validate any '$HEX$hex_value string.
-	// we validate this:
-	//   1. all valid hex chars (case does not matter).
-	//   2. must be an even number of hex chars.
-	//   3. byte following MUST be null or '$'.
-	// if valid, we return the length of the data, AFTER hex-to-binary conversion (i.e. the real data length).
-	// if not valid, we return -1
-	int len;
-
-	if (strncmp(Hex, "HEX$", 4))
-		return -1;
-	Hex += 4;
-	for (len = 0; ;++len, Hex+=2) {
-		if (atoi16[ARCH_INDEX(Hex[0])] == 0x7f) {
-			if (Hex[0] == '$' || !Hex[0])
-				return len;
-			return -1;
-		}
-		if (atoi16[ARCH_INDEX(Hex[1])] == 0x7f)
-			return -1; // odd length
-	}
-}
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i, cipherTextLen;
-	char *cp;
+	char *cp, *fixed_ciphertext;
 	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (!pPriv)
@@ -598,6 +616,13 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (strncmp(ciphertext, pPriv->dynamic_WHICH_TYPE_SIG, strlen(pPriv->dynamic_WHICH_TYPE_SIG)))
 		return 0;
 	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
+
+	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
+	// of leaving it in there. The ONLY problem we still have is NULL bytes.
+	if (strstr(ciphertext, "$HEX$")) {
+		fixed_ciphertext = alloca(strlen(ciphertext)+1);
+		ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
+	}
 
 	if (pPriv->dynamic_base64_inout == 1)
 	{
@@ -676,31 +701,18 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		return 0;
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE) {
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still valid.
-		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2)) {
-			// do another check, just in case there is a HEX$ type salt.
-			if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
-				// Ok, we do have a HEX.  We now want to compute it's length.
-				if (HEX_valid(&ciphertext[pPriv->dynamic_SALT_OFFSET]) != pPriv->dynamic_FIXED_SALT_SIZE)
-					return 0;
-			} else
-				return 0;
-		}
+		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET+pPriv->dynamic_FIXED_SALT_SIZE], "$$", 2))
+			return 0;
 	}
 	else if (pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE)) {
 		// check if there is a 'salt-2' or 'username', etc  If that is the case, then this is still 'valid'
-		char *cpX;
-		if (strncmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4) == 0) {
-			if (HEX_valid(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE) )
-				return 0;
-		} else {
-			cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
-			strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
-			if (!strstr(cpX, "$$")) {
-				MEM_FREE(cpX);
-				return 0;
-			}
+		char *cpX = mem_alloc(-(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
+		strnzcpy(cpX, &ciphertext[pPriv->dynamic_SALT_OFFSET], -(pPriv->dynamic_FIXED_SALT_SIZE) + 3);
+		if (!strstr(cpX, "$$")) {
 			MEM_FREE(cpX);
+			return 0;
 		}
+		MEM_FREE(cpX);
 	}
 	if (pPriv->b2Salts==1 && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], "$$2"))
 		return 0;
@@ -711,15 +723,6 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		sprintf(Fld, "$$F%d", i);
 		if ( (pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i) && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 			return 0;
-	}
-
-	// Search for HEX$ and validate all of them.
-	cp = strstr(ciphertext, "$HEX$");
-	while (cp) {
-		++cp;
-		if (HEX_valid(cp) < 1)
-			return 0;
-		cp = strstr(cp, "$HEX$");
 	}
 
 	return 1;
@@ -814,47 +817,6 @@ static void init(struct fmt_main *pFmt)
 		}
 #endif
 	}
-}
-
-char *RemoveHEX(char *output, char *input) {
-	char *cpi = input;
-	char *cpo = output;
-	char *cpH = strstr(input, "$HEX$");
-
-	if (!cpH) {
-		// should never get here, we have a check performed before this function is called.
-		strcpy(output, input);
-		return output;
-	}
-
-	while (cpi < cpH)
-		*cpo++ = *cpi++;
-
-	*cpo++ = *cpi;
-	cpi += 5;
-	while (*cpi) {
-		if (*cpi == '0' && cpi[1] == '0') {
-			strcpy(output, input);
-			return output;
-		}
-		if (atoi16[ARCH_INDEX(*cpi)] != 0x7f && atoi16[ARCH_INDEX(cpi[1])] != 0x7f) {
-			*cpo++ = atoi16[ARCH_INDEX(*cpi)]*16 + atoi16[ARCH_INDEX(cpi[1])];
-			cpi += 2;
-		} else if (*cpi == '$') {
-			while (*cpi && strncmp(cpi, "$HEX$", 5)) {
-				*cpo++ = *cpi++;
-			}
-			if (!strncmp(cpi, "$HEX$", 5)) {
-				*cpo++ = *cpi;
-				cpi += 5;
-			}
-		} else {
-			strcpy(output, input);
-			return output;
-		}
-	}
-	*cpo = 0;
-	return output;
 }
 
 /*********************************************************************************
