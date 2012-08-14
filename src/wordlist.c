@@ -429,7 +429,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				fseek(word_file, 0, SEEK_SET);
 
 				// Now copy just our share to memory
-				word_file_str = mem_alloc(my_size + LINE_BUFFER_SIZE + 1);
+				word_file_str = mem_alloc_tiny(my_size + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 				i = 0;
 				for (myWordFileLines = 0;; ++myWordFileLines) {
 					char *lp;
@@ -476,7 +476,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				          name, file_len, db->options->max_wordfile_memory);
 				if (mpi_p > 1 && mpi_id == 0)
 					fprintf(stderr,"MPI: each node loaded the whole wordfile to memory\n");
-				word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
+				word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 				if (fread(word_file_str, 1, file_len, word_file) != file_len) {
 					if (ferror(word_file))
 						pexit("fread");
@@ -492,7 +492,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			/* probably should only be debug message, but I left it in */
 			log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)", name, file_len, db->options->max_wordfile_memory);
 
-			word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
+			word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 			if (fread(word_file_str, 1, file_len, word_file) != file_len) {
 				if (ferror(word_file))
 					pexit("fread");
@@ -608,7 +608,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			else
 				max_pipe_words = (db->options->max_wordfile_memory/16);
 
-			word_file_str = mem_alloc(db->options->max_wordfile_memory);
+			word_file_str = mem_alloc_tiny(db->options->max_wordfile_memory, MEM_ALIGN_NONE);
 			words = mem_alloc(max_pipe_words * sizeof(char*));
 			rules_keep = rules;
 
@@ -876,7 +876,6 @@ EndOfFile:
 		else
 			progress = 100;
 
-		MEM_FREE(word_file_str);
 		MEM_FREE(words);
 		if (fclose(word_file)) pexit("fclose");
 		word_file = NULL;
