@@ -125,7 +125,10 @@ $pkzip$3*1*1*0*8*24*4001*8986ec4d693e86c1a42c1bd2e6a994cb0b98507a6ec937fe0a41681
 57d9*2*0*e4*1c5*eda7a8de*0*4c*8*e4*eda7*89a792af804bf38e31fdccc8919a75ab6eb75d1fd6e7ecefa3c5b9c78c3d50d656f42e582af95882a38168a8493b2de5031bb8b39797463cb4769a955a2ba72abe48ee75b103\
 f93ef9984ae740559b9bd84cf848d693d86acabd84749853675fb1a79edd747867ef52f4ee82435af332d43f0d0bb056c49384d740523fa75b86a6d29a138da90a8de31dbfa89f2f6b0550c2b47c43d907395904453ddf42a665\
 b5f7662de170986f89d46d944b519e1db9d13d4254a6b0a5ac02b3cfdd468d7a4965e4af05699a920e6f3ddcedb57d956a6b2754835b14e174070ba6aec4882d581c9f30*$/pkzip$", "3!files"},
-
+	/* following are from CMIYC 2012 */
+	{"$pkzip$1*1*2*0*163*2b5*cd154083*0*26*8*163*cd15*d6b094794b40116a8b387c10159225d776f815b178186e51faf16fa981fddbffdfa22f6c6f32d2f81dab35e141f2899841991f3cb8d53f8ee1f1d85657f7c7a82ebb2d63182803c6beee00e0bf6c72edeeb1b00dc9f07f917bb8544cc0e96ca01503cd0fb6632c296cebe3fb9b64543925daae6b7ea95cfd27c42f6f3465e0ab2c812b9aeeb15209ce3b691f27ea43a7a77b89c2387e31c4775866a044b6da783af8ddb72784ccaff4d9a246db96484e865ea208ade290b0131b4d2dd21f172693e6b5c90f2eb9b67572b55874b6d3a78763212b248629e744c07871a6054e24ef74b6d779e44970e1619df223b4e5a72a189bef40682b62be6fb7f65e087ca6ee19d1ebfc259fa7e3d98f3cb99347689f8360294352accffb146edafa9e91afba1f119f95145738ac366b332743d4ff40d49fac42b8758c43b0af5b60b8a1c63338359ffbff432774f2c92de3f8c49bd4611e134db98e6a3f2cfb148d2b20f75abab6*$/pkzip$", "passwort"},
+	{"$pkzip$1*1*2*0*163*2b6*46abc149*0*28*8*163*46ab*0f539b23b761a347a329f362f7f1f0249515f000404c77ec0b0ffe06f29140e8fa3e8e5a6354e57f3252fae3d744212d4d425dc44389dd4450aa9a4f2f3c072bee39d6ac6662620812978f7ab166c66e1acb703602707ab2da96bb28033485ec192389f213e48eda8fc7d9dad1965b097fafebfda6703117db90e0295db9a653058cb28215c3245e6e0f6ad321065bf7b8cc5f66f6f2636e0d02ea35a6ba64bbf0191c308098fd836e278abbce7f10c3360a0a682663f59f92d9c2dcfc87cde2aae27ea18a14d2e4a0752b6b51e7a5c4c8c2bab88f4fb0aba27fb20e448655021bb3ac63752fdb01e6b7c99f9223f9e15d71eb1bd8e323f522fc3da467ff0aae1aa17824085d5d6f1cdfc9c7c689cd7cb057005d94ba691f388484cfb842c8775baac220a5490ed945c8b0414dbfc4589254b856aade49f1aa386db86e9fc87e6475b452bd72c5e2122df239f8c2fd462ca54c1a5bddac36918c5f5cf0cc94aa6ee820*$/pkzip$", "Credit11"},
+	{"$pkzip$1*1*2*0*163*2b6*46abc149*0*26*8*163*46ab*7ea9a6b07ddc9419439311702b4800e7e1f620b0ab8535c5aa3b14287063557b176cf87a800b8ee496643c0b54a77684929cc160869db4443edc44338294458f1b6c8f056abb0fa27a5e5099e19a07735ff73dc91c6b20b05c023b3ef019529f6f67584343ac6d86fa3d12113f3d374b047efe90e2a325c0901598f31f7fb2a31a615c51ea8435a97d07e0bd4d4afbd228231dbc5e60bf1116ce49d6ce2547b63a1b057f286401acb7c21afbb673f3e26bc1b2114ab0b581f039c2739c7dd0af92c986fc4831b6c294783f1abb0765cf754eada132df751cf94cad7f29bb2fec0c7c47a7177dea82644fc17b455ba2b4ded6d9a24e268fcc4545cae73b14ceca1b429d74d1ebb6947274d9b0dcfb2e1ac6f6b7cd2be8f6141c3295c0dbe25b65ff89feb62cb24bd5be33853b88b8ac839fdd295f71e17a7ae1f054e27ba5e60ca03c6601b85c3055601ce41a33127938440600aaa16cfdd31afaa909fd80afc8690aaf*$/pkzip$", "7J0rdan!!"},
 	{NULL}
 };
 
@@ -1188,6 +1191,7 @@ static int check_inflate_CODE1(u8 *next, int left) {
                 bits += 8;
             }
             here = distfix[hold & 0x1F];
+//          dodist:
             op = (unsigned)(here.bits);
             hold >>= op;
             bits -= op;
@@ -1214,25 +1218,59 @@ static int check_inflate_CODE1(u8 *next, int left) {
 					return 0;  /*invalid distance too far back*/
                 hold >>= op;
                 bits -= op;
-		whave += len;
+
+				//***** start of patched code from Pavel Semjanov (see original code below)
+				whave += len;
             }
-//          else if ((op & 64) == 0) {	/* 2nd level distance code not present in distfix */
-//          }
             else
-		return 0;		/*invalid distance code*/
-        }
-//		else if ((op & 64) == 0) {  // 2nd level length code - not present in lenfix
-//		}
+				return 0;		/*invalid distance code*/
+		}
 		else if (op & 32) {
-			// end of block may present in short sequences, but only at the end.NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
-			if (left == 0) return 1;
-			else return 0;
+			// end of block [may present in short sequences, but only at the end.] NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
+			if (left == 0)
+				return 1;
+			return 0;
 		}
 		else {
 			return 0; // invalid literal/length code.
 		}
+		//***** End of patched code from Pavel
 	}
 }
+
+// original code block (for above), prior to patch from Pavel Semjanov [pavel@semjanov.com]
+// this code would be a direct drop in between the comments starting and stopping with //***** above
+// also the dodist label was commented out (no longer used).
+#if 0
+				whave += dist;
+            }
+            else if ((op & 64) == 0) {	/* 2nd level distance code */
+                here = distfix[here.val + (hold & ((1U << op) - 1))];
+                goto dodist;
+            }
+            else
+				return 0;		/*invalid distance code*/
+        }
+		else if (op & 64) {
+			// 2nd level length code.
+            //here = lcode[here.val + (hold & ((1U << op) - 1))];
+            //goto dolen;
+
+			// this causes an infinite loop. Also, I VERY seriously doubt, this will EVER happen in the first
+			// 24 bytes of code.  NOTE, there may be problems, in the fact this causes a inf loop!, but for now,
+			// simply return 0, then debug later.
+			return 0;
+		}
+		else if (op & 32) {
+			// end of block  NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
+			// It is VERY likely we do SHOULD NOT EVER hit this. If that is the case, return that this block is bogus.
+			// check next OP (if we have enough bits left), if CODE=3, fail.  If code==0, check
+			return 0;
+		}
+		else {
+			return 0; // invalid literal/length code.
+		}
+#endif
 
 /*
  * Crypt_all simply performs the checksum .zip validatation of the data. It performs
