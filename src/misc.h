@@ -78,6 +78,7 @@ extern char *strupr(char *s);
 #define strdup _strdup
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
+#define alloca _alloca
 #pragma warning (disable : 4018 297 )
 #define inline _inline
 #endif

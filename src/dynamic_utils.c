@@ -19,7 +19,8 @@
  *
  * Renamed and changed from dynamic* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
- *
+ * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
+ * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
  */
 
 #include <string.h>

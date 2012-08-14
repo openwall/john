@@ -41,6 +41,11 @@
 #define OMP_SCALE               64
 #endif
 
+#ifdef _MSC_VER
+typedef int int32_t;
+typedef unsigned char uint8_t;
+#endif
+
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
@@ -733,7 +738,7 @@ static void crypt_all(int count)
 		int res;
 		int ks = keySize(cur_salt->cipher_algorithm);
 		int ds = digestSize(cur_salt->hash_algorithm);
-		unsigned char keydata[ds * ((ks + ds- 1) / ds)];
+		unsigned char *keydata = alloca(ds * ((ks + ds- 1) / ds));
 		cur_salt->s2kfun(saved_key[index], keydata, ks);
 		res = check(keydata, ks);
 		if(res)

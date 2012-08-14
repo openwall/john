@@ -21,6 +21,8 @@
  * http://www.hmailserver.com/forum/viewtopic.php?p=97515&sid=b2c1c6ba1e10c2f0654ca9421b2059e8#p97515
  * inspiration from the generic sha-1 and md5
  * Copyright (c) 2010 by Solar Designer
+ *
+ * (TODO) This format should be converted into a 'thin' format, hooked to dynamic_61
  */
 
 #include "sha2.h"
@@ -56,7 +58,6 @@ static struct fmt_tests hmailserver_tests[] = {
 };
 
 static char saved_salt[SALT_SIZE];
-static int saved_key_length;
 static char saved_key[PLAINTEXT_LENGTH + 1];
 static SHA256_CTX ctx;
 static ARCH_WORD_32 crypt_out[8] = {0}; // 8 * 32 = 256
@@ -68,10 +69,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
     if ( ciphertext == NULL )
         return 0;
 
-    if ( strlen( ciphertext ) != PLAINTEXT_LENGTH )
+    if ( strlen( ciphertext ) != (CIPHERTEXT_LENGTH+SALT_SIZE) )
         return 0;
 
-    for ( i = 0; i < PLAINTEXT_LENGTH - 1; i++ )
+    for ( i = 0; i < (CIPHERTEXT_LENGTH+SALT_SIZE) - 1; i++ )
         if (!( (('0' <= ciphertext[i] ) && ( ciphertext[i] <= '9' ))
                 || (('a' <= ciphertext[i] ) && ( ciphertext[i] <= 'f' )) ))
             return 0;
@@ -193,15 +194,11 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-    saved_key_length = strlen(key);
-    if (saved_key_length > PLAINTEXT_LENGTH)
-        saved_key_length = PLAINTEXT_LENGTH;
-    memcpy(saved_key, key, saved_key_length);
+    strcpy(saved_key, key);
 }
 
 static char *get_key(int index)
 {
-    saved_key[saved_key_length] = 0;
     return saved_key;
 }
 
@@ -209,7 +206,7 @@ static void crypt_all(int count)
 {
     SHA256_Init(&ctx);
     SHA256_Update(&ctx, saved_salt, SALT_SIZE);
-    SHA256_Update(&ctx, saved_key, saved_key_length);
+    SHA256_Update(&ctx, saved_key, strlen(saved_key));
     SHA256_Final((unsigned char *)crypt_out, &ctx);
 }
 

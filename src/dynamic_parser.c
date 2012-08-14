@@ -52,6 +52,8 @@
  *
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
+ * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
+ * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
  *
  */
 
@@ -238,6 +240,16 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__GOST_crypt_input2_overwrite_input1_base16", DynamicFunc__GOST_crypt_input2_overwrite_input1_base16 },
 	{ "DynamicFunc__GOST_crypt_input1_to_output1_FINAL", DynamicFunc__GOST_crypt_input1_to_output1_FINAL },
 	{ "DynamicFunc__GOST_crypt_input2_to_output1_FINAL", DynamicFunc__GOST_crypt_input2_to_output1_FINAL },
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+	{ "DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16", DynamicFunc__WHIRLPOOL_crypt_input1_append_input2_base16 },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16", DynamicFunc__WHIRLPOOL_crypt_input2_append_input1_base16 },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16", DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input1_base16 },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16", DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input2_base16 },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16", DynamicFunc__WHIRLPOOL_crypt_input1_overwrite_input2_base16 },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16", DynamicFunc__WHIRLPOOL_crypt_input2_overwrite_input1_base16 },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL", DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL },
+	{ "DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL", DynamicFunc__WHIRLPOOL_crypt_input2_to_output1_FINAL },
+#endif
 
 	// Depricated.  These are the 'original' md5_gen version. We have changed to using Dynamic_Func__ but still 'parse'
 	// and use the MD5GenBaseFunc__ script files.
@@ -397,19 +409,21 @@ static Dynamic_Str_Flag_t Dynamic_Str_sFlag[] =  {
 	{ "MGF_RAW_SHA1_INPUT",               MGF_RAW_SHA1_INPUT },
 	{ "MGF_KEYS_INPUT_BE_SAFE",           MGF_KEYS_INPUT_BE_SAFE },  // big endian safe, i.e. the input will NEVER get swapped.  Only SHA1 is 'safe'.
 	{ "MGF_SET_INP2LEN32",                MGF_SET_INP2LEN32 }, // this sets the input2 lens (in SSE2) to 32 bytes long, but only in init() call
-	{ "MGF_GET_SOURCE",                   MGF_GET_SOURCE },
-	{ "MGF_GET_SOURCE_SHA",               MGF_GET_SOURCE_SHA },
-	{ "MGF_GET_SOURCE_SHA224",            MGF_GET_SOURCE_SHA224 },
-	{ "MGF_GET_SOURCE_SHA256",            MGF_GET_SOURCE_SHA256 },
-	{ "MGF_GET_SOURCE_SHA384",            MGF_GET_SOURCE_SHA384 },
-	{ "MGF_GET_SOURCE_SHA512",            MGF_GET_SOURCE_SHA512 },
-	{ "MGF_GET_SOURCE_GOST",              MGF_GET_SOURCE_GOST },
+	{ "MGF_SOURCE",                       MGF_SOURCE },
+	{ "MGF_SOURCE_SHA",                   MGF_SOURCE_SHA },
+	{ "MGF_SOURCE_SHA224",                MGF_SOURCE_SHA224 },
+	{ "MGF_SOURCE_SHA256",                MGF_SOURCE_SHA256 },
+	{ "MGF_SOURCE_SHA384",                MGF_SOURCE_SHA384 },
+	{ "MGF_SOURCE_SHA512",                MGF_SOURCE_SHA512 },
+	{ "MGF_SOURCE_GOST",                  MGF_SOURCE_GOST },
+	{ "MGF_SOURCE_WHIRLPOOL",             MGF_SOURCE_WHIRLPOOL },
 	{ "MGF_SHA1_40_BYTE_FINISH",          MGF_SHA1_40_BYTE_FINISH },
 	{ "MGF_SHA224_56_BYTE_FINISH",        MGF_SHA224_56_BYTE_FINISH },
 	{ "MGF_SHA256_64_BYTE_FINISH",        MGF_SHA256_64_BYTE_FINISH },
 	{ "MGF_SHA384_96_BYTE_FINISH",        MGF_SHA384_96_BYTE_FINISH },
 	{ "MGF_SHA512_128_BYTE_FINISH",       MGF_SHA512_128_BYTE_FINISH },
 	{ "MGF_GOST_64_BYTE_FINISH",          MGF_GOST_64_BYTE_FINISH },
+	{ "MGF_WHIRLPOOL_128_BYTE_FINISH",    MGF_WHIRLPOOL_128_BYTE_FINISH },
 	{ NULL, 0 }};
 
 static DYNAMIC_Setup *pSetup;
