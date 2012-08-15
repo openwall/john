@@ -211,15 +211,12 @@ static inline unsigned char *hmac_md5(unsigned char *text,
 	 */
 
 	/* start out by storing key in pads */
-	memset(k_ipad, '\0', sizeof k_ipad);
-	memset(k_opad, '\0', sizeof k_opad);
-	memcpy(k_ipad, key, key_len);
-	memcpy(k_opad, key, key_len);
+	memset(k_ipad, 0x36, sizeof k_ipad);
+	memset(k_opad, 0x5c, sizeof k_opad);
 
-	/* XOR key with ipad and opad values */
-	for (i = 0; i < 64; i++) {
-		k_ipad[i] ^= 0x36;
-		k_opad[i] ^= 0x5c;
+	for (i = 0; i < key_len; i++) {
+		k_ipad[i] ^= key[i];
+		k_opad[i] ^= key[i];
 	}
 	/*
 	 * perform inner MD5
@@ -296,15 +293,13 @@ static inline unsigned char *hmac_sha1(const unsigned char *text,
 	 */
 
 	/* start out by storing key in pads */
-	memset(k_ipad, '\0', sizeof k_ipad);
-	memset(k_opad, '\0', sizeof k_opad);
-	memcpy(k_ipad, key, key_len);
-	memcpy(k_opad, key, key_len);
+	memset(k_ipad, 0x36, sizeof k_ipad);
+	memset(k_opad, 0x5c, sizeof k_opad);
 
 	/* XOR key with ipad and opad values */
-	for (i = 0; i < 64; i++) {
-		k_ipad[i] ^= 0x36;
-		k_opad[i] ^= 0x5c;
+	for (i = 0; i < key_len; i++) {
+		k_ipad[i] ^= key[i];
+		k_opad[i] ^= key[i];
 	}
 	/*
 	 * perform inner SHA1

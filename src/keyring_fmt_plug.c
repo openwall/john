@@ -214,7 +214,7 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char input[cur_salt->crypto_size];
+		unsigned char *input = alloca(cur_salt->crypto_size+1);
 		int res;
 		memcpy(input, cur_salt->ct, cur_salt->crypto_size);
 		decrypt_buffer(input, cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
