@@ -36,6 +36,9 @@ OMPFLAGS =
 # NSS (and NSPR) flag, un-comment if installed (needed for mozilla format)
 #HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
 
+# Uncomment the below if you have GMP library installed (faster wowsrp format)
+#HAVE_GMP = -DHAVE_GMP
+
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
 CUDAPATH = /usr/local/cuda/lib
@@ -57,13 +60,16 @@ endif
 ifdef HAVE_NSS
 NSS_LDFLAGS = `pkg-config --libs nss`
 endif
+ifdef HAVE_GMP
+GMP_LDFLAGS = -lgmp
+endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS)
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
