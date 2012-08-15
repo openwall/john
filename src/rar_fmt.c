@@ -941,7 +941,31 @@ static void crypt_all(int count)
 			} else {
 				const int solid = 0;
 				unpack_data_t *unpack_t;
+				unsigned char plain[16];
 
+				cracked[index] = 0;
+
+				/* Decrypt just one block for early rejection */
+				outlen = 0;
+				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->encrypted, sizeof(plain));
+				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
+
+				if (plain[0] & 0x80) {
+					// PPM checks here.
+					if (!(plain[2] & 0x20) || // reset bit (must be set)
+					    (plain[2] & 0xc0)  || // MaxOrder must be < 64
+					    (plain[3] > 127))     // MaxMB must be < 128
+						goto bailOut;
+				} else {
+					// LZ checks here. TODO: Huffman table check.
+					if (plain[0] & 0x40) // keepOldTable must be unset
+						goto bailOut;
+				}
+
+				/* Reset stuff for full check */
+				EVP_CIPHER_CTX_init(&aes_ctx);
+				EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
+				EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 #ifdef _OPENMP
 				unpack_t = &unpack_data[omp_get_thread_num()];
 #else
@@ -956,8 +980,7 @@ static void crypt_all(int count)
 
 				if (rar_unpack29(cur_file->encrypted, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
-				else
-					cracked[index] = 0;
+bailOut:;
 			}
 		}
 		EVP_CIPHER_CTX_cleanup(&aes_ctx);
