@@ -22,12 +22,18 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#ifdef HAVE_GMP
 #include "gmp.h"
+#define EXP_STR " GMP-exp"
+#else
+#include <openssl/bn.h>
+#define EXP_STR " oSSL-exp"
+#endif
 #include "johnswap.h"
 
 #define FORMAT_LABEL			"wowsrp"
 #define FORMAT_NAME				"WoW (Battlenet) SRP sha1"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME			"32/" ARCH_BITS_STR EXP_STR
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -54,10 +60,12 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static mpz_t z_mod;
-static mpz_t z_base;
-static mpz_t z_exp;
-static mpz_t z_rop;
+#ifdef HAVE_GMP
+static mpz_t z_mod, z_base, z_exp, z_rop;
+#else
+static BIGNUM *z_mod, *z_base, *z_exp, *z_rop;
+BN_CTX *BN_ctx;
+#endif
 
 static unsigned char saved_salt[SALT_SIZE];
 static unsigned char user_id[SALT_SIZE];
@@ -150,6 +158,7 @@ static void *get_binary(char *ciphertext)
 
 static void init(struct fmt_main *self)
 {
+#ifdef HAVE_GMP
 	mpz_init_set_str(z_mod, "112624315653284427036559548610503669920632123929604336254260115573677366691719", 10);
 	mpz_init_set_str(z_base, "47", 10);
 	mpz_init_set_str(z_exp, "1", 10);
@@ -158,6 +167,15 @@ static void init(struct fmt_main *self)
 	// we need to put into it. Then we simply need to copy in the data, and possibly set
 	// the limb count size.
 	mpz_mul_2exp(z_exp, z_exp, 159);
+#else
+	z_mod=BN_new();
+	BN_dec2bn(&z_mod, "112624315653284427036559548610503669920632123929604336254260115573677366691719");
+	z_base=BN_new();
+	BN_set_word(z_base, 47);
+	z_exp=BN_new();
+	z_rop=BN_new();
+	BN_ctx = BN_CTX_new();
+#endif
 }
 
 static void *salt(char *ciphertext)
@@ -263,6 +281,7 @@ static void crypt_all(int count)
 	SHA1_Final(Tmp, &ctx);
 	// Ok, now Tmp is v
 
+#ifdef HAVE_GMP
 #if 1
 	// Speed, 17194/s
 	p = HashStr;
@@ -323,6 +342,12 @@ static void crypt_all(int count)
 	p2[2] = JOHNSWAP(p1[5]);
 	p2[1] = JOHNSWAP(p1[6]);
 	p2[0] = JOHNSWAP(p1[7]);
+#endif
+#else
+	// using oSSL's BN to do expmod.
+	z_exp = BN_bin2bn(Tmp,20,z_exp);
+	BN_mod_exp(z_rop, z_base, z_exp, z_mod, BN_ctx);
+	BN_bn2bin(z_rop, (unsigned char*)crypt_out);
 #endif
 
 }
