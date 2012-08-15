@@ -136,6 +136,7 @@ extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_encfs;
 extern struct fmt_main fmt_opencl_odf;
 extern struct fmt_main fmt_opencl_sxc;
+extern struct fmt_main fmt_opencl_gpg;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
 extern struct fmt_main fmt_opencl_bf;
@@ -277,6 +278,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_encfs);
 	john_register_one(&fmt_opencl_odf);
 	john_register_one(&fmt_opencl_sxc);
+	john_register_one(&fmt_opencl_gpg);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_bf);
