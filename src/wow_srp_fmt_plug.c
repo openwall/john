@@ -315,7 +315,7 @@ static void crypt_all(int count)
 		// Ok, now Tmp is v
 
 #ifdef HAVE_GMP
-#if 0
+#if 1
 		// Speed, 17194/s
 	{
 		unsigned char HashStr[80], *p;
