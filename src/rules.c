@@ -279,7 +279,7 @@ static char *userclass_expand(const char *src)
 	if (br)
 		return NULL;
 	dst = str_alloc_copy(dst_tmp);
-	free(dst_tmp);
+	MEM_FREE(dst_tmp);
 	return dst;
 }
 

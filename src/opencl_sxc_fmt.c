@@ -189,7 +189,7 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < cs.length; i++)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 
@@ -216,7 +216,7 @@ static void *get_binary(char *ciphertext)
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return out;
 }
 

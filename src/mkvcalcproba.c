@@ -26,6 +26,7 @@
 
 #include "params.h"
 #include "mkvlib.h"
+#include "memory.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))
 
@@ -178,12 +179,12 @@ int main(int argc, char * * argv)
 
 	fclose(fichier);
 
-	free(proba1);
-	free(proba2);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
 
-	free(first);
+	MEM_FREE(first);
 
-	free(ligne);
+	MEM_FREE(ligne);
 
 	fprintf(stderr, "charsetsize = %d\n", charset);
 

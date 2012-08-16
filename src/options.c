@@ -273,7 +273,7 @@ static void print_usage(char *name)
 		}
 		printf(" %s%s", label, formats_list[i] ? "" : "\n");
 	} while (formats_list[i]);
-	free(formats_list);
+	MEM_FREE(formats_list);
 
 	printf("%s", JOHN_USAGE_TAIL);
 #ifdef HAVE_DL

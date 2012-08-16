@@ -766,7 +766,7 @@ static void *get_salt(char *ciphertext)
 		if (rarfile.method != 0x30)
 			rarfile.crc.w = ~rarfile.crc.w;
 	}
-	free(keep_ptr);
+	MEM_FREE(keep_ptr);
 	return (void*)&rarfile;
 }
 

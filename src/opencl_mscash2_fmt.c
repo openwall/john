@@ -281,9 +281,9 @@ static void DCC(unsigned char *salt,unsigned char *username,unsigned int usernam
 
 static void cleanup()
 {
-	free(dcc_hash_host);
+	MEM_FREE(dcc_hash_host);
 
-	free(dcc2_hash_host);
+	MEM_FREE(dcc2_hash_host);
 
 	clean_all_buffer();
 

@@ -150,10 +150,10 @@ static char *netlm_prepare(char *split_fields[10], struct fmt_main *self)
 
 	if (netlm_valid(cp,self)) {
 		char *cp2 = str_alloc_copy(cp);
-		free(cp);
+		MEM_FREE(cp);
 		return cp2;
 	}
-	free(cp);
+	MEM_FREE(cp);
 	return split_fields[1];
 }
 

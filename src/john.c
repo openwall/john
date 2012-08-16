@@ -871,7 +871,7 @@ static void john_init(char *name, int argc, char **argv)
 			}
 			printf("%s%s", label, formats_list[i] ? ", " : "\n");
 		} while (formats_list[i]);
-		free(formats_list);
+		MEM_FREE(formats_list);
 		exit(0);
 	}
 	if (options.listconf &&

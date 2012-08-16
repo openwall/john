@@ -133,9 +133,8 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	memcpy(&cs.pfx, p12, sizeof(PKCS12));
 	BIO_free(bp);
-	if (decoded_data)
-		free(decoded_data);
-	free(keeptr);
+	MEM_FREE(decoded_data);
+	MEM_FREE(keeptr);
 	return (void *) &cs;
 }
 

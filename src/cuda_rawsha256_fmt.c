@@ -66,8 +66,8 @@ static void cleanup()
 		cuda_pageLockedFree(inbuffer);
 		cuda_pageLockedFree(outbuffer);
 	} else {
-		free(inbuffer);
-		free(outbuffer);
+		MEM_FREE(inbuffer);
+		MEM_FREE(outbuffer);
 	}
 }
 

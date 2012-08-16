@@ -64,8 +64,8 @@ static struct fmt_tests tests[] = {
 };
 static void cleanup()
 {
- free(inbuffer);
- free(outbuffer);
+ MEM_FREE(inbuffer);
+ MEM_FREE(outbuffer);
 }
 static void init(struct fmt_main *self)
 {

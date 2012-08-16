@@ -147,7 +147,7 @@ static void *get_salt(char *ciphertext)
 	else
 		cs.userpassword = NULL;
 	cs.knownPassword = false;
-	free(keeptr);
+	MEM_FREE(keeptr);
 	/* try to initialize the cracking-engine */
 	if (!initPDFCrack(&cs)) {
 		fprintf(stderr, "Wrong userpassword, '%s'\n", cs.userpassword);

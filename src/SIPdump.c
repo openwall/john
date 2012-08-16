@@ -23,6 +23,7 @@
 #include <arpa/inet.h>
 #include <pcap.h>
 #include "SIPdump.h"
+#include "memory.h"
 
 #define SIP_LINE_LEN   1024	/* Maximum length of SIP protocol lines */
 #define SIP_METHOD_LEN   32	/* Maximum length of SIP method string  */
@@ -141,8 +142,8 @@ int main(int argc, char *argv[])
 	argc -= optind;
 
 	if (argc != 1) {
-		SAFE_DELETE(pcap_file);
-		SAFE_DELETE(dev);
+		MEM_FREE(pcap_file);
+		MEM_FREE(dev);
 		usage("You need to specify dump file");
 	}
 
@@ -252,12 +253,12 @@ int main(int argc, char *argv[])
 	if (handle)
 		pcap_close(handle);
 
-	SAFE_DELETE(dump_file);
-	SAFE_DELETE(dev);
-	SAFE_DELETE(pcap_file);
+	MEM_FREE(dump_file);
+	MEM_FREE(dev);
+	MEM_FREE(pcap_file);
 	if (strncmp(DEFAULT_PCAP_FILTER, filter, strlen(DEFAULT_PCAP_FILTER))
 	    && strncmp("tcp or udp", filter, strlen("tcp or udp")))
-		SAFE_DELETE(filter);
+		MEM_FREE(filter);
 
 	exit(retval);
 }
@@ -360,7 +361,7 @@ static void parse_payload(const conn_t * connection,
 				    payload_buffer_len);
 
 				/* Free payload buffer */
-				free(payload_buffer);
+				MEM_FREE(payload_buffer);
 			}
 
 			/* Error or no digets found, removing connection from table */
@@ -620,32 +621,32 @@ static int parse_sip_proto(char *out,
 		}
 
 		/* free obsolete lines */
-		free(lines[i]);
+		MEM_FREE(lines[i]);
 	}
 
 	/* Error or regular end of SIP header and no auth found */
 	if (error || (!found && lines[num_lines - 1][0] == 0x00)) {
-		free(lines[num_lines - 1]);
+		MEM_FREE(lines[num_lines - 1]);
 		return -1;
 	}
 
 	/* Challenge response sniffed */
 	if (found) {
-		free(lines[num_lines - 1]);
+		MEM_FREE(lines[num_lines - 1]);
 		return 1;
 	}
 
 	/* Nothing found so far, recording remaining buffer */
 	if (out_len - 1 < strlen(lines[num_lines - 1])) {
 		debug(("Buffer too small for line, ignoring..."));
-		free(lines[num_lines - 1]);
+		MEM_FREE(lines[num_lines - 1]);
 		return -1;
 	}
 
 	strncpy(out, lines[num_lines - 1], out_len - 1);
 
 	/* Free last line */
-	free(lines[num_lines - 1]);
+	MEM_FREE(lines[num_lines - 1]);
 
 	return 0;
 }

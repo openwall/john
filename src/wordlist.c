@@ -575,8 +575,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			} while (cp < aep);
 			if (nWordFileLines - i)
 				log_event("- suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
-			free(buffer.hash);
-			free(buffer.data);
+			MEM_FREE(buffer.hash);
+			MEM_FREE(buffer.data);
 			nWordFileLines = i;
 			nCurLine=0;
 		}

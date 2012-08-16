@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
+#include "memory.h"
 
 #define VERSION		"1.2"
 #define TGT_LENGTH	16
@@ -124,7 +125,7 @@ make_req(unsigned char *dst, char *user, char *realm)
   p += krb_put_string("krbtgt", p);		/* service name (krbtgt)*/
   p += krb_put_string(realm, p);		/* service instance (realm) */
 
-  free(pname);
+  MEM_FREE(pname);
 
   return (p - dst);
 }

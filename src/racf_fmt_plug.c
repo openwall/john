@@ -156,7 +156,7 @@ static void *get_salt(char *ciphertext)
 	printf("userid in EBCDIC : ");
 	print_hex(cs.userid, 8);
 #endif
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 

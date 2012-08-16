@@ -153,7 +153,7 @@ static void *get_salt(char *ciphertext)
 		salt_struct->hash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	free(keeptr);
+	MEM_FREE(keeptr);
         alter_endianity(salt_struct->hash, 32);
 	return (void *) salt_struct;
 }

@@ -99,7 +99,7 @@ static void set_salt(void *salt)
 		passverify[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	memset(has_been_cracked, 0, MAX_KEYS_PER_CRYPT);
-	free(saltcopy_mem);
+	MEM_FREE(saltcopy_mem);
 }
 
 static void zip_set_key(char *key, int index)
