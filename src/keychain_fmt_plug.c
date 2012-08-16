@@ -98,7 +98,7 @@ static void *get_salt(char *ciphertext)
 		salt_struct->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)salt_struct;
 }
 

@@ -106,7 +106,7 @@ static void release_clobj(void){
 	HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
 	ret_code = clReleaseMemObject(pinned_partial_hashes);
 	HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
-	free(res_hashes);
+	MEM_FREE(res_hashes);
 }
 
 static void find_best_kpc(void){
@@ -149,7 +149,7 @@ static void find_best_kpc(void){
 			kernelExecTimeNs = ((int) (((float) (tmpTime) / num) * 10) ) ;
 			optimal_kpc = num;
 		}
-		free(tmpbuffer);
+		MEM_FREE(tmpbuffer);
 		clReleaseCommandQueue(queue_prof);
 	}
 	fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do \"export GWS=%d\")\n",optimal_kpc,optimal_kpc);

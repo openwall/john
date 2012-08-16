@@ -173,7 +173,7 @@ static void *get_salt(char *ciphertext)
 	SHA1_Init(&salt_struct->pctx);
 	SHA1_Update(&salt_struct->pctx, salt_struct->keyCrackData.globalSalt, salt_struct->keyCrackData.globalSaltLen);
 
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)salt_struct;
 }
 

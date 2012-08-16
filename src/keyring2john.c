@@ -13,6 +13,7 @@
 #include <string.h>
 #include <assert.h>
 #include "stdint.h"
+#include "memory.h"
 
 #define KEYRING_FILE_HEADER "GnomeKeyring\n\r\0\n"
 #define KEYRING_FILE_HEADER_LEN 16
@@ -188,7 +189,7 @@ static void process_file(const char *fname)
 	print_hex(to_decrypt, crypto_size);
 	printf("\n");
 	if(to_decrypt)
-		free(to_decrypt);
+		MEM_FREE(to_decrypt);
 	return;
 
 bail:

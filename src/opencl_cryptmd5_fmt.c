@@ -132,8 +132,8 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
-	free(inbuffer);
-	free(outbuffer);
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
 }
 
 static void set_key(char *key, int index)

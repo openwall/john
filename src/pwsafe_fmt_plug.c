@@ -86,7 +86,7 @@ static void *get_salt(char *ciphertext)
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	cs.iterations = (unsigned int)atoi(p);
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 

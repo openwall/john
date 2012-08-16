@@ -18,6 +18,7 @@
 
 #include "blowfish.h"
 #include "bf_tab.h"		/* P-box P-array, S-box */
+#include "memory.h"
 
 /* #define S(x,i) (bf_S[i][x.w.byte##i]) */
 #define S0(x) (bf_S[0][x.w.byte0])
@@ -111,10 +112,10 @@ static void blowfish_init(UBYTE_08bits * key, short keybytes)
 	return;
       }
 //	  printf ("Freed\n");
-        free(box.P);
+        MEM_FREE(box.P);
         for (i = 0; i < 4; i++)
-          free(box.S[i]);
-        free(box.S);
+          MEM_FREE(box.S[i]);
+        MEM_FREE(box.S);
   }
   /* initialize new buffer */
   /* uh... this is over 4k */

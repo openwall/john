@@ -5,6 +5,7 @@
 #endif
 #include <math.h>
 #include <string.h>
+#include "memory.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))
 
@@ -167,12 +168,12 @@ int main(int argc, char * * argv)
 
 	fclose(statfile);
 
-	free(proba1);
-	free(proba2);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
 
-	free(first);
+	MEM_FREE(first);
 
-	free(ligne);
+	MEM_FREE(ligne);
 	fclose(fichier);
 
 	return 0;

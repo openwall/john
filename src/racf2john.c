@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "memory.h"
 
 static unsigned char e2a[256] = {
 	0,  1,  2,  3,156,  9,134,127,151,141,142, 11, 12, 13, 14, 15,
@@ -103,7 +104,7 @@ static void process_file(const char *filename)
 			}
 		}
 	}
-	free(buffer);
+	MEM_FREE(buffer);
 }
 
 int racf2john(int argc, char **argv)

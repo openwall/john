@@ -279,10 +279,8 @@ static void *get_salt(char *ciphertext)
 	OPENSSL_free(header);
 	OPENSSL_free(data);
 	BIO_free(bp);
-	if (copy)
-		free(copy);
-	if (decoded_data)
-		free(decoded_data);
+	MEM_FREE(copy);
+	MEM_FREE(decoded_data);
 	return (void *) &cs;
 }
 

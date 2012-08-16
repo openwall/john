@@ -109,7 +109,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, inputBuf, salt_struct->saltSize + passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
-	free(inputBuf);
+	MEM_FREE(inputBuf);
 
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
@@ -135,7 +135,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
 	SHA1_Final(hashBuf, &ctx);
-	free(inputBuf);
+	MEM_FREE(inputBuf);
 
 	key = DeriveKey(hashBuf);
 
@@ -143,7 +143,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	// Grab the key length bytes of the final hash as the encrypytion key
 	final = (unsigned char *)malloc(salt_struct->keySize/8);
 	memcpy(final, key, salt_struct->keySize/8);
-	free(key);
+	MEM_FREE(key);
 	return final;
 }
 
@@ -203,7 +203,7 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, inputBuf, salt_struct->saltSize + passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
-	free(inputBuf);
+	MEM_FREE(inputBuf);
 
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
@@ -227,7 +227,7 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, inputBuf, 28);
 	SHA1_Final(hashBuf, &ctx);
-	free(inputBuf);
+	MEM_FREE(inputBuf);
 
 	// TODO: Fix up the size per the spec
 	if (20 < hashSize) {
@@ -301,7 +301,7 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < 32; i++)
 		salt_struct->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)salt_struct;
 }
 

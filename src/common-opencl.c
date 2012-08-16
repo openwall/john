@@ -45,8 +45,7 @@ static void read_kernel_source(char *kernel_filename)
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	if (kernel_source != NULL)
-		free(kernel_source);
+	MEM_FREE(kernel_source);
 	kernel_source = calloc(source_size + 1, 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
@@ -160,7 +159,7 @@ static void build_kernel(int dev_id)
 	else if (fwrite(source, source_size, 1, file) != 1)
 		fprintf(stderr, "error writing binary\n");
 	fclose(file);
-	free(source);
+	MEM_FREE(source);
 #endif
 }
 

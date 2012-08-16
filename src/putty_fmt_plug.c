@@ -132,7 +132,7 @@ static void *get_salt(char *ciphertext)
 		p = strtok(NULL, "*");
 		strcpy(cs.comment, p);
 	}
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 
@@ -248,9 +248,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 		} else {
 			SHA_Simple(macdata, maclen, binary);
 		}
-		if (free_macdata) {
-			free(macdata);
-		}
+		MEM_FREE(macdata);
 		for (i = 0; i < 20; i++)
 			sprintf(realmac + 2 * i, "%02x", binary[i]);
 
