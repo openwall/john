@@ -2,8 +2,9 @@
  *  Extract RAR archives
  *
  * Modified for JtR, (c) magnum 2012. This code use a memory buffer instead
- * of a file handle. It does not store the inflated data, it just CRC's it.
- * Support for older RAR versions was stripped. Autoconf stuff was removed.
+ * of a file handle, and decrypts while reading. It does not store inflated
+ * data, it just CRC's it. Support for older RAR versions was stripped.
+ * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005 trog@uncon.org
  *
@@ -36,9 +37,7 @@ void rar_cmd_array_reset(rar_cmd_array_t *cmd_a)
 	if (!cmd_a) {
 		return;
 	}
-	if (cmd_a->array) {
-		rar_free(cmd_a->array);
-	}
+	MEM_FREE(cmd_a->array);
 	cmd_a->array = NULL;
 	cmd_a->num_items = 0;
 }

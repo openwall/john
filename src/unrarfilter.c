@@ -2,8 +2,9 @@
  *  Extract RAR archives
  *
  * Modified for JtR, (c) magnum 2012. This code use a memory buffer instead
- * of a file handle. It does not store the inflated data, it just CRC's it.
- * Support for older RAR versions was stripped. Autoconf stuff was removed.
+ * of a file handle, and decrypts while reading. It does not store inflated
+ * data, it just CRC's it. Support for older RAR versions was stripped.
+ * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005 trog@uncon.org
  *
@@ -40,9 +41,7 @@ void rar_filter_array_reset(rar_filter_array_t *filter_a)
 	for (i=0 ; i < filter_a->num_items ; i++) {
 		rar_filter_delete(filter_a->array[i]);
 	}
-	if (filter_a->array) {
-		rar_free(filter_a->array);
-	}
+	MEM_FREE(filter_a->array);
 	filter_a->array = NULL;
 	filter_a->num_items = 0;
 }
@@ -64,7 +63,7 @@ struct UnpackFilter *rar_filter_new(void)
 {
 	struct UnpackFilter *filter;
 
-	filter = (struct UnpackFilter *) rar_malloc(sizeof(struct UnpackFilter));
+	filter = (struct UnpackFilter *) mem_alloc(sizeof(struct UnpackFilter));
 	if (!filter) {
 		return NULL;
 	}
@@ -87,12 +86,8 @@ void rar_filter_delete(struct UnpackFilter *filter)
 	if (!filter) {
 		return;
 	}
-	if (filter->prg.global_data) {
-		rar_free(filter->prg.global_data);
-	}
-	if (filter->prg.static_data) {
-		rar_free(filter->prg.static_data);
-	}
+	MEM_FREE(filter->prg.global_data);
+	MEM_FREE(filter->prg.static_data);
 	rar_cmd_array_reset(&filter->prg.cmd);
-	rar_free(filter);
+	MEM_FREE(filter);
 }
