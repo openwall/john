@@ -84,7 +84,6 @@ int get_byte_addressable(int dev_id);
 #define cpu(n)                  ((n & CPU) == (CPU))
 #define gpu(n)                  ((n & GPU) == (GPU))
 #define gpu_amd(n)              ((n & AMD) && gpu(n))
-#define gpu_amd_64(n)           (0)
 #define gpu_nvidia(n)           ((n & NVIDIA) && gpu(n))
 #define gpu_intel(n)            ((n & INTEL) && gpu(n))
 #define cpu_amd(n)              ((n & AMD) && cpu(n))

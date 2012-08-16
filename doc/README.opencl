@@ -125,6 +125,7 @@ http://openwall.info/wiki/john/GPU
 Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
 - crypt MD5
+- crypt SHA-256 (http://openwall.info/wiki/john/OpenCL-SHA-256)
 - crypt SHA-512 (http://openwall.info/wiki/john/OpenCL-SHA-512)
 - Mac OS X 10.7+ salted SHA-512
 - MsCash2
