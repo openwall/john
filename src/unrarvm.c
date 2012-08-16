@@ -2,8 +2,9 @@
  *  Extract RAR archives
  *
  * Modified for JtR, (c) magnum 2012. This code use a memory buffer instead
- * of a file handle. It does not store the inflated data, it just CRC's it.
- * Support for older RAR versions was stripped. Autoconf stuff was removed.
+ * of a file handle, and decrypts while reading. It does not store inflated
+ * data, it just CRC's it. Support for older RAR versions was stripped.
+ * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005-2006 trog@uncon.org
  *
@@ -195,7 +196,7 @@ unsigned int rar_crc(unsigned int start_crc, void *addr, unsigned int size)
 
 int rarvm_init(rarvm_data_t *rarvm_data)
 {
-	rarvm_data->mem = (unsigned char *) rar_malloc(RARVM_MEMSIZE+4);
+	rarvm_data->mem = (unsigned char *) mem_alloc(RARVM_MEMSIZE+4);
 	if (!rarvm_data->mem) {
 		return 0;
 	}
@@ -205,7 +206,7 @@ int rarvm_init(rarvm_data_t *rarvm_data)
 void rarvm_free(rarvm_data_t *rarvm_data)
 {
 	if (rarvm_data && rarvm_data->mem) {
-		rar_free(rarvm_data->mem);
+		MEM_FREE(rarvm_data->mem);
 		rarvm_data->mem = NULL;
 	}
 }
@@ -920,7 +921,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 	prg->filtered_data_size = new_size;
 
 	if (prg->global_data) {
-		rar_free(prg->global_data);
+		MEM_FREE(prg->global_data);
 		prg->global_data = NULL;
 		prg->global_size = 0;
 	}
@@ -1082,7 +1083,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 		if (data_flag & 0x8000) {
 			int data_size = rarvm_read_data(rarvm_input)+1;
 			rar_dbgmsg("data_size=%d\n", data_size);
-			prg->static_data = rar_malloc(data_size);
+			prg->static_data = mem_alloc(data_size);
 			if(!prg->static_data) {
 			    rar_dbgmsg("unrar: rarvm_prepare: rar_malloc failed for prg->static_data\n");
 			    return 0;

@@ -2,8 +2,9 @@
  *  Extract RAR archives
  *
  * Modified for JtR, (c) magnum 2012. This code use a memory buffer instead
- * of a file handle. It does not store the inflated data, it just CRC's it.
- * Support for older RAR versions was stripped. Autoconf stuff was removed.
+ * of a file handle, and decrypts while reading. It does not store inflated
+ * data, it just CRC's it. Support for older RAR versions was stripped.
+ * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005-2006 trog@uncon.org
  *
@@ -564,10 +565,8 @@ static int read_end_of_block(const unsigned char **fd, unpack_data_t *unpack_dat
 
 void rar_init_filters(unpack_data_t *unpack_data)
 {
-	if (unpack_data->old_filter_lengths) {
-		rar_free(unpack_data->old_filter_lengths);
-		unpack_data->old_filter_lengths = NULL;
-	}
+	MEM_FREE(unpack_data->old_filter_lengths);
+	unpack_data->old_filter_lengths = NULL;
 	unpack_data->old_filter_lengths_size = 0;
 	unpack_data->last_filter = 0;
 
@@ -709,7 +708,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			rar_dbgmsg("ERROR: vm_codesize=0x%x buf_size=0x%x\n", vm_codesize, rarvm_input.buf_size);
 			return 0;
 		}
-		vm_code = (unsigned char *) rar_malloc(vm_codesize);
+		vm_code = (unsigned char *) mem_alloc(vm_codesize);
 		if(!vm_code) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for vm_code\n");
 		    return 0;
@@ -720,10 +719,10 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		}
 		if(!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], vm_codesize, &filter->prg)) {
 		    rar_dbgmsg("unrar: add_vm_code: rarvm_prepare failed\n");
-		    rar_free(vm_code);
+		    MEM_FREE(vm_code);
 		    return 0;
 		}
-		rar_free(vm_code);
+		MEM_FREE(vm_code);
 	}
 	stack_filter->prg.alt_cmd = &filter->prg.cmd.array[0];
 	stack_filter->prg.cmd_count = filter->prg.cmd_count;
@@ -731,7 +730,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	static_size = filter->prg.static_size;
 	if (static_size > 0 && static_size < VM_GLOBALMEMSIZE) {
 		// read statically defined data contained in DB commands
-		stack_filter->prg.static_data = rar_malloc(static_size);
+		stack_filter->prg.static_data = mem_alloc(static_size);
 		if(!stack_filter->prg.static_data) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.static_data\n");
 		    return 0;
@@ -740,8 +739,8 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	}
 
 	if (stack_filter->prg.global_size < VM_FIXEDGLOBALSIZE) {
-		rar_free(stack_filter->prg.global_data);
-		stack_filter->prg.global_data = rar_malloc(VM_FIXEDGLOBALSIZE);
+		MEM_FREE(stack_filter->prg.global_data);
+		stack_filter->prg.global_data = mem_alloc(VM_FIXEDGLOBALSIZE);
 		if(!stack_filter->prg.global_data) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.global_data\n");
 		    return 0;
@@ -807,7 +806,7 @@ static int read_vm_code(unpack_data_t *unpack_data, const unsigned char **fd)
 		length = rar_getbits(unpack_data);
 		rar_addbits(unpack_data, 16);
 	}
-	vmcode = (unsigned char *) rar_malloc(length + 2);
+	vmcode = (unsigned char *) mem_alloc(length + 2);
 	rar_dbgmsg("VM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
@@ -817,14 +816,14 @@ static int read_vm_code(unpack_data_t *unpack_data, const unsigned char **fd)
 		// But if we read all bytes except the last, one byte is enough.
 		if (unpack_data->in_addr >= unpack_data->read_top-1 &&
 				!rar_unp_read_buf(fd, unpack_data) && i<length-1) {
-			rar_free(vmcode);
+			MEM_FREE(vmcode);
 			return 0;
 		}
 		vmcode[i] = rar_getbits(unpack_data) >> 8;
 		rar_addbits(unpack_data, 8);
 	}
 	retval = add_vm_code(unpack_data, first_byte, vmcode, length);
-	rar_free(vmcode);
+	MEM_FREE(vmcode);
 	return retval;
 }
 
@@ -856,7 +855,7 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 		}
 		length = b1*256 + b2;
 	}
-	vmcode = (unsigned char *) rar_malloc(length + 2);
+	vmcode = (unsigned char *) mem_alloc(length + 2);
 	rar_dbgmsg("VM PPM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
@@ -864,13 +863,13 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 	for (i=0 ; i < length ; i++) {
 		ch = ppm_decode_char(&unpack_data->ppm_data, fd, unpack_data);
 		if (ch == -1) {
-			rar_free(vmcode);
+			MEM_FREE(vmcode);
 			return 0;
 		}
 		vmcode[i] = ch;
 	}
 	retval = add_vm_code(unpack_data, first_byte, vmcode, length);
-	rar_free(vmcode);
+	MEM_FREE(vmcode);
 	return retval;
 }
 
