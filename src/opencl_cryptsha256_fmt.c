@@ -267,7 +267,7 @@ static char * get_key(int index) {
   uses about 400 bytes of local memory. Local memory
   is usually 32 KB
 -- */
-static void find_best_workgroup(struct fmt_main *pFmt) {
+static void find_best_workgroup(struct fmt_main *self) {
 
     size_t max_group_size;
 
@@ -275,7 +275,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
     //Call the default function.
-    opencl_find_best_workgroup_limit(pFmt, max_group_size);
+    opencl_find_best_workgroup_limit(self, max_group_size);
 
     fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
@@ -416,7 +416,7 @@ static void find_best_gws(void) {
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main *pFmt) {
+static void init(struct fmt_main *self) {
     int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/cryptsha256_kernel_DEFAULT.cl";
@@ -475,12 +475,12 @@ static void init(struct fmt_main *pFmt) {
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = global_work_size;
 
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
         create_clobj(global_work_size);
-        find_best_workgroup(pFmt);
+        find_best_workgroup(self);
         release_clobj();
     }
 
@@ -502,11 +502,11 @@ static void init(struct fmt_main *pFmt) {
     }
     fprintf(stderr, "Local work size (LWS) %Zd, global work size (GWS) %Zd\n",
            local_work_size, global_work_size);
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Check if the ciphertext if a valid SHA-256 crypt ------- */
-static int valid(char *ciphertext, struct fmt_main *pFmt) {
+static int valid(char *ciphertext, struct fmt_main *self) {
     char *pos, *start;
 
     if (strncmp(ciphertext, "$5$", 3))
