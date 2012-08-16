@@ -127,6 +127,7 @@ extern struct fmt_main fmt_opencl_rawSHA1;
 extern struct fmt_main fmt_opencl_cryptMD5;
 extern struct fmt_main fmt_opencl_phpass;
 extern struct fmt_main fmt_opencl_mysqlsha1;
+extern struct fmt_main fmt_opencl_cryptsha256;
 extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
@@ -139,6 +140,7 @@ extern struct fmt_main fmt_opencl_sxc;
 extern struct fmt_main fmt_opencl_gpg;
 extern struct fmt_main fmt_opencl_xsha512;
 extern struct fmt_main fmt_opencl_rawsha512;
+extern struct fmt_main fmt_opencl_rawsha512_ng;
 extern struct fmt_main fmt_opencl_bf;
 extern struct fmt_main fmt_opencl_pwsafe;
 #endif
@@ -269,6 +271,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_cryptMD5);
 	john_register_one(&fmt_opencl_phpass);
 	john_register_one(&fmt_opencl_mysqlsha1);
+	john_register_one(&fmt_opencl_cryptsha256);
 	john_register_one(&fmt_opencl_cryptsha512);
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
@@ -281,6 +284,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_gpg);
 	john_register_one(&fmt_opencl_xsha512);
 	john_register_one(&fmt_opencl_rawsha512);
+	john_register_one(&fmt_opencl_rawsha512_ng);        
 	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 #endif

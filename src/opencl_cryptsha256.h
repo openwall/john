@@ -1,7 +1,7 @@
 /*
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  *
- * More information at http://openwall.info/wiki/john/OpenCL-SHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-SHA-256
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
@@ -11,8 +11,8 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#ifndef _CRYPTSHA512_H
-#define _CRYPTSHA512_H
+#ifndef _CRYPTSHA256_H
+#define _CRYPTSHA256_H
 
 //Copied from common-opencl.h
 #define UNKNOWN                 0
@@ -53,16 +53,16 @@
 #define TRUE                    1
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
-#define ROUNDS_CACHE            ROUNDS_DEFAULT / 2
+#define ROUNDS_CACHE            ROUNDS_DEFAULT / 4
 #define ROUNDS_MIN              1000
 #define ROUNDS_MAX              999999999
 
 #define SALT_LENGTH             16
 #define PLAINTEXT_LENGTH        16
-#define CIPHERTEXT_LENGTH	86
-#define SALT_ARRAY              (SALT_LENGTH / 8)
-#define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
-#define BINARY_SIZE             64
+#define CIPHERTEXT_LENGTH       43
+#define SALT_ARRAY              (SALT_LENGTH / 4)
+#define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 4)
+#define BINARY_SIZE             32
 #define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
 
@@ -73,35 +73,31 @@
 
 //Macros.
 #define SWAP(n) \
-            (((n) << 56)                      \
-          | (((n) & 0xff00) << 40)            \
-          | (((n) & 0xff0000) << 24)          \
-          | (((n) & 0xff000000) << 8)         \
-          | (((n) >> 8) & 0xff000000)         \
-          | (((n) >> 24) & 0xff0000)          \
-          | (((n) >> 40) & 0xff00)            \
-          | ((n) >> 56))
+            (((n) << 24)                \
+          | (((n) & 0xff00) << 8)       \
+          | (((n) >> 8) & 0xff00)       \
+          | ((n) >> 24))
 
-#define SWAP64_V(n)             SWAP(n)
+#define SWAP32_V(n)             SWAP(n)
 
 #if gpu_amd(DEVICE_INFO)
         #define Ch(x,y,z)       bitselect(z, y, x)
-        #define Maj(x,y,z)      bitselect(x, y, z ^ x)
-        #define ror(x, n)       rotate(x, (uint64_t) 64-n)
-        #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
+        #define Maj(x, y, z)    bitselect(x, y, z ^ x)
+        #define ror(x, n)       rotate(x, (uint32_t) 32-n)
+        #define SWAP32(n)       (as_uint(as_uchar4(n).s3210))
 #else
         #if gpu_nvidia(DEVICE_INFO)
             #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
         #endif
         #define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
         #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
-        #define ror(x, n)       ((x >> n) | (x << (64-n)))
-        #define SWAP64(n)       SWAP(n)
+        #define ror(x, n)       ((x >> n) | (x << (32-n)))
+        #define SWAP32(n)       SWAP(n)
 #endif
-#define Sigma0(x)               ((ror(x,28)) ^ (ror(x,34)) ^ (ror(x,39)))
-#define Sigma1(x)               ((ror(x,14)) ^ (ror(x,18)) ^ (ror(x,41)))
-#define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
-#define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
+#define Sigma0(x)               ((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
+#define Sigma1(x)               ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
+#define sigma0(x)               ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
+#define sigma1(x)               ((ror(x,17)) ^ (ror(x,19)) ^ (x>>10))
 
 /* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
 #define GETCHAR(buf, index) ((buf)[(index)])
@@ -110,40 +106,39 @@
 
 //Data types.
 typedef union {
-    uint8_t                     mem_08[8];
-    uint16_t                    mem_16[4];
-    uint32_t                    mem_32[2];
-    uint64_t                    mem_64[1];
-} buffer_64;
+    uint8_t                     mem_08[4];
+    uint16_t                    mem_16[2];
+    uint32_t                    mem_32[1];
+} buffer_32;
 
 typedef struct {
+    uint32_t                    length;
     uint32_t                    rounds;
-    uint32_t                    length;
-    buffer_64                   salt[SALT_ARRAY];
-} sha512_salt;
+    buffer_32                   salt[SALT_ARRAY];
+} sha256_salt;
 
 typedef struct {
     uint32_t                    length;
-    buffer_64                   pass[PLAINTEXT_ARRAY];
-} sha512_password;
+    buffer_32                   pass[PLAINTEXT_ARRAY];
+} sha256_password;
 
 typedef struct {
-    uint64_t                    v[8];           //512 bits
-} sha512_hash;
+    uint32_t                    v[8];           //256 bits
+} sha256_hash;
 
 typedef struct {
-    uint64_t                    H[8];           //512 bits
+    uint32_t                    H[8];           //256 bits
     uint32_t                    total;
     uint32_t                    buflen;
-    buffer_64                   buffer[16];     //1024bits
+    buffer_32                   buffer[16];     //512bits
 #if cpu(DEVICE_INFO)
     uint64_t                    safety_trail;   //To avoid memory override
 #endif
-} sha512_ctx;
+} sha256_ctx;
 
 typedef struct {
-    buffer_64                   alt_result[8];
-    buffer_64                   temp_result[8];
-    buffer_64                   p_sequence[8];
-} sha512_buffers;
+    buffer_32                   alt_result[8];
+    buffer_32                   temp_result[8];
+    buffer_32                   p_sequence[8];
+} sha256_buffers;
 #endif
