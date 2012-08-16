@@ -1129,14 +1129,6 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-	common_init();
-	sig_init();
-
-	john_load();
-
-	if (options.encodingStr && options.encodingStr[0])
-		log_event("- %s input encoding enabled", options.encodingStr);
-
 #ifdef CL_VERSION_1_0
 	if (!options.ocl_platform)
 	if ((options.ocl_platform =
@@ -1148,6 +1140,14 @@ static void john_init(char *name, int argc, char **argv)
 	     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
 		gpu_id = atoi(options.ocl_device);
 #endif
+
+	common_init();
+	sig_init();
+
+	john_load();
+
+	if (options.encodingStr && options.encodingStr[0])
+		log_event("- %s input encoding enabled", options.encodingStr);
 }
 
 static void john_run(void)
