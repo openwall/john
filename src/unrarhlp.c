@@ -1,7 +1,8 @@
 /*
  * Modified for JtR, (c) magnum 2012. This code use a memory buffer instead
- * of a file handle. It does not store the inflated data, it just CRC's it.
- * Support for older RAR versions was stripped. Autoconf stuff was removed.
+ * of a file handle, and decrypts while reading. It does not store inflated
+ * data, it just CRC's it. Support for older RAR versions was stripped.
+ * Autoconf stuff was removed.
  *
  *  Copyright (C) 2007 Sourcefire, Inc.
  *
@@ -27,26 +28,6 @@ static void rar_dbgmsg(const char* fmt,...){}
 
 #define RAR_MAX_ALLOCATION 184549376
 
-void *rar_malloc(size_t size)
-{
-	void *alloc;
-
-
-    if(!size || size > RAR_MAX_ALLOCATION) {
-	rar_dbgmsg("UNRAR: rar_malloc(): Attempt to allocate %lu bytes. Please report to http://bugs.clamav.net\n", size);
-	return NULL;
-    }
-
-    alloc = malloc(size);
-
-    rar_dbgmsg("%s: allocated %zu bytes at %p\n", __func__, size, alloc);
-
-    if(!alloc) {
-	    fprintf(stderr, "UNRAR: rar_malloc(): Can't allocate memory (%zu bytes).\n", size);
-	return NULL;
-    } else return alloc;
-}
-
 void *rar_realloc2(void *ptr, size_t size)
 {
 	void *alloc;
@@ -60,21 +41,11 @@ void *rar_realloc2(void *ptr, size_t size)
 
     if(!alloc) {
 	fprintf(stderr, "UNRAR: rar_realloc2(): Can't allocate memory (%zu bytes).\n", size);
-	if(ptr)
-	    rar_free(ptr);
+	MEM_FREE(ptr);
 	return NULL;
     }
 
     rar_dbgmsg("%s: reallocated %p to %zu bytes at %p\n", __func__, ptr, size, alloc);
 
     return alloc;
-}
-
-void rar_free(void *ptr) {
-	if (ptr != NULL) {
-		free(ptr);
-
-		rar_dbgmsg("%s: freed %p\n", __func__, ptr);
-		ptr = NULL;
-	}
 }

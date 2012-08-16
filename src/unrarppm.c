@@ -2,8 +2,9 @@
  *  Extract RAR archives
  *
  * Modified for JtR, (c) magnum 2012. This code use a memory buffer instead
- * of a file handle. It does not store the inflated data, it just CRC's it.
- * Support for older RAR versions was stripped. Autoconf stuff was removed.
+ * of a file handle, and decrypts while reading. It does not store inflated
+ * data, it just CRC's it. Support for older RAR versions was stripped.
+ * Autoconf stuff was removed.
  *
  *  Copyright (C) 2005-2006 trog@uncon.org
  *
@@ -101,7 +102,7 @@ static void sub_allocator_stop_sub_allocator(sub_allocator_t *sub_alloc)
 {
 	if (sub_alloc->sub_allocator_size) {
 		sub_alloc->sub_allocator_size = 0;
-		rar_free(sub_alloc->heap_start);
+		MEM_FREE(sub_alloc->heap_start);
 	}
 }
 
@@ -123,7 +124,7 @@ static int sub_allocator_start_sub_allocator(sub_allocator_t *sub_alloc, int sa_
 	/* Allow for aligned access requirements */
 	alloc_size += UNIT_SIZE;
 #endif
-	if ((sub_alloc->heap_start = (unsigned char *) rar_malloc(alloc_size)) == NULL) {
+	if ((sub_alloc->heap_start = (unsigned char *) mem_alloc(alloc_size)) == NULL) {
 		rar_dbgmsg("sub_alloc start failed\n");
 		return 0;
 	}
