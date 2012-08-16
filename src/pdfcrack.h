@@ -31,7 +31,6 @@ struct custom_salt {
 	uint8_t encKeyWorkSpace[128];
 	uint8_t password_user[33];
 	uint8_t rev3TestKey[16];
-	unsigned char *currPW;
 	unsigned int currPWLen;
 	bool knownPassword;
 	bool workWithUser;

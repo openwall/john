@@ -19,7 +19,6 @@
 #define FORMAT_NAME			"HMAC SHA-1"
 
 #ifdef SHA1_SSE_PARA
-#define MMX_COEF 4
 #define SHA1_N				(SHA1_SSE_PARA*MMX_COEF)
 #else
 #define SHA1_N				MMX_COEF
@@ -85,7 +84,15 @@ static unsigned char cursalt[SALT_SIZE];
 static char saved_plain[PLAINTEXT_LENGTH + 1];
 #endif
 
-static void init(struct fmt_main *pFmt)
+#ifdef MMX_COEF
+static void clear_keys(void)
+{
+	memset(ipad, 0x36, sizeof(ipad));
+	memset(opad, 0x5C, sizeof(opad));
+}
+#endif
+
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	int i;
@@ -93,10 +100,11 @@ static void init(struct fmt_main *pFmt)
 		crypt_key[GETPOS(BINARY_SIZE,i)] = 0x80;
 		((unsigned int*)crypt_key)[15*MMX_COEF + (i&3) + (i>>2)*SHA_BUF_SIZ*MMX_COEF] = (BINARY_SIZE+64)<<3;
 	}
+	clear_keys();
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int pos, i;
 	char *p;
@@ -148,12 +156,6 @@ static void set_key(char *key, int index)
 	ARCH_WORD_32 *opadp = (ARCH_WORD_32*)&opad[GETPOS(3, index)];
 	const ARCH_WORD_32 *keyp = (ARCH_WORD_32*)key;
 	unsigned int temp;
-
-	if(index==0)
-	{
-		memset(ipad, 0x36, sizeof(ipad));
-		memset(opad, 0x5C, sizeof(opad));
-	}
 
 	len = strlen(key);
 	memcpy(saved_plain[index], key, len);
@@ -390,7 +392,11 @@ struct fmt_main fmt_hmacSHA1 = {
 		set_salt,
 		set_key,
 		get_key,
+#ifdef MMX_COEF
+		clear_keys,
+#else
 		fmt_default_clear_keys,
+#endif
 		crypt_all,
 		{
 			fmt_default_get_hash,

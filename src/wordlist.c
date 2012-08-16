@@ -108,7 +108,8 @@ static int restore_state(FILE *file)
 			}
 		}
 		else {
-			if (fseek(word_file, rec_pos, SEEK_SET)) pexit("fseek");
+			if (fseek(word_file, rec_pos, SEEK_SET))
+				pexit("fseek");
 #ifdef HAVE_MPI
 			line_number = rec_pos ? mpi_id : 0;    // we just need the correct modulus
 #endif
@@ -419,15 +420,17 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 						lp = (char*)potword(file_line);
 					else
 						lp = file_line;
-					if (!rules)
-						lp[length] = 0;
+					if (!rules) {
+						lp[length] = '\n';
+						lp[length + 1] = 0;
+					}
 					if (nWordFileLines % mpi_p == mpi_id)
 						my_size += strlen(lp);
 				}
 				fseek(word_file, 0, SEEK_SET);
 
 				// Now copy just our share to memory
-				word_file_str = mem_alloc(my_size + LINE_BUFFER_SIZE + 1);
+				word_file_str = mem_alloc_tiny(my_size + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 				i = 0;
 				for (myWordFileLines = 0;; ++myWordFileLines) {
 					char *lp;
@@ -443,13 +446,21 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 						lp = (char*)potword(file_line);
 					else
 						lp = file_line;
-					if (!rules)
-						lp[length] = 0;
+					if (!rules) {
+						lp[length] = '\n';
+						lp[length + 1] = 0;
+					}
 					if (myWordFileLines % mpi_p == mpi_id) {
 						strcpy(&word_file_str[i], lp);
 						i += strlen(lp);
 					}
+					if (i > my_size) {
+						fprintf(stderr, "Error: wordlist grew as we read it - aborting\n");
+						error();
+					}
 				}
+				if (nWordFileLines != myWordFileLines)
+					fprintf(stderr, "Warning: wordlist changed as we read it\n");
 				log_event("- loaded this node's share of wordfile %s into memory "
 				          "(%lu bytes of %lu, max_size=%u avg/node)",
 				          name, my_size, file_len, db->options->max_wordfile_memory);
@@ -466,7 +477,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				          name, file_len, db->options->max_wordfile_memory);
 				if (mpi_p > 1 && mpi_id == 0)
 					fprintf(stderr,"MPI: each node loaded the whole wordfile to memory\n");
-				word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
+				word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 				if (fread(word_file_str, 1, file_len, word_file) != file_len) {
 					if (ferror(word_file))
 						pexit("fread");
@@ -482,7 +493,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			/* probably should only be debug message, but I left it in */
 			log_event("- loading wordfile %s into memory (%lu bytes, max_size=%u)", name, file_len, db->options->max_wordfile_memory);
 
-			word_file_str = mem_alloc(file_len + LINE_BUFFER_SIZE + 1);
+			word_file_str = mem_alloc_tiny(file_len + LINE_BUFFER_SIZE + 1, MEM_ALIGN_NONE);
 			if (fread(word_file_str, 1, file_len, word_file) != file_len) {
 				if (ferror(word_file))
 					pexit("fread");
@@ -508,6 +519,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 
 			i = 0;
 			cp = word_file_str;
+
+			if (csearch == '\n')
+				while (*cp == '\r') cp++;
 
 			if (dupeCheck) {
 				hash_log = 1;
@@ -557,6 +571,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				}
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
+				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
 			if (nWordFileLines - i)
 				log_event("- suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
@@ -594,7 +609,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			else
 				max_pipe_words = (db->options->max_wordfile_memory/16);
 
-			word_file_str = mem_alloc(db->options->max_wordfile_memory);
+			word_file_str = mem_alloc_tiny(db->options->max_wordfile_memory, MEM_ALIGN_NONE);
 			words = mem_alloc(max_pipe_words * sizeof(char*));
 			rules_keep = rules;
 
@@ -716,7 +731,7 @@ SKIP_MEM_MAP_LOAD:;
 			if (db->options->max_wordfile_memory == 1) {
 				distributeWords = 1;
 				distributeRules = 0;
-			}
+			} else
 			if (rule_count >= mpi_p && db->options->max_wordfile_memory == 2) {
 				distributeWords = 0;
 				distributeRules = 1;
@@ -862,7 +877,6 @@ EndOfFile:
 		else
 			progress = 100;
 
-		MEM_FREE(word_file_str);
 		MEM_FREE(words);
 		if (fclose(word_file)) pexit("fclose");
 		word_file = NULL;

@@ -16,6 +16,7 @@ TR = tr
 SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
+LC_ALL = C
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
@@ -34,6 +35,9 @@ OMPFLAGS =
 
 # NSS (and NSPR) flag, un-comment if installed (needed for mozilla format)
 #HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
+
+# Uncomment the below if you have GMP library installed (faster wowsrp format)
+#HAVE_GMP = -DHAVE_GMP
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
@@ -56,13 +60,16 @@ endif
 ifdef HAVE_NSS
 NSS_LDFLAGS = `pkg-config --libs nss`
 endif
+ifdef HAVE_GMP
+GMP_LDFLAGS = -lgmp
+endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS)
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -134,8 +141,9 @@ OCL_OBJS = \
 	opencl_cryptsha512_fmt.o opencl_mscash2_fmt.o opencl_wpapsk_fmt.o \
 	opencl_xsha512_fmt.o opencl_rawsha512_fmt.o opencl_bf_std.o \
 	opencl_bf_fmt.o opencl_pwsafe_fmt.o opencl_rawmd4_fmt.o \
-	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o opencl_cryptsha256_fmt.o \
-	opencl_rawsha512-ng_fmt.o opencl_zip_fmt.o
+	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o opencl_zip_fmt.o \
+	opencl_encfs_fmt.o opencl_odf_fmt.o opencl_sxc_fmt.o opencl_gpg_fmt.o \
+	opencl_cryptsha256_fmt.o opencl_rawsha512-ng_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \

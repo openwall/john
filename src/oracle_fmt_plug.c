@@ -85,7 +85,7 @@ static int salt_length;
 static int key_length;
 static char *plain_key;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	int l;
@@ -118,7 +118,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *cp;
 
@@ -128,7 +128,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		return split_fields[1];
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 4);
 	sprintf (cp, "O$%s#%s", split_fields[0], split_fields[1]);
-	if (valid(cp, pFmt))
+	if (valid(cp, self))
 	{
 		UTF8 tmp8[16*3+1];
 		UTF16 tmp16[17];
@@ -161,7 +161,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	return split_fields[1];
 }
 
-static void oracle_init(struct fmt_main *pFmt)
+static void oracle_init(struct fmt_main *self)
 {
 	unsigned char deskey[8];
 

@@ -71,32 +71,32 @@ static MD5_word (*sout);
 static int omp_para = 1;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
-	MD5_std_init(pFmt);
+	MD5_std_init(self);
 #if defined(_OPENMP) && defined(MD5_SSE_PARA)
 	omp_para = omp_get_max_threads();
 	if (omp_para < 1)
 		omp_para = 1;
-	pFmt->params.min_keys_per_crypt = MD5_N * omp_para;
+	self->params.min_keys_per_crypt = MD5_N * omp_para;
 	omp_para *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt = MD5_N * omp_para;
+	self->params.max_keys_per_crypt = MD5_N * omp_para;
 #elif MD5_std_mt
-	pFmt->params.min_keys_per_crypt = MD5_std_min_kpc;
-	pFmt->params.max_keys_per_crypt = MD5_std_max_kpc;
+	self->params.min_keys_per_crypt = MD5_std_min_kpc;
+	self->params.max_keys_per_crypt = MD5_std_max_kpc;
 #endif
 
 	saved_key = mem_calloc_tiny(
-	    sizeof(*saved_key) * pFmt->params.max_keys_per_crypt,
+	    sizeof(*saved_key) * self->params.max_keys_per_crypt,
 	    MEM_ALIGN_CACHE);
 #ifdef MD5_SSE_PARA
 	sout = mem_calloc_tiny(sizeof(*sout) *
-	                       pFmt->params.max_keys_per_crypt *
+	                       self->params.max_keys_per_crypt *
 	                       BINARY_SIZE, sizeof(MD5_word));
 #endif
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos, *start;
 

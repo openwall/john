@@ -77,8 +77,8 @@ static struct fmt_tests mediawiki_tests[] = {
 };
 
 static char Conv_Buf[80];
-static struct fmt_main *pFmt_Dynamic_9;
-static void mediawiki_init(struct fmt_main *pFmt);
+static struct fmt_main *pDynamic_9;
+static void mediawiki_init(struct fmt_main *self);
 static void get_ptr();
 
 /* this utility function is used by cracker.c AND loader.c.  Since media-wiki has a variable width salt, of which
@@ -108,7 +108,7 @@ static char *Convert(char *Buf, char *ciphertext)
 	int i;
 	char *cp;
 
-	if (text_in_dynamic_format_already(pFmt_Dynamic_9, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_9, ciphertext))
 		return ciphertext;
 
 	cp = strchr(&ciphertext[3], '$');
@@ -129,7 +129,7 @@ static char *our_split(char *ciphertext, int index)
 	return Convert(Conv_Buf, ciphertext);
 }
 
-static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *our_prepare(char *split_fields[10], struct fmt_main *self)
 {
 	int i = strlen(split_fields[1]);
 	get_ptr();
@@ -143,10 +143,10 @@ static char *our_prepare(char *split_fields[10], struct fmt_main *pFmt)
 		sprintf(Ex, "$B$000%s%s$%s", options.regen_lost_salts>3?"0":"", options.regen_lost_salts>4?"0":"", split_fields[1]);
 		return Ex;
 	}
-	return pFmt_Dynamic_9->methods.prepare(split_fields, pFmt);
+	return pDynamic_9->methods.prepare(split_fields, self);
 }
 
-static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
+static int mediawiki_valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 	char *cp;
@@ -169,7 +169,7 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 
 	if (strncmp(ciphertext, "$B$", 3) != 0) {
-		return pFmt_Dynamic_9->methods.valid(ciphertext, pFmt_Dynamic_9);
+		return pDynamic_9->methods.valid(ciphertext, pDynamic_9);
 	}
 
 	cp = strchr(&ciphertext[3], '$');
@@ -181,18 +181,18 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7F)
 			return 0;
 
-	return pFmt_Dynamic_9->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_9);
+	return pDynamic_9->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_9);
 }
 
 
 static void * our_salt(char *ciphertext)
 {
 	get_ptr();
-	return pFmt_Dynamic_9->methods.salt(Convert(Conv_Buf, ciphertext));
+	return pDynamic_9->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return pFmt_Dynamic_9->methods.binary(Convert(Conv_Buf, ciphertext));
+	return pDynamic_9->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_mediawiki =
@@ -213,22 +213,22 @@ struct fmt_main fmt_mediawiki =
 };
 
 
-static void mediawiki_init(struct fmt_main *pFmt)
+static void mediawiki_init(struct fmt_main *self)
 {
-	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 1);
-		pFmt->private.initialized = 1;
+	if (self->private.initialized == 0) {
+		pDynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 1);
+		self->private.initialized = 1;
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;
 		fmt_mediawiki.methods.prepare = our_prepare;
-		fmt_mediawiki.params.algorithm_name = pFmt_Dynamic_9->params.algorithm_name;
+		fmt_mediawiki.params.algorithm_name = pDynamic_9->params.algorithm_name;
 	}
 }
 
 static void get_ptr() {
-	if (!pFmt_Dynamic_9) {
-		pFmt_Dynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 0);
+	if (!pDynamic_9) {
+		pDynamic_9 = dynamic_THIN_FORMAT_LINK(&fmt_mediawiki, Convert(Conv_Buf, mediawiki_tests[0].ciphertext), "mediawiki", 0);
 		fmt_mediawiki.methods.salt   = our_salt;
 		fmt_mediawiki.methods.binary = our_binary;
 		fmt_mediawiki.methods.split = our_split;

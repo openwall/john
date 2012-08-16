@@ -44,7 +44,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 

@@ -10,7 +10,10 @@
  *
  * Where,
  *
- * HASHKEY => hex(HASHKEY value found in conf.inc.php) */
+ * HASHKEY => hex(HASHKEY value found in conf.inc.php)
+ *
+ * Modified by JimF, Jul 2012.  About 6x speed improvements.
+ */
 
 #if defined(__APPLE__) && defined(__MACH__) && \
 	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
@@ -29,9 +32,11 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "common.h"
+
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1
 #endif
 
 #define FORMAT_LABEL		"nk"
@@ -43,11 +48,15 @@
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	64
 
 static struct fmt_tests nk_tests[] = {
 	{"$nk$*379637b4fcde21b2c5fbc9a00af505e997443267*#17737d3661312121d5ae7d5c6156c0298", "openwall"},
 	{"$nk$*379637b4fcde21b2c5fbc9a00af505e997443267*#5c20384512ee36590f5f0ab38a46c6ced", "password"},
+	// from pass_gen.pl
+	{"$nk$*503476424c5362476f36463630796a6e6c656165*#2f27c20e65b88b76c913115cdec3d9a18", "test1"},
+	{"$nk$*7a317a71794339586c434d50506b6e4356626a67*#b62a615f605c2fd520edde76577d30f90", "thatsworking"},
+	{"$nk$*796b7375666d7545695032413769443977644132*#4aec90bd9a930faaa42a0d7d40056132e", "test3"},
 	{NULL}
 };
 
@@ -59,42 +68,42 @@ static struct custom_salt {
 	int decal;
 } *cur_salt;
 
-static void hex_encode(unsigned char *str, int len, unsigned char *out)
+static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
-	unsigned char *p = out;
 	for (i = 0; i < len; ++i) {
-		sprintf((char*)p, "%02x", str[i]);
-		p += 2;
+		out[0] = itoa16[str[i]>>4];
+		out[1] = itoa16[str[i]&0xF];
+		out += 2;
 	}
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	static int omp_t = 1;
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$nk$", 4);
 }
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	static struct custom_salt cs;
+	char _ctcopy[256], *ctcopy=_ctcopy;
 	char *p;
 	int i;
-	static struct custom_salt cs;
+	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += 5;	/* skip over "$nk$*" */
 	p = strtok(ctcopy, "*");
 	for (i = 0; i < 20; i++)
@@ -102,11 +111,8 @@ static void *get_salt(char *ciphertext)
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	cs.decal = atoi16[ARCH_INDEX(p[1])];
-	free(keeptr);
 	return (void *)&cs;
 }
-
-
 
 static void *get_binary(char *ciphertext)
 {
@@ -157,7 +163,7 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++) {
 		unsigned char pass[40];
 		unsigned char out[80];
-		int i;
+		int i, k;
 		int idx = 0;
 		MD5_CTX c;
 		SHA_CTX ctx;
@@ -165,11 +171,10 @@ static void crypt_all(int count)
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA1_Final(out, &ctx);
 		hex_encode(out, 20, pass);
-		for (i = 0; i < 80; i++) {
-			if (i % 2 == 0)
-				out[idx++] = pass[i / 2];
-			else
-				out[idx++] = cur_salt->HASHKEY[(i / 2 + cur_salt->decal) % 20];
+		for (i = 0, k=cur_salt->decal; i < 40; ++i, ++k) {
+			out[idx++] = pass[i];
+			if(k>19) k = 0;
+			out[idx++] = cur_salt->HASHKEY[k];
 		}
 		MD5_Init(&c);
 		MD5_Update(&c, out, 80);
@@ -180,31 +185,26 @@ static void crypt_all(int count)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *((ARCH_WORD_32*)binary) == crypt_out[index][0]; 
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	void *binary = get_binary(source);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static void nk_set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	strcpy(saved_key[index], key);
 }
 
 static char *get_key(int index)

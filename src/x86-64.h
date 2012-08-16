@@ -272,6 +272,9 @@
 #endif
 #endif
 
+#define MMX_TYPE			" SSE2"
+#define MMX_COEF			4
+
 #define BF_ASM				0
 #define BF_SCALE			1
 #define BF_X2				1

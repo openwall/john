@@ -45,16 +45,16 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
         };
 
         uint32_t w[64];
-        for (i = 0; i < 14; i++)
+        for (i = 0; i <= 14; i++)
                 w[i] = 0;
         for (j = 0; j < pl; j++) {
-                uint32_t tmp = 0;
-                tmp |= (((uint32_t) in[idx].v[j]) << ((3 - (j & 0x3)) << 3));
+                uint32_t tmp;
+                tmp = (((uint32_t) in[idx].v[j]) << ((3 - (j & 0x3)) << 3));
                 w[j / 4] |= tmp;
         }
         for (; j < 32 + pl; j++) {
-                uint32_t tmp = 0;
-                tmp |=
+                uint32_t tmp;
+                tmp =
                     (((uint32_t) salt->salt[j - pl]) << ((3 -
                             (j & 0x3)) << 3));
                 w[j / 4] |= tmp;
@@ -129,17 +129,20 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
                         a = t1 + t2;
                 }
         }
-        uint32_t cmp = 1;
-        uint32_t *v = (uint32_t *) salt->hash;
-        cmp &= (*v++ == a + H[0]);
-        cmp &= (*v++ == b + H[1]);
-        cmp &= (*v++ == c + H[2]);
-        cmp &= (*v++ == d + H[3]);
-        cmp &= (*v++ == e + H[4]);
-        cmp &= (*v++ == f + H[5]);
-        cmp &= (*v++ == g + H[6]);
-        cmp &= (*v++ == h + H[7]);
 
+        uint32_t cmp = 0;
+        uint32_t *v = (uint32_t *) salt->hash;
+	if (*v++ == a + H[0]) {
+		uint32_t diff;
+		diff = *v++ ^ (b + H[1]);
+		diff |= *v++ ^ (c + H[2]);
+		diff |= *v++ ^ (d + H[3]);
+		diff |= *v++ ^ (e + H[4]);
+		diff |= *v++ ^ (f + H[5]);
+		diff |= *v++ ^ (g + H[6]);
+		diff |= *v++ ^ (h + H[7]);
+		cmp = !diff;
+	}
         out[idx].cracked = cmp;
 }
 
@@ -154,6 +157,8 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         cudaMalloc(&cuda_pass, PWSAFE_IN_SIZE);
         cudaMalloc(&cuda_salt, PWSAFE_SALT_SIZE);
         cudaMalloc(&cuda_hash, PWSAFE_OUT_SIZE);
+	///Somehow this memset, which is not required, speeds things up a bit
+	cudaMemset(cuda_hash, 0, PWSAFE_OUT_SIZE);
         cudaMemcpy(cuda_pass, host_in, PWSAFE_IN_SIZE, cudaMemcpyHostToDevice);
         cudaMemcpy(cuda_salt, host_salt, PWSAFE_SALT_SIZE,
             cudaMemcpyHostToDevice);

@@ -75,7 +75,7 @@ static unsigned char	saved_key[SKEY_BINKEY_SIZE];
 static char	saved_pass[PLAINTEXT_LENGTH];
 
 static int
-skey_valid(char *ciphertext, struct fmt_main *pFmt)
+skey_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q, buf[24];
 

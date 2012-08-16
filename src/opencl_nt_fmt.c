@@ -166,7 +166,7 @@ static void nt_crypt_all_opencl(int count)
 #define MIN_KEYS_PER_CRYPT		NT_NUM_KEYS
 #define MAX_KEYS_PER_CRYPT		NT_NUM_KEYS
 
-static void fmt_NT_init(struct fmt_main *pFmt){
+static void fmt_NT_init(struct fmt_main *self){
 	int argIndex = 0;
 
 	atexit(release_all);
@@ -204,7 +204,7 @@ static void fmt_NT_init(struct fmt_main *pFmt){
 	datai[0] = PLAINTEXT_LENGTH;
 	datai[1] = max_keys_per_crypt;
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 }
 
 static char * nt_split(char *ciphertext, int index)
@@ -227,7 +227,7 @@ static char * nt_split(char *ciphertext, int index)
 	return out;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
         char *pos;
 

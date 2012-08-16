@@ -10,7 +10,12 @@
  *
  * Where,
  *
- * type => 1, for sha1($salt.sha1($salt.sha1($pass))) hashing scheme */
+ * type => 1, for sha1($salt.sha1($salt.sha1($pass))) hashing scheme
+ *
+ * JimF, July 2012.
+ * Made small change in hex_encode 10x improvement in speed.  Also some other
+ * changes.  Should be a thin dyanamic.
+ */
 
 #if defined(__APPLE__) && defined(__MACH__) && \
 	defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
@@ -33,7 +38,7 @@
 #include "base64.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1
 #endif
 
 #define FORMAT_LABEL		"wbb3"
@@ -45,7 +50,7 @@
 #define BINARY_SIZE		20
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	64
 
 static struct fmt_tests wbb3_tests[] = {
 	{"$wbb3$*1*0b053db07dc02bc6f6e24e00462f17e3c550afa9*e2063f7c629d852302d3020599376016ff340399", "123456"},
@@ -67,48 +72,48 @@ static struct custom_salt {
 	unsigned char salt[41];
 } *cur_salt;
 
-static void hex_encode(unsigned char *str, int len, unsigned char *out)
+static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
 	int i;
-	unsigned char *p = out;
 	for (i = 0; i < len; ++i) {
-		sprintf((char*)p, "%02x", str[i]);
-		p += 2;
+		out[0] = itoa16[str[i]>>4];
+		out[1] = itoa16[str[i]&0xF];
+		out += 2;
 	}
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	static int omp_t = 1;
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$wbb3$", 6);
 }
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
 	static struct custom_salt cs;
+	char _ctcopy[256], *ctcopy = _ctcopy;
+	char *p;
+
+	strnzcpy(ctcopy, ciphertext, 255);
 	ctcopy += 7;	/* skip over "$wbb3$*" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
 	strcpy((char *)cs.salt, p);
 	p = strtok(NULL, "*");
-	free(keeptr);
 	return (void *)&cs;
 }
 
@@ -158,10 +163,10 @@ static void crypt_all(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
-		unsigned char hexhash[40+1];
+		unsigned char hexhash[40];
 		SHA_CTX ctx;
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
@@ -182,22 +187,21 @@ static void crypt_all(int count)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return *((ARCH_WORD_32*)binary) == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	void *binary = get_binary(source);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static void wbb3_set_key(char *key, int index)

@@ -280,7 +280,7 @@ static char * get_key(int index) {
   uses about 400 bytes of local memory. Local memory
   is usually 32 KB
 -- */
-static void find_best_workgroup(struct fmt_main *pFmt) {
+static void find_best_workgroup(struct fmt_main *self) {
 
     size_t max_group_size;
 
@@ -288,7 +288,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
     //Call the default function.
-    opencl_find_best_workgroup_limit(pFmt, max_group_size);
+    opencl_find_best_workgroup_limit(self, max_group_size);
 
     fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
@@ -403,12 +403,12 @@ static void find_best_gws(void) {
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
-            if (run_time > 10000000000UL) {
+            if (run_time > 10000000000ULL) {
                 fprintf(stderr, " - too slow\n");
                 break;
             }
         } else {
-            if (run_time > min_time * 10 || run_time > 10000000000UL)
+            if (run_time > min_time * 10 || run_time > 10000000000ULL)
                 break;
         }
         if (SHAspeed > (1.01 * bestSHAspeed)) {
@@ -430,7 +430,7 @@ static void find_best_gws(void) {
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main *pFmt) {
+static void init(struct fmt_main *self) {
     int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
@@ -489,12 +489,12 @@ static void init(struct fmt_main *pFmt) {
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = global_work_size;
 
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
         create_clobj(global_work_size);
-        find_best_workgroup(pFmt);
+        find_best_workgroup(self);
         release_clobj();
     }
 
@@ -516,11 +516,11 @@ static void init(struct fmt_main *pFmt) {
     }
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %Zd\n",
            (int) local_work_size, global_work_size);
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
-static int valid(char *ciphertext, struct fmt_main *pFmt) {
+static int valid(char *ciphertext, struct fmt_main *self) {
     char *pos, *start;
 
     if (strncmp(ciphertext, "$6$", 3))
@@ -697,53 +697,52 @@ static int get_hash_6(int index) { return calculated_hash[index].v[0] & 0x7FFFFF
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_cryptsha512 = {
-    {
-        FORMAT_LABEL,
-        FORMAT_NAME,
-        ALGORITHM_NAME,
-        BENCHMARK_COMMENT,
-        BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
-        BINARY_SIZE,
-        SALT_SIZE,
-        MIN_KEYS_PER_CRYPT,
-        MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT,
-        tests
-    },
-    {
-        init,
-        fmt_default_prepare,
-        valid,
-        fmt_default_split,
-        get_binary,
-        get_salt,
-        {
-            binary_hash_0,
-            binary_hash_1,
-            binary_hash_2,
-            binary_hash_3,
-            binary_hash_4,
-            binary_hash_5,
-            binary_hash_6
-        },
-        fmt_default_salt_hash,
-        set_salt,
-        set_key,
-        get_key,
-        fmt_default_clear_keys,
-        crypt_all,
-        {
-            get_hash_0,
-            get_hash_1,
-            get_hash_2,
-            get_hash_3,
-            get_hash_4,
-            get_hash_5,
-            get_hash_6
-        },
-        cmp_all,
-        cmp_one,
-        cmp_exact
-    }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		get_binary,
+		get_salt,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

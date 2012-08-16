@@ -72,7 +72,7 @@ static char tocipher[ SALT_SIZE + ADM_LEN + PLAINTEXT_LENGTH ];
 static ARCH_WORD_32 crypted[4];
 
 
-static void NS_init(struct fmt_main *pFmt)
+static void NS_init(struct fmt_main *self)
 {
 	int i;
 	static char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -81,7 +81,7 @@ static void NS_init(struct fmt_main *pFmt)
 		e64toshort[(int)*pos] = i;
 }
 
-static int NS_valid(char *ciphertext, struct fmt_main *pFmt)
+static int NS_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *password;
 	static char *netscreen = "nrcstn" ;

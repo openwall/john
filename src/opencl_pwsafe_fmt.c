@@ -19,7 +19,7 @@
 #include "options.h"
 #include "base64.h"
 #include "common-opencl.h"
-
+#include "memory.h"
 
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int
@@ -33,7 +33,7 @@
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             32
 #define KERNEL_NAME             "pwsafe"
-#define KEYS_PER_CRYPT		1024
+#define KEYS_PER_CRYPT		512*112
 #define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 # define SWAP32(n) \
@@ -69,7 +69,6 @@ static size_t insize = sizeof(pwsafe_pass) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(pwsafe_hash) * KEYS_PER_CRYPT;
 static size_t saltsize = sizeof(pwsafe_salt);
 
-static int any_cracked;
 static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
@@ -91,12 +90,11 @@ static void pwsafe_set_key(char *key, int index)
 	host_pass[index].length = saved_key_length;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
 	host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
 	host_salt = calloc(1, sizeof(pwsafe_salt));
-	any_cracked = 1;
 
 	opencl_init("$JOHN/pwsafe_kernel.cl", gpu_id, platform_id);
 
@@ -121,14 +119,14 @@ static void init(struct fmt_main *pFmt)
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
-	opencl_find_best_workgroup(pFmt);
+	opencl_find_best_workgroup(self);
 	//local_work_size=256;
 	atexit(release_all);
 }
 
 
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$pwsafe$", 8);
 }
@@ -156,6 +154,7 @@ static void *get_salt(char *ciphertext)
 		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	free(keeptr);
+        alter_endianity(salt_struct->hash, 32);
 	return (void *) salt_struct;
 }
 
@@ -163,23 +162,15 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	memcpy(host_salt, salt, SALT_SIZE);
-	any_cracked = 0;
 }
 
 
 
 static void crypt_all(int count)
 {
-	int i;
 	size_t worksize = KEYS_PER_CRYPT;
 	size_t localworksize = local_work_size;
-	unsigned int *src = (unsigned int *) host_salt->hash;
-	unsigned int *dst = (unsigned int *) host_salt->hash;
-	any_cracked = 0;
 
-	for (i = 0; i < 8; i++) {
-		dst[i] = SWAP32(src[i]);
-	}
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer
@@ -198,18 +189,16 @@ static void crypt_all(int count)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
-
-
-	//gpu_pwpass(host_pass, host_salt, host_hash);
-	for (i = 0; i < count; i++) {
-		if (host_hash[i].cracked == 1)
-			any_cracked = 1;
-	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (host_hash[i].cracked == 1)
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
@@ -233,35 +222,39 @@ static char *get_key(int index)
 
 struct fmt_main fmt_opencl_pwsafe = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    KEYS_PER_CRYPT,
-		    KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
-	    pwsafe_tests}, {
-		    init,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    fmt_default_binary,
-		    get_salt,
-		    {
-			fmt_default_binary_hash},
-		    fmt_default_salt_hash,
-		    set_salt,
-		    pwsafe_set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-			fmt_default_get_hash},
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact}
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		KEYS_PER_CRYPT,
+		KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		pwsafe_tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		fmt_default_binary,
+		get_salt,
+		{
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		pwsafe_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

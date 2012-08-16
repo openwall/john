@@ -13,7 +13,6 @@
 #include "arch.h"
 
 #ifdef SHA1_SSE_PARA
-#define MMX_COEF	4
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS	MMX_COEF
@@ -96,7 +95,7 @@ static char *plain_keys[1];
 
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -136,7 +135,7 @@ static void * get_salt(char * ciphertext)
 static void set_key_enc(char *_key, int index);
 extern struct fmt_main fmt_mssql;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	initUnicode(UNICODE_MS_OLD);
 #ifdef MMX_COEF
@@ -157,6 +156,20 @@ static void init(struct fmt_main *pFmt)
 	}
 }
 
+#ifdef MMX_COEF
+static void clear_keys(void) {
+#if SHA_BUF_SIZ == 16
+	memset(saved_key, 0, sizeof(saved_key));
+#else
+	int j=0;
+#ifdef SHA1_SSE_PARA
+	for (; j<SHA1_SSE_PARA; j++)
+#endif
+		memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
+#endif
+}
+#endif
+
 static void set_key(char *key, int index) {
 	UTF8 utf8[PLAINTEXT_LENGTH+1];
 	int utf8len, orig_len;
@@ -172,18 +185,6 @@ static void set_key(char *key, int index) {
 		return;
 
 #ifdef MMX_COEF
-	if(index==0)
-	{
-#if SHA_BUF_SIZ == 16
-		memset(saved_key, 0, sizeof(saved_key));
-#else
-		int j=0;
-#ifdef SHA1_SSE_PARA
-		for (; j<SHA1_SSE_PARA; j++)
-#endif
-			memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
-#endif
-	}
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf8len+SALT_SIZE)<<3;
 	for(i=0;i<utf8len;i++)
 		saved_key[GETPOS((i*2), index)] = utf8[i];
@@ -219,19 +220,6 @@ static void set_key_enc(char *key, int index) {
 		utf16len *= -1;
 
 #ifdef MMX_COEF
-	if(index==0)
-	{
-#if SHA_BUF_SIZ == 16
-		memset(saved_key, 0, sizeof(saved_key));
-#else
-		int j=0;
-#ifdef SHA1_SSE_PARA
-		for (; j<SHA1_SSE_PARA; j++)
-#endif
-			memset(saved_key+j*4*SHA_BUF_SIZ*MMX_COEF, 0, 56*MMX_COEF);
-#endif
-	}
-
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = (2*utf16len+SALT_SIZE)<<3;
 	for(i=0;i<utf16len;i++)
 	{
@@ -404,7 +392,11 @@ struct fmt_main fmt_mssql = {
 		set_salt,
 		set_key,
 		get_key,
+#ifdef MMX_COEF
+		clear_keys,
+#else
 		fmt_default_clear_keys,
+#endif
 		crypt_all,
 		{
 			get_hash_0,

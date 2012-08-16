@@ -97,7 +97,7 @@ static void cleanup()
 	free(outbuffer);
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	///Alocate memory for hashes and passwords
 	inbuffer =
@@ -112,7 +112,7 @@ static void init(struct fmt_main *pFmt)
 	cuda_init(gpu_id);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	uint8_t i, len = strlen(ciphertext), prefix = 0;
 	char *p;
@@ -276,40 +276,39 @@ static int cmp_exact(char *source, int index)
 
 struct fmt_main fmt_cuda_cryptmd5 = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT,
-		    tests
-	},
-	{
-		    init,
-		    fmt_default_prepare,
-		    valid,
-		    fmt_default_split,
-		    binary,
-		    salt,
-		    {
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		salt,
+		{
 			fmt_default_binary_hash
-		    },
-		    fmt_default_salt_hash,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
 			fmt_default_get_hash
-		    },
-		    cmp_all,
-		    cmp_one,
-		    cmp_exact
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

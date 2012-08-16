@@ -4,7 +4,3 @@ Not working on Big Endian (fails self-test):
 * mssql05
 * office
 * rar
-
-Somewhat buggy GPU formats (may give some false negatives):
-* mscash-cuda
-* mscash2-cuda

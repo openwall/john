@@ -31,7 +31,6 @@
 #include "arch.h"
 
 #ifdef SHA1_SSE_PARA
-#define MMX_COEF	4
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS	MMX_COEF
@@ -103,7 +102,7 @@ static ARCH_WORD_32 crypt_key[BINARY_SIZE / 4];
 static SHA_CTX ctx;
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
@@ -121,7 +120,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	int i;

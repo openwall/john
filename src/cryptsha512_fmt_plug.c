@@ -74,22 +74,22 @@ static struct saltstruct {
 } *cur_salt;
 #define SALT_SIZE			sizeof(struct saltstruct)
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t;
 
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
+	self->params.min_keys_per_crypt = omp_t * MIN_KEYS_PER_CRYPT;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
+	self->params.max_keys_per_crypt = omp_t * MAX_KEYS_PER_CRYPT;
 #endif
-	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos, *start;
 

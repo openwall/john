@@ -106,7 +106,7 @@ static char *include_source(char *pathname, int dev_id)
 	    "-DDEVICE_IS_CPU" : "",
 	    "-DDEVICE_INFO=", device_info[dev_id],
 	    gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
-	    "-cl-strict-aliasing -cl-mad-enable");
+	    OPENCLBUILDOPTIONS);
 
 	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
@@ -130,8 +130,12 @@ static void build_kernel(int dev_id)
 		NULL), "Error while getting build info");
 
 	///Report build errors and warnings
-	if (build_code != CL_SUCCESS)
+	if (build_code != CL_SUCCESS) {
+		// Give us much info about error and exit
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
+	}
 #ifdef REPORT_OPENCL_WARNINGS
 	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
@@ -178,8 +182,12 @@ static void build_kernel_from_binary(int dev_id)
 		NULL), "Error while getting build info");
 
 	///Report build errors and warnings
-	if (build_code != CL_SUCCESS)
+	if (build_code != CL_SUCCESS) {
+		// Give us much info about error and exit
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
+	}
 #ifdef REPORT_OPENCL_WARNINGS
 	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
@@ -189,12 +197,12 @@ static void build_kernel_from_binary(int dev_id)
 
 /* NOTE: Remember to use profilingEvent in your crypt_all() if you want to use
    this function */
-void opencl_find_best_workgroup(struct fmt_main *pFmt)
+void opencl_find_best_workgroup(struct fmt_main *self)
 {
-    opencl_find_best_workgroup_limit(pFmt, UINT_MAX);
+    opencl_find_best_workgroup_limit(self, UINT_MAX);
 }
 
-void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_limit)
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
@@ -215,7 +223,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_l
         }
 
 	orig_group_size = global_work_size;
-	global_work_size = pFmt->params.max_keys_per_crypt;
+	global_work_size = self->params.max_keys_per_crypt;
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
@@ -242,19 +250,19 @@ void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_l
 	//fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
 	/// Set keys - first key from tests will be benchmarked
-	for (i = 0; i < pFmt->params.max_keys_per_crypt; i++) {
-		pFmt->methods.set_key(pFmt->params.tests[0].plaintext, i);
+	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
+		self->methods.set_key(self->params.tests[0].plaintext, i);
 	}
 	/// Set salt
-	pFmt->methods.set_salt(pFmt->methods.salt(pFmt->params.tests[0].
+	self->methods.set_salt(self->methods.salt(self->params.tests[0].
 		ciphertext));
 
 	/// Warm-up run
 	local_work_size = wg_multiple;
-	pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
+	self->methods.crypt_all(self->params.max_keys_per_crypt);
 
 	// Timing run
-	pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
+	self->methods.crypt_all(self->params.max_keys_per_crypt);
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 	clGetEventProfilingInfo(profilingEvent,
 	    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
@@ -275,7 +283,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_l
 	    (int) my_work_group <= (int) max_group_size;
 	    my_work_group += wg_multiple) {
 
-		if (pFmt->params.max_keys_per_crypt % my_work_group != 0)
+		if (self->params.max_keys_per_crypt % my_work_group != 0)
 			continue;
 
 		sumStartTime = 0;
@@ -285,7 +293,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_l
                         advance_cursor();
 			local_work_size = my_work_group;
 
-			pFmt->methods.crypt_all(pFmt->params.max_keys_per_crypt);
+			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
 			HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
 			clGetEventProfilingInfo(profilingEvent,

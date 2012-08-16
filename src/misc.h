@@ -72,11 +72,13 @@ extern char *strnzcat(char *dst, const char *src, int size);
 extern char *strlwr(char *s);
 extern char *strupr(char *s);
 #else
+#define bzero(a,b) memset(a,0,b)
 #define strlwr _strlwr
 #define strupr _strupr
 #define strdup _strdup
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
+#define alloca _alloca
 #pragma warning (disable : 4018 297 )
 #define inline _inline
 #endif

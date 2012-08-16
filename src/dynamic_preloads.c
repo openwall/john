@@ -1,25 +1,26 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009 Jim Fougeron
+ * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
  *
- * Generic MD5 hashes cracker
+ * Generic 'scriptable' hash cracker for JtR
  *
- * Preloaded types md5gen(0) to md5gen(100) are 'reserved' types.
+ * Preloaded types dynamic_0 to dynamic_999 are 'reserved' types.
  * They are loaded from this file. If someone tryes to build a 'custom'
  * type in their john.ini file using one of those, john will abort
  * the run.
  *
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
- *
+ * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
+ * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
  */
 
 #include <string.h>
@@ -74,6 +75,34 @@
 //dynamic_32 --> md4($p.$s)
 //dynamic_33 --> md4(unicode($p))			// NT
 //dynamic_34 --> md5(md4($p))
+//dynamic_35 -->sha1(uc($u).:.$p) (ManGOS)
+//dynamic_36 -->sha1($u.:.$p) (ManGOS2)
+//dynamic_37 -->sha1(lc($u).$p) (SMF)
+//dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB)
+	// Try to group sha224 here (from dyna-50 to dyna-59)
+//dynamic_50 -->sha224($p)
+//dynamic_51 -->sha224($s.$p)
+//dynamic_52 -->sha224($p.$s)
+	// Try to group sha256 here (from dyna-60 to dyna-69)
+//dynamic_60 -->sha256($p)
+//dynamic_61 -->sha256($s.$p)
+//dynamic_62 -->sha256($p.$s)
+	// Try to group sha384 here (from dyna-70 to dyna-79)
+//dynamic_70 -->sha384($p)
+//dynamic_71 -->sha384($s.$p)
+//dynamic_72 -->sha384($p.$s)
+	// Try to group sha512 here (from dyna-80 to dyna-89)
+//dynamic_80 -->sha512($p)
+//dynamic_81 -->sha512($s.$p)
+//dynamic_82 -->sha512($p.$s)
+	// Try to group GOST here (from dyna-90 to dyna-100)
+//dynamic_90 -->GOST($p)
+//dynamic_91 -->GOST($s.$p)
+//dynamic_92 -->GOST($p.$s)
+	// Try to group WHIRLPOOL here (from dyna-100 to dyna-110)
+//dynamic_100 -->WHIRLPOOL($p)
+//dynamic_101 -->WHIRLPOOL($s.$p)
+//dynamic_102 -->WHIRLPOOL($p.$s)
 
 static DYNAMIC_primitive_funcp _Funcs_0[] =
 {
@@ -1001,7 +1030,7 @@ static struct fmt_tests _Preloads_38[] =
 };
 
 
-//	{ "dynamic_50: sha224($p)"
+//	dynamic_50: sha224($p)
 static DYNAMIC_primitive_funcp _Funcs_50[] =
 {
 	//MGF_SHA224_56_BYTE_FINISH
@@ -1019,7 +1048,7 @@ static struct fmt_tests _Preloads_50[] =
 	{NULL}
 };
 
-//	{ "dynamic_51: sha224($s.$p)"
+//	dynamic_51: sha224($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_51[] =
 {
 	//MGF_SHA224_56_BYTE_FINISH
@@ -1039,7 +1068,7 @@ static struct fmt_tests _Preloads_51[] =
 	{NULL}
 };
 
-//	{ "dynamic_52: sha224($s.$p)"
+//	dynamic_52: sha224($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_52[] =
 {
 	//MGF_SHA224_56_BYTE_FINISH
@@ -1059,7 +1088,7 @@ static struct fmt_tests _Preloads_52[] =
 	{NULL}
 };
 
-//	{ "dynamic_60: sha256($p)"
+//	dynamic_60: sha256($p)
 static DYNAMIC_primitive_funcp _Funcs_60[] =
 {
 	//MGF_SHA256_64_BYTE_FINISH
@@ -1077,7 +1106,7 @@ static struct fmt_tests _Preloads_60[] =
 	{NULL}
 };
 
-//	{ "dynamic_61: sha256($s.$p)"
+//	dynamic_61: sha256($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_61[] =
 {
 	//MGF_SHA256_64_BYTE_FINISH
@@ -1097,7 +1126,7 @@ static struct fmt_tests _Preloads_61[] =
 	{NULL}
 };
 
-//	{ "dynamic_62: sha256($s.$p)"
+//	dynamic_62: sha256($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_62[] =
 {
 	//MGF_SHA256_64_BYTE_FINISH
@@ -1118,7 +1147,7 @@ static struct fmt_tests _Preloads_62[] =
 };
 
 
-//	{ "dynamic_70: sha384($p)"
+//	dynamic_70: sha384($p)
 static DYNAMIC_primitive_funcp _Funcs_70[] =
 {
 	//MGF_SHA384_96_BYTE_FINISH
@@ -1136,7 +1165,7 @@ static struct fmt_tests _Preloads_70[] =
 	{NULL}
 };
 
-//	{ "dynamic_71: sha384($s.$p)"
+//	dynamic_71: sha384($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_71[] =
 {
 	//MGF_SHA384_96_BYTE_FINISH
@@ -1156,7 +1185,7 @@ static struct fmt_tests _Preloads_71[] =
 	{NULL}
 };
 
-//	{ "dynamic_72: sha384($s.$p)"
+//	dynamic_72: sha384($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_72[] =
 {
 	//MGF_SHA384_96_BYTE_FINISH
@@ -1178,7 +1207,7 @@ static struct fmt_tests _Preloads_72[] =
 
 
 
-//	{ "dynamic_80: sha512($p)"
+//	dynamic_80: sha512($p)
 static DYNAMIC_primitive_funcp _Funcs_80[] =
 {
 	//MGF_SHA512_128_BYTE_FINISH
@@ -1196,7 +1225,7 @@ static struct fmt_tests _Preloads_80[] =
 	{NULL}
 };
 
-//	{ "dynamic_81: sha512($s.$p)"
+//	dynamic_81: sha512($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_81[] =
 {
 	//MGF_SHA512_128_BYTE_FINISH
@@ -1216,7 +1245,7 @@ static struct fmt_tests _Preloads_81[] =
 	{NULL}
 };
 
-//	{ "dynamic_82: sha512($s.$p)"
+//	dynamic_82: sha512($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_82[] =
 {
 	//MGF_SHA512_128_BYTE_FINISH
@@ -1237,7 +1266,7 @@ static struct fmt_tests _Preloads_82[] =
 };
 
 
-//	{ "dynamic_90: GOST($p)"
+//	dynamic_90: GOST($p)
 static DYNAMIC_primitive_funcp _Funcs_90[] =
 {
 	//MGF_GOST_64_BYTE_FINISH
@@ -1255,7 +1284,7 @@ static struct fmt_tests _Preloads_90[] =
 	{NULL}
 };
 
-//	{ "dynamic_91: GOST($s.$p)"
+//	dynamic_91: GOST($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_91[] =
 {
 	//MGF_GOST_64_BYTE_FINISH
@@ -1275,7 +1304,7 @@ static struct fmt_tests _Preloads_91[] =
 	{NULL}
 };
 
-//	{ "dynamic_92: GOST($s.$p)"
+//	dynamic_92: GOST($s.$p)
 static DYNAMIC_primitive_funcp _Funcs_92[] =
 {
 	//MGF_GOST_64_BYTE_FINISH
@@ -1294,6 +1323,66 @@ static struct fmt_tests _Preloads_92[] =
 	{"$dynamic_92$4a5c90d92462db40ddc47f78eaa02b8d75c9f18bc30c24001dbcf83397ed8641$xPW4qUH8","test3"},
 	{NULL}
 };
+
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+//	dynamic_100: WHIRLPOOL($p)
+static DYNAMIC_primitive_funcp _Funcs_100[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_100[] =
+{
+	{"$dynamic_100$7a3a0ec40f4b2be2bb40049a5fe0a83349b12d8ae6e9896ee6e490d5276bd150199e26aabb76d9af7a659f16070dc959e0393ef44529cad13f681129d8578df5", "test1"},
+	{"$dynamic_100$296f0c87fe042a8f664980b2f6e2c59234683ec593175a33db662b4cdd1376ac239bef3f28e9fffd8d3ab4b049d87a8d224c7f33b92d4028242849d2e1baf41c", "thatsworking"},
+	{"$dynamic_100$7d925e8503a922cbbc5d4d17eb232c790262ee0b06c33dc07f200c952ade2b2ddf8eeea7deec242282a700e6930d154f30c8b4096efe2633b860b48286703488", "test3"},
+	{NULL}
+};
+
+//	dynamic_101: WHIRLPOOL($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_101[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_salt,
+	DynamicFunc__append_keys,
+	DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_101[] =
+{
+	{"$dynamic_101$ec4061a8201a9d60f3ee2f47b44b2356d1d15c3267c35102d3cac048254879cc20ba75dd2b56aa8872278646667c0b3c729575c1ce1c33cd1e8f6e8421ec1409$yH","test1"},
+	{"$dynamic_101$f4a35e798736928804b2eef465761bd510855296b1fbb25316ac05fad5f4690578d8137c02edd889234af912b80ae603ad47a08aff0e0b6e84eda432d9da5acd$gB","thatsworking"},
+	{"$dynamic_101$1f33221ae28342e78e2a90d92399029969564d19ae80a530b3b93e5336472eb056cac5d0ae0ca65fef2f46ebd3f7347d3fbb33bd2030db0916f9d25f8d4d30e4$GK","test3"},
+	{NULL}
+};
+
+//	dynamic_102: WHIRLPOOL($s.$p)
+static DYNAMIC_primitive_funcp _Funcs_102[] =
+{
+	//MGF_WHIRLPOOL_128_BYTE_FINISH
+	//MGF_SALTED
+	//MGF_NOTSSE2Safe
+	DynamicFunc__clean_input,
+	DynamicFunc__append_keys,
+	DynamicFunc__append_salt,
+	DynamicFunc__WHIRLPOOL_crypt_input1_to_output1_FINAL,
+	NULL
+};
+static struct fmt_tests _Preloads_102[] =
+{
+	{"$dynamic_102$7aa81139e7678b70751524388e364b64a8f68d08d51ef869c7cb00597246a3a5800af869a736da110836835e67b600936e6cb98004918a8eda60b7c529d420f7$Wdw73yeZ","test1"},
+	{"$dynamic_102$ec8ac0ab32650a2a9cf361b4743d0eda196868ce09c374ba59ed35122f88d184d4a4634e82579d98a54b97333e4c0333e20417b95efded39df453fb5a59f7701$MUf2c3pj","thatsworking"},
+	{"$dynamic_102$94bb2261deb52f06034106e7c61fdc121cfedcab468b97683b0baf46a3047b9b3da3440a478a1059b7b95a2206bb2a51d61ccfad6a684f1d44dce2b741ebfa10$xr57dTTr","test3"},
+	{NULL}
+};
+#endif
 
 // Here is a 'dummy' constant array. This will be 'linked' to any dynamic format that does not have any constants.
 static DYNAMIC_Constants _ConstDefault[] =
@@ -1374,6 +1463,12 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_90: GOST($p)",                    _Funcs_90,_Preloads_90,_ConstDefault, MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH },
 	{ "dynamic_91: GOST($s.$p)",                 _Funcs_91,_Preloads_91,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH, -20, 35 },
 	{ "dynamic_92: GOST($p.$s)",                 _Funcs_92,_Preloads_92,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_GOST_64_BYTE_FINISH, -20, 35 },
+#if OPENSSL_VERSION_NUMBER >= 0x10000000
+	// Try to group WHIRLPOOL here (from dyna-100 to dyna-110)
+	{ "dynamic_100: WHIRLPOOL($p)",              _Funcs_100,_Preloads_100,_ConstDefault, MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH },
+	{ "dynamic_101: WHIRLPOOL($s.$p)",           _Funcs_101,_Preloads_101,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
+	{ "dynamic_102: WHIRLPOOL($p.$s)",           _Funcs_102,_Preloads_102,_ConstDefault, MGF_SALTED|MGF_NOTSSE2Safe, MGF_WHIRLPOOL_128_BYTE_FINISH, -20, 35 },
+#endif
 };
 
 char *dynamic_PRELOAD_SIGNATURE(int cnt)
@@ -1407,16 +1502,16 @@ int dynamic_RESERVED_PRELOAD_SETUP(int cnt, struct fmt_main *pFmt)
 	return dynamic_SETUP(&Setups[cnt], pFmt);
 }
 
-// -1 is NOT valid
+// -1 is NOT valid  ( num > 5000 is 'hidden' values )
 // 0 is valid, but NOT usable by this build (i.e. no SSE2)
 // 1 is valid.
 int dynamic_IS_VALID(int i)
 {
 	char Type[20];
 	sprintf(Type, "dynamic_%d", i);
-	if (i < 0 || (i > 100 && i < 1000) || i > 2000)
+	if (i < 0 || i > 5000)
 		return -1;
-	if (i < 1000 && i >= ARRAY_COUNT(Setups)) {
+	if (i < 1000) {
 		int j,len;
 		len=strlen(Type);
 		for (j = 0; j < ARRAY_COUNT(Setups); ++j) {
@@ -1425,11 +1520,7 @@ int dynamic_IS_VALID(int i)
 		}
 		return -1;
 	}
-	if (i >= 1000) {
-		if (!dynamic_IS_PARSER_VALID(i))
-			return 0;
-		return 1;
-	}
-
+	if (!dynamic_IS_PARSER_VALID(i))
+		return 0;
 	return 1;
 }

@@ -47,46 +47,46 @@ static struct fmt_tests rawmd5_tests[] = {
 	{NULL}
 };
 
-static struct fmt_main *pFmt_Dynamic_0;
-static void rawmd5_init(struct fmt_main *pFmt);
+static struct fmt_main *pDynamic_0;
+static void rawmd5_init(struct fmt_main *self);
 static char Conv_Buf[80];
 
 /* this function converts a 'native' mediawiki signature string into a Dynamic_9 syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
-	if (text_in_dynamic_format_already(pFmt_Dynamic_0, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_0, ciphertext))
 		return ciphertext;
 	sprintf(Buf, "$dynamic_0$%s", ciphertext);
 	return Buf;
 }
 
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
 	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
-	if (!pFmt_Dynamic_0)
-		rawmd5_init(pFmt);
+	if (!pDynamic_0)
+		rawmd5_init(self);
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) {
-		return pFmt_Dynamic_0->methods.valid(ciphertext, pFmt_Dynamic_0);
+		return pDynamic_0->methods.valid(ciphertext, pDynamic_0);
 	}
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++){
 		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
 					(('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))  ))
 			return 0;
 	}
-	return pFmt_Dynamic_0->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_0);
+	return pDynamic_0->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_0);
 }
 
 static void * our_salt(char *ciphertext)
 {
-	return pFmt_Dynamic_0->methods.salt(Convert(Conv_Buf, ciphertext));
+	return pDynamic_0->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return pFmt_Dynamic_0->methods.binary(Convert(Conv_Buf, ciphertext));
+	return pDynamic_0->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_rawMD5go =
@@ -105,13 +105,13 @@ struct fmt_main fmt_rawMD5go =
 	}
 };
 
-static void rawmd5_init(struct fmt_main *pFmt)
+static void rawmd5_init(struct fmt_main *self)
 {
-	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_0 = dynamic_THIN_FORMAT_LINK(&fmt_rawMD5go, Convert(Conv_Buf, rawmd5_tests[0].ciphertext), "raw-md5");
+	if (self->private.initialized == 0) {
+		pDynamic_0 = dynamic_THIN_FORMAT_LINK(&fmt_rawMD5go, Convert(Conv_Buf, rawmd5_tests[0].ciphertext), "raw-md5");
 		fmt_rawMD5go.methods.binary = our_binary;
 		fmt_rawMD5go.methods.salt = our_salt;
-		fmt_rawMD5go.params.algorithm_name = pFmt_Dynamic_0->params.algorithm_name;
-		pFmt->private.initialized = 1;
+		fmt_rawMD5go.params.algorithm_name = pDynamic_0->params.algorithm_name;
+		self->private.initialized = 1;
 	}
 }

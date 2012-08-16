@@ -311,7 +311,7 @@ static unsigned char PADDING[56] = {
 #define prefix				MD5_std_all.prefix
 #define prelen				MD5_std_all.prelen
 
-void MD5_std_init(struct fmt_main *pFmt)
+void MD5_std_init(struct fmt_main *self)
 {
 	int index;
 	MD5_pool *current;

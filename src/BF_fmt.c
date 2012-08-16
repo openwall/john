@@ -86,7 +86,7 @@ static BF_salt saved_salt;
 struct fmt_main fmt_BF;
 #endif
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int n = BF_Nmin * omp_get_max_threads(), max;
@@ -105,7 +105,7 @@ static void init(struct fmt_main *pFmt)
 	sign_extension_bug = 0;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int rounds;
 	char *pos;

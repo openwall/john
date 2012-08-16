@@ -31,7 +31,7 @@ static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH]; // set by set_salt and 
                                                          // the extra plaintext_length is needed because the
                                                          // current key is copied there before hashing
 
-int valid(char *ciphertext, struct fmt_main *pFmt);
+int valid(char *ciphertext, struct fmt_main *self);
 void* binary(char *ciphertext);
 void* salt(char *ciphertext);
 void set_salt(void *salt);
@@ -45,63 +45,67 @@ int cmp_exact(char *source, int index);
 struct fmt_tests global_tests[] =
 {
   {"0x5F1D84A6DE97E2BEFB637A3CB5318AFEF0750B856CF1836BD1D4470175BE 0x4D5EFDFA143EDF74193076F174AC47CEBF2F417F", "Abc.!23"},
+// new tests from pass_gen.pl
+  {"0x4F5233704337716F63526A7066344B52784F7A6363316750516A72335668 0x7346DA02479E55973E052FC9A173A3FEA4644FF8","test1"},
+  {"0x76706335715834565A55784662304F3367756350684F634447777A313642 0xDBD3D2764A376673164962E3EE2AE95AB6ED2759","thatsworking"},
+  {"0x6F724166466172354A7431316A4842746878434B6632744945574A37524A 0xE1ADE625160BB27C16184795715F1C9EF30C45B0","test3"},
   {NULL}
 };
 
 // Define john integration
 struct fmt_main fmt_EPI =
 {
-  { // fmt_params
-    "epi",
-    "EPiServer SID salted SHA-1",
-    "32/" ARCH_BITS_STR,
-    "", // benchmark comment
-    0, // benchmark length
-    PLAINTEXT_LENGTH,
-    BINARY_LENGTH,
-    SALT_LENGTH,
-    1,
-    1,
-    FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
-    global_tests
-  },
-  { // fmt_methods
-    fmt_default_init,
-	fmt_default_prepare,
-    valid,
-    fmt_default_split,
-    binary,
-    salt,
-    { // binary_hash[3]
-      fmt_default_binary_hash,
-      fmt_default_binary_hash,
-      fmt_default_binary_hash,
-      fmt_default_binary_hash,
-      fmt_default_binary_hash
-    },
-    fmt_default_salt_hash,
-    set_salt,
-    set_key,
-    get_key,
-    fmt_default_clear_keys,
-    crypt_all,
-    { // get_hash[3]
-      fmt_default_get_hash,
-      fmt_default_get_hash,
-      fmt_default_get_hash,
-      fmt_default_get_hash,
-      fmt_default_get_hash
-    },
-    cmp_all,
-    cmp_one,
-    cmp_exact
-  }
+	{ // fmt_params
+		"epi",
+		"EPiServer SID salted SHA-1",
+		"32/" ARCH_BITS_STR,
+		"", // benchmark comment
+		0, // benchmark length
+		PLAINTEXT_LENGTH,
+		BINARY_LENGTH,
+		SALT_LENGTH,
+		1,
+		1,
+		FMT_CASE | FMT_8_BIT, // flags XXX, these are just guesses
+		global_tests
+	},
+	{ // fmt_methods
+		fmt_default_init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		binary,
+		salt,
+		{ // binary_hash[3]
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash,
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{ // get_hash[3]
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash,
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
 
 /*
  * Expects ciphertext of format: 0xHEX*60 0xHEX*40
  */
-int valid(char *ciphertext, struct fmt_main *pFmt)
+int valid(char *ciphertext, struct fmt_main *self)
 {
   unsigned int len, n;
 

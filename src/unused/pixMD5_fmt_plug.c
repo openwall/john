@@ -72,7 +72,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 static MD5_CTX ctx;
 #endif
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 
@@ -85,7 +85,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	return 1;
 }
 
-static void pixmd5_init(struct fmt_main *pFmt)
+static void pixmd5_init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	unsigned int i;

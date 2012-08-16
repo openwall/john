@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2006,2010,2012 by Solar Designer
  *
- * ...with changes in the jumbo patch, by JimF.
+ * ...with changes in the jumbo patch, by magnum & JimF.
  */
 
 #include <stdio.h>

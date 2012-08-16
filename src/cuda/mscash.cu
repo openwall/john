@@ -10,34 +10,9 @@
 #include "../cuda_mscash.h"
 #include "cuda_common.cuh"
 
-/*
-static void HandleError(cudaError_t err, const char *file, int line)
-{
-	if (err != cudaSuccess) {
-		printf("%s in %s at line %d\n", cudaGetErrorString(err), file,
-		    line);
-		exit(EXIT_FAILURE);
-	}
-}
-
-#define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
-*/
-//extern "C" void mscash_init(int gpuid);
 extern "C" void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *);
 
 __constant__ mscash_salt cuda_salt[1];
-/*__host__ void mscash_init(int gpuid)
-{
-	int count;
-	HANDLE_ERROR(cudaGetDeviceCount(&count));
-	if (gpuid < count)
-		cudaSetDevice(gpuid);
-	else {
-		printf("Invalid CUDA device id = %d\n", gpuid);
-		exit(1);
-	}
-}*/
-
 
 __device__ static void md4_crypt(uint32_t * output, uint32_t * nt_buffer)
 {
@@ -197,7 +172,7 @@ __global__ void mscash_kernel(mscash_password * inbuffer,
     mscash_hash * outbuffer)
 {
 	uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-	uint8_t *login = cuda_salt[0].salt;
+	uint8_t *login =(uint8_t*) cuda_salt[0].salt;
 	uint8_t loginlength = cuda_salt[0].length;
 
 	uint8_t *password = inbuffer[idx].v;

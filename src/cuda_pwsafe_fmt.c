@@ -18,6 +18,7 @@
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "memory.h"
 #include "cuda_pwsafe.h"
 #define FORMAT_LABEL            "pwsafe-cuda"
 #define FORMAT_NAME             "Password Safe SHA-256"
@@ -37,20 +38,18 @@ static struct fmt_tests pwsafe_tests[] = {
 };
 
 
-static int any_cracked;
 static pwsafe_pass *host_pass;                          /** binary ciphertexts **/
 static pwsafe_salt *host_salt;                          /** salt **/
 static pwsafe_hash *host_hash;                          /** calculated hashes **/
 extern void gpu_pwpass(pwsafe_pass *, pwsafe_salt *, pwsafe_hash *);
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
         host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
         host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
         host_salt = calloc(1, sizeof(pwsafe_salt));
-        any_cracked = 1;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
         return !strncmp(ciphertext, "$pwsafe$", 8);
 }
@@ -78,36 +77,31 @@ static void *get_salt(char *ciphertext)
                     + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
         free(keeptr);
+
+	alter_endianity(salt_struct->hash, 32);
+
         return (void *) salt_struct;
 }
 
 static void set_salt(void *salt)
 {
         memcpy(host_salt, salt, SALT_SIZE);
-        any_cracked = 0;
 }
 
 static void crypt_all(int count)
 {
-        int i;
-        unsigned int *src = (unsigned int *) host_salt->hash;
-        unsigned int *dst = (unsigned int *) host_salt->hash;
-        any_cracked = 0;
-
-        for (i = 0; i < 8; i++) {
-                dst[i] = SWAP32(src[i]);
-        }
-
         gpu_pwpass(host_pass, host_salt, host_hash);
-        for (i = 0; i < count; i++) {
-                if (host_hash[i].cracked == 1)
-                        any_cracked = 1;
-        }
 }
 
 static int cmp_all(void *binary, int count)
 {
-        return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (host_hash[i].cracked)
+			return 1;
+
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
@@ -136,41 +130,40 @@ static char *get_key(int index)
 }
 
 struct fmt_main fmt_cuda_pwsafe = {
-        {
-                    FORMAT_LABEL,
-                    FORMAT_NAME,
-                    ALGORITHM_NAME,
-                    BENCHMARK_COMMENT,
-                    BENCHMARK_LENGTH,
-                    PLAINTEXT_LENGTH,
-                    BINARY_SIZE,
-                    SALT_SIZE,
-                    KEYS_PER_CRYPT,
-                    KEYS_PER_CRYPT,
-                    FMT_CASE | FMT_8_BIT,
-                    pwsafe_tests
-        }, {
-                    init,
-                    fmt_default_prepare,
-                    valid,
-                    fmt_default_split,
-                    fmt_default_binary,
-                    get_salt,
-                    {
-                        fmt_default_binary_hash
-                    },
-                    fmt_default_salt_hash,
-                    set_salt,
-                    pwsafe_set_key,
-                    get_key,
-                    fmt_default_clear_keys,
-                    crypt_all,
-                    {
-                        fmt_default_get_hash
-                    },
-                    cmp_all,
-                    cmp_one,
-                    cmp_exact
-            }
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		SALT_SIZE,
+		KEYS_PER_CRYPT,
+		KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		pwsafe_tests
+	}, {
+		init,
+		fmt_default_prepare,
+		valid,
+		fmt_default_split,
+		fmt_default_binary,
+		get_salt,
+		{
+			fmt_default_binary_hash
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		pwsafe_set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			fmt_default_get_hash
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
-

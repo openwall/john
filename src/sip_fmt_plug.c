@@ -21,12 +21,21 @@
 #include "sip_fmt_plug.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE		1
+#define OMP_SCALE               1
 #endif
 
 #ifdef _MSC_VER
 #define snprintf _snprintf
 #endif
+
+typedef struct sip_salt_t {
+	int static_hash_data_len, dynamic_hash_data_len;
+	char *static_hash_data, *dynamic_hash_data;
+	char Buf[DYNAMIC_HASH_SIZE + STATIC_HASH_SIZE + 3];
+	char login_hash[33];
+} sip_salt;
+
+static sip_salt *pSalt;
 
 
 #define FORMAT_LABEL		"sip"
@@ -36,7 +45,7 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define SALT_SIZE		256
+#define SALT_SIZE		sizeof(sip_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	64
 
@@ -49,107 +58,107 @@ static struct fmt_tests sip_tests[] = {
 static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned char *cracked;
-static char dynamic_hash_data[DYNAMIC_HASH_SIZE]; /* USER:REALM: */
-static char static_hash_data[STATIC_HASH_SIZE];   /* :nonce:nonce_count:cnonce:qop:static_hash */
-static size_t static_hash_data_len, dynamic_hash_data_len;
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
-static login_t *login = NULL;
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	/* Init bin 2 hex table for faster conversions later */
 	init_bin2hex(bin2hex_table);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$sip$", 5);
 }
 
+// NOTE, this still needs work. I am sure this will not eliminate (compact out)
+// duplicate salts. 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
-}
+	static sip_salt salt;
+	static char saltBuf[2048];
 
-
-static void set_salt(void *salt)
-{
-	char **lines;
-	int num_lines, i;
+	char *lines[16];
+	login_t login;
+	int num_lines;
 	MD5_CTX md5_ctx;
 	unsigned char md5_bin_hash[MD5_LEN];
 	char static_hash[MD5_LEN_HEX+1];
-	char *saltcopy = strdup(salt);
-	char *keeptr = saltcopy;
+	char *saltcopy = saltBuf;
+
+	strcpy(saltBuf, ciphertext);
 	saltcopy += 6;	/* skip over "$sip$*" */
-	if(login)
-		free(login);
-	login = (login_t *)malloc(sizeof(login_t));
-	memset(login, 0, sizeof(login_t));
-	lines = stringtoarray(saltcopy, '*', &num_lines);
+	memset(&login, 0, sizeof(login_t));
+	num_lines = stringtoarray(lines, saltcopy, '*');
 	assert(num_lines == 13);
-	strncpy(login->server,      lines[0], sizeof(login->server)      - 1 );
-	strncpy(login->client,      lines[1], sizeof(login->client)      - 1 );
-	strncpy(login->user,        lines[2], sizeof(login->user)        - 1 );
-	strncpy(login->realm,       lines[3], sizeof(login->realm)       - 1 );
-	strncpy(login->method,      lines[4], sizeof(login->method)      - 1 );
+	strncpy(login.server,      lines[0], sizeof(login.server)      - 1 );
+	strncpy(login.client,      lines[1], sizeof(login.client)      - 1 );
+	strncpy(login.user,        lines[2], sizeof(login.user)        - 1 );
+	strncpy(login.realm,       lines[3], sizeof(login.realm)       - 1 );
+	strncpy(login.method,      lines[4], sizeof(login.method)      - 1 );
 	/* special handling for uri */
-	sprintf(login->uri, "%s:%s", lines[5], lines[6]);
-	strncpy(login->nonce,       lines[7], sizeof(login->nonce)       - 1 );
-	strncpy(login->cnonce,      lines[8], sizeof(login->cnonce)      - 1 );
-	strncpy(login->nonce_count, lines[9], sizeof(login->nonce_count) - 1 );
-	strncpy(login->qop,         lines[10], sizeof(login->qop)         - 1 );
-	strncpy(login->algorithm,   lines[11], sizeof(login->algorithm)  - 1 );
-	strncpy(login->hash,        lines[12], sizeof(login->hash)       - 1 );
-	if(strncmp(login->algorithm, "MD5", strlen(login->algorithm))) {
-		printf("\n* Cannot crack '%s' hash, only MD5 supported so far...\n", login->algorithm);
+	sprintf(login.uri, "%s:%s", lines[5], lines[6]);
+	strncpy(login.nonce,       lines[7], sizeof(login.nonce)       - 1 );
+	strncpy(login.cnonce,      lines[8], sizeof(login.cnonce)      - 1 );
+	strncpy(login.nonce_count, lines[9], sizeof(login.nonce_count) - 1 );
+	strncpy(login.qop,         lines[10], sizeof(login.qop)        - 1 );
+	strncpy(login.algorithm,   lines[11], sizeof(login.algorithm)  - 1 );
+	strncpy(login.hash,        lines[12], sizeof(login.hash)       - 1 );
+	if(strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
+		printf("\n* Cannot crack '%s' hash, only MD5 supported so far...\n", login.algorithm);
 		exit(-1);
 	}
 
 	/* Generating MD5 static hash: 'METHOD:URI' */
 	MD5_Init(&md5_ctx);
-	MD5_Update(&md5_ctx, (unsigned char*)login->method, strlen( login->method ));
+	MD5_Update(&md5_ctx, (unsigned char*)login.method, strlen( login.method ));
 	MD5_Update(&md5_ctx, (unsigned char*)":", 1);
-	MD5_Update(&md5_ctx, (unsigned char*)login->uri, strlen( login->uri ));
+	MD5_Update(&md5_ctx, (unsigned char*)login.uri, strlen( login.uri ));
 	MD5_Final(md5_bin_hash, &md5_ctx);
 	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, static_hash, MD5_LEN_HEX);
 
 	/* Constructing first part of dynamic hash: 'USER:REALM:' */
-	snprintf(dynamic_hash_data, sizeof(dynamic_hash_data), "%s:%s:", login->user, login->realm);
+	salt.dynamic_hash_data = salt.Buf;
+	snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
+	salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
-	if(!strlen(login->qop))
-		snprintf(static_hash_data, sizeof(static_hash_data), ":%s:%s", login->nonce, static_hash);
+	salt.static_hash_data = &(salt.Buf[salt.dynamic_hash_data_len+1]);
+	if(!strlen(login.qop))
+		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
 	/* qop/conce/cnonce_count */
 	else
-		snprintf(static_hash_data, sizeof(static_hash_data), ":%s:%s:%s:%s:%s",
-				login->nonce, login->nonce_count, login->cnonce,
-				login->qop, static_hash);
+		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s:%s:%s:%s",
+				login.nonce, login.nonce_count, login.cnonce,
+				login.qop, static_hash);
 	/* Get lens of static buffers */
-	dynamic_hash_data_len = strlen(dynamic_hash_data);
-	static_hash_data_len  = strlen(static_hash_data);
+	salt.static_hash_data_len  = strlen(salt.static_hash_data);
 
 	/* Begin brute force attack */
 #ifdef SIP_DEBUG
 	printf("Starting bruteforce against user '%s' (%s: '%s')\n",
-			login->user, login->algorithm, login->hash);
+			login.user, login.algorithm, login.hash);
 #endif
+	strcpy(salt.login_hash, login.hash);
+	return &salt;
+}
+
+
+static void set_salt(void *salt)
+{
+	pSalt = (sip_salt*)salt;
 	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
-	free(keeptr);
-	for(i = 0; i < num_lines; i++)
-		free(lines[i]);
-	free(lines);
 }
 
 static void crypt_all(int count)
@@ -158,7 +167,8 @@ static void crypt_all(int count)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++) {
+	for (index = 0; index < count; index++)
+	{
 		/* password */
 		MD5_CTX md5_ctx;
 		unsigned char md5_bin_hash[MD5_LEN];
@@ -169,7 +179,7 @@ static void crypt_all(int count)
 
 		/* Generate dynamic hash including pw (see above) */
 		MD5_Init(&md5_ctx);
-		MD5_Update(&md5_ctx, (unsigned char*)dynamic_hash_data, dynamic_hash_data_len);
+		MD5_Update(&md5_ctx, (unsigned char*)pSalt->dynamic_hash_data, pSalt->dynamic_hash_data_len);
 		pw_len = strlen(pw);
 		MD5_Update(&md5_ctx,
 				(unsigned char*)pw,
@@ -180,12 +190,12 @@ static void crypt_all(int count)
 		/* Generate digest response hash */
 		MD5_Init(&md5_ctx);
 		MD5_Update(&md5_ctx, (unsigned char*)dynamic_hash, MD5_LEN_HEX);
-		MD5_Update(&md5_ctx, (unsigned char*)static_hash_data, static_hash_data_len);
+		MD5_Update(&md5_ctx, (unsigned char*)pSalt->static_hash_data, pSalt->static_hash_data_len);
 		MD5_Final(md5_bin_hash, &md5_ctx);
 		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, final_hash, MD5_LEN_HEX);
 
 		/* Check for match */
-		if(!strncmp(final_hash, login->hash, MD5_LEN_HEX)) {
+		if(!strncmp(final_hash, pSalt->login_hash, MD5_LEN_HEX)) {
 			cracked[index] = 1;
 		}
 	}

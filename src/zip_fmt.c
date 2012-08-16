@@ -54,7 +54,7 @@ static struct fmt_tests zip_tests[] = {
 
 struct fmt_main zip_fmt;
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$zip$*", 6);
 }

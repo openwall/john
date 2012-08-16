@@ -21,7 +21,6 @@
 #endif
 
 #ifdef SHA1_SSE_PARA
-#define MMX_COEF	4
 #define NBKEYS	(MMX_COEF * SHA1_SSE_PARA)
 #elif MMX_COEF
 #define NBKEYS	MMX_COEF
@@ -135,7 +134,7 @@ static void * binary(char *ciphertext) {
 	return (void *)realcipher;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int len;
 

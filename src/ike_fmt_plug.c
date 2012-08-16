@@ -41,7 +41,10 @@
  * psk-crack.c -- IKE Aggressive Mode Pre-Shared Key cracker for ike-scan
  *
  * Author: Roy Hills
- * Date: 8 July 2004 */
+ * Date: 8 July 2004
+ *
+ * July, 2012, JimF small changes made, many more should be done.
+ */
 
 #include <string.h>
 #include <assert.h>
@@ -55,7 +58,7 @@
 #include "ike-crack.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               16
 static int omp_t = 1;
 #endif
 
@@ -69,7 +72,7 @@ static int omp_t = 1;
 #define BINARY_SIZE_SMALLER	16 /* MD5 */
 #define SALT_SIZE		sizeof(psk_entry)
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	16
 
 static struct fmt_tests ike_tests[] = {
 	{"$ike$*0*5c7916ddf8db4d233b3b36005bb3ccc115a73807e11a897be943fd4a2d0f942624cb00588d8b3a0a26502b73e639df217ef6c4cb90f96b0a3c3ef2f62ed025b4a705df9de65e33e380c1ba5fa23bf1f9911bbf388d0844256fa0131fc5cf8acb396936ba3295b4637b039d93f58db90a3a1cf1ef5051103bacf6e1a3334f9f89*fde8c68c5f324c7dbcbadde1d757af6962c63496c009f77cad647f2997fd4295e50821453a6dc2f6279fd7fef68768584d9cee0da6e68a534a097ce206bf77ecc798310206f3f82d92d02c885794e0a430ceb2d6b43c2aff45a6e14c6558382df0692ff65c2724eef750764ee456f31424a5ebd9e115d826bbb9722111aa4e01*b2a3c7aa4be95e85*756e3fa11c1b102c*00000001000000010000002c01010001000000240101000080010001800200018003000180040002800b0001000c000400007080*01000000ac100202*251d7ace920b17cb34f9d561bca46d037b337d19*e045819a64edbf022620bff3efdb935216584cc4*b9c594fa3fca6bb30a85c4208a8df348", "abc123"},
@@ -81,37 +84,29 @@ static psk_entry *cur_salt;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
+	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$ike$", 5);
 }
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
 	static psk_entry cs;
-	ctcopy += 6;	/* skip over "$ike$*" */
-	p = strtok(ctcopy, "*");
-	cs.isnortel = atoi(p);
-	p = strstr(ciphertext, "*");
-	p = strstr(p + 1, "*");
-	load_psk_params(p + 1, NULL, &cs);
-	free(keeptr);
+	cs.isnortel = atoi(&ciphertext[6]);
+	load_psk_params(&ciphertext[8], NULL, &cs);
 	return (void *)&cs;
 }
 
@@ -160,8 +155,8 @@ static void crypt_all(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		compute_hash(cur_salt, saved_key[index], (unsigned char*)crypt_out[index]);
 	}
@@ -170,22 +165,21 @@ static void crypt_all(int count)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE_SMALLER))
+		if (*((ARCH_WORD_32*)binary) == crypt_out[index][0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE_SMALLER);
+	return (*((ARCH_WORD_32*)binary) == crypt_out[index][0]);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	void *binary = get_binary(source);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE_SMALLER);
 }
 
 static void ike_set_key(char *key, int index)

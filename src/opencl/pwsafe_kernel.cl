@@ -78,16 +78,16 @@ __kernel void pwsafe(__global pwsafe_pass * in,
 
 
         uint32_t w[64];
-        for (i = 0; i < 14; i++)
+        for (i = 0; i <= 14; i++)
                 w[i] = 0;
         for (j = 0; j < pl; j++) {
-                uint32_t tmp = 0;
-                tmp |= (((uint32_t) in[idx].v[j]) << ((3 - (j & 0x3)) << 3));
+                uint32_t tmp;
+                tmp = (((uint32_t) in[idx].v[j]) << ((3 - (j & 0x3)) << 3));
                 w[j / 4] |= tmp;
         }
         for (; j < 32 + pl; j++) {
-                uint32_t tmp = 0;
-                tmp |=
+                uint32_t tmp;
+                tmp =
                     (((uint32_t) salt->salt[j - pl]) << ((3 -
                             (j & 0x3)) << 3));
                 w[j / 4] |= tmp;
@@ -122,7 +122,9 @@ __kernel void pwsafe(__global pwsafe_pass * in,
                 b = a;
                 a = t1 + t2;
         }
-
+        w[9] = w[10] = w[11] = w[12] = w[13] = w[14] = 0;
+        w[8] = 0x80000000;
+        w[15] = 0x00000100;
         for (i = 0; i <= salt->iterations; i++) {
                 w[0] = a + H[0];
                 w[1] = b + H[1];
@@ -132,14 +134,6 @@ __kernel void pwsafe(__global pwsafe_pass * in,
                 w[5] = f + H[5];
                 w[6] = g + H[6];
                 w[7] = h + H[7];
-                w[9] = w[10] = w[11] = w[12] = w[13] = w[14] = 0;
-                w[8] = 0x80000000;
-                w[15] = 0x00000100;
-                for (j = 16; j < 64; j++)
-                        w[j] =
-                            sigma1(w[j - 2]) + w[j - 7] + sigma0(w[j - 15]) +
-                            w[j - 16];
-
                 a = H[0];
                 b = H[1];
                 c = H[2];
@@ -148,6 +142,12 @@ __kernel void pwsafe(__global pwsafe_pass * in,
                 f = H[5];
                 g = H[6];
                 h = H[7];
+#pragma unroll 48
+                for (j = 16; j < 64; j++)
+                        w[j] =
+                            sigma1(w[j - 2]) + w[j - 7] + sigma0(w[j - 15]) +
+                            w[j - 16];
+
 #pragma unroll 64
                 for (uint32_t j = 0; j < 64; j++) {
                         uint32_t t1 =
@@ -163,18 +163,20 @@ __kernel void pwsafe(__global pwsafe_pass * in,
                         a = t1 + t2;
                 }
         }
-        uint32_t cmp = 1;
-    
-        __global uint32_t *v =  salt->hash;
-        cmp &= (*v++ == a + H[0]);
-        cmp &= (*v++ == b + H[1]);
-        cmp &= (*v++ == c + H[2]);
-        cmp &= (*v++ == d + H[3]);
-        cmp &= (*v++ == e + H[4]);
-        cmp &= (*v++ == f + H[5]);
-        cmp &= (*v++ == g + H[6]);
-        cmp &= (*v++ == h + H[7]);
 
+        uint32_t cmp = 0;
+        __global uint32_t *v = (__global uint32_t *) salt->hash;
+	if (*v++ == a + H[0]) {
+		uint32_t diff;
+		diff = *v++ ^ (b + H[1]);
+		diff |= *v++ ^ (c + H[2]);
+		diff |= *v++ ^ (d + H[3]);
+		diff |= *v++ ^ (e + H[4]);
+		diff |= *v++ ^ (f + H[5]);
+		diff |= *v++ ^ (g + H[6]);
+		diff |= *v++ ^ (h + H[7]);
+		cmp = !diff;
+	}
         out[idx].cracked = cmp;
 }
 

@@ -1,6 +1,6 @@
 /*
  * This software was written by Jim Fougeron jfoug AT cox dot net
- * in 2009. No copyright is claimed, and the software is hereby
+ * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
  * null and void, then the software is Copyright � 2009 Jim Fougeron
@@ -12,14 +12,15 @@
  *
  * Generic MD5 hashes cracker
  *
- * Preloaded types md5gen(0) to md5gen(100) are 'reserved' types.
+ * Preloaded types dynamic_0 to dynamic_999 are 'reserved' types.
  * They are loaded from this file. If someone tryes to build a 'custom'
  * type in their john.ini file using one of those, john will abort
  * the run.
  *
  * Renamed and changed from dynamic* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
- *
+ * Added SHA2 (SHA224, SHA256, SHA384, SHA512), GOST, Whirlpool crypt types.
+ * Whirlpool only if OPENSSL_VERSION_NUMBER >= 0x10000000
  */
 
 #include <string.h>
@@ -57,7 +58,7 @@ void dynamic_DISPLAY_ALL_FORMATS()
 	cfg_init(CFG_FULL_NAME, 1);
 	cfg_init(CFG_ALT_NAME, 0);
 
-	for (i = 1001; i < 10000; ++i)
+	for (i = 1000; i < 10000; ++i)
 	{
 		char *sz = dynamic_LOAD_PARSER_SIGNATURE(i);
 		if (sz)

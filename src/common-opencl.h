@@ -21,6 +21,12 @@
 #define SUBSECTION_OPENCL	":OpenCL"
 #define MAX_OCLINFO_STRING_LEN	2048
 
+#ifdef __APPLE__
+#define OPENCLBUILDOPTIONS ""
+#else
+#define OPENCLBUILDOPTIONS "-cl-strict-aliasing -cl-mad-enable"
+#endif
+
 /* Comment if you do not want to see OpenCL warnings during kernel compilation */
 #define REPORT_OPENCL_WARNINGS
 
@@ -49,8 +55,8 @@ void opencl_init(char *kernel_filename, unsigned int dev_id,
 void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
-void opencl_find_best_workgroup(struct fmt_main *pFmt);
-void opencl_find_best_workgroup_limit(struct fmt_main *pFmt, size_t group_size_limit);
+void opencl_find_best_workgroup(struct fmt_main *self);
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
 
 cl_device_type get_device_type(int dev_id);
 cl_ulong get_local_memory_size(int dev_id);

@@ -56,13 +56,13 @@ static struct fmt_tests rawmd5u_tests[] = {
 };
 
 static char Conv_Buf[80];
-static struct fmt_main *pFmt_Dynamic_29;
-static void rawmd5u_init(struct fmt_main *pFmt);
+static struct fmt_main *pDynamic_29;
+static void rawmd5u_init(struct fmt_main *self);
 
 /* this function converts a 'native' raw md5 signature string into a $dynamic_29$ syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {
-	if (text_in_dynamic_format_already(pFmt_Dynamic_29, ciphertext))
+	if (text_in_dynamic_format_already(pDynamic_29, ciphertext))
 		return ciphertext;
 	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return "*";
@@ -71,17 +71,17 @@ static char *Convert(char *Buf, char *ciphertext)
 	return Buf;
 }
 
-static int valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int i;
 
 	if (!ciphertext || strlen(ciphertext) < CIPHERTEXT_LENGTH)
 		return 0;
 
-	if (!pFmt_Dynamic_29)
-		rawmd5u_init(pFmt);
+	if (!pDynamic_29)
+		rawmd5u_init(self);
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) {
-		return pFmt_Dynamic_29->methods.valid(ciphertext, pFmt_Dynamic_29);
+		return pDynamic_29->methods.valid(ciphertext, pDynamic_29);
 	}
 
 	for (i = 0; i < CIPHERTEXT_LENGTH; i++){
@@ -89,16 +89,16 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 					(('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))  ))
 			return 0;
 	}
-	return pFmt_Dynamic_29->methods.valid(Convert(Conv_Buf, ciphertext), pFmt_Dynamic_29);
+	return pDynamic_29->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic_29);
 }
 
 static void * our_salt(char *ciphertext)
 {
-	return pFmt_Dynamic_29->methods.salt(Convert(Conv_Buf, ciphertext));
+	return pDynamic_29->methods.salt(Convert(Conv_Buf, ciphertext));
 }
 static void * our_binary(char *ciphertext)
 {
-	return pFmt_Dynamic_29->methods.binary(Convert(Conv_Buf, ciphertext));
+	return pDynamic_29->methods.binary(Convert(Conv_Buf, ciphertext));
 }
 
 struct fmt_main fmt_rawmd5u =
@@ -117,7 +117,7 @@ struct fmt_main fmt_rawmd5u =
 	}
 };
 
-static void rawmd5u_init(struct fmt_main *pFmt)
+static void rawmd5u_init(struct fmt_main *self)
 {
 	if (options.utf8) {
 		rawmd5u_tests[1].ciphertext = "94a4e171de16580742c4d141e6607bf7";
@@ -140,12 +140,12 @@ static void rawmd5u_init(struct fmt_main *pFmt)
 			rawmd5u_tests[4].plaintext = "\xFC\xFC\xFC\xFC";
 		}
 	}
-	if (pFmt->private.initialized == 0) {
-		pFmt_Dynamic_29 = dynamic_THIN_FORMAT_LINK(&fmt_rawmd5u, Convert(Conv_Buf, rawmd5u_tests[0].ciphertext), "thin");
+	if (self->private.initialized == 0) {
+		pDynamic_29 = dynamic_THIN_FORMAT_LINK(&fmt_rawmd5u, Convert(Conv_Buf, rawmd5u_tests[0].ciphertext), "thin");
 		fmt_rawmd5u.methods.binary = our_binary;
 		fmt_rawmd5u.methods.salt = our_salt;
-		fmt_rawmd5u.params.algorithm_name = pFmt_Dynamic_29->params.algorithm_name;
-		fmt_rawmd5u.params.plaintext_length = pFmt_Dynamic_29->params.plaintext_length;
-		pFmt->private.initialized = 1;
+		fmt_rawmd5u.params.algorithm_name = pDynamic_29->params.algorithm_name;
+		fmt_rawmd5u.params.plaintext_length = pDynamic_29->params.plaintext_length;
+		self->private.initialized = 1;
 	}
 }
