@@ -282,16 +282,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 	*home = fields[5];
 	shell = fields[6];
 
-	if (fields[5][0] != '/' &&
-	    ((!strcmp(fields[5], "0") && !strcmp(fields[6], "0")) ||
-	    fields[8][0] == '/' ||
-	    fields[9][0] == '/')) {
-		/* /etc/master.passwd */
-		*gecos = fields[7];
-		*home = fields[8];
-		shell = fields[9];
-	} else if (fields[3] - fields[2] == 32 + 1) {
+	if (SPLFLEN(2) == 32 || SPLFLEN(3) == 32) {
 		/* PWDUMP */
+		/* user:uid:LMhash:NThash:comment:homedir: */
 		uid = fields[1];
 		*ciphertext = fields[2];
 		if (!strncmp(*ciphertext, "NO PASSWORD", 11))
@@ -316,6 +309,15 @@ static int ldr_split_line(char **login, char **ciphertext,
 		 */
 		uid = gid = *home = shell = "";
 		*gecos = fields[2]; // in case there's a domain name here
+	}
+	else if (fields[5][0] != '/' &&
+	    ((!strcmp(fields[5], "0") && !strcmp(fields[6], "0")) ||
+	    fields[8][0] == '/' ||
+	    fields[9][0] == '/')) {
+		/* /etc/master.passwd */
+		*gecos = fields[7];
+		*home = fields[8];
+		shell = fields[9];
 	}
 
 	if (ldr_check_list(options->users, *login, uid)) return 0;
