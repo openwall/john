@@ -209,8 +209,11 @@ enum BLOCK_TYPES
 	BLOCK_PPM
 };
 
+// returns one (aligned) char of data regardless where inside it the bit pointer points
 unsigned int rar_get_char(const unsigned char **fd, unpack_data_t *unpack_data);
+// add bits to counters
 void rar_addbits(unpack_data_t *unpack_data, int bits);
+// returns next 16 bits of data
 unsigned int rar_getbits(unpack_data_t *unpack_data);
 int rar_unp_read_buf(const unsigned char **fd, unpack_data_t *unpack_data);
 void rar_unpack_init_data(int solid, unpack_data_t *unpack_data);
