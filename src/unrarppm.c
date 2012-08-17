@@ -952,7 +952,7 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 
 	max_order = rar_get_char(fd, unpack_data);
 	if (max_order >= 64) {
-		rar_dbgmsg("max_order >= 64 reject\n");
+		rar_dbgmsg("max_order >= 64 (%d, 0x%02x) reject\n", max_order, max_order);
 		return 0;
 	}
 	rar_dbgmsg("ppm_decode_init max_order=%d\n", max_order);
@@ -962,7 +962,7 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 		MaxMB = rar_get_char(fd, unpack_data);
 		rar_dbgmsg("ppm_decode_init MaxMB=%d\n", MaxMB);
 		if (MaxMB > 128) {
-			rar_dbgmsg("MaxMB > 128 MB reject\n");
+			rar_dbgmsg("MaxMB > 128 MB (%d, 0x%02x) reject\n", MaxMB, MaxMB);
 			return 0;
 		}
 	} else {
