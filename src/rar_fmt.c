@@ -133,18 +133,16 @@ static unsigned char *aes_key;
 static unsigned char *aes_iv;
 
 typedef struct {
-	int type;	/* 0 = -hp, 1 = -p */
 	unsigned char salt[8];
-	/* for rar -hp mode: */
-	unsigned char saved_ct[16];
-	/* for rar -p mode: */
+	int type;	/* 0 = -hp, 1 = -p */
+	unsigned char *raw_data;
+	/* for rar -p mode only: */
 	union {
 		unsigned int w;
 		unsigned char c[4];
 	} crc;
 	unsigned long long pack_size;
 	unsigned long long unp_size;
-	unsigned char *encrypted;
 	char *archive_name;
 	long pos;
 	int method;
@@ -725,8 +723,9 @@ static void *get_salt(char *ciphertext)
 		rarfile.salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
 	if (rarfile.type == 0) {	/* rar-hp mode */
 		char *encoded_ct = strtok(NULL, "*");
+		rarfile.raw_data = (unsigned char*)mem_alloc(16);
 		for (i = 0; i < 16; i++)
-			rarfile.saved_ct[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
+			rarfile.raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 	} else {
 		char *p = strtok(NULL, "*");
 		int inlined;
@@ -738,9 +737,9 @@ static void *get_salt(char *ciphertext)
 
 		/* load ciphertext. We allocate and load all files here, and
 		   they don't get unloaded until program ends */
-		rarfile.encrypted = (unsigned char*)malloc(rarfile.pack_size);
+		rarfile.raw_data = (unsigned char*)mem_alloc(rarfile.pack_size);
 		if (inlined) {
-			unsigned char *d = rarfile.encrypted;
+			unsigned char *d = rarfile.raw_data;
 			p = strtok(NULL, "*");
 			for (i = 0; i < rarfile.pack_size; i++)
 				*d++ = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
@@ -754,7 +753,7 @@ static void *get_salt(char *ciphertext)
 				error();
 			}
 			fseek(fp, rarfile.pos, SEEK_SET);
-			count = fread(rarfile.encrypted, 1, rarfile.pack_size, fp);
+			count = fread(rarfile.raw_data, 1, rarfile.pack_size, fp);
 			if (count != rarfile.pack_size) {
 				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", rarfile.archive_name, rarfile.pack_size, count);
 				exit(0);
@@ -818,7 +817,7 @@ __inline__
 static int check_huffman(unsigned char *next) {
 	unsigned int bits, hold, i;
 	int left;
-	unsigned int ncount[5];
+	unsigned int ncount[4];
 	unsigned char *count = (unsigned char*)ncount;
 	unsigned char bit_length[20];
 	unsigned char *was = next;
@@ -853,7 +852,7 @@ static int check_huffman(unsigned char *next) {
 	}
 
 	/* Count the number of codes for each code length */
-	memset(count, 0, 20);
+	memset(count, 0, 16);
 	for (i = 0; i < 20; i++) {
 		++count[bit_length[i]];
 	}
@@ -864,8 +863,8 @@ static int check_huffman(unsigned char *next) {
 	}
 
 	count[0] = 0;
-	if (!ncount[0] && !ncount[1] && !ncount[2] && !ncount[3] &&
-	    !ncount[4]) return 0; /* No codes at all */
+	if (!ncount[0] && !ncount[1] && !ncount[2] && !ncount[3])
+		return 0; /* No codes at all */
 
 	left = 1;
 	for (i = 1; i < 16; ++i) {
@@ -993,13 +992,13 @@ static void crypt_all(int count)
 		EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 
 		//fprintf(stderr, "key %s\n", utf16_to_enc((UTF16*)&saved_key[index * UNICODE_LENGTH]));
-		/* AES decrypt, uses aes_iv, aes_key and saved_ct */
+		/* AES decrypt, uses aes_iv, aes_key and raw_data */
 		if (cur_file->type == 0) {	/* rar-hp mode */
 			unsigned char plain[16];
 
 			outlen = 0;
 
-			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->saved_ct, inlen);
+			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, inlen);
 			EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
 			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
@@ -1011,7 +1010,7 @@ static void crypt_all(int count)
 				unsigned char crc_out[4];
 				unsigned char plain[0x8010];
 				unsigned long long size = cur_file->unp_size;
-				unsigned char *cipher = cur_file->encrypted;
+				unsigned char *cipher = cur_file->raw_data;
 
 				/* Use full decryption with CRC check.
 				   Compute CRC of the decompressed plaintext */
@@ -1043,17 +1042,20 @@ static void crypt_all(int count)
 
 				/* Decrypt just one block for early rejection */
 				outlen = 0;
-				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->encrypted, sizeof(plain));
+				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, sizeof(plain));
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
+				//printf("MaxOrder 0x%02x MaxMB 0x%02x\n", plain[0], plain[1]);
 				/* Early rejection */
 				if (plain[0] & 0x80) {
+					//puts("PPM");
 					// PPM checks here.
-					if (!(plain[2] & 0x20) ||  // Reset bit must be set
-					    (plain[2] & 0xc0)  ||  // MaxOrder must be < 64
-					    (plain[3] & 0x80))     // MaxMB must be < 128
+					if (!(plain[0] & 0x20) ||  // Reset bit must be set
+					    (plain[0] & 0xc0)  ||  // MaxOrder must be < 64
+					    (plain[1] & 0x80))     // MaxMB must be < 128
 						goto bailOut;
 				} else {
+					//puts("LZ");
 					// LZ checks here.
 					if ((plain[0] & 0x40) ||   // KeepOldTable can't be set
 					    !check_huffman(plain)) // Huffman table check
@@ -1076,7 +1078,7 @@ static void crypt_all(int count)
 				unpack_t->ctx = &aes_ctx;
 				unpack_t->key = &aes_key[i16];
 
-				if (rar_unpack29(cur_file->encrypted, solid, unpack_t))
+				if (rar_unpack29(cur_file->raw_data, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 bailOut:;
 			}
