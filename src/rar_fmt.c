@@ -1045,14 +1045,17 @@ static void crypt_all(int count)
 				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, sizeof(plain));
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
+				//printf("MaxOrder 0x%02x MaxMB 0x%02x\n", plain[0], plain[1]);
 				/* Early rejection */
 				if (plain[0] & 0x80) {
+					//puts("PPM");
 					// PPM checks here.
-					if (!(plain[2] & 0x20) ||  // Reset bit must be set
-					    (plain[2] & 0xc0)  ||  // MaxOrder must be < 64
-					    (plain[3] & 0x80))     // MaxMB must be < 128
+					if (!(plain[0] & 0x20) ||  // Reset bit must be set
+					    (plain[0] & 0xc0)  ||  // MaxOrder must be < 64
+					    (plain[1] & 0x80))     // MaxMB must be < 128
 						goto bailOut;
 				} else {
+					//puts("LZ");
 					// LZ checks here.
 					if ((plain[0] & 0x40) ||   // KeepOldTable can't be set
 					    !check_huffman(plain)) // Huffman table check
