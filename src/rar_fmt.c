@@ -785,6 +785,102 @@ static char *get_key(int index)
 	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
 }
 
+#define ADD_BITS(n)	\
+	{ \
+		hold <<= n; \
+		bits -= n; \
+		if (bits < 25) { \
+			hold |= ((unsigned int)*next++ << (24 - bits)); \
+			bits += 8; \
+		} \
+	}
+
+#ifdef __GNUC__
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
+__attribute__((always_inline))
+#else
+__inline__
+#endif
+#endif
+/*
+ * This function is loosely based on JimF's check_inflate_CODE2() from
+ * pkzip_fmt. Together with the other bit-checks, we are rejecting over 96%
+ * of the candidates without resorting to a slow full check (which in turn
+ * may reject semi-early, especially if it's a PPM block)
+ *
+ * Input is the 16 decrypted bytes of RAR buffer, as-is. It also contain the
+ * first 2 bits, which have already been decoded, and have told us we had an
+ * LZ block (RAR always use dynamic Huffman table) and keepOldTable was not set.
+ *
+ * RAR use 20 x (4 bits length, optionally 4 bits zerocount), and reversed
+ * byte order.
+ */
+static int check_huffman(unsigned char *next) {
+	unsigned int bits, hold, i;
+	int left;
+	unsigned int ncount[5];
+	unsigned char *count = (unsigned char*)ncount;
+	unsigned char bit_length[20];
+	unsigned char *was = next;
+
+	hold = JOHNSWAP(*(unsigned int*)next);
+	next += 4;	// we already have the first 32 bits
+	hold <<= 2;	// we already processed 2 bits, PPM and keepOldTable
+	bits = 32 - 2;
+
+	/* First, read 20 pairs of (bitlength[, zerocount]) */
+	for (i=0 ; i < 20 ; i++) {
+		int length, zero_count;
+
+		length = hold >> 28;
+		ADD_BITS(4);
+		if (length == 15) {
+			zero_count = hold >> 28;
+			ADD_BITS(4);
+			if (zero_count == 0) {
+				bit_length[i] = 15;
+			} else {
+				zero_count += 2;
+				while (zero_count-- > 0 &&
+				       i < sizeof(bit_length) /
+				       sizeof(bit_length[0]))
+					bit_length[i++] = 0;
+				i--;
+			}
+		} else {
+			bit_length[i] = length;
+		}
+	}
+
+	/* Count the number of codes for each code length */
+	memset(count, 0, 20);
+	for (i = 0; i < 20; i++) {
+		++count[bit_length[i]];
+	}
+
+	if (next - was > 16) {
+		fprintf(stderr, "*** BUG: check_huffman() needed %lu bytes, we only have 16\n", next - was);
+		error();
+	}
+
+	count[0] = 0;
+	if (!ncount[0] && !ncount[1] && !ncount[2] && !ncount[3] &&
+	    !ncount[4]) return 0; /* No codes at all */
+
+	left = 1;
+	for (i = 1; i < 16; ++i) {
+		left <<= 1;
+		left -= count[i];
+		if (left < 0) {
+			return 0; /* over-subscribed */
+		}
+	}
+	if (left) {
+		return 0; /* incomplete set */
+	}
+	return 1; /* Passed this check! */
+}
+
 static void crypt_all(int count)
 {
 	int index = 0;
@@ -950,15 +1046,17 @@ static void crypt_all(int count)
 				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->encrypted, sizeof(plain));
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
+				/* Early rejection */
 				if (plain[0] & 0x80) {
 					// PPM checks here.
-					if (!(plain[2] & 0x20) || // reset bit (must be set)
-					    (plain[2] & 0xc0)  || // MaxOrder must be < 64
-					    (plain[3] > 127))     // MaxMB must be < 128
+					if (!(plain[2] & 0x20) ||  // Reset bit must be set
+					    (plain[2] & 0xc0)  ||  // MaxOrder must be < 64
+					    (plain[3] & 0x80))     // MaxMB must be < 128
 						goto bailOut;
 				} else {
-					// LZ checks here. TODO: Huffman table check.
-					if (plain[0] & 0x40) // keepOldTable must be unset
+					// LZ checks here.
+					if ((plain[0] & 0x40) ||   // KeepOldTable can't be set
+					    !check_huffman(plain)) // Huffman table check
 						goto bailOut;
 				}
 
