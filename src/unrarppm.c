@@ -951,10 +951,6 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	int max_order, Reset, MaxMB = 0;
 
 	max_order = rar_get_char(fd, unpack_data);
-	if (max_order >= 64) {
-		rar_dbgmsg("max_order >= 64 (%d, 0x%02x) reject\n", max_order, max_order);
-		return 0;
-	}
 	rar_dbgmsg("ppm_decode_init max_order=%d\n", max_order);
 	Reset = (max_order & 0x20) ? 1 : 0;
 	rar_dbgmsg("ppm_decode_init Reset=%d\n", Reset);
