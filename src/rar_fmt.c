@@ -723,7 +723,7 @@ static void *get_salt(char *ciphertext)
 		rarfile.salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
 	if (rarfile.type == 0) {	/* rar-hp mode */
 		char *encoded_ct = strtok(NULL, "*");
-		rarfile.raw_data = (unsigned char*)mem_alloc(16);
+		rarfile.raw_data = (unsigned char*)mem_alloc_tiny(16, MEM_ALIGN_WORD);
 		for (i = 0; i < 16; i++)
 			rarfile.raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 	} else {
@@ -737,7 +737,7 @@ static void *get_salt(char *ciphertext)
 
 		/* load ciphertext. We allocate and load all files here, and
 		   they don't get unloaded until program ends */
-		rarfile.raw_data = (unsigned char*)mem_alloc(rarfile.pack_size);
+		rarfile.raw_data = (unsigned char*)mem_alloc_tiny(rarfile.pack_size, MEM_ALIGN_WORD);
 		if (inlined) {
 			unsigned char *d = rarfile.raw_data;
 			p = strtok(NULL, "*");
