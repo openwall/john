@@ -3,7 +3,7 @@
  *
  * CUDA port by Lukas Odzioba <ukasz at openwall dot net>
  *
- * This software is Copyright Â© 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
