@@ -18,7 +18,7 @@
  * some performance improvements, at the cost of its general-purpose use.
  * See the caveats documented above the MD5_Go() routine.
  *
- * New performance improvements by Bal·zs Bucsay.  It only works up to 54
+ * New performance improvements by Bal√°zs Bucsay.  It only works up to 54
  * characters, but it is just enough.
  * http://www.rycon.hu/ - earthquake at rycon.hu
  *
