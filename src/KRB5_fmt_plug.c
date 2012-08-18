@@ -10,7 +10,7 @@
  *
  *  The module contains code derived or copied from the Heimdal project.
  *
- *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan
+ *  Copyright (c) 1997-2000 Kungliga Tekniska HÃ¶gskolan
  *  (Royal Institute of Technology, Stockholm, Sweden).
  *  All rights reserved.
  *

@@ -11,7 +11,7 @@
  * in the first 8byte, so we have to check the full
  * hash.
  *
- * Unbelievable good optimization by Péter Kasza
+ * Unbelievable good optimization by PÃ©ter Kasza
  *
  * http://rycon.hu/
  *
