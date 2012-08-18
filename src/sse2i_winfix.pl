@@ -10,7 +10,7 @@ use strict;
 # Based on a script by Jim Fougeron that was specific to a certain
 # source file.
 #
-# This  software is Copyright © 2012 magnum, and it is hereby
+# This software is Copyright (c) 2012 magnum, and it is hereby
 # released to the general public under the following terms:
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.

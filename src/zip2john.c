@@ -1,6 +1,6 @@
 /* zip2john processes input ZIP files into a format suitable for use with JtR.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.

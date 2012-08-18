@@ -1,7 +1,7 @@
 /* RAdmin v2.x cracker patch for JtR. Hacked together during
  * May of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.

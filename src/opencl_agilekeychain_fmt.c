@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and is based on agilekeychain (https://bitbucket.org/gwik/agilekeychain)
  *
  * Copyright (c) 2009 Antonin Amand <antonin.amand@gmail.com>

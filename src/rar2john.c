@@ -1,7 +1,7 @@
 /* rar2john utility for RAR 3.x files, written in 2011 by Dhiru Kholia for GSoC.
  * rar2john processes input RAR files into a format suitable for use with JtR.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and (c) 2012, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without

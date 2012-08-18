@@ -7,7 +7,7 @@
  * md5(unicode($p)).
  * magnum, 2011
  *
- * This software is Copyright © 2004 bartavelle, <bartavelle at bandecon.com>,
+ * This software is Copyright (c) 2004 bartavelle, <bartavelle at bandecon.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -17,7 +17,7 @@
  * md5 implementation.
  *
  * More improvement by
- * Bal·zs Bucsay - earthquake at rycon.hu - http://www.rycon.hu/
+ * Bal√°zs Bucsay - earthquake at rycon.hu - http://www.rycon.hu/
  * (2times faster, but it's only works up to 54characters)
  *
  * Added in SSE2 (and MMX) support from md5-mmx.S by

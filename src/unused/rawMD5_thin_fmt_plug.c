@@ -1,5 +1,5 @@
 /*
- * This software is Copyright © 2004 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2004 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  *
  * Minor changes by David Luyer <david at luyer.net> to
@@ -7,7 +7,7 @@
  * md5 implementation.
  *
  * More improvement by
- * Bal·zs Bucsay - earthquake at rycon.hu - http://www.rycon.hu/
+ * Bal√°zs Bucsay - earthquake at rycon.hu - http://www.rycon.hu/
  * (2times faster, but it's only works up to 54characters)
  *
  * Finally, support for SSE intrinsics
