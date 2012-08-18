@@ -2,8 +2,8 @@
  *
  * Written by Romain Raboin. OMP and intrinsics support by magnum
  *
- * This software is Copyright © 2008 Romain Raboin - romain.raboin at
- * gmail.com, and Copyright © 2012 magnum and it is hereby released to
+ * This software is Copyright (c) 2008 Romain Raboin - romain.raboin at
+ * gmail.com, and Copyright (c) 2012 magnum and it is hereby released to
  * the general public under the following terms:  Redistribution and
  * use in source and binary forms, with or without modification, are
  * permitted.
