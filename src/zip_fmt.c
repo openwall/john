@@ -2,7 +2,7 @@
  * ZIP cracker patch for JtR. Hacked together during June of 2011
  * by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.

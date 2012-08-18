@@ -1,7 +1,7 @@
 /* GPG cracker patch for JtR. Hacked together during Monsoon of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and is based on,
  *
  * pgpry - PGP private key recovery

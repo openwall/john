@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 # Original code believed to be "(c) x7d8 sap loverz, public domain" (as noted in
-# sapB_fmt_plug.c). Also Copyright © 2011, 2012 magnum, and hereby released to
+# sapB_fmt_plug.c). Also Copyright (c) 2011, 2012 magnum, and hereby released to
 # the general public under the following terms:  Redistribution and use in
 # source and binary forms, with or without modification, are permitted.
 #

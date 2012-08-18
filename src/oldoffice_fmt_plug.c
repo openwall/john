@@ -1,9 +1,9 @@
 /* Office 97-2003 cracker patch for JtR. Hacked together during May of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * Copyright © 2009, David Leblanc (http://offcrypto.codeplex.com/)
+ * Copyright (c) 2009, David Leblanc (http://offcrypto.codeplex.com/)
  *
  * License: Microsoft Public License (MS-PL)
  *

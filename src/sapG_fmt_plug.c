@@ -8,7 +8,7 @@
  * cheers: see test-cases.
  *
  * Heavily modified by magnum 2011-2012 for performance and for SIMD, OMP and
- * encodings support. Copyright © 2011, 2012 magnum, and it is hereby released
+ * encodings support. Copyright (c) 2011, 2012 magnum, and it is hereby released
  * to the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
  */

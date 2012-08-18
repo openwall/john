@@ -1,7 +1,7 @@
 /* PuTTY private key cracker patch for JtR. Hacked together during Monsoon of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
  * p-ppk-crack v0.5 made by michu@neophob.com — PuTTY private key cracker
  *

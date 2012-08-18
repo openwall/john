@@ -1,6 +1,6 @@
 /* pfx2john utility, written in June of 2012 by Dhiru Kholia.
  *
- * This software is Copyright © 212, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 212, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and it is hereby released under GPL.
 
  * pfx2john is based on crackpkcs12. crackpkcs12 is a multithreaded program

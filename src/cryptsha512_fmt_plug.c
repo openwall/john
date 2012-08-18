@@ -3,7 +3,7 @@
  * based on rawSHA256_fmt.c code and Drepper's spec at
  * http://www.akkadia.org/drepper/SHA-crypt.txt
  *
- * This  software is Copyright © 2012 magnum, and it is hereby released to the
+ * This software is Copyright (c) 2012 magnum, and it is hereby released to the
  * general public under the following terms:  Redistribution and use in source
  * and binary forms, with or without modification, are permitted.
  *

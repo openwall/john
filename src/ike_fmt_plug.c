@@ -1,7 +1,7 @@
 /* PSK cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> .
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and it is hereby released to the general public under GPL
  *
  * The IKE Scanner (ike-scan) is Copyright (C) 2003-2007 Roy Hills,
