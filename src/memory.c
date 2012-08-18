@@ -16,7 +16,7 @@
 
 unsigned int mem_saving_level = 0;
 
-// Add 'cleanup' methods for the mem_tiny_alloc.  VERY little cost, but
+// Add 'cleanup' methods for the mem_alloc_tiny.  VERY little cost, but
 // allows us to check for mem leaks easier.
 struct rm_list
 {
