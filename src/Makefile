@@ -36,7 +36,8 @@ OMPFLAGS =
 #HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+# Optionally uncomment the -m64 too.
+NVCC_FLAGS = -c -Xptxas -v -arch sm_10 #-m64
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
 
@@ -1058,6 +1059,15 @@ macosx-x86-64-opencl:
 		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
 	$(CP) opencl/*.cl ../run/
 	$(CP) opencl_*.h ../run/
+
+macosx-x86-64-cuda:
+        $(LN) x86-64.h arch.h
+        @echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+        $(MAKE) $(PROJ) \
+                JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+                CFLAGS="$(CFLAGS) -DBSD -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
+                ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+                LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -L$(NVIDIA_CUDA)/lib64 -lcudart -m64"
 
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
