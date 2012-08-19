@@ -1064,7 +1064,6 @@ static void crypt_all(int count)
 				}
 #endif
 				/* Reset stuff for full check */
-				EVP_CIPHER_CTX_init(&aes_ctx);
 				EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
 				EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 #ifdef _OPENMP
