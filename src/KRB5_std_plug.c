@@ -10,7 +10,7 @@
  *
  *  The module contains code derived or copied from the Heimdal project.
  *
- *  Copyright (c) 1997-2000 Kungliga Tekniska Högskolan
+ *  Copyright (c) 1997-2000 Kungliga Tekniska HÃ¶gskolan
  *  (Royal Institute of Technology, Stockholm, Sweden).
  *  All rights reserved.
  *
@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include "KRB5_std.h"
+#include "memory.h"
 
 #ifdef _MSC_VER
 #define inline _inline
@@ -78,7 +79,7 @@ static inline void rr13(unsigned char *buf, int len) {
         b2 = (b1 + 1) % bytes;
         buf[i] = (tmp[b1] << s1) | (tmp[b2] >> s2);
     }
-    free(tmp);
+    MEM_FREE(tmp);
 }
 // }}}
 
@@ -124,8 +125,8 @@ static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
             memmove(tmp, tmp + size, l);
         }
     } while(l != 0);
-    sfree(buf, len);
-    sfree(tmp, maxlen);
+    MEM_FREE(buf);
+    MEM_FREE(tmp);
 }
 // }}}
 
@@ -204,7 +205,7 @@ static inline void derive_key(const void *constant, int len, krb5_key *krb5key) 
     // keytype dependent post-processing
     DES3_postproc(k, nblocks * DES3_BLOCK_SIZE, krb5key);
 
-    sfree(k, nblocks * DES3_BLOCK_SIZE);
+    MEM_FREE(k);
 }
 // }}}
 
@@ -226,7 +227,7 @@ static inline void string_to_key_derived(const void *passwd, int len, krb5_key *
     DES3_postproc(tmp, DES3_KEY_BITS_BYTES, krb5key);
     derive_key("kerberos", strlen("kerberos"), krb5key);
 
-    sfree(tmp, DES3_KEY_BITS_BYTES);
+    MEM_FREE(tmp);
 }
 // }}}
 
@@ -281,7 +282,7 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
     // derive key from key
     derive_key(derive_const, sizeof(derive_const), krb5key);
 
-    free(text);
+    MEM_FREE(text);
 }
 // }}}
 

@@ -10,6 +10,7 @@
 run/*.cl
 run/calc_stat
 run/genmkvpwd
+run/gpg2john
 run/hccap2john
 run/john
 run/john.local.conf
@@ -45,3 +46,5 @@ src/generic.h
 src/john_build_rule.h
 src/para-bench
 test/
+run/opencl_cryptsha256.h
+run/opencl_rawsha512-ng.h

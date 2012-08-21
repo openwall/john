@@ -3,7 +3,7 @@
  * in 2009-2012. No copyright is claimed, and the software is hereby
  * placed in the public domain. In case this attempt to disclaim
  * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright © 2009-2012 Jim Fougeron
+ * null and void, then the software is Copyright (c) 2009-2012 Jim Fougeron
  * and it is hereby released to the general public under the following
  * terms:
  *
@@ -192,6 +192,10 @@ static Dynamic_Predicate_t Dynamic_Predicate[] =  {
 	{ "DynamicFunc__append2_fld7", DynamicFunc__append2_fld7 },
 	{ "DynamicFunc__append2_fld8", DynamicFunc__append2_fld8 },
 	{ "DynamicFunc__append2_fld9", DynamicFunc__append2_fld9 },
+	{ "DynamicFunc__append_from_last_output2_as_raw", DynamicFunc__append_from_last_output2_as_raw },
+	{ "DynamicFunc__append2_from_last_output2_as_raw", DynamicFunc__append2_from_last_output2_as_raw },
+	{ "DynamicFunc__append_from_last_output1_as_raw", DynamicFunc__append_from_last_output1_as_raw },
+	{ "DynamicFunc__append2_from_last_output1_as_raw", DynamicFunc__append2_from_last_output1_as_raw },
 	{ "DynamicFunc__SHA1_crypt_input1_append_input2_base16", DynamicFunc__SHA1_crypt_input1_append_input2_base16 },
 	{ "DynamicFunc__SHA1_crypt_input2_append_input1_base16", DynamicFunc__SHA1_crypt_input2_append_input1_base16 },
 	{ "DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16", DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 },

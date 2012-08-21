@@ -16,7 +16,6 @@ TR = tr
 SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
-LC_ALL = C
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
@@ -40,7 +39,8 @@ OMPFLAGS =
 #HAVE_GMP = -DHAVE_GMP
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10
+# Optionally uncomment the -m64 too.
+NVCC_FLAGS = -c -Xptxas -v -arch sm_10 #-m64
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
 
@@ -1061,6 +1061,15 @@ macosx-x86-64-opencl:
 	$(CP) opencl/*.cl ../run/
 	$(CP) opencl_*.h ../run/
 
+macosx-x86-64-cuda:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
+		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -L$(NVIDIA_CUDA)/lib64 -lcudart -m64"
+
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -1723,6 +1732,9 @@ SIPdump: SIPdump.o
 vncpcap2john:
 	g++ vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
 
+gpg2john:
+	g++ -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
+
 office2john:
 	$(CC) `xml2-config --cflags` `pkg-config --cflags libgsf-1` office2john.c common.o base64.o `pkg-config --libs libgsf-1` `xml2-config --libs` -o ../run/office2john
 
@@ -1752,10 +1764,10 @@ bench-t.o: bench.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_BENCH_TMP bench.c -o bench-t.o
 
 fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile
-	$(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c > fmt_externs.h
+	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c > fmt_externs.h
 
 fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile
-	$(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c > fmt_registers.h
+	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c

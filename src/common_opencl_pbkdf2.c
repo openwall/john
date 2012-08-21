@@ -8,6 +8,7 @@
 #include "common_opencl_pbkdf2.h"
 #include <string.h>
 #include <math.h>
+#include "memory.h"
 
 
 
@@ -123,9 +124,9 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	printf("Kernel Execution Speed (Higher is better):%Lf\n",exec_time_inv[pltform_no][dev_no]);
 
-	free(dcc_hash_host);
+	MEM_FREE(dcc_hash_host);
 
-	free(dcc2_hash_host);
+	MEM_FREE(dcc2_hash_host);
 
 
 }

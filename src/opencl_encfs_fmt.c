@@ -345,7 +345,7 @@ static void *get_salt(char *ciphertext)
 			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	cs.ivLength = EVP_CIPHER_iv_length( cs.blockCipher );
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *) &cs;
 }
 

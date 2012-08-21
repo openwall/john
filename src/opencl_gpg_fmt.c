@@ -290,7 +290,7 @@ static void *get_salt(char *ciphertext)
 		cs.salt[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 
@@ -454,7 +454,12 @@ static void crypt_all(int count)
 	/// Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
+#ifdef _OPENMP
+#pragma omp parallel for
 	for (index = 0; index < count; index++)
+#else
+	for (index = 0; index < count; index++)
+#endif
 	{
 	        // allocate string2key buffer
                 int res;
@@ -501,7 +506,7 @@ struct fmt_main fmt_opencl_gpg = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		gpg_tests
 	}, {
 		init,

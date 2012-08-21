@@ -3,8 +3,8 @@
  * magnum added -p mode support, using code based on libclamav
  * and OMP, AES-NI and OpenCL support.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright © 2012, magnum and it is hereby released to the general public
+ * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and Copyright (c) 2012, magnum and it is hereby released to the general public
  * under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -133,18 +133,16 @@ static unsigned char *aes_key;
 static unsigned char *aes_iv;
 
 typedef struct {
-	int type;	/* 0 = -hp, 1 = -p */
 	unsigned char salt[8];
-	/* for rar -hp mode: */
-	unsigned char saved_ct[16];
-	/* for rar -p mode: */
+	int type;	/* 0 = -hp, 1 = -p */
+	unsigned char *raw_data;
+	/* for rar -p mode only: */
 	union {
 		unsigned int w;
 		unsigned char c[4];
 	} crc;
 	unsigned long long pack_size;
 	unsigned long long unp_size;
-	unsigned char *encrypted;
 	char *archive_name;
 	long pos;
 	int method;
@@ -453,7 +451,7 @@ static void find_best_gws(int do_benchmark)
 		if (!(run_time = gws_test(num)))
 			break;
 
-		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+		SHAspeed = sha1perkey * (1000000000UL * num * VF / run_time);
 
 		if (run_time < min_time)
 			min_time = run_time;
@@ -461,7 +459,7 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 		if (do_benchmark)
 #endif
-		fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+		fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num * VF / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 #ifndef DEBUG
@@ -501,7 +499,7 @@ static void find_best_gws(int do_benchmark)
 			if (!(run_time = gws_test(num)))
 				break;
 
-			SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+			SHAspeed = sha1perkey * (1000000000UL * num * VF / run_time);
 
 			if (run_time < min_time)
 				min_time = run_time;
@@ -509,7 +507,7 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
-			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num * VF / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
 #ifndef DEBUG
@@ -540,7 +538,7 @@ static void find_best_gws(int do_benchmark)
 			if (!(run_time = gws_test(num)))
 				break;
 
-			SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+			SHAspeed = sha1perkey * (1000000000UL * num * VF / run_time);
 
 			if (run_time < min_time)
 				min_time = run_time;
@@ -548,7 +546,7 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
-			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num * VF / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
 #ifndef DEBUG
@@ -725,8 +723,9 @@ static void *get_salt(char *ciphertext)
 		rarfile.salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
 	if (rarfile.type == 0) {	/* rar-hp mode */
 		char *encoded_ct = strtok(NULL, "*");
+		rarfile.raw_data = (unsigned char*)mem_alloc_tiny(16, MEM_ALIGN_WORD);
 		for (i = 0; i < 16; i++)
-			rarfile.saved_ct[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
+			rarfile.raw_data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 	} else {
 		char *p = strtok(NULL, "*");
 		int inlined;
@@ -738,9 +737,9 @@ static void *get_salt(char *ciphertext)
 
 		/* load ciphertext. We allocate and load all files here, and
 		   they don't get unloaded until program ends */
-		rarfile.encrypted = (unsigned char*)malloc(rarfile.pack_size);
+		rarfile.raw_data = (unsigned char*)mem_alloc_tiny(rarfile.pack_size, MEM_ALIGN_WORD);
 		if (inlined) {
-			unsigned char *d = rarfile.encrypted;
+			unsigned char *d = rarfile.raw_data;
 			p = strtok(NULL, "*");
 			for (i = 0; i < rarfile.pack_size; i++)
 				*d++ = atoi16[ARCH_INDEX(p[i * 2])] * 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
@@ -754,7 +753,7 @@ static void *get_salt(char *ciphertext)
 				error();
 			}
 			fseek(fp, rarfile.pos, SEEK_SET);
-			count = fread(rarfile.encrypted, 1, rarfile.pack_size, fp);
+			count = fread(rarfile.raw_data, 1, rarfile.pack_size, fp);
 			if (count != rarfile.pack_size) {
 				fprintf(stderr, "Error loading file from archive '%s', expected %llu bytes, got %zu. Archive possibly damaged.\n", rarfile.archive_name, rarfile.pack_size, count);
 				exit(0);
@@ -766,7 +765,7 @@ static void *get_salt(char *ciphertext)
 		if (rarfile.method != 0x30)
 			rarfile.crc.w = ~rarfile.crc.w;
 	}
-	free(keep_ptr);
+	MEM_FREE(keep_ptr);
 	return (void*)&rarfile;
 }
 
@@ -783,6 +782,102 @@ static void set_salt(void *salt)
 static char *get_key(int index)
 {
 	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
+}
+
+#define ADD_BITS(n)	\
+	{ \
+		hold <<= n; \
+		bits -= n; \
+		if (bits < 25) { \
+			hold |= ((unsigned int)*next++ << (24 - bits)); \
+			bits += 8; \
+		} \
+	}
+
+#ifdef __GNUC__
+#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
+__attribute__((always_inline))
+#else
+__inline__
+#endif
+#endif
+/*
+ * This function is loosely based on JimF's check_inflate_CODE2() from
+ * pkzip_fmt. Together with the other bit-checks, we are rejecting over 96%
+ * of the candidates without resorting to a slow full check (which in turn
+ * may reject semi-early, especially if it's a PPM block)
+ *
+ * Input is the 16 decrypted bytes of RAR buffer, as-is. It also contain the
+ * first 2 bits, which have already been decoded, and have told us we had an
+ * LZ block (RAR always use dynamic Huffman table) and keepOldTable was not set.
+ *
+ * RAR use 20 x (4 bits length, optionally 4 bits zerocount), and reversed
+ * byte order.
+ */
+static int check_huffman(unsigned char *next) {
+	unsigned int bits, hold, i;
+	int left;
+	unsigned int ncount[4];
+	unsigned char *count = (unsigned char*)ncount;
+	unsigned char bit_length[20];
+	unsigned char *was = next;
+
+	hold = JOHNSWAP(*(unsigned int*)next);
+	next += 4;	// we already have the first 32 bits
+	hold <<= 2;	// we already processed 2 bits, PPM and keepOldTable
+	bits = 32 - 2;
+
+	/* First, read 20 pairs of (bitlength[, zerocount]) */
+	for (i=0 ; i < 20 ; i++) {
+		int length, zero_count;
+
+		length = hold >> 28;
+		ADD_BITS(4);
+		if (length == 15) {
+			zero_count = hold >> 28;
+			ADD_BITS(4);
+			if (zero_count == 0) {
+				bit_length[i] = 15;
+			} else {
+				zero_count += 2;
+				while (zero_count-- > 0 &&
+				       i < sizeof(bit_length) /
+				       sizeof(bit_length[0]))
+					bit_length[i++] = 0;
+				i--;
+			}
+		} else {
+			bit_length[i] = length;
+		}
+	}
+
+	/* Count the number of codes for each code length */
+	memset(count, 0, 16);
+	for (i = 0; i < 20; i++) {
+		++count[bit_length[i]];
+	}
+
+	if (next - was > 16) {
+		fprintf(stderr, "*** BUG: check_huffman() needed %lu bytes, we only have 16\n", next - was);
+		error();
+	}
+
+	count[0] = 0;
+	if (!ncount[0] && !ncount[1] && !ncount[2] && !ncount[3])
+		return 0; /* No codes at all */
+
+	left = 1;
+	for (i = 1; i < 16; ++i) {
+		left <<= 1;
+		left -= count[i];
+		if (left < 0) {
+			return 0; /* over-subscribed */
+		}
+	}
+	if (left) {
+		return 0; /* incomplete set */
+	}
+	return 1; /* Passed this check! */
 }
 
 static void crypt_all(int count)
@@ -897,13 +992,13 @@ static void crypt_all(int count)
 		EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 
 		//fprintf(stderr, "key %s\n", utf16_to_enc((UTF16*)&saved_key[index * UNICODE_LENGTH]));
-		/* AES decrypt, uses aes_iv, aes_key and saved_ct */
+		/* AES decrypt, uses aes_iv, aes_key and raw_data */
 		if (cur_file->type == 0) {	/* rar-hp mode */
 			unsigned char plain[16];
 
 			outlen = 0;
 
-			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->saved_ct, inlen);
+			EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, inlen);
 			EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 
 			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
@@ -915,7 +1010,7 @@ static void crypt_all(int count)
 				unsigned char crc_out[4];
 				unsigned char plain[0x8010];
 				unsigned long long size = cur_file->unp_size;
-				unsigned char *cipher = cur_file->encrypted;
+				unsigned char *cipher = cur_file->raw_data;
 
 				/* Use full decryption with CRC check.
 				   Compute CRC of the decompressed plaintext */
@@ -947,23 +1042,28 @@ static void crypt_all(int count)
 
 				/* Decrypt just one block for early rejection */
 				outlen = 0;
-				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->encrypted, sizeof(plain));
+				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, sizeof(plain));
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
+				//dump_stuff_msg("decrypted", plain, sizeof(plain));
 
+#if 1
+				/* Early rejection */
 				if (plain[0] & 0x80) {
+					//puts("PPM");
+					//printf("MaxOrder 0x%02x MaxMB 0x%02x\n", plain[0], plain[1]);
 					// PPM checks here.
-					if (!(plain[2] & 0x20) || // reset bit (must be set)
-					    (plain[2] & 0xc0)  || // MaxOrder must be < 64
-					    (plain[3] > 127))     // MaxMB must be < 128
+					if (!(plain[0] & 0x20) ||  // Reset bit must be set
+					    (plain[1] & 0x80))     // MaxMB must be < 128
 						goto bailOut;
 				} else {
-					// LZ checks here. TODO: Huffman table check.
-					if (plain[0] & 0x40) // keepOldTable must be unset
+					//puts("LZ");
+					// LZ checks here.
+					if ((plain[0] & 0x40) ||   // KeepOldTable can't be set
+					    !check_huffman(plain)) // Huffman table check
 						goto bailOut;
 				}
-
+#endif
 				/* Reset stuff for full check */
-				EVP_CIPHER_CTX_init(&aes_ctx);
 				EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
 				EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 #ifdef _OPENMP
@@ -978,7 +1078,7 @@ static void crypt_all(int count)
 				unpack_t->ctx = &aes_ctx;
 				unpack_t->key = &aes_key[i16];
 
-				if (rar_unpack29(cur_file->encrypted, solid, unpack_t))
+				if (rar_unpack29(cur_file->raw_data, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 bailOut:;
 			}

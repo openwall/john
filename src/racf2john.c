@@ -2,7 +2,7 @@
  * into a format suitable for use with JtR. Written in March of 2012
  * by Dhiru Kholia.
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "memory.h"
 
 static unsigned char e2a[256] = {
 	0,  1,  2,  3,156,  9,134,127,151,141,142, 11, 12, 13, 14, 15,
@@ -103,7 +104,7 @@ static void process_file(const char *filename)
 			}
 		}
 	}
-	free(buffer);
+	MEM_FREE(buffer);
 }
 
 int racf2john(int argc, char **argv)

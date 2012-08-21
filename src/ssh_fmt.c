@@ -1,7 +1,7 @@
 /* "SSH private key cracker" patch for JtR. Hacked together during
  * April of 2011 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC.
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
@@ -279,10 +279,8 @@ static void *get_salt(char *ciphertext)
 	OPENSSL_free(header);
 	OPENSSL_free(data);
 	BIO_free(bp);
-	if (copy)
-		free(copy);
-	if (decoded_data)
-		free(decoded_data);
+	MEM_FREE(copy);
+	MEM_FREE(decoded_data);
 	return (void *) &cs;
 }
 

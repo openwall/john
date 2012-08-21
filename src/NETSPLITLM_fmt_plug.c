@@ -133,10 +133,10 @@ static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *self)
 
 	if (nethalflm_valid(tmp,self)) {
 		char *cp2 = str_alloc_copy(tmp);
-		free(tmp);
+		MEM_FREE(tmp);
 		return cp2;
 	}
-	free(tmp);
+	MEM_FREE(tmp);
 	return split_fields[1];
 }
 

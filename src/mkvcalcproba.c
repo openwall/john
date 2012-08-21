@@ -1,5 +1,5 @@
 /*
- * This software is Copyright © 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  */
 
@@ -26,6 +26,7 @@
 
 #include "params.h"
 #include "mkvlib.h"
+#include "memory.h"
 
 #define C2I(c) ((unsigned int)(unsigned char)(c))
 
@@ -178,12 +179,12 @@ int main(int argc, char * * argv)
 
 	fclose(fichier);
 
-	free(proba1);
-	free(proba2);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
 
-	free(first);
+	MEM_FREE(first);
 
-	free(ligne);
+	MEM_FREE(ligne);
 
 	fprintf(stderr, "charsetsize = %d\n", charset);
 

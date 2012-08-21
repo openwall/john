@@ -1,7 +1,7 @@
 /* keepass2john utility (modified KeeCracker) written in March of 2012
  * by Dhiru Kholia. keepass2john processes input KeePass 1.x and 2.x
  * database files into a format suitable for use with JtR. This software
- * is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com> and it
+ * is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com> and it
  * is hereby released under GPL license.
  *
  * KeePass 2.x support is based on KeeCracker - The KeePass 2 Database
@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "params.h"
+#include "memory.h"
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -239,7 +240,7 @@ static void process_database(char* encryptedDatabase)
 		{
 			case EndOfHeader:
 				endReached = 1;  // end of header
-				free(pbData);
+				MEM_FREE(pbData);
 				break;
 
                         case MasterSeed:
@@ -254,7 +255,7 @@ static void process_database(char* encryptedDatabase)
 
                         case TransformRounds:
 				transformRounds = BytesToUInt64(pbData);
-				free(pbData);
+				MEM_FREE(pbData);
 				break;
 
                         case EncryptionIV:
@@ -268,7 +269,7 @@ static void process_database(char* encryptedDatabase)
 				break;
 
 			default:
-				free(pbData);
+				MEM_FREE(pbData);
 				break;
 		}
 	}
@@ -294,10 +295,10 @@ static void process_database(char* encryptedDatabase)
 	printf("*");
 	print_hex(out, 32);
 	printf("\n");
-	free(masterSeed);
-	free(transformSeed);
-	free(initializationVectors);
-	free(expectedStartBytes);
+	MEM_FREE(masterSeed);
+	MEM_FREE(transformSeed);
+	MEM_FREE(initializationVectors);
+	MEM_FREE(expectedStartBytes);
 	fclose(fp);
 }
 

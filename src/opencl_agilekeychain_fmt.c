@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and is based on agilekeychain (https://bitbucket.org/gwik/agilekeychain)
  *
  * Copyright (c) 2009 Antonin Amand <antonin.amand@gmail.com>
@@ -174,7 +174,7 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < cs.ctlen[0]; i++)
 		cs.ct[0][i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	free(keeptr);
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 

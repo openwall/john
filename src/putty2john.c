@@ -17,15 +17,12 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include "memory.h"
 
-/* #define MALLOC_LOG  do this if you suspect putty of leaking memory */
 #define smalloc(z) safemalloc(z,1)
 #define snmalloc safemalloc
 #define srealloc(y,z) saferealloc(y,z,1)
 #define snrealloc saferealloc
-#define sfree safefree
-
-static void safefree(void *);
 
 /*
  * Direct use of smalloc within the code should be avoided where
@@ -132,13 +129,6 @@ typedef struct Filename {
 
 #define PASSPHRASE_MAXLEN 512
 
-static void safefree(void *ptr)
-{
-    if (ptr) {
-        free(ptr);
-    }
-}
-
 static char header[40], *b, *encryption, *comment, *mac;
 static const char *error = NULL;
 static int i, is_mac, old_fmt;
@@ -194,13 +184,13 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 	for (i = 0; i < nlines; i++) {
 		line = read_body(fp);
 		if (!line) {
-			sfree(blob);
+			MEM_FREE(blob);
 			return NULL;
 		}
 		linelen = strlen(line);
 		if (linelen % 4 != 0 || linelen > 64) {
-			sfree(blob);
-			sfree(line);
+			MEM_FREE(blob);
+			MEM_FREE(line);
 			return NULL;
 		}
 		for (j = 0; j < linelen; j += 4) {
@@ -287,7 +277,7 @@ static int init_LAME(const Filename *filename) {
 		cipher = 0;
 		cipherblk = 1;
 	} else {
-		sfree(encryption);
+		MEM_FREE(encryption);
 		goto error;
 	}
 
@@ -303,7 +293,7 @@ static int init_LAME(const Filename *filename) {
 	if ((b = read_body(fp)) == NULL)
 		goto error;
 	i = atoi(b);
-	sfree(b);
+	MEM_FREE(b);
 	if ((public_blob = read_blob(fp, i, &public_blob_len)) == NULL)
 		goto error;
 
@@ -313,7 +303,7 @@ static int init_LAME(const Filename *filename) {
 	if ((b = read_body(fp)) == NULL)
 		goto error;
 	i = atoi(b);
-	sfree(b);
+	MEM_FREE(b);
 	if ((private_blob = read_blob(fp, i, &private_blob_len)) == NULL)
 		goto error;
 
@@ -338,16 +328,11 @@ static int init_LAME(const Filename *filename) {
 error:
 	if (fp)
 		fclose(fp);
-	if (comment)
-		sfree(comment);
-	if (encryption)
-		sfree(encryption);
-	if (mac)
-		sfree(mac);
-	if (public_blob)
-		sfree(public_blob);
-	if (private_blob)
-		sfree(private_blob);
+	MEM_FREE(comment);
+	MEM_FREE(encryption);
+	MEM_FREE(mac);
+	MEM_FREE(public_blob);
+	MEM_FREE(private_blob);
 	return 1;
 }
 
@@ -458,7 +443,7 @@ static int ssh2_userkey_encrypted(const Filename *filename, char **commentptr)
 	fclose(fp);
 	return 0;
     }
-    sfree(b);			       /* we don't care about key type here */
+    MEM_FREE(b);			       /* we don't care about key type here */
     /* Read the Encryption header line. */
     if (!read_header(fp, header) || 0 != strcmp(header, "Encryption")) {
 	fclose(fp);
@@ -472,12 +457,12 @@ static int ssh2_userkey_encrypted(const Filename *filename, char **commentptr)
     /* Read the Comment header line. */
     if (!read_header(fp, header) || 0 != strcmp(header, "Comment")) {
 	fclose(fp);
-	sfree(b);
+	MEM_FREE(b);
 	return 1;
     }
     if ((comment = read_body(fp)) == NULL) {
 	fclose(fp);
-	sfree(b);
+	MEM_FREE(b);
 	return 1;
     }
 
@@ -489,7 +474,7 @@ static int ssh2_userkey_encrypted(const Filename *filename, char **commentptr)
 	ret = 1;
     else
 	ret = 0;
-    sfree(b);
+    MEM_FREE(b);
     return ret;
 }
 
@@ -611,12 +596,12 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (comment)	sfree(comment);
-	if (encryption)	sfree(encryption);
-	if (mac)	sfree(mac);
-	if (public_blob)	sfree(public_blob);
-	if (private_blob)	sfree(private_blob);
-	if (private_blobXX) sfree(private_blobXX);
+	MEM_FREE(comment);
+	MEM_FREE(encryption);
+	MEM_FREE(mac);
+	MEM_FREE(public_blob);
+	MEM_FREE(private_blob);
+	MEM_FREE(private_blobXX);
 
 	return 0;
 }

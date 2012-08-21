@@ -1,7 +1,7 @@
 /* pfx cracker patch for JtR. Hacked together during  June of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * This software is Copyright © 2021, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2021, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
@@ -133,9 +133,8 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 	memcpy(&cs.pfx, p12, sizeof(PKCS12));
 	BIO_free(bp);
-	if (decoded_data)
-		free(decoded_data);
-	free(keeptr);
+	MEM_FREE(decoded_data);
+	MEM_FREE(keeptr);
 	return (void *) &cs;
 }
 

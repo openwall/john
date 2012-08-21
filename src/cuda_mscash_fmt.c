@@ -45,8 +45,8 @@ extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *);
 
 static void cleanup()
 {
-	free(inbuffer);
-	free(outbuffer);
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
 }
 
 static void init(struct fmt_main *self)

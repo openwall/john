@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "pdfparser.h"
+#include "memory.h"
 
 #define BUFFSIZE 256
 
@@ -398,8 +399,8 @@ static int findTrailer(FILE * file, EncData * e)
 							if (str) {
 								if (str->
 								    content)
-									free(str->content);
-								free(str);
+									MEM_FREE(str->content);
+								MEM_FREE(str);
 								str = NULL;
 							}
 
@@ -421,7 +422,7 @@ static int findTrailer(FILE * file, EncData * e)
 							    str->content;
 							e->fileIDLen =
 							    str->len;
-							free(str);
+							MEM_FREE(str);
 							return e_pos;
 						}
 					}
@@ -436,8 +437,8 @@ static int findTrailer(FILE * file, EncData * e)
 
 	if (str) {
 		if (str->content)
-			free(str->content);
-		free(str);
+			MEM_FREE(str->content);
+		MEM_FREE(str);
 	}
 
 	if (!encrypt && id)
@@ -511,8 +512,8 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 			case 'O':
 				if (str) {
 					if (str->content)
-						free(str->content);
-					free(str);
+						MEM_FREE(str->content);
+					MEM_FREE(str);
 					str = NULL;
 				}
 				str = parseRegularString(file);
@@ -523,7 +524,7 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 					    "WARNING: O-String != 32 Bytes: %d\n",
 					    str->len);
 				e->o_string = str->content;
-				free(str);
+				MEM_FREE(str);
 				str = NULL;
 				fo = true;
 				break;
@@ -547,8 +548,8 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 			case 'U':
 				if (str) {
 					if (str->content)
-						free(str->content);
-					free(str);
+						MEM_FREE(str->content);
+					MEM_FREE(str);
 					str = NULL;
 				}
 				str = parseRegularString(file);
@@ -559,7 +560,7 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 					    "WARNING: U-String != 32 Bytes: %d\n",
 					    str->len);
 				e->u_string = str->content;
-				free(str);
+				MEM_FREE(str);
 				str = NULL;
 				fu = true;
 				break;

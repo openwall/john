@@ -52,6 +52,7 @@
 #include "stdint.h"
 #include "md5.h"
 #include "sha.h"
+#include "memory.h"
 
 /* Defines */
 
@@ -420,8 +421,8 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	memcpy(cp, ni_b, ni_b_len);
 	cp += ni_b_len;
 	memcpy(cp, nr_b, nr_b_len);
-	free(ni_b);
-	free(nr_b);
+	MEM_FREE(ni_b);
+	MEM_FREE(nr_b);
 
 /* hash_r_data = g_xr | g_xi | cky_r | cky_i | sai_b | idir_b */
 	hash_r_data_len = g_xr_len + g_xi_len + cky_r_len + cky_i_len +
@@ -439,12 +440,12 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	memcpy(cp, sai_b, sai_b_len);
 	cp += sai_b_len;
 	memcpy(cp, idir_b, idir_b_len);
-	free(g_xr);
-	free(g_xi);
-	free(cky_r);
-	free(cky_i);
-	free(sai_b);
-	free(idir_b);
+	MEM_FREE(g_xr);
+	MEM_FREE(g_xi);
+	MEM_FREE(cky_r);
+	MEM_FREE(cky_i);
+	MEM_FREE(sai_b);
+	MEM_FREE(idir_b);
 /*
  *	Store the PSK parameters in the current psk list entry.
  */

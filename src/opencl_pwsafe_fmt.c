@@ -3,7 +3,7 @@
  *
  * OpenCL port by Lukas Odzioba <ukasz@openwall.net>
  *
- * This software is Copyright ÃÃÂ© 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
@@ -153,7 +153,7 @@ static void *get_salt(char *ciphertext)
 		salt_struct->hash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 		    + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
-	free(keeptr);
+	MEM_FREE(keeptr);
         alter_endianity(salt_struct->hash, 32);
 	return (void *) salt_struct;
 }

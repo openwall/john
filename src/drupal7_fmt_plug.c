@@ -1,7 +1,7 @@
 /*
  * Drupal 7 phpass variant using SHA-512 and hashes cut at 258 bits.
  *
- * This  software is Copyright © 2012 magnum, and it is hereby released to the
+ * This software is Copyright (c) 2012 magnum, and it is hereby released to the
  * general public under the following terms:  Redistribution and use in source
  * and binary forms, with or without modification, are permitted.
  *

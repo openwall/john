@@ -48,8 +48,8 @@ extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
 
 static void cleanup()
 {
-	free(inbuffer);
-	free(outbuffer);
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
 }
 
 static void init(struct fmt_main *self)

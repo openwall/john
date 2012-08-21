@@ -223,7 +223,7 @@ int main(int argc, char * * argv)
 				printf("%lld K possible passwords (%lld)\n", nbparts[0] / 1000, nbparts[0]);
 			else
 				printf("%lld possible passwords\n", nbparts[0] );
-			free(nbparts);
+			MEM_FREE(nbparts);
 		}
 		goto fin;
 	}
@@ -244,7 +244,7 @@ int main(int argc, char * * argv)
 				printf("%lld K possible passwords (%lld)\n", nbparts[0] / 1000, nbparts[0]);
 			else
 				printf("%lld possible passwords\n", nbparts[0] );
-			free(nbparts);
+			MEM_FREE(nbparts);
 		}
 		goto fin;
 	}
@@ -282,10 +282,10 @@ int main(int argc, char * * argv)
 
 	show_pwd(start, end, max_lvl, max_len);
 
-	free(nbparts);
+	MEM_FREE(nbparts);
 fin:
-	free(proba1);
-	free(proba2);
-	free(first);
+	MEM_FREE(proba1);
+	MEM_FREE(proba2);
+	MEM_FREE(first);
 	return 0;
 }

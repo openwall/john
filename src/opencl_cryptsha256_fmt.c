@@ -373,7 +373,7 @@ static void find_best_gws(void) {
                 sizeof(cl_ulong), &endTime, NULL),
                 "Failed in clGetEventProfilingInfo II");
 
-        free(tmpbuffer);
+        MEM_FREE(tmpbuffer);
         HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
             "Failed in clReleaseCommandQueue");
         HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");

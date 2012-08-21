@@ -1,7 +1,7 @@
 /* keyring2john processes input GNOME Keyring files into a format suitable for
  * use with JtR.
  *
- * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
@@ -13,6 +13,7 @@
 #include <string.h>
 #include <assert.h>
 #include "stdint.h"
+#include "memory.h"
 
 #define KEYRING_FILE_HEADER "GnomeKeyring\n\r\0\n"
 #define KEYRING_FILE_HEADER_LEN 16
@@ -188,7 +189,7 @@ static void process_file(const char *fname)
 	print_hex(to_decrypt, crypto_size);
 	printf("\n");
 	if(to_decrypt)
-		free(to_decrypt);
+		MEM_FREE(to_decrypt);
 	return;
 
 bail:

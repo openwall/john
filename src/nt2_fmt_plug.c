@@ -1,7 +1,7 @@
 /*
  * Alternate NT format, with reduced binary size
  *
- * This  software is Copyright 2011, 2012 magnum, and it is hereby released to
+ * This software is Copyright 2011, 2012 magnum, and it is hereby released to
  * the general public under the following terms:  Redistribution and use in
  * source and binary forms, with or without modification, are permitted.
  *

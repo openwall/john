@@ -3,7 +3,7 @@
  * Copyright (c) 2000-2001,2005,2006,2008 by Solar Designer and others:
  *
  * The MMX DES S-box code that this SSE2 DES S-box code is derived from
- * is by Bruce Ford and Rémi Guyomarch, originally for use in the
+ * is by Bruce Ford and RÃ©mi Guyomarch, originally for use in the
  * distributed.net clients, included here with permission.  Only minor
  * modifications have been made to their S-box code.  The optimized S-box
  * expressions are based on work by Matthew Kwan (see nonstd.c).

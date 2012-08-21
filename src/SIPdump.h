@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
+#include "memory.h"
 
 /*
  * Copyright (C) 2007  Martin J. Muench <mjm@codito.de>
@@ -74,8 +75,6 @@ typedef struct {
 	char hash[MD5_LEN_HEX + 1];
 } login_t;
 
-
-#define SAFE_DELETE(x) if(x) free(x);
 #include <stdio.h>
 
 void *Malloc(size_t);
@@ -278,7 +277,7 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 	if ((login_file = fopen(file, "r")) == NULL) {
 		fprintf(stderr, "* Cannot open dump file: %s\n",
 		    strerror(errno));
-		free(tempfile);
+		MEM_FREE(tempfile);
 		return;
 	}
 
@@ -286,7 +285,7 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 		fprintf(stderr, "* Cannot open temp file: %s\n",
 		    strerror(errno));
 		fclose(login_file);
-		free(tempfile);
+		MEM_FREE(tempfile);
 		return;
 	}
 
@@ -316,11 +315,11 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 	if (rename(tempfile, file) < 0) {
 		fprintf(stderr, "* Cannot rename tempfile to dump file: %s\n",
 		    strerror(errno));
-		free(tempfile);
+		MEM_FREE(tempfile);
 		return;
 	}
 
-	free(tempfile);
+	MEM_FREE(tempfile);
 
 	debug(("update_login_data() done"));
 }
@@ -364,7 +363,7 @@ int find_value(const char *value, const char *buffer, char *outbuf,
 
 	memset(outbuf, 0, sizeof(outbuf));
 	strncpy(outbuf, tempbuf, outbuf_len - 1);
-	free(tempbuf);
+	MEM_FREE(tempbuf);
 
 	debug(("find_value: %s'%s'", value, outbuf));
 
