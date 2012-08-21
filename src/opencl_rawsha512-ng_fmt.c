@@ -586,7 +586,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
         ALGORITHM_NAME,
         BENCHMARK_COMMENT,
         BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
+        PLAINTEXT_LENGTH + 1,
         BINARY_SIZE,
         SALT_SIZE,
         MIN_KEYS_PER_CRYPT,
