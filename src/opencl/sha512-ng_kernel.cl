@@ -16,11 +16,12 @@
 
 #if no_byte_addressable(DEVICE_INFO)
     #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
+    #define BUFFER      ctx_buffer->buffer->mem_32
 #else
     #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
+    #define BUFFER      ctx_buffer->buffer->mem_08
 #endif
+#define MEMORY         __local
 
 __constant uint64_t k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
@@ -45,7 +46,8 @@ __constant uint64_t k[] = {
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL,
 };
 
-void init_ctx(sha512_ctx * ctx) {
+void init_ctx(        sha512_ctx        * ctx,
+              MEMORY  sha512_ctx_buffer * ctx_buffer) {
     ctx->H[0] = 0x6a09e667f3bcc908UL;
     ctx->H[1] = 0xbb67ae8584caa73bUL;
     ctx->H[2] = 0x3c6ef372fe94f82bUL;
@@ -54,15 +56,15 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->H[5] = 0x9b05688c2b3e6c1fUL;
     ctx->H[6] = 0x1f83d9abfb41bd6bUL;
     ctx->H[7] = 0x5be0cd19137e2179UL;
-    ctx->buflen = 0;
+    ctx_buffer->buflen = 0;
 }
 
-inline void memcpy(               uint8_t * dest,
-                     __global const uint8_t * src,
-                     const uint32_t srclen) {
+inline void memcpy(MEMORY         uint8_t * dest,
+                   __global const uint8_t * src,
+                   const uint32_t srclen) {
     int i = 0;
 
-    uint64_t * l = (uint64_t *) dest;
+    MEMORY uint64_t * l = (MEMORY uint64_t *) dest;
     __global uint64_t * s = (__global uint64_t *) src;
 
     while (i < srclen) {
@@ -71,7 +73,8 @@ inline void memcpy(               uint8_t * dest,
     }
 }
 
-void sha512_block(sha512_ctx * ctx) {
+void sha512_block(        sha512_ctx        * ctx,
+                  MEMORY  sha512_ctx_buffer * ctx_buffer) {
 #define  a   ctx->H[0]
 #define  b   ctx->H[1]
 #define  c   ctx->H[2]
@@ -86,7 +89,7 @@ void sha512_block(sha512_ctx * ctx) {
 
     #pragma unroll
     for (int i = 0; i < 16; i++)
-        w[i] = SWAP64(ctx->buffer->mem_64[i]);
+        w[i] = SWAP64(ctx_buffer->buffer->mem_64[i]);
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
@@ -120,29 +123,30 @@ void sha512_block(sha512_ctx * ctx) {
     }
 }
 
-void insert_to_buffer(         sha512_ctx    * ctx,
-                        __global const uint8_t * string,
-                                 const uint32_t len) {
+void insert_to_buffer(MEMORY   sha512_ctx_buffer * ctx_buffer,
+                      __global const uint8_t     * string,
+                               const uint32_t      len) {
 
-    memcpy(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
-    ctx->buflen += len;
+    memcpy(ctx_buffer->buffer->mem_08, string, len);
+    ctx_buffer->buflen += len;
 }
 
-void ctx_update(         sha512_ctx * ctx,
-                  __global uint8_t    * string, uint32_t len) {
+void ctx_update(MEMORY   sha512_ctx_buffer * ctx_buffer,
+                __global uint8_t           * string, 
+                         const uint32_t      len) {
 
-    insert_to_buffer(ctx, string, len);
+    insert_to_buffer(ctx_buffer, string, len);
 }
 
-void ctx_append_1(sha512_ctx * ctx) {
+void ctx_append_1(MEMORY sha512_ctx_buffer * ctx_buffer) {
 
-    uint32_t length = ctx->buflen;
+    uint32_t length = ctx_buffer->buflen;
     PUT(BUFFER, length, 0x80);
 
     while (++length & 7)
         PUT(BUFFER, length, 0);
 
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+    MEMORY uint64_t * l = (MEMORY uint64_t *) (ctx_buffer->buffer->mem_08 + length);
 
     while (length < 128) {
         *l++ = 0;
@@ -150,38 +154,39 @@ void ctx_append_1(sha512_ctx * ctx) {
     }
 }
 
-void ctx_add_length(sha512_ctx * ctx) {
+void ctx_add_length(MEMORY sha512_ctx_buffer * ctx_buffer) {
 
-    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->buflen * 8));
+    ctx_buffer->buffer->mem_64[15] = SWAP64((uint64_t) (ctx_buffer->buflen * 8));
 }
 
-void finish_ctx(sha512_ctx * ctx) {
+void finish_ctx(MEMORY sha512_ctx_buffer * ctx_buffer) {
 
-    ctx_append_1(ctx);
-    ctx_add_length(ctx);
+    ctx_append_1(ctx_buffer);
+    ctx_add_length(ctx_buffer);
 }
 
-void clear_ctx_buffer(sha512_ctx * ctx) {
+void clear_ctx_buffer(MEMORY sha512_ctx_buffer * ctx_buffer) {
 
     #pragma unroll
     for (int i = 0; i < 16; i++)
-        ctx->buffer->mem_64[i] = 0;
+        ctx_buffer->buffer->mem_64[i] = 0;
 
-    ctx->buflen = 0;
+    ctx_buffer->buflen = 0;
 }
 
-void sha512_crypt(__global sha512_password * keys_data,
-                           sha512_ctx      * ctx) {
+void sha512_crypt(__global sha512_password   * keys_data,
+                           sha512_ctx        * ctx,
+                  MEMORY   sha512_ctx_buffer * ctx_buffer) {
 #define pass        keys_data->pass->mem_08
 #define passlen     keys_data->length
 
-    init_ctx(ctx);
+    init_ctx(ctx, ctx_buffer);
 
-    ctx_update(ctx, pass, passlen);
-    finish_ctx(ctx);
+    ctx_update(ctx_buffer, pass, passlen);
+    finish_ctx(ctx_buffer);
 
     /* Run the collected hash value through SHA512. */
-    sha512_block(ctx);
+    sha512_block(ctx, ctx_buffer);
 }
 
 __kernel
@@ -189,16 +194,18 @@ void kernel_crypt(__global   sha512_password * keys_buffer,
                   __global   uint64_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
-    sha512_ctx     ctx;
+    sha512_ctx                 ctx;
+    MEMORY sha512_ctx_buffer   ctx_buffer[128];
 
     //Get the task to be done
     size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
 
     //Do the job
-    sha512_crypt(&keys_buffer[gid], &ctx);
+    sha512_crypt(&keys_buffer[gid], &ctx, &ctx_buffer[lid]);
 
     //Save parcial results.
-    out_buffer[gid] = (int) ctx.H[0];
+    out_buffer[gid] = ctx.H[0];
 }
 
 __kernel
@@ -212,7 +219,7 @@ void kernel_cmp(__global   uint64_t        * partial_hash,
     size_t gid = get_global_id(0);
 
     //Compare with partial computed hash.
-    if (((int)*partial_binary) == partial_hash[gid]) {
+    if (*partial_binary == partial_hash[gid]) {
         //Barrier point. FIX IT
         *result = 1;
     }
