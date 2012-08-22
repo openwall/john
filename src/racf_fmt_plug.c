@@ -62,6 +62,28 @@ static unsigned char a2e[256] = {
 	220,221,222,223,234,235,236,237,238,239,250,251,252,253,254,255
 };
 
+/* This is a2e[] with each entry XOR 0x55, left-shifted one bit
+   and finally with odd parity so that DES_set_key_unchecked
+   can be used directly.  This provides about 15% speed up.    */
+static unsigned char a2e_precomputed[256] = {
+	 171, 168, 174, 173, 196, 241, 247, 244, 134, 161, 224, 188, 179, 176, 182, 181,
+	 138, 137, 143, 140, 211, 208, 206, 230, 155, 152, 213, 229, 146, 145, 151, 148,
+	  42,  52,  84,  93,  28, 115,  11,  81,  49,  16,  19,  55, 124, 107,  61, 104,
+	  74,  73,  79,  76,  67,  64,  70,  69,  91,  88,  94,  22,  50,  87, 118, 117,
+	  82,  41,  47,  44,  35,  32,  38,  37,  59,  56,   8,  14,  13,   2,   1,   7,
+	   4,  26,  25, 110, 109,  98,  97, 103, 100, 122, 121,  62, 107,  31,  21, 112,
+	  88, 168, 174, 173, 162, 161, 167, 164, 186, 185, 137, 143, 140, 131, 128, 134,
+	 133, 155, 152, 239, 236, 227, 224, 230, 229, 251, 248,  42, 127,  11, 233, 164,
+	 234, 233, 239, 236, 227, 128, 167, 133, 251, 248, 254, 253, 242, 185, 191, 157,
+	 203, 200, 158, 205, 194, 193, 199, 186, 218, 217, 223, 220, 162, 131, 214, 104,
+	  41,  47,  44,  35,  32,  38,  37,  59,  56,   8,  14,  13,   2,   1,   7,   4,
+	  26,  25, 110, 109,  98,  97, 103, 100, 122, 121,  74,  73,  79,  76,  67,  64,
+	  70,  69,  91, 171, 191, 188, 179, 176, 182, 181, 138, 158, 157, 146, 145, 151,
+	 148, 234, 254, 253, 242, 241, 247, 244, 203, 200, 206, 205, 194, 193, 199, 196,
+	 218, 217, 223, 220, 211, 208, 214, 213,  62,  61,  50,  49,  55,  52,  31,  28,
+	  19,  16,  22,  21, 127, 124, 115, 112, 118, 117,  94,  93,  82,  81,  87,  84
+};
+
 /* in-place ascii2ebcdic conversion */
 static void ascii2ebcdic(unsigned char *str)
 {
@@ -77,19 +99,6 @@ static void process_userid(unsigned char *str)
 	int i;
 	for (i = strlen((const char*)str); i < 8; ++i)
 		str[i] = 0x40;
-	str[8] = 0; /* terminate string */
-}
-
-static void process_key(unsigned char *str)
-{
-	int i;
-	/* replace missing characters in key by EBCDIC spaces (0x40) */
-	for (i = strlen((const char*)str); i < 8; ++i)
-		str[i] = 0x40;
-	for (i = 0; i < 8; ++i) {
-		str[i] = str[i] ^ 0x55; /* obfuscate by XOR'ing */
-		str[i] = str[i] << 1; /* left-shift bit which is mostly 1 */
-	}
 	str[8] = 0; /* terminate string */
 }
 
@@ -210,18 +219,22 @@ static void crypt_all(int count)
 #endif
 	{
 		DES_cblock des_key;
-		unsigned char key[PLAINTEXT_LENGTH+1];
 		DES_key_schedule schedule;
 		DES_cblock ivec;
-		strcpy((char*)key, saved_key[index]);
+		int i;
+
 		/* process key */
-		ascii2ebcdic(key);
-		process_key(key);
-		memcpy(des_key, key, 8);
-		memset(ivec, 0, 8);
-		DES_set_odd_parity(&des_key);
-		DES_set_key_checked(&des_key, &schedule);
+		for(i = 0; saved_key[index][i]; i++)
+			des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
+
+		/* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */
+		while(i < 8)
+			des_key[i++] = 0x2a;
+
+		DES_set_key_unchecked(&des_key, &schedule);
+
 		/* do encryption */
+		memset(ivec, 0, 8);
 		DES_cbc_encrypt(cur_salt->userid, (unsigned char*)crypt_out[index], 8, &schedule, &ivec, DES_ENCRYPT);
 	}
 }
@@ -270,9 +283,13 @@ struct fmt_main racf_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+#if FMT_MAIN_VERSION > 9
+                DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+#if FMT_MAIN_VERSION > 9
+                DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -284,7 +301,9 @@ struct fmt_main racf_fmt = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
