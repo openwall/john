@@ -225,7 +225,7 @@ static void crypt_all(int count)
 
 		/* process key */
 		for(i = 0; saved_key[index][i]; i++)
-			des_key[i] = a2e_precomputed[saved_key[index][i]];
+			des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
 
 		/* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */
 		while(i < 8)
@@ -283,7 +283,13 @@ struct fmt_main racf_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+                DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+                DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -295,6 +301,9 @@ struct fmt_main racf_fmt = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
