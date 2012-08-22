@@ -7,7 +7,7 @@
  * Modified by Mathieu Perrin (mathieu at tpfh.org) 09/06
  * Microsoft MS-SQL05 password cracker
  *
- * UTF-8 support and use of intrinsics by magnum 2011, same terms as above
+ * UTF-8 support by magnum 2011, same terms as above
  *
  * Creating MS SQL 2012 hashes:
  *
@@ -103,8 +103,7 @@ static void * get_salt(char * ciphertext)
 	return out2;
 }
 
-static void set_key_CP(char *_key, int index);
-static void set_key_utf8(char *_key, int index);
+static void set_key_enc(char *_key, int index);
 
 static void init(struct fmt_main *self)
 {
@@ -119,20 +118,20 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	key_length = mem_calloc_tiny(sizeof(*key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	if (options.utf8) {
-		self->methods.set_key = set_key_utf8;
+		self->methods.set_key = set_key_enc;
 		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 	}
 	else if (options.iso8859_1 || options.ascii) {
 		; // do nothing
 	}
 	else {
-		self->methods.set_key = set_key_CP;
+		self->methods.set_key = set_key_enc;
 	}
 }
 
-// ISO-8859-1 to UCS-2, directly into vector key buffer
 static void set_key(char *_key, int index)
 {
+	/* ASCII or ISO-8859-1 to UCS-2 */
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = (UTF16*)saved_key[index];
 	for (key_length[index] = 0; s[key_length[index]]; key_length[index]++)
@@ -142,24 +141,13 @@ static void set_key(char *_key, int index)
 
 }
 
-// Legacy codepage to UCS-2, directly into vector key buffer
-static void set_key_CP(char *_key, int index)
+static void set_key_enc(char *_key, int index)
 {
+	/* UTF-8 or legacy codepage to UCS-2 */
 	key_length[index] = enc_to_utf16((UTF16*)saved_key[index], PLAINTEXT_LENGTH + 1,
 	                          (unsigned char*)_key, strlen(_key));
 	if (key_length[index] <= 0)
 		key_length[index] = strlen16((UTF16*)saved_key[index]);
-	key_length[index] <<= 1;
-}
-
-// UTF-8 to UCS-2, directly into vector key buffer
-static void set_key_utf8(char *_key, int index)
-{
-	key_length[index] = utf8_to_utf16((UTF16*)saved_key[index], PLAINTEXT_LENGTH + 1,
-	                           (unsigned char*)_key, strlen(_key));
-	if (key_length[index] <= 0)
-		key_length[index] = strlen16((UTF16*)saved_key[index]);
-
 	key_length[index] <<= 1;
 }
 
@@ -234,7 +222,8 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static int salt_hash(void *salt)
 {
-	// This gave much better distribution on a huge set I analysed
+	// The >> 8 gave much better distribution on a huge set I analysed
+	// although that was mssql05
 	return (*((ARCH_WORD_32 *)salt) >> 8) & (SALT_HASH_SIZE - 1);
 }
 
