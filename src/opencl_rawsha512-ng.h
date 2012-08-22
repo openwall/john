@@ -51,9 +51,10 @@
 //Constants.
 #define PLAINTEXT_LENGTH        24
 #define PLAINTEXT_TEXT          "24"
-#define CIPHERTEXT_LENGTH	128
+#define CIPHERTEXT_LENGTH       128
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
-#define BINARY_SIZE             64
+#define BINARY_SIZE             8
+#define FULL_BINARY_SIZE        64
 #define SALT_SIZE               0
 #define STEP                    65536
 
