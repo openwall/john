@@ -45,6 +45,9 @@ static int hash_found;
 static struct fmt_tests tests[] = {
     {"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
     {"$SHA512$fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
+#ifdef DEBUG //Special test cases.
+    {"2c80f4c2b3db6b677d328775be4d38c8d8cd9a4464c3b6273644fb148f855e3db51bc33b54f3f6fa1f5f52060509f0e4d350bb0c7f51947728303999c6eff446", "john-user"},    
+#endif      
     {NULL}
 };
 
@@ -57,7 +60,7 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 static uint64_t get_partial_binary(void * binary) {
     uint64_t * b = (uint64_t *) binary;
 
-    return (SWAP64(b[3]) - 0xa54ff53a5f1d36f1UL);
+    return (SWAP64(b[3]) - 0xa54ff53a5f1d36f1ULL);
 }
 
 static size_t get_task_max_work_group_size(){
@@ -322,12 +325,12 @@ static void find_best_gws(void) {
                     num, (long) (num / (run_time / 1000000000.)),
                     (float) run_time / 1000000.);
 
-            if (run_time > 5000000000UL) {
+            if (run_time > 5000000000ULL) {
                 fprintf(stderr, " - too slow\n");
                 break;
             }
         } else {
-            if (run_time > min_time * 10 || run_time > 5000000000UL)
+            if (run_time > min_time * 10 || run_time > 5000000000ULL)
                 break;
         }
         if (((long) SHAspeed - bestSHAspeed) > 10000) {
@@ -480,10 +483,6 @@ static void crypt_all(int count) {
 
 /* ------- Compare functins ------- */
 static int cmp_all(void * binary, int count) {
-    return 1;
-}
-
-static int cmp_one(void *binary, int index) {
     uint64_t partial_binary;
 
     partial_binary = get_partial_binary(binary);
@@ -514,6 +513,10 @@ static int cmp_one(void *binary, int index) {
     HANDLE_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 
     return hash_found;
+}
+
+static int cmp_one(void *binary, int index) {
+    return (calculated_hash[index] == get_partial_binary(binary));
 }
 
 static int cmp_exact(char *source, int index) {
@@ -590,7 +593,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
         ALGORITHM_NAME,
         BENCHMARK_COMMENT,
         BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
+        PLAINTEXT_LENGTH + 1,
         BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,

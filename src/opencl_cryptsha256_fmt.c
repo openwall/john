@@ -389,12 +389,12 @@ static void find_best_gws(void) {
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
-            if (run_time > 10000000000UL) {
+            if (run_time > 10000000000ULL) {
                 fprintf(stderr, " - too slow\n");
                 break;
             }
         } else {
-            if (run_time > min_time * 10 || run_time > 10000000000UL)
+            if (run_time > min_time * 10 || run_time > 10000000000ULL)
                 break;
         }
         if (SHAspeed > (1.01 * bestSHAspeed)) {

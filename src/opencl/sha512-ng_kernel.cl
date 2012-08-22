@@ -198,7 +198,7 @@ void kernel_crypt(__global   sha512_password * keys_buffer,
     sha512_crypt(&keys_buffer[gid], &ctx);
 
     //Save parcial results.
-    out_buffer[gid] = ctx.H[0];
+    out_buffer[gid] = (int) ctx.H[0];
 }
 
 __kernel
@@ -212,7 +212,7 @@ void kernel_cmp(__global   uint64_t        * partial_hash,
     size_t gid = get_global_id(0);
 
     //Compare with partial computed hash.
-    if (*partial_binary == partial_hash[gid]) {
+    if (((int)*partial_binary) == partial_hash[gid]) {
         //Barrier point. FIX IT
         *result = 1;
     }

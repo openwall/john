@@ -858,7 +858,7 @@ static int check_huffman(unsigned char *next) {
 	}
 
 	if (next - was > 16) {
-		fprintf(stderr, "*** BUG: check_huffman() needed %lu bytes, we only have 16\n", next - was);
+		fprintf(stderr, "*** BUG: check_huffman() needed %u bytes, we only have 16\n", (int)(next - was));
 		error();
 	}
 
