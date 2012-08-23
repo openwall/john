@@ -254,7 +254,7 @@ static void find_best_gws(void) {
         if (! do_benchmark)
             advance_cursor();
 
-        tmpbuffer = malloc(sizeof(sha512_hash) * num);
+        tmpbuffer = mem_alloc(sizeof(sha512_hash) * num);
 
         if (tmpbuffer == NULL) {
             fprintf (stderr, "Malloc failure in find_best_gws\n");
@@ -276,7 +276,7 @@ static void find_best_gws(void) {
         ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
                 1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
         HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
-                sizeof(uint64_t) * num, tmpbuffer, 0, NULL, NULL),
+                sizeof(uint32_t) * num, tmpbuffer, 0, NULL, NULL),
                 "Failed in clEnqueueReadBuffer");
         HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
