@@ -205,7 +205,7 @@ void kernel_crypt(__global   sha512_password * keys_buffer,
 __kernel
 void kernel_cmp(__global   uint32_t        * partial_hash,
                 __constant uint32_t        * partial_binary,
-	        __global   int             * result) {
+                __global   int             * result) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
