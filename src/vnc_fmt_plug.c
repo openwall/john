@@ -153,7 +153,7 @@ static void crypt_all(int count)
 		unsigned char encrypted_challenge[16] = { 0 };
 		/* process key */
 		for(i = 0; i < strlen((const char*)saved_key[index]); i++)
-			des_key[i] = bit_flip[saved_key[index][i]];
+			des_key[i] = bit_flip[ARCH_INDEX(saved_key[index][i])];
 		memset(ivec, 0, 8);
 		DES_set_key_unchecked(&des_key, &schedule);
 		/* do encryption */
@@ -212,7 +212,13 @@ struct fmt_main vnc_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -224,6 +230,9 @@ struct fmt_main vnc_fmt = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			fmt_default_binary_hash
 		},
