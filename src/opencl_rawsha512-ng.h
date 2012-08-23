@@ -49,8 +49,8 @@
 #define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Constants.
-#define PLAINTEXT_LENGTH        24
-#define PLAINTEXT_TEXT          "24"
+#define PLAINTEXT_LENGTH        32
+#define PLAINTEXT_TEXT          "32"
 #define CIPHERTEXT_LENGTH       128
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             8

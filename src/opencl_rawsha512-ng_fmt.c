@@ -438,7 +438,7 @@ static void * get_binary(char *ciphertext) {
         p += 2;
     }
     b = (uint64_t *) out;
-    b[0] = (int) (SWAP64(b[3]) - 0xa54ff53a5f1d36f1ULL);
+    b[0] = (unsigned long long) SWAP64(b[3]) - 0xa54ff53a5f1d36f1ULL;
 
     return out;
 }
