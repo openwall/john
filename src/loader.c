@@ -296,7 +296,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		/* Re-introduce the previously removed uid field */
 		if (source) {
 			int shift = strlen(uid);
-			memmove(source + shift, source, strlen(source) + 1);
+			memmove(source + shift + 1, source, strlen(source) + 1);
 			memcpy(source, uid, shift);
 			source[shift] = ':';
 		}
