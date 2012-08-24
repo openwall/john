@@ -124,7 +124,7 @@ static int sub_allocator_start_sub_allocator(sub_allocator_t *sub_alloc, int sa_
 	/* Allow for aligned access requirements */
 	alloc_size += UNIT_SIZE;
 #endif
-	if ((sub_alloc->heap_start = (unsigned char *) mem_alloc(alloc_size)) == NULL) {
+	if ((sub_alloc->heap_start = (unsigned char *) rar_malloc(alloc_size)) == NULL) {
 		rar_dbgmsg("sub_alloc start failed\n");
 		return 0;
 	}
