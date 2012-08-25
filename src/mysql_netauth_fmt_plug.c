@@ -122,14 +122,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02X", str[i]);
-	printf("\n");
-}
-
 static void crypt_all(int count)
 {
 	int index = 0;
@@ -204,7 +196,13 @@ struct fmt_main mysqlna_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -216,6 +214,9 @@ struct fmt_main mysqlna_fmt = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
