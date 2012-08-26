@@ -310,7 +310,7 @@ static void find_best_gws(void) {
             min_time = run_time;
 
         if (do_benchmark) {
-            fprintf(stderr, "gws: %8zu\t%8lu c/s %8.3f ms per crypt_all()",
+            fprintf(stderr, "gws: %8zu\t%12lu c/s %8.3f ms per crypt_all()",
                     num, (long) (num / (run_time / 1000000000.)),
                     (float) run_time / 1000000.);
 
