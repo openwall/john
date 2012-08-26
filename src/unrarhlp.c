@@ -28,7 +28,7 @@ static void rar_dbgmsg(const char* fmt,...){}
 
 #define RAR_MAX_ALLOCATION 184549376
 
-inline void *rar_malloc(size_t size)
+void *rar_malloc(size_t size)
 {
 	if(!size || size > (size_t)RAR_MAX_ALLOCATION) {
 #ifdef DEBUG
@@ -41,7 +41,7 @@ inline void *rar_malloc(size_t size)
 	return mem_alloc(size);
 }
 
-inline void *rar_realloc2(void *ptr, size_t size)
+void *rar_realloc2(void *ptr, size_t size)
 {
 	void *alloc;
 
