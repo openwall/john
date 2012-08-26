@@ -1,7 +1,7 @@
 /* DMG cracker patch for JtR. Hacked together during August of 2012
  * by Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * This software is Copyright © 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * This software is Copyright © 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  * and is based on "dmg.c" from
  *
  * hashkill - a hash cracking tool
@@ -336,90 +336,51 @@ static int hash_plugin_check_hash(const char *password)
 		HMAC_Update(&hmacsha1_ctx, (void *) &cur_salt->cno, 4);
 		HMAC_Final(&hmacsha1_ctx, iv, (unsigned int *) &mdlen);
 		HMAC_CTX_cleanup(&hmacsha1_ctx);
-		if (cur_salt->encrypted_keyblob_size == 48) {
+		if (cur_salt->encrypted_keyblob_size == 48)
 			AES_set_decrypt_key(aes_key_, 128, &aes_decrypt_key);
-			AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
-			r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
-			if(r) {
-				unsigned int *u32Version = (unsigned int *)(r + 4);
-				/* handle compressed DMG files, CMIYC 2012 and self-made samples */
-#ifdef DEBUG
-				fprintf(stderr, "koly found!\n");
-#endif
-				if(HTONL(*u32Version) == 4)
-					return 1;
-			}
-			if(_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
-				/* handle VileFault sample images */
-#ifdef DEBUG
-				fprintf(stderr, "EFI PART found!\n");
-#endif
-				return 1;
-			}
-			if(cur_salt->scp == 1) {
-				HMAC_CTX_init(&hmacsha1_ctx);
-				HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
-				HMAC_Update(&hmacsha1_ctx, (void *) &cno, 4);
-				HMAC_Final(&hmacsha1_ctx, iv, (unsigned int *) &mdlen);
-				HMAC_CTX_cleanup(&hmacsha1_ctx);
-				AES_set_decrypt_key(aes_key_, 128, &aes_decrypt_key);
-				AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-				if(_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
-#ifdef DEBUG
-					fprintf(stderr, "Apple found!\n");
-#endif
-					return 1;
-				}
-				if(_memmem(outbuf, cur_salt->data_size, (void*)"Press any key to reboot", 23)) {
-#ifdef DEBUG
-					fprintf(stderr, "MS-DOS UDRW signature found!\n");
-#endif
-					return 1;
-				}
-
-			}
-		}
-		else {
+		else
 			AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
-			AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
-			r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
-			if(r) {
-				unsigned int *u32Version = (unsigned int *)(r + 4);
-				/* handle compressed DMG files, CMIYC 2012 and self-made samples */
+		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
+		r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
+		if(r) {
+			unsigned int *u32Version = (unsigned int *)(r + 4);
+			/* handle compressed DMG files, CMIYC 2012 and self-made samples */
 #ifdef DEBUG
-				fprintf(stderr, "AES-256 koly found!\n");
+			fprintf(stderr, "koly found!\n");
 #endif
-				if(HTONL(*u32Version) == 4)
-					return 1;
-			}
-			if(_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
-				/* handle VileFault sample images */
+			if(HTONL(*u32Version) == 4)
+				return 1;
+		}
+		if(_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
+			/* handle VileFault sample images */
 #ifdef DEBUG
-				fprintf(stderr, "AES-256 EFI PART found!\n");
+			fprintf(stderr, "EFI PART found!\n");
+#endif
+			return 1;
+		}
+		if(cur_salt->scp == 1) {
+			HMAC_CTX_init(&hmacsha1_ctx);
+			HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
+			HMAC_Update(&hmacsha1_ctx, (void *) &cno, 4);
+			HMAC_Final(&hmacsha1_ctx, iv, (unsigned int *) &mdlen);
+			HMAC_CTX_cleanup(&hmacsha1_ctx);
+			if (cur_salt->encrypted_keyblob_size == 48)
+				AES_set_decrypt_key(aes_key_, 128, &aes_decrypt_key);
+			else
+				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
+
+			AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
+			if(_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+#ifdef DEBUG
+				fprintf(stderr, "Apple found!\n");
 #endif
 				return 1;
 			}
-			if(cur_salt->scp == 1) {
-				HMAC_CTX_init(&hmacsha1_ctx);
-				HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
-				HMAC_Update(&hmacsha1_ctx, (void *) &cno, 4);
-				HMAC_Final(&hmacsha1_ctx, iv, (unsigned int *) &mdlen);
-				HMAC_CTX_cleanup(&hmacsha1_ctx);
-				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
-				AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-				if(_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+			if(_memmem(outbuf, cur_salt->data_size, (void*)"Press any key to reboot", 23)) {
 #ifdef DEBUG
-					fprintf(stderr, "Apple found!\n");
+				fprintf(stderr, "MS-DOS UDRW signature found!\n");
 #endif
-					return 1;
-				}
-				if(_memmem(outbuf, cur_salt->data_size, (void*)"Press any key to reboot", 23)) {
-#ifdef DEBUG
-					fprintf(stderr, "MS-DOS UDRW signature found!\n");
-#endif
-					return 1;
-				}
-
+				return 1;
 			}
 
 		}
