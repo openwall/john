@@ -4,9 +4,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
 
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
+#include "stdint.h"
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
