@@ -469,8 +469,8 @@ static void find_best_gws(int do_benchmark)
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 #ifndef DEBUG
 			if (do_benchmark)
-				fprintf(stderr, "!\n");
 #endif
+				fprintf(stderr, "!\n");
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
@@ -478,23 +478,23 @@ static void find_best_gws(int do_benchmark)
 			if (run_time > MaxRunTime) {
 #ifndef DEBUG
 				if (do_benchmark)
-					fprintf(stderr, "\n");
 #endif
+					fprintf(stderr, "\n");
 				break;
 			}
 
 			if (SHAspeed > bestSHAspeed) {
 #ifndef DEBUG
 				if (do_benchmark)
-					fprintf(stderr, "+");
 #endif
+					fprintf(stderr, "+");
 				bestSHAspeed = SHAspeed;
 				optimal_gws = num;
 			}
 #ifndef DEBUG
 			if (do_benchmark)
-				fprintf(stderr, "\n");
 #endif
+				fprintf(stderr, "\n");
 		}
 	}
 	if (get_device_type(gpu_id) != CL_DEVICE_TYPE_CPU) {
