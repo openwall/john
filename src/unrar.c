@@ -723,7 +723,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			rar_dbgmsg("ERROR: vm_codesize=0x%x buf_size=0x%x\n", vm_codesize, rarvm_input.buf_size);
 			return 0;
 		}
-		vm_code = (unsigned char *) mem_alloc(vm_codesize);
+		vm_code = (unsigned char *) rar_malloc(vm_codesize);
 		if(!vm_code) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for vm_code\n");
 		    return 0;
@@ -745,7 +745,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	static_size = filter->prg.static_size;
 	if (static_size > 0 && static_size < VM_GLOBALMEMSIZE) {
 		// read statically defined data contained in DB commands
-		stack_filter->prg.static_data = mem_alloc(static_size);
+		stack_filter->prg.static_data = rar_malloc(static_size);
 		if(!stack_filter->prg.static_data) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.static_data\n");
 		    return 0;
@@ -755,7 +755,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 
 	if (stack_filter->prg.global_size < VM_FIXEDGLOBALSIZE) {
 		MEM_FREE(stack_filter->prg.global_data);
-		stack_filter->prg.global_data = mem_alloc(VM_FIXEDGLOBALSIZE);
+		stack_filter->prg.global_data = rar_malloc(VM_FIXEDGLOBALSIZE);
 		if(!stack_filter->prg.global_data) {
 		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.global_data\n");
 		    return 0;
@@ -821,7 +821,7 @@ static int read_vm_code(unpack_data_t *unpack_data, const unsigned char **fd)
 		length = rar_getbits(unpack_data);
 		rar_addbits(unpack_data, 16);
 	}
-	vmcode = (unsigned char *) mem_alloc(length + 2);
+	vmcode = (unsigned char *) rar_malloc(length + 2);
 	rar_dbgmsg("VM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
@@ -870,7 +870,7 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 		}
 		length = b1*256 + b2;
 	}
-	vmcode = (unsigned char *) mem_alloc(length + 2);
+	vmcode = (unsigned char *) rar_malloc(length + 2);
 	rar_dbgmsg("VM PPM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;

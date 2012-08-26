@@ -63,7 +63,7 @@ struct UnpackFilter *rar_filter_new(void)
 {
 	struct UnpackFilter *filter;
 
-	filter = (struct UnpackFilter *) mem_alloc(sizeof(struct UnpackFilter));
+	filter = (struct UnpackFilter *) rar_malloc(sizeof(struct UnpackFilter));
 	if (!filter) {
 		return NULL;
 	}

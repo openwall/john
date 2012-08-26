@@ -196,7 +196,7 @@ unsigned int rar_crc(unsigned int start_crc, void *addr, unsigned int size)
 
 int rarvm_init(rarvm_data_t *rarvm_data)
 {
-	rarvm_data->mem = (unsigned char *) mem_alloc(RARVM_MEMSIZE+4);
+	rarvm_data->mem = (unsigned char *) rar_malloc(RARVM_MEMSIZE+4);
 	if (!rarvm_data->mem) {
 		return 0;
 	}
@@ -1083,7 +1083,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 		if (data_flag & 0x8000) {
 			int data_size = rarvm_read_data(rarvm_input)+1;
 			rar_dbgmsg("data_size=%d\n", data_size);
-			prg->static_data = mem_alloc(data_size);
+			prg->static_data = rar_malloc(data_size);
 			if(!prg->static_data) {
 			    rar_dbgmsg("unrar: rarvm_prepare: rar_malloc failed for prg->static_data\n");
 			    return 0;
