@@ -438,12 +438,17 @@ static void find_best_gws(int do_benchmark)
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = (strlen(rar_fmt.params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
+	char *conf;
+	unsigned long long int MaxRunTime = 5000000000ULL;
+
+	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "rar_MaxDuration")))
+		MaxRunTime = atoi(conf) * 1000000000UL;
 
 #ifndef DEBUG
 	if (do_benchmark)
 #endif
 	{
-		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd\n\n", local_work_size);
+		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
@@ -464,113 +469,32 @@ static void find_best_gws(int do_benchmark)
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 #ifndef DEBUG
 			if (do_benchmark)
+				fprintf(stderr, "!\n");
 #endif
-			fprintf(stderr, "!\n");
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
 
-			if (((float)run_time / (float)min_time) > 1.8 * ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
+			if (run_time > MaxRunTime) {
 #ifndef DEBUG
 				if (do_benchmark)
+					fprintf(stderr, "\n");
 #endif
-				fprintf(stderr, "\n");
 				break;
 			}
 
 			if (SHAspeed > bestSHAspeed) {
 #ifndef DEBUG
 				if (do_benchmark)
+					fprintf(stderr, "+");
 #endif
-				fprintf(stderr, "+");
 				bestSHAspeed = SHAspeed;
 				optimal_gws = num;
 			}
 #ifndef DEBUG
 			if (do_benchmark)
-#endif
-			fprintf(stderr, "\n");
-		}
-	}
-	if (do_benchmark) {
-		int got_better = 0;
-
-		for (num = optimal_gws + local_work_size; num; num += local_work_size) {
-			if (!(run_time = gws_test(num)))
-				break;
-
-			SHAspeed = sha1perkey * (1000000000UL * num * VF / run_time);
-
-			if (run_time < min_time)
-				min_time = run_time;
-
-#ifndef DEBUG
-			if (do_benchmark)
-#endif
-			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num * VF / run_time), SHAspeed, (float)run_time / 1000000000.);
-
-			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
-#ifndef DEBUG
-				if (do_benchmark)
-#endif
 				fprintf(stderr, "\n");
-				break;
-			}
-
-			if (SHAspeed > bestSHAspeed && run_time < 10000000000ULL) {
-#ifndef DEBUG
-				if (do_benchmark)
 #endif
-				fprintf(stderr, "+\n");
-				bestSHAspeed = SHAspeed;
-				optimal_gws = num;
-				got_better = 1;
-			} else {
-#ifndef DEBUG
-				if (do_benchmark)
-#endif
-				fprintf(stderr, "\n");
-				break;
-			}
-		}
-		if (!got_better)
-		for (num = optimal_gws - local_work_size; num; num -= local_work_size) {
-			if (!(run_time = gws_test(num)))
-				break;
-
-			SHAspeed = sha1perkey * (1000000000UL * num * VF / run_time);
-
-			if (run_time < min_time)
-				min_time = run_time;
-
-#ifndef DEBUG
-			if (do_benchmark)
-#endif
-			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num * VF / run_time), SHAspeed, (float)run_time / 1000000000.);
-
-			if (((float)run_time / (float)min_time) > ((float)SHAspeed / (float)bestSHAspeed) && run_time > 10000000000ULL) {
-#ifndef DEBUG
-				if (do_benchmark)
-#endif
-				fprintf(stderr, "\n");
-				break;
-			}
-
-			if (SHAspeed > bestSHAspeed && run_time < 10000000000ULL) {
-#ifndef DEBUG
-				if (do_benchmark)
-#endif
-				fprintf(stderr, "+\n");
-				bestSHAspeed = SHAspeed;
-				optimal_gws = num;
-				got_better = 1;
-			} else {
-#ifndef DEBUG
-				if (do_benchmark)
-#endif
-				fprintf(stderr, "\n");
-				break;
-			}
 		}
 	}
 	if (get_device_type(gpu_id) != CL_DEVICE_TYPE_CPU) {
