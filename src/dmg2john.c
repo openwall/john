@@ -83,6 +83,7 @@ static void hash_plugin_parse_hash(char *filename)
 	int cno;
 	int data_size;
 	unsigned char *chunk;
+	headerver = 0;
 	if (fd < 0) {
 		fprintf(stderr, "Can't open file: %s\n", filename);
 		return;
