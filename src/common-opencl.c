@@ -406,6 +406,18 @@ size_t get_max_work_group_size(int dev_id)
 	return max_group_size;
 }
 
+cl_ulong get_max_mem_alloc_size(int dev_id)
+{
+	cl_ulong max_alloc_size;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+		CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(max_alloc_size),
+		&max_alloc_size, NULL),
+	    "Error querying CL_DEVICE_MAX_MEM_ALLOC_SIZE");
+
+	return max_alloc_size;
+}
+
 size_t get_current_work_group_size(int dev_id, cl_kernel crypt_kernel)
 {
 	size_t max_group_size;

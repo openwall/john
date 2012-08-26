@@ -61,7 +61,7 @@
 #define KEYS_PER_CORE_CPU       65536
 #define KEYS_PER_CORE_GPU       512
 #define MIN_KEYS_PER_CRYPT      1024
-#define MAX_KEYS_PER_CRYPT      2048*1024+1
+#define MAX_KEYS_PER_CRYPT      2048*2048*4+1
 
 //Macros.
 #define SWAP(n) \
