@@ -52,11 +52,7 @@ void *mem_alloc(size_t size)
 	if (!size) return NULL;
 
 	if (!(res = malloc(size))) {
-#ifdef __GNUC__
-		fprintf(stderr, "%s: %s trying to allocate %zd bytes\n", __func__, strerror(ENOMEM), size);
-#else
-		fprintf(stderr, "mem_alloc: %s trying to allocate %zd bytes\n", strerror(ENOMEM), size);
-#endif
+		fprintf(stderr, "mem_alloc(): %s trying to allocate %zd bytes\n", strerror(ENOMEM), size);
 		error();
 	}
 
