@@ -36,6 +36,8 @@ static int omp_t = 1;
 
 static struct fmt_tests mysqlna_tests[] = {
 	{"$mysqlna$2D52396369653E4626293B2F75244D3871507A39*7D63098BEE381A51AA6DF11E307E46BD4F8B6E0C", "openwall"},
+	{"$mysqlna$615c2b5e79656f7d4931594e5b5d416c7b483365*c3a70da2874db890eb2f0a5e3ea80b2ed17da0d0", "openwall"},
+	{"$mysqlna$295a687c59275452214b366b39776d3f31757b2e*7343f45c94cccd646a1b29bbfad064a9ee5c0380", "overlord magnum"},
 	{NULL}
 };
 
