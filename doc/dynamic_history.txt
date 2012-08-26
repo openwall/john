@@ -126,4 +126,18 @@ the dynamic_fmt.c file. But once done, they will get moved here.
  * Renamed and changed from md5_gen* to dynamic*.  We handle MD5 and SHA1
  * at the present time.  More crypt types 'may' be added later.
  *
+ * Spring 2012:
+ * Added many new crypts.  SHA2 (sha224,256,384,512), GOST, WHIRLPOOL
+ *
+ * Summer 2012:
+ * Added (or changed) the larger hash output methods. Original code ONLY 
+ * allowed lowercase base16 writing.  Now, after the crypt, the overwrite
+ * or append output can be done in:  base-16, base-16-uc, base-64 (MIME)
+ * base-64 with no trailing '=' chars, or raw.  Adding new output 'types' 
+ * should be easy to do.  All of the original primative dynamic functions
+ * have been kept (depricated), and new functions were added.  There are
+ * a few output format setters also added.  The default output format
+ * (at the start of crypt_all) is base-16, which is what it was before.
+ * however, the new code allows that to be changed, within a format.
+ *
 

@@ -62,7 +62,7 @@ use MIME::Base64;
 #############################################################################
 my @funcs = (qw(DES BigCrypt BSDI MD5_1 MD5_a BF BFx BFegg RawMD5 RawMD5u
 		RawSHA1 RawSHA1u msCash LM NT pwdump RawMD4 PHPass PO hmacMD5
-		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 nsldap
+		IPB2 PHPS MD4p MD4s SHA1p SHA1s mysqlSHA1 pixMD5 MSSql05 MSSql12 nsldap
 		nsldaps ns XSHA mskrb5 mysql mssql_no_upcase_change mssql oracle
 		oracle_no_upcase_change oracle11 hdaa netntlm_ess openssha
 		l0phtcrack netlmv2 netntlmv2 mschapv2 mscash2 mediawiki crc_32
@@ -1048,6 +1048,11 @@ sub pixmd5 {
 		$h .= $i64[($n>>18) & 0x3f];
 	}
 	print "u$u-pixmd5:$h:$u:0:", $pass, "::\n";
+}
+sub mssql12 {
+	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
+	print "u$u-mssql12:0x0200", uc saltToHex(4);
+	print uc sha512_hex(encode("UTF-16LE", $_[0]).$salt), ":$u:0:$_[0]::\n";
 }
 sub mssql05 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }

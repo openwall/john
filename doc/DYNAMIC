@@ -12,6 +12,10 @@ md5($p.$s)   (Note, . is the concatenate operator, so $p.$s is
 sha1($p)     (Note, $p is password, and sha1 is the cipher).
 sha1(md5($p)) Here we first run md5 on password, then sha1 on the
               resultant 'hex' string.
+sha512($s.sha512($p.$s).$p)  This uses a couple of calls to sha512.
+              The intermedidate results are possible to be in 
+              base-16 (or base-16 uppercase), base-64 (MIME), or
+              raw 64 bytes.
 ...
 
 Most of the above rules are php 'style' rules, but I think in php,
@@ -150,7 +154,28 @@ dynamic_31  | md4($s.$p)              | Yes   |
 dynamic_32  | md4($p.$s)              | Yes   |
 dynamic_33  | md4(unicode($p))        | No    |
 dynamic_34  | md5(md4($p))            | No    |
-
+dynamic_35  | sha1(uc($u).:.$p)       | Yes   | ManGOS
+dynamic_36  | sha1($u.:.$p)           | Yes   | ManGOS2
+dynamic_37  | sha1(lc($u).$p)         | Yes   | SMF
+dynamic_38  | sha1($s.sha1($s.sha1($p)))} YES | Wolt3BB
+dynamic_50  | sha224($p)              | No    |
+dynamic_51  | sha224($s.$p)           | Yes   |
+dynamic_52  | sha224($p.$s)           | Yes   |
+dynamic_60  | sha256($p)              | No    |
+dynamic_61  | sha256($s.$p)           | Yes   |
+dynamic_62  | sha256($p.$s)           | Yes   |
+dynamic_70  | sha384($p)              | No    |
+dynamic_71  | sha384($s.$p)           | Yes   |
+dynamic_72  | sha384($p.$s)           | Yes   |
+dynamic_80  | sha512($p)              | No    |
+dynamic_81  | sha512($s.$p)           | Yes   |
+dynamic_82  | sha512($p.$s)           | Yes   |
+dynamic_90  | GOST($p)                | No    |
+dynamic_91  | GOST($s.$p)             | Yes   |
+dynamic_92  | GOST($p.$s)             | Yes   |
+dynamic_100 | WHIRLPOOL($p)           | No    |
+dynamic_101 | WHIRLPOOL($s.$p)        | Yes   |
+dynamic_102 | WHIRLPOOL($p.$s)        | Yes   |
 ........    | RESERVED                | UNK   |
 dynamic_999 | RESERVED                | UNK   |
 
@@ -412,6 +437,20 @@ examples (this whole list is also found in dynamic.conf).
 #     the first 16 bytes compared against (vs the full 20 bytes which
 #     sha1 generates).  This 'should' be more than adequate to know
 #     you have cracked the hash.
+# MGF_SHA224_56_BYTE_FINISH
+# MGF_SHA256_64_BYTE_FINISH
+# MGF_SHA384_96_BYTE_FINISH
+# MGF_SHA512_128_BYTE_FINISH
+# MGF_GOST_64_BYTE_FINISH
+# MGF_WHIRLPOOL_128_BYTE_FINISH
+#     These are similar to the 40 byte flag for the SHA1. NOTE, calling
+#     these 'finish' flags, is actually strange, since what it really
+#     means, is the hash line CONTAINS a hash string this long.  Yes the
+#     last operation IS the type listed (such as sha1, gost, etc). But 
+#     that means that dynamic should look for valid input strings which
+#     are the appropriate length, based upon that final hash size.
+#     One off these flags MUST be used, on a format that is longer than
+#     the 16 byte MD5 (or md4) hash.
 #
 # MGF_INPBASE64a
 #     The binary input hash data format of the FreeBSD_MD5 and Apache_MD5.
@@ -692,12 +731,12 @@ examples (this whole list is also found in dynamic.conf).
 #  DynamicFunc__append2_fld0  -- to -- DynamicFunc__append2_fld9
 #     Loads data from $$F0 to $$F9 (field 0 to field 9) into input buffer 2.
 #
-# DynamicFunc__SHA1_crypt_input1_append_input2_base16
-# DynamicFunc__SHA1_crypt_input2_append_input1_base16
-# DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16
-# DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16
-# DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16
-# DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16
+# DynamicFunc__SHA1_crypt_input1_append_input2_base16    **
+# DynamicFunc__SHA1_crypt_input2_append_input1_base16    **
+# DynamicFunc__SHA1_crypt_input1_overwrite_input1_base16 **
+# DynamicFunc__SHA1_crypt_input2_overwrite_input2_base16 **
+# DynamicFunc__SHA1_crypt_input1_overwrite_input2_base16 **
+# DynamicFunc__SHA1_crypt_input2_overwrite_input1_base16 **
 # DynamicFunc__SHA1_crypt_input1_to_output1_FINAL
 # DynamicFunc__SHA1_crypt_input2_to_output1_FINAL
 #    Currently 'experimental' addition of SHA1 into the md5() syntax.  Still much work to
@@ -711,6 +750,67 @@ examples (this whole list is also found in dynamic.conf).
 #    At this time, ALL sha1 is done in non-SSE code (x86, OpenSSL). Also note, that
 #    ALL output from the SHA1 functions is directly appended or overwritten, right into
 #    an input buffer.
+#
+#    **  NOTE, these functions are depricated.  They should not be used any more.
+#        The proper usage would be to set the output format (no setting is needed
+#        IF base-16 is wanted, as that will be default), and then to call the same
+#        named function primate, but that function name is minus the _base16 part.
+#        so DynamicFunc__SHA1_crypt_input1_append_input2 would be the proper function,
+#        instead of the depricated DynamicFunc__SHA1_crypt_input1_append_input2_base16
+#
+####################
+#
+# OTHER large hash functions (SHA2 hashes, GOST, WHIRLPOOL currently)
+#
+####################
+#
+# These other large hash types, have been built like the SHA1 (listed above). They will have
+# the same 8 function primatives, and be named exactly the same as the SHA1, except they
+# will have the crypt in the function name.  The current hashes supported are:
+#     SHA224, SHA256, SHA384, SHA512, GOST, WHIRLPOOL.
+#     NOTE Whirlpool is ONLY supported in new versions of OpenSSL, so if the version of oSSL
+#     is not new enough, the whirlpool part of dynamic will NOT be compiled into JtR.
+#
+# Here is an example.  Listed will be the functions for SHA256.  NOTE all of the other types
+# will be exactly the same, just using different crypt values in the function names.
+#
+# DynamicFunc__SHA256_crypt_input1_append_input2
+# DynamicFunc__SHA256_crypt_input2_append_input1
+# DynamicFunc__SHA256_crypt_input1_overwrite_input1
+# DynamicFunc__SHA256_crypt_input2_overwrite_input2
+# DynamicFunc__SHA256_crypt_input1_overwrite_input2
+# DynamicFunc__SHA256_crypt_input2_overwrite_input1
+# DynamicFunc__SHA256_crypt_input1_to_output1_FINAL
+# DynamicFunc__SHA256_crypt_input2_to_output1_FINAL
+#
+# All of these 'large' hash functions, when used MUST end with either an MD5 or MD4 into 
+# output1, OR by using one of the *_to_output1_FINAL calls.  The ONLY call actaully 
+# has to be one of the *_to_output1_FINAL calls (if the format is a simple single
+# hash, such as SHA512($s.$p.$u)  In this case, we would simply load one of the input
+# variables with the salt, the password, and the userid, and then call a single
+# DynamicFunc__SHA256_crypt_input1_to_output1_FINAL to perform the crypt.
+#
+####################
+# Controlling the output of 'large' crypts.
+####################
+#
+# All of the 'large' crypts, have simple function primatives. These will perform the
+# crypt, and then write output to one of the 2 buffers. The output can be appeneded,
+# or overwritten.  The format this output is done in CAN be controlled. The output
+# formats are:  base-16  (0-9 and a-f), base-16 upcase (0-9 and A-F), base-64 (MIME)
+# base-64 with no 'trailing' '=' characters (the '=' is normally inserted for strings
+# that are not evenly divisible by 3). Also, 'RAW' hash value can be output.
+#
+# These are the 'helper' functions that affect large hash output.  Every call to crypt_all
+# will set base-16 to be the default output format.  These helper functions change this,
+# and once an output format it set, it 'stays' in that format, until set by another
+# helper, or at the next call to crypt_all (i.e. the format starts over again)
+#
+# DynamicFunc__LargeHash_OUTMode_base16
+# DynamicFunc__LargeHash_OUTMode_base16u
+# DynamicFunc__LargeHash_OUTMode_base64
+# DynamicFunc__LargeHash_OUTMode_base64_nte 
+# DynamicFunc__LargeHash_OUTMode_raw
 #
 ####################
 #  These are special functions written SPECIFCALLY for usage by phpass code, in builtin
