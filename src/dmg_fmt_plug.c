@@ -382,7 +382,7 @@ static int hash_plugin_check_hash(const char *password)
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
 		unsigned char outbuf[8192];
-		unsigned char iv[16];
+		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
 		pbkdf2((const unsigned char*)password, strlen(password), cur_salt->salt, 20, 1000, (unsigned int*)derived_key);
