@@ -9,6 +9,7 @@
 *.orig
 run/*.cl
 run/calc_stat
+run/dmg2john
 run/genmkvpwd
 run/gpg2john
 run/hccap2john
