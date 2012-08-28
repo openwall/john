@@ -114,6 +114,7 @@ static char *include_source(char *pathname, int dev_id)
 static void build_kernel(int dev_id)
 {
 	cl_int build_code;
+        char * build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
 	program[dev_id] =
@@ -124,21 +125,27 @@ static void build_kernel(int dev_id)
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
 	    include_source("$JOHN/", dev_id), NULL, NULL);
 
+        HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+                CL_PROGRAM_BUILD_LOG, 0, NULL,
+                &log_size), "Error while getting build info I");
+        build_log = (char *) mem_alloc((log_size + 1));
+
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
-		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
+		CL_PROGRAM_BUILD_LOG, log_size + 1, (void *) build_log,
 		NULL), "Error while getting build info");
 
 	///Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
-		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+		fprintf(stderr, "Compilation log: %s\n", build_log);
 		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #ifdef REPORT_OPENCL_WARNINGS
-	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
-		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+	else if (strlen(build_log) > 1) // Nvidia may return a single '\n' which is not that interesting
+		fprintf(stderr, "Compilation log: %s\n", build_log);
 #endif
+        MEM_FREE(build_log);
 #if 0
 	FILE *file;
 	size_t source_size;
