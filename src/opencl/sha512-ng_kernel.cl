@@ -58,8 +58,8 @@ void init_ctx(sha512_ctx * ctx) {
 }
 
 inline void memcpy(               uint8_t * dest,
-                     __global const uint8_t * src,
-                     const uint32_t srclen) {
+                   __global const uint8_t * src,
+                   const uint32_t srclen) {
     int i = 0;
 
     uint64_t * l = (uint64_t *) dest;
@@ -121,15 +121,16 @@ void sha512_block(sha512_ctx * ctx) {
 }
 
 void insert_to_buffer(         sha512_ctx    * ctx,
-                        __global const uint8_t * string,
-                                 const uint32_t len) {
+                      __global const uint8_t * string,
+                               const uint32_t  len) {
 
-    memcpy(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
+    memcpy(ctx->buffer->mem_08, string, len);
     ctx->buflen += len;
 }
 
 void ctx_update(         sha512_ctx * ctx,
-                  __global uint8_t    * string, uint32_t len) {
+                __global uint8_t    * string,
+                         uint32_t     len) {
 
     insert_to_buffer(ctx, string, len);
 }
@@ -186,7 +187,7 @@ void sha512_crypt(__global sha512_password * keys_data,
 
 __kernel
 void kernel_crypt(__global   sha512_password * keys_buffer,
-                  __global   uint64_t        * out_buffer) {
+                  __global   uint32_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
     sha512_ctx     ctx;
@@ -202,17 +203,15 @@ void kernel_crypt(__global   sha512_password * keys_buffer,
 }
 
 __kernel
-void kernel_cmp(__global   uint64_t        * partial_hash,
-                __constant sha512_hash     * complete_binary,
-                __constant uint64_t        * partial_binary,
-	        __global   int             * result,
-                __global   sha512_password * keys_buffer) {
+void kernel_cmp(__global   uint32_t        * partial_hash,
+                __constant uint32_t        * partial_binary,
+                __global   int             * result) {
 
     //Get the task to be done
     size_t gid = get_global_id(0);
 
     //Compare with partial computed hash.
-    if (((int)*partial_binary) == partial_hash[gid]) {
+    if (*partial_binary == partial_hash[gid]) {
         //Barrier point. FIX IT
         *result = 1;
     }
