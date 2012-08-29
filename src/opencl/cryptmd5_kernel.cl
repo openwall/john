@@ -82,18 +82,18 @@ typedef struct {
 __constant uint8_t cl_md5_salt_prefix[] = "$1$";
 __constant uint8_t cl_apr1_salt_prefix[] = "$apr1$";
 
-void ctx_update_global(__private md5_ctx * ctx, __global uint8_t * string,
+inline void ctx_update_global(__private md5_ctx * ctx, __global uint8_t * string,
     size_t len, uint32_t * ctx_buflen)
 {
 	uint32_t *dest = &ctx->buffer[*ctx_buflen];
 	*ctx_buflen += len;
-	int i = len;
+	unsigned int i;
 	for (i = 0; i < len; i++) {
 		dest[i] = string[i];
 	}
 }
 
-void ctx_update_private(__private md5_ctx * ctx, __private uint8_t * string,
+inline void ctx_update_private(__private md5_ctx * ctx, __private uint8_t * string,
     size_t len, uint32_t * ctx_buflen)
 {
 	uint32_t *dest = &ctx->buffer[*ctx_buflen];
@@ -102,7 +102,7 @@ void ctx_update_private(__private md5_ctx * ctx, __private uint8_t * string,
 		*dest++ = *string++;
 }
 
-void ctx_update_prefix(__private md5_ctx * ctx, uint8_t prefix,
+inline void ctx_update_prefix(__private md5_ctx * ctx, uint8_t prefix,
     uint32_t * ctx_buflen)
 {
 	uint32_t i, *dest = &ctx->buffer[*ctx_buflen];
@@ -118,7 +118,7 @@ void ctx_update_prefix(__private md5_ctx * ctx, uint8_t prefix,
 }
 
 
-void init_ctx(__private md5_ctx * ctx, uint32_t * ctx_buflen)
+inline void init_ctx(__private md5_ctx * ctx, uint32_t * ctx_buflen)
 {
 	int i = ctx_buffsize;
 	uint32_t *buf = (uint32_t *) ctx->buffer;
@@ -127,7 +127,7 @@ void init_ctx(__private md5_ctx * ctx, uint32_t * ctx_buflen)
 	*ctx_buflen = 0;
 }
 
-void md5_digest(__private md5_ctx * ctx, __private uint32_t * result,
+inline void md5_digest(__private md5_ctx * ctx, __private uint32_t * result,
     uint32_t * ctx_buflen)
 {
 	uint32_t len = *ctx_buflen;

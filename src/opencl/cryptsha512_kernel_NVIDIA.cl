@@ -39,7 +39,7 @@ __constant uint64_t k[] = {
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL,
 };
 
-void init_ctx(sha512_ctx * ctx) {
+inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = 0x6a09e667f3bcc908UL;
     ctx->H[1] = 0xbb67ae8584caa73bUL;
     ctx->H[2] = 0x3c6ef372fe94f82bUL;
@@ -52,7 +52,7 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void copy_data_to_local_memory(
+inline void copy_data_to_local_memory(
                   __constant sha512_salt     * informed_salt,
                   __global   sha512_password * pass_data,
                   __local    sha512_salt     * salt_data,
@@ -78,7 +78,7 @@ void copy_data_to_local_memory(
     mem_fence(CLK_LOCAL_MEM_FENCE);
 }
 
-void sha512_block(sha512_ctx * ctx) {
+inline void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
     uint64_t c = ctx->H[2];
@@ -135,7 +135,7 @@ void sha512_block(sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-void insert_to_buffer(sha512_ctx    * ctx,
+inline void insert_to_buffer(sha512_ctx    * ctx,
                       const uint8_t * string,
                       const uint32_t len) {
     uint8_t *d;
@@ -147,7 +147,7 @@ void insert_to_buffer(sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-void insert_to_buffer_L(        sha512_ctx    * ctx,
+inline void insert_to_buffer_L(        sha512_ctx    * ctx,
                         __local const uint8_t * string,
                                 const uint32_t len) {
     uint8_t *d;
@@ -159,7 +159,7 @@ void insert_to_buffer_L(        sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-void ctx_update(sha512_ctx * ctx,
+inline void ctx_update(sha512_ctx * ctx,
                 uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -175,7 +175,7 @@ void ctx_update(sha512_ctx * ctx,
     }
 }
 
-void ctx_update_L(        sha512_ctx * ctx,
+inline void ctx_update_L(        sha512_ctx * ctx,
                   __local uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -191,7 +191,7 @@ void ctx_update_L(        sha512_ctx * ctx,
     }
 }
 
-void ctx_append_1(sha512_ctx * ctx) {
+inline void ctx_append_1(sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUTCHAR(ctx->buffer->mem_08, length, 0x80);
@@ -212,19 +212,19 @@ void ctx_append_1(sha512_ctx * ctx) {
     }
 }
 
-void ctx_add_length(sha512_ctx * ctx) {
+inline void ctx_add_length(sha512_ctx * ctx) {
 
     ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
-void finish_ctx(sha512_ctx * ctx) {
+inline void finish_ctx(sha512_ctx * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
     ctx->buflen = 0;
 }
 
-void clear_ctx_buffer(sha512_ctx * ctx) {
+inline void clear_ctx_buffer(sha512_ctx * ctx) {
 
     #pragma unroll
     for (int i = 0; i < 16; i++)
@@ -233,7 +233,7 @@ void clear_ctx_buffer(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void sha512_digest(sha512_ctx * ctx,
+inline void sha512_digest(sha512_ctx * ctx,
                    uint64_t   * result) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
@@ -260,7 +260,7 @@ void sha512_digest(sha512_ctx * ctx,
         result[i] = SWAP64(ctx->H[i]);
 }
 
-void sha512crypt(__local  sha512_password * pass_data,
+inline void sha512crypt(__local  sha512_password * pass_data,
                  __local  sha512_salt     * salt_data,
                  __global sha512_hash     * output) {
 
@@ -339,7 +339,7 @@ void sha512crypt(__local  sha512_password * pass_data,
 #undef pass
 
 __kernel
-void kernel_crypt(__constant sha512_salt     * salt,
+inline void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __local    sha512_salt     * salt_data,

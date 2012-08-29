@@ -39,7 +39,7 @@ __constant uint64_t k[] = {
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL,
 };
 
-void init_ctx(__local sha512_ctx * ctx) {
+inline void init_ctx(__local sha512_ctx * ctx) {
     ctx->H[0] = 0x6a09e667f3bcc908UL;
     ctx->H[1] = 0xbb67ae8584caa73bUL;
     ctx->H[2] = 0x3c6ef372fe94f82bUL;
@@ -52,7 +52,7 @@ void init_ctx(__local sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void copy_data_to_local_memory(
+inline void copy_data_to_local_memory(
                   __constant sha512_salt     * informed_salt,
                   __global   sha512_password * pass_data,
                   __local    sha512_salt     * salt_data,
@@ -79,7 +79,7 @@ void copy_data_to_local_memory(
     mem_fence(CLK_LOCAL_MEM_FENCE);
 }
 
-void sha512_block(__local sha512_ctx * ctx) {
+inline void sha512_block(__local sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
     uint64_t c = ctx->H[2];
@@ -130,7 +130,7 @@ void sha512_block(__local sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-void insert_to_buffer(__local sha512_ctx    * ctx,
+inline void insert_to_buffer(__local sha512_ctx    * ctx,
                       __local const uint8_t * string,
                       const uint32_t len) {
     __local uint8_t * dest;
@@ -141,7 +141,7 @@ void insert_to_buffer(__local sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-void ctx_update(__local sha512_ctx * ctx,
+inline void ctx_update(__local sha512_ctx * ctx,
                 __local uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -157,7 +157,7 @@ void ctx_update(__local sha512_ctx * ctx,
     }
 }
 
-void ctx_append_1(__local sha512_ctx * ctx) {
+inline void ctx_append_1(__local sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUTCHAR(ctx->buffer->mem_08, length, 0x80);
@@ -178,18 +178,18 @@ void ctx_append_1(__local sha512_ctx * ctx) {
     }
 }
 
-void ctx_add_length(__local sha512_ctx * ctx) {
+inline void ctx_add_length(__local sha512_ctx * ctx) {
 
     ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
-void finish_ctx(__local sha512_ctx * ctx) {
+inline void finish_ctx(__local sha512_ctx * ctx) {
     ctx_append_1(ctx);
     ctx_add_length(ctx);
     ctx->buflen = 0;
 }
 
-void clear_ctx_buffer(__local sha512_ctx * ctx) {
+inline void clear_ctx_buffer(__local sha512_ctx * ctx) {
 
 #ifdef VECTOR_USAGE
     ulong16  w_vector = 0;
@@ -203,8 +203,8 @@ void clear_ctx_buffer(__local sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void sha512_digest(__local  sha512_ctx * ctx,
-                   __local  uint64_t   * result) {
+inline void sha512_digest(__local sha512_ctx * ctx,
+                   __local uint64_t   * result) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
         finish_ctx(ctx);
@@ -231,7 +231,7 @@ void sha512_digest(__local  sha512_ctx * ctx,
 
 }
 
-void sha512crypt(__local  working_memory * fast_tmp_memory,
+inline void sha512crypt(__local  working_memory * fast_tmp_memory,
                  __local  sha512_salt    * salt_data,
                  __global sha512_hash    * output) {
 
@@ -306,7 +306,7 @@ void sha512crypt(__local  working_memory * fast_tmp_memory,
 __kernel
 // __attribute__((vec_type_hint(ulong2)))		Not recognized.
 // __attribute__((reqd_work_group_size(32, 1, 1)))	No gain.
-void kernel_crypt(__constant sha512_salt     * salt,
+inline void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __local    sha512_salt     * salt_data,

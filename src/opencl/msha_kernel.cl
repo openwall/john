@@ -46,7 +46,7 @@ inline uint SWAP32(uint x)
 #endif
 
 
-void sha1_process(uint W[16], uint *TT){
+inline void sha1_process(uint W[16], uint *TT){
 
   uint temp, A,B,C,D,E;
 

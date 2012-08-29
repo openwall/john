@@ -10,8 +10,8 @@
 #include "../cuda_phpass.h"
 #include "cuda_common.cuh"
 
-const uint DATA_IN_SIZE = KEYS_PER_CRYPT * sizeof(phpass_password);
-const uint DATA_OUT_SIZE = KEYS_PER_CRYPT * sizeof(phpass_crack);
+const uint32_t DATA_IN_SIZE = KEYS_PER_CRYPT * sizeof(phpass_password);
+const uint32_t DATA_OUT_SIZE = KEYS_PER_CRYPT * sizeof(phpass_crack);
 
 __device__ __constant__ phpass_salt cuda_salt[1];
 

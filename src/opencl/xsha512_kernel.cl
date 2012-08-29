@@ -112,7 +112,7 @@ __constant uint64_t k[] = {
 	    0x6c44198c4a475817UL,
 };
 
-void xsha512(__global const char* password, uint8_t pass_len, 
+inline void xsha512(__global const char* password, uint8_t pass_len, 
 	__global uint64_t* hash, uint32_t offset, __constant uint32_t* salt)
 {
     __private xsha512_ctx ctx;

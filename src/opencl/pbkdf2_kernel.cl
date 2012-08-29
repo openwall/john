@@ -609,7 +609,7 @@ inline void hmac_sha1_iter(__private uint *istate, __private uint *ostate, __pri
 }
 
 __kernel 
-void PBKDF2 ( const __global unsigned int *pass_global, 
+inline void PBKDF2 ( const __global unsigned int *pass_global, 
               const __global unsigned int *salt, 
               int usrlen,  
               uint num_keys,
@@ -619,7 +619,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 	
         int id = get_global_id(0);
 	
-	unsigned int i, j;
+	int i, j;
 	
 	__local unsigned int salt_local[40];
 	  

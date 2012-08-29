@@ -58,7 +58,7 @@ inline uint SWAP32(uint x)
 
 #ifdef RAR_VECTORIZE
 /* raw'n'lean sha1, context kept in output buffer */
-void sha1_blockV(uint4 *W, uint4 *output)
+inline void sha1_blockV(uint4 *W, uint4 *output)
 {
 	uint4 A, B, C, D, E, temp;
 
@@ -239,7 +239,7 @@ inline void memcpy32V(uint4 *d, const uint4 *s, uint len)
 }
 #else
 /* raw'n'lean sha1, context kept in output buffer */
-void sha1_block(uint *W, uint *output) {
+inline void sha1_block(uint *W, uint *output) {
 	uint A, B, C, D, E, temp;
 
 	A = output[0];

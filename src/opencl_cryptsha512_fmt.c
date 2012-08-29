@@ -528,7 +528,7 @@ static void init(struct fmt_main *self) {
         create_clobj(global_work_size);
         find_best_gws();
     }
-    fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %Zd\n",
+    fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
            (int) local_work_size, global_work_size);
     self->params.max_keys_per_crypt = global_work_size;
 }
