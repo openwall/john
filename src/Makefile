@@ -36,8 +36,7 @@ OMPFLAGS =
 #HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
-# Optionally uncomment the -m64 too.
-NVCC_FLAGS = -c -Xptxas -v -arch sm_10 #-m64
+NVCC_FLAGS = -c -Xptxas -v -arch sm_10
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
 
@@ -300,7 +299,9 @@ default:
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
 	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
+	@echo "macosx-x86-64-gpu        Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, CUDA and OpenCL support"
 	@echo "macosx-x86-64-opencl     Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, OpenCL support"
+	@echo "macosx-x86-64-cuda       Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, CUDA support"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
@@ -1049,6 +1050,18 @@ aix-ppc32:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
+macosx-x86-64-gpu:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0 -DHAVE_CUDA -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
+	$(CP) opencl/*.cl ../run/
+	$(CP) opencl_*.h ../run/
+
 macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
@@ -1056,7 +1069,8 @@ macosx-x86-64-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0 -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(OCLROOT)/lib/x86_64 -L$(NVIDIA_CUDA)/lib64 -framework OpenCL"
+		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(CP) opencl/*.cl ../run/
 	$(CP) opencl_*.h ../run/
 
@@ -1067,7 +1081,8 @@ macosx-x86-64-cuda:
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -L$(NVIDIA_CUDA)/lib64 -lcudart -m64"
+		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart" \
+		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
