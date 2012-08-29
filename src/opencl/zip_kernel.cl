@@ -298,7 +298,7 @@ typedef struct {
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
     __private uint32_t * state, uint8_t var1, uint32_t var4)
 {
-	int i;
+	uint32_t i;
 	uint32_t W[16], temp;
 	uint8_t ipad[16];
 

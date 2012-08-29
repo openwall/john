@@ -52,7 +52,7 @@ typedef struct {
     (b)[(i) + 3] = (uint8) ( (n)       );       \
 }
 
-void sha256_starts(sha256_context * ctx)
+inline void sha256_starts(sha256_context * ctx)
 {
 	ctx->state[0] = 0x6A09E667;
 	ctx->state[1] = 0xBB67AE85;
@@ -64,7 +64,7 @@ void sha256_starts(sha256_context * ctx)
 	ctx->state[7] = 0x5BE0CD19;
 }
 
-void sha256_process(sha256_context * ctx, uint8 data[64])
+inline void sha256_process(sha256_context * ctx, uint8 data[64])
 {
 	uint32 temp1, temp2, W[64];
 	uint32 A, B, C, D, E, F, G, H;
@@ -196,7 +196,7 @@ void sha256_process(sha256_context * ctx, uint8 data[64])
 }
 
 /* Write a 32-bit big-endian long value to a buffer. */
-static void WriteLong(unsigned char *buf, int value)
+inline void WriteLong(unsigned char *buf, int value)
 {
 	buf[0] = (unsigned char)(value >> 24);
 	buf[1] = (unsigned char)(value >> 16);
@@ -204,7 +204,7 @@ static void WriteLong(unsigned char *buf, int value)
 	buf[3] = (unsigned char)value;
 }
 
-void sha256_update(sha256_context * ctx, uint8 * input)
+inline void sha256_update(sha256_context * ctx, uint8 * input)
 {
 	int i;
 	unsigned char buffer[64] = { 0 };

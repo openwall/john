@@ -114,7 +114,7 @@ __constant uint64_t k[] = {
 	    0x6c44198c4a475817UL,
 };
 
-void sha512(__global const char* password, uint8_t pass_len, 
+inline void sha512(__global const char* password, uint8_t pass_len, 
 	__global uint64_t* hash, uint32_t offset)
 {
     __private sha512_ctx ctx;

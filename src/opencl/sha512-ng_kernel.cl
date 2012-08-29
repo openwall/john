@@ -45,7 +45,7 @@ __constant uint64_t k[] = {
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL,
 };
 
-void init_ctx(sha512_ctx * ctx) {
+inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = 0x6a09e667f3bcc908UL;
     ctx->H[1] = 0xbb67ae8584caa73bUL;
     ctx->H[2] = 0x3c6ef372fe94f82bUL;
@@ -57,7 +57,7 @@ void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void memcpy(               uint8_t * dest,
+inline void _memcpy(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
     int i = 0;
@@ -71,7 +71,7 @@ inline void memcpy(               uint8_t * dest,
     }
 }
 
-void sha512_block(sha512_ctx * ctx) {
+inline void sha512_block(sha512_ctx * ctx) {
 #define  a   ctx->H[0]
 #define  b   ctx->H[1]
 #define  c   ctx->H[2]
@@ -120,21 +120,21 @@ void sha512_block(sha512_ctx * ctx) {
     }
 }
 
-void insert_to_buffer(         sha512_ctx    * ctx,
+inline void insert_to_buffer(         sha512_ctx    * ctx,
                         __global const uint8_t * string,
                                  const uint32_t len) {
 
-    memcpy(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
+    _memcpy(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
     ctx->buflen += len;
 }
 
-void ctx_update(         sha512_ctx * ctx,
+inline void ctx_update(         sha512_ctx * ctx,
                   __global uint8_t    * string, uint32_t len) {
 
     insert_to_buffer(ctx, string, len);
 }
 
-void ctx_append_1(sha512_ctx * ctx) {
+inline void ctx_append_1(sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUT(BUFFER, length, 0x80);
@@ -150,18 +150,18 @@ void ctx_append_1(sha512_ctx * ctx) {
     }
 }
 
-void ctx_add_length(sha512_ctx * ctx) {
+inline void ctx_add_length(sha512_ctx * ctx) {
 
     ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->buflen * 8));
 }
 
-void finish_ctx(sha512_ctx * ctx) {
+inline void finish_ctx(sha512_ctx * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
 }
 
-void clear_ctx_buffer(sha512_ctx * ctx) {
+inline void clear_ctx_buffer(sha512_ctx * ctx) {
 
     #pragma unroll
     for (int i = 0; i < 16; i++)
@@ -170,7 +170,7 @@ void clear_ctx_buffer(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void sha512_crypt(__global sha512_password * keys_data,
+inline void sha512_crypt(__global sha512_password * keys_data,
                            sha512_ctx      * ctx) {
 #define pass        keys_data->pass->mem_08
 #define passlen     keys_data->length

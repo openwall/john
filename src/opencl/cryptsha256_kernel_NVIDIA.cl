@@ -35,7 +35,7 @@ __constant uint32_t k[] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-void init_ctx(sha256_ctx * ctx) {
+static void init_ctx(sha256_ctx * ctx) {
     ctx->H[0] = 0x6a09e667;
     ctx->H[1] = 0xbb67ae85;
     ctx->H[2] = 0x3c6ef372;
@@ -48,7 +48,7 @@ void init_ctx(sha256_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void get_host_data(__global   sha256_password * keys_data,
+static void get_host_data(__global   sha256_password * keys_data,
                    __local    sha256_password * fast_keys) {
 
     //Transfer data to faster memory
@@ -60,7 +60,7 @@ void get_host_data(__global   sha256_password * keys_data,
         fast_keys->pass->mem_32[i] = keys_data->pass->mem_32[i];
 }
 
-void sha256_block(sha256_ctx * ctx) {
+static void sha256_block(sha256_ctx * ctx) {
     uint32_t a = ctx->H[0];
     uint32_t b = ctx->H[1];
     uint32_t c = ctx->H[2];
@@ -124,7 +124,7 @@ void sha256_block(sha256_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-void insert_to_buffer_R(      sha256_ctx    * ctx,
+static void insert_to_buffer_R(      sha256_ctx    * ctx,
                               const uint8_t * string,
                         const uint32_t len) {
 
@@ -134,7 +134,7 @@ void insert_to_buffer_R(      sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
-void insert_to_buffer_L(        sha256_ctx    * ctx,
+static void insert_to_buffer_L(        sha256_ctx    * ctx,
                         __local const uint8_t * string,
                                 const uint32_t len) {
 
@@ -144,7 +144,7 @@ void insert_to_buffer_L(        sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
-void insert_to_buffer_C(           sha256_ctx    * ctx,
+static void insert_to_buffer_C(           sha256_ctx    * ctx,
                         __constant const uint8_t * string,
                                  const uint32_t len) {
 
@@ -154,7 +154,7 @@ void insert_to_buffer_C(           sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
-void ctx_update_R(sha256_ctx * ctx,
+static void ctx_update_R(sha256_ctx * ctx,
                   uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -170,7 +170,7 @@ void ctx_update_R(sha256_ctx * ctx,
     }
 }
 
-void ctx_update_L(        sha256_ctx * ctx,
+static void ctx_update_L(        sha256_ctx * ctx,
                   __local uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -186,7 +186,7 @@ void ctx_update_L(        sha256_ctx * ctx,
     }
 }
 
-void ctx_update_C(           sha256_ctx * ctx,
+static void ctx_update_C(           sha256_ctx * ctx,
                   __constant uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -202,7 +202,7 @@ void ctx_update_C(           sha256_ctx * ctx,
     }
 }
 
-void ctx_append_1(sha256_ctx * ctx) {
+static void ctx_append_1(sha256_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUT(ctx->buffer->mem_08, length, 0x80);
@@ -218,19 +218,19 @@ void ctx_append_1(sha256_ctx * ctx) {
     }
 }
 
-void ctx_add_length(sha256_ctx * ctx) {
+static void ctx_add_length(sha256_ctx * ctx) {
 
     ctx->buffer->mem_32[15] = SWAP32(ctx->total * 8);
 }
 
-void finish_ctx(sha256_ctx * ctx) {
+static void finish_ctx(sha256_ctx * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
     ctx->buflen = 0;
 }
 
-void clear_ctx_buffer(sha256_ctx * ctx) {
+static void clear_ctx_buffer(sha256_ctx * ctx) {
 
     uint64_t * l = (uint64_t *) ctx->buffer;
 
@@ -241,7 +241,7 @@ void clear_ctx_buffer(sha256_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void sha256_digest(sha256_ctx * ctx,
+static void sha256_digest(sha256_ctx * ctx,
                    uint32_t   * result) {
 
     if (ctx->buflen <= 55) { //data+0x80+datasize fits in one 512bit block
@@ -268,7 +268,7 @@ void sha256_digest(sha256_ctx * ctx,
         result[i] = SWAP32(ctx->H[i]);
 }
 
-void sha256_prepare(__constant sha256_salt     * salt_data,
+static void sha256_prepare(__constant sha256_salt     * salt_data,
                     __local    sha256_password * keys_data,
                                sha256_buffers  * fast_buffers,
                                sha256_ctx      * ctx) {
@@ -323,7 +323,7 @@ void sha256_prepare(__constant sha256_salt     * salt_data,
 #undef saltlen
 #undef passlen
 
-void sha256_crypt(sha256_buffers  * fast_buffers,
+static void sha256_crypt(sha256_buffers  * fast_buffers,
                   sha256_ctx      * ctx,
                   const uint32_t saltlen, const uint32_t passlen,
                   const uint32_t rounds) {
