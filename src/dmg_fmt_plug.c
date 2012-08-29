@@ -63,6 +63,7 @@
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
+#undef HTONL
 #define HTONL(n) (((((unsigned long)(n) & 0xFF)) << 24) | \
 		((((unsigned long)(n) & 0xFF00)) << 8) | \
 		((((unsigned long)(n) & 0xFF0000)) >> 8) | \

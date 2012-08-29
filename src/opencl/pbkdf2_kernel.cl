@@ -619,7 +619,7 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 	
         int id = get_global_id(0);
 	
-	unsigned int i, j;
+	int i, j;
 	
 	__local unsigned int salt_local[40];
 	  

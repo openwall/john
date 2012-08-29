@@ -52,7 +52,7 @@
 }
 #endif
 
-void* _memcpy(void* dest, __global const uchar *src, int count)
+inline void* _memcpy(void* dest, __global const uchar *src, int count)
 {
 	char* dst8 = (char*)dest;
 	__global uchar* src8 = (__global uchar*)src;
@@ -63,7 +63,7 @@ void* _memcpy(void* dest, __global const uchar *src, int count)
 	return dest;
 }
 
-void* _memcpy_(void* dest, const uchar *src, int count)
+inline void* _memcpy_(void* dest, const uchar *src, int count)
 {
 	char* dst8 = (char*)dest;
 	uchar* src8 = (uchar*)src;
@@ -108,7 +108,7 @@ typedef struct
 }
 sha1_context;
 
-void sha1_starts( sha1_context *ctx )
+inline void sha1_starts( sha1_context *ctx )
 {
     ctx->total[0] = 0;
     ctx->total[1] = 0;
@@ -120,7 +120,7 @@ void sha1_starts( sha1_context *ctx )
     ctx->state[4] = 0xC3D2E1F0;
 }
 
-static void sha1_process( sha1_context *ctx, const unsigned char data[64] )
+inline void sha1_process( sha1_context *ctx, const unsigned char data[64] )
 {
     unsigned long temp, W[16], A, B, C, D, E;
 
@@ -279,7 +279,7 @@ static void sha1_process( sha1_context *ctx, const unsigned char data[64] )
 /*
  * SHA-1 process buffer
  */
-void sha1_update( sha1_context *ctx, const unsigned char *input, int ilen )
+inline void sha1_update( sha1_context *ctx, const unsigned char *input, int ilen )
 {
     int fill;
     unsigned long left;
@@ -323,7 +323,7 @@ void sha1_update( sha1_context *ctx, const unsigned char *input, int ilen )
 /*
  * SHA-1 final digest
  */
-void sha1_finish( sha1_context *ctx, unsigned char output[20] )
+inline void sha1_finish( sha1_context *ctx, unsigned char output[20] )
 {
     unsigned long last, padn;
     unsigned long high, low;
@@ -358,7 +358,8 @@ void sha1_finish( sha1_context *ctx, unsigned char output[20] )
 /*
  * output = SHA-1( input buffer )
  */
-void sha1( const unsigned char *input, int ilen, unsigned char output[20] )
+#if 0 // unused
+static void sha1( const unsigned char *input, int ilen, unsigned char output[20] )
 {
     sha1_context ctx;
 
@@ -368,11 +369,12 @@ void sha1( const unsigned char *input, int ilen, unsigned char output[20] )
 
     // memset( &ctx, 0, sizeof( sha1_context ) );
 }
+#endif
 
 #define KEYBUFFER_LENGTH 8192
 #define SHA_DIGEST_LENGTH 20
 
-static void S2KItSaltedSHA1Generator(__global const uchar *password, int password_length, __global const uchar *salt, int count, __global uchar *key, int length)
+inline void S2KItSaltedSHA1Generator(__global const uchar *password, int password_length, __global const uchar *salt, int count, __global uchar *key, int length)
 {
         unsigned char keybuf[KEYBUFFER_LENGTH];
         sha1_context ctx;
@@ -385,7 +387,7 @@ static void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 	uchar lkey[8192];
 	_memcpy(lkey, key, length);
 
-        unsigned int numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
+        int numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
         _memcpy(keybuf, salt, 8);
 	unsigned char wtf = '\0';
 

@@ -296,7 +296,7 @@ typedef struct {
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
     __private uint32_t * state, uint8_t var1, uint32_t var4)
 {
-	int i;
+	uint32_t i;
 	uint32_t W[16], temp;
 	uint8_t ipad[16];
 
@@ -340,7 +340,7 @@ inline void hmac_sha1(__private uint32_t * output,
 	i = 64 / 4;
 	while (i--)
 		*src++ = 0;
-	//memcpy(buf, salt, saltlen);
+	//_memcpy(buf, salt, saltlen);
 	for (i = 0; i < saltlen; i++)
 		buf[i] = salt[i];
 
@@ -487,7 +487,7 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
 	    tmp_out, n);
 
-	//memcpy(out, tmp_out, 20);
+	//_memcpy(out, tmp_out, 20);
 	for (int i = 0; i < 5; i++)
 		out[i] = tmp_out[i];
 
@@ -496,7 +496,7 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
 	    tmp_out, n);
 
-	//memcpy(out+20, tmp_out, 12);
+	//_memcpy(out+20, tmp_out, 12);
 	for (int i = 5; i < 8; i++)
 		out[i] = tmp_out[i - 5];
 }
