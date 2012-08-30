@@ -298,7 +298,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 			int shift = strlen(uid);
 			memmove(source + shift + 1, source, strlen(source) + 1);
 			memcpy(source, uid, shift);
-			source[shift] = ':';
+			source[shift] = options->field_sep_char;
 		}
 	}
 	else if (SPLFLEN(1) == 0 && SPLFLEN(3) >= 16 && SPLFLEN(4) >= 32 &&
