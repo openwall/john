@@ -358,6 +358,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		char *cp, csearch;
 
 		if (loopBack) {
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
 			fprintf(stderr, "Loop-back mode: Reading candidates from pot file %s\n", name);
 			log_event("- Using loop-back mode:");
 		}
