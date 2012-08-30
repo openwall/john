@@ -33,21 +33,11 @@
 
 #if OPENSSL_VERSION_NUMBER >= 0x00908000 && !defined(FORCE_GENERIC_SHA2)
 
-#if defined(__APPLE__) && defined(__MACH__)
-#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
-#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#if defined(__APPLE__) && defined(__MACH__) && defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
 #define COMMON_DIGEST_FOR_OPENSSL
 #define SHA2_LIB "CommonCrypto"
 #include <CommonCrypto/CommonDigest.h>
 #define JTR_INC_COMMON_CRYPTO_SHA2
-#else
-#define SHA2_LIB "OpenSSL"
-#include <openssl/sha.h>
-#endif
-#else
-#define SHA2_LIB "OpenSSL"
-#include <openssl/sha.h>
-#endif
 #else
 #define SHA2_LIB "OpenSSL"
 #include <openssl/sha.h>

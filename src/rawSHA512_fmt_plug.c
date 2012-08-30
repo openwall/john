@@ -48,7 +48,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 
-#ifndef _OPENMP
+#if !defined(_OPENMP) && !defined(__APPLE__)
 #define SHA_SPEED_TEST
 SHA512_CTX ctx;
 #endif
