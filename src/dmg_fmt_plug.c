@@ -480,7 +480,13 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	int index;
-	for (index = 0; index < count; index++) {
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#else
+	for (index = 0; index < count; index++)
+#endif
+	{
 		if(hash_plugin_check_hash(saved_key[index]) == 1)
 			cracked[index] = 1;
 		else
