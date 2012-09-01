@@ -1489,18 +1489,74 @@ def find_rc4_passinfo_xls(filename, stream):
                 # If RC4 CryptoAPI encryption is used, certain storages and streams are stored in Encryption Stream
     return None
 
+def find_doc_type(filename, stream):
+    w_ident = stream.read(2)
+    assert(w_ident == "\xec\xa5")
+    unused = stream.read(9)
+    flags = ord(stream.read(1))
+    if (flags & 1) != 0:
+        F = 1
+    else:
+        F = 0
+    if (flags & 128) != 0:
+        M = 1
+    else:
+        M = 0
+    if F == 1 and M == 1:
+        unused = stream.read(2)
+        i_key = stream.read(4)
+        print >> sys.stderr, "%s : XOR obfuscation detected, Password Verifier : %s" % (filename, binascii.hexlify(i_key))
+        return True
+    if F == 0:
+        print >> sys.stderr, "%s : Document is not encrypted!" % (filename)
+        return True
+
 def find_rc4_passinfo_doc(filename, stream):
     major_version = unpack("<h", stream.read(2))[0]
     minor_version = unpack("<h", stream.read(2))[0]
-    if major_version != 1 or minor_version != 1:
-        print >> sys.stderr, "%s : Un-supported encryption version" % filename
-        return None
 
-    data = stream.read(48)
-    salt = data[:16]
-    verifier = data[16:32]
-    verifierHash = data[32:48]
-    return (salt, verifier, verifierHash)
+    if major_version == 1 or minor_version == 1:
+        data = stream.read(48)
+        salt = data[:16]
+        verifier = data[16:32]
+        verifierHash = data[32:48]
+        return (salt, verifier, verifierHash)
+    elif major_version >= 2 and minor_version == 2:
+        # RC4 CryptoAPI Encryption Header
+        encryptionFlags = unpack("<I", stream.read(4))[0]
+        headerLength = unpack("<I", stream.read(4))[0]
+        skipFlags = unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        sizeExtra = unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        algId =  unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        algHashId =  unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        keySize = unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        providerType = unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        x = unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        x = unpack("<I", stream.read(4))[0]
+        headerLength -= 4
+        CSPName = stream.read(headerLength)
+        # print CSPName
+        # Encryption verifier
+        saltSize = unpack("<I", stream.read(4))[0]
+        assert(saltSize == 16)
+        salt = stream.read(saltSize)
+        encryptedVerifier = stream.read(16)
+        verifierHashSize = unpack("<I", stream.read(4))[0]
+        assert(verifierHashSize == 20)
+        encryptedVerifierHash = stream.read(verifierHashSize)
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+        3, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
+        binascii.hexlify(encryptedVerifierHash)))
+    else:
+        print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
+
 
 def process_file(filename):
 
@@ -1536,10 +1592,14 @@ def process_file(filename):
 
     else:
         typ = 1
-        passinfo = find_rc4_passinfo_doc(filename, workbookStream)
-        if passinfo == None:
-            print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
-            return 4
+        sdoc = ole.openstream("WordDocument")
+        ret = find_doc_type(filename, sdoc)
+        if not ret:
+            passinfo = find_rc4_passinfo_doc(filename, workbookStream)
+            if passinfo == None:
+                return 4
+        else:
+            return 5
 
     (salt, verifier, verifierHash) = passinfo
     sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
