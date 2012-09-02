@@ -1461,6 +1461,7 @@ class OleFileIO:
 from struct import unpack
 import hashlib
 import binascii
+import StringIO
 
 def find_rc4_passinfo_xls(filename, stream):
     while True:
@@ -1485,8 +1486,50 @@ def find_rc4_passinfo_xls(filename, stream):
                 verifierHash = data[32:48]
                 return (salt, verifier, verifierHash)
             elif data[0:4] == '\x01\x00\x02\x00' or data[0:4] =='\x01\x00\x03\x00':
-                print >> sys.stderr, "%s : RC4 CryptoAPI encryption header structure found, currently un-supported!" % filename
                 # If RC4 CryptoAPI encryption is used, certain storages and streams are stored in Encryption Stream
+                stm = StringIO.StringIO(data)
+                unused = stm.read(2)
+                # RC4 CryptoAPI Encryption Header
+                major_version = unpack("<h", stm.read(2))[0]
+                minor_version = unpack("<h", stm.read(2))[0]
+                encryptionFlags = unpack("<I", stm.read(4))[0]
+                headerLength = unpack("<I", stm.read(4))[0]
+                skipFlags = unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                sizeExtra = unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                algId =  unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                algHashId =  unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                keySize = unpack("<I", stm.read(4))[0]
+                if keySize == 40:
+                    typ = 3
+                else:
+                    typ = 4
+                headerLength -= 4
+                providerType = unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                x = unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                x = unpack("<I", stm.read(4))[0]
+                headerLength -= 4
+                CSPName = stm.read(headerLength)
+                provider = CSPName.decode('utf-16').lower()
+                print provider
+                # Encryption verifier
+                saltSize = unpack("<I", stm.read(4))[0]
+                assert(saltSize == 16)
+                salt = stm.read(saltSize)
+                encryptedVerifier = stm.read(16)
+                verifierHashSize = unpack("<I", stm.read(4))[0]
+                assert(verifierHashSize == 20)
+                encryptedVerifierHash = stm.read(verifierHashSize)
+                sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+                    typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
+                binascii.hexlify(encryptedVerifierHash)))
+
+
     return None
 
 def find_doc_type(filename, stream):
@@ -1693,7 +1736,6 @@ def process_file(filename):
         typ = 0
         passinfo = find_rc4_passinfo_xls(filename, workbookStream)
         if passinfo == None:
-            print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
             return 4
     elif stream == "1Table":
         typ = 1
