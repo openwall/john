@@ -1542,7 +1542,11 @@ def find_rc4_passinfo_doc(filename, stream):
         x = unpack("<I", stream.read(4))[0]
         headerLength -= 4
         CSPName = stream.read(headerLength)
-        # print CSPName
+        provider = CSPName.decode('utf-16').lower()
+        if "strong" in provider:
+            typ = 4
+        else:
+            typ = 3
         # Encryption verifier
         saltSize = unpack("<I", stream.read(4))[0]
         assert(saltSize == 16)
@@ -1552,7 +1556,7 @@ def find_rc4_passinfo_doc(filename, stream):
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
         sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-        3, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
+            typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
         binascii.hexlify(encryptedVerifierHash)))
     else:
         print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
@@ -1569,6 +1573,7 @@ def process_file(filename):
     ole = OleFileIO(filename)
 
     stream = None
+    # print ole.listdir()
     if ["Workbook"] in ole.listdir():
         stream = "Workbook"
     elif ["WordDocument"] in ole.listdir():
