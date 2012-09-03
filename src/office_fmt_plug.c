@@ -35,6 +35,8 @@
 static struct fmt_tests office_tests[] = {
 	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd86511ee967274442287bc600", "Password"},
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},
+	/* 365-2013-openwall.docx */
+	{"$office$*2013*100000*256*16*774a174239a7495a59cac39a122d991c*b2f9197840f9e5d013f95a3797708e83*ecfc6d24808691aac0daeaeba72aba314d72c6bbd12f7ff0ea1a33770187caef", "openwall"},
 	{NULL}
 };
 
@@ -246,6 +248,47 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	}
 }
 
+static void GenerateAgileEncryptionKey512(char *password, unsigned char * blockKey, int hashSize, unsigned char *hashBuf)
+{
+	unsigned char passwordBuf[512] = {0};
+	int passwordBufSize;
+	int i;
+	unsigned char *inputBuf;
+	SHA512_CTX ctx;
+
+	/* convert key to UTF-16LE */
+	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	if (passwordBufSize < 0)
+		passwordBufSize = strlen16((UTF16*)passwordBuf);
+	passwordBufSize <<= 1;
+
+	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
+	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
+	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
+	SHA512_Final(hashBuf, &ctx);
+	MEM_FREE(inputBuf);
+	inputBuf = (unsigned char *)malloc(128);
+	// Create a byte array of the integer and put at the front of the input buffer
+	// 1.3.6 says that little-endian byte ordering is expected
+	memcpy(inputBuf + 4, hashBuf, 64);
+	for (i = 0; i < cur_salt->spinCount; i++) {
+		*(int *)inputBuf = i; // XXX: size & endianness
+		// 'append' the previously generated hash to the input buffer
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
+		SHA512_Final(inputBuf + 4, &ctx);
+	}
+	// Finally, append "block" (0) to H(n)
+	memmove(inputBuf, inputBuf + 4, 64);
+	memcpy(inputBuf + 64, blockKey, 8);
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, inputBuf, 64 + 8);
+	SHA512_Final(hashBuf, &ctx);
+	MEM_FREE(inputBuf);
+}
+
 static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, unsigned char *decryptedVerifier, int length)
 {
 	AES_KEY akey;
@@ -354,6 +397,22 @@ static void crypt_all(int count)
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA1_Final(hash, &ctx);
+			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		}
+		else if (cur_salt->version == 2013) {
+			unsigned char verifierInputKey[64], verifierHashKey[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char hash[64];
+			SHA512_CTX ctx;
+			GenerateAgileEncryptionKey512(saved_key[index], encryptedVerifierHashInputBlockKey, cur_salt->keySize >> 3, verifierInputKey);
+			GenerateAgileEncryptionKey512(saved_key[index], encryptedVerifierHashValueBlockKey, cur_salt->keySize >> 3, verifierHashKey);
+			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+			SHA512_Final(hash, &ctx);
 			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
 				cracked[index] = 1;
 			else
