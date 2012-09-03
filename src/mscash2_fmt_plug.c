@@ -316,7 +316,7 @@ static void *get_salt(char *_ciphertext)
 	input[md4_size] = 0;
 
 	utf16len = enc_to_utf16(&out[2], 22, input, md4_size);
-	if (utf16len <= 0)
+	if (utf16len < 0)
 		utf16len = strlen16(&out[2]);
 	out[0] = utf16len << 1;
 	sscanf(&_ciphertext[6], "%d", &utf16len);
