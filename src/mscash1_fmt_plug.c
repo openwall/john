@@ -288,7 +288,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 	input[md4_size] = 0;
 
 	utf16len = enc_to_utf16(out, 19, input, md4_size);
-	if (utf16len <= 0)
+	if (utf16len < 0)
 		utf16len = strlen16(out);
 
 #if ARCH_LITTLE_ENDIAN

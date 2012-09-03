@@ -29,7 +29,8 @@
  * version == 1, EPiServer 6.x + .NET >= 4.x SHA256 hash/salt format,
  * 		 PasswordFormat == ?
  *
- * Improved performance, JimF, July 2012. STILL needs 'proper' unicode support.
+ * Improved performance, JimF, July 2012.
+ * Full Unicode support, magnum, August 2012.
  */
 
 #include "sha.h"
@@ -44,6 +45,7 @@
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "unicode.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               4
@@ -67,6 +69,7 @@ static struct fmt_tests episerver_tests[] = {
 
 	// hashes from pass_gen.pl, including some V1 data
 	{"$episerver$*0*OHdOb002Z1J6ZFhlRHRzbw==*74l+VCC9xkGP27sNLPLZLRI/O5A", "test1"},
+	{"$episerver$*0*THk5ZHhYNFdQUDV1Y0hScg==*ik+FVrPkEs6LfJU88xl5oBRoZjY", ""},
 	{"$episerver$*1*aHIza2pUY0ZkR2dqQnJrNQ==*1KPAZriqakiNvE6ML6xkUzS11QPREziCvYkJc4UtjWs","test1"},
 	{"$episerver$*1*RUZzRmNja0c5NkN0aDlMVw==*nh46rc4vkFIL0qGUrKTPuPWO6wqoESSeAxUNccEOe28","thatsworking"},
 	{"$episerver$*1*cW9DdnVVUnFwM2FobFc4dg==*Zr/nekpDxU5gjt+fzTSqm0j/twZySBBW44Csoai2Fug","test3"},
@@ -94,6 +97,8 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	if (options.utf8)
+		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -159,14 +164,12 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 	{
 		unsigned char passwordBuf[PLAINTEXT_LENGTH*2+2];
-		int i;
-		unsigned char c;
-		int len = 0;
-		for(i = 0; (c = saved_key[index][i]); i++) {
-			passwordBuf[len] = c;
-			passwordBuf[len+1] = 0;
-			len += 2;
-		}
+		int len;
+		len = enc_to_utf16((UTF16*)passwordBuf, PLAINTEXT_LENGTH,
+		                   (UTF8*)saved_key[index], strlen(saved_key[index]));
+		if (len < 0)
+			len = strlen16((UTF16*)saved_key[index]);
+		len <<= 1;
 		if(cur_salt->version == 0) {
 			SHA_CTX ctx;
 			SHA1_Init(&ctx);
@@ -202,7 +205,10 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	void *binary = get_binary(source);
-	return !memcmp(binary, crypt_out[index], 20); /* BUG: lesser of the two */
+	if(cur_salt->version == 0)
+		return !memcmp(binary, crypt_out[index], 20);
+	else
+		return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static void episerver_set_key(char *key, int index)
@@ -227,7 +233,7 @@ struct fmt_main episerver_fmt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		episerver_tests
 	}, {
 		init,
