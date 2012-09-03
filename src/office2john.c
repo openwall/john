@@ -145,7 +145,7 @@ static void process_file(char *filename, char *parentfile)
 	int pkeHashSize;
 	unsigned char *pkeSaltValue;
 	unsigned char encryptedVerifierHashInput[16 + 2];
-	unsigned char encryptedVerifierHashValue[32 + 2];
+	unsigned char encryptedVerifierHashValue[64 + 2];
 	int version;
 	xmlChar *spinCountXML;
 	xmlChar *saltSizeXML;
