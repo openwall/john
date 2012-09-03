@@ -144,9 +144,9 @@ static void set_key(char *_key, int index)
 static void set_key_enc(char *_key, int index)
 {
 	/* UTF-8 or legacy codepage to UCS-2 */
-	key_length[index] = enc_to_utf16((UTF16*)saved_key[index], PLAINTEXT_LENGTH + 1,
+	key_length[index] = enc_to_utf16((UTF16*)saved_key[index], PLAINTEXT_LENGTH,
 	                          (unsigned char*)_key, strlen(_key));
-	if (key_length[index] <= 0)
+	if (key_length[index] < 0)
 		key_length[index] = strlen16((UTF16*)saved_key[index]);
 	key_length[index] <<= 1;
 }
