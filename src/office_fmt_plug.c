@@ -28,15 +28,27 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(*salt_struct)
+#define SALT_SIZE		sizeof(*cur_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests office_tests[] = {
 	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd86511ee967274442287bc600", "Password"},
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},
+	/* 365-2013-openwall.docx */
+	{"$office$*2013*100000*256*16*774a174239a7495a59cac39a122d991c*b2f9197840f9e5d013f95a3797708e83*ecfc6d24808691aac0daeaeba72aba314d72c6bbd12f7ff0ea1a33770187caef", "openwall"},
 	{NULL}
 };
+
+#ifdef DEBUG
+static void print_hex(unsigned char *str, int len)
+{
+	int i;
+	for (i = 0; i < len; ++i)
+		printf("%02x", str[i]);
+	printf("\n");
+}
+#endif
 
 static struct custom_salt {
 	char unsigned osalt[32]; /* bigger than necessary */
@@ -48,7 +60,7 @@ static struct custom_salt {
 	int saltSize;
 	/* Office 2010 */
 	int spinCount;
-} *salt_struct;
+} *cur_salt;
 
 #if defined (_OPENMP)
 static int omp_t = 1;
@@ -77,7 +89,7 @@ static unsigned char *DeriveKey(unsigned char *hashValue)
 	SHA1_Update(&ctx, derivedKey, 64);
 	SHA1_Final(X1, &ctx);
 
-	if (salt_struct->verifierHashSize > salt_struct->keySize/8)
+	if (cur_salt->verifierHashSize > cur_salt->keySize/8)
 		return X1;
 	for (i = 0; i < 64; i++)
 		derivedKey[i] = (i < 30 ? 0x5C ^ hashValue[i] : 0x5C);
@@ -103,11 +115,11 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 		passwordBufSize = strlen16((UTF16*)passwordBuf);
 	passwordBufSize <<= 1;
 
-	inputBuf = (unsigned char *)malloc(salt_struct->saltSize + passwordBufSize);
-	memcpy(inputBuf, salt_struct->osalt, salt_struct->saltSize);
-	memcpy(inputBuf + salt_struct->saltSize, passwordBuf, passwordBufSize);
+	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
+	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
+	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, salt_struct->saltSize + passwordBufSize);
+	SHA1_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
 	MEM_FREE(inputBuf);
 
@@ -141,8 +153,8 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 
 	// Should handle the case of longer key lengths as shown in 2.3.4.9
 	// Grab the key length bytes of the final hash as the encrypytion key
-	final = (unsigned char *)malloc(salt_struct->keySize/8);
-	memcpy(final, key, salt_struct->keySize/8);
+	final = (unsigned char *)malloc(cur_salt->keySize/8);
+	memcpy(final, key, cur_salt->keySize/8);
 	MEM_FREE(key);
 	return final;
 }
@@ -161,14 +173,14 @@ static int PasswordVerifier(unsigned char * key)
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
 		return 0;
 	}
-	AES_ecb_encrypt(salt_struct->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed!\n");
 		return 0;
 	}
-	AES_ecb_encrypt(salt_struct->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-	AES_ecb_encrypt(salt_struct->encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(cur_salt->encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
 
 	/* find SHA1 hash of decryptedVerifier */
 	SHA1_Init(&ctx);
@@ -197,11 +209,11 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 		passwordBufSize = strlen16((UTF16*)passwordBuf);
 	passwordBufSize <<= 1;
 
-	inputBuf = (unsigned char *)malloc(salt_struct->saltSize + passwordBufSize);
-	memcpy(inputBuf, salt_struct->osalt, salt_struct->saltSize);
-	memcpy(inputBuf + salt_struct->saltSize, passwordBuf, passwordBufSize);
+	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
+	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
+	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, salt_struct->saltSize + passwordBufSize);
+	SHA1_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
 	MEM_FREE(inputBuf);
 
@@ -214,7 +226,7 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(inputBuf + 4, hashBuf, 20);
-	for (i = 0; i < salt_struct->spinCount; i++) {
+	for (i = 0; i < cur_salt->spinCount; i++) {
 		*(int *)inputBuf = i; // XXX: size & endianness
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
@@ -229,20 +241,69 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	SHA1_Final(hashBuf, &ctx);
 	MEM_FREE(inputBuf);
 
-	// TODO: Fix up the size per the spec
+	// Fix up the size per the spec
 	if (20 < hashSize) {
-		// hashBuf = hashBuf.Concat(Enumerable.Repeat(0x36, size - hashBuf.Length)).ToArray();
+		for(i = 20; i < hashSize; i++)
+			hashBuf[i] = 0x36;
 	}
+}
+
+static void GenerateAgileEncryptionKey512(char *password, unsigned char * blockKey, int hashSize, unsigned char *hashBuf)
+{
+	unsigned char passwordBuf[512] = {0};
+	int passwordBufSize;
+	int i;
+	unsigned char *inputBuf;
+	SHA512_CTX ctx;
+
+	/* convert key to UTF-16LE */
+	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	if (passwordBufSize < 0)
+		passwordBufSize = strlen16((UTF16*)passwordBuf);
+	passwordBufSize <<= 1;
+
+	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
+	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
+	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
+	SHA512_Final(hashBuf, &ctx);
+	MEM_FREE(inputBuf);
+	inputBuf = (unsigned char *)malloc(128);
+	// Create a byte array of the integer and put at the front of the input buffer
+	// 1.3.6 says that little-endian byte ordering is expected
+	memcpy(inputBuf + 4, hashBuf, 64);
+	for (i = 0; i < cur_salt->spinCount; i++) {
+		*(int *)inputBuf = i; // XXX: size & endianness
+		// 'append' the previously generated hash to the input buffer
+		SHA512_Init(&ctx);
+		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
+		SHA512_Final(inputBuf + 4, &ctx);
+	}
+	// Finally, append "block" (0) to H(n)
+	memmove(inputBuf, inputBuf + 4, 64);
+	memcpy(inputBuf + 64, blockKey, 8);
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, inputBuf, 64 + 8);
+	SHA512_Final(hashBuf, &ctx);
+	MEM_FREE(inputBuf);
 }
 
 static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, unsigned char *decryptedVerifier, int length)
 {
 	AES_KEY akey;
-	unsigned char iv[16];
-	memcpy(iv, salt_struct->osalt, 16);
+	unsigned char iv[32] = { 0 };
+	memcpy(iv, cur_salt->osalt, 16);
      	memset(&akey, 0, sizeof(AES_KEY));
-	if(AES_set_decrypt_key(verifierInputKey, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_derypt_key failed!\n");
+	if(cur_salt->keySize == 128) {
+		if(AES_set_decrypt_key(verifierInputKey, 128, &akey) < 0) {
+			fprintf(stderr, "AES_set_derypt_key failed!\n");
+		}
+	}
+	else {
+		if(AES_set_decrypt_key(verifierInputKey, 256, &akey) < 0) {
+			fprintf(stderr, "AES_set_derypt_key failed!\n");
+		}
 	}
 	AES_cbc_encrypt(encryptedVerifier, decryptedVerifier, length, &akey, iv, AES_DECRYPT);
 }
@@ -275,39 +336,39 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
 	ctcopy += 9;	/* skip over "$office$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
-	salt_struct->version = atoi(p);
+	cur_salt->version = atoi(p);
 	p = strtok(NULL, "*");
-	if(salt_struct->version == 2007) {
-		salt_struct->verifierHashSize = atoi(p);
+	if(cur_salt->version == 2007) {
+		cur_salt->verifierHashSize = atoi(p);
 	}
 	else {
-		salt_struct->spinCount = atoi(p);
+		cur_salt->spinCount = atoi(p);
 	}
 	p = strtok(NULL, "*");
-	salt_struct->keySize = atoi(p);
+	cur_salt->keySize = atoi(p);
 	p = strtok(NULL, "*");
-	salt_struct->saltSize = atoi(p);
+	cur_salt->saltSize = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->saltSize; i++)
-		salt_struct->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < cur_salt->saltSize; i++)
+		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	for (i = 0; i < 16; i++)
-		salt_struct->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	for (i = 0; i < 32; i++)
-		salt_struct->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
-	return (void *)salt_struct;
+	return (void *)cur_salt;
 }
 
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -318,24 +379,40 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		if(salt_struct->version == 2007) {
+		if(cur_salt->version == 2007) {
 			unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1(saved_key[index]);
 			if (PasswordVerifier(encryptionKey))
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
 		}
-		else if (salt_struct->version == 2010) {
-			unsigned char verifierInputKey[20], verifierHashKey[20], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+		else if (cur_salt->version == 2010) {
+			unsigned char verifierInputKey[32], verifierHashKey[32], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[20];
 			SHA_CTX ctx;
-			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashInputBlockKey, salt_struct->keySize >> 3, verifierInputKey);
-			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashValueBlockKey, salt_struct->keySize >> 3, verifierHashKey);
-			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, salt_struct->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, salt_struct->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashInputBlockKey, cur_salt->keySize >> 3, verifierInputKey);
+			GenerateAgileEncryptionKey(saved_key[index], encryptedVerifierHashValueBlockKey, cur_salt->keySize >> 3, verifierHashKey);
+			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA1_Final(hash, &ctx);
+			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
+				cracked[index] = 1;
+			else
+				cracked[index] = 0;
+		}
+		else if (cur_salt->version == 2013) {
+			unsigned char verifierInputKey[64], verifierHashKey[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char hash[64];
+			SHA512_CTX ctx;
+			GenerateAgileEncryptionKey512(saved_key[index], encryptedVerifierHashInputBlockKey, cur_salt->keySize >> 3, verifierInputKey);
+			GenerateAgileEncryptionKey512(saved_key[index], encryptedVerifierHashValueBlockKey, cur_salt->keySize >> 3, verifierHashKey);
+			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+			SHA512_Final(hash, &ctx);
 			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
 				cracked[index] = 1;
 			else

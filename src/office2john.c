@@ -145,7 +145,7 @@ static void process_file(char *filename, char *parentfile)
 	int pkeHashSize;
 	unsigned char *pkeSaltValue;
 	unsigned char encryptedVerifierHashInput[16 + 2];
-	unsigned char encryptedVerifierHashValue[32 + 2];
+	unsigned char encryptedVerifierHashValue[64 + 2];
 	int version;
 	xmlChar *spinCountXML;
 	xmlChar *saltSizeXML;
@@ -153,6 +153,7 @@ static void process_file(char *filename, char *parentfile)
 	xmlChar *pkeKeyBitsXML;
 	xmlChar *pkeHashSizeXML;
 	xmlChar *pkeSaltValueXML;
+	xmlChar *hashAlgorithm;
 	xmlChar *encryptedVerifierHashInputXML;
 	xmlChar *encryptedVerifierHashValueXML;
 
@@ -186,7 +187,7 @@ static void process_file(char *filename, char *parentfile)
 			fprintf(stderr, "%s : An external cryptographic provider is not supported\n", parentfile);
 			return;
 		}
-		if (versionMinor == 0x04 && versionMajor == 0x04) { /* Office 2010 files */
+		if (versionMinor == 0x04 && versionMajor == 0x04) { /* Office 2010 and 2013 files */
 			if (encryptionFlags != fAgile)
 				fprintf(stderr, "%s : The encryption flags are not consistent with the encryption type\n", parentfile);
 			/* rest of the data is in XML format, dump it to a file */
@@ -239,6 +240,17 @@ static void process_file(char *filename, char *parentfile)
 			pkeKeyBits = atoi(pkeKeyBitsXML);
 			xmlFree(pkeKeyBitsXML);
 			pkeHashSizeXML = xmlGetProp(cur, "hashSize");
+			hashAlgorithm = xmlGetProp(cur, "hashAlgorithm");
+			if(strcmp(hashAlgorithm, "SHA1") == 0) {
+				version = 2010;
+			}
+			else if (strcmp(hashAlgorithm, "SHA512") == 0) {
+				version = 2013;
+			}
+			else {
+				fprintf(stderr, "%s uses un-supported hashing algorithm %s, please file a bug! \n", parentfile, hashAlgorithm);
+				return;
+			}
 			pkeHashSize = atoi(pkeHashSizeXML);
 			xmlFree(pkeHashSizeXML);
 			pkeSaltValueXML = xmlGetProp(cur, "saltValue");
@@ -251,7 +263,6 @@ static void process_file(char *filename, char *parentfile)
 			encryptedVerifierHashValueXML = xmlGetProp(cur, "encryptedVerifierHashValue");
 			base64_decode(encryptedVerifierHashValueXML, strlen(encryptedVerifierHashValueXML), encryptedVerifierHashValue);
 			xmlFree(encryptedVerifierHashValueXML);
-			version = 2010;
 			printf("%s:$office$*%d*%d*%d*%d*", parentfile, version, spinCount, pkeKeyBits, saltSize);
 			print_hex(pkeSaltValue, saltSize);
 			printf("*");

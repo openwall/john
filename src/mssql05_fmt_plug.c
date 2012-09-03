@@ -249,9 +249,9 @@ key_cleaning_enc:
 
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 4;
 #else
-	key_length = enc_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
+	key_length = enc_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH,
 	                          (unsigned char*)_key, strlen(_key));
-	if (key_length <= 0)
+	if (key_length < 0)
 		key_length = strlen16((UTF16*)saved_key);
 	key_length <<= 1;
 #endif
@@ -349,9 +349,9 @@ static void set_key_utf8(char *_key, int index)
 
 	((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF] = len << 4;
 #else
-	key_length = utf8_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH + 1,
+	key_length = utf8_to_utf16((UTF16*)saved_key, PLAINTEXT_LENGTH,
 	                           (unsigned char*)_key, strlen(_key));
-	if (key_length <= 0)
+	if (key_length < 0)
 		key_length = strlen16((UTF16*)saved_key);
 
 	key_length <<= 1;

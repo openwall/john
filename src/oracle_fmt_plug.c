@@ -194,7 +194,7 @@ static void oracle_set_key(char *key, int index) {
 	// Can't use enc_to_utf16_be() because we need to do utf16_uc later
 	key_length = enc_to_utf16((UTF16 *)cur_key_mixedcase, PLAINTEXT_LENGTH, (unsigned char*)key, strlen(key));
 
-	if (key_length <= 0)
+	if (key_length < 0)
 		key_length = strlen16(cur_key_mixedcase);
 
 	// We convert and uppercase in one shot
@@ -287,7 +287,7 @@ static void * oracle_get_salt(char * ciphertext)
 	// we now upcase the user name in the prepare() function.
 	// So we are going back to 'simple' plain->utf16 convert only.
 	l = enc_to_utf16_be(&out[1], 16, (UTF8 *)salt, l-2);
-	if (l <= 0)
+	if (l < 0)
 		l = strlen16(&out[1]);
 
 	out[0] = (l<<1);
