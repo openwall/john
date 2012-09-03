@@ -134,7 +134,7 @@
 #define _mm_store_si128(x, y) _mm_store_si128((void *)(x), (y))
 
 // These compilers claim to be __GNUC__ but warn on gcc pragmas.
-#if !defined(__INTEL_COMPILER) && !defined(__clang__)
+#if !defined(__INTEL_COMPILER) && !defined(__clang__) && !defined(__llvm__)
 # pragma GCC optimize 3
 # pragma GCC optimize "-fprefetch-loop-arrays"
 #endif
