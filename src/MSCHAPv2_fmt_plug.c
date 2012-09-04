@@ -7,6 +7,12 @@
  * Modified for performance, OMP and utf-8 support
  * by magnum 2010-2011
  *
+ * Support for freeradius-wep-patch challenge/response format
+ * added by Linus Lüssing in 2012 and is licensed under CC0/PD terms:
+ *  To the extent possible under law, Linus Lüssing has waived all copyright
+ *  and related or neighboring rights to this work. This work is published from: Germany.
+ *
+ *
  * This algorithm is designed for performing brute-force cracking of the
  * MSCHAPv2 challenge/response sets exchanged during network-based
  * authentication attempts. The captured challenge/response set from these
@@ -15,6 +21,7 @@
  * USERNAME:::AUTHENTICATOR CHALLENGE:MSCHAPv2 RESPONSE:PEER CHALLENGE
  * USERNAME::DOMAIN:AUTHENTICATOR CHALLENGE:MSCHAPv2 RESPONSE:PEER CHALLENGE
  * DOMAIN\USERNAME:::AUTHENTICATOR CHALLENGE:MSCHAPv2 RESPONSE:PEER CHALLENGE
+ * :::MSCHAPv2 CHALLENGE:MSCHAPv2 RESPONSE:
  *
  * For example:
  * User:::5B5D7C7D7B3F2F3E3C2C602132262628:82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF:21402324255E262A28295F2B3A337C7E
@@ -73,6 +80,8 @@ static struct fmt_tests tests[] = {
   {"$MSCHAPv2$56d64cbe7bad61349a0b752335100eaf$d7d829d9545cef1d631b4e568ffb7586050fa3a4d02dbc0b$7f8a466cff2a6bf0c80218bbf56d76bc$fred", "OMG!BBQ!11!one"}, /* domain\fred */
   {"$MSCHAPv2$b3c42db475b881d3c52ff3923d7b3bf8$f07c7a4eb391f5debe32d814679a5a69661b86b33227c4f8$6321f8649b971bd11ce8d5cb22a4a738$bOb", "asdblahblahblahblahblahblahblahblah"}, /* WorkGroup\bOb */
   {"$MSCHAPv2$d94e7c7972b2376b28c268583e162de7$eba25a3b04d2c7085d01f842e2befc91745c40db0f792356$0677ca7318fd7f65ae1b4f58c9f4f400$lameuser", ""}, /* no password */
+  {"$MSCHAPv2$8710da60ebfc4cab$c4e3bb55904c966927ee68e5f1472e1f5d8ec165713b5360$$foo4", "bar4" },
+  {"$MSCHAPv2$8710da60ebfc4cab$c4e3bb55904c966927ee68e5f1472e1f5d8ec165713b5360$$", "bar4" },
 
   {"", "clientPass",     {"User",        "", "",    "5B5D7C7D7B3F2F3E3C2C602132262628", "82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF", "21402324255E262A28295F2B3A337C7E"} },
   {"", "Cricket8",       {"testuser1",   "", "",    "d07054459a1fdbc266a006f0220e6fac", "33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde", "3545cb1d89b507a5de104435e81b14a4"} },
@@ -112,7 +121,7 @@ static void init(struct fmt_main *self)
 	output = mem_alloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int mschapv2_valid(char *ciphertext, struct fmt_main *self)
+static int mschapv2_valid_long(char *ciphertext)
 {
   char *pos, *pos2;
 
@@ -153,41 +162,101 @@ static int mschapv2_valid(char *ciphertext, struct fmt_main *self)
   return 1;
 }
 
-static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *self)
+static int mschapv2_valid_short(char *ciphertext)
 {
-	char *username, *cp;
+  char *pos, *pos2;
 
-	if (!strncmp(split_fields[1], "$MSCHAPv2$", 10))
-		return split_fields[1];
-	if (!split_fields[0]||!split_fields[3]||!split_fields[4]||!split_fields[5])
-		return split_fields[1];
-	if (strlen(split_fields[3]) != CHALLENGE_LENGTH/2)
-		return split_fields[1];
-	if (strlen(split_fields[4]) != CIPHERTEXT_LENGTH)
-		return split_fields[1];
-	if (strlen(split_fields[5]) != CHALLENGE_LENGTH/2)
-		return split_fields[1];
+  if (ciphertext == NULL) return 0;
+  else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
 
-    /* DOMAIN\USERNAME -or - USERNAME -- ignore DOMAIN */
-    if ((username = strstr(split_fields[0], "\\")) == NULL)
-      username = split_fields[0];
-    else
-      username++;
-	cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+strlen(split_fields[5])+1+strlen(username)+1);
-	sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4], split_fields[5], username);
-	if (mschapv2_valid(cp,self)) {
-		char *cp2 = str_alloc_copy(cp);
-		MEM_FREE(cp);
-		return cp2;
-	}
-	MEM_FREE(cp);
-	return split_fields[1];
+  /* Validate MSCHAPv2 Challenge Length */
+  pos = &ciphertext[10];
+  for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
+    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+      return 0;
+
+  if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 4)) )
+    return 0;
+
+  /* Validate MSCHAPv2 Response Length */
+  pos2++; pos = pos2;
+  for (; strncmp(pos2, "$", 1) != 0; pos2++)
+    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+      return 0;
+
+  if ( !(*pos2 && (pos2 - pos == CIPHERTEXT_LENGTH)) )
+    return 0;
+
+  return 1;
+}
+
+static int mschapv2_valid(char *ciphertext, struct fmt_main *pFmt)
+{
+	return	mschapv2_valid_short(ciphertext) ||
+		mschapv2_valid_long(ciphertext);
+}
+
+static char *mschapv2_prepare_long(char *split_fields[10])
+{
+  char *username, *cp;
+
+  /* DOMAIN\USERNAME -or - USERNAME -- ignore DOMAIN */
+  if ((username = strstr(split_fields[0], "\\")) == NULL)
+    username = split_fields[0];
+  else
+    username++;
+
+  cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+strlen(split_fields[5])+1+strlen(username)+1);
+  sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4], split_fields[5], username);
+  if (mschapv2_valid_long(cp)) {
+    char *cp2 = str_alloc_copy(cp);
+    MEM_FREE(cp);
+    return cp2;
+  }
+  MEM_FREE(cp);
+  return split_fields[1];
+}
+
+static char *mschapv2_prepare_short(char *split_fields[10])
+{
+  char *cp;
+
+  cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+1+1);
+  sprintf(cp, "$MSCHAPv2$%s$%s$$", split_fields[3], split_fields[4]);
+  if (mschapv2_valid_short(cp)) {
+    char *cp2 = str_alloc_copy(cp);
+    MEM_FREE(cp);
+    return cp2;
+  }
+  MEM_FREE(cp);
+  return split_fields[1];
+}
+
+static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
+{
+  char *ret;
+
+  if (!strncmp(split_fields[1], "$MSCHAPv2$", 10))
+    ret = NULL;
+  else if (split_fields[0] && split_fields[3] && split_fields[4] && split_fields[5] &&
+           strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
+           strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
+           strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
+    ret = mschapv2_prepare_long(split_fields);
+  else if (split_fields[0] && split_fields[3] && split_fields[4] &&
+           strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
+           strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
+    ret = mschapv2_prepare_short(split_fields);
+  else
+    ret = NULL;
+
+  return ret ? ret : split_fields[1];
 }
 
 static char *mschapv2_split(char *ciphertext, int index)
 {
   static char *out;
-  int i;
+  int i, j = 0;
 
   if (!out) out = mem_alloc_tiny(TOTAL_LENGTH + 1, MEM_ALIGN_WORD);
 
@@ -195,9 +264,12 @@ static char *mschapv2_split(char *ciphertext, int index)
   memcpy(out, ciphertext, strlen(ciphertext));
 
   /* convert hashes to lower-case - exclude $MSCHAPv2 and USERNAME */
-  for (i = 10; i < 10 + 16*2 + 1 + 24*2 + 1 + 16*2; i++)
+  for (i = 10; i < TOTAL_LENGTH + 1 && j < 3; i++) {
     if (out[i] >= 'A' && out[i] <= 'Z')
       out[i] |= 0x20;
+    else if (out[i] == '$')
+      j++;
+  }
 
   return out;
 }
@@ -209,7 +281,10 @@ static void *mschapv2_get_binary(char *ciphertext)
 
   if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-  ciphertext += 10 + 16*2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
+  if (mschapv2_valid_short(ciphertext))
+    ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
+  else
+    ciphertext += 10 + CHALLENGE_LENGTH / 2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
 
   for (i=0; i<BINARY_SIZE; i++)
   {
@@ -308,8 +383,18 @@ static int mschapv2_cmp_exact(char *source, int index)
 	return !memcmp(binary, mschapv2_get_binary(source), BINARY_SIZE);
 }
 
-/* We're essentially using three salts, but we're going to generate a single value here for later use.
-   |Peer/Client Challenge (8 Bytes)|Authenticator/Server Challenge (8 Bytes)|Username (<=256)|
+static void mschapv2_get_challenge(const char *ciphertext, unsigned char *binary_salt)
+{
+  int i;
+  const char *pos = ciphertext + 10;
+
+  for (i = 0; i < SALT_SIZE; i++)
+    binary_salt[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+}
+
+/* Either the cipherext already contains the MSCHAPv2 Challenge (4 Bytes) or
+   we are going to calculate it via:
+   sha1(|Peer/Client Challenge (8 Bytes)|Authenticator/Server Challenge (8 Bytes)|Username (<=256)|)
 */
 static void *mschapv2_get_salt(char *ciphertext)
 {
@@ -324,6 +409,12 @@ static void *mschapv2_get_salt(char *ciphertext)
 
   memset(binary_salt, 0, SALT_SIZE);
   memset(digest, 0, 20);
+
+  if (mschapv2_valid_short(ciphertext)) {
+    mschapv2_get_challenge(ciphertext, binary_salt);
+    goto out;
+  }
+
   SHA1_Init(&ctx);
 
   /* Peer Challenge */
@@ -353,6 +444,7 @@ static void *mschapv2_get_salt(char *ciphertext)
   SHA1_Final(digest, &ctx);
   memcpy(binary_salt, digest, SALT_SIZE);
 
+out:
   return (void*)binary_salt;
 }
 
