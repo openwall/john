@@ -331,7 +331,7 @@ static void find_best_gws(void) {
         if (! do_benchmark)
             advance_cursor();
 
-        tmpbuffer = malloc(sizeof(sha256_hash) * num);
+        tmpbuffer = mem_alloc(sizeof(sha256_hash) * num);
 
         if (tmpbuffer == NULL) {
             fprintf (stderr, "Malloc failure in find_best_gws\n");
