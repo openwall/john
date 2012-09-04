@@ -23,7 +23,9 @@ run/office2john
 run/opencl_bf_std.h
 run/opencl_cryptsha512.h
 run/opencl_DES_bs.h
+run/opencl_nonstd.h
 run/opencl_rar.h
+run/opencl_sboxes.h
 run/pdf2john
 run/pfx2john
 run/keychain2john

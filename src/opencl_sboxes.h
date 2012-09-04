@@ -1,3 +1,3 @@
 #undef andn
 #define andn 0
-#include "opencl_nonstd.c"
+#include "opencl_nonstd.h"
