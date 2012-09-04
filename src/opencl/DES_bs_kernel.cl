@@ -301,7 +301,7 @@ inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_combined *
 
 }
 
-#include "opencl_sboxes.c" 
+#include "opencl_sboxes.h"
 
 
 #define b				DES_bs_all[section].B
