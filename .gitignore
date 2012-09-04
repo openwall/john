@@ -22,6 +22,7 @@ run/mozilla2john
 run/office2john
 run/opencl_bf_std.h
 run/opencl_cryptsha512.h
+run/opencl_DES_bs.h
 run/opencl_rar.h
 run/pdf2john
 run/pfx2john
