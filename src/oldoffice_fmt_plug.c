@@ -22,6 +22,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "unicode.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -79,6 +80,9 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
+	if (options.utf8)
+		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?
+			125 : 3 * PLAINTEXT_LENGTH;
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	any_cracked = 0;
@@ -160,11 +164,9 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char passwordBuf[PLAINTEXT_LENGTH*2] = {0};
-		int passwordBufSize = strlen(saved_key[index]) * 2;
+		unsigned char passwordBuf[(PLAINTEXT_LENGTH+1)*2] = {0};
+		int passwordBufSize;
 		int i;
-		unsigned char c;
-		int position = 0;
 		MD5_CTX ctx;
 		unsigned char pwdHash[16];
 		unsigned char rc4Key[16];
@@ -172,10 +174,12 @@ static void crypt_all(int count)
 		RC4_KEY key;
 
 		/* convert password to UTF-16 */
-		for(i = 0; (c = saved_key[index][i]); i++) {
-			passwordBuf[position] = c;
-			position += 2;
-		}
+		passwordBufSize =
+			enc_to_utf16((UTF16*)passwordBuf, PLAINTEXT_LENGTH,
+			             (UTF8*)saved_key[index], strlen(saved_key[index]));
+		if (passwordBufSize < 0)
+			passwordBufSize = strlen16((UTF16*)passwordBuf);
+		passwordBufSize <<= 1;
 
 		if(cur_salt->type < 3) {
 			MD5_Init(&ctx);
@@ -252,7 +256,7 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
-static void KeePass_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -280,7 +284,7 @@ struct fmt_main oldoffice_fmt = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
 		oo_tests
 	}, {
 		init,
@@ -295,7 +299,7 @@ struct fmt_main oldoffice_fmt = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		KeePass_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
