@@ -85,7 +85,7 @@
 #endif
 
 #define BENCHMARK_COMMENT		""
-// it is salted, but very slow, AND there is no differnce between 1 and multi salts, so simply turn off salt benchmarks
+// it is salted, but very slow, AND there is no difference between 1 and multi salts, so simply turn off salt benchmarks
 #define BENCHMARK_LENGTH		-1
 
 // There 'ARE' more types, but we only handle these 2, at this time.
@@ -379,7 +379,7 @@ static int cmp_exact(char *source, int index)
 /* ------------------------------------------------------------------ */
 
 
-// inline function, as a macro, with no 
+// inline function, as a macro.
 #define md5bit_1(d,b) ((d[((b)>>3)&0xF]&(1<<((b)&7))) ? 1 : 0)
 // md5bit with no conditional logic. 
 #define md5bit_2(d,b) (((d[((b)>>3)&0xF]>>((b)&7)))&1)
@@ -399,6 +399,12 @@ md5bit(unsigned char *digest, int bit_num)
 	/* return the value of bit N from the digest */
 	return ((digest[byte_off] & (0x01 << bit_off)) ? 1 : 0);
 #endif
+}
+
+static inline int
+coin_step(unsigned char *digest, int i, int j, int shift)
+{
+	return md5bit(digest, digest[(digest[i] >> mod5[digest[j]]) & 0x0F] >> ((digest[j] >> (digest[i] & 0x07)) & 0x01)) << shift;
 }
 
 #define	ROUNDS		"rounds="
@@ -441,26 +447,9 @@ getrounds(const char *s)
 	return ((unsigned int)val);
 }
 
-/* put all the sensitive data in a struct */
 typedef struct {
 	MD5_CTX context;	/* working buffer for MD5 algorithm */
 	unsigned char digest[DIGEST_LEN]; /* where the MD5 digest is stored */
-
-	int indirect_4[16]; /* extracted array of 4bit values */
-	int shift_4[16];	/* shift schedule, vals 0..4 */
-
-	int indirect_7[16]; /* extracted array of 7bit values */
-	int shift_7[16];	/* shift schedule, vals 0..1 */
-
-	int indirect_a;	 /* 7bit index into digest */
-	int shift_a;		/* shift schedule, vals 0..1 */
-
-	int indirect_b;	 /* 7bit index into digest */
-	int shift_b;		/* shift schedule, vals 0..1 */
-
-	int bit_a;		  /* single bit for cointoss */
-	int bit_b;		  /* single bit for cointoss */
-
 } Contx, *pConx;
 static Contx data[MAX_KEYS_PER_CRYPT];
 
@@ -524,49 +513,43 @@ static void crypt_all(int count)
 		for (idx = 0; idx < count; ++idx) {
 			pConx px = &data[idx];
 
-			/* populate the shift schedules for use later */
-			for (i = 0; i < 16; i++) {
-				int j;
-			/* offset 3 -> occasionally span more than 1 int32 fetch */
-				j = (i + 3) & 0xF;
-				px->shift_4[i] = mod5[px->digest[j]];
-				px->shift_7[i] = (px->digest[j] >> (px->digest[i] & 7)) & 0x01;
-			}
+                        int indirect_a =
+                          md5bit(px->digest, round) ?
+                          coin_step(px->digest, 1,  4,  0) |
+                          coin_step(px->digest, 2,  5,  1) |
+                          coin_step(px->digest, 3,  6,  2) |
+                          coin_step(px->digest, 4,  7,  3) |
+                          coin_step(px->digest, 5,  8,  4) |
+                          coin_step(px->digest, 6,  9,  5) |
+                          coin_step(px->digest, 7, 10,  6)
+                          :
+                          coin_step(px->digest, 0,  3,  0) |
+                          coin_step(px->digest, 1,  4,  1) |
+                          coin_step(px->digest, 2,  5,  2) |
+                          coin_step(px->digest, 3,  6,  3) |
+                          coin_step(px->digest, 4,  7,  4) |
+                          coin_step(px->digest, 5,  8,  5) |
+                          coin_step(px->digest, 6,  9,  6);
 
-			px->shift_a = md5bit(px->digest, round);
-			px->shift_b = md5bit(px->digest, round + 64);
+                        int indirect_b =
+                          md5bit(px->digest, round + 64) ?
+                          coin_step(px->digest,  9, 12,  0) |
+                          coin_step(px->digest, 10, 13,  1) |
+                          coin_step(px->digest, 11, 14,  2) |
+                          coin_step(px->digest, 12, 15,  3) |
+                          coin_step(px->digest, 13,  0,  4) |
+                          coin_step(px->digest, 14,  1,  5) |
+                          coin_step(px->digest, 15,  2,  6)
+                          :
+                          coin_step(px->digest,  8, 11,  0) |
+                          coin_step(px->digest,  9, 12,  1) |
+                          coin_step(px->digest, 10, 13,  2) |
+                          coin_step(px->digest, 11, 14,  3) |
+                          coin_step(px->digest, 12, 15,  4) |
+                          coin_step(px->digest, 13,  0,  5) |
+                          coin_step(px->digest, 14,  1,  6);
 
-			/* populate indirect_4 with 4bit values extracted from digest */
-			for (i = 0; i < 16; i++)
-				/* shift the digest byte and extract four bits */
-				px->indirect_4[i] = (px->digest[i] >> px->shift_4[i]) & 0x0f;
-
-			/*
-			 * populate indirect_7 with 7bit values from digest
-			 * indexed via indirect_4
-			 */
-			for (i = 0; i < 16; i++)
-				/* shift the digest byte and extract seven bits */
-				px->indirect_7[i] = (px->digest[px->indirect_4[i]] >> px->shift_7[i]) & 0x7f;
-
-			/*
-			 * use the 7bit values to indirect into digest,
-			 * and create two 8bit values from the results.
-			 */
-			px->indirect_a = px->indirect_b = 0;
-
-			for (i = 0; i < 8; i++) {
-				px->indirect_a |= (md5bit(px->digest, px->indirect_7[i]) << i);
-				px->indirect_b |= (md5bit(px->digest, px->indirect_7[i + 8]) << i);
-			}
-
-			/* shall we utilise the top or bottom 7 bits? */
-			px->indirect_a = (px->indirect_a >> px->shift_a) & 0x7f;
-			px->indirect_b = (px->indirect_b >> px->shift_b) & 0x7f;
-
-			/* extract two px->digest bits */
-			px->bit_a = md5bit(px->digest, px->indirect_a);
-			px->bit_b = md5bit(px->digest, px->indirect_b);
+			int bit = md5bit(px->digest, indirect_a) ^ md5bit(px->digest, indirect_b);
 
 			/* xor a coin-toss; if true, mix-in the constant phrase */
 
@@ -584,12 +567,11 @@ static void crypt_all(int count)
 			MD5_Update(&px->context, px->digest, sizeof (px->digest));
 
 			/* optional, add a constant string. This is what makes the 'long' crypt loops */
-			if (px->bit_a ^ px->bit_b)
+			if (bit)
 				MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
 			/* Add a decimal current roundcount */
 			MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
 			MD5_Final(px->digest, &px->context);
-			px=px;
 #else
 			/*
 			 * we do not actually perform the work here. We run through all of the
@@ -597,7 +579,7 @@ static void crypt_all(int count)
 			 * and which ones need large buffers. Then we can group them MMX_COEF*MD5_SSE_PARA
 			 * at a time, later in the process.
 			 */
-			if (px->bit_a ^ px->bit_b)
+			if (bit)
 				bigs[nbig++] = idx;
 			else
 				smalls[nsmall++] = idx;
@@ -815,7 +797,7 @@ static void crypt_all(int count)
 		 * this is the equivelent of the original code:
 		 *    roundasciilen = sprintf(roundascii, "%d", round);
 		 * that was at the top of this rounds loop.  We have moved
-		 * it t the bottom. It does compute one 'extra' value that
+		 * it to the bottom. It does compute one 'extra' value that
 		 * is never used (5001), but it is faster, and that one
 		 * extra value causes no harm.
 		 * we do call the sprintf a few times (at 10, 100, 1000, etc)
