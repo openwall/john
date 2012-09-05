@@ -36,6 +36,7 @@ run/raw2dyna
 run/SIPdump
 run/ssh2john
 run/tgtsnarf
+run/to_dyna
 run/truecrypt_volume2john
 run/unafs
 run/undrop
