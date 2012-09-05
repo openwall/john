@@ -30,7 +30,7 @@ usage to_dyna [options] < input > output\n\
 	exit(0);
 }
 
-void main(int argc, char **argv) {
+int main(int argc, char **argv) {
 	char Buf[256], *cps, *cph;
 	int i;
 	ParseOptions(argc, argv);
@@ -49,6 +49,7 @@ void main(int argc, char **argv) {
 		printf("$dynamic_%d$%*.*s$%s\n", dyna_num, hash_len,hash_len, cph, GetSalt(cps));
 		fgets(Buf, sizeof(Buf), stdin);
 	}
+	return 0;
 }
 
 
