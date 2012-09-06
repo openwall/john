@@ -38,6 +38,9 @@ OMPFLAGS =
 # Uncomment the below if you have GMP library installed (faster wowsrp format)
 #HAVE_GMP = -DHAVE_GMP
 
+# Uncomment the below if you have KRB5 library installed (krb5-18/23 formats)
+#HAVE_KRB5 = -DHAVE_KRB5
+
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later)
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
 CUDAPATH = /usr/local/cuda/lib
@@ -62,13 +65,16 @@ endif
 ifdef HAVE_GMP
 GMP_LDFLAGS = -lgmp
 endif
+ifdef HAVE_KRB5
+KRB5_LDFLAGS = -lk5crypto
+endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(JOHN_CFLAGS) $(OMPFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lk5crypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS)
+LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(JOHN_CFLAGS) $(OMPFLAGS) $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)
 # -lskey
 LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
 LDFLAGS_MKV = -s -lm
@@ -116,6 +122,7 @@ JOHN_OBJS = \
 	keepass2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
+	krb5-18_fmt.o krb5-23_fmt.o \
 	$(PLUGFORMATS_OBJS) \
 	rawSHA1_ng_fmt.o \
 	plugin.o \
