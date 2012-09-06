@@ -116,6 +116,10 @@ extern struct fmt_main fmt_SKEY;
 extern struct fmt_main mozilla_fmt;
 extern int mozilla2john(int argc, char **argv);
 #endif
+#ifdef HAVE_KRB5
+extern struct fmt_main fmt_KRB5_kinit;
+extern struct fmt_main fmt_krb5_18;
+#endif
 extern int hccap2john(int argc, char **argv);
 
 #ifdef CL_VERSION_1_0
@@ -244,6 +248,10 @@ static void john_register_all(void)
 
 #ifdef HAVE_NSS
 	john_register_one(&mozilla_fmt);
+#endif
+#ifdef HAVE_KRB5
+	john_register_one(&fmt_KRB5_kinit);
+	john_register_one(&fmt_krb5_18);
 #endif
 
 #ifdef HAVE_CRYPT
