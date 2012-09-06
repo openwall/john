@@ -1807,15 +1807,15 @@ test_full_verbose:
 test_utf8_verbose:
 	cd ../test && perl jtrts.pl -type utf-8
 
-/etc/bash_completion.d/john.bash_completion:	../run/john.bash_completion
+bash-completion:
 	@echo
 	@echo NOTE: Administrative priviledges required for this make target.
-	$(CP) ../run/john.bash_completion /etc/bash_completion.d/
+	[ -d /etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /etc/bash_completion.d/ || true
+	[ -d /usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /usr/local/etc/bash_completion.d/ || true
+	[ -d /opt/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion /opt/local/etc/bash_completion.d/ || true
 	@echo
-	@echo Bash-completion for JtR successfully installed.
-	@echo Source \". /etc/bash_completion\" or logout/login to activate the changes
-
-bash-completion:	/etc/bash_completion.d/john.bash_completion
+	@echo Bash-completion for JtR opportunistically installed.
+	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
