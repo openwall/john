@@ -104,7 +104,7 @@
 #define BENCHMARK_LENGTH	-1
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
-#define BINARY_SIZE		2
+#define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(rarfile)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -710,12 +710,12 @@ static char *get_key(int index)
 
 #define ADD_BITS(n)	\
 	{ \
-		hold <<= n; \
-		bits -= n; \
-		if (bits < 25) { \
+		if (bits < 9) { \
 			hold |= ((unsigned int)*next++ << (24 - bits)); \
 			bits += 8; \
 		} \
+		hold <<= n; \
+		bits -= n; \
 	}
 
 #ifdef __GNUC__
@@ -731,7 +731,7 @@ __inline__
  * of the candidates without resorting to a slow full check (which in turn
  * may reject semi-early, especially if it's a PPM block)
  *
- * Input is the 16 decrypted bytes of RAR buffer, as-is. It also contain the
+ * Input is first 16 bytes of RAR buffer decrypted, as-is. It also contain the
  * first 2 bits, which have already been decoded, and have told us we had an
  * LZ block (RAR always use dynamic Huffman table) and keepOldTable was not set.
  *
@@ -775,15 +775,16 @@ static int check_huffman(unsigned char *next) {
 		}
 	}
 
+	if (next - was > 16) {
+		fprintf(stderr, "*** (possible) BUG: check_huffman() needed %u bytes, we only have 16 (bits=%d, hold=0x%08x)\n", (int)(next - was), bits, hold);
+		dump_stuff_msg("complete buffer", was, 16);
+		error();
+	}
+
 	/* Count the number of codes for each code length */
 	memset(count, 0, 16);
 	for (i = 0; i < 20; i++) {
 		++count[bit_length[i]];
-	}
-
-	if (next - was > 16) {
-		fprintf(stderr, "*** BUG: check_huffman() needed %u bytes, we only have 16\n", (int)(next - was));
-		error();
 	}
 
 	count[0] = 0;
@@ -960,13 +961,13 @@ static void crypt_all(int count)
 			} else {
 				const int solid = 0;
 				unpack_data_t *unpack_t;
-				unsigned char plain[16];
+				unsigned char plain[20];
 
 				cracked[index] = 0;
 
 				/* Decrypt just one block for early rejection */
 				outlen = 0;
-				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, sizeof(plain));
+				EVP_DecryptUpdate(&aes_ctx, plain, &outlen, cur_file->raw_data, 16);
 				EVP_DecryptFinal_ex(&aes_ctx, &plain[outlen], &outlen);
 				//dump_stuff_msg("decrypted", plain, sizeof(plain));
 
