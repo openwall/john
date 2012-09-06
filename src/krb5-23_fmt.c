@@ -110,7 +110,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 }
 
 
+#if FMT_MAIN_VERSION > 9
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
+#else
 static char *split(char *ciphertext, int index)
+#endif
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
@@ -216,7 +220,13 @@ struct fmt_main fmt_KRB5_kinit = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		sizeof(ARCH_WORD_32),
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		sizeof(ARCH_WORD_32),
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -228,6 +238,9 @@ struct fmt_main fmt_KRB5_kinit = {
 		split,
 		get_binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 		        fmt_default_binary_hash,
 			fmt_default_binary_hash,
