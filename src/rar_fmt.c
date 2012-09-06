@@ -104,7 +104,7 @@
 #define BENCHMARK_LENGTH	-1
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
-#define BINARY_SIZE		2
+#define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(rarfile)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
