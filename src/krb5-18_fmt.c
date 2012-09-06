@@ -4,7 +4,7 @@
  *
  * This format is one of formats saved in KDC database and used during the authentication part
  *
- * This software is Copyright © 2012, Mougey Camille (CEA/DAM)
+ * This software is Copyright (c) 2012, Mougey Camille (CEA/DAM)
  * Lalet Pierre (CEA/DAM)
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,

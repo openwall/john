@@ -14,7 +14,7 @@
 # 	shopt -p extglob
 # prints
 #	shopt -s extglob
-# then the extended pattern matching features enabled. If this command
+# then the extended pattern matching features are enabled. If this command
 # prints
 # 	shopt -u extglob
 # then they are disabled.
@@ -136,7 +136,7 @@ _john()
 #	All options (the '=' will be removed for options with an optional value)
 	options=""
 # FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
-	options="`${first} 2>/dev/null|sed -n '{ s#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1# }; /^--/ p'` --stdin"
+	options="`${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'` --stdin"
 	if [[ "_${options}" == "_ --stdin" ]] ; then
 		_filedir_xspec 2> /dev/null
 		return 0
@@ -180,7 +180,7 @@ _john()
 				fi
 			fi
 			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
-			formats=`${first} |sed -n '/^--format/,$ { s#^--format=[ A-Za-z]*:##; /^--/ b; s#^ *##; s#\<dynamic_n\>#dynamic#; s#^\(.*\)$#\L\1#; s#[/ ]#\n#g; p }'`
+			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\L\1#' -e 's#[/ ]#\n#g' -e 'p }'`
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
