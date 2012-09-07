@@ -208,7 +208,7 @@ static void init(struct fmt_main *self)
 
 	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
-	select_device(platform_id,gpu_id);
+	select_device(platform_id,ocl_gpu_id);
 	///Select devices select_device(int platform_no, int device_no). You may select multiple devices for faster cracking spped. Please See common_opencl_pbkdf2.h
 	//select_device(1,0);
 	//select_device(0,0);

@@ -12,7 +12,7 @@ void HandleError(cudaError_t err, const char *file, int line);
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 
 extern "C" 
-void cuda_init(unsigned int gpu_id);
+void cuda_init(unsigned int cuda_gpu_id);
 extern "C"
 void cuda_device_list();
 extern "C"

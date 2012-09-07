@@ -31,7 +31,7 @@
 //#define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
-int gpu_id, platform_id;
+int ocl_gpu_id, platform_id;
 cl_platform_id platform[MAX_PLATFORMS];
 cl_device_id devices[MAXGPUS];
 cl_context context[MAXGPUS];

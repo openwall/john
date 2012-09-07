@@ -312,18 +312,18 @@ static void create_clobj(int gws)
 #ifdef DEBUG
 	fprintf(stderr, "Creating %d bytes of key buffer\n", UNICODE_LENGTH * *mkpc);
 #endif
-	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * *mkpc, NULL , &ret_code);
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * *mkpc, NULL , &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * *mkpc, 0, NULL, NULL, &ret_code);
+	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, UNICODE_LENGTH * *mkpc);
 
 #ifdef DEBUG
 	fprintf(stderr, "Creating %lu bytes of key_len buffer\n", sizeof(cl_int) * *mkpc);
 #endif
-	cl_saved_len = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * *mkpc, NULL, &ret_code);
+	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * *mkpc, 0, NULL, NULL, &ret_code);
+	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < *mkpc; i++)
 		saved_len[i] = bench_len;
@@ -331,9 +331,9 @@ static void create_clobj(int gws)
 #ifdef DEBUG
 	fprintf(stderr, "Creating 8 bytes of salt buffer\n");
 #endif
-	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 8, NULL, &ret_code);
+	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 8, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_salt = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 8, 0, NULL, NULL, &ret_code);
+	saved_salt = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 8, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
@@ -341,15 +341,15 @@ static void create_clobj(int gws)
 	fprintf(stderr, "Creating %d bytes each of aes_key and aes_iv buffers\n", 16 * *mkpc);
 #endif
 	// aes_key is uchar[16] but kernel treats it as uint[4]
-	cl_aes_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * *mkpc, NULL, &ret_code);
+	cl_aes_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * *mkpc, 0, NULL, NULL, &ret_code);
+	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_key");
 	memset(aes_key, 0, 16 * *mkpc);
 
-	cl_aes_iv = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * *mkpc, NULL, &ret_code);
+	cl_aes_iv = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * *mkpc, 0, NULL, NULL, &ret_code);
+	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * *mkpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
 	memset(aes_iv, 0, 16 * *mkpc);
 
@@ -362,11 +362,11 @@ static void create_clobj(int gws)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
 	aes_key = NULL; aes_iv = NULL; saved_key = NULL; saved_len = NULL; saved_salt = NULL;
 }
 #endif	/* OpenCL */
@@ -403,7 +403,7 @@ cl_ulong gws_test(int gws)
 	int num = VF * gws;
 
 	create_clobj(gws);
-	queue_prof = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < num; i++)
 		set_key(rar_fmt.params.tests[0].plaintext, i);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "Failed transferring salt");
@@ -497,7 +497,7 @@ static void find_best_gws(int do_benchmark)
 				fprintf(stderr, "\n");
 		}
 	}
-	if (get_device_type(gpu_id) != CL_DEVICE_TYPE_CPU) {
+	if (get_device_type(ocl_gpu_id) != CL_DEVICE_TYPE_CPU) {
 		fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_gws);
 		fprintf(stderr, "(to avoid this test on next run, put \""
 		        GWS_CONFIG " = %d\" in john.conf, section ["
@@ -516,14 +516,14 @@ static void init(struct fmt_main *self)
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/rar_kernel.cl", gpu_id, platform_id);
+	opencl_init("$JOHN/rar_kernel.cl", ocl_gpu_id, platform_id);
 
 	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[gpu_id], "SetCryptKeys", &ret_code);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "SetCryptKeys", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* We mimic the lengths of cRARk for comparisons */
-	if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU) {
+	if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU) {
 #ifndef DEBUG
 		self->params.benchmark_comment = " (6 characters)";
 #endif
@@ -546,14 +546,14 @@ static void init(struct fmt_main *self)
 		global_work_size = atoi(temp);
 
 	/* Note: we ask for this kernel's max size, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 
 #ifdef DEBUG
 	fprintf(stderr, "Max allowed local work size %d\n", (int)maxsize);
 #endif
 
 	if (!local_work_size) {
-		if (get_device_type(gpu_id) == CL_DEVICE_TYPE_CPU) {
+		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) {
 			local_work_size = 8;
 		} else {
 			local_work_size = 64;
@@ -578,8 +578,8 @@ static void init(struct fmt_main *self)
 #ifdef DEBUG
 	{
 		cl_ulong loc_mem_size;
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_size), &loc_mem_size, NULL), "Query local memory usage");
-		fprintf(stderr, "Kernel using %lu bytes of local memory out of %lu available\n", loc_mem_size, get_local_memory_size(gpu_id));
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_size), &loc_mem_size, NULL), "Query local memory usage");
+		fprintf(stderr, "Kernel using %lu bytes of local memory out of %lu available\n", loc_mem_size, get_local_memory_size(ocl_gpu_id));
 	}
 #endif
 
@@ -699,7 +699,7 @@ static void set_salt(void *salt)
 	memcpy(saved_salt, cur_file->salt, 8);
 
 #ifdef CL_VERSION_1_0
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, BLOCK_IF_DEBUG, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 #endif
 }
 
@@ -815,20 +815,20 @@ static void crypt_all(int count)
 #endif
 	{
 		if (new_keys) {
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * *mkpc, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * *mkpc, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * *mkpc, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * *mkpc, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 			new_keys = 0;
 		}
 #ifdef DEBUG
 		fprintf(stderr, "GPU: lws %d gws %d gws %d count %d\n", (int)local_work_size, (int)global_work_size, *mkpc, count);
 #endif
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 #ifdef DEBUG
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Failed running kernel");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
 #endif
 		// read back aes key & iv
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, BLOCK_IF_DEBUG, 0, 16 * *mkpc, aes_key, 0, NULL, NULL), "failed in reading key back");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * *mkpc, aes_iv, 0, NULL, NULL), "failed in reading iv back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, BLOCK_IF_DEBUG, 0, 16 * *mkpc, aes_key, 0, NULL, NULL), "failed in reading key back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * *mkpc, aes_iv, 0, NULL, NULL), "failed in reading iv back");
 
 	}
 #ifndef ALWAYS_OPENCL

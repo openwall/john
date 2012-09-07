@@ -131,7 +131,7 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
 	free(inbuffer);
 	free(outbuffer);
 }
@@ -153,7 +153,7 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
-	opencl_init("$JOHN/cryptmd5_kernel.cl", gpu_id, platform_id);
+	opencl_init("$JOHN/cryptmd5_kernel.cl", ocl_gpu_id, platform_id);
 
 	///Alocate memory on the CPU side
 	inbuffer =
@@ -166,19 +166,19 @@ static void init(struct fmt_main *self)
 	assert(inbuffer != NULL);
 	///Alocate memory on the GPU
 	mem_salt =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for salt");
 	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for passwords");
 	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
 	///Assign kernel parameters
-	crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -333,20 +333,20 @@ static void crypt_all(int count)
 	size_t localworksize = local_work_size;
 	///Copy data to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer
-	    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, inbuffer, 0, NULL,
+	    (queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, inbuffer, 0, NULL,
 		NULL), "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
 		0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
+	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
 		0, NULL, &profilingEvent), "Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, outbuffer, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 }
 
 static int get_hash_0(int index)

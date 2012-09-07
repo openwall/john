@@ -37,14 +37,14 @@ static char *human_format(size_t size)
 }
 
 extern "C" 
-void cuda_init(unsigned int gpu_id)
+void cuda_init(unsigned int cuda_gpu_id)
 {
 	int devices;
 	HANDLE_ERROR(cudaGetDeviceCount(&devices));
-	if (gpu_id < devices && devices > 0)
-		cudaSetDevice(gpu_id);
+	if (cuda_gpu_id < devices && devices > 0)
+		cudaSetDevice(cuda_gpu_id);
 	else {
-		fprintf(stderr, "Invalid CUDA device id = %d\n", gpu_id);
+		fprintf(stderr, "Invalid CUDA device id = %d\n", cuda_gpu_id);
 		exit(1);
 	}
 }
