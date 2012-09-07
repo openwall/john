@@ -91,7 +91,7 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
 }
 static void init(struct fmt_main *self)
 {
@@ -118,22 +118,22 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
-	opencl_init("$JOHN/odf_kernel.cl", gpu_id, platform_id);
+	opencl_init("$JOHN/odf_kernel.cl", ocl_gpu_id, platform_id);
 	/// Alocate memory
 	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error alocating mem in");
 	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
 	HANDLE_CLERROR(cl_error, "Error alocating mem setting");
 	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error alocating mem out");
 
-	crypt_kernel = clCreateKernel(program[gpu_id], "odf", &cl_error);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "odf", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -278,24 +278,24 @@ static void crypt_all(int count)
 	}
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
 	    "Copy setting to gpu");
 
 	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
 		NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
 	    "Run kernel");
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, outbuffer, 0, NULL, NULL), "Copy result back");
 
 	/// Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
 
 #ifdef _OPENMP
 #pragma omp parallel for

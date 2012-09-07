@@ -73,7 +73,7 @@ static void cleanup()
 
 static void init(struct fmt_main *self)
 {
-	cuda_init(gpu_id);
+	cuda_init(cuda_gpu_id);
 	if (cuda_getAsyncEngineCount() > 0) {
 		overlap = 1;
 		inbuffer =

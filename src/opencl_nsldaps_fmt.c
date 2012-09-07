@@ -99,40 +99,40 @@ static struct fmt_tests tests[] = {
 };
 
 static void create_clobj(int kpc){
-	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-	saved_plain = (char*)clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ,
+	saved_plain = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ,
 			 0, (PLAINTEXT_LENGTH) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
 
 	outbuffer2 = malloc(sizeof(cl_uint) * 4 * kpc);
 
-	pinned_partial_hashes = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
 	    sizeof(cl_uint) * kpc, NULL, &ret_code);
 
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-	outbuffer = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id],
+	outbuffer = (cl_uint *) clEnqueueMapBuffer(queue[ocl_gpu_id],
 	    pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0,
 	    sizeof(cl_uint) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory outbuffer");
 
 	// create and set arguments
-	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
 	    (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
 
-	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY,
+	buffer_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
 	    sizeof(cl_uint) * 5 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
-	data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
+	data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
 	    sizeof(unsigned int) * 2, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
-	mysalt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL, &ret_code);
+	mysalt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating mysalt out argument");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info),
@@ -153,16 +153,16 @@ static void create_clobj(int kpc){
     	global_work_size = kpc;
 
 	/* We set this here and never again. Used to be in crypt_all() */
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_FALSE, 0,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_FALSE, 0,
 	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL), "failed in clEnqueueWriteBuffer data_info");
 }
 
 static void release_clobj(void){
     cl_int ret_code;
 
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_partial_hashes, outbuffer, 0,NULL,NULL);
+    ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, outbuffer, 0,NULL,NULL);
     HANDLE_CLERROR(ret_code, "Error Ummapping outbuffer");
-    ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
+    ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
     HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
     ret_code = clReleaseMemObject(buffer_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
@@ -198,7 +198,7 @@ static void find_best_kpc(void){
         release_clobj();
 	create_clobj(num);
 	advance_cursor();
-	queue_prof = clCreateCommandQueue( context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i=0; i < num; i++){
 		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
@@ -239,10 +239,10 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/ssha_kernel.cl", gpu_id, platform_id);
+	opencl_init("$JOHN/ssha_kernel.cl", ocl_gpu_id, platform_id);
 
 	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[gpu_id], "sha1_crypt_kernel", &ret_code);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
@@ -337,7 +337,7 @@ static void set_salt(void *salt){
 	memcpy(saved_salt, salt, SALT_SIZE);
 
 	/* Used to be in crypt_all() - bad for single salt */
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mysalt, CL_FALSE, 0, SALT_SIZE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mysalt, CL_FALSE, 0, SALT_SIZE,
 	    saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer mysalt");
 }
 
@@ -367,7 +367,7 @@ static int cmp_exact(char *source, int count){
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
+		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
 			    sizeof(cl_uint) * (max_keys_per_crypt),
 			    sizeof(cl_uint) * 4 * max_keys_per_crypt, outbuffer2, 0,
 			    NULL, NULL);
@@ -390,17 +390,17 @@ static void crypt_all(int count)
 {
 	cl_int code;
 
-	code = clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
+	code = clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
 	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer saved_plain");
 
-	code = clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
+	code = clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 	    &global_work_size, &local_work_size, 0, NULL, &profilingEvent);
 	HANDLE_CLERROR(code, "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 	// read back partial hashes
-	code = clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0,
+	code = clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0,
 	    sizeof(cl_uint) * max_keys_per_crypt, outbuffer, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueReadBuffer -reading partial hashes");
 	have_full_hashes = 0;

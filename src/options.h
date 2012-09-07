@@ -211,9 +211,9 @@ struct options_main {
 	char dynamic_raw_hashes_always_valid;
 
 #ifdef CL_VERSION_1_0
-	char *ocl_platform, *ocl_device;
+	char *ocl_platform, *gpu_device;
 #elif defined(HAVE_CUDA)
-	char *ocl_device;
+	char *gpu_device;
 #endif
 /* -list=WHAT Get a config list (eg. a list of incremental modes available) */
 	char *listconf;
