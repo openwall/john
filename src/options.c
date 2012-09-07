@@ -41,8 +41,9 @@
 #endif
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
-#elif defined(HAVE_CUDA)
-extern int gpu_id;
+#endif
+#if defined(HAVE_CUDA)
+extern int cuda_gpu_id;
 #endif
 
 struct options_main options;
@@ -148,7 +149,7 @@ static struct opt_entry opt_list[] = {
 #endif
 #if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
 	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &options.ocl_device},
+		OPT_FMT_STR_ALLOC, &options.gpu_device},
 #endif
 	{NULL}
 };
@@ -344,10 +345,12 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 #ifdef CL_VERSION_1_0
 	if (options.ocl_platform)
 		platform_id = atoi(options.ocl_platform);
+	if (options.gpu_device)
+		ocl_gpu_id = atoi(options.gpu_device);
 #endif
-#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
-	if (options.ocl_device)
-		gpu_id = atoi(options.ocl_device);
+#ifdef HAVE_CUDA
+	if (options.gpu_device)
+		cuda_gpu_id = atoi(options.gpu_device);
 #endif
 	if (options.flags & FLG_STATUS_CHK) {
 		rec_restore_args(0);

@@ -9,13 +9,9 @@
 /*
 * CUDA device id specified by -device parameter
 */
-#ifdef CL_VERSION_1_0
-extern int gpu_id;
-#else
-int gpu_id;
-#endif
+int cuda_gpu_id;
 
-extern void cuda_init(unsigned int gpu_id);
+extern void cuda_init(unsigned int cuda_gpu_id);
 
 #define check_mem_allocation(inbuffer,outbuffer)\
     if(inbuffer==NULL){\

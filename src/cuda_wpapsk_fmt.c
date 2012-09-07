@@ -67,7 +67,7 @@ static void init(struct fmt_main *self)
 	}
 
 	///Initialize CUDA
-	cuda_init(gpu_id);
+	cuda_init(cuda_gpu_id);
 }
 
 static void crypt_all(int count)

@@ -125,8 +125,8 @@ static int max_keys_per_crypt = NT_NUM_KEYS;
 
 static void release_all(void)
 {
-	clEnqueueUnmapMemObject(queue[gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
-	clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
+	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
 
 	clReleaseMemObject(buffer_keys);
 	clReleaseMemObject(buffer_out);
@@ -134,9 +134,9 @@ static void release_all(void)
 	clReleaseMemObject(pinned_saved_keys);
 
 	clReleaseKernel(crypt_kernel);
-	clReleaseProgram(program[gpu_id]);
-	clReleaseCommandQueue(queue[gpu_id]);
-	clReleaseContext(context[gpu_id]);
+	clReleaseProgram(program[ocl_gpu_id]);
+	clReleaseCommandQueue(queue[ocl_gpu_id]);
+	clReleaseContext(context[ocl_gpu_id]);
 }
 
 // TODO: Use concurrent memory copy & execute
@@ -145,19 +145,19 @@ static void nt_crypt_all_opencl(int count)
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 
 	// Fill params. Copy only necesary data
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], data_info, CL_TRUE, 0,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_TRUE, 0,
 		sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer data_info");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_TRUE, 0,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
 		key_length_mul_4 * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_keys");
 
 	// Execute method
-	clEnqueueNDRangeKernel( queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent);
-	clFinish( queue[gpu_id] );
+	clEnqueueNDRangeKernel( queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent);
+	clFinish( queue[ocl_gpu_id] );
 
 	// Read partial result
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint)*max_keys_per_crypt, bbbs, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint)*max_keys_per_crypt, bbbs, 0, NULL, NULL);
 
 	max_key_length = 0;
 	have_full_hashes = 0;
@@ -170,28 +170,28 @@ static void fmt_NT_init(struct fmt_main *self){
 	int argIndex = 0;
 
 	atexit(release_all);
-	opencl_init("$JOHN/nt_kernel.cl", gpu_id, platform_id);
+	opencl_init("$JOHN/nt_kernel.cl", ocl_gpu_id, platform_id);
 
-	crypt_kernel = clCreateKernel( program[gpu_id], "nt_crypt", &ret_code );
+	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
 
-	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code);
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
-	pinned_bbbs = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*NT_NUM_KEYS, NULL, &ret_code);
+	pinned_bbbs = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*NT_NUM_KEYS, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
 
 	res_hashes = malloc(sizeof(cl_uint) * 3 * max_keys_per_crypt);
-	saved_plain = (char*) clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
+	saved_plain = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
-	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
+	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
 
 	// 6. Create and set arguments
-	buffer_keys = clCreateBuffer( context[gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code );
+	buffer_keys = clCreateBuffer( context[ocl_gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-	buffer_out  = clCreateBuffer( context[gpu_id], CL_MEM_WRITE_ONLY , 4*4*NT_NUM_KEYS, NULL, &ret_code );
+	buffer_out  = clCreateBuffer( context[ocl_gpu_id], CL_MEM_WRITE_ONLY , 4*4*NT_NUM_KEYS, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-	data_info = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
+	data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
 	argIndex = 0;
@@ -326,15 +326,15 @@ static int cmp_one(void * binary, int index)
 		return 0;
 
 	//a
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(1*NT_NUM_KEYS+index), sizeof(a), (void*)&a, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(1*NT_NUM_KEYS+index), sizeof(a), (void*)&a, 0, NULL, NULL);
 	if (t[0]!=a)
 		return 0;
 	//c
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(2*NT_NUM_KEYS+index), sizeof(c), (void*)&c, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(2*NT_NUM_KEYS+index), sizeof(c), (void*)&c, 0, NULL, NULL);
 	if (t[2]!=c)
 		return 0;
 	//d
-	clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(3*NT_NUM_KEYS+index), sizeof(d), (void*)&d, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(3*NT_NUM_KEYS+index), sizeof(d), (void*)&d, 0, NULL, NULL);
 	return t[3]==d;
 	if(b!=t[1])
 		return 0;
@@ -360,7 +360,7 @@ static int cmp_exact(char *source, int count) {
 	unsigned int *t = (unsigned int *) get_binary(source);
 
 	if (!have_full_hashes){
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE,
+		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
 			sizeof(cl_uint) * (max_keys_per_crypt),
 			sizeof(cl_uint) * 3 * max_keys_per_crypt, res_hashes, 0,
 			NULL, NULL);

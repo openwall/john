@@ -1131,15 +1131,15 @@ static void john_init(char *name, int argc, char **argv)
 		else
 			platform_id = -1;
 	}
-	if (!options.ocl_device) {
-		if ((options.ocl_device =
+	if (!options.gpu_device) {
+		if ((options.gpu_device =
 		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
-			gpu_id = atoi(options.ocl_device);
+			ocl_gpu_id = atoi(options.gpu_device);
 		else
-			gpu_id = -1;
+			ocl_gpu_id = -1;
 	}
-	if (platform_id == -1 || gpu_id == -1)
-		opencl_find_gpu(&gpu_id, &platform_id);
+	if (platform_id == -1 || ocl_gpu_id == -1)
+		opencl_find_gpu(&ocl_gpu_id, &platform_id);
 #endif
 
 	common_init();

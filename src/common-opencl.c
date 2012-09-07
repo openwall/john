@@ -219,13 +219,13 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	int i, numloops;
 	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
 
-        if (get_device_version(gpu_id) < 110) {
+        if (get_device_version(ocl_gpu_id) < 110) {
             wg_multiple = 8; // Recommended by Intel
 
-	    if (get_device_type(gpu_id) == CL_DEVICE_TYPE_GPU)
+	    if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
 		wg_multiple = 32;
         } else {
-	    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+	    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
 		    sizeof(wg_multiple), &wg_multiple, NULL),
 	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
@@ -234,7 +234,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	orig_group_size = global_work_size;
 	global_work_size = self->params.max_keys_per_crypt;
 
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[gpu_id],
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
@@ -249,10 +249,10 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	///Command Queue changing:
 	///1) Delete old CQ
-	clReleaseCommandQueue(queue[gpu_id]);
+	clReleaseCommandQueue(queue[ocl_gpu_id]);
 	///2) Create new CQ with profiling enabled
-	queue[gpu_id] =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id],
+	queue[ocl_gpu_id] =
+	    clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id],
 	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
@@ -272,7 +272,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	// Timing run
 	self->methods.crypt_all(self->params.max_keys_per_crypt);
-	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 	clGetEventProfilingInfo(profilingEvent,
 	    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 	    NULL);
@@ -304,7 +304,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
-			HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish error");
+			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 			clGetEventProfilingInfo(profilingEvent,
 			                        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 			                        NULL);
@@ -322,9 +322,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		//fprintf(stderr, "%d time=%llu\n",(int) my_work_group, (unsigned long long)sumEndTime-sumStartTime);
 	}
 	///Release profiling queue and create new with profiling disabled
-	clReleaseCommandQueue(queue[gpu_id]);
-	queue[gpu_id] =
-	    clCreateCommandQueue(context[gpu_id], devices[gpu_id], 0,
+	clReleaseCommandQueue(queue[ocl_gpu_id]);
+	queue[ocl_gpu_id] =
+	    clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], 0,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
