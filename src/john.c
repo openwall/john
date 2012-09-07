@@ -1115,15 +1115,22 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 #ifdef CL_VERSION_1_0
-	if (!options.ocl_platform)
-	if ((options.ocl_platform =
-	     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Platform")))
-		platform_id = atoi(options.ocl_platform);
-
-	if (!options.ocl_device)
-	if ((options.ocl_device =
-	     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
-		gpu_id = atoi(options.ocl_device);
+	if (!options.ocl_platform) {
+		if ((options.ocl_platform =
+		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Platform")))
+			platform_id = atoi(options.ocl_platform);
+		else
+			platform_id = -1;
+	}
+	if (!options.ocl_device) {
+		if ((options.ocl_device =
+		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
+			gpu_id = atoi(options.ocl_device);
+		else
+			gpu_id = -1;
+	}
+	if (platform_id == -1 || gpu_id == -1)
+		opencl_find_gpu(&gpu_id, &platform_id);
 #endif
 
 	common_init();

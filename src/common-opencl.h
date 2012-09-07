@@ -3,7 +3,7 @@
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
-/* Should there be an alternative cl_ext.h here? */
+#include <OpenCL/cl_ext.h>
 #else
 #include <CL/cl.h>
 #include <CL/cl_ext.h>
@@ -102,5 +102,7 @@ void advance_cursor() ;
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
 void listOpenCLdevices();
+
+void opencl_find_gpu(int *dev_id, int *platform_id);
 
 #endif

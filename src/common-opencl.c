@@ -350,6 +350,53 @@ void opencl_get_dev_info(unsigned int dev_id)
         device_info[dev_id] += get_byte_addressable(dev_id);
 }
 
+void opencl_find_gpu(int *dev_id, int *platform_id)
+{
+	cl_uint num_platforms, num_devices;
+	cl_ulong long_entries;
+	int i, d;
+
+	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
+	                                &num_platforms),
+	               "Error querying for platforms");
+
+	if (*platform_id == -1)
+		*platform_id = 0;
+	else
+		num_platforms = *platform_id + 1;
+
+	for (i = *platform_id; i < num_platforms; i++) {
+		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAXGPUS,
+		    devices, &num_devices);
+
+		if (!num_devices)
+			continue;
+		d = 0;
+		if (*dev_id >= 0) {
+			if (num_devices < *dev_id)
+				continue;
+			else
+				*platform_id = i;
+			d = *dev_id;
+			num_devices = *dev_id + 1;
+		}
+		for (; d < num_devices; ++d) {
+			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
+			                sizeof(cl_ulong), &long_entries, NULL);
+			if (long_entries & CL_DEVICE_TYPE_GPU) {
+				*platform_id = i;
+				*dev_id = d;
+				return;
+			}
+		}
+	}
+	if (*platform_id < 0)
+		*platform_id = 0;
+	if (*dev_id < 0)
+		*dev_id = 0;
+	return;
+}
+
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
 {
 	dev_init(dev_id, platform_id);
