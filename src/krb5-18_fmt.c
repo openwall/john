@@ -68,9 +68,6 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char saved_salt[SALT_SIZE];
 static ARCH_WORD_32 (*crypt_out)[16];
 
-static krb5_error_code ret;
-static krb5_data string;
-static krb5_keyblock key;
 static krb5_data salt;
 static krb5_enctype enctype;
 
@@ -177,19 +174,21 @@ static void *get_binary(char *ciphertext)
 static void crypt_all(int count)
 {
   int index = 0;
-  int i;
 
 #ifdef _OPENMP
 #pragma omp parallel for
   for (index = 0; index < count; index++)
 #endif
     {
-
+      int i;
+      krb5_data string;
+      // krb5_error_code ret;
+      krb5_keyblock key;
       salt.data = saved_salt;
       salt.length = strlen(salt.data);
       string.data = saved_key[index];
       string.length = strlen(saved_key[index]);
-      ret = krb5_c_string_to_key_with_params(NULL,
+      krb5_c_string_to_key_with_params(NULL,
 					     enctype,
 					     &string,
 					     &salt,
