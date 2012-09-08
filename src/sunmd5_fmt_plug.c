@@ -333,8 +333,7 @@ static int salt_hash(void *salt)
 
 static void set_salt(void *salt)
 {
-	memset(saved_salt, 0, sizeof(saved_salt));
-	strcpy(saved_salt, salt);
+	memcpy(saved_salt, salt, SALT_SIZE);
 }
 
 static void set_key(char *key, int index)
