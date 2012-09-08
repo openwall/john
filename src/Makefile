@@ -1100,8 +1100,8 @@ macosx-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64"
+		CFLAGS="$(CFLAGS) -m64 -Wno-deprecated-declarations $(HAVE_KRB5)" \
+		LDFLAGS="$(LDFLAGS) -m64 -lkrb5"
 
 macosx-x86-64i:
 	$(LN) x86-64.h arch.h
