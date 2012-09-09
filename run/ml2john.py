@@ -1131,7 +1131,7 @@ def process_file(filename):
     iterations = d.get('iterations')
     salth = binascii.hexlify(salt)
     entropyh = binascii.hexlify(entropy)
-    print "%s:$ml$%d$%s$%s" % (filename, iterations, salth, entropyh[0:128])
+    print "%s:$pbkdf2-hmac-sha512$%d.%s.%s" % (filename, iterations, salth, entropyh[0:128])
 
     # from passlib.hash import grub_pbkdf2_sha512
     # hash = grub_pbkdf2_sha512.encrypt("password", rounds=iterations, salt=salt)
