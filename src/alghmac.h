@@ -35,7 +35,9 @@
 #define _ALGHMAC_H_
 
 #include "seccomon.h"
+#ifndef __APPLE__
 #include <malloc.h>
+#endif
 #include <memory.h>
 #include "alghmac.h"
 

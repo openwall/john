@@ -50,6 +50,15 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#if defined(__APPLE__) && defined(__MACH__)
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+#if __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
+#define USE_HEIMDAL
+#endif
+#endif
+#endif
+
+
 extern krb5_error_code KRB5_CALLCONV
 krb5_c_string_to_key_with_params(krb5_context context, krb5_enctype enctype,
                                  const krb5_data *string,
@@ -66,9 +75,6 @@ static struct fmt_tests kinit_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[8];
 
-static krb5_error_code ret;
-static krb5_data string;
-static krb5_keyblock key;
 static krb5_data salt;
 static krb5_enctype enctype;
 
@@ -151,23 +157,26 @@ static void *get_binary(char *ciphertext)
 static void crypt_all(int count)
 {
   int index = 0;
-  int i = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for
   for (index = 0; index < count; index++)
 #endif
     {
+      int i = 0;
+      krb5_data string;
+      krb5_keyblock key;
+      memset(&key, 0, sizeof(krb5_keyblock));
 
       string.data = saved_key[index];
       string.length = strlen(saved_key[index]);
-      ret = krb5_c_string_to_key_with_params(NULL,
-					     enctype,
-					     &string,
-					     &salt,
-					     NULL,
-					     &key);
-      for(; i < key.length / 4; i++){
+#ifdef USE_HEIMDAL
+      krb5_c_string_to_key (NULL, ENCTYPE_ARCFOUR_HMAC, &string, &salt, &key);
+#else
+      krb5_c_string_to_key_with_params(NULL, enctype, &string, &salt, NULL, &key);
+
+#endif
+      for(i=0; i < key.length / 4; i++) {
 	      crypt_out[index][i] = (key.contents[4 * i]) |
 		      (key.contents[4 * i + 1] << 8) |
 		      (key.contents[4 * i + 2] << 16) |

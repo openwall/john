@@ -294,6 +294,7 @@ static void init_aesni(void)
 	ENGINE_free(e);
 }
 
+#ifndef __APPLE__
 static void openssl_cleanup(void)
 {
 	ENGINE_cleanup();
@@ -301,6 +302,7 @@ static void openssl_cleanup(void)
 	CRYPTO_cleanup_all_ex_data();
 	EVP_cleanup();
 }
+#endif
 
 #ifdef CL_VERSION_1_0
 static void create_clobj(int gws)
@@ -616,8 +618,9 @@ static void init(struct fmt_main *self)
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
+#ifndef __APPLE__
 	atexit(openssl_cleanup);
-
+#endif
 	/* CRC-32 table init, do it before we start multithreading */
 	{
 		CRC32_t crc;
