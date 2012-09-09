@@ -66,7 +66,7 @@ ifdef HAVE_GMP
 GMP_LDFLAGS = -lgmp
 endif
 ifdef HAVE_KRB5
-KRB5_LDFLAGS = -lk5crypto
+KRB5_LDFLAGS = -lk5crypto -lkrb5
 endif
 
 CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
@@ -1100,8 +1100,8 @@ macosx-x86-64:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -Wno-deprecated-declarations $(HAVE_KRB5)" \
-		LDFLAGS="$(LDFLAGS) -m64 -lkrb5"
+		CFLAGS="$(CFLAGS) -m64 -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -m64"
 
 macosx-x86-64i:
 	$(LN) x86-64.h arch.h
