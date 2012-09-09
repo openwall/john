@@ -378,7 +378,7 @@ static int test(char *argv[])
 	in = GSF_INFILE(infile);
 	src = gsf_infile_child_by_name(in, "EncryptionInfo");
 	if (!src) {
-		fprintf(stderr, "%s : is not a Office 2007 / 2010 encrypted file!\n", argv[1]);
+		fprintf(stderr, "%s : is not a Office 2007 / 2010 / 2013 encrypted file!\n", argv[1]);
 		return 1;
 	}
 
@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
 	int res;
 
 	if (argc != 2) {
-		puts("Usage: office2john OFFICE-2007-OR-2010-ENCRYPTED-FILE");
+		puts("Usage: office2john OFFICE-2007-OR-2010-OR-2013-ENCRYPTED-FILE");
 
 		if (argc <= 1)
 			return 0;
