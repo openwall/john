@@ -5,10 +5,11 @@ into a format suitable for use with JtR."""
 
 import sys
 
+
 def process_file(filename):
     with open(filename, "r") as f:
         for line in f.readlines():
-            data = line.split();
+            data = line.split()
             print "%s:$racf$*%s*%s*%s" % (data[0], data[0], data[-1], data[-2])
 
 if __name__ == "__main__":
@@ -18,5 +19,3 @@ if __name__ == "__main__":
 
     for i in range(1, len(sys.argv)):
         process_file(sys.argv[i])
-
-

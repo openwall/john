@@ -234,9 +234,9 @@ static void init(struct fmt_main *self)
 		    "but running with an older version -\n"
 		    "disabling OpenMP for SSH because of thread-safety issues "
 		    "of older OpenSSL\n");
-		fmt_encfs.params.min_keys_per_crypt =
-		    fmt_encfs.params.max_keys_per_crypt = 1;
-		fmt_encfs.params.flags &= ~FMT_OMP;
+		self->params.min_keys_per_crypt =
+		    self->params.max_keys_per_crypt = 1;
+		self->params.flags &= ~FMT_OMP;
 	}
 	else {
 		int omp_t = 1;
