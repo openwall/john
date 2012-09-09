@@ -42,6 +42,7 @@ import sys
 
 try:
     import json
+    assert json
 except ImportError:
     import simplejson as json
 

@@ -1441,7 +1441,7 @@ class OleFileIO:
                 count = i32(s, offset+4)
                 value = s[offset+8:offset+8+count]
             else:
-                value = None # everything else yields "None"
+                value = None  # everything else yields "None"
 
             # FIXME: add support for VT_VECTOR
 
@@ -1459,22 +1459,22 @@ class OleFileIO:
 # http://msdn.microsoft.com/en-us/library/dd920360%28v=office.12%29
 
 from struct import unpack
-import hashlib
 import binascii
 import StringIO
+
 
 def find_rc4_passinfo_xls(filename, stream):
     while True:
         pos = stream.tell()
         if pos >= stream.size:
-            break  #  eof
+            break  # eof
 
         type = unpack("<h", stream.read(2))[0]
         #print binascii.hexlify(type), "11"
         length = unpack("<h", stream.read(2))[0]
         data = stream.read(length)
 
-        if type == 0x2f: # FILEPASS
+        if type == 0x2f:  # FILEPASS
             if data[0:2] == "\x00\x00":  # XOR obfuscation
                 print >> sys.stderr, "%s : XOR obfuscation detected, key : %s, hash : %s " % (filename, binascii.hexlify(data[2:4]),
                         binascii.hexlify(data[4:6]))
@@ -1485,22 +1485,22 @@ def find_rc4_passinfo_xls(filename, stream):
                 verifier = data[16:32]
                 verifierHash = data[32:48]
                 return (salt, verifier, verifierHash)
-            elif data[0:4] == '\x01\x00\x02\x00' or data[0:4] =='\x01\x00\x03\x00':
+            elif data[0:4] == '\x01\x00\x02\x00' or data[0:4] == '\x01\x00\x03\x00':
                 # If RC4 CryptoAPI encryption is used, certain storages and streams are stored in Encryption Stream
                 stm = StringIO.StringIO(data)
-                unused = stm.read(2)
+                stm.read(2)  # unused
                 # RC4 CryptoAPI Encryption Header
-                major_version = unpack("<h", stm.read(2))[0]
-                minor_version = unpack("<h", stm.read(2))[0]
-                encryptionFlags = unpack("<I", stm.read(4))[0]
+                unpack("<h", stm.read(2))[0]  # major_version
+                unpack("<h", stm.read(2))[0]  # minor_version
+                unpack("<I", stm.read(4))[0]  # encryptionFlags
                 headerLength = unpack("<I", stm.read(4))[0]
-                skipFlags = unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # skipFlags
                 headerLength -= 4
-                sizeExtra = unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # sizeExtra
                 headerLength -= 4
-                algId =  unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # algId
                 headerLength -= 4
-                algHashId =  unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # algHashId
                 headerLength -= 4
                 keySize = unpack("<I", stm.read(4))[0]
                 if keySize == 40:
@@ -1508,11 +1508,11 @@ def find_rc4_passinfo_xls(filename, stream):
                 else:
                     typ = 4
                 headerLength -= 4
-                providerType = unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # providerType
                 headerLength -= 4
-                x = unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # unused
                 headerLength -= 4
-                x = unpack("<I", stm.read(4))[0]
+                unpack("<I", stm.read(4))[0]  # unused
                 headerLength -= 4
                 CSPName = stm.read(headerLength)
                 provider = CSPName.decode('utf-16').lower()
@@ -1529,13 +1529,13 @@ def find_rc4_passinfo_xls(filename, stream):
                     typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
                 binascii.hexlify(encryptedVerifierHash)))
 
-
     return None
+
 
 def find_doc_type(filename, stream):
     w_ident = stream.read(2)
     assert(w_ident == "\xec\xa5")
-    unused = stream.read(9)
+    stream.read(9)  # unused
     flags = ord(stream.read(1))
     if (flags & 1) != 0:
         F = 1
@@ -1546,7 +1546,7 @@ def find_doc_type(filename, stream):
     else:
         M = 0
     if F == 1 and M == 1:
-        unused = stream.read(2)
+        stream.read(2)  # unused
         i_key = stream.read(4)
         print >> sys.stderr, "%s : XOR obfuscation detected, Password Verifier : %s" % (filename, binascii.hexlify(i_key))
         return True
@@ -1554,16 +1554,18 @@ def find_doc_type(filename, stream):
         print >> sys.stderr, "%s : Document is not encrypted!" % (filename)
         return True
 
+
 def find_ppt_type(filename, stream):
     # read CurrentUserRec's RecordHeader
-    unused = stream.read(2)
-    recType = unpack("<h", stream.read(2))[0]
-    recLen = unpack("<L", stream.read(4))[0]
+    stream.read(2)  # unused
+    unpack("<h", stream.read(2))[0]  # recType
+    unpack("<L", stream.read(4))[0]  # recLen
     # read rest of CurrentUserRec
-    size = unpack("<L", stream.read(4))[0]
-    headerToken = unpack("<L", stream.read(4))[0]
+    unpack("<L", stream.read(4))[0]  # size
+    unpack("<L", stream.read(4))[0]  # headerToken
     offsetToCurrentEdit = unpack("<L", stream.read(4))[0]
     return offsetToCurrentEdit
+
 
 def find_rc4_passinfo_doc(filename, stream):
     major_version = unpack("<h", stream.read(2))[0]
@@ -1577,23 +1579,23 @@ def find_rc4_passinfo_doc(filename, stream):
         return (salt, verifier, verifierHash)
     elif major_version >= 2 and minor_version == 2:
         # RC4 CryptoAPI Encryption Header
-        encryptionFlags = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # encryptionFlags
         headerLength = unpack("<I", stream.read(4))[0]
-        skipFlags = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # skipFlags
         headerLength -= 4
-        sizeExtra = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # sizeExtra
         headerLength -= 4
-        algId =  unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # algId
         headerLength -= 4
-        algHashId =  unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # algHashId
         headerLength -= 4
-        keySize = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # keySize
         headerLength -= 4
-        providerType = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # providerType
         headerLength -= 4
-        x = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # unused
         headerLength -= 4
-        x = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # unused
         headerLength -= 4
         CSPName = stream.read(headerLength)
         provider = CSPName.decode('utf-16').lower()
@@ -1617,9 +1619,9 @@ def find_rc4_passinfo_doc(filename, stream):
 
 
 def find_rc4_passinfo_ppt(filename, stream, offset):
-    unused = stream.read(offset)
+    stream.read(offset)  # unused
     # read UserEditAtom's RecordHeader
-    unused = stream.read(2)
+    stream.read(2)  # unused
     recType = unpack("<h", stream.read(2))[0]
     recLen = unpack("<L", stream.read(4))[0]
     if recLen != 32:
@@ -1629,28 +1631,28 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
         print >> sys.stderr, "%s : Document is corrupt!" % (filename)
         return
     # read reset of UserEditAtom
-    lastSlideRef = unpack("<L", stream.read(4))[0]
-    version = unpack("<h", stream.read(2))[0]
-    minorVersion = ord(stream.read(1))
-    majorVersion = ord(stream.read(1))
-    offsetLastEdit = unpack("<L", stream.read(4))[0]
+    unpack("<L", stream.read(4))[0]  # lastSlideRef
+    unpack("<h", stream.read(2))[0]  # version
+    ord(stream.read(1))  # minorVersion
+    ord(stream.read(1))  # majorVersion
+    unpack("<L", stream.read(4))[0]  # offsetLastEdit
     offsetPersistDirectory = unpack("<L", stream.read(4))[0]
-    docPersistIdRef= unpack("<L", stream.read(4))[0]
-    persistIdSeed = unpack("<L", stream.read(4))[0]
-    lastView = unpack("<h", stream.read(2))[0]
-    unused_ = unpack("<h", stream.read(2))[0]
+    unpack("<L", stream.read(4))[0]  # docPersistIdRef
+    unpack("<L", stream.read(4))[0]  # persistIdSeed
+    unpack("<h", stream.read(2))[0]  # lastView
+    unpack("<h", stream.read(2))[0]  # unused
     encryptSessionPersistIdRef = unpack("<h", stream.read(2))[0]
     # if( offset.LowPart < userAtom.offsetPersistDirectory ||
     # userAtom.offsetPersistDirectory < userAtom.offsetLastEdit )
     # goto CorruptFile;
     # jump and read RecordHeader
     stream.seek(offsetPersistDirectory, 0)
-    unused = stream.read(2)
+    stream.read(2)  # unused
     recType = unpack("<h", stream.read(2))[0]
     recLen = unpack("<L", stream.read(4))[0]
     # BUGGY: PersistDirectoryAtom and PersistDirectoryEntry processing
     i = 0
-    unused = stream.read(4)
+    stream.read(4)  # unused
     while i < encryptSessionPersistIdRef:
         i += 1
         persistOffset = unpack("<L", stream.read(4))[0]
@@ -1658,7 +1660,7 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
     # go to the offset of encryption header
     stream.seek(persistOffset, 0)
     # read RecordHeader
-    unused = stream.read(2)
+    stream.read(2)  # unused
     recType = unpack("<h", stream.read(2))[0]
     recLen = unpack("<L", stream.read(4))[0]
     major_version = unpack("<h", stream.read(2))[0]
@@ -1666,23 +1668,23 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
 
     if major_version >= 2 and minor_version == 2:
         # RC4 CryptoAPI Encryption Header
-        encryptionFlags = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # encryptionFlags
         headerLength = unpack("<I", stream.read(4))[0]
-        skipFlags = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # skipFlags
         headerLength -= 4
-        sizeExtra = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # sizeExtra
         headerLength -= 4
-        algId =  unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # algId
         headerLength -= 4
-        algHashId =  unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # algHashId
         headerLength -= 4
-        keySize = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # keySize
         headerLength -= 4
-        providerType = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]  # providerType
         headerLength -= 4
-        x = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]
         headerLength -= 4
-        x = unpack("<I", stream.read(4))[0]
+        unpack("<I", stream.read(4))[0]
         headerLength -= 4
         CSPName = stream.read(headerLength)
         provider = CSPName.decode('utf-16').lower()
@@ -1703,6 +1705,7 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
         binascii.hexlify(encryptedVerifierHash)))
     else:
         print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
+
 
 def process_file(filename):
 
@@ -1727,7 +1730,7 @@ def process_file(filename):
         return 2
 
     workbookStream = ole.openstream(stream)
-    if workbookStream == None:
+    if workbookStream is None:
         print >> sys.stderr, "%s : Error opening stream, %s" % filename
         (filename, stream)
         return 3
@@ -1735,7 +1738,7 @@ def process_file(filename):
     if stream == "Workbook":
         typ = 0
         passinfo = find_rc4_passinfo_xls(filename, workbookStream)
-        if passinfo == None:
+        if passinfo is None:
             return 4
     elif stream == "1Table":
         typ = 1
@@ -1743,7 +1746,7 @@ def process_file(filename):
         ret = find_doc_type(filename, sdoc)
         if not ret:
             passinfo = find_rc4_passinfo_doc(filename, workbookStream)
-            if passinfo == None:
+            if passinfo is None:
                 return 4
         else:
             return 5
@@ -1753,7 +1756,6 @@ def process_file(filename):
         sppt = ole.openstream("PowerPoint Document")
         find_rc4_passinfo_ppt(filename, sppt, offset)
         return 6
-
 
     (salt, verifier, verifierHash) = passinfo
     sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),

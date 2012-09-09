@@ -10,6 +10,7 @@
 
 import sys
 
+
 def usage():
     print """
     Usage :
@@ -23,7 +24,7 @@ if (len(sys.argv) < 2):
 dump_f = open(sys.argv[1], "r")
 name = "unknown"
 for l in dump_f.readlines():
-    i = l.split(",");
+    i = l.split(",")
     if (len(i) == 1):
         if (l.strip()):
             name = l.strip()
