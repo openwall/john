@@ -39,7 +39,7 @@ static int omp_t = 1;
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	8
 #define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(*salt_struct)
+#define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -89,11 +89,10 @@ static struct fmt_tests vnc_tests[] = {
 static struct custom_salt {
 	char unsigned challenge[16];
 	char unsigned response[16];
-} *salt_struct;
+} *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
-
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static void init(struct fmt_main *self)
 {
 
@@ -105,8 +104,7 @@ static void init(struct fmt_main *self)
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -117,25 +115,61 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	int i;
+	static struct custom_salt cs;
 	char *ctcopy = strdup(ciphertext);
 	char *p, *keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$vnc$*" */
-	salt_struct = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
 	for (i = 0; i < 16; i++)
-		salt_struct->challenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cs.challenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	for (i = 0; i < 16; i++)
-		salt_struct->response[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cs.response[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
-	return (void *)salt_struct;
+	return (void *)&cs;
 }
+
+static void *get_binary(char *ciphertext)
+{
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD dummy;
+	} buf;
+	unsigned char *out = buf.c;
+	char *p;
+	int i;
+	p = strrchr(ciphertext, '*') + 1;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+	return out;
+}
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
-	salt_struct = (struct custom_salt *)salt;
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static void crypt_all(int count)
@@ -157,36 +191,34 @@ static void crypt_all(int count)
 		memset(ivec, 0, 8);
 		DES_set_key_unchecked(&des_key, &schedule);
 		/* do encryption */
-		DES_cbc_encrypt(salt_struct->challenge, &encrypted_challenge[0], 8, &schedule, &ivec, DES_ENCRYPT);
-		if(memcmp(encrypted_challenge, salt_struct->response, 8) == 0) {
-			DES_cbc_encrypt(&salt_struct->challenge[8], &encrypted_challenge[8], 8, &schedule, &ivec, DES_ENCRYPT);
-			if(memcmp(encrypted_challenge, salt_struct->response, 16) == 0)
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+		DES_cbc_encrypt(cur_salt->challenge, &encrypted_challenge[0], 8, &schedule, &ivec, DES_ENCRYPT);
+		if(memcmp(encrypted_challenge, cur_salt->response, 8) == 0) {
+			DES_cbc_encrypt(&cur_salt->challenge[8], &encrypted_challenge[8], 8, &schedule, &ivec, DES_ENCRYPT);
+			if(memcmp(encrypted_challenge, cur_salt->response, 16) == 0)
+				memcpy((unsigned char*)crypt_out[index], encrypted_challenge, 16);
 		}
-		else
-			cracked[index] = 0;
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-    return 1;
+	return 1;
 }
 
 static void vnc_set_key(char *key, int index)
@@ -228,13 +260,19 @@ struct fmt_main vnc_fmt = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 9
 		fmt_default_source,
 #endif
 		{
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -243,7 +281,13 @@ struct fmt_main vnc_fmt = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
