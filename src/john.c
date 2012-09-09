@@ -137,6 +137,7 @@ extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_keychain;
 extern struct fmt_main fmt_opencl_agilekeychain;
+extern struct fmt_main fmt_opencl_strip;
 extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_encfs;
 extern struct fmt_main fmt_opencl_odf;
@@ -287,6 +288,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_keychain);
 	john_register_one(&fmt_opencl_agilekeychain);
+	john_register_one(&fmt_opencl_strip);
 	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_encfs);
 	john_register_one(&fmt_opencl_odf);
