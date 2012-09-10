@@ -43,7 +43,7 @@
 /* s1-000010, 36 gates, 17 regs, 8/28/65/102/139 stall cycles */
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0F0F3333, x3C3C3C3C, x55FF55FF, x69C369C3, x0903B73F, x09FCB7C0,
 	    x5CA9E295;
@@ -108,7 +108,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s1-000011, 36 gates, 16 regs, 10/37/74/111/148 stall cycles */
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0F0F3333, x3C3C3C3C, x55FF55FF, x69C369C3, x0903B73F, x09FCB7C0,
 	    x5CA9E295;
@@ -175,7 +175,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s2-000000, 33 gates, 18 regs, 3/26/57/90/125 stall cycles */
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x55553333, x0055FF33, x33270F03, x66725A56, x00FFFF00, x668DA556;
 	vtype x0F0F5A56, xF0F0A5A9, xA5A5969A, xA55A699A;
@@ -236,7 +236,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s2-000002, 33 gates, 18 regs, 4/22/49/82/117 stall cycles */
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x55553333, x0055FF33, x33270F03, x66725A56, x00FFFF00, x668DA556;
 	vtype x0F0F5A56, xF0F0A5A9, xA5A5969A, xA55A699A;
@@ -297,7 +297,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s2-000012, 33 gates, 17 regs, 5/17/51/86/121 stall cycles */
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x55553333, x0055FF33, x33270F03, x66725A56, x00FFFF00, x668DA556;
 	vtype x0F0F5A56, xF0F0A5A9, xA5A5969A, xA55A699A;
@@ -360,7 +360,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s3-000000, 33 gates, 17 regs, 6/10/33/66/102 stall cycles */
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0F330F33, x0F33F0CC, x5A66A599;
 	vtype x2111B7BB, x03FF3033, x05BB50EE, x074F201F, x265E97A4;
@@ -421,7 +421,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s3-000004, 33 gates, 17 regs, 3/13/41/77/113 stall cycles */
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0F330F33, x0F33F0CC, x5A66A599;
 	vtype x2111B7BB, x03FF3033, x05BB50EE, x074F201F, x265E97A4;
@@ -484,7 +484,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s4-000014, 26 gates, 13 regs, 2/17/42/70/98 stall cycles */
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0505AFAF, x0555AF55, x0A5AA05A, x46566456, x0A0A5F5F, x0AF55FA0,
 	    x0AF50F0F, x4CA36B59;
@@ -535,7 +535,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s4-000033, 26 gates, 12 regs, 4/22/48/76/104 stall cycles */
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0505AFAF, x0555AF55, x0A5AA05A, x46566456, x0A0A5F5F, x0AF55FA0,
 	    x0AF50F0F, x4CA36B59;
@@ -588,7 +588,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-000000, 35 gates, 18 regs, 7/33/68/105/142 stall cycles */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
 	vtype x2E3C2E3C, xB73121F7, x1501DF0F, x00558A5F, x2E69A463;
@@ -651,7 +651,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-000005, 35 gates, 19 regs, 7/29/60/95/132 stall cycles */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
 	vtype x2E3C2E3C, xB73121F7, x1501DF0F, x00558A5F, x2E69A463;
@@ -714,7 +714,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-000011, 35 gates, 18 regs, 9/31/62/95/132 stall cycles */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
 	vtype x2E3C2E3C, xB73121F7, x1501DF0F, x00558A5F, x2E69A463;
@@ -777,7 +777,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-000016, 35 gates, 20 regs, 6/30/62/98/135 stall cycles */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
 	vtype x2E3C2E3C, xB73121F7, x1501DF0F, x00558A5F, x2E69A463;
@@ -840,7 +840,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-000023, 35 gates, 18 regs, 9/30/61/96/133 stall cycles */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
 	vtype x2E3C2E3C, xB73121F7, x1501DF0F, x00558A5F, x2E69A463;
@@ -905,7 +905,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000000, 34 gates, 16 regs, 5/34/70/107/144 stall cycles */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
 	vtype x353A6565, x0A3F0A6F, x6C5939A3, x5963A3C6;
@@ -967,7 +967,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000008, 34 gates, 15 regs, 6/25/57/94/131 stall cycles */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
 	vtype x353A6565, x0A3F0A6F, x6C5939A3, x5963A3C6;
@@ -1029,7 +1029,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000082, 34 gates, 14 regs, 8/31/65/102/139 stall cycles */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
 	vtype x353A6565, x0A3F0A6F, x6C5939A3, x5963A3C6;
@@ -1091,7 +1091,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000461, 34 gates, 16 regs, 7/23/48/82/118 stall cycles */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
 	vtype x553A5565, x0A3F0A6F, x6C5939A3, x5963A3C6;
@@ -1155,7 +1155,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s7-000013, 34 gates, 15 regs, 9/27/56/88/119 stall cycles */
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x44447777, x4B4B7878, x22772277, x0505F5F5, x220522F5, x694E5A8D;
 	vtype x00FFFF00, x66666666, x32353235, x26253636, x26DAC936;
@@ -1217,7 +1217,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s7-000019, 34 gates, 17 regs, 5/28/57/88/119 stall cycles */
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x44447777, x4B4B7878, x22772277, x0505F5F5, x220522F5, x694E5A8D;
 	vtype x00FFFF00, x66666666, x32353235, x26253636, x26DAC936;
@@ -1281,7 +1281,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s8-000035, 32 gates, 15 regs, 6/15/47/79/111 stall cycles */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0505F5F5, x05FAF50A, x0F0F00FF, x22227777, x07DA807F, x34E9B34C;
 	vtype x00FFF00F, x0033FCCF, x5565B15C, x0C0C3F3F, x59698E63;
@@ -1341,7 +1341,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s8-000037, 32 gates, 15 regs, 3/17/49/81/113 stall cycles */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+    __local  vtype * out1, __local  vtype * out2, __local  vtype * out3, __local  vtype * out4)
 {
 	vtype x0505F5F5, x05FAF50A, x0F0F00FF, x22227777, x07DA807F, x34E9B34C;
 	vtype x00FFF00F, x0033FCCF, x5565B15C, x0C0C3F3F, x59698E63;

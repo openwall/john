@@ -11,6 +11,7 @@
 
 #include "arch.h"
 #include "common-opencl.h"
+#include "opencl_DES_WGS.h"
 
 #ifndef DES_BS_ALGORITHM_NAME
 #define DES_BS_ALGORITHM_NAME		ARCH_BITS_STR "/" ARCH_BITS_STR " BS"
@@ -22,7 +23,7 @@
 
 #define DES_bs_vector			WORD
 
-#define MULTIPLIER                      32000
+#define MULTIPLIER                      (WORK_GROUP_SIZE*256)
 
 
 #define MIN_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)

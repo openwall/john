@@ -134,7 +134,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for MMX/SSE2 and x86-64 SSE2 */
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL vtype * out2,MAYBE_GLOBAL vtype * out3,MAYBE_GLOBAL vtype * out4)
+  __local  vtype * out1,__local vtype * out2,__local vtype * out3,__local vtype * out4)
 {
 	vtype x55005500, x5A0F5A0F, x3333FFFF, x66666666, x22226666, x2D2D6969, x25202160;
 	vtype x00FFFF00, x33CCCC33, x4803120C, x2222FFFF, x6A21EDF3, x4A01CC93;
@@ -366,7 +366,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s2-016276, 44 gates, 15 regs, 11 andn, 1/9/24/59/104 stalls, 67 biop */
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL vtype * out2,MAYBE_GLOBAL vtype * out3,MAYBE_GLOBAL vtype * out4)
+  __local  vtype * out1,__local vtype * out2,__local vtype * out3,__local vtype * out4)
 {
 	vtype x33CC33CC;
 	vtype x55550000, x00AA00FF, x33BB33FF;
@@ -964,7 +964,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s3-001172, 46 gates, 17 regs, 10 andn, 2/3/19/55/98 stalls, 69 biop */
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
 	vtype x3C3CC3C3, x3C3C0000, x7373F4F4, x0C840A00;
@@ -1038,7 +1038,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s3-001283, 46 gates, 16 regs, 14 andn, 2/5/10/30/69 stalls, 69 biop */
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
 	vtype x3C3CC3C3, x3C3C0000, x7373F4F4, x0C840A00;
@@ -1113,7 +1113,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s4, 33 gates, 11/12 regs, 9 andn, 2/21/53/86/119 stalls, 52 biop */
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x5A5A5A5A, x0F0FF0F0;
 	vtype x33FF33FF, x33FFCC00, x0C0030F0, x0C0CC0C0, x0CF3C03F, x5EFBDA7F,
@@ -1248,7 +1248,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for x86-64 SSE2 */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
 	vtype x70700000, x43433333, x00430033, x55557777, x55167744, x5A19784B;
@@ -1325,7 +1325,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for MMX/SSE2 */
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+   __local vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
 	vtype x70700000, x43433333, x00430033, x55557777, x55167744, x5A19784B;
@@ -1404,7 +1404,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for x86-64 SSE2 */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+   __local vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1481,7 +1481,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for MMX/SSE2 */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1633,7 +1633,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000031, 46 gates, 19 regs, 8 andn, 3/16/42/68/111 stalls, 69 biop */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -2229,7 +2229,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s7-036496, 46 gates, 17 regs, 7 andn, 3/9/20/52/95 stalls, 70 biop */
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2525,7 +2525,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s7-036649, 46 gates, 16 regs, 7 andn, 3/9/20/55/100 stalls, 69 biop */
 inline  void
 /*s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+   __local vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2675,7 +2675,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for MMX/SSE2 */
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    MAYBE_GLOBAL vtype * out1, MAYBE_GLOBAL vtype * out2, MAYBE_GLOBAL vtype * out3, MAYBE_GLOBAL vtype * out4)
+   __local vtype * out1,__local vtype * out2,__local vtype * out3,__local vtype * out4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2954,7 +2954,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for x86-64 SSE2 */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   MAYBE_GLOBAL  vtype * out1,MAYBE_GLOBAL  vtype * out2,MAYBE_GLOBAL  vtype * out3,MAYBE_GLOBAL  vtype * out4)
+  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
 {
 	vtype x0C0C0C0C, x0000F0F0, x00FFF00F, x00555005, x00515001;
 	vtype x33000330, x77555775, x30303030, x3030CFCF, x30104745, x30555745;

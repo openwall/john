@@ -119,13 +119,10 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 		passwordBufSize = strlen16((UTF16*)passwordBuf);
 	passwordBufSize <<= 1;
 
-	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
-	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
-	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
+	SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+	SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
-	MEM_FREE(inputBuf);
 
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
@@ -145,11 +142,9 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	}
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
-	i = 0;
-	memmove(inputBuf, inputBuf + 4, 20);
-	memcpy(inputBuf + 20, &i, 4); // XXX: size & endianness
+	memset(&inputBuf[20 + 4], 0, 4); // XXX: size & endianness
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
+	SHA1_Update(&ctx, &inputBuf[4], 0x14 + 0x04);
 	SHA1_Final(hashBuf, &ctx);
 	MEM_FREE(inputBuf);
 
@@ -213,13 +208,10 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 		passwordBufSize = strlen16((UTF16*)passwordBuf);
 	passwordBufSize <<= 1;
 
-	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
-	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
-	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
+	SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+	SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
-	MEM_FREE(inputBuf);
 
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
@@ -238,10 +230,9 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 		SHA1_Final(inputBuf + 4, &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
-	memmove(inputBuf, inputBuf + 4, 20);
-	memcpy(inputBuf + 20, blockKey, 8);
+	memcpy(&inputBuf[20 + 4], blockKey, 8);
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, inputBuf, 28);
+	SHA1_Update(&ctx, &inputBuf[4], 28);
 	SHA1_Final(hashBuf, &ctx);
 	MEM_FREE(inputBuf);
 
@@ -266,13 +257,11 @@ static void GenerateAgileEncryptionKey512(char *password, unsigned char * blockK
 		passwordBufSize = strlen16((UTF16*)passwordBuf);
 	passwordBufSize <<= 1;
 
-	inputBuf = (unsigned char *)malloc(cur_salt->saltSize + passwordBufSize);
-	memcpy(inputBuf, cur_salt->osalt, cur_salt->saltSize);
-	memcpy(inputBuf + cur_salt->saltSize, passwordBuf, passwordBufSize);
 	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, inputBuf, cur_salt->saltSize + passwordBufSize);
+	SHA512_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+	SHA512_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA512_Final(hashBuf, &ctx);
-	MEM_FREE(inputBuf);
+
 	inputBuf = (unsigned char *)malloc(128);
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
@@ -285,10 +274,9 @@ static void GenerateAgileEncryptionKey512(char *password, unsigned char * blockK
 		SHA512_Final(inputBuf + 4, &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
-	memmove(inputBuf, inputBuf + 4, 64);
-	memcpy(inputBuf + 64, blockKey, 8);
+	memcpy(&inputBuf[64 + 4], blockKey, 8);
 	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, inputBuf, 64 + 8);
+	SHA512_Update(&ctx, &inputBuf[4], 64 + 8);
 	SHA512_Final(hashBuf, &ctx);
 	MEM_FREE(inputBuf);
 }
@@ -389,6 +377,7 @@ static void crypt_all(int count)
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
+			MEM_FREE(encryptionKey);
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierInputKey[32], verifierHashKey[32], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
