@@ -99,6 +99,8 @@ static unsigned char *DeriveKey(unsigned char *hashValue)
 		derivedKey[i] = (i < 30 ? 0x5C ^ hashValue[i] : 0x5C);
 
 	/* TODO: finish up this function */
+
+	fprintf(stderr, "**WARNING: DeriveKey() entered unimplemented branch. False negatives?\n");
 	return NULL;
 }
 
@@ -153,8 +155,10 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	// Should handle the case of longer key lengths as shown in 2.3.4.9
 	// Grab the key length bytes of the final hash as the encrypytion key
 	final = (unsigned char *)malloc(cur_salt->keySize/8);
-	memcpy(final, key, cur_salt->keySize/8);
-	MEM_FREE(key);
+	if (key) {
+		memcpy(final, key, cur_salt->keySize/8);
+		MEM_FREE(key);
+	}
 	return final;
 }
 
