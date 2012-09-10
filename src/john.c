@@ -1384,6 +1384,10 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_MPI
 	mpi_setup(argc, argv);
+#else
+	if (getenv("OMPI_COMM_WORLD_SIZE"))
+	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1)
+		fprintf(stderr, "WARNING: Running under MPI, but this is NOT an MPI build of John.\n");
 #endif
 	john_init(name, argc, argv);
 
