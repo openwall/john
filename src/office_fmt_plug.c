@@ -324,6 +324,7 @@ static void crypt_all(int count)
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
+			free(encryptionKey);
 		}
 		else if (salt_struct->version == 2010) {
 			unsigned char verifierInputKey[20], verifierHashKey[20], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
