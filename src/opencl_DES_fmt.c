@@ -1,6 +1,8 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2010,2011 by Solar Designer
+ * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
  */
 
 #include <string.h>
