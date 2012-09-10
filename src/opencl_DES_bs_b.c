@@ -118,7 +118,7 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	
 	cl_event evnt;
 	
-	size_t N;
+	size_t N,M;
 	
 	if(keys_count%DES_BS_DEPTH==0) keys_count_multiple=keys_count;
 	
@@ -126,7 +126,14 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	
 	section=keys_count_multiple/DES_BS_DEPTH;
 	
-	N=section;
+	M = WORK_GROUP_SIZE;
+	
+	if(section%WORK_GROUP_SIZE !=0)
+	N=  (section/WORK_GROUP_SIZE +1) *WORK_GROUP_SIZE ;
+	
+	else
+	N = section;  
+	
 
 		
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
@@ -135,7 +142,7 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
 	
-	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno],1,NULL,&N,NULL,0,NULL,&evnt);
+	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno],1,NULL,&N,&M,0,NULL,&evnt);
 
 	clWaitForEvents(1,&evnt);
 	
