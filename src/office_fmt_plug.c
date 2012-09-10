@@ -77,10 +77,10 @@ static int *cracked;
 static unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
 static unsigned char encryptedVerifierHashValueBlockKey[] = { 0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e };
 
-static unsigned char *DeriveKey(unsigned char *hashValue)
+static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
 {
 	int i;
-	unsigned char derivedKey[64], *X1;
+	unsigned char derivedKey[64];
 	SHA_CTX ctx;
 
 	// This is step 4a in 2.3.4.7 of MS_OFFCRYPT version 1.0
@@ -88,7 +88,7 @@ static unsigned char *DeriveKey(unsigned char *hashValue)
 	// used only when the encryption algorithm key > hash length.
 	for (i = 0; i < 64; i++)
 		derivedKey[i] = (i < 20 ? 0x36 ^ hashValue[i] : 0x36);
-	X1 = (unsigned char *)malloc(20);
+
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, derivedKey, 64);
 	SHA1_Final(X1, &ctx);
@@ -104,21 +104,23 @@ static unsigned char *DeriveKey(unsigned char *hashValue)
 	return NULL;
 }
 
-static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
+static unsigned char* GeneratePasswordHashUsingSHA1(char *password, unsigned char *final)
 {
-	unsigned char hashBuf[20], *inputBuf, *key, *final;
+	unsigned char hashBuf[20], *key;
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
-	unsigned char passwordBuf[512] = {0};
+	UTF16 passwordBuf[PLAINTEXT_LENGTH + 1];
+	unsigned int inputBuf[(0x14 + 0x04 + 4) / sizeof(int)];
+	unsigned char X1[20];
 	int passwordBufSize;
 	int i;
 	SHA_CTX ctx;
 
 	/* convert key to UTF-16LE */
-	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	passwordBufSize = enc_to_utf16(passwordBuf, PLAINTEXT_LENGTH, (UTF8*)password, strlen(password));
 	if (passwordBufSize < 0)
-		passwordBufSize = strlen16((UTF16*)passwordBuf);
+		passwordBufSize = strlen16(passwordBuf);
 	passwordBufSize <<= 1;
 
 	SHA1_Init(&ctx);
@@ -129,36 +131,31 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
 	 * hashBuf = SHA1Hash(i, hashBuf); */
-	// Create an input buffer for the hash.  This will be 4 bytes larger than
-	// the hash to accommodate the unsigned int iterator value.
-	inputBuf = (unsigned char *)malloc(0x14 + 0x04 + 4);
+
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
-	memcpy(inputBuf + 4, hashBuf, 20);
+	memcpy(&inputBuf[1], hashBuf, 20);
 	for (i = 0; i < 50000; i++) {
-		*(int *)inputBuf = i; // XXX: size & endianness
+		*inputBuf = i; // XXX: size & endianness
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
-		SHA1_Final(inputBuf + 4, &ctx);
+		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
-	memset(&inputBuf[20 + 4], 0, 4); // XXX: size & endianness
+	memset(&inputBuf[6], 0, 4); // XXX: size & endianness
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, &inputBuf[4], 0x14 + 0x04);
+	SHA1_Update(&ctx, &inputBuf[1], 0x14 + 0x04);
 	SHA1_Final(hashBuf, &ctx);
-	MEM_FREE(inputBuf);
 
-	key = DeriveKey(hashBuf);
+	key = DeriveKey(hashBuf, X1);
 
 	// Should handle the case of longer key lengths as shown in 2.3.4.9
 	// Grab the key length bytes of the final hash as the encrypytion key
-	final = (unsigned char *)malloc(cur_salt->keySize/8);
-	if (key) {
+	if (key)
 		memcpy(final, key, cur_salt->keySize/8);
-		MEM_FREE(key);
-	}
+
 	return final;
 }
 
@@ -200,16 +197,16 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
-	unsigned char passwordBuf[512] = {0};
+	UTF16 passwordBuf[PLAINTEXT_LENGTH + 1];
+	unsigned int inputBuf[(28 + 4) / sizeof(int)];
 	int passwordBufSize;
 	int i;
-	unsigned char *inputBuf;
 	SHA_CTX ctx;
 
 	/* convert key to UTF-16LE */
-	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	passwordBufSize = enc_to_utf16(passwordBuf, PLAINTEXT_LENGTH, (UTF8*)password, strlen(password));
 	if (passwordBufSize < 0)
-		passwordBufSize = strlen16((UTF16*)passwordBuf);
+		passwordBufSize = strlen16(passwordBuf);
 	passwordBufSize <<= 1;
 
 	SHA1_Init(&ctx);
@@ -220,25 +217,22 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	/* Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
 	 * hashBuf = SHA1Hash(i, hashBuf); */
-	// Create an input buffer for the hash.  This will be 4 bytes larger than
-	// the hash to accommodate the unsigned int iterator value.
-	inputBuf = (unsigned char *)malloc(28 + 4);
+
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
-	memcpy(inputBuf + 4, hashBuf, 20);
+	memcpy(&inputBuf[1], hashBuf, 20);
 	for (i = 0; i < cur_salt->spinCount; i++) {
-		*(int *)inputBuf = i; // XXX: size & endianness
+		*inputBuf = i; // XXX: size & endianness
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
-		SHA1_Final(inputBuf + 4, &ctx);
+		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
-	memcpy(&inputBuf[20 + 4], blockKey, 8);
+	memcpy(&inputBuf[6], blockKey, 8);
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, &inputBuf[4], 28);
+	SHA1_Update(&ctx, &inputBuf[1], 28);
 	SHA1_Final(hashBuf, &ctx);
-	MEM_FREE(inputBuf);
 
 	// Fix up the size per the spec
 	if (20 < hashSize) {
@@ -249,16 +243,16 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 
 static void GenerateAgileEncryptionKey512(char *password, unsigned char * blockKey, int hashSize, unsigned char *hashBuf)
 {
-	unsigned char passwordBuf[512] = {0};
+	UTF16 passwordBuf[PLAINTEXT_LENGTH + 1];
+	unsigned int inputBuf[128 / sizeof(int)];
 	int passwordBufSize;
 	int i;
-	unsigned char *inputBuf;
 	SHA512_CTX ctx;
 
 	/* convert key to UTF-16LE */
-	passwordBufSize = enc_to_utf16((UTF16*)passwordBuf, 125, (UTF8*)password, strlen(password));
+	passwordBufSize = enc_to_utf16(passwordBuf, PLAINTEXT_LENGTH, (UTF8*)password, strlen(password));
 	if (passwordBufSize < 0)
-		passwordBufSize = strlen16((UTF16*)passwordBuf);
+		passwordBufSize = strlen16(passwordBuf);
 	passwordBufSize <<= 1;
 
 	SHA512_Init(&ctx);
@@ -266,23 +260,21 @@ static void GenerateAgileEncryptionKey512(char *password, unsigned char * blockK
 	SHA512_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA512_Final(hashBuf, &ctx);
 
-	inputBuf = (unsigned char *)malloc(128);
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
-	memcpy(inputBuf + 4, hashBuf, 64);
+	memcpy(&inputBuf[1], hashBuf, 64);
 	for (i = 0; i < cur_salt->spinCount; i++) {
-		*(int *)inputBuf = i; // XXX: size & endianness
+		*inputBuf = i; // XXX: size & endianness
 		// 'append' the previously generated hash to the input buffer
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
-		SHA512_Final(inputBuf + 4, &ctx);
+		SHA512_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
-	memcpy(&inputBuf[64 + 4], blockKey, 8);
+	memcpy(&inputBuf[68/4], blockKey, 8);
 	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, &inputBuf[4], 64 + 8);
+	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
 	SHA512_Final(hashBuf, &ctx);
-	MEM_FREE(inputBuf);
 }
 
 static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, unsigned char *decryptedVerifier, int length)
@@ -376,12 +368,12 @@ static void crypt_all(int count)
 #endif
 	{
 		if(cur_salt->version == 2007) {
-			unsigned char *encryptionKey = GeneratePasswordHashUsingSHA1(saved_key[index]);
+			unsigned char encryptionKey[256];
+			GeneratePasswordHashUsingSHA1(saved_key[index], encryptionKey);
 			if (PasswordVerifier(encryptionKey))
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
-			MEM_FREE(encryptionKey);
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierInputKey[32], verifierHashKey[32], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
