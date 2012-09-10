@@ -389,6 +389,7 @@ static void crypt_all(int count)
 				cracked[index] = 1;
 			else
 				cracked[index] = 0;
+			free(encryptionKey);
 		}
 		else if (cur_salt->version == 2010) {
 			unsigned char verifierInputKey[32], verifierHashKey[32], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
