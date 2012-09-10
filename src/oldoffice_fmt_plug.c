@@ -58,7 +58,10 @@ static struct fmt_tests oo_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+/* Password encoded in UCS-2 */
+static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
+/* UCS-2 password length, in octets */
+static int *saved_len;
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
@@ -84,7 +87,9 @@ static void init(struct fmt_main *self)
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?
 			125 : 3 * PLAINTEXT_LENGTH;
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	                            self->params.max_keys_per_crypt, sizeof(UTF16));
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) *
+	                            self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
@@ -164,8 +169,6 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char passwordBuf[(PLAINTEXT_LENGTH+1)*2] = {0};
-		int passwordBufSize;
 		int i;
 		MD5_CTX ctx;
 		unsigned char pwdHash[16];
@@ -173,17 +176,9 @@ static void crypt_all(int count)
 		unsigned char hashBuf[21 * 16];
 		RC4_KEY key;
 
-		/* convert password to UTF-16 */
-		passwordBufSize =
-			enc_to_utf16((UTF16*)passwordBuf, PLAINTEXT_LENGTH,
-			             (UTF8*)saved_key[index], strlen(saved_key[index]));
-		if (passwordBufSize < 0)
-			passwordBufSize = strlen16((UTF16*)passwordBuf);
-		passwordBufSize <<= 1;
-
 		if(cur_salt->type < 3) {
 			MD5_Init(&ctx);
-			MD5_Update(&ctx, passwordBuf, passwordBufSize);
+			MD5_Update(&ctx, saved_key[index], saved_len[index]);
 			MD5_Final(pwdHash, &ctx);
 			for (i = 0; i < 16; i++)
 			{
@@ -219,7 +214,7 @@ static void crypt_all(int count)
 			int block = 0;
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, cur_salt->salt, 16);
-			SHA1_Update(&ctx, passwordBuf, passwordBufSize);
+			SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 			SHA1_Final(H0, &ctx);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, H0, 20);
@@ -258,16 +253,16 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	/* convert key to UTF-16LE */
+	saved_len[index] = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
+	if (saved_len[index] < 0)
+		saved_len[index] = strlen16(saved_key[index]);
+	saved_len[index] <<= 1;
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return (char*)utf16_to_enc(saved_key[index]);
 }
 
 struct fmt_main oldoffice_fmt = {
