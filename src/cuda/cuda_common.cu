@@ -88,6 +88,8 @@ void cuda_device_list()
 		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
 		printf("\tConcurrent copy and execution: %s\n",
 		    (devProp.deviceOverlap ? "Yes" : "No"));
+		printf("\tConcurrent kernels support:    %s\n",
+		    (devProp.concurrentKernels ? "Yes" : "No"));
 		printf("\tWarp size:                     %d\n",
 		    devProp.warpSize);
 		puts("");
