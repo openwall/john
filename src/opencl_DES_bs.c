@@ -1,6 +1,8 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005,2010,2011 by Solar Designer
+ * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
  */
 
 #include <string.h>
@@ -128,9 +130,9 @@ void init_index(int LM)
 void opencl_DES_bs_init(int LM, int cpt,int block)
 {
 	//WORD **k;
-	int index, bit;
-	//int p, q, s, round;
-	int c;
+	int index;
+	//int p, q, s, round, bit;
+	//int c;
 
 	for_each_t(n) {
 /*	  
@@ -166,10 +168,10 @@ init_index(LM);
  */
 		for (index = 0; index < DES_BS_DEPTH; index++)
 			opencl_DES_bs_all[block].pxkeys[index] =
-			    &opencl_DES_bs_all[block].xkeys.c[0][index & 7][index >> 3];
+			    &opencl_DES_bs_data[block].xkeys.c[0][index & 7][index >> 3];
 
 		if (LM) {
-			for (c = 0; c < 0x100; c++)
+			/*for (c = 0; c < 0x100; c++)
 #ifdef BENCH_BUILD
 			if (c >= 'a' && c <= 'z')
 				opencl_DES_bs_all[block].E.u[c] = c & ~0x20;
@@ -177,11 +179,13 @@ init_index(LM);
 				opencl_DES_bs_all[block].E.u[c] = c;
 #else
 			opencl_DES_bs_all[block].E.u[c] = CP_up[c];
-#endif
+#endif*/
 		} else {
 			for (index = 0; index < 48; index++)
-				opencl_DES_bs_all[block].Ens[index] =
-				    &opencl_DES_bs_all[block].B[opencl_DES_E[index]];
+				//opencl_DES_bs_all[block].Ens[index] =
+				  //  &opencl_DES_bs_all[block].B[opencl_DES_E[index]];
+			opencl_DES_bs_all[block].Ens[index] =
+				    &B[opencl_DES_E[index] + block*64];
 			opencl_DES_bs_all[block].salt = 0xffffff;
 
 			opencl_DES_bs_set_salt(0);
@@ -189,11 +193,11 @@ init_index(LM);
 		}
 
 
-		memset(&opencl_DES_bs_all[block].zero, 0, sizeof(opencl_DES_bs_all[block].zero));
-		memset(&opencl_DES_bs_all[block].ones, -1, sizeof(opencl_DES_bs_all[block].ones));
-		for (bit = 0; bit < 8; bit++)
-			memset(&opencl_DES_bs_all[block].masks[bit], 1 << bit,
-			    sizeof(opencl_DES_bs_all[block].masks[bit]));
+		//memset(&opencl_DES_bs_data[block].zero, 0, sizeof(opencl_DES_bs_data[block].zero));
+		//memset(&opencl_DES_bs_data[block].ones, -1, sizeof(opencl_DES_bs_data[block].ones));
+		//for (bit = 0; bit < 8; bit++)
+			//memset(&opencl_DES_bs_data[block].masks[bit], 1 << bit,
+			  //  sizeof(opencl_DES_bs_data[block].masks[bit]));
 
 	}
 
@@ -210,7 +214,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	key_index = index % DES_BS_DEPTH;
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
-	opencl_DES_bs_all[sector].keys_changed = 1;
+	opencl_DES_bs_data[sector].keys_changed = 1;
 
 	if (!key[0]) goto fill8;
 	*dst = key[0];
@@ -242,7 +246,7 @@ fill2:
 	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
 	dst[sizeof(DES_bs_vector) * 8 * 7] = 0;
 }
-
+/*
 void opencl_DES_bs_set_key_LM(char *key, int index)
 {
 	unsigned long c;
@@ -253,10 +257,7 @@ void opencl_DES_bs_set_key_LM(char *key, int index)
 	key_index = index % DES_BS_DEPTH;
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
-/*
- * gcc 4.5.0 on x86_64 would generate redundant movzbl's without explicit
- * use of "long" here.
- */
+
 	c = (unsigned char)key[0];
 	if (!c) goto fill7;
 	*dst = opencl_DES_bs_all[sector].E.u[c];
@@ -292,7 +293,7 @@ fill2:
 	dst[sizeof(DES_bs_vector) * 8 * 5] = 0;
 	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
 }
-
+*/
 static WORD *DES_bs_get_binary_raw(WORD *raw, int count)
 {
 	static WORD out[2];
@@ -344,13 +345,15 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
  * little-endian archs is removed, even if the arch is in fact little-endian.
  */
 	init_depth();
-	b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
+	//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
+	b = (DES_bs_vector *)&B[sector*64] DEPTH;
 #define GET_BIT(bit) \
 	(((unsigned WORD)b[(bit)] START >> index) & 1)
 #else
 	depth = index >> 3;
 	index &= 7;
-	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].B[0] START + depth);
+	//b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].B[0] START + depth);
+	b = (DES_bs_vector *)((unsigned char *)&B[sector*64] START + depth);
 #define GET_BIT(bit) \
 	(((unsigned int)*(unsigned char *)&b[(bit)] START >> index) & 1)
 #endif
@@ -454,7 +457,8 @@ int opencl_DES_bs_cmp_all(WORD *binary, int count)
 	//for_each_t(n)
 	for(sector=0;sector < count_multiple/DES_BS_DEPTH; sector++) {
 		value = binary[0];
-		b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
+		//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
+		b = (DES_bs_vector *)&B[sector*64] DEPTH;
 
 		mask = b[0] START ^ -(value & 1);
 		mask |= b[1] START ^ -((value >> 1) & 1);
@@ -495,7 +499,8 @@ int opencl_DES_bs_cmp_one(WORD *binary, int count, int index)
 	depth = index >> 3;
 	index &= 7;
 
-	b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].B[0] START + depth);
+	//b = (DES_bs_vector *)((unsigned char *)&opencl_DES_bs_all[sector].B[0] START + depth);
+	b = (DES_bs_vector *)((unsigned char *)&B[sector*64] START + depth);
 
 #define GET_BIT \
 	((unsigned WORD)*(unsigned char *)&b[0] START >> index)
