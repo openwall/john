@@ -4,7 +4,8 @@
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
  */
-
+ 
+#include "opencl_DES_WGS.h"
  
 #define DES_BS_EXPAND 			1 
 #define ARCH_WORD     			int
@@ -51,8 +52,16 @@ typedef struct{
 	(dst) = (a) | (b)
 #define vandn(dst, a, b) \
 	(dst) = (a) & ~(b)
+	
+#ifdef cl_nv_pragma_unroll
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
+#else
+#define vsel(dst, a, b, c) \
+	(dst) = bitselect(a,b,c)
+#endif
+	
+
 
 #define vshl(dst, src, shift) \
 	(dst) = (src) << (shift)
@@ -65,6 +74,9 @@ typedef struct{
 
 #define vst(dst, ofs, src) \
 	*((MAYBE_GLOBAL vtype *)((MAYBE_GLOBAL DES_bs_vector *)&(dst) + (ofs))) = (src)
+	
+#define vst_local(dst, ofs, src) \
+	*((__local vtype *)((__local DES_bs_vector *)&(dst) + (ofs))) = (src)	
 
 #define vxor(dst, a, b) \
 	(dst) = vxorf((a), (b))
@@ -301,16 +313,15 @@ inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_transfer *
 
 
 #define DES_bs_clear_block_8(j) \
-		i = j + offset; \
-		vst(B[i] bd, 0, zero); \
-		vst(B[i] bd, 1, zero); \
-		vst(B[i] bd, 2, zero); \
-		vst(B[i] bd, 3, zero); \
-		vst(B[i] bd, 4, zero); \
-		vst(B[i] bd, 5, zero); \
-		vst(B[i] bd, 6, zero); \
-		vst(B[i] bd, 7, zero); 
-	
+		i = j + local_offset; \
+		vst_local(_local_B[i] bd, 0, zero); \
+		vst_local(_local_B[i] bd, 1, zero); \
+		vst_local(_local_B[i] bd, 2, zero); \
+		vst_local(_local_B[i] bd, 3, zero); \
+		vst_local(_local_B[i] bd, 4, zero); \
+		vst_local(_local_B[i] bd, 5, zero); \
+		vst_local(_local_B[i] bd, 6, zero); \
+		vst_local(_local_B[i] bd, 7, zero); 
 
 #define DES_bs_clear_block \
 	DES_bs_clear_block_8(0); \
@@ -322,14 +333,19 @@ inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_transfer *
 	DES_bs_clear_block_8(48); \
 	DES_bs_clear_block_8(56);
 
-#define x(p) vxorf(*(MAYBE_GLOBAL vtype *)&B[index96[p] + offset], *(MAYBE_GLOBAL vtype *)&k[p] kd)
-#define y(p, q) vxorf(*(MAYBE_GLOBAL vtype *)&B[p + offset] bd, *(MAYBE_GLOBAL vtype *)&k[q] kd)
-#define z(r) ((MAYBE_GLOBAL vtype *)&B[r + offset] bd)
+#define x(p) vxorf(*(__local vtype *)&_local_B[index96[p] + local_offset], *(MAYBE_GLOBAL vtype *)&k[p] kd)
+#define y(p, q) vxorf(*(__local vtype *)&_local_B[p + local_offset] bd, *(MAYBE_GLOBAL vtype *)&k[q] kd)
+#define z(r) ((__local vtype *)&_local_B[r + local_offset] bd)
+
 #define LM 0
  __kernel void DES_bs_25(__global unsigned int* index768,__global unsigned int *index96,__global DES_bs_transfer *DES_bs_all,__global DES_bs_vector *KSv,__global DES_bs_vector *B)
  {
-		unsigned int section = get_global_id(0), offset ,i;
-		offset = 64*section; 		
+		unsigned int section = get_global_id(0), global_offset ,local_offset,i;
+		unsigned int local_id = get_local_id(0); 
+		global_offset = 64*section;
+		local_offset = 64*local_id;
+		
+		__local DES_bs_vector _local_B[64*WORK_GROUP_SIZE] ;
  				
 #if DES_BS_EXPAND
 		MAYBE_GLOBAL DES_bs_vector *k;
@@ -427,7 +443,11 @@ swap:
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
-			
+		
+		for(i=0;i<64; i++)
+		B[global_offset +i] = _local_B[local_offset + i] ;
+		
+		barrier(CLK_GLOBAL_MEM_FENCE);	
 		return;
 		
 		
