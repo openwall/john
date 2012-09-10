@@ -9,7 +9,9 @@
 *.orig
 run/*.cl
 run/calc_stat
+run/dmg2john
 run/genmkvpwd
+run/gpg2john
 run/hccap2john
 run/john
 run/john.local.conf
@@ -20,9 +22,13 @@ run/mozilla2john
 run/office2john
 run/opencl_bf_std.h
 run/opencl_cryptsha512.h
+run/opencl_DES_bs.h
+run/opencl_nonstd.h
 run/opencl_rar.h
+run/opencl_sboxes.h
 run/pdf2john
 run/pfx2john
+run/keychain2john
 run/pwsafe2john
 run/racf2john
 run/rar2john
@@ -30,6 +36,8 @@ run/raw2dyna
 run/SIPdump
 run/ssh2john
 run/tgtsnarf
+run/to_dyna
+run/truecrypt_volume2john
 run/unafs
 run/undrop
 run/unique
@@ -43,3 +51,5 @@ src/generic.h
 src/john_build_rule.h
 src/para-bench
 test/
+run/opencl_cryptsha256.h
+run/opencl_rawsha512-ng.h
