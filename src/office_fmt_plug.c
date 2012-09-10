@@ -129,7 +129,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(char *password)
 	 * hashBuf = SHA1Hash(i, hashBuf); */
 	// Create an input buffer for the hash.  This will be 4 bytes larger than
 	// the hash to accommodate the unsigned int iterator value.
-	inputBuf = (unsigned char *)malloc(0x14 + 0x04);
+	inputBuf = (unsigned char *)malloc(0x14 + 0x04 + 4);
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(inputBuf + 4, hashBuf, 20);
@@ -218,7 +218,7 @@ static void GenerateAgileEncryptionKey(char *password, unsigned char * blockKey,
 	 * hashBuf = SHA1Hash(i, hashBuf); */
 	// Create an input buffer for the hash.  This will be 4 bytes larger than
 	// the hash to accommodate the unsigned int iterator value.
-	inputBuf = (unsigned char *)malloc(28);
+	inputBuf = (unsigned char *)malloc(28 + 4);
 	// Create a byte array of the integer and put at the front of the input buffer
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(inputBuf + 4, hashBuf, 20);
