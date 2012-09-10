@@ -267,7 +267,13 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		sizeof(ARCH_WORD_32),
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		sizeof(ARCH_WORD),
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -279,6 +285,9 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
