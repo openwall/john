@@ -603,13 +603,13 @@ int get_vendor_id(int dev_id)
 		sizeof(dname), dname, NULL),
 	    "Error querying CL_DEVICE_VENDOR");
 
-	if (strcasestr(dname, "NVIDIA") != NULL)
+	if (strstr(dname, "NVIDIA") != NULL)
 		return NVIDIA;
 
-	if (strcasestr(dname, "Intel") != NULL)
+	if (strstr(dname, "Intel") != NULL)
 		return INTEL;
 
-	if (strcasestr(dname, "Advanced Micro") != NULL ||
+	if (strstr(dname, "Advanced Micro") != NULL ||
 	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
 		return AMD;
 
@@ -632,16 +632,16 @@ int get_platform_vendor_id(int platform_id)
 		                  sizeof(dname), dname, NULL),
 		"Error querying CL_DEVICE_VENDOR");
 
-	if (strcasestr(dname, "NVIDIA") != NULL)
+	if (strstr(dname, "NVIDIA") != NULL)
 		return NVIDIA;
 
-	if (strcasestr(dname, "Apple") != NULL)
+	if (strstr(dname, "Apple") != NULL)
 		return APPLE;
 
-	if (strcasestr(dname, "Intel") != NULL)
+	if (strstr(dname, "Intel") != NULL)
 		return INTEL;
 
-	if (strcasestr(dname, "Advanced Micro") != NULL ||
+	if (strstr(dname, "Advanced Micro") != NULL ||
 	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
 		return AMD;
 
