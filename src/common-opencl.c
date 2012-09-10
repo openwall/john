@@ -99,10 +99,11 @@ static char *include_source(char *pathname, int dev_id)
 	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
 	        "-DDEVICE_IS_CPU" : "",
 	        "-DDEVICE_INFO=", device_info[dev_id],
-#ifndef __APPLE__
-	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" :
+#ifdef __APPLE__
+	        "-DAPPLE",
+#else
+	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
 #endif
-	        "",
 	        OPENCLBUILDOPTIONS);
 
 	//fprintf(stderr, "Options used: %s\n", include);
