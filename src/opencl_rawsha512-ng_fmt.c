@@ -249,7 +249,7 @@ static void find_best_gws(void) {
     for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT;
          num = get_step(num, step, 0)) {
         //Check if hardware can handle the size we are going to try now.
-        if (sizeof(sha512_password) * num > get_max_mem_alloc_size(ocl_gpu_id))
+        if (sizeof(sha512_password) * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
             break;
                 
         //Prepare buffers.
@@ -314,12 +314,12 @@ static void find_best_gws(void) {
                     num, (long) (num / (run_time / 1000000000.)),
                     (float) run_time / 1000000.);
 
-            if (run_time > 5000000000ULL) {
+            if (run_time > 1000000000ULL) {
                 fprintf(stderr, " - too slow\n");
                 break;
             }
         } else {
-            if (run_time > min_time * 20 || run_time > 5000000000ULL)
+            if (run_time > min_time * 20 || run_time > 1000000000ULL)
                 break;
         }
         if (((long) SHAspeed - bestSHAspeed) > 10000) {
