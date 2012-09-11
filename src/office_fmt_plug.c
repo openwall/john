@@ -75,7 +75,7 @@ static struct custom_salt {
 	int verifierHashSize;
 	int keySize;
 	int saltSize;
-	/* Office 2010 */
+	/* Office 2010/2013 */
 	int spinCount;
 } *cur_salt;
 
@@ -88,9 +88,9 @@ static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked;
 
-/* Office 2010 */
-static unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
-static unsigned char encryptedVerifierHashValueBlockKey[] = { 0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e };
+/* Office 2010/2013 */
+static const unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
+static const unsigned char encryptedVerifierHashValueBlockKey[] = { 0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e };
 
 static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
 {
@@ -163,8 +163,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 
 	// Should handle the case of longer key lengths as shown in 2.3.4.9
 	// Grab the key length bytes of the final hash as the encrypytion key
-	if (key)
-		memcpy(final, key, cur_salt->keySize/8);
+	memcpy(final, key, cur_salt->keySize/8);
 
 	return final;
 }
@@ -176,17 +175,16 @@ static int PasswordVerifier(unsigned char * key)
 	SHA_CTX ctx;
 	unsigned char checkHash[20];
 	unsigned char decryptedVerifierHash[32];
-	int i;
 
    	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_derypt_key failed!\n");
+		fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		return 0;
 	}
 	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
-		fprintf(stderr, "AES_set_derypt_key failed!\n");
+		fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		return 0;
 	}
 	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
@@ -196,13 +194,11 @@ static int PasswordVerifier(unsigned char * key)
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, decryptedVerifier, 16);
 	SHA1_Final(checkHash, &ctx);
-	for (i = 0; i < 16; i++)
-		if (decryptedVerifierHash[i] != checkHash[i])
-			return 0;
-	return 1;
+
+	return !memcmp(checkHash, decryptedVerifierHash, 16);
 }
 
-static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, unsigned char * blockKey, int hashSize, unsigned char *hashBuf)
+static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, const unsigned char *blockKey, int hashSize, unsigned char *hashBuf)
 {
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
@@ -243,7 +239,7 @@ static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, 
 	}
 }
 
-static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSize, unsigned char * blockKey, int hashSize, unsigned char *hashBuf)
+static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSize, const unsigned char *blockKey, int hashSize, unsigned char *hashBuf)
 {
 	unsigned int inputBuf[128 / sizeof(int)];
 	int i;
@@ -271,23 +267,24 @@ static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSiz
 	SHA512_Final(hashBuf, &ctx);
 }
 
-static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, unsigned char *decryptedVerifier, int length)
+static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length)
 {
+	unsigned char iv[32];
 	AES_KEY akey;
-	unsigned char iv[32] = { 0 };
 	memcpy(iv, cur_salt->osalt, 16);
+	memset(&iv[16], 0, 16);
      	memset(&akey, 0, sizeof(AES_KEY));
 	if(cur_salt->keySize == 128) {
 		if(AES_set_decrypt_key(verifierInputKey, 128, &akey) < 0) {
-			fprintf(stderr, "AES_set_derypt_key failed!\n");
+			fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		}
 	}
 	else {
 		if(AES_set_decrypt_key(verifierInputKey, 256, &akey) < 0) {
-			fprintf(stderr, "AES_set_derypt_key failed!\n");
+			fprintf(stderr, "AES_set_decrypt_key failed!\n");
 		}
 	}
-	AES_cbc_encrypt(encryptedVerifier, decryptedVerifier, length, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
 }
 
 static void init(struct fmt_main *self)
