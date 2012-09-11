@@ -68,10 +68,8 @@ static size_t cracked_size;
 static struct custom_salt {
 	int type;
 	unsigned char salt[16];
-	unsigned char verifier[16];
-	unsigned char verifierHash[16];
-	unsigned char encryptedVerifier[16];
-	unsigned char encryptedVerifierHash[20];
+	unsigned char verifier[16]; /* or encryptedVerifier */
+	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -100,16 +98,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !strncmp(ciphertext, "$oldoffice$", 11);
 }
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
@@ -120,32 +108,23 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 11;	/* skip over "$oldoffice$" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
+	p = strtok(NULL, "*");
+	for (i = 0; i < 16; i++)
+		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
+	for (i = 0; i < 16; i++)
+		cs.verifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
 	if(cs.type < 3) {
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.verifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
 		for (i = 0; i < 16; i++)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	else {
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
 		for (i = 0; i < 20; i++)
-			cs.encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	MEM_FREE(keeptr);
@@ -172,7 +151,6 @@ static void crypt_all(int count)
 		int i;
 		MD5_CTX ctx;
 		unsigned char pwdHash[16];
-		unsigned char rc4Key[16];
 		unsigned char hashBuf[21 * 16];
 		RC4_KEY key;
 
@@ -193,9 +171,8 @@ static void crypt_all(int count)
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 9);
 			MD5_Final(pwdHash, &ctx);
-			memcpy(rc4Key, pwdHash, 16); /* 128-bit key */
-			RC4_set_key(&key, 16, rc4Key);
-			RC4(&key, 16, cur_salt->verifier, hashBuf); /* encryptedVerifier*/
+			RC4_set_key(&key, 16, pwdHash); /* rc4Key */
+			RC4(&key, 16, cur_salt->verifier, hashBuf); /* encryptedVerifier */
 			RC4(&key, 16, cur_salt->verifierHash, hashBuf + 16); /* encryptedVerifierHash */
 			/* hash the decrypted verifier */
 			MD5_Init(&ctx);
@@ -206,27 +183,24 @@ static void crypt_all(int count)
 		}
 		else {
 			SHA_CTX ctx;
-			unsigned char H0[20];
+			unsigned char H0[24];
 			unsigned char Hfinal[20];
-			unsigned char dek[16] = { 0 };
 			unsigned char DecryptedVerifier[16];
 			unsigned char DecryptedVerifierHash[20];
-			int block = 0;
+
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, cur_salt->salt, 16);
 			SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 			SHA1_Final(H0, &ctx);
+			memset(&H0[20], 0, 4);
 			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, H0, 20);
-			SHA1_Update(&ctx, (unsigned char*)&block, 4);
+			SHA1_Update(&ctx, H0, 24);
 			SHA1_Final(Hfinal, &ctx);
-			if(cur_salt->type == 4)
-				memcpy(dek, Hfinal, 16);
-			else
-				memcpy(dek, Hfinal, 5);
-			RC4_set_key(&key, 16, dek);
-			RC4(&key, 16, cur_salt->encryptedVerifier, DecryptedVerifier);
-			RC4(&key, 20, cur_salt->encryptedVerifierHash, DecryptedVerifierHash);
+			if(cur_salt->type < 4)
+				memset(&Hfinal[5], 0, 11);
+			RC4_set_key(&key, 16, Hfinal); /* dek */
+			RC4(&key, 16, cur_salt->verifier, DecryptedVerifier);
+			RC4(&key, 20, cur_salt->verifierHash, DecryptedVerifierHash);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
@@ -248,7 +222,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
 static void set_key(char *key, int index)
