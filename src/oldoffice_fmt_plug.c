@@ -29,7 +29,7 @@
 #endif
 
 #define FORMAT_LABEL		"oldoffice"
-#define FORMAT_NAME		"Office <= 2003 RC4 MD5"
+#define FORMAT_NAME		"Office <= 2003 MD5/SHA-1, RC4"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
