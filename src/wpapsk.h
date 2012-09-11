@@ -156,7 +156,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	hccap = decode_hccap(ciphertext);
 #if !ARCH_LITTLE_ENDIAN
-	hccap.eapol_size = JOHNSWAP(hccap->eapol_size);
+	hccap->eapol_size = JOHNSWAP(hccap->eapol_size);
 #endif
 	if(hccap->eapol_size > 256)
 		return 0;
