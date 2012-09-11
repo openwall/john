@@ -1516,7 +1516,7 @@ def find_rc4_passinfo_xls(filename, stream):
                 headerLength -= 4
                 CSPName = stm.read(headerLength)
                 provider = CSPName.decode('utf-16').lower()
-                print provider
+                # print provider
                 # Encryption verifier
                 saltSize = unpack("<I", stm.read(4))[0]
                 assert(saltSize == 16)
@@ -1710,9 +1710,13 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
 def process_file(filename):
 
     # Test if a file is an OLE container:
-    if not isOleFile(filename):
-        print >> sys.stderr, "%s : Invalid OLE file" % filename
-        return 1
+    try:
+        if not isOleFile(filename):
+            print >> sys.stderr, "%s : Invalid OLE file" % filename
+            return 1
+    except Exception, e:
+        print >> sys.stderr, "%s : OLE check failed, %s " % (filename, str(e))
+        return 2
 
     # Open OLE file:
     ole = OleFileIO(filename)
@@ -1729,7 +1733,12 @@ def process_file(filename):
         print >> sys.stderr, "%s : No supported streams found" % filename
         return 2
 
-    workbookStream = ole.openstream(stream)
+    try:
+        workbookStream = ole.openstream(stream)
+    except:
+        print >> sys.stderr, "%s : stream %s not found!" % (filename, stream)
+        return 2
+
     if workbookStream is None:
         print >> sys.stderr, "%s : Error opening stream, %s" % filename
         (filename, stream)
