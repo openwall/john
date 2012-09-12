@@ -1706,6 +1706,98 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
     else:
         print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
 
+from xml.etree.ElementTree import ElementTree
+import base64
+
+
+def process_new_office(filename):
+    # detect version of new Office used by reading "EncryptionInfo" stream
+    ole = OleFileIO(filename)
+    stream = ole.openstream("EncryptionInfo")
+    major_version = unpack("<h", stream.read(2))[0]
+    minor_version = unpack("<h", stream.read(2))[0]
+    encryptionFlags = unpack("<I", stream.read(4))[0]  # encryptionFlags
+    if encryptionFlags == 16:  # fExternal
+        print >> sys.stderr, "%s : An external cryptographic provider is not supported!" % filename
+        return -1
+
+    if major_version == 0x04 and minor_version == 0x04:
+        # Office 2010 and 2013 file detected
+        if encryptionFlags != 0x40:  # fAgile
+            print >> sys.stderr, "%s : The encryption flags are not consistent with the encryption type\n" % filename
+            return -2
+
+        # rest of the data is in XML format
+        data = StringIO.StringIO(stream.read())
+        tree = ElementTree()
+        tree.parse(data)
+
+        for node in tree.getiterator('{http://schemas.microsoft.com/office/2006/keyEncryptor/password}encryptedKey'):
+            spinCount = node.attrib.get("spinCount")
+            assert(spinCount)
+            saltSize = node.attrib.get("saltSize")
+            assert(saltSize)
+            blockSize = node.attrib.get("blockSize")
+            assert(blockSize)
+            keyBits = node.attrib.get("keyBits")
+            hashAlgorithm = node.attrib.get("hashAlgorithm")
+            if hashAlgorithm == "SHA1":
+                version = 2010
+            elif hashAlgorithm == "SHA512":
+                version = 2013
+            else:
+                print >> sys.stderr, "%s uses un-supported hashing algorithm %s, please file a bug! \n" % (filename, hashAlgorithm)
+                return -3
+            cipherAlgorithm = node.attrib.get("cipherAlgorithm")
+            if not cipherAlgorithm.find("AES") > -1:
+                print >> sys.stderr, "%s uses un-supported cipher algorithm %s, please file a bug! \n" % (filename, cipherAlgorithm)
+                return -4
+
+            saltValue = node.attrib.get("saltValue")
+            assert(saltValue)
+            encryptedVerifierHashInput = node.attrib.get("encryptedVerifierHashInput")
+            encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue))
+
+            print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (filename, version,
+                    int(spinCount), int(keyBits), int(saltSize), binascii.hexlify(base64.decodestring(saltValue)),
+                    binascii.hexlify(base64.decodestring(encryptedVerifierHashInput)), encryptedVerifierHashValue[0:64])
+            return 0
+    else:
+        # Office 2007 file detected, process CryptoAPI Encryption Header
+        stm = stream
+        headerLength = unpack("<I", stm.read(4))[0]
+        unpack("<I", stm.read(4))[0]  # skipFlags
+        headerLength -= 4
+        unpack("<I", stm.read(4))[0]  # sizeExtra
+        headerLength -= 4
+        unpack("<I", stm.read(4))[0]  # algId
+        headerLength -= 4
+        unpack("<I", stm.read(4))[0]  # algHashId
+        headerLength -= 4
+        keySize = unpack("<I", stm.read(4))[0]
+        headerLength -= 4
+        unpack("<I", stm.read(4))[0]  # providerType
+        headerLength -= 4
+        unpack("<I", stm.read(4))[0]  # unused
+        headerLength -= 4
+        unpack("<I", stm.read(4))[0]  # unused
+        headerLength -= 4
+        CSPName = stm.read(headerLength)
+        provider = CSPName.decode('utf-16').lower()
+        assert(provider)
+        # print provider
+        # Encryption verifier
+        saltSize = unpack("<I", stm.read(4))[0]
+        assert(saltSize == 16)
+        salt = stm.read(saltSize)
+        encryptedVerifier = stm.read(16)
+        verifierHashSize = unpack("<I", stm.read(4))[0]
+        encryptedVerifierHash = stm.read(verifierHashSize)
+
+        print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (filename, 2007, verifierHashSize, keySize, saltSize,
+                binascii.hexlify(salt), binascii.hexlify(encryptedVerifier), binascii.hexlify(encryptedVerifierHash)[0:64])
+
 
 def process_file(filename):
 
@@ -1723,6 +1815,9 @@ def process_file(filename):
 
     stream = None
     # print ole.listdir()
+    if ["EncryptionInfo"] in ole.listdir():
+        # process Office 2003 / 2010 / 2013 files
+        return process_new_office(filename)
     if ["Workbook"] in ole.listdir():
         stream = "Workbook"
     elif ["WordDocument"] in ole.listdir():
