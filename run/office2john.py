@@ -1891,7 +1891,7 @@ def process_new_office(filename):
             encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
             encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue))
 
-            print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (filename, version,
+            print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (os.path.basename(filename), version,
                     int(spinCount), int(keyBits), int(saltSize), binascii.hexlify(base64.decodestring(saltValue)),
                     binascii.hexlify(base64.decodestring(encryptedVerifierHashInput)), encryptedVerifierHashValue[0:64])
             return 0
@@ -1927,7 +1927,7 @@ def process_new_office(filename):
         verifierHashSize = unpack("<I", stm.read(4))[0]
         encryptedVerifierHash = stm.read(verifierHashSize)
 
-        print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (filename, 2007, verifierHashSize, keySize, saltSize,
+        print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (os.path.basename(filename), 2007, verifierHashSize, keySize, saltSize,
                 binascii.hexlify(salt), binascii.hexlify(encryptedVerifier), binascii.hexlify(encryptedVerifierHash)[0:64])
 
 
