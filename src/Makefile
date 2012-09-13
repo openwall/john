@@ -150,7 +150,8 @@ OCL_OBJS = \
 	opencl_keychain_fmt.o opencl_agilekeychain_fmt.o opencl_zip_fmt.o \
 	opencl_encfs_fmt.o opencl_odf_fmt.o opencl_sxc_fmt.o opencl_gpg_fmt.o \
 	opencl_cryptsha256_fmt.o opencl_rawsha512-ng_fmt.o opencl_dmg_fmt.o \
-	opencl_DES_fmt.o opencl_DES_bs.o opencl_DES_bs_b.o opencl_strip_fmt.o
+	opencl_DES_fmt.o opencl_DES_bs.o opencl_DES_bs_b.o opencl_strip_fmt.o \
+	opencl_office_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \

@@ -395,7 +395,7 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
-cl_ulong gws_test(int gws)
+static cl_ulong gws_test(int gws)
 {
 	cl_ulong startTime, endTime, run_time;
 	cl_command_queue queue_prof;

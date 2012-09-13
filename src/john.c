@@ -150,6 +150,7 @@ extern struct fmt_main fmt_opencl_rawsha512_ng;
 extern struct fmt_main fmt_opencl_bf;
 extern struct fmt_main fmt_opencl_pwsafe;
 extern struct fmt_main fmt_opencl_DES;
+extern struct fmt_main fmt_opencl_office;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -301,6 +302,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 	john_register_one(&fmt_opencl_DES);
+	john_register_one(&fmt_opencl_office);
 #endif
 
 #ifdef HAVE_CUDA
