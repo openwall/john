@@ -1,227 +1,21 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2010,2011 by Solar Designer
+ * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
  */
 
 
 #include "opencl_DES_bs.h"
 
-typedef struct{
-	
-	DES_bs_vector K[56];	/* Keys */
-	DES_bs_vector B[64];	/* Data blocks */
 
-	DES_bs_vector zero;	/* All 0 bits */
-	DES_bs_vector ones;	/* All 1 bits */
-	DES_bs_vector masks[8];	/* Each byte set to 0x01 ... 0x80 */
-	
-	DES_bs_vector v[8][8];
-	
-	int keys_changed;
-} opencl_DES_bs_transfer ;
+opencl_DES_bs_transfer CC_CACHE_ALIGN opencl_DES_bs_data[MULTIPLIER];
 
-opencl_DES_bs_transfer opencl_DES_bs_data[MULTIPLIER];
-//#define DES_BS_VECTOR_LOOPS 0
+DES_bs_vector CC_CACHE_ALIGN B[64*MULTIPLIER]; 
+
 
 typedef unsigned WORD vtype;
 
-#define vxorf(a, b) \
-	((a) ^ (b))
-
-#define vnot(dst, a) \
-	(dst) = ~(a)
-#define vand(dst, a, b) \
-	(dst) = (a) & (b)
-#define vor(dst, a, b) \
-	(dst) = (a) | (b)
-#define vandn(dst, a, b) \
-	(dst) = (a) & ~(b)
-#define vsel(dst, a, b, c) \
-	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
-
-#define vshl(dst, src, shift) \
-	(dst) = (src) << (shift)
-#define vshr(dst, src, shift) \
-	(dst) = (src) >> (shift)
-
-#define vzero 0
-
-#define vones (~(vtype)0)
-
-#define vst(dst, ofs, src) \
-	*((vtype *)((DES_bs_vector *)&(dst) + (ofs))) = (src)
-
-#define vxor(dst, a, b) \
-	(dst) = vxorf((a), (b))
-
-#define vshl1(dst, src) \
-	vshl((dst), (src), 1)
-
-#define kvtype vtype
-#define kvand vand
-#define kvor vor
-#define kvshl1 vshl1
-#define kvshl vshl
-#define kvshr vshr
-
-
-#define mask01 (*(kvtype *)&opencl_DES_bs_all[section].masks[0])
-#define mask02 (*(kvtype *)&opencl_DES_bs_all[section].masks[1])
-#define mask04 (*(kvtype *)&opencl_DES_bs_all[section].masks[2])
-#define mask08 (*(kvtype *)&opencl_DES_bs_all[section].masks[3])
-#define mask10 (*(kvtype *)&opencl_DES_bs_all[section].masks[4])
-#define mask20 (*(kvtype *)&opencl_DES_bs_all[section].masks[5])
-#define mask40 (*(kvtype *)&opencl_DES_bs_all[section].masks[6])
-#define mask80 (*(kvtype *)&opencl_DES_bs_all[section].masks[7])
-
-#define LOAD_V \
-	kvtype v0 = *(kvtype *)&vp[0]; \
-	kvtype v1 = *(kvtype *)&vp[1]; \
-	kvtype v2 = *(kvtype *)&vp[2]; \
-	kvtype v3 = *(kvtype *)&vp[3]; \
-	kvtype v4 = *(kvtype *)&vp[4]; \
-	kvtype v5 = *(kvtype *)&vp[5]; \
-	kvtype v6 = *(kvtype *)&vp[6]; \
-	kvtype v7 = *(kvtype *)&vp[7];
-
-#define kvand_shl1_or(dst, src, mask) \
-	kvand(tmp, src, mask); \
-	kvshl1(tmp, tmp); \
-	kvor(dst, dst, tmp)
-
-#define kvand_shl_or(dst, src, mask, shift) \
-	kvand(tmp, src, mask); \
-	kvshl(tmp, tmp, shift); \
-	kvor(dst, dst, tmp)
-
-#define kvand_shl1(dst, src, mask) \
-	kvand(tmp, src, mask); \
-	kvshl1(dst, tmp)
-
-#define kvand_or(dst, src, mask) \
-	kvand(tmp, src, mask); \
-	kvor(dst, dst, tmp)
-
-#define kvand_shr_or(dst, src, mask, shift) \
-	kvand(tmp, src, mask); \
-	kvshr(tmp, tmp, shift); \
-	kvor(dst, dst, tmp)
-
-#define kvand_shr(dst, src, mask, shift) \
-	kvand(tmp, src, mask); \
-	kvshr(dst, tmp, shift)
-
-#define FINALIZE_NEXT_KEY_BIT_0 { \
-	kvtype m = mask01, va, vb, tmp; \
-	kvand(va, v0, m); \
-	kvand_shl1(vb, v1, m); \
-	kvand_shl_or(va, v2, m, 2); \
-	kvand_shl_or(vb, v3, m, 3); \
-	kvand_shl_or(va, v4, m, 4); \
-	kvand_shl_or(vb, v5, m, 5); \
-	kvand_shl_or(va, v6, m, 6); \
-	kvand_shl_or(vb, v7, m, 7); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_1 { \
-	kvtype m = mask02, va, vb, tmp; \
-	kvand_shr(va, v0, m, 1); \
-	kvand(vb, v1, m); \
-	kvand_shl1_or(va, v2, m); \
-	kvand_shl_or(vb, v3, m, 2); \
-	kvand_shl_or(va, v4, m, 3); \
-	kvand_shl_or(vb, v5, m, 4); \
-	kvand_shl_or(va, v6, m, 5); \
-	kvand_shl_or(vb, v7, m, 6); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_2 { \
-	kvtype m = mask04, va, vb, tmp; \
-	kvand_shr(va, v0, m, 2); \
-	kvand_shr(vb, v1, m, 1); \
-	kvand_or(va, v2, m); \
-	kvand_shl1_or(vb, v3, m); \
-	kvand_shl_or(va, v4, m, 2); \
-	kvand_shl_or(vb, v5, m, 3); \
-	kvand_shl_or(va, v6, m, 4); \
-	kvand_shl_or(vb, v7, m, 5); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_3 { \
-	kvtype m = mask08, va, vb, tmp; \
-	kvand_shr(va, v0, m, 3); \
-	kvand_shr(vb, v1, m, 2); \
-	kvand_shr_or(va, v2, m, 1); \
-	kvand_or(vb, v3, m); \
-	kvand_shl1_or(va, v4, m); \
-	kvand_shl_or(vb, v5, m, 2); \
-	kvand_shl_or(va, v6, m, 3); \
-	kvand_shl_or(vb, v7, m, 4); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_4 { \
-	kvtype m = mask10, va, vb, tmp; \
-	kvand_shr(va, v0, m, 4); \
-	kvand_shr(vb, v1, m, 3); \
-	kvand_shr_or(va, v2, m, 2); \
-	kvand_shr_or(vb, v3, m, 1); \
-	kvand_or(va, v4, m); \
-	kvand_shl1_or(vb, v5, m); \
-	kvand_shl_or(va, v6, m, 2); \
-	kvand_shl_or(vb, v7, m, 3); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_5 { \
-	kvtype m = mask20, va, vb, tmp; \
-	kvand_shr(va, v0, m, 5); \
-	kvand_shr(vb, v1, m, 4); \
-	kvand_shr_or(va, v2, m, 3); \
-	kvand_shr_or(vb, v3, m, 2); \
-	kvand_shr_or(va, v4, m, 1); \
-	kvand_or(vb, v5, m); \
-	kvand_shl1_or(va, v6, m); \
-	kvand_shl_or(vb, v7, m, 2); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_6 { \
-	kvtype m = mask40, va, vb, tmp; \
-	kvand_shr(va, v0, m, 6); \
-	kvand_shr(vb, v1, m, 5); \
-	kvand_shr_or(va, v2, m, 4); \
-	kvand_shr_or(vb, v3, m, 3); \
-	kvand_shr_or(va, v4, m, 2); \
-	kvand_shr_or(vb, v5, m, 1); \
-	kvand_or(va, v6, m); \
-	kvand_shl1_or(vb, v7, m); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
-
-#define FINALIZE_NEXT_KEY_BIT_7 { \
-	kvtype m = mask80, va, vb, tmp; \
-	kvand_shr(va, v0, m, 7); \
-	kvand_shr(vb, v1, m, 6); \
-	kvand_shr_or(va, v2, m, 5); \
-	kvand_shr_or(vb, v3, m, 4); \
-	kvand_shr_or(va, v4, m, 3); \
-	kvand_shr_or(vb, v5, m, 2); \
-	kvand_shr_or(va, v6, m, 1); \
-	kvand_or(vb, v7, m); \
-	kvor(*(kvtype *)kp, va, vb); \
-	kp++; \
-}
 
         static cl_platform_id pltfrmid[MAX_PLATFORMS];
 
@@ -239,7 +33,7 @@ typedef unsigned WORD vtype;
 
 	static int devno,pltfrmno;
 	
-	static cl_mem opencl_DES_bs_all_gpu, index768_gpu,index96_gpu,opencl_DES_bs_data_gpu;
+	static cl_mem index768_gpu,index96_gpu,opencl_DES_bs_data_gpu,KSv_gpu,B_gpu;
 	
 void DES_bs_select_device(int platform_no,int dev_no)
 {
@@ -254,9 +48,6 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	if(err) {printf("Create Kernel DES_bs_25 FAILED\n"); return ;}
 	cmdq[platform_no][dev_no] = queue[dev_no];
 	
-	opencl_DES_bs_all_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_combined), NULL, &err);
-	if(opencl_DES_bs_all_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
 	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
 	if(opencl_DES_bs_data_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
@@ -266,17 +57,25 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	index96_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 96*sizeof(unsigned int), NULL, &err);
 	if(index96_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
+	KSv_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 768*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
+	if(KSv_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&opencl_DES_bs_all_gpu),"Set Kernel Arg FAILED arg0\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg1\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg1\n");
+	B_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
+	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
+	
+	
+	
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&KSv_gpu),"Set Kernel Arg FAILED arg3\n");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],4,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
 }	
 
 
 void opencl_DES_bs_set_salt(WORD salt)
 
-{	//printf("DES_bs_set_salt");
+{	
 	unsigned int new = salt,section=0;
 	unsigned int old; 
 	int dst;
@@ -298,14 +97,11 @@ void opencl_DES_bs_set_salt(WORD salt)
 			}
 			sp1 = opencl_DES_bs_all[section].Ens[src1];
 			sp2 = opencl_DES_bs_all[section].Ens[src2];
-			/*opencl_DES_bs_all[section].E.E[dst] = (WORD *)sp1;
-			opencl_DES_bs_all[section].E.E[dst + 24] = (WORD *)sp2;
-			opencl_DES_bs_all[section].E.E[dst + 48] = (WORD *)(sp1 + 32);
-			opencl_DES_bs_all[section].E.E[dst + 72] = (WORD *)(sp2 + 32);*/
-			index96[dst] = (WORD *)sp1 - (WORD *)opencl_DES_bs_all[section].B;
-			index96[dst + 24] = (WORD *)sp2 - (WORD *)opencl_DES_bs_all[section].B;
-			index96[dst + 48] = (WORD *)(sp1 + 32) - (WORD *)opencl_DES_bs_all[section].B;
-			index96[dst + 72] = (WORD *)(sp2 + 32) - (WORD *)opencl_DES_bs_all[section].B;
+						
+			index96[dst] = (WORD *)sp1 - (WORD *)B;
+			index96[dst + 24] = (WORD *)sp2 - (WORD *)B;
+			index96[dst + 48] = (WORD *)(sp1 + 32) - (WORD *)B;
+			index96[dst + 72] = (WORD *)(sp2 + 32) - (WORD *)B;
 			
 		}
 		new >>= 1;
@@ -315,152 +111,46 @@ void opencl_DES_bs_set_salt(WORD salt)
 	}
 }
 
-/* Include the S-boxes here so that the compiler can inline them */
-//#if DES_BS == 3
-//#include "sboxes-s.c"
-
-//#elif DES_BS == 2
-//#include "sboxes.c"
-/*
-#else
-#undef andn
-#include "nonstd.c"
-#endif
-*/
-#define b				opencl_DES_bs_all[section].B
-#define e				opencl_DES_bs_all[section].E.E
-
-#if DES_BS_EXPAND
-#define kd
-#else
-#define kd				[0]
-#endif
-#define bd
-#define ed				[0]
-
-
-
-
-#define DES_bs_clear_block_8(i) \
-		vst(b[i] bd, 0, zero); \
-		vst(b[i] bd, 1, zero); \
-		vst(b[i] bd, 2, zero); \
-		vst(b[i] bd, 3, zero); \
-		vst(b[i] bd, 4, zero); \
-		vst(b[i] bd, 5, zero); \
-		vst(b[i] bd, 6, zero); \
-		vst(b[i] bd, 7, zero); 
-	
-
-#define DES_bs_clear_block \
-	DES_bs_clear_block_8(0); \
-	DES_bs_clear_block_8(8); \
-	DES_bs_clear_block_8(16); \
-	DES_bs_clear_block_8(24); \
-	DES_bs_clear_block_8(32); \
-	DES_bs_clear_block_8(40); \
-	DES_bs_clear_block_8(48); \
-	DES_bs_clear_block_8(56);
-
-#define DES_bs_set_block_8(i, v0, v1, v2, v3, v4, v5, v6, v7) \
-		vst(b[i] bd, 0, v0); \
-		vst(b[i] bd, 1, v1); \
-		vst(b[i] bd, 2, v2); \
-		vst(b[i] bd, 3, v3); \
-		vst(b[i] bd, 4, v4); \
-		vst(b[i] bd, 5, v5); \
-		vst(b[i] bd, 6, v6); \
-		vst(b[i] bd, 7, v7); 
-	
-
-#define x(p) vxorf(*(vtype *)&e[p] ed, *(vtype *)&k[p] kd)
-#define y(p, q) vxorf(*(vtype *)&b[p] bd, *(vtype *)&k[q] kd)
-#define z(r) ((vtype *)&b[r] bd)
-
 void opencl_DES_bs_crypt_25(int keys_count)
 {
 	
-	unsigned int section=0,keys_count_multiple,i ,j;
+	unsigned int section=0,keys_count_multiple;
 	
 	cl_event evnt;
 	
-	size_t N;
+	size_t N,M;
 	
-	for(section=0;section<MULTIPLIER;section++)
-	{
-	
-	for(i=0;i<56;i++)
-		 opencl_DES_bs_data[section].K[i] = opencl_DES_bs_all[section].K[i] ;
-			
-	for(i=0;i<64;i++)
-		 opencl_DES_bs_data[section].B[i] = opencl_DES_bs_all[section].B[i];
-		
-	opencl_DES_bs_data[section].zero = opencl_DES_bs_all[section].zero;
-	opencl_DES_bs_data[section].ones = opencl_DES_bs_all[section].ones;
-		
-	for(i=0;i<8;i++)
-		 opencl_DES_bs_data[section].masks[i] = opencl_DES_bs_all[section].masks[i];
-			
-	for(i=0;i<8;i++)
-		for(j=0;j<8;j++)
-			opencl_DES_bs_data[section].v[i][j] = opencl_DES_bs_all[section].xkeys.v[i][j];
-				
-	opencl_DES_bs_data[section].keys_changed = opencl_DES_bs_all[section].keys_changed ;	
-	
-	}
 	if(keys_count%DES_BS_DEPTH==0) keys_count_multiple=keys_count;
 	
 	else keys_count_multiple = ((keys_count/DES_BS_DEPTH)+1)*DES_BS_DEPTH;
 	
 	section=keys_count_multiple/DES_BS_DEPTH;
 	
+	M = WORK_GROUP_SIZE;
 	
+	if(section%WORK_GROUP_SIZE !=0)
+	N=  (section/WORK_GROUP_SIZE +1) *WORK_GROUP_SIZE ;
 	
-	//if(section>1) exit(0);
+	else
+	N = section;  
+	
 
-	N=section;
-
-	//HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_all_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_combined),opencl_DES_bs_all,0,NULL,NULL ), "Failed Copy data to gpu");
-	
+		
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
 	
-	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno],1,NULL,&N,NULL,0,NULL,&evnt);
+	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno],1,NULL,&N,&M,0,NULL,&evnt);
 
 	clWaitForEvents(1,&evnt);
 	
-	//HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_all_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_combined),opencl_DES_bs_all, 0, NULL, NULL),"Write FAILED\n");
-	
-	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data, 0, NULL, NULL),"Write FAILED\n");
+	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[pltfrmno][devno],B_gpu,CL_TRUE,0,MULTIPLIER*64*sizeof(DES_bs_vector),B, 0, NULL, NULL),"Write FAILED\n");
 
 	clFinish(cmdq[pltfrmno][devno]);
 	
-	for(section=0;section<MULTIPLIER;section++)
-	{
-	
-	for(i=0;i<56;i++)
-		opencl_DES_bs_all[section].K[i] = opencl_DES_bs_data[section].K[i];
-			
-	for(i=0;i<64;i++)
-		opencl_DES_bs_all[section].B[i] = opencl_DES_bs_data[section].B[i];
-	
-	opencl_DES_bs_all[section].zero = opencl_DES_bs_data[section].zero;
-	opencl_DES_bs_all[section].ones = opencl_DES_bs_data[section].ones;
 		
-	for(i=0;i<8;i++)
-		opencl_DES_bs_all[section].masks[i] = opencl_DES_bs_data[section].masks[i];
-			
-	for(i=0;i<8;i++)
-		for(j=0;j<8;j++)
-			opencl_DES_bs_all[section].xkeys.v[i][j] = opencl_DES_bs_data[section].v[i][j];
-				
-	opencl_DES_bs_all[section].keys_changed = opencl_DES_bs_data[section].keys_changed;
-	}
-	
-	
 }
 /*
 void opencl_DES_bs_crypt(int count, int keys_count)

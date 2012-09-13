@@ -1,17 +1,17 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010,2011 by Solar Designer
+ * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9 
  */
 
-/*
- * Bitslice DES implementation.
- */
 
 #ifndef _JOHN_DES_BS_H
 #define _JOHN_DES_BS_H
 
 #include "arch.h"
 #include "common-opencl.h"
+#include "opencl_DES_WGS.h"
 
 #ifndef DES_BS_ALGORITHM_NAME
 #define DES_BS_ALGORITHM_NAME		ARCH_BITS_STR "/" ARCH_BITS_STR " BS"
@@ -19,18 +19,18 @@
 
 #define DES_BS_DEPTH			32
 
-#define WORD                       int
+#define WORD                      	int
 
 #define DES_bs_vector			WORD
 
-#define MULTIPLIER                      3200
+#define MULTIPLIER                      (WORK_GROUP_SIZE*256)
 
 
 #define MIN_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 #define MAX_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 
-unsigned int index768[0x300];
-unsigned int index96[96];
+unsigned int CC_CACHE_ALIGN index768[0x300];
+unsigned int CC_CACHE_ALIGN index96[96];
 
 
 #define	MAX_DEVICES_PER_PLATFORM	10
@@ -43,35 +43,26 @@ unsigned int index96[96];
  * This must match the definition in x86-mmx.S.
  */
 typedef struct {
-#if DES_BS_EXPAND
-	WORD *KSp[0x300];	/* Initial key schedule (key bit pointers) */
-#endif
-	union {
-		WORD *p[0x300];	/* Key bit pointers */
-#if DES_BS_EXPAND
-		DES_bs_vector v[0x300];	/* Key bit values */
-#endif
-	} KS;			/* Current key schedule */
-	union {
-		WORD *E[96];	/* Expansion function (data bit ptrs) */
-		unsigned char u[0x100];	/* Uppercase (for LM) */
-	} E;
+
+	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
+	unsigned int salt;	/* Salt value corresponding to E[] contents */
+	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
+
+  
+} opencl_DES_bs_combined;
+
+typedef struct{
+	
 	DES_bs_vector K[56];	/* Keys */
-	DES_bs_vector B[64];	/* Data blocks */
-
-	DES_bs_vector zero;	/* All 0 bits */
-	DES_bs_vector ones;	/* All 1 bits */
-	DES_bs_vector masks[8];	/* Each byte set to 0x01 ... 0x80 */
-
+		
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)];
 		DES_bs_vector v[8][8];
-	} xkeys;		/* Partially transposed key bits matrix */
-	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
-	int keys_changed;	/* If keys have changed */
-	unsigned int salt;	/* Salt value corresponding to E[] contents */
-	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
-} opencl_DES_bs_combined;
+	} xkeys;
+		
+	int keys_changed;
+	
+} opencl_DES_bs_transfer ;
 
 /*
  * Various DES tables exported for use by other implementations.
@@ -81,6 +72,8 @@ struct fmt_main;
 
 #define DES_bs_cpt			1
 extern opencl_DES_bs_combined opencl_DES_bs_all[MULTIPLIER];
+extern opencl_DES_bs_transfer opencl_DES_bs_data[MULTIPLIER];
+extern DES_bs_vector B[64*MULTIPLIER];
 #define for_each_t(n)
 #define init_t()
 

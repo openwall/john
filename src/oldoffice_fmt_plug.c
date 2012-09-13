@@ -29,12 +29,12 @@
 #endif
 
 #define FORMAT_LABEL		"oldoffice"
-#define FORMAT_NAME		"Office <= 2003 RC4 MD5"
+#define FORMAT_NAME		"Office <= 2003 MD5/SHA-1, RC4"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
-#define BINARY_SIZE		16
+#define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -58,17 +58,18 @@ static struct fmt_tests oo_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+/* Password encoded in UCS-2 */
+static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
+/* UCS-2 password length, in octets */
+static int *saved_len;
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
 static struct custom_salt {
 	int type;
 	unsigned char salt[16];
-	unsigned char verifier[16];
-	unsigned char verifierHash[16];
-	unsigned char encryptedVerifier[16];
-	unsigned char encryptedVerifierHash[20];
+	unsigned char verifier[16]; /* or encryptedVerifier */
+	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -84,7 +85,9 @@ static void init(struct fmt_main *self)
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?
 			125 : 3 * PLAINTEXT_LENGTH;
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	                            self->params.max_keys_per_crypt, sizeof(UTF16));
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) *
+	                            self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
@@ -94,16 +97,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	return !strncmp(ciphertext, "$oldoffice$", 11);
 }
-
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
 
 static void *get_salt(char *ciphertext)
 {
@@ -115,32 +108,23 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 11;	/* skip over "$oldoffice$" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
+	p = strtok(NULL, "*");
+	for (i = 0; i < 16; i++)
+		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
+	for (i = 0; i < 16; i++)
+		cs.verifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
 	if(cs.type < 3) {
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.verifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
 		for (i = 0; i < 16; i++)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	else {
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
-		for (i = 0; i < 16; i++)
-			cs.encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		p = strtok(NULL, "*");
 		for (i = 0; i < 20; i++)
-			cs.encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	MEM_FREE(keeptr);
@@ -164,26 +148,15 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char passwordBuf[(PLAINTEXT_LENGTH+1)*2] = {0};
-		int passwordBufSize;
 		int i;
 		MD5_CTX ctx;
 		unsigned char pwdHash[16];
-		unsigned char rc4Key[16];
 		unsigned char hashBuf[21 * 16];
 		RC4_KEY key;
 
-		/* convert password to UTF-16 */
-		passwordBufSize =
-			enc_to_utf16((UTF16*)passwordBuf, PLAINTEXT_LENGTH,
-			             (UTF8*)saved_key[index], strlen(saved_key[index]));
-		if (passwordBufSize < 0)
-			passwordBufSize = strlen16((UTF16*)passwordBuf);
-		passwordBufSize <<= 1;
-
 		if(cur_salt->type < 3) {
 			MD5_Init(&ctx);
-			MD5_Update(&ctx, passwordBuf, passwordBufSize);
+			MD5_Update(&ctx, saved_key[index], saved_len[index]);
 			MD5_Final(pwdHash, &ctx);
 			for (i = 0; i < 16; i++)
 			{
@@ -198,9 +171,8 @@ static void crypt_all(int count)
 			MD5_Init(&ctx);
 			MD5_Update(&ctx, hashBuf, 9);
 			MD5_Final(pwdHash, &ctx);
-			memcpy(rc4Key, pwdHash, 16); /* 128-bit key */
-			RC4_set_key(&key, 16, rc4Key);
-			RC4(&key, 16, cur_salt->verifier, hashBuf); /* encryptedVerifier*/
+			RC4_set_key(&key, 16, pwdHash); /* rc4Key */
+			RC4(&key, 16, cur_salt->verifier, hashBuf); /* encryptedVerifier */
 			RC4(&key, 16, cur_salt->verifierHash, hashBuf + 16); /* encryptedVerifierHash */
 			/* hash the decrypted verifier */
 			MD5_Init(&ctx);
@@ -211,27 +183,24 @@ static void crypt_all(int count)
 		}
 		else {
 			SHA_CTX ctx;
-			unsigned char H0[20];
+			unsigned char H0[24];
 			unsigned char Hfinal[20];
-			unsigned char dek[16] = { 0 };
 			unsigned char DecryptedVerifier[16];
 			unsigned char DecryptedVerifierHash[20];
-			int block = 0;
+
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, cur_salt->salt, 16);
-			SHA1_Update(&ctx, passwordBuf, passwordBufSize);
+			SHA1_Update(&ctx, saved_key[index], saved_len[index]);
 			SHA1_Final(H0, &ctx);
+			memset(&H0[20], 0, 4);
 			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, H0, 20);
-			SHA1_Update(&ctx, (unsigned char*)&block, 4);
+			SHA1_Update(&ctx, H0, 24);
 			SHA1_Final(Hfinal, &ctx);
-			if(cur_salt->type == 4)
-				memcpy(dek, Hfinal, 16);
-			else
-				memcpy(dek, Hfinal, 5);
-			RC4_set_key(&key, 16, dek);
-			RC4(&key, 16, cur_salt->encryptedVerifier, DecryptedVerifier);
-			RC4(&key, 20, cur_salt->encryptedVerifierHash, DecryptedVerifierHash);
+			if(cur_salt->type < 4)
+				memset(&Hfinal[5], 0, 11);
+			RC4_set_key(&key, 16, Hfinal); /* dek */
+			RC4(&key, 16, cur_salt->verifier, DecryptedVerifier);
+			RC4(&key, 20, cur_salt->verifierHash, DecryptedVerifierHash);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
@@ -253,21 +222,21 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
 static void set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	/* convert key to UTF-16LE */
+	saved_len[index] = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
+	if (saved_len[index] < 0)
+		saved_len[index] = strlen16(saved_key[index]);
+	saved_len[index] <<= 1;
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return (char*)utf16_to_enc(saved_key[index]);
 }
 
 struct fmt_main oldoffice_fmt = {

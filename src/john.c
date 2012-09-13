@@ -137,6 +137,7 @@ extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
 extern struct fmt_main fmt_opencl_keychain;
 extern struct fmt_main fmt_opencl_agilekeychain;
+extern struct fmt_main fmt_opencl_strip;
 extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_encfs;
 extern struct fmt_main fmt_opencl_odf;
@@ -149,6 +150,7 @@ extern struct fmt_main fmt_opencl_rawsha512_ng;
 extern struct fmt_main fmt_opencl_bf;
 extern struct fmt_main fmt_opencl_pwsafe;
 extern struct fmt_main fmt_opencl_DES;
+extern struct fmt_main fmt_opencl_office;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -287,6 +289,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_keychain);
 	john_register_one(&fmt_opencl_agilekeychain);
+	john_register_one(&fmt_opencl_strip);
 	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_encfs);
 	john_register_one(&fmt_opencl_odf);
@@ -299,6 +302,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 	john_register_one(&fmt_opencl_DES);
+	john_register_one(&fmt_opencl_office);
 #endif
 
 #ifdef HAVE_CUDA
@@ -1373,6 +1377,10 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_MPI
 	mpi_setup(argc, argv);
+#else
+	if (getenv("OMPI_COMM_WORLD_SIZE"))
+	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1)
+		fprintf(stderr, "WARNING: Running under MPI, but this is NOT an MPI build of John.\n");
 #endif
 	john_init(name, argc, argv);
 

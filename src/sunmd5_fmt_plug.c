@@ -215,8 +215,8 @@ static unsigned char mod5[0x100];
 
 static void init(struct fmt_main *self)
 {
+	int i;
 #ifdef MMX_COEF
-	int i, j;
 	/*
 	 * allocate SSE2 input and output buffer space.  For input's we have
 	 * 2 buffers.  One does the 'short' 1 block crypts. The other does the
@@ -230,6 +230,7 @@ static void init(struct fmt_main *self)
 
 	/* not super optimal, but only done one time, at program startup, so speed is not important */
 	for (i = 0; i < constant_phrase_size; ++i) {
+		int j;
 		for (j = 0; j < BLK_CNT; ++j)
 			input_buf_big[(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
 	}

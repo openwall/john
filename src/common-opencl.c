@@ -104,10 +104,11 @@ static char *include_source(char *pathname, int dev_id)
 	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
 	        "-DDEVICE_IS_CPU" : "",
 	        "-DDEVICE_INFO=", device_info[dev_id],
-#ifndef __APPLE__
-	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" :
+#ifdef __APPLE__
+	        "-DAPPLE",
+#else
+	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
 #endif
-	        "",
 	        OPENCLBUILDOPTIONS);
 
 	//fprintf(stderr, "Options used: %s\n", include);
@@ -219,13 +220,15 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	int i, numloops;
 	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
 
-        if (get_device_version(ocl_gpu_id) < 110) {
-            wg_multiple = 8; // Recommended by Intel
-
-	    if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
-		wg_multiple = 32;
-        } else {
-	    HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
+	if (get_device_version(ocl_gpu_id) < 110) {
+		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
+			wg_multiple = 32;
+		else if (get_vendor_id(ocl_gpu_id) == INTEL)
+			wg_multiple = 8;
+		else
+			wg_multiple = 1;
+	} else {
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
 		    sizeof(wg_multiple), &wg_multiple, NULL),
 	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
@@ -602,6 +605,41 @@ int get_vendor_id(int dev_id)
 
 	if (strstr(dname, "NVIDIA") != NULL)
 		return NVIDIA;
+
+	if (strstr(dname, "Intel") != NULL)
+		return INTEL;
+
+	if (strstr(dname, "Advanced Micro") != NULL ||
+	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
+		return AMD;
+
+	return UNKNOWN;
+}
+
+int get_platform_vendor_id(int platform_id)
+{
+	char dname[MAX_OCLINFO_STRING_LEN];
+	cl_platform_id platform[MAX_PLATFORMS];
+	cl_uint num_platforms;
+
+	HANDLE_CLERROR(
+		clGetPlatformIDs(MAX_PLATFORMS, platform,
+		                 &num_platforms),
+		"No OpenCL platform found");
+
+	HANDLE_CLERROR(
+		clGetPlatformInfo(platform[platform_id], CL_PLATFORM_NAME,
+		                  sizeof(dname), dname, NULL),
+		"Error querying CL_DEVICE_VENDOR");
+
+	if (strstr(dname, "NVIDIA") != NULL)
+		return NVIDIA;
+
+	if (strstr(dname, "Apple") != NULL)
+		return APPLE;
+
+	if (strstr(dname, "Intel") != NULL)
+		return INTEL;
 
 	if (strstr(dname, "Advanced Micro") != NULL ||
 	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)

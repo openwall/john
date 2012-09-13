@@ -342,7 +342,7 @@ static void clone(GsfInput * input, GsfOutput * output)
 	g_object_unref(G_OBJECT(input));
 }
 
-static int test(char *argv[])
+static int test(char *filename)
 {
 	GsfInput *input;
 	GsfInfile *infile;
@@ -357,10 +357,10 @@ static int test(char *argv[])
 	int ret;
 	GsfOutfile *out;
 
-	input = gsf_input_stdio_new(argv[1], &err);
+	input = gsf_input_stdio_new(filename, &err);
 	if (input == NULL) {
 		g_return_val_if_fail(err != NULL, 1);
-		fprintf(stderr, "%s : No such file!\n", argv[1], err->message);
+		fprintf(stderr, "%s : No such file!\n", filename, err->message);
 		g_error_free(err);
 		return 1;
 	}
@@ -370,7 +370,7 @@ static int test(char *argv[])
 
 	if (infile == NULL) {
 		g_return_val_if_fail(err != NULL, 1);
-		fprintf(stderr, "%s : %s, maybe the file is not encrypted!\n", argv[1], err->message);
+		fprintf(stderr, "%s : %s, maybe the file is not encrypted!\n", filename, err->message);
 		g_error_free(err);
 		return 1;
 	}
@@ -378,7 +378,7 @@ static int test(char *argv[])
 	in = GSF_INFILE(infile);
 	src = gsf_infile_child_by_name(in, "EncryptionInfo");
 	if (!src) {
-		fprintf(stderr, "%s : is not a Office 2007 / 2010 / 2013 encrypted file!\n", argv[1]);
+		fprintf(stderr, "%s : is not a Office 2007 / 2010 / 2013 encrypted file!\n", filename);
 		return 1;
 	}
 
@@ -390,7 +390,7 @@ static int test(char *argv[])
 	outfile = gsf_outfile_stdio_new(dirname, &err);
 	if (outfile == NULL) {
 		g_return_val_if_fail(err != NULL, 1);
-		fprintf(stderr, "%s : %s\n", argv[1], err->message);
+		fprintf(stderr, "%s : %s\n", filename, err->message);
 		g_error_free(err);
 		return 1;
 	}
@@ -402,7 +402,7 @@ static int test(char *argv[])
 
 	sprintf(outpath, "%s/EncryptionInfo", dirname);
 
-	process_file(outpath, argv[1]);
+	process_file(outpath, filename);
 
 	ret = unlink(outpath);
 	ret = rmdir(dirname);
@@ -411,10 +411,10 @@ static int test(char *argv[])
 
 int main(int argc, char *argv[])
 {
-	int res;
+	int i, res;
 
-	if (argc != 2) {
-		puts("Usage: office2john OFFICE-2007-OR-2010-OR-2013-ENCRYPTED-FILE");
+	if (argc < 2) {
+		puts("Usage: office2john OFFICE-2007-OR-2010-OR-2013-ENCRYPTED-FILE [FILE...]");
 
 		if (argc <= 1)
 			return 0;
@@ -423,7 +423,8 @@ int main(int argc, char *argv[])
 	}
 
 	gsf_init();
-	res = test(argv);
+	for (i = 1; i < argc; i++)
+		res |= test(argv[i]);
 	gsf_shutdown();
 
 	return res;

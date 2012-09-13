@@ -202,7 +202,10 @@ if (@ARGV == 1) {
 				&$arg($_);
 				use strict;
 				++$u;
-				last if $u >= $arg_count;
+				if ($u >= $arg_count) {
+				    print STDERR "Got $arg_count, not processing more. Use -count to bump limit.\n";
+				    last;
+				}
 			}
 			last;
 		}

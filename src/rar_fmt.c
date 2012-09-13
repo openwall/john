@@ -395,7 +395,7 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
-cl_ulong gws_test(int gws)
+static cl_ulong gws_test(int gws)
 {
 	cl_ulong startTime, endTime, run_time;
 	cl_command_queue queue_prof;
@@ -556,7 +556,10 @@ static void init(struct fmt_main *self)
 
 	if (!local_work_size) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) {
-			local_work_size = 8;
+			if (get_platform_vendor_id(platform_id) == INTEL)
+				local_work_size = 8;
+			else
+				local_work_size = 1;
 		} else {
 			local_work_size = 64;
 		}

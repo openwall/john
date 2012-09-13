@@ -114,7 +114,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		switch (*input) {
 		case '\\':
 			if (input[1] == 'x' && atoi16[input[2]] != 0x7F && atoi16[input[3]] != 0x7F) {
-				rpp_add_char(range, ((atoi16[input[2]]<<4)+atoi16[input[3]]));
+				rpp_add_char(range, c1 = ((atoi16[input[2]]<<4)+atoi16[input[3]]));
 				input += 4;
 			} else
 				if (*++input) rpp_add_char(range, c1 = *input++);
@@ -123,13 +123,19 @@ static void rpp_process_rule(struct rpp_context *ctx)
 		case '-':
 			if ((c2 = *++input)) {
 				input++;
+				if (c2 == '\\') {
+					if (input[0] == 'x' && atoi16[input[1]] != 0x7F && atoi16[input[2]] != 0x7F) {
+						c2 = ((atoi16[input[1]]<<4)+atoi16[input[2]]);
+						input += 3;
+					}
+				}
 				if (c1 && range->count) {
 					if (c1 > c2)
 						for (c = c1 - 1; c >= c2; c--)
 							rpp_add_char(range, c);
 					else
-						for (c = c1 + 1; c <= c2; c++)
-							rpp_add_char(range, c);
+						for (c = c1; c < c2; c++)
+							rpp_add_char(range, c + 1);
 				}
 			}
 			c1 = c2;
