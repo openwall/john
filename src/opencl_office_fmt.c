@@ -93,9 +93,9 @@ static struct custom_salt {
 static int *cracked;
 
 static char *saved_key;	/* Password encoded in UCS-2 */
-static int *saved_len;		/* UCS-2 password length, in octets */
+static int *saved_len;	/* UCS-2 password length, in octets */
 static char *saved_salt;
-static char *key;		/* Output key from kernel */
+static unsigned char *key;	/* Output key from kernel */
 static int new_keys;
 
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_key;
@@ -124,7 +124,7 @@ static void create_clobj(int gws)
 #endif
 	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
+	saved_len = (int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
@@ -134,7 +134,7 @@ static void create_clobj(int gws)
 #endif
 	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, SALT_LENGTH, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_salt = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_LENGTH, 0, NULL, NULL, &ret_code);
+	saved_salt = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_LENGTH, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, SALT_LENGTH);
 
@@ -510,10 +510,10 @@ static int cmp_exact(char *source, int index)
 
 static char *get_key(int index)
 {
-	static char out[PLAINTEXT_LENGTH + 1];
+	static UTF8 out[PLAINTEXT_LENGTH + 1];
 	utf16_to_enc_r(out, PLAINTEXT_LENGTH + 1, (UTF16*)&saved_key[index * UNICODE_LENGTH]);
 	out[saved_len[index]>>1] = 0;
-	return out;
+	return (char*)out;
 }
 
 struct fmt_main fmt_opencl_office = {
