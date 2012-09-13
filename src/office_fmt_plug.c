@@ -313,7 +313,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
-	int i;
+	int i, length;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
 	ctcopy += 9;	/* skip over "$office$*" */
@@ -340,7 +340,8 @@ static void *get_salt(char *ciphertext)
 		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	for (i = 0; i < 32; i++)
+	length = strlen(p) / 2;
+	for (i = 0; i < length; i++)
 		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
