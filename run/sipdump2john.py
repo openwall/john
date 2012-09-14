@@ -11,7 +11,11 @@ def process_file(filename):
         for line in f.readlines():
             line = line.rstrip().replace('"', '*').replace(':', '*')
             data = line.split('*')
-            print "%s-%s:$sip$*%s" % (data[0], data[1], line)
+            # Handle the case when the port number is not explicit
+            # in the uri field, in that case, adds an empty field
+	    if len(data) == 13:
+	    	data.insert(7, '')
+            print "%s-%s:$sip$*%s" % (data[0], data[1], '*'.join(data))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
