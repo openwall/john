@@ -51,7 +51,8 @@ static sip_salt *pSalt;
 
 static struct fmt_tests sip_tests[] = {
 /* XXX: need more test vectors, then try benchmarking for "many salts" */
-	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104*46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
+	{"$sip$*192.168.1.111*192.168.1.104*200*asterisk*REGISTER*sip*192.168.1.104**46cce857****MD5*4dfc7515936a667565228dbaa0293dfc", "123456"},
+	{"$sip$*10.0.1.20*10.0.1.10*1001*asterisk*REGISTER*sips*10.0.1.20*5061*0ef95b07****MD5*576e39e9de6a9ed053eb218f65fe470e", "q1XCLF0KaBObo797"},
 	{NULL}
 };
 
@@ -85,7 +86,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // duplicate salts. 
 static void *get_salt(char *ciphertext)
 {
-	static sip_salt salt;
+	sip_salt *salt;
 	static char saltBuf[2048];
 
 	char *lines[16];
@@ -96,24 +97,30 @@ static void *get_salt(char *ciphertext)
 	char static_hash[MD5_LEN_HEX+1];
 	char *saltcopy = saltBuf;
 
+	salt = mem_calloc_tiny(sizeof(sip_salt), MEM_ALIGN_NONE);
+
 	strcpy(saltBuf, ciphertext);
 	saltcopy += 6;	/* skip over "$sip$*" */
 	memset(&login, 0, sizeof(login_t));
 	num_lines = stringtoarray(lines, saltcopy, '*');
-	assert(num_lines == 13);
+	assert(num_lines == 14);
 	strncpy(login.server,      lines[0], sizeof(login.server)      - 1 );
 	strncpy(login.client,      lines[1], sizeof(login.client)      - 1 );
 	strncpy(login.user,        lines[2], sizeof(login.user)        - 1 );
 	strncpy(login.realm,       lines[3], sizeof(login.realm)       - 1 );
 	strncpy(login.method,      lines[4], sizeof(login.method)      - 1 );
 	/* special handling for uri */
-	sprintf(login.uri, "%s:%s", lines[5], lines[6]);
-	strncpy(login.nonce,       lines[7], sizeof(login.nonce)       - 1 );
-	strncpy(login.cnonce,      lines[8], sizeof(login.cnonce)      - 1 );
-	strncpy(login.nonce_count, lines[9], sizeof(login.nonce_count) - 1 );
-	strncpy(login.qop,         lines[10], sizeof(login.qop)        - 1 );
-	strncpy(login.algorithm,   lines[11], sizeof(login.algorithm)  - 1 );
-	strncpy(login.hash,        lines[12], sizeof(login.hash)       - 1 );
+	if (!strcmp(lines[7], ""))
+		sprintf(login.uri, "%s:%s", lines[5], lines[6]);
+	else
+		sprintf(login.uri, "%s:%s:%s", lines[5], lines[6], lines[7]);
+
+	strncpy(login.nonce,       lines[8], sizeof(login.nonce)       - 1 );
+	strncpy(login.cnonce,      lines[9], sizeof(login.cnonce)      - 1 );
+	strncpy(login.nonce_count, lines[10], sizeof(login.nonce_count) - 1 );
+	strncpy(login.qop,         lines[11], sizeof(login.qop)        - 1 );
+	strncpy(login.algorithm,   lines[12], sizeof(login.algorithm)  - 1 );
+	strncpy(login.hash,        lines[13], sizeof(login.hash)       - 1 );
 	if(strncmp(login.algorithm, "MD5", strlen(login.algorithm))) {
 		printf("\n* Cannot crack '%s' hash, only MD5 supported so far...\n", login.algorithm);
 		exit(-1);
@@ -128,30 +135,30 @@ static void *get_salt(char *ciphertext)
 	bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, static_hash, MD5_LEN_HEX);
 
 	/* Constructing first part of dynamic hash: 'USER:REALM:' */
-	salt.dynamic_hash_data = salt.Buf;
-	snprintf(salt.dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
-	salt.dynamic_hash_data_len = strlen(salt.dynamic_hash_data);
+	salt->dynamic_hash_data = salt->Buf;
+	snprintf(salt->dynamic_hash_data, DYNAMIC_HASH_SIZE, "%s:%s:", login.user, login.realm);
+	salt->dynamic_hash_data_len = strlen(salt->dynamic_hash_data);
 
 	/* Construct last part of final hash data: ':NONCE(:CNONCE:NONCE_COUNT:QOP):<static_hash>' */
 	/* no qop */
-	salt.static_hash_data = &(salt.Buf[salt.dynamic_hash_data_len+1]);
+	salt->static_hash_data = &(salt->Buf[salt->dynamic_hash_data_len+1]);
 	if(!strlen(login.qop))
-		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
+		snprintf(salt->static_hash_data, STATIC_HASH_SIZE, ":%s:%s", login.nonce, static_hash);
 	/* qop/conce/cnonce_count */
 	else
-		snprintf(salt.static_hash_data, STATIC_HASH_SIZE, ":%s:%s:%s:%s:%s",
+		snprintf(salt->static_hash_data, STATIC_HASH_SIZE, ":%s:%s:%s:%s:%s",
 				login.nonce, login.nonce_count, login.cnonce,
 				login.qop, static_hash);
 	/* Get lens of static buffers */
-	salt.static_hash_data_len  = strlen(salt.static_hash_data);
+	salt->static_hash_data_len  = strlen(salt->static_hash_data);
 
 	/* Begin brute force attack */
 #ifdef SIP_DEBUG
 	printf("Starting bruteforce against user '%s' (%s: '%s')\n",
 			login.user, login.algorithm, login.hash);
 #endif
-	strcpy(salt.login_hash, login.hash);
-	return &salt;
+	strcpy(salt->login_hash, login.hash);
+	return salt;
 }
 
 
