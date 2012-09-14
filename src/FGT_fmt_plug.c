@@ -83,7 +83,7 @@ static int FGT_valid(char *ciphertext, struct fmt_main *self)
 static void * FGT_get_salt(char *ciphertext)
 {
 	static char out[SALT_SIZE];
-	char buf[SALT_SIZE+BINARY_SIZE];
+	char buf[SALT_SIZE+BINARY_SIZE+1];
 
 	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
 	memcpy(out, buf, SALT_SIZE);
@@ -111,7 +111,7 @@ static char * FGT_get_key(int index)
 static void * FGT_binary(char *ciphertext)
 {
 	static char bin[BINARY_SIZE];
-	char buf[SALT_SIZE+BINARY_SIZE];
+	char buf[SALT_SIZE+BINARY_SIZE+1];
 
 	memset(buf, 0, sizeof(buf));
 	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
