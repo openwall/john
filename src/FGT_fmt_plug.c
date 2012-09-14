@@ -57,8 +57,8 @@
 
 static struct fmt_tests fgt_tests[] =
 {
-    {"AK1wTiFOMv7mZOTvQNmKQBAY98hZZjSRLxAY8vZp8NlDWU=", "fortigate"},
-    {"AK1Vd1SCGVtAAT931II/U22WTppAISQkITHOlz0ukIg4nA=", "admin"},
+	{"AK1wTiFOMv7mZOTvQNmKQBAY98hZZjSRLxAY8vZp8NlDWU=", "fortigate"},
+	{"AK1Vd1SCGVtAAT931II/U22WTppAISQkITHOlz0ukIg4nA=", "admin"},
 	{"AK1DZLDpqz335ElPtuiNTpguiozY7xVaHjHYnxw6sNlI6A=", "ftnt"},
 	{NULL}
 };
@@ -68,58 +68,57 @@ static SHA_CTX ctx_salt;
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 static int saved_key_len[MAX_KEYS_PER_CRYPT];
 
-static unsigned char crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE];
+static ARCH_WORD_32 crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static int FGT_valid(char *ciphertext, struct fmt_main *self)
 {
-    if (strlen(ciphertext) != HASH_LENGTH)
-        return 0;
-    if (strncmp(ciphertext, "AK1", 3)) 
-        return 0;
-    
-    return 1;
+	if (strlen(ciphertext) != HASH_LENGTH)
+		return 0;
+	if (strncmp(ciphertext, "AK1", 3))
+		return 0;
+
+	return 1;
 }
 
 static void * FGT_get_salt(char *ciphertext)
 {
-    static char out[SALT_SIZE];
-    char buf[SALT_SIZE+BINARY_SIZE];
- 
-    base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
-    memcpy(out, buf, SALT_SIZE);
+	static char out[SALT_SIZE];
+	char buf[SALT_SIZE+BINARY_SIZE];
 
-    return out;
+	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
+	memcpy(out, buf, SALT_SIZE);
+
+	return out;
 }
 
 static void FGT_set_salt(void *salt)
 {
 	SHA1_Init(&ctx_salt);
-	SHA1_Update(&ctx_salt, salt, SALT_SIZE);	
+	SHA1_Update(&ctx_salt, salt, SALT_SIZE);
 }
 
 static void FGT_set_key(char *key, int index)
 {
-   strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
-   saved_key_len[index] = strlen(key);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
+	saved_key_len[index] = strlen(key);
 }
 
 static char * FGT_get_key(int index)
 {
-    return saved_key[index];
+	return saved_key[index];
 }
 
 static void * FGT_binary(char *ciphertext)
 {
+	static char bin[BINARY_SIZE];
+	char buf[SALT_SIZE+BINARY_SIZE];
 
-    static char bin[BINARY_SIZE];
-    char buf[SALT_SIZE+BINARY_SIZE];
-
-    memset(buf, 0, sizeof(buf));
-    base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
+	memset(buf, 0, sizeof(buf));
+	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
 	// skip over the 12 bytes of salt and get only the hashed password
-    memcpy(bin, buf+SALT_SIZE, BINARY_SIZE);
-    
-    return bin;
+	memcpy(bin, buf+SALT_SIZE, BINARY_SIZE);
+
+	return bin;
 }
 
 
@@ -162,8 +161,8 @@ static void FGT_crypt_all(int count)
 		memcpy(&ctx, &ctx_salt, sizeof(ctx));
 
 		SHA1_Update(&ctx, saved_key[i], saved_key_len[i]);
-	    SHA1_Update(&ctx, (char *)FORTINET_MAGIC, FORTINET_MAGIC_LENGTH);
-		SHA1_Final(crypt_key[i], &ctx);
+		SHA1_Update(&ctx, (char *)FORTINET_MAGIC, FORTINET_MAGIC_LENGTH);
+		SHA1_Final((unsigned char*)crypt_key[i], &ctx);
 	}
 }
 
@@ -194,7 +193,7 @@ static int FGT_salt_hash(void *salt)
 
 struct fmt_main fmt_FGT = {
     {
-        FORMAT_LABEL,
+		FORMAT_LABEL,
 		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
@@ -223,7 +222,7 @@ struct fmt_main fmt_FGT = {
 			binary_hash_6
 		},
 		FGT_salt_hash,
-        FGT_set_salt,
+		FGT_set_salt,
 		FGT_set_key,
 		FGT_get_key,
 		fmt_default_clear_keys,
