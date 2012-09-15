@@ -334,7 +334,7 @@ static void find_best_gws(void) {
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
         max_run_time = atoi(tmp_value) * 1000000000UL;
 
-    fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n",
+    fprintf(stderr, "Calculating best global work size (GWS) for LWS=%zd and max. %llu s duration.\n\n",
             local_work_size, max_run_time / 1000000000ULL);
 
     if (do_benchmark)
@@ -379,7 +379,7 @@ static void find_best_gws(void) {
         if (do_benchmark)
             fprintf(stderr, "\n");
     }
-    fprintf(stderr, "Optimal keys per crypt %d\n", optimal_gws);
+    fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
     fprintf(stderr, "(to avoid this test on next run, put \""
         GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
@@ -441,7 +441,7 @@ static void init(struct fmt_main *pFmt) {
         global_work_size = get_task_max_size();
         find_best_gws();
     }
-    fprintf(stderr, "Local work size (LWS) %d, keys per crypt (GWS) %zd\n",
+    fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
            (int) local_work_size, global_work_size);
     pFmt->params.max_keys_per_crypt = global_work_size;
 }
