@@ -167,7 +167,6 @@ static void set_key(char * key, int index) {
 
     //Assure buffer has no "trash data".
     len = strlen(key);
-    len = (len > PLAINTEXT_LENGTH ? PLAINTEXT_LENGTH : len);
 
     //Put the tranfered key on password buffer.
     memcpy(plaintext[index].pass, key, len);
