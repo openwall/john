@@ -166,11 +166,15 @@ static void set_key(char * key, int index) {
     int len;
 
     //Assure buffer has no "trash data".
+    memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
     len = strlen(key);
 
     //Put the tranfered key on password buffer.
     memcpy(plaintext[index].pass, key, len);
     plaintext[index].length = len ;
+
+    /* Prepare for GPU */
+    plaintext[index].pass->mem_08[len] = 0x80;
 }
 
 static char * get_key(int index) {
@@ -637,7 +641,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
         ALGORITHM_NAME,
         BENCHMARK_COMMENT,
         BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH,
+        PLAINTEXT_LENGTH - 1,
         BINARY_SIZE,
         SALT_SIZE,
         MIN_KEYS_PER_CRYPT,

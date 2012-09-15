@@ -58,14 +58,14 @@ inline void init_ctx(sha512_ctx * ctx) {
 }
 
 inline void _memcpy(               uint8_t * dest,
-                   __global const uint8_t * src,
-                   const uint32_t srclen) {
+                    __global const uint8_t * src,
+                    const uint32_t srclen) {
     int i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     __global uint64_t * s = (__global uint64_t *) src;
 
-    while (i < srclen) {
+    while (i < PLAINTEXT_LENGTH) {
         *l++ = *s++;
         i += 8;
     }
@@ -121,28 +121,23 @@ inline void sha512_block(sha512_ctx * ctx) {
 }
 
 inline void insert_to_buffer(         sha512_ctx    * ctx,
-                      __global const uint8_t * string,
-                               const uint32_t  len) {
+                             __global const uint8_t * string,
+                                      const uint32_t  len) {
 
-    _memcpy(ctx->buffer->mem_08 + ctx->buflen, string, len); ///TODO: não precisa do buflen.
+    _memcpy(ctx->buffer->mem_08, string, len);
     ctx->buflen += len;
 }
 
 inline void ctx_update(         sha512_ctx * ctx,
-                __global uint8_t    * string,
-                         uint32_t     len) {
+                       __global uint8_t    * string,
+                                uint32_t     len) {
 
     insert_to_buffer(ctx, string, len);
 }
 
 inline void ctx_append_1(sha512_ctx * ctx) {
 
-    uint32_t length = ctx->buflen;
-    PUT(BUFFER, length, 0x80);
-
-    while (++length & 7)
-        PUT(BUFFER, length, 0);
-
+    uint32_t length = PLAINTEXT_LENGTH;
     uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 128) {
@@ -162,17 +157,8 @@ inline void finish_ctx(sha512_ctx * ctx) {
     ctx_add_length(ctx);
 }
 
-inline void clear_ctx_buffer(sha512_ctx * ctx) {
-
-    #pragma unroll
-    for (int i = 0; i < 16; i++)
-        ctx->buffer->mem_64[i] = 0;
-
-    ctx->buflen = 0;
-}
-
 inline void sha512_crypt(__global sha512_password * keys_data,
-                           sha512_ctx      * ctx) {
+                                  sha512_ctx      * ctx) {
 #define pass        keys_data->pass->mem_08
 #define passlen     keys_data->length
 
