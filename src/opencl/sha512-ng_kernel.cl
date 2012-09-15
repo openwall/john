@@ -140,7 +140,7 @@ inline void ctx_append_1(sha512_ctx * ctx) {
     uint32_t length = PLAINTEXT_LENGTH;
     uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
 
-    while (length < 128) {
+    while (length < 120) {
         *l++ = 0;
         length += 8;
     }
