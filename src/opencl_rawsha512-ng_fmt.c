@@ -58,8 +58,18 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 }
 
 static size_t get_task_max_work_group_size(){
+    size_t max_available;
 
-    return get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+    if (amd_gcn(device_info[ocl_gpu_id]))
+        max_available = get_local_memory_size(ocl_gpu_id) /
+                (sizeof(sha512_ctx_buffer));
+    else
+        max_available = get_max_work_group_size(ocl_gpu_id);
+
+    if (max_available > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
+        return get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+
+    return max_available;
 }
 
 static size_t get_task_max_size(){
@@ -134,6 +144,12 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
             (void *) &result_buffer), "Error setting argument 2");
 
+    if (amd_gcn(device_info[ocl_gpu_id])) {
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
+           sizeof(sha512_ctx_buffer) * local_work_size,
+           NULL), "Error setting argument 2");
+    }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     global_work_size = gws;
 }
@@ -389,10 +405,18 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *pFmt) {
+    int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/sha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
+    source_in_use = device_info[ocl_gpu_id];
+
+    if ((tmp_value = getenv("_TYPE")))
+        source_in_use = atoi(tmp_value);
+
+    if (amd_gcn(source_in_use))
+        task = "$JOHN/sha512-ng_kernel_LOCAL.cl";
     opencl_build_kernel(task, ocl_gpu_id);
 
     // create kernel(s) to execute
@@ -403,6 +427,11 @@ static void init(struct fmt_main *pFmt) {
 
     global_work_size = get_task_max_size();
     local_work_size = 0;
+
+    if (source_in_use != device_info[ocl_gpu_id]) {
+        device_info[ocl_gpu_id] = source_in_use;
+        fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
+    }
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
