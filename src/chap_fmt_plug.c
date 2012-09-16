@@ -43,6 +43,7 @@ static int omp_t = 1;
 static struct fmt_tests chap_tests[] = {
 	{"$chap$0*cc7e5247514551acdcbf782c4027bfb1*fdfdad5277812ae40956a66f3db23308", "password"},
 	{"$chap$0*81a49cb700e8c2ee9bc3852a506406c3*8876e228962a999637eecc2423f55f07", "password"},
+	{"$chap$0*e270954e7d84f99535dce2e5d7340a7d*4d64f587c7b5248406b939e1e9abeb74", "bar"},
 	{NULL}
 };
 

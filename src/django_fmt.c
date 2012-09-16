@@ -104,7 +104,7 @@ static void *get_salt(char *ciphertext)
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
 	/* break up 'p' */
-	t = strtok(p, "$");
+	strtok(p, "$");
 	t = strtok(NULL, "$");
 	cs.iterations = atoi(t);
 	t = strtok(NULL, "$");
@@ -146,7 +146,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-#ifndef SHA256_CBLOCK 
+#ifndef SHA256_CBLOCK
 #define SHA256_CBLOCK 64
 #endif
 #ifndef SHA256_DIGEST_LENGTH
@@ -158,15 +158,15 @@ static void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, AR
 	SHA256_CTX ctx, tmp_ctx1, tmp_ctx2;
 	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], tmp_hash[SHA256_DIGEST_LENGTH];
 	unsigned i, j;
- 
+
 	memset(ipad, 0x36, SHA256_CBLOCK);
 	memset(opad, 0x5C, SHA256_CBLOCK);
- 
+
 	for(i = 0; i < KL; i++) {
 		ipad[i] ^= K[i];
 		opad[i] ^= K[i];
 	}
- 
+
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, ipad, SHA256_CBLOCK);
 	// save off the first 1/2 of the ipad hash.  We will NEVER recompute this
@@ -189,9 +189,9 @@ static void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, AR
  	memcpy(&tmp_ctx2, &ctx, sizeof(SHA256_CTX));
  	SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 	SHA256_Final(tmp_hash, &ctx);
- 
+
 	memcpy(dgst, tmp_hash, SHA256_DIGEST_LENGTH);
- 
+
 	for(i = 1; i < R; i++) {
 		memcpy(&ctx, &tmp_ctx1, sizeof(SHA256_CTX));
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
@@ -200,7 +200,7 @@ static void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, AR
 		memcpy(&ctx, &tmp_ctx2, sizeof(SHA256_CTX));
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 		SHA256_Final(tmp_hash, &ctx);
- 
+
 		for(j = 0; j < SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
 			dgst[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
 	}

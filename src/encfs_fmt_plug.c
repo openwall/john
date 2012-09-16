@@ -100,6 +100,7 @@ static void setIVec( unsigned char *ivec, uint64_t seed,
 	HMAC_Update( &mac_ctx, ivec, cur_salt->ivLength );
 	HMAC_Update( &mac_ctx, md, 8 );
 	HMAC_Final( &mac_ctx, md, &mdLen );
+	HMAC_CTX_cleanup(&mac_ctx);
 	memcpy( ivec, md, cur_salt->ivLength );
 }
 
@@ -158,6 +159,7 @@ static uint64_t _checksum_64(unsigned char *key,
 		HMAC_Update( &mac_ctx, h, 8 );
 	}
 	HMAC_Final( &mac_ctx, md, &mdLen );
+	HMAC_CTX_cleanup(&mac_ctx);
 	// chop this down to a 64bit value..
 	for(i=0; i<(mdLen-1); ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
@@ -210,6 +212,7 @@ int streamDecode(unsigned char *buf, int size,
 	EVP_DecryptInit_ex( &stream_dec, NULL, NULL, NULL, ivec);
 	EVP_DecryptUpdate( &stream_dec, buf, &dstLen, buf, size );
 	EVP_DecryptFinal_ex( &stream_dec, buf+dstLen, &tmpLen );
+	EVP_CIPHER_CTX_cleanup(&stream_dec);
 
 	unshuffleBytes( buf, size );
 	dstLen += tmpLen;
