@@ -78,7 +78,6 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < 20; i++)
 		cs.scramble[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }

@@ -111,7 +111,6 @@ int pdf2john(int argc, char **argv)
 			return 0;
 		default:
 			printHelp(argv[0]);
-			ret = 1;
 		}
 	}
 	i = optind;

@@ -113,7 +113,6 @@ static void *get_salt(char *ciphertext)
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
 	strcpy((char *)cs.salt, p);
-	p = strtok(NULL, "*");
 	return (void *)&cs;
 }
 

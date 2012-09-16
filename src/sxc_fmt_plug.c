@@ -96,7 +96,7 @@ static void *get_salt(char *ciphertext)
 	cs.iterations = atoi(p);
 	p = strtok(NULL, "*");
 	cs.key_size = atoi(p);
-	p = strtok(NULL, "*");
+	strtok(NULL, "*");
 	/* skip checksum field */
 	p = strtok(NULL, "*");
 	cs.iv_length = atoi(p);
@@ -134,10 +134,10 @@ static void *get_binary(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	ctcopy += 6;	/* skip over "$sxc$*" */
-	p = strtok(ctcopy, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
-	p = strtok(NULL, "*");
+	strtok(ctcopy, "*");
+	strtok(NULL, "*");
+	strtok(NULL, "*");
+	strtok(NULL, "*");
 	p = strtok(NULL, "*");
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =

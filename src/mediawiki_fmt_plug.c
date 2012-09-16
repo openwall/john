@@ -165,7 +165,6 @@ static int mediawiki_valid(char *ciphertext, struct fmt_main *self)
 		static char Ex[(1+1+1+5+1+MD5_HEX_SIZE)+1];
 		sprintf(Ex, "$B$000%s%s$%s", options.regen_lost_salts>3?"0":"", options.regen_lost_salts>4?"0":"", ciphertext);
 		ciphertext = Ex;
-		i = strlen(ciphertext);
 	}
 
 	if (strncmp(ciphertext, "$B$", 3) != 0) {
