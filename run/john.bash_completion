@@ -180,7 +180,7 @@ _john()
 				fi
 			fi
 			cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
-			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\L\1#' -e 's#[/ ]#\n#g' -e 'p }'`
+			formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }'|LC_ALL=C tr A-Z a-z`
 			COMPREPLY=( $(compgen -W "${formats}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
