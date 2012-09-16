@@ -14,14 +14,6 @@
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
 
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-#endif
-
 __constant uint64_t k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
     0x3956c25bf348b538UL, 0x59f111f1b605d019UL, 0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL,
@@ -45,7 +37,8 @@ __constant uint64_t k[] = {
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL,
 };
 
-inline void init_ctx(sha512_ctx * ctx) {
+inline void init_ctx(        sha512_ctx_H      * ctx,
+                     __local sha512_ctx_buffer * ctx_data) {
     ctx->H[0] = 0x6a09e667f3bcc908UL;
     ctx->H[1] = 0xbb67ae8584caa73bUL;
     ctx->H[2] = 0x3c6ef372fe94f82bUL;
@@ -54,15 +47,15 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[5] = 0x9b05688c2b3e6c1fUL;
     ctx->H[6] = 0x1f83d9abfb41bd6bUL;
     ctx->H[7] = 0x5be0cd19137e2179UL;
-    ctx->buflen = 0;
+    ctx_data->buflen = 0;
 }
 
-inline void _memcpy(               uint8_t * dest,
+inline void _memcpy(__local        uint8_t * dest,
                     __global const uint8_t * src,
                     const uint32_t srclen) {
     int i = 0;
 
-    uint64_t * l = (uint64_t *) dest;
+    __local uint64_t * l = (__local uint64_t *) dest;
     __global uint64_t * s = (__global uint64_t *) src;
 
     while (i < PLAINTEXT_LENGTH) {
@@ -71,7 +64,8 @@ inline void _memcpy(               uint8_t * dest,
     }
 }
 
-inline void sha512_block(sha512_ctx * ctx) {
+inline void sha512_block(        sha512_ctx_H      * ctx,
+                         __local sha512_ctx_buffer * ctx_data) {
 #define  a   ctx->H[0]
 #define  b   ctx->H[1]
 #define  c   ctx->H[2]
@@ -86,7 +80,7 @@ inline void sha512_block(sha512_ctx * ctx) {
 
     #pragma unroll
     for (int i = 0; i < 16; i++)
-        w[i] = SWAP64(ctx->buffer->mem_64[i]);
+        w[i] = SWAP64(ctx_data->buffer->mem_64[i]);
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
@@ -120,25 +114,25 @@ inline void sha512_block(sha512_ctx * ctx) {
     }
 }
 
-inline void insert_to_buffer(         sha512_ctx    * ctx,
-                             __global const uint8_t * string,
-                                      const uint32_t  len) {
+inline void insert_to_buffer(__local  sha512_ctx_buffer * ctx,
+                             __global const uint8_t     * string,
+                                      const uint32_t      len) {
 
     _memcpy(ctx->buffer->mem_08, string, len);
     ctx->buflen += len;
 }
 
-inline void ctx_update(         sha512_ctx * ctx,
-                       __global uint8_t    * string,
-                                uint32_t     len) {
+inline void ctx_update(__local  sha512_ctx_buffer * ctx,
+                       __global uint8_t           * string,
+                                uint32_t            len) {
 
     insert_to_buffer(ctx, string, len);
 }
 
-inline void ctx_append_1(sha512_ctx * ctx) {
+inline void ctx_append_1(__local sha512_ctx_buffer * ctx) {
 
     uint32_t length = PLAINTEXT_LENGTH;
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+    __local uint64_t * l = (__local uint64_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 120) {
         *l++ = 0;
@@ -146,43 +140,46 @@ inline void ctx_append_1(sha512_ctx * ctx) {
     }
 }
 
-inline void ctx_add_length(sha512_ctx * ctx) {
+inline void ctx_add_length(__local sha512_ctx_buffer * ctx) {
 
     ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->buflen * 8));
 }
 
-inline void finish_ctx(sha512_ctx * ctx) {
+inline void finish_ctx(__local sha512_ctx_buffer * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
 }
 
-inline void sha512_crypt(__global sha512_password * keys_data,
-                                  sha512_ctx      * ctx) {
+inline void sha512_crypt(__global sha512_password   * keys_data,
+                                  sha512_ctx_H      * ctx,
+                         __local  sha512_ctx_buffer * ctx_data) {
 #define pass        keys_data->pass->mem_08
 #define passlen     keys_data->length
 
-    init_ctx(ctx);
+    init_ctx(ctx, ctx_data);
 
-    ctx_update(ctx, pass, passlen);
-    finish_ctx(ctx);
+    ctx_update(ctx_data, pass, passlen);
+    finish_ctx(ctx_data);
 
     /* Run the collected hash value through SHA512. */
-    sha512_block(ctx);
+    sha512_block(ctx, ctx_data);
 }
 
 __kernel
-void kernel_crypt(__global   sha512_password * keys_buffer,
-                  __global   uint32_t        * out_buffer) {
+void kernel_crypt(__global   sha512_password   * keys_buffer,
+                  __global   uint32_t          * out_buffer,
+                  __local    sha512_ctx_buffer * ctx_data) {
 
-    //Compute buffers (on CPU and NVIDIA, better private)
-    sha512_ctx     ctx;
+    //Compute buffers
+    sha512_ctx_H        ctx;
 
     //Get the task to be done
     size_t gid = get_global_id(0);
+    size_t lid = get_local_id(0);
 
     //Do the job
-    sha512_crypt(&keys_buffer[gid], &ctx);
+    sha512_crypt(&keys_buffer[gid], &ctx, &ctx_data[lid]);
 
     //Save parcial results.
     out_buffer[gid] = (int) ctx.H[0];
