@@ -22,6 +22,7 @@
 #define AMD                     64
 #define NVIDIA                  128
 #define INTEL                   256
+#define APPLE                   512
 #define AMD_GCN                 1024
 #define AMD_VLIW4               2048
 #define AMD_VLIW5               4096
