@@ -198,7 +198,7 @@ static int PasswordVerifier(unsigned char * key)
 	return !memcmp(checkHash, decryptedVerifierHash, 16);
 }
 
-static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, const unsigned char *blockKey, int hashSize, unsigned char *hashBuf)
+static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, int hashSize, unsigned char *hashBuf)
 {
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
@@ -227,19 +227,27 @@ static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, 
 		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
-	memcpy(&inputBuf[6], blockKey, 8);
+	memcpy(&inputBuf[6], encryptedVerifierHashInputBlockKey, 8);
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, &inputBuf[1], 28);
 	SHA1_Final(hashBuf, &ctx);
 
+	// And second "block" (0) to H(n)
+	memcpy(&inputBuf[6], encryptedVerifierHashValueBlockKey, 8);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, &inputBuf[1], 28);
+	SHA1_Final(&hashBuf[32], &ctx);
+
 	// Fix up the size per the spec
-	if (20 < hashSize) {
-		for(i = 20; i < hashSize; i++)
+	if (20 < hashSize) { // FIXME: Is this ever true?
+		for(i = 20; i < hashSize; i++) {
 			hashBuf[i] = 0x36;
+			hashBuf[32 + i] = 0x36;
+		}
 	}
 }
 
-static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSize, const unsigned char *blockKey, int hashSize, unsigned char *hashBuf)
+static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSize, unsigned char *hashBuf)
 {
 	unsigned int inputBuf[128 / sizeof(int)];
 	int i;
@@ -261,10 +269,16 @@ static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSiz
 		SHA512_Final((unsigned char*)&inputBuf[1], &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
-	memcpy(&inputBuf[68/4], blockKey, 8);
+	memcpy(&inputBuf[68/4], encryptedVerifierHashInputBlockKey, 8);
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
 	SHA512_Final(hashBuf, &ctx);
+
+	// And second "block" (0) to H(n)
+	memcpy(&inputBuf[68/4], encryptedVerifierHashValueBlockKey, 8);
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
+	SHA512_Final(&hashBuf[64], &ctx);
 }
 
 static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length)
@@ -364,42 +378,31 @@ static void crypt_all(int count)
 		if(cur_salt->version == 2007) {
 			unsigned char encryptionKey[256];
 			GeneratePasswordHashUsingSHA1(saved_key[index], saved_len[index], encryptionKey);
-			if (PasswordVerifier(encryptionKey))
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] = PasswordVerifier(encryptionKey);
 		}
 		else if (cur_salt->version == 2010) {
-			unsigned char verifierInputKey[32], verifierHashKey[32], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char verifierKeys[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[20];
 			SHA_CTX ctx;
-			GenerateAgileEncryptionKey(saved_key[index], saved_len[index], encryptedVerifierHashInputBlockKey, cur_salt->keySize >> 3, verifierInputKey);
-			GenerateAgileEncryptionKey(saved_key[index], saved_len[index], encryptedVerifierHashValueBlockKey, cur_salt->keySize >> 3, verifierHashKey);
-			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			GenerateAgileEncryptionKey(saved_key[index], saved_len[index], cur_salt->keySize >> 3, verifierKeys);
+			DecryptUsingSymmetricKeyAlgorithm(verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			DecryptUsingSymmetricKeyAlgorithm(&verifierKeys[32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA1_Final(hash, &ctx);
-			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
 		}
 		else if (cur_salt->version == 2013) {
-			unsigned char verifierInputKey[64], verifierHashKey[64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
+			unsigned char verifierKeys[128], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
 			unsigned char hash[64];
 			SHA512_CTX ctx;
-			GenerateAgileEncryptionKey512(saved_key[index], saved_len[index], encryptedVerifierHashInputBlockKey, cur_salt->keySize >> 3, verifierInputKey);
-			GenerateAgileEncryptionKey512(saved_key[index], saved_len[index], encryptedVerifierHashValueBlockKey, cur_salt->keySize >> 3, verifierHashKey);
-			DecryptUsingSymmetricKeyAlgorithm(verifierInputKey, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-			DecryptUsingSymmetricKeyAlgorithm(verifierHashKey, cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
+			GenerateAgileEncryptionKey512(saved_key[index], saved_len[index], verifierKeys);
+			DecryptUsingSymmetricKeyAlgorithm(verifierKeys, cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
+			DecryptUsingSymmetricKeyAlgorithm(&verifierKeys[64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 			SHA512_Final(hash, &ctx);
-			if(!memcmp(hash, decryptedVerifierHashBytes, 20))
-				cracked[index] = 1;
-			else
-				cracked[index] = 0;
+			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
 		}
 	}
 }
