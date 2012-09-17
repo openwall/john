@@ -15,6 +15,7 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
+#include "opencl_device_info.h"
 
 #define MAXGPUS	8
 #define MAX_PLATFORMS	8
@@ -70,30 +71,6 @@ int get_vendor_id(int dev_id);
 int get_platform_vendor_id(int platform_id);
 int get_device_version(int dev_id);
 int get_byte_addressable(int dev_id);
-
-#define UNKNOWN                 0
-#define CPU                     1
-#define GPU                     2
-#define ACCELERATOR             4
-#define AMD                     64
-#define NVIDIA                  128
-#define INTEL                   256
-#define APPLE                   512
-#define AMD_GCN                 1024
-#define AMD_VLIW4               2048
-#define AMD_VLIW5               4096
-#define NO_BYTE_ADDRESSABLE     8192
-
-#define cpu(n)                  ((n & CPU) == (CPU))
-#define gpu(n)                  ((n & GPU) == (GPU))
-#define gpu_amd(n)              ((n & AMD) && gpu(n))
-#define gpu_nvidia(n)           ((n & NVIDIA) && gpu(n))
-#define gpu_intel(n)            ((n & INTEL) && gpu(n))
-#define cpu_amd(n)              ((n & AMD) && cpu(n))
-#define amd_gcn(n)              ((n & AMD_GCN) && gpu_amd(n))
-#define amd_vliw4(n)            ((n & AMD_VLIW4) && gpu_amd(n))
-#define amd_vliw5(n)            ((n & AMD_VLIW5) && gpu_amd(n))
-#define no_byte_addressable(n)  (n & NO_BYTE_ADDRESSABLE)
 
 char *get_error_name(cl_int cl_error);
 
