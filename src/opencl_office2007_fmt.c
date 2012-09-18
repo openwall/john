@@ -9,6 +9,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
+//#define DEBUG
 #include <openssl/sha.h>
 #include <openssl/aes.h>
 #include <stdio.h>
@@ -28,23 +29,22 @@
 #include "common-opencl.h"
 #include "config.h"
 
-#define FORMAT_LABEL		"office-opencl"
-//#define FORMAT_NAME		"Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
+#define FORMAT_LABEL		"office2007-opencl"
 #define FORMAT_NAME		"Office 2007 SHA-1 AES"
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	19 /* Keeps first SHA-1 in one block. 51 is max for two blocks. */
-#define UNICODE_LENGTH		((PLAINTEXT_LENGTH + 1) * 2) /* Including 0x0080 */
+#define PLAINTEXT_LENGTH	51
+#define UNICODE_LENGTH		104 /* In octets, including 0x80 */
 #define BINARY_SIZE		0
 #define SALT_LENGTH		16
 #define SALT_SIZE		sizeof(*cur_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define LWS_CONFIG		"office_LWS"
-#define GWS_CONFIG		"office_GWS"
-#define DUR_CONFIG		"office_MaxDuration"
+#define LWS_CONFIG		"office2007_LWS"
+#define GWS_CONFIG		"office2007_GWS"
+#define DUR_CONFIG		"office2007_MaxDuration"
 
 #ifdef DEBUG
 /* Non-blocking requests may postpone errors, causing confusion */
@@ -53,15 +53,8 @@
 #define BLOCK_IF_DEBUG	CL_FALSE
 #endif
 
-/*
- * MBPr CPU       OMP-CPU  OCL-CPU   GT650M
- * 2007 156 c/s            406 c/s   2068 c/s
- * 2010 39 c/s
- * 2013 12.4 c/s
- */
 static struct fmt_tests tests[] = {
 	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd", "Password"},
-#if 0 /* These are length 24 */
 	/* 2007-Default_myhovercraftisfullofeels_.docx */
 	{"$office$*2007*20*128*16*91f095a1fd02595359fe3938fa9236fd*e22668eb1347957987175079e980990f*659f50b9062d36999bf3d0911068c93268ae1d86", "myhovercraftisfullofeels"},
 	/* 2007-Default_myhovercraftisfullofeels_.dotx */
@@ -74,7 +67,6 @@ static struct fmt_tests tests[] = {
 	{"$office$*2007*20*128*16*fbd4cc5dab9b8e341778ddcde9eca740*46bef371486919d4bffe7280110f913d*b51af42e6696baa097a7109cebc3d0ff7cc8b1d8", "myhovercraftisfullofeels"},
 	/* 2007-Default_myhovercraftisfullofeels_.xltx */
 	{"$office$*2007*20*128*16*fbd4cc5dab9b8e341778ddcde9eca740*1addb6823689aca9ce400be8f9e55fc9*e06bf10aaf3a4049ffa49dd91cf9e7bbf88a1b3b", "myhovercraftisfullofeels"},
-#endif
 	{NULL}
 };
 
@@ -86,11 +78,10 @@ static struct custom_salt {
 	int verifierHashSize;
 	int keySize;
 	int saltSize;
-	/* Office 2010/2013 */
-	//int spinCount;
 } *cur_salt;
 
 static int *cracked;
+static const int VF = 1;	/* Will be set to 4 when we run vectorized */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -98,11 +89,8 @@ static char *saved_salt;
 static unsigned char *key;	/* Output key from kernel */
 static int new_keys;
 
-static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_key;
-
-/* Office 2010/2013 */
-//static const unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
-//static const unsigned char encryptedVerifierHashValueBlockKey[] = { 0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e };
+static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key;
+static cl_kernel GenerateSHA1pwhash, Hash1k, Generate2007key;
 
 static void create_clobj(int gws)
 {
@@ -110,7 +98,9 @@ static void create_clobj(int gws)
 	int bench_len = strlen(tests[0].plaintext) * 2;
 
 	global_work_size = gws;
+	gws *= VF;
 #ifdef DEBUG
+	fprintf(stderr, "Creating GPU arrays for GWS=%d (KPC=%d)\n", global_work_size, gws);
 	fprintf(stderr, "Creating %d bytes of key buffer\n", UNICODE_LENGTH * gws);
 #endif
 	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL , &ret_code);
@@ -139,18 +129,29 @@ static void create_clobj(int gws)
 	memset(saved_salt, 0, SALT_LENGTH);
 
 #ifdef DEBUG
+	fprintf(stderr, "Creating %d bytes output pwhash buffer\n", 24 * gws);
+#endif
+	cl_pwhash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 24 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+
+#ifdef DEBUG
 	fprintf(stderr, "Creating %d bytes output key buffer\n", 16 * gws);
 #endif
-	cl_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
+	cl_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * gws, 0, NULL, NULL, &ret_code);
+	key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory key");
 	memset(key, 0, 16 * gws);
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_key), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 3, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 3");
+
+	HANDLE_CLERROR(clSetKernelArg(Hash1k, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
+
+	HANDLE_CLERROR(clSetKernelArg(Generate2007key, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(Generate2007key, 1, sizeof(cl_mem), (void*)&cl_key), "Error setting argument 1");
 }
 
 static void release_clobj(void)
@@ -166,7 +167,9 @@ static void set_key(char *key, int index)
 {
 	UTF16 *utfkey = (UTF16*)&saved_key[index * UNICODE_LENGTH];
 
-	//printf("set_key(%u): '%s'\n", index, key);
+#ifdef DEBUG
+	printf("%s(%d, %s)\n", __func__, index, key);
+#endif
 	/* Clean slate */
 	memset(utfkey, 0, UNICODE_LENGTH);
 
@@ -184,6 +187,52 @@ static void set_key(char *key, int index)
 	//dump_stuff_msg("key buffer", &saved_key[index*UNICODE_LENGTH], UNICODE_LENGTH);
 }
 
+static void *get_salt(char *ciphertext)
+{
+	int i, length;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy, *p;
+	ctcopy += 9;	/* skip over "$office$*" */
+	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	p = strtok(ctcopy, "*");
+	cur_salt->version = atoi(p);
+	p = strtok(NULL, "*");
+	cur_salt->verifierHashSize = atoi(p);
+	p = strtok(NULL, "*");
+	cur_salt->keySize = atoi(p);
+	p = strtok(NULL, "*");
+	cur_salt->saltSize = atoi(p);
+	if (cur_salt->saltSize > SALT_LENGTH) {
+		fprintf(stderr, "** error: salt longer than supported:\n%s\n", ciphertext);
+		cur_salt->saltSize = SALT_LENGTH; /* will not work, but protects us from segfault */
+	}
+	p = strtok(NULL, "*");
+	for (i = 0; i < cur_salt->saltSize; i++)
+		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
+	for (i = 0; i < 16; i++)
+		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	p = strtok(NULL, "*");
+	length = strlen(p) / 2;
+	for (i = 0; i < length; i++)
+		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	MEM_FREE(keeptr);
+	return (void *)cur_salt;
+}
+
+static void set_salt(void *salt)
+{
+	cur_salt = (struct custom_salt *)salt;
+	memcpy(saved_salt, cur_salt->osalt, SALT_LENGTH);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, BLOCK_IF_DEBUG, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+#ifdef DEBUG
+	printf("%s(%d)\n", __func__, cur_salt->version);
+#endif
+}
+
 static cl_ulong gws_test(int gws)
 {
 	cl_ulong startTime, endTime, run_time;
@@ -191,16 +240,32 @@ static cl_ulong gws_test(int gws)
 	cl_event myEvent;
 	cl_int ret_code;
 	int i;
-	int num = gws;
+	int num = VF * gws;
 
 	create_clobj(gws);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < num; i++)
 		set_key(tests[0].plaintext, i);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, BLOCK_IF_DEBUG, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "Failed transferring salt");
+	set_salt(get_salt(tests[0].ciphertext));
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * num, saved_len, 0, NULL, NULL), "Failed transferring lengths");
-	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+	ret_code = clEnqueueNDRangeKernel(queue_prof, GenerateSHA1pwhash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+	if (ret_code != CL_SUCCESS) {
+		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
+	for (i = 0; i < 50000 / 1024; i++) {
+		ret_code = clEnqueueNDRangeKernel(queue_prof, Hash1k, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
+		if (ret_code != CL_SUCCESS) {
+			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+			clReleaseCommandQueue(queue_prof);
+			release_clobj();
+			return 0;
+		}
+	}
+	ret_code = clEnqueueNDRangeKernel(queue_prof, Generate2007key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 		clReleaseCommandQueue(queue_prof);
@@ -246,7 +311,7 @@ static void find_best_gws(int do_benchmark)
 		if (!(run_time = gws_test(num)))
 			break;
 
-		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+		SHAspeed = sha1perkey * (1000000000UL * VF * num / run_time);
 
 		if (run_time < min_time)
 			min_time = run_time;
@@ -254,7 +319,7 @@ static void find_best_gws(int do_benchmark)
 #ifndef DEBUG
 		if (do_benchmark)
 #endif
-		fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+		fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * VF * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 #ifndef DEBUG
@@ -264,27 +329,20 @@ static void find_best_gws(int do_benchmark)
 			bestSHAspeed = SHAspeed;
 			optimal_gws = num;
 		} else {
-
-			if (run_time > MaxRunTime) {
+			if (run_time < MaxRunTime && SHAspeed > (bestSHAspeed * 1.01)) {
 #ifndef DEBUG
 				if (do_benchmark)
 #endif
-					fprintf(stderr, "\n");
-				break;
-			}
-
-			if (SHAspeed > bestSHAspeed) {
-#ifndef DEBUG
-				if (do_benchmark)
-#endif
-					fprintf(stderr, "+");
+					fprintf(stderr, "+\n");
 				bestSHAspeed = SHAspeed;
 				optimal_gws = num;
+				continue;
 			}
 #ifndef DEBUG
 			if (do_benchmark)
 #endif
 				fprintf(stderr, "\n");
+			break;
 		}
 	}
 	if (get_device_type(ocl_gpu_id) != CL_DEVICE_TYPE_CPU) {
@@ -300,14 +358,33 @@ static void find_best_gws(int do_benchmark)
 static void init(struct fmt_main *self)
 {
 	char *temp;
-	cl_ulong maxsize;
+	cl_ulong maxsize, maxsize2;
+	//int source_in_use;
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/office_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/office2007_kernel.cl", ocl_gpu_id, platform_id);
 
+	GenerateSHA1pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA1pwhash", &ret_code);
+
+#if 0	/* Vectorized version disabled for now due to problems */
 	// create kernel to execute
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "Generate2007key", &ret_code);
+	source_in_use = device_info[ocl_gpu_id];
+	if (gpu_nvidia(source_in_use)) {
+		/* Run scalar code */
+		VF = 1;
+		Generate2007key = clCreateKernel(program[ocl_gpu_id], "Generate2007key", &ret_code);
+	} else {
+		/* Run vectorized code */
+		VF = 4;
+		Generate2007key = clCreateKernel(program[ocl_gpu_id], "Generate2007keyV", &ret_code);
+		self->params.algorithm_name = "OpenCL (vec)";
+	}
+#else
+	Hash1k = clCreateKernel(program[ocl_gpu_id], "Hash1k", &ret_code);
+	Generate2007key = clCreateKernel(program[ocl_gpu_id], "Generate2007key", &ret_code);
+#endif
+
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
@@ -322,8 +399,12 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	/* Note: we ask for this kernel's max size, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA1pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Hash1k, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 < maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Generate2007key, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 #ifdef DEBUG
 	fprintf(stderr, "Max allowed local work size %d\n", (int)maxsize);
@@ -355,19 +436,12 @@ static void init(struct fmt_main *self)
 
 	create_clobj(global_work_size);
 
-#ifdef DEBUG
-	{
-		cl_ulong loc_mem_size;
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_LOCAL_MEM_SIZE, sizeof(loc_mem_size), &loc_mem_size, NULL), "Query local memory usage");
-		fprintf(stderr, "Kernel using %lu bytes of local memory out of %lu available\n", loc_mem_size, get_local_memory_size(ocl_gpu_id));
-	}
-#endif
 
 	atexit(release_clobj);
 
 	self->params.min_keys_per_crypt =
 		self->params.max_keys_per_crypt =
-		global_work_size;
+		VF * global_work_size;
 
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -378,52 +452,7 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$office$*2007*", 14);
-}
-
-static void *get_salt(char *ciphertext)
-{
-	int i, length;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy, *p;
-	ctcopy += 9;	/* skip over "$office$*" */
-	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
-	p = strtok(ctcopy, "*");
-	cur_salt->version = atoi(p);
-	p = strtok(NULL, "*");
-	if(cur_salt->version == 2007) {
-		cur_salt->verifierHashSize = atoi(p);
-	}
-	p = strtok(NULL, "*");
-	cur_salt->keySize = atoi(p);
-	p = strtok(NULL, "*");
-	cur_salt->saltSize = atoi(p);
-	if (cur_salt->saltSize > SALT_LENGTH) {
-		fprintf(stderr, "** error: salt longer than supported:\n%s\n", ciphertext);
-		cur_salt->saltSize = SALT_LENGTH; /* will not work, but protects us from segfault */
-	}
-	p = strtok(NULL, "*");
-	for (i = 0; i < cur_salt->saltSize; i++)
-		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	for (i = 0; i < 16; i++)
-		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtok(NULL, "*");
-	length = strlen(p) / 2;
-	for (i = 0; i < length; i++)
-		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	MEM_FREE(keeptr);
-	return (void *)cur_salt;
-}
-
-static void set_salt(void *salt)
-{
-	cur_salt = (struct custom_salt *)salt;
-	memcpy(saved_salt, cur_salt->osalt, SALT_LENGTH);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, BLOCK_IF_DEBUG, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+	return !strncmp(ciphertext, "$office$*2007", 13);
 }
 
 static int PasswordVerifier(unsigned char *key)
@@ -460,33 +489,29 @@ static void crypt_all(int count)
 {
 	int index;
 
+#ifdef DEBUG
+	printf("%s(%d)\n", __func__, count);
+#endif
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * global_work_size, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, BLOCK_IF_DEBUG, 0, UNICODE_LENGTH * VF * global_work_size, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, BLOCK_IF_DEBUG, 0, sizeof(int) * VF * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 		new_keys = 0;
 	}
-#ifdef DEBUG
-	fprintf(stderr, "GPU: lws %d gws %d count %d\n", (int)local_work_size, (int)global_work_size, count);
-#endif
-	//if(cur_salt->version == 2007) {
-		//unsigned char encryptionKey[256];
-		//GeneratePasswordHashUsingSHA1(saved_key, saved_len, encryptionKey);
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	for (index = 0; index < 50000 / 1024; index++)
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Hash1k, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2007key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-#ifdef DEBUG
-		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
-#endif
-		// read back aes key
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 16 * global_work_size, key, 0, NULL, NULL), "failed in reading key back");
+	// read back aes key
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 16 * VF * global_work_size, key, 0, NULL, NULL), "failed in reading key back");
 
-		//dump_stuff_msg("\nsha1(salt.pw)", &key[(count-1)*16], 16);
+	//dump_stuff_msg("\nsha1(salt.pw)", &key[(count-1)*16], 16);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-		for (index = 0; index < count; index++)
-			cracked[index] = PasswordVerifier(&key[index*16]);
-	//}
+	for (index = 0; index < count; index++)
+		cracked[index] = PasswordVerifier(&key[index*16]);
 }
 
 static int cmp_all(void *binary, int count)
@@ -516,7 +541,7 @@ static char *get_key(int index)
 	return (char*)out;
 }
 
-struct fmt_main fmt_opencl_office = {
+struct fmt_main fmt_opencl_office2007 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
