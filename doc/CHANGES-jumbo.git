@@ -1,6 +1,6 @@
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
 
-magnum (107):
+magnum (109):
 	define REPORT_OPENCL_WARNINGS in bleeding after it was undef'ed in magnum-jumbo
 	Version notice for magnum-jumbo
 	RAR: make self-test comments more clear about what is what
@@ -108,6 +108,8 @@ magnum (107):
 	Fix for wpapsk for big-endian, submitted by Sam Novak.
 	Drop radmin & pfx formats, and pfx2john. These will be in Jumbo-8.
 	Added a CHANGES-jumbo.git which is (almost) raw output from "git shortlog", and placed (the changes part of) Solar's announcement of Jumbo-6 in CHANGES-jumbo (mostly as a placeholder, it might need editing).
+	Update CREDITS-jumbo
+	hmac-sha1 bug fix: Certain optimisations did not take SHA_BUF_SIZ in account. Very few builds pick the old SHA-1 implementation that uses 320 bytes instead of the now normal 64 bytes but native OSX llvm now does, so triggered the bug.
 
 JimF (25):
 	SKEY was lacking fmt_default_clear_keys in it's format struct
