@@ -1,487 +1,213 @@
-The following major changes was made since 1.7.9-jumbo-6:
+Direct code contributors to 1.7.9-jumbo-6 (since 1.7.9-jumbo-5), by
+commit count:
 
-magnum (75):
-      define REPORT_OPENCL_WARNINGS in bleeding after it was undef'ed in
-         magnum-jumbo
-      Version notice for magnum-jumbo
-      RAR: make self-test comments more clear about what is what
-      Fix for common_opencl_pbkdf2.c for Mac (uint -> unsigned int)
-      options.c format list: Workaround for silly Windows bug at column 80
-      Brainfart in magnum-jumbo version: it's supposed to be
-         1.7.9-jumbo-6+unstable,     not 1.7.9-jumbo-6+bleeding
-      Remove the "unreliable, will miss guesses" from rawsha512-opencl and
-         -cuda     after myrice's fixes. They pass the Test Suite.
-      Fixes for raw-md4, raw-md5, nt2 and raw-sha1 when *not* using reduced
-             binary size (ie. for bleeding-jumbo)
-      Drop the "unreliable, will miss guesses" from xsha512-cuda.     It
-         now passes the Test Suite.
-      opencl_bf_std.c: replace uint to unsigned int
-      Drop the "unreliable, will miss guesses" from xsha512-opencl. It
-         passes     the Test Suite now.
-      Add a "Section [%s] not found" before outputting the catch-all
-         --list=?
-      Merge fix
-      raw-md5-opencl: Report human readable errors
-      opencl_mscash2_fmt.c did not declare clear_keys static.
-      Fix mis-use of CL_DEVICE_MAX_WORK_GROUP_SIZE in a number of OpenCL
-         formats.
-      Version change for Jumbo-7RC, and undefine REPORT_OPENCL_WARNINGS
-      Drop a bogus run/pfx2john from the tree
-      Fix two declaration-after-statements in MPI code     Add run/pfx2john
-         to .gitignore
-      Fixes after last patch
-      Make clear_keys in dynamic_fmt.c static
-      testpara-native test target added
-      Allocate one more byte for opencl source. Weird errors seen when not.
-      Use common find_best_workgroup() for a number of formats, fixing
-         various problems.     Alloc/free kernel source memory instead of
-         mem_calloc_tiny().     Make global_work_size global.     Always
-         print diagnostics to stderr.
-      Fix a (possible) problem introduced in the previous patch
-      Pick a better fallback for optimal_work_group
-      raw-md4-opencl added (very near a copy of raw-md5-opencl except
-         kernel)
-      common find_best_workgroup(): Use proper GWS when calculating LWS
-      Revert the "shared find_best_workgroup" from opencl_xsha512_fmt.c -
-         it had     a special loop for calulating 10 samples and made worse
-         without it.
-      Fix for global global_work_size
-      common-opencl.c: Fix for Apple CPU + do a warm-up run
-      Fixes for shared find_best_workgroup(): formats must use
-         profilingEvent.     Use a loop targeting half a second. Again, use
-         the shared function for     opencl_xsha512_fmt
-      Fix LOTS of output in OpenCL formats so they go to stderr (lmgtfy)
-      Fix a compiler warning
-      Fix sha1-per-key calculation
-      opencl_cryptsha512: Errors to stderr, please.
-      Use Sayantan's bitselect in RAR kernel (unless nvidia)
-      Add keychain2john to .gitignore
-      declaration-after-statement in wpapsk.h
-      Unify case in hmac formats, and set the flag. Also, fix bugs in
-         rawSHA-2     formats, which claimed they unify, but did not.
-      raw SHA2 formats: accept upper- or lowercase hashes
-      Fixes after Jim's patch (new-style format interface mixed in)
-      Ditch the last pFmt stuff (except in dynamic)
-      Add "LC_ALL = C" to Makefile, for better compatibility with some
-         non-GNU systems.
-      wordlist.c: fix segfault reported in
-         http://www.openwall.com/lists/john-users/2012/08/01/5
-      pkzip: Drop a now unused label, muting a compiler warning
-      Fix the self-test's clear_keys().
-      mscash formats: Warn when rejecting too long salts
-      rar_fmt: Move new CMIYC tests to the debug section so they don't skew
-         benchmarks
-      Update doc/BUGS and add "unreliable" to pwsafe-cuda
-      Fix pwsafe-cuda by limiting max length. Also move an endian-swap from
-             crypt_all() to get_salt() - and same fix for opencl format.
-      pwsafe-cuda: Bump PLAINTEXT_LENGTH to 32 again, this time with an
-         array     size to fit.
-      bf-opencl and sha512crypt-opencl: use stderr for diag/error output.
-      pwsafe-opencl: merge fixes from -cuda version
-      bf-opencl: Workaround for AMD APP problems running this format on
-         CPU. This     fix does not affect GPU at all.
-      sha1 OpenCL kernels: Fix compiler warnings (on OSX) and optimise a
-         little     while at it.
-      Revert a buggy change to ldr_load_pot_line() in 1c637ba that lead to 
-            segfaults. This may mean $HEX$ fixups for dynamic will be
-         broken again,     until fixed some other way.
-      RAR: Drop the warning about device being CPU. I have seen OpenCL
-         outperform     a CPU-only OMP build by 2.5x.
-      wordlist.c: We can't free the word buffer memory upon exit from
-         do_wordlist_crack()     because some formats just copy the pointer
-         in set_key() and the final status     line will call get_key().
-         Problem seen with oracle_fmt.
-      RAR: Add some early rejects. Huffman table check still TODO
-      OpenCL platform/device selection from john.conf was not working
-         properly     (it was read too late)
-      RAR format: Use mem_alloc() and MEM_FREE().
-      RAR: Finally, quite effective early rejection! Verified with almost
-         70,000     test files, with no false rejects. And we are rejecting
-         over 96% of the     candidates without resorting to a slow full
-         check (which in turn may reject     semi-early, especially if it's
-         a PPM block)
-      RAR: Correct benchmark output when running vectorized.
-      RAR: Smaller salt struct. Minor and benign bug fixed.
-      RAR bugfix. It's a wonder it worked as good as it did.
-      RAR debugging
-      Drop the "MaxOrder < 64" constraint - I have files with MaxOrder 165
-         that     was not cracked due to the limit. (-m4, -m5, -mct)
-      Change a bunch of ISO-8859-1 source files to UTF-8
-      Use LC_ALL=C for plugins' sed incovation in Makefile
-      Change all © to (c) in source files.
-      RAR: Use mem_alloc_tiny() instead of mem_alloc()
-      Accidental spaces in Makefile replaced with TABs (it matters).
-      RAR: Memory leak fixed. It was introduced with early reject.
-      Update CREDITS-jumbo and CHANGES-jumbo
+magnum
+Dhiru Kholia
+Frank Dittrich
+JimF (Jim Fougeron)
+myrice (Dongdong Li)
+Claudio Andre
+Lukas Odzioba
+Solar Designer
+Sayantan Datta
+Samuele Giovanni Tonon
+Tavis Ormandy
+bartavelle (Simon Marechal)
+Sergey V
+bizonix
+Robert Veznaver
+Andras
 
-Claudio André (22):
-      Fix: use the same tests available in cryptsha512_fmt.c    
-         Improvement: create another test vector.
-      Improvement: better set_salt and set_key out of bounds management.
-      Better constants and control on find_best_gws.
-      Improvement: renamed AMD OpenCL file.
-      raw-md5-opencl: Do not use byte addressed stores
-      Improvement: use shared find_best_workgroup.     Fix: invalid use of
-         __OPENCL_VERSION__.
-      Fix: remove commented code.
-      Fix: proper usage of profilingEvent in host code.
-      Improvement: use shared find_best_workgroup.     Fix: invalid use of
-         __OPENCL_VERSION__.
-      Fix: remove commented code.
-      Fix: proper usage of profilingEvent in host code.
-      Revert: usage of shared find_best_workgroup.
-      Fix: allow user to run the software (sha512crypt-opencl) without
-         cl_khr_byte_addressable_store
-      Fix: wrong if inside get_processor_family (OpenCL) code.
-      Improvement: create a default/safe kernel.     Improvement: allow to
-         select at runtime the kernel to be executed.
-      Improvement: create a better way to select default global work size.
-      Improvement: code cleanup.
-      Improvement: better parsing of user input.
-      Improvement: change shared find_best_workgroup to allow
-         cryptsha512-opencl use it.
-      Improvement: change shared find_best_workgroup to allow
-         cryptsha512-opencl use it.
-      Better 'no_byte_addressable' detection.
-      Change Format-specific settings names (john.conf)
+New non-hashes:
+* Mac OS X keychains [OpenMP]  (Dhiru)
+ - based on research from extractkeychain.py by Matt Johnston
+* KeePass 1.x files [OpenMP]  (Dhiru)
+ - keepass2john is based on ideas from kppy by Karsten-Kai Koenig
+   http://gitorious.org/kppy/kppy
+* Password Safe [OpenMP, CUDA, OpenCL]  (Dhiru, Lukas)
+* ODF files [OpenMP]  (Dhiru)
+* Office 2007/2010 documents [OpenMP]  (Dhiru)
+ - office2john is based on test-dump-msole.c by Jody Goldberg and
+ OoXmlCrypto.cs by Lyquidity Solutions Limited
+* Mozilla Firefox, Thunderbird, SeaMonkey master passwords [OpenMP]  (Dhiru)
+ - based on FireMaster and FireMasterLinux
+   http://code.google.com/p/rainbowsandpwnies/wiki/FiremasterLinux
+* RAR -p mode encrypted archives  (magnum)
+ - RAR -hp mode was supported previously, now both modes are
 
-JimF (22):
-      SKEY was lacking fmt_default_clear_keys in it's format struct
-      pass_gen.pl: Support for sha256crypt and sha512crypt
-      pass_gen.pl: add XSHA512
-      Dynamic format bug fixes post Jumbo-6, from bleeding
-      Fix radmin format under Windows.
-      GOST: Fixes for clang (bswap stuff)
-      Dynamic_Diff_Clear_Keys.diff
-      Fix for dynamic_1003
-      Jumbo-7RC-JimF-fixes.diff
-      JtR-New-Dynamic-35-36-SHA-types.diff
-      JtR-Dynamic-Algorithm-Changes-35-36-37-fixes.diff
-      Add dynamic_27/28 to pass_gen.pl
-      JtR-Dynamic-27-28-fix-non-mmx.diff
-      JtR-J7-RC-ONLY-Dynamic-changes-NO-sha256.diff
-      fixes to dynamic split, fake_salt static removal and gost_plug
-         multiple init allow
-      fix to dynamic-27/28
-      Bugfixes to strnzcpy() and strnzcpyn()
-      All known changes from JimF, along with unification of differences
-         between core-jumbo-magjumbo-bleeding
-      dynamic: $HEX$ fixes
-      Fixed dynamic valid, removing all HEX data prior to validation of
-         hash line
-      dyna_1008 had to have a couple tests commented out (NULL bytes).  epi
-         server improved.  pkzip format, old code left in, just in case,
-         but in a #if 0 block
-      added some new formats to pass_gen
+New challenge/responses, MACs:
+* WPA-PSK [OpenMP, CUDA, OpenCL]  (Lukas, Solar)
+ - CPU code is loosely based on Aircrack-ng
+   http://www.aircrack-ng.org
+   http://openwall.info/wiki/john/WPA-PSK
+* VNC challenge/response authentication [OpenMP]  (Dhiru)
+ - based on VNCcrack by Jack Lloyd
+   http://www.randombit.net/code/vnccrack/
+* SIP challenge/response authentication [OpenMP]  (Dhiru)
+ - based on SIPcrack by Martin J. Muench
+* HMAC-SHA-1, HMAC-SHA-224, HMAC-SHA-256, HMAC-SHA-384, HMAC-SHA-512  (magnum)
 
-Frank Dittrich (21):
-      Adjust LDFLAGS for clang targets
-      Make --list= a little bit more user friendly
-      Bash completion: add support for --list=format-methods[:WHICH]
-      New --list=help instead of --list=?
-      Add --list=help:help and improve output in case of wrong method name
-      Bash completion: add support for --list=option[:value]
-      pdf2john.c: compare pointer to NULL, not to 0
-      Make some more --list= commands work despite a broken config
-      Drop unneeded (and buggy) memsets from KRB4
-      Add --help option to john (prints usage summary)
-      Fix dynamic_1010 format name
-      Fix salt size of dynamic formats in --list=format-details
-      benchmark-unify: make sure dynamic_NNNN is followed by a colon
-      john.bash_completion: improve comments
-      Fix salt size of dynamic formats in --list=format-details
-      Add OpenSSL version info to --list=build-info
-      Add FMT_MAIN_VERSION, CHARSET_V and MAX_MKV_* to build-info
-      New --list=[sections|parameters=SECTION|list-data=SECTION]
-      Bash completion: convert upper case section names to lower case
-      calc_stat.c: more verbose stderr output for non-ascii characters
-      Add [List.External:Filter_Rot13]
+New hashes:
+* IBM RACF [OpenMP]  (Dhiru)
+ - thanks to Nigel Pentland (author of CRACF) and Main Framed for providing
+ algorithm details, sample code, sample RACF binary database, test vectors
+* sha512crypt (SHA-crypt) [OpenMP, CUDA, OpenCL]  (magnum, Lukas, Claudio)
+ - previously supported in 1.7.6+ only via "generic crypt(3)" interface
+* sha256crypt (SHA-crypt) [OpenMP, CUDA]  (magnum, Lukas)
+ - previously supported in 1.7.6+ only via "generic crypt(3)" interface
+* DragonFly BSD SHA-256 and SHA-512 based hashes [OpenMP]  (magnum)
+* Django 1.4 [OpenMP]  (Dhiru)
+* Drupal 7 $S$ phpass-like (based on SHA-512) [OpenMP]  (magnum)
+* WoltLab Burning Board 3 [OpenMP]  (Dhiru)
+* New EPiServer default (based on SHA-256) [OpenMP]  (Dhiru)
+* GOST R 34.11-94 [OpenMP]  (Dhiru, Sergey V, JimF)
+* MD4 support in "dynamic" hashes (user-configurable)  (JimF)
+ - previously, only MD5 and SHA-1 were supported in "dynamic"
+* Raw-SHA1-LinkedIn (raw SHA-1 with first 20 bits zeroed)  (JimF)
 
-Dhiru Kholia (19):
-      Add support for cracking KeePass 2.x files.
-      Get rid of BOM.
-      Add support for cracking PKCS #12 files.
-      Use BIO_write instead of BIO_puts.
-      Add one more test vector in pfx format.
-      Fix OMP build.
-      Fix build.
-      Add support for cracking RAdmin v2.x hashes.
-      Add a fast test vector in pfx format.
-      Integrate pfx2john with john.
-      Remove my hacks from pwsafe format.
-      Complete Office format documentation.
-      Add documentation for pwsafe format.
-      alignment fix in radmin format.
-      BONUS: pwsafe format also cracks Password Gorilla databases.
-      Fix license in MD5 OpenCL kernel.
-      Update 1.7.9-jumbo-6-fixes
-      Update 1.7.9-jumbo-6-fixes
-      Fix build.
+Alternate implementations for previously supported hashes:
+* Faster raw SHA-1 (raw-sha1-ng, password length up to 15)  (Tavis)
 
-Solar (8):
-      hccap2john fixes
-      RAdmin, SIP speedup
-      Optimized mscash2-opencl
-      Use "unsigned short" rather than simple "short" for single crack
-         mode's     buffered key offsets.
-      We use "short" for buffered key indices and "unsigned short" for
-         buffered key     offsets - make sure these don't overflow.
-      john-sha1-r3-bitselect.diff
-      wordlist.c truncation bugfix (from contest edition)
-      pwsafe-cuda: Bugfix (w[14] init) and optimisations
+OpenMP support in new formats:
+* Mac OS X keychains  (Dhiru)
+* KeePass 1.x files  (Dhiru)
+* Password Safe  (Lukas)
+* ODF files  (Dhiru)
+* Office 2007/2010 documents  (Dhiru)
+* Mozilla Firefox, Thunderbird, SeaMonkey master passwords  (Dhiru)
+* WPA-PSK  (Solar)
+* VNC challenge/response authentication  (Dhiru)
+* SIP challenge/response authentication  (Dhiru)
+* IBM RACF  (Dhiru)
+* DragonFly BSD SHA-256 and SHA-512 based hashes  (magnum)
+* Django 1.4  (Dhiru)
+* Drupal 7 $S$ phpass-like (based on SHA-512)  (magnum)
+* WoltLab Burning Board 3  (Dhiru)
+* New EPiServer default (based on SHA-256)  (Dhiru)
+* GOST R 34.11-94  (Dhiru, JimF)
 
-Lukas Odzioba (5):
-      Jihaa, Jester's dead
-      cudasha256speedpatchv3.diff
-      wpapsk-valid_fix.diff
-      Fixes for CUDA mscash formats.
-      opencl_cryptsha512_fmt.c: Change type of large constants
+OpenMP support for previously supported hashes that lacked it:
+* Mac OS X 10.4 - 10.6 salted SHA-1  (magnum)
+* DES-based tripcodes  (Solar)
+* Invision Power Board 2.x salted MD5  (magnum)
+* HTTP Digest access authentication MD5  (magnum)
+* MySQL (old)  (Solar)
 
-Myrice (4):
-      Bug fixed: xsha512 and raw-sha512 opencl/cuda IRL
-      Bug fixed: xsha512-cuda long password bug
-      xsha512-cuda: low min_keys_per_crypt and dynamic block number
-      Fixed xsha512-opencl, raw-sha512-opencl/cuda long time run.    
-         Extend password length to 20 for these formats
+CUDA support for:
+* phpass MD5-based "portable hashes"  (Lukas)
+* md5crypt (FreeBSD-style MD5-based crypt(3) hashes)  (Lukas)
+* sha512crypt (glibc 2.7+ SHA-crypt)  (Lukas)
+* sha256crypt (glibc 2.7+ SHA-crypt)  (Lukas)
+* Password Safe  (Lukas)
+* WPA-PSK  (Lukas)
+* Raw SHA-224, raw SHA-256 [inefficient]  (Lukas)
+* MSCash (DCC) [not working reliably yet]  (Lukas)
+* MSCash2 (DCC2) [not working reliably yet]  (Lukas)
+* Raw SHA-512 [not working reliably yet]  (myrice)
+* Mac OS X 10.7 salted SHA-512 [not working reliably yet]  (myrice)
+ - we have already identified the problem with the above two, and a post
+ 1.7.9-jumbo-6 fix should be available shortly - please ask on john-users if
+ interested in trying it out
 
-Sayantan Datta (4):
-      mscash2-opencl:bitselect optimization
-      mscash2-opencl: automated bitselect selection
-      bf-opencl:simpler kernel code
-      mscash2-opencl:code cleanup
+OpenCL support for:
+* phpass MD5-based "portable hashes"  (Lukas)
+* md5crypt (FreeBSD-style MD5-based crypt(3) hashes)  (Lukas)
+* sha512crypt (glibc 2.7+ SHA-crypt)  (Claudio)
+ - suitable for NVIDIA cards, faster than the CUDA implementation above
+ http://openwall.info/wiki/john/OpenCL-SHA-512
+* bcrypt (OpenBSD-style Blowfish-based crypt(3) hashes)  (Sayantan)
+ - pre-configured for AMD Radeon HD 7970, will likely fail on others unless
+ WORK_GROUP_SIZE is adjusted in opencl_bf_std.h and opencl/bf_kernel.cl;
+ the achieved level of performance is CPU-like (bcrypt is known to be
+ somewhat GPU-unfriendly - a lot more than SHA-512)
+ http://openwall.info/wiki/john/GPU/bcrypt
+* MSCash2 (DCC2)  (Sayantan)
+ - with optional and experimental multi-GPU support as a compile-time hack
+ (even AMD+NVIDIA mix), by editing init() in opencl_mscash2_fmt.c
+* Password Safe  (Lukas)
+* WPA-PSK  (Lukas)
+* RAR  (magnum)
+* MySQL 4.1 double-SHA-1 [inefficient]  (Samuele)
+* Netscape LDAP salted SHA-1 (SSHA) [inefficient]  (Samuele)
+* NTLM [inefficient]  (Samuele)
+* Raw MD5 [inefficient]  (Dhiru, Samuele)
+* Raw SHA-1 [inefficient]  (Samuele)
+* Raw SHA-512 [not working properly yet]  (myrice)
+* Mac OS X 10.7 salted SHA-512 [not working properly yet]  (myrice)
+ - we have already identified the problem with the above two, and a post
+ 1.7.9-jumbo-6 fix should be available shortly - please ask on john-users if
+ interested in trying it out
 
-Tavis Ormandy (2):
-      test conservative storage of binary.
-      try redundant binary format.
+Several of these require byte-addressable store (any NVIDIA card, but
+only 5000 series or newer if AMD/ATI).  Also, OpenCL kernels for "slow"
+hashes/non-hashes (e.g. RAR) may cause "ASIC hang" on certain AMD/ATI
+cards with recent driver versions.  We'll try to address these issues in
+a future version.
 
-Vlatko Kosturjak (2):
-      Fix: handle error handling better. Helps in debugging OpenCL errors. 
-            For example, was getting OpenCL error
-         (CL_INVALID_PROGRAM_EXECUTABLE)     instead of OpenCL error
-         (CL_INVALID_BUILD_OPTIONS) because program did     not handle
-         previous error and continued to run even if build did not    
-         succeed.
-      Fix: If Apple is in question, turn off build options as Apple OpenCL
-         does not like     it. At least on Mac Book Pros having ATI Radeon
-         HD 6750M.
+AMD XOP (Bulldozer) support added for:
+* Many hashes based on MD4, MD5, SHA-1  (Solar)
 
-Elijah [W&P] (1):
-      Fix CUDA targets for (future) Windows builds.
+Uses of SIMD (MMX assembly, SSE2/AVX/XOP intrinsics) added for:
+* Mac OS X 10.4 - 10.6 salted SHA-1  (magnum)
+* Invision Power Board 2.x salted MD5  (magnum)
+* HTTP Digest access authentication MD5  (magnum)
+* SAP CODVN B (BCODE) MD5  (magnum)
+* SAP CODVN F/G (PASSCODE) SHA-1  (magnum)
+* Oracle 11  (magnum)
 
-Erik Winkler (1):
-      macosx-x86-64-cuda build target added
+Other optimizations:
+* Reduced memory usage for raw-md4, raw-md5, raw-sha1, and nt2  (magnum)
+* Prefer CommonCrypto over OpenSSL on Mac OS X 10.7  (Dhiru)
+* New SSE2 intrinsics code for SHA-1  (JimF, magnum)
+* Smarter use of SSE2 and SSSE3 intrinsics (the latter only if enabled in the
+compiler at build time) to implement some bit rotates for MD5, SHA-1  (Solar)
+* Assorted optimizations for raw SHA-1 and HMAC-MD5  (magnum)
+* In RAR format, added inline storing of RAR data in JtR input file when the
+original file is small enough  (magnum)
+* Added use of the bitslice DES implementation for tripcodes  (Solar)
+* Raw-MD5-unicode made "thick" again (that is, not building upon "dynamic"),
+using much faster code  (magnum)
+* Assorted performance tweaks in "salted-sha1" (SSHA)  (magnum)
+* Added functions for larger hash tables to several formats  (magnum, Solar)
 
-Pavel Semjanov (1):
-      pkzip: Bugfix for check_inflate_CODE1()
-
-
-
-The following major changes was made since 1.7.9-jumbo-5:
-
-New formats:
-* KeePass 1.x files. (Dhiru Kholia)
-* ODF files. (Dhiru)
-* raw-sha1-ng (Tavis Ormandy, XOP support by Solar)
-* PWSAFE CPU, CUDA and OpenCL (Dhiru and Lukas)
-* Raw-SHA1-LinkedIn format (partial hashes, 20 bit zeroed) (Jim Fougeron)
-* GOST 3411. (JimF, Sergey V and Dhiru)
-* Blowfish OpenCL (Sayantan Datta)
-* Raw SHA512 CUDA format (Myrice)
-* Django 1.4 hashes. (Dhiru)
-* WoltLab Burning Board 3 hashes. (Dhiru)
-* Password Safe files. (Dhiru)
-* WPA-PSK CPU, CUDA and OpenCL (Lukas)
-* Mac OS X Keychain cracker with OMP support. (Dhiru)
-* Office 2007/2010 documents. (Dhiru)
-* Add support for *new* EPiServer's default hashes. (Dhiru)
-* mscash2-opencl format added (Sayantan)
-* mscash2-cuda (Lukas)
-* xsha512 for CUDA and OpenCL (Myrice)
-* Mozilla Firefox, Thunderbird and SeaMonkey master passwords. (Dhiru)
-* Integrate VNCcrack (http://www.randombit.net/code/vnccrack/) (Dhiru)
-* OpenCL sha512crypt (Claudio André)
-* CUDA formats: md5crypt, sha256/512crypt, mscash, mscash2, phpass,
-raw-sha224/256 (Lukas)
-* OpenCL formats: md5crypt, mysql-sha1, NT, phpass, raw-md5, raw-sha1,
-ssha (Samuele, Lukas)
-* Integrate SIPcrack 0.4 into JtR. (Dhiru)
-* RACF password cracker patch for JtR. (Dhiru)
-* Drupal7 (magnum)
-* hmac-sha224/384/512 (magnum)
-* hmac-sha1 and hmac-sha256 (magnum)
-* sha256/512crypt formats (for CPU) (magnum)
-* DragonFly BSD crypt-SHA2 formats (magnum)
-* Added MD4 to dynamic. Added 5 new builtin types to dynamic using MD4. (JimF)
-
-Other assorted changes:
-* Move MYSQL_fmt_plug.c to unused/, rename MYSQL_fast_fmt_plug.c to
-mysql_fmt_plug.c and change its label to just mysql (magnum)
-* Several enhancements for relbench (Frank Dittrich)
-* benchmark-unify: a Perl script to convert benchmark output for relbench
-(Frank)
-* Add three more make targets. linux-x86-clang-debug is super good for
-debugging. (Dhiru)
-* Move --field-separator-char and --fix-state-delay=N to hidden options (magnum)
-* Add new options --loopback[=FILE] and --dupe-suppression (the former implies
-the latter) and revert some stuff for backwards compatibility. (magnum)
-* New (hidden) option --length=N for reducing plaintext length of a format,
-mostly for testing purposes. (magnum)
-* Sparc porting and other fixes (JimF)
-* Fix a cosmetical off-by-one bug in wordlist.c (JimF)
-* Add --list=format-details (Frank)
-* Reduced binary for raw-md4, raw-md5, raw-sha1 and NT2. This decreases memory
-usage with 12 bytes per loaded hash for NT/MD4/MD5 and 16 bytes for SHA1 and
-should help keeping good stuff in cache. (magnum)
-* Implement --markov=MODE[:<options>] and allow start and/or end to be specified
-in percent (Frank)
-* Add linux -native build targets (magnum)
-* New option: --log-stderr (magnum)
-* Loads of minor fixes for Sparc (endianness, alignment) (JimF)
-* CUDA device lister, show them with --list=cuda-devices (Lukas)
-* Add --list=[encodings|opencl-devices]. Deprecate --encodings=LIST (but it's
-still supported). We will later support --list=cuda-devices too. Drop
---device=list and --platforms=list (not supported from now on). For the
-catch-all of --list=<subsection>, add a header "Subsections of...". (magnum)
-* External:Keyboard: Fixes for 8-bit characters vs signed char constants.
-http://www.openwall.com/lists/john-users/2012/02/26/2 (magnum)
-* Create a rule section "Extra" for the previously commented-out rules for
-Single mode. Also, add new rules "Single-Extra" (consisting of Single plus
-Extra) and "Jumbo" (consisting of all rules we have, including NT). I preserved
-the name "All" for local use, thus using "Jumbo" instead. (magnum)
-* Source $JOHN/john.local.conf by default. This file is never overwritten but
-will be created empty when building, if it does not exist. It must *not* be
-included in any release tarball. (magnum)
-* c3_fmt.c: improve --subformat= handling (Frank)
-* wordlist.c: Status bug fix (JimF)
-* Add --list=subformats and deprecate --subformat=list (magnum)
-* raw2dyna added. This is a helper program that converts raw hashes to dynamic
-format. (JimF)
-* Add new john.conf options subsection MPI and add a new config item
-CrackStatus under Options:Jumbo. Note: If CrackStatus=Y in john.conf, the
---crack-status option disables it. (magnum)
-* Win32 SharedMemory patch (only affects _MSC_VER, __CYGWIN32__ or __MINGW32__
-builds) (JimF)
-* SHA512 opencl implementation (Myrice)
-* Arbitrary characters in rules, using \xnn (JimF)
-* Added a new rule _N, to reject a word unless it is length N. (JimF)
-* bash-completion for JtR (to install: "sudo make bash-completion") (Frank)
-* New (hidden) options: --list= to be used by bash completion as well as GUI's
-and other things. (magnum)
-* -regenerate-lost-salts=N option, for cracking hashes where we do not have the
-salt (JimF)
-* Make incremental mode restore ETA figures (JimF)
-* Use CommonCrypto instead of OpenSSL on OS X Lion (Dhiru)
-* Enhancement of extern:double (JimF)
-* Mscash and mscash2 formats prepare() fixes (JimF)
-* LOTS of minor fixes for VC builds (JimF)
-* Set OS_TIMER to 0 in arch.h if AMD APP SDK in installed and building OpenCL,
-or if mingw is used to build 64-bit Windows build. (magnum)
-* RAR format: Proper support for -p mode. OpenCL support added (in the same
-one format). Added inline storing of RAR data in input file when files are
-small enough. Support files larger than 2 GB. (magnum)
-* New pre-built intrinsics for latest sse-intrinsics.c (magnum)
-* sse-intrinsics.c: Take advantage of some SSE2 and SSSE3 intructions if
-available http://www.openwall.com/lists/john-dev/2012/03/21/4 (followup) (Solar)
-* Use BSD version of tcphdr (patch by Erik). (Dhiru)
-* Improved vncpcap2john. Works for RFB 3.7 and 3.8 protocol versions. Works
-with TightVNC and RealVNC servers. 3.3 RFB support is TODO. (Dhiru)
-* sse-intrinsics.c: XOP for MD5/MD4/SHA-1 (Solar)
-* Add keepass2john utlity for processing input KeePass 2.x database files into
-a format suitable for use with JtR. KeePass format is in works. (Dhiru)
-* Fix for -subformat=list. The config file was not yet read so we could not get
-info for user formats. (magnum)
-* john-1.7.9-dynamic-unameonly-1.diff (JimF)
-* rar2john: Handle Unicode file names. Less output unless -DDEBUG. (magnum)
-* rar2john: fix failure for RAR files with comment present. (Dhiru)
-* loader.c: Read gecos and homedir from pwdump-style input. (magnum)
-* options.c: Sort formats list (magnum)
-* CUDA support added (Lukas)
-* Dynamic: Support null bytes in constants. (JimF)
-* Keyboard external mode fix (from CVS) (solar)
-* All hmac-SHA formats: fix for salt containing '#' and self-tests for keys
-larger than pad size (n/a for sha-384/512 as of now due to lack of support from
-John itself for lengths gt 125) (magnum)
-* All hmac formats: Support key lengths >64 (magnum)
-* IPB2: OMP & intrinsics support, over 3x speed (magnum)
-* sse2i_winfix.pl modified so it can handle any .S file (magnum)
-* Replace the muting of "#!comment" lines when in memory buffer mode (magnum)
-* john-1.7.9-jumbo-5-opencl-5-macosx_10.7.diff (minus the c3_fmt stuff)
-(András)
-* Changed benchmark type to raw for all HMAC formats (magnum)
-* HDAA intrinsics, 3x original speed (magnum)
-* md5-mmx.S: new interface needed for multi-limb (>55 bytes) crypts (for HDAA)
-(magnum)
-* Change MPI defaults to be more stable (no MPI_Barrier nor MPI_Abort) (magnum)
-* Salted SHA-1: Support any salt size (magnum)
-* pass_gen.pl: Add salted sha-1 (of any length up to 16) and fix bugs in base64
-encoding (magnum)
-* Correct a bug in the "double10" external mode (magnum)
-* Adds --max-run-time=N option, for graceful exit after N seconds of cracking.
-(magnum)
-* OpenCL support added (Lukas, Samuele)
-* Jim's new SHA-1 intrinsics. Uses 16x4 buffer instead of 80x4. Improved "make
-testpara32" to compare asm figures too. Updated SHA1_SSE_PARA for 16x4 code.
-New pre-compiled intrinsics. (magnum)
-* Make all sse2i targets use x86-sse.h. Add new test target
-linux-x86-64-32-sse2asm. (magnum)
-* loader.c: restore the defined-out block for DES bare hashes with whitespace
-salt. (magnum)
-* loader.c: fix for --user=<uid> when loading pwdump files (magnum)
-* MSCHAPv2 salt() alignment (magnum)
-* Drop x86-ssei.h in favor of x86-sse.h, add tests that disable intrinsics for
-gcc older than 3.4.6 (the oldest we know work at all) and fallback to asm. This
-means the sse2/sse2i targets now work similar to 64/64i for newer versions of
-gcc, that is, sse2i just means "precompiled intrinsics". (magnum)
-* IPB2: fix in binary(), it was reading twice the size of ciphertext and
-probably overwriting something. (magnum)
-* Deprecated raw-md5 thin (moved to unused) in favour of thick version (magnum)
-* Bugfix in trip_fmt.c (from latest CVS version) (solar)
-* HDAA: OMP support (magnum)
-* sap_prepare.pl renamed to sap2john.pl and changed not to pad salt (magnum)
-* ssh2john: Detect if private keyfile has no password (Dhiru)
-* RawSHA1: Optimised set_key() for some 17% speedup. (magnum)
-* hmac-MD5 optimisations. 32-bit set_key(). (magnum)
-* make testpara target, for determining best SSE_PARA values (magnum)
-* sapG: Added MMX/SSE/intrinsics. Decreased salt length to 36 (12 x UTF-8)
-(changed self-test hash). (magnum)
-* Fixed bug in unicode.c where specifically giving --enc=raw did not work as
-expected (magnum)
-* Added MMX/SSE/intrinsics to sapB as well as lots of optimisation. (magnum)
-* john-1.7.9-fastrip-1.diff This patch speeds up DES-based tripcode cracking by
-making use of JtR's bitslice DES implementation, including its OpenMP
-parallelization. (solar)
-* drop cmpt_cp.pl and mkdumb16.pl (will be placed in the separate patch)
-(magnum)
-* Oracle11: Added intrinsics (magnum)
-* mssql05 hash functions size 5 & 6 (magnum)
-* MD5_std vs intrinsics / arch.h PARA fixes. Never disable SSE for MD5, revert
-to 4x instead. (magnum)
-* raw-md5u final fixes (all linux builds pass test suite) (magnum)
-* Raw-MD5-unicode made thick again, using much faster code (2x dynamic) (magnum)
-* Salted-sha1: performance tweaks (magnum)
-* Dynamic md4 final fixes (JimF)
-* Dynamic MD5_X2 md4 fixes (JimF)
-* Bug fixes to lotus5 (OMP builds) and both mssql formats (MMX builds) (magnum)
-* mysqlSHA1 32-bit set_key() for SSE2 (magnum)
-* Simplification of differences between SSE2 and SSE2i code.  In nsldap, there
-were problems with 32 bit SSE2. (JimF)
-* Lotus5: Use the passed in format pointer, and avoid having to forward declare
-the static global. Has added benefit of always appearing the same way in all
-init() functions of all formats, no name differences. (JimF)
-* Cygwin OMP builds were not building x86-sse.o properly, without this change.
-(JimF)
-* pass_gen.pl added to run/ directory. This has only been available in separate
-patches (like the test suite creation scripts) until now, and that version was
-not up to date. This is a gem for testing stuff. (magnum)
-* XSHA: Added support for OMP and/or intrinsics (magnum)
-* Reduced verbosity for normal test targets and added verbose ones (magnum)
-* External filter now truncates at format's max length. Turn off wordlist
-memory buffer if an external filter is used (a modification would trash the
-buffer if a word got longer) (magnum)
-* Correct truncation for NT formats. This time with no performance loss (magnum)
-* Added copyright statement. (bartavelle)
-* Changes Makefile test targets for Test Suite 1.10 (magnum)
-* Update src/hmacMD5_fmt_plug.c (JimF)
-* dynamic non contiguious number issues BE (JimF)
-* Update src/dynamic_utils.c (JimF)
---
+Other assorted enhancements:
+* linux-*-gpu (both CUDA and OpenCL at once), linux-*-cuda, linux-*-opencl,
+macosx-x86-64-opencl make targets  (magnum et al.)
+* linux-*-native make targets (pass -march=native to gcc)  (magnum)
+* New option: --dupe-suppression (for wordlist mode)  (magnum)
+* New option: --loopback[=FILE] (implies --dupe-suppression)  (magnum)
+* New option: --max-run-time=N for graceful exit after N seconds  (magnum)
+* New option: --log-stderr  (magnum)
+* New option: --regenerate-lost-salts=N for cracking hashes where we do not
+have the salt and essentially need to crack it as well  (JimF)
+* New unlisted option: --list (for bash completion, GUI, etc.)  (magnum)
+* --list=[encodings|opencl-devices]  (magnum)
+* --list=cuda-devices  (Lukas)
+* --list=format-details  (Frank)
+* --list=subformats  (magnum)
+* New unlisted option: --length=N for reducing maximum plaintext length of a
+format, mostly for testing purposes  (magnum)
+* Enhanced parameter syntax for --markov: may refer to a configuration file
+section, may specify the start and/or end in percent of total  (Frank)
+* Make incremental mode restore ETA figures  (JimF)
+* In "dynamic", support NUL octets in constants  (JimF)
+* In "salted-sha1" (SSHA), support any salt length  (magnum)
+* Use comment and home directory fields from PWDUMP-style input  (magnum)
+* Sort the format names list in "john" usage output alphabetically  (magnum)
+* New john.conf options subsection "MPI"  (magnum)
+* New john.conf config item CrackStatus under Options:Jumbo  (magnum)
+* \xNN escape sequence to specify arbitrary characters in rules  (JimF)
+* New rule command _N to reject a word unless it is of length N  (JimF)
+* Extra wordlist rule sections: Extra, Single-Extra, Jumbo  (magnum)
+* Enhanced "Double" external mode sample  (JimF)
+* Source $JOHN/john.local.conf by default  (magnum)
+* Many format and algorithm names have been changed for consistency  (Solar)
+* When intrinsics are in use, the reported algorithm name now tells which ones
+(SSE2, AVX, or XOP)  (Solar)
+* benchmark-unify: a Perl script to unify benchmark output of different
+versions of JtR for use with relbench  (Frank)
+* Per-benchmark speed ratio output added to relbench  (Frank)
+* bash completion for JtR (to install: "sudo make bash-completion")  (Frank)
+* New program: raw2dyna (helper to convert raw hashes to "dynamic")  (JimF)
+* New program: pass_gen.pl (generates hashes from plaintexts)  (JimF, magnum)
+* Many code changes made, many bugs fixed, many new bugs introduced  (all)
