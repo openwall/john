@@ -142,7 +142,7 @@ static char *split(char *ciphertext, int index)
 static void set_salt(void *salt)
 {
 #ifdef MMX_COEF
-	memcpy(cursalt, salt, SALT_SIZE * SHA1_N);
+	memcpy(cursalt, salt, SHA_BUF_SIZ*4*SHA1_N);
 #else
 	memcpy(cursalt, salt, SALT_SIZE);
 #endif
@@ -366,7 +366,7 @@ struct fmt_main fmt_hmacSHA1 = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 #ifdef MMX_COEF
-		SALT_SIZE * SHA1_N,
+		SHA_BUF_SIZ*4*SHA1_N,
 #else
 		SALT_SIZE,
 #endif
