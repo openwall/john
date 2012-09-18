@@ -19,7 +19,7 @@
 #include "sha2.h"
 
 #define FORMAT_LABEL			"raw-sha512-ng-opencl"
-#define FORMAT_NAME			"Raw SHA-512 (pwlen <= " PLAINTEXT_TEXT ")"
+#define FORMAT_NAME			"Raw SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		""
