@@ -11,6 +11,9 @@
  * This is thanks to Dhiru writing the CPU code first!
  */
 
+#if (DEVICE_INFO & 1) // CPU
+//#define DEBUG
+#endif
 #ifdef cl_khr_byte_addressable_store
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
 #endif
@@ -18,8 +21,7 @@
 #define NVIDIA
 #endif
 
-#define PLAINTEXT_LENGTH	20 /* including 0x80 */
-#define UNICODE_LENGTH		(PLAINTEXT_LENGTH * 2)
+#define UNICODE_LENGTH		104 /* Including 0x0080 */
 
 #ifdef NVIDIA
 inline uint SWAP32(uint x)
@@ -43,7 +45,8 @@ inline uint SWAP32(uint x)
 #define H4	0x10325476
 #define H5	0xC3D2E1F0
 
-/* raw'n'lean sha1, context kept in output buffer */
+/* raw'n'lean sha1, context kept in output buffer.
+   Note that we alter the input buffer! */
 inline void sha1_block(uint *W, uint *output) {
 	uint A, B, C, D, E, temp;
 
@@ -200,43 +203,146 @@ inline void sha1_init(uint *output) {
 	output[4] = H5;
 }
 
-__kernel void Generate2007key(
-	__global uint *unicode_pw, /* [gws][40/sizeof(int)]   */
-	__global uint *pw_len,     /* [gws] length in octets  */
-	__global uint *salt,       /* [16/sizeof(int)]        */
-	__global uint *key)        /* [16/sizeof(int)] output */
+#ifdef DEBUG
+inline void dump_stuff_noeol(uchar *x, uint size) {
+	uint i;
+	for(i=0;i<size;i++)
+	{
+		printf((__constant char*)"%.2x", ((uchar*)x)[i]);
+		if( (i%4)==3 )
+		printf((__constant char*)" ");
+	}
+}
+inline void dump_stuff(uchar* x, uint size)
+{
+	dump_stuff_noeol(x,size);
+	printf((__constant char*)"\n");
+}
+inline void dump_stuff_msg(__constant char *msg, uchar *x, uint size) {
+	printf((__constant char*)"%s : ", msg);
+	dump_stuff(x, size);
+}
+#endif
+
+__kernel void GenerateSHA1pwhash(
+	__global uint *unicode_pw, /* [gws][104/sizeof(int)]       */
+	__global uint *pw_len,     /* [gws] length in octets       */
+	__constant uint *salt,     /* [16/sizeof(int)]             */
+	__global uint *pwhash)     /* [gws][24/sizeof(int)] output */
+{
+	uint i;
+	uint block[16];
+	uint output[5];
+	uint gid = get_global_id(0);
+
+	/* Initial hash of salt + password */
+	/* The ending 0x80 is already in the buffer */
+	sha1_init(output);
+#pragma unroll
+	for (i = 0; i < 4; i++)
+		block[i] = SWAP32(salt[i]);
+#pragma unroll
+	for (i = 4; i < 16; i++)
+		block[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i - 4]);
+	if (pw_len[gid] < 40) {
+		block[14] = 0;
+		block[15] = (pw_len[gid] + 16) << 3;
+	}
+#ifdef DEBUG
+	//dump_stuff_msg("1st", (uchar*)block, 64);
+#endif
+	sha1_block(block, output);
+	if (pw_len[gid] >= 40) {
+#pragma unroll
+		for (i = 0; i < 14; i++)
+			block[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i + 12]);
+		block[14] = 0;
+		block[15] = (pw_len[gid] + 16) << 3;
+#ifdef DEBUG
+		//dump_stuff_msg("2nd", (uchar*)block, 64);
+#endif
+		sha1_block(block, output);
+	}
+#ifdef DEBUG
+	if (gid == 0) dump_stuff_msg((__constant char*)"out", (uchar*)output, 20);
+#endif
+#pragma unroll
+	for (i = 0; i < 5; i++)
+		pwhash[gid * 6 + i] = output[i];
+	pwhash[gid * 6 + 5] = 0;
+}
+
+__kernel void Hash1k(__global uint *pwhash) /* [gws][20/sizeof(int)] in/out */
 {
 	uint i, j;
 	uint block[16];
 	uint output[5];
 	uint gid = get_global_id(0);
-	//__global uint *pw = &unicode_pw[gid * (UNICODE_LENGTH>>2)];
+	uint base = pwhash[gid * 6 + 5];
 
-	/* Initial hash of salt + password */
-	/* The ending 0x80 is already in the buffer */
 #pragma unroll
-	for (i = 0; i < 4; i++)
-		block[i] = SWAP32(salt[i]);
-#pragma unroll
-	for (i = 0; i < 11; i++)
-		block[i + 4] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i]);
-	block[14] = 0;
-	block[15] = (pw_len[gid] + 16) << 3;
-	sha1_init(output);
-	sha1_block(block, output);
+	for (i = 0; i < 5; i++)
+		output[i] = pwhash[gid * 6 + i];
 
-	/* 50K rounds of sha1(serial.last hash)
+#ifdef DEBUG
+	if (gid == 0) dump_stuff_msg((__constant char*)" in", (uchar*)output, 20);
+	if (gid == 0) printf((__constant char*)"base: %u\n", base);
+#endif
+
+	/* 1K rounds of sha1(serial.last hash)
 	 * We avoid byte-swapping back and forth */
-	for (j = 0; j < 50000; j++)
+	for (j = 0; j < 1024; j++)
 	{
-		block[0] = SWAP32(j);
+		block[0] = SWAP32(base + j);
+#pragma unroll
 		for (i = 1; i < 6; i++)
 			block[i] = output[i - 1];
+		sha1_init(output);
 		block[6] = 0x80000000;
+#pragma unroll
 		for (i = 7; i < 15; i++)
 			block[i] = 0;
 		block[15] = 24 << 3;
+		sha1_block(block, output);
+	}
+#ifdef DEBUG
+	if (gid == 0) dump_stuff_msg((__constant char*)"out", (uchar*)output, 20);
+#endif
+#pragma unroll
+	for (i = 0; i < 5; i++)
+		pwhash[gid * 6 + i] = output[i];
+	pwhash[gid * 6 + 5] += 1024;
+}
+
+__kernel void Generate2007key(
+	__global uint *pwhash,     /* [gws][20/sizeof(int)] input */
+	__global uint *key)        /* [gws][16/sizeof(int)] output */
+{
+	uint i, j;
+	uint block[16];
+	uint output[5];
+	uint gid = get_global_id(0);
+
+#pragma unroll
+	for (i = 0; i < 5; i++)
+		output[i] = pwhash[gid * 6 + i];
+#ifdef DEBUG
+	if (gid == 0) dump_stuff_msg((__constant char*)"in", (uchar*)output, 20);
+#endif
+	/* Remainder of sha1(serial.last hash)
+	 * We avoid byte-swapping back and forth */
+	for (j = 49152; j < 50000; j++)
+	{
+		block[0] = SWAP32(j);
+#pragma unroll
+		for (i = 1; i < 6; i++)
+			block[i] = output[i - 1];
 		sha1_init(output);
+		block[6] = 0x80000000;
+#pragma unroll
+		for (i = 7; i < 15; i++)
+			block[i] = 0;
+		block[15] = 24 << 3;
 		sha1_block(block, output);
 	}
 
@@ -244,23 +350,23 @@ __kernel void Generate2007key(
 #pragma unroll
 	for (i = 0; i < 5; i++)
 		block[i] = output[i];
+	sha1_init(output);
 	block[5] = 0;
 	block[6] = 0x80000000;
 #pragma unroll
 	for (i = 7; i < 15; i++)
 		block[i] = 0;
 	block[15] = 24 << 3;
-	sha1_init(output);
 	sha1_block(block, output);
 
 	/* DeriveKey */
 #pragma unroll
 	for (i = 0; i < 5; i++)
 		block[i] = output[i] ^ 0x36363636;
+	sha1_init(output);
 #pragma unroll
 	for (i = 5; i < 16; i++)
 		block[i] = 0x36363636;
-	sha1_init(output);
 	sha1_block(block, output);
 	/* sha1_final (last block was 64 bytes) */
 	block[0] = 0x80000000;
@@ -270,7 +376,7 @@ __kernel void Generate2007key(
 	block[15] = 64 << 3;
 	sha1_block(block, output);
 
-	/* Endian-swap to output (we only use 16 bits) */
+	/* Endian-swap to output (we only use 16 bytes) */
 #pragma unroll
 	for (i = 0; i < 4; i++)
 		key[gid * 4 + i] = SWAP32(output[i]);
