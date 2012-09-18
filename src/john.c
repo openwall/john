@@ -174,7 +174,6 @@ extern struct fmt_main fmt_cuda_pwsafe;
 #endif
 
 extern struct fmt_main fmt_ssh;
-extern struct fmt_main fmt_pfx;
 extern struct fmt_main fmt_pdf;
 extern struct fmt_main rar_fmt;
 extern struct fmt_main zip_fmt;
@@ -192,7 +191,6 @@ extern int unafs(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
 extern int ssh2john(int argc, char **argv);
-extern int pfx2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
@@ -291,7 +289,6 @@ static void john_register_all(void)
 #endif
 
 	john_register_one(&fmt_ssh);
-	john_register_one(&fmt_pfx);
 	john_register_one(&fmt_pdf);
 	john_register_one(&fmt_wpapsk);
 #ifndef _MSC_VER
@@ -1332,11 +1329,6 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "ssh2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return ssh2john(argc, argv);
-	}
-
-	if (!strcmp(name, "pfx2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pfx2john(argc, argv);
 	}
 
 	if (!strcmp(name, "keepass2john")) {
