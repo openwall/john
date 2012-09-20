@@ -29,7 +29,7 @@
 
 #define FORMAT_LABEL			"xsha512-cuda"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
-#define ALGORITHM_NAME			"CUDA"
+#define ALGORITHM_NAME			"CUDA (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -289,7 +289,7 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	int t1 = cuda_cmp_all(binary, count); 
+	int t1 = cuda_cmp_all(binary, count);
 	return t1;
 }
 

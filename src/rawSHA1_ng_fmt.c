@@ -51,7 +51,7 @@
 #define SHA1_DIGEST_WORDS        5
 #define SHA1_PARALLEL_HASH     512 // This must be a multiple of 4.
 
-#define __aligned __attribute__((aligned(16)))
+#define __aligned_16 __attribute__((aligned(16)))
 
 #ifndef __XOP__
 # define _mm_slli_epi32a(a, s)                                                                          \
@@ -142,12 +142,12 @@
 // M and N contain the first and last 128bits of a 512bit SHA-1 message block
 // respectively. The remaining 256bits are always zero, and so are not stored
 // here to avoid the load overhead.
-static uint32_t __aligned M[SHA1_PARALLEL_HASH][4];
-static uint32_t __aligned N[SHA1_PARALLEL_HASH][4];
+static uint32_t __aligned_16 M[SHA1_PARALLEL_HASH][4];
+static uint32_t __aligned_16 N[SHA1_PARALLEL_HASH][4];
 
 // MD contains the state of the SHA-1 A register at R75 for each of the input
 // messages.
-static uint32_t __aligned MD[SHA1_PARALLEL_HASH];
+static uint32_t __aligned_16 MD[SHA1_PARALLEL_HASH];
 
 static const char kFormatTag[] = "$dynamic_26$";
 
@@ -301,7 +301,7 @@ static void sha1_fmt_set_key(char *key, int index)
     // Create a lookup tables to find correct masks for each supported input
     // length. It would be nice if could use 128 bit shifts to produce these
     // dynamically, but they require an immediate operand.
-    static const __aligned uint32_t kTrailingBitTable[][4] = {
+    static const __aligned_16 uint32_t kTrailingBitTable[][4] = {
         { 0x00000080, 0x00000000, 0x00000000, 0x00000000 },
         { 0x00008000, 0x00000000, 0x00000000, 0x00000000 },
         { 0x00800000, 0x00000000, 0x00000000, 0x00000000 },
@@ -320,7 +320,7 @@ static void sha1_fmt_set_key(char *key, int index)
         { 0x00000000, 0x00000000, 0x00000000, 0x80000000 },
     };
 
-    static const __aligned uint32_t kUsedBytesTable[][4] = {
+    static const __aligned_16 uint32_t kUsedBytesTable[][4] = {
         { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
         { 0xFFFFFF00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
         { 0xFFFF0000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF },
@@ -553,7 +553,7 @@ static inline int _mm_testz_epi32 (__m128i __X)
 # warning not using optimized sse4.1 compare because -msse4 was not specified
 static inline int _mm_testz_epi32 (__m128i __X)
 {
-    uint32_t __aligned words[4];
+    uint32_t __aligned_16 words[4];
     _mm_store_si128(words, __X);
     return !words[0] || !words[1] || !words[2] || !words[3];
 }

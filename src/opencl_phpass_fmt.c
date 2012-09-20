@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz@openwall.net>
+* This software is Copyright (c) 2011-2012 Lukas Odzioba <ukasz at openwall.net>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -12,26 +12,27 @@
 
 #include "common-opencl.h"
 
-#define uint32_t		unsigned int
-#define uint8_t			unsigned char
+#define uint32_t                unsigned int
+#define uint8_t                 unsigned char
 
-#define FORMAT_LABEL		"phpass-opencl"
-#define FORMAT_NAME		"phpass MD5"
+#define FORMAT_LABEL            "phpass-opencl"
+#define FORMAT_NAME             "phpass MD5"
 
-#define ALGORITHM_NAME		"OpenCL"
+#define ALGORITHM_NAME          "OpenCL"
 
-#define BENCHMARK_COMMENT	" ($P$9 length 8)"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_COMMENT	" ($P$9 lengths 0 to 15)"
+#define BENCHMARK_LENGTH        -1
 
-#define PLAINTEXT_LENGTH	15
-#define CIPHERTEXT_LENGTH	34	/// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
-#define BINARY_SIZE		16
-#define SALT_SIZE		8
+#define PLAINTEXT_LENGTH        15
+#define CIPHERTEXT_LENGTH       34	/// header = 3 | loopcnt = 1 | salt = 8 | ciphertext = 22
+#define BINARY_SIZE             16
+#define ACTUAL_SALT_SIZE        8
+#define SALT_SIZE               (ACTUAL_SALT_SIZE + 1) // 1 byte for iterations
 
-#define KEYS_PER_CRYPT		1024*9
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-
+//#define KEYS_PER_CRYPT          1024*8*40
+#define KEYS_PER_CRYPT          (2048 * 96)
+#define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
+#define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 
 //#define _PHPASS_DEBUG
 
@@ -44,10 +45,11 @@ typedef struct {
 	uint32_t v[4];		///128bits for hash
 } phpass_hash;
 
-static phpass_password *inbuffer;//[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
-static phpass_hash *outbuffer;//[MAX_KEYS_PER_CRYPT];			/** calculated hashes **/
-static const char phpass_prefix[] = "$P$";
-static char currentsalt[SALT_SIZE + 1];
+static phpass_password *inbuffer;			/** plaintext ciphertexts **/
+static phpass_hash *outbuffer;			/** calculated hashes **/
+static const char phpassP_prefix[] = "$P$";
+static const char phpassH_prefix[] = "$H$";
+static char currentsalt[SALT_SIZE];
 
 extern void mem_init(unsigned char *, uint32_t *, char *, char *, int);
 extern void mem_clear(void);
@@ -57,38 +59,54 @@ extern void gpu_phpass(void);
 static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(phpass_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(phpass_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(uint8_t) * SALT_SIZE + 4;
-
+static size_t settingsize = sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4;
+//static size_t global_work_size = KEYS_PER_CRYPT/8;
 
 static struct fmt_tests tests[] = {
-	/*{"$P$900000000jPBDh/JWJIyrF0.DmP7kT.", "ala"},
-	   {"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
-	   {"$P$900000001ahWiA6cMRZxkgUxj4x/In0", "john"},
-	   {"$P$900000000m6YEJzWtTmNBBL4jypbHv1", "openwall"},
-	   {"$P$900000000zgzuX4Dc2091D8kak8RdR0", "h3ll00"},
-	   {"$P$900000000qZTL5A0XQUX9hq0t8SoKE0", "1234567890"},
-	   {"$P$900112200B9LMtPy2FSq910c1a6BrH0", "1234567890"},
-	   {"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
-	   {"$P$9sadli2.wzQIuzsR2nYVhUSlHNKgG/0", "john"},
-	   {"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""}, */
-
-	/*{"$P$9saltstriAcRMGl.91RgbAD6WSq64z.", "a"},
-	   {"$P$9saltstriMljTzvdluiefEfDeGGQEl/", "ab"},
-	   {"$P$9saltstrikCftjZCE7EY2Kg/pjbl8S.", "abc"},
-	   {"$P$9saltstriV/GXRIRi9UVeMLMph9BxF0", "abcd"},
-	   {"$P$9saltstri3JPgLni16rBZtI03oeqT.0", "abcde"},
-	   {"$P$9saltstri0D3A6JyITCuY72ZoXdejV.", "abcdef"},
-	   {"$P$9saltstriXeNc.xV8N.K9cTs/XEn13.", "abcdefg"}, */
-	{"$P$9saltstrinwvfzVRP3u1gxG2gTLWqv.", "abcdefgh"},
-	/*
-	   {"$P$9saltstriSUQTD.yC2WigjF8RU0Q.Z.", "abcdefghi"},
-	   {"$P$9saltstriWPpGLG.jwJkwGRwdKNEsg.", "abcdefghij"},
-	   {"$P$9saltstrizjDEWUMXTlQHQ3/jhpR4C.", "abcdefghijk"},
-	   {"$P$9saltstriGLUwnE6bl91BPJP6sxyka.", "abcdefghijkl"},
-	   {"$P$9saltstriq7s97e2m7dXnTEx2mtPzx.", "abcdefghijklm"},
-	   {"$P$9saltstriTWMzWKsEeiE7CKOVVU.rS0", "abcdefghijklmn"},
-	   {"$P$9saltstriXt7EDPKtkyRVOqcqEW5UU.", "abcdefghijklmno"},
-	 */
+	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
+	{"$P$9saltstriAcRMGl.91RgbAD6WSq64z.", "a"},
+	{"$P$9saltstriMljTzvdluiefEfDeGGQEl/", "ab"},
+//	{"$P$9saltstrikCftjZCE7EY2Kg/pjbl8S.", "abc"},
+	{"$P$900000000jPBDh/JWJIyrF0.DmP7kT.", "ala"},
+//	{"$P$9saltstriV/GXRIRi9UVeMLMph9BxF0", "abcd"},
+//	{"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
+//	{"$P$900000001ahWiA6cMRZxkgUxj4x/In0", "john"},
+//	{"$P$900000000a94rg7R/nUK0icmALICKj1", "john"},
+	{"$P$9sadli2.wzQIuzsR2nYVhUSlHNKgG/0", "john"},
+	{"$P$9saltstri3JPgLni16rBZtI03oeqT.0", "abcde"},
+//	{"$P$9saltstri0D3A6JyITCuY72ZoXdejV.", "abcdef"},
+	{"$P$900000000zgzuX4Dc2091D8kak8RdR0", "h3ll00"},
+	{"$P$9saltstriXeNc.xV8N.K9cTs/XEn13.", "abcdefg"},
+//	{"$P$9saltstrinwvfzVRP3u1gxG2gTLWqv.", "abcdefgh"},
+	{"$P$900000000m6YEJzWtTmNBBL4jypbHv1", "openwall"},
+	{"$H$9saltstriSUQTD.yC2WigjF8RU0Q.Z.", "abcdefghi"},
+//	{"$P$9saltstriWPpGLG.jwJkwGRwdKNEsg.", "abcdefghij"},
+//	{"$P$900000000qZTL5A0XQUX9hq0t8SoKE0", "1234567890"},
+	{"$P$900112200B9LMtPy2FSq910c1a6BrH0", "1234567890"},
+//	{"$P$9saltstrizjDEWUMXTlQHQ3/jhpR4C.", "abcdefghijk"},
+	{"$P$9RjH.g0cuFtd6TnI/A5MRR90TXPc43/", "password__1"},
+	{"$P$9saltstriGLUwnE6bl91BPJP6sxyka.", "abcdefghijkl"},
+	{"$P$9saltstriq7s97e2m7dXnTEx2mtPzx.", "abcdefghijklm"},
+	{"$P$9saltstriTWMzWKsEeiE7CKOVVU.rS0", "abcdefghijklmn"},
+	{"$P$9saltstriXt7EDPKtkyRVOqcqEW5UU.", "abcdefghijklmno"},
+#if 0
+	{"$H$9aaaaaSXBjgypwqm.JsMssPLiS8YQ00", "test1"},
+	{"$H$9PE8jEklgZhgLmZl5.HYJAzfGCQtzi1", "123456"},
+	{"$H$9pdx7dbOW3Nnt32sikrjAxYFjX8XoK1", "123456"},
+//	{"$P$912345678LIjjb6PhecupozNBmDndU0", "thisisalongertestPW"},
+	{"$H$9A5she.OeEiU583vYsRXZ5m2XIpI68/", "123456"},
+	{"$P$917UOZtDi6ksoFt.y2wUYvgUI6ZXIK/", "test1"},
+//	{"$P$91234567AQwVI09JXzrV1hEC6MSQ8I0", "thisisalongertest"},
+	{"$P$9234560A8hN6sXs5ir0NfozijdqT6f0", "test2"},
+	{"$P$9234560A86ySwM77n2VA/Ey35fwkfP0", "test3"},
+	{"$P$9234560A8RZBZDBzO5ygETHXeUZX5b1", "test4"},
+	{"$P$612345678si5M0DDyPpmRCmcltU/YW/", "JohnRipper"}, // 256
+	{"$P$6T4Krr44HLrUqGkL8Lu67lzZVbvHLC1", "test12345"}, // 256
+	{"$H$712345678WhEyvy1YWzT4647jzeOmo0", "JohnRipper"}, // 512 (phpBB w/older PHP version)
+	{"$P$8DkV/nqeaQNTdp4NvWjCkgN48AK69X.", "test12345"}, // 1024
+	{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // 8192 (WordPress)
+//	{"$P$91234567xogA.H64Lkk8Cx8vlWBVzH0", "thisisalongertst"},
+#endif
 	{NULL}
 };
 
@@ -106,9 +124,10 @@ static void release_all(void)
 static void set_key(char *key, int index)
 {
 #ifdef _PHPASS_DEBUG
-	fprintf(stderr, "set_key(%d) = %s\n", index, key);
+	printf("set_key(%d) = %s\n", index, key);
 #endif
 	int length = strlen(key);
+	memset(inbuffer[index].v, 0, 15);
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
 }
@@ -121,14 +140,12 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void init(struct fmt_main *self)
+static void init(struct fmt_main *pFmt)
 {
 	cl_int cl_error;
-
-	global_work_size = MAX_KEYS_PER_CRYPT;
-
+	global_work_size = KEYS_PER_CRYPT / 8;
 	atexit(release_all);
-	opencl_init("$JOHN/phpass_kernel.cl", ocl_gpu_id,platform_id);
+	opencl_init("$JOHN/phpass_kernel.cl", ocl_gpu_id, platform_id);
 
 	/// Alocate memory
 	inbuffer =
@@ -136,9 +153,9 @@ static void init(struct fmt_main *self)
 	    sizeof(phpass_password));
 	assert(inbuffer != NULL);
 	outbuffer =
-	    (phpass_hash *) calloc(MAX_KEYS_PER_CRYPT,
-	    sizeof(phpass_hash));
+	    (phpass_hash *) calloc(MAX_KEYS_PER_CRYPT, sizeof(phpass_hash));
 	assert(inbuffer != NULL);
+
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -162,21 +179,24 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_setting");
 
-	opencl_find_best_workgroup(self);
+//      opencl_find_best_workgroup(pFmt);
+
+	local_work_size = 64;
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	uint32_t i, j, count_log2, found;
 
-	int prefix=0;
 	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
-	if (strncmp(ciphertext, "$P$", 3) == 0)
-		prefix=1;
-	if (strncmp(ciphertext, "$H$", 3) == 0)
-		prefix=1;
-	if(prefix==0) return 0;
+	found = 0;
+	if (strncmp(ciphertext, phpassP_prefix, 3) == 0)
+		found = 1;
+	if (strncmp(ciphertext, phpassH_prefix, 3) == 0)
+		found = 1;
+	if (!found)
+		return 0;
 
 	for (i = 3; i < CIPHERTEXT_LENGTH; i++) {
 		found = 0;
@@ -227,7 +247,7 @@ static void *binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char salt[SALT_SIZE + 1];
+	static unsigned char salt[SALT_SIZE];
 	memcpy(salt, &ciphertext[4], 8);
 	salt[8] = ciphertext[3];
 	return salt;
@@ -236,19 +256,19 @@ static void *salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	memcpy(currentsalt, salt, SALT_SIZE + 1);
+	memcpy(currentsalt, salt, SALT_SIZE);
 }
 
 static void crypt_all(int count)
 {
 #ifdef _PHPASS_DEBUG
-	fprintf(stderr, "crypt_all(%d)\n", count);
+	printf("crypt_all(%d)\n", count);
 #endif
 	///Prepare setting format: salt+prefix+count_log2
-	char setting[SALT_SIZE + 3 + 1] = { 0 };
+	char setting[SALT_SIZE + 3] = { 0 };
 	strcpy(setting, currentsalt);
-	strcpy(setting + SALT_SIZE, phpass_prefix);
-	setting[SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
+	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
+	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -258,8 +278,8 @@ static void crypt_all(int count)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
-	    "Run kernel");
+		NULL, &global_work_size, &local_work_size, 0, NULL,
+		&profilingEvent), "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
 
 	/// Read the result back
@@ -273,11 +293,11 @@ static void crypt_all(int count)
 static int binary_hash_0(void *binary)
 {
 #ifdef _PHPASS_DEBUG
-	fprintf(stderr, "binary_hash_0 ");
+	printf("binary_hash_0 ");
 	int i;
 	uint32_t *b = binary;
 	for (i = 0; i < 4; i++)
-		fprintf(stderr, "%08x ", b[i]);
+		printf("%08x ", b[i]);
 	puts("");
 #endif
 	return (((ARCH_WORD_32 *) binary)[0] & 0xf);
@@ -316,10 +336,10 @@ static int binary_hash_6(void *binary)
 static int get_hash_0(int index)
 {
 #ifdef _PHPASS_DEBUG
-	fprintf(stderr, "get_hash_0:   ");
+	printf("get_hash_0:   ");
 	int i;
 	for (i = 0; i < 4; i++)
-		fprintf(stderr, "%08x ", outbuffer[index].v[i]);
+		printf("%08x ", outbuffer[index].v[i]);
 	puts("");
 #endif
 	return outbuffer[index].v[0] & 0xf;
@@ -370,7 +390,7 @@ static int cmp_all(void *binary, int count)
 	}
 #ifdef _PHPASS_DEBUG
 	puts("cmp_all = 0");
-#endif	/* _PHPASS_DEBUG */
+#endif				/* _PHPASS_DEBUG */
 	return 0;
 }
 
@@ -406,7 +426,7 @@ struct fmt_main fmt_opencl_phpass = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
-		SALT_SIZE + 1,
+		SALT_SIZE,
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,

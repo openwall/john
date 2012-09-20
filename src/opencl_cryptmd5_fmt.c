@@ -26,7 +26,7 @@
 #define FORMAT_NAME		"md5crypt"
 #define KERNEL_NAME		"cryptmd5"
 
-#define ALGORITHM_NAME		"OpenCL"
+#define ALGORITHM_NAME		"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1

@@ -161,11 +161,26 @@ typedef struct unpack_data_tag
 	int prev_low_dist;
 	int low_dist_rep_count;
 	unsigned char unp_old_table[HUFF_TABLE_SIZE];
-	struct LitDecode LD;
-	struct DistDecode DD;
-	struct LowDistDecode LDD;
-	struct RepDecode RD;
-	struct BitDecode BD;
+	union {
+		struct LitDecode LD;
+		struct Decode D;
+	} LD;
+	union {
+		struct DistDecode DD;
+		struct Decode D;
+	} DD;
+	union {
+		struct LowDistDecode LDD;
+		struct Decode D;
+	} LDD;
+	union {
+		struct RepDecode RD;
+		struct Decode D;
+	} RD;
+	union {
+		struct BitDecode BD;
+		struct Decode D;
+	} BD;
 	unsigned int old_dist[4];
 	unsigned int old_dist_ptr;
 	unsigned int last_dist;

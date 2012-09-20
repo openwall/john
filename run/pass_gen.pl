@@ -89,10 +89,10 @@ my @i64 = ('.','/','0'..'9','A'..'Z','a'..'z');
 my @ns_i64 = ('A'..'Z', 'a'..'z','0'..'9','+','/',);
 my @userNames = (
 	"admin", "root", "bin", "Joe", "fi15_characters", "Babeface", "Herman", "lexi Conrad", "jack", "John", "sz110",
-	"fR14characters", "Thirteenchars", "Twelve_chars", "elev__chars", "teN__chars", "six16_characters", 
+	"fR14characters", "Thirteenchars", "Twelve_chars", "elev__chars", "teN__chars", "six16_characters",
 #	"Bãrtin",
-	"ninechars", "eightchr", "sevench", "barney", "C0ffee", "deadcafe", "user", "01234", "nineteen_characters", 
-	"eight18_characters", "seven17characters", "u1", "harvey", "john", "ripper", "a", "Hank", "1", "u2", "u3", 
+	"ninechars", "eightchr", "sevench", "barney", "C0ffee", "deadcafe", "user", "01234", "nineteen_characters",
+	"eight18_characters", "seven17characters", "u1", "harvey", "john", "ripper", "a", "Hank", "1", "u2", "u3",
 	"2", "3", "usr", "usrx", "usry", "skippy", "Bing", "Johnson", "addams", "anicocls", "twentyXXX_characters",
 	"twentyoneX_characters", "twentytwoXX_characters");
 
@@ -695,7 +695,7 @@ sub moffet_coinflip {
 	my $shift_a; my $shift_b;
 	my $indirect_a; my $indirect_b;
 	my $bit_a; my $bit_b;
-	
+
 	for ($i = 0; $i < 16; $i++) {
 		my $j;
 		$j = ($i + 3) & 0xF;
@@ -724,7 +724,7 @@ sub moffet_coinflip {
 
 	$bit_a = md5bit($c, $indirect_a);
 	$bit_b = md5bit($c, $indirect_b);
-	
+
 	return $bit_a ^ $bit_b;
 }
 sub _sunmd5_hash {
@@ -739,7 +739,7 @@ sub _sunmd5_hash {
 		if (moffet_coinflip($c, $i)) {
 			$c = md5(
 					$c,
-					# this long constant string (AND the null trailing), 
+					# this long constant string (AND the null trailing),
 					# need to be added, then the round's text number
 					"To be, or not to be,--that is the question:--\n",
 					"Whether 'tis nobler in the mind to suffer\n",
@@ -782,7 +782,7 @@ sub _sunmd5_hash {
 		}
 		$i++;
 	}
-	return $c;	
+	return $c;
 }
 sub sunmd5 {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(16); }
@@ -882,16 +882,16 @@ sub _sha_crypts {
 	my $a; my $b, my $c, my $tmp; my $i; my $ds; my $dp; my $p; my $s;
 	my ($func, $bits, $key, $salt) = @_;
 	my $bytes = $bits/8;
-	
+
 	$b = $func->($key.$salt.$key);
-	
+
 	# Add for any character in the key one byte of the alternate sum.
 	$tmp = $key . $salt;
 	for ($i = length($key); $i > 0; $i -= $bytes) {
 		if ($i > $bytes) { $tmp .= $b; }
 		else { $tmp .= substr($b,0,$i); }
 	}
-	
+
 	# Take the binary representation of the length of the key and for every 1 add the alternate sum, for every 0 the key.
 	for ($i = length($key); $i > 0; $i >>= 1) {
 		if (($i & 1) != 0) { $tmp .= $b; }
@@ -899,7 +899,7 @@ sub _sha_crypts {
 	}
 	$a = $func->($tmp);
 	# NOTE, this will be the 'initial' $c value in the inner loop.
-	
+
 	# For every character in the password add the entire password.  produces DP
 	$tmp = "";
 	for ($i = 0; $i < length($key); ++$i) {
@@ -919,13 +919,13 @@ sub _sha_crypts {
 		$tmp .= $salt;
 	}
 	$ds = $func->($tmp);
-	
+
 	# Create byte sequence S.
 	for ($i = length($salt); $i > 0; $i -= $bytes) {
 		if ($i > $bytes) { $s .= $ds; }
 		else { $s .= substr($ds,0,$i); }
 	}
-	
+
 	$c = $a; # Ok, we saved this, which will 'seed' our crypt value here in the loop.
 	# now we do 5000 iterations of md5.
 	for ($i = 0; $i < 5000; ++$i) {
@@ -939,13 +939,13 @@ sub _sha_crypts {
 		$c = $func->($tmp);
 	}
 #	printf ("F =" . unpack("H*", $c) . "\n");  # final value.
-	
-	# $c now contains the 'proper' sha_X_crypt hash.  However, a strange transposition and 
+
+	# $c now contains the 'proper' sha_X_crypt hash.  However, a strange transposition and
 	# base-64 conversion. We do the same here, to get the same hash.  sha256 and sha512 use
 	# a different key schedule.  I have come up with a way to do this, that is not using a
 	# table, but using modular walking of the data, 3 values at a time.
 	# seel http://www.akkadia.org/drepper/SHA-crypt.txt for information
-	
+
 	my $inc1; my $inc2; my $mod; my $end;
 	if ($bits==256) { $inc1=10;$inc2=21;$mod=30;$end=0;  }
 	else            { $inc1=21;$inc2=22;$mod=63;$end=21; }
@@ -971,7 +971,7 @@ sub sha512crypt {
 	print "u$u-sha512crypt:\$6\$$salt\$$bin:$u:0:$_[0]::\n";
 }
 sub xsha512 {
-# simple 4 byte salted crypt.  No seperator char, just raw hash. Also 'may' have $LION$.  We altenate, and every other 
+# simple 4 byte salted crypt.  No seperator char, just raw hash. Also 'may' have $LION$.  We altenate, and every other
 # hash get $LION$ (all even ones)
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
 	print "u$u-XSHA512:";
@@ -1152,7 +1152,7 @@ sub oracle_no_upcase_change {
 	if (!defined $arg_hidden_cp) { print "ERROR, for this format, you MUST use -hiddencp=CP to set the proper code page conversion\n"; exit(1); }
 
 	my $pass = $username . Encode::decode(":".$arg_hidden_cp, $_[0]);
-	
+
 	my $userpass = encode("UTF-16BE", $pass);
 	$userpass .= pack('C', 0) while (length($userpass) % 8);
 	my $key = pack('H*', "0123456789ABCDEF");
@@ -1279,7 +1279,7 @@ sub mschapv2 {
 }
 sub crc_32 {
 	my $pwd = shift;
-	if (rand(256) > 245) { 
+	if (rand(256) > 245) {
 		my $init = rand(2000000000);
 		printf("$u-crc32:\$crc32\$%08x.%08x:0:0:100:%s:\n", $init, crc32($pwd,$init), $pwd);
 	} else {
@@ -1321,7 +1321,7 @@ sub drupal7 {
 	my $h = sha512($salt.$_[0]);
 	my $i = 16384;
 	do { $h = sha512($h.$_[0]); } while (--$i > 0);
-	
+
 	print "u$u-drupal:\$S\$C",$salt,substr(base64i($h),0,43),":$u:0:$_[0]::\n";
 }
 sub epi {
@@ -1346,7 +1346,7 @@ sub nukedclan {
 	my $pass_hash = sha1_hex($_[0]);
 	my $i = 0; my $k;
 	$k = hex($decal);
-	
+
 	my $out = "";
 	for (; $i < 40; $i += 1, $k += 1) {
 		$out .= substr($pass_hash, $i, 1);
@@ -1599,9 +1599,9 @@ sub dynamic_compile {
 			$dynamic_args==100 && do {$fmt='whirlpool($p)';				last SWITCH; };
 			$dynamic_args==101 && do {$fmt='whirlpool($s.$p),saltlen=2';	last SWITCH; };
 			$dynamic_args==102 && do {$fmt='whirlpool($p.$s)';			last SWITCH; };
-			
+
 			# 7, 17, 19, 20, 21, 27, 28 are still handled by 'special' functions.
-			
+
 			# since these are in dynamic.conf, and treatly 'like' builtins, we might as well put them here.
 			$dynamic_args==1001 && do {$fmt='md5(md5(md5(md5($p))))';	last SWITCH; };
 			$dynamic_args==1002 && do {$fmt='md5(md5(md5(md5(md5($p)))))';	last SWITCH; };
@@ -2089,7 +2089,7 @@ sub dynamic_load_salt2() {
 ##########################################################################
 #  Here are the ACTUAL pCode primative functions.  These handle pretty
 # much everything dealing with hashing expressions for md5/md4/sha1/sha224
-# /sha256/sha384/sha512/gost/whirlpool. 
+# /sha256/sha384/sha512/gost/whirlpool.
 # There are some variables which will be properly prepared prior to any of these
 # pCode functions.  These are $gen_pw (the password, possibly in unicode
 # format).  $gen_s (the salt), $gen_s2 (the 2nd salt), $gen_u the username

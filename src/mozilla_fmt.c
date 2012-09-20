@@ -47,7 +47,7 @@
 #define FORMAT_NAME		"Mozilla SHA-1 3DES"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	16
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*salt_struct)

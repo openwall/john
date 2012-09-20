@@ -16,21 +16,21 @@
 
 #define FORMAT_LABEL		"mscash-cuda"
 #define FORMAT_NAME		"M$ Cache Hash MD4"
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"CUDA (inefficient, development use only)"
 #define MAX_CIPHERTEXT_LENGTH	(2 + 19*3 + 1 + 32)
-#define BENCHMARK_COMMENT	" len(pass)=8, len(salt)=13"
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	0
 
 static mscash_password *inbuffer;
 static mscash_hash *outbuffer;
 static mscash_salt currentsalt;
 
 static struct fmt_tests tests[] = {
+	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1"},
 	{"176a4c2bd45ac73687676c2f09045353", "", {"root"}},	// nullstring password
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2"},
 	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3"},
 	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4"},
 
@@ -122,6 +122,7 @@ static void *salt(char *ciphertext)
 	static mscash_salt salt;
 	char *pos = ciphertext + strlen(mscash_prefix);
 	int length = 0;
+	memset(&salt, 0, sizeof(salt));
 	while (*pos != '#') {
 		if (length == SALT_LENGTH)
 			return NULL;

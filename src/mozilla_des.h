@@ -37,9 +37,9 @@
 #define _DES_H_ 1
 
 //#include "blapit.h"
-#include "seccomon.h"
-#include "prtypes.h"
-#include <memory.h>
+#include <seccomon.h>
+#include <prtypes.h>
+//#include <memory.h>
 #include "KeyDBCracker.h"
 
 

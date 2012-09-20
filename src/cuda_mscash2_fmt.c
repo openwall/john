@@ -168,6 +168,7 @@ static void *salt(char *ciphertext)
 	static mscash2_salt salt;
 	char *pos = ciphertext + strlen(mscash2_prefix);
 	int length = 0;
+	memset(&salt, 0, sizeof(salt));
 	salt.rounds = DEFAULT_ROUNDS;
 	sscanf(pos, "%d", &salt.rounds);
 	while (*pos++ != '#');

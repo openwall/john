@@ -1,3 +1,70 @@
+Direct code contributors to 1.7.9-jumbo-7 (since 1.7.9-jumbo-6), by
+commit count:
+
+magnum
+JimF
+Frank Dittrich
+Claudio Andre
+Dhiru Kholia
+Solar Designer
+Lukas Odzioba
+myrice (Dongdong Li)
+Sayantan Datta
+Knug Carl Gustf
+Vlatko Kosturjak
+Tavis Ormandy
+Pavel Semjanov
+Elijah [W&P]
+Erik Winkler
+
+1.7.9-jumbo-7 is a bugfix-mostly release.  We're deliberately not
+including support for new formats (even though we have plenty of those
+in development trees), except for a couple that slipped through
+(KeePass 2.x, RAdmin 2.x).
+
+High-level overview of the changes:
+* KeePass 2.x support (in addition to 1.x)  (Dhiru)
+* The dynamic formats support has been enhanced a little bit, and a new sample
+has been added to the default dynamic.conf (dynamic_1010 for RAdmin 2.x, which
+uses MD5 hashes of NUL-padded passwords)  (JimF, Solar)
+* GPU support under recent Mac OS X  (magnum, others)
+ - CUDA working, OpenCL partially working - see doc/BUGS for more detail
+* The first GPU (as opposed to possibly a CPU) is now found automatically
+when no specific OpenCL platform/device is requested  (magnum)
+* Bugfixes for GPU formats: mscash-cuda, pwsafe-cuda, pwsafe-opencl  (Lukas)
+* Bugfixes for GPU formats: raw-sha512-cuda, raw-sha512-opencl, xsha512-cuda,
+xsha512-opencl  (myrice)
+* Speedup for phpass-opencl, mscash2-cuda  (Lukas)
+* Speedup for mscash2-opencl  (Sayantan, Solar)
+* Corrected detection of different salts in mscash-cuda, mscash2-cuda,
+mscash2-opencl  (Solar)
+* Updated comments printed for some GPU formats (removed "unreliable" notices
+from formats that are now reliable, added "inefficient" notices to formats that
+exist primarily to support further development)  (magnum, Solar)
+* hccap2john bugfix (this program was non-working in jumbo-6)  (Solar)
+* pdf2john bugfix (this program was non-working in jumbo-6)  (JimF)
+* keychain2john integrated into build  (Solar)
+* Support for more varieties of PKZIP archives  (JimF)
+* Better early rejection for RAR (huge speedup at -p archives)  (magnum, Pavel)
+* RACF and VNC formats speedup  (Knug Carl Gustf)
+* SIP, WoltLab Burning Board 3 formats speedup for non-OpenMP builds  (Solar)
+* x86-64 SSE2+ interleave settings for LLVM and GCC 4.7+  (magnum)
+* Greater use of XOP in SHA-1 (now also in round 3)  (Sayantan, Solar)
+* The --list option's supported set of parameters has been extended (use
+"--list=help" to find out what's available)  (Frank, magnum)
+* \xNN escape sequence now works inside preprocessor ranges  (magnum)
+* More test vectors for various formats, including based on KoreLogic's CMIYC
+2012 challenges  (JimF, others)
+* Wordlist parsing bugfixes (in particular with CR chars)  (magnum, Solar, Guth)
+* Build failure fixes for many platforms/targets  (magnum, Solar, others)
+* Many other bugs fixed, fewer new bugs introduced, some code changes made,
+some documentation revisions made  (all)
+* doc/BUGS has been mostly rewritten to reflect the remaining issues  (Solar)
+* Minor updates and fixes to bash completion  (Frank)
+* Filter_Rot13 external mode sample  (Frank)
+* Many updates to pass_gen.pl  (JimF, magnum)
+* This changes overview has been compiled  (Solar)
+
 Direct code contributors to 1.7.9-jumbo-6 (since 1.7.9-jumbo-5), by
 commit count:
 

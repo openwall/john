@@ -4,7 +4,7 @@
  * compares with ciphertext d80. For more details, refer to:
  * http://www.openwall.com/lists/john-dev/2012/04/11/13
  *
- * Copyright (c) 2012 myrice (interfacing to CUDA)
+ * Copyright (c) 2012 myrice
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -28,7 +28,7 @@
 
 #define FORMAT_LABEL			"raw-sha512-opencl"
 #define FORMAT_NAME			"Raw SHA-512"
-#define ALGORITHM_NAME			"OpenCL"
+#define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -94,7 +94,7 @@ static struct fmt_tests tests[] = {
 
 static sha512_key gkey[MAX_KEYS_PER_CRYPT];
 static sha512_hash ghash[MAX_KEYS_PER_CRYPT];
-uint8_t sha512_key_changed;
+static uint8_t sha512_key_changed;
 static uint8_t hash_copy_back;
 
 static uint64_t H[8] = {
@@ -451,5 +451,3 @@ struct fmt_main fmt_opencl_rawsha512 = {
 #warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
 #endif
 #endif
-
-

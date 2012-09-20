@@ -38,6 +38,7 @@
 
 #define FORMAT_LABEL			"nt-opencl"
 #define FORMAT_NAME			"NT MD4"
+#define ALGORITHM_NAME			"OpenCL (inefficient, development use only)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
@@ -120,7 +121,6 @@ static int have_full_hashes;
 
 static int max_keys_per_crypt = NT_NUM_KEYS;
 
-#define ALGORITHM_NAME		"OpenCL"
 #define NT_CRYPT_FUN		nt_crypt_all_opencl
 
 static void release_all(void)

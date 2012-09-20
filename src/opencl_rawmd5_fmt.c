@@ -19,7 +19,7 @@
 #define PLAINTEXT_LENGTH    31
 #define FORMAT_LABEL        "raw-md5-opencl"
 #define FORMAT_NAME         "Raw MD5"
-#define ALGORITHM_NAME      "OpenCL"
+#define ALGORITHM_NAME      "OpenCL (inefficient, development use only)"
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define CIPHERTEXT_LENGTH   32

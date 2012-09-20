@@ -27,7 +27,7 @@
 
 #define FORMAT_LABEL			"raw-sha512-cuda"
 #define FORMAT_NAME			"Raw SHA-512"
-#define ALGORITHM_NAME			"CUDA"
+#define ALGORITHM_NAME			"CUDA (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

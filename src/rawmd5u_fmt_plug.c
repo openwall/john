@@ -164,8 +164,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned long out_[BINARY_SIZE/sizeof(unsigned long)];
-	unsigned int *out = (unsigned int*)out_;
+	static union {
+		unsigned long dummy;
+		unsigned int i[BINARY_SIZE/sizeof(unsigned int)];
+	} _out;
+	unsigned int *out = _out.i;
 	unsigned int i;
 	unsigned int temp;
 
