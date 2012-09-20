@@ -58,6 +58,7 @@ void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
+void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_limit, int vector_size);
 
 cl_device_type get_device_type(int dev_id);
 cl_ulong get_local_memory_size(int dev_id);

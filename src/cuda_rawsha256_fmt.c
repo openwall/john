@@ -49,7 +49,7 @@ static struct fmt_tests sha224_tests[] = {
 	{NULL}
 };
 #endif
-#define ALGORITHM_NAME		"CUDA"
+#define ALGORITHM_NAME		"CUDA (inefficient, development use mostly)"
 
 extern void gpu_rawsha256(sha256_password *, SHA_HASH *, int);
 extern void gpu_rawsha224(sha256_password *, SHA_HASH *, int);

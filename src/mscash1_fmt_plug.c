@@ -38,11 +38,11 @@
 
 /* Note: some tests will be replaced in init() if running UTF-8 */
 static struct fmt_tests tests[] = {
+	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
 	{"M$test1#64cd29e36a8431a2b111378564a10631", "test1" },
 	{"176a4c2bd45ac73687676c2f09045353", "", {"root"} }, // nullstring password
-	{"M$test2#ab60bdb4493822b175486810ac2abe63", "test2" },
 	{"M$test3#14dd041848e12fc48c0aa7a416a4a00c", "test3" },
 	{"M$test4#b945d24866af4b01a6d89b9d932a153c", "test4" },
 

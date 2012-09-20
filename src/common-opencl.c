@@ -209,10 +209,15 @@ static void build_kernel_from_binary(int dev_id)
    this function */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
-    opencl_find_best_workgroup_limit(self, UINT_MAX);
+	opencl_find_best_workgroup_vector(self, UINT_MAX, 1);
 }
 
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit)
+{
+	opencl_find_best_workgroup_vector(self, group_size_limit, 1);
+}
+
+void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_limit, int vector_size)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
@@ -235,7 +240,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
         }
 
 	orig_group_size = global_work_size;
-	global_work_size = self->params.max_keys_per_crypt;
+	global_work_size = self->params.max_keys_per_crypt / vector_size;
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
