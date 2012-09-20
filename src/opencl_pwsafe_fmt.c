@@ -1,7 +1,7 @@
 /* Password Safe cracker patch for JtR. Hacked together during May of
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * OpenCL port by Lukas Odzioba <ukasz@openwall.net>
+ * OpenCL port by Lukas Odzioba <ukasz at openwall.net>
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:

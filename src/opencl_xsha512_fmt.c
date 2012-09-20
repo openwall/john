@@ -28,7 +28,7 @@
 
 #define FORMAT_LABEL			"xsha512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
-#define ALGORITHM_NAME			"OpenCL"
+#define ALGORITHM_NAME			"OpenCL (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -64,7 +64,7 @@
 #define FULL_BINARY_SIZE 64
 
 
-#define PLAINTEXT_LENGTH 20	
+#define PLAINTEXT_LENGTH 20
 #define CIPHERTEXT_LENGTH 136
 
 typedef struct {		// notice memory align problem

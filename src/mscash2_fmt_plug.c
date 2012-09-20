@@ -327,8 +327,11 @@ static void *get_salt(char *_ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned long out_[BINARY_SIZE/sizeof(unsigned long)];
-	unsigned int *out = (unsigned int*)out_;
+	static union {
+		unsigned long dummy;
+		unsigned int i[BINARY_SIZE/sizeof(unsigned int)];
+	} _out;
+	unsigned int *out = _out.i;
 	unsigned int i = 0;
 	unsigned int temp;
 

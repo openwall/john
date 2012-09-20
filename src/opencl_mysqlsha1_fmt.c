@@ -20,7 +20,7 @@
 
 #define FORMAT_LABEL			"mysql-sha1-opencl"
 #define FORMAT_NAME			"MySQL 4.1 double-SHA-1"
-#define ALGORITHM_NAME			"OpenCL"
+#define ALGORITHM_NAME			"OpenCL (inefficient, development use only)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0

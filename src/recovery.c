@@ -5,7 +5,11 @@
  * ...with changes in the jumbo patch, by JimF.
  */
 
+#ifndef __FreeBSD__
+/* On FreeBSD, defining this precludes the declaration of u_int, which
+ * FreeBSD's own <sys/file.h> needs. */
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
+#endif
 
 #include <stdio.h>
 #ifndef _MSC_VER

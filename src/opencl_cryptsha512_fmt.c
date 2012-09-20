@@ -297,7 +297,7 @@ static void find_best_workgroup(struct fmt_main *self) {
 /*  For a while reverted usage of common find_best_workgroup.
  */
     size_t max_group_size;
-        
+
     max_group_size = get_task_max_work_group_size();
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
@@ -460,7 +460,6 @@ static void init(struct fmt_main *self) {
         task = "$JOHN/cryptsha512_kernel_CPU.cl";
 
     else {
-        fprintf(stderr, "Building the kernel, this could take a while\n");
         task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
 
         if (! no_byte_addressable(source_in_use)) {
@@ -471,6 +470,8 @@ static void init(struct fmt_main *self) {
                 task = "$JOHN/cryptsha512_kernel_AMD.cl";
         }
     }
+    fprintf(stderr, "Building the kernel (%s), this could take a while\n",
+	task);
     fflush(stdout);
     opencl_build_kernel(task, ocl_gpu_id);
     fflush(stdout);

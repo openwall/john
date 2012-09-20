@@ -71,44 +71,54 @@ static void print_hex(unsigned char *str, int len)
 static void process_file(const char *filename)
 {
 	FILE *fp;
+	unsigned char buf[4];
+	long pos, cipheroff;
+	unsigned char salt[SALTLEN];
+	unsigned char iv[IVLEN];
+	unsigned char ct[CTLEN];
+	size_t nread;
+	int err;
 
 	if (!(fp = fopen(filename, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", filename, strerror(errno));
 		return;
 	}
-	fseek(fp, -4, SEEK_END);
-	unsigned char buf[4];
+
+	err = fseek(fp, -4, SEEK_END);
 
 	while(1) {
-		fseek(fp, -8, SEEK_CUR);
-		if(fread(buf, 4, 1, fp) == 0) {
-			fprintf(stderr, "%s : Couldn't find db key. Is a keychain file?\n", filename);
+		err |= fseek(fp, -8, SEEK_CUR);
+		if (err || fread(buf, 4, 1, fp) != 1) {
+			fprintf(stderr, "%s: Couldn't find db key. Is a keychain file?\n", filename);
 			exit(1);
 		}
-		if(!memcmp(buf, magic, 4))
+		if (!memcmp(buf, magic, 4))
 			break;
 	}
 
-	long pos = ftell(fp) - 4;
+	pos = ftell(fp) - 4;
 
 	// ciphertext offset
-	fseek(fp, pos + 8, SEEK_SET);
-	long cipheroff = fget32(fp);
+	err = fseek(fp, pos + 8, SEEK_SET);
+	cipheroff = fget32(fp);
+	err |= ferror(fp);
 
 	// salt
-	fseek(fp, pos + 44, SEEK_SET);
-	unsigned char salt[SALTLEN];
-	fread(salt, SALTLEN, 1, fp);
+	err |= fseek(fp, pos + 44, SEEK_SET);
+	nread = fread(salt, SALTLEN, 1, fp);
 
 	// IV
-	fseek(fp, pos + 64, SEEK_SET);
-	unsigned char iv[IVLEN];
-	fread(iv, IVLEN, 1, fp);
+	err |= fseek(fp, pos + 64, SEEK_SET);
+	nread += fread(iv, IVLEN, 1, fp);
 
 	// ciphertext
-	fseek(fp, pos + cipheroff, SEEK_SET);
-	unsigned char ct[CTLEN];
-	fread(ct, CTLEN, 1, fp);
+	err |= fseek(fp, pos + cipheroff, SEEK_SET);
+	nread += fread(ct, CTLEN, 1, fp);
+
+	if (err || ferror(fp) || nread != 3) {
+		fprintf(stderr, "%s: Couldn't parse the file. Is a keychain file?\n", filename);
+		exit(1);
+	}
 
 	// output
 	printf("%s:$keychain$*", filename);
@@ -122,7 +132,7 @@ static void process_file(const char *filename)
 	fclose(fp);
 }
 
-int main(int argc, char **argv)
+int keychain2john(int argc, char **argv)
 {
 	int i;
 

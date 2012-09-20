@@ -115,6 +115,7 @@ JOHN_OBJS = \
 	racf2john.o \
 	pwsafe2john.o \
 	keepass2john.o \
+	keychain2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	$(PLUGFORMATS_OBJS) \
@@ -200,13 +201,17 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
-	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john john.local.conf
+	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john \
+	../run/keychain2john \
+	john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
-	../run/pwsafe2john.com ../run/keepass2john.com john.local.conf
+	../run/pwsafe2john.com ../run/keepass2john.com \
+	../run/keychain2john.com \
+	john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -214,6 +219,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
+	../run/keychain2john.exe \
 	john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
@@ -222,6 +228,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
+	../run/keychain2john.exe \
 	john.local.conf
 
 default:
@@ -485,7 +492,7 @@ linux-x86-avx:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
@@ -495,7 +502,7 @@ linux-x86-xop:
 	$(LN) x86-sse.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_XOP -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mxop -DHAVE_CRYPT" \
 		ASFLAGS="$(ASFLAGS) -m32 -mxop" \
@@ -1529,6 +1536,10 @@ cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(RM) ../run/keepass2john
 	ln -s john ../run/keepass2john
 
+../run/keychain2john: ../run/john
+	$(RM) ../run/keychain2john
+	ln -s john ../run/keychain2john
+
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	ln -s john ../run/zip2john
@@ -1585,6 +1596,9 @@ endif
 
 ../run/keepass2john.com: john.com
 	copy john.com ..\run\keepass2john.com
+
+../run/keychain2john.com: john.com
+	copy john.com ..\run\keychain2john.com
 
 ../run/pdf2john.com: john.com
 	copy john.com ..\run\pdf2john.com
@@ -1657,6 +1671,10 @@ john.com: john.asm
 ../run/keepass2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keepass2john.exe
 	strip ../run/keepass2john.exe
+
+../run/keychain2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/keychain2john.exe
+	strip ../run/keychain2john.exe
 
 ../run/pdf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pdf2john.exe

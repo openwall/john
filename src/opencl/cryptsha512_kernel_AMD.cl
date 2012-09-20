@@ -306,7 +306,7 @@ inline void sha512crypt(__local  working_memory * fast_tmp_memory,
 __kernel
 // __attribute__((vec_type_hint(ulong2)))		Not recognized.
 // __attribute__((reqd_work_group_size(32, 1, 1)))	No gain.
-inline void kernel_crypt(__constant sha512_salt     * salt,
+void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __local    sha512_salt     * salt_data,

@@ -1,5 +1,5 @@
 #ifndef _STDINT_H
-#ifdef __STDC_VERSION__
+#if defined(__STDC__) || defined(__STDC_VERSION__)
 #include <stdint.h>
 #else
 #define _STDINT_H 1

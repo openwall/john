@@ -60,13 +60,10 @@
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 
-typedef struct
-{
-	unsigned char username[MAX_SALT_LENGTH+1];
-
+typedef struct {
 	unsigned int length;
-
-} 	ms_cash2_salt;
+	unsigned char username[MAX_SALT_LENGTH+1];
+} ms_cash2_salt;
 
 
 
@@ -384,14 +381,13 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static ms_cash2_salt salt;
-
 	unsigned int length;
+	char *pos;
 
-	char *pos ;
+	memset(&salt, 0, sizeof(salt));
 
-	length=0;
-
-	pos=ciphertext + strlen(MSCASH2_PREFIX);
+	length = 0;
+	pos = ciphertext + strlen(MSCASH2_PREFIX);
 
 	while (*pos != '#')
 	      {
@@ -402,7 +398,6 @@ static void *salt(char *ciphertext)
 	      }
 
 	salt.username[length] = 0;
-
 	salt.length=length;
 
 	return &salt;

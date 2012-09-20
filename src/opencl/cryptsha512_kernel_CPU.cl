@@ -336,7 +336,7 @@ inline void sha512crypt(__global   sha512_salt     * salt_data,
 #undef pass
 
 __kernel
-inline void kernel_crypt(__global   sha512_salt     * informed_salt,
+void kernel_crypt(__global   sha512_salt     * informed_salt,
                   __global   sha512_password * pass_data,
                   __global   sha512_hash     * out_buffer) {
 

@@ -190,8 +190,11 @@ extern int unshadow(int argc, char **argv);
 extern int unafs(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
+/* XXX: What's wrong with having these along with MSC? Perhaps this restriction
+ * was meant to apply to some of these only? Maybe SSH only? */
 extern int ssh2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
+extern int keychain2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
@@ -1334,6 +1337,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return keepass2john(argc, argv);
+	}
+
+	if (!strcmp(name, "keychain2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return keychain2john(argc, argv);
 	}
 
 	if (!strcmp(name, "rar2john")) {
