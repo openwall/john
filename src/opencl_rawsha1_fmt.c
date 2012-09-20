@@ -19,8 +19,8 @@
 #include "common-opencl.h"
 
 #define FORMAT_LABEL			"raw-sha1-opencl"
-#define FORMAT_NAME			"Raw SHA-1 OpenCL"
-#define ALGORITHM_NAME			"OpenCL"
+#define FORMAT_NAME			"Raw SHA-1"
+#define ALGORITHM_NAME			"OpenCL (inefficient, development use only)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

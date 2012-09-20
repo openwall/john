@@ -35,7 +35,7 @@
 #include <plarena.h>
 #include "lowpbe.h"
 #include <openssl/sha.h>
-#include <memory.h>
+//#include <memory.h>
 #include <stdio.h>
 #include <hasht.h>
 #include <secoidt.h>

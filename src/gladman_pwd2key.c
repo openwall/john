@@ -36,7 +36,7 @@
  Compile: gcc -DTEST gladman_pwd2key.c gladman_hmac.c -lcrypto */
 
 #include <string.h>
-#include <memory.h>
+//#include <memory.h>
 #include "gladman_hmac.h"
 
 #if defined(__cplusplus)

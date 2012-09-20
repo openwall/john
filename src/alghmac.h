@@ -34,13 +34,14 @@
 #ifndef _ALGHMAC_H_
 #define _ALGHMAC_H_
 
-#include "seccomon.h"
+#include <seccomon.h> /* NSS */
+/*
 #ifndef __APPLE__
 #include <malloc.h>
 #endif
 #include <memory.h>
 #include "alghmac.h"
-
+*/
 
 #define HMAC_PAD_SIZE 64
 

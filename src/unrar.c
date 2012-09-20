@@ -546,10 +546,10 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 		rar_dbgmsg("ERROR: read_tables check failed\n");
 		return 0;
 	}
-	rar_make_decode_tables(&table[0], (struct Decode *)&unpack_data->LD,NC);
-	rar_make_decode_tables(&table[NC], (struct Decode *)&unpack_data->DD,DC);
-	rar_make_decode_tables(&table[NC+DC], (struct Decode *)&unpack_data->LDD,LDC);
-	rar_make_decode_tables(&table[NC+DC+LDC], (struct Decode *)&unpack_data->RD,RC);
+	rar_make_decode_tables(&table[0], &unpack_data->LD.D,NC);
+	rar_make_decode_tables(&table[NC], &unpack_data->DD.D,DC);
+	rar_make_decode_tables(&table[NC+DC], &unpack_data->LDD.D,LDC);
+	rar_make_decode_tables(&table[NC+DC+LDC], &unpack_data->RD.D,RC);
 	memcpy(unpack_data->unp_old_table,table,sizeof(unpack_data->unp_old_table));
 
 
