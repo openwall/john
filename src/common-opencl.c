@@ -219,6 +219,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	cl_int ret_code;
 	int i, numloops;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
+	char *temp;
 
 	if (get_device_version(ocl_gpu_id) < 110) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
@@ -242,6 +243,18 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
         if (max_group_size > group_size_limit)
             //Needed to deal (at least) with cryptsha512-opencl limits.
             max_group_size = group_size_limit;
+
+	// Environment variable override
+	if ((temp = getenv("LWS"))) {
+		local_work_size = atoi(temp);
+		if (local_work_size > max_group_size) {
+			fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n",
+			        (int)local_work_size, (int)max_group_size);
+			local_work_size = max_group_size;
+		}
+		if (local_work_size > 0)
+			return;
+	}
 
 	// Safety harness
 	if (wg_multiple > max_group_size)

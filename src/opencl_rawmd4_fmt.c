@@ -178,13 +178,9 @@ static void init(struct fmt_main *self) {
 	opencl_init("$JOHN/md4_kernel.cl", ocl_gpu_id, platform_id);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	if( ((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
-		create_clobj(MD4_NUM_KEYS);
-		opencl_find_best_workgroup(self);
-		release_clobj();
-	}else {
-		local_work_size = atoi(kpc);
-	}
+	create_clobj(MD4_NUM_KEYS);
+	opencl_find_best_workgroup(self);
+	release_clobj();
 	if( (kpc = getenv("GWS")) == NULL){
 		max_keys_per_crypt = MD4_NUM_KEYS;
 		create_clobj(MD4_NUM_KEYS);

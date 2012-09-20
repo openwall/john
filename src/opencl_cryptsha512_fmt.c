@@ -477,9 +477,6 @@ static void init(struct fmt_main *self) {
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
         local_work_size = atoi(tmp_value);
 
-    if ((tmp_value = getenv("LWS")))
-        local_work_size = atoi(tmp_value);
-
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
         fprintf(stderr, "Error: invalid local work size (LWS). Max value allowed is: %zd\n" ,

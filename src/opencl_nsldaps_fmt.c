@@ -249,9 +249,6 @@ static void fmt_ssha_init(struct fmt_main *self)
 	                          LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
 	if (!local_work_size) {
 		create_clobj(SSHA_NUM_KEYS);
 		opencl_find_best_workgroup(self);
