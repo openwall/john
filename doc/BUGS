@@ -1,6 +1,106 @@
-Known bugs in this release:
+	Known issues with using this release.
 
-Not working on Big Endian (fails self-test):
+Not working on big-endian CPU architectures (these formats fail
+self-test on big-endian CPUs):
 * mssql05
 * office
 * rar
+(x86 and x86-64 are little-endian, so they are not affected.)
+
+Not working on HD 4000 series and older ATI GPUs (these formats need
+byte-addressable store, which is only present in HD 5000 series and
+newer ATI/AMD GPUs):
+* sha512crypt-opencl
+* wpapsk-opencl
+
+Many OpenCL formats fail at runtime on Mac OS X (whereas CUDA ones work
+fine).  We've seen these fail on Mac OS X 10.8.1: bf-opencl,
+mscash2-opencl, nt-opencl, rar, raw-sha512-opencl, sha512crypt-opencl,
+wpapsk-opencl, and xsha512-opencl.  We suspect that this may be caused
+by driver bugs.  The same formats work fine on Linux.
+
+In GPU-enabled builds, running "john --test" (with no --format
+restriction) will eventually fail (before it has a chance to test all
+formats).  This is because GPU resources allocated by one format are
+currently not freed before proceeding to test another format (they're
+only freed when John exits).  We're going to correct this in a future
+release.  Meanwhile, please test GPU-enabled formats one by one, e.g.
+with "john --test --format=mscash2-opencl", etc.
+
+Some OpenCL-enabled formats (for "slow" hashes and non-hashes) may
+sometimes trigger "ASIC hang" errors as reported by AMD/ATI GPU drivers,
+requiring system reboot to re-gain access to the GPU.  For example, on
+HD 7970 this problem is known to occur with sha512crypt-opencl, but is
+known not to occur with mscash2-opencl.  Our current understanding is
+that this has to do with OpenCL kernel running time and watchdog timers.
+We're working on reducing kernel run times to avoid such occurrences in
+the future.
+
+All CUDA formats substantially benefit from compile-time tuning.
+README-CUDA includes some info on this.  In short, on GTX 400 series and
+newer NVIDIA cards, you'll likely want to change "-arch sm_10" to "-arch
+sm_20" or greater (as appropriate for your GPU) on the NVCC_FLAGS line
+in Makefile.  You'll also want to tune BLOCKS and THREADS for the
+specific format you're interested in.  These are typically specified in
+cuda_*.h files.  README-CUDA includes a handful of pre-tuned settings.
+It is not unusual to obtain e.g. a 3x speedup (compared to the generic
+defaults) with this sort of tuning.
+
+Some OpenCL formats benefit from compile-time tuning, too.  For example,
+bf-opencl is pre-tuned for HD 7970 cards, and will need to be re-tuned
+for other cards (adjust WORK_GROUP_SIZE in opencl_bf_std.h and
+opencl/bf_kernel.cl; you may also adjust MULTIPLIER).  In fact, on
+smaller GPUs this specific format might not work at all until
+WORK_GROUP_SIZE is reduced.  Most OpenCL formats may benefit from tuning
+of KEYS_PER_CRYPT, although higher values, while generally increasing
+the c/s rate, may create usability issues (more work lost on
+interrupted/restored sessions, less optimal order of candidate passwords
+being tested).
+
+Even though wpapsk-cuda and wpapsk-opencl primarily use the GPU, they
+also do a (small, but not negligible) portion of the computation on CPU
+and thus they substantially benefit from OpenMP-enabled builds.  We
+intend to reduce their use of CPU in a future version.
+
+Interrupting a cracking session that uses an ATI/AMD GPU with Ctrl-C
+often results in:
+	../../../thread/semaphore.cpp:87: sem_wait() failed
+	Aborted
+When this happens, the john.pot and .log files are not updated with
+latest cracked passwords.  To mitigate this, reduce the Save setting in
+john.conf from the default of 600 seconds to a lower value (e.g., 60).
+
+With GPU-enabled formats (and sometimes with OpenMP on CPU as well), the
+number of candidate passwords being tested concurrently can be very
+large (thousands).  When the format is of a "slow" type (such as an
+iterated hash) and the number of different salts is large, interrupting
+and restoring a session may result in a lot of work being re-done (many
+minutes or even hours).  It is easy to see if a given session is going
+to be affected by this or not: watch the range of candidate passwords
+being tested as included in the status line printed on a keypress.  If
+this range does not change for a long while, the session is going to be
+affected since interrupting and restoring it will retry the entire
+range, for all salts, including for salts that already had the range
+tested against them.
+
+"Single crack" mode is relatively inefficient with GPU-enabled formats
+(and sometimes with OpenMP on CPU as well), because it might not be able
+to produce enough candidate passwords per target salt to fully utilize a
+GPU, as well as because its ordering of candidate passwords from most
+likely to least likely is lost when the format is only able to test a
+large number of passwords concurrently (before proceeding to doing the
+same for another salt).  You may reasonably start with quick "single
+crack" mode runs on CPU (possibly without much use of OpenMP) and only
+after that proceed to using GPU-enabled formats (or with heavier use of
+OpenMP, beyond a few CPU cores), locking those runs to specific cracking
+modes other than "single crack".
+
+Some formats lack proper binary_hash() functions, resulting in duplicate
+hashes (if any) not being eliminated at loading and sometimes also in
+slower cracking (when the number of hashes per salt is large).  When
+this happens, the following message is printed:
+	Warning: excessive partial hash collisions detected
+	(cause: the "format" lacks proper binary_hash() function definitions)
+Known to be affected are: bfegg, dominosec, md5crypt-cuda, phpass-cuda.
+Also theoretically present, but less likely to be triggered in practice,
+are similar issues in non-hash formats.
