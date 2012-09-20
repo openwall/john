@@ -209,15 +209,15 @@ static void build_kernel_from_binary(int dev_id)
    this function */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
-	opencl_find_best_workgroup_limit(self, UINT_MAX, 1);
+	opencl_find_best_workgroup_vector(self, UINT_MAX, 1);
+}
+
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit)
+{
+	opencl_find_best_workgroup_vector(self, group_size_limit, 1);
 }
 
 void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_limit, int vector_size)
-{
-	opencl_find_best_workgroup_limit(self, UINT_MAX, vector_size);
-}
-
-void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, int vector_size)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
