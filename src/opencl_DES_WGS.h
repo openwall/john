@@ -1,1 +1,1 @@
-#define WORK_GROUP_SIZE		128	
+#define WORK_GROUP_SIZE		64	
