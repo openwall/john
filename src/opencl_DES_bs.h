@@ -14,7 +14,7 @@
 #include "opencl_DES_WGS.h"
 
 #ifndef DES_BS_ALGORITHM_NAME
-#define DES_BS_ALGORITHM_NAME		ARCH_BITS_STR "/" ARCH_BITS_STR " BS"
+#define DES_BS_ALGORITHM_NAME		Traditional DES[OpenCL]
 #endif
 
 #define DES_BS_DEPTH			32
@@ -53,8 +53,7 @@ typedef struct {
 
 typedef struct{
 	
-	DES_bs_vector K[56];	/* Keys */
-		
+	
 	union {
 		unsigned char c[8][8][sizeof(DES_bs_vector)];
 		DES_bs_vector v[8][8];
