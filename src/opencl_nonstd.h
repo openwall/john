@@ -134,7 +134,8 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for MMX/SSE2 and x86-64 SSE2 */
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local vtype * out2,__local vtype * out3,__local vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x55005500, x5A0F5A0F, x3333FFFF, x66666666, x22226666, x2D2D6969, x25202160;
 	vtype x00FFFF00, x33CCCC33, x4803120C, x2222FFFF, x6A21EDF3, x4A01CC93;
@@ -179,7 +180,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xD89697CC, xFAB77A3F, x2221EDF3);
 	vandn(x20, x7FA7FF69, a2);
 	vxor(x21, x20, xD89697CC);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 	  
 
 	vxor(x05B77AC0, x00FFFF00, x054885C0);
@@ -189,7 +190,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xBB0747B0, xD89697CC, x6391D07C);
 	vor(x00, x25202160, a2);
 	vxor(x01, x00, xBB0747B0);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vxor(x4C460000, x3333FFFF, x7F75FFFF);
 	vor(x4EDF9996, x0AD99996, x4C460000);
@@ -198,7 +199,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x96B1B65A, x2D4E49EA, xBBFFFFB0);
 	vor(x10, x4A01CC93, a2);
 	vxor(x11, x10, x96B1B65A);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vor(x5AFF5AFF, a5, x5A0F5A0F);
 	vandn(x52B11215, x5AFF5AFF, x2D4E49EA);
@@ -206,7 +207,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x10B0D205, x52B11215, x4201C010);
 	vor(x30, x10B0D205, a2);
 	vxor(x31, x30, x0AD99996);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 }
 #else
 /* s1-01753, 49 gates, 17/18 regs, 14 andn, 3/16/48/88/132 stalls, 76 biop */
@@ -290,7 +291,8 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 #if andn && triop && latency <= 4
 /* s2-016251, 44 gates, 14 regs, 13 andn, 1/9/22/61/108 stalls, 66 biop */
-/*inline  void
+/*
+inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
     vtype * out1, vtype * out2, vtype * out3, vtype * out4)
 {
@@ -364,9 +366,11 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 }*/
 #elif !andn && regs >= 15
 /* s2-016276, 44 gates, 15 regs, 11 andn, 1/9/24/59/104 stalls, 67 biop */
+
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local vtype * out2,__local vtype * out3,__local vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x55550000, x00AA00FF, x33BB33FF;
@@ -403,7 +407,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x9A646A95, xA9A8AAA5, x33CCC030);
 	vandn(x10, a4, x332200F0);
 	vxor(x11, x10, x9A646A95);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vandn(x00333303, a2, x33CCC030);
 	vxor(x118822B8, x11BB11BB, x00333303);
@@ -412,7 +416,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x94E34B39, xA8208805, x3CC3C33C);
 	vandn(x00, x33BB33FF, a4);
 	vxor(x01, x00, x94E34B39);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vxor(x0331330C, x0302000F, x00333303);
 	vor(x3FF3F33C, x3CC3C33C, x0331330C);
@@ -427,21 +431,24 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x1A45324F, x29850143, x33C0330C);
 	vor(x20, x1A45324F, a4);
 	vxor(x21, x20, x962CAC53);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x0A451047, x1A45324F, x118822B8);
 	vor(xBBDFDD7B, x33CCCC33, xA9DF596A);
 	vxor(xB19ACD3C, x0A451047, xBBDFDD7B);
 	vor(x30, x003311BB, a4);
 	vxor(x31, x30, xB19ACD3C);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 }
+
 #elif andn && !triop && regs >= 15 && latency <= 2
 /* s2-016277, 44 gates, 15 regs, 12 andn, 4/15/35/74/121 stalls, 65 biop */
 /* Currently used for x86-64 SSE2 */
+
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-     vtype * out1, vtype * out2, vtype * out3, vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x55550000, x00AA00FF, x33BB33FF;
@@ -478,7 +485,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x9A646A95, xA9A8AAA5, x33CCC030);
 	vandn(x10, a4, x332200F0);
 	vxor(x11, x10, x9A646A95);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vandn(x00333303, a2, x33CCC030);
 	vxor(x118822B8, x11BB11BB, x00333303);
@@ -487,7 +494,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x94E34B39, xA8208805, x3CC3C33C);
 	vandn(x00, x33BB33FF, a4);
 	vxor(x01, x00, x94E34B39);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vxor(x0331330C, x0302000F, x00333303);
 	vor(x3FF3F33C, x3CC3C33C, x0331330C);
@@ -502,20 +509,23 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x1A45324F, x9A646A95, x802158DA);
 	vor(x20, x1A45324F, a4);
 	vxor(x21, x20, x962CAC53);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x0A451047, x1A45324F, x118822B8);
 	vor(xBBDFDD7B, x33CCCC33, xA9DF596A);
 	vxor(xB19ACD3C, x0A451047, xBBDFDD7B);
 	vor(x30, x003311BB, a4);
 	vxor(x31, x30, xB19ACD3C);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 }
+
 #elif !andn || (triop && latency >= 5)
 /* s2-016380, 44 gates, 14/15 regs, 12 andn, 1/9/27/55/99 stalls, 68 biop */
+
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    vtype * out1, vtype * out2, vtype * out3, vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x55550000, x00AA00FF, x33BB33FF;
@@ -552,7 +562,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x9A646A95, xA9A8AAA5, x33CCC030);
 	vandn(x10, a4, x332200F0);
 	vxor(x11, x10, x9A646A95);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vandn(x00333303, a2, x33CCC030);
 	vxor(x118822B8, x11BB11BB, x00333303);
@@ -561,7 +571,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x94E34B39, xA8208805, x3CC3C33C);
 	vandn(x00, x33BB33FF, a4);
 	vxor(x01, x00, x94E34B39);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vandn(x33333030, a2, x00000F0F);
 	vor(x3FF3F33C, x3CC3C33C, x33333030);
@@ -576,21 +586,23 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x1A45324F, x29850143, x33C0330C);
 	vor(x20, x1A45324F, a4);
 	vxor(x21, x20, x962CAC53);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x0A451047, x1A45324F, x118822B8);
 	vor(xBBDFDD7B, x33CCCC33, xA9DF596A);
 	vxor(xB19ACD3C, x0A451047, xBBDFDD7B);
 	vor(x30, x003311BB, a4);
 	vxor(x31, x30, xB19ACD3C);
-	vxor(*out4, *out4, x31);
-}
+	vxor(out[c4], out[c4], x31);
+
 #else
 /* s2-016520, 44 gates, 15 regs, 13 andn, 5/17/41/78/125 stalls, 68 biop */
 /* Currently used for MMX/SSE2 */
+
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-     vtype * out1,  vtype * out2,  vtype * out3,  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x55550000, x00AA00FF, x33BB33FF;
@@ -627,7 +639,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x9A646A95, xA9A8AAA5, x33CCC030);
 	vandn(x10, a4, x332200F0);
 	vxor(x11, x10, x9A646A95);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vandn(x00333303, a2, x33CCC030);
 	vxor(x118822B8, x11BB11BB, x00333303);
@@ -636,7 +648,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x94E34B39, xA8208805, x3CC3C33C);
 	vandn(x00, x33BB33FF, a4);
 	vxor(x01, x00, x94E34B39);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out1[c1], x01);
 
 	vandn(x03303003, a2, x3CC3C33C);
 	vxor(xA9DF596A, x33BB33FF, x9A646A95);
@@ -651,14 +663,14 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x1A45324F, x19B832BF, x03FD00F0);
 	vor(x20, x1A45324F, a4);
 	vxor(x21, x20, x962CAC53);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x0A451047, x1A45324F, x118822B8);
 	vor(xBBDFDD7B, x33CCCC33, xA9DF596A);
 	vxor(xB19ACD3C, x0A451047, xBBDFDD7B);
 	vor(x30, x003311BB, a4);
 	vxor(x31, x30, xB19ACD3C);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 }
 #endif
 
@@ -962,9 +974,11 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 }*/
 #elif triop && regs >= 17 && latency <= 3
 /* s3-001172, 46 gates, 17 regs, 10 andn, 2/3/19/55/98 stalls, 69 biop */
+
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
 	vtype x3C3CC3C3, x3C3C0000, x7373F4F4, x0C840A00;
@@ -994,7 +1008,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x3C699796, x3C3CC3C3, x00555455);
 	vandn(x30, x4FE55EF4, a5);
 	vxor(x31, x30, x3C699796);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vand(x000FF000, x0F0FF0F0, x00FFFF00);
 	vxor(x55AA55AA, a1, a4);
@@ -1014,7 +1028,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4969967A, a1, x1C3CC32F);
 	vand(x10, x2FD00F5F, a5);
 	vxor(x11, x10, x4969967A);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vnot(xB01AA10B, x4FE55EF4);
 	vor(xB33BB33B, a2, xB01AA10B);
@@ -1023,7 +1037,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xD6A98356, x55AAFFAA, x83037CFC);
 	vandn(x00, a5, x0C840A00);
 	vxor(x01, x00, xD6A98356);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vand(x001A000B, a4, xB01AA10B);
 	vxor(x3C73979D, x3C699796, x001A000B);
@@ -1032,13 +1046,15 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xB25E2DC3, xBF73FFFD, x0D2DD23E);
 	vor(x20, x284100D8, a5);
 	vxor(x21, x20, xB25E2DC3);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 }
 #else
 /* s3-001283, 46 gates, 16 regs, 14 andn, 2/5/10/30/69 stalls, 69 biop */
+
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
 	vtype x3C3CC3C3, x3C3C0000, x7373F4F4, x0C840A00;
@@ -1068,7 +1084,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x3C699796, x3C3CC3C3, x00555455);
 	vandn(x30, x4FE55EF4, a5);
 	vxor(x31, x30, x3C699796);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vand(x000FF000, x0F0FF0F0, x00FFFF00);
 	vxor(x55AA55AA, a1, a4);
@@ -1088,7 +1104,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4969967A, a1, x1C3CC32F);
 	vand(x10, x2FD00F5F, a5);
 	vxor(x11, x10, x4969967A);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vandn(x4CC44CC4, x4FE55EF4, a2);
 	vandn(x40C040C0, x4CC44CC4, a3);
@@ -1097,7 +1113,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xD6A98356, x40C040C0, x9669C396);
 	vandn(x00, a5, x0C840A00);
 	vxor(x01, x00, xD6A98356);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vor(xD6E9C3D6, x40C040C0, x9669C396);
 	vor(x4CEEEEC4, x00AAAA00, x4CC44CC4);
@@ -1106,14 +1122,15 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vor(x9A1F2D1B, x9A072D12, x001A000B);
 	vandn(x20, a5, x284100D8);
 	vxor(x21, x20, x9A1F2D1B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 }
 #endif
 
 /* s4, 33 gates, 11/12 regs, 9 andn, 2/21/53/86/119 stalls, 52 biop */
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x5A5A5A5A, x0F0FF0F0;
 	vtype x33FF33FF, x33FFCC00, x0C0030F0, x0C0CC0C0, x0CF3C03F, x5EFBDA7F,
@@ -1147,12 +1164,12 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x56E9861E, x52FBCA0F, x04124C11);
 	vandn(x00, a6, x3C90B3D6);
 	vxor(x01, x00, x56E9861E);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vnot(xA91679E1, x56E9861E);
 	vandn(x10, x3C90B3D6, a6);
 	vxor(x11, x10, xA91679E1);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vxor(x9586CA37, x3C90B3D6, xA91679E1);
 	vandn(x8402C833, x9586CA37, x33CC33CC);
@@ -1160,11 +1177,11 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xB35C94A6, x379E5C99, x84C2C83F);
 	vor(x20, x61C8F93C, a6);
 	vxor(x21, x20, xB35C94A6);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vand(x30, a6, x61C8F93C);
 	vxor(x31, x30, xB35C94A6);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 }
 
 #if triop && latency >= 3 && latency <= 5
@@ -1210,7 +1227,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vnot(xE97FB1FF, x16804E00);
 	vandn(x20, xE97FB1FF, a2);
 	vxor(x21, x20, x5A19784B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], *out3, x21);
 
 	vandn(x43403302, x43433333, x003B00F5);
 	vxor(x35CAED30, x2A2A82A0, x1FE06F90);
@@ -1246,9 +1263,11 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 #elif (!triop && regs >= 16) || (triop && latency <= 2)
 /* s5-04829, 48 gates, 15/16 regs, 9 andn, 4/24/65/113/163 stalls, 72 biop */
 /* Currently used for x86-64 SSE2 */
+
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
 	vtype x70700000, x43433333, x00430033, x55557777, x55167744, x5A19784B;
@@ -1287,7 +1306,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vnot(xE97FB1FF, x16804E00);
 	vandn(x20, xE97FB1FF, a2);
 	vxor(x21, x20, x5A19784B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x43403302, x43433333, x003B00F5);
 	vxor(x35CAED30, x2A2A82A0, x1FE06F90);
@@ -1302,7 +1321,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4FC2FBC2, x003B00F5, x4FF9FB37);
 	vand(x30, x4FC2FBC2, a2);
 	vxor(x31, x30, x271C52A7);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vxor(x22222222, a1, x77777777);
 	vxor(x16BCEE97, x349ECCB5, x22222222);
@@ -1310,7 +1329,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x19B4E593, x16BCEE97, x0F080B04);
 	vor(x00, x0B01234A, a2);
 	vxor(x01, x00, x19B4E593);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vxor(x5C5C5C5C, x1F1F6F6F, x43433333);
 	vandn(x4448184C, x5C5C5C5C, x19B4E593);
@@ -1318,14 +1337,16 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x6992A63D, x4448184C, x2DDABE71);
 	vand(x10, x1F1F6F6F, a2);
 	vxor(x11, x10, x6992A63D);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 }
 #else
 /* s5-04832, 48 gates, 15/16 regs, 9 andn, 5/23/62/109/159 stalls, 72 biop */
 /* Currently used for MMX/SSE2 */
+
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __local vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
 	vtype x70700000, x43433333, x00430033, x55557777, x55167744, x5A19784B;
@@ -1364,7 +1385,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vnot(xE97FB1FF, x16804E00);
 	vandn(x20, xE97FB1FF, a2);
 	vxor(x21, x20, x5A19784B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x43403302, x43433333, x003B00F5);
 	vxor(x35CAED30, x2A2A82A0, x1FE06F90);
@@ -1379,7 +1400,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4FC2FBC2, x003B00F5, x4FF9FB37);
 	vand(x30, x4FC2FBC2, a2);
 	vxor(x31, x30, x271C52A7);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vxor(x43E9BBC2, x77777777, x349ECCB5);
 	vxor(x16BCEE97, a1, x43E9BBC2);
@@ -1387,7 +1408,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x19B4E593, x16BCEE97, x0F080B04);
 	vor(x00, x0B01234A, a2);
 	vxor(x01, x00, x19B4E593);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vxor(x5C5C5C5C, x1F1F6F6F, x43433333);
 	vandn(x4448184C, x5C5C5C5C, x19B4E593);
@@ -1395,16 +1416,19 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x6992A63D, x4448184C, x2DDABE71);
 	vand(x10, x1F1F6F6F, a2);
 	vxor(x11, x10, x6992A63D);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 }
+
 #endif
 
 #if !triop && regs >= 16
 /* s6-000007, 46 gates, 19 regs, 8 andn, 3/19/39/66/101 stalls, 69 biop */
 /* Currently used for x86-64 SSE2 */
+
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __local vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1437,7 +1461,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x3A6522FF, x09030000, x336622FF);
 	vand(x30, x3A6522FF, a4);
 	vxor(x31, x30, x59A31CE6);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vxor(x484D494C, a2, x7B7E7A7F);
 	vandn(x0000B6B3, a6, x484D494C);
@@ -1451,7 +1475,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vandn(x1668B94B, x1E69B94B, x09030000);
 	vor(x20, x00220099, a4);
 	vxor(x21, x20, x1668B94B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vor(x7B7B7B7B, a2, x5A5A5A5A);
 	vxor(x411E5984, x3A6522FF, x7B7B7B7B);
@@ -1465,7 +1489,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xCC82CDE5, x004B002D, xCCC9CDC8);
 	vandn(x10, xCC82CDE5, a4);
 	vxor(x11, x10, x5EE1A479);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vxor(x0055EEBB, a6, x00551144);
 	vxor(x5A5AECE9, a1, x0F0FB9BC);
@@ -1474,14 +1498,16 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xC59A2D67, x0050ECA9, xC5CAC1CE);
 	vandn(x00, x0FFFB9FD, a4);
 	vxor(x01, x00, xC59A2D67);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 }
 #elif !triop && regs < 16
 /* s6-000009, 46 gates, 19 regs, 8 andn, 3/20/41/69/110 stalls, 69 biop */
 /* Currently used for MMX/SSE2 */
+
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1514,7 +1540,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x3A6522FF, x09030000, x336622FF);
 	vand(x30, x3A6522FF, a4);
 	vxor(x31, x30, x59A31CE6);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vxor(x484D494C, a2, x7B7E7A7F);
 	vandn(x0000B6B3, a6, x484D494C);
@@ -1528,7 +1554,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vandn(x1668B94B, x1E69B94B, x09030000);
 	vor(x20, x00220099, a4);
 	vxor(x21, x20, x1668B94B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vor(x1FFFFDFD, x11115555, x0FFFB9FD);
 	vor(x7B7B7B7B, a2, x5A5A5A5A);
@@ -1542,7 +1568,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xCC82CDE5, x004B002D, xCCC9CDC8);
 	vandn(x10, xCC82CDE5, a4);
 	vxor(x11, x10, x5EE1A479);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vxor(x0055EEBB, a6, x00551144);
 	vxor(x5A5AECE9, a1, x0F0FB9BC);
@@ -1551,13 +1577,15 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xC59A2D67, xCCC9CDC8, x0953E0AF);
 	vandn(x00, x0FFFB9FD, a4);
 	vxor(x01, x00, xC59A2D67);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 }
 #elif latency >= 3
 /* s6-000028, 46 gates, 19 regs, 8 andn, 4/16/39/65/101 stalls, 69 biop */
+
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-     vtype * out1,  vtype * out2,  vtype * out3,  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1590,7 +1618,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x3A6522FF, x09030000, x336622FF);
 	vand(x30, x3A6522FF, a4);
 	vxor(x31, x30, x59A31CE6);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vxor(x484D494C, a2, x7B7E7A7F);
 	vandn(x0000B6B3, a6, x484D494C);
@@ -1609,7 +1637,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vandn(x1668B94B, x1E69B94B, x09030000);
 	vor(x20, x00220099, a4);
 	vxor(x21, x20, x1668B94B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vxor(x3CB4DFD2, x22DD6699, x1E69B94B);
 	vandn(x004B002D, a5, x3CB4DFD2);
@@ -1618,7 +1646,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xCC82CDE5, x004B002D, xCCC9CDC8);
 	vandn(x10, xCC82CDE5, a4);
 	vxor(x11, x10, x5EE1A479);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vxor(x0055EEBB, a6, x00551144);
 	vxor(x5A5AECE9, a1, x0F0FB9BC);
@@ -1627,13 +1655,14 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xC59A2D67, x0050ECA9, xC5CAC1CE);
 	vandn(x00, x0FFFB9FD, a4);
 	vxor(x01, x00, xC59A2D67);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 }
 #else
 /* s6-000031, 46 gates, 19 regs, 8 andn, 3/16/42/68/111 stalls, 69 biop */
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
 	vtype x3333FFFF, x11115555, x22DD6699, x22DD9966, x00220099;
@@ -1666,7 +1695,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x3A6522FF, x09030000, x336622FF);
 	vand(x30, x3A6522FF, a4);
 	vxor(x31, x30, x59A31CE6);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vxor(x484D494C, a2, x7B7E7A7F);
 	vandn(x0000B6B3, a6, x484D494C);
@@ -1685,7 +1714,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vandn(x1668B94B, x1E69B94B, x09030000);
 	vor(x20, x00220099, a4);
 	vxor(x21, x20, x1668B94B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vxor(x3CB4DFD2, x22DD6699, x1E69B94B);
 	vandn(x004B002D, a5, x3CB4DFD2);
@@ -1694,7 +1723,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xCC82CDE5, x004B002D, xCCC9CDC8);
 	vandn(x10, xCC82CDE5, a4);
 	vxor(x11, x10, x5EE1A479);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vxor(x0055EEBB, a6, x00551144);
 	vxor(x5A5AECE9, a1, x0F0FB9BC);
@@ -1703,7 +1732,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xC59A2D67, x0050ECA9, xC5CAC1CE);
 	vandn(x00, x0FFFB9FD, a4);
 	vxor(x01, x00, xC59A2D67);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 }
 #endif
 
@@ -1737,7 +1766,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x01731001, x00FF0000, x018C1001);
 	vandn(x30, a6, x01731001);
 	vxor(x31, x30, x6A65956A);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], *out4, x31);
 
 	vor(x33FF33FF, a2, a4);
 	vand(x030F030F, a3, x33FF33FF);
@@ -2227,9 +2256,11 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 }*/
 #elif !andn && triop && regs >= 17 && latency <= 4
 /* s7-036496, 46 gates, 17 regs, 7 andn, 3/9/20/52/95 stalls, 70 biop */
+
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2255,7 +2286,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x74878E78, x7B777E77, x0FF0F00F);
 	vandn(x30, a1, x00001841);
 	vxor(x31, x30, x74878E78);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vandn(x003C003C, a5, x3CC33CC3);
 	vor(x5A7D5A7D, x5A555A55, x003C003C);
@@ -2275,7 +2306,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x27FFCBCD, x0FFFC3CF, x28000802);
 	vand(x20, x27FFCBCD, a1);
 	vxor(x21, x20, x699C585B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x48444844, x5A555A55, a3);
 	vor(x4FF4C8CC, x0FF0C0CC, x48444844);
@@ -2289,7 +2320,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4F9493BB, x4F944848, x0000DBF3);
 	vandn(x00, x4F9493BB, a1);
 	vxor(x01, x00, x694E5A8D);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vand(x00005151, a2, x0000DBF3);
 	vnot(x96B1A572, x694E5A8D);
@@ -2297,13 +2328,15 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xD9256798, x4F9493BB, x96B1F423);
 	vor(x10, x686B8385, a1);
 	vxor(x11, x10, xD9256798);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 }
 #elif !andn && triop && regs >= 17 && latency >= 5
 /* s7-036532, 46 gates, 17 regs, 7 andn, 3/9/23/51/93 stalls, 71 biop */
+
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    vtype * out1,vtype * out2,vtype * out3,vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2329,7 +2362,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x74878E78, x7B777E77, x0FF0F00F);
 	vandn(x30, a1, x00001841);
 	vxor(x31, x30, x74878E78);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vandn(x003C003C, a5, x3CC33CC3);
 	vor(x5A7D5A7D, x5A555A55, x003C003C);
@@ -2349,7 +2382,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x27FFCBCD, x0FFFC3CF, x28000802);
 	vand(x20, x27FFCBCD, a1);
 	vxor(x21, x20, x699C585B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x48444844, x5A555A55, a3);
 	vor(x4FF4C8CC, x0FF0C0CC, x48444844);
@@ -2363,7 +2396,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4F9493BB, x4F944848, x0000DBF3);
 	vandn(x00, x4F9493BB, a1);
 	vxor(x01, x00, x694E5A8D);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vnot(xFFFF240C, x0000DBF3);
 	vor(xFFFF755D, a2, xFFFF240C);
@@ -2371,13 +2404,15 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xD9256798, xFFFF755D, x26DA12C5);
 	vor(x10, x686B8385, a1);
 	vxor(x11, x10, xD9256798);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 }
 #elif andn && triop && regs <= 16
 /* s7-036610, 46 gates, 16 regs, 9 andn, 1/6/16/53/98 stalls, 70 biop */
+
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-    vtype * out1, vtype * out2, vtype * out3, vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2403,7 +2438,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x74878E78, x7B777E77, x0FF0F00F);
 	vandn(x30, a1, x00001841);
 	vxor(x31, x30, x74878E78);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vandn(x003C003C, a5, x3CC33CC3);
 	vor(x5A7D5A7D, x5A555A55, x003C003C);
@@ -2423,7 +2458,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x27FFCBCD, x0FFFC3CF, x28000802);
 	vand(x20, x27FFCBCD, a1);
 	vxor(x21, x20, x699C585B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x48444844, x5A555A55, a3);
 	vor(x4FF4C8CC, x0FF0C0CC, x48444844);
@@ -2437,7 +2472,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4F9493BB, x4F944848, x0000DBF3);
 	vandn(x00, x4F9493BB, a1);
 	vxor(x01, x00, x694E5A8D);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vnot(x96B1A572, x694E5A8D);
 	vxor(xB14E6EBF, x27FFCBCD, x96B1A572);
@@ -2445,7 +2480,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xB14EE41D, xB14E6EBF, x00008AA2);
 	vandn(x10, a1, x686B8385);
 	vxor(x11, x10, xB14EE41D);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 }
 #elif !andn && triop && latency >= 5
 /* s7-036634, 46 gates, 16 regs, 7 andn, 3/9/23/54/98 stalls, 70 biop */
@@ -2524,8 +2559,9 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 #elif !andn && triop && latency <= 4
 /* s7-036649, 46 gates, 16 regs, 7 andn, 3/9/20/55/100 stalls, 69 biop */
 inline  void
-/*s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __local vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2551,7 +2587,7 @@ inline  void
 	vxor(x74878E78, x7B777E77, x0FF0F00F);
 	vandn(x30, a1, x00001841);
 	vxor(x31, x30, x74878E78);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vandn(x003C003C, a5, x3CC33CC3);
 	vor(x5A7D5A7D, x5A555A55, x003C003C);
@@ -2571,7 +2607,7 @@ inline  void
 	vxor(x27FFCBCD, x0FFFC3CF, x28000802);
 	vand(x20, x27FFCBCD, a1);
 	vxor(x21, x20, x699C585B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vandn(x48444844, x5A555A55, a3);
 	vor(x4FF4C8CC, x0FF0C0CC, x48444844);
@@ -2585,7 +2621,7 @@ inline  void
 	vxor(x4F9493BB, x4F944848, x0000DBF3);
 	vandn(x00, x4F9493BB, a1);
 	vxor(x01, x00, x694E5A8D);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vand(x00005151, a2, x0000DBF3);
 	vnot(x96B1A572, x694E5A8D);
@@ -2593,8 +2629,8 @@ inline  void
 	vxor(xD9256798, x4F9493BB, x96B1F423);
 	vor(x10, x686B8385, a1);
 	vxor(x11, x10, xD9256798);
-	vxor(*out2, *out2, x11);
-}*/
+	vxor(out[c2], out[c2], x11);
+}
 #elif andn && !triop && regs >= 16
 /* s7-056931, 46 gates, 16 regs, 7 andn, 7/24/55/100/149 stalls, 67 biop */
 /* Currently used for x86-64 SSE2 */
@@ -2673,9 +2709,11 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 #else
 /* s7-056945, 46 gates, 16 regs, 7 andn, 10/31/62/107/156 stalls, 67 biop */
 /* Currently used for MMX/SSE2 */
+
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __local vtype * out1,__local vtype * out2,__local vtype * out3,__local vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
 	vtype x00000F00, x33333C33, x7B777E77, x0FF0F00F, x74878E78;
@@ -2701,7 +2739,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x74878E78, x7B777E77, x0FF0F00F);
 	vandn(x30, a1, x00001841);
 	vxor(x31, x30, x74878E78);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vandn(x003C003C, a5, x3CC33CC3);
 	vor(x5A7D5A7D, x5A555A55, x003C003C);
@@ -2721,7 +2759,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x4F9493BB, x7F979F7B, x30030CC0);
 	vandn(x00, x4F9493BB, a1);
 	vxor(x01, x00, x694E5A8D);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 
 	vor(x6F9CDBFB, x699C585B, x4F9493BB);
 	vand(x0000DBFB, a6, x6F9CDBFB);
@@ -2735,7 +2773,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vor(x27FFCBCD, x27DA438C, x2625C9C9);
 	vand(x20, x27FFCBCD, a1);
 	vxor(x21, x20, x699C585B);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vxor(x27FF1036, x0000DBFB, x27FFCBCD);
 	vor(x27FF103E, x003C003C, x27FF1036);
@@ -2743,7 +2781,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x97947C7A, x27FF103E, xB06B6C44);
 	vandn(x10, x97947C7A, a1);
 	vxor(x11, x10, x26DA9867);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 }
 #endif
 
@@ -2954,7 +2992,8 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for x86-64 SSE2 */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-  __local  vtype * out1,__local  vtype * out2,__local  vtype * out3,__local  vtype * out4)
+   __private  vtype * out,
+   vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0C0C0C0C, x0000F0F0, x00FFF00F, x00555005, x00515001;
 	vtype x33000330, x77555775, x30303030, x3030CFCF, x30104745, x30555745;
@@ -2985,7 +3024,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(xCB164CB3, x0C0C0C0C, xC71A40BF);
 	vor(x10, x00515001, a6);
 	vxor(x11, x10, xCB164CB3);
-	vxor(*out2, *out2, x11);
+	vxor(out[c2], out[c2], x11);
 
 	vxor(x9E4319E6, a1, xCB164CB3);
 	vand(x000019E6, a5, x9E4319E6);
@@ -2999,7 +3038,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x693CD926, xF77F3F3F, x9E43E619);
 	vand(x20, x30555745, a6);
 	vxor(x21, x20, x693CD926);
-	vxor(*out3, *out3, x21);
+	vxor(out[c3], out[c3], x21);
 
 	vxor(xF719A695, x3030CFCF, xC729695A);
 	vor(xF4FF73FF, a4, xF429738C);
@@ -3007,7 +3046,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x56B3803F, a1, x03E6D56A);
 	vand(x30, x56B3803F, a6);
 	vxor(x31, x30, xC729695A);
-	vxor(*out4, *out4, x31);
+	vxor(out[c4], out[c4], x31);
 
 	vandn(xF700A600, xF719A695, a4);
 	vand(x61008000, x693CD926, xF700A600);
@@ -3015,8 +3054,9 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	vxor(x62B7056B, x61008000, x03B7856B);
 	vor(x00, x62B7056B, a6);
 	vxor(x01, x00, xC729695A);
-	vxor(*out1, *out1, x01);
+	vxor(out[c1], out[c1], x01);
 }
+
 #else
 /* s8-019630, 41 gates, 14 regs, 11 andn, 4/21/60/101/143 stalls, 62 biop */
 /*inline  void
