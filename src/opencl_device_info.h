@@ -28,7 +28,7 @@
 #define DEV_AMD_VLIW5               4096
 #define DEV_NO_BYTE_ADDRESSABLE     8192
 
-#define cpu(n)                      ((n & DEV_CPU) == (DEV_DEV_CPU))
+#define cpu(n)                      ((n & DEV_CPU) == (DEV_CPU))
 #define gpu(n)                      ((n & DEV_GPU) == (DEV_GPU))
 #define gpu_amd(n)                  ((n & DEV_AMD) && gpu(n))
 #define gpu_nvidia(n)               ((n & DEV_NVIDIA) && gpu(n))
