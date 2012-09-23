@@ -412,7 +412,7 @@ static void init(struct fmt_main *self)
 
 	if (!local_work_size) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) {
-			if (get_platform_vendor_id(platform_id) == INTEL)
+			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
 				local_work_size = 8;
 			else
 				local_work_size = 1;

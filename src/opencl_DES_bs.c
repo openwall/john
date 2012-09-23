@@ -161,6 +161,7 @@ void opencl_DES_bs_init(int LM, int cpt,int block)
 				*k++ = &opencl_DES_bs_all[block].K[bit] START;
 			}
 		}*/
+if(block==0)
 init_index(LM);
 /*
  * Have keys go to bit layers where DES_bs_get_hash() and DES_bs_cmp_one()

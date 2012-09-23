@@ -224,7 +224,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	if (get_device_version(ocl_gpu_id) < 110) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
 			wg_multiple = 32;
-		else if (get_vendor_id(ocl_gpu_id) == INTEL)
+		else if (get_vendor_id(ocl_gpu_id) == DEV_INTEL)
 			wg_multiple = 8;
 		else
 			wg_multiple = 1;
@@ -351,11 +351,11 @@ void opencl_get_dev_info(unsigned int dev_id)
 	device = get_device_type(dev_id);
 
 	if (device == CL_DEVICE_TYPE_CPU)
-		device_info[dev_id] = CPU;
+		device_info[dev_id] = DEV_CPU;
 	else if (device == CL_DEVICE_TYPE_GPU)
-		device_info[dev_id] = GPU;
+		device_info[dev_id] = DEV_GPU;
 	else if (device == CL_DEVICE_TYPE_ACCELERATOR)
-		device_info[dev_id] = ACCELERATOR;
+		device_info[dev_id] = DEV_ACCELERATOR;
 
 	device_info[dev_id] += get_vendor_id(dev_id);
 	device_info[dev_id] += get_processor_family(dev_id);
@@ -580,14 +580,14 @@ cl_uint get_processor_family(int dev_id)
 
 			if (strstr(dname, "Cayman") ||
 			    strstr(dname, "Antilles"))
-				return AMD_VLIW4;
+				return DEV_AMD_VLIW4;
 			else
-				return AMD_VLIW5;
+				return DEV_AMD_VLIW5;
 
 		} else
-			return AMD_GCN + AMD_VLIW5;
+			return DEV_AMD_GCN + DEV_AMD_VLIW5;
 		}
-	return UNKNOWN;
+	return DEV_UNKNOWN;
 }
 
 int get_byte_addressable(int dev_id)
@@ -599,9 +599,9 @@ int get_byte_addressable(int dev_id)
 	    "Error querying CL_DEVICE_EXTENSIONS");
 
 	if (strstr(dname, "cl_khr_byte_addressable_store") == NULL)
-		return NO_BYTE_ADDRESSABLE;
+		return DEV_NO_BYTE_ADDRESSABLE;
 
-	return UNKNOWN;
+	return DEV_UNKNOWN;
 }
 
 int get_vendor_id(int dev_id)
@@ -613,16 +613,16 @@ int get_vendor_id(int dev_id)
 	    "Error querying CL_DEVICE_VENDOR");
 
 	if (strstr(dname, "NVIDIA") != NULL)
-		return NVIDIA;
+		return DEV_NVIDIA;
 
 	if (strstr(dname, "Intel") != NULL)
-		return INTEL;
+		return DEV_INTEL;
 
 	if (strstr(dname, "Advanced Micro") != NULL ||
 	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
-		return AMD;
+		return DEV_AMD;
 
-	return UNKNOWN;
+	return DEV_UNKNOWN;
 }
 
 int get_platform_vendor_id(int platform_id)
@@ -642,19 +642,19 @@ int get_platform_vendor_id(int platform_id)
 		"Error querying CL_DEVICE_VENDOR");
 
 	if (strstr(dname, "NVIDIA") != NULL)
-		return NVIDIA;
+		return DEV_NVIDIA;
 
 	if (strstr(dname, "Apple") != NULL)
-		return APPLE;
+		return DEV_APPLE;
 
 	if (strstr(dname, "Intel") != NULL)
-		return INTEL;
+		return DEV_INTEL;
 
 	if (strstr(dname, "Advanced Micro") != NULL ||
 	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
-		return AMD;
+		return DEV_AMD;
 
-	return UNKNOWN;
+	return DEV_UNKNOWN;
 }
 
 int get_device_version(int dev_id)
@@ -671,7 +671,7 @@ int get_device_version(int dev_id)
         if (strstr(dname, "1.2"))
                 return 120;
 
-        return UNKNOWN;
+        return DEV_UNKNOWN;
 }
 
 char *get_error_name(cl_int cl_error)

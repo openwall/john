@@ -6,10 +6,9 @@
  * forms, with or without modification, are permitted.
  */
 
-#ifdef cl_khr_byte_addressable_store
-#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
-#endif
-#ifdef cl_nv_pragma_unroll
+#include "opencl_device_info.h"
+
+#if gpu_nvidia(DEVICE_INFO)
 #define NVIDIA
 #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
 #endif
