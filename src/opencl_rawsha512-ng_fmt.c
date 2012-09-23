@@ -19,7 +19,7 @@
 #include "sha2.h"
 
 #define FORMAT_LABEL			"raw-sha512-ng-opencl"
-#define FORMAT_NAME			"Raw SHA-512 (pwlen <= " PLAINTEXT_TEXT ")"
+#define FORMAT_NAME			"Raw SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		""
@@ -144,7 +144,8 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
             (void *) &result_buffer), "Error setting argument 2");
 
-    if (amd_gcn(device_info[ocl_gpu_id])) {
+    if (amd_gcn(device_info[ocl_gpu_id]) && !
+        no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
            sizeof(sha512_ctx_buffer) * local_work_size,

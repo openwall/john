@@ -162,7 +162,8 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu_amd(device_info[ocl_gpu_id])) {
+    if (gpu_amd(device_info[ocl_gpu_id]) && !
+        no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha512_password) * local_work_size,
@@ -174,7 +175,8 @@ static void create_clobj(int gws) {
            sizeof(sha512_ctx) * local_work_size,
            NULL), "Error setting argument 5");
 
-    } else if (gpu_nvidia(device_info[ocl_gpu_id])) {
+    } else if (gpu_nvidia(device_info[ocl_gpu_id]) && !
+               no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha512_password) * local_work_size,
@@ -282,7 +284,7 @@ static char *get_key(int index) {
 static void find_best_workgroup(struct fmt_main *self) {
 
     size_t max_group_size;
-        
+
     max_group_size = get_task_max_work_group_size();
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
