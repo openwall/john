@@ -581,7 +581,7 @@ cl_uint get_processor_family(int dev_id)
 				return DEV_AMD_VLIW5;
 
 		} else
-			return DEV_AMD_GCN + DEV_AMD_VLIW5;
+			return DEV_AMD_GCN;
 		}
 	return DEV_UNKNOWN;
 }
