@@ -27,6 +27,7 @@ static struct fmt_tests tests[] = {
 	{"CC4rMpbg9AMZ.", "U*U***U*"},
 	{"XXxzOu6maQKqQ", "*U*U*U*U"},
 	{"SDbsugeBiC58A", ""},
+	{"..X8NBuQ4l6uQ", ""},
 	{NULL}
 };
 

@@ -33,7 +33,7 @@ typedef unsigned WORD vtype;
 
 	static int devno,pltfrmno;
 	
-	static cl_mem index768_gpu,index96_gpu,opencl_DES_bs_data_gpu,KSv_gpu,B_gpu;
+	static cl_mem index768_gpu,index96_gpu,opencl_DES_bs_data_gpu,B_gpu;
 	
 void DES_bs_select_device(int platform_no,int dev_no)
 {
@@ -57,9 +57,6 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	index96_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 96*sizeof(unsigned int), NULL, &err);
 	if(index96_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
-	KSv_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 768*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
-	if(KSv_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
 	B_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
 	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
@@ -68,8 +65,7 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&KSv_gpu),"Set Kernel Arg FAILED arg3\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],4,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
 }	
 
 

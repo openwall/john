@@ -194,13 +194,9 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if(((kpc = getenv("LWS")) == NULL) || (atoi(kpc) == 0)) {
-		create_clobj(SHA_NUM_KEYS);
-		opencl_find_best_workgroup(self);
-		release_clobj();
-	}else {
-		local_work_size = atoi(kpc);
-	}
+	create_clobj(SHA_NUM_KEYS);
+	opencl_find_best_workgroup(self);
+	release_clobj();
 	if( (kpc = getenv("GWS")) == NULL){
 		max_keys_per_crypt = SHA_NUM_KEYS;
 		create_clobj(SHA_NUM_KEYS);

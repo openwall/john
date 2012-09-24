@@ -12,6 +12,11 @@
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
 
 #define FORMAT_LABEL			"hmac-sha512"
 #define FORMAT_NAME			"HMAC SHA-512"
@@ -42,15 +47,27 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static union xx {
-	char c[BINARY_SIZE+1];
-	ARCH_WORD a[BINARY_SIZE/sizeof(ARCH_WORD)+1];
-} u;
-static char *crypt_key = u.c;  // Requires alignment on generic sha2.c
-static unsigned char opad[PAD_SIZE];
-static unsigned char ipad[PAD_SIZE];
+static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static ARCH_WORD (*crypt_key)[BINARY_SIZE / sizeof(ARCH_WORD) + 1];
+static unsigned char (*opad)[PAD_SIZE];
+static unsigned char (*ipad)[PAD_SIZE];
 static unsigned char cursalt[SALT_SIZE];
-static char saved_plain[PLAINTEXT_LENGTH + 1];
+
+static void init(struct fmt_main *self)
+{
+#ifdef _OPENMP
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	opad = mem_calloc_tiny(sizeof(*opad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	ipad = mem_calloc_tiny(sizeof(*opad) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
+
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -83,6 +100,22 @@ static char *split(char *ciphertext, int index)
 	return out;
 }
 
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_key[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_key[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_key[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_key[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_key[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_key[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_key[index][0] & 0x7ffffff; }
+
 static void set_salt(void *salt)
 {
 	memcpy(cursalt, salt, SALT_SIZE);
@@ -95,12 +128,12 @@ static void set_key(char *key, int index)
 
 	len = strlen(key);
 
-	memset(ipad, 0x36, PAD_SIZE);
-	memset(opad, 0x5C, PAD_SIZE);
+	memset(ipad[index], 0x36, PAD_SIZE);
+	memset(opad[index], 0x5C, PAD_SIZE);
 
 #if PLAINTEXT_LENGTH > PAD_SIZE
-	memcpy(saved_plain, key, len);
-	saved_plain[len] = 0;
+	memcpy(saved_plain[index], key, len);
+	saved_plain[index][len] = 0;
 
 	if (len > PAD_SIZE) {
 		SHA512_CTX ctx;
@@ -114,35 +147,41 @@ static void set_key(char *key, int index)
 
 		for(i=0;i<len;i++)
 		{
-			ipad[i] ^= k0[i];
-			opad[i] ^= k0[i];
+			ipad[index][i] ^= k0[i];
+			opad[index][i] ^= k0[i];
 		}
 	}
 	else
 #endif /* PLAINTEXT_LENGTH > PAD_SIZE */
 	for(i=0;i<len;i++)
 	{
-		ipad[i] ^= key[i];
-		opad[i] ^= key[i];
+		ipad[index][i] ^= key[i];
+		opad[index][i] ^= key[i];
 	}
 }
 
 static char *get_key(int index)
 {
 #if PLAINTEXT_LENGTH > PAD_SIZE
-	return saved_plain;
+	return saved_plain[index];
 #else
 	unsigned int i;
 	for(i=0;i<PLAINTEXT_LENGTH;i++)
-		saved_plain[i] = ipad[ i ] ^ 0x36;
-	saved_plain[i] = 0;
-	return (char*) saved_plain;
+		saved_plain[index][i] = ipad[index][ i ] ^ 0x36;
+	saved_plain[index][i] = 0;
+	return (char*) saved_plain[index];
 #endif
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
+			return 1;
+	return 0;
 }
 
 static int cmp_exact(char *source, int count)
@@ -152,22 +191,29 @@ static int cmp_exact(char *source, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
 static void crypt_all(int count)
 {
-	SHA512_CTX ctx;
+	int index = 0;
+#ifdef _OPENMP
+#pragma omp parallel for
+	for (index = 0; index < count; index++)
+#endif
+	{
+		SHA512_CTX ctx;
 
-	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, ipad, PAD_SIZE );
-	SHA512_Update( &ctx, cursalt, strlen( (char*) cursalt) );
-	SHA512_Final( (unsigned char*) crypt_key, &ctx);
+		SHA512_Init( &ctx );
+		SHA512_Update( &ctx, ipad[index], PAD_SIZE );
+		SHA512_Update( &ctx, cursalt, strlen( (char*) cursalt) );
+		SHA512_Final( (unsigned char*) crypt_key[index], &ctx);
 
-	SHA512_Init( &ctx );
-	SHA512_Update( &ctx, opad, PAD_SIZE );
-	SHA512_Update( &ctx, crypt_key, BINARY_SIZE);
-	SHA512_Final( (unsigned char*) crypt_key, &ctx);
+		SHA512_Init( &ctx );
+		SHA512_Update( &ctx, opad[index], PAD_SIZE );
+		SHA512_Update( &ctx, crypt_key[index], BINARY_SIZE);
+		SHA512_Final( (unsigned char*) crypt_key[index], &ctx);
+	}
 }
 
 static void *binary(char *ciphertext)
@@ -205,21 +251,23 @@ struct fmt_main fmt_hmacSHA512 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		tests
 	}, {
-		fmt_default_init,
+		init,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		salt,
 		{
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -228,11 +276,13 @@ struct fmt_main fmt_hmacSHA512 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

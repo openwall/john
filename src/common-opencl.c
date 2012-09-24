@@ -209,21 +209,17 @@ static void build_kernel_from_binary(int dev_id)
    this function */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
-	opencl_find_best_workgroup_vector(self, UINT_MAX, 1);
+	opencl_find_best_workgroup_limit(self, UINT_MAX);
 }
 
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit)
-{
-	opencl_find_best_workgroup_vector(self, group_size_limit, 1);
-}
-
-void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_limit, int vector_size)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
 	cl_int ret_code;
 	int i, numloops;
-	size_t orig_group_size, max_group_size, wg_multiple, sumStartTime, sumEndTime;
+	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
+	char *temp;
 
 	if (get_device_version(ocl_gpu_id) < 110) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
@@ -239,9 +235,6 @@ void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_
 	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
         }
 
-	orig_group_size = global_work_size;
-	global_work_size = self->params.max_keys_per_crypt / vector_size;
-
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
@@ -250,6 +243,18 @@ void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_
         if (max_group_size > group_size_limit)
             //Needed to deal (at least) with cryptsha512-opencl limits.
             max_group_size = group_size_limit;
+
+	// Environment variable override
+	if ((temp = getenv("LWS"))) {
+		local_work_size = atoi(temp);
+		if (local_work_size > max_group_size) {
+			fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n",
+			        (int)local_work_size, (int)max_group_size);
+			local_work_size = max_group_size;
+		}
+		if (local_work_size > 0)
+			return;
+	}
 
 	// Safety harness
 	if (wg_multiple > max_group_size)
@@ -337,7 +342,6 @@ void opencl_find_best_workgroup_vector(struct fmt_main *self, size_t group_size_
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 	//fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
-	global_work_size = orig_group_size;
 }
 
 void opencl_get_dev_info(unsigned int dev_id)
