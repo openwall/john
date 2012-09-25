@@ -29,13 +29,16 @@
 #include "common-opencl.h"
 #include "config.h"
 
+/* These must match kernel's defines */
+#define PLAINTEXT_LENGTH	51
+#define UNICODE_LENGTH		104 /* In octets, including 0x80 */
+#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
+
 #define FORMAT_LABEL		"office2010-opencl"
 #define FORMAT_NAME		"Office 2010 SHA-1 AES"
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	51
-#define UNICODE_LENGTH		104 /* In octets, including 0x80 */
 #define BINARY_SIZE		0
 #define SALT_LENGTH		16
 #define SALT_SIZE		sizeof(*cur_salt)
@@ -77,7 +80,7 @@ static unsigned char *key;	/* Output key from kernel */
 static int new_keys, *spincount;
 
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key, cl_spincount;
-static cl_kernel GenerateSHA1pwhash, Hash1k, Generate2010key;
+static cl_kernel GenerateSHA1pwhash, HashLoop, Generate2010key;
 
 static void create_clobj(int gws, struct fmt_main *self)
 {
@@ -126,7 +129,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(GenerateSHA1pwhash, 3, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 3");
 
-	HANDLE_CLERROR(clSetKernelArg(Hash1k, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(HashLoop, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
 
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 1, sizeof(cl_mem), (void*)&cl_key), "Error setting argument 1");
@@ -238,8 +241,8 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 		return 0;
 	}
 
-	for (i = 0; i < *spincount / 1024; i++) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, Hash1k, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+	for (i = 0; i < *spincount / HASH_LOOPS; i++) {
+		ret_code = clEnqueueNDRangeKernel(queue_prof, HashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 			clReleaseCommandQueue(queue_prof);
@@ -332,7 +335,7 @@ static void init(struct fmt_main *self)
 	// create kernel to execute
 	GenerateSHA1pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA1pwhash", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = Hash1k = clCreateKernel(program[ocl_gpu_id], "Hash1k", &ret_code);
+	crypt_kernel = HashLoop = clCreateKernel(program[ocl_gpu_id], "HashLoop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	Generate2010key = clCreateKernel(program[ocl_gpu_id], "Generate2010key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -362,7 +365,7 @@ static void init(struct fmt_main *self)
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA1pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
 	maxsize /= VF;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Hash1k, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(HashLoop, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Generate2010key, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
@@ -451,8 +454,8 @@ static void crypt_all(int count)
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
-	for (index = 0; index < *spincount / 1024; index++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Hash1k, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	for (index = 0; index < *spincount / HASH_LOOPS; index++)
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], HashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2010key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
