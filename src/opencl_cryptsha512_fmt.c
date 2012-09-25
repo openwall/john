@@ -27,6 +27,7 @@
 
 #define LWS_CONFIG			"sha512crypt_LWS"
 #define GWS_CONFIG			"sha512crypt_GWS"
+#define DUR_CONFIG			"sha512crypt_MaxDuration"
 
 static sha512_salt         * salt;
 static sha512_password     *plaintext;        // plaintext ciphertexts
@@ -212,7 +213,7 @@ static void release_clobj(void) {
 }
 
 /* ------- Salt functions ------- */
-static void *get_salt(char *ciphertext) {
+static void * get_salt(char *ciphertext) {
     static sha512_salt out;
     int len;
 
@@ -264,7 +265,7 @@ static void set_key(char *key, int index) {
     new_keys = 1;
 }
 
-static char *get_key(int index) {
+static char * get_key(int index) {
     static char ret[PLAINTEXT_LENGTH + 1];
     memcpy(ret, plaintext[index].pass, PLAINTEXT_LENGTH);
     ret[plaintext[index].length] = '\0';
@@ -314,22 +315,119 @@ static int get_step(size_t num, int step, int startup){
     return num + step;
 }
 
+//Do the proper test using different sizes.
+static cl_ulong gws_test(size_t num) {
+
+    cl_event myEvent;
+    cl_int ret_code;
+    cl_uint *tmpbuffer;
+    cl_ulong startTime, endTime, runtime;
+    int i;
+
+    //Prepare buffers.
+    create_clobj(num);
+
+    tmpbuffer = mem_alloc(sizeof(sha512_hash) * num);
+
+    if (tmpbuffer == NULL) {
+        fprintf(stderr, "Malloc failure in find_best_gws\n");
+        exit(EXIT_FAILURE);
+    }
+
+    queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id],
+            CL_QUEUE_PROFILING_ENABLE, &ret_code);
+    HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
+
+    // Set salt.
+    set_salt(get_salt("$6$saltstring$"));
+
+    // Set keys
+    for (i = 0; i < num; i++) {
+        set_key("aaabaabaaa", i);
+    }
+    //** Get execution time **//
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
+            sizeof(sha512_salt), salt, 0, NULL, &myEvent),
+            "Failed in clEnqueueWriteBuffer");
+
+    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &startTime, NULL),
+            "Failed in clGetEventProfilingInfo I");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL),
+            "Failed in clGetEventProfilingInfo II");
+    runtime = endTime - startTime;
+
+    //** Get execution time **//
+    HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
+            sizeof(sha512_password) * num, plaintext, 0, NULL, &myEvent),
+            "Failed in clEnqueueWriteBuffer");
+
+    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &startTime, NULL),
+            "Failed in clGetEventProfilingInfo I");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL),
+            "Failed in clGetEventProfilingInfo II");
+    runtime = endTime - startTime;
+
+    //** Get execution time **//
+    ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+            1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
+
+    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &startTime, NULL),
+            "Failed in clGetEventProfilingInfo I");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL),
+            "Failed in clGetEventProfilingInfo II");
+    runtime += endTime - startTime;
+
+    //** Get execution time **//
+    HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
+            sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, &myEvent),
+            "Failed in clEnqueueReadBuffer");
+
+    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &startTime, NULL),
+            "Failed in clGetEventProfilingInfo I");
+    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL),
+            "Failed in clGetEventProfilingInfo II");
+    runtime += endTime - startTime;
+
+    MEM_FREE(tmpbuffer);
+    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
+            "Failed in clReleaseCommandQueue");
+    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
+    release_clobj();
+
+     if (ret_code != CL_SUCCESS) {
+
+        if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
+            fprintf(stderr, "Error %d\n", ret_code);
+        return 0;
+    }
+    return runtime;
+}
+
 /* --
   This function could be used to calculated the best num
   of keys per crypt for the given format
 -- */
 static void find_best_gws(void) {
-    size_t num;
-    cl_event myEvent;
-    cl_ulong startTime, endTime, run_time, min_time = CL_ULONG_MAX;
-    cl_int ret_code;
-    cl_uint *tmpbuffer;
-    int optimal_gws = MIN_KEYS_PER_CRYPT, i, step = STEP;
+    size_t num = 0;
+    cl_ulong run_time, min_time = CL_ULONG_MAX;
+
+    int optimal_gws = MIN_KEYS_PER_CRYPT, step = STEP;
     int do_benchmark = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
+    unsigned long long int max_run_time = 10000000000ULL;
     char *tmp_value;
-
-    fprintf(stderr, "Calculating best global work size, this will take a while\n");
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -337,63 +435,25 @@ static void find_best_gws(void) {
         do_benchmark = 1;
     }
 
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+        max_run_time = atoi(tmp_value) * 1000000000UL;
+
+    fprintf(stderr, "Calculating best global work size (GWS) for LWS=%zd and max. %llu s duration.\n\n",
+            local_work_size, max_run_time / 1000000000ULL);
+
+    if (do_benchmark)
+        fprintf(stderr, "Raw speed figures including buffer transfers:\n");
+
     for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT;
          num = get_step(num, step, 0)) {
-        release_clobj();
-        create_clobj(num);
 
-        if (! do_benchmark)
+	if (! (run_time = gws_test(num)))
+            continue;
+
+        if (!do_benchmark)
             advance_cursor();
 
-        tmpbuffer = mem_alloc(sizeof(sha512_hash) * num);
-
-        if (tmpbuffer == NULL) {
-            fprintf (stderr, "Malloc failure in find_best_gws\n");
-            exit (EXIT_FAILURE);
-        }
-
-        queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id],
-                CL_QUEUE_PROFILING_ENABLE, &ret_code);
-        HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
-
-        // Set salt.
-        set_salt(get_salt("$6$saltstring$"));
-
-        // Set keys
-        for (i = 0; i < num; i++) {
-            set_key("aaabaabaaa", i);
-        }
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
-                sizeof(sha512_salt), salt, 0, NULL, NULL),
-                "Failed in clEnqueueWriteBuffer I");
-        HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
-                sizeof (sha512_password) * num, plaintext, 0, NULL, NULL),
-                "Failed in clEnqueueWriteBuffer II");
-        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-                1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
-        HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
-                sizeof (sha512_hash) * num, tmpbuffer, 0, NULL, NULL),
-                "Failed in clEnqueueReadBuffer");
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-
-        if (ret_code != CL_SUCCESS) {
-            fprintf(stderr, "Error %d\n", ret_code);
-            continue;
-        }
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-                sizeof (cl_ulong), &startTime, NULL),
-                "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-                sizeof (cl_ulong), &endTime, NULL),
-                "Failed in clGetEventProfilingInfo II");
-
-        MEM_FREE(tmpbuffer);
-        HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-
-        run_time = endTime - startTime;
-	SHAspeed = 5000 * num / (run_time / 1000000000.);
+        SHAspeed = 5000 * num / (run_time / 1000000000.);
 
         if (run_time < min_time)
             min_time = run_time;
@@ -403,12 +463,12 @@ static void find_best_gws(void) {
                     num, (long) (num / (run_time / 1000000000.)), SHAspeed,
                     (float) run_time / 1000000000.);
 
-            if (run_time > 10000000000ULL) {
+            if (run_time > max_run_time) {
                 fprintf(stderr, " - too slow\n");
                 break;
             }
         } else {
-            if (run_time > min_time * 10 || run_time > 10000000000ULL)
+            if (run_time > min_time * 10 || run_time > max_run_time)
                 break;
         }
         if (SHAspeed > (1.01 * bestSHAspeed)) {
@@ -425,7 +485,6 @@ static void find_best_gws(void) {
         GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
     global_work_size = optimal_gws;
-    release_clobj();
     create_clobj(optimal_gws);
 }
 
@@ -469,14 +528,17 @@ static void init(struct fmt_main *self) {
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
+
     if (source_in_use != device_info[ocl_gpu_id]) {
         device_info[ocl_gpu_id] = source_in_use;
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
     }
 
-
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
+        local_work_size = atoi(tmp_value);
+
+    if ((tmp_value = getenv("LWS")))
         local_work_size = atoi(tmp_value);
 
     //Check if local_work_size is a valid number.
@@ -507,7 +569,6 @@ static void init(struct fmt_main *self) {
     else {
         //user chose to die of boredom
         global_work_size = get_task_max_size();
-        create_clobj(global_work_size);
         find_best_gws();
     }
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
