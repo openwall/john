@@ -7,7 +7,7 @@
  
 #include "opencl_DES_WGS.h"
  
-#define DES_BS_EXPAND 			1 
+ 
 #define ARCH_WORD     			int
 #define DES_BS_DEPTH                    32
 #define DES_bs_vector                   ARCH_WORD
@@ -131,7 +131,7 @@ typedef struct{
 	kvand_shl_or(vb, v5, m, 5); \
 	kvand_shl_or(va, v6, m, 6); \
 	kvand_shl_or(vb, v7, m, 7); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -145,7 +145,7 @@ typedef struct{
 	kvand_shl_or(vb, v5, m, 4); \
 	kvand_shl_or(va, v6, m, 5); \
 	kvand_shl_or(vb, v7, m, 6); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -159,7 +159,7 @@ typedef struct{
 	kvand_shl_or(vb, v5, m, 3); \
 	kvand_shl_or(va, v6, m, 4); \
 	kvand_shl_or(vb, v7, m, 5); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -173,7 +173,7 @@ typedef struct{
 	kvand_shl_or(vb, v5, m, 2); \
 	kvand_shl_or(va, v6, m, 3); \
 	kvand_shl_or(vb, v7, m, 4); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -187,7 +187,7 @@ typedef struct{
 	kvand_shl1_or(vb, v5, m); \
 	kvand_shl_or(va, v6, m, 2); \
 	kvand_shl_or(vb, v7, m, 3); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -201,7 +201,7 @@ typedef struct{
 	kvand_or(vb, v5, m); \
 	kvand_shl1_or(va, v6, m); \
 	kvand_shl_or(vb, v7, m, 2); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -215,7 +215,7 @@ typedef struct{
 	kvand_shr_or(vb, v5, m, 1); \
 	kvand_or(va, v6, m); \
 	kvand_shl1_or(vb, v7, m); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 }
 
@@ -229,13 +229,15 @@ typedef struct{
 	kvand_shr_or(vb, v5, m, 2); \
 	kvand_shr_or(va, v6, m, 1); \
 	kvand_or(vb, v7, m); \
-	kvor(*(__local kvtype *)kp, va, vb); \
+	kvor(kp[0], va, vb); \
 	kp++; \
 
-inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_transfer *DES_bs_all,int local_offset_K, __local DES_bs_vector *K)
+inline void DES_bs_finalize_keys( unsigned int section,
+				  __global DES_bs_transfer *DES_bs_all,
+				  int local_offset_K, 
+				  __local DES_bs_vector *K )
 
 { 
-	
 		__local DES_bs_vector *kp = (__local DES_bs_vector *)&K[local_offset_K] ;
 		
 		int ic ;
@@ -250,8 +252,7 @@ inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_transfer *
 			FINALIZE_NEXT_KEY_BIT_4
 			FINALIZE_NEXT_KEY_BIT_5
 			FINALIZE_NEXT_KEY_BIT_6
-		
-		
+			
 	}
 
 }
@@ -259,21 +260,15 @@ inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_transfer *
 
 #include "opencl_sboxes.h"
 
-#define bd
-#define ed				[0]
-
-
-
-
 #define DES_bs_clear_block_8(j) \
-		vst_private(B[j] bd, 0, zero); \
-		vst_private(B[j] bd, 1, zero); \
-		vst_private(B[j] bd, 2, zero); \
-		vst_private(B[j] bd, 3, zero); \
-		vst_private(B[j] bd, 4, zero); \
-		vst_private(B[j] bd, 5, zero); \
-		vst_private(B[j] bd, 6, zero); \
-		vst_private(B[j] bd, 7, zero); 
+		vst_private(B[j] , 0, zero); \
+		vst_private(B[j] , 1, zero); \
+		vst_private(B[j] , 2, zero); \
+		vst_private(B[j] , 3, zero); \
+		vst_private(B[j] , 4, zero); \
+		vst_private(B[j] , 5, zero); \
+		vst_private(B[j] , 6, zero); \
+		vst_private(B[j] , 7, zero); 
 
 #define DES_bs_clear_block \
 	DES_bs_clear_block_8(0); \
@@ -285,30 +280,33 @@ inline void DES_bs_finalize_keys(unsigned int section,__global DES_bs_transfer *
 	DES_bs_clear_block_8(48); \
 	DES_bs_clear_block_8(56);
 
-#define x(p) vxorf(*(__private vtype *)&B[index96[p] ], *(__local vtype *)&_local_K[index768[p+k] + local_offset_K])
-#define y(p, q) vxorf(*(__private vtype *)&B[p] bd, *(__local vtype *)&_local_K[index768[q+k] + local_offset_K])
-#define z(r) ((__private vtype *)&B[r] bd)
+#define x(p) vxorf(B[index96[p] ], _local_K[_local_index768[p+k] + local_offset_K])
+#define y(p, q) vxorf(B[p] , _local_K[_local_index768[q+k] + local_offset_K])
 
- __kernel void DES_bs_25(constant uint *index768 __attribute__((max_constant_size(3072))), __global int *index96 ,__global DES_bs_transfer *DES_bs_all,__global DES_bs_vector *B_global)
+ __kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))), 
+			  __global int *index96 ,
+			  __global DES_bs_transfer *DES_bs_all,
+			  __global DES_bs_vector *B_global )
  {
-		unsigned int section = get_global_id(0), global_offset_B ,i,local_offset_K;
+		unsigned int section = get_global_id(0), global_offset_B , local_offset_K;
 		unsigned int local_id = get_local_id(0); 
+		 
 		global_offset_B = 64*section;
-		local_offset_K = 56*local_id;
+		local_offset_K  = 56*local_id;
 		
 		vtype B[64]; 
 				
 		__local DES_bs_vector _local_K[56*WORK_GROUP_SIZE] ;
-				
+		__local ushort _local_index768[768] ;
+		
 		int iterations, rounds_and_swapped;
 		
-		long int k=0;
-		
+		long int k=0,i;
 					
 		if (DES_bs_all[section].keys_changed)
 			goto finalize_keys;
 				
-body:
+body:		
 		{
 			vtype zero = vzero;
 			DES_bs_clear_block
@@ -318,6 +316,11 @@ body:
 		rounds_and_swapped = 8;
 		iterations = 25;
 		
+		if(!local_id )
+			for(i=0;i<768;i++)
+				_local_index768[i] = index768[i];
+		
+		barrier(CLK_LOCAL_MEM_FENCE);
 
 start:
 				
@@ -385,17 +388,15 @@ swap:
 			B,4, 26, 14, 20);
 		
 		k += 96;
-			
-
+		
 		if (--rounds_and_swapped) goto start;
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
 		
 		for(i=0;i<64; i++)
-		B_global[global_offset_B +i] = (DES_bs_vector)B[i] ;
-		
-		barrier(CLK_GLOBAL_MEM_FENCE);	
+			B_global[global_offset_B +i] = (DES_bs_vector)B[i] ;
+			
 		return;
 		
 		
