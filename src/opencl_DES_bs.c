@@ -205,18 +205,32 @@ init_index(LM);
 
 }
 
-
 void opencl_DES_bs_set_key(char *key, int index)
 {
 	unsigned char *dst;
 	unsigned int sector,key_index;
+	unsigned int flag=key[0];
 	init_t();
 	sector = index/DES_BS_DEPTH;
 	key_index = index % DES_BS_DEPTH;
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
 	opencl_DES_bs_data[sector].keys_changed = 1;
-
+	
+	dst[0] = 				(!flag)?0:key[0];
+	dst[sizeof(DES_bs_vector) * 8]      =	(!flag)?0:key[1];
+	flag = flag&&key[1] ;
+	dst[sizeof(DES_bs_vector) * 8 * 2]  =	(!flag)?0:key[2];
+	flag = flag&&key[2];
+	dst[sizeof(DES_bs_vector) * 8 * 3]  =	(!flag)?0:key[3];
+	flag = flag&&key[3];
+	dst[sizeof(DES_bs_vector) * 8 * 4]  =	(!flag)?0:key[4];
+	flag = flag&&key[4]&&key[5];
+	dst[sizeof(DES_bs_vector) * 8 * 5]  =	(!flag)?0:key[5];
+	flag = flag&&key[6];
+	dst[sizeof(DES_bs_vector) * 8 * 6]  =	(!flag)?0:key[6];
+	dst[sizeof(DES_bs_vector) * 8 * 7]  =	(!flag)?0:key[7];
+/*
 	if (!key[0]) goto fill8;
 	*dst = key[0];
 	*(dst + sizeof(DES_bs_vector) * 8) = key[1];
@@ -246,6 +260,7 @@ fill3:
 fill2:
 	dst[sizeof(DES_bs_vector) * 8 * 6] = 0;
 	dst[sizeof(DES_bs_vector) * 8 * 7] = 0;
+	*/
 }
 /*
 void opencl_DES_bs_set_key_LM(char *key, int index)

@@ -12,7 +12,7 @@
 #include "formats.h"
 
 #define FORMAT_LABEL			"des-opencl"
-#define FORMAT_NAME			"DES BS"
+#define FORMAT_NAME			"Traditional DES"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -33,7 +33,7 @@ static struct fmt_tests tests[] = {
 
 #include "opencl_DES_bs.h"
 
-#define ALGORITHM_NAME			DES_BS_ALGORITHM_NAME
+#define ALGORITHM_NAME			DES_BS_OPENCL_ALGORITHM_NAME
 
 #define BINARY_SIZE			ARCH_SIZE
 #define SALT_SIZE			ARCH_SIZE
