@@ -286,12 +286,12 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	// Timing run
 	self->methods.crypt_all(self->params.max_keys_per_crypt);
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
-	clGetEventProfilingInfo(profilingEvent,
-	    CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-	    NULL);
-	clGetEventProfilingInfo(profilingEvent,
-	    CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-	    NULL);
+	HANDLE_CLERROR(clGetEventProfilingInfo(profilingEvent,
+			CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(profilingEvent,
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
 	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
 
 	if (numloops < 1)
@@ -318,12 +318,12 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
 			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
-			clGetEventProfilingInfo(profilingEvent,
-			                        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-			                        NULL);
-			clGetEventProfilingInfo(profilingEvent,
-			                        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-			                        NULL);
+			HANDLE_CLERROR(clGetEventProfilingInfo(profilingEvent,
+                                       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+                                       NULL), "Failed to get profiling info");
+			HANDLE_CLERROR(clGetEventProfilingInfo(profilingEvent,
+                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+                                       NULL), "Failed to get profiling info");
 			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime, startTime, (endTime-startTime));
 			sumStartTime += startTime;
 			sumEndTime += endTime;
