@@ -21,7 +21,9 @@
 #define USE_BITSELECT
 #endif
 
+/* These must match the format's defines */
 #define UNICODE_LENGTH		104 /* 51 characters + 0x80 */
+#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
 
 #ifdef SCALAR
 inline uint SWAP32(uint x)
@@ -420,7 +422,7 @@ __kernel void GenerateSHA1pwhash(
 #endif
 }
 
-__kernel void Hash1k(__global MAYBE_VECTOR_UINT *pwhash)
+__kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 {
 	uint i, j;
 	MAYBE_VECTOR_UINT block[16];
@@ -436,9 +438,9 @@ __kernel void Hash1k(__global MAYBE_VECTOR_UINT *pwhash)
 	for (i = 0; i < 5; i++)
 		output[i] = pwhash[gid * 6 + i];
 
-	/* 1K rounds of sha1(serial.last hash)
+	/* HASH_LOOPS rounds of sha1(serial.last hash)
 	 * We avoid byte-swapping back and forth */
-	for (j = 0; j < 1024; j++)
+	for (j = 0; j < HASH_LOOPS; j++)
 	{
 		block[0] = SWAP32(base + j);
 #pragma unroll
@@ -455,7 +457,7 @@ __kernel void Hash1k(__global MAYBE_VECTOR_UINT *pwhash)
 #pragma unroll
 	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
-	pwhash[gid * 6 + 5] += 1024;
+	pwhash[gid * 6 + 5] += HASH_LOOPS;
 }
 
 __kernel void Generate2007key(
@@ -472,7 +474,7 @@ __kernel void Generate2007key(
 		output[i] = pwhash[gid * 6 + i];
 	/* Remainder of sha1(serial.last hash)
 	 * We avoid byte-swapping back and forth */
-	for (j = 49152; j < 50000; j++)
+	for (j = 50000 - (50000 % HASH_LOOPS); j < 50000; j++)
 	{
 		block[0] = SWAP32(j);
 #pragma unroll
