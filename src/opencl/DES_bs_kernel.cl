@@ -6,6 +6,7 @@
  */
  
 #include "opencl_DES_WGS.h"
+#include "opencl_device_info.h"
  
  
 #define ARCH_WORD     			int
@@ -13,6 +14,10 @@
 #define DES_bs_vector                   ARCH_WORD
 
 typedef unsigned ARCH_WORD vtype;
+
+#if no_byte_addressable(DEVICE_INFO)
+#define RV7xx
+#endif
 
 #if 1
 #define MAYBE_GLOBAL __global
@@ -280,15 +285,20 @@ inline void DES_bs_finalize_keys( unsigned int section,
 	DES_bs_clear_block_8(48); \
 	DES_bs_clear_block_8(56);
 
+#ifndef RV7xx 	
 #define x(p) vxorf(B[index96[p] ], _local_K[_local_index768[p+k] + local_offset_K])
-#define y(p, q) vxorf(B[p] , _local_K[_local_index768[q+k] + local_offset_K])
+#define y(p, q) vxorf(B[p]       , _local_K[_local_index768[q+k] + local_offset_K])
+#else
+#define x(p) vxorf(B[index96[p] ], _local_K[index768[p+k] + local_offset_K])
+#define y(p, q) vxorf(B[p]       , _local_K[index768[q+k] + local_offset_K])
+#endif
 
  __kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))), 
 			  __global int *index96 ,
 			  __global DES_bs_transfer *DES_bs_all,
 			  __global DES_bs_vector *B_global )
  {
-		unsigned int section = get_global_id(0), global_offset_B , local_offset_K;
+		unsigned int section = get_global_id(0), global_offset_B ,local_offset_K;
 		unsigned int local_id = get_local_id(0); 
 		 
 		global_offset_B = 64*section;
@@ -297,8 +307,9 @@ inline void DES_bs_finalize_keys( unsigned int section,
 		vtype B[64]; 
 				
 		__local DES_bs_vector _local_K[56*WORK_GROUP_SIZE] ;
+#ifndef RV7xx
 		__local ushort _local_index768[768] ;
-		
+#endif		
 		int iterations, rounds_and_swapped;
 		
 		long int k=0,i;
@@ -315,12 +326,14 @@ body:
 		k=0;
 		rounds_and_swapped = 8;
 		iterations = 25;
-		
+
+#ifndef RV7xx		
 		if(!local_id )
 			for(i=0;i<768;i++)
 				_local_index768[i] = index768[i];
 		
 		barrier(CLK_LOCAL_MEM_FENCE);
+#endif
 
 start:
 				
