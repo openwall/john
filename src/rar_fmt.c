@@ -9,9 +9,15 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * This program uses code present in the public domain unrar utility written by
- * Alexander Roshal (http://www.rarlab.com/rar/unrarsrc-4.0.7.tar.gz).
- * Specifically, lines 240 to 274 from crypt.cpp are used.
+ * This code is based on the work of Alexander L. Roshal (C)
+ *
+ * The unRAR sources may be used in any software to handle RAR
+ * archives without limitations free of charge, but cannot be used
+ * to re-create the RAR compression algorithm, which is proprietary.
+ * Distribution of modified unRAR sources in separate form or as a
+ * part of other software is permitted, provided that it is clearly
+ * stated in the documentation and source comments that the code may
+ * not be used to develop a RAR (WinRAR) compatible archiver.
  *
  * Huge thanks to Marc Bevand <m.bevand (at) gmail.com> for releasing unrarhp
  * (http://www.zorinaq.com/unrarhp/) and documenting the RAR encryption scheme.
@@ -19,6 +25,8 @@
  *
  * http://anrieff.net/ucbench/technical_qna.html is another useful reference
  * for RAR encryption scheme.
+ *
+ * Thanks also to Pavel Semjanov for crucial help with Huffman table checks.
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
  * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*0*archive_name*offset-for-ciphertext*method:type::file_name

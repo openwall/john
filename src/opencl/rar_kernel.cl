@@ -4,6 +4,17 @@
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
+ *
+ * This code is based on the work of Alexander L. Roshal (C)
+ *
+ * The unRAR sources may be used in any software to handle RAR
+ * archives without limitations free of charge, but cannot be used
+ * to re-create the RAR compression algorithm, which is proprietary.
+ * Distribution of modified unRAR sources in separate form or as a
+ * part of other software is permitted, provided that it is clearly
+ * stated in the documentation and source comments that the code may
+ * not be used to develop a RAR (WinRAR) compatible archiver.
+ *
  */
 
 #include "opencl_device_info.h"
