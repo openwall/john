@@ -284,12 +284,29 @@ static void * get_salt(char *ciphertext) {
     //Put the tranfered salt on salt buffer.
     memcpy(out.salt, ciphertext, len);
     out.length = len;
+    out.initial = get_multiple(out.rounds, HASH_LOOPS);
+    
     return &out;
 }
 
 static void set_salt(void * salt_info) {
 
     salt = salt_info;
+}
+
+// Public domain hash function by DJ Bernstein
+// We are hashing the entire struct
+static int salt_hash(void *salt) {
+    unsigned char *s = salt;
+    unsigned int hash = 5381;
+    unsigned int i;
+    //sha512_salt * salt_data = salt;
+
+    for (i = 0; i < sizeof(sha512_salt); i++) {
+        hash = ((hash << 5) + hash) ^ s[i];
+    printf("%c", s[i]);
+    }printf(", %d \n", (hash & (SALT_HASH_SIZE - 1)));
+    return hash & (SALT_HASH_SIZE - 1);
 }
 
 /* ------- Key functions ------- */
@@ -678,39 +695,23 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 	out[b3] = value;
 
 static void * get_binary(char *ciphertext) {
-	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
-	ARCH_WORD_32 value;
-	char *pos;
-	unsigned char *out = (unsigned char*)outbuf;
+    static ARCH_WORD_32 outbuf[BINARY_SIZE / 4];
+    ARCH_WORD_32 value;
+    char *pos = strrchr(ciphertext, '$') + 1;
+    unsigned char *out = (unsigned char*) outbuf;
+    int i = 0;
 
-	pos = strrchr(ciphertext, '$') + 1;
-
-	TO_BINARY(0, 21, 42);
-	TO_BINARY(22, 43, 1);
-	TO_BINARY(44, 2, 23);
-	TO_BINARY(3, 24, 45);
-	TO_BINARY(25, 46, 4);
-	TO_BINARY(47, 5, 26);
-	TO_BINARY(6, 27, 48);
-	TO_BINARY(28, 49, 7);
-	TO_BINARY(50, 8, 29);
-	TO_BINARY(9, 30, 51);
-	TO_BINARY(31, 52, 10);
-	TO_BINARY(53, 11, 32);
-	TO_BINARY(12, 33, 54);
-	TO_BINARY(34, 55, 13);
-	TO_BINARY(56, 14, 35);
-	TO_BINARY(15, 36, 57);
-	TO_BINARY(37, 58, 16);
-	TO_BINARY(59, 17, 38);
-	TO_BINARY(18, 39, 60);
-	TO_BINARY(40, 61, 19);
-	TO_BINARY(62, 20, 41);
-	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
-	out[63] = value; \
-	return (void *) out;
+    do {
+        TO_BINARY(i, (i + 21) % 63, (i + 42) % 63);
+        i = (i + 22) % 63;
+    } while (i != 21);
+    
+    value = (ARCH_WORD_32) atoi64[ARCH_INDEX(pos[0])] |
+            ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[1])] << 6) |
+            ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[2])] << 12);
+    out[63] = value;
+    
+    return (void *) out;
 }
 
 /* ------- Compare functins ------- */
@@ -735,7 +736,6 @@ static int cmp_exact(char *source, int count) {
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
     int i;
-    salt->initial = get_multiple(salt->rounds, HASH_LOOPS);
 
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
@@ -859,7 +859,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 			binary_hash_5,
 			binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,

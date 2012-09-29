@@ -97,9 +97,9 @@ typedef union {
 } buffer_64;
 
 typedef struct {
-    uint32_t                    initial;
     uint32_t                    rounds;
     uint32_t                    length;
+    uint32_t                    initial;
     buffer_64                   salt[SALT_ARRAY];
 } sha512_salt;
 
