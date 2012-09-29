@@ -285,7 +285,7 @@ static void * get_salt(char *ciphertext) {
     memcpy(out.salt, ciphertext, len);
     out.length = len;
     out.initial = get_multiple(out.rounds, HASH_LOOPS);
-    
+
     return &out;
 }
 
@@ -295,17 +295,15 @@ static void set_salt(void * salt_info) {
 }
 
 // Public domain hash function by DJ Bernstein
-// We are hashing the entire struct
+// We are hashing almost the entire struct
 static int salt_hash(void *salt) {
     unsigned char *s = salt;
     unsigned int hash = 5381;
     unsigned int i;
-    //sha512_salt * salt_data = salt;
 
-    for (i = 0; i < sizeof(sha512_salt); i++) {
+    for (i = 0; i < sizeof(sha512_salt); i++)
         hash = ((hash << 5) + hash) ^ s[i];
-    printf("%c", s[i]);
-    }printf(", %d \n", (hash & (SALT_HASH_SIZE - 1)));
+
     return hash & (SALT_HASH_SIZE - 1);
 }
 
@@ -705,12 +703,12 @@ static void * get_binary(char *ciphertext) {
         TO_BINARY(i, (i + 21) % 63, (i + 42) % 63);
         i = (i + 22) % 63;
     } while (i != 21);
-    
+
     value = (ARCH_WORD_32) atoi64[ARCH_INDEX(pos[0])] |
             ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[1])] << 6) |
             ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[2])] << 12);
     out[63] = value;
-    
+
     return (void *) out;
 }
 
