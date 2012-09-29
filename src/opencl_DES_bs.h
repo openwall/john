@@ -13,9 +13,8 @@
 #include "common-opencl.h"
 #include "opencl_DES_WGS.h"
 
-#ifndef DES_BS_ALGORITHM_NAME
-#define DES_BS_ALGORITHM_NAME		Traditional DES[OpenCL]
-#endif
+#define DES_BS_OPENCL_ALGORITHM_NAME		"OpenCL"
+
 
 #define DES_BS_DEPTH			32
 
