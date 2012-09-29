@@ -38,12 +38,14 @@
 #define SALT_LENGTH             16
 #define PLAINTEXT_LENGTH        16
 #define CIPHERTEXT_LENGTH	86
+#define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 8)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             64
 #define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
 
+#define HASH_LOOPS              (7*3*2)
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       512
 #define MIN_KEYS_PER_CRYPT      128
@@ -95,6 +97,7 @@ typedef union {
 } buffer_64;
 
 typedef struct {
+    uint32_t                    initial;
     uint32_t                    rounds;
     uint32_t                    length;
     buffer_64                   salt[SALT_ARRAY];
@@ -121,7 +124,7 @@ typedef struct {
 
 typedef struct {
     buffer_64                   alt_result[8];
-    buffer_64                   temp_result[8];
-    buffer_64                   p_sequence[8];
+    buffer_64                   temp_result[SALT_ARRAY];
+    buffer_64                   p_sequence[PLAINTEXT_ARRAY];
 } sha512_buffers;
 #endif

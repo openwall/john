@@ -30,19 +30,20 @@
 #define DUR_CONFIG			"sha512crypt_MaxDuration"
 
 static sha512_salt         * salt;
-static sha512_password     *plaintext;        // plaintext ciphertexts
-static sha512_hash         *calculated_hash;  // calculated hashes
+static sha512_password     * plaintext;        // plaintext ciphertexts
+static sha512_hash         * calculated_hash;  // calculated hashes
 static int                 fast_mode = FALSE;
 
 cl_mem salt_buffer;        //Salt information.
 cl_mem pass_buffer;        //Plaintext buffer.
 cl_mem hash_buffer;        //Hash keys (output).
+cl_mem work_buffer;        //Temporary buffer
 cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
-cl_kernel prepare_kernel, crypt_kernel;
+cl_kernel prepare_kernel, crypt_kernel, final_kernel;
 
-static int new_keys, new_salt;
+static int new_keys, source_in_use;
 
 static struct fmt_tests tests[] = {
     {"$6$LKO/Ute40T3FNF95$6S/6T2YuOIHY0N3XpLKABJ3soYcXD9mB7uVbtEZDj/LNscVhZoZ9DEH.sBciDrMsHOWOoASbNLTypH/5X26gN0", "U*U*U*U*"},
@@ -61,7 +62,6 @@ static struct fmt_tests tests[] = {
     {NULL}
 };
 
-
 /* ------- Helper functions ------- */
 static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 
@@ -71,11 +71,11 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (gpu_amd(device_info[ocl_gpu_id]))
+    if (gpu_amd(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 (sizeof(sha512_password) + sizeof(sha512_ctx) +
-                 sizeof(sha512_buffers));
-    else if (gpu_nvidia(device_info[ocl_gpu_id]))
+                 sizeof(sha512_buffers)) - 1;
+    else if (gpu_nvidia(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 sizeof(sha512_password);
     else
@@ -111,8 +111,8 @@ static size_t get_default_workgroup(){
     size_t max_available;
     max_available = get_task_max_work_group_size();
 
-    if (gpu_nvidia(device_info[ocl_gpu_id]) ||
-       (!cpu(device_info[ocl_gpu_id]) && fast_mode)) {
+    if (gpu_nvidia(source_in_use) ||
+       (!cpu(source_in_use) && fast_mode)) {
         global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
@@ -155,6 +155,10 @@ static void create_clobj(int gws) {
             sizeof(sha512_hash) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
+    work_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE,
+            sizeof(sha512_buffers) * gws, NULL, &ret_code);
+    HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
+
     //Set kernel arguments
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof (cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -163,21 +167,57 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu_amd(device_info[ocl_gpu_id]) && !
-        no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
-           sizeof(sha512_password) * local_work_size,
-           NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
-           sizeof(sha512_buffers) * local_work_size,
-           NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-           sizeof(sha512_ctx) * local_work_size,
-           NULL), "Error setting argument 5");
+    if (gpu_amd(source_in_use)) {
+        //Set prepare kernel arguments
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof (cl_mem),
+            (void *) &salt_buffer), "Error setting argument 0");
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof (cl_mem),
+            (void *) &pass_buffer), "Error setting argument 1");
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof (cl_mem),
+            (void *) &work_buffer), "Error setting argument 2");
 
-    } else if (gpu_nvidia(device_info[ocl_gpu_id]) && !
-               no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
+            sizeof(sha512_password) * local_work_size,
+            NULL), "Error setting argument 3");
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
+            sizeof(sha512_buffers) * local_work_size,
+            NULL), "Error setting argument 4");
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
+            sizeof(sha512_ctx) * local_work_size,
+            NULL), "Error setting argument 5");
+
+        //Set crypt kernel arguments
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof (cl_mem),
+            (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
+            sizeof(sha512_buffers) * local_work_size,
+            NULL), "Error setting argument 4");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
+            sizeof(sha512_ctx) * local_work_size,
+            NULL), "Error setting argument 5");
+
+        //Set final kernel arguments
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof (cl_mem),
+                (void *) &salt_buffer), "Error setting argument 0");
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof (cl_mem),
+                (void *) &pass_buffer), "Error setting argument 1");
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof (cl_mem),
+                (void *) &hash_buffer), "Error setting argument 2");
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof (cl_mem),
+            (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
+
+        //Fast working memory.
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
+            sizeof(sha512_buffers) * local_work_size,
+            NULL), "Error setting argument 4");
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
+            sizeof(sha512_ctx) * local_work_size,
+            NULL), "Error setting argument 5");
+
+    } else if (gpu_nvidia(source_in_use)) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
            sizeof(sha512_password) * local_work_size,
@@ -204,6 +244,8 @@ static void release_clobj(void) {
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(hash_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
+    ret_code = clReleaseMemObject(work_buffer);
+    HANDLE_CLERROR(ret_code, "Error Releasing work_out");
 
     ret_code = clReleaseMemObject(pinned_saved_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
@@ -247,7 +289,6 @@ static void * get_salt(char *ciphertext) {
 static void set_salt(void * salt_info) {
 
     salt = salt_info;
-    new_salt = 1;
 }
 
 /* ------- Key functions ------- */
@@ -322,7 +363,7 @@ static cl_ulong gws_test(size_t num) {
     cl_int ret_code;
     cl_uint *tmpbuffer;
     cl_ulong startTime, endTime, runtime;
-    int i;
+    int i, loops;
 
     //Prepare buffers.
     create_clobj(num);
@@ -340,6 +381,7 @@ static cl_ulong gws_test(size_t num) {
 
     // Set salt.
     set_salt(get_salt("$6$saltstring$"));
+    salt->initial = salt->rounds - get_multiple(salt->rounds, HASH_LOOPS);
 
     // Set keys
     for (i = 0; i < num; i++) {
@@ -371,20 +413,40 @@ static cl_ulong gws_test(size_t num) {
     HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
-    runtime = endTime - startTime;
+    runtime += endTime - startTime;
 
     //** Get execution time **//
-    ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+    if (gpu_amd(source_in_use)) {
+        ret_code = clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
 
-    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
             sizeof(cl_ulong), &startTime, NULL),
             "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
-    runtime += endTime - startTime;
+        runtime += endTime - startTime;
+    }
+
+    loops = gpu_amd(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
+
+    //** Get execution time **//
+    for (i = 0; i < loops; i++)
+    {
+        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+               1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
+
+        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
+            sizeof(cl_ulong), &startTime, NULL),
+            "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
+            sizeof(cl_ulong), &endTime, NULL),
+            "Failed in clGetEventProfilingInfo II");
+        runtime += endTime - startTime;
+    }
 
     //** Get execution time **//
     HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
@@ -490,7 +552,6 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *self) {
-    int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
     uint64_t startTime, runtime;
@@ -508,13 +569,10 @@ static void init(struct fmt_main *self) {
     if (! cpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
 
-        if (! no_byte_addressable(source_in_use)) {
-
-            if (gpu_nvidia(source_in_use))
-                task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-            else if (gpu_amd(source_in_use))
-                task = "$JOHN/cryptsha512_kernel_AMD.cl";
-        }
+        if (gpu_nvidia(source_in_use))
+            task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
+        else if (gpu_amd(source_in_use))
+            task = "$JOHN/cryptsha512_kernel_AMD.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, ocl_gpu_id);
@@ -526,13 +584,17 @@ static void init(struct fmt_main *self) {
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
+    if (gpu_amd(source_in_use)) {
+        prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
+        final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating kernel_final. Double-check kernel name?");
+    }
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
 
-    if (source_in_use != device_info[ocl_gpu_id]) {
-        device_info[ocl_gpu_id] = source_in_use;
+    if (source_in_use != device_info[ocl_gpu_id])
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
-    }
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
@@ -671,18 +733,35 @@ static int cmp_exact(char *source, int count) {
 
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
+    int i;
+    salt->initial = get_multiple(salt->rounds, HASH_LOOPS);
+
     //Send data to device.
-    if (new_salt)
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
             sizeof(sha512_salt), salt, 0, NULL, &profilingEvent),
             "failed in clEnqueueWriteBuffer salt_buffer");
+
     if (new_keys)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
                 sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, &profilingEvent),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
-    HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+    if (gpu_amd(source_in_use)) {
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
+            &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
+            "failed in clEnqueueNDRangeKernel I");
+
+        for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
+            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+                &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
+                "failed in clEnqueueNDRangeKernel");
+        }
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
+            &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
+            "failed in clEnqueueNDRangeKernel II");
+    } else
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
@@ -694,7 +773,6 @@ static void crypt_all(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
     new_keys = 0;
-    new_salt = 0;
 }
 
 /* ------- Binary Hash functions group ------- */
