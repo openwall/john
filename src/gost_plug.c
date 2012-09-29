@@ -531,7 +531,6 @@ int main()
 }
 #endif
 
-#ifndef __GLIBC__
 void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length) {
 	size_t i;
 	unsigned int *pO, *pI;
@@ -542,4 +541,3 @@ void rhash_u32_swap_copy(void* to, int index, const void* from, size_t length) {
 		*pO++ = bswap_32(*pI++);
 	}
 }
-#endif
