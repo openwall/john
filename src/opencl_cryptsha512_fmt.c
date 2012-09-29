@@ -95,7 +95,8 @@ static size_t get_task_max_size(){
         return max_available * KEYS_PER_CORE_CPU;
 
     else
-        return max_available * get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+        return max_available * (gpu_amd(device_info[ocl_gpu_id]) ? 3 : 1) *
+                get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 }
 
 static size_t get_safe_workgroup(){
@@ -104,7 +105,7 @@ static size_t get_safe_workgroup(){
         return 1;
 
     else
-        return 32;
+        return (amd_gcn(device_info[ocl_gpu_id]) ? 64 : 32);
 }
 
 static size_t get_default_workgroup(){
