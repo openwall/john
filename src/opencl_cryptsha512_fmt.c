@@ -621,8 +621,6 @@ static void init(struct fmt_main *self) {
 
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
-        fprintf(stderr, "Error: invalid local work size (LWS). Max value allowed is: %zd\n" ,
-               get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
     self->params.max_keys_per_crypt = global_work_size;
