@@ -236,6 +236,9 @@ void MD5_Go(unsigned char *data, unsigned int len)
 void MD5_Go2(unsigned char *data, unsigned int len, unsigned char *result)
 {
 	unsigned int process = (len + 73) & ~0x3f;
+#if !ARCH_LITTLE_ENDIAN
+	ARCH_WORD_32 w;
+#endif
 
 	// We have a 'specific' destination (not the MD5_out)
 	pMD5_out = (ARCH_WORD_32*)result;
@@ -247,7 +250,6 @@ void MD5_Go2(unsigned char *data, unsigned int len, unsigned char *result)
 	body(data, process);
 
 #if !ARCH_LITTLE_ENDIAN
-		ARCH_WORD_32 w;
 		w = (pMD5_out[0] << 24) |
 			(pMD5_out[0] >> 24) |
 			((pMD5_out[0] << 8) & 0x00ff0000) |
