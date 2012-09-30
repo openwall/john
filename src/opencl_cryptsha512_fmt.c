@@ -301,7 +301,7 @@ static int salt_hash(void *salt) {
     unsigned int hash = 5381;
     unsigned int i;
 
-    for (i = 0; i < sizeof(sha512_salt); i++)
+    for (i = 0; i < SALT_SIZE; i++)
         hash = ((hash << 5) + hash) ^ s[i];
 
     return hash & (SALT_HASH_SIZE - 1);

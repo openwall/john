@@ -42,7 +42,6 @@
 #define SALT_ARRAY              (SALT_LENGTH / 8)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             64
-#define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
 #define STEP                    512
 
 #define HASH_LOOPS              (7*3*2)
@@ -102,6 +101,7 @@ typedef struct {
     uint32_t                    initial;
     buffer_64                   salt[SALT_ARRAY];
 } sha512_salt;
+#define SALT_SIZE               sizeof(sha512_salt)
 
 typedef struct {
     uint32_t                    length;
