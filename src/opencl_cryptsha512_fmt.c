@@ -75,7 +75,7 @@ static size_t get_task_max_work_group_size(){
         max_available = get_local_memory_size(ocl_gpu_id) /
                 (sizeof(sha512_password) + sizeof(sha512_ctx) +
                  sizeof(sha512_buffers)) - 1;
-    else if (gpu_nvidia(source_in_use))
+    else if (gpu(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 sizeof(sha512_password);
     else
@@ -160,20 +160,20 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
 
     //Set kernel arguments
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof (cl_mem),
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof (cl_mem),
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
             (void *) &pass_buffer), "Error setting argument 1");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
     if (gpu(source_in_use)) {
         //Set prepare kernel arguments
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 1, sizeof(cl_mem),
             (void *) &pass_buffer), "Error setting argument 1");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
             (void *) &work_buffer), "Error setting argument 2");
 
         //Fast working memory.
@@ -190,7 +190,7 @@ static void create_clobj(int gws) {
                 NULL), "Error setting argument 5");
         }
         //Set crypt kernel arguments
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
         if (use_local(source_in_use)) {
@@ -203,13 +203,13 @@ static void create_clobj(int gws) {
                 NULL), "Error setting argument 5");
         }
         //Set final kernel arguments
-        HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
                 (void *) &salt_buffer), "Error setting argument 0");
-        HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem),
                 (void *) &pass_buffer), "Error setting argument 1");
-        HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
                 (void *) &hash_buffer), "Error setting argument 2");
-        HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof (cl_mem),
+        HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
         if (use_local(source_in_use)) {
@@ -294,7 +294,7 @@ static void set_salt(void * salt_info) {
 
 // Public domain hash function by DJ Bernstein
 // We are hashing almost the entire struct
-static int salt_hash(void *salt) {
+static int salt_hash(void * salt) {
     unsigned char *s = salt;
     unsigned int hash = 5381;
     unsigned int i;
@@ -306,7 +306,7 @@ static int salt_hash(void *salt) {
 }
 
 /* ------- Key functions ------- */
-static void set_key(char *key, int index) {
+static void set_key(char * key, int index) {
     int len;
 
     //Assure buffer has no "trash data".
@@ -565,7 +565,7 @@ static void find_best_gws(void) {
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main *self) {
+static void init(struct fmt_main * self) {
     char * tmp_value;
     char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
     uint64_t startTime, runtime;
@@ -636,6 +636,9 @@ static void init(struct fmt_main *self) {
     if ((tmp_value = getenv("GWS")))
         global_work_size = atoi(tmp_value);
 
+    //Check if a valid multiple is used.
+    global_work_size = get_multiple(global_work_size, local_work_size);
+
     if (global_work_size)
         create_clobj(global_work_size);
 
@@ -650,7 +653,7 @@ static void init(struct fmt_main *self) {
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
-static int valid(char *ciphertext, struct fmt_main *self) {
+static int valid(char * ciphertext, struct fmt_main * self) {
     char *pos, *start;
 
     if (strncmp(ciphertext, "$6$", 3))
@@ -659,8 +662,8 @@ static int valid(char *ciphertext, struct fmt_main *self) {
     ciphertext += 3;
 
     if (!strncmp(ciphertext, ROUNDS_PREFIX,
-            sizeof (ROUNDS_PREFIX) - 1)) {
-        const char *num = ciphertext + sizeof (ROUNDS_PREFIX) - 1;
+            sizeof(ROUNDS_PREFIX) - 1)) {
+        const char *num = ciphertext + sizeof(ROUNDS_PREFIX) - 1;
         char *endp;
         if (!strtoul(num, &endp, 10))
                     return 0;
@@ -687,7 +690,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 	out[b2] = value >> 8; \
 	out[b3] = value;
 
-static void * get_binary(char *ciphertext) {
+static void * get_binary(char * ciphertext) {
     static ARCH_WORD_32 outbuf[BINARY_SIZE / 4];
     ARCH_WORD_32 value;
     char *pos = strrchr(ciphertext, '$') + 1;
@@ -708,7 +711,7 @@ static void * get_binary(char *ciphertext) {
 }
 
 /* ------- Compare functins ------- */
-static int cmp_all(void *binary, int count) {
+static int cmp_all(void * binary, int count) {
     uint32_t i;
     uint64_t b = ((uint64_t *) binary)[0];
 
@@ -718,11 +721,11 @@ static int cmp_all(void *binary, int count) {
     return 0;
 }
 
-static int cmp_one(void *binary, int index) {
+static int cmp_one(void * binary, int index) {
     return !memcmp(binary, (void *) &calculated_hash[index], BINARY_SIZE);
 }
 
-static int cmp_exact(char *source, int count) {
+static int cmp_exact(char * source, int count) {
     return 1;
 }
 
@@ -782,10 +785,6 @@ static void print_binary(void * binary) {
 
 static void print_hash() {
     int i;
-
-    for (i = 0; i < global_work_size; i++)
-        if (calculated_hash[i].v[0] == 12)
-            fprintf(stderr, "Value: %lu, %d\n ", calculated_hash[i].v[0], i);
 
     fprintf(stderr, "\n");
     for (i = 0; i < 8; i++)

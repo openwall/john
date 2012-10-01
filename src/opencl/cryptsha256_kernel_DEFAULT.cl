@@ -279,6 +279,10 @@ inline void finish_ctx(sha256_ctx * ctx) {
 
 inline void clear_ctx_buffer(sha256_ctx * ctx) {
 
+#ifdef VECTOR_USAGE
+    uint16  w_vector = 0;
+    vstore16(w_vector, 0, ctx->buffer->mem_32);
+#else
     uint64_t * l = (uint64_t *) ctx->buffer;
 
 #ifdef UNROLL
@@ -286,12 +290,21 @@ inline void clear_ctx_buffer(sha256_ctx * ctx) {
 #endif
     for (int i = 0; i < 8; i++)
         *l++ = 0;
+#endif
 
     ctx->buflen = 0;
 }
 
-inline void sha256_digest(sha256_ctx * ctx,
-                   uint32_t   * result) {
+inline void sha256_digest_move(sha256_ctx * ctx,
+                               uint32_t   * result,
+                               const int size) {
+
+    #pragma unroll
+    for (int i = 0; i < size; i++)
+        result[i] = SWAP32(ctx->H[i]);
+}
+
+inline void sha256_digest(sha256_ctx * ctx) {
 
     if (ctx->buflen <= 55) { //data+0x80+datasize fits in one 512bit block
         finish_ctx(ctx);
@@ -311,18 +324,12 @@ inline void sha256_digest(sha256_ctx * ctx,
         ctx_add_length(ctx);
     }
     sha256_block(ctx);
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 0; i < 8; i++)
-        result[i] = SWAP32(ctx->H[i]);
 }
 
 inline void sha256_prepare(__constant sha256_salt     * salt_data,
-                    __global   sha256_password * keys_data,
-                               sha256_buffers  * fast_buffers,
-                               sha256_ctx      * ctx) {
+                           __global   sha256_password * keys_data,
+                                      sha256_buffers  * fast_buffers,
+                                      sha256_ctx      * ctx) {
 
 #define pass        keys_data->pass->mem_08
 #define passlen     keys_data->length
@@ -338,7 +345,8 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
     ctx_update_C(ctx, salt, saltlen);
     ctx_update_G(ctx, pass, passlen);
 
-    sha256_digest(ctx, alt_result->mem_32);
+    sha256_digest(ctx);
+    sha256_digest_move(ctx, alt_result->mem_32, BUFFER_ARRAY);
     init_ctx(ctx);
 
     ctx_update_G(ctx, pass, passlen);
@@ -352,13 +360,15 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
 	else
             ctx_update_G(ctx, pass, passlen);
     }
-    sha256_digest(ctx, alt_result->mem_32);
+    sha256_digest(ctx);
+    sha256_digest_move(ctx, alt_result->mem_32, BUFFER_ARRAY);
     init_ctx(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
         ctx_update_G(ctx, pass, passlen);
 
-    sha256_digest(ctx, p_sequence->mem_32);
+    sha256_digest(ctx);
+    sha256_digest_move(ctx, p_sequence->mem_32, PLAINTEXT_ARRAY);
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
@@ -366,7 +376,8 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
         ctx_update_C(ctx, salt, saltlen);
 
     /* Finish the digest.  */
-    sha256_digest(ctx, temp_result->mem_32);
+    sha256_digest(ctx);
+    sha256_digest_move(ctx, temp_result->mem_32, SALT_ARRAY);
 }
 #undef salt
 #undef pass
@@ -393,7 +404,8 @@ inline void sha256_crypt(sha256_buffers  * fast_buffers,
 
         ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
                           ((i & 1) ? 32U :                passlen));
-        sha256_digest(ctx, alt_result->mem_32);
+        sha256_digest(ctx);
+        sha256_digest_move(ctx, alt_result->mem_32, BUFFER_ARRAY);
     }
 }
 #undef alt_result

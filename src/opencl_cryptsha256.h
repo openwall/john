@@ -31,19 +31,19 @@
 #define TRUE                    1
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
-#define ROUNDS_CACHE            ROUNDS_DEFAULT / 4
 #define ROUNDS_MIN              1000
 #define ROUNDS_MAX              999999999
 
 #define SALT_LENGTH             16
 #define PLAINTEXT_LENGTH        16
-#define CIPHERTEXT_LENGTH       43
+#define CIPHERTEXT_LENGTH	43
+#define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 4)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 4)
 #define BINARY_SIZE             32
-#define SALT_SIZE               (3+7+9+16)      //TODO: Magic number?
-#define STEP                    512
+#define STEP                    1024
 
+#define HASH_LOOPS              (7*3*2)
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       512
 #define MIN_KEYS_PER_CRYPT      128
@@ -90,10 +90,12 @@ typedef union {
 } buffer_32;
 
 typedef struct {
-    uint32_t                    length;
     uint32_t                    rounds;
+    uint32_t                    length;
+    uint32_t                    initial;
     buffer_32                   salt[SALT_ARRAY];
 } sha256_salt;
+#define SALT_SIZE               sizeof(sha256_salt)
 
 typedef struct {
     uint32_t                    length;
@@ -108,7 +110,7 @@ typedef struct {
     uint32_t                    H[8];           //256 bits
     uint32_t                    total;
     uint32_t                    buflen;
-    buffer_32                   buffer[16];     //512bits
+    buffer_32                   buffer[16];     //512 bits
 #if cpu(DEVICE_INFO)
     uint64_t                    safety_trail;   //To avoid memory override
 #endif
@@ -116,7 +118,7 @@ typedef struct {
 
 typedef struct {
     buffer_32                   alt_result[8];
-    buffer_32                   temp_result[8];
-    buffer_32                   p_sequence[8];
+    buffer_32                   temp_result[SALT_ARRAY];
+    buffer_32                   p_sequence[PLAINTEXT_ARRAY];
 } sha256_buffers;
 #endif
