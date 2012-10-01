@@ -292,8 +292,18 @@ inline void clear_ctx_buffer(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void sha512_digest(sha512_ctx * ctx,
-                   uint64_t   * result) {
+inline void sha512_digest_move(sha512_ctx * ctx,
+                               uint64_t   * result,
+                               const int size) {
+
+#ifdef UNROLL
+    #pragma unroll
+#endif
+    for (int i = 0; i < size; i++)
+        result[i] = SWAP64(ctx->H[i]);
+}
+
+inline void sha512_digest(sha512_ctx * ctx) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
         finish_ctx(ctx);
@@ -313,12 +323,6 @@ inline void sha512_digest(sha512_ctx * ctx,
         ctx_add_length(ctx);
     }
     sha512_block(ctx);
-
-#ifdef UNROLL
-    #pragma unroll
-#endif
-    for (int i = 0; i < 8; i++)
-        result[i] = SWAP64(ctx->H[i]);
 }
 
 inline void sha512_prepare(__constant sha512_salt     * salt_data,
@@ -340,7 +344,8 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     ctx_update_C(ctx, salt, saltlen);
     ctx_update_G(ctx, pass, passlen);
 
-    sha512_digest(ctx, alt_result->mem_64);
+    sha512_digest(ctx);
+    sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
 
     ctx_update_G(ctx, pass, passlen);
@@ -354,14 +359,15 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 	else
             ctx_update_G(ctx, pass, passlen);
     }
-    sha512_digest(ctx, alt_result->mem_64);
+    sha512_digest(ctx);
+    sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
         ctx_update_G(ctx, pass, passlen);
 
-    sha512_digest(ctx, p_sequence->mem_64);
-
+    sha512_digest(ctx);
+    sha512_digest_move(ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
@@ -369,7 +375,8 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
         ctx_update_C(ctx, salt, saltlen);
 
     /* Finish the digest.  */
-    sha512_digest(ctx, temp_result->mem_64);
+    sha512_digest(ctx);
+    sha512_digest_move(ctx, temp_result->mem_64, SALT_ARRAY);
 }
 #undef salt
 #undef pass
@@ -396,7 +403,8 @@ inline void sha512_crypt(sha512_buffers  * fast_buffers,
 
         ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
                           ((i & 1) ? 64U :                passlen));
-        sha512_digest(ctx, alt_result->mem_64);
+        sha512_digest(ctx);
+        sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
     }
 }
 #undef alt_result
