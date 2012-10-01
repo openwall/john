@@ -167,7 +167,7 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu(source_in_use)) {
+    if (gpu(source_in_use) || use_local(source_in_use)) {
         //Set prepare kernel arguments
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -430,7 +430,7 @@ static cl_ulong gws_test(size_t num) {
     runtime += endTime - startTime;
 
     //** Get execution time **//
-    if (gpu(source_in_use)) {
+    if (gpu(source_in_use) || use_local(source_in_use)) {
         ret_code = clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
 
@@ -444,7 +444,7 @@ static cl_ulong gws_test(size_t num) {
         runtime += endTime - startTime;
     }
 
-    loops = gpu(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
+    loops = gpu(source_in_use) || use_local(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
 
     //** Get execution time **//
     for (i = 0; i < loops; i++)
@@ -597,7 +597,7 @@ static void init(struct fmt_main * self) {
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-    if (gpu(source_in_use)) {
+    if (gpu(source_in_use) || use_local(source_in_use)) {
         prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
         HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
         final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
@@ -744,7 +744,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
-    if (gpu(source_in_use)) {
+    if (gpu(source_in_use) || use_local(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel I");
