@@ -27,7 +27,7 @@
 #define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Constants.
-#define PLAINTEXT_LENGTH        32
+#define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
 #define PLAINTEXT_TEXT          "32"
 #define CIPHERTEXT_LENGTH       128
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)

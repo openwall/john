@@ -27,6 +27,7 @@
 #define DEV_AMD_VLIW4               2048
 #define DEV_AMD_VLIW5               4096
 #define DEV_NO_BYTE_ADDRESSABLE     8192
+#define DEV_USE_LOCAL               32768
 
 #define cpu(n)                      ((n & DEV_CPU) == (DEV_CPU))
 #define gpu(n)                      ((n & DEV_GPU) == (DEV_GPU))
@@ -38,6 +39,7 @@
 #define amd_vliw4(n)                ((n & DEV_AMD_VLIW4) && gpu_amd(n))
 #define amd_vliw5(n)                ((n & DEV_AMD_VLIW5) && gpu_amd(n))
 #define no_byte_addressable(n)      ((n & DEV_NO_BYTE_ADDRESSABLE))
+#define use_local(n)                ((n & DEV_USE_LOCAL))
 
 #endif	/* OPENCL_DEVICE_INFO_H */
 

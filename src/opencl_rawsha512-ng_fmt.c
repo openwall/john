@@ -211,7 +211,7 @@ static char * get_key(int index) {
   uses about 400 bytes of local memory. Local memory
   is usually 32 KB
 -- */
-static void find_best_workgroup(struct fmt_main *pFmt) {
+static void find_best_workgroup(struct fmt_main *self) {
 
     size_t max_group_size;
 
@@ -219,7 +219,7 @@ static void find_best_workgroup(struct fmt_main *pFmt) {
     fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
     //Call the default function.
-    opencl_find_best_workgroup_limit(pFmt, max_group_size);
+    opencl_find_best_workgroup_limit(self, max_group_size);
 
     fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
@@ -245,7 +245,6 @@ static int get_step(size_t num, int step, int startup){
 }
 
 //Do the proper test using different sizes.
-
 static cl_ulong gws_test(size_t num) {
 
     cl_event myEvent;
@@ -405,7 +404,7 @@ static void find_best_gws(void) {
 }
 
 /* ------- Initialization  ------- */
-static void init(struct fmt_main *pFmt) {
+static void init(struct fmt_main *self) {
     int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/sha512-ng_kernel.cl";
@@ -438,18 +437,21 @@ static void init(struct fmt_main *pFmt) {
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
         local_work_size = atoi(tmp_value);
 
+    if ((tmp_value = getenv("LWS")))
+        local_work_size = atoi(tmp_value);
+
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
         fprintf(stderr, "Error: invalid local work size (LWS). Max value allowed is: %zd\n" ,
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = global_work_size;
 
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
         create_clobj(global_work_size);
-        find_best_workgroup(pFmt);
+        find_best_workgroup(self);
         release_clobj();
     }
 
@@ -470,11 +472,11 @@ static void init(struct fmt_main *pFmt) {
     }
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
            (int) local_work_size, global_work_size);
-    pFmt->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = global_work_size;
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 ------- */
-static int valid(char * ciphertext, struct fmt_main * pFmt) {
+static int valid(char * ciphertext, struct fmt_main * self) {
     char *p, *q;
 
     p = ciphertext;
