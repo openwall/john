@@ -580,13 +580,11 @@ static void init(struct fmt_main *self) {
     if ((tmp_value = getenv("_FAST")))
         fast_mode = TRUE;
 
-    if (gpu(source_in_use)) {
-        fprintf(stderr, "Building the kernel, this could take a while\n");
-
-        if (use_local(source_in_use))
+    if (use_local(source_in_use))
             task = "$JOHN/cryptsha512_kernel_LOCAL.cl";
-        else
-            task = "$JOHN/cryptsha512_kernel_GPU.cl";
+    else if (gpu(source_in_use)) {
+        fprintf(stderr, "Building the kernel, this could take a while\n");
+        task = "$JOHN/cryptsha512_kernel_GPU.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, ocl_gpu_id);
