@@ -71,7 +71,7 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (gpu_amd(source_in_use))
+    if (use_local(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 (sizeof(sha512_password) + sizeof(sha512_ctx) +
                  sizeof(sha512_buffers)) - 1;
@@ -181,7 +181,7 @@ static void create_clobj(int gws) {
             sizeof(sha512_password) * local_work_size,
             NULL), "Error setting argument 3");
 
-        if (gpu_amd(source_in_use)) {
+        if (use_local(source_in_use)) {
             HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
                 sizeof(sha512_buffers) * local_work_size,
                 NULL), "Error setting argument 4");
@@ -193,7 +193,7 @@ static void create_clobj(int gws) {
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
-        if (gpu_amd(source_in_use)) {
+        if (use_local(source_in_use)) {
             //Fast working memory.
             HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
                 sizeof(sha512_buffers) * local_work_size,
@@ -212,7 +212,7 @@ static void create_clobj(int gws) {
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
-        if (gpu_amd(source_in_use)) {
+        if (use_local(source_in_use)) {
             //Fast working memory.
             HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
                 sizeof(sha512_buffers) * local_work_size,
@@ -580,16 +580,17 @@ static void init(struct fmt_main *self) {
     if ((tmp_value = getenv("_FAST")))
         fast_mode = TRUE;
 
-    if (! cpu(source_in_use)) {
+    if (gpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
 
-        if (gpu_nvidia(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_NVIDIA.cl";
-        else if (gpu_amd(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_AMD.cl";
+        if (use_local(source_in_use))
+            task = "$JOHN/cryptsha512_kernel_LOCAL.cl";
+        else
+            task = "$JOHN/cryptsha512_kernel_GPU.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, ocl_gpu_id);
+
     if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
         fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
     fflush(stdout);
