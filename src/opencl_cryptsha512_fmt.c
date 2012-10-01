@@ -95,8 +95,7 @@ static size_t get_task_max_size(){
         return max_available * KEYS_PER_CORE_CPU;
 
     else
-        return max_available * (gpu_amd(device_info[ocl_gpu_id]) ? 3 : 1) *
-                get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+        return max_available * get_current_work_group_size(ocl_gpu_id, crypt_kernel) * 2;
 }
 
 static size_t get_safe_workgroup(){
@@ -105,15 +104,15 @@ static size_t get_safe_workgroup(){
         return 1;
 
     else
-        return (amd_gcn(device_info[ocl_gpu_id]) ? 64 : 32);
+        return 64;
 }
 
 static size_t get_default_workgroup(){
     size_t max_available;
     max_available = get_task_max_work_group_size();
 
-    if (gpu_nvidia(source_in_use) ||
-       (!cpu(source_in_use) && fast_mode)) {
+    if (gpu_nvidia(device_info[ocl_gpu_id]) ||
+       (!cpu(device_info[ocl_gpu_id]) && fast_mode)) {
         global_work_size = get_multiple(global_work_size, max_available);
         return max_available;
 
@@ -168,7 +167,7 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof (cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu_amd(source_in_use)) {
+    if (gpu(source_in_use)) {
         //Set prepare kernel arguments
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof (cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -181,25 +180,28 @@ static void create_clobj(int gws) {
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
             sizeof(sha512_password) * local_work_size,
             NULL), "Error setting argument 3");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
-            sizeof(sha512_buffers) * local_work_size,
-            NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
-            sizeof(sha512_ctx) * local_work_size,
-            NULL), "Error setting argument 5");
 
+        if (gpu_amd(source_in_use)) {
+            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
+                sizeof(sha512_buffers) * local_work_size,
+                NULL), "Error setting argument 4");
+            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
+                sizeof(sha512_ctx) * local_work_size,
+                NULL), "Error setting argument 5");
+        }
         //Set crypt kernel arguments
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
-            sizeof(sha512_buffers) * local_work_size,
-            NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-            sizeof(sha512_ctx) * local_work_size,
-            NULL), "Error setting argument 5");
-
+        if (gpu_amd(source_in_use)) {
+            //Fast working memory.
+            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
+                sizeof(sha512_buffers) * local_work_size,
+                NULL), "Error setting argument 4");
+            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
+                sizeof(sha512_ctx) * local_work_size,
+                NULL), "Error setting argument 5");
+        }
         //Set final kernel arguments
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof (cl_mem),
                 (void *) &salt_buffer), "Error setting argument 0");
@@ -210,19 +212,15 @@ static void create_clobj(int gws) {
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof (cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
-            sizeof(sha512_buffers) * local_work_size,
-            NULL), "Error setting argument 4");
-        HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
-            sizeof(sha512_ctx) * local_work_size,
-            NULL), "Error setting argument 5");
-
-    } else if (gpu_nvidia(source_in_use)) {
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3,
-           sizeof(sha512_password) * local_work_size,
-           NULL), "Error setting argument 3");
+        if (gpu_amd(source_in_use)) {
+            //Fast working memory.
+            HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
+                sizeof(sha512_buffers) * local_work_size,
+                NULL), "Error setting argument 4");
+            HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
+                sizeof(sha512_ctx) * local_work_size,
+                NULL), "Error setting argument 5");
+        }
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
     global_work_size = gws;
@@ -432,7 +430,7 @@ static cl_ulong gws_test(size_t num) {
     runtime += endTime - startTime;
 
     //** Get execution time **//
-    if (gpu_amd(source_in_use)) {
+    if (gpu(source_in_use)) {
         ret_code = clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
 
@@ -446,7 +444,7 @@ static cl_ulong gws_test(size_t num) {
         runtime += endTime - startTime;
     }
 
-    loops = gpu_amd(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
+    loops = gpu(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
 
     //** Get execution time **//
     for (i = 0; i < loops; i++)
@@ -600,7 +598,7 @@ static void init(struct fmt_main *self) {
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-    if (gpu_amd(source_in_use)) {
+    if (gpu(source_in_use)) {
         prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
         HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
         final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
@@ -744,7 +742,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
-    if (gpu_amd(source_in_use)) {
+    if (gpu(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
             "failed in clEnqueueNDRangeKernel I");

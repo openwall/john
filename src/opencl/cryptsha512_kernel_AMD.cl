@@ -22,7 +22,7 @@
     #define BUFFER      ctx->buffer->mem_08
 #endif
 
-#if amd_vliw4(DEVICE_INFO) || amd_vliw5(DEVICE_INFO)
+#if gpu(DEVICE_INFO)
     #define VECTOR_USAGE
 #endif
 
@@ -388,7 +388,7 @@ void kernel_prepare(__constant sha512_salt     * salt,
 }
 
 __kernel
-void kernel_crypt(__global   sha512_salt     * salt,
+void kernel_crypt(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory,
@@ -423,7 +423,7 @@ void kernel_crypt(__global   sha512_salt     * salt,
 }
 
 __kernel
-void kernel_final(__global   sha512_salt     * salt,
+void kernel_final(__constant sha512_salt     * salt,
                   __global   sha512_password * keys_buffer,
                   __global   sha512_hash     * out_buffer,
                   __global   sha512_buffers  * tmp_memory,
