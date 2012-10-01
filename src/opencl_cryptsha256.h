@@ -35,7 +35,7 @@
 #define ROUNDS_MAX              999999999
 
 #define SALT_LENGTH             16
-#define PLAINTEXT_LENGTH        16
+#define PLAINTEXT_LENGTH        32
 #define CIPHERTEXT_LENGTH	43
 #define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 4)
