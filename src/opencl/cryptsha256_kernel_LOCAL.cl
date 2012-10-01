@@ -70,6 +70,31 @@ inline void get_host_data(__global sha256_password * keys_data,
         fast_keys->pass->mem_32[i] = keys_data->pass->mem_32[i];
 }
 
+inline void get_temp_data(__global sha256_buffers * tmp_memory,
+                          __local  sha256_buffers * fast_buffers) {
+
+    __global uint64_t * src;
+    __local  uint64_t * dst;
+
+    src = (__global uint64_t *) tmp_memory->alt_result;
+    dst = (__local  uint64_t *) fast_buffers->alt_result;
+    #pragma unroll
+    for (int i = 0; i < (8 / 2); i++)
+        *dst++ = *src++;
+
+    src = (__global uint64_t *) tmp_memory->temp_result;
+    dst = (__local uint64_t *) fast_buffers->temp_result;
+    #pragma unroll
+    for (int i = 0; i < (SALT_ARRAY / 2); i++)
+        *dst++ = *src++;
+
+    src = (__global uint64_t *) tmp_memory->p_sequence;
+    dst = (__local uint64_t *) fast_buffers->p_sequence;
+    #pragma unroll
+    for (int i = 0; i < (PLAINTEXT_ARRAY / 2); i++)
+        *dst++ = *src++;
+}
+
 inline void sha256_block(__local sha256_ctx * ctx) {
     uint32_t a = ctx->H[0];
     uint32_t b = ctx->H[1];
@@ -397,18 +422,8 @@ void kernel_crypt(__constant sha256_salt     * salt,
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
 
-    //Transfer host data to faster memory
-    #pragma unroll
-    for (int i = 0; i < 8; i++)
-        fast_buffers[lid].alt_result[i].mem_32[0] = tmp_memory[gid].alt_result[i].mem_32[0];
-
-    #pragma unroll
-    for (int i = 0; i < SALT_ARRAY; i++)
-        fast_buffers[lid].temp_result[i].mem_32[0] = tmp_memory[gid].temp_result[i].mem_32[0];
-
-    #pragma unroll
-    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_buffers[lid].p_sequence[i].mem_32[0] = tmp_memory[gid].p_sequence[i].mem_32[0];
+    //Transfer temp data to faster memory
+    get_temp_data(&tmp_memory[gid], &fast_buffers[lid]);
 
     //Do the job
     sha256_crypt(&fast_buffers[lid], &ctx_data[lid],
@@ -432,18 +447,8 @@ void kernel_final(__constant sha256_salt     * salt,
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
 
-    //Transfer host data to faster memory
-    #pragma unroll
-    for (int i = 0; i < 8; i++)
-        fast_buffers[lid].alt_result[i].mem_32[0] = tmp_memory[gid].alt_result[i].mem_32[0];
-
-    #pragma unroll
-    for (int i = 0; i < SALT_ARRAY; i++)
-        fast_buffers[lid].temp_result[i].mem_32[0] = tmp_memory[gid].temp_result[i].mem_32[0];
-
-    #pragma unroll
-    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_buffers[lid].p_sequence[i].mem_32[0] = tmp_memory[gid].p_sequence[i].mem_32[0];
+    //Transfer temp data to faster memory
+    get_temp_data(&tmp_memory[gid], &fast_buffers[lid]);
 
     //Do the job
     sha256_crypt(&fast_buffers[lid], &ctx_data[lid],
