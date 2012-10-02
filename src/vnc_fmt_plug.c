@@ -1,6 +1,12 @@
 /* VNC cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com>
  *
+ * On Windows, Use Ettercap to get VNC challenge-response pairs in
+ * JtR format. E.g. ettercap -Tq -r /home/user/sample.pcap
+ *
+ * On other platforms, vncpcap2john.cpp should be able to parse
+ * .pcap files and output VNC challenge-response pairs in JtR format
+ *
  * bit_flip table and encryption algorithm are taken fron VNCcrack.
  *
  * (C) 2003, 2004, 2006, 2008 Jack Lloyd <lloyd@randombit.net>
