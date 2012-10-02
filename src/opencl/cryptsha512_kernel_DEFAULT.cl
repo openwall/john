@@ -271,7 +271,7 @@ inline void ctx_append_1(sha512_ctx * ctx) {
 
 inline void ctx_add_length(sha512_ctx * ctx) {
 
-    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
+    ctx->buffer[15].mem_64[0] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
 inline void finish_ctx(sha512_ctx * ctx) {
