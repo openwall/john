@@ -339,10 +339,10 @@ static void create_clobj(int gws)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
-	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * (UNICODE_LENGTH + 11) * 16 * *mkpc, NULL, &ret_code);
+	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (UNICODE_LENGTH + 8) * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 16 * *mkpc, NULL, &ret_code);
+	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * *mkpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
 	cl_round = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * *mkpc, NULL, &ret_code);
@@ -417,7 +417,7 @@ static void set_key(char *key, int index)
 }
 
 #ifdef CL_VERSION_1_0
-static cl_ulong gws_test(int gws)
+static cl_ulong gws_test(int gws, int do_benchmark)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
@@ -483,7 +483,15 @@ static cl_ulong gws_test(int gws)
 #endif
 	clGetEventProfilingInfo(Event[7], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[7], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	fprintf(stderr, "\nRarHashLoop: %.2f ms x %u = %.2f s\n", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
+	if (do_benchmark)
+		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
+
+	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+		if (do_benchmark)
+			fprintf(stderr, "- exceeds 200 ms\n");
+		return 0;
+	}
 #if 0
 	clGetEventProfilingInfo(Event[37], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(Event[37], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
@@ -517,7 +525,7 @@ static void find_best_gws(int do_benchmark)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
-		if (!(run_time = gws_test(num)))
+		if (!(run_time = gws_test(num, do_benchmark)))
 			break;
 
 		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
@@ -551,13 +559,6 @@ static void find_best_gws(int do_benchmark)
 				fprintf(stderr, "\n");
 		}
 	}
-	if (get_device_type(ocl_gpu_id) != CL_DEVICE_TYPE_CPU) {
-		fprintf(stderr, "Optimal keys per crypt %d\n",(int)optimal_gws);
-		fprintf(stderr, "(to avoid this test on next run, put \""
-		        GWS_CONFIG " = %d\" in john.conf, section ["
-		        SECTION_OPTIONS
-		        SUBSECTION_OPENCL "])\n", (int)optimal_gws);
-	}
 	*mkpc = (global_work_size = optimal_gws);
 }
 #endif	/* OpenCL */
@@ -566,7 +567,7 @@ static void init(struct fmt_main *self)
 {
 #ifdef CL_VERSION_1_0
 	char *temp;
-	cl_ulong maxsize;
+	cl_ulong maxsize, maxsize2;
 
 	global_work_size = 0;
 
@@ -583,7 +584,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* We mimic the lengths of cRARk for comparisons */
-	if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU) {
+	if (gpu(device_info[ocl_gpu_id])) {
 #ifndef DEBUG
 		self->params.benchmark_comment = " (6 characters)";
 #endif
@@ -605,11 +606,17 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	/* Note: we ask for this kernel's max size, not the device's! */
+	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 > maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 > maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 > maxsize) maxsize = maxsize2;
 
 	if (!local_work_size) {
-		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) {
+		if (cpu(device_info[ocl_gpu_id])) {
 			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
 				local_work_size = 8;
 			else
