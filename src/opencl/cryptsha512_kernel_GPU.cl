@@ -435,7 +435,6 @@ void kernel_crypt(__constant sha512_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Transfer host data to faster memory
     #pragma unroll
@@ -472,7 +471,6 @@ void kernel_final(__constant sha512_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Transfer host data to faster memory
     #pragma unroll

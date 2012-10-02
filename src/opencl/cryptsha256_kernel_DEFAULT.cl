@@ -62,7 +62,7 @@ inline void init_ctx(sha256_ctx * ctx) {
 inline void memcpy_R(      uint8_t * dest,
                      const uint8_t * src,
                      const uint32_t srclen) {
-    int i = 0;
+    uint32_t i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     uint64_t * s = (uint64_t *) src;
@@ -76,7 +76,7 @@ inline void memcpy_R(      uint8_t * dest,
 inline void memcpy_C(                 uint8_t * dest,
                      __constant const uint8_t * src,
                      const uint32_t srclen) {
-    int i = 0;
+    uint32_t i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     __constant uint64_t * s = (__constant uint64_t *) src;
@@ -90,7 +90,7 @@ inline void memcpy_C(                 uint8_t * dest,
 inline void memcpy_G(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
-    int i = 0;
+    uint32_t i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     __global uint64_t * s = (__global uint64_t *) src;
@@ -279,10 +279,6 @@ inline void finish_ctx(sha256_ctx * ctx) {
 
 inline void clear_ctx_buffer(sha256_ctx * ctx) {
 
-#ifdef VECTOR_USAGE
-    uint16  w_vector = 0;
-    vstore16(w_vector, 0, ctx->buffer->mem_32);
-#else
     uint64_t * l = (uint64_t *) ctx->buffer;
 
 #ifdef UNROLL
@@ -290,7 +286,6 @@ inline void clear_ctx_buffer(sha256_ctx * ctx) {
 #endif
     for (int i = 0; i < 8; i++)
         *l++ = 0;
-#endif
 
     ctx->buflen = 0;
 }

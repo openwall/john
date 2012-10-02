@@ -454,7 +454,6 @@ void kernel_crypt(__constant sha256_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Transfer temp data to faster memory
     get_temp_data(&tmp_memory[gid], &fast_buffers);
@@ -481,7 +480,6 @@ void kernel_final(__constant sha256_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Transfer temp data to faster memory
     get_temp_data(&tmp_memory[gid], &fast_buffers);
