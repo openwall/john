@@ -1761,7 +1761,7 @@ SIPdump: SIPdump.o
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap -o ../run/SIPdump
 
 vncpcap2john:
-	g++ vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
+	g++ -Wall vncpcap2john.cpp -lpcap -o ../run/vncpcap2john
 
 gpg2john:
 	g++ -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
