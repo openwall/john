@@ -82,7 +82,7 @@
 
 /* Max. 256. Lower gives better desktop response.
    The same figure must be defined in kernel */
-#define HASH_LOOPS		32
+#define HASH_LOOPS		256
 
 #endif
 #include "config.h"

@@ -31,7 +31,9 @@
 #define PLAINTEXT_LENGTH	16
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
-#define HASH_LOOPS		32
+#define HASH_LOOPS		256
+
+#if no_byte_addressable(DEVICE_INFO)
 
 /* Macros for reading/writing chars from int32's */
 #ifdef SCALAR
@@ -41,14 +43,26 @@
 #define GETCHAR(buf, index) (((buf)[(index)>>2] >> (((index) & 3) << 3)) & 0xffU)
 #define GETCHAR_G	GETCHAR
 #endif
-
 #define GETCHAR_BE(buf, index) (((buf)[(index)>>2] >> ((3 - ((index) & 3)) << 3)) & 0xffU)
 /* The below is faster for AMD at low GWS but doesn't take off at higher. */
 //#define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index & ~3U) + (3 - (index & 3))])
-
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#define PUTCHAR_G	PUTCHAR
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
+#define PUTCHAR_BE_G	PUTCHAR_BE
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
+
+#else
+
+#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
+#define GETCHAR_G(buf, index) (((const __global uchar*)(buf))[(index)])
+#define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
+#define PUTCHAR_G(buf, index, val) ((__global uchar*)(buf))[(index)] = (val)
+#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[((index) >> 2) * 4 + 3 - ((index) & 3)] = (val)
+#define PUTCHAR_BE_G(buf, index, val) ((__global uchar*)(buf))[((index) >> 2) * 4 + 3 - (index & 3)] = (val)
+#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
+
+#endif
 
 #ifdef SCALAR
 inline uint SWAP32(uint x)
@@ -406,46 +420,6 @@ inline void sha1_final(uint *Win, uint *output, const uint tot_len)
 	sha1_block(W, output);
 }
 
-#if 0
-#ifdef SCALAR
-#define AMD_V
-inline void memcpy32(uint *d, const uint *s, uint len)
-{
-	while (len--)
-		*d++ = *s++;
-}
-#else
-#define AMD_V	(uint4*)&
-inline void memcpy32(uint4 *d, const uint4 *s, uint len)
-{
-	while (len >= 4) {
-		*d++ = *s++;
-		len -= 4;
-	}
-	while (len--)
-		*(uint*)d++ = *(uint*)s++;
-}
-#endif
-
-void dump_stuff_be(uchar *x, unsigned int size)
-{
-        unsigned int i;
-        for(i=0;i<size;i++)
-        {
-	        printf("%.2x", x[(i>>2)*4+3-(i&3)]);
-                if( (i%4)==3 )
-                        printf(" ");
-        }
-        printf("\n");
-}
-void dump_stuff_be_msg(__constant char *msg, uchar *x, unsigned int size) {
-	printf("%s : ", (char *)msg);
-	dump_stuff_be(x, size);
-}
-
-//#define printf	if (gid == 0) printf
-#endif
-
 __kernel void RarInit(
 	const __global uint *unicode_pw,
 	const __global uint *pw_len,
@@ -464,10 +438,10 @@ __kernel void RarInit(
 	/* Copy to 64x buffer (always ends at SHA-1 block boundary) */
 	for (i = 0; i < 64; i++) {
 		for (j = 0; j < pwlen; j++)
-			PUTCHAR_BE(block, i * blocklen + j, GETCHAR_G(unicode_pw, gid * UNICODE_LENGTH + j));
+			PUTCHAR_BE_G(block, i * blocklen + j, GETCHAR_G(unicode_pw, gid * UNICODE_LENGTH + j));
 #pragma unroll
 		for (j = 0; j < 8; j++)
-			PUTCHAR_BE(block, i * blocklen + pwlen + j, ((__constant uchar*)salt)[j]);
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + j, ((__constant uchar*)salt)[j]);
 	}
 	round[gid] = 0;
 	sha1G_init(output);
@@ -500,7 +474,7 @@ __kernel void RarGetIV(
 	PUTCHAR_BE(tempin, pwlen + 10, round >> 16);
 
 	sha1_final(tempin, tempout, (pwlen + 8 + 3) * (round + 1));
-	PUTCHAR(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
+	PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(tempout, 16));
 }
 
 __kernel void RarHashLoop(
@@ -518,11 +492,10 @@ __kernel void RarHashLoop(
 	uint i, j;
 
 	for (j = 0; j < HASH_LOOPS; j++) {
-//#pragma unroll /* Not good for nvidia */
 		for (i = 0; i < 64; i++, round++) {
-			PUTCHAR_BE(block, i * blocklen + pwlen + 8, round & 0xff);
-			PUTCHAR_BE(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
-			PUTCHAR_BE(block, i * blocklen + pwlen + 10, round >> 16);
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + 8, round & 0xff);
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + 9, (round >> 8) & 0xff);
+			PUTCHAR_BE_G(block, i * blocklen + pwlen + 10, round >> 16);
 		}
 		for (i = 0; i < blocklen; i++)
 			sha1G_block(&block[i * 16], output);
