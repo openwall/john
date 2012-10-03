@@ -549,7 +549,7 @@ static void find_best_gws(int do_benchmark)
 				break;
 			}
 
-			if (SHAspeed > bestSHAspeed) {
+			if (SHAspeed > bestSHAspeed * 1.01) {
 				if (do_benchmark)
 					fprintf(stderr, "+");
 				bestSHAspeed = SHAspeed;
