@@ -65,6 +65,7 @@
 
 #endif
 
+#if 0 /* Not currently used */
 #ifdef SCALAR
 inline uint SWAP32(uint x)
 {
@@ -73,6 +74,7 @@ inline uint SWAP32(uint x)
 }
 #else
 #define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
+#endif
 #endif
 
 /* SHA1 constants and IVs */
@@ -244,14 +246,9 @@ inline void sha1_block(uint *W, uint *output) {
 		output[4] = H5; \
 	}
 
-inline void sha1_final(uint *Win, uint *output, const uint tot_len)
+inline void sha1_final(uint *W, uint *output, const uint tot_len)
 {
 	uint len = ((tot_len & 63) >> 2) + 1;
-	uint W[16], temp;
-
-#pragma unroll
-	for (temp = 0; temp < 16; temp++)
-		W[temp] = Win[temp];
 
 	LASTCHAR_BE(W, tot_len & 63, 0x80);
 
@@ -315,7 +312,18 @@ __kernel void RarGetIV(
 	PUTCHAR_BE(block, pwlen + 9, (round >> 8) & 255);
 	PUTCHAR_BE(block, pwlen + 10, round >> 16);
 
+#ifdef APPLE
+	/* This is the weirdest workaround. Using the sha1_final()
+	   works perfectly fine in the RarFinal() subkernel below. */
+	PUTCHAR_BE(block, pwlen + 11, 0x80);
+	for (i = pwlen + 12; i < 56; i++)
+		PUTCHAR_BE(block, pwlen + i, 0);
+	block[14] = 0;
+	block[15] = ((pwlen + 8 + 3) * (round + 1)) << 3;
+	sha1_block(block, output);
+#else
 	sha1_final(block, output, (pwlen + 8 + 3) * (round + 1));
+#endif
 	PUTCHAR_G(aes_iv, gid * 16 + (round >> 14), GETCHAR(output, 16));
 }
 
