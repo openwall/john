@@ -66,7 +66,7 @@ inline void init_ctx(sha512_ctx * ctx) {
 inline void memcpy_R(      uint8_t * dest,
                      const uint8_t * src,
                      const uint32_t srclen) {
-    int i = 0;
+    uint32_t i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     uint64_t * s = (uint64_t *) src;
@@ -80,7 +80,7 @@ inline void memcpy_R(      uint8_t * dest,
 inline void memcpy_C(                 uint8_t * dest,
                      __constant const uint8_t * src,
                      const uint32_t srclen) {
-    int i = 0;
+    uint32_t i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     __constant uint64_t * s = (__constant uint64_t *) src;
@@ -94,7 +94,7 @@ inline void memcpy_C(                 uint8_t * dest,
 inline void memcpy_G(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
-    int i = 0;
+    uint32_t i = 0;
 
     uint64_t * l = (uint64_t *) dest;
     __global uint64_t * s = (__global uint64_t *) src;
@@ -271,7 +271,7 @@ inline void ctx_append_1(sha512_ctx * ctx) {
 
 inline void ctx_add_length(sha512_ctx * ctx) {
 
-    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->total * 8));
+    ctx->buffer[15].mem_64[0] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
 inline void finish_ctx(sha512_ctx * ctx) {

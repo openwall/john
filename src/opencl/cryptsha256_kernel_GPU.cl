@@ -258,7 +258,7 @@ inline void ctx_append_1(sha256_ctx * ctx) {
 
 inline void ctx_add_length(sha256_ctx * ctx) {
 
-    ctx->buffer->mem_32[15] = SWAP32(ctx->total * 8);
+    ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
 }
 
 inline void finish_ctx(sha256_ctx * ctx) {
@@ -454,7 +454,6 @@ void kernel_crypt(__constant sha256_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Transfer temp data to faster memory
     get_temp_data(&tmp_memory[gid], &fast_buffers);
@@ -481,7 +480,6 @@ void kernel_final(__constant sha256_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Transfer temp data to faster memory
     get_temp_data(&tmp_memory[gid], &fast_buffers);
