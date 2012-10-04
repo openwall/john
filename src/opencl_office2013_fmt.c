@@ -73,7 +73,7 @@ static struct custom_salt {
 } *cur_salt;
 
 static int *cracked;
-static int VF = 1;	/* Will be 4 if vectorized (never in this format %-) */
+static int VF = 1;	/* Will be 4 if vectorized (only on CPU to to GPR pressure) */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -340,8 +340,7 @@ static void init(struct fmt_main *self)
 	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-#if 0	/* For now, this format never runs vectorized */
-	if (gpu_nvidia(device_info[ocl_gpu_id]) || amd_gcn(device_info[ocl_gpu_id])) {
+	if (gpu(device_info[ocl_gpu_id])) {
 		/* Run scalar code */
 		VF = 1;
 	} else {
@@ -349,7 +348,7 @@ static void init(struct fmt_main *self)
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
 	}
-#endif
+
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
@@ -364,7 +363,7 @@ static void init(struct fmt_main *self)
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA512pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	maxsize /= VF;
+	maxsize = (maxsize / VF) ? maxsize / VF : 1;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(HashLoop, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Generate2013key, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");

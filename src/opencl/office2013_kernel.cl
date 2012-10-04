@@ -12,18 +12,20 @@
 
 #include "opencl_device_info.h"
 
+#if gpu(DEVICE_INFO)
+#define SCALAR
+#endif
+
 /* These must match the format's defines */
 #define UNICODE_LENGTH		96 /* 47 characters + 0x80 */
 #define HASH_LOOPS		128 /* Lower figure gives less X hogging */
 
-#define uint64_t unsigned long
-
 /* Office 2010/2013 */
-__constant uint64_t InputBlockKey = 0xfea7d2763b4b9e79UL;
-__constant uint64_t ValueBlockKey = 0xd7aa0f6d3061344eUL;
+__constant ulong InputBlockKey = 0xfea7d2763b4b9e79UL;
+__constant ulong ValueBlockKey = 0xd7aa0f6d3061344eUL;
 
 /* SHA-2 constants */
-__constant uint64_t k[] = {
+__constant ulong k[] = {
 	0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
 	0x3956c25bf348b538UL, 0x59f111f1b605d019UL, 0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL,
 	0xd807aa98a3030242UL, 0x12835b0145706fbeUL, 0x243185be4ee4b28cUL, 0x550c7dc3d5ffb4e2UL,
@@ -51,7 +53,7 @@ __constant uint64_t k[] = {
 /* AMD alternatives */
 #define Ch(x,y,z)       bitselect(z, y, x)
 #define Maj(x,y,z)      bitselect(x, y, z ^ x)
-#define ror(x, n)       rotate(x, (uint64_t) 64-n)
+#define ror(x, n)       rotate(x, (ulong) 64-n)
 #define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
 #define SWAP64(n)       (as_ulong(as_uchar8(n).s76543210))
 
@@ -84,10 +86,72 @@ inline uint SWAP32(uint x)
 #define sigma0(x)               ((ror(x,1))  ^ (ror(x,8))  ^ (x>>7))
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
 
+#ifdef SCALAR
+#define MAYBE_VECTOR_ULONG	ulong
+#define sha512_single_s		sha512_single
+#else
+#define VF			4
+#define MAYBE_VECTOR_ULONG	ulong4
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
-inline void sha512_single(uint64_t *w, uint64_t *output) {
-	uint64_t t1, t2, a, b, c, d, e, f, g, h;
+inline void sha512_single_s(ulong *w, ulong *output) {
+	ulong t1, t2, a, b, c, d, e, f, g, h;
+
+	/* always init */
+	a = 0x6a09e667f3bcc908UL;
+	b = 0xbb67ae8584caa73bUL;
+	c = 0x3c6ef372fe94f82bUL;
+	d = 0xa54ff53a5f1d36f1UL;
+	e = 0x510e527fade682d1UL;
+	f = 0x9b05688c2b3e6c1fUL;
+	g = 0x1f83d9abfb41bd6bUL;
+	h = 0x5be0cd19137e2179UL;
+
+#pragma unroll
+	for (int i = 0; i < 16; i++) {
+		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
+		t2 = Maj(a, b, c) + Sigma0(a);
+
+		h = g;
+		g = f;
+		f = e;
+		e = d + t1;
+		d = c;
+		c = b;
+		b = a;
+		a = t1 + t2;
+	}
+
+#pragma unroll
+	for (int i = 16; i < 80; i++) {
+		w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
+		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
+		t2 = Maj(a, b, c) + Sigma0(a);
+
+		h = g;
+		g = f;
+		f = e;
+		e = d + t1;
+		d = c;
+		c = b;
+		b = a;
+		a = t1 + t2;
+	}
+
+	output[0] = 0x6a09e667f3bcc908UL + a;
+	output[1] = 0xbb67ae8584caa73bUL + b;
+	output[2] = 0x3c6ef372fe94f82bUL + c;
+	output[3] = 0xa54ff53a5f1d36f1UL + d;
+	output[4] = 0x510e527fade682d1UL + e;
+	output[5] = 0x9b05688c2b3e6c1fUL + f;
+	output[6] = 0x1f83d9abfb41bd6bUL + g;
+	output[7] = 0x5be0cd19137e2179UL + h;
+}
+#endif
+
+/* Raw'n'lean single-block SHA-512, no context[tm] */
+inline void sha512_single(MAYBE_VECTOR_ULONG *w, MAYBE_VECTOR_ULONG *output) {
+	MAYBE_VECTOR_ULONG t1, t2, a, b, c, d, e, f, g, h;
 
 	/* always init */
 	a = 0x6a09e667f3bcc908UL;
@@ -141,14 +205,14 @@ inline void sha512_single(uint64_t *w, uint64_t *output) {
 }
 
 __kernel void GenerateSHA512pwhash(
-	__global uint64_t *unicode_pw,
+	__global ulong *unicode_pw,
 	__global uint *pw_len,
-	__constant uint64_t *salt,
-	__global uint64_t *pwhash)
+	__constant ulong *salt,
+	__global ulong *pwhash)
 {
 	uint i;
-	uint64_t block[16];
-	uint64_t output[8];
+	ulong block[16];
+	ulong output[8];
 	uint gid = get_global_id(0);
 
 	/* Initial hash of salt + password */
@@ -161,22 +225,31 @@ __kernel void GenerateSHA512pwhash(
 		block[i] = SWAP64(unicode_pw[gid * (UNICODE_LENGTH >> 3) + i - 2]);
 	}
 	block[14] = 0;
-	block[15] = (uint64_t)(pw_len[gid] + 16) << 3;
-	sha512_single(block, output);
+	block[15] = (ulong)(pw_len[gid] + 16) << 3;
+	sha512_single_s(block, output);
 
 #pragma unroll
 	for (i = 0; i < 8; i++)
+#ifdef SCALAR
 		pwhash[gid * 9 + i] = output[i];
 	pwhash[gid * 9 + 8] = 0;
+#else
+		pwhash[(gid >> 2) * VF * 9 + (gid & 3) + i * VF] = output[i];
+	pwhash[(gid >> 2) * VF * 9 + (gid & 3) + 8 * VF] = 0;
+#endif
 }
 
-__kernel void HashLoop(__global uint64_t *pwhash)
+__kernel void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 {
 	uint i, j;
-	uint64_t block[16];
-	uint64_t output[8];
+	MAYBE_VECTOR_ULONG block[16];
+	MAYBE_VECTOR_ULONG output[8];
 	uint gid = get_global_id(0);
+#ifdef SCALAR
 	uint base = pwhash[gid * 9 + 8];
+#else
+	uint base = pwhash[gid * 9 + 8].s0;
+#endif
 
 #pragma unroll
 	for (i = 0; i < 8; i++)
@@ -186,7 +259,7 @@ __kernel void HashLoop(__global uint64_t *pwhash)
 	 * We avoid byte-swapping back and forth */
 	for (j = 0; j < HASH_LOOPS; j++)
 	{
-		block[0] = ((uint64_t)SWAP32(base + j) << 32) | (output[0] >> 32);
+		block[0] = ((ulong)SWAP32(base + j) << 32) | (output[0] >> 32);
 #pragma unroll
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);
@@ -204,15 +277,19 @@ __kernel void HashLoop(__global uint64_t *pwhash)
 }
 
 __kernel void Generate2013key(
-	__global uint64_t *pwhash,
-	__global uint64_t *key,
+	__global MAYBE_VECTOR_ULONG *pwhash,
+	__global ulong *key,
 	__constant uint *spincount)
 {
 	uint i, j;
-	uint64_t block[16], temp[8];
-	uint64_t output[8];
+	MAYBE_VECTOR_ULONG block[16], temp[8];
+	MAYBE_VECTOR_ULONG output[8];
 	uint gid = get_global_id(0);
+#ifdef SCALAR
 	uint base = pwhash[gid * 9 + 8];
+#else
+	uint base = pwhash[gid * 9 + 8].s0;
+#endif
 	uint iterations = *spincount % HASH_LOOPS;
 
 #pragma unroll
@@ -222,7 +299,7 @@ __kernel void Generate2013key(
 	/* Remainder of iterations */
 	for (j = 0; j < iterations; j++)
 	{
-		block[0] = ((uint64_t)SWAP32(base + j) << 32) | (output[0] >> 32);
+		block[0] = ((ulong)SWAP32(base + j) << 32) | (output[0] >> 32);
 #pragma unroll
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);
@@ -256,7 +333,14 @@ __kernel void Generate2013key(
 	/* Endian-swap to hash 1 output */
 #pragma unroll
 	for (i = 0; i < 8; i++) {
+#ifdef SCALAR
 		key[gid * 128/8 + i] = SWAP64(output[i]);
+#else
+		key[(gid * VF) * 128/8 + i] = SWAP64(output[i].s0);
+		key[(gid * VF + 1) * 128/8 + i] = SWAP64(output[i].s1);
+		key[(gid * VF + 2) * 128/8 + i] = SWAP64(output[i].s2);
+		key[(gid * VF + 3) * 128/8 + i] = SWAP64(output[i].s3);
+#endif
 	}
 
 	/* Final hash 2 */
@@ -271,6 +355,13 @@ __kernel void Generate2013key(
 	/* Endian-swap to hash 2 output */
 #pragma unroll
 	for (i = 0; i < 8; i++) {
+#ifdef SCALAR
 		key[gid * 128/8 + 64/8 + i] = SWAP64(output[i]);
+#else
+		key[(gid * VF) * 128/8 + 64/8 + i] = SWAP64(output[i].s0);
+		key[(gid * VF + 1) * 128/8 + 64/8 + i] = SWAP64(output[i].s1);
+		key[(gid * VF + 2) * 128/8 + 64/8 + i] = SWAP64(output[i].s2);
+		key[(gid * VF + 3) * 128/8 + 64/8 + i] = SWAP64(output[i].s3);
+#endif
 	}
 }
