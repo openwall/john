@@ -231,7 +231,7 @@ inline void ctx_append_1(__local sha256_ctx * ctx) {
 
 inline void ctx_add_length(__local sha256_ctx * ctx) {
 
-    ctx->buffer->mem_32[15] = SWAP32(ctx->total * 8);
+    ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
 }
 
 inline void finish_ctx(__local sha256_ctx * ctx) {

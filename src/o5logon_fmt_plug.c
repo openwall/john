@@ -117,7 +117,7 @@ static void crypt_all(int count)
 		SHA1_Final(key, &ctx);
 
 		AES_set_decrypt_key(key, 192, &akey);
-		AES_cbc_encrypt(cur_salt->ct, pt, 48, &akey, iv, AES_DECRYPT);
+		AES_cbc_encrypt(cur_salt->ct + 16, pt + 16, 32, &akey, iv, AES_DECRYPT);
 		if (!memcmp(pt + 40, "\x08\x08\x08\x08\x08\x08\x08\x08", 8)) {
 			cracked[index] = 1;
 		}
