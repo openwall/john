@@ -364,7 +364,6 @@ static void init(struct fmt_main *self)
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA1pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	maxsize = (maxsize / VF) ? maxsize / VF : 1;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(HashLoop, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Generate2010key, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
