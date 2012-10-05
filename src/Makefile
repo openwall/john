@@ -41,7 +41,8 @@ OMPFLAGS =
 # Uncomment the below if you have KRB5 library installed (krb5-18/23 formats)
 #HAVE_KRB5 = -DHAVE_KRB5
 
-# Change sm_10 to sm_20 if you have Fermi support (400 series or later)
+# Change sm_10 to sm_20 if you have Fermi support (400 series or later) or
+# sm_30 if you have Kepler (600 series or later) and your nvcc supports it.
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
 CUDAPATH = /usr/local/cuda/lib
 CUDA64PATH = /usr/local/cuda/lib64
