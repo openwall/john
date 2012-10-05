@@ -204,6 +204,9 @@ struct options_main {
 /* Graceful exit after this many seconds of cracking */
 	int max_run_time;
 
+/* Emit a status line every N seconds */
+	int status_interval;
+
 /* Force dynamic format to always treat raw hashes as valid. If not set
    then dynamic format only uses raw hashes if -form=dynamic_xxx is used.
    If this is 'N', then original logic used.  If 'Y' or 'y' then we always
