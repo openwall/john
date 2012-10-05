@@ -37,7 +37,7 @@
 #define FORMAT_LABEL		"office2013-opencl"
 #define FORMAT_NAME		"Office 2013 SHA-512 AES"
 #define ALGORITHM_NAME		"OpenCL"
-#define BENCHMARK_COMMENT	""
+#define BENCHMARK_COMMENT	" (100,000 iterations)"
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		0
 #define SALT_LENGTH		16
