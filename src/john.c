@@ -673,6 +673,7 @@ static void john_init(char *name, int argc, char **argv)
 		puts("--log-stderr              log to screen instead of file\n");
 		puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
 		puts("                          always treat raw hashes as valid.");
+		puts("--status-every=N          emit a status line every N seconds\n");
 		exit(0);
 	}
 
@@ -1399,8 +1400,9 @@ int main(int argc, char **argv)
 #endif
 	john_init(name, argc, argv);
 
-	/* --max-run-time disregards load times */
+	/* --max-run-time and --status-every disregards load time */
 	timer_abort = options.max_run_time + 1;
+	timer_status = options.status_interval;
 
 	john_run();
 	john_done();

@@ -54,7 +54,7 @@ volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
 volatile int event_ticksafety = 0;
 
-volatile int timer_abort = -1;
+volatile int timer_abort = -1, timer_status = -1;
 static int timer_save_interval, timer_save_value;
 static clock_t timer_ticksafety_interval, timer_ticksafety_value;
 
@@ -283,6 +283,11 @@ static void sig_handle_timer(int signum)
 
 	if (!--timer_abort)
 		event_abort = event_pending = 1;
+
+	if (!--timer_status) {
+		event_status = event_pending = 1;
+		timer_status = options.status_interval;
+	}
 
 	if (!--timer_ticksafety_value) {
 		timer_ticksafety_value = timer_ticksafety_interval;

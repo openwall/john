@@ -139,6 +139,8 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.force_maxlength},
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
+	{"status-every", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &options.status_interval},
 	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.regen_lost_salts},
 	{"raw-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
@@ -299,7 +301,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.loader.max_fix_state_delay = 0;
 	options.loader.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
 	options.force_maxkeys = options.force_maxlength = 0;
-	options.max_run_time = -2;
+	options.max_run_time = options.status_interval = -2;
 	options.dynamic_raw_hashes_always_valid = 0;
 
 	list_init(&options.passwd);
