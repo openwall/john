@@ -718,20 +718,18 @@ char *get_error_name(cl_int cl_error)
 	return "UNKNOWN ERROR :(";
 }
 
-char *megastring(unsigned long long value)
+static char *human_format(size_t size)
 {
-	static char outbuf[16];
+	char pref[] = { ' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' };
+	int prefid = 0;
+	static char ret[32];
 
-	if (value >= 10000000000ULL)
-		sprintf(outbuf, "%llu GB", value >> 30);
-	else if (value >= 10000000ULL)
-		sprintf(outbuf, "%llu MB", value >> 20);
-	else if (value >= 10000ULL)
-		sprintf(outbuf, "%llu KB", value >> 10);
-	else
-		sprintf(outbuf, "%llu bytes", value);
-
-	return outbuf;
+	while (size > 1024) {
+		size /= 1024;
+		prefid++;
+	}
+	sprintf(ret, "%zd.%zd %cB", size, (size % 1024) / 100, pref[prefid]);
+	return ret;
 }
 
 void listOpenCLdevices(void)
@@ -809,19 +807,19 @@ void listOpenCLdevices(void)
 			    CL_DEVICE_ERROR_CORRECTION_SUPPORT,
 			    sizeof(cl_bool), &boolean, NULL);
 			printf("\tGlobal Memory:\t\t%s%s\n",
-			    megastring((unsigned long long) long_entries),
+			    human_format((unsigned long long) long_entries),
 			    boolean == CL_TRUE ? " (ECC)" : "");
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong),
 			    &long_entries, NULL);
 			printf("\tGlobal Memory Cache:\t%s\n",
-			    megastring((unsigned long long) long_entries));
+			    human_format((unsigned long long) long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE,
 			    sizeof(cl_ulong), &long_entries, NULL);
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_TYPE,
 			    sizeof(cl_device_local_mem_type), &memtype, NULL);
 			printf("\tLocal Memory:\t\t%s (%s)\n",
-			    megastring((unsigned long long) long_entries),
+			    human_format((unsigned long long) long_entries),
 			    memtype == CL_LOCAL ? "Local" : "Global");
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),

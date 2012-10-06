@@ -24,14 +24,14 @@ void HandleError(cudaError_t err, const char *file, int line)
 
 static char *human_format(size_t size)
 {
-	char pref[] = { ' ', 'k', 'M', 'G' };
+	char pref[] = { ' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' };
 	int prefid = 0;
+	static char ret[32];
+
 	while (size > 1024) {
 		size /= 1024;
 		prefid++;
 	}
-	assert(prefid <= 3);
-	static char ret[32];
 	sprintf(ret, "%zd.%zd %cB", size, (size % 1024) / 100, pref[prefid]);
 	return ret;
 }
