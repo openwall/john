@@ -205,8 +205,14 @@ static void build_kernel_from_binary(int dev_id)
 
 }
 
-/* NOTE: Remember to use profilingEvent in your crypt_all() if you want to use
-   this function */
+/*
+ *   NOTE: Requirements for using this function:
+ *
+ * - Your kernel (or main kernel) should be crypt_kernel.
+ * - Use profilingEvent in your crypt_all() when enqueueing crypt_kernel.
+ * - Do not use profilingEvent for transfers or other subkernels.
+ *
+ */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
 	opencl_find_best_workgroup_limit(self, UINT_MAX);
@@ -225,7 +231,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	if (get_device_version(ocl_gpu_id) < 110) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
 			wg_multiple = 32;
-		else if (get_vendor_id(ocl_gpu_id) == DEV_INTEL)
+		else if (get_platform_vendor_id(ocl_gpu_id) == DEV_INTEL)
 			wg_multiple = 8;
 		else
 			wg_multiple = 1;
@@ -346,7 +352,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 
-	// Deactivate events
+	// Deactivate events (or we'll get a memory leak)
+	clReleaseEvent(*profilingEvent);
 	profilingEvent = NULL;
 
 	//fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
