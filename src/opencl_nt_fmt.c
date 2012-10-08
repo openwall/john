@@ -152,11 +152,8 @@ static void nt_crypt_all_opencl(int count)
 		key_length_mul_4 * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_keys");
 
-	// Prevent a memory leak
-	if (profilingEvent) clReleaseEvent(profilingEvent);
-
 	// Execute method
-	clEnqueueNDRangeKernel( queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent);
+	clEnqueueNDRangeKernel( queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent);
 	clFinish( queue[ocl_gpu_id] );
 
 	// Read partial result
