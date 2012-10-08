@@ -82,7 +82,7 @@ static unsigned char *key;	/* Output key from kernel */
 static int new_keys, *spincount;
 
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_pwhash, cl_key, cl_spincount;
-static cl_kernel GenerateSHA512pwhash, HashLoop, Generate2013key;
+static cl_kernel GenerateSHA512pwhash, Generate2013key;
 
 static void create_clobj(int gws, struct fmt_main *self)
 {
@@ -131,7 +131,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(GenerateSHA512pwhash, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
 	HANDLE_CLERROR(clSetKernelArg(GenerateSHA512pwhash, 3, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 3");
 
-	HANDLE_CLERROR(clSetKernelArg(HashLoop, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
 
 	HANDLE_CLERROR(clSetKernelArg(Generate2013key, 0, sizeof(cl_mem), (void*)&cl_pwhash), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2013key, 1, sizeof(cl_mem), (void*)&cl_key), "Error setting argument 1");
@@ -243,7 +243,7 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 	}
 
 	for (i = 0; i < *spincount / HASH_LOOPS; i++) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, HashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 			clReleaseCommandQueue(queue_prof);
@@ -335,7 +335,7 @@ static void init(struct fmt_main *self)
 	// Create kernels to execute
 	GenerateSHA512pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA512pwhash", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = HashLoop = clCreateKernel(program[ocl_gpu_id], "HashLoop", &ret_code);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "HashLoop", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
@@ -363,21 +363,18 @@ static void init(struct fmt_main *self)
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA512pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(HashLoop, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(Generate2013key, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
-		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = 8;
-			else
-				local_work_size = 1;
-		} else {
-			local_work_size = 64;
-		}
+		int temp = global_work_size;
+		create_clobj(maxsize, self);
+		opencl_find_best_workgroup_limit(self, maxsize);
+		release_clobj();
+		global_work_size = temp;
 	}
 
 	if (local_work_size > maxsize) {
@@ -438,7 +435,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA512pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
 	for (index = 0; index < *spincount / HASH_LOOPS; index++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], HashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2013key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
