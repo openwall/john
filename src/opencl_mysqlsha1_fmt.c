@@ -296,6 +296,9 @@ static void crypt_all(int count) {
 	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, mysqlsha_plain, 0, NULL, NULL),
 	     "failed in clEnqueueWriteBuffer mysqlsha_plain");
 
+	// Prevent a memory leak
+	if (profilingEvent) clReleaseEvent(profilingEvent);
+
 	HANDLE_CLERROR(
 	    clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 	    &global_work_size, &local_work_size, 0, NULL, &profilingEvent),
