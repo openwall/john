@@ -391,11 +391,8 @@ static void crypt_all(int count)
 	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, saved_plain, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer saved_plain");
 
-	// Prevent a memory leak
-	if (profilingEvent) clReleaseEvent(profilingEvent);
-
 	code = clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, &profilingEvent);
+	    &global_work_size, &local_work_size, 0, NULL, profilingEvent);
 	HANDLE_CLERROR(code, "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
