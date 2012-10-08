@@ -421,7 +421,7 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
-	cl_event Event[40];
+	cl_event Event[3];
 	cl_int ret_code;
 	int i, j, k;
 	int num = gws;
@@ -431,10 +431,10 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 	for (i = 0; i < num; i++)
 		set_key(rar_fmt.params.tests[0].plaintext, i);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, &Event[0]), "Failed transferring salt");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, &Event[1]), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * num, saved_len, 0, NULL, &Event[2]), "Failed transferring lengths");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * num, saved_len, 0, NULL, NULL), "Failed transferring lengths");
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]);
+	ret_code = clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 		clReleaseCommandQueue(queue_prof);
@@ -442,7 +442,7 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 		return 0;
 	}
 	for (k = 0; k < 16; k++) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4+k*2]);
+		ret_code = clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 			clReleaseCommandQueue(queue_prof);
@@ -450,7 +450,7 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 			return 0;
 		}
 		for (j = 0; j < 256 / HASH_LOOPS; j++) {
-			ret_code = clEnqueueNDRangeKernel(queue_prof, RarHashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4+k*2+1]);
+			ret_code = clEnqueueNDRangeKernel(queue_prof, RarHashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
 			if (ret_code != CL_SUCCESS) {
 				fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 				clReleaseCommandQueue(queue_prof);
@@ -459,7 +459,7 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 			}
 		}
 	}
-	ret_code = clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[37]);
+	ret_code = clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 		clReleaseCommandQueue(queue_prof);
@@ -468,21 +468,12 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 	}
 
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * num, aes_iv, 0, NULL, &Event[38]), "Failed reading iv back");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_FALSE, 0, 16 * num, aes_key, 0, NULL, &Event[39]), "Failed reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * num, aes_iv, 0, NULL, NULL), "Failed reading iv back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_FALSE, 0, 16 * num, aes_key, 0, NULL, &Event[2]), "Failed reading key back");
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed reading results back");
 
-#if 0
-	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	fprintf(stderr, "\nRarInit: %.2f ms\n", (float)((endTime - startTime)/1000000.));
-
-	clGetEventProfilingInfo(Event[6], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[6], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	fprintf(stderr, "RarGetIV: %.2f us\n", (float)((endTime - startTime)/1000.));
-#endif
-	clGetEventProfilingInfo(Event[7], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[7], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	if (do_benchmark)
 		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
 
@@ -492,13 +483,9 @@ static cl_ulong gws_test(int gws, int do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		return 0;
 	}
-#if 0
-	clGetEventProfilingInfo(Event[37], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[37], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	fprintf(stderr, "RarFinal: %.2f us\n", (float)((endTime - startTime)/1000.));
-#endif
+
 	clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[39], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	//fprintf(stderr, "Total: %.2f s\n", (float)((endTime - startTime)/1000000000.));
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
@@ -880,13 +867,13 @@ static void crypt_all(int count)
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * *mkpc, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 			new_keys = 0;
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		for (k = 0; k < 16; k++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent), "failed in clEnqueueNDRangeKernel");
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 			for (j = 0; j < 256 / HASH_LOOPS; j++)
-				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarHashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent), "failed in clEnqueueNDRangeKernel");
+				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarHashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &profilingEvent), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		// read back aes key & iv
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * *mkpc, aes_key, 0, NULL, NULL), "failed in reading key back");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * *mkpc, aes_iv, 0, NULL, NULL), "failed in reading iv back");

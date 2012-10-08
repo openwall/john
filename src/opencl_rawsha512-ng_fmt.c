@@ -549,8 +549,11 @@ static void * get_full_binary(char *ciphertext) {
 static void crypt_all(int count) {
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, &profilingEvent),
+                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
                 "failed in clEnqueueWriteBuffer pass_buffer");
+
+    // Prevent a memory leak
+    if (profilingEvent) clReleaseEvent(profilingEvent);
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
@@ -559,7 +562,7 @@ static void crypt_all(int count) {
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(uint32_t) * global_work_size, calculated_hash, 0, NULL, &profilingEvent),
+            sizeof(uint32_t) * global_work_size, calculated_hash, 0, NULL, NULL),
             "failed in reading data back");
 
     //Do the work
