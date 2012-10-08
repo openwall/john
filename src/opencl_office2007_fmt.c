@@ -399,7 +399,6 @@ static void init(struct fmt_main *self)
 
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
-#if 1
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_CPU) {
 			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
 				local_work_size = 8;
@@ -408,13 +407,6 @@ static void init(struct fmt_main *self)
 		} else {
 			local_work_size = 64;
 		}
-#else /* This currently can't be used - we'd need more than one "profilingEvent" */
-		int temp = global_work_size;
-		create_clobj(maxsize, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
-		release_clobj();
-		global_work_size = temp;
-#endif
 	}
 
 	if (local_work_size > maxsize) {
