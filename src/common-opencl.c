@@ -325,6 +325,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
                         advance_cursor();
 			local_work_size = my_work_group;
 
+			clReleaseEvent(*profilingEvent);
+
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
 			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
