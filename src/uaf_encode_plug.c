@@ -192,7 +192,7 @@ static int encode_6bit ( void *buffer, size_t bufsize, const char *fmt, ... )
 	/*
 	 * Interpret format directive, either % or nnt when nn is number
 	 * of bits and t is type: q-quadqord, l-longword, w-word, b-byte.
-	 */
+     */
 	fpos++;
 	if ( fmt[fpos] == '%' ) {
 	    out[out_count++] = '%';
@@ -516,14 +516,13 @@ int uaf_packed_convert ( struct uaf_packed_text *username, int to_packed )
 int uaf_test_password (
 	struct uaf_hash_info *pwd,
 	const char *password,		/* clear text password */
-	int replace_if )		/* Update pwd if false */
+	int replace_if, uaf_qword *hashed_password )		/* Update pwd if false */
 {
     char uc_username[32], uc_password[32];
     $DESCRIPTOR(username_dx, uc_username );
     $DESCRIPTOR(password_dx,"");
     int status, i, ulen;
-    uaf_qword hashed_password;
-    memset(&hashed_password, 0, sizeof(uaf_qword));
+    memset(hashed_password, 0, sizeof(uaf_qword));
     /*
      * Build VMS descriptors for system service arguments.
      */
@@ -549,7 +548,7 @@ int uaf_test_password (
      * Try private implementation first (optimized) and fall back
      * to OS routine if failed.
      */
-    status = hash_password ( &hashed_password,
+    status = hash_password ( hashed_password,
 		&password_dx, pwd->alg, pwd->salt, &username_dx );
 
     if ( ((status&1) == 0) ) {
@@ -559,7 +558,7 @@ int uaf_test_password (
 
     if ( (status&1) == 0 ) return 0;
 
-    if ( UAF_QW_EQL(hashed_password,pwd->hash) ) return 1;
+    if ( UAF_QW_EQL(*hashed_password,pwd->hash) ) return 1;
 
     // if ( replace_if ) pwd->hash = hashed_password;
 

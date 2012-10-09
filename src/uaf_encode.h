@@ -96,7 +96,7 @@ int uaf_packed_convert ( struct uaf_packed_text *username, int to_packed );
 int uaf_test_password (
 	struct uaf_hash_info *pwd,
 	const char *password,		/* clear text password */
-	int replace_if );		/* Update pwd if false */
+	int replace_if, uaf_qword *hashed_password);		/* Update pwd if false */
 
 int uaf_init ( void );			/* one-time init for hash func. */
 /*

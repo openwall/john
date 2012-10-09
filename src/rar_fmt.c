@@ -158,11 +158,8 @@ static rarfile *cur_file;
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
 #define CPU_GPU_RATIO		32
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_RawBuf, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
-static cl_kernel RarInit, RarGetIV, RarHashLoop, RarFinal;
+static cl_kernel RarInit, RarGetIV, RarFinal;
 #endif
-
-struct fmt_main rar_fmt;
-static int *mkpc = &rar_fmt.params.max_keys_per_crypt;
 
 /* cRARk use 4-char passwords for CPU benchmark */
 static struct fmt_tests cpu_tests[] = {
@@ -314,23 +311,24 @@ static void openssl_cleanup(void)
 #endif
 
 #ifdef CL_VERSION_1_0
-static void create_clobj(int gws)
+static void create_clobj(int gws, struct fmt_main *self)
 {
 	int i;
-	int bench_len = strlen(rar_fmt.params.tests[0].plaintext) * 2;
+	int bench_len = strlen(self->params.tests[0].plaintext) * 2;
 
-	*mkpc = (global_work_size = gws);
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * *mkpc, NULL , &ret_code);
+	global_work_size = gws;
+	self->params.max_keys_per_crypt = gws;
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL , &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * *mkpc, 0, NULL, NULL, &ret_code);
+	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
-	memset(saved_key, 0, UNICODE_LENGTH * *mkpc);
+	memset(saved_key, 0, UNICODE_LENGTH * gws);
 
-	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * *mkpc, NULL, &ret_code);
+	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * *mkpc, 0, NULL, NULL, &ret_code);
+	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
-	for (i = 0; i < *mkpc; i++)
+	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
 
 	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 8, NULL, &ret_code);
@@ -339,27 +337,27 @@ static void create_clobj(int gws)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
-	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (UNICODE_LENGTH + 8) * *mkpc, NULL, &ret_code);
+	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (UNICODE_LENGTH + 8) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * *mkpc, NULL, &ret_code);
+	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
-	cl_round = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * *mkpc, NULL, &ret_code);
+	cl_round = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
 	// aes_key is uchar[16] but kernel treats it as uint[4]
-	cl_aes_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * *mkpc, NULL, &ret_code);
+	cl_aes_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * *mkpc, 0, NULL, NULL, &ret_code);
+	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_key");
-	memset(aes_key, 0, 16 * *mkpc);
+	memset(aes_key, 0, 16 * gws);
 
-	cl_aes_iv = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * *mkpc, NULL, &ret_code);
+	cl_aes_iv = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * *mkpc, 0, NULL, NULL, &ret_code);
+	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
-	memset(aes_iv, 0, 16 * *mkpc);
+	memset(aes_iv, 0, 16 * gws);
 
 	HANDLE_CLERROR(clSetKernelArg(RarInit, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(RarInit, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
@@ -374,14 +372,18 @@ static void create_clobj(int gws)
 	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 3, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(RarGetIV, 4, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 4");
 
-	HANDLE_CLERROR(clSetKernelArg(RarHashLoop, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(RarHashLoop, 1, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(RarHashLoop, 2, sizeof(cl_mem), (void*)&cl_RawBuf), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(RarHashLoop, 3, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_RawBuf), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 3");
+	if (gpu_nvidia(device_info[ocl_gpu_id]))
+		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, local_work_size * (UNICODE_LENGTH + 8), NULL), "Error setting argument 4 (local memory)");
 
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 1, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 2, sizeof(cl_mem), (void*)&cl_aes_key), "Error setting argument 2");
+
+	cracked = mem_alloc(sizeof(*cracked) * gws);
 }
 
 static void release_clobj(void)
@@ -392,6 +394,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
 	aes_key = NULL; aes_iv = NULL; saved_key = NULL; saved_len = NULL; saved_salt = NULL;
+	MEM_FREE(cracked);
 }
 #endif	/* OpenCL */
 
@@ -414,266 +417,6 @@ static void set_key(char *key, int index)
 #ifdef CL_VERSION_1_0
 	new_keys = 1;
 #endif
-}
-
-#ifdef CL_VERSION_1_0
-static cl_ulong gws_test(int gws, int do_benchmark)
-{
-	cl_ulong startTime, endTime;
-	cl_command_queue queue_prof;
-	cl_event Event[3];
-	cl_int ret_code;
-	int i, j, k;
-	int num = gws;
-
-	create_clobj(gws);
-	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	for (i = 0; i < num; i++)
-		set_key(rar_fmt.params.tests[0].plaintext, i);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, &Event[0]), "Failed transferring salt");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * num, saved_key, 0, NULL, NULL), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * num, saved_len, 0, NULL, NULL), "Failed transferring lengths");
-
-	ret_code = clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
-	for (k = 0; k < 16; k++) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-			clReleaseCommandQueue(queue_prof);
-			release_clobj();
-			return 0;
-		}
-		for (j = 0; j < 256 / HASH_LOOPS; j++) {
-			ret_code = clEnqueueNDRangeKernel(queue_prof, RarHashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
-			if (ret_code != CL_SUCCESS) {
-				fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-				clReleaseCommandQueue(queue_prof);
-				release_clobj();
-				return 0;
-			}
-		}
-	}
-	ret_code = clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
-
-	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * num, aes_iv, 0, NULL, NULL), "Failed reading iv back");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_FALSE, 0, 16 * num, aes_key, 0, NULL, &Event[2]), "Failed reading key back");
-	HANDLE_CLERROR(clFinish(queue_prof), "Failed reading results back");
-
-	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	if (do_benchmark)
-		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
-
-	/* 200 ms duration limit for GCN to avoid ASIC hangs */
-	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
-		if (do_benchmark)
-			fprintf(stderr, "- exceeds 200 ms\n");
-		return 0;
-	}
-
-	clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
-	//fprintf(stderr, "Total: %.2f s\n", (float)((endTime - startTime)/1000000000.));
-	clReleaseCommandQueue(queue_prof);
-	release_clobj();
-
-	return (endTime - startTime);
-}
-
-static void find_best_gws(int do_benchmark)
-{
-	int num;
-	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	unsigned int SHAspeed, bestSHAspeed = 0;
-	int optimal_gws = local_work_size;
-	const int sha1perkey = (strlen(rar_fmt.params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
-	char *conf;
-	unsigned long long int MaxRunTime = 5000000000ULL;
-
-	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "rar_MaxDuration")))
-		MaxRunTime = atoi(conf) * 1000000000UL;
-
-	if (do_benchmark) {
-		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
-		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
-	}
-
-	for (num = local_work_size; num; num *= 2) {
-		if (!(run_time = gws_test(num, do_benchmark)))
-			break;
-
-		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
-
-		if (run_time < min_time)
-			min_time = run_time;
-
-		if (do_benchmark)
-			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
-
-		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
-			if (do_benchmark)
-				fprintf(stderr, "!\n");
-			bestSHAspeed = SHAspeed;
-			optimal_gws = num;
-		} else {
-
-			if (run_time > MaxRunTime) {
-				if (do_benchmark)
-					fprintf(stderr, "\n");
-				break;
-			}
-
-			if (SHAspeed > bestSHAspeed * 1.01) {
-				if (do_benchmark)
-					fprintf(stderr, "+");
-				bestSHAspeed = SHAspeed;
-				optimal_gws = num;
-			}
-			if (do_benchmark)
-				fprintf(stderr, "\n");
-		}
-	}
-	*mkpc = (global_work_size = optimal_gws);
-}
-#endif	/* OpenCL */
-
-static void init(struct fmt_main *self)
-{
-#ifdef CL_VERSION_1_0
-	char *temp;
-	cl_ulong maxsize, maxsize2;
-
-	global_work_size = 0;
-
-	opencl_init("$JOHN/rar_kernel.cl", ocl_gpu_id, platform_id);
-
-	// create kernels to execute
-	RarInit = clCreateKernel(program[ocl_gpu_id], "RarInit", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	RarGetIV = clCreateKernel(program[ocl_gpu_id], "RarGetIV", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	RarHashLoop = clCreateKernel(program[ocl_gpu_id], "RarHashLoop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	RarFinal = clCreateKernel(program[ocl_gpu_id], "RarFinal", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	/* We mimic the lengths of cRARk for comparisons */
-	if (gpu(device_info[ocl_gpu_id])) {
-#ifndef DEBUG
-		self->params.benchmark_comment = " (6 characters)";
-#endif
-		self->params.tests = gpu_tests;
-#if defined(DEBUG) && !defined(ALWAYS_OPENCL)
-		fprintf(stderr, "Note: will use CPU for some self-tests, and Single mode.\n");
-#endif
-	}
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
-		local_work_size = atoi(temp);
-
-	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
-		global_work_size = atoi(temp);
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
-
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 > maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 > maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
-	if (maxsize2 > maxsize) maxsize = maxsize2;
-
-	if (!local_work_size) {
-		if (cpu(device_info[ocl_gpu_id])) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = 8;
-			else
-				local_work_size = 1;
-		} else {
-			local_work_size = 64;
-		}
-	}
-
-	if (local_work_size > maxsize) {
-		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
-		local_work_size = maxsize;
-	}
-
-	if (!global_work_size)
-		find_best_gws(temp == NULL ? 0 : 1);
-
-	if (global_work_size < local_work_size)
-		global_work_size = local_work_size;
-
-	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-
-	create_clobj(global_work_size);
-
-	atexit(release_clobj);
-
-	*mkpc = global_work_size;
-
-#endif	/* OpenCL */
-
-#if defined (_OPENMP)
-	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
-#ifndef CL_VERSION_1_0	/* OpenCL gets to decide */
-	*mkpc = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
-#endif
-	init_locks();
-#endif /* _OPENMP */
-
-	if (options.utf8)
-		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
-
-	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
-	cracked = mem_calloc_tiny(sizeof(*cracked) * *mkpc, MEM_ALIGN_WORD);
-#ifndef CL_VERSION_1_0
-	saved_key = mem_calloc_tiny(UNICODE_LENGTH * *mkpc, MEM_ALIGN_NONE);
-	saved_len = mem_calloc_tiny(sizeof(*saved_len) * *mkpc, MEM_ALIGN_WORD);
-	saved_salt = mem_calloc_tiny(8, MEM_ALIGN_NONE);
-	aes_key = mem_calloc_tiny(16 * *mkpc, MEM_ALIGN_NONE);
-	aes_iv = mem_calloc_tiny(16 * *mkpc, MEM_ALIGN_NONE);
-#endif
-
-	/* OpenSSL init */
-	init_aesni();
-	SSL_load_error_strings();
-	SSL_library_init();
-	OpenSSL_add_all_algorithms();
-#ifndef __APPLE__
-	atexit(openssl_cleanup);
-#endif
-	/* CRC-32 table init, do it before we start multithreading */
-	{
-		CRC32_t crc;
-		CRC32_Init(&crc);
-	}
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	return !strncmp(ciphertext, "$RAR3$*", 7);
 }
 
 static void *get_salt(char *ciphertext)
@@ -747,6 +490,276 @@ static void set_salt(void *salt)
 #ifdef CL_VERSION_1_0
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 #endif
+}
+
+#ifdef CL_VERSION_1_0
+static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+{
+	cl_ulong startTime, endTime;
+	cl_command_queue queue_prof;
+	cl_event Event[3];
+	cl_int ret_code;
+	int i, j, k;
+
+	create_clobj(gws, self);
+	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	for (i = 0; i < gws; i++)
+		set_key(self->params.tests[0].plaintext, i);
+	cur_file = (rarfile*)get_salt(self->params.tests[0].ciphertext);
+	memcpy(saved_salt, cur_file->salt, 8);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_salt, CL_FALSE, 0, 8, saved_salt, 0, NULL, &Event[0]), "failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
+
+	ret_code = clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+	if (ret_code != CL_SUCCESS) {
+		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
+	for (k = 0; k < 16; k++) {
+		ret_code = clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+		if (ret_code != CL_SUCCESS) {
+			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+			clReleaseCommandQueue(queue_prof);
+			release_clobj();
+			return 0;
+		}
+		for (j = 0; j < 256 / HASH_LOOPS; j++) {
+			ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
+			if (ret_code != CL_SUCCESS) {
+				fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+				clReleaseCommandQueue(queue_prof);
+				release_clobj();
+				return 0;
+			}
+		}
+	}
+	ret_code = clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+	if (ret_code != CL_SUCCESS) {
+		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
+
+	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * gws, aes_iv, 0, NULL, NULL), "Failed reading iv back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_key, CL_TRUE, 0, 16 * gws, aes_key, 0, NULL, &Event[2]), "Failed reading key back");
+	HANDLE_CLERROR(clFinish(queue_prof), "Failed reading results back");
+
+	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	if (do_benchmark)
+		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 16 * (256/HASH_LOOPS), (float)(16. * (float)(256/HASH_LOOPS) * (endTime - startTime) / 1000000000.));
+
+	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+		if (do_benchmark)
+			fprintf(stderr, "- exceeds 200 ms\n");
+		return 0;
+	}
+
+	clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	//fprintf(stderr, "Total: %.2f s\n", (float)((endTime - startTime)/1000000000.));
+	clReleaseCommandQueue(queue_prof);
+	release_clobj();
+
+	return (endTime - startTime);
+}
+
+static void find_best_gws(int do_benchmark, struct fmt_main *self)
+{
+	int num;
+	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	unsigned int SHAspeed, bestSHAspeed = 0;
+	int optimal_gws = local_work_size;
+	const int sha1perkey = (strlen(self->params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
+	unsigned long long int MaxRunTime = 5000000000ULL;
+
+	if (do_benchmark) {
+		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
+		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
+	}
+
+	for (num = local_work_size; num; num *= 2) {
+		if (!(run_time = gws_test(num, do_benchmark, self)))
+			break;
+
+		SHAspeed = sha1perkey * (1000000000UL * num / run_time);
+
+		if (run_time < min_time)
+			min_time = run_time;
+
+		if (do_benchmark)
+			fprintf(stderr, "gws %6d\t%4llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+
+		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
+			if (do_benchmark)
+				fprintf(stderr, "!\n");
+			bestSHAspeed = SHAspeed;
+			optimal_gws = num;
+		} else {
+
+			if (run_time > MaxRunTime) {
+				if (do_benchmark)
+					fprintf(stderr, "\n");
+				break;
+			}
+
+			if (SHAspeed > bestSHAspeed * 1.01) {
+				if (do_benchmark)
+					fprintf(stderr, "+");
+				bestSHAspeed = SHAspeed;
+				optimal_gws = num;
+			}
+			if (do_benchmark)
+				fprintf(stderr, "\n");
+		}
+	}
+	global_work_size = optimal_gws;
+}
+#endif	/* OpenCL */
+
+static void init(struct fmt_main *self)
+{
+#ifdef CL_VERSION_1_0
+	char *temp;
+	cl_ulong maxsize, maxsize2;
+
+	global_work_size = 0;
+
+	opencl_init("$JOHN/rar_kernel.cl", ocl_gpu_id, platform_id);
+
+	// create kernels to execute
+	RarInit = clCreateKernel(program[ocl_gpu_id], "RarInit", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	RarGetIV = clCreateKernel(program[ocl_gpu_id], "RarGetIV", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "RarHashLoop", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	RarFinal = clCreateKernel(program[ocl_gpu_id], "RarFinal", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+
+	/* We mimic the lengths of cRARk for comparisons */
+	if (gpu(device_info[ocl_gpu_id])) {
+#ifndef DEBUG
+		self->params.benchmark_comment = " (6 characters)";
+#endif
+		self->params.tests = gpu_tests;
+#if defined(DEBUG) && !defined(ALWAYS_OPENCL)
+		fprintf(stderr, "Note: will use CPU for some self-tests, and Single mode.\n");
+#endif
+	}
+
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
+		local_work_size = atoi(temp);
+
+	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
+		global_work_size = atoi(temp);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 < maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 < maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(RarInit, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 < maxsize) maxsize = maxsize2;
+
+	if (gpu_nvidia(device_info[ocl_gpu_id])) {
+		/* Adopt to available local memory */
+		maxsize2 = get_local_memory_size(ocl_gpu_id) / (UNICODE_LENGTH + 8);
+		while (maxsize > maxsize2)
+			maxsize /= 2;
+	}
+
+	if (!local_work_size) {
+#if 0 /* Auto-homing */
+		int temp = global_work_size;
+
+		local_work_size = maxsize;
+		create_clobj(maxsize, self);
+		opencl_find_best_workgroup_limit(self, maxsize);
+		release_clobj();
+		global_work_size = temp;
+#else /* Fixed size */
+		if (cpu(device_info[ocl_gpu_id])) {
+			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+				local_work_size = maxsize < 8 ? maxsize : 8;
+			else
+				local_work_size = 1;
+		} else {
+			local_work_size = maxsize < 64 ? maxsize : 64;
+		}
+#endif
+	}
+
+	if (local_work_size > maxsize) {
+		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
+		local_work_size = maxsize;
+	}
+
+	if (!global_work_size)
+		find_best_gws(temp == NULL ? 0 : 1, self);
+
+	if (global_work_size < local_work_size)
+		global_work_size = local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	create_clobj(global_work_size, self);
+	atexit(release_clobj);
+
+#endif	/* OpenCL */
+
+#if defined (_OPENMP)
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+#ifndef CL_VERSION_1_0	/* OpenCL gets to decide */
+	self->params.max_keys_per_crypt = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
+#endif
+	init_locks();
+#endif /* _OPENMP */
+
+	if (options.utf8)
+		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ? 125 : 3 * PLAINTEXT_LENGTH;
+
+	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
+#ifndef CL_VERSION_1_0
+	cracked = mem_calloc_tiny(sizeof(*cracked) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc_tiny(UNICODE_LENGTH * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_salt = mem_calloc_tiny(8, MEM_ALIGN_NONE);
+	aes_key = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	aes_iv = mem_calloc_tiny(16 * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+#endif
+
+	/* OpenSSL init */
+	init_aesni();
+	SSL_load_error_strings();
+	SSL_library_init();
+	OpenSSL_add_all_algorithms();
+#ifndef __APPLE__
+	atexit(openssl_cleanup);
+#endif
+	/* CRC-32 table init, do it before we start multithreading */
+	{
+		CRC32_t crc;
+		CRC32_Init(&crc);
+	}
+}
+
+static int valid(char *ciphertext, struct fmt_main *self)
+{
+	return !strncmp(ciphertext, "$RAR3$*", 7);
 }
 
 static char *get_key(int index)
@@ -857,26 +870,26 @@ static void crypt_all(int count)
 
 #ifdef CL_VERSION_1_0
 #ifndef ALWAYS_OPENCL
-	if (count > (*mkpc / CPU_GPU_RATIO))
+	if (count > (global_work_size / CPU_GPU_RATIO))
 #endif
 	{
 		int j, k;
 
 		if (new_keys) {
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * *mkpc, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * *mkpc, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * global_work_size, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 			new_keys = 0;
 		}
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		for (k = 0; k < 16; k++) {
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 			for (j = 0; j < 256 / HASH_LOOPS; j++)
-				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarHashLoop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
 		}
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		// read back aes key & iv
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * *mkpc, aes_key, 0, NULL, NULL), "failed in reading key back");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * *mkpc, aes_iv, 0, NULL, NULL), "failed in reading iv back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * global_work_size, aes_key, 0, NULL, NULL), "failed in reading key back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * global_work_size, aes_iv, 0, NULL, NULL), "failed in reading iv back");
 
 	}
 #ifndef ALWAYS_OPENCL

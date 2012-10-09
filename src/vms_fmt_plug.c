@@ -51,7 +51,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char *cracked;
+static uaf_qword (*crypt_out)[BINARY_SIZE / sizeof(uaf_qword)];
 
 /*
  * See if signature of ciphertext (from passwd file) matches the hack
@@ -76,8 +76,7 @@ static void fmt_vms_init ( struct fmt_main *self )
 	/* Init bin 2 hex table for faster conversions later */
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	uaf_init ( );
 }
 
@@ -105,18 +104,20 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static int cmp_one(void *binary, int index)
-{
-	return cracked[index];
-}
-
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
+	int index = 0;
+#ifdef _OPENMP
+	for (; index < count; index++)
+#endif
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -124,7 +125,11 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+#if FMT_MAIN_VERSION > 9
+static char *fmt_vms_split(char *ciphertext, int index, struct fmt_main *pFmt)
+#else
 static char *fmt_vms_split(char *ciphertext, int index)
+#endif
 {
 	return ciphertext;
 }
@@ -139,7 +144,6 @@ struct uaf_hash_info *cur_salt;
 void VMS_std_set_salt ( void *salt )
 {
 	cur_salt = (struct uaf_hash_info*)salt;
-	memset(cracked, 0, MAX_KEYS_PER_CRYPT);
 }
 
 
@@ -153,6 +157,22 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return crypt_out[index][0] & 0xf; }
+static int get_hash_1(int index) { return crypt_out[index][0] & 0xff; }
+static int get_hash_2(int index) { return crypt_out[index][0] & 0xfff; }
+static int get_hash_3(int index) { return crypt_out[index][0] & 0xffff; }
+static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
+
 /*
  * Hash the password and salt saved with VMS_std_set_key and VMS_std_set_salt,
  * saving the result in global storage for retrieval by vms_fmt.c module.
@@ -162,14 +182,10 @@ void VMS_std_crypt(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-#endif
 	for (index = 0; index < count; index++)
+#endif
 	{
-		int ret = uaf_test_password (cur_salt, saved_key[index], 0);
-		if(ret)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
+		uaf_test_password (cur_salt, saved_key[index], 0, crypt_out[index]);
 	}
 }
 
@@ -217,7 +233,13 @@ struct fmt_main fmt_VMS = {
 		BENCHMARK_LENGTH,		/* .benchmark_length (pwd break len) */
 		PLAINTEXT_LENGTH,		/* .plaintext_lenght (max) */
 		BINARY_SIZE,			/* .binary_size (quadword) */
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,			/* .salt_size (word) */
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -229,8 +251,17 @@ struct fmt_main fmt_VMS = {
 		fmt_vms_split,
 		(void *(*)(char *))VMS_std_get_binary,
 		(void *(*)(char *))VMS_std_get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		(void (*)(void *))VMS_std_set_salt,
@@ -239,7 +270,13 @@ struct fmt_main fmt_VMS = {
 		fmt_default_clear_keys,
 		(void (*)(int)) VMS_std_crypt,
 		{
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

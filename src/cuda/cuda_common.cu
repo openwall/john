@@ -68,11 +68,18 @@ void cuda_device_list()
 	printf("%d CUDA devices found:\n", devices);
 	for (i = 0; i < devices; i++) {
 		cudaDeviceProp devProp;
+		int arch_cores_sm[] = { 1, 8, 32, 192 };
+
 		cudaGetDeviceProperties(&devProp, i);
 		printf("\nCUDA Device #%d\n", i);
 		printf("\tName:                          %s\n", devProp.name);
 		printf("\tCompute capability:            sm_%d%d\n",
 		    devProp.major, devProp.minor);
+		if (devProp.major <= 3)
+		printf("\tNumber of stream processors:   %d (%d x %d)\n",
+		       devProp.multiProcessorCount * arch_cores_sm[devProp.major],
+		       devProp.multiProcessorCount, arch_cores_sm[devProp.major]);
+		else
 		printf("\tNumber of multiprocessors:     %d\n",
 		    devProp.multiProcessorCount);
 		printf("\tClock rate:                    %d Mhz\n",

@@ -201,7 +201,7 @@ static int hash_password (
 
       case UAI$C_PURDY:		/* Purdy algorithm */
 
-	/* Use a blank padded username */
+ 	/* Use a blank padded username */
 	strncpy(uname,"            ",sizeof(uname));
 	strncpy(uname, username->dsc$a_pointer, r5);
 	username->dsc$a_pointer = (char *)&uname;

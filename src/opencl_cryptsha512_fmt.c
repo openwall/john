@@ -413,6 +413,7 @@ static cl_ulong gws_test(size_t num) {
     HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
+    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
     runtime = endTime - startTime;
 
     //** Get execution time **//
@@ -427,6 +428,7 @@ static cl_ulong gws_test(size_t num) {
     HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
+    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
     runtime += endTime - startTime;
 
     //** Get execution time **//
@@ -441,6 +443,7 @@ static cl_ulong gws_test(size_t num) {
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
+        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
         runtime += endTime - startTime;
     }
 
@@ -459,6 +462,7 @@ static cl_ulong gws_test(size_t num) {
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
+        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
         runtime += endTime - startTime;
     }
 
@@ -474,12 +478,12 @@ static cl_ulong gws_test(size_t num) {
     HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
             sizeof(cl_ulong), &endTime, NULL),
             "Failed in clGetEventProfilingInfo II");
+    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
     runtime += endTime - startTime;
 
     MEM_FREE(tmpbuffer);
     HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
             "Failed in clReleaseCommandQueue");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
     release_clobj();
 
      if (ret_code != CL_SUCCESS) {
@@ -735,18 +739,18 @@ static void crypt_all(int count) {
 
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
-            sizeof(sha512_salt), salt, 0, NULL, profilingEvent),
+            sizeof(sha512_salt), salt, 0, NULL, NULL),
             "failed in clEnqueueWriteBuffer salt_buffer");
 
     if (new_keys)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, profilingEvent),
+                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
     if (gpu(source_in_use) || use_local(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+            &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
@@ -755,7 +759,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueNDRangeKernel");
         }
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+            &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
@@ -764,7 +768,7 @@ static void crypt_all(int count) {
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, profilingEvent),
+            sizeof(sha512_hash) * global_work_size, calculated_hash, 0, NULL, NULL),
             "failed in reading data back");
 
     //Do the work

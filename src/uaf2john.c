@@ -1,4 +1,4 @@
-/* Compile: gcc uaf2john.c uaf_hash.c -o ../run/uaf2joh
+/* Compile: gcc uaf2john.c uaf_hash.c -o ../run/uaf2john
  *
  * Convert a OpenVMS SYSUAF file to a unix-style password file (7
  * colon-delimited printable fields).  The password string is 29 characters
