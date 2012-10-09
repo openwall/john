@@ -370,11 +370,22 @@ static void init(struct fmt_main *self)
 
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
+#if 0
 		int temp = global_work_size;
 		create_clobj(maxsize, self);
 		opencl_find_best_workgroup_limit(self, maxsize);
 		release_clobj();
 		global_work_size = temp;
+#else
+		if (cpu(device_info[ocl_gpu_id])) {
+			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+				local_work_size = maxsize < 8 ? maxsize : 8;
+			else
+				local_work_size = 1;
+		} else {
+			local_work_size = maxsize < 64 ? maxsize : 64;
+		}
+#endif
 	}
 
 	if (local_work_size > maxsize) {
