@@ -344,7 +344,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
 		}
-		//fprintf(stderr, "%d time=%llu\n",(int) my_work_group, (unsigned long long)sumEndTime-sumStartTime);
+		//fprintf(stderr, "LWS %d time=%llu ns\n",(int) my_work_group, (unsigned long long)sumEndTime-sumStartTime);
 	}
 	///Release profiling queue and create new with profiling disabled
 	clReleaseCommandQueue(queue[ocl_gpu_id]);

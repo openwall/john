@@ -331,13 +331,16 @@ __kernel void RarHashLoop(
 	const __global uint *pw_len,
 	__global uint *round_p,
 	const __global uint *RawBuf,
-	__global uint *OutputBuf)
+	__global uint *OutputBuf
+#if gpu_nvidia(DEVICE_INFO)
+	, __local uint *LocBuf
+#endif
+	)
 {
 	uint gid = get_global_id(0);
 	uint block[2][16];
 	uint output[5];
 #if gpu_nvidia(DEVICE_INFO)
-	__local uint LocBuf[64 * (UNICODE_LENGTH + 8) / 4];
 	__local uint *RawPsw = &LocBuf[get_local_id(0) * (UNICODE_LENGTH + 8) / 4];
 #else
 	uint RawPsw[(UNICODE_LENGTH + 8) / 4];
