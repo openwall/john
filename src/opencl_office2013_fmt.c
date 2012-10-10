@@ -75,7 +75,7 @@ static struct custom_salt {
 } *cur_salt;
 
 static int *cracked;
-static int VF = 1;	/* Will be 4 if vectorized (only on CPU to to GPR pressure) */
+static int VF = 1;	/* Will be 4 if vectorized (only on CPU due to GPR pressure) */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -263,7 +263,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_key, CL_TRUE, 0, 32 * scalar_gws, key, 0, NULL, &Event[5]), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_key, CL_TRUE, 0, 128 * scalar_gws, key, 0, NULL, &Event[5]), "failed in reading key back");
 
 #if 0
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
