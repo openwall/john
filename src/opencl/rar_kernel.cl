@@ -45,8 +45,8 @@
 
 /* These use 32-bit stores */
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-#define PUTCHAR_G	PUTCHAR
 #define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+#define PUTCHAR_G	PUTCHAR
 #define PUTCHAR_BE_G	PUTCHAR_BE
 
 #else
@@ -400,17 +400,16 @@ __kernel void RarHashLoop(
 				PUTCHAR_BE(block[0], (len - 3) & 127, round & 0xff);
 				PUTCHAR_BE(block[0], (len - 2) & 127, (round >> 8) & 0xff);
 				PUTCHAR_BE(block[0], (len - 1) & 127, round >> 16);
-				//printf("round %d length %d b %d\n", round, len, b);
 
 				round++;
 			} while ((len & 64) == (b << 6));
-			//printf("sha_block(%d) number %d, %d, %d mod %d\n", b, i, j, i*blocklen+j, len % 64);
 			sha1_block(block[b], output);
 			b = 1 - b;
 		}
 	}
 	round_p[gid] = round;
 
+#pragma unroll
 	for (i = 0; i < 5; i++)
 		OutputBuf[gid * 5 + i] = output[i];
 }
@@ -431,8 +430,7 @@ __kernel void RarFinal(
 	sha1_final((uint*)block, (uint*)output, (pw_len[gid] + 8 + 3) * ROUNDS);
 
 	// Still no endian-swap
-	aes_key[gid * 4] = output[0];
-	aes_key[gid * 4 + 1] = output[1];
-	aes_key[gid * 4 + 2] = output[2];
-	aes_key[gid * 4 + 3] = output[3];
+#pragma unroll
+	for (i = 0; i < 4; i++)
+		aes_key[gid * 4 + i] = output[i];
 }
