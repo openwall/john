@@ -330,10 +330,12 @@ static void init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize, maxsize2;
+	char build_opts[64];
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/office2013_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u", HASH_LOOPS, UNICODE_LENGTH);
+	opencl_init_opt("$JOHN/office2013_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// Create kernels to execute
 	GenerateSHA512pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA512pwhash", &ret_code);

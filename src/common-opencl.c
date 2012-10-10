@@ -96,7 +96,7 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 }
 
-static char *include_source(char *pathname, int dev_id)
+static char *include_source(char *pathname, int dev_id, char *options)
 {
 	static char include[PATH_BUFFER_SIZE];
 
@@ -111,11 +111,16 @@ static char *include_source(char *pathname, int dev_id)
 #endif
 	        OPENCLBUILDOPTIONS);
 
-	//fprintf(stderr, "Options used: %s\n", include);
+	if (options) {
+		strcat(include, " ");
+		strcat(include, options);
+	}
+
+	fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
 
-static void build_kernel(int dev_id)
+static void build_kernel(int dev_id, char *options)
 {
 	cl_int build_code;
         char * build_log; size_t log_size;
@@ -127,7 +132,7 @@ static void build_kernel(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-	    include_source("$JOHN/", dev_id), NULL, NULL);
+		include_source("$JOHN/", dev_id, options), NULL, NULL);
 
         HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
                 CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -185,7 +190,7 @@ static void build_kernel_from_binary(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-	    include_source("$JOHN/", dev_id), NULL, NULL);
+		include_source("$JOHN/", dev_id, NULL), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
@@ -443,10 +448,15 @@ void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
 	opencl_get_dev_info(dev_id);
 }
 
-void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
+void opencl_build_kernel_opt(char *kernel_filename, unsigned int dev_id, char *options)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(dev_id);
+	build_kernel(dev_id, options);
+}
+
+void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
+{
+	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
@@ -455,12 +465,18 @@ void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
 	build_kernel_from_binary(dev_id);
 }
 
-void opencl_init(char *kernel_filename, unsigned int dev_id,
-    unsigned int platform_id)
+void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
+                     unsigned int platform_id, char *options)
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
-	opencl_build_kernel(kernel_filename, dev_id);
+	opencl_build_kernel_opt(kernel_filename, dev_id, options);
+}
+
+void opencl_init(char *kernel_filename, unsigned int dev_id,
+                 unsigned int platform_id)
+{
+	opencl_init_opt(kernel_filename, dev_id, platform_id, NULL);
 }
 
 void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,

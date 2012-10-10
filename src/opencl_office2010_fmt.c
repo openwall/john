@@ -329,11 +329,12 @@ static void init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize, maxsize2;
-	int source_in_use;
+	char build_opts[64];
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/office2010_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u", HASH_LOOPS, UNICODE_LENGTH);
+	opencl_init_opt("$JOHN/office2010_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernel to execute
 	GenerateSHA1pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA1pwhash", &ret_code);
@@ -343,8 +344,7 @@ static void init(struct fmt_main *self)
 	Generate2010key = clCreateKernel(program[ocl_gpu_id], "Generate2010key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	source_in_use = device_info[ocl_gpu_id];
-	if (gpu_nvidia(source_in_use) || amd_gcn(source_in_use)) {
+	if (gpu_nvidia(device_info[ocl_gpu_id]) || amd_gcn(device_info[ocl_gpu_id])) {
 		/* Run scalar code */
 		VF = 1;
 	} else {

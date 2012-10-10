@@ -28,10 +28,8 @@
 #endif
 
 /* These must match the format's defines */
-#define PLAINTEXT_LENGTH	16
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
-#define HASH_LOOPS		256
 
 #if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 
