@@ -55,7 +55,10 @@ WORK_GROUP_SIZE is reduced.  Most OpenCL formats may benefit from tuning
 of KEYS_PER_CRYPT, although higher values, while generally increasing
 the c/s rate, may create usability issues (more work lost on
 interrupted/restored sessions, less optimal order of candidate passwords
-being tested).
+being tested). Some formats allow run-time tuning using the environment
+variables LWS (local work size) and GWS (global work size, this
+corresponds to KEYS_PER_CRYPT). A few formats will also allow specifying
+such values per-format in john.conf under the [OpenCL] section.
 
 Even though wpapsk-cuda and wpapsk-opencl primarily use the GPU, they
 also do a (small, but not negligible) portion of the computation on CPU
@@ -93,7 +96,7 @@ same for another salt).  You may reasonably start with quick "single
 crack" mode runs on CPU (possibly without much use of OpenMP) and only
 after that proceed to using GPU-enabled formats (or with heavier use of
 OpenMP, beyond a few CPU cores), locking those runs to specific cracking
-modes other than "single crack".
+modes other than "single crack". This limitation does not affect MPI.
 
 Some formats lack proper binary_hash() functions, resulting in duplicate
 hashes (if any) not being eliminated at loading and sometimes also in
