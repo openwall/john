@@ -21,10 +21,6 @@
 #define USE_BITSELECT
 #endif
 
-/* These must match the format's defines */
-#define UNICODE_LENGTH		104 /* 51 characters + 0x80 */
-#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
-
 #ifdef SCALAR
 inline uint SWAP32(uint x)
 {

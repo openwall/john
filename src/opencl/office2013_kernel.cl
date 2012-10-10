@@ -16,10 +16,6 @@
 #define SCALAR
 #endif
 
-/* These must match the format's defines */
-#define UNICODE_LENGTH		96 /* 47 characters + 0x80 */
-#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
-
 /* Office 2010/2013 */
 __constant ulong InputBlockKey = 0xfea7d2763b4b9e79UL;
 __constant ulong ValueBlockKey = 0xd7aa0f6d3061344eUL;

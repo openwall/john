@@ -96,7 +96,7 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 }
 
-static char *include_source(char *pathname, int dev_id)
+static char *include_source(char *pathname, int dev_id, char *options)
 {
 	static char include[PATH_BUFFER_SIZE];
 
@@ -111,11 +111,16 @@ static char *include_source(char *pathname, int dev_id)
 #endif
 	        OPENCLBUILDOPTIONS);
 
-	//fprintf(stderr, "Options used: %s\n", include);
+	if (options) {
+		strcat(include, " ");
+		strcat(include, options);
+	}
+
+	fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
 
-static void build_kernel(int dev_id)
+static void build_kernel(int dev_id, char *options)
 {
 	cl_int build_code;
         char * build_log; size_t log_size;
@@ -127,7 +132,7 @@ static void build_kernel(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-	    include_source("$JOHN/", dev_id), NULL, NULL);
+		include_source("$JOHN/", dev_id, options), NULL, NULL);
 
         HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
                 CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -185,7 +190,7 @@ static void build_kernel_from_binary(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-	    include_source("$JOHN/", dev_id), NULL, NULL);
+		include_source("$JOHN/", dev_id, NULL), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
@@ -211,7 +216,7 @@ static void build_kernel_from_binary(int dev_id)
  * - Your kernel (or main kernel) should be crypt_kernel.
  * - Use profilingEvent in your crypt_all() when enqueueing crypt_kernel.
  * - Do not use profilingEvent for transfers or other subkernels.
- *
+ * - For split kernels, use firstEvent and lastEvent instead.
  */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
@@ -226,7 +231,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	int i, numloops;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	char *temp;
-	cl_event benchEvent;
+	cl_event benchEvent[2];
 
 	if (get_device_version(ocl_gpu_id) < 110) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
@@ -291,15 +296,21 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	self->methods.crypt_all(self->params.max_keys_per_crypt);
 
 	// Activate events
-	profilingEvent = &benchEvent;
+	benchEvent[0] = benchEvent[1] = NULL;
+	firstEvent = profilingEvent = &benchEvent[0];
+	lastEvent = &benchEvent[1];
 
 	// Timing run
 	self->methods.crypt_all(self->params.max_keys_per_crypt);
+
+	if (*lastEvent == NULL)
+		lastEvent = firstEvent;
+
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
-	HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+	HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
 			CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+	HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
 	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
@@ -325,15 +336,18 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
                         advance_cursor();
 			local_work_size = my_work_group;
 
-			clReleaseEvent(*profilingEvent);
+			clReleaseEvent(benchEvent[0]);
+
+			if (*lastEvent != *firstEvent)
+				clReleaseEvent(benchEvent[1]);
 
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
 			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
-			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
                                        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
                                        NULL), "Failed to get profiling info");
-			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+			HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
                                        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
                                        NULL), "Failed to get profiling info");
 			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime, startTime, (endTime-startTime));
@@ -354,11 +368,12 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 
-	// Deactivate events (or we'll get a memory leak)
-	clReleaseEvent(*profilingEvent);
-	profilingEvent = NULL;
 
 	//fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
+	// Deactivate events (or we'll get a memory leak)
+	clReleaseEvent(benchEvent[0]);
+	clReleaseEvent(benchEvent[1]);
+	profilingEvent = firstEvent = lastEvent = NULL;
 }
 
 void opencl_get_dev_info(unsigned int dev_id)
@@ -428,15 +443,20 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
 {
-	profilingEvent = NULL;
+	profilingEvent = firstEvent = lastEvent = NULL;
 	dev_init(dev_id, platform_id);
 	opencl_get_dev_info(dev_id);
 }
 
-void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
+void opencl_build_kernel_opt(char *kernel_filename, unsigned int dev_id, char *options)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(dev_id);
+	build_kernel(dev_id, options);
+}
+
+void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
+{
+	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
@@ -445,12 +465,18 @@ void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
 	build_kernel_from_binary(dev_id);
 }
 
-void opencl_init(char *kernel_filename, unsigned int dev_id,
-    unsigned int platform_id)
+void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
+                     unsigned int platform_id, char *options)
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
-	opencl_build_kernel(kernel_filename, dev_id);
+	opencl_build_kernel_opt(kernel_filename, dev_id, options);
+}
+
+void opencl_init(char *kernel_filename, unsigned int dev_id,
+                 unsigned int platform_id)
+{
+	opencl_init_opt(kernel_filename, dev_id, platform_id, NULL);
 }
 
 void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,

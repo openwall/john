@@ -48,6 +48,9 @@
 #define LWS_CONFIG		"office2010_LWS"
 #define GWS_CONFIG		"office2010_GWS"
 
+#define MIN(a, b)		(a > b) ? (b) : (a)
+#define MAX(a, b)		(a > b) ? (a) : (b)
+
 static struct fmt_tests tests[] = {
 	/* 2010-Default_myhovercraftisfullofeels_.docx */
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},
@@ -326,11 +329,12 @@ static void init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize, maxsize2;
-	int source_in_use;
+	char build_opts[64];
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/office2010_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u", HASH_LOOPS, UNICODE_LENGTH);
+	opencl_init_opt("$JOHN/office2010_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernel to execute
 	GenerateSHA1pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA1pwhash", &ret_code);
@@ -340,8 +344,7 @@ static void init(struct fmt_main *self)
 	Generate2010key = clCreateKernel(program[ocl_gpu_id], "Generate2010key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	source_in_use = device_info[ocl_gpu_id];
-	if (gpu_nvidia(source_in_use) || amd_gcn(source_in_use)) {
+	if (gpu_nvidia(device_info[ocl_gpu_id]) || amd_gcn(device_info[ocl_gpu_id])) {
 		/* Run scalar code */
 		VF = 1;
 	} else {
@@ -378,22 +381,24 @@ static void init(struct fmt_main *self)
 
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
-#if 0
-		int temp = global_work_size;
-		create_clobj(maxsize, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
-		release_clobj();
-		global_work_size = temp;
-#else
-		if (cpu(device_info[ocl_gpu_id])) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = maxsize < 8 ? maxsize : 8;
-			else
-				local_work_size = 1;
+		if (getenv("LWS")) {
+			/* LWS was explicitly set to 0 */
+			int temp = global_work_size;
+			local_work_size = maxsize;
+			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
+			create_clobj(global_work_size, self);
+			opencl_find_best_workgroup_limit(self, maxsize);
+			release_clobj();
+			global_work_size = temp;
 		} else {
-			local_work_size = maxsize < 64 ? maxsize : 64;
+			if (cpu(device_info[ocl_gpu_id])) {
+				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+					local_work_size = MIN(maxsize, 8);
+				else
+					local_work_size = 1;
+			} else
+				local_work_size = MIN(maxsize, 64);
 		}
-#endif
 	}
 
 	if (local_work_size > maxsize) {
@@ -402,7 +407,7 @@ static void init(struct fmt_main *self)
 	}
 
 	if (!global_work_size)
-		find_best_gws(temp == NULL ? 0 : 1, self);
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
@@ -412,7 +417,7 @@ static void init(struct fmt_main *self)
 	atexit(release_clobj);
 
 	if (options.utf8)
-		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ? 125 : 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -451,12 +456,12 @@ static void crypt_all(int count)
 		new_keys = 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 
 	for (index = 0; index < *spincount / HASH_LOOPS; index++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2010key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2010key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 
 	// read back verifier keys
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 32 * VF * global_work_size, key, 0, NULL, NULL), "failed in reading key back");

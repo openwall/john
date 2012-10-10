@@ -113,6 +113,9 @@
 
 #define ROUNDS			0x40000
 
+#define MIN(a, b)		(a > b) ? (b) : (a)
+#define MAX(a, b)		(a > b) ? (a) : (b)
+
 /* The reason we want to bump OMP_SCALE in this case is to even out the
    difference in processing time for different length keys. It doesn't
    boost performance in other ways */
@@ -628,10 +631,12 @@ static void init(struct fmt_main *self)
 #ifdef CL_VERSION_1_0
 	char *temp;
 	cl_ulong maxsize, maxsize2;
+	char build_opts[64];
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/rar_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, PLAINTEXT_LENGTH);
+	opencl_init_opt("$JOHN/rar_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernels to execute
 	RarInit = clCreateKernel(program[ocl_gpu_id], "RarInit", &ret_code);
@@ -683,24 +688,24 @@ static void init(struct fmt_main *self)
 	}
 
 	if (!local_work_size) {
-#if 0 /* Auto-homing */
-		int temp = global_work_size;
-
-		local_work_size = maxsize;
-		create_clobj(maxsize, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
-		release_clobj();
-		global_work_size = temp;
-#else /* Fixed size */
-		if (cpu(device_info[ocl_gpu_id])) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = maxsize < 8 ? maxsize : 8;
-			else
-				local_work_size = 1;
+		if (getenv("LWS")) {
+			/* LWS was explicitly set to 0 */
+			int temp = global_work_size;
+			local_work_size = maxsize;
+			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
+			create_clobj(global_work_size, self);
+			opencl_find_best_workgroup_limit(self, maxsize);
+			release_clobj();
+			global_work_size = temp;
 		} else {
-			local_work_size = maxsize < 64 ? maxsize : 64;
+			if (cpu(device_info[ocl_gpu_id])) {
+				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+					local_work_size = MIN(maxsize, 8);
+				else
+					local_work_size = 1;
+			} else
+				local_work_size = MIN(maxsize, 64);
 		}
-#endif
 	}
 
 	if (local_work_size > maxsize) {
@@ -709,7 +714,7 @@ static void init(struct fmt_main *self)
 	}
 
 	if (!global_work_size)
-		find_best_gws(temp == NULL ? 0 : 1, self);
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
@@ -730,7 +735,7 @@ static void init(struct fmt_main *self)
 #endif /* _OPENMP */
 
 	if (options.utf8)
-		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ? 125 : 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 
 	unpack_data = mem_calloc_tiny(sizeof(unpack_data_t) * omp_t, MEM_ALIGN_WORD);
 #ifndef CL_VERSION_1_0
@@ -880,13 +885,13 @@ static void crypt_all(int count)
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 			new_keys = 0;
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 		for (k = 0; k < 16; k++) {
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 			for (j = 0; j < 256 / HASH_LOOPS; j++)
-				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
+				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 		// read back aes key & iv
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * global_work_size, aes_key, 0, NULL, NULL), "failed in reading key back");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * global_work_size, aes_iv, 0, NULL, NULL), "failed in reading iv back");
