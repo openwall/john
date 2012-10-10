@@ -40,7 +40,7 @@ cl_program program[MAXGPUS];
 cl_command_queue queue[MAXGPUS];
 cl_int ret_code;
 cl_kernel crypt_kernel;
-cl_event *profilingEvent;
+cl_event *profilingEvent, *firstEvent, *lastEvent;
 size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;

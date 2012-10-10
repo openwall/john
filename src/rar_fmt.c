@@ -880,13 +880,13 @@ static void crypt_all(int count)
 			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 			new_keys = 0;
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 		for (k = 0; k < 16; k++) {
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 			for (j = 0; j < 256 / HASH_LOOPS; j++)
-				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
+				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 		// read back aes key & iv
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * global_work_size, aes_key, 0, NULL, NULL), "failed in reading key back");
 		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * global_work_size, aes_iv, 0, NULL, NULL), "failed in reading iv back");
