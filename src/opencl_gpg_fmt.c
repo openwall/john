@@ -461,16 +461,17 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-	        // allocate string2key buffer
-                int res;
-                int ks = keySize(cur_salt->cipher_algorithm);
-                int ds = digestSize(cur_salt->hash_algorithm);
-                unsigned char keydata[ds * ((ks + ds- 1) / ds)];
+		// allocate string2key buffer
+		int res;
+		int ks = keySize(cur_salt->cipher_algorithm);
+		int ds = digestSize(cur_salt->hash_algorithm);
+		unsigned char keydata[ds * ((ks + ds- 1) / ds)];
 		memcpy(keydata, outbuffer[index].v, ks);
-                res = check(keydata, ks);
-                if(res) {
-                        cracked[index] = 1;
-                }
+		res = check(keydata, ks);
+		if(res)
+			cracked[index] = 1;
+		else
+			cracked[index] = 0;
 	}
 
 }

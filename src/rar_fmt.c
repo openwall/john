@@ -80,9 +80,11 @@
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
 
-/* Max. 256. Lower gives better desktop response.
-   The same figure must be defined in kernel */
-#define HASH_LOOPS		256
+/* Max. 256. Lower gives better desktop response. This must be an even multiple
+ * of 2 (ie. 1, 2, 4, 8 ...). The actual number of loops per kernel call is
+ * this figure x (password_length * 2 + 11).
+ */
+#define HASH_LOOPS		8
 
 #endif
 #include "config.h"
