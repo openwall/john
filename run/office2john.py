@@ -1743,9 +1743,15 @@ def find_rc4_passinfo_doc(filename, stream):
         verifierHashSize = unpack("<I", stream.read(4))[0]
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
-        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-            typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
-        binascii.hexlify(encryptedVerifierHash)))
+        if not have_summary:
+            sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+                typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
+                binascii.hexlify(encryptedVerifierHash)))
+        else:
+            sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s:::%s::%s\n" % (os.path.basename(filename),
+                typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
+                binascii.hexlify(encryptedVerifierHash), summary, filename))
+
     else:
         print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
 
@@ -1931,6 +1937,23 @@ def process_new_office(filename):
                 binascii.hexlify(salt), binascii.hexlify(encryptedVerifier), binascii.hexlify(encryptedVerifierHash)[0:64])
 
 
+have_summary = False
+summary = []
+
+import re
+import string
+
+
+def remove_html_tags(data):
+    p = re.compile(r'<.*?>', re.DOTALL)
+    return p.sub('', data)
+
+
+def remove_extra_spaces(data):
+    p = re.compile(r'\s+')
+    return p.sub(' ', data)
+
+
 def process_file(filename):
 
     # Test if a file is an OLE container:
@@ -1946,7 +1969,48 @@ def process_file(filename):
     ole = OleFileIO(filename)
 
     stream = None
+
     # print ole.listdir()
+    # find "summary" streams
+    global have_summary, summary
+    have_summary = False
+    summary = []
+
+    for streamname in ole.listdir():
+        if streamname[-1][0] == "\005":
+            have_summary = True
+            props = ole.getproperties(streamname)
+            props = props.items()
+            props.sort()
+            for k, v in props:
+                if v is None:
+                    continue
+                binary = False
+                if isinstance(v, basestring):
+                    v = remove_html_tags(v)
+                    v = v.replace(":", "")
+                    v = remove_extra_spaces(v)
+                    # binary filter
+                    v = filter(lambda x: x in string.printable, v)
+                    # length filter
+                    words = str(v).split()
+                    words = filter(lambda x: len(x) < 20, words)
+                    v = " ".join(words)
+                    #[PL]: avoid to display too large or binary values:
+                    #if len(v) > 50:
+                    #    v = v[:50]
+                    # quick and dirty binary check:
+                    for c in (1, 2, 3, 4, 5, 6, 7, 11, 12, 14, 15, 16, 17, 18, 19, 20,
+                            21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31):
+                        if chr(c) in v:
+                            v = '(binary data)'
+                            binary = True
+                            break
+                if not binary:
+                    summary.append(str(v))
+    summary = " ".join(summary)
+    summary = remove_extra_spaces(summary)
+
     if ["EncryptionInfo"] in ole.listdir():
         # process Office 2003 / 2010 / 2013 files
         return process_new_office(filename)
@@ -1994,9 +2058,14 @@ def process_file(filename):
         return 6
 
     (salt, verifier, verifierHash) = passinfo
-    sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-        typ, binascii.hexlify(salt), binascii.hexlify(verifier),
-        binascii.hexlify(verifierHash)))
+    if not have_summary:
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+            typ, binascii.hexlify(salt), binascii.hexlify(verifier),
+            binascii.hexlify(verifierHash)))
+    else:
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s:::%s::%s\n" % (os.path.basename(filename),
+            typ, binascii.hexlify(salt), binascii.hexlify(verifier),
+            binascii.hexlify(verifierHash), summary, filename))
 
     workbookStream.close()
     ole.close()
