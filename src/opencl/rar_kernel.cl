@@ -27,43 +27,38 @@
 #define USE_BITSELECT
 #endif
 
-/* These must match the format's defines */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define ROUNDS			0x40000
 
+/* Macros for reading/writing chars from int32's */
+#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
+#define GETCHAR_G(buf, index) (((const __global uchar*)(buf))[(index)])
+#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+
+#if gpu_nvidia(DEVICE_INFO)
+#define GETCHAR_BE(buf, index) (((__local uchar*)(buf))[(index) ^ 3])
+#else
+#define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index) ^ 3])
+#endif
+
 #if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
 
-/* Macros for reading/writing chars from int32's */
-#ifdef SCALAR
-#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
-#define GETCHAR_G(buf, index) (((const __global uchar*)(buf))[(index)])
-#else
-#define GETCHAR(buf, index) (((buf)[(index)>>2] >> (((index) & 3) << 3)) & 0xffU)
-#define GETCHAR_G	GETCHAR
-#endif
-#define GETCHAR_BE(buf, index) (((buf)[(index)>>2] >> ((3 - ((index) & 3)) << 3)) & 0xffU)
-/* The below is faster for AMD at low GWS but doesn't take off at higher. */
-//#define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index & ~3U) + (3 - (index & 3))])
+/* These use 32-bit stores */
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 #define PUTCHAR_G	PUTCHAR
-#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
+#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
 #define PUTCHAR_BE_G	PUTCHAR_BE
-#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
 
-#else /* These use byte-adressed stores */
+#else
 
-#define GETCHAR(buf, index) (((uchar*)(buf))[(index)])
-#define GETCHAR_G(buf, index) (((const __global uchar*)(buf))[(index)])
-#define GETCHAR_BE(buf, index) (((buf)[(index)>>2] >> ((3 - ((index) & 3)) << 3)) & 0xffU)
+/* These use byte-adressed stores */
 #define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
 #define PUTCHAR_G(buf, index, val) ((__global uchar*)(buf))[(index)] = (val)
-#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[((index) >> 2) * 4 + 3 - ((index) & 3)] = (val)
-#define PUTCHAR_BE_G(buf, index, val) ((__global uchar*)(buf))[((index) >> 2) * 4 + 3 - (index & 3)] = (val)
-#define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((3 - ((index) & 3)) << 3))) + ((val) << ((3 - ((index) & 3)) << 3))
+#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
+#define PUTCHAR_BE_G(buf, index, val) ((__global uchar*)(buf))[(index) ^ 3] = (val)
 
 #endif
 
-#if 0 /* Not currently used */
 #ifdef SCALAR
 inline uint SWAP32(uint x)
 {
@@ -72,7 +67,6 @@ inline uint SWAP32(uint x)
 }
 #else
 #define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
-#endif
 #endif
 
 /* SHA1 constants and IVs */
@@ -277,8 +271,8 @@ __kernel void RarInit(
 	uint i;
 
 	/* Copy to 1x buffer */
-	for (i = 0; i < pwlen; i++)
-		PUTCHAR_BE_G(RawPsw, i, GETCHAR_G(unicode_pw, gid * UNICODE_LENGTH + i));
+	for (i = 0; i < (pwlen + 3) >> 2; i++)
+		RawPsw[i] = SWAP32(unicode_pw[gid * UNICODE_LENGTH / 4 + i]);
 #pragma unroll
 	for (i = 0; i < 8; i++)
 		PUTCHAR_BE_G(RawPsw, pwlen + i, ((__constant uchar*)salt)[i]);
