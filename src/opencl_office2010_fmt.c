@@ -48,6 +48,9 @@
 #define LWS_CONFIG		"office2010_LWS"
 #define GWS_CONFIG		"office2010_GWS"
 
+#define MIN(a, b)		(a > b) ? (b) : (a)
+#define MAX(a, b)		(a > b) ? (a) : (b)
+
 static struct fmt_tests tests[] = {
 	/* 2010-Default_myhovercraftisfullofeels_.docx */
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},
@@ -378,22 +381,24 @@ static void init(struct fmt_main *self)
 
 	/* maxsize is the lowest figure from the three different kernels */
 	if (!local_work_size) {
-#if 0
-		int temp = global_work_size;
-		create_clobj(maxsize, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
-		release_clobj();
-		global_work_size = temp;
-#else
-		if (cpu(device_info[ocl_gpu_id])) {
-			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-				local_work_size = maxsize < 8 ? maxsize : 8;
-			else
-				local_work_size = 1;
+		if (getenv("LWS")) {
+			/* LWS was explicitly set to 0 */
+			int temp = global_work_size;
+			local_work_size = maxsize;
+			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
+			create_clobj(global_work_size, self);
+			opencl_find_best_workgroup_limit(self, maxsize);
+			release_clobj();
+			global_work_size = temp;
 		} else {
-			local_work_size = maxsize < 64 ? maxsize : 64;
+			if (cpu(device_info[ocl_gpu_id])) {
+				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+					local_work_size = MIN(maxsize, 8);
+				else
+					local_work_size = 1;
+			} else
+				local_work_size = MIN(maxsize, 64);
 		}
-#endif
 	}
 
 	if (local_work_size > maxsize) {
@@ -402,7 +407,7 @@ static void init(struct fmt_main *self)
 	}
 
 	if (!global_work_size)
-		find_best_gws(temp == NULL ? 0 : 1, self);
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	if (global_work_size < local_work_size)
 		global_work_size = local_work_size;
@@ -412,7 +417,7 @@ static void init(struct fmt_main *self)
 	atexit(release_clobj);
 
 	if (options.utf8)
-		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ? 125 : 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
