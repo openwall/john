@@ -116,7 +116,7 @@ static char *include_source(char *pathname, int dev_id, char *options)
 		strcat(include, options);
 	}
 
-	fprintf(stderr, "Options used: %s\n", include);
+	//fprintf(stderr, "Options used: %s\n", include);
 	return include;
 }
 

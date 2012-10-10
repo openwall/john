@@ -29,10 +29,9 @@
 #include "common-opencl.h"
 #include "config.h"
 
-/* These must match kernel's defines */
 #define PLAINTEXT_LENGTH	51
 #define UNICODE_LENGTH		104 /* In octets, including 0x80 */
-#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
+#define HASH_LOOPS		256 /* Lower figure gives less X hogging */
 
 #define FORMAT_LABEL		"office2010-opencl"
 #define FORMAT_NAME		"Office 2010 SHA-1 AES"
@@ -218,11 +217,11 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_spincount, CL_FALSE, 0, 4, spincount, 0, NULL, NULL), "failed in clEnqueueWriteBuffer spincount");
 }
 
-static cl_ulong gws_test(int gws, struct fmt_main *self)
+static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
-	cl_event FirstEvent, LastEvent;
+	cl_event Event[6];
 	cl_int ret_code;
 	int i;
 	size_t scalar_gws = VF * gws;
@@ -233,10 +232,10 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 		set_key(tests[0].plaintext, i);
 	set_salt(get_salt(tests[0].ciphertext));
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_TRUE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, &FirstEvent), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_TRUE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_TRUE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_TRUE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, &Event[1]), "Failed transferring lengths");
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL);
+	ret_code = clEnqueueNDRangeKernel(queue_prof, GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 		clReleaseCommandQueue(queue_prof);
@@ -244,7 +243,7 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 		return 0;
 	}
 
-	for (i = 0; i < *spincount / HASH_LOOPS; i++) {
+	for (i = 0; i < *spincount / HASH_LOOPS - 1; i++) {
 		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
@@ -253,8 +252,9 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 			return 0;
 		}
 	}
+	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]);
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, Generate2010key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+	ret_code = clEnqueueNDRangeKernel(queue_prof, Generate2010key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
 		clReleaseCommandQueue(queue_prof);
@@ -262,12 +262,48 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 		return 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_key, CL_TRUE, 0, 32 * scalar_gws, key, 0, NULL, &LastEvent), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_key, CL_TRUE, 0, 32 * scalar_gws, key, 0, NULL, &Event[5]), "failed in reading key back");
 
-	HANDLE_CLERROR(clGetEventProfilingInfo(FirstEvent,
+#if 0
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+	fprintf(stderr, "GenerateSHA1pwhash kernel duration: %llu us, ", (endTime-startTime)/1000ULL);
+#endif
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+	if (do_benchmark)
+		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), *spincount/HASH_LOOPS, (float)(*spincount/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
+
+	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+		if (do_benchmark)
+			fprintf(stderr, "- exceeds 200 ms\n");
+		return 0;
+	}
+
+#if 0
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+	fprintf(stderr, "Generate2010key kernel duration: %llu us\n", (endTime-startTime)/1000ULL);
+#endif
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
 			CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 			NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(LastEvent,
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
 	clReleaseCommandQueue(queue_prof);
@@ -291,7 +327,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
-		if (!(run_time = gws_test(num, self)))
+		if (!(run_time = gws_test(num, do_benchmark, self)))
 			break;
 
 		sha1perkey = cur_salt->spinCount + 4;

@@ -29,7 +29,6 @@
 #include "common-opencl.h"
 #include "config.h"
 
-/* These must match kernel's defines */
 #define PLAINTEXT_LENGTH	51
 #define UNICODE_LENGTH		104 /* In octets, including 0x80 */
 #define HASH_LOOPS		128 /* Lower figure gives less X hogging */
@@ -213,7 +212,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_salt, CL_FALSE, 0, SALT_LENGTH, saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
 }
 
-static cl_ulong gws_test(int gws, struct fmt_main *self)
+static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
 	cl_command_queue queue_prof;
@@ -268,6 +267,7 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
 	fprintf(stderr, "GenerateSHA1pwhash kernel duration: %llu us, ", (endTime-startTime)/1000ULL);
+#endif
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
@@ -275,8 +275,17 @@ static cl_ulong gws_test(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 			NULL), "Failed to get profiling info");
-	fprintf(stderr, "HashLoop kernel duration: %llu us (total %llu ms), ", (endTime-startTime)/1000ULL, ((endTime-startTime)*(50000/HASH_LOOPS))/1000000ULL);
+	if (do_benchmark)
+		fprintf(stderr, "%.2f ms x %u = %.2f s\t", (float)((endTime - startTime)/1000000.), 50000/HASH_LOOPS, (float)(50000/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
 
+	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+		if (do_benchmark)
+			fprintf(stderr, "- exceeds 200 ms\n");
+		return 0;
+	}
+
+#if 0
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
 			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
 			NULL), "Failed to get profiling info");
@@ -313,7 +322,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
-		if (!(run_time = gws_test(num, self)))
+		if (!(run_time = gws_test(num, do_benchmark, self)))
 			break;
 
 		SHAspeed = sha1perkey * (1000000000UL * VF * num / run_time);
