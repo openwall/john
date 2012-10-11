@@ -17,6 +17,7 @@
 
 
 #define DES_BS_DEPTH			32
+#define DES_BS_LOG2			5
 
 #define WORD                      	int
 

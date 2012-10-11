@@ -139,7 +139,7 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.force_maxlength},
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
-	{"status-every", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+	{"progress-every", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.status_interval},
 	{"regen-lost-salts", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.regen_lost_salts},

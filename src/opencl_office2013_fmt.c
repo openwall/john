@@ -31,7 +31,7 @@
 
 #define PLAINTEXT_LENGTH	47
 #define UNICODE_LENGTH		96 /* In octets, including 0x80 */
-#define HASH_LOOPS		128 /* Lower figure gives less X hogging */
+#define HASH_LOOPS		64 /* Lower figure gives less X hogging */
 
 #define FORMAT_LABEL		"office2013-opencl"
 #define FORMAT_NAME		"Office 2013 SHA-512 AES"

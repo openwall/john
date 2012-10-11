@@ -35,6 +35,8 @@ typedef unsigned WORD vtype;
 	
 	static cl_mem index768_gpu,index96_gpu,opencl_DES_bs_data_gpu,B_gpu;
 	
+	static int set_salt = 0;
+	
 void DES_bs_select_device(int platform_no,int dev_no)
 {
 	devno = dev_no;
@@ -60,12 +62,12 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	B_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
 	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
-	
-	
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
+	
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
 }	
 
 
@@ -105,6 +107,8 @@ void opencl_DES_bs_set_salt(WORD salt)
 		if (new == old)
 			break;
 	}
+	
+	set_salt = 1;
 }
 
 void opencl_DES_bs_crypt_25(int keys_count)
@@ -130,11 +134,12 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	else
 	N = section;  
 	
+	if(set_salt == 1){
 
-		
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
+		set_salt = 0;
+	}  
 	
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
 	
