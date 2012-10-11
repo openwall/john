@@ -211,8 +211,8 @@ void opencl_DES_bs_set_key(char *key, int index)
 	unsigned int sector,key_index;
 	unsigned int flag=key[0];
 	init_t();
-	sector = index/DES_BS_DEPTH;
-	key_index = index % DES_BS_DEPTH;
+	sector = index>>DES_BS_LOG2;
+	key_index = index & (DES_BS_DEPTH-1);
 	dst = opencl_DES_bs_all[sector].pxkeys[key_index];
 
 	opencl_DES_bs_data[sector].keys_changed = 1;
@@ -353,8 +353,8 @@ static MAYBE_INLINE int DES_bs_get_hash(int index, int count)
 	DES_bs_vector *b;
 	unsigned int sector;
 	init_t();
-	sector = index/DES_BS_DEPTH; 
-	index = index%DES_BS_DEPTH;
+	sector = index>>DES_BS_LOG2; 
+	index &= (DES_BS_DEPTH-1);
 #if ARCH_LITTLE_ENDIAN
 /*
  * This is merely an optimization.  Nothing will break if this check for
@@ -468,10 +468,10 @@ int opencl_DES_bs_cmp_all(WORD *binary, int count)
 	int bit;
 	DES_bs_vector *b;
 	unsigned int sector=0,count_multiple;
-	if(count%DES_BS_DEPTH==0) count_multiple=count;
-	else count_multiple = ((count/DES_BS_DEPTH)+1)*DES_BS_DEPTH;
+	if(count&(DES_BS_DEPTH-1)==0) count_multiple=count;
+	else count_multiple = ((count>>DES_BS_LOG2)+1)<<DES_BS_LOG2;
 	//for_each_t(n)
-	for(sector=0;sector < count_multiple/DES_BS_DEPTH; sector++) {
+	for(sector=0;sector < (count_multiple>>DES_BS_LOG2); sector++) {
 		value = binary[0];
 		//b = (DES_bs_vector *)&opencl_DES_bs_all[sector].B[0] DEPTH;
 		b = (DES_bs_vector *)&B[sector*64] DEPTH;
@@ -510,8 +510,8 @@ int opencl_DES_bs_cmp_one(WORD *binary, int count, int index)
 	int depth;
 	unsigned int sector;
 	init_t();
-	sector = index/DES_BS_DEPTH;
-	index = index % DES_BS_DEPTH;
+	sector = index>>DES_BS_LOG2;
+	index &= (DES_BS_DEPTH-1);
 	depth = index >> 3;
 	index &= 7;
 
