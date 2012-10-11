@@ -55,9 +55,14 @@ typedef struct{
 	(dst) = (a) | (b)
 #define vandn(dst, a, b) \
 	(dst) = (a) & ~(b)
-	
+
+#if defined(_NV)||defined(_CPU)	
 #define vsel(dst, a, b, c) \
 	(dst) = (((a) & ~(c)) ^ ((b) & (c)))
+#else
+#define vsel(dst, a, b, c) \
+	(dst) = bitselect((a),(b),(c))
+#endif	
 
 #define vshl(dst, src, shift) \
 	(dst) = (src) << (shift)
@@ -271,8 +276,11 @@ inline void DES_bs_finalize_keys( unsigned int section,
 
 }
 
-
+#if defined(_NV)||defined(_CPU)
 #include "opencl_sboxes.h"
+#else
+#include "opencl_sboxes-s.h"
+#endif
 
 #define DES_bs_clear_block_8(j) \
 		vst_private(B[j] , 0, zero); \
@@ -302,12 +310,12 @@ inline void DES_bs_finalize_keys( unsigned int section,
 #define y(p, q) vxorf(B[p]       , _local_K[index768[q+k] + local_offset_K])
 #endif
 
-#define H1\
+#define H1()\
 	        s1(x(0), x(1), x(2), x(3), x(4), x(5),\
 			B,40, 48, 54, 62);\
 		s2(x(6), x(7), x(8), x(9), x(10), x(11),\
 			B,44, 59, 33, 49);\
-			s3(y(7, 12), y(8, 13), y(9, 14),\
+		s3(y(7, 12), y(8, 13), y(9, 14),\
 			y(10, 15), y(11, 16), y(12, 17),\
 			B,55, 47, 61, 37);\
 		s4(y(11, 18), y(12, 19), y(13, 20),\
@@ -324,7 +332,7 @@ inline void DES_bs_finalize_keys( unsigned int section,
 			y(30, 45), y(31, 46), y(0, 47),\
 			B,36, 58, 46, 52);
 			
-#define H2\
+#define H2()\
 		s1(x(48), x(49), x(50), x(51), x(52), x(53),\
 			B,8, 16, 22, 30);\
 		s2(x(54), x(55), x(56), x(57), x(58), x(59),\
@@ -345,6 +353,35 @@ inline void DES_bs_finalize_keys( unsigned int section,
 		s8(y(59, 90), y(60, 91), y(61, 92),\
 			y(62, 93), y(63, 94), y(32, 95),\
 			B,4, 26, 14, 20);
+#ifdef _CPU			
+#define loop_body()\
+		H1();\
+		if (rounds_and_swapped == 0x100) goto next;\
+		H2();\
+		k +=96;\
+		rounds_and_swapped--;\
+		H1();\
+		if (rounds_and_swapped == 0x100) goto next;\
+		H2();\
+		k +=96;\
+		rounds_and_swapped--;\
+                barrier(CLK_LOCAL_MEM_FENCE);
+#elif defined(_NV)
+#define loop_body()\
+		H1();\
+		if (rounds_and_swapped == 0x100) goto next;\
+		H2();\
+		k +=96;\
+		rounds_and_swapped--;\
+		barrier(CLK_LOCAL_MEM_FENCE);
+#else
+#define loop_body()\
+		H1();\
+		if (rounds_and_swapped == 0x100) goto next;\
+		H2();\
+		k +=96;\
+		rounds_and_swapped--;
+#endif
 			
 
  __kernel void DES_bs_25( constant uint *index768 __attribute__((max_constant_size(3072))), 
@@ -390,26 +427,7 @@ body:
 #endif
 
 start:
-		H1
-		if (rounds_and_swapped == 0x100) goto next;
-		H2
-		k +=96;
-		rounds_and_swapped--;
-
-/* 2x Loop Unroll */		
-#ifdef _CPU		
-		H1
-		if (rounds_and_swapped == 0x100) goto next;
-		H2
-		k +=96;
-		rounds_and_swapped--; 
-#endif
-
-#if defined(_NV)||defined(_CPU)
-
-		barrier(CLK_LOCAL_MEM_FENCE);
-
-#endif
+		loop_body();
 
 		if (rounds_and_swapped>0) goto start;
 		k -= (0x300 + 48);
@@ -422,7 +440,7 @@ start:
 		return;
 		
 swap:           		
-		H2
+		H2();
 		k += 96;
 		if (--rounds_and_swapped) goto start;		
 		
