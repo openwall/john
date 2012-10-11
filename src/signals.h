@@ -30,7 +30,7 @@ extern volatile int event_ticksafety;	/* System time in ticks may overflow */
 /* Zero if --max-run-time was reached */
 extern volatile int timer_abort;
 
-/* Zero if --status-every was reached */
+/* Zero if --progress-every was reached */
 extern volatile int timer_status;
 
 #if !OS_TIMER
