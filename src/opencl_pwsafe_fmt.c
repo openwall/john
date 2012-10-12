@@ -124,8 +124,6 @@ static void init(struct fmt_main *self)
 	atexit(release_all);
 }
 
-
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	// format $pwsafe$version*salt*iterations*hash
