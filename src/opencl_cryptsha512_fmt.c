@@ -750,7 +750,7 @@ static void crypt_all(int count) {
     //Enqueue the kernel
     if (gpu(source_in_use) || use_local(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, firstEvent),
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
@@ -759,7 +759,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueNDRangeKernel");
         }
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, lastEvent),
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
@@ -834,7 +834,13 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -846,6 +852,9 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

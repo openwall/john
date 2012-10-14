@@ -738,7 +738,7 @@ static void crypt_all(int count) {
     //Enqueue the kernel
     if (gpu(source_in_use) || use_local(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, firstEvent),
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
@@ -747,7 +747,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueNDRangeKernel");
         }
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &global_work_size, &local_work_size, 0, NULL, lastEvent),
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
