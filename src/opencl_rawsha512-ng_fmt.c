@@ -40,7 +40,7 @@ cl_mem pinned_saved_keys, pinned_partial_hashes;
 
 cl_command_queue queue_prof;
 cl_kernel crypt_kernel, cmp_kernel;
-static int hash_found;
+static int hash_found, source_in_use;
 
 static struct fmt_tests tests[] = {
     {"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
@@ -60,7 +60,7 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (amd_gcn(device_info[ocl_gpu_id]))
+    if (amd_gcn(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 (sizeof(sha512_ctx_buffer));
     else
@@ -407,7 +407,6 @@ static void find_best_gws(void) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *self) {
-    int source_in_use;
     char * tmp_value;
     char * task = "$JOHN/sha512-ng_kernel.cl";
 
