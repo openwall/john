@@ -63,8 +63,8 @@
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	125 /* lmcons.h - PWLEN (256) ? 127 ? */
-#define USERNAME_LENGTH		20 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
-#define DOMAIN_LENGTH		15 /* lmcons.h - CNLEN / DNLEN */
+#define USERNAME_LENGTH		60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
+#define DOMAIN_LENGTH		45 /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE		16
 #define SERVER_CHALL_LENGTH	16
 #define CLIENT_CHALL_LENGTH_MAX	1024 /* FIXME - Max Target Information Size Unknown */
@@ -74,12 +74,8 @@
 
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	1
-#define THREAD_RATIO		256
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT	0x20000
-#else
-#define MAX_KEYS_PER_CRYPT	THREAD_RATIO
-#endif
+#define MAX_KEYS_PER_CRYPT	1
+#define OMP_SCALE		3072
 
 static struct fmt_tests tests[] = {
   {"$NETNTLMv2$NTLMV2TESTWORKGROUP$1122334455667788$07659A550D5E9D02996DFD95C87EC1D5$0101000000000000006CF6385B74CA01B3610B02D99732DD000000000200120057004F0052004B00470052004F00550050000100200044004100540041002E00420049004E0043002D0053004500430055005200490000000000", "password"},
@@ -126,16 +122,10 @@ static int keys_prepared;
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
-	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
-	if (n < MIN_KEYS_PER_CRYPT)
-		n = MIN_KEYS_PER_CRYPT;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	self->params.min_keys_per_crypt = n;
-	n = n * (n << 1) * THREAD_RATIO;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	self->params.max_keys_per_crypt = n;
+	int omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -154,7 +144,7 @@ static int netntlmv2_valid(char *ciphertext, struct fmt_main *self)
 
   /* Validate Username and Domain Length */
   for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
-    if (*pos2 < 0x20)
+    if ((unsigned char)*pos2 < 0x20)
       return 0;
 
   if ( !(*pos2 && (pos2 - pos <= USERNAME_LENGTH + DOMAIN_LENGTH)) )
@@ -195,7 +185,6 @@ static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *self)
 	char *login = split_fields[0];
 	char *uid = split_fields[2];
 	char *identity = NULL, *tmp;
-	int i;
 
 	if (!strncmp(split_fields[1], "$NETNTLMv2$", 11))
 		return split_fields[1];
@@ -208,8 +197,7 @@ static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *self)
 		strcpy(identity, tmp + 1);
 
 		/* Upper-Case Username - Not Domain */
-		for(i=0; i<strlen(identity); i++)
-			identity[i] = CP_up[(unsigned char)identity[i]];
+		enc_strupper((char *)identity);
 
 		strncat(identity, login, tmp - login);
 	}
@@ -217,8 +205,8 @@ static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *self)
 		identity = (char *) mem_alloc(strlen(login) + strlen(uid) + 1);
 		strcpy(identity, login);
 
-		for(i=0; i<strlen(identity); i++)
-			identity[i] = CP_up[(unsigned char)identity[i]];
+		enc_strupper((char *)identity);
+
 		strcat(identity, uid);
 	}
 	tmp = (char *) mem_alloc(11 + strlen(identity) + 1 + strlen(srv_challenge) + 1 + strlen(nethashv2) + 1 + strlen(cli_challenge) + 1);
@@ -280,41 +268,36 @@ static void *netntlmv2_get_binary(char *ciphertext)
 */
 static void netntlmv2_crypt_all(int count)
 {
-	unsigned char ntlm_v2_hash[16];
 	int identity_length, challenge_size;
-	int i;
+	int i = 0;
 
 	/* --- HMAC #1 Calculations --- */
 	identity_length = challenge[0];
 	challenge_size = (*(challenge + 1 + identity_length + 1) << 8) | *(challenge + 1 + identity_length + 2);
 
-	if (!keys_prepared) {
 #ifdef _OPENMP
 #pragma omp parallel for
+	for(i=0; i<count; i++)
 #endif
-		for (i = 0; i < count; i++) {
+	{
+		unsigned char ntlm_v2_hash[16];
+		HMACMD5Context ctx;
+
+		if (!keys_prepared) {
 			unsigned char ntlm[16];
 			int len;
 
 			/* Generate 16-byte NTLM hash */
 			len = E_md4hash(saved_plain[i], saved_len[i], ntlm);
 
-			// We do key setup of the next HMAC_MD5 here. rest in inner loop
+			// We do key setup of the next HMAC_MD5 here (once per salt)
 			hmac_md5_init_K16(ntlm, &saved_ctx[i]);
 
 			if (len <= 0)
 				saved_plain[i][-len] = 0; // match truncation
 		}
-		keys_prepared = 1;
-	}
 
-#ifdef _OPENMP
-#pragma omp parallel for default(none) private(i, ntlm_v2_hash) shared(count, output, saved_ctx, challenge, challenge_size, identity_length)
-#endif
-	for(i=0; i<count; i++) {
-		/* Generate 16-byte NTLMv2 Hash */
 		/* HMAC-MD5(Username + Domain, NTLM Hash) */
-		HMACMD5Context ctx; // can't be moved above the OMP pragma
 		memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
 		hmac_md5_update((unsigned char *)&challenge[1], identity_length, &ctx);
 		hmac_md5_final(ntlm_v2_hash, &ctx);
@@ -345,6 +328,7 @@ static void netntlmv2_crypt_all(int count)
 		*/
 		hmac_md5(ntlm_v2_hash, challenge + 1 + identity_length + 1 + 2, challenge_size, (unsigned char*)output[i]);
 	}
+	keys_prepared = 1;
 }
 
 static int netntlmv2_cmp_all(void *binary, int count)

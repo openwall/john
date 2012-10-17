@@ -72,7 +72,7 @@ static int pcap_dloff(pcap_t *);
 /* Globals */
 static char *dump_file = NULL;	/* dump file             */
 static unsigned int num_logins = 0;	/* sniffed login counter */
-int opterr = 0;			/* shutup getopt()       */
+//int opterr = 0;			/* shutup getopt()       */
 static int offset = 0;		/* packet offset         */
 
 char *addr_to_numeric(const struct in6_addr *addrp)
