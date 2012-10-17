@@ -435,11 +435,37 @@ void BF_clear_buffer()
   clean_gpu_buffer(&buffers[pltfrmno][devno]);
 }
 
+static cl_device_type device_type(int platform_id, int dev_id)
+{
+	cl_platform_id platform[MAX_PLATFORMS];
+	cl_device_id devices[MAX_DEVICES_PER_PLATFORM] ;
+	cl_uint num_platforms, device_num;
+	cl_device_type type;
+	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
+		&num_platforms), "No OpenCL platform found");
+	HANDLE_CLERROR(clGetDeviceIDs(platform[platform_id],
+		CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+	    "No OpenCL device of that type exist");
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
+		sizeof(cl_device_type), &type, NULL),
+	    "Error querying CL_DEVICE_TYPE");
+
+	return type;
+}
+
+
 void BF_select_device(int platform_no,int dev_no)
 {
 	devno=dev_no;pltfrmno=platform_no;
-
-	opencl_init("$JOHN/bf_kernel.cl", dev_no, platform_no);
+	
+	if(CL_DEVICE_TYPE_CPU == device_type(platform_no,dev_no)){
+	        if(CHANNEL_INTERLEAVE == 1)
+			opencl_init("$JOHN/bf_cpu_kernel.cl", dev_no, platform_no);
+		else
+			printf("Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
+	}	
+	else
+		opencl_init("$JOHN/bf_kernel.cl", dev_no, platform_no);
 
 	pltfrmid[platform_no]=platform[platform_no];
 
@@ -513,8 +539,13 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
 void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,int dev_no)
 {
 	cl_event evnt;
-
-	size_t N=BF_N,M=WORK_GROUP_SIZE;
+	
+	size_t N ,M=WORK_GROUP_SIZE;
+	
+	if(CL_DEVICE_TYPE_CPU == get_device_type(dev_no))
+		N = BF_N/2;
+	else
+		N = BF_N ;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].salt_gpu,CL_TRUE,0,4*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Failed Copy data to gpu");
 
