@@ -300,6 +300,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	firstEvent = profilingEvent = &benchEvent[0];
 	lastEvent = &benchEvent[1];
 
+	// Some formats need this for "keys_dirty"
+	self->methods.set_key(self->params.tests[0].plaintext, self->params.max_keys_per_crypt - 1);
+
 	// Timing run
 	self->methods.crypt_all(self->params.max_keys_per_crypt);
 
@@ -340,6 +343,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			if (*lastEvent != *firstEvent)
 				clReleaseEvent(benchEvent[1]);
+
+			// Some formats need this for "keys_dirty"
+			self->methods.set_key(self->params.tests[0].plaintext, self->params.max_keys_per_crypt - 1);
 
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
@@ -503,6 +509,16 @@ cl_ulong get_local_memory_size(int dev_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
 		CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
 	    "Error querying CL_DEVICE_LOCAL_MEM_SIZE");
+
+	return size;
+}
+
+cl_ulong get_global_memory_size(int dev_id)
+{
+	cl_ulong size;
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+		CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
+	    "Error querying CL_DEVICE_GLOBAL_MEM_SIZE");
 
 	return size;
 }
