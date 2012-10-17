@@ -234,13 +234,11 @@ static void nethalflm_set_key(char *key, int index)
 {
 	const unsigned char magic[] = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
 	DES_key_schedule ks;
-	int i = 0;
 
 	strncpy((char *)saved_plain[index], key, sizeof(saved_plain[index]));
 
 	/* Upper-case password */
-	for(; i<PLAINTEXT_LENGTH && saved_plain[index][i] != 0 ; i++)
-		saved_plain[index][i] = CP_up[saved_plain[index][i]];
+	enc_strupper((char *)saved_plain[index]);
 
 	/* Generate first 8-bytes of LM hash */
 	setup_des_key(saved_plain[index], &ks);
