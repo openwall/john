@@ -14,7 +14,7 @@
 #define USE_BITSELECT
 #endif
 
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+#if gpu(DEVICE_INFO)
 #define SCALAR
 #endif
 

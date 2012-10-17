@@ -98,11 +98,11 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory output");
 	memset(output, 0, 16 * gws);
 
-	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 512, NULL, &ret_code);
+	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_SIZE_MAX, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ, 0, 512, 0, NULL, NULL, &ret_code);
+	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory challenge");
-	memset(challenge, 0, 512);
+	memset(challenge, 0, SALT_SIZE_MAX);
 
 	cl_nthash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory nthash");
@@ -150,7 +150,7 @@ static void set_key(char *key, int index)
   Input:  $NETNTLMv2$USER_DOMAIN$_SERVER_CHALLENGE_$_NTLMv2_RESP_$_CLIENT_CHALLENGE_
   Username + Domain <= 27 characters (54 octets of UTF-16)
   Server Challenge: 8 bytes
-  Client Challenge: < ~1000 bytes
+  Client Challenge: < ~450 bytes
   Output: (int)salt[16].(int)Challenge Size, Server Challenge . Client Challenge
 */
 static void *get_salt(char *ciphertext)
@@ -205,8 +205,8 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	memcpy(challenge, salt, 512);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_challenge, CL_FALSE, 0, 512, challenge, 0, NULL, NULL), "Failed transferring salt");
+	memcpy(challenge, salt, SALT_SIZE_MAX);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
 }
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
@@ -376,7 +376,7 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "ntlmv2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if (gpu_nvidia(device_info[ocl_gpu_id]) || amd_gcn(device_info[ocl_gpu_id])) {
+	if (gpu(device_info[ocl_gpu_id])) {
 		/* Run scalar code */
 		VF = 1;
 	} else {
@@ -632,9 +632,8 @@ static char *get_key(int index)
 
 static int salt_hash(void *salt)
 {
-	/* Hash the client challenge (in case server salt was spoofed) */
-	int identity_length = ((char *)salt)[0];
-	return (*(ARCH_WORD_32 *)salt+1+identity_length+1+2+8) & (SALT_HASH_SIZE - 1);
+	/* We pick part of the client nounce */
+	return ((ARCH_WORD_32*)salt)[17+2+5] & (SALT_HASH_SIZE - 1);
 }
 
 static int binary_hash_0(void *binary)
