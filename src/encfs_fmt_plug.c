@@ -45,9 +45,9 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
-#define MAX_KEYLENGTH       32 /* in bytes (256 bit) */
-#define MAX_IVLENGTH        16
-#define KEY_CHECKSUM_BYTES  4
+const int MAX_KEYLENGTH = 32; // in bytes (256 bit)
+const int MAX_IVLENGTH = 16;
+const int KEY_CHECKSUM_BYTES = 4;
 
 static struct custom_salt {
 	unsigned int keySize;
@@ -138,20 +138,18 @@ static uint64_t _checksum_64(unsigned char *key,
 		const unsigned char *data, int dataLen, uint64_t *chainedIV)
 {
 	unsigned char md[EVP_MAX_MD_SIZE];
-	const unsigned int mdLen = EVP_MAX_MD_SIZE;
+	unsigned int mdLen = EVP_MAX_MD_SIZE;
 	int i;
 	unsigned char h[8] = {0,0,0,0,0,0,0,0};
 	uint64_t value;
 	HMAC_CTX mac_ctx;
-
 	HMAC_CTX_init(&mac_ctx);
 	HMAC_Init_ex( &mac_ctx, key, cur_salt->keySize, EVP_sha1(), 0 );
 	HMAC_Init_ex( &mac_ctx, 0, 0, 0, 0 );
 	HMAC_Update( &mac_ctx, data, dataLen );
-
 	if(chainedIV)
 	{
-		// toss in the chained IV as well
+	  // toss in the chained IV as well
 		uint64_t tmp = *chainedIV;
 		unsigned char h[8];
 		for(i=0; i<8; ++i) {
@@ -160,12 +158,11 @@ static uint64_t _checksum_64(unsigned char *key,
 		}
 		HMAC_Update( &mac_ctx, h, 8 );
 	}
-	HMAC_Final(&mac_ctx, md, (unsigned int*)&mdLen);
+	HMAC_Final( &mac_ctx, md, &mdLen );
 	HMAC_CTX_cleanup(&mac_ctx);
-
 	// chop this down to a 64bit value..
 	for(i=0; i<(mdLen-1); ++i)
-		h[i%8] ^= md[i];
+		h[i%8] ^= (unsigned char)(md[i]);
 
 	value = (uint64_t)h[0];
 	for(i=1; i<8; ++i)
@@ -349,19 +346,22 @@ static void crypt_all(int count)
 #endif
 	{
 		int i;
-		uint32_t master[(MAX_KEYLENGTH + MAX_IVLENGTH) / sizeof(uint32_t)];
-		unsigned char *tmpBuf = alloca(cur_salt->dataLen);
+		unsigned char master[MAX_KEYLENGTH + MAX_IVLENGTH];
+		unsigned char tmpBuf[cur_salt->dataLen];
 		unsigned int checksum = 0;
 		unsigned int checksum2 = 0;
 
-		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, master);
+		uint32_t out[32];
+		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out);
+
+		memcpy(master, out, cur_salt->keySize + cur_salt->ivLength);
 
 		// First N bytes are checksum bytes.
 		for(i=0; i<KEY_CHECKSUM_BYTES; ++i)
 			checksum = (checksum << 8) | (unsigned int)cur_salt->data[i];
 		memcpy( tmpBuf, cur_salt->data+KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength );
-		streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength, checksum, (uint8_t*)master);
-		checksum2 = MAC_32(tmpBuf, cur_salt->keySize + cur_salt->ivLength, (uint8_t*)master);
+		streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
+		checksum2 = MAC_32( tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master);
 		if(checksum2 == checksum) {
 			any_cracked = cracked[index] = 1;
 		}
