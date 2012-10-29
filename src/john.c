@@ -671,7 +671,7 @@ static void john_init(char *name, int argc, char **argv)
 		puts("--length=N                force a lower max. length");
 		puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 		puts("--fix-state-delay=N       performance tweak, see documentation");
-		puts("--log-stderr              log to screen instead of file\n");
+		puts("--log-stderr              log to screen instead of file");
 		puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
 		puts("                          always treat raw hashes as valid.");
 		puts("--progress-every=N        emit a status line every N seconds\n");
