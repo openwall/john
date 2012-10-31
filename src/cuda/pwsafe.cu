@@ -167,6 +167,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         kernel_pwsafe <<< BLOCKS, THREADS >>> (cuda_pass, cuda_salt,
             cuda_hash);
         cudaThreadSynchronize();
+	HANDLE_ERROR(cudaGetLastError());
 
         ///Free memory and copy results back
         cudaMemcpy(host_out, cuda_hash, PWSAFE_OUT_SIZE,

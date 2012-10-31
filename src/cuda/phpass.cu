@@ -30,6 +30,7 @@ extern "C" void gpu_phpass(uint8_t * host_data, phpass_salt * salt,
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, salt, SALT_SIZE));
 
 	kernel_phpass <<< BLOCKS, THREADS >>> (cuda_data, cuda_data_out);
+	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaThreadSynchronize());
 	HANDLE_ERROR(cudaMemcpy(host_data_out, cuda_data_out, DATA_OUT_SIZE,

@@ -77,17 +77,20 @@ static void cuda_rawsha256(sha256_password * host_in, void *out, int overlap)
 			DATA_IN_SIZE / 3, cudaMemcpyHostToDevice, stream0));
 		kernel_sha256 <<< dimGrid, dimBlock, 0,
 		    stream0 >>> (cuda_data0, cuda_data_out0);
+		HANDLE_ERROR(cudaGetLastError());
 
 		HANDLE_ERROR(cudaMemcpyAsync(cuda_data1,
 			host_in + KEYS_PER_CRYPT / 3, DATA_IN_SIZE / 3,
 			cudaMemcpyHostToDevice, stream1));
 		kernel_sha256 <<< dimGrid, dimBlock, 0,
 		    stream1 >>> (cuda_data1, cuda_data_out1);
+		HANDLE_ERROR(cudaGetLastError());
 
 		cudaMemcpyAsync(cuda_data2, host_in + 2 * KEYS_PER_CRYPT / 3,
 		    DATA_IN_SIZE / 3, cudaMemcpyHostToDevice, stream2);
 		kernel_sha256 <<< dimGrid, dimBlock, 0,
 		    stream2 >>> (cuda_data2, cuda_data_out2);
+		HANDLE_ERROR(cudaGetLastError());
 
 		HANDLE_ERROR(cudaMemcpyAsync((SHA_HASH *) out, cuda_data_out0,
 			DATA_OUT_SIZE / 3, cudaMemcpyDeviceToHost, stream0));
@@ -122,6 +125,7 @@ static void cuda_rawsha256(sha256_password * host_in, void *out, int overlap)
 		kernel_sha256 <<< BLOCKS, THREADS >>> (cuda_data,
 		    cuda_data_out);
 		cudaThreadSynchronize();
+		HANDLE_ERROR(cudaGetLastError());
 
 		cudaMemcpy(host_out, cuda_data_out, DATA_OUT_SIZE,
 		    cudaMemcpyDeviceToHost);

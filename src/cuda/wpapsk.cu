@@ -239,6 +239,7 @@ __host__ void wpapsk_gpu(wpapsk_password * inbuffer, wpapsk_hash * outbuffer,
 
 	wpapsk_pbkdf2_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer,
 	    cuda_outbuffer);
+	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,
 		cudaMemcpyDeviceToHost));
