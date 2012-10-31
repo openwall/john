@@ -310,7 +310,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 
 		cl_ulong startTime, endTime;
 
-		HANDLE_CLERROR(CL_SUCCESS!=clWaitForEvents(1,&evnt),"SYNC FAILED");
+		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
 

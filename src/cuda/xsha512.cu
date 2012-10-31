@@ -257,6 +257,7 @@ void cuda_xsha512(xsha512_key *host_password,
     dim3 dimGrid((count-1)/THREADS+1);
     dim3 dimBlock(THREADS);
     kernel_xsha512 <<< dimGrid, dimBlock >>> (count, cuda_password, cuda_hash, cuda_ext_password);
+	HANDLE_ERROR(cudaGetLastError());
 	cracked_hash_copy_out = 0;
 }
 
@@ -284,6 +285,7 @@ int cuda_cmp_all(void *binary, int count)
     dim3 dimGrid((count-1)/THREADS+1);
     dim3 dimBlock(THREADS);
 	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
+	HANDLE_ERROR(cudaGetLastError());
 	HANDLE_ERROR(cudaMemcpy(&result, cuda_result, sizeof(uint8_t), cudaMemcpyDeviceToHost));
 	return result;
 }

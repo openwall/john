@@ -238,6 +238,7 @@ __host__ void md5_crypt_gpu(crypt_md5_password * inbuffer,
 		cudaMemcpyHostToDevice));
 
 	kernel_crypt_r <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
+	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,
 		cudaMemcpyDeviceToHost));

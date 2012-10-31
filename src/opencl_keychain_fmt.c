@@ -112,15 +112,15 @@ static void init(struct fmt_main *self)
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem in");
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
 	mem_setting =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem setting");
+	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 	mem_out =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem out");
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "keychain", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");

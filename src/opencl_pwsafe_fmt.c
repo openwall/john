@@ -103,15 +103,15 @@ static void init(struct fmt_main *self)
 	mem_salt =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while alocating memory for salt");
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while alocating memory for passwords");
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 	mem_out =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while alocating memory for hashes");
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 	///Assign kernel parameters
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
