@@ -191,7 +191,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
     int gws, i = 0;
     cl_uint *tmpbuffer;
 
-    for(gws = local_work_size << 2; ; gws <<= 1) {
+    for(gws = local_work_size << 2; gws <= 8*1024*1024; gws <<= 1) {
         create_clobj(gws, self);
 	advance_cursor();
 	queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -256,24 +256,13 @@ static void fmt_ssha_init(struct fmt_main *self)
 		global_work_size = atoi(temp);
 
 	if (!local_work_size) {
-		if (getenv("LWS")) {
-			/* LWS was explicitly set to 0 */
-			int temp = global_work_size;
-			local_work_size = maxsize;
-			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
-			create_clobj(global_work_size, self);
-			opencl_find_best_workgroup_limit(self, maxsize);
-			release_clobj();
-			global_work_size = temp;
-		} else {
-			if (cpu(device_info[ocl_gpu_id])) {
-				if (get_platform_vendor_id(platform_id) == DEV_INTEL)
-					local_work_size = 8;
-				else
-					local_work_size = 1;
-			} else
-				local_work_size = maxsize;
-		}
+		int temp = global_work_size;
+		local_work_size = maxsize;
+		global_work_size = global_work_size ? global_work_size : 4 * maxsize;
+		create_clobj(global_work_size, self);
+		opencl_find_best_workgroup_limit(self, maxsize);
+		release_clobj();
+		global_work_size = temp;
 	}
 
 	if (local_work_size > maxsize) {

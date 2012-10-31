@@ -220,7 +220,6 @@ static void *salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	memcpy(&host_salt, salt, sizeof(crypt_md5_salt));
-	any_cracked = 0;
 }
 
 static void set_key(char *key, int index)
