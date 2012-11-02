@@ -1,7 +1,6 @@
 The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
 
-magnum (126):
-	Add Alain's Truecrypt format as posted to www.openwall.com/lists/john-users/2012/07/18/3. Make target for truecrypt_volume2john is missing.
+magnum (120):
 	Use maxlen in dumb16 and dumb32 external modes.
 	Make sunmd5 check FMT_MAIN_VERSION, so the same file works for non-bleeding as well as bleeding. Also fix some Linux warnings. FIXME: This version still fails self-test under OMP. FIXME: Jim and Simon, add your license statements!
 	Fix new sunmd5 format struct so it works with bleeding too. Also fix the ALGORITHM_NAME enumeration to new-style. This now says it's using SSE2 but apparently it is not, on my gear.
@@ -50,7 +49,6 @@ magnum (126):
 	Show SHA-1 in oldoffice FORMAT_NAME
 	OldOffice: Inner-loop optimisations and much smaller memory footprint per hash. Unfortunately the gain was smaller than I hoped for, but it may be better IRL.
 	Office: Very minor optimizations. OldOffice: For "salt-only" formats (non-hashes), BINARY_SIZE should be 0
-	Fix for sunmd5 for non-intel hardware, submitted by Sam Novak.
 	RAR: gws_test() made static.
 	New format office-opencl. This first version handles only Office 2007 and a max plaintext length of 19.
 	Office-opencl: Fix some compiler warnings.
@@ -61,8 +59,6 @@ magnum (126):
 	Office (CPU version), optimizations for 2007/2010, 2x boost!
 	Re-introduce APPLE in opencl_device_info.h
 	Office-opencl renamed to office2007-opencl, and office2010-opencl added. Both use split kernels, so durations should not exceed 200ms (by far).
-	Added a CHANGES-jumbo.git which is (almost) raw output from "git shortlog -n --no-merges", and placed (the changes part of) Solar's announcement of Jumbo-6 in CHANGES-jumbo (mostly as a placeholder, it might need editing).
-	Update CREDITS-jumbo
 	hmac-sha1 bug fix: Certain optimisations did not take SHA_BUF_SIZ in account. Very few builds pick the old SHA-1 implementation that uses 320 bytes instead of the now normal 64 bytes but native OSX llvm now does, so triggered the bug.
 	Add a version of our shared find_best_workgroup() that supports vectorized formats.
 	Bugfix for d708f98 (find_best_workgroup_vector())
@@ -113,9 +109,7 @@ magnum (126):
 	Add NTLMv2-opencl. Well behaved but I/O-bound. Vectorized on CPU, passes Test Suite. Full Unicode support.
 	NTLMv2-opencl: Change hard-coded challenge length figures to SALT_SIZE_MAX and fix a bug in salt_hash() (our salt format is different from the old).
 	NTLMv2-opencl: Only run vectorized on CPUs.
-	Encfs: Trying to nail an OSX problem. Change a dynamic allocation to using alloca() explicitly. Some optimisations while at it. Problem went from segfault to FAILED (cmp_all(1)) but it actually seems to be a problem with whatever OpenSSL version I happen to use here.
 	Drop an erroneous linefeed from --list=hidden-options.
-	Revert "Encfs: Trying to nail an OSX problem. Change a dynamic allocation to using"
 	Fix for common_opencl_pbkdf2.c that hid the actual error output on "SYNC FAILED"
 	Fix a common mispeling
 	Add missing error handling in all CUDA kernels. Also add some information in README-CUDA about too high THREADS settings as well as a specific hint from HANDLE_ERROR for the "too many resources requested" error. Finally, add some missing stuff in Makefile so a header file change will cause a rebuild of wpapsk-cuda or pwsafe-cuda.
@@ -273,11 +267,16 @@ Frank Dittrich (4):
 	Define new [List.External:Repeats_*] sections
 	New external mode variable "maxlen"
 
-Solar (4):
+Solar (3):
 	sunmd5: minor fixes
 	sunmd5: Get rid of modulo
 	Sunmd5: Eliminate some more uses of sizeof(string). Also replace one use of MAX_KEYS_PER_CRYPT with count - should help with single crack mode.
-	Final Jumbo-7 changes.
+
+Sam Novak (1):
+	Fix for sunmd5 for non-intel hardware.
+
+Alain Espinosa (1):
+	Truecrypt format as posted to www.openwall.com/lists/john-users/2012/07/18/3. Make target for truecrypt_volume2john is missing.
 
 Lukas Odzioba (1):
 	Make Truecrypt formats non-plugin and only build for OpenSSL >= 1.0.0
@@ -509,7 +508,7 @@ Dhiru Kholia (20):
 	Fix build.
 	Drop "inline" from rar malloc stuff. It was probably done wrong.
 
-Solar (8):
+Solar (9):
 	hccap2john fixes
 	RAdmin, SIP speedup
 	Optimized mscash2-opencl
@@ -518,9 +517,10 @@ Solar (8):
 	john-sha1-r3-bitselect.diff
 	wordlist.c truncation bugfix (from contest edition)
 	pwsafe-cuda: Bugfix (w[14] init) and optimisations
+	Final Jumbo-7 changes.
 
 Lukas Odzioba (5):
-	Jihaa, Jester's dead
+	Fix a multitude of declaration-after-statement warnings.
 	cudasha256speedpatchv3.diff
 	wpapsk-valid_fix.diff
 	Fixes for CUDA mscash formats.
