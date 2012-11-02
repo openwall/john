@@ -10,13 +10,19 @@ N.B. DON'T use X11 opensource drivers provided by your distribution,
 either install fglrx or nvidia dkms package or go directly with the
 ones provided by nvidia and ati.
 
-This code is still highly experimental, therefore we suggest you
-to try at your own risk.
-GPU should not get overheated due to some limitation from the hardware
-however keep checking your temperature .
+You can also use OpenCL with CPU, mostly useful if you have several
+(or loads of) cores. This sometimes outperforms the CPU-only formats
+due to better scaling than OMP, or due to vectorizing. See Intel's
+and AMD's web sites for drivers. Note that an Intel driver does
+support AMD CPU's and vice versa.
 
-This code has been tested on Linux, any chance it will work as it is
-under other Operating System is due to a luck factor :-)
+This code is still experimental, try at your own risk. GPU should not
+get overheated due to some protection in the hardware, however keep
+an eye on temperatures (use "aticonfig -odgt" for AMD cards, or
+"nvidia-smi" for nvidia cards).
+
+This code has been tested on Linux and OSX, see doc/BUGS for known
+issues.
 
 OpenCL patches have been lately introduced to add GPU support to john;
 unfortunately, due to opencl design they shine when you have million
@@ -51,7 +57,6 @@ to locate your path to the includes and libOpenCL .
 Adjust NVIDIA_CUDA or ATISTREAMSDKROOT to your needs and
 if something is still wrong (but it shouldn't) send
 an email to john-users@lists.openwall.com for help.
-
 
 
 ====================
@@ -101,6 +106,7 @@ LWS and GWS are not yet in every opencl format john is using.
   to set them to properly values, if in doubt just use the defaults
   and unset them
 
+
 ====================
 Optimization:
 ====================
@@ -114,6 +120,7 @@ a good idea to set up PLAINTEXT_LENGTH to a lower value than
 
 - GWS should always be the possible product of LWS: you should always
   be able to divide GWS / LWS and get an integer number
+
 
 ====================
 Supported formats:
@@ -138,6 +145,61 @@ the following hashes:
 - Raw MD5
 - Raw SHA-1
 - WPA-PSK
+- FIXME: and SEVERAL more added in this version of Jumbo.
+
+
+=================
+Watchdog Timer:
+=================
+
+If your GPU is also your active display device, a watchdog timer is enabled
+by the nvidia driver by default, killing any kernel that runs for more than
+about five seconds. You will normally not get a proper error message, just
+some kind of failure after five seconds or more, like:
+
+  OpenCL error (CL_INVALID_COMMAND_QUEUE) in file (opencl_encfs_fmt.c) (...)
+
+Our goal is to split such kernels into subkernels with shorter durations but
+in the meantime (and especially if running slow kernels on weak devices) you
+might need to disable this watchdog. For nvidia cards, you can check this
+setting using "--list=opencl-devices". Example output:
+
+    Platform version: OpenCL 1.1 CUDA 4.2.1
+	Device #0 name:		GeForce GT 650M
+	Device vendor:		NVIDIA Corporation
+	Device type:		GPU (LE)
+	Device version:		OpenCL 1.1 CUDA
+	Driver version:		304.51
+	Global Memory:		1023.10 MB
+	Global Memory Cache:	32.0 KB
+	Local Memory:		48.0 KB (Local)
+	Max clock (MHz) :	900
+	Max Work Group Size:	1024
+	Parallel compute cores:	2
+	Stream processors:	384  (2 x 192)
+	Warp size:		32
+	Max. GPRs/work-group:	65536
+	Compute capability:	3.0 (sm_30)
+	Kernel exec. timeout:	yes            <-- enabled watchdog
+
+This particular output is not always available under OSX but you can get the
+information using "--list=cuda-devices" instead, see doc/README-CUDA. We are
+currently not aware of any way to disable this watchdog under OSX.  Under
+Linux (and possibly other systems using X), you can disable it for nvidia
+cards by adding the 'Option "Interactive"' line to /etc/X11/xorg.conf:
+
+    Section "Device"
+        Identifier     "Device0"
+        Driver         "nvidia"
+        VendorName     "NVIDIA Corporation"
+        Option         "Interactive"        "False"
+    EndSection
+
+At this time we are not aware of any way to check or change this for AMD cards.
+What we do know is that some old AMD drivers will crash after repeated runs of
+as short durations as 200 ms, necessating a reboot. If this happens, just
+upgrade your driver.
+
 
 ============================================================
 Following is the verbatim original content of this file:
