@@ -1,3 +1,303 @@
+The following changes were made between 1.7.9-jumbo-7 and 1.7.9-jumbo-8:
+
+magnum (126):
+	Add Alain's Truecrypt format as posted to www.openwall.com/lists/john-users/2012/07/18/3. Make target for truecrypt_volume2john is missing.
+	Use maxlen in dumb16 and dumb32 external modes.
+	Make sunmd5 check FMT_MAIN_VERSION, so the same file works for non-bleeding as well as bleeding. Also fix some Linux warnings. FIXME: This version still fails self-test under OMP. FIXME: Jim and Simon, add your license statements!
+	Fix new sunmd5 format struct so it works with bleeding too. Also fix the ALGORITHM_NAME enumeration to new-style. This now says it's using SSE2 but apparently it is not, on my gear.
+	Sunmd5: fix SSE2 for 64-bit
+	wordlist.c: fix segfault reported in http://www.openwall.com/lists/john-users/2012/08/01/5
+	Define MMX_COEF in x86-64.h and drop the workarounds in SSE2 formats that were needed cause it was missing.
+	Use clear_keys() for SSE2 buffer cleaning in a couple of formats, instead of doing it in set_key() if index == 0.
+	Backports from john-1.7.9.6-c6.
+	Replicate Vlatko's fix in 487c44ce to build_kernel_from_binary() in magnum-jumbo and downstream.
+	pass_gen.pl sync between branches
+	wow_srp: Use the OpenSSL version, revert the -lgmp from Makefile. TODO: put some (default commented out) HAVE_GMP stuff in Makefile.
+	Add HAVE_GMP to Makefile, default commented out
+	.gitignore update
+	sed -ri 's/\bfree\(/MEM_FREE(/g' *[ch] (and then selectively commit most changes)
+	Bugfix for previous commit
+	Limit External:Strip to 16 characters even if cipher_limit is higher.
+	Do not use cipher_limit directly in External:KnownForce, because the length is fixed - ie. no shorter lengths will be tried!
+	Change a couple more ISO-8859-1 files (not in -fixes branch) to UTF-8
+	mssql12: drop obsolete comments about SSE2. Also drop the UTF-8-specific version of set_key() as we're not working against vector buffers anyway and enc_to_utf16() can handle utf-8 too.
+	External:Subsets: Revert defaulting to cipher_limit because it's often too long. Instead, use cipher_limit to cap the used length.
+	RAR: #ifdef galore
+	dmg_fmt: #undef HTONL before defining it (warnings seen on OSX)
+	mssql12: Unicode fixes
+	Oldoffice: Proper Unicode support
+	Make opencl_DES_fmt.c compatible with bleeding's format struct
+	des-opencl: Use .h files for OpenCL includes (.c did not work on OSX)
+	Fix a benign warning in OSX
+	The new Kerberos formats depend on Kerberos 5 libs and headers. This patch make them non-default - you have to uncomment HAVE_KRB5 to build them.
+	Make new Kerberos formats' structs forward compatible
+	Use ASCII copyright signs
+	Makefile: change a couple of hard-coded gcc to $(CC).
+	Update some build targets with custom CFLAGS and LDFLAGS
+	sunmd5: bugfix and miniscule optimization
+	EncFS: Backport some fixes that was committed only to bleeding-jumbo
+	OSX: Only link against krb5 if HAVE_KRB5 is defined.
+	Office2john: Support multiple files in one run.
+	Office format simplifications. Avoid a lot of alloc/free and memcpy/memmove even though they did not hit performance much.
+	Office: regression fixes for last patch
+	Office: Get rid of the rest of malloc()'s + some other misc fixes.
+	Office: Move Unicode conversion to set_key() so we don't have to convert the same password several times. Add all sample hashes we've got, as test vectors.
+	OldOffice: Move Unicode conversion to set_key() so we don't have to convert the same password several times.
+	Ooops. Fix pbkdf2-sha512 format struct for bleeding.
+	Special wordlist rule for cracking old office documents truncated at 15 characters.
+	If ran under MPI though not built for it, complain!
+	Improve the "OldOffice" wordlist rule
+	Show SHA-1 in oldoffice FORMAT_NAME
+	OldOffice: Inner-loop optimisations and much smaller memory footprint per hash. Unfortunately the gain was smaller than I hoped for, but it may be better IRL.
+	Office: Very minor optimizations. OldOffice: For "salt-only" formats (non-hashes), BINARY_SIZE should be 0
+	Fix for sunmd5 for non-intel hardware, submitted by Sam Novak.
+	RAR: gws_test() made static.
+	New format office-opencl. This first version handles only Office 2007 and a max plaintext length of 19.
+	Office-opencl: Fix some compiler warnings.
+	Office: Fix some over-long test vectors that was due to a bug in office2john.
+	Fix format structs for new formats so they are compatible with bleeding
+	.gitignore update
+	Office-opencl SALT_LENGTH bugfix
+	Office (CPU version), optimizations for 2007/2010, 2x boost!
+	Re-introduce APPLE in opencl_device_info.h
+	Office-opencl renamed to office2007-opencl, and office2010-opencl added. Both use split kernels, so durations should not exceed 200ms (by far).
+	Added a CHANGES-jumbo.git which is (almost) raw output from "git shortlog -n --no-merges", and placed (the changes part of) Solar's announcement of Jumbo-6 in CHANGES-jumbo (mostly as a placeholder, it might need editing).
+	Update CREDITS-jumbo
+	hmac-sha1 bug fix: Certain optimisations did not take SHA_BUF_SIZ in account. Very few builds pick the old SHA-1 implementation that uses 320 bytes instead of the now normal 64 bytes but native OSX llvm now does, so triggered the bug.
+	Add a version of our shared find_best_workgroup() that supports vectorized formats.
+	Bugfix for d708f98 (find_best_workgroup_vector())
+	Revert recent find_best_workgroup() changes; they were no-ops. Also remove some older no-op code.
+	Merge 1.7.9-jumbo-7 as released, and bump the "unstable" version string accordingly
+	OpenCL: Read the LWS environment variable in the shared find_best function.
+	Fixes for new opencl_device_info.h names
+	Add "Rules:None". I have added this as temporary a dozen times. It's useful in some cases for Single mode and it really doesn't harm having it in place.
+	Office OpenCL formats: Run vectorized on some platforms (including CPU).
+	RAR kernel rearrangement, preparing for a split. This alone made for some boost.
+	OpenCL Office formats: Mitigate GPU hogging with much shorter kernel durations. Barely any performance impact but much better desktop response during cracking.
+	Add some license stuff to RAR format, just in case. The wording was already present in clamav's unrar sources.
+	Forward-compatible format structs for sha256crypt-opencl and postgreSQL
+	RAR OpenCL: Finally, split kernel into quicker subkernels. Lousy speed so far but passes self-tests. We use a 64x buffer, and run a non-destructive SHA-1 over it instead of copying and flogging bits around all the time. This eats loads of memory but we are forced to use global memory anyway after splitting.
+	RAR OpenCL: Use byte-addressed stores in some cases, if supported.
+	RAR OpenCL: Back to 1x buffer and use private memory in inner loop. Limit sub-kernel duration to 200 ms for GCN. Use local memory on nvidia.
+	RAR: Tweak GWS enumeration. Also a workaround to get the OpenCL kernel running on Mac MBPr with GT 650M. This does not make any sense at all, but it works. It is clearly a bug in OSX.
+	Office 2013 OpenCL format added with fair performance given the task. Currently fails self-test on HD7970 for no apparent reason.
+	Office 2013-OpenCL: Vectorize (but only for CPU).
+	Drop some bogus logic from Office OpenCL formats. I confused local work size with global ditto.
+	Office OpenCL formats: Add benchmark comments (iterations count)
+	Add option --status-every=N
+	Add a comment about Kepler (sm_30) in Makefile
+	Unify CUDA and OpenCL "human_format" functions.
+	RAR: Fix bugs with OpenCL profiling. In gws_test(), we did not take a changed value of HASH_LOOPS into account. Worse, in crypt_all() we had the global profilingEvent sent with clEnqueueNDRangeKernel() even though we did not use it. This lead to a memory leak and a slow but certain death.
+	Office OpenCL formats: Remove unused code for shared find_best_workgroup()
+	Fix an inner loop memory leak in most (22 of 24) OpenCL formats that use the shared find_best_workgroup() function. NOTE: opencl_cryptsha256_fmt.c and opencl_cryptsha512_fmt.c are NOT fixed here. They need some other fix, for example reverting to private functions or a fixed (semi-fixed) value.
+	Revert patch 4f12506 and implement a cleaner solution: We now use a pointer for profileEvent, and it's set to NULL after find_best_workgroup() so no more events will be created.
+	Office OpenCL formats: Now that I got profiling straight, use the shared find_best_workgroup() for a little boost on some platforms.
+	Add missing FMT_OMP to Office OpenCL formats.
+	Another tiny (and benign) cl_event memory leak fixed in common-opencl.c
+	OpenVMS format: forward-compatible format struct.
+	RAR: Prepare to use the shared find_best_workgroup() function - but don't. For some reason, it returns a suboptimal figure. Also, it takes time.
+	Office OpenCL formats: Revert to fixed LWS yet again. Auto-conf is simply too slow and unreliable.
+	--list=cuda-devices: show number of SP, if known.
+	Some added information in doc/BUGS - that might be candidate for moving to some other documentation because it's not really about bugs.
+	common-opencl.c: Support split kernels with opencl_find_best_workgroup(). RAR & Office OpenCL formats: Implement the above but still, use hard-coded figures.
+	RAR & Office OpenCL: Enumerate LWS if explicitly asked to.
+	common-opencl.c: Add a way to pass parameters when building kernel. RAR & Office OpenCL formats: Use this (more to come).
+	Make RAR (OpenCL) much more responsive, doing less per kernel call. Print Office kernel durations while benchmarking (GWS=0).
+	Office2013-opencl: Fix minor bug in enumeration.
+	RAR: GETCHAR/PUTCHAR macro optimisations (vs. arch)
+	RAR: Tweaks.
+	Silly bug: The new --status-every option clashed with the original --status option. Rename the former to --progress-every.
+	RAR: Fix bugs in auto-tuning to device. Office2013: Less X hogging.
+	NETLM/NTLM/v2 formats: Fix a signed vs unsigned char bug, and make case shifting UTF-8 aware (as opposed to just codepage-aware). Also bump some limits to accommodate for UTF-8 encoded user and domain names.
+	common-opencl.c: Add get_global_memory_size(), and tweak find_best_workgroup().
+	Add NTLMv2-opencl. Well behaved but I/O-bound. Vectorized on CPU, passes Test Suite. Full Unicode support.
+	NTLMv2-opencl: Change hard-coded challenge length figures to SALT_SIZE_MAX and fix a bug in salt_hash() (our salt format is different from the old).
+	NTLMv2-opencl: Only run vectorized on CPUs.
+	Encfs: Trying to nail an OSX problem. Change a dynamic allocation to using alloca() explicitly. Some optimisations while at it. Problem went from segfault to FAILED (cmp_all(1)) but it actually seems to be a problem with whatever OpenSSL version I happen to use here.
+	Drop an erroneous linefeed from --list=hidden-options.
+	Revert "Encfs: Trying to nail an OSX problem. Change a dynamic allocation to using"
+	Fix for common_opencl_pbkdf2.c that hid the actual error output on "SYNC FAILED"
+	Fix a common mispeling
+	Add missing error handling in all CUDA kernels. Also add some information in README-CUDA about too high THREADS settings as well as a specific hint from HANDLE_ERROR for the "too many resources requested" error. Finally, add some missing stuff in Makefile so a header file change will cause a rebuild of wpapsk-cuda or pwsafe-cuda.
+	ssha-opencl: Tweak the device auto-tuning, fixing several problems.
+	Bugfix in md5crypt-cuda. If we clear any_cracked we must also clean the outbuffer.
+	ssha-opencl: Further tweaks for work size selections
+	encfs-opencl: Make it possible to specify GWS. LWS can already be forced due to the shared find_best_workgroup function honoring it.
+	Respect "iterations" parameter in odf (sxc) PBKDF2 kernel
+	For some reason the OpenCL kernel for OpenPGP/GnuPG was using unsigned long for 32-bit integers. Fixing this made for a 20% boost on Tahiti but it did not help the nvidia, which fails with the cryptic message "Module-scoped variables in .local state space are not allowed with ABI". Maybe that is just another driver bug.
+	Some added information in GPU docs, regarding temperatures, watchdogs etc.
+	Rename doc/README.opencl to README-OPENCL for consistency with the CUDA docs.
+
+Dhiru Kholia (111):
+	Integrate psk-crack (from ike-scan) into john.
+	Add support for cracking Nuked-Klan CMS hashes.
+	Fix build.
+	Bump LINE_BUFFER_SIZE. Needed for pfx format.
+	OpenCL implementation of Keychain format
+	Keychain format is now 2.4x faster on CPU and scales almost linearly. Thanks to Lukas!
+	Fix keychain format crash due to stack smashing
+	Add support for cracking 1Password Agile Keychain files
+	Reduce false positives in agilekeychain format
+	OpenCL implementation of Agile Keychain format
+	integrate keychain2john program with john
+	Add support for cracking ODF 1.2 AES encrypted documents
+	Update FORMAT_NAME in ODF format
+	Remove my hacks from ODF format
+	misc. minor fixes
+	Add AES-256 encrypted ZIP file test vector.
+	OpenCL implementation of ZIP AES format
+	Do not build Truecrypt unless OpenSSL >= 1.0.1
+	Add support for cracking M$ Outlook's PST files
+	GNOME Keyring cracker patch for JtR
+	Add keyring2john program (for now it is standalone).
+	Add support for cracking Office 97-2003 encrypted files
+	EncFS cracker patch for JtR
+	OpenCL implementation of EncFS cracker
+	OpenCL implementation of ODF format
+	SXC cracker patch for JtR
+	OpenCL implementation of SXC format
+	Respect "iterations" parameter in PBKDF2 code
+	Respect "iterations" parameter in keychain PBKDF2 kernel
+	add test vectors from CMIYC 2012
+	add test vectors from CMIYC 2012
+	add test vectors from CMIYC 2012
+	pdf2john fixes by JimF
+	Add OMP support in PDF format.
+	Detect PDF files using AES encryption and bail out early
+	Fix bug in PDF format exposed by a new test vector (added to pdfdump)
+	Detect unsupported PDF files and bail out
+	Implement npdf format which will eventually replace the existing pdf format (once npdf2john is committed).
+	Remove ":" from npdf test vectors
+	Make npdf format compatible with core changes
+	Use our own SHA2 implementation
+	Fix breakage in keychain2john program
+	Add support for cracking PuTTY private keys
+	Rename ppk format to putty
+	Use our faster HMAC-SHA1 implementation
+	Add support for cracking OpenPGP / GnuPG private key files
+	Add support for more hashing algorithms
+	add test vectors from CMIYC 2012
+	OpenCL implementation of GPG format
+	Make NVIDIA OpenCL compiler happy
+	Integrate gpg2john with john
+	Add documentation for gpg format
+	Add OMP support in gpg-opencl format
+	Add support for cracking MS SQL 2012 hashes
+	Add support for cracking MySQL network authentication hashes
+	Make mysqlna format compatible with core changes
+	simplify DMG format
+	fix detection of plain DMG files
+	add more test vectors
+	Add dmg2john to .gitignore
+	Add OMP support in dmg format
+	OpenCL implementation of DMG format
+	Begin adding Office RC4 CryptoAPI Encryption support
+	Office RC4 CryptoAPI Encryption support is done for doc files
+	Office RC4 CryptoAPI Encryption support is done for ppt files
+	Office RC4 CryptoAPI Encryption support is done for xls files
+	Fix some correctness issues
+	Add support for cracking Office 2013 files
+	Add support for cracking STRIP Password Manager databases
+	ml2john.py extracts Mountain Lion hashes
+	fix permissions
+	fix shebang line
+	Fix OMP support in new KRB formats
+	Fix krb5-23 format on OSX
+	Fix krb5-18 format on OSX
+	Make Pyflakes happy
+	OMP build fixes for EncFS format
+	Add support for cracking GRUB2 and OS X 10.8 hashes. Coded by Lukas.
+	Remove my hacks from VNC format
+	Update for Office 2013
+	OpenCL implementation of STRIP format
+	Improve error handling
+	Add support for parsing newer Office files to office2john.py
+	Support cracking of iSCSI CHAP authentication hashes
+	dos2unix on chap_fmt_plug.c
+	Update OleFileIO_PL code
+	Use only filename instead of full path
+	Fix a correctness issue in Office format
+	Fix warnings and indentation in FGT format
+	Fix FGT format crash when built using linux-x86-64-clang-debug target
+	Add another test vector in CHAP format
+	Fix memory leaks in EncFS formats
+	Remove dead assignments
+	Fix license issues
+	Begin adding OMP-support to hmac formats
+	Add OMP support to hmac formats
+	Add support for cracking Oracle O5LOGON protocol hashes
+	PPC fixes
+	add more test vectors in o5logon format
+	Add support for PostgreSQL MD5 challenge-response cracking
+	Add usage instructions in VNC format
+	Speed-up o5logon format.
+	Remove my hacks from o5logon format
+	Revert "Remove my hacks from o5logon format"
+	Fix build when using ICC
+	Integrate OpenVMS support 2.4 patch by David Jones
+	Pull changes from v2 version of VMS patch
+	New version of office2john that rips keywords from document metadata and puts them in GECOS field for use by Single mode. Also bump some figures in params.h to cope with more words in said field.
+	Fix issue #100 gpg-opencl does not work
+	Fix static build on Owl-current systems
+	Add some more test vectors
+
+JimF (24):
+	Add our own SHA-2, enabling 19 new formats for users stuck with OpenSSL 0.9.7. OpenSSL or not, boost sha256crypt with 10-20%.
+	Fix radmin format under Windows.
+	Alignment fixes SHA2 on Sparc
+	Handle CommonCrypt in our SHA-2
+	CommonCrypto fix in sha256crypt
+	JtR-bleed-align-macro-fix-1.diff
+	JtR-Bleed-make-generic-unaligned.diff
+	JtR-New-Dynamic-35-36-SHA-types.diff
+	ike-crack.h: use our local stdint.h instead of global
+	JtR-MAG-UNSTABLE-ONLY-Dynamic-sha256-addition.diff
+	Updated dynamic adding sha2 formats, and GOST, also made a thin format formspring to do regen-salts type 6
+	Dynamic name change (for display), and adding config option and command line switch to cause dynamic to always use raw hashes
+	Missed this file in the dynamic raw-hashes-allways-valid patch
+	john-1.7.9.5-c6-sunmd5-v1.patch
+	New, SSE2 capable sunmd5
+	sunmd5 fixed for mmx, sunmd5 added to pass_gen.pl
+	Updated sunmd5 and added a couple of optimizations. Added finer granularity memory dumping to memory.c/.h
+	many changes I had staged. many were performance changes, some were porting changes. dynamic is now also updated. Also the POC wow_srp format added
+	Added OMP, removed a few compile warnings, depending upon compile conditions, oSSL/GMP builds
+	GMP fix for 64 bit
+	changes to dynamic, adding new methods to give more flexability to larger formats, multiple output types, upon rehashing. Also updated documentation
+	Portability issues fixed
+	stack overwrite bug fixed
+	added JtR tool to_dyna to the build. This tool converts hash:salt or salt:hash into proper dyna format, converting salt to $HEX$ if needed
+
+Frank Dittrich (4):
+	Silence -Wpointer-sign warnings in hmacSHA*_fmt_plug.c, take 2
+	Add --help option to john (prints usage summary)
+	Define new [List.External:Repeats_*] sections
+	New external mode variable "maxlen"
+
+Solar (4):
+	sunmd5: minor fixes
+	sunmd5: Get rid of modulo
+	Sunmd5: Eliminate some more uses of sizeof(string). Also replace one use of MAX_KEYS_PER_CRYPT with count - should help with single crack mode.
+	Final Jumbo-7 changes.
+
+Lukas Odzioba (1):
+	Make Truecrypt formats non-plugin and only build for OpenSSL >= 1.0.0
+
+Alexander Cherepanov (1):
+	sunmd5 coinflip speedup
+
+Camille Mougey (1):
+	New formats: KRB5-18 and KRB5-23
+
+Linus Lüssing (1):
+	MSCHAPv2: Add support for freeradius-wep-patch challenge/response format
+
+Mat G (1):
+	New format: Fortigate (FortiOS)
+
+bartavelle (1):
+	sunmd5.hack.diff
+
+
 The following changes were made between 1.7.9-jumbo-6 and 1.7.9-jumbo-7:
 
 magnum (109):
