@@ -75,6 +75,8 @@ void cuda_device_list()
 		cudaGetDeviceProperties(&devProp, i);
 		printf("\nCUDA Device #%d\n", i);
 		printf("\tName:                          %s\n", devProp.name);
+		printf("\tType:                          %s\n",
+		       devProp.integrated ? "integrated" : "discrete");
 		printf("\tCompute capability:            sm_%d%d\n",
 		    devProp.major, devProp.minor);
 		if (devProp.major <= 3)
@@ -93,6 +95,8 @@ void cuda_device_list()
 		    human_format(devProp.sharedMemPerBlock));
 		printf("\tTotal constant memory:         %s\n",
 		    human_format(devProp.totalConstMem));
+		printf("\tL2 cache size                  %s\n",
+		       human_format(devProp.l2CacheSize));
 		printf("\tKernel execution timeout:      %s\n",
 		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
 		printf("\tConcurrent copy and execution: %s\n",
@@ -103,6 +107,10 @@ void cuda_device_list()
 		    devProp.warpSize);
 		printf("\tMax. GPRs/thread block         %d\n",
 		    devProp.regsPerBlock);
+		printf("\tMax. threads per block         %d\n",
+		    devProp.maxThreadsPerBlock);
+		printf("\tMax. resident threads per MP   %d\n",
+		    devProp.maxThreadsPerMultiProcessor);
 		puts("");
 	}
 }
