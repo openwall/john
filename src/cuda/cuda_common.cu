@@ -101,6 +101,8 @@ void cuda_device_list()
 		    (devProp.concurrentKernels ? "Yes" : "No"));
 		printf("\tWarp size:                     %d\n",
 		    devProp.warpSize);
+		printf("\tMax. GPRs/thread block         %d\n",
+		    devProp.regsPerBlock);
 		puts("");
 	}
 }
