@@ -4,10 +4,10 @@ UTF-8" (or CP1252 etc). It does NOT mean you can feed John with eg. a UTF-8
 encoded wordlist when cracking LM. It DOES make John recognise national vowels,
 lower or upper case characters, etc. when specifying a codepage.
 
-Currently supported encodings: utf-8, iso-8859-1 (or ansi), iso-8859-7,
-iso-8859-15, koi8-r, cp437, cp737, cp850, cp858, cp866, cp1251, cp1252 and
-cp1253. New encodings can be added with ease, using automated tools that rely
-on the Unicode Database (see Openwall wiki).
+Currently supported encodings: utf-8, iso-8859-1 (or ansi), iso-8859-2,
+iso-8859-7, iso-8859-15, koi8-r, cp437, cp737, cp850, cp852, cp858, cp866,
+cp1250, cp1251, cp1252 and cp1253. New encodings can be added with ease, using
+automated tools that rely on the Unicode Database (see Openwall wiki).
 
 
 Example usage:
