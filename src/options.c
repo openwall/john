@@ -173,7 +173,6 @@ static struct opt_entry opt_list[] = {
 "Homepage: http://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n" \
-"--config=FILE             use FILE instead of john.conf or john.ini\n" \
 "--single[=SECTION]        \"single crack\" mode\n" \
 "--wordlist[=FILE] --stdin wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe  like --stdin, but bulk reads, and allows rules\n" \
@@ -204,12 +203,7 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_USAGE_TAIL \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n" \
-"--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
-"--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)\n" \
-"--nolog                   disables creation and writing to john.log file\n" \
-"--crack-status            emit a status line whenever a password is cracked\n" \
-"--max-run-time=N          gracefully exit after this many seconds\n" \
-"--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)\n"
+"--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n"
 
 #define JOHN_USAGE_PLUGIN \
 "--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"

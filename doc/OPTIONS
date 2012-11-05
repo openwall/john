@@ -269,6 +269,11 @@ running in --nolog mode may be used.
 This will automagically emit a status line at every cracked password. This is
 mostly for testing.
 
+--progress-every=N        emit a status line every N seconds
+
+This will automagically emit a status line every N seconds. This is mostly
+for testing.
+
 --mkpc=N                  force min/max keys per crypt to N
 
 This option is for certain kinds of testing and is not mentioned in the usage

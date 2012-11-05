@@ -589,8 +589,8 @@ cl_uint get_processors_count(int dev_id)
 	cl_uint core_count = get_max_compute_units(dev_id);
 
 	cores_per_MP[dev_id] = 0;
-#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 	if (gpu_nvidia(device_info[dev_id])) {
+#ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 		unsigned int major = 0, minor = 0;
 
 		get_compute_capability(dev_id, &major, &minor);
@@ -602,8 +602,28 @@ cl_uint get_processors_count(int dev_id)
 			core_count *= (cores_per_MP[dev_id] = 48);	//2.1
 		else if (major == 3)
 			core_count *= (cores_per_MP[dev_id] = 192);	//3.0
-	} else
+#else
+		/* Apple does not expose get_compute_capability() so we need
+		   to find out using mory hacky approaches. This needs more
+		   much more clauses to be correct but it's a MESS:
+		   http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
+
+		   Anything that not hits these will be listed as x8, right
+		   or wrong. Note that --list=cuda-devices will show the right
+		   figure even under OSX. */
+		char dname[MAX_OCLINFO_STRING_LEN];
+
+		HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+		                               sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
+
+		if (strstr(dname, "GT 65") || strstr(dname, "GTX 65") ||
+		    strstr(dname, "GT 66") || strstr(dname, "GTX 66") ||
+		    strstr(dname, "GT 67") || strstr(dname, "GTX 67") ||
+		    strstr(dname, "GT 68") || strstr(dname, "GTX 68") ||
+		    strstr(dname, "GT 69") || strstr(dname, "GTX 69"))
+			core_count *= (cores_per_MP[dev_id] = 192); // Kepler
 #endif
+	} else
 	if (gpu_amd(device_info[dev_id])) {
 		core_count *= (cores_per_MP[dev_id] = (16 *	//16 thread proc * 5 SP
 			((amd_gcn(device_info[dev_id]) ||

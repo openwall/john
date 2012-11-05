@@ -667,15 +667,21 @@ static void john_init(char *name, int argc, char **argv)
 	{
 		puts("--help                    print usage summary, just like running the command");
 		puts("                          without any parameters");
+		puts("--config=FILE             use FILE instead of john.conf or john.ini");
+		puts("--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)");
 		puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
 		puts("--mkpc=N                  force a lower max. keys per crypt");
 		puts("--length=N                force a lower max. length");
 		puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
 		puts("--fix-state-delay=N       performance tweak, see documentation");
+		puts("--nolog                   disables creation and writing to john.log file");
 		puts("--log-stderr              log to screen instead of file");
 		puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
 		puts("                          always treat raw hashes as valid.");
-		puts("--progress-every=N        emit a status line every N seconds\n");
+		puts("--progress-every=N        emit a status line every N seconds");
+		puts("--crack-status            emit a status line whenever a password is cracked");
+		puts("--max-run-time=N          gracefully exit after this many seconds");
+		puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)\n");
 		exit(0);
 	}
 
