@@ -755,16 +755,19 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 
 void listEncodings(void) {
 	fprintf(stderr, "Supported encodings within john are:\nutf-8, iso-8859-1 (or ansi)"
+	        ", iso-8859-2"
 	        ", iso-8859-7"
 	        ", iso-8859-15"
-	        ", koi8-r"
-	        ",\ncp437"
+	        ",\nkoi8-r"
+	        ", cp437"
 	        ", cp737"
 	        ", cp850"
+	        ", cp852"
 	        ", cp858"
 	        ", cp866"
+	        ", cp1250"
 	        ", cp1251"
-	        ", cp1252"
+	        ",\ncp1252"
 	        ", cp1253"
 	        "\n");
 }
@@ -780,10 +783,10 @@ int initUnicode(int type) {
 
 	UnicodeType = type;
 
-	options.utf8 = options.iso8859_1 = options.iso8859_7 =
+	options.utf8 = options.iso8859_1 = options.iso8859_2 = options.iso8859_7 =
 	  options.iso8859_15 = options.koi8_r = options.cp437 =
-	  options.cp737 = options.cp850 = options.cp858 = options.cp866 =
-	  options.cp1251 = options.cp1252 = options.cp1253 = 0;
+	  options.cp737 = options.cp850 = options.cp852 = options.cp858 = options.cp866 =
+	  options.cp1251 = options.cp1250 = options.cp1252 = options.cp1253 = 0;
 	// by 'default' we are setup in 7 bit ascii mode (for rules).
 	options.ascii = 1;
 	options.encodingStr = "";
@@ -794,9 +797,13 @@ int initUnicode(int type) {
 			options.utf8 = 1;
 			options.encodingStr = "UTF-8";
 		} else
-			if (!strcasecmp(options.encoding, "ansi")||!strcasecmp(options.encoding, "iso-8859-1")||!strcasecmp(options.encoding, "8859-1")||!strcasecmp(options.encoding, "iso8859-1")) {
+		if (!strcasecmp(options.encoding, "ansi")||!strcasecmp(options.encoding, "iso-8859-1")||!strcasecmp(options.encoding, "8859-1")||!strcasecmp(options.encoding, "iso8859-1")) {
 			options.iso8859_1 = 1;
 			options.encodingStr = "ISO-8859-1";
+		} else
+		if (!strcasecmp(options.encoding, "iso-8859-2")||!strcasecmp(options.encoding, "8859-2")||!strcasecmp(options.encoding, "iso8859-2")) {
+			options.iso8859_2 = 1;
+			options.encodingStr = "ISO-8859-2";
 		} else
 		if (!strcasecmp(options.encoding, "iso-8859-7")||!strcasecmp(options.encoding, "8859-7")||!strcasecmp(options.encoding, "iso8859-7")) {
 			options.iso8859_7 = 1;
@@ -822,6 +829,10 @@ int initUnicode(int type) {
 			options.cp850 = 1;
 			options.encodingStr = "CP850";
 		} else
+		if (!strcasecmp(options.encoding, "cp852")||!strcasecmp(options.encoding, "cp-852")) {
+			options.cp852 = 1;
+			options.encodingStr = "CP852";
+		} else
 		if (!strcasecmp(options.encoding, "cp858")||!strcasecmp(options.encoding, "cp-858")) {
 			options.cp858 = 1;
 			options.encodingStr = "CP858";
@@ -829,6 +840,10 @@ int initUnicode(int type) {
 		if (!strcasecmp(options.encoding, "cp866")||!strcasecmp(options.encoding, "cp-866")) {
 			options.cp866 = 1;
 			options.encodingStr = "CP866";
+		} else
+		if (!strcasecmp(options.encoding, "cp1250")||!strcasecmp(options.encoding, "cp-1250")) {
+			options.cp1250 = 1;
+			options.encodingStr = "CP1250";
 		} else
 		if (!strcasecmp(options.encoding, "cp1251")||!strcasecmp(options.encoding, "cp-1251")) {
 			options.cp1251 = 1;
@@ -908,6 +923,8 @@ int initUnicode(int type) {
 		CP_to_Unicode[i] = i;
 	}
 	for (i = 128; i < 256; ++i) {
+		if (options.iso8859_2)
+			CP_to_Unicode[i] = ISO_8859_2_to_unicode_high128[i-128];
 		if (options.iso8859_7)
 			CP_to_Unicode[i] = ISO_8859_7_to_unicode_high128[i-128];
 		else if (options.iso8859_15)
@@ -920,10 +937,14 @@ int initUnicode(int type) {
 			CP_to_Unicode[i] = CP737_to_unicode_high128[i-128];
 		else if (options.cp850)
 			CP_to_Unicode[i] = CP850_to_unicode_high128[i-128];
+		else if (options.cp852)
+			CP_to_Unicode[i] = CP852_to_unicode_high128[i-128];
 		else if (options.cp858)
 			CP_to_Unicode[i] = CP858_to_unicode_high128[i-128];
 		else if (options.cp866)
 			CP_to_Unicode[i] = CP866_to_unicode_high128[i-128];
+		else if (options.cp1250)
+			CP_to_Unicode[i] = CP1250_to_unicode_high128[i-128];
 		else if (options.cp1251)
 			CP_to_Unicode[i] = CP1251_to_unicode_high128[i-128];
 		else if (options.cp1252)
@@ -936,6 +957,8 @@ int initUnicode(int type) {
 	for (i = 0; i < 0x10000; ++i)
 		CP_from_Unicode[i] = i;  // will truncate to lower 8 bits.
 	for (i = 0; i < 128; ++i) {
+		if (options.iso8859_2)
+			CP_from_Unicode[ISO_8859_2_to_unicode_high128[i]] = i+128;
 		if (options.iso8859_7)
 			CP_from_Unicode[ISO_8859_7_to_unicode_high128[i]] = i+128;
 		else if (options.iso8859_15)
@@ -948,10 +971,14 @@ int initUnicode(int type) {
 			CP_from_Unicode[CP737_to_unicode_high128[i]] = i+128;
 		else if (options.cp850)
 			CP_from_Unicode[CP850_to_unicode_high128[i]] = i+128;
+		else if (options.cp852)
+			CP_from_Unicode[CP852_to_unicode_high128[i]] = i+128;
 		else if (options.cp858)
 			CP_from_Unicode[CP858_to_unicode_high128[i]] = i+128;
 		else if (options.cp866)
 			CP_from_Unicode[CP866_to_unicode_high128[i]] = i+128;
+		else if (options.cp1250)
+			CP_from_Unicode[CP1250_to_unicode_high128[i]] = i+128;
 		else if (options.cp1251)
 			CP_from_Unicode[CP1251_to_unicode_high128[i]] = i+128;
 		else if (options.cp1252)
@@ -977,6 +1004,8 @@ int initUnicode(int type) {
 	// now handle upper 128 byte values for casing.  CHARS_LOW_ONLY_xxxx is not needed.
 	if (options.iso8859_1) {
 		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_1; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_1;
+	} else if (options.iso8859_2) {
+		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_2; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_2;
 	} else if (options.iso8859_7) {
 		cpU = (unsigned char*)CHARS_UPPER_ISO_8859_7; cpL = (unsigned char*)CHARS_LOWER_ISO_8859_7;
 	} else if (options.iso8859_15) {
@@ -989,10 +1018,14 @@ int initUnicode(int type) {
 		cpU = (unsigned char*)CHARS_UPPER_CP737; cpL = (unsigned char*)CHARS_LOWER_CP737;
 	} else if (options.cp850) {
 		cpU = (unsigned char*)CHARS_UPPER_CP850; cpL = (unsigned char*)CHARS_LOWER_CP850;
+	} else if (options.cp852) {
+		cpU = (unsigned char*)CHARS_UPPER_CP852; cpL = (unsigned char*)CHARS_LOWER_CP852;
 	} else if (options.cp858) {
 		cpU = (unsigned char*)CHARS_UPPER_CP858; cpL = (unsigned char*)CHARS_LOWER_CP858;
 	} else if (options.cp866) {
 		cpU = (unsigned char*)CHARS_UPPER_CP866; cpL = (unsigned char*)CHARS_LOWER_CP866;
+	} else if (options.cp1250) {
+		cpU = (unsigned char*)CHARS_UPPER_CP1250; cpL = (unsigned char*)CHARS_LOWER_CP1250;
 	} else if (options.cp1251) {
 		cpU = (unsigned char*)CHARS_UPPER_CP1251; cpL = (unsigned char*)CHARS_LOWER_CP1251;
 	} else if (options.cp1252) {
@@ -1030,6 +1063,8 @@ int initUnicode(int type) {
 
 	if (options.iso8859_1)
 		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_1 CHARS_SPECIALS_ISO_8859_1 CHARS_WHITESPACE_ISO_8859_1 CHARS_CONTROL_ISO_8859_1 CHARS_INVALID_ISO_8859_1;
+	else if (options.iso8859_2 )
+		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_2 CHARS_SPECIALS_ISO_8859_2 CHARS_WHITESPACE_ISO_8859_2 CHARS_CONTROL_ISO_8859_2 CHARS_INVALID_ISO_8859_2;
 	else if (options.iso8859_7 )
 		encTemp = CP_issep CHARS_PUNCTUATION_ISO_8859_7 CHARS_SPECIALS_ISO_8859_7 CHARS_WHITESPACE_ISO_8859_7 CHARS_CONTROL_ISO_8859_7 CHARS_INVALID_ISO_8859_7;
 	else if (options.iso8859_15)
@@ -1042,10 +1077,14 @@ int initUnicode(int type) {
 		encTemp = CP_issep CHARS_PUNCTUATION_CP737 CHARS_SPECIALS_CP737 CHARS_WHITESPACE_CP737 CHARS_CONTROL_CP737 CHARS_INVALID_CP737;
 	else if (options.cp850)
 		encTemp = CP_issep CHARS_PUNCTUATION_CP850 CHARS_SPECIALS_CP850 CHARS_WHITESPACE_CP850 CHARS_CONTROL_CP850 CHARS_INVALID_CP850;
+	else if (options.cp852)
+		encTemp = CP_issep CHARS_PUNCTUATION_CP852 CHARS_SPECIALS_CP852 CHARS_WHITESPACE_CP852 CHARS_CONTROL_CP852 CHARS_INVALID_CP852;
 	else if (options.cp858)
 		encTemp = CP_issep CHARS_PUNCTUATION_CP858 CHARS_SPECIALS_CP858 CHARS_WHITESPACE_CP858 CHARS_CONTROL_CP858 CHARS_INVALID_CP858;
 	else if (options.cp866)
 		encTemp = CP_issep CHARS_PUNCTUATION_CP866 CHARS_SPECIALS_CP866 CHARS_WHITESPACE_CP866 CHARS_CONTROL_CP866 CHARS_INVALID_CP866;
+	else if (options.cp1250)
+		encTemp = CP_issep CHARS_PUNCTUATION_CP1250 CHARS_SPECIALS_CP1250 CHARS_WHITESPACE_CP1250 CHARS_CONTROL_CP1250 CHARS_INVALID_CP1250;
 	else if (options.cp1251)
 		encTemp = CP_issep CHARS_PUNCTUATION_CP1251 CHARS_SPECIALS_CP1251 CHARS_WHITESPACE_CP1251 CHARS_CONTROL_CP1251 CHARS_INVALID_CP1251;
 	else if (options.cp1252)
@@ -1064,6 +1103,8 @@ int initUnicode(int type) {
 
 	if (options.iso8859_1)
 		encTemp = CHARS_ALPHA_ISO_8859_1;
+	else if (options.iso8859_2)
+		encTemp = CHARS_ALPHA_ISO_8859_2;
 	else if (options.iso8859_7)
 		encTemp = CHARS_ALPHA_ISO_8859_7;
 	else if (options.iso8859_15)
@@ -1076,10 +1117,14 @@ int initUnicode(int type) {
 		encTemp = CHARS_ALPHA_CP737;
 	else if (options.cp850)
 		encTemp = CHARS_ALPHA_CP850;
+	else if (options.cp852)
+		encTemp = CHARS_ALPHA_CP852;
 	else if (options.cp858)
 		encTemp = CHARS_ALPHA_CP858;
 	else if (options.cp866)
 		encTemp = CHARS_ALPHA_CP866;
+	else if (options.cp1250)
+		encTemp = CHARS_ALPHA_CP1250;
 	else if (options.cp1251)
 		encTemp = CHARS_ALPHA_CP1251;
 	else if (options.cp1252)
