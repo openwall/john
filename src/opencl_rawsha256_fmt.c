@@ -45,6 +45,9 @@ static int hash_found, source_in_use;
 static struct fmt_tests tests[] = {
     {"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
     {"$SHA256$ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
+#ifdef DEBUG //Special test cases.
+    {"a49c2c9d0c006c8cb55a9a7a38822b83e0cd442614cb416af952fa50156761dc", "openwall"},
+#endif
     {NULL}
 };
 
@@ -57,7 +60,7 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    max_available = get_max_work_group_size(ocl_gpu_id);
+        max_available = get_max_work_group_size(ocl_gpu_id);
 
     if (max_available > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
         return get_current_work_group_size(ocl_gpu_id, crypt_kernel);
@@ -99,7 +102,7 @@ static void create_clobj(int gws) {
 
     pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
             CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-            sizeof(uint32_t) * gws, NULL, &ret_code); //TODO
+            sizeof(uint32_t) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
     calculated_hash = (uint32_t *) clEnqueueMapBuffer(queue[ocl_gpu_id],
@@ -487,7 +490,7 @@ static char * split(char * ciphertext, int index) {
 }
 
 /* ------- To binary functions ------- */
-static void * get_binary(char *ciphertext) { //TODO
+static void * get_binary(char *ciphertext) {
     static unsigned char *out;
     uint32_t * b;
     char *p;
@@ -503,12 +506,7 @@ static void * get_binary(char *ciphertext) { //TODO
         p += 2;
     }
     b = (uint32_t *) out;
-    b[0] = SWAP32(b[3]) - 0xa54ff53a;
-
-    for (i = 0; i < 8; i++)
-        fprintf(stderr, "%08x ", b[i]);
-    fprintf(stderr, "\nEsperado: %08x ", SWAP32(b[3]) - 0xa54ff53a);
-
+    //b[0] = SWAP32(b[3]) - 0xa54ff53a; //TODO
 
     return out;
 }
@@ -553,7 +551,7 @@ static void crypt_all(int count) {
 }
 
 /* ------- Compare functins ------- */
-static int cmp_all(void * binary, int count) { //TODO
+static int cmp_all(void * binary, int count) {
     uint32_t partial_binary;
 
     partial_binary = ((uint32_t *) binary)[0];
@@ -583,15 +581,15 @@ static int cmp_all(void * binary, int count) { //TODO
     return hash_found;
 }
 
-static int cmp_one(void *binary, int index) { //TODO
+static int cmp_one(void *binary, int index) {
     return (calculated_hash[index] == ((uint32_t *) binary)[0]);
 }
 
-static int cmp_exact(char *source, int index) { // TODO
+static int cmp_exact(char *source, int index) {
     //I don't know why, but this is called and i have to recheck.
     //If i skip this final test i get:
-    //form=raw-sha256-opencl         guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
-    //.pot CHK:raw-sha256-opencl     guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+    //form=raw-sha512-ng-opencl         guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+    //.pot CHK:raw-sha512-ng-opencl     guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
 
     uint32_t * binary;
     sha256_hash full_hash;
@@ -601,7 +599,7 @@ static int cmp_exact(char *source, int index) { // TODO
     binary = (uint32_t *) get_full_binary(source);
     return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
 }
-#define DEBUG
+//#define DEBUG //TODO
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {

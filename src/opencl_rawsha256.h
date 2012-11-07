@@ -11,8 +11,8 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#ifndef _RAWSHA256_NG_H
-#define _RAWSHA256_NG_H
+#ifndef _RAWSHA256_H
+#define _RAWSHA256_H
 
 #include "opencl_device_info.h"
 
@@ -51,7 +51,7 @@
 #define SWAP32_V(n)             SWAP(n)
 
 #if gpu_amd(DEVICE_INFO)
-        #define Ch(x,y,z)       bitselect(z, y, x)
+        #define Ch(x, y, z)     bitselect(z, y, x)
         #define Maj(x, y, z)    bitselect(x, y, z ^ x)
         #define ror(x, n)       rotate(x, (uint32_t) 32-n)
         #define SWAP32(n)       (as_uint(as_uchar4(n).s3210))
@@ -59,8 +59,8 @@
         #if gpu_nvidia(DEVICE_INFO)
             #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
         #endif
-        #define Ch(x,y,z)       ((x & y) ^ ( (~x) & z))
-        #define Maj(x,y,z)      ((x & y) ^ (x & z) ^ (y & z))
+        #define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
+        #define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
         #define ror(x, n)       ((x >> n) | (x << (32-n)))
         #define SWAP32(n)       SWAP(n)
 #endif
@@ -95,13 +95,4 @@ typedef struct {
     uint32_t                    buflen;
     buffer_32                   buffer[16];     //512 bits
 } sha256_ctx;
-
-typedef struct {
-    uint32_t                    H[8];           //256 bits
-} sha256_ctx_H;
-
-typedef struct {
-    uint32_t                    buflen;
-    buffer_32                   buffer[16];     //512 bits
-} sha256_ctx_buffer;
 #endif
