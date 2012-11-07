@@ -137,6 +137,8 @@ the following hashes:
 - Raw MD4
 - Raw MD5
 - Raw SHA-1
+- Raw SHA-256
+- Raw SHA-512
 - WPA-PSK
 
 ============================================================
