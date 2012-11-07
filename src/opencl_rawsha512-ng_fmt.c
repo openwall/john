@@ -686,6 +686,9 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
         split,
         get_binary,
         fmt_default_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
         {
             binary_hash_0,
             binary_hash_1,
