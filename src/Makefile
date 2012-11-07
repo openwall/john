@@ -1503,7 +1503,7 @@ cuda_xsha512.o: cuda_xsha512.h cuda/xsha512.cu cuda_common.o
 cuda_xsha512_fmt.o: cuda_xsha512.o cuda_xsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_xsha512_fmt.c -o cuda_xsha512_fmt.o
 
-cuda_wpapsk.o:  cuda/wpapsk.cu cuda_common.o
+cuda_wpapsk.o:  cuda_wpapsk.h cuda/wpapsk.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) wpapsk.cu -o ../cuda_wpapsk.o
 
 cuda_wpapsk_fmt.o: cuda_wpapsk.o cuda_wpapsk_fmt.c
@@ -1515,7 +1515,7 @@ cuda_rawsha512.o: cuda_rawsha512.h cuda/rawsha512.cu cuda_common.o
 cuda_rawsha512_fmt.o: cuda_rawsha512.o cuda_rawsha512_fmt.c
 	$(CC) $(CFLAGS) cuda_rawsha512_fmt.c -o cuda_rawsha512_fmt.o
 
-cuda_pwsafe.o: cuda/pwsafe.cu cuda_common.o
+cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 	cd cuda; nvcc $(NVCC_FLAGS) pwsafe.cu -o ../cuda_pwsafe.o
 
 cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c

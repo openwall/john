@@ -215,6 +215,7 @@ __host__ void cuda_mscash(mscash_password * inbuffer, mscash_hash * outbuffer,
 		cudaMemcpyHostToDevice));
 
 	mscash_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
+	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,
 		cudaMemcpyDeviceToHost));

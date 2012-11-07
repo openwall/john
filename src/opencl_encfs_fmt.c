@@ -245,20 +245,30 @@ static int streamDecode(unsigned char *buf, int size,
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
+	char *temp;
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+
+	if (!global_work_size)
+		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = global_work_size;
 
 	inbuffer =
 	    (encfs_password *) malloc(sizeof(encfs_password) *
-	    MAX_KEYS_PER_CRYPT);
+	    global_work_size);
 	outbuffer =
-	    (encfs_hash *) malloc(sizeof(encfs_hash) * MAX_KEYS_PER_CRYPT);
+	    (encfs_hash *) malloc(sizeof(encfs_hash) * global_work_size);
+
+	insize = sizeof(encfs_password) * global_work_size;
+	outsize = sizeof(encfs_hash) * global_work_size;
 
 	/* Zeroize the lengths in case crypt_all() is called with some keys still
 	 * not set.  This may happen during self-tests. */
 	{
 		int i;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
+		for (i = 0; i < global_work_size; i++)
 			inbuffer[i].length = 0;
 	}
 
@@ -272,15 +282,15 @@ static void init(struct fmt_main *self)
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem in");
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
 	mem_setting =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem setting");
+	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 	mem_out =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem out");
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "encfs", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
@@ -291,6 +301,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
 	atexit(release_all);
 }

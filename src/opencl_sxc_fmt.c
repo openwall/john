@@ -49,6 +49,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
+	int iterations;
 } sxc_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -123,15 +124,15 @@ static void init(struct fmt_main *self)
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem in");
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
 	mem_setting =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, settingsize,
 	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem setting");
+	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 	mem_out =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error alocating mem out");
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "odf", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
@@ -225,6 +226,7 @@ static void set_salt(void *salt)
 	cur_salt = (sxc_cpu_salt*)salt;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
 	currentsalt.length = cur_salt->salt_length;
+	currentsalt.iterations = cur_salt->iterations;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }

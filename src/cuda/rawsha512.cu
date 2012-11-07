@@ -223,6 +223,7 @@ void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash)
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
     kernel_sha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
+	HANDLE_ERROR(cudaGetLastError());
 }
 
 __global__ static void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
@@ -249,6 +250,7 @@ int cuda_sha512_cmp_all(void *binary, int count)
     dim3 dimGrid(BLOCKS);
     dim3 dimBlock(THREADS);
 	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
+	HANDLE_ERROR(cudaGetLastError());
 	HANDLE_ERROR(cudaMemcpy(&result, cuda_result, sizeof(uint8_t), cudaMemcpyDeviceToHost));
 	return result;
 }

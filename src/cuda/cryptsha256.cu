@@ -317,6 +317,7 @@ void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
 	kernel_crypt_r <<< dimGrid, dimBlock >>> (cuda_inbuffer,
 	    cuda_outbuffer);
 	cudaThreadSynchronize();
+	HANDLE_ERROR(cudaGetLastError());
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,
 		cudaMemcpyDeviceToHost));
 

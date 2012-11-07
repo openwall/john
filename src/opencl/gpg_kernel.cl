@@ -28,6 +28,10 @@
  *  http://www.itl.nist.gov/fipspubs/fip180-1.htm
  */
 
+#define  uint8_t		unsigned char
+#define uint16_t		unsigned short
+#define uint32_t		unsigned int
+
 /*
  * 32-bit integer manipulation macros (big endian)
  */
@@ -35,10 +39,10 @@
 #ifndef GET_ULONG_BE
 #define GET_ULONG_BE(n,b,i)                             \
 {                                                       \
-    (n) = ( (unsigned long) (b)[(i)    ] << 24 )        \
-        | ( (unsigned long) (b)[(i) + 1] << 16 )        \
-        | ( (unsigned long) (b)[(i) + 2] <<  8 )        \
-        | ( (unsigned long) (b)[(i) + 3]       );       \
+    (n) = ( (uint32_t) (b)[(i)    ] << 24 )        \
+        | ( (uint32_t) (b)[(i) + 1] << 16 )        \
+        | ( (uint32_t) (b)[(i) + 2] <<  8 )        \
+        | ( (uint32_t) (b)[(i) + 3]       );       \
 }
 #endif
 
@@ -74,12 +78,6 @@ inline void* _memcpy_(void* dest, const uchar *src, int count)
 	return dest;
 }
 
-
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
-
 typedef struct {
         uint8_t length;
         uint8_t v[24];
@@ -102,8 +100,8 @@ typedef struct {
 
 typedef struct
 {
-    unsigned long total[2];     /*!< number of bytes processed  */
-    unsigned long state[5];     /*!< intermediate digest state  */
+    uint32_t total[2];     /*!< number of bytes processed  */
+    uint32_t state[5];     /*!< intermediate digest state  */
     unsigned char buffer[64];   /*!< data block being processed */
 }
 sha1_context;
@@ -122,7 +120,7 @@ inline void sha1_starts( sha1_context *ctx )
 
 inline void sha1_process( sha1_context *ctx, const unsigned char data[64] )
 {
-    unsigned long temp, W[16], A, B, C, D, E;
+    uint32_t temp, W[16], A, B, C, D, E;
 
     GET_ULONG_BE( W[ 0], data,  0 );
     GET_ULONG_BE( W[ 1], data,  4 );
@@ -282,7 +280,7 @@ inline void sha1_process( sha1_context *ctx, const unsigned char data[64] )
 inline void sha1_update( sha1_context *ctx, const unsigned char *input, int ilen )
 {
     int fill;
-    unsigned long left;
+    uint32_t left;
 
     if( ilen <= 0 )
         return;
@@ -290,10 +288,10 @@ inline void sha1_update( sha1_context *ctx, const unsigned char *input, int ilen
     left = ctx->total[0] & 0x3F;
     fill = 64 - left;
 
-    ctx->total[0] += (unsigned long) ilen;
+    ctx->total[0] += (uint32_t) ilen;
     ctx->total[0] &= 0xFFFFFFFF;
 
-    if( ctx->total[0] < (unsigned long) ilen )
+    if( ctx->total[0] < (uint32_t) ilen )
         ctx->total[1]++;
 
     if( left && ilen >= fill )
@@ -325,8 +323,8 @@ inline void sha1_update( sha1_context *ctx, const unsigned char *input, int ilen
  */
 inline void sha1_finish( sha1_context *ctx, unsigned char output[20] )
 {
-    unsigned long last, padn;
-    unsigned long high, low;
+    uint32_t last, padn;
+    uint32_t high, low;
     unsigned char msglen[8];
     const unsigned char sha1_padding[64] = {
     0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

@@ -171,14 +171,17 @@ struct options_main {
 	int ascii;  // if NO other charset is used, we set this to 1.  This tells us to user 7 bit ASCII.
 	int utf8;
 	int iso8859_1;
+	int iso8859_2;
 	int iso8859_7;
 	int iso8859_15;
 	int koi8_r;
 	int cp437;
 	int cp737;
 	int cp850;
+	int cp852;
 	int cp858;
 	int cp866;
+	int cp1250;
 	int cp1251;
 	int cp1252;
 	int cp1253;
