@@ -106,7 +106,7 @@ static void create_clobj(int gws) {
 
     pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
             CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-            sizeof(uint64_t) * gws, NULL, &ret_code);
+            sizeof(uint32_t) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
     calculated_hash = (uint32_t *) clEnqueueMapBuffer(queue[ocl_gpu_id],
