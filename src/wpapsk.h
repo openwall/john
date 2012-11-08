@@ -167,22 +167,18 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 {
-	unsigned int i;
+	HMAC_CTX ctx;
 	char *text = "Pairwise key expansion";
 	unsigned char buff[100];
 
 	memcpy(buff, text, 22);
 	memcpy(buff + 23, data, 76);
 	buff[22] = 0;
-	for (i = 0; i < 4; i++) {
-		HMAC_CTX ctx;
-		buff[76 + 23] = i;
-		HMAC_Init(&ctx, key, 32, EVP_sha1());
-		HMAC_Update(&ctx, buff, 100);
-		HMAC_Final(&ctx, (unsigned char *) ret, NULL);
-		HMAC_CTX_cleanup(&ctx);
-		ret += 5;
-	}
+	buff[76 + 23] = 0;
+	HMAC_Init(&ctx, key, 32, EVP_sha1());
+	HMAC_Update(&ctx, buff, 100);
+	HMAC_Final(&ctx, (unsigned char *) ret, NULL);
+	HMAC_CTX_cleanup(&ctx);
 }
 
 static void set_salt(void *salt)
@@ -246,7 +242,7 @@ static void wpapsk_postprocess(int keys)
 #pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
 #endif
 		for (i = 0; i < keys; i++) {
-			uint32_t prf[20];
+			uint32_t prf[20/4];
 			prf_512(outbuffer[i].v, data, prf);
 			HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size,
 			    mic[i].keymic, NULL);
@@ -256,7 +252,7 @@ static void wpapsk_postprocess(int keys)
 #pragma omp parallel for default(none) private(i) shared(keys, outbuffer, data, hccap, mic)
 #endif
 		for (i = 0; i < keys; i++) {
-			uint32_t prf[20];
+			uint32_t prf[20/4];
 			unsigned char keymic[20];
 			prf_512(outbuffer[i].v, data, prf);
 			HMAC(EVP_sha1(), prf, 16, hccap.eapol,
