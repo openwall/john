@@ -217,9 +217,8 @@ __kernel void GenerateSHA512pwhash(
 	for (i = 0; i < 2; i++)
 		block[i] = SWAP64(salt[i]);
 #pragma unroll
-	for (i = 2; i < 14; i++) {
+	for (i = 2; i < 14; i++)
 		block[i] = SWAP64(unicode_pw[gid * (UNICODE_LENGTH >> 3) + i - 2]);
-	}
 	block[14] = 0;
 	block[15] = (ulong)(pw_len[gid] + 16) << 3;
 	sha512_single_s(block, output);

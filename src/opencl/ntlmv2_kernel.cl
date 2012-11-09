@@ -304,10 +304,12 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 	md5_block(block, output); /* md5_update(salt, saltlen), md5_final() */
 
 #pragma unroll
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
+#pragma unroll
+	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ nthash[gid * 4 + i];
-	}
+
 	md5_init(output);
 #pragma unroll
 	for (i = 4; i < 16; i++)
@@ -327,10 +329,12 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 
 	/* 2nd HMAC */
 #pragma unroll
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
+#pragma unroll
+	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ output[i];
-	}
+
 	md5_init(output);
 #pragma unroll
 	for (i = 4; i < 16; i++)
@@ -351,10 +355,12 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 	}
 
 #pragma unroll
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ hash[i];
+#pragma unroll
+	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
-	}
+
 	md5_init(output);
 #pragma unroll
 	for (i = 4; i < 16; i++)
