@@ -499,14 +499,14 @@ static void * get_binary(char *ciphertext) {
     if (!out) out = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
 
     p = ciphertext + 8;
-    for (i = 0; i < FULL_BINARY_SIZE; i++) {
+    for (i = 0; i < (FULL_BINARY_SIZE / 2); i++) {
         out[i] =
                 (atoi16[ARCH_INDEX(*p)] << 4) |
                  atoi16[ARCH_INDEX(p[1])];
         p += 2;
     }
     b = (uint32_t *) out;
-    //b[0] = SWAP32(b[3]) - 0xa54ff53a; //TODO
+    b[0] = SWAP32(b[3]) - 0xa54ff53a;
 
     return out;
 }
@@ -599,7 +599,7 @@ static int cmp_exact(char *source, int index) {
     binary = (uint32_t *) get_full_binary(source);
     return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
 }
-//#define DEBUG //TODO
+
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {

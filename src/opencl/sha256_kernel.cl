@@ -59,14 +59,15 @@ inline void _memcpy(               uint8_t * dest,
 }
 
 inline void sha256_block(sha256_ctx * ctx) {
-    uint32_t a = ctx->H[0];
-    uint32_t b = ctx->H[1];
-    uint32_t c = ctx->H[2];
-    uint32_t d = ctx->H[3];
-    uint32_t e = ctx->H[4];
-    uint32_t f = ctx->H[5];
-    uint32_t g = ctx->H[6];
-    uint32_t h = ctx->H[7];
+#define  a   ctx->H[0]
+#define  b   ctx->H[1]
+#define  c   ctx->H[2]
+#define  d   ctx->H[3]
+#define  e   ctx->H[4]
+#define  f   ctx->H[5]
+#define  g   ctx->H[6]
+#define  h   ctx->H[7]
+
     uint32_t t1, t2;
     uint32_t w[16];
 
@@ -90,7 +91,7 @@ inline void sha256_block(sha256_ctx * ctx) {
     }
 
     #pragma unroll
-    for (int i = 16; i < 64; i++) {
+    for (int i = 16; i < 61; i++) {
         w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
         t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
         t2 = Maj(a, b, c) + Sigma0(a);
@@ -104,15 +105,6 @@ inline void sha256_block(sha256_ctx * ctx) {
         b = a;
         a = t1 + t2;
     }
-    /* Put checksum in context given as argument. */
-    ctx->H[0] += a;
-    ctx->H[1] += b;
-    ctx->H[2] += c;
-    ctx->H[3] += d;
-    ctx->H[4] += e;
-    ctx->H[5] += f;
-    ctx->H[6] += g;
-    ctx->H[7] += h;
 }
 
 inline void insert_to_buffer(         sha256_ctx    * ctx,
@@ -180,7 +172,7 @@ void kernel_crypt(__global   sha256_password * keys_buffer,
     sha256_crypt(&keys_buffer[gid], &ctx);
 
     //Save parcial results.
-    out_buffer[gid] = SWAP32(ctx.H[0]);
+    out_buffer[gid] = ctx.H[0];
 }
 
 __kernel

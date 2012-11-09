@@ -49,7 +49,7 @@
           | ((n) >> 24))
 
 #define SWAP32_V(n)             SWAP(n)
-
+/*
 #if gpu_amd(DEVICE_INFO)
         #define Ch(x, y, z)     bitselect(z, y, x)
         #define Maj(x, y, z)    bitselect(x, y, z ^ x)
@@ -63,7 +63,13 @@
         #define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
         #define ror(x, n)       ((x >> n) | (x << (32-n)))
         #define SWAP32(n)       SWAP(n)
-#endif
+#endif */
+
+        #define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
+        #define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
+        #define ror(x, n)       ((x >> n) | (x << (32-n)))
+        #define SWAP32(n)       SWAP(n)
+
 #define Sigma0(x)               ((ror(x,2))  ^ (ror(x,13)) ^ (ror(x,22)))
 #define Sigma1(x)               ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
 #define sigma0(x)               ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
