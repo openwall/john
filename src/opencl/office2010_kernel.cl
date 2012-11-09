@@ -391,9 +391,8 @@ __kernel void GenerateSHA1pwhash(
 	for (i = 0; i < 4; i++)
 		block[i] = SWAP32(salt[i]);
 #pragma unroll
-	for (i = 4; i < 16; i++) {
+	for (i = 4; i < 16; i++)
 		block[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i - 4]);
-	}
 	if (pw_len[gid] < 40) {
 		block[14] = 0;
 		block[15] = (pw_len[gid] + 16) << 3;
