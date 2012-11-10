@@ -278,7 +278,7 @@ PIStream &Key::operator<<(PIStream &in)
 	// Read public key
 	in >> m_version;
 	if (m_version != 3 && m_version != 4) {
-		throw Utils::strprintf("Unspported key version %d", m_version);
+		throw Utils::strprintf("Unsupported key version %d", m_version);
 	}
 	in >> m_time;
 	if (m_version == 3) {
@@ -297,7 +297,7 @@ PIStream &Key::operator<<(PIStream &in)
 		in >> m_dsa->g;
 		in >> m_dsa->pub_key;
 	} else {
-		throw Utils::strprintf("Unsupprted public-key algorithm %d", m_algorithm);
+		throw Utils::strprintf("Unsupported public-key algorithm %d", m_algorithm);
 	}
 
 	// Read private key
