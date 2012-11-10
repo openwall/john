@@ -74,9 +74,9 @@ inline void sha512_block(        sha512_ctx_H      * ctx,
 #define  f   ctx->H[5]
 #define  g   ctx->H[6]
 #define  h   ctx->H[7]
-#define  w   ctx_data->buffer->mem_64
 
     uint64_t t1, t2;
+    uint64_t w[16];
 
     #pragma unroll
     for (int i = 0; i < 16; i++)
