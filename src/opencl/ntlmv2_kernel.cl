@@ -258,7 +258,6 @@ __kernel void ntlmv2_nthash(const __global uint *unicode_pw, __global MAYBE_VECT
 	/* Input buffer is prepared with 0x80, zero-padding and length << 3 */
 	md4_init(output);
 
-#pragma unroll
 	for (i = 0; i < 16; i++) {
 #ifdef SCALAR
 		block[i] = *pw++;
@@ -271,7 +270,6 @@ __kernel void ntlmv2_nthash(const __global uint *unicode_pw, __global MAYBE_VECT
 	}
 	md4_block(block, output);
 
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		nthash[gid * 4 + i] = output[i];
 }
@@ -288,39 +286,31 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 	/* 1st HMAC */
 	md5_init(output);
 
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ nthash[gid * 4 + i];
-#pragma unroll
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
 	md5_block(block, output); /* md5_update(ipad, 64) */
 
 	/* Salt buffer is prepared with 0x80, zero-padding and length,
 	 * ie. (saltlen + 64) << 3 in get_salt() */
-#pragma unroll
 	for (i = 0; i < 16; i++)
 		block[i] = *cp++;
 	md5_block(block, output); /* md5_update(salt, saltlen), md5_final() */
 
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ nthash[gid * 4 + i];
 
 	md5_init(output);
-#pragma unroll
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
 	md5_block(block, output); /* md5_update(opad, 64) */
 
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = hash[i];
 	block[4] = 0x80;
-#pragma unroll
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
@@ -328,15 +318,12 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 
 	/* 2nd HMAC */
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ output[i];
 
 	md5_init(output);
-#pragma unroll
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
 	md5_block(block, output); /* md5_update(ipad, 64) */
@@ -348,37 +335,30 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 
 	/* At least this will not diverge */
 	while (challenge_size--) {
-#pragma unroll
 		for (i = 0; i < 16; i++)
 			block[i] = *cp++;
 		md5_block(block, output); /* md5_update(challenge, len), md5_final() */
 	}
 
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = 0x5c5c5c5c ^ hash[i];
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		hash[i] = output[i];
 
 	md5_init(output);
-#pragma unroll
 	for (i = 4; i < 16; i++)
 		block[i] = 0x5c5c5c5c;
 	md5_block(block, output); /* md5_update(opad, 64) */
 
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = hash[i];
 	block[4] = 0x80;
-#pragma unroll
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
 	md5_block(block, output); /* md5_update(hash, 16), md5_final() */
 
-#pragma unroll
 	for (i = 0; i < 4; i++) {
 #ifdef SCALAR
 		result[gid * 4 + i] = output[i];

@@ -22,7 +22,15 @@
 #define uint32_t		ARCH_WORD_32
 
 #define BINARY_SIZE		sizeof(mic_t)
+
+/* The OpenCL format defines JOHN_OCL_WPAPSK before including this
+ * header file, changing some behaviors. */
+#ifdef JOHN_OCL_WPAPSK
+#define PLAINTEXT_LENGTH	32
+#else
 #define PLAINTEXT_LENGTH	15
+#endif
+
 #define SALT_SIZE		sizeof(hccap_t)
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -47,8 +55,8 @@ typedef struct
 } mic_t;
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[15];
+	uint32_t length;
+	uint8_t  v[PLAINTEXT_LENGTH];
 } wpapsk_password;
 
 typedef struct {
@@ -56,8 +64,13 @@ typedef struct {
 } wpapsk_hash;
 
 typedef struct {
-	uint8_t length;
-	uint8_t salt[15];
+	uint32_t length;
+#ifdef JOHN_OCL_WPAPSK
+	uint8_t  eapol[256 + 64];
+	uint32_t eapol_size; // blocks
+	uint8_t  data[64 + 12];
+#endif
+	uint8_t  salt[15]; // essid
 } wpapsk_salt;
 
 
@@ -68,7 +81,9 @@ static hccap_t hccap;			///structure with hccap data
 static wpapsk_salt currentsalt;		///structure for essid
 static mic_t *mic;			///table for MIC keys
 static wpapsk_password *inbuffer;	///table for candidate passwords
+#ifndef JOHN_OCL_WPAPSK
 static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
+#endif
 static const char wpapsk_prefix[] = "$WPAPSK$";
 
 
@@ -165,6 +180,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
+#ifndef JOHN_OCL_WPAPSK
 static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 {
 	HMAC_CTX ctx;
@@ -180,32 +196,8 @@ static MAYBE_INLINE void prf_512(uint32_t * key, uint8_t * data, uint32_t * ret)
 	HMAC_Final(&ctx, (unsigned char *) ret, NULL);
 	HMAC_CTX_cleanup(&ctx);
 }
+#endif
 
-static void set_salt(void *salt)
-{
-	memcpy(&hccap, salt, SALT_SIZE);
-	strcpy((char*)currentsalt.salt, hccap.essid);
-	currentsalt.length = strlen(hccap.essid);
-}
-
-#undef set_key
-static void set_key(char *key, int index)
-{
-	uint8_t length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
-	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, length);
-}
-
-static char *get_key(int index)
-{
-	static char ret[PLAINTEXT_LENGTH + 1];
-	uint8_t length = inbuffer[index].length;
-	memcpy(ret, inbuffer[index].v, length);
-	ret[length] = '\0';
-	return ret;
-}
 static void insert_mac(uint8_t * data)
 {
 	int k = memcmp(hccap.mac1, hccap.mac2, 6);
@@ -230,6 +222,48 @@ static void insert_nonce(uint8_t * data)
 	}
 }
 
+static void set_salt(void *salt)
+{
+	memcpy(&hccap, salt, SALT_SIZE);
+	strcpy((char*)currentsalt.salt, hccap.essid);
+	currentsalt.length = strlen(hccap.essid);
+
+#ifdef JOHN_OCL_WPAPSK
+	currentsalt.eapol_size = 1 + (hccap.eapol_size + 8) / 64;
+	memcpy(currentsalt.eapol, hccap.eapol, hccap.eapol_size);
+	memset(currentsalt.eapol + hccap.eapol_size, 0x80, 1);
+	memset(currentsalt.eapol + hccap.eapol_size + 1, 0, 256 + 64 - hccap.eapol_size - 1);
+	if (hccap.keyver != 1)
+		alter_endianity(currentsalt.eapol, 256+56);
+	((unsigned int*)currentsalt.eapol)[16 * ((hccap.eapol_size + 8) / 64) + ((hccap.keyver == 1) ? 14 : 15)] = (64 + hccap.eapol_size) << 3;
+	insert_mac(currentsalt.data);
+	insert_nonce(currentsalt.data + 12);
+	alter_endianity(currentsalt.data, 64 + 12);
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
+#endif
+}
+
+#undef set_key
+static void set_key(char *key, int index)
+{
+	uint8_t length = strlen(key);
+	if (length > PLAINTEXT_LENGTH)
+		length = PLAINTEXT_LENGTH;
+	inbuffer[index].length = length;
+	memcpy(inbuffer[index].v, key, length);
+}
+
+static char *get_key(int index)
+{
+	static char ret[PLAINTEXT_LENGTH + 1];
+	uint8_t length = inbuffer[index].length;
+	memcpy(ret, inbuffer[index].v, length);
+	ret[length] = '\0';
+	return ret;
+}
+
+#ifndef JOHN_OCL_WPAPSK
 static void wpapsk_postprocess(int keys)
 {
 	int i;
@@ -261,6 +295,7 @@ static void wpapsk_postprocess(int keys)
 		}
 	}
 }
+#endif
 
 static int binary_hash_0(void *binary)
 {
