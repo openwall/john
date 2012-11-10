@@ -45,40 +45,16 @@ inline void init_ctx(sha256_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-void mostra(uint8_t * texto, int size) {
-    printf((__constant char *) "\n");
-
-    for (int i = 0; i < size; i++)
-        printf((__constant char *) "%08x ", texto[i]);
-    printf((__constant char *) "\n");
-}
-
-void mostra_32(uint32_t * texto, int size) {
-    printf((__constant char *) "\n");
-
-    for (int i = 0; i < size; i++)
-        printf((__constant char *) "%08x ", texto[i]);
-    printf((__constant char *) "\n");
-}
-
-void mostra_32_G(__global uint32_t * texto, int size) {
-    printf((__constant char *) "\n");
-
-    for (int i = 0; i < size; i++)
-        printf((__constant char *) "%08x ", texto[i]);
-    //printf((__constant char *) "\n");
-}
-
 inline void _memcpy(               uint8_t * dest,
                     __global const uint8_t * src) {
     int i = 0;
 
-    uint64_t * l = (uint64_t *) dest;
-    __global uint64_t * s = (__global uint64_t *) src;
+    uint32_t * l = (uint32_t *) dest;
+    __global uint32_t * s = (__global uint32_t *) src;
 
     while (i < PLAINTEXT_LENGTH) {
         *l++ = *s++;
-        i += 8;
+        i += 4;
     }
 }
 
@@ -149,11 +125,11 @@ inline void ctx_update(         sha256_ctx * ctx,
 inline void ctx_append_1(sha256_ctx * ctx) {
 
     uint32_t length = PLAINTEXT_LENGTH;
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+    uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
 
     while (length < 64) {
         *l++ = 0;
-        length += 8;
+        length += 4;
     }
 }
 
@@ -174,13 +150,9 @@ inline void sha256_crypt(__global sha256_password * keys_data,
 #define passlen     keys_data->length
 
     init_ctx(ctx);
-//mostra_32(ctx->buffer->mem_32, 16);
-    ctx_update(ctx, pass, passlen);
-//#undef pass
 
+    ctx_update(ctx, pass, passlen);
     finish_ctx(ctx);
-//mostra_32_G(keys_data->pass->mem_32, 8);
-//mostra_32(ctx->buffer->mem_32, 16);
 
     /* Run the collected hash value through sha256. */
     sha256_block(ctx);
