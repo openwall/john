@@ -20,7 +20,7 @@
 
 #define FORMAT_LABEL			"raw-sha256-opencl"
 #define FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
-#define ALGORITHM_NAME			"OpenCL"
+#define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
