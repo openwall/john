@@ -89,6 +89,7 @@ typedef union {
 
 typedef struct {
     uint32_t                    length;
+    uint32_t                    fake;
     buffer_32                   pass[PLAINTEXT_ARRAY];
 } sha256_password;
 
