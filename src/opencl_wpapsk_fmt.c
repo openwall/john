@@ -227,6 +227,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
+		if (!do_benchmark)
+			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
 			break;
 
