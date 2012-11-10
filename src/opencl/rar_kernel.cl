@@ -273,7 +273,6 @@ __kernel void RarInit(
 	/* Copy to 1x buffer */
 	for (i = 0; i < (pwlen + 3) >> 2; i++)
 		RawPsw[i] = SWAP32(unicode_pw[gid * UNICODE_LENGTH / 4 + i]);
-#pragma unroll
 	for (i = 0; i < 8; i++)
 		PUTCHAR_BE_G(RawPsw, pwlen + i, ((__constant uchar*)salt)[i]);
 	round[gid] = 0;
@@ -293,10 +292,8 @@ __kernel void RarGetIV(
 	uint round = round_p[gid];
 	uint i;
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		output[i] = OutputBuf[gid * 5 + i];
-#pragma unroll
 	for (i = 0; i < (UNICODE_LENGTH + 8) / 4; i++)
 		block[i] = RawBuf[gid * (UNICODE_LENGTH + 8) / 4 + i];
 
@@ -341,11 +338,9 @@ __kernel void RarHashLoop(
 	uint round = round_p[gid];
 	uint i;
 
-#pragma unroll
 	for (i = 0; i < (UNICODE_LENGTH + 8) / 4; i++)
 		RawPsw[i] = RawBuf[gid * (UNICODE_LENGTH + 8) / 4 + i];
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		output[i] = OutputBuf[gid * 5 + i];
 
@@ -409,7 +404,6 @@ __kernel void RarHashLoop(
 	}
 	round_p[gid] = round;
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		OutputBuf[gid * 5 + i] = output[i];
 }
@@ -423,14 +417,12 @@ __kernel void RarFinal(
 	uint *block[16], output[5];
 	uint i;
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		output[i] = OutputBuf[gid * 5 + i];
 
 	sha1_final((uint*)block, (uint*)output, (pw_len[gid] + 8 + 3) * ROUNDS);
 
 	// Still no endian-swap
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		aes_key[gid * 4 + i] = output[i];
 }

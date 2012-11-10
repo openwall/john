@@ -14,6 +14,12 @@
 #include "config.h"
 
 #include "common-opencl.h"
+
+static cl_mem mem_in, mem_out, mem_salt, mem_state;
+static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
+static int VF = 1;	/* Will be set to 4 when we run vectorized */
+
+#define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
 
 #define FORMAT_LABEL		"wpapsk-opencl"
@@ -36,24 +42,20 @@
 #define MAX(a, b)		(a > b) ? (a) : (b)
 
 extern wpapsk_password *inbuffer;
-extern wpapsk_hash *outbuffer;
 extern wpapsk_salt currentsalt;
 extern mic_t *mic;
 extern hccap_t hccap;
-
-static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final;
-static int VF = 1;	/* Will be set to 4 when we run vectorized */
 
 typedef struct {
 	cl_uint W[5];
 	cl_uint ipad[5];
 	cl_uint opad[5];
 	cl_uint out[5];
+	cl_uint partial[5];
 } wpapsk_state;
 
 static struct fmt_tests tests[] = {
-/// testcase from http://wiki.wireshark.org/SampleCaptures = wpa-Induction.pcap
+/// testcase from http://wiki.wireshark.org/SampleCaptures = wpa-Induction.pcap. This is SHA-1 post-process.
 	{"$WPAPSK$Coherer#..l/Uf7J..qHUXMunTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosMyXdNxfBZUAYmgKqeb6GBPxLiIZr56NtWTGR/Cp5ldAk61.5I0.Ec.2...........nTE3nfbMWSwxv27Ua0XutIOrfRSuv9gOCIugIVGlosM.................................................................3X.I.E..1uk0.E..1uk2.E..1uk0....................................................................................................................................................................................../t.....U...8FWdk8OpPckhewBwt4MXYI", "Induction"},
 	{NULL}
 };
@@ -67,8 +69,6 @@ static void create_clobj(int gws, struct fmt_main *self)
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
 	/// Allocate memory
-	mic = (mic_t *) malloc(sizeof(mic_t) * gws);
-
 	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
 	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ, 0, sizeof(wpapsk_password) * gws, 0, NULL, NULL, &ret_code);
@@ -80,9 +80,9 @@ static void create_clobj(int gws, struct fmt_main *self)
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(wpapsk_salt), &currentsalt, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
 
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_hash) * gws, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(mic_t) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
-	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_WRITE, 0, sizeof(wpapsk_hash) * gws, 0, NULL, NULL, &ret_code);
+	mic = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_WRITE, 0, sizeof(mic_t) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	/*
@@ -98,20 +98,22 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_loop, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_pass2, 0, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_pass2, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_pass2, 2, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_pass2, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_pass2, 1, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final, 0, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final, 1, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
 {
-	MEM_FREE(mic);
-
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, outbuffer, 0, NULL, NULL), "Error Unmapping mem in");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, mic, 0, NULL, NULL), "Error Unmapping mem in");
 
 	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem_state");
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
@@ -126,7 +128,8 @@ static void release_all(void)
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_init), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_loop), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
-	HANDLE_CLERROR(clReleaseKernel(wpapsk_final), "Release Kernel");
+	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
+	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
 }
 
 static void set_key(char *key, int index);
@@ -164,10 +167,10 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_final_sha1, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(wpapsk_hash) * global_work_size, outbuffer, 0, NULL, &Event[6]), "Copy result back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(mic_t) * global_work_size, mic, 0, NULL, &Event[6]), "Copy result back");
 
 #if 0
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
@@ -215,7 +218,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	int optimal_gws = local_work_size;
-	const int sha1perkey = 2 * ITERATIONS * 2 + 6; // With postprocess it's 10 more or so
+	const int sha1perkey = 2 * ITERATIONS * 2 + 6 + 10;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 5000000000ULL;
 
 	if (do_benchmark) {
@@ -224,6 +227,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
+		if (!do_benchmark)
+			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
 			break;
 
@@ -259,7 +264,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 static void init(struct fmt_main *self)
 {
-	char *temp, build_opts[64];
+	char *temp, build_opts[128];
 	cl_ulong maxsize, maxsize2;
 
 	global_work_size = 0;
@@ -277,7 +282,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DITERATIONS=%u", HASH_LOOPS, ITERATIONS);
+	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH);
 	opencl_init_opt("$JOHN/wpapsk_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	crypt_kernel = wpapsk_init = clCreateKernel(program[ocl_gpu_id], "wpapsk_init", &ret_code);
@@ -286,7 +291,9 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	wpapsk_pass2 = clCreateKernel(program[ocl_gpu_id], "wpapsk_pass2", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
-	wpapsk_final = clCreateKernel(program[ocl_gpu_id], "wpapsk_final", &ret_code);
+	wpapsk_final_md5 = clCreateKernel(program[ocl_gpu_id], "wpapsk_final_md5", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel");
+	wpapsk_final_sha1 = clCreateKernel(program[ocl_gpu_id], "wpapsk_final_sha1", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
@@ -295,7 +302,9 @@ static void init(struct fmt_main *self)
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_pass2, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final_md5, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+	if (maxsize2 < maxsize) maxsize = maxsize2;
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(wpapsk_final_sha1, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
 	if (maxsize2 < maxsize) maxsize = maxsize2;
 
 	//fprintf(stderr, "Max LWS %lu\n", maxsize);
@@ -331,7 +340,6 @@ static void crypt_all(int count)
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * global_work_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
@@ -342,15 +350,16 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Run final kernel");
+	if (hccap.keyver == 1)
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Run final kernel (MD5)");
+	else
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Run final kernel (SHA1)");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running final kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(wpapsk_hash) * global_work_size, outbuffer, 0, NULL, NULL), "Copy result back");
-
-	///Make last computations on CPU
-	wpapsk_postprocess(global_work_size);
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * global_work_size, mic, 0, NULL, NULL), "Copy result back");
 }
 
 

@@ -387,10 +387,8 @@ __kernel void GenerateSHA1pwhash(
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
 	sha1_init_s(output);
-#pragma unroll
 	for (i = 0; i < 4; i++)
 		block[i] = SWAP32(salt[i]);
-#pragma unroll
 	for (i = 4; i < 16; i++)
 		block[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i - 4]);
 	if (pw_len[gid] < 40) {
@@ -400,7 +398,6 @@ __kernel void GenerateSHA1pwhash(
 	sha1_block_s(block, output);
 
 	if (pw_len[gid] >= 40) {
-#pragma unroll
 		for (i = 0; i < 14; i++)
 			block[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i + 12]);
 		block[14] = 0;
@@ -408,7 +405,6 @@ __kernel void GenerateSHA1pwhash(
 		sha1_block_s(block, output);
 	}
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 #ifdef SCALAR
 		pwhash[gid * 6 + i] = output[i];
@@ -431,7 +427,6 @@ __kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	uint base = pwhash[gid * 6 + 5].s0;
 #endif
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		output[i] = pwhash[gid * 6 + i];
 
@@ -440,18 +435,15 @@ __kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	for (j = 0; j < HASH_LOOPS; j++)
 	{
 		block[0] = SWAP32(base + j);
-#pragma unroll
 		for (i = 1; i < 6; i++)
 			block[i] = output[i - 1];
 		sha1_init(output);
 		block[6] = 0x80000000;
-#pragma unroll
 		for (i = 7; i < 15; i++)
 			block[i] = 0;
 		block[15] = 24 << 3;
 		sha1_block(block, output);
 	}
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		pwhash[gid * 6 + i] = output[i];
 	pwhash[gid * 6 + 5] += HASH_LOOPS;
@@ -473,7 +465,6 @@ __kernel void Generate2010key(
 #endif
 	uint iterations = *spincount % HASH_LOOPS;
 
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		output[i] = pwhash[gid * 6 + i];
 	/* Remainder of sha1(serial.last hash)
@@ -481,12 +472,10 @@ __kernel void Generate2010key(
 	for (j = 0; j < iterations; j++)
 	{
 		block[0] = SWAP32(base + j);
-#pragma unroll
 		for (i = 1; i < 6; i++)
 			block[i] = output[i - 1];
 		sha1_init(output);
 		block[6] = 0x80000000;
-#pragma unroll
 		for (i = 7; i < 15; i++)
 			block[i] = 0;
 		block[15] = 24 << 3;
@@ -494,7 +483,6 @@ __kernel void Generate2010key(
 	}
 
 	/* Our sha1 destroys input so we store it in temp[] */
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		block[i] = temp[i] = output[i];
 
@@ -503,14 +491,12 @@ __kernel void Generate2010key(
 	block[5] = InputBlockKey[0];
 	block[6] = InputBlockKey[1];
 	block[7] = 0x80000000;
-#pragma unroll
 	for (i = 8; i < 15; i++)
 		block[i] = 0;
 	block[15] = 28 << 3;
 	sha1_block(block, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
-#pragma unroll
 	for (i = 0; i < 4; i++) {
 #ifdef SCALAR
 		key[gid * 32/4 + i] = SWAP32(output[i]);
@@ -523,20 +509,17 @@ __kernel void Generate2010key(
 	}
 	/* Final hash 2 */
 	sha1_init(output);
-#pragma unroll
 	for (i = 0; i < 5; i++)
 		block[i] = temp[i];
 	block[5] = ValueBlockKey[0];
 	block[6] = ValueBlockKey[1];
 	block[7] = 0x80000000;
-#pragma unroll
 	for (i = 8; i < 15; i++)
 		block[i] = 0;
 	block[15] = 28 << 3;
 	sha1_block(block, output);
 
 	/* Endian-swap to output (we only use 16 bytes) */
-#pragma unroll
 	for (i = 0; i < 4; i++) {
 #ifdef SCALAR
 		key[gid * 32/4 + 16/4 + i] = SWAP32(output[i]);
