@@ -655,7 +655,13 @@ struct fmt_main fmt_opencl_rawsha256 = {
         BENCHMARK_LENGTH,
         PLAINTEXT_LENGTH - 1,
         BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+        4,
+#endif
         SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+        1,
+#endif
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT,
