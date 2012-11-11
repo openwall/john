@@ -14,14 +14,6 @@
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
 
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-#endif
-
 __constant uint64_t k[] = {
     0x428a2f98d728ae22UL, 0x7137449123ef65cdUL, 0xb5c0fbcfec4d3b2fUL, 0xe9b5dba58189dbbcUL,
     0x3956c25bf348b538UL, 0x59f111f1b605d019UL, 0x923f82a4af194f9bUL, 0xab1c5ed5da6d8118UL,
@@ -58,8 +50,7 @@ inline void init_ctx(sha512_ctx * ctx) {
 }
 
 inline void _memcpy(               uint8_t * dest,
-                    __global const uint8_t * src,
-                    const uint32_t srclen) {
+                    __global const uint8_t * src) {
     int i = 0;
 
     uint64_t * l = (uint64_t *) dest;
@@ -124,7 +115,7 @@ inline void insert_to_buffer(         sha512_ctx    * ctx,
                              __global const uint8_t * string,
                                       const uint32_t  len) {
 
-    _memcpy(ctx->buffer->mem_08, string, len);
+    _memcpy(ctx->buffer->mem_08, string);
     ctx->buflen += len;
 }
 

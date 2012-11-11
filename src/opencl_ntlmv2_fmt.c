@@ -123,13 +123,15 @@ static void release_clobj(void)
 	output = NULL; saved_key = NULL; challenge = NULL;
 }
 
+static void clear_keys(void)
+{
+	memset(saved_key, 0, 64 * global_work_size);
+}
+
 static void set_key(char *key, int index)
 {
 	int len;
 	unsigned int *utfkey = &saved_key[index * 16];
-
-	/* Clean slate */
-	memset(utfkey, 0, 64);
 
 	/* convert key to UTF-16LE */
 	len = enc_to_utf16((UTF16*)utfkey, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
@@ -138,7 +140,6 @@ static void set_key(char *key, int index)
 
 	/* Prepare for GPU */
 	((UTF16*)utfkey)[len] = 0x80;
-
 	utfkey[14] = len << 4;
 
 	new_keys = 1;
@@ -729,7 +730,7 @@ struct fmt_main fmt_opencl_NTLMv2 = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

@@ -2,7 +2,7 @@
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  * Based on source code provided by Samuele Giovanni Tonon
  *
- * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-256
  *
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
@@ -15,21 +15,21 @@
 #include <string.h>
 #include "common-opencl.h"
 #include "config.h"
-#include "opencl_rawsha512-ng.h"
+#include "opencl_rawsha256.h"
 #include "sha2.h"
 
-#define FORMAT_LABEL			"raw-sha512-ng-opencl"
-#define FORMAT_NAME			"Raw SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
+#define FORMAT_LABEL			"raw-sha256-opencl"
+#define FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define LWS_CONFIG			"rawsha512_LWS"
-#define GWS_CONFIG			"rawsha512_GWS"
-#define DUR_CONFIG			"rawsha512_MaxDuration"
+#define LWS_CONFIG			"rawsha256_LWS"
+#define GWS_CONFIG			"rawsha256_GWS"
+#define DUR_CONFIG			"rawsha256_MaxDuration"
 
-static sha512_password     * plaintext;             // plaintext ciphertexts
+static sha256_password     * plaintext;             // plaintext ciphertexts
 static uint32_t            * calculated_hash;       // calculated (partial) hashes
 
 cl_mem pass_buffer;        //Plaintext buffer.
@@ -43,10 +43,10 @@ cl_kernel crypt_kernel, cmp_kernel;
 static int hash_found, source_in_use;
 
 static struct fmt_tests tests[] = {
-    {"b109f3bbbc244eb82441917ed06d618b9008dd09b3befd1b5e07394c706a8bb980b1d7785e5976ec049b46df5f1326af5a2ea6d103fd07c95385ffab0cacbc86", "password"},
-    {"$SHA512$fa585d89c851dd338a70dcf535aa2a92fee7836dd6aff1226583e88e0996293f16bc009c652826e0fc5c706695a03cddce372f139eff4d13959da6f1f5d3eabe", "12345678"},
+    {"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
+    {"$SHA256$ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
 #ifdef DEBUG //Special test cases.
-    {"2c80f4c2b3db6b677d328775be4d38c8d8cd9a4464c3b6273644fb148f855e3db51bc33b54f3f6fa1f5f52060509f0e4d350bb0c7f51947728303999c6eff446", "john-user"},
+    {"a49c2c9d0c006c8cb55a9a7a38822b83e0cd442614cb416af952fa50156761dc", "openwall"},
 #endif
     {NULL}
 };
@@ -60,10 +60,6 @@ static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (amd_gcn(source_in_use))
-        max_available = get_local_memory_size(ocl_gpu_id) /
-                (sizeof(sha512_ctx_buffer));
-    else
         max_available = get_max_work_group_size(ocl_gpu_id);
 
     if (max_available > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
@@ -84,24 +80,24 @@ static size_t get_task_max_size(){
                 get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 }
 
-static void crypt_one(int index, sha512_hash * hash) {
-    SHA512_CTX ctx;
+static void crypt_one(int index, sha256_hash * hash) {
+    SHA256_CTX ctx;
 
-    SHA512_Init(&ctx);
-    SHA512_Update(&ctx, plaintext[index].pass, plaintext[index].length);
-    SHA512_Final((unsigned char *) (hash), &ctx);
+    SHA256_Init(&ctx);
+    SHA256_Update(&ctx, plaintext[index].pass, plaintext[index].length);
+    SHA256_Final((unsigned char *) (hash), &ctx);
 }
 
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(int gws) {
     pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id],
             CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
-            sizeof(sha512_password) * gws, NULL, &ret_code);
+            sizeof(sha256_password) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 
-    plaintext = (sha512_password *) clEnqueueMapBuffer(queue[ocl_gpu_id],
+    plaintext = (sha256_password *) clEnqueueMapBuffer(queue[ocl_gpu_id],
             pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0,
-            sizeof(sha512_password) * gws, 0, NULL, NULL, &ret_code);
+            sizeof(sha256_password) * gws, 0, NULL, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 
     pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
@@ -116,7 +112,7 @@ static void create_clobj(int gws) {
 
     // create arguments (buffers)
     pass_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
-            sizeof(sha512_password) * gws, NULL, &ret_code);
+            sizeof(sha256_password) * gws, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys");
 
     hash_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
@@ -144,14 +140,7 @@ static void create_clobj(int gws) {
     HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
             (void *) &result_buffer), "Error setting argument 2");
 
-    if (amd_gcn(device_info[ocl_gpu_id]) && !
-        no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
-           sizeof(sha512_ctx_buffer) * local_work_size,
-           NULL), "Error setting argument 2");
-    }
-    memset(plaintext, '\0', sizeof(sha512_password) * gws);
+    memset(plaintext, '\0', sizeof(sha256_password) * gws);
     global_work_size = gws;
 }
 
@@ -256,7 +245,7 @@ static cl_ulong gws_test(size_t num) {
     //Prepare buffers.
     create_clobj(num);
 
-    tmpbuffer = mem_alloc(sizeof(sha512_hash) * num);
+    tmpbuffer = mem_alloc(sizeof(sha256_hash) * num);
 
     if (tmpbuffer == NULL) {
         fprintf(stderr, "Malloc failure in find_best_gws\n");
@@ -273,7 +262,7 @@ static cl_ulong gws_test(size_t num) {
     }
     //** Get execution time **//
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
-            sizeof(sha512_password) * num, plaintext, 0, NULL, &myEvent),
+            sizeof(sha256_password) * num, plaintext, 0, NULL, &myEvent),
             "Failed in clEnqueueWriteBuffer");
 
     HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
@@ -361,7 +350,7 @@ static void find_best_gws(void) {
     for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT;
          num = get_step(num, step, 0)) {
         //Check if hardware can handle the size we are going to try now.
-        if (sizeof(sha512_password) * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
+        if (sizeof(sha256_password) * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
             break;
 
 	if (! (run_time = gws_test(num)))
@@ -408,7 +397,7 @@ static void find_best_gws(void) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main *self) {
     char * tmp_value;
-    char * task = "$JOHN/sha512-ng_kernel.cl";
+    char * task = "$JOHN/sha256_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];
@@ -416,8 +405,6 @@ static void init(struct fmt_main *self) {
     if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if (amd_gcn(source_in_use))
-        task = "$JOHN/sha512-ng_kernel_LOCAL.cl";
     opencl_build_kernel(task, ocl_gpu_id);
 
     // create kernel(s) to execute
@@ -476,12 +463,12 @@ static void init(struct fmt_main *self) {
     self->params.max_keys_per_crypt = global_work_size;
 }
 
-/* ------- Check if the ciphertext if a valid SHA-512 ------- */
+/* ------- Check if the ciphertext if a valid SHA-256 ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
     char *p, *q;
 
     p = ciphertext;
-    if (!strncmp(p, "$SHA512$", 8))
+    if (!strncmp(p, "$SHA256$", 8))
         p += 8;
 
     q = p;
@@ -490,17 +477,13 @@ static int valid(char * ciphertext, struct fmt_main * self) {
     return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-#if FMT_MAIN_VERSION > 9
-static char * split(char * ciphertext, int index, struct fmt_main *self) {
-#else
 static char * split(char * ciphertext, int index) {
-#endif
     static char out[8 + CIPHERTEXT_LENGTH + 1];
 
-    if (!strncmp(ciphertext, "$SHA512$", 8))
+    if (!strncmp(ciphertext, "$SHA256$", 8))
         return ciphertext;
 
-    memcpy(out, "$SHA512$", 8);
+    memcpy(out, "$SHA256$", 8);
     memcpy(out + 8, ciphertext, CIPHERTEXT_LENGTH + 1);
     strlwr(out + 8);
     return out;
@@ -509,21 +492,21 @@ static char * split(char * ciphertext, int index) {
 /* ------- To binary functions ------- */
 static void * get_binary(char *ciphertext) {
     static unsigned char *out;
-    uint64_t * b;
+    uint32_t * b;
     char *p;
     int i;
 
     if (!out) out = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
 
     p = ciphertext + 8;
-    for (i = 0; i < FULL_BINARY_SIZE; i++) {
+    for (i = 0; i < (FULL_BINARY_SIZE / 2); i++) {
         out[i] =
                 (atoi16[ARCH_INDEX(*p)] << 4) |
                  atoi16[ARCH_INDEX(p[1])];
         p += 2;
     }
-    b = (uint64_t *) out;
-    b[0] = SWAP64((unsigned long long) b[3]) - 0xa54ff53a5f1d36f1ULL;
+    b = (uint32_t *) out;
+    b[0] = SWAP32(b[3]) - 0xa54ff53a;
 
     return out;
 }
@@ -550,7 +533,7 @@ static void * get_full_binary(char *ciphertext) {
 static void crypt_all(int count) {
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
+                sizeof(sha256_password) * global_work_size, plaintext, 0, NULL, NULL),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
@@ -571,7 +554,7 @@ static void crypt_all(int count) {
 static int cmp_all(void * binary, int count) {
     uint32_t partial_binary;
 
-    partial_binary = (int) ((uint64_t *) binary)[0];
+    partial_binary = ((uint32_t *) binary)[0];
     hash_found = 0;
 
     //Send data to device.
@@ -599,7 +582,7 @@ static int cmp_all(void * binary, int count) {
 }
 
 static int cmp_one(void *binary, int index) {
-    return (calculated_hash[index] == (int) ((uint64_t *) binary)[0]);
+    return (calculated_hash[index] == ((uint32_t *) binary)[0]);
 }
 
 static int cmp_exact(char *source, int index) {
@@ -608,34 +591,29 @@ static int cmp_exact(char *source, int index) {
     //form=raw-sha512-ng-opencl         guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
     //.pot CHK:raw-sha512-ng-opencl     guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
 
-    uint64_t * binary;
-    sha512_hash full_hash;
+    uint32_t * binary;
+    sha256_hash full_hash;
 
     crypt_one(index, &full_hash);
 
-    binary = (uint64_t *) get_full_binary(source);
+    binary = (uint32_t *) get_full_binary(source);
     return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
 }
 
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {
-    uint64_t *bin = binary;
+    uint32_t *bin = binary;
     int i;
 
     for (i = 0; i < 8; i++)
-        fprintf(stderr, "%016lx ", bin[i]);
+        fprintf(stderr, "%08x ", bin[i]);
     puts("(Ok)");
 }
 
 static void print_hash(int index) {
-    int i;
-    sha512_hash hash;
-    crypt_one(index, &hash);
-
     fprintf(stderr, "\n");
-    for (i = 0; i < 8; i++)
-        fprintf(stderr, "%016lx ", hash.v[i]);
+    fprintf(stderr, "%08x ", calculated_hash[index]);
     puts("");
 }
 #endif
@@ -668,7 +646,7 @@ static int get_hash_5(int index) { return calculated_hash[index] & 0xFFFFFF; }
 static int get_hash_6(int index) { return calculated_hash[index] & 0x7FFFFFF; }
 
 /* ------- Format structure ------- */
-struct fmt_main fmt_opencl_rawsha512_ng = {
+struct fmt_main fmt_opencl_rawsha256 = {
     {
         FORMAT_LABEL,
         FORMAT_NAME,
@@ -677,13 +655,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
         BENCHMARK_LENGTH,
         PLAINTEXT_LENGTH - 1,
         BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
-#endif
         SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
-#endif
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT,
