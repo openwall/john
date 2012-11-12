@@ -678,7 +678,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
         get_binary,
         fmt_default_salt,
 #if FMT_MAIN_VERSION > 9
-		fmt_default_source,
+        fmt_default_source,
 #endif
         {
             binary_hash_0,
