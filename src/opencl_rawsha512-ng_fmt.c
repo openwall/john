@@ -680,7 +680,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
 #if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
 #endif
-        SALT_SIZE,
+		SALT_SIZE,
 #if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
 #endif
