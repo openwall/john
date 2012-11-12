@@ -167,15 +167,12 @@ static void release_clobj(void) {
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
 }
 
-static void clear_keys(void) {
-    memset(plaintext, '\0', sizeof(sha256_password) * global_work_size);
-}
-
 /* ------- Key functions ------- */
 static void set_key(char * key, int index) {
     int len;
 
     //Assure buffer has no "trash data".
+    memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
     len = strlen(key);
 
     //Put the tranfered key on password buffer.
@@ -693,7 +690,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
         fmt_default_set_salt,
         set_key,
         get_key,
-        clear_keys,
+        fmt_default_clear_keys,
         crypt_all,
         {
             get_hash_0,
