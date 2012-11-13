@@ -50,6 +50,9 @@
 #define MIN(a, b)		(a > b) ? (b) : (a)
 #define MAX(a, b)		(a > b) ? (a) : (b)
 
+/* If defined, map GPU buffer instead of enqueing transfers */
+#define MAP_BUFFER
+
 /* these will be altered in init() depending on GPU */
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -88,21 +91,33 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL , &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+#ifdef MAP_BUFFER
 	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ, 0, 64 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, 64 * gws);
+#else
+	saved_key = mem_alloc(64 * gws);
+#endif
 
 	cl_result = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+#ifdef MAP_BUFFER
 	output = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory output");
 	memset(output, 0, 16 * gws);
+#else
+	output = mem_alloc(16 * gws);
+#endif
 
 	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_SIZE_MAX, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+#ifdef MAP_BUFFER
 	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory challenge");
 	memset(challenge, 0, SALT_SIZE_MAX);
+#else
+	challenge = mem_alloc(SALT_SIZE_MAX);
+#endif
 
 	cl_nthash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory nthash");
@@ -117,10 +132,19 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
+#ifdef MAP_BUFFER
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_challenge, challenge, 0, NULL, NULL), "Error Unmapping challenge");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_result, output, 0, NULL, NULL), "Error Unmapping output");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	output = NULL; saved_key = NULL; challenge = NULL;
+#else
+	MEM_FREE(saved_key);
+	MEM_FREE(output);
+	MEM_FREE(challenge);
+#endif
+	HANDLE_CLERROR(clReleaseMemObject(cl_challenge), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
 }
 
 static void clear_keys(void)
@@ -207,7 +231,9 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	memcpy(challenge, salt, SALT_SIZE_MAX);
+#ifndef MAP_BUFFER
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
+#endif
 }
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
@@ -225,8 +251,9 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		set_key(tests[0].plaintext, i);
 	set_salt(get_salt(tests[0].ciphertext));
 
+#ifndef MAP_BUFFER
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, 64 * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
-
+#endif
 	ret_code = clEnqueueNDRangeKernel(queue_prof, ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
@@ -235,6 +262,9 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
+#ifdef MAP_BUFFER
+	clear_keys(); // misplaced on purpose so we get the timing
+#endif
 	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
@@ -243,8 +273,11 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_FALSE, 0, 16 * scalar_gws, output, 0, NULL, &Event[3]), "failed in reading output back");
+
+#ifdef MAP_BUFFER
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
+#else
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, &Event[3]), "failed in reading output back");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
@@ -254,8 +287,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	                                       NULL), "Failed to get profiling info");
 	if (do_benchmark)
 		fprintf(stderr, "key transfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
+#endif
 
-#if 1
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
 	                                       NULL), "Failed to get profiling info");
@@ -271,7 +304,6 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 			fprintf(stderr, "exceeds 200 ms\n");
 		return 0;
 	}
-#endif
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
@@ -288,6 +320,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		return 0;
 	}
+#ifndef MAP_BUFFER
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
 	                                       NULL), "Failed to get profiling info");
@@ -295,17 +328,26 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	                                       NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "results transfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
-
+		fprintf(stderr, "results transfer %.2f ms", (double)(endTime-startTime)/1000000.);
+#endif
 	if (do_benchmark)
 		fprintf(stderr, "\n");
 
+#ifdef MAP_BUFFER
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
+	                                       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+	                                       NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
+	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+	                                       NULL), "Failed to get profiling info");
+#else
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
 	                                       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 	                                       NULL), "Failed to get profiling info");
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	                                       NULL), "Failed to get profiling info");
+#endif
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
 
@@ -594,15 +636,23 @@ static void *get_binary(char *ciphertext)
 */
 static void crypt_all(int count)
 {
+#ifndef MAP_BUFFER
 	size_t scalar_gws = global_work_size * VF;
+#endif
 
 	if (new_keys) {
+#ifndef MAP_BUFFER
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, 64 * scalar_gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
+#endif
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
 		new_keys = 0;
 	}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Failed running second kernel");
+#ifndef MAP_BUFFER
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
+#else
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
+#endif
 }
 
 static int cmp_all(void *binary, int count)
