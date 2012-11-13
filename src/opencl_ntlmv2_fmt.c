@@ -262,9 +262,6 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-#ifdef MAP_BUFFER
-	clear_keys(); // misplaced on purpose so we get the timing
-#endif
 	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
