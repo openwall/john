@@ -321,8 +321,9 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
-	/* The real formula would be "amount of FREE memory / 96" or so. */
-	max_gws = get_global_memory_size(ocl_gpu_id) / 1024;
+	/* Do not allocate more than 1/4 of total GPU memory */
+	max_gws = MIN(get_global_memory_size(ocl_gpu_id) / 4 / 96,
+	              get_max_mem_alloc_size(ocl_gpu_id) / 64);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
