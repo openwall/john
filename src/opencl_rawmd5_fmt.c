@@ -47,20 +47,19 @@ static struct fmt_tests tests[] = {
 };
 
 static void create_clobj(int kpc){
-	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
 		(PLAINTEXT_LENGTH + 1) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
-
 	saved_plain = (char *) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys,
-		CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0,
+		CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0,
 		(PLAINTEXT_LENGTH + 1) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
+
 	res_hashes = malloc(sizeof(cl_uint) * 3 * kpc);
 
 	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
-		CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
+		CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
-
 	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[ocl_gpu_id],
 		pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, 4 * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");
@@ -90,22 +89,14 @@ static void create_clobj(int kpc){
 }
 
 static void release_clobj(void){
-	cl_int ret_code;
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Ummapping partial_hashes");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Ummapping saved_plain");
 
-	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL);
-	HANDLE_CLERROR(ret_code, "Error Ummapping partial_hashes");
-	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
-	ret_code = clReleaseMemObject(buffer_keys);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
-	ret_code = clReleaseMemObject(buffer_out);
-	HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-	ret_code = clReleaseMemObject(data_info);
-	HANDLE_CLERROR(ret_code, "Error Releasing data_info");
-	ret_code = clReleaseMemObject(pinned_saved_keys);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
-	ret_code = clReleaseMemObject(pinned_partial_hashes);
-	HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
+	HANDLE_CLERROR(clReleaseMemObject(data_info), "Error Releasing data_info");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
 	MEM_FREE(res_hashes);
 }
 

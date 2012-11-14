@@ -398,6 +398,15 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+
+	HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
+	HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
+	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
+	HANDLE_CLERROR(clReleaseMemObject(cl_RawBuf), "Release RawBuf");
+	HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
+
 	aes_key = NULL; aes_iv = NULL; saved_key = NULL; saved_len = NULL; saved_salt = NULL;
 	MEM_FREE(cracked);
 }
@@ -563,6 +572,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
 		return 0;
 	}
 
@@ -579,17 +590,19 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 {
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	unsigned int SHAspeed, bestSHAspeed = 0;
+	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = (strlen(self->params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
 	unsigned long long int MaxRunTime = 5000000000ULL;
+
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH + 8);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; num; num *= 2) {
+	for (num = local_work_size; max_gws; num *= 2) {
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))

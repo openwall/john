@@ -80,20 +80,15 @@ static int VF = 1;
 static cl_mem cl_saved_key, cl_challenge, cl_nthash, cl_result;
 static cl_kernel ntlmv2_nthash;
 
-/* This is much faster but needs OpenCL 1.2 */
-#ifndef CL_MAP_WRITE_INVALIDATE_REGION
-#define CL_MAP_WRITE_INVALIDATE_REGION	CL_MAP_WRITE
-#endif
-
 static void create_clobj(int gws, struct fmt_main *self)
 {
 	global_work_size = gws;
 	gws *= VF;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL , &ret_code);
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, 64 * gws, 0, NULL, NULL, &ret_code);
+	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 64 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, 64 * gws);
 
@@ -105,7 +100,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_SIZE_MAX, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
+	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory challenge");
 	memset(challenge, 0, SALT_SIZE_MAX);
 
@@ -125,10 +120,13 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_challenge, challenge, 0, NULL, NULL), "Error Unmapping challenge");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_result, output, 0, NULL, NULL), "Error Unmapping output");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+
 	HANDLE_CLERROR(clReleaseMemObject(cl_challenge), "Release state buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release state buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release state buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
+
+	challenge = NULL; output = saved_key = NULL;
 }
 
 static void clear_keys(void)
@@ -275,6 +273,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
 		return 0;
 	}
 
@@ -291,6 +291,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
 		return 0;
 	}
 
@@ -307,7 +309,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		fprintf(stderr, "\n");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
-	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+	                                       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 	                                       NULL), "Failed to get profiling info");
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
@@ -327,9 +329,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
-	/* Do not allocate more than 1/4 of total GPU memory */
-	max_gws = MIN(get_global_memory_size(ocl_gpu_id) / 4 / 96,
-	              get_max_mem_alloc_size(ocl_gpu_id) / 64);
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / 64;
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
