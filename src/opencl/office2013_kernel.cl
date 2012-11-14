@@ -197,8 +197,8 @@ inline void sha512_single(MAYBE_VECTOR_ULONG *w, MAYBE_VECTOR_ULONG *output) {
 }
 
 __kernel void GenerateSHA512pwhash(
-	__global ulong *unicode_pw,
-	__global uint *pw_len,
+	__global const ulong *unicode_pw,
+	__global const uint *pw_len,
 	__constant ulong *salt,
 	__global ulong *pwhash)
 {

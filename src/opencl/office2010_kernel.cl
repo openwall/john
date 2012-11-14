@@ -374,8 +374,8 @@ inline void sha1_init(MAYBE_VECTOR_UINT *output) {
 }
 
 __kernel void GenerateSHA1pwhash(
-	__global uint *unicode_pw,
-	__global uint *pw_len,
+	__global const uint *unicode_pw,
+	__global const uint *pw_len,
 	__constant uint *salt,
 	__global uint *pwhash)
 {
