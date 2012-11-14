@@ -901,6 +901,10 @@ void listOpenCLdevices(void)
 			printf("\tLocal Memory:\t\t%s (%s)\n",
 			    human_format((unsigned long long) long_entries),
 			    memtype == CL_LOCAL ? "Local" : "Global");
+			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+			    sizeof(long_entries), &long_entries, NULL);
+			printf("\tMax memory alloc. size:\t%s\n",
+			       human_format(long_entries));
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),
 			    &long_entries, NULL);
