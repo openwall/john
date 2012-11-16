@@ -12,7 +12,7 @@
 
 #include "opencl_device_info.h"
 
-#if gpu(DEVICE_INFO)
+#if !defined(VECTORIZE) && !defined(SCALAR)
 #define SCALAR
 #endif
 

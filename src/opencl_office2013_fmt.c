@@ -327,7 +327,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	int sha512perkey;
 	unsigned long long int MaxRunTime = 5000000000ULL;
 
-	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / UNICODE_LENGTH;
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * VF);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -379,7 +379,12 @@ static void init(struct fmt_main *self)
 
 	global_work_size = 0;
 
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u", HASH_LOOPS, UNICODE_LENGTH);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u %s",
+	         HASH_LOOPS,
+	         UNICODE_LENGTH,
+	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
+	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
 	opencl_init_opt("$JOHN/office2013_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// Create kernels to execute
@@ -390,10 +395,7 @@ static void init(struct fmt_main *self)
 	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if (gpu(device_info[ocl_gpu_id])) {
-		/* Run scalar code */
-		VF = 1;
-	} else {
+	if (options.flags & FLG_VECTORIZE) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";

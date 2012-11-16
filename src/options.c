@@ -152,6 +152,8 @@ static struct opt_entry opt_list[] = {
 #if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
 	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.gpu_device},
+	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
+	{"request-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTORIZE},
 #endif
 	{NULL}
 };
