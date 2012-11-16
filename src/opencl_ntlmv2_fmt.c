@@ -303,7 +303,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	                                       NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "results transfer %.2f ms", (double)(endTime-startTime)/1000000.);
+		fprintf(stderr, "results xfer %.2f ms", (double)(endTime-startTime)/1000000.);
 
 	if (do_benchmark)
 		fprintf(stderr, "\n");
@@ -329,7 +329,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
-	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / 64;
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (64 * VF);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -376,9 +376,15 @@ static void init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize, maxsize2;
+	char build_opts[64];
 
 	global_work_size = 0;
-	opencl_init("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id);
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "%s",
+	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
+	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
+	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	/* create kernel to execute */
 	ntlmv2_nthash = clCreateKernel(program[ocl_gpu_id], "ntlmv2_nthash", &ret_code);
@@ -386,10 +392,9 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "ntlmv2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if (gpu(device_info[ocl_gpu_id])) {
-		/* Run scalar code */
-		VF = 1;
-	} else {
+	if ((options.flags & FLG_VECTORIZE) ||
+	    ( !(options.flags & FLG_SCALAR) &&
+	      !gpu(device_info[ocl_gpu_id]))) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";

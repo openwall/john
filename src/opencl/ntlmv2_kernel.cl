@@ -10,12 +10,14 @@
 
 #include "opencl_device_info.h"
 
-#if gpu_amd(DEVICE_INFO)
-#define USE_BITSELECT
-#endif
-
+#if !defined(VECTORIZE) && !defined(SCALAR)
 #if gpu(DEVICE_INFO)
 #define SCALAR
+#endif
+#endif
+
+#if gpu_amd(DEVICE_INFO)
+#define USE_BITSELECT
 #endif
 
 /* Workaround for driver bug seen in version 295.49 */
