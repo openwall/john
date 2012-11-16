@@ -55,7 +55,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.loader.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-	{"loopback", FLG_LOOPBACK_SET | FLG_DUPESUPP, FLG_CRACKING_CHK,
+	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"encoding", FLG_NONE, FLG_NONE,
 		0, 0, OPT_FMT_STR_ALLOC, &options.encoding},

@@ -19,6 +19,8 @@
 /*
  * Core Option flags bitmasks (low 32 bits):
  */
+/* Some option that doesn't have its own flag is specified */
+#define FLG_NONE			0x00000000
 /* An action requested */
 #define FLG_ACTION			0x00000001
 /* Password files specified */
@@ -27,8 +29,6 @@
 #define FLG_PWD_SUP			0x00000004
 /* An option requires password files */
 #define FLG_PWD_REQ			(0x00000008 | FLG_PWD_SUP)
-/* Some option that doesn't have its own flag is specified */
-#define FLG_NONE			0x00000010
 /* A cracking mode enabled */
 #define FLG_CRACKING_CHK		0x00000020
 #define FLG_CRACKING_SUP		0x00000040
@@ -95,7 +95,7 @@
  * we use the active .pot file */
 #define FLG_LOOPBACK_CHK		0x0000000100000000
 #define FLG_LOOPBACK_SET	  \
-	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET)
+	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET | FLG_DUPESUPP)
 /* pipe mode enabled, reading from stdin with rules support */
 #define FLG_PIPE_CHK			0x0000000200000000
 #define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
