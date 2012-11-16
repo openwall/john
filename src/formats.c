@@ -66,6 +66,7 @@ static int is_poweroftwo(size_t align)
 	return align != 0 && (align & (align - 1)) == 0;
 }
 
+#undef is_aligned /* clash with common.h */
 static int is_aligned(void *p, size_t align)
 {
 	return ((size_t)p & (align - 1)) == 0;
