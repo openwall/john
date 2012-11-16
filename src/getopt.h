@@ -10,10 +10,12 @@
 #ifndef _JOHN_GETOPT_H
 #define _JOHN_GETOPT_H
 
+#include "common.h"
+
 /*
  * Option flags bitmask type.
  */
-typedef unsigned int opt_flags;
+typedef ARCH_WORD_64 opt_flags;
 
 /*
  * Supported options list entry, the list ends with a NULL name field.
