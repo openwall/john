@@ -13,9 +13,7 @@
 #include "opencl_device_info.h"
 
 #if !defined(VECTORIZE) && !defined(SCALAR)
-#if gpu(DEVICE_INFO)
 #define SCALAR
-#endif
 #endif
 
 /* Office 2010/2013 */

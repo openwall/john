@@ -14,9 +14,7 @@
 #include "opencl_device_info.h"
 
 #if !defined(VECTORIZE) && !defined(SCALAR)
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
 #define SCALAR
-#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)

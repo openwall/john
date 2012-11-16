@@ -395,9 +395,7 @@ static void init(struct fmt_main *self)
 	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if ((options.flags & FLG_VECTORIZE) ||
-	    ( !(options.flags & FLG_SCALAR) &&
-	      !gpu(device_info[ocl_gpu_id]))) {
+	if (options.flags & FLG_VECTORIZE) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
