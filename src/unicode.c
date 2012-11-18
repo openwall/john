@@ -754,7 +754,7 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 }
 
 void listEncodings(void) {
-	fprintf(stderr, "Supported encodings within john are:\nutf-8, iso-8859-1 (or ansi)"
+	printf("utf-8, iso-8859-1 (or ansi)"
 	        ", iso-8859-2"
 	        ", iso-8859-7"
 	        ", iso-8859-15"
