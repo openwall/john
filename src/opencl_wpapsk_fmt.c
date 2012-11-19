@@ -114,6 +114,7 @@ static void release_clobj(void)
 {
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, mic, 0, NULL, NULL), "Error Unmapping mem in");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem_in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");

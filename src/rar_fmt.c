@@ -398,6 +398,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
 	HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
