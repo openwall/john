@@ -468,7 +468,7 @@ int opencl_DES_bs_cmp_all(WORD *binary, int count)
 	int bit;
 	DES_bs_vector *b;
 	unsigned int sector=0,count_multiple;
-	if(count&(DES_BS_DEPTH-1)==0) count_multiple=count;
+	if((count&(DES_BS_DEPTH-1))==0) count_multiple=count;
 	else count_multiple = ((count>>DES_BS_LOG2)+1)<<DES_BS_LOG2;
 	//for_each_t(n)
 	for(sector=0;sector < (count_multiple>>DES_BS_LOG2); sector++) {
