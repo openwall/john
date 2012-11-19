@@ -97,20 +97,20 @@ static void create_clobj(int gws, struct fmt_main *self)
 	global_work_size = gws;
 	gws *= VF;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL , &ret_code);
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 	saved_key = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, UNICODE_LENGTH * gws);
 
-	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
+	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 	saved_len = (int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
 
-	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, SALT_LENGTH, NULL, &ret_code);
+	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_LENGTH, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 	saved_salt = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_LENGTH, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
@@ -144,6 +144,14 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+
+#ifndef __APPLE__ /* Triggers a bug in OSX 10.8.2 w/ MacBook Air and MacBook Pro Update 2.0 for GT 650 */
+	HANDLE_CLERROR(clReleaseMemObject(cl_key), "Release GPU buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release GPU buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release GPU buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release GPU buffer");
+#endif
+
 	key = NULL; saved_key = NULL; saved_len = NULL; saved_salt = NULL;
 	MEM_FREE(cracked);
 }
@@ -282,6 +290,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
 		return 0;
 	}
 
@@ -311,17 +321,19 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 {
 	int num;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	unsigned int SHAspeed, bestSHAspeed = 0;
+	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = 50004;
 	unsigned long long int MaxRunTime = 5000000000ULL;
+
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * VF);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
 		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
 	}
 
-	for (num = local_work_size; num; num *= 2) {
+	for (num = local_work_size; max_gws; num *= 2) {
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
@@ -365,7 +377,12 @@ static void init(struct fmt_main *self)
 
 	global_work_size = 0;
 
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u", HASH_LOOPS, UNICODE_LENGTH);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u %s",
+	         HASH_LOOPS,
+	         UNICODE_LENGTH,
+	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
+	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
 	opencl_init_opt("$JOHN/office2007_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernel to execute
@@ -376,10 +393,7 @@ static void init(struct fmt_main *self)
 	Generate2007key = clCreateKernel(program[ocl_gpu_id], "Generate2007key", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if (gpu_nvidia(device_info[ocl_gpu_id]) || amd_gcn(device_info[ocl_gpu_id])) {
-		/* Run scalar code */
-		VF = 1;
-	} else {
+	if (options.flags & FLG_VECTORIZE) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";

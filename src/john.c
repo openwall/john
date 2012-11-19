@@ -585,6 +585,9 @@ static void john_list_options()
 #ifdef HAVE_CUDA
 	printf("cuda-devices, ");
 #endif
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	printf("request-vectorize, request-scalar, ");
+#endif
 	/* NOTE: The following must end the list. Anything listed after
 	   <conf section name> will be ignored by current
 	   bash completion scripts. */
@@ -682,7 +685,12 @@ static void john_init(char *name, int argc, char **argv)
 		puts("--progress-every=N        emit a status line every N seconds");
 		puts("--crack-status            emit a status line whenever a password is cracked");
 		puts("--max-run-time=N          gracefully exit after this many seconds");
-		puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)\n");
+		puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+		puts("--request-vectorize       request vectorized mode");
+		puts("--request-scalar          request non-vectorized mode");
+#endif
+		puts("");
 		exit(0);
 	}
 

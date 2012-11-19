@@ -17,8 +17,10 @@
 #include "getopt.h"
 
 /*
- * Option flags bitmasks.
+ * Core Option flags bitmasks (low 32 bits):
  */
+/* Some option that doesn't have its own flag is specified */
+#define FLG_NONE			0x00000000
 /* An action requested */
 #define FLG_ACTION			0x00000001
 /* Password files specified */
@@ -27,8 +29,6 @@
 #define FLG_PWD_SUP			0x00000004
 /* An option requires password files */
 #define FLG_PWD_REQ			(0x00000008 | FLG_PWD_SUP)
-/* Some option that doesn't have its own flag is specified */
-#define FLG_NONE			0x00000000
 /* A cracking mode enabled */
 #define FLG_CRACKING_CHK		0x00000020
 #define FLG_CRACKING_SUP		0x00000040
@@ -38,16 +38,9 @@
  * we get it from john.conf */
 #define FLG_WORDLIST_CHK		0x00000080
 #define FLG_WORDLIST_SET		(FLG_WORDLIST_CHK | FLG_CRACKING_SET)
-/* .pot file used as wordlist, options.wordlist is set to the file name, or
- * we use the active .pot file */
-#define FLG_LOOPBACK_CHK		0x00000010
-#define FLG_LOOPBACK_SET	  \
-	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET)
 /* Wordlist mode enabled, reading from stdin */
 #define FLG_STDIN_CHK			0x00000100
 #define FLG_STDIN_SET			(FLG_STDIN_CHK | FLG_WORDLIST_SET)
-#define FLG_PIPE_CHK			0x00002000
-#define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
 /* Wordlist rules enabled */
 #define FLG_RULES			0x00000200
 /* "Single crack" mode enabled */
@@ -91,22 +84,40 @@
 #define FLG_FORMAT			0x02000000
 /* Memory saving enabled */
 #define FLG_SAVEMEM			0x04000000
+
+/*
+ * Jumbo Options flags bitmasks (high 32 bits)
+ *
+ * Tip: For your private patches, pick first free from MSB. When
+ * sharing your patch, pick first free from LSB of high 32 bits.
+ */
+/* .pot file used as wordlist, options.wordlist is set to the file name, or
+ * we use the active .pot file */
+#define FLG_LOOPBACK_CHK		0x0000000100000000
+#define FLG_LOOPBACK_SET	  \
+	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET | FLG_DUPESUPP)
+/* pipe mode enabled, reading from stdin with rules support */
+#define FLG_PIPE_CHK			0x0000000200000000
+#define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
 /* Dynamic load of foreign format module */
-#define FLG_DYNFMT			0x08000000
+#define FLG_DYNFMT			0x0000000400000000
 /* Turn off logging */
-#define FLG_NOLOG			0x20000000
+#define FLG_NOLOG			0x0000000800000000
 /* Log to stderr */
-#define FLG_LOG_STDERR			0x00800000
+#define FLG_LOG_STDERR			0x0000001000000000
 /* Markov mode enabled */
-#define FLG_MKV_CHK			0x40000000
+#define FLG_MKV_CHK			0x0000002000000000
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
 /* Emit a status line for every password cracked */
-#define FLG_CRKSTAT			0x00080000
+#define FLG_CRKSTAT			0x0000004000000000
 /* Wordlist dupe suppression */
-#define FLG_DUPESUPP			0x10000000
-
-/* NOTE: the following is defined in getopt.h, it's taken! */
-//#define OPT_REQ_PARAM			0x80000000
+#define FLG_DUPESUPP			0x0000008000000000
+#if defined(CL_VERSION_1_0) || defined (HAVE_CUDA)
+/* Request to vectorize */
+#define FLG_VECTORIZE			0x0000010000000000
+/* Request to not vectorize */
+#define FLG_SCALAR			0x0000020000000000
+#endif
 
 /*
  * Structure with option flags and all the parameters.

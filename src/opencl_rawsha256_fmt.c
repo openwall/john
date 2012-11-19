@@ -478,7 +478,11 @@ static int valid(char * ciphertext, struct fmt_main * self) {
     return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char * split(char * ciphertext, int index) {
+#if FMT_MAIN_VERSION > 9
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
+#else
+static char *split(char *ciphertext, int index) {
+#endif
     static char out[8 + CIPHERTEXT_LENGTH + 1];
 
     if (!strncmp(ciphertext, "$SHA256$", 8))

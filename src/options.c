@@ -55,7 +55,7 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.loader.activesinglerules},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-	{"loopback", FLG_LOOPBACK_SET | FLG_DUPESUPP, FLG_CRACKING_CHK,
+	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"encoding", FLG_NONE, FLG_NONE,
 		0, 0, OPT_FMT_STR_ALLOC, &options.encoding},
@@ -152,6 +152,8 @@ static struct opt_entry opt_list[] = {
 #if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
 	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.gpu_device},
+	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
+	{"request-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTORIZE},
 #endif
 	{NULL}
 };

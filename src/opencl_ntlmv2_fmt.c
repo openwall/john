@@ -86,9 +86,9 @@ static void create_clobj(int gws, struct fmt_main *self)
 	gws *= VF;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL , &ret_code);
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ, 0, 64 * gws, 0, NULL, NULL, &ret_code);
+	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 64 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, 64 * gws);
 
@@ -96,15 +96,15 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 	output = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory output");
-	memset(output, 0, 16 * gws);
+	memset(output, 0xcc, 16 * gws);
 
 	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_SIZE_MAX, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
+	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory challenge");
 	memset(challenge, 0, SALT_SIZE_MAX);
 
-	cl_nthash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
+	cl_nthash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory nthash");
 
 	HANDLE_CLERROR(clSetKernelArg(ntlmv2_nthash, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
@@ -120,7 +120,13 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_challenge, challenge, 0, NULL, NULL), "Error Unmapping challenge");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_result, output, 0, NULL, NULL), "Error Unmapping output");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	output = NULL; saved_key = NULL; challenge = NULL;
+
+	HANDLE_CLERROR(clReleaseMemObject(cl_challenge), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
+
+	challenge = NULL; output = saved_key = NULL;
 }
 
 static void clear_keys(void)
@@ -223,10 +229,10 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	for (i = 0; i < scalar_gws; i++)
 		set_key(tests[0].plaintext, i);
-	set_salt(get_salt(tests[0].ciphertext));
+	memcpy(challenge, get_salt(tests[0].ciphertext), SALT_SIZE_MAX);
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, 64 * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
-
 	ret_code = clEnqueueNDRangeKernel(queue_prof, ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
 	if (ret_code != CL_SUCCESS) {
 		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
@@ -243,8 +249,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_FALSE, 0, 16 * scalar_gws, output, 0, NULL, &Event[3]), "failed in reading output back");
-	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, &Event[3]), "failed in reading output back");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
@@ -253,9 +258,8 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	                                       NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "key transfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
+		fprintf(stderr, "key xfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
 
-#if 1
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
 	                                       NULL), "Failed to get profiling info");
@@ -269,9 +273,10 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
 		return 0;
 	}
-#endif
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
@@ -286,8 +291,11 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
 		return 0;
 	}
+
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
 	                                       NULL), "Failed to get profiling info");
@@ -295,7 +303,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	                                       NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "results transfer %.2f ms, ", (double)(endTime-startTime)/1000000.);
+		fprintf(stderr, "results xfer %.2f ms", (double)(endTime-startTime)/1000000.);
 
 	if (do_benchmark)
 		fprintf(stderr, "\n");
@@ -321,8 +329,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
-	/* The real formula would be "amount of FREE memory / 96" or so. */
-	max_gws = get_global_memory_size(ocl_gpu_id) / 1024;
+	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (64 * VF);
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -369,9 +376,15 @@ static void init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize, maxsize2;
+	char build_opts[64];
 
 	global_work_size = 0;
-	opencl_init("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id);
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "%s",
+	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
+	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
+	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	/* create kernel to execute */
 	ntlmv2_nthash = clCreateKernel(program[ocl_gpu_id], "ntlmv2_nthash", &ret_code);
@@ -379,10 +392,7 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "ntlmv2_final", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if (gpu(device_info[ocl_gpu_id])) {
-		/* Run scalar code */
-		VF = 1;
-	} else {
+	if (options.flags & FLG_VECTORIZE) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
