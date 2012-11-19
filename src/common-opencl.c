@@ -232,6 +232,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	char *temp;
 	cl_event benchEvent[2];
+	size_t gws;
+
+	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
 	if (get_device_version(ocl_gpu_id) < 110) {
 		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
@@ -329,7 +332,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	    (int) my_work_group <= (int) max_group_size;
 	    my_work_group += wg_multiple) {
 
-		if (self->params.max_keys_per_crypt % my_work_group != 0)
+		if (gws % my_work_group != 0)
 			continue;
 
 		sumStartTime = 0;
