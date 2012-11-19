@@ -1,18 +1,29 @@
 /*
-* This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall.net>
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-*/
+ * This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall.net>
+ * and Copyright (c) 2012 magnum
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ */
+
+#include "opencl_device_info.h"
+
+#if gpu_amd(DEVICE_INFO)
+#define USE_BITSELECT
+#endif
+
 #define uint32_t	unsigned int
 #define uint8_t		unsigned char
 
 #define ROTATE_LEFT(x, s) rotate(x, (uint32_t)s)
 #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : disable
 
-//#define F(x, y, z)    ((z) ^ ((x) & ((y) ^ (z))))
-//#define G(x, y, z)    ((y) ^ ((z) & ((x) ^ (y))))
+#ifdef USE_BITSELECT
 #define F(x, y, z) bitselect((z), (y), (x))
 #define G(x, y, z) bitselect((y), (x), (z))
+#else
+#define F(x, y, z)    ((z) ^ ((x) & ((y) ^ (z))))
+#define G(x, y, z)    ((y) ^ ((z) & ((x) ^ (y))))
+#endif
 
 #define H(x, y, z) (x^y^z)
 #define I(x, y, z) (y^(x|~z))
@@ -272,10 +283,7 @@ __kernel void cryptmd5
 	*alt_result = 0;
 
 	for (i = pass_len; i > 0; i >>= 1)
-		if ((i & 1) != 0)
-			ctx.buffer[ctx_buflen++] = ((char *) alt_result)[0];
-		else
-			ctx.buffer[ctx_buflen++] = pass[0];
+		ctx.buffer[ctx_buflen++] = (i & 1) ? ((char *) alt_result)[0] : pass[0];
 
 	md5_digest(&ctx, alt_result, &ctx_buflen);
 
