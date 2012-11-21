@@ -143,12 +143,15 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
+#ifndef __APPLE__ /* Triggers a bug in OSX 10.8.2 w/ MacBook Air and MacBook Pro Update 2.0 for GT 650 */
 	HANDLE_CLERROR(clReleaseMemObject(cl_spincount), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_key), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release GPU buffer");
+#endif
 
 	key = NULL; saved_key = NULL; saved_len = NULL; saved_salt = NULL;
 	MEM_FREE(cracked);

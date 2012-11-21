@@ -144,8 +144,8 @@ the following hashes:
 - Raw MD4
 - Raw MD5
 - Raw SHA-1
-- Raw SHA-256
-- Raw SHA-512
+- Raw SHA-256 (http://openwall.info/wiki/john/OpenCL-RAWSHA-256)
+- Raw SHA-512 (http://openwall.info/wiki/john/OpenCL-RAWSHA-512)
 - WPA-PSK
 - FIXME: and SEVERAL more added in this version of Jumbo.
 

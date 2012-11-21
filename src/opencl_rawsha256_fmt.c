@@ -661,11 +661,11 @@ struct fmt_main fmt_opencl_rawsha256 = {
         PLAINTEXT_LENGTH - 1,
         BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
-        DEFAULT_ALIGN,
+        4,
 #endif
         SALT_SIZE,
 #if FMT_MAIN_VERSION > 9
-        DEFAULT_ALIGN,
+        1,
 #endif
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
