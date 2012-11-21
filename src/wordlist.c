@@ -321,8 +321,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 #endif
 	char msg_buf[128];
 	int forceLoad = 0;
-	int dupeCheck = options.flags & FLG_DUPESUPP;
-	int loopBack = options.flags & FLG_LOOPBACK_CHK;
+	int dupeCheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
+	int loopBack = (options.flags & FLG_LOOPBACK_CHK) ? 1 : 0;
 
 #ifdef HAVE_MPI
 	char file_line[LINE_BUFFER_SIZE];
