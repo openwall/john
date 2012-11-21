@@ -66,7 +66,7 @@ static const char md5_salt_prefix[] = "$1$";
 static const char apr1_salt_prefix[] = "$apr1$";
 
 //OpenCL variables:
-static cl_mem mem_in, mem_out, mem_salt;
+static cl_mem mem_in, mem_out, pinned_in, pinned_out, mem_salt;
 static size_t insize, outsize;
 static size_t saltsize = sizeof(crypt_md5_salt);
 
@@ -140,15 +140,19 @@ static void create_clobj(int gws, struct fmt_main *self)
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
-	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
+	pinned_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating pinned memory for passwords");
+	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating GPU memory for passwords");
+	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping password buffer");
 
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
-	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
+	pinned_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating pinned memory for hashes");
+	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating GPU memory for hashes");
+	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping results buffer");
 
 	///Assign kernel parameters
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
@@ -158,13 +162,15 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, outbuffer, 0, NULL, NULL), "Error Unmapping mem out");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping inbuffer");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_out, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem_in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
 }
 
 static void release_all(void)
