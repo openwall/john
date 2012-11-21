@@ -36,8 +36,8 @@
 #define BINARY_SIZE		16
 #define SALT_SIZE		(8+1)					/** salt + prefix id **/
 
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1024*2048+1   // TODO: not working 1
+#define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
+#define MAX_KEYS_PER_CRYPT	1
 
 #define LWS_CONFIG		"md5crypt_LWS"
 #define GWS_CONFIG		"md5crypt_GWS"
@@ -138,35 +138,30 @@ static void create_clobj(int gws, struct fmt_main *self)
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 
-//TODO: redo -> begin
-//	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);        
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,                         insize, NULL, &ret_code);
-//TODO: redo -> end
-        HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
-        
-        inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
+        inbuffer = (crypt_md5_password *) calloc(insize, sizeof(crypt_md5_password));
 
-//TODO: redo -> begin
-//      mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);	
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,                         outsize, NULL, &ret_code);
-//TODO: redo -> end
+        outbuffer = (crypt_md5_hash *) calloc(outsize, sizeof(crypt_md5_hash));
+
+	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
+        HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
+
+        //inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+	//HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
+
+	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 
-	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
+	//outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+	//HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	///Assign kernel parameters
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
-
 }
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, outbuffer, 0, NULL, NULL), "Error Unmapping mem out");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
@@ -298,9 +293,6 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
-
-            if (num > MAX_KEYS_PER_CRYPT) // TODO
-                break;
 
 		if (!do_benchmark)
 			advance_cursor();
