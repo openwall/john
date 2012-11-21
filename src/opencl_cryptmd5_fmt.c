@@ -128,64 +128,43 @@ static struct fmt_tests tests[] = {
 };
 
 static void create_clobj(int gws, struct fmt_main *self)
-{//TODO: redo
+{
 	global_work_size = gws;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 	insize = sizeof(crypt_md5_password) * gws;
 	outsize = sizeof(crypt_md5_hash) * gws;
 
-	///Alocate memory on the CPU side
-	inbuffer =
-	    (crypt_md5_password *) calloc(MAX_KEYS_PER_CRYPT,
-	    sizeof(crypt_md5_password));
-	assert(inbuffer != NULL);
-	outbuffer =
-	    (crypt_md5_hash *) calloc(MAX_KEYS_PER_CRYPT,
-	    sizeof(crypt_md5_hash));
-	assert(inbuffer != NULL);
-	///Alocate memory on the GPU
-	mem_salt =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
-	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
-	mem_out =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
-	///Assign kernel parameters
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating kernel");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt),
-		&mem_salt), "Error while setting mem_salt kernel argument");
-
-        /* //TODO
 	///Alocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
-	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+//TODO: redo -> begin
+//	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);        
+	mem_in =
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    &ret_code);
+//TODO: redo -> end
+        HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
+        
+        inbuffer = (crypt_md5_password *) clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
+//TODO: redo -> begin
+      	//mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);	
+	mem_out =
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    &ret_code);
+//TODO: redo -> end
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
-	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+
+	outbuffer = (crypt_md5_hash *) clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	///Assign kernel parameters
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
-        */
+
 }
 
 static void release_clobj(void)
@@ -323,10 +302,10 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
-            
+
             if (num > KEYS_PER_CRYPT)
                 break;
-            
+
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
