@@ -139,7 +139,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	///Alocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
-#define AMD_WORKAROUND
+
 #ifdef AMD_WORKAROUND
         inbuffer = (crypt_md5_password *) calloc(insize, sizeof(crypt_md5_password));
         outbuffer = (crypt_md5_hash *) calloc(outsize, sizeof(crypt_md5_hash));
