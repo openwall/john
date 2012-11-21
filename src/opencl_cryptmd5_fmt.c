@@ -57,6 +57,7 @@ typedef struct {
 	uint32_t v[4];		/** 128 bits **/
 } crypt_md5_hash;
 
+
 static crypt_md5_password *inbuffer;			/** plaintext ciphertexts **/
 static crypt_md5_hash *outbuffer;			/** calculated hashes **/
 static crypt_md5_salt host_salt;			/** salt **/
@@ -68,6 +69,7 @@ static const char apr1_salt_prefix[] = "$apr1$";
 static cl_mem mem_in, mem_out, mem_salt;
 static size_t insize, outsize;
 static size_t saltsize = sizeof(crypt_md5_salt);
+
 
 //tests are unified for 8+8 length
 static struct fmt_tests tests[] = {
@@ -137,23 +139,27 @@ static void create_clobj(int gws, struct fmt_main *self)
 	///Alocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
-
+#define AMD_WORKAROUND
+#ifdef AMD_WORKAROUND
         inbuffer = (crypt_md5_password *) calloc(insize, sizeof(crypt_md5_password));
-
         outbuffer = (crypt_md5_hash *) calloc(outsize, sizeof(crypt_md5_hash));
 
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
+        mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
         HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 
-        //inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
-	//HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
-
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL, &ret_code);
+        mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
+#else
+	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
+	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
-	//outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
-	//HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
-
+	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
+	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
+#endif
 	///Assign kernel parameters
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
@@ -162,6 +168,10 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
+#ifdef AMD_WORKAROUND
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, outbuffer, 0, NULL, NULL), "Error Unmapping mem out");
+#endif
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
@@ -174,6 +184,13 @@ static void release_all(void)
 	release_clobj();
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+}
+
+static void set_key(char *key, int index)
+{
+	uint32_t len = strlen(key);
+	inbuffer[index].length = len;
+	memcpy((char *) inbuffer[index].v, key, len);
 }
 
 static void set_salt(void *salt)
@@ -206,21 +223,6 @@ static void *salt(char *ciphertext)
 	while (pos != end)
 		*dest++ = *pos++;
 	return (void *) ret;
-}
-
-static void set_key(char *key, int index)
-{
-	uint32_t len = strlen(key);
-	inbuffer[index].length = len;
-	memcpy((char *) inbuffer[index].v, key, len);
-}
-
-static char *get_key(int index)
-{
-	static char ret[PLAINTEXT_LENGTH + 1];
-	memcpy(ret, inbuffer[index].v, PLAINTEXT_LENGTH);
-	ret[inbuffer[index].length] = '\0';
-	return ret;
 }
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
@@ -293,7 +295,6 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	}
 
 	for (num = local_work_size; num; num *= 2) {
-
 		if (!do_benchmark)
 			advance_cursor();
 		if (!(run_time = gws_test(num, do_benchmark, self)))
@@ -327,6 +328,14 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		}
 	}
 	global_work_size = optimal_gws;
+}
+
+static char *get_key(int index)
+{
+	static char ret[PLAINTEXT_LENGTH + 1];
+	memcpy(ret, inbuffer[index].v, PLAINTEXT_LENGTH);
+	ret[inbuffer[index].length] = '\0';
+	return ret;
 }
 
 static void init(struct fmt_main *self)
@@ -380,6 +389,7 @@ static void init(struct fmt_main *self)
 	create_clobj(global_work_size, self);
 	atexit(release_all);
 }
+
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
