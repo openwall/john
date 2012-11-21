@@ -37,7 +37,7 @@
 #define SALT_SIZE		(8+1)					/** salt + prefix id **/
 
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT   // TODO: not working 1
+#define MAX_KEYS_PER_CRYPT	1024*2048+1   // TODO: not working 1
 
 #define LWS_CONFIG		"md5crypt_LWS"
 #define GWS_CONFIG		"md5crypt_GWS"
@@ -140,24 +140,20 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 //TODO: redo -> begin
 //	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);        
-	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-	    &ret_code);
+	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,                         insize, NULL, &ret_code);
 //TODO: redo -> end
         HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
         
-        inbuffer = (crypt_md5_password *) clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+        inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 //TODO: redo -> begin
-      	//mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);	
-	mem_out =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
-	    &ret_code);
+//      mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);	
+	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,                         outsize, NULL, &ret_code);
 //TODO: redo -> end
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 
-	outbuffer = (crypt_md5_hash *) clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+	outbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	///Assign kernel parameters
@@ -303,7 +299,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 
 	for (num = local_work_size; num; num *= 2) {
 
-            if (num > KEYS_PER_CRYPT)
+            if (num > MAX_KEYS_PER_CRYPT) // TODO
                 break;
 
 		if (!do_benchmark)
