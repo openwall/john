@@ -163,6 +163,7 @@ static rarfile *cur_file;
 /* Determines when to use CPU instead (eg. Single mode, few keys in a call) */
 #define CPU_GPU_RATIO		32
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_RawBuf, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
+static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_aes_key, pinned_aes_iv;
 static cl_kernel RarInit, RarGetIV, RarFinal;
 #endif
 
@@ -323,44 +324,55 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 	global_work_size = gws;
 	self->params.max_keys_per_crypt = gws;
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL , &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
+
+	pinned_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL , &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, UNICODE_LENGTH * gws, NULL , &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
+	saved_key = (unsigned char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, UNICODE_LENGTH * gws);
 
-	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
+	pinned_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
+	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
+	saved_len = (unsigned int*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
 
-	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 8, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_salt = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 8, 0, NULL, NULL, &ret_code);
+	pinned_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 8, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
+	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 8, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
+	saved_salt = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 8, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
 	cl_RawBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, (UNICODE_LENGTH + 8) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 
 	cl_OutputBuf = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 
 	cl_round = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 
 	// aes_key is uchar[16] but kernel treats it as uint[4]
-	cl_aes_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * gws, 0, NULL, NULL, &ret_code);
+	pinned_aes_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
+	cl_aes_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
+	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_key");
 	memset(aes_key, 0, 16 * gws);
 
-	cl_aes_iv = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
+	pinned_aes_iv = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
+	cl_aes_iv = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
+	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
 	memset(aes_iv, 0, 16 * gws);
 
@@ -393,11 +405,11 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
@@ -405,10 +417,14 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
 	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_aes_key), "Release aes_key");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_aes_iv), "Release aes_iv");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
 	HANDLE_CLERROR(clReleaseMemObject(cl_RawBuf), "Release RawBuf");
 	HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
 
-	aes_key = NULL; aes_iv = NULL; saved_key = NULL; saved_len = NULL; saved_salt = NULL;
 	MEM_FREE(cracked);
 }
 #endif	/* OpenCL */
