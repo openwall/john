@@ -46,8 +46,8 @@
 #define HASH_LOOPS              (7*3*2)
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       512
-#define MIN_KEYS_PER_CRYPT      128
-#define MAX_KEYS_PER_CRYPT      2048*1024
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
 
 //Macros.
 #define SWAP(n) \
