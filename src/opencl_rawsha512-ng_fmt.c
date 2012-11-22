@@ -234,9 +234,9 @@ static int get_step(size_t num, int step, int startup){
     if (startup) {
 
         if (step == 0)
-            return STEP;
+            return get_multiple(STEP, local_work_size);
         else
-            return step;
+            return get_multiple(step, local_work_size);
     }
 
     if (step < 1)
@@ -346,9 +346,9 @@ static void find_best_gws(void) {
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
-        step = get_multiple(step, local_work_size);
         do_benchmark = 1;
     }
+    step = get_step(num, step, 1);
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
         max_run_time = atoi(tmp_value) * 1000000000UL;
@@ -359,8 +359,7 @@ static void find_best_gws(void) {
     if (do_benchmark)
         fprintf(stderr, "Raw speed figures including buffer transfers:\n");
 
-    for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT;
-         num = get_step(num, step, 0)) {
+    for (num = step; num < MAX_KEYS_PER_CRYPT; num = get_step(num, step, 0)) {
         //Check if hardware can handle the size we are going to try now.
         if (sizeof(sha512_password) * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
             break;
@@ -463,6 +462,9 @@ static void init(struct fmt_main *self) {
 
     if ((tmp_value = getenv("GWS")))
         global_work_size = atoi(tmp_value);
+
+    //Check if a valid multiple is used.
+    global_work_size = get_multiple(global_work_size, local_work_size);
 
     if (global_work_size)
         create_clobj(global_work_size);

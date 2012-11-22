@@ -344,9 +344,9 @@ static int get_step(size_t num, int step, int startup){
     if (startup) {
 
         if (step == 0)
-            return STEP;
+            return get_multiple(STEP, local_work_size);
         else
-            return step;
+            return get_multiple(step, local_work_size);
     }
 
     if (step < 1)
@@ -379,7 +379,7 @@ static cl_ulong gws_test(size_t num) {
     HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
 
     // Set salt.
-    set_salt(get_salt("$6$saltstring$"));
+    set_salt(get_salt("$5$saltstring$"));
     salt->initial = salt->rounds - get_multiple(salt->rounds, HASH_LOOPS);
 
     // Set keys
@@ -496,9 +496,9 @@ static void find_best_gws(void) {
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
-        step = get_multiple(step, local_work_size);
         do_benchmark = 1;
     }
+    step = get_step(num, step, 1);
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
         max_run_time = atoi(tmp_value) * 1000000000UL;
@@ -509,8 +509,7 @@ static void find_best_gws(void) {
     if (do_benchmark)
         fprintf(stderr, "Raw speed figures including buffer transfers:\n");
 
-    for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT;
-         num = get_step(num, step, 0)) {
+    for (num = step; num < MAX_KEYS_PER_CRYPT; num = get_step(num, step, 0)) {
 
 	if (! (run_time = gws_test(num)))
             continue;
