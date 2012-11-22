@@ -15,7 +15,7 @@
 
 #include "common-opencl.h"
 
-static cl_mem mem_in, mem_out, mem_salt, mem_state;
+static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
 static int VF = 1;	/* Will be set to 4 when we run vectorized */
 
@@ -69,9 +69,11 @@ static void create_clobj(int gws, struct fmt_main *self)
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
 	/// Allocate memory
-	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_password) * gws, NULL, &ret_code);
+	pinned_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_password) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating pinned in");
+	mem_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(wpapsk_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem in");
-	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(wpapsk_password) * gws, 0, NULL, NULL, &ret_code);
+	inbuffer = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(wpapsk_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	mem_state = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, sizeof(wpapsk_state) * gws, NULL, &ret_code);
@@ -80,9 +82,11 @@ static void create_clobj(int gws, struct fmt_main *self)
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(wpapsk_salt), &currentsalt, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
 
-	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(mic_t) * gws, NULL, &ret_code);
+	pinned_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(mic_t) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating pinned out");
+	mem_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, sizeof(mic_t) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
-	mic = clEnqueueMapBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, CL_MAP_READ, 0, sizeof(mic_t) * gws, 0, NULL, NULL, &ret_code);
+	mic = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_out, CL_TRUE, CL_MAP_READ, 0, sizeof(mic_t) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	/*
@@ -112,11 +116,13 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], mem_out, mic, 0, NULL, NULL), "Error Unmapping mem in");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_in, inbuffer, 0, NULL, NULL), "Error Unmapping mem in");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_out, mic, 0, NULL, NULL), "Error Unmapping mem in");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem_in");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_in), "Release pinned_in");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
