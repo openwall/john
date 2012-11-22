@@ -77,7 +77,7 @@ static unsigned char *challenge;
 static int new_keys;
 static int VF = 1;
 
-static cl_mem cl_saved_key, cl_challenge, cl_nthash, cl_result;
+static cl_mem cl_saved_key, cl_challenge, cl_nthash, cl_result, pinned_key, pinned_result, pinned_salt;
 static cl_kernel ntlmv2_nthash;
 
 static void create_clobj(int gws, struct fmt_main *self)
@@ -86,26 +86,32 @@ static void create_clobj(int gws, struct fmt_main *self)
 	gws *= VF;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 64 * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
+	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 64 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 64 * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping saved_key");
 	memset(saved_key, 0, 64 * gws);
 
-	cl_result = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	output = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory output");
+	pinned_result = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_result = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	output = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping output");
 	memset(output, 0xcc, 16 * gws);
 
-	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_SIZE_MAX, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], cl_challenge, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory challenge");
+	pinned_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_SIZE_MAX, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_challenge = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_SIZE_MAX, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	challenge = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_SIZE_MAX, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping challenge");
 	memset(challenge, 0, SALT_SIZE_MAX);
 
 	cl_nthash = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory nthash");
+	HANDLE_CLERROR(ret_code, "Error creating device-only buffer");
 
 	HANDLE_CLERROR(clSetKernelArg(ntlmv2_nthash, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(ntlmv2_nthash, 1, sizeof(cl_mem), (void*)&cl_nthash), "Error setting argument 1");
@@ -117,17 +123,18 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_challenge, challenge, 0, NULL, NULL), "Error Unmapping challenge");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_result, output, 0, NULL, NULL), "Error Unmapping output");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], cl_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_salt, challenge, 0, NULL, NULL), "Error Unmapping challenge");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_result, output, 0, NULL, NULL), "Error Unmapping output");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error releasing memory mappings");
 
-	HANDLE_CLERROR(clReleaseMemObject(cl_challenge), "Release state buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release state buffer");
-	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release state buffer");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release pinned salt buffer");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_challenge), "Release salt buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_nthash), "Release state buffer");
-
-	challenge = NULL; output = saved_key = NULL;
 }
 
 static void clear_keys(void)
