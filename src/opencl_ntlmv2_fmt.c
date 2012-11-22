@@ -241,21 +241,9 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, 64 * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
-	ret_code = clEnqueueNDRangeKernel(queue_prof, ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, &Event[3]), "failed in reading output back");
 
@@ -337,7 +325,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
-	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (64 * VF);
+	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / (64 * VF), get_global_memory_size(ocl_gpu_id) / (VF * (64 + 16 + 16 + SALT_SIZE_MAX)));
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
