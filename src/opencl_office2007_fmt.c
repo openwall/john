@@ -100,26 +100,26 @@ static void create_clobj(int gws, struct fmt_main *self)
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
 	pinned_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
 	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, UNICODE_LENGTH * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 	saved_key = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, UNICODE_LENGTH * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_key");
 	memset(saved_key, 0, UNICODE_LENGTH * gws);
 
 	pinned_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_int) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
 	cl_saved_len = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(cl_int) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 	saved_len = (int*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_len, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_int) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_len");
 	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
 
 	pinned_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, SALT_LENGTH, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
 	cl_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_LENGTH, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 	saved_salt = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SALT_LENGTH, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, SALT_LENGTH);
@@ -128,9 +128,9 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error allocating device state buffer");
 
 	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
 	cl_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device memory");
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 	key = (unsigned char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory key");
 	memset(key, 0, 16 * gws);
