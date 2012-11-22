@@ -251,32 +251,14 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_TRUE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_TRUE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, &Event[1]), "Failed transferring lengths");
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]), "running kernel");
 
-	for (i = 0; i < 50000 / HASH_LOOPS - 1; i++) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-			clReleaseCommandQueue(queue_prof);
-			release_clobj();
-			return 0;
-		}
-	}
-	ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]);
+	for (i = 0; i < 50000 / HASH_LOOPS - 1; i++)
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, Generate2007key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, Generate2007key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "running kernel");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_key, CL_TRUE, 0, 16 * scalar_gws, key, 0, NULL, &Event[5]), "failed in reading key back");
 

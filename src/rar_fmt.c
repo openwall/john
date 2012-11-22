@@ -542,38 +542,13 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
 
-	ret_code = clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
 	for (k = 0; k < 16; k++) {
-		ret_code = clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-			clReleaseCommandQueue(queue_prof);
-			release_clobj();
-			return 0;
-		}
-		for (j = 0; j < 256 / HASH_LOOPS; j++) {
-			ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]);
-			if (ret_code != CL_SUCCESS) {
-				fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-				clReleaseCommandQueue(queue_prof);
-				release_clobj();
-				return 0;
-			}
-		}
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
+		for (j = 0; j < 256 / HASH_LOOPS; j++)
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
 	}
-	ret_code = clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
-	if (ret_code != CL_SUCCESS) {
-		fprintf(stderr, "Error: %s\n", get_error_name(ret_code));
-		clReleaseCommandQueue(queue_prof);
-		release_clobj();
-		return 0;
-	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
 
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_aes_iv, CL_FALSE, 0, 16 * gws, aes_iv, 0, NULL, NULL), "Failed reading iv back");
