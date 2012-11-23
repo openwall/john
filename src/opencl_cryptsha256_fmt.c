@@ -106,7 +106,9 @@ static size_t get_default_workgroup(){
 }
 
 /* ------- Create and destroy necessary objects ------- */
-static void create_clobj(int gws) {
+static void create_clobj(int gws, struct fmt_main * self) {
+    self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
+
     pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id],
             CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
             sizeof(sha256_password) * gws, NULL, &ret_code);
@@ -344,9 +346,9 @@ static int get_step(size_t num, int step, int startup){
     if (startup) {
 
         if (step == 0)
-            return STEP;
+            return get_multiple(STEP, local_work_size);
         else
-            return step;
+            return get_multiple(step, local_work_size);
     }
 
     if (step < 1)
@@ -356,7 +358,7 @@ static int get_step(size_t num, int step, int startup){
 }
 
 //Do the proper test using different sizes.
-static cl_ulong gws_test(size_t num) {
+static cl_ulong gws_test(size_t num, struct fmt_main * self) {
 
     cl_event myEvent;
     cl_int ret_code;
@@ -365,7 +367,7 @@ static cl_ulong gws_test(size_t num) {
     int i, loops;
 
     //Prepare buffers.
-    create_clobj(num);
+    create_clobj(num, self);
 
     tmpbuffer = mem_alloc(sizeof(sha256_hash) * num);
 
@@ -379,7 +381,7 @@ static cl_ulong gws_test(size_t num) {
     HANDLE_CLERROR(ret_code, "Failed in clCreateCommandQueue");
 
     // Set salt.
-    set_salt(get_salt("$6$saltstring$"));
+    set_salt(get_salt("$5$saltstring$"));
     salt->initial = salt->rounds - get_multiple(salt->rounds, HASH_LOOPS);
 
     // Set keys
@@ -484,11 +486,11 @@ static cl_ulong gws_test(size_t num) {
   This function could be used to calculated the best num
   of keys per crypt for the given format
 -- */
-static void find_best_gws(void) {
+static void find_best_gws(struct fmt_main * self) {
     size_t num = 0;
     cl_ulong run_time, min_time = CL_ULONG_MAX;
 
-    int optimal_gws = MIN_KEYS_PER_CRYPT, step = STEP;
+    int optimal_gws = local_work_size, step = STEP;
     int do_benchmark = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
     unsigned long long int max_run_time = 10000000000ULL;
@@ -496,9 +498,9 @@ static void find_best_gws(void) {
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
-        step = get_multiple(step, local_work_size);
         do_benchmark = 1;
     }
+    step = get_multiple(step, local_work_size);
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
         max_run_time = atoi(tmp_value) * 1000000000UL;
@@ -509,10 +511,9 @@ static void find_best_gws(void) {
     if (do_benchmark)
         fprintf(stderr, "Raw speed figures including buffer transfers:\n");
 
-    for (num = get_step(num, step, 1); num < MAX_KEYS_PER_CRYPT;
-         num = get_step(num, step, 0)) {
+    for (num = get_step(num, step, 1); num; num = get_step(num, step, 0)) {
 
-	if (! (run_time = gws_test(num)))
+	if (! (run_time = gws_test(num, self)))
             continue;
 
         if (!do_benchmark)
@@ -550,7 +551,7 @@ static void find_best_gws(void) {
         GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
     global_work_size = optimal_gws;
-    create_clobj(optimal_gws);
+    create_clobj(optimal_gws, self);
 }
 
 /* ------- Initialization  ------- */
@@ -610,7 +611,7 @@ static void init(struct fmt_main * self) {
 
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
-        create_clobj(global_work_size);
+        create_clobj(global_work_size, self);
         find_best_workgroup(self);
         release_clobj();
     }
@@ -626,12 +627,12 @@ static void init(struct fmt_main * self) {
     global_work_size = get_multiple(global_work_size, local_work_size);
 
     if (global_work_size)
-        create_clobj(global_work_size);
+        create_clobj(global_work_size, self);
 
     else {
         //user chose to die of boredom
         global_work_size = get_task_max_size();
-        find_best_gws();
+        find_best_gws(self);
     }
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
            (int) local_work_size, global_work_size);
