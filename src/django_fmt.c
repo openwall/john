@@ -153,7 +153,7 @@ static void set_salt(void *salt)
 #define SHA256_DIGEST_LENGTH 32
 #endif
 
-static void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst)
+void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst)
 {
 	SHA256_CTX ctx, tmp_ctx1, tmp_ctx2;
 	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], tmp_hash[SHA256_DIGEST_LENGTH];

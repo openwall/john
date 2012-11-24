@@ -455,7 +455,7 @@ void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		tmp_out[i] = SWAP(tmp_out[i]);
 }
 
-void pbkdf2(const uint8_t * pass, int passlen,
+static void pbkdf2(const uint8_t * pass, int passlen,
     const uint8_t * salt, int saltlen, int n, uint32_t * out)
 {
 	uint32_t ipad_state[5];
