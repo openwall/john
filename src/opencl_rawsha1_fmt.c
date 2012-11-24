@@ -49,6 +49,7 @@ cl_command_queue queue_prof;
 cl_int ret_code;
 cl_kernel crypt_kernel;
 cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys, data_info;
+cl_mem dev_saved_keys, dev_partial_hashes;
 static cl_uint *partial_hashes;
 static cl_uint *res_hashes;
 static char *saved_plain;
@@ -84,16 +85,18 @@ static void set_salt(void *salt) { }
 
 static void create_clobj(int kpc){
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
+	dev_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, (PLAINTEXT_LENGTH)*kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_plain = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, (PLAINTEXT_LENGTH)*kpc, 0, NULL, NULL, &ret_code);
+	saved_plain = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], dev_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, (PLAINTEXT_LENGTH)*kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
 
 	res_hashes = malloc(sizeof(cl_uint) * 4 * kpc);
 
 	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * kpc, NULL, &ret_code);
+	dev_partial_hashes = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_partial_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * kpc, 0, NULL, NULL, &ret_code);
+	partial_hashes = (cl_uint *) clEnqueueMapBuffer(queue[ocl_gpu_id], dev_partial_hashes, CL_TRUE, CL_MAP_READ, 0, sizeof(cl_uint) * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory partial_hashes");
 
 	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
@@ -113,14 +116,18 @@ static void create_clobj(int kpc){
 }
 
 static void release_clobj(void){
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Ummapping partial_hashes");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Ummapping saved_plain");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], dev_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Ummapping partial_hashes");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], dev_saved_keys, saved_plain, 0, NULL, NULL), "Error Ummapping saved_plain");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]),"failed in clFinish");
 
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
 	HANDLE_CLERROR(clReleaseMemObject(data_info), "Error Releasing data_info");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
+	HANDLE_CLERROR(clReleaseMemObject(dev_saved_keys), "Error Releasing dev_saved_keys");
+	HANDLE_CLERROR(clReleaseMemObject(dev_partial_hashes), "Error Releasing dev_partial_hashes");
+
 	MEM_FREE(res_hashes);
 }
 
