@@ -1,8 +1,9 @@
 /*
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>
- * and Copyright (c) 2012 magnum, and it is hereby released to the general
- * public under the following terms: Redistribution and use in source and
- * binary forms, with or without modification, are permitted.
+ * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>,
+ * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012 magnum,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #include "opencl_device_info.h"
@@ -17,7 +18,7 @@
 
 /* Workaround for driver bug seen in version 295.49 */
 #if gpu_nvidia(DEVICE_INFO)
-#define MAYBE_CONSTANT __global const
+#define MAYBE_CONSTANT	__global const
 #else
 #define MAYBE_CONSTANT	__constant
 #endif
@@ -58,6 +59,16 @@ typedef struct {
 	uint partial[5];
 } wpapsk_state;
 
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+#define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
+#else
+#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
+#define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
+#endif
+
+#if gpu_nvidia(DEVICE_INFO) /* Lukas' original SHA-1 */
+
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
 #define INIT_C			0x98badcfe
@@ -87,14 +98,6 @@ typedef struct {
 #endif
 
 #define F4(x, y, z)		(x ^ y ^ z)
-
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
-#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
-#define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
-#else
-#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
-#define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
-#endif
 
 #if 1 // Significantly faster, at least on nvidia
 #define S(x, n)	rotate((x), (uint)(n))
@@ -333,6 +336,7 @@ typedef struct {
 	}
 
 #define sha1_block(b, o) {	\
+		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -347,6 +351,7 @@ typedef struct {
 	}
 
 #define sha1_block_short(b, o) {	\
+		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -360,6 +365,145 @@ typedef struct {
 		o[4] += E; \
 	}
 
+#else // Milen's SHA-1, faster for AMD
+
+#ifdef USE_BITSELECT
+#pragma OPENCL EXTENSION cl_amd_media_ops : enable
+#define F_00_19(bb, cc, dd) (bitselect((dd), (cc), (bb)))
+#define F_20_39(bb, cc, dd)  ((bb) ^ (cc) ^ (dd))
+#define F_40_59(bb, cc, dd) (bitselect((cc), (bb), ((dd)^(cc))))
+#define F_60_79(bb, cc, dd)  F_20_39((bb), (cc), (dd))
+#else
+#define F_00_19(bb, cc, dd)  ((((cc) ^ (dd)) & (bb)) ^ (dd))
+#define F_20_39(bb, cc, dd)  ((cc) ^ (bb) ^ (dd))
+#define F_40_59(bb, cc, dd)  (((bb) & (cc)) | (((bb)|(cc)) & (dd)))
+#define F_60_79(bb, cc, dd)  F_20_39(bb, cc, dd)
+#endif
+
+#define ROTATE1(aa, bb, cc, dd, ee, x) (ee) = (ee) + rotate((aa), S2) + F_00_19((bb), (cc), (dd)) + (x); (ee) = (ee) + K; (bb) = rotate((bb), S3)
+#define ROTATE1_NULL(aa, bb, cc, dd, ee)  (ee) = (ee) + rotate((aa), S2) + F_00_19((bb), (cc), (dd)) + K; (bb) = rotate((bb), S3)
+#define ROTATE2_F(aa, bb, cc, dd, ee, x) (ee) = (ee) + rotate((aa), S2) + F_20_39((bb), (cc), (dd)) + (x) + K; (bb) = rotate((bb), S3)
+#define ROTATE3_F(aa, bb, cc, dd, ee, x) (ee) = (ee) + rotate((aa), S2) + F_40_59((bb), (cc), (dd)) + (x) + K; (bb) = rotate((bb), S3)
+#define ROTATE4_F(aa, bb, cc, dd, ee, x) (ee) = (ee) + rotate((aa), S2) + F_60_79((bb), (cc), (dd)) + (x) + K; (bb) = rotate((bb), S3)
+
+#define S1 1U
+#define S2 5U
+#define S3 30U
+
+#define H0 (uint)0x67452301
+#define H1 (uint)0xEFCDAB89
+#define H2 (uint)0x98BADCFE
+#define H3 (uint)0x10325476
+#define H4 (uint)0xC3D2E1F0
+
+/* raw'n'lean sha1, context kept in output buffer.
+   Note that we thrash the input buffer! */
+#define sha1_block(W, output) {	  \
+		uint K, A, B, C, D, E, temp; \
+		A = output[0]; \
+		B = output[1]; \
+		C = output[2]; \
+		D = output[3]; \
+		E = output[4]; \
+		K = 0x5A827999; \
+		ROTATE1(A, B, C, D, E, W[0]); \
+		ROTATE1(E, A, B, C, D, W[1]); \
+		ROTATE1(D, E, A, B, C, W[2]); \
+		ROTATE1(C, D, E, A, B, W[3]); \
+		ROTATE1(B, C, D, E, A, W[4]); \
+		ROTATE1(A, B, C, D, E, W[5]); \
+		ROTATE1(E, A, B, C, D, W[6]); \
+		ROTATE1(D, E, A, B, C, W[7]); \
+		ROTATE1(C, D, E, A, B, W[8]); \
+		ROTATE1(B, C, D, E, A, W[9]); \
+		ROTATE1(A, B, C, D, E, W[10]); \
+		ROTATE1(E, A, B, C, D, W[11]); \
+		ROTATE1(D, E, A, B, C, W[12]); \
+		ROTATE1(C, D, E, A, B, W[13]); \
+		ROTATE1(B, C, D, E, A, W[14]); \
+		ROTATE1(A, B, C, D, E, W[15]); \
+		temp = rotate((W[13] ^ W[8] ^ W[2] ^ W[0]), S1); ROTATE1(E, A, B, C, D, temp); \
+		W[0] = rotate((W[14] ^ W[9] ^ W[3] ^ W[1]), S1); ROTATE1(D, E, A, B, C, W[0]); \
+		W[1] = rotate((W[15] ^ W[10] ^ W[4] ^ W[2]), S1); ROTATE1(C, D, E, A, B, W[1]); \
+		W[2] = rotate((temp ^ W[11] ^ W[5] ^ W[3]), S1);  ROTATE1(B, C, D, E, A, W[2]); \
+		K = 0x6ED9EBA1; \
+		W[3] = rotate((W[0] ^ W[12] ^ W[6] ^ W[4]), S1); ROTATE2_F(A, B, C, D, E, W[3]); \
+		W[4] = rotate((W[1] ^ W[13] ^ W[7] ^ W[5]), S1); ROTATE2_F(E, A, B, C, D, W[4]); \
+		W[5] = rotate((W[2] ^ W[14] ^ W[8] ^ W[6]), S1); ROTATE2_F(D, E, A, B, C, W[5]); \
+		W[6] = rotate((W[3] ^ W[15] ^ W[9] ^ W[7]), S1); ROTATE2_F(C, D, E, A, B, W[6]); \
+		W[7] = rotate((W[4] ^ temp ^ W[10] ^ W[8]), S1); ROTATE2_F(B, C, D, E, A, W[7]); \
+		W[8] = rotate((W[5] ^ W[0] ^ W[11] ^ W[9]), S1); ROTATE2_F(A, B, C, D, E, W[8]); \
+		W[9] = rotate((W[6] ^ W[1] ^ W[12] ^ W[10]), S1); ROTATE2_F(E, A, B, C, D, W[9]); \
+		W[10] = rotate((W[7] ^ W[2] ^ W[13] ^ W[11]), S1); ROTATE2_F(D, E, A, B, C, W[10]); \
+		W[11] = rotate((W[8] ^ W[3] ^ W[14] ^ W[12]), S1); ROTATE2_F(C, D, E, A, B, W[11]); \
+		W[12] = rotate((W[9] ^ W[4] ^ W[15] ^ W[13]), S1); ROTATE2_F(B, C, D, E, A, W[12]); \
+		W[13] = rotate((W[10] ^ W[5] ^ temp ^ W[14]), S1); ROTATE2_F(A, B, C, D, E, W[13]); \
+		W[14] = rotate((W[11] ^ W[6] ^ W[0] ^ W[15]), S1); ROTATE2_F(E, A, B, C, D, W[14]); \
+		W[15] = rotate((W[12] ^ W[7] ^ W[1] ^ temp), S1); ROTATE2_F(D, E, A, B, C, W[15]); \
+		temp = rotate((W[13] ^ W[8] ^ W[2] ^ W[0]), S1); ROTATE2_F(C, D, E, A, B, temp); \
+		W[0] = rotate(W[14] ^ W[9] ^ W[3] ^ W[1], S1); ROTATE2_F(B, C, D, E, A, W[0]); \
+		W[1] = rotate(W[15] ^ W[10] ^ W[4] ^ W[2], S1); ROTATE2_F(A, B, C, D, E, W[1]); \
+		W[2] = rotate(temp ^ W[11] ^ W[5] ^ W[3], S1); ROTATE2_F(E, A, B, C, D, W[2]); \
+		W[3] = rotate(W[0] ^ W[12] ^ W[6] ^ W[4], S1); ROTATE2_F(D, E, A, B, C, W[3]); \
+		W[4] = rotate(W[1] ^ W[13] ^ W[7] ^ W[5], S1); ROTATE2_F(C, D, E, A, B, W[4]); \
+		W[5] = rotate(W[2] ^ W[14] ^ W[8] ^ W[6], S1); ROTATE2_F(B, C, D, E, A, W[5]); \
+		K = 0x8F1BBCDC; \
+		W[6] = rotate(W[3] ^ W[15] ^ W[9] ^ W[7], S1); ROTATE3_F(A, B, C, D, E, W[6]); \
+		W[7] = rotate(W[4] ^ temp ^ W[10] ^ W[8], S1); ROTATE3_F(E, A, B, C, D, W[7]); \
+		W[8] = rotate(W[5] ^ W[0] ^ W[11] ^ W[9], S1); ROTATE3_F(D, E, A, B, C, W[8]); \
+		W[9] = rotate(W[6] ^ W[1] ^ W[12] ^ W[10], S1); ROTATE3_F(C, D, E, A, B, W[9]); \
+		W[10] = rotate(W[7] ^ W[2] ^ W[13] ^ W[11], S1); ROTATE3_F(B, C, D, E, A, W[10]); \
+		W[11] = rotate(W[8] ^ W[3] ^ W[14] ^ W[12], S1); ROTATE3_F(A, B, C, D, E, W[11]); \
+		W[12] = rotate(W[9] ^ W[4] ^ W[15] ^ W[13], S1); ROTATE3_F(E, A, B, C, D, W[12]); \
+		W[13] = rotate(W[10] ^ W[5] ^ temp ^ W[14], S1); ROTATE3_F(D, E, A, B, C, W[13]); \
+		W[14] = rotate(W[11] ^ W[6] ^ W[0] ^ W[15], S1); ROTATE3_F(C, D, E, A, B, W[14]); \
+		W[15] = rotate(W[12] ^ W[7] ^ W[1] ^ temp, S1); ROTATE3_F(B, C, D, E, A, W[15]); \
+		temp = rotate(W[13] ^ W[8] ^ W[2] ^ W[0], S1); ROTATE3_F(A, B, C, D, E, temp); \
+		W[0] = rotate(W[14] ^ W[9] ^ W[3] ^ W[1], S1); ROTATE3_F(E, A, B, C, D, W[0]); \
+		W[1] = rotate(W[15] ^ W[10] ^ W[4] ^ W[2], S1); ROTATE3_F(D, E, A, B, C, W[1]); \
+		W[2] = rotate(temp ^ W[11] ^ W[5] ^ W[3], S1); ROTATE3_F(C, D, E, A, B, W[2]); \
+		W[3] = rotate(W[0] ^ W[12] ^ W[6] ^ W[4], S1); ROTATE3_F(B, C, D, E, A, W[3]); \
+		W[4] = rotate(W[1] ^ W[13] ^ W[7] ^ W[5], S1); ROTATE3_F(A, B, C, D, E, W[4]); \
+		W[5] = rotate(W[2] ^ W[14] ^ W[8] ^ W[6], S1); ROTATE3_F(E, A, B, C, D, W[5]); \
+		W[6] = rotate(W[3] ^ W[15] ^ W[9] ^ W[7], S1); ROTATE3_F(D, E, A, B, C, W[6]); \
+		W[7] = rotate(W[4] ^ temp ^ W[10] ^ W[8], S1); ROTATE3_F(C, D, E, A, B, W[7]); \
+		W[8] = rotate(W[5] ^ W[0] ^ W[11] ^ W[9], S1); ROTATE3_F(B, C, D, E, A, W[8]); \
+		K = 0xCA62C1D6; \
+		W[9] = rotate(W[6] ^ W[1] ^ W[12] ^ W[10], S1); ROTATE4_F(A, B, C, D, E, W[9]); \
+		W[10] = rotate(W[7] ^ W[2] ^ W[13] ^ W[11], S1); ROTATE4_F(E, A, B, C, D, W[10]); \
+		W[11] = rotate(W[8] ^ W[3] ^ W[14] ^ W[12], S1); ROTATE4_F(D, E, A, B, C, W[11]); \
+		W[12] = rotate(W[9] ^ W[4] ^ W[15] ^ W[13], S1); ROTATE4_F(C, D, E, A, B, W[12]); \
+		W[13] = rotate(W[10] ^ W[5] ^ temp ^ W[14], S1); ROTATE4_F(B, C, D, E, A, W[13]); \
+		W[14] = rotate(W[11] ^ W[6] ^ W[0] ^ W[15], S1); ROTATE4_F(A, B, C, D, E, W[14]); \
+		W[15] = rotate(W[12] ^ W[7] ^ W[1] ^ temp, S1); ROTATE4_F(E, A, B, C, D, W[15]); \
+		temp = rotate(W[13] ^ W[8] ^ W[2] ^ W[0], S1); ROTATE4_F(D, E, A, B, C, temp); \
+		W[0] = rotate(W[14] ^ W[9] ^ W[3] ^ W[1], S1); ROTATE4_F(C, D, E, A, B, W[0]); \
+		W[1] = rotate(W[15] ^ W[10] ^ W[4] ^ W[2], S1); ROTATE4_F(B, C, D, E, A, W[1]); \
+		W[2] = rotate(temp ^ W[11] ^ W[5] ^ W[3], S1); ROTATE4_F(A, B, C, D, E, W[2]); \
+		W[3] = rotate(W[0] ^ W[12] ^ W[6] ^ W[4], S1); ROTATE4_F(E, A, B, C, D, W[3]); \
+		W[4] = rotate(W[1] ^ W[13] ^ W[7] ^ W[5], S1); ROTATE4_F(D, E, A, B, C, W[4]); \
+		W[5] = rotate(W[2] ^ W[14] ^ W[8] ^ W[6], S1); ROTATE4_F(C, D, E, A, B, W[5]); \
+		W[6] = rotate(W[3] ^ W[15] ^ W[9] ^ W[7], S1); ROTATE4_F(B, C, D, E, A, W[6]); \
+		W[7] = rotate(W[4] ^ temp ^ W[10] ^ W[8], S1); ROTATE4_F(A, B, C, D, E, W[7]); \
+		W[8] = rotate(W[5] ^ W[0] ^ W[11] ^ W[9], S1); ROTATE4_F(E, A, B, C, D, W[8]); \
+		W[9] = rotate(W[6] ^ W[1] ^ W[12] ^ W[10], S1); ROTATE4_F(D, E, A, B, C, W[9]); \
+		W[10] = rotate(W[7] ^ W[2] ^ W[13] ^ W[11], S1); ROTATE4_F(C, D, E, A, B, W[10]); \
+		W[11] = rotate(W[8] ^ W[3] ^ W[14] ^ W[12], S1); ROTATE4_F(B, C, D, E, A, W[11]); \
+		output[0] += A; \
+		output[1] += B; \
+		output[2] += C; \
+		output[3] += D; \
+		output[4] += E; \
+	}
+
+#define sha1_init(output) {	  \
+		output[0] = H0; \
+		output[1] = H1; \
+		output[2] = H2; \
+		output[3] = H3; \
+		output[4] = H4; \
+	}
+#endif /* Lukas or Milen */
 
 /* The basic MD5 functions */
 #ifdef USE_BITSELECT
@@ -383,111 +527,108 @@ typedef struct {
 
 /* Raw'n'lean MD5 with context in output buffer */
 /* NOTE: This version thrashes the input block! */
-inline void md5_block(uint *W, uint *output)
-{
-	uint a, b, c, d;
-
-	a = output[0];
-	b = output[1];
-	c = output[2];
-	d = output[3];
-
-	/* Round 1 */
-	STEP(F, a, b, c, d, W[0], 0xd76aa478, 7);
-	STEP(F, d, a, b, c, W[1], 0xe8c7b756, 12);
-	STEP(F, c, d, a, b, W[2], 0x242070db, 17);
-	STEP(F, b, c, d, a, W[3], 0xc1bdceee, 22);
-	STEP(F, a, b, c, d, W[4], 0xf57c0faf, 7);
-	STEP(F, d, a, b, c, W[5], 0x4787c62a, 12);
-	STEP(F, c, d, a, b, W[6], 0xa8304613, 17);
-	STEP(F, b, c, d, a, W[7], 0xfd469501, 22);
-	STEP(F, a, b, c, d, W[8], 0x698098d8, 7);
-	STEP(F, d, a, b, c, W[9], 0x8b44f7af, 12);
-	STEP(F, c, d, a, b, W[10], 0xffff5bb1, 17);
-	STEP(F, b, c, d, a, W[11], 0x895cd7be, 22);
-	STEP(F, a, b, c, d, W[12], 0x6b901122, 7);
-	STEP(F, d, a, b, c, W[13], 0xfd987193, 12);
-	STEP(F, c, d, a, b, W[14], 0xa679438e, 17);
-	STEP(F, b, c, d, a, W[15], 0x49b40821, 22);
-
-	/* Round 2 */
-	STEP(G, a, b, c, d, W[1], 0xf61e2562, 5);
-	STEP(G, d, a, b, c, W[6], 0xc040b340, 9);
-	STEP(G, c, d, a, b, W[11], 0x265e5a51, 14);
-	STEP(G, b, c, d, a, W[0], 0xe9b6c7aa, 20);
-	STEP(G, a, b, c, d, W[5], 0xd62f105d, 5);
-	STEP(G, d, a, b, c, W[10], 0x02441453, 9);
-	STEP(G, c, d, a, b, W[15], 0xd8a1e681, 14);
-	STEP(G, b, c, d, a, W[4], 0xe7d3fbc8, 20);
-	STEP(G, a, b, c, d, W[9], 0x21e1cde6, 5);
-	STEP(G, d, a, b, c, W[14], 0xc33707d6, 9);
-	STEP(G, c, d, a, b, W[3], 0xf4d50d87, 14);
-	STEP(G, b, c, d, a, W[8], 0x455a14ed, 20);
-	STEP(G, a, b, c, d, W[13], 0xa9e3e905, 5);
-	STEP(G, d, a, b, c, W[2], 0xfcefa3f8, 9);
-	STEP(G, c, d, a, b, W[7], 0x676f02d9, 14);
-	STEP(G, b, c, d, a, W[12], 0x8d2a4c8a, 20);
-
-	/* Round 3 */
-	STEP(H, a, b, c, d, W[5], 0xfffa3942, 4);
-	STEP(H, d, a, b, c, W[8], 0x8771f681, 11);
-	STEP(H, c, d, a, b, W[11], 0x6d9d6122, 16);
-	STEP(H, b, c, d, a, W[14], 0xfde5380c, 23);
-	STEP(H, a, b, c, d, W[1], 0xa4beea44, 4);
-	STEP(H, d, a, b, c, W[4], 0x4bdecfa9, 11);
-	STEP(H, c, d, a, b, W[7], 0xf6bb4b60, 16);
-	STEP(H, b, c, d, a, W[10], 0xbebfbc70, 23);
-	STEP(H, a, b, c, d, W[13], 0x289b7ec6, 4);
-	STEP(H, d, a, b, c, W[0], 0xeaa127fa, 11);
-	STEP(H, c, d, a, b, W[3], 0xd4ef3085, 16);
-	STEP(H, b, c, d, a, W[6], 0x04881d05, 23);
-	STEP(H, a, b, c, d, W[9], 0xd9d4d039, 4);
-	STEP(H, d, a, b, c, W[12], 0xe6db99e5, 11);
-	STEP(H, c, d, a, b, W[15], 0x1fa27cf8, 16);
-	STEP(H, b, c, d, a, W[2], 0xc4ac5665, 23);
-
-	/* Round 4 */
-	STEP(I, a, b, c, d, W[0], 0xf4292244, 6);
-	STEP(I, d, a, b, c, W[7], 0x432aff97, 10);
-	STEP(I, c, d, a, b, W[14], 0xab9423a7, 15);
-	STEP(I, b, c, d, a, W[5], 0xfc93a039, 21);
-	STEP(I, a, b, c, d, W[12], 0x655b59c3, 6);
-	STEP(I, d, a, b, c, W[3], 0x8f0ccc92, 10);
-	STEP(I, c, d, a, b, W[10], 0xffeff47d, 15);
-	STEP(I, b, c, d, a, W[1], 0x85845dd1, 21);
-	STEP(I, a, b, c, d, W[8], 0x6fa87e4f, 6);
-	STEP(I, d, a, b, c, W[15], 0xfe2ce6e0, 10);
-	STEP(I, c, d, a, b, W[6], 0xa3014314, 15);
-	STEP(I, b, c, d, a, W[13], 0x4e0811a1, 21);
-	STEP(I, a, b, c, d, W[4], 0xf7537e82, 6);
-	STEP(I, d, a, b, c, W[11], 0xbd3af235, 10);
-	STEP(I, c, d, a, b, W[2], 0x2ad7d2bb, 15);
-	STEP(I, b, c, d, a, W[9], 0xeb86d391, 21);
-
-	output[0] += a;
-	output[1] += b;
-	output[2] += c;
-	output[3] += d;
-}
+#define md5_block(block, output)  \
+	{ \
+		uint a, b, c, d; \
+		a = output[0]; \
+		b = output[1]; \
+		c = output[2]; \
+		d = output[3]; \
+		STEP(F, a, b, c, d, block[0], 0xd76aa478, 7); \
+		STEP(F, d, a, b, c, block[1], 0xe8c7b756, 12); \
+		STEP(F, c, d, a, b, block[2], 0x242070db, 17); \
+		STEP(F, b, c, d, a, block[3], 0xc1bdceee, 22); \
+		STEP(F, a, b, c, d, block[4], 0xf57c0faf, 7); \
+		STEP(F, d, a, b, c, block[5], 0x4787c62a, 12); \
+		STEP(F, c, d, a, b, block[6], 0xa8304613, 17); \
+		STEP(F, b, c, d, a, block[7], 0xfd469501, 22); \
+		STEP(F, a, b, c, d, block[8], 0x698098d8, 7); \
+		STEP(F, d, a, b, c, block[9], 0x8b44f7af, 12); \
+		STEP(F, c, d, a, b, block[10], 0xffff5bb1, 17); \
+		STEP(F, b, c, d, a, block[11], 0x895cd7be, 22); \
+		STEP(F, a, b, c, d, block[12], 0x6b901122, 7); \
+		STEP(F, d, a, b, c, block[13], 0xfd987193, 12); \
+		STEP(F, c, d, a, b, block[14], 0xa679438e, 17); \
+		STEP(F, b, c, d, a, block[15], 0x49b40821, 22); \
+		STEP(G, a, b, c, d, block[1], 0xf61e2562, 5); \
+		STEP(G, d, a, b, c, block[6], 0xc040b340, 9); \
+		STEP(G, c, d, a, b, block[11], 0x265e5a51, 14); \
+		STEP(G, b, c, d, a, block[0], 0xe9b6c7aa, 20); \
+		STEP(G, a, b, c, d, block[5], 0xd62f105d, 5); \
+		STEP(G, d, a, b, c, block[10], 0x02441453, 9); \
+		STEP(G, c, d, a, b, block[15], 0xd8a1e681, 14); \
+		STEP(G, b, c, d, a, block[4], 0xe7d3fbc8, 20); \
+		STEP(G, a, b, c, d, block[9], 0x21e1cde6, 5); \
+		STEP(G, d, a, b, c, block[14], 0xc33707d6, 9); \
+		STEP(G, c, d, a, b, block[3], 0xf4d50d87, 14); \
+		STEP(G, b, c, d, a, block[8], 0x455a14ed, 20); \
+		STEP(G, a, b, c, d, block[13], 0xa9e3e905, 5); \
+		STEP(G, d, a, b, c, block[2], 0xfcefa3f8, 9); \
+		STEP(G, c, d, a, b, block[7], 0x676f02d9, 14); \
+		STEP(G, b, c, d, a, block[12], 0x8d2a4c8a, 20); \
+		STEP(H, a, b, c, d, block[5], 0xfffa3942, 4); \
+		STEP(H, d, a, b, c, block[8], 0x8771f681, 11); \
+		STEP(H, c, d, a, b, block[11], 0x6d9d6122, 16); \
+		STEP(H, b, c, d, a, block[14], 0xfde5380c, 23); \
+		STEP(H, a, b, c, d, block[1], 0xa4beea44, 4); \
+		STEP(H, d, a, b, c, block[4], 0x4bdecfa9, 11); \
+		STEP(H, c, d, a, b, block[7], 0xf6bb4b60, 16); \
+		STEP(H, b, c, d, a, block[10], 0xbebfbc70, 23); \
+		STEP(H, a, b, c, d, block[13], 0x289b7ec6, 4); \
+		STEP(H, d, a, b, c, block[0], 0xeaa127fa, 11); \
+		STEP(H, c, d, a, b, block[3], 0xd4ef3085, 16); \
+		STEP(H, b, c, d, a, block[6], 0x04881d05, 23); \
+		STEP(H, a, b, c, d, block[9], 0xd9d4d039, 4); \
+		STEP(H, d, a, b, c, block[12], 0xe6db99e5, 11); \
+		STEP(H, c, d, a, b, block[15], 0x1fa27cf8, 16); \
+		STEP(H, b, c, d, a, block[2], 0xc4ac5665, 23); \
+		STEP(I, a, b, c, d, block[0], 0xf4292244, 6); \
+		STEP(I, d, a, b, c, block[7], 0x432aff97, 10); \
+		STEP(I, c, d, a, b, block[14], 0xab9423a7, 15); \
+		STEP(I, b, c, d, a, block[5], 0xfc93a039, 21); \
+		STEP(I, a, b, c, d, block[12], 0x655b59c3, 6); \
+		STEP(I, d, a, b, c, block[3], 0x8f0ccc92, 10); \
+		STEP(I, c, d, a, b, block[10], 0xffeff47d, 15); \
+		STEP(I, b, c, d, a, block[1], 0x85845dd1, 21); \
+		STEP(I, a, b, c, d, block[8], 0x6fa87e4f, 6); \
+		STEP(I, d, a, b, c, block[15], 0xfe2ce6e0, 10); \
+		STEP(I, c, d, a, b, block[6], 0xa3014314, 15); \
+		STEP(I, b, c, d, a, block[13], 0x4e0811a1, 21); \
+		STEP(I, a, b, c, d, block[4], 0xf7537e82, 6); \
+		STEP(I, d, a, b, c, block[11], 0xbd3af235, 10); \
+		STEP(I, c, d, a, b, block[2], 0x2ad7d2bb, 15); \
+		STEP(I, b, c, d, a, block[9], 0xeb86d391, 21); \
+		output[0] += a; \
+		output[1] += b; \
+		output[2] += c; \
+		output[3] += d; \
+	}
 
 
 #define md5_init(output) {	  \
-	output[0] = 0x67452301; \
-	output[1] = 0xefcdab89; \
-	output[2] = 0x98badcfe; \
-	output[3] = 0x10325476; \
+		output[0] = 0x67452301; \
+		output[1] = 0xefcdab89; \
+		output[2] = 0x98badcfe; \
+		output[3] = 0x10325476; \
+	}
+
+#define dump_stuff_msg(msg, x, size) {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < (size)/4; ii++) \
+			printf("%08x ", x[ii]); \
+		printf("\n"); \
 	}
 
 inline void preproc(__global const uchar *key, uint keylen,
                     __global uint *state, uchar var1, uint var4)
 {
 	uint i;
-	uint W[16], temp;
-	uint A = INIT_A;
-	uint B = INIT_B;
-	uint C = INIT_C;
-	uint D = INIT_D;
-	uint E = INIT_E;
+	uint W[16];
+	uint output[5];
+
+	for (i = 0; i < 5; i++)
+		output[i] = state[i];
 
 	for (i = 0; i < 16; i++)
 		W[i] = var4;
@@ -495,75 +636,52 @@ inline void preproc(__global const uchar *key, uint keylen,
 	for (i = 0; i < keylen; i++)
 		XORCHAR_BE(W, i, key[i]);
 
-	SHA1(A, B, C, D, E, W);
+	sha1_init(output);
+	sha1_block(W, output);
 
-	state[0] = A + INIT_A;
-	state[1] = B + INIT_B;
-	state[2] = C + INIT_C;
-	state[3] = D + INIT_D;
-	state[4] = E + INIT_E;
+	for (i = 0; i < 5; i++)
+		state[i] = output[i];
 }
 
-inline void hmac_sha1(__global uint *output,
+inline void hmac_sha1(__global uint *state,
                       __global uint *ipad,
                       __global uint *opad,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
-	uint W[16], temp;
-	uint A, B, C, D, E;
+	uint W[16];
+	uint output[5];
 
-	for (i = 0; i < 16; i++)
+	for (i = 0; i < 5; i++)
+		output[i] = ipad[i];
+
+	for (i = 0; i < 15; i++)
 		W[i] = 0;
 
 	for (i = 0; i < saltlen; i++)
 		PUTCHAR_BE(W, i, salt[i]);
-
 	PUTCHAR_BE(W, saltlen + 3, add);
 	PUTCHAR_BE(W, saltlen + 4, 0x80);
 	W[15] = (64 + saltlen + 4) << 3;
+	sha1_block(W, output);
 
-	A = ipad[0];
-	B = ipad[1];
-	C = ipad[2];
-	D = ipad[3];
-	E = ipad[4];
-
-	SHA1(A, B, C, D, E, W);
-
-	A += ipad[0];
-	B += ipad[1];
-	C += ipad[2];
-	D += ipad[3];
-	E += ipad[4];
-
-	W[0] = A;
-	W[1] = B;
-	W[2] = C;
-	W[3] = D;
-	W[4] = E;
+	for (i = 0; i < 5; i++)
+		W[i] = output[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
 
-	A = opad[0];
-	B = opad[1];
-	C = opad[2];
-	D = opad[3];
-	E = opad[4];
+	for (i = 0; i < 5; i++)
+		output[i] = opad[i];
+#if gpu_nvidia(DEVICE_INFO)
+	sha1_block_short(W, output);
+#else
+	for (i = 6; i < 15; i++)
+		W[i] = 0;
+	sha1_block(W, output);
+#endif
 
-	SHA1_SHORT(A, B, C, D, E, W);
-
-	A += opad[0];
-	B += opad[1];
-	C += opad[2];
-	D += opad[3];
-	E += opad[4];
-
-	output[0] = A;
-	output[1] = B;
-	output[2] = C;
-	output[3] = D;
-	output[4] = E;
+	for (i = 0; i < 5; i++)
+		state[i] = output[i];
 }
 
 __kernel void wpapsk_init(__global const wpapsk_password *inbuffer,
@@ -585,12 +703,12 @@ __kernel void wpapsk_init(__global const wpapsk_password *inbuffer,
 __kernel void wpapsk_loop(__global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
-	uint i;
-	uint temp, W[16];
+	uint i, j;
+	uint W[16];
 	uint ipad[5];
 	uint opad[5];
-	uint out[5];
-	uint A, B, C, D, E;
+	uint output[5];
+	uint state_out[5];
 
 	for (i = 0; i < 5; i++)
 		W[i] = state[gid].W[i];
@@ -599,69 +717,46 @@ __kernel void wpapsk_loop(__global wpapsk_state *state)
 	for (i = 0; i < 5; i++)
 		opad[i] = state[gid].opad[i];
 	for (i = 0; i < 5; i++)
-		out[i] = state[gid].out[i];
+		state_out[i] = state[gid].out[i];
 
-	for (i = 0; i < HASH_LOOPS; i++) {
-		A = ipad[0];
-		B = ipad[1];
-		C = ipad[2];
-		D = ipad[3];
-		E = ipad[4];
-
+	for (j = 0; j < HASH_LOOPS; j++) {
+		for (i = 0; i < 5; i++)
+			output[i] = ipad[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
+#if gpu_nvidia(DEVICE_INFO)
+		sha1_block_short(W, output);
+#else
+		for (i = 6; i < 15; i++)
+			W[i] = 0;
+		sha1_block(W, output);
+#endif
 
-		SHA1_SHORT(A, B, C, D, E, W);
-
-		A += ipad[0];
-		B += ipad[1];
-		C += ipad[2];
-		D += ipad[3];
-		E += ipad[4];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
+		for (i = 0; i < 5; i++)
+			W[i] = output[i];
 		W[5] = 0x80000000;
 		W[15] = (64 + 20) << 3;
+		for (i = 0; i < 5; i++)
+			output[i] = opad[i];
+#if gpu_nvidia(DEVICE_INFO)
+		sha1_block_short(W, output);
+#else
+		for (i = 6; i < 15; i++)
+			W[i] = 0;
+		sha1_block(W, output);
+#endif
 
-		A = opad[0];
-		B = opad[1];
-		C = opad[2];
-		D = opad[3];
-		E = opad[4];
+		for (i = 0; i < 5; i++)
+			W[i] = output[i];
 
-		SHA1_SHORT(A, B, C, D, E, W);
-
-		A += opad[0];
-		B += opad[1];
-		C += opad[2];
-		D += opad[3];
-		E += opad[4];
-
-		W[0] = A;
-		W[1] = B;
-		W[2] = C;
-		W[3] = D;
-		W[4] = E;
-
-		out[0] ^= A;
-		out[1] ^= B;
-		out[2] ^= C;
-		out[3] ^= D;
-		out[4] ^= E;
+		for (i = 0; i < 5; i++)
+			state_out[i] ^= output[i];
 	}
 
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = W[i];
 	for (i = 0; i < 5; i++)
-		state[gid].ipad[i] = ipad[i];
-	for (i = 0; i < 5; i++)
-		state[gid].opad[i] = opad[i];
-	for (i = 0; i < 5; i++)
-		state[gid].out[i] = out[i];
+		state[gid].out[i] = state_out[i];
 }
 
 __kernel void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
@@ -681,34 +776,25 @@ __kernel void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 		state[gid].W[i] = state[gid].out[i];
 }
 
-#define dump_stuff_msg(msg, x, size) {	  \
-		uint ii; \
-		printf("%s : ", msg); \
-		for (ii = 0; ii < (size)/4; ii++) \
-			printf("%08x ", x[ii]); \
-		printf("\n"); \
-	}
-
 inline void prf_512(const uint *key, MAYBE_CONSTANT uint *data, uint *ret)
 {
 	//const uchar *text = "Pairwise key expansion\0";
 	//const uint text[6] = { 0x72696150, 0x65736977, 0x79656b20, 0x70786520, 0x69736e61, 0x00006e6f };
 	const uint text[6] = { 0x50616972, 0x77697365, 0x206b6579, 0x20657870, 0x616e7369, 0x6f6e0000 };
 	uint i;
-	uint output[5];
-	uint hash[5];
-	uint W[16], temp;
-	uint A, B, C, D, E;
+	uint W[16];
+	uint ipad[5];
+	uint opad[5];
 
 	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
 
+	/* ipad */
 	for (i = 0; i < 8; i++)
 		W[i] = 0x36363636 ^ key[i]; // key is already swapped
 	for (i = 8; i < 16; i++)
 		W[i] = 0x36363636;
-
-	sha1_init(output);
-	sha1_block(W, output); // update(ipad)
+	sha1_init(ipad);
+	sha1_block(W, ipad); // update(ipad)
 
 	/* 64 first bytes */
 	for (i = 0; i < 6; i++)
@@ -718,8 +804,7 @@ inline void prf_512(const uint *key, MAYBE_CONSTANT uint *data, uint *ret)
 		W[i + 1] = *data++ << 8;
 	}
 	W[15] |= *data >> 24;
-
-	sha1_block(W, output); // update(data)
+	sha1_block(W, ipad); // update(data)
 
 	/* 36 remaining bytes */
 	W[0] = *data++ << 8;
@@ -731,39 +816,42 @@ inline void prf_512(const uint *key, MAYBE_CONSTANT uint *data, uint *ret)
 	for (i = 10; i < 15; i++)
 		W[i] = 0;
 	W[15] = (64 + 100) << 3;
+	sha1_block(W, ipad); // update(data) + final
 
-	sha1_block(W, output); // update(data) + final
-
-	for (i = 0; i < 5; i++)
-		hash[i] = output[i];
+	/* opad */
 	for (i = 0; i < 8; i++)
 		W[i] = 0x5c5c5c5c ^ key[i];
 	for (i = 8; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
-
-	sha1_init(output);
-	sha1_block(W, output); // update(opad)
+	sha1_init(opad);
+	sha1_block(W, opad); // update(opad)
 
 	for (i = 0; i < 5; i++)
-		W[i] = hash[i];
+		W[i] = ipad[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
-	sha1_block_short(W, output); // update(digest) + final
+#if gpu_nvidia(DEVICE_INFO)
+	sha1_block_short(W, opad);
+#else
+	for (i = 6; i < 15; i++)
+		W[i] = 0;
+	sha1_block(W, opad); // update(digest) + final
+#endif
 
 	/* Only 16 bits used */
 	for (i = 0; i < 4; i++)
-		ret[i] = output[i];
+		ret[i] = opad[i];
 }
 
 __kernel void wpapsk_final_md5(__global wpapsk_state *state,
                                MAYBE_CONSTANT wpapsk_salt *salt,
                                __global mic_t *mic)
 {
+	uint gid = get_global_id(0);
 	uint outbuffer[8];
 	uint prf[4];
 	uint W[16];
-	uint output[4], hash[4];
-	uint gid = get_global_id(0);
+	uint ipad[4], opad[4];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
 
@@ -778,45 +866,42 @@ __kernel void wpapsk_final_md5(__global wpapsk_state *state,
 	// HMAC(EVP_md5(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size blocks, already prepared with 0x80 and len)
-	md5_init(output);
 	for (i = 0; i < 4; i++)
 		W[i] = 0x36363636 ^ SWAP32(prf[i]);
 	for (i = 4; i < 16; i++)
 		W[i] = 0x36363636;
-	md5_block(W, output); /* md5_update(ipad, 64) */
+	md5_init(ipad);
+	md5_block(W, ipad); /* md5_update(ipad, 64) */
 
 	/* eapol_blocks (of MD5),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
 	eapol_blocks = salt->eapol_size;
-	//printf("md5 eapol blocks: %u\n", eapol_blocks);
 
 	/* At least this will not diverge */
 	while (eapol_blocks--) {
 		for (i = 0; i < 16; i++)
 			W[i] = *cp++;
-		md5_block(W, output); /* md5_update(), md5_final() */
+		md5_block(W, ipad); /* md5_update(), md5_final() */
 	}
 
-	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-	md5_init(output);
 	for (i = 0; i < 4; i++)
 		W[i] = 0x5c5c5c5c ^ SWAP32(prf[i]);
 	for (i = 4; i < 16; i++)
 		W[i] = 0x5c5c5c5c;
-	md5_block(W, output); /* md5_update(opad, 64) */
+	md5_init(opad);
+	md5_block(W, opad); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
-		W[i] = hash[i];
+		W[i] = ipad[i];
 	W[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		W[i] = 0;
 	W[14] = (64 + 16) << 3;
 	W[15] = 0;
-	md5_block(W, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(W, opad); /* md5_update(ipad, 16), md5_final() */
 
 	for (i = 0; i < 4; i++)
-		mic[gid].keymic[i] = output[i];
+		mic[gid].keymic[i] = opad[i];
 }
 
 __kernel void wpapsk_final_sha1(__global wpapsk_state *state,
@@ -826,10 +911,9 @@ __kernel void wpapsk_final_sha1(__global wpapsk_state *state,
 	uint outbuffer[8];
 	uint prf[4];
 	uint gid = get_global_id(0);
+	uint W[16];
 	uint ipad[5];
 	uint opad[5];
-	uint W[16], temp;
-	uint A, B, C, D, E;
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
 
@@ -844,61 +928,12 @@ __kernel void wpapsk_final_sha1(__global wpapsk_state *state,
 	// HMAC(EVP_sha1(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
 	// eapol is the message (eapol_size bytes)
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-
 	for (i = 0; i < 4; i++)
 		W[i] = 0x36363636 ^ prf[i];
 	for (i = 4; i < 16; i++)
 		W[i] = 0x36363636;
-
-	SHA1(A, B, C, D, E, W);
-
-	A += INIT_A;
-	B += INIT_B;
-	C += INIT_C;
-	D += INIT_D;
-	E += INIT_E;
-
-	ipad[0] = A;
-	ipad[1] = B;
-	ipad[2] = C;
-	ipad[3] = D;
-	ipad[4] = E;
-
-	A = INIT_A;
-	B = INIT_B;
-	C = INIT_C;
-	D = INIT_D;
-	E = INIT_E;
-
-	for (i = 0; i < 4; i++)
-		W[i] = 0x5c5c5c5c ^ prf[i];
-	for (i = 4; i < 16; i++)
-		W[i] = 0x5c5c5c5c;
-
-	SHA1(A, B, C, D, E, W);
-
-	A += INIT_A;
-	B += INIT_B;
-	C += INIT_C;
-	D += INIT_D;
-	E += INIT_E;
-
-	opad[0] = A;
-	opad[1] = B;
-	opad[2] = C;
-	opad[3] = D;
-	opad[4] = E;
-
-	A = ipad[0];
-	B = ipad[1];
-	C = ipad[2];
-	D = ipad[3];
-	E = ipad[4];
+	sha1_init(ipad);
+	sha1_block(W, ipad);
 
 	/* eapol_blocks (of SHA1),
 	 * eapol data + 0x80, null padded and len set in set_salt() */
@@ -909,40 +944,30 @@ __kernel void wpapsk_final_sha1(__global wpapsk_state *state,
 		for (i = 0; i < 16; i++)
 			W[i] = *cp++;
 
-		SHA1(A, B, C, D, E, W);
-
-		A += ipad[0];
-		B += ipad[1];
-		C += ipad[2];
-		D += ipad[3];
-		E += ipad[4];
-
-		ipad[0] = A;
-		ipad[1] = B;
-		ipad[2] = C;
-		ipad[3] = D;
-		ipad[4] = E;
+		sha1_block(W, ipad);
 	}
 
-	W[0] = A;
-	W[1] = B;
-	W[2] = C;
-	W[3] = D;
-	W[4] = E;
+	for (i = 0; i < 4; i++)
+		W[i] = 0x5c5c5c5c ^ prf[i];
+	for (i = 4; i < 16; i++)
+		W[i] = 0x5c5c5c5c;
+
+	sha1_init(opad);
+	sha1_block(W, opad);
+
+	for (i = 0; i < 5; i++)
+		W[i] = ipad[i];
 	W[5] = 0x80000000;
 	W[15] = (64 + 20) << 3;
-
-	A = opad[0];
-	B = opad[1];
-	C = opad[2];
-	D = opad[3];
-	E = opad[4];
-
-	SHA1_SHORT(A, B, C, D, E, W);
+#if gpu_nvidia(DEVICE_INFO)
+	sha1_block_short(W, opad);
+#else
+	for (i = 6; i < 15; i++)
+		W[i] = 0;
+	sha1_block(W, opad);
+#endif
 
 	/* We only use 16 bytes */
-	mic[gid].keymic[0] = SWAP32(A + opad[0]);
-	mic[gid].keymic[1] = SWAP32(B + opad[1]);
-	mic[gid].keymic[2] = SWAP32(C + opad[2]);
-	mic[gid].keymic[3] = SWAP32(D + opad[3]);
+	for (i = 0; i < 4; i++)
+		mic[gid].keymic[i] = SWAP32(opad[i]);
 }
