@@ -39,6 +39,9 @@ static int omp_t = 1;
 static struct fmt_tests mongodb_tests[] = {
 	{"$mongodb$0$sa$75692b1d11c072c6c79332e248c4f699", "sa"},
 	{"$mongodb$1$sa$58d3229c83e3f87e$0c85e3f74adce5d037426791940c820a", "sa"},
+	/* Ettercap generated test vectors */
+	{"$mongodb$1$sa$10441db416a99ffc$797d7e18879446845f10ae9d519960b2", "longpassword"},
+	{"$mongodb$1$longusername$86336266301fb552$1abe48bac6ad0bf567ab51b094f026a9", "longpassword"},
 	{NULL}
 };
 
