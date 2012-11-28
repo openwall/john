@@ -4,6 +4,11 @@
  *
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
  *
+ * Note: using myrice idea.
+ * Please note that in current comparison function, we use computed a77
+ * compares with ciphertext d80. For more details, refer to:
+ * http://www.openwall.com/lists/john-dev/2012/04/11/13
+ * 
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
