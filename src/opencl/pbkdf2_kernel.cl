@@ -20,6 +20,14 @@
 #define INIT_SHA1_D                 0x10325476
 #define INIT_SHA1_E                 0xC3D2E1F0
 
+typedef struct {
+	    
+	    unsigned int istate[5] ;
+	    unsigned int ostate[5] ; 
+	    unsigned int buf[5] ;
+	    unsigned int out[4] ;
+	    
+} temp_buf ; 
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
@@ -539,81 +547,12 @@ inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private 
 	PUT_WORD_32_BE(A[4], buf, 4);
 }
 
-inline void hmac_sha1_iter(__private uint *istate, __private uint *ostate, __private uint *buf, __private uint *out)
-{
-	unsigned int i;
-	uint A[5], W[16];
-
-	for (i = 1; i < ITERATIONS; i++) {
-		W[0] = buf[0];
-		W[1] = buf[1];
-		W[2] = buf[2];
-		W[3] = buf[3];
-		W[4] = buf[4];
-		W[5] = 0x80000000;
-		W[6] = 0;
-		W[7] = 0;
-		W[8] = 0;
-		W[9] = 0;
-		W[10] = 0;
-		W[11] = 0;
-		W[12] = 0;
-		W[13] = 0;
-		W[14] = 0;
-		W[15] = 0x2A0;
-
-		A[0] = istate[0];
-		A[1] = istate[1];
-		A[2] = istate[2];
-		A[3] = istate[3];
-		A[4] = istate[4];
-
-		SHA1_digest(A, W);
-
-		W[0] = A[0] + istate[0];
-		W[1] = A[1] + istate[1];
-		W[2] = A[2] + istate[2];
-		W[3] = A[3] + istate[3];
-		W[4] = A[4] + istate[4];
-		W[5] = 0x80000000;
-		W[6] = 0;
-		W[7] = 0;
-		W[8] = 0;
-		W[9] = 0;
-		W[10] = 0;
-		W[11] = 0;
-		W[12] = 0;
-		W[13] = 0;
-		W[14] = 0;
-		W[15] = 0x2A0;
-
-		A[0] = ostate[0];
-		A[1] = ostate[1];
-		A[2] = ostate[2];
-		A[3] = ostate[3];
-		A[4] = ostate[4];
-
-		SHA1_digest(A, W);
-
-		buf[0] = A[0] + ostate[0];
-		buf[1] = A[1] + ostate[1];
-		buf[2] = A[2] + ostate[2];
-		buf[3] = A[3] + ostate[3];
-		buf[4] = A[4] + ostate[4];
-
-		out[0] ^= buf[0];
-		out[1] ^= buf[1];
-		out[2] ^= buf[2];
-		out[3] ^= buf[3];
-	}
-}
-
 __kernel 
-void PBKDF2 ( const __global unsigned int *pass_global, 
+void pbkdf2_preprocess ( const __global unsigned int *pass_global, 
               const __global unsigned int *salt, 
               int usrlen,  
               uint num_keys,
-	      __global unsigned int *out_global)
+	      __global temp_buf *tmp)
 {
 	int lid = get_local_id(0);
 	
@@ -693,12 +632,142 @@ void PBKDF2 ( const __global unsigned int *pass_global,
 	out[1] = buf[1];
 	out[2] = buf[2];
 	out[3] = buf[3];
-
-	hmac_sha1_iter(istate, ostate, buf, out);
-
-	i = id * 4;
-	PUT_WORD_32_BE(out[0], out_global, i++);
-	PUT_WORD_32_BE(out[1], out_global, i++);
-	PUT_WORD_32_BE(out[2], out_global, i++);
-	PUT_WORD_32_BE(out[3], out_global, i);
+	
+	for( i = 0 ; i< 5 ;i++) {
+	
+		tmp[id].istate[i] = istate[i] ;
+		tmp[id].ostate[i] = ostate[i] ;
+		tmp[id].buf[i]    = buf[i] ;  
+		
+		if(i < 4) {
+		
+			tmp[id].out[i] = out[i] ;
+		}
+	
+	}
+	
 }
+
+
+__kernel
+void pbkdf2_iter(__global temp_buf *tmp,
+		 uint itr_count )
+{  
+   uint id = get_global_id(0) ;
+   uint i;
+   uint istate[5],ostate[5],buf[5],out[4];
+   uint A[5], W[16];
+   
+   for( i = 0 ; i< 5 ;i++) {
+	
+		 istate[i] = tmp[id].istate[i];
+		 ostate[i] = tmp[id].ostate[i];
+		 buf[i]    = tmp[id].buf[i];  
+		 
+		if(i < 4) {
+		
+			 out[i] = tmp[id].out[i] ;
+		}
+	
+	}
+
+    	for (i = 0; i < itr_count; i++) {
+		W[0] = buf[0];
+		W[1] = buf[1];
+		W[2] = buf[2];
+		W[3] = buf[3];
+		W[4] = buf[4];
+		W[5] = 0x80000000;
+		W[6] = 0;
+		W[7] = 0;
+		W[8] = 0;
+		W[9] = 0;
+		W[10] = 0;
+		W[11] = 0;
+		W[12] = 0;
+		W[13] = 0;
+		W[14] = 0;
+		W[15] = 0x2A0;
+
+		A[0] = istate[0];
+		A[1] = istate[1];
+		A[2] = istate[2];
+		A[3] = istate[3];
+		A[4] = istate[4];
+
+		SHA1_digest(A, W);
+
+		W[0] = A[0] + istate[0];
+		W[1] = A[1] + istate[1];
+		W[2] = A[2] + istate[2];
+		W[3] = A[3] + istate[3];
+		W[4] = A[4] + istate[4];
+		W[5] = 0x80000000;
+		W[6] = 0;
+		W[7] = 0;
+		W[8] = 0;
+		W[9] = 0;
+		W[10] = 0;
+		W[11] = 0;
+		W[12] = 0;
+		W[13] = 0;
+		W[14] = 0;
+		W[15] = 0x2A0;
+
+		A[0] = ostate[0];
+		A[1] = ostate[1];
+		A[2] = ostate[2];
+		A[3] = ostate[3];
+		A[4] = ostate[4];
+
+		SHA1_digest(A, W);
+
+		buf[0] = A[0] + ostate[0];
+		buf[1] = A[1] + ostate[1];
+		buf[2] = A[2] + ostate[2];
+		buf[3] = A[3] + ostate[3];
+		buf[4] = A[4] + ostate[4];
+
+		out[0] ^= buf[0];
+		out[1] ^= buf[1];
+		out[2] ^= buf[2];
+		out[3] ^= buf[3];
+	}
+   
+    for( i = 0 ; i< 5 ;i++) {
+	
+		tmp[id].istate[i] = istate[i] ;
+		tmp[id].ostate[i] = ostate[i] ;
+		tmp[id].buf[i]    = buf[i] ;  
+		//tmp[id].A[i]      = A[i] ;
+		if(i < 4) {
+		
+			tmp[id].out[i] = out[i] ;
+		}
+	
+	}
+	
+  //  for( i= 0 ;i < 16 ; i++)
+    //    tmp[id].W[i] = W[i] ;	
+}
+
+__kernel
+void pbkdf2_postprocess(__global temp_buf *tmp,
+                        __global unsigned int *out_global)
+{  
+   uint id = get_global_id(0) ;
+   uint i;
+   uint out[4];
+   
+   for( i = 0 ; i< 4 ;i++) 
+
+	out[i] = tmp[id].out[i] ;
+		
+   i = id * 4;
+   PUT_WORD_32_BE(out[0], out_global, i++);
+   PUT_WORD_32_BE(out[1], out_global, i++);
+   PUT_WORD_32_BE(out[2], out_global, i++);
+   PUT_WORD_32_BE(out[3], out_global, i);
+
+}
+
