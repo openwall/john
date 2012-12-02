@@ -161,7 +161,7 @@ static uint64_t _checksum_64(unsigned char *key,
 	HMAC_Final( &mac_ctx, md, &mdLen );
 	HMAC_CTX_cleanup(&mac_ctx);
 	// chop this down to a 64bit value..
-	for(i=0; i<(mdLen-1); ++i)
+	for(i=0; i < (EVP_MAX_MD_SIZE - 1); ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
 
 	value = (uint64_t)h[0];
