@@ -1,19 +1,10 @@
-/* MS Kerberos 5 "PA ENC TIMESTAMP" by magnum (modified by Dhiru)
- *
- * This attacks a known-plaintext vulnerability in AS_REQ pre-auth packets. The
- * known plaintext is a UTC timestamp in the format 20081120171510Z. Only if
- * this indicate a match we decrypt the whole timestamp and calculate our own
- * checksum to be really sure.
- *
- * The plaintext attack combined with re-using key setup was said to result in
- * more than 60% speedup. This was confirmed using John the Ripper and variants
- * of this code.
+/* Kerberos 5 "PA ENC TIMESTAMP" by magnum (modified by Dhiru)
  *
  * http://www.ietf.org/rfc/rfc4757.txt
  * http://www.securiteam.com/windowsntfocus/5BP0H0A6KM.html
  *
  * Input format is 'user:$krb5ng$0$user$realm$timestamp$checksum' OR
- * user:$krb5ng$1$salt$timestamp$checksum' OR
+ * user:$krb5ng$1$salt$timestamp$checksum'
  *
  * NOTE: Checksum implies last 12 bytes of PA_ENC_TIMESTAMP value in AS-REQ
  * packet.
@@ -33,7 +24,8 @@
  * and binary forms, with or without modification, are permitted.
  *
  * This software is Copyright (c) 2012 Dhiru Kholia (dhiru at openwall.com) and
- * released under same terms as above */
+ * released under same terms as above
+ */
 
 #include <openssl/aes.h>
 #include <errno.h>
@@ -51,11 +43,8 @@ static int omp_t = 1;
 #include "options.h"
 #include "common.h"
 #include "unicode.h"
-#ifndef FAST_PBKDF2
 #include "gladman_fileenc.h"
-#else
 #include "keychain.h"
-#endif
 
 #define FORMAT_LABEL       "krb5ng"
 #define FORMAT_NAME        "MS Kerberos 5 AS-REQ Pre-Auth aes256-cts-hmac-sha1-96"
@@ -88,6 +77,10 @@ static struct custom_salt {
 	unsigned char ct[44];
 	unsigned char salt[128]; /* realm + user */
 } *cur_salt;
+
+static unsigned char constant[16];
+static unsigned char ke_input[16];
+static unsigned char ki_input[16];
 
 /* n-fold(k-bits):
  * l = lcm(n,k)
@@ -173,6 +166,7 @@ static void nfold(unsigned int inbits, const unsigned char *in,
 
 static void init(struct fmt_main *self)
 {
+	unsigned char usage[5];
 #ifdef _OPENMP
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
@@ -182,6 +176,19 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+	// generate 128 bits from 40 bits of "kerberos" string
+	nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
+
+	memset(usage,0,sizeof(usage));
+	usage[3] = 0x01;        // key number in big-endian format
+	usage[4] = 0xAA;        // used to derive Ke
+	nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);
+
+	memset(usage,0,sizeof(usage));
+	usage[3] = 0x01;        // key number in big-endian format
+	usage[4] = 0x55;        // used to derive Ki
+	nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
 }
 
 
@@ -392,22 +399,18 @@ static void crypt_all(int count)
 	{
 		unsigned char tkey[32];
 		unsigned char base_key[32];
-		unsigned char constant[16];
-		unsigned char usage[5];
-		unsigned char ke_input[16];
 		unsigned char Ke[32];
 		unsigned char plaintext[44];
-		unsigned char ki_input[16];
-		unsigned char Ki[32];
-		unsigned char checksum[20];
+		int len = strlen(saved_key[index]);
 
-#ifdef FAST_PBKDF2
-		pbkdf2((const unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
-#else
-		derive_key((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, strlen((char*)cur_salt->salt), 4096, tkey, 32);
-#endif
+		if (len <= 16)
+			pbkdf2((const unsigned char*)saved_key[index], len, (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
+		else
+			derive_key((unsigned char*)saved_key[index], len, cur_salt->salt, strlen((char*)cur_salt->salt), 4096, tkey, 32);
+
 		// generate 128 bits from 40 bits of "kerberos" string
-		nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);   // can be precomputed
+		// This is precomputed in init()
+		//nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
 		dk(base_key,tkey,32,constant,32);
 
 		/* The "well-known constant" used for the DK function is the key usage number,
@@ -417,11 +420,12 @@ static void crypt_all(int count)
 		 * Ki = DK(base-key, usage | 0x55); */
 
 		// derive Ke for decryption/encryption
-		memset(usage,0,sizeof(usage));
-		usage[3] = 0x01;        // key number in big-endian format
-		usage[4] = 0xAA;        // used to derive Ke
+		// This is precomputed in init()
+		//memset(usage,0,sizeof(usage));
+		//usage[3] = 0x01;        // key number in big-endian format
+		//usage[4] = 0xAA;        // used to derive Ke
 
-		nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);   // precompute
+		//nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);
 		dk(Ke,base_key,32,ke_input,32);
 
 		// decrypt the AS-REQ timestamp encrypted with 256-bit AES
@@ -429,16 +433,25 @@ static void crypt_all(int count)
 		// to fully verify the checksum
 		krb_decrypt(cur_salt->ct,44,plaintext,Ke,sizeof(Ke));
 
-		// derive Ki used in HMAC-SHA-1 checksum
-		memset(usage,0,sizeof(usage));
-		usage[3] = 0x01;        // key number in big-endian format
-		usage[4] = 0x55;        // used to derive Ki
-		nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);    // precompute
-		dk(Ki,base_key,32,ki_input,32);
+		// Check a couple bytes from known plain (YYYYMMDDHHMMSSZ) and
+		// bail out if we are out of luck.
+		if (plaintext[22] == '2' && plaintext[23] == '0' && plaintext[36] == 'Z') {
+			unsigned char Ki[32];
+			unsigned char checksum[20];
+			// derive Ki used in HMAC-SHA-1 checksum
+			// This is precomputed in init()
+			//memset(usage,0,sizeof(usage));
+			//usage[3] = 0x01;        // key number in big-endian format
+			//usage[4] = 0x55;        // used to derive Ki
+			//nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
+			dk(Ki,base_key,32,ki_input,32);
 
-		// derive checksum of plaintext
-		hmac_sha1(Ki, 32, plaintext,44,checksum, 20);
-		memcpy(crypt_out[index], checksum, 12);
+			// derive checksum of plaintext
+			hmac_sha1(Ki, 32, plaintext,44,checksum, 20);
+			memcpy(crypt_out[index], checksum, BINARY_SIZE);
+		} else {
+			memset(crypt_out[index], 0, BINARY_SIZE);
+		}
 	}
 }
 
