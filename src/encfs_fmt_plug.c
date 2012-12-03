@@ -101,7 +101,7 @@ static void setIVec( unsigned char *ivec, uint64_t seed,
 	HMAC_Update( &mac_ctx, md, 8 );
 	HMAC_Final( &mac_ctx, md, &mdLen );
 	HMAC_CTX_cleanup(&mac_ctx);
-	memcpy( ivec, md, cur_salt->ivLength );
+	memcpy( ivec, md, mdLen );
 }
 
 
@@ -143,6 +143,7 @@ static uint64_t _checksum_64(unsigned char *key,
 	unsigned char h[8] = {0,0,0,0,0,0,0,0};
 	uint64_t value;
 	HMAC_CTX mac_ctx;
+
 	HMAC_CTX_init(&mac_ctx);
 	HMAC_Init_ex( &mac_ctx, key, cur_salt->keySize, EVP_sha1(), 0 );
 	HMAC_Init_ex( &mac_ctx, 0, 0, 0, 0 );
@@ -160,8 +161,9 @@ static uint64_t _checksum_64(unsigned char *key,
 	}
 	HMAC_Final( &mac_ctx, md, &mdLen );
 	HMAC_CTX_cleanup(&mac_ctx);
+
 	// chop this down to a 64bit value..
-	for(i=0; i < (EVP_MAX_MD_SIZE - 1); ++i)
+	for(i=0; i < (mdLen - 1); ++i)
 		h[i%8] ^= (unsigned char)(md[i]);
 
 	value = (uint64_t)h[0];
