@@ -10,8 +10,6 @@
 #include <math.h>
 #include "memory.h"
 
-
-
 	static cl_platform_id pltfrmid[MAX_PLATFORMS];
 
 	static cl_device_id devid[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
@@ -20,7 +18,7 @@
 
 	static cl_command_queue cmdq[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
-	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
+	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM][3];
 
 	static cl_program prg[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
@@ -45,7 +43,16 @@
         static int store_platform_no[MAX_PLATFORMS*MAX_DEVICES_PER_PLATFORM]={-1};
 
         static int store_dev_no[MAX_PLATFORMS*MAX_DEVICES_PER_PLATFORM]={-1};
-
+	
+		
+ typedef struct {
+	    
+	    unsigned int istate[5] ;
+	    unsigned int ostate[5] ; 
+	    unsigned int buf[5] ;
+	    unsigned int out[4] ;
+	    
+} temp_buf ; 	
 
 
 static gpu_mem_buffer exec_pbkdf2(cl_uint *,cl_uint *,cl_uint ,cl_uint *,cl_uint ,int ,int  )	;
@@ -59,6 +66,8 @@ static void clean_gpu_buffer(gpu_mem_buffer *pThis)
 	HANDLE_CLERROR(clReleaseMemObject(pThis->hash_out_gpu),"Release Memory Object FAILED.");
 
 	HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu),"Release Memory Object FAILED.");
+	
+	HANDLE_CLERROR(clReleaseMemObject(pThis->temp_buf_gpu),"Release Memory Object FAILED.");
 }
 
 void clean_all_buffer()
@@ -66,7 +75,7 @@ void clean_all_buffer()
 
 	 for(i=0;i<active_dev_ctr;i++)
 	    clean_gpu_buffer(&gpu_buffer[store_platform_no[i]][store_dev_no[i]]);
-
+	 
 }
 
 static void find_best_workgroup(int pltform_no,int dev_no)
@@ -145,9 +154,17 @@ size_t 	select_device(int platform_no,int dev_no)
 
 	prg[platform_no][dev_no]=program[dev_no];
 
-	krnl[platform_no][dev_no]=clCreateKernel(prg[platform_no][dev_no],"PBKDF2",&err) ;
+	krnl[platform_no][dev_no][0]=clCreateKernel(prg[platform_no][dev_no],"pbkdf2_preprocess",&err) ;
+	
+	if(err) {printf("Create Kernel pbkdf2_preprocess FAILED\n"); return 0;}
+	
+	krnl[platform_no][dev_no][1]=clCreateKernel(prg[platform_no][dev_no],"pbkdf2_iter",&err) ;
 
-	if(err) {printf("Create Kernel PBKDF2 FAILED\n"); return 0;}
+	if(err) {printf("Create Kernel pbkdf2_iter FAILED\n"); return 0;}
+	
+	krnl[platform_no][dev_no][2]=clCreateKernel(prg[platform_no][dev_no],"pbkdf2_postprocess",&err) ;
+
+	if(err) {printf("Create Kernel pbkdf2_postprocess FAILED\n"); return 0;}
 
 	gpu_buffer[platform_no][dev_no].pass_gpu=clCreateBuffer(cntxt[platform_no][dev_no],CL_MEM_READ_ONLY,4*MAX_KEYS_PER_CRYPT*sizeof(cl_uint),NULL,&err);
 		if((gpu_buffer[platform_no][dev_no].pass_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED"); }
@@ -157,12 +174,21 @@ size_t 	select_device(int platform_no,int dev_no)
 
 	gpu_buffer[platform_no][dev_no].hash_out_gpu=clCreateBuffer(cntxt[platform_no][dev_no],CL_MEM_WRITE_ONLY,4*MAX_KEYS_PER_CRYPT*sizeof(cl_uint),NULL,&err);
 	        if((gpu_buffer[platform_no][dev_no].hash_out_gpu==(cl_mem)0)) {HANDLE_CLERROR(err, "Create Buffer FAILED"); }
+	        
+	gpu_buffer[platform_no][dev_no].temp_buf_gpu=clCreateBuffer(cntxt[platform_no][dev_no],CL_MEM_READ_WRITE,MAX_KEYS_PER_CRYPT*sizeof(temp_buf),NULL,&err);
+	        if((gpu_buffer[platform_no][dev_no].temp_buf_gpu==(cl_mem)0)) {HANDLE_CLERROR(err, "Create Buffer FAILED"); }        
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].pass_gpu),"Set Kernel Arg FAILED arg0");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],0,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].pass_gpu),"Set Kernel Arg FAILED arg0");
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].salt_gpu),"Set Kernel Arg FAILED arg1");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],1,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].salt_gpu),"Set Kernel Arg FAILED arg1");
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],4,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].hash_out_gpu),"Set Kernel Arg FAILED arg4");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],4,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].temp_buf_gpu),"Set Kernel Arg FAILED arg4");
+	
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][1],0,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].temp_buf_gpu),"Set Kernel Arg FAILED arg0");
+	
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][2],0,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].temp_buf_gpu),"Set Kernel Arg FAILED arg0");
+	
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][2],1,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].hash_out_gpu),"Set Kernel Arg FAILED arg1");
 
 	find_best_workgroup(platform_no,dev_no);
 
@@ -282,18 +308,20 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	cl_event evnt;
 
 	size_t N=num,M=lws[platform_no][dev_no];
+	
+	unsigned int i, itrCntKrnl = ITERATION_COUNT_PER_CALL;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].pass_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),pass_api,0,NULL,NULL ), "Copy data to gpu");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].salt_gpu,CL_TRUE,0,(MAX_SALT_LENGTH/2 + 1)*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Copy data to gpu");
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_uint),&saltlen_api),"Set Kernel Arg FAILED arg2");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],2,sizeof(cl_uint),&saltlen_api),"Set Kernel Arg FAILED arg2");
 
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_uint),&num),"Set Kernel Arg FAILED arg3");
+	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],3,sizeof(cl_uint),&num),"Set Kernel Arg FAILED arg3");
 
-	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no],1,NULL,&N,&M,0,NULL,&evnt);
-
-    	if(err){
+	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][0],1,NULL,&N,&M,0,NULL,&evnt);
+	
+	if(err){
 		if(PROFILE){
 			lws[platform_no][dev_no]=lws[platform_no][dev_no]/2;
 	  	}
@@ -303,10 +331,42 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 
 		return gpu_buffer[platform_no][dev_no];
 	}
+	
+	for(i=0; i< (10240 - 1) ; i = i+ itrCntKrnl ) {
+	
+		if(i == (10240 - itrCntKrnl)) --itrCntKrnl ;
+	  
+		HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][1],1,sizeof(cl_uint),&itrCntKrnl),"Set Kernel Arg FAILED arg1");
+	
+		err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][1],1,NULL,&N,&M,0,NULL,&evnt);
+	
+		if(err){
+			if(PROFILE){
+				lws[platform_no][dev_no]=lws[platform_no][dev_no]/2;
+			}
 
+			else
+				HANDLE_CLERROR(err,"Enque Kernel Failed");
 
+			return gpu_buffer[platform_no][dev_no];
+		}
+	
+	}
+	
+	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][2],1,NULL,&N,&M,0,NULL,&evnt);
+	
+	if(err){
+		if(PROFILE){
+			lws[platform_no][dev_no]=lws[platform_no][dev_no]/2;
+	  	}
 
-        if(PROFILE){
+		else
+			HANDLE_CLERROR(err,"Enque Kernel Failed");
+
+		return gpu_buffer[platform_no][dev_no];
+	}
+	
+	if(PROFILE){
 
 		cl_ulong startTime, endTime;
 
