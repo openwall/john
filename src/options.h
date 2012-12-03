@@ -93,30 +93,30 @@
  */
 /* .pot file used as wordlist, options.wordlist is set to the file name, or
  * we use the active .pot file */
-#define FLG_LOOPBACK_CHK		0x0000000100000000
+#define FLG_LOOPBACK_CHK		0x0000000100000000ULL
 #define FLG_LOOPBACK_SET	  \
 	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET | FLG_DUPESUPP)
 /* pipe mode enabled, reading from stdin with rules support */
-#define FLG_PIPE_CHK			0x0000000200000000
+#define FLG_PIPE_CHK			0x0000000200000000ULL
 #define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
 /* Dynamic load of foreign format module */
-#define FLG_DYNFMT			0x0000000400000000
+#define FLG_DYNFMT			0x0000000400000000ULL
 /* Turn off logging */
-#define FLG_NOLOG			0x0000000800000000
+#define FLG_NOLOG			0x0000000800000000ULL
 /* Log to stderr */
-#define FLG_LOG_STDERR			0x0000001000000000
+#define FLG_LOG_STDERR			0x0000001000000000ULL
 /* Markov mode enabled */
-#define FLG_MKV_CHK			0x0000002000000000
+#define FLG_MKV_CHK			0x0000002000000000ULL
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
 /* Emit a status line for every password cracked */
-#define FLG_CRKSTAT			0x0000004000000000
+#define FLG_CRKSTAT			0x0000004000000000ULL
 /* Wordlist dupe suppression */
-#define FLG_DUPESUPP			0x0000008000000000
+#define FLG_DUPESUPP			0x0000008000000000ULL
 #if defined(CL_VERSION_1_0) || defined (HAVE_CUDA)
 /* Request to vectorize */
-#define FLG_VECTORIZE			0x0000010000000000
+#define FLG_VECTORIZE			0x0000010000000000ULL
 /* Request to not vectorize */
-#define FLG_SCALAR			0x0000020000000000
+#define FLG_SCALAR			0x0000020000000000ULL
 #endif
 
 /*
