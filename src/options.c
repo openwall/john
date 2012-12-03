@@ -197,6 +197,7 @@ static struct opt_entry opt_list[] = {
 "--groups=[-]GID[,..]      load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]    load users with[out] this (these) shell(s) only\n" \
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
+"--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--pot=NAME                pot file to use\n" \
 "--format=NAME             force hash type NAME:"
 
@@ -204,11 +205,7 @@ static struct opt_entry opt_list[] = {
 "                         " // formats are prepended with a space
 
 #define JOHN_USAGE_TAIL \
-"--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n" \
-"--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n"
-
-#define JOHN_USAGE_PLUGIN \
-"--plugin=NAME[,..]        load this (these) dynamic plugin(s)\n"
+"--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
 #if defined(CL_VERSION_1_0) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
@@ -275,13 +272,40 @@ static void print_usage(char *name)
 	MEM_FREE(formats_list);
 
 	printf("%s", JOHN_USAGE_TAIL);
-#ifdef HAVE_DL
-	printf("%s", JOHN_USAGE_PLUGIN);
-#endif
 
 #if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
 	printf("%s", JOHN_USAGE_GPU);
 #endif
+	exit(0);
+}
+
+void print_hidden_usage(void)
+{
+	puts("--help                    print usage summary, just like running the command");
+	puts("                          without any parameters");
+	puts("--config=FILE             use FILE instead of john.conf or john.ini");
+	puts("--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)");
+	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
+	puts("--mkpc=N                  force a lower max. keys per crypt");
+	puts("--length=N                force a lower max. length");
+	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
+	puts("--fix-state-delay=N       performance tweak, see documentation");
+	puts("--nolog                   disables creation and writing to john.log file");
+	puts("--log-stderr              log to screen instead of file");
+	puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
+	puts("                          always treat raw hashes as valid.");
+	puts("--progress-every=N        emit a status line every N seconds");
+	puts("--crack-status            emit a status line whenever a password is cracked");
+	puts("--max-run-time=N          gracefully exit after this many seconds");
+	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
+#ifdef HAVE_DL
+	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
+#endif
+#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+	puts("--request-vectorize       request vectorized mode");
+	puts("--request-scalar          request non-vectorized mode");
+#endif
+	puts("");
 	exit(0);
 }
 
