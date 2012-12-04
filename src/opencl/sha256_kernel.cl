@@ -34,28 +34,26 @@ __constant uint32_t k[] = {
 };
 
 inline void init_ctx(sha256_ctx * ctx) {
-    ctx->H[0] = 0x6a09e667;
-    ctx->H[1] = 0xbb67ae85;
-    ctx->H[2] = 0x3c6ef372;
-    ctx->H[3] = 0xa54ff53a;
-    ctx->H[4] = 0x510e527f;
-    ctx->H[5] = 0x9b05688c;
-    ctx->H[6] = 0x1f83d9ab;
-    ctx->H[7] = 0x5be0cd19;
-    ctx->buflen = 0;
+
+    ctx->H[0] = H0;
+    ctx->H[1] = H1;
+    ctx->H[2] = H2;
+    ctx->H[3] = H3;
+    ctx->H[4] = H4;
+    ctx->H[5] = H5;
+    ctx->H[6] = H6;
+    ctx->H[7] = H7;
 }
 
 inline void _memcpy(               uint8_t * dest,
                     __global const uint8_t * src) {
-    int i = 0;
 
     uint32_t * l = (uint32_t *) dest;
     __global uint32_t * s = (__global uint32_t *) src;
 
-    while (i < PLAINTEXT_LENGTH) {
-        *l++ = *s++;
-        i += 4;
-    }
+    #pragma unroll
+    for (int i = 0; i < PLAINTEXT_LENGTH; i += 4)
+        *l++ = SWAP32(s[i/4]);
 }
 
 inline void sha256_block(sha256_ctx * ctx) {
@@ -67,13 +65,9 @@ inline void sha256_block(sha256_ctx * ctx) {
 #define  f   ctx->H[5]
 #define  g   ctx->H[6]
 #define  h   ctx->H[7]
+#define  w   ctx->buffer->mem_32
 
     uint32_t t1, t2;
-    uint32_t w[16];
-
-    #pragma unroll
-    for (int i = 0; i < 16; i++)
-        w[i] = SWAP32(ctx->buffer->mem_32[i]);
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
@@ -112,7 +106,7 @@ inline void insert_to_buffer(         sha256_ctx    * ctx,
                                       const uint32_t  len) {
 
     _memcpy(ctx->buffer->mem_08, string);
-    ctx->buflen += len;
+    ctx->buflen = len;
 }
 
 inline void ctx_update(         sha256_ctx * ctx,
@@ -127,7 +121,7 @@ inline void ctx_append_1(sha256_ctx * ctx) {
     uint32_t length = PLAINTEXT_LENGTH;
     uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
 
-    while (length < 64) {
+    while (length < 60) {
         *l++ = 0;
         length += 4;
     }
@@ -135,7 +129,7 @@ inline void ctx_append_1(sha256_ctx * ctx) {
 
 inline void ctx_add_length(sha256_ctx * ctx) {
 
-    ctx->buffer[15].mem_32[0] = SWAP32(ctx->buflen * 8);
+    ctx->buffer[15].mem_32[0] = ctx->buflen * 8;
 }
 
 inline void finish_ctx(sha256_ctx * ctx) {
