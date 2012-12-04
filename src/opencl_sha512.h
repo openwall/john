@@ -57,5 +57,14 @@
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE(dividend, divisor) ((unsigned int) ((dividend / divisor) * divisor))
 
+/* No byte addressable macros */
+#if no_byte_addressable(DEVICE_INFO)
+    #define PUT         PUTCHAR
+    #define BUFFER      ctx->buffer->mem_32
+#else
+    #define PUT         ATTRIB
+    #define BUFFER      ctx->buffer->mem_08
+#endif
+
 #endif	/* OPENCL_SHA512_H */
 
