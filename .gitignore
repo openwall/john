@@ -31,6 +31,8 @@ run/opencl_nonstd.h
 run/opencl_rar.h
 run/opencl_rawsha256.h
 run/opencl_rawsha512-ng.h
+run/opencl_sha256.h
+run/opencl_sha512.h
 run/opencl_sboxes-s.h
 run/opencl_sboxes.h
 run/opencl_xsha512-ng.h
