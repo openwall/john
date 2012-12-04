@@ -351,7 +351,7 @@ AES_cts_encrypt(const unsigned char *in, unsigned char *out,
 }
 
 // keysize = 32 for 256 bits, 16 for 128 bits
-void dk(unsigned char key_out[], unsigned char key_in[],
+static void dk(unsigned char key_out[], unsigned char key_in[],
     size_t key_size, unsigned char ptext[], size_t ptext_size)
 {
 	unsigned char iv[32];
@@ -366,7 +366,7 @@ void dk(unsigned char key_out[], unsigned char key_in[],
 	AES_cbc_encrypt(plaintext,key_out,key_size,&ekey,iv,AES_ENCRYPT);
 }
 
-void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
+static void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
     unsigned char plaintext[], const unsigned char key[], size_t key_size)
 {
 	unsigned char iv[32];
@@ -377,7 +377,7 @@ void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
 	AES_cts_encrypt(ciphertext,plaintext,ctext_size,&ekey,iv,AES_DECRYPT);
 }
 
-void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
+static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
     unsigned char plaintext[], const unsigned char key[], size_t key_size)
 {
 	unsigned char iv[32];
