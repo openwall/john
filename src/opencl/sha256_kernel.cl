@@ -27,7 +27,7 @@ inline void _memcpy(               uint8_t * dest,
 
     #pragma unroll
     for (int i = 0; i < PLAINTEXT_LENGTH; i += 4)
-        *l++ = SWAP32(*s++);
+        *l++ = SWAP32(s[i/4]);
 }
 
 inline void sha256_block(sha256_ctx * ctx) {
@@ -41,7 +41,6 @@ inline void sha256_block(sha256_ctx * ctx) {
     uint32_t f = H5;
     uint32_t g = H6;
     uint32_t h = H7;
-
     uint32_t t1;
 
     // From 0 to 15.
@@ -138,7 +137,7 @@ inline void ctx_append_1(sha256_ctx * ctx) {
     uint32_t length = PLAINTEXT_LENGTH;
     uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
 
-    while (length < 64) {
+    while (length < 60) {
         *l++ = 0;
         length += 4;
     }
