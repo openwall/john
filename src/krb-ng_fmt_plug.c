@@ -377,6 +377,7 @@ static void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
 	AES_cts_encrypt(ciphertext,plaintext,ctext_size,&ekey,iv,AES_DECRYPT);
 }
 
+#if 0 /* This is not used */
 static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
     unsigned char plaintext[], const unsigned char key[], size_t key_size)
 {
@@ -387,7 +388,7 @@ static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
 	AES_set_encrypt_key(key,key_size*8,&ekey);
 	AES_cts_encrypt(ciphertext,plaintext,ctext_size,&ekey,iv,AES_ENCRYPT);
 }
-
+#endif
 
 static void crypt_all(int count)
 {
