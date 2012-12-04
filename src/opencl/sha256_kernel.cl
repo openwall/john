@@ -14,9 +14,35 @@
 #define _OPENCL_COMPILER
 #include "opencl_rawsha256.h"
 
+__constant uint32_t k[] = {
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
+    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
+    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
+    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
+    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+};
+
 inline void init_ctx(sha256_ctx * ctx) {
 
     ctx->H[0] = H0;
+    ctx->H[1] = H1;
+    ctx->H[2] = H2;
+    ctx->H[3] = H3;
+    ctx->H[4] = H4;
+    ctx->H[5] = H5;
+    ctx->H[6] = H6;
+    ctx->H[7] = H7;
 }
 
 inline void _memcpy(               uint8_t * dest,
@@ -31,90 +57,48 @@ inline void _memcpy(               uint8_t * dest,
 }
 
 inline void sha256_block(sha256_ctx * ctx) {
-#define a   ctx->H[0]
-#define w   ctx->buffer->mem_32
+#define  a   ctx->H[0]
+#define  b   ctx->H[1]
+#define  c   ctx->H[2]
+#define  d   ctx->H[3]
+#define  e   ctx->H[4]
+#define  f   ctx->H[5]
+#define  g   ctx->H[6]
+#define  h   ctx->H[7]
+#define  w   ctx->buffer->mem_32
 
-    uint32_t b = H1;
-    uint32_t c = H2;
-    uint32_t d = H3;
-    uint32_t e = H4;
-    uint32_t f = H5;
-    uint32_t g = H6;
-    uint32_t h = H7;
-    uint32_t t1;
+    uint32_t t1, t2;
 
-    // From 0 to 15.
-    ROUND_0_TO_15(a, b, c, d, e, f, g, h, k01, w, 0);
-    ROUND_0_TO_15(h, a, b, c, d, e, f, g, k02, w, 1);
-    ROUND_0_TO_15(g, h, a, b, c, d, e, f, k03, w, 2);
-    ROUND_0_TO_15(f, g, h, a, b, c, d, e, k04, w, 3);
-    ROUND_0_TO_15(e, f, g, h, a, b, c, d, k05, w, 4);
-    ROUND_0_TO_15(d, e, f, g, h, a, b, c, k06, w, 5);
-    ROUND_0_TO_15(c, d, e, f, g, h, a, b, k07, w, 6);
-    ROUND_0_TO_15(b, c, d, e, f, g, h, a, k08, w, 7);
-    ROUND_0_TO_15(a, b, c, d, e, f, g, h, k09, w, 8);
-    ROUND_0_TO_15(h, a, b, c, d, e, f, g, k10, w, 9);
-    ROUND_0_TO_15(g, h, a, b, c, d, e, f, k11, w, 10);
-    ROUND_0_TO_15(f, g, h, a, b, c, d, e, k12, w, 11);
-    ROUND_0_TO_15(e, f, g, h, a, b, c, d, k13, w, 12);
-    ROUND_0_TO_15(d, e, f, g, h, a, b, c, k14, w, 13);
-    ROUND_0_TO_15(c, d, e, f, g, h, a, b, k15, w, 14);
-    ROUND_0_TO_15(b, c, d, e, f, g, h, a, k16, w, 15);
+    #pragma unroll
+    for (int i = 0; i < 16; i++) {
+        t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
+        t2 = Maj(a, b, c) + Sigma0(a);
 
-    // From 16 to 60 (64 - 4 rounds).
-    ROUND_16_TO_END(a, b, c, d, e, f, g, h, k17, w, 16);
-    ROUND_16_TO_END(h, a, b, c, d, e, f, g, k18, w, 17);
-    ROUND_16_TO_END(g, h, a, b, c, d, e, f, k19, w, 18);
-    ROUND_16_TO_END(f, g, h, a, b, c, d, e, k20, w, 19);
-    ROUND_16_TO_END(e, f, g, h, a, b, c, d, k21, w, 20);
-    ROUND_16_TO_END(d, e, f, g, h, a, b, c, k22, w, 21);
-    ROUND_16_TO_END(c, d, e, f, g, h, a, b, k23, w, 22);
-    ROUND_16_TO_END(b, c, d, e, f, g, h, a, k24, w, 23);
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
 
-    ROUND_16_TO_END(a, b, c, d, e, f, g, h, k25, w, 24);
-    ROUND_16_TO_END(h, a, b, c, d, e, f, g, k26, w, 25);
-    ROUND_16_TO_END(g, h, a, b, c, d, e, f, k27, w, 26);
-    ROUND_16_TO_END(f, g, h, a, b, c, d, e, k28, w, 27);
-    ROUND_16_TO_END(e, f, g, h, a, b, c, d, k29, w, 28);
-    ROUND_16_TO_END(d, e, f, g, h, a, b, c, k30, w, 29);
-    ROUND_16_TO_END(c, d, e, f, g, h, a, b, k31, w, 30);
-    ROUND_16_TO_END(b, c, d, e, f, g, h, a, k32, w, 31);
+    #pragma unroll
+    for (int i = 16; i < 61; i++) {
+        w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
+        t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
+        t2 = Maj(a, b, c) + Sigma0(a);
 
-    ROUND_16_TO_END(a, b, c, d, e, f, g, h, k33, w, 32);
-    ROUND_16_TO_END(h, a, b, c, d, e, f, g, k34, w, 33);
-    ROUND_16_TO_END(g, h, a, b, c, d, e, f, k35, w, 34);
-    ROUND_16_TO_END(f, g, h, a, b, c, d, e, k36, w, 35);
-    ROUND_16_TO_END(e, f, g, h, a, b, c, d, k37, w, 36);
-    ROUND_16_TO_END(d, e, f, g, h, a, b, c, k38, w, 37);
-    ROUND_16_TO_END(c, d, e, f, g, h, a, b, k39, w, 38);
-    ROUND_16_TO_END(b, c, d, e, f, g, h, a, k40, w, 39);
-
-    ROUND_16_TO_END(a, b, c, d, e, f, g, h, k41, w, 40);
-    ROUND_16_TO_END(h, a, b, c, d, e, f, g, k42, w, 41);
-    ROUND_16_TO_END(g, h, a, b, c, d, e, f, k43, w, 42);
-    ROUND_16_TO_END(f, g, h, a, b, c, d, e, k44, w, 43);
-    ROUND_16_TO_END(e, f, g, h, a, b, c, d, k45, w, 44);
-    ROUND_16_TO_END(d, e, f, g, h, a, b, c, k46, w, 45);
-    ROUND_16_TO_END(c, d, e, f, g, h, a, b, k47, w, 46);
-    ROUND_16_TO_END(b, c, d, e, f, g, h, a, k48, w, 47);
-
-    ROUND_16_TO_END(a, b, c, d, e, f, g, h, k49, w, 48);
-    ROUND_16_TO_END(h, a, b, c, d, e, f, g, k50, w, 49);
-    ROUND_16_TO_END(g, h, a, b, c, d, e, f, k51, w, 50);
-    ROUND_16_TO_END(f, g, h, a, b, c, d, e, k52, w, 51);
-    ROUND_16_TO_END(e, f, g, h, a, b, c, d, k53, w, 52);
-    ROUND_16_TO_END(d, e, f, g, h, a, b, c, k54, w, 53);
-    ROUND_16_TO_END(c, d, e, f, g, h, a, b, k55, w, 54);
-    ROUND_16_TO_END(b, c, d, e, f, g, h, a, k56, w, 55);
-
-    ROUND_16_TO_END(a, b, c, d, e, f, g, h, k57, w, 56);
-    ROUND_16_TO_END(h, a, b, c, d, e, f, g, k58, w, 57);
-    ROUND_16_TO_END(g, h, a, b, c, d, e, f, k59, w, 58);
-    ROUND_16_TO_END(f, g, h, a, b, c, d, e, k60, w, 59);
-    ROUND_16_TO_END(e, f, g, h, a, b, c, d, k61, w, 60);
-
-    //Send result back.
-    ctx->H[0] = d;
+        h = g;
+        g = f;
+        f = e;
+        e = d + t1;
+        d = c;
+        c = b;
+        b = a;
+        a = t1 + t2;
+    }
 }
 
 inline void insert_to_buffer(         sha256_ctx    * ctx,
