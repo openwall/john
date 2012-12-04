@@ -8,7 +8,7 @@
  * Please note that in current comparison function, we use computed a77
  * compares with ciphertext d80. For more details, refer to:
  * http://www.openwall.com/lists/john-dev/2012/04/11/13
- * 
+ *
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied .
@@ -58,11 +58,6 @@ static struct fmt_tests tests[] = {
 };
 
 /* ------- Helper functions ------- */
-static unsigned int get_multiple(unsigned int dividend, unsigned int divisor){
-
-    return (dividend / divisor) * divisor;
-}
-
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
@@ -241,9 +236,9 @@ static int get_step(size_t num, int step, int startup){
     if (startup) {
 
         if (step == 0)
-            return get_multiple(STEP, local_work_size);
+            return GET_MULTIPLE(STEP, local_work_size);
         else
-            return get_multiple(step, local_work_size);
+            return GET_MULTIPLE(step, local_work_size);
     }
 
     if (step < 1)
@@ -355,7 +350,7 @@ static void find_best_gws(struct fmt_main * self) {
         step = atoi(tmp_value);
         do_benchmark = 1;
     }
-    step = get_multiple(step, local_work_size);
+    step = GET_MULTIPLE(step, local_work_size);
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
         max_run_time = atoi(tmp_value) * 1000000000UL;
@@ -471,7 +466,7 @@ static void init(struct fmt_main * self) {
         global_work_size = atoi(tmp_value);
 
     //Check if a valid multiple is used.
-    global_work_size = get_multiple(global_work_size, local_work_size);
+    global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 
     if (global_work_size)
         create_clobj(global_work_size, self);

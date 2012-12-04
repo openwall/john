@@ -14,14 +14,6 @@
 #define _OPENCL_COMPILER
 #include "opencl_cryptsha512.h"
 
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-#endif
-
 #if gpu(DEVICE_INFO)
     #define VECTOR_USAGE
 #endif
