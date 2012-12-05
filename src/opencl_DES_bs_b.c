@@ -7,6 +7,14 @@
 
 
 #include "opencl_DES_bs.h"
+#include <assert.h>
+#include <string.h>
+#include<sys/time.h>
+#define LOG_SIZE 1024*16
+
+static char *kernel_source;
+static int kernel_loaded;
+static size_t program_size;
 
 
 opencl_DES_bs_transfer CC_CACHE_ALIGN opencl_DES_bs_data[MULTIPLIER];
@@ -25,9 +33,7 @@ typedef unsigned WORD vtype;
 
 	static cl_command_queue cmdq[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
-	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
-
-	static cl_program prg[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
+	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM][2000];
 
 	static cl_int err;
 
@@ -37,37 +43,181 @@ typedef unsigned WORD vtype;
 	
 	static int set_salt = 0;
 	
+typedef struct {
+unsigned int index[96];
+unsigned int id ;
+
+} store_salt;
+static   int ctr;
+store_salt stored[2000];
+	
+static char *include_source(char *pathname, int dev_id, char *options)
+{
+	static char include[PATH_BUFFER_SIZE];
+
+	sprintf(include, "-I %s %s %s%d %s %s", path_expand(pathname),
+	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
+	        "-DDEVICE_IS_CPU" : "",
+	        "-DDEVICE_INFO=", device_info[dev_id],
+#ifdef __APPLE__
+	        "-DAPPLE",
+#else
+	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
+#endif
+	        OPENCLBUILDOPTIONS);
+
+	if (options) {
+		strcat(include, " ");
+		strcat(include, options);
+	}
+
+	//fprintf(stderr, "Options used: %s\n", include);
+	return include;
+}	
+	
+static void read_kernel_source(char *kernel_filename)
+{
+	char *kernel_path = path_expand(kernel_filename);
+	FILE *fp = fopen(kernel_path, "r");
+	size_t source_size, read_size;
+
+	if (!fp)
+		fp = fopen(kernel_path, "rb");
+
+	if (!fp)
+		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+
+	fseek(fp, 0, SEEK_END);
+	source_size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	MEM_FREE(kernel_source);
+	kernel_source = calloc(source_size + 1, 1);
+	read_size = fread(kernel_source, sizeof(char), source_size, fp);
+	if (read_size != source_size)
+		fprintf(stderr,
+		    "Error reading source: expected %zu, got %zu bytes.\n",
+		    source_size, read_size);
+	fclose(fp);
+	program_size = source_size;
+	kernel_loaded = 1;
+}
+
+static void build_kernel(int dev_id, char *options)
+{
+	cl_int build_code;
+       // char * build_log; size_t log_size;
+	const char *srcptr[] = { kernel_source };
+	assert(kernel_loaded);
+	program[dev_id] =
+	    clCreateProgramWithSource(context[dev_id], 1, srcptr, NULL,
+	    &ret_code);
+	
+	HANDLE_CLERROR(ret_code, "Error while creating program");
+
+	build_code = clBuildProgram(program[dev_id], 0, NULL,
+		include_source("$JOHN/", dev_id, options), NULL, NULL);
+	
+	/*
+        HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+                CL_PROGRAM_BUILD_LOG, 0, NULL,
+                &log_size), "Error while getting build info I");
+        build_log = (char *) mem_alloc((log_size + 1));
+
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+		CL_PROGRAM_BUILD_LOG, log_size + 1, (void *) build_log,
+		NULL), "Error while getting build info");
+
+	///Report build errors and warnings
+	if (build_code != CL_SUCCESS) {
+		//Give us much info about error and exit
+		fprintf(stderr, "Compilation log: %s\n", build_log);
+		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
+	}
+#ifdef REPORT_OPENCL_WARNINGS
+	else if (strlen(build_log) > 1) // Nvidia may return a single '\n' which is not that interesting
+		fprintf(stderr, "Compilation log: %s\n", build_log);
+#endif
+        MEM_FREE(build_log);
+#if 0
+	FILE *file;
+	size_t source_size;
+	char *source;
+
+	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+		CL_PROGRAM_BINARY_SIZES,
+		sizeof(size_t), &source_size, NULL), "error");
+	fprintf(stderr, "source size %zu\n", source_size);
+	source = malloc(source_size);
+
+	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+		CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
+
+	file = fopen("program.bin", "w");
+	if (file == NULL)
+		fprintf(stderr, "Error opening binary file\n");
+	else if (fwrite(source, source_size, 1, file) != 1)
+		fprintf(stderr, "error writing binary\n");
+	fclose(file);
+	MEM_FREE(source);
+#endif
+*/
+}
+	
+void init_dev()
+{	
+	opencl_init_dev(devno, pltfrmno);
+	pltfrmid[pltfrmno]     = platform[pltfrmno];
+	devid[pltfrmno][devno] = devices[devno];
+	cntxt[pltfrmno][devno] = context[devno];
+	cmdq[pltfrmno][devno]  = queue[devno];
+	
+	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
+	if(opencl_DES_bs_data_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
+	
+	index768_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, 768*sizeof(unsigned int), NULL, &err);
+	if(index768_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
+	
+	index96_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, 96*sizeof(unsigned int), NULL, &err);
+	if(index96_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
+	
+	B_gpu = clCreateBuffer(cntxt[pltfrmno][devno], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
+	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
+	
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
+	
+	read_kernel_source("$JOHN/DES_bs_kernel.cl") ; 
+	
+}
+
+void modify_src() {
+
+	  int i=55,j=1,tmp;
+	  static char digits[10] = {'0','1','2','3','4','5','6','7','8','9'} ;
+	  static unsigned int  index[48]  = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,
+					     24,25,26,27,28,29,30,31,32,33,34,35,
+					     48,49,50,51,52,53,54,55,56,57,58,59,
+					     72,73,74,75,76,77,78,79,80,81,82,83 } ;
+	  for(j=1;j<=48;j++) {
+	     tmp = index96[index[j-1]]/10;
+	     if(tmp == 0) kernel_source[i+j*17] = ' ' ;
+	     else         kernel_source[i+j*17] = digits[tmp] ;
+	     tmp = index96[index[j-1]]%10;
+	     ++i;
+	     kernel_source[i+j*17 ] = digits[tmp];
+	     ++i;
+	     
+	  }
+	  
+}  
+
+	
 void DES_bs_select_device(int platform_no,int dev_no)
 {
 	devno = dev_no;
 	pltfrmno = platform_no;
-	opencl_init("$JOHN/DES_bs_kernel.cl", dev_no, platform_no);
-	pltfrmid[platform_no] = platform[platform_no];
-	devid[platform_no][dev_no] = devices[dev_no];
-	cntxt[platform_no][dev_no] = context[dev_no];
-	prg[platform_no][dev_no] = program[dev_no];
-	krnl[platform_no][dev_no] = clCreateKernel(prg[platform_no][dev_no],"DES_bs_25",&err) ;
-	if(err) {printf("Create Kernel DES_bs_25 FAILED\n"); return ;}
-	cmdq[platform_no][dev_no] = queue[dev_no];
+	init_dev();
 	
-	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
-	if(opencl_DES_bs_data_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
-	index768_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 768*sizeof(unsigned int), NULL, &err);
-	if(index768_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
-	index96_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 96*sizeof(unsigned int), NULL, &err);
-	if(index96_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
-	B_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, 64*MULTIPLIER*sizeof(DES_bs_vector), NULL, &err);
-	if(B_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
-	
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
-	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
-	
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
 }	
 
 
@@ -109,15 +259,15 @@ void opencl_DES_bs_set_salt(WORD salt)
 	}
 	
 	set_salt = 1;
+		
 }
 
 void opencl_DES_bs_crypt_25(int keys_count)
 {
 	
 	unsigned int section=0,keys_count_multiple;
-	
+	static unsigned int pos ;
 	cl_event evnt;
-	
 	size_t N,M;
 	
 	if(keys_count%DES_BS_DEPTH==0) keys_count_multiple=keys_count;
@@ -134,17 +284,51 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	else
 	N = section;  
 	
-	if(set_salt == 1){
-
-		HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
+	if(set_salt == 1){ 
+		unsigned int i,j;
+		unsigned int found = 0;
+		for(i=0; i < ctr; i++) {
+			for(j=0;j<96;j++){
+				if(stored[i].index[j]!=index96[j]) {
+					found = 0;
+					break;
+				}
+				found = 1;
+			}
+			if(found == 1) {
+				pos=i;
+				break;
+			} 
+		}
+		if(found==0){
+			pos=ctr;
+			modify_src();
+			clReleaseProgram(program[devno]);
+			build_kernel( devno, NULL) ;
+			krnl[pltfrmno][devno][pos] = clCreateKernel(program[devno],"DES_bs_25",&err) ;
+			if(err) {printf("Create Kernel DES_bs_25 FAILED\n"); return ;}
+			for(j=0;j<96;j++)
+				stored[ctr].index[j]= index96[j];
+			stored[ctr].id = ctr ;
+			ctr++;  
+		}
+				
+	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
+	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
+	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
+	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
+		
+		//HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
 		set_salt = 0;
-	}  
-	
-	
+		
+	} 
+		
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],opencl_DES_bs_data_gpu,CL_TRUE,0,MULTIPLIER*sizeof(opencl_DES_bs_transfer),opencl_DES_bs_data,0,NULL,NULL ), "Failed Copy data to gpu");
 	
-	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno],1,NULL,&N,&M,0,NULL,&evnt);
-
+	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno][pos],1,NULL,&N,&M,0,NULL,&evnt);
+        
+	HANDLE_CLERROR(err,"Enque Kernel Failed");
+	
 	clWaitForEvents(1,&evnt);
 	
 	HANDLE_CLERROR(clEnqueueReadBuffer(cmdq[pltfrmno][devno],B_gpu,CL_TRUE,0,MULTIPLIER*64*sizeof(DES_bs_vector),B, 0, NULL, NULL),"Write FAILED\n");
