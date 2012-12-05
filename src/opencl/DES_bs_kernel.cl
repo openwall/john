@@ -1,3 +1,53 @@
+/* CAUTION:Do not change or move the next 48 lines */  
+#define index00 31
+#define index01  0
+#define index02  1
+#define index03  2
+#define index04  3
+#define index05  4
+#define index06  3
+#define index07  4
+#define index08  5
+#define index09  6
+#define index10  7
+#define index11  8
+#define index24 15
+#define index25 16
+#define index26 17
+#define index27 18
+#define index28 19
+#define index29 20
+#define index30 19
+#define index31 20
+#define index32 21
+#define index33 22
+#define index34 23
+#define index35 24
+#define index48 63
+#define index49 32
+#define index50 33
+#define index51 34
+#define index52 35
+#define index53 36
+#define index54 35
+#define index55 36
+#define index56 37
+#define index57 38
+#define index58 39
+#define index59 40
+#define index72 47
+#define index73 48
+#define index74 49
+#define index75 50
+#define index76 51
+#define index77 52
+#define index78 51
+#define index79 52
+#define index80 53
+#define index81 54
+#define index82 55
+#define index83 56
+
 /*
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
@@ -7,7 +57,6 @@
  
 #include "opencl_DES_WGS.h"
 #include "opencl_device_info.h"
- 
  
 #define ARCH_WORD     			int
 #define DES_BS_DEPTH                    32
@@ -310,6 +359,7 @@ inline void DES_bs_finalize_keys( unsigned int section,
 #define y(p, q) vxorf(B[p]       , _local_K[index768[q+k] + local_offset_K])
 #endif
 
+/*
 #define H1()\
 	        s1(x(0), x(1), x(2), x(3), x(4), x(5),\
 			B,40, 48, 54, 62);\
@@ -353,6 +403,53 @@ inline void DES_bs_finalize_keys( unsigned int section,
 		s8(y(59, 90), y(60, 91), y(61, 92),\
 			y(62, 93), y(63, 94), y(32, 95),\
 			B,4, 26, 14, 20);
+			
+	
+*/
+#define H1()\
+	        s1(y(index00, 0), y(index01, 1), y(index02, 2), y(index03, 3), y(index04, 4), y(index05, 5),\
+			B,40, 48, 54, 62);\
+		s2(y(index06, 6), y(index07, 7), y(index08, 8), y(index09, 9), y(index10, 10), y(index11, 11),\
+			B,44, 59, 33, 49);\
+		s3(y(7, 12), y(8, 13), y(9, 14),\
+			y(10, 15), y(11, 16), y(12, 17),\
+			B,55, 47, 61, 37);\
+		s4(y(11, 18), y(12, 19), y(13, 20),\
+			y(14, 21), y(15, 22), y(16, 23),\
+			B,57, 51, 41, 32);\
+		s5(y(index24, 24), y(index25, 25), y(index26, 26), y(index27, 27), y(index28, 28), y(index29, 29),\
+			B,39, 45, 56, 34);\
+		s6(y(index30, 30), y(index31, 31), y(index32, 32), y(index33, 33), y(index34, 34), y(index35, 35),\
+			B,35, 60, 42, 50);\
+		s7(y(23, 36), y(24, 37), y(25, 38),\
+			y(26, 39), y(27, 40), y(28, 41),\
+			B,63, 43, 53, 38);\
+		s8(y(27, 42), y(28, 43), y(29, 44),\
+			y(30, 45), y(31, 46), y(0, 47),\
+			B,36, 58, 46, 52);
+			
+#define H2()\
+		s1(y(index48, 48), y(index49, 49), y(index50, 50), y(index51, 51), y(index52, 52), y(index53, 53),\
+			B,8, 16, 22, 30);\
+		s2(y(index54, 54), y(index55, 55), y(index56, 56), y(index57, 57), y(index58, 58), y(index59, 59),\
+			B,12, 27, 1, 17);\
+		s3(y(39, 60), y(40, 61), y(41, 62),\
+			y(42, 63), y(43, 64), y(44, 65),\
+			B,23, 15, 29, 5);\
+		s4(y(43, 66), y(44, 67), y(45, 68),\
+			y(46, 69), y(47, 70), y(48, 71),\
+			B,25, 19, 9, 0);\
+		s5(y(index72, 72), y(index73, 73), y(index74, 74), y(index75, 75), y(index76, 76), y(index77, 77),\
+			B,7, 13, 24, 2);\
+		s6(y(index78, 78), y(index79, 79), y(index80, 80), y(index81, 81), y(index82, 82), y(index83, 83),\
+			B,3, 28, 10, 18);\
+		s7(y(55, 84), y(56, 85), y(57, 86),\
+			y(58, 87), y(59, 88), y(60, 89),\
+			B,31, 11, 21, 6);\
+		s8(y(59, 90), y(60, 91), y(61, 92),\
+			y(62, 93), y(63, 94), y(32, 95),\
+			B,4, 26, 14, 20);
+			
 #ifdef _CPU			
 #define loop_body()\
 		H1();\

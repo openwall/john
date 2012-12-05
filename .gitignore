@@ -28,6 +28,7 @@ run/opencl_cryptsha256.h
 run/opencl_cryptsha512.h
 run/opencl_device_info.h
 run/opencl_nonstd.h
+run/opencl_pbkdf2_hmac_sha1.h
 run/opencl_rar.h
 run/opencl_rawsha256.h
 run/opencl_rawsha512-ng.h

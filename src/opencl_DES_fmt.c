@@ -46,6 +46,8 @@ for(i=0;i<MULTIPLIER;i++)
 	opencl_DES_bs_init(0, DES_bs_cpt,i);
 
 DES_bs_select_device(platform_id,ocl_gpu_id);
+
+
 	
 }
 
