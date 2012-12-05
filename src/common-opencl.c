@@ -464,7 +464,8 @@ void opencl_build_kernel_opt(char *kernel_filename, unsigned int dev_id, char *o
 }
 
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
-{
+{	
+	kernel_loaded=0;
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
