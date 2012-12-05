@@ -26,7 +26,7 @@
 /* The OpenCL format defines JOHN_OCL_WPAPSK before including this
  * header file, changing some behaviors. */
 #ifdef JOHN_OCL_WPAPSK
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	63
 #else
 #define PLAINTEXT_LENGTH	15
 #endif
@@ -69,8 +69,10 @@ typedef struct {
 	uint8_t  eapol[256 + 64];
 	uint32_t eapol_size; // blocks
 	uint8_t  data[64 + 12];
-#endif
+	uint8_t  salt[36]; // essid
+#else
 	uint8_t  salt[15]; // essid
+#endif
 } wpapsk_salt;
 
 

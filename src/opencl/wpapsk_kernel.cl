@@ -48,7 +48,7 @@ typedef struct {
 	uint  eapol[(256 + 64) / 4];
 	uint  eapol_size;
 	uint  data[(64 + 12) / 4]; // pre-processed mac and nonce
-	uchar salt[15]; // essid
+	uchar salt[36]; // essid
 } wpapsk_salt;
 
 typedef struct {
@@ -621,17 +621,14 @@ typedef struct {
 	}
 
 inline void preproc(__global const uchar *key, uint keylen,
-                    __global uint *state, uchar var1, uint var4)
+                    __global uint *state, uint padding)
 {
 	uint i;
 	uint W[16];
 	uint output[5];
 
-	for (i = 0; i < 5; i++)
-		output[i] = state[i];
-
 	for (i = 0; i < 16; i++)
-		W[i] = var4;
+		W[i] = padding;
 
 	for (i = 0; i < keylen; i++)
 		XORCHAR_BE(W, i, key[i]);
@@ -691,8 +688,8 @@ __kernel void wpapsk_init(__global const wpapsk_password *inbuffer,
 	uint gid = get_global_id(0);
 	uint i;
 
-	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].ipad, 0x36, 0x36363636);
-	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].opad, 0x5c, 0x5c5c5c5c);
+	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].ipad, 0x36363636);
+	preproc(inbuffer[gid].v, inbuffer[gid].length, state[gid].opad, 0x5c5c5c5c);
 
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x01);
 
