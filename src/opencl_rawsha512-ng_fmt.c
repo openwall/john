@@ -496,7 +496,7 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 }
 
 #if FMT_MAIN_VERSION > 9
-static char * split(char * ciphertext, int index, struct fmt_main *self) {
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 #else
 static char * split(char * ciphertext, int index) {
 #endif
