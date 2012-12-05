@@ -102,6 +102,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
 	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
 
+/*
+ * Test each format just once unless we're debugging.
+ */
+#ifndef DEBUG
+	if (format->private.initialized == 2)
+		return NULL;
+#endif
+
 	if (format->params.plaintext_length < 1 ||
 	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "plaintext_length";
@@ -228,6 +236,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			done |= 2;
 		}
 	} while (done != 3);
+
+	format->private.initialized = 2;
 
 	return NULL;
 }
