@@ -510,7 +510,7 @@ static void * get_binary(char *ciphertext) {
         p += 2;
     }
     b = (uint32_t *) out;
-    b[0] = SWAP32(b[3]) - 0xa54ff53a;
+    b[0] = SWAP32(b[3]) - H3;
 
     return out;
 }

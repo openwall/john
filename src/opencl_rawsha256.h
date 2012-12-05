@@ -17,10 +17,6 @@
 #include "opencl_device_info.h"
 #include "opencl_sha256.h"
 
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 //Constants.
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
 #define PLAINTEXT_TEXT          "32"

@@ -11,15 +11,11 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#ifndef _RAWSHA512_NG_H
-#define _RAWSHA512_NG_H
+#ifndef _XSHA512_NG_H
+#define _XSHA512_NG_H
 
 #include "opencl_device_info.h"
 #include "opencl_sha512.h"
-
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Constants.
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */

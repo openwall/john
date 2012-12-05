@@ -17,10 +17,6 @@
 #include "opencl_device_info.h"
 #include "opencl_sha256.h"
 
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 //Constants.
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
