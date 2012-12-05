@@ -4,7 +4,7 @@
  * public under the following terms: Redistribution and use in source and
  * binary forms, with or without modification, are permitted.
  *
- * Code is based on  Aircrack-ng source
+ * Code was at some point based on Aircrack-ng source
  */
 #include <string.h>
 #include "arch.h"
@@ -17,7 +17,7 @@
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
-static int VF = 1;	/* Will be set to 4 when we run vectorized */
+static int VF = 1;	/* Will be set to 4 if we (ever) run vectorized */
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
