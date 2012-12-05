@@ -58,27 +58,22 @@
 #define FORMAT_NAME        "MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4"
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
-#define BENCHMARK_LENGTH   0
+#define BENCHMARK_LENGTH   -1000
 #define PLAINTEXT_LENGTH   125
-#define CRYPT_BINARY_SIZE  8
-#define BINARY_SIZE        0
-#define MAX_REALMLEN       20
-#define MAX_USERLEN        15
+#define MAX_REALMLEN       64
+#define MAX_USERLEN        32
 #define CHECKSUM_SIZE      16
 #define TIMESTAMP_SIZE     36
 #define KEY_SIZE           16
-#define SALT_SIZE          (CHECKSUM_SIZE + TIMESTAMP_SIZE)
+#define BINARY_SIZE        CHECKSUM_SIZE
+#define SALT_SIZE          sizeof(struct salt_t)
 #define TOTAL_LENGTH       (10 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN)
-#define PLAINTEXT_OFFSET   14
 
 // these may be altered in init() if running OMP
-#define MIN_KEYS_PER_CRYPT	    1
-#define THREAD_RATIO            32
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT	    0x10000
-#else
-#define MAX_KEYS_PER_CRYPT	    THREAD_RATIO
-#endif
+#define MIN_KEYS_PER_CRYPT 1
+#define MAX_KEYS_PER_CRYPT 1
+
+#define OMP_SCALE          1024
 
 // Second and third plaintext will be replaced in init() under --encoding=utf8
 static struct fmt_tests tests[] = {
@@ -94,15 +89,17 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static struct salt_t {
+	ARCH_WORD_32 checksum[CHECKSUM_SIZE / sizeof(ARCH_WORD_32)];
+	unsigned char timestamp[TIMESTAMP_SIZE];
+} *cur_salt;
+
 static char (*saved_plain)[(PLAINTEXT_LENGTH+4)];
 static int (*saved_len);
-static char (*output)[CRYPT_BINARY_SIZE];
+static ARCH_WORD_32 (*output)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 static HMACMD5Context (*saved_ctx);
 
 static int keys_prepared;
-static unsigned char *saltblob = NULL;
-#define CHECKSUM  saltblob
-#define TIMESTAMP &saltblob[CHECKSUM_SIZE]
 
 static void init(struct fmt_main *self)
 {
@@ -110,12 +107,8 @@ static void init(struct fmt_main *self)
 	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
 	if (n < MIN_KEYS_PER_CRYPT)
 		n = MIN_KEYS_PER_CRYPT;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
 	self->params.min_keys_per_crypt = n;
-	n = n * (n << 1) * THREAD_RATIO;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
+	n *= OMP_SCALE;
 	self->params.max_keys_per_crypt = n;
 #endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -159,13 +152,11 @@ static char *hex2bin(char *src, unsigned char *dst, int outsize)
 	return p;
 }
 
-static void *get_salt(char *ciphertext)
+static void *salt(char *ciphertext)
 {
-	static unsigned char *salt;
+	static struct salt_t salt;
 	char *data = ciphertext, *p;
 	int n;
-
-	if (!salt) salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
 	// skip the $mskrb5$ string
 	data += 8;
@@ -189,20 +180,20 @@ static void *get_salt(char *ciphertext)
 	n = (p - data);
 	if (n != 2 * CHECKSUM_SIZE)
 		return NULL;
-	p = hex2bin(data, salt, CHECKSUM_SIZE);
+	p = hex2bin(data, (unsigned char*)salt.checksum, CHECKSUM_SIZE);
 	data = p + 1;
 
 	// read the encrypted timestamp
-	p = hex2bin(data, &salt[CHECKSUM_SIZE], TIMESTAMP_SIZE);
+	p = hex2bin(data, salt.timestamp, TIMESTAMP_SIZE);
 	if (*p || p - data != TIMESTAMP_SIZE * 2)
 		return NULL;
 
-	return salt;
+	return (void*)&salt;
 }
 
 static void set_salt(void *salt)
 {
-	saltblob = salt;
+	cur_salt = salt;
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -226,6 +217,41 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	strlwr(data);
 
 	return out;
+}
+
+static void *binary(char *ciphertext)
+{
+	static unsigned char *binary;
+	char *data = ciphertext, *p;
+	int n;
+
+	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	// skip the $mskrb5$ string
+	data += 8;
+
+	// skip the user field
+	p = strchr(data, '$');
+	if (!p)
+		return NULL;
+	data = p + 1;
+
+	// skip the realm field
+	p = strchr(data, '$');
+	if (!p)
+		return NULL;
+	data = p + 1;
+
+	// read the checksum
+	p = strchr(data, '$');
+	if (!p)
+		return NULL;
+	n = (p - data);
+	if (n != 2 * CHECKSUM_SIZE)
+		return NULL;
+	p = hex2bin(data, binary, CHECKSUM_SIZE);
+
+	return (void*)binary;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -277,13 +303,14 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	const unsigned char one[] = { 1, 0, 0, 0 };
-	int i;
+	int i = 0;
 
 	if (!keys_prepared) {
 #ifdef _OPENMP
 #pragma omp parallel for
+		for (i = 0; i < count; i++)
 #endif
-		for (i = 0; i < count; i++) {
+		{
 			int len;
 			unsigned char K[KEY_SIZE];
 			unsigned char K1[KEY_SIZE];
@@ -305,95 +332,78 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
+	for (i = 0; i < count; i++)
 #endif
-	for (i = 0; i < count; i++) {
-		unsigned char K3[KEY_SIZE], cleartext[PLAINTEXT_OFFSET + CRYPT_BINARY_SIZE];
+	{
+		unsigned char K3[KEY_SIZE], cleartext[TIMESTAMP_SIZE];
 		HMACMD5Context ctx;
 		RC4_KEY key;
-		// key set up with K1 is stored in saved_ctx[index]
-		// CHECKSUM and TIMESTAMP are just defines, they are actually
-		// concatenated to saltblob[]
+		// key set up with K1 is stored in saved_ctx[i]
 
 		// K3 = HMAC-MD5(K1, CHECKSUM)
 		memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
-		hmac_md5_update(CHECKSUM, CHECKSUM_SIZE, &ctx);
+		hmac_md5_update((unsigned char*)cur_salt->checksum, CHECKSUM_SIZE, &ctx);
 		hmac_md5_final(K3, &ctx);
 
-		// RC4(K3, TIMESTAMP) decrypt part of the timestamp
+		// Decrypt part of the timestamp with the derived key K3
 		RC4_set_key(&key, KEY_SIZE, K3);
-		RC4(&key, PLAINTEXT_OFFSET + CRYPT_BINARY_SIZE, TIMESTAMP,
-		    cleartext);
+		RC4(&key, 16, cur_salt->timestamp, cleartext);
 
-		// 15th byte and on is our partial binary
-		memcpy(output[i], &cleartext[PLAINTEXT_OFFSET], CRYPT_BINARY_SIZE);
+		// Bail out unless we see known plaintext
+		if (cleartext[14] == '2' && cleartext[15] == '0') {
+			// Decrypt the rest of the timestamp
+			//RC4_set_key(&key, KEY_SIZE, K3);
+			RC4(&key, TIMESTAMP_SIZE - 16, &cur_salt->timestamp[16], &cleartext[16]);
+			// create checksum K2 = HMAC-MD5(K1, plaintext)
+			memcpy(&ctx, &saved_ctx[i], sizeof(ctx));
+			hmac_md5_update(cleartext, TIMESTAMP_SIZE, &ctx);
+			hmac_md5_final((unsigned char*)output[i], &ctx);
+		} else {
+			memset((unsigned char*)output[i], 0, BINARY_SIZE);
+		}
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	char *tst;
-
-	for (index = 0; index < count; index++) {
-		tst = (char*)(output[index]);
-		if (tst[0] == '2' && tst[1] == '0'
-		    && (tst[2] <= '9' && tst[2] >= '0')
-		    && (tst[3] <= '9' && tst[3] >= '0')
-		    && (tst[4] == '0' || tst[4] == '1')
-		    && (tst[5] <= '9' && tst[5] >= '0')
-		    && (tst[6] <= '3' && tst[6] >= '0')
-		    && (tst[7] <= '9' && tst[7] >= '0')
-		    )
+	int index = 0;
+#ifdef _OPENMP
+	for (index = 0; index < count; index++)
+#endif
+		if (!memcmp(binary, output[index], BINARY_SIZE))
 			return 1;
-	}
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	char *tst = (char*)(output[index]);
-
-	return (tst[0] == '2' && tst[1] == '0'
-		    && (tst[2] <= '9' && tst[2] >= '0')
-		    && (tst[3] <= '9' && tst[3] >= '0')
-		    && (tst[4] == '0' || tst[4] == '1')
-		    && (tst[5] <= '9' && tst[5] >= '0')
-		    && (tst[6] <= '3' && tst[6] >= '0')
-		    && (tst[7] <= '9' && tst[7] >= '0')
-	    );
+	return !memcmp(binary, output[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	HMACMD5Context ctx;
-	unsigned char K2[KEY_SIZE], K3[KEY_SIZE];
-	RC4_KEY key;
-	unsigned char cleartext[TIMESTAMP_SIZE];
-
-	// K1 is stored in saved_ctx[index]
-	// CHECKSUM and TIMESTAMP are just defines, they are actually
-	// concatenated to saltblob[]
-
-	// K3 = HMAC-MD5(K1, CHECKSUM)
-	memcpy(&ctx, &saved_ctx[index], sizeof(ctx));
-	hmac_md5_update(CHECKSUM, CHECKSUM_SIZE, &saved_ctx[index]);
-	hmac_md5_final(K3, &saved_ctx[index]);
-
-	// Decrypt the timestamp with the derived key K3
-	RC4_set_key(&key, KEY_SIZE, K3);
-	RC4(&key, TIMESTAMP_SIZE, TIMESTAMP, cleartext);
-
-	// create checksum K2 = HMAC-MD5(K1, cleartext)
-	hmac_md5_update(cleartext, TIMESTAMP_SIZE, &ctx);
-	hmac_md5_final(K2, &ctx);
-
-	// Compare our checksum with the input checksum
-	return (!memcmp(K2, CHECKSUM, CHECKSUM_SIZE));
+	return 1;
 }
+
+static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffff; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfffff; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xffffff; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7ffffff; }
+
+static int get_hash_0(int index) { return output[index][0] & 0xf; }
+static int get_hash_1(int index) { return output[index][0] & 0xff; }
+static int get_hash_2(int index) { return output[index][0] & 0xfff; }
+static int get_hash_3(int index) { return output[index][0] & 0xffff; }
+static int get_hash_4(int index) { return output[index][0] & 0xfffff; }
+static int get_hash_5(int index) { return output[index][0] & 0xffffff; }
+static int get_hash_6(int index) { return output[index][0] & 0x7ffffff; }
 
 static int salt_hash(void *salt)
 {
-	return (*(ARCH_WORD_32 *) salt) & (SALT_HASH_SIZE - 1);
+	return (((struct salt_t*)salt)->checksum[0]) & (SALT_HASH_SIZE - 1);
 }
 
 struct fmt_main fmt_mskrb5 = {
@@ -405,9 +415,9 @@ struct fmt_main fmt_mskrb5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		sizeof(ARCH_WORD_32),
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		sizeof(ARCH_WORD_32),
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -417,15 +427,17 @@ struct fmt_main fmt_mskrb5 = {
 		fmt_default_prepare,
 		valid,
 		split,
-		fmt_default_binary,
-		get_salt,
+		binary,
+		salt,
 		fmt_default_source,
 		{
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash,
-			fmt_default_binary_hash
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -434,11 +446,13 @@ struct fmt_main fmt_mskrb5 = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash,
-			fmt_default_get_hash
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
