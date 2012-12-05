@@ -284,10 +284,12 @@ static void sig_handle_timer(int signum)
 	if (!--timer_abort)
 		event_abort = event_pending = 1;
 
+#ifndef BENCH_BUILD
 	if (!--timer_status) {
 		event_status = event_pending = 1;
 		timer_status = options.status_interval;
 	}
+#endif
 
 	if (!--timer_ticksafety_value) {
 		timer_ticksafety_value = timer_ticksafety_interval;

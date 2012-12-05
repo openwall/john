@@ -192,16 +192,16 @@ BENCH_OBJS = \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
 	bench-t.o best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals.o tty.o
+	miscnl.o params.o path.o signals_g.o tty.o
 
 PARA_BENCH_32_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals.o tty.o sha1-mmx.o md4-mmx.o \
+	miscnl.o params.o path.o signals_g.o tty.o sha1-mmx.o md4-mmx.o \
 	md5-mmx.o x86.S $(BENCH_PARA_DEPEND)
 
 PARA_BENCH_OBJS = \
 	bench-t.o para-best.o common.o config_g.o formats_g.o math.o memory.o \
-	miscnl.o params.o path.o signals.o tty.o $(BENCH_PARA_DEPEND)
+	miscnl.o params.o path.o signals_g.o tty.o $(BENCH_PARA_DEPEND)
 
 BENCH_PARA_DEPEND = \
 	sse-intrinsics.o rawMD4_fmt_plug.o rawMD5_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
@@ -1785,13 +1785,15 @@ DES_bs_b.o: DES_bs_b.c sboxes.c nonstd.c sboxes-s.c
 DES_bsg.o: DES_bs.c
 	$(CC) $(CFLAGS) -DBENCH_BUILD DES_bs.c -o DES_bsg.o
 
-# This is for the BENCH build (to not depend upon unicode.o)
 config_g.o: config.c
 	$(CC) $(CFLAGS) -DBENCH_BUILD config.c -o config_g.o
 
 # This is for the BENCH build (to not depend upon options.o)
 formats_g.o: formats.o
 	$(CC) $(CFLAGS) -DBENCH_BUILD formats.c -o formats_g.o
+
+signals_g.o: signals.o
+	$(CC) $(CFLAGS) -DBENCH_BUILD signals.c -o signals_g.o
 
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
