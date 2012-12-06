@@ -10,8 +10,13 @@
 
 #include "opencl_device_info.h"
 
-#if !defined(VECTORIZE) && !defined(SCALAR)
+#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
+#define MAYBE_VECTOR_UINT	uint4
+#else
+#define MAYBE_VECTOR_UINT	uint
+#ifndef SCALAR
 #define SCALAR
+#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
@@ -24,13 +29,6 @@
 #else
 #define MAYBE_CONSTANT	__constant
 #endif
-
-#ifdef SCALAR
-#define MAYBE_VECTOR_UINT	uint
-#else
-#define MAYBE_VECTOR_UINT	uint4
-#endif
-
 
 /* Functions common to MD4 and MD5 */
 #ifdef USE_BITSELECT

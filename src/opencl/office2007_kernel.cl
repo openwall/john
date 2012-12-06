@@ -13,15 +13,20 @@
 
 #include "opencl_device_info.h"
 
-#if !defined(VECTORIZE) && !defined(SCALAR)
+#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
+#define MAYBE_VECTOR_UINT	uint4
+#else
+#define MAYBE_VECTOR_UINT	uint
+#ifndef SCALAR
 #define SCALAR
+#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
 #define USE_BITSELECT
 #endif
 
-#ifdef SCALAR
+#ifdef gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
@@ -29,13 +34,6 @@ inline uint SWAP32(uint x)
 }
 #else
 #define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
-#endif
-
-#ifdef SCALAR
-
-#define MAYBE_VECTOR_UINT	uint
-#else
-#define MAYBE_VECTOR_UINT	uint4
 #endif
 
 #define INIT_A			0x67452301

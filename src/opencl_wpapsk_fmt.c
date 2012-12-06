@@ -281,7 +281,17 @@ static void init(struct fmt_main *self)
 	global_work_size = 0;
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
-	if (options.flags & FLG_VECTORIZE) {
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u %s",
+	         HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH,
+	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
+	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
+	opencl_init_opt("$JOHN/wpapsk_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+
+	if ((options.flags & FLG_VECTORIZE) ||
+	    ((!options.flags & FLG_SCALAR) &&
+	     gpu_amd(device_info[ocl_gpu_id]) &&
+	     !amd_gcn(device_info[ocl_gpu_id]))) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
@@ -299,9 +309,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u %s", HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH, (VF == 4) ? "-DVECTORIZED" : "");
-	opencl_init_opt("$JOHN/wpapsk_kernel.cl", ocl_gpu_id, platform_id, build_opts);
-
+	// create kernels to execute
 	crypt_kernel = wpapsk_init = clCreateKernel(program[ocl_gpu_id], "wpapsk_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
 	wpapsk_loop = clCreateKernel(program[ocl_gpu_id], "wpapsk_loop", &ret_code);
