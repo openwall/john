@@ -61,7 +61,7 @@ static struct fmt_tests tests[] = {
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (amd_gcn(source_in_use))
+    if (amd_gcn(source_in_use) || use_local(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 (sizeof(sha512_ctx_buffer));
     else
@@ -147,8 +147,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
     HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
             (void *) &result_buffer), "Error setting argument 2");
 
-    if (amd_gcn(device_info[ocl_gpu_id]) && !
-        no_byte_addressable(gpu_amd(device_info[ocl_gpu_id]))) {
+    if (amd_gcn(source_in_use) || use_local(source_in_use)) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
            sizeof(sha512_ctx_buffer) * local_work_size,
@@ -418,7 +417,7 @@ static void init(struct fmt_main * self) {
     if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if (amd_gcn(source_in_use))
+    if (amd_gcn(source_in_use) || use_local(source_in_use))
         task = "$JOHN/sha512-ng_kernel_LOCAL.cl";
     opencl_build_kernel(task, ocl_gpu_id);
 

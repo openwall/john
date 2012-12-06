@@ -23,20 +23,17 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[5] = H5;
     ctx->H[6] = H6;
     ctx->H[7] = H7;
-    ctx->buflen = 0;
 }
 
 inline void _memcpy(               uint8_t * dest,
                     __global const uint8_t * src) {
-    int i = 0;
 
     uint32_t * l = (uint32_t *) dest;
     __global uint32_t * s = (__global uint32_t *) src;
 
-    while (i < PLAINTEXT_LENGTH) {
+    #pragma unroll
+    for (int i = 0; i < PLAINTEXT_LENGTH; i += 4)
         *l++ = *s++;
-        i += 4;
-    }
 }
 
 inline void sha512_block(sha512_ctx * ctx) {
@@ -48,12 +45,12 @@ inline void sha512_block(sha512_ctx * ctx) {
 #define  f   ctx->H[5]
 #define  g   ctx->H[6]
 #define  h   ctx->H[7]
+#define  w   ctx->buffer->mem_64
 
     uint64_t t1, t2;
-    uint64_t w[16];
 
     #pragma unroll
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 15; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
 
     #pragma unroll
@@ -111,18 +108,17 @@ inline void ctx_update(           sha512_ctx  * ctx,
 
 inline void ctx_append_1(sha512_ctx * ctx) {
 
-    uint32_t length = PLAINTEXT_LENGTH + SALT_SIZE;
-    uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
+    uint32_t * l = ctx->buffer->mem_32;
+    l +=  (PLAINTEXT_LENGTH + SALT_SIZE) / 4;
 
-    while (length < 120) {
+    #pragma unroll
+    for (int i = PLAINTEXT_LENGTH + SALT_SIZE; i < 120; i += 4)
         *l++ = 0;
-        length += 4;
-    }
 }
 
 inline void ctx_add_length(sha512_ctx * ctx) {
 
-    ctx->buffer->mem_64[15] = SWAP64((uint64_t) (ctx->buflen * 8));
+    ctx->buffer[15].mem_64[0] = (uint64_t) (ctx->buflen * 8);
 }
 
 inline void finish_ctx(sha512_ctx * ctx) {
@@ -131,9 +127,9 @@ inline void finish_ctx(sha512_ctx * ctx) {
     ctx_add_length(ctx);
 }
 
-inline void sha512_crypt(__constant sha512_salt   * salt_data,
-                         __global sha512_password * keys_data,
-                                  sha512_ctx      * ctx) {
+inline void sha512_crypt(__constant sha512_salt     * salt_data,
+                         __global   sha512_password * keys_data,
+                                    sha512_ctx      * ctx) {
 #define pass        keys_data->pass->mem_08
 #define passlen     keys_data->length
 #define salt        (__constant uint32_t *) salt_data->salt

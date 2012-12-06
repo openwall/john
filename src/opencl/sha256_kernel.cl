@@ -34,7 +34,7 @@ inline void _memcpy(               uint8_t * dest,
 
     #pragma unroll
     for (int i = 0; i < PLAINTEXT_LENGTH; i += 4)
-        *l++ = SWAP32(s[i/4]);
+        *l++ = *s++;
 }
 
 inline void sha256_block(sha256_ctx * ctx) {
@@ -49,6 +49,10 @@ inline void sha256_block(sha256_ctx * ctx) {
 #define  w   ctx->buffer->mem_32
 
     uint32_t t1, t2;
+
+    #pragma unroll
+    for (int i = 0; i < 15; i++)
+        w[i] = SWAP32(ctx->buffer->mem_32[i]);
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
@@ -99,13 +103,11 @@ inline void ctx_update(         sha256_ctx * ctx,
 
 inline void ctx_append_1(sha256_ctx * ctx) {
 
-    uint32_t length = PLAINTEXT_LENGTH;
-    uint32_t * l = (uint32_t *) (ctx->buffer->mem_08 + length);
+    uint32_t * l = ctx->buffer->mem_32 + PLAINTEXT_ARRAY;
 
-    while (length < 60) {
+    #pragma unroll
+    for (int i = PLAINTEXT_LENGTH; i < 60; i += 4)
         *l++ = 0;
-        length += 4;
-    }
 }
 
 inline void ctx_add_length(sha256_ctx * ctx) {
