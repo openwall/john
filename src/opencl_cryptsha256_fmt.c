@@ -57,11 +57,7 @@ static struct fmt_tests tests[] = {
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (use_local(source_in_use))
-        max_available = get_local_memory_size(ocl_gpu_id) /
-                (sizeof(sha256_password) + sizeof(sha256_ctx) +
-                 sizeof(sha256_buffers));
-    else if (gpu(source_in_use))
+    if (gpu(source_in_use))
         max_available = get_local_memory_size(ocl_gpu_id) /
                 sizeof(sha256_password);
     else
@@ -149,7 +145,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu(source_in_use) || use_local(source_in_use)) {
+    if (gpu(source_in_use)) {
         //Set prepare kernel arguments
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -163,27 +159,10 @@ static void create_clobj(int gws, struct fmt_main * self) {
             sizeof(sha256_password) * local_work_size,
             NULL), "Error setting argument 3");
 
-        if (use_local(source_in_use)) {
-            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 4,
-                sizeof(sha256_buffers) * local_work_size,
-                NULL), "Error setting argument 4");
-            HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 5,
-                sizeof(sha256_ctx) * local_work_size,
-                NULL), "Error setting argument 5");
-        }
         //Set crypt kernel arguments
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
-        if (use_local(source_in_use)) {
-            //Fast working memory.
-            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4,
-                sizeof(sha256_buffers) * local_work_size,
-                NULL), "Error setting argument 4");
-            HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5,
-                sizeof(sha256_ctx) * local_work_size,
-                NULL), "Error setting argument 5");
-        }
         //Set final kernel arguments
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
                 (void *) &salt_buffer), "Error setting argument 0");
@@ -193,16 +172,6 @@ static void create_clobj(int gws, struct fmt_main * self) {
                 (void *) &hash_buffer), "Error setting argument 2");
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
-
-        if (use_local(source_in_use)) {
-            //Fast working memory.
-            HANDLE_CLERROR(clSetKernelArg(final_kernel, 4,
-                sizeof(sha256_buffers) * local_work_size,
-                NULL), "Error setting argument 4");
-            HANDLE_CLERROR(clSetKernelArg(final_kernel, 5,
-                sizeof(sha256_ctx) * local_work_size,
-                NULL), "Error setting argument 5");
-        }
     }
     memset(plaintext, '\0', sizeof(sha256_password) * gws);
     global_work_size = gws;
@@ -414,7 +383,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self) {
     runtime += endTime - startTime;
 
     //** Get execution time **//
-    if (gpu(source_in_use) || use_local(source_in_use)) {
+    if (gpu(source_in_use)) {
         ret_code = clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
 
@@ -429,7 +398,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self) {
         runtime += endTime - startTime;
     }
 
-    loops = gpu(source_in_use) || use_local(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
+    loops = gpu(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
 
     //** Get execution time **//
     for (i = 0; i < loops; i++)
@@ -562,9 +531,7 @@ static void init(struct fmt_main * self) {
     if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if (use_local(source_in_use))
-            task = "$JOHN/cryptsha256_kernel_LOCAL.cl";
-    else if (gpu(source_in_use)) {
+    if (gpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
         task = "$JOHN/cryptsha256_kernel_GPU.cl";
     }
