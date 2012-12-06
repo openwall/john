@@ -8,8 +8,10 @@
 
 #include "opencl_device_info.h"
 
-#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
-#define SCALAR
+#ifdef VECTORIZED
+#define MAYBE_VECTOR_UINT	uint4
+#else
+#define MAYBE_VECTOR_UINT	uint
 #endif
 
 #if gpu_amd(DEVICE_INFO)
@@ -23,7 +25,7 @@
 #define MAYBE_CONSTANT	__constant
 #endif
 
-#ifdef SCALAR
+#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
@@ -336,7 +338,6 @@ typedef struct {
 	}
 
 #define sha1_block(b, o) {	\
-		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -351,7 +352,6 @@ typedef struct {
 	}
 
 #define sha1_block_short(b, o) {	\
-		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -399,7 +399,6 @@ typedef struct {
 /* raw'n'lean sha1, context kept in output buffer.
    Note that we thrash the input buffer! */
 #define sha1_block(W, output) {	  \
-		uint K, A, B, C, D, E, temp; \
 		A = output[0]; \
 		B = output[1]; \
 		C = output[2]; \
@@ -626,6 +625,10 @@ inline void preproc(__global const uchar *key, uint keylen,
 	uint i;
 	uint W[16];
 	uint output[5];
+#if !gpu_nvidia(DEVICE_INFO)
+	uint K;
+#endif
+	uint A, B, C, D, E, temp;
 
 	for (i = 0; i < 16; i++)
 		W[i] = padding;
@@ -648,6 +651,10 @@ inline void hmac_sha1(__global uint *state,
 	uint i;
 	uint W[16];
 	uint output[5];
+#if !gpu_nvidia(DEVICE_INFO)
+	uint K;
+#endif
+	uint A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
 		output[i] = ipad[i];
@@ -701,12 +708,42 @@ __kernel void wpapsk_loop(__global wpapsk_state *state)
 {
 	uint gid = get_global_id(0);
 	uint i, j;
-	uint W[16];
-	uint ipad[5];
-	uint opad[5];
-	uint output[5];
-	uint state_out[5];
+#if !gpu_nvidia(DEVICE_INFO)
+	MAYBE_VECTOR_UINT K;
+#endif
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
+	MAYBE_VECTOR_UINT W[16];
+	MAYBE_VECTOR_UINT ipad[5];
+	MAYBE_VECTOR_UINT opad[5];
+	MAYBE_VECTOR_UINT output[5];
+	MAYBE_VECTOR_UINT state_out[5];
 
+#ifdef VECTORIZED
+	for (i = 0; i < 5; i++) {
+		W[i].s0 = state[gid*4+0].W[i];
+		W[i].s1 = state[gid*4+1].W[i];
+		W[i].s2 = state[gid*4+2].W[i];
+		W[i].s3 = state[gid*4+3].W[i];
+	}
+	for (i = 0; i < 5; i++) {
+		ipad[i].s0 = state[gid*4+0].ipad[i];
+		ipad[i].s1 = state[gid*4+1].ipad[i];
+		ipad[i].s2 = state[gid*4+2].ipad[i];
+		ipad[i].s3 = state[gid*4+3].ipad[i];
+	}
+	for (i = 0; i < 5; i++) {
+		opad[i].s0 = state[gid*4+0].opad[i];
+		opad[i].s1 = state[gid*4+1].opad[i];
+		opad[i].s2 = state[gid*4+2].opad[i];
+		opad[i].s3 = state[gid*4+3].opad[i];
+	}
+	for (i = 0; i < 5; i++) {
+		state_out[i].s0 = state[gid*4+0].out[i];
+		state_out[i].s1 = state[gid*4+1].out[i];
+		state_out[i].s2 = state[gid*4+2].out[i];
+		state_out[i].s3 = state[gid*4+3].out[i];
+	}
+#else
 	for (i = 0; i < 5; i++)
 		W[i] = state[gid].W[i];
 	for (i = 0; i < 5; i++)
@@ -715,6 +752,7 @@ __kernel void wpapsk_loop(__global wpapsk_state *state)
 		opad[i] = state[gid].opad[i];
 	for (i = 0; i < 5; i++)
 		state_out[i] = state[gid].out[i];
+#endif
 
 	for (j = 0; j < HASH_LOOPS; j++) {
 		for (i = 0; i < 5; i++)
@@ -750,10 +788,25 @@ __kernel void wpapsk_loop(__global wpapsk_state *state)
 			state_out[i] ^= output[i];
 	}
 
+#ifdef VECTORIZED
+	for (i = 0; i < 5; i++) {
+		state[gid*4+0].W[i] = W[i].s0;
+		state[gid*4+1].W[i] = W[i].s1;
+		state[gid*4+2].W[i] = W[i].s2;
+		state[gid*4+3].W[i] = W[i].s3;
+	}
+	for (i = 0; i < 5; i++) {
+		state[gid*4+0].out[i] = state_out[i].s0;
+		state[gid*4+1].out[i] = state_out[i].s1;
+		state[gid*4+2].out[i] = state_out[i].s2;
+		state[gid*4+3].out[i] = state_out[i].s3;
+	}
+#else
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = W[i];
 	for (i = 0; i < 5; i++)
 		state[gid].out[i] = state_out[i];
+#endif
 }
 
 __kernel void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
@@ -782,6 +835,10 @@ inline void prf_512(const uint *key, MAYBE_CONSTANT uint *data, uint *ret)
 	uint W[16];
 	uint ipad[5];
 	uint opad[5];
+#if !gpu_nvidia(DEVICE_INFO)
+	uint K;
+#endif
+	uint A, B, C, D, E, temp;
 
 	// HMAC(EVP_sha1(), key, 32, (text.data), 100, ret, NULL);
 
@@ -913,6 +970,10 @@ __kernel void wpapsk_final_sha1(__global wpapsk_state *state,
 	uint opad[5];
 	uint i, eapol_blocks;
 	MAYBE_CONSTANT uint *cp = salt->eapol;
+#if !gpu_nvidia(DEVICE_INFO)
+	uint K;
+#endif
+	uint A, B, C, D, E, temp;
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[gid].partial[i];

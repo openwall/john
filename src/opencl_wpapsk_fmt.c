@@ -12,12 +12,12 @@
 #include "common.h"
 #include "misc.h"
 #include "config.h"
-
+#include "options.h"
 #include "common-opencl.h"
 
 static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1;
-static int VF = 1;	/* Will be set to 4 if we (ever) run vectorized */
+static int VF = 1;	/* Will be set to 4 if we run vectorized */
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
@@ -161,25 +161,25 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	set_salt(salt(tests[0].ciphertext));
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * global_work_size, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, &Event[0]), "Copy data to gpu");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, &Event[1]), "Copy setting to gpu");
 
 	/// Run kernels
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "Run initial kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]), "Run initial kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS - 1; i++)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "Run loop kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[4]), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[4]), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_final_sha1, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_final_sha1, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(mic_t) * global_work_size, mic, 0, NULL, &Event[6]), "Copy result back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, &Event[6]), "Copy result back");
 
 #if 0
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
@@ -281,6 +281,12 @@ static void init(struct fmt_main *self)
 	global_work_size = 0;
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
+	if (options.flags & FLG_VECTORIZE) {
+		/* Run vectorized code */
+		VF = 4;
+		self->params.algorithm_name = "OpenCL 4x";
+	}
+
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
@@ -293,7 +299,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH);
+	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u %s", HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH, (VF == 4) ? "-DVECTORIZED" : "");
 	opencl_init_opt("$JOHN/wpapsk_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	crypt_kernel = wpapsk_init = clCreateKernel(program[ocl_gpu_id], "wpapsk_init", &ret_code);
@@ -348,29 +354,30 @@ static void init(struct fmt_main *self)
 static void crypt_all(int count)
 {
 	int i;
+	size_t scalar_gws = VF * global_work_size;
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * global_work_size, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
 
 	if (hccap.keyver == 1)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Run final kernel (MD5)");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_md5, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, lastEvent), "Run final kernel (MD5)");
 	else
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Run final kernel (SHA1)");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_sha1, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, lastEvent), "Run final kernel (SHA1)");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running final kernel");
 
 	/// Read the result back
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * global_work_size, mic, 0, NULL, NULL), "Copy result back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, NULL), "Copy result back");
 }
 
 
