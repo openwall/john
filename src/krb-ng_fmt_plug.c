@@ -47,7 +47,7 @@ static int omp_t = 1;
 #include "keychain.h"
 
 #define FORMAT_LABEL       "krb5ng"
-#define FORMAT_NAME        "MS Kerberos 5 AS-REQ Pre-Auth aes256-cts-hmac-sha1-96"
+#define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth aes256-cts-hmac-sha1-96"
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0
