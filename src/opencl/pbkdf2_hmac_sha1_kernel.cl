@@ -11,10 +11,13 @@
 #include "opencl_device_info.h"
 #include "opencl_pbkdf2_hmac_sha1.h"
 
-#ifdef VECTORIZED
+#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
 #define MAYBE_VECTOR_UINT	uint4
 #else
 #define MAYBE_VECTOR_UINT	uint
+#ifndef SCALAR
+#define SCALAR
+#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
