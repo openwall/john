@@ -24,7 +24,7 @@
 #define USE_BITSELECT
 #endif
 
-#ifdef gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
@@ -330,7 +330,6 @@ __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
 	}
 
 #define sha1_block(b, o) {	\
-		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -345,7 +344,6 @@ __constant uint ValueBlockKey[] = { 0xd7aa0f6d, 0x3061344e };
 	}
 
 #define sha1_block_short(b, o) {	\
-		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -368,6 +366,7 @@ __kernel void GenerateSHA1pwhash(
 	uint i;
 	uint W[16];
 	uint output[5];
+	uint A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 
 	/* Initial hash of salt + password */
@@ -406,6 +405,7 @@ __kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	uint i, j;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 #ifdef SCALAR
 	uint base = pwhash[gid * 6 + 5];
@@ -441,8 +441,8 @@ __kernel void Generate2010key(
 	__constant uint *spincount)
 {
 	uint i, j;
-	MAYBE_VECTOR_UINT W[16], temp[5];
-	MAYBE_VECTOR_UINT output[5];
+	MAYBE_VECTOR_UINT W[16], output[5], hash[5];
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 #ifdef SCALAR
 	uint base = pwhash[gid * 6 + 5];
@@ -468,9 +468,9 @@ __kernel void Generate2010key(
 		sha1_block_short(W, output);
 	}
 
-	/* Our sha1 destroys input so we store it in temp[] */
+	/* Our sha1 destroys input so we store it in hash[] */
 	for (i = 0; i < 5; i++)
-		W[i] = temp[i] = output[i];
+		W[i] = hash[i] = output[i];
 
 	/* Final hash 1 */
 	W[5] = InputBlockKey[0];
@@ -495,7 +495,7 @@ __kernel void Generate2010key(
 	}
 	/* Final hash 2 */
 	for (i = 0; i < 5; i++)
-		W[i] = temp[i];
+		W[i] = hash[i];
 	W[5] = ValueBlockKey[0];
 	W[6] = ValueBlockKey[1];
 	W[7] = 0x80000000;

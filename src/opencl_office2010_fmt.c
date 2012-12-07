@@ -383,7 +383,7 @@ static void init(struct fmt_main *self)
 	opencl_init_opt("$JOHN/office2010_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) ||
-	    ((!options.flags & FLG_SCALAR) &&
+	    ((!(options.flags & FLG_SCALAR)) &&
 	     gpu_amd(device_info[ocl_gpu_id]) &&
 	     !amd_gcn(device_info[ocl_gpu_id]))) {
 		/* Run vectorized code */

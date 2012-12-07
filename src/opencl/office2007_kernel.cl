@@ -26,7 +26,7 @@
 #define USE_BITSELECT
 #endif
 
-#ifdef gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
+#if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
 inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
@@ -321,7 +321,6 @@ inline uint SWAP32(uint x)
 	}
 
 #define sha1_block(b, o) {	\
-		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -336,7 +335,6 @@ inline uint SWAP32(uint x)
 	}
 
 #define sha1_block_short(b, o) {	\
-		uint A, B, C, D, E, temp; \
 		A = o[0]; \
 		B = o[1]; \
 		C = o[2]; \
@@ -360,6 +358,7 @@ __kernel void GenerateSHA1pwhash(
 	uint W[16];
 	uint output[5];
 	uint gid = get_global_id(0);
+	uint A, B, C, D, E, temp;
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
@@ -397,6 +396,7 @@ __kernel void HashLoop(__global MAYBE_VECTOR_UINT *pwhash)
 	uint i, j;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 #ifdef SCALAR
 	uint base = pwhash[gid * 6 + 5];
@@ -433,6 +433,7 @@ __kernel void Generate2007key(
 	uint i, j;
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT output[5];
+	MAYBE_VECTOR_UINT A, B, C, D, E, temp;
 	uint gid = get_global_id(0);
 
 	for (i = 0; i < 5; i++)
