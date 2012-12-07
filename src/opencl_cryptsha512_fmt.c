@@ -263,7 +263,7 @@ static void * get_salt(char *ciphertext) {
 
         if (*endp == '$') {
             ciphertext = endp + 1;
-            out.rounds = srounds < ROUNDS_MIN ?
+            srounds = srounds < ROUNDS_MIN ?
                     ROUNDS_MIN : srounds;
             out.rounds = srounds > ROUNDS_MAX ?
                     ROUNDS_MAX : srounds;
