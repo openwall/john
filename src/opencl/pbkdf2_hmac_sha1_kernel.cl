@@ -591,7 +591,7 @@ __kernel void pbkdf2_loop(__global pbkdf2_state *state)
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
 
-#ifdef VECTORIZED
+#ifdef VECTORIZE
 	for (i = 0; i < 5; i++) {
 		W[i].s0 = state[gid*4+0].W[i];
 		W[i].s1 = state[gid*4+1].W[i];
@@ -661,7 +661,7 @@ __kernel void pbkdf2_loop(__global pbkdf2_state *state)
 			state_out[i] ^= output[i];
 	}
 
-#ifdef VECTORIZED
+#ifdef VECTORIZE
 	for (i = 0; i < 5; i++) {
 		state[gid*4+0].W[i] = W[i].s0;
 		state[gid*4+1].W[i] = W[i].s1;
