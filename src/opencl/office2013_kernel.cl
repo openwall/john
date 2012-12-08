@@ -14,6 +14,9 @@
 
 #if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
 #define MAYBE_VECTOR_ULONG	ulong4
+#ifndef VECTORIZE
+#define VECTORIZE
+#endif
 #else
 #define MAYBE_VECTOR_ULONG	ulong
 #ifndef SCALAR

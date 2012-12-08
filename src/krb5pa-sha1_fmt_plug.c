@@ -3,8 +3,8 @@
  * http://www.ietf.org/rfc/rfc4757.txt
  * http://www.securiteam.com/windowsntfocus/5BP0H0A6KM.html
  *
- * Input format is 'user:$krb5ng$0$user$realm$timestamp$checksum' OR
- * user:$krb5ng$1$salt$timestamp$checksum'
+ * Input format is 'user:$krb5pa$etype$0$user$realm$timestamp+checksum' OR
+ * user:$krb5pa$etype$1$salt$timestamp+checksum'
  *
  * NOTE: Checksum implies last 12 bytes of PA_ENC_TIMESTAMP value in AS-REQ
  * packet.
@@ -46,7 +46,7 @@ static int omp_t = 1;
 #include "gladman_fileenc.h"
 #include "keychain.h"
 
-#define FORMAT_LABEL       "krb5ng"
+#define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth aes256-cts-hmac-sha1-96"
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
@@ -58,12 +58,14 @@ static int omp_t = 1;
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests tests[] = {
-	{"$krb5ng$0$user1$EXAMPLE.COM$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93$883bf697b325193d62a8be9c", "openwall"},
-	{"$krb5ng$0$user1$EXAMPLE.COM$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b$335e588bf29c2d17b11c5caa", "openwall"},
-	{"$krb5ng$0$l33t$EXAMPLE.COM$98f732b309a1d7ef2355a974842a32894d911e97150f5d57f248e1c2632fbd3735c5f156532ccae0341e6a2d$779ca83a06021fe57dafa464", "openwall"},
-        {"$krb5ng$0$aduser$AD.EXAMPLE.COM$64dfeee04be2b2e0423814e0df4d0f960885aca4efffe6cb5694c4d34690406071c4968abd2c153ee42d258c$5e09a41269bbcd7799f478d3", "password@123"},
-        {"$krb5ng$0$aduser$AD.EXAMPLE.COM$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f8$9a0ad1a4b178662b6106c0ff", "password@12345678"},
-	{"$krb5ng$1$AD.EXAMPLE.COMaduser$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f8$9a0ad1a4b178662b6106c0ff", "password@12345678"},
+	{"$krb5pa$18$0$user1$EXAMPLE.COM$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
+	{"$krb5pa$18$0$user1$EXAMPLE.COM$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b335e588bf29c2d17b11c5caa", "openwall"},
+	{"$krb5pa$18$0$l33t$EXAMPLE.COM$98f732b309a1d7ef2355a974842a32894d911e97150f5d57f248e1c2632fbd3735c5f156532ccae0341e6a2d779ca83a06021fe57dafa464", "openwall"},
+	{"$krb5pa$18$0$aduser$AD.EXAMPLE.COM$64dfeee04be2b2e0423814e0df4d0f960885aca4efffe6cb5694c4d34690406071c4968abd2c153ee42d258c5e09a41269bbcd7799f478d3", "password@123"},
+	{"$krb5pa$18$0$aduser$AD.EXAMPLE.COM$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f89a0ad1a4b178662b6106c0ff", "password@12345678"},
+	{"$krb5pa$18$1$AD.EXAMPLE.COMaduser$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f89a0ad1a4b178662b6106c0ff", "password@12345678"},
+	/* etype 17 hash obtained using MiTM etype downgrade attack */
+	{"$krb5pa$17$0$user1$EXAMPLE.COM$c5461873dc13665771b98ba80be53939e906d90ae1ba79cf2e21f0395e50ee56379fbef4d0298cfccfd6cf8f907329120048fd05e8ae5df4", "openwall"},
 	{NULL},
 };
 
@@ -72,6 +74,7 @@ static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
 	int type;
+	int etype;
 	unsigned char realm[64];
 	unsigned char user[64];
 	unsigned char ct[44];
@@ -191,7 +194,6 @@ static void init(struct fmt_main *self)
 	nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
 }
 
-
 #ifdef DEBUG
 static void print_hex(unsigned char *str, int len)
 {
@@ -204,9 +206,32 @@ static void print_hex(unsigned char *str, int len)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, "$krb5ng$", 8) != 0)
-		return 0;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	int var;
+	if (strncmp(ciphertext, "$krb5pa$", 8) != 0)
+		goto err;
+
+	ctcopy += 8;
+	p = strtok(ctcopy, "$");
+	var = atoi(p);
+	if (var != 17 && var != 18) /* check etype */
+		goto err;
+	p = strtok(NULL, "$");
+	var = atoi(p);
+	p = strtok(NULL, "$");
+
+	if (var == 0) /* salt type */
+		p = strtok(NULL, "$");
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+
 	return 1;
+err:
+	MEM_FREE(keeptr);
+	return 0;
+
 }
 
 static void *get_salt(char *ciphertext)
@@ -218,9 +243,10 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	ctcopy += 8;
 	p = strtok(ctcopy, "$");
+	cs.etype = atoi(p);
+	p = strtok(NULL, "$");
 	cs.type = atoi(p);
 	p = strtok(NULL, "$");
-
 	if (cs.type == 0) {
 		strcpy((char*)cs.user, p);
 		p = strtok(NULL, "$");
@@ -256,7 +282,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
-	p = strrchr(ciphertext, '$') + 1;
+	p = strrchr(ciphertext, '$') + 1 + 44 * 2; /* skip to checksum field */
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -402,6 +428,7 @@ static void crypt_all(int count)
 		unsigned char base_key[32];
 		unsigned char Ke[32];
 		unsigned char plaintext[44];
+		int key_size;
 		int len = strlen(saved_key[index]);
 
 		if (len <= 16)
@@ -412,7 +439,12 @@ static void crypt_all(int count)
 		// generate 128 bits from 40 bits of "kerberos" string
 		// This is precomputed in init()
 		//nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
-		dk(base_key,tkey,32,constant,32);
+		if (cur_salt->etype == 17)
+			key_size = 16;
+		else
+			key_size = 32;
+
+		dk(base_key, tkey, key_size, constant, 32);
 
 		/* The "well-known constant" used for the DK function is the key usage number,
 		 * expressed as four octets in big-endian order, followed by one octet indicated below.
@@ -427,12 +459,12 @@ static void crypt_all(int count)
 		//usage[4] = 0xAA;        // used to derive Ke
 
 		//nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);
-		dk(Ke,base_key,32,ke_input,32);
+		dk(Ke, base_key, key_size, ke_input, 32);
 
 		// decrypt the AS-REQ timestamp encrypted with 256-bit AES
 		// here is enough to check the string, further computation below is required
 		// to fully verify the checksum
-		krb_decrypt(cur_salt->ct,44,plaintext,Ke,sizeof(Ke));
+		krb_decrypt(cur_salt->ct,44,plaintext,Ke, key_size);
 
 		// Check a couple bytes from known plain (YYYYMMDDHHMMSSZ) and
 		// bail out if we are out of luck.
@@ -445,10 +477,9 @@ static void crypt_all(int count)
 			//usage[3] = 0x01;        // key number in big-endian format
 			//usage[4] = 0x55;        // used to derive Ki
 			//nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
-			dk(Ki,base_key,32,ki_input,32);
-
+			dk(Ki,base_key, key_size, ki_input, 32);
 			// derive checksum of plaintext
-			hmac_sha1(Ki, 32, plaintext,44,checksum, 20);
+			hmac_sha1(Ki, key_size, plaintext, 44, checksum, 20);
 			memcpy(crypt_out[index], checksum, BINARY_SIZE);
 		} else {
 			memset(crypt_out[index], 0, BINARY_SIZE);
@@ -477,7 +508,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_krb5ng = {
+struct fmt_main fmt_krb5pa = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

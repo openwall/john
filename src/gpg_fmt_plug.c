@@ -210,7 +210,34 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$gpg$", 5);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	if (strncmp(ciphertext, "$gpg$", 5) != 0)
+		goto err;
+	ctcopy += 5;	/* skip over "$gpg$" marker */
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* datalen */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* usage */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* hash_algorithm */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
+		goto err;
+
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void S2KSimpleSHA1Generator(char *password, unsigned char *key, int length)
