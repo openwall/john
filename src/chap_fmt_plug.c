@@ -71,7 +71,25 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$chap$", 6);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	if (strncmp(ciphertext,  "$chap$", 6) != 0)
+		goto err;
+	ctcopy += 6;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* id */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* challenge */
+		goto err;
+	if (strlen(p) > 64)
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
