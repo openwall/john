@@ -125,6 +125,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	fmt_init(format);
 
+	if ((format->methods.split == fmt_default_split) &&
+	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
+		return "FMT_SPLIT_UNIFIES_CASE";
+
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
 	while ((current++)->ciphertext)

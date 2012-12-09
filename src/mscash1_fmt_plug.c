@@ -197,7 +197,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (saltlen < 0 || saltlen > 19) {
 		static int warned = 0;
 		if (warned++ == 1)
-			fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
 		return 0;
 	}
 

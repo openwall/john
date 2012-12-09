@@ -89,17 +89,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	i++;
 	while (ciphertext[i] && ciphertext[i] != '#')
 		i++, saltlength++;
-	if (saltlength < 0 || saltlength > 19) {
-		static int warned = 0;
-		if (warned++ == 1)
-			fprintf(stderr,
-			    "Note: One or more hashes rejected due to salt length limitation\n");
-		return 0;
-	}
 
 	sscanf(&ciphertext[6], "%d", &i);
 	if (i >= 1 << 16)
 		return 0;
+
+	if (saltlength < 0 || saltlength > 19) {
+		static int warned = 0;
+		if (warned++ == 1)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+		return 0;
+	}
 	return 1;
 }
 

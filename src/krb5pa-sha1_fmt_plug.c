@@ -61,6 +61,12 @@ static int omp_t = 1;
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+#define MAX_SALTLEN             128
+#define MAX_REALMLEN            64
+#define MAX_USERLEN             64
+#define TIMESTAMP_SIZE          44
+#define CHECKSUM_SIZE           BINARY_SIZE
+#define TOTAL_LENGTH            (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
 static struct fmt_tests tests[] = {
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
@@ -274,6 +280,18 @@ static void set_key(char *key, int index)
 		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_key_length);
 	saved_key[index][saved_key_length] = 0;
+}
+
+static char *split(char *ciphertext, int index)
+{
+	static char out[TOTAL_LENGTH + 1];
+	char *data;
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
+	strlwr(data);
+
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
@@ -536,7 +554,7 @@ struct fmt_main fmt_krb5pa = {
 		init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 9
