@@ -74,7 +74,31 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$keychain$", 10);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	if (strncmp(ciphertext,  "$keychain$", 10) != 0)
+		goto err;
+	ctcopy += 11;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
+		goto err;
+	if(strlen(p) != SALTLEN * 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+		goto err;
+	if(strlen(p) != IVLEN * 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
+		goto err;
+	if(strlen(p) != CTLEN * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

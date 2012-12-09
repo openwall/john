@@ -79,7 +79,35 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$keyring$", 9);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	int ctlen;
+	char *p;
+	if (strncmp(ciphertext, "$keyring$", 9) != 0)
+		goto err;
+	ctcopy += 9;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
+		goto err;
+	if(strlen(p) != SALTLEN * 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* crypto size */
+		goto err;
+	ctlen = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* inlined */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
+		goto err;
+	if(strlen(p) != ctlen * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

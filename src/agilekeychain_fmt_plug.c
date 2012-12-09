@@ -79,7 +79,43 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$agilekeychain$", 15);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	int ctlen;
+	int saltlen;
+	char *p;
+	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
+		goto err;
+	ctcopy += 15;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* nkeys */
+		goto err;
+	if(atoi(p) > 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+		goto err;
+	saltlen = atoi(p);
+	if(saltlen > SALTLEN)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if(strlen(p) != saltlen * 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* ct length */
+		goto err;
+	ctlen = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
+		goto err;
+	if(strlen(p) != ctlen * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

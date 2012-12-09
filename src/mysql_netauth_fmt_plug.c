@@ -29,6 +29,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
+#define CIPHERTEXT_LENGTH	40
 #define BINARY_SIZE		20
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -63,7 +64,25 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$mysqlna$", 9);
+	char *p, *q;
+	if (strncmp(ciphertext, "$mysqlna$", 9))
+		return 0;
+	p = ciphertext + 9;
+	q = strstr(ciphertext, "*");
+	if(!q)
+		return 0;
+	if (q - p != CIPHERTEXT_LENGTH)
+		return 0;
+	while (atoi16[ARCH_INDEX(*p)] != 0x7F && p < q)
+		p++;
+	if (q - p != 0)
+		return 0;
+	if(strlen(p) < CIPHERTEXT_LENGTH)
+		return 0;
+	q = p + 1;
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q && q - p - 1 == CIPHERTEXT_LENGTH;
 }
 
 static void *get_salt(char *ciphertext)

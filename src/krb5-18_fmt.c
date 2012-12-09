@@ -110,6 +110,10 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if(p == NULL)
 		return 0;
 
+	q = ciphertext;
+
+	if(p - q > SALT_SIZE) /* check salt length */
+		return 0;
 	q = ++p;
 
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {

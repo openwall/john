@@ -38,6 +38,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	8
+#define CIPHERTEXT_LENGTH	16
 #define BINARY_SIZE		8
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -147,7 +148,27 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$racf$", 6);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p, *q;
+	if (strncmp(ciphertext, "$racf$*", 7))
+		goto err;
+	ctcopy += 7;
+	p = strtok(ctcopy, "*"); /* username */
+	if(!p)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+		goto err;
+	q = p;
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+
+	MEM_FREE(keeptr);
+	return !*q && q - p == CIPHERTEXT_LENGTH;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
