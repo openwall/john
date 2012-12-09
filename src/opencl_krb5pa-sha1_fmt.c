@@ -60,6 +60,7 @@
 #define MAX_USERLEN             MAX_SALTLEN
 #define TIMESTAMP_SIZE          44
 #define CHECKSUM_SIZE           BINARY_SIZE
+#define TOTAL_LENGTH            (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
 #define	DEFAULT_KEYS_PER_CRYPT	1024*9
 #define MIN_KEYS_PER_CRYPT	1
@@ -597,6 +598,18 @@ static void set_key(char *key, int index)
 	new_keys = 1;
 }
 
+static char *split(char *ciphertext, int index)
+{
+	static char out[TOTAL_LENGTH + 1];
+	char *data;
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
+	strlwr(data);
+
+	return out;
+}
+
 static void *get_binary(char *ciphertext)
 {
 	static union {
@@ -869,7 +882,7 @@ struct fmt_main fmt_ocl_krb5pa_sha1 = {
 		init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 9
