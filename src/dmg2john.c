@@ -133,6 +133,10 @@ static void hash_plugin_parse_hash(char *filename)
 		cno = ceil(header2.datasize / 4096.0) - 2;
 		chunk = (unsigned char *) malloc(header2.datasize);
 		data_size = header2.datasize - cno * 4096;
+		if (data_size < 0) {
+			fprintf(stderr, "File %s is not a valid DMG file!\n", filename);
+			return;
+		}
 		lseek(fd, header2.dataoffset, SEEK_SET);
 		read(fd, chunk, header2.datasize);
 	}
@@ -146,6 +150,10 @@ static void hash_plugin_parse_hash(char *filename)
 		print_hex(header.wrapped_hmac_sha1_key, header.len_hmac_sha1_key);
 		printf("\n");
 	} else {
+		if (header2.kdf_salt_len > 32) {
+			fprintf(stderr, "File %s is not a valid DMG file, salt length is too long!\n", filename);
+			return;
+		}
 		printf("%s:$dmg$%d*%d*", filename, headerver, header2.kdf_salt_len);
 		print_hex(header2.kdf_salt, header2.kdf_salt_len);
 		printf("*32*");
