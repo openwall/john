@@ -20,10 +20,10 @@ def process_file(f):
 
     state = None
     encrypted_timestamp = None
-    server = None
     etype = None
+    user = ''
+    salt = ''
     got_etype = False
-
 
     for msg in messages:
         if msg.attrib['showname'] == "Kerberos AS-REQ":
@@ -53,20 +53,17 @@ def process_file(f):
                 if 'name' in field.attrib:
                     if field.attrib['name'] == 'kerberos.etype_info2.salt':
                         salt = field.attrib["value"]
-                        server = "AD"
                     if field.attrib['name'] == 'kerberos.realm':
                         realm = field.attrib['show']
-                        server = "plain"
                     if field.attrib['name'] == 'kerberos.cname':
                         user = field.attrib['showname'][25:]
 
         if msg.attrib['showname'] == "Kerberos AS-REP" or state == "AS-REQ2":
             # we might not have AS-REP packets
             if state == "AS-REQ2":
-                if server == "AD":
-                    print "%s:$krb5pa$%s$1$%s$%s" % (binascii.unhexlify(salt), etype, binascii.unhexlify(salt), encrypted_timestamp)
-                else:
-                    print "%s:$krb5pa$%s$0$%s$%s$%s" % (user, etype, user, realm, encrypted_timestamp)
+                if user == "":
+                    user = binascii.unhexlify(salt)
+                print "%s:$krb5pa$%s$%s$%s$%s$%s" % (user, etype, user, realm, binascii.unhexlify(salt), encrypted_timestamp)
                 # reset state
                 state = None
                 got_etype = False
