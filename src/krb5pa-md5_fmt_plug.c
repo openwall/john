@@ -1,7 +1,20 @@
 /*
- * mskrb5_fmt.c
+ * Kerberos 5 etype 23 "PA ENC TIMESTAMP" by magnum
  *
- * MS Kerberos 5 "PA ENC TIMESTAMP" by magnum
+ * Previously called mskrb5 because I had the idea it was Micro$oft specific.
+ *
+ * Pcap file -> input file:
+ * 1. tshark -r capture.pcapng -T pdml  > ~/capture.pdml
+ * 2. krbng2john.py ~/capture.pdml > krb5.in
+ * 3. Run john on krb5.in
+ *
+ * Legacy input format:
+ * user:$mskrb5$user$realm$checksum$timestamp
+ *
+ * New input format from krbpa2john.py (the above is still supported)
+ * user:$krb5pa$etype$user$realm$salt$timestamp+checksum
+ *
+ * user, realm and salt are unused in this format.
  *
  * This attacks a known-plaintext vulnerability in AS_REQ pre-auth packets. The
  * known plaintext is a UTC timestamp in the format 20081120171510Z. Only if
@@ -15,19 +28,11 @@
  * http://www.ietf.org/rfc/rfc4757.txt
  * http://www.securiteam.com/windowsntfocus/5BP0H0A6KM.html
  *
- * Input format is 'user:$mskrb5$user$realm$checksum$timestamp'
- *
- * For compatibility with (possible) future attacks, there are fields for
- * username and realm but they are not used in this attack so they can be
- * empty. Example:
- *
- * user:$mskrb5$$$02E837D06B2AC76891F388D9CC36C67A$2A9785BF5036C45D3843490BF9C228E8C18653E10CE58D7F8EF119D2EF4F92B1803B1451
- *
  * OMP is supported and scales very well now.
  *
- * This software is Copyright (c) 2011 magnum, and it is hereby released to the
- * general public under the following terms:  Redistribution and use in source
- * and binary forms, with or without modification, are permitted.
+ * This software is Copyright (c) 2011-2012 magnum, and it is hereby released
+ * to the general public under the following terms:  Redistribution and use in
+ * source and binary forms, with or without modification, are permitted.
  *
  */
 
@@ -54,20 +59,21 @@
 #include "md4.h"
 #include "rc4.h"
 
-#define FORMAT_LABEL       "mskrb5"
-#define FORMAT_NAME        "MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4"
+#define FORMAT_LABEL       "krb5pa-md5"
+#define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23 md4, rc4-hmac-md5"
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   -1000
 #define PLAINTEXT_LENGTH   125
 #define MAX_REALMLEN       64
-#define MAX_USERLEN        32
-#define CHECKSUM_SIZE      16
+#define MAX_USERLEN        64
+#define MAX_SALTLEN        128
 #define TIMESTAMP_SIZE     36
+#define CHECKSUM_SIZE      16
 #define KEY_SIZE           16
 #define BINARY_SIZE        CHECKSUM_SIZE
 #define SALT_SIZE          sizeof(struct salt_t)
-#define TOTAL_LENGTH       (10 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN)
+#define TOTAL_LENGTH       (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT 1
@@ -86,6 +92,7 @@ static struct fmt_tests tests[] = {
 	{"$mskrb5$$$881c257ce5df7b11715a6a60436e075a$c80f4a5ec18e7c5f765fb9f00eda744a57483db500271369cf4752a67ca0e67f37c68402", "the"},
 	{"$mskrb5$$$ef012e13c8b32448241091f4e1fdc805$354931c919580d4939421075bcd50f2527d092d2abdbc0e739ea72929be087de644cef8a", "Ripper"},
 	{"$mskrb5$$$334ef74dad191b71c43efaa16aa79d88$34ebbad639b2b5a230b7ec1d821594ed6739303ae6798994e72bd13d5e0e32fdafb65413", "VeryveryveryloooooooongPassword"},
+	{"$krb5pa$23$user$realm$salt$afcbe07c32c3450b37d0f2516354570fe7d3e78f829e77cdc1718adf612156507181f7daeb03b6fbcfe91f8346f3c0ae7e8abfe5", "John"},
 	{NULL}
 };
 
@@ -133,61 +140,44 @@ static void init(struct fmt_main *self)
 	}
 }
 
-static char *hex2bin(char *src, unsigned char *dst, int outsize)
-{
-	char *p, *pe;
-	unsigned char *q, *qe, ch, cl;
-
-	pe = src + strlen(src);
-	qe = dst + outsize;
-	p = src, q = dst;
-	while (p < pe && q < qe && (ch = atoi16[ARCH_INDEX(*p++)]) != 0x7f) {
-		if (ch == 0x7f)
-			return p;
-		cl = atoi16[ARCH_INDEX(*p++)];
-		if (cl == 0x7f)
-			return p;
-		*q++ = (ch << 4) | cl;
-	}
-	return p;
-}
-
 static void *salt(char *ciphertext)
 {
 	static struct salt_t salt;
-	char *data = ciphertext, *p;
-	int n;
+	char *p;
+	int i;
 
-	// skip the $mskrb5$ string
-	data += 8;
-
-	// skip the user field
-	p = strchr(data, '$');
-	if (!p)
-		return NULL;
-	data = p + 1;
-
-	// skip the realm field
-	p = strchr(data, '$');
-	if (!p)
-		return NULL;
-	data = p + 1;
-
-	// read the checksum
-	p = strchr(data, '$');
-	if (!p)
-		return NULL;
-	n = (p - data);
-	if (n != 2 * CHECKSUM_SIZE)
-		return NULL;
-	p = hex2bin(data, (unsigned char*)salt.checksum, CHECKSUM_SIZE);
-	data = p + 1;
-
-	// read the encrypted timestamp
-	p = hex2bin(data, salt.timestamp, TIMESTAMP_SIZE);
-	if (*p || p - data != TIMESTAMP_SIZE * 2)
-		return NULL;
-
+	p = strrchr(ciphertext, '$') + 1;
+	if (strlen(p) == 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE)) {
+		// New input format
+		for (i = 0; i < TIMESTAMP_SIZE; i++) {
+			salt.timestamp[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				atoi16[ARCH_INDEX(p[1])];
+			p += 2;
+		}
+		for (i = 0; i < CHECKSUM_SIZE; i++) {
+			((unsigned char*)salt.checksum)[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				atoi16[ARCH_INDEX(p[1])];
+			p += 2;
+		}
+	} else {
+		// Old input format
+		p -= (2 * CHECKSUM_SIZE + 1);
+		for (i = 0; i < CHECKSUM_SIZE; i++) {
+			((unsigned char*)salt.checksum)[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				atoi16[ARCH_INDEX(p[1])];
+			p += 2;
+		}
+		++p;
+		for (i = 0; i < TIMESTAMP_SIZE; i++) {
+			salt.timestamp[i] =
+				(atoi16[ARCH_INDEX(*p)] << 4) |
+				atoi16[ARCH_INDEX(p[1])];
+			p += 2;
+		}
+	}
 	return (void*)&salt;
 }
 
@@ -201,19 +191,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[TOTAL_LENGTH + 1];
 	char *data;
 
-	strncpy(out, ciphertext, sizeof(out));
-	out[TOTAL_LENGTH] = 0;
-	data = out;
-
-	// the $mskrb5$ string
-	data += 8;
-
-	// the user field (may be empty for this attack)
-	data = strchr(data, '$') + 1;
-
-	// the realm field (may be empty for this attack)
-	data = strchr(data, '$') + 1;
-
+	strnzcpy(out, ciphertext, sizeof(out));
+	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
 	strlwr(data);
 
 	return out;
@@ -222,35 +201,25 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static void *binary(char *ciphertext)
 {
 	static unsigned char *binary;
-	char *data = ciphertext, *p;
-	int n;
+	char *p;
+	int i;
 
 	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-	// skip the $mskrb5$ string
-	data += 8;
+	p = strrchr(ciphertext, '$') + 1;
+	if (strlen(p) == 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))
+		// New input format
+		p += 2 * TIMESTAMP_SIZE;
+	else
+		// Old input format
+		p -= (2 * CHECKSUM_SIZE + 1);
 
-	// skip the user field
-	p = strchr(data, '$');
-	if (!p)
-		return NULL;
-	data = p + 1;
-
-	// skip the realm field
-	p = strchr(data, '$');
-	if (!p)
-		return NULL;
-	data = p + 1;
-
-	// read the checksum
-	p = strchr(data, '$');
-	if (!p)
-		return NULL;
-	n = (p - data);
-	if (n != 2 * CHECKSUM_SIZE)
-		return NULL;
-	p = hex2bin(data, binary, CHECKSUM_SIZE);
-
+	for (i = 0; i < CHECKSUM_SIZE; i++) {
+		binary[i] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
 	return (void*)binary;
 }
 
@@ -258,34 +227,62 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *data = ciphertext, *p;
 
-	if (strncmp(ciphertext, "$mskrb5$", 8) != 0)
-		return 0;
-	data += 8;
+	if (!strncmp(ciphertext, "$mskrb5$", 8)) {
+		data += 8;
 
-	// user field
-	p = strchr(data, '$');
-	if (!p || p - data > MAX_USERLEN)
-		return 0;
-	data = p + 1;
+		// user field
+		p = strchr(data, '$');
+		if (!p || p - data > MAX_USERLEN)
+			return 0;
+		data = p + 1;
 
-	// realm field
-	p = strchr(data, '$');
-	if (!p || p - data > MAX_REALMLEN)
-		return 0;
-	data = p + 1;
+		// realm field
+		p = strchr(data, '$');
+		if (!p || p - data > MAX_REALMLEN)
+			return 0;
+		data = p + 1;
 
-	// checksum
-	p = strchr(data, '$');
-	if (!p || p - data != 2 * CHECKSUM_SIZE)
-		return 0;
-	data = p + 1;
+		// checksum
+		p = strchr(data, '$');
+		if (!p || p - data != 2 * CHECKSUM_SIZE)
+			return 0;
+		data = p + 1;
 
-	// encrypted timestamp
-	p += strlen(data) + 1;
-	if (*p || p - data != TIMESTAMP_SIZE * 2)
-		return 0;
+		// encrypted timestamp
+		p += strlen(data) + 1;
+		if (*p || p - data != TIMESTAMP_SIZE * 2)
+			return 0;
 
-	return 1;
+		return 1;
+	} else if (!strncmp(ciphertext, "$krb5pa$23$", 11)) {
+		data += 11;
+
+		// user field
+		p = strchr(data, '$');
+		if (!p || p - data > MAX_USERLEN)
+			return 0;
+		data = p + 1;
+
+		// realm field
+		p = strchr(data, '$');
+		if (!p || p - data > MAX_REALMLEN)
+			return 0;
+		data = p + 1;
+
+		// salt field
+		p = strchr(data, '$');
+		if (!p || p - data > MAX_SALTLEN)
+			return 0;
+		data = p + 1;
+
+		// timestamp+checksum
+		p += strlen(data) + 1;
+		if (*p || p - data != (TIMESTAMP_SIZE + CHECKSUM_SIZE) * 2)
+			return 0;
+
+		return 1;
+	}
+	return 0;
 }
 
 static void set_key(char *key, int index)

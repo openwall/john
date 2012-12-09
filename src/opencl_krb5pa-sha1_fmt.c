@@ -1,11 +1,15 @@
 /*
  * Kerberos 5 "PA ENC TIMESTAMP" by magnum & Dhiru
  *
+ * Pcap file -> input file:
+ * 1. tshark -r capture.pcapng -T pdml  > ~/capture.pdml
+ * 2. krbng2john.py ~/capture.pdml > krb5.in
+ * 3. Run john on krb5.in
+ *
  * http://www.ietf.org/rfc/rfc4757.txt
  * http://www.securiteam.com/windowsntfocus/5BP0H0A6KM.html
  *
- * Input format is 'user:$krb5pa$etype$0$user$realm$timestamp+checksum' OR
- * user:$krb5pa$etype$1$salt$timestamp+checksum'
+ * Input format is 'user:$krb5pa$etype$user$realm$salt$timestamp+checksum'
  *
  * NOTE: Checksum implies last 12 bytes of PA_ENC_TIMESTAMP value in AS-REQ
  * packet.
