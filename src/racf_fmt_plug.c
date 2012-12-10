@@ -148,11 +148,13 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy;
+	char *keeptr;
 	char *p, *q;
 	if (strncmp(ciphertext, "$racf$*", 7))
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 7;
 	p = strtok(ctcopy, "*"); /* username */
 	if(!p)
@@ -179,7 +181,7 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 7;	/* skip over "$racf$*" */
 	username = strtok(ctcopy, "*");
 	/* process username */
-	strcpy((char*)cs.userid, username);
+	strncpy((char*)cs.userid, username, 8);
 	ascii2ebcdic(cs.userid);
 	process_userid(cs.userid);
 #ifdef RACF_DEBUG
