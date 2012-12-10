@@ -855,6 +855,9 @@ void listOpenCLdevices(void)
 			cl_device_local_mem_type memtype;
 			cl_bool boolean;
 
+			/* Init device_info[d] */
+			opencl_get_dev_info(d);
+
 			clGetDeviceInfo(devices[d], CL_DEVICE_NAME,
 			    MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice #%d name:\t\t%s\n", d, dname);
@@ -929,7 +932,6 @@ void listOpenCLdevices(void)
 			    &entries, NULL);
 			printf("\tParallel compute cores:\t%d\n", entries);
 
-			opencl_get_dev_info(d);
 			long_entries = get_processors_count(d);
 			if (cores_per_MP[d])
 				printf
