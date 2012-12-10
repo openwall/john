@@ -598,7 +598,11 @@ static void set_key(char *key, int index)
 	new_keys = 1;
 }
 
+#if FMT_MAIN_VERSION > 9
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
+#else
 static char *split(char *ciphertext, int index)
+#endif
 {
 	static char out[TOTAL_LENGTH + 1];
 	char *data;
