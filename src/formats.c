@@ -98,6 +98,20 @@ char *fmt_self_test(struct fmt_main *format)
 			return "prepare";
 		if (format->methods.valid(prepared,format) != 1)
 			return "valid";
+
+#ifdef DEBUG
+		if (index == 0) {
+			char *killer = strdup(prepared);
+			int i;
+
+			for (i = strlen(killer) - 1; i > 0; i--) {
+				killer[i] = 0;
+				format->methods.valid(killer, format);
+			}
+			MEM_FREE(killer);
+		}
+#endif
+
 		ciphertext = format->methods.split(prepared, 0);
 		plaintext = current->plaintext;
 
