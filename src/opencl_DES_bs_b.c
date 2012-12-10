@@ -103,8 +103,8 @@ static void read_kernel_source(char *kernel_filename)
 
 static void build_kernel(int dev_id, char *options)
 {
-	cl_int build_code;
-       // char * build_log; size_t log_size;
+	//cl_int build_code;
+        //char * build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
 	program[dev_id] =
@@ -113,7 +113,8 @@ static void build_kernel(int dev_id, char *options)
 	
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	build_code = clBuildProgram(program[dev_id], 0, NULL,
+	//build_code = 
+	clBuildProgram(program[dev_id], 0, NULL,
 		include_source("$JOHN/", dev_id, options), NULL, NULL);
 	
 	/*
