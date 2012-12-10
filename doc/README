@@ -116,6 +116,23 @@ John.  Additionally, there are assembly language routines for several
 processor architectures, most importantly for x86-64 and x86 with SSE2.
 
 
+        Graphical User Interface (GUI).
+
+There is an official GUI for John the Ripper: Johnny.
+
+Despite the fact that Johnny is oriented onto core john, all basic
+functionality is supposed to work in all versions, even Jumbo. So,
+password could be loaded from file and cracked with different
+options.
+
+Johnny is a separate program, therefore, you need to have John the
+Ripper installed in order to use it.
+
+You could find more info about releases and Johnny on the wiki:
+
+  http://openwall.info/wiki/john/johnny
+
+
 	Documentation.
 
 The rest of documentation is located in separate files, listed here in
