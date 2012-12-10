@@ -110,9 +110,12 @@ krb4_valid(char *ciphertext, struct fmt_main *self)
 	    strncmp(ciphertext, "$af$", 4) != 0)
 		return 0;
 
-	tgt = strchr(ciphertext + 4, '$') + 1;
+	tgt = strchr(ciphertext + 4, '$');
 
-	for (p = tgt; p && *p != '\0'; p++)
+	if (!tgt)
+		return 0;
+
+	for (p = tgt + 1; *p != '\0'; p++)
 		if (!isxdigit((int)*p)) return 0;
 
 	if (p - tgt != TGT_LENGTH * 2)
