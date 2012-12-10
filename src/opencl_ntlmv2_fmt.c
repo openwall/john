@@ -469,16 +469,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	/* This is tricky: Max supported salt length is 27 characters
-	   of Unicode, which has no exact correlation to number of octets */
+	   of Unicode, which has no exact correlation to number of octets.
+	   The actual rejection is postponed to the bottom of this function. */
 	saltlen = enc_to_utf16(utf16temp, SALT_MAX_LENGTH + 1,
 	                       (UTF8*)strnzcpy(utf8temp, pos, pos2 - pos - 2),
 	                       pos2 - pos - 3);
-	if (saltlen < 0 || saltlen > SALT_MAX_LENGTH) {
-		static int warned = 0;
-		if (!warned++)
-			fprintf(stderr, "NOTE: One or more hashes rejected due to salt length limitation.\nMax supported sum of Username + Domainname lengths is 27 characters.\nTry the CPU format for those.\n");
-		return 0;
-	}
 
 	/* Validate Server Challenge Length */
 	pos2++; pos = pos2;
@@ -504,6 +499,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((pos2 - pos > CLIENT_CHALL_LENGTH_MAX) || (pos2 - pos < 28))
 		return 0;
 
+	if (saltlen < 0 || saltlen > SALT_MAX_LENGTH) {
+		static int warned = 0;
+		if (!warned++)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation.\nMax supported sum of Username + Domainname lengths is 27 characters.\nTry the CPU format for those.\n", FORMAT_LABEL);
+		return 0;
+	}
 	return 1;
 }
 

@@ -20,13 +20,16 @@ def process_file(f):
 
     state = None
     encrypted_timestamp = None
-    server = None
+    etype = None
+    user = ''
+    salt = ''
+    got_etype = False
 
     for msg in messages:
         if msg.attrib['showname'] == "Kerberos AS-REQ":
             if not state:
                 state = "AS-REQ"
-            else:
+            elif state == "KRB-ERROR":
                 state = "AS-REQ2"
                 # actual request with encrypted timestamp
                 fields = msg.xpath(".//field")
@@ -34,30 +37,36 @@ def process_file(f):
                     if 'name' in field.attrib:
                         if field.attrib['name'] == 'kerberos.PA_ENC_TIMESTAMP.encrypted':
                             encrypted_timestamp = field.attrib['value']
+                        if field.attrib['name'] == 'kerberos.etype' and not got_etype:
+                            got_etype = True
+                            etype = field.attrib['show']
+
         if msg.attrib['showname'] == "Kerberos KRB-ERROR":
-            if state == "AS-REQ":
+            if state == "AS-REQ" or state == "AS-REQ2":
                 state = "KRB-ERROR"
             else:
-                print "unkwown"
+                pass
+                # print "Unkwown state! Please report this on john-users mailing list"
             # note down the salt
             fields = msg.xpath(".//field")
             for field in fields:
                 if 'name' in field.attrib:
                     if field.attrib['name'] == 'kerberos.etype_info2.salt':
                         salt = field.attrib["value"]
-                        server = "AD"
                     if field.attrib['name'] == 'kerberos.realm':
                         realm = field.attrib['show']
-                        server = "plain"
                     if field.attrib['name'] == 'kerberos.cname':
                         user = field.attrib['showname'][25:]
 
-        if msg.attrib['showname'] == "Kerberos AS-REP":
+        if msg.attrib['showname'] == "Kerberos AS-REP" or state == "AS-REQ2":
+            # we might not have AS-REP packets
             if state == "AS-REQ2":
-                if server == "AD":
-                    print "%s:$krb5ng$1$%s$%s$%s " % (binascii.unhexlify(salt), binascii.unhexlify(salt), encrypted_timestamp[0:88], encrypted_timestamp[88:])
-                else:
-                    print "%s:$krb5ng$0$%s$%s$%s$%s " % (user, user, realm, encrypted_timestamp[0:88], encrypted_timestamp[88:])
+                if user == "":
+                    user = binascii.unhexlify(salt)
+                print "%s:$krb5pa$%s$%s$%s$%s$%s" % (user, etype, user, realm, binascii.unhexlify(salt), encrypted_timestamp)
+                # reset state
+                state = None
+                got_etype = False
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -66,5 +75,3 @@ if __name__ == "__main__":
 
     for i in range(1, len(sys.argv)):
         process_file(sys.argv[i])
-
-
