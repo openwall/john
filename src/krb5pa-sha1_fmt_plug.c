@@ -216,23 +216,56 @@ static void print_hex(unsigned char *str, int len)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
-	int var;
+	char *p, *data = ciphertext;
+	int type, saltlen = 0;
 
+	// tag is mandatory
 	if (strncmp(ciphertext, "$krb5pa$", 8) != 0)
-		goto err;
+		return 0;
+	data += 8;
 
-	ctcopy += 8;
-	p = strtok(ctcopy, "$");
-	var = atoi(p);
-	if (var != 17 && var != 18) /* check etype */
-		goto err;
+	// etype field, 17 or 18
+	p = strchr(data, '$');
+	if (!p || p - data != 2)
+		return 0;
+	type = atoi(data);
+	if (type < 17 || type > 18)
+		return 0;
+	data = p + 1;
+
+	// user field
+	p = strchr(data, '$');
+	if (!p || p - data > MAX_USERLEN)
+		return 0;
+	saltlen += p - data;
+	data = p + 1;
+
+	// realm field
+	p = strchr(data, '$');
+	if (!p || p - data > MAX_REALMLEN)
+		return 0;
+	saltlen += p - data;
+	data = p + 1;
+
+	// salt field
+	p = strchr(data, '$');
+	if (!p)
+		return 0;
+	// if salt is empty, realm.user is used instead
+	if (p - data)
+		saltlen = p - data;
+	data = p + 1;
+
+	// We support a max. total salt length of 52.
+	// We could opt to emit a warning if rejected here.
+	if(saltlen > MAX_SALTLEN)
+		return 0;
+
+	// 56 bytes (112 hex chars) encrypted timestamp + checksum
+	if (strlen(data) != 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))
+		return 0;
+
 	return 1;
-err:
-	MEM_FREE(keeptr);
-	return 0;
 }
 
 static void *get_salt(char *ciphertext)
