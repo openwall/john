@@ -156,13 +156,15 @@ static void *salt(char *ciphertext)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *hash = strrchr(ciphertext, '#') + 1;
+	char *hash;
 	int hashlength = 0;
 	hccap_t *hccap;
 
 	if (strncmp(ciphertext, wpapsk_prefix, strlen(wpapsk_prefix)) != 0)
 		return 0;
-	if (hash == NULL)
+
+	hash = strrchr(ciphertext, '#');
+	if (hash++ == NULL)
 		return 0;
 	while (hash < ciphertext + strlen(ciphertext)) {
 		if (atoi64[ARCH_INDEX(*hash++)] == 0x7f)

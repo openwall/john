@@ -959,6 +959,20 @@ void listOpenCLdevices(void)
 				    boolean ? "yes" : "no");
 			}
 #endif
+#if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
+			if (gpu_amd(device_info[d])) {
+				cl_device_topology_amd topo;
+
+				clGetDeviceInfo(devices[d], CL_DEVICE_TOPOLOGY_AMD, sizeof(topo), &topo, NULL);
+				printf("\tDevice topology:\t%d:%d.%d\n", topo.pcie.bus, topo.pcie.device, topo.pcie.function);
+			}
+#endif
+#ifdef CL_DEVICE_BOARD_NAME_AMD
+			if (gpu_amd(device_info[d])) {
+				clGetDeviceInfo(devices[d], CL_DEVICE_BOARD_NAME_AMD, sizeof(dname), dname, NULL);
+				printf("\tBoard name:\t\t%s\n", dname);
+			}
+#endif
 			puts("");
 		}
 	}

@@ -146,6 +146,21 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			return "prepare";
 		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
+
+#ifdef DEBUG
+		if (index == 0) {
+			char *killer = strdup(ciphertext);
+			int i;
+
+			for (i = strlen(killer) - 1; i > 0; i--) {
+				killer[i] = 0;
+				format->methods.valid(killer, format);
+			}
+			MEM_FREE(killer);
+		}
+#endif
+
+
 		ciphertext = format->methods.split(ciphertext, 0, format);
 		plaintext = current->plaintext;
 
