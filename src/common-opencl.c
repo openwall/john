@@ -855,9 +855,18 @@ void listOpenCLdevices(void)
 			cl_device_local_mem_type memtype;
 			cl_bool boolean;
 
+			/* Init device_info[d] */
+			opencl_get_dev_info(d);
+
 			clGetDeviceInfo(devices[d], CL_DEVICE_NAME,
 			    MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice #%d name:\t\t%s\n", d, dname);
+#ifdef CL_DEVICE_BOARD_NAME_AMD
+			if (gpu_amd(device_info[d])) {
+				clGetDeviceInfo(devices[d], CL_DEVICE_BOARD_NAME_AMD, sizeof(dname), dname, NULL);
+				printf("\tBoard name:\t\t%s\n", dname);
+			}
+#endif
 			clGetDeviceInfo(devices[d], CL_DEVICE_VENDOR,
 			    MAX_OCLINFO_STRING_LEN, dname, NULL);
 			printf("\tDevice vendor:\t\t%s\n", dname);
@@ -923,7 +932,6 @@ void listOpenCLdevices(void)
 			    &entries, NULL);
 			printf("\tParallel compute cores:\t%d\n", entries);
 
-			opencl_get_dev_info(d);
 			long_entries = get_processors_count(d);
 			if (cores_per_MP[d])
 				printf
@@ -964,13 +972,7 @@ void listOpenCLdevices(void)
 				cl_device_topology_amd topo;
 
 				clGetDeviceInfo(devices[d], CL_DEVICE_TOPOLOGY_AMD, sizeof(topo), &topo, NULL);
-				printf("\tDevice topology:\t%d:%d.%d\n", topo.pcie.bus, topo.pcie.device, topo.pcie.function);
-			}
-#endif
-#ifdef CL_DEVICE_BOARD_NAME_AMD
-			if (gpu_amd(device_info[d])) {
-				clGetDeviceInfo(devices[d], CL_DEVICE_BOARD_NAME_AMD, sizeof(dname), dname, NULL);
-				printf("\tBoard name:\t\t%s\n", dname);
+				printf("\tPCI device topology:\t%d:%d.%d\n", topo.pcie.bus, topo.pcie.device, topo.pcie.function);
 			}
 #endif
 			puts("");
