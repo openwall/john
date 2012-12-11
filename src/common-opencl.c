@@ -930,10 +930,10 @@ void listOpenCLdevices(void)
 			    sizeof(long_entries), &long_entries, NULL);
 			printf("\tMax memory alloc. size:\t%s\n",
 			       human_format(long_entries));
-			clGetDeviceInfo(devices[d],
+			ret = clGetDeviceInfo(devices[d],
 			    CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),
 			    &long_entries, NULL);
-			if (long_entries)
+			if (ret == CL_SUCCESS && long_entries)
 				printf("\tMax clock (MHz) :\t%llu\n",
 				       (unsigned long long) long_entries);
 			clGetDeviceInfo(devices[d],
@@ -989,7 +989,7 @@ void listOpenCLdevices(void)
 				    CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
 				    &topo, NULL);
 				if (ret == CL_SUCCESS)
-				printf("\tPCI device topology:\t%d:%d.%d\n",
+				printf("\tPCI device topology:\t%02d:%02d.%d\n",
 				       topo.pcie.bus, topo.pcie.device,
 				       topo.pcie.function);
 			}
