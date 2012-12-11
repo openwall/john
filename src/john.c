@@ -1258,10 +1258,10 @@ static void john_done(void)
 			          "Session stopped (max run-time reached)");
 		else
 			log_event("Session completed");
-                fmt_done(database.format);
+		fmt_done(database.format);
 	}
 	log_done();
-        path_done();
+	path_done();
 
 	check_abort(0);
 	cleanup_tiny_memory();
