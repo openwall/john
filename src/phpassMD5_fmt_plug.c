@@ -138,8 +138,10 @@ struct fmt_main fmt_phpassmd5 =
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
-		/*  within the call to init, we will properly set this full object      */
+		/*  within the call to init,
+		fmt_default_done, we will properly set this full object      */
 		phpassmd5_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		phpassmd5_valid
 	}

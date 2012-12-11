@@ -280,6 +280,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

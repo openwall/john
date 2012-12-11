@@ -475,6 +475,7 @@ struct fmt_main fmt_opencl_xsha512 = {
 	    tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		fmt_default_split,

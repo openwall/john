@@ -321,6 +321,7 @@ struct fmt_main fmt_NETHALFLM = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		nethalflm_prepare,
 		nethalflm_valid,
 		nethalflm_split,

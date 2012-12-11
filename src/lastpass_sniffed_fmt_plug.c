@@ -211,6 +211,7 @@ struct fmt_main lastpass_fmt = {
 		lastpass_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

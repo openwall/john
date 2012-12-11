@@ -271,6 +271,7 @@ struct fmt_main FMT_MAIN = {
 		TESTS
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

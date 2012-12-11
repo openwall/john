@@ -253,6 +253,7 @@ struct fmt_main sxc_fmt = {
 		sxc_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

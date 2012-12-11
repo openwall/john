@@ -478,6 +478,7 @@ struct fmt_main fmt_opencl_encfs = {
 		encfs_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

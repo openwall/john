@@ -947,6 +947,7 @@ struct fmt_main fmt_mscash = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		ms_split,

@@ -662,6 +662,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		tests
 	},{
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		split,

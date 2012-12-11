@@ -544,6 +544,7 @@ struct fmt_main fmt_MSCHAPv2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		mschapv2_prepare,
 		mschapv2_valid,
 		mschapv2_split,

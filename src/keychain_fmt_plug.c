@@ -231,6 +231,7 @@ struct fmt_main keychain_fmt = {
 		keychain_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

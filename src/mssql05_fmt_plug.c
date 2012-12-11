@@ -507,6 +507,7 @@ struct fmt_main fmt_mssql05 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		fmt_default_split,

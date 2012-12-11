@@ -474,6 +474,7 @@ struct fmt_main fmt_IPB2 = {
 	},
 	{
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

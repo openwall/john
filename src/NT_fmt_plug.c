@@ -941,6 +941,7 @@ struct fmt_main fmt_NT = {
 		tests
 	}, {
 		fmt_NT_init,
+		fmt_default_done,
 		prepare,
 		valid,
 		nt_split,

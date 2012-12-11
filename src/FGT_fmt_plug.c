@@ -213,6 +213,7 @@ struct fmt_main fmt_FGT = {
 		fgt_tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		FGT_valid,
 		fmt_default_split,

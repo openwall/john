@@ -368,6 +368,7 @@ struct fmt_main fmt_NETLM = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		netlm_prepare,
 		netlm_valid,
 		netlm_split,

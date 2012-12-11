@@ -226,7 +226,8 @@ int streamDecode(unsigned char *buf, int size,
 
 static void init(struct fmt_main *self)
 {
-	/* OpenSSL init, cleanup part is left to OS */
+	/* OpenSSL init,
+		fmt_default_done, cleanup part is left to OS */
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();
@@ -407,6 +408,7 @@ struct fmt_main fmt_encfs = {
 		encfs_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

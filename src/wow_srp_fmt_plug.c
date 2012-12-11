@@ -432,6 +432,7 @@ struct fmt_main fmt_blizzard = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		split,

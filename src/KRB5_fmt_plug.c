@@ -327,6 +327,7 @@ struct fmt_main fmt_KRB5 = {
 		KRB5_fmt_tests
 	}, {
 		krb5_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		krb5_valid,
 		fmt_default_split,

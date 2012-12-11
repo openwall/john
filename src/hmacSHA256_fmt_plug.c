@@ -240,6 +240,7 @@ struct fmt_main fmt_hmacSHA256 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		split,

@@ -429,6 +429,7 @@ struct fmt_main fmt_DOMINOSEC = {
 	},
 	{
 		fmt_default_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		dominosec_valid,
 		fmt_default_split,

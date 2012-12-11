@@ -507,6 +507,7 @@ struct fmt_main fmt_NETNTLMv2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		netntlmv2_prepare,
 		netntlmv2_valid,
 		netntlmv2_split,

@@ -262,6 +262,7 @@ struct fmt_main fmt_KRB4 = {
 		krb4_tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		krb4_valid,
 		fmt_default_split,

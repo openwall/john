@@ -378,6 +378,7 @@ struct fmt_main fmt_hmacMD5 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		split,

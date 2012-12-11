@@ -270,6 +270,7 @@ struct fmt_main fmt_cuda_mscash = {
 		    tests
 	},{
 		    init,
+		fmt_default_done,
 		    prepare,
 		    valid,
 		    split,

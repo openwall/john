@@ -654,6 +654,7 @@ struct fmt_main fmt_sapB = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		split,

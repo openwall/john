@@ -421,6 +421,7 @@ struct fmt_main fmt_opencl_NT = {
 		tests
 	}, {
 		fmt_NT_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		nt_split,

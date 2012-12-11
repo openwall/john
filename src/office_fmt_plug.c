@@ -456,6 +456,7 @@ struct fmt_main office_fmt = {
 		office_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

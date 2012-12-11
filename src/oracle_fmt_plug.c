@@ -342,6 +342,7 @@ struct fmt_main fmt_oracle = {
 		oracle_tests
 	}, {
 		oracle_init,
+		fmt_default_done,
 		prepare,
 		valid,
 		fmt_default_split,

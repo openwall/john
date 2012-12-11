@@ -258,6 +258,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 		pwsafe_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

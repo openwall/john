@@ -327,6 +327,7 @@ struct fmt_main fmt_rawMD4 = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		split,

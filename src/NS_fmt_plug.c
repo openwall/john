@@ -279,6 +279,7 @@ struct fmt_main fmt_NS = {
 		tests
 	}, {
 		NS_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		NS_valid,
 		fmt_default_split,

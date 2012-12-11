@@ -237,6 +237,7 @@ struct fmt_main episerver_fmt = {
 		episerver_tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

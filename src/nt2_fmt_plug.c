@@ -698,6 +698,7 @@ struct fmt_main fmt_magnumNT = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		split,

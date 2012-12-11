@@ -246,6 +246,7 @@ struct fmt_main fmt_sha1_gen = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

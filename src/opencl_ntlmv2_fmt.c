@@ -721,6 +721,7 @@ struct fmt_main fmt_opencl_NTLMv2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		split,

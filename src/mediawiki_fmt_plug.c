@@ -204,8 +204,10 @@ struct fmt_main fmt_mediawiki =
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
-		/*  within the call to init, we will properly set this full object      */
+		/*  within the call to init,
+		fmt_default_done, we will properly set this full object      */
 		mediawiki_init,
+		fmt_default_done,
 		our_prepare,
 		mediawiki_valid
 	}

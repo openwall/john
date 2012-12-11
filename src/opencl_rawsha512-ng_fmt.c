@@ -695,6 +695,7 @@ struct fmt_main fmt_opencl_rawsha512_ng = {
     },
     {
         init,
+		fmt_default_done,
         fmt_default_prepare,
         valid,
         split,

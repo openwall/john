@@ -322,6 +322,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		tests
 	}, {
 		fmt_rawsha1_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

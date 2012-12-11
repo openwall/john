@@ -753,6 +753,7 @@ struct fmt_main fmt_opencl_xsha512_ng = {
     },
     {
         init,
+		fmt_default_done,
         fmt_default_prepare,
         valid,
         split,

@@ -2452,6 +2452,7 @@ struct fmt_main fmt_Dynamic =
 		dynamic_tests
 	}, {
 		init,
+		fmt_default_done,
 		prepare,
 		valid,
 		split,

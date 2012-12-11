@@ -768,7 +768,8 @@ static void init(struct fmt_main *self)
 #ifndef __APPLE__
 	atexit(openssl_cleanup);
 #endif
-	/* CRC-32 table init, do it before we start multithreading */
+	/* CRC-32 table init,
+		fmt_default_done, do it before we start multithreading */
 	{
 		CRC32_t crc;
 		CRC32_Init(&crc);
@@ -1120,6 +1121,7 @@ struct fmt_main rar_fmt = {
 		cpu_tests // Changed in init if GPU
 	},{
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

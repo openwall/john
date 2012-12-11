@@ -318,6 +318,7 @@ struct fmt_main fmt_MYSQL_fast =
 		mysql_tests
 	}, {
 		mysql_init,
+		fmt_default_done,
 		fmt_default_prepare,
 		mysql_valid,
 		mysql_split,
