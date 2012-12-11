@@ -3,6 +3,7 @@
 #include "common-opencl.h"
 #include <assert.h>
 #include <string.h>
+#include <ctype.h>
 #define LOG_SIZE 1024*16
 
 static char opencl_log[LOG_SIZE];
@@ -150,7 +151,7 @@ static void build_kernel(int dev_id, char *options)
 		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
-#ifdef REPORT_OPENCL_WARNINGS
+#if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
 	else if (strlen(build_log) > 1) // Nvidia may return a single '\n' which is not that interesting
 		fprintf(stderr, "Compilation log: %s\n", build_log);
 #endif
@@ -203,7 +204,7 @@ static void build_kernel_from_binary(int dev_id)
 		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
-#ifdef REPORT_OPENCL_WARNINGS
+#if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
 	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
 		fprintf(stderr, "Compilation log: %s\n", opencl_log);
 #endif
@@ -838,10 +839,10 @@ void listOpenCLdevices(void)
 	for (i = 0; i < num_platforms; i++) {
 		/* Obtain information about platform */
 		clGetPlatformInfo(platform[i], CL_PLATFORM_NAME,
-		    MAX_OCLINFO_STRING_LEN, dname, NULL);
+		    sizeof(dname), dname, NULL);
 		printf("Platform #%d name: %s\n", i, dname);
 		clGetPlatformInfo(platform[i], CL_PLATFORM_VERSION,
-		    MAX_OCLINFO_STRING_LEN, dname, NULL);
+		    sizeof(dname), dname, NULL);
 		printf("Platform version: %s\n", dname);
 
 		/* Obtain list of devices available on platform */
@@ -854,21 +855,27 @@ void listOpenCLdevices(void)
 		for (d = 0; d < num_devices; ++d) {
 			cl_device_local_mem_type memtype;
 			cl_bool boolean;
+			char *p;
+			int ret;
 
 			/* Init device_info[d] */
 			opencl_get_dev_info(d);
 
 			clGetDeviceInfo(devices[d], CL_DEVICE_NAME,
-			    MAX_OCLINFO_STRING_LEN, dname, NULL);
-			printf("\tDevice #%d name:\t\t%s\n", d, dname);
+			    sizeof(dname), dname, NULL);
+			p = dname;
+			while (isspace(*p)) /* Intel quirk */
+				p++;
+			printf("\tDevice #%d name:\t\t%s\n", d, p);
 #ifdef CL_DEVICE_BOARD_NAME_AMD
-			if (gpu_amd(device_info[d])) {
-				clGetDeviceInfo(devices[d], CL_DEVICE_BOARD_NAME_AMD, sizeof(dname), dname, NULL);
+			ret = clGetDeviceInfo(devices[d],
+			                      CL_DEVICE_BOARD_NAME_AMD,
+			                      sizeof(dname), dname, NULL);
+			if (ret == CL_SUCCESS && strlen(dname))
 				printf("\tBoard name:\t\t%s\n", dname);
-			}
 #endif
 			clGetDeviceInfo(devices[d], CL_DEVICE_VENDOR,
-			    MAX_OCLINFO_STRING_LEN, dname, NULL);
+			    sizeof(dname), dname, NULL);
 			printf("\tDevice vendor:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
 			    sizeof(cl_ulong), &long_entries, NULL);
@@ -889,10 +896,10 @@ void listOpenCLdevices(void)
 			    sizeof(cl_bool), &boolean, NULL);
 			printf("(%s)\n", boolean == CL_TRUE ? "LE" : "BE");
 			clGetDeviceInfo(devices[d], CL_DEVICE_VERSION,
-			    MAX_OCLINFO_STRING_LEN, dname, NULL);
+			    sizeof(dname), dname, NULL);
 			printf("\tDevice version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DRIVER_VERSION,
-			    MAX_OCLINFO_STRING_LEN, dname, NULL);
+			    sizeof(dname), dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_SIZE,
 			    sizeof(cl_ulong), &long_entries, NULL);
@@ -902,6 +909,11 @@ void listOpenCLdevices(void)
 			printf("\tGlobal Memory:\t\t%s%s\n",
 			    human_format((unsigned long long) long_entries),
 			    boolean == CL_TRUE ? " (ECC)" : "");
+#ifdef DEBUG
+			clGetDeviceInfo(devices[d], CL_DEVICE_EXTENSIONS,
+			                sizeof(dname), dname, NULL);
+			printf("\tDevice extensions:\t%s\n", dname);
+#endif
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong),
 			    &long_entries, NULL);
@@ -921,8 +933,9 @@ void listOpenCLdevices(void)
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),
 			    &long_entries, NULL);
-			printf("\tMax clock (MHz) :\t%llu\n",
-			    (unsigned long long) long_entries);
+			if (long_entries)
+				printf("\tMax clock (MHz) :\t%llu\n",
+				       (unsigned long long) long_entries);
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
 			    &p_size, NULL);
@@ -940,39 +953,45 @@ void listOpenCLdevices(void)
 				     cores_per_MP[d]);
 
 #ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
-			if (gpu_nvidia(device_info[d])) {
-				unsigned int major = 0, minor = 0;
-
-				clGetDeviceInfo(devices[d],
-				    CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
-				    &long_entries, NULL);
+			ret = clGetDeviceInfo(devices[d],
+			    CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
+			    &long_entries, NULL);
+			if (ret == CL_SUCCESS)
 				printf("\tWarp size:\t\t%llu\n",
 				       (unsigned long long)long_entries);
 
-				clGetDeviceInfo(devices[d],
-				    CL_DEVICE_REGISTERS_PER_BLOCK_NV,
-				    sizeof(cl_uint), &long_entries, NULL);
+			ret = clGetDeviceInfo(devices[d],
+			          CL_DEVICE_REGISTERS_PER_BLOCK_NV,
+			          sizeof(cl_uint), &long_entries, NULL);
+			if (ret == CL_SUCCESS)
 				printf("\tMax. GPRs/work-group:\t%llu\n",
-				    (unsigned long long)long_entries);
+				       (unsigned long long)long_entries);
 
+			if (gpu_nvidia(device_info[d])) {
+				unsigned int major = 0, minor = 0;
 				get_compute_capability(d, &major, &minor);
 				printf
 				    ("\tCompute capability:\t%u.%u (sm_%u%u)\n",
 				    major, minor, major, minor);
-
-				clGetDeviceInfo(devices[d],
-				    CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
-				    sizeof(cl_bool), &boolean, NULL);
-				printf("\tKernel exec. timeout:\t%s\n",
-				    boolean ? "yes" : "no");
 			}
+			ret = clGetDeviceInfo(devices[d],
+			    CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
+			    sizeof(cl_bool), &boolean, NULL);
+			if (ret == CL_SUCCESS)
+				printf("\tKernel exec. timeout:\t%s\n",
+				       boolean ? "yes" : "no");
 #endif
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
-			if (gpu_amd(device_info[d])) {
+			{
 				cl_device_topology_amd topo;
 
-				clGetDeviceInfo(devices[d], CL_DEVICE_TOPOLOGY_AMD, sizeof(topo), &topo, NULL);
-				printf("\tPCI device topology:\t%d:%d.%d\n", topo.pcie.bus, topo.pcie.device, topo.pcie.function);
+				ret = clGetDeviceInfo(devices[d],
+				    CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
+				    &topo, NULL);
+				if (ret == CL_SUCCESS)
+				printf("\tPCI device topology:\t%d:%d.%d\n",
+				       topo.pcie.bus, topo.pcie.device,
+				       topo.pcie.function);
 			}
 #endif
 			puts("");
