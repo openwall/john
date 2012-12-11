@@ -363,6 +363,7 @@ struct fmt_main fmt_DES = {
 #else
 		DES_std_init,
 #endif
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		split,

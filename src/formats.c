@@ -54,6 +54,14 @@ void fmt_init(struct fmt_main *format)
 #endif
 }
 
+void fmt_done(struct fmt_main *format)
+{
+	if (format->private.initialized) {
+		format->methods.done();
+		format->private.initialized = 0;
+	}
+}
+
 char *fmt_self_test(struct fmt_main *format)
 {
 	static char s_size[32];
@@ -188,6 +196,10 @@ char *fmt_self_test(struct fmt_main *format)
 }
 
 void fmt_default_init(struct fmt_main *self)
+{
+}
+
+void fmt_default_done(void)
 {
 }
 

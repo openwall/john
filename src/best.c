@@ -80,6 +80,8 @@ int main(int argc, char **argv)
 			s_real, s_virtual);
 	}
 
+	fmt_done(format);
+
 	printf("%lu\n", virtual);
 
 	return virtual ? 0 : 1;

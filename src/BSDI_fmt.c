@@ -400,6 +400,7 @@ struct fmt_main fmt_BSDI = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

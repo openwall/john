@@ -455,14 +455,14 @@ int benchmark_all(void)
 		    &results_m))) {
 			puts(result);
 			failed++;
-			continue;
+			goto next;
 		}
 
 		if (msg_1)
 		if ((result = benchmark_format(format, 1, &results_1))) {
 			puts(result);
 			failed++;
-			continue;
+			goto next;
 		}
 
 		puts("DONE");
@@ -489,7 +489,7 @@ int benchmark_all(void)
 
 		if (!msg_1) {
 			putchar('\n');
-			continue;
+			goto next;
 		}
 
 		benchmark_cps(&results_1.count, results_1.real, s_real);
@@ -501,6 +501,9 @@ int benchmark_all(void)
 		printf("%s:\t%s c/s\n\n",
 			msg_1, s_real);
 #endif
+
+next:
+		fmt_done(format);
 	} while ((format = format->next) && !event_abort);
 
 	if (failed && total > 1 && !event_abort)

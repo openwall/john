@@ -110,6 +110,11 @@ struct fmt_methods {
  * a shared underlying resource is used). */
 	void (*init)(struct fmt_main *);
 
+/*
+ * De-initializes this format, which must have been previously initialized.
+ */
+	void (*done)(void);
+
 /* returns a prepared ciphertext if this format is 'possible' to be used.
  * The 'split_fields array, is the actual contents of the fields, read from
  * the The default returns split_fields[1].  However, this function CAN
@@ -218,6 +223,11 @@ extern void fmt_register(struct fmt_main *format);
 extern void fmt_init(struct fmt_main *format);
 
 /*
+ * De-initializes this format if it was previously initialized.
+ */
+extern void fmt_done(struct fmt_main *format);
+
+/*
  * Tests the format's methods for correct operation. Returns NULL on
  * success, method name on error.
  */
@@ -227,6 +237,7 @@ extern char *fmt_self_test(struct fmt_main *format);
  * Default methods.
  */
 extern void fmt_default_init(struct fmt_main *self);
+extern void fmt_default_done(void);
 extern char *fmt_default_prepare(char *split_fields[10], struct fmt_main *self);
 extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
 extern char *fmt_default_split(char *ciphertext, int index);
