@@ -12,8 +12,16 @@
 
 #include "opencl_device_info.h"
 
-#if !defined(VECTORIZE) && !defined(SCALAR)
+#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
+#define MAYBE_VECTOR_ULONG	ulong4
+#ifndef VECTORIZE
+#define VECTORIZE
+#endif
+#else
+#define MAYBE_VECTOR_ULONG	ulong
+#ifndef SCALAR
 #define SCALAR
+#endif
 #endif
 
 /* Office 2010/2013 */
@@ -83,11 +91,8 @@ inline uint SWAP32(uint x)
 #define sigma1(x)               ((ror(x,19)) ^ (ror(x,61)) ^ (x>>6))
 
 #ifdef SCALAR
-#define MAYBE_VECTOR_ULONG	ulong
 #define sha512_single_s		sha512_single
 #else
-#define VF			4
-#define MAYBE_VECTOR_ULONG	ulong4
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
 inline void sha512_single_s(ulong *w, ulong *output) {
@@ -222,8 +227,8 @@ __kernel void GenerateSHA512pwhash(
 		pwhash[gid * 9 + i] = output[i];
 	pwhash[gid * 9 + 8] = 0;
 #else
-		pwhash[(gid >> 2) * VF * 9 + (gid & 3) + i * VF] = output[i];
-	pwhash[(gid >> 2) * VF * 9 + (gid & 3) + 8 * VF] = 0;
+		pwhash[(gid >> 2) * 4 * 9 + (gid & 3) + i * 4] = output[i];
+	pwhash[(gid >> 2) * 4 * 9 + (gid & 3) + 8 * 4] = 0;
 #endif
 }
 
@@ -313,10 +318,10 @@ __kernel void Generate2013key(
 #ifdef SCALAR
 		key[gid * 128/8 + i] = SWAP64(output[i]);
 #else
-		key[(gid * VF) * 128/8 + i] = SWAP64(output[i].s0);
-		key[(gid * VF + 1) * 128/8 + i] = SWAP64(output[i].s1);
-		key[(gid * VF + 2) * 128/8 + i] = SWAP64(output[i].s2);
-		key[(gid * VF + 3) * 128/8 + i] = SWAP64(output[i].s3);
+		key[(gid * 4) * 128/8 + i] = SWAP64(output[i].s0);
+		key[(gid * 4 + 1) * 128/8 + i] = SWAP64(output[i].s1);
+		key[(gid * 4 + 2) * 128/8 + i] = SWAP64(output[i].s2);
+		key[(gid * 4 + 3) * 128/8 + i] = SWAP64(output[i].s3);
 #endif
 	}
 
@@ -333,10 +338,10 @@ __kernel void Generate2013key(
 #ifdef SCALAR
 		key[gid * 128/8 + 64/8 + i] = SWAP64(output[i]);
 #else
-		key[(gid * VF) * 128/8 + 64/8 + i] = SWAP64(output[i].s0);
-		key[(gid * VF + 1) * 128/8 + 64/8 + i] = SWAP64(output[i].s1);
-		key[(gid * VF + 2) * 128/8 + 64/8 + i] = SWAP64(output[i].s2);
-		key[(gid * VF + 3) * 128/8 + 64/8 + i] = SWAP64(output[i].s3);
+		key[(gid * 4) * 128/8 + 64/8 + i] = SWAP64(output[i].s0);
+		key[(gid * 4 + 1) * 128/8 + 64/8 + i] = SWAP64(output[i].s1);
+		key[(gid * 4 + 2) * 128/8 + 64/8 + i] = SWAP64(output[i].s2);
+		key[(gid * 4 + 3) * 128/8 + 64/8 + i] = SWAP64(output[i].s3);
 #endif
 	}
 }

@@ -1,11 +1,15 @@
 /*
  * Kerberos 5 "PA ENC TIMESTAMP" by magnum & Dhiru
  *
+ * Pcap file -> input file:
+ * 1. tshark -r capture.pcapng -T pdml  > ~/capture.pdml
+ * 2. krbng2john.py ~/capture.pdml > krb5.in
+ * 3. Run john on krb5.in
+ *
  * http://www.ietf.org/rfc/rfc4757.txt
  * http://www.securiteam.com/windowsntfocus/5BP0H0A6KM.html
  *
- * Input format is 'user:$krb5ng$0$user$realm$timestamp$checksum' OR
- * user:$krb5ng$1$salt$timestamp$checksum'
+ * Input format is 'user:$krb5pa$etype$user$realm$salt$timestamp+checksum'
  *
  * NOTE: Checksum implies last 12 bytes of PA_ENC_TIMESTAMP value in AS-REQ
  * packet.
@@ -44,17 +48,19 @@
 #include "opencl_pbkdf2_hmac_sha1.h"
 #include "gladman_hmac.h"
 
-#define FORMAT_LABEL		"krb5ng-opencl"
-#define FORMAT_NAME		"Kerberos 5 AS-REQ Pre-Auth aes256-cts-hmac-sha1-96"
+#define FORMAT_LABEL		"krb5pa-sha1-opencl"
+#define FORMAT_NAME		"Kerberos 5 AS-REQ Pre-Auth etype 17/18 aes-cts-hmac-sha1-96"
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1001
 #define BINARY_SIZE		12
 #define SALT_SIZE		sizeof(struct custom_salt)
-#define MAX_REALMLEN            64
-#define MAX_USERLEN             64
-#define CHECKSUM_SIZE           BINARY_SIZE
+#define MAX_SALTLEN             52
+#define MAX_REALMLEN            MAX_SALTLEN
+#define MAX_USERLEN             MAX_SALTLEN
 #define TIMESTAMP_SIZE          44
+#define CHECKSUM_SIZE           BINARY_SIZE
+#define TOTAL_LENGTH            (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
 #define	DEFAULT_KEYS_PER_CRYPT	1024*9
 #define MIN_KEYS_PER_CRYPT	1
@@ -66,12 +72,14 @@
 #define GWS_CONFIG		"krbng_GWS"
 
 static struct fmt_tests tests[] = {
-	{"$krb5ng$0$user1$EXAMPLE.COM$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93$883bf697b325193d62a8be9c", "openwall"},
-	{"$krb5ng$0$user1$EXAMPLE.COM$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b$335e588bf29c2d17b11c5caa", "openwall"},
-	{"$krb5ng$0$l33t$EXAMPLE.COM$98f732b309a1d7ef2355a974842a32894d911e97150f5d57f248e1c2632fbd3735c5f156532ccae0341e6a2d$779ca83a06021fe57dafa464", "openwall"},
-        {"$krb5ng$0$aduser$AD.EXAMPLE.COM$64dfeee04be2b2e0423814e0df4d0f960885aca4efffe6cb5694c4d34690406071c4968abd2c153ee42d258c$5e09a41269bbcd7799f478d3", "password@123"},
-        {"$krb5ng$0$aduser$AD.EXAMPLE.COM$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f8$9a0ad1a4b178662b6106c0ff", "password@12345678"},
-	{"$krb5ng$1$AD.EXAMPLE.COMaduser$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f8$9a0ad1a4b178662b6106c0ff", "password@12345678"},
+	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
+	{"$krb5pa$18$user1$EXAMPLE.COM$$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b335e588bf29c2d17b11c5caa", "openwall"},
+	{"$krb5pa$18$l33t$EXAMPLE.COM$$98f732b309a1d7ef2355a974842a32894d911e97150f5d57f248e1c2632fbd3735c5f156532ccae0341e6a2d779ca83a06021fe57dafa464", "openwall"},
+	{"$krb5pa$18$aduser$AD.EXAMPLE.COM$$64dfeee04be2b2e0423814e0df4d0f960885aca4efffe6cb5694c4d34690406071c4968abd2c153ee42d258c5e09a41269bbcd7799f478d3", "password@123"},
+	{"$krb5pa$18$aduser$AD.EXAMPLE.COM$$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f89a0ad1a4b178662b6106c0ff", "password@12345678"},
+	{"$krb5pa$18$aduser$AD.EXAMPLE.COM$AD.EXAMPLE.COMaduser$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f89a0ad1a4b178662b6106c0ff", "password@12345678"},
+	/* etype 17 hash obtained using MiTM etype downgrade attack */
+	{"$krb5pa$17$user1$EXAMPLE.COM$$c5461873dc13665771b98ba80be53939e906d90ae1ba79cf2e21f0395e50ee56379fbef4d0298cfccfd6cf8f907329120048fd05e8ae5df4", "openwall"},
 	{NULL},
 };
 
@@ -81,10 +89,11 @@ static int VF = 1;	/* Will be set to 4 if we run vectorized */
 
 static struct custom_salt {
 	int type;
+	int etype;
 	unsigned char realm[64];
 	unsigned char user[64];
-	unsigned char ct[44];
-	unsigned char salt[128]; /* realm + user */
+	unsigned char salt[64]; /* realm + user */
+	unsigned char ct[TIMESTAMP_SIZE];
 } *cur_salt;
 
 static unsigned char constant[16];
@@ -400,7 +409,17 @@ static void init(struct fmt_main *self)
 
 	global_work_size = 0;
 
-	if (options.flags & FLG_VECTORIZE) {
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u %s",
+	         HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH,
+	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
+	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
+	opencl_init_opt("$JOHN/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+
+	if ((options.flags & FLG_VECTORIZE) ||
+	    ((!(options.flags & FLG_SCALAR)) &&
+	     gpu_amd(device_info[ocl_gpu_id]) &&
+	     !amd_gcn(device_info[ocl_gpu_id]))) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
@@ -417,9 +436,6 @@ static void init(struct fmt_main *self)
 
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
-
-	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DITERATIONS=%u -DPLAINTEXT_LENGTH=%u %s", HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH, (VF == 4) ? "-DVECTORIZED" : "");
-	opencl_init_opt("$JOHN/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	crypt_kernel = pbkdf2_init = clCreateKernel(program[ocl_gpu_id], "pbkdf2_init", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel");
@@ -485,27 +501,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int type, saltlen = 0;
 
 	// tag is mandatory
-	if (strncmp(ciphertext, "$krb5ng$", 8) != 0)
+	if (strncmp(ciphertext, "$krb5pa$", 8) != 0)
 		return 0;
 	data += 8;
 
-	// type field, 0 or 1
+	// etype field, 17 or 18
 	p = strchr(data, '$');
-	if (!p || p - data != 1)
-		return 0;
-	if (*data != '0' && *data != '1')
+	if (!p || p - data != 2)
 		return 0;
 	type = atoi(data);
+	if (type < 17 || type > 18)
+		return 0;
 	data = p + 1;
 
-	if (type == 0) {
-		// user field
-		p = strchr(data, '$');
-		if (!p || p - data > MAX_USERLEN)
-			return 0;
-		saltlen += p - data;
-		data = p + 1;
-	}
+	// user field
+	p = strchr(data, '$');
+	if (!p || p - data > MAX_USERLEN)
+		return 0;
+	saltlen += p - data;
+	data = p + 1;
 
 	// realm field
 	p = strchr(data, '$');
@@ -514,20 +528,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	saltlen += p - data;
 	data = p + 1;
 
-	// We support a max. total salt length of 52.
-	// We could opt to emit a warning if rejected here.
-	if(saltlen > 52)
-		return 0;
-
-	// 44 bytes (88 hex chars) encrypted timestamp
+	// salt field
 	p = strchr(data, '$');
-	if (!p || p - data != 2 * TIMESTAMP_SIZE)
+	if (!p)
 		return 0;
+	// if salt is empty, realm.user is used instead
+	if (p - data)
+		saltlen = p - data;
 	data = p + 1;
 
-	// 12 bytes (24 hex chars) checksum
-	p += strlen(data) + 1;
-	if (*p || p - data != 2 * CHECKSUM_SIZE)
+	// We support a max. total salt length of 52.
+	// We could opt to emit a warning if rejected here.
+	if(saltlen > MAX_SALTLEN)
+		return 0;
+
+	// 56 bytes (112 hex chars) encrypted timestamp + checksum
+	if (strlen(data) != 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))
 		return 0;
 
 	return 1;
@@ -540,22 +556,31 @@ static void *get_salt(char *ciphertext)
 	char *p;
 	int i;
 	static struct custom_salt cs;
+
 	ctcopy += 8;
 	p = strtok(ctcopy, "$");
-	cs.type = atoi(p);
+	cs.etype = atoi(p);
 	p = strtok(NULL, "$");
-
-	if (cs.type == 0) {
+	if (p[-1] == '$')
+		cs.user[0] = 0;
+	else {
 		strcpy((char*)cs.user, p);
 		p = strtok(NULL, "$");
+	}
+	if (p[-1] == '$')
+		cs.realm[0] = 0;
+	else {
 		strcpy((char*)cs.realm, p);
+		p = strtok(NULL, "$");
+	}
+	if (p[-1] == '$') {
 		strcpy((char*)cs.salt, (char*)cs.realm);
 		strcat((char*)cs.salt, (char*)cs.user);
-	}
-	else
+	} else {
 		strcpy((char*)cs.salt, p);
-	p = strtok(NULL, "$");
-	for (i = 0; i < 44; i++)
+		p = strtok(NULL, "$");
+	}
+	for (i = 0; i < TIMESTAMP_SIZE; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
@@ -573,6 +598,22 @@ static void set_key(char *key, int index)
 	new_keys = 1;
 }
 
+#if FMT_MAIN_VERSION > 9
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
+#else
+static char *split(char *ciphertext, int index)
+#endif
+{
+	static char out[TOTAL_LENGTH + 1];
+	char *data;
+
+	strnzcpy(out, ciphertext, sizeof(out));
+	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
+	strlwr(data);
+
+	return out;
+}
+
 static void *get_binary(char *ciphertext)
 {
 	static union {
@@ -582,7 +623,8 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
-	p = strrchr(ciphertext, '$') + 1;
+
+	p = strrchr(ciphertext, '$') + 1 + TIMESTAMP_SIZE * 2; /* skip to checksum field */
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
@@ -713,6 +755,12 @@ static void crypt_all(int count)
 {
 	int i;
 	size_t scalar_gws = VF * global_work_size;
+	int key_size;
+
+	if (cur_salt->etype == 17)
+		key_size = 16;
+	else
+		key_size = 32;
 
 	/// Copy data to gpu
 	if (new_keys) {
@@ -743,14 +791,14 @@ static void crypt_all(int count)
 	for (i = 0; i < count; i++) {
 		unsigned char base_key[32];
 		unsigned char Ke[32];
-		unsigned char plaintext[44];
+		unsigned char plaintext[TIMESTAMP_SIZE];
 
 		//pbkdf2((const unsigned char*)saved_key[i], len, (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
 
 		// generate 128 bits from 40 bits of "kerberos" string
 		// This is precomputed in init()
 		//nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);
-		dk(base_key, (unsigned char*)output[i].dk, 32, constant, 32);
+		dk(base_key, (unsigned char*)output[i].dk, key_size, constant, 32);
 
 		/* The "well-known constant" used for the DK function is the key usage number,
 		 * expressed as four octets in big-endian order, followed by one octet indicated below.
@@ -765,28 +813,29 @@ static void crypt_all(int count)
 		//usage[4] = 0xAA;        // used to derive Ke
 
 		//nfold(sizeof(usage)*8,usage,sizeof(ke_input)*8,ke_input);
-		dk(Ke,base_key,32,ke_input,32);
+		dk(Ke, base_key, key_size, ke_input, 32);
 
 		// decrypt the AS-REQ timestamp encrypted with 256-bit AES
 		// here is enough to check the string, further computation below is required
 		// to fully verify the checksum
-		krb_decrypt(cur_salt->ct,44,plaintext,Ke,sizeof(Ke));
+		krb_decrypt(cur_salt->ct, TIMESTAMP_SIZE, plaintext, Ke, key_size);
 
 		// Check a couple bytes from known plain (YYYYMMDDHHMMSSZ) and
 		// bail out if we are out of luck.
 		if (plaintext[22] == '2' && plaintext[23] == '0' && plaintext[36] == 'Z') {
 			unsigned char Ki[32];
 			unsigned char checksum[20];
+
 			// derive Ki used in HMAC-SHA-1 checksum
 			// This is precomputed in init()
 			//memset(usage,0,sizeof(usage));
 			//usage[3] = 0x01;        // key number in big-endian format
 			//usage[4] = 0x55;        // used to derive Ki
 			//nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
-			dk(Ki,base_key,32,ki_input,32);
+			dk(Ki, base_key, key_size, ki_input, 32);
 
 			// derive checksum of plaintext (only 96 bits used out of 160)
-			hmac_sha1(Ki, 32, plaintext,44,checksum, 20);
+			hmac_sha1(Ki, key_size, plaintext, TIMESTAMP_SIZE, checksum, 20);
 			memcpy(crypt_out[i], checksum, BINARY_SIZE);
 		} else {
 			memset(crypt_out[i], 0, BINARY_SIZE);
@@ -813,7 +862,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_ocl_krb5ng = {
+struct fmt_main fmt_ocl_krb5pa_sha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -837,7 +886,7 @@ struct fmt_main fmt_ocl_krb5ng = {
 		init,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 #if FMT_MAIN_VERSION > 9

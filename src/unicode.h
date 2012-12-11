@@ -48,7 +48,9 @@
 #define inline _inline
 #endif
 
-typedef unsigned long UTF32;	/* at least 32 bits */
+#include "common.h"
+
+typedef ARCH_WORD_32 UTF32;	/* at least 32 bits */
 typedef unsigned short UTF16;	/* at least 16 bits */
 typedef unsigned char UTF8;	/* typically 8 bits */
 

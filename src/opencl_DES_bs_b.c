@@ -43,13 +43,12 @@ typedef unsigned WORD vtype;
 	
 	static int set_salt = 0;
 	
-typedef struct {
-unsigned int index[96];
-unsigned int id ;
+        static WORD stored_salt[2000];
 
-} store_salt;
-static   int ctr;
-store_salt stored[2000];
+        static   int ctr;
+        
+	static   WORD current_salt;
+
 	
 static char *include_source(char *pathname, int dev_id, char *options)
 {
@@ -104,8 +103,8 @@ static void read_kernel_source(char *kernel_filename)
 
 static void build_kernel(int dev_id, char *options)
 {
-	cl_int build_code;
-       // char * build_log; size_t log_size;
+	//cl_int build_code;
+        //char * build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
 	program[dev_id] =
@@ -114,7 +113,8 @@ static void build_kernel(int dev_id, char *options)
 	
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	build_code = clBuildProgram(program[dev_id], 0, NULL,
+	//build_code = 
+	clBuildProgram(program[dev_id], 0, NULL,
 		include_source("$JOHN/", dev_id, options), NULL, NULL);
 	
 	/*
@@ -234,6 +234,7 @@ void opencl_DES_bs_set_salt(WORD salt)
 	opencl_DES_bs_all[section].salt = new;
 	}
 	section=0;
+	current_salt = salt ;
 	for (dst = 0; dst < 24; dst++) {
 		if ((new ^ old) & 1) {
 			DES_bs_vector *sp1, *sp2;
@@ -259,7 +260,7 @@ void opencl_DES_bs_set_salt(WORD salt)
 	}
 	
 	set_salt = 1;
-		
+			
 }
 
 void opencl_DES_bs_crypt_25(int keys_count)
@@ -285,38 +286,31 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	N = section;  
 	
 	if(set_salt == 1){ 
-		unsigned int i,j;
+		unsigned int i;
 		unsigned int found = 0;
-		for(i=0; i < ctr; i++) {
-			for(j=0;j<96;j++){
-				if(stored[i].index[j]!=index96[j]) {
-					found = 0;
-					break;
-				}
+		for(i=0; i < ctr; i++) 
+			if(stored_salt[i]==current_salt){ 
 				found = 1;
-			}
-			if(found == 1) {
 				pos=i;
 				break;
 			} 
-		}
+		
 		if(found==0){
-			pos=ctr;
+			pos = ctr;
 			modify_src();
 			clReleaseProgram(program[devno]);
-			build_kernel( devno, NULL) ;
+			build_kernel( devno, "-fno-bin-amdil -fno-bin-source -fno-bin-llvmir -fbin-exe") ;
 			krnl[pltfrmno][devno][pos] = clCreateKernel(program[devno],"DES_bs_25",&err) ;
 			if(err) {printf("Create Kernel DES_bs_25 FAILED\n"); return ;}
-			for(j=0;j<96;j++)
-				stored[ctr].index[j]= index96[j];
-			stored[ctr].id = ctr ;
+			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
+			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
+			stored_salt[ctr] = current_salt;
 			ctr++;  
 		}
 				
-	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
-	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
-	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
-	        HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
+	        
 		
 		//HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index96_gpu,CL_TRUE,0,96*sizeof(unsigned int),index96,0,NULL,NULL ), "Failed Copy data to gpu");
 		set_salt = 0;

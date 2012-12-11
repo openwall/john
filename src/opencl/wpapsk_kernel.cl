@@ -8,10 +8,16 @@
 
 #include "opencl_device_info.h"
 
-#ifdef VECTORIZED
+#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
 #define MAYBE_VECTOR_UINT	uint4
+#ifndef VECTORIZE
+#define VECTORIZE
+#endif
 #else
 #define MAYBE_VECTOR_UINT	uint
+#ifndef SCALAR
+#define SCALAR
+#endif
 #endif
 
 #if gpu_amd(DEVICE_INFO)
@@ -718,7 +724,7 @@ __kernel void wpapsk_loop(__global wpapsk_state *state)
 	MAYBE_VECTOR_UINT output[5];
 	MAYBE_VECTOR_UINT state_out[5];
 
-#ifdef VECTORIZED
+#ifdef VECTORIZE
 	for (i = 0; i < 5; i++) {
 		W[i].s0 = state[gid*4+0].W[i];
 		W[i].s1 = state[gid*4+1].W[i];
@@ -788,7 +794,7 @@ __kernel void wpapsk_loop(__global wpapsk_state *state)
 			state_out[i] ^= output[i];
 	}
 
-#ifdef VECTORIZED
+#ifdef VECTORIZE
 	for (i = 0; i < 5; i++) {
 		state[gid*4+0].W[i] = W[i].s0;
 		state[gid*4+1].W[i] = W[i].s1;

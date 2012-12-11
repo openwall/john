@@ -218,7 +218,65 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$dmg$", 5);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	int headerver;
+	if (strncmp(ciphertext, "$dmg$", 5) != 0)
+		goto err;
+	ctcopy += 5;	/* skip over "$dmg$" marker */
+	p = strtok(ctcopy, "*");
+	headerver = atoi(p);
+	if(headerver == 2) {
+		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
+			goto err;
+		if(atoi(p) > 20)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
+			goto err;
+		if(atoi(p) > 32)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
+			goto err;
+		if(atoi(p) > 128)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted keyblob */
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* chunk number */
+			goto err;
+	}
+	else if(headerver == 1) {
+		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
+			goto err;
+		if(atoi(p) > 20)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
+			goto err;
+		if(atoi(p) > 296)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* wrapped_aes_key  */
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
+			goto err;
+		if(atoi(p) > 300)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* hmac_sha1_key */
+			goto err;
+	}
+	else
+		goto err;
+
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

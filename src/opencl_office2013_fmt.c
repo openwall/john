@@ -384,15 +384,10 @@ static void init(struct fmt_main *self)
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
 	opencl_init_opt("$JOHN/office2013_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
-	// Create kernels to execute
-	GenerateSHA512pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA512pwhash", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "HashLoop", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	if (options.flags & FLG_VECTORIZE) {
+	if ((options.flags & FLG_VECTORIZE) ||
+	    ((!(options.flags & FLG_SCALAR)) &&
+	     gpu_amd(device_info[ocl_gpu_id]) &&
+	     !amd_gcn(device_info[ocl_gpu_id]))) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
@@ -409,6 +404,14 @@ static void init(struct fmt_main *self)
 
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
+
+	// Create kernels to execute
+	GenerateSHA512pwhash = clCreateKernel(program[ocl_gpu_id], "GenerateSHA512pwhash", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "HashLoop", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	Generate2013key = clCreateKernel(program[ocl_gpu_id], "Generate2013key", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(GenerateSHA512pwhash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");

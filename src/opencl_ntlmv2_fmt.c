@@ -382,13 +382,10 @@ static void init(struct fmt_main *self)
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
 	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
-	/* create kernel to execute */
-	ntlmv2_nthash = clCreateKernel(program[ocl_gpu_id], "ntlmv2_nthash", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "ntlmv2_final", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	if (options.flags & FLG_VECTORIZE) {
+	if ((options.flags & FLG_VECTORIZE) ||
+	    ((!(options.flags & FLG_SCALAR)) &&
+	     gpu_amd(device_info[ocl_gpu_id]) &&
+	     !amd_gcn(device_info[ocl_gpu_id]))) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
@@ -405,6 +402,12 @@ static void init(struct fmt_main *self)
 
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
+
+	/* create kernels to execute */
+	ntlmv2_nthash = clCreateKernel(program[ocl_gpu_id], "ntlmv2_nthash", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "ntlmv2_final", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(ntlmv2_nthash, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
@@ -466,16 +469,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	/* This is tricky: Max supported salt length is 27 characters
-	   of Unicode, which has no exact correlation to number of octets */
+	   of Unicode, which has no exact correlation to number of octets.
+	   The actual rejection is postponed to the bottom of this function. */
 	saltlen = enc_to_utf16(utf16temp, SALT_MAX_LENGTH + 1,
 	                       (UTF8*)strnzcpy(utf8temp, pos, pos2 - pos - 2),
 	                       pos2 - pos - 3);
-	if (saltlen < 0 || saltlen > SALT_MAX_LENGTH) {
-		static int warned = 0;
-		if (!warned++)
-			fprintf(stderr, "NOTE: One or more hashes rejected due to salt length limitation.\nMax supported sum of Username + Domainname lengths is 27 characters.\nTry the CPU format for those.\n");
-		return 0;
-	}
 
 	/* Validate Server Challenge Length */
 	pos2++; pos = pos2;
@@ -501,6 +499,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((pos2 - pos > CLIENT_CHALL_LENGTH_MAX) || (pos2 - pos < 28))
 		return 0;
 
+	if (saltlen < 0 || saltlen > SALT_MAX_LENGTH) {
+		static int warned = 0;
+		if (!warned++)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation.\nMax supported sum of Username + Domainname lengths is 27 characters.\nTry the CPU format for those.\n", FORMAT_LABEL);
+		return 0;
+	}
 	return 1;
 }
 

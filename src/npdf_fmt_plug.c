@@ -85,7 +85,39 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$npdf$", 6);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	if (strncmp(ciphertext,  "$npdf$", 6) != 0)
+		goto err;
+	ctcopy += 6;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* V */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* R */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* length */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* P */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* encrypt_metadata */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* length_id */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* id*/
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* length_u */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* u */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* length_ */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* 0 */
+		goto err;
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

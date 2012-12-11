@@ -1,4 +1,4 @@
-/* Fast cracker for SSH RSA / DSA key files. Hacked together during October 
+/* Fast cracker for SSH RSA / DSA key files. Hacked together during October
  * of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * Ideas borrowed from SSH2 protocol library, http://pypi.python.org/pypi/ssh
@@ -81,7 +81,34 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$sshng$", 7);
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	int ctlen;
+	if (strncmp(ciphertext, "$sshng$", 7) != 0)
+		goto err;
+	ctcopy += 7;
+	p = strtok(ctcopy, "$"); /* cipher */
+	if ((p = strtok(NULL, "$")) == NULL)	/* salt len */
+		goto err;
+	if(atoi(p) > 16)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* ciphertext length */
+		goto err;
+	ctlen = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL)	/* ciphertext */
+		goto err;
+	if(strlen(p) != ctlen * 2)
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 #ifdef DEBUG
@@ -146,7 +173,7 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 		digest_inited = 1;
 		if (nbytes > 16)
 			size = 16;
-		else 
+		else
 			size = nbytes;
 		/* copy part of digest to keydata */
 		for(i = 0; i < size; i++)
@@ -178,7 +205,7 @@ static int check_padding_3des(unsigned char *out, int length)
 		if(out[i] != pad)
 			return -1;
 	/* check BER decoding, private key file contains:
-	 * RSAPrivateKey = { version = 0, n, e, d, p, q, d mod p-1, d mod q-1, q**-1 mod p } 
+	 * RSAPrivateKey = { version = 0, n, e, d, p, q, d mod p-1, d mod q-1, q**-1 mod p }
 	 * DSAPrivateKey = { version = 0, p, q, g, y, x } */
 
 	outfile = BIO_new(BIO_s_mem());
