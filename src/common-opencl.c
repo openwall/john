@@ -234,7 +234,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	char *temp;
 	cl_event benchEvent[2];
 	size_t gws;
-	cl_command_queue queue_prof;
+        cl_command_queue queue_prof;
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
