@@ -601,6 +601,17 @@ static void init(struct fmt_main * self) {
     self->params.max_keys_per_crypt = global_work_size;
 }
 
+static void done(void) {
+    release_clobj();
+
+    HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+    HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+    HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+}
+
 /* ------- Check if the ciphertext if a valid SHA-256 crypt ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
     char *pos, *start;
@@ -798,7 +809,7 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

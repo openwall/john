@@ -463,6 +463,16 @@ static void init(struct fmt_main * self) {
     self->params.max_keys_per_crypt = global_work_size;
 }
 
+static void done(void) {
+    release_clobj();
+
+    HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseKernel(cmp_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+    HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+    HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+}
+
 /* ------- Check if the ciphertext if a valid SHA-256 ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
     char *p, *q;
@@ -651,63 +661,62 @@ static int get_hash_6(int index) { return calculated_hash[index] & 0x7FFFFFF; }
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_rawsha256 = {
-    {
-        FORMAT_LABEL,
-        FORMAT_NAME,
-        ALGORITHM_NAME,
-        BENCHMARK_COMMENT,
-        BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH - 1,
-        BINARY_SIZE,
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+                PLAINTEXT_LENGTH - 1,
+		BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
-        4,
+		4,
 #endif
-        SALT_SIZE,
+		SALT_SIZE,
 #if FMT_MAIN_VERSION > 9
-        1,
+		1,
 #endif
-        MIN_KEYS_PER_CRYPT,
-        MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT,
-        tests
-    },
-    {
-        init,
-		fmt_default_done,
-        fmt_default_prepare,
-        valid,
-        split,
-        get_binary,
-        fmt_default_salt,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		init,
+		done,
+		fmt_default_prepare,
+		valid,
+                split,
+		get_binary,
+                fmt_default_salt,
 #if FMT_MAIN_VERSION > 9
-        fmt_default_source,
+		fmt_default_source,
 #endif
-        {
-            binary_hash_0,
-            binary_hash_1,
-            binary_hash_2,
-            binary_hash_3,
-            binary_hash_4,
-            binary_hash_5,
-            binary_hash_6
-        },
-        fmt_default_salt_hash,
-        fmt_default_set_salt,
-        set_key,
-        get_key,
-        fmt_default_clear_keys,
-        crypt_all,
-        {
-            get_hash_0,
-            get_hash_1,
-            get_hash_2,
-            get_hash_3,
-            get_hash_4,
-            get_hash_5,
-            get_hash_6
-        },
-        cmp_all,
-        cmp_one,
-        cmp_exact
-    }
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+                fmt_default_salt_hash,
+                fmt_default_set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };
