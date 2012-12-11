@@ -234,7 +234,6 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	char *temp;
 	cl_event benchEvent[2];
 	size_t gws;
-	cl_command_queue queue_prof;
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -277,8 +276,11 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	if (wg_multiple > max_group_size)
 		wg_multiple = max_group_size;
 
+	///Command Queue changing:
+	///1) Delete old CQ
+	clReleaseCommandQueue(queue[ocl_gpu_id]);
 	///2) Create new CQ with profiling enabled
-	queue_prof =
+	queue[ocl_gpu_id] =
 	    clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id],
 	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
@@ -311,7 +313,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	if (*lastEvent == NULL)
 		lastEvent = firstEvent;
 
-	HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
 			CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 			NULL), "Failed to get profiling info");
@@ -351,7 +353,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
-			HANDLE_CLERROR(clFinish(queue_prof), "clFinish error");
+			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
                                        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
                                        NULL), "Failed to get profiling info");
@@ -369,8 +371,11 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		//fprintf(stderr, "LWS %d time=%llu ns\n",(int) my_work_group, (unsigned long long)sumEndTime-sumStartTime);
 	}
 	///Release profiling queue and create new with profiling disabled
-	clReleaseCommandQueue(queue_prof);
-
+	clReleaseCommandQueue(queue[ocl_gpu_id]);
+	queue[ocl_gpu_id] =
+	    clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], 0,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 
 
