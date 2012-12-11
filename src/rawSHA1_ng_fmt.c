@@ -98,10 +98,17 @@
     E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
 } while (false)
 
+#define R4(W, A, B, C, D, E) do {                                                                       \
+    E   = _mm_add_epi32(E, K);                                                                          \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_xor_si128(B, C), D));                                      \
+    E   = _mm_add_epi32(E, W);                                                                          \
+    E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
+} while (false)
+
 #ifdef __XOP__
 #define R3(W, A, B, C, D, E) do {                                                                       \
     E   = _mm_add_epi32(E, K);                                                                          \
-    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_cmov_si128(D, B, C), _mm_andnot_si128(D, B))); \
+    E   = _mm_add_epi32(E, _mm_xor_si128(_mm_cmov_si128(D, B, C), _mm_andnot_si128(D, B)));             \
     E   = _mm_add_epi32(E, W);                                                                          \
     B   = _mm_roti_epi32(B, 30);                                                                        \
     E   = _mm_add_epi32(E, _mm_roti_epi32(A, 5));                                                       \
@@ -249,8 +256,7 @@ static void * sha1_fmt_binary_full(void *result, char *ciphertext)
 static void * sha1_fmt_binary(char *ciphertext)
 {
     // Static buffer storing the binary representation of ciphertext.
-	static uint32_t *result = NULL;
-	if (!result) result = mem_alloc_tiny(SHA1_DIGEST_WORDS*sizeof(uint32_t), 16);
+    static uint32_t __aligned_16 result[SHA1_DIGEST_WORDS];
 
     // Skip over tag.
     ciphertext += strlen(kFormatTag);
@@ -515,7 +521,7 @@ static void sha1_fmt_crypt_all(int count)
         X(W[8],  W[10], W[0],  W[5]);   R2(W[8],  D, E, A, B, C);
         X(W[9],  W[11], W[1],  W[6]);   R2(W[9],  C, D, E, A, B);
         X(W[10], W[12], W[2],  W[7]);   R2(W[10], B, C, D, E, A);
-        X(W[11], W[13], W[3],  W[8]);   R2(W[11], A, B, C, D, E);   // 75
+        X(W[11], W[13], W[3],  W[8]);   R4(W[11], A, B, C, D, E);   // 75
 
         // A75 has an interesting property, it is the first word that is (almost)
         // part of the final MD (E79 ror 2). The common case will be that this
