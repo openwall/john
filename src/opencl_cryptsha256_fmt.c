@@ -546,7 +546,7 @@ static void init(struct fmt_main * self) {
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-    if (gpu(source_in_use) || use_local(source_in_use)) {
+    if (gpu(source_in_use)) {
         prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
         HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
         final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
@@ -604,9 +604,12 @@ static void init(struct fmt_main * self) {
 static void done(void) {
     release_clobj();
 
-    HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
     HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-    HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+
+    if (gpu(source_in_use)) {
+        HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+        HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+    }
     HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
     HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
     HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
@@ -710,7 +713,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
-    if (gpu(source_in_use) || use_local(source_in_use)) {
+    if (gpu(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
             &global_work_size, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel I");

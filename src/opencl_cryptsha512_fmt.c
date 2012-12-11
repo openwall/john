@@ -617,9 +617,12 @@ static void init(struct fmt_main * self) {
 static void done(void) {
     release_clobj();
 
-    HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
     HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-    HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+
+    if (gpu(source_in_use)) {
+        HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+        HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+    }
     HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
     HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
     HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
