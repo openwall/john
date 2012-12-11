@@ -245,8 +245,8 @@ struct fmt_main fmt_VMS = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
-		fmt_vms_init,
-		fmt_default_done,			/* changed for jumbo */
+		fmt_vms_init,			/* changed for jumbo */
+		fmt_default_done,
 		prepare,			/* Added for jumbo */
 		valid,
 		fmt_vms_split,

@@ -768,8 +768,7 @@ static void init(struct fmt_main *self)
 #ifndef __APPLE__
 	atexit(openssl_cleanup);
 #endif
-	/* CRC-32 table init,
-		fmt_default_done, do it before we start multithreading */
+	/* CRC-32 table init, do it before we start multithreading */
 	{
 		CRC32_t crc;
 		CRC32_Init(&crc);

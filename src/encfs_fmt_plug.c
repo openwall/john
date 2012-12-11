@@ -226,8 +226,7 @@ int streamDecode(unsigned char *buf, int size,
 
 static void init(struct fmt_main *self)
 {
-	/* OpenSSL init,
-		fmt_default_done, cleanup part is left to OS */
+	/* OpenSSL init, cleanup part is left to OS */
 	SSL_load_error_strings();
 	SSL_library_init();
 	OpenSSL_add_all_algorithms();

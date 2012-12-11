@@ -667,7 +667,7 @@ struct fmt_main sha1_fmt_ng = {
     },
     .methods                = {
         .init               = fmt_default_init,
-		fmt_default_done,
+        .done               = fmt_default_done,
         .prepare            = fmt_default_prepare,
         .valid              = sha1_fmt_valid,
         .split              = sha1_fmt_split,
