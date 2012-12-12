@@ -567,26 +567,58 @@ static inline int _mm_testz_epi32 (__m128i __X)
 
 static int sha1_fmt_cmp_all(void *binary, int count)
 {
-    int32_t  result = 0;
+    int32_t  R;
     int32_t  i;
     __m128i  B;
+    __m128i  A;
 
     // This function is hot, we need to do this quickly. We use PCMP to find
     // out if any of the dwords in A75 matched E in the input hash.
     // First, Load the target hash into an XMM register
     B = _mm_loadu_si128(binary);
 
-    // We can test these 4 at a time, and we may have many to test. As the
-    // common case will be that there is _no_ match, we don't test it after
-    // every compare, reducing the number of branches.
-    for (i = 0; i < count; i += 4) {
-        __m128i A = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i]));
-
-        // We can actually check for any hits using a branchless algorithm.
-        result |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+    // We can test for matches 4 at a time. As the common case will be that
+    // there is no match, we can avoid testing it after every compare, reducing
+    // the number of branches.
+    //
+    // It's hard to convince GCC that it's safe to unroll this loop, so I've
+    // manually unrolled it a little bit.
+    for (R = i = 0; i < count; i += 64) {
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i +  0]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i +  4]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i +  8]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 12]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 16]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 20]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 24]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 28]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 32]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 36]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 40]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 44]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 48]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 52]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 56]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
+        A  = _mm_cmpeq_epi32(B, _mm_load_si128(&MD[i + 60]));
+        R |= _mm_testz_epi32(_mm_andnot_si128(A, _mm_cmpeq_epi32(A, A)));
     }
 
-    return result;
+    return R;
 }
 
 static inline int sha1_fmt_get_hash(int index)
