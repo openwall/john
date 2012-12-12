@@ -256,6 +256,7 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 {
 	uint i;
 	uint gid = get_global_id(0);
+	uint gws = get_global_size(0);
 	MAYBE_VECTOR_UINT block[16];
 	MAYBE_VECTOR_UINT output[4], hash[4];
 	MAYBE_VECTOR_UINT a, b, c, d;
@@ -340,12 +341,12 @@ __kernel void ntlmv2_final(const __global MAYBE_VECTOR_UINT *nthash, MAYBE_CONST
 
 	for (i = 0; i < 4; i++) {
 #ifdef SCALAR
-		result[gid * 4 + i] = output[i];
+		result[i * gws + gid] = output[i];
 #else
-		result[(gid * 4 + 0) * 4 + i] = output[i].s0;
-		result[(gid * 4 + 1) * 4 + i] = output[i].s1;
-		result[(gid * 4 + 2) * 4 + i] = output[i].s2;
-		result[(gid * 4 + 3) * 4 + i] = output[i].s3;
+		result[i * 4 * gws + 4 * gid + 0] = output[i].s0;
+		result[i * 4 * gws + 4 * gid + 1] = output[i].s1;
+		result[i * 4 * gws + 4 * gid + 2] = output[i].s2;
+		result[i * 4 * gws + 4 * gid + 3] = output[i].s3;
 #endif
 	}
 }
