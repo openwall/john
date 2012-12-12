@@ -167,34 +167,53 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	/// Run kernels
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[2]), "Run initial kernel");
 
-	for (i = 0; i < ITERATIONS / HASH_LOOPS - 1; i++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
+	//for (i = 0; i < ITERATIONS / HASH_LOOPS - 1; i++)
+	// warm-up run without measuring
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "Run loop kernel");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[4]), "Run intermediate kernel");
 
-	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
+	//for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
+	//	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd)");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, wpapsk_final_sha1, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, &Event[5]), "Run final kernel");
 
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, &Event[6]), "Copy result back");
 
-#if 0
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+#if 1
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "wpapsk_init kernel duration: %llu us, ", (endTime-startTime)/1000ULL);
+		fprintf(stderr, "keys xfer %.2f us, ", (endTime-startTime)/1000.);
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+	if (do_benchmark)
+		fprintf(stderr, "1st kernel %.2f ms, ", (endTime-startTime)/1000000.);
 #endif
 
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+
 	if (do_benchmark)
-		fprintf(stderr, "%.2f ms x %u = %.2f s,\t", (float)((endTime - startTime)/1000000.), 2 * ITERATIONS / HASH_LOOPS, (float)(2 * ITERATIONS / HASH_LOOPS) * (endTime - startTime) / 1000000000.);
+		fprintf(stderr, "loop kernel %.2f ms x %u = %.2f s, ", (endTime - startTime)/1000000., 2 * ITERATIONS/HASH_LOOPS, 2 * (ITERATIONS/HASH_LOOPS) * (endTime - startTime) / 1000000000.);
 
 	/* 200 ms duration limit for GCN to avoid ASIC hangs */
-	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+	if (amd_gcn(device_info[ocl_gpu_id]) && (endTime - startTime) > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
 		clReleaseCommandQueue(queue_prof);
@@ -202,25 +221,45 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-#if 0
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+#if 1
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "wpapsk_pass2 kernel duration: %llu us, ", (endTime-startTime)/1000ULL);
+		fprintf(stderr, "pass2 kernel %.2f ms, ", (endTime-startTime)/1000000.);
 
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[5],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
 	if (do_benchmark)
-		fprintf(stderr, "wpapsk_final kernel duration: %llu us\n", (endTime-startTime)/1000ULL);
+		fprintf(stderr, "result xfer %.2f us\n", (endTime-startTime)/1000.);
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+	if (do_benchmark)
+		fprintf(stderr, "final kernel %.2f ms, ", (endTime-startTime)/1000000.);
 #endif
 
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
-	HANDLE_CLERROR(clGetEventProfilingInfo(Event[6], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
-
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3],
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
 
-	return (endTime - startTime);
+	return (endTime - startTime) * 2 * (ITERATIONS / HASH_LOOPS - 1);
 }
 
 static void find_best_gws(int do_benchmark, struct fmt_main *self)
@@ -249,7 +288,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 			min_time = run_time;
 
 		if (do_benchmark)
-			fprintf(stderr, "gws %6d%8llu c/s%14u sha1/s%8.3f sec per crypt_all()", num, (1000000000ULL * VF * num / run_time), SHAspeed, (float)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d%8llu c/s%14u sha1/s%8.2f sec per crypt_all()", num, (1000000000ULL * VF * num / run_time), SHAspeed, (float)run_time / 1000000000.);
 
 		if (((float)run_time / (float)min_time) < ((float)SHAspeed / (float)bestSHAspeed)) {
 			if (do_benchmark)
