@@ -211,10 +211,13 @@ struct options_main {
 	struct list_main *fmt_dlls;
 #endif
 
-/* Forced min/max_keys_per_crypt (for testing purposes) */
+/* Requested max_keys_per_crypt (for testing purposes) */
 	int force_maxkeys;
 
-/* Forced plaintext_length (for testing purposes) */
+/* Requested MinLen (min plaintext_length) */
+	int force_minlength;
+
+/* Requested MaxLen (max plaintext_length) */
 	int force_maxlength;
 
 /* Graceful exit after this many seconds of cracking */
