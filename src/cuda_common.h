@@ -18,7 +18,7 @@ extern void cuda_init(unsigned int cuda_gpu_id);
       fprintf(stderr,"Cannot allocate memory for passwords file:%s line:%d\n",__FILE__,__LINE__);\
       exit(1);\
     }\
-    if(inbuffer==NULL){\
+    if(outbuffer==NULL){\
       fprintf(stderr,"Cannot allocate memory for hashes file:%s line:%d\n",__FILE__,__LINE__);\
       exit(1);\
     }
