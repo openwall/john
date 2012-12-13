@@ -337,10 +337,10 @@ static int get_step(size_t num, int step, int startup){
 //Do the proper test using different sizes.
 static cl_ulong gws_test(size_t num, struct fmt_main * self) {
 
-    cl_event myEvent;
+    cl_event myEvent[8];
     cl_int ret_code;
     cl_uint *tmpbuffer;
-    cl_ulong startTime, endTime, runtime;
+    cl_ulong startTime, endTime, runtime = 0, looptime = 0;
     int i, loops;
 
     //Prepare buffers.
@@ -365,92 +365,66 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self) {
     for (i = 0; i < num; i++) {
         set_key("aaabaabaaa", i);
     }
-    //** Get execution time **//
+    //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
-            sizeof(sha512_salt), salt, 0, NULL, &myEvent),
+            sizeof(sha512_salt), salt, 0, NULL, &myEvent[0]),
             "Failed in clEnqueueWriteBuffer");
-
-    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime = endTime - startTime;
-
-    //** Get execution time **//
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
-            sizeof(sha512_password) * num, plaintext, 0, NULL, &myEvent),
+            sizeof(sha512_password) * num, plaintext, 0, NULL, &myEvent[1]),
             "Failed in clEnqueueWriteBuffer");
 
-    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime += endTime - startTime;
-
-    //** Get execution time **//
+    //Enqueue the kernel
     if (gpu(source_in_use)) {
-        ret_code = clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
-            1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
+        clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
+            1, NULL, &num, &local_work_size, 0, NULL, &myEvent[4]);
+    }
+    ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+        1, NULL, &num, &local_work_size, 0, NULL, &myEvent[2]);
 
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-        runtime += endTime - startTime;
+    if (gpu(source_in_use)) {
+        clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+            1, NULL, &num, &local_work_size, 0, NULL, &myEvent[5]);
+        clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
+            1, NULL, &num, &local_work_size, 0, NULL, &myEvent[6]);
+        clEnqueueNDRangeKernel(queue_prof, final_kernel,
+            1, NULL, &num, &local_work_size, 0, NULL, &myEvent[7]);
     }
 
-    loops = gpu(source_in_use) ? (salt->rounds / HASH_LOOPS) : 1;
-
-    //** Get execution time **//
-    for (i = 0; i < loops; i++)
-    {
-        ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-               1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
-
-        HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-        HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-        runtime += endTime - startTime;
-    }
-
-    //** Get execution time **//
+    //Read hashes back
     HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
-            sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, &myEvent),
+            sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, &myEvent[3]),
             "Failed in clEnqueueReadBuffer");
 
+    loops = gpu(source_in_use) ? 8 : 4;
     HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime += endTime - startTime;
 
-    MEM_FREE(tmpbuffer);
-    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");
+    //** Get execution time **//
+    for (i = 0; i < loops; i++) {
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent[i], CL_PROFILING_COMMAND_START,
+                sizeof(cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent[i], CL_PROFILING_COMMAND_END,
+                sizeof(cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
+
+        if (gpu(source_in_use) && (i == 2 || i == 5 || i == 6))
+            looptime += (endTime - startTime);
+        else if (i == 7)
+            runtime += (endTime - startTime) * 0.3;
+        else
+            runtime += (endTime - startTime);
+    }
+
+    if (gpu(source_in_use))
+        runtime += ((looptime / 3) * (salt->rounds / HASH_LOOPS));
+
+    // Free resources.
+    for (i = 0; i < loops; i++)
+        HANDLE_CLERROR(clReleaseEvent(myEvent[i]), "Failed in clReleaseEvent");
+
     release_clobj();
+    MEM_FREE(tmpbuffer);
+    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), "Failed in clReleaseCommandQueue");
 
-     if (ret_code != CL_SUCCESS) {
+    if (ret_code != CL_SUCCESS) {
 
         if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
             fprintf(stderr, "Error %d\n", ret_code);
@@ -470,7 +444,7 @@ static void find_best_gws(struct fmt_main * self) {
     int optimal_gws = local_work_size, step = STEP;
     int do_benchmark = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
-    unsigned long long int max_run_time = 10000000000ULL;
+    unsigned long long int max_run_time = 5000000000ULL;
     char *tmp_value;
 
     if ((tmp_value = getenv("STEP"))){
@@ -480,7 +454,7 @@ static void find_best_gws(struct fmt_main * self) {
     step = GET_MULTIPLE(step, local_work_size);
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
-        max_run_time = atoi(tmp_value) * 1000000000UL;
+        max_run_time = atoi(tmp_value) * 1000000000ULL;
 
     fprintf(stderr, "Calculating best global work size (GWS) for LWS=%zd and max. %llu s duration.\n\n",
             local_work_size, max_run_time / 1000000000ULL);
