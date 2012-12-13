@@ -46,7 +46,7 @@ static int any_cracked, *cracked;
 static size_t cracked_size;
 
 const int MAX_KEYLENGTH = 32; // in bytes (256 bit)
-const int MAX_IVLENGTH = 16;
+const int MAX_IVLENGTH = 20;
 const int KEY_CHECKSUM_BYTES = 4;
 
 static struct custom_salt {

@@ -74,7 +74,7 @@ static struct fmt_tests tests[] = {
 static unsigned int *saved_key;
 static unsigned int *output;
 static unsigned char *challenge;
-static int new_keys;
+static int new_keys, partial_output;
 static int VF = 1;
 
 static cl_mem cl_saved_key, cl_challenge, cl_nthash, cl_result, pinned_key, pinned_result, pinned_salt;
@@ -611,26 +611,42 @@ static void crypt_all(int count)
 		new_keys = 0;
 	}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Failed running second kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
+
+	partial_output = 1;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index;
-	for(index=0; index<count; index++)
-		if (output[4 * index] == ((ARCH_WORD_32*)binary)[0])
+
+	for(index = 0; index < count; index++)
+		if (output[index] == ((ARCH_WORD_32*)binary)[0])
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(&output[4 * index], binary, BINARY_SIZE);
+	return (output[index] == ((ARCH_WORD_32*)binary)[0]);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	return !memcmp(&output[4 * index], get_binary(source), BINARY_SIZE);
+	ARCH_WORD_32 *binary;
+	size_t scalar_gws = global_work_size * VF;
+	int i;
+
+	if (partial_output) {
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
+		partial_output = 0;
+	}
+	binary = (ARCH_WORD_32*)get_binary(source);
+
+	for(i = 0; i < BINARY_SIZE / 4; i++)
+		if (output[i * scalar_gws + index] != binary[i])
+			return 0;
+	return 1;
 }
 
 static char *get_key(int index)
@@ -676,27 +692,27 @@ static int binary_hash_4(void *binary)
 
 static int get_hash_0(int index)
 {
-	return output[4 * index] & 0xF;
+	return output[index] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	return output[4 * index] & 0xFF;
+	return output[index] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	return output[4 * index] & 0xFFF;
+	return output[index] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	return output[4 * index] & 0xFFFF;
+	return output[index] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	return output[4 * index] & 0xFFFFF;
+	return output[index] & 0xFFFFF;
 }
 
 struct fmt_main fmt_opencl_NTLMv2 = {
