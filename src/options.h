@@ -179,6 +179,8 @@ struct options_main {
 /* The canonical name of chosen encoding. User might have said 'koi8r' but
    this string will be 'KOI8-R'. An empty string means default/old-style */
 	char *encodingStr;
+/* A variant of same string, usable in #defines */
+	char *encodingDef;
 	int ascii;  // if NO other charset is used, we set this to 1.  This tells us to user 7 bit ASCII.
 	int utf8;
 	int iso8859_1;

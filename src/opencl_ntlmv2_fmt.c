@@ -32,10 +32,10 @@
 
 #define FORMAT_LABEL		"ntlmv2-opencl"
 #define FORMAT_NAME		"NTLMv2 C/R MD4 HMAC-MD5"
-#define ALGORITHM_NAME		"OpenCL" /* Will change to "OpenCL 4x" if vectorized */
+#define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	27 /* characters */
+#define PLAINTEXT_LENGTH	27 /* octets of encoding, max. 27 */
 #define SALT_MAX_LENGTH		27 /* Username + Domainname length in characters */
 #define BINARY_SIZE		16 /* octets */
 #define SERVER_CHALL_LENGTH	16 /* hex chars */
@@ -58,24 +58,20 @@ static struct fmt_tests tests[] = {
 	{"$NETNTLMv2$NTLMV2TESTWORKGROUP$1122334455667788$07659A550D5E9D02996DFD95C87EC1D5$0101000000000000006CF6385B74CA01B3610B02D99732DD000000000200120057004F0052004B00470052004F00550050000100200044004100540041002E00420049004E0043002D0053004500430055005200490000000000", "password"},
 	{"$NETNTLMv2$TESTUSERW2K3ADWIN7$1122334455667788$989B96DC6EAB529F72FCBA852C0D5719$01010000000000002EC51CEC91AACA0124576A744F198BDD000000000200120057004F0052004B00470052004F00550050000000000000000000", "testpass"},
 	{"$NETNTLMv2$USERW2K3ADWIN7$1122334455667788$5BD1F32D8AFB4FB0DD0B77D7DE2FF7A9$0101000000000000309F56FE91AACA011B66A7051FA48148000000000200120057004F0052004B00470052004F00550050000000000000000000", "password"},
-	{"$NETNTLMv2$USER1W2K3ADWIN7$1122334455667788$027EF88334DAA460144BDB678D4F988D$010100000000000092809B1192AACA01E01B519CB0248776000000000200120057004F0052004B00470052004F00550050000000000000000000", "SomeLongPassword1BlahBlah"},
-	{"$NETNTLMv2$TEST_USERW2K3ADWIN7$1122334455667788$A06EC5ED9F6DAFDCA90E316AF415BA71$010100000000000036D3A13292AACA01D2CD95757A0836F9000000000200120057004F0052004B00470052004F00550050000000000000000000", "TestUser's Password"},
 	{"$NETNTLMv2$USER1Domain$1122334455667788$5E4AB1BF243DCA304A00ADEF78DC38DF$0101000000000000BB50305495AACA01338BC7B090A62856000000000200120057004F0052004B00470052004F00550050000000000000000000", "password"},
 	{"", "password",                  {"TESTWORKGROUP\\NTlmv2", "", "",              "1122334455667788","07659A550D5E9D02996DFD95C87EC1D5","0101000000000000006CF6385B74CA01B3610B02D99732DD000000000200120057004F0052004B00470052004F00550050000100200044004100540041002E00420049004E0043002D0053004500430055005200490000000000"} },
 	{"", "password",                  {"NTlmv2",                "", "TESTWORKGROUP", "1122334455667788","07659A550D5E9D02996DFD95C87EC1D5","0101000000000000006CF6385B74CA01B3610B02D99732DD000000000200120057004F0052004B00470052004F00550050000100200044004100540041002E00420049004E0043002D0053004500430055005200490000000000"} },
 	{"", "testpass",                  {"TestUser",              "", "W2K3ADWIN7",    "1122334455667788","989B96DC6EAB529F72FCBA852C0D5719","01010000000000002EC51CEC91AACA0124576A744F198BDD000000000200120057004F0052004B00470052004F00550050000000000000000000"} },
 	{"", "password",                  {"user",                  "", "W2K3ADWIN7",    "1122334455667788","5BD1F32D8AFB4FB0DD0B77D7DE2FF7A9","0101000000000000309F56FE91AACA011B66A7051FA48148000000000200120057004F0052004B00470052004F00550050000000000000000000"} },
-	{"", "SomeLongPassword1BlahBlah", {"W2K3ADWIN7\\user1",     "", "",              "1122334455667788","027EF88334DAA460144BDB678D4F988D","010100000000000092809B1192AACA01E01B519CB0248776000000000200120057004F0052004B00470052004F00550050000000000000000000"} },
-	{"", "TestUser's Password",       {"W2K3ADWIN7\\TEST_USER", "", "",              "1122334455667788","A06EC5ED9F6DAFDCA90E316AF415BA71","010100000000000036D3A13292AACA01D2CD95757A0836F9000000000200120057004F0052004B00470052004F00550050000000000000000000"} },
 	{"", "password",                  {"USER1",                 "", "Domain",        "1122334455667788","5E4AB1BF243DCA304A00ADEF78DC38DF","0101000000000000BB50305495AACA01338BC7B090A62856000000000200120057004F0052004B00470052004F00550050000000000000000000"} },
 	{NULL}
 };
 
-static unsigned int *saved_key;
+static char *saved_key;
 static unsigned int *output;
 static unsigned char *challenge;
 static int new_keys, partial_output;
-static int VF = 1;
+static int keybuf_size = (PLAINTEXT_LENGTH + 1);
 
 static cl_mem cl_saved_key, cl_challenge, cl_nthash, cl_result, pinned_key, pinned_result, pinned_salt;
 static cl_kernel ntlmv2_nthash;
@@ -83,16 +79,15 @@ static cl_kernel ntlmv2_nthash;
 static void create_clobj(int gws, struct fmt_main *self)
 {
 	global_work_size = gws;
-	gws *= VF;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
-	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 64 * gws, NULL, &ret_code);
+	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, keybuf_size * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
-	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, 64 * gws, NULL, &ret_code);
+	cl_saved_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, keybuf_size * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 64 * gws, 0, NULL, NULL, &ret_code);
+	saved_key = clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, keybuf_size * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping saved_key");
-	memset(saved_key, 0, 64 * gws);
+	memset(saved_key, 0, keybuf_size * gws);
 
 	pinned_result = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
@@ -139,22 +134,12 @@ static void release_clobj(void)
 
 static void clear_keys(void)
 {
-	memset(saved_key, 0, 64 * global_work_size);
+	memset(saved_key, 0, keybuf_size * global_work_size);
 }
 
 static void set_key(char *key, int index)
 {
-	int len;
-	unsigned int *utfkey = &saved_key[index * 16];
-
-	/* convert key to UTF-16LE */
-	len = enc_to_utf16((UTF16*)utfkey, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
-	if (len < 0)
-		len = strlen16((UTF16*)utfkey);
-
-	/* Prepare for GPU */
-	((UTF16*)utfkey)[len] = 0x80;
-	utfkey[14] = len << 4;
+	strnzcpy(&saved_key[index * keybuf_size], key, keybuf_size);
 
 	new_keys = 1;
 }
@@ -231,21 +216,20 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	cl_event Event[4];
 	cl_int ret_code;
 	int i;
-	size_t scalar_gws = VF * gws;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-	for (i = 0; i < scalar_gws; i++)
+	for (i = 0; i < gws; i++)
 		set_key(tests[0].plaintext, i);
 	memcpy(challenge, get_salt(tests[0].ciphertext), SALT_SIZE_MAX);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, 64 * scalar_gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, keybuf_size * gws, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, &Event[3]), "failed in reading output back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_TRUE, 0, 16 * gws, output, 0, NULL, &Event[3]), "failed in reading output back");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
 	                                       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
@@ -325,7 +309,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
-	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / (64 * VF), get_global_memory_size(ocl_gpu_id) / (VF * (64 + 16 + 16 + SALT_SIZE_MAX)));
+	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / keybuf_size, get_global_memory_size(ocl_gpu_id) / (keybuf_size + 16 + 16 + SALT_SIZE_MAX));
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -338,13 +322,13 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		if (!(run_time = gws_test(num, do_benchmark, self)))
 			break;
 
-		MD5speed = md5perkey * (1000000000. * VF * num / run_time);
+		MD5speed = md5perkey * (1000000000. * num / run_time);
 
 		if (run_time < min_time)
 			min_time = run_time;
 
 		if (do_benchmark)
-			fprintf(stderr, "gws %6d %9.0f c/s %13.0f md5/s%8.2f sec per crypt_all()", num, (1000000000. * VF * num / run_time), MD5speed, (double)run_time / 1000000000.);
+			fprintf(stderr, "gws %6d %9.0f c/s %13.0f md5/s%8.2f sec per crypt_all()", num, (1000000000. * num / run_time), MD5speed, (double)run_time / 1000000000.);
 
 		if (((double)run_time / (double)min_time) < (MD5speed / bestMD5speed)) {
 			if (do_benchmark)
@@ -373,23 +357,18 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong maxsize, maxsize2;
 	char build_opts[64];
+	char *encoding = options.encodingDef ? options.encodingDef : "ISO_8859_1";
 
 	global_work_size = 0;
 
-	snprintf(build_opts, sizeof(build_opts),
-	         "%s",
-	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
-	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	/* Reduced length can give a significant boost. Our test
+	   vectors are length 8 so that is currently a minimum */
 
-	if ((options.flags & FLG_VECTORIZE) ||
-	    ((!(options.flags & FLG_SCALAR)) &&
-	     gpu_amd(device_info[ocl_gpu_id]) &&
-	     !amd_gcn(device_info[ocl_gpu_id]))) {
-		/* Run vectorized code */
-		VF = 4;
-		self->params.algorithm_name = "OpenCL 4x";
-	}
+	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH)
+		keybuf_size = MAX(options.force_maxlength + 1, 8 + 1);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEYBUF_SIZE=%u -DENC_%s -DENCODING=%s", keybuf_size, encoding, encoding);
+	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
@@ -443,9 +422,6 @@ static void init(struct fmt_main *self)
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 	atexit(release_clobj);
-
-	if (options.utf8)
-		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -472,8 +448,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	   of Unicode, which has no exact correlation to number of octets.
 	   The actual rejection is postponed to the bottom of this function. */
 	saltlen = enc_to_utf16(utf16temp, SALT_MAX_LENGTH + 1,
-	                       (UTF8*)strnzcpy(utf8temp, pos, pos2 - pos - 2),
-	                       pos2 - pos - 3);
+	                       (UTF8*)strnzcpy(utf8temp, pos, pos2 - pos - 1),
+	                       pos2 - pos - 2);
 
 	/* Validate Server Challenge Length */
 	pos2++; pos = pos2;
@@ -603,15 +579,13 @@ static void *get_binary(char *ciphertext)
 */
 static void crypt_all(int count)
 {
-	size_t scalar_gws = global_work_size * VF;
-
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, 64 * scalar_gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, keybuf_size * global_work_size, saved_key, 0, NULL, NULL), "Failed transferring keys");
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
 		new_keys = 0;
 	}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Failed running second kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 
 	partial_output = 1;
 }
@@ -634,29 +608,23 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	ARCH_WORD_32 *binary;
-	size_t scalar_gws = global_work_size * VF;
 	int i;
 
 	if (partial_output) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * scalar_gws, output, 0, NULL, NULL), "failed reading results back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
 	binary = (ARCH_WORD_32*)get_binary(source);
 
 	for(i = 0; i < BINARY_SIZE / 4; i++)
-		if (output[i * scalar_gws + index] != binary[i])
+		if (output[i * global_work_size + index] != binary[i])
 			return 0;
 	return 1;
 }
 
 static char *get_key(int index)
 {
-	static UTF8 out[3 * PLAINTEXT_LENGTH + 1];
-	unsigned int *utfkey = &saved_key[index * 16];
-	int len = utfkey[14] >> 4;
-
-	utf16_to_enc_r(out, len, (UTF16*)utfkey);
-	return (char*)out;
+	return &saved_key[index * keybuf_size];
 }
 
 static int salt_hash(void *salt)
