@@ -335,6 +335,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	_db = db;
 
 	length = db->format->params.plaintext_length;
+	if (options.force_maxlength && options.force_maxlength < length)
+		length = options.force_maxlength;
 
 	if (!mem_saving_level &&
 	    (dupeCheck || !db->options->max_wordfile_memory))
@@ -386,6 +388,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 		if (file_len == 0)
 		{
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
 			fprintf(stderr, "Error, dictionary file is empty\n");
 			error();
 		}

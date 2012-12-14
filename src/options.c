@@ -427,6 +427,20 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		fprintf(stderr, "Invalid plaintext length requested\n");
 		error();
 	}
+	if (options.force_maxlength && options.force_maxlength < options.force_minlength) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Invalid options: --min-length larger than --max-length\n");
+		error();
+	}
+	if (options.force_maxlength < 0 || options.force_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Invalid max length requested\n");
+		error();
+	}
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
