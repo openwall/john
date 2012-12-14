@@ -322,7 +322,7 @@ static int get_step(size_t num, int step, int startup){
 }
 
 //Do the proper test using different sizes.
-static cl_ulong gws_test(size_t num, struct fmt_main * self) {
+static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
 
     cl_event myEvent[8];
     cl_int ret_code;
@@ -398,7 +398,12 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self) {
             runtime += (endTime - startTime) * 0.3;
         else
             runtime += (endTime - startTime);
+
+        if (do_details)
+            fprintf(stderr, "%s%.2f ms", warn[i], (double)(endTime-startTime)/1000000.);
     }
+    if (do_details)
+        fprintf(stderr, "\n");
 
     if (gpu(source_in_use))
         runtime += ((looptime / 3) * (salt->rounds / HASH_LOOPS));
@@ -429,10 +434,14 @@ static void find_best_gws(struct fmt_main * self) {
     cl_ulong run_time, min_time = CL_ULONG_MAX;
 
     int optimal_gws = local_work_size, step = STEP;
-    int do_benchmark = 0;
+    int do_benchmark = 0, do_details = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
     unsigned long long int max_run_time = 5000000000ULL;
     char *tmp_value;
+
+    if (getenv("DETAILS")){
+        do_details = 1;
+    }
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -451,10 +460,10 @@ static void find_best_gws(struct fmt_main * self) {
 
     for (num = get_step(num, step, 1); num; num = get_step(num, step, 0)) {
 
-	if (! (run_time = gws_test(num, self)))
+	if (! (run_time = gws_test(num, self, do_details)))
             continue;
 
-        if (!do_benchmark)
+        if (!do_benchmark && !do_details)
             advance_cursor();
 
         SHAspeed = 5000 * num / (run_time / 1000000000.);

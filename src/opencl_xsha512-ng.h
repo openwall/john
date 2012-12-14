@@ -65,4 +65,11 @@ typedef struct {
     uint32_t                    buflen;
     buffer_64                   buffer[16];     //1024bits
 } sha512_ctx_buffer;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
 #endif
+
+#endif  /* _XSHA512_NG_H */

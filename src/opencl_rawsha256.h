@@ -51,4 +51,11 @@ typedef struct {
     uint32_t                    buflen;
     buffer_32                   buffer[16];     //512 bits
 } sha256_ctx;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
 #endif
+
+#endif  /* _RAWSHA256_H */

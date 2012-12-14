@@ -76,4 +76,12 @@ typedef struct {
     buffer_64                   temp_result[SALT_ARRAY];
     buffer_64                   p_sequence[PLAINTEXT_ARRAY];
 } sha512_buffers;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",
+        ", crypt: "    ,  "/"              ,  ", prepare: "  ,  ", final: "
+};
 #endif
+
+#endif  /* _CRYPTSHA512_H */
