@@ -23,6 +23,7 @@
 #include "charset.h"
 #include "external.h"
 #include "cracker.h"
+#include "options.h"
 
 extern struct fmt_main fmt_LM;
 extern struct fmt_main fmt_NETLM;
@@ -464,6 +465,12 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if ((max_length = cfg_get_int(SECTION_INC, mode, "MaxLen")) < 0)
 		max_length = CHARSET_LENGTH;
 	max_count = cfg_get_int(SECTION_INC, mode, "CharCount");
+
+	/* Command-line can over-ride lengths from config file */
+	if (options.force_minlength >= 0)
+		min_length = options.force_minlength;
+	if (options.force_maxlength)
+		max_length = options.force_maxlength;
 
 	if (min_length > max_length) {
 		log_event("! MinLen = %d exceeds MaxLen = %d",

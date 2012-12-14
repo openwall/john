@@ -130,7 +130,7 @@ usage: $0 [-h|-?] [codepage=CP|-utf8] [-option[s]] HashType [HashType2 [...]] [ 
     are read from stdin or redirection of a wordfile
 
     Default is to read and write files as binary, no conversions
-    -utf8         shortcut to -codepage=utf8.
+    -utf8         shortcut to -codepage=UTF-8.
     -codepage=CP  Read and write files in CP encoding.
 
 	Options are:
@@ -150,7 +150,7 @@ if (@ARGV == 0) {
 	die usage();
 }
 
-if ($arg_utf8) { $arg_codepage="utf8"; }
+if ($arg_utf8) { $arg_codepage="UTF-8"; }
 
 #if not a redirected file, prompt the user
 if (-t STDIN) {

@@ -33,7 +33,7 @@ unsigned int ext_flags = 0;
 static char *ext_mode;
 
 static c_int ext_word[PLAINTEXT_BUFFER_SIZE];
-c_int ext_abort, ext_status, ext_cipher_limit;
+c_int ext_abort, ext_status, ext_cipher_limit, ext_minlen, ext_maxlen;
 
 static struct c_ident ext_ident_status = {
 	NULL,
@@ -52,8 +52,21 @@ static struct c_ident ext_ident_cipher_limit = {
 	"cipher_limit",
 	&ext_cipher_limit
 };
-static struct c_ident ext_globals = {
+
+static struct c_ident ext_ident_minlen = {
 	&ext_ident_cipher_limit,
+	"req_minlen",
+	&ext_minlen
+};
+
+static struct c_ident ext_ident_maxlen = {
+	&ext_ident_minlen,
+	"req_maxlen",
+	&ext_maxlen
+};
+
+static struct c_ident ext_globals = {
+	&ext_ident_maxlen,
 	"word",
 	ext_word
 };
@@ -121,6 +134,12 @@ void ext_init(char *mode, struct db_main *db)
 	else {
 		ext_cipher_limit = options.length;
 	}
+
+	ext_maxlen = options.force_maxlength;
+	if (options.force_minlength > 0)
+		ext_minlen = options.force_minlength;
+	else
+		ext_minlen = 0;
 
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
 #ifdef HAVE_MPI

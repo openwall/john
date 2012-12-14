@@ -23,6 +23,7 @@
 #include "charset.h"
 #include "external.h"
 #include "cracker.h"
+#include "options.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -406,6 +407,14 @@ void get_markov_options(struct db_main *db,
 		fprintf(stderr, "Warning: max level(%d) < min level(%d), min level set to %d\n", level, minlevel, level);
 		minlevel = level;
 	}
+
+	/* Command-line --min-length and --max-length can over-ride lengths
+	   from config file. This may clash with the len_token stuff, or rather
+	   it will over-ride that too. */
+	if (options.force_minlength >= 0)
+		minlen = options.force_minlength;
+	if (options.force_maxlength)
+		maxlen = options.force_maxlength;
 
 	if(maxlen <= 0)
 		if( (maxlen = cfg_get_int(SECTION_MARKOV, mode, "MkvMaxLen")) == -1 )

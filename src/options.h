@@ -179,6 +179,8 @@ struct options_main {
 /* The canonical name of chosen encoding. User might have said 'koi8r' but
    this string will be 'KOI8-R'. An empty string means default/old-style */
 	char *encodingStr;
+/* A variant of same string, usable in #defines */
+	char *encodingDef;
 	int ascii;  // if NO other charset is used, we set this to 1.  This tells us to user 7 bit ASCII.
 	int utf8;
 	int iso8859_1;
@@ -209,10 +211,13 @@ struct options_main {
 	struct list_main *fmt_dlls;
 #endif
 
-/* Forced min/max_keys_per_crypt (for testing purposes) */
+/* Requested max_keys_per_crypt (for testing purposes) */
 	int force_maxkeys;
 
-/* Forced plaintext_length (for testing purposes) */
+/* Requested MinLen (min plaintext_length) */
+	int force_minlength;
+
+/* Requested MaxLen (max plaintext_length) */
 	int force_maxlength;
 
 /* Graceful exit after this many seconds of cracking */

@@ -54,7 +54,7 @@ void fmt_init(struct fmt_main *format)
 			format->params.plaintext_length =
 				options.force_maxlength;
 		else {
-			fprintf(stderr, "Can't set length larger than %u for %s format\n", format->params.plaintext_length, format->params.label);
+			fprintf(stderr, "Can't set max length larger than %u for %s format\n", format->params.plaintext_length, format->params.label);
 			error();
 		}
 	}
