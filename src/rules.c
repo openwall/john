@@ -307,6 +307,9 @@ static void rules_init_classes(void)
 			if ((user_class = userclass_expand(user_class)))
 				rules_init_class(i, user_class);
 			else {
+#ifdef HAVE_MPI
+				if (mpi_id == 0)
+#endif
 				fprintf(stderr, "Invalid user-defined character class ?%c: "
 				        "Unexpected end of line\n", i);
 				error();
@@ -730,6 +733,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
+			if (options.force_maxlength && rules_vars[ARCH_INDEX(RULE)] <= options.force_maxlength) continue;
 			if (rules_vars[ARCH_INDEX(RULE)] <= db->format->params.plaintext_length ) continue;
 			return NULL;
 
@@ -780,6 +784,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 					rules_errno = RULES_ERROR_END;
 					return NULL;
 				}
+				if (options.force_maxlength && rules_vars[ARCH_INDEX(RULE)] <= options.force_maxlength) continue;
 				if (rules_vars[ARCH_INDEX(RULE)] <= db->format->params.plaintext_length ) continue;
 				return NULL;
 

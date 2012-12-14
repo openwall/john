@@ -111,12 +111,18 @@ static void ext_rewind(void)
 int ext_has_function(char *mode, char *function)
 {
 	if (!(ext_source = cfg_get_list(SECTION_EXT, mode))) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Unknown external mode: %s\n", mode);
 		error();
 	}
 	if (c_compile(ext_getchar, ext_rewind, &ext_globals)) {
 		if (!ext_line) ext_line = ext_source->tail;
 
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "Compiler error in %s at line %d: %s\n",
 			ext_line->cfg_name, ext_line->number,
 			c_errors[c_errno]);
