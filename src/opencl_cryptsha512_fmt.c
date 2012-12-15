@@ -246,7 +246,7 @@ static void * get_salt(char *ciphertext) {
     //Put the tranfered salt on salt buffer.
     memcpy(out.salt, ciphertext, len);
     out.length = len;
-    out.initial = GET_MULTIPLE(out.rounds, HASH_LOOPS);
+    out.final = out.rounds - GET_MULTIPLE(out.rounds, HASH_LOOPS);
 
     return &out;
 }
@@ -359,7 +359,6 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
 
     // Set salt.
     set_salt(get_salt("$6$saltstring$"));
-    salt->initial = salt->rounds - GET_MULTIPLE(salt->rounds, HASH_LOOPS);
 
     // Set keys
     for (i = 0; i < num; i++) {
@@ -407,8 +406,6 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
 
         if (gpu(source_in_use) && (i == 2 || i == 5 || i == 6))
             looptime += (endTime - startTime);
-        else if (i == 7)
-            runtime += (endTime - startTime) * 0.3;
         else
             runtime += (endTime - startTime);
 

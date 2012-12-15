@@ -459,7 +459,7 @@ void kernel_final(__constant sha256_salt     * salt,
 
     //Do the job
     sha256_crypt(&fast_buffers, &ctx_data,
-                 salt->length, keys_buffer[gid].length, salt->initial, salt->rounds);
+                 salt->length, keys_buffer[gid].length, 0, salt->final);
 
     //Send results to the host.
     #pragma unroll

@@ -46,7 +46,7 @@ typedef union {
 typedef struct {
     uint32_t                    rounds;
     uint32_t                    length;
-    uint32_t                    initial;
+    uint32_t                    final;
     buffer_32                   salt[SALT_ARRAY];
 } sha256_salt;
 #define SALT_SIZE               sizeof(sha256_salt)
