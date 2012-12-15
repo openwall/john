@@ -50,6 +50,10 @@ static struct fmt_tests tests[] = {
     {"$5$LKO/Ute40T3FNF95$8Ry82xGnnPI/6HtFYnvPBTYgOL23sdMXn8C29aO.x/A", "U*U***U*"},
     {"$5$9mx1HkCz7G1xho50$O7V7YgleJKLUhcfk9pgzdh3RapEaWqMtEp9UUBAKIPA", "*U*U*U*U"},
     {"$5$kc7lRD1fpYg0g.IP$d7CMTcEqJyTXyeq8hTdu/jB/I6DGkoo62NXbHIR7S43", ""},
+#ifdef DEBUG //Special test cases.
+    {"$5$EKt.VLXiPjwyv.xe$52wdOp9ixFXMsHDI1JcCw8KJ83IakDP6J7MIEV2OUk0", "1234567"},
+    {"$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0", "password"},
+#endif
     {NULL}
 };
 
@@ -433,7 +437,7 @@ static void find_best_gws(struct fmt_main * self) {
     int optimal_gws = local_work_size, step = STEP;
     int do_benchmark = 0, do_details = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
-    unsigned long long int max_run_time = 5000000000ULL;
+    unsigned long long int max_run_time = 7000000000ULL;
     char *tmp_value;
 
     if (getenv("DETAILS")){
