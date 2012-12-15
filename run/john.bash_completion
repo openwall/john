@@ -139,7 +139,7 @@ _john()
 #	All options (the '=' will be removed for options with an optional value)
 	options=""
 # FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
-	options="`( ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; ./john --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*=\?\).*$#\1#' -e '/--/ p')` --stdin"
+	options="`( ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*=\?\).*$#\1#' -e '/--/ p')` --stdin"
 	if [[ "_${options}" == "_ --stdin" ]] ; then
 		_filedir_xspec 2> /dev/null
 		return 0
