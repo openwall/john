@@ -589,9 +589,6 @@ static void john_list_options()
 #ifdef HAVE_CUDA
 	printf("cuda-devices, ");
 #endif
-#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
-	printf("request-vectorize, request-scalar, ");
-#endif
 	/* NOTE: The following must end the list. Anything listed after
 	   <conf section name> will be ignored by current
 	   bash completion scripts. */
