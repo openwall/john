@@ -53,7 +53,7 @@ static int rec_rule;
 static long rec_pos;
 
 static int rule_number, rule_count, line_number;
-static int length;
+static int length, minlength;
 static struct rpp_context *rule_ctx;
 
 // used for file in 'memory map' mode
@@ -207,7 +207,13 @@ static int get_progress(int *hundth_perc)
 
 static char *dummy_rules_apply(const char *word, char *rule, int split, char *last)
 {
-	return (char*)word;
+	if (minlength) {
+		if (strnlen(word, minlength) == minlength)
+			return (char*)word;
+		else
+			return NULL;
+	} else
+		return (char*)word;
 }
 
 static inline const char *potword(const char *line)
@@ -338,6 +344,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (options.force_maxlength && options.force_maxlength < length)
 		length = options.force_maxlength;
 
+	minlength = (options.force_minlength >= 0) ?
+		options.force_minlength : 0;
 	if (!mem_saving_level &&
 	    (dupeCheck || !db->options->max_wordfile_memory))
 		forceLoad = 1;
