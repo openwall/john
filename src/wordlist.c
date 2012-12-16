@@ -207,13 +207,7 @@ static int get_progress(int *hundth_perc)
 
 static char *dummy_rules_apply(const char *word, char *rule, int split, char *last)
 {
-	if (minlength) {
-		if (strnlen(word, minlength) == minlength)
-			return (char*)word;
-		else
-			return NULL;
-	} else
-		return (char*)word;
+	return (char*)word;
 }
 
 static inline const char *potword(const char *line)
@@ -335,6 +329,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
 #endif
+	int maxlength = options.force_maxlength;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -568,6 +563,12 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				*ep = 0;
 				if (strncmp(cp, "#!comment", 9)) {
 					if (!rules) {
+						if (minlength && ep - cp < minlength)
+							goto skip;
+						/* Over --max-length are skipped,
+						   while over format's length are truncated. */
+						if (maxlength && ep - cp > maxlength)
+							goto skip;
 						if (ep - cp >= length)
 							cp[length] = 0;
 					} else
@@ -585,6 +586,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 							words[i++] = cp;
 					}
 				}
+skip:
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
 				if (ec == '\n' && *cp == '\r') cp++;
@@ -833,9 +835,17 @@ SKIP_MEM_MAP_LOAD:;
 				if (loopBack)
 					memmove((char*)line, potword(line), strlen(potword(line)) + 1);
 
-				if (!rules)
+				if (!rules) {
+					if (minlength || maxlength) {
+						int len = strlen(word);
+						if (minlength && len < minlength)
+							continue;
+						/* --max-length will skip, not truncate */
+						if (maxlength && len > maxlength)
+							continue;
+					}
 					((char*)line)[length] = 0;
-
+				}
 				if (!strcmp(line, last)) {
 					line_number++; // needed for MPI sync
 					continue;
