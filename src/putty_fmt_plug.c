@@ -89,7 +89,56 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$putty$", 7);
+	char *ctcopy;
+	char *keeptr;
+	char *p, *q;
+	int res;
+	int is_old_fmt;
+	if (strncmp(ciphertext, "$putty$", 7))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 7;
+	p = strtok(ctcopy, "*"); /* cipher */
+	res = atoi(p);
+	if(res != 1) /* check cipher type */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* cipher block length*/
+		goto err;
+	res = atoi(p);
+
+	if(res != 16) /* check cipher block length */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* is_mac */
+		goto err;
+	res = atoi(p);
+	if(res != 0 && res != 1)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* old_fmt */
+		goto err;
+	is_old_fmt = atoi(p);
+	if(is_old_fmt != 0 && is_old_fmt!= 1)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* mac */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* private_blob_len */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* private_blob */
+		goto err;
+	q = p;
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	if(q - p != res * 2)
+		goto err;
+	if (*q && is_old_fmt)
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
