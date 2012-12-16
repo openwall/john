@@ -203,10 +203,6 @@ dynamic_1003  dynamic_12    dynamic_2     dynamic_27    dynamic_8
 dynamic_1004  dynamic_13    dynamic_20    dynamic_28    dynamic_9
 dynamic_1005  dynamic_14    dynamic_21    dynamic_29
 
-The list of dynamic formats available can also be listed using this command:
-$ ./john --subformat=LIST
-(Jumbo versions only)
-
 
 	--rules and --single
 
