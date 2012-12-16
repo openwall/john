@@ -139,7 +139,7 @@ _john()
 #	All options (the '=' will be removed for options with an optional value)
 	options=""
 # FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
-	options="`( ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*=\?\).*$#\1#' -e '/--/ p')`"
+	options="`( ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p')`"
 	if [[ "_${options}" == "_--stdin" ]] ; then
 		_filedir_xspec 2> /dev/null
 		return 0
@@ -147,7 +147,9 @@ _john()
 
 #	Just those options that can be used together with a value,
 #	even if that value is optional:
-	valopts=`echo "$options"|grep '^ *--[a-z\[-]*='|sed 's#^ *\([a-z=-]*\).*$#\1#'`
+	valopts=`echo "$options"|grep '='|sed 's#^ *\([a-z=-]*\).*$#\1#'`
+	#options="${options//[=/}"
+	options=`echo "$options"|sed 's#\[=##g'`
 #	This is used to decide whether or not the completion should add
 #	a trailing space.
 #	(That means, for a jumbo build, --rules doesn't get a trailing space,
