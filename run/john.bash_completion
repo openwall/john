@@ -147,7 +147,7 @@ _john()
 
 #	Just those options that can be used together with a value,
 #	even if that value is optional:
-	valopts=`echo "$options"|grep '^ *--[a-z\[-]*='|grep -v '^ *--subformat='|sed 's#^ *\([a-z=-]*\).*$#\1#'`
+	valopts=`echo "$options"|grep '^ *--[a-z\[-]*='|sed 's#^ *\([a-z=-]*\).*$#\1#'`
 #	This is used to decide whether or not the completion should add
 #	a trailing space.
 #	(That means, for a jumbo build, --rules doesn't get a trailing space,
@@ -555,9 +555,14 @@ _john()
 			;;
 		-?(-)su?(b|bf|bfo|bfor|bform|bforma|bformat)+(=|:)*)
 			if [[ "${options}" == *--subformat=LIST* ]] ; then
+				# may be this deprecated version should be
+				# ignored!
 				cur=`echo ${cur#*[=:]}|LC_ALL=C tr a-z A-Z`
 				COMPREPLY=( $(compgen -W "LIST" -- ${cur}) )
 			else
+				# possible subformats for --format=crypt
+				# (descrypt, md5crypt, bcrypt, sha256crypt,
+				# sha512crypt)
 				if [[ "${valopts}" == *--subformat=* ]] ; then
 					cur=`echo ${cur#*[=:]}|LC_ALL=C tr A-Z a-z`
 					# Should I test if --format=crypt
@@ -569,7 +574,7 @@ _john()
 					# and filter out those with a message:
 					# "appears to be unsupported on this
 					# system; will not load such hashes."?
-					subformats=`${first} --test=0 --format=crypt --subformat=? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
+					subformats=`${first} --test=0 --format=crypt --subformat=\? 2>&1|sed -n 's#,# #g;/^Subformat / s#^[^:]*:\(.*\)$#\L\1# p'`
 					COMPREPLY=( $(compgen -W "${subformats}" -- ${cur}) )
 				fi
 			fi
@@ -594,7 +599,7 @@ _john()
 			# --device=LIST isn't supported for CUDA, but for CUDA
 			# --platform= is not a valid option
 			if [[ "${valopts}" == *--platform=* && "_${list}" != *-devices* ]] ; then
-				# Calling john --platform=LIST just to fin
+				# Calling john --platform=LIST just to find
 				# possible completions will take too long
 				cur=${cur#*[=:]}
 				COMPREPLY=( $(compgen -W "LIST N" -- ${cur}) )
