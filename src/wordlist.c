@@ -53,7 +53,7 @@ static int rec_rule;
 static long rec_pos;
 
 static int rule_number, rule_count, line_number;
-static int length, minlength;
+static int length;
 static struct rpp_context *rule_ctx;
 
 // used for file in 'memory map' mode
@@ -330,6 +330,8 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	unsigned int myWordFileLines = 0;
 #endif
 	int maxlength = options.force_maxlength;
+	int minlength = (options.force_minlength >= 0) ?
+		options.force_minlength : 0;
 
 	log_event("Proceeding with wordlist mode");
 
@@ -339,8 +341,6 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	if (options.force_maxlength && options.force_maxlength < length)
 		length = options.force_maxlength;
 
-	minlength = (options.force_minlength >= 0) ?
-		options.force_minlength : 0;
 	if (!mem_saving_level &&
 	    (dupeCheck || !db->options->max_wordfile_memory))
 		forceLoad = 1;

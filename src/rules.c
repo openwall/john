@@ -736,7 +736,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (options.force_maxlength && rules_vars[ARCH_INDEX(RULE)] <= options.force_maxlength) continue;
+			if (maxlength && rules_vars[ARCH_INDEX(RULE)] <= maxlength) continue;
 			if (rules_vars[ARCH_INDEX(RULE)] <= db->format->params.plaintext_length ) continue;
 			return NULL;
 
@@ -787,7 +787,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 					rules_errno = RULES_ERROR_END;
 					return NULL;
 				}
-				if (options.force_maxlength && rules_vars[ARCH_INDEX(RULE)] <= options.force_maxlength) continue;
+				if (maxlength && rules_vars[ARCH_INDEX(RULE)] <= maxlength) continue;
 				if (rules_vars[ARCH_INDEX(RULE)] <= db->format->params.plaintext_length ) continue;
 				return NULL;
 
