@@ -1068,9 +1068,9 @@ macosx-x86-64-gpu:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0 -DHAVE_CUDA -Wno-deprecated-declarations" \
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(CP) opencl/*.cl ../run/
@@ -1080,9 +1080,9 @@ macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DCL_VERSION_1_0 -Wno-deprecated-declarations" \
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DCL_VERSION_1_0 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(CP) opencl/*.cl ../run/
@@ -1092,8 +1092,8 @@ macosx-x86-64-cuda:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
+		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
@@ -1102,18 +1102,18 @@ macosx-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -Wno-deprecated-declarations" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -m64 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
 
 macosx-x86-64i:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86-64.o sse-intrinsics-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -DUSING_ICC_S_FILE -Wno-deprecated-declarations" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -m64 -DUSING_ICC_S_FILE -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
 
 macosx-x86-sse2:
