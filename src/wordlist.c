@@ -655,17 +655,32 @@ GRAB_NEXT_PIPE_LOAD:;
 						break;
 					}
 					if (strncmp(cpi, "#!comment", 9)) {
+						int len = strlen(cpi);
 						if (!rules) {
+							if (minlength && len < minlength) {
+								cpi += (len + 1);
+								if (cpi > cpe)
+									break;
+								continue;
+							}
+							/* Over --max-length are skipped,
+							   while over format's length are truncated. */
+							if (maxlength && len > maxlength) {
+								cpi += (len + 1);
+								if (cpi > cpe)
+									break;
+								continue;
+							}
 							cpi[length] = 0;
 							if (!nWordFileLines || strcmp(cpi, words[nWordFileLines-1])) {
 								words[nWordFileLines++] = cpi;
-								cpi += (strlen(cpi)+1);
+								cpi += (len + 1);
 								if (cpi > cpe)
 									break;
 							}
 						} else {
 							words[nWordFileLines++] = cpi;
-							cpi += (strlen(cpi)+1);
+							cpi += (len + 1);
 							if (cpi > cpe)
 								break;
 						}
@@ -837,7 +852,7 @@ SKIP_MEM_MAP_LOAD:;
 
 				if (!rules) {
 					if (minlength || maxlength) {
-						int len = strlen(word);
+						int len = strlen(line);
 						if (minlength && len < minlength)
 							continue;
 						/* --max-length will skip, not truncate */
