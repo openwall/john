@@ -36,7 +36,7 @@ char *rules_errors[] = {
 
 int rules_errno, rules_line;
 
-static int rules_max_length = 0, minlength;
+static int rules_max_length = 0, minlength, maxlength;
 
 /* data structures used in 'dupe' removal code */
 unsigned HASH_LOG, HASH_SIZE, HASH_LOG_HALF, HASH_MASK;
@@ -692,6 +692,7 @@ void rules_init(int max_length)
 	rules_init_length(max_length);
 	minlength = (options.force_minlength >= 0) ?
 		options.force_minlength : 0;
+	maxlength = options.force_maxlength;
 }
 
 char *rules_reject(char *rule, int split, char *last, struct db_main *db)
@@ -1436,6 +1437,10 @@ out_OK:
 	in[rules_max_length] = 0;
 	if (minlength)
 		if (length < minlength)
+			return NULL;
+	/* --maxlength will skip, not truncate */
+	if (maxlength)
+		if (length > maxlength)
 			return NULL;
 	if (last) {
 		if (length > rules_max_length)
