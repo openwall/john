@@ -456,7 +456,7 @@ static void crypt_all(int count)
 		for (index = 0; index < NBKEYS; index++) {
 			unsigned int sum20;
 			unsigned char temp_key[BINARY_SIZE*2];
-			unsigned char destArray[TEMP_ARRAY_SIZE];
+			ARCH_WORD_32 destArray[TEMP_ARRAY_SIZE / 4];
 			const unsigned int *sw;
 			unsigned int *dw;
 
@@ -467,12 +467,12 @@ static void crypt_all(int count)
 				*dw++ = *sw;
 
 			//now: walld0rf-magic [tm], (c), <g>
-			sum20 = walld0rf_magic(ti, temp_key, destArray);
+			sum20 = walld0rf_magic(ti, temp_key, (unsigned char*)destArray);
 
 			// Vectorize a word at a time
 			dw = (unsigned int*)&interm_key[GETPOS(0, ti)];
 			for (i = 0;i <= sum20; i += 4, dw += MMX_COEF)
-				*dw = *(ARCH_WORD_32*)&destArray[i];
+				*dw = destArray[i >> 2];
 
 			((unsigned int *)interm_key)[14*MMX_COEF + (ti&3) + (ti>>2)*16*MMX_COEF] = sum20 << 3;
 		}
