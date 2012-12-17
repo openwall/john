@@ -14,10 +14,10 @@
 #define _OPENCL_COMPILER
 #include "opencl_cryptsha256.h"
 
-#if cpu(DEVICE_INFO)    
+#if cpu(DEVICE_INFO)
+    #define UNROLL
     #define FAST
 #endif
-#define UNROLL
 
 inline void init_ctx(sha256_ctx * ctx) {
     ctx->H[0] = H0;
