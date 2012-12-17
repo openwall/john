@@ -66,11 +66,7 @@ static struct fmt_tests tests[] = {
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (gpu(source_in_use))
-        max_available = get_local_memory_size(ocl_gpu_id) /
-                sizeof(sha512_password);
-    else
-        max_available = get_max_work_group_size(ocl_gpu_id);
+    max_available = get_max_work_group_size(ocl_gpu_id);
 
     if (max_available > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
         return get_current_work_group_size(ocl_gpu_id, crypt_kernel);
@@ -167,11 +163,6 @@ static void create_clobj(int gws, struct fmt_main * self) {
             (void *) &pass_buffer), "Error setting argument 1");
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 2, sizeof(cl_mem),
             (void *) &work_buffer), "Error setting argument 2");
-
-        //Fast working memory.
-        HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 3,
-            sizeof(sha512_password) * local_work_size,
-            NULL), "Error setting argument 3");
 
         //Set crypt kernel arguments
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),

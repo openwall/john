@@ -31,18 +31,6 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void get_host_data(__global sha512_password * keys_data,
-                          __local  sha512_password * fast_keys) {
-
-    //Transfer data to faster memory
-    //Password information
-    fast_keys->length = keys_data->length;
-
-    #pragma unroll
-    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_keys->pass->mem_64[i] = keys_data->pass->mem_64[i];
-}
-
 inline void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
@@ -141,6 +129,15 @@ inline void insert_to_buffer_C(           sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
+inline void insert_to_buffer_G(         sha512_ctx    * ctx,
+                               __global const uint8_t * string,
+                               const uint32_t len) {
+    for (uint32_t i = 0; i < len; i++)
+        PUT(BUFFER, ctx->buflen + i, string[i]);
+
+    ctx->buflen += len;
+}
+
 inline void ctx_update_R(sha512_ctx * ctx,
                          uint8_t    * string,
                          const uint32_t len) {
@@ -189,6 +186,22 @@ inline void ctx_update_C(           sha512_ctx * ctx,
         sha512_block(ctx);
         ctx->buflen = 0;
         insert_to_buffer_C(ctx, (string + offset), len - offset);
+    }
+}
+
+inline void ctx_update_G(         sha512_ctx * ctx,
+                         __global uint8_t    * string, uint32_t len) {
+
+    ctx->total += len;
+    uint32_t startpos = ctx->buflen;
+
+    insert_to_buffer_G(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
+
+    if (ctx->buflen == 128) {  //Branching.
+        uint32_t offset = 128 - startpos;
+        sha512_block(ctx);
+        ctx->buflen = 0;
+        insert_to_buffer_G(ctx, (string + offset), len - offset);
     }
 }
 
@@ -275,7 +288,7 @@ inline void sha512_digest(sha512_ctx * ctx) {
 }
 
 inline void sha512_prepare(__constant sha512_salt     * salt_data,
-                           __local    sha512_password * keys_data,
+                           __global   sha512_password * keys_data,
                            __global   sha512_buffers  * tmp_memory,
                                       sha512_buffers  * fast_buffers,
                                       sha512_ctx      * ctx) {
@@ -290,15 +303,15 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     init_ctx(ctx);
 
-    ctx_update_L(ctx, pass, passlen);
+    ctx_update_G(ctx, pass, passlen);
     ctx_update_C(ctx, salt, saltlen);
-    ctx_update_L(ctx, pass, passlen);
+    ctx_update_G(ctx, pass, passlen);
 
     sha512_digest(ctx);
     sha512_digest_move_R(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
 
-    ctx_update_L(ctx, pass, passlen);
+    ctx_update_G(ctx, pass, passlen);
     ctx_update_C(ctx, salt, saltlen);
     ctx_update_R(ctx, alt_result->mem_08, passlen);
 
@@ -307,14 +320,14 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 	if (i & 1)
             ctx_update_R(ctx, alt_result->mem_08, 64U);
 	else
-            ctx_update_L(ctx, pass, passlen);
+            ctx_update_G(ctx, pass, passlen);
     }
     sha512_digest(ctx);
     sha512_digest_move_R(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
-        ctx_update_L(ctx, pass, passlen);
+        ctx_update_G(ctx, pass, passlen);
 
     sha512_digest(ctx);
     sha512_digest_move_G(ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
@@ -369,8 +382,7 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
 __kernel
 void kernel_prepare(__constant sha512_salt     * salt,
                     __global   sha512_password * keys_buffer,
-                    __global   sha512_buffers  * tmp_memory,
-                    __local    sha512_password * fast_keys) {
+                    __global   sha512_buffers  * tmp_memory) {
 
     //Compute buffers (on Nvidia, better private)
     sha512_buffers fast_buffers;
@@ -380,11 +392,8 @@ void kernel_prepare(__constant sha512_salt     * salt,
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
 
-    //Transfer host data to faster memory
-    get_host_data(&keys_buffer[gid], &fast_keys[lid]);
-
     //Do the job
-    sha512_prepare(salt, &fast_keys[lid], &tmp_memory[gid], &fast_buffers, &ctx_data);
+    sha512_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);
 
     //Save results.
     #pragma unroll
