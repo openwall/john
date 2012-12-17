@@ -256,6 +256,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 	} while (done != 3);
 
+	format->methods.clear_keys();
 	format->private.initialized = 2;
 
 	return NULL;
