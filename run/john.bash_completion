@@ -140,22 +140,73 @@ _john()
 	first="${COMP_WORDS[0]}"
 
 #	Most options are listed at the begin of the line, but the line with 
-#	the --pipe option does have trailing spaces, and --stdin is mentioned
+#	the --pipe option does have leading spaces, and --stdin is mentioned
 #	after --wordlist=FILE.
 #
-#	All options
-	options=""
-# FIXME: How do I suppress the error message if someone tries to be clever: cd run; ./john --[tab] ???
-	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p' ; }`"
-	if [[ "_${options}" == "_--stdin" ]] ; then
-		#first="${__john_binary}"
-		#options=...
-		#if [[ "_${options}" == "_--stdin" ]] ; then
-		_filedir_xspec 2> /dev/null
-		return 0
-		#fi
+#	Some options are listed in the regular usage output, some are listed
+#	with --list=hidden-options.
+#
+#	All options:
+	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; }`"
+
+	if [[ "_${options}" == "_--stdin" && "_${__john_binary}" != "_" ]] ; then
+		# No options and hidden options with ${first}, but a previous
+		# successful run of this bash completion script found options,
+		# so let's try the previously used name of the john binary,
+		# and assume the user wants to start the same binary (identified
+		# by full path name) than last time.
+		# Even if it will not work for all options (those that require
+		# to know the current directory at the time the john binary will
+		# be executed), this is probably the best we can do.
+		#
+		# So, this will work:
+		# 	src$ cd ../run; ./john --format=[tab][tab]
+		# 
+		# But this won't:
+		# 	src$ cd ../run; ./john --config=[tab][tab]
+		# 
+		# (The command will search for *.conf files in the directory
+		# one level above the run directory, because that is the
+		# current directory at the time the bash completion script is
+		# executed, but not the current directory at the time ./john
+		# will be executed.
+		# Finding out what $PWD will be at the time john is started
+		# is a hard to solve problem.)
+		#
+		# These are the options where completion depends on $PWD
+		# (and therefor will not work as the user might expect):
+		# 	--config=
+		# 	--loopback=
+		# 	--make-charset=
+		# 	--pot=
+		# 	--restore=
+		# 	--status=
+		# 	--wordlist=
+		#
+		# For all the other options completion should work without
+		# problems, provided you really start the same binary than
+		# last time (and not a core john version instead of a
+		# jumbo version...)
+		first="${__john_binary}"
+
+		options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; }`"
+		if [[ "_${options}" == "_--stdin" ]] ; then
+			_filedir_xspec 2> /dev/null
+			return 0
+		fi
+	elif [[ ${first} == /* ]] ; then
+		# We got a list of options, so remember the name of the binary
+		# just in case we need it for a future invocation of the
+		# bash completion script
+		__john_binary="${first}"
+	elif [[  ${first} == */* ]] ; then
+		# a relative path name has been specified, remember the absolute one
+		__john_binary="$PWD/${first}"
+	else
+		# the binary has been specified without any path,
+		# it must be located somewhere in $PATH
+		__john_binary="`which ${first}`"
 	fi
-	#__john_binary=<full_path_name_of_${first}>
 
 #	Just those options that can be used together with a value,
 #	even if that value is optional:
