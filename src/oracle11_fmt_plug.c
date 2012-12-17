@@ -112,20 +112,12 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static unsigned char saved_salt[SALT_SIZE];
+static unsigned char *saved_salt;
 
 #ifdef MMX_COEF
 
-/* Cygwin would not guarantee the alignment if these were declared static */
-#define saved_key oracle11_saved_key
-#define crypt_key oracle11_crypt_key
-#ifdef _MSC_VER
-__declspec(align(16)) unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS];
-__declspec(align(16)) unsigned char crypt_key[BINARY_SIZE*NBKEYS];
-#else
-unsigned char saved_key[SHA_BUF_SIZ*4*NBKEYS] __attribute__ ((aligned(16)));
-unsigned char crypt_key[BINARY_SIZE*NBKEYS] __attribute__ ((aligned(16)));
-#endif
+unsigned char *saved_key;
+unsigned char *crypt_key;
 
 #else
 
@@ -140,6 +132,9 @@ static void init(struct fmt_main *self)
 {
 #ifdef MMX_COEF
 	int i;
+
+	saved_key = mem_calloc_tiny(SHA_BUF_SIZ * 4 * NBKEYS, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(BINARY_SIZE * NBKEYS, MEM_ALIGN_SIMD);
 	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
 	   if called without setting all keys (in benchmarking). Unset
 	   keys would otherwise get a length of -10 and a salt appended
@@ -147,6 +142,7 @@ static void init(struct fmt_main *self)
 	for (i=0; i < NBKEYS; i++)
 		((unsigned int *)saved_key)[15*MMX_COEF + (i&3) + (i>>2)*SHA_BUF_SIZ*MMX_COEF] = 10 << 3;
 #endif
+	saved_salt = mem_calloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
