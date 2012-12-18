@@ -216,13 +216,17 @@ int cfg_print_section_params(char *section, char *subsection)
 {
 	struct cfg_section *current;
 	struct cfg_param *param;
+	char *value;
 	int param_count = 0;
 
 	if ((current = cfg_get_section(section, subsection))) {
 		if((param = current->params))
 		do {
-			printf("%s = %s\n", param->name, param->value);
-			param_count++;
+			value = cfg_get_param(section, subsection, param->name);
+			if(!strcmp(param->value, value)) {
+				printf("%s = %s\n", param->name, param->value);
+				param_count++;
+			}
 		} while ((param = param-> next));
 		return param_count;
 	}

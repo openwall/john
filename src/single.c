@@ -24,6 +24,7 @@
 #include "john-mpi.h"
 #endif
 #include "unicode.h"
+#include "options.h"
 
 static int progress = 0;
 static int rec_rule;
@@ -97,6 +98,8 @@ static void single_init(void)
 	progress = 0;
 
 	length = single_db->format->params.plaintext_length;
+	if (options.force_maxlength && options.force_maxlength < length)
+		length = options.force_maxlength;
 	key_count = single_db->format->params.min_keys_per_crypt;
 	if (key_count < SINGLE_HASH_MIN)
 		key_count = SINGLE_HASH_MIN;
@@ -111,6 +114,9 @@ static void single_init(void)
 
 	if (rpp_init(rule_ctx, single_db->options->activesinglerules)) {
 		log_event("! No \"single crack\" mode rules found");
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
 		fprintf(stderr, "No \"single crack\" mode rules found in %s\n",
 			cfg_name);
 		error();
