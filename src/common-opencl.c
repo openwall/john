@@ -121,7 +121,7 @@ static char *include_source(char *pathname, int dev_id, char *options)
 	return include;
 }
 
-static void build_kernel(int dev_id, char *options)
+static void build_kernel(int dev_id, char *options, int save, char * file_name)
 {
 	cl_int build_code;
         char * build_log; size_t log_size;
@@ -156,28 +156,33 @@ static void build_kernel(int dev_id, char *options)
 		fprintf(stderr, "Compilation log: %s\n", build_log);
 #endif
         MEM_FREE(build_log);
-#if 0
-	FILE *file;
-	size_t source_size;
-	char *source;
 
-	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
-		CL_PROGRAM_BINARY_SIZES,
-		sizeof(size_t), &source_size, NULL), "error");
-	fprintf(stderr, "source size %zu\n", source_size);
-	source = malloc(source_size);
+	if (save) {
+		FILE *file;
+		size_t source_size;
+		char *source;
 
-	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
-		CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
-
-	file = fopen("program.bin", "w");
-	if (file == NULL)
-		fprintf(stderr, "Error opening binary file\n");
-	else if (fwrite(source, source_size, 1, file) != 1)
-		fprintf(stderr, "error writing binary\n");
-	fclose(file);
-	MEM_FREE(source);
+		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+			CL_PROGRAM_BINARY_SIZES,
+			sizeof(size_t), &source_size, NULL), "error");
+#if DEBUG
+		fprintf(stderr, "source size %zu\n", source_size);
 #endif
+		source = malloc(source_size);
+
+		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+			CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
+
+		file = fopen(file_name, "w");
+
+		if (file == NULL)
+			fprintf(stderr, "Error creating binary file %s\n", file_name);
+		else if (fwrite(source, source_size, 1, file) != 1) {
+			fprintf(stderr, "error writing binary\n");
+			fclose(file);
+		}
+		MEM_FREE(source);
+	}
 }
 
 static void build_kernel_from_binary(int dev_id)
@@ -461,13 +466,20 @@ void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
 void opencl_build_kernel_opt(char *kernel_filename, unsigned int dev_id, char *options)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(dev_id, options);
+	build_kernel(dev_id, options, 0, NULL);
 }
 
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 {
 	kernel_loaded=0;
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
+}
+
+void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, char *kernel_binary)
+{
+	kernel_loaded=0;
+	read_kernel_source(kernel_filename);
+	build_kernel(dev_id, options, 1, kernel_binary);
 }
 
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
