@@ -178,7 +178,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 		if (file == NULL)
 			fprintf(stderr, "Error creating binary file %s\n", file_name);
 		else {
-                	if (fwrite(source, source_size, 1, file) != 1)
+			if (fwrite(source, source_size, 1, file) != 1)
 				fprintf(stderr, "error writing binary\n");
 			fclose(file);
 		}
