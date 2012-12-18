@@ -536,7 +536,7 @@ static void build_kernel(char * task) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
         fflush(stdout);
 
-        opencl_build_kernel_save(task_name, ocl_gpu_id, NULL, full_name);
+        opencl_build_kernel_save(task_name, ocl_gpu_id, NULL, 1, full_name);
 
         if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
             fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);

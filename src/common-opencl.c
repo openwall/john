@@ -177,8 +177,9 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 
 		if (file == NULL)
 			fprintf(stderr, "Error creating binary file %s\n", file_name);
-		else if (fwrite(source, source_size, 1, file) != 1) {
-			fprintf(stderr, "error writing binary\n");
+		else {
+                	if (fwrite(source, source_size, 1, file) != 1)
+				fprintf(stderr, "error writing binary\n");
 			fclose(file);
 		}
 		MEM_FREE(source);
@@ -475,11 +476,11 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
-void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, char *kernel_binary)
+void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, char *kernel_binary)
 {
 	kernel_loaded=0;
 	read_kernel_source(kernel_filename);
-	build_kernel(dev_id, options, 1, kernel_binary);
+	build_kernel(dev_id, options, save, kernel_binary);
 }
 
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
