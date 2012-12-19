@@ -135,7 +135,9 @@ static struct opt_entry opt_list[] = {
 	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
 	{"mkpc", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.force_maxkeys},
-	{"length", FLG_NONE, FLG_NONE, 0, FLG_STDOUT | OPT_REQ_PARAM,
+	{"min-length", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		"%u", &options.force_minlength},
+	{"max-length", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.force_maxlength},
 	{"max-run-time", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%u", &options.max_run_time},
@@ -286,10 +288,11 @@ void print_hidden_usage(void)
 	puts("--config=FILE             use FILE instead of john.conf or john.ini");
 	puts("--mem-file-size=SIZE      size threshold for wordlist preload (default 5 MB)");
 	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
-	puts("--mkpc=N                  force a lower max. keys per crypt");
-	puts("--length=N                force a lower max. length");
+	puts("--mkpc=N                  request a lower max. keys per crypt");
+	puts("--min-length=N            request a minimum candidate length");
+	puts("--max-length=N            request a maximum candidate length");
 	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
-	puts("--fix-state-delay=N       performance tweak, see documentation");
+	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
 	puts("--nolog                   disables creation and writing to john.log file");
 	puts("--log-stderr              log to screen instead of file");
 	puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
@@ -321,6 +324,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.loader.max_fix_state_delay = 0;
 	options.loader.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
 	options.force_maxkeys = options.force_maxlength = 0;
+	options.force_minlength = -1;
 	options.max_run_time = options.status_interval = -2;
 	options.dynamic_raw_hashes_always_valid = 0;
 
@@ -421,6 +425,20 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		if (mpi_id == 0)
 #endif
 		fprintf(stderr, "Invalid plaintext length requested\n");
+		error();
+	}
+	if (options.force_maxlength && options.force_maxlength < options.force_minlength) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Invalid options: --min-length larger than --max-length\n");
+		error();
+	}
+	if (options.force_maxlength < 0 || options.force_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
+#ifdef HAVE_MPI
+		if (mpi_id == 0)
+#endif
+		fprintf(stderr, "Invalid max length requested\n");
 		error();
 	}
 

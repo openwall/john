@@ -796,70 +796,77 @@ int initUnicode(int type) {
 		if (!strcasecmp(options.encoding, "utf8")||!strcasecmp(options.encoding, "utf-8")) {
 			options.utf8 = 1;
 			options.encodingStr = "UTF-8";
+			options.encodingDef = "UTF_8";
 		} else
 		if (!strcasecmp(options.encoding, "ansi")||!strcasecmp(options.encoding, "iso-8859-1")||!strcasecmp(options.encoding, "8859-1")||!strcasecmp(options.encoding, "iso8859-1")) {
 			options.iso8859_1 = 1;
 			options.encodingStr = "ISO-8859-1";
+			options.encodingDef = "ISO_8859_1";
 		} else
 		if (!strcasecmp(options.encoding, "iso-8859-2")||!strcasecmp(options.encoding, "8859-2")||!strcasecmp(options.encoding, "iso8859-2")) {
 			options.iso8859_2 = 1;
 			options.encodingStr = "ISO-8859-2";
+			options.encodingDef = "ISO_8859_2";
 		} else
 		if (!strcasecmp(options.encoding, "iso-8859-7")||!strcasecmp(options.encoding, "8859-7")||!strcasecmp(options.encoding, "iso8859-7")) {
 			options.iso8859_7 = 1;
 			options.encodingStr = "ISO-8859-7";
+			options.encodingDef = "ISO_8859_7";
 		} else
 		if (!strcasecmp(options.encoding, "iso-8859-15")||!strcasecmp(options.encoding, "8859-15")||!strcasecmp(options.encoding, "iso8859-15")) {
 			options.iso8859_15 = 1;
 			options.encodingStr = "ISO-8859-15";
+			options.encodingDef = "ISO_8859_15";
 		} else
 		if (!strcasecmp(options.encoding, "koi8-r")||!strcasecmp(options.encoding, "koi8r")) {
 			options.koi8_r = 1;
 			options.encodingStr = "KOI8-R";
+			options.encodingDef = "KOI8_R";
 		} else
 		if (!strcasecmp(options.encoding, "cp437")||!strcasecmp(options.encoding, "cp-437")) {
 			options.cp437 = 1;
-			options.encodingStr = "CP437";
+			options.encodingDef = options.encodingStr = "CP437";
 		} else
 		if (!strcasecmp(options.encoding, "cp737")||!strcasecmp(options.encoding, "cp-737")) {
 			options.cp737 = 1;
-			options.encodingStr = "CP737";
+			options.encodingDef = options.encodingStr = "CP737";
 		} else
 		if (!strcasecmp(options.encoding, "cp850")||!strcasecmp(options.encoding, "cp-850")) {
 			options.cp850 = 1;
-			options.encodingStr = "CP850";
+			options.encodingDef = options.encodingStr = "CP850";
 		} else
 		if (!strcasecmp(options.encoding, "cp852")||!strcasecmp(options.encoding, "cp-852")) {
 			options.cp852 = 1;
-			options.encodingStr = "CP852";
+			options.encodingDef = options.encodingStr = "CP852";
 		} else
 		if (!strcasecmp(options.encoding, "cp858")||!strcasecmp(options.encoding, "cp-858")) {
 			options.cp858 = 1;
-			options.encodingStr = "CP858";
+			options.encodingDef = options.encodingStr = "CP858";
 		} else
 		if (!strcasecmp(options.encoding, "cp866")||!strcasecmp(options.encoding, "cp-866")) {
 			options.cp866 = 1;
-			options.encodingStr = "CP866";
+			options.encodingDef = options.encodingStr = "CP866";
 		} else
 		if (!strcasecmp(options.encoding, "cp1250")||!strcasecmp(options.encoding, "cp-1250")) {
 			options.cp1250 = 1;
-			options.encodingStr = "CP1250";
+			options.encodingDef = options.encodingStr = "CP1250";
 		} else
 		if (!strcasecmp(options.encoding, "cp1251")||!strcasecmp(options.encoding, "cp-1251")) {
 			options.cp1251 = 1;
-			options.encodingStr = "CP1251";
+			options.encodingDef = options.encodingStr = "CP1251";
 		} else
 		if (!strcasecmp(options.encoding, "cp1252")||!strcasecmp(options.encoding, "cp-1252")) {
 			options.cp1252 = 1;
-			options.encodingStr = "CP1252";
+			options.encodingDef = options.encodingStr = "CP1252";
 		} else
 		if (!strcasecmp(options.encoding, "cp1253")||!strcasecmp(options.encoding, "cp-1253")) {
 			options.cp1253 = 1;
-			options.encodingStr = "CP1253";
+			options.encodingDef = options.encodingStr = "CP1253";
 		} else
 		if (!strcasecmp(options.encoding, "raw")||!strcasecmp(options.encoding, "ascii")||!strcasecmp(options.encoding, "default")) {
 			options.ascii = 1;
 			options.encodingStr = "raw";
+			options.encodingDef = "RAW";
 		} else {
 			fprintf (stderr, "Invalid encoding. ");
 			listEncodings();

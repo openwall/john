@@ -329,12 +329,17 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 	long my_size = 0;
 	unsigned int myWordFileLines = 0;
 #endif
+	int maxlength = options.force_maxlength;
+	int minlength = (options.force_minlength >= 0) ?
+		options.force_minlength : 0;
 
 	log_event("Proceeding with wordlist mode");
 
 	_db = db;
 
 	length = db->format->params.plaintext_length;
+	if (options.force_maxlength && options.force_maxlength < length)
+		length = options.force_maxlength;
 
 	if (!mem_saving_level &&
 	    (dupeCheck || !db->options->max_wordfile_memory))
@@ -386,6 +391,9 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 		}
 		if (file_len == 0)
 		{
+#ifdef HAVE_MPI
+			if (mpi_id == 0)
+#endif
 			fprintf(stderr, "Error, dictionary file is empty\n");
 			error();
 		}
@@ -555,6 +563,12 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				*ep = 0;
 				if (strncmp(cp, "#!comment", 9)) {
 					if (!rules) {
+						if (minlength && ep - cp < minlength)
+							goto skip;
+						/* Over --max-length are skipped,
+						   while over format's length are truncated. */
+						if (maxlength && ep - cp > maxlength)
+							goto skip;
 						if (ep - cp >= length)
 							cp[length] = 0;
 					} else
@@ -572,6 +586,7 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 							words[i++] = cp;
 					}
 				}
+skip:
 				cp = ep + 1;
 				if (ec == '\r' && *cp == '\n') cp++;
 				if (ec == '\n' && *cp == '\r') cp++;
@@ -640,17 +655,32 @@ GRAB_NEXT_PIPE_LOAD:;
 						break;
 					}
 					if (strncmp(cpi, "#!comment", 9)) {
+						int len = strlen(cpi);
 						if (!rules) {
+							if (minlength && len < minlength) {
+								cpi += (len + 1);
+								if (cpi > cpe)
+									break;
+								continue;
+							}
+							/* Over --max-length are skipped,
+							   while over format's length are truncated. */
+							if (maxlength && len > maxlength) {
+								cpi += (len + 1);
+								if (cpi > cpe)
+									break;
+								continue;
+							}
 							cpi[length] = 0;
 							if (!nWordFileLines || strcmp(cpi, words[nWordFileLines-1])) {
 								words[nWordFileLines++] = cpi;
-								cpi += (strlen(cpi)+1);
+								cpi += (len + 1);
 								if (cpi > cpe)
 									break;
 							}
 						} else {
 							words[nWordFileLines++] = cpi;
-							cpi += (strlen(cpi)+1);
+							cpi += (len + 1);
 							if (cpi > cpe)
 								break;
 						}
@@ -820,9 +850,17 @@ SKIP_MEM_MAP_LOAD:;
 				if (loopBack)
 					memmove((char*)line, potword(line), strlen(potword(line)) + 1);
 
-				if (!rules)
+				if (!rules) {
+					if (minlength || maxlength) {
+						int len = strlen(line);
+						if (minlength && len < minlength)
+							continue;
+						/* --max-length will skip, not truncate */
+						if (maxlength && len > maxlength)
+							continue;
+					}
 					((char*)line)[length] = 0;
-
+				}
 				if (!strcmp(line, last)) {
 					line_number++; // needed for MPI sync
 					continue;

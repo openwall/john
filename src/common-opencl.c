@@ -912,8 +912,9 @@ void listOpenCLdevices(void)
 			clGetDeviceInfo(devices[d],
 			    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong),
 			    &long_entries, NULL);
-			printf("\tGlobal Memory Cache:\t%s\n",
-			    human_format((unsigned long long) long_entries));
+			if (long_entries)
+				printf("\tGlobal Memory Cache:\t%s\n",
+				       human_format((unsigned long long) long_entries));
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE,
 			    sizeof(cl_ulong), &long_entries, NULL);
 			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_TYPE,

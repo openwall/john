@@ -211,8 +211,9 @@ static char *get_key(int index)
 #ifdef MMX_COEF
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i,len;
+	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(0, index)];
 
-	len = ((ARCH_WORD_32*)&saved_key[GETPOS(0, index)])[14*MMX_COEF] >> 3;
+	len = keybuffer[56] >> 3;
 
 	for(i=0;i<len;i++)
 		out[i] = saved_key[GETPOS(i, index)];

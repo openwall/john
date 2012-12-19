@@ -530,7 +530,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	cl_command_queue queue_prof;
 	cl_event Event[3];
 	cl_int ret_code;
-	int i, j, k;
+	int i /*, j, k*/ ;
 
 	create_clobj(gws, self);
 	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -543,11 +543,13 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "Failed transferring lengths");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
-	for (k = 0; k < 16; k++) {
+	//for (k = 0; k < 16; k++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
-		for (j = 0; j < 256 / HASH_LOOPS; j++)
+		//for (j = 0; j < 256 / HASH_LOOPS; j++)
+			// Warm-up run
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[1]), "running kernel");
-	}
+	//}
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "running kernel");
 
 	HANDLE_CLERROR(clFinish(queue_prof), "Failed running kernel");
@@ -569,13 +571,13 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 		return 0;
 	}
 
-	clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-	clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
+	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL);
+	clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL);
 	//fprintf(stderr, "Total: %.2f s\n", (float)((endTime - startTime)/1000000000.));
 	clReleaseCommandQueue(queue_prof);
 	release_clobj();
 
-	return (endTime - startTime);
+	return 16 * (256/HASH_LOOPS) * (endTime - startTime);
 }
 
 static void find_best_gws(int do_benchmark, struct fmt_main *self)
@@ -795,13 +797,6 @@ static char *get_key(int index)
 		bits -= n; \
 	}
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
 /*
  * This function is loosely based on JimF's check_inflate_CODE2() from
  * pkzip_fmt. Together with the other bit-checks, we are rejecting over 96%
@@ -815,7 +810,7 @@ __inline__
  * RAR use 20 x (4 bits length, optionally 4 bits zerocount), and reversed
  * byte order.
  */
-static int check_huffman(unsigned char *next) {
+static inline int check_huffman(unsigned char *next) {
 	unsigned int bits, hold, i;
 	int left;
 	unsigned int ncount[4];
