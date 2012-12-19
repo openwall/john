@@ -797,13 +797,6 @@ static char *get_key(int index)
 		bits -= n; \
 	}
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
 /*
  * This function is loosely based on JimF's check_inflate_CODE2() from
  * pkzip_fmt. Together with the other bit-checks, we are rejecting over 96%
@@ -817,7 +810,7 @@ __inline__
  * RAR use 20 x (4 bits length, optionally 4 bits zerocount), and reversed
  * byte order.
  */
-static int check_huffman(unsigned char *next) {
+static inline int check_huffman(unsigned char *next) {
 	unsigned int bits, hold, i;
 	int left;
 	unsigned int ncount[4];

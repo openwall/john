@@ -364,8 +364,12 @@ static void init(struct fmt_main *self)
 	/* Reduced length can give a significant boost. Our test
 	   vectors are length 8 so that is currently a minimum */
 
-	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH)
+	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH) {
 		keybuf_size = MAX(options.force_maxlength + 1, 8 + 1);
+		self->params.benchmark_comment = mem_alloc_tiny(20, MEM_ALIGN_NONE);
+		sprintf(self->params.benchmark_comment, " (max length %d)",
+		        MAX(options.force_maxlength, 8));
+	}
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYBUF_SIZE=%u -DENC_%s -DENCODING=%s", keybuf_size, encoding, encoding);
 	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
