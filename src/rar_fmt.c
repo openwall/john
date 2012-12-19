@@ -587,7 +587,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = (strlen(self->params.tests[0].plaintext) * 2 + 8 + 3) * 0x40000 / 64 + 16;
-	unsigned long long int MaxRunTime = 5000000000ULL;
+	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000 : 10000000000ULL;
 
 	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH + 8);
 
@@ -896,8 +896,11 @@ static void crypt_all(int count)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 		for (k = 0; k < 16; k++) {
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-			for (j = 0; j < 256 / HASH_LOOPS; j++)
+			for (j = 0; j < 256 / HASH_LOOPS; j++) {
 				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+				HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+				opencl_process_event();
+			}
 		}
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 		// read back aes key & iv

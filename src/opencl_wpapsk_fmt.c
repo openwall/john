@@ -269,7 +269,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	unsigned int SHAspeed, bestSHAspeed = 0;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = 2 * ITERATIONS * 2 + 6 + 10;
-	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 5000000000ULL;
+	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -409,13 +409,19 @@ static void crypt_all(int count)
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
 
-	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
+	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
-	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++)
+	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
 
 	if (hccap.keyver == 1)
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_final_md5, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, lastEvent), "Run final kernel (MD5)");
