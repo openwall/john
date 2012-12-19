@@ -519,7 +519,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 
 			if (warn) {
 				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-					fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
+					fprintf(stderr, "Elapsed time: %lu seconds\n", (unsigned long)runtime);
 				fflush(stdout);
 			}
 		}
