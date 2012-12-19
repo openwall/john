@@ -4,6 +4,9 @@
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <time.h>
+
 #define LOG_SIZE 1024*16
 
 static char opencl_log[LOG_SIZE];
@@ -173,7 +176,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
 			CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
 
-		file = fopen(file_name, "w");
+		file = fopen(path_expand(file_name), "w");
 
 		if (file == NULL)
 			fprintf(stderr, "Error creating binary file %s\n", file_name);
@@ -476,11 +479,51 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
-void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, char *kernel_binary)
-{
-	kernel_loaded=0;
-	read_kernel_source(kernel_filename);
-	build_kernel(dev_id, options, save, kernel_binary);
+//Only AMD gpu code will benefit from this routine.
+void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn) {
+	struct stat source_stat, bin_stat;
+	char dev_name[128], bin_name[128];
+	char * p;
+	uint64_t startTime, runtime;
+
+	kernel_loaded = 0;
+
+	if (!gpu_amd(device_info[ocl_gpu_id]) || !save || stat(path_expand(kernel_filename), &source_stat))
+		opencl_build_kernel_opt(kernel_filename, dev_id, options);
+
+	else {
+		startTime = (unsigned long) time(NULL);
+
+		//Get device name.
+		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_NAME,
+			sizeof (dev_name), dev_name, NULL), "Error querying DEVICE_NAME");
+
+		//Decide the binary name.
+		p = strstr(kernel_filename, ".cl");
+		strncpy(bin_name, kernel_filename, (p - kernel_filename));
+		sprintf(bin_name, "%s_%s.bin", bin_name, dev_name);
+
+		//Select the kernel to run.
+		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
+			read_kernel_source(bin_name);
+			build_kernel_from_binary(dev_id);
+
+		} else {
+
+			if (warn) {
+				fprintf(stderr, "Building the kernel, this could take a while\n");
+				fflush(stdout);
+			}
+			read_kernel_source(kernel_filename);
+			build_kernel(dev_id, options, 1, bin_name);
+
+			if (warn) {
+				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+					fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
+				fflush(stdout);
+			}
+		}
+	}
 }
 
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)

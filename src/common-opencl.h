@@ -59,7 +59,7 @@ void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id);
-void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, char *kernel_binary);
+void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn);
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
 

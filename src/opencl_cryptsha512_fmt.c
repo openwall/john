@@ -16,7 +16,6 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "opencl_cryptsha512.h"
-#include <time.h>
 
 #define FORMAT_LABEL			"sha512crypt-opencl"
 #define FORMAT_NAME			"sha512crypt"
@@ -506,42 +505,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void build_kernel(char * task) {
 
-    char dev_name[128], task_name[128], bin_name[128], full_name[1024];
-    FILE * file = NULL;
-    uint64_t startTime, runtime;
-
-    startTime = (unsigned long) time(NULL);
-    sprintf(task_name, "$JOHN/%s.cl", task);
-
-    if (gpu_amd(device_info[ocl_gpu_id])) {
-        //Get device name.
-        HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_NAME,
-            sizeof(dev_name), dev_name, NULL), "Error querying DEVICE_NAME");
-
-        //Check if binary file already exists. If it does, use it.
-        sprintf(bin_name, "$JOHN/kernels/%s_%s.bin", task, dev_name);
-
-        strcpy(full_name, path_expand(bin_name));
-        file = fopen(full_name, "r");
-    }
-
-    if (file) {
-        fclose(file);
-        opencl_build_kernel_from_binary(bin_name, ocl_gpu_id);
-
-    } else if (cpu(device_info[ocl_gpu_id]))
-        opencl_build_kernel(task_name, ocl_gpu_id);
-
-    else {
-        fprintf(stderr, "Building the kernel, this could take a while\n");
-        fflush(stdout);
-
-        opencl_build_kernel_save(task_name, ocl_gpu_id, NULL, 1, full_name);
-
-        if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-            fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
-        fflush(stdout);
-    }
+    opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
@@ -557,7 +521,7 @@ static void build_kernel(char * task) {
 
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "cryptsha512_kernel_DEFAULT";
+    char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];
@@ -566,7 +530,7 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (gpu(source_in_use))
-        task = "cryptsha512_kernel_GPU";
+        task = "$JOHN/cryptsha512_kernel_GPU.cl";
 
     build_kernel(task);
 
