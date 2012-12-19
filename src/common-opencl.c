@@ -48,7 +48,6 @@ void advance_cursor()
 	static int pos = 0;
 	char cursor[4] = { '/', '-', '\\', '|' };
 	fprintf(stderr, "%c\b", cursor[pos]);
-	fflush(stdout);
 	pos = (pos + 1) % 4;
 }
 

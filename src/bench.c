@@ -257,6 +257,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (end_virtual == start_virtual) end_virtual++;
 	results->virtual = end_virtual - start_virtual;
 #endif
+#ifdef CL_VERSION_1_0
+	/* This erases the 'spinning wheel' cursor from self-test */
+	fprintf(stderr, " \b");
+#endif
 
 	results->real = end_real - start_real;
 	results->count = count;
