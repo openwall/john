@@ -89,4 +89,7 @@ void listOpenCLdevices();
 
 void opencl_find_gpu(int *dev_id, int *platform_id);
 
+/* Call this to check for keypress etc. within kernel loops */
+void opencl_process_event(void);
+
 #endif

@@ -340,7 +340,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = 50004;
-	unsigned long long int MaxRunTime = 5000000000ULL;
+	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
 	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * VF);
 
@@ -490,7 +490,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !strncmp(ciphertext, "$office$*2007", 13);
 }
 
-static int PasswordVerifier(unsigned char *key)
+static inline int PasswordVerifier(unsigned char *key)
 {
 	unsigned char decryptedVerifier[16];
 	AES_KEY akey;
@@ -533,8 +533,11 @@ static void crypt_all(int count)
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 
-	for (index = 0; index < 50000 / HASH_LOOPS; index++)
+	for (index = 0; index < 50000 / HASH_LOOPS; index++) {
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2007key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 

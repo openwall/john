@@ -1,11 +1,15 @@
 /* Common OpenCL functions go in this file */
 
-#include "common-opencl.h"
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <time.h>
+
+#include "common-opencl.h"
+#include "signals.h"
+#include "recovery.h"
+#include "status.h"
 
 #define LOG_SIZE 1024*16
 
@@ -13,6 +17,31 @@ static char opencl_log[LOG_SIZE];
 static char *kernel_source;
 static int kernel_loaded;
 static size_t program_size;
+
+void opencl_process_event(void)
+{
+#if !OS_TIMER
+	sig_timer_emu_tick();
+#endif
+	if (event_pending) {
+		if (event_save) {
+			event_save = 0;
+			rec_save();
+		}
+
+		if (event_status) {
+			event_status = 0;
+			status_print();
+		}
+
+		if (event_ticksafety) {
+			event_ticksafety = 0;
+			status_ticks_overflow_safety();
+		}
+
+		event_pending = event_abort;
+	}
+}
 
 void advance_cursor()
 {
