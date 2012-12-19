@@ -521,7 +521,7 @@ static void build_kernel(char * task) {
 
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
+    char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];
@@ -530,7 +530,7 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (gpu(source_in_use))
-        task = "$JOHN/cryptsha512_kernel_GPU.cl";
+        task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
 
     build_kernel(task);
 

@@ -549,7 +549,7 @@ static void build_kernel(char * task) {
 
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/cryptsha256_kernel_DEFAULT.cl";
+    char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];
@@ -558,10 +558,10 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (use_local(source_in_use) || amd_vliw5(source_in_use))
-            task = "$JOHN/cryptsha256_kernel_LOCAL.cl";
+            task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
 
     else if (gpu(source_in_use))
-        task = "$JOHN/cryptsha256_kernel_GPU.cl";
+        task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";
 
     build_kernel(task);
 
