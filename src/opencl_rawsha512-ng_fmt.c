@@ -413,7 +413,7 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (amd_gcn(source_in_use) || use_local(source_in_use))
-        task = "$JOHN/sha512-ng_kernel_LOCAL.cl";
+        task = "$JOHN/kernels/sha512-ng_kernel_LOCAL.cl";
     opencl_build_kernel(task, ocl_gpu_id);
 
     // create kernel(s) to execute
