@@ -558,7 +558,7 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (use_local(source_in_use) || amd_vliw5(source_in_use))
-            task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
+        task = "$JOHN/kernels/cryptsha256_kernel_LOCAL.cl";
 
     else if (gpu(source_in_use))
         task = "$JOHN/kernels/cryptsha256_kernel_GPU.cl";

@@ -12,7 +12,7 @@
  */
 
 #define _OPENCL_COMPILER
-#include "kernels/opencl_cryptsha512.h"
+#include "opencl_cryptsha512.h"
 
 #if gpu(DEVICE_INFO)
     #define VECTOR_USAGE

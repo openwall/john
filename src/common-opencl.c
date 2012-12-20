@@ -136,7 +136,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/", dev_id, options), NULL, NULL);
+		include_source("$JOHN/kernels", dev_id, options), NULL, NULL);
 
         HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
                 CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -200,7 +200,7 @@ static void build_kernel_from_binary(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/", dev_id, NULL), NULL, NULL);
+		include_source("$JOHN/kernels", dev_id, NULL), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
