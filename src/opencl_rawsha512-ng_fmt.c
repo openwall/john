@@ -404,7 +404,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/sha512-ng_kernel.cl";
+    char * task = "$JOHN/kernels/sha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];

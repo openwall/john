@@ -87,14 +87,6 @@ static void crypt_one(int index, sha512_hash * hash) {
     SHA512_Update(&ctx, salt->salt, SALT_SIZE);
     SHA512_Update(&ctx, plaintext[index].pass, plaintext[index].length);
     SHA512_Final((unsigned char *) (hash), &ctx);
-/*
-    		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, &saved_salt, SALT_SIZE);
-
-
-		SHA512_Update(&ctx, saved_key[i], saved_key_length[i]);
-		SHA512_Final((unsigned char *)(crypt_out[i]), &ctx);
- */
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -453,7 +445,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/xsha512-ng_kernel.cl";
+    char * task = "$JOHN/kernels/xsha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     opencl_build_kernel(task, ocl_gpu_id);
