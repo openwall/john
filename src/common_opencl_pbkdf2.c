@@ -129,9 +129,9 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	PROFILE=0;
 
-	printf("Optimal Work Group Size:%d\n",(int)lws[pltform_no][dev_no]);
+	fprintf(stderr, "Optimal Work Group Size:%d\n",(int)lws[pltform_no][dev_no]);
 
-	printf("Kernel Execution Speed (Higher is better):%Lf\n",exec_time_inv[pltform_no][dev_no]);
+	fprintf(stderr, "Kernel Execution Speed (Higher is better):%Lf\n",exec_time_inv[pltform_no][dev_no]);
 
 	MEM_FREE(dcc_hash_host);
 
@@ -156,15 +156,15 @@ size_t 	select_device(int platform_no,int dev_no)
 
 	krnl[platform_no][dev_no][0]=clCreateKernel(prg[platform_no][dev_no],"pbkdf2_preprocess",&err) ;
 	
-	if(err) {printf("Create Kernel pbkdf2_preprocess FAILED\n"); return 0;}
+	if(err) {fprintf(stderr, "Create Kernel pbkdf2_preprocess FAILED\n"); return 0;}
 	
 	krnl[platform_no][dev_no][1]=clCreateKernel(prg[platform_no][dev_no],"pbkdf2_iter",&err) ;
 
-	if(err) {printf("Create Kernel pbkdf2_iter FAILED\n"); return 0;}
+	if(err) {fprintf(stderr, "Create Kernel pbkdf2_iter FAILED\n"); return 0;}
 	
 	krnl[platform_no][dev_no][2]=clCreateKernel(prg[platform_no][dev_no],"pbkdf2_postprocess",&err) ;
 
-	if(err) {printf("Create Kernel pbkdf2_postprocess FAILED\n"); return 0;}
+	if(err) {fprintf(stderr, "Create Kernel pbkdf2_postprocess FAILED\n"); return 0;}
 
 	gpu_buffer[platform_no][dev_no].pass_gpu=clCreateBuffer(cntxt[platform_no][dev_no],CL_MEM_READ_ONLY,4*MAX_KEYS_PER_CRYPT*sizeof(cl_uint),NULL,&err);
 		if((gpu_buffer[platform_no][dev_no].pass_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED"); }
