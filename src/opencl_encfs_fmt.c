@@ -277,7 +277,7 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
-	opencl_init("$JOHN/encfs_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/encfs_kernel.cl", ocl_gpu_id, platform_id);
 	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,

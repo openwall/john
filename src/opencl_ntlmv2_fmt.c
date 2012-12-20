@@ -373,7 +373,7 @@ static void init(struct fmt_main *self)
 	}
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYBUF_SIZE=%u -DENC_%s -DENCODING=%s", keybuf_size, encoding, encoding);
-	opencl_init_opt("$JOHN/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/ntlmv2_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);

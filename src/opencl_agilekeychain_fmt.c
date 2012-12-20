@@ -117,7 +117,7 @@ static void init(struct fmt_main *self)
 			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
-	opencl_init("$JOHN/keychain_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/keychain_kernel.cl", ocl_gpu_id, platform_id);
 	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
