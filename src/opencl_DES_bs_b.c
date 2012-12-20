@@ -115,7 +115,7 @@ static void build_kernel(int dev_id, char *options)
 
 	//build_code = 
 	clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/", dev_id, options), NULL, NULL);
+		include_source("$JOHN/kernels/", dev_id, options), NULL, NULL);
 	
 	/*
         HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
@@ -186,7 +186,7 @@ void init_dev()
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
 	
-	read_kernel_source("$JOHN/DES_bs_kernel.cl") ; 
+	read_kernel_source("$JOHN/kernels/DES_bs_kernel.cl") ; 
 	
 }
 

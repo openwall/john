@@ -12,6 +12,7 @@ CPP = $(CC)
 CP = cp
 LN = ln -f -s
 RM = rm -f
+MKDIR = mkdir -p
 TR = tr
 SED = sed
 NULL = /dev/null
@@ -367,8 +368,9 @@ linux-x86-64-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart -march=native"
-	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_*.h ../run/
+	$(MKDIR) ../run/kernels/
+	$(CP) opencl/*.cl ../run/kernels/
+	$(CP) opencl_*.h ../run/kernels/
 
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -378,8 +380,9 @@ linux-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl -march=native"
-	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_*.h ../run/
+	$(MKDIR) ../run/kernels/
+	$(CP) opencl/*.cl ../run/kernels/
+	$(CP) opencl_*.h ../run/kernels/
 
 linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -524,8 +527,9 @@ linux-x86-gpu:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
-	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_*.h ../run/
+	$(MKDIR) ../run/kernels/
+	$(CP) opencl/*.cl ../run/kernels/
+	$(CP) opencl_*.h ../run/kernels/
 
 linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
@@ -534,8 +538,9 @@ linux-x86-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl"
-	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_*.h ../run/
+	$(MKDIR) ../run/kernels/
+	$(CP) opencl/*.cl ../run/kernels/
+	$(CP) opencl_*.h ../run/kernels/
 
 linux-x86-cuda:
 	$(LN) x86-sse.h arch.h
@@ -1073,8 +1078,9 @@ macosx-x86-64-gpu:
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
-	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_*.h ../run/
+	$(MKDIR) ../run/kernels/
+	$(CP) opencl/*.cl ../run/kernels/
+	$(CP) opencl_*.h ../run/kernels/
 
 macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -1085,8 +1091,9 @@ macosx-x86-64-opencl:
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DCL_VERSION_1_0 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
-	$(CP) opencl/*.cl ../run/
-	$(CP) opencl_*.h ../run/
+	$(MKDIR) ../run/kernels/
+	$(CP) opencl/*.cl ../run/kernels/
+	$(CP) opencl_*.h ../run/kernels/
 
 macosx-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -1858,7 +1865,7 @@ bash-completion:
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
-	$(RM) ../run/*.cl ../run/*.h ../run/office2john ../run/vncpcap2john
+	$(RM) ../run/kernels/*.cl ../run/kernels/*.h ../run/kernels/*.bin ../run/office2john ../run/vncpcap2john
 	$(RM) detect bench para-bench generic.h arch.h tmp.s
 	$(RM) cuda/*.o cuda/*~ *~ ../run/SIPdump
 	$(RM) fmt_registers.h fmt_externs.h john_build_rule.h
