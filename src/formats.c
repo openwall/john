@@ -17,6 +17,9 @@
 #else
 #include "loader.h"
 #endif
+#ifdef CL_VERSION_1_0
+#include "common-opencl.h"
+#endif
 
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
@@ -200,6 +203,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			format->methods.clear_keys();
 		format->methods.set_key(current->plaintext, index);
 
+#ifdef CL_VERSION_1_0
+		advance_cursor();
+#endif
 		format->methods.crypt_all(index + 1);
 
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)

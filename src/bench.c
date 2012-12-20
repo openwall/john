@@ -72,7 +72,7 @@ void clk_tck_init(void)
 
 unsigned int benchmark_time = BENCHMARK_TIME;
 
-static volatile int bench_running;
+volatile int bench_running;
 
 static void bench_handle_timer(int signum)
 {

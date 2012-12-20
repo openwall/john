@@ -71,6 +71,9 @@
 #define LWS_CONFIG		"krbng_LWS"
 #define GWS_CONFIG		"krbng_GWS"
 
+#define MIN(a, b)		(a > b) ? (b) : (a)
+#define MAX(a, b)		(a > b) ? (a) : (b)
+
 static struct fmt_tests tests[] = {
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
 	{"$krb5pa$18$user1$EXAMPLE.COM$$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b335e588bf29c2d17b11c5caa", "openwall"},
@@ -473,6 +476,7 @@ static void init(struct fmt_main *self)
 		release_clobj();
 		global_work_size = temp;
 	}
+	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -757,8 +761,11 @@ static void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
 static void crypt_all(int count)
 {
 	int i;
-	size_t scalar_gws = VF * global_work_size;
 	int key_size;
+	size_t gws, scalar_gws;
+
+	gws = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
+	scalar_gws = gws * VF;
 
 	if (cur_salt->etype == 17)
 		key_size = 16;
@@ -775,7 +782,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "Run loop kernel");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
@@ -783,7 +790,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}

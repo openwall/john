@@ -40,10 +40,6 @@
  *
  */
 
-/* Not defining ALWAYS_OPENCL will be very beneficial for Single mode
-   and speed up self-tests at startup */
-//#define ALWAYS_OPENCL
-
 #include "arch.h"
 #include <openssl/engine.h>
 #include <openssl/evp.h>
@@ -665,9 +661,6 @@ static void init(struct fmt_main *self)
 		self->params.benchmark_comment = " (6 characters)";
 #endif
 		self->params.tests = gpu_tests;
-#if defined(DEBUG) && !defined(ALWAYS_OPENCL)
-		fprintf(stderr, "Note: will use CPU for some self-tests, and Single mode.\n");
-#endif
 	}
 
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
@@ -727,6 +720,7 @@ static void init(struct fmt_main *self)
 		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
 		local_work_size = maxsize;
 	}
+	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -742,8 +736,8 @@ static void init(struct fmt_main *self)
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
-	self->params.min_keys_per_crypt *= omp_t;
 #ifndef CL_VERSION_1_0	/* OpenCL gets to decide */
+	self->params.min_keys_per_crypt *= omp_t;
 	self->params.max_keys_per_crypt = omp_t * OMP_SCALE * MAX_KEYS_PER_CRYPT;
 #endif
 	init_locks();
@@ -882,98 +876,90 @@ static void crypt_all(int count)
 	int index = 0;
 
 #ifdef CL_VERSION_1_0
-#ifndef ALWAYS_OPENCL
-	if (count > (global_work_size / CPU_GPU_RATIO))
-#endif
-	{
-		int j, k;
+	int j, k;
+	size_t gws;
 
-		if (new_keys) {
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * global_work_size, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
-			new_keys = 0;
-		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
-		for (k = 0; k < 16; k++) {
-			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-			for (j = 0; j < 256 / HASH_LOOPS; j++) {
-				HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
-				HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
-				opencl_process_event();
-			}
-		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
-		// read back aes key & iv
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * global_work_size, aes_key, 0, NULL, NULL), "failed in reading key back");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * global_work_size, aes_iv, 0, NULL, NULL), "failed in reading iv back");
+	gws = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
 
+	if (new_keys) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+		new_keys = 0;
 	}
-#ifndef ALWAYS_OPENCL
-	else
-#endif
-#endif	/* OpenCL */
-#if !defined (CL_VERSION_1_0) || !defined(ALWAYS_OPENCL)
-	{
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarInit, 1, NULL, &gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
+	for (k = 0; k < 16; k++) {
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarGetIV, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		for (j = 0; j < 256 / HASH_LOOPS; j++) {
+			HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+			opencl_process_event();
+		}
+	}
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], RarFinal, 1, NULL, &gws, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
+	// read back aes key & iv
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, NULL), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, NULL), "failed in reading iv back");
+
+#else
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-		for (index = 0; index < count; index++) {
-			int i16 = index*16;
-			unsigned int i, j;
+	for (index = 0; index < count; index++) {
+		int i16 = index*16;
+		unsigned int i, j;
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-			unsigned char RawPsw[UNICODE_LENGTH + 8 + sizeof(int)];
+		unsigned char RawPsw[UNICODE_LENGTH + 8 + sizeof(int)];
 #else
-			unsigned char RawPsw[UNICODE_LENGTH + 8];
+		unsigned char RawPsw[UNICODE_LENGTH + 8];
 #endif
-			int RawLength;
-			SHA_CTX ctx;
-			unsigned int digest[5];
+		int RawLength;
+		SHA_CTX ctx;
+		unsigned int digest[5];
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-			unsigned int *PswNum;
+		unsigned int *PswNum;
 #endif
 
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-			RawLength = saved_len[index] + 8 + 3;
-			PswNum = (unsigned int*) &RawPsw[saved_len[index] + 8];
-			*PswNum = 0;
+		RawLength = saved_len[index] + 8 + 3;
+		PswNum = (unsigned int*) &RawPsw[saved_len[index] + 8];
+		*PswNum = 0;
 #else
-			RawLength = saved_len[index] + 8;
+		RawLength = saved_len[index] + 8;
 #endif
-			/* derive IV and key for AES from saved_key and
-			   saved_salt, this code block is based on unrarhp's
-			   and unrar's sources */
-			memcpy(RawPsw, &saved_key[UNICODE_LENGTH * index], saved_len[index]);
-			memcpy(RawPsw + saved_len[index], saved_salt, 8);
-			SHA1_Init(&ctx);
-			for (i = 0; i < ROUNDS; i++) {
+		/* derive IV and key for AES from saved_key and
+		   saved_salt, this code block is based on unrarhp's
+		   and unrar's sources */
+		memcpy(RawPsw, &saved_key[UNICODE_LENGTH * index], saved_len[index]);
+		memcpy(RawPsw + saved_len[index], saved_salt, 8);
+		SHA1_Init(&ctx);
+		for (i = 0; i < ROUNDS; i++) {
 #if !(ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED)
-				unsigned char PswNum[3];
+			unsigned char PswNum[3];
 #endif
 
-				SHA1_Update(&ctx, RawPsw, RawLength);
+			SHA1_Update(&ctx, RawPsw, RawLength);
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
-				*PswNum += 1;
+			*PswNum += 1;
 #else
-				PswNum[0] = (unsigned char) i;
-				PswNum[1] = (unsigned char) (i >> 8);
-				PswNum[2] = (unsigned char) (i >> 16);
-				SHA1_Update(&ctx, PswNum, 3);
+			PswNum[0] = (unsigned char) i;
+			PswNum[1] = (unsigned char) (i >> 8);
+			PswNum[2] = (unsigned char) (i >> 16);
+			SHA1_Update(&ctx, PswNum, 3);
 #endif
-				if (i % (ROUNDS / 16) == 0) {
-					SHA_CTX tempctx = ctx;
-					unsigned int tempout[5];
+			if (i % (ROUNDS / 16) == 0) {
+				SHA_CTX tempctx = ctx;
+				unsigned int tempout[5];
 
-					SHA1_Final((unsigned char*) tempout, &tempctx);
-					aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)JOHNSWAP(tempout[4]);
-				}
+				SHA1_Final((unsigned char*) tempout, &tempctx);
+				aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)JOHNSWAP(tempout[4]);
 			}
-			SHA1_Final((unsigned char*)digest, &ctx);
-			for (j = 0; j < 5; j++)	/* reverse byte order */
-				digest[j] = JOHNSWAP(digest[j]);
-			for (i = 0; i < 4; i++)
-				for (j = 0; j < 4; j++)
-					aes_key[i16 + i * 4 + j] = (unsigned char)(digest[i] >> (j * 8));
 		}
+		SHA1_Final((unsigned char*)digest, &ctx);
+		for (j = 0; j < 5; j++)	/* reverse byte order */
+			digest[j] = JOHNSWAP(digest[j]);
+		for (i = 0; i < 4; i++)
+			for (j = 0; j < 4; j++)
+				aes_key[i16 + i * 4 + j] = (unsigned char)(digest[i] >> (j * 8));
 	}
 #endif
 
