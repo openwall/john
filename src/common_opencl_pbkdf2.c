@@ -144,7 +144,7 @@ size_t 	select_device(int platform_no,int dev_no)
 {
       	lws[platform_no][dev_no]= 16;
 
-	opencl_init("$JOHN/pbkdf2_kernel.cl", dev_no, platform_no);
+	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", dev_no, platform_no);
 
 	pltfrmid[platform_no]=platform[platform_no];
 

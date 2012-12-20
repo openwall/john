@@ -191,7 +191,7 @@ static void init(struct fmt_main *self){
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/msha_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/msha_kernel.cl", ocl_gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);

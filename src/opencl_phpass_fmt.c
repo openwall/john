@@ -145,7 +145,7 @@ static void init(struct fmt_main *pFmt)
 	cl_int cl_error;
 	global_work_size = KEYS_PER_CRYPT / 8;
 	atexit(release_all);
-	opencl_init("$JOHN/phpass_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id);
 
 	/// Alocate memory
 	inbuffer =

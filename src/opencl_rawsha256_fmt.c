@@ -394,7 +394,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/sha256_kernel.cl";
+    char * task = "$JOHN/kernels/sha256_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];
