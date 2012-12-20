@@ -57,7 +57,8 @@
 #define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 /* Macro for get a multiple of a given value */
-#define GET_MULTIPLE(dividend, divisor) ((unsigned int) ((dividend / divisor) * divisor))
+#define GET_MULTIPLE(dividend, divisor)         ((unsigned int) ((dividend / divisor) * divisor))
+#define GET_MULTIPLE_BIGGER(dividend, divisor)  (((dividend + divisor - 1) / divisor) * divisor)
 
 #if no_byte_addressable(DEVICE_INFO)
     #define PUT         PUTCHAR

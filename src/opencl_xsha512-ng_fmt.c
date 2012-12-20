@@ -588,6 +588,10 @@ static void * get_full_binary(char *ciphertext) {
 
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
+    size_t gws;
+
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
             sizeof(sha512_salt), salt, 0, NULL, NULL),
@@ -596,17 +600,17 @@ static void crypt_all(int count) {
     if (new_keys)
         //Send data to device.
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
+                sizeof(sha512_password) * gws, plaintext, 0, NULL, NULL),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+            &gws, &local_work_size, 0, NULL, profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(uint32_t) * global_work_size, calculated_hash, 0, NULL, NULL),
+            sizeof(uint32_t) * gws, calculated_hash, 0, NULL, NULL),
             "failed in reading data back");
 
     //Do the work

@@ -714,6 +714,9 @@ static int cmp_exact(char * source, int count) {
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
     int i;
+    size_t gws;
+
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
@@ -722,31 +725,31 @@ static void crypt_all(int count) {
 
     if (new_keys)
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha256_password) * global_work_size, plaintext, 0, NULL, NULL),
+                sizeof(sha256_password) * gws, plaintext, 0, NULL, NULL),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
     if (gpu(source_in_use) || use_local(source_in_use) || amd_vliw5(source_in_use)) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-                &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+                &gws, &local_work_size, 0, NULL, profilingEvent),
                 "failed in clEnqueueNDRangeKernel");
         }
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+            &gws, &local_work_size, 0, NULL, profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(sha256_hash) * global_work_size, calculated_hash, 0, NULL, NULL),
+            sizeof(sha256_hash) * gws, calculated_hash, 0, NULL, NULL),
             "failed in reading data back");
 
     //Do the work
