@@ -702,6 +702,8 @@ static void crypt_all(int count) {
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
                 &gws, &local_work_size, 0, NULL, profilingEvent),
                 "failed in clEnqueueNDRangeKernel");
+            HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+            opencl_process_event();
         }
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
             &gws, &local_work_size, 0, NULL, NULL),
