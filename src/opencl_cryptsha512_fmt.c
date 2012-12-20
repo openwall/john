@@ -580,6 +580,7 @@ static void init(struct fmt_main * self) {
     }
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
            (int) local_work_size, global_work_size);
+    self->params.min_keys_per_crypt = local_work_size;
     self->params.max_keys_per_crypt = global_work_size;
 }
 
