@@ -333,7 +333,7 @@ static void find_best_gws(struct fmt_main * self) {
     int optimal_gws = local_work_size, step = STEP;
     int do_benchmark = 0, do_details = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
-    unsigned long long int max_run_time = 1000000000ULL;
+    unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL;
     char *tmp_value;
 
     if (getenv("DETAILS")){
