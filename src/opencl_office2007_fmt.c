@@ -340,7 +340,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	unsigned int SHAspeed, bestSHAspeed = 0, max_gws;
 	int optimal_gws = local_work_size;
 	const int sha1perkey = 50004;
-	unsigned long long int MaxRunTime = 5000000000ULL;
+	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 10000000000ULL;
 
 	max_gws = get_max_mem_alloc_size(ocl_gpu_id) / (UNICODE_LENGTH * VF);
 
@@ -470,6 +470,7 @@ static void init(struct fmt_main *self)
 		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
 		local_work_size = maxsize;
 	}
+	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -490,7 +491,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !strncmp(ciphertext, "$office$*2007", 13);
 }
 
-static int PasswordVerifier(unsigned char *key)
+static inline int PasswordVerifier(unsigned char *key)
 {
 	unsigned char decryptedVerifier[16];
 	AES_KEY akey;
@@ -523,23 +524,29 @@ static int PasswordVerifier(unsigned char *key)
 static void crypt_all(int count)
 {
 	int index;
-	size_t scalar_gws = VF * global_work_size;
+	size_t gws, scalar_gws;
+
+	gws = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
+	scalar_gws = gws * VF;
 
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * VF * global_work_size, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * VF * global_work_size, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
 		new_keys = 0;
 	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 
-	for (index = 0; index < 50000 / HASH_LOOPS; index++)
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+	for (index = 0; index < 50000 / HASH_LOOPS; index++) {
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2007key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2007key, 1, NULL, &gws, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 
 	// read back aes key
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 16 * VF * global_work_size, key, 0, NULL, NULL), "failed in reading key back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 16 * scalar_gws, key, 0, NULL, NULL), "failed in reading key back");
 
 #ifdef _OPENMP
 #pragma omp parallel for

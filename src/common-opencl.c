@@ -1,11 +1,15 @@
 /* Common OpenCL functions go in this file */
 
-#include "common-opencl.h"
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #include <time.h>
+
+#include "common-opencl.h"
+#include "signals.h"
+#include "recovery.h"
+#include "status.h"
 
 #define LOG_SIZE 1024*16
 
@@ -14,12 +18,41 @@ static char *kernel_source;
 static int kernel_loaded;
 static size_t program_size;
 
+extern volatile int bench_running;
+
+void opencl_process_event(void)
+{
+	if (!bench_running) {
+#if !OS_TIMER
+		sig_timer_emu_tick();
+#endif
+		if (event_pending) {
+
+			event_pending = event_abort;
+
+			if (event_save) {
+				event_save = 0;
+				rec_save();
+			}
+
+			if (event_status) {
+				event_status = 0;
+				status_print();
+			}
+
+			if (event_ticksafety) {
+				event_ticksafety = 0;
+				status_ticks_overflow_safety();
+			}
+		}
+	}
+}
+
 void advance_cursor()
 {
 	static int pos = 0;
 	char cursor[4] = { '/', '-', '\\', '|' };
 	fprintf(stderr, "%c\b", cursor[pos]);
-	fflush(stdout);
 	pos = (pos + 1) % 4;
 }
 
@@ -519,7 +552,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 
 			if (warn) {
 				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-					fprintf(stderr, "Elapsed time: %lu seconds\n", runtime);
+					fprintf(stderr, "Elapsed time: %lu seconds\n", (unsigned long)runtime);
 				fflush(stdout);
 			}
 		}

@@ -66,6 +66,11 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		error();
 	}
 
+#ifdef CL_VERSION_1_0
+	/* This erases the 'spinning wheel' cursor from self-test */
+	fprintf(stderr, " \b");
+#endif
+
 	crk_db = db;
 	memcpy(&crk_params, &db->format->params, sizeof(struct fmt_params));
 	memcpy(&crk_methods, &db->format->methods, sizeof(struct fmt_methods));
