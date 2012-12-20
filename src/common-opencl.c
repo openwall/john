@@ -18,28 +18,33 @@ static char *kernel_source;
 static int kernel_loaded;
 static size_t program_size;
 
+extern volatile int bench_running;
+
 void opencl_process_event(void)
 {
+	if (!bench_running) {
 #if !OS_TIMER
-	sig_timer_emu_tick();
+		sig_timer_emu_tick();
 #endif
-	if (event_pending) {
-		if (event_save) {
-			event_save = 0;
-			rec_save();
-		}
+		if (event_pending) {
 
-		if (event_status) {
-			event_status = 0;
-			status_print();
-		}
+			event_pending = event_abort;
 
-		if (event_ticksafety) {
-			event_ticksafety = 0;
-			status_ticks_overflow_safety();
-		}
+			if (event_save) {
+				event_save = 0;
+				rec_save();
+			}
 
-		event_pending = event_abort;
+			if (event_status) {
+				event_status = 0;
+				status_print();
+			}
+
+			if (event_ticksafety) {
+				event_ticksafety = 0;
+				status_ticks_overflow_safety();
+			}
+		}
 	}
 }
 
