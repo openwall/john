@@ -467,8 +467,13 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			sizeof(struct db_keys *);
 	}
 
-	if (!db->password_hash)
+	if (!db->password_hash) {
 		ldr_init_password_hash(db);
+		if (cfg_get_bool(SECTION_OPTIONS, NULL, "NoLoaderDupeCheck", 0)) {
+			skip_dupe_checking = 1;
+			fprintf(stderr, "No dupe-checking performed when loading hashes.\n");
+		}
+	}
 
 	for (index = 0; index < count; index++) {
 		piece = format->methods.split(ciphertext, index);
