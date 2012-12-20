@@ -301,7 +301,7 @@ void opencl_DES_bs_crypt_25(int keys_count)
 			clReleaseProgram(program[devno]);
 			build_kernel( devno, "-fno-bin-amdil -fno-bin-source -fno-bin-llvmir -fbin-exe") ;
 			krnl[pltfrmno][devno][pos] = clCreateKernel(program[devno],"DES_bs_25",&err) ;
-			if(err) {printf("Create Kernel DES_bs_25 FAILED\n"); return ;}
+			if(err) {fprintf(stderr, "Create Kernel DES_bs_25 FAILED\n"); return ;}
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],0,sizeof(cl_mem),&index768_gpu),"Set Kernel Arg FAILED arg0\n");
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
