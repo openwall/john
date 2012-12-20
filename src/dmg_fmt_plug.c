@@ -30,9 +30,6 @@
 
 #include <string.h>
 #include <errno.h>
-#ifndef _MSC_VER
-#include <alloca.h>
-#endif
 #include <fcntl.h>
 #include <stdlib.h>
 #include "stdint.h"
