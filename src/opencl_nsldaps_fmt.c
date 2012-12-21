@@ -235,7 +235,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/ssha_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
