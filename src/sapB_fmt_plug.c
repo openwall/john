@@ -169,6 +169,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strrchr(ciphertext, '$');
 	if (!p) return 0;
 
+	if (p - ciphertext > SALT_FIELD_LENGTH) return 0;
 	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
 
 	p++;
