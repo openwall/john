@@ -157,6 +157,7 @@ extern struct fmt_main fmt_opencl_office2010;
 extern struct fmt_main fmt_opencl_office2013;
 extern struct fmt_main fmt_opencl_NTLMv2;
 extern struct fmt_main fmt_ocl_krb5pa_sha1;
+extern struct fmt_main fmt_opencl_rar;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
@@ -317,6 +318,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_office2013);
 	john_register_one(&fmt_opencl_NTLMv2);
 	john_register_one(&fmt_ocl_krb5pa_sha1);
+	john_register_one(&fmt_opencl_rar);
 #endif
 
 #ifdef HAVE_CUDA
