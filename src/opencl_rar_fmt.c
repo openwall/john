@@ -1011,6 +1011,7 @@ struct fmt_main fmt_opencl_rar = {
 		cpu_tests // Changed in init if GPU
 	},{
 		init,
+		fmt_default_done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
