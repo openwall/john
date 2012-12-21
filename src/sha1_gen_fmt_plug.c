@@ -30,6 +30,7 @@
 static struct fmt_tests tests[] = {
 	{"$SHA1p$salt$59b3e8d637cf97edbe2384cf59cb7453dfe30789", "password"},
 	{"$SHA1s$salt$c88e9c67041a74e0357befdff93f87dde0904214", "password"},
+	{"$SHA1p$12345678901234567890b8d07d079c75d3aaaaaaaaaaaaaaaa$30d0b1d0453f7b80f7c096f75c19e91e31be9f18", "bacon"},
 	{NULL}
 };
 
