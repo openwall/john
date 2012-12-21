@@ -166,7 +166,7 @@ static void init(struct fmt_main *self) {
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/md4_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id, platform_id);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	create_clobj(MD4_NUM_KEYS);

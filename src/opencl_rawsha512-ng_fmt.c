@@ -410,7 +410,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/sha512-ng_kernel.cl";
+    char * task = "$JOHN/kernels/sha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     source_in_use = device_info[ocl_gpu_id];
@@ -419,7 +419,7 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (amd_gcn(source_in_use))
-        task = "$JOHN/sha512-ng_kernel_LOCAL.cl";
+        task = "$JOHN/kernels/sha512-ng_kernel_LOCAL.cl";
     opencl_build_kernel(task, ocl_gpu_id);
 
     // create kernel(s) to execute

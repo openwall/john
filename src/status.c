@@ -436,14 +436,14 @@ static void status_print_cracking(char *percent)
 	char trying[256];
 #endif
 
-	emms();
-
 	if (!(options.flags & FLG_STATUS_CHK))
 		if ((key = crk_get_key2()))
 			strnzcpy(saved_key, key, PLAINTEXT_BUFFER_SIZE);
 
 	if (showcand)
-		sprintf(cand, "/%.0f", (double)((long long)status.crypts.hi << 32) + status.crypts.lo);
+		sprintf(cand, "/%llu",
+		        ((unsigned long long)status.crypts.hi << 32) +
+		        status.crypts.lo);
 
 #ifdef HAVE_MPI
 	// we need to print until cr in one call, otherwise output gets interleaved

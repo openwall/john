@@ -170,7 +170,7 @@ static void fmt_NT_init(struct fmt_main *self){
 	int argIndex = 0;
 
 	atexit(release_all);
-	opencl_init("$JOHN/nt_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, platform_id);
 
 	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");

@@ -565,7 +565,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/cryptsha512_kernel_DEFAULT.cl";
+    char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
     uint64_t startTime, runtime;
 
     opencl_init_dev(ocl_gpu_id, platform_id);
@@ -576,10 +576,10 @@ static void init(struct fmt_main * self) {
         source_in_use = atoi(tmp_value);
 
     if (use_local(source_in_use))
-            task = "$JOHN/cryptsha512_kernel_LOCAL.cl";
+            task = "$JOHN/kernels/cryptsha512_kernel_LOCAL.cl";
     else if (gpu(source_in_use)) {
         fprintf(stderr, "Building the kernel, this could take a while\n");
-        task = "$JOHN/cryptsha512_kernel_GPU.cl";
+        task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
     }
     fflush(stdout);
     opencl_build_kernel(task, ocl_gpu_id);

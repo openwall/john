@@ -470,7 +470,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/xsha512-ng_kernel.cl";
+    char * task = "$JOHN/kernels/xsha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     opencl_build_kernel(task, ocl_gpu_id);

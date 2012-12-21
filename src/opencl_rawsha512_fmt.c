@@ -151,7 +151,7 @@ static void init(struct fmt_main *self)
 {
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/sha512_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/sha512_kernel.cl", ocl_gpu_id, platform_id);
 
 	///Alocate memory on the GPU
 	mem_in =
