@@ -643,7 +643,7 @@ static void init(struct fmt_main *self)
 	global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, PLAINTEXT_LENGTH);
-	opencl_init_opt("$JOHN/rar_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/rar_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernels to execute
 	RarInit = clCreateKernel(program[ocl_gpu_id], "RarInit", &ret_code);
