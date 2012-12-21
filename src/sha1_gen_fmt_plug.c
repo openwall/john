@@ -30,7 +30,6 @@
 static struct fmt_tests tests[] = {
 	{"$SHA1p$salt$59b3e8d637cf97edbe2384cf59cb7453dfe30789", "password"},
 	{"$SHA1s$salt$c88e9c67041a74e0357befdff93f87dde0904214", "password"},
-	{"$SHA1r$12345678901234567890b8d07d079c75d3aaaaaaaaaaaaaaaa$30d0b1d0453f7b80f7c096f75c19e91e31be9f18", "bacon"},
 	{NULL}
 };
 
@@ -45,7 +44,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	if (strncmp(ciphertext, "$SHA1", 5) ||
-	    (ciphertext[5] != 'p' && ciphertext[5] != 's' && ciphertext[5] != 'r') ||
+	    (ciphertext[5] != 'p' && ciphertext[5] != 's') ||
 	    ciphertext[6] != '$')
 		return 0;
 
@@ -214,14 +213,10 @@ static void crypt_all(int count)
 	if (saved_salt[1] == 'p') {
 		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
 		SHA1_Update(&ctx, saved_key, saved_key_length);
-	} else if (saved_salt[1] == 's') { /* sha1($p.$s) */
+	} else {
 		SHA1_Update(&ctx, saved_key, saved_key_length);
 		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
-	} else { /* sha1($s.$p) */
-		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
-		SHA1_Update(&ctx, saved_key, saved_key_length);
 	}
-
 	SHA1_Final((unsigned char *)crypt_out, &ctx);
 }
 
