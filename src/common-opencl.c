@@ -512,7 +512,8 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
-//Only AMD gpu code will benefit from this routine.
+// Only AMD gpu code, and OSX (including with nvidia)
+// will benefit from this routine.
 void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[128], bin_name[128];
@@ -521,7 +522,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 
 	kernel_loaded = 0;
 
-	if (!gpu_amd(device_info[ocl_gpu_id]) || !save || stat(path_expand(kernel_filename), &source_stat))
+	if ((!gpu_amd(device_info[ocl_gpu_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, dev_id, options);
 
 	else {
@@ -819,7 +820,7 @@ int get_platform_vendor_id(int platform_id)
 		return DEV_NVIDIA;
 
 	if (strstr(dname, "Apple") != NULL)
-		return DEV_APPLE;
+		return PLATFORM_APPLE;
 
 	if (strstr(dname, "Intel") != NULL)
 		return DEV_INTEL;
