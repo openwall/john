@@ -27,7 +27,7 @@
 #define SALT_SIZE           0
 
 cl_command_queue queue_prof;
-cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys, data_info;
+cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys;
 static cl_uint *partial_hashes;
 static cl_uint *res_hashes;
 static char *saved_plain;
@@ -35,7 +35,6 @@ static char get_key_saved[PLAINTEXT_LENGTH + 1];
 
 #define MIN_KEYS_PER_CRYPT      2048
 #define MAX_KEYS_PER_CRYPT      MD4_NUM_KEYS
-static unsigned int datai[2];
 static int have_full_hashes;
 
 static int max_keys_per_crypt = MD4_NUM_KEYS;
@@ -85,18 +84,11 @@ static void create_clobj(int kpc){
 		BINARY_SIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
-	data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys),
+	                              (void *) &buffer_keys), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_out),
+	                              (void *) &buffer_out), "Error setting argument 2");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info),
-		(void *) &data_info), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_keys),
-		(void *) &buffer_keys), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out),
-		(void *) &buffer_out), "Error setting argument 2");
-
-	datai[0] = PLAINTEXT_LENGTH;
-	datai[1] = kpc;
 	global_work_size = kpc;
 }
 
@@ -106,7 +98,6 @@ static void release_clobj(void){
 
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
-	HANDLE_CLERROR(clReleaseMemObject(data_info), "Error Releasing data_info");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_partial_hashes), "Error Releasing pinned_partial_hashes");
 	MEM_FREE(res_hashes);
@@ -132,7 +123,6 @@ static void find_best_kpc(void){
 			memcpy(&(saved_plain[i * (PLAINTEXT_LENGTH + 1)]), "abcaaeaf", PLAINTEXT_LENGTH + 1);
 			saved_plain[i * (PLAINTEXT_LENGTH + 1) + 8] = 0x80;
 		}
-        	clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 		clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH + 1) * num, saved_plain, 0, NULL, NULL);
     		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 		if(ret_code != CL_SUCCESS) {
@@ -162,11 +152,14 @@ static void find_best_kpc(void){
 }
 
 static void init(struct fmt_main *self) {
+	char build_opts[64];
 	char *kpc;
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEY_LENGTH=%d", PLAINTEXT_LENGTH + 1);
+	opencl_init_opt("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	create_clobj(MD4_NUM_KEYS);
@@ -279,9 +272,6 @@ static void crypt_all(int count)
 	fprintf(stderr, "\n");
 #endif
 	// copy keys to the device
-	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_TRUE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
-	    "failed in clEnqueueWriteBuffer data_info");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
 	    (PLAINTEXT_LENGTH + 1) * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
 	    "failed in clEnqueueWriteBuffer buffer_keys");

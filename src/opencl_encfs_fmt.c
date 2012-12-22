@@ -306,9 +306,55 @@ static void init(struct fmt_main *self)
 	atexit(release_all);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$encfs$", 5);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	if (strncmp(ciphertext, "$encfs$", 7))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 7;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* key size */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* cipher */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if (res * 2 != strlen(p))
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* data length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+		goto err;
+	if (res * 2 != strlen(p))
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -375,8 +421,7 @@ static void set_salt(void *salt)
 	}
 }
 
-#undef set_key
-static void set_key(char *key, int index)
+static void encfs_set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
 	if (length > PLAINTEXT_LENGTH)
@@ -471,6 +516,9 @@ struct fmt_main fmt_opencl_encfs = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		BINARY_ALIGN,
+#endif
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
@@ -484,12 +532,15 @@ struct fmt_main fmt_opencl_encfs = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		set_key,
+		encfs_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

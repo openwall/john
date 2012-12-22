@@ -258,9 +258,55 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$encfs$", 7);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	if (strncmp(ciphertext, "$encfs$", 7))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 7;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* key size */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* cipher */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if (res * 2 != strlen(p))
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* data length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+		goto err;
+	if (res * 2 != strlen(p))
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
