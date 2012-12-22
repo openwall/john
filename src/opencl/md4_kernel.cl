@@ -36,13 +36,12 @@
 /* OpenCL kernel entry point. Copy KEY_LENGTH bytes key to be hashed from
  * global to local memory. Break the key into 16 32-bit (uint) words.
  * MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(__global uint *data_info, __global const uint * keys, __global uint * hashes)
+__kernel void md4(__global const uint * keys, __global uint * hashes)
 {
 	int id = get_global_id(0);
 	uint key[16] = { 0 };
 	uint i;
-	uint num_keys = data_info[1];
-	uint KEY_LENGTH = data_info[0] + 1;
+	uint num_keys = get_global_size(0);
 
 	int base = id * (KEY_LENGTH / 4);
 
