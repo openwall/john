@@ -49,6 +49,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
+	int iterations;
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -229,6 +230,7 @@ static void set_salt(void *salt)
 	cur_salt = (odf_cpu_salt*)salt;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
 	currentsalt.length = cur_salt->salt_length;
+	currentsalt.iterations = 1024;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
