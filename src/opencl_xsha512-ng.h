@@ -11,15 +11,11 @@
  * http://www.gnu.org/licenses/gpl-2.0.html
  */
 
-#ifndef _RAWSHA512_NG_H
-#define _RAWSHA512_NG_H
+#ifndef _XSHA512_NG_H
+#define _XSHA512_NG_H
 
 #include "opencl_device_info.h"
 #include "opencl_sha512.h"
-
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Constants.
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
@@ -69,4 +65,11 @@ typedef struct {
     uint32_t                    buflen;
     buffer_64                   buffer[16];     //1024bits
 } sha512_ctx_buffer;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
 #endif
+
+#endif  /* _XSHA512_NG_H */
