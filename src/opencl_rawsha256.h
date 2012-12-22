@@ -17,10 +17,6 @@
 #include "opencl_device_info.h"
 #include "opencl_sha256.h"
 
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 //Constants.
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
 #define PLAINTEXT_TEXT          "32"
@@ -55,4 +51,11 @@ typedef struct {
     uint32_t                    buflen;
     buffer_32                   buffer[16];     //512 bits
 } sha256_ctx;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
 #endif
+
+#endif  /* _RAWSHA256_H */

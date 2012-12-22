@@ -140,9 +140,36 @@ static void init(struct fmt_main *self)
 	atexit(release_all);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$strip$", 7);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	if (strncmp(ciphertext, "$strip$", 7))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 7;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt + data */
+		goto err;
+	if (strlen(p) != 2048)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

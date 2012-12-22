@@ -17,10 +17,6 @@
 #include "opencl_device_info.h"
 #include "opencl_sha256.h"
 
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 //Constants.
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
@@ -50,7 +46,7 @@ typedef union {
 typedef struct {
     uint32_t                    rounds;
     uint32_t                    length;
-    uint32_t                    initial;
+    uint32_t                    final;
     buffer_32                   salt[SALT_ARRAY];
 } sha256_salt;
 #define SALT_SIZE               sizeof(sha256_salt)
@@ -79,4 +75,12 @@ typedef struct {
     buffer_32                   temp_result[SALT_ARRAY];
     buffer_32                   p_sequence[PLAINTEXT_ARRAY];
 } sha256_buffers;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",
+        ", crypt: "    ,  "/"              ,  ", prepare: "  ,  ", final: "
+};
 #endif
+
+#endif  /* _CRYPTSHA256_H */

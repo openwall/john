@@ -66,16 +66,6 @@ static struct custom_salt {
 	uint32_t key_transf_rounds;
 } *cur_salt;
 
-#ifdef KEEPASS_DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static void transform_key(char *masterkey, struct custom_salt *csp, unsigned char *final_key)
 {
         // First, hash the masterkey
@@ -145,9 +135,95 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$keepass$", 9);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int version, res, contentsize;
+
+	if (strncmp(ciphertext, "$keepass$", 9))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 10;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* version */
+		goto err;
+	version = atoi(p);
+	if (version != 1 && version != 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* rounds */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* offset */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* final random seed */
+		goto err;
+	res = strlen(p);
+	if (res != 32 && res != 64)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* transf random seed */
+		goto err;
+	res = strlen(p);
+	if (res != 64)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* env_iv */
+		goto err;
+	res = strlen(p);
+	if (res != 32)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* hash or expected bytes*/
+		goto err;
+	res = strlen(p);
+	if (res != 64)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if (version == 1) {
+		if ((p = strtok(NULL, "*")) == NULL)	/* inline flag */
+			goto err;
+		res = atoi(p);
+		if (res != 1 && res != 2)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* content size */
+			goto err;
+		contentsize = atoi(p);
+		if ((p = strtok(NULL, "*")) == NULL)	/* content */
+			goto err;
+		res = strlen(p);
+		if (res != contentsize * 2)
+			goto err;
+		if (!ishex(p))
+			goto err;
+	}
+	else {
+		if ((p = strtok(NULL, "*")) == NULL)	/* content */
+			goto err;
+		res = strlen(p);
+		if (res != 64)
+			goto err;
+		if (!ishex(p))
+			goto err;
+	}
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

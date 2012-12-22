@@ -247,8 +247,6 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-struct fmt_main dmg_fmt;
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy = strdup(ciphertext);

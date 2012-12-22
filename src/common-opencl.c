@@ -512,7 +512,8 @@ void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
 }
 
-//Only AMD gpu code will benefit from this routine.
+// Only AMD gpu code, and OSX (including with nvidia)
+// will benefit from this routine.
 void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[128], bin_name[128];
@@ -521,7 +522,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 
 	kernel_loaded = 0;
 
-	if (!gpu_amd(device_info[ocl_gpu_id]) || !save || stat(path_expand(kernel_filename), &source_stat))
+	if ((!gpu_amd(device_info[ocl_gpu_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, dev_id, options);
 
 	else {
@@ -532,9 +533,12 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 			sizeof (dev_name), dev_name, NULL), "Error querying DEVICE_NAME");
 
 		//Decide the binary name.
-		p = strstr(kernel_filename, ".cl");
-		strncpy(bin_name, kernel_filename, (p - kernel_filename));
-		sprintf(bin_name, "%s_%s.bin", bin_name, dev_name);
+		strncpy(bin_name, kernel_filename, sizeof(bin_name));
+		p = strstr(bin_name, ".cl");
+		if (p) *p = 0;
+		strcat(bin_name, "_");
+		strcat(bin_name, dev_name);
+		strcat(bin_name, ".bin");
 
 		//Select the kernel to run.
 		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
@@ -819,7 +823,7 @@ int get_platform_vendor_id(int platform_id)
 		return DEV_NVIDIA;
 
 	if (strstr(dname, "Apple") != NULL)
-		return DEV_APPLE;
+		return PLATFORM_APPLE;
 
 	if (strstr(dname, "Intel") != NULL)
 		return DEV_INTEL;
