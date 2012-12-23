@@ -18,8 +18,8 @@
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 
-#define KEYS_PER_CRYPT 1024*9
-#define PLAINTEXT_LENGTH	15
+#define KEYS_PER_CRYPT                  (1024 * 9)
+#define PLAINTEXT_LENGTH                15
 
 #define MIN(a,b) 		((a)<(b)?(a):(b))
 #define MAX(a,b) 		((a)>(b)?(a):(b))
@@ -41,6 +41,7 @@
 
 #define LWS_CONFIG		"md5crypt_LWS"
 #define GWS_CONFIG		"md5crypt_GWS"
+#define DUR_CONFIG		"md5crypt_MaxDuration"
 
 typedef struct {
 	unsigned char saltlen;
@@ -69,7 +70,7 @@ static const char apr1_salt_prefix[] = "$apr1$";
 static cl_mem mem_in, mem_out, pinned_in, pinned_out, mem_salt;
 static size_t insize, outsize;
 static size_t saltsize = sizeof(crypt_md5_salt);
-
+static int new_keys;
 
 //tests are unified for 8+8 length
 static struct fmt_tests tests[] = {
@@ -114,17 +115,17 @@ static struct fmt_tests tests[] = {
 
 																		  	   //tests from MD5_fmt.c
 *//*       {"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
-	   {"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
-	   {"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
-	   {"$1$$qRPK7m23GJusamGpoGLby/", ""},
-	   {"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
-	   {"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
-	   {"$1$`!@#%^&*$E6hD76/pKTS8qToBCkux30", "invalid salt"},
-	   {"$1$12345678$xek.CpjQUVgdf/P2N9KQf/", ""},
-	   {"$1$1234$BdIMOAWFOV2AQlLsrN/Sw.", "1234"},
-	   {"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
-	   {"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
-	   {"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
+	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
+	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
+	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
+	{"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
+	{"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
+	{"$1$`!@#%^&*$E6hD76/pKTS8qToBCkux30", "invalid salt"},
+	{"$1$12345678$xek.CpjQUVgdf/P2N9KQf/", ""},
+	{"$1$1234$BdIMOAWFOV2AQlLsrN/Sw.", "1234"},
+	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
+	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
+	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
 	 */
 	{NULL}
 };
@@ -158,6 +159,8 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+
+	memset(inbuffer, '\0', sizeof(crypt_md5_password) * gws);
 }
 
 static void release_clobj(void)
@@ -176,8 +179,31 @@ static void release_clobj(void)
 static void release_all(void)
 {
 	release_clobj();
+
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
+static int salt_hash(void *salt)
+{
+	unsigned int i, h, retval;
+
+	retval = 0;
+	for (i = 0; i <= 6; i += 2) {
+		h = (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i])];
+		h ^= ((unsigned char *)salt)[i + 1];
+		h <<= 6;
+		h ^= (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i + 1])];
+		h ^= ((unsigned char *)salt)[i];
+		retval += h;
+	}
+
+	retval ^= retval >> SALT_HASH_LOG;
+	retval &= SALT_HASH_SIZE - 1;
+
+	return retval;
 }
 
 static void set_key(char *key, int index)
@@ -185,6 +211,7 @@ static void set_key(char *key, int index)
 	uint32_t len = strlen(key);
 	inbuffer[index].length = len;
 	memcpy((char *) inbuffer[index].v, key, len);
+        new_keys = 1;
 }
 
 static void set_salt(void *salt)
@@ -282,6 +309,10 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	int optimal_gws = local_work_size;
 	const int md5perkey = 1000; /* FIXME - what is the real number? */
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 5000000000ULL;
+	char *tmp_value;
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+		MaxRunTime = atoi(tmp_value) * 1000000000ULL;
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -382,8 +413,10 @@ static void init(struct fmt_main *self)
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 	atexit(release_all);
-}
 
+	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -489,16 +522,24 @@ static int binary_hash_6(void *binary)
 
 static void crypt_all(int count)
 {
+	size_t gws, in_size, out_size;
+
+	gws = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	in_size = sizeof(crypt_md5_password) * gws;
+	out_size = sizeof(crypt_md5_hash) * gws;
+
 	///Copy data to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, inbuffer, 0, NULL, NULL), "Copy memin");
+	if (new_keys)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, in_size, inbuffer, 0, NULL, NULL), "Copy memin");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0, outsize, outbuffer, 0, NULL, NULL), "Copy data back");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, profilingEvent), "Set ND range");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0, out_size, outbuffer, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	new_keys = 0;
 }
 
 static int get_hash_0(int index)
@@ -589,7 +630,7 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 			binary_hash_5,
 			binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,
