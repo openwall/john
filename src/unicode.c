@@ -661,7 +661,7 @@ UTF8 *utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 		unsigned short bytesToWrite = 0;
 		const UTF32 byteMask = 0xBF;
 		const UTF32 byteMark = 0x80;
-		const UTF16 *oldSource = source; /* In case we have to back out */
+
 		ch = *source++;
 		/* If we have a surrogate pair, convert to UTF32 first. */
 		if (ch >= UNI_SUR_HIGH_START && ch <= UNI_SUR_HIGH_END) {
@@ -695,8 +695,8 @@ UTF8 *utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 
 		tpt += bytesToWrite;
 		if (tpt > targetEnd) {
-			source = oldSource; /* Back up source pointer! */
-			tpt -= bytesToWrite; break;
+			tpt -= bytesToWrite;
+			break;
 		}
 		switch (bytesToWrite) { /* note: everything falls through. */
 		case 4: *--tpt = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
