@@ -23,7 +23,7 @@
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf
 #else
-static void rar_dbgmsg(const char* fmt,...){}
+//static void rar_dbgmsg(const char* fmt,...){}
 #endif
 
 #define RAR_MAX_ALLOCATION 184549376
@@ -36,7 +36,7 @@ void *rar_malloc(size_t size)
 #endif
 		return NULL;
 	}
-	rar_dbgmsg("%s() allocating %zd bytes\n", __func__, size);
+	//rar_dbgmsg("%s() allocating %zd bytes\n", __func__, size);
 
 	return mem_alloc(size);
 }
@@ -46,7 +46,7 @@ void *rar_realloc2(void *ptr, size_t size)
 	void *alloc;
 
     if(!size || size > RAR_MAX_ALLOCATION) {
-	rar_dbgmsg("UNRAR: rar_realloc2(): Attempt to allocate %zu bytes. Please report to http://bugs.clamav.net\n", size);
+	//rar_dbgmsg("UNRAR: rar_realloc2(): Attempt to allocate %zu bytes. Please report to http://bugs.clamav.net\n", size);
 	return NULL;
     }
 
@@ -58,7 +58,7 @@ void *rar_realloc2(void *ptr, size_t size)
 	return NULL;
     }
 
-    // rar_dbgmsg("%s: reallocated %p to %zu bytes at %p\n", __func__, ptr, size, alloc); // realloc invalidates ptr
+    // //rar_dbgmsg("%s: reallocated %p to %zu bytes at %p\n", __func__, ptr, size, alloc); // realloc invalidates ptr
 
     return alloc;
 }
