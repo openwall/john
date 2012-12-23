@@ -58,7 +58,7 @@ void *rar_realloc2(void *ptr, size_t size)
 	return NULL;
     }
 
-    rar_dbgmsg("%s: reallocated %p to %zu bytes at %p\n", __func__, ptr, size, alloc);
+    // rar_dbgmsg("%s: reallocated %p to %zu bytes at %p\n", __func__, ptr, size, alloc); // realloc invalidates ptr
 
     return alloc;
 }
