@@ -245,8 +245,10 @@ static char *userclass_expand(const char *src)
 				*dst++ = *++src2;
 				src2++;
 				continue;
-			} else
+			} else {
+				MEM_FREE(dst_tmp);
 				return NULL;
+			}
 		}
 
 		if (*src2 == '[' && br == 0) {
@@ -276,8 +278,10 @@ static char *userclass_expand(const char *src)
 		*dst++ = *src2++;
 	}
 	*dst = 0;
-	if (br)
+	if (br) {
+		MEM_FREE(dst_tmp);
 		return NULL;
+	}
 	dst = str_alloc_copy(dst_tmp);
 	MEM_FREE(dst_tmp);
 	return dst;
