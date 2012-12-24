@@ -353,6 +353,10 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		}
 	}
 	global_work_size = optimal_gws;
+	fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", optimal_gws);
 }
 
 static char *get_key(int index)
