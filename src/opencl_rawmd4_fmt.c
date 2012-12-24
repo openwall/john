@@ -14,8 +14,8 @@
 #include "common.h"
 #include "formats.h"
 #include "common-opencl.h"
+#include "config.h"
 
-#define MD4_NUM_KEYS        1024*2048
 #define PLAINTEXT_LENGTH    31
 #define FORMAT_LABEL        "raw-md4-opencl"
 #define FORMAT_NAME         "Raw MD4"
@@ -34,10 +34,16 @@ static char *saved_plain;
 static char get_key_saved[PLAINTEXT_LENGTH + 1];
 
 #define MIN_KEYS_PER_CRYPT      2048
-#define MAX_KEYS_PER_CRYPT      MD4_NUM_KEYS
+#define MAX_KEYS_PER_CRYPT      (1024 * 2048)
+
+#define LWS_CONFIG		"rawmd4_LWS"
+#define GWS_CONFIG		"rawmd4_GWS"
+#define DUR_CONFIG		"rawmd4_MaxDuration"
+
 static int have_full_hashes;
 
-static int max_keys_per_crypt = MD4_NUM_KEYS;
+static int max_keys_per_crypt = MAX_KEYS_PER_CRYPT;
+static int saved_keys_per_crypt;
 
 static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},
@@ -88,8 +94,6 @@ static void create_clobj(int kpc){
 	                              (void *) &buffer_keys), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_out),
 	                              (void *) &buffer_out), "Error setting argument 2");
-
-	global_work_size = kpc;
 }
 
 static void release_clobj(void){
@@ -103,84 +107,179 @@ static void release_clobj(void){
 	MEM_FREE(res_hashes);
 }
 
-static void find_best_kpc(void){
-	int num;
-	cl_event myEvent;
-	cl_ulong startTime, endTime, tmpTime;
-	int kernelExecTimeNs = 6969;
-	cl_int ret_code;
-	int optimal_kpc=2048;
-	int i = 0;
-	cl_uint *tmpbuffer;
-
-	fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
-	for( num=MD4_NUM_KEYS; num > 4096 ; num -= 4096){
-		release_clobj();
-		create_clobj(num);
-		advance_cursor();
-		queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
-		for (i=0; i < num; i++){
-			memcpy(&(saved_plain[i * (PLAINTEXT_LENGTH + 1)]), "abcaaeaf", PLAINTEXT_LENGTH + 1);
-			saved_plain[i * (PLAINTEXT_LENGTH + 1) + 8] = 0x80;
-		}
-		clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH + 1) * num, saved_plain, 0, NULL, NULL);
-    		ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
-		if(ret_code != CL_SUCCESS) {
-			HANDLE_CLERROR(ret_code, "Error running kernel in find_best_KPC()");
-			continue;
-		}
-		clFinish(queue_prof);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-		tmpTime = endTime-startTime;
-		tmpbuffer = malloc(sizeof(cl_uint) * num);
-		clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
-		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
-		tmpTime = tmpTime + (endTime-startTime);
-		if( ((int)( ((float) (tmpTime) / num) * 10 )) <= kernelExecTimeNs) {
-			kernelExecTimeNs = ((int) (((float) (tmpTime) / num) * 10) ) ;
-			optimal_kpc = num;
-		}
-		MEM_FREE(tmpbuffer);
-		clReleaseCommandQueue(queue_prof);
-	}
-	fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do \"export GWS=%d\")\n",optimal_kpc,optimal_kpc);
-	max_keys_per_crypt = optimal_kpc;
+static void release_all(void)
+{
 	release_clobj();
-	create_clobj(optimal_kpc);
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
+static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
+{
+	cl_ulong startTime, endTime;
+	cl_command_queue queue_prof;
+	cl_event Event[4];
+	cl_int ret_code;
+	int i;
+
+	create_clobj(gws);
+	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+
+        for (i=0; i < gws; i++){
+		memcpy(&(saved_plain[i * (PLAINTEXT_LENGTH + 1)]), "abcaaeaf", PLAINTEXT_LENGTH + 1);
+		saved_plain[i * (PLAINTEXT_LENGTH + 1) + 8] = 0x80;
+	}
+	///Copy data to GPU memory
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_FALSE, 0, (PLAINTEXT_LENGTH + 1) * gws, saved_plain, 0, NULL, &Event[0]), "Copy memin");
+
+	///Run kernel
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, (size_t *) &gws, &local_work_size, 0, NULL, &Event[1]), "Set ND range");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, res_hashes, 0, NULL, &Event[2]), "Copy data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws * 3, res_hashes, 0, NULL, &Event[3]), "Copy data back");
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+	if (do_benchmark)
+		fprintf(stderr, "input xfer: %llu us, ", (endTime-startTime)/1000ULL);
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+	if (do_benchmark)
+		fprintf(stderr, "kernel %.2f ms, ", (float)((endTime - startTime)/1000000.));
+
+	/* 200 ms duration limit for GCN to avoid ASIC hangs */
+	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
+		if (do_benchmark)
+			fprintf(stderr, "- exceeds 200 ms\n");
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[2], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+	if (do_benchmark)
+		fprintf(stderr, "results xfer: %llu us\n", (endTime-startTime)/1000ULL);
+
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(Event[3], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
+
+	clReleaseCommandQueue(queue_prof);
+	release_clobj();
+
+	return (endTime - startTime);
+}
+
+static void find_best_gws(int do_benchmark, struct fmt_main *self)
+{
+	int num;
+	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	unsigned int cryptspeed, bestspeed = 0;
+	int optimal_gws = local_work_size;
+	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL;
+	char *tmp_value;
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+		MaxRunTime = atoi(tmp_value) * 1000000000ULL;
+
+	if (do_benchmark) {
+		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
+		fprintf(stderr, "Raw GPU speed figures including buffer transfers:\n");
+	}
+
+	for (num = local_work_size; num; num *= 2) {
+		//Check if hardware can handle the size we are going to try now.
+		if ((PLAINTEXT_LENGTH + 1) * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
+			break;
+
+		if (!do_benchmark)
+			advance_cursor();
+		if (!(run_time = gws_test(num, do_benchmark, self)))
+			break;
+
+		cryptspeed = (1000000000UL * num / run_time);
+
+		if (run_time < min_time)
+			min_time = run_time;
+
+		if (do_benchmark)
+			fprintf(stderr, "gws %6d\t %14u c/s%8.3f sec per crypt_all()", num, cryptspeed, (float)run_time / 1000000000.);
+
+		if (((float)run_time / (float)min_time) < ((float)cryptspeed / (float)bestspeed)) {
+			if (do_benchmark)
+				fprintf(stderr, "!\n");
+			bestspeed = cryptspeed;
+			optimal_gws = num;
+		} else {
+			if (run_time < MaxRunTime && cryptspeed > (bestspeed * 1.01)) {
+				if (do_benchmark)
+					fprintf(stderr, "+\n");
+				bestspeed = cryptspeed;
+				optimal_gws = num;
+				continue;
+			}
+			if (do_benchmark)
+				fprintf(stderr, "\n");
+			if (run_time >= MaxRunTime)
+				break;
+		}
+	}
+	fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", optimal_gws);
+
+	max_keys_per_crypt = optimal_gws;
+
 }
 
 static void init(struct fmt_main *self) {
 	char build_opts[64];
 	char *kpc;
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
-
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", PLAINTEXT_LENGTH + 1);
 	opencl_init_opt("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-	create_clobj(MD4_NUM_KEYS);
-	opencl_find_best_workgroup(self);
-	release_clobj();
-	if( (kpc = getenv("GWS")) == NULL){
-		max_keys_per_crypt = MD4_NUM_KEYS;
-		create_clobj(MD4_NUM_KEYS);
-	} else {
-		if (atoi(kpc) == 0){
-			//user chose to die of boredom
-			max_keys_per_crypt = MD4_NUM_KEYS;
-			create_clobj(MD4_NUM_KEYS);
-			find_best_kpc();
-		} else {
-			max_keys_per_crypt = atoi(kpc);
-			create_clobj(max_keys_per_crypt);
-		}
+
+	max_keys_per_crypt = MAX_KEYS_PER_CRYPT;
+	local_work_size = 0;
+
+	if ((kpc = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
+		local_work_size = atoi(kpc);
+
+	if ((kpc = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
+		max_keys_per_crypt = atoi(kpc);
+
+	if ((kpc = getenv("LWS")))
+		local_work_size = atoi(kpc);
+
+	if ((kpc = getenv("GWS")))
+		max_keys_per_crypt = atoi(kpc);
+
+	if (local_work_size > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
+		local_work_size = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+
+	if (!local_work_size) {
+		create_clobj(MAX_KEYS_PER_CRYPT);
+		opencl_find_best_workgroup(self);
+		release_clobj();
+	}
+
+	if (max_keys_per_crypt == 0){
+		//user chose to die of boredom
+		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 	}
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
+	atexit(release_all);
+	create_clobj(max_keys_per_crypt);
+
 	self->params.max_keys_per_crypt = max_keys_per_crypt;
+	self->params.min_keys_per_crypt = local_work_size;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self) {
@@ -259,6 +358,11 @@ static char *get_key(int index) {
 
 static void crypt_all(int count)
 {
+	size_t gws;
+
+	gws = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	saved_keys_per_crypt = gws;
+
 #ifdef DEBUGVERBOSE
 	int i, j;
 	unsigned char *p = (unsigned char *) saved_plain;
@@ -273,16 +377,16 @@ static void crypt_all(int count)
 #endif
 	// copy keys to the device
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH + 1) * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
+	    (PLAINTEXT_LENGTH + 1) * gws, saved_plain, 0, NULL, NULL),
 	    "failed in clEnqueueWriteBuffer buffer_keys");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+	    &gws, &local_work_size, 0, NULL, profilingEvent),
 	    "failed in clEnqueueNDRangeKernel");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]),"failed in clFinish");
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0,
-	    sizeof(cl_uint) * max_keys_per_crypt, partial_hashes, 0, NULL, NULL),
+	    sizeof(cl_uint) * gws, partial_hashes, 0, NULL, NULL),
 	    "failed in reading data back");
 	have_full_hashes = 0;
 
@@ -319,17 +423,17 @@ static int cmp_exact(char *source, int count){
 
 	if (!have_full_hashes){
 	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
-		sizeof(cl_uint) * (max_keys_per_crypt),
-		sizeof(cl_uint) * 3 * max_keys_per_crypt, res_hashes, 0,
+		sizeof(cl_uint) * (saved_keys_per_crypt),
+		sizeof(cl_uint) * 3 * saved_keys_per_crypt, res_hashes, 0,
 		NULL, NULL);
 		have_full_hashes = 1;
 	}
 
 	if (t[1]!=res_hashes[count])
 		return 0;
-	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
+	if (t[2]!=res_hashes[1*saved_keys_per_crypt+count])
 		return 0;
-	if (t[3]!=res_hashes[2*max_keys_per_crypt+count])
+	if (t[3]!=res_hashes[2*saved_keys_per_crypt+count])
 		return 0;
 	return 1;
 }
