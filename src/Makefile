@@ -10,6 +10,7 @@ AS = $(CC)
 LD = $(CC)
 CPP = $(CC)
 CP = cp
+CP_PRESERVE = cp -p
 LN = ln -f -s
 RM = rm -f
 MKDIR = mkdir -p
@@ -369,8 +370,8 @@ linux-x86-64-gpu:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart -march=native"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -381,8 +382,8 @@ linux-x86-64-opencl:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl -march=native"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -528,8 +529,8 @@ linux-x86-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
@@ -539,8 +540,8 @@ linux-x86-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-cuda:
 	$(LN) x86-sse.h arch.h
@@ -1079,8 +1080,8 @@ macosx-x86-64-gpu:
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -1092,8 +1093,8 @@ macosx-x86-64-opencl:
 		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 macosx-x86-64-cuda:
 	$(LN) x86-64.h arch.h
