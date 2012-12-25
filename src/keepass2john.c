@@ -254,16 +254,25 @@ static void process_database(char* encryptedDatabase)
 				break;
 
                         case TransformRounds:
-				transformRounds = BytesToUInt64(pbData);
-				MEM_FREE(pbData);
+				if(!pbData) {
+					fprintf(stderr, "pbData is NULL, a possible bug?\n");
+				}
+				else {
+					transformRounds = BytesToUInt64(pbData);
+					MEM_FREE(pbData);
+				}
 				break;
 
                         case EncryptionIV:
+				if (initializationVectors)
+					MEM_FREE(initializationVectors);
 				initializationVectors = pbData;
 				initializationVectorsLength = uSize;
 				break;
 
                         case StreamStartBytes:
+				if (expectedStartBytes)
+					MEM_FREE(expectedStartBytes);
 				expectedStartBytes = pbData;
 				expectedStartBytesLength = uSize;
 				break;

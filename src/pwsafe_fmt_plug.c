@@ -69,10 +69,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	// format $pwsafe$version*salt*iterations*hash
 	char *p;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy;
+	char *keeptr;
 	if (strncmp(ciphertext, "$pwsafe$", 8) != 0)
 		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* version */
 		return 0;

@@ -55,9 +55,9 @@ extern void cuda_xsha512_init();
 extern int cuda_cmp_all(void *binary, int count);
 extern void cuda_xsha512_cpy_hash(xsha512_hash * host_hash);
 
-static xsha512_key gkey[MAX_KEYS_PER_CRYPT];
-static xsha512_extend_key g_ext_key[MAX_KEYS_PER_CRYPT];
-static xsha512_hash ghash[MAX_KEYS_PER_CRYPT];
+static xsha512_key *gkey;
+static xsha512_extend_key *g_ext_key;
+static xsha512_hash *ghash;
 static xsha512_salt gsalt;
 uint8_t xsha512_key_changed = 0;
 uint8_t use_extend = 0;
@@ -73,9 +73,21 @@ static uint64_t H[8] = {
 	0x5be0cd19137e2179LL
 };
 
+static void done(void)
+{
+	/* FIXME: How do we de-init cuda stuff? */
+	MEM_FREE(ghash);
+	MEM_FREE(g_ext_key);
+	MEM_FREE(gkey);
+}
+
 static void init(struct fmt_main *self)
 {
+	gkey = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_key));
+	g_ext_key = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_extend_key));
+	ghash = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_hash));
 	cuda_xsha512_init();
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

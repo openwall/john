@@ -88,7 +88,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, "$sshng$", 7) != 0)
 		goto err;
 	ctcopy += 7;
-	p = strtok(ctcopy, "$"); /* cipher */
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* cipher */
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt len */
 		goto err;
 	if(atoi(p) > 16)

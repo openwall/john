@@ -128,7 +128,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 }
 
-static void release_all(void)
+static void done(void)
 {
 	release_clobj();
 
@@ -396,7 +396,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_all);
+	atexit(done);
 }
 
 static void crypt_all(int count)

@@ -380,21 +380,18 @@ static void crypt_all(int count)
 					if (!(temp & 0xff00))
 					{
 						*keybuf_word = JOHNSWAP(temp & 0xff);
-						keybuf_word += MMX_COEF;
 						len++;
 						break;
 					}
 					if (!(temp & 0xff0000))
 					{
 						*keybuf_word = JOHNSWAP(temp & 0xffff);
-						keybuf_word += MMX_COEF;
 						len+=2;
 						break;
 					}
 					*keybuf_word = JOHNSWAP(temp);
 					if (!(temp & 0xff000000))
 					{
-						keybuf_word += MMX_COEF;
 						len+=3;
 						break;
 					}

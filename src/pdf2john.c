@@ -30,6 +30,7 @@
 #include "common.h"
 
 #include "pdfparser.h"
+#include "memory.h"
 #include "pdfcrack.h"
 #include "stdint.h"
 
@@ -108,6 +109,7 @@ int pdf2john(int argc, char **argv)
 		case 'v':
 			printf("pdfcrack version %d.%d\n", VERSION_MAJOR,
 			    VERSION_MINOR);
+			MEM_FREE(userpassword);
 			return 0;
 		default:
 			printHelp(argv[0]);
@@ -205,5 +207,7 @@ int pdf2john(int argc, char **argv)
 
       cleanup:
 
+	MEM_FREE(userpassword);
+	MEM_FREE(inputfile);
 	return ret;
 }

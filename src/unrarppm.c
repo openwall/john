@@ -35,7 +35,7 @@
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf
 #else
-static void rar_dbgmsg(const char* fmt,...){}
+//static void rar_dbgmsg(const char* fmt,...){}
 #endif
 
 #define MAX_O 64
@@ -116,7 +116,7 @@ static int sub_allocator_start_sub_allocator(sub_allocator_t *sub_alloc, int sa_
 	}
 	sub_allocator_stop_sub_allocator(sub_alloc);
 	if (t>138412020) {
-		rar_dbgmsg("too much memory needed for uncompressing this file\n");
+		//rar_dbgmsg("too much memory needed for uncompressing this file\n");
 		return 0;
 	}
 	alloc_size = t/FIXED_UNIT_SIZE*UNIT_SIZE+UNIT_SIZE;
@@ -125,7 +125,7 @@ static int sub_allocator_start_sub_allocator(sub_allocator_t *sub_alloc, int sa_
 	alloc_size += UNIT_SIZE;
 #endif
 	if ((sub_alloc->heap_start = (unsigned char *) rar_malloc(alloc_size)) == NULL) {
-		rar_dbgmsg("sub_alloc start failed\n");
+		//rar_dbgmsg("sub_alloc start failed\n");
 		return 0;
 	}
 	sub_alloc->heap_end = sub_alloc->heap_start + alloc_size - UNIT_SIZE;
@@ -400,7 +400,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	static const unsigned short init_bin_esc[] = {
 		0x3cdd, 0x1f3f, 0x59bf, 0x48f3, 0x64a1, 0x5abc, 0x6632, 0x6051
 	};
-	rar_dbgmsg("in restart_model_rare\n");
+	//rar_dbgmsg("in restart_model_rare\n");
 	memset(ppm_data->char_mask, 0, sizeof(ppm_data->char_mask));
 
 	sub_allocator_init_sub_allocator(&ppm_data->sub_alloc);
@@ -409,7 +409,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	ppm_data->min_context = ppm_data->max_context =
 		(struct ppm_context *) sub_allocator_alloc_context(&ppm_data->sub_alloc);
 	if(!ppm_data->min_context) {
-	    rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_context failed\n"); /* FIXME: cli_errmsg */
+	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_context failed\n"); /* FIXME: cli_errmsg */
 	    return 0;
 	}
 	ppm_data->min_context->suffix = NULL;
@@ -418,7 +418,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	ppm_data->found_state = ppm_data->min_context->con_ut.u.stats=
 		(struct state_tag *)sub_allocator_alloc_units(&ppm_data->sub_alloc, 256/2);
 	if(!ppm_data->found_state) {
-	    rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_units failed\n"); /* FIXME: cli_errmsg */
+	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_units failed\n"); /* FIXME: cli_errmsg */
 	    return 0;
 	}
 	for (ppm_data->run_length = ppm_data->init_rl, ppm_data->prev_success=i=0; i < 256 ; i++) {
@@ -451,7 +451,7 @@ static int start_model_rare(ppm_data_t *ppm_data, int max_order)
 	ppm_data->max_order = max_order;
 
 	if (!restart_model_rare(ppm_data)) {
-	    rar_dbgmsg("unrar: start_model_rare: restart_model_rare failed\n");
+	    //rar_dbgmsg("unrar: start_model_rare: restart_model_rare failed\n");
 	    return 0;
 	}
 
@@ -494,7 +494,7 @@ static void rescale(ppm_data_t *ppm_data, struct ppm_context *context)
 	int old_ns, i, adder, esc_freq, n0, n1;
 	struct state_tag *p1, *p;
 
-	rar_dbgmsg("in rescale\n");
+	//rar_dbgmsg("in rescale\n");
 	old_ns = context->num_stats;
 	i = context->num_stats-1;
 
@@ -549,7 +549,7 @@ static struct ppm_context *create_child(ppm_data_t *ppm_data, struct ppm_context
 				struct state_tag *pstats, struct state_tag *first_state)
 {
 	struct ppm_context *pc;
-	rar_dbgmsg("in create_child\n");
+	//rar_dbgmsg("in create_child\n");
 	pc = (struct ppm_context *) sub_allocator_alloc_context(&ppm_data->sub_alloc);
 	if (pc) {
 		pc->num_stats = 1;
@@ -568,7 +568,7 @@ static struct ppm_context *create_successors(ppm_data_t *ppm_data,
 	struct state_tag *p, *ps[MAX_O], **pps;
 	unsigned int cf, s0;
 
-	rar_dbgmsg("in create_successors\n");
+	//rar_dbgmsg("in create_successors\n");
 	pc = ppm_data->min_context;
 	up_branch = ppm_data->found_state->successor;
 	pps = ps;
@@ -629,7 +629,7 @@ NO_LOOP:
 	do {
 		pc = create_child(ppm_data, pc, *--pps, &up_state);
 		if (!pc) {
-			rar_dbgmsg("create_child failed\n");
+			//rar_dbgmsg("create_child failed\n");
 			return NULL;
 		}
 	} while (pps != ps);
@@ -642,7 +642,7 @@ static int update_model(ppm_data_t *ppm_data)
 	struct ppm_context *pc, *successor;
 	unsigned int ns1, ns, cf, sf, s0;
 
-	rar_dbgmsg("in update_model\n");
+	//rar_dbgmsg("in update_model\n");
 	fs = *ppm_data->found_state;
 	p = NULL;
 
@@ -738,7 +738,7 @@ static int update_model(ppm_data_t *ppm_data)
 
 RESTART_MODEL:
 	if (!restart_model_rare(ppm_data)) {
-	    rar_dbgmsg("unrar: update_model: restart_model_rare: failed\n");
+	    //rar_dbgmsg("unrar: update_model: restart_model_rare: failed\n");
 	    return 0;
 	}
 	ppm_data->esc_count = 0;
@@ -747,7 +747,7 @@ RESTART_MODEL:
 
 static void update1(ppm_data_t *ppm_data, struct state_tag *p, struct ppm_context *context)
 {
-	rar_dbgmsg("in update1\n");
+	//rar_dbgmsg("in update1\n");
 	(ppm_data->found_state=p)->freq += 4;
 	context->con_ut.u.summ_freq += 4;
 	if (p[0].freq > p[-1].freq) {
@@ -764,7 +764,7 @@ static int ppm_decode_symbol1(ppm_data_t *ppm_data, struct ppm_context *context)
 	struct state_tag *p;
 	int i, hi_cnt, count;
 
-	rar_dbgmsg("in ppm_decode_symbol1\n");
+	//rar_dbgmsg("in ppm_decode_symbol1\n");
 	ppm_data->coder.scale = context->con_ut.u.summ_freq;
 	p = context->con_ut.u.stats;
 	count = coder_get_current_count(&ppm_data->coder);
@@ -814,7 +814,7 @@ static void ppm_decode_bin_symbol(ppm_data_t *ppm_data, struct ppm_context *cont
 	struct state_tag *rs;
 	unsigned short *bs;
 
-	rar_dbgmsg("in ppm_decode_bin_symbol\n");
+	//rar_dbgmsg("in ppm_decode_bin_symbol\n");
 
 	rs = &context->con_ut.one_state;
 
@@ -845,7 +845,7 @@ static void ppm_decode_bin_symbol(ppm_data_t *ppm_data, struct ppm_context *cont
 
 static void update2(ppm_data_t *ppm_data, struct state_tag *p, struct ppm_context *context)
 {
-	rar_dbgmsg("in update2\n");
+	//rar_dbgmsg("in update2\n");
 	(ppm_data->found_state = p)->freq += 4;
 	context->con_ut.u.summ_freq += 4;
 	if (p->freq > MAX_FREQ) {
@@ -879,7 +879,7 @@ static int ppm_decode_symbol2(ppm_data_t *ppm_data, struct ppm_context *context)
 	struct see2_context_tag *psee2c;
 	struct state_tag *ps[256], **pps, *p;
 
-	rar_dbgmsg("in ppm_decode_symbol2\n");
+	//rar_dbgmsg("in ppm_decode_symbol2\n");
 	i = context->num_stats - ppm_data->num_masked;
 	psee2c = make_esc_freq(ppm_data, context, i);
 	pps = ps;
@@ -951,14 +951,14 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	int max_order, Reset, MaxMB = 0;
 
 	max_order = rar_get_char(fd, unpack_data);
-	rar_dbgmsg("ppm_decode_init max_order=%d\n", max_order);
+	//rar_dbgmsg("ppm_decode_init max_order=%d\n", max_order);
 	Reset = (max_order & 0x20) ? 1 : 0;
-	rar_dbgmsg("ppm_decode_init Reset=%d\n", Reset);
+	//rar_dbgmsg("ppm_decode_init Reset=%d\n", Reset);
 	if (Reset) {
 		MaxMB = rar_get_char(fd, unpack_data);
-		rar_dbgmsg("ppm_decode_init MaxMB=%d\n", MaxMB);
+		//rar_dbgmsg("ppm_decode_init MaxMB=%d\n", MaxMB);
 		if (MaxMB > 128) {
-			rar_dbgmsg("MaxMB > 128 MB (%d, 0x%02x) reject\n", MaxMB, MaxMB);
+			//rar_dbgmsg("MaxMB > 128 MB (%d, 0x%02x) reject\n", MaxMB, MaxMB);
 			return 0;
 		}
 	} else {
@@ -968,7 +968,7 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 	}
 	if (max_order & 0x40) {
 		*EscChar = rar_get_char(fd, unpack_data);
-		rar_dbgmsg("ppm_decode_init EscChar=%d\n", *EscChar);
+		//rar_dbgmsg("ppm_decode_init EscChar=%d\n", *EscChar);
 	}
 	range_coder_init_decoder(&ppm_data->coder, fd, unpack_data);
 	if (Reset) {
@@ -989,7 +989,7 @@ int ppm_decode_init(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 		    return 0;
 		}
 	}
-	rar_dbgmsg("ppm_decode_init done: %d\n", ppm_data->min_context != NULL);
+	//rar_dbgmsg("ppm_decode_init done: %d\n", ppm_data->min_context != NULL);
 	return (ppm_data->min_context != NULL);
 }
 
@@ -1037,7 +1037,7 @@ int ppm_decode_char(ppm_data_t *ppm_data, const unsigned char **fd, unpack_data_
 		ppm_data->min_context = ppm_data->max_context = ppm_data->found_state->successor;
 	} else {
 		if(!update_model(ppm_data)) {
-		    rar_dbgmsg("unrar: ppm_decode_char: update_model failed\n");
+		    //rar_dbgmsg("unrar: ppm_decode_char: update_model failed\n");
 		    return -1;
 		}
 

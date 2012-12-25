@@ -70,9 +70,9 @@ int main(int argc, char * * argv)
 	ligne = malloc(4096);
 	if(ligne == NULL) { perror("malloc ligne"); return 3; }
 	proba2 = malloc(sizeof(unsigned char) * 256 * 256);
-	if(proba2 == NULL) { perror("malloc proba2"); return 3; }
+	if(proba2 == NULL) { perror("malloc proba2"); free(ligne); return 3; }
 	proba1 = malloc(sizeof(unsigned char) * 256 );
-	if(proba1 == NULL) { perror("malloc proba1"); return 3; }
+	if(proba1 == NULL) { perror("malloc proba1"); free(ligne); return 3; }
 	for(i=0;i<256*256;i++)
 		proba2[i] = UNK_STR;
 	for(i=0;i<256;i++)
