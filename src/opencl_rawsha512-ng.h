@@ -17,16 +17,12 @@
 #include "opencl_device_info.h"
 #include "opencl_sha512.h"
 
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 //Constants.
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
 #define PLAINTEXT_TEXT          "32"
 #define CIPHERTEXT_LENGTH       128
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
-#define BINARY_SIZE             8
+#define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        64
 #define SALT_SIZE               0
 #define STEP                    65536
@@ -65,4 +61,11 @@ typedef struct {
     uint32_t                    buflen;
     buffer_64                   buffer[16];     //1024bits
 } sha512_ctx_buffer;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
 #endif
+
+#endif  /* _RAWSHA512_NG_H */

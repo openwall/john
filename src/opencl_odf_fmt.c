@@ -49,6 +49,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
+	int iterations;
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -125,7 +126,7 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
-	opencl_init("$JOHN/odf_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/odf_kernel.cl", ocl_gpu_id, platform_id);
 	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -153,9 +154,75 @@ static void init(struct fmt_main *self)
 	atexit(release_all);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$odf$", 5);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	if (strncmp(ciphertext, "$odf$", 5))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 6;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* cipher type */
+		goto err;
+	res = atoi(p);
+	if (res != 0) {
+		fprintf(stderr, "[-] odf-opencl only supports cracking files using Blowfish encryption\n");
+		goto err;
+	}
+	if ((p = strtok(NULL, "*")) == NULL)	/* checksum type */
+		goto err;
+	res = atoi(p);
+	if (res != 0 && res != 1)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* something */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* content */
+		goto err;
+	if (strlen(p) < 2048)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -229,6 +296,7 @@ static void set_salt(void *salt)
 	cur_salt = (odf_cpu_salt*)salt;
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
 	currentsalt.length = cur_salt->salt_length;
+	currentsalt.iterations = 1024;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }

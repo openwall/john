@@ -58,6 +58,8 @@ void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
 void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
+void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id);
+void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn);
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
 
@@ -79,12 +81,15 @@ char *get_error_name(cl_int cl_error);
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
 
-void advance_cursor() ;
+void advance_cursor();
 /* Use this macro for OpenCL Error handling */
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
 void listOpenCLdevices();
 
 void opencl_find_gpu(int *dev_id, int *platform_id);
+
+/* Call this to check for keypress etc. within kernel loops */
+void opencl_process_event(void);
 
 #endif

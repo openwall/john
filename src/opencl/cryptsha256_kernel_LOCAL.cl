@@ -18,25 +18,6 @@
     #define VECTOR_USAGE
 #endif
 
-__constant uint32_t k[] = {
-    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
-    0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
-    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-    0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
-    0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3,
-    0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5,
-    0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
-};
-
 inline void init_ctx(__local sha256_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
@@ -48,18 +29,6 @@ inline void init_ctx(__local sha256_ctx * ctx) {
     ctx->H[7] = H7;
     ctx->total = 0;
     ctx->buflen = 0;
-}
-
-inline void get_host_data(__global sha256_password * keys_data,
-                          __local  sha256_password * fast_keys) {
-
-    //Transfer data to faster memory
-    //Password information
-    fast_keys->length = keys_data->length;
-
-    #pragma unroll
-    for (int i = 0; i < PLAINTEXT_ARRAY; i++)
-        fast_keys->pass->mem_32[i] = keys_data->pass->mem_32[i];
 }
 
 inline void get_temp_data(__global sha256_buffers * tmp_memory,
@@ -171,6 +140,16 @@ inline void insert_to_buffer_C(__local    sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
+inline void insert_to_buffer_G(__local  sha256_ctx    * ctx,
+                               __global const uint8_t * string,
+                                 const uint32_t len) {
+
+    for (uint32_t i = 0; i < len; i++)
+        PUT(BUFFER, ctx->buflen + i, string[i]);
+
+    ctx->buflen += len;
+}
+
 inline void ctx_update_L(__local sha256_ctx * ctx,
                          __local uint8_t    * string,
                          const uint32_t len) {
@@ -202,6 +181,22 @@ inline void ctx_update_C(__local    sha256_ctx * ctx,
         sha256_block(ctx);
         ctx->buflen = 0;
         insert_to_buffer_C(ctx, (string + offset), len - offset);
+    }
+}
+
+inline void ctx_update_G(__local  sha256_ctx * ctx,
+                         __global uint8_t    * string, uint32_t len) {
+
+    ctx->total += len;
+    uint32_t startpos = ctx->buflen;
+
+    insert_to_buffer_G(ctx, string, (startpos + len <= 64 ? len : 64 - startpos));
+
+    if (ctx->buflen == 64) {  //Branching.
+        uint32_t offset = 64 - startpos;
+        sha256_block(ctx);
+        ctx->buflen = 0;
+        insert_to_buffer_G(ctx, (string + offset), len - offset);
     }
 }
 
@@ -290,7 +285,7 @@ inline void sha256_digest(__local sha256_ctx * ctx) {
 }
 
 inline void sha256_prepare(__constant sha256_salt     * salt_data,
-                           __local    sha256_password * keys_data,
+                           __global   sha256_password * keys_data,
                            __global   sha256_buffers  * tmp_memory,
                            __local    sha256_buffers  * fast_buffers,
                            __local    sha256_ctx      * ctx) {
@@ -305,28 +300,31 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
 
     init_ctx(ctx);
 
-    ctx_update_L(ctx, pass, passlen);
+    ctx_update_G(ctx, pass, passlen);
     ctx_update_C(ctx, salt, saltlen);
-    ctx_update_L(ctx, pass, passlen);
+    ctx_update_G(ctx, pass, passlen);
 
     sha256_digest(ctx);
     sha256_digest_move_L(ctx, alt_result->mem_32, BUFFER_ARRAY);
     init_ctx(ctx);
 
-    ctx_update_L(ctx, pass, passlen);
+    ctx_update_G(ctx, pass, passlen);
     ctx_update_C(ctx, salt, saltlen);
     ctx_update_L(ctx, alt_result->mem_08, passlen);
 
     for (uint32_t i = passlen; i > 0; i >>= 1) {
-        ctx_update_L(ctx, ((i & 1) ? alt_result->mem_08 : pass),
-                          ((i & 1) ? 32U :                passlen));
+
+	if (i & 1)
+            ctx_update_L(ctx, alt_result->mem_08, 32U);
+	else
+            ctx_update_G(ctx, pass, passlen);
     }
     sha256_digest(ctx);
     sha256_digest_move_L(ctx, alt_result->mem_32, BUFFER_ARRAY);
     init_ctx(ctx);
 
     for (uint32_t i = 0; i < passlen; i++)
-        ctx_update_L(ctx, pass, passlen);
+        ctx_update_G(ctx, pass, passlen);
 
     sha256_digest(ctx);
     sha256_digest_move_G(ctx, p_sequence->mem_32, PLAINTEXT_ARRAY);
@@ -382,7 +380,6 @@ __kernel
 void kernel_prepare(__constant sha256_salt     * salt,
                     __global   sha256_password * keys_buffer,
                     __global   sha256_buffers  * tmp_memory,
-                    __local    sha256_password * fast_keys,
                     __local    sha256_buffers  * fast_buffers,
                     __local    sha256_ctx      * ctx_data) {
 
@@ -390,11 +387,8 @@ void kernel_prepare(__constant sha256_salt     * salt,
     size_t gid = get_global_id(0);
     size_t lid = get_local_id(0);
 
-    //Transfer host data to faster memory
-    get_host_data(&keys_buffer[gid], &fast_keys[lid]);
-
     //Do the job
-    sha256_prepare(salt, &fast_keys[lid], &tmp_memory[gid], &fast_buffers[lid], &ctx_data[lid]);
+    sha256_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers[lid], &ctx_data[lid]);
 
     //Save results.
     #pragma unroll
@@ -444,7 +438,7 @@ void kernel_final(__constant sha256_salt     * salt,
 
     //Do the job
     sha256_crypt(&fast_buffers[lid], &ctx_data[lid],
-                 salt->length, keys_buffer[gid].length, salt->initial, salt->rounds);
+                 salt->length, keys_buffer[gid].length, 0, salt->final);
 
     //Send results to the host.
     #pragma unroll

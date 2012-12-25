@@ -56,7 +56,7 @@ int main(int argc, char * * argv)
 		return -1;
 	}
 
-	first = malloc( sizeof(int) * 256 );
+	first = malloc( sizeof(unsigned int) * 256 );
 
 	ligne = malloc(4096);
 

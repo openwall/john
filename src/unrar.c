@@ -41,7 +41,7 @@
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf
 #else
-static void rar_dbgmsg(const char* fmt,...){}
+//static void rar_dbgmsg(const char* fmt,...){}
 #endif
 
 static void insert_old_dist(unpack_data_t *unpack_data, unsigned int distance)
@@ -80,7 +80,7 @@ static void copy_string(unpack_data_t *unpack_data, unsigned int length, unsigne
 void rar_addbits(unpack_data_t *unpack_data, int bits)
 {
 
-	rar_dbgmsg("rar_addbits: in_addr=%d bits=%d in_bit=%d\n", unpack_data->in_addr, bits, unpack_data->in_bit);
+	//rar_dbgmsg("rar_addbits: in_addr=%d bits=%d in_bit=%d\n", unpack_data->in_addr, bits, unpack_data->in_bit);
 	bits += unpack_data->in_bit;
 	unpack_data->in_addr += bits >> 3;
 	unpack_data->in_bit = bits & 7;
@@ -90,12 +90,12 @@ unsigned int rar_getbits(unpack_data_t *unpack_data)
 {
 	unsigned int bit_field;
 
-	rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
+	//rar_dbgmsg("rar_getbits: in_addr=%d in_bit=%d\n", unpack_data->in_addr, unpack_data->in_bit);
 	bit_field = (unsigned int) unpack_data->in_buf[unpack_data->in_addr] << 16;
 	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+1] << 8;
 	bit_field |= (unsigned int) unpack_data->in_buf[unpack_data->in_addr+2];
 	bit_field >>= (8-unpack_data->in_bit);
-	rar_dbgmsg("rar_getbits return(0x%04x)\n", bit_field & 0xffff);
+	//rar_dbgmsg("rar_getbits return(0x%04x)\n", bit_field & 0xffff);
 	return(bit_field & 0xffff);
 }
 
@@ -157,17 +157,17 @@ unsigned int rar_get_char(const unsigned char **fd, unpack_data_t *unpack_data)
 {
 	if (unpack_data->in_addr > MAX_BUF_SIZE-30) {
 		if (!rar_unp_read_buf(fd, unpack_data)) {
-			rar_dbgmsg("rar_get_char: rar_unp_read_buf FAILED\n");
+			//rar_dbgmsg("rar_get_char: rar_unp_read_buf FAILED\n");
 			return -1;
 		}
 	}
-	rar_dbgmsg("rar_get_char = %u\n", unpack_data->in_buf[unpack_data->in_addr]);
+	//rar_dbgmsg("rar_get_char = %u\n", unpack_data->in_buf[unpack_data->in_addr]);
 	return(unpack_data->in_buf[unpack_data->in_addr++]);
 }
 
 static void unp_write_data(unpack_data_t *unpack_data, unsigned char *data, int size)
 {
-	rar_dbgmsg("in unp_write_data length=%d\n", size);
+	//rar_dbgmsg("in unp_write_data length=%d\n", size);
 
 	unpack_data->true_size += size;
 	unpack_data->unp_crc = rar_crc(unpack_data->unp_crc, data, size);
@@ -193,7 +193,7 @@ static void unp_write_area(unpack_data_t *unpack_data, unsigned int start_ptr, u
 
 void rar_unp_write_buf_old(unpack_data_t *unpack_data)
 {
-	rar_dbgmsg("in rar_unp_write_buf_old\n");
+	//rar_dbgmsg("in rar_unp_write_buf_old\n");
 	if (unpack_data->unp_ptr < unpack_data->wr_ptr) {
 		unp_write_data(unpack_data, &unpack_data->window[unpack_data->wr_ptr],
 				-unpack_data->wr_ptr & MAXWINMASK);
@@ -207,8 +207,8 @@ void rar_unp_write_buf_old(unpack_data_t *unpack_data)
 
 static void execute_code(unpack_data_t *unpack_data, struct rarvm_prepared_program *prg)
 {
-	rar_dbgmsg("in execute_code\n");
-	rar_dbgmsg("global_size: %ld\n", prg->global_size);
+	//rar_dbgmsg("in execute_code\n");
+	//rar_dbgmsg("global_size: %ld\n", prg->global_size);
 	if (prg->global_size > 0) {
 		prg->init_r[6] = int64to32(unpack_data->written_size);
 		rarvm_set_value(0, (unsigned int *)&prg->global_data[0x24],
@@ -229,7 +229,7 @@ static void unp_write_buf(unpack_data_t *unpack_data)
 	unsigned char *filtered_data;
 	int i, j;
 
-	rar_dbgmsg("in unp_write_buf\n");
+	//rar_dbgmsg("in unp_write_buf\n");
 	written_border = unpack_data->wr_ptr;
 	write_size = (unpack_data->unp_ptr - written_border) & MAXWINMASK;
 	for (i=0 ; i < unpack_data->PrgStack.num_items ; i++) {
@@ -363,7 +363,7 @@ int rar_decode_number(unpack_data_t *unpack_data, struct Decode *decode)
 
 	// Left aligned 15 bit length raw bit field.
 	bit_field = rar_getbits(unpack_data) & 0xfffe;
-	rar_dbgmsg("rar_decode_number BitField=%u\n", bit_field);
+	//rar_dbgmsg("rar_decode_number BitField=%u\n", bit_field);
 
 	// Detect the real bit length for current code.
 	if (bit_field < decode->DecodeLen[8])
@@ -410,7 +410,7 @@ int rar_decode_number(unpack_data_t *unpack_data, struct Decode *decode)
 			else
 				bits=15;
 
-	rar_dbgmsg("rar_decode_number: bits=%d\n", bits);
+	//rar_dbgmsg("rar_decode_number: bits=%d\n", bits);
 
 	rar_addbits(unpack_data, bits);
 	// Calculate the distance from the start code for current bit length.
@@ -425,7 +425,7 @@ int rar_decode_number(unpack_data_t *unpack_data, struct Decode *decode)
 	if (n >= decode->MaxNum) {
 		return -1;
 	}
-	rar_dbgmsg("rar_decode_number return(%d)\n", decode->DecodeNum[n]);
+	//rar_dbgmsg("rar_decode_number return(%d)\n", decode->DecodeNum[n]);
 
 	// Convert the position in the code list to position in alphabet
 	// and return it.
@@ -448,27 +448,27 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 	int i, length, zero_count, number, n;
 	const int table_size=HUFF_TABLE_SIZE;
 
-	rar_dbgmsg("in read_tables fd=%p in_addr=%d read_top=%d\n", *fd, unpack_data->in_addr, unpack_data->read_top);
+	//rar_dbgmsg("in read_tables fd=%p in_addr=%d read_top=%d\n", *fd, unpack_data->in_addr, unpack_data->read_top);
 	if (unpack_data->in_addr > unpack_data->read_top-25) {
 		if (!rar_unp_read_buf(fd, unpack_data)) {
-			rar_dbgmsg("ERROR: read_tables rar_unp_read_buf failed\n");
+			//rar_dbgmsg("ERROR: read_tables rar_unp_read_buf failed\n");
 			return 0;
 		}
 	}
 	rar_addbits(unpack_data, (8-unpack_data->in_bit) & 7); // jump to next aligned byte (still #0 if first block)
 	bit_field = rar_getbits(unpack_data);
-	rar_dbgmsg("BitField = 0x%04x\n", bit_field);
+	//rar_dbgmsg("BitField = 0x%04x\n", bit_field);
 	if (bit_field & 0x8000) { // very first bit: isPPM
 		unpack_data->unp_block_type = BLOCK_PPM;
-		rar_dbgmsg("Calling ppm_decode_init\n");
+		//rar_dbgmsg("Calling ppm_decode_init\n");
 		if(!ppm_decode_init(&unpack_data->ppm_data, fd, unpack_data, &unpack_data->ppm_esc_char)) {
-		    rar_dbgmsg("unrar: read_tables: ppm_decode_init failed\n");
+		    //rar_dbgmsg("unrar: read_tables: ppm_decode_init failed\n");
 		    return 0;
 		}
 		return(1);
 	}
 	unpack_data->unp_block_type = BLOCK_LZ;
-	rar_dbgmsg("LZ block\n");
+	//rar_dbgmsg("LZ block\n");
 	unpack_data->prev_low_dist = 0;
 	unpack_data->low_dist_rep_count = 0;
 
@@ -479,11 +479,11 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 
 	for (i=0 ; i < BC ; i++) { // BC is 20
 		length = (unsigned char)(rar_getbits(unpack_data) >> 12);
-		rar_dbgmsg("length %2d 0x%02x\n", i, length);
+		//rar_dbgmsg("length %2d 0x%02x\n", i, length);
 		rar_addbits(unpack_data, 4);
 		if (length == 15) {
 			zero_count = (unsigned char)(rar_getbits(unpack_data) >> 12);
-			rar_dbgmsg("zero_count %2d 0x%02x\n", i, zero_count);
+			//rar_dbgmsg("zero_count %2d 0x%02x\n", i, zero_count);
 			rar_addbits(unpack_data, 4);
 			if (zero_count == 0) {
 				bit_length[i] = 15;
@@ -498,14 +498,14 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 		} else {
 			bit_length[i] = length;
 		}
-		rar_dbgmsg("Bit Length Table row %02d: length %d\n", i, bit_length[i]);
+		//rar_dbgmsg("Bit Length Table row %02d: length %d\n", i, bit_length[i]);
 	}
 	rar_make_decode_tables(bit_length,(struct Decode *)&unpack_data->BD,BC);
 
 	for (i=0;i<table_size;) { // 404
 		if (unpack_data->in_addr > unpack_data->read_top-5) {
 			if (!rar_unp_read_buf(fd, unpack_data)) {
-				rar_dbgmsg("ERROR: read_tables rar_unp_read_buf failed 2\n");
+				//rar_dbgmsg("ERROR: read_tables rar_unp_read_buf failed 2\n");
 				return 0;
 			}
 		}
@@ -543,7 +543,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 	}
 	unpack_data->tables_read = 1;
 	if (unpack_data->in_addr > unpack_data->read_top) {
-		rar_dbgmsg("ERROR: read_tables check failed\n");
+		//rar_dbgmsg("ERROR: read_tables check failed\n");
 		return 0;
 	}
 	rar_make_decode_tables(&table[0], &unpack_data->LD.D,NC);
@@ -554,7 +554,7 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 
 
 	/*dump_tables(unpack_data);*/
-	rar_dbgmsg("ReadTables finished\n");
+	//rar_dbgmsg("ReadTables finished\n");
   	return 1;
 }
 
@@ -573,8 +573,8 @@ static int read_end_of_block(const unsigned char **fd, unpack_data_t *unpack_dat
 		rar_addbits(unpack_data, 2);
 	}
 	unpack_data->tables_read = !new_table;
-	rar_dbgmsg("NewFile=%d NewTable=%d TablesRead=%d\n", new_file,
-			new_table, unpack_data->tables_read);
+	//rar_dbgmsg("NewFile=%d NewTable=%d TablesRead=%d\n", new_file,
+	//		new_table, unpack_data->tables_read);
 	return !(new_file || (new_table && !read_tables(fd, unpack_data)));
 }
 
@@ -598,7 +598,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	int i, empty_count, stack_pos, vm_codesize, static_size, data_size;
 	unsigned char *vm_code, *global_data;
 
-	rar_dbgmsg("in add_vm_code first_byte=0x%x code_size=%d\n", first_byte, code_size);
+	//rar_dbgmsg("in add_vm_code first_byte=0x%x code_size=%d\n", first_byte, code_size);
 	rarvm_input.in_buf = vmcode;
 	rarvm_input.buf_size = code_size;
 	rarvm_input.in_addr = 0;
@@ -614,37 +614,37 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	} else { // Use the same filter as last time.
 		filter_pos = unpack_data->last_filter;
 	}
-	rar_dbgmsg("filter_pos = %u\n", filter_pos);
+	//rar_dbgmsg("filter_pos = %u\n", filter_pos);
 	if (filter_pos > unpack_data->Filters.num_items ||
 			filter_pos > unpack_data->old_filter_lengths_size) {
-		rar_dbgmsg("filter_pos check failed\n");
+		//rar_dbgmsg("filter_pos check failed\n");
 		return 0;
 	}
 	unpack_data->last_filter = filter_pos;
 	new_filter = (filter_pos == unpack_data->Filters.num_items);
-	rar_dbgmsg("Filters.num_items=%d\n", unpack_data->Filters.num_items);
-	rar_dbgmsg("new_filter=%d\n", new_filter);
+	//rar_dbgmsg("Filters.num_items=%d\n", unpack_data->Filters.num_items);
+	//rar_dbgmsg("new_filter=%d\n", new_filter);
 	if (new_filter) {	// New filter code, never used before since VM reset.
 		// Too many different filters, corrupt archive.
 		if (filter_pos > 1024) {
-			rar_dbgmsg("filter_pos > 1024 reject\n");
+			//rar_dbgmsg("filter_pos > 1024 reject\n");
 			return 0;
 		}
 		if (!rar_filter_array_add(&unpack_data->Filters, 1)) {
-			rar_dbgmsg("rar_filter_array_add failed\n");
+			//rar_dbgmsg("rar_filter_array_add failed\n");
 			return 0;
 		}
 		unpack_data->Filters.array[unpack_data->Filters.num_items-1] =
 					filter = rar_filter_new();
 		if (!unpack_data->Filters.array[unpack_data->Filters.num_items-1]) {
-			rar_dbgmsg("rar_filter_new failed\n");
+			//rar_dbgmsg("rar_filter_new failed\n");
 			return 0;
 		}
 		unpack_data->old_filter_lengths_size++;
 		unpack_data->old_filter_lengths = (int *) rar_realloc2(unpack_data->old_filter_lengths,
 				sizeof(int) * unpack_data->old_filter_lengths_size);
 		if(!unpack_data->old_filter_lengths) {
-		    rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for unpack_data->old_filter_lengths\n");
+		    //rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for unpack_data->old_filter_lengths\n");
 		    return 0;
 		}
 		// Reserve one item, where we store the data block length of our new
@@ -680,7 +680,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	stack_filter->exec_count = filter->exec_count;
 
 	block_start = rarvm_read_data(&rarvm_input);
-	rar_dbgmsg("block_start=%u\n", block_start);
+	//rar_dbgmsg("block_start=%u\n", block_start);
 	if (first_byte & 0x40) {
 		block_start += 258;
 	}
@@ -695,7 +695,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		stack_filter->block_length = filter_pos < unpack_data->old_filter_lengths_size ?
 				unpack_data->old_filter_lengths[filter_pos] : 0;
 	}
-	rar_dbgmsg("block_length=%u\n", stack_filter->block_length);
+	//rar_dbgmsg("block_length=%u\n", stack_filter->block_length);
 	stack_filter->next_window = unpack_data->wr_ptr != unpack_data->unp_ptr &&
 		((unpack_data->wr_ptr - unpack_data->unp_ptr) & MAXWINMASK) <= block_start;
 
@@ -713,19 +713,19 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			if (init_mask & (1<<i)) {
 				stack_filter->prg.init_r[i] =
 					rarvm_read_data(&rarvm_input);
-				rar_dbgmsg("prg.init_r[%d] = %u\n", i, stack_filter->prg.init_r[i]);
+				//rar_dbgmsg("prg.init_r[%d] = %u\n", i, stack_filter->prg.init_r[i]);
 			}
 		}
 	}
 	if (new_filter) {
 		vm_codesize = rarvm_read_data(&rarvm_input);
 		if (vm_codesize >= 0x1000 || vm_codesize == 0 || (vm_codesize > rarvm_input.buf_size) || vm_codesize < 0) {
-			rar_dbgmsg("ERROR: vm_codesize=0x%x buf_size=0x%x\n", vm_codesize, rarvm_input.buf_size);
+			//rar_dbgmsg("ERROR: vm_codesize=0x%x buf_size=0x%x\n", vm_codesize, rarvm_input.buf_size);
 			return 0;
 		}
 		vm_code = (unsigned char *) rar_malloc(vm_codesize);
 		if(!vm_code) {
-		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for vm_code\n");
+		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for vm_code\n");
 		    return 0;
 		}
 		for (i=0 ; i < vm_codesize ; i++) {
@@ -733,7 +733,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			rarvm_addbits(&rarvm_input, 8);
 		}
 		if(!rarvm_prepare(&unpack_data->rarvm_data, &rarvm_input, &vm_code[0], vm_codesize, &filter->prg)) {
-		    rar_dbgmsg("unrar: add_vm_code: rarvm_prepare failed\n");
+		    //rar_dbgmsg("unrar: add_vm_code: rarvm_prepare failed\n");
 		    MEM_FREE(vm_code);
 		    return 0;
 		}
@@ -747,7 +747,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		// read statically defined data contained in DB commands
 		stack_filter->prg.static_data = rar_malloc(static_size);
 		if(!stack_filter->prg.static_data) {
-		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.static_data\n");
+		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.static_data\n");
 		    return 0;
 		}
 		memcpy(stack_filter->prg.static_data, filter->prg.static_data, static_size);
@@ -757,7 +757,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 		MEM_FREE(stack_filter->prg.global_data);
 		stack_filter->prg.global_data = rar_malloc(VM_FIXEDGLOBALSIZE);
 		if(!stack_filter->prg.global_data) {
-		    rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.global_data\n");
+		    //rar_dbgmsg("unrar: add_vm_code: rar_malloc failed for stack_filter->prg.global_data\n");
 		    return 0;
 		}
 		memset(stack_filter->prg.global_data, 0, VM_FIXEDGLOBALSIZE);
@@ -765,7 +765,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	}
 	global_data = &stack_filter->prg.global_data[0];
 	for (i=0 ; i<7 ; i++) {
-		rar_dbgmsg("init_r[%d]=%u\n", i, stack_filter->prg.init_r[i]);
+		//rar_dbgmsg("init_r[%d]=%u\n", i, stack_filter->prg.init_r[i]);
 		rarvm_set_value(0, (unsigned int *)&global_data[i*4],
 				stack_filter->prg.init_r[i]);
 	}
@@ -774,7 +774,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 	rarvm_set_value(0, (unsigned int *)&global_data[0x2c], stack_filter->exec_count);
 	memset(&global_data[0x30], 0, 16);
 	for (i=0 ; i< 30 ; i++) {
-		rar_dbgmsg("global_data[%d] = %d\n", i, global_data[i]);
+		//rar_dbgmsg("global_data[%d] = %d\n", i, global_data[i]);
 	}
 	if (first_byte & 8) {	// Put the data block passed as parameter if any.
 		data_size = rarvm_read_data(&rarvm_input);
@@ -787,18 +787,18 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 			stack_filter->prg.global_data = rar_realloc2(stack_filter->prg.global_data,
 				stack_filter->prg.global_size);
 			if(!stack_filter->prg.global_data) {
-			    rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for stack_filter->prg.global_data\n");
+			    //rar_dbgmsg("unrar: add_vm_code: rar_realloc2 failed for stack_filter->prg.global_data\n");
 			    return 0;
 			}
 		}
 		global_data = &stack_filter->prg.global_data[VM_FIXEDGLOBALSIZE];
 		for (i=0 ; i< data_size ; i++) {
 			if ((rarvm_input.in_addr+2) > rarvm_input.buf_size) {
-				rar_dbgmsg("Buffer truncated\n");
+				//rar_dbgmsg("Buffer truncated\n");
 				return 0;
 			}
 			global_data[i] = rarvm_getbits(&rarvm_input) >> 8;
-			rar_dbgmsg("global_data[%d] = %d\n", i, global_data[i]);
+			//rar_dbgmsg("global_data[%d] = %d\n", i, global_data[i]);
 			rarvm_addbits(&rarvm_input, 8);
 		}
 	}
@@ -822,7 +822,7 @@ static int read_vm_code(unpack_data_t *unpack_data, const unsigned char **fd)
 		rar_addbits(unpack_data, 16);
 	}
 	vmcode = (unsigned char *) rar_malloc(length + 2);
-	rar_dbgmsg("VM code length: %d\n", length);
+	//rar_dbgmsg("VM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
 	}
@@ -871,7 +871,7 @@ static int read_vm_code_PPM(unpack_data_t *unpack_data, const unsigned char **fd
 		length = b1*256 + b2;
 	}
 	vmcode = (unsigned char *) rar_malloc(length + 2);
-	rar_dbgmsg("VM PPM code length: %d\n", length);
+	//rar_dbgmsg("VM PPM code length: %d\n", length);
 	if (!vmcode) {
 		return 0;
 	}
@@ -941,10 +941,10 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	static unsigned long done, tot;
 #endif
 
-	rar_dbgmsg("%s fd: %p\n", __func__, fd);
+	//rar_dbgmsg("%s fd: %p\n", __func__, fd);
 
 	if (!solid) {
-		rar_dbgmsg("Not solid\n");
+		//rar_dbgmsg("Not solid\n");
 	}
 	rar_unpack_init_data(solid, unpack_data);
 	if (!rar_unp_read_buf(&fd, unpack_data)) {
@@ -958,7 +958,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 		goto Bailout;
 	}
 	if (!solid || !unpack_data->tables_read) {
-		rar_dbgmsg("Read tables\n");
+		//rar_dbgmsg("Read tables\n");
 		if (!read_tables(&fd, unpack_data)) {
 #ifdef DEBUG
 			done += unpack_data->unp_ptr;
@@ -971,10 +971,10 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 		}
 	}
 
-	rar_dbgmsg("init done\n");
+	//rar_dbgmsg("init done\n");
 	while(1) {
 		unpack_data->unp_ptr &= MAXWINMASK;
-		rar_dbgmsg("UnpPtr = %d\n", unpack_data->unp_ptr);
+		//rar_dbgmsg("UnpPtr = %d\n", unpack_data->unp_ptr);
 		if (unpack_data->in_addr > unpack_data->read_border) {
 			if (!rar_unp_read_buf(&fd, unpack_data)) {
 				retval = 0;
@@ -987,7 +987,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 		}
 		if (unpack_data->unp_block_type == BLOCK_PPM) {
 			ch = ppm_decode_char(&unpack_data->ppm_data, &fd, unpack_data);
-			rar_dbgmsg("PPM char: %d\n", ch);
+			//rar_dbgmsg("PPM char: %d\n", ch);
 			if (ch == -1) {	// Corrupt PPM data found.
 				ppm_cleanup(&unpack_data->ppm_data);	// Reset possibly corrupt PPM data structures.
 				unpack_data->unp_block_type = BLOCK_LZ;	// Set faster and more fail proof LZ mode.
@@ -996,7 +996,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 			}
 			if (ch == unpack_data->ppm_esc_char) {
 				next_ch = ppm_decode_char(&unpack_data->ppm_data, &fd, unpack_data);
-				rar_dbgmsg("PPM next char: %d\n", next_ch);
+				//rar_dbgmsg("PPM next char: %d\n", next_ch);
 				if (next_ch == -1) {	// Corrupt PPM data found.
 					retval = 0;
 					break;
@@ -1044,7 +1044,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 				}
 				if (next_ch == 5) {	// One byte distance match (RLE) inside of PPM.
 					int length = ppm_decode_char(&unpack_data->ppm_data, &fd, unpack_data);
-					rar_dbgmsg("PPM length: %d\n", length);
+					//rar_dbgmsg("PPM length: %d\n", length);
 					if (length == -1) {
 						retval = 0;
 						break;
@@ -1059,7 +1059,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 			continue;
 		} else {
 			number = rar_decode_number(unpack_data, (struct Decode *)&unpack_data->LD);
-			rar_dbgmsg("number = %d\n", number);
+			//rar_dbgmsg("number = %d\n", number);
 			if (number < 0) {
 				retval = 0;
 				break;
@@ -1199,8 +1199,8 @@ Bailout:
 		printf("Reject\n");
 
 #endif
-	rar_dbgmsg("Written size: %ld\n", (long)unpack_data->written_size);
-	rar_dbgmsg("True size: %ld\n", (long)unpack_data->true_size);
+	//rar_dbgmsg("Written size: %ld\n", (long)unpack_data->written_size);
+	//rar_dbgmsg("True size: %ld\n", (long)unpack_data->true_size);
 
 	/* Free resources */
 	ppm_destructor(&unpack_data->ppm_data);

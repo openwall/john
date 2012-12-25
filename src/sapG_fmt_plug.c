@@ -51,6 +51,7 @@ static unsigned int omp_t = 1;
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
+#define SALT_FIELD_LENGTH		40
 #define SALT_LENGTH			(12*3)	/* 12 characters of UTF-8 */
 #define PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
 
@@ -168,6 +169,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = strrchr(ciphertext, '$');
 	if (!p) return 0;
 
+	if (p - ciphertext > SALT_FIELD_LENGTH) return 0;
 	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
 
 	p++;
@@ -378,21 +380,18 @@ static void crypt_all(int count)
 					if (!(temp & 0xff00))
 					{
 						*keybuf_word = JOHNSWAP(temp & 0xff);
-						keybuf_word += MMX_COEF;
 						len++;
 						break;
 					}
 					if (!(temp & 0xff0000))
 					{
 						*keybuf_word = JOHNSWAP(temp & 0xffff);
-						keybuf_word += MMX_COEF;
 						len+=2;
 						break;
 					}
 					*keybuf_word = JOHNSWAP(temp);
 					if (!(temp & 0xff000000))
 					{
-						keybuf_word += MMX_COEF;
 						len+=3;
 						break;
 					}

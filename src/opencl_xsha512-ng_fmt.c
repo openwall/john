@@ -87,14 +87,6 @@ static void crypt_one(int index, sha512_hash * hash) {
     SHA512_Update(&ctx, salt->salt, SALT_SIZE);
     SHA512_Update(&ctx, plaintext[index].pass, plaintext[index].length);
     SHA512_Final((unsigned char *) (hash), &ctx);
-/*
-    		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, &saved_salt, SALT_SIZE);
-
-
-		SHA512_Update(&ctx, saved_key[i], saved_key_length[i]);
-		SHA512_Final((unsigned char *)(crypt_out[i]), &ctx);
- */
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -290,13 +282,13 @@ static int get_step(size_t num, int step, int startup){
 }
 
 //Do the proper test using different sizes.
-static cl_ulong gws_test(size_t num, struct fmt_main * self) {
+static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
 
-    cl_event myEvent;
+    cl_event myEvent[4];
     cl_int ret_code;
     cl_uint *tmpbuffer;
-    cl_ulong startTime, endTime, runtime;
-    int i;
+    cl_ulong startTime, endTime, runtime = 0;
+    int i, loops;
 
     //Prepare buffers.
     create_clobj(num, self);
@@ -319,71 +311,50 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self) {
     for (i = 0; i < num; i++) {
         set_key("aaabaabaaa", i);
     }
-    //** Get execution time **//
+    //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, salt_buffer, CL_FALSE, 0,
-            sizeof(sha512_salt), salt, 0, NULL, &myEvent),
+            sizeof(sha512_salt), salt, 0, NULL, &myEvent[0]),
             "Failed in clEnqueueWriteBuffer");
-
-    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime = endTime - startTime;
-
-    //** Get execution time **//
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, pass_buffer, CL_FALSE, 0,
-            sizeof(sha512_password) * num, plaintext, 0, NULL, &myEvent),
+            sizeof(sha512_password) * num, plaintext, 0, NULL, &myEvent[1]),
             "Failed in clEnqueueWriteBuffer");
 
-    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime += endTime - startTime;
-
-    //** Get execution time **//
+    //Enqueue the kernel
     ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
-            1, NULL, &num, &local_work_size, 0, NULL, &myEvent);
+        1, NULL, &num, &local_work_size, 0, NULL, &myEvent[2]);
 
-    HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime += endTime - startTime;
-
-    //** Get execution time **//
+    //Read hashes back
     HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, hash_buffer, CL_FALSE, 0,
-            sizeof(uint32_t) * num, tmpbuffer, 0, NULL, &myEvent),
+            sizeof(uint32_t) * num, tmpbuffer, 0, NULL, &myEvent[3]),
             "Failed in clEnqueueReadBuffer");
 
+    loops = 4;
     HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT,
-            sizeof(cl_ulong), &startTime, NULL),
-            "Failed in clGetEventProfilingInfo I");
-    HANDLE_CLERROR(clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END,
-            sizeof(cl_ulong), &endTime, NULL),
-            "Failed in clGetEventProfilingInfo II");
-    HANDLE_CLERROR(clReleaseEvent(myEvent), "Failed in clReleaseEvent");
-    runtime += endTime - startTime;
 
-    MEM_FREE(tmpbuffer);
-    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof),
-            "Failed in clReleaseCommandQueue");
+    //** Get execution time **//
+    for (i = 0; i < loops; i++) {
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent[i], CL_PROFILING_COMMAND_START,
+                sizeof(cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
+        HANDLE_CLERROR(clGetEventProfilingInfo(myEvent[i], CL_PROFILING_COMMAND_END,
+                sizeof(cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
+
+        runtime += (endTime - startTime);
+
+        if (do_details)
+            fprintf(stderr, "%s%.2f ms", warn[i], (double)(endTime-startTime)/1000000.);
+    }
+    if (do_details)
+        fprintf(stderr, "\n");
+
+    // Free resources.
+    for (i = 0; i < loops; i++)
+        HANDLE_CLERROR(clReleaseEvent(myEvent[i]), "Failed in clReleaseEvent");
+
     release_clobj();
+    MEM_FREE(tmpbuffer);
+    HANDLE_CLERROR(clReleaseCommandQueue(queue_prof), "Failed in clReleaseCommandQueue");
 
-     if (ret_code != CL_SUCCESS) {
+    if (ret_code != CL_SUCCESS) {
 
         if (ret_code != CL_INVALID_WORK_GROUP_SIZE)
             fprintf(stderr, "Error %d\n", ret_code);
@@ -401,10 +372,14 @@ static void find_best_gws(struct fmt_main * self) {
     cl_ulong run_time, min_time = CL_ULONG_MAX;
 
     int optimal_gws = local_work_size, step = STEP;
-    int do_benchmark = 0;
+    int do_benchmark = 0, do_details = 0;
     unsigned int SHAspeed, bestSHAspeed = 0;
-    unsigned long long int max_run_time = 1000000000ULL;
+    unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL;
     char *tmp_value;
+
+    if (getenv("DETAILS")){
+        do_details = 1;
+    }
 
     if ((tmp_value = getenv("STEP"))){
         step = atoi(tmp_value);
@@ -413,7 +388,7 @@ static void find_best_gws(struct fmt_main * self) {
     step = GET_MULTIPLE(step, local_work_size);
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
-        max_run_time = atoi(tmp_value) * 1000000000UL;
+        max_run_time = atoi(tmp_value) * 1000000000ULL;
 
     fprintf(stderr, "Calculating best global work size (GWS) for LWS=%zd and max. %llu s duration.\n\n",
             local_work_size, max_run_time / 1000000000ULL);
@@ -426,10 +401,10 @@ static void find_best_gws(struct fmt_main * self) {
         if (sizeof(sha512_password) * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
             break;
 
-	if (! (run_time = gws_test(num, self)))
+	if (! (run_time = gws_test(num, self, do_details)))
             continue;
 
-        if (!do_benchmark)
+        if (!do_benchmark && !do_details)
             advance_cursor();
 
         SHAspeed = num / (run_time / 1000000000.);
@@ -470,7 +445,7 @@ static void find_best_gws(struct fmt_main * self) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
     char * tmp_value;
-    char * task = "$JOHN/xsha512-ng_kernel.cl";
+    char * task = "$JOHN/kernels/xsha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
     opencl_build_kernel(task, ocl_gpu_id);
@@ -526,9 +501,20 @@ static void init(struct fmt_main * self) {
     }
     fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
            (int) local_work_size, global_work_size);
+    self->params.min_keys_per_crypt = local_work_size;
     self->params.max_keys_per_crypt = global_work_size;
 }
+#if 0
+static void done(void) {
+    release_clobj();
 
+    HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseKernel(cmp_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+    HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+    HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+#endif
 /* ------- Check if the ciphertext if a valid SHA-512 ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
     char *p, *q;
@@ -577,7 +563,7 @@ static void * get_binary(char *ciphertext) {
         p += 2;
     }
     b = (uint64_t *) out;
-    b[0] = SWAP64((unsigned long long) b[3]) - 0xa54ff53a5f1d36f1ULL;
+    b[0] = SWAP64((unsigned long long) b[3]) - H3;
 
     return out;
 }
@@ -603,6 +589,10 @@ static void * get_full_binary(char *ciphertext) {
 
 /* ------- Crypt function ------- */
 static void crypt_all(int count) {
+    size_t gws;
+
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
+
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
             sizeof(sha512_salt), salt, 0, NULL, NULL),
@@ -611,17 +601,17 @@ static void crypt_all(int count) {
     if (new_keys)
         //Send data to device.
         HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-                sizeof(sha512_password) * global_work_size, plaintext, 0, NULL, NULL),
+                sizeof(sha512_password) * gws, plaintext, 0, NULL, NULL),
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+            &gws, &local_work_size, 0, NULL, profilingEvent),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(uint32_t) * global_work_size, calculated_hash, 0, NULL, NULL),
+            sizeof(uint32_t) * gws, calculated_hash, 0, NULL, NULL),
             "failed in reading data back");
 
     //Do the work
@@ -731,14 +721,14 @@ static int get_hash_6(int index) { return calculated_hash[index] & 0x7FFFFFF; }
 
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_xsha512_ng = {
-    {
-        FORMAT_LABEL,
-        FORMAT_NAME,
-        ALGORITHM_NAME,
-        BENCHMARK_COMMENT,
-        BENCHMARK_LENGTH,
-        PLAINTEXT_LENGTH - 1,
-        BINARY_SIZE,
+	{
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+                PLAINTEXT_LENGTH - 1,
+		BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
 #endif
@@ -746,47 +736,50 @@ struct fmt_main fmt_opencl_xsha512_ng = {
 #if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
 #endif
-        MIN_KEYS_PER_CRYPT,
-        MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT,
-        tests
-    },
-    {
-        init,
-        fmt_default_prepare,
-        valid,
-        split,
-        get_binary,
-        get_salt,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		tests
+	}, {
+		init,
+#if 0
+		done,
+#endif
+
+		fmt_default_prepare,
+		valid,
+                split,
+		get_binary,
+                get_salt,
 #if FMT_MAIN_VERSION > 9
 		fmt_default_source,
 #endif
-        {
-            binary_hash_0,
-            binary_hash_1,
-            binary_hash_2,
-            binary_hash_3,
-            binary_hash_4,
-            binary_hash_5,
-            binary_hash_6
-        },
-        salt_hash,
-        set_salt,
-        set_key,
-        get_key,
-        fmt_default_clear_keys,
-        crypt_all,
-        {
-            get_hash_0,
-            get_hash_1,
-            get_hash_2,
-            get_hash_3,
-            get_hash_4,
-            get_hash_5,
-            get_hash_6
-        },
-        cmp_all,
-        cmp_one,
-        cmp_exact
-    }
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+                salt_hash,
+                set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
+	}
 };

@@ -36,7 +36,7 @@
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf
 #else
-static void rar_dbgmsg(const char* fmt,...){}
+//static void rar_dbgmsg(const char* fmt,...){}
 #endif
 
 #define VMCF_OP0             0
@@ -235,11 +235,11 @@ unsigned int rarvm_read_data(rarvm_input_t *rarvm_input)
 	unsigned int data;
 
 	data = rarvm_getbits(rarvm_input);
-	rar_dbgmsg("rarvm_read_data getbits=%u\n", data);
+	//rar_dbgmsg("rarvm_read_data getbits=%u\n", data);
 	switch (data & 0xc000) {
 	case 0:
 		rarvm_addbits(rarvm_input,6);
-		rar_dbgmsg("rarvm_read_data=%u\n", ((data>>10)&0x0f));
+		//rar_dbgmsg("rarvm_read_data=%u\n", ((data>>10)&0x0f));
 		return ((data>>10)&0x0f);
 	case 0x4000:
 		if ((data & 0x3c00) == 0) {
@@ -249,13 +249,13 @@ unsigned int rarvm_read_data(rarvm_input_t *rarvm_input)
 			data = (data >> 6) &0xff;
 			rarvm_addbits(rarvm_input,10);
 		}
-		rar_dbgmsg("rarvm_read_data=%u\n", data);
+		//rar_dbgmsg("rarvm_read_data=%u\n", data);
 		return data;
 	case 0x8000:
 		rarvm_addbits(rarvm_input,2);
 		data = rarvm_getbits(rarvm_input);
 		rarvm_addbits(rarvm_input,16);
-		rar_dbgmsg("rarvm_read_data=%u\n", data);
+		//rar_dbgmsg("rarvm_read_data=%u\n", data);
 		return data;
 	default:
 		rarvm_addbits(rarvm_input,2);
@@ -263,7 +263,7 @@ unsigned int rarvm_read_data(rarvm_input_t *rarvm_input)
 		rarvm_addbits(rarvm_input,16);
 		data |= rarvm_getbits(rarvm_input);
 		rarvm_addbits(rarvm_input,16);
-		rar_dbgmsg("rarvm_read_data=%u\n", data);
+		//rar_dbgmsg("rarvm_read_data=%u\n", data);
 		return data;
 	}
 }
@@ -289,7 +289,7 @@ static rarvm_standard_filters_t is_standard_filter(unsigned char *code, int code
 	};
 
 	code_crc = rar_crc(0xffffffff, code, code_size)^0xffffffff;
-	rar_dbgmsg("code_crc=%u\n", code_crc);
+	//rar_dbgmsg("code_crc=%u\n", code_crc);
 	for (i=0 ; i<sizeof(std_filt_list)/sizeof(std_filt_list[0]) ; i++) {
 		if (std_filt_list[i].crc == code_crc && std_filt_list[i].length == code_size) {
 			return std_filt_list[i].type;
@@ -590,21 +590,21 @@ static int rarvm_execute_code(rarvm_data_t *rarvm_data,
 	unsigned int value1, value2, result, divider, FC, *op1, *op2;
 	const int reg_count=sizeof(rarvm_data->R)/sizeof(rarvm_data->R[0]);
 
-	rar_dbgmsg("in rarvm_execute_code\n");
+	//rar_dbgmsg("in rarvm_execute_code\n");
 	cmd = prepared_code;
 	while (1) {
 		if (cmd > (prepared_code + code_size)) {
-			rar_dbgmsg("RAR: code overrun detected\n");
+			//rar_dbgmsg("RAR: code overrun detected\n");
 			return 0;
 		}
 		if (cmd < prepared_code) {
-			rar_dbgmsg("RAR: code underrun detected\n");
+			//rar_dbgmsg("RAR: code underrun detected\n");
                         return 0;
                 }
 		op1 = rarvm_get_operand(rarvm_data, &cmd->op1);
 		op2 = rarvm_get_operand(rarvm_data, &cmd->op2);
-		rar_dbgmsg("op(%d) op_code: %d, op1=%u, op2=%u\n", 25000000-max_ops,
-					cmd->op_code, op1, op2);
+		//rar_dbgmsg("op(%d) op_code: %d, op1=%u, op2=%u\n", 25000000-max_ops,
+		//			cmd->op_code, op1, op2);
 		switch(cmd->op_code) {
 		case VM_MOV:
 			SET_VALUE(cmd->byte_mode, op1, GET_VALUE(cmd->byte_mode, op2));
@@ -889,7 +889,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 	unsigned int global_size, static_size, new_pos, new_size, data_size;
 	struct rarvm_prepared_command *prepared_code;
 
-	rar_dbgmsg("in rarvm_execute\n");
+	//rar_dbgmsg("in rarvm_execute\n");
 	memcpy(rarvm_data->R, prg->init_r, sizeof(prg->init_r));
 	global_size = MIN(prg->global_size, VM_GLOBALMEMSIZE);
 	if (global_size) {
@@ -906,7 +906,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 
 	prepared_code=prg->alt_cmd ? prg->alt_cmd : &prg->cmd.array[0];
 	if(!prepared_code) {
-	    rar_dbgmsg("unrar: rarvm_execute: prepared_code == NULL\n");
+	    //rar_dbgmsg("unrar: rarvm_execute: prepared_code == NULL\n");
 	    return 0;
 	}
 	if (!rarvm_execute_code(rarvm_data, prepared_code, prg->cmd_count)) {
@@ -931,7 +931,7 @@ int rarvm_execute(rarvm_data_t *rarvm_data, struct rarvm_prepared_program *prg)
 		prg->global_size += data_size+VM_FIXEDGLOBALSIZE;
 		prg->global_data = rar_realloc2(prg->global_data, prg->global_size);
 		if(!prg->global_data) {
-		    rar_dbgmsg("unrar: rarvm_execute: rar_realloc2 failed for prg->global_data\n");
+		    //rar_dbgmsg("unrar: rarvm_execute: rar_realloc2 failed for prg->global_data\n");
 		    return 0;
 		}
 		memcpy(prg->global_data, &rarvm_data->mem[VM_GLOBALMEMADDR],
@@ -1051,21 +1051,21 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 	unsigned int data_flag, data;
  	struct rarvm_prepared_command *cmd;
 
- 	rar_dbgmsg("in rarvm_prepare code_size=%d\n", code_size);
+	//rar_dbgmsg("in rarvm_prepare code_size=%d\n", code_size);
 	rarvm_input->in_addr = rarvm_input->in_bit = 0;
 	memcpy(rarvm_input->in_buf, code, MIN(code_size, 0x8000));
 	xor_sum = 0;
 	for (i=1 ; i<code_size; i++) {
-		rar_dbgmsg("code[%d]=%d\n", i, code[i]);
+		//rar_dbgmsg("code[%d]=%d\n", i, code[i]);
 		xor_sum ^= code[i];
 	}
-	rar_dbgmsg("xor_sum=%d\n", xor_sum);
+	//rar_dbgmsg("xor_sum=%d\n", xor_sum);
 	rarvm_addbits(rarvm_input,8);
 
 	prg->cmd_count = 0;
 	if (xor_sum == code[0]) {
 		filter_type = is_standard_filter(code, code_size);
-		rar_dbgmsg("filter_type=%d\n", filter_type);
+		//rar_dbgmsg("filter_type=%d\n", filter_type);
 		if (filter_type != VMSF_NONE) {
 			rar_cmd_array_add(&prg->cmd, 1);
 			cur_cmd = &prg->cmd.array[prg->cmd_count++];
@@ -1078,21 +1078,21 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 		}
 
 		data_flag = rarvm_getbits(rarvm_input);
-		rar_dbgmsg("data_flag=%u\n", data_flag);
+		//rar_dbgmsg("data_flag=%u\n", data_flag);
 		rarvm_addbits(rarvm_input, 1);
 		if (data_flag & 0x8000) {
 			int data_size = rarvm_read_data(rarvm_input)+1;
-			rar_dbgmsg("data_size=%d\n", data_size);
+			//rar_dbgmsg("data_size=%d\n", data_size);
 			prg->static_data = rar_malloc(data_size);
 			if(!prg->static_data) {
-			    rar_dbgmsg("unrar: rarvm_prepare: rar_malloc failed for prg->static_data\n");
+			    //rar_dbgmsg("unrar: rarvm_prepare: rar_malloc failed for prg->static_data\n");
 			    return 0;
 			}
 			for (i=0 ; rarvm_input->in_addr < code_size && i < data_size ; i++) {
 				prg->static_size++;
 				prg->static_data = rar_realloc2(prg->static_data, prg->static_size);
 				if(!prg->static_data) {
-				    rar_dbgmsg("unrar: rarvm_prepare: rar_realloc2 failed for prg->static_data\n");
+				    //rar_dbgmsg("unrar: rarvm_prepare: rar_realloc2 failed for prg->static_data\n");
 				    return 0;
 				}
 				prg->static_data[i] = rarvm_getbits(rarvm_input) >> 8;
@@ -1103,7 +1103,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 			rar_cmd_array_add(&prg->cmd, 1);
 			cur_cmd = &prg->cmd.array[prg->cmd_count];
 			data = rarvm_getbits(rarvm_input);
-			rar_dbgmsg("data: %u\n", data);
+			//rar_dbgmsg("data: %u\n", data);
 			if ((data & 0x8000) == 0) {
 				cur_cmd->op_code = (rarvm_commands_t) (data>>12);
 				rarvm_addbits(rarvm_input, 4);
@@ -1119,7 +1119,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 			}
 			cur_cmd->op1.type = cur_cmd->op2.type = VM_OPNONE;
 			op_num = (vm_cmdflags[cur_cmd->op_code] & VMCF_OPMASK);
-			rar_dbgmsg("op_num: %d\n", op_num);
+			//rar_dbgmsg("op_num: %d\n", op_num);
 			cur_cmd->op1.addr = cur_cmd->op2.addr = NULL;
 			if (op_num > 0) {
 				rarvm_decode_arg(rarvm_data, rarvm_input,
@@ -1132,7 +1132,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 							(vm_cmdflags[cur_cmd->op_code] &
 							(VMCF_JUMP|VMCF_PROC))) {
 						distance = cur_cmd->op1.data;
-						rar_dbgmsg("distance = %d\n", distance);
+						//rar_dbgmsg("distance = %d\n", distance);
 						if (distance >= 256) {
 							distance -= 256;
 						} else {
@@ -1147,7 +1147,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 							}
 							distance += prg->cmd_count;
 						}
-						rar_dbgmsg("distance = %d\n", distance);
+						//rar_dbgmsg("distance = %d\n", distance);
 						cur_cmd->op1.data = distance;
 					}
 				}
@@ -1164,7 +1164,7 @@ int rarvm_prepare(rarvm_data_t *rarvm_data, rarvm_input_t *rarvm_input, unsigned
 
 	for (i=0 ; i < prg->cmd_count ; i++) {
 		cmd = &prg->cmd.array[i];
-		rar_dbgmsg("op_code[%d]=%d\n", i, cmd->op_code);
+		//rar_dbgmsg("op_code[%d]=%d\n", i, cmd->op_code);
 		if (cmd->op1.addr == NULL) {
 			cmd->op1.addr = &cmd->op1.data;
 		}

@@ -30,9 +30,6 @@
 
 #include <string.h>
 #include <errno.h>
-#ifndef _MSC_VER
-#include <alloca.h>
-#endif
 #include <fcntl.h>
 #include <stdlib.h>
 #include "stdint.h"
@@ -249,8 +246,6 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
-
-struct fmt_main dmg_fmt;
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {

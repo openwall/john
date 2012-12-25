@@ -158,7 +158,7 @@ static uint32_t keySize(char algorithm)
 			return 32;
 		default: break;
 	}
-	return 0;
+	assert(0);
 }
 
 // Returns the digest size (in bytes) of a given hash algorithm
@@ -177,7 +177,7 @@ static uint32_t digestSize(char algorithm)
 			return 20;
 		default: break;
 	}
-	return 0;
+	assert(0);
 }
 
 static struct fmt_tests gpg_tests[] = {
@@ -653,7 +653,7 @@ static int check(unsigned char *keydata, int ks)
 	// the MPI. If they are correct, there's a good chance that the
 	// password is correct, too.
 	unsigned char ivec[32];
-	unsigned char out[4096];
+	unsigned char out[4096] = { 0 };
 	int tmp = 0;
         uint32_t num_bits;
 	int checksumOk;

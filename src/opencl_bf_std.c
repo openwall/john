@@ -460,12 +460,12 @@ void BF_select_device(int platform_no,int dev_no)
 	
 	if(CL_DEVICE_TYPE_CPU == device_type(platform_no,dev_no)){
 	        if(CHANNEL_INTERLEAVE == 1)
-			opencl_init("$JOHN/bf_cpu_kernel.cl", dev_no, platform_no);
+			opencl_init("$JOHN/kernels/bf_cpu_kernel.cl", dev_no, platform_no);
 		else
-			printf("Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
+			fprintf(stderr, "Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
 	}	
 	else
-		opencl_init("$JOHN/bf_kernel.cl", dev_no, platform_no);
+		opencl_init("$JOHN/kernels/bf_kernel.cl", dev_no, platform_no);
 
 	pltfrmid[platform_no]=platform[platform_no];
 

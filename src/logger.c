@@ -45,6 +45,7 @@
 
 static int cfg_beep;
 static int cfg_log_passwords;
+static int cfg_showcand;
 
 /*
  * Note: the file buffer is allocated as (size + LINE_BUFFER_SIZE) bytes
@@ -174,6 +175,8 @@ void log_init(char *log_name, char *pot_name, char *session)
 
 	cfg_log_passwords = cfg_get_bool(SECTION_OPTIONS, NULL,
 	                                 "LogCrackedPasswords", 0);
+	cfg_showcand = cfg_get_bool(SECTION_OPTIONS, NULL,
+	                            "StatusShowCandidates", 0);
 
 	in_logger = 0;
 }
@@ -217,12 +220,19 @@ void log_guess(char *login, char *ciphertext, char *rep_plain, char *store_plain
 		count1 = log_time();
 		if (count1 > 0) {
 			log.ptr += count1;
+			count2 = (int)sprintf(log.ptr, "+ Cracked %s", login);
+
 			if (cfg_log_passwords)
-				count2 = (int)sprintf(log.ptr,
-				    "+ Cracked %s: %s\n", login, rep_plain);
-			else
-				count2 = (int)sprintf(log.ptr,
-				    "+ Cracked %s\n", login);
+				count2 += (int)sprintf(log.ptr + count2,
+				                       ": %s", rep_plain);
+			if (cfg_showcand)
+				count2 += (int)sprintf(log.ptr + count2,
+				                       " after %llu crypts",
+				                       ((unsigned long long)
+				                       status.crypts.hi << 32) +
+				                       status.crypts.lo);
+			count2 += (int)sprintf(log.ptr + count2, "\n");
+
 			if (count2 > 0)
 				log.ptr += count2;
 			else

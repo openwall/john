@@ -20,7 +20,7 @@
 #define DEV_AMD                     64
 #define DEV_NVIDIA                  128
 #define DEV_INTEL                   256
-#define DEV_APPLE                   512
+#define PLATFORM_APPLE              512
 #define DEV_AMD_GCN                 1024
 #define DEV_AMD_VLIW4               2048
 #define DEV_AMD_VLIW5               4096
@@ -38,6 +38,7 @@
 #define amd_vliw5(n)                ((n & DEV_AMD_VLIW5) && gpu_amd(n))
 #define no_byte_addressable(n)      ((n & DEV_NO_BYTE_ADDRESSABLE))
 #define use_local(n)                ((n & DEV_USE_LOCAL))
+#define platform_apple(p)           (get_platform_vendor_id(p) == PLATFORM_APPLE)
 
 #endif	/* OPENCL_DEVICE_INFO_H */
 

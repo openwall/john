@@ -17,10 +17,6 @@
 #include "opencl_device_info.h"
 #include "opencl_sha512.h"
 
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
-
 //Constants.
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
@@ -28,7 +24,7 @@
 #define ROUNDS_MAX              999999999
 
 #define SALT_LENGTH             16
-#define PLAINTEXT_LENGTH        16
+#define PLAINTEXT_LENGTH        24
 #define CIPHERTEXT_LENGTH	86
 #define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 8)
@@ -51,7 +47,7 @@ typedef union {
 typedef struct {
     uint32_t                    rounds;
     uint32_t                    length;
-    uint32_t                    initial;
+    uint32_t                    final;
     buffer_64                   salt[SALT_ARRAY];
 } sha512_salt;
 #define SALT_SIZE               sizeof(sha512_salt)
@@ -80,4 +76,12 @@ typedef struct {
     buffer_64                   temp_result[SALT_ARRAY];
     buffer_64                   p_sequence[PLAINTEXT_ARRAY];
 } sha512_buffers;
+
+#ifndef _OPENCL_COMPILER
+    static const char * warn[] = {
+        "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",
+        ", crypt: "    ,  "/"              ,  ", prepare: "  ,  ", final: "
+};
 #endif
+
+#endif  /* _CRYPTSHA512_H */

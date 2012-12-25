@@ -1,9 +1,16 @@
 /* Common OpenCL functions go in this file */
 
-#include "common-opencl.h"
 #include <assert.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <time.h>
+
+#include "common-opencl.h"
+#include "signals.h"
+#include "recovery.h"
+#include "status.h"
+
 #define LOG_SIZE 1024*16
 
 static char opencl_log[LOG_SIZE];
@@ -11,12 +18,41 @@ static char *kernel_source;
 static int kernel_loaded;
 static size_t program_size;
 
+extern volatile int bench_running;
+
+void opencl_process_event(void)
+{
+	if (!bench_running) {
+#if !OS_TIMER
+		sig_timer_emu_tick();
+#endif
+		if (event_pending) {
+
+			event_pending = event_abort;
+
+			if (event_save) {
+				event_save = 0;
+				rec_save();
+			}
+
+			if (event_status) {
+				event_status = 0;
+				status_print();
+			}
+
+			if (event_ticksafety) {
+				event_ticksafety = 0;
+				status_ticks_overflow_safety();
+			}
+		}
+	}
+}
+
 void advance_cursor()
 {
 	static int pos = 0;
 	char cursor[4] = { '/', '-', '\\', '|' };
 	fprintf(stderr, "%c\b", cursor[pos]);
-	fflush(stdout);
 	pos = (pos + 1) % 4;
 }
 
@@ -121,7 +157,7 @@ static char *include_source(char *pathname, int dev_id, char *options)
 	return include;
 }
 
-static void build_kernel(int dev_id, char *options)
+static void build_kernel(int dev_id, char *options, int save, char * file_name)
 {
 	cl_int build_code;
         char * build_log; size_t log_size;
@@ -133,7 +169,7 @@ static void build_kernel(int dev_id, char *options)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/", dev_id, options), NULL, NULL);
+		include_source("$JOHN/kernels", dev_id, options), NULL, NULL);
 
         HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
                 CL_PROGRAM_BUILD_LOG, 0, NULL,
@@ -156,28 +192,34 @@ static void build_kernel(int dev_id, char *options)
 		fprintf(stderr, "Compilation log: %s\n", build_log);
 #endif
         MEM_FREE(build_log);
-#if 0
-	FILE *file;
-	size_t source_size;
-	char *source;
 
-	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
-		CL_PROGRAM_BINARY_SIZES,
-		sizeof(size_t), &source_size, NULL), "error");
-	fprintf(stderr, "source size %zu\n", source_size);
-	source = malloc(source_size);
+	if (save) {
+		FILE *file;
+		size_t source_size;
+		char *source;
 
-	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
-		CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
-
-	file = fopen("program.bin", "w");
-	if (file == NULL)
-		fprintf(stderr, "Error opening binary file\n");
-	else if (fwrite(source, source_size, 1, file) != 1)
-		fprintf(stderr, "error writing binary\n");
-	fclose(file);
-	MEM_FREE(source);
+		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+			CL_PROGRAM_BINARY_SIZES,
+			sizeof(size_t), &source_size, NULL), "error");
+#if DEBUG
+		fprintf(stderr, "source size %zu\n", source_size);
 #endif
+		source = malloc(source_size);
+
+		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+			CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
+
+		file = fopen(path_expand(file_name), "w");
+
+		if (file == NULL)
+			fprintf(stderr, "Error creating binary file %s\n", file_name);
+		else {
+			if (fwrite(source, source_size, 1, file) != 1)
+				fprintf(stderr, "error writing binary\n");
+			fclose(file);
+		}
+		MEM_FREE(source);
+	}
 }
 
 static void build_kernel_from_binary(int dev_id)
@@ -191,7 +233,7 @@ static void build_kernel_from_binary(int dev_id)
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/", dev_id, NULL), NULL, NULL);
+		include_source("$JOHN/kernels", dev_id, NULL), NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
@@ -461,13 +503,64 @@ void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
 void opencl_build_kernel_opt(char *kernel_filename, unsigned int dev_id, char *options)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(dev_id, options);
+	build_kernel(dev_id, options, 0, NULL);
 }
 
 void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
-{	
+{
 	kernel_loaded=0;
 	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
+}
+
+// Only AMD gpu code, and OSX (including with nvidia)
+// will benefit from this routine.
+void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn) {
+	struct stat source_stat, bin_stat;
+	char dev_name[128], bin_name[128];
+	char * p;
+	uint64_t startTime, runtime;
+
+	kernel_loaded = 0;
+
+	if ((!gpu_amd(device_info[ocl_gpu_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
+		opencl_build_kernel_opt(kernel_filename, dev_id, options);
+
+	else {
+		startTime = (unsigned long) time(NULL);
+
+		//Get device name.
+		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_NAME,
+			sizeof (dev_name), dev_name, NULL), "Error querying DEVICE_NAME");
+
+		//Decide the binary name.
+		strncpy(bin_name, kernel_filename, sizeof(bin_name));
+		p = strstr(bin_name, ".cl");
+		if (p) *p = 0;
+		strcat(bin_name, "_");
+		strcat(bin_name, dev_name);
+		strcat(bin_name, ".bin");
+
+		//Select the kernel to run.
+		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
+			read_kernel_source(bin_name);
+			build_kernel_from_binary(dev_id);
+
+		} else {
+
+			if (warn) {
+				fprintf(stderr, "Building the kernel, this could take a while\n");
+				fflush(stdout);
+			}
+			read_kernel_source(kernel_filename);
+			build_kernel(dev_id, options, 1, bin_name);
+
+			if (warn) {
+				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+					fprintf(stderr, "Elapsed time: %lu seconds\n", (unsigned long)runtime);
+				fflush(stdout);
+			}
+		}
+	}
 }
 
 void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
@@ -730,7 +823,7 @@ int get_platform_vendor_id(int platform_id)
 		return DEV_NVIDIA;
 
 	if (strstr(dname, "Apple") != NULL)
-		return DEV_APPLE;
+		return PLATFORM_APPLE;
 
 	if (strstr(dname, "Intel") != NULL)
 		return DEV_INTEL;
