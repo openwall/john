@@ -537,6 +537,9 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 		p = strstr(bin_name, ".cl");
 		if (p) *p = 0;
 		strcat(bin_name, "_");
+		if (options) {
+			strcat(bin_name, options);
+		}
 		strcat(bin_name, dev_name);
 		strcat(bin_name, ".bin");
 
