@@ -556,7 +556,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 
 			if (warn) {
 				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-					fprintf(stderr, "Elapsed time: %lu seconds\n", (unsigned long)runtime);
+					fprintf(stderr, "Build time: %lu seconds\n", (unsigned long)runtime);
 				fflush(stdout);
 			}
 		}
@@ -574,7 +574,7 @@ void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
-	opencl_build_kernel_opt(kernel_filename, dev_id, options);
+	opencl_build_kernel_save(kernel_filename, dev_id, options, 1, 0);
 }
 
 void opencl_init(char *kernel_filename, unsigned int dev_id,
