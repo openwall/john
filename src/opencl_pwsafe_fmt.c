@@ -74,7 +74,7 @@ static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
 
 
-static void release_all(void)
+static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
@@ -121,7 +121,7 @@ static void init(struct fmt_main *self)
 
 	opencl_find_best_workgroup(self);
 	//local_work_size=256;
-	atexit(release_all);
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

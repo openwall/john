@@ -86,7 +86,7 @@ static size_t settingsize = sizeof(sxc_salt);
 
 #define DEBUG
 
-static void release_all(void)
+static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
@@ -144,7 +144,7 @@ static void init(struct fmt_main *self)
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
 
-	atexit(release_all);
+	atexit(done);
 }
 
 static int ishex(char *q)

@@ -107,7 +107,7 @@ static void release_clobj(void){
 	MEM_FREE(res_hashes);
 }
 
-static void release_all(void)
+static void done(void)
 {
 	release_clobj();
 
@@ -275,7 +275,7 @@ static void init(struct fmt_main *self) {
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 	}
 	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
-	atexit(release_all);
+	atexit(done);
 	create_clobj(max_keys_per_crypt);
 
 	self->params.max_keys_per_crypt = max_keys_per_crypt;
