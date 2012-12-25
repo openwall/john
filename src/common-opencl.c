@@ -553,12 +553,11 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 			}
 			read_kernel_source(kernel_filename);
 			build_kernel(dev_id, options, 1, bin_name);
-
-			if (warn) {
-				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-					fprintf(stderr, "Build time: %lu seconds\n", (unsigned long)runtime);
-				fflush(stdout);
-			}
+		}
+		if (warn) {
+			if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+				fprintf(stderr, "Build time: %lu seconds\n", (unsigned long)runtime);
+			fflush(stdout);
 		}
 	}
 }
