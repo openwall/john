@@ -90,7 +90,7 @@ static struct fmt_tests tests[] = {
 
 	static cl_uint *dcc2_hash_host;
 
-	static unsigned char key_host[MAX_KEYS_PER_CRYPT][MAX_PLAINTEXT_LENGTH+1];
+	static unsigned char (*key_host)[MAX_PLAINTEXT_LENGTH+1];
 
 	static ms_cash2_salt currentsalt;
 
@@ -190,13 +190,15 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
 }
 
 static 	void set_key(char*,int);
-static 	void cleanup(void);
+static 	void done(void);
 static  void crypt_all(int);
 
 
 static void init(struct fmt_main *self)
 {
 	///Alocate memory
+	key_host = calloc(self->params.max_keys_per_crypt, sizeof(*key_host));
+
 	dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
 	dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
@@ -213,7 +215,7 @@ static void init(struct fmt_main *self)
 	//select_default_device();
 
 
-	atexit(cleanup);
+	atexit(done);
 
 }
 
@@ -276,15 +278,13 @@ static void DCC(unsigned char *salt,unsigned char *username,unsigned int usernam
 }
 
 
-static void cleanup()
+static void done()
 {
-	MEM_FREE(dcc_hash_host);
-
 	MEM_FREE(dcc2_hash_host);
+	MEM_FREE(dcc_hash_host);
+	MEM_FREE(key_host);
 
 	clean_all_buffer();
-
-
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)

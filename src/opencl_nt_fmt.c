@@ -123,7 +123,7 @@ static int max_keys_per_crypt = NT_NUM_KEYS;
 
 #define NT_CRYPT_FUN		nt_crypt_all_opencl
 
-static void release_all(void)
+static void done(void)
 {
 	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
 	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
@@ -169,7 +169,7 @@ static void nt_crypt_all_opencl(int count)
 static void fmt_NT_init(struct fmt_main *self){
 	int argIndex = 0;
 
-	atexit(release_all);
+	atexit(done);
 	opencl_init("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, platform_id);
 
 	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );

@@ -92,8 +92,8 @@ static struct fmt_tests tests[] = {
 };
 
 
-static sha512_key gkey[MAX_KEYS_PER_CRYPT];
-static sha512_hash ghash[MAX_KEYS_PER_CRYPT];
+static sha512_key *gkey;
+static sha512_hash *ghash;
 static uint8_t sha512_key_changed;
 static uint8_t hash_copy_back;
 
@@ -114,12 +114,14 @@ static size_t insize = sizeof(sha512_key) * MAX_KEYS_PER_CRYPT;
 static size_t outsize = sizeof(sha512_hash) * MAX_KEYS_PER_CRYPT;
 cl_kernel cmp_kernel;
 
-static void release_all(void)
+static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	MEM_FREE(ghash);
+	MEM_FREE(gkey);
 }
 
 static void copy_hash_back()
@@ -149,6 +151,9 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
+	gkey = calloc(MAX_KEYS_PER_CRYPT, sizeof(sha512_key));
+	ghash = calloc(MAX_KEYS_PER_CRYPT, sizeof(sha512_hash));
+
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	opencl_init("$JOHN/kernels/sha512_kernel.cl", ocl_gpu_id, platform_id);
@@ -187,7 +192,7 @@ static void init(struct fmt_main *self)
 	opencl_find_best_workgroup(self);
 
 	fprintf(stderr, "Global work size = %lld\n",(long long)global_work_size);
-	atexit(release_all);
+	atexit(done);
 
 }
 
