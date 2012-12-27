@@ -71,8 +71,8 @@
 #define LWS_CONFIG		"krbng_LWS"
 #define GWS_CONFIG		"krbng_GWS"
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 static struct fmt_tests tests[] = {
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},

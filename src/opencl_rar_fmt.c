@@ -105,8 +105,8 @@
 
 #define ROUNDS			0x40000
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* The reason we want to bump OMP_SCALE in this case is to even out the
    difference in processing time for different length keys. It doesn't

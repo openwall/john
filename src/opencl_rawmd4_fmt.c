@@ -34,8 +34,8 @@ static cl_uint *res_hashes;
 static char *saved_plain;
 static int keybuf_size = (PLAINTEXT_LENGTH + 1);
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 #define MIN_KEYS_PER_CRYPT      2048
 #define MAX_KEYS_PER_CRYPT      (1024 * 2048)

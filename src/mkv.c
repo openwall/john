@@ -646,6 +646,15 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 	fprintf(stderr, "%d pwd="LLd")\n", mkv_maxlen, mkv_end-mkv_start);
 #endif
 
+	/* Some formats may optimize for a decreased max. length with this
+	   call to clear_keys() */
+	/* FIXME: If any future batch-mode runs some other mode after running
+	   this one, length might need to be reset to the original. */
+	if (mkv_maxlen < db->format->params.plaintext_length) {
+		options.force_maxlength = mkv_maxlen;
+		db->format->methods.clear_keys();
+	}
+
 	if(param)
 		log_event("Proceeding with Markov mode %s", param);
 	else

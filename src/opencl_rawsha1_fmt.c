@@ -56,8 +56,8 @@ static char *saved_plain;
 static int have_full_hashes;
 static int keybuf_size = PLAINTEXT_LENGTH;
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 static int max_keys_per_crypt = SHA_NUM_KEYS;
 
