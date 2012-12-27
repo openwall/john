@@ -508,6 +508,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 		max_length = db->format->params.plaintext_length;
 	}
 
+	/* Some formats may optimize for a decreased max. length with this
+	   call to clear_keys() */
+	/* FIXME: If any future batch-mode runs some other mode after this
+	   one, length might need to be reset to the original. */
+	if (max_length < db->format->params.plaintext_length) {
+		options.force_maxlength = max_length;
+		db->format->methods.clear_keys();
+	}
+
 	if (max_length > CHARSET_LENGTH) {
 		log_event("! MaxLen = %d exceeds the compile-time limit of %d",
 			max_length, CHARSET_LENGTH);
