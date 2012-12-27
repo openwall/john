@@ -47,8 +47,8 @@
 #define LWS_CONFIG		"ntlmv2_LWS"
 #define GWS_CONFIG		"ntlmv2_GWS"
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* these will be altered in init() depending on GPU */
 #define MIN_KEYS_PER_CRYPT	1
