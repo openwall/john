@@ -46,15 +46,15 @@ inline uint SWAP32(uint x)
 #endif
 
 
-__kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_key,  __global uint *digest){
+__kernel void sha1_crypt_kernel(__global char *plain_key,  __global uint *digest){
     int t, gid, msg_pad;
     int stop, mmod;
     uint i, ulen;
     uint W[16], temp, A,B,C,D,E;
-    uint num_keys = data_info[1];
+    uint num_keys = get_global_size(0);
 
     gid = get_global_id(0);
-    msg_pad = gid * data_info[0];
+    msg_pad = gid * KEY_LENGTH;
 
     A = H1;
     B = H2;
@@ -66,7 +66,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info,__global char *plain_ke
     for (t = 1; t < 15; t++){
 	W[t] = 0x00000000;
     }
-    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
+    for(i = 0; i < KEY_LENGTH && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
     }
 
     stop = i / 4 ;
