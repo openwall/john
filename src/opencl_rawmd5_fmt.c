@@ -1,8 +1,11 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2010 by Solar Designer
- *
  * MD5 OpenCL code is based on Alain Espinosa's OpenCL patches.
+ *
+ * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and Copyright (c) 2012, magnum
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted.
  *
  */
 
@@ -16,7 +19,7 @@
 #include "common-opencl.h"
 #include "options.h"
 
-#define PLAINTEXT_LENGTH    31 /* Max. is 55 */
+#define PLAINTEXT_LENGTH    32 /* Max. is 56 */
 #define FORMAT_LABEL        "raw-md5-opencl"
 #define FORMAT_NAME         "Raw MD5"
 #define ALGORITHM_NAME      "OpenCL (inefficient, development use only)"
@@ -31,7 +34,7 @@ cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys;
 static cl_uint *partial_hashes;
 static cl_uint *res_hashes;
 static char *saved_plain;
-static int keybuf_size = (PLAINTEXT_LENGTH + 1);
+static int keybuf_size = PLAINTEXT_LENGTH;
 
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
@@ -139,12 +142,12 @@ static void fmt_MD5_init(struct fmt_main *self) {
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	/* Reduced length can give a significant boost.
-	   This kernel need a multiple of 4 - 1 (eg. 31, 15 or 11). */
+	   This kernel need a multiple of 4 (eg. 32, 16 or 12). */
 	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH - 3) {
-		keybuf_size = MAX((options.force_maxlength + 4) / 4 * 4, 8);
+		keybuf_size = MAX((options.force_maxlength + 3) / 4 * 4, 8);
 		self->params.benchmark_comment = mem_alloc_tiny(20, MEM_ALIGN_NONE);
 		sprintf(self->params.benchmark_comment, " (max length %d)",
-		        keybuf_size - 1);
+		        keybuf_size);
 	}
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", keybuf_size);
@@ -211,7 +214,7 @@ static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *) binary & 0xFFF
 static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *) binary & 0xFFFFFF; }
 static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *) binary & 0x7FFFFFF; }
 
-static int get_hash_0(int index) { return partial_hashes[index] & 0x0F; }
+static int get_hash_0(int index) { return partial_hashes[index] & 0xF; }
 static int get_hash_1(int index) { return partial_hashes[index] & 0xFF; }
 static int get_hash_2(int index) { return partial_hashes[index] & 0xFFF; }
 static int get_hash_3(int index) { return partial_hashes[index] & 0xFFFF; }
@@ -219,18 +222,16 @@ static int get_hash_4(int index) { return partial_hashes[index] & 0xFFFFF; }
 static int get_hash_5(int index) { return partial_hashes[index] & 0xFFFFFF; }
 static int get_hash_6(int index) { return partial_hashes[index] & 0x7FFFFFF; }
 
-static void set_salt(void *salt) { }
+static void clear_keys(void)
+{
+	memset(saved_plain, 0, keybuf_size * global_work_size);
+}
 
 static void set_key(char *key, int index) {
-	int length = -1;
-	int base = index * keybuf_size;
+	char *dst = (char*)&saved_plain[index * keybuf_size];
 
-	do {
-		length++;
-		saved_plain[base + length] = key[length];
-	}
-	while (key[length]);
-	memset(&saved_plain[base + length + 1], 0, 7);	// ugly hack which "should" work!
+	while (*key)
+		*dst++ = *key++;
 }
 
 static char *get_key(int index) {
@@ -250,53 +251,28 @@ static char *get_key(int index) {
 static void crypt_all(int count)
 {
 	crypt_gws = (count + local_work_size - 1) / local_work_size * local_work_size;
-#ifdef DEBUGVERBOSE
-	int i, j;
-	unsigned char *p = (unsigned char *) saved_plain;
-	count--;
-	for (i = 0; i < count + 1; i++) {
-		fprintf(stderr, "\npassword : ");
-		for (j = 0; j < 64; j++) {
-			fprintf(stderr, "%02x ", p[i * 64 + j]);
-		}
-	}
-	fprintf(stderr, "\n");
-#endif
 	// copy keys to the device
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * crypt_gws, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &crypt_gws, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]),"failed in clFinish");
+
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * crypt_gws, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
-
-#ifdef DEBUGVERBOSE
-	p = (unsigned char *) partial_hashes;
-	for (i = 0; i < 2; i++) {
-		fprintf(stderr, "\n\npartial_hashes : ");
-		for (j = 0; j < 16; j++)
-			fprintf(stderr, "%02x ", p[i * 16 + j]);
-	}
-	fprintf(stderr, "\n");;
-#endif
-}
-
-static int cmp_one(void *binary, int index){
-	unsigned int *t = (unsigned int *) binary;
-
-	if (t[0] == partial_hashes[index])
-		return 1;
-	return 0;
 }
 
 static int cmp_all(void *binary, int count) {
-	unsigned int i = 0;
+	unsigned int i;
 	unsigned int b = ((unsigned int *) binary)[0];
-	for (; i < count; i++)
+
+	for (i = 0; i < count; i++)
 		if (b == partial_hashes[i])
 			return 1;
 	return 0;
+}
+
+static int cmp_one(void *binary, int index){
+	return (((unsigned int*)binary)[0] == partial_hashes[index]);
 }
 
 static int cmp_exact(char *source, int index){
@@ -350,10 +326,10 @@ struct fmt_main fmt_opencl_rawMD5 = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
