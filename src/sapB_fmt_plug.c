@@ -95,15 +95,29 @@ static const unsigned char transtable[] =
 
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
+	// While "X" and "U" are not valid SAP passwords, they might still occur
+	// if passwords longer than 8 characters are allowed, and if the CODVN B
+	// password is calculated and stored in addition to the CODVN F or
+	// CODVN H password.
+	// Although a user picking "X       Y" as a password is probably
+	// not very likely.
 	{"F           $E3A65AAA9676060F", "X"},
+	// the 9 character password CYBERPUNK will be truncated to CYBERPUN
 	{"JOHNNY                                  $7F7207932E4DE471", "CYBERPUNK"},
 	{"VAN         $487A2A40A7BA2258", "HAUSER"},
-	{"RoOT        $8366A4E9E6B72CB0", "KID"},
+	{"ROOT        $8366A4E9E6B72CB0", "KID"},
 	{"MAN         $9F48E7CE5B184D2E", "U"},
-	{"------------$2CF190AF13E858A2", "-------"},
+	// "-------" is not a valid SAP password (first 3 characters are
+	// identical)
+	// ("^^^^^^^" would be allowed, since "^" also replaces arbitrary
+	// non-ascii characters, as far as the CODVN B hash algorithm is
+	// concerned)
+	// {"------------$2CF190AF13E858A2", "-------"},
+	{"------------$058DE95926E00F32", "--+----"},
 	{"SAP*$7016BFF7C5472F1B", "MASTER"},
 	{"DDIC$C94E2F7DD0178374", "DDIC"},
-	{"dollar$$$---$C3413C498C48EB67", "DOLLAR$$$---"},
+	// password DOLLAR$$$--- will be truncated to DOLLAR$$
+	{"DOLLAR$$$---$C3413C498C48EB67", "DOLLAR$$$---"},
 	{NULL}
 };
 
@@ -172,12 +186,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (p - ciphertext > SALT_FIELD_LENGTH) return 0;
 	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
 
+	for (i = 0; i < p - ciphertext; i++) {
+		// even those lower case non-ascii characters with a
+		// corresponding upper case character could be rejected
+		if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') return 0; 
+		// SAP user names cannot be longer than 12 characters
+		if (i >= SALT_LENGTH && ciphertext[i] != ' ') return 0;
+	}
+	// SAP user name cannot start with ! or ?
+	if (ciphertext[0] == '!' || ciphertext[0] == '?') return 0;
+
 	p++;
+
+	// SAP and sap2john.pl always use upper case A-F for hashes,
+	// so don't allow a-f
 	for (i = 0; i < BINARY_SIZE * 2; i++)
-		if (!(((p[i]>='A' && p[i]<='F')) ||
-			((p[i]>='a' && p[i]<='f')) ||
-			((p[i]>='0' && p[i]<='9')) ))
+		if (!(((p[i]>='0' && p[i]<='9')) ||
+		      ((p[i]>='A' && p[i]<='F')) ))
 			return 0;
+
 	return 1;
 }
 
@@ -553,7 +580,7 @@ static void *binary(char *ciphertext)
 	return (void *)realcipher;
 }
 
-// Salt is already trimmed, uppercased and 8-bit converted in split()
+// Salt is already trimmed and 8-bit converted in split()
 static void *get_salt(char *ciphertext)
 {
 	int i;
@@ -567,7 +594,7 @@ static void *get_salt(char *ciphertext)
 	return &out;
 }
 
-// Here, we remove any salt padding, trim it to 12 bytes, upper-case it
+// Here, we remove any salt padding, trim it to 12 bytes
 // and finally replace any 8-bit character with '^'
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
@@ -585,8 +612,6 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	memset(out, 0, sizeof(out));
 	memcpy(out, ciphertext, i);
 	strnzcpy(&out[i], p, CIPHERTEXT_LENGTH + 1 - i);
-
-	strupr(out); // upper-case salt (username) + hash
 
 	p = &out[i];
 	while(--p >= out)
@@ -653,7 +678,7 @@ struct fmt_main fmt_sapB = {
 #if !defined(MMX_COEF) || defined(MD5_SSE_PARA)
 		FMT_OMP |
 #endif
-		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_8_BIT,
 		tests
 	}, {
 		init,

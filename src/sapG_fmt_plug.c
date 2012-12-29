@@ -52,7 +52,8 @@ static unsigned int omp_t = 1;
 #define BENCHMARK_LENGTH		0
 
 #define SALT_FIELD_LENGTH		40
-#define SALT_LENGTH			(12*3)	/* 12 characters of UTF-8 */
+#define USER_NAME_LENGTH		12 /* max. length of user name in characters */
+#define SALT_LENGTH			(USER_NAME_LENGTH*3)	/* 12 characters of UTF-8 */
 #define PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
 
 #define BINARY_SIZE			20
@@ -87,15 +88,30 @@ static const unsigned char theMagicArray[MAGIC_ARRAY_SIZE]=
 
 // For backwards compatibility, we must support salts padded with spaces to a field width of 40
 static struct fmt_tests tests[] = {
+	// FIXME: "X" and "u" are not valid SAP passwords, since they are shorter
+	//        than the minimum length of 3 characters
 	{"F           $646A0AD270DF651065669A45D171EDD62DFE39A1", "X"},
 	{"JOHNNY                                  $7D79B478E70CAAE63C41E0824EAB644B9070D10A", "CYBERPUNK"},
 	{"VAN$D15597367F24090F0A501962788E9F19B3604E73", "hauser"},
 	{"ROOT$1194E38F14B9F3F8DA1B181F14DEB70E7BDCC239", "KID"},
 	{"MAN$22886450D0AB90FDA7F91C4F3DD5619175B372EA", "u"},
+#if 0
+	// This test case is invalid since the user name can just be
+	// up to 12 characters long.
+	// So, unless the user name doesn't contain non-ascii characters,
+	// it will not be longer than 12 bytes.
+	// Also, "-------" is not a valid SAP password, since the first 3 characters
+	// are identical.
 	{"------------------------------------$463BDDCF2D2D6E07FC64C075A0802BD87A39BBA6", "-------"},
+#else
+	// SAP user name consisting of 12 consecutive EURO characters:
+	{"\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac"
+	 "\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac\xe2\x82\xac"
+	 "$B20D15C088481780CD44FCF2003AAAFBD9710C7C", "--+----"},
+#endif
 	{"SAP*                                $60A0F7E06D95BC9FB45F605BDF1F7B660E5D5D4E", "MaStEr"},
 	{"DDIC$6066CD3147915331EC4C602847D27A75EB3E8F0A", "DDIC"},
-	{"DoLlAR$$$---$E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
+	{"DOLLAR$$$---$E0180FD4542D8B6715E7D0D9EDE7E2D2E40C3D4D", "Dollar$$$---"},
 	{NULL}
 };
 
@@ -161,23 +177,45 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int i;
+	int i, j;
 	char *p;
 
 	if (!ciphertext) return 0;
-
 	p = strrchr(ciphertext, '$');
 	if (!p) return 0;
 
 	if (p - ciphertext > SALT_FIELD_LENGTH) return 0;
 	if (strlen(&p[1]) != BINARY_SIZE * 2) return 0;
 
-	p++;
-	for (i = 0; i < BINARY_SIZE * 2; i++)
-		if (!(((p[i]>='A' && p[i]<='F')) ||
-			((p[i]>='a' && p[i]<='f')) ||
-			((p[i]>='0' && p[i]<='9')) ))
+	j = 0;
+	for (i = 0; i < p - ciphertext; i++) {
+		// even those lower case non-ascii characters with a
+		// corresponding upper case character could be rejected
+		if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z')
 			return 0;
+		else if (ciphertext[i] & 0x80)
+			j++;
+
+		// Reject if user name is longer than 12 characters.
+		// This is not accurate, but close enough.
+		// To be exact, I'd need to keep j unchanged for
+		// the first byte of each character, instead of
+		// incrementing j for every byte >= 0x80.
+		if (i >= USER_NAME_LENGTH + j && ciphertext[i] != ' ')
+			return 0;
+	}
+	// SAP user name cannot start with ! or ?
+	if (ciphertext[0] == '!' || ciphertext[0] == '?') return 0;
+
+	p++;
+
+	// SAP and sap2john.pl always use upper case A-F for hashes,
+	// so don't allow a-f
+	for (i = 0; i < BINARY_SIZE * 2; i++)
+		if (!(((p[i]>='0' && p[i]<='9')) ||
+		      ((p[i]>='A' && p[i]<='F')) ))
+			return 0;
+
 	return 1;
 }
 
@@ -186,7 +224,6 @@ static void set_salt(void *salt)
 	cur_salt = salt;
 }
 
-// Salt is already trimmed and uppercased in split()
 static void *get_salt(char *ciphertext)
 {
 	char *p;
@@ -652,7 +689,7 @@ static int get_hash_5(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0xf
 static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0x7ffffff; }
 #endif
 
-// Here, we remove any salt padding, trim it to 36 bytes and upper-case it
+// Here, we remove any salt padding and trim it to 36 bytes
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
@@ -669,8 +706,6 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	memset(out, 0, sizeof(out));
 	memcpy(out, ciphertext, i);
 	strnzcpy(&out[i], p, CIPHERTEXT_LENGTH + 1 - i);
-
-	enc_strupper(out); // upper-case salt (username) + hash
 
 	return out;
 }
@@ -705,7 +740,7 @@ struct fmt_main fmt_sapG = {
 #if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
 		FMT_OMP |
 #endif
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
