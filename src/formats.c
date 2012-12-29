@@ -146,7 +146,11 @@ char *fmt_self_test(struct fmt_main *format)
 				longcand[ml] = 0;
 				if (strncmp(format->methods.get_key(i),
 				            longcand, ml + 1)) {
-					sprintf(s_size, "max. length in index %d: wrote %d, got %zu back", i, ml, strlen(format->methods.get_key(i)));
+					if (strnlen(format->methods.get_key(i),
+					             ml + 1) > ml)
+						sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
+					else
+						sprintf(s_size, "max. length in index %d: wrote %d, got %zu back", i, ml, strlen(format->methods.get_key(i)));
 					return s_size;
 				}
 			}
