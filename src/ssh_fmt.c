@@ -99,9 +99,42 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$ssh2$", 6);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	if (strncmp(ciphertext, "$ssh2$", 6))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 6;
+	/* find length field */
+	p = strrchr(ctcopy, '*');
+	if (!p)
+		goto err;
+	p += 1;
+	res = atoi(p);
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* data */
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if(strlen(p) != res * 2)
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 #define M_do_cipher(ctx, out, in, inl) ctx->cipher->do_cipher(ctx, out, in, inl)
