@@ -141,7 +141,7 @@ static int cmp_exact(char *source, int index)
 static void radmin_set_key(char *key, int index)
 {
 	// this code assures that both saved_key[index] gets null-terminated (without buffer overflow)
-	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH)+1];
+	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1)+1];
 	// and is null padded up to 100 bytes.  We simply clean up prior buffer, up to element 99, but that element will never be written to
 	while (*cp) *cp++ = 0;
 }
