@@ -10,8 +10,9 @@
  *
  * References:
  *
- * http://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
- * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf */
+ * ftp://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
+ * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
+ */
 
 #include "md5.h"
 #include <string.h>
