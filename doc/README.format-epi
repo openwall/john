@@ -6,18 +6,10 @@ You can dump the password hashes using the SQL syntax "select name, salt, hash f
 tabel stores interesting things such as usernames, salt and password hashes, but also passwords in cleartext.
 If a password can be found in cleartext it is found in the password column of tblSID.
 
-= Install
-=========
-
-Copy the epibf_X.Y-john_1.7.2.patch (where X and Y needs to be replaced with the version you downloaded)
-to your john source directory, e.g. john-1.7.2/src and then run "patch -p2 < epibf_X.Y-john_1.7.2.patch" (remember the X and Y).
-The patch will create a file called EPI_fmt.c, some files for SHA1 support as well as update some of johns
-files in order to incorporate the patch with john.
-
 = Usage
 =======
 
-This patch needs the format of the password file to be: <user>:<salt> <hash>. (Currently you need to include
+The format of the password file needs to be: <user>:<salt> <hash>. (Currently you need to include
 an inital 0x of both salt and hash.)
 
 --- Contents of an example epipasswd file ---

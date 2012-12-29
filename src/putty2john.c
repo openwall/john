@@ -4,7 +4,8 @@
  * p-ppk-crack v0.5 made by michu@neophob.com — PuTTY private key cracker
  *
  * Source code based on putty svn version, check
- * http://chiark.greenend.org.uk/~sgtatham/putty/licence.html. */
+ * http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html
+ */
 
 #ifndef PUTTY_COMMON_H
 #define PUTTY_COMMON_H

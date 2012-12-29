@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * samu at linuxasylum dot net
+ * and Copyright (c) 2012, magnum
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
@@ -80,8 +81,6 @@ static int valid(char *ciphertext, struct fmt_main *self){
 	}
 	return 1;
 }
-
-static void set_salt(void *salt) { }
 
 static void create_clobj(int kpc){
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, keybuf_size*kpc, NULL, &ret_code);
@@ -213,12 +212,30 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 	self->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
-static void set_key(char *key, int index){
-	memcpy(&(saved_plain[index*keybuf_size]), key, keybuf_size);
+static void clear_keys(void)
+{
+	memset(saved_plain, 0, keybuf_size * global_work_size);
+}
+
+static void set_key(char *key, int index) {
+	char *dst = (char*)&saved_plain[index * keybuf_size];
+
+	while (*key)
+		*dst++ = *key++;
 }
 
 static char *get_key(int index) {
-	return &(saved_plain[index*keybuf_size]);
+	int length = -1;
+	int base = index * keybuf_size;
+	static char out[PLAINTEXT_LENGTH + 1];
+
+	do {
+		length++;
+		out[length] = saved_plain[base + length];
+	}
+	while (out[length] && length < keybuf_size);
+	out[length] = 0;
+	return out;
 }
 
 static void *binary(char *ciphertext){
@@ -335,10 +352,10 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

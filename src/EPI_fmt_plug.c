@@ -8,8 +8,7 @@
  *
  * version 0.1 released on 10 jan 2007
  *
- * See doc/EPi.patch.README or http://iforge.cc/files/EPi.patch.README
- * for information on the input file format.
+ * See doc/README.format-epi for information on the input file format.
  */
 
 #include <string.h>

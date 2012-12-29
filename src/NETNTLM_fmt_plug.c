@@ -25,8 +25,8 @@
  * trickery may actually be as an exercise for the reader (HINT: Karma, NMB
  * broadcasts, IE, Outlook, social engineering, ...).
  *
- * [1] http://davenport.sourceforge.net/ntlm.html#theNtLmResponse
- * [2] http://www.foofus.net/fizzgig/fgdump/
+ * [1] http://davenport.sourceforge.net/ntlm.html#theNtlmResponse
+ * [2] http://www.foofus.net/~fizzgig/fgdump/
  * [3] http://ettercap.sourceforge.net/
  * [4] http://www.oxid.it/cain.html
  * [5] http://www.foofus.net/jmk/smbchallenge.html

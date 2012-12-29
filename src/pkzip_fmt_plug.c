@@ -397,6 +397,9 @@ static void init(struct fmt_main *self)
 	// http://www.garykessler.net/library/file_sigs.html
 	// http://en.wikipedia.org/wiki/List_of_file_signatures
 	// http://toorcon.techpathways.com/uploads/headersig.txt
+	// 	FIXME: not available, 2012-12-28)
+	// 	archive.org still has a version:
+	// 	http://web.archive.org/web/20110725085828/http://toorcon.techpathways.com/uploads/headersig.txt
 	// there are many more.
 
 //case 1: // DOC/XLS
