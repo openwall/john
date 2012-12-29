@@ -183,13 +183,13 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 	///Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
-		fprintf(stderr, "Compilation log: %s\n", build_log);
-		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		fprintf(stderr, "Build log: %s\n", build_log);
+		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
-	else if (strlen(build_log) > 1) // Nvidia may return a single '\n' which is not that interesting
-		fprintf(stderr, "Compilation log: %s\n", build_log);
+	else if (strlen(build_log) > 1) // Nvidia may return a single '\n'
+		fprintf(stderr, "Build log: %s\n", build_log);
 #endif
         MEM_FREE(build_log);
 
@@ -227,29 +227,30 @@ static void build_kernel_from_binary(int dev_id)
 	cl_int build_code;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
-	program[dev_id] =
-	    clCreateProgramWithBinary( context[dev_id], 1, &devices[dev_id], &program_size,
-                                       (const unsigned char**)srcptr, NULL, &ret_code );
-	HANDLE_CLERROR(ret_code, "Error while creating program");
+	program[dev_id] = clCreateProgramWithBinary(context[dev_id], 1,
+		&devices[dev_id], &program_size, (const unsigned char**)srcptr,
+	        NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+	               "Error while creating program (using cached binary)");
 
 	build_code = clBuildProgram(program[dev_id], 0, NULL, NULL, NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
-		NULL), "Error while getting build info");
+		NULL), "Error while getting build info (using cached binary)");
 
 	///Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
-		fprintf(stderr, "Compilation log: %s\n", opencl_log);
-		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		fprintf(stderr, "Binary build log: %s\n", opencl_log);
+		fprintf(stderr, "Error %d building kernel using cached binary."
+		        " DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
-	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
-		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+	else if (strlen(opencl_log) > 1) // Nvidia may return a single '\n'
+		fprintf(stderr, "Binary build log: %s\n", opencl_log);
 #endif
-
 }
 
 /*
