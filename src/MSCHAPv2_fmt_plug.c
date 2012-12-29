@@ -415,6 +415,11 @@ static void *mschapv2_get_salt(char *ciphertext)
 
   if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
+  /* This is just to silence scan-build. It will never happen. It is unclear
+     why only this format gave warnings, many others do similar things. */
+  if (!ciphertext)
+	  return ciphertext;
+
   memset(binary_salt, 0, SALT_SIZE);
   memset(digest, 0, 20);
 
