@@ -64,6 +64,7 @@ char *fmt_self_test(struct fmt_main *format)
 	char *ciphertext, *plaintext;
 	int ntests, done, index, max, size, i;
 	void *binary, *salt;
+	int lengthcheck = 0;
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
@@ -125,37 +126,39 @@ char *fmt_self_test(struct fmt_main *format)
 			return "salt_hash";
 
 		format->methods.set_salt(salt);
-		if (index == 0) {
-			/* Check that claimed maxlength is actually supported */
+
+		/* Check that claimed maxlength is actually supported */
+		if (lengthcheck == 0) {
 			int ml = format->params.plaintext_length;
 			int mk = format->params.max_keys_per_crypt;
+			char longcand[PLAINTEXT_BUFFER_SIZE + 1];
 
-			/* Fill the key buffer with maximum length keys */
-			for (i = 0; i < mk; i++)
-			{
-				char longcand[PLAINTEXT_BUFFER_SIZE + 1];
+			lengthcheck = 1;
+			format->methods.clear_keys();
+			/* Fill the buffer with maximum length keys */
+			for (i = 0; i < mk; i++) {
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
 				format->methods.set_key(longcand, i);
 			}
 			/* Now read them back and verify they are intact */
-			for (i = 0; i < mk; i++)
-			{
-				char longcand[PLAINTEXT_BUFFER_SIZE + 1];
+			for (i = 0; i < mk; i++) {
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
 				if (strncmp(format->methods.get_key(i),
 				            longcand, ml + 1)) {
 					if (strnlen(format->methods.get_key(i),
-					             ml + 1) > ml)
+					            ml + 1) > ml)
 						sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
 					else
 						sprintf(s_size, "max. length in index %d: wrote %d, got %zu back", i, ml, strlen(format->methods.get_key(i)));
 					return s_size;
 				}
 			}
-			format->methods.clear_keys();
 		}
+
+		if (index == 0)
+			format->methods.clear_keys();
 		format->methods.set_key(current->plaintext, index);
 
 #ifdef CL_VERSION_1_0
