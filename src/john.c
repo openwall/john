@@ -612,6 +612,53 @@ static void john_list_method_names()
 	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 }
 
+static void john_list_build_info(void)
+{
+	puts("Version: " JOHN_VERSION);
+	puts("Build: " JOHN_BLD _MP_VERSION);
+	printf("Arch: %d-bit %s\n", ARCH_BITS,
+	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
+#if JOHN_SYSTEMWIDE
+	puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
+	puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
+	puts("Private home: " JOHN_PRIVATE_HOME);
+#endif
+	printf("$JOHN is %s\n", path_expand("$JOHN/"));
+	printf("Format interface version: %d\n", FMT_MAIN_VERSION);
+	puts("Rec file version: " RECOVERY_V);
+	puts("Charset file version: " CHARSET_V);
+	printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN, CHARSET_MIN);
+	printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX, CHARSET_MAX);
+	printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
+	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
+	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
+#ifdef __VERSION__
+	printf("Compiler version: %s\n", __VERSION__);
+#endif
+#ifdef __GNUC__
+	printf("gcc version: %d.%d.%d\n", __GNUC__,
+	       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#endif
+#ifdef __ICC
+	printf("icc version: %d\n", __ICC);
+#endif
+#ifdef __clang_version__
+	printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef OPENSSL_VERSION_NUMBER
+	// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
+	// gcc insists it is int.
+	printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+	// FIXME: How do I detect a missing library?
+	// Even if if is extremely unlikely that openssl is missing,
+	// at least flush all output buffers...
+	fflush(NULL);
+	if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
+		printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+	printf("\n");
+#endif
+}
+
 static void john_init(char *name, int argc, char **argv)
 {
 	int show_usage = 0;
@@ -691,51 +738,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (options.listconf && !strcasecmp(options.listconf,
 		                                    "build-info"))
 		{
-			puts("Version: " JOHN_VERSION);
-			puts("Build: " JOHN_BLD _MP_VERSION);
-			printf("Arch: %d-bit %s\n", ARCH_BITS,
-			       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
-#if JOHN_SYSTEMWIDE
-			puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
-			puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
-			puts("Private home: " JOHN_PRIVATE_HOME);
-#endif
-			printf("$JOHN is %s\n", path_expand("$JOHN/"));
-			printf("Format interface version: %d\n", FMT_MAIN_VERSION);
-			puts("Rec file version: " RECOVERY_V);
-			puts("Charset file version: " CHARSET_V);
-			printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN,
-			       CHARSET_MIN);
-			printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX,
-			       CHARSET_MAX);
-			printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
-			printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
-			printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
-#ifdef __VERSION__
-		printf("Compiler version: %s\n", __VERSION__);
-#endif
-#ifdef __GNUC__
-			printf("gcc version: %d.%d.%d\n", __GNUC__,
-			       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#endif
-#ifdef __ICC
-			printf("icc version: %d\n", __ICC);
-#endif
-#ifdef __clang_version__
-			printf("clang version: %s\n", __clang_version__);
-#endif
-#ifdef OPENSSL_VERSION_NUMBER
-			// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
-			// gcc insists it is int.
-			printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
-			// FIXME: How do I detect a missing library?
-			// Even if if is extremely unlikely that openssl is missing,
-			// at least flush all output buffers...
-			fflush(NULL);
-			if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
-				printf("\t(loaded: %lx)", (unsigned long)SSLeay());
-			printf("\n");
-#endif
+			john_list_build_info();
 			exit(0);
 		}
 	}
