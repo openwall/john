@@ -87,7 +87,24 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$lastpass$", 10);
+	char *ctcopy, *keeptr, *p;
+	if (strncmp(ciphertext, "$lastpass$", 10) != 0)
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 10;
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* username */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* data */
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 #ifdef DEBUG

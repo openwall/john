@@ -79,12 +79,12 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy, *keeptr, *p;
 	int ctlen;
-	char *p;
 	if (strncmp(ciphertext, "$keyring$", 9) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 9;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
 		goto err;

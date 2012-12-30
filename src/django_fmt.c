@@ -88,7 +88,31 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$django$", 8);
+	char *ctcopy, *keeptr, *p;
+	if (strncmp(ciphertext, "$django$*", 9) != 0)
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;;
+	ctcopy += 9;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* type */
+		goto err;
+	/* type must be 1 */
+	if (atoi(p) != 1)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* algorithm */
+		goto err;
+	if (strncmp(p, "pbkdf2_sha256", 13) != 0)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

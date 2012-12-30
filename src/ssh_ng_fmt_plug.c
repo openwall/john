@@ -81,12 +81,12 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
+	char *ctcopy, *keeptr, *p;
 	int ctlen;
 	if (strncmp(ciphertext, "$sshng$", 7) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 7;
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* cipher */
 		goto err;

@@ -79,13 +79,14 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy, *keeptr;
 	int ctlen;
 	int saltlen;
 	char *p;
 	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 15;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;

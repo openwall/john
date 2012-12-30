@@ -123,13 +123,15 @@ static void process_file(const char *archive_name)
 	size_t bestsize = 0;
 	char best[LINE_BUFFER_SIZE] = "";
 	char *base_aname;
+	char *pp;
 	uint16_t archive_header_head_flags, file_header_head_flags;
 
-	base_aname = basename(strdup(archive_name));
+	pp = strdup(archive_name);
+	base_aname = basename(pp);
 
 	if (!(fp = fopen(archive_name, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
-		return;
+		goto err;
 	}
 	/* marker block */
 	memset(marker_block, 0, 7);
@@ -137,8 +139,7 @@ static void process_file(const char *archive_name)
 	assert(count == 1);
 	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) {
 		fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
-		fclose(fp);
-		return;
+		goto err;
 	}
 
 	/* archive header block */
@@ -200,7 +201,8 @@ next_file_header:
 		size_t file_header_pack_size, file_header_unp_size;
 		int EXT_TIME_SIZE;
 		uint16_t file_header_head_size, file_name_size;
-		unsigned char file_name[256], SALT[8], FILE_CRC[4];
+		unsigned char file_name[256], FILE_CRC[4];
+		unsigned SALT[8] = { 0 };
 		char rejbuf[32];
 		long pos;
 
@@ -387,6 +389,13 @@ BailOut:
 			fprintf(stderr, "Did not find a valid encrypted candidate in %s\n", base_aname);
 	}
 	fclose(fp);
+
+err:
+	if (fp)
+		fclose(fp);
+	if (pp)
+		free(pp);
+
 }
 
 int rar2john(int argc, char **argv)
