@@ -32,10 +32,10 @@
     fileID - file ID in fileIDLen bytes, not null-terminated
 */
 typedef struct EncData {
-	char *s_handler;
-	uint8_t *o_string;
-	uint8_t *u_string;
-	uint8_t *fileID;
+	char s_handler[33];
+	uint8_t o_string[33];
+	uint8_t u_string[33];
+	uint8_t fileID[33];
 	bool encryptMetaData;
 	bool work_with_user;
 	bool have_userpassword;

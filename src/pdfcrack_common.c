@@ -27,26 +27,8 @@ void freeEncData(EncData * e, int static_object)
 {
 	if (!e)
 		return;
-	if (e->o_string) {
-		MEM_FREE(e->o_string);
-		e->o_string = NULL;
-	}
-	if (e->u_string) {
-		MEM_FREE(e->u_string);
-		e->u_string = NULL;
-	}
-	if (e->fileID) {
-		MEM_FREE(e->fileID);
-		e->fileID = NULL;
-	}
-	if (e->s_handler) {
-		MEM_FREE(e->s_handler);
-		e->s_handler = NULL;
-	}
 	if (!static_object)
 		MEM_FREE(e);
-//	else
-//		memset(e, 0, sizeof(*E));
 }
 
 void printEncData(EncData * e)
