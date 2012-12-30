@@ -246,11 +246,11 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
+	char *ctcopy, *keeptr, *p;
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$gpg$" marker */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
@@ -277,6 +277,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
 
+	MEM_FREE(keeptr);
 	return 1;
 
 err:
