@@ -25,14 +25,15 @@
 #include "formats.h"
 #include "crc32.h"
 
-#define PLAINTEXT_LENGTH					31
+/* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
+#define PLAINTEXT_LENGTH		64
 #define MAX_CIPHERTEXT_LENGTH		(512*2+32)
-#define SALT_SIZE								64
-#define BINARY_SIZE							(512-SALT_SIZE)
-#define MIN_KEYS_PER_CRYPT			16
-#define MAX_KEYS_PER_CRYPT			16
+#define SALT_SIZE			64
+#define BINARY_SIZE			(512-SALT_SIZE)
+#define MIN_KEYS_PER_CRYPT		16
+#define MAX_KEYS_PER_CRYPT		16
 
-static char key_buffer[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH];
+static char key_buffer[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 static unsigned char* salt_buffer;
 static const EVP_MD* md = NULL;
 static int num_iterations;

@@ -371,7 +371,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *get_key(int index)
 {
-	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
+	UTF16 tmpbuf[PLAINTEXT_LENGTH + 1];
+
+	memcpy(tmpbuf, &((UTF16*) saved_key)[index * PLAINTEXT_LENGTH], saved_len[index]);
+	memset(&tmpbuf[saved_len[index] >> 1], 0, 2);
+	return (char*) utf16_to_enc(tmpbuf);
 }
 
 #define ADD_BITS(n)	\

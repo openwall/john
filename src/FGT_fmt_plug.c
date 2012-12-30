@@ -72,9 +72,9 @@ static ARCH_WORD_32 crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE / sizeof(ARCH_WORD
 
 static int FGT_valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strlen(ciphertext) != HASH_LENGTH)
-		return 0;
 	if (strncmp(ciphertext, "AK1", 3))
+		return 0;
+	if (strlen(ciphertext) != HASH_LENGTH)
 		return 0;
 
 	return 1;
