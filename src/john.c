@@ -19,6 +19,11 @@
 
 #include "params.h"
 
+#ifdef HAVE_NSS
+#include "nss.h"
+//#include "nssutil.h"
+#include "nspr.h"
+#endif
 #if defined(_OPENMP) && OMP_FALLBACK
 #include <omp.h>
 #endif
@@ -671,8 +676,30 @@ static void john_list_build_info(void)
 	    gmp_patchlevel != __GNU_MP_VERSION_PATCHLEVEL)
 		printf("\t(loaded: %d.%d.%d)", 
 		       gmp_major, gmp_minor, gmp_patchlevel);
-
 	printf("\n");
+#endif
+#ifdef NSS_VERSION
+	// <major>.<minor>[.<patch_level>[.<build_number>]][ <ECC>][ <Beta>]
+	printf("NSS library version: %s", NSS_VERSION);
+	if(strcmp(NSS_VERSION, NSS_GetVersion()))
+		printf("\t(loaded: %s)", NSS_GetVersion());
+	printf("\n");
+#endif
+// NSSUTIL_VERSION and NSSUTIL_VERSION always seem to match.
+// At least, I dodn't find any differences on Fedora 16 or Fedora 17 systems.
+//#ifdef NSSUTIL_VERSION
+//	printf("NSS utilities version: %s (%s)\n",
+//	        NSSUTIL_VERSION, NSSUTIL_GetVersion());
+//#endif
+#ifdef PR_VERSION
+	printf("NSPR library version: %s", PR_VERSION);
+	if(strcmp(PR_VERSION, PR_GetVersion()))
+		printf("\t(loaded: %s)", PR_GetVersion());
+	printf("\n");
+#endif
+#ifdef HAVE_KRB5
+	// I have no idea how to get version info
+	printf("Kerberos version 5 support enabled\n");
 #endif
 }
 
