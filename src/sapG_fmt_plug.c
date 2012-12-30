@@ -238,6 +238,11 @@ static void *get_salt(char *ciphertext)
 	return &out;
 }
 
+static void clear_keys(void)
+{
+	memset(keyLen, 0, sizeof(*keyLen) * omp_t * MAX_KEYS_PER_CRYPT);
+}
+
 static void set_key(char *key, int index)
 {
 	memcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
@@ -731,7 +736,7 @@ struct fmt_main fmt_sapG = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
