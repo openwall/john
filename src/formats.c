@@ -64,6 +64,9 @@ char *fmt_self_test(struct fmt_main *format)
 	char *ciphertext, *plaintext;
 	int ntests, done, index, max, size, i;
 	void *binary, *salt;
+#ifdef DEBUG
+	int validkiller = 0;
+#endif
 	int lengthcheck = 0;
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
@@ -104,9 +107,10 @@ char *fmt_self_test(struct fmt_main *format)
 			return "valid";
 
 #ifdef DEBUG
-		if (index == 0) {
+		if (validkiller == 0) {
 			char *killer = strdup(prepared);
 
+			validkiller = 1;
 			for (i = strlen(killer) - 1; i > 0; i--) {
 				killer[i] = 0;
 				format->methods.valid(killer, format);
