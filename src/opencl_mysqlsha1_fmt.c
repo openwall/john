@@ -99,9 +99,9 @@ static void release_clobj(void){
     cl_int ret_code;
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pin_part_msha_hashes, par_msha_hashes, 0,NULL,NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping par_msha_hashes");
+    HANDLE_CLERROR(ret_code, "Error Unmapping par_msha_hashes");
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_msha_keys, mysqlsha_plain, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping mysqlsha_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping mysqlsha_plain");
     ret_code = clReleaseMemObject(buf_msha_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buf_msha_keys");
     ret_code = clReleaseMemObject(buf_msha_out);

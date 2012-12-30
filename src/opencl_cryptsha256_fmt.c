@@ -213,11 +213,11 @@ static void release_clobj(void) {
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes,
             calculated_hash, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping out_hashes");
+    HANDLE_CLERROR(ret_code, "Error Unmapping out_hashes");
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys,
             plaintext, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
 
     ret_code = clReleaseMemObject(salt_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing data_info");

@@ -232,8 +232,11 @@ static void process_database(char* encryptedDatabase)
 		if (uSize > 0)
 		{
 			pbData = (unsigned char*)malloc(uSize);
-			if (fread(pbData, uSize, 1, fp) != 1)
+			if (fread(pbData, uSize, 1, fp) != 1) {
 				fprintf(stderr, "error reading pbData\n");
+				return;
+			}
+
 		}
 		kdbID = btFieldID;
 		switch (kdbID)
@@ -255,7 +258,8 @@ static void process_database(char* encryptedDatabase)
 
                         case TransformRounds:
 				if(!pbData) {
-					fprintf(stderr, "pbData is NULL, a possible bug?\n");
+					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
+					return;
 				}
 				else {
 					transformRounds = BytesToUInt64(pbData);
@@ -290,6 +294,10 @@ static void process_database(char* encryptedDatabase)
 #ifdef KEEPASS_DEBUG
 	fprintf(stderr, "%d, %d, %d, %d\n", masterSeedLength, transformSeedLength, initializationVectorsLength, expectedStartBytesLength);
 #endif
+	if (!masterSeed || !transformSeed || !initializationVectors || expectedStartBytes) {
+		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
+		return;
+	}
 	printf("%s:$keepass$*2*%ld*%ld*",encryptedDatabase, transformRounds, dataStartOffset);
 	print_hex(masterSeed, masterSeedLength);
 	printf("*");
