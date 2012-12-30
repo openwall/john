@@ -95,12 +95,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 	int res;
 	int is_old_fmt;
+
 	if (strncmp(ciphertext, "$putty$", 7))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7;
-	p = strtok(ctcopy, "*"); /* cipher */
+	if ((p = strtok(ctcopy, "*")) == NULL) /* cipher */
+		goto err;
 	res = atoi(p);
 	if(res != 1) /* check cipher type */
 		goto err;
