@@ -169,12 +169,15 @@ static void release_clobj(void)
 	MEM_FREE(cracked);
 }
 
+static void clear_keys(void)
+{
+	memset(saved_key, 0, UNICODE_LENGTH * global_work_size);
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size);
+}
+
 static void set_key(char *key, int index)
 {
 	UTF16 *utfkey = (UTF16*)&saved_key[index * UNICODE_LENGTH];
-
-	/* Clean slate */
-	memset(utfkey, 0, UNICODE_LENGTH);
 
 	/* convert key to UTF-16LE */
 	saved_len[index] = enc_to_utf16(utfkey, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
@@ -620,7 +623,7 @@ struct fmt_main fmt_opencl_office2010 = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash
