@@ -371,7 +371,7 @@ static void dominosec_set_key(char *key, int index)
 	unsigned int i;
 
 	saved_key_len = strlen(key);
-	strnzcpy(saved_key, key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_key, key, PLAINTEXT_LENGTH + 1);
 
 	domino_big_md((unsigned char*)key, saved_key_len, key_digest);
 

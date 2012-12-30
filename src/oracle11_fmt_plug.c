@@ -175,6 +175,20 @@ static void set_salt(void *salt)
 	memcpy(saved_salt, salt, SALT_SIZE);
 }
 
+static void clear_keys(void)
+{
+#ifdef MMX_COEF
+	int i;
+	memset(saved_key, 0, SHA_BUF_SIZ * 4 * NBKEYS);
+	/* Set lengths to SALT_LEN to avoid strange things in crypt_all()
+	   if called without setting all keys (in benchmarking). Unset
+	   keys would otherwise get a length of -10 and a salt appended
+	   at pos 4294967286... */
+	for (i=0; i < NBKEYS; i++)
+		((unsigned int *)saved_key)[15*MMX_COEF + (i&3) + (i>>2)*SHA_BUF_SIZ*MMX_COEF] = 10 << 3;
+#endif
+}
+
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
@@ -187,26 +201,19 @@ static void set_key(char *key, int index)
 		if (!(*keybuf_word & 0xff0000))
 		{
 			len++;
-			goto key_cleaning;
+			break;
 		}
 		if (!(*keybuf_word & 0xff00))
 		{
 			len+=2;
-			goto key_cleaning;
+			break;
 		}
 		if (!(*keybuf_word & 0xff))
 		{
 			len+=3;
-			goto key_cleaning;
+			break;
 		}
 		len += 4;
-		keybuf_word += MMX_COEF;
-	}
-
-key_cleaning:
-	keybuf_word += MMX_COEF;
-	while(*keybuf_word) {
-		*keybuf_word = 0;
 		keybuf_word += MMX_COEF;
 	}
 	saved_key[GETPOS(len, index)] = 0x80;
@@ -442,7 +449,7 @@ struct fmt_main fmt_oracle11 = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

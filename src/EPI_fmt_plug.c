@@ -20,13 +20,13 @@
 
 #include "sha.h"
 
-#define PLAINTEXT_LENGTH   0x80-4
+#define PLAINTEXT_LENGTH   125
 #define BINARY_LENGTH      20
 #define SALT_LENGTH        30
 
 static ARCH_WORD global_crypt[BINARY_LENGTH / ARCH_SIZE + 1];
-static char global_key[PLAINTEXT_LENGTH]; // set by set_key and used by get_get
-static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH]; // set by set_salt and used by crypt_all
+static char global_key[PLAINTEXT_LENGTH + 1]; // set by set_key and used by get_get
+static char global_salt[SALT_LENGTH + PLAINTEXT_LENGTH + 1]; // set by set_salt and used by crypt_all
                                                          // the extra plaintext_length is needed because the
                                                          // current key is copied there before hashing
 
@@ -167,7 +167,7 @@ void set_salt(void *salt)
 void set_key(char *key, int index)
 {
   if(!key) return;
-  strnzcpy(global_key, key, PLAINTEXT_LENGTH);
+  strnzcpy(global_key, key, PLAINTEXT_LENGTH + 1);
 }
 
 char* get_key(int index)
@@ -180,7 +180,7 @@ void crypt_all(int count)
   static SHA_CTX ctx;
 
   // Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
-  strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH);
+  strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH + 1);
 
   SHA1_Init(&ctx);
   SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+strlen(global_key));

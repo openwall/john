@@ -90,6 +90,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(encfs_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(encfs_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(encfs_salt);
+static size_t crypt_gws;
 
 static void done(void)
 {
@@ -247,13 +248,15 @@ static void init(struct fmt_main *self)
 	cl_int cl_error;
 	char *temp;
 
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = 64;
+
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
-
-	if (!global_work_size)
+	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = global_work_size;
 
 	inbuffer =
 	    (encfs_password *) malloc(sizeof(encfs_password) *
@@ -300,7 +303,13 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(self);
+
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = crypt_gws = global_work_size;
+
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
 	atexit(done);
@@ -442,6 +451,10 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	int index;
+
+	/// magnum time saver[tm]
+	crypt_gws = (count + local_work_size - 1) / local_work_size * local_work_size;
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -451,7 +464,7 @@ static void crypt_all(int count)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
+		NULL, &crypt_gws, &local_work_size, 0, NULL, profilingEvent),
 	    "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
 
