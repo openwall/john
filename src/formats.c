@@ -139,6 +139,13 @@ char *fmt_self_test(struct fmt_main *format)
 
 			lengthcheck = 1;
 			format->methods.clear_keys();
+
+			/* UTF-8 bodge in reverse */
+			if ((options.utf8) &&
+			    (format->params.flags & FMT_UTF8) &&
+			    (format->params.flags & FMT_UNICODE))
+				ml /= 3;
+
 			/* Fill the buffer with maximum length keys */
 			for (i = 0; i < mk; i++) {
 				memset(longcand, 'A' + (i % 23), ml);
