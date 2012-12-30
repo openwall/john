@@ -38,9 +38,9 @@
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
+static unsigned int omp_t = 1;
 #if defined(_OPENMP) && (defined (SHA1_SSE_PARA) || !defined(MMX_COEF))
 #include <omp.h>
-static unsigned int omp_t = 1;
 #ifdef SHA1_SSE_PARA
 #define OMP_SCALE			128
 #else
@@ -236,6 +236,11 @@ static void *get_salt(char *ciphertext)
 	memcpy(out.s, ciphertext, out.l);
 
 	return &out;
+}
+
+static void clear_keys(void)
+{
+	memset(keyLen, 0, sizeof(*keyLen) * omp_t * MAX_KEYS_PER_CRYPT);
 }
 
 static void set_key(char *key, int index)
@@ -731,7 +736,7 @@ struct fmt_main fmt_sapG = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

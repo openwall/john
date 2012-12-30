@@ -70,11 +70,54 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, "$mongodb$", 9) != 0)
+	char *ptr, *ctcopy, *keeptr;
+	int type;
+
+	if (strncmp(ciphertext, "$mongodb$", 9))
 		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 9;
+
+	if (!(ptr = strtok(ctcopy, "$"))) /* type */
+		goto error;
+	type = atoi(ptr);
+	if (type != 0 && type != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "$"))) /* username */
+		goto error;
+	if (type == 0) {
+		if (!(ptr = strtok(NULL, "$"))) /* hash */
+			goto error;
+		if (strlen(ptr) != 32 || !ishex(ptr))
+			goto error;
+	} else {
+		if (!(ptr = strtok(NULL, "$"))) /* salt */
+			goto error;
+		if (strlen(ptr) != 16 || !ishex(ptr))
+			goto error;
+		if (!(ptr = strtok(NULL, "$"))) /* hash */
+			goto error;
+		if (strlen(ptr) != 32 || !ishex(ptr))
+			goto error;
+	}
+
+	MEM_FREE(keeptr);
 	return 1;
+
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

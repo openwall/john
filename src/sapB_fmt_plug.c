@@ -223,6 +223,10 @@ static char *get_key(int index)
 {
 	int i;
 
+	// Work-around for new self-test.
+	if (keyLen[index] == -1)
+		keyLen[index] = strlen(saved_plain[index]);
+
 	for (i = 0; i < keyLen[index]; i++) {
 		if (saved_plain[index][i] >= 'a' && saved_plain[index][i] <= 'z')
 			saved_plain[index][i] ^= 0x20;
