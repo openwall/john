@@ -180,17 +180,12 @@ static void crypt_all(int count)
 		MD5_CTX md5_ctx;
 		unsigned char md5_bin_hash[MD5_LEN];
 		char dynamic_hash[MD5_LEN_HEX+1], final_hash[MD5_LEN_HEX+1];
-		char pw[PLAINTEXT_LENGTH + 1];
 		size_t pw_len=0;
-		strcpy(pw, saved_key[index]);
 
 		/* Generate dynamic hash including pw (see above) */
 		MD5_Init(&md5_ctx);
 		MD5_Update(&md5_ctx, (unsigned char*)pSalt->dynamic_hash_data, pSalt->dynamic_hash_data_len);
-		pw_len = strlen(pw);
-		MD5_Update(&md5_ctx,
-				(unsigned char*)pw,
-				(pw[pw_len-2] == 0x0d ? pw_len-2 : pw[pw_len-1] == 0x0a ? pw_len -1 : pw_len));
+		MD5_Update(&md5_ctx, (unsigned char*)saved_key[index], strlen(saved_key[index]));
 		MD5_Final(md5_bin_hash, &md5_ctx);
 		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, dynamic_hash, MD5_LEN_HEX);
 
