@@ -155,10 +155,10 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
 		return 0;
 
-	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	if (ciphertext[16] != '$')
