@@ -38,9 +38,9 @@
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
+static unsigned int omp_t = 1;
 #if defined(_OPENMP) && (defined (SHA1_SSE_PARA) || !defined(MMX_COEF))
 #include <omp.h>
-static unsigned int omp_t = 1;
 #ifdef SHA1_SSE_PARA
 #define OMP_SCALE			128
 #else
