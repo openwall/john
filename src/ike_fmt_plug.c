@@ -185,8 +185,8 @@ static int cmp_exact(char *source, int index)
 static void ike_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
-	if (saved_key_length > 8)
-		saved_key_length = 8;
+	if (saved_key_length > PLAINTEXT_LENGTH)
+		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_key_length);
 	saved_key[index][saved_key_length] = 0;
 }
