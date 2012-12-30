@@ -87,9 +87,72 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$pdf$", 5);
+	char *ctcopy, *ptr, *keeptr;
+	int res;
+
+	if (strncmp(ciphertext, "$pdf$Standard*", 14))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 14;
+	if (!(ptr = strtok(ctcopy, "*"))) /* o_string */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* u_string */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* fileIDLen */
+		goto error;
+	if (strncmp(ptr, "16", 2))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* fileID */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* encryptMetaData */
+		goto error;
+	res = atoi(ptr);
+	if (res != 0 && res != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* work_with_user */
+		goto error;
+	res = atoi(ptr);
+	if (res != 0 && res != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* have_userpassword */
+		goto error;
+	res = atoi(ptr);
+	if (res != 0 && res != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* version_major */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* version_minor */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* length */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* permissions */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* revision */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* version */
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -103,14 +166,12 @@ static void *get_salt(char *ciphertext)
 	memset(cs.encKeyWorkSpace, 0, 128);
 
 	/* restore serialized data */
-	cs.e.s_handler = strtok(ctcopy, "*");
-	cs.e.o_string = (uint8_t *) malloc(32);
+	strncpy(cs.e.s_handler, strtok(ctcopy, "*"), 32);
 	p = strtok(NULL, "*");
 	for (i = 0; i < 32; i++)
 		cs.e.o_string[i] =
 		    atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	cs.e.u_string = (uint8_t *) malloc(32);
 	p = strtok(NULL, "*");
 	for (i = 0; i < 32; i++)
 		cs.e.u_string[i] =
@@ -118,7 +179,6 @@ static void *get_salt(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	cs.e.fileIDLen = atoi(p);
-	cs.e.fileID = (uint8_t *) malloc(cs.e.fileIDLen);
 	p = strtok(NULL, "*");
 	for (i = 0; i < cs.e.fileIDLen; i++)
 		cs.e.fileID[i] =

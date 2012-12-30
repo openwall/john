@@ -225,15 +225,12 @@ static void set_key(char *key, int index) {
 }
 
 static char *get_key(int index) {
-	int length = -1;
-	int base = index * keybuf_size;
+	int length = 0;
 	static char out[PLAINTEXT_LENGTH + 1];
+	char *key = &saved_plain[index * keybuf_size];
 
-	do {
-		length++;
-		out[length] = saved_plain[base + length];
-	}
-	while (out[length] && length < keybuf_size);
+	while (length < keybuf_size && *key)
+		out[length++] = *key++;
 	out[length] = 0;
 	return out;
 }
