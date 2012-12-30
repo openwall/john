@@ -411,6 +411,11 @@ static void release_clobj(void)
 	MEM_FREE(cracked);
 }
 
+static void clear_keys(void)
+{
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size);
+}
+
 #undef set_key
 static void set_key(char *key, int index)
 {
@@ -1030,7 +1035,7 @@ struct fmt_main fmt_opencl_rar = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash

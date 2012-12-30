@@ -640,7 +640,7 @@ static int get_hash0(int index)       { return chk[index]; }
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 	dirty = 1;
 }
 

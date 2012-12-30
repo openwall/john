@@ -38,7 +38,7 @@
 
 #define SALT_SIZE			5
 
-#define PLAINTEXT_LENGTH		32
+#define PLAINTEXT_LENGTH		31
 #define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
 
 #ifdef MMX_COEF
@@ -242,7 +242,7 @@ static inline int strnfcpy_count(char *dst, char *src, int size)
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
+	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
 	new_key = 1;
 #else
 	unsigned char key_hash[BINARY_SIZE];
