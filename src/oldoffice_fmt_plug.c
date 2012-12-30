@@ -93,9 +93,52 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$oldoffice$", 11);
+	char *ctcopy, *ptr, *keeptr;
+	int res;
+
+	if (strncmp(ciphertext, "$oldoffice$", 11))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 11;
+	if (!(ptr = strtok(ctcopy, "*"))) /* type */
+		goto error;
+	res = atoi(ptr);
+	if (res > 4)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* salt */
+		goto error;
+	if (strlen(ptr) != 32)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* verifier */
+		goto error;
+	if (strlen(ptr) != 32)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* verifier hash */
+		goto error;
+	if (strlen(ptr) != 32 && strlen(ptr) != 40)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
