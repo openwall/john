@@ -57,6 +57,9 @@
 #include <openssl/crypto.h>
 #include "unicode.h"
 #include "plugin.h"
+#ifdef HAVE_GMP
+#include "gmp.h"
+#endif
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
 #endif
@@ -614,6 +617,9 @@ static void john_list_method_names()
 
 static void john_list_build_info(void)
 {
+#ifdef __GNU_MP_VERSION
+	int gmp_major, gmp_minor, gmp_patchlevel;
+#endif
 	puts("Version: " JOHN_VERSION);
 	puts("Build: " JOHN_BLD _MP_VERSION);
 	printf("Arch: %d-bit %s\n", ARCH_BITS,
@@ -649,12 +655,23 @@ static void john_list_build_info(void)
 	// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
 	// gcc insists it is int.
 	printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
-	// FIXME: How do I detect a missing library?
-	// Even if if is extremely unlikely that openssl is missing,
-	// at least flush all output buffers...
-	fflush(NULL);
 	if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
 		printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+	printf("\n");
+#endif
+
+#ifdef __GNU_MP_VERSION
+	// print GMP version info if HAVE_GMP has been set in Makefile
+	printf("GMP library version: %d.%d.%d",
+	       __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+	/* version strings prior to 4.3.0 did omit the patch level when it was 0 */ 
+	gmp_patchlevel = 0;
+	sscanf(gmp_version, "%d.%d.%d", &gmp_major, &gmp_minor, &gmp_patchlevel);
+	if (gmp_major != __GNU_MP_VERSION || gmp_minor != __GNU_MP_VERSION_MINOR ||
+	    gmp_patchlevel != __GNU_MP_VERSION_PATCHLEVEL)
+		printf("\t(loaded: %d.%d.%d)", 
+		       gmp_major, gmp_minor, gmp_patchlevel);
+
 	printf("\n");
 #endif
 }
