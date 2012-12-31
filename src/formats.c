@@ -69,6 +69,13 @@ char *fmt_self_test(struct fmt_main *format)
 #endif
 #ifndef BENCH_BUILD
 	int i, lengthcheck = 0;
+	int ml = format->params.plaintext_length;
+	char longcand[PLAINTEXT_BUFFER_SIZE + 1];
+
+	/* UTF-8 bodge in reverse */
+	if ((options.utf8) && (format->params.flags & FMT_UTF8) &&
+	    (format->params.flags & FMT_UNICODE))
+		ml /= 3;
 #endif
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
@@ -135,34 +142,61 @@ char *fmt_self_test(struct fmt_main *format)
 
 #ifndef BENCH_BUILD
 		/* Check that claimed maxlength is actually supported */
-		if (lengthcheck == 0) {
-			int ml = format->params.plaintext_length;
-			int mk = format->params.max_keys_per_crypt;
-			char longcand[PLAINTEXT_BUFFER_SIZE + 1];
-
+		/* This version is for max == 1, other version below */
+		if (lengthcheck == 0 && max == 1) {
 			lengthcheck = 1;
+
+			/* Fill the buffer with maximum length key */
+			memset(longcand, 'A', ml);
+			longcand[ml] = 0;
+			format->methods.set_key(longcand, index);
+
+			format->methods.crypt_all(index + 1);
+
+			/* Now read it back and verify it's intact */
+			if (strncmp(format->methods.get_key(index),
+			            longcand, ml + 1)) {
+				if (strnlen(format->methods.get_key(index), ml + 1) > ml)
+					sprintf(s_size, "max. length in index %d: wrote %d, got longer back", index, ml);
+				else
+					sprintf(s_size, "max. length in index %d: wrote %d, got %d back", index, ml, (int)strlen(format->methods.get_key(index)));
+				return s_size;
+			}
+		}
+#endif
+		if (index == 0)
 			format->methods.clear_keys();
+		format->methods.set_key(current->plaintext, index);
 
-			/* UTF-8 bodge in reverse */
-			if ((options.utf8) &&
-			    (format->params.flags & FMT_UTF8) &&
-			    (format->params.flags & FMT_UNICODE))
-				ml /= 3;
-
-			/* Fill the buffer with maximum length keys */
-			for (i = 0; i < mk; i++) {
+#ifndef BENCH_BUILD
+		/* Check that claimed maxlength is actually supported */
+		/* This version is for max > 1 */
+		/* Part 1: Fill the buffer with maximum length keys */
+		if (index == 0 && lengthcheck == 0 && max > 1) {
+			for (i = 1; i < max; i++) {
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
 				format->methods.set_key(longcand, i);
 			}
-			/* Now read them back and verify they are intact */
-			for (i = 0; i < mk; i++) {
+		}
+#endif
+#ifdef CL_VERSION_1_0
+		advance_cursor();
+#endif
+		format->methods.crypt_all(index + 1);
+
+#ifndef BENCH_BUILD
+		/* Check that claimed maxlength is actually supported */
+		/* Part 2: Now read them back and verify they are intact */
+		if (index == 0 && lengthcheck == 1 && max > 1) {
+			lengthcheck = 2;
+
+			for (i = 1; i < max; i++) {
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
 				if (strncmp(format->methods.get_key(i),
 				            longcand, ml + 1)) {
-					if (strnlen(format->methods.get_key(i),
-					            ml + 1) > ml)
+					if (strnlen(format->methods.get_key(i), ml + 1) > ml)
 						sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
 					else
 						sprintf(s_size, "max. length in index %d: wrote %d, got %d back", i, ml, (int)strlen(format->methods.get_key(i)));
@@ -171,15 +205,6 @@ char *fmt_self_test(struct fmt_main *format)
 			}
 		}
 #endif
-		if (index == 0)
-			format->methods.clear_keys();
-		format->methods.set_key(current->plaintext, index);
-
-#ifdef CL_VERSION_1_0
-		advance_cursor();
-#endif
-		format->methods.crypt_all(index + 1);
-
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 		if (format->methods.binary_hash[size] &&
 		    format->methods.get_hash[size](index) !=
