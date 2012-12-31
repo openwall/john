@@ -30,7 +30,7 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define BINARY_SIZE		20
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(odf_cpu_salt)
 
 #define uint8_t			unsigned char
@@ -39,7 +39,7 @@
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[24];
+	uint8_t v[20];
 } odf_password;
 
 typedef struct {

@@ -12,7 +12,7 @@
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[24];
+	uint8_t v[20];
 } odf_password;
 
 typedef struct {

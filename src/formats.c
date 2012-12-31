@@ -238,7 +238,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 					            ml + 1) > ml)
 						sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
 					else
-						sprintf(s_size, "max. length in index %d: wrote %d, got %zu back", i, ml, strlen(format->methods.get_key(i)));
+						sprintf(s_size, "max. length in index %d: wrote %d, got %d back", i, ml, (int)strlen(format->methods.get_key(i)));
 					return s_size;
 				}
 			}
