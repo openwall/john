@@ -81,13 +81,15 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	static char s_size[128];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
-	int ntests, done, index, max, size, i;
+	int ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 	int validkiller = 0;
 #endif
-	int lengthcheck = 0;
+#ifndef BENCH_BUILD
+	int i, lengthcheck = 0;
+#endif
 
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
@@ -154,7 +156,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 		if (validkiller == 0) {
 			char *killer = strdup(prepared);
 
@@ -204,6 +206,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		format->methods.set_salt(salt);
 
+#ifndef BENCH_BUILD
 		/* Check that claimed maxlength is actually supported */
 		if (lengthcheck == 0) {
 			int ml = format->params.plaintext_length;
@@ -212,6 +215,13 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 			lengthcheck = 1;
 			format->methods.clear_keys();
+
+			/* UTF-8 bodge in reverse */
+			if ((options.utf8) &&
+			    (format->params.flags & FMT_UTF8) &&
+			    (format->params.flags & FMT_UNICODE))
+				ml /= 3;
+
 			/* Fill the buffer with maximum length keys */
 			for (i = 0; i < mk; i++) {
 				memset(longcand, 'A' + (i % 23), ml);
@@ -233,7 +243,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				}
 			}
 		}
-
+#endif
 		if (index == 0)
 			format->methods.clear_keys();
 		format->methods.set_key(current->plaintext, index);
