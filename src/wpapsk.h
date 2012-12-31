@@ -22,15 +22,7 @@
 #define uint32_t		ARCH_WORD_32
 
 #define BINARY_SIZE		sizeof(mic_t)
-
-/* The OpenCL format defines JOHN_OCL_WPAPSK before including this
- * header file, changing some behaviors. */
-#ifdef JOHN_OCL_WPAPSK
-#define PLAINTEXT_LENGTH	63
-#else
-#define PLAINTEXT_LENGTH	15
-#endif
-
+#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(hccap_t)
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
@@ -56,7 +48,7 @@ typedef struct
 
 typedef struct {
 	uint32_t length;
-	uint8_t  v[PLAINTEXT_LENGTH];
+	uint8_t  v[PLAINTEXT_LENGTH + 1];
 } wpapsk_password;
 
 typedef struct {

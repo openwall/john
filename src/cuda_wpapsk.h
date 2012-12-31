@@ -43,6 +43,9 @@
 #define F3(x,y,z)		((x & y) | (z & (x | y)))
 #define F4(x,y,z)		(x ^ y ^ z)
 
+#define XORCHAR_BE(buf, index, val)	  \
+	((unsigned char*)(buf))[(index) ^ 3] ^= (val)
+
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
 {                                                       \

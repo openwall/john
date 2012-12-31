@@ -6,6 +6,10 @@
 
 #include "stdint.h"
 
+/* You can't bump this without changing preproc().
+   There is absolutely no gain in decreasing it either. */
+#define PLAINTEXT_LENGTH	64
+
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
@@ -29,6 +33,9 @@
 #define F2(x,y,z)		(x ^ y ^ z)
 #define F3(x,y,z)		((x & y) | (z & (x | y)))
 #define F4(x,y,z)		(x ^ y ^ z)
+
+#define XORCHAR_BE(buf, index, val)	  \
+	((unsigned char*)(buf))[(index) ^ 3] ^= (val)
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
@@ -274,27 +281,21 @@
 #define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
 
 static void preproc(const uint8_t * key, uint32_t keylen,
-    uint32_t * state, uint8_t var1, uint32_t var4)
+    uint32_t * state, uint32_t padding)
 {
 	int i;
 	uint32_t W[16], temp;
-	uint8_t ipad[16];
 	uint32_t A = INIT_A;
 	uint32_t B = INIT_B;
 	uint32_t C = INIT_C;
 	uint32_t D = INIT_D;
 	uint32_t E = INIT_E;
 
+	for (i = 0; i < 16; i++)
+		W[i] = padding;
+
 	for (i = 0; i < keylen; i++)
-		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i < 16; i++)
-		ipad[i] = var1;
-
-	for (i = 0; i < 4; i++)
-		GET_WORD_32_BE(W[i], ipad, i * 4);
-
-	for (i = 4; i < 16; i++)
-		W[i] = var4;
+		XORCHAR_BE(W, i, key[i]);
 
 	SHA1(A, B, C, D, E, W);
 
@@ -458,8 +459,8 @@ static void pbkdf2(const uint8_t * pass, int passlen,
 	uint32_t tmp_out[5];
 	uint32_t i;
 
-	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
+	preproc(pass, passlen, ipad_state, 0x36363636);
+	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
 	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 

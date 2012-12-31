@@ -12,22 +12,16 @@ extern "C" void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *);
 __constant__ wpapsk_salt cuda_salt[1];
 
 __device__ static void preproc(const uint8_t * key, uint32_t keylen,
-    uint32_t * state, uint8_t var1, uint32_t var4)
+    uint32_t * state, uint32_t padding)
 {
 	int i;
 	uint32_t W[16], temp;
-	uint8_t ipad[16];
+
+	for (i = 0; i < 16; i++)
+		W[i] = padding;
 
 	for (i = 0; i < keylen; i++)
-		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i < 16; i++)
-		ipad[i] = var1;
-
-	for (i = 0; i < 4; i++)
-		GET_WORD_32_BE(W[i], ipad, i * 4);
-
-	for (i = 4; i < 16; i++)
-		W[i] = var4;
+		XORCHAR_BE(W, i, key[i]);
 
 	uint32_t A = INIT_A;
 	uint32_t B = INIT_B;
@@ -190,8 +184,8 @@ __device__ void pbkdf2(const uint8_t * pass, int passlen, const uint8_t * salt,
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
 
-	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
+	preproc(pass, passlen, ipad_state, 0x36363636);
+	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
 	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 
