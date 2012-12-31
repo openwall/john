@@ -1,7 +1,8 @@
 /*
- * Modified by Dhiru Kholia <dhiru at openwall.com> for ODF format.
+ * Modified by Dhiru Kholia <dhiru at openwall.com> for SXC format.
  *
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+ * and Copyright (c) 2012 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
@@ -12,17 +13,17 @@
 
 typedef struct {
 	uint8_t v[20];
-} odf_password;
+} sxc_password;
 
 typedef struct {
-	uint32_t v[16];		// 16*4=64
-} odf_hash;
+	uint32_t v[8];
+} sxc_hash;
 
 typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
 	int iterations;
-} odf_salt;
+} sxc_salt;
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
@@ -487,19 +488,12 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state,
 	              opad_state, tmp_out, n);
 
-	for(i = 0; i < 5; i++)
+	for(i = 0; i < 4; i++)
 		out[i] = tmp_out[i];
-
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	              tmp_out, n);
-
-	for(i = 0; i < 3; i++)
-		out[5 + i] = tmp_out[i];
 }
 
-__kernel void odf(__global const odf_password * inbuffer,
-    __global odf_hash * outbuffer, __global const odf_salt * salt)
+__kernel void sxc(__global const sxc_password * inbuffer,
+    __global sxc_hash * outbuffer, __global const sxc_salt * salt)
 {
 	uint32_t idx = get_global_id(0);
 
