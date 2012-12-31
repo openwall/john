@@ -29,7 +29,7 @@
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(*salt_struct)
 #define SALTLEN 20
 #define IVLEN 8
@@ -41,7 +41,7 @@
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[PLAINTEXT_LENGTH + 1];
 } keychain_password;
 
 typedef struct {

@@ -6,6 +6,8 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
 
+#include "opencl_device_info.h"
+
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
@@ -33,6 +35,12 @@
 #define F2(x,y,z)		(x ^ y ^ z)
 #define F3(x,y,z)		((x & y) | (z & (x | y)))
 #define F4(x,y,z)		(x ^ y ^ z)
+
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+#define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
+#else
+#define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
+#endif
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
@@ -280,7 +288,7 @@
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[64 + 1];
 } keychain_password;
 
 typedef struct {
@@ -294,22 +302,16 @@ typedef struct {
 } keychain_salt;
 
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
-    __private uint32_t * state, uint8_t var1, uint32_t var4)
+    __private uint32_t * state, uint32_t padding)
 {
 	uint32_t i;
 	uint32_t W[16], temp;
-	uint8_t ipad[16];
+
+	for (i = 0; i < 16; i++)
+		W[i] = padding;
 
 	for (i = 0; i < keylen; i++)
-		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i < 16; i++)
-		ipad[i] = var1;
-
-	for (i = 0; i < 4; i++)
-		GET_WORD_32_BE(W[i], ipad, i * 4);
-
-	for (i = 4; i < 16; i++)
-		W[i] = var4;
+		XORCHAR_BE(W, i, key[i]);
 
 	uint32_t A = INIT_A;
 	uint32_t B = INIT_B;
@@ -479,8 +481,8 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
 
-	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
+	preproc(pass, passlen, ipad_state, 0x36363636);
+	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
 	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 

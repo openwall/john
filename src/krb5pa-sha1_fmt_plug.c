@@ -56,7 +56,6 @@ static int omp_t = 1;
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0
-#define PLAINTEXT_LENGTH   125
 #define BINARY_SIZE		12
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -490,10 +489,7 @@ static void crypt_all(int count)
 		int key_size;
 		int len = strlen(saved_key[index]);
 
-		if (len <= 16)
-			pbkdf2((const unsigned char*)saved_key[index], len, (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
-		else
-			derive_key((unsigned char*)saved_key[index], len, cur_salt->salt, strlen((char*)cur_salt->salt), 4096, tkey, 32);
+		pbkdf2((const unsigned char*)saved_key[index], len, (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
 
 		// generate 128 bits from 40 bits of "kerberos" string
 		// This is precomputed in init()

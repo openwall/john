@@ -20,7 +20,7 @@
 
 typedef struct {
 	unsigned int  length;
-	unsigned char v[PLAINTEXT_LENGTH];
+	unsigned char v[PLAINTEXT_LENGTH + 1];
 } pbkdf2_password;
 
 typedef struct {
