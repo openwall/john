@@ -62,12 +62,14 @@ char *fmt_self_test(struct fmt_main *format)
 	static char s_size[128];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
-	int ntests, done, index, max, size, i;
+	int ntests, done, index, max, size;
 	void *binary, *salt;
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 	int validkiller = 0;
 #endif
-	int lengthcheck = 0;
+#ifndef BENCH_BUILD
+	int i, lengthcheck = 0;
+#endif
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
@@ -106,7 +108,7 @@ char *fmt_self_test(struct fmt_main *format)
 		if (format->methods.valid(prepared,format) != 1)
 			return "valid";
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 		if (validkiller == 0) {
 			char *killer = strdup(prepared);
 
@@ -131,6 +133,7 @@ char *fmt_self_test(struct fmt_main *format)
 
 		format->methods.set_salt(salt);
 
+#ifndef BENCH_BUILD
 		/* Check that claimed maxlength is actually supported */
 		if (lengthcheck == 0) {
 			int ml = format->params.plaintext_length;
@@ -167,7 +170,7 @@ char *fmt_self_test(struct fmt_main *format)
 				}
 			}
 		}
-
+#endif
 		if (index == 0)
 			format->methods.clear_keys();
 		format->methods.set_key(current->plaintext, index);
