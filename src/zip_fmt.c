@@ -26,14 +26,19 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "gladman_fileenc.h"
+#include "keychain.h"
+
+/* From gladman_fileenc.h */
+#define PWD_VER_LENGTH         2
+#define KEYING_ITERATIONS   1000
+#define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
+#define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
 
 #define FORMAT_LABEL        "zip"
 #define FORMAT_NAME         "WinZip PBKDF2-HMAC-SHA-1"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
-#define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         2
 #define SALT_SIZE           512
 #define MIN_KEYS_PER_CRYPT  1
@@ -124,12 +129,12 @@ static void crypt_all(int count)
 #endif
 	for (index = 0; index < count; index++) {
 		unsigned char pwd_ver[2] = { 0 };
-		unsigned char kbuf[2 * MAX_KEY_LENGTH + PWD_VER_LENGTH];
+		unsigned char kbuf[2 * PLAINTEXT_LENGTH + PWD_VER_LENGTH];
 /* Derive the encryption and authetication keys and the password verifier */
-		derive_key((unsigned char *)saved_key[index],
-		    strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
-		    KEYING_ITERATIONS, kbuf,
-		    2 * KEY_LENGTH(mode) + PWD_VER_LENGTH);
+		pbkdf2((unsigned char *)saved_key[index],
+		       strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
+		       KEYING_ITERATIONS, kbuf,
+		       2 * KEY_LENGTH(mode) + PWD_VER_LENGTH);
 		memcpy(pwd_ver, kbuf + 2 * KEY_LENGTH(mode), PWD_VER_LENGTH);
 		has_been_cracked[index] = !memcmp(pwd_ver, passverify, 2);
 	}

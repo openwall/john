@@ -195,10 +195,12 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned int master[8];
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]),
-				cur_salt->salt[0], cur_salt->saltlen[0], cur_salt->iterations[0], master);
-		if(akcdecrypt((unsigned char*)master, cur_salt->ct[0]) == 0)
+		unsigned char master[32];
+		pbkdf2((unsigned char *)saved_key[index],
+		       strlen(saved_key[index]),
+		       cur_salt->salt[0], cur_salt->saltlen[0],
+		       cur_salt->iterations[0], master, 32);
+		if(akcdecrypt(master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;

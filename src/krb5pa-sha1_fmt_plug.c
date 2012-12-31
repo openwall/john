@@ -489,7 +489,9 @@ static void crypt_all(int count)
 		int key_size;
 		int len = strlen(saved_key[index]);
 
-		pbkdf2((const unsigned char*)saved_key[index], len, (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
+		pbkdf2((const unsigned char*)saved_key[index], len,
+		       cur_salt->salt,strlen((char*)cur_salt->salt),
+		       4096, tkey, 32);
 
 		// generate 128 bits from 40 bits of "kerberos" string
 		// This is precomputed in init()

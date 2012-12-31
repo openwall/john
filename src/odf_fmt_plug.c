@@ -251,7 +251,8 @@ static void crypt_all(int count)
 			SHA1_Final((unsigned char *)hash, &ctx);
 			pbkdf2(hash, 20, cur_salt->salt,
 			       cur_salt->salt_length,
-			       cur_salt->iterations, (unsigned int*)key);
+			       cur_salt->iterations, key,
+			       cur_salt->key_size);
 			bf_ivec_pos = 0;
 			memcpy(ivec, cur_salt->iv, 8);
 			BF_set_key(&bf_key, cur_salt->key_size, key);
@@ -269,7 +270,8 @@ static void crypt_all(int count)
 			SHA256_Final((unsigned char *)hash, &ctx);
 			pbkdf2(hash, 32, cur_salt->salt,
 			       cur_salt->salt_length,
-			       cur_salt->iterations, (unsigned int*)key);
+			       cur_salt->iterations, key,
+			       cur_salt->key_size);
 			memcpy(iv, cur_salt->iv, 32);
 			memset(&akey, 0, sizeof(AES_KEY));
 			if(AES_set_decrypt_key(key, 256, &akey) < 0) {
