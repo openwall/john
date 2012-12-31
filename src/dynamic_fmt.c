@@ -1193,8 +1193,8 @@ key_cleaning2:
 		}
 #endif
 		len = strlen(key);
-		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
-			len = 55;
+		if (len > 80) // we never do UTF-8 -> UTF-16 in this mode
+			len = 80;
 
 //		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
@@ -1211,8 +1211,8 @@ key_cleaning2:
 	else
 	{
 		len = strlen(key);
-		if (len > 55 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
-			len = 55;
+		if (len > 80 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
+			len = 80;
 //		if(index==0) {
 //			DynamicFunc__clean_input();
 //		}
