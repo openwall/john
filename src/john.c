@@ -206,6 +206,7 @@ extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
+extern int keyring2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
@@ -1393,6 +1394,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return keepass2john(argc, argv);
+	}
+
+	if (!strcmp(name, "keyring2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return keyring2john(argc, argv);
 	}
 
 	if (!strcmp(name, "rar2john")) {

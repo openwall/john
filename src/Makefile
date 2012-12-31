@@ -123,6 +123,7 @@ JOHN_OBJS = \
 	keychain2john.o \
 	pwsafe2john.o \
 	keepass2john.o \
+	keyring2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
@@ -217,14 +218,14 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
-	../run/keychain2john ../run/to_dyna john.local.conf
+	../run/keychain2john ../run/keyring2john ../run/to_dyna john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
-	../run/keychain2john.com john.local.conf
+	../run/keychain2john.com ../run/keyring2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -232,7 +233,8 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/to_dyna.exe john.local.conf
+	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
+	../run/to_dyna.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -240,7 +242,8 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/to_dyna.exe john.local.conf
+	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
+	../run/to_dyna.exe john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1557,6 +1560,10 @@ cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(RM) ../run/keepass2john
 	ln -s john ../run/keepass2john
 
+../run/keyring2john: ../run/john
+	$(RM) ../run/keyring2john
+	ln -s john ../run/keyring2john
+
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	ln -s john ../run/zip2john
@@ -1626,6 +1633,9 @@ endif
 
 ../run/keepass2john.com: john.com
 	copy john.com ..\run\keepass2john.com
+
+../run/keyring2john.com: john.com
+	copy john.com ..\run\keyring2john.com
 
 ../run/pdf2john.com: john.com
 	copy john.com ..\run\pdf2john.com
@@ -1705,6 +1715,10 @@ john.com: john.asm
 ../run/keepass2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keepass2john.exe
 	strip ../run/keepass2john.exe
+
+../run/keyring2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/keyring2john.exe
+	strip ../run/keyring2john.exe
 
 ../run/pdf2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pdf2john.exe
