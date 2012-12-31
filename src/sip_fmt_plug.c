@@ -72,7 +72,7 @@ static void init(struct fmt_main *self)
 	/* Init bin 2 hex table for faster conversions later */
 	init_bin2hex(bin2hex_table);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }

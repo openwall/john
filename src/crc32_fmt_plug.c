@@ -73,7 +73,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = MAX_KEYS_PER_CRYPT * n;
 #endif
 	//printf("Using %u x %u = %u keys per crypt\n", MAX_KEYS_PER_CRYPT, n, self->params.max_keys_per_crypt);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crcs = mem_calloc_tiny(sizeof(*crcs) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
