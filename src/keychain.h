@@ -6,9 +6,14 @@
 
 #include "stdint.h"
 
-/* You can't bump this without changing preproc().
-   There is absolutely no gain in decreasing it either. */
+/* You can't bump this without changing preproc() */
+#ifdef PLAINTEXT_LENGTH
+#if PLAINTEXT_LENGTH > 64
+#error keychain.h can not use a PLAINTEXT_LENGTH larger than 64
+#endif
+#else
 #define PLAINTEXT_LENGTH	64
+#endif
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
@@ -451,30 +456,24 @@ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		tmp_out[i] = SWAP(tmp_out[i]);
 }
 
-static void pbkdf2(const uint8_t * pass, int passlen,
-    const uint8_t * salt, int saltlen, int n, uint32_t * out)
+static void pbkdf2(const uint8_t *pass, int passlen, const uint8_t *salt,
+                   int saltlen, int n, uint8_t *out, int outlen)
 {
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
-	uint32_t i;
+	uint32_t i, r, t = 0;
 
 	preproc(pass, passlen, ipad_state, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
+	for (r = 1; r <= (outlen + 19) / 20; r++) {
+		hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, r);
 
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
+		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
+		              tmp_out, n);
 
-	for (i = 0; i < 5; i++)
-		out[i] = tmp_out[i];
-
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
-
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
-
-	for (i = 5; i < 8; i++)
-		out[i] = tmp_out[i - 5];
+		for (i = 0; i < 20 && t < outlen; i++)
+			out[t++] = ((uint8_t*)tmp_out)[i];
+	}
 }

@@ -177,7 +177,9 @@ static void crypt_all(int count)
 		int reserve_sz = 16; /* for HMAC off case */
 		AES_KEY akey;
 
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), cur_salt->salt, 16, ITERATIONS, (uint32_t *)master);
+		pbkdf2((unsigned char *)saved_key[index],
+		       strlen(saved_key[index]), cur_salt->salt,
+		       16, ITERATIONS, master, 32);
 		memcpy(output, SQLITE_FILE_HEADER, FILE_HEADER_SZ);
 		size = page_sz - reserve_sz;
 		iv_in = cur_salt->data + size + 16;

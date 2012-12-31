@@ -426,7 +426,8 @@ static int hash_plugin_check_hash(const char *password)
 	int cno = 0;
 	unsigned char *r;
 	if (cur_salt->headerver == 1) {
-		pbkdf2((const unsigned char*)password, strlen(password), (unsigned char *)cur_salt->salt, 20, 1000, (unsigned int*)derived_key);
+		pbkdf2((const unsigned char*)password, strlen(password),
+		       cur_salt->salt, 20, 1000, derived_key, 32);
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, 40, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, 48, derived_key) == 0)) {
 			return 1;
 		}
@@ -441,7 +442,8 @@ static int hash_plugin_check_hash(const char *password)
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
-		pbkdf2((const unsigned char*)password, strlen(password), cur_salt->salt, 20, 1000, (unsigned int*)derived_key);
+		pbkdf2((const unsigned char*)password, strlen(password),
+		       cur_salt->salt, 20, 1000, derived_key, 32);
 		EVP_CIPHER_CTX_init(&ctx);
 		TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
 
