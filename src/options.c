@@ -239,7 +239,7 @@ static void print_usage(char *name)
 	while ((format = format->next))
 		i++;
 
-	formats_list = malloc(sizeof(char*) * i);
+	formats_list = mem_alloc(sizeof(char*) * i);
 
 	i = 0;
 	format = fmt_list;

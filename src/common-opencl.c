@@ -204,7 +204,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 #if DEBUG
 		fprintf(stderr, "source size %zu\n", source_size);
 #endif
-		source = malloc(source_size);
+		source = mem_alloc(source_size);
 
 		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
 			CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");

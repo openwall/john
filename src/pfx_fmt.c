@@ -142,7 +142,7 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 6;	/* skip over "$pfx$*" */
 	p = strtok(ctcopy, "*");
 	cs.len = atoi(p);
-	decoded_data = (char *) malloc(cs.len + 1);
+	decoded_data = (char *) mem_alloc(cs.len + 1);
 	p = strtok(NULL, "*");
 	for (i = 0; i < cs.len; i++)
 		decoded_data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +

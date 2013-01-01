@@ -231,7 +231,7 @@ static void process_database(char* encryptedDatabase)
 
 		if (uSize > 0)
 		{
-			pbData = (unsigned char*)malloc(uSize);
+			pbData = (unsigned char*)mem_alloc(uSize);
 			if (fread(pbData, uSize, 1, fp) != 1) {
 				fprintf(stderr, "error reading pbData\n");
 				MEM_FREE(pbData);

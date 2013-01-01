@@ -210,7 +210,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = endTime-startTime;
-	tmpbuffer = malloc(sizeof(cl_uint) * gws);
+	tmpbuffer = mem_alloc(sizeof(cl_uint) * gws);
 	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, tmpbuffer, 0, NULL, &myEvent);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);

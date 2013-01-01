@@ -271,7 +271,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 					4 + commlen +
 					4 + cur_salt->public_blob_len +
 					4 + cur_salt->private_blob_len);
-			macdata = (unsigned char*)malloc(maclen);
+			macdata = (unsigned char*)mem_alloc(maclen);
 			p = macdata;
 #define DO_STR(s,len) PUT_32BIT(p,(len));memcpy(p+4,(s),(len));p+=4+(len)
 			DO_STR(cur_salt->alg, namelen);

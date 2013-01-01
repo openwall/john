@@ -199,9 +199,9 @@ static void init(struct fmt_main *self)
 	///Alocate memory
 	key_host = calloc(self->params.max_keys_per_crypt, sizeof(*key_host));
 
-	dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+	dcc_hash_host=(cl_uint*)mem_alloc_tiny(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT,MEM_ALIGN_WORD);
 
-	dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+	dcc2_hash_host=(cl_uint*)mem_alloc_tiny(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT,MEM_ALIGN_WORD);
 
 	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
