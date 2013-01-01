@@ -131,7 +131,7 @@ static char *parseName(FILE * file)
 	}
 	ungetc(ch, file);
 	buff[i++] = '\0';
-	ret = malloc(sizeof(char) * i);
+	ret = mem_alloc(sizeof(char) * i);
 	memcpy(ret, buff, i);
 	return ret;
 }
@@ -207,8 +207,8 @@ static p_str *parseHexString(const uint8_t * buf, const unsigned int len)
 	unsigned int i, j;
 	p_str *ret;
 
-	ret = malloc(sizeof(p_str));
-	ret->content = malloc(sizeof(uint8_t) * (len / 2));
+	ret = mem_alloc(sizeof(p_str));
+	ret->content = mem_alloc(sizeof(uint8_t) * (len / 2));
 	ret->len = (len / 2);
 
 	for (i = 0, j = 0; i < len; i += 2) {
@@ -285,8 +285,8 @@ static p_str *objStringToByte(const uint8_t * str, const unsigned int len)
 		tmp[l] = b;
 	}
 
-	ret = malloc(sizeof(p_str));
-	ret->content = malloc(sizeof(uint8_t) * (l));
+	ret = mem_alloc(sizeof(p_str));
+	ret->content = mem_alloc(sizeof(uint8_t) * (l));
 	ret->len = l - 1;
 
 	memcpy(ret->content, tmp, l);

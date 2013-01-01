@@ -75,7 +75,7 @@ static void process_file(const char *filename)
 	}
 
 	size = sb.st_size;
-	buffer = (unsigned char *)malloc(size);
+	buffer = (unsigned char *)mem_alloc(size);
 	count = fread(buffer, size, 1, fp);
 	assert(count == 1);
 

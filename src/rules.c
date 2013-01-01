@@ -220,7 +220,7 @@ static void rules_init_class(char name, char *valid)
 static char *userclass_expand(const char *src)
 {
 	unsigned const char *src2 = (unsigned char*)src;
-	char *dst_tmp = malloc(0x200);
+	char *dst_tmp = mem_alloc(0x200);
 	char *dst = dst_tmp, *dstend = &dst_tmp[0x100];
 	int j, br = 0;
 

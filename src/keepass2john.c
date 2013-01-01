@@ -231,10 +231,11 @@ static void process_database(char* encryptedDatabase)
 
 		if (uSize > 0)
 		{
-			pbData = (unsigned char*)malloc(uSize);
+			pbData = (unsigned char*)mem_alloc(uSize);
 			if (fread(pbData, uSize, 1, fp) != 1) {
 				fprintf(stderr, "error reading pbData\n");
-				return;
+				MEM_FREE(pbData);
+				goto bailout;
 			}
 
 		}
@@ -247,11 +248,16 @@ static void process_database(char* encryptedDatabase)
 				break;
 
                         case MasterSeed:
+				if (masterSeed)
+					MEM_FREE(masterSeed);
 				masterSeed = pbData;
 				masterSeedLength = uSize;
 				break;
 
                         case TransformSeed:
+				if (transformSeed)
+					MEM_FREE(transformSeed);
+
 				transformSeed = pbData;
 				transformSeedLength = uSize;
 				break;
@@ -259,7 +265,7 @@ static void process_database(char* encryptedDatabase)
                         case TransformRounds:
 				if(!pbData) {
 					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
-					return;
+					goto bailout;
 				}
 				else {
 					transformRounds = BytesToUInt64(pbData);
@@ -289,14 +295,14 @@ static void process_database(char* encryptedDatabase)
 	dataStartOffset = ftell(fp);
 	if(transformRounds == 0) {
 		fprintf(stderr, "! %s : transformRounds can't be 0\n", encryptedDatabase);
-		return;
+		goto bailout;
 	}
 #ifdef KEEPASS_DEBUG
 	fprintf(stderr, "%d, %d, %d, %d\n", masterSeedLength, transformSeedLength, initializationVectorsLength, expectedStartBytesLength);
 #endif
 	if (!masterSeed || !transformSeed || !initializationVectors || expectedStartBytes) {
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
-		return;
+		goto bailout;
 	}
 	printf("%s:$keepass$*2*%ld*%ld*",encryptedDatabase, transformRounds, dataStartOffset);
 	print_hex(masterSeed, masterSeedLength);
@@ -308,10 +314,13 @@ static void process_database(char* encryptedDatabase)
 	print_hex(expectedStartBytes, expectedStartBytesLength);
 	if (fread(out, 32, 1, fp) != 1) {
 		fprintf(stderr, "error reading encrypted data!\n");
+		goto bailout;
 	}
 	printf("*");
 	print_hex(out, 32);
 	printf("\n");
+
+bailout:
 	MEM_FREE(masterSeed);
 	MEM_FREE(transformSeed);
 	MEM_FREE(initializationVectors);

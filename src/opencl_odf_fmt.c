@@ -38,12 +38,11 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-	uint8_t length;
 	uint8_t v[20];
 } odf_password;
 
 typedef struct {
-	uint32_t v[17];
+	uint32_t v[16];
 } odf_hash;
 
 typedef struct {
@@ -113,20 +112,14 @@ static void init(struct fmt_main *self)
 	outbuffer =
 	    (odf_hash *) malloc(sizeof(odf_hash) * MAX_KEYS_PER_CRYPT);
 
-	/* Zeroize the lengths in case crypt_all() is called with some keys still
-	 * not set.  This may happen during self-tests. */
-	{
-		int i;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
-			inbuffer[i].length = 0;
-	}
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	//listOpenCLdevices();
-	opencl_init("$JOHN/kernels/odf_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init_opt("$JOHN/kernels/odf_kernel.cl", ocl_gpu_id,
+	                platform_id, NULL);
 	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -347,7 +340,6 @@ static void crypt_all(int count)
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
 		SHA1_Final((unsigned char *)hash, &ctx);
-		inbuffer[index].length = 20;
 		memcpy(inbuffer[index].v, hash, 20);
 	}
 

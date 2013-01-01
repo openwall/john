@@ -252,7 +252,7 @@ static void *get_salt(char *ciphertext)
 	}
 	filelength = atoi(strtok(NULL, "*"));
 	encoded_data += 6;	/* skip over "$ssh2$ marker */
-	decoded_data = (char *) malloc(filelength + 1);
+	decoded_data = (char *) mem_alloc(filelength + 1);
 	for (i = 0; i < filelength; i++)
 		decoded_data[i] =
 		    atoi16[ARCH_INDEX(encoded_data[i * 2])] * 16 +
