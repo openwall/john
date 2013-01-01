@@ -642,7 +642,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		}
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
-			return 1;
+			return !cp[i];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[22] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[23]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -660,7 +660,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		}
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
-			return 1;
+			return !cp[i];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[16] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[17]) != pPriv->dynamic_FIXED_SALT_SIZE)
