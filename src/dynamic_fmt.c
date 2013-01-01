@@ -701,7 +701,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
-	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
+	if (!cp[cipherTextLen] && (pPriv->pSetup->flags&MGF_SALTED) == 0)
 		return 1;
 
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
