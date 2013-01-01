@@ -81,14 +81,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	static char s_size[128];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
-	int ntests, done, index, max, size;
+	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
 #if defined(DEBUG) && !defined(BENCH_BUILD)
 	int validkiller = 0;
 #endif
 #ifndef BENCH_BUILD
-	int i, lengthcheck = 0;
+	int lengthcheck = 0;
 	int ml = format->params.plaintext_length;
 	char longcand[PLAINTEXT_BUFFER_SIZE + 1];
 
@@ -217,7 +217,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		/* Check that claimed maxlength is actually supported */
 		/* This version is for max == 1, other version below */
 		if (lengthcheck == 0 && max == 1) {
-			lengthcheck = 1;
+			lengthcheck = 2;
 
 			/* Fill the buffer with maximum length key */
 			memset(longcand, 'A', ml);
@@ -236,6 +236,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				return s_size;
 			}
 		}
+		if (lengthcheck == 3 && index == 2) {
+			format->methods.clear_keys();
+			for (i = 0; i < 2; i++)
+				format->methods.set_key("", i);
+		}
 #endif
 		if (index == 0)
 			format->methods.clear_keys();
@@ -245,8 +250,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		/* Check that claimed maxlength is actually supported */
 		/* This version is for max > 1 */
 		/* Part 1: Fill the buffer with maximum length keys */
-		if (index == 0 && lengthcheck == 0 && max > 1) {
-			for (i = 1; i < max; i++) {
+		if (index == 1 && lengthcheck == 0 && max > 1) {
+			lengthcheck = 1;
+
+			for (i = 0; i < max; i++) {
+				if (i == index) continue;
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
 				format->methods.set_key(longcand, i);
@@ -256,15 +264,21 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #ifdef CL_VERSION_1_0
 		advance_cursor();
 #endif
-		format->methods.crypt_all(index + 1);
+#ifndef BENCH_BUILD
+		if (lengthcheck == 1)
+			format->methods.crypt_all(max);
+		else
+#endif
+			format->methods.crypt_all(index + 1);
 
 #ifndef BENCH_BUILD
 		/* Check that claimed maxlength is actually supported */
 		/* Part 2: Now read them back and verify they are intact */
-		if (index == 0 && lengthcheck == 1 && max > 1) {
-			lengthcheck = 2;
+		if (index == 1 && lengthcheck == 1 && max > 1) {
+			lengthcheck = 3;
 
 			for (i = 1; i < max; i++) {
+				if (i == index) continue;
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
 				if (strncmp(format->methods.get_key(i),
@@ -309,9 +323,14 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			format->methods.set_key("", index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
-		if (index >= 2 && max > ntests)
-			index += index >> 1;
-		else
+		if (index >= 2 && max > ntests) {
+			/* Always call set_key() even if skipping. Some
+			   formats depend on it */
+			for (i = index;
+			     i < max && i < (index + (index >> 1)); i++)
+				format->methods.set_key("", i);
+			index = i;
+		} else
 			index++;
 
 		if (index >= max) {
