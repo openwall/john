@@ -9552,6 +9552,8 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	int i, valid, nFmtNum;
 	struct fmt_main *pFmtLocal;
 	static char subformat[17], *cp;
+
+	m_allow_rawhash_fixup = 0;
 	strncpy(subformat, ciphertext, 16);
 	subformat[16] = 0;
 	cp = strchr(&subformat[9], '$');
