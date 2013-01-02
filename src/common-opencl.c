@@ -153,7 +153,9 @@ static char *include_source(char *pathname, int dev_id, char *options)
 		strcat(include, options);
 	}
 
-	//fprintf(stderr, "Options used: %s\n", include);
+#ifdef DEBUG
+	fprintf(stderr, "Options used: %s\n", include);
+#endif
 	return include;
 }
 

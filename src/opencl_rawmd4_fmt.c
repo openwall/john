@@ -48,7 +48,6 @@ static int keybuf_size = PLAINTEXT_LENGTH;
 #define DUR_CONFIG		"rawmd4_MaxDuration"
 
 static int have_full_hashes;
-static size_t crypt_gws;
 
 static struct fmt_tests tests[] = {
 	{"$MD4$6d78785c44ea8dfa178748b245d8c3ae", "magnum" },
@@ -86,7 +85,7 @@ static void create_clobj(int kpc)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 2");
 
-	crypt_gws = global_work_size = kpc;
+	global_work_size = kpc;
 }
 
 static void release_clobj(void)
@@ -278,7 +277,8 @@ static void init(struct fmt_main *self)
 	create_clobj(global_work_size);
 
 	self->params.max_keys_per_crypt = global_work_size;
-	self->params.min_keys_per_crypt = local_work_size;
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -360,15 +360,15 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	crypt_gws = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	// copy keys to the device
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * crypt_gws, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * global_work_size, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &crypt_gws, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
 
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * crypt_gws, partial_hashes, 0, NULL, NULL), "failed in reading data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
 }
 
@@ -394,17 +394,17 @@ static int cmp_exact(char *source, int index)
 
 	if (!have_full_hashes) {
 		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
-		                    sizeof(cl_uint) * (crypt_gws),
-		                    sizeof(cl_uint) * 3 * crypt_gws,
+		                    sizeof(cl_uint) * (global_work_size),
+		                    sizeof(cl_uint) * 3 * global_work_size,
 		                    res_hashes, 0, NULL, NULL);
 		have_full_hashes = 1;
 	}
 
 	if (t[1]!=res_hashes[index])
 		return 0;
-	if (t[2]!=res_hashes[1*crypt_gws+index])
+	if (t[2]!=res_hashes[1*global_work_size+index])
 		return 0;
-	if (t[3]!=res_hashes[2*crypt_gws+index])
+	if (t[3]!=res_hashes[2*global_work_size+index])
 		return 0;
 	return 1;
 }
