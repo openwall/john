@@ -30,7 +30,8 @@
 #define PLAINTEXT_LENGTH		32
 #define CIPHERTEXT_LENGTH		40
 
-#define BINARY_SIZE			20
+#define DIGEST_SIZE			20
+#define BINARY_SIZE			4
 #define SALT_SIZE			0
 
 #define SHA_NUM_KEYS               	1024*2048
@@ -236,10 +237,10 @@ static char *get_key(int index) {
 }
 
 static void *binary(char *ciphertext){
-	static char realcipher[BINARY_SIZE];
+	static char realcipher[DIGEST_SIZE];
 	int i;
 
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		realcipher[i] =
 		    atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
@@ -255,6 +256,14 @@ static int cmp_all(void *binary, int count){
 		if (b == partial_hashes[i])
 			return 1;
 	}
+	return 0;
+}
+
+static int cmp_one(void *binary, int index){
+	unsigned int *t = (unsigned int *) binary;
+
+	if (t[0] == partial_hashes[index])
+		return 1;
 	return 0;
 }
 
@@ -278,14 +287,6 @@ static int cmp_exact(char *source, int count){
 	if (t[4]!=res_hashes[3*max_keys_per_crypt+count])
 		return 0;
 	return 1;
-}
-
-static int cmp_one(void *binary, int index){
-	unsigned int *t = (unsigned int *) binary;
-
-	if (t[0] == partial_hashes[index])
-		return 1;
-	return 0;
 }
 
 static void crypt_all(int count){
