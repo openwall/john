@@ -526,8 +526,6 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 		opencl_build_kernel_opt(kernel_filename, dev_id, options);
 
 	else {
-		char *cp;
-
 		startTime = (unsigned long) time(NULL);
 
 		//Get device name.
@@ -547,11 +545,10 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 		strcat(bin_name, ".bin");
 
 		// Change spaces to '_'
-		cp = bin_name;
-		while (cp && *cp) {
-			if (isspace((unsigned char)(*cp)))
-				*cp = '_';
-			cp++;
+		while (p && *p) {
+			if (isspace((unsigned char)(*p)))
+				*p = '_';
+			p++;
 		}
 
 		//Select the kernel to run.

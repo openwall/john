@@ -26,7 +26,8 @@
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define CIPHERTEXT_LENGTH   32
-#define BINARY_SIZE         16
+#define DIGEST_SIZE         16
+#define BINARY_SIZE         4
 #define SALT_SIZE           0
 
 cl_command_queue queue_prof;
@@ -73,7 +74,7 @@ static void create_clobj(int kpc)
 	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, keybuf_size * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys");
 
-	buffer_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, BINARY_SIZE * kpc, NULL, &ret_code);
+	buffer_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, DIGEST_SIZE * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_out");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 1");
@@ -300,7 +301,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[BINARY_SIZE];
+	static unsigned char out[DIGEST_SIZE];
 	char *p;
 	int i;
 	p = ciphertext + 5;
