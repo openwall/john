@@ -584,7 +584,9 @@ static void crypt_all(int count) {
 /* ------- Compare functins ------- */
 static int cmp_all(void * binary, int count) {
     uint32_t partial_binary;
+    size_t gws;
 
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
     partial_binary = (int) ((uint64_t *) binary)[0];
     hash_found = 0;
 
@@ -598,7 +600,7 @@ static int cmp_all(void * binary, int count) {
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], cmp_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
     //Read results back.
