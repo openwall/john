@@ -25,8 +25,8 @@
  * trickery may actually be as an exercise for the reader (HINT: Karma, NMB
  * broadcasts, IE, Outlook, social engineering, ...).
  *
- * [1] http://davenport.sourceforge.net/ntlm.html#theNtLmResponse
- * [2] http://www.foofus.net/fizzgig/fgdump/
+ * [1] http://davenport.sourceforge.net/ntlm.html#theNtlmResponse
+ * [2] http://www.foofus.net/~fizzgig/fgdump/
  * [3] http://ettercap.sourceforge.net/
  * [4] http://www.oxid.it/cain.html
  * [5] http://www.foofus.net/jmk/smbchallenge.html
@@ -117,7 +117,7 @@ static void init(struct fmt_main *self)
 		n = MAX_KEYS_PER_CRYPT;
 	self->params.max_keys_per_crypt = n;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);

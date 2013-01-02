@@ -180,7 +180,7 @@ static void process_file(const char *fname)
 	if (crypto_size % 16 != 0)
 		goto bail;
 
-	to_decrypt = (unsigned char *) malloc(crypto_size);
+	to_decrypt = (unsigned char *) mem_alloc(crypto_size);
 	count = fread(to_decrypt, crypto_size, 1, fp);
 	assert(count == 1);
 	printf("%s:$keyring$", fname);
@@ -204,7 +204,7 @@ static int usage()
 	return 1;
 }
 
-int main(int argc, char **argv)
+int keyring2john(int argc, char **argv)
 {
 	int i = 1;
 

@@ -11,12 +11,11 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[24];
+	uint8_t v[20];
 } odf_password;
 
 typedef struct {
-	uint32_t v[17];		// 16*4=64
+	uint32_t v[16];		// 16*4=64
 } odf_hash;
 
 typedef struct {
@@ -483,25 +482,20 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
 	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
 
-	uint8_t rnd = 0x01;
-	__global unsigned char *dst = (__global unsigned char*)out;
-	unsigned char *src;
-	for (; rnd < 0x04;) {
-		hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen,
-		    rnd++);
+	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 
-		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state,
-		              opad_state, tmp_out, n);
-		src = (unsigned char*)tmp_out;
-		for(i = 0; i < 20; i++)
-			dst[i] = src[i];
-		dst+=(5*4);
-	}
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x04);
+	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state,
+	              opad_state, tmp_out, n);
+
+	for(i = 0; i < 5; i++)
+		out[i] = tmp_out[i];
+
+	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
 	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
 	              tmp_out, n);
-	for(i = 0; i < 6; i++)
-		dst[i] = src[i];
+
+	for(i = 0; i < 3; i++)
+		out[5 + i] = tmp_out[i];
 }
 
 __kernel void odf(__global const odf_password * inbuffer,
@@ -509,6 +503,6 @@ __kernel void odf(__global const odf_password * inbuffer,
 {
 	uint32_t idx = get_global_id(0);
 
-	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
-	    salt->salt, salt->length, salt->iterations, outbuffer[idx].v);
+	pbkdf2(inbuffer[idx].v, 20, salt->salt, salt->length,
+	       salt->iterations, outbuffer[idx].v);
 }

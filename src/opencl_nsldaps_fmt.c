@@ -38,7 +38,8 @@
 
 #define CIPHERTEXT_LENGTH		40
 
-#define BINARY_SIZE			20
+#define DIGEST_SIZE			20
+#define BINARY_SIZE			4
 #define SALT_SIZE			8
 
 #define PLAINTEXT_LENGTH		32
@@ -97,11 +98,11 @@ static struct fmt_tests tests[] = {
 static void create_clobj(int kpc, struct fmt_main *self) {
 	global_work_size = kpc;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = kpc;
-	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, PLAINTEXT_LENGTH * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
 	saved_plain = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ,
-			 0, (PLAINTEXT_LENGTH) * kpc, 0, NULL, NULL, &ret_code);
+			 0, PLAINTEXT_LENGTH * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
 
@@ -119,7 +120,7 @@ static void create_clobj(int kpc, struct fmt_main *self) {
 
 	// create and set arguments
 	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
-	    (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
+	    PLAINTEXT_LENGTH * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
 
 	buffer_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
@@ -159,9 +160,9 @@ static void release_clobj(void){
     cl_int ret_code;
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, outbuffer, 0,NULL,NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping outbuffer");
+    HANDLE_CLERROR(ret_code, "Error Unmapping outbuffer");
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
     ret_code = clReleaseMemObject(buffer_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(buffer_out);
@@ -199,7 +200,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * gws, saved_plain, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, PLAINTEXT_LENGTH * gws, saved_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS) {
 		// We hit some resource limit so we end here.
@@ -210,7 +211,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = endTime-startTime;
-	tmpbuffer = malloc(sizeof(cl_uint) * gws);
+	tmpbuffer = mem_alloc(sizeof(cl_uint) * gws);
 	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, tmpbuffer, 0, NULL, &myEvent);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
@@ -283,7 +284,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 
 static void *binary(char *ciphertext) {
-	static char realcipher[BINARY_SIZE + SALT_SIZE + 9];
+	static char realcipher[DIGEST_SIZE + SALT_SIZE + 9];
 
 	memset(realcipher, 0, sizeof(realcipher));
 	base64_decode(NSLDAP_MAGIC_LENGTH + ciphertext, CIPHERTEXT_LENGTH,
@@ -295,20 +296,24 @@ static void *get_salt(char *ciphertext){
 	static char *realcipher;
 
 	// Cludge to be sure to satisfy the salt aligment test of 1.7.9.3 on 64-bit
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + SALT_SIZE + 9 + 4, MEM_ALIGN_WORD) + 4;
+	if (!realcipher) realcipher = mem_alloc_tiny(DIGEST_SIZE + SALT_SIZE + 9 + 4, MEM_ALIGN_WORD) + 4;
 
-	memset(realcipher, 0, BINARY_SIZE + SALT_SIZE + 9 + 4);
+	memset(realcipher, 0, DIGEST_SIZE + SALT_SIZE + 9 + 4);
 
 	base64_decode(NSLDAP_MAGIC_LENGTH + ciphertext, CIPHERTEXT_LENGTH,
 	    realcipher);
-	return (void *) &realcipher[BINARY_SIZE];
+	return (void *) &realcipher[DIGEST_SIZE];
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (ciphertext && strlen(ciphertext) == CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH)
-		return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
-	return 0;
+	if (!ciphertext)
+		return 0;
+	if (!strcmp(NSLDAP_MAGIC, ciphertext))
+		return 0;
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH)
+		return 0;
+	return 1;
 }
 
 static int get_hash_0(int index) { return outbuffer[index] & 0xF; }
@@ -344,7 +349,14 @@ static void set_salt(void *salt){
 }
 
 static char *get_key(int index) {
-	return &(saved_plain[index*PLAINTEXT_LENGTH]);
+	int length = 0;
+	static char out[PLAINTEXT_LENGTH + 1];
+	char *key = &saved_plain[index * PLAINTEXT_LENGTH];
+
+	while (length < PLAINTEXT_LENGTH && *key)
+		out[length++] = *key++;
+	out[length] = 0;
+	return out;
 }
 
 static int cmp_all(void *binary, int index) {
@@ -393,7 +405,7 @@ static void crypt_all(int count)
 	cl_int code;
 
 	code = clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * global_work_size, saved_plain, 0, NULL, NULL);
+	    PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer saved_plain");
 
 	code = clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,

@@ -15,9 +15,9 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "gladman_fileenc.h"
 #include <openssl/sha.h>
 #include <openssl/blowfish.h>
+#include "keychain.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -28,7 +28,6 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		20
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -71,7 +70,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
@@ -255,10 +254,10 @@ static void crypt_all(int count)
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
 		SHA1_Final((unsigned char *)hash, &ctx);
-		derive_key(hash, 20, cur_salt->salt,
-				cur_salt->salt_length,
-				cur_salt->iterations, key,
-				cur_salt->key_size);
+		pbkdf2(hash, 20, cur_salt->salt,
+		       cur_salt->salt_length,
+		       cur_salt->iterations, key,
+		       cur_salt->key_size);
 		bf_ivec_pos = 0;
 		memcpy(ivec, cur_salt->iv, 8);
 		BF_set_key(&bf_key, cur_salt->key_size, key);

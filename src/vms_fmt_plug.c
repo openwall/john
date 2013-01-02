@@ -75,7 +75,7 @@ static void fmt_vms_init ( struct fmt_main *self )
 #endif
 	/* Init bin 2 hex table for faster conversions later */
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	uaf_init ( );
 }

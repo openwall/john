@@ -32,7 +32,6 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	15
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -72,20 +71,21 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy, *keeptr;
 	int ctlen;
 	int saltlen;
 	char *p;
 	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 15;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;
@@ -195,10 +195,12 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned int master[8];
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]),
-				cur_salt->salt[0], cur_salt->saltlen[0], cur_salt->iterations[0], master);
-		if(akcdecrypt((unsigned char*)master, cur_salt->ct[0]) == 0)
+		unsigned char master[32];
+		pbkdf2((unsigned char *)saved_key[index],
+		       strlen(saved_key[index]),
+		       cur_salt->salt[0], cur_salt->saltlen[0],
+		       cur_salt->iterations[0], master, 32);
+		if(akcdecrypt(master, cur_salt->ct[0]) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;

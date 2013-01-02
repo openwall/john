@@ -59,11 +59,24 @@ void fmt_init(struct fmt_main *format)
 
 char *fmt_self_test(struct fmt_main *format)
 {
-	static char s_size[32];
+	static char s_size[128];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
-	int ntests, done, index, max, size;
+	int i, ntests, done, index, max, size;
 	void *binary, *salt;
+#if defined(DEBUG) && !defined(BENCH_BUILD)
+	int validkiller = 0;
+#endif
+#ifndef BENCH_BUILD
+	int lengthcheck = 0;
+	int ml = format->params.plaintext_length;
+	char longcand[PLAINTEXT_BUFFER_SIZE + 1];
+
+	/* UTF-8 bodge in reverse */
+	if ((options.utf8) && (format->params.flags & FMT_UTF8) &&
+	    (format->params.flags & FMT_UNICODE))
+		ml /= 3;
+#endif
 
 	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
 		return "length";
@@ -102,11 +115,11 @@ char *fmt_self_test(struct fmt_main *format)
 		if (format->methods.valid(prepared,format) != 1)
 			return "valid";
 
-#ifdef DEBUG
-		if (index == 0) {
+#if defined(DEBUG) && !defined(BENCH_BUILD)
+		if (validkiller == 0) {
 			char *killer = strdup(prepared);
-			int i;
 
+			validkiller = 1;
 			for (i = strlen(killer) - 1; i > 0; i--) {
 				killer[i] = 0;
 				format->methods.valid(killer, format);
@@ -126,15 +139,86 @@ char *fmt_self_test(struct fmt_main *format)
 			return "salt_hash";
 
 		format->methods.set_salt(salt);
+
+#ifndef BENCH_BUILD
+		/* Check that claimed maxlength is actually supported */
+		/* This version is for max == 1, other version below */
+		if (lengthcheck == 0 && max == 1) {
+			lengthcheck = 2;
+
+			/* Fill the buffer with maximum length key */
+			memset(longcand, 'A', ml);
+			longcand[ml] = 0;
+			format->methods.set_key(longcand, index);
+
+			format->methods.crypt_all(index + 1);
+
+			/* Now read it back and verify it's intact */
+			if (strncmp(format->methods.get_key(index),
+			            longcand, ml + 1)) {
+				if (strnlen(format->methods.get_key(index), ml + 1) > ml)
+					sprintf(s_size, "max. length in index %d: wrote %d, got longer back", index, ml);
+				else
+					sprintf(s_size, "max. length in index %d: wrote %d, got %d back", index, ml, (int)strlen(format->methods.get_key(index)));
+				return s_size;
+			}
+		}
+		if (lengthcheck == 3 && index == 2) {
+			format->methods.clear_keys();
+			for (i = 0; i < 2; i++)
+				format->methods.set_key("", i);
+		}
+#endif
 		if (index == 0)
 			format->methods.clear_keys();
 		format->methods.set_key(current->plaintext, index);
 
+#ifndef BENCH_BUILD
+		/* Check that claimed maxlength is actually supported */
+		/* This version is for max > 1 */
+		/* Part 1: Fill the buffer with maximum length keys */
+		if (index == 1 && lengthcheck == 0 && max > 1) {
+			lengthcheck = 1;
+
+			for (i = 0; i < max; i++) {
+				if (i == index) continue;
+				memset(longcand, 'A' + (i % 23), ml);
+				longcand[ml] = 0;
+				format->methods.set_key(longcand, i);
+			}
+		}
+#endif
 #ifdef CL_VERSION_1_0
 		advance_cursor();
 #endif
-		format->methods.crypt_all(index + 1);
+#ifndef BENCH_BUILD
+		if (lengthcheck == 1)
+			format->methods.crypt_all(max);
+		else
+#endif
+			format->methods.crypt_all(index + 1);
 
+#ifndef BENCH_BUILD
+		/* Check that claimed maxlength is actually supported */
+		/* Part 2: Now read them back and verify they are intact */
+		if (index == 1 && lengthcheck == 1 && max > 1) {
+			lengthcheck = 3;
+
+			for (i = 1; i < max; i++) {
+				if (i == index) continue;
+				memset(longcand, 'A' + (i % 23), ml);
+				longcand[ml] = 0;
+				if (strncmp(format->methods.get_key(i),
+				            longcand, ml + 1)) {
+					if (strnlen(format->methods.get_key(i), ml + 1) > ml)
+						sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
+					else
+						sprintf(s_size, "max. length in index %d: wrote %d, got %d back", i, ml, (int)strlen(format->methods.get_key(i)));
+					return s_size;
+				}
+			}
+		}
+#endif
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++)
 		if (format->methods.binary_hash[size] &&
 		    format->methods.get_hash[size](index) !=
@@ -165,9 +249,14 @@ char *fmt_self_test(struct fmt_main *format)
 			format->methods.set_key("", index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
-		if (index >= 2 && max > ntests)
-			index += index >> 1;
-		else
+		if (index >= 2 && max > ntests) {
+			/* Always call set_key() even if skipping. Some
+			   formats depend on it */
+			for (i = index;
+			     i < max && i < (index + (index >> 1)); i++)
+				format->methods.set_key("", i);
+			index = i;
+		} else
 			index++;
 
 		if (index >= max) {

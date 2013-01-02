@@ -43,7 +43,7 @@ inline uint SWAP32(uint x)
 
 typedef struct {
 	uint  length;
-	uchar v[PLAINTEXT_LENGTH];
+	uchar v[PLAINTEXT_LENGTH + 1];
 } wpapsk_password;
 
 typedef struct

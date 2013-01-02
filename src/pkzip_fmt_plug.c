@@ -397,6 +397,9 @@ static void init(struct fmt_main *self)
 	// http://www.garykessler.net/library/file_sigs.html
 	// http://en.wikipedia.org/wiki/List_of_file_signatures
 	// http://toorcon.techpathways.com/uploads/headersig.txt
+	// 	FIXME: not available, 2012-12-28)
+	// 	archive.org still has a version:
+	// 	http://web.archive.org/web/20110725085828/http://toorcon.techpathways.com/uploads/headersig.txt
 	// there are many more.
 
 //case 1: // DOC/XLS
@@ -637,7 +640,7 @@ static int get_hash0(int index)       { return chk[index]; }
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
-	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 	dirty = 1;
 }
 

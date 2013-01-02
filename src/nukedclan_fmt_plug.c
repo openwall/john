@@ -88,13 +88,51 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
+
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$nk$", 4);
+	char *ptr, *ctcopy, *keeptr;
+
+	if (strncmp(ciphertext, "$nk$*", 5))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 5;	/* skip leading "$nk$" */
+	if (!(ptr = strtok(ctcopy, "*")))
+		goto error;
+	/* HASHKEY is of fixed length 40 */
+	if (strlen(ptr) != 40)
+		goto error;
+	if(!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	/* skip two characters, for "nk_tests[]" this is '#'
+	 * followed by decal value */
+	ptr += 2;
+	/* hash is of fixed length 32 */
+	if (strlen(ptr) != 32)
+		goto error;
+	if(!ishex(ptr))
+		goto error;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -193,7 +231,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *((ARCH_WORD_32*)binary) == crypt_out[index][0]; 
+	return *((ARCH_WORD_32*)binary) == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)

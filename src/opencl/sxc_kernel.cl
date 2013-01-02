@@ -1,16 +1,29 @@
 /*
- * Modified by Dhiru Kholia <dhiru at openwall.com> for Keychain format.
+ * Modified by Dhiru Kholia <dhiru at openwall.com> for SXC format.
  *
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+ * and Copyright (c) 2012 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted. */
 
-#include "opencl_device_info.h"
-
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
+
+typedef struct {
+	uint8_t v[20];
+} sxc_password;
+
+typedef struct {
+	uint32_t v[8];
+} sxc_hash;
+
+typedef struct {
+	uint8_t length;
+	uint8_t salt[64];
+	int iterations;
+} sxc_salt;
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
@@ -35,12 +48,6 @@
 #define F2(x,y,z)		(x ^ y ^ z)
 #define F3(x,y,z)		((x & y) | (z & (x | y)))
 #define F4(x,y,z)		(x ^ y ^ z)
-
-#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
-#define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
-#else
-#define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
-#endif
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
@@ -286,32 +293,23 @@
 #define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
 
 
-typedef struct {
-	uint8_t length;
-	uint8_t v[64 + 1];
-} keychain_password;
-
-typedef struct {
-	uint32_t v[8];
-} keychain_hash;
-
-typedef struct {
-	uint8_t length;
-	uint8_t salt[20];
-	int iterations;
-} keychain_salt;
-
 inline void preproc(__global const uint8_t * key, uint32_t keylen,
-    __private uint32_t * state, uint32_t padding)
+    __private uint32_t * state, uint8_t var1, uint32_t var4)
 {
 	uint32_t i;
 	uint32_t W[16], temp;
-
-	for (i = 0; i < 16; i++)
-		W[i] = padding;
+	uint8_t ipad[20];
 
 	for (i = 0; i < keylen; i++)
-		XORCHAR_BE(W, i, key[i]);
+		ipad[i] = var1 ^ key[i];
+	for (i = keylen; i < 20; i++)
+		ipad[i] = var1;
+
+	for (i = 0; i < 5; i++)
+		GET_WORD_32_BE(W[i], ipad, i * 4);
+
+	for (i = 5; i < 16; i++)
+		W[i] = var4;
 
 	uint32_t A = INIT_A;
 	uint32_t B = INIT_B;
@@ -329,7 +327,7 @@ inline void preproc(__global const uint8_t * key, uint32_t keylen,
 
 }
 
-inline void hmac_sha1(__private uint32_t * output,
+inline void hmac_sha1_(__private uint32_t * output,
     __private uint32_t * ipad_state,
     __private uint32_t * opad_state,
     __global const uint8_t * salt, int saltlen, uint8_t add)
@@ -342,7 +340,7 @@ inline void hmac_sha1(__private uint32_t * output,
 	i = 64 / 4;
 	while (i--)
 		*src++ = 0;
-	//_memcpy(buf, salt, saltlen);
+	//memcpy(buf, salt, saltlen);
 	for (i = 0; i < saltlen; i++)
 		buf[i] = salt[i];
 
@@ -480,34 +478,25 @@ inline void pbkdf2(__global const uint8_t * pass, int passlen,
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
+	int i;
 
-	preproc(pass, passlen, ipad_state, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
+	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
+	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
 
-	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
+	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
 
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
+	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state,
+	              opad_state, tmp_out, n);
 
-	//_memcpy(out, tmp_out, 20);
-	for (int i = 0; i < 5; i++)
+	for(i = 0; i < 4; i++)
 		out[i] = tmp_out[i];
-
-	hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
-
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
-
-	//_memcpy(out+20, tmp_out, 12);
-	for (int i = 5; i < 8; i++)
-		out[i] = tmp_out[i - 5];
 }
 
-__kernel void keychain(__global const keychain_password * inbuffer,
-    __global keychain_hash * outbuffer, __global const keychain_salt * salt)
+__kernel void sxc(__global const sxc_password * inbuffer,
+    __global sxc_hash * outbuffer, __global const sxc_salt * salt)
 {
 	uint32_t idx = get_global_id(0);
 
-	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
-	    salt->salt, salt->length, salt->iterations, outbuffer[idx].v);
+	pbkdf2(inbuffer[idx].v, 20, salt->salt, salt->length,
+	       salt->iterations, outbuffer[idx].v);
 }

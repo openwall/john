@@ -182,10 +182,9 @@ int main(int argc, char * * argv)
 	struct s_pwd pwd;
 	struct s_pwd pwd2;
 
-	unsigned int max_lvl, max_len;
+	unsigned int max_lvl = 0, max_len;
 	unsigned long long start, end;
 
-	max_lvl = 0;
 	max_len = 0;
 	start = 0;
 	end = 0;

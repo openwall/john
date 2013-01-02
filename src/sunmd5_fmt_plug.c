@@ -235,8 +235,8 @@ static void init(struct fmt_main *self)
 			input_buf_big[(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
 	}
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
-	saved_salt = mem_calloc_tiny(SALT_SIZE+1, MEM_ALIGN_NONE);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_salt = mem_calloc_tiny(SALT_SIZE+1, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	for (i = 0; i < 0x100; i++)
@@ -461,13 +461,13 @@ static int nbig, nsmall;
 
 static void crypt_all(int count)
 {
-	int i, idx, zs, zb, zs0, zb0, roundasciilen;
-	// int zb2;  // used in debugging
+	int idx, roundasciilen;
 	int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
 	char roundascii[8];
 
 #ifdef MMX_COEF
-	int j;
+	int i, j, zs, zb, zs0, zb0;
+	// int zb2;  // used in debugging
 	memset(input_buf, 0, BLK_CNT*MD5_CBLOCK);
 #endif
 
@@ -501,8 +501,6 @@ static void crypt_all(int count)
 	for (round = 0; round < maxrounds; round++) {
 
 		nbig = nsmall = 0;
-		zs = zs0 = zb = zb0 = 0;
-		// zb2 = 0; /* for debugging */
 
 		/*
 		 *  now this is computed at bottom of loop (we start properly set at "0", len==1)
@@ -622,6 +620,8 @@ static void crypt_all(int count)
 #endif
 		}
 		/* now do the 'loop' for the small 1-limb blocks. */
+		zs = zs0 = zb = zb0 = 0;
+		// zb2 = 0; /* for debugging */
 		for (i = 0; i < nsmall-MIN_DROP_BACK; i += BLK_CNT) {
 			for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
 				pConx px = &data[smalls[zs++]];

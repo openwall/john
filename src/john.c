@@ -19,6 +19,11 @@
 
 #include "params.h"
 
+#ifdef HAVE_NSS
+#include "nss.h"
+//#include "nssutil.h"
+#include "nspr.h"
+#endif
 #if defined(_OPENMP) && OMP_FALLBACK
 #include <omp.h>
 #endif
@@ -57,6 +62,9 @@
 #include <openssl/crypto.h>
 #include "unicode.h"
 #include "plugin.h"
+#ifdef HAVE_GMP
+#include "gmp.h"
+#endif
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
 #endif
@@ -198,6 +206,7 @@ extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
+extern int keyring2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
@@ -612,6 +621,89 @@ static void john_list_method_names()
 	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 }
 
+static void john_list_build_info(void)
+{
+#ifdef __GNU_MP_VERSION
+	int gmp_major, gmp_minor, gmp_patchlevel;
+#endif
+	puts("Version: " JOHN_VERSION);
+	puts("Build: " JOHN_BLD _MP_VERSION);
+	printf("Arch: %d-bit %s\n", ARCH_BITS,
+	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
+#if JOHN_SYSTEMWIDE
+	puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
+	puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
+	puts("Private home: " JOHN_PRIVATE_HOME);
+#endif
+	printf("$JOHN is %s\n", path_expand("$JOHN/"));
+	printf("Format interface version: %d\n", FMT_MAIN_VERSION);
+	puts("Rec file version: " RECOVERY_V);
+	puts("Charset file version: " CHARSET_V);
+	printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN, CHARSET_MIN);
+	printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX, CHARSET_MAX);
+	printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
+	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
+	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
+#ifdef __VERSION__
+	printf("Compiler version: %s\n", __VERSION__);
+#endif
+#ifdef __GNUC__
+	printf("gcc version: %d.%d.%d\n", __GNUC__,
+	       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#endif
+#ifdef __ICC
+	printf("icc version: %d\n", __ICC);
+#endif
+#ifdef __clang_version__
+	printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef OPENSSL_VERSION_NUMBER
+	// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
+	// gcc insists it is int.
+	printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+	if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
+		printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+	printf("\n");
+#endif
+
+#ifdef __GNU_MP_VERSION
+	// print GMP version info if HAVE_GMP has been set in Makefile
+	printf("GMP library version: %d.%d.%d",
+	       __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+	/* version strings prior to 4.3.0 did omit the patch level when it was 0 */ 
+	gmp_patchlevel = 0;
+	sscanf(gmp_version, "%d.%d.%d", &gmp_major, &gmp_minor, &gmp_patchlevel);
+	if (gmp_major != __GNU_MP_VERSION || gmp_minor != __GNU_MP_VERSION_MINOR ||
+	    gmp_patchlevel != __GNU_MP_VERSION_PATCHLEVEL)
+		printf("\t(loaded: %d.%d.%d)", 
+		       gmp_major, gmp_minor, gmp_patchlevel);
+	printf("\n");
+#endif
+#ifdef NSS_VERSION
+	// <major>.<minor>[.<patch_level>[.<build_number>]][ <ECC>][ <Beta>]
+	printf("NSS library version: %s", NSS_VERSION);
+	if(strcmp(NSS_VERSION, NSS_GetVersion()))
+		printf("\t(loaded: %s)", NSS_GetVersion());
+	printf("\n");
+#endif
+// NSSUTIL_VERSION and NSSUTIL_VERSION always seem to match.
+// At least, I dodn't find any differences on Fedora 16 or Fedora 17 systems.
+//#ifdef NSSUTIL_VERSION
+//	printf("NSS utilities version: %s (%s)\n",
+//	        NSSUTIL_VERSION, NSSUTIL_GetVersion());
+//#endif
+#ifdef PR_VERSION
+	printf("NSPR library version: %s", PR_VERSION);
+	if(strcmp(PR_VERSION, PR_GetVersion()))
+		printf("\t(loaded: %s)", PR_GetVersion());
+	printf("\n");
+#endif
+#ifdef HAVE_KRB5
+	// I have no idea how to get version info
+	printf("Kerberos version 5 support enabled\n");
+#endif
+}
+
 static void john_init(char *name, int argc, char **argv)
 {
 	int show_usage = 0;
@@ -691,51 +783,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (options.listconf && !strcasecmp(options.listconf,
 		                                    "build-info"))
 		{
-			puts("Version: " JOHN_VERSION);
-			puts("Build: " JOHN_BLD _MP_VERSION);
-			printf("Arch: %d-bit %s\n", ARCH_BITS,
-			       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
-#if JOHN_SYSTEMWIDE
-			puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
-			puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
-			puts("Private home: " JOHN_PRIVATE_HOME);
-#endif
-			printf("$JOHN is %s\n", path_expand("$JOHN/"));
-			printf("Format interface version: %d\n", FMT_MAIN_VERSION);
-			puts("Rec file version: " RECOVERY_V);
-			puts("Charset file version: " CHARSET_V);
-			printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN,
-			       CHARSET_MIN);
-			printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX,
-			       CHARSET_MAX);
-			printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
-			printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
-			printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
-#ifdef __VERSION__
-		printf("Compiler version: %s\n", __VERSION__);
-#endif
-#ifdef __GNUC__
-			printf("gcc version: %d.%d.%d\n", __GNUC__,
-			       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#endif
-#ifdef __ICC
-			printf("icc version: %d\n", __ICC);
-#endif
-#ifdef __clang_version__
-			printf("clang version: %s\n", __clang_version__);
-#endif
-#ifdef OPENSSL_VERSION_NUMBER
-			// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
-			// gcc insists it is int.
-			printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
-			// FIXME: How do I detect a missing library?
-			// Even if if is extremely unlikely that openssl is missing,
-			// at least flush all output buffers...
-			fflush(NULL);
-			if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
-				printf("\t(loaded: %lx)", (unsigned long)SSLeay());
-			printf("\n");
-#endif
+			john_list_build_info();
 			exit(0);
 		}
 	}
@@ -1346,6 +1394,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "keepass2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return keepass2john(argc, argv);
+	}
+
+	if (!strcmp(name, "keyring2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return keyring2john(argc, argv);
 	}
 
 	if (!strcmp(name, "rar2john")) {

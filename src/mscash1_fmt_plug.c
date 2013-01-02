@@ -149,7 +149,6 @@ static void init(struct fmt_main *self)
 	} else {
 		fmt_mscash.methods.set_key = set_key_encoding;
 		fmt_mscash.methods.salt = get_salt_encoding;
-		fmt_mscash.params.plaintext_length = (PLAINTEXT_LENGTH * 3);
 	}
 }
 

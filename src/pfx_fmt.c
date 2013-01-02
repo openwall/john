@@ -88,15 +88,45 @@ static void init(struct fmt_main *self)
 	}
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$pfx$", 5);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	if (strncmp(ciphertext, "$pfx$", 5))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 6;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* length */
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if(strlen(p) != res * 2)
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -112,7 +142,7 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 6;	/* skip over "$pfx$*" */
 	p = strtok(ctcopy, "*");
 	cs.len = atoi(p);
-	decoded_data = (char *) malloc(cs.len + 1);
+	decoded_data = (char *) mem_alloc(cs.len + 1);
 	p = strtok(NULL, "*");
 	for (i = 0; i < cs.len; i++)
 		decoded_data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +

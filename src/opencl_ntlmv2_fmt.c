@@ -37,7 +37,8 @@
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	27 /* octets of encoding, max. 27 */
 #define SALT_MAX_LENGTH		27 /* Username + Domainname length in characters */
-#define BINARY_SIZE		16 /* octets */
+#define DIGEST_SIZE		16 /* octets */
+#define BINARY_SIZE		4 /* octets */
 #define SERVER_CHALL_LENGTH	16 /* hex chars */
 #define CLIENT_CHALL_LENGTH_MAX	(1024 - SERVER_CHALL_LENGTH - 128) /* hex chars */
 #define SALT_SIZE_MAX		512 /* octets */
@@ -47,8 +48,8 @@
 #define LWS_CONFIG		"ntlmv2_LWS"
 #define GWS_CONFIG		"ntlmv2_GWS"
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* these will be altered in init() depending on GPU */
 #define MIN_KEYS_PER_CRYPT	1
@@ -562,13 +563,13 @@ static void *get_binary(char *ciphertext)
 	char *pos = NULL;
 	int i, identity_length;
 
-	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!binary) binary = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
 	for (pos = ciphertext + 11; strncmp(pos, "$", 1) != 0; pos++);
 	identity_length = pos - (ciphertext + 11);
 
 	ciphertext += 11 + identity_length + 1 + SERVER_CHALL_LENGTH + 1;
-	for (i=0; i<BINARY_SIZE; i++)
+	for (i=0; i<DIGEST_SIZE; i++)
 	{
 		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
 		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
@@ -624,7 +625,7 @@ static int cmp_exact(char *source, int index)
 	}
 	binary = (ARCH_WORD_32*)get_binary(source);
 
-	for(i = 0; i < BINARY_SIZE / 4; i++)
+	for(i = 0; i < DIGEST_SIZE / 4; i++)
 		if (output[i * crypt_gws + index] != binary[i])
 			return 0;
 	return 1;

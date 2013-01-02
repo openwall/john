@@ -60,7 +60,7 @@ static ARCH_WORD_32 saved_salt;
 
 static void init(struct fmt_main *self)
 {
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_NONE);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * MAX_KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 }

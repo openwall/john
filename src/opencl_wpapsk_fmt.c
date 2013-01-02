@@ -38,8 +38,8 @@ static int VF = 1;	/* Will be set to 4 if we run vectorized */
 #define LWS_CONFIG		"wpapsk_LWS"
 #define GWS_CONFIG		"wpapsk_GWS"
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 extern wpapsk_password *inbuffer;
 extern wpapsk_salt currentsalt;

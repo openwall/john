@@ -642,7 +642,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		}
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
-			return 1;
+			return !cp[i];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[22] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[23]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -660,7 +660,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		}
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
-			return 1;
+			return !cp[i];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[16] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[17]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -701,7 +701,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
-	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
+	if (!cp[cipherTextLen] && (pPriv->pSetup->flags&MGF_SALTED) == 0)
 		return 1;
 
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
@@ -1193,8 +1193,8 @@ key_cleaning2:
 		}
 #endif
 		len = strlen(key);
-		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
-			len = 55;
+		if (len > 80) // we never do UTF-8 -> UTF-16 in this mode
+			len = 80;
 
 //		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
@@ -1211,8 +1211,8 @@ key_cleaning2:
 	else
 	{
 		len = strlen(key);
-		if (len > 55 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
-			len = 55;
+		if (len > 80 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
+			len = 80;
 //		if(index==0) {
 //			DynamicFunc__clean_input();
 //		}
@@ -9552,6 +9552,8 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	int i, valid, nFmtNum;
 	struct fmt_main *pFmtLocal;
 	static char subformat[17], *cp;
+
+	m_allow_rawhash_fixup = 0;
 	strncpy(subformat, ciphertext, 16);
 	subformat[16] = 0;
 	cp = strchr(&subformat[9], '$');

@@ -147,7 +147,7 @@ static unsigned char *hex2data(const char *string, size_t * data_len)
 	}
 
 	len = strlen(string) / 2;
-	data = malloc(len);
+	data = mem_alloc(len);
 	cp = data;
 	for (i = 0; i < len; i++)
 		*cp++ = hstr_i(&string[i * 2]);

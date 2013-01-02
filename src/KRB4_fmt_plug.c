@@ -97,7 +97,7 @@ static struct salt_st {
 static struct key_st {
 	DES_cblock		key;
 	DES_key_schedule	sched;
-	char			string[PLAINTEXT_LENGTH];
+	char			string[PLAINTEXT_LENGTH + 1];
 } saved_key;
 
 

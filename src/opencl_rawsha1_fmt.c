@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * samu at linuxasylum dot net
+ * and Copyright (c) 2012, magnum
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
@@ -29,7 +30,8 @@
 #define PLAINTEXT_LENGTH		32
 #define CIPHERTEXT_LENGTH		40
 
-#define BINARY_SIZE			20
+#define DIGEST_SIZE			20
+#define BINARY_SIZE			4
 #define SALT_SIZE			0
 
 #define SHA_NUM_KEYS               	1024*2048
@@ -56,8 +58,8 @@ static char *saved_plain;
 static int have_full_hashes;
 static int keybuf_size = PLAINTEXT_LENGTH;
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 static int max_keys_per_crypt = SHA_NUM_KEYS;
 
@@ -80,8 +82,6 @@ static int valid(char *ciphertext, struct fmt_main *self){
 	}
 	return 1;
 }
-
-static void set_salt(void *salt) { }
 
 static void create_clobj(int kpc){
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, keybuf_size*kpc, NULL, &ret_code);
@@ -109,8 +109,8 @@ static void create_clobj(int kpc){
 }
 
 static void release_clobj(void){
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Ummapping partial_hashes");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Ummapping saved_plain");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, partial_hashes, 0,NULL,NULL), "Error Unmapping partial_hashes");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
 
 	HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
@@ -153,7 +153,7 @@ static void find_best_kpc(void){
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 		tmpTime = endTime-startTime;
-		tmpbuffer = malloc(sizeof(cl_uint) * num);
+		tmpbuffer = mem_alloc(sizeof(cl_uint) * num);
 		clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 		clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
@@ -213,19 +213,34 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 	self->params.max_keys_per_crypt = max_keys_per_crypt;
 }
 
-static void set_key(char *key, int index){
-	memcpy(&(saved_plain[index*keybuf_size]), key, keybuf_size);
+static void clear_keys(void)
+{
+	memset(saved_plain, 0, keybuf_size * global_work_size);
+}
+
+static void set_key(char *key, int index) {
+	char *dst = (char*)&saved_plain[index * keybuf_size];
+
+	while (*key)
+		*dst++ = *key++;
 }
 
 static char *get_key(int index) {
-	return &(saved_plain[index*keybuf_size]);
+	int length = 0;
+	static char out[PLAINTEXT_LENGTH + 1];
+	char *key = &saved_plain[index * keybuf_size];
+
+	while (length < keybuf_size && *key)
+		out[length++] = *key++;
+	out[length] = 0;
+	return out;
 }
 
 static void *binary(char *ciphertext){
-	static char realcipher[BINARY_SIZE];
+	static char realcipher[DIGEST_SIZE];
 	int i;
 
-	for (i = 0; i < BINARY_SIZE; i++) {
+	for (i = 0; i < DIGEST_SIZE; i++) {
 		realcipher[i] =
 		    atoi16[ARCH_INDEX(ciphertext[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
@@ -241,6 +256,14 @@ static int cmp_all(void *binary, int count){
 		if (b == partial_hashes[i])
 			return 1;
 	}
+	return 0;
+}
+
+static int cmp_one(void *binary, int index){
+	unsigned int *t = (unsigned int *) binary;
+
+	if (t[0] == partial_hashes[index])
+		return 1;
 	return 0;
 }
 
@@ -264,14 +287,6 @@ static int cmp_exact(char *source, int count){
 	if (t[4]!=res_hashes[3*max_keys_per_crypt+count])
 		return 0;
 	return 1;
-}
-
-static int cmp_one(void *binary, int index){
-	unsigned int *t = (unsigned int *) binary;
-
-	if (t[0] == partial_hashes[index])
-		return 1;
-	return 0;
 }
 
 static void crypt_all(int count){
@@ -332,10 +347,10 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2012 Samuele Giovanni Tonon
- * samu at linuxasylum dot net
+ * samu at linuxasylum dot net, and
+ * Copyright (c) 2012 magnum
  * This program comes with ABSOLUTELY NO WARRANTY; express or
  * implied .
  * This is free software, and you are welcome to redistribute it
@@ -23,9 +24,9 @@
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use only)"
 
 #define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_LENGTH		-1
 
-#define PLAINTEXT_LENGTH		64
+#define PLAINTEXT_LENGTH		32
 #define CIPHERTEXT_LENGTH		41
 
 #define BINARY_SIZE			20
@@ -36,22 +37,17 @@
 #define MIN_KEYS_PER_CRYPT		2048
 #define MAX_KEYS_PER_CRYPT		SHA_NUM_KEYS
 
-#ifndef uint32_t
-#define uint32_t unsigned int
-#endif
-
 typedef struct {
-	uint32_t h0,h1,h2,h3,h4;
+	unsigned int h0,h1,h2,h3,h4;
 } SHA_DEV_CTX;
 
 
 cl_command_queue queue_prof;
 cl_int ret_code;
-cl_mem pinned_msha_keys, pin_part_msha_hashes, buf_msha_out, buf_msha_keys, data_info;
+cl_mem pinned_msha_keys, pin_part_msha_hashes, buf_msha_out, buf_msha_keys;
 static cl_uint *par_msha_hashes;
 static cl_uint *res_hashes;
 static char *mysqlsha_plain;
-static unsigned int datai[2];
 static int have_full_hashes;
 
 static int max_keys_per_crypt = SHA_NUM_KEYS;
@@ -85,13 +81,8 @@ static void create_clobj(int kpc){
     HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
     buf_msha_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,sizeof(cl_uint)*5*kpc, NULL, &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
-    data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
-    HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info), (void *) &data_info), "Error setting argument 0");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buf_msha_keys), (void *) &buf_msha_keys),"Error setting argument 1");
-    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buf_msha_out), (void *) &buf_msha_out), "Error setting argument 2");
-    datai[0] = PLAINTEXT_LENGTH;
-    datai[1] = kpc;
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buf_msha_keys), (void *) &buf_msha_keys),"Error setting argument 0");
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(buf_msha_out), (void *) &buf_msha_out), "Error setting argument 1");
     global_work_size = kpc;
 }
 
@@ -99,15 +90,13 @@ static void release_clobj(void){
     cl_int ret_code;
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pin_part_msha_hashes, par_msha_hashes, 0,NULL,NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping par_msha_hashes");
+    HANDLE_CLERROR(ret_code, "Error Unmapping par_msha_hashes");
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_msha_keys, mysqlsha_plain, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping mysqlsha_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping mysqlsha_plain");
     ret_code = clReleaseMemObject(buf_msha_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buf_msha_keys");
     ret_code = clReleaseMemObject(buf_msha_out);
     HANDLE_CLERROR(ret_code, "Error Releasing buf_msha_out");
-    ret_code = clReleaseMemObject(data_info);
-    HANDLE_CLERROR(ret_code, "Error Releasing data_info");
     ret_code = clReleaseMemObject(pinned_msha_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_msha_keys");
     ret_code = clReleaseMemObject(pin_part_msha_hashes);
@@ -137,7 +126,6 @@ static void find_best_kpc(void){
 	for (i=0; i < num; i++){
 		memcpy(&(mysqlsha_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
-        clEnqueueWriteBuffer(queue_prof, data_info, CL_TRUE, 0, sizeof(unsigned int)*2, datai, 0, NULL, NULL);
 	clEnqueueWriteBuffer(queue_prof, buf_msha_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * num, mysqlsha_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS){
@@ -148,7 +136,7 @@ static void find_best_kpc(void){
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = endTime-startTime;
-	tmpbuffer = malloc(sizeof(cl_uint) * num);
+	tmpbuffer = mem_alloc(sizeof(cl_uint) * num);
 	clEnqueueReadBuffer(queue_prof, buf_msha_out, CL_TRUE, 0, sizeof(cl_uint) * num, tmpbuffer, 0, NULL, &myEvent);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
@@ -169,9 +157,9 @@ static void find_best_kpc(void){
 static int valid(char *ciphertext, struct fmt_main *self){
 	int i;
 
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
 	if (ciphertext[0] != '*')
 		return 0;
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
 	for (i = 1; i < CIPHERTEXT_LENGTH; i++) {
 		if (!( (('0' <= ciphertext[i])&&(ciphertext[i] <= '9'))
 		       || (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
@@ -183,15 +171,16 @@ static int valid(char *ciphertext, struct fmt_main *self){
 	return 1;
 }
 
-static void set_salt(void *salt){
-}
-
 static void init(struct fmt_main *self){
+	char build_opts[64];
 	char *kpc;
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/kernels/msha_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEY_LENGTH=%d", PLAINTEXT_LENGTH);
+	opencl_init_opt("$JOHN/kernels/msha_kernel.cl", ocl_gpu_id,
+	                platform_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
@@ -225,7 +214,14 @@ static void set_key(char *key, int index) {
 }
 
 static char *get_key(int index) {
-	return &(mysqlsha_plain[index*PLAINTEXT_LENGTH]);
+	int length = 0;
+	static char out[PLAINTEXT_LENGTH + 1];
+	char *key = &mysqlsha_plain[index * PLAINTEXT_LENGTH];
+
+	while (length < PLAINTEXT_LENGTH && *key)
+		out[length++] = *key++;
+	out[length] = 0;
+	return out;
 }
 
 static void *binary(char *ciphertext)
@@ -286,26 +282,12 @@ static int cmp_one(void *binary, int index){
 }
 
 static void crypt_all(int count) {
-        //memcpy(mysqlsha_plain,saved_key,PLAINTEXT_LENGTH*count);
-	HANDLE_CLERROR(
-	    clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_TRUE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
-	    "failed in clEnqueueWriteBuffer data_info");
-	HANDLE_CLERROR(
-	    clEnqueueWriteBuffer(queue[ocl_gpu_id], buf_msha_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * max_keys_per_crypt, mysqlsha_plain, 0, NULL, NULL),
-	     "failed in clEnqueueWriteBuffer mysqlsha_plain");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buf_msha_keys, CL_FALSE, 0, (PLAINTEXT_LENGTH) * max_keys_per_crypt, mysqlsha_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer mysqlsha_plain");
 
-	HANDLE_CLERROR(
-	    clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-	    &global_work_size, &local_work_size, 0, NULL, profilingEvent),
-	      "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]),"failed in clFinish");
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buf_msha_out, CL_TRUE, 0,
-	    sizeof(cl_uint) * max_keys_per_crypt, par_msha_hashes, 0, NULL, NULL),
-	      "failed in reading data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buf_msha_out, CL_TRUE, 0, sizeof(cl_uint) * max_keys_per_crypt, par_msha_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
 }
 
@@ -357,7 +339,7 @@ struct fmt_main fmt_opencl_mysqlsha1 = {
 			binary_hash_6
 		},
 		fmt_default_salt_hash,
-		set_salt,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,

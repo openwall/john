@@ -38,7 +38,7 @@
 
 #define SALT_SIZE			5
 
-#define PLAINTEXT_LENGTH		32
+#define PLAINTEXT_LENGTH		31
 #define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
 
 #ifdef MMX_COEF
@@ -148,17 +148,17 @@ static void init(struct fmt_main *self)
 	}
 #else
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
+	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
 		return 0;
 
-	if (strncmp(ciphertext, "$IPB2$", 6) != 0)
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH)
 		return 0;
 
 	if (ciphertext[16] != '$')
@@ -242,7 +242,7 @@ static inline int strnfcpy_count(char *dst, char *src, int size)
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
+	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH + 1);
 	new_key = 1;
 #else
 	unsigned char key_hash[BINARY_SIZE];

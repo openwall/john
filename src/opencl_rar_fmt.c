@@ -105,8 +105,8 @@
 
 #define ROUNDS			0x40000
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* The reason we want to bump OMP_SCALE in this case is to even out the
    difference in processing time for different length keys. It doesn't
@@ -409,6 +409,11 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
 
 	MEM_FREE(cracked);
+}
+
+static void clear_keys(void)
+{
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size);
 }
 
 #undef set_key
@@ -743,7 +748,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *get_key(int index)
 {
-	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
+	UTF16 tmpbuf[PLAINTEXT_LENGTH + 1];
+
+	memcpy(tmpbuf, &((UTF16*) saved_key)[index * PLAINTEXT_LENGTH], saved_len[index]);
+	memset(&tmpbuf[saved_len[index] >> 1], 0, 2);
+	return (char*) utf16_to_enc(tmpbuf);
 }
 
 #define ADD_BITS(n)	\
@@ -1026,7 +1035,7 @@ struct fmt_main fmt_opencl_rar = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash

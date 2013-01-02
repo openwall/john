@@ -37,7 +37,7 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALTLEN 8
 #define CTLEN 1040
@@ -48,7 +48,7 @@
 
 typedef struct {
 	uint8_t length;
-	uint8_t v[15];
+	uint8_t v[PLAINTEXT_LENGTH + 1];
 } keychain_password;
 
 typedef struct {
@@ -147,13 +147,14 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy, *keeptr;
 	int ctlen;
 	int saltlen;
 	char *p;
 	if (strncmp(ciphertext,  "$agilekeychain$", 15) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 15;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* nkeys */
 		goto err;

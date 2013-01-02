@@ -6,6 +6,15 @@
 
 #include "stdint.h"
 
+/* You can't bump this without changing preproc() */
+#ifdef PLAINTEXT_LENGTH
+#if PLAINTEXT_LENGTH > 64
+#error keychain.h can not use a PLAINTEXT_LENGTH larger than 64
+#endif
+#else
+#define PLAINTEXT_LENGTH	64
+#endif
+
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
@@ -29,6 +38,9 @@
 #define F2(x,y,z)		(x ^ y ^ z)
 #define F3(x,y,z)		((x & y) | (z & (x | y)))
 #define F4(x,y,z)		(x ^ y ^ z)
+
+#define XORCHAR_BE(buf, index, val)	  \
+	((unsigned char*)(buf))[(index) ^ 3] ^= (val)
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
@@ -274,27 +286,21 @@
 #define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
 
 static void preproc(const uint8_t * key, uint32_t keylen,
-    uint32_t * state, uint8_t var1, uint32_t var4)
+    uint32_t * state, uint32_t padding)
 {
 	int i;
 	uint32_t W[16], temp;
-	uint8_t ipad[16];
 	uint32_t A = INIT_A;
 	uint32_t B = INIT_B;
 	uint32_t C = INIT_C;
 	uint32_t D = INIT_D;
 	uint32_t E = INIT_E;
 
+	for (i = 0; i < 16; i++)
+		W[i] = padding;
+
 	for (i = 0; i < keylen; i++)
-		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i < 16; i++)
-		ipad[i] = var1;
-
-	for (i = 0; i < 4; i++)
-		GET_WORD_32_BE(W[i], ipad, i * 4);
-
-	for (i = 4; i < 16; i++)
-		W[i] = var4;
+		XORCHAR_BE(W, i, key[i]);
 
 	SHA1(A, B, C, D, E, W);
 
@@ -450,30 +456,24 @@ static void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		tmp_out[i] = SWAP(tmp_out[i]);
 }
 
-static void pbkdf2(const uint8_t * pass, int passlen,
-    const uint8_t * salt, int saltlen, int n, uint32_t * out)
+static void pbkdf2(const uint8_t *pass, int passlen, const uint8_t *salt,
+                   int saltlen, int n, uint8_t *out, int outlen)
 {
 	uint32_t ipad_state[5];
 	uint32_t opad_state[5];
 	uint32_t tmp_out[5];
-	uint32_t i;
+	uint32_t i, r, t = 0;
 
-	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
+	preproc(pass, passlen, ipad_state, 0x36363636);
+	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x01);
+	for (r = 1; r <= (outlen + 19) / 20; r++) {
+		hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, r);
 
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
+		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
+		              tmp_out, n);
 
-	for (i = 0; i < 5; i++)
-		out[i] = tmp_out[i];
-
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x02);
-
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
-
-	for (i = 5; i < 8; i++)
-		out[i] = tmp_out[i - 5];
+		for (i = 0; i < 20 && t < outlen; i++)
+			out[t++] = ((uint8_t*)tmp_out)[i];
+	}
 }
