@@ -448,7 +448,7 @@ static void init(struct fmt_main * self) {
     char * task = "$JOHN/kernels/xsha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
-    opencl_build_kernel(task, ocl_gpu_id);
+    opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);

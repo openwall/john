@@ -414,7 +414,7 @@ static void init(struct fmt_main * self) {
 
     if (amd_gcn(source_in_use) || use_local(source_in_use))
         task = "$JOHN/kernels/sha512-ng_kernel_LOCAL.cl";
-    opencl_build_kernel(task, ocl_gpu_id);
+    opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
