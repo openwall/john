@@ -84,16 +84,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define outsize (sizeof(odf_hash) * global_work_size)
 #define settingsize sizeof(odf_salt)
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
@@ -133,9 +123,9 @@ static void init(struct fmt_main *self)
 	    (odf_hash *) malloc(sizeof(odf_hash) * global_work_size);
 
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			global_work_size, MEM_ALIGN_WORD);
 
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * global_work_size, MEM_ALIGN_WORD);
 
 	/// Allocate memory
 	mem_in =

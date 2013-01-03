@@ -85,8 +85,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define outsize (sizeof(sxc_hash) * global_work_size)
 #define settingsize sizeof(sxc_salt)
 
-#define DEBUG
-
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
@@ -312,7 +310,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
 	currentsalt.length = cur_salt->salt_length;
 	currentsalt.iterations = cur_salt->iterations;
-	currentsalt.outlen = sizeof(currentsalt.salt);
+	currentsalt.outlen = cur_salt->key_size;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
