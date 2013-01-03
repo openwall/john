@@ -118,7 +118,7 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 
-	/// Alocate memory
+	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);

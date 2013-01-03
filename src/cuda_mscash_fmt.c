@@ -51,7 +51,7 @@ static void cleanup()
 
 static void init(struct fmt_main *self)
 {
-	//Alocate memory for hashes and passwords
+	//Allocate memory for hashes and passwords
 	inbuffer =
 	    (mscash_password *) calloc(MAX_KEYS_PER_CRYPT,
 	    sizeof(mscash_password));

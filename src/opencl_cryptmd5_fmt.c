@@ -137,7 +137,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	insize = sizeof(crypt_md5_password) * gws;
 	outsize = sizeof(crypt_md5_hash) * gws;
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 

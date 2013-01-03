@@ -91,7 +91,7 @@ static void cleanup()
 
 static void init(struct fmt_main *self)
 {
-	///Alocate memory for hashes and passwords
+	///Allocate memory for hashes and passwords
 	inbuffer =
 	    (uint8_t *) calloc(MAX_KEYS_PER_CRYPT, sizeof(phpass_password));
 	outbuffer =

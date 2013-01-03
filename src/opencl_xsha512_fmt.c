@@ -163,7 +163,7 @@ static void init(struct fmt_main *self)
 
 	opencl_init("$JOHN/kernels/xsha512_kernel.cl", ocl_gpu_id, platform_id);
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 	mem_salt =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL,
 	    &ret_code);

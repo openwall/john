@@ -99,7 +99,7 @@ static void cleanup()
 
 static void init(struct fmt_main *self)
 {
-	///Alocate memory for hashes and passwords
+	///Allocate memory for hashes and passwords
 	inbuffer =
 	    (crypt_md5_password *) calloc(MAX_KEYS_PER_CRYPT,
 	    sizeof(crypt_md5_password));

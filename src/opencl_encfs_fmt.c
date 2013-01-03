@@ -267,7 +267,7 @@ static void init(struct fmt_main *self)
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
-	/// Alocate memory
+	/// Allocate memory
 	inbuffer =
 	    (encfs_password *) malloc(sizeof(encfs_password) *
 	    global_work_size);

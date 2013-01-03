@@ -46,7 +46,7 @@ static void cleanup()
 static void init(struct fmt_main *self)
 {
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
-	///Alocate memory for hashes and passwords
+	///Allocate memory for hashes and passwords
 	inbuffer =
 	    (wpapsk_password *) malloc(sizeof(wpapsk_password) *
 	    MAX_KEYS_PER_CRYPT);

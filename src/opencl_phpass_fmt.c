@@ -146,7 +146,7 @@ static void init(struct fmt_main *self)
 	atexit(done);
 	opencl_init("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id);
 
-	/// Alocate memory
+	/// Allocate memory
 	inbuffer =
 	    (phpass_password *) calloc(MAX_KEYS_PER_CRYPT,
 	    sizeof(phpass_password));

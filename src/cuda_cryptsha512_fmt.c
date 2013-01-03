@@ -69,7 +69,7 @@ static void cleanup()
 }
 static void init(struct fmt_main *self)
 {
-  //Alocate memory for hashes and passwords
+  //Allocate memory for hashes and passwords
   inbuffer=(crypt_sha512_password*)calloc(MAX_KEYS_PER_CRYPT,sizeof(crypt_sha512_password));
   outbuffer=(crypt_sha512_hash*)malloc(sizeof(crypt_sha512_hash)*MAX_KEYS_PER_CRYPT);
   check_mem_allocation(inbuffer,outbuffer);
