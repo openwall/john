@@ -36,7 +36,8 @@ static int any_cracked;
 
 static struct fmt_tests tests[] = {
 	{"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/", "qwerty"},
-	/*{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
+#ifdef DEBUG //Special test cases.
+	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
 	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
 	{"$1$salt$TelRRxWBCxlpXmgAeB82R/", "openwall"},
 	{"$1$salt$l9PzDiECW83MOIMFTRL4Y1", "summerofcode"},
@@ -87,11 +88,11 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
-*/
+#endif
 	{NULL}
 };
 
-static void cleanup()
+static void done()
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
@@ -101,15 +102,15 @@ static void init(struct fmt_main *self)
 {
 	///Allocate memory for hashes and passwords
 	inbuffer =
-	    (crypt_md5_password *) calloc(MAX_KEYS_PER_CRYPT,
+	    (crypt_md5_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
 	    sizeof(crypt_md5_password));
 	outbuffer =
-	    (crypt_md5_crack *) calloc(MAX_KEYS_PER_CRYPT,
+	    (crypt_md5_crack *) mem_alloc(MAX_KEYS_PER_CRYPT *
 	    sizeof(crypt_md5_crack));
 	check_mem_allocation(inbuffer, outbuffer);
-	atexit(cleanup);
 	///Initialize CUDA
 	cuda_init(cuda_gpu_id);
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

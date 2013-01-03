@@ -59,6 +59,13 @@ void *mem_alloc(size_t size)
 	return res;
 }
 
+void *mem_calloc(size_t size)
+{
+	char *res = (char*) mem_alloc(size);
+	memset(res, 0, size);
+	return res;
+}
+
 void *mem_alloc_tiny(size_t size, size_t align)
 {
 	static unsigned long buffer, bufree = 0;

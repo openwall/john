@@ -36,7 +36,7 @@ static struct fmt_tests wpapsk_tests[] = {
 };
 
 
-static void cleanup()
+static void done()
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
@@ -48,26 +48,15 @@ static void init(struct fmt_main *self)
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 	///Allocate memory for hashes and passwords
 	inbuffer =
-	    (wpapsk_password *) malloc(sizeof(wpapsk_password) *
-	    MAX_KEYS_PER_CRYPT);
+	    (wpapsk_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
+	      sizeof(wpapsk_password));
 	outbuffer =
-	    (wpapsk_hash *) malloc(sizeof(wpapsk_hash) * MAX_KEYS_PER_CRYPT);
+	    (wpapsk_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(wpapsk_hash));
 	check_mem_allocation(inbuffer, outbuffer);
-	mic = (mic_t *) malloc(sizeof(mic_t) * MAX_KEYS_PER_CRYPT);
-	atexit(cleanup);
-
-/*
- * Zeroize the lengths in case crypt_all() is called with some keys still
- * not set.  This may happen during self-tests.
- */
-	{
-		int i;
-		for (i = 0; i < self->params.max_keys_per_crypt; i++)
-			inbuffer[i].length = 0;
-	}
-
+	mic = (mic_t *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(mic_t));
 	///Initialize CUDA
 	cuda_init(cuda_gpu_id);
+	atexit(done);
 }
 
 static void crypt_all(int count)

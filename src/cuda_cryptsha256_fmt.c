@@ -45,14 +45,14 @@ void sha256_crypt_cpu(crypt_sha256_password * passwords,
 static struct fmt_tests tests[] = {
 	{"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5",
 	    "Hello world!"},
-	/*{"$5$UOUBPEMKQRHHRFML$zicoLpMLhBsNGtEplY/ehM0NtiAqxijiBCrolt7WBW0","jjti"},
+
+#ifdef DEBUG //Special test cases.
+	   {"$5$UOUBPEMKQRHHRFML$zicoLpMLhBsNGtEplY/ehM0NtiAqxijiBCrolt7WBW0","jjti"},
 
 	   {"$5$XSLWLBSQUCNOWXOB$i7Ho5wUAIjsH2e2zA.WarqYLWir5nmZbUEcjK//Or7.","hgnirgayjnhvi"},
 	   {"$5$VDCTRFOIDQXRQVHR$uolqT0wEwU.pvI9jq5xU457JQpiwTTKX3PB/9RS4/h4","o"},
 	   {"$5$WTYWNCYHNPMXPG$UwZyrq0irhWs4OcLKcqSbFdktZaNAD2by1CiNNw7oID","tcepf"},
 	   {"$5$DQUHKJNMVOEBGBG$91u2d/jMN5QuW3/kBEPG0xC2G8y1TuDU7SGAUYTX.y0","wbfhoc"},
-
-
 	   {"$5$saltstring$0Az3qME7zTXm78kfHrR2OtT8WOu2gd8bcVn/9Y.3l/7", "john"},
 
 	   {"$5$saltstring$7cz4bTeQ7MnNssphNhFVrITtuJYY/1tdvLL2uzLvOk8","a"},
@@ -73,14 +73,12 @@ static struct fmt_tests tests[] = {
 	   {"$5$saltstring$VxW44bFDcvixlQoTE4E.k5c8v1w0fGMyZ4tn8nGcWn0","abcdefghijklmno"},
 
 	   {"$5$QSTVVEKDIDYRNK$4j8TST.29P07GHASD.BUHd0UTaFz7h.Mz//zcHokoZ5","cgyihfkqk"},
-
-	 */
-
+#endif
 	//{"$5$rounds=5000$abcdefghijklmnop$BAYQep7SsuSczAeXlks3F54SpxMUUludHi1C4JVOqpD","abcdefghijklmno"},
 	{NULL}
 };
 
-static void cleanup()
+static void done()
 {
  MEM_FREE(inbuffer);
  MEM_FREE(outbuffer);
@@ -89,12 +87,12 @@ static void cleanup()
 static void init(struct fmt_main *self)
 {
   //Allocate memory for hashes and passwords
-  inbuffer=(crypt_sha256_password*)calloc(MAX_KEYS_PER_CRYPT,sizeof(crypt_sha256_password));
-  outbuffer=(uint32_t*)malloc(sizeof(uint32_t)*MAX_KEYS_PER_CRYPT*8);
+  inbuffer=(crypt_sha256_password*)mem_calloc(MAX_KEYS_PER_CRYPT*sizeof(crypt_sha256_password));
+  outbuffer=(uint32_t*)mem_alloc(MAX_KEYS_PER_CRYPT*sizeof(uint32_t)*8);
   check_mem_allocation(inbuffer,outbuffer);
-  atexit(cleanup);
   //Initialize CUDA
   cuda_init(cuda_gpu_id);
+  atexit(done);
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)

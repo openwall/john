@@ -60,7 +60,7 @@ extern int cuda_getAsyncEngineCount();
 static sha256_password *inbuffer;			/** binary ciphertexts **/
 static SHA_HASH *outbuffer;				/** calculated hashes **/
 static int overlap;
-static void cleanup()
+static void done()
 {
 	if (overlap) {
 		cuda_pageLockedFree(inbuffer);
@@ -86,13 +86,13 @@ static void init(struct fmt_main *self)
 		overlap = 0;
 		//device does not support overlaping memcpy and kernel execution
 		inbuffer =
-		    (sha256_password *) malloc(sizeof(sha256_password) *
-		    MAX_KEYS_PER_CRYPT);
+		    (sha256_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
+		    sizeof(sha256_password));
 		outbuffer =
-		    (SHA_HASH *) malloc(sizeof(SHA_HASH) * MAX_KEYS_PER_CRYPT);
+		    (SHA_HASH *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(SHA_HASH));
 	}
 	check_mem_allocation(inbuffer, outbuffer);
-	atexit(cleanup);
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
