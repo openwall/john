@@ -211,7 +211,7 @@ static void init(struct fmt_main *self){
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
-static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
