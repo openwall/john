@@ -1533,6 +1533,12 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(CC)  $(CFLAGS) cuda_pwsafe_fmt.c -o cuda_pwsafe_fmt.o
 
+common_opencl_pbkdf2.o: common_opencl_pbkdf2.h
+	$(CC)  $(CFLAGS) common_opencl_pbkdf2.c -o common_opencl_pbkdf2.o
+
+opencl_mscash2_fmt.o: common_opencl_pbkdf2.o
+	$(CC)  $(CFLAGS) opencl_mscash2_fmt.c -o opencl_mscash2_fmt.o
+
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
