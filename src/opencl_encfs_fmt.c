@@ -77,7 +77,7 @@ typedef struct {
 	const EVP_CIPHER *blockCipher;
 } encfs_cpu_salt;
 
-encfs_cpu_salt *cur_salt;
+static encfs_cpu_salt *cur_salt;
 
 static struct fmt_tests encfs_tests[] = {
 	{"$encfs$192*181474*0*20*f1c413d9a20f7fdbc068c5a41524137a6e3fb231*44*9c0d4e2b990fac0fd78d62c3d2661272efa7d6c1744ee836a702a11525958f5f557b7a973aaad2fd14387b4f", "openwall"},
