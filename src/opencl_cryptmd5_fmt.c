@@ -137,7 +137,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	insize = sizeof(crypt_md5_password) * gws;
 	outsize = sizeof(crypt_md5_hash) * gws;
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 
@@ -418,7 +418,8 @@ static void init(struct fmt_main *self)
 	create_clobj(global_work_size, self);
 	atexit(done);
 
-	self->params.min_keys_per_crypt = local_work_size;
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
 }
 
@@ -526,11 +527,11 @@ static int binary_hash_6(void *binary)
 
 static void crypt_all(int count)
 {
-	size_t gws, in_size, out_size;
+	size_t in_size, out_size;
 
-	gws = (((count + local_work_size - 1) / local_work_size) * local_work_size);
-	in_size = sizeof(crypt_md5_password) * gws;
-	out_size = sizeof(crypt_md5_hash) * gws;
+	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	in_size = sizeof(crypt_md5_password) * global_work_size;
+	out_size = sizeof(crypt_md5_hash) * global_work_size;
 
 	///Copy data to GPU memory
 	if (new_keys)
@@ -538,7 +539,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, profilingEvent), "Set ND range");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Set ND range");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0, out_size, outbuffer, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above

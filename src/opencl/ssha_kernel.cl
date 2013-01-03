@@ -4,6 +4,7 @@
    and md5_opencl_kernel.cl inside jtr.
    Copyright 2011 by Samuele Giovanni Tonon 
    samu at linuxasylum dot net
+   and Copyright (c) 2012 magnum
    This program comes with ABSOLUTELY NO WARRANTY; express or
    implied .
    This is free software, and you are welcome to redistribute it
@@ -47,15 +48,15 @@ inline uint SWAP32(uint x)
 
 
 
-__kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, __global char *plain_key,  __global uint *digest){
+__kernel void sha1_crypt_kernel(__global uchar *salt, __global char *plain_key,  __global uint *digest){
     int t, gid, msg_pad;
     int stop, mmod;
     uint i, ulen;
     uint W[16], temp, A,B,C,D,E;
-    uint num_keys = data_info[1];
+    uint num_keys = get_global_size(0);
 
     gid = get_global_id(0);
-    msg_pad = gid * data_info[0];
+    msg_pad = gid * PLAINTEXT_LENGTH;
 
     A = H1;
     B = H2;
@@ -67,7 +68,7 @@ __kernel void sha1_crypt_kernel(__global uint *data_info, __global uchar *salt, 
     for (t = 3; t < 15; t++){
 	W[t] = 0x00000000;
     }
-    for(i = 0; i < data_info[0] && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
+    for(i = 0; i < PLAINTEXT_LENGTH && ((uchar) plain_key[msg_pad + i]) != 0x0 ; i++){
     }
 
     stop = i / 4 ;

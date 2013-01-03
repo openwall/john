@@ -217,7 +217,7 @@ static void init(struct fmt_main *self)
 
 	//listOpenCLdevices();
 	opencl_init("$JOHN/kernels/gpg_kernel.cl", ocl_gpu_id, platform_id);
-	/// Alocate memory
+	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -240,6 +240,11 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
 	atexit(done);
 }
@@ -470,6 +475,8 @@ static int check(unsigned char *keydata, int ks)
 static void crypt_all(int count)
 {
 	int index;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -492,10 +499,8 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		// allocate string2key buffer
 		int res;

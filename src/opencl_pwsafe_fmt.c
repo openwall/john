@@ -98,7 +98,7 @@ static void init(struct fmt_main *self)
 
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, platform_id);
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 
 	mem_salt =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
@@ -120,7 +120,12 @@ static void init(struct fmt_main *self)
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
 	opencl_find_best_workgroup(self);
-	//local_work_size=256;
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+
 	atexit(done);
 }
 
@@ -190,8 +195,7 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
@@ -203,7 +207,7 @@ static void crypt_all(int count)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
+	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, profilingEvent), "Set ND range");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, host_hash, 0, NULL, NULL),

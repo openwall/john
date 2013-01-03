@@ -14,7 +14,7 @@
 #include <openssl/hmac.h>
 #include <openssl/engine.h>
 #include "stdint.h"
-#include "encfs-pbkdf2.h"
+#include "keychain.h"
 #undef MEM_FREE
 #include "options.h"
 #ifdef _OPENMP
@@ -397,9 +397,9 @@ static void crypt_all(int count)
 		unsigned char tmpBuf[cur_salt->dataLen];
 		unsigned int checksum = 0;
 		unsigned int checksum2 = 0;
+		unsigned char out[128];
 
-		uint32_t out[32];
-		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out);
+		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out, cur_salt->keySize + cur_salt->ivLength);
 
 		memcpy(master, out, cur_salt->keySize + cur_salt->ivLength);
 

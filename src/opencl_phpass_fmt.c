@@ -60,7 +60,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(phpass_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(phpass_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4;
-//static size_t global_work_size = KEYS_PER_CRYPT/8;
 
 static struct fmt_tests tests[] = {
 	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
@@ -140,14 +139,14 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void init(struct fmt_main *pFmt)
+static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	global_work_size = KEYS_PER_CRYPT / 8;
 	atexit(done);
 	opencl_init("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id);
 
-	/// Alocate memory
+	/// Allocate memory
 	inbuffer =
 	    (phpass_password *) calloc(MAX_KEYS_PER_CRYPT,
 	    sizeof(phpass_password));
@@ -179,9 +178,12 @@ static void init(struct fmt_main *pFmt)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_setting");
 
-//      opencl_find_best_workgroup(pFmt);
+//      opencl_find_best_workgroup(self);
+	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 
-	local_work_size = 64;
+	self->params.min_keys_per_crypt = local_work_size * 8;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -261,11 +263,13 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
+	char setting[SALT_SIZE + 3] = { 0 };
+
 #ifdef _PHPASS_DEBUG
 	printf("crypt_all(%d)\n", count);
+	global_work_size = (((count+7)/8) + local_work_size - 1) / local_work_size * local_work_size;
 #endif
 	///Prepare setting format: salt+prefix+count_log2
-	char setting[SALT_SIZE + 3] = { 0 };
 	strcpy(setting, currentsalt);
 	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
 	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];

@@ -47,18 +47,19 @@
 #define uint32_t		ARCH_WORD_32
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[PLAINTEXT_LENGTH + 1];
+	uint32_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } keychain_password;
 
 typedef struct {
-	uint32_t v[8];
+	uint32_t v[32/4];
 } keychain_hash;
 
 typedef struct {
 	uint8_t length;
-	uint8_t salt[20];
+	uint8_t salt[SALTLEN];
 	int iterations;
+	int outlen;
 } keychain_salt;
 
 static int *cracked;
@@ -96,29 +97,28 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
+	char build_opts[64];
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+	         PLAINTEXT_LENGTH,
+	         (int)sizeof(currentsalt.salt),
+	         (int)sizeof(outbuffer->v));
+	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
-	    (keychain_password *) malloc(sizeof(keychain_password) *
-	    MAX_KEYS_PER_CRYPT);
+		(keychain_password *) calloc(sizeof(keychain_password),
+		                             MAX_KEYS_PER_CRYPT);
 	outbuffer =
 	    (keychain_hash *) malloc(sizeof(keychain_hash) * MAX_KEYS_PER_CRYPT);
-
-	/* Zeroize the lengths in case crypt_all() is called with some keys still
-	 * not set.  This may happen during self-tests. */
-	{
-		int i;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
-			inbuffer[i].length = 0;
-	}
 
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 
-	//listOpenCLdevices();
-	opencl_init("$JOHN/kernels/keychain_kernel.cl", ocl_gpu_id, platform_id);
-	/// Alocate memory
+	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -132,7 +132,7 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "keychain", &cl_error);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -141,6 +141,11 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
 	atexit(done);
 }
@@ -221,6 +226,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->saltlen[0]);
 	currentsalt.length = cur_salt->saltlen[0];
 	currentsalt.iterations = cur_salt->iterations[0];
+	currentsalt.outlen = 32;
 }
 
 #undef set_key
@@ -279,6 +285,9 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 static void crypt_all(int count)
 {
 	int index;
+
+	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
