@@ -42,11 +42,21 @@ static pwsafe_pass *host_pass;                          /** binary ciphertexts *
 static pwsafe_salt *host_salt;                          /** salt **/
 static pwsafe_hash *host_hash;                          /** calculated hashes **/
 extern void gpu_pwpass(pwsafe_pass *, pwsafe_salt *, pwsafe_hash *);
+
+static void done()
+{
+	MEM_FREE(host_salt);
+	MEM_FREE(host_hash);
+	MEM_FREE(host_pass);
+}
+
 static void init(struct fmt_main *self)
 {
-        host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
-        host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
-        host_salt = calloc(1, sizeof(pwsafe_salt));
+        host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
+        host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
+        host_salt = mem_calloc(sizeof(pwsafe_salt));
+
+        atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

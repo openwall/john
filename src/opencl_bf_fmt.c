@@ -92,7 +92,7 @@ static void done(void)
 
 static void init(struct fmt_main *self)
 {
-	saved_key = calloc(BF_N, sizeof(*saved_key));
+	saved_key = mem_calloc(BF_N * sizeof(*saved_key));
 	// BF_select_device(platform,device);
         BF_select_device(platform_id, ocl_gpu_id);
 	keys_mode = 'a';

@@ -102,7 +102,11 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
+	MEM_FREE(cracked);
 }
+
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
@@ -119,13 +123,13 @@ static void init(struct fmt_main *self)
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
-		(zip_password *) calloc(sizeof(zip_password),
+		(zip_password *) mem_calloc(sizeof(zip_password) *
 		                        MAX_KEYS_PER_CRYPT);
 	outbuffer =
-	    (zip_hash *) malloc(sizeof(zip_hash) * MAX_KEYS_PER_CRYPT);
+	    (zip_hash *) mem_alloc(sizeof(zip_hash) * MAX_KEYS_PER_CRYPT);
 
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+	cracked = mem_calloc(sizeof(*cracked) *
+			KEYS_PER_CRYPT);
 
 	/// Allocate memory
 	mem_in =

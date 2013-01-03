@@ -193,15 +193,14 @@ static 	void set_key(char*,int);
 static 	void done(void);
 static  void crypt_all(int);
 
-
 static void init(struct fmt_main *self)
 {
 	///Allocate memory
-	key_host = calloc(self->params.max_keys_per_crypt, sizeof(*key_host));
+	key_host = mem_calloc(self->params.max_keys_per_crypt*sizeof(*key_host));
 
-	dcc_hash_host=(cl_uint*)mem_alloc_tiny(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT,MEM_ALIGN_WORD);
+	dcc_hash_host=(cl_uint*)mem_alloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
-	dcc2_hash_host=(cl_uint*)mem_alloc_tiny(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT,MEM_ALIGN_WORD);
+	dcc2_hash_host=(cl_uint*)mem_alloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
 	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
@@ -283,7 +282,6 @@ static void done()
 	MEM_FREE(dcc2_hash_host);
 	MEM_FREE(dcc_hash_host);
 	MEM_FREE(key_host);
-
 	clean_all_buffer();
 }
 

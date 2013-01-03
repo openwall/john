@@ -90,7 +90,7 @@ static void read_kernel_source(char *kernel_filename)
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	MEM_FREE(kernel_source);
-	kernel_source = calloc(source_size + 1, 1);
+	kernel_source = mem_calloc(source_size + 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
@@ -148,7 +148,7 @@ static void build_kernel(int dev_id, char *options)
 		CL_PROGRAM_BINARY_SIZES,
 		sizeof(size_t), &source_size, NULL), "error");
 	fprintf(stderr, "source size %zu\n", source_size);
-	source = malloc(source_size);
+	source = mem_alloc(source_size);
 
 	HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
 		CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");

@@ -92,7 +92,12 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_out);
 }
+
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
@@ -118,15 +123,14 @@ static void init(struct fmt_main *self)
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
-		(sxc_password *) calloc(sizeof(sxc_password),
+		(sxc_password *) mem_calloc(sizeof(sxc_password) *
 		                        global_work_size);
 	outbuffer =
-	    (sxc_hash *) malloc(sizeof(sxc_hash) * global_work_size);
+		(sxc_hash *) mem_alloc(sizeof(sxc_hash) * global_work_size);
 
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			global_work_size, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(sizeof(*saved_key) * global_work_size);
 
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * global_work_size, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc(sizeof(*crypt_out) * global_work_size);
 
 	/// Allocate memory
 	mem_in =
