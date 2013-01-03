@@ -90,7 +90,11 @@ inline uint SWAP32(uint x)
 }
 #endif
 
-#define S(x,n) ((x << n) | ((x) >> (32 - n)))
+#if 0
+#define S(x, n) (rotate((x), (uint)(n)))
+#else
+#define S(x, n) ((x << n) | ((x) >> (32 - n)))
+#endif
 
 #define R(t)                                            \
 (                                                       \
@@ -498,9 +502,6 @@ inline void big_hmac_sha1(__private uint * input, uint inputlen,
 		tmp_out[3] ^= D;
 		tmp_out[4] ^= E;
 	}
-
-	for (i = 0; i < 5; i++)
-		tmp_out[i] = SWAP32(tmp_out[i]);
 }
 
 inline void pbkdf2(__global const uchar * pass, uint passlen,
@@ -525,7 +526,7 @@ inline void pbkdf2(__global const uchar * pass, uint passlen,
 		              tmp_out, iterations);
 
 		for (i = 0; i < 20 && t < outlen; i++, t++)
-			PUTCHAR_G(out, t, ((uchar*)tmp_out)[i]);
+			PUTCHAR_BE_G(out, t, ((uchar*)tmp_out)[i]);
 	}
 }
 

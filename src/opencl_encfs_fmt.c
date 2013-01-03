@@ -58,7 +58,6 @@ typedef struct {
 
 static int *cracked;
 static int any_cracked;
-static size_t cracked_size;
 
 static const int MAX_KEYLENGTH = 32; // in bytes (256 bit)
 static const int MAX_IVLENGTH = 16;
@@ -88,9 +87,11 @@ static encfs_password *inbuffer;
 static encfs_hash *outbuffer;
 static encfs_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
-static size_t insize = sizeof(encfs_password) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(encfs_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(encfs_salt);
+
+#define cracked_size (sizeof(*cracked) * global_work_size)
+#define insize (sizeof(encfs_password) * global_work_size)
+#define outsize (sizeof(encfs_hash) * global_work_size)
+#define settingsize sizeof(encfs_salt)
 
 static void done(void)
 {
@@ -269,24 +270,12 @@ static void init(struct fmt_main *self)
 
 	/// Allocate memory
 	inbuffer =
-	    (encfs_password *) malloc(sizeof(encfs_password) *
-	    global_work_size);
+		(encfs_password *) calloc(sizeof(encfs_password),
+		                          global_work_size);
 	outbuffer =
 	    (encfs_hash *) malloc(sizeof(encfs_hash) * global_work_size);
 
-	insize = sizeof(encfs_password) * global_work_size;
-	outsize = sizeof(encfs_hash) * global_work_size;
-
-	/* Zeroize the lengths in case crypt_all() is called with some keys still
-	 * not set.  This may happen during self-tests. */
-	{
-		int i;
-		for (i = 0; i < global_work_size; i++)
-			inbuffer[i].length = 0;
-	}
-
 	any_cracked = 0;
-	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 
 	mem_in =
@@ -311,12 +300,12 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 
+	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
 		opencl_find_best_workgroup(self);
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 

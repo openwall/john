@@ -81,9 +81,10 @@ static sxc_password *inbuffer;
 static sxc_hash *outbuffer;
 static sxc_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
-static size_t insize = sizeof(sxc_password) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(sxc_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(sxc_salt);
+
+#define insize (sizeof(sxc_password) * global_work_size)
+#define outsize (sizeof(sxc_hash) * global_work_size)
+#define settingsize sizeof(sxc_salt)
 
 #define DEBUG
 
@@ -99,6 +100,7 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	char build_opts[64];
+	char *temp;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -108,18 +110,26 @@ static void init(struct fmt_main *self)
 	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
 	                ocl_gpu_id, platform_id, build_opts);
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
 		(sxc_password *) calloc(sizeof(sxc_password),
-		                        MAX_KEYS_PER_CRYPT);
+		                        global_work_size);
 	outbuffer =
-	    (sxc_hash *) malloc(sizeof(sxc_hash) * MAX_KEYS_PER_CRYPT);
+	    (sxc_hash *) malloc(sizeof(sxc_hash) * global_work_size);
 
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+			global_work_size, MEM_ALIGN_WORD);
 
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * global_work_size, MEM_ALIGN_WORD);
 
 	/// Allocate memory
 	mem_in =
@@ -143,7 +153,10 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(self);
+
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
@@ -352,6 +365,7 @@ static void crypt_all(int count)
 		SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
 		SHA1_Final((unsigned char *)hash, &ctx);
 		memcpy(inbuffer[index].v, hash, 20);
+		inbuffer[index].length = 20;
 	}
 
 	/// Copy data to gpu
