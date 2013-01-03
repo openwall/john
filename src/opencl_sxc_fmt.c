@@ -26,9 +26,8 @@
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define	KEYS_PER_CRYPT		4096*9
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	4096*9
+#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
 #define BINARY_SIZE		20
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(sxc_cpu_salt)
@@ -49,7 +48,7 @@ typedef struct {
 typedef struct {
 	uint8_t length;
 	uint8_t salt[32];
-	int iterations;
+	uint32_t iterations;
 	uint32_t outlen;
 } sxc_salt;
 
