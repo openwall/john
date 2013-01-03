@@ -156,8 +156,8 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
-	gkey = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_key));
-	ghash = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_hash));
+	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_key));
+	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_hash));
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 

@@ -100,6 +100,9 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
+	MEM_FREE(cracked);
 }
 
 static void setIVec( unsigned char *ivec, uint64_t seed,
@@ -270,13 +273,13 @@ static void init(struct fmt_main *self)
 
 	/// Allocate memory
 	inbuffer =
-		(encfs_password *) calloc(sizeof(encfs_password),
+		(encfs_password *) mem_calloc(sizeof(encfs_password) *
 		                          global_work_size);
 	outbuffer =
-	    (encfs_hash *) malloc(sizeof(encfs_hash) * global_work_size);
+	    (encfs_hash *) mem_alloc(sizeof(encfs_hash) * global_work_size);
 
 	any_cracked = 0;
-	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
+	cracked = mem_calloc(cracked_size);
 
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
