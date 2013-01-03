@@ -28,12 +28,12 @@
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define	KEYS_PER_CRYPT		1024*9
+#define	KEYS_PER_CRYPT		512
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(encfs_cpu_salt)
 
 #define uint8_t			unsigned char
@@ -41,18 +41,19 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[24];
+	uint32_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } encfs_password;
 
 typedef struct {
-	uint32_t v[17];
+	uint32_t v[(32 + 16) / 4];
 } encfs_hash;
 
 typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
 	int iterations;
+	int outlen;
 } encfs_salt;
 
 static int *cracked;
@@ -90,7 +91,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 static size_t insize = sizeof(encfs_password) * KEYS_PER_CRYPT;
 static size_t outsize = sizeof(encfs_hash) * KEYS_PER_CRYPT;
 static size_t settingsize = sizeof(encfs_salt);
-static size_t crypt_gws;
 
 static void done(void)
 {
@@ -247,17 +247,27 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	char *temp;
+	char build_opts[64];
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+	         PLAINTEXT_LENGTH,
+	         (int)sizeof(currentsalt.salt),
+	         (int)sizeof(outbuffer->v));
+	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
 	else
-		local_work_size = 64;
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
+	/// Alocate memory
 	inbuffer =
 	    (encfs_password *) malloc(sizeof(encfs_password) *
 	    global_work_size);
@@ -279,9 +289,6 @@ static void init(struct fmt_main *self)
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 
-	//listOpenCLdevices();
-	opencl_init("$JOHN/kernels/encfs_kernel.cl", ocl_gpu_id, platform_id);
-	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -295,7 +302,7 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "encfs", &cl_error);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -307,8 +314,9 @@ static void init(struct fmt_main *self)
 	if (!local_work_size)
 		opencl_find_best_workgroup(self);
 
-	self->params.min_keys_per_crypt = local_work_size;
-	self->params.max_keys_per_crypt = crypt_gws = global_work_size;
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
@@ -424,6 +432,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->saltLen);
 	currentsalt.length = cur_salt->saltLen;
 	currentsalt.iterations = cur_salt->iterations;
+	currentsalt.outlen = cur_salt->keySize + cur_salt->ivLength;
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
@@ -452,8 +461,7 @@ static void crypt_all(int count)
 {
 	int index;
 
-	/// magnum time saver[tm]
-	crypt_gws = (count + local_work_size - 1) / local_work_size * local_work_size;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
@@ -464,7 +472,7 @@ static void crypt_all(int count)
 
 	/// Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
-		NULL, &crypt_gws, &local_work_size, 0, NULL, profilingEvent),
+		NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent),
 	    "Run kernel");
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
 
@@ -477,10 +485,8 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		int i;
 		unsigned char master[MAX_KEYLENGTH + MAX_IVLENGTH];

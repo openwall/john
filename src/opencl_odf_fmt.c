@@ -38,17 +38,19 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-	uint8_t v[20];
+	uint32_t length;
+	uint8_t v[20];	// hash of password
 } odf_password;
 
 typedef struct {
-	uint32_t v[16];
+	uint32_t v[32/4];
 } odf_hash;
 
 typedef struct {
 	uint8_t length;
 	uint8_t salt[64];
 	int iterations;
+	int outlen;
 } odf_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -103,12 +105,21 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
+	char build_opts[64];
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+	         (int)sizeof(inbuffer->v),
+	         (int)sizeof(currentsalt.salt),
+	         (int)sizeof(outbuffer->v));
+	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
-	    (odf_password *) malloc(sizeof(odf_password) *
-	    MAX_KEYS_PER_CRYPT);
+		(odf_password *) calloc(sizeof(odf_password),
+		                        MAX_KEYS_PER_CRYPT);
 	outbuffer =
 	    (odf_hash *) malloc(sizeof(odf_hash) * MAX_KEYS_PER_CRYPT);
 
@@ -117,9 +128,6 @@ static void init(struct fmt_main *self)
 
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-	//listOpenCLdevices();
-	opencl_init_opt("$JOHN/kernels/odf_kernel.cl", ocl_gpu_id,
-	                platform_id, NULL);
 	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -134,7 +142,7 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "odf", &cl_error);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -143,6 +151,11 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
 	atexit(done);
 }
@@ -290,6 +303,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
 	currentsalt.length = cur_salt->salt_length;
 	currentsalt.iterations = 1024;
+	currentsalt.outlen = cur_salt->key_size;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
@@ -316,8 +330,6 @@ static void set_key(char *key, int index)
 		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_key_length);
 	saved_key[index][saved_key_length] = 0;
-
-
 }
 
 static char *get_key(int index)
@@ -328,15 +340,17 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	int index;
+
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
 #ifdef _OPENMP
 #pragma omp parallel for
-	for(index = 0; index < count; index++)
-#else
-	for(index = 0; index < count; index++)
 #endif
+	for(index = 0; index < count; index++)
 	{
-		unsigned char hash[32];
+		unsigned char hash[20];
 		SHA_CTX ctx;
+
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, (unsigned char *)saved_key[index], strlen(saved_key[index]));
 		SHA1_Final((unsigned char *)hash, &ctx);
@@ -365,16 +379,15 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for(index = 0; index < count; index++)
-#else
-	for(index = 0; index < count; index++)
 #endif
+	for(index = 0; index < count; index++)
 	{
 		BF_KEY bf_key;
 		SHA_CTX ctx;
 		int bf_ivec_pos;
 		unsigned char ivec[8];
 		unsigned char output[1024];
+
 		bf_ivec_pos = 0;
 		memcpy(ivec, cur_salt->iv, 8);
 		BF_set_key(&bf_key, cur_salt->key_size, (unsigned char*)outbuffer[index].v);

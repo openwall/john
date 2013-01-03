@@ -7,8 +7,9 @@ Ati/AMD and Nvidia support it through their SDK available at
 nvidia and ati/amd website.
 
 N.B. DON'T use X11 opensource drivers provided by your distribution,
-either install fglrx or nvidia dkms package or go directly with the
-ones provided by nvidia and ati.
+only the vendor-supplied drivers support OpenCL. Either install fglrx
+(for AMD) or nvidia dkms package or go directly with the ones provided
+by nvidia and ati.
 
 You can also use OpenCL with CPU, mostly useful if you have several
 (or loads of) cores. This sometimes outperforms the CPU-only formats
@@ -29,11 +30,9 @@ unfortunately, due to opencl design they shine when you have million
 of password to test.
 
 OpenCL won't:
-- improve your speed if you have dictionary less then 1 000 000 words
-- work well in single mode due to using large sets of password
-- work with ATI and a remote console unser some certain condition
-  (see http://goo.gl/4L8Tt for more information )
-- make this world a better place
+- improve your speed on very short runs (due to longer startup)
+- work well in single mode due to using large sets of password (but some
+  formats now handle this quite well)
 
 
 ====================
@@ -44,13 +43,13 @@ Ati/AMD suggest you to use ATISTREAMSDKROOT env variable to
 provide where you have installed their SDK root.
 nvidia simply install it in /usr/local/nvidia .
 
-Makefile assume you have $ATISTREAMSDKROOT setted up to point
+Makefile assume you have $ATISTREAMSDKROOT set up to point
 to your ati installation or you have $NVIDIA_CUDA pointing to
 nvidia installation.
 
 In in doubt do a
 
-#updatedb && locate CL/cl.h && locate libOpenCL.so
+# updatedb && locate CL/cl.h && locate libOpenCL.so
 
 to locate your path to the includes and libOpenCL .
 
@@ -66,17 +65,13 @@ USAGE:
 You can use john with your favourite options and the relative
 opencl format you need.
 
-BEWARE! single mode doesn't work and won't work due to failing
-in allocating memory; i strongly recommend using opencl patch
-in wordlist and incremental modes only.
-
 On some opencl formats there are two variables you can adjust:
 these are $LWS and $GWS
 
 LWS is the local work size aka, the number of "threads" the job
 will be split and sent to the GPU.
 
-- if $LWS is not setted john will try to get the one
+- if $LWS is not set, john will try to get the one
   best for your system. On some slow hashes, a good default
   is going to be picked.
 
@@ -114,7 +109,8 @@ Optimization:
 if you plan on using opencl only for incremental mode (which at
 the moment is the one that gives the fastest speed) it could be
 a good idea to set up PLAINTEXT_LENGTH to a lower value than
-32.
+32. Some formats honour the --max-length option, optimizing for
+this.
 
 - LWS and GWS should be set with numbers that are power of two
 
@@ -155,9 +151,9 @@ Watchdog Timer:
 =================
 
 If your GPU is also your active display device, a watchdog timer is enabled
-by the nvidia driver by default, killing any kernel that runs for more than
-about five seconds. You will normally not get a proper error message, just
-some kind of failure after five seconds or more, like:
+by default, killing any kernel that runs for more than about five seconds
+(nvidia) or two seconds (AMD). You will normally not get a proper error
+message, just some kind of failure after five seconds or more, like:
 
   OpenCL error (CL_INVALID_COMMAND_QUEUE) in file (opencl_encfs_fmt.c) (...)
 

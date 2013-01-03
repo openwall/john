@@ -61,8 +61,6 @@ static int keybuf_size = PLAINTEXT_LENGTH;
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 #define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
-static int max_keys_per_crypt = SHA_NUM_KEYS;
-
 static struct fmt_tests tests[] = {
 	{"a9993e364706816aba3e25717850c26c9cd0d89d", "abc"},
 	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
@@ -166,7 +164,7 @@ static void find_best_kpc(void){
 		clReleaseCommandQueue(queue_prof);
 	}
 	fprintf(stderr, "Optimal keys per crypt %d\n(to avoid this test on next run do export GWS=%d)\n",optimal_kpc,optimal_kpc);
-	max_keys_per_crypt = optimal_kpc;
+	global_work_size = optimal_kpc;
 	release_clobj();
 	create_clobj(optimal_kpc);
 }
@@ -196,21 +194,24 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 	opencl_find_best_workgroup(self);
 	release_clobj();
 	if( (kpc = getenv("GWS")) == NULL){
-		max_keys_per_crypt = SHA_NUM_KEYS;
+		global_work_size = SHA_NUM_KEYS;
 		create_clobj(SHA_NUM_KEYS);
 	} else {
 		if (atoi(kpc) == 0){
 			//user chose to die of boredom
-			max_keys_per_crypt = SHA_NUM_KEYS;
+			global_work_size = SHA_NUM_KEYS;
 			create_clobj(SHA_NUM_KEYS);
 			find_best_kpc();
 		} else {
-			max_keys_per_crypt = atoi(kpc);
-			create_clobj(max_keys_per_crypt);
+			global_work_size = atoi(kpc);
+			create_clobj(global_work_size);
 		}
 	}
-	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, max_keys_per_crypt);
-	self->params.max_keys_per_crypt = max_keys_per_crypt;
+	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, (int)global_work_size);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
 }
 
 static void clear_keys(void)
@@ -272,31 +273,33 @@ static int cmp_exact(char *source, int count){
 
 	if (!have_full_hashes){
 		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
-			sizeof(cl_uint) * (max_keys_per_crypt),
-			sizeof(cl_uint) * 4 * max_keys_per_crypt, res_hashes, 0,
+			sizeof(cl_uint) * (global_work_size),
+			sizeof(cl_uint) * 4 * global_work_size, res_hashes, 0,
 			NULL, NULL);
 		have_full_hashes = 1;
 	}
 
 	if (t[1]!=res_hashes[count])
 		return 0;
-	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
+	if (t[2]!=res_hashes[1*global_work_size+count])
 		return 0;
-	if (t[3]!=res_hashes[2*max_keys_per_crypt+count])
+	if (t[3]!=res_hashes[2*global_work_size+count])
 		return 0;
-	if (t[4]!=res_hashes[3*max_keys_per_crypt+count])
+	if (t[4]!=res_hashes[3*global_work_size+count])
 		return 0;
 	return 1;
 }
 
 static void crypt_all(int count){
-	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * max_keys_per_crypt, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_plain");
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
+	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * global_work_size, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_plain");
 
 	HANDLE_CLERROR( clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "failed in clEnqueueNDRangeKernel");
 
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]),"failed in clFinish");
 	// read back partial hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * max_keys_per_crypt, partial_hashes, 0, NULL, NULL), "failed in reading data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
 }
 

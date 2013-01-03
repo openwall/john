@@ -73,7 +73,6 @@ static unsigned int *output;
 static unsigned char *challenge;
 static int new_keys, partial_output;
 static int keybuf_size = (PLAINTEXT_LENGTH + 1);
-static size_t crypt_gws;
 
 static cl_mem cl_saved_key, cl_challenge, cl_nthash, cl_result, pinned_key, pinned_result, pinned_salt;
 static cl_kernel ntlmv2_nthash;
@@ -365,7 +364,6 @@ static void init(struct fmt_main *self)
 
 	/* Reduced length can give a significant boost. Our test
 	   vectors are length 8 so that is currently a minimum */
-
 	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH) {
 		keybuf_size = MAX(options.force_maxlength + 1, 8 + 1);
 		self->params.benchmark_comment = mem_alloc_tiny(20, MEM_ALIGN_NONE);
@@ -428,6 +426,10 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
 	atexit(release_clobj);
 }
 
@@ -586,15 +588,15 @@ static void *get_binary(char *ciphertext)
 */
 static void crypt_all(int count)
 {
-	crypt_gws = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
+	global_work_size = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
 
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, keybuf_size * crypt_gws, saved_key, 0, NULL, NULL), "Failed transferring keys");
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &crypt_gws, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, keybuf_size * global_work_size, saved_key, 0, NULL, NULL), "Failed transferring keys");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
 		new_keys = 0;
 	}
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &crypt_gws, &local_work_size, 0, NULL, lastEvent), "Failed running second kernel");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * crypt_gws, output, 0, NULL, NULL), "failed reading results back");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "Failed running second kernel");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 
 	partial_output = 1;
 }
@@ -620,13 +622,13 @@ static int cmp_exact(char *source, int index)
 	int i;
 
 	if (partial_output) {
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * crypt_gws, output, 0, NULL, NULL), "failed reading results back");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 16 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 		partial_output = 0;
 	}
 	binary = (ARCH_WORD_32*)get_binary(source);
 
 	for(i = 0; i < DIGEST_SIZE / 4; i++)
-		if (output[i * crypt_gws + index] != binary[i])
+		if (output[i * global_work_size + index] != binary[i])
 			return 0;
 	return 1;
 }

@@ -38,17 +38,19 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-	uint8_t v[20];
+	uint32_t length;
+	uint8_t v[20];	// hash of password
 } sxc_password;
 
 typedef struct {
-	uint32_t v[8];
+	uint32_t v[16/4];
 } sxc_hash;
 
 typedef struct {
 	uint8_t length;
-	uint8_t salt[64];
+	uint8_t salt[32];
 	int iterations;
+	uint32_t outlen;
 } sxc_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -96,12 +98,21 @@ static void done(void)
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
+	char build_opts[64];
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+	         (int)sizeof(inbuffer->v),
+	         (int)sizeof(currentsalt.salt),
+	         (int)sizeof(outbuffer->v));
+	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
-	    (sxc_password *) malloc(sizeof(sxc_password) *
-	    MAX_KEYS_PER_CRYPT);
+		(sxc_password *) calloc(sizeof(sxc_password),
+		                        MAX_KEYS_PER_CRYPT);
 	outbuffer =
 	    (sxc_hash *) malloc(sizeof(sxc_hash) * MAX_KEYS_PER_CRYPT);
 
@@ -110,9 +121,6 @@ static void init(struct fmt_main *self)
 
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
-	//listOpenCLdevices();
-	opencl_init_opt("$JOHN/kernels/sxc_kernel.cl", ocl_gpu_id,
-	                platform_id, NULL);
 	/// Alocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -127,7 +135,7 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sxc", &cl_error);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -136,6 +144,11 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
 	atexit(done);
 }
@@ -287,6 +300,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->salt_length);
 	currentsalt.length = cur_salt->salt_length;
 	currentsalt.iterations = cur_salt->iterations;
+	currentsalt.outlen = sizeof(currentsalt.salt);
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
@@ -323,6 +337,9 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	int index;
+
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif

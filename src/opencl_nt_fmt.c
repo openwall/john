@@ -121,8 +121,6 @@ static int have_full_hashes;
 
 static int max_keys_per_crypt = NT_NUM_KEYS;
 
-#define NT_CRYPT_FUN		nt_crypt_all_opencl
-
 static void done(void)
 {
 	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
@@ -140,9 +138,10 @@ static void done(void)
 }
 
 // TODO: Use concurrent memory copy & execute
-static void nt_crypt_all_opencl(int count)
+static void crypt_all(int count)
 {
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	// Fill params. Copy only necesary data
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_TRUE, 0,
@@ -166,7 +165,7 @@ static void nt_crypt_all_opencl(int count)
 #define MIN_KEYS_PER_CRYPT		NT_NUM_KEYS
 #define MAX_KEYS_PER_CRYPT		NT_NUM_KEYS
 
-static void fmt_NT_init(struct fmt_main *self){
+static void init(struct fmt_main *self){
 	int argIndex = 0;
 
 	atexit(done);
@@ -205,6 +204,11 @@ static void fmt_NT_init(struct fmt_main *self){
 	datai[1] = max_keys_per_crypt;
 
 	opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
@@ -310,50 +314,6 @@ static int cmp_one(void * binary, int index)
 	if (t[1]==bbbs[index])
 		return 1;
 	return 0;
-	/*
-	unsigned int a;
-	unsigned int b;
-	unsigned int c;
-	unsigned int d;
-
-	unsigned int * buffer;
-	int pos1;
-	int pos2;
-	int pos3;
-
-	//b
-	if (t[1]!=bbbs[index])
-		return 0;
-
-	//a
-	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(1*NT_NUM_KEYS+index), sizeof(a), (void*)&a, 0, NULL, NULL);
-	if (t[0]!=a)
-		return 0;
-	//c
-	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(2*NT_NUM_KEYS+index), sizeof(c), (void*)&c, 0, NULL, NULL);
-	if (t[2]!=c)
-		return 0;
-	//d
-	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,  sizeof(cl_uint)*(3*NT_NUM_KEYS+index), sizeof(d), (void*)&d, 0, NULL, NULL);
-	return t[3]==d;
-	if(b!=t[1])
-		return 0;
-        */
-	/* never reached
-        fprintf(stderr, "reached\n");
-	b += SQRT_3;b = (b << 15) | (b >> 17);
-
-	a += (b ^ c ^ d) + buffer[pos1] + SQRT_3; a = (a << 3 ) | (a >> 29);
-	if(a!=t[0])
-		return 0;
-
-	d += (a ^ b ^ c) + buffer[pos2] + SQRT_3; d = (d << 9 ) | (d >> 23);
-	if(d!=t[3])
-		return 0;
-
-	c += (d ^ a ^ b) + buffer[pos3] + SQRT_3; c = (c << 11) | (c >> 21);
-	return c==t[2];
-	*/
 }
 
 static int cmp_exact(char *source, int count) {
@@ -422,10 +382,10 @@ struct fmt_main fmt_opencl_NT = {
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
 		tests
 	}, {
-		fmt_NT_init,
+		init,
 		fmt_default_prepare,
 		valid,
-		nt_split,
+		split,
 		get_binary,
 		fmt_default_salt,
 		fmt_default_source,
@@ -443,7 +403,7 @@ struct fmt_main fmt_opencl_NT = {
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
-		NT_CRYPT_FUN,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,

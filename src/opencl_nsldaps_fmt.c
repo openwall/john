@@ -64,12 +64,11 @@ typedef struct {
 
 cl_command_queue queue_prof;
 cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys,
-    len_buffer, data_info, mysalt, mycrypt;
+    len_buffer, mysalt, mycrypt;
 static cl_uint *outbuffer;
 static cl_uint *outbuffer2;
 static char *saved_plain;
 static char saved_salt[SALT_SIZE];
-static unsigned int datai[2];
 static int have_full_hashes;
 
 static struct fmt_tests tests[] = {
@@ -127,33 +126,20 @@ static void create_clobj(int kpc, struct fmt_main *self) {
 	    sizeof(cl_uint) * 5 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
-	data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
-	    sizeof(unsigned int) * 2, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
-
 	mysalt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating mysalt out argument");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info),
-		(void *) &data_info), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mysalt),
+		(void *) &mysalt), "Error setting argument 0");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mysalt),
-		(void *) &mysalt), "Error setting argument 1");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1,
 		sizeof(buffer_keys), (void *) &buffer_keys),
-	    "Error setting argument 2");
+	    "Error setting argument 1");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out),
-		(void *) &buffer_out), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out),
+		(void *) &buffer_out), "Error setting argument 2");
 
-	datai[0] = PLAINTEXT_LENGTH;
-	datai[1] = kpc;
     	global_work_size = kpc;
-
-	/* We set this here and never again. Used to be in crypt_all() */
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_FALSE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL), "failed in clEnqueueWriteBuffer data_info");
 }
 
 static void release_clobj(void){
@@ -167,8 +153,6 @@ static void release_clobj(void){
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(buffer_out);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-    ret_code = clReleaseMemObject(data_info);
-    HANDLE_CLERROR(ret_code, "Error Releasing data_info");
     ret_code = clReleaseMemObject(mysalt);
     HANDLE_CLERROR(ret_code, "Error Releasing mysalt");
     ret_code = clReleaseMemObject(pinned_saved_keys);
@@ -233,10 +217,13 @@ static void fmt_ssha_init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize;
+	char build_opts[64];
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
+	opencl_init_opt("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
@@ -279,6 +266,10 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
 	atexit(release_clobj);
 }
 
@@ -359,10 +350,10 @@ static char *get_key(int index) {
 	return out;
 }
 
-static int cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int count) {
 	unsigned int i = 0;
 	unsigned int b = ((unsigned int *) binary)[0];
-	for (; i < index; i++) {
+	for (; i < count; i++) {
 		if (b == outbuffer[i])
 			return 1;
 	}
@@ -377,23 +368,23 @@ static int cmp_one(void *binary, int index){
 	return 0;
 }
 
-static int cmp_exact(char *source, int count){
+static int cmp_exact(char *source, int index){
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
 		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
-			    sizeof(cl_uint) * (global_work_size),
-			    sizeof(cl_uint) * 4 * global_work_size, outbuffer2, 0,
-			    NULL, NULL);
+			    sizeof(cl_uint) * global_work_size,
+			    sizeof(cl_uint) * 4 * global_work_size, outbuffer2,
+			     0, NULL, NULL);
 		have_full_hashes = 1;
 	}
-	if (t[1]!=outbuffer2[count])
+	if (t[1]!=outbuffer2[index])
 		return 0;
-	if (t[2]!=outbuffer2[1*global_work_size+count])
+	if (t[2]!=outbuffer2[1*global_work_size+index])
 		return 0;
-	if (t[3]!=outbuffer2[2*global_work_size+count])
+	if (t[3]!=outbuffer2[2*global_work_size+index])
 		return 0;
-	if (t[4]!=outbuffer2[3*global_work_size+count])
+	if (t[4]!=outbuffer2[3*global_work_size+index])
 		return 0;
 	return 1;
 }
@@ -403,6 +394,7 @@ static int cmp_exact(char *source, int count){
 static void crypt_all(int count)
 {
 	cl_int code;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	code = clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
 	    PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, NULL);
