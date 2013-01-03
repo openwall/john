@@ -82,9 +82,10 @@ static keychain_password *inbuffer;
 static keychain_hash *outbuffer;
 static keychain_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
-static size_t insize = sizeof(keychain_password) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(keychain_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(keychain_salt);
+
+#define insize (sizeof(keychain_password) * global_work_size)
+#define outsize (sizeof(keychain_hash) * global_work_size)
+#define settingsize sizeof(keychain_salt)
 
 static void done(void)
 {
@@ -98,6 +99,7 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	char build_opts[64];
+	char *temp;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -107,18 +109,26 @@ static void init(struct fmt_main *self)
 	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
 	                ocl_gpu_id, platform_id, build_opts);
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
 		(keychain_password *) calloc(sizeof(keychain_password),
-		                             MAX_KEYS_PER_CRYPT);
+		                             global_work_size);
 	outbuffer =
-	    (keychain_hash *) malloc(sizeof(keychain_hash) * MAX_KEYS_PER_CRYPT);
+	    (keychain_hash *) malloc(sizeof(keychain_hash) * global_work_size);
 
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
+			global_work_size, MEM_ALIGN_WORD);
 
-	/// Alocate memory
+	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -140,7 +150,10 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(self);
+
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;

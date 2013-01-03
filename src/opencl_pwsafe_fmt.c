@@ -81,6 +81,9 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	MEM_FREE(host_pass);
+	MEM_FREE(host_hash);
+	MEM_FREE(host_salt);
 }
 
 static void pwsafe_set_key(char *key, int index)
@@ -92,13 +95,13 @@ static void pwsafe_set_key(char *key, int index)
 
 static void init(struct fmt_main *self)
 {
-	host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
-	host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
-	host_salt = calloc(1, sizeof(pwsafe_salt));
+	host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
+	host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
+	host_salt = mem_calloc(sizeof(pwsafe_salt));
 
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, platform_id);
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 
 	mem_salt =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,

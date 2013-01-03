@@ -83,9 +83,9 @@ static void done(void)
 
 static void init(struct fmt_main *self)
 {
-	gkey = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_key));
-	g_ext_key = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_extend_key));
-	ghash = calloc(MAX_KEYS_PER_CRYPT, sizeof(xsha512_hash));
+	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_key));
+	g_ext_key = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_extend_key));
+	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_hash));
 	cuda_xsha512_init();
 	atexit(done);
 }

@@ -196,7 +196,7 @@ static  void crypt_all(int);
 
 static void init(struct fmt_main *self)
 {
-	///Alocate memory
+	///Allocate memory
 	key_host = calloc(self->params.max_keys_per_crypt, sizeof(*key_host));
 
 	dcc_hash_host=(cl_uint*)mem_alloc_tiny(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT,MEM_ALIGN_WORD);

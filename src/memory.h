@@ -62,7 +62,11 @@ extern unsigned int mem_saving_level;
  * If an error occurs, the function does not return.
  */
 extern void *mem_alloc(size_t size);
-
+/*
+ * this version same as mem_alloc, but initialized the memory
+ * to NULL bytes, like CALLOC(3) function does
+ */
+extern void *mem_calloc(size_t size);
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
  * Does nothing if the pointer is already NULL.

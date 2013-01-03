@@ -143,17 +143,14 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	global_work_size = KEYS_PER_CRYPT / 8;
-	atexit(done);
 	opencl_init("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id);
 
-	/// Alocate memory
+	/// Allocate memory
 	inbuffer =
-	    (phpass_password *) calloc(MAX_KEYS_PER_CRYPT,
+	    (phpass_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
 	    sizeof(phpass_password));
-	assert(inbuffer != NULL);
 	outbuffer =
-	    (phpass_hash *) calloc(MAX_KEYS_PER_CRYPT, sizeof(phpass_hash));
-	assert(inbuffer != NULL);
+	    (phpass_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_hash));
 
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -184,6 +181,7 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt = local_work_size * 8;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
