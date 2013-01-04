@@ -28,11 +28,11 @@
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define	KEYS_PER_CRYPT		1024*9
+#define	KEYS_PER_CRYPT		8*1024
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	20
 #define SALT_SIZE		sizeof(struct custom_salt)
 
 #define uint8_t			unsigned char
@@ -40,18 +40,18 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-        uint8_t length;
-        uint8_t v[24];
+	uint32_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } gpg_password;
 
 typedef struct {
-        uint8_t v[16];
+	uint8_t v[16];
 } gpg_hash;
 
 typedef struct {
-        uint8_t length;
-	int count;
-        uint8_t salt[8];
+	uint32_t length;
+	uint32_t count;
+	uint8_t salt[8];
 } gpg_salt;
 
 static int *cracked;
@@ -194,7 +194,14 @@ static void done(void)
 }
 static void init(struct fmt_main *self)
 {
+	char build_opts[64];
 	cl_int cl_error;
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%d",
+	         PLAINTEXT_LENGTH);
+	opencl_init_opt("$JOHN/kernels/gpg_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
@@ -215,8 +222,6 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 
-	//listOpenCLdevices();
-	opencl_init("$JOHN/kernels/gpg_kernel.cl", ocl_gpu_id, platform_id);
 	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -475,6 +480,7 @@ static int check(unsigned char *keydata, int ks)
 static void crypt_all(int count)
 {
 	int index;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	/// Copy data to gpu
@@ -501,20 +507,8 @@ static void crypt_all(int count)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-	{
-		// allocate string2key buffer
-		int res;
-		int ks = keySize(cur_salt->cipher_algorithm);
-		int ds = digestSize(cur_salt->hash_algorithm);
-		unsigned char keydata[ds * ((ks + ds- 1) / ds)];
-		memcpy(keydata, outbuffer[index].v, ks);
-		res = check(keydata, ks);
-		if(res)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
-	}
-
+		cracked[index] = check(outbuffer[index].v,
+		                       keySize(cur_salt->cipher_algorithm));
 }
 
 static int cmp_all(void *binary, int count)
