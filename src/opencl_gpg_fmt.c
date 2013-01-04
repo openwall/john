@@ -165,25 +165,6 @@ static uint32_t keySize(char algorithm)
         return 0;
 }
 
-// Returns the digest size (in bytes) of a given hash algorithm
-static uint32_t digestSize(char algorithm)
-{
-        switch (algorithm) {
-                case HASH_MD5:
-                        return 16;
-                case HASH_SHA1:
-                        return 20;
-                case HASH_SHA512:
-                        return 64;
-                case HASH_SHA256:
-                        return 32;
-                case HASH_RIPEMD160:
-                        return 20;
-                default: break;
-        }
-        return 0;
-}
-
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
