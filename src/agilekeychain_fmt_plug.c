@@ -240,7 +240,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main agile_keychain_fmt = {
+struct fmt_main fmt_agile_keychain= {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

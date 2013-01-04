@@ -206,7 +206,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main lastpass_fmt = {
+struct fmt_main fmt_sniffed_lastpass = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

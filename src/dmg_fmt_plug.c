@@ -570,7 +570,7 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
-struct fmt_main dmg_fmt = {
+struct fmt_main fmt_dmg = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

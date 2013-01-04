@@ -246,7 +246,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main episerver_fmt = {
+struct fmt_main fmt_episerver = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

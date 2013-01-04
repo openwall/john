@@ -251,7 +251,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main ike_fmt = {
+struct fmt_main fmt_ike = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

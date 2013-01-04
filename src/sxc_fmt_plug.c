@@ -303,7 +303,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main sxc_fmt = {
+struct fmt_main fmt_sxc = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

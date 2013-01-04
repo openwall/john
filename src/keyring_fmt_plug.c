@@ -282,7 +282,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main keyring_fmt = {
+struct fmt_main fmt_keyring = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

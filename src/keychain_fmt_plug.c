@@ -214,7 +214,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main keychain_fmt = {
+struct fmt_main fmt_keychain = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

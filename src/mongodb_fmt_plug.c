@@ -270,7 +270,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main mongodb_fmt = {
+struct fmt_main fmt_mongodb = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

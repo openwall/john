@@ -128,7 +128,7 @@ static int get_hash_2(int index) { return crypt_out[index] & 0xfff; }
 static int get_hash_3(int index) { return crypt_out[index] & 0xffff; }
 static int get_hash_4(int index) { return crypt_out[index] & 0xfffff; }
 
-struct fmt_main pst_fmt = {
+struct fmt_main fmt_pst = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
