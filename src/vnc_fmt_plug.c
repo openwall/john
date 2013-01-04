@@ -270,7 +270,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main vnc_fmt = {
+struct fmt_main fmt_vnc = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

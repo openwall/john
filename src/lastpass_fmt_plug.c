@@ -1,16 +1,15 @@
-/* PostgreSQL MD5 challenge-response cracker patch for JtR. Hacked together
- * during October of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
+/* LastPass offline cracker patch for JtR. Hacked together during January of 2013 by
+ * Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
- * Use Ettercap to get PostgreSQL MD5 challenge-response pairs in JtR format.
- * E.g. ettercap -Tq -r /home/user/sample.pcap
+ * All the hard work was done by Milen (author of hashkill).
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.  */
 
-#include "md5.h"
 #include <string.h>
+#include <assert.h>
 #include <errno.h>
 #include "arch.h"
 #include "misc.h"
@@ -18,41 +17,43 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include <openssl/aes.h>
 #ifdef _OPENMP
-static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL		"postgre"
-#define FORMAT_NAME		"PostgreSQL MD5 challenge-response"
+#define FORMAT_LABEL		"lp"
+#define FORMAT_NAME		"LastPass offline PBKDF2 SHA1"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
+#define PLAINTEXT_LENGTH	64
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static struct fmt_tests postgre_tests[] = {
-	{"$postgre$postgres*f063f05d*1d586cc8d137e5f1733f234d224393e8", "openwall"},
-	{"$postgre$postgres*c31803a2*1c4e11fb51835c3bbe9851ec91ec1375", "password"},
-	{"$postgre$postgres*684697c8*bf2a64f35feba7bf1b633d60393c1356", "openwall"},
+static struct fmt_tests lastpass_tests[] = {
+	{"$lp$hackme@mailinator.com$6f5d8cec3615fc9ac7ba2e0569bce4f5", "strongpassword"},
 	{NULL}
 };
 
+#if defined (_OPENMP)
+static int omp_t = 1;
+#endif
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static ARCH_WORD_32 (*crypt_out)[32 / sizeof(ARCH_WORD_32)];
 
 static struct custom_salt {
-	unsigned char user[65];
-	unsigned char salt[4];
+	int iterations;
+	int salt_length;
+	unsigned char salt[32];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
+#if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
 	omp_t *= OMP_SCALE;
@@ -63,9 +64,37 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$postgre$", 9);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	if (strncmp(ciphertext, "$lp$", 4))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 4;
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* email */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+	if (strlen(p) != 32)
+		goto err;
+	if (!ishex(p))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -73,16 +102,11 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	int i;
 	static struct custom_salt cs;
-	ctcopy += 9;	/* skip over "$postgre$" */
-	p = strtok(ctcopy, "*");
-	strncpy((char*)cs.user, p, 65);
-	cs.user[64] = 0;
-	p = strtok(NULL, "*");
-	for (i = 0; i < 4; i++)
-		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	ctcopy += 4;	/* skip over "$lp$" */
+	p = strtok(ctcopy, "$");
+	strncpy((char*)cs.salt, p, 32);
+	cs.salt_length = strlen((char*)p);
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
@@ -90,17 +114,16 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE];
+		unsigned char c[BINARY_SIZE+1];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
-	p = strrchr(ciphertext, '*') + 1;
+	p = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < BINARY_SIZE; i++) {
-		out[i] =
-		    (atoi16[ARCH_INDEX(*p)] << 4) |
-		    atoi16[ARCH_INDEX(p[1])];
+		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 	return out;
@@ -127,16 +150,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
-{
-	int i;
-	for (i = 0; i < len; ++i) {
-		out[0] = itoa16[str[i]>>4];
-		out[1] = itoa16[str[i]&0xF];
-		out += 2;
-	}
-}
-
+void pbkdf2_sha256(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst);
 static void crypt_all(int count)
 {
 	int index = 0;
@@ -145,26 +159,19 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		MD5_CTX ctx;
-		unsigned char out[32];
-		MD5_Init(&ctx);
-		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
-		MD5_Update(&ctx, cur_salt->user, strlen((char*)cur_salt->user));
-		MD5_Final((unsigned char*)crypt_out[index], &ctx);
-		hex_encode((unsigned char*)crypt_out[index], 16, out);
-		MD5_Init(&ctx);
-		MD5_Update(&ctx, out, 32);
-		MD5_Update(&ctx, cur_salt->salt, 4);
-		MD5_Final((unsigned char*)crypt_out[index], &ctx);
+		unsigned char key[32];
+		AES_KEY akey;
+		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->salt_length, 500, (ARCH_WORD_32 *)key);
+		memset(&akey, 0, sizeof(AES_KEY));
+		AES_set_encrypt_key((unsigned char*)key, 256, &akey);
+		AES_ecb_encrypt((unsigned char*)"lastpass rocks\x02\x02", (unsigned char*)crypt_out[index], &akey, AES_ENCRYPT);
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
@@ -180,7 +187,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void postgre_set_key(char *key, int index)
+static void lastpass_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -194,7 +201,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_postgre = {
+struct fmt_main fmt_lastpass = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -203,17 +210,11 @@ struct fmt_main fmt_postgre = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		postgre_tests
+		lastpass_tests
 	}, {
 		init,
 		fmt_default_prepare,
@@ -221,9 +222,6 @@ struct fmt_main fmt_postgre = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 9
-		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -235,7 +233,7 @@ struct fmt_main fmt_postgre = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		postgre_set_key,
+		lastpass_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

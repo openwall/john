@@ -261,7 +261,10 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_rawSHA512 = {
+/* The '0_' makes sure this format registers before others,
+ * if ambigous.  Do not copy it for other formats.
+ */
+struct fmt_main fmt_raw0_SHA512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

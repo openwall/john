@@ -235,8 +235,8 @@ static void crypt_all(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		unsigned char key[32];
 		unsigned char hash[32];
@@ -288,9 +288,7 @@ static void crypt_all(int count)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
 	for (; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
@@ -320,7 +318,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main odf_fmt = {
+struct fmt_main fmt_odf = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

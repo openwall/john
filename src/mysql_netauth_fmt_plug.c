@@ -207,7 +207,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main mysqlna_fmt = {
+struct fmt_main fmt_mysqlna = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

@@ -177,7 +177,7 @@ static void set_salt(void *salt)
 #define SHA256_DIGEST_LENGTH 32
 #endif
 
-void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst)
+void pbkdf2_sha256(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst)
 {
 	SHA256_CTX ctx, tmp_ctx1, tmp_ctx2;
 	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], tmp_hash[SHA256_DIGEST_LENGTH];
@@ -242,7 +242,7 @@ static void crypt_all(int count)
 //			cur_salt->salt, strlen((char*)cur_salt->salt),
 //			cur_salt->iterations, EVP_sha256(), 32, (unsigned char*)crypt_out[index]);
 
-		pbkdf2((unsigned char *)saved_key[index], strlen(saved_key[index]),
+		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
 			cur_salt->salt, strlen((char*)cur_salt->salt),
 			cur_salt->iterations, crypt_out[index]);
 	}

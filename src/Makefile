@@ -18,6 +18,7 @@ TR = tr
 SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
+SORT = sort
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
@@ -1830,11 +1831,11 @@ miscnl.o: misc.c
 bench-t.o: bench.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_BENCH_TMP bench.c -o bench-t.o
 
-fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile
-	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c > fmt_externs.h
+fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
+	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_externs.h
 
-fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile
-	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c > fmt_registers.h
+fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
+	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c

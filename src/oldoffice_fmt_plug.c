@@ -282,7 +282,7 @@ static char *get_key(int index)
 	return (char*)utf16_to_enc(saved_key[index]);
 }
 
-struct fmt_main oldoffice_fmt = {
+struct fmt_main fmt_oldoffice = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

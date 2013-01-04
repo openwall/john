@@ -700,7 +700,7 @@ static char *source(char *source, void *binary)
 	return Buf;
 }
 
-struct fmt_main fmt_magnumNT = {
+struct fmt_main fmt_NT2 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

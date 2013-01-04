@@ -152,7 +152,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main radmin_fmt = {
+struct fmt_main fmt_radmin = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
