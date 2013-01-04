@@ -878,7 +878,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_ocl_krb5pa_sha1 = {
+struct fmt_main fmt_opencl_krb5pa_sha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

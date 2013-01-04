@@ -678,7 +678,7 @@ static int sha1_fmt_cmp_exact(char *source, int index)
                   sizeof full_sha1_digest) == 0;
 }
 
-struct fmt_main sha1_fmt_ng = {
+struct fmt_main fmt_sha1_ng = {
     .params                 = {
         .label              = "raw-sha1-ng",
         .format_name        = "Raw SHA-1 (pwlen <= 15)",
