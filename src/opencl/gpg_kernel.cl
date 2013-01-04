@@ -101,7 +101,7 @@ typedef struct
 {
 	uint32_t total[2];     /*!< number of bytes processed  */
 	uint32_t state[5];     /*!< intermediate digest state  */
-	uchar buffer[64];   /*!< data block being processed */
+	uint8_t buffer[64];    /*!< data block being processed */
 }
 	sha1_context;
 
