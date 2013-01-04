@@ -235,8 +235,8 @@ static void crypt_all(int count)
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		unsigned char key[32];
 		unsigned char hash[32];
