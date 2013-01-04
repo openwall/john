@@ -149,6 +149,7 @@ extern struct fmt_main fmt_opencl_strip;
 extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_encfs;
 extern struct fmt_main fmt_opencl_odf;
+extern struct fmt_main fmt_opencl_odf_aes;
 extern struct fmt_main fmt_opencl_sxc;
 extern struct fmt_main fmt_opencl_gpg;
 extern struct fmt_main fmt_opencl_dmg;
@@ -311,6 +312,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_encfs);
 	john_register_one(&fmt_opencl_odf);
+	john_register_one(&fmt_opencl_odf_aes);
 	john_register_one(&fmt_opencl_sxc);
 	john_register_one(&fmt_opencl_gpg);
 	john_register_one(&fmt_opencl_dmg);
@@ -671,12 +673,12 @@ static void john_list_build_info(void)
 	// print GMP version info if HAVE_GMP has been set in Makefile
 	printf("GMP library version: %d.%d.%d",
 	       __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
-	/* version strings prior to 4.3.0 did omit the patch level when it was 0 */ 
+	/* version strings prior to 4.3.0 did omit the patch level when it was 0 */
 	gmp_patchlevel = 0;
 	sscanf(gmp_version, "%d.%d.%d", &gmp_major, &gmp_minor, &gmp_patchlevel);
 	if (gmp_major != __GNU_MP_VERSION || gmp_minor != __GNU_MP_VERSION_MINOR ||
 	    gmp_patchlevel != __GNU_MP_VERSION_PATCHLEVEL)
-		printf("\t(loaded: %d.%d.%d)", 
+		printf("\t(loaded: %d.%d.%d)",
 		       gmp_major, gmp_minor, gmp_patchlevel);
 	printf("\n");
 #endif
