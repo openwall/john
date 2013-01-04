@@ -155,7 +155,7 @@ static int cmp_exact(char *source, int index)
 	return has_been_cracked[index];
 }
 
-struct fmt_main zip_fmt = {
+struct fmt_main fmt_zip = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

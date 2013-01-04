@@ -658,7 +658,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main rar_fmt = {
+struct fmt_main fmt_rar = {
 {
 		FORMAT_LABEL,
 		FORMAT_NAME,
