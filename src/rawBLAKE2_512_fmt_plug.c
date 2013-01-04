@@ -19,7 +19,7 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"blake2-512"
+#define FORMAT_LABEL			"raw-blake2-512"
 #define FORMAT_NAME			"BLAKE2 512"
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
