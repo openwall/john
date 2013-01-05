@@ -14,7 +14,7 @@
 #include <openssl/hmac.h>
 #include <openssl/engine.h>
 #include "stdint.h"
-#include "keychain.h"
+#include "pbkdf2_hmac_sha1.h"
 #undef MEM_FREE
 #include "options.h"
 #ifdef _OPENMP
