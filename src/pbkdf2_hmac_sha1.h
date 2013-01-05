@@ -9,7 +9,7 @@
 /* You can't bump this without changing preproc() */
 #ifdef PLAINTEXT_LENGTH
 #if PLAINTEXT_LENGTH > 64
-#error keychain.h can not use a PLAINTEXT_LENGTH larger than 64
+#error pbkdf2_hmac_sha1.h can not use a PLAINTEXT_LENGTH larger than 64
 #endif
 #else
 #define PLAINTEXT_LENGTH	64
