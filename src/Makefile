@@ -115,7 +115,6 @@ JOHN_OBJS = \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \
-	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
 	rawSHA0_fmt.o \
@@ -1883,6 +1882,20 @@ bash-completion:
 	@echo
 	@echo Bash-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
+
+zsh-completion:
+	@echo
+	@echo NOTE: Administrative priviledges required for this make target.
+	[ -d /usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/functions/Completion/Unix/_john || true
+	[ -d /usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/site-functions/_john || true
+	[ -d /usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/local/share/zsh/site-functions/_john || true
+	@echo
+	@echo zsh-completion for JtR opportunistically installed.
+	@echo Source \". ../run/john.zsh_completion\" or logout/login to activate the changes
+
+shell-completion: bash-completion zsh-completion
+	@echo
+	@echo "You should have bash and zsh completion now"
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)

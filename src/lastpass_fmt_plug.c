@@ -18,6 +18,7 @@
 #include "params.h"
 #include "options.h"
 #include <openssl/aes.h>
+#include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -150,7 +151,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-void pbkdf2_sha256(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst);
 static void crypt_all(int count)
 {
 	int index = 0;

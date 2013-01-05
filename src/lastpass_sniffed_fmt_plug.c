@@ -22,7 +22,8 @@
 #include "options.h"
 #include "base64.h"
 #include <openssl/aes.h>
-#include <openssl/evp.h>
+//#include <openssl/evp.h>
+#include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -67,8 +68,6 @@ static struct custom_salt {
 	unsigned char encrypted_username[40];
 	unsigned char length;
 } *cur_salt;
-
-void pbkdf2_sha256(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst);
 
 static void init(struct fmt_main *self)
 {

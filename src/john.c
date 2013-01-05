@@ -185,7 +185,6 @@ extern struct fmt_main fmt_cuda_pwsafe;
 
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pfx;
-extern struct fmt_main fmt_pdf;
 extern struct fmt_main fmt_rar;
 extern struct fmt_main fmt_zip;
 extern struct fmt_main fmt_wpapsk;
@@ -212,7 +211,6 @@ extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
 #endif
-extern int pdf2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 
 static struct db_main database;
@@ -285,7 +283,6 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_pfx);
-	john_register_one(&fmt_pdf);
 	john_register_one(&fmt_wpapsk);
 #ifndef _MSC_VER
 	john_register_one(&fmt_rar);
@@ -1435,11 +1432,6 @@ int main(int argc, char **argv)
 		return mozilla2john(argc, argv);
 	}
 #endif
-
-	if (!strcmp(name, "pdf2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pdf2john(argc, argv);
-	}
 
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);

@@ -17,7 +17,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "keychain.h"
+#include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64

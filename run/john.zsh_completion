@@ -1,0 +1,80 @@
+#compdef john
+
+local curcontext="$curcontext" state line
+typeset -A opt_args
+
+_arguments -C -s \
+  '(- *)'{--help,-h}'[display help]' \
+  '(--config,-c)'{--config=-,-c=-}'[use config]:config to use:_files' \
+  '(--loopback,--wordlist,-w)'{--wordlist,--wordlist=-,-w,-w=-,-w\:-}'[use wordlist]:wordlist to use:_files' \
+  '(--loopback,--wordlist,-w)'{--loopback,--loopback=-}'[like --wordlist, but fetch words from a .pot file]:loopback to use:_files' \
+  '(--incremental,-w,--wordlist,--stdin,-i,--markov)'{--incremental,--incremental=-,-i,-i=-,-i\:-}'[incremental mode]:incremental section to use' \
+  '(--incremental,-w,--wordlist,-r,--rule,--stdin,-i,--markov)'{--markov,--markov=-}'[markov mode]:options for markov mode' \
+  '(--rule,-r,--stdin)'{--rule=-,-r=-,-r\:-}'[use rule]:rule to use:->list-rules' \
+  '(--stdout)'{--stdout,--stdout=-}'[just output candidate passwords]:cut at LENGTH' \
+  '(--restore)'{--restore,--restore=-}'[restore an interrupted session]:name of session' \
+  '(--session)'{--session,--session=-}'[give a new session the NAME]:name of session' \
+  '(--status)'{--status,--status=-}'[print status of a session]:name of session' \
+  '(--external)'--external=-'[external mode or word filter]:external mode to use:->list-externals' \
+  '(--encoding)'--encoding=-'[input data is non-ascii (eg. UTF-8, ISO-8859-1)]:encoding to use:->list-encodings' \
+  '(--make-charset)'--make-charset=-'[make a charset file. It will be overwritten]:charset file:_files' \
+  '(--pot)'--pot=-'[pot file to use]:pot file:_files' \
+  '(--show)'{--show,--show=LEFT}'[show cracked passwords (if =LEFT, then uncracked)]' \
+  '(--format)'--format=-'[use specific format]:format to use:->list-formats' \
+  '(--save-memory)'--save-memory=-'[Enable memory saving, at LEVEL 1..3]:LEVEL 1..3' \
+  '(--mem-file-size)'--mem-file-size=-'[size threshold for wordlist preload (default 5 MB)]:memory (default 5 MB)' \
+  '(--max-run-time)'--max-run-time=-'[gracefully exit after this many seconds]:number of seconds' \
+  '(--regen-lost-salts=)'--regen-lost-salts=-'[regenerate lost salts (see doc/OPTIONS)]:number' \
+  '(--platform=)'--platform=-'[set OpenCL platform]:OpenCL platform' \
+  '(--device=)'--device=-'[set OpenCL device (list using --list=opencl-devices)]:OpenCL device number' \
+  '(--list)'--list=-'[list capabilities]:capabilities to list:->list-help' \
+  '(--pipe,--stdin,--wordlist,-w)'--stdin'[read from stdin]' \
+  '(--pipe,--stdin,--wordlist,-w)'--pipe'[read from pipe/stdin but with rules]' \
+  '(--single)'--single'[use single crack mode]' \
+  '(--dupe-suppression)'--dupe-suppression'[suppress all dupes in wordlist (and force preload)]' \
+  '(--no-log)'--no-log'[disables creation and writing to john.log file]' \
+  '(--crack-status)'--crack-status'[emit a status line whenever a password is cracked]' \
+  '*:files:_files' && return 0
+
+local ret
+
+case "$state" in
+  list-rules)
+    if (( $+opt_args[--config] )); then
+      vals=( help ${(f)"$(_call_program list-rules john --config=$opt_args[--config] --list=rules 2>/dev/null)"/	/:} )
+      _describe -t list-rules 'list rules' vals && ret=0
+    else
+      vals=( help ${(f)"$(_call_program list-rules john --list=rules 2>/dev/null)"/	/:} )
+      _describe -t list-rules 'list rules' vals && ret=0
+    fi
+    ;;
+  list-externals)
+    if (( $+opt_args[--config] )); then
+      vals=( help ${(f)"$(_call_program list-externals john --config=$opt_args[--config] --list=externals 2>/dev/null)"/	/:} )
+      _describe -t list-rules 'list externals' vals && ret=0
+    else
+      vals=( help ${(f)"$(_call_program list-externals john --list=externals 2>/dev/null)"/	/:} )
+      _describe -t list-rules 'list externals' vals && ret=0
+    fi
+    ;;
+  list-encodings)
+    vals=( help ${(f)"$(_call_program list-encodings john --list=encodings 2>&1 \
+	|grep -v '^Supported encodings within john are:' | sed -e 's/, /\
+/g' -e 's/,$//' | sed '/^$/d' | sort)"} )
+    _describe -t list-encodings 'list encodings' vals && ret=0
+    ;;
+  list-formats)
+    vals=( help ${(f)"$(_call_program list-formats john --list=formats 2>/dev/null \
+	|sed -e 's/, /\
+/g' | sed '/^$/d' | sort)"} )
+    _describe -t list-formats 'list formats' vals && ret=0
+    ;;
+  list-help)
+    vals=( help ${(f)"$(_call_program list-help john --list=help 2>/dev/null \
+	|sed -e 's/, /\
+/g' -e 's/,$//' | sed -e '/<conf section name>/d' -e '/\:SECTION/d' -e '/^$/d' -e '/\[.*\]/d' | sort)"} )
+    _describe -t list-help 'list help' vals && ret=0
+    ;;
+esac
+
+return ret
