@@ -49,7 +49,7 @@ static int omp_t = 1;
 #include "common.h"
 #include "unicode.h"
 #include "gladman_fileenc.h"
-#include "keychain.h"
+#include "pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18 aes-cts-hmac-sha1-96"
