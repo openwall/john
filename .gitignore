@@ -22,7 +22,6 @@ run/mkvcalcproba
 run/mozilla2john
 run/office2john
 run/kernels/
-run/pdf2john
 run/pfx2john
 run/pwsafe2john
 run/racf2john
