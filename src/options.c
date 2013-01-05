@@ -69,6 +69,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
+	{"mkv-stats", FLG_MKV_SET, FLG_CRACKING_CHK,
+		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
@@ -300,6 +302,7 @@ void print_hidden_usage(void)
 	puts("--crack-status            emit a status line whenever a password is cracked");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
+	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
