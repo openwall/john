@@ -1884,6 +1884,20 @@ bash-completion:
 	@echo Bash-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
 
+zsh-completion:
+	@echo
+	@echo NOTE: Administrative priviledges required for this make target.
+	[ -d /usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/functions/Completion/Unix/_john || true
+	[ -d /usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/site-functions/_john || true
+	[ -d /usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/local/share/zsh/site-functions/_john || true
+	@echo
+	@echo zsh-completion for JtR opportunistically installed.
+	@echo Source \". ../run/john.zsh_completion\" or logout/login to activate the changes
+
+shell-completion: bash-completion zsh-completion
+	@echo
+	@echo "You should have bash and zsh completion now"
+
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
 	$(RM) ../run/john.exe john-macosx-* *.o *.bak core
