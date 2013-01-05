@@ -330,7 +330,14 @@ void get_markov_options(struct db_main *db,
 		error();
 	}
 
-	*statfile = cfg_get_param(SECTION_MARKOV, mode, "Statsfile");
+	if (options.mkv_stats == NULL) 
+	{
+		*statfile = cfg_get_param(SECTION_MARKOV, mode, "Statsfile");
+	} 
+	else 
+	{
+		*statfile = options.mkv_stats;
+	}
 	if(*statfile == NULL)
 	{
 		log_event("Statsfile not defined");
