@@ -108,7 +108,8 @@ static void mask_generate(char *param)
 		}
 		crk_process_key(key);
 		maskset_pos[last_mask_index]++;
-		while (maskset_pos[last_mask_index] == maskset_num[last_mask_index]) {
+		if (maskset_pos[last_mask_index] == maskset_num[last_mask_index]) {
+			if (last_mask_index==first_mask_index) return;
 			maskset_pos[last_mask_index] = 0;
 			switch (mask_type[last_mask_index]) {
 				case low_char:
