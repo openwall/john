@@ -59,9 +59,44 @@ static struct fmt_tests zip_tests[] = {
 
 struct fmt_main zip_fmt;
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$zip$*", 6);
+	char *ctcopy, *ptr, *keeptr;
+
+	if (strncmp(ciphertext, "$zip$*", 6))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 6;	/* skip leading '$zip$*' */
+	if (!(ptr = strtok(ctcopy, "*")))
+		goto error;
+	if (*ptr != '0')
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)

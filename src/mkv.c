@@ -65,17 +65,15 @@ static void fix_state(void)
 
 static inline int pass_utf8(unsigned char *word, int len)
 {
-	len -= 1;
-
-	if (word[len] < 0x80)
+	if (word[len - 1] < 0x80)
 		return 1;
-	if (word[len] > 0xbf || len < 2)
+	if (word[len - 1] > 0xbf || len < 2)
 		return 0;
-	if (word[len - 1] >= 0xc0 && word[len - 1] <= 0xdf)
+	if (word[len - 2] >= 0xc0 && word[len - 1] <= 0xdf)
 		return 1;
-	if (len >= 3 && word[len - 2] >= 0xe0 && word[len - 2]<= 0xef)
+	if (len >= 3 && word[len - 3] >= 0xe0 && word[len - 3]<= 0xef)
 		return 1;
-	if (len >= 4 && word[len - 2] >= 0xf0 && word[len - 2]<= 0xf7)
+	if (len >= 4 && word[len - 3] >= 0xf0 && word[len - 3]<= 0xf7)
 		return 1;
 	return 0;
 }
