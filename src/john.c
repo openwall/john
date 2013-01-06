@@ -239,6 +239,8 @@ static void john_register_all(void)
 	if (options.format) strlwr(options.format);
 
 #ifdef CL_VERSION_1_0
+	john_register_one(&fmt_opencl_rawMD5);
+	john_register_one(&fmt_opencl_rawSHA1);
 	john_register_one(&fmt_opencl_DES);
 	john_register_one(&fmt_opencl_NSLDAPS);
 	john_register_one(&fmt_opencl_NT);
@@ -264,8 +266,6 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_pwsafe);
 	john_register_one(&fmt_opencl_rar);
 	john_register_one(&fmt_opencl_rawMD4);
-	john_register_one(&fmt_opencl_rawMD5);
-	john_register_one(&fmt_opencl_rawSHA1);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);
 	john_register_one(&fmt_opencl_strip);
