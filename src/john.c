@@ -239,22 +239,78 @@ static void john_register_all(void)
 
 	if (options.format) strlwr(options.format);
 
-	// NOTE, this MUST happen, before ANY format that links a 'thin' format to dynamic.
-	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
-	// generic format first
-	cnt = dynamic_Register_formats(&selfs);
+#ifdef CL_VERSION_1_0
+	john_register_one(&fmt_opencl_DES);
+	john_register_one(&fmt_opencl_NSLDAPS);
+	john_register_one(&fmt_opencl_NT);
+	john_register_one(&fmt_opencl_NTLMv2);
+	john_register_one(&fmt_opencl_agilekeychain);
+	john_register_one(&fmt_opencl_bf);
+	john_register_one(&fmt_opencl_cryptMD5);
+	john_register_one(&fmt_opencl_cryptsha256);
+	john_register_one(&fmt_opencl_cryptsha512);
+	john_register_one(&fmt_opencl_dmg);
+	john_register_one(&fmt_opencl_encfs);
+	john_register_one(&fmt_opencl_gpg);
+	john_register_one(&fmt_opencl_keychain);
+	john_register_one(&fmt_opencl_krb5pa_sha1);
+	john_register_one(&fmt_opencl_mscash2);
+	john_register_one(&fmt_opencl_mysqlsha1);
+	john_register_one(&fmt_opencl_odf);
+	john_register_one(&fmt_opencl_odf_aes);
+	john_register_one(&fmt_opencl_office2007);
+	john_register_one(&fmt_opencl_office2010);
+	john_register_one(&fmt_opencl_office2013);
+	john_register_one(&fmt_opencl_phpass);
+	john_register_one(&fmt_opencl_pwsafe);
+	john_register_one(&fmt_opencl_rar);
+	john_register_one(&fmt_opencl_rawMD4);
+	john_register_one(&fmt_opencl_rawMD5);
+	john_register_one(&fmt_opencl_rawSHA1);
+	john_register_one(&fmt_opencl_rawsha512);
+	john_register_one(&fmt_opencl_rawsha512_ng);
+	john_register_one(&fmt_opencl_strip);
+	john_register_one(&fmt_opencl_sxc);
+	john_register_one(&fmt_opencl_wpapsk);
+	john_register_one(&fmt_opencl_xsha512);
+	john_register_one(&fmt_opencl_xsha512_ng);
+	john_register_one(&fmt_opencl_zip);
+        john_register_one(&fmt_opencl_rawsha256);
+#endif
+#ifdef HAVE_CUDA
+	john_register_one(&fmt_cuda_cryptmd5);
+	john_register_one(&fmt_cuda_cryptsha256);
+	john_register_one(&fmt_cuda_cryptsha512);
+	john_register_one(&fmt_cuda_mscash);
+	john_register_one(&fmt_cuda_mscash2);
+	john_register_one(&fmt_cuda_phpass);
+	john_register_one(&fmt_cuda_pwsafe);
+	john_register_one(&fmt_cuda_rawsha224);
+	john_register_one(&fmt_cuda_rawsha256);
+	john_register_one(&fmt_cuda_rawsha512);
+	john_register_one(&fmt_cuda_wpapsk);
+	john_register_one(&fmt_cuda_xsha512);
+#endif
 
+	/* Core formats */
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+
 	john_register_one(&fmt_NT);
 
+	/* Dynamic formats */
+	// NOTE, this MUST happen, before ANY format that links a 'thin' format to dynamic.
+	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
+	// generic format first
+	cnt = dynamic_Register_formats(&selfs);
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
+	/* Plugin formats */
 #include "fmt_registers.h"
 
 	john_register_one(&fmt_hmacMD5);
@@ -296,60 +352,6 @@ static void john_register_all(void)
 #endif
 	john_register_one(&fmt_zip);
 	john_register_one(&fmt_dummy);
-
-#ifdef CL_VERSION_1_0
-	john_register_one(&fmt_opencl_NSLDAPS);
-	john_register_one(&fmt_opencl_rawMD4);
-	john_register_one(&fmt_opencl_rawMD5);
-	john_register_one(&fmt_opencl_NT);
-	john_register_one(&fmt_opencl_rawSHA1);
-	john_register_one(&fmt_opencl_cryptMD5);
-	john_register_one(&fmt_opencl_phpass);
-	john_register_one(&fmt_opencl_mysqlsha1);
-	john_register_one(&fmt_opencl_cryptsha256);
-	john_register_one(&fmt_opencl_cryptsha512);
-	john_register_one(&fmt_opencl_mscash2);
-	john_register_one(&fmt_opencl_wpapsk);
-	john_register_one(&fmt_opencl_keychain);
-	john_register_one(&fmt_opencl_agilekeychain);
-	john_register_one(&fmt_opencl_strip);
-	john_register_one(&fmt_opencl_zip);
-	john_register_one(&fmt_opencl_encfs);
-	john_register_one(&fmt_opencl_odf);
-	john_register_one(&fmt_opencl_odf_aes);
-	john_register_one(&fmt_opencl_sxc);
-	john_register_one(&fmt_opencl_gpg);
-	john_register_one(&fmt_opencl_dmg);
-	john_register_one(&fmt_opencl_xsha512);
-	john_register_one(&fmt_opencl_xsha512_ng);
-	john_register_one(&fmt_opencl_rawsha512);
-	john_register_one(&fmt_opencl_rawsha512_ng);
-        john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_bf);
-	john_register_one(&fmt_opencl_pwsafe);
-	john_register_one(&fmt_opencl_DES);
-	john_register_one(&fmt_opencl_office2007);
-	john_register_one(&fmt_opencl_office2010);
-	john_register_one(&fmt_opencl_office2013);
-	john_register_one(&fmt_opencl_NTLMv2);
-	john_register_one(&fmt_opencl_krb5pa_sha1);
-	john_register_one(&fmt_opencl_rar);
-#endif
-
-#ifdef HAVE_CUDA
-	john_register_one(&fmt_cuda_cryptmd5);
-	john_register_one(&fmt_cuda_phpass);
-	john_register_one(&fmt_cuda_cryptsha256);
-	john_register_one(&fmt_cuda_cryptsha512);
-	john_register_one(&fmt_cuda_mscash);
-	john_register_one(&fmt_cuda_mscash2);
-	john_register_one(&fmt_cuda_rawsha256);
-	john_register_one(&fmt_cuda_rawsha224);
-	john_register_one(&fmt_cuda_xsha512);
-	john_register_one(&fmt_cuda_wpapsk);
-	john_register_one(&fmt_cuda_rawsha512);
-	john_register_one(&fmt_cuda_pwsafe);
-#endif
 
 #ifdef HAVE_DL
 	if (options.fmt_dlls)
