@@ -72,8 +72,6 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
-	{"markov-stats", FLG_MKV_SET, FLG_CRACKING_CHK,
-		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
@@ -189,7 +187,6 @@ static struct opt_entry opt_list[] = {
 "--rules[=SECTION]         enable word mangling rules for wordlist modes\n" \
 "--incremental[=MODE]      \"incremental\" mode [using section MODE]\n" \
 "--markov[=OPTIONS]        \"Markov\" mode (see doc/MARKOV)\n" \
-"--markov-stats[=FILE]     \"Markov\" stats file (see doc/MARKOV)\n" \
 "--external=MODE           external mode or word filter\n" \
 "--stdout[=LENGTH]         just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]          restore an interrupted session [called NAME]\n" \
