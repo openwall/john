@@ -157,7 +157,6 @@ struct options_main {
 
 /* Markov stuff */
 	char *mkv_param;
-	char *mkv_stats;
 
 /* Maximum plaintext length for stdout mode */
 	int length;
