@@ -118,9 +118,9 @@
 /* Request to not vectorize */
 #define FLG_SCALAR			0x0000020000000000ULL
 #endif
-
-#define FLG_MSK_CHK         0x1000000000000000ULL
-#define FLG_MSK_SET         (FLG_MSK_CHK | FLG_CRACKING_SET)
+/* Mask mode */
+#define FLG_MSK_CHK			0x0000040000000000ULL
+#define FLG_MSK_SET			(FLG_MSK_CHK | FLG_CRACKING_SET)
 
 
 /*
@@ -152,7 +152,7 @@ struct options_main {
 	char *charset;
 
 /* Mask Mode parameters */
-    char *mask_param;
+	char *mask_param;
 
 /* The non-default input character set (utf8, ansi, iso-8859-1, etc)
    as given by the user (might be with/without dash and lower/upper case
