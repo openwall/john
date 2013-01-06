@@ -97,6 +97,7 @@ extern int CPU_detect(void);
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_AFS, fmt_LM;
+extern struct fmt_main fmt_NT;
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
@@ -220,8 +221,12 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	if (options.format)
-	if (strcmp(options.format, format->params.label)) return;
+	if (options.format) {
+		// -format=dynamic is working again.  It was 'broke' when switched to thin dynamic format structures.
+		if (!strcmp(options.format, "dynamic")) {
+			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
+		} else if (strcmp(options.format, format->params.label)) return;
+	}
 
 	fmt_register(format);
 }
@@ -244,6 +249,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+	john_register_one(&fmt_NT);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));

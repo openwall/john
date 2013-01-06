@@ -131,6 +131,8 @@ JOHN_OBJS = \
 	rawSHA1_ng_fmt.o \
 	plugin.o \
 	dummy.o \
+	NT_fmt.o \
+	gost.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
 	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
@@ -214,7 +216,7 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
-	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
+	../run/ssh2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
@@ -222,14 +224,14 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
-	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
+	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
 	../run/keychain2john.com ../run/keyring2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
-	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
+	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
@@ -238,7 +240,7 @@ PROJ_WIN32 = ../run/john.exe \
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
-	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
+	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
@@ -1574,10 +1576,6 @@ opencl_mscash2_fmt.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.o
 	$(RM) ../run/zip2john
 	ln -s john ../run/zip2john
 
-../run/pdf2john: ../run/john
-	$(RM) ../run/pdf2john
-	ln -s john ../run/pdf2john
-
 ../run/rar2john: ../run/john
 	$(RM) ../run/rar2john
 	ln -s john ../run/rar2john
@@ -1642,9 +1640,6 @@ endif
 
 ../run/keyring2john.com: john.com
 	copy john.com ..\run\keyring2john.com
-
-../run/pdf2john.com: john.com
-	copy john.com ..\run\pdf2john.com
 
 ../run/rar2john.com: john.com
 	copy john.com ..\run\rar2john.com
@@ -1725,10 +1720,6 @@ john.com: john.asm
 ../run/keyring2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keyring2john.exe
 	strip ../run/keyring2john.exe
-
-../run/pdf2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pdf2john.exe
-	strip ../run/pdf2john.exe
 
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
@@ -1829,6 +1820,9 @@ miscnl.o: misc.c
 
 bench-t.o: bench.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_BENCH_TMP bench.c -o bench-t.o
+
+*_fmt_plug.c: Makefile john.c
+	@
 
 fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
 	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_externs.h

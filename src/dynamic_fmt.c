@@ -1146,11 +1146,6 @@ key_cleaning:
 			unsigned int len;
 			ARCH_WORD_32 temp;
 
-#ifndef SHA1_SSE_PARA
-			if (!index)
-				memset(total_len, 0, sizeof(total_len));
-#endif
-
 			len = 0;
 			while((temp = JOHNSWAP(*key32++)) & 0xff000000) {
 				if (!(temp & 0xff0000))
@@ -1236,6 +1231,9 @@ static void clear_keys(void) {
 		DynamicFunc__clean_input_kwik();
 #else
 	DynamicFunc__clean_input_full();
+#endif
+#ifndef SHA1_SSE_PARA
+	memset(total_len, 0, sizeof(total_len));
 #endif
 }
 

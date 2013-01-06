@@ -21,7 +21,7 @@
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL        "npdf"
+#define FORMAT_LABEL        "pdf"
 #define FORMAT_NAME         "PDF MD5 SHA-2 RC4 / AES"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
@@ -59,12 +59,12 @@ static struct custom_salt {
 	int length_oe;
 } *crypt;
 
-static struct fmt_tests npdf_tests[] = {
-	{"$npdf$4*4*128*-1028*1*16*e03460febe17a048b0adc7f7631bcc56*32*3456205208ad52066d5604018d498a6400000000000000000000000000000000*32*6d598152b22f8fa8085b19a866dce1317f645788a065a74831588a739a579ac4", "openwall"},
-	{"$npdf$2*3*128*-4*1*16*34b1b6e593787af681a9b63fa8bf563b*32*289ece9b5ce451a5d7064693dab3badf101112131415161718191a1b1c1d1e1f*32*badad1e86442699427116d3e5d5271bc80a27814fc5e80f815efeef839354c5f", "test"},
-	{"$npdf$4*4*128*-1028*1*16*c015cff8dbf99345ac91c84a45667784*32*0231a4c9cae29b53892874e168cfae9600000000000000000000000000000000*32*137ad7063db5114a66ce1900d47e5cab9c5d7053487d92ac978f54db86eca393", "testpassword"},
-	{"$npdf$5*6*256*-1028*1*16*05e5abeb21ad2e47adac1c2b2c7b7a31*127*51d3a6a09a675503383e5bc0b53da77ec5d5ea1d1998fb94e00a02a1c2e49313c177905272a4e8e68b382254ec8ed74800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*dc38f01ef129aae2fca847396465ed518f9c7cf4f2c8cb4399a849d0fe9110227739ab88ddc9a6cf388ae11941270af500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*b8e137baf316e0789ffa73f888d26495c14d31f2cfff3799e339e2fa078649f5*32*835a9e07461992791914c3d62d37493e07d140937529ab43e26ac2a657152c3c", "testpassword"},
-	{"$npdf$5*5*256*-1028*1*16*762896ef582ca042a15f380c63ab9f2c*127*8713e2afdb65df1d3801f77a4c4da4905c49495e7103afc2deb06d9fba7949a565143288823871270d9d882075a75da600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*15d0b992974ff80529e4b616b8c4c79d787705b6c8a9e0f85446498ae2432e0027d8406b57f78b60b11341a0757d7c4a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*a7a0f3891b469ba7261ce04752dad9c6de0db9c4155c4180e721938a7d9666c7*32*2fa9a0c52badebae2c19dfa7b0005a9cfc909b92babbe7db66a794e96a9f91e3", "openwall"},
+static struct fmt_tests pdf_tests[] = {
+	{"$pdf$4*4*128*-1028*1*16*e03460febe17a048b0adc7f7631bcc56*32*3456205208ad52066d5604018d498a6400000000000000000000000000000000*32*6d598152b22f8fa8085b19a866dce1317f645788a065a74831588a739a579ac4", "openwall"},
+	{"$pdf$2*3*128*-4*1*16*34b1b6e593787af681a9b63fa8bf563b*32*289ece9b5ce451a5d7064693dab3badf101112131415161718191a1b1c1d1e1f*32*badad1e86442699427116d3e5d5271bc80a27814fc5e80f815efeef839354c5f", "test"},
+	{"$pdf$4*4*128*-1028*1*16*c015cff8dbf99345ac91c84a45667784*32*0231a4c9cae29b53892874e168cfae9600000000000000000000000000000000*32*137ad7063db5114a66ce1900d47e5cab9c5d7053487d92ac978f54db86eca393", "testpassword"},
+	{"$pdf$5*6*256*-1028*1*16*05e5abeb21ad2e47adac1c2b2c7b7a31*127*51d3a6a09a675503383e5bc0b53da77ec5d5ea1d1998fb94e00a02a1c2e49313c177905272a4e8e68b382254ec8ed74800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*dc38f01ef129aae2fca847396465ed518f9c7cf4f2c8cb4399a849d0fe9110227739ab88ddc9a6cf388ae11941270af500000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*b8e137baf316e0789ffa73f888d26495c14d31f2cfff3799e339e2fa078649f5*32*835a9e07461992791914c3d62d37493e07d140937529ab43e26ac2a657152c3c", "testpassword"},
+	{"$pdf$5*5*256*-1028*1*16*762896ef582ca042a15f380c63ab9f2c*127*8713e2afdb65df1d3801f77a4c4da4905c49495e7103afc2deb06d9fba7949a565143288823871270d9d882075a75da600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*127*15d0b992974ff80529e4b616b8c4c79d787705b6c8a9e0f85446498ae2432e0027d8406b57f78b60b11341a0757d7c4a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000*32*a7a0f3891b469ba7261ce04752dad9c6de0db9c4155c4180e721938a7d9666c7*32*2fa9a0c52badebae2c19dfa7b0005a9cfc909b92babbe7db66a794e96a9f91e3", "openwall"},
 	{NULL}
 };
 
@@ -88,9 +88,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	if (strncmp(ciphertext,  "$npdf$", 6) != 0)
+	if (strncmp(ciphertext,  "$pdf$", 5) != 0)
 		goto err;
-	ctcopy += 6;
+	ctcopy += 5;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* V */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* R */
@@ -127,7 +127,7 @@ static void *get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
-	ctcopy += 6;	/* skip over "$npdf$" marker */
+	ctcopy += 5;	/* skip over "$pdf$" marker */
 	p = strtok(ctcopy, "*");
 	cs.V = atoi(p);
 	p = strtok(NULL, "*");
@@ -172,7 +172,7 @@ static void set_salt(void *salt)
 	}
 }
 
-static void npdf_set_key(char *key, int index)
+static void pdf_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -220,8 +220,7 @@ pdf_compute_encryption_key(unsigned char *password, int pwlen, unsigned char *ke
         /* Step 3 - pass O value */
         MD5_Update(&md5, crypt->o, 32);
 
-
-	/* Step 4 - pass P value as unsigned int, low-order byte first */
+        /* Step 4 - pass P value as unsigned int, low-order byte first */
         p = (unsigned int) crypt->P;
         buf[0] = (p) & 0xFF;
         buf[1] = (p >> 8) & 0xFF;
@@ -256,14 +255,12 @@ pdf_compute_encryption_key(unsigned char *password, int pwlen, unsigned char *ke
                         MD5_Init(&md5);
                         MD5_Update(&md5, buf, n);
                         MD5_Final(buf, &md5);
-		} */
-
-		md5_50(buf);
-	}
+                } */
+                md5_50(buf);
+        }
         /* Step 9 - the key is the first 'n' bytes of the result */
         memcpy(key, buf, n);
 }
-
 
 /* Compute an encryption key (PDF 1.7 ExtensionLevel 3 algorithm 3.2a) */
 
@@ -335,9 +332,9 @@ pdf_compute_hardened_hash_r6(unsigned char *password, int pwlen, unsigned char s
                         memcpy(data + j * data_len, data, data_len);
 
                 /* Step 3: encrypt data using data block as key and iv */
-		AES_set_encrypt_key(block, 128, &aes);
+                AES_set_encrypt_key(block, 128, &aes);
                 // aes_crypt_cbc(&aes, AES_ENCRYPT, data_len * 64, block + 16, data, data);
-		AES_cbc_encrypt(data, data, data_len * 64, &aes, block + 16, AES_ENCRYPT);
+                AES_cbc_encrypt(data, data, data_len * 64, &aes, block + 16, AES_ENCRYPT);
 
                 /* Step 4: determine SHA-2 hash size for this round */
                 for (j = 0, sum = 0; j < 16; j++)
@@ -356,7 +353,7 @@ pdf_compute_hardened_hash_r6(unsigned char *password, int pwlen, unsigned char s
                         SHA384_Init(&sha384);
                         SHA384_Update(&sha384, data, data_len * 64);
                         SHA384_Final(block, &sha384);
-			break;
+                        break;
                 case 64:
                         SHA512_Init(&sha512);
                         SHA512_Update(&sha512, data, data_len * 64);
@@ -383,42 +380,40 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 	if (crypt->R == 2) {
 		RC4_KEY arc4;
 		int n;
-                n = crypt->length / 8;
-                pdf_compute_encryption_key(password, pwlen, key);
+		n = crypt->length / 8;
+		pdf_compute_encryption_key(password, pwlen, key);
 		RC4_set_key(&arc4, n, key);
 		RC4(&arc4, 32, padding, output);
 	}
 
-	if (crypt->R == 3 || crypt->R == 4)
-        {
-                unsigned char xor[32];
-                unsigned char digest[16];
-                MD5_CTX md5;
+	if (crypt->R == 3 || crypt->R == 4) {
+		unsigned char xor[32];
+		unsigned char digest[16];
+		MD5_CTX md5;
 		RC4_KEY arc4;
-                int i, x, n;
-                n = crypt->length / 8;
-                pdf_compute_encryption_key(password, pwlen, key);
-                MD5_Init(&md5);
-                MD5_Update(&md5, (char*)padding, 32);
-        	MD5_Update(&md5, crypt->id, crypt->length_id);
-                MD5_Final(digest, &md5);
+		int i, x, n;
+		n = crypt->length / 8;
+		pdf_compute_encryption_key(password, pwlen, key);
+		MD5_Init(&md5);
+		MD5_Update(&md5, (char*)padding, 32);
+		MD5_Update(&md5, crypt->id, crypt->length_id);
+		MD5_Final(digest, &md5);
 		RC4_set_key(&arc4, n, key);
 		RC4(&arc4, 16, digest, output);
-                for (x = 1; x <= 19; x++)
-                {
-                        for (i = 0; i < n; i++)
-                                xor[i] = key[i] ^ x;
+		for (x = 1; x <= 19; x++) {
+			for (i = 0; i < n; i++)
+				xor[i] = key[i] ^ x;
 			RC4_set_key(&arc4, n, xor);
 			RC4(&arc4, 16, output, output);
-                }
-                memcpy(output + 16, padding, 16);
-        }
+		}
+		memcpy(output + 16, padding, 16);
+	}
 	if (crypt->R == 5) {
 		pdf_compute_encryption_key_r5(password, pwlen, 0, output);
 	}
 
 	/* SumatraPDF: support crypt version 5 revision 6 */
-        if (crypt->R == 6)
+	if (crypt->R == 6)
 		pdf_compute_hardened_hash_r6(password, pwlen, crypt->u + 32,  NULL, output);
 }
 
@@ -456,7 +451,7 @@ static int cmp_exact(char *source, int index)
 	return cracked[index];
 }
 
-struct fmt_main fmt_npdf = {
+struct fmt_main fmt_pdf = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -475,7 +470,7 @@ struct fmt_main fmt_npdf = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		npdf_tests
+		pdf_tests
 	},
 	{
 		init,
@@ -492,7 +487,7 @@ struct fmt_main fmt_npdf = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		npdf_set_key,
+		pdf_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

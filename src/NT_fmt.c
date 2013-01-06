@@ -315,7 +315,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
         if (!*pos && pos - ciphertext == CIPHERTEXT_LENGTH)
 		return 1;
         else
-        	return 0;
+		return 0;
 
 }
 
@@ -353,8 +353,8 @@ static void *get_binary(char *ciphertext)
 	ciphertext+=4;
 	for (; i<4; i++)
 	{
- 		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
- 		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
+		temp  = (atoi16[ARCH_INDEX(ciphertext[i*8+0])])<<4;
+		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+1])]);
 
 		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+2])])<<12;
 		temp |= (atoi16[ARCH_INDEX(ciphertext[i*8+3])])<<8;

@@ -41,7 +41,7 @@ class PdfParser:
 		i_d = i_d.replace('>','')
 		i_d = i_d.lower()
 		passwords = self.get_passwords_for_JtR(encryption_dictionary)
-		output = self.file_name+':$npdf$'+v+'*'+r+'*'+length+'*'+p+'*'+meta+'*'
+		output = self.file_name+':$pdf$'+v+'*'+r+'*'+length+'*'+p+'*'+meta+'*'
 		output += str(len(i_d)/2)+'*'+i_d+'*'+passwords
 		print output
 
@@ -107,7 +107,7 @@ class PdfParser:
 		if(trailer != "" and trailer.find("Encrypt") == -1):
 			raise "File not encrypted"
 		return trailer
-		
+
 	def get_data_between(self,s1, s2):
 		output = ""
 		inside_first = False
