@@ -70,6 +70,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.loader.activewordlistrules},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
+    {"mask", FLG_MSK_SET, FLG_CRACKING_CHK,
+        0, 0, OPT_FMT_STR_ALLOC, &options.mask_param},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,

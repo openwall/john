@@ -48,6 +48,7 @@
 #include "single.h"
 #include "wordlist.h"
 #include "inc.h"
+#include "mask.h"
 #include "mkv.h"
 #include "external.h"
 #include "batch.h"
@@ -1255,6 +1256,8 @@ static void john_run(void)
 		if (options.flags & FLG_INC_CHK)
 			do_incremental_crack(&database, options.charset);
 		else
+        if (options.flags & FLG_MSK_CHK)
+            do_mask_crack(&database, options.mask_param);
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
 		else

@@ -144,7 +144,8 @@ JOHN_OBJS = \
 	unshadow.o \
 	unafs.o \
 	undrop.o \
-	unique.o
+	unique.o \
+    mask.o
 
 OCL_OBJS = \
 	common-opencl.o common_opencl_pbkdf2.o opencl_mysqlsha1_fmt.o \
