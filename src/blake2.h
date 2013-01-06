@@ -21,7 +21,11 @@
 #define ALIGN(x) __declspec(align(x))
 #define inline _inline
 #else
+#if !defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__)
 #define ALIGN(x) __attribute__((aligned(x)))
+#else
+#define ALIGN(x) __attribute__ ((__aligned__(x)))
+#endif
 #endif
 
 #if defined(__cplusplus)
@@ -96,8 +100,11 @@ extern "C" {
     size_t   buflen;
     uint8_t  last_node;
   } blake2b_state;
-
+#if !defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__)
   typedef struct __blake2sp_state
+#else
+  ALIGN( 64 ) typedef struct __blake2sp_state
+#endif
   {
     blake2s_state S[8][1];
     blake2s_state R[1];
@@ -105,7 +112,11 @@ extern "C" {
     size_t  buflen;
   } blake2sp_state;
 
+#if !defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__)
   typedef struct __blake2bp_state
+#else
+  ALIGN( 64 ) typedef struct __blake2bp_state
+#endif
   {
     blake2b_state S[4][1];
     blake2b_state R[1];
