@@ -221,8 +221,12 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	if (options.format)
-	if (strcmp(options.format, format->params.label)) return;
+	if (options.format) {
+		// -format=dynamic is working again.  It was 'broke' when switched to thin dynamic format structures.
+		if (!strcmp(options.format, "dynamic")) {
+			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
+		} else if (strcmp(options.format, format->params.label)) return;
+	}
 
 	fmt_register(format);
 }

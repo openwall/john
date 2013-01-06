@@ -204,7 +204,7 @@ char *fmt_self_test(struct fmt_main *format)
 		if (index == 1 && lengthcheck == 1 && max > 1) {
 			lengthcheck = 3;
 
-			for (i = 1; i < max; i++) {
+			for (i = 0; i < max; i++) {
 				if (i == index) continue;
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
