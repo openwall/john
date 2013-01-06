@@ -97,6 +97,7 @@ extern int CPU_detect(void);
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_AFS, fmt_LM;
+extern struct fmt_main fmt_NT;
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
@@ -244,6 +245,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+	john_register_one(&fmt_NT);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));

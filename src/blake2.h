@@ -19,6 +19,7 @@
 
 #if defined(_MSC_VER)
 #define ALIGN(x) __declspec(align(x))
+#define inline _inline
 #else
 #define ALIGN(x) __attribute__((aligned(x)))
 #endif

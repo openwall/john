@@ -430,9 +430,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (!mode) {
 		if (db->format == &fmt_LM)
 			mode = "LanMan";
-		else if (db->format == &fmt_NETLM)
+		//else if (db->format == &fmt_NETLM) // This format is a *_plug.c, so decouple from using any linked data
+		else if (!strcmp(db->format->params.label, "netlm"))
 			mode = "LanMan";
-		else if (db->format == &fmt_NETHALFLM)
+		//else if (db->format == &fmt_NETHALFLM) // This format is a *_plug.c, so decouple from using any linked data
+		else if (!strcmp(db->format->params.label, "nethalflm"))
 			mode = "LanMan";
 		else
 			mode = "All";
