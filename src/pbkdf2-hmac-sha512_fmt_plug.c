@@ -88,7 +88,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ptr, *ctcopy, *keeptr;
 
-	if (strncmp(ciphertext, FORMAT_TAG, strlen(FORMAT_TAG)))
+	if (strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
 		return 0;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;

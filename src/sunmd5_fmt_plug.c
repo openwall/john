@@ -246,7 +246,7 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *cp;
-	if (strncmp(ciphertext, MAGIC, strlen(MAGIC)) && strncmp(ciphertext, MAGIC2, strlen(MAGIC2)))
+	if (strncmp(ciphertext, MAGIC, sizeof(MAGIC) - 1) && strncmp(ciphertext, MAGIC2, sizeof(MAGIC2) - 1))
 		return 0;
 	cp = strrchr(ciphertext, '$');
 	if (!cp) return 0;

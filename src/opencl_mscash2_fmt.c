@@ -288,20 +288,17 @@ static void done()
 static int valid(char *ciphertext,struct fmt_main *self)
 {
 	char *hash;
-
 	char *pos;
-
 	int hashlength = 0;
-
 	int saltlength = 0;
 
-	if(strncmp(ciphertext, MSCASH2_PREFIX, strlen(MSCASH2_PREFIX)) != 0) 		return 0;
+	if(strncmp(ciphertext, MSCASH2_PREFIX, sizeof(MSCASH2_PREFIX) - 1) != 0)
+		return 0;
 
 	hash = strrchr(ciphertext, '#') + 1;
 
 	if (hash == NULL)
 	    return 0;
-
 
 	while (hash < ciphertext + strlen(ciphertext))
 	      {
