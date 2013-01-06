@@ -63,6 +63,23 @@ static void fix_state(void)
 	tidx = gidx;
 }
 
+static inline int pass_utf8(unsigned char *word, int len)
+{
+	len -= 1;
+
+	if (word[len] < 0x80)
+		return 1;
+	if (word[len] > 0xbf || len < 2)
+		return 0;
+	if (word[len - 1] >= 0xc0 && word[len - 1] <= 0xdf)
+		return 1;
+	if (len >= 3 && word[len - 2] >= 0xe0 && word[len - 2]<= 0xef)
+		return 1;
+	if (len >= 4 && word[len - 2] >= 0xf0 && word[len - 2]<= 0xf7)
+		return 1;
+	return 0;
+}
+
 static int show_pwd_rnbs(struct s_pwd * pwd)
 {
 	unsigned long long i;
@@ -90,6 +107,7 @@ static int show_pwd_rnbs(struct s_pwd * pwd)
 		{
 			pass = (char*) pwd->password;
 			if (!f_filter || ext_filter_body((char*) pwd->password, pass = pass_filtered))
+				if(!options.utf8 || pass_utf8((unsigned char*)pwd->password, pwd->len))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -133,6 +151,7 @@ static int show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		{
 			pass = (char*) pwd->password;
 			if (!f_filter || ext_filter_body((char*)pwd->password, pass = pass_filtered))
+				if(!options.utf8 || pass_utf8((unsigned char*)pwd->password, pwd->len))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -154,6 +173,7 @@ static int show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		{
 			pass = (char*) pwd->password;
 			if (!f_filter || ext_filter_body((char*)pwd->password, pass = pass_filtered))
+				if(!options.utf8 || pass_utf8((unsigned char*)pwd->password, pwd->len))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -193,6 +213,7 @@ static int show_pwd(unsigned long long start)
 		{
 			pass = (char*) pwd.password;
 			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
+				if(!options.utf8 || pass_utf8((unsigned char*)pwd.password, pwd.len))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -213,6 +234,7 @@ static int show_pwd(unsigned long long start)
 		{
 			pass = (char*) pwd.password;
 			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
+				if(!options.utf8 || pass_utf8((unsigned char*)pwd.password, pwd.len))
 				if(crk_process_key(pass))
 					return 1;
 		}
