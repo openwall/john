@@ -6,9 +6,9 @@
  * Re-used for BLAKE2 by Dhiru Kholia (dhiru at openwall.com)
  */
 
-#include "blake2.h"
-
 #include "arch.h"
+
+#include "blake2.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
@@ -19,9 +19,21 @@
 #include <omp.h>
 #endif
 
-#define FORMAT_LABEL			"raw-blake2-512"
-#define FORMAT_NAME			"BLAKE2 512"
+#define FORMAT_LABEL			"raw-blake2"
+#define FORMAT_NAME			"BLAKE2b 512"
+#if defined(__AVX__)
+#define ALGORITHM_NAME			"AVX"
+#elif defined(__XOP__)
+#define ALGORITHM_NAME			"XOP"
+#elif defined(__SSE4_1__)
+#define ALGORITHM_NAME			"SSE4.1"
+#elif defined(__SSSE3__)
+#define ALGORITHM_NAME			"SSSE3"
+#elif defined(__SSE2__)
+#define ALGORITHM_NAME			"SSE2"
+#else
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1

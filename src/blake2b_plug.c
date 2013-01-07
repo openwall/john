@@ -20,7 +20,6 @@
 
 #include "blake2-config.h"
 
-
 #include <emmintrin.h>
 #if defined(HAVE_SSSE3)
 #include <tmmintrin.h>
