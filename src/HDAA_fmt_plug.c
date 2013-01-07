@@ -161,7 +161,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int nb = 0;
 	int i;
 
-	if (strncmp(ciphertext, MAGIC, strlen(MAGIC)) != 0)
+	if (strncmp(ciphertext, MAGIC, sizeof(MAGIC) - 1) != 0)
 		return 0;
 	for (i = 0; ciphertext[i] != 0; i++) {
 		if (ciphertext[i] == SEPARATOR) {
