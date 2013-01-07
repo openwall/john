@@ -41,13 +41,13 @@ typedef struct {
  *dev_no = j seclcts the (j+1)th device on (i+1) th platform.
  * Returns optimal work group size for selected device
  */
-extern size_t select_device(int,int);
+extern size_t select_device(int,int,struct fmt_main *);
 
 /*Same as above with platform_no and dev_no both set to 0.
  * It selects the first device of the first platform.
  * Returns optimal work group size.
  */
-extern size_t select_default_device(void);
+extern size_t select_default_device(struct fmt_main *);
 
 /*void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num)
  * Arguments:
