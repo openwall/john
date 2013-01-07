@@ -38,7 +38,7 @@
 #define SALT_SIZE			0
 
 #define FORMAT_TAG			"$dynamic_0$"
-#define TAG_LENGTH			11
+#define TAG_LENGTH			(sizeof(FORMAT_TAG) - 1)
 
 static struct fmt_tests tests[] = {
 	{"5a105e8b9d40e1329780d62ea2265d8a","test1"},

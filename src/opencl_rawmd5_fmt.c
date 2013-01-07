@@ -30,6 +30,9 @@
 #define BINARY_SIZE         4
 #define SALT_SIZE           0
 
+#define FORMAT_TAG          "$dynamic_0$"
+#define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
+
 cl_command_queue queue_prof;
 cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys;
 static cl_uint *partial_hashes;
@@ -278,24 +281,29 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
+
 	p = ciphertext;
-	if (!strncmp(p, "$MD5$", 5))
-		p += 5;
+	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+		p += TAG_LENGTH;
+
 	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F) {
+		if (*q >= 'A' && *q <= 'F') /* support lowercase only */
+			return 0;
 		q++;
+	}
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
 static char *split(char *ciphertext, int index)
 {
-	static char out[5 + CIPHERTEXT_LENGTH + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
-	if (!strncmp(ciphertext, "$MD5$", 5))
+	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
 
-	memcpy(out, "$MD5$", 5);
-	memcpy(out + 5, ciphertext, CIPHERTEXT_LENGTH + 1);
+	memcpy(out, FORMAT_TAG, TAG_LENGTH);
+	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
 
