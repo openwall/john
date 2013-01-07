@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# Written in 2013 by Shane Quigley, < shane at softwareontheside.info >
+
 import re
 import sys
 
