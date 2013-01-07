@@ -1229,12 +1229,13 @@ static void clear_keys(void) {
 		DynamicFunc__clean_input_full();
 	else
 		DynamicFunc__clean_input_kwik();
-#else
-	DynamicFunc__clean_input_full();
-#endif
 #ifndef SHA1_SSE_PARA
 	memset(total_len, 0, sizeof(total_len));
 #endif
+#else
+	DynamicFunc__clean_input_full();
+#endif
+
 }
 
 /*********************************************************************************
@@ -6827,7 +6828,7 @@ void DynamicFunc__LargeHash_OUTMode_raw() {
 
 
 /******************************************************************************
- *****  These helper functions are used by all of the 'LARGE' hash functions. 
+ *****  These helper functions are used by all of the 'LARGE' hash functions.
  *****  These are used to convert an 'out' into the proper format, and writing
  *****  it to the buffer.  Currently we handle base-16, base-16u, base-64 and
  *****  raw buffer writting. These functions do not return any count of bytes
