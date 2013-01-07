@@ -84,9 +84,9 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	cl_device_type dTyp;
 
-	cl_uint *dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*64000);
+	cl_uint *dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*((MAX_KEYS_PER_CRYPT<65536)?MAX_KEYS_PER_CRYPT:65536));
 
-	cl_uint *dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*64000);
+	cl_uint *dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*((MAX_KEYS_PER_CRYPT<65536)?MAX_KEYS_PER_CRYPT:65536));
 
 	cl_uint salt_api[9],length=10;
 
@@ -94,13 +94,15 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	HANDLE_CLERROR(clGetDeviceInfo(devid[pltform_no][dev_no],CL_DEVICE_TYPE,sizeof(cl_device_type),&dTyp,NULL),"Failed Device Info");
 
+	if(dTyp==CL_DEVICE_TYPE_CPU)	lws[pltform_no][dev_no]= 1;
+	
+	else				lws[pltform_no][dev_no]= 16;
+	   
 	///Set Dummy DCC hash , unicode salt and ascii salt(username) length
 
-	memset(dcc_hash_host,0xb5,4*sizeof(cl_uint)*64000);
+	memset(dcc_hash_host,0xb5,4*sizeof(cl_uint)*((MAX_KEYS_PER_CRYPT<65536)?MAX_KEYS_PER_CRYPT:65536));
 
 	memset(salt_api,0xfe,9*sizeof(cl_uint));
-
-
 
 	cmdq[pltform_no][dev_no] = clCreateCommandQueue(cntxt[pltform_no][dev_no], devid[pltform_no][dev_no], CL_QUEUE_PROFILING_ENABLE,&err);
 
@@ -110,20 +112,23 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	kernelExecTimeNs = CL_ULONG_MAX;
 
-
 	///Find best local work size
 	while(1){
 		_lws=lws[pltform_no][dev_no];
 
 		if(dTyp==CL_DEVICE_TYPE_CPU){
 
-			exec_pbkdf2(dcc_hash_host,salt_api,length,dcc2_hash_host,4000,pltform_no,dev_no );
+			exec_pbkdf2(dcc_hash_host,salt_api,length,dcc2_hash_host,4096,pltform_no,dev_no );
 
 			exec_time_inv[pltform_no][dev_no]=exec_time_inv[pltform_no][dev_no]/16;
 		}
-		else
-			exec_pbkdf2(dcc_hash_host,salt_api,length,dcc2_hash_host,64000,pltform_no,dev_no );
-
+		else {
+			exec_pbkdf2(dcc_hash_host,salt_api,length,dcc2_hash_host,((MAX_KEYS_PER_CRYPT<65536)?MAX_KEYS_PER_CRYPT:65536),pltform_no,dev_no );
+		
+			exec_time_inv[pltform_no][dev_no]=exec_time_inv[pltform_no][dev_no]*((MAX_KEYS_PER_CRYPT<65536)?MAX_KEYS_PER_CRYPT:65536)/65536;
+			  
+		}
+		
 		if(lws[pltform_no][dev_no]<=_lws) break;
 	}
 
@@ -137,14 +142,33 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 	MEM_FREE(dcc2_hash_host);
 
-
 }
 
-size_t 	select_device(int platform_no,int dev_no)
-{
-      	lws[platform_no][dev_no]= 16;
+static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
+	
+	long int gds_size ;
+	
+	static long int total_exec_time_inv;
+	
+	total_exec_time_inv +=  exec_time_inv[pltform_no][dev_no] ;
+	
+	gds_size = (long int)total_exec_time_inv*163840 ;
+	
+	gds_size = (gds_size/8192 + 1 )*8192 ;
+	
+	gds_size = (gds_size<MAX_KEYS_PER_CRYPT)?gds_size:MAX_KEYS_PER_CRYPT ;
+	
+	gds_size = (gds_size>8192)?gds_size:8192 ;
+	
+	fmt->params.max_keys_per_crypt = gds_size ;
+	
+	fmt->params.min_keys_per_crypt = lws[pltform_no][dev_no] ;
+	
+}
 
-	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", dev_no, platform_no);
+size_t 	select_device(int platform_no,int dev_no,struct fmt_main *fmt)
+{
+      	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", dev_no, platform_no);
 
 	pltfrmid[platform_no]=platform[platform_no];
 
@@ -191,6 +215,8 @@ size_t 	select_device(int platform_no,int dev_no)
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][2],1,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].hash_out_gpu),"Set Kernel Arg FAILED arg1");
 
 	find_best_workgroup(platform_no,dev_no);
+	
+	find_best_gws(platform_no,dev_no,fmt) ;
 
 	cmdq[platform_no][dev_no]=queue[dev_no];
 
@@ -201,9 +227,9 @@ size_t 	select_device(int platform_no,int dev_no)
 	return lws[platform_no][dev_no];
 }
 
-size_t select_default_device()
+size_t select_default_device(struct fmt_main *fmt)
 {
-	  return select_device(0,0);
+	  return select_device(0,0,fmt);
 }
 
 
