@@ -312,7 +312,7 @@ static void *get_binary(char *ciphertext)
 	static unsigned char out[DIGEST_SIZE];
 	char *p;
 	int i;
-	p = ciphertext + 5;
+	p = ciphertext + TAG_LENGTH;
 	for (i = 0; i < sizeof(out); i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;

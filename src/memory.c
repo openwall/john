@@ -154,6 +154,29 @@ void dump_stuff_msg_sepline(void *msg, void *x, unsigned int size) {
 	dump_stuff(x, size);
 }
 
+void dump_stuff_be_noeol(void *x, unsigned int size) {
+	unsigned int i;
+	for(i=0;i<size;i++)
+	{
+		printf("%.2x", ((unsigned char*)x)[i^3]);
+		if( (i%4)==3 )
+		printf(" ");
+	}
+}
+void dump_stuff_be(void* x, unsigned int size)
+{
+	dump_stuff_be_noeol(x,size);
+	printf("\n");
+}
+void dump_stuff_be_msg(void *msg, void *x, unsigned int size) {
+	printf("%s : ", (char *)msg);
+	dump_stuff_be(x, size);
+}
+void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size) {
+	printf("%s :\n", (char *)msg);
+	dump_stuff_be(x, size);
+}
+
 #if defined(MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 #ifndef MMX_COEF
 #define MMX_COEF	4
