@@ -388,13 +388,11 @@ BailOut:
 		} else
 			fprintf(stderr, "Did not find a valid encrypted candidate in %s\n", base_aname);
 	}
-	fclose(fp);
 
 err:
 	if (fp)
 		fclose(fp);
-	if (pp)
-		free(pp);
+	MEM_FREE(pp);
 
 }
 
