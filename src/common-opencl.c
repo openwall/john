@@ -454,9 +454,8 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 	cl_ulong long_entries;
 	int i, d;
 
-	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
-	                                &num_platforms),
-	               "Error querying for platforms");
+	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS)
+		goto err;
 
 	if (*platform_id == -1)
 		*platform_id = 0;
@@ -488,6 +487,7 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 			}
 		}
 	}
+err:
 	if (*platform_id < 0)
 		*platform_id = 0;
 	if (*dev_id < 0)
@@ -928,18 +928,13 @@ void listOpenCLdevices(void)
 	cl_uint num_platforms, num_devices, entries;
 	cl_ulong long_entries;
 	int i, d;
-	cl_int err;
 	size_t p_size;
 
 	/* Obtain list of platforms available */
-	err = clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms);
-	if (err != CL_SUCCESS) {
-		fprintf(stderr,
-		    "Error: Failure in clGetPlatformIDs, error code=%d \n",
-		    err);
+	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS) {
+		fprintf(stderr, "Error: No OpenCL-capable devices were detected by the installed OpenCL driver.\n\n");
 		return;
 	}
-	//printf("%d platforms found\n", num_platforms);
 
 	for (i = 0; i < num_platforms; i++) {
 		/* Obtain information about platform */
