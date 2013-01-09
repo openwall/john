@@ -24,7 +24,6 @@
 #include "external.h"
 #include "cracker.h"
 #include "options.h"
-#include "unicode.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -64,52 +63,6 @@ static void fix_state(void)
 	tidx = gidx;
 }
 
-static inline int valid_utf8(const UTF8 *source)
-{
-	UTF8 a;
-	int length;
-	const UTF8 *srcptr;
-
-	while (*source) {
-		if (*source < 0x80) {
-			source++;
-			continue;
-		}
-
-		length = opt_trailingBytesUTF8[*source & 0x3f] + 1;
-		srcptr = source + length;
-
-		switch (length) {
-		default:
-			return 0;
-			/* Everything else falls through when valid */
-		case 4:
-			if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-		case 3:
-			if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return 0;
-		case 2:
-			if ((a = (*--srcptr)) > 0xBF) return 0;
-
-			switch (*source) {
-				/* no fall-through in this inner switch */
-			case 0xE0: if (a < 0xA0) return 0; break;
-			case 0xED: if (a > 0x9F) return 0; break;
-			case 0xF0: if (a < 0x90) return 0; break;
-			case 0xF4: if (a > 0x8F) return 0; break;
-			default:   if (a < 0x80) return 0;
-			}
-
-		case 1:
-			if (*source >= 0x80 && *source < 0xC2) return 0;
-		}
-		if (*source > 0xF4)
-			return 0;
-
-		source += length;
-	}
-	return 1;
-}
-
 static int show_pwd_rnbs(struct s_pwd * pwd)
 {
 	unsigned long long i;
@@ -137,7 +90,6 @@ static int show_pwd_rnbs(struct s_pwd * pwd)
 		{
 			pass = (char*) pwd->password;
 			if (!f_filter || ext_filter_body((char*) pwd->password, pass = pass_filtered))
-				if(!options.utf8 || valid_utf8(pwd->password))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -181,7 +133,6 @@ static int show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		{
 			pass = (char*) pwd->password;
 			if (!f_filter || ext_filter_body((char*)pwd->password, pass = pass_filtered))
-				if(!options.utf8 || valid_utf8(pwd->password))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -203,7 +154,6 @@ static int show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 		{
 			pass = (char*) pwd->password;
 			if (!f_filter || ext_filter_body((char*)pwd->password, pass = pass_filtered))
-				if(!options.utf8 || valid_utf8(pwd->password))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -243,7 +193,6 @@ static int show_pwd(unsigned long long start)
 		{
 			pass = (char*) pwd.password;
 			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
-				if(!options.utf8 || valid_utf8(pwd.password))
 				if(crk_process_key(pass))
 					return 1;
 		}
@@ -264,7 +213,6 @@ static int show_pwd(unsigned long long start)
 		{
 			pass = (char*) pwd.password;
 			if (!f_filter || ext_filter_body((char*)pwd.password, pass = pass_filtered))
-				if(!options.utf8 || valid_utf8(pwd.password))
 				if(crk_process_key(pass))
 					return 1;
 		}
