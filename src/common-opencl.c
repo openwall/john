@@ -109,8 +109,6 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(clGetDeviceIDs(platform[platform_id],
 		CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
 	    "No OpenCL device of that type exist");
-	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n", platform_id,
-	    opencl_log, device_num);
 
 	properties[0] = CL_CONTEXT_PLATFORM;
 	properties[1] = (cl_context_properties) platform[platform_id];
@@ -118,7 +116,9 @@ static void dev_init(unsigned int dev_id, unsigned int platform_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying DEVICE_NAME");
-	fprintf(stderr, "Using device %d: %s\n", dev_id, opencl_log);
+	fprintf(stderr, "OpenCL platform %d, using device %d: %s\n", platform_id, dev_id, opencl_log);
+       
+        
 	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
 		CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL), "Error querying MAX_WORK_GROUP_SIZE");
