@@ -33,7 +33,7 @@ typedef unsigned WORD vtype;
 
 	static cl_command_queue cmdq[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];
 
-	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM][2000];
+	static cl_kernel krnl[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM][4096];
 
 	static cl_int err;
 
@@ -43,7 +43,7 @@ typedef unsigned WORD vtype;
 	
 	static int set_salt = 0;
 	
-        static WORD stored_salt[2000];
+        static WORD stored_salt[4096]= {0x7fffffff};
 
         static   int ctr;
         
@@ -286,17 +286,14 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	N = section;  
 	
 	if(set_salt == 1){ 
-		unsigned int i;
 		unsigned int found = 0;
-		for(i=0; i < ctr; i++) 
-			if(stored_salt[i]==current_salt){ 
-				found = 1;
-				pos=i;
-				break;
-			} 
+		 if(stored_salt[current_salt]==current_salt){ 
+			found = 1;
+			pos=current_salt;
+		} 
 		
 		if(found==0){
-			pos = ctr;
+			pos = current_salt;
 			modify_src();
 			clReleaseProgram(program[devno]);
 			build_kernel( devno, "-fno-bin-amdil -fno-bin-source -fno-bin-llvmir -fbin-exe") ;
@@ -306,8 +303,8 @@ void opencl_DES_bs_crypt_25(int keys_count)
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],1,sizeof(cl_mem),&index96_gpu),"Set Kernel Arg FAILED arg1\n");
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],2,sizeof(cl_mem),&opencl_DES_bs_data_gpu),"Set Kernel Arg FAILED arg2\n");
 			HANDLE_CLERROR(clSetKernelArg(krnl[pltfrmno][devno][pos],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
-			stored_salt[ctr] = current_salt;
-			ctr++;  
+			stored_salt[current_salt] = current_salt;
+			  
 		}
 				
 	        
