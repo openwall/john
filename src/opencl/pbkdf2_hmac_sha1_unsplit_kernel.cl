@@ -525,7 +525,7 @@ inline void pbkdf2(__global const uchar * pass, uint passlen,
 		              ipad_state, opad_state,
 		              tmp_out, iterations);
 
-		for (i = 0; i < 20 && t < outlen; i++, t++)
+		for (i = 0; i < 20 && t < (outlen + 3) / 4 * 4; i++, t++)
 			PUTCHAR_BE_G(out, t, ((uchar*)tmp_out)[i]);
 	}
 }
