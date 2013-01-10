@@ -18,8 +18,8 @@
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 
-#define KEYS_PER_CRYPT                  (1024 * 9)
-#define PLAINTEXT_LENGTH                15
+#define KEYS_PER_CRYPT		(64*1024)
+#define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 
 #define MIN(a,b) 		((a)<(b)?(a):(b))
 #define MAX(a,b) 		((a)>(b)?(a):(b))
@@ -28,13 +28,13 @@
 #define FORMAT_NAME		"md5crypt"
 #define KERNEL_NAME		"cryptmd5"
 
-#define ALGORITHM_NAME		"OpenCL (inefficient, development use mostly)"
+#define ALGORITHM_NAME		"OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 
 #define BINARY_SIZE		16
-#define SALT_SIZE		(8+1)					/** salt + prefix id **/
+#define SALT_SIZE		(8+1)	/** salt + prefix id **/
 
 #define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
 #define MAX_KEYS_PER_CRYPT	1
@@ -44,13 +44,13 @@
 #define DUR_CONFIG		"md5crypt_MaxDuration"
 
 typedef struct {
-	unsigned char saltlen;
+	unsigned int saltlen;
 	char salt[8];
 	char prefix;		/** 'a' when $apr1$ or '1' when $1$ **/
 } crypt_md5_salt;
 
 typedef struct {
-	unsigned char length;
+	unsigned int length;
 	unsigned char v[PLAINTEXT_LENGTH];
 } crypt_md5_password;
 
@@ -59,9 +59,9 @@ typedef struct {
 } crypt_md5_hash;
 
 
-static crypt_md5_password *inbuffer;			/** plaintext ciphertexts **/
-static crypt_md5_hash *outbuffer;			/** calculated hashes **/
-static crypt_md5_salt host_salt;			/** salt **/
+static crypt_md5_password *inbuffer;		/** plaintext ciphertexts **/
+static crypt_md5_hash *outbuffer;		/** calculated hashes **/
+static crypt_md5_salt host_salt;		/** salt **/
 
 static const char md5_salt_prefix[] = "$1$";
 static const char apr1_salt_prefix[] = "$apr1$";
@@ -72,49 +72,48 @@ static size_t insize, outsize;
 static size_t saltsize = sizeof(crypt_md5_salt);
 static int new_keys;
 
-//tests are unified for 8+8 length
 static struct fmt_tests tests[] = {
-/*	   {"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/","qwerty"},
-	   {"$1$salt$c813W/s478KCzR0NnHx7j0","qwerty"},
-	   {"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/","john"},
-	   {"$1$salt$TelRRxWBCxlpXmgAeB82R/","openwall"},
-	   {"$1$salt$l9PzDiECW83MOIMFTRL4Y1","summerofcode"},
-	   {"$1$salt$wZ2yVsplRoPoD7IfTvRsa0","IamMD5"},
-	   {"$1$saltstri$9S4.PyBpUZBRZw6ZsmFQE/","john"},
-	   {"$1$saltstring$YmP55hH3qcHg2cCffyxrq/","ala"},
-*/
-//      {"$1$salt1234$mdji1uBBCWZ5m2mIWKvLW.", "a"},
-//         {"$1$salt1234$/JUvhIWHD.csWSCPvr7po0","ab"},
-//         {"$1$salt1234$GrxHg1bgkN2HB5CRCdrmF.","abc"},
-//         {"$1$salt1234$iZuyvTkrucWx8kVn5BN4M/","abcd"},
-//         {"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/","abcde"},
-
-//         {"$1$salt1234$lzB83HS4FjzbcD4yMcjl01","abcdef"},
-//          {"$1$salt1234$bklJHN73KS04Kh6j6qPnr.","abcdefg"},
+#ifdef DEBUG
+	{"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/", "qwerty"},
+	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
+	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
+	{"$1$salt$TelRRxWBCxlpXmgAeB82R/", "openwall"},
+	{"$1$salt$l9PzDiECW83MOIMFTRL4Y1", "summerofcode"},
+	{"$1$salt$wZ2yVsplRoPoD7IfTvRsa0", "IamMD5"},
+	{"$1$saltstri$9S4.PyBpUZBRZw6ZsmFQE/", "john"},
+	{"$1$saltstring$YmP55hH3qcHg2cCffyxrq/", "ala"},
+	{"$1$salt1234$mdji1uBBCWZ5m2mIWKvLW.", "a"},
+	{"$1$salt1234$/JUvhIWHD.csWSCPvr7po0", "ab"},
+	{"$1$salt1234$GrxHg1bgkN2HB5CRCdrmF.", "abc"},
+	{"$1$salt1234$iZuyvTkrucWx8kVn5BN4M/", "abcd"},
+	{"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/", "abcde"},
+	{"$1$salt1234$lzB83HS4FjzbcD4yMcjl01", "abcdef"},
+	{"$1$salt1234$bklJHN73KS04Kh6j6qPnr.", "abcdefg"},
+#endif
 	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},	//saltlen=8,passlen=8
-//         {"$1$salt1234$QjP48HUerU7aUYc/aJnre1","abcdefghi"},
-//         {"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.","abcdefghij"},
-
-//         {"$1$salt1234$d3.LnlDWfkTIej5Ef1sCU/","abcdefghijk"},
-//         {"$1$salt1234$pDV0xEgZR14EpQMmhZ6Hg0","abcdefghijkl"},
-//         {"$1$salt1234$WumpbolX2y45Dlv0.A1Mj1","abcdefghijklm"},
-//         {"$1$salt1234$FXBreA27b7N7diemBGn5I1","abcdefghijklmn"},
-//         {"$1$salt1234$8d5IPIbTd7J/WNEG4b4cl.","abcdefghijklmno"},
+#ifdef DEBUG
+	{"$1$salt1234$QjP48HUerU7aUYc/aJnre1", "abcdefghi"},
+	{"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.", "abcdefghij"},
+	{"$1$salt1234$d3.LnlDWfkTIej5Ef1sCU/", "abcdefghijk"},
+	{"$1$salt1234$pDV0xEgZR14EpQMmhZ6Hg0", "abcdefghijkl"},
+	{"$1$salt1234$WumpbolX2y45Dlv0.A1Mj1", "abcdefghijklm"},
+	{"$1$salt1234$FXBreA27b7N7diemBGn5I1", "abcdefghijklmn"},
+	{"$1$salt1234$8d5IPIbTd7J/WNEG4b4cl.", "abcdefghijklmno"},
 
 	//tests from korelogic2010 contest
-/*	   {"$1$bn6UVs3/$S6CQRLhmenR8OmVp3Jm5p0","sparky"},
-	   {"$1$qRiPuG5Z$pLLczmBnwEOD75Vb7YZLg1","walter"},
-	   {"$1$E.qsK.Hy$.eX0H6arTHaGOIFkf6o.a.","heaven"},
-	   {"$1$Hul2mrWs$.NGCgz3fBGDyG7RMGJAdM0","bananas"},
-	   {"$1$1l88Y.UV$swt2d0SPMrBPkdAD8RwSj0","horses"},
-	   {"$1$DiHrL6V7$fCVDD1GEAKB.BjAgJL1ZX0","maddie"},
-	   {"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490","bitch1"},
-	   {"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/","crystal"},
-	   {"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/","claudia"},
-	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"},
+	{"$1$bn6UVs3/$S6CQRLhmenR8OmVp3Jm5p0", "sparky"},
+	{"$1$qRiPuG5Z$pLLczmBnwEOD75Vb7YZLg1", "walter"},
+	{"$1$E.qsK.Hy$.eX0H6arTHaGOIFkf6o.a.", "heaven"},
+	{"$1$Hul2mrWs$.NGCgz3fBGDyG7RMGJAdM0", "bananas"},
+	{"$1$1l88Y.UV$swt2d0SPMrBPkdAD8RwSj0", "horses"},
+	{"$1$DiHrL6V7$fCVDD1GEAKB.BjAgJL1ZX0", "maddie"},
+	{"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490", "bitch1"},
+	{"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/", "crystal"},
+	{"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/", "claudia"},
+	{"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/", "august"},
 
-																		  	   //tests from MD5_fmt.c
-*//*       {"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
+	//tests from MD5_fmt.c
+	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
 	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
 	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
@@ -126,7 +125,7 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
-	 */
+#endif
 	{NULL}
 };
 
@@ -266,7 +265,11 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, outsize, outbuffer, 0, NULL, &Event[3]), "Copy data back");
+	if (clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, outsize, outbuffer, 0, NULL, &Event[3]) != CL_SUCCESS) {
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
@@ -372,7 +375,7 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong maxsize;
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
@@ -385,7 +388,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	opencl_init("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init_opt("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, platform_id, NULL);
 
 	///Create Kernel
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
