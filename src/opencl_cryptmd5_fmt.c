@@ -115,7 +115,9 @@ static struct fmt_tests tests[] = {
 	//tests from MD5_fmt.c
 	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
+#endif
 	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
+#ifdef DEBUG
 	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
 	{"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
 	{"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
@@ -221,6 +223,8 @@ static void set_salt(void *salt)
 	host_salt.saltlen = len;
 	memcpy(host_salt.salt, s, host_salt.saltlen);
 	host_salt.prefix = s[8];
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 }
 
 static void *salt(char *ciphertext)
@@ -310,7 +314,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int MD5speed, bestMD5speed = 0;
 	int optimal_gws = local_work_size;
-	const int md5perkey = 1000; /* FIXME - what is the real number? */
+	const int md5perkey = 1002;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 5000000000ULL;
 	char *tmp_value;
 
@@ -356,10 +360,12 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		}
 	}
 	global_work_size = optimal_gws;
-	fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-		GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-		SUBSECTION_OPENCL "])\n", optimal_gws);
+	if (do_benchmark) {
+		fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+		fprintf(stderr, "(to avoid this test on next run, put \""
+		        GWS_CONFIG " = %d\" in john.conf, section ["
+		        SECTION_OPTIONS SUBSECTION_OPENCL "])\n", optimal_gws);
+	}
 }
 
 static char *get_key(int index)
@@ -539,7 +545,6 @@ static void crypt_all(int count)
 	///Copy data to GPU memory
 	if (new_keys)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, in_size, inbuffer, 0, NULL, NULL), "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Set ND range");
@@ -547,6 +552,7 @@ static void crypt_all(int count)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+
 	new_keys = 0;
 }
 

@@ -1,8 +1,10 @@
 /*
- * This software is Copyright (c) 2011,2012 Lukas Odzioba <ukasz at openwall.net>
- * and Copyright (c) 2012 magnum
+ * This software is
+ * Copyright (c) 2011, 2012 Lukas Odzioba <ukasz at openwall.net>
+ * Copyright (c) 2012, 2013 magnum
  * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #include "opencl_device_info.h"
@@ -22,15 +24,15 @@
 #define ROTATE_LEFT(x, s) rotate(x, (uint)s)
 
 #ifdef USE_BITSELECT
-#define F(x, y, z) bitselect((z), (y), (x))
-#define G(x, y, z) bitselect((y), (x), (z))
+#define F(x, y, z)	bitselect((z), (y), (x))
+#define G(x, y, z)	bitselect((y), (x), (z))
 #else
-#define F(x, y, z)    ((z) ^ ((x) & ((y) ^ (z))))
-#define G(x, y, z)    ((y) ^ ((z) & ((x) ^ (y))))
+#define F(x, y, z)	((z) ^ ((x) & ((y) ^ (z))))
+#define G(x, y, z)	((y) ^ ((z) & ((x) ^ (y))))
 #endif
 
-#define H(x, y, z) (x^y^z)
-#define I(x, y, z) (y^(x|~z))
+#define H(x, y, z)	(x ^ y ^ z)
+#define I(x, y, z)	(y ^ (x | ~z))
 
 #define FF(v, w, x, y, z, s, ac) {	  \
 		v += F(w, x, y) + z + ac; \
@@ -269,8 +271,7 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	ctx_update(&ctx, salt.c, salt_len, &ctx_buflen);
 #if 0
 	for (i = pass_len; i > 16; i -= 16)
-		ctx_update(&ctx, (uchar*)alt_result, 16,
-		           &ctx_buflen);
+		ctx_update(&ctx, (uchar*)alt_result, 16, &ctx_buflen);
 	ctx_update(&ctx, (uchar*)alt_result, i, &ctx_buflen);
 #else
 	ctx_update(&ctx, (uchar*)alt_result, pass_len, &ctx_buflen);
