@@ -72,7 +72,7 @@ static struct fmt_tests tests[] = {
     {"$6$saltstring$i/3NHph8ZV2klLuOc5yX5kOnJWj9zuWbKiaa/NNEkYpNyamdQS1c7n2XQS3.B2Cs/eVyKwHf62PnOayqLLTOZ.","abcdefghijkl"},
     {"$6$saltstring$l2IxCS4o2S/vud70F1S5Z7H1WE67QFIXCYqskySdLFjjorEJdAnAp1ZqdgfNuZj2orjmeVDTsTXHpZ1IoxSKd.","abcdefghijklm"},
     {"$6$saltstring$PFzjspQs/CDXWALauDTav3u5bHB3n21xWrfwjnjpFO5eM5vuP0qKwDCXmlyZ5svEgsIH1oiZiGlRqkcBP5PiB.","abcdefghijklmn"},
-    {"$6$saltstring$rdREv5Pd9C9YGtg.zXEQMb6m0sPeq4b6zFW9oWY9w4ZltmjH3yzMLgl9iBuez9DFFUvF5nJH3Y2xidiq1dH9M.","abcdefghijklmno"},    
+    {"$6$saltstring$rdREv5Pd9C9YGtg.zXEQMb6m0sPeq4b6zFW9oWY9w4ZltmjH3yzMLgl9iBuez9DFFUvF5nJH3Y2xidiq1dH9M.","abcdefghijklmno"},
 #endif
     {NULL}
 };
@@ -90,14 +90,18 @@ static size_t get_task_max_work_group_size(){
 }
 
 static size_t get_task_max_size(){
-    size_t max_available;
+    size_t max_available, multiplier = 2;
     max_available = get_max_compute_units(ocl_gpu_id);
+
+    if amd_gcn(device_info[ocl_gpu_id])
+        multiplier = 4;
 
     if (cpu(device_info[ocl_gpu_id]))
         return max_available * KEYS_PER_CORE_CPU;
 
     else
-        return max_available * get_current_work_group_size(ocl_gpu_id, crypt_kernel) * 2;
+        return max_available * multiplier *
+                get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 }
 
 static size_t get_safe_workgroup(){
