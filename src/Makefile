@@ -10,6 +10,7 @@ AS = $(CC)
 LD = $(CC)
 CPP = $(CC)
 CP = cp
+CP_PRESERVE = cp -p
 LN = ln -f -s
 RM = rm -f
 MKDIR = mkdir -p
@@ -17,6 +18,7 @@ TR = tr
 SED = sed
 NULL = /dev/null
 CPPFLAGS = -E
+SORT = sort
 
 ## Uncomment the TWO lines below for MPI (can be used together with OMP as well)
 ## For experimental MPI_Barrier support, add -DJOHN_MPI_BARRIER too.
@@ -113,7 +115,6 @@ JOHN_OBJS = \
 	SKEY_fmt.o \
 	ssh_fmt.o ssh2john.o \
 	pfx_fmt.o pfx2john.o \
-	pdf_fmt.o pdf2john.o pdfcrack_common.o pdfcrack_md5.o pdfparser.o pdfcrack.o pdfcrack_rc4.o \
 	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
 	rar_fmt.o rar2john.o \
 	rawSHA0_fmt.o \
@@ -122,6 +123,7 @@ JOHN_OBJS = \
 	keychain2john.o \
 	pwsafe2john.o \
 	keepass2john.o \
+	keyring2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
@@ -129,6 +131,8 @@ JOHN_OBJS = \
 	rawSHA1_ng_fmt.o \
 	plugin.o \
 	dummy.o \
+	NT_fmt.o \
+	gost.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
 	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
@@ -155,7 +159,7 @@ OCL_OBJS = \
 	opencl_DES_fmt.o opencl_DES_bs.o opencl_DES_bs_b.o opencl_strip_fmt.o \
 	opencl_office2007_fmt.o opencl_office2010_fmt.o opencl_office2013_fmt.o \
 	opencl_ntlmv2_fmt.o opencl_rawsha256_fmt.o opencl_xsha512-ng_fmt.o \
-	opencl_krb5pa-sha1_fmt.o opencl_rar_fmt.o
+	opencl_krb5pa-sha1_fmt.o opencl_rar_fmt.o opencl_odf_aes_fmt.o
 
 CUDA_OBJS = \
 	cuda_common.o \
@@ -212,34 +216,36 @@ GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
-	../run/ssh2john ../run/pdf2john ../run/rar2john ../run/zip2john \
+	../run/ssh2john ../run/rar2john ../run/zip2john \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
-	../run/keychain2john ../run/to_dyna john.local.conf
+	../run/keychain2john ../run/keyring2john john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
-	../run/ssh2john.com ../run/pdf2john.com ../run/rar2john.com ../run/zip2john \
+	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
-	../run/keychain2john.com john.local.conf
+	../run/keychain2john.com ../run/keyring2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
-	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
+	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/to_dyna.exe john.local.conf
+	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
+	john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
-	../run/ssh2john.exe ../run/pdf2john.exe ../run/rar2john.exe ../run/zip2john.exe \
+	../run/ssh2john.exe ../run/rar2john.exe ../run/zip2john.exe \
 	../run/genmkvpwd.exe ../run/mkvcalcproba.exe ../run/calc_stat.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
-	../run/pfx2john.exe ../run/keychain2john.exe ../run/to_dyna.exe john.local.conf
+	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
+	john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -369,8 +375,8 @@ linux-x86-64-gpu:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart -march=native"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -381,8 +387,8 @@ linux-x86-64-opencl:
 		ASFLAGS="$(ASFLAGS) -march=native" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -lcrypt -lOpenCL -ldl -march=native"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -528,8 +534,8 @@ linux-x86-gpu:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
@@ -539,8 +545,8 @@ linux-x86-opencl:
 		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DCL_VERSION_1_0 -DHAVE_DL -DUSING_ICC_S_FILE" \
 		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -lcrypt -lOpenCL -ldl"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 linux-x86-cuda:
 	$(LN) x86-sse.h arch.h
@@ -1079,8 +1085,8 @@ macosx-x86-64-gpu:
 		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -1092,8 +1098,8 @@ macosx-x86-64-opencl:
 		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(MKDIR) ../run/kernels/
-	$(CP) opencl/*.cl ../run/kernels/
-	$(CP) opencl_*.h ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 macosx-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -1529,6 +1535,12 @@ cuda_pwsafe.o: cuda_pwsafe.h cuda/pwsafe.cu cuda_common.o
 cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(CC)  $(CFLAGS) cuda_pwsafe_fmt.c -o cuda_pwsafe_fmt.o
 
+common_opencl_pbkdf2.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.c
+	$(CC)  $(CFLAGS) common_opencl_pbkdf2.c -o common_opencl_pbkdf2.o
+
+opencl_mscash2_fmt.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.o opencl_mscash2_fmt.c
+	$(CC)  $(CFLAGS) opencl_mscash2_fmt.c -o opencl_mscash2_fmt.o
+
 ../run/john: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john
 
@@ -1556,13 +1568,13 @@ cuda_pwsafe_fmt.o: cuda_pwsafe.o cuda_pwsafe_fmt.c
 	$(RM) ../run/keepass2john
 	ln -s john ../run/keepass2john
 
+../run/keyring2john: ../run/john
+	$(RM) ../run/keyring2john
+	ln -s john ../run/keyring2john
+
 ../run/zip2john: ../run/john
 	$(RM) ../run/zip2john
 	ln -s john ../run/zip2john
-
-../run/pdf2john: ../run/john
-	$(RM) ../run/pdf2john
-	ln -s john ../run/pdf2john
 
 ../run/rar2john: ../run/john
 	$(RM) ../run/rar2john
@@ -1594,12 +1606,6 @@ endif
 	$(RM) ../run/unique
 	ln -s john ../run/unique
 
-../run/to_dyna: to_dyna.c
-	$(CC) -o ../run/to_dyna to_dyna.c
-
-../run/to_dyna.exe: to_dyna.c
-	$(CC) -o ../run/to_dyna.exe to_dyna.c
-
 ../run/john.bin: $(JOHN_OBJS)
 	$(LD) $(JOHN_OBJS) $(LDFLAGS) -o ../run/john.exe
 	if exist ..\run\john.bin del ..\run\john.bin
@@ -1626,8 +1632,8 @@ endif
 ../run/keepass2john.com: john.com
 	copy john.com ..\run\keepass2john.com
 
-../run/pdf2john.com: john.com
-	copy john.com ..\run\pdf2john.com
+../run/keyring2john.com: john.com
+	copy john.com ..\run\keyring2john.com
 
 ../run/rar2john.com: john.com
 	copy john.com ..\run\rar2john.com
@@ -1705,9 +1711,9 @@ john.com: john.asm
 	$(CC) symlink.c -o ../run/keepass2john.exe
 	strip ../run/keepass2john.exe
 
-../run/pdf2john.exe: symlink.c
-	$(CC) symlink.c -o ../run/pdf2john.exe
-	strip ../run/pdf2john.exe
+../run/keyring2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/keyring2john.exe
+	strip ../run/keyring2john.exe
 
 ../run/rar2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/rar2john.exe
@@ -1809,11 +1815,14 @@ miscnl.o: misc.c
 bench-t.o: bench.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_BENCH_TMP bench.c -o bench-t.o
 
-fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile
-	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c > fmt_externs.h
+*_fmt_plug.c: Makefile john.c
+	@
 
-fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile
-	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c > fmt_registers.h
+fmt_externs.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
+	LC_ALL=C $(SED) -n 's/^\(struct fmt_main [^ ]*\) =.*/extern \1;/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_externs.h
+
+fmt_registers.h: $(PLUGFORMATS_SRCS) Makefile *_fmt_plug.c
+	LC_ALL=C $(SED) -n 's/^struct fmt_main \([^ ]*\) =.*/john_register_one(\&\1);/p' *_fmt_plug.c | LC_ALL=C $(SORT) > fmt_registers.h
 
 john.o: john.c fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O0 $*.c
@@ -1861,6 +1870,20 @@ bash-completion:
 	@echo
 	@echo Bash-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
+
+zsh-completion:
+	@echo
+	@echo NOTE: Administrative priviledges required for this make target.
+	[ -d /usr/share/zsh/functions/Completion/Unix ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/functions/Completion/Unix/_john || true
+	[ -d /usr/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/share/zsh/site-functions/_john || true
+	[ -d /usr/local/share/zsh/site-functions ] && $(CP) ../run/john.zsh_completion /usr/local/share/zsh/site-functions/_john || true
+	@echo
+	@echo zsh-completion for JtR opportunistically installed.
+	@echo Source \". ../run/john.zsh_completion\" or logout/login to activate the changes
+
+shell-completion: bash-completion zsh-completion
+	@echo
+	@echo "You should have bash and zsh completion now"
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)

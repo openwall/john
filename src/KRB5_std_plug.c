@@ -54,7 +54,7 @@ static inline void rr13(unsigned char *buf, int len) {
     if(len == 0)
         return;
 
-    tmp = (unsigned char *) malloc(bytes);
+    tmp = (unsigned char *) mem_alloc(bytes);
     memcpy(tmp, buf, bytes);
     if(lbit) {
         // pad final byte with inital bits
@@ -108,8 +108,8 @@ static inline void add1(unsigned char *a, unsigned char *b, size_t len) {
 static inline void _krb5_n_fold(const void *str, int len, void *key, int size) {
 
     int maxlen = 2 * max(size, len), l = 0;
-    unsigned char *tmp = (unsigned char *) malloc(maxlen);
-    unsigned char *buf = (unsigned char *) malloc(len);
+    unsigned char *tmp = (unsigned char *) mem_alloc(maxlen);
+    unsigned char *buf = (unsigned char *) mem_alloc(len);
 
     memcpy(buf, str, len);
     memset(key, 0, size);
@@ -183,11 +183,8 @@ static inline void derive_key(const void *constant, int len, krb5_key *krb5key) 
 
     if(DES3_BLOCK_SIZE * 8 < DES3_KEY_BITS || len != DES3_BLOCK_SIZE) {
         nblocks = (DES3_KEY_BITS + DES3_BLOCK_SIZE * 8 - 1) / (DES3_BLOCK_SIZE * 8);
-        k = (unsigned char *) malloc(nblocks * DES3_BLOCK_SIZE);
-        if(k == NULL) {
-            printf("malloc: out of memory\n");
-            exit(1);
-        }
+        k = (unsigned char *) mem_alloc(nblocks * DES3_BLOCK_SIZE);
+
         _krb5_n_fold(constant, len, k, DES3_BLOCK_SIZE);
         for(i = 0; i < nblocks; i++) {
             if(i > 0)
@@ -216,12 +213,8 @@ static inline void string_to_key_derived(const void *passwd, int len, krb5_key *
 
     unsigned char *tmp;
 
-    tmp = (unsigned char *) malloc(DES3_KEY_BITS_BYTES);
-    if(tmp == NULL) {
-        printf("malloc: out of memory\n");
-        // FIXME make it real return value if sometime this is needed
-        exit(1);
-    }
+    tmp = (unsigned char *) mem_alloc(DES3_KEY_BITS_BYTES);
+
     _krb5_n_fold(passwd, len, tmp, DES3_KEY_BITS_BYTES);
 
     DES3_postproc(tmp, DES3_KEY_BITS_BYTES, krb5key);
@@ -260,10 +253,7 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
     int offset = 0;
     char *text;
 
-    text = (char*) malloc(strlen(user) + strlen(realm) + strlen(passwd));
-    if (text == NULL) {
-        return;
-    }
+    text = (char*) mem_alloc(strlen(user) + strlen(realm) + strlen(passwd));
 
     memset(krb5key->key, 0x00, DES3_KEY_SIZE);
     memset(krb5key->schedule, 0x00, DES3_KEY_SCHED_SIZE);

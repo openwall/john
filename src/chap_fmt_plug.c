@@ -10,8 +10,9 @@
  *
  * References:
  *
- * http://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
- * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf */
+ * ftp://ftp.samba.org/pub/unpacked/ppp/pppd/chap-md5.c
+ * http://www.blackhat.com/presentations/bh-usa-05/bh-us-05-Dwivedi-update.pdf
+ */
 
 #include "md5.h"
 #include <string.h>
@@ -65,17 +66,17 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
+	char *ctcopy, *keeptr, *p;
 	if (strncmp(ciphertext,  "$chap$", 6) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 6;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* id */
 		goto err;
@@ -204,7 +205,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main chap_fmt = {
+struct fmt_main fmt_chap = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

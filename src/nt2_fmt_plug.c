@@ -679,7 +679,7 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[index] & 0x7ffffff; }
 #endif
 
-struct fmt_main fmt_magnumNT = {
+struct fmt_main fmt_NT2 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

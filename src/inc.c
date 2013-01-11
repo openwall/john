@@ -430,9 +430,11 @@ void do_incremental_crack(struct db_main *db, char *mode)
 	if (!mode) {
 		if (db->format == &fmt_LM)
 			mode = "LanMan";
-		else if (db->format == &fmt_NETLM)
+		else if (db->format->params.label &&
+		         !strcmp(db->format->params.label, "netlm"))
 			mode = "LanMan";
-		else if (db->format == &fmt_NETHALFLM)
+		else if (db->format->params.label &&
+		         !strcmp(db->format->params.label, "nethalflm"))
 			mode = "LanMan";
 		else
 			mode = "All";
@@ -506,6 +508,15 @@ void do_incremental_crack(struct db_main *db, char *mode)
 			"reduced to %d\n",
 			max_length, db->format->params.plaintext_length);
 		max_length = db->format->params.plaintext_length;
+	}
+
+	/* Some formats may optimize for a decreased max. length with this
+	   call to clear_keys() */
+	/* FIXME: If any future batch-mode runs some other mode after this
+	   one, length might need to be reset to the original. */
+	if (max_length < db->format->params.plaintext_length) {
+		options.force_maxlength = max_length;
+		db->format->methods.clear_keys();
 	}
 
 	if (max_length > CHARSET_LENGTH) {

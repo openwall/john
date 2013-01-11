@@ -83,7 +83,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void cleanup()
+static void done()
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
@@ -91,15 +91,15 @@ static void cleanup()
 
 static void init(struct fmt_main *self)
 {
-	///Alocate memory for hashes and passwords
+	///Allocate memory for hashes and passwords
 	inbuffer =
-	    (uint8_t *) calloc(MAX_KEYS_PER_CRYPT, sizeof(phpass_password));
+	    (uint8_t *) mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_password));
 	outbuffer =
-	    (phpass_crack *) calloc(MAX_KEYS_PER_CRYPT, sizeof(phpass_crack));
+	    (phpass_crack *) mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_crack));
 	check_mem_allocation(inbuffer, outbuffer);
-	atexit(cleanup);
 	///Initialize CUDA
 	cuda_init(cuda_gpu_id);
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

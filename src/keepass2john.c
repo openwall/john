@@ -231,9 +231,13 @@ static void process_database(char* encryptedDatabase)
 
 		if (uSize > 0)
 		{
-			pbData = (unsigned char*)malloc(uSize);
-			if (fread(pbData, uSize, 1, fp) != 1)
+			pbData = (unsigned char*)mem_alloc(uSize);
+			if (fread(pbData, uSize, 1, fp) != 1) {
 				fprintf(stderr, "error reading pbData\n");
+				MEM_FREE(pbData);
+				goto bailout;
+			}
+
 		}
 		kdbID = btFieldID;
 		switch (kdbID)
@@ -244,26 +248,41 @@ static void process_database(char* encryptedDatabase)
 				break;
 
                         case MasterSeed:
+				if (masterSeed)
+					MEM_FREE(masterSeed);
 				masterSeed = pbData;
 				masterSeedLength = uSize;
 				break;
 
                         case TransformSeed:
+				if (transformSeed)
+					MEM_FREE(transformSeed);
+
 				transformSeed = pbData;
 				transformSeedLength = uSize;
 				break;
 
                         case TransformRounds:
-				transformRounds = BytesToUInt64(pbData);
-				MEM_FREE(pbData);
+				if(!pbData) {
+					fprintf(stderr, "! %s : parsing failed (pbData is NULL), please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
+					goto bailout;
+				}
+				else {
+					transformRounds = BytesToUInt64(pbData);
+					MEM_FREE(pbData);
+				}
 				break;
 
                         case EncryptionIV:
+				if (initializationVectors)
+					MEM_FREE(initializationVectors);
 				initializationVectors = pbData;
 				initializationVectorsLength = uSize;
 				break;
 
                         case StreamStartBytes:
+				if (expectedStartBytes)
+					MEM_FREE(expectedStartBytes);
 				expectedStartBytes = pbData;
 				expectedStartBytesLength = uSize;
 				break;
@@ -276,11 +295,15 @@ static void process_database(char* encryptedDatabase)
 	dataStartOffset = ftell(fp);
 	if(transformRounds == 0) {
 		fprintf(stderr, "! %s : transformRounds can't be 0\n", encryptedDatabase);
-		return;
+		goto bailout;
 	}
 #ifdef KEEPASS_DEBUG
 	fprintf(stderr, "%d, %d, %d, %d\n", masterSeedLength, transformSeedLength, initializationVectorsLength, expectedStartBytesLength);
 #endif
+	if (!masterSeed || !transformSeed || !initializationVectors || expectedStartBytes) {
+		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
+		goto bailout;
+	}
 	printf("%s:$keepass$*2*%ld*%ld*",encryptedDatabase, transformRounds, dataStartOffset);
 	print_hex(masterSeed, masterSeedLength);
 	printf("*");
@@ -291,10 +314,13 @@ static void process_database(char* encryptedDatabase)
 	print_hex(expectedStartBytes, expectedStartBytesLength);
 	if (fread(out, 32, 1, fp) != 1) {
 		fprintf(stderr, "error reading encrypted data!\n");
+		goto bailout;
 	}
 	printf("*");
 	print_hex(out, 32);
 	printf("\n");
+
+bailout:
 	MEM_FREE(masterSeed);
 	MEM_FREE(transformSeed);
 	MEM_FREE(initializationVectors);

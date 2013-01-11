@@ -14,7 +14,7 @@
 #include <openssl/hmac.h>
 #include <openssl/engine.h>
 #include "stdint.h"
-#include "encfs-pbkdf2.h"
+#include "pbkdf2_hmac_sha1.h"
 #undef MEM_FREE
 #include "options.h"
 #ifdef _OPENMP
@@ -33,7 +33,6 @@
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
-#define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1
 #define SALT_SIZE           sizeof(struct custom_salt)
@@ -252,7 +251,7 @@ static void init(struct fmt_main *self)
 	}
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
@@ -398,9 +397,9 @@ static void crypt_all(int count)
 		unsigned char tmpBuf[cur_salt->dataLen];
 		unsigned int checksum = 0;
 		unsigned int checksum2 = 0;
+		unsigned char out[128];
 
-		uint32_t out[32];
-		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out);
+		pbkdf2((const unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, cur_salt->saltLen, cur_salt->iterations, out, cur_salt->keySize + cur_salt->ivLength);
 
 		memcpy(master, out, cur_salt->keySize + cur_salt->ivLength);
 

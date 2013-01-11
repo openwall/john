@@ -92,8 +92,8 @@ static struct fmt_tests tests[] = {
 };
 
 
-static sha512_key gkey[MAX_KEYS_PER_CRYPT];
-static sha512_hash ghash[MAX_KEYS_PER_CRYPT];
+static sha512_key *gkey;
+static sha512_hash *ghash;
 static uint8_t sha512_key_changed;
 static uint8_t hash_copy_back;
 
@@ -114,12 +114,23 @@ static size_t insize = sizeof(sha512_key) * MAX_KEYS_PER_CRYPT;
 static size_t outsize = sizeof(sha512_hash) * MAX_KEYS_PER_CRYPT;
 cl_kernel cmp_kernel;
 
-static void release_all(void)
+static void release_clobj(void)
 {
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+        
+	MEM_FREE(ghash);
+	MEM_FREE(gkey);
+}
+
+static void done(void)
+{
+	release_clobj();
+
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
 
 static void copy_hash_back()
@@ -149,11 +160,14 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
+	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_key));
+	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_hash));
+
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
 	opencl_init("$JOHN/kernels/sha512_kernel.cl", ocl_gpu_id, platform_id);
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 	mem_in =
 		clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 		&ret_code);
@@ -187,8 +201,6 @@ static void init(struct fmt_main *self)
 	opencl_find_best_workgroup(self);
 
 	fprintf(stderr, "Global work size = %lld\n",(long long)global_work_size);
-	atexit(release_all);
-
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -409,7 +421,7 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

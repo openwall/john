@@ -95,7 +95,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	if (options.utf8)
 		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
@@ -103,7 +103,32 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$episerver$", 11);
+	char *ptr, *ctcopy, *keeptr;
+
+	if (strncmp(ciphertext, "$episerver$*", 12))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 12;	/* skip leading '$episerver$*' */
+	if (!(ptr = strtok(ctcopy, "*")))
+		goto error;
+	/* check version, must be '0' or '1' */
+	if (*ptr != '0' && *ptr != '1')
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))	/* salt */
+		goto error;
+	/* if (strlen(ptr) != 24)
+		goto error; */
+	if (!(ptr = strtok(NULL, "*"))) /* hash */
+		goto error;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -221,7 +246,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main episerver_fmt = {
+struct fmt_main fmt_episerver = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

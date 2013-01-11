@@ -38,8 +38,8 @@ static int VF = 1;	/* Will be set to 4 if we run vectorized */
 #define LWS_CONFIG		"wpapsk_LWS"
 #define GWS_CONFIG		"wpapsk_GWS"
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 extern wpapsk_password *inbuffer;
 extern wpapsk_salt currentsalt;
@@ -128,17 +128,20 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 }
 
-static void release_all(void)
+static void done(void)
 {
 	release_clobj();
-
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
 
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_init), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_loop), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
+        
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+
 }
 
 static void set_key(char *key, int index);
@@ -386,7 +389,8 @@ static void init(struct fmt_main *self)
 		release_clobj();
 		global_work_size = temp;
 	}
-	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -396,16 +400,15 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_all);
 }
 
 static void crypt_all(int count)
 {
 	int i;
-	size_t gws, scalar_gws;
+	size_t scalar_gws;
 
-	gws = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
-	scalar_gws = gws * VF;
+	global_work_size = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
+	scalar_gws = global_work_size * VF;
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -414,7 +417,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "Run initial kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "Run loop kernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
@@ -422,7 +425,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_pass2, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run intermediate kernel");
 
 	for (i = 0; i < ITERATIONS / HASH_LOOPS; i++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "Run loop kernel (2nd pass)");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
@@ -454,7 +457,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

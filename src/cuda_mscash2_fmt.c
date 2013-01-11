@@ -46,7 +46,7 @@ static struct fmt_tests tests[] = {
 
 extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
 
-static void cleanup()
+static void done()
 {
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
@@ -54,16 +54,15 @@ static void cleanup()
 
 static void init(struct fmt_main *self)
 {
-	//Alocate memory for hashes and passwords
+	//Allocate memory for hashes and passwords
 	inbuffer =
-	    (mscash2_password *) calloc(MAX_KEYS_PER_CRYPT,
-	    sizeof(mscash2_password));
+	    (mscash2_password *) mem_calloc(MAX_KEYS_PER_CRYPT*sizeof(mscash2_password));
 	outbuffer =
-	    (mscash2_hash *) malloc(sizeof(mscash2_hash) * MAX_KEYS_PER_CRYPT);
+	    (mscash2_hash *) mem_alloc(MAX_KEYS_PER_CRYPT*sizeof(mscash2_hash));
 	check_mem_allocation(inbuffer, outbuffer);
-	atexit(cleanup);
 	//Initialize CUDA
 	cuda_init(cuda_gpu_id);
+	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

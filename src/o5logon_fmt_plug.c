@@ -32,6 +32,8 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
+#define CIPHERTEXT_LENGTH	48
+#define SALT_LENGTH		10
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -50,8 +52,8 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 static struct custom_salt {
-	char unsigned salt[10]; /* AUTH_VFR_DATA */
-	char unsigned ct[48]; /* AUTH_SESSKEY */
+	char unsigned salt[SALT_LENGTH]; /* AUTH_VFR_DATA */
+	char unsigned ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -63,14 +65,47 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$o5logon$", 9);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	if (strncmp(ciphertext,  "$o5logon$", 9))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 9;
+	p = strtok(ctcopy, "*"); /* ciphertext */
+	if(!p)
+		goto err;
+	if(strlen(p) != CIPHERTEXT_LENGTH * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if(strlen(p) != SALT_LENGTH * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -82,11 +117,11 @@ static void *get_salt(char *ciphertext)
 	static struct custom_salt cs;
 	ctcopy += 9;	/* skip over "$o5logon$" */
 	p = strtok(ctcopy, "*");
-	for (i = 0; i < 48; i++)
+	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < SALT_LENGTH; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	MEM_FREE(keeptr);
@@ -160,7 +195,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main o5logon_fmt = {
+struct fmt_main fmt_o5logon = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

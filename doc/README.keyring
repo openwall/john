@@ -1,10 +1,6 @@
 Cracking GNOME Keyring files
 ============================
 
-0. Compile keyring2john progam. From src/ do
-
-gcc keyring2john.c -o ../run/keyring2john
-
 1. Run keyring2john on .keyring file(s).
 
 E.g. $ ../run/keyring2john Default.keyring > hash

@@ -15,7 +15,6 @@
 
 #define DES_BS_OPENCL_ALGORITHM_NAME		"OpenCL"
 
-
 #define DES_BS_DEPTH			32
 #define DES_BS_LOG2			5
 

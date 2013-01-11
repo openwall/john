@@ -25,7 +25,7 @@
  * broadcasts, IE, Outlook, social engineering, ...).
  *
  * [1] http://davenport.sourceforge.net/ntlm.html#theLmResponse
- * [2] http://www.foofus.net/fizzgig/fgdump/
+ * [2] http://www.foofus.net/~fizzgig/fgdump/
  * [3] http://ettercap.sourceforge.net/
  * [4] http://www.oxid.it/cain.html
  * [5] http://www.foofus.net/jmk/smbchallenge.html

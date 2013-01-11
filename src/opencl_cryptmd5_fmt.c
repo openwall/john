@@ -18,8 +18,8 @@
 #define uint32_t unsigned int
 #define uint8_t unsigned char
 
-#define KEYS_PER_CRYPT 1024*9
-#define PLAINTEXT_LENGTH	15
+#define KEYS_PER_CRYPT		(64*1024)
+#define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 
 #define MIN(a,b) 		((a)<(b)?(a):(b))
 #define MAX(a,b) 		((a)>(b)?(a):(b))
@@ -28,28 +28,29 @@
 #define FORMAT_NAME		"md5crypt"
 #define KERNEL_NAME		"cryptmd5"
 
-#define ALGORITHM_NAME		"OpenCL (inefficient, development use mostly)"
+#define ALGORITHM_NAME		"OpenCL"
 
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 
 #define BINARY_SIZE		16
-#define SALT_SIZE		(8+1)					/** salt + prefix id **/
+#define SALT_SIZE		(8+1)	/** salt + prefix id **/
 
 #define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
 #define MAX_KEYS_PER_CRYPT	1
 
 #define LWS_CONFIG		"md5crypt_LWS"
 #define GWS_CONFIG		"md5crypt_GWS"
+#define DUR_CONFIG		"md5crypt_MaxDuration"
 
 typedef struct {
-	unsigned char saltlen;
+	unsigned int saltlen;
 	char salt[8];
 	char prefix;		/** 'a' when $apr1$ or '1' when $1$ **/
 } crypt_md5_salt;
 
 typedef struct {
-	unsigned char length;
+	unsigned int length;
 	unsigned char v[PLAINTEXT_LENGTH];
 } crypt_md5_password;
 
@@ -58,9 +59,9 @@ typedef struct {
 } crypt_md5_hash;
 
 
-static crypt_md5_password *inbuffer;			/** plaintext ciphertexts **/
-static crypt_md5_hash *outbuffer;			/** calculated hashes **/
-static crypt_md5_salt host_salt;			/** salt **/
+static crypt_md5_password *inbuffer;		/** plaintext ciphertexts **/
+static crypt_md5_hash *outbuffer;		/** calculated hashes **/
+static crypt_md5_salt host_salt;		/** salt **/
 
 static const char md5_salt_prefix[] = "$1$";
 static const char apr1_salt_prefix[] = "$apr1$";
@@ -69,63 +70,64 @@ static const char apr1_salt_prefix[] = "$apr1$";
 static cl_mem mem_in, mem_out, pinned_in, pinned_out, mem_salt;
 static size_t insize, outsize;
 static size_t saltsize = sizeof(crypt_md5_salt);
+static int new_keys;
 
-
-//tests are unified for 8+8 length
 static struct fmt_tests tests[] = {
-/*	   {"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/","qwerty"},
-	   {"$1$salt$c813W/s478KCzR0NnHx7j0","qwerty"},
-	   {"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/","john"},
-	   {"$1$salt$TelRRxWBCxlpXmgAeB82R/","openwall"},
-	   {"$1$salt$l9PzDiECW83MOIMFTRL4Y1","summerofcode"},
-	   {"$1$salt$wZ2yVsplRoPoD7IfTvRsa0","IamMD5"},
-	   {"$1$saltstri$9S4.PyBpUZBRZw6ZsmFQE/","john"},
-	   {"$1$saltstring$YmP55hH3qcHg2cCffyxrq/","ala"},
-*/
-//      {"$1$salt1234$mdji1uBBCWZ5m2mIWKvLW.", "a"},
-//         {"$1$salt1234$/JUvhIWHD.csWSCPvr7po0","ab"},
-//         {"$1$salt1234$GrxHg1bgkN2HB5CRCdrmF.","abc"},
-//         {"$1$salt1234$iZuyvTkrucWx8kVn5BN4M/","abcd"},
-//         {"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/","abcde"},
-
-//         {"$1$salt1234$lzB83HS4FjzbcD4yMcjl01","abcdef"},
-//          {"$1$salt1234$bklJHN73KS04Kh6j6qPnr.","abcdefg"},
+#ifdef DEBUG
+	{"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/", "qwerty"},
+	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
+	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
+	{"$1$salt$TelRRxWBCxlpXmgAeB82R/", "openwall"},
+	{"$1$salt$l9PzDiECW83MOIMFTRL4Y1", "summerofcode"},
+	{"$1$salt$wZ2yVsplRoPoD7IfTvRsa0", "IamMD5"},
+	{"$1$saltstri$9S4.PyBpUZBRZw6ZsmFQE/", "john"},
+	{"$1$saltstring$YmP55hH3qcHg2cCffyxrq/", "ala"},
+	{"$1$salt1234$mdji1uBBCWZ5m2mIWKvLW.", "a"},
+	{"$1$salt1234$/JUvhIWHD.csWSCPvr7po0", "ab"},
+	{"$1$salt1234$GrxHg1bgkN2HB5CRCdrmF.", "abc"},
+	{"$1$salt1234$iZuyvTkrucWx8kVn5BN4M/", "abcd"},
+	{"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/", "abcde"},
+	{"$1$salt1234$lzB83HS4FjzbcD4yMcjl01", "abcdef"},
+	{"$1$salt1234$bklJHN73KS04Kh6j6qPnr.", "abcdefg"},
+#endif
 	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},	//saltlen=8,passlen=8
-//         {"$1$salt1234$QjP48HUerU7aUYc/aJnre1","abcdefghi"},
-//         {"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.","abcdefghij"},
-
-//         {"$1$salt1234$d3.LnlDWfkTIej5Ef1sCU/","abcdefghijk"},
-//         {"$1$salt1234$pDV0xEgZR14EpQMmhZ6Hg0","abcdefghijkl"},
-//         {"$1$salt1234$WumpbolX2y45Dlv0.A1Mj1","abcdefghijklm"},
-//         {"$1$salt1234$FXBreA27b7N7diemBGn5I1","abcdefghijklmn"},
-//         {"$1$salt1234$8d5IPIbTd7J/WNEG4b4cl.","abcdefghijklmno"},
+#ifdef DEBUG
+	{"$1$salt1234$QjP48HUerU7aUYc/aJnre1", "abcdefghi"},
+	{"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.", "abcdefghij"},
+	{"$1$salt1234$d3.LnlDWfkTIej5Ef1sCU/", "abcdefghijk"},
+	{"$1$salt1234$pDV0xEgZR14EpQMmhZ6Hg0", "abcdefghijkl"},
+	{"$1$salt1234$WumpbolX2y45Dlv0.A1Mj1", "abcdefghijklm"},
+	{"$1$salt1234$FXBreA27b7N7diemBGn5I1", "abcdefghijklmn"},
+	{"$1$salt1234$8d5IPIbTd7J/WNEG4b4cl.", "abcdefghijklmno"},
 
 	//tests from korelogic2010 contest
-/*	   {"$1$bn6UVs3/$S6CQRLhmenR8OmVp3Jm5p0","sparky"},
-	   {"$1$qRiPuG5Z$pLLczmBnwEOD75Vb7YZLg1","walter"},
-	   {"$1$E.qsK.Hy$.eX0H6arTHaGOIFkf6o.a.","heaven"},
-	   {"$1$Hul2mrWs$.NGCgz3fBGDyG7RMGJAdM0","bananas"},
-	   {"$1$1l88Y.UV$swt2d0SPMrBPkdAD8RwSj0","horses"},
-	   {"$1$DiHrL6V7$fCVDD1GEAKB.BjAgJL1ZX0","maddie"},
-	   {"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490","bitch1"},
-	   {"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/","crystal"},
-	   {"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/","claudia"},
-	   {"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/","august"},
+	{"$1$bn6UVs3/$S6CQRLhmenR8OmVp3Jm5p0", "sparky"},
+	{"$1$qRiPuG5Z$pLLczmBnwEOD75Vb7YZLg1", "walter"},
+	{"$1$E.qsK.Hy$.eX0H6arTHaGOIFkf6o.a.", "heaven"},
+	{"$1$Hul2mrWs$.NGCgz3fBGDyG7RMGJAdM0", "bananas"},
+	{"$1$1l88Y.UV$swt2d0SPMrBPkdAD8RwSj0", "horses"},
+	{"$1$DiHrL6V7$fCVDD1GEAKB.BjAgJL1ZX0", "maddie"},
+	{"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490", "bitch1"},
+	{"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/", "crystal"},
+	{"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/", "claudia"},
+	{"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/", "august"},
 
-																		  	   //tests from MD5_fmt.c
-*//*       {"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
-	   {"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
-	   {"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
-	   {"$1$$qRPK7m23GJusamGpoGLby/", ""},
-	   {"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
-	   {"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
-	   {"$1$`!@#%^&*$E6hD76/pKTS8qToBCkux30", "invalid salt"},
-	   {"$1$12345678$xek.CpjQUVgdf/P2N9KQf/", ""},
-	   {"$1$1234$BdIMOAWFOV2AQlLsrN/Sw.", "1234"},
-	   {"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
-	   {"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
-	   {"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
-	 */
+	//tests from MD5_fmt.c
+	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
+	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
+#endif
+	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
+#ifdef DEBUG
+	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
+	{"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
+	{"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
+	{"$1$`!@#%^&*$E6hD76/pKTS8qToBCkux30", "invalid salt"},
+	{"$1$12345678$xek.CpjQUVgdf/P2N9KQf/", ""},
+	{"$1$1234$BdIMOAWFOV2AQlLsrN/Sw.", "1234"},
+	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
+	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
+	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
+#endif
 	{NULL}
 };
 
@@ -136,7 +138,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 	insize = sizeof(crypt_md5_password) * gws;
 	outsize = sizeof(crypt_md5_hash) * gws;
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 	mem_salt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 
@@ -158,6 +160,8 @@ static void create_clobj(int gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+
+	memset(inbuffer, '\0', sizeof(crypt_md5_password) * gws);
 }
 
 static void release_clobj(void)
@@ -173,11 +177,34 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
 }
 
-static void release_all(void)
+static void done(void)
 {
 	release_clobj();
+
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
+static int salt_hash(void *salt)
+{
+	unsigned int i, h, retval;
+
+	retval = 0;
+	for (i = 0; i <= 6; i += 2) {
+		h = (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i])];
+		h ^= ((unsigned char *)salt)[i + 1];
+		h <<= 6;
+		h ^= (unsigned char)atoi64[ARCH_INDEX(((char *)salt)[i + 1])];
+		h ^= ((unsigned char *)salt)[i];
+		retval += h;
+	}
+
+	retval ^= retval >> SALT_HASH_LOG;
+	retval &= SALT_HASH_SIZE - 1;
+
+	return retval;
 }
 
 static void set_key(char *key, int index)
@@ -185,6 +212,7 @@ static void set_key(char *key, int index)
 	uint32_t len = strlen(key);
 	inbuffer[index].length = len;
 	memcpy((char *) inbuffer[index].v, key, len);
+        new_keys = 1;
 }
 
 static void set_salt(void *salt)
@@ -195,6 +223,8 @@ static void set_salt(void *salt)
 	host_salt.saltlen = len;
 	memcpy(host_salt.salt, s, host_salt.saltlen);
 	host_salt.prefix = s[8];
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
 }
 
 static void *salt(char *ciphertext)
@@ -239,7 +269,11 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, outsize, outbuffer, 0, NULL, &Event[3]), "Copy data back");
+	if (clEnqueueReadBuffer(queue_prof, mem_out, CL_TRUE, 0, outsize, outbuffer, 0, NULL, &Event[3]) != CL_SUCCESS) {
+		clReleaseCommandQueue(queue_prof);
+		release_clobj();
+		return 0;
+	}
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0], CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime, NULL), "Failed to get profiling info");
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1], CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime, NULL), "Failed to get profiling info");
@@ -280,8 +314,12 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
 	unsigned int MD5speed, bestMD5speed = 0;
 	int optimal_gws = local_work_size;
-	const int md5perkey = 1000; /* FIXME - what is the real number? */
+	const int md5perkey = 1002;
 	unsigned long long int MaxRunTime = cpu(device_info[ocl_gpu_id]) ? 1000000000ULL : 5000000000ULL;
+	char *tmp_value;
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+		MaxRunTime = atoi(tmp_value) * 1000000000ULL;
 
 	if (do_benchmark) {
 		fprintf(stderr, "Calculating best keys per crypt (GWS) for LWS=%zd and max. %llu s duration.\n\n", local_work_size, MaxRunTime / 1000000000UL);
@@ -322,6 +360,12 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		}
 	}
 	global_work_size = optimal_gws;
+	if (do_benchmark) {
+		fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+		fprintf(stderr, "(to avoid this test on next run, put \""
+		        GWS_CONFIG " = %d\" in john.conf, section ["
+		        SECTION_OPTIONS SUBSECTION_OPENCL "])\n", optimal_gws);
+	}
 }
 
 static char *get_key(int index)
@@ -337,7 +381,7 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong maxsize;
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 	if ((temp = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(temp);
 
@@ -350,7 +394,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	opencl_init("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init_opt("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, platform_id, NULL);
 
 	///Create Kernel
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
@@ -381,9 +425,11 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_all);
-}
 
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -489,16 +535,24 @@ static int binary_hash_6(void *binary)
 
 static void crypt_all(int count)
 {
+	size_t in_size, out_size;
+
+	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	in_size = sizeof(crypt_md5_password) * global_work_size;
+	out_size = sizeof(crypt_md5_hash) * global_work_size;
+
 	///Copy data to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, inbuffer, 0, NULL, NULL), "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Copy memsalt");
+	if (new_keys)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, in_size, inbuffer, 0, NULL, NULL), "Copy memin");
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Set ND range");
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0, outsize, outbuffer, 0, NULL, NULL), "Copy data back");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0, out_size, outbuffer, 0, NULL, NULL), "Copy data back");
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+
+	new_keys = 0;
 }
 
 static int get_hash_0(int index)
@@ -575,7 +629,7 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -590,7 +644,7 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 			binary_hash_5,
 			binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		set_salt,
 		set_key,
 		get_key,

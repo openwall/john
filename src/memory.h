@@ -62,7 +62,11 @@ extern unsigned int mem_saving_level;
  * If an error occurs, the function does not return.
  */
 extern void *mem_alloc(size_t size);
-
+/*
+ * this version same as mem_alloc, but initialized the memory
+ * to NULL bytes, like CALLOC(3) function does
+ */
+extern void *mem_calloc(size_t size);
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
  * Does nothing if the pointer is already NULL.
@@ -108,6 +112,10 @@ void dump_stuff(void *x, unsigned int size);
 void dump_stuff_msg(void *msg, void *x, unsigned int size);
 void dump_stuff_noeol(void *x, unsigned int size);
 void dump_stuff_msg_sepline(void *msg, void *x, unsigned int size);
+void dump_stuff_be(void *x, unsigned int size);
+void dump_stuff_be_msg(void *msg, void *x, unsigned int size);
+void dump_stuff_be_noeol(void *x, unsigned int size);
+void dump_stuff_be_msg_sepline(void *msg, void *x, unsigned int size);
 #if defined (MMX_COEF) || defined(NT_X86_64) || defined (MD5_SSE_PARA) || defined (MD4_SSE_PARA) || defined (SHA1_SSE_PARA)
 void dump_stuff_mmx(void *x, unsigned int size, unsigned int index);
 void dump_stuff_mmx_noeol(void *x, unsigned int size, unsigned int index);

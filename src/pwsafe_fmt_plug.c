@@ -61,7 +61,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
@@ -69,10 +69,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	// format $pwsafe$version*salt*iterations*hash
 	char *p;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy;
+	char *keeptr;
 	if (strncmp(ciphertext, "$pwsafe$", 8) != 0)
 		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* version */
 		return 0;
@@ -212,7 +214,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main pwsafe_fmt = {
+struct fmt_main fmt_pwsafe = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

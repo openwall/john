@@ -38,7 +38,8 @@
 
 #define CIPHERTEXT_LENGTH		40
 
-#define BINARY_SIZE			20
+#define DIGEST_SIZE			20
+#define BINARY_SIZE			4
 #define SALT_SIZE			8
 
 #define PLAINTEXT_LENGTH		32
@@ -63,12 +64,11 @@ typedef struct {
 
 cl_command_queue queue_prof;
 cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys,
-    len_buffer, data_info, mysalt, mycrypt;
+    len_buffer, mysalt, mycrypt;
 static cl_uint *outbuffer;
 static cl_uint *outbuffer2;
 static char *saved_plain;
 static char saved_salt[SALT_SIZE];
-static unsigned int datai[2];
 static int have_full_hashes;
 
 static struct fmt_tests tests[] = {
@@ -97,11 +97,12 @@ static struct fmt_tests tests[] = {
 static void create_clobj(int kpc, struct fmt_main *self) {
 	global_work_size = kpc;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = kpc;
-	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
+        
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, PLAINTEXT_LENGTH * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 
 	saved_plain = (char*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ,
-			 0, (PLAINTEXT_LENGTH) * kpc, 0, NULL, NULL, &ret_code);
+			 0, PLAINTEXT_LENGTH * kpc, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 	memset(saved_plain, 0, PLAINTEXT_LENGTH * kpc);
 
@@ -119,55 +120,40 @@ static void create_clobj(int kpc, struct fmt_main *self) {
 
 	// create and set arguments
 	buffer_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
-	    (PLAINTEXT_LENGTH) * kpc, NULL, &ret_code);
+	    PLAINTEXT_LENGTH * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
 
 	buffer_out = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
 	    sizeof(cl_uint) * 5 * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
 
-	data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
-	    sizeof(unsigned int) * 2, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
-
 	mysalt = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, SALT_SIZE, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating mysalt out argument");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(data_info),
-		(void *) &data_info), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mysalt),
+		(void *) &mysalt), "Error setting argument 0");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mysalt),
-		(void *) &mysalt), "Error setting argument 1");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1,
 		sizeof(buffer_keys), (void *) &buffer_keys),
-	    "Error setting argument 2");
+	    "Error setting argument 1");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out),
-		(void *) &buffer_out), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_out),
+		(void *) &buffer_out), "Error setting argument 2");
 
-	datai[0] = PLAINTEXT_LENGTH;
-	datai[1] = kpc;
     	global_work_size = kpc;
-
-	/* We set this here and never again. Used to be in crypt_all() */
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_FALSE, 0,
-	    sizeof(unsigned int) * 2, datai, 0, NULL, NULL), "failed in clEnqueueWriteBuffer data_info");
 }
 
 static void release_clobj(void){
     cl_int ret_code;
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes, outbuffer, 0,NULL,NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping outbuffer");
+    HANDLE_CLERROR(ret_code, "Error Unmapping outbuffer");
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
     ret_code = clReleaseMemObject(buffer_keys);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
     ret_code = clReleaseMemObject(buffer_out);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_out");
-    ret_code = clReleaseMemObject(data_info);
-    HANDLE_CLERROR(ret_code, "Error Releasing data_info");
     ret_code = clReleaseMemObject(mysalt);
     HANDLE_CLERROR(ret_code, "Error Releasing mysalt");
     ret_code = clReleaseMemObject(pinned_saved_keys);
@@ -175,6 +161,16 @@ static void release_clobj(void){
     ret_code = clReleaseMemObject(pinned_partial_hashes);
     HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
     MEM_FREE(outbuffer2);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
 
 /* this function could be used to calculated the best num
@@ -190,8 +186,9 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
     int optimal_kpc=2048;
     int gws, i = 0;
     cl_uint *tmpbuffer;
+    size_t maxgws = get_max_mem_alloc_size(ocl_gpu_id) / PLAINTEXT_LENGTH;
 
-    for(gws = local_work_size << 2; gws <= 8*1024*1024; gws <<= 1) {
+    for(gws = local_work_size << 2; gws < maxgws; gws <<= 1) {
         create_clobj(gws, self);
 	advance_cursor();
 	queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -199,7 +196,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 		memcpy(&(saved_plain[i*PLAINTEXT_LENGTH]),"abacaeaf",PLAINTEXT_LENGTH);
 	}
 	clEnqueueWriteBuffer(queue_prof, mysalt, CL_TRUE, 0, SALT_SIZE, saved_salt, 0, NULL, NULL);
-	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, (PLAINTEXT_LENGTH) * gws, saved_plain, 0, NULL, NULL);
+	clEnqueueWriteBuffer(queue_prof, buffer_keys, CL_TRUE, 0, PLAINTEXT_LENGTH * gws, saved_plain, 0, NULL, NULL);
     	ret_code = clEnqueueNDRangeKernel( queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &myEvent);
 	if(ret_code != CL_SUCCESS) {
 		// We hit some resource limit so we end here.
@@ -210,7 +207,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
 	tmpTime = endTime-startTime;
-	tmpbuffer = malloc(sizeof(cl_uint) * gws);
+	tmpbuffer = mem_alloc(sizeof(cl_uint) * gws);
 	clEnqueueReadBuffer(queue_prof, buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, tmpbuffer, 0, NULL, &myEvent);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 	clGetEventProfilingInfo(myEvent, CL_PROFILING_COMMAND_END  , sizeof(cl_ulong), &endTime  , NULL);
@@ -232,10 +229,13 @@ static void fmt_ssha_init(struct fmt_main *self)
 {
 	char *temp;
 	cl_ulong maxsize;
+	char build_opts[64];
 
 	global_work_size = 0;
 
-	opencl_init("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id);
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
+	opencl_init_opt("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
@@ -278,12 +278,14 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_clobj);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
 }
 
 
 static void *binary(char *ciphertext) {
-	static char realcipher[BINARY_SIZE + SALT_SIZE + 9];
+	static char realcipher[DIGEST_SIZE + SALT_SIZE + 9];
 
 	memset(realcipher, 0, sizeof(realcipher));
 	base64_decode(NSLDAP_MAGIC_LENGTH + ciphertext, CIPHERTEXT_LENGTH,
@@ -295,20 +297,24 @@ static void *get_salt(char *ciphertext){
 	static char *realcipher;
 
 	// Cludge to be sure to satisfy the salt aligment test of 1.7.9.3 on 64-bit
-	if (!realcipher) realcipher = mem_alloc_tiny(BINARY_SIZE + SALT_SIZE + 9 + 4, MEM_ALIGN_WORD) + 4;
+	if (!realcipher) realcipher = mem_alloc_tiny(DIGEST_SIZE + SALT_SIZE + 9 + 4, MEM_ALIGN_WORD) + 4;
 
-	memset(realcipher, 0, BINARY_SIZE + SALT_SIZE + 9 + 4);
+	memset(realcipher, 0, DIGEST_SIZE + SALT_SIZE + 9 + 4);
 
 	base64_decode(NSLDAP_MAGIC_LENGTH + ciphertext, CIPHERTEXT_LENGTH,
 	    realcipher);
-	return (void *) &realcipher[BINARY_SIZE];
+	return (void *) &realcipher[DIGEST_SIZE];
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (ciphertext && strlen(ciphertext) == CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH)
-		return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
-	return 0;
+	if (!ciphertext)
+		return 0;
+	if (!strcmp(NSLDAP_MAGIC, ciphertext))
+		return 0;
+	if (strlen(ciphertext) != CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH)
+		return 0;
+	return 1;
 }
 
 static int get_hash_0(int index) { return outbuffer[index] & 0xF; }
@@ -344,13 +350,20 @@ static void set_salt(void *salt){
 }
 
 static char *get_key(int index) {
-	return &(saved_plain[index*PLAINTEXT_LENGTH]);
+	int length = 0;
+	static char out[PLAINTEXT_LENGTH + 1];
+	char *key = &saved_plain[index * PLAINTEXT_LENGTH];
+
+	while (length < PLAINTEXT_LENGTH && *key)
+		out[length++] = *key++;
+	out[length] = 0;
+	return out;
 }
 
-static int cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int count) {
 	unsigned int i = 0;
 	unsigned int b = ((unsigned int *) binary)[0];
-	for (; i < index; i++) {
+	for (; i < count; i++) {
 		if (b == outbuffer[i])
 			return 1;
 	}
@@ -365,23 +378,23 @@ static int cmp_one(void *binary, int index){
 	return 0;
 }
 
-static int cmp_exact(char *source, int count){
+static int cmp_exact(char *source, int index){
 	unsigned int *t = (unsigned int *) binary(source);
 
 	if (!have_full_hashes){
 		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
-			    sizeof(cl_uint) * (global_work_size),
-			    sizeof(cl_uint) * 4 * global_work_size, outbuffer2, 0,
-			    NULL, NULL);
+			    sizeof(cl_uint) * global_work_size,
+			    sizeof(cl_uint) * 4 * global_work_size, outbuffer2,
+			     0, NULL, NULL);
 		have_full_hashes = 1;
 	}
-	if (t[1]!=outbuffer2[count])
+	if (t[1]!=outbuffer2[index])
 		return 0;
-	if (t[2]!=outbuffer2[1*global_work_size+count])
+	if (t[2]!=outbuffer2[1*global_work_size+index])
 		return 0;
-	if (t[3]!=outbuffer2[2*global_work_size+count])
+	if (t[3]!=outbuffer2[2*global_work_size+index])
 		return 0;
-	if (t[4]!=outbuffer2[3*global_work_size+count])
+	if (t[4]!=outbuffer2[3*global_work_size+index])
 		return 0;
 	return 1;
 }
@@ -391,9 +404,10 @@ static int cmp_exact(char *source, int count){
 static void crypt_all(int count)
 {
 	cl_int code;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	code = clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
-	    (PLAINTEXT_LENGTH) * global_work_size, saved_plain, 0, NULL, NULL);
+	    PLAINTEXT_LENGTH * global_work_size, saved_plain, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueWriteBuffer saved_plain");
 
 	code = clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
@@ -424,7 +438,7 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 		tests
 	}, {
 		fmt_ssha_init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

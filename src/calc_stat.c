@@ -29,7 +29,7 @@ int main(int argc, char * * argv)
 
 	if( (argc!=3) && (argc!=4) )
 	{
-		fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: do use non printable characters\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
 		return -1;
 	}
 
@@ -37,7 +37,7 @@ int main(int argc, char * * argv)
 	{
 		if(strcmp(argv[1], "-p"))
 		{
-			fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: do use non printable characters\n", argv[0]);
+			fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
 			return -1;
 		}
 		args = 1;
@@ -56,7 +56,7 @@ int main(int argc, char * * argv)
 		return -1;
 	}
 
-	first = malloc( sizeof(int) * 256 );
+	first = malloc( sizeof(unsigned int) * 256 );
 
 	ligne = malloc(4096);
 
@@ -81,31 +81,30 @@ int main(int argc, char * * argv)
 		for(i=0;ligne[i];i++)
 		{
 			np = 0;
-			if(C2I(ligne[i])<32)
-			{
-				if (!npflag)
+			if (!npflag) {
+				if(C2I(ligne[i])<32)
+				{
 					fprintf(stderr,
-					        "Warning, non printable character 0x%02x line %d offset %d: %s\n",
+					        "Warning, skipping non printable character 0x%02x line %d offset %d: %s\n",
 					        (unsigned char)ligne[i], nb_lignes, i, ligne);
-				np += 1;
-			}
-			if(C2I(ligne[i])>127)
-			{
-				if (!npflag)
+					np += 1;
+				}
+				if(C2I(ligne[i])>127)
+				{
 					fprintf(stderr,
-					        "Warning, non US ascii character 0x%02x line %d offset %d: %s\n",
+					        "Warning, skipping non-ASCII character 0x%02x line %d offset %d: %s\n",
 					        (unsigned char)ligne[i], nb_lignes, i, ligne);
-				np += 1;
+					np += 1;
+				}
+				if((i>0) && (C2I(ligne[i-1])<32))
+				{
+					np += 2;
+				}
+				if((i>0) && (C2I(ligne[i-1])>127))
+				{
+					np += 2;
+				}
 			}
-			if((i>0) && (C2I(ligne[i-1])<32))
-			{
-				np += 2;
-			}
-			if((i>0) && (C2I(ligne[i-1])>127))
-			{
-				np += 2;
-			}
-
 			if( (i==0) && ((np == 0) || (npflag == 1)) )
 				proba1[C2I(ligne[0])]++;
 			if( (i>0) && ((np == 0) || (npflag == 1)) )

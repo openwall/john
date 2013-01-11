@@ -4,7 +4,8 @@
  * p-ppk-crack v0.5 made by michu@neophob.com — PuTTY private key cracker
  *
  * Source code based on putty svn version, check
- * http://chiark.greenend.org.uk/~sgtatham/putty/licence.html. */
+ * http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html
+ */
 
 #ifndef PUTTY_COMMON_H
 #define PUTTY_COMMON_H
@@ -146,7 +147,7 @@ static char *read_body(FILE * fp)
 	int c;
 
 	size = 128;
-	text = (char*)malloc(size);
+	text = (char*)mem_alloc(size);
 	len = 0;
 	text[len] = '\0';
 
@@ -179,7 +180,7 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 	int i, j, k;
 
 	/* We expect at most 64 base64 characters, ie 48 real bytes, per line. */
-	blob = (unsigned char*)malloc(48 * nlines);
+	blob = (unsigned char*)mem_alloc(48 * nlines);
 	len = 0;
 	for (i = 0; i < nlines; i++) {
 		line = read_body(fp);
@@ -584,8 +585,8 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	// printf("len: %i/%i\n", public_blob_len, private_blob_len);
-	private_blobXX=(unsigned char*)malloc(private_blob_len);
-	public_blobXX=(unsigned char*)malloc(public_blob_len);
+	private_blobXX=(unsigned char*)mem_alloc(private_blob_len);
+	public_blobXX=(unsigned char*)mem_alloc(public_blob_len);
 
 	if (type == SSH_KEYTYPE_SSH1) {
 		fprintf(stderr, "SSH1 key type not supported!\n");

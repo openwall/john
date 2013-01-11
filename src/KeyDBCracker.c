@@ -190,7 +190,7 @@ bool CrackKeyData(char *profilePath, struct KeyCrackData *keyCrackData)
 	pwCheckStr[strlen(KEYDB_PW_CHECK_STR)] =0;
 	keyCrackData->pwCheckStr = pwCheckStr; */
 
-	index += strlen(KEYDB_PW_CHECK_STR);
+	// index += strlen(KEYDB_PW_CHECK_STR);
 
 	//=== Just print here what he have got ....====
 

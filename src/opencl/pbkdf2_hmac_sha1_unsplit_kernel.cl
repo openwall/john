@@ -1,14 +1,45 @@
-/* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+/*
+ * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+ * and Copyright (c) 2012 magnum
  * and it is hereby released to the general public under the following terms:
- *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted. */
+ * modification, are permitted.
+ *
+ * Pass this kernel -DKEYLEN=x -DOUTLEN=y -DSALTLEN=z for generic use.
+ *
+ * KEYLEN  should be PLAINTEXT_LENGTH for passwords or 20 for hash
+ * OUTLEN  should be sizeof(outbuffer->v)
+ * SALTLEN should be sizeof(currentsalt.salt)
+ */
 
-#include <string.h>
-#include <stdlib.h>
+#include "opencl_device_info.h"
 
-# define SWAP(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+/* Macros for reading/writing chars from int32's */
+#if gpu_amd(DEVICE_INFO) || no_byte_addressable(DEVICE_INFO)
+/* These use 32-bit stores */
+#define XORCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2]) ^ ((val) << ((((index) & 3) ^ 3) << 3))
+#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
+#define PUTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+#define PUTCHAR_G	PUTCHAR
+#define PUTCHAR_BE_G	PUTCHAR_BE
+#else
+/* These use byte-adressed stores */
+#define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
+#define PUTCHAR(buf, index, val) ((uchar*)(buf))[(index)] = (val)
+#define PUTCHAR_G(buf, index, val) ((__global uchar*)(buf))[(index)] = (val)
+#define PUTCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] = (val)
+#define PUTCHAR_BE_G(buf, index, val) ((__global uchar*)(buf))[(index) ^ 3] = (val)
+#endif
+
+#ifdef SCALAR
+inline uint SWAP32(uint x)
+{
+	x = rotate(x, 16U);
+	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
+}
+#else
+#define SWAP32(a)	(as_uint(as_uchar4(a).wzyx))
+#endif
 
 #define INIT_A			0x67452301
 #define INIT_B			0xefcdab89
@@ -26,10 +57,18 @@
 #define K3			0x8f1bbcdc
 #define K4			0xca62c1d6
 
-#define F1(x,y,z)		(z ^ (x & (y ^ z)))
-#define F2(x,y,z)		(x ^ y ^ z)
-#define F3(x,y,z)		((x & y) | (z & (x | y)))
-#define F4(x,y,z)		(x ^ y ^ z)
+#ifdef USE_BITSELECT
+#define F1(x,y,z)	bitselect(z, y, x)
+#else
+#define F1(x,y,z)	(z ^ (x & (y ^ z)))
+#endif
+#define F2(x,y,z)	(x ^ y ^ z)
+#ifdef USE_BITSELECT
+#define F3(x,y,z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#else
+#define F3(x,y,z)	((x & y) | (z & (x | y)))
+#endif
+#define F4(x,y,z)	(x ^ y ^ z)
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
@@ -51,7 +90,11 @@
 }
 #endif
 
-#define S(x,n) ((x << n) | ((x) >> (32 - n)))
+#if 0
+#define S(x, n) (rotate((x), (uint)(n)))
+#else
+#define S(x, n) ((x << n) | ((x) >> (32 - n)))
+#endif
 
 #define R(t)                                            \
 (                                                       \
@@ -91,7 +134,7 @@
     e += S(a,5) + F1(b,c,d) + K1 ; b = S(b,30);        \
 }
 
-#define SHA1_(A,B,C,D,E,W) \
+#define SHA1(A,B,C,D,E,W) \
     P1(A, B, C, D, E, W[0] );\
     P1(E, A, B, C, D, W[1] );\
     P1(D, E, A, B, C, W[2] );\
@@ -273,34 +316,43 @@
     P4(B, C, D, E, A, R2(79));
 
 #define  SHA2(A,B,C,D,E,W) SHA2BEG(A,B,C,D,E,W) SHA2END(A,B,C,D,E,W)
-# define SWAP(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 
-void preproc(const uint8_t * key, uint32_t keylen,
-    uint32_t * state, uint8_t var1, uint32_t var4)
+typedef struct {
+	uint length;
+	uchar v[KEYLEN];
+} pbkdf2_password;
+
+typedef struct {
+	uint v[(OUTLEN+3)/4];
+} pbkdf2_hash;
+
+typedef struct {
+	uchar length;
+	uchar salt[SALTLEN];
+	uint iterations;
+	uint outlen;
+} pbkdf2_salt;
+
+inline void preproc(__global const uchar * key, uint keylen,
+    __private uint * state, uint padding)
 {
-	int i;
-	uint32_t W[16], temp;
-	uint8_t ipad[20];
-	uint32_t A = INIT_A;
-	uint32_t B = INIT_B;
-	uint32_t C = INIT_C;
-	uint32_t D = INIT_D;
-	uint32_t E = INIT_E;
+	uint i;
+	uint W[16], temp;
+
+	for (i = 0; i < 16; i++)
+		W[i] = padding;
 
 	for (i = 0; i < keylen; i++)
-		ipad[i] = var1 ^ key[i];
-	for (i = keylen; i < 20; i++)
-		ipad[i] = var1;
+		XORCHAR_BE(W, i, key[i]);
 
-	for (i = 0; i < 5; i++)
-		GET_WORD_32_BE(W[i], ipad, i * 4);
+	uint A = INIT_A;
+	uint B = INIT_B;
+	uint C = INIT_C;
+	uint D = INIT_D;
+	uint E = INIT_E;
 
-	for (i = 5; i < 16; i++)
-		W[i] = var4;
-
-	SHA1_(A, B, C, D, E, W);
+	SHA1(A, B, C, D, E, W);
 
 	state[0] = A + INIT_A;
 	state[1] = B + INIT_B;
@@ -310,27 +362,26 @@ void preproc(const uint8_t * key, uint32_t keylen,
 
 }
 
-void hmac_sha1_(uint32_t * output,
-    uint32_t * ipad_state,
-    uint32_t * opad_state, const uint8_t * salt, int saltlen, uint8_t add)
+inline void hmac_sha1(__private uint * output,
+    __private uint * ipad_state,
+    __private uint * opad_state,
+    __global const uchar * salt, int saltlen, uchar add)
 {
 	int i;
-	uint32_t temp, W[16];
-	uint32_t A, B, C, D, E;
-	uint8_t buf[64];
-	uint32_t *src = (uint32_t *) buf;
+	uint temp, W[16];
+	uint A, B, C, D, E;
+	uchar buf[64];
+	uint *src = (uint *) buf;
 	i = 64 / 4;
 	while (i--)
 		*src++ = 0;
-	//printf("%d\n", saltlen);
+	//_memcpy(buf, salt, saltlen);
 	for (i = 0; i < saltlen; i++)
 		buf[i] = salt[i];
 
 	buf[saltlen + 4] = 0x80;
 	buf[saltlen + 3] = add;
 	PUT_WORD_32_BE((64 + saltlen + 4) << 3, buf, 60);
-
-	//print_hex(buf, 64);
 
 	A = ipad_state[0];
 	B = ipad_state[1];
@@ -341,7 +392,7 @@ void hmac_sha1_(uint32_t * output,
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], buf, i * 4);
 
-	SHA1_(A, B, C, D, E, W);
+	SHA1(A, B, C, D, E, W);
 
 	A += ipad_state[0];
 	B += ipad_state[1];
@@ -370,7 +421,7 @@ void hmac_sha1_(uint32_t * output,
 	for (i = 0; i < 16; i++)
 		GET_WORD_32_BE(W[i], buf, i * 4);
 
-	SHA1_(A, B, C, D, E, W);
+	SHA1(A, B, C, D, E, W);
 
 	A += opad_state[0];
 	B += opad_state[1];
@@ -387,12 +438,13 @@ void hmac_sha1_(uint32_t * output,
 
 
 
-void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
-    uint32_t * ipad_state, uint32_t * opad_state, uint32_t * tmp_out, int iterations)
+inline void big_hmac_sha1(__private uint * input, uint inputlen,
+    __private uint * ipad_state,
+    __private uint * opad_state, __private uint * tmp_out, int iterations)
 {
 	int i, lo;
-	uint32_t temp, W[16];
-	uint32_t A, B, C, D, E;
+	uint temp, W[16];
+	uint A, B, C, D, E;
 
 	for (i = 0; i < 5; i++)
 		W[i] = input[i];
@@ -450,34 +502,40 @@ void big_hmac_sha1(uint32_t * input, uint32_t inputlen,
 		tmp_out[3] ^= D;
 		tmp_out[4] ^= E;
 	}
-
-	for (i = 0; i < 5; i++)
-		tmp_out[i] = SWAP(tmp_out[i]);
 }
 
-static void pbkdf2(const uint8_t * pass, int passlen,
-    const uint8_t * salt, int saltlen, int n, uint32_t * out)
+inline void pbkdf2(__global const uchar * pass, uint passlen,
+                   __global const uchar * salt, uint saltlen, uint iterations,
+                   __global uint * out, uint outlen)
 {
-	uint32_t ipad_state[5];
-	uint32_t opad_state[5];
-	uint32_t tmp_out[5];
-	uint8_t rnd = 0x01;
-	uint32_t *out2=out;
+	uint ipad_state[5];
+	uint opad_state[5];
+	uint r, t = 0;
 
-	preproc(pass, passlen, ipad_state, 0x36, 0x36363636);
-	preproc(pass, passlen, opad_state, 0x5c, 0x5c5c5c5c);
+	preproc(pass, passlen, ipad_state, 0x36363636);
+	preproc(pass, passlen, opad_state, 0x5c5c5c5c);
 
-	for (; rnd < 0x04;) {
-		hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen,
-		    rnd++);
+	for (r = 1; r <= (outlen + 19) / 20; r++) {
+		uint tmp_out[5];
+		int i;
 
-		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state,
-		    opad_state, tmp_out, n);
-		memcpy(out2, tmp_out, 20);
-		out2+=5;
+		hmac_sha1(tmp_out, ipad_state, opad_state, salt, saltlen, r);
+
+		big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH,
+		              ipad_state, opad_state,
+		              tmp_out, iterations);
+
+		for (i = 0; i < 20 && t < (outlen + 3) / 4 * 4; i++, t++)
+			PUTCHAR_BE_G(out, t, ((uchar*)tmp_out)[i]);
 	}
-	hmac_sha1_(tmp_out, ipad_state, opad_state, salt, saltlen, 0x04);
-	big_hmac_sha1(tmp_out, SHA1_DIGEST_LENGTH, ipad_state, opad_state,
-	    tmp_out, n);
-	memcpy(out2, tmp_out, 6);
+}
+
+__kernel void derive_key(__global const pbkdf2_password *inbuffer,
+    __global pbkdf2_hash *outbuffer, __global const pbkdf2_salt *salt)
+{
+	uint idx = get_global_id(0);
+
+	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
+	       salt->salt, salt->length,
+	       salt->iterations, outbuffer[idx].v, salt->outlen);
 }

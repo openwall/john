@@ -28,11 +28,11 @@
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define	KEYS_PER_CRYPT		1024*9
+#define	KEYS_PER_CRYPT		8*1024
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	20
 #define SALT_SIZE		sizeof(struct custom_salt)
 
 #define uint8_t			unsigned char
@@ -40,18 +40,18 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-        uint8_t length;
-        uint8_t v[24];
+	uint32_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } gpg_password;
 
 typedef struct {
-        uint8_t v[16];
+	uint8_t v[16];
 } gpg_hash;
 
 typedef struct {
-        uint8_t length;
-	int count;
-        uint8_t salt[8];
+	uint32_t length;
+	uint32_t count;
+	uint8_t salt[8];
 } gpg_salt;
 
 static int *cracked;
@@ -165,36 +165,37 @@ static uint32_t keySize(char algorithm)
         return 0;
 }
 
-// Returns the digest size (in bytes) of a given hash algorithm
-static uint32_t digestSize(char algorithm)
+static void release_clobj(void)
 {
-        switch (algorithm) {
-                case HASH_MD5:
-                        return 16;
-                case HASH_SHA1:
-                        return 20;
-                case HASH_SHA512:
-                        return 64;
-                case HASH_SHA256:
-                        return 32;
-                case HASH_RIPEMD160:
-                        return 20;
-                default: break;
-        }
-        return 0;
-}
-
-static void release_all(void)
-{
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+        
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
+	MEM_FREE(cracked);
 }
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
 static void init(struct fmt_main *self)
 {
+	char build_opts[64];
 	cl_int cl_error;
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%d",
+	         PLAINTEXT_LENGTH);
+	opencl_init_opt("$JOHN/kernels/gpg_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 
@@ -215,9 +216,7 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
 
-	//listOpenCLdevices();
-	opencl_init("$JOHN/kernels/gpg_kernel.cl", ocl_gpu_id, platform_id);
-	/// Alocate memory
+	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -241,16 +240,19 @@ static void init(struct fmt_main *self)
 		&mem_setting), "Error while setting mem_salt kernel argument");
 	opencl_find_best_workgroup(self);
 
-	atexit(release_all);
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
+	char *ctcopy, *keeptr, *p;
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$gpg$" marker */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
@@ -277,6 +279,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
 
+	MEM_FREE(keeptr);
 	return 1;
 
 err:
@@ -469,6 +472,9 @@ static int check(unsigned char *keydata, int ks)
 static void crypt_all(int count)
 {
 	int index;
+
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -491,24 +497,10 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
-	{
-		// allocate string2key buffer
-		int res;
-		int ks = keySize(cur_salt->cipher_algorithm);
-		int ds = digestSize(cur_salt->hash_algorithm);
-		unsigned char keydata[ds * ((ks + ds- 1) / ds)];
-		memcpy(keydata, outbuffer[index].v, ks);
-		res = check(keydata, ks);
-		if(res)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
-	}
-
+	for (index = 0; index < count; index++)
+		cracked[index] = check(outbuffer[index].v,
+		                       keySize(cur_salt->cipher_algorithm));
 }
 
 static int cmp_all(void *binary, int count)
@@ -546,7 +538,7 @@ struct fmt_main fmt_opencl_gpg = {
 		gpg_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

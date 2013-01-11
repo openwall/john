@@ -3,7 +3,12 @@ The Markov mode is based from [1], tested and applied to "classical" password
 cracking in [2]. This mode similar to the "wordlist" mode because it will only
 crack a fixed quantity of passwords.
 
-Specify the --markov option on the ommand line to use Markov mode.
+UTF-8 is handled pretty good. Supply the -p option to calc_stat and use
+--encoding:utf8 when you run john. Some invalid candidates are generated but
+for fast formats it's cheaper to accept them than to try to filter them out.
+For slow formats, an external filter can be used.
+
+Specify the --markov option on the command line to use Markov mode.
 
 You can use any of these forms of the --markov option
 

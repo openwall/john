@@ -73,14 +73,25 @@ static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
 
-
-static void release_all(void)
+static void release_clobj(void)
 {
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+        
+	MEM_FREE(host_pass);
+	MEM_FREE(host_hash);
+	MEM_FREE(host_salt);
+}
+
+static void done(void)
+{
+	release_clobj();
+
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
 
 static void pwsafe_set_key(char *key, int index)
@@ -92,13 +103,13 @@ static void pwsafe_set_key(char *key, int index)
 
 static void init(struct fmt_main *self)
 {
-	host_pass = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_pass));
-	host_hash = calloc(KEYS_PER_CRYPT, sizeof(pwsafe_hash));
-	host_salt = calloc(1, sizeof(pwsafe_salt));
+	host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
+	host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
+	host_salt = mem_calloc(sizeof(pwsafe_salt));
 
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, platform_id);
 
-	///Alocate memory on the GPU
+	///Allocate memory on the GPU
 
 	mem_salt =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, saltsize, NULL,
@@ -120,8 +131,11 @@ static void init(struct fmt_main *self)
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
 	opencl_find_best_workgroup(self);
-	//local_work_size=256;
-	atexit(release_all);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -190,8 +204,7 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
 ///Copy data to GPU memory
@@ -203,7 +216,7 @@ static void crypt_all(int count)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
+	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, profilingEvent), "Set ND range");
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, host_hash, 0, NULL, NULL),
@@ -258,7 +271,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 		pwsafe_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

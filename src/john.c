@@ -19,6 +19,11 @@
 
 #include "params.h"
 
+#ifdef HAVE_NSS
+#include "nss.h"
+//#include "nssutil.h"
+#include "nspr.h"
+#endif
 #if defined(_OPENMP) && OMP_FALLBACK
 #include <omp.h>
 #endif
@@ -57,6 +62,9 @@
 #include <openssl/crypto.h>
 #include "unicode.h"
 #include "plugin.h"
+#ifdef HAVE_GMP
+#include "gmp.h"
+#endif
 #ifdef CL_VERSION_1_0
 #include "common-opencl.h"
 #endif
@@ -89,6 +97,7 @@ extern int CPU_detect(void);
 
 extern struct fmt_main fmt_DES, fmt_BSDI, fmt_MD5, fmt_BF;
 extern struct fmt_main fmt_AFS, fmt_LM;
+extern struct fmt_main fmt_NT;
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
 #endif
@@ -105,7 +114,7 @@ extern struct fmt_main fmt_truecrypt_whirlpool;
 #endif
 
 #if defined(__GNUC__) && defined(__SSE2__)
-extern struct fmt_main sha1_fmt_ng;
+extern struct fmt_main fmt_sha1_ng;
 #endif
 
 #ifdef HAVE_SKEY
@@ -113,7 +122,7 @@ extern struct fmt_main fmt_SKEY;
 #endif
 
 #ifdef HAVE_NSS
-extern struct fmt_main mozilla_fmt;
+extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
 #endif
 #ifdef HAVE_KRB5
@@ -141,6 +150,7 @@ extern struct fmt_main fmt_opencl_strip;
 extern struct fmt_main fmt_opencl_zip;
 extern struct fmt_main fmt_opencl_encfs;
 extern struct fmt_main fmt_opencl_odf;
+extern struct fmt_main fmt_opencl_odf_aes;
 extern struct fmt_main fmt_opencl_sxc;
 extern struct fmt_main fmt_opencl_gpg;
 extern struct fmt_main fmt_opencl_dmg;
@@ -156,7 +166,7 @@ extern struct fmt_main fmt_opencl_office2007;
 extern struct fmt_main fmt_opencl_office2010;
 extern struct fmt_main fmt_opencl_office2013;
 extern struct fmt_main fmt_opencl_NTLMv2;
-extern struct fmt_main fmt_ocl_krb5pa_sha1;
+extern struct fmt_main fmt_opencl_krb5pa_sha1;
 extern struct fmt_main fmt_opencl_rar;
 #endif
 #ifdef HAVE_CUDA
@@ -176,9 +186,8 @@ extern struct fmt_main fmt_cuda_pwsafe;
 
 extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pfx;
-extern struct fmt_main fmt_pdf;
-extern struct fmt_main rar_fmt;
-extern struct fmt_main zip_fmt;
+extern struct fmt_main fmt_rar;
+extern struct fmt_main fmt_zip;
 extern struct fmt_main fmt_wpapsk;
 
 #include "fmt_externs.h"
@@ -198,11 +207,11 @@ extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
 extern int keepass2john(int argc, char **argv);
+extern int keyring2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
 #endif
-extern int pdf2john(int argc, char **argv);
 extern int zip2john(int argc, char **argv);
 
 static struct db_main database;
@@ -212,8 +221,12 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	if (options.format)
-	if (strcmp(options.format, format->params.label)) return;
+	if (options.format) {
+		// -format=dynamic is working again.  It was 'broke' when switched to thin dynamic format structures.
+		if (!strcmp(options.format, "dynamic")) {
+			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
+		} else if (strcmp(options.format, format->params.label)) return;
+	}
 
 	fmt_register(format);
 }
@@ -229,13 +242,14 @@ static void john_register_all(void)
 	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
 	// generic format first
 	cnt = dynamic_Register_formats(&selfs);
-
+/*
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);
 	john_register_one(&fmt_BF);
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
+	john_register_one(&fmt_NT);
 
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
@@ -254,11 +268,11 @@ static void john_register_all(void)
 #endif
 
 #if defined(__GNUC__) && defined(__SSE2__)
-	john_register_one(&sha1_fmt_ng);
+	john_register_one(&fmt_sha1_ng);
 #endif
 
 #ifdef HAVE_NSS
-	john_register_one(&mozilla_fmt);
+	john_register_one(&fmt_mozilla);
 #endif
 #ifdef HAVE_KRB5
 	john_register_one(&fmt_KRB5_kinit);
@@ -275,14 +289,13 @@ static void john_register_all(void)
 
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_pfx);
-	john_register_one(&fmt_pdf);
 	john_register_one(&fmt_wpapsk);
 #ifndef _MSC_VER
-	john_register_one(&rar_fmt);
+	john_register_one(&fmt_rar);
 #endif
-	john_register_one(&zip_fmt);
+	john_register_one(&fmt_zip);
 	john_register_one(&fmt_dummy);
-
+*/
 #ifdef CL_VERSION_1_0
 	john_register_one(&fmt_opencl_NSLDAPS);
 	john_register_one(&fmt_opencl_rawMD4);
@@ -294,7 +307,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_mysqlsha1);
 	john_register_one(&fmt_opencl_cryptsha256);
 	john_register_one(&fmt_opencl_cryptsha512);
-	john_register_one(&fmt_opencl_mscash2);
+	//TODO john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_keychain);
 	john_register_one(&fmt_opencl_agilekeychain);
@@ -302,6 +315,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_zip);
 	john_register_one(&fmt_opencl_encfs);
 	john_register_one(&fmt_opencl_odf);
+	john_register_one(&fmt_opencl_odf_aes);
 	john_register_one(&fmt_opencl_sxc);
 	john_register_one(&fmt_opencl_gpg);
 	john_register_one(&fmt_opencl_dmg);
@@ -310,14 +324,14 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);
         john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_bf);
+	//TODO john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
-	john_register_one(&fmt_opencl_DES);
+	//TODO john_register_one(&fmt_opencl_DES);
 	john_register_one(&fmt_opencl_office2007);
 	john_register_one(&fmt_opencl_office2010);
 	john_register_one(&fmt_opencl_office2013);
 	john_register_one(&fmt_opencl_NTLMv2);
-	john_register_one(&fmt_ocl_krb5pa_sha1);
+	john_register_one(&fmt_opencl_krb5pa_sha1);
 	john_register_one(&fmt_opencl_rar);
 #endif
 
@@ -437,6 +451,7 @@ static void john_load(void)
 		memset(&dummy_format, 0, sizeof(dummy_format));
 		dummy_format.params.plaintext_length = options.length;
 		dummy_format.params.flags = FMT_CASE | FMT_8_BIT;
+		dummy_format.methods.clear_keys = &fmt_default_clear_keys;
 	}
 
 	if (options.flags & FLG_PASSWD) {
@@ -612,6 +627,89 @@ static void john_list_method_names()
 	puts("set_key, get_key, clear_keys, crypt_all, get_hash, cmp_all, cmp_one, cmp_exact");
 }
 
+static void john_list_build_info(void)
+{
+#ifdef __GNU_MP_VERSION
+	int gmp_major, gmp_minor, gmp_patchlevel;
+#endif
+	puts("Version: " JOHN_VERSION);
+	puts("Build: " JOHN_BLD _MP_VERSION);
+	printf("Arch: %d-bit %s\n", ARCH_BITS,
+	       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
+#if JOHN_SYSTEMWIDE
+	puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
+	puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
+	puts("Private home: " JOHN_PRIVATE_HOME);
+#endif
+	printf("$JOHN is %s\n", path_expand("$JOHN/"));
+	printf("Format interface version: %d\n", FMT_MAIN_VERSION);
+	puts("Rec file version: " RECOVERY_V);
+	puts("Charset file version: " CHARSET_V);
+	printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN, CHARSET_MIN);
+	printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX, CHARSET_MAX);
+	printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
+	printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
+	printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
+#ifdef __VERSION__
+	printf("Compiler version: %s\n", __VERSION__);
+#endif
+#ifdef __GNUC__
+	printf("gcc version: %d.%d.%d\n", __GNUC__,
+	       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#endif
+#ifdef __ICC
+	printf("icc version: %d\n", __ICC);
+#endif
+#ifdef __clang_version__
+	printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef OPENSSL_VERSION_NUMBER
+	// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
+	// gcc insists it is int.
+	printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
+	if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
+		printf("\t(loaded: %lx)", (unsigned long)SSLeay());
+	printf("\n");
+#endif
+
+#ifdef __GNU_MP_VERSION
+	// print GMP version info if HAVE_GMP has been set in Makefile
+	printf("GMP library version: %d.%d.%d",
+	       __GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+	/* version strings prior to 4.3.0 did omit the patch level when it was 0 */
+	gmp_patchlevel = 0;
+	sscanf(gmp_version, "%d.%d.%d", &gmp_major, &gmp_minor, &gmp_patchlevel);
+	if (gmp_major != __GNU_MP_VERSION || gmp_minor != __GNU_MP_VERSION_MINOR ||
+	    gmp_patchlevel != __GNU_MP_VERSION_PATCHLEVEL)
+		printf("\t(loaded: %d.%d.%d)",
+		       gmp_major, gmp_minor, gmp_patchlevel);
+	printf("\n");
+#endif
+#ifdef NSS_VERSION
+	// <major>.<minor>[.<patch_level>[.<build_number>]][ <ECC>][ <Beta>]
+	printf("NSS library version: %s", NSS_VERSION);
+	if(strcmp(NSS_VERSION, NSS_GetVersion()))
+		printf("\t(loaded: %s)", NSS_GetVersion());
+	printf("\n");
+#endif
+// NSSUTIL_VERSION and NSSUTIL_VERSION always seem to match.
+// At least, I dodn't find any differences on Fedora 16 or Fedora 17 systems.
+//#ifdef NSSUTIL_VERSION
+//	printf("NSS utilities version: %s (%s)\n",
+//	        NSSUTIL_VERSION, NSSUTIL_GetVersion());
+//#endif
+#ifdef PR_VERSION
+	printf("NSPR library version: %s", PR_VERSION);
+	if(strcmp(PR_VERSION, PR_GetVersion()))
+		printf("\t(loaded: %s)", PR_GetVersion());
+	printf("\n");
+#endif
+#ifdef HAVE_KRB5
+	// I have no idea how to get version info
+	printf("Kerberos version 5 support enabled\n");
+#endif
+}
+
 static void john_init(char *name, int argc, char **argv)
 {
 	int show_usage = 0;
@@ -691,51 +789,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (options.listconf && !strcasecmp(options.listconf,
 		                                    "build-info"))
 		{
-			puts("Version: " JOHN_VERSION);
-			puts("Build: " JOHN_BLD _MP_VERSION);
-			printf("Arch: %d-bit %s\n", ARCH_BITS,
-			       ARCH_LITTLE_ENDIAN ? "LE" : "BE");
-#if JOHN_SYSTEMWIDE
-			puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
-			puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
-			puts("Private home: " JOHN_PRIVATE_HOME);
-#endif
-			printf("$JOHN is %s\n", path_expand("$JOHN/"));
-			printf("Format interface version: %d\n", FMT_MAIN_VERSION);
-			puts("Rec file version: " RECOVERY_V);
-			puts("Charset file version: " CHARSET_V);
-			printf("CHARSET_MIN: %d (0x%02x)\n", CHARSET_MIN,
-			       CHARSET_MIN);
-			printf("CHARSET_MAX: %d (0x%02x)\n", CHARSET_MAX,
-			       CHARSET_MAX);
-			printf("CHARSET_LENGTH: %d\n", CHARSET_LENGTH);
-			printf("Max. Markov mode level: %d\n", MAX_MKV_LVL);
-			printf("Max. Markov mode password length: %d\n", MAX_MKV_LEN);
-#ifdef __VERSION__
-		printf("Compiler version: %s\n", __VERSION__);
-#endif
-#ifdef __GNUC__
-			printf("gcc version: %d.%d.%d\n", __GNUC__,
-			       __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#endif
-#ifdef __ICC
-			printf("icc version: %d\n", __ICC);
-#endif
-#ifdef __clang_version__
-			printf("clang version: %s\n", __clang_version__);
-#endif
-#ifdef OPENSSL_VERSION_NUMBER
-			// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
-			// gcc insists it is int.
-			printf("OpenSSL library version: %lx", (unsigned long)OPENSSL_VERSION_NUMBER);
-			// FIXME: How do I detect a missing library?
-			// Even if if is extremely unlikely that openssl is missing,
-			// at least flush all output buffers...
-			fflush(NULL);
-			if ((unsigned long)OPENSSL_VERSION_NUMBER != (unsigned long)SSLeay())
-				printf("\t(loaded: %lx)", (unsigned long)SSLeay());
-			printf("\n");
-#endif
+			john_list_build_info();
 			exit(0);
 		}
 	}
@@ -1349,6 +1403,11 @@ int main(int argc, char **argv)
 		return keepass2john(argc, argv);
 	}
 
+	if (!strcmp(name, "keyring2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return keyring2john(argc, argv);
+	}
+
 	if (!strcmp(name, "rar2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return rar2john(argc, argv);
@@ -1371,11 +1430,6 @@ int main(int argc, char **argv)
 		return mozilla2john(argc, argv);
 	}
 #endif
-
-	if (!strcmp(name, "pdf2john")) {
-		CPU_detect_or_fallback(argv, 0);
-		return pdf2john(argc, argv);
-	}
 
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);

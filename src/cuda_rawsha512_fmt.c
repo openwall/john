@@ -45,10 +45,8 @@ extern void cuda_sha512_init();
 extern int cuda_sha512_cmp_all(void *binary, int count);
 extern void cuda_sha512_cpy_hash(sha512_hash* host_hash);
 
-
-
-static sha512_key gkey[MAX_KEYS_PER_CRYPT];
-static sha512_hash ghash[MAX_KEYS_PER_CRYPT];
+static sha512_key *gkey;
+static sha512_hash *ghash;
 uint8_t sha512_key_changed;
 static uint8_t hash_copy_back;
 
@@ -63,9 +61,20 @@ static uint64_t H[8] = {
 	0x5be0cd19137e2179LL
 };
 
+static void done(void)
+{
+	MEM_FREE(ghash);
+	MEM_FREE(gkey);
+}
+
 static void init(struct fmt_main *self)
 {
+	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_key));
+	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_hash));
+
 	cuda_sha512_init();
+
+	atexit(done);
 }
 
 static void copy_hash_back()

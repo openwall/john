@@ -158,7 +158,7 @@ static void release_clobj(void) {
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys,
             plaintext, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
 
     ret_code = clReleaseMemObject(salt_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing data_info");
@@ -448,7 +448,7 @@ static void init(struct fmt_main * self) {
     char * task = "$JOHN/kernels/xsha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
-    opencl_build_kernel(task, ocl_gpu_id);
+    opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
@@ -622,7 +622,9 @@ static void crypt_all(int count) {
 /* ------- Compare functins ------- */
 static int cmp_all(void * binary, int count) {
     uint32_t partial_binary;
+    size_t gws;
 
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
     partial_binary = (int) ((uint64_t *) binary)[0];
     hash_found = 0;
 
@@ -636,7 +638,7 @@ static int cmp_all(void * binary, int count) {
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], cmp_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
     //Read results back.

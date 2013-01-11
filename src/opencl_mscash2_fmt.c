@@ -90,7 +90,7 @@ static struct fmt_tests tests[] = {
 
 	static cl_uint *dcc2_hash_host;
 
-	static unsigned char key_host[MAX_KEYS_PER_CRYPT][MAX_PLAINTEXT_LENGTH+1];
+	static unsigned char (*key_host)[MAX_PLAINTEXT_LENGTH+1];
 
 	static ms_cash2_salt currentsalt;
 
@@ -190,31 +190,28 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
 }
 
 static 	void set_key(char*,int);
-static 	void cleanup(void);
+static 	void done(void);
 static  void crypt_all(int);
-
 
 static void init(struct fmt_main *self)
 {
-	///Alocate memory
-	dcc_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+	///Allocate memory
+	key_host = mem_calloc(self->params.max_keys_per_crypt*sizeof(*key_host));
 
-	dcc2_hash_host=(cl_uint*)malloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+	dcc_hash_host=(cl_uint*)mem_alloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
+
+	dcc2_hash_host=(cl_uint*)mem_alloc(4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
 	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
 	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
-	select_device(platform_id,ocl_gpu_id);
+	select_device(platform_id,ocl_gpu_id,self);
 	///Select devices select_device(int platform_no, int device_no). You may select multiple devices for faster cracking spped. Please See common_opencl_pbkdf2.h
 	//select_device(1,0);
 	//select_device(0,0);
 	///select default platform=0 and default device=0
 	//select_default_device();
-
-
-	atexit(cleanup);
-
 }
 
 
@@ -275,35 +272,28 @@ static void DCC(unsigned char *salt,unsigned char *username,unsigned int usernam
 
 }
 
-
-static void cleanup()
+static void done()
 {
-	MEM_FREE(dcc_hash_host);
-
 	MEM_FREE(dcc2_hash_host);
-
+	MEM_FREE(dcc_hash_host);
+	MEM_FREE(key_host);
 	clean_all_buffer();
-
-
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)
 {
 	char *hash;
-
 	char *pos;
-
 	int hashlength = 0;
-
 	int saltlength = 0;
 
-	if(strncmp(ciphertext, MSCASH2_PREFIX, strlen(MSCASH2_PREFIX)) != 0) 		return 0;
+	if(strncmp(ciphertext, MSCASH2_PREFIX, sizeof(MSCASH2_PREFIX) - 1) != 0)
+		return 0;
 
 	hash = strrchr(ciphertext, '#') + 1;
 
 	if (hash == NULL)
 	    return 0;
-
 
 	while (hash < ciphertext + strlen(ciphertext))
 	      {
@@ -662,7 +652,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		tests
 	},{
 		init,
-		fmt_default_done,
+		done,
 		prepare,
 		valid,
 		split,

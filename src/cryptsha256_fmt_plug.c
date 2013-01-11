@@ -408,7 +408,7 @@ static void LoadCryptStruct(int index, char *p_bytes, char *s_bytes) {
 	pstr->cptr[20] = cp + off_pc;
 	memcpy(cp, p_bytes, plen); cp += (plen+BINARY_SIZE);
 	pstr->datlen[21] = dlen_pc;
-	memcpy(cp, padding, tot_psc-2-len_pc);  cp += (tot_pc-len_pc);
+	memcpy(cp, padding, tot_psc-2-len_pc);
 	pstr->bufs[21][tot_pc-2] = (len_pc<<3)>>8;
 	pstr->bufs[21][tot_pc-1] = (len_pc<<3)&0xFF;
 

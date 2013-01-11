@@ -26,14 +26,19 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "gladman_fileenc.h"
+#include "pbkdf2_hmac_sha1.h"
+
+/* From gladman_fileenc.h */
+#define PWD_VER_LENGTH         2
+#define KEYING_ITERATIONS   1000
+#define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
+#define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)
 
 #define FORMAT_LABEL        "zip"
 #define FORMAT_NAME         "WinZip PBKDF2-HMAC-SHA-1"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
-#define PLAINTEXT_LENGTH    32
 #define BINARY_SIZE         2
 #define SALT_SIZE           512
 #define MIN_KEYS_PER_CRYPT  1
@@ -54,9 +59,44 @@ static struct fmt_tests zip_tests[] = {
 
 struct fmt_main zip_fmt;
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$zip$*", 6);
+	char *ctcopy, *ptr, *keeptr;
+
+	if (strncmp(ciphertext, "$zip$*", 6))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 6;	/* skip leading '$zip$*' */
+	if (!(ptr = strtok(ctcopy, "*")))
+		goto error;
+	if (*ptr != '0')
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -124,12 +164,12 @@ static void crypt_all(int count)
 #endif
 	for (index = 0; index < count; index++) {
 		unsigned char pwd_ver[2] = { 0 };
-		unsigned char kbuf[2 * MAX_KEY_LENGTH + PWD_VER_LENGTH];
+		unsigned char kbuf[2 * PLAINTEXT_LENGTH + PWD_VER_LENGTH];
 /* Derive the encryption and authetication keys and the password verifier */
-		derive_key((unsigned char *)saved_key[index],
-		    strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
-		    KEYING_ITERATIONS, kbuf,
-		    2 * KEY_LENGTH(mode) + PWD_VER_LENGTH);
+		pbkdf2((unsigned char *)saved_key[index],
+		       strlen(saved_key[index]), saved_salt, SALT_LENGTH(mode),
+		       KEYING_ITERATIONS, kbuf,
+		       2 * KEY_LENGTH(mode) + PWD_VER_LENGTH);
 		memcpy(pwd_ver, kbuf + 2 * KEY_LENGTH(mode), PWD_VER_LENGTH);
 		has_been_cracked[index] = !memcmp(pwd_ver, passverify, 2);
 	}
@@ -150,7 +190,7 @@ static int cmp_exact(char *source, int index)
 	return has_been_cracked[index];
 }
 
-struct fmt_main zip_fmt = {
+struct fmt_main fmt_zip = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

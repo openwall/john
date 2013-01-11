@@ -6,7 +6,8 @@
  * p-ppk-crack v0.5 made by michu@neophob.com — PuTTY private key cracker
  *
  * Source code based on putty svn version, check
- * http://chiark.greenend.org.uk/~sgtatham/putty/licence.html. */
+ * http://www.chiark.greenend.org.uk/~sgtatham/putty/licence.html
+ */
 
 #include <string.h>
 #include "arch.h"
@@ -81,7 +82,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
@@ -94,12 +95,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 	int res;
 	int is_old_fmt;
+
 	if (strncmp(ciphertext, "$putty$", 7))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += 7;
-	p = strtok(ctcopy, "*"); /* cipher */
+	if ((p = strtok(ctcopy, "*")) == NULL) /* cipher */
+		goto err;
 	res = atoi(p);
 	if(res != 1) /* check cipher type */
 		goto err;
@@ -268,7 +271,7 @@ static int LAME_ssh2_load_userkey(char *passphrase)
 					4 + commlen +
 					4 + cur_salt->public_blob_len +
 					4 + cur_salt->private_blob_len);
-			macdata = (unsigned char*)malloc(maclen);
+			macdata = (unsigned char*)mem_alloc(maclen);
 			p = macdata;
 #define DO_STR(s,len) PUT_32BIT(p,(len));memcpy(p+4,(s),(len));p+=4+(len)
 			DO_STR(cur_salt->alg, namelen);

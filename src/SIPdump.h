@@ -107,12 +107,7 @@ void *Malloc(size_t size)
 {
 	void *buffer;
 
-	buffer = malloc(size);
-
-	if (buffer == NULL) {
-		fprintf(stderr, "malloc() failed: %s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
+	buffer = mem_alloc(size);
 
 	memset(buffer, 0, size);
 

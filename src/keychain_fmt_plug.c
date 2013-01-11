@@ -18,7 +18,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "keychain.h"
+#include "pbkdf2_hmac_sha1.h"
 #include <openssl/des.h>
 #ifdef _OPENMP
 #include <omp.h>
@@ -30,7 +30,6 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	15
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(*salt_struct)
 #define MIN_KEYS_PER_CRYPT	1
@@ -67,18 +66,18 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
+	char *ctcopy, *keeptr, *p;
 	if (strncmp(ciphertext,  "$keychain$", 10) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 11;
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
@@ -173,9 +172,9 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned int master[8];
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master);
-		if(kcdecrypt((unsigned char*)master, salt_struct->iv, salt_struct->ct) == 0)
+		unsigned char master[32];
+		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master, 32);
+		if(kcdecrypt(master, salt_struct->iv, salt_struct->ct) == 0)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
@@ -215,7 +214,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main keychain_fmt = {
+struct fmt_main fmt_keychain = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

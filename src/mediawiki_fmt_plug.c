@@ -81,27 +81,6 @@ static struct fmt_main *pDynamic_9;
 static void mediawiki_init(struct fmt_main *self);
 static void get_ptr();
 
-/* this utility function is used by cracker.c AND loader.c.  Since media-wiki has a variable width salt, of which
-   in regen_lost_salts mode, we only handle 0 to 99999 as salts, we built a function that will assign the salt from
-   one buffer into another */
-void mediawiki_fix_salt(char *Buf, char *source_to_fix, char *salt_rec, int max_salt_len) {
-	char *cp = source_to_fix;
-	char *cp2 = salt_rec;
-	int i = 0;
-
-	strncpy(Buf, cp, 11+32+1);
-	Buf += (11+32+1);
-	cp += (11+32+1);
-	cp2 += 6;
-	while (++i < max_salt_len && *cp2 != '-') {
-		*Buf++ = *cp2++;
-		++cp;
-	}
-	++cp;
-	*Buf++ = *cp2++;
-	*Buf = 0;
-}
-
 /* this function converts a 'native' mediawiki signature string into a Dynamic_9 syntax string */
 static char *Convert(char *Buf, char *ciphertext)
 {

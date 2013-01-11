@@ -47,8 +47,8 @@
 #define LWS_CONFIG		"office2010_LWS"
 #define GWS_CONFIG		"office2010_GWS"
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 static struct fmt_tests tests[] = {
 	/* 2010-Default_myhovercraftisfullofeels_.docx */
@@ -169,12 +169,25 @@ static void release_clobj(void)
 	MEM_FREE(cracked);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
+static void clear_keys(void)
+{
+	memset(saved_key, 0, UNICODE_LENGTH * global_work_size);
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size);
+}
+
 static void set_key(char *key, int index)
 {
 	UTF16 *utfkey = (UTF16*)&saved_key[index * UNICODE_LENGTH];
-
-	/* Clean slate */
-	memset(utfkey, 0, UNICODE_LENGTH);
 
 	/* convert key to UTF-16LE */
 	saved_len[index] = enc_to_utf16(utfkey, PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
@@ -482,7 +495,6 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_clobj);
 
 	if (options.utf8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
@@ -516,10 +528,10 @@ static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, u
 static void crypt_all(int count)
 {
 	int index;
-	size_t gws, scalar_gws;
+	size_t scalar_gws;
 
-	gws = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
-	scalar_gws = gws * VF;
+	global_work_size = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
+	scalar_gws = global_work_size * VF;
 
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
@@ -530,12 +542,12 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], GenerateSHA1pwhash, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, firstEvent), "failed in clEnqueueNDRangeKernel");
 
 	for (index = 0; index < spincount / HASH_LOOPS; index++) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &gws, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL), "failed in clEnqueueNDRangeKernel");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2010key, 1, NULL, &gws, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], Generate2010key, 1, NULL, &global_work_size, &local_work_size, 0, NULL, lastEvent), "failed in clEnqueueNDRangeKernel");
 
 	// read back verifier keys
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_key, CL_TRUE, 0, 32 * scalar_gws, key, 0, NULL, NULL), "failed in reading key back");
@@ -605,7 +617,7 @@ struct fmt_main fmt_opencl_office2010 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -621,7 +633,7 @@ struct fmt_main fmt_opencl_office2010 = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash

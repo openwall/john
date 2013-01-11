@@ -100,14 +100,12 @@ class AgileKeychain(Keychain):
         self.path = path
         self.name = name
         self.entries = None
-        self.__open_keys_file()
+        ret = self.__open_keys_file()
+        if ret:
+            self.john_output()
 
     def __repr__(self):
         return '<%s.AgileKeychain path="%s">' % (self.__module__, self.path)
-
-    def open(self, password):
-        self.__decrypt_keys(password)
-        del password
 
     def __open_keys_file(self):
         """Open the json file containing the keys for decrypting the
@@ -132,8 +130,11 @@ class AgileKeychain(Keychain):
                     self.keys.append(key)
             finally:
                 keys_file.close()
-        except (IOError, KeyError):
-            print >> sys.stderr, 'error while opening the keychain'
+        except (IOError, KeyError, ValueError, TypeError) as e:
+            print >> sys.stderr, 'error while opening the keychain,', str(e)
+            return False
+
+        return True
 
     def john_output(self):
         sys.stdout.write("%s:$agilekeychain$%s" % (self.path, len(self.keys)))
@@ -147,7 +148,6 @@ class AgileKeychain(Keychain):
 
 def process_file(keychain):
     keychain = AgileKeychain(keychain)
-    keychain.john_output()
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:

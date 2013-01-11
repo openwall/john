@@ -501,4 +501,5 @@ void do_single_crack(struct db_main *db)
 	single_init();
 	single_run();
 	single_done();
+	rule_ctx = NULL; /* Just for good measure */
 }

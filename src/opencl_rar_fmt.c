@@ -105,8 +105,8 @@
 
 #define ROUNDS			0x40000
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* The reason we want to bump OMP_SCALE in this case is to even out the
    difference in processing time for different length keys. It doesn't
@@ -411,6 +411,21 @@ static void release_clobj(void)
 	MEM_FREE(cracked);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
+static void clear_keys(void)
+{
+	memset(saved_len, 0, sizeof(int) * global_work_size);
+}
+
 #undef set_key
 static void set_key(char *key, int index)
 {
@@ -709,7 +724,6 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_clobj);
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
@@ -743,7 +757,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *get_key(int index)
 {
-	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
+	UTF16 tmpbuf[PLAINTEXT_LENGTH + 1];
+
+	memcpy(tmpbuf, &((UTF16*) saved_key)[index * PLAINTEXT_LENGTH], saved_len[index]);
+	memset(&tmpbuf[saved_len[index] >> 1], 0, 2);
+	return (char*) utf16_to_enc(tmpbuf);
 }
 
 #define ADD_BITS(n)	\
@@ -839,11 +857,8 @@ static inline int check_huffman(unsigned char *next) {
 static void crypt_all(int count)
 {
 	int index = 0;
-
 	int j, k;
-	size_t gws;
-
-	gws = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
+	size_t gws = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
 
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
@@ -877,7 +892,6 @@ static void crypt_all(int count)
 		EVP_DecryptInit_ex(&aes_ctx, EVP_aes_128_cbc(), NULL, &aes_key[i16], &aes_iv[i16]);
 		EVP_CIPHER_CTX_set_padding(&aes_ctx, 0);
 
-		//fprintf(stderr, "key %s\n", utf16_to_enc((UTF16*)&saved_key[index * UNICODE_LENGTH]));
 		/* AES decrypt, uses aes_iv, aes_key and raw_data */
 		if (cur_file->type == 0) {	/* rar-hp mode */
 			unsigned char plain[16];
@@ -962,6 +976,8 @@ static void crypt_all(int count)
 
 				if (rar_unpack29(cur_file->raw_data, solid, unpack_t))
 					cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
+				else
+					cracked[index] = 0;
 bailOut:;
 			}
 		}
@@ -1011,7 +1027,7 @@ struct fmt_main fmt_opencl_rar = {
 		cpu_tests // Changed in init if GPU
 	},{
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -1027,7 +1043,7 @@ struct fmt_main fmt_opencl_rar = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash

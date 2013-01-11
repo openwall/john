@@ -49,14 +49,13 @@ static int omp_t = 1;
 #include "common.h"
 #include "unicode.h"
 #include "gladman_fileenc.h"
-#include "keychain.h"
+#include "pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18 aes-cts-hmac-sha1-96"
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0
-#define PLAINTEXT_LENGTH   125
 #define BINARY_SIZE		12
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -187,7 +186,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	// generate 128 bits from 40 bits of "kerberos" string
@@ -490,10 +489,9 @@ static void crypt_all(int count)
 		int key_size;
 		int len = strlen(saved_key[index]);
 
-		if (len <= 16)
-			pbkdf2((const unsigned char*)saved_key[index], len, (unsigned char *)cur_salt->salt,strlen((char*)cur_salt->salt), 4096, (unsigned int*)tkey);
-		else
-			derive_key((unsigned char*)saved_key[index], len, cur_salt->salt, strlen((char*)cur_salt->salt), 4096, tkey, 32);
+		pbkdf2((const unsigned char*)saved_key[index], len,
+		       cur_salt->salt,strlen((char*)cur_salt->salt),
+		       4096, tkey, 32);
 
 		// generate 128 bits from 40 bits of "kerberos" string
 		// This is precomputed in init()

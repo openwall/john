@@ -642,7 +642,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		}
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
-			return 1;
+			return !cp[i];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[22] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[23]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -660,7 +660,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 		}
 		if (pPriv->dynamic_FIXED_SALT_SIZE == 0)
-			return 1;
+			return !cp[i];
 		if (pPriv->dynamic_FIXED_SALT_SIZE && cp[16] != '$')
 			return 0;
 		if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && strlen(&cp[17]) != pPriv->dynamic_FIXED_SALT_SIZE)
@@ -701,7 +701,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (atoi16[ARCH_INDEX(cp[i])] == 0x7f)
 			return 0;
 	}
-	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
+	if (!cp[cipherTextLen] && (pPriv->pSetup->flags&MGF_SALTED) == 0)
 		return 1;
 
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
@@ -1146,11 +1146,6 @@ key_cleaning:
 			unsigned int len;
 			ARCH_WORD_32 temp;
 
-#ifndef SHA1_SSE_PARA
-			if (!index)
-				memset(total_len, 0, sizeof(total_len));
-#endif
-
 			len = 0;
 			while((temp = JOHNSWAP(*key32++)) & 0xff000000) {
 				if (!(temp & 0xff0000))
@@ -1193,8 +1188,8 @@ key_cleaning2:
 		}
 #endif
 		len = strlen(key);
-		if (len > 55) // we never do UTF-8 -> UTF-16 in this mode
-			len = 55;
+		if (len > 80) // we never do UTF-8 -> UTF-16 in this mode
+			len = 80;
 
 //		if(index==0) {
 			// we 'have' to use full clean here. NOTE 100% sure why, but 10 formats fail if we do not.
@@ -1211,8 +1206,8 @@ key_cleaning2:
 	else
 	{
 		len = strlen(key);
-		if (len > 55 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
-			len = 55;
+		if (len > 80 && !(fmt_Dynamic.params.flags & FMT_UNICODE))
+			len = 80;
 //		if(index==0) {
 //			DynamicFunc__clean_input();
 //		}
@@ -1234,9 +1229,13 @@ static void clear_keys(void) {
 		DynamicFunc__clean_input_full();
 	else
 		DynamicFunc__clean_input_kwik();
+#ifndef SHA1_SSE_PARA
+	memset(total_len, 0, sizeof(total_len));
+#endif
 #else
 	DynamicFunc__clean_input_full();
 #endif
+
 }
 
 /*********************************************************************************
@@ -6830,7 +6829,7 @@ void DynamicFunc__LargeHash_OUTMode_raw() {
 
 
 /******************************************************************************
- *****  These helper functions are used by all of the 'LARGE' hash functions. 
+ *****  These helper functions are used by all of the 'LARGE' hash functions.
  *****  These are used to convert an 'out' into the proper format, and writing
  *****  it to the buffer.  Currently we handle base-16, base-16u, base-64 and
  *****  raw buffer writting. These functions do not return any count of bytes
@@ -9553,6 +9552,8 @@ struct fmt_main *dynamic_THIN_FORMAT_LINK(struct fmt_main *pFmt, char *ciphertex
 	int i, valid, nFmtNum;
 	struct fmt_main *pFmtLocal;
 	static char subformat[17], *cp;
+
+	m_allow_rawhash_fixup = 0;
 	strncpy(subformat, ciphertext, 16);
 	subformat[16] = 0;
 	cp = strchr(&subformat[9], '$');

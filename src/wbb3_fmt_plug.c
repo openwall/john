@@ -92,13 +92,51 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
+
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$wbb3$", 6);
+	char *ctcopy;
+	char *keeptr;
+	char *p;
+	int res;
+	if (strncmp(ciphertext, "$wbb3$", 6))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 7;
+	p = strtok(ctcopy, "*"); /* type */
+	if(!p)
+		goto err;
+	res = atoi(p);
+	if (res != 1)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+		goto err;
+	if (strlen(p) != BINARY_SIZE * 2)
+		goto err;
+	if(!ishex(p))
+		goto err;
+
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -217,7 +255,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main wbb3_fmt = {
+struct fmt_main fmt_wbb3 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

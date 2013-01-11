@@ -28,7 +28,7 @@
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define BINARY_SIZE		16
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
 
 #undef HTONL
@@ -42,18 +42,19 @@
 #define uint32_t		unsigned int
 
 typedef struct {
-	uint8_t length;
-	uint8_t v[15];
+	uint32_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } dmg_password;
 
 typedef struct {
-	uint32_t v[8];
+	uint32_t v[32/4];
 } dmg_hash;
 
 typedef struct {
 	uint8_t length;
 	uint8_t salt[20];
 	int iterations;
+	int outlen;
 } dmg_salt;
 
 static int *cracked;
@@ -100,9 +101,10 @@ static dmg_password *inbuffer;
 static dmg_hash *outbuffer;
 static dmg_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
-static size_t insize = sizeof(dmg_password) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(dmg_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(dmg_salt);
+
+#define insize sizeof(dmg_password) * global_work_size
+#define outsize sizeof(dmg_hash) * global_work_size
+#define settingsize sizeof(dmg_salt)
 
 /* borrowed from http://dsss.be/w/c:memmem */
 static unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen)
@@ -156,40 +158,60 @@ static unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, i
 	return NULL;
 }
 
-static void release_all(void)
+static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+        
+	MEM_FREE(inbuffer);
+	MEM_FREE(outbuffer);
+	MEM_FREE(cracked);
 }
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
+}
+
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
+	char build_opts[64];
+	char *temp;
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
+	         PLAINTEXT_LENGTH,
+	         (int)sizeof(currentsalt.salt),
+	         (int)sizeof(outbuffer->v));
+	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
+	                ocl_gpu_id, platform_id, build_opts);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
-	    (dmg_password *) malloc(sizeof(dmg_password) *
-	    MAX_KEYS_PER_CRYPT);
+		(dmg_password *) mem_calloc(sizeof(dmg_password) *
+		                        global_work_size);
 	outbuffer =
-	    (dmg_hash *) malloc(sizeof(dmg_hash) * MAX_KEYS_PER_CRYPT);
+	    (dmg_hash *) mem_alloc(sizeof(dmg_hash) * global_work_size);
 
-	/* Zeroize the lengths in case crypt_all() is called with some keys still
-	 * not set.  This may happen during self-tests. */
-	{
-		int i;
-		for (i = 0; i < MAX_KEYS_PER_CRYPT; i++)
-			inbuffer[i].length = 0;
-	}
+	cracked = mem_calloc(sizeof(*cracked) * global_work_size);
 
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			KEYS_PER_CRYPT, MEM_ALIGN_WORD);
-
-	//listOpenCLdevices();
-	opencl_init("$JOHN/kernels/keychain_kernel.cl", ocl_gpu_id, platform_id);
-	/// Alocate memory
+	/// Allocate memory
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &cl_error);
@@ -203,7 +225,7 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "keychain", &cl_error);
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
@@ -211,9 +233,15 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(self);
 
-	atexit(release_all);
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
+
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -356,6 +384,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, 20);
 	currentsalt.length = 20;;
 	currentsalt.iterations = 1000;
+	currentsalt.outlen = 32;
 }
 
 #undef set_key
@@ -467,6 +496,9 @@ static int hash_plugin_check_hash(const unsigned char *derived_key)
 static void crypt_all(int count)
 {
 	int index;
+
+	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -489,10 +521,8 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
 		if(hash_plugin_check_hash((unsigned char*)outbuffer[index].v) == 1)
 			cracked[index] = 1;
@@ -543,7 +573,7 @@ struct fmt_main fmt_opencl_dmg = {
 		dmg_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

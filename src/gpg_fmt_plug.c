@@ -158,7 +158,7 @@ static uint32_t keySize(char algorithm)
 			return 32;
 		default: break;
 	}
-	return 0;
+	assert(0);
 }
 
 // Returns the digest size (in bytes) of a given hash algorithm
@@ -177,7 +177,7 @@ static uint32_t digestSize(char algorithm)
 			return 20;
 		default: break;
 	}
-	return 0;
+	assert(0);
 }
 
 static struct fmt_tests gpg_tests[] = {
@@ -202,7 +202,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
@@ -210,11 +210,11 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
+	char *ctcopy, *keeptr, *p;
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$gpg$" marker */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* algorithm */
 		goto err;
@@ -233,6 +233,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
 
+	MEM_FREE(keeptr);
 	return 1;
 
 err:
@@ -653,7 +654,7 @@ static int check(unsigned char *keydata, int ks)
 	// the MPI. If they are correct, there's a good chance that the
 	// password is correct, too.
 	unsigned char ivec[32];
-	unsigned char out[4096];
+	unsigned char out[4096] = { 0 };
 	int tmp = 0;
         uint32_t num_bits;
 	int checksumOk;

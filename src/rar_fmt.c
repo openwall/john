@@ -95,8 +95,8 @@
 
 #define ROUNDS			0x40000
 
-#define MIN(a, b)		(a > b) ? (b) : (a)
-#define MAX(a, b)		(a > b) ? (a) : (b)
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+#define MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 /* The reason we want to bump OMP_SCALE in this case is to even out the
    difference in processing time for different length keys. It doesn't
@@ -371,7 +371,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *get_key(int index)
 {
-	return (char*) utf16_to_enc(&((UTF16*) saved_key)[index * PLAINTEXT_LENGTH]);
+	UTF16 tmpbuf[PLAINTEXT_LENGTH + 1];
+
+	memcpy(tmpbuf, &((UTF16*) saved_key)[index * PLAINTEXT_LENGTH], saved_len[index]);
+	memset(&tmpbuf[saved_len[index] >> 1], 0, 2);
+	return (char*) utf16_to_enc(tmpbuf);
 }
 
 #define ADD_BITS(n)	\
@@ -654,7 +658,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main rar_fmt = {
+struct fmt_main fmt_rar = {
 {
 		FORMAT_LABEL,
 		FORMAT_NAME,

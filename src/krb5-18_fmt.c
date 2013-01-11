@@ -92,7 +92,7 @@ static void init(struct fmt_main *pFmt)
 	enctype = 18; /* AES256_CTS_HMAC_SHA1 */
 
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			pFmt->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
 			pFmt->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }

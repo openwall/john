@@ -109,13 +109,42 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+}
+
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$vnc$", 5);
+	char *ptr, *ctcopy, *keeptr;
+
+	if (strncmp(ciphertext, "$vnc$*", 6))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 6;	/* skip leading $vnc$* */
+
+	if (!(ptr = strtok(ctcopy, "*")))
+		goto error;
+	if (strlen(ptr) != 32 || !ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) != 32 || !ishex(ptr))
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -241,7 +270,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main vnc_fmt = {
+struct fmt_main fmt_vnc = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

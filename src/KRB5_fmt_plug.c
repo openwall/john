@@ -214,7 +214,7 @@ static void * krb5_salt(char *ciphertext) {
  */
 static int krb5_valid(char *ciphertext, struct fmt_main *self) {
 
-    if (strncmp(ciphertext, MAGIC_PREFIX, strlen(MAGIC_PREFIX)) != 0)
+    if (strncmp(ciphertext, MAGIC_PREFIX, sizeof(MAGIC_PREFIX) - 1) != 0)
         return 0;
 
     return krb5_salt(ciphertext) ? 1 : 0;

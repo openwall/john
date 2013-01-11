@@ -41,7 +41,7 @@ cl_mem pinned_saved_keys, pinned_partial_hashes;
 cl_command_queue queue_prof;
 cl_kernel crypt_kernel, cmp_kernel;
 
-static int hash_found, source_in_use;
+static int hash_found;
 
 static struct fmt_tests tests[] = {
     {"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
@@ -148,7 +148,7 @@ static void release_clobj(void) {
 
     ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys,
             plaintext, 0, NULL, NULL);
-    HANDLE_CLERROR(ret_code, "Error Ummapping saved_plain");
+    HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
 
     ret_code = clReleaseMemObject(pass_buffer);
     HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
@@ -393,12 +393,7 @@ static void init(struct fmt_main * self) {
     char * task = "$JOHN/kernels/sha256_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id, platform_id);
-    source_in_use = device_info[ocl_gpu_id];
-
-    if ((tmp_value = getenv("_TYPE")))
-        source_in_use = atoi(tmp_value);
-
-    opencl_build_kernel(task, ocl_gpu_id);
+    opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
@@ -408,11 +403,6 @@ static void init(struct fmt_main * self) {
 
     global_work_size = get_task_max_size();
     local_work_size = 0;
-
-    if (source_in_use != device_info[ocl_gpu_id]) {
-        device_info[ocl_gpu_id] = source_in_use;
-        fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
-    }
 
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
                                    SUBSECTION_OPENCL, LWS_CONFIG)))
@@ -568,7 +558,9 @@ static void crypt_all(int count) {
 /* ------- Compare functins ------- */
 static int cmp_all(void * binary, int count) {
     uint32_t partial_binary;
+    size_t gws;
 
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
     partial_binary = ((uint32_t *) binary)[0];
     hash_found = 0;
 
@@ -582,7 +574,7 @@ static int cmp_all(void * binary, int count) {
 
     //Enqueue the kernel
     HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], cmp_kernel, 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, NULL),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
     //Read results back.

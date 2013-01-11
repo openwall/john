@@ -35,8 +35,8 @@ static struct fmt_tests tests[] = {
 
 #define ALGORITHM_NAME			DES_BS_OPENCL_ALGORITHM_NAME
 
-#define BINARY_SIZE			ARCH_SIZE
-#define SALT_SIZE			ARCH_SIZE
+#define BINARY_SIZE			sizeof(WORD)
+#define SALT_SIZE			sizeof(WORD)
 
 
 static void init(struct fmt_main *pFmt)

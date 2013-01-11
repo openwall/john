@@ -83,7 +83,7 @@ static void read_kernel_source(char *kernel_filename)
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 	MEM_FREE(kernel_source);
-	kernel_source = calloc(source_size + 1, 1);
+	kernel_source = mem_calloc(source_size + 1);
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
@@ -153,7 +153,9 @@ static char *include_source(char *pathname, int dev_id, char *options)
 		strcat(include, options);
 	}
 
-	//fprintf(stderr, "Options used: %s\n", include);
+#ifdef DEBUG
+	fprintf(stderr, "Options used: %s\n", include);
+#endif
 	return include;
 }
 
@@ -183,13 +185,13 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 	///Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
-		fprintf(stderr, "Compilation log: %s\n", build_log);
-		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		fprintf(stderr, "Build log: %s\n", build_log);
+		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
-	else if (strlen(build_log) > 1) // Nvidia may return a single '\n' which is not that interesting
-		fprintf(stderr, "Compilation log: %s\n", build_log);
+	else if (strlen(build_log) > 1) // Nvidia may return a single '\n'
+		fprintf(stderr, "Build log: %s\n", build_log);
 #endif
         MEM_FREE(build_log);
 
@@ -204,7 +206,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 #if DEBUG
 		fprintf(stderr, "source size %zu\n", source_size);
 #endif
-		source = malloc(source_size);
+		source = mem_alloc(source_size);
 
 		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
 			CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
@@ -227,30 +229,30 @@ static void build_kernel_from_binary(int dev_id)
 	cl_int build_code;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
-	program[dev_id] =
-	    clCreateProgramWithBinary( context[dev_id], 1, &devices[dev_id], &program_size,
-                                       (const unsigned char**)srcptr, NULL, &ret_code );
-	HANDLE_CLERROR(ret_code, "Error while creating program");
+	program[dev_id] = clCreateProgramWithBinary(context[dev_id], 1,
+		&devices[dev_id], &program_size, (const unsigned char**)srcptr,
+	        NULL, &ret_code);
+	HANDLE_CLERROR(ret_code,
+	               "Error while creating program (using cached binary)");
 
-	build_code = clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/kernels", dev_id, NULL), NULL, NULL);
+	build_code = clBuildProgram(program[dev_id], 0, NULL, NULL, NULL, NULL);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
-		NULL), "Error while getting build info");
+		NULL), "Error while getting build info (using cached binary)");
 
 	///Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
-		fprintf(stderr, "Compilation log: %s\n", opencl_log);
-		fprintf(stderr, "Error building kernel. Returned build code: %d. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		fprintf(stderr, "Binary build log: %s\n", opencl_log);
+		fprintf(stderr, "Error %d building kernel using cached binary."
+		        " DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
-	else if (strlen(opencl_log) > 1)	// Nvidia may return a single '\n' which is not that interesting
-		fprintf(stderr, "Compilation log: %s\n", opencl_log);
+	else if (strlen(opencl_log) > 1) // Nvidia may return a single '\n'
+		fprintf(stderr, "Binary build log: %s\n", opencl_log);
 #endif
-
 }
 
 /*
@@ -452,9 +454,8 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 	cl_ulong long_entries;
 	int i, d;
 
-	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
-	                                &num_platforms),
-	               "Error querying for platforms");
+	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS)
+		goto err;
 
 	if (*platform_id == -1)
 		*platform_id = 0;
@@ -486,6 +487,7 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 			}
 		}
 	}
+err:
 	if (*platform_id < 0)
 		*platform_id = 0;
 	if (*dev_id < 0)
@@ -537,8 +539,19 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 		p = strstr(bin_name, ".cl");
 		if (p) *p = 0;
 		strcat(bin_name, "_");
+		if (options) {
+			strcat(bin_name, options);
+			strcat(bin_name, "_");
+		}
 		strcat(bin_name, dev_name);
 		strcat(bin_name, ".bin");
+
+		// Change spaces to '_'
+		while (p && *p) {
+			if (isspace((unsigned char)(*p)))
+				*p = '_';
+			p++;
+		}
 
 		//Select the kernel to run.
 		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
@@ -553,12 +566,11 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 			}
 			read_kernel_source(kernel_filename);
 			build_kernel(dev_id, options, 1, bin_name);
-
-			if (warn) {
-				if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
-					fprintf(stderr, "Elapsed time: %lu seconds\n", (unsigned long)runtime);
-				fflush(stdout);
-			}
+		}
+		if (warn) {
+			if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
+				fprintf(stderr, "Build time: %lu seconds\n", (unsigned long)runtime);
+			fflush(stdout);
 		}
 	}
 }
@@ -574,7 +586,7 @@ void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
-	opencl_build_kernel_opt(kernel_filename, dev_id, options);
+	opencl_build_kernel_save(kernel_filename, dev_id, options, 1, 0);
 }
 
 void opencl_init(char *kernel_filename, unsigned int dev_id,
@@ -916,18 +928,13 @@ void listOpenCLdevices(void)
 	cl_uint num_platforms, num_devices, entries;
 	cl_ulong long_entries;
 	int i, d;
-	cl_int err;
 	size_t p_size;
 
 	/* Obtain list of platforms available */
-	err = clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms);
-	if (err != CL_SUCCESS) {
-		fprintf(stderr,
-		    "Error: Failure in clGetPlatformIDs, error code=%d \n",
-		    err);
+	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS) {
+		fprintf(stderr, "Error: No OpenCL-capable devices were detected by the installed OpenCL driver.\n\n");
 		return;
 	}
-	//printf("%d platforms found\n", num_platforms);
 
 	for (i = 0; i < num_platforms; i++) {
 		/* Obtain information about platform */

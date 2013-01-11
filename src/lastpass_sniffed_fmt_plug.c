@@ -22,7 +22,8 @@
 #include "options.h"
 #include "base64.h"
 #include <openssl/aes.h>
-#include <openssl/evp.h>
+//#include <openssl/evp.h>
+#include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -68,8 +69,6 @@ static struct custom_salt {
 	unsigned char length;
 } *cur_salt;
 
-void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst);
-
 static void init(struct fmt_main *self)
 {
 
@@ -80,14 +79,31 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$lastpass$", 10);
+	char *ctcopy, *keeptr, *p;
+	if (strncmp(ciphertext, "$lastpass$", 10) != 0)
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 10;
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* username */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* data */
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 #ifdef DEBUG
@@ -142,7 +158,7 @@ static void crypt_all(int count)
 		unsigned char iv[16] = { 0 };
 		AES_KEY akey;
 		// PKCS5_PBKDF2_HMAC(saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, EVP_sha256(), 32, key);
-		pbkdf2((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, key);
+		pbkdf2_sha256((unsigned char*)saved_key[index], strlen(saved_key[index]), (unsigned char*)cur_salt->username, strlen((char*)cur_salt->username), cur_salt->iterations, key);
 
 		if(AES_set_decrypt_key((const unsigned char *)key, 256, &akey) < 0) {
 			fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
@@ -189,7 +205,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main lastpass_fmt = {
+struct fmt_main fmt_sniffed_lastpass = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

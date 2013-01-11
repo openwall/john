@@ -39,6 +39,7 @@
 #include "params.h"
 #include "options.h"
 #include "base64.h"
+#include "pbkdf2_hmac_sha256.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -82,13 +83,37 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$django$", 8);
+	char *ctcopy, *keeptr, *p;
+	if (strncmp(ciphertext, "$django$*", 9) != 0)
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;;
+	ctcopy += 9;
+	if ((p = strtok(ctcopy, "*")) == NULL)	/* type */
+		goto err;
+	/* type must be 1 */
+	if (atoi(p) != 1)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* algorithm */
+		goto err;
+	if (strncmp(p, "pbkdf2_sha256", 13) != 0)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
+		goto err;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
@@ -146,66 +171,6 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-#ifndef SHA256_CBLOCK
-#define SHA256_CBLOCK 64
-#endif
-#ifndef SHA256_DIGEST_LENGTH
-#define SHA256_DIGEST_LENGTH 32
-#endif
-
-void pbkdf2(unsigned char *K, int KL, unsigned char *S, int SL, int R, ARCH_WORD_32 *dgst)
-{
-	SHA256_CTX ctx, tmp_ctx1, tmp_ctx2;
-	unsigned char ipad[SHA256_CBLOCK], opad[SHA256_CBLOCK], tmp_hash[SHA256_DIGEST_LENGTH];
-	unsigned i, j;
-
-	memset(ipad, 0x36, SHA256_CBLOCK);
-	memset(opad, 0x5C, SHA256_CBLOCK);
-
-	for(i = 0; i < KL; i++) {
-		ipad[i] ^= K[i];
-		opad[i] ^= K[i];
-	}
-
-	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, ipad, SHA256_CBLOCK);
-	// save off the first 1/2 of the ipad hash.  We will NEVER recompute this
-	// again, during the rounds, but reuse it. Saves 1/4 the SHA256's
-	memcpy(&tmp_ctx1, &ctx, sizeof(SHA256_CTX));
-	SHA256_Update(&ctx, S, SL);
-	// this BE 1 appended to the salt, allows us to do passwords up
-	// to and including 64 bytes long.  If we wanted longer passwords,
-	// then we would have to call the HMAC multiple times (with the
-	// rounds between, but each chunk of password we would use a larger
-	// BE number appended to the salt. The first roung (64 byte pw), and
-	// we simply append the first number (0001 in BE)
-	SHA256_Update(&ctx, "\x0\x0\x0\x1", 4);
-	SHA256_Final(tmp_hash, &ctx);
-
-	SHA256_Init(&ctx);
- 	SHA256_Update(&ctx, opad, SHA256_CBLOCK);
-	// save off the first 1/2 of the opad hash.  We will NEVER recompute this
-	// again, during the rounds, but reuse it. Saves 1/4 the SHA256's
- 	memcpy(&tmp_ctx2, &ctx, sizeof(SHA256_CTX));
- 	SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
-	SHA256_Final(tmp_hash, &ctx);
-
-	memcpy(dgst, tmp_hash, SHA256_DIGEST_LENGTH);
-
-	for(i = 1; i < R; i++) {
-		memcpy(&ctx, &tmp_ctx1, sizeof(SHA256_CTX));
-		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
-		SHA256_Final(tmp_hash, &ctx);
-
-		memcpy(&ctx, &tmp_ctx2, sizeof(SHA256_CTX));
-		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
-		SHA256_Final(tmp_hash, &ctx);
-
-		for(j = 0; j < SHA256_DIGEST_LENGTH/sizeof(ARCH_WORD_32); j++)
-			dgst[j] ^= ((ARCH_WORD_32*)tmp_hash)[j];
-	}
-}
-
 static void crypt_all(int count)
 {
 	int index = 0;
@@ -218,7 +183,7 @@ static void crypt_all(int count)
 //			cur_salt->salt, strlen((char*)cur_salt->salt),
 //			cur_salt->iterations, EVP_sha256(), 32, (unsigned char*)crypt_out[index]);
 
-		pbkdf2((unsigned char *)saved_key[index], strlen(saved_key[index]),
+		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
 			cur_salt->salt, strlen((char*)cur_salt->salt),
 			cur_salt->iterations, crypt_out[index]);
 	}

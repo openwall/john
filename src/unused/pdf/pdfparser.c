@@ -131,7 +131,7 @@ static char *parseName(FILE * file)
 	}
 	ungetc(ch, file);
 	buff[i++] = '\0';
-	ret = malloc(sizeof(char) * i);
+	ret = mem_alloc(sizeof(char) * i);
 	memcpy(ret, buff, i);
 	return ret;
 }
@@ -207,8 +207,8 @@ static p_str *parseHexString(const uint8_t * buf, const unsigned int len)
 	unsigned int i, j;
 	p_str *ret;
 
-	ret = malloc(sizeof(p_str));
-	ret->content = malloc(sizeof(uint8_t) * (len / 2));
+	ret = mem_alloc(sizeof(p_str));
+	ret->content = mem_alloc(sizeof(uint8_t) * (len / 2));
 	ret->len = (len / 2);
 
 	for (i = 0, j = 0; i < len; i += 2) {
@@ -285,8 +285,8 @@ static p_str *objStringToByte(const uint8_t * str, const unsigned int len)
 		tmp[l] = b;
 	}
 
-	ret = malloc(sizeof(p_str));
-	ret->content = malloc(sizeof(uint8_t) * (l));
+	ret = mem_alloc(sizeof(p_str));
+	ret->content = mem_alloc(sizeof(uint8_t) * (l));
 	ret->len = l - 1;
 
 	memcpy(ret->content, tmp, l);
@@ -418,8 +418,7 @@ static int findTrailer(FILE * file, EncData * e)
 							ch = getc(file);
 						if (encrypt && id) {
 	      /**printf("found all, returning: epos: %d\n",e_pos);*/
-							e->fileID =
-							    str->content;
+							strncpy((char*)e->fileID, (char*)str->content, 33);
 							e->fileIDLen =
 							    str->len;
 							MEM_FREE(str);
@@ -491,7 +490,7 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 				if (isWord(file, "ilter")) {
 					char *s_handler = parseName(file);
 					if (s_handler != NULL) {
-						e->s_handler = s_handler;
+						strncpy(e->s_handler, s_handler, 32);
 						ff = true;
 					}
 					break;
@@ -523,7 +522,7 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 					fprintf(stderr,
 					    "WARNING: O-String != 32 Bytes: %d\n",
 					    str->len);
-				e->o_string = str->content;
+				memcpy(e->o_string, str->content, 32);
 				MEM_FREE(str);
 				str = NULL;
 				fo = true;
@@ -559,7 +558,7 @@ static bool parseEncrypObject(FILE * file, EncData * e)
 					fprintf(stderr,
 					    "WARNING: U-String != 32 Bytes: %d\n",
 					    str->len);
-				e->u_string = str->content;
+				memcpy(e->u_string, str->content, 32);
 				MEM_FREE(str);
 				str = NULL;
 				fu = true;

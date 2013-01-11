@@ -57,7 +57,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
@@ -141,7 +141,7 @@ static int cmp_exact(char *source, int index)
 static void radmin_set_key(char *key, int index)
 {
 	// this code assures that both saved_key[index] gets null-terminated (without buffer overflow)
-	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH)+1];
+	char *cp = &saved_key[index][strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1)+1];
 	// and is null padded up to 100 bytes.  We simply clean up prior buffer, up to element 99, but that element will never be written to
 	while (*cp) *cp++ = 0;
 }
@@ -152,7 +152,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main radmin_fmt = {
+struct fmt_main fmt_radmin = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

@@ -133,6 +133,10 @@ static void process_file(const char *fname)
 			(void) crc;
 			(void) uncompressed_size;
 
+			if (filename_length > 250) {
+				fprintf(stderr, "! %s: Invalid zip file, filename length too long!\n", fname);
+				return;
+			}
 			if (fread(filename, 1, filename_length, fp) != filename_length) {
 				fprintf(stderr, "Error, in fread of file data!\n");
 				goto cleanup;

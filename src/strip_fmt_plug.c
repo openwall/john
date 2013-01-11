@@ -17,7 +17,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "keychain.h"
+#include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               64
@@ -28,7 +28,6 @@
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -67,7 +66,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	cracked = mem_calloc_tiny(sizeof(*cracked) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
@@ -177,7 +176,10 @@ static void crypt_all(int count)
 		int page_sz = 1008; /* 1024 - strlen(SQLITE_FILE_HEADER) */
 		int reserve_sz = 16; /* for HMAC off case */
 		AES_KEY akey;
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), cur_salt->salt, 16, ITERATIONS, (uint32_t *)master);
+
+		pbkdf2((unsigned char *)saved_key[index],
+		       strlen(saved_key[index]), cur_salt->salt,
+		       16, ITERATIONS, master, 32);
 		memcpy(output, SQLITE_FILE_HEADER, FILE_HEADER_SZ);
 		size = page_sz - reserve_sz;
 		iv_in = cur_salt->data + size + 16;
@@ -229,7 +231,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main strip_fmt = {
+struct fmt_main fmt_strip = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

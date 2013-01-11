@@ -79,18 +79,26 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[BF_N][PLAINTEXT_LENGTH + 1];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char keys_mode;
 static int sign_extension_bug;
 static BF_salt saved_salt;
 
+static void done(void)
+{
+	BF_clear_buffer();
+	MEM_FREE(saved_key);
+}
+
 static void init(struct fmt_main *self)
-{	// BF_select_device(platform,device);
+{
+	saved_key = mem_calloc(BF_N * sizeof(*saved_key));
+	// BF_select_device(platform,device);
         BF_select_device(platform_id, ocl_gpu_id);
 	keys_mode = 'a';
 	sign_extension_bug = 0;
 	fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
-	atexit(BF_clear_buffer);
+	atexit(done);
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)

@@ -58,7 +58,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
@@ -207,7 +207,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main mysqlna_fmt = {
+struct fmt_main fmt_mysqlna = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

@@ -234,12 +234,12 @@ static void print_usage(char *name)
 	int i, dynamics = 0;
 	char **formats_list;
 
-	i = 0;
+	i = 1;
 	format = fmt_list;
 	while ((format = format->next))
 		i++;
 
-	formats_list = malloc(sizeof(char*) * i);
+	formats_list = mem_alloc(sizeof(char*) * i);
 
 	i = 0;
 	format = fmt_list;
