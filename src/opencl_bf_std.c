@@ -435,6 +435,79 @@ void BF_clear_buffer()
   clean_gpu_buffer(&buffers[pltfrmno][devno]);
 }
 
+static int get_dev_info(int platform_id, int dev_id)
+{
+	cl_device_type device;
+        int device_info = 0;
+	cl_platform_id platform[MAX_PLATFORMS];
+	cl_device_id devices[MAX_DEVICES_PER_PLATFORM] ;
+	cl_uint num_platforms, device_num;
+	char dname[MAX_OCLINFO_STRING_LEN];
+
+	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
+		&num_platforms), "No OpenCL platform found");
+	HANDLE_CLERROR(clGetDeviceIDs(platform[platform_id],
+		CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+	    "No OpenCL device of that type exist");
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
+		sizeof(cl_device_type), &device, NULL),
+	    "Error querying CL_DEVICE_TYPE");
+
+	if (device == CL_DEVICE_TYPE_CPU)
+		device_info = DEV_CPU;
+	else if (device == CL_DEVICE_TYPE_GPU)
+		device_info = DEV_GPU;
+	else if (device == CL_DEVICE_TYPE_ACCELERATOR)
+		device_info = DEV_ACCELERATOR;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_VENDOR,
+		sizeof(dname), dname, NULL),
+	    "Error querying CL_DEVICE_VENDOR");
+
+	if (strstr(dname, "NVIDIA") != NULL)
+		device_info += DEV_NVIDIA;
+
+	if (strstr(dname, "Intel") != NULL)
+		device_info += DEV_INTEL;
+
+	if (strstr(dname, "Advanced Micro") != NULL ||
+	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
+		device_info += DEV_AMD;
+
+	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+		sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
+
+	if gpu_amd(device_info) {
+
+		if ((strstr(dname, "Cedar") ||
+			strstr(dname, "Redwood") ||
+			strstr(dname, "Juniper") ||
+			strstr(dname, "Cypress") ||
+			strstr(dname, "Hemlock") ||
+			strstr(dname, "Caicos") ||
+			strstr(dname, "Turks") ||
+			strstr(dname, "Barts") ||
+			strstr(dname, "Cayman") ||
+			strstr(dname, "Antilles") ||
+			strstr(dname, "Wrestler") ||
+			strstr(dname, "Zacate") ||
+			strstr(dname, "WinterPark") ||
+			strstr(dname, "BeaverCreek"))) {
+
+			if (strstr(dname, "Cayman") ||
+			    strstr(dname, "Antilles"))
+				device_info += DEV_AMD_VLIW4;
+			else
+				device_info += DEV_AMD_VLIW5;
+
+		} else
+			device_info += DEV_AMD_GCN;
+	}
+
+        return device_info;
+}
+
 static cl_device_type device_type(int platform_id, int dev_id)
 {
 	cl_platform_id platform[MAX_PLATFORMS];
@@ -457,15 +530,16 @@ static cl_device_type device_type(int platform_id, int dev_id)
 void BF_select_device(int platform_no,int dev_no)
 {
 	devno=dev_no;pltfrmno=platform_no;
-	
-	if(CL_DEVICE_TYPE_CPU == device_type(platform_no,dev_no)){
+
+	if(CL_DEVICE_TYPE_CPU == device_type(platform_no,dev_no) ||
+           amd_vliw5(get_dev_info(platform_no, dev_no))){
 	        if(CHANNEL_INTERLEAVE == 1)
-			opencl_init("$JOHN/kernels/bf_cpu_kernel.cl", dev_no, platform_no);
+			opencl_init_opt("$JOHN/kernels/bf_cpu_kernel.cl", dev_no, platform_no, NULL);
 		else
 			fprintf(stderr, "Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
-	}	
+	}
 	else
-		opencl_init("$JOHN/kernels/bf_kernel.cl", dev_no, platform_no);
+		opencl_init_opt("$JOHN/kernels/bf_kernel.cl", dev_no, platform_no, NULL);
 
 	pltfrmid[platform_no]=platform[platform_no];
 
@@ -539,9 +613,9 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
 void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,int dev_no)
 {
 	cl_event evnt;
-	
+
 	size_t N ,M=WORK_GROUP_SIZE;
-	
+
 	if(CL_DEVICE_TYPE_CPU == get_device_type(dev_no))
 		N = BF_N/2;
 	else

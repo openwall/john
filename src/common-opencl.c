@@ -10,6 +10,7 @@
 #include "signals.h"
 #include "recovery.h"
 #include "status.h"
+#include <signal.h>
 
 #define LOG_SIZE 1024*16
 
@@ -20,10 +21,16 @@ static size_t program_size;
 
 extern volatile int bench_running;
 
+static void sig_handle_timer(int signum)
+{
+    
+}
+
 void opencl_process_event(void)
 {
 	if (!bench_running) {
 #if !OS_TIMER
+		signal(SIGALRM, sig_handle_timer);
 		sig_timer_emu_tick();
 #endif
 		if (event_pending) {
@@ -776,7 +783,7 @@ cl_uint get_processor_family(int dev_id)
 
 		} else
 			return DEV_AMD_GCN;
-		}
+	}
 	return DEV_UNKNOWN;
 }
 

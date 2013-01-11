@@ -242,7 +242,7 @@ static void john_register_all(void)
 	// Since gen(27) and gen(28) are MD5 and MD5a formats, we build the
 	// generic format first
 	cnt = dynamic_Register_formats(&selfs);
-/*
+
 	john_register_one(&fmt_DES);
 	john_register_one(&fmt_BSDI);
 	john_register_one(&fmt_MD5);
@@ -295,7 +295,7 @@ static void john_register_all(void)
 #endif
 	john_register_one(&fmt_zip);
 	john_register_one(&fmt_dummy);
-*/
+
 #ifdef CL_VERSION_1_0
 	john_register_one(&fmt_opencl_NSLDAPS);
 	john_register_one(&fmt_opencl_rawMD4);
@@ -324,12 +324,12 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);
         john_register_one(&fmt_opencl_rawsha256);
-	//TODO john_register_one(&fmt_opencl_bf);
+	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 	//TODO john_register_one(&fmt_opencl_DES);
-	john_register_one(&fmt_opencl_office2007);
-	john_register_one(&fmt_opencl_office2010);
-	john_register_one(&fmt_opencl_office2013);
+	//TODO john_register_one(&fmt_opencl_office2007);
+	//TODO john_register_one(&fmt_opencl_office2010);
+	//TODO john_register_one(&fmt_opencl_office2013);
 	john_register_one(&fmt_opencl_NTLMv2);
 	john_register_one(&fmt_opencl_krb5pa_sha1);
 	john_register_one(&fmt_opencl_rar);
