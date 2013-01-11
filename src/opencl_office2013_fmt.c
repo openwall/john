@@ -173,8 +173,8 @@ static void release_clobj(void)
 
 static void clear_keys(void)
 {
-	memset(saved_key, 0, UNICODE_LENGTH * global_work_size);
-	memset(saved_len, 0, sizeof(*saved_len) * global_work_size);
+	memset(saved_key, 0, UNICODE_LENGTH * global_work_size * VF);
+	memset(saved_len, 0, sizeof(*saved_len) * global_work_size * VF);
 }
 
 static void set_key(char *key, int index)
