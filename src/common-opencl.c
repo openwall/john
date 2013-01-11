@@ -22,7 +22,13 @@ extern volatile int bench_running;
 
 void opencl_process_event(void)
 {
-	if (!bench_running) {
+	static int bench_cludge = 0;
+
+	/* bench_running may be reset while we still have the benchmark
+	   timer active, leading to SIGALRM. Only seen with !OS_TIMER. */
+	bench_cludge |= bench_running;
+
+	if (!bench_cludge) {
 #if !OS_TIMER
 		sig_timer_emu_tick();
 #endif
