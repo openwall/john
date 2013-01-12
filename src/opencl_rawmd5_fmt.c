@@ -229,6 +229,8 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	char *conf;
 
+	local_work_size = global_work_size = 0;
+
 	/* Reduced length can give a significant boost.
 	   This kernel need a multiple of 4 (eg. 32, 16 or 12). */
 	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH - 3) {
@@ -242,8 +244,6 @@ static void init(struct fmt_main *self)
 	opencl_init_opt("$JOHN/kernels/md5_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	local_work_size = 0;
 
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(conf);

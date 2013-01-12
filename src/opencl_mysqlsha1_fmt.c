@@ -175,6 +175,8 @@ static void init(struct fmt_main *self){
 	char build_opts[64];
 	char *temp;
 
+	local_work_size = global_work_size = 0;
+
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", PLAINTEXT_LENGTH);
 	opencl_init_opt("$JOHN/kernels/msha_kernel.cl", ocl_gpu_id,
@@ -199,7 +201,6 @@ static void init(struct fmt_main *self){
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	if (!global_work_size) {
-		// User chose to die of boredom
 		global_work_size = MAX_KEYS_PER_CRYPT;
 		create_clobj(MAX_KEYS_PER_CRYPT);
 		find_best_kpc();
