@@ -27,13 +27,7 @@ static void sig_handle_timer(int signum)
 
 void opencl_process_event(void)
 {
-	static int bench_cludge = 0;
-
-	/* bench_running may be reset while we still have the benchmark
-	   timer active, leading to SIGALRM. Only seen with !OS_TIMER. */
-	bench_cludge |= bench_running;
-
-	if (!bench_cludge) {
+	if (!bench_running) {
 #if !OS_TIMER
 		signal(SIGALRM, sig_handle_timer); 
 		sig_timer_emu_tick();

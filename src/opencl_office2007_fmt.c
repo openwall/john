@@ -588,10 +588,11 @@ static int cmp_exact(char *source, int index)
 
 static char *get_key(int index)
 {
-	static UTF8 out[PLAINTEXT_LENGTH + 1];
-	utf16_to_enc_r(out, PLAINTEXT_LENGTH + 1, (UTF16*)&saved_key[index * UNICODE_LENGTH]);
-	out[saved_len[index]>>1] = 0;
-	return (char*)out;
+	UTF16 buf[PLAINTEXT_LENGTH + 1];
+
+	memcpy(buf, &saved_key[index * UNICODE_LENGTH], saved_len[index]);
+	memset((char*)buf + saved_len[index], 0, 1);
+	return (char*)utf16_to_enc(buf);
 }
 
 struct fmt_main fmt_opencl_office2007 = {
