@@ -253,12 +253,12 @@ static void find_best_workgroup(struct fmt_main *self) {
     size_t max_group_size;
 
     max_group_size = get_task_max_work_group_size();
-    fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
+    fprintf(stderr, "Max local worksize %d, ", (int) max_group_size);
 
     //Call the default function.
     opencl_find_best_workgroup_limit(self, max_group_size);
 
-    fprintf(stderr, "Optimal local work size %d\n", (int) local_work_size);
+    fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
         LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
@@ -390,7 +390,7 @@ static void find_best_gws(struct fmt_main * self) {
     if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
         max_run_time = atoi(tmp_value) * 1000000000ULL;
 
-    fprintf(stderr, "Calculating best global work size (GWS) for LWS=%zd and max. %llu s duration.\n\n",
+    fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
             local_work_size, max_run_time / 1000000000ULL);
 
     if (do_benchmark)
@@ -434,7 +434,7 @@ static void find_best_gws(struct fmt_main * self) {
         if (do_benchmark)
             fprintf(stderr, "\n");
     }
-    fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+    fprintf(stderr, "Optimal global worksize %d\n", optimal_gws);
     fprintf(stderr, "(to avoid this test on next run, put \""
         GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
@@ -468,7 +468,7 @@ static void init(struct fmt_main * self) {
 
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
-        fprintf(stderr, "Error: invalid local work size (LWS). Max value allowed is: %zd\n" ,
+        fprintf(stderr, "Error: invalid local worksize (LWS). Max value allowed is: %zd\n" ,
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
@@ -499,7 +499,7 @@ static void init(struct fmt_main * self) {
         global_work_size = get_task_max_size();
         find_best_gws(self);
     }
-    fprintf(stderr, "Local work size (LWS) %d, global work size (GWS) %zd\n",
+    fprintf(stderr, "Local worksize (LWS) %d, global worksize (GWS) %zd\n",
            (int) local_work_size, global_work_size);
     self->params.min_keys_per_crypt = local_work_size;
     self->params.max_keys_per_crypt = global_work_size;

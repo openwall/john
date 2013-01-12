@@ -217,7 +217,7 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 			create_clobj(global_work_size);
 		}
 	}
-	fprintf(stderr, "Local work size (LWS) %d, Global work size (GWS) %d\n",(int)local_work_size, (int)global_work_size);
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
