@@ -21,6 +21,10 @@ static size_t program_size;
 
 extern volatile int bench_running;
 
+static void sig_handle_timer(int signum)
+{
+} 
+
 void opencl_process_event(void)
 {
 	static int bench_cludge = 0;
@@ -31,6 +35,7 @@ void opencl_process_event(void)
 
 	if (!bench_cludge) {
 #if !OS_TIMER
+		signal(SIGALRM, sig_handle_timer); 
 		sig_timer_emu_tick();
 #endif
 		if (event_pending) {
