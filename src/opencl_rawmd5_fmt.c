@@ -216,7 +216,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 				break;
 		}
 	}
-	fprintf(stderr, "Optimal global work size %d\n", optimal_gws);
+	fprintf(stderr, "Optimal global worksize %d\n", optimal_gws);
 	fprintf(stderr, "(to avoid this test on next run, put \""
 		GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
 		SUBSECTION_OPENCL "])\n", optimal_gws);
@@ -269,7 +269,7 @@ static void init(struct fmt_main *self)
 	if (global_work_size == 0)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
-	fprintf(stderr, "Local work size (LWS) %zu, Global work size (GWS) %zu\n",local_work_size, global_work_size);
+	fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n",local_work_size, global_work_size);
 	atexit(done);
 	create_clobj(global_work_size);
 
