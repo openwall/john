@@ -317,7 +317,7 @@ static void init(struct fmt_main *self)
 	char *temp, build_opts[128];
 	cl_ulong maxsize, maxsize2;
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 	assert(sizeof(hccap_t) == HCCAP_SIZE);
 
 	snprintf(build_opts, sizeof(build_opts),

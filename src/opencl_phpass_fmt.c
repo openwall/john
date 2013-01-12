@@ -29,10 +29,8 @@
 #define ACTUAL_SALT_SIZE        8
 #define SALT_SIZE               (ACTUAL_SALT_SIZE + 1) // 1 byte for iterations
 
-//#define KEYS_PER_CRYPT          1024*8*40
-#define KEYS_PER_CRYPT          (2048 * 96)
-#define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      (2048 * 96)
+#define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
 //#define _PHPASS_DEBUG
 
@@ -57,9 +55,10 @@ extern void gpu_phpass(void);
 
 // OpenCL variables:
 static cl_mem mem_in, mem_out, mem_setting;
-static size_t insize = sizeof(phpass_password) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(phpass_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4;
+
+#define insize (sizeof(phpass_password) * global_work_size * 8)
+#define outsize (sizeof(phpass_hash) * global_work_size * 8)
+#define settingsize (sizeof(uint8_t) * ACTUAL_SALT_SIZE + 4)
 
 static struct fmt_tests tests[] = {
 	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
@@ -116,17 +115,19 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 }
 
 static void set_key(char *key, int index)
 {
+	int length = strlen(key);
+
 #ifdef _PHPASS_DEBUG
 	printf("set_key(%d) = %s\n", index, key);
 #endif
-	int length = strlen(key);
-	memset(inbuffer[index].v, 0, 15);
+	memset(inbuffer[index].v, 0, PLAINTEXT_LENGTH);
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
 }
@@ -134,6 +135,7 @@ static void set_key(char *key, int index)
 static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
+
 	memcpy(ret, inbuffer[index].v, inbuffer[index].length);
 	ret[inbuffer[index].length] = 0;
 	return ret;
@@ -142,15 +144,23 @@ static char *get_key(int index)
 static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
-	global_work_size = KEYS_PER_CRYPT / 8;
-	opencl_init("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id);
+	char *temp;
+
+	opencl_init_opt("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id, NULL);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT / 8;
 
 	/// Allocate memory
-	inbuffer =
-	    (phpass_password *) mem_calloc(MAX_KEYS_PER_CRYPT *
-	    sizeof(phpass_password));
-	outbuffer =
-	    (phpass_hash *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(phpass_hash));
+	inbuffer = (phpass_password *) mem_calloc(insize);
+	outbuffer = (phpass_hash *) mem_alloc(outsize);
 
 	mem_in =
 	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
@@ -175,12 +185,11 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_setting");
 
-//      opencl_find_best_workgroup(self);
-	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-
 	self->params.min_keys_per_crypt = local_work_size * 8;
+	self->params.max_keys_per_crypt = global_work_size * 8;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+
 	atexit(done);
 }
 
@@ -248,8 +257,9 @@ static void *binary(char *ciphertext)
 static void *salt(char *ciphertext)
 {
 	static unsigned char salt[SALT_SIZE];
-	memcpy(salt, &ciphertext[4], 8);
-	salt[8] = ciphertext[3];
+
+	memcpy(salt, &ciphertext[4], ACTUAL_SALT_SIZE);
+	salt[ACTUAL_SALT_SIZE] = ciphertext[3];
 	return salt;
 }
 
@@ -263,9 +273,10 @@ static void crypt_all(int count)
 {
 	char setting[SALT_SIZE + 3] = { 0 };
 
+	global_work_size = (((count+7)/8) + local_work_size - 1) / local_work_size * local_work_size;
+
 #ifdef _PHPASS_DEBUG
 	printf("crypt_all(%d)\n", count);
-	global_work_size = (((count+7)/8) + local_work_size - 1) / local_work_size * local_work_size;
 #endif
 	///Prepare setting format: salt+prefix+count_log2
 	strcpy(setting, currentsalt);
@@ -379,9 +390,9 @@ static int get_hash_6(int index)
 
 static int cmp_all(void *binary, int count)
 {
-
 	uint32_t b = ((uint32_t *) binary)[0];
 	uint32_t i;
+
 	for (i = 0; i < count; i++) {
 		if (b == outbuffer[i].v[0]) {
 #ifdef _PHPASS_DEBUG

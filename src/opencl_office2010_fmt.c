@@ -396,7 +396,7 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize, maxsize2;
 	char build_opts[64];
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DHASH_LOOPS=%u -DUNICODE_LENGTH=%u %s",

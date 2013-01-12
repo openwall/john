@@ -34,10 +34,8 @@
 #define BINARY_SIZE			4
 #define SALT_SIZE			0
 
-#define SHA_NUM_KEYS               	1024*2048
-
-#define MIN_KEYS_PER_CRYPT		2048
-#define MAX_KEYS_PER_CRYPT		SHA_NUM_KEYS
+#define MIN_KEYS_PER_CRYPT		(1024*2048)
+#define MAX_KEYS_PER_CRYPT		MIN_KEYS_PER_CRYPT
 
 #ifndef uint32_t
 #define uint32_t unsigned int
@@ -133,7 +131,7 @@ static void find_best_kpc(void){
 	cl_uint *tmpbuffer;
 
 	fprintf(stderr, "Calculating best keys per crypt, this will take a while ");
-	for( num=SHA_NUM_KEYS; num >= 4096 ; num -= 4096){
+	for( num=MAX_KEYS_PER_CRYPT; num >= 4096 ; num -= 4096){
 		release_clobj();
 		create_clobj(num);
 		advance_cursor();
@@ -171,9 +169,9 @@ static void find_best_kpc(void){
 
 static void fmt_rawsha1_init(struct fmt_main *self) {
 	char build_opts[64];
-	char *kpc;
+	char *temp;
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	local_work_size = global_work_size = 0;
 
 	/* Reduced length can give a significant boost. */
 	if (options.force_maxlength && options.force_maxlength < PLAINTEXT_LENGTH) {
@@ -190,28 +188,35 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	create_clobj(SHA_NUM_KEYS);
-	opencl_find_best_workgroup(self);
-	release_clobj();
-	if( (kpc = getenv("GWS")) == NULL){
-		global_work_size = SHA_NUM_KEYS;
-		create_clobj(SHA_NUM_KEYS);
-	} else {
-		if (atoi(kpc) == 0){
-			//user chose to die of boredom
-			global_work_size = SHA_NUM_KEYS;
-			create_clobj(SHA_NUM_KEYS);
-			find_best_kpc();
-		} else {
-			global_work_size = atoi(kpc);
-			create_clobj(global_work_size);
-		}
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+
+	if (!local_work_size) {
+		create_clobj(MAX_KEYS_PER_CRYPT);
+		opencl_find_best_workgroup(self);
+		release_clobj();
 	}
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	if (!global_work_size) {
+		// User chose to die of boredom
+		global_work_size = MAX_KEYS_PER_CRYPT;
+		create_clobj(MAX_KEYS_PER_CRYPT);
+		find_best_kpc();
+	} else {
+		create_clobj(global_work_size);
+	}
+
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
+
+	self->params.max_keys_per_crypt = global_work_size;
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
-	self->params.max_keys_per_crypt = global_work_size;
 }
 
 static void clear_keys(void)

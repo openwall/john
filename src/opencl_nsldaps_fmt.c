@@ -177,7 +177,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
     cl_uint *tmpbuffer;
     size_t maxgws = get_max_mem_alloc_size(ocl_gpu_id) / PLAINTEXT_LENGTH;
 
-    for(gws = local_work_size << 2; gws <= maxgws; gws <<= 1) {
+    for(gws = local_work_size << 2; gws < maxgws; gws <<= 1) {
         create_clobj(gws, self);
 	advance_cursor();
 	queue_prof = clCreateCommandQueue( context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -220,7 +220,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 	cl_ulong maxsize;
 	char build_opts[64];
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);

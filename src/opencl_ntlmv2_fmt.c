@@ -360,7 +360,7 @@ static void init(struct fmt_main *self)
 	char build_opts[64];
 	char *encoding = options.encodingDef ? options.encodingDef : "ISO_8859_1";
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 
 	/* Reduced length can give a significant boost. Our test
 	   vectors are length 8 so that is currently a minimum */

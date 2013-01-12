@@ -246,7 +246,7 @@ static void init(struct fmt_main *self)
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	local_work_size = 0;
+	local_work_size = global_work_size = 0;
 
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, LWS_CONFIG)))
 		local_work_size = atoi(conf);

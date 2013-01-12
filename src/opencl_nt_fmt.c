@@ -26,25 +26,19 @@
 #include "path.h"
 #include "common-opencl.h"
 
-//Init values
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
+#define FORMAT_LABEL		"nt-opencl"
+#define FORMAT_NAME		"NT MD4"
+#define ALGORITHM_NAME		"OpenCL (inefficient, development use only)"
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	-1
+#define PLAINTEXT_LENGTH	23
+#define CIPHERTEXT_LENGTH	36
+#define BINARY_SIZE		16
+#define SALT_SIZE		0
 
-#define SQRT_2 0x5a827999
-#define SQRT_3 0x6ed9eba1
-
-
-#define FORMAT_LABEL			"nt-opencl"
-#define FORMAT_NAME			"NT MD4"
-#define ALGORITHM_NAME			"OpenCL (inefficient, development use only)"
-
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
-
-#define PLAINTEXT_LENGTH    23
-#define CIPHERTEXT_LENGTH		36
+//2^10 * 2^9
+#define MIN_KEYS_PER_CRYPT	1024*512
+#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
 
 static struct fmt_tests tests[] = {
 	{"$NT$b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
@@ -91,13 +85,14 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-#define BINARY_SIZE			16
-#define SALT_SIZE			0
+//Init values
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
 
-static void set_key(char *key, int index);
-
-//2^10 * 2^9
-#define NT_NUM_KEYS			1024*512
+#define SQRT_2 0x5a827999
+#define SQRT_3 0x6ed9eba1
 
 //Putting here for successful compilation (Needed by assembly functions).
 //Maybe useful in the future perform CPU and GPU cracking side by side
@@ -112,14 +107,9 @@ static int max_key_length = 0;
 static char get_key_saved[PLAINTEXT_LENGTH+1];
 
 //OpenCL variables
-cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys, data_info;
+cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
-static unsigned int datai[2];
-size_t global_work_size = NT_NUM_KEYS;
-size_t local_work_size;
 static int have_full_hashes;
-
-static int max_keys_per_crypt = NT_NUM_KEYS;
 
 static void done(void)
 {
@@ -135,20 +125,18 @@ static void done(void)
 	clReleaseProgram(program[ocl_gpu_id]);
 	clReleaseCommandQueue(queue[ocl_gpu_id]);
 	clReleaseContext(context[ocl_gpu_id]);
+
+	MEM_FREE(res_hashes);
 }
 
 // TODO: Use concurrent memory copy & execute
 static void crypt_all(int count)
 {
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	// Fill params. Copy only necesary data
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], data_info, CL_TRUE, 0,
-		sizeof(unsigned int) * 2, datai, 0, NULL, NULL),
-		"failed in clEnqueueWriteBuffer data_info");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,
-		key_length_mul_4 * max_keys_per_crypt, saved_plain, 0, NULL, NULL),
+		key_length_mul_4 * global_work_size, saved_plain, 0, NULL, NULL),
 		"failed in clEnqueWriteBuffer buffer_keys");
 
 	// Execute method
@@ -156,59 +144,66 @@ static void crypt_all(int count)
 	clFinish( queue[ocl_gpu_id] );
 
 	// Read partial result
-	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint)*max_keys_per_crypt, bbbs, 0, NULL, NULL);
+	clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint)*global_work_size, bbbs, 0, NULL, NULL);
 
 	max_key_length = 0;
 	have_full_hashes = 0;
 }
 
-#define MIN_KEYS_PER_CRYPT		NT_NUM_KEYS
-#define MAX_KEYS_PER_CRYPT		NT_NUM_KEYS
-
 static void init(struct fmt_main *self){
 	int argIndex = 0;
+	char *temp;
 
-	atexit(done);
-	opencl_init("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init_opt("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, platform_id, NULL);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
 
-	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code);
+	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*global_work_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
-	pinned_bbbs = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*NT_NUM_KEYS, NULL, &ret_code);
+	pinned_bbbs = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,4*global_work_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
 
-	res_hashes = malloc(sizeof(cl_uint) * 3 * max_keys_per_crypt);
-	saved_plain = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
+	res_hashes = mem_alloc(sizeof(cl_uint) * 3 * global_work_size);
+	saved_plain = (char*) clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0, (PLAINTEXT_LENGTH+1)*global_work_size, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
-	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*NT_NUM_KEYS, 0, NULL, NULL, &ret_code);
+	bbbs = (cl_uint*)clEnqueueMapBuffer(queue[ocl_gpu_id], pinned_bbbs , CL_TRUE, CL_MAP_READ, 0, 4*global_work_size, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error mapping page-locked memory");
 
 	// 6. Create and set arguments
-	buffer_keys = clCreateBuffer( context[ocl_gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*NT_NUM_KEYS, NULL, &ret_code );
+	buffer_keys = clCreateBuffer( context[ocl_gpu_id], CL_MEM_READ_ONLY,(PLAINTEXT_LENGTH+1)*global_work_size, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-	buffer_out  = clCreateBuffer( context[ocl_gpu_id], CL_MEM_WRITE_ONLY , 4*4*NT_NUM_KEYS, NULL, &ret_code );
+	buffer_out  = clCreateBuffer( context[ocl_gpu_id], CL_MEM_WRITE_ONLY , 4*4*global_work_size, NULL, &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating buffer argument");
-	data_info = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, sizeof(unsigned int) * 2, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating data_info out argument");
 
 	argIndex = 0;
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(data_info), (void *) &data_info),
-		"Error setting argument 0");
+
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_keys), (void*) &buffer_keys),
-		"Error setting argument 1");
+		"Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
-		"Error setting argument 2");
-	datai[0] = PLAINTEXT_LENGTH;
-	datai[1] = max_keys_per_crypt;
+		"Error setting argument 1");
 
-	opencl_find_best_workgroup(self);
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
 
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
+	//self->params.min_keys_per_crypt = local_work_size < 8 ?
+	//	8 : local_work_size;
+	self->params.min_keys_per_crypt = global_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
+
+	atexit(done);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -321,17 +316,17 @@ static int cmp_exact(char *source, int count) {
 
 	if (!have_full_hashes){
 		clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE,
-			sizeof(cl_uint) * (max_keys_per_crypt),
-			sizeof(cl_uint) * 3 * max_keys_per_crypt, res_hashes, 0,
+			sizeof(cl_uint) * (global_work_size),
+			sizeof(cl_uint) * 3 * global_work_size, res_hashes, 0,
 			NULL, NULL);
 		have_full_hashes = 1;
 	}
 
 	if (t[0]!=res_hashes[count])
 		return 0;
-	if (t[2]!=res_hashes[1*max_keys_per_crypt+count])
+	if (t[2]!=res_hashes[1*global_work_size+count])
 		return 0;
-	if (t[3]!=res_hashes[2*max_keys_per_crypt+count])
+	if (t[3]!=res_hashes[2*global_work_size+count])
 		return 0;
 	return 1;
 }
@@ -343,7 +338,7 @@ static void set_key(char *key, int index)
 	do {
 		length++;
 		//Save keys in a coalescing friendly way
-		saved_plain[(length/4)*NT_NUM_KEYS*4+index*4+length%4] = key[length];
+		saved_plain[(length/4)*global_work_size*4+index*4+length%4] = key[length];
 	}
 	while(key[length]);
 	//Calculate max key length of this chunk
@@ -358,7 +353,7 @@ static char *get_key(int index)
 	{
 		length++;
 		//Decode saved key
-		get_key_saved[length] = saved_plain[(length/4)*NT_NUM_KEYS*4+index*4+length%4];
+		get_key_saved[length] = saved_plain[(length/4)*global_work_size*4+index*4+length%4];
 	}
 	while(get_key_saved[length]);
 

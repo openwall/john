@@ -26,8 +26,6 @@
 #define SQRT_2 0x5a827999
 #define SQRT_3 0x6ed9eba1
 
-#define NT_NUM_KEYS 1024*512
-
 #define GET_CHAR(x,elem) (((x)>>elem) & 0xFF)
 
 #ifdef __ENDIAN_LITTLE__
@@ -44,18 +42,17 @@
 	#define ELEM_3 0
 #endif
 
-__kernel void nt_crypt(__global uint *data_info, const __global uint *keys , __global uint *output)
+__kernel void nt_crypt(const __global uint *keys , __global uint *output)
 {
 	uint i = get_global_id(0);
 	//Max Size 27-4 = 23 for a better use of registers
 	uint nt_buffer[12];
-
 	
 	//set key-------------------------------------------------------------------------
 	uint nt_index = 0;
 	uint md4_size = 0;
 	
-    	uint num_keys = data_info[1];
+	uint num_keys = get_global_size(0);
 	uint key_chars = keys[i];//Coalescing access to global memory
 	uint cache_key = GET_CHAR(key_chars,ELEM_0);
 	//Extract 4 chars by cycle
