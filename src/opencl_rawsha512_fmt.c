@@ -40,12 +40,11 @@
 #define uint32_t unsigned int
 #define uint64_t unsigned long long int
 
-#define KEYS_PER_CRYPT (1024*512)
 #define ITERATIONS 1
 
-#define MIN_KEYS_PER_CRYPT	(KEYS_PER_CRYPT)
-#define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)
-#define hash_addr(j,idx) (((j)*(MAX_KEYS_PER_CRYPT))+(idx))
+#define MIN_KEYS_PER_CRYPT	(1024*512)
+#define MAX_KEYS_PER_CRYPT	(ITERATIONS*MIN_KEYS_PER_CRYPT)
+#define hash_addr(j,idx) (((j)*(global_work_size))+(idx))
 
 #define SWAP64(n) \
   (((n) << 56)					\
@@ -110,9 +109,10 @@ static uint64_t H[8] = {
 
 //OpenCL variables:
 static cl_mem mem_in, mem_out, mem_binary, mem_cmp;
-static size_t insize = sizeof(sha512_key) * MAX_KEYS_PER_CRYPT;
-static size_t outsize = sizeof(sha512_hash) * MAX_KEYS_PER_CRYPT;
 cl_kernel cmp_kernel;
+
+#define insize (sizeof(sha512_key) * global_work_size)
+#define outsize (sizeof(sha512_hash) * global_work_size)
 
 static void done(void)
 {
@@ -120,6 +120,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+
 	MEM_FREE(ghash);
 	MEM_FREE(gkey);
 }
@@ -151,12 +152,22 @@ static char *get_key(int index)
 
 static void init(struct fmt_main *self)
 {
-	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_key));
-	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_hash));
+	char *temp;
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	opencl_init("$JOHN/kernels/sha512_kernel.cl", ocl_gpu_id, platform_id);
+
+	gkey = mem_calloc(global_work_size * sizeof(sha512_key));
+	ghash = mem_calloc(global_work_size * sizeof(sha512_hash));
 
 	///Allocate memory on the GPU
 	mem_in =
@@ -189,9 +200,15 @@ static void init(struct fmt_main *self)
 	clSetKernelArg(cmp_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(cmp_kernel, 2, sizeof(mem_cmp), &mem_cmp);
 
-	opencl_find_best_workgroup(self);
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
 
-	fprintf(stderr, "Global worksize = %lld\n",(long long)global_work_size);
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
+
+	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
+
 	atexit(done);
 
 }
@@ -315,8 +332,8 @@ static int get_hash_6(int index)
 
 static void crypt_all(int count)
 {
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
+	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+
 	///Copy data to GPU memory
 	if (sha512_key_changed) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer
@@ -326,7 +343,7 @@ static void crypt_all(int count)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &worksize, &localworksize,
+	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, profilingEvent), "Set ND range");
 
 	///Await completion of all the above
@@ -339,8 +356,6 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	size_t worksize = KEYS_PER_CRYPT;
-	size_t localworksize = local_work_size;
 	uint32_t result;
 	///Copy binary to GPU memory
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_binary, CL_FALSE,
@@ -348,7 +363,7 @@ static int cmp_all(void *binary, int count)
 
 	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], cmp_kernel, 1, NULL, &worksize, &localworksize,
+	    (queue[ocl_gpu_id], cmp_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, NULL), "Set ND range");
 
 	/// Copy result out
