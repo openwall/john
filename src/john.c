@@ -327,9 +327,9 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 	//TODO john_register_one(&fmt_opencl_DES);
-	//TODO john_register_one(&fmt_opencl_office2007);
-	//TODO john_register_one(&fmt_opencl_office2010);
-	//TODO john_register_one(&fmt_opencl_office2013);
+	john_register_one(&fmt_opencl_office2007);
+	john_register_one(&fmt_opencl_office2010);
+	john_register_one(&fmt_opencl_office2013);
 	john_register_one(&fmt_opencl_NTLMv2);
 	john_register_one(&fmt_opencl_krb5pa_sha1);
 	john_register_one(&fmt_opencl_rar);
