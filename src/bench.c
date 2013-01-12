@@ -77,6 +77,9 @@ volatile int bench_running;
 static void bench_handle_timer(int signum)
 {
 	bench_running = 0;
+#ifndef SA_RESTART
+	signal(SIGALRM, bench_handle_timer);
+#endif        
 }
 
 static void bench_set_keys(struct fmt_main *format,
