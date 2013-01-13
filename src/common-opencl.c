@@ -218,10 +218,33 @@ void clean_opencl_devices()
 
 static void dev_init(unsigned int sequential_id)
 {
+	char device_name[MAX_OCLINFO_STRING_LEN];
+
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
-		sizeof(opencl_log), opencl_log, NULL),
+		sizeof(device_name), device_name, NULL),
 	    "Error querying DEVICE_NAME");
-	fprintf(stderr, "Using device %d: %s\n", sequential_id, opencl_log);
+	fprintf(stderr, "Device %d: %s ", sequential_id, device_name);
+
+#ifdef CL_DEVICE_BOARD_NAME_AMD
+	{
+		cl_int ret_code;
+	    	int len;
+
+		ret_code = clGetDeviceInfo(devices[sequential_id],
+			CL_DEVICE_BOARD_NAME_AMD,
+			sizeof(opencl_log), opencl_log, NULL);
+
+		if (ret_code == CL_SUCCESS && (len = strlen(opencl_log))) {
+
+			while (len > 0 && isspace(opencl_log[len]))
+				len--;
+
+                        opencl_log[len-1] = '\0';
+			fprintf(stderr, "(%s)", opencl_log);
+		}
+	}
+#endif
+	fprintf(stderr, "\n");
 }
 
 static char *include_source(char *pathname, unsigned int sequential_id, char *options)
@@ -382,17 +405,17 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
 		    sizeof(wg_multiple), &wg_multiple, NULL),
-	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
-        }
+		"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+	}
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
 
-        if (max_group_size > group_size_limit)
-            //Needed to deal (at least) with cryptsha512-opencl limits.
-            max_group_size = group_size_limit;
+	if (max_group_size > group_size_limit)
+	    //Needed to deal (at least) with cryptsha512-opencl limits.
+	    max_group_size = group_size_limit;
 
 	// Safety harness
 	if (wg_multiple > max_group_size)
@@ -446,7 +469,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	if (numloops < 1)
 		numloops = 1;
-        else if (numloops > 10)
+	else if (numloops > 10)
 		numloops = 10;
 	//fprintf(stderr, "%zu, %zu, time: %zu, loops: %d\n", endTime, startTime, (endTime-startTime), numloops);
 
@@ -462,7 +485,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		sumEndTime = 0;
 
 		for (i = 0; i < numloops; i++) {
-                        advance_cursor();
+			advance_cursor();
 			local_work_size = my_work_group;
 
 			clReleaseEvent(benchEvent[0]);
@@ -477,11 +500,11 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
-                                       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-                                       NULL), "Failed to get profiling info");
+				       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+				       NULL), "Failed to get profiling info");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
-                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-                                       NULL), "Failed to get profiling info");
+				       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+				       NULL), "Failed to get profiling info");
 			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime, startTime, (endTime-startTime));
 			sumStartTime += startTime;
 			sumEndTime += endTime;
