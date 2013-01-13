@@ -218,16 +218,10 @@ void clean_opencl_devices()
 
 static void dev_init(unsigned int sequential_id)
 {
-    	HANDLE_CLERROR(clGetPlatformInfo(platforms[get_platform_id(sequential_id)].platform,
-		CL_PLATFORM_NAME, sizeof(opencl_log), opencl_log, NULL),
-		"Error querying PLATFORM_NAME");
-    	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n", platform_id,
-	    opencl_log, platforms[get_platform_id(sequential_id)].num_devices);
-
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
 	    "Error querying DEVICE_NAME");
-	fprintf(stderr, "Using device %d: %s\n", get_device_id(sequential_id), opencl_log);
+	fprintf(stderr, "Using device %d: %s\n", sequential_id, opencl_log);
 }
 
 static char *include_source(char *pathname, unsigned int sequential_id, char *options)
