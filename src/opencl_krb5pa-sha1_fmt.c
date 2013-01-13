@@ -62,7 +62,6 @@
 #define CHECKSUM_SIZE           BINARY_SIZE
 #define TOTAL_LENGTH            (14 + 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) + MAX_REALMLEN + MAX_USERLEN + MAX_SALTLEN)
 
-#define	DEFAULT_KEYS_PER_CRYPT	1024*9
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -407,6 +406,9 @@ static void nfold(unsigned int inbits, const unsigned char *in,
 	}
 }
 
+static void crypt_all(int count);
+static void crypt_all_benchmark(int count);
+
 static void init(struct fmt_main *self)
 {
 	unsigned char usage[5];
@@ -467,15 +469,26 @@ static void init(struct fmt_main *self)
 		local_work_size = maxsize;
 
 	if (!local_work_size) {
-		int temp = global_work_size;
+		if (cpu(device_info[ocl_gpu_id])) {
+			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+				local_work_size = MIN(maxsize, 8);
+			else
+				local_work_size = 1;
+		} else {
+			int temp = global_work_size;
 
-		local_work_size = maxsize;
-		global_work_size = global_work_size ? global_work_size : DEFAULT_KEYS_PER_CRYPT;
-		create_clobj(global_work_size, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
-		release_clobj();
-		global_work_size = temp;
+			local_work_size = maxsize;
+			global_work_size = global_work_size ?
+				global_work_size : 8 * 1024;
+			create_clobj(global_work_size, self);
+			self->methods.crypt_all = crypt_all_benchmark;
+			opencl_find_best_workgroup_limit(self, maxsize);
+			self->methods.crypt_all = crypt_all;
+			release_clobj();
+			global_work_size = temp;
+		}
 	}
+
 	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
 
 	if (!global_work_size)
@@ -857,6 +870,26 @@ static void crypt_all(int count)
 			memset(crypt_out[i], 0, BINARY_SIZE);
 		}
 	}
+}
+
+static void crypt_all_benchmark(int count)
+{
+	size_t scalar_gws = global_work_size * VF;
+
+	/// Copy data to gpu
+	if (new_keys) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(pbkdf2_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+		new_keys = 0;
+	}
+
+	/// Run kernels, no iterations for fast enumeration
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel (2nd pass)");
+
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running loop kernel");
 }
 
 static int cmp_all(void *binary, int count)

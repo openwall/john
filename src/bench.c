@@ -74,15 +74,17 @@ unsigned int benchmark_time = BENCHMARK_TIME;
 
 volatile int bench_running;
 
+static void bench_install_handler(void);
+
 static void bench_handle_timer(int signum)
 {
 	bench_running = 0;
 #ifndef SA_RESTART
-	sig_install_update();
+	bench_install_handler();
 #endif
 }
 
-static void bench_install_timer(void)
+static void bench_install_handler(void)
 {
 #ifdef SA_RESTART
 	struct sigaction sa;
@@ -215,7 +217,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 	bench_running = 1;
-	bench_install_timer();
+	bench_install_handler();
 
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
@@ -351,9 +353,17 @@ int benchmark_all(void)
 #endif
 #endif
 
-	if (!benchmark_time)
+	if (!benchmark_time) {
 		puts("Warning: doing quick benchmarking - "
 		    "the performance numbers will be inaccurate");
+#ifdef HAVE_OPENCL
+		/* This will make the majority of OpenCL formats
+		   also do "quick" benchmarking. But if LWS or
+		   GWS is already set, we do not overwrite. */
+		setenv("LWS", "7", 0);
+		setenv("GWS", "49", 0);
+#endif
+	}
 
 	total = failed = 0;
 #ifndef _JOHN_BENCH_TMP
