@@ -39,7 +39,7 @@
 #endif
 #define _PER_NODE ""
 #endif
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
 #if defined(HAVE_CUDA)
@@ -147,11 +147,11 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.regen_lost_salts},
 	{"raw-always-valid", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		"%c", &options.dynamic_raw_hashes_always_valid},
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	{"platform", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
 #endif
-#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.gpu_device},
 	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
@@ -209,11 +209,11 @@ static struct opt_entry opt_list[] = {
 #define JOHN_USAGE_TAIL \
 "--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
-#if defined(CL_VERSION_1_0) && defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
 "--platform=N              set OpenCL platform (list using --list=opencl-devices)\n" \
 "--device=N                set OpenCL or CUDA device\n"
-#elif defined(CL_VERSION_1_0)
+#elif defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
 "--platform=N              set OpenCL platform\n" \
 "--device=N                set OpenCL device (list using --list=opencl-devices)\n"
@@ -275,7 +275,7 @@ static void print_usage(char *name)
 
 	printf("%s", JOHN_USAGE_TAIL);
 
-#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	printf("%s", JOHN_USAGE_GPU);
 #endif
 	exit(0);
@@ -304,7 +304,7 @@ void print_hidden_usage(void)
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
-#if defined(CL_VERSION_1_0) || defined(HAVE_CUDA)
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	puts("--request-vectorize       request vectorized mode");
 	puts("--request-scalar          request non-vectorized mode");
 #endif
@@ -368,7 +368,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		return;
 	}
 
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	if (options.ocl_platform)
 		platform_id = atoi(options.ocl_platform);
 	if (options.gpu_device)

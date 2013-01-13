@@ -17,7 +17,7 @@
 #else
 #include "loader.h"
 #endif
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
 
@@ -261,7 +261,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 		}
 #endif
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 		advance_cursor();
 #endif
 #ifndef BENCH_BUILD

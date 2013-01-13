@@ -67,7 +67,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		error();
 	}
 
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	/* This erases the 'spinning wheel' cursor from self-test */
 	fprintf(stderr, " \b");
 #endif
