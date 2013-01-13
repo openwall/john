@@ -13,7 +13,7 @@
 #ifndef BENCH_BUILD
 #include "options.h"
 #endif
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
 
@@ -196,7 +196,7 @@ char *fmt_self_test(struct fmt_main *format)
 			}
 		}
 #endif
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 		advance_cursor();
 #endif
 #ifndef BENCH_BUILD
