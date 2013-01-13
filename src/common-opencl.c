@@ -681,7 +681,7 @@ void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned i
 {
 	//Shows the information about in use device(s).
 	int sequential_id = get_sequential_id(dev_id, platform_id);
-        
+
 	kernel_loaded=0;
 	opencl_init_dev(sequential_id);
 	opencl_build_kernel_save(kernel_filename, sequential_id, options, 1, 0);
@@ -1020,61 +1020,56 @@ static char *human_format(size_t size)
 
 void listOpenCLdevices(void)
 {
-	cl_platform_id platform[MAX_PLATFORMS];
 	char dname[MAX_OCLINFO_STRING_LEN];
-	cl_uint num_platforms, num_devices, entries;
+	cl_uint entries;
 	cl_ulong long_entries;
-	int i, d;
+	int i, j, sequence_nr = 0;
 	size_t p_size;
 
+	start_opencl_devices();
+
 	/* Obtain list of platforms available */
-	if (clGetPlatformIDs(MAX_PLATFORMS, platform, &num_platforms) != CL_SUCCESS) {
+	if (! platforms[0].platform) {
 		fprintf(stderr, "Error: No OpenCL-capable devices were detected by the installed OpenCL driver.\n\n");
-		return;
 	}
 
-	for (i = 0; i < num_platforms; i++) {
+	for (i = 0; platforms[i].platform; i++) {
 		/* Obtain information about platform */
-		clGetPlatformInfo(platform[i], CL_PLATFORM_NAME,
+		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_NAME,
 		    sizeof(dname), dname, NULL);
 		printf("Platform #%d name: %s\n", i, dname);
-		clGetPlatformInfo(platform[i], CL_PLATFORM_VERSION,
+		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_VERSION,
 		    sizeof(dname), dname, NULL);
 		printf("Platform version: %s\n", dname);
 
 		/* Obtain list of devices available on platform */
-		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAXGPUS,
-		    devices, &num_devices);
-		if (!num_devices)
-			printf("%d devices found\n", num_devices);
+		if (!platforms[i].num_devices)
+			printf("%d devices found\n", platforms[i].num_devices);
 
 		/* Query devices for information */
-		for (d = 0; d < num_devices; ++d) {
+		for (j = 0; j < platforms[i].num_devices; j++, sequence_nr++) {
 			cl_device_local_mem_type memtype;
 			cl_bool boolean;
 			char *p;
 			int ret;
 
-			/* Init device_info[d] */
-			opencl_get_dev_info(d);
-
-			clGetDeviceInfo(devices[d], CL_DEVICE_NAME,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_NAME,
 			    sizeof(dname), dname, NULL);
 			p = dname;
 			while (isspace(*p)) /* Intel quirk */
 				p++;
-			printf("\tDevice #%d name:\t\t%s\n", d, p);
+			printf("\tDevice #%d (%d) name:\t%s\n", j, sequence_nr, p);
 #ifdef CL_DEVICE_BOARD_NAME_AMD
-			ret = clGetDeviceInfo(devices[d],
+			ret = clGetDeviceInfo(devices[sequence_nr],
 					      CL_DEVICE_BOARD_NAME_AMD,
 					      sizeof(dname), dname, NULL);
 			if (ret == CL_SUCCESS && strlen(dname))
 				printf("\tBoard name:\t\t%s\n", dname);
 #endif
-			clGetDeviceInfo(devices[d], CL_DEVICE_VENDOR,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VENDOR,
 			    sizeof(dname), dname, NULL);
 			printf("\tDevice vendor:\t\t%s\n", dname);
-			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_TYPE,
 			    sizeof(cl_ulong), &long_entries, NULL);
 			printf("\tDevice type:\t\t");
 			if (long_entries & CL_DEVICE_TYPE_CPU)
@@ -1089,90 +1084,90 @@ void listOpenCLdevices(void)
 				CL_DEVICE_TYPE_ACCELERATOR | CL_DEVICE_TYPE_GPU
 				| CL_DEVICE_TYPE_CPU))
 				printf("Unknown ");
-			clGetDeviceInfo(devices[d], CL_DEVICE_ENDIAN_LITTLE,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_ENDIAN_LITTLE,
 			    sizeof(cl_bool), &boolean, NULL);
 			printf("(%s)\n", boolean == CL_TRUE ? "LE" : "BE");
-			clGetDeviceInfo(devices[d], CL_DEVICE_VERSION,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VERSION,
 			    sizeof(dname), dname, NULL);
 			printf("\tDevice version:\t\t%s\n", dname);
-			clGetDeviceInfo(devices[d], CL_DRIVER_VERSION,
+			clGetDeviceInfo(devices[sequence_nr], CL_DRIVER_VERSION,
 			    sizeof(dname), dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
-			clGetDeviceInfo(devices[d], CL_DEVICE_GLOBAL_MEM_SIZE,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_GLOBAL_MEM_SIZE,
 			    sizeof(cl_ulong), &long_entries, NULL);
-			clGetDeviceInfo(devices[d],
+			clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_ERROR_CORRECTION_SUPPORT,
 			    sizeof(cl_bool), &boolean, NULL);
 			printf("\tGlobal Memory:\t\t%s%s\n",
 			    human_format((unsigned long long) long_entries),
 			    boolean == CL_TRUE ? " (ECC)" : "");
 #ifdef DEBUG
-			clGetDeviceInfo(devices[d], CL_DEVICE_EXTENSIONS,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_EXTENSIONS,
 					sizeof(dname), dname, NULL);
 			printf("\tDevice extensions:\t%s\n", dname);
 #endif
-			clGetDeviceInfo(devices[d],
+			clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong),
 			    &long_entries, NULL);
 			if (long_entries)
 				printf("\tGlobal Memory Cache:\t%s\n",
 				       human_format((unsigned long long) long_entries));
-			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_SIZE,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_LOCAL_MEM_SIZE,
 			    sizeof(cl_ulong), &long_entries, NULL);
-			clGetDeviceInfo(devices[d], CL_DEVICE_LOCAL_MEM_TYPE,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_LOCAL_MEM_TYPE,
 			    sizeof(cl_device_local_mem_type), &memtype, NULL);
 			printf("\tLocal Memory:\t\t%s (%s)\n",
 			    human_format((unsigned long long) long_entries),
 			    memtype == CL_LOCAL ? "Local" : "Global");
-			clGetDeviceInfo(devices[d], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
 			    sizeof(long_entries), &long_entries, NULL);
 			printf("\tMax memory alloc. size:\t%s\n",
 			       human_format(long_entries));
-			ret = clGetDeviceInfo(devices[d],
+			ret = clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),
 			    &long_entries, NULL);
 			if (ret == CL_SUCCESS && long_entries)
 				printf("\tMax clock (MHz) :\t%llu\n",
 				       (unsigned long long) long_entries);
-			clGetDeviceInfo(devices[d],
+			clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
 			    &p_size, NULL);
 			printf("\tMax Work Group Size:\t%d\n", (int) p_size);
-			clGetDeviceInfo(devices[d],
+			clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint),
 			    &entries, NULL);
 			printf("\tParallel compute cores:\t%d\n", entries);
 
-			long_entries = get_processors_count(d);
-			if (cores_per_MP[d])
+			long_entries = get_processors_count(sequence_nr);
+			if (cores_per_MP[sequence_nr])
 				printf
 				    ("\tStream processors:\t%llu  (%d x %d)\n",
 				    (unsigned long long)long_entries, entries,
-				     cores_per_MP[d]);
+				     cores_per_MP[sequence_nr]);
 
 #ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
-			ret = clGetDeviceInfo(devices[d],
+			ret = clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
 			    &long_entries, NULL);
 			if (ret == CL_SUCCESS)
 				printf("\tWarp size:\t\t%llu\n",
 				       (unsigned long long)long_entries);
 
-			ret = clGetDeviceInfo(devices[d],
+			ret = clGetDeviceInfo(devices[sequence_nr],
 				  CL_DEVICE_REGISTERS_PER_BLOCK_NV,
 				  sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
 				printf("\tMax. GPRs/work-group:\t%llu\n",
 				       (unsigned long long)long_entries);
 
-			if (gpu_nvidia(device_info[d])) {
+			if (gpu_nvidia(device_info[sequence_nr])) {
 				unsigned int major = 0, minor = 0;
-				get_compute_capability(d, &major, &minor);
+				get_compute_capability(j, &major, &minor);
 				printf
 				    ("\tCompute capability:\t%u.%u (sm_%u%u)\n",
 				    major, minor, major, minor);
 			}
-			ret = clGetDeviceInfo(devices[d],
+			ret = clGetDeviceInfo(devices[sequence_nr],
 			    CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
 			    sizeof(cl_bool), &boolean, NULL);
 			if (ret == CL_SUCCESS)
@@ -1183,7 +1178,7 @@ void listOpenCLdevices(void)
 			{
 				cl_device_topology_amd topo;
 
-				ret = clGetDeviceInfo(devices[d],
+				ret = clGetDeviceInfo(devices[sequence_nr],
 				    CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
 				    &topo, NULL);
 				if (ret == CL_SUCCESS)
