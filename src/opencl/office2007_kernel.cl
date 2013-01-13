@@ -13,7 +13,8 @@
 
 #include "opencl_device_info.h"
 
-#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
+//#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
+#ifdef VECTORIZE
 #define MAYBE_VECTOR_UINT	uint4
 #ifndef VECTORIZE
 #define VECTORIZE
