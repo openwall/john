@@ -20,6 +20,7 @@ static int kernel_loaded;
 static size_t program_size;
 
 extern volatile int bench_running;
+static void opencl_get_dev_info(unsigned int sequencial_id);
 
 void opencl_process_event(void)
 {
@@ -68,84 +69,182 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file,
 	}
 }
 
-static void read_kernel_source(char *kernel_filename)
+int get_available_devices()
 {
-	char *kernel_path = path_expand(kernel_filename);
-	FILE *fp = fopen(kernel_path, "r");
-	size_t source_size, read_size;
+        int total = 0, i = 0;
 
-	if (!fp)
-		fp = fopen(kernel_path, "rb");
+        while (platforms[i].platform)
+                total += platforms[i++].num_devices;
 
-	if (!fp)
-		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+        return total;
+}
 
-	fseek(fp, 0, SEEK_END);
-	source_size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	MEM_FREE(kernel_source);
-	kernel_source = mem_calloc(source_size + 1);
-	read_size = fread(kernel_source, sizeof(char), source_size, fp);
-	if (read_size != source_size)
-		fprintf(stderr,
-		    "Error reading source: expected %zu, got %zu bytes.\n",
-		    source_size, read_size);
-	fclose(fp);
-	program_size = source_size;
-	kernel_loaded = 1;
+int get_platform_id(int sequencial_id)
+{
+        int pos = 0, i = 0;
+
+        while (platforms[i].platform) {
+                pos += platforms[i].num_devices;
+
+                if (sequencial_id < pos)
+                    break;
+                i++;
+        }
+        return (platforms[i].platform ? i : -1);
+}
+
+int get_device_id(int sequencial_id)
+{
+        int pos = sequencial_id, i = 0;
+
+        while (platforms[i].platform && pos >= platforms[i].num_devices) {
+                pos -= platforms[i].num_devices;
+                i++;
+        }
+        return (platforms[i].platform ? pos : -1);
+}
+
+int get_sequencial_id(unsigned int dev_id, unsigned int platform_id)
+{
+        int pos = 0, i = 0;
+
+        while (platforms[i].platform && i < platform_id)
+                pos += platforms[i++].num_devices;
+
+        if (i == platform_id && dev_id >= platforms[i].num_devices)
+                return -1;
+
+        return (platforms[i].platform ? pos + dev_id : -1);
+}
+
+void start_opencl_devices()
+{
+        cl_platform_id platform_list[MAX_PLATFORMS];
+        static char opencl_data[LOG_SIZE];
+	cl_uint num_platforms, device_num, device_pos = 0;
+	cl_context_properties properties[3];
+        int i;
+
+	///Find OpenCL enabled devices
+	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform_list,
+		&num_platforms), "No OpenCL platform found");
+
+        for (i = 0; i < num_platforms; i++) {
+                platforms[i].platform = platform_list[i];
+
+		HANDLE_CLERROR(clGetPlatformInfo(platforms[i].platform,
+			CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
+			"Error querying PLATFORM_NAME");
+		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
+			CL_DEVICE_TYPE_ALL, MAXGPUS, &devices[device_pos], &device_num),
+			"No OpenCL device of that type exist");
+
+                //Save plataform and devices information
+                platforms[i].num_devices = device_num;
+
+                //Point to the end of the list
+                device_pos += device_num;
+#define DEBUG //TODO                
+#ifdef DEBUG
+              	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n",
+                        i, opencl_data, device_num);
+#endif
+        }
+        //Set NULL to the final buffer position.
+        platforms[i].platform = NULL;
+        devices[device_pos] = NULL;
+
+        //Get devices information
+        for (i = 0; i < get_available_devices(); i++) {
+                //Get the detailed information about the device.
+                opencl_get_dev_info(i);
+                
+                HANDLE_CLERROR(clGetDeviceInfo(devices[i], CL_DEVICE_NAME,
+                        sizeof(opencl_data), opencl_data, NULL),
+                        "Error querying DEVICE_NAME");
+
+                HANDLE_CLERROR(clGetDeviceInfo(devices[i],
+                        CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
+                        &max_group_size, NULL), "Error querying MAX_WORK_GROUP_SIZE");
+
+                //Get the plataform properties
+                properties[0] = CL_CONTEXT_PLATFORM;
+                properties[1] = (cl_context_properties) platforms[get_platform_id(i)].platform;
+                properties[2] = 0;
+
+                //Setup context and queue
+                context[i] = clCreateContext(properties, 1, &devices[i],
+                        NULL, NULL, &ret_code);
+                HANDLE_CLERROR(ret_code, "Error creating context");
+                queue[i] = clCreateCommandQueue(context[i], devices[i],
+                        0, &ret_code);
+                HANDLE_CLERROR(ret_code, "Error creating command queue");
+#ifdef DEBUG
+                fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
+#endif
+        }
+#undef DEBUG //TODO
+#ifdef MUTED
+        for (i = 0, j = 0; platforms[i].platform; i++) {
+                fprintf(stderr, "Plataform: %d: %lu, %d device(s) \n", i, (ulong) platforms[i].platform, platforms[i].num_devices);
+
+                for (; devices[j]; j++)
+                        fprintf(stderr, "  Device: %d: %lu\n", j, (ulong) devices[j]);
+        }
+#endif
+
+#ifdef DEBUG
+        fprintf(stderr, "Sequential(0, 0): %d\n", get_sequencial_id(0, 0));
+        fprintf(stderr, "Sequential(0, 1): %d\n", get_sequencial_id(0, 1));
+        fprintf(stderr, "Sequential(1, 0): %d\n", get_sequencial_id(1, 0));
+        fprintf(stderr, "Sequential(1, 1): %d\n", get_sequencial_id(1, 1));
+
+        fprintf(stderr, "Details(0): (%d, %d)\n", get_device_id(0), get_platform_id(0));
+        fprintf(stderr, "Details(1): (%d, %d)\n", get_device_id(1), get_platform_id(1));
+        fprintf(stderr, "Details(2): (%d, %d)\n", get_device_id(2), get_platform_id(2));
+        fprintf(stderr, "Details(3): (%d, %d)\n", get_device_id(3), get_platform_id(3));
+#endif        
+}
+
+void clean_opencl_devices()
+{
+        int i;
+
+        for (i = 0; i < get_available_devices(); i++) {
+                HANDLE_CLERROR(clReleaseCommandQueue(queue[i]), "Release Queue");
+                HANDLE_CLERROR(clReleaseContext(context[i]), "Release Context");
+        }
 }
 
 static void dev_init(unsigned int dev_id, unsigned int platform_id)
 {
-	cl_platform_id platform[MAX_PLATFORMS];
-	cl_uint num_platforms, device_num;
-	cl_context_properties properties[3];
-	assert(dev_id < MAXGPUS);
-	///Find CPU's
-	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform,
-		&num_platforms), "No OpenCL platform found");
-	HANDLE_CLERROR(clGetPlatformInfo(platform[platform_id],
+        //Shows the information about in use device(s).
+        int id = get_sequencial_id(dev_id, platform_id);
+    
+    	HANDLE_CLERROR(clGetPlatformInfo(platforms[get_platform_id(id)].platform,
 		CL_PLATFORM_NAME, sizeof(opencl_log), opencl_log, NULL),
-	    "Error querying PLATFORM_NAME");
-	HANDLE_CLERROR(clGetDeviceIDs(platform[platform_id],
-		CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
-	    "No OpenCL device of that type exist");
-	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n", platform_id,
-	    opencl_log, device_num);
-
-	properties[0] = CL_CONTEXT_PLATFORM;
-	properties[1] = (cl_context_properties) platform[platform_id];
-	properties[2] = 0;
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+                "Error querying PLATFORM_NAME");                        
+    	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n", platform_id,
+	    opencl_log, platforms[get_platform_id(id)].num_devices);
+        
+	HANDLE_CLERROR(clGetDeviceInfo(devices[id], CL_DEVICE_NAME,
 		sizeof(opencl_log), opencl_log, NULL),
-	    "Error querying DEVICE_NAME");
-	fprintf(stderr, "Using device %d: %s\n", dev_id, opencl_log);
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
-		CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
-		&max_group_size, NULL), "Error querying MAX_WORK_GROUP_SIZE");
-	///Setup context
-	context[dev_id] =
-	    clCreateContext(properties, 1, &devices[dev_id], NULL, NULL,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating context");
-	queue[dev_id] =
-	    clCreateCommandQueue(context[dev_id], devices[dev_id], 0,
-	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating command queue");
+	    "Error querying DEVICE_NAME");        
+        fprintf(stderr, "Using device %d: %s\n", dev_id, opencl_log);
 }
 
-static char *include_source(char *pathname, int dev_id, char *options)
+static char *include_source(char *pathname, int sequencial_id, char *options)
 {
 	static char include[PATH_BUFFER_SIZE];
 
 	sprintf(include, "-I %s %s %s%d %s %s", path_expand(pathname),
-	        get_device_type(dev_id) == CL_DEVICE_TYPE_CPU ?
+	        get_device_type(sequencial_id) == CL_DEVICE_TYPE_CPU ?
 	        "-DDEVICE_IS_CPU" : "",
-	        "-DDEVICE_INFO=", device_info[dev_id],
+	        "-DDEVICE_INFO=", device_info[sequencial_id],
 #ifdef __APPLE__
 	        "-DAPPLE",
 #else
-	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
+	        gpu_nvidia(device_info[sequencial_id]) ? "-cl-nv-verbose" : "",
 #endif
 	        OPENCLBUILDOPTIONS);
 
@@ -160,26 +259,26 @@ static char *include_source(char *pathname, int dev_id, char *options)
 	return include;
 }
 
-static void build_kernel(int dev_id, char *options, int save, char * file_name)
+static void build_kernel(int sequencial_id, char *options, int save, char * file_name)
 {
 	cl_int build_code;
         char * build_log; size_t log_size;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
-	program[dev_id] =
-	    clCreateProgramWithSource(context[dev_id], 1, srcptr, NULL,
+	program[sequencial_id] =
+	    clCreateProgramWithSource(context[sequencial_id], 1, srcptr, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
-	build_code = clBuildProgram(program[dev_id], 0, NULL,
-		include_source("$JOHN/kernels", dev_id, options), NULL, NULL);
+	build_code = clBuildProgram(program[sequencial_id], 0, NULL,
+		include_source("$JOHN/kernels", sequencial_id, options), NULL, NULL);
 
-        HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+        HANDLE_CLERROR(clGetProgramBuildInfo(program[sequencial_id], devices[sequencial_id],
                 CL_PROGRAM_BUILD_LOG, 0, NULL,
                 &log_size), "Error while getting build info I");
         build_log = (char *) mem_alloc((log_size + 1));
 
-	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequencial_id], devices[sequencial_id],
 		CL_PROGRAM_BUILD_LOG, log_size + 1, (void *) build_log,
 		NULL), "Error while getting build info");
 
@@ -187,7 +286,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 	if (build_code != CL_SUCCESS) {
 		// Give us much info about error and exit
 		fprintf(stderr, "Build log: %s\n", build_log);
-		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		fprintf(stderr, "Error %d building kernel. DEVICE_INFO=%d\n", build_code, device_info[sequencial_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
@@ -201,7 +300,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 		size_t source_size;
 		char *source;
 
-		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+		HANDLE_CLERROR(clGetProgramInfo(program[sequencial_id],
 			CL_PROGRAM_BINARY_SIZES,
 			sizeof(size_t), &source_size, NULL), "error");
 #if DEBUG
@@ -209,7 +308,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 #endif
 		source = mem_alloc(source_size);
 
-		HANDLE_CLERROR(clGetProgramInfo(program[dev_id],
+		HANDLE_CLERROR(clGetProgramInfo(program[sequencial_id],
 			CL_PROGRAM_BINARIES, sizeof(char *), &source, NULL), "error");
 
 		file = fopen(path_expand(file_name), "w");
@@ -225,20 +324,20 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 	}
 }
 
-static void build_kernel_from_binary(int dev_id)
+static void build_kernel_from_binary(int sequencial_id)
 {
 	cl_int build_code;
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
-	program[dev_id] = clCreateProgramWithBinary(context[dev_id], 1,
-		&devices[dev_id], &program_size, (const unsigned char**)srcptr,
+	program[sequencial_id] = clCreateProgramWithBinary(context[sequencial_id], 1,
+		&devices[sequencial_id], &program_size, (const unsigned char**)srcptr,
 	        NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,
 	               "Error while creating program (using cached binary)");
 
-	build_code = clBuildProgram(program[dev_id], 0, NULL, NULL, NULL, NULL);
+	build_code = clBuildProgram(program[sequencial_id], 0, NULL, NULL, NULL, NULL);
 
-	HANDLE_CLERROR(clGetProgramBuildInfo(program[dev_id], devices[dev_id],
+	HANDLE_CLERROR(clGetProgramBuildInfo(program[sequencial_id], devices[sequencial_id],
 		CL_PROGRAM_BUILD_LOG, sizeof(opencl_log), (void *) opencl_log,
 		NULL), "Error while getting build info (using cached binary)");
 
@@ -247,7 +346,7 @@ static void build_kernel_from_binary(int dev_id)
 		// Give us much info about error and exit
 		fprintf(stderr, "Binary build log: %s\n", opencl_log);
 		fprintf(stderr, "Error %d building kernel using cached binary."
-		        " DEVICE_INFO=%d\n", build_code, device_info[dev_id]);
+		        " DEVICE_INFO=%d\n", build_code, device_info[sequencial_id]);
 		HANDLE_CLERROR (build_code, "clBuildProgram failed.");
 	}
 #if defined(REPORT_OPENCL_WARNINGS) || defined(DEBUG)
@@ -431,26 +530,27 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	profilingEvent = firstEvent = lastEvent = NULL;
 }
 
-void opencl_get_dev_info(unsigned int dev_id)
+static void opencl_get_dev_info(unsigned int sequencial_id)
 {
 	cl_device_type device;
 
-	device = get_device_type(dev_id);
+	device = get_device_type(sequencial_id);
 
 	if (device == CL_DEVICE_TYPE_CPU)
-		device_info[dev_id] = DEV_CPU;
+		device_info[sequencial_id] = DEV_CPU;
 	else if (device == CL_DEVICE_TYPE_GPU)
-		device_info[dev_id] = DEV_GPU;
+		device_info[sequencial_id] = DEV_GPU;
 	else if (device == CL_DEVICE_TYPE_ACCELERATOR)
-		device_info[dev_id] = DEV_ACCELERATOR;
+		device_info[sequencial_id] = DEV_ACCELERATOR;
 
-	device_info[dev_id] += get_vendor_id(dev_id);
-	device_info[dev_id] += get_processor_family(dev_id);
-        device_info[dev_id] += get_byte_addressable(dev_id);
+	device_info[sequencial_id] += get_vendor_id(sequencial_id);
+	device_info[sequencial_id] += get_processor_family(sequencial_id);
+        device_info[sequencial_id] += get_byte_addressable(sequencial_id);
 }
 
 void opencl_find_gpu(int *dev_id, int *platform_id)
 {
+        cl_platform_id platform[MAX_PLATFORMS];
 	cl_uint num_platforms, num_devices;
 	cl_ulong long_entries;
 	int i, d;
@@ -496,28 +596,42 @@ err:
 	return;
 }
 
-void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
+static void read_kernel_source(char *kernel_filename)
 {
-	profilingEvent = firstEvent = lastEvent = NULL;
-	dev_init(dev_id, platform_id);
-	opencl_get_dev_info(dev_id);
+	char *kernel_path = path_expand(kernel_filename);
+	FILE *fp = fopen(kernel_path, "r");
+	size_t source_size, read_size;
+
+	if (!fp)
+		fp = fopen(kernel_path, "rb");
+
+	if (!fp)
+		HANDLE_CLERROR(!CL_SUCCESS, "Source kernel not found!");
+
+	fseek(fp, 0, SEEK_END);
+	source_size = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	MEM_FREE(kernel_source);
+	kernel_source = mem_calloc(source_size + 1);
+	read_size = fread(kernel_source, sizeof(char), source_size, fp);
+	if (read_size != source_size)
+		fprintf(stderr,
+		    "Error reading source: expected %zu, got %zu bytes.\n",
+		    source_size, read_size);
+	fclose(fp);
+	program_size = source_size;
+	kernel_loaded = 1;
 }
 
-void opencl_build_kernel_opt(char *kernel_filename, unsigned int dev_id, char *options)
+void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequencial_id, char *options)
 {
 	read_kernel_source(kernel_filename);
-	build_kernel(dev_id, options, 0, NULL);
-}
-
-void opencl_build_kernel(char *kernel_filename, unsigned int dev_id)
-{
-	kernel_loaded=0;
-	opencl_build_kernel_opt(kernel_filename, dev_id, NULL);
+	build_kernel(sequencial_id, options, 0, NULL);
 }
 
 // Only AMD gpu code, and OSX (including with nvidia)
 // will benefit from this routine.
-void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn) {
+void opencl_build_kernel_save(char *kernel_filename, unsigned int sequencial_id, char *options, int save, int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[128], bin_name[128];
 	char * p;
@@ -526,7 +640,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 	kernel_loaded = 0;
 
 	if ((!gpu_amd(device_info[ocl_gpu_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
-		opencl_build_kernel_opt(kernel_filename, dev_id, options);
+		opencl_build_kernel_opt(kernel_filename, sequencial_id, options);
 
 	else {
 		startTime = (unsigned long) time(NULL);
@@ -557,7 +671,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 		//Select the kernel to run.
 		if (!stat(path_expand(bin_name), &bin_stat) && (source_stat.st_mtime < bin_stat.st_mtime)) {
 			read_kernel_source(bin_name);
-			build_kernel_from_binary(dev_id);
+			build_kernel_from_binary(sequencial_id);
 
 		} else {
 
@@ -566,7 +680,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 				fflush(stdout);
 			}
 			read_kernel_source(kernel_filename);
-			build_kernel(dev_id, options, 1, bin_name);
+			build_kernel(sequencial_id, options, 1, bin_name);
 		}
 		if (warn) {
 			if ((runtime = (unsigned long) (time(NULL) - startTime)) > 2UL)
@@ -576,10 +690,10 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *
 	}
 }
 
-void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id)
+void opencl_init_dev(unsigned int dev_id, unsigned int platform_id)
 {
-	read_kernel_source(kernel_filename);
-	build_kernel_from_binary(dev_id);
+	profilingEvent = firstEvent = lastEvent = NULL;
+	dev_init(dev_id, platform_id);
 }
 
 void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
@@ -587,7 +701,8 @@ void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
 {
 	kernel_loaded=0;
 	opencl_init_dev(dev_id, platform_id);
-	opencl_build_kernel_save(kernel_filename, dev_id, options, 1, 0);
+	opencl_build_kernel_save(kernel_filename, get_sequencial_id(dev_id, platform_id),
+                options, 1, 0);
 }
 
 void opencl_init(char *kernel_filename, unsigned int dev_id,
@@ -596,49 +711,41 @@ void opencl_init(char *kernel_filename, unsigned int dev_id,
 	opencl_init_opt(kernel_filename, dev_id, platform_id, NULL);
 }
 
-void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
-    unsigned int platform_id)
-{
-	kernel_loaded=0;
-	opencl_init_dev(dev_id, platform_id);
-	opencl_build_kernel_from_binary(kernel_filename, dev_id);
-}
-
-cl_device_type get_device_type(int dev_id)
+cl_device_type get_device_type(int sequencial_id)
 {
 	cl_device_type type;
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_TYPE,
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id], CL_DEVICE_TYPE,
 		sizeof(cl_device_type), &type, NULL),
 	    "Error querying CL_DEVICE_TYPE");
 
 	return type;
 }
 
-cl_ulong get_local_memory_size(int dev_id)
+cl_ulong get_local_memory_size(int sequencial_id)
 {
 	cl_ulong size;
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
 	    "Error querying CL_DEVICE_LOCAL_MEM_SIZE");
 
 	return size;
 }
 
-cl_ulong get_global_memory_size(int dev_id)
+cl_ulong get_global_memory_size(int sequencial_id)
 {
 	cl_ulong size;
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
 	    "Error querying CL_DEVICE_GLOBAL_MEM_SIZE");
 
 	return size;
 }
 
-size_t get_max_work_group_size(int dev_id)
+size_t get_max_work_group_size(int sequencial_id)
 {
 	size_t max_group_size;
 
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
@@ -646,11 +753,11 @@ size_t get_max_work_group_size(int dev_id)
 	return max_group_size;
 }
 
-cl_ulong get_max_mem_alloc_size(int dev_id)
+cl_ulong get_max_mem_alloc_size(int sequencial_id)
 {
 	cl_ulong max_alloc_size;
 
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(max_alloc_size),
 		&max_alloc_size, NULL),
 	    "Error querying CL_DEVICE_MAX_MEM_ALLOC_SIZE");
@@ -658,11 +765,11 @@ cl_ulong get_max_mem_alloc_size(int dev_id)
 	return max_alloc_size;
 }
 
-size_t get_current_work_group_size(int dev_id, cl_kernel crypt_kernel)
+size_t get_current_work_group_size(int sequencial_id, cl_kernel crypt_kernel)
 {
 	size_t max_group_size;
 
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[dev_id],
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequencial_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error querying clGetKernelWorkGroupInfo");
@@ -670,10 +777,10 @@ size_t get_current_work_group_size(int dev_id, cl_kernel crypt_kernel)
 	return max_group_size;
 }
 
-cl_uint get_max_compute_units(int dev_id)
+cl_uint get_max_compute_units(int sequencial_id)
 {
 	cl_uint size;
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &size, NULL),
 	    "Error querying CL_DEVICE_MAX_COMPUTE_UNITS");
 
@@ -681,38 +788,38 @@ cl_uint get_max_compute_units(int dev_id)
 }
 
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
-void get_compute_capability(int dev_id, unsigned int *major,
+void get_compute_capability(int sequencial_id, unsigned int *major,
     unsigned int *minor)
 {
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
 		sizeof(cl_uint), major, NULL),
 	    "Error querying CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV");
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id],
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id],
 		CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
 		sizeof(cl_uint), minor, NULL),
 	    "Error querying CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV");
 }
 #endif
 
-cl_uint get_processors_count(int dev_id)
+cl_uint get_processors_count(int sequencial_id)
 {
-	cl_uint core_count = get_max_compute_units(dev_id);
+	cl_uint core_count = get_max_compute_units(sequencial_id);
 
-	cores_per_MP[dev_id] = 0;
-	if (gpu_nvidia(device_info[dev_id])) {
+	cores_per_MP[sequencial_id] = 0;
+	if (gpu_nvidia(device_info[sequencial_id])) {
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 		unsigned int major = 0, minor = 0;
 
-		get_compute_capability(dev_id, &major, &minor);
+		get_compute_capability(sequencial_id, &major, &minor);
 		if (major == 1)
-			core_count *= (cores_per_MP[dev_id] = 8);
+			core_count *= (cores_per_MP[sequencial_id] = 8);
 		else if (major == 2 && minor == 0)
-			core_count *= (cores_per_MP[dev_id] = 32);	//2.0
+			core_count *= (cores_per_MP[sequencial_id] = 32);	//2.0
 		else if (major == 2 && minor >= 1)
-			core_count *= (cores_per_MP[dev_id] = 48);	//2.1
+			core_count *= (cores_per_MP[sequencial_id] = 48);	//2.1
 		else if (major == 3)
-			core_count *= (cores_per_MP[dev_id] = 192);	//3.0
+			core_count *= (cores_per_MP[sequencial_id] = 192);	//3.0
 #else
 		/* Apple does not expose get_compute_capability() so we need
 		   to find out using mory hacky approaches. This needs more
@@ -724,7 +831,7 @@ cl_uint get_processors_count(int dev_id)
 		   figure even under OSX. */
 		char dname[MAX_OCLINFO_STRING_LEN];
 
-		HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+		HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id], CL_DEVICE_NAME,
 		                               sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
 		if (strstr(dname, "GT 65") || strstr(dname, "GTX 65") ||
@@ -732,27 +839,27 @@ cl_uint get_processors_count(int dev_id)
 		    strstr(dname, "GT 67") || strstr(dname, "GTX 67") ||
 		    strstr(dname, "GT 68") || strstr(dname, "GTX 68") ||
 		    strstr(dname, "GT 69") || strstr(dname, "GTX 69"))
-			core_count *= (cores_per_MP[dev_id] = 192); // Kepler
+			core_count *= (cores_per_MP[sequencial_id] = 192); // Kepler
 #endif
 	} else
-	if (gpu_amd(device_info[dev_id])) {
-		core_count *= (cores_per_MP[dev_id] = (16 *	//16 thread proc * 5 SP
-			((amd_gcn(device_info[dev_id]) ||
-				amd_vliw4(device_info[dev_id])) ? 4 : 5)));
-	} else if (gpu(device_info[dev_id]))	//Any other GPU
-		core_count *= (cores_per_MP[dev_id] = 8);
+	if (gpu_amd(device_info[sequencial_id])) {
+		core_count *= (cores_per_MP[sequencial_id] = (16 *	//16 thread proc * 5 SP
+			((amd_gcn(device_info[sequencial_id]) ||
+				amd_vliw4(device_info[sequencial_id])) ? 4 : 5)));
+	} else if (gpu(device_info[sequencial_id]))	//Any other GPU
+		core_count *= (cores_per_MP[sequencial_id] = 8);
 
 	return core_count;
 }
 
-cl_uint get_processor_family(int dev_id)
+cl_uint get_processor_family(int sequencial_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_NAME,
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id], CL_DEVICE_NAME,
 		sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
-	if gpu_amd(device_info[dev_id]) {
+	if gpu_amd(device_info[sequencial_id]) {
 
 		if ((strstr(dname, "Cedar") ||
 			strstr(dname, "Redwood") ||
@@ -781,11 +888,11 @@ cl_uint get_processor_family(int dev_id)
 	return DEV_UNKNOWN;
 }
 
-int get_byte_addressable(int dev_id)
+int get_byte_addressable(int sequencial_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_EXTENSIONS,
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id], CL_DEVICE_EXTENSIONS,
 		sizeof(dname), dname, NULL),
 	    "Error querying CL_DEVICE_EXTENSIONS");
 
@@ -795,11 +902,11 @@ int get_byte_addressable(int dev_id)
 	return DEV_UNKNOWN;
 }
 
-int get_vendor_id(int dev_id)
+int get_vendor_id(int sequencial_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
-	HANDLE_CLERROR(clGetDeviceInfo(devices[dev_id], CL_DEVICE_VENDOR,
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequencial_id], CL_DEVICE_VENDOR,
 		sizeof(dname), dname, NULL),
 	    "Error querying CL_DEVICE_VENDOR");
 
@@ -848,11 +955,11 @@ int get_platform_vendor_id(int platform_id)
 	return DEV_UNKNOWN;
 }
 
-int get_device_version(int dev_id)
+int get_device_version(int sequencial_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
-        clGetDeviceInfo(devices[dev_id], CL_DEVICE_VERSION,
+        clGetDeviceInfo(devices[sequencial_id], CL_DEVICE_VERSION,
                 MAX_OCLINFO_STRING_LEN, dname, NULL);
 
         if (strstr(dname, "1.0"))
@@ -925,6 +1032,7 @@ static char *human_format(size_t size)
 
 void listOpenCLdevices(void)
 {
+        cl_platform_id platform[MAX_PLATFORMS];
 	char dname[MAX_OCLINFO_STRING_LEN];
 	cl_uint num_platforms, num_devices, entries;
 	cl_ulong long_entries;

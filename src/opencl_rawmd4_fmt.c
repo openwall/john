@@ -242,7 +242,7 @@ static void init(struct fmt_main *self)
 	}
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", keybuf_size);
-	opencl_init_opt("$JOHN/kernels/md4_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/md4_kernel.cl", device_id, platform_id, build_opts);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md4", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 

@@ -187,7 +187,7 @@ static void init(struct fmt_main *self){
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", PLAINTEXT_LENGTH);
-	opencl_init_opt("$JOHN/kernels/msha_kernel.cl", ocl_gpu_id,
+	opencl_init_opt("$JOHN/kernels/msha_kernel.cl", device_id,
 	                platform_id, build_opts);
 
 	// create kernel to execute

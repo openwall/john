@@ -108,7 +108,7 @@ static void init(struct fmt_main *self)
 	         (int)sizeof(currentsalt.salt),
 	         (int)sizeof(outbuffer->v));
 	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
-	                ocl_gpu_id, platform_id, build_opts);
+	                device_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 

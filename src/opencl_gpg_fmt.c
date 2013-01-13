@@ -195,7 +195,7 @@ static void init(struct fmt_main *self)
 	         "-DPLAINTEXT_LENGTH=%d",
 	         PLAINTEXT_LENGTH);
 	opencl_init_opt("$JOHN/kernels/gpg_kernel.cl",
-	                ocl_gpu_id, platform_id, build_opts);
+	                device_id, platform_id, build_opts);
 
 	global_work_size = MAX_KEYS_PER_CRYPT;
 

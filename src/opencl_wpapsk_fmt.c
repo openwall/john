@@ -328,7 +328,7 @@ static void init(struct fmt_main *self)
 	         HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH,
 	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/kernels/wpapsk_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/wpapsk_kernel.cl", device_id, platform_id, build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) ||
 	    ((!(options.flags & FLG_SCALAR)) &&

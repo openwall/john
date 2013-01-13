@@ -324,7 +324,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);
         john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_bf);
+	//TODO john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 	//TODO john_register_one(&fmt_opencl_DES);
 	john_register_one(&fmt_opencl_office2007);
@@ -1193,6 +1193,11 @@ static void john_init(char *name, int argc, char **argv)
 	}
 	if (platform_id == -1 || ocl_gpu_id == -1)
 		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+
+        //Use the sequential number on ocl_gpu_id.
+        start_opencl_devices();
+        device_id = ocl_gpu_id;
+        ocl_gpu_id = get_sequencial_id(device_id, platform_id);
 #endif
 
 	common_init();
@@ -1304,7 +1309,7 @@ static void john_run(void)
 static void john_done(void)
 {
 	if ((options.flags & (FLG_CRACKING_CHK | FLG_STDOUT)) ==
-	    FLG_CRACKING_CHK) {            
+	    FLG_CRACKING_CHK) {
 		if (event_abort)
 			log_event(timer_abort ?
 			          "Session aborted" :

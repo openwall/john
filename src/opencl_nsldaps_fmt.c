@@ -235,7 +235,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
-	opencl_init_opt("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/ssha_kernel.cl", device_id, platform_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);

@@ -175,7 +175,7 @@ static void crypt_all(int count)
 static void init(struct fmt_main *self){
 	int argIndex = 0;
 
-	opencl_init("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/nt_kernel.cl", device_id, platform_id);
 
 	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");

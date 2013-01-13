@@ -34,7 +34,14 @@
 //#define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
-int ocl_gpu_id, platform_id;
+int ocl_gpu_id, platform_id, device_id;
+
+typedef struct {
+    cl_platform_id              platform;
+    int                         num_devices;
+} cl_plataform;
+cl_plataform platforms[MAX_PLATFORMS];
+
 cl_platform_id platform[MAX_PLATFORMS];
 cl_device_id devices[MAXGPUS];
 cl_context context[MAXGPUS];
@@ -52,32 +59,36 @@ int cores_per_MP[MAXGPUS];
 
 cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComputeCapMinor);
 
+void start_opencl_devices();
+void clean_opencl_devices();
+int get_available_devices();
+int get_platform_id(int sequencial_id);
+int get_device_id(int sequencial_id);
+int get_sequencial_id(unsigned int dev_id, unsigned int platform_id);
+
 void opencl_init_dev(unsigned int dev_id, unsigned int platform_id);
 void opencl_init(char *kernel_filename, unsigned int dev_id,
                  unsigned int platform_id);
 void opencl_init_opt(char *kernel_filename, unsigned int dev_id,
                      unsigned int platform_id, char *options);
-void opencl_init_from_binary(char *kernel_filename, unsigned int dev_id,
-                 unsigned int platform_id);
-void opencl_build_kernel(char *kernel_filename, unsigned int dev_id);
-void opencl_build_kernel_from_binary(char *kernel_filename, unsigned int dev_id);
-void opencl_build_kernel_save(char *kernel_filename, unsigned int dev_id, char *options, int save, int warn);
+void opencl_build_kernel(char *kernel_filename, unsigned int sequencial_id);
+void opencl_build_kernel_save(char *kernel_filename, unsigned int sequencial_id, char *options, int save, int warn);
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
 
-cl_device_type get_device_type(int dev_id);
-cl_ulong get_local_memory_size(int dev_id);
-cl_ulong get_global_memory_size(int dev_id);
-size_t get_max_work_group_size(int dev_id);
-cl_ulong get_max_mem_alloc_size(int dev_id);
-size_t get_current_work_group_size(int dev_id, cl_kernel crypt_kernel);
-cl_uint get_max_compute_units(int dev_id);
-cl_uint get_processors_count(int dev_id);
-cl_uint get_processor_family(int dev_id);
-int get_vendor_id(int dev_id);
+cl_device_type get_device_type(int sequencial_id);
+cl_ulong get_local_memory_size(int sequencial_id);
+cl_ulong get_global_memory_size(int sequencial_id);
+size_t get_max_work_group_size(int sequencial_id);
+cl_ulong get_max_mem_alloc_size(int sequencial_id);
+size_t get_current_work_group_size(int sequencial_id, cl_kernel crypt_kernel);
+cl_uint get_max_compute_units(int sequencial_id);
+cl_uint get_processors_count(int sequencial_id);
+cl_uint get_processor_family(int sequencial_id);
+int get_vendor_id(int sequencial_id);
 int get_platform_vendor_id(int platform_id);
-int get_device_version(int dev_id);
-int get_byte_addressable(int dev_id);
+int get_device_version(int sequencial_id);
+int get_byte_addressable(int sequencial_id);
 
 char *get_error_name(cl_int cl_error);
 

@@ -107,7 +107,7 @@ static void init(struct fmt_main *self)
 	host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
 	host_salt = mem_calloc(sizeof(pwsafe_salt));
 
-	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", device_id, platform_id);
 
 	///Allocate memory on the GPU
 

@@ -394,7 +394,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	opencl_init_opt("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, platform_id, NULL);
+	opencl_init_opt("$JOHN/kernels/cryptmd5_kernel.cl", device_id, platform_id, NULL);
 
 	///Create Kernel
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
