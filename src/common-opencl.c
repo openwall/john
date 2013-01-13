@@ -79,7 +79,7 @@ int get_available_devices()
 	return total;
 }
 
-int get_platform_id(int sequential_id)
+int get_platform_id(unsigned int sequential_id)
 {
 	int pos = 0, i = 0;
 
@@ -93,7 +93,7 @@ int get_platform_id(int sequential_id)
 	return (platforms[i].platform ? i : -1);
 }
 
-int get_device_id(int sequential_id)
+int get_device_id(unsigned int sequential_id)
 {
 	int pos = sequential_id, i = 0;
 
@@ -216,7 +216,7 @@ void clean_opencl_devices()
 	}
 }
 
-static void dev_init(int sequential_id)
+static void dev_init(unsigned int sequential_id)
 {
     	HANDLE_CLERROR(clGetPlatformInfo(platforms[get_platform_id(sequential_id)].platform,
 		CL_PLATFORM_NAME, sizeof(opencl_log), opencl_log, NULL),
@@ -230,7 +230,7 @@ static void dev_init(int sequential_id)
 	fprintf(stderr, "Using device %d: %s\n", get_device_id(sequential_id), opencl_log);
 }
 
-static char *include_source(char *pathname, int sequential_id, char *options)
+static char *include_source(char *pathname, unsigned int sequential_id, char *options)
 {
 	static char include[PATH_BUFFER_SIZE];
 
@@ -256,7 +256,7 @@ static char *include_source(char *pathname, int sequential_id, char *options)
 	return include;
 }
 
-static void build_kernel(int sequential_id, char *options, int save, char * file_name)
+static void build_kernel(unsigned int sequential_id, char *options, int save, char * file_name)
 {
 	cl_int build_code;
 	char * build_log; size_t log_size;
@@ -321,7 +321,7 @@ static void build_kernel(int sequential_id, char *options, int save, char * file
 	}
 }
 
-static void build_kernel_from_binary(int sequential_id)
+static void build_kernel_from_binary(unsigned int sequential_id)
 {
 	cl_int build_code;
 	const char *srcptr[] = { kernel_source };
@@ -702,7 +702,7 @@ void opencl_init(char *kernel_filename, unsigned int sequential_id)
 	opencl_init_opt(kernel_filename, sequential_id, NULL);
 }
 
-cl_device_type get_device_type(int sequential_id)
+cl_device_type get_device_type(unsigned int sequential_id)
 {
 	cl_device_type type;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_TYPE,
@@ -712,7 +712,7 @@ cl_device_type get_device_type(int sequential_id)
 	return type;
 }
 
-cl_ulong get_local_memory_size(int sequential_id)
+cl_ulong get_local_memory_size(unsigned int sequential_id)
 {
 	cl_ulong size;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
@@ -722,7 +722,7 @@ cl_ulong get_local_memory_size(int sequential_id)
 	return size;
 }
 
-cl_ulong get_global_memory_size(int sequential_id)
+cl_ulong get_global_memory_size(unsigned int sequential_id)
 {
 	cl_ulong size;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
@@ -732,7 +732,7 @@ cl_ulong get_global_memory_size(int sequential_id)
 	return size;
 }
 
-size_t get_max_work_group_size(int sequential_id)
+size_t get_max_work_group_size(unsigned int sequential_id)
 {
 	size_t max_group_size;
 
@@ -744,7 +744,7 @@ size_t get_max_work_group_size(int sequential_id)
 	return max_group_size;
 }
 
-cl_ulong get_max_mem_alloc_size(int sequential_id)
+cl_ulong get_max_mem_alloc_size(unsigned int sequential_id)
 {
 	cl_ulong max_alloc_size;
 
@@ -756,7 +756,7 @@ cl_ulong get_max_mem_alloc_size(int sequential_id)
 	return max_alloc_size;
 }
 
-size_t get_current_work_group_size(int sequential_id, cl_kernel crypt_kernel)
+size_t get_current_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t max_group_size;
 
@@ -768,7 +768,7 @@ size_t get_current_work_group_size(int sequential_id, cl_kernel crypt_kernel)
 	return max_group_size;
 }
 
-cl_uint get_max_compute_units(int sequential_id)
+cl_uint get_max_compute_units(unsigned int sequential_id)
 {
 	cl_uint size;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
@@ -779,7 +779,7 @@ cl_uint get_max_compute_units(int sequential_id)
 }
 
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
-void get_compute_capability(int sequential_id, unsigned int *major,
+void get_compute_capability(unsigned int sequential_id, unsigned int *major,
     unsigned int *minor)
 {
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
@@ -793,7 +793,7 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 }
 #endif
 
-cl_uint get_processors_count(int sequential_id)
+cl_uint get_processors_count(unsigned int sequential_id)
 {
 	cl_uint core_count = get_max_compute_units(sequential_id);
 
@@ -843,7 +843,7 @@ cl_uint get_processors_count(int sequential_id)
 	return core_count;
 }
 
-cl_uint get_processor_family(int sequential_id)
+cl_uint get_processor_family(unsigned int sequential_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
@@ -879,7 +879,7 @@ cl_uint get_processor_family(int sequential_id)
 	return DEV_UNKNOWN;
 }
 
-int get_byte_addressable(int sequential_id)
+int get_byte_addressable(unsigned int sequential_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
@@ -893,7 +893,7 @@ int get_byte_addressable(int sequential_id)
 	return DEV_UNKNOWN;
 }
 
-int get_vendor_id(int sequential_id)
+int get_vendor_id(unsigned int sequential_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 
@@ -946,7 +946,7 @@ int get_platform_vendor_id(int platform_id)
 	return DEV_UNKNOWN;
 }
 
-int get_device_version(int sequential_id)
+int get_device_version(unsigned int sequential_id)
 {
 	char dname[MAX_OCLINFO_STRING_LEN];
 

@@ -62,8 +62,8 @@ cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComp
 void start_opencl_devices();
 void clean_opencl_devices();
 int get_available_devices();
-int get_platform_id(int sequential_id);
-int get_device_id(int sequential_id);
+int get_platform_id(unsigned int sequential_id);
+int get_device_id(unsigned int sequential_id);
 int get_sequential_id(unsigned int dev_id, unsigned int platform_id);
 
 void opencl_init_dev(unsigned int sequential_id);
@@ -75,19 +75,19 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 void opencl_find_best_workgroup(struct fmt_main *self);
 void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
 
-cl_device_type get_device_type(int sequential_id);
-cl_ulong get_local_memory_size(int sequential_id);
-cl_ulong get_global_memory_size(int sequential_id);
-size_t get_max_work_group_size(int sequential_id);
-cl_ulong get_max_mem_alloc_size(int sequential_id);
-size_t get_current_work_group_size(int sequential_id, cl_kernel crypt_kernel);
-cl_uint get_max_compute_units(int sequential_id);
-cl_uint get_processors_count(int sequential_id);
-cl_uint get_processor_family(int sequential_id);
-int get_vendor_id(int sequential_id);
+cl_device_type get_device_type(unsigned int sequential_id);
+cl_ulong get_local_memory_size(unsigned int sequential_id);
+cl_ulong get_global_memory_size(unsigned int sequential_id);
+size_t get_max_work_group_size(unsigned int sequential_id);
+cl_ulong get_max_mem_alloc_size(unsigned int sequential_id);
+size_t get_current_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel);
+cl_uint get_max_compute_units(unsigned int sequential_id);
+cl_uint get_processors_count(unsigned int sequential_id);
+cl_uint get_processor_family(unsigned int sequential_id);
+int get_vendor_id(unsigned int sequential_id);
 int get_platform_vendor_id(int platform_id);
-int get_device_version(int sequential_id);
-int get_byte_addressable(int sequential_id);
+int get_device_version(unsigned int sequential_id);
+int get_byte_addressable(unsigned int sequential_id);
 
 char *get_error_name(cl_int cl_error);
 
