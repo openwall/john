@@ -97,8 +97,12 @@ static void pwsafe_set_key(char *key, int index)
 static void init(struct fmt_main *self)
 {
 	char *temp;
+	cl_ulong maxsize;
 
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, platform_id);
+
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
@@ -109,6 +113,12 @@ static void init(struct fmt_main *self)
 		global_work_size = atoi(temp);
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	host_pass = mem_calloc(global_work_size * sizeof(pwsafe_pass));
 	host_hash = mem_calloc(global_work_size * sizeof(pwsafe_hash));
@@ -129,8 +139,6 @@ static void init(struct fmt_main *self)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 	///Assign kernel parameters
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);

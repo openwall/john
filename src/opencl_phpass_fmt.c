@@ -145,6 +145,7 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	char *temp;
+	cl_ulong maxsize;
 
 	opencl_init_opt("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id, NULL);
 
@@ -184,6 +185,11 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_setting");
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	self->params.min_keys_per_crypt = local_work_size * 8;
 	self->params.max_keys_per_crypt = global_work_size * 8;

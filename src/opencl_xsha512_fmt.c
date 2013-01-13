@@ -162,6 +162,9 @@ static void init(struct fmt_main *self)
 	opencl_init_opt("$JOHN/kernels/xsha512_kernel.cl",
 	                ocl_gpu_id, platform_id, NULL);
 
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
+
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
 	else
@@ -199,8 +202,6 @@ static void init(struct fmt_main *self)
 	    "Error while allocating memory for cmp_all result");
 
 	///Assign crypt kernel parameters
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
