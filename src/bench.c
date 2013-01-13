@@ -74,15 +74,17 @@ unsigned int benchmark_time = BENCHMARK_TIME;
 
 volatile int bench_running;
 
+static void bench_install_handler(void);
+
 static void bench_handle_timer(int signum)
 {
 	bench_running = 0;
 #ifndef SA_RESTART
-	sig_install_update();
+	bench_install_handler();
 #endif
 }
 
-static void bench_install_timer(void)
+static void bench_install_handler(void)
 {
 #ifdef SA_RESTART
 	struct sigaction sa;
@@ -217,7 +219,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 	bench_running = 1;
-	bench_install_timer();
+	bench_install_handler();
 
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
