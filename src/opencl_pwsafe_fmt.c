@@ -105,7 +105,7 @@ static void init(struct fmt_main *self)
 {
 	char *temp;
 
-	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", device_id, platform_id);
+	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);

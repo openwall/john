@@ -231,7 +231,7 @@ void DES_bs_select_device(int platform_no,int dev_no)
 {
 	devno = dev_no;
 	pltfrmno = platform_no;
-	opencl_init("$JOHN/kernels/DES_bs_kernel.cl", dev_no, platform_no);
+	opencl_init_Sayantan("$JOHN/kernels/DES_bs_kernel.cl", dev_no, platform_no, NULL);
 	pltfrmid[platform_no] = platform[platform_no];
 	devid[platform_no][dev_no] = devices[dev_no];
 	cntxt[platform_no][dev_no] = context[dev_no];

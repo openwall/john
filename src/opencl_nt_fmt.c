@@ -159,7 +159,7 @@ static void init(struct fmt_main *self){
 	int argIndex = 0;
 	char *temp;
 
-	opencl_init_opt("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, platform_id, NULL);
+	opencl_init_opt("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, NULL);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);

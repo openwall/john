@@ -412,7 +412,7 @@ static void init(struct fmt_main *self)
 	         UNICODE_LENGTH,
 	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/kernels/office2007_kernel.cl", device_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/office2007_kernel.cl", ocl_gpu_id, build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) ||
 	    ((!(options.flags & FLG_SCALAR)) &&

@@ -191,7 +191,7 @@ static void init(struct fmt_main *self)
 	         (int)sizeof(currentsalt.salt),
 	         (int)sizeof(outbuffer->v));
 	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
-	                device_id, platform_id, build_opts);
+	                ocl_gpu_id, build_opts);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);

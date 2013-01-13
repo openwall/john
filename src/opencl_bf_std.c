@@ -534,12 +534,12 @@ void BF_select_device(int platform_no,int dev_no)
 	if(CL_DEVICE_TYPE_CPU == device_type(platform_no,dev_no) ||
            amd_vliw5(get_dev_info(platform_no, dev_no))){
 	        if(CHANNEL_INTERLEAVE == 1)
-			opencl_init_opt("$JOHN/kernels/bf_cpu_kernel.cl", dev_no, platform_no, NULL);
+			opencl_init_Sayantan("$JOHN/kernels/bf_cpu_kernel.cl", dev_no, platform_no, NULL);
 		else
 			fprintf(stderr, "Please set NUM_CHANNELS and WAVEFRONT_SIZE to 1 in opencl_bf_std.h") ;
 	}
 	else
-		opencl_init_opt("$JOHN/kernels/bf_kernel.cl", dev_no, platform_no, NULL);
+		opencl_init_Sayantan("$JOHN/kernels/bf_kernel.cl", dev_no, platform_no, NULL);
 
 	pltfrmid[platform_no]=platform[platform_no];
 

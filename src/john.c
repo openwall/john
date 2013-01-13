@@ -1197,7 +1197,7 @@ static void john_init(char *name, int argc, char **argv)
         //Use the sequential number on ocl_gpu_id.
         start_opencl_devices();
         device_id = ocl_gpu_id;
-        ocl_gpu_id = get_sequencial_id(device_id, platform_id);
+        ocl_gpu_id = get_sequential_id(device_id, platform_id);
 #endif
 
 	common_init();

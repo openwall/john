@@ -392,7 +392,7 @@ static void init(struct fmt_main * self) {
     char * tmp_value;
     char * task = "$JOHN/kernels/sha256_kernel.cl";
 
-    opencl_init_dev(device_id, platform_id);
+    opencl_init_dev(ocl_gpu_id);
     opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
