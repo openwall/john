@@ -406,10 +406,10 @@ static void init(struct fmt_main *self)
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
 	opencl_init_opt("$JOHN/kernels/office2010_kernel.cl", ocl_gpu_id, platform_id, build_opts);
 
-	if ((options.flags & FLG_VECTORIZE) ||
+	if ((options.flags & FLG_VECTORIZE) /*||
 	    ((!(options.flags & FLG_SCALAR)) &&
 	     gpu_amd(device_info[ocl_gpu_id]) &&
-	     !amd_gcn(device_info[ocl_gpu_id]))) {
+	     !amd_gcn(device_info[ocl_gpu_id]))*/) {
 		/* Run vectorized code */
 		VF = 4;
 		self->params.algorithm_name = "OpenCL 4x";
