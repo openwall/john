@@ -78,6 +78,20 @@ static void bench_handle_timer(int signum)
 {
 	bench_running = 0;
 #ifndef SA_RESTART
+	sig_install_update();
+#endif
+}
+
+static void bench_install_timer(void)
+{
+#ifdef SA_RESTART
+	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = bench_handle_timer;
+	sa.sa_flags = SA_RESTART;
+	sigaction(SIGALRM, &sa, NULL);
+#else
 	signal(SIGALRM, bench_handle_timer);
 #endif
 }
@@ -203,7 +217,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 
 	bench_running = 1;
-	signal(SIGALRM, bench_handle_timer);
+	bench_install_timer();
 
 /* Cap it at a sane value to hopefully avoid integer overflows below */
 	if (benchmark_time > 3600)
