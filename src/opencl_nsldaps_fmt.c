@@ -231,7 +231,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 	cl_ulong maxsize;
 	char build_opts[64];
 
-	global_work_size = 0;
+	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);

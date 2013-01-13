@@ -33,9 +33,8 @@
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             32
 #define KERNEL_NAME             "pwsafe"
-#define KEYS_PER_CRYPT		512*112
-#define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      (512*112)
+#define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
@@ -65,9 +64,10 @@ typedef struct {
 #define SALT_SIZE               sizeof(pwsafe_salt)
 
 static cl_mem mem_in, mem_out, mem_salt;
-static size_t insize = sizeof(pwsafe_pass) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(pwsafe_hash) * KEYS_PER_CRYPT;
-static size_t saltsize = sizeof(pwsafe_salt);
+
+#define insize (sizeof(pwsafe_pass) * global_work_size)
+#define outsize (sizeof(pwsafe_hash) * global_work_size)
+#define saltsize (sizeof(pwsafe_salt))
 
 static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
@@ -103,11 +103,23 @@ static void pwsafe_set_key(char *key, int index)
 
 static void init(struct fmt_main *self)
 {
-	host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
-	host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
-	host_salt = mem_calloc(sizeof(pwsafe_salt));
+	char *temp;
 
 	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", device_id, platform_id);
+
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	host_pass = mem_calloc(global_work_size * sizeof(pwsafe_pass));
+	host_hash = mem_calloc(global_work_size * sizeof(pwsafe_hash));
+	host_salt = mem_calloc(sizeof(pwsafe_salt));
 
 	///Allocate memory on the GPU
 
@@ -130,7 +142,9 @@ static void init(struct fmt_main *self)
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 
-	opencl_find_best_workgroup(self);
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
@@ -265,8 +279,8 @@ struct fmt_main fmt_opencl_pwsafe = {
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
-		KEYS_PER_CRYPT,
-		KEYS_PER_CRYPT,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		pwsafe_tests
 	}, {

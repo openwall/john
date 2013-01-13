@@ -22,9 +22,8 @@
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define	KEYS_PER_CRYPT		1024*9
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	1024*9
+#define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
@@ -72,17 +71,18 @@ static keychain_password *inbuffer;
 static keychain_hash *outbuffer;
 static keychain_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
-static size_t insize = sizeof(keychain_password) * KEYS_PER_CRYPT;
-static size_t outsize = sizeof(keychain_hash) * KEYS_PER_CRYPT;
-static size_t settingsize = sizeof(keychain_salt);
+
+#define insize (sizeof(keychain_password) * global_work_size)
+#define outsize (sizeof(keychain_hash) * global_work_size)
+#define settingsize (sizeof(keychain_salt))
 
 static void release_clobj(void)
 {
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-        
-	MEM_FREE(inbuffer);
+
+        MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
 }
@@ -101,6 +101,7 @@ static void init(struct fmt_main *self)
 {
 	cl_int cl_error;
 	char build_opts[64];
+	char *temp;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -110,15 +111,23 @@ static void init(struct fmt_main *self)
 	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
 	                device_id, platform_id, build_opts);
 
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	if ((temp = getenv("LWS")))
+		local_work_size = atoi(temp);
+	else
+		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+
+	if ((temp = getenv("GWS")))
+		global_work_size = atoi(temp);
+	else
+		global_work_size = MAX_KEYS_PER_CRYPT;
 
 	inbuffer =
 		(keychain_password *) mem_calloc(sizeof(keychain_password) *
-		                             MAX_KEYS_PER_CRYPT);
+		                             global_work_size);
 	outbuffer =
-	    (keychain_hash *) mem_alloc(sizeof(keychain_hash) * MAX_KEYS_PER_CRYPT);
+	    (keychain_hash *) mem_alloc(sizeof(keychain_hash) * global_work_size);
 
-	cracked = mem_calloc(sizeof(*cracked) * KEYS_PER_CRYPT * MEM_ALIGN_WORD);
+	cracked = mem_calloc(sizeof(*cracked) * global_work_size * MEM_ALIGN_WORD);
 
 	/// Allocate memory
 	mem_in =
@@ -142,7 +151,10 @@ static void init(struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-	opencl_find_best_workgroup(self);
+
+	self->params.max_keys_per_crypt = global_work_size;
+	if (!local_work_size)
+		opencl_find_best_workgroup(self);
 
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
@@ -277,6 +289,7 @@ static void print_hex(unsigned char *str, int len)
 static void crypt_all(int count)
 {
 	int index;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	/// Copy data to gpu
@@ -301,22 +314,15 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
-	{
-		if(kcdecrypt((unsigned char*)outbuffer[index].v, salt_struct->iv, salt_struct->ct) == 0) {
-			cracked[index] = 1;
-		}
-		else
-			cracked[index] = 0;
-	}
+	for (index = 0; index < count; index++)
+		cracked[index] = !kcdecrypt((unsigned char*)outbuffer[index].v, salt_struct->iv, salt_struct->ct);
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;

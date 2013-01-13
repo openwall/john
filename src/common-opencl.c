@@ -375,7 +375,6 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	cl_int ret_code;
 	int i, numloops;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
-	char *temp;
 	cl_event benchEvent[2];
 	size_t gws;
 
@@ -392,29 +391,17 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
 		    sizeof(wg_multiple), &wg_multiple, NULL),
-		"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
-	}
+	        "Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+        }
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
 
-	if (max_group_size > group_size_limit)
-	    //Needed to deal (at least) with cryptsha512-opencl limits.
-	    max_group_size = group_size_limit;
-
-	// Environment variable override
-	if ((temp = getenv("LWS"))) {
-		local_work_size = atoi(temp);
-		if (local_work_size > max_group_size) {
-			fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n",
-				(int)local_work_size, (int)max_group_size);
-			local_work_size = max_group_size;
-		}
-		if (local_work_size > 0)
-			return;
-	}
+        if (max_group_size > group_size_limit)
+            //Needed to deal (at least) with cryptsha512-opencl limits.
+            max_group_size = group_size_limit;
 
 	// Safety harness
 	if (wg_multiple > max_group_size)
@@ -468,7 +455,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	if (numloops < 1)
 		numloops = 1;
-	else if (numloops > 10)
+        else if (numloops > 10)
 		numloops = 10;
 	//fprintf(stderr, "%zu, %zu, time: %zu, loops: %d\n", endTime, startTime, (endTime-startTime), numloops);
 
@@ -484,7 +471,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		sumEndTime = 0;
 
 		for (i = 0; i < numloops; i++) {
-			advance_cursor();
+                        advance_cursor();
 			local_work_size = my_work_group;
 
 			clReleaseEvent(benchEvent[0]);
@@ -499,11 +486,11 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
-				       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-				       NULL), "Failed to get profiling info");
+                                       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+                                       NULL), "Failed to get profiling info");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
-				       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-				       NULL), "Failed to get profiling info");
+                                       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+                                       NULL), "Failed to get profiling info");
 			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime, startTime, (endTime-startTime));
 			sumStartTime += startTime;
 			sumEndTime += endTime;
