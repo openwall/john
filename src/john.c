@@ -65,7 +65,7 @@
 #ifdef HAVE_GMP
 #include "gmp.h"
 #endif
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
 #ifdef HAVE_CUDA
@@ -131,7 +131,7 @@ extern struct fmt_main fmt_krb5_18;
 #endif
 extern int hccap2john(int argc, char **argv);
 
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 extern struct fmt_main fmt_opencl_NSLDAPS;
 extern struct fmt_main fmt_opencl_rawMD4;
 extern struct fmt_main fmt_opencl_rawMD5;
@@ -296,7 +296,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_zip);
 	john_register_one(&fmt_dummy);
 
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	john_register_one(&fmt_opencl_NSLDAPS);
 	john_register_one(&fmt_opencl_rawMD4);
 	john_register_one(&fmt_opencl_rawMD5);
@@ -600,7 +600,7 @@ static void john_list_options()
 	// the resulting line will get too long
 	// printf("sections, parameters:SECTION, list-data:SECTION, ");
 	puts("sections, parameters:SECTION, list-data:SECTION,");
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	printf("opencl-devices, ");
 #endif
 #ifdef HAVE_CUDA
@@ -799,7 +799,7 @@ static void john_init(char *name, int argc, char **argv)
 		listEncodings();
 		exit(0);
 	}
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	if (options.listconf && !strcasecmp(options.listconf, "opencl-devices"))
 	{
 		listOpenCLdevices();
@@ -1176,7 +1176,7 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	if (!options.ocl_platform) {
 		if ((options.ocl_platform =
 		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Platform")))

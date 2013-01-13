@@ -112,7 +112,7 @@
 #define FLG_CRKSTAT			0x0000004000000000ULL
 /* Wordlist dupe suppression */
 #define FLG_DUPESUPP			0x0000008000000000ULL
-#if defined(CL_VERSION_1_0) || defined (HAVE_CUDA)
+#if defined(HAVE_OPENCL) || defined (HAVE_CUDA)
 /* Request to vectorize */
 #define FLG_VECTORIZE			0x0000010000000000ULL
 /* Request to not vectorize */
@@ -232,7 +232,7 @@ struct options_main {
    use raw hashes as valid in dynamic. */
 	char dynamic_raw_hashes_always_valid;
 
-#ifdef CL_VERSION_1_0
+#ifdef HAVE_OPENCL
 	char *ocl_platform, *gpu_device;
 #elif defined(HAVE_CUDA)
 	char *gpu_device;
