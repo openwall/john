@@ -1318,6 +1318,9 @@ static void john_done(void)
 			log_event("Session completed");
 		fmt_done(database.format);
 	}
+        //Release OpenCL stuff.
+        clean_opencl_devices();
+        
 	log_done();
 	path_done();
 

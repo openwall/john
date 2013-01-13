@@ -511,8 +511,6 @@ static void done(void) {
     HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
     HANDLE_CLERROR(clReleaseKernel(cmp_kernel), "Release kernel");
     HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-    HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-    HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
 
 /* ------- Check if the ciphertext if a valid SHA-512 ------- */

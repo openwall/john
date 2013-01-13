@@ -139,9 +139,6 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
         
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
-
 }
 
 static void set_key(char *key, int index);
