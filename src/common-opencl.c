@@ -411,9 +411,12 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 
 	//fprintf(stderr, "Optimal local work size = %d\n", (int) local_work_size);
-	// Deactivate events (or we'll get a memory leak)
+	// Release events
 	clReleaseEvent(benchEvent[0]);
-	clReleaseEvent(benchEvent[1]);
+	if (benchEvent[1])
+		clReleaseEvent(benchEvent[1]);
+
+	// These ensure we don't get events from crypt_all() in real use
 	profilingEvent = firstEvent = lastEvent = NULL;
 }
 
