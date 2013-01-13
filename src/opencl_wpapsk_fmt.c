@@ -31,7 +31,6 @@ static int VF = 1;	/* Will be set to 4 if we run vectorized */
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 /* Must be made from factors 3, 3, 5, 7, 13 */
 
-#define	KEYS_PER_CRYPT		1024*9
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -312,6 +311,9 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	global_work_size = optimal_gws;
 }
 
+static void crypt_all(int count);
+static void crypt_all_benchmark(int count);
+
 static void init(struct fmt_main *self)
 {
 	char *temp, build_opts[128];
@@ -377,15 +379,26 @@ static void init(struct fmt_main *self)
 		local_work_size = maxsize;
 
 	if (!local_work_size) {
-		int temp = global_work_size;
+		if (cpu(device_info[ocl_gpu_id])) {
+			if (get_platform_vendor_id(platform_id) == DEV_INTEL)
+				local_work_size = MIN(maxsize, 8);
+			else
+				local_work_size = 1;
+		} else {
+			int temp = global_work_size;
 
-		local_work_size = maxsize;
-		global_work_size = global_work_size ? global_work_size : KEYS_PER_CRYPT;
-		create_clobj(global_work_size, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
-		release_clobj();
-		global_work_size = temp;
+			local_work_size = maxsize;
+			global_work_size = global_work_size ?
+				global_work_size : 8 * 1024;
+			create_clobj(global_work_size, self);
+			self->methods.crypt_all = crypt_all_benchmark;
+			opencl_find_best_workgroup_limit(self, maxsize);
+			self->methods.crypt_all = crypt_all;
+			release_clobj();
+			global_work_size = temp;
+		}
 	}
+
 	self->params.min_keys_per_crypt = local_work_size < 8 ?
 		8 : local_work_size;
 
@@ -438,6 +451,22 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, NULL), "Copy result back");
 }
 
+static void crypt_all_benchmark(int count)
+{
+	size_t scalar_gws = global_work_size * VF;
+
+	/// Copy data to gpu
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+
+	/// Run kernels, no iterations for fast enumeration
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running kernel");
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
+
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+}
 
 struct fmt_main fmt_opencl_wpapsk = {
 	{
