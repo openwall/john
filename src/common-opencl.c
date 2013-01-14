@@ -70,7 +70,7 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file, int 
 	}
 }
 
-int get_available_devices()
+int get_number_of_available_devices()
 {
 	int total = 0, i = 0;
 
@@ -80,7 +80,7 @@ int get_available_devices()
 	return total;
 }
 
-int get_in_use_devices()
+int get_devices_being_used()
 {
 	int i = 0;
 
@@ -165,7 +165,7 @@ static void start_opencl_devices()
 	devices[device_pos] = NULL;
 
 	//Get devices information
-	for (i = 0; i < get_available_devices(); i++) {
+	for (i = 0; i < get_number_of_available_devices(); i++) {
 		//Get the detailed information about the device.
 		opencl_get_dev_info(i);
 
@@ -220,18 +220,18 @@ static void add_device_to_list(int sequential_id)
 {
 	int i = 0, found = 0;
 
-        if (get_available_devices() < sequential_id) {
+        if (sequential_id >= get_number_of_available_devices()) {
                 fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
                 return;
         }
 
-        for (i = 0; i < get_in_use_devices() && !found; i++) {
+        for (i = 0; i < get_devices_being_used() && !found; i++) {
 
                 if (sequential_id == ocl_device_list[i])
                         found = 1;
         }
         if (!found) {
-                ocl_device_list[get_in_use_devices()] = sequential_id;
+                ocl_device_list[get_devices_being_used()] = sequential_id;
                 ocl_device_list[++i] = -1;
         }
 }
@@ -352,7 +352,7 @@ void clean_opencl_devices()
 {
 	int i;
 
-	for (i = 0; i < get_available_devices(); i++) {
+	for (i = 0; i < get_number_of_available_devices(); i++) {
 		HANDLE_CLERROR(clReleaseCommandQueue(queue[i]), "Release Queue");
 		HANDLE_CLERROR(clReleaseContext(context[i]), "Release Context");
 	}

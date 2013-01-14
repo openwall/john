@@ -552,7 +552,7 @@ static void init(struct fmt_main * self) {
     char * tmp_value;
     char * task;
 
-    for (i = 0; i < get_in_use_devices(); i++) {
+    for (i = 0; i < get_devices_being_used(); i++) {
         task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
         opencl_init_dev(ocl_device_list[i]);
         source_in_use = device_info[ocl_device_list[i]];
