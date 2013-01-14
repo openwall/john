@@ -254,10 +254,8 @@ static void fmt_ssha_init(struct fmt_main *self)
 		global_work_size = temp;
 	}
 
-	if (local_work_size > maxsize) {
-		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
-		local_work_size = maxsize;
-	}
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);

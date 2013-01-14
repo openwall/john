@@ -175,6 +175,7 @@ static void init(struct fmt_main *self)
 	cl_int cl_error;
 	char build_opts[64];
 	char *temp;
+	cl_ulong maxsize;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -193,6 +194,15 @@ static void init(struct fmt_main *self)
 		global_work_size = atoi(temp);
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
+	HANDLE_CLERROR(cl_error, "Error creating kernel");
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	inbuffer =
 		(dmg_password *) mem_calloc(sizeof(dmg_password) *
@@ -216,8 +226,6 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),

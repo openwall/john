@@ -469,10 +469,9 @@ static void init(struct fmt_main *self)
 		}
 	}
 
-	if (local_work_size > maxsize) {
-		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
-		local_work_size = maxsize;
-	}
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
+
 	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
 
 	if (!global_work_size)

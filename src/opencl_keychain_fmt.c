@@ -94,6 +94,7 @@ static void init(struct fmt_main *self)
 	cl_int cl_error;
 	char build_opts[64];
 	char *temp;
+	cl_ulong maxsize;
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -112,6 +113,12 @@ static void init(struct fmt_main *self)
 		global_work_size = atoi(temp);
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	inbuffer =
 		(keychain_password *) mem_calloc(sizeof(keychain_password) *
