@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <sys/stat.h>
 #include <time.h>
+#include "options.h"
+#include "config.h"
 
 #include "common-opencl.h"
 #include "signals.h"
@@ -117,7 +119,7 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id)
 	return (platforms[i].platform ? pos + dev_id : -1);
 }
 
-void start_opencl_devices()
+static void start_opencl_devices()
 {
 	cl_platform_id platform_list[MAX_PLATFORMS];
 	static char opencl_data[LOG_SIZE];
@@ -206,6 +208,80 @@ void start_opencl_devices()
 #endif
 }
 
+void init_opencl_devices(void)
+{
+	/* This code should move some init() in common-opencl.c */
+	if (options.ocl_platform) {
+		struct list_entry *current;
+
+		platform_id = atoi(options.ocl_platform);
+
+		/* Legacy syntax --platform + --device */
+		if ((current = options.gpu_devices->head)) {
+			if (current->next) {
+				fprintf(stderr, "Only one OpenCL device supported with --platform syntax.\n");
+				exit(1);
+			}
+			if (!isdigit(current->data[0])) {
+				fprintf(stderr, "Invalid OpenCL device id %s\n",
+				        current->data);
+				exit(1);
+			}
+			ocl_gpu_id = atoi(current->data);
+		} else
+			ocl_gpu_id = -1;
+	} else 	{
+		struct list_entry *current;
+
+		/* New syntax, sequential --device */
+		if ((current = options.gpu_devices->head)) {
+			int n = 0;
+
+			do {
+				if (!isdigit(current->data[0])) {
+					fprintf(stderr,
+					        "Invalid OpenCL device id \"%s\"\n",
+					        current->data);
+					exit(1);
+				}
+				ocl_device_list[n++] = atoi(current->data);
+			} while ((current = current->next));
+
+			ocl_gpu_id = ocl_device_list[0]; // FIXME?
+		} else
+			ocl_gpu_id = -1;
+	}
+
+	if (!options.ocl_platform) {
+		char *devcfg;
+
+		if ((devcfg =
+		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                   "Platform")))
+			platform_id = atoi(devcfg);
+		else
+			platform_id = -1;
+	}
+
+	if (!options.gpu_devices) {
+		char *devcfg;
+
+		if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                            "Device")))
+			ocl_gpu_id = atoi(devcfg);
+		else
+			ocl_gpu_id = -1;
+	}
+
+	if (platform_id == -1 || ocl_gpu_id == -1)
+		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+
+	//Use the sequential number on ocl_gpu_id.
+	start_opencl_devices();
+	device_id = ocl_gpu_id;
+	ocl_gpu_id = get_sequential_id(device_id, platform_id);
+}
+        
 void clean_opencl_devices()
 {
 	int i;
