@@ -21,9 +21,6 @@
 #define KEYS_PER_CRYPT		(64*1024)
 #define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 
-#define MIN(a,b) 		((a)<(b)?(a):(b))
-#define MAX(a,b) 		((a)>(b)?(a):(b))
-
 #define FORMAT_LABEL		"md5crypt-opencl"
 #define FORMAT_NAME		"md5crypt"
 #define KERNEL_NAME		"cryptmd5"
@@ -427,8 +424,7 @@ static void init(struct fmt_main *self)
 	create_clobj(global_work_size, self);
 	atexit(done);
 
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
+	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
 }
 

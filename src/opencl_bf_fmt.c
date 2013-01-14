@@ -97,7 +97,7 @@ static void init(struct fmt_main *self)
         BF_select_device(platform_id, ocl_gpu_id);
 	keys_mode = 'a';
 	sign_extension_bug = 0;
-	fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
+	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
 	atexit(done);
 }
 

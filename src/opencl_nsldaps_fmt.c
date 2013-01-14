@@ -266,8 +266,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
+	self->params.min_keys_per_crypt = local_work_size;
 
 	atexit(release_clobj);
 }
@@ -393,6 +392,7 @@ static int cmp_exact(char *source, int index){
 static void crypt_all(int count)
 {
 	cl_int code;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	code = clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0,

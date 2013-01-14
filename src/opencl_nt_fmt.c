@@ -199,13 +199,11 @@ static void init(struct fmt_main *self){
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
 		"Error setting argument 1");
 
+	/* This format can't run with reduced global work size */
+	self->params.min_keys_per_crypt = global_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
 		opencl_find_best_workgroup(self);
-
-	//self->params.min_keys_per_crypt = local_work_size < 8 ?
-	//	8 : local_work_size;
-	self->params.min_keys_per_crypt = global_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
