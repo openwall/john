@@ -154,6 +154,8 @@ static struct opt_entry opt_list[] = {
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.gpu_device},
+#endif
+#ifdef HAVE_OPENCL
 	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
 	{"request-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTORIZE},
 #endif
@@ -219,7 +221,7 @@ static struct opt_entry opt_list[] = {
 "--device=N                set OpenCL device (list using --list=opencl-devices)\n"
 #elif defined (HAVE_CUDA)
 #define JOHN_USAGE_GPU \
-"--device=N                set CUDA device\n"
+"--device=N                set CUDA device (list using --list=cuda-devices)\n"
 #endif
 
 static int qcmpstr(const void *p1, const void *p2)
@@ -296,7 +298,7 @@ void print_hidden_usage(void)
 	puts("--nolog                   disables creation and writing to john.log file");
 	puts("--log-stderr              log to screen instead of file");
 	puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
-	puts("                          always treat raw hashes as valid.");
+	puts("                          always treat bare hashes as valid.");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
@@ -304,7 +306,7 @@ void print_hidden_usage(void)
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+#ifdef HAVE_OPENCL
 	puts("--request-vectorize       request vectorized mode");
 	puts("--request-scalar          request non-vectorized mode");
 #endif

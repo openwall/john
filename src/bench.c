@@ -6,6 +6,7 @@
  */
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) */
+#define _BSD_SOURCE /* for setenv() */
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #define SIGALRM SIGFPE
@@ -32,6 +33,7 @@
 #if !defined (__MINGW32__) && !defined (_MSC_VER)
 #include <sys/times.h>
 #endif
+#include <stdlib.h> /* setenv */
 
 #include "times.h"
 

@@ -112,12 +112,10 @@
 #define FLG_CRKSTAT			0x0000004000000000ULL
 /* Wordlist dupe suppression */
 #define FLG_DUPESUPP			0x0000008000000000ULL
-#if defined(HAVE_OPENCL) || defined (HAVE_CUDA)
 /* Request to vectorize */
 #define FLG_VECTORIZE			0x0000010000000000ULL
 /* Request to not vectorize */
 #define FLG_SCALAR			0x0000020000000000ULL
-#endif
 
 /*
  * Structure with option flags and all the parameters.
