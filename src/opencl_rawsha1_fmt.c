@@ -223,8 +223,7 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 
 	self->params.max_keys_per_crypt = global_work_size;
 
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
+	self->params.min_keys_per_crypt = local_work_size;
 }
 
 static void clear_keys(void)
