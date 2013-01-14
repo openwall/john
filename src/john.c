@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <ctype.h> /* for --device parsing that should be moved */
 #ifndef _MSC_VER
 #include <unistd.h>
 #else
@@ -69,6 +70,7 @@
 #include "common-opencl.h"
 #endif
 #ifdef HAVE_CUDA
+extern int cuda_gpu_id;
 extern void cuda_device_list();
 #endif
 #ifdef NO_JOHN_BLD
@@ -1179,27 +1181,30 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 #ifdef HAVE_OPENCL
-	if (!options.ocl_platform) {
-		if ((options.ocl_platform =
-		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Platform")))
-			platform_id = atoi(options.ocl_platform);
-		else
-			platform_id = -1;
-	}
-	if (!options.gpu_device) {
-		if ((options.gpu_device =
-		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
-			ocl_gpu_id = atoi(options.gpu_device);
-		else
-			ocl_gpu_id = -1;
-	}
-	if (platform_id == -1 || ocl_gpu_id == -1)
-		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+	init_opencl_devices();
+#endif
 
-        //Use the sequential number on ocl_gpu_id.
-        start_opencl_devices();
-        device_id = ocl_gpu_id;
-        ocl_gpu_id = get_sequential_id(device_id, platform_id);
+#ifdef HAVE_CUDA
+	/* This code should move to cuda_init() and drop the #ifndef OPENCL */
+	{
+		struct list_entry *current;
+
+		if ((current = options.gpu_devices->head)) {
+#ifndef HAVE_OPENCL
+			if (current->next) {
+				fprintf(stderr, "Only one CUDA device supported.\n");
+				exit(1);
+			}
+#endif
+			if (!isdigit(current->data[0])) {
+				fprintf(stderr, "Invalid CUDA device id \"%s\"\n",
+				        current->data);
+				exit(1);
+			}
+			cuda_gpu_id = atoi(current->data);
+		} else
+			cuda_gpu_id = 0;
+	}
 #endif
 
 	common_init();
@@ -1320,9 +1325,11 @@ static void john_done(void)
 			log_event("Session completed");
 		fmt_done(database.format);
 	}
+#ifdef HAVE_OPENCL
         //Release OpenCL stuff.
         clean_opencl_devices();
-        
+#endif
+
 	log_done();
 	path_done();
 

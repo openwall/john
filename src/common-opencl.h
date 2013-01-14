@@ -35,6 +35,7 @@
 
 /* Common OpenCL variables */
 int ocl_gpu_id, platform_id, device_id;
+int ocl_device_list[MAXGPUS];
 
 typedef struct {
     cl_platform_id              platform;
@@ -59,7 +60,7 @@ int cores_per_MP[MAXGPUS];
 
 cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComputeCapMinor);
 
-void start_opencl_devices();
+void init_opencl_devices();
 void clean_opencl_devices();
 int get_available_devices();
 int get_platform_id(unsigned int sequential_id);
