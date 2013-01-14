@@ -157,7 +157,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
-		sprintf(s_error, "FAILED (%s)", where);
+		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
 	}
 
@@ -534,6 +534,8 @@ int benchmark_all(void)
 
 	if (failed && total > 1 && !event_abort)
 		printf("%u out of %u tests have FAILED\n", failed, total);
+	else if (total > 1 && !event_abort)
+		printf("All %u tests have passed self-tests!\n", total);
 
 	return failed || event_abort;
 }
