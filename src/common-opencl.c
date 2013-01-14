@@ -379,10 +379,11 @@ static void build_kernel_from_binary(unsigned int sequential_id)
  */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
-	opencl_find_best_workgroup_limit(self, UINT_MAX);
+	opencl_find_best_workgroup_limit(self, UINT_MAX, ocl_gpu_id);
 }
 
-void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit)
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, 
+        unsigned int sequential_id, cl_kernel crypt_kernel)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;
@@ -643,14 +644,14 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 
 	kernel_loaded = 0;
 
-	if ((!gpu_amd(device_info[ocl_gpu_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
+	if ((!gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, sequential_id, options);
 
 	else {
 		startTime = (unsigned long) time(NULL);
 
 		//Get device name.
-		HANDLE_CLERROR(clGetDeviceInfo(devices[ocl_gpu_id], CL_DEVICE_NAME,
+		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 			sizeof (dev_name), dev_name, NULL), "Error querying DEVICE_NAME");
 
 		//Decide the binary name.

@@ -48,7 +48,7 @@ cl_context context[MAXGPUS];
 cl_program program[MAXGPUS];
 cl_command_queue queue[MAXGPUS];
 cl_int ret_code;
-cl_kernel crypt_kernel;
+//cl_kernel crypt_kernel;
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 size_t local_work_size;
 size_t global_work_size;
@@ -73,7 +73,7 @@ void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned i
 void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id);
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn);
 void opencl_find_best_workgroup(struct fmt_main *self);
-void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit);
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, unsigned int sequential_id);
 
 cl_device_type get_device_type(unsigned int sequential_id);
 cl_ulong get_local_memory_size(unsigned int sequential_id);
