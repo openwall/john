@@ -70,6 +70,15 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file, int 
 	}
 }
 
+int get_number_of_available_platforms()
+{
+	int i = 0;
+
+	while (platforms[i++].platform);
+
+	return --i;
+}
+
 int get_number_of_available_devices()
 {
 	int total = 0, i = 0;
@@ -193,58 +202,37 @@ static void start_opencl_devices()
 		fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
 #endif
 	}
-
-#ifdef MUTED
-	for (i = 0, j = 0; platforms[i].platform; i++) {
-		fprintf(stderr, "Plataform: %d: %lu, %d device(s) \n", i, (ulong) platforms[i].platform, platforms[i].num_devices);
-
-		for (; devices[j]; j++)
-			fprintf(stderr, "  Device: %d: %lu\n", j, (ulong) devices[j]);
-	}
-#endif
-
-#ifdef DEBUG
-	fprintf(stderr, "Sequential(0, 0): %d\n", get_sequential_id(0, 0));
-	fprintf(stderr, "Sequential(0, 1): %d\n", get_sequential_id(0, 1));
-	fprintf(stderr, "Sequential(1, 0): %d\n", get_sequential_id(1, 0));
-	fprintf(stderr, "Sequential(1, 1): %d\n", get_sequential_id(1, 1));
-
-	fprintf(stderr, "Details(0): (%d, %d)\n", get_device_id(0), get_platform_id(0));
-	fprintf(stderr, "Details(1): (%d, %d)\n", get_device_id(1), get_platform_id(1));
-	fprintf(stderr, "Details(2): (%d, %d)\n", get_device_id(2), get_platform_id(2));
-	fprintf(stderr, "Details(3): (%d, %d)\n", get_device_id(3), get_platform_id(3));
-#endif
 }
 
 static void add_device_to_list(int sequential_id)
 {
 	int i = 0, found = 0;
 
-        if (sequential_id >= get_number_of_available_devices()) {
-                fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
-                return;
-        }
+	if (sequential_id >= get_number_of_available_devices()) {
+		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
+		return;
+	}
 
-        for (i = 0; i < get_devices_being_used() && !found; i++) {
+	for (i = 0; i < get_devices_being_used() && !found; i++) {
 
-                if (sequential_id == ocl_device_list[i])
-                        found = 1;
-        }
-        if (!found) {
-                ocl_device_list[get_devices_being_used()] = sequential_id;
-                ocl_device_list[++i] = -1;
-        }
+		if (sequential_id == ocl_device_list[i])
+			found = 1;
+	}
+	if (!found) {
+		ocl_device_list[get_devices_being_used() + 1] = -1;
+		ocl_device_list[get_devices_being_used()] = sequential_id;
+	}
 }
 
 static void add_device_type(cl_ulong device_type)
 {
 	int i, j, sequence_nr = 0;
-        cl_uint device_num;
-        cl_ulong long_entries;
-        cl_device_id devices[MAXGPUS];
+	cl_uint device_num;
+	cl_ulong long_entries;
+	cl_device_id devices[MAXGPUS];
 
 	for (i = 0; platforms[i].platform; i++) {
-                //Get all devices of informed type.
+		//Get all devices of informed type.
 		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
 			CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
 			"No OpenCL device of that type exist");
@@ -252,10 +240,10 @@ static void add_device_type(cl_ulong device_type)
 		for (j = 0; j < device_num; j++, sequence_nr++) {
 			clGetDeviceInfo(devices[j], CL_DEVICE_TYPE,
 					sizeof(cl_ulong), &long_entries, NULL);
-                    if (long_entries & device_type)
-                        add_device_to_list(sequence_nr);
-                }
-        }
+		    if (long_entries & device_type)
+			add_device_to_list(sequence_nr);
+		}
+	}
 }
 
 static void build_device_list(char * device_list[MAXGPUS])
@@ -263,30 +251,37 @@ static void build_device_list(char * device_list[MAXGPUS])
 	int n = 0;
 	ocl_device_list[0] = -1;
 
-        while (device_list[n] && n < MAXGPUS) {
+	while (device_list[n] && n < MAXGPUS) {
 
-                if (!strcmp(device_list[n], "all"))
-                        add_device_type(CL_DEVICE_TYPE_ALL);
-                else if (!strcmp(device_list[n], "cpu"))
-                        add_device_type(CL_DEVICE_TYPE_CPU);
-                else if (!strcmp(device_list[n], "gpu"))
-                        add_device_type(CL_DEVICE_TYPE_GPU);
-                else
-                        add_device_to_list(atoi(device_list[n]));
-                n++;
-        }
+		if (!strcmp(device_list[n], "all"))
+			add_device_type(CL_DEVICE_TYPE_ALL);
+		else if (!strcmp(device_list[n], "cpu"))
+			add_device_type(CL_DEVICE_TYPE_CPU);
+		else if (!strcmp(device_list[n], "gpu"))
+			add_device_type(CL_DEVICE_TYPE_GPU);
+		else
+			add_device_to_list(atoi(device_list[n]));
+		n++;
+	}
 }
 
 void init_opencl_devices(void)
 {
-	char * device_list[MAXGPUS];
+	char * device_list[MAXGPUS], string[10];
+	int n = 0;
 
-        start_opencl_devices();
+	start_opencl_devices();
 
 	if (options.ocl_platform) {
 		struct list_entry *current;
 
 		platform_id = atoi(options.ocl_platform);
+
+		if (platform_id >= get_number_of_available_platforms()) {
+			fprintf(stderr, "Invalid OpenCL platform id %d\n",
+				platform_id);
+			exit(1);
+		}
 
 		/* Legacy syntax --platform + --device */
 		if ((current = options.gpu_devices->head)) {
@@ -299,7 +294,17 @@ void init_opencl_devices(void)
 					current->data);
 				exit(1);
 			}
-			ocl_gpu_id = atoi(current->data);
+			ocl_gpu_id = get_sequential_id(atoi(current->data), platform_id);
+
+			if (ocl_gpu_id < 0) {
+				fprintf(stderr, "Invalid OpenCL device id %s\n",
+					current->data);
+				exit(1);
+			}
+			sprintf(string, "%d", ocl_gpu_id);
+			device_list[n++] = string;
+			device_list[n] = NULL;
+			build_device_list(device_list);
 		} else
 			ocl_gpu_id = -1;
 	} else 	{
@@ -307,7 +312,6 @@ void init_opencl_devices(void)
 
 		/* New syntax, sequential --device */
 		if ((current = options.gpu_devices->head)) {
-			int n = 0;
 
 			do {
 				device_list[n++] = current->data;
@@ -537,21 +541,21 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
-	if (get_device_version(ocl_gpu_id) < 110) {
-		if (get_device_type(ocl_gpu_id) == CL_DEVICE_TYPE_GPU)
+	if (get_device_version(sequential_id) < 110) {
+		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
 			wg_multiple = 32;
-		else if (get_platform_vendor_id(ocl_gpu_id) == DEV_INTEL)
+		else if (get_platform_vendor_id(sequential_id) == DEV_INTEL)
 			wg_multiple = 8;
 		else
 			wg_multiple = 1;
 	} else {
-		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
 		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
 		    sizeof(wg_multiple), &wg_multiple, NULL),
 		"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 	}
 
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id],
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
 	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
@@ -566,10 +570,10 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	///Command Queue changing:
 	///1) Delete old CQ
-	clReleaseCommandQueue(queue[ocl_gpu_id]);
+	clReleaseCommandQueue(queue[sequential_id]);
 	///2) Create new CQ with profiling enabled
-	queue[ocl_gpu_id] =
-	    clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id],
+	queue[sequential_id] =
+	    clCreateCommandQueue(context[sequential_id], devices[sequential_id],
 	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
@@ -601,7 +605,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	if (*lastEvent == NULL)
 		lastEvent = firstEvent;
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
 			CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 			NULL), "Failed to get profiling info");
@@ -641,7 +645,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			self->methods.crypt_all(self->params.max_keys_per_crypt);
 
-			HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
 				       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 				       NULL), "Failed to get profiling info");
@@ -659,9 +663,9 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 		//fprintf(stderr, "LWS %d time=%llu ns\n",(int) my_work_group, (unsigned long long)sumEndTime-sumStartTime);
 	}
 	///Release profiling queue and create new with profiling disabled
-	clReleaseCommandQueue(queue[ocl_gpu_id]);
-	queue[ocl_gpu_id] =
-	    clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], 0,
+	clReleaseCommandQueue(queue[sequential_id]);
+	queue[sequential_id] =
+	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
@@ -698,6 +702,7 @@ static void opencl_get_dev_info(unsigned int sequential_id)
 void opencl_find_gpu(int *dev_id, int *platform_id)
 {
 	cl_platform_id platform[MAX_PLATFORMS];
+	cl_device_id devices[MAXGPUS];
 	cl_uint num_platforms, num_devices;
 	cl_ulong long_entries;
 	int i, d;
