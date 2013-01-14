@@ -249,7 +249,6 @@ static void add_device_type(cl_ulong device_type)
 static void build_device_list(char * device_list[MAXGPUS])
 {
 	int n = 0;
-	ocl_device_list[0] = -1;
 
 	while (device_list[n] && n < MAXGPUS) {
 
@@ -270,6 +269,8 @@ void init_opencl_devices(void)
 	char * device_list[MAXGPUS], string[10];
 	int n = 0;
 
+	ocl_device_list[0] = -1;
+	ocl_device_list[1] = -1;
 	start_opencl_devices();
 
 	if (options.ocl_platform) {
@@ -320,33 +321,37 @@ void init_opencl_devices(void)
 			device_list[n] = NULL;
 			build_device_list(device_list);
 			ocl_gpu_id = ocl_device_list[0]; // FIXME?
-		} else
+			platform_id = get_platform_id(ocl_gpu_id);
+		} else {
 			ocl_gpu_id = -1;
+			platform_id = -1;
+    		}
 	}
 
-	if (!options.ocl_platform) {
+	//Use configuration file only JtR knows nothing about the environment.
+	if (!options.ocl_platform && platform_id < 0) {
 		char *devcfg;
 
 		if ((devcfg =
 		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 				   "Platform")))
 			platform_id = atoi(devcfg);
-		else
-			platform_id = -1;
 	}
 
-	if (!options.gpu_devices) {
+	if (!options.gpu_devices && ocl_gpu_id < 0) {
 		char *devcfg;
 
 		if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-					    "Device")))
+					    "Device"))) {
 			ocl_gpu_id = atoi(devcfg);
-		else
-			ocl_gpu_id = -1;
+			ocl_device_list[0] = ocl_gpu_id;
+		}
 	}
 
-	if (platform_id == -1 || ocl_gpu_id == -1)
+	if (platform_id == -1 || ocl_gpu_id == -1) {
 		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+		ocl_device_list[0] = ocl_gpu_id;
+	}
 
 	//Use the sequential number on ocl_gpu_id.
 	device_id = get_device_id(ocl_gpu_id);
