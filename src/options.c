@@ -298,7 +298,7 @@ void print_hidden_usage(void)
 	puts("--nolog                   disables creation and writing to john.log file");
 	puts("--log-stderr              log to screen instead of file");
 	puts("--raw-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
-	puts("                          always treat raw hashes as valid.");
+	puts("                          always treat bare hashes as valid.");
 	puts("--progress-every=N        emit a status line every N seconds");
 	puts("--crack-status            emit a status line whenever a password is cracked");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
