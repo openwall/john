@@ -60,8 +60,7 @@ void advance_cursor()
 	pos = (pos + 1) % 4;
 }
 
-void handle_clerror(cl_int cl_error, const char *message, const char *file,
-    int line)
+void handle_clerror(cl_int cl_error, const char *message, const char *file, int line)
 {
 	if (cl_error != CL_SUCCESS) {
 		fprintf(stderr,
@@ -79,6 +78,15 @@ int get_available_devices()
 		total += platforms[i++].num_devices;
 
 	return total;
+}
+
+int get_in_use_devices()
+{
+	int i = 0;
+
+	while (ocl_device_list[i++] != -1);
+
+	return --i;
 }
 
 int get_platform_id(unsigned int sequential_id)
@@ -208,9 +216,73 @@ static void start_opencl_devices()
 #endif
 }
 
+static void add_device_to_list(int sequential_id)
+{
+	int i = 0, found = 0;
+
+        if (get_available_devices() < sequential_id) {
+                fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
+                return;
+        }
+
+        for (i = 0; i < get_in_use_devices() && !found; i++) {
+
+                if (sequential_id == ocl_device_list[i])
+                        found = 1;
+        }
+        if (!found) {
+                ocl_device_list[get_in_use_devices()] = sequential_id;
+                ocl_device_list[++i] = -1;
+        }
+}
+
+static void add_device_type(cl_ulong device_type)
+{
+	int i, j, sequence_nr = 0;
+        cl_uint device_num;
+        cl_ulong long_entries;
+        cl_device_id devices[MAXGPUS];
+
+	for (i = 0; platforms[i].platform; i++) {
+                //Get all devices of informed type.
+		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
+			CL_DEVICE_TYPE_ALL, MAXGPUS, devices, &device_num),
+			"No OpenCL device of that type exist");
+
+		for (j = 0; j < device_num; j++, sequence_nr++) {
+			clGetDeviceInfo(devices[j], CL_DEVICE_TYPE,
+					sizeof(cl_ulong), &long_entries, NULL);
+                    if (long_entries & device_type)
+                        add_device_to_list(sequence_nr);
+                }
+        }
+}
+
+static void build_device_list(char * device_list[MAXGPUS])
+{
+	int n = 0;
+	ocl_device_list[0] = -1;
+
+        while (device_list[n] && n < MAXGPUS) {
+
+                if (!strcmp(device_list[n], "all"))
+                        add_device_type(CL_DEVICE_TYPE_ALL);
+                else if (!strcmp(device_list[n], "cpu"))
+                        add_device_type(CL_DEVICE_TYPE_CPU);
+                else if (!strcmp(device_list[n], "gpu"))
+                        add_device_type(CL_DEVICE_TYPE_GPU);
+                else
+                        add_device_to_list(atoi(device_list[n]));
+                n++;
+        }
+}
+
 void init_opencl_devices(void)
 {
-	/* This code should move some init() in common-opencl.c */
+	char * device_list[MAXGPUS];
+
+        start_opencl_devices();
+
 	if (options.ocl_platform) {
 		struct list_entry *current;
 
@@ -224,7 +296,7 @@ void init_opencl_devices(void)
 			}
 			if (!isdigit(current->data[0])) {
 				fprintf(stderr, "Invalid OpenCL device id %s\n",
-				        current->data);
+					current->data);
 				exit(1);
 			}
 			ocl_gpu_id = atoi(current->data);
@@ -238,15 +310,11 @@ void init_opencl_devices(void)
 			int n = 0;
 
 			do {
-				if (!isdigit(current->data[0])) {
-					fprintf(stderr,
-					        "Invalid OpenCL device id \"%s\"\n",
-					        current->data);
-					exit(1);
-				}
-				ocl_device_list[n++] = atoi(current->data);
+				device_list[n++] = current->data;
 			} while ((current = current->next));
 
+			device_list[n] = NULL;
+			build_device_list(device_list);
 			ocl_gpu_id = ocl_device_list[0]; // FIXME?
 		} else
 			ocl_gpu_id = -1;
@@ -257,7 +325,7 @@ void init_opencl_devices(void)
 
 		if ((devcfg =
 		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-		                   "Platform")))
+				   "Platform")))
 			platform_id = atoi(devcfg);
 		else
 			platform_id = -1;
@@ -267,7 +335,7 @@ void init_opencl_devices(void)
 		char *devcfg;
 
 		if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-		                            "Device")))
+					    "Device")))
 			ocl_gpu_id = atoi(devcfg);
 		else
 			ocl_gpu_id = -1;
@@ -277,11 +345,9 @@ void init_opencl_devices(void)
 		opencl_find_gpu(&ocl_gpu_id, &platform_id);
 
 	//Use the sequential number on ocl_gpu_id.
-	start_opencl_devices();
-	device_id = ocl_gpu_id;
-	ocl_gpu_id = get_sequential_id(device_id, platform_id);
+	device_id = get_device_id(ocl_gpu_id);
 }
-        
+
 void clean_opencl_devices()
 {
 	int i;
@@ -315,7 +381,7 @@ static void dev_init(unsigned int sequential_id)
 			while (len > 0 && isspace(opencl_log[len]))
 				len--;
 
-                        opencl_log[len-1] = '\0';
+			opencl_log[len-1] = '\0';
 			fprintf(stderr, "(%s)", opencl_log);
 		}
 	}
@@ -455,11 +521,11 @@ static void build_kernel_from_binary(unsigned int sequential_id)
  */
 void opencl_find_best_workgroup(struct fmt_main *self)
 {
-	opencl_find_best_workgroup_limit(self, UINT_MAX, ocl_gpu_id);
+	opencl_find_best_workgroup_limit(self, UINT_MAX, ocl_gpu_id, crypt_kernel);
 }
 
-void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, 
-        unsigned int sequential_id, cl_kernel crypt_kernel)
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel)
 {
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	size_t my_work_group, optimal_work_group;

@@ -49,7 +49,7 @@ cl_context context[MAXGPUS];
 cl_program program[MAXGPUS];
 cl_command_queue queue[MAXGPUS];
 cl_int ret_code;
-//cl_kernel crypt_kernel;
+cl_kernel crypt_kernel;
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 size_t local_work_size;
 size_t global_work_size;
@@ -63,6 +63,7 @@ cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComp
 void init_opencl_devices();
 void clean_opencl_devices();
 int get_available_devices();
+int get_in_use_devices();
 int get_platform_id(unsigned int sequential_id);
 int get_device_id(unsigned int sequential_id);
 int get_sequential_id(unsigned int dev_id, unsigned int platform_id);
@@ -74,7 +75,7 @@ void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned i
 void opencl_build_kernel(char *kernel_filename, unsigned int sequential_id);
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn);
 void opencl_find_best_workgroup(struct fmt_main *self);
-void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, unsigned int sequential_id);
+void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel);
 
 cl_device_type get_device_type(unsigned int sequential_id);
 cl_ulong get_local_memory_size(unsigned int sequential_id);

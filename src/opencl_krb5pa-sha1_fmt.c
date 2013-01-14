@@ -482,7 +482,7 @@ static void init(struct fmt_main *self)
 				global_work_size : 8 * 1024;
 			create_clobj(global_work_size, self);
 			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id);
+			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 			self->methods.crypt_all = crypt_all;
 			release_clobj();
 			global_work_size = temp;
