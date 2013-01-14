@@ -44,6 +44,8 @@ usage %s [options] < input > output\n\
 	exit(1);
 }
 
+#define FGETS(s, size, stream)	if (!fgets(s, size, stream)) if (ferror(stream)) { fprintf(stderr, "error\n"); exit(1); }
+
 void Setup() {
 	int i;
 	memset(atoi16, 0x7F, sizeof(atoi16));
@@ -72,7 +74,7 @@ int main(int argc, char **argv) {
 	if (isatty(fileno(stdin)))
 		usage(argv[0]);
 
-	fgets(Buf, sizeof(Buf), stdin);
+	FGETS(Buf, sizeof(Buf), stdin);
 	while (!feof(stdin)) {
 		strtok(Buf, "\r\n");
 		if (!leading_salt) {
@@ -85,7 +87,7 @@ int main(int argc, char **argv) {
 			if (salt_sep && *cph == salt_sep) {*cph++ = 0;}
 		}
 		printf("$dynamic_%d$%*.*s$%s\n", dyna_num, hash_len,hash_len, cph, GetSalt(cps));
-		fgets(Buf, sizeof(Buf), stdin);
+		FGETS(Buf, sizeof(Buf), stdin);
 	}
 	return 0;
 }
