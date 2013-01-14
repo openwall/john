@@ -35,6 +35,7 @@
 
 /* Common OpenCL variables */
 int ocl_gpu_id, platform_id, device_id;
+int ocl_device_list[MAXGPUS];
 
 typedef struct {
     cl_platform_id              platform;
