@@ -73,7 +73,7 @@ ifdef HAVE_KRB5
 KRB5_LDFLAGS = -lk5crypto -lkrb5
 endif
 
-CFLAGS = -c -Wall -Wno-attributes -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)

@@ -113,7 +113,7 @@ static char *decode(char *ciphertext)
 	return out;
 }
 
-static MAYBE_INLINE ARCH_WORD_32 string_hash(char *s)
+MAYBE_INLINE static ARCH_WORD_32 string_hash(char *s)
 {
 	ARCH_WORD_32 hash, extra;
 	char *p;

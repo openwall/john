@@ -1037,13 +1037,6 @@ static int CheckSigs(const u8 *p, int len, ZIP_SIGS *pSig) {
 }
 #endif
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
 /* note, Buf is the 'full' decrypted zip buffer (len bytes long). It DOES contain the first 3 bits, which have already
  * been decoded, and have told us we had a code 2 (var table block)
  * all done without BITS(), PULLBYTE(), BITSNEEDED() macros.  We 'know' the data we need, and we know that we have
@@ -1051,7 +1044,7 @@ __inline__
  *
  * In testing, this function catches ALL bad decryptions, except about 1/300 to 1/350. So, it is not too bad.
  */
-static int check_inflate_CODE2(u8 *next) {
+MAYBE_INLINE static int check_inflate_CODE2(u8 *next) {
 	u32 bits, hold, thisget, have, i;
 	int left;
 	u32 ncode;
@@ -1127,18 +1120,11 @@ static int check_inflate_CODE2(u8 *next) {
 //static code const * const lcode = lenfix;
 //static code const * const dcode = distfix;
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
 /* This function handles inflate CODE type 1. This is a 'fixed' table code.  We set the fixed table, */
 /* and then inflate some data (without writing anything.  If we find any BAD lookback data, we can   */
 /* return a failure.  We have 24 bytes of inflate data, and this almost always is more than enough   */
 /* to turn up an error.  If we find we need more, we will do more than 24                            */
-static int check_inflate_CODE1(u8 *next, int left) {
+MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left) {
 	u32 whave = 0, op, bits, hold,len;
 	code here;
 

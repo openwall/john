@@ -401,7 +401,7 @@ static char *get_key(int index)
  * RAR use 20 x (4 bits length, optionally 4 bits zerocount), and reversed
  * byte order.
  */
-static inline int check_huffman(unsigned char *next) {
+static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	unsigned int bits, hold, i;
 	int left;
 	unsigned int ncount[4];
