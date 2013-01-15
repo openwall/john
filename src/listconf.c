@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2013 Frank Dittrich and magnum
+ * Copyright (c) 2012, 2013 Frank Dittrich, JimF and magnum
  *
  * This software is hereby released to the general public under the following
  * terms:  Redistribution and use in source and binary forms, with or without

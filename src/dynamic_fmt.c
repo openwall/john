@@ -394,7 +394,8 @@ __declspec(align(16)) unsigned char scrypt_key[SHA_BLOCKS][BINARY_SIZE_SHA*MMX_C
 #else
 unsigned char input_buf[BLOCK_LOOPS][64*MMX_COEF] __attribute__ ((aligned(16)));
 unsigned char input_buf2[BLOCK_LOOPS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char crypt_key[BLOCK_LOOPS+1][BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));  // the +1 is so we can directly dump sha1 crypts here. We need an extra buffer on the end, to hold the last buffer overwrite
+unsigned char (*crypt_key)[BINARY_SIZE*MMX_COEF];
+
 unsigned char crypt_key2[BLOCK_LOOPS][BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));
 // SHA keyspace
 unsigned char sinput_buf[SHA_BLOCKS][SHA_BUF_SIZ*4*MMX_COEF] __attribute__ ((aligned(16)));
@@ -750,6 +751,14 @@ static void init(struct fmt_main *pFmt)
 	private_subformat_data *pPriv = pFmt->private.data;
 	int i;
 
+#ifdef MMX_COEF
+	/* the +1 is so we can directly dump sha1 crypts here. We need an extra
+	 * buffer on the end, to hold the last buffer overwrite */
+	if (!crypt_key)
+		crypt_key = mem_alloc_tiny(sizeof(*crypt_key) *
+		                           (BLOCK_LOOPS+1) * BINARY_SIZE *
+		                           MMX_COEF, MEM_ALIGN_SIMD);
+#endif
 	gost_init_table();
 	if (!pPriv || (pPriv->init == 1 && !strcmp(curdat.dynamic_WHICH_TYPE_SIG, pPriv->dynamic_WHICH_TYPE_SIG)))
 		return;
