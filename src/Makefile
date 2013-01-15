@@ -139,6 +139,7 @@ JOHN_OBJS = \
 	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
 	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
+	listconf.o \
 	fake_salts.o \
 	win32_memmap.o \
 	unicode.o \
