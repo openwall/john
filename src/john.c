@@ -720,6 +720,22 @@ static void john_init(char *name, int argc, char **argv)
 
 	CPU_detect_or_fallback(argv, make_check);
 
+	if (!make_check) {
+#if defined(_OPENMP) && OMP_FALLBACK
+#if defined(__DJGPP__) || defined(__CYGWIN32__)
+#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
+#endif
+		if (!getenv("JOHN_NO_OMP_FALLBACK") &&
+		    omp_get_max_threads() <= 1) {
+#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
+			execv(OMP_FALLBACK_PATHNAME, argv);
+			perror("execv: " OMP_FALLBACK_PATHNAME);
+		}
+#endif
+
+		path_init(argv);
+	}
+
 	status_init(NULL, 1);
 	if (argc < 2 ||
             (argc == 2 &&
@@ -772,27 +788,10 @@ static void john_init(char *name, int argc, char **argv)
 	if (options.listconf && !strcasecmp(options.listconf, "hidden-options"))
 		print_hidden_usage();
 
-	if (!make_check) {
-#if defined(_OPENMP) && OMP_FALLBACK
-#if defined(__DJGPP__) || defined(__CYGWIN32__)
-#error OMP_FALLBACK is incompatible with the current DOS and Win32 code
-#endif
-		if (!getenv("JOHN_NO_OMP_FALLBACK") &&
-		    omp_get_max_threads() <= 1) {
-#define OMP_FALLBACK_PATHNAME JOHN_SYSTEMWIDE_EXEC "/" OMP_FALLBACK_BINARY
-			execv(OMP_FALLBACK_PATHNAME, argv);
-			perror("execv: " OMP_FALLBACK_PATHNAME);
-		}
-#endif
-
-		path_init(argv);
-
-		if (options.listconf && !strcasecmp(options.listconf,
-		                                    "build-info"))
-		{
-			john_list_build_info();
-			exit(0);
-		}
+	if (options.listconf && !strcasecmp(options.listconf, "build-info"))
+	{
+		john_list_build_info();
+		exit(0);
 	}
 
 	if (options.listconf && !strcasecmp(options.listconf, "encodings"))
