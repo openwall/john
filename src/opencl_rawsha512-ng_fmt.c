@@ -85,6 +85,14 @@ static size_t get_task_max_size(){
                 get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 }
 
+static size_t get_default_workgroup(){
+
+    if (cpu(device_info[ocl_gpu_id]))
+        return 1;
+    else
+        return 128;
+}
+
 static void crypt_one(int index, sha512_hash * hash) {
     SHA512_CTX ctx;
 
@@ -423,7 +431,7 @@ static void init(struct fmt_main * self) {
     HANDLE_CLERROR(ret_code, "Error creating kernel_cmp. Double-check kernel name?");
 
     global_work_size = get_task_max_size();
-    local_work_size = 0;
+    local_work_size = get_default_workgroup();
 
     if (source_in_use != device_info[ocl_gpu_id]) {
         device_info[ocl_gpu_id] = source_in_use;
