@@ -93,7 +93,7 @@
 #endif
 #define BENCHMARK_LENGTH	-1
 
-#define PLAINTEXT_LENGTH	16
+#define PLAINTEXT_LENGTH	22 /* Max. currently supported */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(rarfile)
