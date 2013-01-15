@@ -32,14 +32,14 @@ static sha512_salt         * salt;
 static sha512_password     * plaintext;        // plaintext ciphertexts
 static sha512_hash         * calculated_hash;  // calculated hashes
 
-cl_mem salt_buffer;        //Salt information.
-cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Hash keys (output).
-cl_mem work_buffer;        //Temporary buffer
-cl_mem pinned_saved_keys, pinned_partial_hashes;
+static cl_mem salt_buffer;        //Salt information.
+static cl_mem pass_buffer;        //Plaintext buffer.
+static cl_mem hash_buffer;        //Hash keys (output).
+static cl_mem work_buffer;        //Temporary buffer
+static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
-cl_command_queue queue_prof;
-cl_kernel prepare_kernel, crypt_kernel, final_kernel;
+static cl_command_queue queue_prof;
+static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
 

@@ -38,15 +38,15 @@ static sha512_salt         * salt;
 static sha512_password     * plaintext;             // plaintext ciphertexts
 static uint32_t            * calculated_hash;       // calculated (partial) hashes
 
-cl_mem salt_buffer;        //Salt information.
-cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Partial hash keys (output).
-cl_mem p_binary_buffer;    //To compare partial binary ([3]).
-cl_mem result_buffer;      //To get the if a hash was found.
-cl_mem pinned_saved_keys, pinned_partial_hashes;
+static cl_mem salt_buffer;        //Salt information.
+static cl_mem pass_buffer;        //Plaintext buffer.
+static cl_mem hash_buffer;        //Partial hash keys (output).
+static cl_mem p_binary_buffer;    //To compare partial binary ([3]).
+static cl_mem result_buffer;      //To get the if a hash was found.
+static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
-cl_command_queue queue_prof;
-cl_kernel crypt_kernel, cmp_kernel;
+static cl_command_queue queue_prof;
+static cl_kernel cmp_kernel;
 static int new_keys, hash_found;
 
 static struct fmt_tests tests[] = {
