@@ -26,7 +26,6 @@
 #define BENCHMARK_LENGTH		-1
 
 #define CONFIG_NAME			"rawsha256"
-#define DUR_CONFIG			"rawsha256_MaxDuration"
 
 static sha256_password     * plaintext;             // plaintext ciphertexts
 static uint32_t            * calculated_hash;       // calculated (partial) hashes
@@ -37,6 +36,7 @@ static cl_mem p_binary_buffer;    //To compare partial binary ([3]).
 static cl_mem result_buffer;      //To get the if a hash was found.
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
+static cl_command_queue queue_prof;
 static cl_kernel cmp_kernel;
 
 static int hash_found;
@@ -337,7 +337,7 @@ static void find_best_gws(struct fmt_main * self) {
     }
     step = GET_MULTIPLE(step, local_work_size);
 
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, CONFIG_NAME DUR_CONFIG_NAME)))
         max_run_time = atoi(tmp_value) * 1000000000ULL;
 
     fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
@@ -418,7 +418,6 @@ static void init(struct fmt_main * self) {
     self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
 
     if (!local_work_size) {
-        local_work_size = get_task_max_work_group_size();
         create_clobj(self->params.max_keys_per_crypt, self);
         find_best_workgroup(self);
         release_clobj();

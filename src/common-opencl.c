@@ -382,7 +382,7 @@ void clean_opencl_devices()
 	}
 }
 
-char * opencl_get_config_name(char * format, char * config_name)
+static char * opencl_get_config_name(char * format, char * config_name)
 {
 	static char full_name[128];
 

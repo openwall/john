@@ -100,7 +100,6 @@ int get_byte_addressable(unsigned int sequential_id);
 size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel);
 
 void opencl_get_user_preferences(char * format);
-char * opencl_get_config_name(char * format, char * config_name);
 
 char *get_error_name(cl_int cl_error);
 

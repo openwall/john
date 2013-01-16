@@ -24,9 +24,7 @@
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define LWS_CONFIG			"sha256crypt_LWS"
-#define GWS_CONFIG			"sha256crypt_GWS"
-#define DUR_CONFIG			"sha256crypt_MaxDuration"
+#define CONFIG_NAME			"sha256crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
@@ -214,7 +212,6 @@ static void create_clobj(int gws, struct fmt_main * self) {
         }
     }
     memset(plaintext, '\0', sizeof(sha256_password) * gws);
-    global_work_size = gws;
 }
 
 static void release_clobj(void) {
@@ -341,7 +338,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
     fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
-        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        CONFIG_NAME LWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
 }
 
@@ -372,7 +369,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
     fprintf(stderr, "Optimal global worksize %zd\n", global_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
-        GWS_CONFIG " = %zd\" in john.conf, section [" SECTION_OPTIONS
+        CONFIG_NAME GWS_CONFIG_NAME " = %zd\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", global_work_size);
 
     create_clobj(global_work_size, self);
@@ -419,10 +416,11 @@ static void init(struct fmt_main * self) {
     source_in_use = device_info[ocl_gpu_id];
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
+    opencl_get_user_preferences(CONFIG_NAME);
 
     //Initialize openCL tunning (library) for this format.
     opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 8 : 4),
-        ((_SPLIT_KERNEL_IN_USE) ? split_events : NULL), DUR_CONFIG,
+        ((_SPLIT_KERNEL_IN_USE) ? split_events : NULL), CONFIG_NAME DUR_CONFIG_NAME,
         warn, &multi_profilingEvent[2], self, create_clobj, release_clobj);
 
     self->methods.crypt_all = crypt_all_benchmark;
@@ -430,42 +428,24 @@ static void init(struct fmt_main * self) {
     if (source_in_use != device_info[ocl_gpu_id])
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
 
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, LWS_CONFIG)))
-        local_work_size = atoi(tmp_value);
-
-    if ((tmp_value = getenv("LWS")))
-        local_work_size = atoi(tmp_value);
-
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
         local_work_size = 0; //Force find a valid number.
     }
-    self->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());;
 
     if (!local_work_size) {
         local_work_size = get_task_max_work_group_size();
-        create_clobj(global_work_size, self);
+        create_clobj(self->params.max_keys_per_crypt, self);
         find_best_lws(self, ocl_gpu_id);
         release_clobj();
     }
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, GWS_CONFIG)))
-        global_work_size = atoi(tmp_value);
-
-    if ((tmp_value = getenv("GWS")))
-        global_work_size = atoi(tmp_value);
-
-    //Check if a valid multiple is used.
-    global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 
     if (global_work_size)
         create_clobj(global_work_size, self);
 
     else {
         //user chose to die of boredom
-        global_work_size = get_task_max_size();
         find_best_gws(self, ocl_gpu_id);
     }
     fprintf(stderr, "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
@@ -573,6 +553,9 @@ static int cmp_exact(char * source, int count) {
 /* ------- Crypt function ------- */
 static void crypt_all_benchmark(int count) {
     int i;
+    size_t gws;
+
+    gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
@@ -580,32 +563,32 @@ static void crypt_all_benchmark(int count) {
             "failed in clEnqueueWriteBuffer salt_buffer");
 
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-            sizeof(sha256_password) * global_work_size, plaintext, 0, NULL, &multi_profilingEvent[1]),
+            sizeof(sha256_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[1]),
             "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
     if (_SPLIT_KERNEL_IN_USE) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel[ocl_gpu_id], 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, &multi_profilingEvent[4]),
+            &gws, &local_work_size, 0, NULL, &multi_profilingEvent[4]),
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < 3; i++) {
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-                &global_work_size, &local_work_size, 0, NULL,
+                &gws, &local_work_size, 0, NULL,
                 &multi_profilingEvent[split_events[i]]),  //2 ,5 ,6
                 "failed in clEnqueueNDRangeKernel");
         }
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel[ocl_gpu_id], 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, &multi_profilingEvent[7]),
+            &gws, &local_work_size, 0, NULL, &multi_profilingEvent[7]),
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-            &global_work_size, &local_work_size, 0, NULL, &multi_profilingEvent[2]),
+            &gws, &local_work_size, 0, NULL, &multi_profilingEvent[2]),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes
     HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
-            sizeof(sha256_hash) * global_work_size, calculated_hash, 0, NULL, &multi_profilingEvent[3]),
+            sizeof(sha256_hash) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[3]),
             "failed in reading data back");
 
     //Do the work

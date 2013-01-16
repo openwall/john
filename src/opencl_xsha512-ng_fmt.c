@@ -30,9 +30,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define LWS_CONFIG			"xsha512_LWS"
-#define GWS_CONFIG			"xsha512_GWS"
-#define DUR_CONFIG			"xsha512_MaxDuration"
+#define CONFIG_NAME			"xsha512"
 
 static sha512_salt         * salt;
 static sha512_password     * plaintext;             // plaintext ciphertexts
@@ -158,7 +156,6 @@ static void create_clobj(int gws, struct fmt_main * self) {
             (void *) &result_buffer), "Error setting argument 2");
 
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
-    global_work_size = gws;
 }
 
 static void release_clobj(void) {
@@ -268,7 +265,7 @@ static void find_best_workgroup(struct fmt_main *self) {
 
     fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
-        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        CONFIG_NAME LWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
 }
 
@@ -395,7 +392,7 @@ static void find_best_gws(struct fmt_main * self) {
     }
     step = GET_MULTIPLE(step, local_work_size);
 
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, CONFIG_NAME DUR_CONFIG_NAME)))
         max_run_time = atoi(tmp_value) * 1000000000ULL;
 
     fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
@@ -444,7 +441,7 @@ static void find_best_gws(struct fmt_main * self) {
     }
     fprintf(stderr, "Optimal global worksize %d\n", optimal_gws);
     fprintf(stderr, "(to avoid this test on next run, put \""
-        GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        CONFIG_NAME GWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
     global_work_size = optimal_gws;
     create_clobj(optimal_gws, self);
@@ -452,7 +449,6 @@ static void find_best_gws(struct fmt_main * self) {
 
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
-    char * tmp_value;
     char * task = "$JOHN/kernels/xsha512-ng_kernel.cl";
 
     opencl_init_dev(ocl_gpu_id);
@@ -466,14 +462,7 @@ static void init(struct fmt_main * self) {
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
-
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, LWS_CONFIG)))
-        local_work_size = atoi(tmp_value);
-
-    if ((tmp_value = getenv("LWS")))
-        local_work_size = atoi(tmp_value);
+    opencl_get_user_preferences(CONFIG_NAME);
 
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
@@ -481,31 +470,19 @@ static void init(struct fmt_main * self) {
                get_task_max_work_group_size());
         local_work_size = 0; //Force find a valid number.
     }
-    self->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
 
     if (!local_work_size) {
-        local_work_size = get_task_max_work_group_size();
-        create_clobj(global_work_size, self);
+        create_clobj(self->params.max_keys_per_crypt, self);
         find_best_workgroup(self);
         release_clobj();
     }
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, GWS_CONFIG)))
-        global_work_size = atoi(tmp_value);
-
-    if ((tmp_value = getenv("GWS")))
-        global_work_size = atoi(tmp_value);
-
-    //Check if a valid multiple is used.
-    global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 
     if (global_work_size)
         create_clobj(global_work_size, self);
 
     else {
         //user chose to die of boredom
-        global_work_size = get_task_max_size();
         find_best_gws(self);
     }
     fprintf(stderr, "Local worksize (LWS) %d, global worksize (GWS) %zd\n",
