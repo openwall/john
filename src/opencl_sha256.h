@@ -12,18 +12,10 @@
 #ifndef OPENCL_SHA256_H
 #define	OPENCL_SHA256_H
 
-//Type names definition.
-#define uint8_t  unsigned char
-#define uint16_t unsigned short
-#define uint32_t unsigned int
-#define uint64_t unsigned long  //Tip: unsigned long long int failed on compile (AMD).
+#include "opencl_sha2_common.h"
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-
-//Functions.
-#define MAX(x,y)                ((x) > (y) ? (x) : (y))
-#define MIN(x,y)                ((x) < (y) ? (x) : (y))
 
 //Macros.
 #define SWAP(n) \
@@ -50,23 +42,6 @@
 #define Sigma1(x)               ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
 #define sigma0(x)               ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
 #define sigma1(x)               ((ror(x,17)) ^ (ror(x,19)) ^ (x>>10))
-
-/* Macros for reading/writing chars from int32's (from rar_kernel.cl) */
-#define GETCHAR(buf, index) ((buf)[(index)])
-#define ATTRIB(buf, index, val) (buf)[(index)] = val
-#define PUTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & ~(0xffU << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
-
-/* Macro for get a multiple of a given value */
-#define GET_MULTIPLE(dividend, divisor)         ((unsigned int) ((dividend / divisor) * divisor))
-#define GET_MULTIPLE_BIGGER(dividend, divisor)  (((dividend + divisor - 1) / divisor) * divisor)
-
-#if no_byte_addressable(DEVICE_INFO)
-    #define PUT         PUTCHAR
-    #define BUFFER      ctx->buffer->mem_32
-#else
-    #define PUT         ATTRIB
-    #define BUFFER      ctx->buffer->mem_08
-#endif
 
 //SHA256 constants.
 #define H0      0x6a09e667U

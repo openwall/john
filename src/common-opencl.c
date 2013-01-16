@@ -24,6 +24,21 @@ static size_t program_size;
 extern volatile int bench_running;
 static void opencl_get_dev_info(unsigned int sequential_id);
 
+//Used by auto-tunning to decide how GWS should changed between trials.
+extern int get_next_gws_size(size_t num, int step, int startup, int default_value);
+
+//Settings to use for auto-tunning.
+static int default_value;
+static int hash_loops;
+static char * duration_text;
+static const char ** warnings;
+static int number_of_events;
+static int * split_events;
+static cl_event * to_profile_event;
+static struct fmt_main * self;
+void (*create_clobj)(int gws, struct fmt_main * self);
+void (*release_clobj)(void);
+
 void opencl_process_event(void)
 {
 	if (!bench_running) {
@@ -686,6 +701,285 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	profilingEvent = firstEvent = lastEvent = NULL;
 }
 
+//Do the proper test using different global work sizes.
+static cl_ulong gws_test(
+        size_t num, int show_details, unsigned int rounds)
+{
+        cl_ulong startTime, endTime, runtime = 0, looptime = 0;
+        int i;
+
+        //Prepare buffers.
+        create_clobj(num, self);
+        
+        // Set keys (only the key[0] from tests will be benchmarked)
+        for (i = 0; i < num; i++)
+            self->methods.set_key(self->params.tests[0].plaintext, i);
+
+        // Set salt
+        self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
+
+        // Timing run
+        self->methods.crypt_all(num);
+
+        //** Get execution time **//
+        for (i = 0; i < number_of_events; i++) {
+            HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_START,
+                    sizeof (cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
+            HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_END,
+                    sizeof (cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
+
+            if ((split_events) && (i == split_events[0] || i == split_events[1] || i == split_events[2]))
+                looptime += (endTime - startTime);
+            else
+                runtime += (endTime - startTime);
+//printf("=>V: %d, %d, %d, %.2f, %.2f \n", i, number_of_events, split_events, (double) runtime, (double) looptime); puts("");
+            if (show_details)
+                fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
+        }
+        if (show_details)
+            fprintf(stderr, "\n");
+
+        if (split_events)
+            runtime += ((looptime / 3) * (rounds / hash_loops));
+
+        // Release events
+        for (i = 0; i < EVENTS; i++) {
+                if (multi_profilingEvent[i])
+                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");        
+        }    
+        release_clobj();
+        return runtime;
+}
+
+void opencl_init_auto_setup(
+        int p_default_value, int p_hash_loops, int p_number_of_events, 
+        int * p_split_events, char * p_duration_text, const char ** p_warnings, 
+        cl_event * p_to_profile_event, struct fmt_main * p_self,
+        void (*p_create_clobj)(int gws, struct fmt_main * self),
+        void (*p_release_clobj)(void))
+{    
+        int i;
+        
+        // Initialize events
+        for (i = 0; i < EVENTS; i++)
+                multi_profilingEvent[i] = NULL;
+        
+        // Get parameters
+        default_value = p_default_value;
+        hash_loops = p_hash_loops;
+        number_of_events = p_number_of_events;
+        split_events = p_split_events;
+        duration_text = p_duration_text;
+        warnings = p_warnings;
+        to_profile_event = p_to_profile_event;
+        self = p_self;
+        create_clobj = p_create_clobj;
+        release_clobj = p_release_clobj;
+}
+
+void opencl_find_best_lws(
+        size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel)
+{
+	size_t gws;
+	cl_int ret_code;
+	int i, j, numloops;
+	size_t my_work_group, optimal_work_group;
+	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
+	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+
+	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
+
+	if (get_device_version(sequential_id) < 110) {
+		if (get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU)
+			wg_multiple = 32;
+		else if (get_platform_vendor_id(sequential_id) == DEV_INTEL)
+			wg_multiple = 8;
+		else
+			wg_multiple = 1;
+	} else
+		wg_multiple = get_kernel_preferred_work_group_size(sequential_id, crypt_kernel);
+
+	max_group_size = get_current_work_group_size(sequential_id, crypt_kernel);
+
+	if (max_group_size > group_size_limit)
+	    //Needed to deal (at least) with cryptsha512-opencl limits.
+	    max_group_size = group_size_limit;
+
+	// Safety harness
+	if (wg_multiple > max_group_size)
+		wg_multiple = max_group_size;
+
+	//Change command queue to be used by crypt_all (profile needed)
+	clReleaseCommandQueue(queue[sequential_id]);
+
+	//Create a new queue with profiling enabled
+	queue[sequential_id] =
+	    clCreateCommandQueue(context[sequential_id], devices[sequential_id],
+	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating command queue");
+
+	// Set keys (only the key[0] from tests will be benchmarked)
+	for (i = 0; i < self->params.max_keys_per_crypt; i++)
+		self->methods.set_key(self->params.tests[0].plaintext, i);
+
+	// Set salt
+	self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
+
+	// Warm-up run
+	local_work_size = wg_multiple;
+	self->methods.crypt_all(self->params.max_keys_per_crypt);
+
+	// Activate events
+	profilingEvent = to_profile_event;
+
+	// Timing run
+	self->methods.crypt_all(self->params.max_keys_per_crypt);
+
+	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
+	HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+			CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+			NULL), "Failed to get profiling info");
+	HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+			CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+			NULL), "Failed to get profiling info");
+	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
+
+        // Release events
+        for (i = 0; i < EVENTS; i++) {
+                if (multi_profilingEvent[i])
+                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");        
+        }        
+
+	if (numloops < 1)
+		numloops = 1;
+	else if (numloops > 10)
+		numloops = 10;
+        
+	/// Find minimum time
+	for (optimal_work_group = my_work_group = wg_multiple;
+	    (int) my_work_group <= (int) max_group_size;
+	    my_work_group += wg_multiple) {
+
+		if (gws % my_work_group != 0)
+			continue;
+
+		sumStartTime = 0;
+		sumEndTime = 0;
+
+		for (i = 0; i < numloops; i++) {
+			advance_cursor();
+			local_work_size = my_work_group;
+
+			self->methods.crypt_all(self->params.max_keys_per_crypt);
+
+			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
+			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+				       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+				       NULL), "Failed to get profiling info");
+			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
+				       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+				       NULL), "Failed to get profiling info");
+
+			sumStartTime += startTime;
+			sumEndTime += endTime;
+
+                        // Release events
+                        for (j = 0; j < EVENTS; j++) {
+                                if (multi_profilingEvent[j])
+                                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");        
+                        }                        
+		}
+		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
+			kernelExecTimeNs = sumEndTime - sumStartTime;
+			optimal_work_group = my_work_group;
+		}
+	}
+	///Release profiling queue and create new with profiling disabled
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]), "Failed in clReleaseCommandQueue");
+	queue[sequential_id] =
+	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating command queue");
+	local_work_size = optimal_work_group;
+        
+	// These ensure we don't get events from crypt_all() in real use
+	profilingEvent = NULL;
+}
+
+void opencl_find_best_gws(
+        int step, int show_speed, int show_details,
+        unsigned long long int max_run_time, int sequential_id,
+        unsigned int rounds)
+{
+        size_t num = 0;
+        int optimal_gws = local_work_size;
+        unsigned int speed, best_speed = 0;
+        cl_ulong run_time, min_time = CL_ULONG_MAX;
+        char * tmp_value;
+
+        if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, duration_text)))
+            max_run_time = atoi(tmp_value) * 1000000000ULL;
+
+        fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
+                local_work_size, max_run_time / 1000000000ULL);
+
+        if (show_speed)
+            fprintf(stderr, "Raw speed figures including buffer transfers:\n");
+
+        //Change command queue to be used by crypt_all (profile needed)
+        clReleaseCommandQueue(queue[sequential_id]); // Delete old queue
+
+        //Create a new queue with profiling enabled
+        queue[sequential_id] =
+                clCreateCommandQueue(context[sequential_id], devices[sequential_id],
+                CL_QUEUE_PROFILING_ENABLE, &ret_code);
+        HANDLE_CLERROR(ret_code, "Error creating command queue");
+        
+        for (num = get_next_gws_size(num, step, 1, default_value);;
+                num = get_next_gws_size(num, step, 0, default_value)) {
+
+            if (!(run_time = gws_test(num, show_details, rounds)))
+                continue;
+
+            if (!show_speed && !show_details)
+                advance_cursor();
+
+            speed = 5000 * num / (run_time / 1000000000.);
+
+            if (run_time < min_time)
+                min_time = run_time;
+
+            if (show_speed) {
+                fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
+                        num, (long) (num / (run_time / 1000000000.)), speed,
+                        (float) run_time / 1000000000.);
+
+                if (run_time > max_run_time) {
+                    fprintf(stderr, " - too slow\n");
+                    break;
+                }
+            } else {
+                if (run_time > min_time * 10 || run_time > max_run_time)
+                    break;
+            }
+            if (speed > (1.01 * best_speed)) {
+                if (show_speed)
+                    fprintf(stderr, "+");
+                best_speed = speed;
+                optimal_gws = num;
+            }
+            if (show_speed)
+                fprintf(stderr, "\n");
+        }
+	///Release profiling queue and create new with profiling disabled
+	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]), "Failed in clReleaseCommandQueue");
+	queue[sequential_id] =
+	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating command queue");        
+        global_work_size = optimal_gws;
+}
+
 static void opencl_get_dev_info(unsigned int sequential_id)
 {
 	cl_device_type device;
@@ -947,6 +1241,18 @@ cl_uint get_max_compute_units(unsigned int sequential_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &size, NULL),
 	    "Error querying CL_DEVICE_MAX_COMPUTE_UNITS");
+
+	return size;
+}
+
+size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel)
+{
+	size_t size;
+
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
+		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+		    sizeof(size), &size, NULL),
+		"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 
 	return size;
 }
