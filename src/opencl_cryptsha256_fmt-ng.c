@@ -16,7 +16,6 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "opencl_cryptsha256.h"
-#include "cuda_cryptsha256.h"
 
 #define FORMAT_LABEL			"sha256crypt-ng-opencl"
 #define FORMAT_NAME			"sha256crypt"
@@ -48,7 +47,7 @@ static cl_mem pinned_saved_keys, pinned_partial_hashes;
 static cl_kernel prepare_kernel[MAXGPUS], main_kernel[MAXGPUS], final_kernel[MAXGPUS];
 
 static int new_keys, source_in_use;
-static int split_events[3] = {2, 5, 6 };
+static int split_events[3] = { 2, 5, 6 };
 
 static void crypt_all(int count);
 static void crypt_all_benchmark(int count);

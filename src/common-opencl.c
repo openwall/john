@@ -322,7 +322,7 @@ void init_opencl_devices(void)
 			device_list[n] = NULL;
 			build_device_list(device_list);
 		} else
-			ocl_gpu_id = -1;
+			ocl_gpu_id = get_sequential_id(0, platform_id);;
 	} else 	{
 		struct list_entry *current;
 
