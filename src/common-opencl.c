@@ -710,7 +710,7 @@ static cl_ulong gws_test(
 
         //Prepare buffers.
         create_clobj(num, self);
-        
+
         // Set keys (only the key[0] from tests will be benchmarked)
         for (i = 0; i < num; i++)
             self->methods.set_key(self->params.tests[0].plaintext, i);
@@ -732,7 +732,7 @@ static cl_ulong gws_test(
                 looptime += (endTime - startTime);
             else
                 runtime += (endTime - startTime);
-//printf("=>V: %d, %d, %d, %.2f, %.2f \n", i, number_of_events, split_events, (double) runtime, (double) looptime); puts("");
+
             if (show_details)
                 fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
         }
@@ -745,25 +745,25 @@ static cl_ulong gws_test(
         // Release events
         for (i = 0; i < EVENTS; i++) {
                 if (multi_profilingEvent[i])
-                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");        
-        }    
+                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
+        }
         release_clobj();
         return runtime;
 }
 
 void opencl_init_auto_setup(
-        int p_default_value, int p_hash_loops, int p_number_of_events, 
-        int * p_split_events, char * p_duration_text, const char ** p_warnings, 
+        int p_default_value, int p_hash_loops, int p_number_of_events,
+        int * p_split_events, char * p_duration_text, const char ** p_warnings,
         cl_event * p_to_profile_event, struct fmt_main * p_self,
         void (*p_create_clobj)(int gws, struct fmt_main * self),
         void (*p_release_clobj)(void))
-{    
+{
         int i;
-        
+
         // Initialize events
         for (i = 0; i < EVENTS; i++)
                 multi_profilingEvent[i] = NULL;
-        
+
         // Get parameters
         default_value = p_default_value;
         hash_loops = p_hash_loops;
@@ -847,14 +847,14 @@ void opencl_find_best_lws(
         // Release events
         for (i = 0; i < EVENTS; i++) {
                 if (multi_profilingEvent[i])
-                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");        
-        }        
+                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
+        }
 
 	if (numloops < 1)
 		numloops = 1;
 	else if (numloops > 10)
 		numloops = 10;
-        
+
 	/// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
 	    (int) my_work_group <= (int) max_group_size;
@@ -886,8 +886,8 @@ void opencl_find_best_lws(
                         // Release events
                         for (j = 0; j < EVENTS; j++) {
                                 if (multi_profilingEvent[j])
-                                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");        
-                        }                        
+                                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");
+                        }
 		}
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
@@ -901,7 +901,7 @@ void opencl_find_best_lws(
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
-        
+
 	// These ensure we don't get events from crypt_all() in real use
 	profilingEvent = NULL;
 }
@@ -934,7 +934,7 @@ void opencl_find_best_gws(
                 clCreateCommandQueue(context[sequential_id], devices[sequential_id],
                 CL_QUEUE_PROFILING_ENABLE, &ret_code);
         HANDLE_CLERROR(ret_code, "Error creating command queue");
-        
+
         for (num = get_next_gws_size(num, step, 1, default_value);;
                 num = get_next_gws_size(num, step, 0, default_value)) {
 
@@ -976,7 +976,7 @@ void opencl_find_best_gws(
 	queue[sequential_id] =
 	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
 	    &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating command queue");        
+	HANDLE_CLERROR(ret_code, "Error creating command queue");
         global_work_size = optimal_gws;
 }
 

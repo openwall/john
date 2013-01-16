@@ -49,7 +49,7 @@ static cl_kernel prepare_kernel[MAXGPUS], main_kernel[MAXGPUS], final_kernel[MAX
 
 static int new_keys, source_in_use;
 static int split_events[3] = {2, 5, 6 };
-    
+
 static void crypt_all(int count);
 static void crypt_all_benchmark(int count);
 
@@ -422,12 +422,12 @@ static void init(struct fmt_main * self) {
     local_work_size = get_default_workgroup();
 
     //Initialize openCL tunning (library) for this format.
-    opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 8 : 4), 
-        ((_SPLIT_KERNEL_IN_USE) ? split_events : NULL), DUR_CONFIG, 
+    opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 8 : 4),
+        ((_SPLIT_KERNEL_IN_USE) ? split_events : NULL), DUR_CONFIG,
         warn, &multi_profilingEvent[2], self, create_clobj, release_clobj);
 
     self->methods.crypt_all = crypt_all_benchmark;
-    
+
     if (source_in_use != device_info[ocl_gpu_id])
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
 
@@ -573,7 +573,7 @@ static int cmp_exact(char * source, int count) {
 
 /* ------- Crypt function ------- */
 static void crypt_all_benchmark(int count) {
-    int i;   
+    int i;
 
     //Send data to device.
     HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], salt_buffer, CL_FALSE, 0,
@@ -592,7 +592,7 @@ static void crypt_all_benchmark(int count) {
 
         for (i = 0; i < 3; i++) {
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-                &global_work_size, &local_work_size, 0, NULL, 
+                &global_work_size, &local_work_size, 0, NULL,
                 &multi_profilingEvent[split_events[i]]),  //2 ,5 ,6
                 "failed in clEnqueueNDRangeKernel");
         }

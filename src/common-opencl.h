@@ -120,8 +120,8 @@ void opencl_find_best_gws(
         unsigned int rounds);
 
 void opencl_init_auto_setup(
-        int p_default_value, int p_hash_loops, int p_number_of_events, 
-        int * p_split_events, char * p_duration_text, const char ** p_warnings, 
+        int p_default_value, int p_hash_loops, int p_number_of_events,
+        int * p_split_events, char * p_duration_text, const char ** p_warnings,
         cl_event * p_to_profile_event, struct fmt_main * p_self,
         void (*p_create_clobj)(int gws, struct fmt_main * self),
         void (*p_release_clobj)(void));
