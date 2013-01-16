@@ -58,6 +58,10 @@ size_t max_group_size;
 cl_event *profilingEvent, *firstEvent, *lastEvent;
 cl_event multi_profilingEvent[EVENTS];
 
+#define LWS_CONFIG_NAME			"_LWS"
+#define GWS_CONFIG_NAME			"_GWS"
+#define DUR_CONFIG_NAME			"_MaxDuration"
+
 int device_info[MAXGPUS];
 int cores_per_MP[MAXGPUS];
 
@@ -95,6 +99,9 @@ int get_device_version(unsigned int sequential_id);
 int get_byte_addressable(unsigned int sequential_id);
 size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kernel crypt_kernel);
 
+void opencl_get_user_preferences(char * format);
+char * opencl_get_config_name(char * format, char * config_name);
+
 char *get_error_name(cl_int cl_error);
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
@@ -110,6 +117,9 @@ void opencl_process_event(void);
 
 /* Use this macro for OpenCL Error handling */
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
+
+/* Macro for get a multiple of a given value */
+#define GET_MULTIPLE(dividend, divisor)         ((unsigned int) ((dividend / divisor) * divisor))
 
 void opencl_find_best_lws(
         size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel) ;

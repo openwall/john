@@ -382,6 +382,40 @@ void clean_opencl_devices()
 	}
 }
 
+char * opencl_get_config_name(char * format, char * config_name)
+{
+	static char full_name[128];
+
+	full_name[0] = '\0';
+	strcat(full_name, format);
+	strcat(full_name, config_name);
+
+	return full_name;
+}
+
+void opencl_get_user_preferences(char * format)
+{
+	char * tmp_value;
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		opencl_get_config_name(format, LWS_CONFIG_NAME))))
+		local_work_size = atoi(tmp_value);
+
+	if ((tmp_value = getenv("LWS")))
+		local_work_size = atoi(tmp_value);
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		opencl_get_config_name(format, GWS_CONFIG_NAME))))
+		global_work_size = atoi(tmp_value);
+
+	if ((tmp_value = getenv("GWS")))
+		global_work_size = atoi(tmp_value);
+
+	if (local_work_size)
+		//Check if a valid multiple is used.
+		global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
+}
+
 static void dev_init(unsigned int sequential_id)
 {
 	char device_name[MAX_OCLINFO_STRING_LEN];
@@ -703,82 +737,82 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 //Do the proper test using different global work sizes.
 static cl_ulong gws_test(
-        size_t num, int show_details, unsigned int rounds)
+	size_t num, int show_details, unsigned int rounds)
 {
-        cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-        int i;
+	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
+	int i;
 
-        //Prepare buffers.
-        create_clobj(num, self);
+	//Prepare buffers.
+	create_clobj(num, self);
 
-        // Set keys (only the key[0] from tests will be benchmarked)
-        for (i = 0; i < num; i++)
-            self->methods.set_key(self->params.tests[0].plaintext, i);
+	// Set keys (only the key[0] from tests will be benchmarked)
+	for (i = 0; i < num; i++)
+	    self->methods.set_key(self->params.tests[0].plaintext, i);
 
-        // Set salt
-        self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
+	// Set salt
+	self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
 
-        // Timing run
-        self->methods.crypt_all(num);
+	// Timing run
+	self->methods.crypt_all(num);
 
-        //** Get execution time **//
-        for (i = 0; i < number_of_events; i++) {
-            HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_START,
-                    sizeof (cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
-            HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_END,
-                    sizeof (cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
+	//** Get execution time **//
+	for (i = 0; i < number_of_events; i++) {
+	    HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_START,
+		    sizeof (cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
+	    HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_END,
+		    sizeof (cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
 
-            if ((split_events) && (i == split_events[0] || i == split_events[1] || i == split_events[2]))
-                looptime += (endTime - startTime);
-            else
-                runtime += (endTime - startTime);
+	    if ((split_events) && (i == split_events[0] || i == split_events[1] || i == split_events[2]))
+		looptime += (endTime - startTime);
+	    else
+		runtime += (endTime - startTime);
 
-            if (show_details)
-                fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
-        }
-        if (show_details)
-            fprintf(stderr, "\n");
+	    if (show_details)
+		fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
+	}
+	if (show_details)
+	    fprintf(stderr, "\n");
 
-        if (split_events)
-            runtime += ((looptime / 3) * (rounds / hash_loops));
+	if (split_events)
+	    runtime += ((looptime / 3) * (rounds / hash_loops));
 
-        // Release events
-        for (i = 0; i < EVENTS; i++) {
-                if (multi_profilingEvent[i])
-                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-        }
-        release_clobj();
-        return runtime;
+	// Release events
+	for (i = 0; i < EVENTS; i++) {
+		if (multi_profilingEvent[i])
+			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
+	}
+	release_clobj();
+	return runtime;
 }
 
 void opencl_init_auto_setup(
-        int p_default_value, int p_hash_loops, int p_number_of_events,
-        int * p_split_events, char * p_duration_text, const char ** p_warnings,
-        cl_event * p_to_profile_event, struct fmt_main * p_self,
-        void (*p_create_clobj)(int gws, struct fmt_main * self),
-        void (*p_release_clobj)(void))
+	int p_default_value, int p_hash_loops, int p_number_of_events,
+	int * p_split_events, char * p_duration_text, const char ** p_warnings,
+	cl_event * p_to_profile_event, struct fmt_main * p_self,
+	void (*p_create_clobj)(int gws, struct fmt_main * self),
+	void (*p_release_clobj)(void))
 {
-        int i;
+	int i;
 
-        // Initialize events
-        for (i = 0; i < EVENTS; i++)
-                multi_profilingEvent[i] = NULL;
+	// Initialize events
+	for (i = 0; i < EVENTS; i++)
+		multi_profilingEvent[i] = NULL;
 
-        // Get parameters
-        default_value = p_default_value;
-        hash_loops = p_hash_loops;
-        number_of_events = p_number_of_events;
-        split_events = p_split_events;
-        duration_text = p_duration_text;
-        warnings = p_warnings;
-        to_profile_event = p_to_profile_event;
-        self = p_self;
-        create_clobj = p_create_clobj;
-        release_clobj = p_release_clobj;
+	// Get parameters
+	default_value = p_default_value;
+	hash_loops = p_hash_loops;
+	number_of_events = p_number_of_events;
+	split_events = p_split_events;
+	duration_text = p_duration_text;
+	warnings = p_warnings;
+	to_profile_event = p_to_profile_event;
+	self = p_self;
+	create_clobj = p_create_clobj;
+	release_clobj = p_release_clobj;
 }
 
 void opencl_find_best_lws(
-        size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel)
+	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t gws;
 	cl_int ret_code;
@@ -844,11 +878,11 @@ void opencl_find_best_lws(
 			NULL), "Failed to get profiling info");
 	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
 
-        // Release events
-        for (i = 0; i < EVENTS; i++) {
-                if (multi_profilingEvent[i])
-                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-        }
+	// Release events
+	for (i = 0; i < EVENTS; i++) {
+		if (multi_profilingEvent[i])
+			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
+	}
 
 	if (numloops < 1)
 		numloops = 1;
@@ -883,11 +917,11 @@ void opencl_find_best_lws(
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 
-                        // Release events
-                        for (j = 0; j < EVENTS; j++) {
-                                if (multi_profilingEvent[j])
-                                        HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");
-                        }
+			// Release events
+			for (j = 0; j < EVENTS; j++) {
+				if (multi_profilingEvent[j])
+					HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");
+			}
 		}
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
@@ -907,77 +941,77 @@ void opencl_find_best_lws(
 }
 
 void opencl_find_best_gws(
-        int step, int show_speed, int show_details,
-        unsigned long long int max_run_time, int sequential_id,
-        unsigned int rounds)
+	int step, int show_speed, int show_details,
+	unsigned long long int max_run_time, int sequential_id,
+	unsigned int rounds)
 {
-        size_t num = 0;
-        int optimal_gws = local_work_size;
-        unsigned int speed, best_speed = 0;
-        cl_ulong run_time, min_time = CL_ULONG_MAX;
-        char * tmp_value;
+	size_t num = 0;
+	int optimal_gws = local_work_size;
+	unsigned int speed, best_speed = 0;
+	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	char * tmp_value;
 
-        if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, duration_text)))
-            max_run_time = atoi(tmp_value) * 1000000000ULL;
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, duration_text)))
+	    max_run_time = atoi(tmp_value) * 1000000000ULL;
 
-        fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
-                local_work_size, max_run_time / 1000000000ULL);
+	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
+		local_work_size, max_run_time / 1000000000ULL);
 
-        if (show_speed)
-            fprintf(stderr, "Raw speed figures including buffer transfers:\n");
+	if (show_speed)
+	    fprintf(stderr, "Raw speed figures including buffer transfers:\n");
 
-        //Change command queue to be used by crypt_all (profile needed)
-        clReleaseCommandQueue(queue[sequential_id]); // Delete old queue
+	//Change command queue to be used by crypt_all (profile needed)
+	clReleaseCommandQueue(queue[sequential_id]); // Delete old queue
 
-        //Create a new queue with profiling enabled
-        queue[sequential_id] =
-                clCreateCommandQueue(context[sequential_id], devices[sequential_id],
-                CL_QUEUE_PROFILING_ENABLE, &ret_code);
-        HANDLE_CLERROR(ret_code, "Error creating command queue");
+	//Create a new queue with profiling enabled
+	queue[sequential_id] =
+		clCreateCommandQueue(context[sequential_id], devices[sequential_id],
+		CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-        for (num = get_next_gws_size(num, step, 1, default_value);;
-                num = get_next_gws_size(num, step, 0, default_value)) {
+	for (num = get_next_gws_size(num, step, 1, default_value);;
+		num = get_next_gws_size(num, step, 0, default_value)) {
 
-            if (!(run_time = gws_test(num, show_details, rounds)))
-                continue;
+	    if (!(run_time = gws_test(num, show_details, rounds)))
+		continue;
 
-            if (!show_speed && !show_details)
-                advance_cursor();
+	    if (!show_speed && !show_details)
+		advance_cursor();
 
-            speed = 5000 * num / (run_time / 1000000000.);
+	    speed = 5000 * num / (run_time / 1000000000.);
 
-            if (run_time < min_time)
-                min_time = run_time;
+	    if (run_time < min_time)
+		min_time = run_time;
 
-            if (show_speed) {
-                fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
-                        num, (long) (num / (run_time / 1000000000.)), speed,
-                        (float) run_time / 1000000000.);
+	    if (show_speed) {
+		fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
+			num, (long) (num / (run_time / 1000000000.)), speed,
+			(float) run_time / 1000000000.);
 
-                if (run_time > max_run_time) {
-                    fprintf(stderr, " - too slow\n");
-                    break;
-                }
-            } else {
-                if (run_time > min_time * 10 || run_time > max_run_time)
-                    break;
-            }
-            if (speed > (1.01 * best_speed)) {
-                if (show_speed)
-                    fprintf(stderr, "+");
-                best_speed = speed;
-                optimal_gws = num;
-            }
-            if (show_speed)
-                fprintf(stderr, "\n");
-        }
+		if (run_time > max_run_time) {
+		    fprintf(stderr, " - too slow\n");
+		    break;
+		}
+	    } else {
+		if (run_time > min_time * 10 || run_time > max_run_time)
+		    break;
+	    }
+	    if (speed > (1.01 * best_speed)) {
+		if (show_speed)
+		    fprintf(stderr, "+");
+		best_speed = speed;
+		optimal_gws = num;
+	    }
+	    if (show_speed)
+		fprintf(stderr, "\n");
+	}
 	///Release profiling queue and create new with profiling disabled
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]), "Failed in clReleaseCommandQueue");
 	queue[sequential_id] =
 	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
-        global_work_size = optimal_gws;
+	global_work_size = optimal_gws;
 }
 
 static void opencl_get_dev_info(unsigned int sequential_id)

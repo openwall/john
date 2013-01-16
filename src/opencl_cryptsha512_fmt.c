@@ -410,7 +410,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
             sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, &myEvent[3]),
             "Failed in clEnqueueReadBuffer");
 
-    loops = _SPLIT_KERNEL_IN_USE ? 8 : 4;
+    loops = (_SPLIT_KERNEL_IN_USE) ? 8 : 4;
     HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
     //** Get execution time **//
