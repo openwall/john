@@ -47,8 +47,7 @@ OMPFLAGS =
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later) or
 # sm_30 if you have Kepler (600 series or later) and your nvcc supports it.
 NVCC_FLAGS = -c -Xptxas -v -arch sm_10
-CUDAPATH = /usr/local/cuda/lib
-CUDA64PATH = /usr/local/cuda/lib64
+CUDAPATH = /usr/local/cuda
 
 ifdef NVIDIA_CUDA
 OCLROOT = $(NVIDIA_CUDA)
@@ -163,7 +162,7 @@ OCL_OBJS = \
 	opencl_cryptsha256_fmt-ng.o opencl_sha2_common.o
 
 CUDA_OBJS = \
-	cuda_common.o \
+	common-cuda.o cuda_common.o \
 	cuda_cryptmd5_fmt.o cuda_cryptmd5.o \
 	cuda_phpass_fmt.o cuda_phpass.o \
 	cuda_cryptsha256_fmt.o cuda_cryptsha256.o \
@@ -372,9 +371,9 @@ linux-x86-64-gpu:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -march=native" \
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDA64PATH) -lcrypt -lOpenCL -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86_64 -L$(OCLROOT)/lib64 -L$(CUDAPATH)/lib64 -lcrypt -lOpenCL -ldl -lcudart -march=native"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -396,9 +395,9 @@ linux-x86-64-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -march=native" \
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -march=native" \
 		ASFLAGS="$(ASFLAGS) -march=native" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDA64PATH) -lcrypt -ldl -lcudart -march=native"
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib64 -lcrypt -ldl -lcudart -march=native"
 
 linux-x86-64-native:
 	$(LN) x86-64.h arch.h
@@ -532,8 +531,8 @@ linux-x86-gpu:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH) -lcrypt -lOpenCL -ldl -lcudart"
+		CFLAGS="$(CFLAGS) -I$(OCLROOT)/include -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -DHAVE_DL -DUSING_ICC_S_FILE" \
+		LDFLAGS="$(LDFLAGS) -L$(OCLROOT)/lib/x86 -L$(OCLROOT)/lib -L$(CUDAPATH)/lib -lcrypt -lOpenCL -ldl -lcudart"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -554,8 +553,8 @@ linux-x86-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE" \
-		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH) -lcrypt -ldl -lcudart"
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DHAVE_CRYPT -DHAVE_DL -DHAVE_CUDA -DUSING_ICC_S_FILE" \
+		LDFLAGS="$(LDFLAGS) -L$(CUDAPATH)/lib -lcrypt -ldl -lcudart"
 
 linux-x86-native:
 	$(LN) x86-sse.h arch.h
@@ -1082,8 +1081,8 @@ macosx-x86-64-gpu:
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart -framework OpenCL" \
+		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -DHAVE_CUDA -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart -framework OpenCL" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
@@ -1107,9 +1106,9 @@ macosx-x86-64-cuda:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) $(CUDA_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
+		CFLAGS="$(CFLAGS) -I$(CUDAPATH)/include -DBSD -DHAVE_CRYPT -DHAVE_CUDA -m64 -Wno-deprecated-declarations" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH) -lcudart" \
+		LDFLAGS="$(LDFLAGS) -m64 -L$(CUDAPATH)/lib -lcudart" \
 		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
 
 macosx-x86-64:
