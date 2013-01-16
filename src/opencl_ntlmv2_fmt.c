@@ -80,7 +80,7 @@ static cl_kernel ntlmv2_nthash;
 static void create_clobj(int gws, struct fmt_main *self)
 {
 	global_work_size = gws;
-	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
+	self->params.max_keys_per_crypt = gws;
 
 	pinned_key = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, keybuf_size * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
@@ -420,11 +420,10 @@ static void init(struct fmt_main *self)
 		}
 	}
 
-	if (local_work_size > maxsize) {
-		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
-		local_work_size = maxsize;
-	}
-	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
+
+	self->params.min_keys_per_crypt = local_work_size;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -434,9 +433,6 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

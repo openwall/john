@@ -20,6 +20,7 @@
 #include "base64.h"
 #include "memory.h"
 #include "cuda_pwsafe.h"
+#include "cuda_common.h"
 #define FORMAT_LABEL            "pwsafe-cuda"
 #define FORMAT_NAME             "Password Safe SHA-256"
 #define ALGORITHM_NAME          "CUDA"
@@ -55,7 +56,7 @@ static void init(struct fmt_main *self)
         host_pass = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_pass));
         host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
         host_salt = mem_calloc(sizeof(pwsafe_salt));
-
+	cuda_init(cuda_gpu_id);
         atexit(done);
 }
 

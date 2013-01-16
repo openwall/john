@@ -1133,7 +1133,7 @@ void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, 
 // will benefit from this routine.
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn) {
 	struct stat source_stat, bin_stat;
-	char dev_name[128], bin_name[128];
+	char dev_name[128], bin_name[PATH_BUFFER_SIZE];
 	char * p;
 	uint64_t startTime, runtime;
 

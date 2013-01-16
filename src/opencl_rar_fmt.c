@@ -93,7 +93,7 @@
 #endif
 #define BENCHMARK_LENGTH	-1
 
-#define PLAINTEXT_LENGTH	16
+#define PLAINTEXT_LENGTH	22 /* Max. currently supported */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 #define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(rarfile)
@@ -708,11 +708,10 @@ static void init(struct fmt_main *self)
 		}
 	}
 
-	if (local_work_size > maxsize) {
-		fprintf(stderr, "LWS %d is too large for this GPU. Max allowed is %d, using that.\n", (int)local_work_size, (int)maxsize);
-		local_work_size = maxsize;
-	}
-	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
+
+	self->params.min_keys_per_crypt = local_work_size;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -785,7 +784,7 @@ static char *get_key(int index)
  * RAR use 20 x (4 bits length, optionally 4 bits zerocount), and reversed
  * byte order.
  */
-static inline int check_huffman(unsigned char *next) {
+static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	unsigned int bits, hold, i;
 	int left;
 	unsigned int ncount[4];

@@ -164,9 +164,13 @@ static char *get_key(int index)
 static void init(struct fmt_main *self)
 {
 	char *temp;
+	cl_ulong maxsize;
 
 	opencl_init_opt("$JOHN/kernels/xsha512_kernel.cl",
 	                ocl_gpu_id, NULL);
+
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);
@@ -177,6 +181,12 @@ static void init(struct fmt_main *self)
 		global_work_size = atoi(temp);
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	gkey = mem_calloc(global_work_size * sizeof(xsha512_key));
 	ghash = mem_calloc(global_work_size * sizeof(xsha512_hash));
@@ -205,8 +215,6 @@ static void init(struct fmt_main *self)
 	    "Error while allocating memory for cmp_all result");
 
 	///Assign crypt kernel parameters
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
@@ -223,8 +231,7 @@ static void init(struct fmt_main *self)
 	if (!local_work_size)
 		opencl_find_best_workgroup(self);
 
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
+	self->params.min_keys_per_crypt = local_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 }

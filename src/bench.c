@@ -6,6 +6,7 @@
  */
 
 #define _XOPEN_SOURCE 500 /* for setitimer(2) */
+#define _BSD_SOURCE /* for setenv() */
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #define SIGALRM SIGFPE
@@ -32,6 +33,7 @@
 #if !defined (__MINGW32__) && !defined (_MSC_VER)
 #include <sys/times.h>
 #endif
+#include <stdlib.h> /* setenv */
 
 #include "times.h"
 
@@ -155,7 +157,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	if (!(current = format->params.tests)) return "FAILED (no data)";
 	if ((where = fmt_self_test(format))) {
-		sprintf(s_error, "FAILED (%s)", where);
+		sprintf(s_error, "FAILED (%s)\n", where);
 		return s_error;
 	}
 
@@ -535,6 +537,8 @@ next:
 
 	if (failed && total > 1 && !event_abort)
 		printf("%u out of %u tests have FAILED\n", failed, total);
+	else if (total > 1 && !event_abort)
+		printf("All %u tests have passed self-tests!\n", total);
 
 	return failed || event_abort;
 }

@@ -182,6 +182,7 @@ static int valid(char *ciphertext, struct fmt_main *self){
 static void init(struct fmt_main *self){
 	char build_opts[64];
 	char *temp;
+	cl_ulong maxsize;
 
 	local_work_size = global_work_size = 0;
 
@@ -193,12 +194,19 @@ static void init(struct fmt_main *self){
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-	if ((temp = getenv("LWS")))
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+
+	if ((temp = getenv("LWS"))) {
 		local_work_size = atoi(temp);
+
+		while (local_work_size > maxsize)
+			local_work_size >>= 1;
+	}
 
 	if (!local_work_size) {
 		create_clobj(MAX_KEYS_PER_CRYPT);
-		opencl_find_best_workgroup(self);
+		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 		release_clobj();
 	}
 
@@ -219,8 +227,7 @@ static void init(struct fmt_main *self){
 
 	self->params.max_keys_per_crypt = global_work_size;
 
-	self->params.min_keys_per_crypt = local_work_size < 8 ?
-		8 : local_work_size;
+	self->params.min_keys_per_crypt = local_work_size;
 }
 
 static void set_key(char *key, int index) {

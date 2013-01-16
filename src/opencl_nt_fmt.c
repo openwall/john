@@ -156,6 +156,7 @@ static void crypt_all(int count)
 static void init(struct fmt_main *self){
 	int argIndex = 0;
 	char *temp;
+	cl_ulong maxsize;
 
 	opencl_init_opt("$JOHN/kernels/nt_kernel.cl", ocl_gpu_id, NULL);
 
@@ -171,6 +172,11 @@ static void init(struct fmt_main *self){
 
 	crypt_kernel = clCreateKernel( program[ocl_gpu_id], "nt_crypt", &ret_code );
 	HANDLE_CLERROR(ret_code,"Error creating kernel");
+
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
 
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, (PLAINTEXT_LENGTH+1)*global_work_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,"Error creating page-locked memory");
@@ -196,13 +202,11 @@ static void init(struct fmt_main *self){
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, argIndex++, sizeof(buffer_out ), (void*) &buffer_out ),
 		"Error setting argument 1");
 
+	/* This format can't run with reduced global work size */
+	self->params.min_keys_per_crypt = global_work_size;
 	self->params.max_keys_per_crypt = global_work_size;
 	if (!local_work_size)
 		opencl_find_best_workgroup(self);
-
-	//self->params.min_keys_per_crypt = local_work_size < 8 ?
-	//	8 : local_work_size;
-	self->params.min_keys_per_crypt = global_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }

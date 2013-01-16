@@ -409,7 +409,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	ppm_data->min_context = ppm_data->max_context =
 		(struct ppm_context *) sub_allocator_alloc_context(&ppm_data->sub_alloc);
 	if(!ppm_data->min_context) {
-	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_context failed\n"); /* FIXME: cli_errmsg */
+	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_context failed\n");
 	    return 0;
 	}
 	ppm_data->min_context->suffix = NULL;
@@ -418,7 +418,7 @@ static int restart_model_rare(ppm_data_t *ppm_data)
 	ppm_data->found_state = ppm_data->min_context->con_ut.u.stats=
 		(struct state_tag *)sub_allocator_alloc_units(&ppm_data->sub_alloc, 256/2);
 	if(!ppm_data->found_state) {
-	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_units failed\n"); /* FIXME: cli_errmsg */
+	    //rar_dbgmsg("unrar: restart_model_rare: sub_allocator_alloc_units failed\n");
 	    return 0;
 	}
 	for (ppm_data->run_length = ppm_data->init_rl, ppm_data->prev_success=i=0; i < 256 ; i++) {

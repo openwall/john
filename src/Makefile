@@ -73,7 +73,7 @@ ifdef HAVE_KRB5
 KRB5_LDFLAGS = -lk5crypto -lkrb5
 endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -Wdeclaration-after-statement -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
@@ -121,6 +121,7 @@ JOHN_OBJS = \
 	zip_fmt.o zip2john.o gladman_hmac.o gladman_pwd2key.o \
 	racf2john.o \
 	keychain2john.o \
+	kwallet2john.o \
 	pwsafe2john.o \
 	keepass2john.o \
 	keyring2john.o \
@@ -138,6 +139,7 @@ JOHN_OBJS = \
 	loader.o logger.o math.o memory.o misc.o options.o params.o path.o \
 	recovery.o rpp.o rules.o signals.o single.o status.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
+	listconf.o \
 	fake_salts.o \
 	win32_memmap.o \
 	unicode.o \
@@ -221,14 +223,16 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/genmkvpwd ../run/mkvcalcproba ../run/calc_stat \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
-	../run/keychain2john ../run/keyring2john john.local.conf
+	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
+	john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
 	../run/ssh2john.com ../run/rar2john.com ../run/zip2john \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
-	../run/keychain2john.com ../run/keyring2john.com john.local.conf
+	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
+	john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -237,7 +241,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	john.local.conf
+	../run/kwallet2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -246,7 +250,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	john.local.conf
+	../run/kwallet2john.exe john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1595,6 +1599,10 @@ endif
 	$(RM) ../run/keychain2john
 	ln -s john ../run/keychain2john
 
+../run/kwallet2john: ../run/john
+	$(RM) ../run/kwallet2john
+	ln -s john ../run/kwallet2john
+
 ../run/pwsafe2john: ../run/john
 	$(RM) ../run/pwsafe2john
 	ln -s john ../run/pwsafe2john
@@ -1649,6 +1657,9 @@ endif
 
 ../run/keychain2john.com: john.com
 	copy john.com ..\run\keychain2john.com
+
+../run/kwallet2john.com: john.com
+	copy john.com ..\run\kwallet2john.com
 
 ../run/pwsafe2john.com: john.com
 	copy john.com ..\run\pwsafe2john.com
@@ -1733,6 +1744,10 @@ endif
 ../run/keychain2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/keychain2john.exe
 	strip ../run/keychain2john.exe
+
+../run/kwallet2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/kwallet2john.exe
+	strip ../run/kwallet2john.exe
 
 ../run/pwsafe2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pwsafe2john.exe

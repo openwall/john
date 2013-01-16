@@ -115,7 +115,7 @@ static void create_clobj(int gws, struct fmt_main *self)
 
 	global_work_size = gws;
 	gws *= VF;
-	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
+	self->params.max_keys_per_crypt = gws;
 
 	/// Allocate memory
 	pinned_in = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(pbkdf2_password) * gws, NULL, &ret_code);
@@ -489,7 +489,7 @@ static void init(struct fmt_main *self)
 		}
 	}
 
-	self->params.min_keys_per_crypt = MAX(local_work_size, 8);
+	self->params.min_keys_per_crypt = local_work_size;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);

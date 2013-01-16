@@ -20,6 +20,7 @@
 
 
 #include "cuda_rawsha512.h"
+#include "cuda_common.h"
 #include "arch.h"
 #include "params.h"
 #include "common.h"
@@ -72,6 +73,7 @@ static void init(struct fmt_main *self)
 	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_key));
 	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(sha512_hash));
 
+	cuda_init(cuda_gpu_id);
 	cuda_sha512_init();
 
 	atexit(done);

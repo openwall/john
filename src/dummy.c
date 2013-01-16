@@ -111,14 +111,7 @@ static char *decode(char *ciphertext)
 	return out;
 }
 
-#ifdef __GNUC__
-#if __GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1)
-__attribute__((always_inline))
-#else
-__inline__
-#endif
-#endif
-static ARCH_WORD_32 string_hash(char *s)
+MAYBE_INLINE static ARCH_WORD_32 string_hash(char *s)
 {
 	ARCH_WORD_32 hash, extra;
 	char *p;

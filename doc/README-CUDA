@@ -44,6 +44,33 @@ Performance issues:
     GTX570      7680    128     10      27561K c/s
 
 
+OpenCL vs. CUDA parlor:
+  Compared to OpenCL, THREADS equals "local worksize" while OpenCL's "global
+  worksize" is what you get from THREADS*BLOCKS (note the difference).
+
+  Example: The md5crypt-cuda format ships with THREADS=256 and BLOCKS=84 (28*3)
+  hard-coded in cuda_cryptmd5.h. It performs poorly on stronger devices with
+  these figures, while the OpenCL format auto-tunes and performs 23% better:
+
+      Benchmarking: md5crypt [CUDA]... DONE
+      Raw:    728361 c/s real, 728361 c/s virtual
+
+      Local worksize (LWS) 128, Global worksize (GWS) 2097152
+      Benchmarking: md5crypt [OpenCL]... DONE
+      Raw:    892405 c/s real, 890510 c/s virtual
+
+  Since the md5crypt-opencl auto-tuned to LWS=128 and GWS=2097152, we can
+  edit cuda_cryptmd5.h and use THREADS=128 and BLOCKS=16384 (ie. 2097152/128).
+  Now, THREADS equals LWS and THREADS*BLOCKS equals GWS, so we should have
+  equal sizes for comparison. Now re-build John and perform a new benchmark:
+
+      Benchmarking: md5crypt [CUDA]... DONE
+      Raw:    907858 c/s real, 909827 c/s virtual
+
+  That's even better than the OpenCL figure! This shows that this particular
+  CUDA format is in fact better than the OpenCL one as long as you have tuned
+  it to your device.
+
 Watchdog Timer:
   If your GPU is also your active display device, the display driver enables a
   watchdog timer by default, killing any kernel that runs for more than about

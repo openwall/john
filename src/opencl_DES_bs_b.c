@@ -407,7 +407,7 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	
 	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno][0],1,NULL,&N,&M,0,NULL,&evnt);
 	
-	HANDLE_CLERROR(err,"Enque Kernel Failed");
+	HANDLE_CLERROR(err,"Enqueue Kernel Failed");
 
 	clWaitForEvents(1,&evnt);
 	

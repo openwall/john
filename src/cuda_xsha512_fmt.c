@@ -26,6 +26,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "cuda_common.h"
 
 #define FORMAT_LABEL			"xsha512-cuda"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
@@ -86,6 +87,8 @@ static void init(struct fmt_main *self)
 	gkey = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_key));
 	g_ext_key = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_extend_key));
 	ghash = mem_calloc(MAX_KEYS_PER_CRYPT * sizeof(xsha512_hash));
+
+	cuda_init(cuda_gpu_id);
 	cuda_xsha512_init();
 	atexit(done);
 }

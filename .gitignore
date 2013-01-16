@@ -18,6 +18,7 @@ run/john.local.conf
 run/keepass2john
 run/keychain2john
 run/keyring2john
+run/kwallet2john
 run/mkvcalcproba
 run/mozilla2john
 run/office2john

@@ -35,6 +35,9 @@
 #include "formats.h"
 #include "options.h"
 #include "unicode.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define FORMAT_LABEL        "sybasease"
 #define FORMAT_NAME         "Sybase ASE salted SHA-256"
@@ -51,8 +54,9 @@
 #define BINARY_SIZE         32
 #define SALT_SIZE           8
 
-#define MIN_KEYS_PER_CRYPT  96
-#define MAX_KEYS_PER_CRYPT  96
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
+#define OMP_SCALE           256
 
 static struct fmt_tests SybaseASE_tests[] = {
     {"0xc0074f9cc8c0d55d9803b0c0816e127f2a56ee080230af5b4ce3da1f3d9fcc5449fcfcf3fb9595eb8ea6", "test12"},
@@ -61,14 +65,28 @@ static struct fmt_tests SybaseASE_tests[] = {
 };
 
 static char *saved_salt;
-static UTF16 prep_key[MAX_KEYS_PER_CRYPT][518 / sizeof(UTF16)];
-static ARCH_WORD_32 crypt_out[MAX_KEYS_PER_CRYPT][8];
+static UTF16 (*prep_key)[518 / sizeof(UTF16)];
+static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE/4];
 
 extern struct fmt_main fmt_SybaseASE;
 static void init(struct fmt_main *self)
 {
-    if (options.utf8)
-        fmt_SybaseASE.params.plaintext_length = 125;
+#ifdef _OPENMP
+	int omp_t;
+
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+
+	prep_key = mem_calloc_tiny(sizeof(*prep_key) *
+		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_alloc_tiny(sizeof(*crypt_out) *
+		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+
+	if (options.utf8)
+		fmt_SybaseASE.params.plaintext_length = 125;
 }
 
 // TODO: strengthen checks
@@ -213,12 +231,13 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-    int index;
+    int index = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key, saved_salt)
+    for(index = 0; index < count; index++)
 #endif
-    for(index = 0; index < count; index++) {
+    {
         SHA256_CTX ctx;
 
         /* append salt at offset 510 */
@@ -232,8 +251,11 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-    int index;
+    int index = 0;
+
+#ifdef _OPENMP
     for (index = 0; index < count; index++)
+#endif
         if (*(ARCH_WORD_32 *)binary == *(ARCH_WORD_32 *)crypt_out[index])
             return 1;
     return 0;
