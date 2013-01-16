@@ -28,6 +28,11 @@
 #define GWS_CONFIG			"sha512crypt_GWS"
 #define DUR_CONFIG			"sha512crypt_MaxDuration"
 
+//Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
+#define _USE_CPU_SOURCE			(cpu(source_in_use))
+#define _USE_GPU_SOURCE			(gpu(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use))
+
 static sha512_salt         * salt;
 static sha512_password     * plaintext;        // plaintext ciphertexts
 static sha512_hash         * calculated_hash;  // calculated hashes
@@ -174,7 +179,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         //Set prepare kernel arguments
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -384,14 +389,14 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
             "Failed in clEnqueueWriteBuffer");
 
     //Enqueue the kernel
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent[4]);
     }
     ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
         1, NULL, &num, &local_work_size, 0, NULL, &myEvent[2]);
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent[5]);
         clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
@@ -405,7 +410,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
             sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, &myEvent[3]),
             "Failed in clEnqueueReadBuffer");
 
-    loops = gpu(source_in_use) ? 8 : 4;
+    loops = _SPLIT_KERNEL_IN_USE ? 8 : 4;
     HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
     //** Get execution time **//
@@ -415,7 +420,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent[i], CL_PROFILING_COMMAND_END,
                 sizeof(cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
 
-        if (gpu(source_in_use) && (i == 2 || i == 5 || i == 6))
+        if (_SPLIT_KERNEL_IN_USE && (i == 2 || i == 5 || i == 6))
             looptime += (endTime - startTime);
         else
             runtime += (endTime - startTime);
@@ -426,7 +431,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
     if (do_details)
         fprintf(stderr, "\n");
 
-    if (gpu(source_in_use))
+    if (_SPLIT_KERNEL_IN_USE)
         runtime += ((looptime / 3) * (salt->rounds / HASH_LOOPS));
 
     // Free resources.
@@ -531,7 +536,7 @@ static void build_kernel(char * task) {
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
         HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
         final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
@@ -549,7 +554,7 @@ static void init(struct fmt_main * self) {
     if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if (gpu(source_in_use))
+    if (_USE_GPU_SOURCE)
         task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
 
     build_kernel(task);
@@ -609,7 +614,7 @@ static void done(void) {
 
     HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
         HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
     }
@@ -711,7 +716,7 @@ static void crypt_all(int count) {
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
             &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel I");

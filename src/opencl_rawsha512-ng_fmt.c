@@ -34,6 +34,11 @@
 #define GWS_CONFIG			"rawsha512_GWS"
 #define DUR_CONFIG			"rawsha512_MaxDuration"
 
+//Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
+#define _USE_CPU_SOURCE			(cpu(source_in_use))
+#define _USE_GPU_SOURCE			(gpu(source_in_use))
+#define _USE_LOCAL_SOURCE		(amd_gcn(source_in_use) || use_local(source_in_use))
+
 static sha512_password     * plaintext;             // plaintext ciphertexts
 static uint32_t            * calculated_hash;       // calculated (partial) hashes
 
@@ -61,7 +66,7 @@ static struct fmt_tests tests[] = {
 static size_t get_task_max_work_group_size(){
     size_t max_available;
 
-    if (amd_gcn(source_in_use) || use_local(source_in_use))
+    if (_USE_LOCAL_SOURCE)
         max_available = get_local_memory_size(ocl_gpu_id) /
                 (sizeof(sha512_ctx_buffer));
     else
@@ -155,7 +160,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
     HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
             (void *) &result_buffer), "Error setting argument 2");
 
-    if (amd_gcn(source_in_use) || use_local(source_in_use)) {
+    if (_USE_LOCAL_SOURCE) {
         //Fast working memory.
         HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
            sizeof(sha512_ctx_buffer) * local_work_size,
@@ -420,7 +425,7 @@ static void init(struct fmt_main * self) {
     if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if (amd_gcn(source_in_use) || use_local(source_in_use))
+    if (_USE_LOCAL_SOURCE)
         task = "$JOHN/kernels/sha512-ng_kernel_LOCAL.cl";
     opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
@@ -434,7 +439,6 @@ static void init(struct fmt_main * self) {
     local_work_size = get_default_workgroup();
 
     if (source_in_use != device_info[ocl_gpu_id]) {
-        device_info[ocl_gpu_id] = source_in_use;
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
     }
 
