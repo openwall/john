@@ -6,7 +6,6 @@
  */
 
 #include <stdio.h>
-#include <ctype.h> /* for --device parsing that should be moved */
 #ifndef _MSC_VER
 #include <unistd.h>
 #else
@@ -62,10 +61,6 @@
 #include "plugin.h"
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
-#endif
-#ifdef HAVE_CUDA
-extern int cuda_gpu_id;
-extern void cuda_device_list();
 #endif
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"

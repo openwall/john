@@ -42,6 +42,9 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
+#if defined(HAVE_CUDA)
+extern int cuda_gpu_id;
+#endif
 
 struct options_main options;
 static char *field_sep_char_string;

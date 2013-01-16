@@ -97,7 +97,7 @@ static void bench_install_handler(void)
 	sigaction(SIGALRM, &sa, NULL);
 #else
 	signal(SIGALRM, bench_handle_timer);
-#endif        
+#endif
 }
 
 static void bench_set_keys(struct fmt_main *format,
