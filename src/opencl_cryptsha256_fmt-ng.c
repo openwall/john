@@ -619,7 +619,7 @@ static void crypt_all(int count) {
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-                &gws, &local_work_size, 0, NULL, profilingEvent),
+                &gws, &local_work_size, 0, NULL, NULL),
                 "failed in clEnqueueNDRangeKernel");
             HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
             opencl_process_event();
@@ -629,7 +629,7 @@ static void crypt_all(int count) {
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-            &gws, &local_work_size, 0, NULL, profilingEvent),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes

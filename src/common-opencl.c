@@ -816,7 +816,7 @@ void opencl_find_best_lws(
 {
 	size_t gws;
 	cl_int ret_code;
-	int i, j, numloops;
+	int i, numloops;
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
@@ -917,11 +917,14 @@ void opencl_find_best_lws(
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 
+			/* **
+			// FIXME: some problem happens if i release this. Not able to find the what causes it.
 			// Release events
 			for (j = 0; j < EVENTS; j++) {
 				if (multi_profilingEvent[j])
 					HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");
 			}
+			 * **/
 		}
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
