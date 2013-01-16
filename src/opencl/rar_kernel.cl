@@ -256,6 +256,14 @@ inline void sha1_final(uint *W, uint *output, const uint tot_len)
 	sha1_block(W, output);
 }
 
+#define dump_stuff_msg(msg, x, size) {	  \
+		uint ii; \
+		printf("%s : ", msg); \
+		for (ii = 0; ii < (size)/4; ii++) \
+			printf("%08x ", SWAP32(x[ii])); \
+		printf("\n"); \
+	}
+
 __kernel void RarInit(
 	const __global uint *unicode_pw,
 	const __global uint *pw_len,
@@ -306,7 +314,7 @@ __kernel void RarGetIV(
 	   works perfectly fine in the RarFinal() subkernel below. */
 	PUTCHAR_BE(block, pwlen + 11, 0x80);
 	for (i = pwlen + 12; i < 56; i++)
-		PUTCHAR_BE(block, pwlen + i, 0);
+		PUTCHAR_BE(block, i, 0);
 	block[14] = 0;
 	block[15] = ((pwlen + 8 + 3) * (round + 1)) << 3;
 	sha1_block(block, output);
