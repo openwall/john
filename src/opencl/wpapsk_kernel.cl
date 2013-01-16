@@ -24,8 +24,8 @@
 #define USE_BITSELECT
 #endif
 
-/* Workaround for driver bug seen in version 295.49 */
-#if 0//gpu_nvidia(DEVICE_INFO)
+/* Workaround for problem seen with 9600GT */
+#if gpu_nvidia(DEVICE_INFO)
 #define MAYBE_CONSTANT	__global const
 #else
 #define MAYBE_CONSTANT	__constant

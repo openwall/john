@@ -27,13 +27,6 @@
 #define USE_BITSELECT
 #endif
 
-/* Workaround for driver bug seen in version 295.49 */
-#if 0//gpu_nvidia(DEVICE_INFO)
-#define MAYBE_CONSTANT	__global const
-#else
-#define MAYBE_CONSTANT	__constant
-#endif
-
 #if gpu_nvidia(DEVICE_INFO) || amd_gcn(DEVICE_INFO)
 inline uint SWAP32(uint x)
 {
@@ -522,7 +515,7 @@ inline void preproc(__global const uchar *key, uint keylen,
 inline void hmac_sha1(__global uint *state,
                       __global uint *ipad,
                       __global uint *opad,
-                      MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
+                      __constant uchar *salt, uint saltlen, uchar add)
 {
 	uint i;
 	uint W[16];
@@ -565,7 +558,7 @@ inline void hmac_sha1(__global uint *state,
 }
 
 __kernel void pbkdf2_init(__global const pbkdf2_password *inbuffer,
-                          MAYBE_CONSTANT pbkdf2_salt *salt,
+                          __constant pbkdf2_salt *salt,
                           __global pbkdf2_state *state)
 {
 	uint gid = get_global_id(0);
@@ -685,7 +678,7 @@ __kernel void pbkdf2_loop(__global pbkdf2_state *state)
 #endif
 }
 
-__kernel void pbkdf2_pass2(MAYBE_CONSTANT pbkdf2_salt *salt,
+__kernel void pbkdf2_pass2(__constant pbkdf2_salt *salt,
                            __global pbkdf2_out *out,
                            __global pbkdf2_state *state)
 {
