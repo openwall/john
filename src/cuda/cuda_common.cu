@@ -8,9 +8,10 @@
 
 #include <stdio.h>
 #include <assert.h>
+
 #include "cuda_common.cuh"
 
-extern "C" 
+extern "C"
 void HandleError(cudaError_t err, const char *file, int line)
 {
 	if (err != cudaSuccess) {
@@ -24,6 +25,7 @@ void HandleError(cudaError_t err, const char *file, int line)
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 
+extern "C"
 static char *human_format(size_t size)
 {
 	char pref[] = { ' ', 'K', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' };
@@ -38,20 +40,7 @@ static char *human_format(size_t size)
 	return ret;
 }
 
-extern "C" 
-void cuda_init(unsigned int cuda_gpu_id)
-{
-	int devices;
-	HANDLE_ERROR(cudaGetDeviceCount(&devices));
-	if (cuda_gpu_id < devices && devices > 0)
-		cudaSetDevice(cuda_gpu_id);
-	else {
-		fprintf(stderr, "Invalid CUDA device id = %d\n", cuda_gpu_id);
-		exit(1);
-	}
-}
-
-extern "C" 
+extern "C"
 void cuda_device_list()
 {
 	int i, devices;

@@ -662,29 +662,6 @@ static void john_init(char *name, int argc, char **argv)
 	init_opencl_devices();
 #endif
 
-#ifdef HAVE_CUDA
-	/* This code should move to cuda_init() and drop the #ifndef OPENCL */
-	{
-		struct list_entry *current;
-
-		if ((current = options.gpu_devices->head)) {
-#ifndef HAVE_OPENCL
-			if (current->next) {
-				fprintf(stderr, "Only one CUDA device supported.\n");
-				exit(1);
-			}
-#endif
-			if (!isdigit(current->data[0])) {
-				fprintf(stderr, "Invalid CUDA device id \"%s\"\n",
-				        current->data);
-				exit(1);
-			}
-			cuda_gpu_id = atoi(current->data);
-		} else
-			cuda_gpu_id = 0;
-	}
-#endif
-
 	common_init();
 	sig_init();
 
