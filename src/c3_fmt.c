@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009-2011 by Solar Designer
+ * Copyright (c) 2009-2012 by Solar Designer
  *
  * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
  * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
@@ -394,8 +394,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 #if defined(_OPENMP) && defined(__GLIBC__)
@@ -446,6 +447,8 @@ static void crypt_all(int count)
 		strnzcpy(crypt_out[index], crypt(saved_key[index], saved_salt),
 		    BINARY_SIZE);
 #endif
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -487,6 +490,8 @@ struct fmt_main fmt_crypt = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

@@ -251,8 +251,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -299,6 +300,8 @@ struct fmt_main fmt_dummy = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

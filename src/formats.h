@@ -23,6 +23,13 @@ struct fmt_main;
 #define DEFAULT_ALIGN MEM_ALIGN_WORD
 
 /*
+ * Some format methods accept pointers to these, yet we can't just include
+ * loader.h here because that would be a circular dependency.
+ */
+struct db_main;
+struct db_salt;
+
+/*
  * Format property flags.
  */
 /* Uses case-sensitive passwords */
@@ -121,6 +128,17 @@ struct fmt_methods {
  * shared underlying resource is used). */
 	void (*init)(struct fmt_main *self);
 
+/* De-initializes this format, which must have been previously initialized */
+	void (*done)(void);
+
+/* Called whenever the set of password hashes being cracked changes, such as
+ * after self-test, but before actual cracking starts.  When called before a
+ * self-test or benchmark rather than before actual cracking, db may be NULL.
+ * Normally, this is a no-op since a format implementation shouldn't mess with
+ * the database unnecessarily.  However, when there is a good reason to do so
+ * this may e.g. transfer the salts and hashes onto a GPU card. */
+	void (*reset)(struct db_main *db);
+
 /* Extracts the ciphertext string out of the input file fields.  Normally, this
  * will simply return field[1], but in some special cases it may use another
  * field (e.g., when the hash type is commonly used with PWDUMP rather than
@@ -166,7 +184,12 @@ struct fmt_methods {
 /* Sets a plaintext, with index from 0 to fmt_params.max_keys_per_crypt - 1 */
 	void (*set_key)(char *key, int index);
 
-/* Returns a plaintext previously set with set_key() */
+/* Returns a plaintext previously set with and potentially altered by
+ * set_key() (e.g., converted to all-uppercase and truncated at 7 for LM
+ * hashes).  The plaintext may also have been generated or altered by
+ * crypt_all().  Depending on crypt_all() implementation, the index used here
+ * does not have to match an index previously used with set_key(), although
+ * for most formats it does.  See the description of crypt_all() below. */
 	char *(*get_key)(int index);
 
 /* Allow the previously set keys to be dropped if that would help improve
@@ -174,10 +197,29 @@ struct fmt_methods {
  * a call to clear_keys() the keys are undefined. */
 	void (*clear_keys)(void);
 
-/* Calculates the ciphertexts for given salt and plaintexts. This may
- * always calculate at least min_keys_per_crypt ciphertexts regardless of
- * the requested count, for some formats. */
-	void (*crypt_all)(int count);
+/* Computes the ciphertexts for given salt and plaintexts.
+ * For implementation reasons, this may happen to always compute at least
+ * min_keys_per_crypt ciphertexts even if the requested count is lower,
+ * although it is preferable for implementations to obey the count whenever
+ * practical and also for callers not to call crypt_all() with fewer than
+ * min_keys_per_crypt keys whenever practical.
+ * Returns the last output index for which there might be a match (against the
+ * supplied salt's hashes) plus 1.  A return value of zero indicates no match.
+ * Note that output indices don't have to match input indices (although they
+ * may and usually do).  The indices passed to get_key(), get_hash[](),
+ * cmp_one(), and cmp_exact() must be in the 0 to crypt_all() return value
+ * minus 1 range, although for infrequent status reporting get_key() may also
+ * be called on indices previously supplied to set_key() as well as on indices
+ * up to the updated *count minus 1 even if they're beyond this range.
+ * The count passed to cmp_all() must be equal to crypt_all()'s return value.
+ * If an implementation does not use the salt parameter or if salt is NULL
+ * (as it may be during self-test and benchmark), the return value must always
+ * match *count the way it is after the crypt_all() call.
+ * The count is passed by reference and must be updated by crypt_all() if it
+ * computes other than the requested count (such as if it generates additional
+ * candidate passwords on its own).  The updated count is used for c/s rate
+ * calculation.  The return value is thus in the 0 to updated *count range. */
+	int (*crypt_all)(int *count, struct db_salt *salt);
 
 /* These functions calculate a hash out of a ciphertext that has just been
  * generated with the crypt_all() method. To be used while cracking. */
@@ -231,6 +273,11 @@ extern void fmt_register(struct fmt_main *format);
 extern void fmt_init(struct fmt_main *format);
 
 /*
+ * De-initializes this format if it was previously initialized.
+ */
+extern void fmt_done(struct fmt_main *format);
+
+/*
  * Tests the format's methods for correct operation. Returns NULL on
  * success, method name on error.
  */
@@ -240,6 +287,8 @@ extern char *fmt_self_test(struct fmt_main *format);
  * Default methods.
  */
 extern void fmt_default_init(struct fmt_main *self);
+extern void fmt_default_done(void);
+extern void fmt_default_reset(struct db_main *db);
 extern char *fmt_default_prepare(char *fields[10], struct fmt_main *self);
 extern int fmt_default_valid(char *ciphertext, struct fmt_main *self);
 extern char *fmt_default_split(char *ciphertext, int index,

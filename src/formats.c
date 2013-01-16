@@ -64,6 +64,14 @@ void fmt_init(struct fmt_main *format)
 #endif
 }
 
+void fmt_done(struct fmt_main *format)
+{
+	if (format->private.initialized) {
+		format->methods.done();
+		format->private.initialized = 0;
+	}
+}
+
 static int is_poweroftwo(size_t align)
 {
 	return align != 0 && (align & (align - 1)) == 0;
@@ -140,6 +148,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		return "valid";
 
 	fmt_init(format);
+
+	format->methods.reset(NULL);
 
 	if ((format->methods.split == fmt_default_split) &&
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
@@ -266,10 +276,18 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 #ifndef BENCH_BUILD
 		if (lengthcheck == 1)
-			format->methods.crypt_all(max);
+		{
+			int count = max;
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
+		}
 		else
 #endif
-			format->methods.crypt_all(index + 1);
+		{
+			int count = index + 1;
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
+		}
 
 #ifndef BENCH_BUILD
 		/* Check that claimed maxlength is actually supported */
@@ -399,6 +417,14 @@ char *fmt_self_test(struct fmt_main *format)
 }
 
 void fmt_default_init(struct fmt_main *self)
+{
+}
+
+void fmt_default_done(void)
+{
+}
+
+void fmt_default_reset(struct db_main *db)
 {
 }
 

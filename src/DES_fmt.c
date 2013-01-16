@@ -72,22 +72,22 @@ static struct {
 
 #endif
 
-#if DES_BS
-
-#if DES_bs_mt
+#if DES_BS && DES_bs_mt
 struct fmt_main fmt_DES;
 #endif
 
 static void init(struct fmt_main *self)
 {
+#if DES_BS
 	DES_bs_init(0, DES_bs_cpt);
 #if DES_bs_mt
 	fmt_DES.params.min_keys_per_crypt = DES_bs_min_kpc;
 	fmt_DES.params.max_keys_per_crypt = DES_bs_max_kpc;
 #endif
-}
-
+#else
+	DES_std_init();
 #endif
+}
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -195,6 +195,13 @@ static void set_salt(void *salt)
 	DES_bs_set_salt(*(ARCH_WORD *)salt);
 }
 
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+	DES_bs_crypt_25(count);
+	return count;
+}
+
 static int cmp_one(void *binary, int index)
 {
 	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
@@ -263,13 +270,16 @@ static void set_salt(void *salt)
 	DES_std_set_salt(*(ARCH_WORD *)salt);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	for (index = 0; index < count; index++)
 		DES_std_crypt(buffer[index].aligned.data.KS,
 			buffer[index].aligned.data.binary);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -364,11 +374,9 @@ struct fmt_main fmt_DES = {
 #endif
 		tests
 	}, {
-#if DES_BS
 		init,
-#else
-		DES_std_init,
-#endif
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
@@ -398,11 +406,7 @@ struct fmt_main fmt_DES = {
 #endif
 		get_key,
 		fmt_default_clear_keys,
-#if DES_BS
-		DES_bs_crypt_25,
-#else
 		crypt_all,
-#endif
 		{
 			get_hash_0,
 			get_hash_1,

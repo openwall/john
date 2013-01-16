@@ -60,7 +60,15 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	char *where;
 	size_t size;
 
-	if (db->loaded)
+/*
+ * We should have already called fmt_self_test() from john.c.  This redundant
+ * self-test is only to catch some more obscure bugs in debugging builds (it
+ * is a no-op in normal builds).  Additionally, we skip it even in debugging
+ * builds if we're running in --stdout mode (there's no format involved then)
+ * or if the format has a custom reset() method (we've already called reset(db)
+ * from john.c, and we don't want to mess with the format's state).
+ */
+	if (db->loaded && db->format->methods.reset == fmt_default_reset)
 	if ((where = fmt_self_test(db->format))) {
 		log_event("! Self test failed (%s)", where);
 		fprintf(stderr, "Self test failed (%s)\n", where);
@@ -318,7 +326,7 @@ static int crk_process_event(void)
 static int crk_password_loop(struct db_salt *salt)
 {
 	struct db_password *pw;
-	int index;
+	int count, match, index;
 
 #if !OS_TIMER
 	sig_timer_emu_tick();
@@ -329,19 +337,24 @@ static int crk_password_loop(struct db_salt *salt)
 	if (event_pending)
 	if (crk_process_event()) return 1;
 
-	crk_methods.crypt_all(crk_key_index);
+	count = crk_key_index;
+	match = crk_methods.crypt_all(&count, salt);
+	crk_last_key = count;
 
 	{
 		int64 effective_count;
-		mul32by32(&effective_count, salt->count, crk_key_index);
+		mul32by32(&effective_count, salt->count, count);
 		status_update_crypts(&effective_count);
 	}
+
+	if (!match)
+		return 0;
 
 	if (!salt->bitmap) {
 		pw = salt->list;
 		do {
-			if (crk_methods.cmp_all(pw->binary, crk_key_index))
-			for (index = 0; index < crk_key_index; index++)
+			if (crk_methods.cmp_all(pw->binary, match))
+			for (index = 0; index < match; index++)
 			if (crk_methods.cmp_one(pw->binary, index))
 			if (crk_methods.cmp_exact(crk_methods.source(
 			    pw->source, pw->binary), index)) {
@@ -354,7 +367,7 @@ static int crk_password_loop(struct db_salt *salt)
 			}
 		} while ((pw = pw->next));
 	} else
-	for (index = 0; index < crk_key_index; index++) {
+	for (index = 0; index < match; index++) {
 		int hash = salt->index(index);
 		if (salt->bitmap[hash / (sizeof(*salt->bitmap) * 8)] &
 		    (1U << (hash % (sizeof(*salt->bitmap) * 8)))) {
@@ -382,7 +395,7 @@ static int crk_salt_loop(void)
 		if (crk_password_loop(salt)) return 1;
 	} while ((salt = salt->next));
 
-	crk_last_key = crk_key_index; crk_key_index = 0;
+	crk_key_index = 0;
 	crk_last_salt = NULL;
 	crk_fix_state();
 
@@ -485,7 +498,7 @@ char *crk_get_key1(void)
 
 char *crk_get_key2(void)
 {
-	if (crk_key_index > 1)
+	if (crk_key_index > 1 && crk_key_index < crk_last_key)
 		return crk_methods.get_key(crk_key_index - 1);
 	else
 	if (crk_last_key > 1)

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010-2012 by Solar Designer
  *
  * ...with changes in the jumbo patch, by bartavelle
  */
@@ -282,6 +282,13 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+	MD5_std_crypt(count);
+	return count;
+}
+
 static int cmp_all(void *binary, int count)
 {
 #ifdef MD5_SSE_PARA
@@ -402,6 +409,8 @@ struct fmt_main fmt_MD5 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
