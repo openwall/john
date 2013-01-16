@@ -736,6 +736,19 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 }
 
 //Do the proper test using different global work sizes.
+static void release_profiling_events()
+{
+        int i;
+
+    	// Release events
+	for (i = 0; i < EVENTS; i++) {
+		if (multi_profilingEvent[i])
+			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
+                multi_profilingEvent[i] = NULL;
+	}
+}
+
+//Do the proper test using different global work sizes.
 static cl_ulong gws_test(
 	size_t num, int show_details, unsigned int rounds)
 {
@@ -776,11 +789,7 @@ static cl_ulong gws_test(
 	if (split_events)
 	    runtime += ((looptime / 3) * (rounds / hash_loops));
 
-	// Release events
-	for (i = 0; i < EVENTS; i++) {
-		if (multi_profilingEvent[i])
-			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-	}
+	release_profiling_events();
 	release_clobj();
 	return runtime;
 }
@@ -863,7 +872,9 @@ void opencl_find_best_lws(
 	local_work_size = wg_multiple;
 	self->methods.crypt_all(self->params.max_keys_per_crypt);
 
-	// Activate events
+	release_profiling_events();
+
+        // Activate events
 	profilingEvent = to_profile_event;
 
 	// Timing run
@@ -878,11 +889,7 @@ void opencl_find_best_lws(
 			NULL), "Failed to get profiling info");
 	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
 
-	// Release events
-	for (i = 0; i < EVENTS; i++) {
-		if (multi_profilingEvent[i])
-			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-	}
+	release_profiling_events();
 
 	if (numloops < 1)
 		numloops = 1;
@@ -917,14 +924,7 @@ void opencl_find_best_lws(
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 
-			/* **
-			// FIXME: some problem happens if i release this. Not able to find the what causes it.
-			// Release events
-			for (j = 0; j < EVENTS; j++) {
-				if (multi_profilingEvent[j])
-					HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");
-			}
-			 * **/
+			release_profiling_events();
 		}
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;

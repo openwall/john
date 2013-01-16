@@ -202,7 +202,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem),
                 (void *) &hash_buffer), "Error setting argument 2");
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem),
-            (void *) &work_buffer), "Error setting argument main_kernel (3)");
+                (void *) &work_buffer), "Error setting argument 3");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
 }
