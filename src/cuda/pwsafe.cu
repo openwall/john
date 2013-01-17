@@ -191,7 +191,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         pwsafe_salt *cuda_salt[GPUS];  ///salt
         pwsafe_hash *cuda_hash[GPUS];  ///hashes
 
-	puts("stage 0");
+        //puts("stage 0");
         ///Aloc memory and copy data to gpus
 	for(gpu=0;gpu<GPUS;gpu++){
 		HANDLE_ERROR(cudaSetDevice(gpu));
@@ -205,10 +205,10 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
 		HANDLE_ERROR(cudaMemcpy(cuda_salt[gpu], host_salt, PWSAFE_SALT_SIZE,
 			cudaMemcpyHostToDevice));
 	}
-	puts("stage 1");
+	//puts("stage 1");
 	for(gpu=0;gpu<GPUS;gpu++){
 		HANDLE_ERROR(cudaSetDevice(gpu));
-		printf("gpu=%d\n",gpu);
+		//printf("gpu=%d\n",gpu);
 		///Run kernel and wait for execution end
 		pwsafe_pass *current_pass=cuda_pass[gpu];
 		pwsafe_salt *current_salt=cuda_salt[gpu];
@@ -220,7 +220,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
 		//cudaThreadSynchronize();
 		HANDLE_ERROR(cudaGetLastError());
 	}
-	puts("stage 2");
+	//puts("stage 2");
 	for(gpu=0;gpu<GPUS;gpu++){
 		HANDLE_ERROR(cudaSetDevice(gpu));
 		///Free memory and copy results back
@@ -229,7 +229,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
 		HANDLE_ERROR(cudaFree(cuda_salt[gpu]));
 		HANDLE_ERROR(cudaFree(cuda_hash[gpu]));
 	}
-	puts("stage 3");
+	//puts("stage 3");
 #endif
 
 }
