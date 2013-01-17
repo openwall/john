@@ -43,6 +43,7 @@
 
 #define BINARY_SIZE             20
 #define SALT_SIZE               12
+#define SALT_ALIGN		1
 
 #define FORTINET_MAGIC          "\xa3\x88\xba\x2e\x42\x4c\xb0\x4a\x53\x79\x30\xc1\x31\x07\xcc\x3f\xa1\x32\x90\x29\xa9\x81\x5b\x70"
 #define FORTINET_MAGIC_LENGTH   24
@@ -203,13 +204,9 @@ struct fmt_main fmt_FGT = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
-#endif
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP ,
@@ -223,9 +220,7 @@ struct fmt_main fmt_FGT = {
 		fmt_default_split,
 		binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

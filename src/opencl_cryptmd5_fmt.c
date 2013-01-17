@@ -32,6 +32,7 @@
 
 #define BINARY_SIZE		16
 #define SALT_SIZE		(8+1)	/** salt + prefix id **/
+#define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT	1 /* These will change in init() */
 #define MAX_KEYS_PER_CRYPT	1
@@ -214,6 +215,7 @@ static void set_salt(void *salt)
 {
 	uint8_t *s = salt;
 	uint8_t len;
+
 	for (len = 0; len < 8 && s[len]; len++);
 	host_salt.saltlen = len;
 	memcpy(host_salt.salt, s, host_salt.saltlen);
@@ -226,6 +228,7 @@ static void *salt(char *ciphertext)
 {
 	static uint8_t ret[SALT_SIZE];
 	uint8_t i, *pos = (uint8_t *) ciphertext, *dest = ret, *end;
+
 	memset(ret, 0, SALT_SIZE);
 
 	if (strncmp(ciphertext, md5_salt_prefix, strlen(md5_salt_prefix)) == 0) {
@@ -241,7 +244,7 @@ static void *salt(char *ciphertext)
 	for (i = 0; i < 8 && *end != '$'; i++, end++);
 	while (pos != end)
 		*dest++ = *pos++;
-	return (void *) ret;
+	return (void *)ret;
 }
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
@@ -620,7 +623,7 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

@@ -41,6 +41,8 @@ static int omp_t = 1;
 #define CIPHERTEXT_LENGTH	16
 #define BINARY_SIZE		8
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		1
+
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -180,6 +182,7 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *username;
 	static struct custom_salt cs;
+
 	ctcopy += 7;	/* skip over "$racf$*" */
 	username = strtok(ctcopy, "*");
 	/* process username */
@@ -203,6 +206,7 @@ static void *get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
+
 	p = strrchr(ciphertext, '*') + 1;
 		for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
@@ -311,13 +315,9 @@ struct fmt_main fmt_racf = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
                 DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
-                DEFAULT_ALIGN,
-#endif
+                SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -331,9 +331,7 @@ struct fmt_main fmt_racf = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

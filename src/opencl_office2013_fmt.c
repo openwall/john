@@ -176,6 +176,8 @@ static void done(void)
 	release_clobj();
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(GenerateSHA512pwhash), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(Generate2013key), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 

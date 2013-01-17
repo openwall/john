@@ -28,6 +28,7 @@
 #define BINARY_SIZE             16
 #define ACTUAL_SALT_SIZE        8
 #define SALT_SIZE               (ACTUAL_SALT_SIZE + 1) // 1 byte for iterations
+#define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT      (2048 * 96)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
@@ -290,7 +291,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	printf("crypt_all(%d)\n", count);
 #endif
 	///Prepare setting format: salt+prefix+count_log2
-	strcpy(setting, currentsalt);
+	memcpy(setting, currentsalt, ACTUAL_SALT_SIZE);
 	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
 	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
 	/// Copy data to gpu
@@ -453,7 +454,7 @@ struct fmt_main fmt_opencl_phpass = {
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
