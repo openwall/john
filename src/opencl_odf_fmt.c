@@ -84,7 +84,6 @@ static cl_mem mem_in, mem_out, mem_setting;
 
 static void done(void)
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
