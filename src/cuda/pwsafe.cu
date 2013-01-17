@@ -10,8 +10,8 @@
 #include "../cuda_pwsafe.h"
 #include "cuda_common.cuh"
 
-#define PWSAFE_IN_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_pass))
-#define PWSAFE_OUT_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_hash))
+#define PWSAFE_IN_SIZE (KEYS_PER_GPU * sizeof(pwsafe_pass))
+#define PWSAFE_OUT_SIZE (KEYS_PER_GPU * sizeof(pwsafe_hash))
 #define PWSAFE_SALT_SIZE (sizeof(pwsafe_salt))
 
 __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
@@ -149,7 +149,11 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
     pwsafe_hash * host_out)
 {
-        pwsafe_pass *cuda_pass = NULL;  ///passwords
+	unsigned int gpu=0;
+
+//#define _DEFAULT_
+#ifdef _DEFAULT_
+ pwsafe_pass *cuda_pass = NULL;  ///passwords
         pwsafe_salt *cuda_salt = NULL;  ///salt
         pwsafe_hash *cuda_hash = NULL;  ///hashes
 
@@ -175,5 +179,58 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         cudaFree(cuda_pass);
         cudaFree(cuda_salt);
         cudaFree(cuda_hash);
+#else
+
+	//int runtimeVersion=0;
+	//cudaRuntimeGetVersion(&runtimeVersion);
+	//printf("Cuda runtime: %d.%d\n",runtimeVersion/1000,(runtimeVersion%100)/10);
+
+
+	//unsigned int TB=THREADS*BLOCKS;
+        pwsafe_pass *cuda_pass[GPUS];  ///passwords
+        pwsafe_salt *cuda_salt[GPUS];  ///salt
+        pwsafe_hash *cuda_hash[GPUS];  ///hashes
+
+	puts("stage 0");
+        ///Aloc memory and copy data to gpus
+	for(gpu=0;gpu<GPUS;gpu++){
+		HANDLE_ERROR(cudaSetDevice(gpu));
+		HANDLE_ERROR(cudaMalloc(&cuda_pass[gpu], PWSAFE_IN_SIZE));
+		HANDLE_ERROR(cudaMalloc(&cuda_salt[gpu], PWSAFE_SALT_SIZE));
+		HANDLE_ERROR(cudaMalloc(&cuda_hash[gpu], PWSAFE_OUT_SIZE));
+
+		///Somehow this memset, which is not required, speeds things up a bit
+		HANDLE_ERROR(cudaMemset(cuda_hash[gpu], 0, PWSAFE_OUT_SIZE));
+		HANDLE_ERROR(cudaMemcpy(cuda_pass[gpu], host_in+gpu*KEYS_PER_GPU, PWSAFE_IN_SIZE, cudaMemcpyHostToDevice));
+		HANDLE_ERROR(cudaMemcpy(cuda_salt[gpu], host_salt, PWSAFE_SALT_SIZE,
+			cudaMemcpyHostToDevice));
+	}
+	puts("stage 1");
+	for(gpu=0;gpu<GPUS;gpu++){
+		HANDLE_ERROR(cudaSetDevice(gpu));
+		printf("gpu=%d\n",gpu);
+		///Run kernel and wait for execution end
+		pwsafe_pass *current_pass=cuda_pass[gpu];
+		pwsafe_salt *current_salt=cuda_salt[gpu];
+		pwsafe_hash *current_hash=cuda_hash[gpu];
+
+		kernel_pwsafe <<< BLOCKS, THREADS >>> (current_pass, current_salt,
+			current_hash);
+
+		//cudaThreadSynchronize();
+		HANDLE_ERROR(cudaGetLastError());
+	}
+	puts("stage 2");
+	for(gpu=0;gpu<GPUS;gpu++){
+		HANDLE_ERROR(cudaSetDevice(gpu));
+		///Free memory and copy results back
+		HANDLE_ERROR(cudaMemcpy(host_out+KEYS_PER_GPU*gpu, cuda_hash[gpu], 				PWSAFE_OUT_SIZE,cudaMemcpyDeviceToHost));
+		HANDLE_ERROR(cudaFree(cuda_pass[gpu]));
+		HANDLE_ERROR(cudaFree(cuda_salt[gpu]));
+		HANDLE_ERROR(cudaFree(cuda_hash[gpu]));
+	}
+	puts("stage 3");
+#endif
+
 }
 
