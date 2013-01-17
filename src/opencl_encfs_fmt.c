@@ -277,7 +277,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 	else
-		global_work_size = MAX_KEYS_PER_CRYPT;
+		global_work_size = cpu(device_info[ocl_gpu_id]) ? 16 : MAX_KEYS_PER_CRYPT;
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
 	HANDLE_CLERROR(cl_error, "Error creating kernel");

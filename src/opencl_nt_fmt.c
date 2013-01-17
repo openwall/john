@@ -119,8 +119,8 @@ static void release_clobj(void)
         HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_bbbs), "Release mem out");
-        HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Release mem out");
-
+	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Release mem out");
+        
 	MEM_FREE(res_hashes);
 }
 

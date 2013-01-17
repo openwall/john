@@ -28,9 +28,9 @@
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
-#define _USE_GPU_SOURCE			(gpu(source_in_use))
+#define _USE_GPU_SOURCE			(gpu(source_in_use) || platform_apple(platform_id))
 #define _USE_LOCAL_SOURCE		(use_local(source_in_use) || amd_vliw5(source_in_use))
-#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use) || use_local(source_in_use) || amd_vliw5(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(_USE_GPU_SOURCE || _USE_LOCAL_SOURCE)
 
 static sha256_salt         * salt;
 static sha256_password     * plaintext;        // plaintext ciphertexts
@@ -421,7 +421,8 @@ static void init(struct fmt_main * self) {
     //Initialize openCL tunning (library) for this format.
     opencl_init_auto_setup(STEP, HASH_LOOPS, ((_SPLIT_KERNEL_IN_USE) ? 8 : 4),
         ((_SPLIT_KERNEL_IN_USE) ? split_events : NULL), CONFIG_NAME DUR_CONFIG_NAME,
-        warn, &multi_profilingEvent[2], self, create_clobj, release_clobj);
+        warn, &multi_profilingEvent[2], self, create_clobj, release_clobj,
+        sizeof(sha256_password));
 
     self->methods.crypt_all = crypt_all_benchmark;
 
@@ -625,7 +626,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
             HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-                &gws, &local_work_size, 0, NULL, profilingEvent),
+                &gws, &local_work_size, 0, NULL, NULL),
                 "failed in clEnqueueNDRangeKernel");
             HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
             opencl_process_event();
@@ -635,7 +636,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
             "failed in clEnqueueNDRangeKernel II");
     } else
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
-            &gws, &local_work_size, 0, NULL, profilingEvent),
+            &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
     //Read back hashes

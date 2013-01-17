@@ -301,7 +301,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_cryptsha256);
 	john_register_one(&fmt_opencl_cryptsha256_ng);
 	john_register_one(&fmt_opencl_cryptsha512);
-	john_register_one(&fmt_opencl_mscash2);
+	//TODO john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
 	john_register_one(&fmt_opencl_keychain);
 	john_register_one(&fmt_opencl_agilekeychain);
@@ -318,9 +318,9 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);
         john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_bf);
+	//TODO john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
-	john_register_one(&fmt_opencl_DES);
+	//TODO john_register_one(&fmt_opencl_DES);
 	john_register_one(&fmt_opencl_office2007);
 	john_register_one(&fmt_opencl_office2010);
 	john_register_one(&fmt_opencl_office2013);
@@ -776,12 +776,12 @@ static void john_done(void)
 			log_event("Session completed");
 		fmt_done(database.format);
 	}
-	log_done();
 #ifdef HAVE_OPENCL
         //Release OpenCL stuff.
         clean_opencl_devices();
 #endif
 
+	log_done();
 	path_done();
 
 	check_abort(0);

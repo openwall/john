@@ -613,9 +613,9 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
 void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,int dev_no)
 {
 	cl_event evnt;
-	
+
 	size_t N ,M=WORK_GROUP_SIZE;
-	
+
 	if(CL_DEVICE_TYPE_CPU == get_device_type(dev_no))
 		N = BF_N/2;
 	else

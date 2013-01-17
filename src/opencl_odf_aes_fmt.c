@@ -81,18 +81,24 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define outsize (sizeof(odf_hash) * global_work_size)
 #define settingsize sizeof(odf_salt)
 
-static void done(void)
+static void release_clobj(void)
 {
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-
+        
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(saved_key);
 	MEM_FREE(crypt_out);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void init(struct fmt_main *self)

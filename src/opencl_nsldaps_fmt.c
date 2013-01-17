@@ -97,6 +97,7 @@ static struct fmt_tests tests[] = {
 static void create_clobj(int kpc, struct fmt_main *self) {
 	global_work_size = kpc;
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = kpc;
+        
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, PLAINTEXT_LENGTH * kpc, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
 

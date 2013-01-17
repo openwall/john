@@ -82,7 +82,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(inbuffer);
+        MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
 }

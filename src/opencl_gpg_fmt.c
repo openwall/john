@@ -173,7 +173,7 @@ static void release_clobj(void)
 
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
-	MEM_FREE(cracked);
+	MEM_FREE(cracked); 
 }
 
 static void done(void)
