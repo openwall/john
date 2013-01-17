@@ -121,6 +121,7 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 			exec_pbkdf2(dcc_hash_host,salt_api,length,dcc2_hash_host,4096,pltform_no,dev_no );
 
 			exec_time_inv[pltform_no][dev_no]=exec_time_inv[pltform_no][dev_no]/16;
+			
 		}
 		else {
 			exec_pbkdf2(dcc_hash_host,salt_api,length,dcc2_hash_host,((MAX_KEYS_PER_CRYPT<65536)?MAX_KEYS_PER_CRYPT:65536),pltform_no,dev_no );
@@ -336,6 +337,8 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	size_t N=num,M=lws[platform_no][dev_no];
 	
 	unsigned int i, itrCntKrnl = ITERATION_COUNT_PER_CALL;
+	
+	cl_ulong _kernelExecTimeNs = 0 ; 
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].pass_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),pass_api,0,NULL,NULL ), "Copy data to gpu");
 
@@ -358,6 +361,22 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		return gpu_buffer[platform_no][dev_no];
 	}
 	
+	if(PROFILE){
+
+		cl_ulong startTime, endTime;
+
+		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
+
+		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
+
+		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+
+		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END,    sizeof(cl_ulong), &endTime, NULL);
+		
+		_kernelExecTimeNs = endTime - startTime;
+
+	}
+	
 	for(i=0; i< (10240 - 1) ; i = i+ itrCntKrnl ) {
 	
 		if(i == (10240 - itrCntKrnl)) --itrCntKrnl ;
@@ -375,6 +394,22 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 				HANDLE_CLERROR(err,"Enque Kernel Failed");
 
 			return gpu_buffer[platform_no][dev_no];
+		}
+		
+		if(PROFILE){
+
+		cl_ulong startTime, endTime;
+
+		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
+
+		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
+
+		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
+
+		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END,    sizeof(cl_ulong), &endTime, NULL);
+		
+		_kernelExecTimeNs += endTime - startTime;
+
 		}
 	
 	}
@@ -403,18 +438,20 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END,    sizeof(cl_ulong), &endTime, NULL);
+		
+		_kernelExecTimeNs += endTime - startTime;
 
-		if ((endTime - startTime) < kernelExecTimeNs) {
+		if (_kernelExecTimeNs < kernelExecTimeNs) {
 
-			kernelExecTimeNs = endTime - startTime;
+			kernelExecTimeNs = _kernelExecTimeNs ;
 
 			//printf("%d\n",(int)kernelExecTimeNs);
 
 			lws[platform_no][dev_no]  =lws[platform_no][dev_no]*2;
 
 			exec_time_inv[platform_no][dev_no]=  (long double)pow(10,9)/(long double)kernelExecTimeNs;
-
-	        }
+			
+		}
 
          }
 
