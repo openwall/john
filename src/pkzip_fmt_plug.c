@@ -39,8 +39,11 @@
 
 #define PLAINTEXT_LENGTH		31
 
-#define BINARY_SIZE				1
-#define SALT_SIZE				(sizeof(PKZ_SALT*))
+#define BINARY_SIZE			0
+#define BINARY_ALIGN			1
+
+#define SALT_SIZE			(sizeof(PKZ_SALT*))
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 /* max keys allows 256 words per thread on a 16 thread OMP build */
@@ -1603,9 +1606,9 @@ struct fmt_main fmt_pkzip = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
