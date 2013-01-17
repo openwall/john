@@ -61,32 +61,23 @@
 #
 # FIXME: Is using __expand_tilde_by_ref OK?
 #
-# FIXME: For some reason completion for --option= only works
-#	 if the cursor is at the end of the command,
-#	 i.e. [[ ${COMP_POINT} -eq ${#COMP_LINE} ]]
-#	 not if some words follow the one to be completed...
-#	 If ${cur#*=} is not empty, completion works even in the middle
-#	 of the command line
-#	 This is annoying if I want to complete --rules= in
-#	 ./john --rules= --config=test.conf
-#
 # FIXME: If there is a word -- preceding the current word
-#	 which is to be completed, it cannot be an option, so file names
-#	 should be used for completion.
+#        which is to be completed, it cannot be an option, so file names
+#        should be used for completion.
 #
 # FIXME: Should completion for --make-charset really list existing .chr files?
 #
 # TODO:
-#       --wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
+#	--wordlist=~user/filename or --wordlist=~/dir/file doesn't work,
 #	  but pressing [tab] expands this to something useful
 #	  Where to fix this? In john? Some bash config option?
 #
-#       --external should not use all names of [List.External:..-.] sections,
-#         but just sections without a generate() function, if --wordlist,
-#         --incremental, --single or --markov is present on the command line;
-#         and just those with a generate() function, if none of these options
-#         is used
-#         (WHAT IF the user intends to add a --wordlist option later?)
+#	--external should not use all names of [List.External:..-.] sections,
+#	  but just sections without a generate() function, if --wordlist,
+#	  --incremental, --single or --markov is present on the command line;
+#	  and just those with a generate() function, if none of these options
+#	  is used
+#	  (WHAT IF the user intends to add a --wordlist option later?)
 #
 
 # different implementations for completion logic for these options:
@@ -284,15 +275,13 @@ _john()
 			option="${COMPREPLY[0]}=${cur#*[=:]}"
 		fi
 	elif [[ $i -eq 0 ]] ; then
-		# No valid option found; try default completion?
-		# FIXME: Should I return an empty COMPREPLY instead?
+		# No valid option found; try default completion.
 		compopt  -o bashdefault -o default
 		return 0
 	elif [[ "${cur}" == *[=:]* ]] ; then
 		# Ambiguously abbreviated option plus value,
 		# no reasonable way for john specific completion
 		COMPREPLY=()
-		# FIXME: Shopuld I try default completion instead?
 		return 0
 	else
 		# Ambiguously abbreviated option, but no value specified.
@@ -459,13 +448,13 @@ _john()
 			;;
 		--make-charset=*)
 			cur=${cur#*[=:]}
-			#redirect stderr just in case __expand_tilde_by_ref
-			#doesn't exist everywhere
-			#(I'm a bit worried because of the __ at the begin.
-			#May be this function isn't part of an "official" API.)
+			# redirect stderr just in case __expand_tilde_by_ref
+			# doesn't exist everywhere
+			# (I'm a bit worried because of the __ at the begin.
+			# May be this function isn't part of an "official" API.)
 			__expand_tilde_by_ref cur 2>/dev/null
-# FIXME:		should I just use directories for completion, not files,
-# FIXME:		to make overwriting existing files harder?
+			# Should I just use directories for completion,
+			# not files, to make overwriting existing files harder?
 			_filedir "chr"
 			return 0
 			;;
@@ -474,13 +463,15 @@ _john()
 			return 0
 			;;
 		--markov)
-			# FIXME: Should I mention [MIN_LEVEL-] and
-			#        [MIN_LENGTH-]?
-			#        I think not all jumbo versions support these.
-			# FIXME: How to find out whether --markov=MODE is
-			#        supported?
-			#        Assume it is supported if at least one section
-			#        [Markov:mode] exists, e.g. [Markov:Default]?
+			# Should I mention [MIN_LEVEL-] and [MIN_LENGTH-]?
+			# I think not all jumbo versions support these.
+			# How to find out whether --markov=MODE is supported?
+			# Assume it is supported if at least one section
+			# [Markov:mode] exists, e.g. [Markov:Default]?
+			#
+			# OTOH, here the bash completion logic is used just
+			# as a reminder for the --markov syntax, not for
+			# actual completion.
 			COMPREPLY=( $(compgen -W "--markov --markov=LEVEL[:START[:END[:LENGTH]]] --markov=MODE --markov=MODE:LEVEL[:START[:END[:LENGTH]]]" -- ${cur}) )
 			return 0
 			;;
