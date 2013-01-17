@@ -28,6 +28,7 @@ static void opencl_get_dev_info(unsigned int sequential_id);
 extern int get_next_gws_size(size_t num, int step, int startup, int default_value);
 
 //Settings to use for auto-tunning.
+static int buffer_size;
 static int default_value;
 static int hash_loops;
 static char * duration_text;
@@ -738,12 +739,24 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 }
 
 //Do the proper test using different global work sizes.
+static void release_profiling_events()
+{
+        int i;
+
+    	// Release events
+	for (i = 0; i < EVENTS; i++) {
+		if (multi_profilingEvent[i])
+			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
+                multi_profilingEvent[i] = NULL;
+	}
+}
+
+//Do the proper test using different global work sizes.
 static cl_ulong gws_test(
 	size_t num, int show_details, unsigned int rounds)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-	int i;
-	int count;
+	int i, count;
 
 	//Prepare buffers.
 	create_clobj(num, self);
@@ -780,11 +793,7 @@ static cl_ulong gws_test(
 	if (split_events)
 	    runtime += ((looptime / 3) * (rounds / hash_loops));
 
-	// Release events
-	for (i = 0; i < EVENTS; i++) {
-		if (multi_profilingEvent[i])
-			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-	}
+	release_profiling_events();
 	release_clobj();
 	return runtime;
 }
@@ -794,7 +803,7 @@ void opencl_init_auto_setup(
 	int * p_split_events, char * p_duration_text, const char ** p_warnings,
 	cl_event * p_to_profile_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(int gws, struct fmt_main * self),
-	void (*p_release_clobj)(void))
+	void (*p_release_clobj)(void), int p_buffer_size)
 {
 	int i;
 
@@ -803,6 +812,7 @@ void opencl_init_auto_setup(
 		multi_profilingEvent[i] = NULL;
 
 	// Get parameters
+        buffer_size = p_buffer_size;
 	default_value = p_default_value;
 	hash_loops = p_hash_loops;
 	number_of_events = p_number_of_events;
@@ -820,11 +830,10 @@ void opencl_find_best_lws(
 {
 	size_t gws;
 	cl_int ret_code;
-	int i, j, numloops;
+	int i, numloops, count;
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
-	int count;
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -884,11 +893,7 @@ void opencl_find_best_lws(
 			NULL), "Failed to get profiling info");
 	numloops = (int)(size_t)(500000000ULL / (endTime-startTime));
 
-	// Release events
-	for (i = 0; i < EVENTS; i++) {
-		if (multi_profilingEvent[i])
-			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-	}
+	release_profiling_events();
 
 	if (numloops < 1)
 		numloops = 1;
@@ -923,11 +928,7 @@ void opencl_find_best_lws(
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 
-			// Release events
-			for (j = 0; j < EVENTS; j++) {
-				if (multi_profilingEvent[j])
-					HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[j]), "Failed in clReleaseEvent");
-			}
+			release_profiling_events();
 		}
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
@@ -978,21 +979,31 @@ void opencl_find_best_gws(
 	for (num = get_next_gws_size(num, step, 1, default_value);;
 		num = get_next_gws_size(num, step, 0, default_value)) {
 
+	    //Check if hardware can handle the size we are going to try now.
+	    if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
+		break;
+
 	    if (!(run_time = gws_test(num, show_details, rounds)))
 		continue;
 
 	    if (!show_speed && !show_details)
 		advance_cursor();
 
-	    speed = 5000 * num / (run_time / 1000000000.);
+	    speed = rounds * num / (run_time / 1000000000.);
 
 	    if (run_time < min_time)
 		min_time = run_time;
 
 	    if (show_speed) {
-		fprintf(stderr, "gws: %6zu\t%6lu c/s%10u rounds/s%8.3f sec per crypt_all()",
-			num, (long) (num / (run_time / 1000000000.)), speed,
-			(float) run_time / 1000000000.);
+
+		if (rounds > 1)
+			fprintf(stderr, "gws: %9zu\t%10lu c/s%10u rounds/s%8.3f sec per crypt_all()",
+				num, (long) (num / (run_time / 1000000000.)), speed,
+				(float) run_time / 1000000000.);
+		else
+			fprintf(stderr, "gws: %9zu\t%10lu c/s %8.3f ms per crypt_all()",
+				num, (long) (num / (run_time / 1000000000.)),
+				(float) run_time / 1000000.);
 
 		if (run_time > max_run_time) {
 		    fprintf(stderr, " - too slow\n");

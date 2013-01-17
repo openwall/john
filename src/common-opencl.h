@@ -31,7 +31,7 @@
 /* Comment if you do not want to see OpenCL warnings during kernel compilation.
    Currently commented out for releases. The output will also be present if
    you define DEBUG so this may be deprecated anyway. */
-#define REPORT_OPENCL_WARNINGS
+//#define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
 int ocl_gpu_id, platform_id, device_id;
@@ -129,10 +129,10 @@ void opencl_find_best_gws(
         unsigned int rounds);
 
 void opencl_init_auto_setup(
-        int p_default_value, int p_hash_loops, int p_number_of_events,
-        int * p_split_events, char * p_duration_text, const char ** p_warnings,
-        cl_event * p_to_profile_event, struct fmt_main * p_self,
-        void (*p_create_clobj)(int gws, struct fmt_main * self),
-        void (*p_release_clobj)(void));
+	int p_default_value, int p_hash_loops, int p_number_of_events,
+	int * p_split_events, char * p_duration_text, const char ** p_warnings,
+	cl_event * p_to_profile_event, struct fmt_main * p_self,
+	void (*p_create_clobj)(int gws, struct fmt_main * self),
+	void (*p_release_clobj)(void), int p_buffer_size);
 
 #endif
