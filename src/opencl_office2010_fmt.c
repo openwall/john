@@ -169,6 +169,16 @@ static void release_clobj(void)
 	MEM_FREE(cracked);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(GenerateSHA1pwhash), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(Generate2010key), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+}
+
 static void clear_keys(void)
 {
 	memset(saved_key, 0, UNICODE_LENGTH * global_work_size * VF);
@@ -485,7 +495,6 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_clobj);
 
 	if (options.utf8)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
@@ -611,7 +620,7 @@ struct fmt_main fmt_opencl_office2010 = {
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

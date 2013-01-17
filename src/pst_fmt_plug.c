@@ -32,6 +32,8 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH		8
 #define BINARY_SIZE			4
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
+
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		256
 
@@ -142,7 +144,7 @@ struct fmt_main fmt_pst = {
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT | FMT_OMP,

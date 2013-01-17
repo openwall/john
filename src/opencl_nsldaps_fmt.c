@@ -162,6 +162,14 @@ static void release_clobj(void){
     MEM_FREE(outbuffer2);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+}
+
 /* this function could be used to calculated the best num
 of keys per crypt for the given format
 */
@@ -267,8 +275,6 @@ static void fmt_ssha_init(struct fmt_main *self)
 	create_clobj(global_work_size, self);
 
 	self->params.min_keys_per_crypt = local_work_size;
-
-	atexit(release_clobj);
 }
 
 
@@ -432,7 +438,7 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 		tests
 	}, {
 		fmt_ssha_init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
