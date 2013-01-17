@@ -317,7 +317,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_xsha512_ng);
 	john_register_one(&fmt_opencl_rawsha512);
 	john_register_one(&fmt_opencl_rawsha512_ng);
-        john_register_one(&fmt_opencl_rawsha256);
+	john_register_one(&fmt_opencl_rawsha256);
 	john_register_one(&fmt_opencl_bf);
 	john_register_one(&fmt_opencl_pwsafe);
 	john_register_one(&fmt_opencl_DES);
@@ -778,8 +778,8 @@ static void john_done(void)
 	}
 	log_done();
 #ifdef HAVE_OPENCL
-        //Release OpenCL stuff.
-        clean_opencl_devices();
+	//Release OpenCL stuff.
+	clean_opencl_devices();
 #endif
 
 	path_done();
