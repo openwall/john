@@ -297,8 +297,9 @@ static char *get_key(int index)
 	return (char *) saved_plain[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	const unsigned char one[] = { 1, 0, 0, 0 };
 	int i = 0;
 
@@ -359,6 +360,7 @@ static void crypt_all(int count)
 			memset((unsigned char*)output[i], 0, BINARY_SIZE);
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -421,6 +423,8 @@ struct fmt_main fmt_mskrb5 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

@@ -202,12 +202,16 @@ static char *get_key(int index)
     return saved_key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-    SHA256_Init(&ctx);
-    SHA256_Update(&ctx, saved_salt, SALT_SIZE);
-    SHA256_Update(&ctx, saved_key, strlen(saved_key));
-    SHA256_Final((unsigned char *)crypt_out, &ctx);
+	int count = *pcount;
+
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, saved_salt, SALT_SIZE);
+	SHA256_Update(&ctx, saved_key, strlen(saved_key));
+	SHA256_Final((unsigned char *)crypt_out, &ctx);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -238,6 +242,8 @@ struct fmt_main fmt_hmailserver = {
         hmailserver_tests
     }, {
         fmt_default_init,
+        fmt_default_done,
+        fmt_default_reset,
 	fmt_default_prepare,
         valid,
         fmt_default_split,

@@ -194,9 +194,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -208,6 +210,7 @@ static void crypt_all(int count)
 		SHA384_Update(&ctx, saved_key[index], saved_key_length[index]);
 		SHA384_Final((unsigned char *)crypt_out[index], &ctx);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -249,6 +252,8 @@ struct fmt_main fmt_rawSHA384 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

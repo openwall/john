@@ -36,7 +36,7 @@
 
 //#define DEBUG_ORACLE
 
-static struct fmt_tests oracle_tests[] = {
+static struct fmt_tests tests[] = {
 	{"O$SYSTEM#9EEDFA0AD26C6D52", "THALES" },
 	{"O$SIMON#4F8BC1809CB2AF77", "A"},
 	{"O$SIMON#183D72325548EF11", "THALES2" },
@@ -161,7 +161,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
-static void oracle_init(struct fmt_main *self)
+static void init(struct fmt_main *self)
 {
 	unsigned char deskey[8];
 
@@ -179,7 +179,7 @@ static void oracle_init(struct fmt_main *self)
 	DES_set_key((DES_cblock *)deskey, &desschedule1);
 }
 
-static void oracle_set_salt(void *salt) {
+static void set_salt(void *salt) {
 	salt_length = ((unsigned short *)salt)[0];
 	memcpy(cur_salt, &((unsigned short *)salt)[1], salt_length);
 }
@@ -217,7 +217,7 @@ static void oracle_set_key(char *key, int index) {
 #endif
 }
 
-static char *oracle_get_key(int index) {
+static char *get_key(int index) {
 	static UTF8 UC_Key[PLAINTEXT_LENGTH*3*3+1];
 	// Calling this will ONLY upcase characters 'valid' in the code page. There are MANY
 	// code pages which mssql WILL upcase the letter (in UCS-2), but there is no upper case value
@@ -226,8 +226,9 @@ static char *oracle_get_key(int index) {
 	return (char*)UC_Key;
 }
 
-static void oracle_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	unsigned char buf[sizeof(cur_salt)];
 	unsigned int l;
 
@@ -249,9 +250,11 @@ static void oracle_crypt_all(int count)
 #ifdef DEBUG_ORACLE
 	dump_stuff_msg("  crypt_key ", (unsigned char*)&crypt_key[0], 8);
 #endif
+
+	return count;
 }
 
-static void * oracle_binary(char *ciphertext)
+static void * binary(char *ciphertext)
 {
 	static unsigned char *out3;
 	int l;
@@ -268,7 +271,7 @@ static void * oracle_binary(char *ciphertext)
 	return out3;
 }
 
-static void * oracle_get_salt(char * ciphertext)
+static void * get_salt(char * ciphertext)
 {
 	static UTF16 *out;
 	UTF8 salt[SALT_SIZE + 1];
@@ -318,11 +321,11 @@ static int get_hash2(int index) { return crypt_key[0] & 0xfff; }
 static int get_hash3(int index) { return crypt_key[0] & 0xffff; }
 static int get_hash4(int index) { return crypt_key[0] & 0xfffff; }
 
-static int oracle_cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int index) {
 	return !memcmp(binary, crypt_key, sizeof(crypt_key));
 }
 
-static int oracle_cmp_exact(char *source, int count) {
+static int cmp_exact(char *source, int count) {
 	return 1;
 }
 
@@ -341,14 +344,16 @@ struct fmt_main fmt_oracle = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
-		oracle_tests
+		tests
 	}, {
-		oracle_init,
+		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		fmt_default_split,
-		oracle_binary,
-		oracle_get_salt,
+		binary,
+		get_salt,
 		fmt_default_source,
 		{
 			binary_hash0,
@@ -358,11 +363,11 @@ struct fmt_main fmt_oracle = {
 			binary_hash4
 		},
 		salt_hash,
-		oracle_set_salt,
+		set_salt,
 		oracle_set_key,
-		oracle_get_key,
+		get_key,
 		fmt_default_clear_keys,
-		oracle_crypt_all,
+		crypt_all,
 		{
 			get_hash0,
 			get_hash1,
@@ -370,8 +375,8 @@ struct fmt_main fmt_oracle = {
 			get_hash3,
 			get_hash4
 		},
-		oracle_cmp_all,
-		oracle_cmp_all,
-		oracle_cmp_exact
+		cmp_all,
+		cmp_all,
+		cmp_exact
 	}
 };

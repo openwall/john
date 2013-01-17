@@ -384,8 +384,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -413,6 +414,7 @@ static void crypt_all(int count)
 			any_cracked = cracked[index] = 1;
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -452,6 +454,8 @@ struct fmt_main fmt_encfs = {
 		encfs_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

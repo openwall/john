@@ -173,8 +173,9 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -192,6 +193,7 @@ static void crypt_all(int count)
 
 		john_gost_final(&ctx, (unsigned char *)crypt_out[index]);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -246,6 +248,8 @@ struct fmt_main fmt_gost = {
 		gost_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

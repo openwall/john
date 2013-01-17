@@ -200,8 +200,9 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -233,6 +234,7 @@ static void crypt_all(int count)
 			MD5_Final((unsigned char*)crypt_out[index], &ctx);
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -292,6 +294,8 @@ struct fmt_main fmt_mongodb = {
 		mongodb_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

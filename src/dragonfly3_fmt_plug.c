@@ -167,8 +167,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -187,6 +188,7 @@ static void crypt_all(int count)
 
 		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	return count;
 }
 
 static void set_salt(void *salt)
@@ -283,6 +285,8 @@ struct fmt_main fmt_dragonfly3_32 = {
 		tests_32
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -337,6 +341,8 @@ struct fmt_main fmt_dragonfly3_64 = {
 		tests_64
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

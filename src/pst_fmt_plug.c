@@ -87,9 +87,11 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
+
 #ifdef _OPENMP
 #pragma omp parallel for private(i)
 #endif
@@ -100,6 +102,7 @@ static void crypt_all(int count)
 			crc = pkzip_crc32(crc, *p++);
 		crypt_out[i] = crc;
 	}
+	return count;
 }
 
 static void *get_binary(char *ciphertext)
@@ -146,6 +149,8 @@ struct fmt_main fmt_pst = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

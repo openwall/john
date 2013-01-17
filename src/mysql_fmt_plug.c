@@ -48,7 +48,7 @@
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		64
 
-static struct fmt_tests mysql_tests[] = {
+static struct fmt_tests tests[] = {
 	// ciphertext, plaintext
 	{"445ff82636a7ba59", "probe"},
 	{"60671c896665c3fa", "a"},
@@ -70,7 +70,7 @@ static struct fmt_tests mysql_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_key)[BINARY_SIZE / 4];
 
-static void mysql_init(struct fmt_main *self)
+static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
 	int omp_t = omp_get_max_threads();
@@ -84,7 +84,7 @@ static void mysql_init(struct fmt_main *self)
 	crypt_key = mem_alloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 }
 
-static int mysql_valid(char* ciphertext, struct fmt_main *self)
+static int valid(char* ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 
@@ -98,7 +98,7 @@ static int mysql_valid(char* ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *mysql_split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -109,7 +109,7 @@ static char *mysql_split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *mysql_get_binary_size(char *ciphertext, int size)
+static void *get_binary_size(char *ciphertext, int size)
 {
 	/* maybe bigger than BINARY_SIZE for use from cmp_exact() */
 	static ARCH_WORD_32 buff_[8];
@@ -127,27 +127,27 @@ static void *mysql_get_binary_size(char *ciphertext, int size)
 	return buff;
 }
 
-static void *mysql_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
-	return mysql_get_binary_size(ciphertext, BINARY_SIZE);
+	return get_binary_size(ciphertext, BINARY_SIZE);
 }
 
-static void mysql_set_key(char* key, int index)
+static void set_key(char* key, int index)
 {
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH + 1);
 }
 
-static char* mysql_get_key(int index)
+static char* get_key(int index)
 {
 	return saved_key[index];
 }
 
-static int mysql_cmp_one(void* binary, int index)
+static int cmp_one(void* binary, int index)
 {
 	return *(ARCH_WORD_32 *)binary == crypt_key[index][0];
 }
 
-static int mysql_cmp_all(void* binary, int count)
+static int cmp_all(void* binary, int count)
 {
 	int i;
 
@@ -167,7 +167,7 @@ static int mysql_cmp_all(void* binary, int count)
 #endif
 }
 
-static int mysql_cmp_exact(char* source, int index)
+static int cmp_exact(char* source, int index)
 {
 	register ARCH_WORD_32 nr = 1345345333, add = 7, nr2 = 0x12345671;
 	register ARCH_WORD_32 tmp;
@@ -192,7 +192,7 @@ static int mysql_cmp_exact(char* source, int index)
 	}
 #else
 	{
-		ARCH_WORD_32 *binary = mysql_get_binary_size(source, 8);
+		ARCH_WORD_32 *binary = get_binary_size(source, 8);
 		return
 		    binary[0] == (nr & (((ARCH_WORD_32)1 << 31) - 1)) &&
 		    binary[1] == (nr2 & (((ARCH_WORD_32)1 << 31) - 1));
@@ -200,8 +200,9 @@ static int mysql_cmp_exact(char* source, int index)
 #endif
 }
 
-static void mysql_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 
 #ifdef _OPENMP
@@ -229,74 +230,75 @@ static void mysql_crypt_all(int count)
 		}
 		crypt_key[i][0] = (1345345333 & (((ARCH_WORD_32)1 << 31) - 1));
 	}
+	return count;
 }
 
-int mysql_binary_hash_0(void *binary)
+static int binary_hash_0(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0xF;
 }
 
-int mysql_binary_hash_1(void *binary)
+static int binary_hash_1(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0xFF;
 }
 
-int mysql_binary_hash_2(void *binary)
+static int binary_hash_2(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0xFFF;
 }
 
-int mysql_binary_hash_3(void *binary)
+static int binary_hash_3(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0xFFFF;
 }
 
-int mysql_binary_hash_4(void *binary)
+static int binary_hash_4(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
-int mysql_binary_hash_5(void *binary)
+static int binary_hash_5(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
 }
 
-int mysql_binary_hash_6(void *binary)
+static int binary_hash_6(void *binary)
 {
 	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
-int mysql_get_hash_0(int index)
+static int get_hash_0(int index)
 {
 	return crypt_key[index][0] & 0xF;
 }
 
-int mysql_get_hash_1(int index)
+static int get_hash_1(int index)
 {
 	return crypt_key[index][0] & 0xFF;
 }
 
-int mysql_get_hash_2(int index)
+static int get_hash_2(int index)
 {
 	return crypt_key[index][0] & 0xFFF;
 }
 
-int mysql_get_hash_3(int index)
+static int get_hash_3(int index)
 {
 	return crypt_key[index][0] & 0xFFFF;
 }
 
-int mysql_get_hash_4(int index)
+static int get_hash_4(int index)
 {
 	return crypt_key[index][0] & 0xFFFFF;
 }
 
-int mysql_get_hash_5(int index)
+static int get_hash_5(int index)
 {
 	return crypt_key[index][0] & 0xFFFFFF;
 }
 
-int mysql_get_hash_6(int index)
+static int get_hash_6(int index)
 {
 	return crypt_key[index][0] & 0x7FFFFFF;
 }
@@ -317,41 +319,43 @@ struct fmt_main fmt_MYSQL_fast =
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
-		mysql_tests
+		tests
 	}, {
-		mysql_init,
+		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		mysql_valid,
-		mysql_split,
-		mysql_get_binary,
+		valid,
+		split,
+		get_binary,
 		fmt_default_salt,
 		fmt_default_source,
 		{
-			mysql_binary_hash_0,
-			mysql_binary_hash_1,
-			mysql_binary_hash_2,
-			mysql_binary_hash_3,
-			mysql_binary_hash_4,
-			mysql_binary_hash_5,
-			mysql_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
-		mysql_set_key,
-		mysql_get_key,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		mysql_crypt_all,
+		crypt_all,
 		{
-			mysql_get_hash_0,
-			mysql_get_hash_1,
-			mysql_get_hash_2,
-			mysql_get_hash_3,
-			mysql_get_hash_4,
-			mysql_get_hash_5,
-			mysql_get_hash_6
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
-		mysql_cmp_all,
-		mysql_cmp_one,
-		mysql_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

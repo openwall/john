@@ -257,7 +257,10 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF
 
@@ -272,7 +275,7 @@ static void crypt_all(int count) {
 	SHA1_Update( &ctx, (unsigned char*) saved_key, strlen( saved_key ) );
 	SHA1_Final( (unsigned char*) crypt_key, &ctx);
 #endif
-
+	return count;
 }
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
@@ -347,6 +350,8 @@ struct fmt_main fmt_rawSHA1 = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

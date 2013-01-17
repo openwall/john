@@ -389,8 +389,9 @@ static inline void crypt_done(unsigned const int *source, unsigned int *dest, in
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #if MMX_COEF
 
 #if defined(_OPENMP) && defined(SHA1_SSE_PARA)
@@ -617,6 +618,7 @@ static void crypt_all(int count)
 #undef index
 
 #endif
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -749,6 +751,8 @@ struct fmt_main fmt_sapG = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

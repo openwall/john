@@ -133,7 +133,7 @@ static void init(struct fmt_main *self)
 	saved_ctx = mem_calloc_tiny(sizeof(*saved_ctx) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int netntlmv2_valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos, *pos2;
 
@@ -177,7 +177,7 @@ static int netntlmv2_valid(char *ciphertext, struct fmt_main *self)
   return 1;
 }
 
-static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *self)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *srv_challenge = split_fields[3];
 	char *nethashv2     = split_fields[4];
@@ -213,7 +213,7 @@ static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *self)
 	sprintf(tmp, "$NETNTLMv2$%s$%s$%s$%s", identity, srv_challenge, nethashv2, cli_challenge);
 	MEM_FREE(identity);
 
-	if (netntlmv2_valid(tmp, self)) {
+	if (valid(tmp, self)) {
 		char *cp = str_alloc_copy(tmp);
 		MEM_FREE(tmp);
 		return cp;
@@ -222,7 +222,7 @@ static char *netntlmv2_prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
-static char *netntlmv2_split(char *ciphertext, int index, struct fmt_main *self)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
   static char out[TOTAL_LENGTH + 1];
   char *pos = NULL;
@@ -239,7 +239,7 @@ static char *netntlmv2_split(char *ciphertext, int index, struct fmt_main *self)
   return out;
 }
 
-static void *netntlmv2_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
   static uchar *binary;
   char *pos = NULL;
@@ -266,8 +266,9 @@ static void *netntlmv2_get_binary(char *ciphertext)
 
    challenge: Identity length, Identity\0, Challenge Size, Server Challenge + Client Challenge
 */
-static void netntlmv2_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int identity_length, challenge_size;
 	int i = 0;
 
@@ -322,16 +323,18 @@ static void netntlmv2_crypt_all(int count)
 		   Generate 16-byte non-client nonce portion of NTLMv2 Response
 		   HMAC-MD5(Challenge + Nonce, NTLMv2 Hash)
 
-		   The length of the challenge was set in netntlmv2_get_salt(). We find the server
+		   The length of the challenge was set in get_salt(). We find the server
 		   challenge and blob following the identity and challenge size value.
 		   challenge -> Identity length, Identity\0, Size (2 bytes), Server Challenge + Client Challenge (Blob)
 		*/
 		hmac_md5(ntlm_v2_hash, challenge + 1 + identity_length + 1 + 2, challenge_size, (unsigned char*)output[i]);
 	}
 	keys_prepared = 1;
+
+	return count;
 }
 
-static int netntlmv2_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	int index;
 	for(index=0; index<count; index++)
@@ -340,14 +343,14 @@ static int netntlmv2_cmp_all(void *binary, int count)
 	return 0;
 }
 
-static int netntlmv2_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return !memcmp(output[index], binary, BINARY_SIZE);
 }
 
-static int netntlmv2_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
-	return !memcmp(output[index], netntlmv2_get_binary(source), BINARY_SIZE);
+	return !memcmp(output[index], get_binary(source), BINARY_SIZE);
 }
 
 /*
@@ -360,7 +363,7 @@ static int netntlmv2_cmp_exact(char *source, int index)
     Client Challenge: ???
   Output: Identity length, Identity(UTF16)\0, Challenge Size, Server Challenge + Client Challenge
 */
-static void *netntlmv2_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
   static unsigned char *binary_salt;
   int i, identity_length, challenge_size;
@@ -417,19 +420,19 @@ static void *netntlmv2_get_salt(char *ciphertext)
   return (void*)binary_salt;
 }
 
-static void netntlmv2_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	challenge = salt;
 }
 
-static void netntlmv2_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	saved_len[index]= strlen(key);
 	memcpy((char *)saved_plain[index], key, saved_len[index]+ 1);
 	keys_prepared = 0;
 }
 
-static char *netntlmv2_get_key(int index)
+static char *get_key(int index)
 {
 	return (char *)saved_plain[index];
 }
@@ -509,11 +512,13 @@ struct fmt_main fmt_NETNTLMv2 = {
 		tests
 	}, {
 		init,
-		netntlmv2_prepare,
-		netntlmv2_valid,
-		netntlmv2_split,
-		netntlmv2_get_binary,
-		netntlmv2_get_salt,
+		fmt_default_done,
+		fmt_default_reset,
+		prepare,
+		valid,
+		split,
+		get_binary,
+		get_salt,
 		fmt_default_source,
 		{
 			binary_hash_0,
@@ -523,11 +528,11 @@ struct fmt_main fmt_NETNTLMv2 = {
 			binary_hash_4
 		},
 		salt_hash,
-		netntlmv2_set_salt,
-		netntlmv2_set_key,
-		netntlmv2_get_key,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		netntlmv2_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -535,8 +540,8 @@ struct fmt_main fmt_NETNTLMv2 = {
 			get_hash_3,
 			get_hash_4
 		},
-		netntlmv2_cmp_all,
-		netntlmv2_cmp_one,
-		netntlmv2_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

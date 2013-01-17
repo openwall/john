@@ -137,8 +137,9 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -167,6 +168,7 @@ static void crypt_all(int count)
 		SHA512_Update( &ctx, tmp, len);
 		SHA512_Final( (unsigned char *) crypt_key[index], &ctx);
 	}
+	return count;
 }
 
 static void * binary(char *ciphertext)
@@ -250,6 +252,8 @@ struct fmt_main fmt_drupal7 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

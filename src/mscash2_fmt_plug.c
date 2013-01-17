@@ -648,8 +648,9 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 #endif
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i, t;
 	// Note, for a format like DCC2, there is little reason to optimize anything other
 	// than the pbkdf2 inner loop.  The one exception to that, is the NTLM can be done
@@ -700,6 +701,7 @@ static void crypt_all(int count)
 		pbkdf2_sse2(t);
 #endif
 	}
+	return count;
 }
 
 struct fmt_main fmt_mscash2 = {
@@ -720,6 +722,8 @@ struct fmt_main fmt_mscash2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		ms_split,

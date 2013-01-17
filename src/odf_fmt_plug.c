@@ -230,9 +230,11 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -283,6 +285,7 @@ static void crypt_all(int count)
 			SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -336,6 +339,8 @@ struct fmt_main fmt_odf = {
 		odf_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

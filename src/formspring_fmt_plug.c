@@ -136,6 +136,8 @@ struct fmt_main fmt_FORMSPRING =
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		formspring_init,
+		fmt_default_done,
+		fmt_default_reset,
 		our_prepare,
 		formspring_valid
 	}

@@ -311,7 +311,7 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	global_work_size = optimal_gws;
 }
 
-static void crypt_all(int count);
+static int crypt_all(int *pcount, struct db_salt *salt);
 static void crypt_all_benchmark(int count);
 
 static void init(struct fmt_main *self)

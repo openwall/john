@@ -595,7 +595,9 @@ static void crypt_all_benchmark(int count) {
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
     int i;
     size_t gws;
 
@@ -640,6 +642,8 @@ static void crypt_all(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
     new_keys = 0;
+
+	return count;
 }
 
 /* ------- Binary Hash functions group ------- */
@@ -713,6 +717,8 @@ struct fmt_main fmt_opencl_cryptsha256_ng = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		done,
 		fmt_default_prepare,
 		valid,

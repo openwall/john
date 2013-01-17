@@ -36,7 +36,7 @@ void* salt(char *ciphertext);
 void set_salt(void *salt);
 void set_key(char *key, int index);
 char* get_key(int index);
-void crypt_all(int count);
+int crypt_all(int *pcount, struct db_salt *salt);
 int cmp_all(void *binary, int count);
 int cmp_one(void *binary, int index);
 int cmp_exact(char *source, int index);
@@ -72,6 +72,8 @@ struct fmt_main fmt_EPI =
 	},
 	{ // fmt_methods
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -175,16 +177,19 @@ char* get_key(int index)
   return global_key;
 }
 
-void crypt_all(int count)
+int crypt_all(int *pcount, struct db_salt *salt)
 {
-  static SHA_CTX ctx;
+	int count = *pcount;
+	static SHA_CTX ctx;
 
-  // Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
-  strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH + 1);
+	// Yes, I'm overwriting the last byte of the salt, perhaps the coder at ElektoPost whom wrote the EPiServer password checking function used to be a C coder (their code is written in .NET)
+	strnzcpy(global_salt+SALT_LENGTH-1, global_key, PLAINTEXT_LENGTH + 1);
 
-  SHA1_Init(&ctx);
-  SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+strlen(global_key));
-  SHA1_Final((unsigned char*)global_crypt, &ctx);
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, (unsigned char*)global_salt, SALT_LENGTH+strlen(global_key));
+	SHA1_Final((unsigned char*)global_crypt, &ctx);
+
+	return count;
 }
 
 int cmp_all(void *binary, int count)

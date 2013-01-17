@@ -544,8 +544,9 @@ static void nt_hash(int count)
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 
 	if(new_key)
@@ -624,6 +625,7 @@ static void crypt_all(int count)
 		output1x[4*i+2]=c;
 		output1x[4*i+3]=d;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -948,6 +950,8 @@ struct fmt_main fmt_mscash = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		ms_split,

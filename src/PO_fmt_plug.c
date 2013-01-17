@@ -196,13 +196,15 @@ static void set_salt(char *salt)
 	memcpy(po_buf, salt, 32);
 }
 
-static void po_crypt(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	po_buf[32] = 'Y';
 	memcpy(po_buf + 33, saved_key, saved_key_len);
 	po_buf[saved_key_len + 33] = 247;
 	memcpy(po_buf + saved_key_len + 34, po_buf, 32);
 	MD5_Go((unsigned char *)po_buf, saved_key_len + 66);
+
+	return *pcount;
 }
 
 struct fmt_main fmt_PO = {
@@ -223,6 +225,8 @@ struct fmt_main fmt_PO = {
 		tests
 	}, {
 		po_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
@@ -241,7 +245,7 @@ struct fmt_main fmt_PO = {
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
-		po_crypt,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,

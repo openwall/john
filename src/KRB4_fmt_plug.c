@@ -56,7 +56,7 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static struct fmt_tests krb4_tests[] = {
+static struct fmt_tests tests[] = {
 	{"$af$UMICH.EDU$bb46613c503ad92e649d99d038efddb2", "w00w00"},
 	{"$af$UMICH.EDU$95cd4367d4828d117b745ed63b9229be", "asdfjkl;"},
 	{"$af$UMICH.EDU$000084efbde96969fd54d1a2ec8c287d", "hello!"},
@@ -101,8 +101,7 @@ static struct key_st {
 } saved_key;
 
 
-static int
-krb4_valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *tgt;
 
@@ -124,8 +123,7 @@ krb4_valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static int
-hex_decode(char *src, unsigned char *dst, int outsize)
+static int hex_decode(char *src, unsigned char *dst, int outsize)
 {
 	char *p, *pe;
 	unsigned char *q, *qe, ch, cl;
@@ -150,8 +148,7 @@ hex_decode(char *src, unsigned char *dst, int outsize)
 	return (q - dst);
 }
 
-static void *
-krb4_salt(char *ciphertext)
+static void *salt(char *ciphertext)
 {
 	static struct salt_st salt;
 	char *p;
@@ -173,14 +170,12 @@ krb4_salt(char *ciphertext)
 	return (&salt);
 }
 
-static void
-krb4_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	saved_salt = (struct salt_st *)salt;
 }
 
-static void
-krb4_set_key(char *key, int index)
+static void krb4_set_key(char *key, int index)
 {
 	if (saved_salt->realm[0] != '\0')
 		afs_string_to_key(key, saved_salt->realm, &saved_key.key);
@@ -190,20 +185,17 @@ krb4_set_key(char *key, int index)
 	strnzcpy(saved_key.string, key, sizeof(saved_key.string));
 }
 
-static char *
-krb4_get_key(int index)
+static char *get_key(int index)
 {
 	return (saved_key.string);
 }
 
-static void
-krb4_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	/* XXX - NOOP */
+	return *pcount;
 }
 
-static int
-krb4_check_parity(DES_cblock *key)
+static int krb4_check_parity(DES_cblock *key)
 {
 	int i;
 
@@ -214,8 +206,7 @@ krb4_check_parity(DES_cblock *key)
 	return (1);
 }
 
-static int
-krb4_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	DES_cblock tmp;
 
@@ -228,8 +219,7 @@ krb4_cmp_all(void *binary, int count)
 	return (krb4_check_parity(&tmp));
 }
 
-static int
-krb4_cmp_one(void *binary, int count)
+static int cmp_one(void *binary, int count)
 {
 	unsigned char text[TGT_LENGTH];
 
@@ -240,10 +230,9 @@ krb4_cmp_one(void *binary, int count)
 	return (memcmp(text + 8, "krbtgt", 6) == 0);
 }
 
-static int
-krb4_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
-	return (1);	/* XXX - fallthrough from krb4_cmp_one() */
+	return (1);	/* XXX - fallthrough from cmp_one() */
 }
 
 struct fmt_main fmt_KRB4 = {
@@ -261,14 +250,16 @@ struct fmt_main fmt_KRB4 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		krb4_tests
+		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		krb4_valid,
+		valid,
 		fmt_default_split,
 		fmt_default_binary,
-		krb4_salt,
+		salt,
 		fmt_default_source,
 		{
 			fmt_default_binary_hash,
@@ -278,11 +269,11 @@ struct fmt_main fmt_KRB4 = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
-		krb4_set_salt,
+		set_salt,
 		krb4_set_key,
-		krb4_get_key,
+		get_key,
 		fmt_default_clear_keys,
-		krb4_crypt_all,
+		crypt_all,
 		{
 			fmt_default_get_hash,
 			fmt_default_get_hash,
@@ -290,8 +281,8 @@ struct fmt_main fmt_KRB4 = {
 			fmt_default_get_hash,
 			fmt_default_get_hash
 		},
-		krb4_cmp_all,
-		krb4_cmp_one,
-		krb4_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

@@ -459,8 +459,9 @@ static int bigs[MAX_KEYS_PER_CRYPT], smalls[MAX_KEYS_PER_CRYPT];
 // it is easiest to just leave these to be set even in non. mmx builds.
 static int nbig, nsmall;
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int idx, roundasciilen;
 	int round, maxrounds = BASIC_ROUND_COUNT + getrounds(saved_salt);
 	char roundascii[8];
@@ -824,6 +825,7 @@ static void crypt_all(int count)
 		pConx px = &data[idx];
 		memcpy(crypt_out[idx], px->digest, FULL_BINARY_SIZE);
 	}
+	return count;
 }
 
 struct fmt_main fmt_sunmd5 = {
@@ -848,6 +850,8 @@ struct fmt_main fmt_sunmd5 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

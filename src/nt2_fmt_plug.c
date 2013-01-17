@@ -527,10 +527,13 @@ static char *get_key(int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
 #if defined(MD4_SSE_PARA)
 #if (BLOCK_LOOPS > 1)
 	int i;
+
 	// This was an experiment. It's not used (unless you bump BLOCK_LOOPS),
 	// cause it does not scale well. We would need to parallelize set_key()
 #ifdef _OPENMP
@@ -550,6 +553,7 @@ static void crypt_all(int count) {
 	MD4_Final((unsigned char*) crypt_key, &ctx);
 //	dump_stuff_msg("crypt_key", crypt_key, 16);
 #endif
+	return count;
 }
 
 static int cmp_all(void *binary, int count) {
@@ -721,6 +725,8 @@ struct fmt_main fmt_NT2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

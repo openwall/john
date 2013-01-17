@@ -238,8 +238,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 
 #ifdef _OPENMP
@@ -262,6 +263,7 @@ static void crypt_all(int count)
 		SHA512_Update(&ctx, saved_key[i], saved_key_length[i]);
 		SHA512_Final((unsigned char *)(crypt_out[i]), &ctx);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -306,6 +308,8 @@ struct fmt_main fmt_XSHA512 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		fmt_default_split,

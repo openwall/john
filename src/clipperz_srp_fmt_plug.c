@@ -245,8 +245,9 @@ static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int j;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -347,6 +348,7 @@ static void crypt_all(int count)
 		BN_bn2bin(pSRP_CTX[j].z_rop, (unsigned char*)(crypt_out[j]));
 #endif
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -390,6 +392,8 @@ struct fmt_main fmt_clipperz = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

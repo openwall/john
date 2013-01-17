@@ -547,8 +547,9 @@ static void * get_full_binary(char *ciphertext) {
 }
 
 /* ------- Crypt function ------- */
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
     size_t gws;
 
     gws = GET_MULTIPLE_BIGGER(count, local_work_size);

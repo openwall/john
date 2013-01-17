@@ -223,9 +223,11 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -233,6 +235,7 @@ static void crypt_all(int count)
 	{
 		(void)blake2b((uint8_t *)crypt_out[index], saved_key[index], NULL, 64, saved_key_length[index], 0);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -278,6 +281,8 @@ struct fmt_main fmt_rawBLAKE2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

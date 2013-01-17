@@ -226,8 +226,10 @@ static char *get_key(int index)
 #endif
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 #if MMX_COEF
 	DO_MMX_MD5(saved_key, crypt_key);
 #else
@@ -235,6 +237,7 @@ static void crypt_all(int count)
 	MD5_Update(&ctx, saved_key, saved_key_length);
 	MD5_Final((unsigned char*)crypt_out, &ctx);
 #endif
+	return count;
 }
 
 static int cmp_all(void *binary, int count) {
@@ -335,6 +338,8 @@ struct fmt_main fmt_rawMD5 = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

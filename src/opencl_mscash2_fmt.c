@@ -190,7 +190,7 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
 }
 
 static 	void set_key(char*,int);
-static  void crypt_all(int);
+static int crypt_all(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {

@@ -271,8 +271,9 @@ static char *get_key(int index)
 	return saved_plain[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #ifdef MMX_COEF
 #if defined(_OPENMP) && defined(MD5_SSE_PARA)
 	int t;
@@ -378,6 +379,7 @@ key_cleaning:
 	}
 #undef index
 #endif
+	return count;
 }
 
 static int cmp_all(void *binary, int count) {
@@ -476,6 +478,8 @@ struct fmt_main fmt_IPB2 = {
 	},
 	{
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

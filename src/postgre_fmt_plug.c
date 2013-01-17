@@ -137,9 +137,11 @@ static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -157,6 +159,7 @@ static void crypt_all(int count)
 		MD5_Update(&ctx, cur_salt->salt, 4);
 		MD5_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -216,6 +219,8 @@ struct fmt_main fmt_postgre = {
 		postgre_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

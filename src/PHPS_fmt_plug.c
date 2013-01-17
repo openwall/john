@@ -183,6 +183,8 @@ struct fmt_main fmt_PHPS =
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		phps_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		phps_valid
 	}

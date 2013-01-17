@@ -194,8 +194,9 @@ static int cmp_one(void *binary, int index)
 	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -214,6 +215,7 @@ static void crypt_all(int count)
 		SHA512_Update( &ctx, crypt_key[index], BINARY_SIZE);
 		SHA512_Final( (unsigned char*) crypt_key[index], &ctx);
 	}
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -257,6 +259,8 @@ struct fmt_main fmt_hmacSHA512 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

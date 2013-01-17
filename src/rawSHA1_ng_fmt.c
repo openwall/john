@@ -400,7 +400,7 @@ static char * sha1_fmt_get_key(int index)
     return (char *) key;
 }
 
-static void sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
+static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
     __m128i W[SHA1_BLOCK_WORDS];

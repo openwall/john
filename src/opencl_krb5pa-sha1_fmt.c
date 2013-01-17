@@ -406,7 +406,7 @@ static void nfold(unsigned int inbits, const unsigned char *in,
 	}
 }
 
-static void crypt_all(int count);
+static int crypt_all(int *pcount, struct db_salt *salt);
 static void crypt_all_benchmark(int count);
 
 static void init(struct fmt_main *self)

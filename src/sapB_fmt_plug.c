@@ -421,8 +421,9 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 	return sum20;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #if MMX_COEF
 #if defined(_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	int t;
@@ -564,6 +565,7 @@ static void crypt_all(int count)
 			((char*)crypt_key[t])[i] = final_key[i + 8] ^ final_key[i];
 	}
 #endif
+	return count;
 #undef t
 #undef ti
 }
@@ -686,6 +688,8 @@ struct fmt_main fmt_sapB = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

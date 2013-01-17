@@ -362,8 +362,9 @@ static char *get_key(int index)
 #endif
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #ifdef MMX_COEF
 	int i = 0;
 #if defined(SHA1_SSE_PARA) && defined(_OPENMP)
@@ -398,6 +399,7 @@ static void crypt_all(int count)
 		SHA1_Final((unsigned char *)(crypt_out[i]), &ctx);
 	}
 #endif
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -481,6 +483,8 @@ struct fmt_main fmt_XSHA = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

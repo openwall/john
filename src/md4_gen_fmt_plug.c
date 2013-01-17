@@ -202,8 +202,9 @@ static char *get_key(int index)
 	return saved_key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	MD4_Init(&ctx);
 	if (saved_salt[1] == 'p') {
 		MD4_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
@@ -213,6 +214,8 @@ static void crypt_all(int count)
 		MD4_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
 	}
 	MD4_Final((unsigned char *)crypt_out, &ctx);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -243,6 +246,8 @@ struct fmt_main fmt_md4_gen = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
