@@ -41,7 +41,7 @@ static cl_mem hash_buffer;        //Hash keys (output).
 static cl_mem work_buffer;        //Temporary buffer
 static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
-static cl_kernel main_kernel, prepare_kernel, final_kernel;
+static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
 static int split_events[3] = { 2, 5, 6 };
@@ -90,8 +90,8 @@ static size_t get_task_max_work_group_size(){
 
     max_available = get_max_work_group_size(ocl_gpu_id);
 
-    if (max_available > get_current_work_group_size(ocl_gpu_id, main_kernel))
-        return get_current_work_group_size(ocl_gpu_id, main_kernel);
+    if (max_available > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
+        return get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 
     return max_available;
 }
@@ -108,7 +108,7 @@ static size_t get_task_max_size(){
 
     else
         return max_available * multiplier *
-                get_current_work_group_size(ocl_gpu_id, main_kernel);
+                get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 }
 
 static size_t get_safe_workgroup(){
@@ -174,11 +174,11 @@ static void create_clobj(int gws, struct fmt_main * self) {
     HANDLE_CLERROR(ret_code, "Error creating buffer argument work_area");
 
     //Set kernel arguments
-    HANDLE_CLERROR(clSetKernelArg(main_kernel, 0, sizeof(cl_mem),
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
-    HANDLE_CLERROR(clSetKernelArg(main_kernel, 1, sizeof(cl_mem),
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
             (void *) &pass_buffer), "Error setting argument 1");
-    HANDLE_CLERROR(clSetKernelArg(main_kernel, 2, sizeof(cl_mem),
+    HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
     if (_SPLIT_KERNEL_IN_USE) {
@@ -191,8 +191,8 @@ static void create_clobj(int gws, struct fmt_main * self) {
             (void *) &work_buffer), "Error setting argument 2");
 
         //Set crypt kernel arguments
-        HANDLE_CLERROR(clSetKernelArg(main_kernel, 3, sizeof(cl_mem),
-            (void *) &work_buffer), "Error setting argument main_kernel (3)");
+        HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem),
+            (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
 
         //Set final kernel arguments
         HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem),
@@ -327,7 +327,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
     //Call the default function.
     opencl_find_best_lws(
-            max_group_size, sequential_id, main_kernel);
+            max_group_size, sequential_id, crypt_kernel);
 
     fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
@@ -374,7 +374,7 @@ static void build_kernel(char * task) {
     opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
     // create kernel(s) to execute
-    main_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
+    crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
     if (_SPLIT_KERNEL_IN_USE) {
@@ -444,7 +444,7 @@ static void init(struct fmt_main * self) {
 static void done(void) {
     release_clobj();
 
-    HANDLE_CLERROR(clReleaseKernel(main_kernel), "Release kernel");
+    HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 
     if (_SPLIT_KERNEL_IN_USE) {
         HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
@@ -555,7 +555,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < 3; i++) {
-            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel, 1, NULL,
+            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
                 &gws, &local_work_size, 0, NULL,
                 &multi_profilingEvent[split_events[i]]),  //2 ,5 ,6
                 "failed in clEnqueueNDRangeKernel");
@@ -566,7 +566,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
             &gws, &local_work_size, 0, NULL, &multi_profilingEvent[7]),
             "failed in clEnqueueNDRangeKernel II");
     } else
-        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel, 1, NULL,
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
             &gws, &local_work_size, 0, NULL, &multi_profilingEvent[2]),
             "failed in clEnqueueNDRangeKernel");
 
@@ -607,7 +607,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
             "failed in clEnqueueNDRangeKernel I");
 
         for (i = 0; i < (salt->rounds / HASH_LOOPS); i++) {
-            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel, 1, NULL,
+            HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
                 &gws, &local_work_size, 0, NULL, NULL),
                 "failed in clEnqueueNDRangeKernel");
             HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
@@ -617,7 +617,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
             &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel II");
     } else
-        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel, 1, NULL,
+        HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
             &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel");
 
