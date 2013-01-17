@@ -34,7 +34,9 @@
 #define PLAINTEXT_LENGTH	64
 #define CIPHERTEXT_LENGTH	22
 #define BINARY_SIZE		9 /* oh, well :P */
+#define BINARY_ALIGN		1
 #define SALT_SIZE		5
+#define SALT_ALIGN		1
 
 #define DIGEST_SIZE		16
 #define BINARY_BUFFER_SIZE	(DIGEST_SIZE-SALT_SIZE)
@@ -152,7 +154,7 @@ static const unsigned char lotus_magic_table[] = {
 	0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-static struct fmt_tests dominosec_tests[] = {
+static struct fmt_tests tests[] = {
 	{"(GVMroLzc50YK/Yd+L8KH)", ""},
 	{"(GqnUDNNGNUz5HRoelmLU)", "x"},
 	{"(GNBpcGJRYpBe9orUOpmZ)", "dupaaa123"},
@@ -264,7 +266,7 @@ static void domino_big_md(unsigned char * saved_key, int size, unsigned char * c
 	memcpy(crypt_key, state, 16);
 }
 
-static int dominosec_valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	unsigned char ch;
@@ -287,7 +289,7 @@ static int dominosec_valid(char *ciphertext, struct fmt_main *self)
 }
 
 /*
-static unsigned int dominosec_proper_mul(int delta_apsik)
+static unsigned int proper_mul(int delta_apsik)
 {
 	__asm__("movl $0xAAAAAAAB, %eax	\n"
 		"movl 0x8(%ebp), %edx	\n"
@@ -297,7 +299,7 @@ static unsigned int dominosec_proper_mul(int delta_apsik)
 }
 */
 
-static void dominosec_decode(unsigned char *ascii_cipher, unsigned char *binary)
+static void decode(unsigned char *ascii_cipher, unsigned char *binary)
 {
 	unsigned int out = 0, apsik = 0, loop;
 	unsigned int i;
@@ -347,23 +349,23 @@ static void dominosec_decode(unsigned char *ascii_cipher, unsigned char *binary)
 	binary[3] += -4;
 }
 
-static void *dominosec_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
-	dominosec_decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary);
+	decode((unsigned char*)ciphertext, (unsigned char*)&cipher_binary);
 	return (void*)cipher_binary.hash;
 }
 
-static void *dominosec_salt(char *ciphertext)
+static void *salt(char *ciphertext)
 {
 	return cipher_binary.salt;
 }
 
-static void dominosec_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	memcpy(salt_and_digest, salt, SALT_SIZE);
 }
 
-static void dominosec_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	unsigned char *offset = salt_and_digest+6;
 	unsigned int i;
@@ -387,17 +389,19 @@ static void dominosec_set_key(char *key, int index)
 	 */
 }
 
-static char *dominosec_get_key(int index)
+static char *get_key(int index)
 {
 	return saved_key;
 }
 
-static void dominosec_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	domino_big_md(salt_and_digest, 34, crypted_key);
+
+	return *pcount;
 }
 
-static int dominosec_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	/*
 	 * Only 10 bytes of digest are to be checked.
@@ -407,7 +411,7 @@ static int dominosec_cmp_all(void *binary, int count)
 	return !memcmp(crypted_key, binary, BINARY_SIZE);
 }
 
-static int dominosec_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
@@ -421,20 +425,24 @@ struct fmt_main fmt_DOMINOSEC = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
-		dominosec_tests
+		tests
 	},
 	{
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		dominosec_valid,
+		valid,
 		fmt_default_split,
-		dominosec_binary,
-		dominosec_salt,
+		binary,
+		salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -443,11 +451,11 @@ struct fmt_main fmt_DOMINOSEC = {
 			fmt_default_binary_hash
 		},
 		fmt_default_salt_hash,
-		dominosec_set_salt,
-		dominosec_set_key,
-		dominosec_get_key,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		dominosec_crypt_all,
+		crypt_all,
 		{
 			fmt_default_get_hash,
 			fmt_default_get_hash,
@@ -455,8 +463,8 @@ struct fmt_main fmt_DOMINOSEC = {
 			fmt_default_get_hash,
 			fmt_default_get_hash
 		},
-		dominosec_cmp_all,
-		dominosec_cmp_all,
-		dominosec_cmp_exact
+		cmp_all,
+		cmp_all,
+		cmp_exact
 	}
 };

@@ -33,7 +33,7 @@
 
 #define CIPHERTEXT_LENGTH		32
 
-#define BINARY_SIZE			4
+#define BINARY_SIZE			16 // source()
 #define DIGEST_SIZE			16
 #define SALT_SIZE			0
 
@@ -107,7 +107,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
@@ -241,8 +241,10 @@ static char *get_key(int index)
 #endif
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 #ifdef MD4_SSE_PARA
 	SSEmd4body(saved_key, (unsigned int*)crypt_key, 1);
 #elif MMX_COEF
@@ -252,6 +254,7 @@ static void crypt_all(int count)
 	MD4_Update(&ctx, saved_key, saved_key_length);
 	MD4_Final((unsigned char *)crypt_key, &ctx);
 #endif
+	return count;
 }
 
 static int cmp_all(void *binary, int count) {
@@ -313,6 +316,27 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
+static char *source(char *source, void *binary)
+{
+	static char Buf[CIPHERTEXT_LENGTH + TAG_LENGTH + 1];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
+
+	cpi = (unsigned char*)(binary);
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 struct fmt_main fmt_rawMD4 = {
 	{
 		FORMAT_LABEL,
@@ -322,7 +346,9 @@ struct fmt_main fmt_rawMD4 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -330,11 +356,13 @@ struct fmt_main fmt_rawMD4 = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		fmt_default_salt,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

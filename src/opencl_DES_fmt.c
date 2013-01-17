@@ -210,7 +210,7 @@ struct fmt_main fmt_opencl_DES = {
 	}, {
 		init,
 		fmt_default_done,
-
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
@@ -233,14 +233,10 @@ struct fmt_main fmt_opencl_DES = {
 		},
 		salt_hash,
 		set_salt,
-
 		opencl_DES_bs_set_key,
-
 		get_key,
 		fmt_default_clear_keys,
-
 		opencl_DES_bs_crypt_25,
-
 		{
 			get_hash_0,
 			get_hash_1,

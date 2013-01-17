@@ -70,7 +70,7 @@ static int saved_key_len[MAX_KEYS_PER_CRYPT];
 
 static ARCH_WORD_32 crypt_key[MAX_KEYS_PER_CRYPT][BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
-static int FGT_valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	if (strncmp(ciphertext, "AK1", 3))
 		return 0;
@@ -80,7 +80,7 @@ static int FGT_valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static void * FGT_get_salt(char *ciphertext)
+static void * get_salt(char *ciphertext)
 {
 	static char out[SALT_SIZE];
 	char buf[SALT_SIZE+BINARY_SIZE+1];
@@ -91,24 +91,24 @@ static void * FGT_get_salt(char *ciphertext)
 	return out;
 }
 
-static void FGT_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	SHA1_Init(&ctx_salt);
 	SHA1_Update(&ctx_salt, salt, SALT_SIZE);
 }
 
-static void FGT_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
 	saved_key_len[index] = strlen(key);
 }
 
-static char * FGT_get_key(int index)
+static char * get_key(int index)
 {
 	return saved_key[index];
 }
 
-static void * FGT_binary(char *ciphertext)
+static void * binary(char *ciphertext)
 {
 	static char bin[BINARY_SIZE];
 	char buf[SALT_SIZE+BINARY_SIZE+1];
@@ -122,7 +122,7 @@ static void * FGT_binary(char *ciphertext)
 }
 
 
-static int FGT_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	ARCH_WORD_32 b0 = *(ARCH_WORD_32 *)binary;
 	int i;
@@ -138,20 +138,22 @@ static int FGT_cmp_all(void *binary, int count)
 
 }
 
-static int FGT_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
-static int FGT_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
 
 
-static void FGT_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_len, crypt_key)
 #endif
@@ -164,6 +166,7 @@ static void FGT_crypt_all(int count)
 		SHA1_Update(&ctx, (char *)FORTINET_MAGIC, FORTINET_MAGIC_LENGTH);
 		SHA1_Final((unsigned char*)crypt_key[i], &ctx);
 	}
+	return count;
 }
 
 
@@ -185,7 +188,7 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0
 static int get_hash_6(int index) { return ((ARCH_WORD_32 *)(crypt_key[index]))[0] & 0x7FFFFFF; }
 
 
-static int FGT_salt_hash(void *salt)
+static int salt_hash(void *salt)
 {
 	ARCH_WORD_32 mysalt = *(ARCH_WORD_32 *)salt;
 	return mysalt & (SALT_HASH_SIZE - 1);
@@ -214,11 +217,12 @@ struct fmt_main fmt_FGT = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		FGT_valid,
+		valid,
 		fmt_default_split,
-		FGT_binary,
-		FGT_get_salt,
+		binary,
+		get_salt,
 #if FMT_MAIN_VERSION > 9
 		fmt_default_source,
 #endif
@@ -231,12 +235,12 @@ struct fmt_main fmt_FGT = {
 			binary_hash_5,
 			binary_hash_6
 		},
-		FGT_salt_hash,
-		FGT_set_salt,
-		FGT_set_key,
-		FGT_get_key,
+		salt_hash,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		FGT_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -246,8 +250,8 @@ struct fmt_main fmt_FGT = {
 			get_hash_5,
 			get_hash_6
 		},
-		FGT_cmp_all,
-		FGT_cmp_one,
-		FGT_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

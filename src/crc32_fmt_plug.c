@@ -28,6 +28,7 @@
 #include "common.h"
 #include "formats.h"
 #include "pkzip.h"  // includes the 'inline' crc table.
+#include "loader.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -139,6 +140,18 @@ static void *salt(char *ciphertext)
 	return out;
 }
 
+#if 0 // Not possible with current interface
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+{
+	ARCH_WORD_32 s = *(ARCH_WORD_32*)(pw->source);
+	ARCH_WORD_32 b = *(ARCH_WORD_32*)(pw->binary);
+	s = ~s;
+	b = ~b;
+	sprintf(Buf, "$crc32$%08x.%08x", s,b);
+	return Buf;
+}
+#endif
+
 static void set_salt(void *salt)
 {
 	crcsalt = *((ARCH_WORD_32 *)salt);
@@ -156,8 +169,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 #ifdef _OPENMP
 #pragma omp parallel for private(i)
@@ -170,6 +184,7 @@ static void crypt_all(int count)
 		//crcs[i] = ~crc;
 		crcs[i] = crc;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -204,7 +219,9 @@ struct fmt_main fmt_crc32 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT | FMT_OMP,
@@ -212,11 +229,13 @@ struct fmt_main fmt_crc32 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

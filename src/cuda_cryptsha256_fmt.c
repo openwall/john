@@ -92,7 +92,6 @@ static void init(struct fmt_main *self)
   check_mem_allocation(inbuffer,outbuffer);
   //Initialize CUDA
   cuda_init(cuda_gpu_id);
-  atexit(done);
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)
@@ -269,9 +268,10 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	sha256_crypt_gpu(inbuffer, outbuffer, &host_salt);
+	return *pcount;
 }
 
 static int get_hash_0(int index)
@@ -354,19 +354,23 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

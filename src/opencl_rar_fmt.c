@@ -851,8 +851,9 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	return 1; /* Passed this check! */
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 	int j, k;
 	size_t gws = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
@@ -980,6 +981,7 @@ bailOut:;
 		}
 		EVP_CIPHER_CTX_cleanup(&aes_ctx);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -1025,6 +1027,7 @@ struct fmt_main fmt_opencl_rar = {
 	},{
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

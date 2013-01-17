@@ -234,8 +234,9 @@ static int verify_decrypted_buffer(unsigned char *buffer, int len)
 	return memcmp(buffer, digest, 16) == 0;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -251,6 +252,7 @@ static void crypt_all(int count)
 			any_cracked = cracked[index] = 1;
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -291,7 +293,9 @@ struct fmt_main fmt_keyring = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -299,11 +303,13 @@ struct fmt_main fmt_keyring = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},

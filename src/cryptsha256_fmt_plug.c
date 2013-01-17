@@ -494,8 +494,9 @@ static void LoadCryptStruct(int index, char *p_bytes, char *s_bytes) {
 }
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -644,6 +645,7 @@ static void crypt_all(int count)
 #endif
 #endif
 	}
+	return count;
 }
 
 static void set_salt(void *salt)
@@ -724,7 +726,9 @@ struct fmt_main fmt_cryptsha256 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -732,11 +736,13 @@ struct fmt_main fmt_cryptsha256 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

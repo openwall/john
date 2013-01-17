@@ -421,8 +421,9 @@ static unsigned int walld0rf_magic(const int index, const unsigned char *temp_ke
 	return sum20;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #if MMX_COEF
 #if defined(_OPENMP) && (defined(MD5_SSE_PARA) || !defined(MMX_COEF))
 	int t;
@@ -564,6 +565,7 @@ static void crypt_all(int count)
 			((char*)crypt_key[t])[i] = final_key[i + 8] ^ final_key[i];
 	}
 #endif
+	return count;
 #undef t
 #undef ti
 }
@@ -600,7 +602,7 @@ static void *get_salt(char *ciphertext)
 
 // Here, we remove any salt padding, trim it to 12 bytes
 // and finally replace any 8-bit character with '^'
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 	char *p;
@@ -674,7 +676,9 @@ struct fmt_main fmt_sapB = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(MD5_SSE_PARA)
@@ -685,11 +689,13 @@ struct fmt_main fmt_sapB = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

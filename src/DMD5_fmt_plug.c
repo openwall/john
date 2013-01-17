@@ -110,7 +110,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static int dmd5_valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned char *c = (unsigned char *)ciphertext + 12;
 	unsigned char f = 0;
@@ -128,7 +128,7 @@ static int dmd5_valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static void *dmd5_binary(char *ciphertext)
+static void *binary(char *ciphertext)
 {
 	char username[64];
 	char realm[64];
@@ -247,7 +247,7 @@ static void *dmd5_binary(char *ciphertext)
 	return (void *)binary_response;
 }
 
-static void dmd5_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	unsigned char *ptr_src, *ptr_dst, v;
 	int i, key_len;
@@ -275,24 +275,26 @@ static void dmd5_set_key(char *key, int index)
 	}
 }
 
-static char *dmd5_get_key(int index)
+static char *get_key(int index)
 {
 	return (char *)(prehash_A1_0 + prehash_A1_0_len);
 }
 
-static void dmd5_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, prehash_KD, prehash_KD_len);
 	MD5_Final(KD, &ctx);
+
+	return *pcount;
 }
 
-static int dmd5_cmp_all(void *binary, int index)
+static int cmp_all(void *binary, int index)
 {
 	return !memcmp(binary, KD, MD5_BIN_SIZE);
 }
 
-static int dmd5_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
@@ -306,7 +308,9 @@ struct fmt_main fmt_DMD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -315,11 +319,13 @@ struct fmt_main fmt_DMD5 = {
 	{
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
-		dmd5_valid,
+		valid,
 		fmt_default_split,
-		dmd5_binary,
+		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,
@@ -327,17 +333,17 @@ struct fmt_main fmt_DMD5 = {
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
-		dmd5_set_key,
-		dmd5_get_key,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		dmd5_crypt_all,
+		crypt_all,
 		{
 			fmt_default_get_hash,
 			fmt_default_get_hash,
 			fmt_default_get_hash
 		},
-		dmd5_cmp_all,
-		dmd5_cmp_all,
-		dmd5_cmp_exact
+		cmp_all,
+		cmp_all,
+		cmp_exact
 	}
 };

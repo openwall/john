@@ -123,8 +123,8 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 
 	#define ALGORITHM_NAME		"128/128 X2 SSE2-16"
 	#define NT_CRYPT_FUN		nt_crypt_all_x86_64
-	extern void nt_crypt_all_x86_64(int count);
-	extern void nt_crypt_all_8859_1_x86_64(int count);
+	extern int nt_crypt_all_x86_64(int *pcount, struct db_salt *salt);
+	extern int nt_crypt_all_8859_1_x86_64(int *pcount, struct db_salt *salt);
 #elif defined (NT_SSE2)
 	#define NT_NUM_KEYS	40
 	#define NT_NUM_KEYS1	8
@@ -143,7 +143,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 
 	#define ALGORITHM_NAME		"128/128 SSE2 + 32/" ARCH_BITS_STR
 	#define NT_CRYPT_FUN		nt_crypt_all_sse2
-	extern void nt_crypt_all_sse2(int count);
+	extern void nt_crypt_all_sse2(int *pcount, struct db_salt *salt);
 #else
 	#define NT_NUM_KEYS		64
 	unsigned int nt_buffer1x[16*NT_NUM_KEYS];
@@ -151,8 +151,9 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 
 	#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 	#define NT_CRYPT_FUN		nt_crypt_all_generic
-	static void nt_crypt_all_generic(int count)
+	static int nt_crypt_all_generic(int *pcount, struct db_salt *salt)
 	{
+		int count = *pcount;
 		unsigned int a;
 		unsigned int b;
 		unsigned int c;
@@ -224,6 +225,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 			output1x[4*i+2]=c;
 			output1x[4*i+3]=d;
 		}
+		return count;
 	}
 #endif
 
@@ -284,7 +286,7 @@ static void fmt_NT_init(struct fmt_main *self)
 	}
 }
 
-static char * nt_split(char *ciphertext, int index)
+static char * nt_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
@@ -635,6 +637,41 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static char *source(char *source, void *binary)
+{
+	static char Buf[CIPHERTEXT_LENGTH + 1];
+	unsigned int out[4];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	strcpy(Buf, "$NT$");
+	cpo = &Buf[4];
+
+	// we have to 'undo' the stuff done in the get_binary() function, to get back to the 'original' hash value.
+	memcpy(out, binary, 16);
+	out[1] += SQRT_3;
+	out[1]  = (out[1] >> 17) | (out[1] << 15);
+	out[1] += SQRT_3 + (out[2] ^ out[3] ^ out[0]);
+	out[1]  = (out[1] >> 17) | (out[1] << 15);
+	out[0] += INIT_A;
+	out[1] += INIT_B;
+	out[2] += INIT_C;
+	out[3] += INIT_D;
+
+	cpi = (unsigned char*)out;
+
+	alter_endianity_to_LE(out,4);
+
+	for (i = 0; i < 16; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 // This is common code for the SSE/MMX/generic variants of non-UTF8 set_key
 static inline void set_key_helper(unsigned int * keybuffer,
                                   unsigned int xBuf,
@@ -934,7 +971,9 @@ struct fmt_main fmt_NT = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
@@ -942,11 +981,13 @@ struct fmt_main fmt_NT = {
 	}, {
 		fmt_NT_init,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		nt_split,
 		get_binary,
 		fmt_default_salt,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -301,7 +301,9 @@ static inline void set_onesalt(int index)
 }
 #endif
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
 #ifdef MMX_COEF
 	unsigned int i;
 
@@ -324,7 +326,7 @@ static void crypt_all(int count) {
 //	dump_stuff((unsigned char *)crypt_key, 20);
 //	exit(1);
 #endif
-
+	return count;
 }
 
 static int binary_hash_0(void * binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
@@ -369,7 +371,9 @@ struct fmt_main fmt_saltedsha = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -377,11 +381,13 @@ struct fmt_main fmt_saltedsha = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

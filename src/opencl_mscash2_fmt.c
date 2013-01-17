@@ -190,8 +190,7 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
 }
 
 static 	void set_key(char*,int);
-static 	void done(void);
-static  void crypt_all(int);
+static int crypt_all(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
@@ -325,7 +324,7 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	return 1;
 }
 
-static char * split(char *ciphertext, int index)
+static char * split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
@@ -420,8 +419,9 @@ static  char *get_key(int index )
 	return (char *)key_host[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	unsigned int i;
 #ifdef _DEBUG
 	struct timeval startc,endc,startg,endg;
@@ -463,6 +463,7 @@ static void crypt_all(int count)
 	fprintf(stderr, "\nGPU:%f  ",(endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000);
 	fprintf(stderr, "CPU:%f  ",(endc.tv_sec-startc.tv_sec)+(double)(endc.tv_usec-startc.tv_usec)/1000000.000 - ((endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000));
 #endif
+	return count;
 }
 
 
@@ -645,7 +646,9 @@ struct fmt_main fmt_opencl_mscash2 = {
 		BENCHMARK_LENGTH,
 		MAX_PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		sizeof(ms_cash2_salt),
+		DEFAULT_ALIGN,
 		MAX_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
@@ -653,11 +656,13 @@ struct fmt_main fmt_opencl_mscash2 = {
 	},{
 		init,
 		done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -666,6 +671,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 			binary_hash_4,
 			binary_hash_5,
 			binary_hash_6
+
 		},
 		salt_hash,
 		set_salt,
@@ -681,6 +687,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 			get_hash_4,
 			get_hash_5,
 			get_hash_6
+
 		},
 		cmp_all,
 		cmp_one,

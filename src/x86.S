@@ -28,6 +28,11 @@
 #define CPU_detect			_CPU_detect
 #endif
 
+#if MD5_ASM == 0
+#undef MD5_body
+#define MD5_body MD5_body_unused
+#endif
+
 /*
  * Some broken systems don't offer section alignments larger than 4 bytes,
  * while for the MMX code we need at least an 8 byte alignment. ALIGN_FIX

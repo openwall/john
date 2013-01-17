@@ -175,8 +175,11 @@ static int cmp_one(void * binary, int index)
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -188,6 +191,7 @@ static void crypt_all(int count) {
 		SHA512_Update(&ctx, saved_key[index], key_length[index]+SALT_SIZE );
 		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
 	}
+	return count;
 }
 
 static void * binary(char *ciphertext)
@@ -250,6 +254,7 @@ struct fmt_main fmt_mssql12 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

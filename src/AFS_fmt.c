@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001 by Solar Designer
+ * Copyright (c) 1996-2001,2012 by Solar Designer
  */
 
 #include <string.h>
@@ -36,7 +36,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			DES_STD_ALGORITHM_NAME
 
 #define BINARY_SIZE			(3 * ARCH_SIZE)
+#define BINARY_ALIGN			ARCH_SIZE
 #define SALT_SIZE			40
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		0x80
 #define MAX_KEYS_PER_CRYPT		0x100
@@ -97,7 +99,7 @@ static void init(struct fmt_main *self)
 	ARCH_WORD_32 tmp;
 #endif
 
-	DES_std_init(self);
+	DES_std_init();
 
 	AFS_salt_binary = DES_std_get_salt(AFS_SALT);
 
@@ -279,8 +281,9 @@ static char *get_key(int index)
 	return buffer[index].key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index, pos, length;
 	char xor[8];
 	ARCH_WORD_32 space[(PLAINTEXT_LENGTH + SALT_SIZE + 8) / 4 + 1];
@@ -376,6 +379,8 @@ static void crypt_all(int count)
 		buffer[index].aligned.binary[0] = block[0] | 0x01010101;
 		buffer[index].aligned.binary[1] = block[1] | 0x01010101;
 	}
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -438,7 +443,9 @@ struct fmt_main fmt_AFS = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -446,11 +453,13 @@ struct fmt_main fmt_AFS = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

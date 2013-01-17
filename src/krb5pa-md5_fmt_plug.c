@@ -186,7 +186,7 @@ static void set_salt(void *salt)
 	cur_salt = salt;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TOTAL_LENGTH + 1];
 	char *data;
@@ -297,8 +297,9 @@ static char *get_key(int index)
 	return (char *) saved_plain[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	const unsigned char one[] = { 1, 0, 0, 0 };
 	int i = 0;
 
@@ -359,6 +360,7 @@ static void crypt_all(int count)
 			memset((unsigned char*)output[i], 0, BINARY_SIZE);
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -412,7 +414,9 @@ struct fmt_main fmt_mskrb5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		sizeof(ARCH_WORD_32),
 		SALT_SIZE,
+		sizeof(ARCH_WORD_32),
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -420,11 +424,13 @@ struct fmt_main fmt_mskrb5 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -142,9 +142,11 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -170,6 +172,7 @@ static void crypt_all(int count)
 			p[i] = token[i] ^ stage1_hash[i];
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -230,6 +233,7 @@ struct fmt_main fmt_mysqlna = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2006,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2006,2008,2010-2012 by Solar Designer
  *
  * ...with a change in the jumbo patch, by JimF
  */
@@ -9,9 +9,13 @@
 #include <string.h>
 
 #include "params.h"
+#include "memory.h"
 #include "formats.h"
+#include "misc.h"
 #ifndef BENCH_BUILD
 #include "options.h"
+#else
+#include "loader.h"
 #endif
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
@@ -41,7 +45,10 @@ void fmt_init(struct fmt_main *format)
 				format->params.max_keys_per_crypt =
 				options.force_maxkeys;
 		else {
-			fprintf(stderr, "Can't set mkpc larger than %u for %s format\n", format->params.max_keys_per_crypt, format->params.label);
+			fprintf(stderr,
+			    "Can't set mkpc larger than %u for %s format\n",
+			    format->params.max_keys_per_crypt,
+			    format->params.label);
 			error();
 		}
 	}
@@ -65,13 +72,26 @@ void fmt_done(struct fmt_main *format)
 	}
 }
 
-char *fmt_self_test(struct fmt_main *format)
+static int is_poweroftwo(size_t align)
+{
+	return align != 0 && (align & (align - 1)) == 0;
+}
+
+#undef is_aligned /* clash with common.h */
+static int is_aligned(void *p, size_t align)
+{
+	return ((size_t)p & (align - 1)) == 0;
+}
+
+static char *fmt_self_test_body(struct fmt_main *format,
+    void *binary_copy, void *salt_copy)
 {
 	static char s_size[128];
 	struct fmt_tests *current;
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
+	int binary_align_warned = 0, salt_align_warned = 0;
 #if defined(DEBUG) && !defined(BENCH_BUILD)
 	int validkiller = 0;
 #endif
@@ -86,8 +106,25 @@ char *fmt_self_test(struct fmt_main *format)
 		ml /= 3;
 #endif
 
-	if (format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
-		return "length";
+	// validate that there are no NULL function pointers
+	if (format->methods.init == NULL)       return "method init NULL";
+	if (format->methods.prepare == NULL)    return "method prepare NULL";
+	if (format->methods.valid == NULL)      return "method valid NULL";
+	if (format->methods.split == NULL)      return "method split NULL";
+	if (format->methods.binary == NULL)     return "method binary NULL";
+	if (format->methods.salt == NULL)       return "method salt NULL";
+	if (format->methods.source == NULL)     return "method source NULL";
+	if (!format->methods.binary_hash[0])    return "method binary_hash[0] NULL";
+	if (format->methods.salt_hash == NULL)  return "method salt_hash NULL";
+	if (format->methods.set_salt == NULL)   return "method set_salt NULL";
+	if (format->methods.set_key == NULL)    return "method set_key NULL";
+	if (format->methods.get_key == NULL)    return "method get_key NULL";
+	if (format->methods.clear_keys == NULL) return "method clear_keys NULL";
+	if (format->methods.crypt_all == NULL)  return "method crypt_all NULL";
+	if (format->methods.get_hash[0]==NULL)  return "method get_hash[0] NULL";
+	if (format->methods.cmp_all == NULL)    return "method cmp_all NULL";
+	if (format->methods.cmp_one == NULL)    return "method cmp_one NULL";
+	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
 
 /*
  * Test each format just once unless we're debugging.
@@ -97,9 +134,22 @@ char *fmt_self_test(struct fmt_main *format)
 		return NULL;
 #endif
 
-	if (format->methods.valid("*",format)) return "valid";
+	if (format->params.plaintext_length < 1 ||
+	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 3)
+		return "plaintext_length";
+
+	if (!is_poweroftwo(format->params.binary_align))
+		return "binary_align";
+
+	if (!is_poweroftwo(format->params.salt_align))
+		return "salt_align";
+
+	if (format->methods.valid("*", format))
+		return "valid";
 
 	fmt_init(format);
+
+	format->methods.reset(NULL);
 
 	if ((format->methods.split == fmt_default_split) &&
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
@@ -115,12 +165,12 @@ char *fmt_self_test(struct fmt_main *format)
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
 	do {
-		char *prepared;
-		current->flds[1] = current->ciphertext;
-		prepared = format->methods.prepare(current->flds, format);
-		if (!prepared || strlen(prepared) < 7) // $dummy$ can be just 7 bytes long.
+		if (!current->fields[1])
+			current->fields[1] = current->ciphertext;
+		ciphertext = format->methods.prepare(current->fields, format);
+		if (!ciphertext || strlen(ciphertext) < 7)
 			return "prepare";
-		if (format->methods.valid(prepared,format) != 1)
+		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
 
 #if defined(DEBUG) && !defined(BENCH_BUILD)
@@ -136,11 +186,36 @@ char *fmt_self_test(struct fmt_main *format)
 		}
 #endif
 
-		ciphertext = format->methods.split(prepared, 0);
+
+		ciphertext = format->methods.split(ciphertext, 0, format);
 		plaintext = current->plaintext;
 
+/*
+ * Make sure the declared binary_size and salt_size are sufficient to actually
+ * hold the binary ciphertexts and salts.  We do this by copying the values
+ * returned by binary() and salt() only to the declared sizes.
+ */
 		binary = format->methods.binary(ciphertext);
+		if (!is_aligned(binary, format->params.binary_align) &&
+		    !binary_align_warned) {
+			puts("Warning: binary() returned misaligned pointer");
+			binary_align_warned = 1;
+		}
+		memcpy(binary_copy, binary, format->params.binary_size);
+		binary = binary_copy;
+
 		salt = format->methods.salt(ciphertext);
+		if (!is_aligned(salt, format->params.salt_align) &&
+		    !salt_align_warned) {
+			puts("Warning: salt() returned misaligned pointer");
+			salt_align_warned = 1;
+		}
+		memcpy(salt_copy, salt, format->params.salt_size);
+		salt = salt_copy;
+
+		if (strcmp(ciphertext,
+		    format->methods.source(ciphertext, binary)))
+			return "source";
 
 		if ((unsigned int)format->methods.salt_hash(salt) >=
 		    SALT_HASH_SIZE)
@@ -152,6 +227,8 @@ char *fmt_self_test(struct fmt_main *format)
 		/* Check that claimed maxlength is actually supported */
 		/* This version is for max == 1, other version below */
 		if (lengthcheck == 0 && max == 1) {
+			int count = index + 1;
+
 			lengthcheck = 2;
 
 			/* Fill the buffer with maximum length key */
@@ -159,7 +236,8 @@ char *fmt_self_test(struct fmt_main *format)
 			longcand[ml] = 0;
 			format->methods.set_key(longcand, index);
 
-			format->methods.crypt_all(index + 1);
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
 
 			/* Now read it back and verify it's intact */
 			if (strncmp(format->methods.get_key(index),
@@ -201,10 +279,18 @@ char *fmt_self_test(struct fmt_main *format)
 #endif
 #ifndef BENCH_BUILD
 		if (lengthcheck == 1)
-			format->methods.crypt_all(max);
+		{
+			int count = max;
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
+		}
 		else
 #endif
-			format->methods.crypt_all(index + 1);
+		{
+			int count = index + 1;
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
+		}
 
 #ifndef BENCH_BUILD
 		/* Check that claimed maxlength is actually supported */
@@ -247,7 +333,8 @@ char *fmt_self_test(struct fmt_main *format)
 			sprintf(s_size, "cmp_exact(%d)", index);
 			return s_size;
 		}
-		if (strncmp(format->methods.get_key(index), plaintext, format->params.plaintext_length)) {
+		if (strncmp(format->methods.get_key(index), plaintext,
+			format->params.plaintext_length)) {
 			sprintf(s_size, "get_key(%d)", index);
 			return s_size;
 		}
@@ -291,6 +378,47 @@ char *fmt_self_test(struct fmt_main *format)
 	return NULL;
 }
 
+/*
+ * Allocate memory for a copy of a binary ciphertext or salt with only the
+ * minimum guaranteed alignment.  We do this to test that binary_hash*(),
+ * cmp_*(), and salt_hash() do accept such pointers.
+ */
+static void *alloc_binary(void **alloc, size_t size, size_t align)
+{
+	size_t mask = align - 1;
+	char *p;
+
+/* Ensure minimum required alignment and leave room for "align" bytes more */
+	p = *alloc = mem_alloc(size + mask + align);
+	p += mask;
+	p -= (size_t)p & mask;
+
+/* If the alignment is too great, reduce it to the minimum */
+	if (!((size_t)p & align))
+		p += align;
+
+	return p;
+}
+
+char *fmt_self_test(struct fmt_main *format)
+{
+	char *retval;
+	void *binary_alloc, *salt_alloc;
+	void *binary_copy, *salt_copy;
+
+	binary_copy = alloc_binary(&binary_alloc,
+	    format->params.binary_size, format->params.binary_align);
+	salt_copy = alloc_binary(&salt_alloc,
+	    format->params.salt_size, format->params.salt_align);
+
+	retval = fmt_self_test_body(format, binary_copy, salt_copy);
+
+	MEM_FREE(salt_alloc);
+	MEM_FREE(binary_alloc);
+
+	return retval;
+}
+
 void fmt_default_init(struct fmt_main *self)
 {
 }
@@ -299,9 +427,13 @@ void fmt_default_done(void)
 {
 }
 
-char *fmt_default_prepare(char *split_fields[10], struct fmt_main *self)
+void fmt_default_reset(struct db_main *db)
 {
-	return split_fields[1];
+}
+
+char *fmt_default_prepare(char *fields[10], struct fmt_main *self)
+{
+	return fields[1];
 }
 
 int fmt_default_valid(char *ciphertext, struct fmt_main *self)
@@ -309,7 +441,7 @@ int fmt_default_valid(char *ciphertext, struct fmt_main *self)
 	return 0;
 }
 
-char *fmt_default_split(char *ciphertext, int index)
+char *fmt_default_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return ciphertext;
 }
@@ -322,6 +454,11 @@ void *fmt_default_binary(char *ciphertext)
 void *fmt_default_salt(char *ciphertext)
 {
 	return ciphertext;
+}
+
+char *fmt_default_source(char *source, void *binary)
+{
+	return source;
 }
 
 int fmt_default_binary_hash(void *binary)

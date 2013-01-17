@@ -189,7 +189,7 @@ static void init(struct fmt_main *self)
 	}
 }
 
-static char * ms_split(char *ciphertext, int index)
+static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
@@ -648,8 +648,9 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 #endif
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i, t;
 	// Note, for a format like DCC2, there is little reason to optimize anything other
 	// than the pbkdf2 inner loop.  The one exception to that, is the NTLM can be done
@@ -700,6 +701,7 @@ static void crypt_all(int count)
 		pbkdf2_sse2(t);
 #endif
 	}
+	return count;
 }
 
 struct fmt_main fmt_mscash2 = {
@@ -711,7 +713,9 @@ struct fmt_main fmt_mscash2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -719,11 +723,13 @@ struct fmt_main fmt_mscash2 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

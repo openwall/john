@@ -217,6 +217,7 @@ struct fmt_main fmt_MYSQL = {
       fmt_default_split,
       fmt_default_binary,
       fmt_default_salt,
+      fmt_default_source,
       {
 	fmt_default_binary_hash,
 	fmt_default_binary_hash,
@@ -238,7 +239,7 @@ struct fmt_main fmt_MYSQL = {
 	fmt_default_get_hash
       },
       mysql_cmp_all,
-      mysql_cmp_all, //should it be the same as cmp_all or same as cmp_exact?
-      mysql_cmp_exact //fallthrough
+      mysql_cmp_all,
+      mysql_cmp_exact
     }
 };

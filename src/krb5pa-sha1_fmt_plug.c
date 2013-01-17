@@ -474,8 +474,9 @@ static void krb_encrypt(const unsigned char ciphertext[], size_t ctext_size,
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -542,6 +543,7 @@ static void crypt_all(int count)
 			memset(crypt_out[index], 0, BINARY_SIZE);
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -588,6 +590,7 @@ struct fmt_main fmt_krb5pa = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

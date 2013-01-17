@@ -129,7 +129,7 @@ static void init(struct fmt_main *self)
 	output = mem_alloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int mschapv2_valid_long(char *ciphertext)
+static int valid_long(char *ciphertext)
 {
   char *pos, *pos2;
 
@@ -170,7 +170,7 @@ static int mschapv2_valid_long(char *ciphertext)
   return 1;
 }
 
-static int mschapv2_valid_short(char *ciphertext)
+static int valid_short(char *ciphertext)
 {
   char *pos, *pos2;
 
@@ -198,13 +198,13 @@ static int mschapv2_valid_short(char *ciphertext)
   return 1;
 }
 
-static int mschapv2_valid(char *ciphertext, struct fmt_main *pFmt)
+static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	return	mschapv2_valid_short(ciphertext) ||
-		mschapv2_valid_long(ciphertext);
+	return	valid_short(ciphertext) ||
+		valid_long(ciphertext);
 }
 
-static char *mschapv2_prepare_long(char *split_fields[10])
+static char *prepare_long(char *split_fields[10])
 {
   char *username, *cp;
 
@@ -216,7 +216,7 @@ static char *mschapv2_prepare_long(char *split_fields[10])
 
   cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+strlen(split_fields[5])+1+strlen(username)+1);
   sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4], split_fields[5], username);
-  if (mschapv2_valid_long(cp)) {
+  if (valid_long(cp)) {
     char *cp2 = str_alloc_copy(cp);
     MEM_FREE(cp);
     return cp2;
@@ -225,13 +225,13 @@ static char *mschapv2_prepare_long(char *split_fields[10])
   return split_fields[1];
 }
 
-static char *mschapv2_prepare_short(char *split_fields[10])
+static char *prepare_short(char *split_fields[10])
 {
   char *cp;
 
   cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+1+1);
   sprintf(cp, "$MSCHAPv2$%s$%s$$", split_fields[3], split_fields[4]);
-  if (mschapv2_valid_short(cp)) {
+  if (valid_short(cp)) {
     char *cp2 = str_alloc_copy(cp);
     MEM_FREE(cp);
     return cp2;
@@ -240,7 +240,7 @@ static char *mschapv2_prepare_short(char *split_fields[10])
   return split_fields[1];
 }
 
-static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
+static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
   char *ret;
 
@@ -250,18 +250,18 @@ static char *mschapv2_prepare(char *split_fields[10], struct fmt_main *pFmt)
            strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
            strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
            strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
-    ret = mschapv2_prepare_long(split_fields);
+    ret = prepare_long(split_fields);
   else if (split_fields[0] && split_fields[3] && split_fields[4] &&
            strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
            strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
-    ret = mschapv2_prepare_short(split_fields);
+    ret = prepare_short(split_fields);
   else
     ret = NULL;
 
   return ret ? ret : split_fields[1];
 }
 
-static char *mschapv2_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
   static char *out;
   int i, j = 0;
@@ -282,14 +282,14 @@ static char *mschapv2_split(char *ciphertext, int index)
   return out;
 }
 
-static void *mschapv2_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
   static uchar *binary;
   int i;
 
   if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
 
-  if (mschapv2_valid_short(ciphertext))
+  if (valid_short(ciphertext))
     ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
   else
     ciphertext += 10 + CHALLENGE_LENGTH / 2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
@@ -322,8 +322,9 @@ static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
    specified authentication identity (username), password and client
    nonce.
 */
-static void mschapv2_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	DES_key_schedule ks;
 	int i;
 
@@ -353,9 +354,10 @@ static void mschapv2_crypt_all(int count)
 		setup_des_key(saved_key[i], &ks);
 		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i], &ks, DES_ENCRYPT);
 	}
+	return count;
 }
 
-static int mschapv2_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for(; index<count; index++)
@@ -364,12 +366,12 @@ static int mschapv2_cmp_all(void *binary, int count)
 	return 0;
 }
 
-static int mschapv2_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE));
 }
 
-static int mschapv2_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	DES_key_schedule ks;
 	uchar binary[24];
@@ -388,10 +390,10 @@ static int mschapv2_cmp_exact(char *source, int index)
 	setup_des_key(&saved_key[index][14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
 
-	return !memcmp(binary, mschapv2_get_binary(source), BINARY_SIZE);
+	return !memcmp(binary, get_binary(source), BINARY_SIZE);
 }
 
-static void mschapv2_get_challenge(const char *ciphertext, unsigned char *binary_salt)
+static void get_challenge(const char *ciphertext, unsigned char *binary_salt)
 {
   int i;
   const char *pos = ciphertext + 10;
@@ -404,7 +406,7 @@ static void mschapv2_get_challenge(const char *ciphertext, unsigned char *binary
    we are going to calculate it via:
    sha1(|Peer/Client Challenge (8 Bytes)|Authenticator/Server Challenge (8 Bytes)|Username (<=256)|)
 */
-static void *mschapv2_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
   static unsigned char *binary_salt;
   SHA_CTX ctx;
@@ -423,8 +425,8 @@ static void *mschapv2_get_salt(char *ciphertext)
   memset(binary_salt, 0, SALT_SIZE);
   memset(digest, 0, 20);
 
-  if (mschapv2_valid_short(ciphertext)) {
-    mschapv2_get_challenge(ciphertext, binary_salt);
+  if (valid_short(ciphertext)) {
+    get_challenge(ciphertext, binary_salt);
     goto out;
   }
 
@@ -461,7 +463,7 @@ out:
   return (void*)binary_salt;
 }
 
-static void mschapv2_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	challenge = salt;
 }
@@ -473,7 +475,7 @@ static void mschapv2_set_key(char *key, int index)
 	keys_prepared = 0;
 }
 
-static char *mschapv2_get_key(int index)
+static char *get_key(int index)
 {
 	return (char *)saved_plain[index];
 }
@@ -542,7 +544,9 @@ struct fmt_main fmt_MSCHAPv2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -550,11 +554,13 @@ struct fmt_main fmt_MSCHAPv2 = {
 	}, {
 		init,
 		fmt_default_done,
-		mschapv2_prepare,
-		mschapv2_valid,
-		mschapv2_split,
-		mschapv2_get_binary,
-		mschapv2_get_salt,
+		fmt_default_reset,
+		prepare,
+		valid,
+		split,
+		get_binary,
+		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -563,11 +569,11 @@ struct fmt_main fmt_MSCHAPv2 = {
 			binary_hash_4
 		},
 		salt_hash,
-		mschapv2_set_salt,
+		set_salt,
 		mschapv2_set_key,
-		mschapv2_get_key,
+		get_key,
 		fmt_default_clear_keys,
-		mschapv2_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -575,8 +581,8 @@ struct fmt_main fmt_MSCHAPv2 = {
 			get_hash_3,
 			get_hash_4
 		},
-		mschapv2_cmp_all,
-		mschapv2_cmp_one,
-		mschapv2_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

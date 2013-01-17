@@ -137,8 +137,9 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -167,6 +168,7 @@ static void crypt_all(int count)
 		SHA512_Update( &ctx, tmp, len);
 		SHA512_Final( (unsigned char *) crypt_key[index], &ctx);
 	}
+	return count;
 }
 
 static void * binary(char *ciphertext)
@@ -240,8 +242,10 @@ struct fmt_main fmt_drupal7 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		// true salt is SALT_SIZE but we add the loop count
 		SALT_SIZE + 1,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -249,11 +253,13 @@ struct fmt_main fmt_drupal7 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

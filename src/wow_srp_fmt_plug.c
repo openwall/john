@@ -293,8 +293,9 @@ static char *get_key(int index)
 // x = SHA1(s, H(U, ":", P));   
 // v = 47^x % 112624315653284427036559548610503669920632123929604336254260115573677366691719
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int j;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -389,6 +390,7 @@ static void crypt_all(int count)
 		BN_bn2bin(pSRP_CTX[j].z_rop, (unsigned char*)(crypt_out[j]));
 #endif
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -433,6 +435,7 @@ struct fmt_main fmt_blizzard = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

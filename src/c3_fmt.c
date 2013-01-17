@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2009-2011 by Solar Designer
+ * Copyright (c) 2009-2012 by Solar Designer
  *
  * Generic crypt(3) support, as well as support for glibc's crypt_r(3) and
  * Solaris' MT-safe crypt(3C) with OpenMP parallelization.
@@ -41,7 +41,9 @@
 #define PLAINTEXT_LENGTH		72
 
 #define BINARY_SIZE			128
+#define BINARY_ALIGN			1
 #define SALT_SIZE			BINARY_SIZE
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		96
 #define MAX_KEYS_PER_CRYPT		96
@@ -392,8 +394,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 #if defined(_OPENMP) && defined(__GLIBC__)
@@ -444,6 +447,8 @@ static void crypt_all(int count)
 		strnzcpy(crypt_out[index], crypt(saved_key[index], saved_salt),
 		    BINARY_SIZE);
 #endif
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -476,7 +481,9 @@ struct fmt_main fmt_crypt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -484,11 +491,13 @@ struct fmt_main fmt_crypt = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

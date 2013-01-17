@@ -136,7 +136,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
-        
+
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
@@ -311,8 +311,8 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	global_work_size = optimal_gws;
 }
 
-static void crypt_all(int count);
-static void crypt_all_benchmark(int count);
+static int crypt_all(int *pcount, struct db_salt *salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
@@ -399,7 +399,8 @@ static void init(struct fmt_main *self)
 		}
 	}
 
-	self->params.min_keys_per_crypt = local_work_size;
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
@@ -411,8 +412,9 @@ static void init(struct fmt_main *self)
 	create_clobj(global_work_size, self);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 	size_t scalar_gws;
 
@@ -447,10 +449,13 @@ static void crypt_all(int count)
 
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, NULL), "Copy result back");
+
+	return count;
 }
 
-static void crypt_all_benchmark(int count)
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	size_t scalar_gws = global_work_size * VF;
 
 	/// Copy data to gpu
@@ -464,6 +469,7 @@ static void crypt_all_benchmark(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
 
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+	return count;
 }
 
 struct fmt_main fmt_opencl_wpapsk = {
@@ -475,7 +481,9 @@ struct fmt_main fmt_opencl_wpapsk = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -483,11 +491,13 @@ struct fmt_main fmt_opencl_wpapsk = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

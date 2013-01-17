@@ -593,6 +593,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_event benchEvent[2];
 	size_t gws;
+	int count;
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -644,7 +645,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	/// Warm-up run
 	local_work_size = wg_multiple;
-	self->methods.crypt_all(self->params.max_keys_per_crypt);
+	count = self->params.max_keys_per_crypt;
+	self->methods.crypt_all(&count, NULL);
 
 	// Activate events
 	benchEvent[0] = benchEvent[1] = NULL;
@@ -655,7 +657,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	self->methods.set_key(self->params.tests[0].plaintext, self->params.max_keys_per_crypt - 1);
 
 	// Timing run
-	self->methods.crypt_all(self->params.max_keys_per_crypt);
+	self->methods.crypt_all(&count, NULL);
 
 	if (*lastEvent == NULL)
 		lastEvent = firstEvent;
@@ -698,7 +700,7 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 			// Some formats need this for "keys_dirty"
 			self->methods.set_key(self->params.tests[0].plaintext, self->params.max_keys_per_crypt - 1);
 
-			self->methods.crypt_all(self->params.max_keys_per_crypt);
+			self->methods.crypt_all(&count, NULL);
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
@@ -754,7 +756,7 @@ static cl_ulong gws_test(
 	size_t num, int show_details, unsigned int rounds)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
-	int i;
+	int i, count;
 
 	//Prepare buffers.
 	create_clobj(num, self);
@@ -767,7 +769,8 @@ static cl_ulong gws_test(
 	self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
 
 	// Timing run
-	self->methods.crypt_all(num);
+	count = self->params.max_keys_per_crypt;
+	self->methods.crypt_all(&count, NULL);
 
 	//** Get execution time **//
 	for (i = 0; i < number_of_events; i++) {
@@ -827,7 +830,7 @@ void opencl_find_best_lws(
 {
 	size_t gws;
 	cl_int ret_code;
-	int i, numloops;
+	int i, numloops, count;
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
@@ -872,15 +875,14 @@ void opencl_find_best_lws(
 
 	// Warm-up run
 	local_work_size = wg_multiple;
-	self->methods.crypt_all(self->params.max_keys_per_crypt);
+	count = self->params.max_keys_per_crypt;
+	self->methods.crypt_all(&count, NULL);
 
-	release_profiling_events();
-
-        // Activate events
+	// Activate events
 	profilingEvent = to_profile_event;
 
 	// Timing run
-	self->methods.crypt_all(self->params.max_keys_per_crypt);
+	self->methods.crypt_all(&count, NULL);
 
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 	HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
@@ -913,7 +915,7 @@ void opencl_find_best_lws(
 			advance_cursor();
 			local_work_size = my_work_group;
 
-			self->methods.crypt_all(self->params.max_keys_per_crypt);
+			self->methods.crypt_all(&count, NULL);
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
@@ -1133,7 +1135,7 @@ void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, 
 // will benefit from this routine.
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn) {
 	struct stat source_stat, bin_stat;
-	char dev_name[128], bin_name[PATH_BUFFER_SIZE];
+	char dev_name[128], bin_name[128];
 	char * p;
 	uint64_t startTime, runtime;
 

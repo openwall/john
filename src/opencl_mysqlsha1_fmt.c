@@ -206,7 +206,7 @@ static void init(struct fmt_main *self){
 
 	if (!local_work_size) {
 		create_clobj(MAX_KEYS_PER_CRYPT);
-		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
+		opencl_find_best_workgroup(self);
 		release_clobj();
 	}
 
@@ -302,7 +302,10 @@ static int cmp_one(void *binary, int index){
 
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buf_msha_keys, CL_FALSE, 0, (PLAINTEXT_LENGTH) * global_work_size, mysqlsha_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer mysqlsha_plain");
@@ -312,6 +315,8 @@ static void crypt_all(int count) {
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buf_msha_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, par_msha_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
+
+	return count;
 }
 
 
@@ -340,7 +345,9 @@ struct fmt_main fmt_opencl_mysqlsha1 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -348,11 +355,13 @@ struct fmt_main fmt_opencl_mysqlsha1 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 		     	binary_hash_0,
 			binary_hash_1,

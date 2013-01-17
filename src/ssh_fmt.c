@@ -341,8 +341,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 #pragma omp parallel for default(none) private(index) shared(count, any_cracked, cracked, saved_key, restored_custom_salt)
@@ -384,6 +385,7 @@ static void crypt_all(int count)
 			}
 		}
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -410,7 +412,9 @@ struct fmt_main fmt_ssh = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
@@ -421,11 +425,13 @@ struct fmt_main fmt_ssh = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},

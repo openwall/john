@@ -172,8 +172,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -192,6 +193,7 @@ static void crypt_all(int count)
 
 		SHA512_Final((unsigned char*)crypt_out[index], &ctx);
 	}
+	return count;
 }
 
 static void set_salt(void *salt)
@@ -279,7 +281,9 @@ struct fmt_main fmt_dragonfly4_32 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE_32,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -287,11 +291,13 @@ struct fmt_main fmt_dragonfly4_32 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt_32,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -331,7 +337,9 @@ struct fmt_main fmt_dragonfly4_64 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE_64,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -339,11 +347,13 @@ struct fmt_main fmt_dragonfly4_64 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt_64,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -154,35 +154,37 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-  int index = 0;
+	int count = *pcount;
+	int index = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-  for (index = 0; index < count; index++)
+	for (index = 0; index < count; index++)
 #endif
-    {
-      int i = 0;
-      krb5_data string;
-      krb5_keyblock key;
-      memset(&key, 0, sizeof(krb5_keyblock));
+	{
+		int i = 0;
+		krb5_data string;
+		krb5_keyblock key;
+		memset(&key, 0, sizeof(krb5_keyblock));
 
-      string.data = saved_key[index];
-      string.length = strlen(saved_key[index]);
+		string.data = saved_key[index];
+		string.length = strlen(saved_key[index]);
 #ifdef USE_HEIMDAL
-      krb5_c_string_to_key (NULL, ENCTYPE_ARCFOUR_HMAC, &string, &salt, &key);
+		krb5_c_string_to_key (NULL, ENCTYPE_ARCFOUR_HMAC, &string, &salt, &key);
 #else
-      krb5_c_string_to_key_with_params(NULL, enctype, &string, &salt, NULL, &key);
+		krb5_c_string_to_key_with_params(NULL, enctype, &string, &salt, NULL, &key);
 
 #endif
-      for(i=0; i < key.length / 4; i++) {
-	      crypt_out[index][i] = (key.contents[4 * i]) |
-		      (key.contents[4 * i + 1] << 8) |
-		      (key.contents[4 * i + 2] << 16) |
-		      (key.contents[4 * i + 3] << 24);
-      }
-    }
+		for(i=0; i < key.length / 4; i++) {
+			crypt_out[index][i] = (key.contents[4 * i]) |
+				(key.contents[4 * i + 1] << 8) |
+				(key.contents[4 * i + 2] << 16) |
+				(key.contents[4 * i + 3] << 24);
+		}
+	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -243,6 +245,7 @@ struct fmt_main fmt_KRB5_kinit = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

@@ -306,9 +306,9 @@ void opencl_DES_bs_set_salt(WORD salt)
 			
 }
 #if HARDCODE_SALT
-void opencl_DES_bs_crypt_25(int keys_count)
+int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 {
-	
+	int keys_count = *pcount;	
 	unsigned int section=0,keys_count_multiple;
 	static unsigned int pos ;
 	cl_event evnt;
@@ -369,13 +369,13 @@ void opencl_DES_bs_crypt_25(int keys_count)
 
 	clFinish(cmdq[pltfrmno][devno]);
 	
-		
+	return keys_count;
 }
 
 #else
-void opencl_DES_bs_crypt_25(int keys_count)
+int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 {
-	
+	int keys_count = *pcount;
 	unsigned int section=0,keys_count_multiple;
 	
 	cl_event evnt;
@@ -407,7 +407,7 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	
 	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno][0],1,NULL,&N,&M,0,NULL,&evnt);
 	
-	HANDLE_CLERROR(err,"Enqueue Kernel Failed");
+	HANDLE_CLERROR(err,"Enque Kernel Failed");
 
 	clWaitForEvents(1,&evnt);
 	
@@ -415,6 +415,6 @@ void opencl_DES_bs_crypt_25(int keys_count)
 
 	clFinish(cmdq[pltfrmno][devno]);
 	
-		
+	return keys_count;		
 }
 #endif

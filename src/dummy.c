@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2011 by Solar Designer
+ * Copyright (c) 2011,2012 by Solar Designer
  */
 
 #include <string.h>
@@ -25,7 +25,9 @@ typedef struct {
 } dummy_binary;
 
 #define BINARY_SIZE			sizeof(dummy_binary)
+#define BINARY_ALIGN			sizeof(ARCH_WORD_32)
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
@@ -188,6 +190,16 @@ static int binary_hash_4(void *binary)
 	return ((dummy_binary *)binary)->hash & 0xfffff;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((dummy_binary *)binary)->hash & 0xffffff;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((dummy_binary *)binary)->hash & 0x7ffffff;
+}
+
 static int get_hash_0(int index)
 {
 	ARCH_WORD_32 hash = string_hash(saved_key[index]);
@@ -217,6 +229,16 @@ static int get_hash_4(int index)
 	return string_hash(saved_key[index]) & 0xfffff;
 }
 
+static int get_hash_5(int index)
+{
+	return string_hash(saved_key[index]) & 0xffffff;
+}
+
+static int get_hash_6(int index)
+{
+	return string_hash(saved_key[index]) & 0x7ffffff;
+}
+
 static void set_key(char *key, int index)
 {
 	char *p = saved_key[index];
@@ -229,8 +251,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -268,7 +291,9 @@ struct fmt_main fmt_dummy = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -276,17 +301,21 @@ struct fmt_main fmt_dummy = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		fmt_default_salt_hash,
 		fmt_default_set_salt,
@@ -299,7 +328,9 @@ struct fmt_main fmt_dummy = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

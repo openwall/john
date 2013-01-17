@@ -152,7 +152,7 @@ static void init(struct fmt_main *self)
 	}
 }
 
-static char * ms_split(char *ciphertext, int index)
+static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i=0;
@@ -544,8 +544,9 @@ static void nt_hash(int count)
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 
 	if(new_key)
@@ -624,6 +625,7 @@ static void crypt_all(int count)
 		output1x[4*i+2]=c;
 		output1x[4*i+3]=d;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -939,7 +941,9 @@ struct fmt_main fmt_mscash = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -947,11 +951,13 @@ struct fmt_main fmt_mscash = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

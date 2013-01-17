@@ -527,8 +527,9 @@ static int binary_hash_6(void *binary)
 	return ((ARCH_WORD_32 *) binary)[0] & 0x7ffffff;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	size_t in_size, out_size;
 
 	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
@@ -547,6 +548,7 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 
 	new_keys = 0;
+	return count;
 }
 
 static int get_hash_0(int index)
@@ -616,7 +618,9 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -624,11 +628,13 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

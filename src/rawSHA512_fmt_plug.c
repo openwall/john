@@ -49,6 +49,11 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)
     [(BINARY_SIZE + sizeof(ARCH_WORD_32) - 1) / sizeof(ARCH_WORD_32)];
 
+#if !defined(_OPENMP) && !defined(__APPLE__)
+#define SHA_SPEED_TEST
+SHA512_CTX ctx;
+#endif
+
 static void init(struct fmt_main *self)
 {
 #ifdef _OPENMP
@@ -78,7 +83,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
@@ -106,6 +111,14 @@ static void *get_binary(char *ciphertext)
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+#ifdef SHA_SPEED_TEST
+	{
+		unsigned long long *p = (unsigned long long *)out;
+		int i;
+		for (i = 0; i < 8; ++i)
+			p[i] = JOHNSWAP64(p[i]);
+	}
+#endif
 
 	return out;
 }
@@ -145,39 +158,45 @@ static int binary_hash_6(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
+#ifndef SHA_SPEED_TEST
+#define CMP_PTR crypt_out[index]
+#else
+#define CMP_PTR ctx.h
+#endif
+
 static int get_hash_0(int index)
 {
-	return crypt_out[index][0] & 0xF;
+	return CMP_PTR[0] & 0xF;
 }
 
 static int get_hash_1(int index)
 {
-	return crypt_out[index][0] & 0xFF;
+	return CMP_PTR[0] & 0xFF;
 }
 
 static int get_hash_2(int index)
 {
-	return crypt_out[index][0] & 0xFFF;
+	return CMP_PTR[0] & 0xFFF;
 }
 
 static int get_hash_3(int index)
 {
-	return crypt_out[index][0] & 0xFFFF;
+	return CMP_PTR[0] & 0xFFFF;
 }
 
 static int get_hash_4(int index)
 {
-	return crypt_out[index][0] & 0xFFFFF;
+	return CMP_PTR[0] & 0xFFFFF;
 }
 
 static int get_hash_5(int index)
 {
-	return crypt_out[index][0] & 0xFFFFFF;
+	return CMP_PTR[0] & 0xFFFFFF;
 }
 
 static int get_hash_6(int index)
 {
-	return crypt_out[index][0] & 0x7FFFFFF;
+	return CMP_PTR[0] & 0x7FFFFFF;
 }
 
 static void set_key(char *key, int index)
@@ -195,36 +214,49 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
 #endif
+#ifndef SHA_SPEED_TEST
 	{
 		SHA512_CTX ctx;
-
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
 		SHA512_Final((unsigned char *)crypt_out[index], &ctx);
 	}
+#else
+	// Calling OpenSSL with this NULL, stops it from doing byte swapping
+	// and writing any results. We simply use the ctx.h value instead,
+	// AND we have to have our binary in BE format.
+	SHA512_Init(&ctx);
+	SHA512_Update(&ctx, saved_key[index], saved_key_length[index]);
+	SHA512_Final(NULL, &ctx);
+#endif
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
+#ifndef SHA_SPEED_TEST
 	int index = 0;
+#endif
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (!memcmp(binary, CMP_PTR, BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	return !memcmp(binary, CMP_PTR, BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -244,7 +276,9 @@ struct fmt_main fmt_raw0_SHA512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -252,11 +286,13 @@ struct fmt_main fmt_raw0_SHA512 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

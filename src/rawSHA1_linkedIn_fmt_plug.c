@@ -8,6 +8,10 @@
  * a lot of partial hashes in there. 00000 was overwritten on hashes that
  * were cracked. In this change, we simply ignore the first 20 bits of the
  * hash, when doing a compare.  JimF June, 2012.
+ *
+ * NOTE! This format will write complete (repaired) SHA-1 hashes to the .pot
+ * file. To show all cracked password properly, you need to *not* specify this
+ * format but raw-sha1.
  */
 
 #include <string.h>
@@ -56,21 +60,22 @@
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
+/* We can't have crippled hashes in the tests, due to how JtR core works */
 static struct fmt_tests tests[] = {
 	{"c3e337f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
-	{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
+	//{"000007f070b64a50e9d31ac3f9eda35120e29d6c", "digipalmw221u"},
 	{"2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	{"00000eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
+	//{"00000eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
 	{FORMAT_TAG "A9993E364706816ABA3E25717850C26C9CD0D89D", "abc"},
-	{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
+	//{FORMAT_TAG "00000E364706816ABA3E25717850C26C9CD0D89D", "abc"},
 	{"f879f8090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
-	{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
+	//{"000008090e92232ed07092ebed6dc6170457a21d", "azertyuiop2"},
 	{"1813c12f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
-	{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
+	//{"0000012f25e64931f3833b26e999e26e81f9ad24", "azertyuiop3"},
 	{"095bec1163897ac86e393fa16d6ae2c2fce21602", "7850"},
-	{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
+	//{"00000c1163897ac86e393fa16d6ae2c2fce21602", "7850"},
 	{"dd3fbb0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
-	{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
+	//{"00000b0ba9e133c4fd84ed31ac2e5bc597d61774", "7858"},
 	{NULL}
 };
 
@@ -111,7 +116,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -122,6 +127,10 @@ static char *split(char *ciphertext, int index)
 
 	memcpy(&out[TAG_LENGTH], ciphertext, HASH_LENGTH);
 	out[CIPHERTEXT_LENGTH] = 0;
+
+	// 'normalize' these hashes to all 'appear' to be 00000xxxxxx hashes.
+	// on the source() function, we later 'fix' these up.
+	memcpy(&out[TAG_LENGTH], "00000", 5);
 
 	strlwr(&out[TAG_LENGTH]);
 
@@ -242,7 +251,10 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF
 
@@ -257,7 +269,7 @@ static void crypt_all(int count) {
 	SHA1_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
 	SHA1_Final( (unsigned char *) crypt_key, &ctx);
 #endif
-
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -308,6 +320,50 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[1] & 0x7ffffff; }
 #endif
 
+static char *source(char *source, void *binary)
+{
+	static char Buf[CIPHERTEXT_LENGTH + 1];
+	unsigned char realcipher[BINARY_SIZE];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+#ifdef MMX_COEF
+	for (i = 0; i < NBKEYS; ++i) {
+		if (crypt_key[(i/MMX_COEF)*20+MMX_COEF+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[1]) {
+			// Ok, we may have found it.  Check the next 3 DWORDS
+			if (crypt_key[(i/MMX_COEF)*20+MMX_COEF*2+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[2] &&
+			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*3+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[3] &&
+			    crypt_key[(i/MMX_COEF)*20+MMX_COEF*4+(i%MMX_COEF)] == ((ARCH_WORD_32*)binary)[4]) {
+				((ARCH_WORD_32*)binary)[0] = crypt_key[(i/MMX_COEF)*20+(i%MMX_COEF)];
+				break;
+			}
+		}
+	}
+#else
+	if (crypt_key[1] == ((ARCH_WORD_32*)binary)[1] &&
+		crypt_key[2] == ((ARCH_WORD_32*)binary)[2] &&
+		crypt_key[3] == ((ARCH_WORD_32*)binary)[3] &&
+		crypt_key[4] == ((ARCH_WORD_32*)binary)[4])
+		   ((ARCH_WORD_32*)binary)[0] = crypt_key[0];
+#endif
+	memcpy(realcipher, binary, BINARY_SIZE);
+#ifdef MMX_COEF
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
+
+	cpi = realcipher;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
 
 struct fmt_main fmt_rawSHA1_LI = {
 	{
@@ -318,7 +374,9 @@ struct fmt_main fmt_rawSHA1_LI = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
@@ -326,11 +384,13 @@ struct fmt_main fmt_rawSHA1_LI = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		fmt_default_salt,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

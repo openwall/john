@@ -90,7 +90,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -194,8 +194,9 @@ static int cmp_one(void *binary, int index)
 	return !memcmp(binary, crypt_key[index], BINARY_SIZE);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -214,6 +215,7 @@ static void crypt_all(int count)
 		SHA512_Update( &ctx, crypt_key[index], BINARY_SIZE);
 		SHA512_Final( (unsigned char*) crypt_key[index], &ctx);
 	}
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -248,7 +250,9 @@ struct fmt_main fmt_hmacSHA512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
@@ -256,11 +260,13 @@ struct fmt_main fmt_hmacSHA512 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

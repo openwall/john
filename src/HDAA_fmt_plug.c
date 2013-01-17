@@ -369,8 +369,9 @@ static inline void crypt_done(unsigned const int *source, unsigned int *dest, in
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #if MMX_COEF
 #if defined(_OPENMP) && defined(MD5_SSE_PARA)
 #define ti	(thread*NBKEYS+index)
@@ -540,6 +541,7 @@ static void crypt_all(int count)
 		MD5_Final(crypt_key[index], &ctx);
 	}
 #endif
+	return count;
 }
 
 static char *mystrndup(const char *s, size_t n)
@@ -670,7 +672,9 @@ struct fmt_main fmt_HDAA = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(MD5_SSE_PARA)
@@ -681,11 +685,13 @@ struct fmt_main fmt_HDAA = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

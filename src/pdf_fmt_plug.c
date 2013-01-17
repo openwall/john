@@ -417,9 +417,11 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 		pdf_compute_hardened_hash_r6(password, pwlen, crypt->u + 32,  NULL, output);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -434,6 +436,7 @@ static void crypt_all(int count)
 			if(memcmp(output, crypt->u, 16) == 0)
 				any_cracked = cracked[index] = 1;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -475,6 +478,7 @@ struct fmt_main fmt_pdf = {
 	{
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

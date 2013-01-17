@@ -410,7 +410,8 @@ static void init(struct fmt_main *self)
 	         UNICODE_LENGTH,
 	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/kernels/office2007_kernel.cl", ocl_gpu_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/office2007_kernel.cl", ocl_gpu_id,
+	                build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) /*||
 	    ((!(options.flags & FLG_SCALAR)) &&
@@ -530,8 +531,9 @@ static inline int PasswordVerifier(unsigned char *key)
 	return !memcmp(checkHash, decryptedVerifierHash, 16);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 	size_t scalar_gws;
 
@@ -562,6 +564,8 @@ static void crypt_all(int count)
 #endif
 	for (index = 0; index < count; index++)
 		cracked[index] = PasswordVerifier(&key[index*16]);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -615,6 +619,7 @@ struct fmt_main fmt_opencl_office2007 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

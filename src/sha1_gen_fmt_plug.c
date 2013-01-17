@@ -208,8 +208,10 @@ static char *get_key(int index)
 	return saved_key;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	SHA1_Init(&ctx);
 	if (saved_salt[1] == 'p') {
 		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
@@ -219,6 +221,8 @@ static void crypt_all(int count)
 		SHA1_Update(&ctx, &saved_salt[2], (unsigned char)saved_salt[0]);
 	}
 	SHA1_Final((unsigned char *)crypt_out, &ctx);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -240,7 +244,9 @@ struct fmt_main fmt_sha1_gen = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -248,11 +254,13 @@ struct fmt_main fmt_sha1_gen = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

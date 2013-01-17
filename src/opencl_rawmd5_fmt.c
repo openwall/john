@@ -268,6 +268,7 @@ static void init(struct fmt_main *self)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n",local_work_size, global_work_size);
+
 	create_clobj(global_work_size);
 
 	self->params.max_keys_per_crypt = global_work_size;
@@ -291,7 +292,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
@@ -356,8 +357,10 @@ static char *get_key(int index)
 	return out;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	// copy keys to the device
@@ -368,6 +371,8 @@ static void crypt_all(int count)
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -416,7 +421,9 @@ struct fmt_main fmt_opencl_rawMD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -424,11 +431,13 @@ struct fmt_main fmt_opencl_rawMD5 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

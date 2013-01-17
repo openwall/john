@@ -216,8 +216,10 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	if (keys_mode != saved_salt.subtype) {
 		int i;
 
@@ -228,6 +230,7 @@ static void crypt_all(int count)
 	}
 
 	opencl_BF_std_crypt(&saved_salt, count);
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -261,7 +264,9 @@ struct fmt_main fmt_opencl_bf = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -269,11 +274,13 @@ struct fmt_main fmt_opencl_bf = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		opencl_BF_std_get_binary,
 		opencl_BF_std_get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

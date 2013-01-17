@@ -92,7 +92,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
+#if FMT_MAIN_VERSION > 9
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
+#else
 static char *split(char *ciphertext, int index)
+#endif
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
@@ -219,9 +223,11 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -229,6 +235,7 @@ static void crypt_all(int count)
 	{
 		(void)blake2b((uint8_t *)crypt_out[index], saved_key[index], NULL, 64, saved_key_length[index], 0);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -261,19 +268,29 @@ struct fmt_main fmt_rawBLAKE2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	}, {
 		init,
-                fmt_default_done,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
 		fmt_default_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

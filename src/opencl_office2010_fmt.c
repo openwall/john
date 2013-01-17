@@ -412,7 +412,8 @@ static void init(struct fmt_main *self)
 	         UNICODE_LENGTH,
 	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/kernels/office2010_kernel.cl", ocl_gpu_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/office2010_kernel.cl", ocl_gpu_id,
+	                build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) /*||
 	    ((!(options.flags & FLG_SCALAR)) &&
@@ -522,8 +523,9 @@ static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, u
 	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 	size_t scalar_gws;
 
@@ -563,6 +565,7 @@ static void crypt_all(int count)
 		SHA1_Final(hash, &ctx);
 		cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -616,6 +619,7 @@ struct fmt_main fmt_opencl_office2010 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

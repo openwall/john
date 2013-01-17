@@ -62,7 +62,6 @@ static void init(struct fmt_main *self)
 	check_mem_allocation(inbuffer, outbuffer);
 	//Initialize CUDA
 	cuda_init(cuda_gpu_id);
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -102,7 +101,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
@@ -214,9 +213,10 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	mscash2_gpu(inbuffer, outbuffer, &currentsalt);
+	return *pcount;
 }
 
 static int binary_hash_0(void *binary)
@@ -328,52 +328,56 @@ static int cmp_exact(char *source, int count)
 
 struct fmt_main fmt_cuda_mscash2 = {
 	{
-		    FORMAT_LABEL,
-		    FORMAT_NAME,
-		    ALGORITHM_NAME,
-		    BENCHMARK_COMMENT,
-		    BENCHMARK_LENGTH,
-		    PLAINTEXT_LENGTH,
-		    BINARY_SIZE,
-		    SALT_SIZE,
-		    MIN_KEYS_PER_CRYPT,
-		    MAX_KEYS_PER_CRYPT,
-		    FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
-		    tests
-	},{
-		    init,
-		    fmt_default_done,
-		    prepare,
-		    valid,
-		    split,
-		    binary,
-		    salt,
-		    {
-				binary_hash_0,
-				binary_hash_1,
-				binary_hash_2,
-				binary_hash_3,
-				binary_hash_4,
-				binary_hash_5,
-				binary_hash_6
-		    },
-		    fmt_default_salt_hash,
-		    set_salt,
-		    set_key,
-		    get_key,
-		    fmt_default_clear_keys,
-		    crypt_all,
-		    {
-				get_hash_0,
-				get_hash_1,
-				get_hash_2,
-				get_hash_3,
-				get_hash_4,
-				get_hash_5,
-				get_hash_6
-		    },
-		    cmp_all,
-		    cmp_one,
-	    cmp_exact
+		FORMAT_LABEL,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		PLAINTEXT_LENGTH,
+		BINARY_SIZE,
+		DEFAULT_ALIGN,
+		SALT_SIZE,
+		DEFAULT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT| FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
+		tests
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		prepare,
+		valid,
+		split,
+		binary,
+		salt,
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

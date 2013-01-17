@@ -12,32 +12,37 @@
 #ifndef _JOHN_LOADER_H
 #define _JOHN_LOADER_H
 
+#ifndef BENCH_BUILD
 #include "params.h"
 #include "list.h"
 #include "formats.h"
+#endif
 
 /*
- * Password list (with a fixed salt) entry.
+ * Password hash list entry (with a fixed salt).
  */
 struct db_password {
-/* Pointer to next password with the same salt */
+/* Pointer to next password hash with the same salt */
 	struct db_password *next;
 
-/* Pointer to next password with the same salt and hash (used for a different
- * purpose while loading). */
+/* After loading is completed: pointer to next password hash with the same salt
+ * and hash-of-hash.
+ * While loading: pointer to next password hash with the same hash-of-hash. */
 	struct db_password *next_hash;
 
-/* Some bytes of binary ciphertext for fast comparison */
+/* Hot portion of or full binary ciphertext for fast comparison (aligned) */
 	void *binary;
 
-/* ASCII ciphertext for exact comparison and saving with cracked passwords */
+/* ASCII ciphertext for exact comparison and saving with cracked passwords.
+ * Alternatively, when the source() method is non-default this field is either
+ * unused or this pointer may be reused to hold the binary value above. */
 	char *source;
 
 /* Login field from the password file, with ":1" or ":2" appended if the
  * ciphertext was split into two parts. */
 	char *login;
 
-/* Words from GECOS field -- loaded for "single crack" mode only */
+/* Words from the GECOS field (loaded for "single crack" mode only) */
 	struct list_main *words;
 };
 
@@ -101,9 +106,14 @@ struct db_salt {
 /* Salt in internal representation */
 	void *salt;
 
-/* Pointer to a hash function to get the index of password list to be
- * compared against the crypt_all() method output with given index. The
- * function always returns zero if there's no hash table for this salt. */
+/* Bitmap indicating whether a computed hash is potentially present in the list
+ * and hash table below.  Normally, the bitmap is large enough that most of its
+ * bits are zero. */
+	unsigned int *bitmap;
+
+/* Pointer to a hash function to get the bit index into the bitmap above for
+ * the crypt_all() method output with given index.  The function always returns
+ * zero if there's no bitmap for this salt. */
 	int (*index)(int index);
 
 /* List of passwords with this salt */

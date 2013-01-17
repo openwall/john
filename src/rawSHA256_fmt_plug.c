@@ -73,7 +73,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[8 + CIPHERTEXT_LENGTH + 1];
 
@@ -190,9 +190,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -204,6 +206,7 @@ static void crypt_all(int count)
 		SHA256_Update(&ctx, saved_key[index], saved_key_length[index]);
 		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -236,7 +239,9 @@ struct fmt_main fmt_rawSHA256 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -244,11 +249,13 @@ struct fmt_main fmt_rawSHA256 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

@@ -120,8 +120,9 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_bbbs), "Release mem out");
         HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Release mem out");
-        
-	MEM_FREE(res_hashes);
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void done(void)
@@ -133,8 +134,9 @@ static void done(void)
 }
 
 // TODO: Use concurrent memory copy & execute
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 
 	// Fill params. Copy only necesary data
@@ -151,6 +153,8 @@ static void crypt_all(int count)
 
 	max_key_length = 0;
 	have_full_hashes = 0;
+
+	return count;
 }
 
 static void init(struct fmt_main *self){
@@ -211,7 +215,7 @@ static void init(struct fmt_main *self){
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[37];
 
@@ -374,19 +378,23 @@ struct fmt_main fmt_opencl_NT = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,
 		tests
 	}, {
 		init,
-                done,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

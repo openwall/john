@@ -90,7 +90,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-        
+
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(saved_key);
@@ -359,8 +359,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
@@ -419,6 +420,7 @@ static void crypt_all(int count)
 		SHA1_Update(&ctx, output, cur_salt->original_length);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 	 }
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -449,7 +451,9 @@ struct fmt_main fmt_opencl_sxc = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -457,11 +461,13 @@ struct fmt_main fmt_opencl_sxc = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

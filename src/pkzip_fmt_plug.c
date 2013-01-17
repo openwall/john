@@ -1272,8 +1272,9 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left) {
  * not mean we have found the password.  Just that all hashes quick check checksums
  * for this password 'work'.
  */
-static void crypt_all(int _count)
+static int crypt_all(int *pcount, struct db_salt *_salt)
 {
+	int _count = *pcount;
 	int idx;
 #if (ZIP_DEBUG==2)
 	static int CNT, FAILED, FAILED2;
@@ -1589,6 +1590,8 @@ Failed_Bailout: ;
 	/* clear the 'dirty' flag.  Then on multiple different salt calls, we will not have to */
 	/* encrypt the passwords again. They will have already been loaded in the K12[] array. */
 	dirty = 0;
+
+	return _count;
 }
 
 struct fmt_main fmt_pkzip = {
@@ -1600,7 +1603,9 @@ struct fmt_main fmt_pkzip = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -1608,11 +1613,13 @@ struct fmt_main fmt_pkzip = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash0,
 			NULL,

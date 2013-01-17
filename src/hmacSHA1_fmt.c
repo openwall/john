@@ -129,7 +129,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -278,8 +278,9 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #ifdef MMX_COEF
 #ifdef SHA1_SSE_PARA
 	SSESHA1body(ipad, (unsigned int*)dump, NULL, 0);
@@ -306,6 +307,7 @@ static void crypt_all(int count)
 	SHA1_Update( &ctx, crypt_key, BINARY_SIZE);
 	SHA1_Final( (unsigned char*) crypt_key, &ctx);
 #endif
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -365,11 +367,13 @@ struct fmt_main fmt_hmacSHA1 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 #ifdef MMX_COEF
 		SHA_BUF_SIZ*4*SHA1_N,
 #else
 		SALT_SIZE,
 #endif
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
@@ -377,11 +381,13 @@ struct fmt_main fmt_hmacSHA1 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,

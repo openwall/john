@@ -229,24 +229,26 @@ static char *get_key(int index)
 #endif
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-    int index = 0;
+	int count = *pcount;
+	int index = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key, saved_salt)
-    for(index = 0; index < count; index++)
+	for(index = 0; index < count; index++)
 #endif
-    {
-        SHA256_CTX ctx;
+	{
+		SHA256_CTX ctx;
 
-        /* append salt at offset 510 */
-        memcpy((unsigned char *)prep_key[index] + 510, saved_salt, 8);
+		/* append salt at offset 510 */
+		memcpy((unsigned char *)prep_key[index] + 510, saved_salt, 8);
 
-        SHA256_Init(&ctx);
-        SHA256_Update(&ctx, prep_key[index], 518);
-        SHA256_Final((unsigned char *)crypt_out[index], &ctx);
-    }
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, prep_key[index], 518);
+		SHA256_Final((unsigned char *)crypt_out[index], &ctx);
+	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -285,7 +287,9 @@ struct fmt_main fmt_SybaseASE = {
         BENCHMARK_LENGTH,
         PLAINTEXT_LENGTH,
         BINARY_SIZE,
+        DEFAULT_ALIGN,
         SALT_SIZE,
+        DEFAULT_ALIGN,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -293,11 +297,13 @@ struct fmt_main fmt_SybaseASE = {
     }, {
         init,
         fmt_default_done,
+        fmt_default_reset,
         fmt_default_prepare,
         valid,
         fmt_default_split,
         get_binary,
         salt,
+        fmt_default_source,
         {
             binary_hash_0,
             binary_hash_1,

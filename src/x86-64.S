@@ -1,7 +1,7 @@
 /*
  * This file contains the core of a bitslice DES implementation for x86-64/SSE2.
  * It is part of John the Ripper password cracker,
- * Copyright (c) 2000-2001,2005,2006,2008,2011 by Solar Designer
+ * Copyright (c) 2000-2001,2005,2006,2008,2011,2012 by Solar Designer
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.  (This is a heavily cut-down "BSD license".)
  *
@@ -1180,6 +1180,7 @@ DES_bs_finalize_keys_expand_loop:
 DO_ALIGN(6)
 .globl DES_bs_crypt_LM
 DES_bs_crypt_LM:
+	movl (%rdi),%r8d
 	movdqa mask01,%xmm7
 	movdqa mask02,%xmm8
 	leaq DES_bs_all_xkeys(%rip),v_ptr
@@ -1334,6 +1335,7 @@ DES_bs_crypt_LM_loop:
 	S8(B(4), B(26), B(14), B(20))
 	subl $1,rounds
 	jnz DES_bs_crypt_LM_loop
+	xchgq %r8,%rax
 	ret
 
 #endif
@@ -1388,8 +1390,9 @@ CPU_detect_fail:
  * No copyright is claimed, and the software is hereby placed in the public domain.
  * In case this attempt to disclaim copyright and place the software in the
  * public domain is deemed null and void, then the software is
- * Copyright (c) 2007 Alain Espinosa and it is hereby released to the
- * general public under the following terms:
+ * Copyright (c) 2007 Alain Espinosa and
+ * Copyright (c) 2010, 2013 magnum, and
+ * it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -1413,8 +1416,8 @@ CPU_detect_fail:
 #endif
 
 /*
-extern nt_crypt_all_x86_64(int count);
-extern nt_crypt_all_8859_1x86_64(int count);
+extern int nt_crypt_all_x86_64(int *pcount, struct db_salt *salt);
+extern int nt_crypt_all_8859_1x86_64(int *pcount, struct db_salt *salt);
 */
 
 .globl nt_crypt_all_x86_64
@@ -1712,6 +1715,7 @@ const_stage3:
 DO_ALIGN(6)
 
 nt_crypt_all_x86_64:
+	movl (%rdi),%r8d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -1720,9 +1724,11 @@ nt_crypt_all_x86_64:
 	NT_CRYPT_BODY(2)
 	NT_CRYPT_BODY(3)
 
+	xchgq %r8,%rax
 	ret
 
 nt_crypt_all_8859_1_x86_64:
+	movl (%rdi),%r8d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -1731,6 +1737,7 @@ nt_crypt_all_8859_1_x86_64:
 	NT_CRYPT_BODY_8859_1(2)
 	NT_CRYPT_BODY_8859_1(3)
 
+	xchgq %r8,%rax
 	ret
 
 #if defined(__ELF__) && defined(__linux__)

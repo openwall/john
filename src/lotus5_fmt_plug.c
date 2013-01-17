@@ -199,51 +199,53 @@ void MAYBE_INLINE lotus_mix (unsigned char *m1, unsigned char *m2)
 
 
 /*the last public function; generates ciphertext*/
-static void crypt_all (int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
- int index;
+	int count = *pcount;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
- for (index = 0; index < count; index += 2) {
-  struct {
-   union {
-    unsigned char m[64];
-    unsigned char m4[4][16];
-    ARCH_WORD m4w[4][16 / ARCH_SIZE];
-   } u;
-  } ctx[2];
-  int password_length;
+	for (index = 0; index < count; index += 2) {
+		struct {
+			union {
+				unsigned char m[64];
+				unsigned char m4[4][16];
+				ARCH_WORD m4w[4][16 / ARCH_SIZE];
+			} u;
+		} ctx[2];
+		int password_length;
 
-  memset(ctx[0].u.m4[0], 0, 16);
-  password_length = strlen(saved_key[index]);
-  memset(ctx[0].u.m4[1], (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
-  memcpy(ctx[0].u.m4[1], saved_key[index], password_length);
+		memset(ctx[0].u.m4[0], 0, 16);
+		password_length = strlen(saved_key[index]);
+		memset(ctx[0].u.m4[1], (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
+		memcpy(ctx[0].u.m4[1], saved_key[index], password_length);
 
-  memcpy(ctx[0].u.m4[2], ctx[0].u.m4[1], 16);
-  memset(ctx[1].u.m4[0], 0, 16);
-  password_length = strlen(saved_key[index + 1]);
-  memset(ctx[1].u.m4[1], (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
-  memcpy(ctx[1].u.m4[1], saved_key[index + 1], password_length);
+		memcpy(ctx[0].u.m4[2], ctx[0].u.m4[1], 16);
+		memset(ctx[1].u.m4[0], 0, 16);
+		password_length = strlen(saved_key[index + 1]);
+		memset(ctx[1].u.m4[1], (PLAINTEXT_LENGTH - password_length), PLAINTEXT_LENGTH);
+		memcpy(ctx[1].u.m4[1], saved_key[index + 1], password_length);
 
-  memcpy(ctx[1].u.m4[2], ctx[1].u.m4[1], 16);
-  lotus_transform_password(ctx[0].u.m4[1], ctx[0].u.m4[3],
-      ctx[1].u.m4[1], ctx[1].u.m4[3]);
-  lotus_mix(ctx[0].u.m, ctx[1].u.m);
-  memcpy(ctx[0].u.m4[1], ctx[0].u.m4[3], 16);
-  memcpy(ctx[1].u.m4[1], ctx[1].u.m4[3], 16);
-  {
-   int i;
-   for (i = 0; i < 16 / ARCH_SIZE; i++) {
-    ctx[0].u.m4w[2][i] = ctx[0].u.m4w[0][i] ^ ctx[0].u.m4w[1][i];
-    ctx[1].u.m4w[2][i] = ctx[1].u.m4w[0][i] ^ ctx[1].u.m4w[1][i];
-   }
-  }
-  lotus_mix(ctx[0].u.m, ctx[1].u.m);
-  memcpy(crypt_key[index], ctx[0].u.m4[0], BINARY_SIZE);
-  memcpy(crypt_key[index + 1], ctx[1].u.m4[0], BINARY_SIZE);
- }
+		memcpy(ctx[1].u.m4[2], ctx[1].u.m4[1], 16);
+		lotus_transform_password(ctx[0].u.m4[1], ctx[0].u.m4[3],
+		                         ctx[1].u.m4[1], ctx[1].u.m4[3]);
+		lotus_mix(ctx[0].u.m, ctx[1].u.m);
+		memcpy(ctx[0].u.m4[1], ctx[0].u.m4[3], 16);
+		memcpy(ctx[1].u.m4[1], ctx[1].u.m4[3], 16);
+		{
+			int i;
+			for (i = 0; i < 16 / ARCH_SIZE; i++) {
+				ctx[0].u.m4w[2][i] = ctx[0].u.m4w[0][i] ^ ctx[0].u.m4w[1][i];
+				ctx[1].u.m4w[2][i] = ctx[1].u.m4w[0][i] ^ ctx[1].u.m4w[1][i];
+			}
+		}
+		lotus_mix(ctx[0].u.m, ctx[1].u.m);
+		memcpy(crypt_key[index], ctx[0].u.m4[0], BINARY_SIZE);
+		memcpy(crypt_key[index + 1], ctx[1].u.m4[0], BINARY_SIZE);
+	}
+	return count;
 }
 
 static int get_hash1(int index) { return crypt_key[index][0] & 0xf; }
@@ -271,7 +273,9 @@ struct fmt_main fmt_lotus5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -279,11 +283,13 @@ struct fmt_main fmt_lotus5 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash1,
 			binary_hash2,

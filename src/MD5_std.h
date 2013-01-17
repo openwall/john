@@ -91,7 +91,7 @@ typedef struct {
 #if defined(_OPENMP) && !MD5_ASM
 #define MD5_std_mt			1
 #define MD5_std_cpt			128
-#define MD5_std_mt_max			(MD5_std_cpt * 24)
+#define MD5_std_mt_max			(MD5_std_cpt * 576)
 extern MD5_std_combined *MD5_std_all_p;
 extern int MD5_std_min_kpc, MD5_std_max_kpc;
 extern int MD5_std_nt;

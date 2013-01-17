@@ -177,8 +177,9 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
  * Hash the password and salt saved with VMS_std_set_key and VMS_std_set_salt,
  * saving the result in global storage for retrieval by vms_fmt.c module.
  */
-void VMS_std_crypt(int count)
+int VMS_std_crypt(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -187,6 +188,7 @@ void VMS_std_crypt(int count)
 	{
 		uaf_test_password (cur_salt, saved_key[index], 0, crypt_out[index]);
 	}
+	return count;
 }
 
 /*
@@ -247,6 +249,7 @@ struct fmt_main fmt_VMS = {
 	}, {
 		fmt_vms_init,			/* changed for jumbo */
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,			/* Added for jumbo */
 		valid,
 		fmt_vms_split,
@@ -269,7 +272,7 @@ struct fmt_main fmt_VMS = {
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
-		(void (*)(int)) VMS_std_crypt,
+		VMS_std_crypt,
 		{
 			get_hash_0,
 			get_hash_1,

@@ -170,7 +170,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-        
+
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked); 
@@ -476,8 +476,9 @@ static int check(unsigned char *keydata, int ks)
 	return 0;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
@@ -508,6 +509,8 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 		cracked[index] = check(outbuffer[index].v,
 		                       keySize(cur_salt->cipher_algorithm));
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -538,7 +541,13 @@ struct fmt_main fmt_opencl_gpg = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		SALT_SIZE,
+#if FMT_MAIN_VERSION > 9
+		DEFAULT_ALIGN,
+#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -546,11 +555,15 @@ struct fmt_main fmt_opencl_gpg = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+#if FMT_MAIN_VERSION > 9
+		fmt_default_source,
+#endif
 		{
 			fmt_default_binary_hash
 		},

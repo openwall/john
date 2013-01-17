@@ -57,7 +57,6 @@ static void init(struct fmt_main *self)
         host_hash = mem_calloc(KEYS_PER_CRYPT * sizeof(pwsafe_hash));
         host_salt = mem_calloc(sizeof(pwsafe_salt));
 	cuda_init(cuda_gpu_id);
-        atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -123,9 +122,10 @@ static void set_salt(void *salt)
         memcpy(host_salt, salt, SALT_SIZE);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
         gpu_pwpass(host_pass, host_salt, host_hash);
+        return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -173,19 +173,23 @@ struct fmt_main fmt_cuda_pwsafe = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		KEYS_PER_CRYPT,
 		KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		pwsafe_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},

@@ -209,7 +209,10 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
 #ifdef MMX_COEF
 
 #if SHA1_SSE_PARA
@@ -224,6 +227,7 @@ static void crypt_all(int count) {
 	SHA1_Update( &ctx, (unsigned char*) saved_key, strlen( saved_key ) );
 	SHA1_Final( (unsigned char*) crypt_key, &ctx);
 #endif
+	return count;
 }
 
 static void * binary(char *ciphertext)
@@ -275,7 +279,9 @@ struct fmt_main fmt_nsldap = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -283,11 +289,13 @@ struct fmt_main fmt_nsldap = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

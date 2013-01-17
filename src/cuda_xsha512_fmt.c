@@ -90,7 +90,6 @@ static void init(struct fmt_main *self)
 
 	cuda_init(cuda_gpu_id);
 	cuda_xsha512_init();
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -296,10 +295,13 @@ static char *get_key(int index)
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	cuda_xsha512(gkey, &gsalt, ghash, g_ext_key, count);
 	xsha512_key_changed = 0;
+        return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -360,19 +362,23 @@ struct fmt_main fmt_cuda_xsha512 = {
 		BENCHMARK_LENGTH,
 		MAX_PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

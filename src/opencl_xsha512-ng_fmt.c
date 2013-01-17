@@ -46,8 +46,8 @@ static cl_mem pinned_saved_keys, pinned_partial_hashes;
 static cl_kernel cmp_kernel;
 static int new_keys, hash_found;
 
-static void crypt_all(int count);
-static void crypt_all_benchmark(int count);
+static int crypt_all(int *pcount, struct db_salt *_salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 static struct fmt_tests tests[] = {
     {"$LION$bb0489df7b073e715f19f83fd52d08ede24243554450f7159dd65c100298a5820525b55320f48182491b72b4c4ba50d7b0e281c1d98e06591a5e9c6167f42a742f0359c7", "password"},
@@ -439,7 +439,8 @@ static void * get_full_binary(char *ciphertext) {
 }
 
 /* ------- Crypt function ------- */
-static void crypt_all_benchmark(int count) {
+static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
+    int count = *pcount;
     size_t gws;
 
     gws = GET_MULTIPLE_BIGGER(count, local_work_size);
@@ -461,9 +462,12 @@ static void crypt_all_benchmark(int count) {
 
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
+
+    return count;
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *_salt) {
+    int count = *pcount;
     size_t gws;
 
     gws = GET_MULTIPLE_BIGGER(count, local_work_size);
@@ -492,6 +496,8 @@ static void crypt_all(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
     new_keys = 0;
+
+    return count;
 }
 
 /* ------- Compare functins ------- */
@@ -620,6 +626,7 @@ struct fmt_main fmt_opencl_xsha512_ng = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
                 split,

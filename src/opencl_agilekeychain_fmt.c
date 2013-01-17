@@ -92,7 +92,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-        
+
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
@@ -131,6 +131,9 @@ static void init(struct fmt_main *self)
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
+	HANDLE_CLERROR(cl_error, "Error creating kernel");
+
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
 
@@ -159,8 +162,6 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
@@ -309,11 +310,12 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 	return 0;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
-	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
@@ -337,22 +339,17 @@ static void crypt_all(int count)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
-	{
-		if(akcdecrypt((unsigned char*)outbuffer[index].v, cur_salt->ct[0]) == 0) {
-			cracked[index] = 1;
-		}
-		else
-			cracked[index] = 0;
-	}
+	for (index = 0; index < count; index++)
+		cracked[index] = !akcdecrypt((unsigned char*)outbuffer[index].v, cur_salt->ct[0]);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
@@ -378,7 +375,9 @@ struct fmt_main fmt_opencl_agilekeychain = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
@@ -386,11 +385,13 @@ struct fmt_main fmt_opencl_agilekeychain = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},

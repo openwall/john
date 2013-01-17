@@ -684,6 +684,7 @@ static void john_run(void)
 				    where);
 				error();
 			}
+			database.format->methods.reset(&database);
 			log_init(LOG_NAME, options.loader.activepot, options.session);
 			status_init(NULL, 1);
 			john_log_format();

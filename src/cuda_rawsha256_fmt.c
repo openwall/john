@@ -92,7 +92,6 @@ static void init(struct fmt_main *self)
 		    (SHA_HASH *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(SHA_HASH));
 	}
 	check_mem_allocation(inbuffer, outbuffer);
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -186,13 +185,14 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 #ifdef SHA256
 	gpu_rawsha256(inbuffer, outbuffer, overlap);
 #else
 	gpu_rawsha224(inbuffer, outbuffer, overlap);
 #endif
+        return *pcount;
 }
 
 static int get_hash_0(int index)
@@ -264,19 +264,23 @@ struct fmt_main FMT_MAIN = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		TESTS
 	}, {
 		init,
-		fmt_default_done,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

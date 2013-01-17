@@ -417,9 +417,12 @@ static int cmp_one(void * binary, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
 #ifdef MMX_COEF
 	unsigned i, index;
+
 	for (index = 0; index < count; ++index)
 	{
 		unsigned len = ((((unsigned int *)saved_key)[15*MMX_COEF + (index&3) + (index>>2)*SHA_BUF_SIZ*MMX_COEF]) >> 3) - SALT_SIZE;
@@ -439,6 +442,7 @@ static void crypt_all(int count) {
 	SHA1_Final( (unsigned char *) crypt_key, &ctx);
 #endif
 
+	return count;
 }
 
 static void * binary(char *ciphertext)
@@ -500,7 +504,9 @@ struct fmt_main fmt_mssql05 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8,
@@ -508,11 +514,13 @@ struct fmt_main fmt_mssql05 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

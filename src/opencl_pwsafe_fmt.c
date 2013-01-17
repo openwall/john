@@ -78,7 +78,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-        
+
 	MEM_FREE(host_pass);
 	MEM_FREE(host_hash);
 	MEM_FREE(host_salt);
@@ -221,8 +221,10 @@ static void set_salt(void *salt)
 
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
@@ -243,6 +245,8 @@ static void crypt_all(int count)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -283,7 +287,9 @@ struct fmt_main fmt_opencl_pwsafe = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -291,11 +297,13 @@ struct fmt_main fmt_opencl_pwsafe = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},

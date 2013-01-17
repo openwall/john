@@ -182,9 +182,10 @@ skey_get_key(int index)
 	return (saved_pass);
 }
 
-static void
-skey_crypt_all(int count)
+static int
+skey_crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 
 	skey_set_algorithm(saved_salt.type);
@@ -193,6 +194,8 @@ skey_crypt_all(int count)
 
 	for (i = 0; i < saved_salt.num; i++)
 		f(saved_key);
+
+	return count;
 }
 
 static int
@@ -222,7 +225,9 @@ struct fmt_main fmt_SKEY = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -230,11 +235,13 @@ struct fmt_main fmt_SKEY = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		skey_valid,
 		fmt_default_split,
 		fmt_default_binary,
 		skey_salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,

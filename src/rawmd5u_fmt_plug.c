@@ -130,7 +130,7 @@ static void init(struct fmt_main *self)
 #endif
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[32+12+1];
 
@@ -475,10 +475,13 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
 #if defined(MD5_SSE_PARA)
 #if (BLOCK_LOOPS > 1)
 	int i;
+
 	// This was an experiment. It's not used (unless you bump BLOCK_LOOPS),
 	// cause it does not scale well. We would need to parallelize set_key()
 #ifdef _OPENMP
@@ -496,6 +499,7 @@ static void crypt_all(int count) {
 	MD5_Update(&ctx, (unsigned char*)saved_key, saved_key_length);
 	MD5_Final((unsigned char*) crypt_key, &ctx);
 #endif
+	return count;
 }
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
@@ -575,7 +579,9 @@ struct fmt_main fmt_rawmd5uthick = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if (BLOCK_LOOPS > 1) && defined(SSE_MD5_PARA)
@@ -586,11 +592,13 @@ struct fmt_main fmt_rawmd5uthick = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

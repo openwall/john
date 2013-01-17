@@ -250,9 +250,11 @@ bad:
 }
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -304,7 +306,7 @@ static void crypt_all(int count)
 				cracked[index] = 0;
 		}
 	}
-
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -363,6 +365,7 @@ struct fmt_main fmt_sshng = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

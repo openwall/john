@@ -196,7 +196,7 @@ static void init(struct fmt_main *self)
 }
 
 
-static char * ms_split(char *ciphertext, int index)
+static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;

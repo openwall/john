@@ -63,7 +63,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -101,11 +101,15 @@ static int cmp_one(void * binary, int index)
 	return cmp_all(binary, index);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	SHA_Init( &ctx );
 	SHA_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
 	SHA_Final( (unsigned char *) crypt_key, &ctx);
+
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -148,7 +152,9 @@ struct fmt_main fmt_rawSHA0 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
@@ -156,11 +162,13 @@ struct fmt_main fmt_rawSHA0 = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

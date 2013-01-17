@@ -406,8 +406,8 @@ static void nfold(unsigned int inbits, const unsigned char *in,
 	}
 }
 
-static void crypt_all(int count);
-static void crypt_all_benchmark(int count);
+static int crypt_all(int *pcount, struct db_salt *salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
@@ -770,8 +770,9 @@ static void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
 	AES_cts_encrypt(ciphertext,plaintext,ctext_size,&ekey,iv,AES_DECRYPT);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 	int key_size;
 	size_t scalar_gws;
@@ -869,10 +870,12 @@ static void crypt_all(int count)
 			memset(crypt_out[i], 0, BINARY_SIZE);
 		}
 	}
+	return count;
 }
 
-static void crypt_all_benchmark(int count)
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	size_t scalar_gws = global_work_size * VF;
 
 	/// Copy data to gpu
@@ -889,6 +892,8 @@ static void crypt_all_benchmark(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel (2nd pass)");
 
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running loop kernel");
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -933,6 +938,7 @@ struct fmt_main fmt_opencl_krb5pa_sha1 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

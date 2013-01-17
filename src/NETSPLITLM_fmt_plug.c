@@ -88,7 +88,7 @@ static void init(struct fmt_main *self)
 	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
-static int nethalflm_valid(char *ciphertext, struct fmt_main *self)
+static int valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
@@ -108,7 +108,7 @@ static int nethalflm_valid(char *ciphertext, struct fmt_main *self)
       return 0;
 }
 
-static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *self)
+static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char *tmp;
 
@@ -131,7 +131,7 @@ static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *self)
 	tmp = (char *) mem_alloc(12 + strlen(split_fields[3]) + strlen(split_fields[5]) + 1);
 	sprintf(tmp, "$NETHALFLM$%s$%s", split_fields[5], split_fields[3]);
 
-	if (nethalflm_valid(tmp,self)) {
+	if (valid(tmp,self)) {
 		char *cp2 = str_alloc_copy(tmp);
 		MEM_FREE(tmp);
 		return cp2;
@@ -140,7 +140,7 @@ static char *nethalflm_prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
-static char *nethalflm_split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
   static char out[TOTAL_LENGTH + 1] = {0};
 
@@ -149,7 +149,7 @@ static char *nethalflm_split(char *ciphertext, int index)
   return out;
 }
 
-static void *nethalflm_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
   static uchar binary[BINARY_SIZE];
   int i;
@@ -179,8 +179,9 @@ static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
   DES_set_key(&key, ks);
 }
 
-static void nethalflm_crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	DES_key_schedule ks;
 	int i;
 
@@ -192,9 +193,10 @@ static void nethalflm_crypt_all(int count)
 		setup_des_key(saved_pre[i], &ks);
 		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)output[i], &ks, DES_ENCRYPT);
 	}
+	return count;
 }
 
-static int nethalflm_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	int index;
 	for(index=0; index<count; index++)
@@ -203,17 +205,17 @@ static int nethalflm_cmp_all(void *binary, int count)
 	return 0;
 }
 
-static int nethalflm_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return !memcmp(output[index], binary, BINARY_SIZE);
 }
 
-static int nethalflm_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
-	return !memcmp(output[index], nethalflm_get_binary(source), BINARY_SIZE);
+	return !memcmp(output[index], get_binary(source), BINARY_SIZE);
 }
 
-static void *nethalflm_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
   static unsigned char binary_salt[SALT_SIZE];
   int i;
@@ -225,12 +227,12 @@ static void *nethalflm_get_salt(char *ciphertext)
   return (void*)binary_salt;
 }
 
-static void nethalflm_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	challenge = salt;
 }
 
-static void nethalflm_set_key(char *key, int index)
+static void netsplitlm_set_key(char *key, int index)
 {
 	const unsigned char magic[] = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
 	DES_key_schedule ks;
@@ -245,7 +247,7 @@ static void nethalflm_set_key(char *key, int index)
 	DES_ecb_encrypt((DES_cblock*)magic, (DES_cblock*)saved_pre[index], &ks, DES_ENCRYPT);
 }
 
-static char *nethalflm_get_key(int index)
+static char *get_key(int index)
 {
 	return (char *)saved_plain[index];
 }
@@ -314,7 +316,9 @@ struct fmt_main fmt_NETHALFLM = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
@@ -322,11 +326,13 @@ struct fmt_main fmt_NETHALFLM = {
 	}, {
 		init,
 		fmt_default_done,
-		nethalflm_prepare,
-		nethalflm_valid,
-		nethalflm_split,
-		nethalflm_get_binary,
-		nethalflm_get_salt,
+		fmt_default_reset,
+		prepare,
+		valid,
+		split,
+		get_binary,
+		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -335,11 +341,11 @@ struct fmt_main fmt_NETHALFLM = {
 			binary_hash_4
 		},
 		salt_hash,
-		nethalflm_set_salt,
-		nethalflm_set_key,
-		nethalflm_get_key,
+		set_salt,
+		netsplitlm_set_key,
+		get_key,
 		fmt_default_clear_keys,
-		nethalflm_crypt_all,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,
@@ -347,8 +353,8 @@ struct fmt_main fmt_NETHALFLM = {
 			get_hash_3,
 			get_hash_4
 		},
-		nethalflm_cmp_all,
-		nethalflm_cmp_one,
-		nethalflm_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };

@@ -130,7 +130,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -277,8 +277,9 @@ static int cmp_one(void *binary, int index)
 #endif
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #ifdef MMX_COEF
 #ifdef MD5_SSE_PARA
 	int i;
@@ -312,6 +313,7 @@ static void crypt_all(int count)
 	MD5_Update( &ctx, crypt_key, BINARY_SIZE);
 	MD5_Final( (unsigned char *) crypt_key, &ctx);
 #endif
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -367,11 +369,13 @@ struct fmt_main fmt_hmacMD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 #ifdef MMX_COEF
 		SALT_SIZE * MD5_N,
 #else
 		SALT_SIZE,
 #endif
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
@@ -379,11 +383,13 @@ struct fmt_main fmt_hmacMD5 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash,
 			fmt_default_binary_hash,

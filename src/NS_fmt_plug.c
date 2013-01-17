@@ -111,7 +111,7 @@ static int NS_valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static ARCH_WORD_32 *NS_std_get_binary(char *ciphertext)
+static ARCH_WORD_32 *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned long dummy;
@@ -209,7 +209,7 @@ static int get_hash_4(int index)
 	return crypted[0] & 0xfffff;
 }
 
-char *NS_std_get_salt(char *ciphertext)
+static char *get_salt(char *ciphertext)
 {
 	static char out[SALT_SIZE + 1];
 	char *ipos, *opos;
@@ -222,7 +222,7 @@ char *NS_std_get_salt(char *ciphertext)
 	return out;
 }
 
-void NS_std_set_salt (void *salt)
+static void set_salt (void *salt)
 {
     salt_len = strlen((char *) salt);
     memcpy(cipher_salt, salt , salt_len);
@@ -242,15 +242,18 @@ static char *NS_get_key(int key)
     return cipher_key;
 }
 
-static void NS_std_crypt(int key)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	MD5_CTX ctx;
+
 	MD5_Init(&ctx);
 	memcpy(tocipher, cipher_salt, salt_len);
 	memcpy(tocipher + salt_len, adm, ADM_LEN);
 	memcpy(tocipher + salt_len + ADM_LEN, cipher_key, key_len);
 	MD5_Update(&ctx , tocipher, salt_len + ADM_LEN + key_len);
 	MD5_Final((void*)crypted, &ctx);
+
+	return *pcount;
 }
 
 static int NS_cmp_all(void *binary, int index)
@@ -272,7 +275,9 @@ struct fmt_main fmt_NS = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -280,11 +285,13 @@ struct fmt_main fmt_NS = {
 	}, {
 		NS_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		NS_valid,
 		fmt_default_split,
-		(void *(*)(char *))NS_std_get_binary,
-		(void *(*)(char *))NS_std_get_salt,
+		(void *(*)(char *))get_binary,
+		(void *(*)(char *))get_salt,
+		fmt_default_source,
 		{
                     binary_hash_0,
                     binary_hash_1,
@@ -293,11 +300,11 @@ struct fmt_main fmt_NS = {
                     binary_hash_4
 		},
 		fmt_default_salt_hash,
-		NS_std_set_salt,
+		set_salt,
 		NS_set_key,
 		NS_get_key,
 		fmt_default_clear_keys,
-		NS_std_crypt,
+		crypt_all,
 		{
 			get_hash_0,
 			get_hash_1,

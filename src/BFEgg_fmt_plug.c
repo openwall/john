@@ -22,7 +22,9 @@
 #define CIPHERTEXT_LENGTH		33
 
 #define BINARY_SIZE			13
+#define BINARY_ALIGN			1
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -70,13 +72,16 @@ static int cmp_exact(char *source, int index) {
   return 1;
 }
 
-static void crypt_all(int count) {
-    if (saved_key[0] == '\0') {
-	zerolengthkey = 1;
-    } else {
-	zerolengthkey = 0;
-        blowfish_encrypt_pass(saved_key, crypt_key);
-    }
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+	if (saved_key[0] == '\0') {
+		zerolengthkey = 1;
+	} else {
+		zerolengthkey = 0;
+		blowfish_encrypt_pass(saved_key, crypt_key);
+	}
+	return count;
 }
 
 struct fmt_main fmt_BFEgg = {
@@ -88,19 +93,23 @@ struct fmt_main fmt_BFEgg = {
     BENCHMARK_LENGTH,
     PLAINTEXT_LENGTH,
     BINARY_SIZE,
+    BINARY_ALIGN,
     SALT_SIZE,
+    SALT_ALIGN,
     MIN_KEYS_PER_CRYPT,
     MAX_KEYS_PER_CRYPT,
     FMT_CASE | FMT_8_BIT,
     tests
   }, {
     init,
-		fmt_default_done,
-	fmt_default_prepare,
+    fmt_default_done,
+    fmt_default_reset,
+    fmt_default_prepare,
     valid,
     fmt_default_split,
     fmt_default_binary,
     fmt_default_salt,
+    fmt_default_source,
     {
 	fmt_default_binary_hash,
 	fmt_default_binary_hash,

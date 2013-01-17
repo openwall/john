@@ -85,7 +85,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	return split_fields[1];
 }
 
-static char* ms_split(char *ciphertext, int index)
+static char* ms_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i;
@@ -181,8 +181,10 @@ static int get_hash(int index)
 	return 1;
 }
 
-static void crypt_all(int count)
-{}
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	return *pcount;
+}
 
 static int cmp_all(void* binary, int count)
 {
@@ -314,19 +316,23 @@ struct fmt_main fmt_truecrypt = {
 		0,											// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
 		tests_ripemd160
 	}, {
 		init_ripemd160,
-		fmt_default_done,                        
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid_ripemd160,
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash,
 			binary_hash,
@@ -362,7 +368,9 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		0,				// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
@@ -370,11 +378,13 @@ struct fmt_main fmt_truecrypt_sha512 = {
 	}, {
 		init_sha512,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid_sha512,
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash,
 			binary_hash,
@@ -410,7 +420,9 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		0,												// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
@@ -418,11 +430,13 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 	}, {
 		init_whirlpool,
 		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid_whirlpool,
 		ms_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash,
 			binary_hash,

@@ -389,8 +389,9 @@ static inline void crypt_done(unsigned const int *source, unsigned int *dest, in
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #if MMX_COEF
 
 #if defined(_OPENMP) && defined(SHA1_SSE_PARA)
@@ -617,6 +618,7 @@ static void crypt_all(int count)
 #undef index
 
 #endif
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -637,6 +639,35 @@ static void *binary(char *ciphertext)
 #endif
 	return (void*)realcipher;
 }
+
+#if 0 // Not possible with current interface
+static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
+{
+	struct saltstruct *salt_s = (struct saltstruct*)(pw->source);
+	unsigned char realcipher[BINARY_SIZE];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	memcpy(realcipher, pw->binary, BINARY_SIZE);
+#ifdef MMX_COEF
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
+	memcpy(Buf, salt_s->s, salt_s->l);
+	cpo = &Buf[salt_s->l];
+	*cpo++ = '$';
+
+	cpi = realcipher;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16u[(*cpi)>>4];
+		*cpo++ = itoa16u[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+#endif
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
 static int binary_hash_1(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xff; }
@@ -666,7 +697,7 @@ static int get_hash_6(int index) { return *(ARCH_WORD_32*)crypt_key[index] & 0x7
 #endif
 
 // Here, we remove any salt padding and trim it to 36 bytes
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 	char *p;
@@ -708,7 +739,9 @@ struct fmt_main fmt_sapG = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
@@ -719,11 +752,13 @@ struct fmt_main fmt_sapG = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

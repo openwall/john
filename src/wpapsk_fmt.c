@@ -144,10 +144,14 @@ static MAYBE_INLINE void wpapsk_cpu(int count,
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
 	wpapsk_postprocess(count);
+
+	return count;
 }
 
 struct fmt_main fmt_wpapsk = {
@@ -159,7 +163,9 @@ struct fmt_main fmt_wpapsk = {
 		    BENCHMARK_LENGTH,
 		    PLAINTEXT_LENGTH,
 		    BINARY_SIZE,
+		    DEFAULT_ALIGN,
 		    SALT_SIZE,
+		    DEFAULT_ALIGN,
 		    MIN_KEYS_PER_CRYPT,
 		    MAX_KEYS_PER_CRYPT,
 		    FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -168,11 +174,13 @@ struct fmt_main fmt_wpapsk = {
 	{
 		    init,
 		    fmt_default_done,
+		    fmt_default_reset,
 		    fmt_default_prepare,
 		    valid,
 		    fmt_default_split,
 		    binary,
 		    salt,
+		    fmt_default_source,
 		    {
 				binary_hash_0,
 				binary_hash_1,

@@ -53,7 +53,7 @@ static char *Convert(char *Buf, char *ciphertext) {
 	return ciphertext;
 }
 
-static char *our_split(char *ciphertext, int index)
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return Convert(Conv_Buf, ciphertext);
 }
@@ -85,13 +85,14 @@ struct fmt_main fmt_pixMD5 = {
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		16, BINARY_SIZE, SALT_SIZE, 1, 1, FMT_CASE | FMT_8_BIT, pixmd5_tests
+		16, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT, pixmd5_tests
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		pixmd5_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid
 	}

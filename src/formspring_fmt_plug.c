@@ -67,7 +67,7 @@ static char *Convert(char *Buf, char *ciphertext)
 	return Buf;
 }
 
-static char *our_split(char *ciphertext, int index)
+static char *our_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	return Convert(Conv_Buf, ciphertext);
 }
@@ -130,13 +130,14 @@ struct fmt_main fmt_FORMSPRING =
 		// setup the labeling and stuff. NOTE the max and min crypts are set to 1
 		// here, but will be reset within our init() function.
 		FORMAT_LABEL, FORMAT_NAME, ALGORITHM_NAME, BENCHMARK_COMMENT, BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH, BINARY_SIZE, SALT_SIZE+1, 1, 1, FMT_CASE | FMT_8_BIT, formspring_tests
+		PLAINTEXT_LENGTH, BINARY_SIZE, DEFAULT_ALIGN, SALT_SIZE+1, DEFAULT_ALIGN, 1, 1, FMT_CASE | FMT_8_BIT, formspring_tests
 	},
 	{
 		/*  All we setup here, is the pointer to valid, and the pointer to init */
 		/*  within the call to init, we will properly set this full object      */
 		formspring_init,
 		fmt_default_done,
+		fmt_default_reset,
 		our_prepare,
 		formspring_valid
 	}

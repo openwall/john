@@ -75,8 +75,6 @@ static void init(struct fmt_main *self)
 
 	cuda_init(cuda_gpu_id);
 	cuda_sha512_init();
-
-	atexit(done);
 }
 
 static void copy_hash_back()
@@ -208,11 +206,12 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	cuda_sha512(gkey, ghash);
 	sha512_key_changed = 0;
-    hash_copy_back = 0;
+	hash_copy_back = 0;
+        return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -267,19 +266,23 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		fmt_default_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

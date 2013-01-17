@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010-2012 by Solar Designer
  */
 
 #include <stdlib.h>
@@ -22,7 +22,9 @@
 #define CIPHERTEXT_LENGTH		60
 
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(BF_salt)
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		BF_Nmin
 #define MAX_KEYS_PER_CRYPT		BF_N
@@ -223,8 +225,10 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	if (keys_mode != saved_salt.subtype) {
 		int i;
 
@@ -235,6 +239,8 @@ static void crypt_all(int count)
 	}
 
 	BF_std_crypt(&saved_salt, count);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -278,7 +284,9 @@ struct fmt_main fmt_BF = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if BF_mt > 1
@@ -289,11 +297,13 @@ struct fmt_main fmt_BF = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		BF_std_get_binary,
 		BF_std_get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

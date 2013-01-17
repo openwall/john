@@ -271,7 +271,7 @@ static void * sha1_fmt_binary(char *ciphertext)
     return result;
 }
 
-static char *sha1_fmt_split(char *ciphertext, int index)
+static char *sha1_fmt_split(char *ciphertext, int index, struct fmt_main *self)
 {
     static char result[sizeof(kFormatTag) + SHA1_DIGEST_SIZE * 2];
 
@@ -400,8 +400,9 @@ static char * sha1_fmt_get_key(int index)
     return (char *) key;
 }
 
-static void sha1_fmt_crypt_all(int count)
+static int sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
     __m128i W[SHA1_BLOCK_WORDS];
     __m128i A, B, C, D, E;
     __m128i K;
@@ -531,7 +532,7 @@ static void sha1_fmt_crypt_all(int count)
         // this is A in standard SHA-1.
         _mm_store_si128(&MD[i], E);
     }
-    return;
+    return count;
 }
 
 #if defined(__SSE4_1__)
@@ -697,7 +698,9 @@ struct fmt_main fmt_sha1_ng = {
         .benchmark_length   = -1,
         .plaintext_length   = sizeof(__m128i) - 1,
         .binary_size        = sizeof(__m128i),
+        .binary_align       = MEM_ALIGN_SIMD,
         .salt_size          = 0,
+        .salt_align         = 1,
         .min_keys_per_crypt = 4,
         .max_keys_per_crypt = SHA1_PARALLEL_HASH,
         .flags              = FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
@@ -706,11 +709,13 @@ struct fmt_main fmt_sha1_ng = {
     .methods                = {
         .init               = fmt_default_init,
         .done               = fmt_default_done,
+        .reset              = fmt_default_reset,
         .prepare            = fmt_default_prepare,
         .valid              = sha1_fmt_valid,
         .split              = sha1_fmt_split,
         .binary             = sha1_fmt_binary,
         .salt               = fmt_default_salt,
+        .source             = fmt_default_source,
         .salt_hash          = fmt_default_salt_hash,
         .set_salt           = fmt_default_set_salt,
         .set_key            = sha1_fmt_set_key,
@@ -737,7 +742,7 @@ struct fmt_main fmt_sha1_ng = {
         },
         .cmp_all            = sha1_fmt_cmp_all,
         .cmp_one            = sha1_fmt_cmp_one,
-        .cmp_exact          = sha1_fmt_cmp_exact,
+        .cmp_exact          = sha1_fmt_cmp_exact
     },
 };
 

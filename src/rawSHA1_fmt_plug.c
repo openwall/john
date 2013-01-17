@@ -20,6 +20,7 @@
 #include "formats.h"
 #include "sha.h"
 #include "johnswap.h"
+#include "loader.h"
 
 #define FORMAT_LABEL			"raw-sha1"
 #define FORMAT_NAME			"Raw SHA-1"
@@ -37,7 +38,7 @@
 #define CIPHERTEXT_LENGTH		(HASH_LENGTH + TAG_LENGTH)
 
 #define DIGEST_SIZE			20
-#define BINARY_SIZE			4
+#define BINARY_SIZE			20 // source()
 #define SALT_SIZE			0
 
 #ifdef MMX_COEF
@@ -98,7 +99,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
@@ -256,7 +257,10 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
   // get plaintext input in saved_key put it into ciphertext crypt_key
 #ifdef MMX_COEF
 
@@ -271,7 +275,7 @@ static void crypt_all(int count) {
 	SHA1_Update( &ctx, (unsigned char*) saved_key, strlen( saved_key ) );
 	SHA1_Final( (unsigned char*) crypt_key, &ctx);
 #endif
-
+	return count;
 }
 
 static int binary_hash_0(void *binary) { return ((ARCH_WORD_32*)binary)[0] & 0xf; }
@@ -302,6 +306,32 @@ static int get_hash_5(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0xffff
 static int get_hash_6(int index) { return ((ARCH_WORD_32*)crypt_key)[0] & 0x7ffffff; }
 #endif
 
+static char *source(char *source, void *binary)
+{
+	static char Buf[CIPHERTEXT_LENGTH + 1];
+	unsigned char realcipher[BINARY_SIZE];
+	unsigned char *cpi;
+	char *cpo;
+	int i;
+
+	memcpy(realcipher, binary, BINARY_SIZE);
+#ifdef MMX_COEF
+	alter_endianity(realcipher, BINARY_SIZE);
+#endif
+	strcpy(Buf, FORMAT_TAG);
+	cpo = &Buf[TAG_LENGTH];
+
+	cpi = realcipher;
+
+	for (i = 0; i < BINARY_SIZE; ++i) {
+		*cpo++ = itoa16[(*cpi)>>4];
+		*cpo++ = itoa16[*cpi&0xF];
+		++cpi;
+	}
+	*cpo = 0;
+	return Buf;
+}
+
 struct fmt_main fmt_rawSHA1 = {
 	{
 		FORMAT_LABEL,
@@ -311,7 +341,9 @@ struct fmt_main fmt_rawSHA1 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
@@ -319,11 +351,13 @@ struct fmt_main fmt_rawSHA1 = {
 	}, {
 		fmt_default_init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		binary,
 		fmt_default_salt,
+		source,
 		{
 			binary_hash_0,
 			binary_hash_1,

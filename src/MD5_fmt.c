@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2008,2010,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2008,2010-2012 by Solar Designer
  *
  * ...with changes in the jumbo patch, by bartavelle
  */
@@ -34,7 +34,9 @@
 #else
 #define BINARY_SIZE			4
 #endif
+#define BINARY_ALIGN			4
 #define SALT_SIZE			9
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		MD5_N
 #define MAX_KEYS_PER_CRYPT		MD5_N
@@ -280,6 +282,24 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+#ifdef MD5_SSE_PARA
+#ifdef _OPENMP
+	int t;
+#pragma omp parallel for
+	for (t = 0; t < omp_para; t++)
+		md5cryptsse((unsigned char *)(&saved_key[t*MD5_N]), cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
+#else
+	md5cryptsse((unsigned char *)saved_key, cursalt, (char *)sout, CryptType);
+#endif
+#else
+	MD5_std_crypt(count);
+#endif
+	return count;
+}
+
 static int cmp_all(void *binary, int count)
 {
 #ifdef MD5_SSE_PARA
@@ -342,21 +362,6 @@ static int cmp_exact(char *source, int index)
 #endif
 }
 
-static void crypt_all(int count) {
-#ifdef MD5_SSE_PARA
-#ifdef _OPENMP
-	int t;
-#pragma omp parallel for
-	for (t = 0; t < omp_para; t++)
-		md5cryptsse((unsigned char *)(&saved_key[t*MD5_N]), cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
-#else
-	md5cryptsse((unsigned char *)saved_key, cursalt, (char *)sout, CryptType);
-#endif
-#else
-	MD5_std_crypt(count);
-#endif
-}
-
 static void set_salt(void *salt)
 {
 #ifdef MD5_SSE_PARA
@@ -388,7 +393,9 @@ struct fmt_main fmt_MD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if MD5_std_mt || defined(MD5_SSE_PARA)
@@ -399,11 +406,13 @@ struct fmt_main fmt_MD5 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,

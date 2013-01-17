@@ -99,7 +99,6 @@ static void init(struct fmt_main *self)
 	check_mem_allocation(inbuffer, outbuffer);
 	///Initialize CUDA
 	cuda_init(cuda_gpu_id);
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -193,9 +192,11 @@ static char *get_key(int index)
 	return r;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
+
 	if (any_cracked) {
 		memset(outbuffer, 0, sizeof(phpass_crack) * KEYS_PER_CRYPT);
 		any_cracked = 0;
@@ -204,6 +205,7 @@ static void crypt_all(int count)
 	for (i = 0; i < count; i++) {
 		any_cracked |= outbuffer[i].cracked;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -230,19 +232,23 @@ struct fmt_main fmt_cuda_phpass = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
 		tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		binary,
 		salt,
+		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},

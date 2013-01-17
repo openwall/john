@@ -217,9 +217,11 @@ static void hmac_sha512(uint8_t * pass, uint8_t passlen, uint8_t * salt,
 }
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -250,6 +252,7 @@ static void crypt_all(int count)
 #endif
 		memcpy((unsigned char*)crypt_out[index], key, BINARY_SIZE);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -310,6 +313,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

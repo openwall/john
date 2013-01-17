@@ -46,8 +46,8 @@ static cl_kernel main_kernel, prepare_kernel, final_kernel;
 static int new_keys, source_in_use;
 static int split_events[3] = { 2, 5, 6 };
 
-static void crypt_all(int count);
-static void crypt_all_benchmark(int count);
+static int crypt_all(int *pcount, struct db_salt *_salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 
 static struct fmt_tests tests[] = {
@@ -531,7 +531,8 @@ static int cmp_exact(char * source, int count) {
 }
 
 /* ------- Crypt function ------- */
-static void crypt_all_benchmark(int count) {
+static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
+    int count = *pcount;
     int i;
     size_t gws;
 
@@ -577,9 +578,13 @@ static void crypt_all_benchmark(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
     new_keys = 0;
+    
+    return count;
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *_salt)
+{
+    int count = *pcount;
     int i;
     size_t gws;
 
@@ -624,6 +629,8 @@ static void crypt_all(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
     new_keys = 0;
+
+    return count;
 }
 
 /* ------- Binary Hash functions group ------- */
@@ -698,6 +705,7 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

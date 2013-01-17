@@ -37,7 +37,7 @@ typedef BF_word BF_binary[6];
 
 #if defined(_OPENMP) && !BF_ASM
 #define BF_cpt				3
-#define BF_mt				96
+#define BF_mt				192
 #define BF_N				(BF_Nmin * BF_mt)
 #else
 #define BF_mt				1

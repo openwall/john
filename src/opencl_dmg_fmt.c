@@ -163,7 +163,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-        
+
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
@@ -498,8 +498,9 @@ static int hash_plugin_check_hash(const unsigned char *derived_key)
 }
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
@@ -534,6 +535,7 @@ static void crypt_all(int count)
 		else
 			cracked[index] = 0;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -579,6 +581,7 @@ struct fmt_main fmt_opencl_dmg = {
 	}, {
 		init,
 		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

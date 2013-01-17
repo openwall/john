@@ -104,7 +104,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
 
@@ -173,8 +173,9 @@ static int get_hash_4(int index) { return crypt_out[index][0] & 0xfffff; }
 static int get_hash_5(int index) { return crypt_out[index][0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -192,6 +193,7 @@ static void crypt_all(int count)
 
 		john_gost_final(&ctx, (unsigned char *)crypt_out[index]);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -237,7 +239,9 @@ struct fmt_main fmt_gost = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -245,11 +249,13 @@ struct fmt_main fmt_gost = {
 	}, {
 		init,
 		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
