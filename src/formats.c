@@ -173,9 +173,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (format->methods.valid(ciphertext, format) != 1)
 			return "valid";
 
-#if defined(DEBUG) && !defined(BENCH_BUILD)
+#if !defined(BENCH_BUILD) && defined(DEBUG)
 		if (validkiller == 0) {
-			char *killer = strdup(prepared);
+			char *killer = strdup(ciphertext);
 
 			validkiller = 1;
 			for (i = strlen(killer) - 1; i > 0; i--) {
