@@ -111,22 +111,25 @@ cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
 static int have_full_hashes;
 
-static void done(void)
+static void release_clobj(void)
 {
 	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
 	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL);
 
-	clReleaseMemObject(buffer_keys);
-	clReleaseMemObject(buffer_out);
-	clReleaseMemObject(pinned_bbbs);
-	clReleaseMemObject(pinned_saved_keys);
-
-	clReleaseKernel(crypt_kernel);
-	clReleaseProgram(program[ocl_gpu_id]);
-	clReleaseCommandQueue(queue[ocl_gpu_id]);
-	clReleaseContext(context[ocl_gpu_id]);
+        HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Release mem setting");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_bbbs), "Release mem out");
+        HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Release mem out");
 
 	MEM_FREE(res_hashes);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 // TODO: Use concurrent memory copy & execute
