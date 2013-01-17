@@ -572,7 +572,7 @@ static void * get_full_binary(char *ciphertext) {
 }
 
 /* ------- Crypt function ------- */
-static int crypt_all(int *pcount, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
     size_t gws;
