@@ -223,7 +223,7 @@ static void build_kernel(int dev_id, char *options, int save, char * file_name)
 			CL_PROGRAM_BINARY_SIZES,
 			sizeof(size_t), &source_size, NULL), "error");
 #if DEBUG
-		fprintf(stderr, "source size %zu\n", source_size);
+		fprintf(stderr, "binary size %zu\n", source_size);
 #endif
 		source = mem_alloc(source_size);
 
