@@ -131,6 +131,9 @@ static void init(struct fmt_main *self)
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
+	HANDLE_CLERROR(cl_error, "Error creating kernel");
+
 	/* Note: we ask for the kernels' max sizes, not the device's! */
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
 
@@ -159,8 +162,6 @@ static void init(struct fmt_main *self)
 	    &cl_error);
 	HANDLE_CLERROR(cl_error, "Error allocating mem out");
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "derive_key", &cl_error);
-	HANDLE_CLERROR(cl_error, "Error creating kernel");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
 		&mem_in), "Error while setting mem_in kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
@@ -314,7 +315,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index;
 
-	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
@@ -338,23 +339,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
-	{
-		if(akcdecrypt((unsigned char*)outbuffer[index].v, cur_salt->ct[0]) == 0) {
-			cracked[index] = 1;
-		}
-		else
-			cracked[index] = 0;
-	}
+	for (index = 0; index < count; index++)
+		cracked[index] = !akcdecrypt((unsigned char*)outbuffer[index].v, cur_salt->ct[0]);
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index;
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
