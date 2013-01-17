@@ -24,16 +24,21 @@
 #include "common.h"
 #include "formats.h"
 #include "crc32.h"
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
 #define PLAINTEXT_LENGTH		64
 #define MAX_CIPHERTEXT_LENGTH		(512*2+32)
 #define SALT_SIZE			64
 #define BINARY_SIZE			(512-SALT_SIZE)
-#define MIN_KEYS_PER_CRYPT		16
-#define MAX_KEYS_PER_CRYPT		16
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	1
 
-static char key_buffer[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
+static char (*key_buffer)[PLAINTEXT_LENGTH + 1];
 static unsigned char* salt_buffer;
 static const EVP_MD* md = NULL;
 static int num_iterations;
@@ -44,6 +49,14 @@ static void init(struct fmt_main *self)
 	//SSL_load_error_strings();
 	//SSL_library_init();
 	OpenSSL_add_all_algorithms();
+#ifdef _OPENMP
+	omp_t = omp_get_max_threads();
+	self->params.min_keys_per_crypt *= omp_t;
+	omp_t *= OMP_SCALE;
+	self->params.max_keys_per_crypt *= omp_t;
+#endif
+	key_buffer = mem_calloc_tiny(sizeof(*key_buffer) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 static void init_ripemd160(struct fmt_main *self)
 {
@@ -174,14 +187,19 @@ static void crypt_all(int count)
 static int cmp_all(void* binary, int count)
 {
 	unsigned int i;
-	unsigned char key[192];
-	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	int outlen;
-	unsigned char first_block_dec[16];
-
+	int res[count];
+	memset(res, 0, sizeof(int) * count);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
 	for(i = 0; i < count; i++)
 	{
 		EVP_CIPHER_CTX cipher_context;
+		unsigned char key[192];
+		unsigned char first_block_dec[16];
+		unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		int outlen;
+
 		// Key Strengthening
 		PKCS5_PBKDF2_HMAC(key_buffer[i], strlen(key_buffer[i]), salt_buffer, 64, num_iterations, md, sizeof(key), key);
 
@@ -191,8 +209,11 @@ static int cmp_all(void* binary, int count)
 		EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
 		// If first 4 bytes is 'TRUE' sucefull decryption
 		if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
-			return 1;
+			res[i] = 1;
 	}
+	for(i = 0; i < count; i++)
+		if (res[i])
+			return 1;
 
 	return 0;
 }
@@ -212,7 +233,7 @@ static int cmp_one(void* binary, int index)
 	EVP_CIPHER_CTX_init(&cipher_context);
 	EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
 	EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
-	// If first 4 bytes is 'TRUE' sucefull decryption
+	// If first 4 bytes is 'TRUE' successfull decryption
 	if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
 	{
 		// int i;
@@ -296,7 +317,7 @@ struct fmt_main fmt_truecrypt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
 		tests_ripemd160
 	}, {
 		init_ripemd160,
@@ -334,17 +355,17 @@ struct fmt_main fmt_truecrypt = {
 
 struct fmt_main fmt_truecrypt_sha512 = {
 	{
-		"tc_sha512",							// FORMAT_LABEL
-		"TrueCrypt",							// FORMAT_NAME
+		"tc_sha512",			// FORMAT_LABEL
+		"TrueCrypt",			// FORMAT_NAME
 		"SHA512 AES256_XTS",		// ALGORITHM_NAME,
-		"",										// BENCHMARK_COMMENT
-		0,											// BENCHMARK_LENGTH
+		"",				// BENCHMARK_COMMENT
+		0,				// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
 		tests_sha512
 	}, {
 		init_sha512,
@@ -392,7 +413,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UTF8,
+		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
 		tests_whirlpool
 	}, {
 		init_whirlpool,
