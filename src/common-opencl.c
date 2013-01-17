@@ -519,7 +519,7 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 			CL_PROGRAM_BINARY_SIZES,
 			sizeof(size_t), &source_size, NULL), "error");
 #if DEBUG
-		fprintf(stderr, "source size %zu\n", source_size);
+		fprintf(stderr, "binary size %zu\n", source_size);
 #endif
 		source = mem_alloc(source_size);
 
