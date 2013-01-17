@@ -215,7 +215,7 @@ BENCH_PARA_DEPEND = \
 	sse-intrinsics.o rawMD4_fmt_plug.o rawMD5_fmt_plug.o rawSHA1_fmt_plug.o MD5_fmt.o MD5_std.o
 
 GENMKVPWD_OBJS = \
-	genmkvpwd.o mkvlib.o memory.o miscnl.o
+	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o
 
 PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/ssh2john ../run/rar2john ../run/zip2john \
