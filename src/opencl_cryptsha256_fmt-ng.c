@@ -28,9 +28,9 @@
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
-#define _USE_GPU_SOURCE			(gpu(source_in_use))
+#define _USE_GPU_SOURCE			(gpu(source_in_use) || platform_apple(platform_id))
 #define _USE_LOCAL_SOURCE		(use_local(source_in_use) || amd_vliw5(source_in_use))
-#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use) || use_local(source_in_use) || amd_vliw5(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(_USE_GPU_SOURCE || _USE_LOCAL_SOURCE)
 
 static sha256_salt         * salt;
 static sha256_password     * plaintext;        // plaintext ciphertexts
