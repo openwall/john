@@ -246,14 +246,17 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
+	char *ctcopy, *keeptr;
 	char *p;
 	int headerver;
+
 	if (strncmp(ciphertext, "$dmg$", 5) != 0)
-		goto err;
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 5;	/* skip over "$dmg$" marker */
-	p = strtok(ctcopy, "*");
+	if ((p = strtok(ctcopy, "*")) == NULL)
+		goto err;
 	headerver = atoi(p);
 	if(headerver == 2) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
