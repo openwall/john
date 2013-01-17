@@ -531,7 +531,9 @@ static void * get_full_binary(char *ciphertext) {
 }
 
 /* ------- Crypt function ------- */
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
     size_t gws;
 
     gws = GET_MULTIPLE_BIGGER(count, local_work_size);
@@ -553,6 +555,8 @@ static void crypt_all(int count) {
 
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
+
+	return count;
 }
 
 /* ------- Compare functins ------- */
@@ -675,10 +679,8 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		tests
 	}, {
 		init,
-#if 0
 		done,
-#endif
-
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
                 split,

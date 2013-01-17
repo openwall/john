@@ -275,8 +275,9 @@ static void set_salt(void *salt)
 	memcpy(currentsalt, salt, SALT_SIZE);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	char setting[SALT_SIZE + 3] = { 0 };
 
 	global_work_size = (((count+7)/8) + local_work_size - 1) / local_work_size * local_work_size;
@@ -307,6 +308,8 @@ static void crypt_all(int count)
 
 	/// Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish");
+
+	return count;
 }
 
 static int binary_hash_0(void *binary)
@@ -453,6 +456,8 @@ struct fmt_main fmt_opencl_phpass = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

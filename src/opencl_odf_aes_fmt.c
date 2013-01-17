@@ -345,8 +345,9 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
@@ -402,7 +403,8 @@ static void crypt_all(int count)
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, pt, 1024);
 		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
-	 }
+	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -446,6 +448,8 @@ struct fmt_main fmt_opencl_odf_aes = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

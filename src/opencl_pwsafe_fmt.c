@@ -218,8 +218,10 @@ static void set_salt(void *salt)
 
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 //fprintf(stderr, "rounds = %d\n",host_salt->iterations);
@@ -240,6 +242,8 @@ static void crypt_all(int count)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -289,6 +293,8 @@ struct fmt_main fmt_opencl_pwsafe = {
 		pwsafe_tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

@@ -389,8 +389,9 @@ static int cmp_exact(char *source, int index){
 
 
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	cl_int code;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
@@ -409,6 +410,8 @@ static void crypt_all(int count)
 	    sizeof(cl_uint) * global_work_size, outbuffer, 0, NULL, NULL);
 	HANDLE_CLERROR(code, "failed in clEnqueueReadBuffer -reading partial hashes");
 	have_full_hashes = 0;
+
+	return count;
 }
 
 struct fmt_main fmt_opencl_NSLDAPS = {
@@ -429,6 +432,8 @@ struct fmt_main fmt_opencl_NSLDAPS = {
 		tests
 	}, {
 		fmt_ssha_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

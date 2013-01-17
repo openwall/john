@@ -183,8 +183,9 @@ static void set_salt(void *salt)
 	salt_struct = (struct custom_salt *)salt;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -204,6 +205,7 @@ static void crypt_all(int count)
 		                                     &pkcs5_pfxpbe,
 		                                     &secPreHash);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -257,6 +259,8 @@ struct fmt_main fmt_mozilla = {
 		mozilla_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

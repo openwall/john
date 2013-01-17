@@ -208,11 +208,12 @@ static char *get_key(int index)
 	return gkey[index].v;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	cuda_sha512(gkey, ghash);
 	sha512_key_changed = 0;
-    hash_copy_back = 0;
+	hash_copy_back = 0;
+        return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -276,6 +277,8 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

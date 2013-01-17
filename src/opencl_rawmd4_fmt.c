@@ -357,8 +357,10 @@ static char *get_key(int index)
 	return out;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	// copy keys to the device
@@ -369,6 +371,8 @@ static void crypt_all(int count)
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -426,6 +430,8 @@ struct fmt_main fmt_opencl_rawMD4 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

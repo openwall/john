@@ -302,7 +302,10 @@ static int cmp_exact(char *source, int count){
 	return 1;
 }
 
-static void crypt_all(int count){
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	HANDLE_CLERROR( clEnqueueWriteBuffer(queue[ocl_gpu_id], buffer_keys, CL_TRUE, 0, keybuf_size * global_work_size, saved_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_plain");
@@ -313,6 +316,8 @@ static void crypt_all(int count){
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, partial_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
+
+	return count;
 }
 
 static int binary_hash_0(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xf; }
@@ -349,6 +354,8 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		tests
 	}, {
 		fmt_rawsha1_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

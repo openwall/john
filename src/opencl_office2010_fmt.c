@@ -515,8 +515,9 @@ static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, u
 	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 	size_t scalar_gws;
 
@@ -556,6 +557,7 @@ static void crypt_all(int count)
 		SHA1_Final(hash, &ctx);
 		cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -608,6 +610,8 @@ struct fmt_main fmt_opencl_office2010 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

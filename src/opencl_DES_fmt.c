@@ -209,7 +209,8 @@ struct fmt_main fmt_opencl_DES = {
 		tests
 	}, {
 		init,
-
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

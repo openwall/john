@@ -182,9 +182,10 @@ skey_get_key(int index)
 	return (saved_pass);
 }
 
-static void
-skey_crypt_all(int count)
+static int
+skey_crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 
 	skey_set_algorithm(saved_salt.type);
@@ -193,6 +194,8 @@ skey_crypt_all(int count)
 
 	for (i = 0; i < saved_salt.num; i++)
 		f(saved_key);
+
+	return count;
 }
 
 static int
@@ -231,6 +234,8 @@ struct fmt_main fmt_SKEY = {
 		skey_tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		skey_valid,
 		fmt_default_split,

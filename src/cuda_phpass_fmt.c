@@ -193,9 +193,11 @@ static char *get_key(int index)
 	return r;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
+
 	if (any_cracked) {
 		memset(outbuffer, 0, sizeof(phpass_crack) * KEYS_PER_CRYPT);
 		any_cracked = 0;
@@ -204,6 +206,7 @@ static void crypt_all(int count)
 	for (i = 0; i < count; i++) {
 		any_cracked |= outbuffer[i].cracked;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -239,6 +242,8 @@ struct fmt_main fmt_cuda_phpass = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

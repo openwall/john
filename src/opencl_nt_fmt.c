@@ -130,8 +130,9 @@ static void done(void)
 }
 
 // TODO: Use concurrent memory copy & execute
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int key_length_mul_4 = (((max_key_length+1) + 3)/4)*4;
 
 	// Fill params. Copy only necesary data
@@ -148,6 +149,8 @@ static void crypt_all(int count)
 
 	max_key_length = 0;
 	have_full_hashes = 0;
+
+	return count;
 }
 
 static void init(struct fmt_main *self){
@@ -382,6 +385,8 @@ struct fmt_main fmt_opencl_NT = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

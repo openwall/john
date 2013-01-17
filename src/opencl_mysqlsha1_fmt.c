@@ -295,7 +295,10 @@ static int cmp_one(void *binary, int index){
 
 }
 
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
+
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], buf_msha_keys, CL_FALSE, 0, (PLAINTEXT_LENGTH) * global_work_size, mysqlsha_plain, 0, NULL, NULL), "failed in clEnqueueWriteBuffer mysqlsha_plain");
@@ -305,6 +308,8 @@ static void crypt_all(int count) {
 	// read back partial hashes
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], buf_msha_out, CL_TRUE, 0, sizeof(cl_uint) * global_work_size, par_msha_hashes, 0, NULL, NULL), "failed in reading data back");
 	have_full_hashes = 0;
+
+	return count;
 }
 
 
@@ -342,6 +347,8 @@ struct fmt_main fmt_opencl_mysqlsha1 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

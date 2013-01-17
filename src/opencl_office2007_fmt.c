@@ -523,8 +523,9 @@ static inline int PasswordVerifier(unsigned char *key)
 	return !memcmp(checkHash, decryptedVerifierHash, 16);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 	size_t scalar_gws;
 
@@ -555,6 +556,8 @@ static void crypt_all(int count)
 #endif
 	for (index = 0; index < count; index++)
 		cracked[index] = PasswordVerifier(&key[index*16]);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -607,6 +610,8 @@ struct fmt_main fmt_opencl_office2007 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

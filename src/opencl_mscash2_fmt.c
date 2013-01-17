@@ -425,8 +425,9 @@ static  char *get_key(int index )
 	return (char *)key_host[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	unsigned int i;
 #ifdef _DEBUG
 	struct timeval startc,endc,startg,endg;
@@ -468,6 +469,7 @@ static void crypt_all(int count)
 	fprintf(stderr, "\nGPU:%f  ",(endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000);
 	fprintf(stderr, "CPU:%f  ",(endc.tv_sec-startc.tv_sec)+(double)(endc.tv_usec-startc.tv_usec)/1000000.000 - ((endg.tv_sec-startg.tv_sec)+(double)(endg.tv_usec-startg.tv_usec)/1000000.000));
 #endif
+	return count;
 }
 
 
@@ -659,6 +661,8 @@ struct fmt_main fmt_opencl_mscash2 = {
 		tests
 	},{
 		init,
+		done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

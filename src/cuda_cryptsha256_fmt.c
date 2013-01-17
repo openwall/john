@@ -269,9 +269,10 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	sha256_crypt_gpu(inbuffer, outbuffer, &host_salt);
+	return *pcount;
 }
 
 static int get_hash_0(int index)
@@ -363,6 +364,8 @@ struct fmt_main fmt_cuda_cryptsha256 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

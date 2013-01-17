@@ -412,8 +412,9 @@ static void init(struct fmt_main *self)
 	atexit(done);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 	size_t scalar_gws;
 
@@ -448,6 +449,8 @@ static void crypt_all(int count)
 
 	/// Read the result back
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, NULL), "Copy result back");
+
+	return count;
 }
 
 static void crypt_all_benchmark(int count)
@@ -485,6 +488,8 @@ struct fmt_main fmt_opencl_wpapsk = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

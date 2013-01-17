@@ -155,9 +155,10 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	cuda_mscash(inbuffer, outbuffer, &currentsalt);
+	return *pcount;
 }
 
 static int binary_hash_0(void *binary)
@@ -272,6 +273,8 @@ struct fmt_main fmt_cuda_mscash = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

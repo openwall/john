@@ -285,7 +285,18 @@ static char *get_key(int index)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+#ifdef MD5_SSE_PARA
+#ifdef _OPENMP
+	int t;
+#pragma omp parallel for
+	for (t = 0; t < omp_para; t++)
+		md5cryptsse((unsigned char *)(&saved_key[t*MD5_N]), cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
+#else
+	md5cryptsse((unsigned char *)saved_key, cursalt, (char *)sout, CryptType);
+#endif
+#else
 	MD5_std_crypt(count);
+#endif
 	return count;
 }
 
@@ -348,21 +359,6 @@ static int cmp_exact(char *source, int index)
 	init_t();
 	return !memcmp(MD5_std_get_binary(source), MD5_out[index],
 	    sizeof(MD5_binary));
-#endif
-}
-
-static void crypt_all(int count) {
-#ifdef MD5_SSE_PARA
-#ifdef _OPENMP
-	int t;
-#pragma omp parallel for
-	for (t = 0; t < omp_para; t++)
-		md5cryptsse((unsigned char *)(&saved_key[t*MD5_N]), cursalt, (char *)(&sout[t*MD5_N*BINARY_SIZE/sizeof(MD5_word)]), CryptType);
-#else
-	md5cryptsse((unsigned char *)saved_key, cursalt, (char *)sout, CryptType);
-#endif
-#else
-	MD5_std_crypt(count);
 #endif
 }
 

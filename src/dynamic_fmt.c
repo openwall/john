@@ -1463,14 +1463,14 @@ static int cmp_one_64_4x6(void *binary, int index)
  *  at a time from the array of functions.
  *********************************************************************************
  *********************************************************************************/
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
 	DYNAMIC_primitive_funcp *pFuncs;
 
 	// set m_count.  This is our GLOBAL value, used by ALL of the script functions to know how
 	// many keys are loaded, and how much work we do.
-	m_count = count;
+	m_count = *pcount;
 	eLargeOut = eBase16;
 
 #ifdef MMX_COEF
@@ -1551,6 +1551,8 @@ static void crypt_all(int count)
 	pFuncs = curdat.dynamic_FUNCTIONS;
 	for (i = 0; pFuncs[i]; ++i)
 		(*(pFuncs[i]))();
+
+	return m_count;
 }
 
 /*********************************************************************************
@@ -2460,6 +2462,8 @@ struct fmt_main fmt_Dynamic =
 		dynamic_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

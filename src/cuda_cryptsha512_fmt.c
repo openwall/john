@@ -268,9 +268,10 @@ static void gpu_crypt_all(int count)
 	sha512_crypt_gpu(inbuffer, outbuffer, &_salt);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	gpu_crypt_all(count);
+	return *pcount;
 }
 
 static int get_hash_0(int index)
@@ -352,6 +353,8 @@ struct fmt_main fmt_cuda_cryptsha512 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

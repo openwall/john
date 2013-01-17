@@ -771,8 +771,9 @@ static void krb_decrypt(const unsigned char ciphertext[], size_t ctext_size,
 	AES_cts_encrypt(ciphertext,plaintext,ctext_size,&ekey,iv,AES_DECRYPT);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int i;
 	int key_size;
 	size_t scalar_gws;
@@ -870,6 +871,7 @@ static void crypt_all(int count)
 			memset(crypt_out[i], 0, BINARY_SIZE);
 		}
 	}
+	return count;
 }
 
 static void crypt_all_benchmark(int count)
@@ -933,6 +935,8 @@ struct fmt_main fmt_opencl_krb5pa_sha1 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

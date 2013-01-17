@@ -400,8 +400,9 @@ static char * sha1_fmt_get_key(int index)
     return (char *) key;
 }
 
-static void sha1_fmt_crypt_all(int count)
+static void sha1_fmt_crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
     __m128i W[SHA1_BLOCK_WORDS];
     __m128i A, B, C, D, E;
     __m128i K;
@@ -531,7 +532,7 @@ static void sha1_fmt_crypt_all(int count)
         // this is A in standard SHA-1.
         _mm_store_si128(&MD[i], E);
     }
-    return;
+    return count;
 }
 
 #if defined(__SSE4_1__)
@@ -707,6 +708,8 @@ struct fmt_main fmt_sha1_ng = {
     },
     .methods                = {
         .init               = fmt_default_init,
+        .done               = fmt_default_done,
+        .reset              = fmt_default_reset,
         .prepare            = fmt_default_prepare,
         .valid              = sha1_fmt_valid,
         .split              = sha1_fmt_split,

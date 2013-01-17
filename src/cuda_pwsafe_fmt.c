@@ -123,9 +123,10 @@ static void set_salt(void *salt)
         memcpy(host_salt, salt, SALT_SIZE);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
         gpu_pwpass(host_pass, host_salt, host_hash);
+        return *pcount;
 }
 
 static int cmp_all(void *binary, int count)
@@ -182,6 +183,8 @@ struct fmt_main fmt_cuda_pwsafe = {
 		pwsafe_tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

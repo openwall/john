@@ -186,13 +186,14 @@ static char *get_key(int index)
 	return ret;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 #ifdef SHA256
 	gpu_rawsha256(inbuffer, outbuffer, overlap);
 #else
 	gpu_rawsha224(inbuffer, outbuffer, overlap);
 #endif
+        return *pcount;
 }
 
 static int get_hash_0(int index)
@@ -273,6 +274,8 @@ struct fmt_main FMT_MAIN = {
 		TESTS
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

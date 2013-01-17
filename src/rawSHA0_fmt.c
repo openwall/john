@@ -101,11 +101,15 @@ static int cmp_one(void * binary, int index)
 	return cmp_all(binary, index);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	SHA_Init( &ctx );
 	SHA_Update( &ctx, (unsigned char *) saved_key, strlen( saved_key ) );
 	SHA_Final( (unsigned char *) crypt_key, &ctx);
+
+	return count;
 }
 
 static void *binary(char *ciphertext)
@@ -157,6 +161,8 @@ struct fmt_main fmt_rawSHA0 = {
 		tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		split,

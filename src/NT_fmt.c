@@ -151,8 +151,9 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 
 	#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 	#define NT_CRYPT_FUN		nt_crypt_all_generic
-	static void nt_crypt_all_generic(int count)
+	static int nt_crypt_all_generic(int *pcount, struct db_salt *salt)
 	{
+		int count = *pcount;
 		unsigned int a;
 		unsigned int b;
 		unsigned int c;
@@ -224,6 +225,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 			output1x[4*i+2]=c;
 			output1x[4*i+3]=d;
 		}
+		return count;
 	}
 #endif
 
@@ -978,6 +980,8 @@ struct fmt_main fmt_NT = {
 		tests
 	}, {
 		fmt_NT_init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		nt_split,

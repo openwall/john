@@ -168,8 +168,10 @@ static int get_hash(int index)
 	return 1;
 }
 
-static void crypt_all(int count)
-{}
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	return *pcount;
+}
 
 static int cmp_all(void* binary, int count)
 {
@@ -302,6 +304,8 @@ struct fmt_main fmt_truecrypt = {
 		tests_ripemd160
 	}, {
 		init_ripemd160,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid_ripemd160,
 		ms_split,
@@ -352,6 +356,8 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		tests_sha512
 	}, {
 		init_sha512,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid_sha512,
 		ms_split,
@@ -402,6 +408,8 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		tests_whirlpool
 	}, {
 		init_whirlpool,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid_whirlpool,
 		ms_split,

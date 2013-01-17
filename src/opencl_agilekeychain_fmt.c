@@ -303,8 +303,9 @@ static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 	return 0;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
@@ -342,6 +343,7 @@ static void crypt_all(int count)
 		else
 			cracked[index] = 0;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -381,6 +383,8 @@ struct fmt_main fmt_opencl_agilekeychain = {
 		keychain_tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

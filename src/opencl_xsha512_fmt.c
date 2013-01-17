@@ -398,8 +398,9 @@ static void set_salt(void *salt)
 	memcpy(gsalt.v, (uint8_t *) salt, SALT_SIZE);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	///Copy data to GPU memory
@@ -422,6 +423,8 @@ static void crypt_all(int count)
 	/// Reset key to unchanged and hashes uncopy to host
 	xsha512_key_changed = 0;
     hash_copy_back = 0;
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -504,6 +507,8 @@ struct fmt_main fmt_opencl_xsha512 = {
 	    tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		fmt_default_split,

@@ -191,9 +191,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
+
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
@@ -202,6 +204,7 @@ static void crypt_all(int count)
 		if(PKCS12_verify_mac(&cur_salt->pfx, saved_key[index], -1))
 			any_cracked = cracked[index] = 1;
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -240,6 +243,8 @@ struct fmt_main fmt_pfx = {
 		pfx_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

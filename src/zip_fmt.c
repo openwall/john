@@ -156,9 +156,11 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, passverify, has_been_cracked, saved_key, saved_salt, mode)
 #endif
@@ -173,6 +175,7 @@ static void crypt_all(int count)
 		memcpy(pwd_ver, kbuf + 2 * KEY_LENGTH(mode), PWD_VER_LENGTH);
 		has_been_cracked[index] = !memcmp(pwd_ver, passverify, 2);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -208,6 +211,8 @@ struct fmt_main fmt_zip = {
 		zip_tests
 	}, {
 		fmt_default_init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

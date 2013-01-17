@@ -582,8 +582,10 @@ static void *get_binary(char *ciphertext)
 
    challenge: (int)identity[16].(int)Challenge Size, Server Challenge . Client Challenge
 */
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	global_work_size = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
 
 	if (new_keys) {
@@ -595,6 +597,8 @@ static void crypt_all(int count)
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * global_work_size, output, 0, NULL, NULL), "failed reading results back");
 
 	partial_output = 1;
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -712,6 +716,8 @@ struct fmt_main fmt_opencl_NTLMv2 = {
 		tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		prepare,
 		valid,
 		split,

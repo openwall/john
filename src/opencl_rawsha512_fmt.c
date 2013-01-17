@@ -329,8 +329,9 @@ static int get_hash_6(int index)
 	return ((uint64_t*)ghash)[hash_addr(0, index)] & 0x7FFFFFF;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
 
 	///Copy data to GPU memory
@@ -351,6 +352,8 @@ static void crypt_all(int count)
 	/// Reset key to unchanged and hashes uncopy to host
 	sha512_key_changed = 0;
     hash_copy_back = 0;
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -430,6 +433,8 @@ struct fmt_main fmt_opencl_rawsha512 = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

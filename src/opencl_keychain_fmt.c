@@ -286,8 +286,9 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
@@ -317,6 +318,8 @@ static void crypt_all(int count)
 #endif
 	for (index = 0; index < count; index++)
 		cracked[index] = !kcdecrypt((unsigned char*)outbuffer[index].v, salt_struct->iv, salt_struct->ct);
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -357,6 +360,8 @@ struct fmt_main fmt_opencl_keychain = {
 		keychain_tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

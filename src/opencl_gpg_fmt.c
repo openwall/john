@@ -472,8 +472,9 @@ static int check(unsigned char *keydata, int ks)
 	return 0;
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
@@ -504,6 +505,8 @@ static void crypt_all(int count)
 	for (index = 0; index < count; index++)
 		cracked[index] = check(outbuffer[index].v,
 		                       keySize(cur_salt->cipher_algorithm));
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -547,6 +550,8 @@ struct fmt_main fmt_opencl_gpg = {
 		gpg_tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

@@ -59,10 +59,11 @@ static void init(struct fmt_main *self)
 	atexit(done);
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	wpapsk_gpu(inbuffer, outbuffer, &currentsalt);
 	wpapsk_postprocess(KEYS_PER_CRYPT);
+        return *pcount;
 }
 
 struct fmt_main fmt_cuda_wpapsk = {
@@ -83,6 +84,8 @@ struct fmt_main fmt_cuda_wpapsk = {
 		wpapsk_tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

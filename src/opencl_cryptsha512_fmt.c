@@ -696,7 +696,9 @@ static int cmp_exact(char * source, int count) {
 }
 
 /* ------- Crypt function ------- */
-static void crypt_all(int count) {
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
     int i;
     size_t gws;
 
@@ -741,6 +743,8 @@ static void crypt_all(int count) {
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
     new_keys = 0;
+
+	return count;
 }
 
 /* ------- Binary Hash functions group ------- */
@@ -814,9 +818,8 @@ struct fmt_main fmt_opencl_cryptsha512 = {
 		tests
 	}, {
 		init,
-#if 0
 		done,
-#endif
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,

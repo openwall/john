@@ -217,8 +217,10 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	if (keys_mode != saved_salt.subtype) {
 		int i;
 
@@ -229,6 +231,7 @@ static void crypt_all(int count)
 	}
 
 	opencl_BF_std_crypt(&saved_salt, count);
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -271,6 +274,8 @@ struct fmt_main fmt_opencl_bf = {
 		tests
 	}, {
 		init,
+		done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
