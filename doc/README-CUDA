@@ -12,15 +12,17 @@ If you have problems with JtR CUDA support:
   Please check that paths to yours CUDA library are proper in Makefile:
     CUDAPATH = /usr/local/cuda/lib
     CUDA64PATH = /usr/local/cuda/lib64
-  Please check that yours PATH contains cuda lib,bin and include paths.
-  Please check that yours LD_LIBRARY_PATH contains cuda lib path
+  Please check that your PATH contains cuda bin (usually /usr/local/cuda/bin)
+  and that your LD_LIBRARY_PATH contains cuda lib path (eg. /usr/local/cuda/lib
+  and/or /usr/local/cuda/lib64).
 
 Performance issues:
   If you have got Fermi or newer card change "-arch sm_10" to "-arch sm_20" in
   the NVCC_FLAGS (Makefile). If you have Kepler or newer, you can experiment
-  with using "-arch sm_30" as well.
+  with using "-arch sm_30" as well but some formats may actually perform better
+  with sm_20.
 
-  Default THREADS and BLOCKS settings might not be optimal. For some weaker
+  Default THREADS and BLOCKS settings might not be optimal. For some (weak)
   cards, THREADS may even be too high and this will show up as eg. "too many
   resources requested for launch in cryptmd5.cu at line 241".
 
@@ -49,7 +51,7 @@ OpenCL vs. CUDA parlor:
   worksize" is what you get from THREADS*BLOCKS (note the difference).
 
   Example: The md5crypt-cuda format ships with THREADS=256 and BLOCKS=84 (28*3)
-  hard-coded in cuda_cryptmd5.h. It performs poorly on stronger devices with
+  hard-coded in cuda_cryptmd5.h. It performs poorly on powerful devices with
   these figures, while the OpenCL format auto-tunes and performs 23% better:
 
       Benchmarking: md5crypt [CUDA]... DONE
@@ -93,9 +95,9 @@ Watchdog Timer:
         Concurrent kernels support:    Yes
         Warp size:                     32
 
-  We are currently not aware of any way to disable this watchdog under OSX. Under
-  Linux, you can disable it by adding the 'Option "Interactive"' line to
-  /etc/X11/xorg.conf:
+  We are currently not aware of any way to disable this watchdog under OSX.
+  Under Linux, you can disable it by adding the 'Option "Interactive"' line
+  to /etc/X11/xorg.conf:
 
     Section "Device"
         Identifier     "Device0"
