@@ -9,7 +9,7 @@
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int
 
-#define GPUS				2
+#define GPUS                            1
 #define THREADS                         256
 #define BLOCKS                          128//112//14 // 112 is good for gtx460
 #define KEYS_PER_GPU			THREADS*BLOCKS
