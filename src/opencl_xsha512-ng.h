@@ -25,6 +25,7 @@
 #define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        64
 #define SALT_SIZE               4
+#define SALT_ALIGN              1
 #define STEP                    65536
 
 #define KEYS_PER_CORE_CPU       65536
