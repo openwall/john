@@ -6,12 +6,14 @@
 #ifndef _CUDA_COMMON_H
 #define _CUDA_COMMON_H
 
+#include <cuda_runtime.h>
+
 /*
 * CUDA device id specified by -device parameter
 */
 int cuda_gpu_id;
 
-extern void cuda_init(unsigned int cuda_gpu_id);
+#define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
 
 #define check_mem_allocation(inbuffer,outbuffer)\
     if(inbuffer==NULL){\
@@ -22,5 +24,10 @@ extern void cuda_init(unsigned int cuda_gpu_id);
       fprintf(stderr,"Cannot allocate memory for hashes file:%s line:%d\n",__FILE__,__LINE__);\
       exit(1);\
     }
+
+extern void cuda_init(unsigned int cuda_gpu_id);
+extern void cuda_device_list();
+
+extern void HandleError(cudaError_t err, const char *file, int line);
 
 #endif

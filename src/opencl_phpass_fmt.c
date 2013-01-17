@@ -108,16 +108,22 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static void done(void)
+static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
 
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void set_key(char *key, int index)
@@ -147,7 +153,7 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong maxsize;
 
-	opencl_init_opt("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, platform_id, NULL);
+	opencl_init_opt("$JOHN/kernels/phpass_kernel.cl", ocl_gpu_id, NULL);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);

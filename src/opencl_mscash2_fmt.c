@@ -271,7 +271,6 @@ static void DCC(unsigned char *salt,unsigned char *username,unsigned int usernam
 
 }
 
-
 static void done()
 {
 	MEM_FREE(dcc2_hash_host);

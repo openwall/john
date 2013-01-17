@@ -73,18 +73,23 @@ static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
 
-
-static void done(void)
+static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release memsalt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 	MEM_FREE(host_pass);
 	MEM_FREE(host_hash);
 	MEM_FREE(host_salt);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void pwsafe_set_key(char *key, int index)

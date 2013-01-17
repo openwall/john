@@ -168,7 +168,7 @@ static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 
 size_t 	select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 {
-      	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", dev_no, platform_no);
+      	opencl_init_Sayantan("$JOHN/kernels/pbkdf2_kernel.cl", dev_no, platform_no, NULL);
 
 	pltfrmid[platform_no]=platform[platform_no];
 

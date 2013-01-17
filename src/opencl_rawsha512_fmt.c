@@ -114,15 +114,21 @@ cl_kernel cmp_kernel;
 #define insize (sizeof(sha512_key) * global_work_size)
 #define outsize (sizeof(sha512_hash) * global_work_size)
 
-static void done(void)
+static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release memin");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release memout");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 	MEM_FREE(ghash);
 	MEM_FREE(gkey);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void copy_hash_back()
@@ -164,7 +170,7 @@ static void init(struct fmt_main *self)
 	else
 		global_work_size = MAX_KEYS_PER_CRYPT;
 
-	opencl_init("$JOHN/kernels/sha512_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/sha512_kernel.cl", ocl_gpu_id);
 
 	gkey = mem_calloc(global_work_size * sizeof(sha512_key));
 	ghash = mem_calloc(global_work_size * sizeof(sha512_hash));

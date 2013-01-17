@@ -32,14 +32,14 @@ static sha256_salt         * salt;
 static sha256_password     * plaintext;        // plaintext ciphertexts
 static sha256_hash         * calculated_hash;  // calculated hashes
 
-cl_mem salt_buffer;        //Salt information.
-cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Hash keys (output).
-cl_mem work_buffer;        //Temporary buffer
-cl_mem pinned_saved_keys, pinned_partial_hashes;
+static cl_mem salt_buffer;        //Salt information.
+static cl_mem pass_buffer;        //Plaintext buffer.
+static cl_mem hash_buffer;        //Hash keys (output).
+static cl_mem work_buffer;        //Temporary buffer
+static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
-cl_command_queue queue_prof;
-cl_kernel prepare_kernel, crypt_kernel, final_kernel;
+static cl_command_queue queue_prof;
+static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
 
@@ -327,7 +327,7 @@ static void find_best_workgroup(struct fmt_main *self) {
     fprintf(stderr, "Max local worksize %d, ", (int) max_group_size);
 
     //Call the default function.
-    opencl_find_best_workgroup_limit(self, max_group_size);
+    opencl_find_best_workgroup_limit(self, max_group_size, ocl_gpu_id, crypt_kernel);
 
     fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
@@ -551,7 +551,7 @@ static void init(struct fmt_main * self) {
     char * tmp_value;
     char * task = "$JOHN/kernels/cryptsha256_kernel_DEFAULT.cl";
 
-    opencl_init_dev(ocl_gpu_id, platform_id);
+    opencl_init_dev(ocl_gpu_id);
     source_in_use = device_info[ocl_gpu_id];
 
     if ((tmp_value = getenv("_TYPE")))
@@ -614,7 +614,7 @@ static void init(struct fmt_main * self) {
     self->params.min_keys_per_crypt = local_work_size;
     self->params.max_keys_per_crypt = global_work_size;
 }
-#if 0
+
 static void done(void) {
     release_clobj();
 
@@ -625,10 +625,8 @@ static void done(void) {
         HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
     }
     HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-    HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-    HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
-#endif
+
 /* ------- Check if the ciphertext if a valid SHA-256 crypt ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
     char *pos, *start;

@@ -115,6 +115,14 @@ static void release_clobj(void){
 	MEM_FREE(res_hashes);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+}
+
 /*
    this function could be used to calculated the best num
    of keys per crypt for the given format
@@ -183,7 +191,7 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 	}
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", keybuf_size);
-	opencl_init_opt("$JOHN/kernels/sha1_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/sha1_kernel.cl", ocl_gpu_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
@@ -201,7 +209,7 @@ static void fmt_rawsha1_init(struct fmt_main *self) {
 
 	if (!local_work_size) {
 		create_clobj(MAX_KEYS_PER_CRYPT);
-		opencl_find_best_workgroup_limit(self, maxsize);
+		opencl_find_best_workgroup(self);
 		release_clobj();
 	}
 
@@ -354,7 +362,7 @@ struct fmt_main fmt_opencl_rawSHA1 = {
 		tests
 	}, {
 		fmt_rawsha1_init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

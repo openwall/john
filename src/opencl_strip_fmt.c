@@ -81,16 +81,23 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define outsize (sizeof(strip_hash) * global_work_size)
 #define settingsize (sizeof(strip_salt))
 
-static void done(void)
+static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
 	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 	HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
+
 	MEM_FREE(inbuffer);
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
+}
+
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void init(struct fmt_main *self)
@@ -106,7 +113,7 @@ static void init(struct fmt_main *self)
 	         (int)sizeof(currentsalt.salt),
 	         (int)sizeof(outbuffer->v));
 	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_unsplit_kernel.cl",
-	                ocl_gpu_id, platform_id, build_opts);
+	                ocl_gpu_id, build_opts);
 
 	if ((temp = getenv("LWS")))
 		local_work_size = atoi(temp);

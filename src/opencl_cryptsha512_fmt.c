@@ -24,22 +24,25 @@
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define LWS_CONFIG			"sha512crypt_LWS"
-#define GWS_CONFIG			"sha512crypt_GWS"
-#define DUR_CONFIG			"sha512crypt_MaxDuration"
+#define CONFIG_NAME			"sha512crypt"
+
+//Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
+#define _USE_CPU_SOURCE			(cpu(source_in_use))
+#define _USE_GPU_SOURCE			(gpu(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use))
 
 static sha512_salt         * salt;
 static sha512_password     * plaintext;        // plaintext ciphertexts
 static sha512_hash         * calculated_hash;  // calculated hashes
 
-cl_mem salt_buffer;        //Salt information.
-cl_mem pass_buffer;        //Plaintext buffer.
-cl_mem hash_buffer;        //Hash keys (output).
-cl_mem work_buffer;        //Temporary buffer
-cl_mem pinned_saved_keys, pinned_partial_hashes;
+static cl_mem salt_buffer;        //Salt information.
+static cl_mem pass_buffer;        //Plaintext buffer.
+static cl_mem hash_buffer;        //Hash keys (output).
+static cl_mem work_buffer;        //Temporary buffer
+static cl_mem pinned_saved_keys, pinned_partial_hashes;
 
-cl_command_queue queue_prof;
-cl_kernel prepare_kernel, crypt_kernel, final_kernel;
+static cl_command_queue queue_prof;
+static cl_kernel prepare_kernel, final_kernel;
 
 static int new_keys, source_in_use;
 
@@ -174,7 +177,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
     HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
             (void *) &hash_buffer), "Error setting argument 2");
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         //Set prepare kernel arguments
         HANDLE_CLERROR(clSetKernelArg(prepare_kernel, 0, sizeof(cl_mem),
             (void *) &salt_buffer), "Error setting argument 0");
@@ -198,7 +201,6 @@ static void create_clobj(int gws, struct fmt_main * self) {
             (void *) &work_buffer), "Error setting argument crypt_kernel (3)");
     }
     memset(plaintext, '\0', sizeof(sha512_password) * gws);
-    global_work_size = gws;
 }
 
 static void release_clobj(void) {
@@ -320,11 +322,11 @@ static void find_best_workgroup(struct fmt_main *self) {
     fprintf(stderr, "Max local worksize %d, ", (int) max_group_size);
 
     //Call the default function.
-    opencl_find_best_workgroup_limit(self, max_group_size);
+    opencl_find_best_workgroup_limit(self, max_group_size, ocl_gpu_id, crypt_kernel);
 
     fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
     fprintf(stderr, "(to avoid this test on next run, put \""
-        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        CONFIG_NAME LWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", (int)local_work_size);
 }
 
@@ -384,14 +386,14 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
             "Failed in clEnqueueWriteBuffer");
 
     //Enqueue the kernel
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         clEnqueueNDRangeKernel(queue_prof, prepare_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent[4]);
     }
     ret_code = clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
         1, NULL, &num, &local_work_size, 0, NULL, &myEvent[2]);
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
             1, NULL, &num, &local_work_size, 0, NULL, &myEvent[5]);
         clEnqueueNDRangeKernel(queue_prof, crypt_kernel,
@@ -405,7 +407,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
             sizeof(sha512_hash) * num, tmpbuffer, 0, NULL, &myEvent[3]),
             "Failed in clEnqueueReadBuffer");
 
-    loops = gpu(source_in_use) ? 8 : 4;
+    loops = (_SPLIT_KERNEL_IN_USE) ? 8 : 4;
     HANDLE_CLERROR(clFinish(queue_prof), "Failed in clFinish");
 
     //** Get execution time **//
@@ -415,7 +417,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
         HANDLE_CLERROR(clGetEventProfilingInfo(myEvent[i], CL_PROFILING_COMMAND_END,
                 sizeof(cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
 
-        if (gpu(source_in_use) && (i == 2 || i == 5 || i == 6))
+        if (_SPLIT_KERNEL_IN_USE && (i == 2 || i == 5 || i == 6))
             looptime += (endTime - startTime);
         else
             runtime += (endTime - startTime);
@@ -426,7 +428,7 @@ static cl_ulong gws_test(size_t num, struct fmt_main * self, int do_details) {
     if (do_details)
         fprintf(stderr, "\n");
 
-    if (gpu(source_in_use))
+    if (_SPLIT_KERNEL_IN_USE)
         runtime += ((looptime / 3) * (salt->rounds / HASH_LOOPS));
 
     // Free resources.
@@ -470,7 +472,7 @@ static void find_best_gws(struct fmt_main * self) {
     }
     step = GET_MULTIPLE(step, local_work_size);
 
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, DUR_CONFIG)))
+    if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, CONFIG_NAME DUR_CONFIG_NAME)))
         max_run_time = atoi(tmp_value) * 1000000000ULL;
 
     fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
@@ -516,7 +518,7 @@ static void find_best_gws(struct fmt_main * self) {
     }
     fprintf(stderr, "Optimal global worksize %d\n", optimal_gws);
     fprintf(stderr, "(to avoid this test on next run, put \""
-        GWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
+        CONFIG_NAME GWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
         SUBSECTION_OPENCL "])\n", optimal_gws);
     global_work_size = optimal_gws;
     create_clobj(optimal_gws, self);
@@ -531,7 +533,7 @@ static void build_kernel(char * task) {
     crypt_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_crypt", &ret_code);
     HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         prepare_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_prepare", &ret_code);
         HANDLE_CLERROR(ret_code, "Error creating kernel_prepare. Double-check kernel name?");
         final_kernel = clCreateKernel(program[ocl_gpu_id], "kernel_final", &ret_code);
@@ -543,59 +545,41 @@ static void init(struct fmt_main * self) {
     char * tmp_value;
     char * task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
 
-    opencl_init_dev(ocl_gpu_id, platform_id);
+    opencl_init_dev(ocl_gpu_id);
     source_in_use = device_info[ocl_gpu_id];
 
     if ((tmp_value = getenv("_TYPE")))
         source_in_use = atoi(tmp_value);
 
-    if (gpu(source_in_use))
+    if (_USE_GPU_SOURCE)
         task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
 
     build_kernel(task);
 
     global_work_size = get_task_max_size();
     local_work_size = get_default_workgroup();
+    opencl_get_user_preferences(CONFIG_NAME);
 
     if (source_in_use != device_info[ocl_gpu_id])
         fprintf(stderr, "Selected runtime id %d, source (%s)\n", source_in_use, task);
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, LWS_CONFIG)))
-        local_work_size = atoi(tmp_value);
-
-    if ((tmp_value = getenv("LWS")))
-        local_work_size = atoi(tmp_value);
 
     //Check if local_work_size is a valid number.
     if (local_work_size > get_task_max_work_group_size()){
         local_work_size = 0; //Force find a valid number.
     }
-    self->params.max_keys_per_crypt = global_work_size;
+    self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
 
     if (!local_work_size) {
-        local_work_size = get_task_max_work_group_size();
-        create_clobj(global_work_size, self);
+        create_clobj(self->params.max_keys_per_crypt, self);
         find_best_workgroup(self);
         release_clobj();
     }
-
-    if ((tmp_value = cfg_get_param(SECTION_OPTIONS,
-                                   SUBSECTION_OPENCL, GWS_CONFIG)))
-        global_work_size = atoi(tmp_value);
-
-    if ((tmp_value = getenv("GWS")))
-        global_work_size = atoi(tmp_value);
-
-    //Check if a valid multiple is used.
-    global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
 
     if (global_work_size)
         create_clobj(global_work_size, self);
 
     else {
         //user chose to die of boredom
-        global_work_size = get_task_max_size();
         find_best_gws(self);
     }
     fprintf(stderr, "Local worksize (LWS) %d, global worksize (GWS) %zd\n",
@@ -603,21 +587,19 @@ static void init(struct fmt_main * self) {
     self->params.min_keys_per_crypt = local_work_size;
     self->params.max_keys_per_crypt = global_work_size;
 }
-#if 0
+
 static void done(void) {
     release_clobj();
 
     HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
         HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
     }
     HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-    HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-    HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
-#endif
+
 /* ------- Check if the ciphertext if a valid SHA-512 crypt ------- */
 static int valid(char * ciphertext, struct fmt_main * self) {
     char *pos, *start;
@@ -715,7 +697,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
                 "failed in clEnqueueWriteBuffer pass_buffer");
 
     //Enqueue the kernel
-    if (gpu(source_in_use)) {
+    if (_SPLIT_KERNEL_IN_USE) {
         HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
             &gws, &local_work_size, 0, NULL, NULL),
             "failed in clEnqueueNDRangeKernel I");

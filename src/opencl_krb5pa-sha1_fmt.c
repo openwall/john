@@ -181,12 +181,12 @@ static void done(void)
 {
 	release_clobj();
 
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_pass2), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release Kernel");
+
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void set_key(char *key, int index);
@@ -422,7 +422,7 @@ static void init(struct fmt_main *self)
 	         HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH,
 	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", ocl_gpu_id, build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) ||
 	    ((!(options.flags & FLG_SCALAR)) &&
@@ -482,7 +482,7 @@ static void init(struct fmt_main *self)
 				global_work_size : 8 * 1024;
 			create_clobj(global_work_size, self);
 			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize);
+			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 			self->methods.crypt_all = crypt_all;
 			release_clobj();
 			global_work_size = temp;

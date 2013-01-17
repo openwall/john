@@ -231,7 +231,7 @@ void DES_bs_select_device(int platform_no,int dev_no)
 {
 	devno = dev_no;
 	pltfrmno = platform_no;
-	opencl_init("$JOHN/kernels/DES_bs_kernel.cl", dev_no, platform_no);
+	opencl_init_Sayantan("$JOHN/kernels/DES_bs_kernel.cl", dev_no, platform_no, NULL);
 	pltfrmid[platform_no] = platform[platform_no];
 	devid[platform_no][dev_no] = devices[dev_no];
 	cntxt[platform_no][dev_no] = context[dev_no];
@@ -407,7 +407,7 @@ void opencl_DES_bs_crypt_25(int keys_count)
 	
 	err=clEnqueueNDRangeKernel(cmdq[pltfrmno][devno],krnl[pltfrmno][devno][0],1,NULL,&N,&M,0,NULL,&evnt);
 	
-	HANDLE_CLERROR(err,"Enqueue Kernel Failed");
+	HANDLE_CLERROR(err,"Enque Kernel Failed");
 
 	clWaitForEvents(1,&evnt);
 	

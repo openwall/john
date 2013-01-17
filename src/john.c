@@ -132,6 +132,7 @@ extern struct fmt_main fmt_opencl_cryptMD5;
 extern struct fmt_main fmt_opencl_phpass;
 extern struct fmt_main fmt_opencl_mysqlsha1;
 extern struct fmt_main fmt_opencl_cryptsha256;
+extern struct fmt_main fmt_opencl_cryptsha256_ng;
 extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_mscash2;
 extern struct fmt_main fmt_opencl_wpapsk;
@@ -298,6 +299,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_opencl_phpass);
 	john_register_one(&fmt_opencl_mysqlsha1);
 	john_register_one(&fmt_opencl_cryptsha256);
+	john_register_one(&fmt_opencl_cryptsha256_ng);
 	john_register_one(&fmt_opencl_cryptsha512);
 	john_register_one(&fmt_opencl_mscash2);
 	john_register_one(&fmt_opencl_wpapsk);
@@ -652,22 +654,7 @@ static void john_init(char *name, int argc, char **argv)
 		listconf_parse_late();
 
 #ifdef HAVE_OPENCL
-	if (!options.ocl_platform) {
-		if ((options.ocl_platform =
-		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Platform")))
-			platform_id = atoi(options.ocl_platform);
-		else
-			platform_id = -1;
-	}
-	if (!options.gpu_device) {
-		if ((options.gpu_device =
-		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "Device")))
-			ocl_gpu_id = atoi(options.gpu_device);
-		else
-			ocl_gpu_id = -1;
-	}
-	if (platform_id == -1 || ocl_gpu_id == -1)
-		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+	init_opencl_devices();
 #endif
 
 	common_init();
@@ -790,6 +777,10 @@ static void john_done(void)
 		fmt_done(database.format);
 	}
 	log_done();
+#ifdef HAVE_OPENCL
+        //Release OpenCL stuff.
+        clean_opencl_devices();
+#endif
 
 	path_done();
 

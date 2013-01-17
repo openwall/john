@@ -411,6 +411,14 @@ static void release_clobj(void)
 	MEM_FREE(cracked);
 }
 
+static void done(void)
+{
+	release_clobj();
+
+	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
+}
+
 static void clear_keys(void)
 {
 	memset(saved_len, 0, sizeof(int) * global_work_size);
@@ -627,7 +635,7 @@ static void init(struct fmt_main *self)
 	local_work_size = global_work_size = 0;
 
 	snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u", HASH_LOOPS, PLAINTEXT_LENGTH);
-	opencl_init_opt("$JOHN/kernels/rar_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/rar_kernel.cl", ocl_gpu_id, build_opts);
 
 	// create kernels to execute
 	RarInit = clCreateKernel(program[ocl_gpu_id], "RarInit", &ret_code);
@@ -686,7 +694,7 @@ static void init(struct fmt_main *self)
 			local_work_size = maxsize;
 			global_work_size = global_work_size ? global_work_size : 4 * maxsize;
 			create_clobj(global_work_size, self);
-			opencl_find_best_workgroup_limit(self, maxsize);
+			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 			release_clobj();
 			global_work_size = temp;
 		} else {
@@ -713,7 +721,6 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(release_clobj);
 
 #if defined (_OPENMP)
 	omp_t = omp_get_max_threads();
@@ -1019,7 +1026,7 @@ struct fmt_main fmt_opencl_rar = {
 		cpu_tests // Changed in init if GPU
 	},{
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,

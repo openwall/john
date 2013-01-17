@@ -180,8 +180,6 @@ static void done(void)
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
 
 static int salt_hash(void *salt)
@@ -391,7 +389,7 @@ static void init(struct fmt_main *self)
 	if ((temp = getenv("GWS")))
 		global_work_size = atoi(temp);
 
-	opencl_init_opt("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, platform_id, NULL);
+	opencl_init_opt("$JOHN/kernels/cryptmd5_kernel.cl", ocl_gpu_id, NULL);
 
 	///Create Kernel
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
@@ -409,7 +407,7 @@ static void init(struct fmt_main *self)
 		local_work_size = maxsize;
 		global_work_size = global_work_size ? global_work_size : KEYS_PER_CRYPT;
 		create_clobj(global_work_size, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
+		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 		release_clobj();
 		global_work_size = temp;
 	}

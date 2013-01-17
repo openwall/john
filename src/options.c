@@ -42,9 +42,6 @@
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
 #endif
-#if defined(HAVE_CUDA)
-extern int cuda_gpu_id;
-#endif
 
 struct options_main options;
 static char *field_sep_char_string;
@@ -152,8 +149,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &options.ocl_platform},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	{"device", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &options.gpu_device},
+	{"devices", FLG_NONE, FLG_NONE, 0, OPT_REQ_PARAM,
+		OPT_FMT_ADD_LIST_MULTI, &options.gpu_devices},
 #endif
 #ifdef HAVE_OPENCL
 	{"request-vectorize", FLG_VECTORIZE, FLG_VECTORIZE, 0, FLG_SCALAR},
@@ -214,11 +211,11 @@ static struct opt_entry opt_list[] = {
 #if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
 "--platform=N              set OpenCL platform (list using --list=opencl-devices)\n" \
-"--device=N                set OpenCL or CUDA device\n"
+"--devices=N[,..]          set OpenCL or CUDA device(s)\n"
 #elif defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
 "--platform=N              set OpenCL platform\n" \
-"--device=N                set OpenCL device (list using --list=opencl-devices)\n"
+"--devices=N[,..]          set OpenCL device(s) (list using --list=opencl-devices)\n"
 #elif defined (HAVE_CUDA)
 #define JOHN_USAGE_GPU \
 "--device=N                set CUDA device (list using --list=cuda-devices)\n"
@@ -338,6 +335,9 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	list_init(&options.loader.shells);
 #ifdef HAVE_DL
 	list_init(&options.fmt_dlls);
+#endif
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	list_init(&options.gpu_devices);
 #endif
 
 	options.length = -1;

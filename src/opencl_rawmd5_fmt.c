@@ -103,8 +103,6 @@ static void done(void)
 
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
@@ -241,7 +239,7 @@ static void init(struct fmt_main *self)
 	}
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DKEY_LENGTH=%d", keybuf_size);
-	opencl_init_opt("$JOHN/kernels/md5_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/md5_kernel.cl", ocl_gpu_id, build_opts);
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 

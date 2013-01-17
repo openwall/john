@@ -131,13 +131,13 @@ static void done(void)
 {
 	release_clobj();
 
-	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
-
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_init), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_loop), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_pass2), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
+
+	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
 static void set_key(char *key, int index);
@@ -327,7 +327,7 @@ static void init(struct fmt_main *self)
 	         HASH_LOOPS, ITERATIONS, PLAINTEXT_LENGTH,
 	         (options.flags & FLG_VECTORIZE) ? "-DVECTORIZE" :
 	         (options.flags & FLG_SCALAR) ? "-DSCALAR" : "");
-	opencl_init_opt("$JOHN/kernels/wpapsk_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/wpapsk_kernel.cl", ocl_gpu_id, build_opts);
 
 	if ((options.flags & FLG_VECTORIZE) ||
 	    ((!(options.flags & FLG_SCALAR)) &&
@@ -392,14 +392,15 @@ static void init(struct fmt_main *self)
 				global_work_size : 8 * 1024;
 			create_clobj(global_work_size, self);
 			self->methods.crypt_all = crypt_all_benchmark;
-			opencl_find_best_workgroup_limit(self, maxsize);
+			opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 			self->methods.crypt_all = crypt_all;
 			release_clobj();
 			global_work_size = temp;
 		}
 	}
 
-	self->params.min_keys_per_crypt = local_work_size;
+	self->params.min_keys_per_crypt = local_work_size < 8 ?
+		8 : local_work_size;
 
 	if (!global_work_size)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
