@@ -227,6 +227,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		/* Check that claimed maxlength is actually supported */
 		/* This version is for max == 1, other version below */
 		if (lengthcheck == 0 && max == 1) {
+			int count = index + 1;
+
 			lengthcheck = 2;
 
 			/* Fill the buffer with maximum length key */
@@ -234,7 +236,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			longcand[ml] = 0;
 			format->methods.set_key(longcand, index);
 
-			format->methods.crypt_all(index + 1);
+			if (format->methods.crypt_all(&count, NULL) != count)
+				return "crypt_all";
 
 			/* Now read it back and verify it's intact */
 			if (strncmp(format->methods.get_key(index),
