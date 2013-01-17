@@ -269,8 +269,10 @@ static void gpu_crypt_all(int count)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
 	gpu_crypt_all(count);
-	return *pcount;
+	return count;
 }
 
 static int get_hash_0(int index)

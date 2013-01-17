@@ -161,10 +161,11 @@ OCL_OBJS = \
 	opencl_DES_fmt.o opencl_DES_bs.o opencl_DES_bs_b.o opencl_strip_fmt.o \
 	opencl_office2007_fmt.o opencl_office2010_fmt.o opencl_office2013_fmt.o \
 	opencl_ntlmv2_fmt.o opencl_rawsha256_fmt.o opencl_xsha512-ng_fmt.o \
-	opencl_krb5pa-sha1_fmt.o opencl_rar_fmt.o opencl_odf_aes_fmt.o
+	opencl_krb5pa-sha1_fmt.o opencl_rar_fmt.o opencl_odf_aes_fmt.o \
+	opencl_cryptsha256_fmt-ng.o opencl_sha2_common.o
 
 CUDA_OBJS = \
-	cuda_common.o \
+	common-cuda.o cuda_common.o \
 	cuda_cryptmd5_fmt.o cuda_cryptmd5.o \
 	cuda_phpass_fmt.o cuda_phpass.o \
 	cuda_cryptsha256_fmt.o cuda_cryptsha256.o \

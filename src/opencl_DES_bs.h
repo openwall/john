@@ -101,7 +101,7 @@ extern void opencl_DES_bs_crypt(int count, int keys_count);
 /*
  * A simplified special-case implementation: 12-bit salts, 25 iterations.
  */
-extern void opencl_DES_bs_crypt_25(int keys_count);
+extern int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt);
 
 /*
  * Another special-case version: a non-zero IV, no salts, no iterations.

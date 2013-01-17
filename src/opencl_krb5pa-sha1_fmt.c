@@ -407,7 +407,7 @@ static void nfold(unsigned int inbits, const unsigned char *in,
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt);
-static void crypt_all_benchmark(int count);
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
 {
@@ -873,8 +873,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-static void crypt_all_benchmark(int count)
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	size_t scalar_gws = global_work_size * VF;
 
 	/// Copy data to gpu
@@ -891,6 +892,8 @@ static void crypt_all_benchmark(int count)
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel (2nd pass)");
 
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running loop kernel");
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)

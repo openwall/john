@@ -370,16 +370,6 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		return;
 	}
 
-#ifdef HAVE_OPENCL
-	if (options.ocl_platform)
-		platform_id = atoi(options.ocl_platform);
-	if (options.gpu_device)
-		ocl_gpu_id = atoi(options.gpu_device);
-#endif
-#ifdef HAVE_CUDA
-	if (options.gpu_device)
-		cuda_gpu_id = atoi(options.gpu_device);
-#endif
 	if (options.flags & FLG_STATUS_CHK) {
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;

@@ -104,7 +104,7 @@ static void init(struct fmt_main *self)
 	char *temp;
 	cl_ulong maxsize;
 
-	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, platform_id);
+	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id);
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");

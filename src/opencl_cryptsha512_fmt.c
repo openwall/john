@@ -678,7 +678,7 @@ static int cmp_exact(char * source, int count) {
 }
 
 /* ------- Crypt function ------- */
-static int crypt_all(int *pcount, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
     int i;

@@ -167,7 +167,7 @@ static void init(struct fmt_main *self)
 	cl_ulong maxsize;
 
 	opencl_init_opt("$JOHN/kernels/xsha512_kernel.cl",
-	                ocl_gpu_id, platform_id, NULL);
+	                ocl_gpu_id, NULL);
 
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating crypt_kernel");

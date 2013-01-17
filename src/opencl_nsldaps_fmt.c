@@ -224,7 +224,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	snprintf(build_opts, sizeof(build_opts),
 	         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
-	opencl_init_opt("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, platform_id, build_opts);
+	opencl_init_opt("$JOHN/kernels/ssha_kernel.cl", ocl_gpu_id, build_opts);
 
 	// create kernel to execute
 	crypt_kernel = clCreateKernel(program[ocl_gpu_id], "sha1_crypt_kernel", &ret_code);
@@ -249,7 +249,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 		local_work_size = maxsize;
 		global_work_size = global_work_size ? global_work_size : 4 * maxsize;
 		create_clobj(global_work_size, self);
-		opencl_find_best_workgroup_limit(self, maxsize);
+		opencl_find_best_workgroup_limit(self, maxsize, ocl_gpu_id, crypt_kernel);
 		release_clobj();
 		global_work_size = temp;
 	}
