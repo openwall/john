@@ -2,7 +2,7 @@
  * This software is Copyright (c) 2012 Sayantan Datta <std2048 at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
- * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9 
+ * Based on Solar Designer implementation of DES_fmt.c in jtr-v1.7.9
  */
 
 #include <string.h>
@@ -48,7 +48,7 @@ for(i=0;i<MULTIPLIER;i++)
 DES_bs_select_device(platform_id,ocl_gpu_id);
 
 
-	
+
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -75,11 +75,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 }
 
-#if FMT_MAIN_VERSION > 9
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
-#else
-static char *split(char *ciphertext, int index)
-#endif
 {
 	static char out[14];
 
@@ -196,13 +192,9 @@ struct fmt_main fmt_opencl_DES = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		sizeof(WORD),
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
 		sizeof(WORD),
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_BS,
@@ -219,9 +211,7 @@ struct fmt_main fmt_opencl_DES = {
 			opencl_DES_bs_get_binary,
 
 		salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

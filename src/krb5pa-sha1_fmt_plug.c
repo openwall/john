@@ -314,11 +314,7 @@ static void set_key(char *key, int index)
 	saved_key[index][saved_key_length] = 0;
 }
 
-#if FMT_MAIN_VERSION > 9
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
-#else
-static char *split(char *ciphertext, int index)
-#endif
 {
 	static char out[TOTAL_LENGTH + 1];
 	char *data;
@@ -576,13 +572,9 @@ struct fmt_main fmt_krb5pa = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
@@ -596,9 +588,7 @@ struct fmt_main fmt_krb5pa = {
 		split,
 		get_binary,
 		get_salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

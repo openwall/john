@@ -18,10 +18,10 @@
  * P = password in upper case
  * s = random salt value.
  *
- * x = SHA1(s . SHA1(U . ":" . P));   
+ * x = SHA1(s . SHA1(U . ":" . P));
  * v = 47^x % 112624315653284427036559548610503669920632123929604336254260115573677366691719
  *
- * v is the 'verifier' value (256 bit value).  
+ * v is the 'verifier' value (256 bit value).
  *
  * Added OMP.  Added 'default' oSSL BigNum exponentiation.
  * GMP exponentation (faster) is optional, and controled with HAVE_GMP in Makefile
@@ -104,7 +104,7 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * 
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	pSRP_CTX = mem_calloc_tiny(sizeof(*pSRP_CTX) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -115,7 +115,7 @@ static void init(struct fmt_main *self)
 		mpz_init_set_str(pSRP_CTX[i].z_base, "47", 10);
 		mpz_init_set_str(pSRP_CTX[i].z_exp, "1", 10);
 		mpz_init(pSRP_CTX[i].z_rop);
-		// Now, properly initialzed mpz_exp, so it is 'large enough' to hold any SHA1 value 
+		// Now, properly initialzed mpz_exp, so it is 'large enough' to hold any SHA1 value
 		// we need to put into it. Then we simply need to copy in the data, and possibly set
 		// the limb count size.
 		mpz_mul_2exp(pSRP_CTX[i].z_exp, pSRP_CTX[i].z_exp, 159);
@@ -141,7 +141,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	q = p = &ciphertext[WOWSIGLEN];
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
-	if (q-p != CIPHERTEXT_LENGTH) 
+	if (q-p != CIPHERTEXT_LENGTH)
 		return 0;
 	if (*q != '$') return 0;
 	++q;
@@ -175,11 +175,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	return ct;
 }
 
-#if FMT_MAIN_VERSION > 9
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
-#else
-static char *split(char *ciphertext, int index) {
-#endif
 	static char ct[128+32+1];
 	char *cp;
 
@@ -290,7 +286,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-// x = SHA1(s, H(U, ":", P));   
+// x = SHA1(s, H(U, ":", P));
 // v = 47^x % 112624315653284427036559548610503669920632123929604336254260115573677366691719
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -421,13 +417,9 @@ struct fmt_main fmt_blizzard = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
@@ -441,9 +433,7 @@ struct fmt_main fmt_blizzard = {
 		split,
 		get_binary,
 		salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

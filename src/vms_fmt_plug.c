@@ -125,11 +125,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-#if FMT_MAIN_VERSION > 9
 static char *fmt_vms_split(char *ciphertext, int index, struct fmt_main *pFmt)
-#else
-static char *fmt_vms_split(char *ciphertext, int index)
-#endif
 {
 	return ciphertext;
 }
@@ -235,13 +231,9 @@ struct fmt_main fmt_VMS = {
 		BENCHMARK_LENGTH,		/* .benchmark_length (pwd break len) */
 		PLAINTEXT_LENGTH,		/* .plaintext_lenght (max) */
 		BINARY_SIZE,			/* .binary_size (quadword) */
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		SALT_SIZE,			/* .salt_size (word) */
-#if FMT_MAIN_VERSION > 9
 		DEFAULT_ALIGN,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -255,9 +247,7 @@ struct fmt_main fmt_VMS = {
 		fmt_vms_split,
 		(void *(*)(char *))VMS_std_get_binary,
 		(void *(*)(char *))VMS_std_get_salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,

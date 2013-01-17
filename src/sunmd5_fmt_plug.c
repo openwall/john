@@ -22,7 +22,7 @@
 #else
 #include <unistd.h>
 #endif
-#include <stdlib.h> 
+#include <stdlib.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -66,7 +66,7 @@
 
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef MMX_COEF
-/* 
+/*
  * 576 divides evenly by 4, 8, 12, 16 (para = 1, 2, 3, 4) Each of these
  * will get an even number of para buckets, so hopefully we get the best
  * average fill we possibly can get. 960 would also allow us to pick up 20 (para 5)
@@ -381,7 +381,7 @@ static int cmp_exact(char *source, int index)
 
 // inline function, as a macro.
 #define md5bit_1(d,b) ((d[((b)>>3)&0xF]&(1<<((b)&7))) ? 1 : 0)
-// md5bit with no conditional logic. 
+// md5bit with no conditional logic.
 #define md5bit_2(d,b) (((d[((b)>>3)&0xF]>>((b)&7)))&1)
 
 static inline int
@@ -505,7 +505,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/*
 		 *  now this is computed at bottom of loop (we start properly set at "0", len==1)
-		 *    ** code replaced** 
+		 *    ** code replaced**
 		 *  roundasciilen = sprintf(roundascii, "%d", round);
 		 */
 
@@ -794,7 +794,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD5_Final(px->digest, &px->context);
 		}
 #endif
-		/* 
+		/*
 		 * this is the equivelent of the original code:
 		 *    roundasciilen = sprintf(roundascii, "%d", round);
 		 * that was at the top of this rounds loop.  We have moved
@@ -837,13 +837,9 @@ struct fmt_main fmt_sunmd5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		BINARY_ALIGN,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
 		SALT_ALIGN,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -857,9 +853,7 @@ struct fmt_main fmt_sunmd5 = {
 		fmt_default_split,
 		binary,
 		salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
