@@ -343,8 +343,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			/* NULL-padding the 16-byte hash to 21-bytes is made in cmp_exact if needed */
 		}
 		keys_prepared = 1;
-
-		return count;
 	}
 
 #ifdef _OPENMP
