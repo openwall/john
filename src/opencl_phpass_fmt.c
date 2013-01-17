@@ -291,7 +291,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	printf("crypt_all(%d)\n", count);
 #endif
 	///Prepare setting format: salt+prefix+count_log2
-	strcpy(setting, currentsalt);
+	memcpy(setting, currentsalt, ACTUAL_SALT_SIZE);
 	strcpy(setting + ACTUAL_SALT_SIZE, phpassP_prefix);
 	setting[ACTUAL_SALT_SIZE + 3] = atoi64[ARCH_INDEX(currentsalt[8])];
 	/// Copy data to gpu
