@@ -717,7 +717,7 @@ struct fmt_main fmt_opencl_xsha512_ng = {
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
