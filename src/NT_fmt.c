@@ -123,8 +123,8 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 
 	#define ALGORITHM_NAME		"128/128 X2 SSE2-16"
 	#define NT_CRYPT_FUN		nt_crypt_all_x86_64
-	extern void nt_crypt_all_x86_64(int count);
-	extern void nt_crypt_all_8859_1_x86_64(int count);
+	extern int nt_crypt_all_x86_64(int *pcount, struct db_salt *salt);
+	extern int nt_crypt_all_8859_1_x86_64(int *pcount, struct db_salt *salt);
 #elif defined (NT_SSE2)
 	#define NT_NUM_KEYS	40
 	#define NT_NUM_KEYS1	8
@@ -143,7 +143,7 @@ static void swap(unsigned int *x, unsigned int *y, int count)
 
 	#define ALGORITHM_NAME		"128/128 SSE2 + 32/" ARCH_BITS_STR
 	#define NT_CRYPT_FUN		nt_crypt_all_sse2
-	extern void nt_crypt_all_sse2(int count);
+	extern void nt_crypt_all_sse2(int *pcount, struct db_salt *salt);
 #else
 	#define NT_NUM_KEYS		64
 	unsigned int nt_buffer1x[16*NT_NUM_KEYS];

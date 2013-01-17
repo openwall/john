@@ -1390,8 +1390,9 @@ CPU_detect_fail:
  * No copyright is claimed, and the software is hereby placed in the public domain.
  * In case this attempt to disclaim copyright and place the software in the
  * public domain is deemed null and void, then the software is
- * Copyright (c) 2007 Alain Espinosa and it is hereby released to the
- * general public under the following terms:
+ * Copyright (c) 2007 Alain Espinosa and
+ * Copyright (c) 2010, 2013 magnum, and
+ * it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -1415,8 +1416,8 @@ CPU_detect_fail:
 #endif
 
 /*
-extern nt_crypt_all_x86_64(int count);
-extern nt_crypt_all_8859_1x86_64(int count);
+extern int nt_crypt_all_x86_64(int *pcount, struct db_salt *salt);
+extern int nt_crypt_all_8859_1x86_64(int *pcount, struct db_salt *salt);
 */
 
 .globl nt_crypt_all_x86_64
@@ -1714,6 +1715,7 @@ const_stage3:
 DO_ALIGN(6)
 
 nt_crypt_all_x86_64:
+	movl (%rdi),%r8d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -1722,9 +1724,11 @@ nt_crypt_all_x86_64:
 	NT_CRYPT_BODY(2)
 	NT_CRYPT_BODY(3)
 
+	xchgq %r8,%rax
 	ret
 
 nt_crypt_all_8859_1_x86_64:
+	movl (%rdi),%r8d
 	movdqa const_stage2(%rip), t3
 	movdqa const_stage3(%rip), t4
 
@@ -1733,6 +1737,7 @@ nt_crypt_all_8859_1_x86_64:
 	NT_CRYPT_BODY_8859_1(2)
 	NT_CRYPT_BODY_8859_1(3)
 
+	xchgq %r8,%rax
 	ret
 
 #if defined(__ELF__) && defined(__linux__)
