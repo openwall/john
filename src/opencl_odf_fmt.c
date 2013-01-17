@@ -166,8 +166,6 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt = local_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-
-	atexit(done);
 }
 
 static int ishex(char *q)

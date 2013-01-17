@@ -98,7 +98,6 @@ static void init(struct fmt_main *self)
 	keys_mode = 'a';
 	sign_extension_bug = 0;
 	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
-	atexit(done);
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)

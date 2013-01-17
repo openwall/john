@@ -75,8 +75,6 @@ static void init(struct fmt_main *self)
 
 	cuda_init(cuda_gpu_id);
 	cuda_sha512_init();
-
-	atexit(done);
 }
 
 static void copy_hash_back()

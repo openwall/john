@@ -499,7 +499,6 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(done);
 
 	// generate 128 bits from 40 bits of "kerberos" string
 	nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);

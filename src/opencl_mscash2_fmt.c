@@ -190,7 +190,6 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
 }
 
 static 	void set_key(char*,int);
-static 	void done(void);
 static  void crypt_all(int);
 
 static void init(struct fmt_main *self)
@@ -212,10 +211,6 @@ static void init(struct fmt_main *self)
 	//select_device(0,0);
 	///select default platform=0 and default device=0
 	//select_default_device();
-
-
-	atexit(done);
-
 }
 
 

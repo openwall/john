@@ -56,7 +56,6 @@ static void init(struct fmt_main *self)
 	mic = (mic_t *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(mic_t));
 	///Initialize CUDA
 	cuda_init(cuda_gpu_id);
-	atexit(done);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

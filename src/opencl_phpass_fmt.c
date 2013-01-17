@@ -195,8 +195,6 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt = global_work_size * 8;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)

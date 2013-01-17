@@ -90,7 +90,6 @@ static void init(struct fmt_main *self)
 
 	cuda_init(cuda_gpu_id);
 	cuda_xsha512_init();
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

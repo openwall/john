@@ -209,8 +209,6 @@ static void init(struct fmt_main *self){
 		opencl_find_best_workgroup(self);
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
-
-	atexit(done);
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)

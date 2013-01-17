@@ -76,7 +76,6 @@ static void init(struct fmt_main *self)
   check_mem_allocation(inbuffer,outbuffer);
   //Initialize CUDA
   cuda_init(cuda_gpu_id);
-  atexit(done);
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)

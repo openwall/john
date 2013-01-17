@@ -92,7 +92,6 @@ static void init(struct fmt_main *self)
 		    (SHA_HASH *) mem_alloc(MAX_KEYS_PER_CRYPT * sizeof(SHA_HASH));
 	}
 	check_mem_allocation(inbuffer, outbuffer);
-	atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
