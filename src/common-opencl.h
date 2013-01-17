@@ -38,8 +38,8 @@ int ocl_gpu_id, platform_id, device_id;
 int ocl_device_list[MAXGPUS];
 
 typedef struct {
-    cl_platform_id              platform;
-    int                         num_devices;
+	cl_platform_id			platform;
+	int				num_devices;
 } cl_plataform;
 cl_plataform platforms[MAX_PLATFORMS];
 
@@ -118,15 +118,15 @@ void opencl_process_event(void);
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
 /* Macro for get a multiple of a given value */
-#define GET_MULTIPLE(dividend, divisor)         ((unsigned int) ((dividend / divisor) * divisor))
+#define GET_MULTIPLE(dividend, divisor)		 ((unsigned int) ((dividend / divisor) * divisor))
 
 void opencl_find_best_lws(
-        size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel) ;
+	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel) ;
 
 void opencl_find_best_gws(
-        int step, int show_speed, int show_details,
-        unsigned long long int max_run_time, int sequential_id,
-        unsigned int rounds);
+	int step, int show_speed, int show_details,
+	unsigned long long int max_run_time, int sequential_id,
+	unsigned int rounds);
 
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,

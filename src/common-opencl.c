@@ -80,8 +80,8 @@ void handle_clerror(cl_int cl_error, const char *message, const char *file, int 
 {
 	if (cl_error != CL_SUCCESS) {
 		fprintf(stderr,
-		    "OpenCL error (%s) in file (%s) at line (%d) - (%s)\n",
-		    get_error_name(cl_error), file, line, message);
+			"OpenCL error (%s) in file (%s) at line (%d) - (%s)\n",
+			get_error_name(cl_error), file, line, message);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -122,7 +122,7 @@ int get_platform_id(unsigned int sequential_id)
 		pos += platforms[i].num_devices;
 
 		if (sequential_id < pos)
-		    break;
+			break;
 		i++;
 	}
 	return (platforms[i].platform ? i : -1);
@@ -181,7 +181,7 @@ static void start_opencl_devices()
 		device_pos += device_num;
 
 #ifdef DEBUG
-	      	fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n",
+		fprintf(stderr, "OpenCL platform %d: %s, %d device(s).\n",
 			i, opencl_data, device_num);
 #endif
 	}
@@ -256,8 +256,8 @@ static void add_device_type(cl_ulong device_type)
 		for (j = 0; j < device_num; j++, sequence_nr++) {
 			clGetDeviceInfo(devices[j], CL_DEVICE_TYPE,
 					sizeof(cl_ulong), &long_entries, NULL);
-		    if (long_entries & device_type)
-			add_device_to_list(sequence_nr);
+			if (long_entries & device_type)
+				add_device_to_list(sequence_nr);
 		}
 	}
 }
@@ -341,7 +341,7 @@ void init_opencl_devices(void)
 		} else {
 			ocl_gpu_id = -1;
 			platform_id = -1;
-    		}
+		}
 	}
 
 	//Use configuration file only JtR knows nothing about the environment.
@@ -349,8 +349,8 @@ void init_opencl_devices(void)
 		char *devcfg;
 
 		if ((devcfg =
-		     cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-				   "Platform")))
+			cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+						"Platform")))
 			platform_id = atoi(devcfg);
 	}
 
@@ -358,7 +358,7 @@ void init_opencl_devices(void)
 		char *devcfg;
 
 		if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-					    "Device"))) {
+						"Device"))) {
 			ocl_gpu_id = atoi(devcfg);
 			ocl_device_list[0] = ocl_gpu_id;
 		}
@@ -423,13 +423,13 @@ static void dev_init(unsigned int sequential_id)
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
 		sizeof(device_name), device_name, NULL),
-	    "Error querying DEVICE_NAME");
+		"Error querying DEVICE_NAME");
 	fprintf(stderr, "Device %d: %s ", sequential_id, device_name);
 
 #ifdef CL_DEVICE_BOARD_NAME_AMD
 	{
 		cl_int ret_code;
-	    	int len;
+		int len;
 
 		ret_code = clGetDeviceInfo(devices[sequential_id],
 			CL_DEVICE_BOARD_NAME_AMD,
@@ -481,8 +481,8 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 	const char *srcptr[] = { kernel_source };
 	assert(kernel_loaded);
 	program[sequential_id] =
-	    clCreateProgramWithSource(context[sequential_id], 1, srcptr, NULL,
-	    &ret_code);
+		clCreateProgramWithSource(context[sequential_id], 1, srcptr, NULL,
+		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error while creating program");
 
 	build_code = clBuildProgram(program[sequential_id], 0, NULL,
@@ -548,7 +548,7 @@ static void build_kernel_from_binary(unsigned int sequential_id)
 		&devices[sequential_id], &program_size, (const unsigned char**)srcptr,
 		NULL, &ret_code);
 	HANDLE_CLERROR(ret_code,
-		       "Error while creating program (using cached binary)");
+			   "Error while creating program (using cached binary)");
 
 	build_code = clBuildProgram(program[sequential_id], 0, NULL, NULL, NULL, NULL);
 
@@ -606,19 +606,19 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 			wg_multiple = 1;
 	} else {
 		HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
-		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-		    sizeof(wg_multiple), &wg_multiple, NULL),
-		"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
+			CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+			sizeof(wg_multiple), &wg_multiple, NULL),
+			"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 	}
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
-	    "Error while getting CL_KERNEL_WORK_GROUP_SIZE");
+		"Error while getting CL_KERNEL_WORK_GROUP_SIZE");
 
 	if (max_group_size > group_size_limit)
-	    //Needed to deal (at least) with cryptsha512-opencl limits.
-	    max_group_size = group_size_limit;
+		//Needed to deal (at least) with cryptsha512-opencl limits.
+		max_group_size = group_size_limit;
 
 	// Safety harness
 	if (wg_multiple > max_group_size)
@@ -629,8 +629,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	clReleaseCommandQueue(queue[sequential_id]);
 	///2) Create new CQ with profiling enabled
 	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id], devices[sequential_id],
-	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
+		clCreateCommandQueue(context[sequential_id], devices[sequential_id],
+		CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
 	//fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
@@ -679,8 +679,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	/// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
-	    (int) my_work_group <= (int) max_group_size;
-	    my_work_group += wg_multiple) {
+		(int) my_work_group <= (int) max_group_size;
+		my_work_group += wg_multiple) {
 
 		if (gws % my_work_group != 0)
 			continue;
@@ -704,11 +704,11 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
-				       CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
-				       NULL), "Failed to get profiling info");
+					   CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
+					   NULL), "Failed to get profiling info");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*lastEvent,
-				       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-				       NULL), "Failed to get profiling info");
+					   CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+					   NULL), "Failed to get profiling info");
 			//fprintf(stderr, "%zu, %zu, time: %zu\n", endTime, startTime, (endTime-startTime));
 			sumStartTime += startTime;
 			sumEndTime += endTime;
@@ -722,8 +722,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 	///Release profiling queue and create new with profiling disabled
 	clReleaseCommandQueue(queue[sequential_id]);
 	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
-	    &ret_code);
+		clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
+		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 
@@ -741,13 +741,13 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 //Do the proper test using different global work sizes.
 static void release_profiling_events()
 {
-        int i;
+	int i;
 
-    	// Release events
+	// Release events
 	for (i = 0; i < EVENTS; i++) {
 		if (multi_profilingEvent[i])
 			HANDLE_CLERROR(clReleaseEvent(multi_profilingEvent[i]), "Failed in clReleaseEvent");
-                multi_profilingEvent[i] = NULL;
+		multi_profilingEvent[i] = NULL;
 	}
 }
 
@@ -763,7 +763,7 @@ static cl_ulong gws_test(
 
 	// Set keys (only the key[0] from tests will be benchmarked)
 	for (i = 0; i < num; i++)
-	    self->methods.set_key(self->params.tests[0].plaintext, i);
+		self->methods.set_key(self->params.tests[0].plaintext, i);
 
 	// Set salt
 	self->methods.set_salt(self->methods.salt(self->params.tests[0].ciphertext));
@@ -774,24 +774,24 @@ static cl_ulong gws_test(
 
 	//** Get execution time **//
 	for (i = 0; i < number_of_events; i++) {
-	    HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_START,
-		    sizeof (cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
-	    HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_END,
-		    sizeof (cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
+		HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_START,
+			sizeof (cl_ulong), &startTime, NULL), "Failed in clGetEventProfilingInfo I");
+		HANDLE_CLERROR(clGetEventProfilingInfo(multi_profilingEvent[i], CL_PROFILING_COMMAND_END,
+			sizeof (cl_ulong), &endTime, NULL), "Failed in clGetEventProfilingInfo II");
 
-	    if ((split_events) && (i == split_events[0] || i == split_events[1] || i == split_events[2]))
-		looptime += (endTime - startTime);
-	    else
-		runtime += (endTime - startTime);
+		if ((split_events) && (i == split_events[0] || i == split_events[1] || i == split_events[2]))
+			looptime += (endTime - startTime);
+		else
+			runtime += (endTime - startTime);
 
-	    if (show_details)
-		fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
+		if (show_details)
+			fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
 	}
 	if (show_details)
-	    fprintf(stderr, "\n");
+		fprintf(stderr, "\n");
 
 	if (split_events)
-	    runtime += ((looptime / 3) * (rounds / hash_loops));
+		runtime += ((looptime / 3) * (rounds / hash_loops));
 
 	release_profiling_events();
 	release_clobj();
@@ -812,7 +812,7 @@ void opencl_init_auto_setup(
 		multi_profilingEvent[i] = NULL;
 
 	// Get parameters
-        buffer_size = p_buffer_size;
+	buffer_size = p_buffer_size;
 	default_value = p_default_value;
 	hash_loops = p_hash_loops;
 	number_of_events = p_number_of_events;
@@ -850,8 +850,8 @@ void opencl_find_best_lws(
 	max_group_size = get_current_work_group_size(sequential_id, crypt_kernel);
 
 	if (max_group_size > group_size_limit)
-	    //Needed to deal (at least) with cryptsha512-opencl limits.
-	    max_group_size = group_size_limit;
+		//Needed to deal (at least) with cryptsha512-opencl limits.
+		max_group_size = group_size_limit;
 
 	// Safety harness
 	if (wg_multiple > max_group_size)
@@ -862,8 +862,8 @@ void opencl_find_best_lws(
 
 	//Create a new queue with profiling enabled
 	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id], devices[sequential_id],
-	    CL_QUEUE_PROFILING_ENABLE, &ret_code);
+		clCreateCommandQueue(context[sequential_id], devices[sequential_id],
+		CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
 	// Set keys (only the key[0] from tests will be benchmarked)
@@ -902,8 +902,8 @@ void opencl_find_best_lws(
 
 	/// Find minimum time
 	for (optimal_work_group = my_work_group = wg_multiple;
-	    (int) my_work_group <= (int) max_group_size;
-	    my_work_group += wg_multiple) {
+		(int) my_work_group <= (int) max_group_size;
+		my_work_group += wg_multiple) {
 
 		if (gws % my_work_group != 0)
 			continue;
@@ -919,11 +919,11 @@ void opencl_find_best_lws(
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
-				       CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
-				       NULL), "Failed to get profiling info");
+					   CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+					   NULL), "Failed to get profiling info");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
-				       CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
-				       NULL), "Failed to get profiling info");
+					   CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
+					   NULL), "Failed to get profiling info");
 
 			sumStartTime += startTime;
 			sumEndTime += endTime;
@@ -938,8 +938,8 @@ void opencl_find_best_lws(
 	///Release profiling queue and create new with profiling disabled
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]), "Failed in clReleaseCommandQueue");
 	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
-	    &ret_code);
+		clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
+		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	local_work_size = optimal_work_group;
 
@@ -959,13 +959,13 @@ void opencl_find_best_gws(
 	char * tmp_value;
 
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, duration_text)))
-	    max_run_time = atoi(tmp_value) * 1000000000ULL;
+		max_run_time = atoi(tmp_value) * 1000000000ULL;
 
 	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
 		local_work_size, max_run_time / 1000000000ULL);
 
 	if (show_speed)
-	    fprintf(stderr, "Raw speed figures including buffer transfers:\n");
+		fprintf(stderr, "Raw speed figures including buffer transfers:\n");
 
 	//Change command queue to be used by crypt_all (profile needed)
 	clReleaseCommandQueue(queue[sequential_id]); // Delete old queue
@@ -979,54 +979,54 @@ void opencl_find_best_gws(
 	for (num = get_next_gws_size(num, step, 1, default_value);;
 		num = get_next_gws_size(num, step, 0, default_value)) {
 
-	    //Check if hardware can handle the size we are going to try now.
-	    if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
-		break;
+		//Check if hardware can handle the size we are going to try now.
+		if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
+			break;
 
-	    if (!(run_time = gws_test(num, show_details, rounds)))
-		continue;
+		if (!(run_time = gws_test(num, show_details, rounds)))
+			continue;
 
-	    if (!show_speed && !show_details)
-		advance_cursor();
+		if (!show_speed && !show_details)
+			advance_cursor();
 
-	    speed = rounds * num / (run_time / 1000000000.);
+		speed = rounds * num / (run_time / 1000000000.);
 
-	    if (run_time < min_time)
-		min_time = run_time;
+		if (run_time < min_time)
+			min_time = run_time;
 
-	    if (show_speed) {
+		if (show_speed) {
 
-		if (rounds > 1)
-			fprintf(stderr, "gws: %9zu\t%10lu c/s%10u rounds/s%8.3f sec per crypt_all()",
-				num, (long) (num / (run_time / 1000000000.)), speed,
-				(float) run_time / 1000000000.);
-		else
-			fprintf(stderr, "gws: %9zu\t%10lu c/s %8.3f ms per crypt_all()",
-				num, (long) (num / (run_time / 1000000000.)),
-				(float) run_time / 1000000.);
+			if (rounds > 1)
+				fprintf(stderr, "gws: %9zu\t%10lu c/s%10u rounds/s%8.3f sec per crypt_all()",
+					num, (long) (num / (run_time / 1000000000.)), speed,
+					(float) run_time / 1000000000.);
+			else
+				fprintf(stderr, "gws: %9zu\t%10lu c/s %8.3f ms per crypt_all()",
+					num, (long) (num / (run_time / 1000000000.)),
+					(float) run_time / 1000000.);
 
-		if (run_time > max_run_time) {
-		    fprintf(stderr, " - too slow\n");
-		    break;
+			if (run_time > max_run_time) {
+				fprintf(stderr, " - too slow\n");
+				break;
+			}
+		} else {
+			if (run_time > min_time * 10 || run_time > max_run_time)
+				break;
 		}
-	    } else {
-		if (run_time > min_time * 10 || run_time > max_run_time)
-		    break;
-	    }
-	    if (speed > (1.01 * best_speed)) {
+		if (speed > (1.01 * best_speed)) {
+			if (show_speed)
+				fprintf(stderr, "+");
+			best_speed = speed;
+			optimal_gws = num;
+		}
 		if (show_speed)
-		    fprintf(stderr, "+");
-		best_speed = speed;
-		optimal_gws = num;
-	    }
-	    if (show_speed)
-		fprintf(stderr, "\n");
+			fprintf(stderr, "\n");
 	}
 	///Release profiling queue and create new with profiling disabled
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[sequential_id]), "Failed in clReleaseCommandQueue");
 	queue[sequential_id] =
-	    clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
-	    &ret_code);
+		clCreateCommandQueue(context[sequential_id], devices[sequential_id], 0,
+		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
 }
@@ -1067,7 +1067,7 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 
 	for (i = *platform_id; i < num_platforms; i++) {
 		clGetDeviceIDs(platform[i], CL_DEVICE_TYPE_ALL, MAXGPUS,
-		    devices, &num_devices);
+			devices, &num_devices);
 
 		if (!num_devices)
 			continue;
@@ -1118,8 +1118,8 @@ static void read_kernel_source(char *kernel_filename)
 	read_size = fread(kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
-		    "Error reading source: expected %zu, got %zu bytes.\n",
-		    source_size, read_size);
+			"Error reading source: expected %zu, got %zu bytes.\n",
+			source_size, read_size);
 	fclose(fp);
 	program_size = source_size;
 	kernel_loaded = 1;
@@ -1225,7 +1225,7 @@ cl_device_type get_device_type(unsigned int sequential_id)
 	cl_device_type type;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_TYPE,
 		sizeof(cl_device_type), &type, NULL),
-	    "Error querying CL_DEVICE_TYPE");
+		"Error querying CL_DEVICE_TYPE");
 
 	return type;
 }
@@ -1235,7 +1235,7 @@ cl_ulong get_local_memory_size(unsigned int sequential_id)
 	cl_ulong size;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_LOCAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
-	    "Error querying CL_DEVICE_LOCAL_MEM_SIZE");
+		"Error querying CL_DEVICE_LOCAL_MEM_SIZE");
 
 	return size;
 }
@@ -1245,7 +1245,7 @@ cl_ulong get_global_memory_size(unsigned int sequential_id)
 	cl_ulong size;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &size, NULL),
-	    "Error querying CL_DEVICE_GLOBAL_MEM_SIZE");
+		"Error querying CL_DEVICE_GLOBAL_MEM_SIZE");
 
 	return size;
 }
@@ -1257,7 +1257,7 @@ size_t get_max_work_group_size(unsigned int sequential_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
-	    "Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
+		"Error querying CL_DEVICE_MAX_WORK_GROUP_SIZE");
 
 	return max_group_size;
 }
@@ -1269,7 +1269,7 @@ cl_ulong get_max_mem_alloc_size(unsigned int sequential_id)
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(max_alloc_size),
 		&max_alloc_size, NULL),
-	    "Error querying CL_DEVICE_MAX_MEM_ALLOC_SIZE");
+		"Error querying CL_DEVICE_MAX_MEM_ALLOC_SIZE");
 
 	return max_alloc_size;
 }
@@ -1281,7 +1281,7 @@ size_t get_current_work_group_size(unsigned int sequential_id, cl_kernel crypt_k
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
 		CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_group_size),
 		&max_group_size, NULL),
-	    "Error querying clGetKernelWorkGroupInfo");
+		"Error querying clGetKernelWorkGroupInfo");
 
 	return max_group_size;
 }
@@ -1291,7 +1291,7 @@ cl_uint get_max_compute_units(unsigned int sequential_id)
 	cl_uint size;
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint), &size, NULL),
-	    "Error querying CL_DEVICE_MAX_COMPUTE_UNITS");
+		"Error querying CL_DEVICE_MAX_COMPUTE_UNITS");
 
 	return size;
 }
@@ -1301,8 +1301,8 @@ size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kerne
 	size_t size;
 
 	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[sequential_id],
-		    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-		    sizeof(size), &size, NULL),
+			CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+			sizeof(size), &size, NULL),
 		"Error while getting CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE");
 
 	return size;
@@ -1310,16 +1310,16 @@ size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kerne
 
 #ifdef CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV
 void get_compute_capability(unsigned int sequential_id, unsigned int *major,
-    unsigned int *minor)
+	unsigned int *minor)
 {
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
 		sizeof(cl_uint), major, NULL),
-	    "Error querying CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV");
+		"Error querying CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV");
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
 		CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
 		sizeof(cl_uint), minor, NULL),
-	    "Error querying CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV");
+		"Error querying CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV");
 }
 #endif
 
@@ -1353,13 +1353,13 @@ cl_uint get_processors_count(unsigned int sequential_id)
 		char dname[MAX_OCLINFO_STRING_LEN];
 
 		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
-					       sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
+						   sizeof(dname), dname, NULL), "Error querying CL_DEVICE_NAME");
 
 		if (strstr(dname, "GT 65") || strstr(dname, "GTX 65") ||
-		    strstr(dname, "GT 66") || strstr(dname, "GTX 66") ||
-		    strstr(dname, "GT 67") || strstr(dname, "GTX 67") ||
-		    strstr(dname, "GT 68") || strstr(dname, "GTX 68") ||
-		    strstr(dname, "GT 69") || strstr(dname, "GTX 69"))
+			strstr(dname, "GT 66") || strstr(dname, "GTX 66") ||
+			strstr(dname, "GT 67") || strstr(dname, "GTX 67") ||
+			strstr(dname, "GT 68") || strstr(dname, "GTX 68") ||
+			strstr(dname, "GT 69") || strstr(dname, "GTX 69"))
 			core_count *= (cores_per_MP[sequential_id] = 192); // Kepler
 #endif
 	} else
@@ -1398,7 +1398,7 @@ cl_uint get_processor_family(unsigned int sequential_id)
 			strstr(dname, "BeaverCreek"))) {
 
 			if (strstr(dname, "Cayman") ||
-			    strstr(dname, "Antilles"))
+				strstr(dname, "Antilles"))
 				return DEV_AMD_VLIW4;
 			else
 				return DEV_AMD_VLIW5;
@@ -1415,7 +1415,7 @@ int get_byte_addressable(unsigned int sequential_id)
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_EXTENSIONS,
 		sizeof(dname), dname, NULL),
-	    "Error querying CL_DEVICE_EXTENSIONS");
+		"Error querying CL_DEVICE_EXTENSIONS");
 
 	if (strstr(dname, "cl_khr_byte_addressable_store") == NULL)
 		return DEV_NO_BYTE_ADDRESSABLE;
@@ -1429,7 +1429,7 @@ int get_vendor_id(unsigned int sequential_id)
 
 	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_VENDOR,
 		sizeof(dname), dname, NULL),
-	    "Error querying CL_DEVICE_VENDOR");
+		"Error querying CL_DEVICE_VENDOR");
 
 	if (strstr(dname, "NVIDIA") != NULL)
 		return DEV_NVIDIA;
@@ -1438,7 +1438,7 @@ int get_vendor_id(unsigned int sequential_id)
 		return DEV_INTEL;
 
 	if (strstr(dname, "Advanced Micro") != NULL ||
-	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
+		strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
 		return DEV_AMD;
 
 	return DEV_UNKNOWN;
@@ -1470,7 +1470,7 @@ int get_platform_vendor_id(int platform_id)
 		return DEV_INTEL;
 
 	if (strstr(dname, "Advanced Micro") != NULL ||
-	    strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
+		strstr(dname, "AMD") != NULL || strstr(dname, "ATI") != NULL)
 		return DEV_AMD;
 
 	return DEV_UNKNOWN;
@@ -1496,7 +1496,7 @@ int get_device_version(unsigned int sequential_id)
 char *get_error_name(cl_int cl_error)
 {
 	static char *err_1[] =
-	    { "CL_SUCCESS", "CL_DEVICE_NOT_FOUND", "CL_DEVICE_NOT_AVAILABLE",
+		{ "CL_SUCCESS", "CL_DEVICE_NOT_FOUND", "CL_DEVICE_NOT_AVAILABLE",
 		"CL_COMPILER_NOT_AVAILABLE",
 		"CL_MEM_OBJECT_ALLOCATION_FAILURE", "CL_OUT_OF_RESOURCES",
 		"CL_OUT_OF_HOST_MEMORY",
@@ -1569,10 +1569,10 @@ void listOpenCLdevices(void)
 	for (i = 0; platforms[i].platform; i++) {
 		/* Obtain information about platform */
 		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_NAME,
-		    sizeof(dname), dname, NULL);
+			sizeof(dname), dname, NULL);
 		printf("Platform #%d name: %s\n", i, dname);
 		clGetPlatformInfo(platforms[i].platform, CL_PLATFORM_VERSION,
-		    sizeof(dname), dname, NULL);
+			sizeof(dname), dname, NULL);
 		printf("Platform version: %s\n", dname);
 
 		/* Obtain list of devices available on platform */
@@ -1587,23 +1587,23 @@ void listOpenCLdevices(void)
 			int ret;
 
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_NAME,
-			    sizeof(dname), dname, NULL);
+				sizeof(dname), dname, NULL);
 			p = dname;
 			while (isspace(*p)) /* Intel quirk */
 				p++;
 			printf("\tDevice #%d (%d) name:\t%s\n", j, sequence_nr, p);
 #ifdef CL_DEVICE_BOARD_NAME_AMD
 			ret = clGetDeviceInfo(devices[sequence_nr],
-					      CL_DEVICE_BOARD_NAME_AMD,
-					      sizeof(dname), dname, NULL);
+						  CL_DEVICE_BOARD_NAME_AMD,
+						  sizeof(dname), dname, NULL);
 			if (ret == CL_SUCCESS && strlen(dname))
 				printf("\tBoard name:\t\t%s\n", dname);
 #endif
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VENDOR,
-			    sizeof(dname), dname, NULL);
+				sizeof(dname), dname, NULL);
 			printf("\tDevice vendor:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_TYPE,
-			    sizeof(cl_ulong), &long_entries, NULL);
+				sizeof(cl_ulong), &long_entries, NULL);
 			printf("\tDevice type:\t\t");
 			if (long_entries & CL_DEVICE_TYPE_CPU)
 				printf("CPU ");
@@ -1618,106 +1618,106 @@ void listOpenCLdevices(void)
 				| CL_DEVICE_TYPE_CPU))
 				printf("Unknown ");
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_ENDIAN_LITTLE,
-			    sizeof(cl_bool), &boolean, NULL);
+				sizeof(cl_bool), &boolean, NULL);
 			printf("(%s)\n", boolean == CL_TRUE ? "LE" : "BE");
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VERSION,
-			    sizeof(dname), dname, NULL);
+				sizeof(dname), dname, NULL);
 			printf("\tDevice version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[sequence_nr], CL_DRIVER_VERSION,
-			    sizeof(dname), dname, NULL);
+				sizeof(dname), dname, NULL);
 			printf("\tDriver version:\t\t%s\n", dname);
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_GLOBAL_MEM_SIZE,
-			    sizeof(cl_ulong), &long_entries, NULL);
+				sizeof(cl_ulong), &long_entries, NULL);
 			clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_ERROR_CORRECTION_SUPPORT,
-			    sizeof(cl_bool), &boolean, NULL);
+				CL_DEVICE_ERROR_CORRECTION_SUPPORT,
+				sizeof(cl_bool), &boolean, NULL);
 			printf("\tGlobal Memory:\t\t%s%s\n",
-			    human_format((unsigned long long) long_entries),
-			    boolean == CL_TRUE ? " (ECC)" : "");
+				human_format((unsigned long long) long_entries),
+				boolean == CL_TRUE ? " (ECC)" : "");
 #ifdef DEBUG
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_EXTENSIONS,
 					sizeof(dname), dname, NULL);
 			printf("\tDevice extensions:\t%s\n", dname);
 #endif
 			clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong),
-			    &long_entries, NULL);
+				CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(cl_ulong),
+				&long_entries, NULL);
 			if (long_entries)
 				printf("\tGlobal Memory Cache:\t%s\n",
-				       human_format((unsigned long long) long_entries));
+					   human_format((unsigned long long) long_entries));
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_LOCAL_MEM_SIZE,
-			    sizeof(cl_ulong), &long_entries, NULL);
+				sizeof(cl_ulong), &long_entries, NULL);
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_LOCAL_MEM_TYPE,
-			    sizeof(cl_device_local_mem_type), &memtype, NULL);
+				sizeof(cl_device_local_mem_type), &memtype, NULL);
 			printf("\tLocal Memory:\t\t%s (%s)\n",
-			    human_format((unsigned long long) long_entries),
-			    memtype == CL_LOCAL ? "Local" : "Global");
+				human_format((unsigned long long) long_entries),
+				memtype == CL_LOCAL ? "Local" : "Global");
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_MAX_MEM_ALLOC_SIZE,
-			    sizeof(long_entries), &long_entries, NULL);
+				sizeof(long_entries), &long_entries, NULL);
 			printf("\tMax memory alloc. size:\t%s\n",
-			       human_format(long_entries));
+				   human_format(long_entries));
 			ret = clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),
-			    &long_entries, NULL);
+				CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(cl_ulong),
+				&long_entries, NULL);
 			if (ret == CL_SUCCESS && long_entries)
 				printf("\tMax clock (MHz) :\t%llu\n",
-				       (unsigned long long) long_entries);
+					   (unsigned long long) long_entries);
 			clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
-			    &p_size, NULL);
+				CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t),
+				&p_size, NULL);
 			printf("\tMax Work Group Size:\t%d\n", (int) p_size);
 			clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint),
-			    &entries, NULL);
+				CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(cl_uint),
+				&entries, NULL);
 			printf("\tParallel compute cores:\t%d\n", entries);
 
 			long_entries = get_processors_count(sequence_nr);
 			if (cores_per_MP[sequence_nr])
 				printf
-				    ("\tStream processors:\t%llu  (%d x %d)\n",
-				    (unsigned long long)long_entries, entries,
-				     cores_per_MP[sequence_nr]);
+					("\tStream processors:\t%llu  (%d x %d)\n",
+					(unsigned long long)long_entries, entries,
+					 cores_per_MP[sequence_nr]);
 
 #ifdef CL_DEVICE_REGISTERS_PER_BLOCK_NV
 			ret = clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
-			    &long_entries, NULL);
+				CL_DEVICE_WARP_SIZE_NV, sizeof(cl_uint),
+				&long_entries, NULL);
 			if (ret == CL_SUCCESS)
 				printf("\tWarp size:\t\t%llu\n",
-				       (unsigned long long)long_entries);
+					   (unsigned long long)long_entries);
 
 			ret = clGetDeviceInfo(devices[sequence_nr],
 				  CL_DEVICE_REGISTERS_PER_BLOCK_NV,
 				  sizeof(cl_uint), &long_entries, NULL);
 			if (ret == CL_SUCCESS)
 				printf("\tMax. GPRs/work-group:\t%llu\n",
-				       (unsigned long long)long_entries);
+					   (unsigned long long)long_entries);
 
 			if (gpu_nvidia(device_info[sequence_nr])) {
 				unsigned int major = 0, minor = 0;
 				get_compute_capability(j, &major, &minor);
 				printf
-				    ("\tCompute capability:\t%u.%u (sm_%u%u)\n",
-				    major, minor, major, minor);
+					("\tCompute capability:\t%u.%u (sm_%u%u)\n",
+					major, minor, major, minor);
 			}
 			ret = clGetDeviceInfo(devices[sequence_nr],
-			    CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
-			    sizeof(cl_bool), &boolean, NULL);
+				CL_DEVICE_KERNEL_EXEC_TIMEOUT_NV,
+				sizeof(cl_bool), &boolean, NULL);
 			if (ret == CL_SUCCESS)
 				printf("\tKernel exec. timeout:\t%s\n",
-				       boolean ? "yes" : "no");
+					   boolean ? "yes" : "no");
 #endif
 #if defined(CL_DEVICE_TOPOLOGY_AMD) && CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD == 1
 			{
 				cl_device_topology_amd topo;
 
 				ret = clGetDeviceInfo(devices[sequence_nr],
-				    CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
-				    &topo, NULL);
+					CL_DEVICE_TOPOLOGY_AMD, sizeof(topo),
+					&topo, NULL);
 				if (ret == CL_SUCCESS)
 				printf("\tPCI device topology:\t%02d:%02d.%d\n",
-				       topo.pcie.bus, topo.pcie.device,
-				       topo.pcie.function);
+					   topo.pcie.bus, topo.pcie.device,
+					   topo.pcie.function);
 			}
 #endif
 			puts("");
