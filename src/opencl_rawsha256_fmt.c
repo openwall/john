@@ -331,11 +331,8 @@ static int valid(char * ciphertext, struct fmt_main * self) {
     return !*q && q - p == CIPHERTEXT_LENGTH;
 }
 
-#if FMT_MAIN_VERSION > 9
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
-#else
-static char *split(char *ciphertext, int index) {
-#endif
+    
     static char out[8 + CIPHERTEXT_LENGTH + 1];
 
     if (!strncmp(ciphertext, "$SHA256$", 8))
@@ -549,13 +546,9 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		BENCHMARK_LENGTH,
                 PLAINTEXT_LENGTH - 1,
 		BINARY_SIZE,
-#if FMT_MAIN_VERSION > 9
 		4,
-#endif
 		SALT_SIZE,
-#if FMT_MAIN_VERSION > 9
 		1,
-#endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -569,9 +562,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
                 split,
 		get_binary,
                 fmt_default_salt,
-#if FMT_MAIN_VERSION > 9
 		fmt_default_source,
-#endif
 		{
 			binary_hash_0,
 			binary_hash_1,
