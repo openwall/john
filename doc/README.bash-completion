@@ -557,7 +557,7 @@ without a value:
 
 (There are other options that can be used with or without a value.
 But the completion logic for those other options is more or less limited
-to a usage hint, and therefor doesn't depend on the value of the variable
+to a usage hint, and therefore doesn't depend on the value of the variable
 __john_completion.)
 
 

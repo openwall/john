@@ -480,7 +480,7 @@ static void crypt_all(int count)
 
 		MD5_Update(&data[idx].context, (unsigned char *)saved_key[idx], strlen(saved_key[idx]));
 
-		/* update with the (publically known) salt */
+		/* update with the (publicly known) salt */
 
 		MD5_Update(&data[idx].context, (unsigned char *)saved_salt, strlen(saved_salt));
 
