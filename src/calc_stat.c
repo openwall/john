@@ -29,7 +29,7 @@ int main(int argc, char * * argv)
 
 	if( (argc!=3) && (argc!=4) )
 	{
-		fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-p] dictionary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
 		return -1;
 	}
 
@@ -37,7 +37,7 @@ int main(int argc, char * * argv)
 	{
 		if(strcmp(argv[1], "-p"))
 		{
-			fprintf(stderr, "Usage: %s [-p] dictionnary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
+			fprintf(stderr, "Usage: %s [-p] dictionary_file statfile\n\t-p: include non printable and 8-bit characters\n", argv[0]);
 			return -1;
 		}
 		args = 1;
