@@ -55,7 +55,7 @@ static int omp_t = 1;
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18 aes-cts-hmac-sha1-96"
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
-#define BENCHMARK_LENGTH   0
+#define BENCHMARK_LENGTH   -1
 #define BINARY_SIZE		12
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
