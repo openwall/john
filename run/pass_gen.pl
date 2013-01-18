@@ -971,7 +971,7 @@ sub sha512crypt {
 	print "u$u-sha512crypt:\$6\$$salt\$$bin:$u:0:$_[0]::\n";
 }
 sub xsha512 {
-# simple 4 byte salted crypt.  No seperator char, just raw hash. Also 'may' have $LION$.  We altenate, and every other
+# simple 4 byte salted crypt.  No separator char, just raw hash. Also 'may' have $LION$.  We altenate, and every other
 # hash get $LION$ (all even ones)
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt=randstr(4); }
 	print "u$u-XSHA512:";

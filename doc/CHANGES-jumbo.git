@@ -1049,7 +1049,7 @@ Claudio André (152):
 	Remove a develoment/debug function call from source code.
 	Code cleanup.
 	Use mem_alloc instead of malloc.
-	New validation of max global memory allocation size (very usefull to
+	New validation of max global memory allocation size (very useful to
 	  fast formats).
 	Fix output format string.
 	Fix a typo.
@@ -2248,7 +2248,7 @@ Myrice (31):
 	Password transfer optimized
 	cmp_all on GPU, bug fixed, rename gpu to cuda
 	Xsha512 patch from Solar
-	Optimize copy hash to host. Copy only when neccessary
+	Optimize copy hash to host. Copy only when necessary
 	Makefile fixed
 	More itereations during one GPU call
 	Makefile for magnum-jumbo

@@ -161,8 +161,8 @@ static void listconf_list_build_info(void)
 		printf("\t(loaded: %s)", NSS_GetVersion());
 	printf("\n");
 #endif
-// NSSUTIL_VERSION and NSSUTIL_VERSION always seem to match.
-// At least, I dodn't find any differences on Fedora 16 or Fedora 17 systems.
+// NSS_VERSION and NSSUTIL_VERSION always seem to match.
+// At least, I didn't find any differences on Fedora 16/17/18 systems.
 //#ifdef NSSUTIL_VERSION
 //	printf("NSS utilities version: %s (%s)\n",
 //	        NSSUTIL_VERSION, NSSUTIL_GetVersion());
