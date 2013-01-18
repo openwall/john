@@ -30,9 +30,9 @@ unfortunately, due to opencl design they shine when you have million
 of password to test.
 
 OpenCL won't:
-- improve your speed on very short runs (due to longer startup)
+- improve your speed on very short runs (due to longer startup).
 - work well in single mode due to using large sets of password (but some
-  formats now handle this quite well)
+  formats now handle this quite well).
 
 
 ====================
@@ -51,7 +51,7 @@ In in doubt do a
 
 # updatedb && locate CL/cl.h && locate libOpenCL.so
 
-to locate your path to the includes and libOpenCL .
+to locate your path to the includes and libOpenCL.
 
 Adjust NVIDIA_CUDA or ATISTREAMSDKROOT to your needs and
 if something is still wrong (but it shouldn't) send
@@ -65,10 +65,10 @@ USAGE:
 You can use john with your favourite options and the relative
 opencl format you need.
 
-On some opencl formats there are two variables you can adjust:
-these are $LWS and $GWS
+On some opencl formats there are two environment variables you can adjust:
+these are $LWS and $GWS.
 
-LWS is the local work size aka, the number of "threads" the job
+LWS is the local work size, aka the number of "threads" the job
 will be split and sent to the GPU.
 
 - if $LWS is not set, john will try to get the one
@@ -80,26 +80,25 @@ Keys Per Crypt, the number of keys that will be tried in a GPU call.
 - If you unset GWS, john will use a default work size, which depends on
   what format is used.
 - if GWS is set to 0 john will try to get the one best for
-  you system, BEWARE it will take a couple of minutes
-- GWS is highly dependent on you PCI-E bandwith rate which at the
-  moment is one of the biggest bottleneck for opencl in john
+  your system, BEWARE it will take a couple of minutes.
+- GWS is highly dependent on your PCI-E bandwidth rate which at the
+  moment is one of the biggest bottleneck for opencl in john.
 
 
-once you have found the best LWS or GWS for your system you can
-do
+once you have found the best LWS or GWS for your system you can do
+
 export LWS=NUM1
 or
 export GWS=NUM2
 
 to avoid testing.
 
-Warning ! LWS and GWS are highly dependent on the format you are
-using.
+Warning! LWS and GWS are highly dependent on the format you are using.
 LWS and GWS are not yet in every opencl format john is using.
 
 - There's no check for LWS and GWS values so you should now how
   to set them to properly values, if in doubt just use the defaults
-  and unset them
+  and unset them.
 
 
 ====================
@@ -112,10 +111,10 @@ a good idea to set up PLAINTEXT_LENGTH to a lower value than
 32. Some formats honour the --max-length option, optimizing for
 this.
 
-- LWS and GWS should be set with numbers that are power of two
+- LWS and GWS should be set with numbers that are power of two.
 
-- GWS should always be the possible product of LWS: you should always
-  be able to divide GWS / LWS and get an integer number
+- GWS should always be a multiple of LWS: you should always
+  be able to divide GWS / LWS and get an integer number.
 
 
 ====================
@@ -127,23 +126,43 @@ http://openwall.info/wiki/john/GPU
 
 Currently John the Ripper supports OpenCL enabled devices for
 the following hashes:
-- crypt MD5
-- crypt SHA-256 (http://openwall.info/wiki/john/OpenCL-SHA-256)
-- crypt SHA-512 (http://openwall.info/wiki/john/OpenCL-SHA-512)
-- Mac OS X 10.7+ salted SHA-512 (http://openwall.info/wiki/john/OpenCL-XSHA-512)
-- MsCash2
-- MySQL 4.1 double-SHA-1
-- Netscape LDAP SSHA
-- NT MD4
-- phpass
-- RAR3
-- Raw MD4
-- Raw MD5
-- Raw SHA-1
-- Raw SHA-256 (http://openwall.info/wiki/john/OpenCL-RAWSHA-256)
-- Raw SHA-512 (http://openwall.info/wiki/john/OpenCL-RAWSHA-512)
-- WPA-PSK
-- FIXME: and SEVERAL more added in this version of Jumbo.
+
+agilekeychain-opencl  1Password Agile Keychain PBKDF2-HMAC-SHA-1 AES
+bf-opencl             OpenBSD Blowfish
+des-opencl            Traditional DES
+dmg-opencl            Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES
+encfs-opencl          EncFS PBKDF2 AES / Blowfish
+gpg-opencl            OpenPGP / GnuPG Secret Key
+keychain-opencl       Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES
+krb5pa-sha1-opencl    Kerberos 5 AS-REQ Pre-Auth etype 17/18
+md5crypt-opencl       md5crypt
+mscash2-opencl        M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
+mysql-sha1-opencl     MySQL 4.1 double-SHA-1
+nt-opencl             NT MD4
+ntlmv2-opencl         NTLMv2 C/R MD4 HMAC-MD5
+odf-aes-opencl        ODF SHA-256 AES
+odf-opencl            ODF SHA-1 Blowfish
+office2007-opencl     Office 2007 SHA-1 AES
+office2010-opencl     Office 2010 SHA-1 AES
+office2013-opencl     Office 2013 SHA-512 AES
+phpass-opencl         phpass MD5
+pwsafe-opencl         Password Safe SHA-256
+rar-opencl            RAR3 SHA-1 AES
+raw-md4-opencl        Raw MD4
+raw-md5-opencl        Raw MD5
+raw-sha1-opencl       Raw SHA-1
+raw-sha256-opencl     Raw SHA-256 (pwlen < 32)
+raw-sha512-opencl     Raw SHA-512
+raw-sha512-ng-opencl  Raw SHA-512 (pwlen < 32)
+sha256crypt-opencl    sha256crypt
+sha512crypt-opencl    sha512crypt
+ssha-opencl           Netscape LDAP salted SHA-1
+strip-opencl          STRIP Password Manager PBKDF2-SHA1
+sxc-opencl            SXC SHA-1 Blowfish
+wpapsk-opencl         WPA-PSK PBKDF2-HMAC-SHA-1
+xsha512-opencl        Mac OS X 10.7+ salted SHA-512
+xsha512-ng-opencl     Mac OS X 10.7+ salted SHA-512 (pwlen < 32)
+zip-opencl            ZIP-AES PBKDF2-HMAC-SHA-1
 
 
 =================

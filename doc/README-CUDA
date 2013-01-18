@@ -16,6 +16,7 @@ If you have problems with JtR CUDA support:
   and that your LD_LIBRARY_PATH contains cuda lib path (eg. /usr/local/cuda/lib
   and/or /usr/local/cuda/lib64).
 
+
 Performance issues:
   If you have got Fermi or newer card change "-arch sm_10" to "-arch sm_20" in
   the NVCC_FLAGS (Makefile). If you have Kepler or newer, you can experiment
@@ -72,6 +73,20 @@ OpenCL vs. CUDA parlor:
   That's even better than the OpenCL figure! This shows that this particular
   CUDA format is in fact better than the OpenCL one as long as you have tuned
   it to your device.
+
+Supported formats:
+  md5crypt-cuda     md5crypt
+  mscash-cuda       M$ Cache Hash MD4
+  mscash2-cuda      M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
+  phpass-cuda       phpass MD5
+  pwsafe-cuda       Password Safe SHA-256
+  raw-sha224-cuda   Raw SHA-224
+  raw-sha256-cuda   Raw SHA-256
+  raw-sha512-cuda   Raw SHA-512
+  sha256crypt-cuda  sha256crypt
+  sha512crypt-cuda  sha512crypt
+  wpapsk-cuda       WPA-PSK PBKDF2-HMAC-SHA-1
+  xsha512-cuda      Mac OS X 10.7+ salted SHA-512
 
 Watchdog Timer:
   If your GPU is also your active display device, the display driver enables a
