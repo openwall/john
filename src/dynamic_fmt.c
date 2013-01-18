@@ -4919,7 +4919,7 @@ void DynamicFunc__FreeBSDMD5Crypt_MMX()
 	mdfivemmx_nosizeupdate(md5_tmp_out[0], md5_tmp_in[0], 1);
 #endif
 
-	// Build A  A should ALWAYS be larger then B, so no memset needed.
+	// Build A  A should ALWAYS be larger than B, so no memset needed.
 	//memset(md5_tmp_in, 0, sizeof(md5_tmp_in));
 	idx = 0;
 #ifdef MD5_SSE_PARA
