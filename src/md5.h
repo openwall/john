@@ -35,7 +35,7 @@ extern void MD5_PreFinal(MD5_CTX *ctx);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 #endif
 
-/* Now, the MMX code is NOT dependant upon the HAVE_OPENSSL */
+/* Now, the MMX code is NOT dependent upon the HAVE_OPENSSL */
 
 #ifdef MMX_COEF
 #ifdef _MSC_VER

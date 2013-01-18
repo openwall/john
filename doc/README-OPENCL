@@ -81,7 +81,7 @@ Keys Per Crypt, the number of keys that will be tried in a GPU call.
   what format is used.
 - if GWS is set to 0 john will try to get the one best for
   you system, BEWARE it will take a couple of minutes
-- GWS is highly dependant on you PCI-E bandwith rate which at the
+- GWS is highly dependent on you PCI-E bandwith rate which at the
   moment is one of the biggest bottleneck for opencl in john
 
 
@@ -93,7 +93,7 @@ export GWS=NUM2
 
 to avoid testing.
 
-Warning ! LWS and GWS are highly dependant on the format you are
+Warning ! LWS and GWS are highly dependent on the format you are
 using.
 LWS and GWS are not yet in every opencl format john is using.
 

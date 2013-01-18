@@ -165,7 +165,7 @@ _john()
 		# is a hard to solve problem.)
 		#
 		# These are the options where completion depends on $PWD
-		# (and therefor will not work as the user might expect):
+		# (and therefore will not work as the user might expect):
 		# 	--config=
 		# 	--loopback=
 		# 	--make-charset=
