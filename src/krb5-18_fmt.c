@@ -179,7 +179,7 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
 	int index = 0;
