@@ -658,7 +658,7 @@ static int cmp_all(void *binary, int count)
 {
 	int i,j;
 	for (i=j=0; i<count; ++i)
-		j+=chk[i]; /* hopefully addition like this is faster then 'count' conditional if statments */
+		j+=chk[i]; /* hopefully addition like this is faster than 'count' conditional if statments */
 	return j;
 }
 

@@ -302,7 +302,7 @@ The different variants of list externals may be worth mentioning:
                           if john is started without the --format=NAME option)
 --list=format-details     list all the suported formats in the same sequence as
                           with --list=formats, but with additional details
-                          (wich might be more interesting for developers than
+                          (which might be more interesting for developers than
                           for regular users), intended to be parsed automatically
                           -format label
                            this is to be used as NAME in --format=NAME

@@ -675,7 +675,7 @@ examples (this whole list is also found in dynamic.conf).
 #    conversion is done.  If that switch was not used on the command line, then a
 #    simple ascii-to-unicode (which is simply appending a null byte after each byte
 #    of string).  The --encoding=utf8 conversion is considerably slower, but is required for
-#    many Unicode or utf8 systems.  NOTE, to honor the --encoding=utf8 swich, the
+#    many Unicode or utf8 systems.  NOTE, to honor the --encoding=utf8 switch, the
 #    format MUST use the MGF_UTF8 flag.
 #
 #  DynamicFunc__setmode_normal
