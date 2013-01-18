@@ -307,11 +307,11 @@ static struct fmt_tests tests_whirlpool[] = {
 
 struct fmt_main fmt_truecrypt = {
 	{
-		"tc_ripemd160",						// FORMAT_LABEL
-		"TrueCrypt",							// FORMAT_NAME
+		"tc_ripemd160",		// FORMAT_LABEL
+		"TrueCrypt",		// FORMAT_NAME
 		"RIPEMD160 AES256_XTS",	// ALGORITHM_NAME,
-		"",										// BENCHMARK_COMMENT
-		0,											// BENCHMARK_LENGTH
+		"",			// BENCHMARK_COMMENT
+		-1,			// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
@@ -358,7 +358,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		"TrueCrypt",			// FORMAT_NAME
 		"SHA512 AES256_XTS",		// ALGORITHM_NAME,
 		"",				// BENCHMARK_COMMENT
-		0,				// BENCHMARK_LENGTH
+		-1,				// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
@@ -401,11 +401,11 @@ struct fmt_main fmt_truecrypt_sha512 = {
 
 struct fmt_main fmt_truecrypt_whirlpool = {
 	{
-		"tc_whirlpool",							// FORMAT_LABEL
-		"TrueCrypt",								// FORMAT_NAME
+		"tc_whirlpool",		// FORMAT_LABEL
+		"TrueCrypt",		// FORMAT_NAME
 		"WHIRLPOOL AES256_XTS",	// ALGORITHM_NAME,
-		"",											// BENCHMARK_COMMENT
-		0,												// BENCHMARK_LENGTH
+		"",			// BENCHMARK_COMMENT
+		-1,			// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		SALT_SIZE,
