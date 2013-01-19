@@ -12,8 +12,8 @@
 #ifndef _JOHN_LOADER_H
 #define _JOHN_LOADER_H
 
-#ifndef BENCH_BUILD
 #include "params.h"
+#ifndef BENCH_BUILD
 #include "list.h"
 #include "formats.h"
 #endif
