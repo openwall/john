@@ -85,6 +85,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* email */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
+		goto err;
 	if (strlen(p) != 32)
 		goto err;
 	if (!ishex(p))

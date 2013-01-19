@@ -335,7 +335,7 @@ void gather_results(struct bench_results *results)
 		MPI_MAX, 0, MPI_COMM_WORLD);
 	MPI_Reduce(&results->virtual, &combined.virtual, 1, MPI_LONG,
 		MPI_MAX, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&results->count, &combined.count, 1, MPI_UNSIGNED_LONG,
+	MPI_Reduce(&results->crypts, &combined.crypts, 1, MPI_UNSIGNED_LONG,
 		MPI_SUM, 0, MPI_COMM_WORLD);
 	if (mpi_id == 0)
 		memcpy(results, &combined, sizeof(struct bench_results));

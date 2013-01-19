@@ -11,6 +11,7 @@
 #include "params.h"
 #include "memory.h"
 #include "mkvlib.h"
+#include "path.h"
 
 unsigned char * proba1;
 unsigned char * proba2;
@@ -162,6 +163,14 @@ void init_probatables(char * filename)
 	unsigned int k;
 	unsigned int nb_lignes;
 
+	if (!(fichier = fopen(filename, "r")))
+	{
+		static char fpath[PATH_BUFFER_SIZE] = "$JOHN/";
+
+		strcat(fpath, filename);
+		filename = path_expand(fpath);
+	}
+
 	fichier = fopen(filename, "r");
 	if(!fichier)
 	{
@@ -218,5 +227,3 @@ void init_probatables(char * filename)
 	for(i=1;i<256;i++)
 		stupidsort(&(charsorted[i*256]), &(proba2[i*256]), 256);
 }
-
-

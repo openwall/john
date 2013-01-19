@@ -69,6 +69,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
+	{"mkv-stats", FLG_MKV_SET, FLG_CRACKING_CHK,
+		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK,
 		0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 	{"stdout", FLG_STDOUT, FLG_STDOUT,
@@ -280,7 +282,7 @@ static void print_usage(char *name)
 	exit(0);
 }
 
-void print_hidden_usage(void)
+void opt_print_hidden_usage(void)
 {
 	puts("--help                    print usage summary, just like running the command");
 	puts("                          without any parameters");
@@ -300,6 +302,7 @@ void print_hidden_usage(void)
 	puts("--crack-status            emit a status line whenever a password is cracked");
 	puts("--max-run-time=N          gracefully exit after this many seconds");
 	puts("--regen-lost-salts=N      regenerate lost salts (see doc/OPTIONS)");
+	puts("--mkv-stats=FILE          \"Markov\" stats file (see doc/MARKOV)");
 #ifdef HAVE_DL
 	puts("--plugin=NAME[,..]        load this (these) dynamic plugin(s)");
 #endif
@@ -308,7 +311,6 @@ void print_hidden_usage(void)
 	puts("--request-scalar          request non-vectorized mode");
 #endif
 	puts("");
-	exit(0);
 }
 
 void opt_init(char *name, int argc, char **argv, int show_usage)
@@ -492,10 +494,10 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	if (options.loader.activesinglerules == NULL)
 		options.loader.activesinglerules = str_alloc_copy(SUBSECTION_SINGLE);
 
-	if (options.dynamic_raw_hashes_always_valid == 'Y' || options.dynamic_raw_hashes_always_valid == 'y' || 
+	if (options.dynamic_raw_hashes_always_valid == 'Y' || options.dynamic_raw_hashes_always_valid == 'y' ||
 		options.dynamic_raw_hashes_always_valid == '1' || options.dynamic_raw_hashes_always_valid == 't' || options.dynamic_raw_hashes_always_valid == 'T')
 		options.dynamic_raw_hashes_always_valid = 'Y';
-	else if (options.dynamic_raw_hashes_always_valid == 'N' || options.dynamic_raw_hashes_always_valid == 'n' || 
+	else if (options.dynamic_raw_hashes_always_valid == 'N' || options.dynamic_raw_hashes_always_valid == 'n' ||
 		options.dynamic_raw_hashes_always_valid == '0' || options.dynamic_raw_hashes_always_valid == 'f' || options.dynamic_raw_hashes_always_valid == 'F')
 		options.dynamic_raw_hashes_always_valid = 'N';
 

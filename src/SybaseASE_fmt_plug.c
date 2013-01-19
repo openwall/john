@@ -53,6 +53,7 @@
 
 #define BINARY_SIZE         32
 #define SALT_SIZE           8
+#define SALT_ALIGN          1
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
@@ -64,9 +65,9 @@ static struct fmt_tests SybaseASE_tests[] = {
     {NULL}
 };
 
-static char *saved_salt;
 static UTF16 (*prep_key)[518 / sizeof(UTF16)];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE/4];
+static int kpc;
 
 extern struct fmt_main fmt_SybaseASE;
 static void init(struct fmt_main *self)
@@ -79,6 +80,7 @@ static void init(struct fmt_main *self)
 	omp_t *= OMP_SCALE;
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
+	kpc = self->params.max_keys_per_crypt;
 
 	prep_key = mem_calloc_tiny(sizeof(*prep_key) *
 		self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -120,6 +122,7 @@ static void *salt(char *ciphertext)
     static unsigned char out[SALT_SIZE];
     int i;
     char *p = ciphertext + PREFIX_LENGTH;
+
     for (i = 0; i < sizeof(out); i++) {
         out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |atoi16[ARCH_INDEX(p[1])];
         p += 2;
@@ -199,7 +202,14 @@ static int get_hash_6(int index)
 
 static void set_salt(void *salt)
 {
-    saved_salt = salt;
+	int index;
+
+	for(index = 0; index < kpc; index++)
+	{
+		/* append salt at offset 510 */
+		memcpy((unsigned char*)prep_key[index] + 510,
+		       (unsigned char*)salt, 8);
+	}
 }
 
 static void set_key(char *key, int index)
@@ -235,14 +245,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key, saved_salt)
+#pragma omp parallel for default(none) private(index) shared(count, crypt_out, prep_key)
 	for(index = 0; index < count; index++)
 #endif
 	{
 		SHA256_CTX ctx;
-
-		/* append salt at offset 510 */
-		memcpy((unsigned char *)prep_key[index] + 510, saved_salt, 8);
 
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, prep_key[index], 518);
@@ -289,7 +296,7 @@ struct fmt_main fmt_SybaseASE = {
         BINARY_SIZE,
         DEFAULT_ALIGN,
         SALT_SIZE,
-        DEFAULT_ALIGN,
+        SALT_ALIGN,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
         FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_UTF8,

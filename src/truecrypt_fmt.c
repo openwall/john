@@ -209,7 +209,7 @@ static int cmp_all(void* binary, int count)
 		EVP_CIPHER_CTX_init(&cipher_context);
 		EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
 		EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
-		// If first 4 bytes is 'TRUE' sucefull decryption
+		// If first 4 bytes is 'TRUE' successful decryption
 		if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
 			res[i] = 1;
 	}
@@ -235,7 +235,7 @@ static int cmp_one(void* binary, int index)
 	EVP_CIPHER_CTX_init(&cipher_context);
 	EVP_DecryptInit_ex(&cipher_context, EVP_aes_256_xts(), NULL, key, tweak);
 	EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
-	// If first 4 bytes is 'TRUE' successfull decryption
+	// If first 4 bytes is 'TRUE' successful decryption
 	if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
 	{
 		// int i;
@@ -309,11 +309,11 @@ static struct fmt_tests tests_whirlpool[] = {
 
 struct fmt_main fmt_truecrypt = {
 	{
-		"tc_ripemd160",						// FORMAT_LABEL
-		"TrueCrypt",							// FORMAT_NAME
+		"tc_ripemd160",		// FORMAT_LABEL
+		"TrueCrypt",		// FORMAT_NAME
 		"RIPEMD160 AES256_XTS",	// ALGORITHM_NAME,
-		"",										// BENCHMARK_COMMENT
-		0,											// BENCHMARK_LENGTH
+		"",			// BENCHMARK_COMMENT
+		-1,			// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
@@ -365,7 +365,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		"TrueCrypt",			// FORMAT_NAME
 		"SHA512 AES256_XTS",		// ALGORITHM_NAME,
 		"",				// BENCHMARK_COMMENT
-		0,				// BENCHMARK_LENGTH
+		-1,				// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		DEFAULT_ALIGN,
@@ -413,11 +413,11 @@ struct fmt_main fmt_truecrypt_sha512 = {
 
 struct fmt_main fmt_truecrypt_whirlpool = {
 	{
-		"tc_whirlpool",							// FORMAT_LABEL
-		"TrueCrypt",								// FORMAT_NAME
+		"tc_whirlpool",		// FORMAT_LABEL
+		"TrueCrypt",		// FORMAT_NAME
 		"WHIRLPOOL AES256_XTS",	// ALGORITHM_NAME,
-		"",											// BENCHMARK_COMMENT
-		0,												// BENCHMARK_LENGTH
+		"",			// BENCHMARK_COMMENT
+		-1,			// BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		DEFAULT_ALIGN,

@@ -1,11 +1,22 @@
+# This ensures 'git shortlog' understands "different" committers as being
+# the same person
+#
+# Proper Name <commit@email.xx>
+# Proper Name <proper@email.xx> <commit@email.xx>
+#
 magnum <john.magnum@hushmail.com> <magnum>
 Dhiru Kholia <dhiru.kholia@gmail.com>
-Solar <solar@openwall.com> <solar>
 Solar <solar@openwall.com>
+Solar <solar@openwall.com> <solar>
 Samuele <samu@linuxasylum.net>
 Tavis Ormandy <taviso@cmpxchg8b.com> <taviso@redhat.(none)>
 Claudio André <claudio.andre@correios.net.br> <claudioandre.br@gmail.com>
 Myrice <qqlddg@gmail.com> <myrice@myrice-laptop.(none)>
 JimF <jfoug@cox.net>
+Lukas Odzioba <ukasz@openwall.net>
+Lukas Odzioba <ukasz@openwall.net> <lukas.odzioba@gmail.com>
 Sayantan Datta <std2048@gmail.com>
-Lukas Odzioba <lukas.odzioba@gmail.com>
+Sayantan Datta <std2048@gmail.com> <sayantan@Box2.(none)>
+Sayantan Datta <std2048@gmail.com> <sayantan@Eden.(none)>
+bartavelle (Simon Marechal) <bartavelle@gmail.com>
+Milen Rangelov <gat3way@gat3way.eu>
