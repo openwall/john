@@ -161,7 +161,7 @@ static char *include_source(char *pathname, int dev_id, char *options)
 	        "-DDEVICE_IS_CPU" : "",
 	        "-DDEVICE_INFO=", device_info[dev_id],
 #ifdef __APPLE__
-	        "-DAPPLE",
+		"-D__APPLE__",
 #else
 	        gpu_nvidia(device_info[dev_id]) ? "-cl-nv-verbose" : "",
 #endif
