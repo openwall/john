@@ -463,7 +463,7 @@ static char *include_source(char *pathname, unsigned int sequential_id, char *op
 		"-DDEVICE_IS_CPU" : "",
 		"-DDEVICE_INFO=", device_info[sequential_id],
 #ifdef __APPLE__
-		"-DAPPLE",
+		"-D__APPLE__",
 #else
 		gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose" : "",
 #endif

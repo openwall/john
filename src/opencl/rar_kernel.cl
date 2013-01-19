@@ -309,7 +309,7 @@ __kernel void RarGetIV(
 	PUTCHAR_BE(block, pwlen + 9, (round >> 8) & 255);
 	PUTCHAR_BE(block, pwlen + 10, round >> 16);
 
-#ifdef APPLE
+#ifdef __APPLE__
 	/* This is the weirdest workaround. Using the sha1_final()
 	   works perfectly fine in the RarFinal() subkernel below. */
 	PUTCHAR_BE(block, pwlen + 11, 0x80);
