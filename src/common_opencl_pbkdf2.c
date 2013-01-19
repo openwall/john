@@ -73,8 +73,12 @@ static void clean_gpu_buffer(gpu_mem_buffer *pThis)
 void clean_all_buffer()
 {	 int i;
 
-	 for(i=0;i<active_dev_ctr;i++)
+	 for(i=0;i<active_dev_ctr;i++){
 	    clean_gpu_buffer(&gpu_buffer[store_platform_no[i]][store_dev_no[i]]);
+	    HANDLE_CLERROR(clReleaseKernel(krnl[store_platform_no[i]][store_dev_no[i]][0]),"Error releasing kernel pbkdf2_preprocess");  
+	    HANDLE_CLERROR(clReleaseKernel(krnl[store_platform_no[i]][store_dev_no[i]][1]),"Error releasing kernel pbkdf2_iter"); 
+	    HANDLE_CLERROR(clReleaseKernel(krnl[store_platform_no[i]][store_dev_no[i]][2]),"Error releasing kernel pbkdf2_postprocess"); 
+	 }   
 	 
 }
 
@@ -149,11 +153,11 @@ static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 	
 	long int gds_size ;
 	
-	static long int total_exec_time_inv;
+	static long double total_exec_time_inv;
 	
 	total_exec_time_inv +=  exec_time_inv[pltform_no][dev_no] ;
 	
-	gds_size = (long int)total_exec_time_inv*163840 ;
+	gds_size = (long int)(total_exec_time_inv*163840) ;
 	
 	gds_size = (gds_size/8192 + 1 )*8192 ;
 	
@@ -329,7 +333,6 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 
 }
 
-
 static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num,int platform_no,int dev_no )
 {
 	cl_event evnt;
@@ -340,15 +343,15 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	
 	cl_ulong _kernelExecTimeNs = 0 ; 
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].pass_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),pass_api,0,NULL,NULL ), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].pass_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),pass_api,0,NULL,NULL ), "Copy data to gpu");		
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].salt_gpu,CL_TRUE,0,(MAX_SALT_LENGTH/2 + 1)*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Copy data to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].salt_gpu,CL_TRUE,0,(MAX_SALT_LENGTH/2 + 1)*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Copy data to gpu");      
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],2,sizeof(cl_uint),&saltlen_api),"Set Kernel Arg FAILED arg2");
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],3,sizeof(cl_uint),&num),"Set Kernel Arg FAILED arg3");
 
-	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][0],1,NULL,&N,&M,0,NULL,&evnt);
+	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][0],1,NULL,&N,&M,0,NULL,&evnt);											
 	
 	if(err){
 		if(PROFILE){
@@ -368,6 +371,8 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
+
+		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");															
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 
@@ -383,7 +388,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	  
 		HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][1],1,sizeof(cl_uint),&itrCntKrnl),"Set Kernel Arg FAILED arg1");
 	
-		err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][1],1,NULL,&N,&M,0,NULL,&evnt);
+		err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][1],1,NULL,&N,&M,0,NULL,&evnt);										
 	
 		if(err){
 			if(PROFILE){
@@ -396,6 +401,8 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 			return gpu_buffer[platform_no][dev_no];
 		}
 		
+		opencl_process_event();
+		
 		if(PROFILE){
 
 		cl_ulong startTime, endTime;
@@ -404,6 +411,8 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
 
+		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");															
+
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_END,    sizeof(cl_ulong), &endTime, NULL);
@@ -411,10 +420,12 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		_kernelExecTimeNs += endTime - startTime;
 
 		}
-	
+
+		else if(active_dev_ctr==1) HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
+		
 	}
 	
-	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][2],1,NULL,&N,&M,0,NULL,&evnt);
+	err=clEnqueueNDRangeKernel(cmdq[platform_no][dev_no],krnl[platform_no][dev_no][2],1,NULL,&N,&M,0,NULL,&evnt);										
 	
 	if(err){
 		if(PROFILE){
@@ -433,7 +444,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 
 		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
 
-		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
+		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");														
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 
