@@ -471,7 +471,7 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	if (login != no_username)
 		ldr_split_string(words, login);
 	if (pristine_gecos && *gecos)
-		list_add(words, gecos);
+		list_add_unique(words, gecos);
 
 	if ((pos = strrchr(home, '/')) && pos[1])
 		list_add_unique(words, pos + 1);
