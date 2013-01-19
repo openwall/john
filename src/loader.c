@@ -51,6 +51,7 @@ int ldr_in_pot = 0;
 #define SPLFLEN(f)	(fields[f][0] ? fields[f+1] - fields[f] - 1 : 0)
 
 static char *no_username = "?";
+static int pristine_gecos;
 
 static void read_file(struct db_main *db, char *name, int flags,
 	void (*process_line)(struct db_main *db, char *line))
@@ -85,6 +86,9 @@ static void read_file(struct db_main *db, char *name, int flags,
 
 void ldr_init_database(struct db_main *db, struct db_options *options)
 {
+	pristine_gecos = cfg_get_bool(SECTION_OPTIONS, NULL,
+	        "PristineGecos", 0);
+
 	db->loaded = 0;
 
 	db->options = mem_alloc_copy(options,
@@ -466,6 +470,8 @@ static struct list_main *ldr_init_words(char *login, char *gecos, char *home)
 	ldr_split_string(words, gecos);
 	if (login != no_username)
 		ldr_split_string(words, login);
+	if (pristine_gecos && *gecos)
+		list_add(words, gecos);
 
 	if ((pos = strrchr(home, '/')) && pos[1])
 		list_add_unique(words, pos + 1);
