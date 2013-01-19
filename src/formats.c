@@ -17,8 +17,12 @@
 #else
 #include "loader.h"
 #endif
+
+/* this is just for advance_cursor() */
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
+#elif HAVE_CUDA
+#include "cuda_common.h"
 #endif
 
 struct fmt_main *fmt_list = NULL;
@@ -274,10 +278,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 		}
 #endif
-#ifdef HAVE_OPENCL
+#ifndef BENCH_BUILD
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 		advance_cursor();
 #endif
-#ifndef BENCH_BUILD
 		if (lengthcheck == 1)
 		{
 			int count = max;

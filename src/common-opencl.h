@@ -40,8 +40,8 @@ int ocl_device_list[MAXGPUS];
 typedef struct {
 	cl_platform_id			platform;
 	int				num_devices;
-} cl_plataform;
-cl_plataform platforms[MAX_PLATFORMS];
+} cl_platform;
+cl_platform platforms[MAX_PLATFORMS];
 
 cl_platform_id platform[MAX_PLATFORMS];
 cl_device_id devices[MAXGPUS];

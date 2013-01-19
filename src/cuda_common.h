@@ -26,6 +26,7 @@ int cuda_gpu_id;
     }
 
 extern void cuda_init(unsigned int cuda_gpu_id);
+extern void advance_cursor();
 extern void cuda_device_list();
 
 extern void HandleError(cudaError_t err, const char *file, int line);

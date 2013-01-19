@@ -360,10 +360,10 @@ int benchmark_all(void)
 	if (!benchmark_time) {
 		puts("Warning: doing quick benchmarking - "
 		    "the performance numbers will be inaccurate");
-#ifdef HAVE_OPENCL
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 		/* This will make the majority of OpenCL formats
 		   also do "quick" benchmarking. But if LWS or
-		   GWS is already set, we do not overwrite. */
+		   GWS was already set, we do not overwrite. */
 		setenv("LWS", "7", 0);
 		setenv("GWS", "49", 0);
 #endif
