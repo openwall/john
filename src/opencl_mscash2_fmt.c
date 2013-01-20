@@ -311,7 +311,7 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	      {
 		      if(saltlength==(MAX_SALT_LENGTH)) {
 			      static int warned = 0;
-			      if (warned++ == 1)
+			      if (!warned++)
 				      fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
 			      return 0;
 		      }
