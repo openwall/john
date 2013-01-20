@@ -19,9 +19,9 @@
 #define BENCHMARK_LENGTH		-1
 
 #define PLAINTEXT_LENGTH		31
-#define CIPHERTEXT_LENGTH		33
+#define CIPHERTEXT_LENGTH		13
 
-#define BINARY_SIZE			13
+#define BINARY_SIZE			7
 #define BINARY_ALIGN			1
 #define SALT_SIZE			0
 #define SALT_ALIGN			1
@@ -40,20 +40,63 @@ static struct fmt_tests tests[] = {
 
 int zerolengthkey = 0;
 
-static char crypt_key[BINARY_SIZE + 1];
+static char crypt_key[BINARY_SIZE];
 static char saved_key[PLAINTEXT_LENGTH + 1];
 
+static char _itoa64[] = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static char _atoi64[0x100];
+
 static int valid(char *ciphertext, struct fmt_main *self) {
+    char *pos;
+
     if (strncmp(ciphertext, "+", 1) != 0) return 0;
-    if (strlen(ciphertext) != 13) return 0;
+    if (strlen(ciphertext) != CIPHERTEXT_LENGTH) return 0;
+
+    for (pos = &ciphertext[1]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
+    if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
 
     return 1;
 }
 
 void init(struct fmt_main *self) {
+    char *pos;
+
+    memset(_atoi64, 0x7F, sizeof(_atoi64));
+    for (pos = _itoa64; pos <= &_itoa64[63]; pos++)
+        _atoi64[ARCH_INDEX(*pos)] = pos - _itoa64;
+
     blowfish_first_init();
 }
 
+/* The base64 is flawed - we just mimic flaws from the original code */
+static void *binary(char *ciphertext)
+{
+	static char out[BINARY_SIZE];
+	ARCH_WORD_32 value;
+	char *pos;
+
+	pos = ciphertext + 1;
+
+	value = (ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[0])] |
+		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[3])] << 18);
+	out[0] = value;
+	out[1] = value >> 8;
+	out[2] = value >> 16;
+	out[3] = _atoi64[ARCH_INDEX(pos[4])] |
+		(_atoi64[ARCH_INDEX(pos[5])] << 6);
+	pos += 6;
+	value = (ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[0])] |
+		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[2])] << 12) |
+		((ARCH_WORD_32)_atoi64[ARCH_INDEX(pos[3])] << 18);
+	out[4] = value;
+	out[5] = value >> 8;
+	out[6] = value >> 16;
+
+	return (void *)out;
+}
 
 static void set_key(char *key, int index) {
     strnzcpy(saved_key, key, PLAINTEXT_LENGTH+1);
@@ -63,7 +106,7 @@ static char *get_key(int index) {
   return saved_key;
 }
 
-static int cmp_all(void *binary, int index) {
+static int cmp_all(void *binary, int count) {
   if (zerolengthkey) return 0;
   return !memcmp(binary, crypt_key, BINARY_SIZE);
 }
@@ -107,7 +150,7 @@ struct fmt_main fmt_BFEgg = {
     fmt_default_prepare,
     valid,
     fmt_default_split,
-    fmt_default_binary,
+    binary,
     fmt_default_salt,
     fmt_default_source,
     {

@@ -172,19 +172,28 @@ static void blowfish_init(UBYTE_08bits * key, short keybytes)
 #define SALT1  0xdeadd061
 #define SALT2  0x23f6b095
 
+#if 0
 /* convert 64-bit encrypted password to text for userfile */
 static char *base64 = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+#endif
 
 static void blowfish_encrypt_pass(char *text, char *new)
 {
   UWORD_32bits left, right;
-  int n;
-  char *p;
 
   blowfish_init((UBYTE_08bits *) text, strlen(text));
   left = SALT1;
   right = SALT2;
   blowfish_encipher(&left, &right);
+
+#if 1
+  /* We lose one byte due to flawed base64 below */
+  memcpy(new, (unsigned char*)&right, 32/8);
+  memcpy(new + 32/8, (unsigned char*)&left, 32/8 - 1);
+#else
+  int n;
+  char *p;
+
   p = new;
   *p++ = '+';			/* + means encrypted pass */
   n = 32;
@@ -200,4 +209,5 @@ static void blowfish_encrypt_pass(char *text, char *new)
     n -= 6;
   }
   *p = 0;
+#endif
 }
