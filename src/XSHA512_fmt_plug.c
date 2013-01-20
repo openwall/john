@@ -34,7 +34,7 @@
 #define MAX_KEYS_PER_CRYPT		0x100
 #endif
 
-#if ARCH_BITS >= 64
+#if ARCH_BITS >= 64 || defined(__SSE2__)
 /* 64-bitness happens to correlate with faster memcpy() */
 #define PRECOMPUTE_CTX_FOR_SALT
 #else
@@ -104,13 +104,17 @@ static char *prepare(char *split_fields[10], struct fmt_main *self) {
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[BINARY_SIZE];
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 
 	ciphertext += 6;
 	p = ciphertext + 8;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -122,13 +126,17 @@ static void *get_binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char out[SALT_SIZE];
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 
 	ciphertext += 6;
 	p = ciphertext;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];

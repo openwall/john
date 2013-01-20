@@ -151,16 +151,20 @@ static char *nethalflm_split(char *ciphertext, int index)
 
 static void *nethalflm_get_binary(char *ciphertext)
 {
-  static uchar binary[BINARY_SIZE];
-  int i;
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	uchar *binary = buf.c;
+	int i;
 
-  ciphertext+=28;
-  for (i=0; i<BINARY_SIZE; i++)
-  {
-    binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-    binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
-  }
-  return binary;
+	ciphertext+=28;
+	for (i=0; i<BINARY_SIZE; i++)
+	{
+		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+	}
+	return binary;
 }
 
 static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
@@ -215,14 +219,18 @@ static int nethalflm_cmp_exact(char *source, int index)
 
 static void *nethalflm_get_salt(char *ciphertext)
 {
-  static unsigned char binary_salt[SALT_SIZE];
-  int i;
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *binary_salt = buf.c;
+	int i;
 
-  ciphertext += 11;
-  for (i = 0; i < SALT_SIZE; ++i) {
-	  binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-  }
-  return (void*)binary_salt;
+	ciphertext += 11;
+	for (i = 0; i < SALT_SIZE; ++i) {
+		binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	}
+	return (void*)binary_salt;
 }
 
 static void nethalflm_set_salt(void *salt)
