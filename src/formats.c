@@ -97,6 +97,14 @@ char *fmt_self_test(struct fmt_main *format)
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
 		return "FMT_SPLIT_UNIFIES_CASE";
 
+	if ((format->methods.binary == fmt_default_binary) &&
+	    (format->params.binary_size > 0))
+		return "BINARY_SIZE";
+
+	if ((format->methods.salt == fmt_default_salt) &&
+	    (format->params.salt_size > 0))
+		return "SALT_SIZE";
+
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
 	while ((current++)->ciphertext)
