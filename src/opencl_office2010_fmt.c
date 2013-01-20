@@ -500,9 +500,56 @@ static void init(struct fmt_main *self)
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$office$*2010", 13);
+	char *ctcopy, *ptr, *keeptr;
+	int res;
+
+	if (strncmp(ciphertext, "$office$*2010*", 14))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext))) {
+		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
+		return 0;
+	}
+	keeptr = ctcopy;
+	ctcopy += 15;
+	if (!(ptr = strtok(ctcopy, "*"))) /* hash size or iterations */
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strncmp(ptr, "128", 3) && strncmp(ptr, "256", 3)) /* key size */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* salt size */
+		goto error;
+	res = atoi(ptr);
+	if (res != 16) /* can we handle other values? */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* salt */
+		goto error;
+	if (strlen(ptr) != res * 2)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* encrypted verifier hash */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void DecryptUsingSymmetricKeyAlgorithm(unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length)
