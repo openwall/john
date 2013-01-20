@@ -149,6 +149,19 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 }
 
+static size_t max_lws()
+{
+	int i;
+
+	size_t max=0;
+
+	for(i=0;i<active_dev_ctr;++i)
+		if(max<lws[store_platform_no[i]][store_dev_no[i]])
+			max=lws[store_platform_no[i]][store_dev_no[i]];
+
+	return max;
+}
+
 static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 	
 	long int gds_size ;
@@ -161,13 +174,13 @@ static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 	
 	gds_size = (gds_size/8192 + 1 )*8192 ;
 	
-	gds_size = (gds_size<MAX_KEYS_PER_CRYPT)?gds_size:MAX_KEYS_PER_CRYPT ;
+	gds_size = (gds_size<(MAX_KEYS_PER_CRYPT-8192))?gds_size:(MAX_KEYS_PER_CRYPT-8192) ;
 	
 	gds_size = (gds_size>8192)?gds_size:8192 ;
 	
 	fmt->params.max_keys_per_crypt = gds_size ;
 	
-	fmt->params.min_keys_per_crypt = lws[pltform_no][dev_no] ;
+	fmt->params.min_keys_per_crypt = max_lws() ;
 	
 }
 
@@ -236,18 +249,17 @@ size_t select_default_device(struct fmt_main *fmt)
 	  return select_device(0,0,0,fmt);
 }
 
-
-static size_t max_lws()
+void warning(int *device_list)
 {
+	double total_exec_time_inv=0;
 	int i;
-
-	size_t max=0;
-
+	
 	for(i=0;i<active_dev_ctr;++i)
-		if(max<lws[store_platform_no[i]][store_dev_no[i]])
-			max=lws[store_platform_no[i]][store_dev_no[i]];
-
-	return max;
+		total_exec_time_inv+=exec_time_inv[store_platform_no[i]][store_dev_no[i]];
+	
+	for(i=0;i<active_dev_ctr;++i)
+	    if(exec_time_inv[store_platform_no[i]][store_dev_no[i]]/total_exec_time_inv < 0.01) printf("WARNING: Device %d is too slow and might cause degradation in performance.\n",device_list[i]) ;
+		
 }
 
 void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num)
@@ -292,7 +304,9 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 				if(work_part%lws_max!=0)
 					work_part=(work_part/lws_max + 1)*lws_max;
 			}
-
+			
+			if((int)work_part<=0) work_part = lws_max;
+			
 		///call to exec_pbkdf2()
 #ifdef _DEBUG
 		printf("Work Offset:%d  Work Part Size:%d %d\n",work_offset,work_part,event_ctr);
@@ -300,7 +314,6 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 		exec_pbkdf2(pass_api+4*work_offset,salt_api,saltlen_api,hash_out_api+4*work_offset,work_part,store_platform_no[i],store_dev_no[i]);
 
 		work_offset+=work_part;
-
 
 		}
 
@@ -332,7 +345,6 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 
 }
 
-
 static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num,int platform_no,int dev_no )
 {
 	cl_event evnt;
@@ -342,7 +354,7 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 	unsigned int i, itrCntKrnl = ITERATION_COUNT_PER_CALL;
 	
 	cl_ulong _kernelExecTimeNs = 0 ; 
-
+	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].pass_gpu,CL_TRUE,0,4*num*sizeof(cl_uint),pass_api,0,NULL,NULL ), "Copy data to gpu");		
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],gpu_buffer[platform_no][dev_no].salt_gpu,CL_TRUE,0,(MAX_SALT_LENGTH/2 + 1)*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Copy data to gpu");      
@@ -369,8 +381,6 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		cl_ulong startTime, endTime;
 
 		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
-
-		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");															
 
@@ -410,8 +420,6 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
-
-		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");															
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 

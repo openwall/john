@@ -208,6 +208,8 @@ static void init(struct fmt_main *self)
 	
 	for( i=0; i<get_devices_being_used();i++)
 	select_device(get_platform_id(ocl_device_list[i]),get_device_id(ocl_device_list[i]),ocl_device_list[i],self);
+	
+	warning(ocl_device_list);
 }
 
 
