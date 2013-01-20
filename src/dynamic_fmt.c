@@ -7120,7 +7120,7 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 #if !SHA1_SSE_PARA
 	if (dynamic_use_sse==3)
 	{
-		shammx(crypt_key.c[0], sinput_buf[0], total_len[0]);
+		shammx(crypt_key->c, sinput_buf[0], total_len[0]);
 	}
 	else
 #endif
@@ -7160,7 +7160,7 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 			for (z = 0; z < SHA1_SSE_PARA; ++z)
 				memcpy(crypt_key[k*SHA1_SSE_PARA+z].c, scrypt_key[z], BINARY_SIZE*MMX_COEF);
 #else
-			shammx_nosizeupdate(crypt_key.c[k], sinput_buf[0], 1);
+			shammx_nosizeupdate(crypt_key[k].c, sinput_buf[0], 1);
 #endif
 		}
 	}
