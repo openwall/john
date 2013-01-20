@@ -55,6 +55,9 @@ static unsigned int omp_t = 1;
 #define CIPHERTEXT_LENGTH		SALT_FIELD_LENGTH + 1 + 16	/* SALT + $ + 2x8 bytes for BCODE-representation */
 
 #define BINARY_SIZE			8	/* half of md5 */
+#define BINARY_ALIGN			4
+#define SALT_SIZE			sizeof(struct saltstruct)
+#define SALT_ALIGN			4
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
@@ -145,7 +148,6 @@ static struct saltstruct {
 	unsigned int l;
 	unsigned char s[SALT_LENGTH];
 } *cur_salt;
-#define SALT_SIZE			sizeof(struct saltstruct)
 
 static void init(struct fmt_main *self)
 {
@@ -189,7 +191,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (i = 0; i < p - ciphertext; i++) {
 		// even those lower case non-ascii characters with a
 		// corresponding upper case character could be rejected
-		if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') return 0; 
+		if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') return 0;
 		// SAP user names cannot be longer than 12 characters
 		if (i >= SALT_LENGTH && ciphertext[i] != ' ') return 0;
 	}
@@ -676,9 +678,9 @@ struct fmt_main fmt_sapB = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(MD5_SSE_PARA)

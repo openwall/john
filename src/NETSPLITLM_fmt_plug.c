@@ -37,7 +37,9 @@
 #define BENCHMARK_LENGTH     0
 #define PLAINTEXT_LENGTH     7
 #define BINARY_SIZE          8
+#define BINARY_ALIGN         4
 #define SALT_SIZE            8
+#define SALT_ALIGN           4
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         12 + 2 * SALT_SIZE + CIPHERTEXT_LENGTH
 
@@ -151,16 +153,20 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-  static uchar binary[BINARY_SIZE];
-  int i;
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	uchar *binary = buf.c;
+	int i;
 
-  ciphertext+=28;
-  for (i=0; i<BINARY_SIZE; i++)
-  {
-    binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-    binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
-  }
-  return binary;
+	ciphertext+=28;
+	for (i=0; i<BINARY_SIZE; i++)
+	{
+		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+	}
+	return binary;
 }
 
 static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
@@ -217,14 +223,18 @@ static int cmp_exact(char *source, int index)
 
 static void *get_salt(char *ciphertext)
 {
-  static unsigned char binary_salt[SALT_SIZE];
-  int i;
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *binary_salt = buf.c;
+	int i;
 
-  ciphertext += 11;
-  for (i = 0; i < SALT_SIZE; ++i) {
-	  binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
-  }
-  return (void*)binary_salt;
+	ciphertext += 11;
+	for (i = 0; i < SALT_SIZE; ++i) {
+		binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+	}
+	return (void*)binary_salt;
 }
 
 static void set_salt(void *salt)
@@ -316,9 +326,9 @@ struct fmt_main fmt_NETHALFLM = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
