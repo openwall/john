@@ -24,10 +24,11 @@ static size_t program_size;
 extern volatile int bench_running;
 static void opencl_get_dev_info(unsigned int sequential_id);
 
-//Used by auto-tunning to decide how GWS should changed between trials.
-extern int get_next_gws_size(size_t num, int step, int startup, int default_value);
+//Used by auto-tuning to decide how GWS should changed between trials.
+extern int get_next_gws_size(size_t num, int step, int startup,
+                             int default_value);
 
-//Settings to use for auto-tunning.
+//Settings to use for auto-tuning.
 static int buffer_size;
 static int default_value;
 static int hash_loops;
@@ -76,7 +77,8 @@ void advance_cursor()
 	pos = (pos + 1) % 4;
 }
 
-void handle_clerror(cl_int cl_error, const char *message, const char *file, int line)
+void handle_clerror(cl_int cl_error, const char *message, const char *file,
+                    int line)
 {
 	if (cl_error != CL_SUCCESS) {
 		fprintf(stderr,
@@ -168,13 +170,13 @@ static void start_opencl_devices()
 		platforms[i].platform = platform_list[i];
 
 		HANDLE_CLERROR(clGetPlatformInfo(platforms[i].platform,
-			CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
-			"Error querying PLATFORM_NAME");
+		    CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
+		    "Error querying PLATFORM_NAME");
 		HANDLE_CLERROR(clGetDeviceIDs(platforms[i].platform,
-			CL_DEVICE_TYPE_ALL, MAXGPUS, &devices[device_pos], &device_num),
-			"No OpenCL device of that type exist");
+		    CL_DEVICE_TYPE_ALL, MAXGPUS, &devices[device_pos],
+		    &device_num), "No OpenCL device of that type exist");
 
-		//Save plataform and devices information
+		//Save platform and devices information
 		platforms[i].num_devices = device_num;
 
 		//Point to the end of the list
@@ -195,14 +197,15 @@ static void start_opencl_devices()
 		opencl_get_dev_info(i);
 
 		HANDLE_CLERROR(clGetDeviceInfo(devices[i], CL_DEVICE_NAME,
-			sizeof(opencl_data), opencl_data, NULL),
-			"Error querying DEVICE_NAME");
+		    sizeof(opencl_data), opencl_data, NULL),
+		    "Error querying DEVICE_NAME");
 
 		HANDLE_CLERROR(clGetDeviceInfo(devices[i],
-			CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
-			&max_group_size, NULL), "Error querying MAX_WORK_GROUP_SIZE");
+		    CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
+		    &max_group_size, NULL),
+		    "Error querying MAX_WORK_GROUP_SIZE");
 
-		//Get the plataform properties
+		//Get the platform properties
 		properties[0] = CL_CONTEXT_PLATFORM;
 		properties[1] = (cl_context_properties) platforms[get_platform_id(i)].platform;
 		properties[2] = 0;
@@ -230,7 +233,6 @@ static void add_device_to_list(int sequential_id)
 	}
 
 	for (i = 0; i < get_devices_being_used() && !found; i++) {
-
 		if (sequential_id == ocl_device_list[i])
 			found = 1;
 	}
@@ -267,7 +269,6 @@ static void build_device_list(char * device_list[MAXGPUS])
 	int n = 0;
 
 	while (device_list[n] && n < MAXGPUS) {
-
 		if (!strcmp(device_list[n], "all"))
 			add_device_type(CL_DEVICE_TYPE_ALL);
 		else if (!strcmp(device_list[n], "cpu"))
@@ -306,12 +307,19 @@ void init_opencl_devices(void)
 				fprintf(stderr, "Only one OpenCL device supported with --platform syntax.\n");
 				exit(1);
 			}
-			if (!isdigit(current->data[0])) {
-				fprintf(stderr, "Invalid OpenCL device id %s\n",
-					current->data);
+			if (!strcmp(device_list[n], "all") ||
+			    !strcmp(device_list[n], "cpu") ||
+			    !strcmp(device_list[n], "gpu")) {
+				fprintf(stderr, "Only a single numerical --device allowed when using legacy --platform syntax.\n");
 				exit(1);
 			}
-			ocl_gpu_id = get_sequential_id(atoi(current->data), platform_id);
+			if (!isdigit(current->data[0])) {
+				fprintf(stderr, "Invalid OpenCL device id %s\n",
+				        current->data);
+				exit(1);
+			}
+			ocl_gpu_id = get_sequential_id(atoi(current->data),
+			                               platform_id);
 
 			if (ocl_gpu_id < 0) {
 				fprintf(stderr, "Invalid OpenCL device id %s\n",
@@ -329,7 +337,6 @@ void init_opencl_devices(void)
 
 		/* New syntax, sequential --device */
 		if ((current = options.gpu_devices->head)) {
-
 			do {
 				device_list[n++] = current->data;
 			} while ((current = current->next));
@@ -348,9 +355,8 @@ void init_opencl_devices(void)
 	if (!options.ocl_platform && platform_id < 0) {
 		char *devcfg;
 
-		if ((devcfg =
-			cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-						"Platform")))
+		if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                            "Platform")))
 			platform_id = atoi(devcfg);
 	}
 
@@ -358,7 +364,7 @@ void init_opencl_devices(void)
 		char *devcfg;
 
 		if ((devcfg = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
-						"Device"))) {
+		                            "Device"))) {
 			ocl_gpu_id = atoi(devcfg);
 			ocl_device_list[0] = ocl_gpu_id;
 		}

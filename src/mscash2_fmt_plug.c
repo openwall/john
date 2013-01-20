@@ -236,7 +236,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	saltlen = enc_to_utf16(realsalt, 22, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
 	if (saltlen < 0 || saltlen > 22) {
 		static int warned = 0;
-		if (warned++ == 1)
+		if (!warned++)
 			fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
 		return 0;
 	}

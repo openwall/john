@@ -22,8 +22,10 @@
 #define uint32_t		ARCH_WORD_32
 
 #define BINARY_SIZE		sizeof(mic_t)
+#define BINARY_ALIGN		4
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(hccap_t)
+#define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 
@@ -133,15 +135,20 @@ static hccap_t *decode_hccap(char *ciphertext)
 
 static void *binary(char *ciphertext)
 {
-	static unsigned char binary[BINARY_SIZE];
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} binary;
 	hccap_t *hccap = decode_hccap(ciphertext);
-	memcpy(binary, hccap->keymic, BINARY_SIZE);
-	return binary;
+
+	memcpy(binary.c, hccap->keymic, BINARY_SIZE);
+	return binary.c;
 }
 
 static void *salt(char *ciphertext)
 {
 	static hccap_t s;
+
 	memcpy(&s, decode_hccap(ciphertext), SALT_SIZE);
 	return &s;
 }

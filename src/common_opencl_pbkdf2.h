@@ -41,7 +41,7 @@ typedef struct {
  *dev_no = j seclcts the (j+1)th device on (i+1) th platform.
  * Returns optimal work group size for selected device
  */
-extern size_t select_device(int,int,struct fmt_main *);
+extern size_t select_device(int,int,int,struct fmt_main *);
 
 /*Same as above with platform_no and dev_no both set to 0.
  * It selects the first device of the first platform.
@@ -63,6 +63,8 @@ extern void pbkdf2_divide_work(cl_uint*,cl_uint*,cl_uint,cl_uint*,cl_uint);
 /*Clean all OpenCL GPU buffers.
  */
 extern void clean_all_buffer(void);
+
+extern void warning(int*);
 
 /*IMPORTANT NOTE:
  *  1. Max Keys per crypt must be an integral multiple of 8192. Preferred multiple is 65536 for higher performance.

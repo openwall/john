@@ -2,6 +2,17 @@
 #include "cuda_common.h"
 #include "options.h"
 
+#ifndef HAVE_OPENCL
+/* If we have OpenCL as well, we use its exact same function */
+void advance_cursor()
+{
+	static int pos = 0;
+	char cursor[4] = { '/', '-', '\\', '|' };
+	fprintf(stderr, "%c\b", cursor[pos]);
+	pos = (pos + 1) % 4;
+}
+#endif
+
 void cuda_init(unsigned int cuda_gpu_id)
 {
 	int devices;

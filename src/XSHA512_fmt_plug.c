@@ -25,7 +25,9 @@
 #define CIPHERTEXT_LENGTH		136
 
 #define BINARY_SIZE			64
+#define BINARY_ALIGN			4
 #define SALT_SIZE			4
+#define SALT_ALIGN			sizeof(ARCH_WORD_32)
 
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef _OPENMP
@@ -34,7 +36,7 @@
 #define MAX_KEYS_PER_CRYPT		0x100
 #endif
 
-#if ARCH_BITS >= 64
+#if ARCH_BITS >= 64 || defined(__SSE2__)
 /* 64-bitness happens to correlate with faster memcpy() */
 #define PRECOMPUTE_CTX_FOR_SALT
 #else
@@ -104,13 +106,17 @@ static char *prepare(char *split_fields[10], struct fmt_main *self) {
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[BINARY_SIZE];
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 
 	ciphertext += 6;
 	p = ciphertext + 8;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -122,13 +128,17 @@ static void *get_binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char out[SALT_SIZE];
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 
 	ciphertext += 6;
 	p = ciphertext;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
@@ -299,9 +309,9 @@ struct fmt_main fmt_XSHA512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

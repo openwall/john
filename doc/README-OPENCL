@@ -82,7 +82,7 @@ Keys Per Crypt, the number of keys that will be tried in a GPU call.
 - if GWS is set to 0 john will try to get the one best for
   your system, BEWARE it will take a couple of minutes.
 - GWS is highly dependent on your PCI-E bandwidth rate which at the
-  moment is one of the biggest bottleneck for opencl in john.
+  moment is one of the biggest bottlenecks for opencl in john.
 
 
 once you have found the best LWS or GWS for your system you can do

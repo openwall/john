@@ -28,9 +28,11 @@
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define BINARY_SIZE		16
+#define BINARY_SIZE		0
+#define BINARY_ALIGN		MEM_ALIGN_NONE
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(zip_cpu_salt)
+#define SALT_ALIGN		MEM_ALIGN_NONE
 
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
@@ -332,9 +334,9 @@ struct fmt_main fmt_opencl_zip = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,

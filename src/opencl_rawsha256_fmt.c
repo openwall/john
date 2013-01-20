@@ -273,7 +273,7 @@ static void init(struct fmt_main * self) {
     local_work_size = get_default_workgroup();
     opencl_get_user_preferences(CONFIG_NAME);
 
-    //Initialize openCL tunning (library) for this format.
+    //Initialize openCL tuning (library) for this format.
     opencl_init_auto_setup(STEP, 0, 3,
         NULL, CONFIG_NAME DUR_CONFIG_NAME,
         warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,

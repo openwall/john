@@ -25,6 +25,7 @@
 #endif
 #include "unicode.h"
 #include "options.h"
+#include "config.h"
 
 static int progress = 0;
 static int rec_rule;
@@ -34,6 +35,8 @@ static int rule_number, rule_count;
 static int length, key_count;
 static struct db_keys *guessed_keys;
 static struct rpp_context *rule_ctx;
+
+static int words_pair_max;
 
 static void save_state(FILE *file)
 {
@@ -94,6 +97,10 @@ static void single_init(void)
 	struct db_salt *salt;
 
 	log_event("Proceeding with \"single crack\" mode");
+
+	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
+	                                  "SingleWordsPairMax")) < 0)
+		words_pair_max = SINGLE_WORDS_PAIR_MAX;
 
 	progress = 0;
 
@@ -321,7 +328,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 		if (!salt->list) return 2;
 		if (!pw->binary) return 0;
 
-		if (++first_number > SINGLE_WORDS_PAIR_MAX) continue;
+		if (++first_number > words_pair_max) continue;
 
 		if (!CP_isLetter[(unsigned char)first->data[0]]) continue;
 
@@ -354,7 +361,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				if (!salt->list) return 2;
 				if (!pw->binary) return 0;
 			}
-		} while (++second_number <= SINGLE_WORDS_PAIR_MAX &&
+		} while (++second_number <= words_pair_max &&
 			(second = second->next));
 	} while ((first = first->next));
 

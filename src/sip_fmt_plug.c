@@ -44,7 +44,7 @@ static sip_salt *pSalt;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
+#define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(sip_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	64
@@ -83,7 +83,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 // NOTE, this still needs work. I am sure this will not eliminate (compact out)
-// duplicate salts. 
+// duplicate salts.
 static void *get_salt(char *ciphertext)
 {
 	sip_salt *salt;

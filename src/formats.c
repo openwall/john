@@ -17,8 +17,12 @@
 #else
 #include "loader.h"
 #endif
+
+/* this is just for advance_cursor() */
 #ifdef HAVE_OPENCL
 #include "common-opencl.h"
+#elif HAVE_CUDA
+#include "cuda_common.h"
 #endif
 
 struct fmt_main *fmt_list = NULL;
@@ -92,10 +96,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
-#if defined(DEBUG) && !defined(BENCH_BUILD)
+#ifndef BENCH_BUILD
+#ifdef DEBUG
+	int binary_size_warned = 0, salt_size_warned = 0;
 	int validkiller = 0;
 #endif
-#ifndef BENCH_BUILD
 	int lengthcheck = 0;
 	int ml = format->params.plaintext_length;
 	char longcand[PLAINTEXT_BUFFER_SIZE + 1];
@@ -108,6 +113,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	// validate that there are no NULL function pointers
 	if (format->methods.init == NULL)       return "method init NULL";
+	if (format->methods.done == NULL)       return "method done NULL";
+	if (format->methods.reset == NULL)      return "method reset NULL";
 	if (format->methods.prepare == NULL)    return "method prepare NULL";
 	if (format->methods.valid == NULL)      return "method valid NULL";
 	if (format->methods.split == NULL)      return "method split NULL";
@@ -155,6 +162,21 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
 		return "FMT_SPLIT_UNIFIES_CASE";
 
+#ifdef DEBUG
+	/* These conditions does not necessarily mean we have a bug */
+	if ((format->methods.binary == fmt_default_binary) &&
+	    (format->params.binary_size > 0) && !binary_size_warned) {
+		binary_size_warned = 1;
+		puts("Warning: Using default binary() with a non-zero BINARY_SIZE");
+	}
+
+	if ((format->methods.salt == fmt_default_salt) &&
+	    (format->params.salt_size > 0) && !salt_size_warned) {
+		salt_size_warned = 1;
+		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
+	}
+#endif
+
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
 	while ((current++)->ciphertext)
@@ -197,6 +219,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
  */
 		binary = format->methods.binary(ciphertext);
 		if (!is_aligned(binary, format->params.binary_align) &&
+		    (format->params.binary_size > 0) &&
 		    !binary_align_warned) {
 			puts("Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
@@ -206,6 +229,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		salt = format->methods.salt(ciphertext);
 		if (!is_aligned(salt, format->params.salt_align) &&
+		    (format->params.salt_size > 0) &&
 		    !salt_align_warned) {
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
@@ -274,10 +298,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			}
 		}
 #endif
-#ifdef HAVE_OPENCL
+#ifndef BENCH_BUILD
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
 		advance_cursor();
 #endif
-#ifndef BENCH_BUILD
 		if (lengthcheck == 1)
 		{
 			int count = max;
