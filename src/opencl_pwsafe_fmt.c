@@ -31,7 +31,7 @@
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        15
-#define BINARY_SIZE             32
+#define BINARY_SIZE             0
 #define KERNEL_NAME             "pwsafe"
 #define MIN_KEYS_PER_CRYPT      (512*112)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
