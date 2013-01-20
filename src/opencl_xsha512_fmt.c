@@ -62,7 +62,7 @@
 
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
-#define BINARY_ALIGN 4
+#define BINARY_ALIGN sizeof(uint64_t)
 
 
 #define PLAINTEXT_LENGTH 20
@@ -282,13 +282,14 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE];
-		ARCH_WORD_32 dummy;
+		unsigned char c[FULL_BINARY_SIZE];
+		uint64_t l[FULL_BINARY_SIZE / sizeof(uint64_t)];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
 	int i;
 	uint64_t *b;
+
 	ciphertext += 6;
 	p = ciphertext + 8;
 	for (i = 0; i < sizeof(buf.c); i++) {
@@ -296,7 +297,7 @@ static void *get_binary(char *ciphertext)
 		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	b = (uint64_t *) out;
+	b = buf.l;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
