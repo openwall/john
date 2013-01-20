@@ -184,6 +184,16 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0xfffff;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0xffffff;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0x7ffffff;
+}
+
 static int get_hash_0(int index)
 {
 	return crypted[0] & 0xf;
@@ -207,6 +217,16 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return crypted[0] & 0xfffff;
+}
+
+static int get_hash_5(int index)
+{
+	return crypted[0] & 0xffffff;
+}
+
+static int get_hash_6(int index)
+{
+	return crypted[0] & 0x7ffffff;
 }
 
 static char *get_salt(char *ciphertext)
@@ -297,7 +317,9 @@ struct fmt_main fmt_NS = {
                     binary_hash_1,
                     binary_hash_2,
                     binary_hash_3,
-                    binary_hash_4
+                    binary_hash_4,
+                    binary_hash_5,
+                    binary_hash_6
 		},
 		fmt_default_salt_hash,
 		set_salt,
@@ -310,7 +332,9 @@ struct fmt_main fmt_NS = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		NS_cmp_all,
 		NS_cmp_all,
