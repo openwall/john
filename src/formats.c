@@ -201,6 +201,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
  */
 		binary = format->methods.binary(ciphertext);
 		if (!is_aligned(binary, format->params.binary_align) &&
+		    (format->params.binary_size > 0) &&
 		    !binary_align_warned) {
 			puts("Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
@@ -210,6 +211,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		salt = format->methods.salt(ciphertext);
 		if (!is_aligned(salt, format->params.salt_align) &&
+		    (format->params.salt_size > 0) &&
 		    !salt_align_warned) {
 			puts("Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
