@@ -120,14 +120,68 @@ void opencl_process_event(void);
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE(dividend, divisor)		 ((unsigned int) ((dividend / divisor) * divisor))
 
+/*
+ * Shared function to find 'the best' local work group size.
+ *
+ * - group_size_limit: the max work group size to be tested.
+ *   Register pressure, __local memory usage, ..., will define the limiting value.
+ * - sequential_id: the sequential number of the device in use.
+ * - Your kernel (or main kernel) should be crypt_kernel.
+ */
 void opencl_find_best_lws(
-	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel) ;
+	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel);
 
+/*
+ * Shared function to find 'the best' global work group size (keys per crypt).
+ *
+ * - step: the step size to be used to define the next gws to be tested.
+ *   Zero: starting from 512 multiply it by 2 (512, 1024, 2048, 4096, ...).
+ *   N > 0: starting from N, use N as step (N, 2N, 3N, 4N...).
+ *   E.g. step=1024 (1024, 2048, 3072, 4096, ...).
+ * - show_speep: shows the speed detail (like this):
+ *   - gws:  16384      7068 c/s  35341675 rounds/s   2.318 sec per crypt_all()
+ * - show_details: shows the time of execution for each part (like this):
+ *   - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
+ * - max_run_time: maximum kernel runtime allowed (in ms).
+ * - sequential_id: the sequential number of the device in use.
+ * - rounds: the number of rounds used by the algorithm.
+ *   For raw formats it should be 1. For sha512crypt it is 5000.
+ */
 void opencl_find_best_gws(
 	int step, int show_speed, int show_details,
 	unsigned long long int max_run_time, int sequential_id,
 	unsigned int rounds);
 
+/*
+ * Shared function to initialize variables necessary by shared find(lws/gws) functions.
+ *
+ * - p_default_value: the default step size (see step in opencl_find_best_gws).
+ * - p_hash_loops: the number of loops performed by a split-kernel. Zero otherwise.
+ * - p_number_of_events: number of events that have to be benchmarked.
+ *   For example: if you only transfer plaintext, compute the hash and tranfer hashes back,
+ *   the number is 3.
+ * - p_split_events: A pointer to a 3 elements array containing the position order of
+ *   events that process the main part of a split-kernel. NULL have to be used for non split-kernel.
+ *   Find best_gws will compute the split-kernel three times in order to get the 'real' runtime.
+ *   Example:
+ *       for (i = 0; i < 3; i++) {
+ *           HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], main_kernel[ocl_gpu_id], 1, NULL,
+ *               &gws, &local_work_size, 0, NULL,
+ *               &multi_profilingEvent[split_events[i]]),  //split_events contains: 2 ,5 ,6
+ *               "failed in clEnqueueNDRangeKernel");
+ *       }
+ *
+ * - p_duration_text: the name of the parameter inside the config file that
+ *   defines the duration of the execution.
+ * - p_warnings: array os strings to be used by show_details.
+ *   - "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: ", ...
+ * - p_to_profile_event: pointer to the main event to be profiled (in find_lws).
+ * - p_self: a pointer to the format itself.
+ * - p_create_clobj: function that (m)alloc all buffers needed by crypt_all.
+ * - p_release_clobj: function that release all buffers needed by crypt_all.
+ * - p_buffer_size: the size of the plaintext/the most important buffer to allocate.
+ *   (needed to assure there is enough memory to handle a GWS that is going to be tested).
+ */
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
 	int * p_split_events, char * p_duration_text, const char ** p_warnings,
