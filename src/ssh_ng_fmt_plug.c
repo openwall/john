@@ -35,7 +35,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1001
 #define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
+#define BINARY_SIZE		0
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1

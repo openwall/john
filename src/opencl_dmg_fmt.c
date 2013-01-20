@@ -27,7 +27,7 @@
 #define	KEYS_PER_CRYPT		1024*9
 #define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
-#define BINARY_SIZE		16
+#define BINARY_SIZE		0
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(struct custom_salt)
 

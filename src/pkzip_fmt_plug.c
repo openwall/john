@@ -39,7 +39,7 @@
 
 #define PLAINTEXT_LENGTH		31
 
-#define BINARY_SIZE				1
+#define BINARY_SIZE				0
 #define SALT_SIZE				(sizeof(PKZ_SALT*))
 
 #define MIN_KEYS_PER_CRYPT		1
