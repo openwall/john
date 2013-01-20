@@ -97,13 +97,26 @@ char *fmt_self_test(struct fmt_main *format)
 	    (format->params.flags & FMT_SPLIT_UNIFIES_CASE))
 		return "FMT_SPLIT_UNIFIES_CASE";
 
+#if DEBUG
+	/* These conditions does not necessarily mean we have a bug,
+	   but no current format use the default function and actually
+	   uses its output. */
 	if ((format->methods.binary == fmt_default_binary) &&
-	    (format->params.binary_size > 0))
-		return "BINARY_SIZE";
+	        (format->params.binary_size > 0)) {
+		static int warned = 0;
+
+		if (!warned++)
+			puts("Warning: Using default binary() with a non-zero BINARY_SIZE");
+	}
 
 	if ((format->methods.salt == fmt_default_salt) &&
-	    (format->params.salt_size > 0))
-		return "SALT_SIZE";
+	        (format->params.salt_size > 0)) {
+		static int warned = 0;
+
+		if (!warned++)
+			puts("Warning: Using default salt() with a non-zero SALT_SIZE");
+	}
+#endif
 
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
