@@ -856,7 +856,7 @@ examples (this whole list is also found in dynamic.conf).
 #    with a single \ character).
 #    NOTE that HH MUST be uppercased for the A to F values, and the 'x'
 #    MUST be lowercase.
-#    NOTE, you MUST use \xHH.  So, to put a ASCII(1) value, you would
+#    NOTE, you MUST use \xHH.  So, to put an ASCII(1) value, you would
 #    use \x01  (not \x1 ).
 #    ALL conversions are done prior to the line being 'looked at' within
 #    the parser.
