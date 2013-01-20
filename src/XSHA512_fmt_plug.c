@@ -27,7 +27,7 @@
 #define BINARY_SIZE			64
 #define BINARY_ALIGN			4
 #define SALT_SIZE			4
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define SALT_ALIGN			sizeof(ARCH_WORD_32)
 
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef _OPENMP

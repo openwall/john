@@ -40,7 +40,9 @@
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
+#define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           512
+#define SALT_ALIGN          MEM_ALIGN_NONE
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  96
 
@@ -202,9 +204,9 @@ struct fmt_main fmt_zip = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,   /*ldr_remove_hash(crk_db, salt, pw);*/
