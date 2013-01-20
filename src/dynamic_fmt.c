@@ -7009,7 +7009,7 @@ static inline int large_hash_output(unsigned char *cpi, unsigned char *cpo, int 
 			break;
 		case eUNK:
 		default:
-			exit(fprintf(stderr, "Error, a unknown 'output' state found in large_hash_output function, in %s\n", curdat.dynamic_WHICH_TYPE_SIG));
+			exit(fprintf(stderr, "Error, unknown 'output' state found in large_hash_output function, in %s\n", curdat.dynamic_WHICH_TYPE_SIG));
 	}
 	return cpo2-cpo;
 }
@@ -7033,7 +7033,7 @@ static inline int large_hash_output_no_null(unsigned char *cpi, unsigned char *c
 			break;
 		case eUNK:
 		default:
-			exit(fprintf(stderr, "Error, a unknown 'output' state found in large_hash_output function, in %s\n", curdat.dynamic_WHICH_TYPE_SIG));
+			exit(fprintf(stderr, "Error, unknown 'output' state found in large_hash_output function, in %s\n", curdat.dynamic_WHICH_TYPE_SIG));
 	}
 	return cpo2-cpo;
 }

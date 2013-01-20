@@ -430,7 +430,7 @@ class _OleStream(StringIO.StringIO):
     OLE2 Stream
 
     Returns a read-only file object which can be used to read
-    the contents of a OLE stream (instance of the StringIO class).
+    the contents of an OLE stream (instance of the StringIO class).
     To open a stream, use the openstream method in the OleFile class.
 
     This function can be used with either ordinary streams,
