@@ -149,6 +149,19 @@ static void find_best_workgroup(int pltform_no,int dev_no)
 
 }
 
+static size_t max_lws()
+{
+	int i;
+
+	size_t max=0;
+
+	for(i=0;i<active_dev_ctr;++i)
+		if(max<lws[store_platform_no[i]][store_dev_no[i]])
+			max=lws[store_platform_no[i]][store_dev_no[i]];
+
+	return max;
+}
+
 static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 	
 	long int gds_size ;
@@ -161,13 +174,13 @@ static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 	
 	gds_size = (gds_size/8192 + 1 )*8192 ;
 	
-	gds_size = (gds_size<MAX_KEYS_PER_CRYPT)?gds_size:MAX_KEYS_PER_CRYPT ;
+	gds_size = (gds_size<(MAX_KEYS_PER_CRYPT-8192))?gds_size:(MAX_KEYS_PER_CRYPT-8192) ;
 	
 	gds_size = (gds_size>8192)?gds_size:8192 ;
 	
 	fmt->params.max_keys_per_crypt = gds_size ;
 	
-	fmt->params.min_keys_per_crypt = lws[pltform_no][dev_no] ;
+	fmt->params.min_keys_per_crypt = max_lws() ;
 	
 }
 
@@ -237,20 +250,6 @@ size_t select_default_device(struct fmt_main *fmt)
 	  return select_device(0,0,fmt);
 }
 
-
-static size_t max_lws()
-{
-	int i;
-
-	size_t max=0;
-
-	for(i=0;i<active_dev_ctr;++i)
-		if(max<lws[store_platform_no[i]][store_dev_no[i]])
-			max=lws[store_platform_no[i]][store_dev_no[i]];
-
-	return max;
-}
-
 void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,cl_uint *hash_out_api,cl_uint num)
 {
 	  double total_exec_time_inv=0;
@@ -293,21 +292,22 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 				if(work_part%lws_max!=0)
 					work_part=(work_part/lws_max + 1)*lws_max;
 			}
-
+			
+			if((int)work_part<=0) work_part = lws_max;
+			
 		///call to exec_pbkdf2()
 #ifdef _DEBUG
 		printf("Work Offset:%d  Work Part Size:%d %d\n",work_offset,work_part,event_ctr);
-#endif
+#endif		
 		exec_pbkdf2(pass_api+4*work_offset,salt_api,saltlen_api,hash_out_api+4*work_offset,work_part,store_platform_no[i],store_dev_no[i]);
 
 		work_offset+=work_part;
-
 
 		}
 
 		///Synchronize Device memory and Host memory
 		for(i=active_dev_ctr-1;i>=0;--i)
-			HANDLE_CLERROR(clFlush(cmdq[store_platform_no[i]][store_dev_no[i]]),"Flush Error");
+			HANDLE_CLERROR(clFlush(cmdq[store_platform_no[i]][store_dev_no[i]]),"Flush Error");                                                                       
 
 
 		for(i=0;i<active_dev_ctr;++i){
@@ -321,13 +321,13 @@ void pbkdf2_divide_work(cl_uint *pass_api,cl_uint *salt_api,cl_uint saltlen_api,
 		}
 
 		for(i=0;i<active_dev_ctr;++i)
-			HANDLE_CLERROR(clFinish(cmdq[store_platform_no[i]][store_dev_no[i]]),"Finish Error");
+			HANDLE_CLERROR(clFinish(cmdq[store_platform_no[i]][store_dev_no[i]]),"Finish Error");                                                                  
 
 	 }
 
 	 else{
 		exec_pbkdf2(pass_api,salt_api,saltlen_api,hash_out_api,num, store_platform_no[0],store_dev_no[0]);
-		HANDLE_CLERROR(clFinish(cmdq[store_platform_no[0]][store_dev_no[0]]),"Finish Error");
+		HANDLE_CLERROR(clFinish(cmdq[store_platform_no[0]][store_dev_no[0]]),"Finish Error");										
 
 	}
 
@@ -370,8 +370,6 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 
 		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
 
-		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
-
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");															
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
@@ -410,8 +408,6 @@ static gpu_mem_buffer exec_pbkdf2(cl_uint *pass_api,cl_uint *salt_api,cl_uint sa
 		HANDLE_CLERROR(clWaitForEvents(1,&evnt),"SYNC FAILED");
 
 		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");
-
-		HANDLE_CLERROR(clFinish(cmdq[platform_no][dev_no]), "clFinish error");															
 
 		clGetEventProfilingInfo(evnt, CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime, NULL);
 
