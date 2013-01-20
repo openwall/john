@@ -39,7 +39,7 @@
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
-#define BINARY_SIZE         2
+#define BINARY_SIZE         0
 #define SALT_SIZE           512
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  96

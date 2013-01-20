@@ -28,7 +28,7 @@
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
-#define BINARY_SIZE		16
+#define BINARY_SIZE		0
 #define PLAINTEXT_LENGTH	64
 #define SALT_SIZE		sizeof(zip_cpu_salt)
 
