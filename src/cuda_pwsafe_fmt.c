@@ -27,7 +27,7 @@
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        -1
 #define PLAINTEXT_LENGTH        32
-#define BINARY_SIZE             32
+#define BINARY_SIZE             0
 #define SALT_SIZE               sizeof(pwsafe_salt)
 #define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 #define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
