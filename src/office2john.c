@@ -378,7 +378,7 @@ static int test(char *filename)
 	in = GSF_INFILE(infile);
 	src = gsf_infile_child_by_name(in, "EncryptionInfo");
 	if (!src) {
-		fprintf(stderr, "%s : is not a Office 2007 / 2010 / 2013 encrypted file!\n", filename);
+		fprintf(stderr, "%s : is not an Office 2007 / 2010 / 2013 encrypted file!\n", filename);
 		return 1;
 	}
 

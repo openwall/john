@@ -395,34 +395,49 @@ static int binary_hash_4(void *binary)
 	return ((unsigned int*)binary)[3] & 0x0FFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((unsigned int*)binary)[3] & 0x0FFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((unsigned int*)binary)[3] & 0x07FFFFFF;
+}
 
 static int get_hash_0(int index)
 {
 	return crypt[4 * index + 3] & 0x0F;
 }
 
-
 static int get_hash_1(int index)
 {
 	return crypt[4 * index + 3] & 0xFF;
 }
-
 
 static int get_hash_2(int index)
 {
 	return crypt[4 * index + 3] & 0x0FFF;
 }
 
-
 static int get_hash_3(int index)
 {
 	return crypt[4 * index + 3] & 0x0FFFF;
 }
 
-
 static int get_hash_4(int index)
 {
 	return crypt[4 * index + 3] & 0x0FFFFF;
+}
+
+static int get_hash_5(int index)
+{
+	return crypt[4 * index + 3] & 0x0FFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return crypt[4 * index + 3] & 0x07FFFFFF;
 }
 
 static int cmp_all(void *binary, int count)
@@ -728,7 +743,9 @@ struct fmt_main fmt_mscash2 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -741,7 +758,9 @@ struct fmt_main fmt_mscash2 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,
