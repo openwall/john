@@ -29,7 +29,7 @@
  * Thanks also to Pavel Semjanov for crucial help with Huffman table checks.
  *
  * For type = 0 for files encrypted with "rar -hp ..." option
- * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*0*archive_name*offset-for-ciphertext*method:type::file_name
+ * archive_name:$RAR3$*type*hex(salt)*hex(partial-file-contents):type::::archive_name
  *
  * For type = 1 for files encrypted with "rar -p ..." option
  * archive_name:$RAR3$*type*hex(salt)*hex(crc)*PACK_SIZE*UNP_SIZE*archive_name*offset-for-ciphertext*method:type::file_name
@@ -639,6 +639,9 @@ static void init(struct fmt_main *self)
 	RarFinal = clCreateKernel(program[ocl_gpu_id], "RarFinal", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 
+#ifdef DEBUG
+	self->params.benchmark_comment = " (1-16 characters)";
+#endif
 	/* We mimic the lengths of cRARk for comparisons */
 	if (gpu(device_info[ocl_gpu_id])) {
 #ifndef DEBUG
@@ -740,9 +743,95 @@ static void init(struct fmt_main *self)
 	}
 }
 
+static int hexlen(char *q)
+{
+	char *s = q;
+	size_t len = strlen(q);
+
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return (len == (size_t)(q - s)) ? (int)(q - s) : -1 - (int)(q - s);
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$RAR3$*", 7);
+	char *ctcopy, *ptr, *keeptr;
+	int mode;
+
+	if (strncmp(ciphertext, "$RAR3$*", 7))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext))) {
+		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
+		return 0;
+	}
+	keeptr = ctcopy;
+	ctcopy += 7;
+	if (!(ptr = strtok(ctcopy, "*"))) /* -p or -h mode */
+		goto error;
+	if (hexlen(ptr) != 1)
+		goto error;
+	mode = atoi(ptr);
+	if (mode < 0 || mode > 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* salt */
+		goto error;
+	if (hexlen(ptr) != 16) /* 8 bytes of salt */
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (mode == 0) {
+		if (hexlen(ptr) != 32) /* 16 bytes of encrypted known plain */
+			goto error;
+		return 1;
+	} else {
+		int inlined;
+		size_t plen, ulen;
+
+		if (hexlen(ptr) != 8) /* 4 bytes of CRC */
+			goto error;
+		if (!(ptr = strtok(NULL, "*")))
+			goto error;
+		if ((plen = atoll(ptr)) < 16)
+			goto error;
+		if (!(ptr = strtok(NULL, "*")))
+			goto error;
+		if ((ulen = atoll(ptr)) < 1)
+			goto error;
+		if (!(ptr = strtok(NULL, "*")))
+			goto error;
+		if (hexlen(ptr) != 1)
+			goto error;
+		inlined = atoi(ptr);
+		if (inlined < 0 || inlined > 1)
+			goto error;
+		if (!(ptr = strtok(NULL, "*")))
+			goto error;
+		if (inlined) {
+			if (hexlen(ptr) != plen * 2)
+				goto error;
+		} else {
+			FILE *fp;
+			char *archive_name;
+			size_t pos;
+
+			archive_name = ptr;
+			if (!(ptr = strtok(NULL, "*")))
+				goto error;
+			if ((pos = atoll(ptr)) < 0)
+				goto error;
+			if (!(fp = fopen(archive_name, "rb"))) {
+				fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
+				goto error;
+			}
+			fclose(fp);
+		}
+	}
+	MEM_FREE(keeptr);
+	return 1;
+
+error:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static char *get_key(int index)
