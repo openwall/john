@@ -27,6 +27,9 @@
  *
  */
 
+#ifndef _JOHN_SHA2_h
+#define _JOHN_SHA2_h
+
 #include <string.h>
 
 #include <openssl/opensslv.h>
@@ -142,3 +145,5 @@ extern void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], in
 #endif
 
 #endif
+
+#endif /* _JOHN_SHA2_h */

@@ -21,6 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/> */
 
 #include <string.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
 #include "arch.h"
 #include "params.h"
 #include "common.h"
@@ -29,17 +34,14 @@
 #include "md5.h"
 #include "rc4.h"
 #include "pdfcrack_md5.h"
+#include "sha.h"
+#include "sha2.h"
 #include <openssl/aes.h>
 #include <assert.h>
 #include <openssl/blowfish.h>
 #include <openssl/ripemd.h>
 #include <openssl/cast.h>
 #include <openssl/bn.h>
-#include "sha2.h"
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
 
 #ifdef _MSC_VER
 typedef int int32_t;
