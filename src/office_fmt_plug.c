@@ -19,6 +19,7 @@
 #include "options.h"
 #include "base64.h"
 #include "unicode.h"
+#include "sha.h"
 #include "sha2.h"
 #include <openssl/aes.h>
 
