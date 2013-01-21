@@ -25,21 +25,21 @@
 #include "opencl_xsha512-ng.h"
 
 #define FORMAT_LABEL			"xsha512-ng-opencl"
-#define FORMAT_NAME				"Mac OS X 10.7+ salted SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
+#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
-#define CONFIG_NAME				"xsha512"
+#define CONFIG_NAME			"xsha512"
 
 static sha512_salt			* salt;
-static sha512_password		* plaintext;			// plaintext ciphertexts
+static sha512_password			* plaintext;			// plaintext ciphertexts
 static uint32_t				* calculated_hash;		// calculated (partial) hashes
 
-static cl_mem salt_buffer;			//Salt information.
-static cl_mem pass_buffer;			//Plaintext buffer.
-static cl_mem hash_buffer;			//Partial hash keys (output).
+static cl_mem salt_buffer;		//Salt information.
+static cl_mem pass_buffer;		//Plaintext buffer.
+static cl_mem hash_buffer;		//Partial hash keys (output).
 static cl_mem p_binary_buffer;		//To compare partial binary ([3]).
 static cl_mem result_buffer;		//To get the if a hash was found.
 static cl_mem pinned_saved_keys, pinned_partial_hashes;

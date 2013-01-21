@@ -20,19 +20,19 @@
 #include "opencl_rawsha256.h"
 
 #define FORMAT_LABEL			"raw-sha256-opencl"
-#define FORMAT_NAME				"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
+#define FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 
-#define CONFIG_NAME				"rawsha256"
+#define CONFIG_NAME			"rawsha256"
 
-static sha256_password		* plaintext;			// plaintext ciphertexts
+static sha256_password			* plaintext;			// plaintext ciphertexts
 static uint32_t				* calculated_hash;		// calculated (partial) hashes
 
-static cl_mem pass_buffer;			//Plaintext buffer.
-static cl_mem hash_buffer;			//Partial hash keys (output).
+static cl_mem pass_buffer;		//Plaintext buffer.
+static cl_mem hash_buffer;		//Partial hash keys (output).
 static cl_mem p_binary_buffer;		//To compare partial binary ([3]).
 static cl_mem result_buffer;		//To get the if a hash was found.
 static cl_mem pinned_saved_keys, pinned_partial_hashes;

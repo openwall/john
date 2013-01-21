@@ -18,22 +18,22 @@
 #include "opencl_cryptsha256.h"
 
 #define FORMAT_LABEL			"sha256crypt-ng-opencl"
-#define FORMAT_NAME				"sha256crypt"
+#define FORMAT_NAME			"sha256crypt"
 #define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define CONFIG_NAME				"sha256crypt"
+#define CONFIG_NAME			"sha256crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
 #define _USE_GPU_SOURCE			(gpu(source_in_use))
 #define _USE_LOCAL_SOURCE		(use_local(source_in_use) || amd_vliw5(source_in_use))
-#define _SPLIT_KERNEL_IN_USE	(gpu(source_in_use) || use_local(source_in_use) || amd_vliw5(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use) || use_local(source_in_use) || amd_vliw5(source_in_use))
 
 static sha256_salt			* salt;
-static sha256_password		* plaintext;			// plaintext ciphertexts
+static sha256_password			* plaintext;			// plaintext ciphertexts
 static sha256_hash			* calculated_hash;		// calculated hashes
 
 static cl_mem salt_buffer;		//Salt information.

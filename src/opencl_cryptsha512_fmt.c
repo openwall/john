@@ -18,22 +18,22 @@
 #include "opencl_cryptsha512.h"
 
 #define FORMAT_LABEL			"sha512crypt-opencl"
-#define FORMAT_NAME				"sha512crypt"
+#define FORMAT_NAME			"sha512crypt"
 #define ALGORITHM_NAME			"OpenCL"
 
 #define BENCHMARK_COMMENT		" (rounds=5000)"
 #define BENCHMARK_LENGTH		-1
 
-#define CONFIG_NAME				"sha512crypt"
+#define CONFIG_NAME			"sha512crypt"
 
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
 #define _USE_GPU_SOURCE			(gpu(source_in_use))
-#define _SPLIT_KERNEL_IN_USE	(gpu(source_in_use))
+#define _SPLIT_KERNEL_IN_USE		(gpu(source_in_use))
 
-static sha512_salt		 * salt;
-static sha512_password	 * plaintext;			// plaintext ciphertexts
-static sha512_hash		 * calculated_hash;		// calculated hashes
+static sha512_salt			* salt;
+static sha512_password	 		* plaintext;			// plaintext ciphertexts
+static sha512_hash			* calculated_hash;		// calculated hashes
 
 static cl_mem salt_buffer;		//Salt information.
 static cl_mem pass_buffer;		//Plaintext buffer.
