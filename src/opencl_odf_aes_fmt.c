@@ -6,6 +6,7 @@
  * modification, are permitted. */
 
 #include <string.h>
+
 #include "arch.h"
 #include "formats.h"
 #include "common.h"
@@ -13,7 +14,7 @@
 #include "common.h"
 #include "formats.h"
 #include "common-opencl.h"
-#include <openssl/sha.h>
+#include "sha2.h"
 #include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>

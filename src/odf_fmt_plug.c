@@ -9,24 +9,26 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/sha.h>
+#include "sha.h"
+#include "sha2.h"
 #include <openssl/blowfish.h>
 #include <openssl/aes.h>
 #include "pbkdf2_hmac_sha1.h"
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
 
 #define FORMAT_LABEL		"odf"
 #define FORMAT_NAME		"ODF SHA-1 Blowfish / SHA-256 AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define BINARY_SIZE		20

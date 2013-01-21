@@ -4,17 +4,16 @@
  * based on rawMD4_fmt.c code, with trivial changes by groszek.
  */
 
-#include "sha2.h"
-
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-
 #ifdef _OPENMP
 #define OMP_SCALE			2048
 #include <omp.h>
 #endif
+
+#include "arch.h"
+#include "sha2.h"
+#include "params.h"
+#include "common.h"
+#include "formats.h"
 
 #define FORMAT_LABEL			"raw-sha224"
 #define FORMAT_NAME			"Raw SHA-224"
