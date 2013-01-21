@@ -410,7 +410,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 1;
 	} else {
 		int inlined;
-		size_t plen, ulen;
+		long long plen, ulen;
 
 		if (hexlen(ptr) != 8) /* 4 bytes of CRC */
 			goto error;
@@ -437,17 +437,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		} else {
 			FILE *fp;
 			char *archive_name;
-			size_t pos;
 
 			archive_name = ptr;
-			if (!(ptr = strtok(NULL, "*")))
-				goto error;
-			if ((pos = atoll(ptr)) < 0)
-				goto error;
 			if (!(fp = fopen(archive_name, "rb"))) {
-				fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
+				fprintf(stderr, "! %s: %s, skipping.\n", archive_name, strerror(errno));
 				goto error;
 			}
+			/* We could go on and actually try seeking to pos
+			   but this is enough for now */
 			fclose(fp);
 		}
 	}
@@ -455,6 +452,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 
 error:
+#ifdef DEBUG
+	{
+		char buf[68];
+		strnzcpy(buf, ciphertext, sizeof(buf));
+		fprintf(stderr, "rejecting %s\n", buf);
+	}
+#endif
 	MEM_FREE(keeptr);
 	return 0;
 }
