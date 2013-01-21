@@ -199,10 +199,10 @@ next_file_header:
 		printf(":%d::::%s\n", type, archive_name);
 	} else {
 		size_t file_header_pack_size, file_header_unp_size;
-		int EXT_TIME_SIZE;
+		int ext_time_size;
 		uint16_t file_header_head_size, file_name_size;
-		unsigned char file_name[256], FILE_CRC[4];
-		unsigned SALT[8] = { 0 };
+		unsigned char file_name[256], file_crc[4];
+		unsigned char salt[8] = { 0 };
 		char rejbuf[32];
 		long pos;
 
@@ -222,7 +222,7 @@ next_file_header:
 		        file_header_unp_size);
 #endif
 		/* calculate EXT_TIME size */
-		EXT_TIME_SIZE = file_header_head_size - 32;
+		ext_time_size = file_header_head_size - 32;
 
 		if (file_header_head_flags & 0x100) {
 #ifdef DEBUG
@@ -230,7 +230,7 @@ next_file_header:
 #endif
 			count = fread(rejbuf, 4, 1, fp);
 			assert(count == 1);
-			EXT_TIME_SIZE -= 4;
+			ext_time_size -= 4;
 		}
 		if (file_header_head_flags & 0x100) {
 #ifdef DEBUG
@@ -238,7 +238,7 @@ next_file_header:
 #endif
 			count = fread(rejbuf, 4, 1, fp);
 			assert(count == 1);
-			EXT_TIME_SIZE -= 4;
+			ext_time_size -= 4;
 		}
 		/* file name processing */
 		file_name_size =
@@ -249,7 +249,7 @@ next_file_header:
 		memset(file_name, 0, sizeof(file_name));
 		count = fread(file_name, file_name_size, 1, fp);
 		assert(count == 1);
-		EXT_TIME_SIZE -= file_name_size;
+		ext_time_size -= file_name_size;
 
 		/* If this flag is set, file_name contains some weird
 		   wide char encoding that need to be decoded to UTF16
@@ -276,10 +276,10 @@ next_file_header:
 		} else
 			fprintf(stderr, "file name: %s\n", file_name);
 
-		/* SALT processing */
+		/* salt processing */
 		if (file_header_head_flags & 0x400) {
-			EXT_TIME_SIZE -= 8;
-			count = fread(SALT, 8, 1, fp);
+			ext_time_size -= 8;
+			count = fread(salt, 8, 1, fp);
 			assert(count == 1);
 		}
 
@@ -287,9 +287,9 @@ next_file_header:
 		if (file_header_head_flags & 0x1000) {
 #ifdef DEBUG
 			fprintf(stderr, "! EXT_TIME present with size %d\n",
-			    EXT_TIME_SIZE);
+			    ext_time_size);
 #endif
-			count = fread(rejbuf, EXT_TIME_SIZE, 1, fp);
+			count = fread(rejbuf, ext_time_size, 1, fp);
 			assert(count == 1);
 		}
 
@@ -329,13 +329,14 @@ next_file_header:
 
 		/* process encrypted data of size "file_header_pack_size" */
 		sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
-		for (i = 0; i < 8; i++) { /* encode SALT */
-			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(SALT[i] >> 4)], itoa16[ARCH_INDEX(SALT[i] & 0x0f)]);
+		for (i = 0; i < 8; i++) { /* encode salt */
+			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(salt[i] >> 4)], itoa16[ARCH_INDEX(salt[i] & 0x0f)]);
 		}
+		fprintf(stderr, "salt: '%s'\n", best);
 		sprintf(&best[strlen(best)], "*");
-		memcpy(FILE_CRC, file_header_block + 16, 4);
-		for (i = 0; i < 4; i++) { /* encode FILE_CRC */
-			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(FILE_CRC[i] >> 4)], itoa16[ARCH_INDEX(FILE_CRC[i] & 0x0f)]);
+		memcpy(file_crc, file_header_block + 16, 4);
+		for (i = 0; i < 4; i++) { /* encode file_crc */
+			sprintf(&best[strlen(best)], "%c%c", itoa16[ARCH_INDEX(file_crc[i] >> 4)], itoa16[ARCH_INDEX(file_crc[i] & 0x0f)]);
 		}
 		/* Minimal version needed to unpack this file */
 		fprintf(stderr, "! UNP_VER is %0.1f\n", (float)file_header_block[24] / 10.);
