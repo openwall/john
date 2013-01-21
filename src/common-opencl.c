@@ -162,9 +162,9 @@ static void start_opencl_devices()
 	cl_context_properties properties[3];
 	int i;
 
-	///Find OpenCL enabled devices
-	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform_list,
-		&num_platforms), "No OpenCL platform found");
+	/* Find OpenCL enabled devices. We ignore error here, in case
+	 * there is no platform and we'd like to run a non-OpenCL format. */
+	clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
 
 	for (i = 0; i < num_platforms; i++) {
 		platforms[i].platform = platform_list[i];
