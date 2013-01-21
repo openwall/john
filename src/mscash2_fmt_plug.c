@@ -48,6 +48,7 @@
  */
 
 #include <string.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -55,14 +56,9 @@
 #include "formats.h"
 #include "unicode.h"
 #include "options.h"
-#ifndef HAVE_OPENSSL
+#include "unicode.h"
 #include "sha.h"
 #include "md4.h"
-#else
-#include <openssl/sha.h>
-#include <openssl/md4.h>
-#endif
-#include "unicode.h"
 #include "sse-intrinsics.h"
 
 #if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))
