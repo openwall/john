@@ -13,13 +13,14 @@
  */
 
 #include <string.h>
+#include "sha.h"
+#include "sha2.h"
 #include "common-opencl.h"
 #include "config.h"
 #include "opencl_rawsha256.h"
-#include "sha2.h"
 
 #define FORMAT_LABEL			"raw-sha256-opencl"
-#define FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
+#define FORMAT_NAME				"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
@@ -332,7 +333,7 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
-    
+
     static char out[8 + CIPHERTEXT_LENGTH + 1];
 
     if (!strncmp(ciphertext, "$SHA256$", 8))
@@ -408,8 +409,8 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
     //Do the work
     HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
-    
-    return count;    
+
+    return count;
 }
 
 static int crypt_all(int *pcount, struct db_salt *_salt) {
