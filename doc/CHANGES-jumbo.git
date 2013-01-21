@@ -727,7 +727,7 @@ magnum (414):
 	Bugfixes for the new restart code in bench_handle_timer().
 	bench.c: For --test=0, make the OpenCL formats also do quick
 	  benchmarking (for self-tests, not benchmark figures).
-	CUDA fixes. The --request-scalar/vector options does not apply to CUDA
+	CUDA fixes. The --request-scalar/vector options do not apply to CUDA
 	  (yet).
 	Less ambiguous usage text for --raw-always-valid
 	bench.c: Include stdlib.h for setenv
