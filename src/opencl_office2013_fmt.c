@@ -10,8 +10,6 @@
  * modification, are permitted.
  */
 
-#include <openssl/sha.h>
-#include <openssl/aes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +26,8 @@
 #include "unicode.h"
 #include "common-opencl.h"
 #include "config.h"
+#include "sha2.h"
+#include <openssl/aes.h>
 
 #define PLAINTEXT_LENGTH	47
 #define UNICODE_LENGTH		96 /* In octets, including 0x80 */

@@ -1,13 +1,16 @@
 /* Office 2007 cracker patch for JtR. Hacked together during March of 2012 by
  * Dhiru Kholia <dhiru.kholia at gmail.com> */
 
-#include <openssl/sha.h>
-#include <openssl/aes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               4
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -16,14 +19,12 @@
 #include "options.h"
 #include "base64.h"
 #include "unicode.h"
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               4
-#endif
+#include "sha2.h"
+#include <openssl/aes.h>
 
 #define FORMAT_LABEL		"office"
 #define FORMAT_NAME		"Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
