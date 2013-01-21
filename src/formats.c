@@ -101,7 +101,7 @@ char *fmt_self_test(struct fmt_main *format)
 		return "FMT_SPLIT_UNIFIES_CASE";
 
 #if DEBUG
-	/* These conditions does not necessarily mean we have a bug */
+	/* These conditions do not necessarily mean we have a bug */
 	if ((format->methods.binary == fmt_default_binary) &&
 	    (format->params.binary_size > 0) && !binary_size_warned) {
 		binary_size_warned = 1;
