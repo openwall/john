@@ -18,13 +18,14 @@
  */
 
 #include <string.h>
+#include "sha.h"
+#include "sha2.h"
 #include "common-opencl.h"
 #include "config.h"
 #include "opencl_xsha512-ng.h"
-#include "sha2.h"
 
 #define FORMAT_LABEL			"xsha512-ng-opencl"
-#define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
+#define FORMAT_NAME				"Mac OS X 10.7+ salted SHA-512 (pwlen < " PLAINTEXT_TEXT ")"
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
