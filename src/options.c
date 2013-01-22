@@ -202,13 +202,13 @@ static struct opt_entry opt_list[] = {
 "--salts=[-]COUNT[:MAX]    load salts with[out] COUNT [to MAX] hashes\n" \
 "--save-memory=LEVEL       enable memory saving, at LEVEL 1..3\n" \
 "--pot=NAME                pot file to use\n" \
+"--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
+
+#define JOHN_USAGE_FORMAT \
 "--format=NAME             force hash type NAME:"
 
 #define JOHN_USAGE_INDENT \
 "                         " // formats are prepended with a space
-
-#define JOHN_USAGE_TAIL \
-"--list=WHAT               list capabilities, see --list=help or doc/OPTIONS\n"
 
 #if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
@@ -257,7 +257,12 @@ static void print_usage(char *name)
 	qsort(formats_list, i, sizeof(formats_list[0]), qcmpstr);
 
 	printf(JOHN_USAGE, name);
-	column = strrchr(JOHN_USAGE, '\0') - strrchr(JOHN_USAGE, '\n') - 1;
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	printf("%s", JOHN_USAGE_GPU);
+#endif
+	printf("%s", JOHN_USAGE_FORMAT);
+	column = sizeof(JOHN_USAGE_FORMAT);
+
 	i = 0;
 	do {
 		int length;
@@ -272,11 +277,6 @@ static void print_usage(char *name)
 	} while (formats_list[i]);
 	MEM_FREE(formats_list);
 
-	printf("%s", JOHN_USAGE_TAIL);
-
-#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
-	printf("%s", JOHN_USAGE_GPU);
-#endif
 	exit(0);
 }
 
