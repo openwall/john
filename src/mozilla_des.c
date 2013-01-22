@@ -718,7 +718,7 @@ void DES_Do1Block(HALF * ks, const BYTE * inbuf, BYTE * outbuf)
 #define COPY8BTOHALF(to, from) COPY8B(to, from, from)
 #define COPY8BFROMHALF(to, from) COPY8B(to, from, to)
 
-
+#if 0
 void DES_ECB(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len)
 {
     while (len) {
@@ -775,6 +775,7 @@ void DES_CBCDe(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int le
 	out += 8;
     }
 }
+#endif
 
 void DES_EDE3CBCEn(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len)
 {
@@ -821,13 +822,17 @@ struct DESContext *DES_CreateContext(struct DESContext *cx, const BYTE * key, co
 	return cx;
 }
 
+#if 0
+/* DES_DestroyContext might be needed in future john versions! */
 void DES_DestroyContext(struct DESContext *cx, PRBool freeit)
 {
 	if (cx)
 		memset(cx, 0, sizeof *cx);
 
- }
+}
+#endif
 
+#if 0
 SECStatus DES_Encrypt(struct DESContext *cx, BYTE *out, unsigned int *outLen, unsigned int maxOutLen, const BYTE *in, unsigned int inLen)
 {
 	if (inLen < 0 || (inLen % 8) != 0 || maxOutLen < inLen || !cx || cx->direction != DES_ENCRYPT)
@@ -843,5 +848,5 @@ int DES_Decrypt(struct DESContext *cx, BYTE *out, unsigned int *outLen,unsigned 
 {
 	return DES_EDE3CBCDe(cx, in);
 }
-
+#endif
 #endif
