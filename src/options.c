@@ -212,11 +212,9 @@ static struct opt_entry opt_list[] = {
 
 #if defined(HAVE_OPENCL) && defined(HAVE_CUDA)
 #define JOHN_USAGE_GPU \
-"--platform=N              set OpenCL platform (list using --list=opencl-devices)\n" \
 "--devices=N[,..]          set OpenCL or CUDA device(s)\n"
 #elif defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
-"--platform=N              set OpenCL platform\n" \
 "--devices=N[,..]          set OpenCL device(s) (list using --list=opencl-devices)\n"
 #elif defined (HAVE_CUDA)
 #define JOHN_USAGE_GPU \
@@ -309,6 +307,7 @@ void opt_print_hidden_usage(void)
 #ifdef HAVE_OPENCL
 	puts("--request-vectorize       request vectorized mode");
 	puts("--request-scalar          request non-vectorized mode");
+	puts("--platform=N              set OpenCL platform (deprecated)");
 #endif
 	puts("");
 }
