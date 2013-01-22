@@ -243,10 +243,8 @@ struct db_main {
 	struct fmt_main *format;
 };
 
-#ifdef HAVE_CRYPT
 /* Non-zero while the loader is processing the pot file */
 extern int ldr_in_pot;
-#endif
 
 /*
  * Initializes the database before loading.
