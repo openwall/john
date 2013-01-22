@@ -170,15 +170,15 @@ for($i = 0; $i <= $columns; $i++) {
 	elsif ($tmp[$i] =~ /PWDSALTEDHASH/) { $pos_pwdsaltedhash = $i }
 	elsif ($tmp[$i] =~ /OCOD1/) { $pos_ocod1 = $i }
 	elsif ($tmp[$i] =~ /CODV1/) { $pos_codv1 = $i }
-        elsif ($tmp[$i] =~ /OCOD2/) { $pos_ocod2 = $i }
-        elsif ($tmp[$i] =~ /CODV2/) { $pos_codv2 = $i }
-        elsif ($tmp[$i] =~ /OCOD3/) { $pos_ocod3 = $i }
-        elsif ($tmp[$i] =~ /CODV3/) { $pos_codv3 = $i }
-        elsif ($tmp[$i] =~ /OCOD4/) { $pos_ocod4 = $i }
-        elsif ($tmp[$i] =~ /CODV4/) { $pos_codv4 = $i }
-        elsif ($tmp[$i] =~ /OCOD5/) { $pos_ocod5 = $i }
-        elsif ($tmp[$i] =~ /CODV5/) { $pos_codv5 = $i }
-# 	elsif ($tmp[$i] =~ /MODDA/) { $pos_modda = $i }
+	elsif ($tmp[$i] =~ /OCOD2/) { $pos_ocod2 = $i }
+	elsif ($tmp[$i] =~ /CODV2/) { $pos_codv2 = $i }
+	elsif ($tmp[$i] =~ /OCOD3/) { $pos_ocod3 = $i }
+	elsif ($tmp[$i] =~ /CODV3/) { $pos_codv3 = $i }
+	elsif ($tmp[$i] =~ /OCOD4/) { $pos_ocod4 = $i }
+	elsif ($tmp[$i] =~ /CODV4/) { $pos_codv4 = $i }
+	elsif ($tmp[$i] =~ /OCOD5/) { $pos_ocod5 = $i }
+	elsif ($tmp[$i] =~ /CODV5/) { $pos_codv5 = $i }
+#	elsif ($tmp[$i] =~ /MODDA/) { $pos_modda = $i }
 #	elsif ($tmp[$i] =~ /MODTI/) { $pos_modti = $i }
 #	elsif ($tmp[$i] =~ /TIMESTAMP/) { $pos_timestamp = $i }
 }
@@ -275,7 +275,7 @@ for ($i=0; $i<=$rows; $i++) {
 	write_bcode( $ocod5[$i], $codv5[$i] );
 
 	write_passcode( );
-#       even if this format is currently not supported by JtR,
-#       it might be in future:
+#	even if this format is currently not supported by JtR,
+#	it might be in future:
 	write_pwdsaltedhash( );
 }
