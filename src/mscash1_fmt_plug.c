@@ -25,6 +25,7 @@
 #include "formats.h"
 #include "unicode.h"
 #include "options.h"
+#include "loader.h"
 
 #define FORMAT_LABEL			"mscash"
 #define FORMAT_NAME			"M$ Cache Hash MD4"
@@ -195,8 +196,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
 	if (saltlen < 0 || saltlen > 19) {
 		static int warned = 0;
+
+		if (!ldr_in_pot)
 		if (!warned++)
 			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
 		return 0;
 	}
 

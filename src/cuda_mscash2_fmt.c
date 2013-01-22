@@ -12,6 +12,7 @@
 #include "unicode.h"
 #include "cuda_mscash2.h"
 #include "cuda_common.h"
+#include "loader.h"
 
 #define FORMAT_LABEL		"mscash2-cuda"
 #define FORMAT_NAME		"M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1"
@@ -94,8 +95,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (saltlength < 0 || saltlength > 19) {
 		static int warned = 0;
+
+		if (!ldr_in_pot)
 		if (!warned++)
 			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
 		return 0;
 	}
 	return 1;

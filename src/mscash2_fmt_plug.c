@@ -60,6 +60,7 @@
 #include "sha.h"
 #include "md4.h"
 #include "sse-intrinsics.h"
+#include "loader.h"
 
 #if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))
 #undef _OPENMP
@@ -232,8 +233,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	saltlen = enc_to_utf16(realsalt, 22, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
 	if (saltlen < 0 || saltlen > 22) {
 		static int warned = 0;
+
+		if (!ldr_in_pot)
 		if (!warned++)
-			fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
 		return 0;
 	}
 

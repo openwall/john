@@ -29,6 +29,7 @@
 #include "common-opencl.h"
 #include "config.h"
 #include "unicode.h"
+#include "loader.h"
 
 #define FORMAT_LABEL		"ntlmv2-opencl"
 #define FORMAT_NAME		"NTLMv2 C/R MD4 HMAC-MD5"
@@ -489,8 +490,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (saltlen < 0 || saltlen > SALT_MAX_LENGTH) {
 		static int warned = 0;
+
+		if (!ldr_in_pot)
 		if (!warned++)
 			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation.\nMax supported sum of Username + Domainname lengths is 27 characters.\nTry the CPU format for those.\n", FORMAT_LABEL);
+
 		return 0;
 	}
 	return 1;
