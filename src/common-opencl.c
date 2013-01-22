@@ -32,7 +32,7 @@ extern int get_next_gws_size(size_t num, int step, int startup,
 static int buffer_size;
 static int default_value;
 static int hash_loops;
-static char * duration_text;
+static unsigned long long int duration_time = 0;
 static const char ** warnings;
 static int number_of_events;
 static int * split_events;
@@ -421,6 +421,10 @@ void opencl_get_user_preferences(char * format)
 	if (local_work_size)
 		//Check if a valid multiple is used.
 		global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		opencl_get_config_name(format, DUR_CONFIG_NAME))))
+		duration_time = atoi(tmp_value) * 1000000000ULL;
 }
 
 static void dev_init(unsigned int sequential_id)
@@ -806,7 +810,7 @@ static cl_ulong gws_test(
 
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
-	int * p_split_events, char * p_duration_text, const char ** p_warnings,
+	int * p_split_events, const char ** p_warnings,
 	cl_event * p_to_profile_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(int gws, struct fmt_main * self),
 	void (*p_release_clobj)(void), int p_buffer_size)
@@ -823,7 +827,6 @@ void opencl_init_auto_setup(
 	hash_loops = p_hash_loops;
 	number_of_events = p_number_of_events;
 	split_events = p_split_events;
-	duration_text = p_duration_text;
 	warnings = p_warnings;
 	to_profile_event = p_to_profile_event;
 	self = p_self;
@@ -962,10 +965,9 @@ void opencl_find_best_gws(
 	int optimal_gws = local_work_size;
 	unsigned int speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	char * tmp_value;
 
-	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, duration_text)))
-		max_run_time = atoi(tmp_value) * 1000000000ULL;
+	if (duration_time)
+		max_run_time = duration_time;
 
 	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
 		local_work_size, max_run_time / 1000000000ULL);
