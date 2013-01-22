@@ -78,23 +78,27 @@ struct DESContext
 
 typedef void DESFunc(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len);
 
+#if 0
 void DES_MakeSchedule( HALF * ks, const BYTE * key,   DESDirection direction);
 void DES_Do1Block(     HALF * ks, const BYTE * inbuf, BYTE * outbuf);
+#endif
 struct DESContext *DES_CreateContext(struct DESContext *cx, const BYTE * key, const BYTE *iv); //, int mode);
+#if 0
+/* DES_DestroyContext might be needed in future john versions */
 void DES_DestroyContext(struct DESContext *cx, PRBool freeit);
+#endif
+#if 0
 SECStatus DES_Encrypt(struct DESContext *cx, BYTE *out, unsigned int *outLen, unsigned int maxOutLen, const BYTE *in, unsigned int inLen);
 int DES_Decrypt(struct DESContext *cx, BYTE *out, unsigned int *outLen,unsigned int maxOutLen, const BYTE *in, unsigned int inLen);
+#endif
 int DES_EDE3CBCDe(struct DESContext *cx, const BYTE *in);
 
+#if 0
 //not used...
 void DES_EDE3CBCEn(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len);
 void DES_CBCEn(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len);
 void DES_EDE3_ECB(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len);
 void DES_ECB(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len);
-
-
-
-
-
+#endif
 
 #endif
