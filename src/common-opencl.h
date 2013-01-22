@@ -171,8 +171,6 @@ void opencl_find_best_gws(
  *               "failed in clEnqueueNDRangeKernel");
  *       }
  *
- * - p_duration_text: the name of the parameter inside the config file that
- *   defines the duration of the execution.
  * - p_warnings: array os strings to be used by show_details.
  *   - "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: ", ...
  * - p_to_profile_event: pointer to the main event to be profiled (in find_lws).
@@ -184,7 +182,7 @@ void opencl_find_best_gws(
  */
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
-	int * p_split_events, char * p_duration_text, const char ** p_warnings,
+	int * p_split_events, const char ** p_warnings,
 	cl_event * p_to_profile_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(int gws, struct fmt_main * self),
 	void (*p_release_clobj)(void), int p_buffer_size);
