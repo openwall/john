@@ -307,9 +307,9 @@ void init_opencl_devices(void)
 				fprintf(stderr, "Only one OpenCL device supported with --platform syntax.\n");
 				exit(1);
 			}
-			if (!strcmp(device_list[n], "all") ||
-			    !strcmp(device_list[n], "cpu") ||
-			    !strcmp(device_list[n], "gpu")) {
+			if (!strcmp(current->data, "all") ||
+			    !strcmp(current->data, "cpu") ||
+			    !strcmp(current->data, "gpu")) {
 				fprintf(stderr, "Only a single numerical --device allowed when using legacy --platform syntax.\n");
 				exit(1);
 			}
