@@ -426,7 +426,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 
 	//Enqueue the kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
-			&gws, &local_work_size, 0, NULL, profilingEvent),
+			&gws, &local_work_size, 0, NULL, NULL),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
@@ -480,7 +480,7 @@ static int cmp_one(void *binary, int index) {
 static int cmp_exact(char *source, int index) {
 	//I don't know why, but this is called and i have to recheck.
 	//If i skip this final test i get:
-	//form=raw-sha512-ng-opencl		 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+	//form=raw-sha512-ng-opencl	 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
 	//.pot CHK:raw-sha512-ng-opencl	 guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
 
 	uint32_t * binary;
@@ -545,7 +545,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-				PLAINTEXT_LENGTH - 1,
+		PLAINTEXT_LENGTH - 1,
 		BINARY_SIZE,
 		4,
 		SALT_SIZE,
@@ -560,9 +560,9 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-				split,
+		split,
 		get_binary,
-				fmt_default_salt,
+		fmt_default_salt,
 		fmt_default_source,
 		{
 			binary_hash_0,
@@ -573,8 +573,8 @@ struct fmt_main fmt_opencl_rawsha256 = {
 			binary_hash_5,
 			binary_hash_6
 		},
-				fmt_default_salt_hash,
-				fmt_default_set_salt,
+		fmt_default_salt_hash,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
