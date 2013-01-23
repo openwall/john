@@ -67,16 +67,6 @@ struct custom_salt {
 	unsigned char salt_data[4096];
 } *salt_struct;
 
-#ifdef DEBUF
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
 {
 	unsigned char passwordHash[SHA1_LENGTH+1];
