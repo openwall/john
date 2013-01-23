@@ -28,6 +28,8 @@
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
 
+extern volatile int bench_running;
+
 void fmt_register(struct fmt_main *format)
 {
 	format->private.initialized = 0;
@@ -435,7 +437,13 @@ char *fmt_self_test(struct fmt_main *format)
 	salt_copy = alloc_binary(&salt_alloc,
 	    format->params.salt_size, format->params.salt_align);
 
+	/* We use this to keep opencl_process_event() from doing stuff
+	 * while self-test is running. */
+	bench_running = 1;
+
 	retval = fmt_self_test_body(format, binary_copy, salt_copy);
+
+	bench_running = 0;
 
 	MEM_FREE(salt_alloc);
 	MEM_FREE(binary_alloc);

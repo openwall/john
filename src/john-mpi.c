@@ -35,6 +35,6 @@ void mpi_setup(int argc, char **argv) {
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_p);
 	MPI_Get_processor_name(mpi_name, &namesize);
 	if (mpi_id != 0)
-		close(1);
+		close(STDOUT_FILENO);
 	atexit(mpi_teardown);
 }
