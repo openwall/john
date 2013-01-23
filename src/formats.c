@@ -20,6 +20,8 @@
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
 
+extern volatile int bench_running;
+
 void fmt_register(struct fmt_main *format)
 {
 	format->private.initialized = 0;
@@ -119,6 +121,10 @@ char *fmt_self_test(struct fmt_main *format)
 		ntests++;
 	current = format->params.tests;
 	if (ntests==0) return NULL;
+
+	/* We use this to keep opencl_process_event() from doing stuff
+	 * while self-test is running. */
+	bench_running = 1;
 
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
@@ -292,6 +298,8 @@ char *fmt_self_test(struct fmt_main *format)
 			done |= 2;
 		}
 	} while (done != 3);
+
+	bench_running = 0;
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;
