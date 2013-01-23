@@ -46,8 +46,8 @@ The 'Data' and runtime information is this:
 
 Inside of the $dynamic$ format, there are 2 input buffers (actually ALL data
 is arrays of 128 of each buffer type).  There is input1 and input2 buffers.
-The main operations on these buffers is to clear them, and to append data,
-to build string which will later be md5 hashed.
+The main operations on these buffers are to clear them, to append data,
+and to build a string which will later be md5 hashed.
 
 There are also 2 output buffers.  These buffers will receive the md5 hashing
 from the 2 input buffers.  NOTE, when the format processing is complete, the
