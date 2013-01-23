@@ -204,16 +204,6 @@ static void init(struct fmt_main *self)
 	nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
 }
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *data = ciphertext;
