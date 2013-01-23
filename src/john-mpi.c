@@ -7,7 +7,7 @@
 #include <omp.h>
 #endif
 
-int mpi_p, mpi_id, namesize;
+int mpi_p, mpi_id;
 char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];
 
 /* Fixed version of id2string to correct a memory leak
@@ -15,6 +15,7 @@ char mpi_name[MPI_MAX_PROCESSOR_NAME + 1];
  */
 char *id2string() {
 	static char id_string[12] = "";
+
 	if (strlen(id_string)) return id_string;
 	snprintf(id_string, 11, "%d", mpi_id);
 	id_string[11] = 0x00;
@@ -27,6 +28,8 @@ void mpi_teardown(void){
 }
 
 void mpi_setup(int argc, char **argv) {
+	int namesize;
+
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &mpi_id);
 	MPI_Comm_size(MPI_COMM_WORLD, &mpi_p);
