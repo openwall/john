@@ -952,7 +952,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 		done += unpack_data->unp_ptr;
 		tot += unpack_data->max_size;
 
-		printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+		printf("Early reject: %u of %llu, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
 #endif
 		retval = 0;
 		goto Bailout;
@@ -964,7 +964,7 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 			done += unpack_data->unp_ptr;
 			tot += unpack_data->max_size;
 
-			printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+			printf("Early reject: %u of %llu, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
 #endif
 			retval = 0;
 			goto Bailout;
@@ -1192,7 +1192,7 @@ Bailout:
 		done += unpack_data->unp_ptr;
 		tot += unpack_data->max_size;
 
-		printf("Early reject: %u of %u, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
+		printf("Early reject: %u of %llu, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
 	}
 #elif defined(RAR_HIGH_DEBUG)
 	else
