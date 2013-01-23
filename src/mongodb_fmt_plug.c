@@ -190,16 +190,6 @@ static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 	}
 }
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;

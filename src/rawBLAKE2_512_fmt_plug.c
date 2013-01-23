@@ -209,16 +209,6 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;

@@ -90,16 +90,6 @@ static struct custom_salt {
 	int data_size;
 } *cur_salt;
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 /* borrowed from http://dsss.be/w/c:memmem */
 unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen)
 {

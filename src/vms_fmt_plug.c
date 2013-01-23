@@ -142,17 +142,6 @@ void VMS_std_set_salt ( void *salt )
 	cur_salt = (struct uaf_hash_info*)salt;
 }
 
-
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xf; }
 static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xff; }
 static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xfff; }
