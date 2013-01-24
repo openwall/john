@@ -170,7 +170,7 @@ static void *binary(char *ciphertext)
 	return (void*)binary_response;
 }
 
-static char *split(char *ciphertext, int index)
+static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH];
 	char *p, *data;
