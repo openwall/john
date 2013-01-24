@@ -107,7 +107,8 @@ Kerberos v5 TGT	Kerberos v5 TGT 3DES
 Lotus5	Lotus Notes/Domino 5
 M$ Cache Hash	M$ Cache Hash MD4
 M$ Cache Hash 2 (DCC2)	M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
-MS Kerberos 5 AS-REQ Pre-Auth	MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4
+MS Kerberos 5 AS-REQ Pre-Auth	Kerberos 5 AS-REQ Pre-Auth etype 23 md4, rc4-hmac-md5
+MS Kerberos 5 AS-REQ Pre-Auth MD4 MD5 RC4	Kerberos 5 AS-REQ Pre-Auth etype 23 md4, rc4-hmac-md5
 MS-SQL	MS SQL SHA-1
 MS-SQL05	MS SQL 2005 SHA-1
 MYSQL	MySQL
@@ -123,6 +124,7 @@ PHPass MD5	phpass MD5 ($P$9)
 Raw SHA	Raw SHA-0
 SAP BCODE	SAP CODVN B (BCODE)
 SAP CODVN G (PASSCODE)	SAP CODVN F/G (PASSCODE)
+dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)	dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)
 generic crypt(3)	generic crypt(3) DES
 hmailserver	hMailServer salted SHA-256
 pdf	PDF MD5 RC4
