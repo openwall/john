@@ -19,7 +19,7 @@
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE 32
+#define OMP_SCALE 1024
 #endif
 
 #include "arch.h"
@@ -116,7 +116,7 @@ static void init(struct fmt_main *self)
 	self->params.min_keys_per_crypt *= n;
 	self->params.max_keys_per_crypt *= (n * OMP_SCALE);
 #endif
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
+	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
@@ -297,7 +297,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strncpy(saved_key[index], key, PLAINTEXT_LENGTH);
+	memcpy(saved_key[index], key, PLAINTEXT_LENGTH);
 }
 
 static char *get_key(int index)
