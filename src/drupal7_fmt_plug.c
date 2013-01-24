@@ -39,7 +39,9 @@
 #define DIGEST_SIZE			(512/8)
 
 #define BINARY_SIZE			(258/8) // ((258+7)/8)
+#define BINARY_ALIGN			4
 #define SALT_SIZE			8
+#define SALT_ALIGN			8
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -234,7 +236,7 @@ static int get_hash_6(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) &
 
 static int salt_hash(void *salt)
 {
-	return *((ARCH_WORD *)salt) & 0x3FF;
+	return *((ARCH_WORD_32 *)salt) & 0x3FF;
 }
 
 struct fmt_main fmt_drupal7 = {
@@ -246,10 +248,10 @@ struct fmt_main fmt_drupal7 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		// true salt is SALT_SIZE but we add the loop count
 		SALT_SIZE + 1,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

@@ -43,7 +43,9 @@
 #define PLAINTEXT_LENGTH		(55-MAX_SALT_LEN)
 
 #define BINARY_SIZE			20 // this is 28 chars of base64
+#define BINARY_ALIGN			4
 #define SALT_SIZE			(MAX_SALT_LEN + sizeof(unsigned int))
+#define SALT_ALIGN			4
 
 #define CIPHERTEXT_LENGTH		((BINARY_SIZE + MAX_SALT_LEN + 2) / 3 * 4)
 
@@ -371,9 +373,9 @@ struct fmt_main fmt_saltedsha = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

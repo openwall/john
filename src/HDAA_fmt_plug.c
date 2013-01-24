@@ -46,6 +46,9 @@
 #define CIPHERTEXT_LENGTH		32
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			4
+#define SALT_SIZE			sizeof(reqinfo_t)
+#define SALT_ALIGN			4
 
 #if defined(_OPENMP) && (defined (MD5_SSE_PARA) || !defined(MMX_COEF))
 #include <omp.h>
@@ -83,8 +86,6 @@ typedef struct
 	char	h1tmp[HTMP];
 	char	h3tmp[HTMP];
 } reqinfo_t;
-
-#define SALT_SIZE			sizeof(reqinfo_t)
 
 /*
   digest authentication scheme :
@@ -672,9 +673,9 @@ struct fmt_main fmt_HDAA = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(MD5_SSE_PARA)

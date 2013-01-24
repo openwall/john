@@ -33,13 +33,16 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
 
+#define BINARY_ALIGN			4
 #define BINARY_SIZE			16
 #define MD5_HEX_SIZE			(BINARY_SIZE * 2)
+#define SALT_SIZE			MD5_HEX_SIZE
+#define SALT_ALIGN			4
 
-#define SALT_SIZE			5
+#define SALT_LENGTH			5
 
 #define PLAINTEXT_LENGTH		31
-#define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_SIZE * 2 + 1 + MD5_HEX_SIZE)
+#define CIPHERTEXT_LENGTH		(1 + 4 + 1 + SALT_LENGTH * 2 + 1 + MD5_HEX_SIZE)
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS
@@ -164,7 +167,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (ciphertext[16] != '$')
 		return 0;
 
-	if (strspn(ciphertext+6, itoa16) != SALT_SIZE*2)
+	if (strspn(ciphertext+6, itoa16) != SALT_LENGTH*2)
 		return 0;
 
 	if (strspn(ciphertext+17, itoa16) != MD5_HEX_SIZE)
@@ -189,25 +192,25 @@ static void *binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char hex_salt[MD5_HEX_SIZE];
-	unsigned char binary_salt[SALT_SIZE];
+	static ARCH_WORD_32 hex_salt[MD5_HEX_SIZE/4];
+	unsigned char binary_salt[SALT_LENGTH];
 	unsigned char salt_hash[BINARY_SIZE];
 	static MD5_CTX ctx;
 	int i;
 
 	ciphertext += 6;
-	for (i = 0; i < SALT_SIZE; ++i)
+	for (i = 0; i < SALT_LENGTH; ++i)
 		binary_salt[i] =
 			(atoi16[ARCH_INDEX(ciphertext[i*2])] << 4)
 			+ atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
 	MD5_Init(&ctx);
-	MD5_Update(&ctx, binary_salt, SALT_SIZE);
+	MD5_Update(&ctx, binary_salt, SALT_LENGTH);
 	MD5_Final(salt_hash, &ctx);
 
 	for (i = 0; i < BINARY_SIZE; ++i) {
-		hex_salt[i*2] = itoa16[ARCH_INDEX(salt_hash[i] >> 4)];
-		hex_salt[i*2+1] = itoa16[ARCH_INDEX(salt_hash[i] & 0x0f)];
+		((char*)hex_salt)[i*2] = itoa16[ARCH_INDEX(salt_hash[i] >> 4)];
+		((char*)hex_salt)[i*2+1] = itoa16[ARCH_INDEX(salt_hash[i] & 0x0f)];
 	}
 
 	return (void*)hex_salt;
@@ -468,9 +471,9 @@ struct fmt_main fmt_IPB2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
-		MD5_HEX_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

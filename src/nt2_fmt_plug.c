@@ -40,9 +40,11 @@
 
 #define CIPHERTEXT_LENGTH		36
 
-#define BINARY_SIZE			16 // source()
 #define DIGEST_SIZE			16
+#define BINARY_SIZE			16 // source()
+#define BINARY_ALIGN			4
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #ifdef MMX_COEF
 #ifdef MD4_SSE_PARA
@@ -713,9 +715,9 @@ struct fmt_main fmt_NT2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if (BLOCK_LOOPS > 1) && defined(SSE_MD4_PARA)

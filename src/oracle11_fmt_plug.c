@@ -84,8 +84,10 @@
 
 /* Length of hashed value without the salt, in bytes. */
 #define BINARY_SIZE			20
+#define BINARY_ALIGN			4
 /* Length of salt in bytes. */
 #define SALT_SIZE			10
+#define SALT_ALIGN			1
 
 /* Sanity check. Don't change. */
 #if (BINARY_SIZE + SALT_SIZE) * 2 != CIPHERTEXT_LENGTH
@@ -425,9 +427,9 @@ struct fmt_main fmt_oracle11 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

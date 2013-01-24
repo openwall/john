@@ -156,17 +156,16 @@ static void *get_binary(char *ciphertext)
 	static union {
 		unsigned char c[BINARY_SIZE];
 		ARCH_WORD_32 dummy;
-	} buf;
-	uchar *binary = buf.c;
+	} binary;
 	int i;
 
 	ciphertext+=28;
 	for (i=0; i<BINARY_SIZE; i++)
 	{
-		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+		binary.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary.c[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
 	}
-	return binary;
+	return binary.c;
 }
 
 static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
@@ -226,15 +225,14 @@ static void *get_salt(char *ciphertext)
 	static union {
 		unsigned char c[SALT_SIZE];
 		ARCH_WORD_32 dummy;
-	} buf;
-	unsigned char *binary_salt = buf.c;
+	} out;
 	int i;
 
 	ciphertext += 11;
 	for (i = 0; i < SALT_SIZE; ++i) {
-		binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+		out.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-	return (void*)binary_salt;
+	return (void*)out.c;
 }
 
 static void set_salt(void *salt)

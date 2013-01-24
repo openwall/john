@@ -57,6 +57,9 @@ static unsigned int omp_t = 1;
 #define PLAINTEXT_LENGTH		(64+55-SALT_LENGTH) /* Max 2 limbs */
 
 #define BINARY_SIZE			20
+#define BINARY_ALIGN			4
+#define SALT_SIZE			sizeof(struct saltstruct)
+#define SALT_ALIGN			4
 #define CIPHERTEXT_LENGTH		(SALT_LENGTH + 1 + 2*BINARY_SIZE)	/* SALT + $ + 2x20 bytes for SHA1-representation */
 
 #ifdef MMX_COEF
@@ -139,7 +142,6 @@ static struct saltstruct {
 	unsigned int l;
 	unsigned char s[SALT_LENGTH];
 } *cur_salt;
-#define SALT_SIZE			sizeof(struct saltstruct)
 
 static void init(struct fmt_main *self)
 {
@@ -739,9 +741,9 @@ struct fmt_main fmt_sapG = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 #if !defined(MMX_COEF) || defined(SHA1_SSE_PARA)
