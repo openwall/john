@@ -22,7 +22,7 @@
 #define uint32_t		ARCH_WORD_32
 
 #define BINARY_SIZE		sizeof(mic_t)
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	63 /* We can do 64 but spec. says 63 */
 #define SALT_SIZE		sizeof(hccap_t)
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
