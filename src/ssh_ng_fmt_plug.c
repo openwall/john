@@ -9,7 +9,6 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
-#include "md5.h"
 #include <string.h>
 #include <openssl/aes.h>
 #include <openssl/des.h>
@@ -17,17 +16,20 @@
 #include <assert.h>
 #include <ctype.h>
 #include <errno.h>
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
+#include "stdint.h"
+#include "md5.h"
 
 #define FORMAT_LABEL		"ssh-ng"
 #define FORMAT_NAME		"ssh-ng SSH RSA / DSA"
@@ -173,7 +175,60 @@ static void generate_key_bytes(int nbytes, unsigned char *password, unsigned cha
 	}
 }
 
-unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen);
+/* borrowed from http://dsss.be/w/c:memmem */
+static inline unsigned char *_memmem(unsigned char *haystack, int hlen,
+                                     char *needle, int nlen)
+{
+	int i, j = 0;
+	if (nlen > hlen)
+		return 0;
+	switch (nlen) {	// we have a few specialized compares for certain sizes
+	case 0:		// no needle? just give the haystack
+		return haystack;
+	case 1:		// just use memchr for 1-byte needle
+		return memchr(haystack, needle[0], hlen);
+#if ARCH_ALLOWS_UNALIGNED
+	case 2:		// use 16-bit compares for 2-byte needles
+		for (i = 0; i < hlen - nlen + 1; i++) {
+			if (*(uint16_t *) (haystack + i) == *(uint16_t *) needle) {
+				return haystack + i;
+			}
+		}
+		break;
+	case 4:		// use 32-bit compares for 4-byte needles
+		for (i = 0; i < hlen - nlen + 1; i++) {
+			if (*(uint32_t *) (haystack + i) == *(uint32_t *) needle) {
+				return haystack + i;
+			}
+		}
+		break;
+#if ARCH_SIZE >= 64
+	case 8: // use 64-bit compares for 8-byte needles
+		for (i=0; i<hlen-nlen+1; i++) {
+			if (*(uint64_t*)(haystack+i)==*(uint64_t*)needle) {
+				return haystack+i;
+			}
+		}
+		break;
+#endif /* ARCH_SIZE >= 64 */
+#endif /* ARCH_ALLOWS_UNALIGNED */
+	default: // generic compare for any other needle size
+		// walk i through the haystack, matching j as long as needle[j] matches haystack[i]
+		for (i = 0; i < hlen - nlen + 1; i++) {
+			if (haystack[i] == needle[j]) {
+				if (j == nlen - 1) {	// end of needle and it all matched?  win.
+					return haystack + i - j;
+				} else {	// keep advancing j (and i, implicitly)
+					j++;
+				}
+			} else {	// no match, rewind i the length of the failed match (j), and reset j
+				i -= j;
+				j = 0;
+			}
+		}
+	}
+	return NULL;
+}
 
 static int check_padding_3des(unsigned char *out, int length)
 {
