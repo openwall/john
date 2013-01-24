@@ -23,7 +23,7 @@
 
 #define BINARY_SIZE		sizeof(mic_t)
 #define BINARY_ALIGN		4
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	63 /* We can do 64 but spec. says 63 */
 #define SALT_SIZE		sizeof(hccap_t)
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
