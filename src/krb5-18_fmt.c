@@ -31,7 +31,7 @@
 #endif
 
 #define FORMAT_LABEL		"krb5-18"
-#define FORMAT_NAME		"KRB5 aes256-cts-hmac-sha1-96"
+#define FORMAT_NAME		"Kerberos 5 db etype 18 aes256-cts-hmac-sha1-96"
 
 #define FORMAT_TAG		"$krb18$"
 #define TAG_LENGTH		7
