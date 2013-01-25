@@ -53,7 +53,7 @@ class PdfParser:
 		if("1.7" in self.pdf_spec):
 			letters = ["U","O","UE","OE"]
 		for let in letters:
-			pr_str = '\/'+let+'\([^)]+\)'
+			pr_str = '\/'+let+'\s*\([^)]+\)'
 			pr = re.compile(pr_str)
 			pas = pr.findall(encryption_dictionary)
 			if(len(pas) > 0):
