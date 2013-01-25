@@ -1,10 +1,18 @@
 /* Password Safe and Password Gorilla cracker patch for JtR. Hacked together
  * during May of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
+ * Optimization patch during January of 2013 by Brian Wallace <nightstrike9809 at gmail.com>.
+ *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ *
+ * Copyright (c) 2013 by Brian Wallace <nightstrike9809/at/gmail.com> and
+ * is hereby released to the general public under the following terms:
+ *    Redistribution and use in source and binary forms, with or without
+ *    modifications, are permitted. */
+
 
 #include "sha2.h"
 
