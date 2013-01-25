@@ -370,7 +370,8 @@ static int binary_hash_5(void *binary) { return *(ARCH_WORD_32*)binary & 0xfffff
 static int binary_hash_6(void *binary) { return *(ARCH_WORD_32*)binary & 0x7ffffff; }
 
 #ifdef MMX_COEF
-#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*16
+// NOTE crypt_key is in input format (64*MMX_COEF)
+#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*(64/4)
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfff; }
