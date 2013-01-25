@@ -3,7 +3,10 @@
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * Uses code from Sumatra PDF and MuPDF which are under GPL */
+ * Uses code from Sumatra PDF and MuPDF which are under GPL 
+ *
+ * Edited by Shane Quigley 2013
+ */
 
 #include <string.h>
 #include "arch.h"
@@ -231,8 +234,6 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	if (strncmp(split_fields[1], "$pdf$Standard*", 14) == 0){
 		if(old_valid(split_fields[1], self)) {
 			char * in_new_format = convert_old_to_new(split_fields[1]);
-			//Presume its ok to use the memory in split_fields[1] to hold the
-			//data i  the new format
 			strcpy(split_fields[1], in_new_format);
 			free(in_new_format);
 			return split_fields[1];
