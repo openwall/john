@@ -1,3 +1,18 @@
+/* ***
+ * This file is part of John the Ripper password cracker.
+ *
+ * Common OpenCL functions go in this file.
+ *
+ * Converted to OpenVMS format module by David Jones
+ *
+ * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
+ * Copyright (c) 2012 by magnum,
+ * Others and
+ * is hereby released to the general public under the following terms:
+ *    Redistribution and use in source and binary forms, with or without
+ *    modifications, are permitted.
+ *** */
+
 #ifndef _COMMON_OPENCL_H
 #define _COMMON_OPENCL_H
 
