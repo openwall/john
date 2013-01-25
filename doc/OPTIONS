@@ -331,7 +331,7 @@ The different variants of list externals may be worth mentioning:
                           will ONLY be formats which have the 'WHICH' format
                           overridden.
 
---regen-lost-salts=N	Try to find password AND salt in a set of raw hashes.
+--regen-lost-salts=N      Try to find password AND salt in a set of raw hashes.
 
 This option will allow certain types (with short salts), to be found, when
 they are present in a set of raw hashes, but where we have lost the salt value.

@@ -30,7 +30,7 @@
 #endif
 
 #define FORMAT_LABEL		"krb5-23"
-#define FORMAT_NAME		"KRB5 arcfour-hmac"
+#define FORMAT_NAME		"Kerberos 5 db etype 23 rc4-hmac"
 
 #define FORMAT_TAG		"$krb23$"
 #define TAG_LENGTH		7

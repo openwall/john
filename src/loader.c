@@ -36,8 +36,13 @@
 
 #ifdef HAVE_CRYPT
 extern struct fmt_main fmt_crypt;
-int ldr_in_pot = 0;
 #endif
+
+/*
+ * If this is set, we are loading john.pot so we should
+ * probably not emit warnings from valid().
+ */
+int ldr_in_pot = 0;
 
 /*
  * Flags for read_file().

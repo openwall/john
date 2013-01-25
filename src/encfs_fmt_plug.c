@@ -69,16 +69,6 @@ static struct fmt_tests encfs_tests[] = {
 	{NULL}
 };
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static void setIVec( unsigned char *ivec, uint64_t seed,
         unsigned char *key)
 {

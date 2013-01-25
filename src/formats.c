@@ -20,6 +20,8 @@
 struct fmt_main *fmt_list = NULL;
 static struct fmt_main **fmt_tail = &fmt_list;
 
+extern volatile int bench_running;
+
 void fmt_register(struct fmt_main *format)
 {
 	format->private.initialized = 0;
@@ -64,10 +66,11 @@ char *fmt_self_test(struct fmt_main *format)
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
-#if defined(DEBUG) && !defined(BENCH_BUILD)
+#ifndef BENCH_BUILD
+#ifdef DEBUG
+	int binary_size_warned = 0, salt_size_warned = 0;
 	int validkiller = 0;
 #endif
-#ifndef BENCH_BUILD
 	int lengthcheck = 0;
 	int ml = format->params.plaintext_length;
 	char longcand[PLAINTEXT_BUFFER_SIZE + 1];
@@ -98,23 +101,17 @@ char *fmt_self_test(struct fmt_main *format)
 		return "FMT_SPLIT_UNIFIES_CASE";
 
 #if DEBUG
-	/* These conditions does not necessarily mean we have a bug,
-	   but no current format use the default function and actually
-	   uses its output. */
+	/* These conditions do not necessarily mean we have a bug */
 	if ((format->methods.binary == fmt_default_binary) &&
-	        (format->params.binary_size > 0)) {
-		static int warned = 0;
-
-		if (!warned++)
-			puts("Warning: Using default binary() with a non-zero BINARY_SIZE");
+	    (format->params.binary_size > 0) && !binary_size_warned) {
+		binary_size_warned = 1;
+		puts("Warning: Using default binary() with a non-zero BINARY_SIZE");
 	}
 
 	if ((format->methods.salt == fmt_default_salt) &&
-	        (format->params.salt_size > 0)) {
-		static int warned = 0;
-
-		if (!warned++)
-			puts("Warning: Using default salt() with a non-zero SALT_SIZE");
+	    (format->params.salt_size > 0) && !salt_size_warned) {
+		salt_size_warned = 1;
+		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
 	}
 #endif
 
@@ -124,6 +121,10 @@ char *fmt_self_test(struct fmt_main *format)
 		ntests++;
 	current = format->params.tests;
 	if (ntests==0) return NULL;
+
+	/* We use this to keep opencl_process_event() from doing stuff
+	 * while self-test is running. */
+	bench_running = 1;
 
 	done = 0;
 	index = 0; max = format->params.max_keys_per_crypt;
@@ -297,6 +298,8 @@ char *fmt_self_test(struct fmt_main *format)
 			done |= 2;
 		}
 	} while (done != 3);
+
+	bench_running = 0;
 
 	format->methods.clear_keys();
 	format->private.initialized = 2;

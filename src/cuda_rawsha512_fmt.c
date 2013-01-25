@@ -12,16 +12,12 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
 #include <string.h>
-#include <openssl/sha.h>
 
-
+#include "arch.h"
+#include "sha2.h"
 #include "cuda_rawsha512.h"
 #include "cuda_common.h"
-#include "arch.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
@@ -308,9 +304,3 @@ struct fmt_main fmt_cuda_rawsha512 = {
 		cmp_exact
 	}
 };
-#else
-#ifdef __GNUC__
-#warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif
-

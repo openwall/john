@@ -13,18 +13,14 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
 #include <string.h>
-#include <openssl/sha.h>
 
-
-#include "common-opencl.h"
 #include "arch.h"
+#include "common-opencl.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "sha2.h"
 
 #define FORMAT_LABEL			"xsha512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
@@ -536,8 +532,3 @@ struct fmt_main fmt_opencl_xsha512 = {
 		cmp_exact
 	}
 };
-#else
-#ifdef __GNUC__
-#warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

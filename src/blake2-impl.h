@@ -121,6 +121,7 @@ static inline uint64_t rotr64( const uint64_t w, const unsigned c )
   return ( w >> c ) | ( w << ( 64 - c ) );
 }
 
+#if 0 /* For our use, this is not wanted */
 /* prevents compiler optimizing out memset() */
 static inline void secure_zero_memory( void *v, size_t n )
 {
@@ -128,6 +129,6 @@ static inline void secure_zero_memory( void *v, size_t n )
 
   while( n-- ) *p++ = 0;
 }
-
 #endif
 
+#endif

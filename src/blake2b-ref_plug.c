@@ -212,7 +212,7 @@ int blake2b_init_key( blake2b_state *S, const uint8_t outlen, const void *key, c
     memset( block, 0, BLAKE2B_BLOCKBYTES );
     memcpy( block, key, keylen );
     blake2b_update( S, block, BLAKE2B_BLOCKBYTES );
-    secure_zero_memory( block, BLAKE2B_BLOCKBYTES ); /* Burn the key from stack */
+    //secure_zero_memory( block, BLAKE2B_BLOCKBYTES ); /* Burn the key from stack */
   }
   return 0;
 }
@@ -395,4 +395,3 @@ int main( int argc, char **argv )
 #endif
 
 #endif
-

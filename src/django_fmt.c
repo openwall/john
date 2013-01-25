@@ -27,12 +27,12 @@
 // uncomment this header to use the slower PKCS5_PBKDF2_HMAC function.
 // Note, PKCS5_PBKDF2_HMAC is ONLY available in oSSL 1.00 + (1.0c I think to be exact)
 //#include <openssl/evp.h>
-#include "sha2.h"
-
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
+#include "sha2.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

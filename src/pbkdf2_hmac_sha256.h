@@ -8,9 +8,10 @@
  */
 
 
-#include "sha2.h"
 #include <string.h>
+
 #include "arch.h"
+#include "sha2.h"
 
 #ifndef SHA256_CBLOCK
 #define SHA256_CBLOCK 64

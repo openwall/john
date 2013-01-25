@@ -493,12 +493,18 @@ static void crypt_all(int count)
 #endif
 	{
 		SHA256_CTX ctx;
+
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA256_Update(&ctx, cur_salt->salt, 32);
 		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
+#ifdef COMMON_DIGEST_FOR_OPENSSL
+		pwsafe_sha256_iterate(ctx.hash, cur_salt->iterations);
+		memcpy(crypt_out[index], ctx.hash, 32);
+#else
 		pwsafe_sha256_iterate(ctx.h, cur_salt->iterations);
 		memcpy(crypt_out[index], ctx.h, 32);
+#endif
 	}
 }
 

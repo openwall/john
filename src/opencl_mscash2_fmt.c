@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include "unicode.h"
 #include "common_opencl_pbkdf2.h"
+#include "loader.h"
 
 
 #define INIT_MD4_A                  0x67452301
@@ -301,12 +302,12 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	    return 0;
 
 	while (hash < ciphertext + strlen(ciphertext))
-	      {
-		  if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
-			  return 0;
+	{
+		if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
+			return 0;
 
-		  hashlength++;
-	      }
+		hashlength++;
+	}
 
 	if (hashlength != 32)  return 0;
 
@@ -315,17 +316,20 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	pos=ciphertext + strlen(MSCASH2_PREFIX);
 
 	while (*pos != '#')
-	      {
-		      if(saltlength==(MAX_SALT_LENGTH)) {
-			      static int warned = 0;
-			      if (!warned++)
-				      fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
-			      return 0;
-		      }
+	{
+		if(saltlength==(MAX_SALT_LENGTH)) {
+			static int warned = 0;
+
+			if (!ldr_in_pot)
+			if (!warned++)
+				fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
+			return 0;
+		}
 
 		saltlength++;
 		pos++;
-	      }
+	}
 
 	return 1;
 }

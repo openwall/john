@@ -9,23 +9,24 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#ifdef _OPENMP
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include <openssl/aes.h>
-#include "sha.h"
 #include "md5.h"
-#ifdef _OPENMP
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
+#include "sha2.h"
+#include <openssl/aes.h>
 
 #define FORMAT_LABEL		"keyring"
 #define FORMAT_NAME		"GNOME Keyring iterated-SHA256 AES"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	15

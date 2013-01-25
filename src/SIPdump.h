@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include "memory.h"
 
 /*
  * Copyright (C) 2007  Martin J. Muench <mjm@codito.de>
@@ -107,9 +106,7 @@ void *Malloc(size_t size)
 {
 	void *buffer;
 
-	buffer = mem_alloc(size);
-
-	memset(buffer, 0, size);
+	buffer = calloc(size, 1);
 
 	return (buffer);
 }
@@ -272,7 +269,7 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 	if ((login_file = fopen(file, "r")) == NULL) {
 		fprintf(stderr, "* Cannot open dump file: %s\n",
 		    strerror(errno));
-		MEM_FREE(tempfile);
+		free(tempfile);
 		return;
 	}
 
@@ -280,7 +277,7 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 		fprintf(stderr, "* Cannot open temp file: %s\n",
 		    strerror(errno));
 		fclose(login_file);
-		MEM_FREE(tempfile);
+		free(tempfile);
 		return;
 	}
 
@@ -310,11 +307,11 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 	if (rename(tempfile, file) < 0) {
 		fprintf(stderr, "* Cannot rename tempfile to dump file: %s\n",
 		    strerror(errno));
-		MEM_FREE(tempfile);
+		free(tempfile);
 		return;
 	}
 
-	MEM_FREE(tempfile);
+	free(tempfile);
 
 	debug(("update_login_data() done"));
 }
@@ -356,9 +353,9 @@ int find_value(const char *value, const char *buffer, char *outbuf,
 		}
 	}
 
-	memset(outbuf, 0, sizeof(outbuf));
-	strncpy(outbuf, tempbuf, outbuf_len - 1);
-	MEM_FREE(tempbuf);
+	strncpy(outbuf, tempbuf, outbuf_len);
+	outbuf[outbuf_len] = 0;
+	free(tempbuf);
 
 	debug(("find_value: %s'%s'", value, outbuf));
 
