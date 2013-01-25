@@ -1,4 +1,16 @@
-/* Common OpenCL functions go in this file */
+/* ***
+ * This file is part of John the Ripper password cracker.
+ *
+ * Common OpenCL functions go in this file.
+ *
+ *
+ * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
+ * Copyright (c) 2012 by magnum,
+ * Others and
+ * is hereby released to the general public under the following terms:
+ *    Redistribution and use in source and binary forms, with or without
+ *    modifications, are permitted.
+ *** */
 
 #include <assert.h>
 #include <string.h>
