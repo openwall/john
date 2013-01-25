@@ -3,7 +3,10 @@
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * Uses code from Sumatra PDF and MuPDF which are under GPL */
+ * Uses code from Sumatra PDF and MuPDF which are under GPL 
+ *
+ * Edited by Shane Quigley 2013
+ */
 
 #include <string.h>
 #include "arch.h"
@@ -118,6 +121,128 @@ static int valid(char *ciphertext, struct fmt_main *self)
 err:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
+static int old_valid(char *ciphertext, struct fmt_main *self)
+{
+	char *ctcopy, *ptr, *keeptr;
+	int res;
+
+	if (strncmp(ciphertext, "$pdf$Standard*", 14))
+		return 0;
+	if (!(ctcopy = strdup(ciphertext)))
+		return 0;
+	keeptr = ctcopy;
+	ctcopy += 14;
+	if (!(ptr = strtok(ctcopy, "*"))) /* o_string */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* u_string */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* fileIDLen */
+		goto error;
+	if (strncmp(ptr, "16", 2))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* fileID */
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* encryptMetaData */
+		goto error;
+	res = atoi(ptr);
+	if (res != 0 && res != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* work_with_user */
+		goto error;
+	res = atoi(ptr);
+	if (res != 0 && res != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* have_userpassword */
+		goto error;
+	res = atoi(ptr);
+	if (res != 0 && res != 1)
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* version_major */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* version_minor */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* length */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* permissions */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* revision */
+		goto error;
+	if (!(ptr = strtok(NULL, "*"))) /* version */
+		goto error;
+	MEM_FREE(keeptr);
+	return 1;
+error:
+	MEM_FREE(keeptr);
+	return 0;
+}
+
+char * convert_old_to_new(char ciphertext[])
+{
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *out = (char *)malloc((strlen(ctcopy))*sizeof(char));
+	const char *fields[14];
+	char *p;
+	int c = 0;
+	p = strtok(ctcopy, "*");
+	while (p != NULL)
+	{
+		fields[c] = p;
+		p = strtok (NULL, "*");
+		c++;
+	}
+	strcpy(out,"$pdf$");
+	strcat(out,fields[13]);
+	strcat(out,"*");
+	strcat(out,fields[12]);
+	strcat(out,"*");
+	strcat(out,fields[10]);
+	strcat(out,"*");
+	strcat(out,fields[11]);
+	strcat(out,"*");
+	strcat(out,fields[5]);
+	strcat(out,"*");
+	strcat(out,fields[3]);
+	strcat(out,"*");
+	strcat(out,fields[4]);
+	strcat(out,"*32*");
+	strcat(out,fields[2]);
+	strcat(out,"*32*");
+	strcat(out,fields[1]);
+	MEM_FREE(keeptr);
+	return out;
+}
+
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	//If its the old format
+	if (strncmp(split_fields[1], "$pdf$Standard*", 14) == 0){
+		if(old_valid(split_fields[1], self)) {
+			char * in_new_format = convert_old_to_new(split_fields[1]);
+			strcpy(split_fields[1], in_new_format);
+			free(in_new_format);
+			return split_fields[1];
+		}else{
+			//Return something invalid
+			return "";
+		}
+	}
+	return split_fields[1];
 }
 
 static void *get_salt(char *ciphertext)
@@ -474,7 +599,7 @@ struct fmt_main fmt_pdf = {
 	},
 	{
 		init,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		fmt_default_binary,
