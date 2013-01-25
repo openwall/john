@@ -31,10 +31,12 @@ static int omp_t = 1;
 #endif
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
-#define PLAINTEXT_LENGTH		64
-#define MAX_CIPHERTEXT_LENGTH		(512*2+32)
-#define SALT_SIZE			64
-#define BINARY_SIZE			(512-SALT_SIZE)
+#define PLAINTEXT_LENGTH	64
+#define MAX_CIPHERTEXT_LENGTH	(512*2+32)
+#define SALT_SIZE		64
+#define SALT_ALIGN		1
+#define BINARY_SIZE		(512-SALT_SIZE)
+#define BINARY_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -316,9 +318,9 @@ struct fmt_main fmt_truecrypt = {
 		-1,                               // BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
@@ -372,9 +374,9 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		-1,                               // BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
@@ -428,9 +430,9 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		-1,                               // BENCHMARK_LENGTH
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,

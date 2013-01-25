@@ -62,25 +62,27 @@
 #endif
 
 
-#define FORMAT_LABEL			"clipperz"
-#define FORMAT_NAME				"Clipperz SRP SHA256"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR EXP_STR
+#define FORMAT_LABEL		"clipperz"
+#define FORMAT_NAME		"Clipperz SRP SHA256"
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR EXP_STR
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	-1
 
-#define CLIPPERZSIG					"$clipperz$"
-#define CLIPPERZSIGLEN				10
-#define PLAINTEXT_LENGTH		16
-#define CIPHERTEXT_LENGTH		64
+#define CLIPPERZSIG		"$clipperz$"
+#define CLIPPERZSIGLEN		10
+#define PLAINTEXT_LENGTH	16
+#define CIPHERTEXT_LENGTH	64
 
-#define BINARY_SIZE				32
-#define FULL_BINARY_SIZE		32
+#define BINARY_SIZE		32
+#define BINARY_ALIGN		4
+#define FULL_BINARY_SIZE	32
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		1
 #define USERNAMELEN             32
 
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		4
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	4
 
 // salt is in hex  (salt and salt2)
 static struct fmt_tests tests[] = {
@@ -154,7 +156,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[FULL_BINARY_SIZE];
-		ARCH_WORD dummy[1];
+		ARCH_WORD_32 dummy[1];
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -379,9 +381,9 @@ struct fmt_main fmt_clipperz = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

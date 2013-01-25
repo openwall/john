@@ -40,9 +40,11 @@
 #define CIPHERTEXT_LENGTH		84
 
 #define BINARY_SIZE			64
+#define BINARY_ALIGN			4
 #define USED_BINARY_SIZE		62	// Due to base64 bug in DragonBSD crypt-sha512.c
 #define SALT_SIZE_32			(1+4+8)	// 1st char is length
 #define SALT_SIZE_64			(1+8+8)
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -281,9 +283,9 @@ struct fmt_main fmt_dragonfly4_32 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE_32,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -337,9 +339,9 @@ struct fmt_main fmt_dragonfly4_64 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE_64,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

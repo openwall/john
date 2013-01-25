@@ -28,7 +28,9 @@
 #define PLAINTEXT_LENGTH		120 // worst case UTF-8 is 40 characters of Unicode, that'll do
 
 #define BINARY_SIZE			8
+#define BINARY_ALIGN			1
 #define SALT_SIZE			(32 + 4)  // also contain the NULL
+#define SALT_ALIGN			2
 #define CIPHERTEXT_LENGTH		16
 
 #define MIN_KEYS_PER_CRYPT		1
@@ -338,9 +340,9 @@ struct fmt_main fmt_oracle = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_UNICODE | FMT_UTF8,

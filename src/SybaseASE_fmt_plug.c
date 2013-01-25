@@ -52,6 +52,7 @@
 #define PREFIX_LENGTH       6
 
 #define BINARY_SIZE         32
+#define BINARY_ALIGN        4
 #define SALT_SIZE           8
 #define SALT_ALIGN          1
 
@@ -294,7 +295,7 @@ struct fmt_main fmt_SybaseASE = {
         BENCHMARK_LENGTH,
         PLAINTEXT_LENGTH,
         BINARY_SIZE,
-        DEFAULT_ALIGN,
+        BINARY_ALIGN,
         SALT_SIZE,
         SALT_ALIGN,
         MIN_KEYS_PER_CRYPT,

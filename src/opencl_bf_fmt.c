@@ -26,7 +26,9 @@
 #define CIPHERTEXT_LENGTH		60
 
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			sizeof(BF_word)
 #define SALT_SIZE			sizeof(BF_salt)
+#define SALT_ALIGN			sizeof(BF_salt)
 
 #define MIN_KEYS_PER_CRYPT		BF_N
 #define MAX_KEYS_PER_CRYPT		BF_N
@@ -264,9 +266,9 @@ struct fmt_main fmt_opencl_bf = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

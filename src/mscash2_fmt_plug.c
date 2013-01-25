@@ -102,7 +102,9 @@ static struct fmt_tests tests[] = {
 #define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 22*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			8
 #define SALT_SIZE			(11*4+4)
+#define SALT_ALIGN			1
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
@@ -728,9 +730,9 @@ struct fmt_main fmt_mscash2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,

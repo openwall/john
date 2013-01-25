@@ -39,7 +39,10 @@
 #define CIPHERTEXT_LENGTH		86
 
 #define BINARY_SIZE			64
+#define BINARY_ALIGN			4
 #define SALT_LENGTH			16
+#define SALT_SIZE			sizeof(struct saltstruct)
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -72,7 +75,6 @@ static struct saltstruct {
 	unsigned int rounds;
 	unsigned char salt[SALT_LENGTH];
 } *cur_salt;
-#define SALT_SIZE			sizeof(struct saltstruct)
 
 static void init(struct fmt_main *self)
 {
@@ -389,9 +391,9 @@ struct fmt_main fmt_cryptsha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

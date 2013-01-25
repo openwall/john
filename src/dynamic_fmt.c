@@ -345,8 +345,9 @@ SHA_CTX sha_ctx;
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		-1
 #define CIPHERTEXT_LENGTH		32
-#define BINARY_SIZE				16
-#define BINARY_SIZE_SHA         20
+#define BINARY_SIZE			16
+#define BINARY_SIZE_SHA         	20
+#define BINARY_ALIGN			MEM_ALIGN_WORD
 
 // Computation for 'salt_size'  The salt (and salt2) is appended to the end of the hash entry.
 //    The format of a salted entry is:   $dynamic_#$hash$SALT_VAL[$$2SALT2_VAL]
@@ -356,7 +357,8 @@ SHA_CTX sha_ctx;
 // salt2 signature $$2 3 bytes
 // null termination 1 byte.  This this allows 2 64 byte salt's.
 // Note, we now have up to 10 of these.
-#define SALT_SIZE				(64*4+1+3+1)
+#define SALT_SIZE			(64*4+1+3+1)
+#define SALT_ALIGN			MEM_ALIGN_WORD
 
 // slots to do 24 'tests'. Note, we copy the
 // same 3 tests over and over again.  Simply to validate that
@@ -1955,7 +1957,7 @@ static void *salt(char *ciphertext)
 	unsigned the_real_len;
 	static union x {
 		unsigned char salt_p[sizeof(unsigned char*)];
-		unsigned long p[1];
+		ARCH_WORD_32 p[1];
 	} union_x;
 
 	if ( (curdat.pSetup->flags&MGF_SALTED) == 0) {
@@ -2453,11 +2455,11 @@ struct fmt_main fmt_Dynamic =
 #endif
 		BINARY_SIZE,
 #if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 #endif
 		SALT_SIZE,
 #if FMT_MAIN_VERSION > 9
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 #endif
 #ifdef MMX_COEF
 		MIN_KEYS_PER_CRYPT,

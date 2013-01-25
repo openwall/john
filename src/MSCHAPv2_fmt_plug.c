@@ -57,10 +57,12 @@
 #define PLAINTEXT_LENGTH     125 /* lmcons.h - PWLEN (256) ? 127 ? */
 #define USERNAME_LENGTH      256 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH        15  /* lmcons.h - CNLEN / DNLEN */
-#define PARTIAL_BINARY_SIZE  8
-#define BINARY_SIZE          24
-#define CHALLENGE_LENGTH     64
+#define BINARY_SIZE          8
+#define BINARY_ALIGN         1
 #define SALT_SIZE            8
+#define SALT_ALIGN           1
+#define DIGEST_SIZE          24
+#define CHALLENGE_LENGTH     64
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         13 + USERNAME_LENGTH + CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
@@ -103,7 +105,7 @@ static struct fmt_tests tests[] = {
 static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static int (*saved_len);
 static uchar (*saved_key)[21];
-static uchar (*output)[PARTIAL_BINARY_SIZE];
+static uchar (*output)[BINARY_SIZE];
 static uchar *challenge;
 static int keys_prepared;
 
@@ -287,14 +289,14 @@ static void *get_binary(char *ciphertext)
   static uchar *binary;
   int i;
 
-  if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+  if (!binary) binary = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
   if (valid_short(ciphertext))
     ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
   else
     ciphertext += 10 + CHALLENGE_LENGTH / 2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
 
-  for (i=0; i<BINARY_SIZE; i++)
+  for (i=0; i<DIGEST_SIZE; i++)
   {
     binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
     binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
@@ -361,14 +363,14 @@ static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 	for(; index<count; index++)
-		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
+		if (!memcmp(output[index], binary, BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE));
+	return (!memcmp(output[index], binary, BINARY_SIZE));
 }
 
 static int cmp_exact(char *source, int index)
@@ -390,7 +392,7 @@ static int cmp_exact(char *source, int index)
 	setup_des_key(&saved_key[index][14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
 
-	return !memcmp(binary, get_binary(source), BINARY_SIZE);
+	return !memcmp(binary, get_binary(source), DIGEST_SIZE);
 }
 
 static void get_challenge(const char *ciphertext, unsigned char *binary_salt)
@@ -564,9 +566,9 @@ struct fmt_main fmt_MSCHAPv2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,

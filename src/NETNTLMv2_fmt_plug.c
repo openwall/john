@@ -66,9 +66,11 @@
 #define USERNAME_LENGTH		60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH		45 /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		1
 #define SERVER_CHALL_LENGTH	16
 #define CLIENT_CHALL_LENGTH_MAX	1024 /* FIXME - Max Target Information Size Unknown */
-#define SALT_SIZE_MAX		2 * USERNAME_LENGTH + 2 * DOMAIN_LENGTH + 3 + SERVER_CHALL_LENGTH/2 + CLIENT_CHALL_LENGTH_MAX/2
+#define SALT_SIZE		2 * USERNAME_LENGTH + 2 * DOMAIN_LENGTH + 3 + SERVER_CHALL_LENGTH/2 + CLIENT_CHALL_LENGTH_MAX/2
+#define SALT_ALIGN		1
 #define CIPHERTEXT_LENGTH	32
 #define TOTAL_LENGTH		12 + USERNAME_LENGTH + DOMAIN_LENGTH + SERVER_CHALL_LENGTH + CLIENT_CHALL_LENGTH_MAX + CIPHERTEXT_LENGTH
 
@@ -370,10 +372,10 @@ static void *get_salt(char *ciphertext)
   char *pos = NULL;
 #if !ARCH_ALLOWS_UNALIGNED
   static unsigned *bs2;
-  if (!bs2) bs2 = mem_alloc_tiny(SALT_SIZE_MAX, MEM_ALIGN_WORD);
+  if (!bs2) bs2 = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 #endif
 
-  if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE_MAX, MEM_ALIGN_WORD);
+  if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
   /* Calculate identity length */
   for (pos = ciphertext + 11; strncmp(pos, "$", 1) != 0; pos++);
@@ -523,9 +525,9 @@ struct fmt_main fmt_NETNTLMv2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
-		SALT_SIZE_MAX,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
