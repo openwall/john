@@ -251,7 +251,7 @@ static int cmp_all(void *binary, int count)
 #endif
 		for(x=0;x<MMX_COEF;x++)
 		{
-			// NOTE crypt_key is in input format (SHA_BUF_SIZ*4)
+			// NOTE crypt_key is in input format (4*SHA_BUF_SIZ*MMX_COEF)
 			if( ((ARCH_WORD_32*)binary)[0] == ((ARCH_WORD_32*)crypt_key)[x+y*MMX_COEF*SHA_BUF_SIZ] )
 				return 1;
 		}
@@ -266,7 +266,7 @@ static int cmp_one(void *binary, int index)
 #ifdef MMX_COEF
 	int i = 0;
 	for(i=0;i<(BINARY_SIZE/4);i++)
-		// NOTE crypt_key is in input format (SHA_BUF_SIZ*4)
+		// NOTE crypt_key is in input format (4*SHA_BUF_SIZ*MMX_COEF)
 		if ( ((ARCH_WORD_32*)binary)[i] != ((ARCH_WORD_32*)crypt_key)[i*MMX_COEF+(index&3)+(index>>2)*SHA_BUF_SIZ*MMX_COEF] )
 			return 0;
 	return 1;
@@ -372,7 +372,8 @@ static int binary_hash_5(void *binary) { return *(ARCH_WORD_32*)binary & 0xfffff
 static int binary_hash_6(void *binary) { return *(ARCH_WORD_32*)binary & 0x7ffffff; }
 
 #ifdef MMX_COEF
-#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*20
+// NOTE crypt_key is in input format (4*SHA_BUF_SIZ*MMX_COEF)
+#define HASH_OFFSET (index&(MMX_COEF-1))+(index/MMX_COEF)*MMX_COEF*SHA_BUF_SIZ
 static int get_hash_0(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xf; }
 static int get_hash_1(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xff; }
 static int get_hash_2(int index) { return ((ARCH_WORD_32*)crypt_key)[HASH_OFFSET] & 0xfff; }
