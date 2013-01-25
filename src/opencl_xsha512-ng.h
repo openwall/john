@@ -24,6 +24,7 @@
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        64
+#define BINARY_ALIGN            4
 #define SALT_SIZE               4
 #define SALT_ALIGN              1
 #define STEP                    65536
