@@ -105,7 +105,6 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
 static struct fmt_tests tests[] = {
 	{"$DIGEST-MD5$s3443$pjwstk$00$ldap/10.253.34.43$0734d94ad9abd5bd7fc5e7e77bcf49a8$00000001$auth-int$dd98347e6da3efd6c4ff2263a729ef77", "test"},
-	{"$DIGEST-MD5$s3443$pjwstk$00$ldap/10.253.34.43$0734D94AD9ABD5BD7FC5E7E77BCF49A8$00000001$auth-int$DD98347E6DA3EFD6C4FF2263A729EF77", "test"},
 	{NULL}
 };
 
@@ -168,32 +167,6 @@ static void *binary(char *ciphertext)
 			+ atoi16[ARCH_INDEX(response[i*2+1])];
 
 	return (void*)binary_response;
-}
-
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char out[CIPHERTEXT_LENGTH];
-	char *p, *data;
-	char end;
-
-	strnzcpy(out, ciphertext, sizeof(out));
-	data = out + 12; // data is username
-	p = strchr(data, '$') + 1;
-	data = p; p = strchr(data, '$') + 1; // data is realm
-	data = p; p = strchr(data, '$') + 1; // data is nonce
-	data = p; p = strchr(data, '$') + 1; // data is digest uri
-	data = p; p = strchr(data, '$'); // data is cnonce
-	*p = 0;
-	strlwr(data); // lower-case cnonce
-	*p = '$';
-	data = p + 1; p = strchr(data, '$') + 1; // data is nc
-	data = p + 1; p = strchr(data, '$') + 1; // data is qop
-	data = p + 1; p = data + MD5_HEX_SIZE; // data is response
-	end = *p; *p = 0;
-	strlwr(data); // lower-case response
-	*p = end;
-
-	return out;
 }
 
 static void *salt(char *ciphertext)
@@ -410,7 +383,7 @@ struct fmt_main fmt_DMD5 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests
 	},
 	{
@@ -419,7 +392,7 @@ struct fmt_main fmt_DMD5 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		split,
+		fmt_default_split,
 		binary,
 		salt,
 		fmt_default_source,
