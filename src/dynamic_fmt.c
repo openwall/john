@@ -8959,7 +8959,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		// we really do not 'have' to null terminate, but do just to be on the 'safe' side.
 		curdat.Consts[curdat.nConsts] = mem_alloc_tiny(Setup->pConstants[curdat.nConsts].len+1, MEM_ALIGN_NONE);
 		memcpy(curdat.Consts[curdat.nConsts], Setup->pConstants[curdat.nConsts].Const, Setup->pConstants[curdat.nConsts].len);
-		curdat.Consts[curdat.nConsts][Setup->pConstants[curdat.nConsts].len+1] = 0;
+		curdat.Consts[curdat.nConsts][Setup->pConstants[curdat.nConsts].len] = 0;
 		curdat.ConstsLen[curdat.nConsts] = Setup->pConstants[curdat.nConsts].len;
 	}
 
