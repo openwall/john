@@ -560,7 +560,6 @@ static inline int PasswordVerifier(unsigned char *key)
 		return 0;
 	}
 	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-	AES_ecb_encrypt(cur_salt->encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
 
 	/* find SHA1 hash of decryptedVerifier */
 	SHA1_Init(&ctx);
