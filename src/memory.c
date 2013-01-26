@@ -68,6 +68,13 @@ void *mem_calloc(size_t size)
 
 void *mem_alloc_tiny(size_t size, size_t align)
 {
+#ifdef DEBUG
+	void *res;
+
+	res = mem_alloc(size);
+	add_memory_link(res);
+	return res;
+#else
 	static unsigned long buffer, bufree = 0;
 	unsigned long start, end;
 
@@ -94,6 +101,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	}
 
 	return (void *)start;
+#endif
 }
 
 void *mem_calloc_tiny(size_t size, size_t align) {
