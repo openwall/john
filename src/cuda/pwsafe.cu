@@ -2,6 +2,10 @@
 * This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net> 
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
+*
+* This software is Copyright (c) 2013 Brian Wallace <nightstrike9809@gmail.com> 
+* and it is hereby released to the general public under the following terms:
+* Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,8 +14,8 @@
 #include "../cuda_pwsafe.h"
 #include "cuda_common.cuh"
 
-#define PWSAFE_IN_SIZE (KEYS_PER_GPU * sizeof(pwsafe_pass))
-#define PWSAFE_OUT_SIZE (KEYS_PER_GPU * sizeof(pwsafe_hash))
+#define PWSAFE_IN_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_pass))
+#define PWSAFE_OUT_SIZE (KEYS_PER_CRYPT * sizeof(pwsafe_hash))
 #define PWSAFE_SALT_SIZE (sizeof(pwsafe_salt))
 
 __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
@@ -62,6 +66,7 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
         w[j / 4] |= (((uint32_t) 0x80) << ((3 - (j & 0x3)) << 3));
         w[15] = 0x00000000 | (j * 8);
 
+#pragma unroll 48
         for (j = 16; j < 64; j++) {
                 w[j] =
                     sigma1(w[j - 2]) + w[j - 7] + sigma0(w[j - 15]) + w[j -
@@ -76,6 +81,7 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
         uint32_t f = H[5];
         uint32_t g = H[6];
         uint32_t h = H[7];
+#pragma unroll 64
         for (uint32_t j = 0; j < 64; j++) {
                 uint32_t t1 = h + Sigma1(e) + Ch(e, f, g) + k[j] + w[j];
                 uint32_t t2 = Sigma0(a) + Maj(a, b, c);
@@ -88,60 +94,689 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
                 b = a;
                 a = t1 + t2;
         }
-        w[9] = w[10] = w[11] = w[12] = w[13] = w[14] = 0;
-        w[8] = 0x80000000;
-        w[15] = 0x00000100;
-        for (i = 0; i <= salt->iterations; i++) {
-                w[0] = a + H[0];
-                w[1] = b + H[1];
-                w[2] = c + H[2];
-                w[3] = d + H[3];
-                w[4] = e + H[4];
-                w[5] = f + H[5];
-                w[6] = g + H[6];
-                w[7] = h + H[7];
-                a = H[0];
-                b = H[1];
-                c = H[2];
-                d = H[3];
-                e = H[4];
-                f = H[5];
-                g = H[6];
-                h = H[7];
-#pragma unroll 48
-                for (j = 16; j < 64; j++)
-                        w[j] =
-                            sigma1(w[j - 2]) + w[j - 7] + sigma0(w[j - 15]) +
-                            w[j - 16];
 
-#pragma unroll 64
-                for (uint32_t j = 0; j < 64; j++) {
-                        uint32_t t1 =
-                            h + Sigma1(e) + Ch(e, f, g) + k[j] + w[j];
-                        uint32_t t2 = Sigma0(a) + Maj(a, b, c);
-                        h = g;
-                        g = f;
-                        f = e;
-                        e = d + t1;
-                        d = c;
-                        c = b;
-                        b = a;
-                        a = t1 + t2;
-                }
-        }
+
+	w[0] = a + H[0];
+	w[1] = b + H[1];
+	w[2] = c + H[2];
+	w[3] = d + H[3];
+	w[4] = e + H[4];
+	w[5] = f + H[5];
+	w[6] = g + H[6];
+	w[7] = h + H[7];
+        for (i = 0; i < salt->iterations; i++) {
+		a = H[0];
+		b = H[1];
+		c = H[2];
+		d = H[3];
+		e = H[4];
+		f = H[5];
+		g = H[6];
+		h = H[7];
+
+		h += Sigma1( e ) + Ch( e, f, g ) + 0x428a2f98 + (w[0]);
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		g += Sigma1( d ) + Ch( d, e, f ) + 0x71374491 + (w[1]);
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		f += Sigma1( c ) + Ch( c, d, e ) + 0xb5c0fbcf + (w[2]);
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		e += Sigma1( b ) + Ch( b, c, d ) + 0xe9b5dba5 + (w[3]);
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		d += Sigma1( a ) + Ch( a, b, c ) + 0x3956c25b + (w[4]);
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		c += Sigma1( h ) + Ch( h, a, b ) + 0x59f111f1 + (w[5]);
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		b += Sigma1( g ) + Ch( g, h, a ) + 0x923f82a4 + (w[6]);
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		a += Sigma1( f ) + Ch( f, g, h ) + 0xab1c5ed5 + (w[7]);
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+		h += Sigma1( e ) + Ch( e, f, g ) + 0x5807aa98;
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		g += Sigma1( d ) + Ch( d, e, f ) + 0x12835b01;
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		f += Sigma1( c ) + Ch( c, d, e ) + 0x243185be;
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		e += Sigma1( b ) + Ch( b, c, d ) + 0x550c7dc3;
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		d += Sigma1( a ) + Ch( a, b, c ) + 0x72be5d74;
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		c += Sigma1( h ) + Ch( h, a, b ) + 0x80deb1fe;
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		b += Sigma1( g ) + Ch( g, h, a ) + 0x9bdc06a7;
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		
+		a += Sigma1( f ) + Ch( f, g, h ) + 0xc19bf274;
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+
+
+		w[0] += sigma0( w[1] );
+		h += Sigma1( e ) + Ch( e, f, g ) + 0xe49b69c1 + ( (w[0]) );
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		w[1] += sigma1(256) + sigma0( w[2] );
+		g += Sigma1( d ) + Ch( d, e, f ) + 0xefbe4786 + ( (w[1]) );
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		w[2] += sigma1( w[0] ) + sigma0( w[3] );
+		f += Sigma1( c ) + Ch( c, d, e ) + 0x0fc19dc6 + ( (w[2]) );
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		w[3] += sigma1( w[1] ) + sigma0( w[4] );
+		e += Sigma1( b ) + Ch( b, c, d ) + 0x240ca1cc + ( (w[3]) );
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		w[4] += sigma1( w[2] ) + sigma0( w[5] );
+		d += Sigma1( a ) + Ch( a, b, c ) + 0x2de92c6f + ( (w[4]) );
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		w[5] += sigma1( w[3] ) + sigma0( w[6] );
+		c += Sigma1( h ) + Ch( h, a, b ) + 0x4a7484aa + ( (w[5]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		w[6] += sigma1( w[4] ) + 256 + sigma0( w[7] );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0x5cb0a9dc + ( (w[6]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		w[7] += sigma1( w[5] ) + w[0] + sigma0( 0x80000000 );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0x76f988da + ( (w[7]) );
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+		w[8] = 0x80000000 + sigma1( w[6] ) + w[1];
+		h += Sigma1( e ) + Ch( e, f, g ) + 0x983e5152 + ( (w[8]) );
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		w[9] = sigma1( w[7] ) + w[2];
+		g += Sigma1( d ) + Ch( d, e, f ) + 0xa831c66d + ( (w[9]) );
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		w[10] = sigma1( w[8] ) + w[3];
+		f += Sigma1( c ) + Ch( c, d, e ) + 0xb00327c8 + ( (w[10]) );
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		w[11] = sigma1( w[9] ) + w[4];
+		e += Sigma1( b ) + Ch( b, c, d ) + 0xbf597fc7 + ( (w[11]) );
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		w[12] = sigma1( w[10] ) + w[5];
+		d += Sigma1( a ) + Ch( a, b, c ) + 0xc6e00bf3 + ( (w[12]) );
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		w[13] = sigma1( w[11] ) + w[6];
+		c += Sigma1( h ) + Ch( h, a, b ) + 0xd5a79147 + ( (w[13]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		w[14] = sigma1( w[12] ) + w[7] + sigma0( 256 );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0x06ca6351 + ( (w[14]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		w[15] = 256 + sigma1( w[13] ) + w[8] + sigma0( w[0] );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0x14292967 + ( (w[15]) );
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+
+
+		w[0] += sigma1( w[14] ) + w[9] + sigma0( w[1] );
+		h += Sigma1( e ) + Ch( e, f, g ) + 0x27b70a85 + ( (w[0]) );
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		w[1] += sigma1( w[15] ) + w[10] + sigma0( w[2] );
+		g += Sigma1( d ) + Ch( d, e, f ) + 0x2e1b2138 + ( (w[1]) );
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		w[2] += sigma1( w[0] ) + w[11] + sigma0( w[3] );
+		f += Sigma1( c ) + Ch( c, d, e ) + 0x4d2c6dfc + ( (w[2]) );
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		w[3] += sigma1( w[1] ) + w[12] + sigma0( w[4] );
+		e += Sigma1( b ) + Ch( b, c, d ) + 0x53380d13 + ( (w[3]) );
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		w[4] += sigma1( w[2] ) + w[13] + sigma0( w[5] );
+		d += Sigma1( a ) + Ch( a, b, c ) + 0x650a7354 + ( (w[4]) );
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		w[5] += sigma1( w[3] ) + w[14] + sigma0( w[6] );
+		c += Sigma1( h ) + Ch( h, a, b ) + 0x766a0abb + ( (w[5]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		w[6] += sigma1( w[4] ) + w[15] + sigma0( w[7] );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0x81c2c92e + ( (w[6]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		w[7] += sigma1( w[5] ) + w[0] + sigma0( w[8] );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0x92722c85 + ( (w[7]) );
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+		w[8] += sigma1( w[6] ) + w[1] + sigma0( w[9] );
+		h += Sigma1( e ) + Ch( e, f, g ) + 0xa2bfe8a1 + ( (w[8]) );
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		w[9] += sigma1( w[7] ) + w[2] + sigma0( w[10] );
+		g += Sigma1( d ) + Ch( d, e, f ) + 0xa81a664b + ( (w[9]) );
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		w[10] += sigma1( w[8] ) + w[3] + sigma0( w[11] );
+		f += Sigma1( c ) + Ch( c, d, e ) + 0xc24b8b70 + ( (w[10]) );
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		w[11] += sigma1( w[9] ) + w[4] + sigma0( w[12] );
+		e += Sigma1( b ) + Ch( b, c, d ) + 0xc76c51a3 + ( (w[11]) );
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		w[12] += sigma1( w[10] ) + w[5] + sigma0( w[13] );
+		d += Sigma1( a ) + Ch( a, b, c ) + 0xd192e819 + ( (w[12]) );
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		w[13] += sigma1( w[11] ) + w[6] + sigma0( w[14] );
+		c += Sigma1( h ) + Ch( h, a, b ) + 0xd6990624 + ( (w[13]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		w[14] += sigma1( w[12] ) + w[7] + sigma0( w[15] );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0xf40e3585 + ( (w[14]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0x106aa070 + ( (w[15]) );
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+
+
+		w[0] += sigma1( w[14] ) + w[9] + sigma0( w[1] );
+		h += Sigma1( e ) + Ch( e, f, g ) + 0x19a4c116 + ( (w[0]) );
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		w[1] += sigma1( w[15] ) + w[10] + sigma0( w[2] );
+		g += Sigma1( d ) + Ch( d, e, f ) + 0x1e376c08 + ( (w[1]) );
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		w[2] += sigma1( w[0] ) + w[11] + sigma0( w[3] );
+		f += Sigma1( c ) + Ch( c, d, e ) + 0x2748774c + ( (w[2]) );
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		w[3] += sigma1( w[1] ) + w[12] + sigma0( w[4] );
+		e += Sigma1( b ) + Ch( b, c, d ) + 0x34b0bcb5 + ( (w[3]) );
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		w[4] += sigma1( w[2] ) + w[13] + sigma0( w[5] );
+		d += Sigma1( a ) + Ch( a, b, c ) + 0x391c0cb3 + ( (w[4]) );
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		w[5] += sigma1( w[3] ) + w[14] + sigma0( w[6] );
+		c += Sigma1( h ) + Ch( h, a, b ) + 0x4ed8aa4a + ( (w[5]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		w[6] += sigma1( w[4] ) + w[15] + sigma0( w[7] );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0x5b9cca4f + ( (w[6]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+
+		w[7] += sigma1( w[5] ) + w[0] + sigma0( w[8] );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0x682e6ff3 + ( (w[7]) );
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+		w[8] += sigma1( w[6] ) + w[1] + sigma0( w[9] );
+		h += Sigma1( e ) + Ch( e, f, g ) + 0x748f82ee + ( (w[8]) );
+		d += h;
+		h += Sigma0( a ) + Maj( a, b, c );
+
+		w[9] += sigma1( w[7] ) + w[2] + sigma0( w[10] );
+		g += Sigma1( d ) + Ch( d, e, f ) + 0x78a5636f + ( (w[9]) );
+		c += g;
+		g += Sigma0( h ) + Maj( h, a, b );
+
+		w[10] += sigma1( w[8] ) + w[3] + sigma0( w[11] );
+		f += Sigma1( c ) + Ch( c, d, e ) + 0x84c87814 + ( (w[10]) );
+		b += f;
+		f += Sigma0( g ) + Maj( g, h, a );
+
+		w[11] += sigma1( w[9] ) + w[4] + sigma0( w[12] );
+		e += Sigma1( b ) + Ch( b, c, d ) + 0x8cc70208 + ( (w[11]) );
+		a += e;
+		e += Sigma0( f ) + Maj( f, g, h );
+
+		w[12] += sigma1( w[10] ) + w[5] + sigma0( w[13] );
+		d += Sigma1( a ) + Ch( a, b, c ) + 0x90befffa + ( (w[12]) );
+		h += d;
+		d += Sigma0( e ) + Maj( e, f, g );
+
+		w[13] += sigma1( w[11] ) + w[6] + sigma0( w[14] );
+		c += Sigma1( h ) + Ch( h, a, b ) + 0xa4506ceb + ( (w[13]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+
+		w[14] += sigma1( w[12] ) + w[7] + sigma0( w[15] );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0xbef9a3f7 + ( (w[14]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+		
+		w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0xc67178f2 + ( (w[15]) );
+		e += a;
+		a += Sigma0( b ) + Maj( b, c, d );
+
+		w[0] = H[0] + a;
+		w[1] = H[1] + b;
+		w[2] = H[2] + c;
+		w[3] = H[3] + d;
+		w[4] = H[4] + e;
+		w[5] = H[5] + f;
+		w[6] = H[6] + g;
+		w[7] = H[7] + h;
+	}
+
 
         uint32_t cmp = 0;
         uint32_t *v = (uint32_t *) salt->hash;
-	if (*v++ == a + H[0]) {
-		uint32_t diff;
-		diff = *v++ ^ (b + H[1]);
-		diff |= *v++ ^ (c + H[2]);
-		diff |= *v++ ^ (d + H[3]);
-		diff |= *v++ ^ (e + H[4]);
-		diff |= *v++ ^ (f + H[5]);
-		diff |= *v++ ^ (g + H[6]);
-		diff |= *v++ ^ (h + H[7]);
-		cmp = !diff;
+	a = H[0];
+	b = H[1];
+	c = H[2];
+	d = H[3];
+	e = H[4];
+	f = H[5];
+	g = H[6];
+	h = H[7];
+
+	h += Sigma1( e ) + Ch( e, f, g ) + 0x428a2f98 + (w[0]);
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	g += Sigma1( d ) + Ch( d, e, f ) + 0x71374491 + (w[1]);
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	f += Sigma1( c ) + Ch( c, d, e ) + 0xb5c0fbcf + (w[2]);
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	e += Sigma1( b ) + Ch( b, c, d ) + 0xe9b5dba5 + (w[3]);
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	d += Sigma1( a ) + Ch( a, b, c ) + 0x3956c25b + (w[4]);
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	c += Sigma1( h ) + Ch( h, a, b ) + 0x59f111f1 + (w[5]);
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	b += Sigma1( g ) + Ch( g, h, a ) + 0x923f82a4 + (w[6]);
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	a += Sigma1( f ) + Ch( f, g, h ) + 0xab1c5ed5 + (w[7]);
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+	h += Sigma1( e ) + Ch( e, f, g ) + 0x5807aa98;
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	g += Sigma1( d ) + Ch( d, e, f ) + 0x12835b01;
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	f += Sigma1( c ) + Ch( c, d, e ) + 0x243185be;
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	e += Sigma1( b ) + Ch( b, c, d ) + 0x550c7dc3;
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	d += Sigma1( a ) + Ch( a, b, c ) + 0x72be5d74;
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	c += Sigma1( h ) + Ch( h, a, b ) + 0x80deb1fe;
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	b += Sigma1( g ) + Ch( g, h, a ) + 0x9bdc06a7;
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	
+	a += Sigma1( f ) + Ch( f, g, h ) + 0xc19bf274;
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+
+
+	w[0] += sigma0( w[1] );
+	h += Sigma1( e ) + Ch( e, f, g ) + 0xe49b69c1 + ( (w[0]) );
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	w[1] += sigma1(256) + sigma0( w[2] );
+	g += Sigma1( d ) + Ch( d, e, f ) + 0xefbe4786 + ( (w[1]) );
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	w[2] += sigma1( w[0] ) + sigma0( w[3] );
+	f += Sigma1( c ) + Ch( c, d, e ) + 0x0fc19dc6 + ( (w[2]) );
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	w[3] += sigma1( w[1] ) + sigma0( w[4] );
+	e += Sigma1( b ) + Ch( b, c, d ) + 0x240ca1cc + ( (w[3]) );
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	w[4] += sigma1( w[2] ) + sigma0( w[5] );
+	d += Sigma1( a ) + Ch( a, b, c ) + 0x2de92c6f + ( (w[4]) );
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	w[5] += sigma1( w[3] ) + sigma0( w[6] );
+	c += Sigma1( h ) + Ch( h, a, b ) + 0x4a7484aa + ( (w[5]) );
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	w[6] += sigma1( w[4] ) + 256 + sigma0( w[7] );
+	b += Sigma1( g ) + Ch( g, h, a ) + 0x5cb0a9dc + ( (w[6]) );
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	w[7] += sigma1( w[5] ) + w[0] + sigma0( 0x80000000 );
+	a += Sigma1( f ) + Ch( f, g, h ) + 0x76f988da + ( (w[7]) );
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+	w[8] = 0x80000000 + sigma1( w[6] ) + w[1];
+	h += Sigma1( e ) + Ch( e, f, g ) + 0x983e5152 + ( (w[8]) );
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	w[9] = sigma1( w[7] ) + w[2];
+	g += Sigma1( d ) + Ch( d, e, f ) + 0xa831c66d + ( (w[9]) );
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	w[10] = sigma1( w[8] ) + w[3];
+	f += Sigma1( c ) + Ch( c, d, e ) + 0xb00327c8 + ( (w[10]) );
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	w[11] = sigma1( w[9] ) + w[4];
+	e += Sigma1( b ) + Ch( b, c, d ) + 0xbf597fc7 + ( (w[11]) );
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	w[12] = sigma1( w[10] ) + w[5];
+	d += Sigma1( a ) + Ch( a, b, c ) + 0xc6e00bf3 + ( (w[12]) );
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	w[13] = sigma1( w[11] ) + w[6];
+	c += Sigma1( h ) + Ch( h, a, b ) + 0xd5a79147 + ( (w[13]) );
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	w[14] = sigma1( w[12] ) + w[7] + sigma0( 256 );
+	b += Sigma1( g ) + Ch( g, h, a ) + 0x06ca6351 + ( (w[14]) );
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	w[15] = 256 + sigma1( w[13] ) + w[8] + sigma0( w[0] );
+	a += Sigma1( f ) + Ch( f, g, h ) + 0x14292967 + ( (w[15]) );
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+
+
+	w[0] += sigma1( w[14] ) + w[9] + sigma0( w[1] );
+	h += Sigma1( e ) + Ch( e, f, g ) + 0x27b70a85 + ( (w[0]) );
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	w[1] += sigma1( w[15] ) + w[10] + sigma0( w[2] );
+	g += Sigma1( d ) + Ch( d, e, f ) + 0x2e1b2138 + ( (w[1]) );
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	w[2] += sigma1( w[0] ) + w[11] + sigma0( w[3] );
+	f += Sigma1( c ) + Ch( c, d, e ) + 0x4d2c6dfc + ( (w[2]) );
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	w[3] += sigma1( w[1] ) + w[12] + sigma0( w[4] );
+	e += Sigma1( b ) + Ch( b, c, d ) + 0x53380d13 + ( (w[3]) );
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	w[4] += sigma1( w[2] ) + w[13] + sigma0( w[5] );
+	d += Sigma1( a ) + Ch( a, b, c ) + 0x650a7354 + ( (w[4]) );
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	w[5] += sigma1( w[3] ) + w[14] + sigma0( w[6] );
+	c += Sigma1( h ) + Ch( h, a, b ) + 0x766a0abb + ( (w[5]) );
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	w[6] += sigma1( w[4] ) + w[15] + sigma0( w[7] );
+	b += Sigma1( g ) + Ch( g, h, a ) + 0x81c2c92e + ( (w[6]) );
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	w[7] += sigma1( w[5] ) + w[0] + sigma0( w[8] );
+	a += Sigma1( f ) + Ch( f, g, h ) + 0x92722c85 + ( (w[7]) );
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+	w[8] += sigma1( w[6] ) + w[1] + sigma0( w[9] );
+	h += Sigma1( e ) + Ch( e, f, g ) + 0xa2bfe8a1 + ( (w[8]) );
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	w[9] += sigma1( w[7] ) + w[2] + sigma0( w[10] );
+	g += Sigma1( d ) + Ch( d, e, f ) + 0xa81a664b + ( (w[9]) );
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	w[10] += sigma1( w[8] ) + w[3] + sigma0( w[11] );
+	f += Sigma1( c ) + Ch( c, d, e ) + 0xc24b8b70 + ( (w[10]) );
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	w[11] += sigma1( w[9] ) + w[4] + sigma0( w[12] );
+	e += Sigma1( b ) + Ch( b, c, d ) + 0xc76c51a3 + ( (w[11]) );
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	w[12] += sigma1( w[10] ) + w[5] + sigma0( w[13] );
+	d += Sigma1( a ) + Ch( a, b, c ) + 0xd192e819 + ( (w[12]) );
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	w[13] += sigma1( w[11] ) + w[6] + sigma0( w[14] );
+	c += Sigma1( h ) + Ch( h, a, b ) + 0xd6990624 + ( (w[13]) );
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	w[14] += sigma1( w[12] ) + w[7] + sigma0( w[15] );
+	b += Sigma1( g ) + Ch( g, h, a ) + 0xf40e3585 + ( (w[14]) );
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
+	a += Sigma1( f ) + Ch( f, g, h ) + 0x106aa070 + ( (w[15]) );
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+
+
+	w[0] += sigma1( w[14] ) + w[9] + sigma0( w[1] );
+	h += Sigma1( e ) + Ch( e, f, g ) + 0x19a4c116 + ( (w[0]) );
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	w[1] += sigma1( w[15] ) + w[10] + sigma0( w[2] );
+	g += Sigma1( d ) + Ch( d, e, f ) + 0x1e376c08 + ( (w[1]) );
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	w[2] += sigma1( w[0] ) + w[11] + sigma0( w[3] );
+	f += Sigma1( c ) + Ch( c, d, e ) + 0x2748774c + ( (w[2]) );
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	w[3] += sigma1( w[1] ) + w[12] + sigma0( w[4] );
+	e += Sigma1( b ) + Ch( b, c, d ) + 0x34b0bcb5 + ( (w[3]) );
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	w[4] += sigma1( w[2] ) + w[13] + sigma0( w[5] );
+	d += Sigma1( a ) + Ch( a, b, c ) + 0x391c0cb3 + ( (w[4]) );
+	h += d;
+	d += Sigma0( e ) + Maj( e, f, g );
+
+	w[5] += sigma1( w[3] ) + w[14] + sigma0( w[6] );
+	c += Sigma1( h ) + Ch( h, a, b ) + 0x4ed8aa4a + ( (w[5]) );
+	g += c;
+	c += Sigma0( d ) + Maj( d, e, f );
+
+	w[6] += sigma1( w[4] ) + w[15] + sigma0( w[7] );
+	b += Sigma1( g ) + Ch( g, h, a ) + 0x5b9cca4f + ( (w[6]) );
+	f += b;
+	b += Sigma0( c ) + Maj( c, d, e );
+
+	w[7] += sigma1( w[5] ) + w[0] + sigma0( w[8] );
+	a += Sigma1( f ) + Ch( f, g, h ) + 0x682e6ff3 + ( (w[7]) );
+	e += a;
+	a += Sigma0( b ) + Maj( b, c, d );
+
+	w[8] += sigma1( w[6] ) + w[1] + sigma0( w[9] );
+	h += Sigma1( e ) + Ch( e, f, g ) + 0x748f82ee + ( (w[8]) );
+	d += h;
+	h += Sigma0( a ) + Maj( a, b, c );
+
+	w[9] += sigma1( w[7] ) + w[2] + sigma0( w[10] );
+	g += Sigma1( d ) + Ch( d, e, f ) + 0x78a5636f + ( (w[9]) );
+	c += g;
+	g += Sigma0( h ) + Maj( h, a, b );
+
+	w[10] += sigma1( w[8] ) + w[3] + sigma0( w[11] );
+	f += Sigma1( c ) + Ch( c, d, e ) + 0x84c87814 + ( (w[10]) );
+	b += f;
+	f += Sigma0( g ) + Maj( g, h, a );
+
+	w[11] += sigma1( w[9] ) + w[4] + sigma0( w[12] );
+	e += Sigma1( b ) + Ch( b, c, d ) + 0x8cc70208 + ( (w[11]) );
+	a += e;
+	e += Sigma0( f ) + Maj( f, g, h );
+
+	w[12] += sigma1( w[10] ) + w[5] + sigma0( w[13] );
+	d += Sigma1( a ) + Ch( a, b, c ) + 0x90befffa + ( (w[12]) );
+	h += d;
+	if(h + H[7] == v[7])
+	{
+		d += Sigma0( e ) + Maj( e, f, g );
+		if(d + H[3] == v[3])
+		{
+			w[13] += sigma1( w[11] ) + w[6] + sigma0( w[14] );
+			c += Sigma1( h ) + Ch( h, a, b ) + 0xa4506ceb + ( (w[13]) );
+			g += c;
+			if(g + H[6] == v[6])
+			{
+				c += Sigma0( d ) + Maj( d, e, f );
+				if(c + H[2] == v[2])
+				{
+					w[14] += sigma1( w[12] ) + w[7] + sigma0( w[15] );
+					b += Sigma1( g ) + Ch( g, h, a ) + 0xbef9a3f7 + ( (w[14]) );
+					f += b;
+					if(f + H[5] == v[5])
+					{
+						b += Sigma0( c ) + Maj( c, d, e );
+						if(b + H[1] == v[1])
+						{
+							w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
+							a += Sigma1( f ) + Ch( f, g, h ) + 0xc67178f2 + ( (w[15]) );
+							e += a;
+							if(e + H[4] == v[4])
+							{
+								if(a + Sigma0( b ) + Maj( b, c, d ) + H[0] == v[0])
+								{
+									cmp = 1;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}
         out[idx].cracked = cmp;
 }
@@ -149,11 +784,7 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
     pwsafe_hash * host_out)
 {
-	unsigned int gpu=0;
-
-//#define _DEFAULT_
-#ifdef _DEFAULT_
- pwsafe_pass *cuda_pass = NULL;  ///passwords
+        pwsafe_pass *cuda_pass = NULL;  ///passwords
         pwsafe_salt *cuda_salt = NULL;  ///salt
         pwsafe_hash *cuda_hash = NULL;  ///hashes
 
@@ -179,58 +810,5 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         cudaFree(cuda_pass);
         cudaFree(cuda_salt);
         cudaFree(cuda_hash);
-#else
-
-	//int runtimeVersion=0;
-	//cudaRuntimeGetVersion(&runtimeVersion);
-	//printf("Cuda runtime: %d.%d\n",runtimeVersion/1000,(runtimeVersion%100)/10);
-
-
-	//unsigned int TB=THREADS*BLOCKS;
-        pwsafe_pass *cuda_pass[GPUS];  ///passwords
-        pwsafe_salt *cuda_salt[GPUS];  ///salt
-        pwsafe_hash *cuda_hash[GPUS];  ///hashes
-
-        //puts("stage 0");
-        ///Aloc memory and copy data to gpus
-	for(gpu=0;gpu<GPUS;gpu++){
-		HANDLE_ERROR(cudaSetDevice(gpu));
-		HANDLE_ERROR(cudaMalloc(&cuda_pass[gpu], PWSAFE_IN_SIZE));
-		HANDLE_ERROR(cudaMalloc(&cuda_salt[gpu], PWSAFE_SALT_SIZE));
-		HANDLE_ERROR(cudaMalloc(&cuda_hash[gpu], PWSAFE_OUT_SIZE));
-
-		///Somehow this memset, which is not required, speeds things up a bit
-		HANDLE_ERROR(cudaMemset(cuda_hash[gpu], 0, PWSAFE_OUT_SIZE));
-		HANDLE_ERROR(cudaMemcpy(cuda_pass[gpu], host_in+gpu*KEYS_PER_GPU, PWSAFE_IN_SIZE, cudaMemcpyHostToDevice));
-		HANDLE_ERROR(cudaMemcpy(cuda_salt[gpu], host_salt, PWSAFE_SALT_SIZE,
-			cudaMemcpyHostToDevice));
-	}
-	//puts("stage 1");
-	for(gpu=0;gpu<GPUS;gpu++){
-		HANDLE_ERROR(cudaSetDevice(gpu));
-		//printf("gpu=%d\n",gpu);
-		///Run kernel and wait for execution end
-		pwsafe_pass *current_pass=cuda_pass[gpu];
-		pwsafe_salt *current_salt=cuda_salt[gpu];
-		pwsafe_hash *current_hash=cuda_hash[gpu];
-
-		kernel_pwsafe <<< BLOCKS, THREADS >>> (current_pass, current_salt,
-			current_hash);
-
-		//cudaThreadSynchronize();
-		HANDLE_ERROR(cudaGetLastError());
-	}
-	//puts("stage 2");
-	for(gpu=0;gpu<GPUS;gpu++){
-		HANDLE_ERROR(cudaSetDevice(gpu));
-		///Free memory and copy results back
-		HANDLE_ERROR(cudaMemcpy(host_out+KEYS_PER_GPU*gpu, cuda_hash[gpu], 				PWSAFE_OUT_SIZE,cudaMemcpyDeviceToHost));
-		HANDLE_ERROR(cudaFree(cuda_pass[gpu]));
-		HANDLE_ERROR(cudaFree(cuda_salt[gpu]));
-		HANDLE_ERROR(cudaFree(cuda_hash[gpu]));
-	}
-	//puts("stage 3");
-#endif
-
 }
 
