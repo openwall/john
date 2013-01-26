@@ -31,10 +31,18 @@ from hashlib import md5 as MD5
 
 limited = False
 
+
+class Object(object):
+    pass
+
 try:
     from Crypto.Cipher import DES3, AES
 except ImportError:
-    print >> sys.stderr, "PyCrypto is missing in your Python installation, %s is operating is limited features mode!" % sys.argv[0]
+    # print >> sys.stderr, "PyCrypto is missing in your Python installation, %s is operating is limited features mode!" % sys.argv[0]
+    AES = Object()
+    AES.MODE_CBC = ""
+    DES3 = Object()
+    DES3.MODE_CBC = ""
     limited = True
 
 
@@ -617,7 +625,8 @@ class PKey (object):
         while (start < len(lines)) and (lines[start].strip() != '-----BEGIN ' + tag + ' PRIVATE KEY-----'):
             start += 1
         if start >= len(lines):
-            raise SSHException('not a valid ' + tag + ' private key file')
+            print >> sys.stderr, "%s is not a valid private key file" % f.name
+            return None
         # parse any headers first
         headers = {}
         start += 1
@@ -639,7 +648,8 @@ class PKey (object):
 
         if 'proc-type' not in headers:
             # unencryped: done
-            return data
+            print >> sys.stderr, "%s has no password!" % f.name
+            return None
         # encrypted keyfile: will need a password
         if headers['proc-type'] != '4,ENCRYPTED':
             raise SSHException('Unknown private key structure "%s"' % headers['proc-type'])
@@ -674,7 +684,7 @@ class PKey (object):
                 return ddata
             except ValueError:  # incorrect password
                 return data
-        return None
+        return self.hash  # dummy value
 
 
 def chunks(l, n):
@@ -717,6 +727,8 @@ class RSADSSKey (PKey):
     def _from_private_key_file(self, filename, password):
         data = self._read_private_key_file('RSA', filename, password)
 
+        if not data:
+            return
         if limited:
             print self.hash
             return
