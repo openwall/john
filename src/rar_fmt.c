@@ -452,7 +452,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 
 error:
-#ifdef DEBUG
+#ifdef RAR_DEBUG
 	{
 		char buf[68];
 		strnzcpy(buf, ciphertext, sizeof(buf));
