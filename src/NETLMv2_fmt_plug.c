@@ -66,8 +66,10 @@
 #define USERNAME_LENGTH      60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH        45 /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE          16
+#define BINARY_ALIGN         1
 #define CHALLENGE_LENGTH     32
 #define SALT_SIZE            16 + 1 + 2 * (USERNAME_LENGTH + DOMAIN_LENGTH) + 1
+#define SALT_ALIGN           1
 #define CIPHERTEXT_LENGTH    32
 #define TOTAL_LENGTH         12 + USERNAME_LENGTH + DOMAIN_LENGTH + CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
@@ -409,6 +411,16 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return *(ARCH_WORD_32 *)output[index] & 0xF;
@@ -434,6 +446,16 @@ static int get_hash_4(int index)
 	return *(ARCH_WORD_32 *)output[index] & 0xFFFFF;
 }
 
+static int get_hash_5(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF;
+}
+
 struct fmt_main fmt_NETLMv2 = {
 	{
 		FORMAT_LABEL,
@@ -443,9 +465,9 @@ struct fmt_main fmt_NETLMv2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -465,7 +487,9 @@ struct fmt_main fmt_NETLMv2 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -478,7 +502,9 @@ struct fmt_main fmt_NETLMv2 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

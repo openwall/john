@@ -22,7 +22,9 @@
 #define CIPHERTEXT_LENGTH		40
 
 #define BINARY_SIZE			20
+#define BINARY_ALIGN			4
 #define SALT_SIZE			64 /* length + type + 62 chars */
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -65,7 +67,7 @@ static void *get_binary(char *ciphertext)
 {
 	static union {
 		unsigned char c[BINARY_SIZE];
-		ARCH_WORD dummy;
+		ARCH_WORD_32 dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -244,9 +246,9 @@ struct fmt_main fmt_sha1_gen = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,

@@ -50,6 +50,7 @@ static int omp_t = 1;
 #include "unicode.h"
 #include "gladman_fileenc.h"
 #include "pbkdf2_hmac_sha1.h"
+#include "loader.h"
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18 aes-cts-hmac-sha1-96"
@@ -203,16 +204,6 @@ static void init(struct fmt_main *self)
 	nfold(sizeof(usage)*8,usage,sizeof(ki_input)*8,ki_input);
 }
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *data = ciphertext;
@@ -257,8 +248,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	// We support a max. total salt length of 52.
 	// We could opt to emit a warning if rejected here.
-	if(saltlen > MAX_SALTLEN)
+	if(saltlen > MAX_SALTLEN) {
+		static int warned = 0;
+
+		if (!ldr_in_pot)
+		if (!warned++)
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
 		return 0;
+	}
+
 
 	// 56 bytes (112 hex chars) encrypted timestamp + checksum
 	if (strlen(data) != 2 * (TIMESTAMP_SIZE + CHECKSUM_SIZE))

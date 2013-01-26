@@ -1,4 +1,16 @@
-/* Common OpenCL functions go in this file */
+/* ***
+ * This file is part of John the Ripper password cracker.
+ *
+ * Common OpenCL functions go in this file.
+ *
+ *
+ * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
+ * Copyright (c) 2012 by magnum,
+ * Others and
+ * is hereby released to the general public under the following terms:
+ *    Redistribution and use in source and binary forms, with or without
+ *    modifications, are permitted.
+ *** */
 
 #include <assert.h>
 #include <string.h>
@@ -32,7 +44,7 @@ extern int get_next_gws_size(size_t num, int step, int startup,
 static int buffer_size;
 static int default_value;
 static int hash_loops;
-static char * duration_text;
+static unsigned long long int duration_time = 0;
 static const char ** warnings;
 static int number_of_events;
 static int * split_events;
@@ -162,9 +174,9 @@ static void start_opencl_devices()
 	cl_context_properties properties[3];
 	int i;
 
-	///Find OpenCL enabled devices
-	HANDLE_CLERROR(clGetPlatformIDs(MAX_PLATFORMS, platform_list,
-		&num_platforms), "No OpenCL platform found");
+	/* Find OpenCL enabled devices. We ignore error here, in case
+	 * there is no platform and we'd like to run a non-OpenCL format. */
+	clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
 
 	for (i = 0; i < num_platforms; i++) {
 		platforms[i].platform = platform_list[i];
@@ -307,9 +319,9 @@ void init_opencl_devices(void)
 				fprintf(stderr, "Only one OpenCL device supported with --platform syntax.\n");
 				exit(1);
 			}
-			if (!strcmp(device_list[n], "all") ||
-			    !strcmp(device_list[n], "cpu") ||
-			    !strcmp(device_list[n], "gpu")) {
+			if (!strcmp(current->data, "all") ||
+			    !strcmp(current->data, "cpu") ||
+			    !strcmp(current->data, "gpu")) {
 				fprintf(stderr, "Only a single numerical --device allowed when using legacy --platform syntax.\n");
 				exit(1);
 			}
@@ -421,6 +433,10 @@ void opencl_get_user_preferences(char * format)
 	if (local_work_size)
 		//Check if a valid multiple is used.
 		global_work_size = GET_MULTIPLE(global_work_size, local_work_size);
+
+	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		opencl_get_config_name(format, DUR_CONFIG_NAME))))
+		duration_time = atoi(tmp_value) * 1000000000ULL;
 }
 
 static void dev_init(unsigned int sequential_id)
@@ -463,7 +479,7 @@ static char *include_source(char *pathname, unsigned int sequential_id, char *op
 		"-DDEVICE_IS_CPU" : "",
 		"-DDEVICE_INFO=", device_info[sequential_id],
 #ifdef __APPLE__
-		"-D__APPLE__",
+		"-DAPPLE",
 #else
 		gpu_nvidia(device_info[sequential_id]) ? "-cl-nv-verbose" : "",
 #endif
@@ -806,7 +822,7 @@ static cl_ulong gws_test(
 
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
-	int * p_split_events, char * p_duration_text, const char ** p_warnings,
+	int * p_split_events, const char ** p_warnings,
 	cl_event * p_to_profile_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(int gws, struct fmt_main * self),
 	void (*p_release_clobj)(void), int p_buffer_size)
@@ -823,7 +839,6 @@ void opencl_init_auto_setup(
 	hash_loops = p_hash_loops;
 	number_of_events = p_number_of_events;
 	split_events = p_split_events;
-	duration_text = p_duration_text;
 	warnings = p_warnings;
 	to_profile_event = p_to_profile_event;
 	self = p_self;
@@ -962,10 +977,9 @@ void opencl_find_best_gws(
 	int optimal_gws = local_work_size;
 	unsigned int speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
-	char * tmp_value;
 
-	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, duration_text)))
-		max_run_time = atoi(tmp_value) * 1000000000ULL;
+	if (duration_time)
+		max_run_time = duration_time;
 
 	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
 		local_work_size, max_run_time / 1000000000ULL);

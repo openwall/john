@@ -23,6 +23,12 @@
  * 2> go */
 
 #include <string.h>
+#ifdef _OPENMP
+static int omp_t = 1;
+#include <omp.h>
+#define OMP_SCALE               64
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "params.h"
@@ -30,16 +36,15 @@
 #include "formats.h"
 #include "options.h"
 #include "unicode.h"
-#include "sha.h"
-#ifdef _OPENMP
-static int omp_t = 1;
-#include <omp.h>
-#define OMP_SCALE               64
-#endif
+#include "sha2.h"
 
 #define FORMAT_LABEL			"mssql12"
 #define FORMAT_NAME			"MS SQL 2012 SHA512"
-#define ALGORITHM_NAME			"ms-sql12"
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME                  "64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME                  "32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0
@@ -48,7 +53,9 @@ static int omp_t = 1;
 #define CIPHERTEXT_LENGTH		54 + 44 * 2
 
 #define BINARY_SIZE			64
+#define BINARY_ALIGN			4
 #define SALT_SIZE			4
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -240,9 +247,9 @@ struct fmt_main fmt_mssql12 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_UTF8 | FMT_OMP,

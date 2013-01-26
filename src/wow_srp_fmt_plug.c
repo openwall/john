@@ -28,6 +28,7 @@
  */
 
 #include <string.h>
+#include "sha.h"
 #include "sha2.h"
 
 #include "arch.h"
@@ -48,26 +49,28 @@
 #endif
 
 
-#define FORMAT_LABEL			"wowsrp"
-#define FORMAT_NAME				"WoW (Battlenet) SRP sha1"
-#define ALGORITHM_NAME			"32/" ARCH_BITS_STR EXP_STR
+#define FORMAT_LABEL		"wowsrp"
+#define FORMAT_NAME		"WoW (Battlenet) SRP sha1"
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR EXP_STR
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		-1
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	-1
 
-#define WOWSIG					"$WoWSRP$"
-#define WOWSIGLEN				8
+#define WOWSIG			"$WoWSRP$"
+#define WOWSIGLEN		8
 // min plaintext len is 8  PW's are only alpha-num uppercase
-#define PLAINTEXT_LENGTH		16
-#define CIPHERTEXT_LENGTH		64
+#define PLAINTEXT_LENGTH	16
+#define CIPHERTEXT_LENGTH	64
 
-#define BINARY_SIZE				4
-#define FULL_BINARY_SIZE		32
-#define SALT_SIZE				(64+3)
+#define BINARY_SIZE		4
+#define BINARY_ALIGN		4
+#define FULL_BINARY_SIZE	32
+#define SALT_SIZE		(64+3)
+#define SALT_ALIGN		1
 #define USERNAMELEN             32
 
-#define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		4
+#define MIN_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	4
 
 // salt is in hex  (salt and salt2)
 static struct fmt_tests tests[] = {
@@ -191,45 +194,46 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[FULL_BINARY_SIZE];
-		ARCH_WORD dummy[1];
-	} buf;
-	unsigned char *out = buf.c;
+		unsigned char b[FULL_BINARY_SIZE];
+		ARCH_WORD_32 dummy[1];
+	} out;
 	char *p;
 	int i;
 
 	p = &ciphertext[WOWSIGLEN];
 	for (i = 0; i < FULL_BINARY_SIZE; i++) {
-		out[i] =
+		out.b[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 
-	return out;
+	return out.b;
 }
 
 static void *salt(char *ciphertext)
 {
-	static unsigned long out_[SALT_SIZE/sizeof(unsigned long)+1];
-	unsigned char *out = (unsigned char*)out_;
+	static union {
+		unsigned char b[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} out;
 	char *p;
 	int length=0;
 
-	memset(out, 0, SALT_SIZE);
+	memset(out.b, 0, SALT_SIZE);
 	p = &ciphertext[WOWSIGLEN+64+1];
 
 	while (*p != '*') {
-		out[++length] =
+		out.b[++length] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 	++p;
-	out[0] = length;
-	memcpy(out + length+1, p, strlen(p)+1);
+	out.b[0] = length;
+	memcpy(out.b + length+1, p, strlen(p)+1);
 
-	return out;
+	return out.b;
 }
 
 static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xF; }
@@ -417,9 +421,9 @@ struct fmt_main fmt_blizzard = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,

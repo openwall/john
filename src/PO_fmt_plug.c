@@ -51,7 +51,9 @@ extern MD5_binary MD5_out;
 #define CIPHERTEXT_LENGTH		64
 
 #define BINARY_SIZE			4
+#define BINARY_ALIGN			4
 #define SALT_SIZE			32
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -106,6 +108,16 @@ static int binary_hash_4(void *binary)
 	return *(MD5_word *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(MD5_word *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(MD5_word *)binary & 0x7FFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return MD5_out[0] & 0xF;
@@ -129,6 +141,16 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return MD5_out[0] & 0xFFFFF;
+}
+
+static int get_hash_5(int index)
+{
+	return MD5_out[0] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return MD5_out[0] & 0x7FFFFFF;
 }
 
 static int salt_hash(void *salt)
@@ -184,9 +206,8 @@ static void *get_binary(char *ciphertext)
 
 static char *get_salt(char *ciphertext)
 {
-	static char *out;
+	static char out[SALT_SIZE];
 
-	if (!out) out = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 	memcpy(out, ciphertext + 32, SALT_SIZE);
 	return out;
 }
@@ -216,9 +237,9 @@ struct fmt_main fmt_PO = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -238,7 +259,9 @@ struct fmt_main fmt_PO = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		(void (*)(void *))set_salt,
@@ -251,12 +274,12 @@ struct fmt_main fmt_PO = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_all,
 		cmp_exact
 	}
 };
-
-

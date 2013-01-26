@@ -1,14 +1,14 @@
-/* crypt(md5(p),salt) cracker patch for JtR. Hacked together during November
- * of 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
+/* Siemens S7 authentication protocol cracker. Written  by Narendra Kangralkar
+ * <narendrakangralkar at gmail.com> and Dhiru Kholia <dhiru at openwall.com>.
  *
- * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
- * and it is hereby released to the general public under the following terms:
+ * This software is Copyright (c) 2013, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * and Narendra Kangralkar <narendrakangralkar at gmail.com>  and it is hereby
+ * released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
- * are permitted. */
+ * are permitted.
+ */
 
-#define _XOPEN_SOURCE
-#include <unistd.h>
-#include "md5.h"
+#include <openssl/sha.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -18,36 +18,34 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "gladman_hmac.h"
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               64
 #endif
 
-#define FORMAT_LABEL		"weird"
-#define FORMAT_NAME		"weird crypt(md5(p),salt)"
+#define FORMAT_LABEL		"siemens-s7"
+#define FORMAT_NAME		"Siemens S7 HMAC-SHA-1"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
-#define PLAINTEXT_LENGTH	32
-#define BINARY_SIZE		16
-#define SALT_SIZE		sizeof(struct custom_salt)
+#define PLAINTEXT_LENGTH	125
+#define BINARY_SIZE		20
+#define SALT_SIZE		20
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static struct fmt_tests weird_tests[] = {
-	{"$weird$ab8p7S0BPJHLk", "qwerty"},
-	// {"$weird$diCiTNilNld2o", "123456"},
-	// {"$weird$cxp/0PUlOKHp2", "password"},
+static struct fmt_tests s7_tests[] = {
+	{"$siemens-s7$1$599fe00cdb61f76cc6e949162f22c95943468acb$002e45951f62602b2f5d15df217f49da2f5379cb", "123"},
+	{"$siemens-s7$0$387c1fe4ce97e0e71f5a93b4a9557a947cd40d6c$d7789feee651559a09e2f2d92b57306d2835e209", "321"},
 	{NULL}
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
 
-static struct custom_salt {
-	char unsigned salt[3];
-} *cur_salt;
+unsigned char *challenge;
 
 static void init(struct fmt_main *self)
 {
@@ -64,22 +62,46 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	// format $weird$version*salt*iterations*hash
-	if (strncmp(ciphertext, "$weird$", 7) != 0)
+	char *p;
+	char *ctcopy;
+	char *keeptr;
+	int outcome;
+	if (strncmp(ciphertext, "$siemens-s7$", 12) != 0)
 		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 12;		/* skip over "$siemens-s7$" */
+	if ((p = strtok(ctcopy, "$")) == NULL)	/* outcome */
+		goto bail;
+	outcome = atoi(p);
+	if (outcome != 1 && outcome != 0)
+		goto bail;
+	if ((p = strtok(NULL, "$")) == NULL)	/* challenge */
+		goto bail;
+	if (strlen(p) != 40)
+		goto bail;
+	MEM_FREE(keeptr);
 	return 1;
+bail:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
 {
-	static struct custom_salt cs;
-	char *p = ciphertext;
-	p += 7;
-	cs.salt[0] = *p;
-	p++;;
-	cs.salt[1] = *p;
-	cs.salt[2] = 0;
-	return (void *)&cs;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	int i;
+	static unsigned char lchallenge[20];
+	ctcopy += 12;		/* skip over "$siemens-s7$" */
+	p = strtok(ctcopy, "$");
+	p = strtok(NULL, "$");
+	for (i = 0; i < 20; i++)
+		lchallenge[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	MEM_FREE(keeptr);
+	return (void *)lchallenge;
 }
 
 static void *get_binary(char *ciphertext)
@@ -90,9 +112,15 @@ static void *get_binary(char *ciphertext)
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
-	p = ciphertext;
-	p += 7;
-	strcpy((char*)out, p);
+	int i;
+	p = strrchr(ciphertext, '$') + 1;
+	for (i = 0; i < BINARY_SIZE; i++) {
+		out[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
 	return out;
 }
 
@@ -114,39 +142,27 @@ static int get_hash_6(int index) { return crypt_out[index][0] & 0x7ffffff; }
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct custom_salt *)salt;
+	challenge = (unsigned char*)salt;
 }
 
-static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i;
-	for (i = 0; i < len; ++i) {
-		out[0] = itoa16[str[i]>>4];
-		out[1] = itoa16[str[i]&0xF];
-		out += 2;
-	}
-}
-
-static void crypt_all(int count)
-{
+	int count = *pcount;
 	int index = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
-		MD5_CTX ctx;
-		unsigned char hash[16];
-		unsigned char out[33];
-		char *s;
-		MD5_Init(&ctx);
-		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
-		MD5_Final(hash, &ctx);
-		hex_encode(hash, 16, out);
-		out[32] = 0;
-		s = crypt((char*)out, (char*)cur_salt->salt);
-		strcpy((char*)crypt_out[index], s);
+		unsigned char mackey[20];
+		SHA_CTX ctx;
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		SHA1_Final(mackey, &ctx);
+		hmac_sha1(mackey, 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -155,14 +171,14 @@ static int cmp_all(void *binary, int count)
 #ifdef _OPENMP
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], 15))
+		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
 			return 1;
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out[index], 15);
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -170,7 +186,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void weird_set_key(char *key, int index)
+static void s7_set_key(char *key, int index)
 {
 	int saved_key_length = strlen(key);
 	if (saved_key_length > PLAINTEXT_LENGTH)
@@ -184,7 +200,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main weird_fmt = {
+struct fmt_main fmt_s7 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -193,18 +209,23 @@ struct fmt_main weird_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		DEFAULT_ALIGN,
 		SALT_SIZE,
+		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		weird_tests
+		s7_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
@@ -216,7 +237,7 @@ struct fmt_main weird_fmt = {
 		},
 		fmt_default_salt_hash,
 		set_salt,
-		weird_set_key,
+		s7_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

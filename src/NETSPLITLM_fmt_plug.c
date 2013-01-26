@@ -156,17 +156,16 @@ static void *get_binary(char *ciphertext)
 	static union {
 		unsigned char c[BINARY_SIZE];
 		ARCH_WORD_32 dummy;
-	} buf;
-	uchar *binary = buf.c;
+	} binary;
 	int i;
 
 	ciphertext+=28;
 	for (i=0; i<BINARY_SIZE; i++)
 	{
-		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+		binary.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary.c[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
 	}
-	return binary;
+	return binary.c;
 }
 
 static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
@@ -226,15 +225,14 @@ static void *get_salt(char *ciphertext)
 	static union {
 		unsigned char c[SALT_SIZE];
 		ARCH_WORD_32 dummy;
-	} buf;
-	unsigned char *binary_salt = buf.c;
+	} out;
 	int i;
 
 	ciphertext += 11;
 	for (i = 0; i < SALT_SIZE; ++i) {
-		binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+		out.c[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	}
-	return (void*)binary_salt;
+	return (void*)out.c;
 }
 
 static void set_salt(void *salt)
@@ -292,6 +290,16 @@ static int binary_hash_4(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return *(ARCH_WORD_32 *)output[index] & 0xF;
@@ -315,6 +323,16 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return *(ARCH_WORD_32 *)output[index] & 0xFFFFF;
+}
+
+static int get_hash_5(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF;
 }
 
 struct fmt_main fmt_NETHALFLM = {
@@ -348,7 +366,9 @@ struct fmt_main fmt_NETHALFLM = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -361,7 +381,9 @@ struct fmt_main fmt_NETHALFLM = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

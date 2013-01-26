@@ -48,6 +48,7 @@
  */
 
 #include <string.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -55,15 +56,11 @@
 #include "formats.h"
 #include "unicode.h"
 #include "options.h"
-#ifndef HAVE_OPENSSL
+#include "unicode.h"
 #include "sha.h"
 #include "md4.h"
-#else
-#include <openssl/sha.h>
-#include <openssl/md4.h>
-#endif
-#include "unicode.h"
 #include "sse-intrinsics.h"
+#include "loader.h"
 
 #if (!defined(SHA1_SSE_PARA) && defined(MMX_COEF))
 #undef _OPENMP
@@ -105,7 +102,9 @@ static struct fmt_tests tests[] = {
 #define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 22*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			8
 #define SALT_SIZE			(11*4+4)
+#define SALT_ALIGN			1
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 
@@ -236,8 +235,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	saltlen = enc_to_utf16(realsalt, 22, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
 	if (saltlen < 0 || saltlen > 22) {
 		static int warned = 0;
+
+		if (!ldr_in_pot)
 		if (!warned++)
-			fprintf(stderr, "Note: One or more hashes rejected due to salt length limitation\n");
+			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
 		return 0;
 	}
 
@@ -395,34 +397,49 @@ static int binary_hash_4(void *binary)
 	return ((unsigned int*)binary)[3] & 0x0FFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((unsigned int*)binary)[3] & 0x0FFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((unsigned int*)binary)[3] & 0x07FFFFFF;
+}
 
 static int get_hash_0(int index)
 {
 	return crypt[4 * index + 3] & 0x0F;
 }
 
-
 static int get_hash_1(int index)
 {
 	return crypt[4 * index + 3] & 0xFF;
 }
-
 
 static int get_hash_2(int index)
 {
 	return crypt[4 * index + 3] & 0x0FFF;
 }
 
-
 static int get_hash_3(int index)
 {
 	return crypt[4 * index + 3] & 0x0FFFF;
 }
 
-
 static int get_hash_4(int index)
 {
 	return crypt[4 * index + 3] & 0x0FFFFF;
+}
+
+static int get_hash_5(int index)
+{
+	return crypt[4 * index + 3] & 0x0FFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return crypt[4 * index + 3] & 0x07FFFFFF;
 }
 
 static int cmp_all(void *binary, int count)
@@ -713,9 +730,9 @@ struct fmt_main fmt_mscash2 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -735,7 +752,9 @@ struct fmt_main fmt_mscash2 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -748,7 +767,9 @@ struct fmt_main fmt_mscash2 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

@@ -39,7 +39,9 @@
 #define DIGEST_SIZE			(512/8)
 
 #define BINARY_SIZE			(258/8) // ((258+7)/8)
+#define BINARY_ALIGN			4
 #define SALT_SIZE			8
+#define SALT_ALIGN			8
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -221,16 +223,20 @@ static int binary_hash_1(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0
 static int binary_hash_2(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfff; }
 static int binary_hash_3(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffff; }
 static int binary_hash_4(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xfffff; }
+static int binary_hash_5(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xffffff; }
+static int binary_hash_6(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0x7ffffff; }
 
 static int get_hash_0(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xf; }
 static int get_hash_1(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xff; }
 static int get_hash_2(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xfff; }
 static int get_hash_3(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xffff; }
 static int get_hash_4(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xfffff; }
+static int get_hash_5(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0xffffff; }
+static int get_hash_6(int index) { return *((ARCH_WORD_32 *)&crypt_key[index]) & 0x7ffffff; }
 
 static int salt_hash(void *salt)
 {
-	return *((ARCH_WORD *)salt) & 0x3FF;
+	return *((ARCH_WORD_32 *)salt) & 0x3FF;
 }
 
 struct fmt_main fmt_drupal7 = {
@@ -242,10 +248,10 @@ struct fmt_main fmt_drupal7 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		// true salt is SALT_SIZE but we add the loop count
 		SALT_SIZE + 1,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
@@ -265,7 +271,9 @@ struct fmt_main fmt_drupal7 = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -278,7 +286,9 @@ struct fmt_main fmt_drupal7 = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

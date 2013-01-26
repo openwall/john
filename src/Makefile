@@ -35,14 +35,28 @@ OMPFLAGS =
 # icc with OpenMP (for make target linux-x86-64-icc)
 #ICCOMPFLAGS = -openmp
 
-# NSS (and NSPR) flag, un-comment if installed (needed for mozilla format)
-#HAVE_NSS = -DHAVE_NSS `pkg-config --cflags nss`
+# Try to auto-detect NSS (and NSPR) flag, needed for mozilla format.
+NSS_CFLAGS = `pkg-config 2>/dev/null --cflags nss`
+HAVE_NSS = $(NSS_CFLAGS) `pkg-config 2>/dev/null --exists nss && echo -DHAVE_NSS`
+NSS_LDFLAGS = `pkg-config 2>/dev/null --libs nss`
+
+# Try to auto-detect GMP and KRB5 libs. The grep is needed in case some of the
+# paths does not exist, because find will return false even though finding a
+# file. If these hacks do not work, see next sections below.
+HAVE_GMP = `find 2>&1 /usr/include /usr/local/include /opt/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_GMP`
+GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include /opt/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
+HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ /opt/local/include -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_KRB5`
+KRB5_LDFLAGS = `find 2>&1 /usr/include/ /usr/local/include/ /opt/local/include -name "krb5.h" | grep -q "krb5.h" && echo -lk5crypto -lkrb5`
 
 # Uncomment the below if you have GMP library installed (faster wowsrp format)
+# in case the auto-detection does not work.
 #HAVE_GMP = -DHAVE_GMP
+#GMP_LDFLAGS = -lgmp
 
 # Uncomment the below if you have KRB5 library installed (krb5-18/23 formats)
+# in case the auto-detection does not work.
 #HAVE_KRB5 = -DHAVE_KRB5
+#KRB5_LDFLAGS = -lk5crypto -lkrb5
 
 # Change sm_10 to sm_20 if you have Fermi support (400 series or later) or
 # sm_30 if you have Kepler (600 series or later) and your nvcc supports it.
@@ -61,15 +75,6 @@ endif
 ifdef ATISTREAMSDKROOT
 AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
-endif
-ifdef HAVE_NSS
-NSS_LDFLAGS = `pkg-config --libs nss`
-endif
-ifdef HAVE_GMP
-GMP_LDFLAGS = -lgmp
-endif
-ifdef HAVE_KRB5
-KRB5_LDFLAGS = -lk5crypto -lkrb5
 endif
 
 CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
@@ -442,7 +447,7 @@ linux-x86-64-clang-debug:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang"
 
@@ -617,7 +622,7 @@ linux-x86-clang-debug:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
-		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang"
 

@@ -13,18 +13,14 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#include <openssl/opensslv.h>
-#if OPENSSL_VERSION_NUMBER >= 0x00908000
-
 #include <string.h>
-#include <openssl/sha.h>
 
-
-#include "common-opencl.h"
 #include "arch.h"
+#include "common-opencl.h"
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "sha2.h"
 
 #define FORMAT_LABEL			"xsha512-opencl"
 #define FORMAT_NAME			"Mac OS X 10.7+ salted SHA-512"
@@ -58,9 +54,11 @@
 
 
 #define SALT_SIZE 4
+#define SALT_ALIGN 4
 
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
+#define BINARY_ALIGN sizeof(uint64_t)
 
 
 #define PLAINTEXT_LENGTH 20
@@ -279,18 +277,23 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static unsigned char out[FULL_BINARY_SIZE];
+	static union {
+		unsigned char c[FULL_BINARY_SIZE];
+		uint64_t l[FULL_BINARY_SIZE / sizeof(uint64_t)];
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 	uint64_t *b;
+
 	ciphertext += 6;
 	p = ciphertext + 8;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	b = (uint64_t *) out;
+	b = buf.l;
 	for (i = 0; i < 8; i++) {
 		uint64_t t = SWAP64(b[i]) - H[i];
 		b[i] = SWAP64(t);
@@ -300,13 +303,17 @@ static void *get_binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-	static unsigned char out[SALT_SIZE];
+	static union {
+		unsigned char c[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} buf;
+	unsigned char *out = buf.c;
 	char *p;
 	int i;
 
 	ciphertext += 6;
 	p = ciphertext;
-	for (i = 0; i < sizeof(out); i++) {
+	for (i = 0; i < sizeof(buf.c); i++) {
 		out[i] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
@@ -502,9 +509,9 @@ struct fmt_main fmt_opencl_xsha512 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		FULL_BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT,
@@ -548,8 +555,3 @@ struct fmt_main fmt_opencl_xsha512 = {
 		cmp_exact
 	}
 };
-#else
-#ifdef __GNUC__
-#warning Note: Mac OS X Lion format disabled - it needs OpenSSL 0.9.8 or above
-#endif
-#endif

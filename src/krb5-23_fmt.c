@@ -30,7 +30,7 @@
 #endif
 
 #define FORMAT_LABEL		"krb5-23"
-#define FORMAT_NAME		"KRB5 arcfour-hmac"
+#define FORMAT_NAME		"Kerberos 5 db etype 23 rc4-hmac"
 
 #define FORMAT_TAG		"$krb23$"
 #define TAG_LENGTH		7
@@ -46,7 +46,9 @@
 #define PLAINTEXT_LENGTH	32
 #define CIPHERTEXT_LENGTH	32
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		4
 #define SALT_SIZE		0
+#define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -227,9 +229,9 @@ struct fmt_main fmt_KRB5_kinit = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		sizeof(ARCH_WORD_32),
+		BINARY_ALIGN,
 		SALT_SIZE,
-		sizeof(ARCH_WORD_32),
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

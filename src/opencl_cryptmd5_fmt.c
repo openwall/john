@@ -31,6 +31,7 @@
 #define BENCHMARK_LENGTH	-1
 
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		4
 #define SALT_SIZE		(8+1)	/** salt + prefix id **/
 #define SALT_ALIGN		1
 
@@ -621,7 +622,7 @@ struct fmt_main fmt_opencl_cryptMD5 = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,

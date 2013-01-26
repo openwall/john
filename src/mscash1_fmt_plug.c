@@ -25,6 +25,7 @@
 #include "formats.h"
 #include "unicode.h"
 #include "options.h"
+#include "loader.h"
 
 #define FORMAT_LABEL			"mscash"
 #define FORMAT_NAME			"M$ Cache Hash MD4"
@@ -56,7 +57,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			8
 #define SALT_SIZE			(11*4)
+#define SALT_ALIGN			4
 
 #define OK_NUM_KEYS			64
 #define BEST_NUM_KEYS			512
@@ -195,8 +198,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	saltlen = enc_to_utf16(realsalt, 20, (UTF8*)strnzcpy(insalt, &ciphertext[2], l - 2), l - 3);
 	if (saltlen < 0 || saltlen > 19) {
 		static int warned = 0;
+
+		if (!ldr_in_pot)
 		if (!warned++)
 			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
 		return 0;
 	}
 
@@ -423,6 +429,16 @@ static int binary_hash_4(void *binary)
 	return ((unsigned int*)binary)[3] & 0x0FFFFF;
 }
 
+static int binary_hash_5(void *binary)
+{
+	return ((unsigned int*)binary)[3] & 0x0FFFFFF;
+}
+
+static int binary_hash_6(void *binary)
+{
+	return ((unsigned int*)binary)[3] & 0x07FFFFFF;
+}
+
 static int get_hash_0(int index)
 {
 	return output1x[4*index+3] & 0x0F;
@@ -446,6 +462,16 @@ static int get_hash_3(int index)
 static int get_hash_4(int index)
 {
 	return output1x[4*index+3] & 0x0FFFFF;
+}
+
+static int get_hash_5(int index)
+{
+	return output1x[4*index+3] & 0x0FFFFFF;
+}
+
+static int get_hash_6(int index)
+{
+	return output1x[4*index+3] & 0x07FFFFFF;
 }
 
 static void nt_hash(int count)
@@ -941,9 +967,9 @@ struct fmt_main fmt_mscash = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
@@ -963,7 +989,9 @@ struct fmt_main fmt_mscash = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		set_salt,
@@ -976,7 +1004,9 @@ struct fmt_main fmt_mscash = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
 		},
 		cmp_all,
 		cmp_one,

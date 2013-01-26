@@ -23,7 +23,6 @@
 #include <arpa/inet.h>
 #include <pcap.h>
 #include "SIPdump.h"
-#include "memory.h"
 
 #define SIP_LINE_LEN   1024	/* Maximum length of SIP protocol lines */
 #define SIP_METHOD_LEN   32	/* Maximum length of SIP method string  */
@@ -142,8 +141,8 @@ int main(int argc, char *argv[])
 	argc -= optind;
 
 	if (argc != 1) {
-		MEM_FREE(pcap_file);
-		MEM_FREE(dev);
+		free(pcap_file);
+		free(dev);
 		usage("You need to specify dump file");
 	}
 
@@ -253,12 +252,12 @@ int main(int argc, char *argv[])
 	if (handle)
 		pcap_close(handle);
 
-	MEM_FREE(dump_file);
-	MEM_FREE(dev);
-	MEM_FREE(pcap_file);
+	free(dump_file);
+	free(dev);
+	free(pcap_file);
 	if (strncmp(DEFAULT_PCAP_FILTER, filter, strlen(DEFAULT_PCAP_FILTER))
 	    && strncmp("tcp or udp", filter, strlen("tcp or udp")))
-		MEM_FREE(filter);
+		free(filter);
 
 	exit(retval);
 }
@@ -286,7 +285,7 @@ static void parse_payload(const conn_t * connection,
 	}
 
 	/* Return on empty payload */
-	if (payload_len <= 0)
+	if (payload_len == 0)
 		return;
 
 	/* Ignore packet if it contains binary data  */
@@ -361,7 +360,7 @@ static void parse_payload(const conn_t * connection,
 				    payload_buffer_len);
 
 				/* Free payload buffer */
-				MEM_FREE(payload_buffer);
+				free(payload_buffer);
 			}
 
 			/* Error or no digets found, removing connection from table */
@@ -621,32 +620,32 @@ static int parse_sip_proto(char *out,
 		}
 
 		/* free obsolete lines */
-		MEM_FREE(lines[i]);
+		free(lines[i]);
 	}
 
 	/* Error or regular end of SIP header and no auth found */
 	if (error || (!found && lines[num_lines - 1][0] == 0x00)) {
-		MEM_FREE(lines[num_lines - 1]);
+		free(lines[num_lines - 1]);
 		return -1;
 	}
 
 	/* Challenge response sniffed */
 	if (found) {
-		MEM_FREE(lines[num_lines - 1]);
+		free(lines[num_lines - 1]);
 		return 1;
 	}
 
 	/* Nothing found so far, recording remaining buffer */
 	if (out_len - 1 < strlen(lines[num_lines - 1])) {
 		debug(("Buffer too small for line, ignoring..."));
-		MEM_FREE(lines[num_lines - 1]);
+		free(lines[num_lines - 1]);
 		return -1;
 	}
 
 	strncpy(out, lines[num_lines - 1], out_len - 1);
 
 	/* Free last line */
-	MEM_FREE(lines[num_lines - 1]);
+	free(lines[num_lines - 1]);
 
 	return 0;
 }

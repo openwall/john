@@ -20,12 +20,14 @@
 #define MAX_KEYS_PER_CRYPT	(ITERATIONS*KEYS_PER_CRYPT)	//Hope this can be divided by 16
 
 #define SALT_SIZE 4
+#define SALT_ALIGN 1
 #if 0
 #define BINARY_SIZE 64
 #else
 #define BINARY_SIZE 8
 #define FULL_BINARY_SIZE 64
 #endif
+#define BINARY_ALIGN 1
 
 #define PLAINTEXT_LENGTH		16
 #define MAX_PLAINTEXT_LENGTH	125

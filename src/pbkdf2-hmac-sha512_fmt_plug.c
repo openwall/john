@@ -22,8 +22,12 @@
 
 #define FORMAT_LABEL		"pbkdf2-hmac-sha512"
 #define FORMAT_TAG		"$pbkdf2-hmac-sha512$"
-#define FORMAT_NAME		"GRUB2 / OS X 10.8 pbkdf2-hmac-sha512"
-#define ALGORITHM_NAME		"PBKDF2-SHA512 CPU"
+#define FORMAT_NAME		"PBKDF2-HMAC-SHA512 GRUB2 / OS X 10.8"
+#if ARCH_BITS >= 64
+#define ALGORITHM_NAME		"64/" ARCH_BITS_STR " " SHA2_LIB
+#else
+#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
+#endif
 #define BINARY_SIZE		64
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -37,7 +41,7 @@ static int omp_t = 1;
 #endif
 
 #define PAD_SIZE		128
-#define PLAINTEXT_LENGTH	15
+#define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		64
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN(a,b)		(((a)<(b))?(a):(b))

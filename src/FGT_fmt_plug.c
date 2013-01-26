@@ -30,20 +30,21 @@
 #include "base64.h"
 #include "sse-intrinsics.h"
 
-#define FORMAT_LABEL			"fortigate"
+#define FORMAT_LABEL		"fortigate"
 #define FORMAT_NAME             "Fortigate FortiOS"
-#define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME		SHA1_ALGORITHM_NAME
 
-#define BENCHMARK_COMMENT		""
-#define BENCHMARK_LENGTH		0
+#define BENCHMARK_COMMENT	""
+#define BENCHMARK_LENGTH	0
 
-#define PLAINTEXT_LENGTH		32
-#define CIPHERTEXT_LENGTH		44
+#define PLAINTEXT_LENGTH	32
+#define CIPHERTEXT_LENGTH	44
 #define HASH_LENGTH             CIPHERTEXT_LENGTH + 3
 
 #define BINARY_SIZE             20
+#define BINARY_ALIGN		4
 #define SALT_SIZE               12
-#define SALT_ALIGN		1
+#define SALT_ALIGN		4
 
 #define FORTINET_MAGIC          "\xa3\x88\xba\x2e\x42\x4c\xb0\x4a\x53\x79\x30\xc1\x31\x07\xcc\x3f\xa1\x32\x90\x29\xa9\x81\x5b\x70"
 #define FORTINET_MAGIC_LENGTH   24
@@ -83,13 +84,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void * get_salt(char *ciphertext)
 {
-	static char out[SALT_SIZE];
+	static union {
+		char b[SALT_SIZE];
+		ARCH_WORD_32 dummy;
+	} out;
 	char buf[SALT_SIZE+BINARY_SIZE+1];
 
 	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
-	memcpy(out, buf, SALT_SIZE);
+	memcpy(out.b, buf, SALT_SIZE);
 
-	return out;
+	return out.b;
 }
 
 static void set_salt(void *salt)
@@ -111,15 +115,18 @@ static char * get_key(int index)
 
 static void * binary(char *ciphertext)
 {
-	static char bin[BINARY_SIZE];
+	static union {
+		char b[BINARY_SIZE];
+		ARCH_WORD_32 dummy;
+	} bin;
 	char buf[SALT_SIZE+BINARY_SIZE+1];
 
 	memset(buf, 0, sizeof(buf));
 	base64_decode(ciphertext+3, CIPHERTEXT_LENGTH, buf);
 	// skip over the 12 bytes of salt and get only the hashed password
-	memcpy(bin, buf+SALT_SIZE, BINARY_SIZE);
+	memcpy(bin.b, buf+SALT_SIZE, BINARY_SIZE);
 
-	return bin;
+	return bin.b;
 }
 
 
@@ -204,7 +211,7 @@ struct fmt_main fmt_FGT = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,

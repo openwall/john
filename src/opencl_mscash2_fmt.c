@@ -17,6 +17,7 @@
 #include <sys/time.h>
 #include "unicode.h"
 #include "common_opencl_pbkdf2.h"
+#include "loader.h"
 
 
 #define INIT_MD4_A                  0x67452301
@@ -54,7 +55,9 @@
 
 
 #define BINARY_SIZE               4
-
+#define BINARY_ALIGN              4
+#define SALT_SIZE                 sizeof(ms_cash2_salt)
+#define SALT_ALIGN                4
 
 # define SWAP(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
@@ -193,7 +196,7 @@ static 	void set_key(char*,int);
 static int crypt_all(int *pcount, struct db_salt *salt);
 
 static void init(struct fmt_main *self)
-{	
+{
 	int i;
 	///Allocate memory
 	key_host = mem_calloc(self->params.max_keys_per_crypt*sizeof(*key_host));
@@ -205,10 +208,10 @@ static void init(struct fmt_main *self)
 	memset(dcc_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
 
 	memset(dcc2_hash_host,0,4*sizeof(cl_uint)*MAX_KEYS_PER_CRYPT);
-	
+
 	for( i=0; i<get_devices_being_used();i++)
 	select_device(get_platform_id(ocl_device_list[i]),get_device_id(ocl_device_list[i]),ocl_device_list[i],self);
-	
+
 	warning(ocl_device_list);
 }
 
@@ -294,12 +297,12 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	    return 0;
 
 	while (hash < ciphertext + strlen(ciphertext))
-	      {
-		  if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
-			  return 0;
+	{
+		if (atoi16[ARCH_INDEX(*hash++)] == 0x7f)
+			return 0;
 
-		  hashlength++;
-	      }
+		hashlength++;
+	}
 
 	if (hashlength != 32)  return 0;
 
@@ -308,17 +311,20 @@ static int valid(char *ciphertext,struct fmt_main *self)
 	pos=ciphertext + strlen(MSCASH2_PREFIX);
 
 	while (*pos != '#')
-	      {
-		      if(saltlength==(MAX_SALT_LENGTH)) {
-			      static int warned = 0;
-			      if (!warned++)
-				      fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
-			      return 0;
-		      }
+	{
+		if(saltlength==(MAX_SALT_LENGTH)) {
+			static int warned = 0;
+
+			if (!ldr_in_pot)
+			if (!warned++)
+				fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+
+			return 0;
+		}
 
 		saltlength++;
 		pos++;
-	      }
+	}
 
 	return 1;
 }
@@ -645,9 +651,9 @@ struct fmt_main fmt_opencl_mscash2 = {
 		BENCHMARK_LENGTH,
 		MAX_PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
-		sizeof(ms_cash2_salt),
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
 		MAX_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE,

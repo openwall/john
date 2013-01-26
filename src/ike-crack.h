@@ -320,16 +320,6 @@ static inline unsigned char *hmac_sha1(const unsigned char *text,
 	return md;
 }
 
-#ifdef DEBUG
-static void print_hex(unsigned char *str, int len)
-{
-	int i;
-	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
-	printf("\n");
-}
-#endif
-
 /*
  *	load_psk_params -- Load PSK parameters from data file
  *

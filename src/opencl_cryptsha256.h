@@ -24,12 +24,14 @@
 #define ROUNDS_MAX              999999999
 
 #define SALT_LENGTH             16
+#define SALT_ALIGN              4
 #define PLAINTEXT_LENGTH        24
 #define CIPHERTEXT_LENGTH	43
 #define BUFFER_ARRAY            8
 #define SALT_ARRAY              (SALT_LENGTH / 4)
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 4)
 #define BINARY_SIZE             32
+#define BINARY_ALIGN            4
 #define STEP                    1024
 
 #define HASH_LOOPS              (7*3*2)

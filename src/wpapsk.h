@@ -23,7 +23,7 @@
 
 #define BINARY_SIZE		sizeof(mic_t)
 #define BINARY_ALIGN		4
-#define PLAINTEXT_LENGTH	64
+#define PLAINTEXT_LENGTH	63 /* We can do 64 but spec. says 63 */
 #define SALT_SIZE		sizeof(hccap_t)
 #define SALT_ALIGN		MEM_ALIGN_NONE
 #define BENCHMARK_COMMENT	""
@@ -63,10 +63,8 @@ typedef struct {
 	uint8_t  eapol[256 + 64];
 	uint32_t eapol_size; // blocks
 	uint8_t  data[64 + 12];
-	uint8_t  salt[36]; // essid
-#else
-	uint8_t  salt[15]; // essid
 #endif
+	uint8_t  salt[36]; // essid
 } wpapsk_salt;
 
 
@@ -173,7 +171,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (hashlength != 475)
 		return 0;
 	hccap = decode_hccap(ciphertext);
+
+	if (strlen(hccap->essid) > 32) /* real life limit */
+		return 0;
+
 #if !ARCH_LITTLE_ENDIAN
+	/* So why did we swap it in decode_hcap?! */
 	hccap->eapol_size = JOHNSWAP(hccap->eapol_size);
 #endif
 	if(hccap->eapol_size > 256)
@@ -228,7 +231,7 @@ static void insert_nonce(uint8_t * data)
 static void set_salt(void *salt)
 {
 	memcpy(&hccap, salt, SALT_SIZE);
-	strcpy((char*)currentsalt.salt, hccap.essid);
+	strncpy((char*)currentsalt.salt, hccap.essid, sizeof(currentsalt.salt));
 	currentsalt.length = strlen(hccap.essid);
 
 #ifdef JOHN_OCL_WPAPSK
