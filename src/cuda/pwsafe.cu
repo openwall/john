@@ -1,9 +1,6 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net> 
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-*
-* This software is Copyright (c) 2013 Brian Wallace <nightstrike9809@gmail.com> 
+* This software is Copyright (c) 2012-2013
+* Lukas Odzioba <ukasz at openwall.net> and Brian Wallace <brian.wallace9809 at gmail.com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -744,38 +741,20 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 	if(h + H[7] == v[7])
 	{
 		d += Sigma0( e ) + Maj( e, f, g );
-		if(d + H[3] == v[3])
+		w[13] += sigma1( w[11] ) + w[6] + sigma0( w[14] );
+		c += Sigma1( h ) + Ch( h, a, b ) + 0xa4506ceb + ( (w[13]) );
+		g += c;
+		c += Sigma0( d ) + Maj( d, e, f );
+		w[14] += sigma1( w[12] ) + w[7] + sigma0( w[15] );
+		b += Sigma1( g ) + Ch( g, h, a ) + 0xbef9a3f7 + ( (w[14]) );
+		f += b;
+		b += Sigma0( c ) + Maj( c, d, e );
+		w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
+		a += Sigma1( f ) + Ch( f, g, h ) + 0xc67178f2 + ( (w[15]) );
+		e += a;
+		if(a + Sigma0( b ) + Maj( b, c, d ) + H[0] == v[0] && b + H[1] == v[1] && c + H[2] == v[2] && d + H[3] == v[3] && e + H[4] == v[4] && f + H[5] == v[5] && g + H[6] == v[6])
 		{
-			w[13] += sigma1( w[11] ) + w[6] + sigma0( w[14] );
-			c += Sigma1( h ) + Ch( h, a, b ) + 0xa4506ceb + ( (w[13]) );
-			g += c;
-			if(g + H[6] == v[6])
-			{
-				c += Sigma0( d ) + Maj( d, e, f );
-				if(c + H[2] == v[2])
-				{
-					w[14] += sigma1( w[12] ) + w[7] + sigma0( w[15] );
-					b += Sigma1( g ) + Ch( g, h, a ) + 0xbef9a3f7 + ( (w[14]) );
-					f += b;
-					if(f + H[5] == v[5])
-					{
-						b += Sigma0( c ) + Maj( c, d, e );
-						if(b + H[1] == v[1])
-						{
-							w[15] += sigma1( w[13] ) + w[8] + sigma0( w[0] );
-							a += Sigma1( f ) + Ch( f, g, h ) + 0xc67178f2 + ( (w[15]) );
-							e += a;
-							if(e + H[4] == v[4])
-							{
-								if(a + Sigma0( b ) + Maj( b, c, d ) + H[0] == v[0])
-								{
-									cmp = 1;
-								}
-							}
-						}
-					}
-				}
-			}
+			cmp = 1;
 		}
 	}
         out[idx].cracked = cmp;
