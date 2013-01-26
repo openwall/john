@@ -456,7 +456,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				}
 
 				// Back-out of trailing spaces
-				while(*--key == ' ' && len)
+				while(len && *--key == ' ')
 				{
 					len--;
 					saved_key[GETPOS(len, ti)] = 0;
