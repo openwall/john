@@ -31,9 +31,6 @@
 void *rar_malloc(size_t size)
 {
 	if(!size || size > (size_t)RAR_MAX_ALLOCATION) {
-#ifdef DEBUG
-		fprintf(stderr, "UNRAR: rar_malloc(): Attempt to allocate %lu bytes.\n", size);
-#endif
 		return NULL;
 	}
 	//rar_dbgmsg("%s() allocating %zd bytes\n", __func__, size);
