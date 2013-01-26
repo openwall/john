@@ -453,7 +453,7 @@ static void crypt_all(int count)
 				}
 
 				// Back-out of trailing spaces
-				while(*--key == ' ' && len)
+				while(len && *--key == ' ')
 				{
 					len--;
 					saved_key[GETPOS(len, ti)] = 0;
