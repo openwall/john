@@ -243,7 +243,7 @@ static int check_padding_3des(unsigned char *out, int length)
 
 	// now check padding
 	pad = out[length - 1];
-	if(pad > 16) /* FIXME: is this check valid? */
+	if(pad > 16) /* NOTE: is this check always valid? */
 		// "Bad padding byte. You probably have a wrong password"
 		return -1;
 	n = length - pad;
@@ -276,7 +276,8 @@ static int check_padding_3des(unsigned char *out, int length)
 	if (!res) {
 		goto bad;
 	}
-	/* FIXME: now this integer has to be big, is this always true? */
+	/* NOTE: now this integer has to be big, is this always true?
+	 * RSA (as used in ssh) uses big prime numbers, so this check should be OK */
 	ul = strlen((char*)res);
 	p = res;
 	while(*p) {
