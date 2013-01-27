@@ -35,6 +35,7 @@
 #include "params.h"
 #include "common.h"
 #include "formats.h"
+#include "unicode.h" /* For encoding-aware uppercasing */
 #ifdef HAVE_GMP
 #include "gmp.h"
 #define EXP_STR " GMP-exp"
@@ -283,7 +284,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, PLAINTEXT_LENGTH+1);
-	strupr(saved_key[index]);
+	enc_strupper(saved_key[index]);
 }
 
 static char *get_key(int index)
@@ -429,7 +430,7 @@ struct fmt_main fmt_blizzard = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
+		FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
 		tests
 	}, {
 		init,
