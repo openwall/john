@@ -149,7 +149,7 @@ static uint32_t keySize(char algorithm)
 {
 	switch (algorithm) {
 		case CIPHER_CAST5:
-			return CAST_KEY_LENGTH;
+			return CAST_KEY_LENGTH; // 16
 		case CIPHER_BLOWFISH:
 			return 16;
 		case CIPHER_AES128:
@@ -164,6 +164,7 @@ static uint32_t keySize(char algorithm)
 }
 
 // Returns the digest size (in bytes) of a given hash algorithm
+#if 0 // now unused
 static uint32_t digestSize(char algorithm)
 {
 	switch (algorithm) {
@@ -181,6 +182,7 @@ static uint32_t digestSize(char algorithm)
 	}
 	assert(0);
 }
+#endif
 
 static struct fmt_tests gpg_tests[] = {
 	{"$gpg$*1*667*2048*387de4c9e2c1018aed84af75922ecaa92d1bc68d48042144c77dfe168de1fd654e4db77bfbc60ec68f283483382413cbfddddcfad714922b2d558f8729f705fbf973ab1839e756c26207a4bc8796eeb567bf9817f73a2a81728d3e4bc0894f62ad96e04e60752d84ebc01316703b0fd0f618f6120289373347027924606712610c583b25be57c8a130bc4dd796964f3f03188baa057d6b8b1fd36675af94d45847eeefe7fff63b755a32e8abe26b7f3f58bb091e5c7b9250afe2180b3d0abdd2c1db3d4fffe25e17d5b7d5b79367d98c523a6c280aafef5c1975a42fd97242ba86ced73c5e1a9bcab82adadd11ef2b64c3aad23bc930e62fc8def6b1d362e954795d87fa789e5bc2807bfdc69bba7e66065e3e3c2df0c25eab0fde39fbe54f32b26f07d88f8b05202e55874a1fa37d540a5af541e28370f27fe094ca8758cd7ff7b28df1cbc475713d7604b1af22fd758ebb3a83876ed83f003285bc8fdc7a5470f7c5a9e8a93929941692a9ff9f1bc146dcc02aab47e2679297d894f28b62da16c8baa95cd393d838fa63efc9d3f88de93dc970c67022d5dc88dce25decec8848f8e6f263d7c2c0238d36aa0013d7edefd43dac1299a54eb460d9b82cb53cf86fcb7c8d5dba95795a1adeb729a705b47b8317594ac3906424b2c0e425343eca019e53d927e6bc32688bd9e87ee808fb1d8eeee8ab938855131b839776c7da79a33a6d66e57eadb430ef04809009794e32a03a7e030b8792be5d53ceaf480ffd98633d1993c43f536a90bdbec8b9a827d0e0a49155450389beb53af5c214c4ec09712d83b175671358d8e9d54da7a8187f72aaaca5203372841af9b89a07b8aadecafc0f2901b8aec13a5382c6f94712d629333b301afdf52bdfa62534de2b10078cd4d0e781c88efdfe4e5252e39a236af449d4d62081cee630ab*3*254*2*3*8*b1fdf3772bb57e1f*65536*2127ccd55e721ba0", "polished"},
@@ -769,8 +771,10 @@ static void crypt_all(int count)
 		// allocate string2key buffer
 		int res;
 		int ks = keySize(cur_salt->cipher_algorithm);
-		int ds = digestSize(cur_salt->hash_algorithm);
-		unsigned char *keydata = alloca(ds * ((ks + ds- 1) / ds));
+		//int ds = digestSize(cur_salt->hash_algorithm);
+		//unsigned char *keydata = alloca(ds * ((ks + ds- 1) / ds));
+		unsigned char keydata[64 * ((32 + 64 - 1) / 64)];
+
 		cur_salt->s2kfun(saved_key[index], keydata, ks);
 		res = check(keydata, ks);
 		if(res)

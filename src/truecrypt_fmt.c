@@ -186,7 +186,7 @@ static void crypt_all(int count)
 
 static int cmp_all(void* binary, int count)
 {
-	unsigned int i;
+	int i;
 	int res[count];
 	memset(res, 0, sizeof(int) * count);
 #ifdef _OPENMP

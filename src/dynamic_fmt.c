@@ -624,7 +624,7 @@ char *RemoveHEX(char *output, char *input) {
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i, cipherTextLen;
-	char *cp, *fixed_ciphertext;
+	char *cp, fixed_ciphertext[1024];
 	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (!pPriv)
@@ -637,8 +637,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
 	if (strstr(ciphertext, "$HEX$")) {
-		fixed_ciphertext = alloca(strlen(ciphertext)+1);
-		ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
+		if (strlen(ciphertext) < sizeof(fixed_ciphertext))
+			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
 	}
 
 	if (pPriv->dynamic_base64_inout == 1)

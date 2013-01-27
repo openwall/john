@@ -419,7 +419,8 @@ static int hash_plugin_check_hash(const unsigned char *derived_key)
 	int cno = 0;
 	unsigned char *r;
 	EVP_CIPHER_CTX ctx;
-	unsigned char *TEMP1;
+	//unsigned char *TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
+	unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 	int outlen, tmplen;
 	AES_KEY aes_decrypt_key;
 	unsigned char outbuf[8192];
@@ -428,8 +429,6 @@ static int hash_plugin_check_hash(const unsigned char *derived_key)
 	int mdlen;
 
 	EVP_CIPHER_CTX_init(&ctx);
-	TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
-
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 	if(!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 	    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
