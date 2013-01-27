@@ -28,17 +28,19 @@ static int omp_t = 1;
 #define FORMAT_NAME		"weird crypt(md5(p),salt)"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		16
+#define BINARY_ALIGN		4
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
 static struct fmt_tests weird_tests[] = {
 	{"$weird$ab8p7S0BPJHLk", "qwerty"},
-	// {"$weird$diCiTNilNld2o", "123456"},
-	// {"$weird$cxp/0PUlOKHp2", "password"},
+	{"$weird$diCiTNilNld2o", "123456"},
+	{"$weird$cxp/0PUlOKHp2", "password"},
 	{NULL}
 };
 
@@ -76,7 +78,7 @@ static void *get_salt(char *ciphertext)
 	char *p = ciphertext;
 	p += 7;
 	cs.salt[0] = *p;
-	p++;;
+	p++;
 	cs.salt[1] = *p;
 	cs.salt[2] = 0;
 	return (void *)&cs;
@@ -127,8 +129,9 @@ static inline void hex_encode(unsigned char *str, int len, unsigned char *out)
 	}
 }
 
-static void crypt_all(int count)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 	int index = 0;
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -137,16 +140,18 @@ static void crypt_all(int count)
 	{
 		MD5_CTX ctx;
 		unsigned char hash[16];
-		unsigned char out[33];
+		unsigned char out[9];
 		char *s;
+
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		MD5_Final(hash, &ctx);
-		hex_encode(hash, 16, out);
-		out[32] = 0;
+		hex_encode(hash, 8, out);
+		out[8] = 0;
 		s = crypt((char*)out, (char*)cur_salt->salt);
 		strcpy((char*)crypt_out[index], s);
 	}
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -193,18 +198,23 @@ struct fmt_main weird_fmt = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
+		BINARY_ALIGN,
 		SALT_SIZE,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		weird_tests
 	}, {
 		init,
+		fmt_default_done,
+		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
+		fmt_default_source,
 		{
 			binary_hash_0,
 			binary_hash_1,
