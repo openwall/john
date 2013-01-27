@@ -432,18 +432,19 @@ static int hash_plugin_check_hash(const char *password)
 
 	else {
 		EVP_CIPHER_CTX ctx;
-		unsigned char *TEMP1;
+		//unsigned char *TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
+		unsigned char TEMP1[sizeof(cur_salt->encrypted_keyblob)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
 		unsigned char outbuf[8192];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
+
 		pbkdf2((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, 1000, derived_key, 32);
-		EVP_CIPHER_CTX_init(&ctx);
-		TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
 
+		EVP_CIPHER_CTX_init(&ctx);
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if(!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
