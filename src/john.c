@@ -709,10 +709,11 @@ static void john_run(void)
 		}
 #endif
 
-		/* WPA-PSK has a min-length of 8. Until the format struct can
-		   hold this information, we need this hack here. */
+		/* WPA-PSK and WoW both have min-length 8. Until the format
+		   struct can hold this information, we need this hack here. */
 		if (database.format->params.label &&
-		    !strncmp(database.format->params.label, "wpapsk", 6) &&
+		    (!strncmp(database.format->params.label, "wpapsk", 6) ||
+		     !strncmp(database.format->params.label, "wowsrp", 6)) &&
 		    options.force_minlength < 8) {
 			options.force_minlength = 8;
 			fprintf(stderr, "Note: minimum length forced to 8\n");
