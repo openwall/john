@@ -543,10 +543,10 @@ error:
 static inline int PasswordVerifier(unsigned char *key)
 {
 	unsigned char decryptedVerifier[16];
+	unsigned char decryptedVerifierHash[16];
 	AES_KEY akey;
 	SHA_CTX ctx;
 	unsigned char checkHash[20];
-	unsigned char decryptedVerifierHash[32];
 
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
