@@ -3,10 +3,10 @@
  *
  * Common OpenCL functions go in this file.
  *
+ * Copyright (c) 2012 FIXME,
+ * Copyright (c) 2012-2013 Claudio André <claudio.andre at correios.net.br>,
+ * Copyright (c) 2012-2013 magnum, and
  *
- * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
- * Copyright (c) 2012 by magnum,
- * Others and
  * is hereby released to the general public under the following terms:
  *    Redistribution and use in source and binary forms, with or without
  *    modifications, are permitted.
@@ -226,10 +226,29 @@ static void start_opencl_devices()
 		//Setup context and queue
 		context[i] = clCreateContext(properties, 1, &devices[i],
 			NULL, NULL, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating context");
+		if (ret_code != CL_SUCCESS) {
+#ifdef DEBUG
+			fprintf(stderr, "Error creating context for device %d "
+			        "(%d:%d): %s\n", i, get_platform_id(i),
+			        get_device_id(i), get_error_name(ret_code));
+#endif
+			platforms[get_platform_id(i)].num_devices--;
+			continue;
+		}
 		queue[i] = clCreateCommandQueue(context[i], devices[i],
 			0, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating command queue");
+		if (ret_code != CL_SUCCESS) {
+#ifdef DEBUG
+			fprintf(stderr, "Error creating command queue for "
+			        "device %d (%d:%d): %s\n", i,
+			        get_platform_id(i), get_device_id(i),
+			        get_error_name(ret_code));
+#endif
+			platforms[get_platform_id(i)].num_devices--;
+			HANDLE_CLERROR(clReleaseContext(context[i]),
+			               "Release Context");
+			continue;
+		}
 #ifdef DEBUG
 		fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
 #endif
@@ -242,7 +261,7 @@ static void add_device_to_list(int sequential_id)
 
 	if (sequential_id >= get_number_of_available_devices()) {
 		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
-		return;
+		exit(EXIT_FAILURE);
 	}
 
 	for (i = 0; i < get_devices_being_used() && !found; i++) {
@@ -544,7 +563,7 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
 			CL_PROGRAM_BINARY_SIZES,
 			sizeof(size_t), &source_size, NULL), "error");
-#if DEBUG
+#ifdef DEBUG
 		fprintf(stderr, "binary size %zu\n", source_size);
 #endif
 		source = mem_alloc(source_size);
