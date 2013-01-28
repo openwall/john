@@ -35,15 +35,26 @@
 #define KERNEL_NAME             "pwsafe"
 #define MIN_KEYS_PER_CRYPT      (512*112)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
+
+#define CONFIG_NAME		"pwsafe"
+#define STEP                    1024
+#define ROUNDS_DEFAULT          2048
+
+static const char * warn[] = {
+        "pass xfer: "  ,  ", salt xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+};
+
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+
+static int crypt_all(int *pcount, struct db_salt *_salt);
+static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
 static struct fmt_tests pwsafe_tests[] = {
 	{"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
 	{"$pwsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
 	{NULL}
 };
-
 
 typedef struct {
 	uint8_t v[15];
@@ -99,34 +110,16 @@ static void pwsafe_set_key(char *key, int index)
 	host_pass[index].length = saved_key_length;
 }
 
-static void init(struct fmt_main *self)
+/* ------- Create and destroy necessary objects ------- */
+static void create_clobj(int gws, struct fmt_main * self)
 {
-	char *temp;
-	cl_ulong maxsize;
+	int in_size = (sizeof(pwsafe_pass) * gws);
+	int out_size = (sizeof(pwsafe_hash) * gws);
 
-	opencl_init("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id);
+	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating kernel");
-
-	if ((temp = getenv("LWS")))
-		local_work_size = atoi(temp);
-	else
-		local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-
-	if ((temp = getenv("GWS")))
-		global_work_size = atoi(temp);
-	else
-		global_work_size = MAX_KEYS_PER_CRYPT;
-
-	/* Note: we ask for the kernels' max sizes, not the device's! */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(crypt_kernel, devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max workgroup size");
-
-	while (local_work_size > maxsize)
-		local_work_size >>= 1;
-
-	host_pass = mem_calloc(global_work_size * sizeof(pwsafe_pass));
-	host_hash = mem_calloc(global_work_size * sizeof(pwsafe_hash));
+	host_pass = mem_calloc(gws * sizeof(pwsafe_pass));
+	host_hash = mem_calloc(gws * sizeof(pwsafe_hash));
 	host_salt = mem_calloc(sizeof(pwsafe_salt));
 
 	///Allocate memory on the GPU
@@ -136,23 +129,115 @@ static void init(struct fmt_main *self)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, insize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, in_size, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 	mem_out =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY, out_size, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 	///Assign kernel parameters
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
 	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
+}
 
-	self->params.max_keys_per_crypt = global_work_size;
-	if (!local_work_size)
-		opencl_find_best_workgroup(self);
+static void find_best_lws(struct fmt_main * self, int sequential_id) {
+
+	size_t max_group_size;
+
+	max_group_size = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	fprintf(stderr, "Max local worksize %d, ", (int) max_group_size);
+
+	//Call the default function.
+	opencl_find_best_lws(
+			max_group_size, sequential_id, crypt_kernel);
+
+	fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		CONFIG_NAME LWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", (int)local_work_size);
+}
+
+/* --
+  This function could be used to calculated the best num
+  of keys per crypt for the given format
+-- */
+static void find_best_gws(struct fmt_main * self, int sequential_id) {
+
+	int step = 0;
+	int show_speed = 0, show_details = 0;
+	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 3000000000ULL;
+	char *tmp_value;
+
+	if (getenv("DETAILS")){
+		show_details = 1;
+	}
+
+	if ((tmp_value = getenv("STEP"))){
+		step = atoi(tmp_value);
+		show_speed = 1;
+	}
+	step = GET_MULTIPLE(step, local_work_size);
+
+	//Call the default function.
+	opencl_find_best_gws(
+		step, show_speed, show_details, max_run_time, sequential_id, ROUNDS_DEFAULT);
+
+	fprintf(stderr, "Optimal global worksize %zd\n", global_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		CONFIG_NAME GWS_CONFIG_NAME " = %zd\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", global_work_size);
+
+	create_clobj(global_work_size, self);
+}
+
+static void init(struct fmt_main *self)
+{
+	cl_ulong maxsize;
+	int selected_gws;
+
+	opencl_init_opt("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, NULL);
+
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating kernel");
+
+	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
+	global_work_size = MAX_KEYS_PER_CRYPT;
+	opencl_get_user_preferences(CONFIG_NAME);
+
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(STEP, 0, 4, NULL,
+		warn, &multi_profilingEvent[2], self, create_clobj, release_clobj,
+		sizeof(pwsafe_pass));
+
+	self->methods.crypt_all = crypt_all_benchmark;
+
+	selected_gws = global_work_size;
+	/* Note: we ask for the kernels' max sizes, not the device's! */
+	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+
+	while (local_work_size > maxsize)
+		local_work_size >>= 1;
+
+	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: MAX_KEYS_PER_CRYPT);
+
+	if (!local_work_size) {
+		create_clobj(self->params.max_keys_per_crypt, self);
+		find_best_lws(self, ocl_gpu_id);
+		release_clobj();
+	}
+	global_work_size = selected_gws;
+
+	if (global_work_size)
+		create_clobj(global_work_size, self);
+	else
+		//user chose to die of boredom
+		find_best_gws(self, ocl_gpu_id);
 
 	self->params.min_keys_per_crypt = local_work_size;
+	self->params.max_keys_per_crypt = global_work_size;
+	self->methods.crypt_all = crypt_all;
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 }
@@ -219,7 +304,30 @@ static void set_salt(void *salt)
 	memcpy(host_salt, salt, SALT_SIZE);
 }
 
+static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
+{
+	int count = *pcount;
 
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
+		0, insize, host_pass, 0, NULL, &multi_profilingEvent[0]), "Copy memin");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
+		0, saltsize, host_salt, 0, NULL, &multi_profilingEvent[1]), "Copy memsalt");
+
+	///Run kernel
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+		NULL, &global_work_size, &local_work_size,
+		0, NULL, &multi_profilingEvent[2]), "Set ND range");
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
+		outsize, host_hash, 0, NULL, &multi_profilingEvent[3]),
+	    "Copy data back");
+
+	///Await completion of all the above
+	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+
+	return count;
+}
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
