@@ -74,8 +74,8 @@ static struct custom_salt {
 	int saltSize;
 } *cur_salt;
 
-static int *cracked;
-static int VF = 1;	/* Will be 4 if vectorized (only on CPU due to GPR pressure) */
+static int *cracked, any_cracked;
+static int VF = 1;	/* Will be 4 when we run vectorized */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
@@ -561,6 +561,11 @@ static void crypt_all(int count)
 	global_work_size = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
 	scalar_gws = global_work_size * VF;
 
+	if (any_cracked) {
+		memset(cracked, 0, global_work_size * sizeof(*cracked));
+		any_cracked = 0;
+	}
+
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
@@ -593,17 +598,14 @@ static void crypt_all(int count)
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
 		SHA512_Final(hash, &ctx);
-		cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
+		if (!memcmp(hash, decryptedVerifierHashBytes, 20))
+			any_cracked = cracked[index] = 1;
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
