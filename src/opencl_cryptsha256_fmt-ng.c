@@ -433,7 +433,7 @@ static void init(struct fmt_main * self) {
 	if (local_work_size > get_task_max_work_group_size()){
 		local_work_size = 0; //Force find a valid number.
 	}
-	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());;
+	self->params.max_keys_per_crypt = (global_work_size ? global_work_size: get_task_max_size());
 
 	if (!local_work_size) {
 		local_work_size = get_task_max_work_group_size();
