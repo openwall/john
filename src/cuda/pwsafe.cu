@@ -761,11 +761,12 @@ __global__ void kernel_pwsafe(pwsafe_pass * in, pwsafe_salt * salt,
 }
 
 extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
-    pwsafe_hash * host_out)
+                           pwsafe_hash * host_out, int count)
 {
         pwsafe_pass *cuda_pass = NULL;  ///passwords
         pwsafe_salt *cuda_salt = NULL;  ///salt
         pwsafe_hash *cuda_hash = NULL;  ///hashes
+	int blocks = (count + THREADS - 1) / THREADS;
 
         ///Aloc memory and copy data to gpu
         cudaMalloc(&cuda_pass, PWSAFE_IN_SIZE);
@@ -778,7 +779,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
             cudaMemcpyHostToDevice);
 
         ///Run kernel and wait for execution end
-        kernel_pwsafe <<< BLOCKS, THREADS >>> (cuda_pass, cuda_salt,
+        kernel_pwsafe <<< blocks, THREADS >>> (cuda_pass, cuda_salt,
             cuda_hash);
         cudaThreadSynchronize();
 	HANDLE_ERROR(cudaGetLastError());

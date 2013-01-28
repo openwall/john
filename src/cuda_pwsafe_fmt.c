@@ -29,7 +29,7 @@
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             0
 #define SALT_SIZE               sizeof(pwsafe_salt)
-#define MIN_KEYS_PER_CRYPT      KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT      THREADS
 #define MAX_KEYS_PER_CRYPT      KEYS_PER_CRYPT
 
 static struct fmt_tests pwsafe_tests[] = {
@@ -42,7 +42,7 @@ static struct fmt_tests pwsafe_tests[] = {
 static pwsafe_pass *host_pass;                          /** binary ciphertexts **/
 static pwsafe_salt *host_salt;                          /** salt **/
 static pwsafe_hash *host_hash;                          /** calculated hashes **/
-extern void gpu_pwpass(pwsafe_pass *, pwsafe_salt *, pwsafe_hash *);
+extern void gpu_pwpass(pwsafe_pass *, pwsafe_salt *, pwsafe_hash *, int count);
 
 static void done()
 {
@@ -125,7 +125,7 @@ static void set_salt(void *salt)
 
 static void crypt_all(int count)
 {
-        gpu_pwpass(host_pass, host_salt, host_hash);
+	gpu_pwpass(host_pass, host_salt, host_hash, count);
 }
 
 static int cmp_all(void *binary, int count)
