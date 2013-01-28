@@ -632,7 +632,6 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 	if (strncmp(ciphertext, pPriv->dynamic_WHICH_TYPE_SIG, strlen(pPriv->dynamic_WHICH_TYPE_SIG)))
 		return 0;
-	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
 
 	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
@@ -640,6 +639,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if (strlen(ciphertext) < sizeof(fixed_ciphertext))
 			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
 	}
+
+	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
 
 	if (pPriv->dynamic_base64_inout == 1)
 	{
