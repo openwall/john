@@ -77,7 +77,7 @@ static struct custom_salt {
 	int saltSize;
 } *cur_salt;
 
-static int *cracked;
+static int *cracked, any_cracked;
 static int VF = 1;	/* Will be set to 4 when we run vectorized */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
@@ -588,6 +588,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
 	scalar_gws = global_work_size * VF;
 
+	if (any_cracked) {
+		memset(cracked, 0, global_work_size * sizeof(*cracked));
+		any_cracked = 0;
+	}
+
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * scalar_gws, saved_len, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_len");
@@ -611,18 +616,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-		cracked[index] = PasswordVerifier(&key[index*16]);
+		if (PasswordVerifier(&key[index*16]))
+			any_cracked = cracked[index] = 1;
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
