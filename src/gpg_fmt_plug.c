@@ -632,10 +632,6 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void gpg_set_key(char *key, int index)
@@ -764,6 +760,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)

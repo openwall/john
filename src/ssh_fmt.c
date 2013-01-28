@@ -321,10 +321,6 @@ static void set_salt(void *salt)
 {
 	/* restore custom_salt back */
 	restored_custom_salt = (struct custom_salt *) salt;
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void ssh_set_key(char *key, int index)
@@ -345,6 +341,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 #if defined(_OPENMP) && OPENSSL_VERSION_NUMBER >= 0x10000000
 #pragma omp parallel for default(none) private(index) shared(count, any_cracked, cracked, saved_key, restored_custom_salt)
 	for (index = 0; index < count; index++)
