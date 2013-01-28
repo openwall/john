@@ -110,7 +110,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
-	for (; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
 		out[i] = ciphertext[i];
 	out[i] = 0;
 	// lowercase salt as well as hash, encoding-aware

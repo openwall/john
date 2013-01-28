@@ -775,7 +775,6 @@ void DES_CBCDe(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int le
 	out += 8;
     }
 }
-#endif
 
 void DES_EDE3CBCEn(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned int len)
 {
@@ -794,6 +793,7 @@ void DES_EDE3CBCEn(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned in
 	out += 8;
     }
 }
+#endif
 
 // This is the algorithm used for decryption....
 int DES_EDE3CBCDe(struct DESContext *cx, const BYTE *in)

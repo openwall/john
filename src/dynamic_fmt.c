@@ -1958,7 +1958,7 @@ static void *salt(char *ciphertext)
 	unsigned the_real_len;
 	static union x {
 		unsigned char salt_p[sizeof(unsigned char*)];
-		ARCH_WORD_32 p[1];
+		ARCH_WORD p[1];
 	} union_x;
 
 	if ( (curdat.pSetup->flags&MGF_SALTED) == 0) {

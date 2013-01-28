@@ -74,7 +74,7 @@ inline void md5(uint8 len,__private uint8 * internal_ret,__private uint8 * x)
         uint8 a;
         uint8 b = (uint8)0xefcdab89;
         uint8 c = (uint8)0x98badcfe;
-        uint8 d = (uint8)0x10325476;
+        uint8 d;// = (uint8)0x10325476;
 
         a = AC1 + x[0];
         a = ROTATE_LEFT(a, S11);
@@ -296,7 +296,7 @@ uint8 x14 = len << 3;
 
         b = (uint8)0xefcdab89;
         c = (uint8)0x98badcfe;
-        d = (uint8)0x10325476;
+        //d = (uint8)0x10325476;
 
         a = AC1 + x0;
         a = ROTATE_LEFT(a, S11);
