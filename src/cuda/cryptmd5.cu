@@ -48,7 +48,7 @@ __device__ void md5_digest(md5_ctx * ctx, uint32_t * result,
 
 	uint32_t b = 0xefcdab89;
 	uint32_t c = 0x98badcfe;
-	uint32_t d = 0x10325476;
+	uint32_t d; // = 0x10325476;
 	uint32_t a = ROTATE_LEFT(AC1 + x[0], S11);
 	a += b;			/* 1 */
 	d = ROTATE_LEFT((c ^ (a & MASK1)) + x[1] + AC2pCd, S12);

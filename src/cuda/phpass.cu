@@ -46,10 +46,10 @@ __device__ void cuda_md5(char len, uint32_t * internal_ret, uint32_t * x)
 	x[len / 4] |= (((uint32_t) 0x80) << ((len & 0x3) << 3));
 	uint32_t x14 = len << 3;
 
-	uint32_t a = 0x67452301;
+	uint32_t a; // = 0x67452301;
 	uint32_t b = 0xefcdab89;
 	uint32_t c = 0x98badcfe;
-	uint32_t d = 0x10325476;
+	uint32_t d; // = 0x10325476;
 
 	a = AC1 + x[0];
 	a = ROTATE_LEFT(a, S11);
@@ -182,7 +182,7 @@ __global__ void kernel_phpass(unsigned char *password, phpass_crack * data_out)
 
 		b = 0xefcdab89;
 		c = 0x98badcfe;
-		d = 0x10325476;
+		//d = 0x10325476;
 
 		a = AC1 + x0;
 		a = ROTATE_LEFT(a, S11);

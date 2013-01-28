@@ -160,7 +160,7 @@ static char * ms_split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i=0;
 
-	for(; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+	for(; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
 		out[i]=ciphertext[i];
 
 	out[i]=0;
@@ -252,7 +252,7 @@ static void *get_salt(char *_ciphertext)
 	ciphertext+=2;
 
 	for(;;md4_size++)
-		if(ciphertext[md4_size]!='#' && md4_size < 19)
+		if(md4_size < 19 && ciphertext[md4_size]!='#')
 		{
 			md4_size++;
 
@@ -711,7 +711,7 @@ static inline void set_key_helper(unsigned int * keybuffer,
 {
 	unsigned int i=0;
 	unsigned int md4_size=0;
-	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+	for(; md4_size < PLAINTEXT_LENGTH && key[md4_size]; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]))

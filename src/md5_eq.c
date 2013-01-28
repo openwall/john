@@ -301,7 +301,7 @@ static void body_eq(void *data, int index)
 
 }
 
-
+#if 0 /* These are currently not used by JtR */
 void MD5_Go_eq(unsigned char *data, unsigned int len, int index)
 {
 	data[len] = 0x80;
@@ -326,3 +326,4 @@ void MD5_Go2_eq(unsigned char *data, unsigned int len, int index)
 	data[57] = len >> 5;
 	body2_eq(data, index);
 }
+#endif
