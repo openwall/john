@@ -147,16 +147,10 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 	size_t max_group_size;
 
 	max_group_size = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
-	fprintf(stderr, "Max local worksize %d, ", (int) max_group_size);
 
 	//Call the default function.
 	opencl_find_best_lws(
 			max_group_size, sequential_id, crypt_kernel);
-
-	fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-		CONFIG_NAME LWS_CONFIG_NAME " = %d\" in john.conf, section [" SECTION_OPTIONS
-		SUBSECTION_OPENCL "])\n", (int)local_work_size);
 }
 
 /* --
@@ -183,11 +177,6 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	//Call the default function.
 	opencl_find_best_gws(
 		step, show_speed, show_details, max_run_time, sequential_id, ROUNDS_DEFAULT);
-
-	fprintf(stderr, "Optimal global worksize %zd\n", global_work_size);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-		CONFIG_NAME GWS_CONFIG_NAME " = %zd\" in john.conf, section [" SECTION_OPTIONS
-		SUBSECTION_OPENCL "])\n", global_work_size);
 
 	create_clobj(global_work_size, self);
 }

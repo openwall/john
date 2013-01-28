@@ -52,6 +52,7 @@ static cl_event * to_profile_event;
 static struct fmt_main * self;
 void (*create_clobj)(int gws, struct fmt_main * self);
 void (*release_clobj)(void);
+static const char * config_name;
 
 void opencl_process_event(void)
 {
@@ -437,6 +438,9 @@ void opencl_get_user_preferences(char * format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		opencl_get_config_name(format, DUR_CONFIG_NAME))))
 		duration_time = atoi(tmp_value) * 1000000000ULL;
+
+	//Save the format config string.
+	config_name = format;
 }
 
 static void dev_init(unsigned int sequential_id)
@@ -855,6 +859,9 @@ void opencl_find_best_lws(
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+	char config_string[128];
+
+	fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -966,6 +973,15 @@ void opencl_find_best_lws(
 
 	// These ensure we don't get events from crypt_all() in real use
 	profilingEvent = NULL;
+
+	config_string[0] = '\0';
+	strcat(config_string, config_name);
+	strcat(config_string, LWS_CONFIG_NAME);
+
+	fprintf(stderr, "Optimal local worksize %zd\n", local_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", config_string, local_work_size);
 }
 
 void opencl_find_best_gws(
@@ -977,6 +993,7 @@ void opencl_find_best_gws(
 	int optimal_gws = local_work_size;
 	unsigned int speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	char config_string[128];
 
 	if (duration_time)
 		max_run_time = duration_time;
@@ -1049,6 +1066,15 @@ void opencl_find_best_gws(
 		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
+
+	config_string[0] = '\0';
+	strcat(config_string, config_name);
+	strcat(config_string, GWS_CONFIG_NAME);
+
+	fprintf(stderr, "Optimal global worksize %zd\n", global_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", config_string, global_work_size);
 }
 
 static void opencl_get_dev_info(unsigned int sequential_id)
