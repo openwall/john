@@ -25,7 +25,7 @@ extern wpapsk_hash *outbuffer;
 extern wpapsk_salt currentsalt;
 extern hccap_t hccap;
 extern mic_t *mic;
-extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *);
+extern void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *, int);
 
 extern void *salt(char *ciphertext);
 
@@ -63,8 +63,8 @@ static void init(struct fmt_main *self)
 
 static void crypt_all(int count)
 {
-	wpapsk_gpu(inbuffer, outbuffer, &currentsalt);
-	wpapsk_postprocess(KEYS_PER_CRYPT);
+	wpapsk_gpu(inbuffer, outbuffer, &currentsalt, count);
+	wpapsk_postprocess(count);
 }
 
 struct fmt_main fmt_cuda_wpapsk = {

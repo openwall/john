@@ -27,14 +27,14 @@
 
 #define SALT_SIZE		(3+7+9+16)
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 static crypt_sha512_password *inbuffer;		/** plaintext ciphertexts **/
 static crypt_sha512_hash *outbuffer;		/** calculated hashes **/
 
 void sha512_crypt_gpu(crypt_sha512_password * inbuffer,
-    crypt_sha512_hash * outbuffer, crypt_sha512_salt * host_salt);
+	crypt_sha512_hash *outbuffer, crypt_sha512_salt *host_salt, int count);
 
 static char currentsalt[64];
 static crypt_sha512_salt _salt;
@@ -265,7 +265,7 @@ static char *get_key(int index)
 
 static void gpu_crypt_all(int count)
 {
-	sha512_crypt_gpu(inbuffer, outbuffer, &_salt);
+	sha512_crypt_gpu(inbuffer, outbuffer, &_salt, count);
 }
 
 static void crypt_all(int count)

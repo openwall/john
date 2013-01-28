@@ -178,12 +178,12 @@ __device__ void xsha512_final(xsha512_ctx *ctx, uint32_t offs)
 
     //append length to ctx buffer
     uint64_t *buffer64 = (uint64_t *)ctx->buffer;
-    buffer64[15] = SWAP64((uint64_t) ctx->buflen * 8); 
+    buffer64[15] = SWAP64((uint64_t) ctx->buflen * 8);
 
     sha512_block(ctx);
 }
 
-__device__ void xsha512(const char* password, uint8_t pass_len, 
+__device__ void xsha512(const char* password, uint8_t pass_len,
 	uint64_t *hash, uint32_t offset, const char* pass_ext)
 {
     xsha512_ctx ctx;
@@ -211,11 +211,11 @@ __global__ void kernel_xsha512(int count, xsha512_key *cuda_password, xsha512_ha
 {
 
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
 		if (offset < count) {
-	    	xsha512((const char*)cuda_password[offset].v, 
-				cuda_password[offset].length, (uint64_t*)cuda_hash, 
+	    	xsha512((const char*)cuda_password[offset].v,
+				cuda_password[offset].length, (uint64_t*)cuda_hash,
 				offset, (const char*)(cuda_ext_pass[offset]));
 		}
 	}
@@ -228,7 +228,7 @@ void cuda_xsha512_init()
 	HANDLE_ERROR(cudaMalloc(&cuda_password, password_size));
     HANDLE_ERROR(cudaMalloc(&cuda_hash, hash_size));
 	HANDLE_ERROR(cudaMalloc(&cuda_result, sizeof(uint8_t)));
-	HANDLE_ERROR(cudaMalloc(&cuda_ext_password, 
+	HANDLE_ERROR(cudaMalloc(&cuda_ext_password,
 		sizeof(xsha512_extend_key)*MAX_KEYS_PER_CRYPT));
 }
 
@@ -254,7 +254,7 @@ void cuda_xsha512(xsha512_key *host_password,
 	}
     HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt, sizeof(xsha512_salt)));
     HANDLE_ERROR(cudaMemcpyToSymbol(cuda_use_ext, &use_extend, sizeof(uint8_t)));
-    dim3 dimGrid((count-1)/THREADS+1);
+    dim3 dimGrid((count + THREADS - 1) / THREADS);
     dim3 dimBlock(THREADS);
     kernel_xsha512 <<< dimGrid, dimBlock >>> (count, cuda_password, cuda_hash, cuda_ext_password);
 	HANDLE_ERROR(cudaGetLastError());
@@ -268,7 +268,7 @@ __global__ void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result)
 	if(idx == 0)
 		*result = 0;
 	__syncthreads();
-	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
 		if(offset < count){
 			if (cuda_b0[0] == hash[hash_addr(0, offset)])
@@ -282,7 +282,7 @@ int cuda_cmp_all(void *binary, int count)
 	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
 	uint8_t result = 0;
-    dim3 dimGrid((count-1)/THREADS+1);
+    dim3 dimGrid((count + THREADS - 1) / THREADS);
     dim3 dimBlock(THREADS);
 	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
 	HANDLE_ERROR(cudaGetLastError());

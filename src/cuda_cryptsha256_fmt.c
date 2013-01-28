@@ -26,11 +26,11 @@
 
 #define SALT_SIZE		(3+7+9+16)
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 extern void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
-    uint32_t * outbuffer, crypt_sha256_salt * host_salt);
+	uint32_t * outbuffer, crypt_sha256_salt * host_salt, int count);
 
 static crypt_sha256_password *inbuffer;//[MAX_KEYS_PER_CRYPT];			/** plaintext ciphertexts **/
 static uint32_t *outbuffer;//[MAX_KEYS_PER_CRYPT * 8];				/** calculated hashes **/
@@ -271,7 +271,7 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	sha256_crypt_gpu(inbuffer, outbuffer, &host_salt);
+	sha256_crypt_gpu(inbuffer, outbuffer, &host_salt, count);
 }
 
 static int get_hash_0(int index)

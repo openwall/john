@@ -37,7 +37,8 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-extern void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash);
+extern void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash,
+                        int count);
 extern void cuda_sha512_init();
 extern int cuda_sha512_cmp_all(void *binary, int count);
 extern void cuda_sha512_cpy_hash(sha512_hash* host_hash);
@@ -206,9 +207,9 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	cuda_sha512(gkey, ghash);
+	cuda_sha512(gkey, ghash, count);
 	sha512_key_changed = 0;
-    hash_copy_back = 0;
+	hash_copy_back = 0;
 }
 
 static int cmp_all(void *binary, int count)

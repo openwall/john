@@ -45,7 +45,8 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
+extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *,
+                        int count);
 
 static void done()
 {
@@ -220,7 +221,7 @@ static char *get_key(int index)
 
 static void crypt_all(int count)
 {
-	mscash2_gpu(inbuffer, outbuffer, &currentsalt);
+	mscash2_gpu(inbuffer, outbuffer, &currentsalt, count);
 }
 
 static int binary_hash_0(void *binary)

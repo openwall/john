@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011,2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
+* This software is Copyright (c) 2011,2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 * Based on S3nf implementation http://openwall.info/wiki/john/MSCash2
@@ -9,7 +9,7 @@
 #include "../cuda_mscash2.h"
 #include "cuda_common.cuh"
 extern "C" void mscash2_gpu(mscash2_password *, mscash2_hash *,
-    mscash2_salt *);
+                            mscash2_salt*, int count);
 
 __constant__ mscash2_salt cuda_salt[1];
 
@@ -339,9 +339,8 @@ __global__ void pbkdf2_kernel(mscash2_password * inbuffer,
 }
 
 __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
-    mscash2_salt * host_salt)
+                         mscash2_salt *host_salt, int count)
 {
-
 	int i, idx = 0;
 	uint32_t buffer[16];
 	uint32_t nt_hash[16];
@@ -357,7 +356,7 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 		    username[2 * i] | (username[2 * i + 1] << 16);
 	memcpy(host_salt->unicode_salt, salt, 64);
 
-	for (idx = 0; idx < KEYS_PER_CRYPT; idx++) {
+	for (idx = 0; idx < count; idx++) {
 
 		uint8_t *password = inbuffer[idx].v;
 		uint32_t password_len = inbuffer[idx].length;
@@ -392,11 +391,11 @@ __host__ void mscash_cpu(mscash2_password * inbuffer, mscash2_hash * outbuffer,
 	}
 }
 
-__host__ void mscash2_gpu(mscash2_password * inbuffer,
-    mscash2_hash * outbuffer, mscash2_salt * host_salt)
+__host__ void mscash2_gpu(mscash2_password *inbuffer, mscash2_hash *outbuffer,
+                          mscash2_salt *host_salt, int count)
 {
-
-	mscash_cpu(inbuffer, outbuffer, host_salt);
+	int blocks = (count + THREADS - 1) / THREADS;
+	mscash_cpu(inbuffer, outbuffer, host_salt, count);
 	mscash2_password *cuda_inbuffer;
 	mscash2_hash *cuda_outbuffer;
 	size_t insize = sizeof(mscash2_password) * KEYS_PER_CRYPT;
@@ -411,7 +410,7 @@ __host__ void mscash2_gpu(mscash2_password * inbuffer,
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
 
-	pbkdf2_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
+	pbkdf2_kernel <<< blocks, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
 	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,
