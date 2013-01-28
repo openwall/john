@@ -177,7 +177,12 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	return 1;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (has_been_cracked[i])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
