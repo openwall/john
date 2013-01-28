@@ -20,6 +20,7 @@
 #include "options.h"
 #include "sip_fmt_plug.h"
 #ifdef _OPENMP
+static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1
 #endif
@@ -56,9 +57,10 @@ static struct fmt_tests sip_tests[] = {
 	{NULL}
 };
 
-static int omp_t = 1;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static unsigned char *cracked;
+static int any_cracked;
+static size_t cracked_size;
 static char bin2hex_table[256][2]; /* table for bin<->hex mapping */
 
 static void init(struct fmt_main *self)
@@ -73,8 +75,9 @@ static void init(struct fmt_main *self)
 	init_bin2hex(bin2hex_table);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	cracked = mem_calloc_tiny(sizeof(*cracked) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	any_cracked = 0;
+	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
+	cracked = mem_calloc_tiny(cracked_size, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -165,12 +168,17 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	pSalt = (sip_salt*)salt;
-	memset(cracked, 0, sizeof(*cracked) * omp_t * MAX_KEYS_PER_CRYPT);
 }
 
 static void crypt_all(int count)
 {
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -196,19 +204,14 @@ static void crypt_all(int count)
 		bin_to_hex(bin2hex_table, md5_bin_hash, MD5_LEN, final_hash, MD5_LEN_HEX);
 
 		/* Check for match */
-		if(!strncmp(final_hash, pSalt->login_hash, MD5_LEN_HEX)) {
-			cracked[index] = 1;
-		}
+		if(!strncmp(final_hash, pSalt->login_hash, MD5_LEN_HEX))
+			any_cracked = cracked[index] = 1;
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)

@@ -3,7 +3,7 @@
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
  *
- * Uses code from Sumatra PDF and MuPDF which are under GPL 
+ * Uses code from Sumatra PDF and MuPDF which are under GPL
  *
  * Edited by Shane Quigley 2013
  */
@@ -291,10 +291,6 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	crypt = (struct custom_salt *)salt;
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void pdf_set_key(char *key, int index)
@@ -545,6 +541,12 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 static void crypt_all(int count)
 {
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)

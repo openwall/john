@@ -432,10 +432,6 @@ static void set_salt(void *salt)
 	currentsalt.length = cur_salt->saltLen;
 	currentsalt.iterations = cur_salt->iterations;
 	currentsalt.outlen = cur_salt->keySize + cur_salt->ivLength;
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void encfs_set_key(char *key, int index)
@@ -459,6 +455,11 @@ static char *get_key(int index)
 static void crypt_all(int count)
 {
 	int index;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
@@ -508,11 +509,7 @@ static void crypt_all(int count)
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
