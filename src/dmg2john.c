@@ -79,11 +79,11 @@ static void hash_plugin_parse_hash(char *filename)
 {
 	int fd;
 	char buf8[8];
-	fd = open(filename, O_RDONLY);
-	int cno;
-	int data_size;
-	unsigned char *chunk;
+	int cno = 0;
+	int data_size = 0;
+	unsigned char *chunk = NULL;
 	headerver = 0;
+	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
 		fprintf(stderr, "Can't open file: %s\n", filename);
 		return;
@@ -168,7 +168,7 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 }
 
-int main(int argc, char **argv)
+int dmg2john(int argc, char **argv)
 {
 	int i;
 
