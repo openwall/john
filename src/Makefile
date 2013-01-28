@@ -130,6 +130,7 @@ JOHN_OBJS = \
 	keychain2john.o \
 	kwallet2john.o \
 	pwsafe2john.o \
+	dmg2john.o \
 	keepass2john.o \
 	keyring2john.o \
 	wpapsk_fmt.o hccap2john.o \
@@ -230,7 +231,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
-	john.local.conf
+	../run/dmg2john john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -238,7 +239,7 @@ PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
 	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
-	john.local.conf
+	../run/dmg2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -247,7 +248,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe john.local.conf
+	../run/kwallet2john.exe ../run/dmg2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -256,7 +257,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe john.local.conf
+	../run/kwallet2john.exe ../run/dmg2john.exe john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1613,6 +1614,10 @@ endif
 	$(RM) ../run/pwsafe2john
 	ln -s john ../run/pwsafe2john
 
+../run/dmg2john: ../run/john
+	$(RM) ../run/dmg2john
+	ln -s john ../run/dmg2john
+
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
 	ln -s john ../run/hccap2john
@@ -1669,6 +1674,9 @@ endif
 
 ../run/pwsafe2john.com: john.com
 	copy john.com ..\run\pwsafe2john.com
+
+../run/dmg2john.com: john.com
+	copy john.com ..\run\dmg2john.com
 
 ../run/zip2john.com: john.com
 	copy john.com ..\run\zip2john.com
@@ -1758,6 +1766,10 @@ endif
 ../run/pwsafe2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pwsafe2john.exe
 	strip ../run/pwsafe2john.exe
+
+../run/dmg2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/dmg2john.exe
+	strip ../run/dmg2john.exe
 
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
