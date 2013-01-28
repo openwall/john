@@ -103,6 +103,7 @@ static MD5_u32plus work[16];
 	(work[(n)])
 #endif
 
+#if 0 /* These are currently not used by JtR */
 /*
  * This processes one or more 64-byte data blocks, but does NOT update
  * the bit counters.  There are no alignment requirements.
@@ -301,7 +302,6 @@ static void body_eq(void *data, int index)
 
 }
 
-#if 0 /* These are currently not used by JtR */
 void MD5_Go_eq(unsigned char *data, unsigned int len, int index)
 {
 	data[len] = 0x80;
