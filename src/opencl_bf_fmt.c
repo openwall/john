@@ -26,9 +26,9 @@
 #define CIPHERTEXT_LENGTH		60
 
 #define BINARY_SIZE			4
-#define BINARY_ALIGN			sizeof(BF_word)
+#define BINARY_ALIGN			4
 #define SALT_SIZE			sizeof(BF_salt)
-#define SALT_ALIGN			sizeof(BF_salt)
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		BF_N
 #define MAX_KEYS_PER_CRYPT		BF_N
