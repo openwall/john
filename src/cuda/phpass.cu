@@ -18,10 +18,12 @@ __device__ __constant__ phpass_salt cuda_salt[1];
 __global__ void kernel_phpass(unsigned char *, phpass_crack *);
 
 extern "C" void gpu_phpass(uint8_t * host_data, phpass_salt * salt,
-    phpass_crack * host_data_out)
+                           phpass_crack * host_data_out, int count)
 {
 	uint8_t *cuda_data;
 	phpass_crack *cuda_data_out;
+	int blocks = (count + THREADS - 1) / THREADS;
+
 	HANDLE_ERROR(cudaMalloc(&cuda_data, DATA_IN_SIZE));
 	HANDLE_ERROR(cudaMalloc(&cuda_data_out, DATA_OUT_SIZE));
 
@@ -29,7 +31,7 @@ extern "C" void gpu_phpass(uint8_t * host_data, phpass_salt * salt,
 		cudaMemcpyHostToDevice));
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, salt, SALT_SIZE));
 
-	kernel_phpass <<< BLOCKS, THREADS >>> (cuda_data, cuda_data_out);
+	kernel_phpass <<< blocks, THREADS >>> (cuda_data, cuda_data_out);
 	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaThreadSynchronize());

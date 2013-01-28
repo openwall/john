@@ -53,7 +53,7 @@ __constant__ uint64_t k[] = {
 __constant__ crypt_sha512_salt cuda_salt[1];
 
 extern "C" void sha512_crypt_gpu(crypt_sha512_password * inbuffer,
-    crypt_sha512_hash * outbuffer, crypt_sha512_salt * salt);
+	crypt_sha512_hash *outbuffer, crypt_sha512_salt *salt, int count);
 
 
 __device__ void init_ctx(sha512_ctx * ctx)
@@ -326,9 +326,9 @@ __global__ void kernel_crypt_r(crypt_sha512_password * inbuffer,
 }
 
 void sha512_crypt_gpu(crypt_sha512_password * inbuffer,
-    crypt_sha512_hash * outbuffer, crypt_sha512_salt * host_salt)
+	crypt_sha512_hash *outbuffer, crypt_sha512_salt *host_salt, int count)
 {
-
+	int blocks = (count + THREADS - 1) / THREADS;
 	crypt_sha512_password *cuda_inbuffer;
 	crypt_sha512_hash *cuda_outbuffer;
 	size_t insize = sizeof(crypt_sha512_password) * KEYS_PER_CRYPT;
@@ -342,7 +342,7 @@ void sha512_crypt_gpu(crypt_sha512_password * inbuffer,
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt,
 		sizeof(crypt_sha512_salt)));
 
-	dim3 dimGrid(BLOCKS);
+	dim3 dimGrid(blocks);
 	dim3 dimBlock(THREADS);
 	kernel_crypt_r <<< dimGrid, dimBlock >>> (cuda_inbuffer,
 	    cuda_outbuffer);

@@ -19,7 +19,7 @@
 #define PLAINTEXT_LENGTH	27
 #define SALT_SIZE		sizeof(mscash2_salt)
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 #define MAX(x,y)		((x) > (y) ? (x) : (y))

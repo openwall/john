@@ -124,8 +124,10 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
+
         gpu_pwpass(host_pass, host_salt, host_hash, count);
-        return *pcount;
+        return count;
 }
 
 static int cmp_all(void *binary, int count)

@@ -187,12 +187,13 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
+	int count = *pcount;
 #ifdef SHA256
 	gpu_rawsha256(inbuffer, outbuffer, overlap);
 #else
 	gpu_rawsha224(inbuffer, outbuffer, overlap);
 #endif
-        return *pcount;
+        return count;
 }
 
 static int get_hash_0(int index)

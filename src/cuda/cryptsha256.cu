@@ -11,7 +11,7 @@
 #include "cuda_common.cuh"
 
 extern "C" void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
-    crypt_sha256_hash * outbuffer, crypt_sha256_salt * host_salt);
+	crypt_sha256_hash *outbuffer, crypt_sha256_salt *host_salt, int count);
 
 __constant__ crypt_sha256_salt cuda_salt[1];
 __constant__ uint32_t k[] = {
@@ -76,7 +76,7 @@ __device__ void sha256_block(sha256_ctx * ctx)
     #pragma unroll 16
 	  for (i = 0; i < 16; i++)
 		w[i] = SWAP(data[i]);
-	
+
 	uint32_t t1, t2;
 	for (i = 0; i < 16; i++) {
 		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
@@ -148,7 +148,7 @@ __device__ void ctx_append_1(sha256_ctx * ctx)
 {
 	int i = 63 - ctx->buflen;
 	uint8_t *d = &ctx->buffer[ctx->buflen];
-	*d++ = 0x80;	
+	*d++ = 0x80;
 	while (i--)
 	{
 	  *d++ = 0;
@@ -297,12 +297,12 @@ __global__ void kernel_crypt_r(crypt_sha256_password * inbuffer,
 
 
 void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
-    crypt_sha256_hash * outbuffer, crypt_sha256_salt * host_salt)
+	crypt_sha256_hash * outbuffer, crypt_sha256_salt * host_salt, int count)
 {
-
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt,
 		sizeof(crypt_sha256_salt)));
 
+	int blocks = (count + THREADS - 1) / THREADS;
 	crypt_sha256_password *cuda_inbuffer;
 	uint32_t *cuda_outbuffer;
 	size_t insize = sizeof(crypt_sha256_password) * KEYS_PER_CRYPT;
@@ -312,7 +312,7 @@ void sha256_crypt_gpu(crypt_sha256_password * inbuffer,
 
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
-	dim3 dimGrid(BLOCKS);
+	dim3 dimGrid(blocks);
 	dim3 dimBlock(THREADS);
 	kernel_crypt_r <<< dimGrid, dimBlock >>> (cuda_inbuffer,
 	    cuda_outbuffer);
