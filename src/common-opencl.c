@@ -37,8 +37,8 @@ extern volatile int bench_running;
 static void opencl_get_dev_info(unsigned int sequential_id);
 
 //Used by auto-tuning to decide how GWS should changed between trials.
-extern int get_next_gws_size(size_t num, int step, int startup,
-                             int default_value);
+extern int common_get_next_gws_size(size_t num, int step, int startup,
+	int default_value);
 
 //Settings to use for auto-tuning.
 static int buffer_size;
@@ -1032,8 +1032,8 @@ void opencl_find_best_gws(
 		CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	for (num = get_next_gws_size(num, step, 1, default_value);;
-		num = get_next_gws_size(num, step, 0, default_value)) {
+	for (num = common_get_next_gws_size(num, step, 1, default_value);;
+		num = common_get_next_gws_size(num, step, 0, default_value)) {
 
 		//Check if hardware can handle the size we are going to try now.
 		if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))

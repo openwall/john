@@ -41,4 +41,14 @@
 #endif
 #endif
 
+#ifndef _OPENCL_COMPILER
+/* Can be used to select a 'good' default gws size */
+size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
+	int keys_per_core_gpu, cl_kernel crypt_kernel);
+
+/* Can be used to select a 'good' default lws size */
+size_t common_get_task_max_work_group_size(int use_local_memory,
+	int local_memory_size, cl_kernel crypt_kernel);
+#endif
+
 #endif	/* OPENCL_SHA2_COMMON_H */

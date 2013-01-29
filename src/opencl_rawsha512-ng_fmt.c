@@ -65,30 +65,15 @@ static struct fmt_tests tests[] = {
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size(){
-	size_t max_available;
 
-	if (_USE_LOCAL_SOURCE)
-		max_available = get_local_memory_size(ocl_gpu_id) /
-				(sizeof(sha512_ctx_buffer));
-	else
-		max_available = get_max_work_group_size(ocl_gpu_id);
-
-	if (max_available > get_current_work_group_size(ocl_gpu_id, crypt_kernel))
-		return get_current_work_group_size(ocl_gpu_id, crypt_kernel);
-
-	return max_available;
+	return common_get_task_max_work_group_size(_USE_LOCAL_SOURCE,
+		(sizeof(sha512_ctx_buffer)), crypt_kernel);
 }
 
 static size_t get_task_max_size(){
-	size_t max_available;
-	max_available = get_max_compute_units(ocl_gpu_id);
 
-	if (cpu(device_info[ocl_gpu_id]))
-		return max_available * KEYS_PER_CORE_CPU;
-
-	else
-		return max_available * KEYS_PER_CORE_GPU *
-				get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	return common_get_task_max_size(1,
+		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, crypt_kernel);
 }
 
 static size_t get_default_workgroup(){
