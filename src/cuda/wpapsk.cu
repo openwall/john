@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#define _WPAPSK_CUDA_KERNEL
 #include "../cuda_wpapsk.h"
 #include "cuda_common.cuh"
 extern "C" void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *,
