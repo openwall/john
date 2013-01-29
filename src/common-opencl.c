@@ -1206,7 +1206,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 
 	kernel_loaded = 0;
 
-	if ((!gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
+	if ((!cpu(device_info[sequential_id]) && !gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, sequential_id, options);
 
 	else {
