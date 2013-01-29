@@ -86,10 +86,10 @@ int ProcessPacket() {
 	}
 	// if not beacon, then only look data, looking for EAPOL 'type'
 	if (ctl->type == 2) { // type 2 is data
+		uint8 *p = packet;
 		int bQOS = (ctl->subtype & 8) != 0;
 		if ( (ctl->toDS ^ ctl->fromDS) != 1)// eapol will ONLY be direct toDS or direct fromDS.
 			return 1;
-		uint8 *p = packet;
 		// Ok, find out if this is a EAPOL packet or not.
 
 		p += sizeof(ether_frame_hdr_t);
@@ -123,16 +123,16 @@ void HandleBeacon() {
 	// ok, walk the tags
 	uint8 *pFinal = &packet[pkt_hdr.incl_len];
 	char ssid[36];
+	char essid[18];
 	memset(ssid, 0, sizeof(ssid));
 	while (((uint8*)tag) < pFinal) {
+		char *x = (char*)tag;
 		if (tag->tagtype == 0) { // essid
 			memcpy(ssid, tag->tag, tag->taglen);
 		}
-		char *x = (char*)tag;
 		x += tag->taglen + 2;
 		tag = (ether_beacon_tag_t *)x;
 	}
-	char essid[18];
 	to_bssid(essid, pkt->addr3);
 	for (i = 0; i < nwpa; ++i) {
 		if (!strcmp(essid, wpa[i].essid) && !strcmp(ssid, wpa[i].ssid))
@@ -148,6 +148,9 @@ void Handle4Way(int bIsQOS) {
 	// ether_frame_ctl_t *ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 	int i, ess=-1;
 	uint8 orig_2[512];
+	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
+	ether_auto_802_1x_t *auth;
+	int msg = 0;
 
 	// ok, first thing, find the beacon.  If we can NOT find the beacon, then
 	// do not proceed.  Also, if we find the becon, we may determine that
@@ -167,7 +170,6 @@ void Handle4Way(int bIsQOS) {
 
 	memcpy(orig_2, packet, pkt_hdr.orig_len);
 
-	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
 	// Ok, after pkt,  uint16 QOS control (should be 00 00)
 	if (bIsQOS)
 		p += 2;
@@ -177,14 +179,13 @@ void Handle4Way(int bIsQOS) {
 	//if (memcmp(p, "\xaa\xaa\x3\0\0\0\x88\x8e", 8)) return; // not a 4way
 	p += 8;
 	// p now points to the 802.1X Authentication structure.
-	ether_auto_802_1x_t *auth = (ether_auto_802_1x_t*)p;
+	auth = (ether_auto_802_1x_t*)p;
 	auth->length = swap16u(auth->length);
 	*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
 	auth->key_len  = swap16u(auth->key_len);
 	auth->replay_cnt  = swap64u(auth->replay_cnt);
 	auth->wpa_keydatlen  = swap16u(auth->wpa_keydatlen);
 
-	int msg = 0;
 	if (!auth->key_info.KeyACK) {
 		// msg 2 or 4
 		if (auth->key_info.Secure) {
@@ -231,13 +232,14 @@ void Handle4Way(int bIsQOS) {
 		wpa[ess].eapol_sz = pkt_hdr.orig_len-8-sizeof(ether_frame_hdr_t);
 		if (bIsQOS) wpa[ess].eapol_sz -= 2;
 		if (wpa[ess].packet1) {
+			ether_auto_802_1x_t *auth1;
 			ether_auto_802_1x_t *auth2 = auth;
 			p = (uint8*)wpa[ess].packet1;
 			if (bIsQOS)
 				p += 2;
 			p += 8;
 			p += sizeof(ether_frame_hdr_t);
-			ether_auto_802_1x_t *auth1 = (ether_auto_802_1x_t*)p;
+			auth1 = (ether_auto_802_1x_t*)p;
 			if (auth1->replay_cnt == auth2->replay_cnt) {
 				fprintf (stderr, "Key1/Key2 hit (hopful hit), for SSID:%s\n", wpa[ess].ssid);
 				DumpKey(ess, 1, bIsQOS);
@@ -254,12 +256,13 @@ void Handle4Way(int bIsQOS) {
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.orig_len);
 		if (wpa[ess].packet2) {
 			ether_auto_802_1x_t *auth3 = auth;
+			ether_auto_802_1x_t *auth2;
 			p = (uint8*)wpa[ess].packet2;
 			if (bIsQOS)
 				p += 2;
 			p += 8;
 			p += sizeof(ether_frame_hdr_t);
-			ether_auto_802_1x_t *auth2 = (ether_auto_802_1x_t*)p;
+			auth2 = (ether_auto_802_1x_t*)p;
 			if (auth2->replay_cnt+1 == auth3->replay_cnt) {
 				fprintf (stderr, "Key2/Key3 hit (SURE hit), for SSID:%s\n", wpa[ess].ssid);
 				DumpKey(ess, 3, bIsQOS);
@@ -293,18 +296,21 @@ static void code_block(unsigned char *in, unsigned char b)
 }
 
 void DumpKey(int ess, int one_three, int bIsQOS) {
-	fprintf (stderr, "Dumping key %d at time:  %d.%d\n", one_three, cur_t, cur_u);
-	printf ("$WPAPSK$%s#", wpa[ess].ssid);
 	ether_auto_802_1x_t *auth13, *auth2;
-	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	uint8 *p = (uint8*)wpa[ess].packet2;
 	uint8 *pkt2 = p;
+	uint8 *p13;
+	hccap_t	hccap;
+	int i;
+	uint8 *w;
+	fprintf (stderr, "Dumping key %d at time:  %d.%d\n", one_three, cur_t, cur_u);
+	printf ("$WPAPSK$%s#", wpa[ess].ssid);
+	if (!wpa[ess].packet2) { printf ("ERROR, msg2 null\n"); return; }
 	if (bIsQOS)
 		p += 2;
 	p += 8;
 	p += sizeof(ether_frame_hdr_t);
 	auth2 = (ether_auto_802_1x_t*)p;
-	uint8 *p13;
 	if (one_three==1) {
 		if (!wpa[ess].packet1) { printf ("ERROR, msg1 null\n"); return; }
 		p = wpa[ess].packet1;
@@ -319,7 +325,6 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	p += sizeof(ether_frame_hdr_t);
 	auth13 = (ether_auto_802_1x_t*)p;
 
-	hccap_t	hccap;
 	memset(&hccap, 0, sizeof(hccap_t));
 	hccap.keyver = auth2->key_info.KeyDescr;
 	memcpy(hccap.mac1, ((ether_frame_hdr_t*)pkt2)->addr1, 6);
@@ -337,8 +342,7 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	memcpy(hccap.eapol, auth2, wpa[ess].eapol_sz);
 	hccap.eapol_size = wpa[ess].eapol_sz;
 
-	int i;
-	uint8 *w = (uint8 *)&hccap;
+	w = (uint8 *)&hccap;
 	for (i = 36; i + 3 < sizeof(hccap_t); i += 3)
 		code_block(&w[i], 1);
 	code_block(&w[i], 0);
@@ -346,8 +350,9 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	fprintf(stderr, "keyver=%d\n\n",hccap.keyver);
 }
 int main(int argc, char **argv) {
+	FILE *in;
 	if (argc != 2) return !!fprintf(stderr, "Usage wpacpap2john cpap_filename\n");
-	FILE *in = fopen(argv[1], "rb");
+	in = fopen(argv[1], "rb");
 	if (in) {
 		Process(in, argv[1]);
 		fclose(in);
