@@ -89,6 +89,7 @@ static struct custom_salt {
 	unsigned char zchunk[4096]; /* chunk #0 */
 	int cno;
 	int data_size;
+	unsigned int iterations;
 } *cur_salt;
 
 /* borrowed from http://dsss.be/w/c:memmem */
@@ -254,44 +255,44 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(ctcopy, "*")) == NULL)
 		goto err;
 	headerver = atoi(p);
-	if(headerver == 2) {
+	if (headerver == 2) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if(atoi(p) > 20)
+		if (atoi(p) > 20)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
 			goto err;
-		if(atoi(p) > 32)
+		if (atoi(p) > 32)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
 			goto err;
-		if(atoi(p) > 128)
+		if (atoi(p) > 128)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* encrypted keyblob */
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* chunk number */
 			goto err;
 	}
-	else if(headerver == 1) {
+	else if (headerver == 1) {
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt len */
 			goto err;
-		if(atoi(p) > 20)
+		if (atoi(p) > 20)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
 			goto err;
-		if(atoi(p) > 296)
+		if (atoi(p) > 296)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* wrapped_aes_key  */
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
 			goto err;
-		if(atoi(p) > 300)
+		if (atoi(p) > 300)
 			goto err;
 		if ((p = strtok(NULL, "*")) == NULL)	/* hmac_sha1_key */
 			goto err;
@@ -316,7 +317,7 @@ static void *get_salt(char *ciphertext)
 	ctcopy += 5;
 	p = strtok(ctcopy, "*");
 	cs.headerver = atoi(p);
-	if(cs.headerver == 2) {
+	if (cs.headerver == 2) {
 		p = strtok(NULL, "*");
 		cs.saltlen = atoi(p);
 		p = strtok(NULL, "*");
@@ -345,12 +346,16 @@ static void *get_salt(char *ciphertext)
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		p = strtok(NULL, "*");
 		cs.scp = atoi(p);
-		if(cs.scp == 1) {
+		if (cs.scp == 1) {
 			p = strtok(NULL, "*");
 			for (i = 0; i < 4096; i++)
 				cs.zchunk[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		}
+		if ((p = strtok(NULL, "*")))
+			cs.iterations = atoi(p);
+		else
+			cs.iterations = 1000;
 	}
 	else {
 		p = strtok(NULL, "*");
@@ -371,6 +376,10 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < cs.len_hmac_sha1_key; i++)
 			cs.wrapped_hmac_sha1_key[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		if ((p = strtok(NULL, "*")))
+			cs.iterations = atoi(p);
+		else
+			cs.iterations = 1000;
 	}
 	MEM_FREE(keeptr);
 	return (void *)&cs;
@@ -413,12 +422,15 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 }
 
 #ifdef DMG_DEBUG
-static void dump_strings (unsigned char *p, int len)
+#if 0
+#define dump_strings(p, l) dump_stuff(p, l)
+#else
+static void dump_strings(unsigned char *p, int len)
 {
 	unsigned char *s = p;
 	extern volatile int bench_running;
 
-	//if (bench_running) return;
+	if (bench_running) return;
 
 	fprintf(stderr, "\n");
 	while (len--) {
@@ -440,6 +452,7 @@ static void dump_strings (unsigned char *p, int len)
 	fflush(stderr);
 }
 #endif
+#endif
 
 static int hash_plugin_check_hash(const char *password)
 {
@@ -451,27 +464,28 @@ static int hash_plugin_check_hash(const char *password)
 
 	if (cur_salt->headerver == 1) {
 		pbkdf2((const unsigned char*)password, strlen(password),
-		       cur_salt->salt, 20, 1000, derived_key, 32);
+		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32);
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, 40, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, 48, derived_key) == 0)) {
 			return 1;
 		}
 	}
 	else {
 		EVP_CIPHER_CTX ctx;
-		unsigned char TEMP1[sizeof(cur_salt->encrypted_keyblob)];
+		unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
 		unsigned char outbuf[8192];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
+		const char nulls[8] = { 0 };
 
 		pbkdf2((const unsigned char*)password, strlen(password),
-		       cur_salt->salt, 20, 1000, derived_key, 32);
+		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32);
 
 		EVP_CIPHER_CTX_init(&ctx);
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
-		if(!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
+		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
 			/* FIXME: should we fail here? */
 			return 0;
@@ -495,6 +509,14 @@ static int hash_plugin_check_hash(const char *password)
 		dump_strings(outbuf, cur_salt->data_size);
 #endif
 
+		/* 8 consecutive nulls */
+		if (_memmem(outbuf, cur_salt->data_size, (void*)nulls, 8)) {
+#ifdef DMG_DEBUG
+			fprintf(stderr, "NULLS found!\n");
+#endif
+			return 1;
+		}
+
 		/* </plist> is a pretty generic signature for Apple */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
@@ -514,10 +536,10 @@ static int hash_plugin_check_hash(const char *password)
 		/* Handle compressed DMG files, CMIYC 2012 and self-made samples.
 		   Is this test obsoleted by the </plist> one? */
 		r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
-		if(r) {
+		if (r) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
 
-			if(HTONL(*u32Version) == 4) {
+			if (HTONL(*u32Version) == 4) {
 #ifdef DMG_DEBUG
 				fprintf(stderr, "koly found!\n");
 #endif
@@ -526,14 +548,14 @@ static int hash_plugin_check_hash(const char *password)
 		}
 
 		/* Handle VileFault sample images */
-		if(_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
+		if (_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
 			fprintf(stderr, "EFI PART found!\n");
 #endif
 			return 1;
 		}
 
-		if(cur_salt->scp == 1) {
+		if (cur_salt->scp == 1) {
 			HMAC_CTX_init(&hmacsha1_ctx);
 			HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
 			HMAC_Update(&hmacsha1_ctx, (void *) &cno, 4);
@@ -548,13 +570,13 @@ static int hash_plugin_check_hash(const char *password)
 #ifdef DMG_DEBUG
 			dump_strings(outbuf, 4096);
 #endif
-			if(_memmem(outbuf, 4096, (void*)"Apple", 5)) {
+			if (_memmem(outbuf, 4096, (void*)"Apple", 5)) {
 #ifdef DMG_DEBUG
 				fprintf(stderr, "Apple found!\n");
 #endif
 				return 1;
 			}
-			if(_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
+			if (_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DMG_DEBUG
 				fprintf(stderr, "MS-DOS UDRW signature found!\n");
 #endif
@@ -589,14 +611,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index;
+
 #ifdef _OPENMP
 #pragma omp parallel for
-	for (index = 0; index < count; index++)
-#else
-	for (index = 0; index < count; index++)
 #endif
+	for (index = 0; index < count; index++)
 	{
-		if(hash_plugin_check_hash(saved_key[index]) == 1)
+		if (hash_plugin_check_hash(saved_key[index]) == 1)
 			cracked[index] = 1;
 		else
 			cracked[index] = 0;
@@ -620,7 +641,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
 struct fmt_main fmt_dmg = {
