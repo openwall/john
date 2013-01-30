@@ -20,7 +20,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
-#include <stdint.h>
+#include "stdint.h"
 
 static char *magic = "PWS3";
 

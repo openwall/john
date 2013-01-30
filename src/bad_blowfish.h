@@ -20,7 +20,7 @@
 #ifndef BAD_BLOWFISH_H
 #define BAD_BLOWFISH_H
 
-#include <stdint.h>
+#include "stdint.h"
 
 static const unsigned long ks0[256] = {
     0xd1310ba6, 0x98dfb5ac, 0x2ffd72db, 0xd01adfb7, 0xb8e1afed, 0x6a267e96,
