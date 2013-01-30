@@ -6,7 +6,7 @@
 
 #include <string.h>
 #include <stdbool.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <emmintrin.h>
 
 #ifdef __SSE4_1__

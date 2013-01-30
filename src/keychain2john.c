@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
-#include <stdint.h>
+#include "stdint.h"
 
 #define SALTLEN 20
 #define IVLEN 8

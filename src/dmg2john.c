@@ -26,7 +26,7 @@
 #include <alloca.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
