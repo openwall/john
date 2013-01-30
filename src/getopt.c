@@ -44,9 +44,11 @@ static char *opt_find(struct opt_entry *list, char *opt,
 		do {
 			if (length <= strlen(list->name))
 			if (!strncmp(name, list->name, length)) {
-				if (!found)
+				if (!found) {
 					found = list;
-				else {
+					if (length == strlen(list->name))
+						break;
+				} else {
 					*entry = NULL;
 					return NULL;
 				}

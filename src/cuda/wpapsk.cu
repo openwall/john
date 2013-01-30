@@ -1,13 +1,15 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com> 
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-*/
+ * This software is Copyright (c) 2012 Lukas Odzioba <lukas dot odzioba at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ */
 
 #include <stdio.h>
+#define _WPAPSK_CUDA_KERNEL
 #include "../cuda_wpapsk.h"
 #include "cuda_common.cuh"
-extern "C" void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *);
+extern "C" void wpapsk_gpu(wpapsk_password *, wpapsk_hash *, wpapsk_salt *,
+                           int count);
 
 __constant__ wpapsk_salt cuda_salt[1];
 
@@ -215,8 +217,9 @@ __global__ void wpapsk_pbkdf2_kernel(wpapsk_password * inbuffer,
 }
 
 __host__ void wpapsk_gpu(wpapsk_password * inbuffer, wpapsk_hash * outbuffer,
-    wpapsk_salt * host_salt)
+                         wpapsk_salt *host_salt, int count)
 {
+	int blocks = (count + THREADS - 1) / THREADS;
 	wpapsk_password *cuda_inbuffer;
 	wpapsk_hash *cuda_outbuffer;
 	size_t insize = sizeof(wpapsk_password) * KEYS_PER_CRYPT;
@@ -231,7 +234,7 @@ __host__ void wpapsk_gpu(wpapsk_password * inbuffer, wpapsk_hash * outbuffer,
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
 
-	wpapsk_pbkdf2_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer,
+	wpapsk_pbkdf2_kernel <<< blocks, THREADS >>> (cuda_inbuffer,
 	    cuda_outbuffer);
 	HANDLE_ERROR(cudaGetLastError());
 

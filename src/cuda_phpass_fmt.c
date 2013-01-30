@@ -25,7 +25,7 @@
 #define BINARY_SIZE		16
 #define MD5_DIGEST_LENGTH 	16
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 static unsigned char *inbuffer;				/** plaintext ciphertexts **/
@@ -33,7 +33,7 @@ static phpass_crack *outbuffer;				/** calculated hashes **/
 static phpass_salt currentsalt;
 static int any_cracked;
 
-extern void gpu_phpass(uint8_t *, phpass_salt *, phpass_crack *);
+extern void gpu_phpass(uint8_t *, phpass_salt *, phpass_crack *, int count);
 
 static struct fmt_tests tests[] = {
 	{"$P$90000000000tbNYOc9TwXvLEI62rPt1", ""},
@@ -201,7 +201,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(outbuffer, 0, sizeof(phpass_crack) * KEYS_PER_CRYPT);
 		any_cracked = 0;
 	}
-	gpu_phpass(inbuffer, &currentsalt, outbuffer);
+	gpu_phpass(inbuffer, &currentsalt, outbuffer, count);
 	for (i = 0; i < count; i++) {
 		any_cracked |= outbuffer[i].cracked;
 	}

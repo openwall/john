@@ -22,10 +22,11 @@
 
 #define BINARY_SIZE		16
 #define SALT_SIZE		(sizeof(crypt_md5_salt))
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
-void md5_crypt_gpu(crypt_md5_password *, crypt_md5_crack *, crypt_md5_salt *);
+void md5_crypt_gpu(crypt_md5_password *, crypt_md5_crack *,
+                   crypt_md5_salt *, int count);
 
 static crypt_md5_password *inbuffer;			/** plaintext ciphertexts **/
 static crypt_md5_crack *outbuffer;			/** cracked or no **/
@@ -250,7 +251,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(outbuffer, 0, sizeof(crypt_md5_crack) * KEYS_PER_CRYPT);
 		any_cracked = 0;
 	}
-	md5_crypt_gpu(inbuffer, outbuffer, &host_salt);
+	md5_crypt_gpu(inbuffer, outbuffer, &host_salt, count);
 	for (i = 0; i < count; i++) {
 		any_cracked|=outbuffer[i].cracked;
 	}

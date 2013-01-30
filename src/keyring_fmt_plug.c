@@ -143,10 +143,6 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void symkey_generate_simple(const char *password, int n_password, unsigned char *salt, int n_salt, int iterations, unsigned char *key, unsigned char *iv)
@@ -239,19 +235,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
+	any_cracked = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char *input = alloca(cur_salt->crypto_size+1);
-		int res;
+		unsigned char *input = mem_alloc(cur_salt->crypto_size+1);
+
 		memcpy(input, cur_salt->ct, cur_salt->crypto_size);
 		decrypt_buffer(input, cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
-		res = verify_decrypted_buffer(input, cur_salt->crypto_size);
-		if (res) {
+		if (verify_decrypted_buffer(input, cur_salt->crypto_size))
 			any_cracked = cracked[index] = 1;
-		}
+		else
+			cracked[index] = 0;
+
+		MEM_FREE(input);
 	}
 	return count;
 }

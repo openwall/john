@@ -30,6 +30,8 @@ OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
 #OMPFLAGS = -fopenmp -msse2
+# OS X (llvm-gcc) with OpenMP
+#OMPFLAGS = -fopenmp -D_FORTIFY_SOURCE=0
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
 #OMPFLAGS = -xopenmp
 # icc with OpenMP (for make target linux-x86-64-icc)
@@ -42,7 +44,7 @@ NSS_LDFLAGS = `pkg-config 2>/dev/null --libs nss`
 
 # Try to auto-detect GMP and KRB5 libs. The grep is needed in case some of the
 # paths does not exist, because find will return false even though finding a
-# file. If these hacks do not work, see next sections below.
+# file. If these hacks do not work, comment them out and see next sections.
 HAVE_GMP = `find 2>&1 /usr/include /usr/local/include /opt/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_GMP`
 GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include /opt/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
 HAVE_KRB5 = `find 2>&1 /usr/include/ /usr/local/include/ /opt/local/include -name "krb5.h" | grep -q "krb5.h" && echo -DHAVE_KRB5`
@@ -127,6 +129,7 @@ JOHN_OBJS = \
 	keychain2john.o \
 	kwallet2john.o \
 	pwsafe2john.o \
+	dmg2john.o \
 	keepass2john.o \
 	keyring2john.o \
 	wpapsk_fmt.o hccap2john.o \
@@ -228,7 +231,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
-	john.local.conf
+	../run/dmg2john john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -236,7 +239,7 @@ PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
 	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
-	john.local.conf
+	../run/dmg2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -245,7 +248,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe john.local.conf
+	../run/kwallet2john.exe ../run/dmg2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -254,7 +257,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe john.local.conf
+	../run/kwallet2john.exe ../run/dmg2john.exe john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1611,6 +1614,10 @@ endif
 	$(RM) ../run/pwsafe2john
 	ln -s john ../run/pwsafe2john
 
+../run/dmg2john: ../run/john
+	$(RM) ../run/dmg2john
+	ln -s john ../run/dmg2john
+
 ../run/hccap2john: ../run/john
 	$(RM) ../run/hccap2john
 	ln -s john ../run/hccap2john
@@ -1667,6 +1674,9 @@ endif
 
 ../run/pwsafe2john.com: john.com
 	copy john.com ..\run\pwsafe2john.com
+
+../run/dmg2john.com: john.com
+	copy john.com ..\run\dmg2john.com
 
 ../run/zip2john.com: john.com
 	copy john.com ..\run\zip2john.com
@@ -1757,6 +1767,10 @@ endif
 	$(CC) symlink.c -o ../run/pwsafe2john.exe
 	strip ../run/pwsafe2john.exe
 
+../run/dmg2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/dmg2john.exe
+	strip ../run/dmg2john.exe
+
 ../run/zip2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/zip2john.exe
 	strip ../run/zip2john.exe
@@ -1802,8 +1816,8 @@ vncpcap2john:
 gpg2john:
 	g++ -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
 
-dmg2john:
-	$(CC) -Wall dmg2john.c -lm -o ../run/dmg2john
+wpapcap2john:
+	gcc -Wall -Wdeclaration-after-statement wpapcap2john.c -o ../run/wpapcap2john
 
 office2john:
 	$(CC) `xml2-config --cflags` `pkg-config --cflags libgsf-1` office2john.c common.o base64.o `pkg-config --libs libgsf-1` `xml2-config --libs` -o ../run/office2john

@@ -173,10 +173,10 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 static int PasswordVerifier(unsigned char * key)
 {
 	unsigned char decryptedVerifier[16];
+	unsigned char decryptedVerifierHash[16];
 	AES_KEY akey;
 	SHA_CTX ctx;
 	unsigned char checkHash[20];
-	unsigned char decryptedVerifierHash[32];
 
    	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
@@ -190,7 +190,6 @@ static int PasswordVerifier(unsigned char * key)
 		return 0;
 	}
 	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-	AES_ecb_encrypt(cur_salt->encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
 
 	/* find SHA1 hash of decryptedVerifier */
 	SHA1_Init(&ctx);
@@ -384,7 +383,7 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
 	ctcopy += 9;	/* skip over "$office$*" */
-	cur_salt = mem_alloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
+	cur_salt = mem_calloc_tiny(sizeof(struct custom_salt), MEM_ALIGN_WORD);
 	p = strtok(ctcopy, "*");
 	cur_salt->version = atoi(p);
 	p = strtok(NULL, "*");

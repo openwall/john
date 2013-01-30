@@ -626,7 +626,7 @@ char *RemoveHEX(char *output, char *input) {
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	int i, cipherTextLen;
-	char *cp, *fixed_ciphertext;
+	char *cp, fixed_ciphertext[1024];
 	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (!pPriv)
@@ -634,14 +634,15 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 	if (strncmp(ciphertext, pPriv->dynamic_WHICH_TYPE_SIG, strlen(pPriv->dynamic_WHICH_TYPE_SIG)))
 		return 0;
-	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
 
 	// this is now simply REMOVED totally, if we detect it.  Doing this solves MANY other problems
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
 	if (strstr(ciphertext, "$HEX$")) {
-		fixed_ciphertext = alloca(strlen(ciphertext)+1);
-		ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
+		if (strlen(ciphertext) < sizeof(fixed_ciphertext))
+			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
 	}
+
+	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
 
 	if (pPriv->dynamic_base64_inout == 1)
 	{
@@ -1957,7 +1958,7 @@ static void *salt(char *ciphertext)
 	unsigned the_real_len;
 	static union x {
 		unsigned char salt_p[sizeof(unsigned char*)];
-		ARCH_WORD_32 p[1];
+		ARCH_WORD p[1];
 	} union_x;
 
 	if ( (curdat.pSetup->flags&MGF_SALTED) == 0) {
@@ -8959,7 +8960,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		// we really do not 'have' to null terminate, but do just to be on the 'safe' side.
 		curdat.Consts[curdat.nConsts] = mem_alloc_tiny(Setup->pConstants[curdat.nConsts].len+1, MEM_ALIGN_NONE);
 		memcpy(curdat.Consts[curdat.nConsts], Setup->pConstants[curdat.nConsts].Const, Setup->pConstants[curdat.nConsts].len);
-		curdat.Consts[curdat.nConsts][Setup->pConstants[curdat.nConsts].len+1] = 0;
+		curdat.Consts[curdat.nConsts][Setup->pConstants[curdat.nConsts].len] = 0;
 		curdat.ConstsLen[curdat.nConsts] = Setup->pConstants[curdat.nConsts].len;
 	}
 

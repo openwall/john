@@ -191,10 +191,6 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
 }
 
 static void putty_set_key(char *key, int index)
@@ -222,7 +218,8 @@ static void SHA_Simple(void *p, int len, unsigned char *output)
 static int LAME_ssh2_load_userkey(char *passphrase)
 {
 	int passlen = strlen(passphrase);
-	unsigned char *out = alloca(cur_salt->private_blob_len);
+	//unsigned char *out = alloca(cur_salt->private_blob_len);
+	unsigned char out[sizeof(cur_salt->private_blob)];
 	AES_KEY akey;
 	unsigned char iv[32];
 
@@ -317,6 +314,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
 
 #ifdef _OPENMP
 #pragma omp parallel for

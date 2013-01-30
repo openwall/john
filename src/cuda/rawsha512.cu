@@ -2,12 +2,13 @@
  * This software is Copyright (c) 2012 Myrice <qqlddg at gmail dot com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
-*/
+ */
 
 #include "../cuda_rawsha512.h"
 #include "cuda_common.cuh"
 
-extern "C" void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash);
+extern "C" void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash,
+                            int count);
 extern "C" void cuda_sha512_init();
 extern "C" int cuda_sha512_cmp_all(void *binary, int count);
 extern "C" void cuda_sha512_cpy_hash(sha512_hash* host_hash);
@@ -170,7 +171,7 @@ __device__ static void sha512_final(sha512_ctx *ctx)
 
     //append length to ctx buffer
     uint64_t *buffer64 = (uint64_t *)ctx->buffer;
-    buffer64[15] = SWAP64((uint64_t) ctx->buflen * 8); 
+    buffer64[15] = SWAP64((uint64_t) ctx->buflen * 8);
 
     sha512_block(ctx);
 }
@@ -196,7 +197,7 @@ __global__ static void kernel_sha512(sha512_key *cuda_password, sha512_hash *cud
 {
 
     uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
-	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
     	sha512((const char*)cuda_password[offset].v, cuda_password[offset].length, (uint64_t*)cuda_hash, offset);
 	}
@@ -216,13 +217,14 @@ void cuda_sha512_cpy_hash(sha512_hash* host_hash)
 	HANDLE_ERROR(cudaMemcpy(host_hash, cuda_hash, hash_size, cudaMemcpyDeviceToHost));
 }
 
-void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash) 
-{	if(sha512_key_changed) 
-	    HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
+void cuda_sha512(sha512_key *host_password, sha512_hash* host_hash, int count)
+{
+	if(sha512_key_changed)
+		HANDLE_ERROR(cudaMemcpy(cuda_password, host_password, password_size, cudaMemcpyHostToDevice));
 
-    dim3 dimGrid(BLOCKS);
-    dim3 dimBlock(THREADS);
-    kernel_sha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
+	dim3 dimGrid((count + THREADS - 1) / THREADS);
+	dim3 dimBlock(THREADS);
+	kernel_sha512 <<< dimGrid, dimBlock >>> (cuda_password, cuda_hash);
 	HANDLE_ERROR(cudaGetLastError());
 }
 
@@ -233,7 +235,7 @@ __global__ static void kernel_cmp_all(int count, uint64_t* hash, uint8_t *result
 	if(idx == 0)
 		*result = 0;
 	__syncthreads();
-	for(uint32_t it = 0; it < ITERATIONS; ++it) {		
+	for(uint32_t it = 0; it < ITERATIONS; ++it) {
 		uint32_t offset = idx+it*KEYS_PER_CRYPT;
 		if(offset < count){
 			if (cuda_b0[0] == hash[hash_addr(0, offset)])
@@ -247,12 +249,10 @@ int cuda_sha512_cmp_all(void *binary, int count)
 	uint64_t b0 = *((uint64_t *)binary+3);
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_b0, &b0, sizeof(uint64_t)));
 	uint8_t result = 0;
-    dim3 dimGrid(BLOCKS);
-    dim3 dimBlock(THREADS);
+	dim3 dimGrid((count + THREADS - 1) / THREADS);
+	dim3 dimBlock(THREADS);
 	kernel_cmp_all <<< dimGrid, dimBlock >>> (count, (uint64_t*)cuda_hash, cuda_result);
 	HANDLE_ERROR(cudaGetLastError());
 	HANDLE_ERROR(cudaMemcpy(&result, cuda_result, sizeof(uint8_t), cudaMemcpyDeviceToHost));
 	return result;
 }
-
-

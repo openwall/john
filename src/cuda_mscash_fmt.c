@@ -1,10 +1,10 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba
-* <lukas dot odzioba at gmail dot com>
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-* Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
-*/
+ * This software is Copyright (c) 2011 Lukas Odzioba
+ * <lukas dot odzioba at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
+ */
 #include <string.h>
 #include "arch.h"
 #include "formats.h"
@@ -41,7 +41,7 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *);
+extern void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *, int);
 
 static void done()
 {
@@ -78,7 +78,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
-	for (; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
 		out[i] = ciphertext[i];
 	out[i] = 0;
 	// lowercase salt as well as hash, encoding-aware
@@ -156,8 +156,10 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	cuda_mscash(inbuffer, outbuffer, &currentsalt);
-	return *pcount;
+	int count = *pcount;
+
+	cuda_mscash(inbuffer, outbuffer, &currentsalt, count);
+	return count;
 }
 
 static int binary_hash_0(void *binary)

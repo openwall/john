@@ -3,10 +3,10 @@
  *
  * Common OpenCL functions go in this file.
  *
+ * Copyright (c) 2012 FIXME,
+ * Copyright (c) 2012-2013 Claudio André <claudio.andre at correios.net.br>,
+ * Copyright (c) 2012-2013 magnum, and
  *
- * Copyright (c) 2013 by Claudio André <claudio.andre at correios.net.br>,
- * Copyright (c) 2012 by magnum,
- * Others and
  * is hereby released to the general public under the following terms:
  *    Redistribution and use in source and binary forms, with or without
  *    modifications, are permitted.
@@ -52,6 +52,7 @@ static cl_event * to_profile_event;
 static struct fmt_main * self;
 void (*create_clobj)(int gws, struct fmt_main * self);
 void (*release_clobj)(void);
+static const char * config_name;
 
 void opencl_process_event(void)
 {
@@ -225,10 +226,29 @@ static void start_opencl_devices()
 		//Setup context and queue
 		context[i] = clCreateContext(properties, 1, &devices[i],
 			NULL, NULL, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating context");
+		if (ret_code != CL_SUCCESS) {
+#ifdef DEBUG
+			fprintf(stderr, "Error creating context for device %d "
+			        "(%d:%d): %s\n", i, get_platform_id(i),
+			        get_device_id(i), get_error_name(ret_code));
+#endif
+			platforms[get_platform_id(i)].num_devices--;
+			continue;
+		}
 		queue[i] = clCreateCommandQueue(context[i], devices[i],
 			0, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating command queue");
+		if (ret_code != CL_SUCCESS) {
+#ifdef DEBUG
+			fprintf(stderr, "Error creating command queue for "
+			        "device %d (%d:%d): %s\n", i,
+			        get_platform_id(i), get_device_id(i),
+			        get_error_name(ret_code));
+#endif
+			platforms[get_platform_id(i)].num_devices--;
+			HANDLE_CLERROR(clReleaseContext(context[i]),
+			               "Release Context");
+			continue;
+		}
 #ifdef DEBUG
 		fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
 #endif
@@ -241,7 +261,7 @@ static void add_device_to_list(int sequential_id)
 
 	if (sequential_id >= get_number_of_available_devices()) {
 		fprintf(stderr, "Invalid OpenCL device id %d\n", sequential_id);
-		return;
+		exit(EXIT_FAILURE);
 	}
 
 	for (i = 0; i < get_devices_being_used() && !found; i++) {
@@ -437,6 +457,9 @@ void opencl_get_user_preferences(char * format)
 	if ((tmp_value = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		opencl_get_config_name(format, DUR_CONFIG_NAME))))
 		duration_time = atoi(tmp_value) * 1000000000ULL;
+
+	//Save the format config string.
+	config_name = format;
 }
 
 static void dev_init(unsigned int sequential_id)
@@ -540,7 +563,7 @@ static void build_kernel(unsigned int sequential_id, char *options, int save, ch
 		HANDLE_CLERROR(clGetProgramInfo(program[sequential_id],
 			CL_PROGRAM_BINARY_SIZES,
 			sizeof(size_t), &source_size, NULL), "error");
-#if DEBUG
+#ifdef DEBUG
 		fprintf(stderr, "binary size %zu\n", source_size);
 #endif
 		source = mem_alloc(source_size);
@@ -855,6 +878,9 @@ void opencl_find_best_lws(
 	size_t my_work_group, optimal_work_group;
 	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+	char config_string[128];
+
+	fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -966,6 +992,15 @@ void opencl_find_best_lws(
 
 	// These ensure we don't get events from crypt_all() in real use
 	profilingEvent = NULL;
+
+	config_string[0] = '\0';
+	strcat(config_string, config_name);
+	strcat(config_string, LWS_CONFIG_NAME);
+
+	fprintf(stderr, "Optimal local worksize %zd\n", local_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", config_string, local_work_size);
 }
 
 void opencl_find_best_gws(
@@ -977,6 +1012,7 @@ void opencl_find_best_gws(
 	int optimal_gws = local_work_size;
 	unsigned int speed, best_speed = 0;
 	cl_ulong run_time, min_time = CL_ULONG_MAX;
+	char config_string[128];
 
 	if (duration_time)
 		max_run_time = duration_time;
@@ -1017,7 +1053,7 @@ void opencl_find_best_gws(
 		if (show_speed) {
 
 			if (rounds > 1)
-				fprintf(stderr, "gws: %9zu\t%10lu c/s%10u rounds/s%8.3f sec per crypt_all()",
+				fprintf(stderr, "gws: %9zu\t%10lu c/s%12u rounds/s%8.3f sec per crypt_all()",
 					num, (long) (num / (run_time / 1000000000.)), speed,
 					(float) run_time / 1000000000.);
 			else
@@ -1049,6 +1085,15 @@ void opencl_find_best_gws(
 		&ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 	global_work_size = optimal_gws;
+
+	config_string[0] = '\0';
+	strcat(config_string, config_name);
+	strcat(config_string, GWS_CONFIG_NAME);
+
+	fprintf(stderr, "Optimal global worksize %zd\n", global_work_size);
+	fprintf(stderr, "(to avoid this test on next run, put \""
+		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+		SUBSECTION_OPENCL "])\n", config_string, global_work_size);
 }
 
 static void opencl_get_dev_info(unsigned int sequential_id)

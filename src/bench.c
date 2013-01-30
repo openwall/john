@@ -538,7 +538,7 @@ next:
 	if (failed && total > 1 && !event_abort)
 		printf("%u out of %u tests have FAILED\n", failed, total);
 	else if (total > 1 && !event_abort)
-		printf("All %u tests have passed self-tests!\n", total);
+		printf("All %u formats passed self-tests!\n", total);
 
 	return failed || event_abort;
 }

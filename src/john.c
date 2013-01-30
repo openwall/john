@@ -204,6 +204,7 @@ extern int keyring2john(int argc, char **argv);
 extern int rar2john(int argc, char **argv);
 extern int racf2john(int argc, char **argv);
 extern int pwsafe2john(int argc, char **argv);
+extern int dmg2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
@@ -709,9 +710,11 @@ static void john_run(void)
 		}
 #endif
 
-		/* WPA-PSK has a min-length of 8. Until the format struct can
-		   hold this information, we need this hack here. */
-		if (!strncmp(database.format->params.label, "wpapsk", 6) &&
+		/* WPA-PSK and WoW both have min-length 8. Until the format
+		   struct can hold this information, we need this hack here. */
+		if (database.format->params.label &&
+		    (!strncmp(database.format->params.label, "wpapsk", 6) ||
+		     !strncmp(database.format->params.label, "wowsrp", 6)) &&
 		    options.force_minlength < 8) {
 			options.force_minlength = 8;
 			fprintf(stderr, "Note: minimum length forced to 8\n");
@@ -915,6 +918,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "pwsafe2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return pwsafe2john(argc, argv);
+	}
+
+	if (!strcmp(name, "dmg2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return dmg2john(argc, argv);
 	}
 #endif
 

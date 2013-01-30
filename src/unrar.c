@@ -937,10 +937,6 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	int retval=1, i, number, length, dist_number, low_dist, ch, next_ch;
 	int length_number, failed;
 
-#ifdef DEBUG
-	static unsigned long done, tot;
-#endif
-
 	//rar_dbgmsg("%s fd: %p\n", __func__, fd);
 
 	if (!solid) {
@@ -948,24 +944,12 @@ int rar_unpack29(const unsigned char *fd, int solid, unpack_data_t *unpack_data)
 	}
 	rar_unpack_init_data(solid, unpack_data);
 	if (!rar_unp_read_buf(&fd, unpack_data)) {
-#ifdef DEBUG
-		done += unpack_data->unp_ptr;
-		tot += unpack_data->max_size;
-
-		printf("Early reject: %u of %llu, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
-#endif
 		retval = 0;
 		goto Bailout;
 	}
 	if (!solid || !unpack_data->tables_read) {
 		//rar_dbgmsg("Read tables\n");
 		if (!read_tables(&fd, unpack_data)) {
-#ifdef DEBUG
-			done += unpack_data->unp_ptr;
-			tot += unpack_data->max_size;
-
-			printf("Early reject: %u of %llu, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
-#endif
 			retval = 0;
 			goto Bailout;
 		}
@@ -1186,19 +1170,6 @@ Bailout:
 		unp_write_buf(unpack_data);
 	}
 
-#ifdef DEBUG
-	else
-	{
-		done += unpack_data->unp_ptr;
-		tot += unpack_data->max_size;
-
-		printf("Early reject: %u of %llu, tot %lu of %lu %lu%%\n", unpack_data->unp_ptr, unpack_data->max_size,  done, tot, done*100UL/tot);
-	}
-#elif defined(RAR_HIGH_DEBUG)
-	else
-		printf("Reject\n");
-
-#endif
 	//rar_dbgmsg("Written size: %ld\n", (long)unpack_data->written_size);
 	//rar_dbgmsg("True size: %ld\n", (long)unpack_data->true_size);
 

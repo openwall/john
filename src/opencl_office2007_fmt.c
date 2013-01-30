@@ -77,7 +77,7 @@ static struct custom_salt {
 	int saltSize;
 } *cur_salt;
 
-static int *cracked;
+static int *cracked, any_cracked;
 static int VF = 1;	/* Will be set to 4 when we run vectorized */
 
 static char *saved_key;	/* Password encoded in UCS-2 */
@@ -553,10 +553,10 @@ error:
 static inline int PasswordVerifier(unsigned char *key)
 {
 	unsigned char decryptedVerifier[16];
+	unsigned char decryptedVerifierHash[16];
 	AES_KEY akey;
 	SHA_CTX ctx;
 	unsigned char checkHash[20];
-	unsigned char decryptedVerifierHash[32];
 
 	memset(&akey, 0, sizeof(AES_KEY));
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
@@ -570,7 +570,6 @@ static inline int PasswordVerifier(unsigned char *key)
 		return 0;
 	}
 	AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-	AES_ecb_encrypt(cur_salt->encryptedVerifierHash+16, decryptedVerifierHash+16, &akey, AES_DECRYPT);
 
 	/* find SHA1 hash of decryptedVerifier */
 	SHA1_Init(&ctx);
@@ -588,6 +587,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = ((count + (VF * local_work_size - 1)) / (VF * local_work_size)) * local_work_size;
 	scalar_gws = global_work_size * VF;
+
+	if (any_cracked) {
+		memset(cracked, 0, global_work_size * sizeof(*cracked));
+		any_cracked = 0;
+	}
 
 	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * scalar_gws, saved_key, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_key");
@@ -612,18 +616,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-		cracked[index] = PasswordVerifier(&key[index*16]);
+		if (PasswordVerifier(&key[index*16]))
+			any_cracked = cracked[index] = 1;
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)

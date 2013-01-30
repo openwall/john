@@ -11,7 +11,7 @@
 #include "cuda_common.cuh"
 
 extern "C" void md5_crypt_gpu(crypt_md5_password *, uint32_t *,
-    crypt_md5_salt *);
+                              crypt_md5_salt *, int count);
 
 __device__ __constant__ char md5_salt_prefix_cu[] = "$1$";
 __device__ __constant__ char apr1_salt_prefix_cu[] = "$apr1$";
@@ -48,7 +48,7 @@ __device__ void md5_digest(md5_ctx * ctx, uint32_t * result,
 
 	uint32_t b = 0xefcdab89;
 	uint32_t c = 0x98badcfe;
-	uint32_t d = 0x10325476;
+	uint32_t d; // = 0x10325476;
 	uint32_t a = ROTATE_LEFT(AC1 + x[0], S11);
 	a += b;			/* 1 */
 	d = ROTATE_LEFT((c ^ (a & MASK1)) + x[1] + AC2pCd, S12);
@@ -219,9 +219,10 @@ __global__ void kernel_crypt_r(crypt_md5_password * inbuffer,
 	    &outbuffer[idx].cracked);
 }
 
-__host__ void md5_crypt_gpu(crypt_md5_password * inbuffer,
-    uint32_t * outbuffer, crypt_md5_salt * host_salt)
+__host__ void md5_crypt_gpu(crypt_md5_password * inbuffer, uint32_t * outbuffer,
+                            crypt_md5_salt * host_salt, int count)
 {
+	int blocks = (count + THREADS - 1) / THREADS;
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt,
 		sizeof(crypt_md5_salt)));
 	crypt_md5_password *cuda_inbuffer;
@@ -237,7 +238,7 @@ __host__ void md5_crypt_gpu(crypt_md5_password * inbuffer,
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
 
-	kernel_crypt_r <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
+	kernel_crypt_r <<< blocks, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
 	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,

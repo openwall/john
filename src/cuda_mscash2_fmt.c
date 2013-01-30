@@ -45,7 +45,8 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *);
+extern void mscash2_gpu(mscash2_password *, mscash2_hash *, mscash2_salt *,
+                        int count);
 
 static void done()
 {
@@ -109,7 +110,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
 	int i = 0;
-	for (; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+	for (; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
 		out[i] = ciphertext[i];
 	out[i] = 0;
 	// lowercase salt as well as hash, encoding-aware
@@ -219,8 +220,10 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	mscash2_gpu(inbuffer, outbuffer, &currentsalt);
-	return *pcount;
+	int count = *pcount;
+
+	mscash2_gpu(inbuffer, outbuffer, &currentsalt, count);
+	return count;
 }
 
 static int binary_hash_0(void *binary)

@@ -517,7 +517,7 @@ __kernel void ntlmv2_nthash(const __global uchar *password, __global uint *nthas
 		block[i] = 0;
 
 	/* Input buffer is in a 'codepage' encoding, with zero-termination */
-	for (i = 0; pw[i] && i < KEYBUF_SIZE; i++)
+	for (i = 0; i < KEYBUF_SIZE && pw[i]; i++)
 		((UTF16*)block)[i] = (pw[i] < 0x80) ?
 		         pw[i] : ENCODING[pw[i] & 0x7f];
 	PUTCHAR(block, 2 * i, 0x80);

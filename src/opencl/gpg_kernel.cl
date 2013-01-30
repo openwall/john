@@ -375,13 +375,9 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 {
 	uchar keybuf[KEYBUFFER_LENGTH];
 	sha1_context ctx;
-	int i = 0;
-	int tl;
-	int mul;
-	int bs;
 	uchar *bptr;
-	int n;
 #if PLAINTEXT_LENGTH > 20
+	int i;
 	int numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
 	uchar wtf = '\0';
 #endif
@@ -396,6 +392,11 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 	for (i = 0; i < numHashes; i++)
 #endif
 	{
+		int tl;
+		int mul;
+		int bs;
+		int n;
+
 		sha1_init(&ctx);
 
 #if PLAINTEXT_LENGTH > 20
@@ -423,8 +424,8 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 		sha1_update(&ctx, keybuf, count % bs);
 		sha1_final(&ctx, lkey);
 
-		for(i = 0; i < length && outlen < length; i++)
-			key[outlen++] = lkey[i];
+		for(n = 0; n < length && outlen < length; n++)
+			key[outlen++] = lkey[n];
 	}
 }
 

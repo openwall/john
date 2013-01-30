@@ -378,12 +378,16 @@ static void *get_salt(char *ciphertext)
 static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_key_len, unsigned char *decryptKey)
 {
 	EVP_CIPHER_CTX ctx;
-	unsigned char *TEMP1, *TEMP2, *CEKICV;
+	//unsigned char *TEMP1, *TEMP2, *CEKICV;
+	unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
+	unsigned char TEMP2[sizeof(cur_salt->wrapped_hmac_sha1_key)];
+	unsigned char CEKICV[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 	unsigned char IV[8] = { 0x4a, 0xdd, 0xa2, 0x2c, 0x79, 0xe8, 0x21, 0x05 };
 	int outlen, tmplen, i;
-	TEMP1 = alloca(wrapped_key_len);
-	TEMP2 = alloca(wrapped_key_len);
-	CEKICV = alloca(wrapped_key_len);
+
+	//TEMP1 = alloca(wrapped_key_len);
+	//TEMP2 = alloca(wrapped_key_len);
+	//CEKICV = alloca(wrapped_key_len);
 	EVP_CIPHER_CTX_init(&ctx);
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, decryptKey, IV);
 	if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen, wrapped_key, wrapped_key_len)) {
@@ -428,18 +432,19 @@ static int hash_plugin_check_hash(const char *password)
 
 	else {
 		EVP_CIPHER_CTX ctx;
-		unsigned char *TEMP1;
+		//unsigned char *TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
+		unsigned char TEMP1[sizeof(cur_salt->encrypted_keyblob)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
 		unsigned char outbuf[8192];
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
+
 		pbkdf2((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, 1000, derived_key, 32);
-		EVP_CIPHER_CTX_init(&ctx);
-		TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
 
+		EVP_CIPHER_CTX_init(&ctx);
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if(!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {

@@ -1,16 +1,16 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba
-* <lukas dot odzioba at gmail dot com> 
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
-* Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
-*/
+ * This software is Copyright (c) 2011 Lukas Odzioba
+ * <lukas dot odzioba at gmail dot com>
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Based on Alain Espinosa implementation http://openwall.info/wiki/john/MSCash
+ */
 
 #include <stdio.h>
 #include "../cuda_mscash.h"
 #include "cuda_common.cuh"
 
-extern "C" void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *);
+extern "C" void cuda_mscash(mscash_password *, mscash_hash *, mscash_salt *, int);
 
 __constant__ mscash_salt cuda_salt[1];
 
@@ -197,9 +197,9 @@ __global__ void mscash_kernel(mscash_password * inbuffer,
 }
 
 __host__ void cuda_mscash(mscash_password * inbuffer, mscash_hash * outbuffer,
-    mscash_salt * host_salt)
+                          mscash_salt *host_salt, int count)
 {
-
+	int blocks = (count + THREADS - 1) / THREADS;
 	HANDLE_ERROR(cudaMemcpyToSymbol(cuda_salt, host_salt,
 		sizeof(mscash_salt)));
 	mscash_password *cuda_inbuffer;
@@ -214,7 +214,7 @@ __host__ void cuda_mscash(mscash_password * inbuffer, mscash_hash * outbuffer,
 	HANDLE_ERROR(cudaMemcpy(cuda_inbuffer, inbuffer, insize,
 		cudaMemcpyHostToDevice));
 
-	mscash_kernel <<< BLOCKS, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
+	mscash_kernel <<< blocks, THREADS >>> (cuda_inbuffer, cuda_outbuffer);
 	HANDLE_ERROR(cudaGetLastError());
 
 	HANDLE_ERROR(cudaMemcpy(outbuffer, cuda_outbuffer, outsize,

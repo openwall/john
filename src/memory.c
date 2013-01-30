@@ -68,6 +68,13 @@ void *mem_calloc(size_t size)
 
 void *mem_alloc_tiny(size_t size, size_t align)
 {
+#ifdef DEBUG
+	void *res;
+
+	res = mem_alloc(size);
+	add_memory_link(res);
+	return res;
+#else
 	static char *buffer = NULL;
 	static size_t bufree = 0;
 	size_t mask;
@@ -107,6 +114,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	p += mask;
 	p -= (size_t)p & mask;
 	return p;
+#endif
 }
 
 void *mem_calloc_tiny(size_t size, size_t align) {

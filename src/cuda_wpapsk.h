@@ -12,7 +12,7 @@
 #define BLOCKS			14
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
 
-#define MIN_KEYS_PER_CRYPT	KEYS_PER_CRYPT
+#define MIN_KEYS_PER_CRYPT	THREADS
 #define MAX_KEYS_PER_CRYPT	KEYS_PER_CRYPT
 
 #define MAX(x,y)		((x) > (y) ? (x) : (y))
