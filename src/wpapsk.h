@@ -91,6 +91,8 @@ static wpapsk_hash *outbuffer;		///table for PMK calculated by GPU
 #endif
 static const char wpapsk_prefix[] = "$WPAPSK$";
 
+static int new_keys = 1;
+static char last_ssid[sizeof(hccap.essid)];
 
 /** Below are common functions used by wpapsk_fmt.c cuda_wpapsk_fmt.c and opencl_wpapsk_fmt.c **/
 
@@ -432,6 +434,10 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int count)
 {
 	return 1;
+}
+
+static void clear_keys(void) {
+	new_keys = 1;
 }
 
 #endif
