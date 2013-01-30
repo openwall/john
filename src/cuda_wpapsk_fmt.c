@@ -54,7 +54,12 @@ static void init(struct fmt_main *self)
 
 static void crypt_all(int count)
 {
-	wpapsk_gpu(inbuffer, outbuffer, &currentsalt, count);
+	if (new_keys || strcmp(last_ssid, hccap.essid)) {
+		wpapsk_gpu(inbuffer, outbuffer, &currentsalt, count);
+		new_keys = 0;
+		strcpy(last_ssid, hccap.essid);
+	}
+
 	wpapsk_postprocess(count);
 }
 
@@ -92,7 +97,7 @@ struct fmt_main fmt_cuda_wpapsk = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

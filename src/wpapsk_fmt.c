@@ -363,11 +363,16 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 
 static void crypt_all(int count)
 {
+	if (new_keys || strcmp(last_ssid, hccap.essid)) {
 #ifndef MMX_COEF
-	wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
+		wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
 #else
-	wpapsk_sse(count, inbuffer, outbuffer, &currentsalt);
+		wpapsk_sse(count, inbuffer, outbuffer, &currentsalt);
 #endif
+		new_keys = 0;
+		strcpy(last_ssid, hccap.essid);
+	}
+
 	wpapsk_postprocess(count);
 }
 
@@ -406,7 +411,7 @@ struct fmt_main fmt_wpapsk = {
 		    set_salt,
 		    set_key,
 		    get_key,
-		    fmt_default_clear_keys,
+		    clear_keys,
 		    crypt_all,
 		    {
 				get_hash_0,
