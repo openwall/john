@@ -41,6 +41,11 @@ int zerolengthkey = 0;
 static char crypt_key[BINARY_SIZE];
 static char saved_key[PLAINTEXT_LENGTH + 1];
 
+#ifdef _MSC_VER
+// in VC, _atoi64 is a function.
+#define _atoi64 JtR_atoi64
+#endif
+
 static char _itoa64[] = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static char _atoi64[0x100];
 

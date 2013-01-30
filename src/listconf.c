@@ -6,7 +6,9 @@
  * modification, are permitted.
  */
 
+#ifndef _MSC_VER
 #include <strings.h>
+#endif
 #include <string.h>
 #include <openssl/crypto.h>
 
