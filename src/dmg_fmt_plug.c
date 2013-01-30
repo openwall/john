@@ -28,6 +28,7 @@
  *
  * NOTE: format is marked as FMT_NOT_EXACT for testing purposes */
 
+//#define DMG_DEBUG
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -53,7 +54,7 @@
 #define FORMAT_NAME         "Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES"
 #define ALGORITHM_NAME      "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
-#define BENCHMARK_LENGTH    -1
+#define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT  1
@@ -378,16 +379,12 @@ static void *get_salt(char *ciphertext)
 static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_key_len, unsigned char *decryptKey)
 {
 	EVP_CIPHER_CTX ctx;
-	//unsigned char *TEMP1, *TEMP2, *CEKICV;
 	unsigned char TEMP1[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 	unsigned char TEMP2[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 	unsigned char CEKICV[sizeof(cur_salt->wrapped_hmac_sha1_key)];
 	unsigned char IV[8] = { 0x4a, 0xdd, 0xa2, 0x2c, 0x79, 0xe8, 0x21, 0x05 };
 	int outlen, tmplen, i;
 
-	//TEMP1 = alloca(wrapped_key_len);
-	//TEMP2 = alloca(wrapped_key_len);
-	//CEKICV = alloca(wrapped_key_len);
 	EVP_CIPHER_CTX_init(&ctx);
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, decryptKey, IV);
 	if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen, wrapped_key, wrapped_key_len)) {
@@ -415,13 +412,32 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 	return 0;
 }
 
-#ifdef DEBUG
-static printisprint (char *p, int len)
+#ifdef DMG_DEBUG
+static void dump_strings (unsigned char *p, int len)
 {
-	while (len--)
-		if (isprint(*p))
-			fprintf(stderr, "%c", *p);
+	unsigned char *s = p;
+	extern volatile int bench_running;
+
+	//if (bench_running) return;
+
 	fprintf(stderr, "\n");
+	while (len--) {
+		if (*p < 0x20 || *p > 0x7e) {
+			if (p - s > 3) {
+				while (s < p)
+					fputc(*s++, stderr);
+				putc(' ', stderr);
+			} else
+				s = p;
+			s++;
+		}
+		p++;
+	}
+	if (p - s > 3)
+		while (s < p)
+			fputc(*s++, stderr);
+	fprintf(stderr, "\n");
+	fflush(stderr);
 }
 #endif
 
@@ -432,6 +448,7 @@ static int hash_plugin_check_hash(const char *password)
 	unsigned char aes_key_[32];
 	int cno = 0;
 	unsigned char *r;
+
 	if (cur_salt->headerver == 1) {
 		pbkdf2((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, 1000, derived_key, 32);
@@ -439,10 +456,8 @@ static int hash_plugin_check_hash(const char *password)
 			return 1;
 		}
 	}
-
 	else {
 		EVP_CIPHER_CTX ctx;
-		//unsigned char *TEMP1 = alloca(cur_salt->encrypted_keyblob_size);
 		unsigned char TEMP1[sizeof(cur_salt->encrypted_keyblob)];
 		int outlen, tmplen;
 		AES_KEY aes_decrypt_key;
@@ -458,7 +473,7 @@ static int hash_plugin_check_hash(const char *password)
 		EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, derived_key, cur_salt->iv);
 		if(!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
-			/* BUG: should we fail here? */
+			/* FIXME: should we fail here? */
 			return 0;
 		}
 		EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen);
@@ -476,26 +491,48 @@ static int hash_plugin_check_hash(const char *password)
 		else
 			AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
-#ifdef DEBUG
-		printisprint(outbuf, cur_salt->data_size);
+#ifdef DMG_DEBUG
+		dump_strings(outbuf, cur_salt->data_size);
 #endif
+
+		/* </plist> is a pretty generic signature for Apple */
+		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
+#ifdef DMG_DEBUG
+			fprintf(stderr, "</plist> found!\n");
+#endif
+			return 1;
+		}
+
+		/* Journalled HFS+ */
+		if (_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
+#ifdef DMG_DEBUG
+			fprintf(stderr, "jrnlhfs+ found!\n");
+#endif
+			return 1;
+		}
+
+		/* Handle compressed DMG files, CMIYC 2012 and self-made samples.
+		   Is this test obsoleted by the </plist> one? */
 		r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
 		if(r) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
-			/* handle compressed DMG files, CMIYC 2012 and self-made samples */
-#ifdef DEBUG
-			fprintf(stderr, "koly found!\n");
+
+			if(HTONL(*u32Version) == 4) {
+#ifdef DMG_DEBUG
+				fprintf(stderr, "koly found!\n");
 #endif
-			if(HTONL(*u32Version) == 4)
 				return 1;
+			}
 		}
+
+		/* Handle VileFault sample images */
 		if(_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
-			/* handle VileFault sample images */
-#ifdef DEBUG
+#ifdef DMG_DEBUG
 			fprintf(stderr, "EFI PART found!\n");
 #endif
 			return 1;
 		}
+
 		if(cur_salt->scp == 1) {
 			HMAC_CTX_init(&hmacsha1_ctx);
 			HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
@@ -508,17 +545,17 @@ static int hash_plugin_check_hash(const char *password)
 				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 
 			AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-#ifdef DEBUG
-			printisprint(outbuf, 4096);
+#ifdef DMG_DEBUG
+			dump_strings(outbuf, 4096);
 #endif
 			if(_memmem(outbuf, 4096, (void*)"Apple", 5)) {
-#ifdef DEBUG
+#ifdef DMG_DEBUG
 				fprintf(stderr, "Apple found!\n");
 #endif
 				return 1;
 			}
 			if(_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
-#ifdef DEBUG
+#ifdef DMG_DEBUG
 				fprintf(stderr, "MS-DOS UDRW signature found!\n");
 #endif
 				return 1;
