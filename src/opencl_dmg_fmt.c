@@ -479,13 +479,13 @@ static int hash_plugin_check_hash(const unsigned char *derived_key)
 			AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 
 		AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-		if(_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+		if(_memmem(outbuf, 4096, (void*)"Apple", 5)) {
 #ifdef DEBUG
 			fprintf(stderr, "Apple found!\n");
 #endif
 			return 1;
 		}
-		if(_memmem(outbuf, cur_salt->data_size, (void*)"Press any key to reboot", 23)) {
+		if(_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DEBUG
 			fprintf(stderr, "MS-DOS UDRW signature found!\n");
 #endif
