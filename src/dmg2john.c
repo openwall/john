@@ -107,7 +107,7 @@ static void hash_plugin_parse_hash(char *filename)
 		}
 	}
 	if (headerver == 0) {
-		fprintf(stderr, "File %s is not a DMG file!\n", filename);
+		fprintf(stderr, "File %s is not an encrypted DMG file!\n", filename);
 		return;
 	}
 	// fprintf(stderr, "Header version %d detected\n", headerver);
