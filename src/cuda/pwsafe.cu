@@ -3,10 +3,6 @@
 * Lukas Odzioba <ukasz at openwall.net> and Brian Wallace <brian.wallace9809 at gmail.com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
-*
-* This software is Copyright (c) 2013 Brian Wallace <nightstrike9809@gmail.com> 
-* and it is hereby released to the general public under the following terms:
-* Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #include <stdio.h>
 #include <stdlib.h>
