@@ -15,7 +15,7 @@
 #define __BLAKE2_H__
 
 #include <stddef.h>
-#include <stdint.h>
+#include "stdint.h"
 
 #if defined(_MSC_VER)
 #define ALIGN(x) __declspec(align(x))

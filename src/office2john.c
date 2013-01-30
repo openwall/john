@@ -63,7 +63,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <unistd.h>
 #include <errno.h>
 #include "common.h"

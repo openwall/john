@@ -7,7 +7,7 @@
 #define _CRYPTSHA512_H
 #include <assert.h>
 #include "common.h"
-#include <stdint.h>
+#include "stdint.h"
 #include <stdbool.h>
 
 #define uint8_t  unsigned char

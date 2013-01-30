@@ -14,7 +14,7 @@
 #ifndef __BLAKE2_IMPL_H__
 #define __BLAKE2_IMPL_H__
 
-#include <stdint.h>
+#include "stdint.h"
 
 static inline uint32_t load32( const void *src )
 {
