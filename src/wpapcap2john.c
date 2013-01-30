@@ -4,7 +4,6 @@
 
 #include "wpapcap2john.h"
 
-int Process(FILE *, const char *InFName);
 int GetNextPacket(FILE *in);
 int ProcessPacket();
 void HandleBeacon();
@@ -145,7 +144,6 @@ void HandleBeacon() {
 }
 void Handle4Way(int bIsQOS) {
 	ether_frame_hdr_t *pkt = (ether_frame_hdr_t*)packet;
-	// ether_frame_ctl_t *ctl = (ether_frame_ctl_t *)&pkt->frame_ctl;
 	int i, ess=-1;
 	uint8 orig_2[512];
 	uint8 *p = (uint8*)&packet[sizeof(ether_frame_hdr_t)];
@@ -213,27 +211,26 @@ void Handle4Way(int bIsQOS) {
 	// do not have valid 3 4's.  They 'may' be valid, but may also be a client with the wrong password.
 
 	if (msg == 1) {
-		free(wpa[ess].packet1);
+		if(wpa[ess].packet1) free(wpa[ess].packet1);
 		wpa[ess].packet1 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		memcpy(wpa[ess].packet1, packet, pkt_hdr.orig_len);
-		free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
-		free(wpa[ess].orig_2);  wpa[ess].orig_2 = NULL;
-		free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
+		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
+		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
+		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
+		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 	}
 	if (msg == 2) {
 		// see if we have a msg1 that 'matches'.
-		free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
+		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
+		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 		wpa[ess].packet2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
-		wpa[ess].orig_2 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
+		wpa[ess].orig_2  = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		memcpy(wpa[ess].packet2, packet, pkt_hdr.orig_len);
 		memcpy(wpa[ess].orig_2, orig_2, pkt_hdr.orig_len);
 		wpa[ess].eapol_sz = pkt_hdr.orig_len-8-sizeof(ether_frame_hdr_t);
 		if (bIsQOS) wpa[ess].eapol_sz -= 2;
 		if (wpa[ess].packet1) {
-			ether_auto_802_1x_t *auth1;
-			ether_auto_802_1x_t *auth2 = auth;
+			ether_auto_802_1x_t *auth2 = auth, *auth1;
 			p = (uint8*)wpa[ess].packet1;
 			if (bIsQOS)
 				p += 2;
@@ -245,18 +242,17 @@ void Handle4Way(int bIsQOS) {
 				DumpKey(ess, 1, bIsQOS);
 			}
 			// we no longer want to know about this packet 1.
-			free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
+			if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
 		}
 	}
 	if (msg == 3) {
 		// see if we have a msg2 that 'matches',  which is 1 less than our replay count.
-		free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
-		free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
+		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
+		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 		wpa[ess].packet3 = (uint8 *)malloc(sizeof(uint8) * pkt_hdr.orig_len);
 		memcpy(wpa[ess].packet3, packet, pkt_hdr.orig_len);
 		if (wpa[ess].packet2) {
-			ether_auto_802_1x_t *auth3 = auth;
-			ether_auto_802_1x_t *auth2;
+			ether_auto_802_1x_t *auth3 = auth, *auth2;
 			p = (uint8*)wpa[ess].packet2;
 			if (bIsQOS)
 				p += 2;
@@ -269,16 +265,16 @@ void Handle4Way(int bIsQOS) {
 			}
 		}
 		// clear this, so we do not hit the same 3 packet and output exact same 2/3 combo.
-		free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
-		free(wpa[ess].orig_2);  wpa[ess].orig_2 = NULL;
+		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
+		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
+		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
 	}
 	if (msg == 4) {
-		free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
-		free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
-		free(wpa[ess].orig_2);  wpa[ess].orig_2 = NULL;
-		free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
-		free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
+		if (wpa[ess].packet1) free(wpa[ess].packet1);  wpa[ess].packet1 = NULL;
+		if (wpa[ess].packet2) free(wpa[ess].packet2);  wpa[ess].packet2 = NULL;
+		if (wpa[ess].orig_2)  free(wpa[ess].orig_2);   wpa[ess].orig_2 = NULL;
+		if (wpa[ess].packet3) free(wpa[ess].packet3);  wpa[ess].packet3 = NULL;
+		if (wpa[ess].packet4) free(wpa[ess].packet4);  wpa[ess].packet4 = NULL;
 	}
 }
 
@@ -349,6 +345,7 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	printf("\n");
 	fprintf(stderr, "keyver=%d\n\n",hccap.keyver);
 }
+
 int main(int argc, char **argv) {
 	FILE *in;
 	if (argc != 2) return !!fprintf(stderr, "Usage wpacpap2john cpap_filename\n");
@@ -360,5 +357,3 @@ int main(int argc, char **argv) {
 		fprintf(stderr, "Error, file %s not found\n", argv[1]);
 	return 0;
 }
-
-

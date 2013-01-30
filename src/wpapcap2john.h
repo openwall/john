@@ -120,21 +120,7 @@ inline uint16 swap16u(uint16 v) {
 inline uint32 swap32u(uint32 v) {
 	return ((v>>24)|((v&0xFF)<<24) | ((v&0xFF0000)>>8) | ((v&0xFF00)<<8));
 }
-inline int32 swap32s(int32 iv) {
-	uint32 v = (uint32) iv;
-	return (int32) ((v>>24)|((v&0xFF)<<24) | ((v&0xFF0000)>>8) | ((v&0xFF00)<<8));
-}
 inline uint64 swap64u(uint64 v) {
-	uint32 h,l;
-	h = ((uint32*)&v)[0];
-	l = ((uint32*)&v)[1];
-	h = ((h>>24)|((h&0xFF)<<24) | ((h&0xFF0000)>>8) | ((h&0xFF00)<<8));
-	l = ((l>>24)|((l&0xFF)<<24) | ((l&0xFF0000)>>8) | ((l&0xFF00)<<8));
-	((uint32*)&v)[0] = l;
-	((uint32*)&v)[1] = h;
-	return v;
-}
-inline uint64 swap64s(int64 v) {
 	uint32 h,l;
 	h = ((uint32*)&v)[0];
 	l = ((uint32*)&v)[1];
