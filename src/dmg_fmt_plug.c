@@ -415,6 +415,16 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 	return 0;
 }
 
+#ifdef DEBUG
+static printisprint (char *p, int len)
+{
+	while (len--)
+		if (isprint(*p))
+			fprintf(stderr, "%c", *p);
+	fprintf(stderr, "\n");
+}
+#endif
+
 static int hash_plugin_check_hash(const char *password)
 {
 	unsigned char derived_key[32];
@@ -466,6 +476,9 @@ static int hash_plugin_check_hash(const char *password)
 		else
 			AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
+#ifdef DEBUG
+		printisprint(outbuf, cur_salt->data_size);
+#endif
 		r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
 		if(r) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
@@ -495,13 +508,16 @@ static int hash_plugin_check_hash(const char *password)
 				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 
 			AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-			if(_memmem(outbuf, cur_salt->data_size, (void*)"Apple", 5)) {
+#ifdef DEBUG
+			printisprint(outbuf, 4096);
+#endif
+			if(_memmem(outbuf, 4096, (void*)"Apple", 5)) {
 #ifdef DEBUG
 				fprintf(stderr, "Apple found!\n");
 #endif
 				return 1;
 			}
-			if(_memmem(outbuf, cur_salt->data_size, (void*)"Press any key to reboot", 23)) {
+			if(_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DEBUG
 				fprintf(stderr, "MS-DOS UDRW signature found!\n");
 #endif
