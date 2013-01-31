@@ -49,7 +49,7 @@
 #define NBKEYS			MMX_COEF
 #else
 #ifdef _OPENMP
-#define OMP_SCALE		2
+#define OMP_SCALE		4
 #include <omp.h>
 #endif
 #endif
@@ -73,14 +73,13 @@
 #define ALGORITHM_NAME		MD4_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
-#define BINARY_SIZE		24
-#define BINARY_ALIGN            ARCH_SIZE
-#define PARTIAL_BINARY_SIZE	8
-#define BARE_SALT_SIZE		8
-#define SALT_SIZE		(0x80000 + BARE_SALT_SIZE)
-#define SALT_ALIGN              ARCH_SIZE
+#define FULL_BINARY_SIZE	(2 + 8 * 3)
+#define BINARY_SIZE		(2 + 8)
+#define BINARY_ALIGN            2
+#define SALT_SIZE		8
+#define SALT_ALIGN              1
 #define CIPHERTEXT_LENGTH	48
-#define TOTAL_LENGTH		(10 + 2 * 2 * BARE_SALT_SIZE + CIPHERTEXT_LENGTH)
+#define TOTAL_LENGTH		(10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
 
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH	27
@@ -91,7 +90,7 @@
 #else
 #define PLAINTEXT_LENGTH	64
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	2048
+#define MAX_KEYS_PER_CRYPT	256
 #endif
 
 static struct fmt_tests tests[] = {
@@ -123,7 +122,6 @@ static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_key_length);
 #endif
 
-static uchar (*output)[PARTIAL_BINARY_SIZE];
 static uchar (*crypt_key)[21]; // NT hash
 static uchar *challenge;
 static int keys_prepared;
@@ -154,7 +152,6 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
-	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
@@ -198,7 +195,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	// Handle ESS (8 byte client challenge in "LM" field padded with zeros)
 	if (strlen(split_fields[3]) == 48 && !strncmp(&split_fields[3][16],
-	                                              "00000000000000000000000000000000", 32)) {
+	    "00000000000000000000000000000000", 32)) {
 		memcpy(clientChal, split_fields[3],16);
 		clientChal[16] = 0;
 	}
@@ -227,23 +224,6 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static void *get_binary(char *ciphertext)
-{
-	static uchar *binary;
-	int i;
-
-	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
-
-	ciphertext = strrchr(ciphertext, '$') + 1;
-	for (i=0; i<BINARY_SIZE; i++) {
-		int j = i < 16 ? i + 8 : i - 16;
-		binary[j] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-		binary[j] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
-	}
-
-	return binary;
-}
-
 static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 {
 	DES_cblock key;
@@ -260,17 +240,61 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 	DES_set_key(&key, ks);
 }
 
+static void *get_salt(char *ciphertext);
+
+static void *get_binary(char *ciphertext)
+{
+	static uchar *binary;
+	DES_cblock *challenge = get_salt(ciphertext);
+	int i, j;
+
+	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
+
+	ciphertext = strrchr(ciphertext, '$') + 1;
+	for (i = 0; i < FULL_BINARY_SIZE - 2; i++) {
+		binary[2 + i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] << 4;
+		binary[2 + i] |= atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
+	}
+
+	{
+		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
+		DES_key_schedule ks;
+		DES_cblock b3cmp;
+
+		for (i = 0; i < 0x100; i++)
+		for (j = 0; j < 0x100; j++) {
+			key[0] = i; key[1] = j;
+			setup_des_key(key, &ks);
+			DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
+			if (!memcmp(&binary[2 + 8 * 2], &b3cmp, 8)) {
+				binary[0] = i; binary[1] = j;
+				goto out;
+			}
+		}
+
+/* XXX: we should be detecting & rejecting these in valid() */
+		fprintf(stderr, "Saw NetNTLM hash with invalid 3rd block\n");
+		binary[0] = binary[1] = 0x55;
+	}
+
+out:
+	return binary;
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	DES_cblock (*lut)[0x100][0x100] = (void *)(challenge + BARE_SALT_SIZE);
 	int i = 0;
 
 	if (!keys_prepared) {
+#ifdef MMX_COEF
 #if defined(MD4_SSE_PARA)
 		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
-#elif defined(MMX_COEF)
+#else
 		mdfourmmx(nthash, saved_key, total_len);
+#endif
+		for (i = 0; i < NBKEYS; i++)
+			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
 #else
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 #ifdef _OPENMP
@@ -289,44 +313,53 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		keys_prepared = 1;
 	}
 
+	return count;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	if (crypt_key[index][14] == ((uchar *)binary)[0] &&
+	    crypt_key[index][15] == ((uchar *)binary)[1]) {
+		DES_key_schedule ks;
+		DES_cblock computed_binary;
 #ifdef MMX_COEF
-	for(i = 0; i < NBKEYS; i++) {
-		memcpy(&output[i],
-		       (*lut)[nthash[GETOUTPOS(14, i)]][nthash[GETOUTPOS(15, i)]], 8);
-	}
-#else
-#if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
-#ifdef _OPENMP
-#pragma omp parallel for default(none) private(i) shared(count, output, crypt_key, lut)
-#endif
-	for(i = 0; i < count; i++)
-#endif
-	{
-		memcpy(&output[i],
-		       (*lut)[crypt_key[i][14]][crypt_key[i][15]], 8);
-	}
+		int i;
+
+		for (i = 0; i < 2; i++)
+			((ARCH_WORD_32*)crypt_key[index])[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
 #endif
 
-	return count;
+		setup_des_key(crypt_key[index], &ks);
+		DES_ecb_encrypt((DES_cblock *)challenge, &computed_binary, &ks, DES_ENCRYPT);
+
+		return !memcmp(binary + 2, computed_binary, 8);
+	}
+
+	return 0;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index;
 
-#ifdef MMX_COEF // allow compiler to optimize
-	for(index=0; index < NBKEYS; index++)
-#else
-	for(index=0; index < count; index++)
-#endif
-		if (((ARCH_WORD*)binary)[0] == ((ARCH_WORD*)output[index])[0])
-			return 1;
-	return 0;
-}
+	for (index = 0; index < count; index++) {
+		if (crypt_key[index][14] == ((uchar *)binary)[0] &&
+		    crypt_key[index][15] == ((uchar *)binary)[1])
+			goto thorough;
+	}
 
-static int cmp_one(void *binary, int index)
-{
-	return ((ARCH_WORD*)binary)[0] == ((ARCH_WORD*)output[index])[0];
+	goto out;
+
+thorough:
+	for (; index < count; index++) {
+		if (crypt_key[index][14] == ((uchar *)binary)[0] &&
+		    crypt_key[index][15] == ((uchar *)binary)[1] &&
+		    cmp_one(binary, index))
+			return 1;
+	}
+
+out:
+	return 0;
 }
 
 static int cmp_exact(char *source, int index)
@@ -336,9 +369,10 @@ static int cmp_exact(char *source, int index)
 #ifdef MMX_COEF
 	int i;
 
-	for (i = 0; i < 4; i++)
+	for (i = 2; i < 4; i++)
 		((ARCH_WORD_32*)crypt_key[index])[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
 #endif
+
 	/* Hash is NULL padded to 21-bytes (postponed until now) */
 	memset(&crypt_key[index][16], 0, 5);
 
@@ -346,13 +380,13 @@ static int cmp_exact(char *source, int index)
 	   Use each key to DES encrypt challenge
 	   Concatenate output to for 24-byte NTLM response */
 	setup_des_key(crypt_key[index], &ks);
-	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[8], &ks, DES_ENCRYPT);
-	setup_des_key(&crypt_key[index][7], &ks);
-	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
-	setup_des_key(&crypt_key[index][14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)binary, &ks, DES_ENCRYPT);
+	setup_des_key(&crypt_key[index][7], &ks);
+	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[8], &ks, DES_ENCRYPT);
+	setup_des_key(&crypt_key[index][14], &ks);
+	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
 
-	return !memcmp(binary, get_binary(source), BINARY_SIZE);
+	return !memcmp(binary, get_binary(source) + 2, FULL_BINARY_SIZE - 2);
 }
 
 static void *get_salt(char *ciphertext)
@@ -360,44 +394,29 @@ static void *get_salt(char *ciphertext)
 	static uchar *binary_salt;
 	int i;
 
-	if (!binary_salt) binary_salt = mem_alloc(SALT_SIZE);
+	if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
 	if (ciphertext[25] == '$') {
 		// Server challenge
 		ciphertext += 9;
-		for (i = 0; i < BARE_SALT_SIZE; ++i)
+		for (i = 0; i < SALT_SIZE; ++i)
 			binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	} else {
-		uchar es_salt[2*BARE_SALT_SIZE], k1[2*BARE_SALT_SIZE];
+		uchar es_salt[2*SALT_SIZE], k1[2*SALT_SIZE];
 		MD5_CTX ctx;
 
 		ciphertext += 9;
 		// Extended Session Security,
 		// Concatenate Server & Client challenges
-		for (i = 0;i < 2 * BARE_SALT_SIZE; ++i)
+		for (i = 0;i < 2 * SALT_SIZE; ++i)
 			es_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
 		// MD5 the concatenated challenges, result is our key
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, es_salt, 16);
 		MD5_Final((void*)k1, &ctx);
-		memcpy(binary_salt, k1, BARE_SALT_SIZE); // but only 8 bytes of it
+		memcpy(binary_salt, k1, SALT_SIZE); // but only 8 bytes of it
 	}
-
-	{
-		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
-		DES_key_schedule ks;
-		DES_cblock (*lut)[0x100][0x100] = (void *)(binary_salt + BARE_SALT_SIZE);
-		int i, j;
-
-		for (i = 0; i < 0x100; i++)
-			for (j = 0; j < 0x100; j++) {
-				key[0] = i; key[1] = j;
-				setup_des_key(key, &ks);
-				DES_ecb_encrypt((DES_cblock *)binary_salt, &(*lut)[i][j], &ks, DES_ENCRYPT);
-			}
-	}
-
 	return (void*)binary_salt;
 }
 
@@ -674,21 +693,45 @@ static int salt_hash(void *salt)
 	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
 }
 
-static int binary_hash_0(void *binary) { return *(ARCH_WORD_32 *)binary & 0xF; }
-static int binary_hash_1(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFF; }
-static int binary_hash_2(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFF; }
-static int binary_hash_3(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFF; }
-static int binary_hash_4(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFFF; }
-static int binary_hash_5(void *binary) { return *(ARCH_WORD_32 *)binary & 0xFFFFFF; }
-static int binary_hash_6(void *binary) { return *(ARCH_WORD_32 *)binary & 0x7FFFFFF; }
+static int binary_hash_0(void *binary)
+{
+	return *(uchar *)binary & 0xF;
+}
 
-static int get_hash_0(int index) { return *(ARCH_WORD_32 *)output[index] & 0xF; }
-static int get_hash_1(int index) { return *(ARCH_WORD_32 *)output[index] & 0xFF; }
-static int get_hash_2(int index) { return *(ARCH_WORD_32 *)output[index] & 0xFFF; }
-static int get_hash_3(int index) { return *(ARCH_WORD_32 *)output[index] & 0xFFFF; }
-static int get_hash_4(int index) { return *(ARCH_WORD_32 *)output[index] & 0xFFFFF; }
-static int get_hash_5(int index) { return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF; }
-static int get_hash_6(int index) { return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF; }
+static int binary_hash_1(void *binary)
+{
+	return *(uchar *)binary & 0xFF;
+}
+
+static int binary_hash_2(void *binary)
+{
+	return *(unsigned short *)binary & 0xFFF;
+}
+
+static int binary_hash_3(void *binary)
+{
+	return *(unsigned short *)binary & 0xFFFF;
+}
+
+static int get_hash_0(int index)
+{
+	return crypt_key[index][14] & 0xF;
+}
+
+static int get_hash_1(int index)
+{
+	return crypt_key[index][14] & 0xFF;
+}
+
+static int get_hash_2(int index)
+{
+	return ((unsigned short *)&crypt_key[index])[7] & 0xFFF;
+}
+
+static int get_hash_3(int index)
+{
+	return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF;
+}
 
 struct fmt_main fmt_NETNTLM = {
 	{
@@ -724,9 +767,9 @@ struct fmt_main fmt_NETNTLM = {
 			binary_hash_1,
 			binary_hash_2,
 			binary_hash_3,
-			binary_hash_4,
-			binary_hash_5,
-			binary_hash_6
+			NULL,
+			NULL,
+			NULL
 		},
 		salt_hash,
 		set_salt,
@@ -739,9 +782,9 @@ struct fmt_main fmt_NETNTLM = {
 			get_hash_1,
 			get_hash_2,
 			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			NULL,
+			NULL,
+			NULL
 		},
 		cmp_all,
 		cmp_one,
