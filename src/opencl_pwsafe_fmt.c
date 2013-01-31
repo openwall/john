@@ -44,6 +44,9 @@ static const char * warn[] = {
         "pass xfer: "  ,  ", salt xfer: "  ,  ", crypt: "    ,  ", result xfer: "
 };
 
+extern void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
+	unsigned long long int max_run_time);
+
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
@@ -142,15 +145,20 @@ static void create_clobj(int gws, struct fmt_main * self)
 	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
 }
 
+/* ------- Try to find the best configuration ------- */
+/* --
+  This function could be used to calculated the best num
+  for the workgroup
+  Work-items that make up a work-group (also referred to
+  as the size of the work-group)
+-- */
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
-
-	size_t max_group_size;
-
-	max_group_size = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 
 	//Call the default function.
 	opencl_find_best_lws(
-			max_group_size, sequential_id, crypt_kernel);
+		get_current_work_group_size(ocl_gpu_id, crypt_kernel),
+		sequential_id, crypt_kernel
+	);
 }
 
 /* --
@@ -159,24 +167,11 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 -- */
 static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
-	int step = 0;
-	int show_speed = 0, show_details = 0;
-	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 3000000000ULL;
-	char *tmp_value;
-
-	if (getenv("DETAILS")){
-		show_details = 1;
-	}
-
-	if ((tmp_value = getenv("STEP"))){
-		step = atoi(tmp_value);
-		show_speed = 1;
-	}
-	step = GET_MULTIPLE(step, local_work_size);
-
-	//Call the default function.
-	opencl_find_best_gws(
-		step, show_speed, show_details, max_run_time, sequential_id, ROUNDS_DEFAULT);
+	//Call the common function.
+	common_find_best_gws(
+		sequential_id, ROUNDS_DEFAULT, 0,
+		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 3000000000ULL)
+	);
 
 	create_clobj(global_work_size, self);
 }
