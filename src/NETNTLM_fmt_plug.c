@@ -72,7 +72,7 @@
 #define FORMAT_NAME		"NTLMv1 C/R MD4 DES (ESS MD5)"
 #define ALGORITHM_NAME		MD4_ALGORITHM_NAME
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
+#define BENCHMARK_LENGTH	-1000
 #define FULL_BINARY_SIZE	(2 + 8 * 3)
 #define BINARY_SIZE		(2 + 8)
 #define BINARY_ALIGN            2
@@ -342,7 +342,12 @@ static int cmp_all(void *binary, int count)
 {
 	int index;
 
+#ifdef MMX_COEF
+	/* Let's give the optimizer a hint! */
+	for (index = 0; index < NBKEYS; index++) {
+#else
 	for (index = 0; index < count; index++) {
+#endif
 		if (crypt_key[index][14] == ((uchar *)binary)[0] &&
 		    crypt_key[index][15] == ((uchar *)binary)[1])
 			goto thorough;
@@ -351,7 +356,11 @@ static int cmp_all(void *binary, int count)
 	goto out;
 
 thorough:
+#ifdef MMX_COEF
+	for (index = 0; index < NBKEYS; index++) {
+#else
 	for (; index < count; index++) {
+#endif
 		if (crypt_key[index][14] == ((uchar *)binary)[0] &&
 		    crypt_key[index][15] == ((uchar *)binary)[1] &&
 		    cmp_one(binary, index))
