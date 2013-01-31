@@ -191,19 +191,18 @@ static char * get_key(int index) {
   for the workgroup
   Work-items that make up a work-group (also referred to
   as the size of the work-group)
+
+  For formats using __local
   LWS should never be a big number since every work-item
   uses about 400 bytes of local memory. Local memory
-  is usually 32 KB
+  is usually 32 KB.
 -- */
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
-	size_t max_group_size;
-
-	max_group_size = get_task_max_work_group_size();
-
 	//Call the default function.
 	opencl_find_best_lws(
-			max_group_size, sequential_id, crypt_kernel);
+		get_task_max_work_group_size(), sequential_id, crypt_kernel
+	);
 }
 
 /* --
@@ -212,24 +211,11 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 -- */
 static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
-	int step = STEP;
-	int show_speed = 0, show_details = 0;
-	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL;
-	char *tmp_value;
-
-	if (getenv("DETAILS")){
-		show_details = 1;
-	}
-
-	if ((tmp_value = getenv("STEP"))){
-		step = atoi(tmp_value);
-		show_speed = 1;
-	}
-	step = GET_MULTIPLE(step, local_work_size);
-
-	//Call the default function.
-	opencl_find_best_gws(
-		step, show_speed, show_details, max_run_time, sequential_id, 1);
+	//Call the common function.
+	common_find_best_gws(
+		sequential_id, 1, STEP,
+		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 1000000000ULL)
+	);
 
 	create_clobj(global_work_size, self);
 }

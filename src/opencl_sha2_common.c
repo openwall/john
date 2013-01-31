@@ -61,3 +61,43 @@ size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
 		return max_available * multiplier * keys_per_core_gpu *
 				get_current_work_group_size(ocl_gpu_id, crypt_kernel);
 }
+
+/*
+ * Public domain hash function by DJ Bernstein
+ * We are hashing almost the entire struct
+ */
+int common_salt_hash(void * salt, int salt_size, int salt_hash_size) {
+	unsigned char *s = salt;
+	unsigned int hash = 5381;
+	unsigned int i;
+
+	for (i = 0; i < salt_size; i++)
+		hash = ((hash << 5) + hash) ^ s[i];
+
+	return hash & (salt_hash_size - 1);
+}
+
+/* --
+  This function could be used to calculated the best num
+  of keys per crypt for the given format
+-- */
+void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
+	unsigned long long int max_run_time) {
+
+	int show_speed = 0, show_details = 0;
+	char *tmp_value;
+
+	if (getenv("DETAILS")){
+		show_details = 1;
+	}
+
+	if ((tmp_value = getenv("STEP"))){
+		step = atoi(tmp_value);
+		show_speed = 1;
+	}
+	step = GET_MULTIPLE(step, local_work_size);
+
+	//Call the default function.
+	opencl_find_best_gws(
+		step, show_speed, show_details, max_run_time, sequential_id, rounds);
+}

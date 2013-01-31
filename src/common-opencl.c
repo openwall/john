@@ -1017,8 +1017,8 @@ void opencl_find_best_gws(
 	if (duration_time)
 		max_run_time = duration_time;
 
-	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %llu s duration.\n\n",
-		local_work_size, max_run_time / 1000000000ULL);
+	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %2.1f s duration.\n\n",
+		local_work_size, (float) max_run_time / 1000000000.);
 
 	if (show_speed)
 		fprintf(stderr, "Raw speed figures including buffer transfers:\n");
