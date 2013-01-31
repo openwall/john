@@ -46,9 +46,9 @@
 
 #ifdef MMX_COEF
 #ifdef MD4_SSE_PARA
-#define BLOCK_LOOPS			1
+#define BLOCK_LOOPS			1 // Experimental. Try 512 x cores & OMP
 #else
-#define BLOCK_LOOPS			1
+#define BLOCK_LOOPS			1 // Never change this
 #endif
 #define PLAINTEXT_LENGTH		27
 #define MIN_KEYS_PER_CRYPT		NBKEYS
@@ -556,7 +556,7 @@ static int cmp_all(void *binary, int count) {
 #ifdef MMX_COEF
 	unsigned int x,y=0;
 #ifdef MD4_SSE_PARA
-	for(; y < MD4_SSE_PARA; y++)
+	for(; y < MD4_SSE_PARA * BLOCK_LOOPS; y++)
 #endif
 		for(x = 0; x < MMX_COEF; x++)
 		{
@@ -691,7 +691,7 @@ struct fmt_main fmt_NT2 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-#if (BLOCK_LOOPS > 1) && defined(SSE_MD4_PARA)
+#if (BLOCK_LOOPS > 1) && defined(MD4_SSE_PARA)
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
