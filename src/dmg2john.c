@@ -26,12 +26,14 @@
 #include <alloca.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include "stdint.h"
+#include <libgen.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
 #include <openssl/aes.h>
 #include <openssl/hmac.h>
+
+#include "stdint.h"
 #include "gladman_fileenc.h"
 #include "filevault.h"
 
@@ -79,9 +81,11 @@ static void hash_plugin_parse_hash(char *filename)
 {
 	int fd;
 	char buf8[8];
-	int cno = 0;
-	int data_size = 0;
-	unsigned char *chunk = NULL;
+	int64_t cno = 0;
+	int64_t data_size = 0;
+	unsigned char *chunk1 = NULL;
+	unsigned char *chunk2 = NULL;
+
 	headerver = 0;
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
@@ -89,7 +93,7 @@ static void hash_plugin_parse_hash(char *filename)
 		return;
 	}
 	if (read(fd, buf8, 8) <= 0) {
-		fprintf(stderr, "File %s is not a DMG file!\n", filename);
+		fprintf(stderr, "%s is not a DMG file!\n", filename);
 		return;
 	}
 	if (strncmp(buf8, "encrcdsa", 8) == 0) {
@@ -99,7 +103,7 @@ static void hash_plugin_parse_hash(char *filename)
 	else {
 		lseek(fd, -8, SEEK_END);
 		if (read(fd, buf8, 8) <= 0) {
-			fprintf(stderr, "File %s is not a DMG file!\n", filename);
+			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
 		}
 		if (strncmp(buf8, "cdsaencr", 8) == 0) {
@@ -107,65 +111,84 @@ static void hash_plugin_parse_hash(char *filename)
 		}
 	}
 	if (headerver == 0) {
-		fprintf(stderr, "File %s is not a DMG file!\n", filename);
+		fprintf(stderr, "%s is not an encrypted DMG file!\n", filename);
 		return;
 	}
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
+		char *name;
+
 		lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END);
 		if (read(fd, &header, sizeof(cencrypted_v1_header)) < 1) {
-			fprintf(stderr, "File %s is not a DMG file!\n", filename);
+			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
 		}
 		header_byteorder_fix(&header);
-	}
 
+		if (!(name = basename(filename)))
+		    name = filename;
+
+		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
+		        "count %u\n", name, headerver,
+		        header2.kdf_iteration_count);
+
+		printf("%s:$dmg$%d*%d*", name, headerver, header.kdf_salt_len);
+		print_hex(header.kdf_salt, header.kdf_salt_len);
+		printf("*%d*", header.len_wrapped_aes_key);
+		print_hex(header.wrapped_aes_key, header.len_wrapped_aes_key);
+		printf("*%d*", header.len_hmac_sha1_key);
+		print_hex(header.wrapped_hmac_sha1_key, header.len_hmac_sha1_key);
+		printf("*%u::::%s\n", header2.kdf_iteration_count, filename);
+	}
 	else {
+		char *name;
+
 		lseek(fd, 0, SEEK_SET);
 		if (read(fd, &header2, sizeof(cencrypted_v2_pwheader)) < 1) {
-			fprintf(stderr, "File %s is not a DMG file!\n", filename);
+			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
 		}
 		header2_byteorder_fix(&header2);
 
 		chunk_size = header2.blocksize;
 		lseek(fd, header2.dataoffset, SEEK_SET);
-		cno = ceil(header2.datasize / 4096.0) - 2;
-		chunk = (unsigned char *) malloc(header2.datasize);
-		data_size = header2.datasize - cno * 4096;
+		cno = ((header2.datasize + 4095ULL) / 4096) - 2;
+		data_size = header2.datasize - cno * 4096ULL;
 		if (data_size < 0) {
-			fprintf(stderr, "File %s is not a valid DMG file!\n", filename);
+			fprintf(stderr, "%s is not a valid DMG file!\n", filename);
 			return;
 		}
-		lseek(fd, header2.dataoffset, SEEK_SET);
-		read(fd, chunk, header2.datasize);
-	}
-	close(fd);
-	if (headerver == 1) {
-		printf("%s:$dmg$%d*%d*", filename, headerver, header.kdf_salt_len);
-		print_hex(header.kdf_salt, header.kdf_salt_len);
-		printf("*%d*", header.len_wrapped_aes_key);
-		print_hex(header.wrapped_aes_key, header.len_wrapped_aes_key);
-		printf("*%d*", header.len_hmac_sha1_key);
-		print_hex(header.wrapped_hmac_sha1_key, header.len_hmac_sha1_key);
-		printf("\n");
-	} else {
 		if (header2.kdf_salt_len > 32) {
-			fprintf(stderr, "File %s is not a valid DMG file, salt length is too long!\n", filename);
+			fprintf(stderr, "%s is not a valid DMG file, salt length is too long!\n", filename);
 			return;
 		}
-		printf("%s:$dmg$%d*%d*", filename, headerver, header2.kdf_salt_len);
+
+		if (!(name = basename(filename)))
+		    name = filename;
+
+		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
+		        "count %u\n", filename, headerver,
+		        header2.kdf_iteration_count);
+
+		printf("%s:$dmg$%d*%d*", name, headerver, header2.kdf_salt_len);
 		print_hex(header2.kdf_salt, header2.kdf_salt_len);
 		printf("*32*");
 		print_hex(header2.blob_enc_iv, 32);
 		printf("*%d*", header2.encrypted_keyblob_size);
 		print_hex(header2.encrypted_keyblob, header2.encrypted_keyblob_size);
-		printf("*%d*%d*", cno, data_size);
-		print_hex(chunk + cno * 4096, data_size);
+		printf("*%d*%d*", (int)cno, (int)data_size);
+		chunk1 = (unsigned char *) malloc(data_size);
+		chunk2 = (unsigned char *) malloc(4096);
+		lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET);
+		read(fd, chunk1, data_size);
+		print_hex(chunk1, data_size);
 		printf("*1*");
-		print_hex(chunk, 4096);
-		printf("\n");
+		lseek(fd, header2.dataoffset, SEEK_SET);
+		read(fd, chunk2, 4096);
+		print_hex(chunk2, 4096);
+		printf("*%u::::%s\n", header2.kdf_iteration_count, filename);
 	}
+	close(fd);
 }
 
 int dmg2john(int argc, char **argv)

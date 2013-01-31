@@ -65,12 +65,13 @@
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		24
-#define BINARY_ALIGN            1
+#define BINARY_ALIGN            ARCH_SIZE
 #define PARTIAL_BINARY_SIZE	8
-#define SALT_SIZE		8
-#define SALT_ALIGN              1
+#define BARE_SALT_SIZE		8
+#define SALT_SIZE		(0x80000 + BARE_SALT_SIZE)
+#define SALT_ALIGN              ARCH_SIZE
 #define CIPHERTEXT_LENGTH	48
-#define TOTAL_LENGTH		(10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
+#define TOTAL_LENGTH		(10 + 2 * 2 * BARE_SALT_SIZE + CIPHERTEXT_LENGTH)
 
 // these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	1
@@ -203,8 +204,9 @@ static void *get_binary(char *ciphertext)
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
 	for (i=0; i<BINARY_SIZE; i++) {
-		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+		int j = i < 16 ? i + 8 : i - 16;
+		binary[j] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary[j] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
 	}
 
 	return binary;
@@ -229,7 +231,6 @@ static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	DES_key_schedule ks;
 	int i;
 
 	if (!keys_prepared) {
@@ -250,13 +251,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		keys_prepared = 1;
 	}
 
+	{
+		DES_cblock (*lut)[0x100][0x100] = (void *)(challenge + BARE_SALT_SIZE);
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(i, ks) shared(count, output, saved_key, challenge)
+//#pragma omp parallel for default(none) private(i) shared(count, output, saved_key, lut)
 #endif
-	for(i=0; i<count; i++) {
-		/* Just do the first DES operation, for a partial binary */
-		setup_des_key(saved_key[i], &ks);
-		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&output[i], &ks, DES_ENCRYPT);
+		for(i = 0; i < count; i++)
+			memcpy(&output[i],
+			    (*lut)[saved_key[i][14]][saved_key[i][15]], 8);
 	}
 	return count;
 }
@@ -288,11 +290,11 @@ static int cmp_exact(char *source, int index)
 	   Concatenate output to for 24-byte NTLM response */
 
 	setup_des_key(saved_key[index], &ks);
-	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)binary, &ks, DES_ENCRYPT);
-	setup_des_key(&saved_key[index][7], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[8], &ks, DES_ENCRYPT);
-	setup_des_key(&saved_key[index][14], &ks);
+	setup_des_key(&saved_key[index][7], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
+	setup_des_key(&saved_key[index][14], &ks);
+	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)binary, &ks, DES_ENCRYPT);
 
 	return !memcmp(binary, get_binary(source), BINARY_SIZE);
 }
@@ -302,29 +304,44 @@ static void *get_salt(char *ciphertext)
 	static uchar *binary_salt;
 	int i;
 
-	if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+	if (!binary_salt) binary_salt = mem_alloc(SALT_SIZE);
 
 	if (ciphertext[25] == '$') {
 		// Server challenge
 		ciphertext += 9;
-		for (i = 0; i < SALT_SIZE; ++i)
+		for (i = 0; i < BARE_SALT_SIZE; ++i)
 			binary_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 	} else {
-		uchar es_salt[2*SALT_SIZE], k1[2*SALT_SIZE];
+		uchar es_salt[2*BARE_SALT_SIZE], k1[2*BARE_SALT_SIZE];
 		MD5_CTX ctx;
 
 		ciphertext += 9;
 		// Extended Session Security,
 		// Concatenate Server & Client challenges
-		for (i = 0;i < 2 * SALT_SIZE; ++i)
+		for (i = 0;i < 2 * BARE_SALT_SIZE; ++i)
 			es_salt[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])] << 4) + atoi16[ARCH_INDEX(ciphertext[i*2+1])];
 
 		// MD5 the concatenated challenges, result is our key
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, es_salt, 16);
 		MD5_Final((void*)k1, &ctx);
-		memcpy(binary_salt, k1, SALT_SIZE); // but only 8 bytes of it
+		memcpy(binary_salt, k1, BARE_SALT_SIZE); // but only 8 bytes of it
 	}
+
+	{
+		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
+		DES_key_schedule ks;
+		DES_cblock (*lut)[0x100][0x100] = (void *)(binary_salt + BARE_SALT_SIZE);
+		int i, j;
+
+		for (i = 0; i < 0x100; i++)
+		for (j = 0; j < 0x100; j++) {
+			key[0] = i; key[1] = j;
+			setup_des_key(key, &ks);
+			DES_ecb_encrypt((DES_cblock *)binary_salt, &(*lut)[i][j], &ks, DES_ENCRYPT);
+		}
+	}
+
 	return (void*)binary_salt;
 }
 

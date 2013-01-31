@@ -1,5 +1,6 @@
 /*
-* This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>
+* This software is Copyright (c) 2012-2013
+* Lukas Odzioba <ukasz at openwall.net> and Brian Wallace <brian.wallace9809 at gmail.com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -25,8 +26,13 @@
 #define Sigma1(x) ((ror(x,6))  ^ (ror(x,11)) ^ (ror(x,25)))
 #define sigma0(x) ((ror(x,7))  ^ (ror(x,18)) ^ (x>>3))
 #define sigma1(x) ((ror(x,17)) ^ (ror(x,19)) ^ (x>>10))
-# define SWAP32(n) \
+#define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
+
+#define R1(a, b, c, d, e, f, g, h, ac) \
+		h += Sigma1(e) + Ch(e,f,g) + ac; \
+		d += h;\
+		h += Sigma0(a) + Maj(a,b,c);
 
 typedef struct {
         uint8_t v[32];

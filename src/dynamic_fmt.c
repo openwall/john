@@ -389,9 +389,9 @@ static struct fmt_tests dynamic_tests[] = {
 __declspec(align(16)) unsigned char input_buf[BLOCK_LOOPS][64*MMX_COEF];
 __declspec(align(16)) unsigned char input_buf2[BLOCK_LOOPS][64*MMX_COEF];
 // the +1 is so we can directly dump sha1 crypts here. We need an extra buffer on the end, to hold the last buffer overwrite
-union {
-	__declspec(align(16)) ARCH_WORD_32 w[BINARY_SIZE*MMX_COEF/sizeof(ARCH_WORD_32)];
-	__declspec(align(16)) unsigned char c[BINARY_SIZE*MMX_COEF];
+__declspec(align(16)) union {
+	ARCH_WORD_32 w[BINARY_SIZE*MMX_COEF/sizeof(ARCH_WORD_32)];
+	unsigned char c[BINARY_SIZE*MMX_COEF];
 } crypt_key[BLOCK_LOOPS+1];
 __declspec(align(16)) unsigned char crypt_key2[BLOCK_LOOPS][BINARY_SIZE*MMX_COEF];
 // SHA keyspace
