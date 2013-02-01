@@ -234,12 +234,13 @@ static void insert_nonce(uint8_t * data)
 	}
 }
 
-char *tomac(unsigned char *p) {
+#ifdef WPAPSK_DEBUG
+static char *tomac(unsigned char *p) {
 	static char buf[48];
 	sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X", p[0], p[1], p[2], p[3], p[4], p[5]);
 	return buf;
 }
-char *hex(unsigned char *p, int len) {
+static char *hex(unsigned char *p, int len) {
 	static char buf[1024];
 	char *op=buf;
 	int i;
@@ -278,6 +279,7 @@ static void Debug_hccap() {
 	printf("keyver:   %d\n", hccap.keyver);
 	printf("keymic:   %s\n", hex(hccap.keymic, 16));
 }
+#endif
 
 static void set_salt(void *salt)
 {
