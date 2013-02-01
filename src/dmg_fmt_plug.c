@@ -459,8 +459,7 @@ static int hash_plugin_check_hash(const char *password)
 	unsigned char derived_key[32];
 	unsigned char hmacsha1_key_[20];
 	unsigned char aes_key_[32];
-	int cno = 0;
-	unsigned char *r;
+	//unsigned char *r;
 
 	if (cur_salt->headerver == 1) {
 		pbkdf2((const unsigned char*)password, strlen(password),
@@ -478,7 +477,7 @@ static int hash_plugin_check_hash(const char *password)
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
-		const char nulls[8] = { 0 };
+		const char nulls[16] = { 0 };
 
 		pbkdf2((const unsigned char*)password, strlen(password),
 		       cur_salt->salt, 20, cur_salt->iterations, derived_key, 32);
@@ -509,14 +508,14 @@ static int hash_plugin_check_hash(const char *password)
 		dump_strings(outbuf, cur_salt->data_size);
 #endif
 
-		/* 8 consecutive nulls */
-		if (_memmem(outbuf, cur_salt->data_size, (void*)nulls, 8)) {
+		/* 16 consecutive nulls */
+		if (_memmem(outbuf, cur_salt->data_size, (void*)nulls, 16)) {
 #ifdef DMG_DEBUG
 			fprintf(stderr, "NULLS found!\n");
 #endif
 			return 1;
 		}
-
+#if 0
 		/* </plist> is a pretty generic signature for Apple */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
@@ -554,8 +553,9 @@ static int hash_plugin_check_hash(const char *password)
 #endif
 			return 1;
 		}
-
 		if (cur_salt->scp == 1) {
+			int cno = 0;
+
 			HMAC_CTX_init(&hmacsha1_ctx);
 			HMAC_Init_ex(&hmacsha1_ctx, hmacsha1_key_, 20, EVP_sha1(), NULL);
 			HMAC_Update(&hmacsha1_ctx, (void *) &cno, 4);
@@ -570,12 +570,6 @@ static int hash_plugin_check_hash(const char *password)
 #ifdef DMG_DEBUG
 			dump_strings(outbuf, 4096);
 #endif
-			if (_memmem(outbuf, 4096, (void*)"Apple", 5)) {
-#ifdef DMG_DEBUG
-				fprintf(stderr, "Apple found!\n");
-#endif
-				return 1;
-			}
 			if (_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DMG_DEBUG
 				fprintf(stderr, "MS-DOS UDRW signature found!\n");
@@ -584,6 +578,7 @@ static int hash_plugin_check_hash(const char *password)
 			}
 
 		}
+#endif
 	}
 	return 0;
 }
@@ -658,8 +653,10 @@ struct fmt_main fmt_dmg = {
 		DEFAULT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		// FMT_CASE | FMT_8_BIT | FMT_OMP,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
+#if DMG_DEBUG
+		FMT_NOT_EXACT |
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		dmg_tests
 	}, {
 		init,
