@@ -164,11 +164,11 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 3000000000ULL;
 	char *tmp_value;
 
-	if (getenv("DETAILS")){
+	if (getenv("DETAILS")) {
 		show_details = 1;
 	}
 
-	if ((tmp_value = getenv("STEP"))){
+	if ((tmp_value = getenv("STEP"))) {
 		step = atoi(tmp_value);
 		show_speed = 1;
 	}
@@ -192,7 +192,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
 	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	global_work_size = 0;
 	opencl_get_user_preferences(CONFIG_NAME);
 
 	//Initialize openCL tuning (library) for this format.
@@ -221,7 +221,6 @@ static void init(struct fmt_main *self)
 	if (global_work_size)
 		create_clobj(global_work_size, self);
 	else
-		//user chose to die of boredom
 		find_best_gws(self, ocl_gpu_id);
 
 	self->params.min_keys_per_crypt = local_work_size;
