@@ -122,6 +122,9 @@ static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_key_length);
 #endif
 
+static ARCH_WORD_32 *bitmap;
+static int cmps_per_crypt, use_bitmap;
+
 static uchar (*crypt_key)[21]; // NT hash
 static uchar *challenge;
 static int keys_prepared;
@@ -153,6 +156,9 @@ static void init(struct fmt_main *self)
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	bitmap = mem_alloc_tiny(0x10000 / 8, 4);
+	use_bitmap = 0; /* we did not use bitmap yet */
+	cmps_per_crypt = 2; /* try bitmap */
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -284,17 +290,50 @@ out:
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i = 0;
 
 	if (!keys_prepared) {
+		int i;
+
+		if (use_bitmap) {
+#if 0
+/* too slow since max_keys_per_crypt is normally smaller */
+			memset(bitmap, 0, 0x10000 / 8);
+#else
+#ifdef MMX_COEF
+			for (i = 0; i < NBKEYS; i++)
+#else
+			for (i = 0; i < count; i++)
+#endif
+			{
+				unsigned int value =
+				    ((unsigned short *)crypt_key[i])[7];
+				bitmap[value >> 5] = 0;
+			}
+#endif
+		}
+
+		use_bitmap = cmps_per_crypt >= 2;
+		cmps_per_crypt = 0;
+
 #ifdef MMX_COEF
 #if defined(MD4_SSE_PARA)
 		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
 #else
 		mdfourmmx(nthash, saved_key, total_len);
 #endif
-		for (i = 0; i < NBKEYS; i++)
+		if (use_bitmap)
+		for (i = 0; i < NBKEYS; i++) {
 			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
+			{
+				unsigned int value =
+				    ((unsigned short *)crypt_key[i])[7];
+				bitmap[value >> 5] |= 1U << (value & 0x1f);
+			}
+		}
+		else
+		for (i = 0; i < NBKEYS; i++) {
+			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
+		}
 #else
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
 #ifdef _OPENMP
@@ -308,6 +347,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			MD4_Init( &ctx );
 			MD4_Update(&ctx, saved_key[i], saved_key_length[i]);
 			MD4_Final((uchar*)crypt_key[i], &ctx);
+			if (use_bitmap) {
+				unsigned int value =
+				    ((unsigned short *)crypt_key[i])[7];
+				bitmap[value >> 5] |= 1U << (value & 0x1f);
+			}
 		}
 #endif
 		keys_prepared = 1;
@@ -340,16 +384,27 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_all(void *binary, int count)
 {
+	unsigned int value = *(unsigned short *)binary;
 	int index;
+
+	cmps_per_crypt++;
+
+	if (use_bitmap && !(bitmap[value >> 5] & (1U << (value & 0x1f))))
+		goto out;
 
 #ifdef MMX_COEF
 	/* Let's give the optimizer a hint! */
-	for (index = 0; index < NBKEYS; index++) {
+	for (index = 0; index < NBKEYS; index += 2) {
 #else
-	for (index = 0; index < count; index++) {
+	for (index = 0; index < count; index += 2) {
 #endif
-		if (crypt_key[index][14] == ((uchar *)binary)[0] &&
-		    crypt_key[index][15] == ((uchar *)binary)[1])
+		unsigned int a = ((unsigned short *)crypt_key[index])[7];
+		unsigned int b = ((unsigned short *)crypt_key[index + 1])[7];
+#if 0
+		if (((a | b) & value) != value)
+			continue;
+#endif
+		if (a == value || b == value)
 			goto thorough;
 	}
 
