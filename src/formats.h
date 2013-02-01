@@ -159,7 +159,8 @@ struct fmt_methods {
  * and FMT_SPLIT_UNIFIES_CASE must be set. */
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
 
-/* Converts an ASCII ciphertext to binary, possibly using the salt */
+/* Converts an ASCII ciphertext to binary, possibly using the salt. In Jumbo,
+   it can return NULL for a late rejection not feasible in valid. */
 	void *(*binary)(char *ciphertext);
 
 /* Converts an ASCII salt to its internal representation */
