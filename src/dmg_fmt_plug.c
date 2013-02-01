@@ -459,7 +459,6 @@ static int hash_plugin_check_hash(const char *password)
 	unsigned char derived_key[32];
 	unsigned char hmacsha1_key_[20];
 	unsigned char aes_key_[32];
-	//unsigned char *r;
 
 	if (cur_salt->headerver == 1) {
 		pbkdf2((const unsigned char*)password, strlen(password),
@@ -477,6 +476,7 @@ static int hash_plugin_check_hash(const char *password)
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
+		unsigned char *r;
 		const char nulls[16] = { 0 };
 
 		pbkdf2((const unsigned char*)password, strlen(password),

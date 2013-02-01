@@ -555,7 +555,6 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 {
 	unsigned char hmacsha1_key_[20];
 	unsigned char aes_key_[32];
-	//unsigned char *r;
 
 	if (cur_salt->headerver == 1) {
 		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, 40, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, 48, derived_key) == 0)) {
@@ -571,6 +570,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		unsigned char iv[20];
 		HMAC_CTX hmacsha1_ctx;
 		int mdlen;
+		unsigned char *r;
 		const char nulls[16] = { 0 };
 
 		EVP_CIPHER_CTX_init(&ctx);
@@ -606,7 +606,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 #endif
 			return 1;
 		}
-#if 0
+
 		/* </plist> is a pretty generic signature for Apple */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
@@ -669,7 +669,6 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 			}
 
 		}
-#endif
 	}
 	return 0;
 }
