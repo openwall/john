@@ -156,7 +156,7 @@ static void init(struct fmt_main *self)
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	bitmap = mem_alloc_tiny(0x10000 / 8, 4);
+	bitmap = mem_calloc_tiny(0x10000 / 8, 4);
 	use_bitmap = 0; /* we did not use bitmap yet */
 	cmps_per_crypt = 2; /* try bitmap */
 }
@@ -437,7 +437,7 @@ static int cmp_exact(char *source, int index)
 		((ARCH_WORD_32*)crypt_key[index])[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
 #endif
 
-	/* Hash is NULL padded to 21-bytes (postponed until now) */
+	/* Hash is NULL padded to 21-bytes */
 	memset(&crypt_key[index][16], 0, 5);
 
 	/* Split into three 7-byte segments for use as DES keys
@@ -752,50 +752,17 @@ static char *get_key(int index)
 #endif
 }
 
-static int salt_hash(void *salt)
-{
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
-}
+static int salt_hash(void *salt) { return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1); }
 
-static int binary_hash_0(void *binary)
-{
-	return *(uchar *)binary & 0xF;
-}
+static int binary_hash_0(void *binary) { return *(uchar *)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(uchar *)binary & 0xFF; }
+static int binary_hash_2(void *binary) { return *(unsigned short *)binary & 0xFFF; }
+static int binary_hash_3(void *binary) { return *(unsigned short *)binary & 0xFFFF; }
 
-static int binary_hash_1(void *binary)
-{
-	return *(uchar *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(unsigned short *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(unsigned short *)binary & 0xFFFF;
-}
-
-static int get_hash_0(int index)
-{
-	return crypt_key[index][14] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_key[index][14] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return ((unsigned short *)&crypt_key[index])[7] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF;
-}
+static int get_hash_0(int index) { return crypt_key[index][14] & 0xF; }
+static int get_hash_1(int index) { return crypt_key[index][14] & 0xFF; }
+static int get_hash_2(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFF; }
+static int get_hash_3(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF; }
 
 struct fmt_main fmt_NETNTLM = {
 	{
