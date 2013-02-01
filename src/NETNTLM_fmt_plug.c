@@ -161,6 +161,9 @@ static void init(struct fmt_main *self)
 	cmps_per_crypt = 2; /* try bitmap */
 }
 
+static void *get_salt(char *ciphertext);
+static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks);
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *pos;
@@ -174,12 +177,35 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (pos = &ciphertext[9]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos != '$') return 0;
 
-	for (pos++;atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos++; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (!*pos && ((pos - ciphertext - 26 == CIPHERTEXT_LENGTH) ||
-	              (pos - ciphertext - 42 == CIPHERTEXT_LENGTH)))
-		return 1;
-	else
-		return 0;
+	              (pos - ciphertext - 42 == CIPHERTEXT_LENGTH))) {
+		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
+		DES_key_schedule ks;
+		DES_cblock b3cmp;
+		uchar binary[8];
+		DES_cblock *challenge = get_salt(ciphertext);
+		int i, j;
+
+		ciphertext = strrchr(ciphertext, '$') + 1 + 2 * 8 * 2;
+		for (i = 0; i < 8; i++) {
+			binary[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] << 4;
+			binary[i] |= atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
+		}
+
+		for (i = 0; i < 0x100; i++)
+		for (j = 0; j < 0x100; j++) {
+			key[0] = i; key[1] = j;
+			setup_des_key(key, &ks);
+			DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
+			if (!memcmp(binary, &b3cmp, 8))
+				return 1;
+		}
+#ifdef DEBUG
+		fprintf(stderr, "Rejected NetNTLM hash with invalid 3rd block\n");
+#endif
+	}
+	return 0;
 }
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
@@ -224,7 +250,7 @@ static char *split(char *ciphertext, int index)
 	static char out[TOTAL_LENGTH + 1];
 
 	memset(out, 0, TOTAL_LENGTH + 1);
-	memcpy(&out, ciphertext, TOTAL_LENGTH);
+	memcpy(out, ciphertext, TOTAL_LENGTH);
 	strlwr(&out[8]); /* Exclude: $NETNTLM$ */
 
 	return out;
@@ -245,8 +271,6 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 
 	DES_set_key(&key, ks);
 }
-
-static void *get_salt(char *ciphertext);
 
 static void *get_binary(char *ciphertext)
 {
@@ -278,8 +302,7 @@ static void *get_binary(char *ciphertext)
 			}
 		}
 
-/* XXX: we should be detecting & rejecting these in valid() */
-		fprintf(stderr, "Saw NetNTLM hash with invalid 3rd block\n");
+		fprintf(stderr, "Bug: NetNTLM hash with invalid 3rd block, should have been rejected in valid()\n");
 		binary[0] = binary[1] = 0x55;
 	}
 
@@ -287,7 +310,7 @@ out:
 	return binary;
 }
 
-static void crypt_all(count)
+static void crypt_all(int count)
 {
 	if (!keys_prepared) {
 		int i;
