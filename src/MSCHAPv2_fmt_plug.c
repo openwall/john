@@ -235,10 +235,46 @@ static int valid_short(char *ciphertext)
 	return 1;
 }
 
+static void *get_salt(char *ciphertext);
+static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks);
+
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	return	valid_short(ciphertext) ||
-		valid_long(ciphertext);
+	char *cp = NULL;
+
+	if (valid_short(ciphertext))
+		cp = ciphertext + 10 + CHALLENGE_LENGTH / 4 + 1;
+	else if (valid_long(ciphertext))
+		cp = ciphertext + 10 + CHALLENGE_LENGTH / 2 + 1;
+
+	if (cp) {
+		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
+		DES_key_schedule ks;
+		DES_cblock b3cmp;
+		uchar binary[8];
+		DES_cblock *challenge = get_salt(ciphertext);
+		int i, j;
+
+		cp += 2 * 8 * 2;
+
+		for (i = 0; i < 8; i++) {
+			binary[i] = atoi16[ARCH_INDEX(cp[i * 2])] << 4;
+			binary[i] |= atoi16[ARCH_INDEX(cp[i * 2 + 1])];
+		}
+
+		for (i = 0; i < 0x100; i++)
+		for (j = 0; j < 0x100; j++) {
+			key[0] = i; key[1] = j;
+			setup_des_key(key, &ks);
+			DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
+			if (!memcmp(binary, &b3cmp, 8))
+				return 1;
+		}
+#ifdef DEBUG
+		fprintf(stderr, "Rejected MSCHAPv2 hash with invalid 3rd block\n");
+#endif
+	}
+	return 0;
 }
 
 static char *prepare_long(char *split_fields[10])
@@ -300,10 +336,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char *out;
+	static char out[TOTAL_LENGTH + 1];
 	int i, j = 0;
-
-	if (!out) out = mem_alloc_tiny(TOTAL_LENGTH + 1, MEM_ALIGN_WORD);
 
 	memset(out, 0, TOTAL_LENGTH + 1);
 	memcpy(out, ciphertext, strlen(ciphertext));
@@ -319,7 +353,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	return out;
 }
 
-static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
+static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 {
 	DES_cblock key;
 
@@ -335,15 +369,13 @@ static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
 	DES_set_key(&key, ks);
 }
 
-static void *get_salt(char *ciphertext);
-
 static void *get_binary(char *ciphertext)
 {
 	static uchar *binary;
 	DES_cblock *challenge = get_salt(ciphertext);
 	int i, j;
 
-	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
 
 	if (valid_short(ciphertext))
 		ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
@@ -370,9 +402,7 @@ static void *get_binary(char *ciphertext)
 				goto out;
 			}
 		}
-
-/* XXX: we should be detecting & rejecting these in valid() */
-		fprintf(stderr, "Saw MSCHAPv2 hash with invalid 3rd block\n");
+		fprintf(stderr, "Bug: MSCHAPv2 hash with invalid 3rd block, should have been rejected in valid()\n");
 		binary[0] = binary[1] = 0x55;
 	}
 
