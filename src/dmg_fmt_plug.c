@@ -515,7 +515,7 @@ static int hash_plugin_check_hash(const char *password)
 #endif
 			return 1;
 		}
-#if 0
+
 		/* </plist> is a pretty generic signature for Apple */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
@@ -578,7 +578,6 @@ static int hash_plugin_check_hash(const char *password)
 			}
 
 		}
-#endif
 	}
 	return 0;
 }
