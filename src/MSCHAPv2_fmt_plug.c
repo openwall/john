@@ -129,7 +129,6 @@ static int (*saved_key_length);
 
 static ARCH_WORD_32 *bitmap;
 static int cmps_per_crypt, use_bitmap;
-static int valid_i, valid_j;
 
 static uchar (*crypt_key)[21]; // NT hash
 static uchar *challenge;
@@ -241,43 +240,8 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks);
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	char *cp = NULL;
-
-	if (valid_short(ciphertext))
-		cp = ciphertext + 10 + CHALLENGE_LENGTH / 4 + 1;
-	else if (valid_long(ciphertext))
-		cp = ciphertext + 10 + CHALLENGE_LENGTH / 2 + 1;
-
-	if (cp) {
-		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
-		DES_key_schedule ks;
-		DES_cblock b3cmp;
-		uchar binary[8];
-		DES_cblock *challenge = get_salt(ciphertext);
-		int i, j;
-
-		cp += 2 * 8 * 2;
-
-		for (i = 0; i < 8; i++) {
-			binary[i] = atoi16[ARCH_INDEX(cp[i * 2])] << 4;
-			binary[i] |= atoi16[ARCH_INDEX(cp[i * 2 + 1])];
-		}
-
-		for (i = 0; i < 0x100; i++)
-		for (j = 0; j < 0x100; j++) {
-			key[0] = i; key[1] = j;
-			setup_des_key(key, &ks);
-			DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
-			if (!memcmp(binary, &b3cmp, 8)) {
-				valid_i = i;
-				valid_j = j;
-				return 1;
-			}
-		}
-#ifdef DEBUG
-		fprintf(stderr, "Rejected MSCHAPv2 hash with invalid 3rd block\n");
-#endif
-	}
+	if (valid_short(ciphertext) || valid_long(ciphertext))
+		return 1;
 	return 0;
 }
 
@@ -396,14 +360,6 @@ static void *get_binary(char *ciphertext)
 		DES_key_schedule ks;
 		DES_cblock b3cmp;
 
-		key[0] = valid_i; key[1] = valid_j;
-		setup_des_key(key, &ks);
-		DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
-		if (!memcmp(&binary[2 + 8 * 2], &b3cmp, 8)) {
-			binary[0] = valid_i; binary[1] = valid_j;
-			goto out;
-		}
-
 		for (i = 0; i < 0x100; i++)
 		for (j = 0; j < 0x100; j++) {
 			key[0] = i; key[1] = j;
@@ -414,8 +370,8 @@ static void *get_binary(char *ciphertext)
 				goto out;
 			}
 		}
-		fprintf(stderr, "Bug: MSCHAPv2 hash with invalid 3rd block, should have been rejected in valid()\n");
-		binary[0] = binary[1] = 0x55;
+		/* Use new late-reject feature in Jumbo core */
+		return NULL;
 	}
 
 out:
