@@ -75,33 +75,16 @@ static struct fmt_tests tests[] = {
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size(){
-	size_t max_available;
 
-	if (_USE_LOCAL_SOURCE)
-		max_available = get_local_memory_size(ocl_gpu_id) /
-				(sizeof(sha256_ctx) + sizeof(sha256_buffers) + 1);
-	else
-		max_available = get_max_work_group_size(ocl_gpu_id);
-
-	if (max_available > get_current_work_group_size(ocl_gpu_id, main_kernel[ocl_gpu_id]))
-		return get_current_work_group_size(ocl_gpu_id, main_kernel[ocl_gpu_id]);
-
-	return max_available;
+	return common_get_task_max_work_group_size(_USE_LOCAL_SOURCE,
+		(sizeof(sha256_ctx) + sizeof(sha256_buffers) + 1),
+		main_kernel[ocl_gpu_id]);
 }
 
 static size_t get_task_max_size(){
-	size_t max_available, multiplier = 3;
-	max_available = get_max_compute_units(ocl_gpu_id);
 
-	if amd_gcn(device_info[ocl_gpu_id])
-		multiplier = 10;
-
-	if (cpu(device_info[ocl_gpu_id]))
-		return max_available * KEYS_PER_CORE_CPU;
-
-	else
-		return max_available * multiplier *
-				get_current_work_group_size(ocl_gpu_id, main_kernel[ocl_gpu_id]);
+	return common_get_task_max_size((amd_gcn(device_info[ocl_gpu_id]) ? 10 : 4),
+		KEYS_PER_CORE_CPU, KEYS_PER_CORE_GPU, main_kernel[ocl_gpu_id]);
 }
 
 static size_t get_default_workgroup(){
@@ -280,17 +263,9 @@ static void set_salt(void * salt_info) {
 	salt = salt_info;
 }
 
-// Public domain hash function by DJ Bernstein
-// We are hashing almost the entire struct
 static int salt_hash(void * salt) {
-	unsigned char *s = salt;
-	unsigned int hash = 5381;
-	unsigned int i;
 
-	for (i = 0; i < SALT_SIZE; i++)
-		hash = ((hash << 5) + hash) ^ s[i];
-
-	return hash & (SALT_HASH_SIZE - 1);
+	return common_salt_hash(salt, SALT_SIZE, SALT_HASH_SIZE);
 }
 
 /* ------- Key functions ------- */
@@ -321,19 +296,18 @@ static char * get_key(int index) {
   for the workgroup
   Work-items that make up a work-group (also referred to
   as the size of the work-group)
+
+  For formats using __local
   LWS should never be a big number since every work-item
   uses about 400 bytes of local memory. Local memory
-  is usually 32 KB
+  is usually 32 KB.
 -- */
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
-	size_t max_group_size;
-
-	max_group_size = get_task_max_work_group_size();
-
 	//Call the default function.
-	opencl_find_best_lws(
-			max_group_size, sequential_id, main_kernel[sequential_id]);
+	common_find_best_lws(
+		get_task_max_work_group_size(), sequential_id, main_kernel[sequential_id]
+	);
 }
 
 /* --
@@ -342,24 +316,11 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 -- */
 static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
-	int step = STEP;
-	int show_speed = 0, show_details = 0;
-	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 2000000000ULL : 7000000000ULL;
-	char *tmp_value;
-
-	if (getenv("DETAILS")){
-		show_details = 1;
-	}
-
-	if ((tmp_value = getenv("STEP"))){
-		step = atoi(tmp_value);
-		show_speed = 1;
-	}
-	step = GET_MULTIPLE(step, local_work_size);
-
-	//Call the default function.
-	opencl_find_best_gws(
-		step, show_speed, show_details, max_run_time, sequential_id, ROUNDS_DEFAULT);
+	//Call the common function.
+	common_find_best_gws(
+		sequential_id, ROUNDS_DEFAULT, STEP,
+		(cpu(device_info[ocl_gpu_id]) ? 2000000000ULL : 7000000000ULL)
+	);
 
 	create_clobj(global_work_size, self);
 }

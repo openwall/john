@@ -36,7 +36,7 @@
 
 #define HASH_LOOPS              (7*3*2)
 #define KEYS_PER_CORE_CPU       128
-#define KEYS_PER_CORE_GPU       512
+#define KEYS_PER_CORE_GPU       1
 
 //Data types.
 typedef union {

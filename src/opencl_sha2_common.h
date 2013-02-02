@@ -41,4 +41,34 @@
 #endif
 #endif
 
+#ifndef _OPENCL_COMPILER
+/* Can be used to select a 'good' default gws size */
+size_t common_get_task_max_size(int multiplier, int keys_per_core_cpu,
+	int keys_per_core_gpu, cl_kernel crypt_kernel);
+
+/* Can be used to select a 'good' default lws size */
+size_t common_get_task_max_work_group_size(int use_local_memory,
+	int local_memory_size, cl_kernel crypt_kernel);
+
+/* --
+ * Public domain hash function by DJ Bernstein
+ * We are hashing almost the entire struct
+-- */
+int common_salt_hash(void * salt, int salt_size, int salt_hash_size);
+
+/* --
+  This function could be used to calculated the best num
+  of keys per crypt for the given format
+-- */
+void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
+	unsigned long long int max_run_time);
+
+/* --
+  This function could be used to calculated the best local
+  group size for the given format
+-- */
+void common_find_best_lws(size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel);
+#endif
+
 #endif	/* OPENCL_SHA2_COMMON_H */
