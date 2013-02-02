@@ -87,11 +87,11 @@ void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	int show_speed = 0, show_details = 0;
 	char *tmp_value;
 
-	if (getenv("DETAILS")){
+	if (getenv("DETAILS")) {
 		show_details = 1;
 	}
 
-	if ((tmp_value = getenv("STEP"))){
+	if ((tmp_value = getenv("STEP"))) {
 		step = atoi(tmp_value);
 		show_speed = 1;
 	}

@@ -1017,8 +1017,10 @@ void opencl_find_best_gws(
 	if (duration_time)
 		max_run_time = duration_time;
 
-	fprintf(stderr, "Calculating best global worksize (GWS) for LWS=%zd and max. %2.1f s duration.\n\n",
-		local_work_size, (float) max_run_time / 1000000000.);
+	if (show_details)
+		fprintf(stderr, "Calculating best global worksize (GWS) for "
+			"LWS=%zd and max. %2.1f s duration.\n\n",
+			local_work_size, (float) max_run_time / 1000000000.);
 
 	if (show_speed)
 		fprintf(stderr, "Raw speed figures including buffer transfers:\n");
@@ -1060,15 +1062,15 @@ void opencl_find_best_gws(
 				fprintf(stderr, "gws: %9zu\t%10lu c/s %8.3f ms per crypt_all()",
 					num, (long) (num / (run_time / 1000000000.)),
 					(float) run_time / 1000000.);
-
-			if (run_time > max_run_time) {
-				fprintf(stderr, " - too slow\n");
-				break;
-			}
-		} else {
-			if (run_time > min_time * 10 || run_time > max_run_time)
-				break;
 		}
+
+		if (run_time > max_run_time) {
+
+			if (show_speed)
+				fprintf(stderr, " - too slow\n");
+			break;
+		}
+
 		if (speed > (1.01 * best_speed)) {
 			if (show_speed)
 				fprintf(stderr, "+");
@@ -1090,10 +1092,13 @@ void opencl_find_best_gws(
 	strcat(config_string, config_name);
 	strcat(config_string, GWS_CONFIG_NAME);
 
-	fprintf(stderr, "Optimal global worksize %zd\n", global_work_size);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
-		SUBSECTION_OPENCL "])\n", config_string, global_work_size);
+	if (show_details) {
+		fprintf(stderr, "Optimal global worksize %zd\n",
+		        global_work_size);
+		fprintf(stderr, "(to avoid this test on next run, put \""
+		        "%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+		        SUBSECTION_OPENCL "])\n", config_string, global_work_size);
+	}
 }
 
 static void opencl_get_dev_info(unsigned int sequential_id)

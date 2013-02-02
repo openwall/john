@@ -532,7 +532,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	for (index = 0; index < count; index++) {
 		piece = format->methods.split(ciphertext, index, format);
 
-		binary = format->methods.binary(piece);
+		if (!(binary = format->methods.binary(piece)))
+			return; /* Late reject */
+
 		pw_hash = db->password_hash_func(binary);
 
 		if (!(db->options->flags & DB_WORDS) && !skip_dupe_checking) {
@@ -676,7 +678,8 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	if (format->methods.valid(ciphertext, format) != 1) return;
 
 	ciphertext = format->methods.split(ciphertext, 0, format);
-	binary = format->methods.binary(ciphertext);
+	if (!(binary = format->methods.binary(ciphertext)))
+		return; /* Late reject */
 	hash = db->password_hash_func(binary);
 
 	if ((current = db->password_hash[hash]))
@@ -745,6 +748,138 @@ static void ldr_init_salts(struct db_main *db)
 			tail = &current->next;
 		} while ((current = current->next));
 	}
+}
+
+/* #define DEBUG_SALT_SORT */
+
+/*
+ * this will be the salt_compare() method we stick into
+ * wpapsk_fmt.c (and cuda/opencl)
+ */
+int salt_compare(const void *x, const void *y)
+{
+	/* this is all that is needed in wpapsk salt_compare() */
+	return strncmp((const char*)x, (const char*)y, 36);
+}
+
+/*
+ * This was done as a structure to allow more data to be
+ * placed into it, beyond just the simple pointer. The
+ * pointer is really all that is needed.  However, when
+ * building with the structure containing just a pointer,
+ * we get no (or very little) degredation over just an
+ * array of pointers.  The compiler treats them the same.
+ * so for ease of debugging, I have left this as a simple
+ * structure
+ */
+typedef struct salt_cmp_s
+{
+	struct db_salt *p;
+#ifdef DEBUG_SALT_SORT
+	/* used by JimF in debugging.  Left in for now */
+	int org_idx;
+	char str[36];
+#endif
+} salt_cmp_t;
+
+/*
+ * there is no way to pass this pointer to the sort function, so
+ * we set it before calling sort. Right now, we do not use it,
+ * but later we will use salt_sort_db->format->methods.salt_compare()
+ * we actually could just harvest off the function pointer to the
+ * salt_compare function, instead (TBD), instead of the db_main*
+ */
+static struct db_main *salt_sort_db;
+
+/*
+ * This helper function will stay in loader.  It is what the qsort
+ * function calls.  This function is smart enough to know how to
+ * parse a salt_cmp_t. It does that, to find the real salt values,
+ * and then calls the formats salt_compare passing in just the salts.
+ * It is an extra layer of indirection, but keeps the function from
+ * having to know about our structure, or the db_salt structure. There
+ * is very little additional overhead, in this 2nd layer of indirection
+ * since qsort is pretty quick, and does not call compare any more than
+ * is needed to partition sort the data.
+ */
+static int ldr_salt_cmp(const void *x, const void *y) {
+	salt_cmp_t *X = (salt_cmp_t *)x;
+	salt_cmp_t *Y = (salt_cmp_t *)y;
+	int cmp = salt_compare(X->p->salt, Y->p->salt);
+	return cmp;
+}
+
+/*
+ * If there are more than 1 salt, AND the format exports a salt_compare
+ * function, then we reorder the salt array, into the order the format
+ * wants them in.  Reasons for this, are usually that the format can
+ * gain a lot of speed, if some of the salts are grouped together, so
+ * that the group is run one after the other.  This was first done for
+ * the WPAPSK format, so that the format could group all ESSID's in
+ * the salts, so that the PBKDF2 is computed once (for the first
+ * instance of the ESSID), then all of the other salts which are
+ * different salts, but  * which have the exact same ESSID will not
+ * have to perform the very costly PBKDF2.  The format is designed
+ * to work that way, IFF the salts come to it in the right order.
+ * This function gets them into that order
+ */
+static void ldr_sort_salts(struct db_main *db)
+{
+	int i;
+	struct db_salt *s;
+#ifndef DEBUG_SALT_SORT
+	salt_cmp_t *ar;
+#else
+	salt_cmp_t ar[100];  /* array is easier to debug in VC */
+#endif
+	/*
+	 * NOTE, later we will use a new format method (salt_compare) to
+	 * determine when to do this sorting.  For now, we will compute
+	 * when (based on format name), and we have the salt_compare()
+	 * in this file, so that we can utilize this functionality prior
+	 * to getting this method out to every format.
+	 */
+	if (db->salt_count < 2 ||
+		strncmp(db->format->params.label, "wpapsk", 6))
+		return;
+
+	salt_sort_db = db;
+#ifndef DEBUG_SALT_SORT
+	ar = (salt_cmp_t *)mem_alloc(sizeof(salt_cmp_t)*db->salt_count);
+#endif
+	s = db->salts;
+
+	/* load our array of pointers. */
+	for (i = 0; i < db->salt_count; ++i) {
+		ar[i].p = s;
+#ifdef DEBUG_SALT_SORT
+		ar[i].org_idx = i;
+		strncpy(ar[i].str, (char*)s->salt, 36);
+		ar[i].str[35] = 0; /*just in case*/
+#endif
+		s = s->next;
+	}
+
+	/* now we sort this array of pointers. */
+	qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
+
+	/* finally, we re-build the linked list of salts */
+	db->salts = ar[0].p;
+	s = db->salts;
+	for (i = 1; i < db->salt_count; ++i) {
+		s->next = ar[i].p;
+		s = s->next;
+	}
+	s->next = 0;
+
+#ifndef DEBUG_SALT_SORT
+	MEM_FREE(ar);
+#else
+	/* setting s here, allows me to debug quick-watch s=s->next
+	 * over and over again while watching the char* value of s->salt
+	 */
+	s = db->salts;
+#endif
 }
 
 /*
@@ -931,6 +1066,7 @@ void ldr_fix_database(struct db_main *db)
 
 	ldr_filter_salts(db);
 	ldr_remove_marked(db);
+	ldr_sort_salts(db);
 
 	ldr_init_hash(db);
 

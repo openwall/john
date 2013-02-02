@@ -241,6 +241,53 @@ static void insert_nonce(uint8_t * data)
 	}
 }
 
+#ifdef WPAPSK_DEBUG
+static char *tomac(unsigned char *p) {
+	static char buf[48];
+	sprintf(buf, "%02X:%02X:%02X:%02X:%02X:%02X", p[0], p[1], p[2], p[3], p[4], p[5]);
+	return buf;
+}
+static char *hex(unsigned char *p, int len) {
+	static char buf[1024];
+	char *op=buf;
+	int i;
+	if (len > 32) {
+		do {
+			for (i = 0; i < 32; ++i) {
+				op += sprintf (op, "%02X", p[i]);
+				if (i<31&&i%4==3)
+					op += sprintf (op, " ");
+				if (i==15)
+					op += sprintf (op, ": ");
+			}
+			len -= 32;
+			p += 32;
+			op += sprintf (op, "\n          ");
+		} while (len > 32);
+	}
+	for (i = 0; i < len; ++i) {
+		op += sprintf (op, "%02X", p[i]);
+		if (i<31&&i%4==3)
+			op += sprintf (op, " ");
+		if (i==15)
+			op += sprintf (op, ": ");
+	}
+	return buf;
+}
+
+static void Debug_hccap() {
+	printf("essid:    %s\n", hccap.essid);
+	printf("mac1:     %s\n", tomac(hccap.mac1));
+	printf("mac2:     %s\n", tomac(hccap.mac2));
+	printf("nonce1:   %s\n", hex(hccap.nonce1, 32));
+	printf("nonce2:   %s\n", hex(hccap.nonce2, 32));
+	printf("eapol:    %s\n", hex(hccap.eapol, 256));
+	printf("epol_sz:  %d (0x%02X)\n", hccap.eapol_size, hccap.eapol_size);
+	printf("keyver:   %d\n", hccap.keyver);
+	printf("keymic:   %s\n", hex(hccap.keymic, 16));
+}
+#endif
+
 static void set_salt(void *salt)
 {
 	memcpy(&hccap, salt, SALT_SIZE);
@@ -261,6 +308,7 @@ static void set_salt(void *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE, 0, sizeof(wpapsk_salt), &currentsalt, 0, NULL, NULL), "Copy setting to gpu");
 #endif
+	//Debug_hccap();
 }
 
 #undef set_key

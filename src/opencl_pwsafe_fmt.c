@@ -170,7 +170,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	//Call the common function.
 	common_find_best_gws(
 		sequential_id, ROUNDS_DEFAULT, 0,
-		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 3000000000ULL)
+		(cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 2400000000ULL)
 	);
 
 	create_clobj(global_work_size, self);

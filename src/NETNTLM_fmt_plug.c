@@ -156,10 +156,13 @@ static void init(struct fmt_main *self)
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	bitmap = mem_alloc_tiny(0x10000 / 8, 4);
+	bitmap = mem_calloc_tiny(0x10000 / 8, 4);
 	use_bitmap = 0; /* we did not use bitmap yet */
 	cmps_per_crypt = 2; /* try bitmap */
 }
+
+static void *get_salt(char *ciphertext);
+static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks);
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
@@ -174,12 +177,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (pos = &ciphertext[9]; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos != '$') return 0;
 
-	for (pos++;atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos++; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (!*pos && ((pos - ciphertext - 26 == CIPHERTEXT_LENGTH) ||
 	              (pos - ciphertext - 42 == CIPHERTEXT_LENGTH)))
 		return 1;
-	else
-		return 0;
+	return 0;
 }
 
 static char *prepare(char *split_fields[10], struct fmt_main *self)
@@ -224,7 +226,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	static char out[TOTAL_LENGTH + 1];
 
 	memset(out, 0, TOTAL_LENGTH + 1);
-	memcpy(&out, ciphertext, TOTAL_LENGTH);
+	memcpy(out, ciphertext, TOTAL_LENGTH);
 	strlwr(&out[8]); /* Exclude: $NETNTLM$ */
 
 	return out;
@@ -245,8 +247,6 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 
 	DES_set_key(&key, ks);
 }
-
-static void *get_salt(char *ciphertext);
 
 static void *get_binary(char *ciphertext)
 {
@@ -277,10 +277,8 @@ static void *get_binary(char *ciphertext)
 				goto out;
 			}
 		}
-
-/* XXX: we should be detecting & rejecting these in valid() */
-		fprintf(stderr, "Saw NetNTLM hash with invalid 3rd block\n");
-		binary[0] = binary[1] = 0x55;
+		/* Use new late-reject feature in Jumbo core */
+		return NULL;
 	}
 
 out:
@@ -437,7 +435,7 @@ static int cmp_exact(char *source, int index)
 		((ARCH_WORD_32*)crypt_key[index])[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
 #endif
 
-	/* Hash is NULL padded to 21-bytes (postponed until now) */
+	/* Hash is NULL padded to 21-bytes */
 	memset(&crypt_key[index][16], 0, 5);
 
 	/* Split into three 7-byte segments for use as DES keys
@@ -752,50 +750,17 @@ static char *get_key(int index)
 #endif
 }
 
-static int salt_hash(void *salt)
-{
-	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
-}
+static int salt_hash(void *salt) { return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1); }
 
-static int binary_hash_0(void *binary)
-{
-	return *(uchar *)binary & 0xF;
-}
+static int binary_hash_0(void *binary) { return *(uchar *)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(uchar *)binary & 0xFF; }
+static int binary_hash_2(void *binary) { return *(unsigned short *)binary & 0xFFF; }
+static int binary_hash_3(void *binary) { return *(unsigned short *)binary & 0xFFFF; }
 
-static int binary_hash_1(void *binary)
-{
-	return *(uchar *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(unsigned short *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(unsigned short *)binary & 0xFFFF;
-}
-
-static int get_hash_0(int index)
-{
-	return crypt_key[index][14] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return crypt_key[index][14] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return ((unsigned short *)&crypt_key[index])[7] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF;
-}
+static int get_hash_0(int index) { return crypt_key[index][14] & 0xF; }
+static int get_hash_1(int index) { return crypt_key[index][14] & 0xFF; }
+static int get_hash_2(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFF; }
+static int get_hash_3(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF; }
 
 struct fmt_main fmt_NETNTLM = {
 	{
