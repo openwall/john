@@ -407,7 +407,7 @@ static int cmp_one(void *binary, int index)
 		setup_des_key(crypt_key[index], &ks);
 		DES_ecb_encrypt((DES_cblock *)challenge, &computed_binary, &ks, DES_ENCRYPT);
 
-		return !memcmp(binary + 2, computed_binary, 8);
+		return !memcmp(((char*)binary) + 2, computed_binary, 8);
 	}
 
 	return 0;
@@ -481,7 +481,7 @@ static int cmp_exact(char *source, int index)
 	setup_des_key(&crypt_key[index][14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
 
-	return !memcmp(binary, get_binary(source) + 2, FULL_BINARY_SIZE - 2);
+	return !memcmp(binary, ((char*)get_binary(source)) + 2, FULL_BINARY_SIZE - 2);
 }
 
 static void *get_salt(char *ciphertext)
