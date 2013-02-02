@@ -1068,7 +1068,7 @@ void opencl_find_best_gws(
 				break;
 			}
 		} else {
-			if (run_time > min_time * 10 || run_time > max_run_time)
+			if (run_time > max_run_time)
 				break;
 		}
 		if (speed > (1.01 * best_speed)) {
