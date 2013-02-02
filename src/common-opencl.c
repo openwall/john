@@ -37,8 +37,8 @@ extern volatile int bench_running;
 static void opencl_get_dev_info(unsigned int sequential_id);
 
 //Used by auto-tuning to decide how GWS should changed between trials.
-extern int get_next_gws_size(size_t num, int step, int startup,
-                             int default_value);
+extern int common_get_next_gws_size(size_t num, int step, int startup,
+	int default_value);
 
 //Settings to use for auto-tuning.
 static int buffer_size;
@@ -870,7 +870,8 @@ void opencl_init_auto_setup(
 }
 
 void opencl_find_best_lws(
-	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel)
+	int show_details, size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t gws;
 	cl_int ret_code;
@@ -880,7 +881,8 @@ void opencl_find_best_lws(
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	char config_string[128];
 
-	fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
+	if (show_details)
+		fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -997,10 +999,12 @@ void opencl_find_best_lws(
 	strcat(config_string, config_name);
 	strcat(config_string, LWS_CONFIG_NAME);
 
-	fprintf(stderr, "Optimal local worksize %zd\n", local_work_size);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
-		SUBSECTION_OPENCL "])\n", config_string, local_work_size);
+	if (show_details) {
+		fprintf(stderr, "Optimal local worksize %zd\n", local_work_size);
+		fprintf(stderr, "(to avoid this test on next run, put \""
+			"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+			SUBSECTION_OPENCL "])\n", config_string, local_work_size);
+	}
 }
 
 void opencl_find_best_gws(
@@ -1019,8 +1023,8 @@ void opencl_find_best_gws(
 
 	if (show_details)
 		fprintf(stderr, "Calculating best global worksize (GWS) for "
-		        "LWS=%zd and max. %llu s duration.\n\n",
-		        local_work_size, max_run_time / 1000000000ULL);
+			"LWS=%zd and max. %2.1f s duration.\n\n",
+			local_work_size, (float) max_run_time / 1000000000.);
 
 	if (show_speed)
 		fprintf(stderr, "Raw speed figures including buffer transfers:\n");
@@ -1034,8 +1038,8 @@ void opencl_find_best_gws(
 		CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
 
-	for (num = get_next_gws_size(num, step, 1, default_value);;
-		num = get_next_gws_size(num, step, 0, default_value)) {
+	for (num = common_get_next_gws_size(num, step, 1, default_value);;
+		num = common_get_next_gws_size(num, step, 0, default_value)) {
 
 		//Check if hardware can handle the size we are going to try now.
 		if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
@@ -1062,15 +1066,15 @@ void opencl_find_best_gws(
 				fprintf(stderr, "gws: %9zu\t%10lu c/s %8.3f ms per crypt_all()",
 					num, (long) (num / (run_time / 1000000000.)),
 					(float) run_time / 1000000.);
-
-			if (run_time > max_run_time) {
-				fprintf(stderr, " - too slow\n");
-				break;
-			}
-		} else {
-			if (run_time > max_run_time)
-				break;
 		}
+
+		if (run_time > max_run_time) {
+
+			if (show_speed)
+				fprintf(stderr, " - too slow\n");
+			break;
+		}
+
 		if (speed > (1.01 * best_speed)) {
 			if (show_speed)
 				fprintf(stderr, "+");
@@ -1211,7 +1215,7 @@ void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id,
 
 	kernel_loaded = 0;
 
-	if ((!gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
+	if ((!cpu(device_info[sequential_id]) && !gpu_amd(device_info[sequential_id]) && !platform_apple(platform_id)) || !save || stat(path_expand(kernel_filename), &source_stat))
 		opencl_build_kernel_opt(kernel_filename, sequential_id, options);
 
 	else {

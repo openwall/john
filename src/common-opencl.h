@@ -75,6 +75,7 @@ cl_event multi_profilingEvent[EVENTS];
 #define LWS_CONFIG_NAME			"_LWS"
 #define GWS_CONFIG_NAME			"_GWS"
 #define DUR_CONFIG_NAME			"_MaxDuration"
+#define FALSE				0
 
 int device_info[MAXGPUS];
 int cores_per_MP[MAXGPUS];
@@ -137,13 +138,15 @@ void opencl_process_event(void);
 /*
  * Shared function to find 'the best' local work group size.
  *
+ * - show_details: shows messages giving more detailed information.
  * - group_size_limit: the max work group size to be tested.
  *   Register pressure, __local memory usage, ..., will define the limiting value.
  * - sequential_id: the sequential number of the device in use.
  * - Your kernel (or main kernel) should be crypt_kernel.
  */
 void opencl_find_best_lws(
-	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel);
+	int show_details, size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel);
 
 /*
  * Shared function to find 'the best' global work group size (keys per crypt).
@@ -154,6 +157,7 @@ void opencl_find_best_lws(
  *   E.g. step=1024 (1024, 2048, 3072, 4096, ...).
  * - show_speep: shows the speed detail (like this):
  *   - gws:  16384      7068 c/s  35341675 rounds/s   2.318 sec per crypt_all()
+ *   - and shows messages giving more detailed information.
  * - show_details: shows the time of execution for each part (like this):
  *   - pass xfer: 10.01 ms, crypt: 3.46 ms, result xfer: 1.84 ms
  * - max_run_time: maximum kernel runtime allowed (in ms).
