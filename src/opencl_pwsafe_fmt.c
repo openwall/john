@@ -33,7 +33,7 @@
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             0
 #define KERNEL_NAME             "pwsafe"
-#define MIN_KEYS_PER_CRYPT      (512*512)
+#define MIN_KEYS_PER_CRYPT      (512*112)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
 #define CONFIG_NAME		"pwsafe"
@@ -187,7 +187,7 @@ static void init(struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error while creating kernel");
 
 	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
-	global_work_size = MAX_KEYS_PER_CRYPT;
+	global_work_size = 0;
 	opencl_get_user_preferences(CONFIG_NAME);
 
 	//Initialize openCL tuning (library) for this format.

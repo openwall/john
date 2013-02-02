@@ -29,7 +29,7 @@ SORT = sort
 OMPFLAGS =
 # gcc with OpenMP
 #OMPFLAGS = -fopenmp
-OMPFLAGS = -fopenmp -msse2
+#OMPFLAGS = -fopenmp -msse2
 # OS X (llvm-gcc) with OpenMP
 #OMPFLAGS = -fopenmp -D_FORTIFY_SOURCE=0
 # Sun Studio with OpenMP (set the OMP_NUM_THREADS env var at runtime)
