@@ -33,7 +33,7 @@
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             0
 #define KERNEL_NAME             "pwsafe"
-#define MIN_KEYS_PER_CRYPT      (512*512)
+#define MIN_KEYS_PER_CRYPT      (512*112)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
 #define CONFIG_NAME		"pwsafe"
@@ -161,7 +161,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
 	int step = 0;
 	int show_speed = 0, show_details = 0;
-	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 3000000000ULL;
+	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 5000000000ULL;
 	char *tmp_value;
 
 	if (getenv("DETAILS")) {
