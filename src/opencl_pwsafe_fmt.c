@@ -161,7 +161,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 
 	int step = 0;
 	int show_speed = 0, show_details = 0;
-	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 5000000000ULL;
+	unsigned long long int max_run_time = cpu(device_info[ocl_gpu_id]) ? 500000000ULL : 2400000000ULL;
 	char *tmp_value;
 
 	if (getenv("DETAILS")) {
