@@ -155,7 +155,7 @@ static void create_clobj(int gws, struct fmt_main * self)
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
-	opencl_find_best_lws(
+	common_find_best_lws(
 		get_current_work_group_size(ocl_gpu_id, crypt_kernel),
 		sequential_id, crypt_kernel
 	);

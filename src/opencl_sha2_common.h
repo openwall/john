@@ -62,6 +62,13 @@ int common_salt_hash(void * salt, int salt_size, int salt_hash_size);
 -- */
 void common_find_best_gws(int sequential_id, unsigned int rounds, int step,
 	unsigned long long int max_run_time);
+
+/* --
+  This function could be used to calculated the best local
+  group size for the given format
+-- */
+void common_find_best_lws(size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel);
 #endif
 
 #endif	/* OPENCL_SHA2_COMMON_H */

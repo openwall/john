@@ -305,7 +305,7 @@ static char * get_key(int index) {
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
-	opencl_find_best_lws(
+	common_find_best_lws(
 		get_task_max_work_group_size(), sequential_id, main_kernel[sequential_id]
 	);
 }

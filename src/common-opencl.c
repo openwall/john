@@ -870,7 +870,8 @@ void opencl_init_auto_setup(
 }
 
 void opencl_find_best_lws(
-	size_t group_size_limit, unsigned int sequential_id, cl_kernel crypt_kernel)
+	int show_details, size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel)
 {
 	size_t gws;
 	cl_int ret_code;
@@ -880,7 +881,8 @@ void opencl_find_best_lws(
 	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	char config_string[128];
 
-	fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
+	if (show_details)
+		fprintf(stderr, "Max local worksize %zd, ", group_size_limit);
 
 	gws = global_work_size ? global_work_size : self->params.max_keys_per_crypt;
 
@@ -997,10 +999,12 @@ void opencl_find_best_lws(
 	strcat(config_string, config_name);
 	strcat(config_string, LWS_CONFIG_NAME);
 
-	fprintf(stderr, "Optimal local worksize %zd\n", local_work_size);
-	fprintf(stderr, "(to avoid this test on next run, put \""
-		"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
-		SUBSECTION_OPENCL "])\n", config_string, local_work_size);
+	if (show_details) {
+		fprintf(stderr, "Optimal local worksize %zd\n", local_work_size);
+		fprintf(stderr, "(to avoid this test on next run, put \""
+			"%s = %zd\" in john.conf, section [" SECTION_OPTIONS
+			SUBSECTION_OPENCL "])\n", config_string, local_work_size);
+	}
 }
 
 void opencl_find_best_gws(

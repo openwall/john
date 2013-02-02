@@ -78,6 +78,24 @@ int common_salt_hash(void * salt, int salt_size, int salt_hash_size) {
 }
 
 /* --
+  This function could be used to calculated the best local
+  group size for the given format
+-- */
+void common_find_best_lws(size_t group_size_limit,
+	unsigned int sequential_id, cl_kernel crypt_kernel) {
+
+	int show_details = 0;
+
+	if (getenv("DETAILS"))
+		show_details = 1;
+
+	//Call the default function.
+	opencl_find_best_lws(
+		show_details, group_size_limit, sequential_id, crypt_kernel
+	);
+}
+
+/* --
   This function could be used to calculated the best num
   of keys per crypt for the given format
 -- */
