@@ -191,7 +191,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void* binary, int count)
 {
 	int i;
-	int res[count];
+	int *res = mem_alloc(count * sizeof(int));
+
 	memset(res, 0, sizeof(int) * count);
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -215,10 +216,14 @@ static int cmp_all(void* binary, int count)
 		if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
 			res[i] = 1;
 	}
-	for(i = 0; i < count; i++)
-		if (res[i])
-			return 1;
 
+	for(i = 0; i < count; i++)
+		if (res[i]) {
+			MEM_FREE(res);
+			return 1;
+		}
+
+	MEM_FREE(res);
 	return 0;
 }
 
