@@ -843,7 +843,7 @@ static cl_ulong gws_test(
 
 		if (show_details)
 			fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
-
+#if 0
 		/* 200 ms duration limit for GCN to avoid ASIC hangs */
 		if (amd_gcn(device_info[sequential_id]) && (endTime - startTime) > 200000000) {
 			runtime = looptime = 0;
@@ -852,6 +852,7 @@ static cl_ulong gws_test(
 				fprintf(stderr, " (exceeds 200 ms)");
 			break;
 		}
+#endif
 	}
 	if (show_details)
 		fprintf(stderr, "\n");
