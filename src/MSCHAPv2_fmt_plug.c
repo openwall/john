@@ -79,8 +79,9 @@
 
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH	27
-#define MIN_KEYS_PER_CRYPT	NBKEYS
-#define MAX_KEYS_PER_CRYPT	NBKEYS
+#define BLOCK_LOOPS		(256 / NBKEYS)
+#define MIN_KEYS_PER_CRYPT	(NBKEYS * BLOCK_LOOPS)
+#define MAX_KEYS_PER_CRYPT	(NBKEYS * BLOCK_LOOPS)
 #define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF*4 )
 #define GETOUTPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*4*MMX_COEF*4 )
 #else
@@ -437,7 +438,7 @@ static void crypt_all(int count)
 			memset(bitmap, 0, 0x10000 / 8);
 #else
 #ifdef MMX_COEF
-			for (i = 0; i < NBKEYS; i++)
+			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++)
 #else
 			for (i = 0; i < count; i++)
 #endif
@@ -454,12 +455,20 @@ static void crypt_all(int count)
 
 #ifdef MMX_COEF
 #if defined(MD4_SSE_PARA)
+#if (BLOCK_LOOPS > 1)
+//#if defined(MD4_SSE_PARA) && defined(_OPENMP)
+//#pragma omp parallel for
+//#endif
+		for (i = 0; i < BLOCK_LOOPS; i++)
+			SSEmd4body(&saved_key[i * NBKEYS * 64], (unsigned int*)&nthash[i * NBKEYS * 16], 1);
+#else
 		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
+#endif
 #else
 		mdfourmmx(nthash, saved_key, total_len);
 #endif
 		if (use_bitmap)
-		for (i = 0; i < NBKEYS; i++) {
+		for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
 			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
 			{
 				unsigned int value =
@@ -468,7 +477,7 @@ static void crypt_all(int count)
 			}
 		}
 		else
-		for (i = 0; i < NBKEYS; i++) {
+		for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
 			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
 		}
 #else
@@ -529,7 +538,7 @@ static int cmp_all(void *binary, int count)
 
 #ifdef MMX_COEF
 	/* Let's give the optimizer a hint! */
-	for (index = 0; index < NBKEYS; index += 2) {
+	for (index = 0; index < NBKEYS * BLOCK_LOOPS; index += 2) {
 #else
 	for (index = 0; index < count; index += 2) {
 #endif
@@ -547,7 +556,7 @@ static int cmp_all(void *binary, int count)
 
 thorough:
 #ifdef MMX_COEF
-	for (index = 0; index < NBKEYS; index++) {
+	for (index = 0; index < NBKEYS * BLOCK_LOOPS; index++) {
 #else
 	for (; index < count; index++) {
 #endif
@@ -950,6 +959,7 @@ struct fmt_main fmt_MSCHAPv2 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+//#if defined (MD4_SSE_PARA) || !defined(MMX_COEF)
 #ifndef MMX_COEF
 		FMT_OMP |
 #endif
