@@ -183,7 +183,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 static void init(struct fmt_main *self)
 {
 	cl_ulong maxsize;
-	int selected_gws;
+	size_t selected_gws;
 
 	opencl_init_opt("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, NULL);
 
