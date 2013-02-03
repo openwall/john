@@ -124,11 +124,6 @@ static void done(void)
   for the workgroup
   Work-items that make up a work-group (also referred to
   as the size of the work-group)
-
-  For formats using __local
-  LWS should never be a big number since every work-item
-  uses about 400 bytes of local memory. Local memory
-  is usually 32 KB.
 -- */
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
