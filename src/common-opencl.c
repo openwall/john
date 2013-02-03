@@ -167,12 +167,11 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id)
 	return (platforms[i].platform ? pos + dev_id : -1);
 }
 
-static void start_opencl_devices()
+static void start_opencl_environment()
 {
 	cl_platform_id platform_list[MAX_PLATFORMS];
-	static char opencl_data[LOG_SIZE];
+	char opencl_data[LOG_SIZE];
 	cl_uint num_platforms, device_num, device_pos = 0;
-	cl_context_properties properties[3];
 	int i;
 
 	/* Find OpenCL enabled devices. We ignore error here, in case
@@ -203,56 +202,61 @@ static void start_opencl_devices()
 	//Set NULL to the final buffer position.
 	platforms[i].platform = NULL;
 	devices[device_pos] = NULL;
+}
 
-	//Get devices information
-	for (i = 0; i < get_number_of_available_devices(); i++) {
-		//Get the detailed information about the device.
-		opencl_get_dev_info(i);
+static int start_opencl_device(unsigned int sequential_id)
+{
+	cl_context_properties properties[3];
+	char opencl_data[LOG_SIZE];
 
-		HANDLE_CLERROR(clGetDeviceInfo(devices[i], CL_DEVICE_NAME,
-		    sizeof(opencl_data), opencl_data, NULL),
-		    "Error querying DEVICE_NAME");
+	//Get the detailed information about the device.
+	opencl_get_dev_info(sequential_id);
 
-		HANDLE_CLERROR(clGetDeviceInfo(devices[i],
-		    CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
-		    &max_group_size, NULL),
-		    "Error querying MAX_WORK_GROUP_SIZE");
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id], CL_DEVICE_NAME,
+	    sizeof(opencl_data), opencl_data, NULL),
+	    "Error querying DEVICE_NAME");
 
-		//Get the platform properties
-		properties[0] = CL_CONTEXT_PLATFORM;
-		properties[1] = (cl_context_properties) platforms[get_platform_id(i)].platform;
-		properties[2] = 0;
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+	    CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(max_group_size),
+	    &max_group_size, NULL),
+	    "Error querying MAX_WORK_GROUP_SIZE");
 
-		//Setup context and queue
-		context[i] = clCreateContext(properties, 1, &devices[i],
-			NULL, NULL, &ret_code);
-		if (ret_code != CL_SUCCESS) {
+	//Get the platform properties
+	properties[0] = CL_CONTEXT_PLATFORM;
+	properties[1] = (cl_context_properties) platforms[get_platform_id(sequential_id)].platform;
+	properties[2] = 0;
+
+	//Setup context and queue
+	context[sequential_id] = clCreateContext(properties, 1,
+		&devices[sequential_id], NULL, NULL, &ret_code);
+	if (ret_code != CL_SUCCESS) {
 #ifdef DEBUG
-			fprintf(stderr, "Error creating context for device %d "
-			        "(%d:%d): %s\n", i, get_platform_id(i),
-			        get_device_id(i), get_error_name(ret_code));
+		fprintf(stderr, "Error creating context for device %d "
+			"(%d:%d): %s\n", i, get_platform_id(i),
+			get_device_id(i), get_error_name(ret_code));
 #endif
-			platforms[get_platform_id(i)].num_devices--;
-			continue;
-		}
-		queue[i] = clCreateCommandQueue(context[i], devices[i],
-			0, &ret_code);
-		if (ret_code != CL_SUCCESS) {
-#ifdef DEBUG
-			fprintf(stderr, "Error creating command queue for "
-			        "device %d (%d:%d): %s\n", i,
-			        get_platform_id(i), get_device_id(i),
-			        get_error_name(ret_code));
-#endif
-			platforms[get_platform_id(i)].num_devices--;
-			HANDLE_CLERROR(clReleaseContext(context[i]),
-			               "Release Context");
-			continue;
-		}
-#ifdef DEBUG
-		fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
-#endif
+		platforms[get_platform_id(sequential_id)].num_devices--;
+		return 0;
 	}
+	queue[sequential_id] = clCreateCommandQueue(context[sequential_id],
+		devices[sequential_id], 0, &ret_code);
+	if (ret_code != CL_SUCCESS) {
+#ifdef DEBUG
+		fprintf(stderr, "Error creating command queue for "
+			"device %d (%d:%d): %s\n", i,
+			get_platform_id(i), get_device_id(i),
+			get_error_name(ret_code));
+#endif
+		platforms[get_platform_id(sequential_id)].num_devices--;
+		HANDLE_CLERROR(clReleaseContext(context[sequential_id]),
+				"Release Context");
+		return 0;
+	}
+#ifdef DEBUG
+	fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
+#endif
+	//Success.
+	return 1;
 }
 
 static void add_device_to_list(int sequential_id)
@@ -269,8 +273,11 @@ static void add_device_to_list(int sequential_id)
 			found = 1;
 	}
 	if (!found) {
-		ocl_device_list[get_devices_being_used() + 1] = -1;
-		ocl_device_list[get_devices_being_used()] = sequential_id;
+		//Only requested and working devices should be started.
+		if (start_opencl_device(sequential_id)) {
+			ocl_device_list[get_devices_being_used() + 1] = -1;
+			ocl_device_list[get_devices_being_used()] = sequential_id;
+		}
 	}
 }
 
@@ -320,7 +327,8 @@ void init_opencl_devices(void)
 
 	ocl_device_list[0] = -1;
 	ocl_device_list[1] = -1;
-	start_opencl_devices();
+	device_list[0] = NULL;
+	start_opencl_environment();
 
 	if (options.ocl_platform) {
 		struct list_entry *current;
@@ -358,13 +366,9 @@ void init_opencl_devices(void)
 					current->data);
 				exit(1);
 			}
-			sprintf(string, "%d", ocl_gpu_id);
-			device_list[n++] = string;
-			device_list[n] = NULL;
-			build_device_list(device_list);
 		} else
-			ocl_gpu_id = get_sequential_id(0, platform_id);;
-	} else 	{
+			ocl_gpu_id = get_sequential_id(0, platform_id);
+	} else {
 		struct list_entry *current;
 
 		/* New syntax, sequential --device */
@@ -374,16 +378,13 @@ void init_opencl_devices(void)
 			} while ((current = current->next));
 
 			device_list[n] = NULL;
-			build_device_list(device_list);
-			ocl_gpu_id = ocl_device_list[0]; // FIXME?
-			platform_id = get_platform_id(ocl_gpu_id);
 		} else {
 			ocl_gpu_id = -1;
 			platform_id = -1;
 		}
 	}
 
-	//Use configuration file only JtR knows nothing about the environment.
+	//Use configuration file only if JtR knows nothing about the environment.
 	if (!options.ocl_platform && platform_id < 0) {
 		char *devcfg;
 
@@ -404,20 +405,31 @@ void init_opencl_devices(void)
 
 	if (platform_id == -1 || ocl_gpu_id == -1) {
 		opencl_find_gpu(&ocl_gpu_id, &platform_id);
-		ocl_device_list[0] = ocl_gpu_id;
 	}
 
-	//Use the sequential number on ocl_gpu_id.
-	device_id = get_device_id(ocl_gpu_id);
+	if (!device_list[0]) {
+		sprintf(string, "%d", ocl_gpu_id);
+		device_list[0] = string;
+		device_list[1] = NULL;
+	}
+	//Start requested device(s). Take care of legacy.
+	build_device_list(device_list);
+
+	if (get_devices_being_used() == 0) {
+		fprintf(stderr, "No OpenCL devices found\n");
+		exit(1);
+	}
+	ocl_gpu_id = ocl_device_list[0];
+	platform_id = get_platform_id(ocl_gpu_id);
 }
 
-void clean_opencl_devices()
+void clean_opencl_environment()
 {
 	int i;
 
-	for (i = 0; i < get_number_of_available_devices(); i++) {
-		HANDLE_CLERROR(clReleaseCommandQueue(queue[i]), "Release Queue");
-		HANDLE_CLERROR(clReleaseContext(context[i]), "Release Context");
+	for (i = 0; i < get_devices_being_used(); i++) {
+		HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
+		HANDLE_CLERROR(clReleaseContext(context[ocl_device_list[i]]), "Release Context");
 	}
 }
 
@@ -1633,7 +1645,7 @@ void listOpenCLdevices(void)
 	int i, j, sequence_nr = 0;
 	size_t p_size;
 
-	start_opencl_devices();
+	start_opencl_environment();
 
 	/* Obtain list of platforms available */
 	if (! platforms[0].platform) {

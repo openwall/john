@@ -48,7 +48,7 @@
 #define REPORT_OPENCL_WARNINGS
 
 /* Common OpenCL variables */
-int ocl_gpu_id, platform_id, device_id;
+int ocl_gpu_id, platform_id;
 int ocl_device_list[MAXGPUS];
 
 typedef struct {
@@ -83,7 +83,7 @@ int cores_per_MP[MAXGPUS];
 cl_int oclGetDevCap(cl_device_id device, cl_int *iComputeCapMajor, cl_int *iComputeCapMinor);
 
 void init_opencl_devices();
-void clean_opencl_devices();
+void clean_opencl_environment();
 int get_number_of_available_devices();
 int get_devices_being_used();
 int get_platform_id(unsigned int sequential_id);
