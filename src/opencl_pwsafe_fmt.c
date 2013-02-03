@@ -29,7 +29,7 @@
 #define FORMAT_NAME             "Password Safe SHA-256"
 #define ALGORITHM_NAME          "OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        -1
+#define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             0
 #define KERNEL_NAME             "pwsafe"
@@ -52,6 +52,7 @@ extern void common_find_best_gws(int sequential_id, unsigned int rounds, int ste
 # define SWAP32(n) \
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
+static int new_keys;
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
@@ -113,6 +114,7 @@ static void pwsafe_set_key(char *key, int index)
 	int saved_key_length = MIN(strlen(key), PLAINTEXT_LENGTH);
 	memcpy(host_pass[index].v, key, saved_key_length);
 	host_pass[index].length = saved_key_length;
+	new_keys = 1;
 }
 
 /* ------- Create and destroy necessary objects ------- */
@@ -321,11 +323,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
-//fprintf(stderr, "rounds = %d\n",host_salt->iterations);
-///Copy data to GPU memory
-	HANDLE_CLERROR(clEnqueueWriteBuffer
-	    (queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
-		NULL), "Copy memin");
+	///Copy data to GPU memory
+	if (new_keys)
+		HANDLE_CLERROR(clEnqueueWriteBuffer
+			(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
+			NULL), "Copy memin");
+
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
 		0, saltsize, host_salt, 0, NULL, NULL), "Copy memsalt");
 
@@ -339,6 +342,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	///Await completion of all the above
 	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	new_keys = 0;
 
 	return count;
 }
