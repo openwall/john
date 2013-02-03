@@ -204,7 +204,7 @@ static void start_opencl_environment()
 	devices[device_pos] = NULL;
 }
 
-static void start_opencl_device(unsigned int sequential_id)
+static int start_opencl_device(unsigned int sequential_id)
 {
 	cl_context_properties properties[3];
 	char opencl_data[LOG_SIZE];
@@ -236,7 +236,7 @@ static void start_opencl_device(unsigned int sequential_id)
 			get_device_id(i), get_error_name(ret_code));
 #endif
 		platforms[get_platform_id(sequential_id)].num_devices--;
-		return;
+		return 0;
 	}
 	queue[sequential_id] = clCreateCommandQueue(context[sequential_id],
 		devices[sequential_id], 0, &ret_code);
@@ -250,11 +250,13 @@ static void start_opencl_device(unsigned int sequential_id)
 		platforms[get_platform_id(sequential_id)].num_devices--;
 		HANDLE_CLERROR(clReleaseContext(context[sequential_id]),
 				"Release Context");
-		return;
+		return 0;
 	}
 #ifdef DEBUG
 	fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
 #endif
+	//Success.
+	return 1;
 }
 
 static void add_device_to_list(int sequential_id)
@@ -271,11 +273,11 @@ static void add_device_to_list(int sequential_id)
 			found = 1;
 	}
 	if (!found) {
-		ocl_device_list[get_devices_being_used() + 1] = -1;
-		ocl_device_list[get_devices_being_used()] = sequential_id;
-
-		//Start only requested devices.
-		start_opencl_device(sequential_id);
+		//Only requested and working devices should be started.
+		if (start_opencl_device(sequential_id)) {
+			ocl_device_list[get_devices_being_used() + 1] = -1;
+			ocl_device_list[get_devices_being_used()] = sequential_id;
+		}
 	}
 }
 
@@ -412,6 +414,11 @@ void init_opencl_devices(void)
 	}
 	//Start requested device(s). Take care of legacy.
 	build_device_list(device_list);
+
+	if (get_devices_being_used() == 0) {
+		fprintf(stderr, "No OpenCL devices found\n");
+		exit(1);
+	}
 	ocl_gpu_id = ocl_device_list[0];
 	platform_id = get_platform_id(ocl_gpu_id);
 }
