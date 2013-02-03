@@ -532,9 +532,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 	for (index = 0; index < count; index++) {
 		piece = format->methods.split(ciphertext, index, format);
 
-		if (!(binary = format->methods.binary(piece)))
-			return; /* Late reject */
-
+		binary = format->methods.binary(piece);
 		pw_hash = db->password_hash_func(binary);
 
 		if (!(db->options->flags & DB_WORDS) && !skip_dupe_checking) {
@@ -678,8 +676,7 @@ static void ldr_load_pot_line(struct db_main *db, char *line)
 	if (format->methods.valid(ciphertext, format) != 1) return;
 
 	ciphertext = format->methods.split(ciphertext, 0, format);
-	if (!(binary = format->methods.binary(ciphertext)))
-		return; /* Late reject */
+	binary = format->methods.binary(ciphertext);
 	hash = db->password_hash_func(binary);
 
 	if ((current = db->password_hash[hash]))

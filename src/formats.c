@@ -219,8 +219,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * hold the binary ciphertexts and salts.  We do this by copying the values
  * returned by binary() and salt() only to the declared sizes.
  */
-		if (!(binary = format->methods.binary(ciphertext)))
-			return "Late reject of test vector";
+		binary = format->methods.binary(ciphertext);
 		if (!is_aligned(binary, format->params.binary_align) &&
 		    (format->params.binary_size > 0) &&
 		    !binary_align_warned) {
