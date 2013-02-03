@@ -305,25 +305,27 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 void benchmark_cps(int64 *count, clock_t time, char *buffer)
 {
-	unsigned int cps_hi, cps_lo;
-	int64 tmp;
+	unsigned long long cps;
 
-	tmp = *count;
-	mul64by32(&tmp, clk_tck);
-	cps_hi = div64by32lo(&tmp, time);
+	cps = ((unsigned long long)count->hi << 32) + count->lo;
+	cps *= clk_tck;
+	cps /= time;
 
-	if (cps_hi >= 1000000000)
-		sprintf(buffer, "%uM", cps_hi / 1000000);
+	if (cps >= 1000000000000ULL)
+		sprintf(buffer, "%lluG", cps / 1000000000ULL);
+	if (cps >= 1000000000)
+		sprintf(buffer, "%lluM", cps / 1000000);
 	else
-	if (cps_hi >= 1000000)
-		sprintf(buffer, "%uK", cps_hi / 1000);
+	if (cps >= 1000000)
+		sprintf(buffer, "%lluK", cps / 1000);
 	else
-	if (cps_hi >= 100)
-		sprintf(buffer, "%u", cps_hi);
+	if (cps >= 100)
+		sprintf(buffer, "%llu", cps);
 	else {
-		mul64by32(&tmp, 10);
-		cps_lo = div64by32lo(&tmp, time) % 10;
-		sprintf(buffer, "%u.%u", cps_hi, cps_lo);
+		cps = ((unsigned long long)count->hi << 32) + count->lo;
+		cps *= clk_tck * 10;
+		cps /= time;
+		sprintf(buffer, "%llu.%llu", cps / 10, cps % 10);
 	}
 }
 
