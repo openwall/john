@@ -803,7 +803,7 @@ static void john_done(void)
 	log_done();
 #ifdef HAVE_OPENCL
 	//Release OpenCL stuff.
-	clean_opencl_devices();
+	clean_opencl_environment();
 #endif
 
 	path_done();
