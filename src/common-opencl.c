@@ -810,7 +810,7 @@ static void release_profiling_events()
 
 //Do the proper test using different global work sizes.
 static cl_ulong gws_test(
-	size_t num, int show_details, unsigned int rounds)
+	size_t num, int show_details, unsigned int rounds, int sequential_id)
 {
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count;
@@ -843,6 +843,16 @@ static cl_ulong gws_test(
 
 		if (show_details)
 			fprintf(stderr, "%s%.2f ms", warnings[i], (double) (endTime - startTime) / 1000000.);
+#if 0
+		/* 200 ms duration limit for GCN to avoid ASIC hangs */
+		if (amd_gcn(device_info[sequential_id]) && (endTime - startTime) > 200000000) {
+			runtime = looptime = 0;
+
+			if (show_details)
+				fprintf(stderr, " (exceeds 200 ms)");
+			break;
+		}
+#endif
 	}
 	if (show_details)
 		fprintf(stderr, "\n");
@@ -1057,8 +1067,8 @@ void opencl_find_best_gws(
 		if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
 			break;
 
-		if (!(run_time = gws_test(num, show_details, rounds)))
-			continue;
+		if (!(run_time = gws_test(num, show_details, rounds, sequential_id)))
+			break;
 
 		if (!show_speed && !show_details)
 			advance_cursor();
