@@ -158,7 +158,7 @@ static void init(struct fmt_main *self)
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
 	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	bitmap = mem_calloc_tiny(0x10000 / 8, 4);
+	bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_SIMD);
 	use_bitmap = 0; /* we did not use bitmap yet */
 	cmps_per_crypt = 2; /* try bitmap */
 }
@@ -331,10 +331,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i;
 
 		if (use_bitmap) {
-#if 0
-/* too slow since max_keys_per_crypt is normally smaller */
+#if MAX_KEYS_PER_CRYPT >= 200
+//#warning Notice: Using memset
 			memset(bitmap, 0, 0x10000 / 8);
 #else
+//#warning Notice: Not using memset
 #ifdef MMX_COEF
 			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++)
 #else
