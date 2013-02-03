@@ -83,8 +83,9 @@
 
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH	27
-#define MIN_KEYS_PER_CRYPT	NBKEYS
-#define MAX_KEYS_PER_CRYPT	NBKEYS
+#define BLOCK_LOOPS		(256 / NBKEYS)
+#define MIN_KEYS_PER_CRYPT	(NBKEYS * BLOCK_LOOPS)
+#define MAX_KEYS_PER_CRYPT	(NBKEYS * BLOCK_LOOPS)
 #define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF*4 )
 #define GETOUTPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*4*MMX_COEF*4 )
 #else
@@ -124,6 +125,7 @@ static int (*saved_key_length);
 
 static ARCH_WORD_32 *bitmap;
 static int cmps_per_crypt, use_bitmap;
+static int valid_i, valid_j;
 
 static uchar (*crypt_key)[21]; // NT hash
 static uchar *challenge;
@@ -179,8 +181,35 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	for (pos++; atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (!*pos && ((pos - ciphertext - 26 == CIPHERTEXT_LENGTH) ||
-	              (pos - ciphertext - 42 == CIPHERTEXT_LENGTH)))
-		return 1;
+	              (pos - ciphertext - 42 == CIPHERTEXT_LENGTH))) {
+		uchar key[7] = {0, 0, 0, 0, 0, 0, 0};
+		DES_key_schedule ks;
+		DES_cblock b3cmp;
+		uchar binary[8];
+		DES_cblock *challenge = get_salt(ciphertext);
+		int i, j;
+
+		ciphertext = strrchr(ciphertext, '$') + 1 + 2 * 8 * 2;
+		for (i = 0; i < 8; i++) {
+			binary[i] = atoi16[ARCH_INDEX(ciphertext[i * 2])] << 4;
+			binary[i] |= atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
+		}
+
+		for (i = 0; i < 0x100; i++)
+		for (j = 0; j < 0x100; j++) {
+			key[0] = i; key[1] = j;
+			setup_des_key(key, &ks);
+			DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
+			if (!memcmp(binary, &b3cmp, 8)) {
+				valid_i = i;
+				valid_j = j;
+				return 1;
+			}
+		}
+#ifdef DEBUG
+		fprintf(stderr, "Rejected NetNTLM hash with invalid 3rd block\n");
+#endif
+	}
 	return 0;
 }
 
@@ -267,6 +296,14 @@ static void *get_binary(char *ciphertext)
 		DES_key_schedule ks;
 		DES_cblock b3cmp;
 
+		key[0] = valid_i; key[1] = valid_j;
+		setup_des_key(key, &ks);
+		DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
+		if (!memcmp(&binary[2 + 8 * 2], &b3cmp, 8)) {
+			binary[0] = valid_i; binary[1] = valid_j;
+			goto out;
+		}
+
 		for (i = 0; i < 0x100; i++)
 		for (j = 0; j < 0x100; j++) {
 			key[0] = i; key[1] = j;
@@ -277,8 +314,9 @@ static void *get_binary(char *ciphertext)
 				goto out;
 			}
 		}
-		/* Use new late-reject feature in Jumbo core */
-		return NULL;
+
+		fprintf(stderr, "Bug: NetNTLM hash with invalid 3rd block, should have been rejected in valid()\n");
+		binary[0] = binary[1] = 0x55;
 	}
 
 out:
@@ -298,7 +336,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			memset(bitmap, 0, 0x10000 / 8);
 #else
 #ifdef MMX_COEF
-			for (i = 0; i < NBKEYS; i++)
+			for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++)
 #else
 			for (i = 0; i < count; i++)
 #endif
@@ -315,12 +353,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #ifdef MMX_COEF
 #if defined(MD4_SSE_PARA)
+#if (BLOCK_LOOPS > 1)
+//#if defined(MD4_SSE_PARA) && defined(_OPENMP)
+//#pragma omp parallel for
+//#endif
+		for (i = 0; i < BLOCK_LOOPS; i++)
+			SSEmd4body(&saved_key[i * NBKEYS * 64], (unsigned int*)&nthash[i * NBKEYS * 16], 1);
+#else
 		SSEmd4body(saved_key, (unsigned int*)nthash, 1);
+#endif
 #else
 		mdfourmmx(nthash, saved_key, total_len);
 #endif
 		if (use_bitmap)
-		for (i = 0; i < NBKEYS; i++) {
+		for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
 			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
 			{
 				unsigned int value =
@@ -329,7 +375,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 		else
-		for (i = 0; i < NBKEYS; i++) {
+		for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
 			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
 		}
 #else
@@ -392,7 +438,7 @@ static int cmp_all(void *binary, int count)
 
 #ifdef MMX_COEF
 	/* Let's give the optimizer a hint! */
-	for (index = 0; index < NBKEYS; index += 2) {
+	for (index = 0; index < NBKEYS * BLOCK_LOOPS; index += 2) {
 #else
 	for (index = 0; index < count; index += 2) {
 #endif
@@ -410,7 +456,7 @@ static int cmp_all(void *binary, int count)
 
 thorough:
 #ifdef MMX_COEF
-	for (index = 0; index < NBKEYS; index++) {
+	for (index = 0; index < NBKEYS * BLOCK_LOOPS; index++) {
 #else
 	for (; index < count; index++) {
 #endif
@@ -776,6 +822,7 @@ struct fmt_main fmt_NETNTLM = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
+//#if defined (MD4_SSE_PARA) || !defined(MMX_COEF)
 #ifndef MMX_COEF
 		FMT_OMP |
 #endif

@@ -211,7 +211,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #endif
 
 
-		ciphertext = format->methods.split(ciphertext, 0, format);
+		if (!(ciphertext = format->methods.split(ciphertext, 0, format)))
+			return "split() returned NULL";
 		plaintext = current->plaintext;
 
 /*
@@ -220,7 +221,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
  * returned by binary() and salt() only to the declared sizes.
  */
 		if (!(binary = format->methods.binary(ciphertext)))
-			return "Late reject of test vector";
+			return "binary() returned NULL";
 		if (!is_aligned(binary, format->params.binary_align) &&
 		    (format->params.binary_size > 0) &&
 		    !binary_align_warned) {
@@ -230,7 +231,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		memcpy(binary_copy, binary, format->params.binary_size);
 		binary = binary_copy;
 
-		salt = format->methods.salt(ciphertext);
+		if (!(salt = format->methods.salt(ciphertext)))
+			return "salt() returned NULL";
 		if (!is_aligned(salt, format->params.salt_align) &&
 		    (format->params.salt_size > 0) &&
 		    !salt_align_warned) {
