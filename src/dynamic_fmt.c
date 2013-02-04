@@ -386,29 +386,44 @@ static struct fmt_tests dynamic_tests[] = {
 #define SHA_BLOCKS 1
 #endif
 #ifdef _MSC_VER
-__declspec(align(16)) unsigned char input_buf[BLOCK_LOOPS][64*MMX_COEF];
-__declspec(align(16)) unsigned char input_buf2[BLOCK_LOOPS][64*MMX_COEF];
-// the +1 is so we can directly dump sha1 crypts here. We need an extra buffer on the end, to hold the last buffer overwrite
 __declspec(align(16)) union {
-	ARCH_WORD_32 w[BINARY_SIZE*MMX_COEF/sizeof(ARCH_WORD_32)];
+	ARCH_WORD_32 w[(64*MMX_COEF)/sizeof(ARCH_WORD_32)];
+	unsigned char c[64*MMX_COEF];
+} input_buf[BLOCK_LOOPS], input_buf2[BLOCK_LOOPS];
+// the +1 size for crypt_key is so we can directly dump sha1 crypts here. Extra buffer on the end, since SHA1 is 20 vs 16 bytes
+__declspec(align(16)) union {
+	ARCH_WORD_32 w[(BINARY_SIZE*MMX_COEF)/sizeof(ARCH_WORD_32)];
 	unsigned char c[BINARY_SIZE*MMX_COEF];
-} crypt_key[BLOCK_LOOPS+1];
-__declspec(align(16)) unsigned char crypt_key2[BLOCK_LOOPS][BINARY_SIZE*MMX_COEF];
+} crypt_key[BLOCK_LOOPS+1], crypt_key2[BLOCK_LOOPS];
 // SHA keyspace
-__declspec(align(16)) unsigned char sinput_buf[SHA_BLOCKS][SHA_BUF_SIZ*4*MMX_COEF];
-__declspec(align(16)) unsigned char scrypt_key[SHA_BLOCKS][BINARY_SIZE_SHA*MMX_COEF];
+__declspec(align(16)) union {
+	ARCH_WORD_32 w[(SHA_BUF_SIZ*4*MMX_COEF)/sizeof(ARCH_WORD_32)];
+	unsigned char c[SHA_BUF_SIZ*4*MMX_COEF];
+} sinput_buf[SHA_BLOCKS];
+__declspec(align(16)) union {
+	ARCH_WORD_32 w[(BINARY_SIZE_SHA*MMX_COEF)/sizeof(ARCH_WORD_32)];
+	unsigned char c[BINARY_SIZE_SHA*MMX_COEF];
+} scrypt_key[SHA_BLOCKS];
 #else
-unsigned char input_buf[BLOCK_LOOPS][64*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char input_buf2[BLOCK_LOOPS][64*MMX_COEF] __attribute__ ((aligned(16)));
-// the +1 is so we can directly dump sha1 crypts here. We need an extra buffer on the end, to hold the last buffer overwrite
+union {
+	ARCH_WORD_32 w[(64*MMX_COEF)/sizeof(ARCH_WORD_32)] __attribute__ ((aligned(16)));
+	unsigned char c[64*MMX_COEF] __attribute__ ((aligned(16)));
+} input_buf[BLOCK_LOOPS], input_buf2[BLOCK_LOOPS];
+// the +1 size for crypt_key is so we can directly dump sha1 crypts here. Extra buffer on the end, since SHA1 is 20 vs 16 bytes
 union {
 	ARCH_WORD_32 w[BINARY_SIZE*MMX_COEF/sizeof(ARCH_WORD_32)] __attribute__ ((aligned(16)));
 	unsigned char c[BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));
-} crypt_key[BLOCK_LOOPS+1];
-unsigned char crypt_key2[BLOCK_LOOPS][BINARY_SIZE*MMX_COEF] __attribute__ ((aligned(16)));
+} crypt_key[BLOCK_LOOPS+1], crypt_key2[BLOCK_LOOPS];
 // SHA keyspace
-unsigned char sinput_buf[SHA_BLOCKS][SHA_BUF_SIZ*4*MMX_COEF] __attribute__ ((aligned(16)));
-unsigned char scrypt_key[SHA_BLOCKS][BINARY_SIZE_SHA*MMX_COEF] __attribute__ ((aligned(16)));
+union {
+	ARCH_WORD_32 w[(SHA_BUF_SIZ*4*MMX_COEF)/sizeof(ARCH_WORD_32)] __attribute__ ((aligned(16)));
+	unsigned char c[SHA_BUF_SIZ*4*MMX_COEF] __attribute__ ((aligned(16)));
+} sinput_buf[SHA_BLOCKS];
+union {
+	ARCH_WORD_32 w[(BINARY_SIZE_SHA*MMX_COEF)/sizeof(ARCH_WORD_32)] __attribute__ ((aligned(16)));
+	unsigned char c[BINARY_SIZE_SHA*MMX_COEF] __attribute__ ((aligned(16)));
+} scrypt_key[SHA_BLOCKS];
+
 #endif
 static unsigned int total_len[BLOCK_LOOPS];
 static unsigned int total_len2[BLOCK_LOOPS];
@@ -820,17 +835,17 @@ static void init(struct fmt_main *pFmt)
 			total_len2_X86[i] = 32;
 #ifdef MMX_COEF
 		for (i = 0; i < BLOCK_LOOPS; ++i) {
-			input_buf2[i][GETPOS(32,0)] = 0x80;
-			input_buf2[i][GETPOS(57,0)] = 0x1;
-			input_buf2[i][GETPOS(32,1)] = 0x80;
-			input_buf2[i][GETPOS(57,1)] = 0x1;
+			input_buf2[i].c[GETPOS(32,0)] = 0x80;
+			input_buf2[i].c[GETPOS(57,0)] = 0x1;
+			input_buf2[i].c[GETPOS(32,1)] = 0x80;
+			input_buf2[i].c[GETPOS(57,1)] = 0x1;
 			total_len2[i*MMX_COEF] = 32;
 			total_len2[i*MMX_COEF+1] = 32;
 #if (MMX_COEF==4)
-			input_buf2[i][GETPOS(32,2)] = 0x80;
-			input_buf2[i][GETPOS(57,2)] = 0x1;
-			input_buf2[i][GETPOS(32,3)] = 0x80;
-			input_buf2[i][GETPOS(57,3)] = 0x1;
+			input_buf2[i].c[GETPOS(32,2)] = 0x80;
+			input_buf2[i].c[GETPOS(57,2)] = 0x1;
+			input_buf2[i].c[GETPOS(32,3)] = 0x80;
+			input_buf2[i].c[GETPOS(57,3)] = 0x1;
 			total_len2[i*MMX_COEF+2] = 32;
 			total_len2[i*MMX_COEF+3] = 32;
 #endif
@@ -1108,7 +1123,7 @@ static void set_key(char *key, int index)
 			// code derived from rawMD5_fmt_plug.c code from magnum
 			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
 			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-			ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(input_buf[idx])))[index&(MMX_COEF-1)];
+			ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(MMX_COEF-1)];
 			ARCH_WORD_32 *keybuf_word = keybuffer;
 			unsigned int len;
 			ARCH_WORD_32 temp;
@@ -1152,7 +1167,7 @@ key_cleaning:
 			// code derived from nsldap_fmt_plug.c code from magnum
 			const ARCH_WORD_32 *key32 = (ARCH_WORD_32*)key;
 			unsigned int idx = ( ((unsigned)index)>>(MMX_COEF>>1));
-			ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(sinput_buf[idx])))[index&(MMX_COEF-1)];
+			ARCH_WORD_32 *keybuffer = &sinput_buf[idx].w[index&(MMX_COEF-1)];
 			ARCH_WORD_32 *keybuf_word = keybuffer;
 			unsigned int len;
 			ARCH_WORD_32 temp;
@@ -1274,16 +1289,16 @@ static char *get_key(int index)
 #ifndef SHA1_SSE_PARA
 				s = saved_key_len[index];
 #else
-				ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(sinput_buf[idx])))[index&(MMX_COEF-1)];
+				ARCH_WORD_32 *keybuffer = sinput_buf[idx].w[index&(MMX_COEF-1)];
 				s = keybuffer[15*MMX_COEF] >> 3;
 #endif
 				for(i=0;i<s;i++)
-					out[i] = sinput_buf[idx][ SHAGETPOS(i, index&(MMX_COEF-1)) ];
+					out[i] = sinput_buf[idx].c[SHAGETPOS(i, index&(MMX_COEF-1))];
 			} else {
-				ARCH_WORD_32 *keybuffer = &((ARCH_WORD_32 *)(&(input_buf[idx])))[index&(MMX_COEF-1)];
+				ARCH_WORD_32 *keybuffer = &input_buf[idx].w[index&(MMX_COEF-1)];
 				s = keybuffer[14*MMX_COEF] >> 3;
 				for(i=0;i<s;i++)
-					out[i] = input_buf[idx][ GETPOS(i, index&(MMX_COEF-1)) ];
+					out[i] = input_buf[idx].c[GETPOS(i, index&(MMX_COEF-1))];
 			}
 			out[i] = 0;
 			return (char*)out;
@@ -2678,7 +2693,7 @@ static void __SSE_append_output_base16_to_input_2(ARCH_WORD_32 *IPBdw, unsigned 
 #endif
 
 #if (LOW_BASE16_INPUT_TYPE==3) || defined (DEEP_TIME_TEST)
-static void __SSE_append_output_base16_to_input_3(unsigned short *IPBw, unsigned char *CRY, unsigned idx_mod)
+static void __SSE_append_output_base16_to_input_3(ARCH_WORD_32 *IPBdw, unsigned char *CRY, unsigned idx_mod)
 {
 	// #3
     // 5955K  (core2, $dynamic_2$)
@@ -2691,6 +2706,7 @@ static void __SSE_append_output_base16_to_input_3(unsigned short *IPBw, unsigned
 #else
 #define inc 2
 #endif
+	unsigned short *IPBw = (unsigned short*)IPBdw;
 	IPBw += (idx_mod<<1);
 	CRY += (idx_mod<<2);
 
@@ -2730,7 +2746,7 @@ static void __SSE_append_output_base16_to_input_3(unsigned short *IPBw, unsigned
 }
 #endif
 
-static void __SSE_overwrite_output_base16_to_input(unsigned short *IPBw, unsigned char *CRY, unsigned idx_mod)
+static void __SSE_overwrite_output_base16_to_input(ARCH_WORD_32 *IPBdw, unsigned char *CRY, unsigned idx_mod)
 {
 	// #3
     // 5955K  (core2, $dynamic_2$)
@@ -2743,6 +2759,7 @@ static void __SSE_overwrite_output_base16_to_input(unsigned short *IPBw, unsigne
 #else
 #define inc 2
 #endif
+	unsigned short *IPBw = (unsigned short *)IPBdw;
 	IPBw += (idx_mod<<1);
 	CRY += (idx_mod<<2);
 
@@ -3283,64 +3300,64 @@ static int __SSE_gen_BenchLowLevMD5(unsigned secs, unsigned which)
 			case 1:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_1((void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_1((void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_1(input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_1(input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 2:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_2((void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_2((void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_2(input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_2(input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 3:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_3((void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_3((void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_3(input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_3(input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 4:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_semi_aligned0_1(8, (void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_semi_aligned0_1(8, (void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned0_1(8, input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned0_1(8, input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 5:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_semi_aligned0_2(8, (void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_semi_aligned0_2(8, (void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned0_2(8, input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned0_2(8, input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 6:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_semi_aligned0_3(8, (void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_semi_aligned0_3(8, (void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned0_3(8, input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned0_3(8, input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 7:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_semi_aligned2_1(10, (void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_semi_aligned2_1(10, (void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned2_1(10, input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned2_1(10, input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 8:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_semi_aligned2_2(10, (void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_semi_aligned2_2(10, (void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned2_2(10, input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned2_2(10, input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 			case 9:
 				for (i = 0; i<100; i++)
 				{
-					__SSE_append_output_base16_to_input_semi_aligned2_3(10, (void*)(&input_buf[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key.c[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
-					__SSE_append_output_base16_to_input_semi_aligned2_3(10, (void*)(&input_buf2[i>>(MMX_COEF>>1)]), (unsigned char*)(&crypt_key2[i>>(MMX_COEF>>1)]), i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned2_3(10, input_buf[i>>(MMX_COEF>>1)].w, crypt_key[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
+					__SSE_append_output_base16_to_input_semi_aligned2_3(10, input_buf2[i>>(MMX_COEF>>1)].w, crypt_key2[i>>(MMX_COEF>>1)].c, i&(MMX_COEF-1));
 				}
 				break;
 		}
@@ -3410,7 +3427,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 				unsigned idx_mod = j&(MMX_COEF-1);
 				unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 				total_len[idx] += (len << ((32/MMX_COEF)*idx_mod));
-				__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,Str,len,bf_ptr,1);
+				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
 			if (!options.ascii && !options.iso8859_1) {
@@ -3426,7 +3443,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
 					// note we use the 'non' unicode variant, since we have already computed the unicode, and length properly
-					__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j) {
@@ -3434,7 +3451,7 @@ static inline void __append_string(unsigned char *Str, unsigned len)
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len[idx] += ( (len<<1) << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf[idx]),idx_mod,Str,len,bf_ptr,1);
+					__SSE_append_string_to_input_unicode(input_buf[idx].c,idx_mod,Str,len,bf_ptr,1);
 				}
 			}
 		}
@@ -3505,7 +3522,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 				unsigned idx_mod = j&(MMX_COEF-1);
 				unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 				total_len2[idx] += ( len << ((32/MMX_COEF)*idx_mod));
-				__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,Str,len,bf_ptr,1);
+				__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
 			if (!options.ascii && !options.iso8859_1) {
@@ -3521,7 +3538,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len2[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
 					// note we use the 'non' unicode variant of __SSE_append_string_to_input(), since it's already unicode, and length properly
-					__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j) {
@@ -3529,7 +3546,7 @@ static inline void __append2_string(unsigned char *Str, unsigned len)
 					unsigned idx_mod = j&(MMX_COEF-1);
 					unsigned bf_ptr = (total_len2[idx] >> ((32/MMX_COEF)*idx_mod)) & 0xFF;
 					total_len2[idx] += ( (len<<1) << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf2[idx]),idx_mod,Str,len,bf_ptr,1);
+					__SSE_append_string_to_input_unicode(input_buf2[idx].c,idx_mod,Str,len,bf_ptr,1);
 				}
 			}
 		}
@@ -3721,14 +3738,14 @@ void DynamicFunc__append_keys()
 							outlen = strlen16(utf16Str) * sizeof(UTF16);
 					}
 					total_len[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				} else {
 					total_len[idx] += ( ((saved_key_len[j])<<1) << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
+					__SSE_append_string_to_input_unicode(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 				}
 			} else {
 				total_len[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
-				__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
+				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
 		return;
@@ -3815,14 +3832,14 @@ void DynamicFunc__append_keys2()
 							outlen = strlen16(utf16Str) * sizeof(UTF16);
 					}
 					total_len2[idx] += ( outlen << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
+					__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)utf16Str,outlen,bf_ptr,1);
 				} else {
 					total_len2[idx] += ( (saved_key_len[j]<<1) << ((32/MMX_COEF)*idx_mod));
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
+					__SSE_append_string_to_input_unicode(input_buf2[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 				}
 			} else {
 				total_len2[idx] += (saved_key_len[j] << ((32/MMX_COEF)*idx_mod));
-				__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
+				__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,(unsigned char*)saved_key[j],saved_key_len[j],bf_ptr,1);
 			}
 		}
 		return;
@@ -3901,8 +3918,8 @@ void DynamicFunc__set_input_len_16()
 				cur_block_len >>= 16;
 #endif
 				if (this_item_len < 16)
-					input_buf[j][GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
-				input_buf[j][GETPOS(16, k&(MMX_COEF-1))] = 0x80;
+					input_buf[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
+				input_buf[j].c[GETPOS(16, k&(MMX_COEF-1))] = 0x80;
 			}
 #if (MMX_COEF==4)
 			total_len[j] = 0x10101010;
@@ -3948,8 +3965,8 @@ void DynamicFunc__set_input2_len_16()
 				cur_block_len >>= 16;
 #endif
 				if (this_item_len < 16)
-					input_buf2[j][GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
-				input_buf2[j][GETPOS(16, k&(MMX_COEF-1))] = 0x80;
+					input_buf2[j].c[GETPOS(this_item_len, k&(MMX_COEF-1))] = 0x00;
+				input_buf2[j].c[GETPOS(16, k&(MMX_COEF-1))] = 0x80;
 			}
 #if (MMX_COEF==4)
 			total_len2[j] = 0x10101010;
@@ -4132,8 +4149,8 @@ void DynamicFunc__append_input_from_input2()
 				unsigned start_len = (total_len[i] >> ((32/MMX_COEF)*j)) & 0xFF;
 				unsigned len1 = (total_len2[i] >> ((32/MMX_COEF)*j)) & 0xFF;
 				for (k = 0; k < len1; ++k)
-					input_buf[i][GETPOS((k+start_len), j)] = input_buf2[i][GETPOS(k,j)];
-				input_buf[i][GETPOS((len1+start_len), j)] = 0x80;
+					input_buf[i].c[GETPOS((k+start_len), j)] = input_buf2[i].c[GETPOS(k,j)];
+				input_buf[i].c[GETPOS((len1+start_len), j)] = 0x80;
 				total_len[i] += ( len1 << ( ( (32/MMX_COEF) * j ) ));
 			}
 		}
@@ -4166,8 +4183,8 @@ void DynamicFunc__append_input2_from_input()
 				unsigned start_len = (total_len2[i] >> ((32/MMX_COEF)*j)) & 0xFF;
 				unsigned len1 = (total_len[i] >> ((32/MMX_COEF)*j)) & 0xFF;
 				for (k = 0; k < len1; ++k)
-					input_buf2[i][GETPOS((k+start_len), j)] = input_buf[i][GETPOS(k,j)];
-				input_buf2[i][GETPOS((len1+start_len), j)] = 0x80;
+					input_buf2[i].c[GETPOS((k+start_len), j)] = input_buf[i].c[GETPOS(k,j)];
+				input_buf2[i].c[GETPOS((len1+start_len), j)] = 0x80;
 				total_len2[i] += ( len1 << ( ( (32/MMX_COEF) * j ) ));
 			}
 		}
@@ -4196,7 +4213,7 @@ void SSE_Intrinsics_LoadLens(int side, int i)
 	{
 		for (j = 0; j < MD5_SSE_PARA; j++)
 		{
-			p = (ARCH_WORD_32 *)(&input_buf[i+j]);
+			p = input_buf[i+j].w;
 			TL = (ARCH_WORD_32)total_len[i+j];
 			p[14*MMX_COEF+0] = ((TL>>0)&0xFF)<<3;
 			p[14*MMX_COEF+1] = ((TL>>8)&0xFF)<<3;
@@ -4208,7 +4225,7 @@ void SSE_Intrinsics_LoadLens(int side, int i)
 	{
 		for (j = 0; j < MD5_SSE_PARA; j++)
 		{
-			p = (ARCH_WORD_32 *)(&input_buf2[i+j]);
+			p = input_buf2[i+j].w;
 			TL = (ARCH_WORD_32)total_len2[i+j];
 			p[14*MMX_COEF+0] = ((TL>>0)&0xFF)<<3;
 			p[14*MMX_COEF+1] = ((TL>>8)&0xFF)<<3;
@@ -4239,12 +4256,12 @@ void DynamicFunc__crypt_md5()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
-				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)&crypt_key[i].w, 1);
+				SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		} else {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)&crypt_key[i].w, 1);
+				SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		}
 		return;
@@ -4254,10 +4271,10 @@ void DynamicFunc__crypt_md5()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; ++i)
-				mdfivemmx_nosizeupdate(crypt_key[i].c, (unsigned char*)&(input_buf[i]), 1);
+				mdfivemmx_nosizeupdate(crypt_key[i].c, input_buf[i].c, 1);
 		} else {
 			for (i = 0; i < cnt; ++i)
-				mdfivemmx(crypt_key[i].c, (unsigned char*)&(input_buf[i]), total_len[i]);
+				mdfivemmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
 		}
 		return;
 	}
@@ -4283,12 +4300,12 @@ void DynamicFunc__crypt_md4()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
-				SSEmd4body((unsigned char*)(&input_buf[i]), crypt_key[i].w, 1);
+				SSEmd4body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		} else {
 			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd4body((unsigned char*)(&input_buf[i]), crypt_key[i].w, 1);
+				SSEmd4body(input_buf[i].c, crypt_key[i].w, 1);
 			}
 		}
 		return;
@@ -4298,10 +4315,10 @@ void DynamicFunc__crypt_md4()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; ++i)
-				mdfourmmx_nosizeupdate(crypt_key[i].c, (unsigned char*)&(input_buf[i]), 1);
+				mdfourmmx_nosizeupdate(crypt_key[i].c, input_buf[i].c, 1);
 		} else {
 			for (i = 0; i < cnt; ++i)
-				mdfourmmx(crypt_key[i].c, (unsigned char*)&(input_buf[i]), total_len[i]);
+				mdfourmmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
 		}
 		return;
 	}
@@ -5138,7 +5155,7 @@ void DynamicFunc__crypt2_md5()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd5body((unsigned char*)(&input_buf2[i]), (unsigned int*)(&crypt_key2[i]), 1);
+			SSEmd5body(input_buf2[i].c, crypt_key2[i].w, 1);
 		}
 		return;
 	}
@@ -5146,7 +5163,7 @@ void DynamicFunc__crypt2_md5()
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; ++i)
-			mdfivemmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf2[i]), total_len2[i]);
+			mdfivemmx(crypt_key2[i].c, input_buf2[i].c, total_len2[i]);
 		return;
 	}
 #endif
@@ -5171,7 +5188,7 @@ void DynamicFunc__crypt2_md4()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; i += MD4_SSE_PARA) {
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd4body((unsigned char*)(&input_buf2[i]), (unsigned int*)(&crypt_key2[i]), 1);
+			SSEmd4body(input_buf2[i].c, crypt_key2[i].w, 1);
 		}
 		return;
 	}
@@ -5179,7 +5196,7 @@ void DynamicFunc__crypt2_md4()
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; ++i)
-			mdfourmmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf2[i]), total_len2[i]);
+			mdfourmmx(crypt_key2[i].c, input_buf2[i].c, total_len2[i]);
 		return;
 	}
 #endif
@@ -5211,12 +5228,12 @@ void DynamicFunc__crypt_md5_in1_to_out2()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
-				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+				SSEmd5body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		} else {
 			for (i = 0; i < cnt; i += MD5_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd5body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+				SSEmd5body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		}
 		return;
@@ -5226,10 +5243,10 @@ void DynamicFunc__crypt_md5_in1_to_out2()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; ++i)
-				mdfivemmx_nosizeupdate((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), 1);
+				mdfivemmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
 		} else {
 			for (i = 0; i < cnt; ++i)
-				mdfivemmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+				mdfivemmx(crypt_key2[i].c, input_buf[i].c, total_len[i]);
 		}
 		return;
 	}
@@ -5255,12 +5272,12 @@ void DynamicFunc__crypt_md4_in1_to_out2()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
-				SSEmd4body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+				SSEmd4body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		} else {
 			for (i = 0; i < cnt; i += MD4_SSE_PARA) {
 				SSE_Intrinsics_LoadLens(0, i);
-				SSEmd4body((unsigned char*)(&input_buf[i]), (unsigned int*)(&crypt_key2[i]), 1);
+				SSEmd4body(input_buf[i].c, crypt_key2[i].w, 1);
 			}
 		}
 		return;
@@ -5270,10 +5287,10 @@ void DynamicFunc__crypt_md4_in1_to_out2()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		if (curdat.store_keys_in_input) {
 			for (i = 0; i < cnt; ++i)
-				mdfourmmx_nosizeupdate((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), 1);
+				mdfourmmx_nosizeupdate(crypt_key2[i].c, input_buf[i].c, 1);
 		} else {
 			for (i = 0; i < cnt; ++i)
-				mdfourmmx((unsigned char*)&(crypt_key2[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+				mdfourmmx(crypt_key2[i].c, input_buf[i].c, total_len[i]);
 		}
 		return;
 	}
@@ -5307,7 +5324,7 @@ void DynamicFunc__crypt_md5_in2_to_out1()
 		for (i = 0; i < cnt; i += MD5_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd5body((unsigned char*)(&input_buf2[i]), crypt_key[i].w, 1);
+			SSEmd5body(input_buf2[i].c, crypt_key[i].w, 1);
 		}
 		return;
 	}
@@ -5315,7 +5332,7 @@ void DynamicFunc__crypt_md5_in2_to_out1()
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
 		for (i = 0; i < cnt; ++i)
-			mdfivemmx(crypt_key[i].c, (unsigned char*)&(input_buf2[i]), total_len2[i]);
+			mdfivemmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
 		return;
 	}
 #endif
@@ -5341,7 +5358,7 @@ void DynamicFunc__crypt_md4_in2_to_out1()
 		for (i = 0; i < cnt; i += MD4_SSE_PARA)
 		{
 			SSE_Intrinsics_LoadLens(1, i);
-			SSEmd4body((unsigned char*)(&input_buf2[i]), crypt_key[i].w, 1);
+			SSEmd4body(input_buf2[i].c, crypt_key[i].w, 1);
 		}
 		return;
 	}
@@ -5349,7 +5366,7 @@ void DynamicFunc__crypt_md4_in2_to_out1()
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));;
 		for (i = 0; i < cnt; ++i)
-			mdfourmmx(crypt_key[i].c, (unsigned char*)&(input_buf2[i]), total_len2[i]);
+			mdfourmmx(crypt_key[i].c, input_buf2[i].c, total_len2[i]);
 		return;
 	}
 #endif
@@ -5382,11 +5399,11 @@ void DynamicFunc__crypt_md5_to_input_raw()
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body((char*)(&input_buf[i]), crypt_key[i].w, 1);
+			SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
 			{
-				memset((&input_buf[i+j]), 0, sizeof(input_buf[0]));
-				memcpy((char*)(&input_buf[i+j]), crypt_key[i+j].c, 16*4);
+				memset(input_buf[i+j].c, 0, sizeof(input_buf[0]));
+				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 				total_len[i+j] = 0x10101010;
 			}
 		}
@@ -5397,9 +5414,9 @@ void DynamicFunc__crypt_md5_to_input_raw()
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; ++i)
 		{
-			mdfivemmx(crypt_key[i].c, (unsigned char*)&(input_buf[i]), total_len[i]);
-			memset((&input_buf[i]), 0, sizeof(input_buf[0]));
-			memcpy((char*)(&input_buf[i]), crypt_key[i].c, sizeof(crypt_key[0].c));
+			mdfivemmx(crypt_key[i].c, input_buf[i].c, total_len[i]);
+			memset(input_buf[i].c, 0, sizeof(input_buf[0]));
+			memcpy(input_buf[i].c, crypt_key[i].c, sizeof(crypt_key[0].c));
 #if (MMX_COEF==4)
 			total_len[i] = 0x10101010;
 #else
@@ -5437,9 +5454,9 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body((char*)(&input_buf[i]), crypt_key[i].w, 1);
+			SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
-				memcpy((char*)(&input_buf[i+j]), crypt_key[i+j].c, 16*4);
+				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
 		return;
 	}
@@ -5447,7 +5464,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen_but_setlen_in_SSE()
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; ++i)
-			mdfivemmx((unsigned char*)&(input_buf[i]), (unsigned char*)&(input_buf[i]), total_len[i]);
+			mdfivemmx(input_buf[i].c, input_buf[i].c, total_len[i]);
 		return;
 	}
 #endif
@@ -5477,9 +5494,9 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen()
 			// NOTE, since crypt_key array is 16 bytes each, and input_buf is 64 bytes
 			// each, and we are doing 3 at a time, we can NOT directly write to the
 			// input buff, but have to use the crypt_key buffer, and then memcpy when done.
-			SSEmd5body((char*)(&input_buf[i]), crypt_key[i].w, 1);
+			SSEmd5body(input_buf[i].c, crypt_key[i].w, 1);
 			for (j = 0; j < MD5_SSE_PARA; ++j)
-				memcpy((char*)(&input_buf[i+j]), crypt_key[i+j].c, 16*4);
+				memcpy(input_buf[i+j].c, crypt_key[i+j].c, 16*4);
 		}
 		return;
 	}
@@ -5487,7 +5504,7 @@ void DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen()
 	if (dynamic_use_sse==1) {
 		unsigned cnt = ( ((unsigned)m_count+MMX_COEF-1)>>(MMX_COEF>>1));
 		for (i = 0; i < cnt; ++i)
-			mdfivemmx_nosizeupdate((unsigned char*)&(input_buf[i]), (unsigned char*)&(input_buf[i]), 0);
+			mdfivemmx_nosizeupdate(input_buf[i].c, input_buf[i].c, 0);
 		return;
 	}
 #endif
@@ -5518,16 +5535,16 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix()
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (j = 0; j < m_count; ++j) {
-					__SSE_append_string_to_input((unsigned char*)(&input_buf[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j)
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
+					__SSE_append_string_to_input_unicode(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
 		for (j = 0; j < m_count; ++j)
-			__SSE_append_string_to_input((unsigned char*)(&input_buf[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),cursalt,saltlen,0,0);
+			__SSE_append_string_to_input(input_buf[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
@@ -5591,16 +5608,16 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix()
 				if (outlen < 0)
 					outlen = strlen16(utf16Str) * sizeof(UTF16);
 				for (j = 0; j < m_count; ++j) {
-					__SSE_append_string_to_input((unsigned char*)(&input_buf2[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
+					__SSE_append_string_to_input(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)utf16Str,outlen,0,0);
 				}
 			} else {
 				for (j = 0; j < m_count; ++j)
-					__SSE_append_string_to_input_unicode((unsigned char*)(&input_buf2[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
+					__SSE_append_string_to_input_unicode(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),(unsigned char*)cursalt,saltlen,0,0);
 			}
 			return;
 		}
 		for (j = 0; j < m_count; ++j)
-			__SSE_append_string_to_input((unsigned char*)(&input_buf2[j>>(MMX_COEF>>1)]),j&(MMX_COEF-1),cursalt,saltlen,0,0);
+			__SSE_append_string_to_input(input_buf2[j>>(MMX_COEF>>1)].c,j&(MMX_COEF-1),cursalt,saltlen,0,0);
 		return;
 	}
 #endif
@@ -5666,7 +5683,7 @@ void DynamicFunc__overwrite_from_last_output2_to_input1_as_base16_no_size_fix()
 		for (i = 0; i < m_count; ++i)
 		{
 			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input((void*)(&input_buf[idx]), (unsigned char*)(&crypt_key2[idx]), i&(MMX_COEF-1));
+			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -5704,7 +5721,7 @@ void DynamicFunc__overwrite_from_last_output_as_base16_no_size_fix()
 		for (i = 0; i < m_count; ++i)
 		{
 			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input((void*)(&input_buf[idx]), crypt_key[idx].c, i&(MMX_COEF-1));
+			__SSE_overwrite_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, i&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -5750,22 +5767,22 @@ void DynamicFunc__append_from_last_output_as_base16()
 			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			total_len[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input((void*)(&input_buf[idx]), crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (j = 0; j < 16; ++j)
 				{
 					unsigned char v = crypt_key[idx].c[GETPOS(j, index&(MMX_COEF-1))];
-					input_buf[idx][GETPOS(ip+(j<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf[idx][GETPOS(ip+(j<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					input_buf[idx].c[GETPOS(ip+(j<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
+					input_buf[idx].c[GETPOS(ip+(j<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf[idx][GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, (void*)(&input_buf[idx]), crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, (void*)(&input_buf[idx]), crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
 
 		}
 		return;
@@ -5811,22 +5828,22 @@ void DynamicFunc__append_from_last_output2_as_base16()
 			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			total_len2[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input((void*)(&input_buf2[idx]), (unsigned char*)(&crypt_key2[idx]), index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (i = 0; i < 16; ++i)
 				{
-					unsigned char v = crypt_key2[idx][GETPOS(i, index&(MMX_COEF-1))];
-					input_buf2[idx][GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf2[idx][GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+					input_buf2[idx].c[GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
+					input_buf2[idx].c[GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf2[idx][GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, (void*)(&input_buf2[idx]), (unsigned char*)(&crypt_key2[idx]), index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, (void*)(&input_buf2[idx]), (unsigned char*)(&crypt_key2[idx]), index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -5868,7 +5885,7 @@ void DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix()
 		for (i = 0; i < m_count; ++i)
 		{
 			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input((void*)(&input_buf2[idx]), crypt_key[idx].c, i&(MMX_COEF-1));
+			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, i&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -5905,7 +5922,7 @@ void DynamicFunc__overwrite_from_last_output2_as_base16_no_size_fix()
 		for (i = 0; i < m_count; ++i)
 		{
 			idx = ( ((unsigned)i)>>(MMX_COEF>>1));
-			__SSE_overwrite_output_base16_to_input((void*)(&input_buf2[idx]), (unsigned char*)(&crypt_key2[idx]), i&(MMX_COEF-1));
+			__SSE_overwrite_output_base16_to_input(input_buf2[idx].w, crypt_key2[idx].c, i&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -5950,22 +5967,22 @@ void DynamicFunc__append_from_last_output_to_input2_as_base16()
 			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			total_len2[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input((void*)(&input_buf2[idx]), crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf2[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (i = 0; i < 16; ++i)
 				{
 					unsigned char v = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-					input_buf2[idx][GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf2[idx][GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					input_buf2[idx].c[GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
+					input_buf2[idx].c[GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf2[idx][GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, (void*)(&input_buf2[idx]), crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf2[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, (void*)(&input_buf2[idx]), crypt_key[idx].c, index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf2[idx].w, crypt_key[idx].c, index&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -6010,22 +6027,22 @@ void DynamicFunc__append_from_last_output2_to_input1_as_base16()
 			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			total_len[idx] += (32<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 			if (!ip)
-				__SSE_append_output_base16_to_input((void*)(&input_buf[idx]), (unsigned char*)(&crypt_key2[idx]), index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input(input_buf[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
 			else if (ip&1)
 			{
 				// Note we are 100% unaligned, and it seems fastest to handle byte/byte (at this time).
 				for (i = 0; i < 16; ++i)
 				{
-					unsigned char v = crypt_key2[idx][GETPOS(i, index&(MMX_COEF-1))];
-					input_buf[idx][GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
-					input_buf[idx][GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
+					unsigned char v = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+					input_buf[idx].c[GETPOS(ip+(i<<1), index&(MMX_COEF-1))] = dynamic_itoa16[v>>4];
+					input_buf[idx].c[GETPOS(ip+(i<<1)+1, index&(MMX_COEF-1))] = dynamic_itoa16[v&0xF];
 				}
-				input_buf[idx][GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(ip+32, index&(MMX_COEF-1))] = 0x80;
 			}
 			else if ((ip&3)==0)
-				__SSE_append_output_base16_to_input_semi_aligned_0(ip, (void*)(&input_buf[idx]), (unsigned char*)(&crypt_key2[idx]), index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_0(ip, input_buf[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
 			else
-				__SSE_append_output_base16_to_input_semi_aligned_2(ip, (void*)(&input_buf[idx]), (unsigned char*)(&crypt_key2[idx]), index&(MMX_COEF-1));
+				__SSE_append_output_base16_to_input_semi_aligned_2(ip, input_buf[idx].w, crypt_key2[idx].c, index&(MMX_COEF-1));
 		}
 		return;
 	}
@@ -6065,21 +6082,21 @@ void DynamicFunc__append_from_last_output2_as_raw()
 			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = (ARCH_WORD_32*)(&(input_buf[idx]));
-				ARCH_WORD_32 *pi = (ARCH_WORD_32*)(&(crypt_key2[idx]));
+				ARCH_WORD_32 *po = input_buf[idx].w;
+				ARCH_WORD_32 *pi = crypt_key2[idx].w;
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
 					po += MMX_COEF;
 					pi += MMX_COEF;
 				}
-				input_buf[idx][GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf[idx][GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key2[idx][GETPOS(i, index&(MMX_COEF-1))];
-				input_buf[idx][GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+				input_buf[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
 			}
 			total_len[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 		}
@@ -6119,21 +6136,21 @@ void DynamicFunc__append2_from_last_output2_as_raw()
 			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = (ARCH_WORD_32*)(&(input_buf2[idx]));
-				ARCH_WORD_32 *pi = (ARCH_WORD_32*)(&(crypt_key2[idx]));
+				ARCH_WORD_32 *po = input_buf2[idx].w;
+				ARCH_WORD_32 *pi = crypt_key2[idx].w;
 				for (i = 0; i < 4; i++)
 				{
 					*po = *pi;
 					po += MMX_COEF;
 					pi += MMX_COEF;
 				}
-				input_buf2[idx][GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf2[idx][GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key2[idx][GETPOS(i, index&(MMX_COEF-1))];
-				input_buf2[idx][GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf2[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key2[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+				input_buf2[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
 			}
 			total_len2[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 		}
@@ -6172,7 +6189,7 @@ void DynamicFunc__append_from_last_output1_as_raw()
 			ip = (total_len[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = (ARCH_WORD_32*)(&(input_buf[idx]));
+				ARCH_WORD_32 *po = input_buf[idx].w;
 				ARCH_WORD_32 *pi = crypt_key[idx].w;
 				for (i = 0; i < 4; i++)
 				{
@@ -6180,13 +6197,13 @@ void DynamicFunc__append_from_last_output1_as_raw()
 					po += MMX_COEF;
 					pi += MMX_COEF;
 				}
-				input_buf[idx][GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf[idx][GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-				input_buf[idx][GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+				input_buf[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
 			}
 			total_len[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 		}
@@ -6225,7 +6242,7 @@ void DynamicFunc__append2_from_last_output1_as_raw()
 			ip = (total_len2[idx] >> ((32/MMX_COEF)*(index&(MMX_COEF-1)))) & 0xFF;
 			if (!ip)
 			{
-				ARCH_WORD_32 *po = (ARCH_WORD_32*)(&(input_buf2[idx]));
+				ARCH_WORD_32 *po = input_buf2[idx].w;
 				ARCH_WORD_32 *pi = crypt_key[idx].w;
 				for (i = 0; i < 4; i++)
 				{
@@ -6233,13 +6250,13 @@ void DynamicFunc__append2_from_last_output1_as_raw()
 					po += MMX_COEF;
 					pi += MMX_COEF;
 				}
-				input_buf2[idx][GETPOS(16, index&(MMX_COEF-1))] = 0x80;
+				input_buf2[idx].c[GETPOS(16, index&(MMX_COEF-1))] = 0x80;
 			}
 			else
 			{
 				for (i = 0; i < 16; ++i)
-					input_buf2[idx][GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
-				input_buf2[idx][GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
+					input_buf2[idx].c[GETPOS(ip+i, index&(MMX_COEF-1))] = crypt_key[idx].c[GETPOS(i, index&(MMX_COEF-1))];
+				input_buf2[idx].c[GETPOS(ip+16, index&(MMX_COEF-1))] = 0x80;
 			}
 			total_len2[idx] += (16<<((32/MMX_COEF)*(index&(MMX_COEF-1))));
 		}
@@ -6472,7 +6489,7 @@ void DynamicFunc__SSEtoX86_switch_input1() {
 #endif
 #endif
 		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
-		cpi = (void*)(&input_buf[idx]);
+		cpi = input_buf[idx].w;
 
 		max = total_len_X86[j] = (total_len[idx]&0xFF);
 #if (MMX_COEF==2)
@@ -6536,7 +6553,7 @@ void DynamicFunc__SSEtoX86_switch_input2() {
 #endif
 #endif
 		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
-		cpi = (void*)(&input_buf2[idx]);
+		cpi = input_buf2[idx].w;
 
 		max = total_len2_X86[j] = (total_len2[idx]&0xFF);
 #if (MMX_COEF==2)
@@ -6638,7 +6655,7 @@ void DynamicFunc__SSEtoX86_switch_output2() {
 #endif
 #endif
 		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
-		cpi = (void*)(&crypt_key2[idx]);
+		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpo++ = *cpi++;
 			*cpo2++ = *cpi++;
@@ -6663,10 +6680,10 @@ void DynamicFunc__X86toSSE_switch_input1() {
 		total_len[idx] += (total_len_X86[j] << ((32/MMX_COEF)*idx_mod));
 #if (MD5_X2)
 		if (j & 1)
-			__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,input_buf_X86[j>>1].x2.B2,total_len_X86[j],0,1);
+			__SSE_append_string_to_input(input_buf[idx].c,idx_mod,input_buf_X86[j>>1].x2.B2,total_len_X86[j],0,1);
 		else
 #endif
-		__SSE_append_string_to_input((unsigned char*)(&input_buf[idx]),idx_mod,input_buf_X86[j>>MD5_X2].x1.B,total_len_X86[j],0,1);
+		__SSE_append_string_to_input(input_buf[idx].c,idx_mod,input_buf_X86[j>>MD5_X2].x1.B,total_len_X86[j],0,1);
 	}
 #endif
 }
@@ -6683,10 +6700,10 @@ void DynamicFunc__X86toSSE_switch_input2() {
 		total_len2[idx] += (total_len2_X86[j] << ((32/MMX_COEF)*idx_mod));
 #if (MD5_X2)
 		if (j & 1)
-			__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,input_buf2_X86[j>>1].x2.B2,total_len2_X86[j],0,1);
+			__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,input_buf2_X86[j>>1].x2.B2,total_len2_X86[j],0,1);
 		else
 #endif
-		__SSE_append_string_to_input((unsigned char*)(&input_buf2[idx]),idx_mod,input_buf2_X86[j>>MD5_X2].x1.B,total_len2_X86[j],0,1);
+		__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,input_buf2_X86[j>>MD5_X2].x1.B,total_len2_X86[j],0,1);
 	}
 #endif
 }
@@ -6752,7 +6769,7 @@ void DynamicFunc__X86toSSE_switch_output2() {
 #endif
 #endif
 		idx = ( ((unsigned)j)>>(MMX_COEF>>1));
-		cpi = (void*)(&crypt_key2[idx]);
+		cpi = crypt_key2[idx].w;
 		for (k = 0; k < 4; ++k) {
 			*cpi++ = *cpo++;
 			*cpi++ = *cpo2++;
@@ -7061,7 +7078,7 @@ void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_
 		for (; z < SHA1_SSE_PARA; ++z)
 #endif
 		{
-			memset(sinput_buf[z], 0, 56*MMX_COEF); // we only have to blank out the 'first' part of the buffer.
+			memset(sinput_buf[z].c, 0, 56*MMX_COEF); // we only have to blank out the 'first' part of the buffer.
 			for (j = 0; j < MMX_COEF && tot < m_count; ++j, ++tot)
 			{
 				unsigned char *si; // = input[k*MMX_COEF*SHA_BLOCKS+z*MMX_COEF+j].x1.B;
@@ -7074,15 +7091,15 @@ void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_
 				si = input[(k*MMX_COEF*SHA_BLOCKS+z*MMX_COEF+j) >> MD5_X2].x1.B;
 				li = ilen[k*MMX_COEF*SHA_BLOCKS+z*MMX_COEF+j];
 				for (i = 0; i < li; ++i)
-					sinput_buf[z][SHAGETPOS(i, j)] = si[i];
-				sinput_buf[z][SHAGETPOS(i, j)] = 0x80;
-				((unsigned int *)sinput_buf[z])[15*MMX_COEF+j] = li<<3;
+					sinput_buf[z].c[SHAGETPOS(i, j)] = si[i];
+				sinput_buf[z].c[SHAGETPOS(i, j)] = 0x80;
+				sinput_buf[z].w[15*MMX_COEF+j] = li<<3;
 			}
 		}
 #ifdef SHA1_SSE_PARA
-		SSESHA1body(sinput_buf, (unsigned int*)scrypt_key, NULL, 0);
+		SSESHA1body(sinput_buf, scrypt_key[0].w, NULL, 0);
 #else
-		shammx_nosizeupdate_nofinalbyteswap(((unsigned char*)(scrypt_key[0])), sinput_buf[0], 1);
+		shammx_nosizeupdate_nofinalbyteswap(scrypt_key[0].c, sinput_buf[0].c, 1);
 #endif
 		// Ok, convert to base-16
 		z = 0;
@@ -7107,10 +7124,10 @@ void SHA1_SSE_Crypt(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ilen[MAX_
 				olen[k*MMX_COEF*SHA_BLOCKS+z*MMX_COEF+j] += 40;
 
 				for (i = 0; i < 20; i+=4) {
-					*wo++ = itoa16_w2[scrypt_key[z][GETPOS(i+3, j)]];
-					*wo++ = itoa16_w2[scrypt_key[z][GETPOS(i+2, j)]];
-					*wo++ = itoa16_w2[scrypt_key[z][GETPOS(i+1, j)]];
-					*wo++ = itoa16_w2[scrypt_key[z][GETPOS(i+0, j)]];
+					*wo++ = itoa16_w2[scrypt_key[z].c[GETPOS(i+3, j)]];
+					*wo++ = itoa16_w2[scrypt_key[z].c[GETPOS(i+2, j)]];
+					*wo++ = itoa16_w2[scrypt_key[z].c[GETPOS(i+1, j)]];
+					*wo++ = itoa16_w2[scrypt_key[z].c[GETPOS(i+0, j)]];
 				}
 				oo[40] = 0;
 			}
@@ -7123,7 +7140,7 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 #if !SHA1_SSE_PARA
 	if (dynamic_use_sse==3)
 	{
-		shammx(crypt_key->c, sinput_buf[0], total_len[0]);
+		shammx(crypt_key->c, sinput_buf[0].c, total_len[0]);
 	}
 	else
 #endif
@@ -7139,7 +7156,7 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 				for (; z < SHA1_SSE_PARA; ++z)
 #endif
 				{
-					memset(sinput_buf[z], 0, 56*MMX_COEF); // we only have to blank out the 'first' part of the buffer.
+					memset(sinput_buf[z].c, 0, 56*MMX_COEF); // we only have to blank out the 'first' part of the buffer.
 					for (j = 0; j < MMX_COEF && tot < m_count; ++j, ++tot)
 					{
 						unsigned char *si; // = input[k*MMX_COEF*SHA_BLOCKS+z*MMX_COEF+j].x1.B;
@@ -7151,19 +7168,19 @@ void SHA1_SSE_Crypt_final(MD5_IN input[MAX_KEYS_PER_CRYPT_X86], unsigned int ile
 #endif
 						si = input[(k*MMX_COEF*SHA_BLOCKS+z*MMX_COEF+j) >> MD5_X2].x1.B;
 						for (i = 0; i < li; ++i)
-							sinput_buf[z][SHAGETPOS(i, j)] = si[i];
-						sinput_buf[z][SHAGETPOS(i, j)] = 0x80;
-						((unsigned int *)sinput_buf[z])[15*MMX_COEF+j] = li<<3;
+							sinput_buf[z].c[SHAGETPOS(i, j)] = si[i];
+						sinput_buf[z].c[SHAGETPOS(i, j)] = 0x80;
+						sinput_buf[z].w[15*MMX_COEF+j] = li<<3;
 					}
 				}
 			}
 #ifdef SHA1_SSE_PARA
-			SSESHA1body(sinput_buf, (unsigned int*)scrypt_key, NULL, 0);
-			SHA1_swap(((MD5_word*)scrypt_key), ((MD5_word*)scrypt_key), 5*MMX_COEF*SHA1_SSE_PARA);
+			SSESHA1body(sinput_buf[0].c, scrypt_key[0].w, NULL, 0);
+			SHA1_swap(scrypt_key[0].w, scrypt_key[0].w, 5*MMX_COEF*SHA1_SSE_PARA);
 			for (z = 0; z < SHA1_SSE_PARA; ++z)
-				memcpy(crypt_key[k*SHA1_SSE_PARA+z].c, scrypt_key[z], BINARY_SIZE*MMX_COEF);
+				memcpy(crypt_key[k*SHA1_SSE_PARA+z].c, scrypt_key[z].c, BINARY_SIZE*MMX_COEF);
 #else
-			shammx_nosizeupdate(crypt_key[k].c, sinput_buf[0], 1);
+			shammx_nosizeupdate(crypt_key[k].c, sinput_buf[0].c, 1);
 #endif
 		}
 	}
