@@ -80,7 +80,7 @@ __declspec(align(16)) unsigned char saved_key[64*MAX_KEYS_PER_CRYPT];
 __declspec(align(16)) unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT];
 #else
 unsigned char saved_key[64*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
-unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT+1] __attribute__ ((aligned(MMX_COEF*4)));
+unsigned char crypt_key[DIGEST_SIZE*MAX_KEYS_PER_CRYPT] __attribute__ ((aligned(MMX_COEF*4)));
 #endif
 #ifndef MD4_SSE_PARA
 static unsigned int total_len;
@@ -167,6 +167,13 @@ static int get_hash_5(int index) { return crypt_key[0] & 0xffffff; }
 static int get_hash_6(int index) { return crypt_key[0] & 0x7ffffff; }
 #endif
 
+static void clear_keys()
+{
+#ifndef MD4_SSE_PARA
+	total_len = 0;
+#endif
+}
+
 static void set_key(char *_key, int index)
 {
 #ifdef MMX_COEF
@@ -176,10 +183,6 @@ static void set_key(char *_key, int index)
 	unsigned int len;
 	ARCH_WORD_32 temp;
 
-#ifndef MD4_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((temp = *key++) & 0xff) {
 		if (!(temp & 0xff00))
@@ -214,7 +217,7 @@ key_cleaning:
 	}
 
 #ifdef MD4_SSE_PARA
-	keybuffer[56] = len << 3;
+	keybuffer[14*MMX_COEF] = len << 3;
 #else
 	total_len += len << ( (32/MMX_COEF) * index);
 #endif
@@ -229,10 +232,13 @@ static char *get_key(int index)
 #ifdef MMX_COEF
 	static char out[PLAINTEXT_LENGTH + 1];
 	unsigned int i,len;
+#ifdef MD4_SSE_PARA
 	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(0, index)];
 
 	len = keybuffer[14*MMX_COEF] >> 3;
-
+#else
+	len = (total_len >> ((32/MMX_COEF) * index)) & 63;
+#endif
 	for(i=0;i<len;i++)
 		out[i] = saved_key[GETPOS(i, index)];
 	out[i] = 0;
@@ -378,7 +384,7 @@ struct fmt_main fmt_rawMD4 = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
