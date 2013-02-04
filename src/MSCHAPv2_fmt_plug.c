@@ -679,6 +679,13 @@ static void set_salt(void *salt)
 	challenge = salt;
 }
 
+static void clear_keys()
+{
+#ifndef MD4_SSE_PARA
+	total_len = 0;
+#endif
+}
+
 // ISO-8859-1 to UCS-2, directly into vector key buffer
 static void mschapv2_set_key(char *_key, int index)
 {
@@ -687,10 +694,6 @@ static void mschapv2_set_key(char *_key, int index)
 	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(0, index)];
 	unsigned int len, temp2;
 
-#ifndef MD4_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((temp2 = *key++)) {
 		unsigned int temp;
@@ -753,10 +756,6 @@ static void set_key_CP(char *_key, int index)
 	unsigned int *keybuf_word = (unsigned int*)&saved_key[GETPOS(0, index)];
 	unsigned int len;
 
-#ifndef MD4_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	len = 0;
 	while((*keybuf_word = CP_to_Unicode[*key++])) {
 		unsigned int temp;
@@ -804,10 +803,6 @@ static void set_key_utf8(char *_key, int index)
 	UTF32 chl, chh = 0x80;
 	unsigned int len = 0;
 
-#ifndef MD4_SSE_PARA
-	if (!index)
-		total_len = 0;
-#endif
 	while (*source) {
 		chl = *source;
 		if (chl >= 0xC0) {
@@ -991,7 +986,7 @@ struct fmt_main fmt_MSCHAPv2 = {
 		set_salt,
 		mschapv2_set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,

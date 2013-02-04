@@ -202,11 +202,16 @@ char *fmt_self_test(struct fmt_main *format)
 		if (index == 1 && lengthcheck == 0 && max > 1) {
 			lengthcheck = 1;
 
+			format->methods.clear_keys();
 			for (i = 0; i < max; i++) {
-				if (i == index) continue;
-				memset(longcand, 'A' + (i % 23), ml);
-				longcand[ml] = 0;
-				format->methods.set_key(longcand, i);
+				if (i == index)
+					format->methods.set_key(
+						current->plaintext, index);
+				else {
+					memset(longcand, 'A' + (i % 23), ml);
+					longcand[ml] = 0;
+					format->methods.set_key(longcand, i);
+				}
 			}
 		}
 #endif
