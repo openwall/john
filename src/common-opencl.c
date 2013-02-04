@@ -330,6 +330,12 @@ void init_opencl_devices(void)
 	device_list[0] = NULL;
 	start_opencl_environment();
 
+	/* This is an OpenCL build on a host without *any* working OpenCL device or platform. */
+	if (get_number_of_available_devices() == 0) {
+		ocl_gpu_id = 0;
+		return;
+	}
+
 	if (options.ocl_platform) {
 		struct list_entry *current;
 
