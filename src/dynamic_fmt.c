@@ -1289,7 +1289,7 @@ static char *get_key(int index)
 #ifndef SHA1_SSE_PARA
 				s = saved_key_len[index];
 #else
-				ARCH_WORD_32 *keybuffer = sinput_buf[idx].w[index&(MMX_COEF-1)];
+				ARCH_WORD_32 *keybuffer = &sinput_buf[idx].w[index&(MMX_COEF-1)];
 				s = keybuffer[15*MMX_COEF] >> 3;
 #endif
 				for(i=0;i<s;i++)
