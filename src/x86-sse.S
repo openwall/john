@@ -1645,7 +1645,9 @@ nt_crypt_all_sse2:
 	NT_CRYPT_BODY(6)
 	NT_CRYPT_BODY(7)
 
+	movl 8(%esp),%eax
 	popa
+	movl (%eax),%eax
 
 	ret
 
