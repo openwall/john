@@ -159,8 +159,12 @@ static void listconf_list_build_info(void)
 #ifdef NSS_VERSION
 	// <major>.<minor>[.<patch_level>[.<build_number>]][ <ECC>][ <Beta>]
 	printf("NSS library version: %s", NSS_VERSION);
+	// NSS_GetVersion() ONLY added to the API at NSS v3.13+
+	//    See https://bugzilla.mozilla.org/show_bug.cgi?id=673115
+#if (NSS_VMAJOR>3) || (NSS_VMAJOR==3 && NSS_VMINOR>12)
 	if(strcmp(NSS_VERSION, NSS_GetVersion()))
 		printf("\t(loaded: %s)", NSS_GetVersion());
+#endif
 	printf("\n");
 #endif
 // NSS_VERSION and NSSUTIL_VERSION always seem to match.
