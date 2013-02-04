@@ -79,7 +79,13 @@
 
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH	27
+#ifdef MD4_SSE_PARA
 #define BLOCK_LOOPS		(256 / NBKEYS)
+//#define BLOCK_LOOPS		1536 /* for use with OMP */
+//#define SSE_OMP
+#else
+#define BLOCK_LOOPS		1 /* Only 1 is supported for MMX/SSE asm. */
+#endif
 #define MIN_KEYS_PER_CRYPT	(NBKEYS * BLOCK_LOOPS)
 #define MAX_KEYS_PER_CRYPT	(NBKEYS * BLOCK_LOOPS)
 #define GETPOS(i, index)	( (index&(MMX_COEF-1))*4 + ((i)&(0xffffffff-3))*MMX_COEF + ((i)&3) + (index>>(MMX_COEF>>1))*16*MMX_COEF*4 )
@@ -458,9 +464,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef MMX_COEF
 #if defined(MD4_SSE_PARA)
 #if (BLOCK_LOOPS > 1)
-//#if defined(MD4_SSE_PARA) && defined(_OPENMP)
-//#pragma omp parallel for
-//#endif
+#if defined(_OPENMP) && defined(MD4_SSE_PARA) && defined(SSE_OMP)
+#pragma omp parallel for
+#endif
 		for (i = 0; i < BLOCK_LOOPS; i++)
 			SSEmd4body(&saved_key[i * NBKEYS * 64], (unsigned int*)&nthash[i * NBKEYS * 16], 1);
 #else
@@ -964,8 +970,7 @@ struct fmt_main fmt_MSCHAPv2 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-//#if defined (MD4_SSE_PARA) || !defined(MMX_COEF)
-#ifndef MMX_COEF
+#if !defined(MMX_COEF) || (defined(MD4_SSE_PARA) && defined(SSE_OMP))
 		FMT_OMP |
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,

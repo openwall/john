@@ -48,7 +48,7 @@
 
 #ifdef MMX_COEF
 #ifdef MD4_SSE_PARA
-#define BLOCK_LOOPS			1 // Experimental. Try 512 x cores & OMP
+#define BLOCK_LOOPS			1 // Experimental. Try 1536 and OMP
 #else
 #define BLOCK_LOOPS			1 // Never change this
 #endif
