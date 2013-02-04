@@ -291,43 +291,46 @@ static void john_register_all(void)
 	john_register_one(&fmt_dummy);
 
 #ifdef HAVE_OPENCL
-	john_register_one(&fmt_opencl_NSLDAPS);
-	john_register_one(&fmt_opencl_rawMD4);
-	john_register_one(&fmt_opencl_rawMD5);
-	john_register_one(&fmt_opencl_NT);
-	john_register_one(&fmt_opencl_rawSHA1);
-	john_register_one(&fmt_opencl_cryptMD5);
-	john_register_one(&fmt_opencl_phpass);
-	john_register_one(&fmt_opencl_mysqlsha1);
-	john_register_one(&fmt_opencl_cryptsha256);
-	john_register_one(&fmt_opencl_cryptsha256_ng);
-	john_register_one(&fmt_opencl_cryptsha512);
-	john_register_one(&fmt_opencl_mscash2);
-	john_register_one(&fmt_opencl_wpapsk);
-	john_register_one(&fmt_opencl_keychain);
-	john_register_one(&fmt_opencl_agilekeychain);
-	john_register_one(&fmt_opencl_strip);
-	john_register_one(&fmt_opencl_zip);
-	john_register_one(&fmt_opencl_encfs);
-	john_register_one(&fmt_opencl_odf);
-	john_register_one(&fmt_opencl_odf_aes);
-	john_register_one(&fmt_opencl_sxc);
-	john_register_one(&fmt_opencl_gpg);
-	john_register_one(&fmt_opencl_dmg);
-	john_register_one(&fmt_opencl_xsha512);
-	john_register_one(&fmt_opencl_xsha512_ng);
-	john_register_one(&fmt_opencl_rawsha512);
-	john_register_one(&fmt_opencl_rawsha512_ng);
-	john_register_one(&fmt_opencl_rawsha256);
-	john_register_one(&fmt_opencl_bf);
-	john_register_one(&fmt_opencl_pwsafe);
-	john_register_one(&fmt_opencl_DES);
-	john_register_one(&fmt_opencl_office2007);
-	john_register_one(&fmt_opencl_office2010);
-	john_register_one(&fmt_opencl_office2013);
-	john_register_one(&fmt_opencl_NTLMv2);
-	john_register_one(&fmt_opencl_krb5pa_sha1);
-	john_register_one(&fmt_opencl_rar);
+
+	if (any_opencl_device_exists()) {
+		john_register_one(&fmt_opencl_NSLDAPS);
+		john_register_one(&fmt_opencl_rawMD4);
+		john_register_one(&fmt_opencl_rawMD5);
+		john_register_one(&fmt_opencl_NT);
+		john_register_one(&fmt_opencl_rawSHA1);
+		john_register_one(&fmt_opencl_cryptMD5);
+		john_register_one(&fmt_opencl_phpass);
+		john_register_one(&fmt_opencl_mysqlsha1);
+		john_register_one(&fmt_opencl_cryptsha256);
+		john_register_one(&fmt_opencl_cryptsha256_ng);
+		john_register_one(&fmt_opencl_cryptsha512);
+		john_register_one(&fmt_opencl_mscash2);
+		john_register_one(&fmt_opencl_wpapsk);
+		john_register_one(&fmt_opencl_keychain);
+		john_register_one(&fmt_opencl_agilekeychain);
+		john_register_one(&fmt_opencl_strip);
+		john_register_one(&fmt_opencl_zip);
+		john_register_one(&fmt_opencl_encfs);
+		john_register_one(&fmt_opencl_odf);
+		john_register_one(&fmt_opencl_odf_aes);
+		john_register_one(&fmt_opencl_sxc);
+		john_register_one(&fmt_opencl_gpg);
+		john_register_one(&fmt_opencl_dmg);
+		john_register_one(&fmt_opencl_xsha512);
+		john_register_one(&fmt_opencl_xsha512_ng);
+		john_register_one(&fmt_opencl_rawsha512);
+		john_register_one(&fmt_opencl_rawsha512_ng);
+		john_register_one(&fmt_opencl_rawsha256);
+		john_register_one(&fmt_opencl_bf);
+		john_register_one(&fmt_opencl_pwsafe);
+		john_register_one(&fmt_opencl_DES);
+		john_register_one(&fmt_opencl_office2007);
+		john_register_one(&fmt_opencl_office2010);
+		john_register_one(&fmt_opencl_office2013);
+		john_register_one(&fmt_opencl_NTLMv2);
+		john_register_one(&fmt_opencl_krb5pa_sha1);
+		john_register_one(&fmt_opencl_rar);
+	}
 #endif
 
 #ifdef HAVE_CUDA
@@ -655,7 +658,8 @@ static void john_init(char *name, int argc, char **argv)
 		listconf_parse_late();
 
 #ifdef HAVE_OPENCL
-	init_opencl_devices();
+	if (any_opencl_device_exists())
+		init_opencl_devices();
 #endif
 
 	common_init();
