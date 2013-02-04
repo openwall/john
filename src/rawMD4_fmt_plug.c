@@ -229,7 +229,7 @@ static char *get_key(int index)
 	unsigned int i,len;
 	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(0, index)];
 
-	len = keybuffer[56] >> 3;
+	len = keybuffer[14*MMX_COEF] >> 3;
 
 	for(i=0;i<len;i++)
 		out[i] = saved_key[GETPOS(i, index)];
