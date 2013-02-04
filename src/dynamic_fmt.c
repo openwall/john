@@ -4999,7 +4999,7 @@ void DynamicFunc__FreeBSDMD5Crypt_MMX()
 		cp += 64*MMX_COEF;
 	}
 #else
-	memcpy(crypt_key.c[0], md5_items[j].out2, BINARY_SIZE*MMX_COEF);
+	memcpy(crypt_key[0].c, md5_items[j].out2, BINARY_SIZE*MMX_COEF);
 #endif
 
 
@@ -5399,7 +5399,7 @@ void DynamicFunc__crypt_md5_to_input_raw()
 		{
 			mdfivemmx(crypt_key[i].c, (unsigned char*)&(input_buf[i]), total_len[i]);
 			memset((&input_buf[i]), 0, sizeof(input_buf[0]));
-			memcpy((char*)(&input_buf[i]), crypt_key[i].c, sizeof(crypt_key.c[0]));
+			memcpy((char*)(&input_buf[i]), crypt_key[i].c, sizeof(crypt_key[0].c));
 #if (MMX_COEF==4)
 			total_len[i] = 0x10101010;
 #else
