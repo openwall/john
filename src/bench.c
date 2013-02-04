@@ -282,6 +282,13 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	results->real = end_real - start_real;
 	results->count = count;
 
+	// if left at 0, we get a / by 0 later.  I have seen this happen on -test=0 runs.
+	if (results->real == 0)
+		results->real = 1;
+#if defined (__MINGW32__) || defined (_MSC_VER)
+	results->virtual = results->real;
+#endif
+
 	for (index = 0; index < 2; index++)
 		MEM_FREE(two_salts[index]);
 
