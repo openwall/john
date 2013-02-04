@@ -925,11 +925,12 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return pwsafe2john(argc, argv);
 	}
-
+#if !defined (__MINGW32__)
 	if (!strcmp(name, "dmg2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return dmg2john(argc, argv);
 	}
+#endif
 #endif
 
 #ifdef HAVE_NSS

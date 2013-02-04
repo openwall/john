@@ -1,3 +1,4 @@
+#if !defined (_MSC_VER) && !defined (__MINGW32__)
 /* Modified by Dhiru Kholia for JtR in August, 2012
  *
  * dmg.c
@@ -204,3 +205,4 @@ int dmg2john(int argc, char **argv)
 
 	return 0;
 }
+#endif
