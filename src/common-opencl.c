@@ -320,21 +320,22 @@ static void build_device_list(char * device_list[MAXGPUS])
 	}
 }
 
+int any_opencl_device_exists(void)
+{
+	ocl_device_list[0] = -1;
+	ocl_device_list[1] = -1;
+	start_opencl_environment();
+
+	/* This is an OpenCL build on a host without *any* working OpenCL device or platform. */
+	return (get_number_of_available_devices() > 0);
+}
+
 void init_opencl_devices(void)
 {
 	char * device_list[MAXGPUS], string[10];
 	int n = 0;
 
-	ocl_device_list[0] = -1;
-	ocl_device_list[1] = -1;
 	device_list[0] = NULL;
-	start_opencl_environment();
-
-	/* This is an OpenCL build on a host without *any* working OpenCL device or platform. */
-	if (get_number_of_available_devices() == 0) {
-		ocl_gpu_id = 0;
-		return;
-	}
 
 	if (options.ocl_platform) {
 		struct list_entry *current;
