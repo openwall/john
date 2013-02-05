@@ -307,8 +307,8 @@ inline void sha512_digest(sha512_ctx * ctx) {
 inline void sha512_digest_special(sha512_ctx * ctx) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
-	PUT(BUFFER, ctx->buflen, 0x80); //Do the ctx_append_1(ctx);
-	ctx_add_length(ctx);
+        PUT(BUFFER, ctx->buflen, 0x80); //Do the ctx_append_1(ctx);
+        ctx_add_length(ctx);
 
     } else {
         bool moved = true;
