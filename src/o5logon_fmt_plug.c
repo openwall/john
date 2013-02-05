@@ -9,12 +9,13 @@
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
 
-#include "sha.h"
 #include <string.h>
 #include <openssl/aes.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
+#include "sha.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -49,7 +50,7 @@ static struct fmt_tests o5logon_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static int *cracked, any_cracked;
 
 static struct custom_salt {
 	char unsigned salt[SALT_LENGTH]; /* AUTH_VFR_DATA */
@@ -136,16 +137,23 @@ static void set_salt(void *salt)
 static void crypt_all(int count)
 {
 	int index = 0;
+
+	if (any_cracked) {
+		memset(cracked, 0, sizeof(*cracked) * count);
+		any_cracked = 0;
+	}
 #ifdef _OPENMP
 #pragma omp parallel for
 	for (index = 0; index < count; index++)
 #endif
 	{
-		unsigned char key[24] = {0};
+		unsigned char key[24];
 		unsigned char pt[48];
-		unsigned char iv[16] = {0};
+		unsigned char iv[16];
 		AES_KEY akey;
 		SHA_CTX ctx;
+
+		memset(&key[20], 0, 4);
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
 		SHA1_Update(&ctx, cur_salt->salt, 10);
@@ -153,22 +161,14 @@ static void crypt_all(int count)
 
 		AES_set_decrypt_key(key, 192, &akey);
 		AES_cbc_encrypt(cur_salt->ct + 16, pt + 16, 32, &akey, iv, AES_DECRYPT);
-		if (!memcmp(pt + 40, "\x08\x08\x08\x08\x08\x08\x08\x08", 8)) {
-			cracked[index] = 1;
-		}
-		else
-			cracked[index] = 0;
-
+		if (!memcmp(pt + 40, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
+			any_cracked = cracked[index] = 1;
 	}
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
