@@ -383,10 +383,19 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 static void *get_binary(char *ciphertext)
 {
 	static uchar *binary;
+	static int warned = 0, loaded = 0;
 	DES_cblock *challenge = get_salt(ciphertext);
 	int i, j;
 
 	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
+
+	if (!warned && ++loaded > 100) {
+		warned = 1;
+		fprintf(stderr, FORMAT_LABEL ": Note: slow loading. For short "
+		        "runs, try " FORMAT_LABEL "-naive instead (using\n"
+		        "--format=" FORMAT_LABEL "-naive). That version loads "
+		        "faster but runs slower.\n");
+	}
 
 	if (valid_short(ciphertext))
 		ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
@@ -951,7 +960,7 @@ static int get_hash_1(int index) { return crypt_key[index][14] & 0xFF; }
 static int get_hash_2(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFF; }
 static int get_hash_3(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF; }
 
-struct fmt_main fmt_MSCHAPv2 = {
+struct fmt_main fmt_MSCHAPv2_new = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
