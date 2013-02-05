@@ -209,6 +209,19 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
+inline void ctx_update_special(sha512_ctx * ctx,
+                               uint8_t    * string,
+                               const uint32_t len) {
+    uint64_t * src = (uint64_t *) string;
+    uint64_t * dst = ctx->buffer->mem_64;
+
+    ctx->total += len;
+    ctx->buflen += len;
+
+    for (uint32_t i = 0; i < len; i+=8)
+        *dst++ = *src++;
+}
+
 inline void ctx_append_1(sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
@@ -291,6 +304,29 @@ inline void sha512_digest(sha512_ctx * ctx) {
     sha512_block(ctx);
 }
 
+inline void sha512_digest_special(sha512_ctx * ctx) {
+
+    if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
+	PUT(BUFFER, ctx->buflen, 0x80); //Do the ctx_append_1(ctx);
+	ctx_add_length(ctx);
+
+    } else {
+        bool moved = true;
+
+        if (ctx->buflen < 128) { //data and 0x80 fits in one block
+            PUT(BUFFER, ctx->buflen, 0x80); //Do the ctx_append_1(ctx);
+            moved = false;
+        }
+        sha512_block(ctx);
+        clear_ctx_buffer(ctx);
+
+        if (moved) //append 1,the rest is already clean
+            PUT(BUFFER, 0, 0x80);
+        ctx_add_length(ctx);
+    }
+    sha512_block(ctx);
+}
+
 inline void sha512_prepare(__constant sha512_salt     * salt_data,
                            __global   sha512_password * keys_data,
                            __global   sha512_buffers  * tmp_memory,
@@ -360,12 +396,22 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
 #define temp_result fast_buffers->temp_result
 #define p_sequence  fast_buffers->p_sequence
 
+//TODO:  dar um jeito de substituir todos os ctx_update abaixo.
+//Não executar SWAP tantas vezes.
+
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = initial; i < rounds; i++) {
+        //Prepare CTX buffer.
         init_ctx(ctx);
 
+#if ! amd_gcn(DEVICE_INFO)
+        clear_ctx_buffer(ctx);
+        ctx_update_special(ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
+                                ((i & 1) ? passlen : 64U));
+#else
         ctx_update_R(ctx, ((i & 1) ? p_sequence->mem_08 : alt_result->mem_08),
                           ((i & 1) ? passlen : 64U));
+#endif
 
         if (i % 3)
             ctx_update_R(ctx, temp_result->mem_08, saltlen);
@@ -375,7 +421,12 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
 
         ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
                           ((i & 1) ? 64U :                passlen));
+
+#if ! amd_gcn(DEVICE_INFO)
+        sha512_digest_special(ctx);
+#else
         sha512_digest(ctx);
+#endif
         sha512_digest_move_R(ctx, alt_result->mem_64, BUFFER_ARRAY);
     }
 }
