@@ -22,19 +22,19 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               128
 #endif
 
 #define FORMAT_LABEL		"siemens-s7"
 #define FORMAT_NAME		"Siemens S7 HMAC-SHA-1"
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
+#define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		20
 #define SALT_SIZE		20
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
+#define MAX_KEYS_PER_CRYPT	8
 
 static struct fmt_tests s7_tests[] = {
 	{"$siemens-s7$1$599fe00cdb61f76cc6e949162f22c95943468acb$002e45951f62602b2f5d15df217f49da2f5379cb", "123"},
@@ -43,7 +43,9 @@ static struct fmt_tests s7_tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static unsigned char (*crypt_key)[20];
 static ARCH_WORD_32 (*crypt_out)[BINARY_SIZE / sizeof(ARCH_WORD_32)];
+static int new_keys;
 
 unsigned char *challenge;
 
@@ -56,8 +58,11 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
+			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -150,28 +155,42 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int index = 0;
 
+	if (new_keys) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index++)
-	{
-		unsigned char mackey[20];
-		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, saved_key[index], strlen(saved_key[index]));
-		SHA1_Final(mackey, &ctx);
-		hmac_sha1(mackey, 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+		for (index = 0; index < count; index++)
+#endif
+		{
+			SHA_CTX ctx;
+
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, saved_key[index],
+			            strlen(saved_key[index]));
+			SHA1_Final(crypt_key[index], &ctx);
+		}
+		new_keys = 0;
 	}
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+	for (index = 0; index < count; index++)
+#endif
+		hmac_sha1(crypt_key[index], 20, challenge, 20, (unsigned char*)crypt_out[index], 20);
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (*(ARCH_WORD_32*)binary == crypt_out[index][0])
 			return 1;
 	return 0;
 }
@@ -193,6 +212,7 @@ static void s7_set_key(char *key, int index)
 		saved_key_length = PLAINTEXT_LENGTH;
 	memcpy(saved_key[index], key, saved_key_length);
 	saved_key[index][saved_key_length] = 0;
+	new_keys = 1;
 }
 
 static char *get_key(int index)
