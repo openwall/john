@@ -175,8 +175,12 @@ static void listconf_list_build_info(void)
 //#endif
 #ifdef PR_VERSION
 	printf("NSPR library version: %s", PR_VERSION);
+	// PR_GetVersion() ONLY added to API at PR v4.8.9
+	//    See https://bugzilla.mozilla.org/show_bug.cgi?id=673223
+#if (PR_VMAJOR>4) || (PR_VMAJOR==4 && PR_VMINOR>8) || (PR_VMAJOR==4 && PR_VMINOR==8 && PR_VPATCH > 8)
 	if(strcmp(PR_VERSION, PR_GetVersion()))
 		printf("\t(loaded: %s)", PR_GetVersion());
+#endif
 	printf("\n");
 #endif
 #ifdef HAVE_KRB5
