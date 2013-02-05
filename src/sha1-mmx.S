@@ -2,6 +2,26 @@
 // extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 
 #include "arch.h"
+
+/*
+ * Some broken systems don't offer section alignments larger than 4 bytes,
+ * while for the MMX code we need at least an 8 byte alignment. ALIGN_FIX
+ * is here to work around this issue when we happen to get bad addresses.
+ */
+#ifndef ALIGN_FIX
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log
+#else
+#define DO_ALIGN(log)			.align 1 << log
+#endif
+#else
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log; .space 4
+#else
+#define DO_ALIGN(log)			.align 1 << log; .space 4
+#endif
+#endif
+
 #ifdef UNDERSCORES
 #define shammx	_shammx
 #define shammx_nofinalbyteswap	_shammx_nofinalbyteswap
@@ -45,11 +65,7 @@
 #if defined (MD5_SSE_PARA) && !defined (MMX_COEF)
 #define MMX_COEF 4
 #endif
-#if defined (__MINGW32__)
-.align(4*MMX_COEF)
-#else
-.align(2*MMX_COEF)
-#endif
+DO_ALIGN(4)
 const_init_a:
 .long 0x67452301
 .long 0x67452301
@@ -86,7 +102,7 @@ const_init_e:
 .long 0xc3d2e1f0
 #endif
 
-.align(2*MMX_COEF)
+DO_ALIGN(4)
 const_stage0:
 .long 0x5a827999
 .long 0x5a827999
@@ -116,7 +132,7 @@ const_stage3:
 .long 0xca62c1d6
 #endif
 
-.align(2*MMX_COEF)
+DO_ALIGN(4)
 mask0f0f:
 .long 0x00ff00ff
 .long 0x00ff00ff

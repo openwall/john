@@ -10,6 +10,25 @@
 
 // extern int mdfivemmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 
+/*
+ * Some broken systems don't offer section alignments larger than 4 bytes,
+ * while for the MMX code we need at least an 8 byte alignment. ALIGN_FIX
+ * is here to work around this issue when we happen to get bad addresses.
+ */
+#ifndef ALIGN_FIX
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log
+#else
+#define DO_ALIGN(log)			.align 1 << log
+#endif
+#else
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log; .space 4
+#else
+#define DO_ALIGN(log)			.align 1 << log; .space 4
+#endif
+#endif
+
 #ifdef UNDERSCORES
 #define mdfivemmx	_mdfivemmx
 #define mdfivemmx_noinit_sizeupdate _mdfivemmx_noinit_sizeupdate
@@ -45,7 +64,7 @@
 #endif
 
 // align of 2*MMX_COEF was crashing on SSE2 builds (at least cross compiling from 64 bit linux)
-.align(4*MMX_COEF)
+DO_ALIGN(4)
 
 #if (MMX_COEF == 2)
 const_init_a: ; .long 0x67452301 ; .long 0x67452301
