@@ -162,6 +162,7 @@ static uint32_t keySize(char algorithm)
 		default: break;
 	}
 	assert(0);
+	return 0;
 }
 
 // Returns the digest size (in bytes) of a given hash algorithm
