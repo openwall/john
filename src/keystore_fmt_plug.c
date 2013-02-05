@@ -10,11 +10,12 @@
  * are permitted.
  */
 
-#include <openssl/sha.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
+#include "sha.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -59,7 +60,7 @@ static struct custom_salt {
 
 /* To guard against tampering with the keystore, we append a keyed
  * hash with a bit of whitener. */
-static void getPreKeyedHash(char *password, SHA_CTX *ctxp)
+static inline void getPreKeyedHash(char *password, SHA_CTX *ctxp)
 {
 	int i, j;
         unsigned char passwdBytes[PLAINTEXT_LENGTH * 2];
@@ -217,7 +218,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (index = 0; index < count; index++)
+#endif
 	{
 		SHA_CTX ctx;
 		getPreKeyedHash(saved_key[index], &ctx);
@@ -230,10 +233,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
-#ifdef _OPENMP
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
 #endif
-		if (!memcmp(binary, crypt_out[index], BINARY_SIZE))
+		if (((ARCH_WORD_32*)binary)[0] == crypt_out[index][0])
 			return 1;
 	return 0;
 }
