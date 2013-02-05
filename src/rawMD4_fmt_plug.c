@@ -167,7 +167,7 @@ static int get_hash_6(int index) { return crypt_key[0] & 0x7ffffff; }
 
 static void clear_keys()
 {
-#ifndef MD4_SSE_PARA
+#if defined(MMX_COEF) && !defined(MD4_SSE_PARA)
 	total_len = 0;
 #endif
 }

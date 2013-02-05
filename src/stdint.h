@@ -10,12 +10,15 @@
 #define uint16_t _john_uint16_t
 #undef uint32_t
 #define uint32_t _john_uint32_t
+#undef int32_t
+#define int32_t _john_int32_t
 #undef uint64_t
 #define uint64_t _john_uint64_t
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
 typedef unsigned int uint32_t;
+typedef int int32_t;
 typedef unsigned long long uint64_t;
 #endif
 #endif
