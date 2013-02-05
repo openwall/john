@@ -16,6 +16,25 @@
 #define DO_SPACE(size)			.space size
 #endif
 
+/*
+ * Some broken systems don't offer section alignments larger than 4 bytes,
+ * while for the MMX code we need at least an 8 byte alignment. ALIGN_FIX
+ * is here to work around this issue when we happen to get bad addresses.
+ */
+#ifndef ALIGN_FIX
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log
+#else
+#define DO_ALIGN(log)			.align 1 << log
+#endif
+#else
+#ifdef ALIGN_LOG
+#define DO_ALIGN(log)			.align log; .space 4
+#else
+#define DO_ALIGN(log)			.align 1 << log; .space 4
+#endif
+#endif
+
 // extern int mdfourmmx(unsigned char *out, unsigned char *in, int n) __attribute__((regparm(3)));
 // extern int mdfourmmx_nosizeupdate(unsigned char *out, unsigned char *in, int ignored) __attribute__((regparm(3)));
 
@@ -38,7 +57,7 @@
 .data
 
 // align of 2*MMX_COEF was crashing on SSE2 builds (at least cross compiling from 64 bit linux)
-.align(4*MMX_COEF)
+DO_ALIGN(4)
 
 const_init_a:
 .long 0x67452301
@@ -60,7 +79,7 @@ const_stage3:
 .long 0x6ed9eba1
 .long 0x6ed9eba1
 
-.align(4*MMX_COEF)
+DO_ALIGN(4)
 buffer:
 DO_SPACE(64*2)
 
@@ -277,7 +296,7 @@ mdfourmmx_no_size:
 #endif
 
 // align of 2*MMX_COEF was crashing on SSE2 builds (at least cross compiling from 64 bit linux)
-.align(4*MMX_COEF)
+DO_ALIGN(4)
 
 const_init_a:
 .long 0x67452301
@@ -311,7 +330,7 @@ const_stage3:
 .long 0x6ed9eba1
 .long 0x6ed9eba1
 
-.align(4*MMX_COEF)
+DO_ALIGN(4)
 buffer:
 DO_SPACE(64*4)
 
