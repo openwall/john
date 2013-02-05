@@ -71,6 +71,7 @@ extern void *mem_calloc(size_t size);
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
  * Does nothing if the pointer is already NULL.
  */
+#undef MEM_FREE
 #define MEM_FREE(ptr) \
 { \
 	if ((ptr)) { \

@@ -688,7 +688,7 @@ static void set_salt(void *salt)
 	challenge = salt;
 }
 
-static void clear_keys()
+static void clear_keys(void)
 {
 #if defined(MMX_COEF) && !defined(MD4_SSE_PARA)
 	total_len = 0;
