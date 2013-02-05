@@ -1387,6 +1387,7 @@ win32-mingw-x86-sse2i:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32 -DUSING_ICC_S_FILE" \
+		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32  -DUNDERSCORES"
 
 win32-mingw-x86-sse2:
@@ -1395,6 +1396,7 @@ win32-mingw-x86-sse2:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
+		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES"
 
 win32-mingw-x86-mmx:
@@ -1403,6 +1405,7 @@ win32-mingw-x86-mmx:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o sha1-mmx.o md4-mmx.o md5-mmx.o" \
 		CFLAGS="$(CFLAGS) -mpreferred-stack-boundary=3 -mmmx -m32" \
+		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 win32-mingw-x86-any:
@@ -1411,6 +1414,7 @@ win32-mingw-x86-any:
 	$(MAKE) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
 		CFLAGS="$(CFLAGS) -Wall -mpreferred-stack-boundary=2 -m32" \
+		LDFLAGS="$(LDFLAGS) -lpthread" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES"
 
 beos-x86-sse2:
