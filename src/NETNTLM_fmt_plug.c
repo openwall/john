@@ -201,6 +201,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			binary[i] |= atoi16[ARCH_INDEX(ciphertext[i * 2 + 1])];
 		}
 
+		key[0] = valid_i; key[1] = valid_j;
+		setup_des_key(key, &ks);
+		DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
+		if (!memcmp(binary, &b3cmp, 8)) {
+			binary[0] = valid_i; binary[1] = valid_j;
+			return 1;
+		}
+
 		for (i = 0; i < 0x100; i++)
 		for (j = 0; j < 0x100; j++) {
 			key[0] = i; key[1] = j;
@@ -286,10 +294,19 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks)
 static void *get_binary(char *ciphertext)
 {
 	static uchar *binary;
+	static int warned = 0, loaded = 0;
 	DES_cblock *challenge = get_salt(ciphertext);
 	int i, j;
 
 	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
+
+	if (!warned && ++loaded > 100) {
+		warned = 1;
+		fprintf(stderr, FORMAT_LABEL ": Note: slow loading. For short "
+		        "runs, try " FORMAT_LABEL "-naive instead (using\n"
+		        "--format=" FORMAT_LABEL "-naive). That version loads "
+		        "faster but runs slower.\n");
+	}
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
 	for (i = 0; i < FULL_BINARY_SIZE - 2; i++) {
@@ -806,7 +823,7 @@ static int get_hash_1(int index) { return crypt_key[index][14] & 0xFF; }
 static int get_hash_2(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFF; }
 static int get_hash_3(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF; }
 
-struct fmt_main fmt_NETNTLM = {
+struct fmt_main fmt_NETNTLM_new = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
