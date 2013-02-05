@@ -199,8 +199,8 @@ static int encode_6bit ( void *buffer, size_t bufsize, const char *fmt, ... )
 	    continue;
 	}
 
-	for ( field_size = 0; isdigit(fmt[fpos]); fpos++ ) {
-	    field_size = field_size*10 + (fmt[fpos]-'0');
+	for ( field_size = 0; isdigit((int)(unsigned char)fmt[fpos]); fpos++ ) {
+		field_size = field_size*10 + (fmt[fpos]-'0');
 	}
 	arg = va_arg(ap, unsigned char *);
 
@@ -306,7 +306,7 @@ static int decode_6bit ( void *buffer, const char *fmt, ... )
 	    continue;
 	}
 
-	for ( field_size = 0; isdigit(fmt[fpos]); fpos++ ) {
+	for ( field_size = 0; isdigit((int)(unsigned char)fmt[fpos]); fpos++ ) {
 	    field_size = field_size*10 + (fmt[fpos]-'0');
 	}
 	arg = va_arg(ap, unsigned char *);

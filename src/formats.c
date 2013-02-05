@@ -30,7 +30,7 @@ static struct fmt_main **fmt_tail = &fmt_list;
 
 extern volatile int bench_running;
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(__sun__)
 static size_t strnlen(const char *s, size_t max) {
     const char *p=s;
     while(*p && max--)

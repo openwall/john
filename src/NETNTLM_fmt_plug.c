@@ -542,7 +542,7 @@ static void set_salt(void *salt)
 
 static void clear_keys()
 {
-#ifndef MD4_SSE_PARA
+#if defined(MMX_COEF) && !defined(MD4_SSE_PARA)
 	total_len = 0;
 #endif
 }
