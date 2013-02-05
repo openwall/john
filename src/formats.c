@@ -22,6 +22,15 @@ static struct fmt_main **fmt_tail = &fmt_list;
 
 extern volatile int bench_running;
 
+#ifdef __MINGW32__
+static size_t strnlen(const char *s, size_t max) {
+    const char *p=s;
+    while(*p && max--)
+		++p;
+    return(p - s);
+}
+#endif
+
 void fmt_register(struct fmt_main *format)
 {
 	format->private.initialized = 0;
