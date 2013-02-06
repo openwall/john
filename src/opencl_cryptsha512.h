@@ -34,7 +34,6 @@
 #define BINARY_ALIGN            4
 #define STEP                    512
 
-#define HASH_LOOPS              (7*3*2)
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       1
 
