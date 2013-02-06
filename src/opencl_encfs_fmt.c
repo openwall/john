@@ -456,12 +456,12 @@ static void crypt_all(int count)
 {
 	int index;
 
+	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
+
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
-
-	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
@@ -501,9 +501,8 @@ static void crypt_all(int count)
 		memcpy( tmpBuf, cur_salt->data+KEY_CHECKSUM_BYTES, cur_salt->keySize + cur_salt->ivLength );
 		streamDecode(tmpBuf, cur_salt->keySize + cur_salt->ivLength ,checksum, master);
 		checksum2 = MAC_32( tmpBuf,  cur_salt->keySize + cur_salt->ivLength, master);
-		if(checksum2 == checksum) {
+		if(checksum2 == checksum)
 			any_cracked = cracked[index] = 1;
-		}
 	}
 }
 

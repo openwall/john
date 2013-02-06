@@ -54,6 +54,7 @@ typedef struct {
 } gpg_salt;
 
 static int *cracked;
+static int any_cracked;
 
 
 #define KEYBUFFER_LENGTH 8192
@@ -128,6 +129,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define insize (sizeof(gpg_password) * global_work_size)
 #define outsize (sizeof(gpg_hash) * global_work_size)
 #define settingsize (sizeof(gpg_salt))
+#define cracked_size (sizeof(*cracked) * global_work_size)
 
 // Returns the block size (in bytes) of a given cipher
 static uint32_t blockSize(char algorithm)
@@ -479,6 +481,11 @@ static void crypt_all(int count)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -503,17 +510,13 @@ static void crypt_all(int count)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-		cracked[index] = check(outbuffer[index].v,
-		                       keySize(cur_salt->cipher_algorithm));
+	if (check(outbuffer[index].v, keySize(cur_salt->cipher_algorithm)))
+		any_cracked = cracked[index] = 1;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
