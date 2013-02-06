@@ -89,7 +89,9 @@ void cuda_device_list()
 		printf("\tKernel execution timeout:      %s\n",
 		    (devProp.kernelExecTimeoutEnabled ? "Yes" : "No"));
 		printf("\tConcurrent copy and execution: %s\n",
-		    (devProp.deviceOverlap ? "Yes" : "No"));
+		    (devProp.asyncEngineCount == 2 ?
+		     "Bi-directional" : devProp.asyncEngineCount == 1 ?
+		     "One direction" : "No"));
 		printf("\tConcurrent kernels support:    %s\n",
 		    (devProp.concurrentKernels ? "Yes" : "No"));
 		printf("\tWarp size:                     %d\n",
@@ -100,6 +102,8 @@ void cuda_device_list()
 		    devProp.maxThreadsPerBlock);
 		printf("\tMax. resident threads per MP   %d\n",
 		    devProp.maxThreadsPerMultiProcessor);
+		printf("\tPCI device topology:           %02d:%02d.%d\n",
+		    devProp.pciBusID, devProp.pciDeviceID, devProp.pciDomainID);
 		puts("");
 	}
 }
