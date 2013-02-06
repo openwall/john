@@ -315,9 +315,9 @@ inline void sha512_digest(sha512_ctx * ctx) {
 
 inline void sha512_digest_special(sha512_ctx * ctx) {
 
-    PUT(BUFFER, ctx->buflen, 0x80); //Do the ctx_append_1(ctx);
+    PUT(BUFFER, ctx->total, 0x80); //Do the ctx_append_1(ctx);
 
-    if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
+    if (ctx->total <= 111) { //data+0x80+datasize fits in one 1024bit block
         ctx_add_length(ctx);
 
     } else {
@@ -371,8 +371,8 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
         ctx_update_G(ctx, pass, passlen);
 
     sha512_digest(ctx);
-    clean_buffer(ctx->H, passlen, PLAINTEXT_LENGTH);
     sha512_digest_move(ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
+    clean_buffer(p_sequence->mem_64, passlen, PLAINTEXT_LENGTH);
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
@@ -381,8 +381,8 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     /* Finish the digest. */
     sha512_digest(ctx);
-    clean_buffer(ctx->H, saltlen, SALT_LENGTH);
     sha512_digest_move(ctx, temp_result->mem_64, SALT_ARRAY);
+    clean_buffer(temp_result->mem_64, saltlen, SALT_LENGTH);
 }
 #undef salt
 #undef pass
@@ -395,10 +395,8 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     uint32_t tmp, pos;                             \
     tmp = (uint32_t) ((start & 7) << 3);           \
     pos = (uint32_t) (start >> 3);                 \
-/*printf("\n%u, [%u], %u => %016lx %016lx %016lx, %016lx %016lx %016lx", start, pos, tmp, dest[0], dest[pos], dest[pos+1], src, (src >> tmp), (src << (64 - tmp)));*/ \
-    dest[pos]   = (dest[pos] | (src >> tmp));      \
-    dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src << (64 - tmp)));  \
-/*printf("\n%u, [%u], %u => %016lx %016lx %016lx, %016lx %016lx %016lx", start, pos, tmp, dest[0], dest[pos], dest[pos+1], src, (src >> tmp), (src << (64 - tmp)));*/ \
+    dest[pos]   = (dest[pos] | (src << tmp));      \
+    dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
 
 #define temp_result fast_buffers->temp_result
@@ -442,15 +440,7 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
     for (uint32_t i = initial; i < rounds; i++) {
         //Prepare CTX buffer.
         init_ctx(ctx);
-
-        ctx->buffer->mem_64[8]  = (uint64_t) 0;
-        ctx->buffer->mem_64[9]  = (uint64_t) 0;
-        ctx->buffer->mem_64[10] = (uint64_t) 0;
-        ctx->buffer->mem_64[11] = (uint64_t) 0;
-        ctx->buffer->mem_64[12] = (uint64_t) 0;
-        ctx->buffer->mem_64[13] = (uint64_t) 0;
-        ctx->buffer->mem_64[14] = (uint64_t) 0;
-        ctx->buffer->mem_64[15] = (uint64_t) 0;
+        clear_ctx_buffer(ctx);
 
         if (i & 1) {
             ctx->buffer->mem_64[0] = p_sequence->mem_64[0];
@@ -501,7 +491,6 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
         ctx->buflen = ctx->total;
         //ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
         //                  ((i & 1) ? 64U :                passlen));
-
 
         sha512_digest_special(ctx);
         sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
