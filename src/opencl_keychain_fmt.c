@@ -55,6 +55,7 @@ typedef struct {
 } keychain_salt;
 
 static int *cracked;
+static int any_cracked;
 
 static struct fmt_tests keychain_tests[] = {
 	{"$keychain$*10f7445c8510fa40d9ef6b4e0f8c772a9d37e449*f3d19b2a45cdcccb*8c3c3b1c7d48a24dad4ccbd4fd794ca9b0b3f1386a0a4527f3548bfe6e2f1001804b082076641bbedbc9f3a7c33c084b", "password"},
@@ -75,6 +76,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define insize (sizeof(keychain_password) * global_work_size)
 #define outsize (sizeof(keychain_hash) * global_work_size)
 #define settingsize (sizeof(keychain_salt))
+#define cracked_size (sizeof(*cracked) * global_work_size)
 
 static void release_clobj(void)
 {
@@ -298,6 +300,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -322,19 +329,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-		cracked[index] = !kcdecrypt((unsigned char*)outbuffer[index].v, salt_struct->iv, salt_struct->ct);
+	if (!kcdecrypt((unsigned char*)outbuffer[index].v,
+	               salt_struct->iv, salt_struct->ct))
+		any_cracked = cracked[index] = 1;
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)

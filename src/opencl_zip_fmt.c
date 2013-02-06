@@ -55,6 +55,7 @@ typedef struct {
 } zip_salt;
 
 static int *cracked;
+static int any_cracked;
 
 typedef struct {
 	uint8_t length;
@@ -86,6 +87,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define insize (sizeof(zip_password) * global_work_size)
 #define outsize (sizeof(zip_hash) * global_work_size)
 #define settingsize (sizeof(zip_salt))
+#define cracked_size (sizeof(*cracked) * global_work_size)
 
 static void release_clobj(void)
 {
@@ -265,6 +267,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -286,33 +293,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-#if 0
-		cracked[index] =
-			!memcmp(&((unsigned char*)outbuffer[index].v)[2 * KEY_LENGTH(cur_salt->mode)],
-			        cur_salt->passverify, 2);
-#else
-	{
-		unsigned char pwd_ver[2] = { 0 };
-		unsigned char *p;
+	if (!memcmp(&((unsigned char*)outbuffer[index].v)[2 * KEY_LENGTH(cur_salt->mode)], cur_salt->passverify, 2))
+		any_cracked = cracked[index] = 1;
 
-		p = (unsigned char*)outbuffer[index].v;
-		memcpy(pwd_ver, p + 2 * KEY_LENGTH(cur_salt->mode), 2);
-		if(!memcmp(pwd_ver, cur_salt->passverify, 2))
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
-	}
-#endif
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)

@@ -58,6 +58,7 @@ typedef struct {
 } dmg_salt;
 
 static int *cracked;
+static int any_cracked;
 
 static struct custom_salt {
 	unsigned int saltlen;
@@ -87,6 +88,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define insize sizeof(dmg_password) * global_work_size
 #define outsize sizeof(dmg_hash) * global_work_size
 #define settingsize sizeof(dmg_salt)
+#define cracked_size (sizeof(*cracked) * global_work_size)
 
 /* borrowed from http://dsss.be/w/c:memmem */
 static inline unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen)
@@ -681,6 +683,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = (((count + local_work_size - 1) / local_work_size) * local_work_size);
 
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 	/// Copy data to gpu
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0,
 		insize, inbuffer, 0, NULL, NULL), "Copy data to gpu");
@@ -705,22 +712,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++)
-	{
-		if (hash_plugin_check_hash((unsigned char*)outbuffer[index].v) == 1)
-			cracked[index] = 1;
-		else
-			cracked[index] = 0;
-	}
+	if (hash_plugin_check_hash((unsigned char*)outbuffer[index].v) == 1)
+		any_cracked = cracked[index] = 1;
+
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
