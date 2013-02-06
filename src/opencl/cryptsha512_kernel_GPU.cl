@@ -489,8 +489,6 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
             ctx->total += passlen;
         }
         ctx->buflen = ctx->total;
-        //ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
-        //                  ((i & 1) ? 64U :                passlen));
 
         sha512_digest_special(ctx);
         sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
