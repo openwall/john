@@ -35,17 +35,6 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void init_ctx_special(sha512_ctx * ctx) {
-    ctx->H[0] = H0;
-    ctx->H[1] = H1;
-    ctx->H[2] = H2;
-    ctx->H[3] = H3;
-    ctx->H[4] = H4;
-    ctx->H[5] = H5;
-    ctx->H[6] = H6;
-    ctx->H[7] = H7;
-}
-
 inline void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
@@ -369,9 +358,9 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     for (uint32_t i = passlen; i > 0; i >>= 1) {
 
-	if (i & 1)
+        if (i & 1)
             ctx_update_R(ctx, alt_result->mem_08, 64U);
-	else
+        else
             ctx_update_G(ctx, pass, passlen);
     }
     sha512_digest(ctx);
@@ -452,7 +441,7 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
     for (uint32_t i = initial; i < rounds; i++) {
         //Prepare CTX buffer.
-        init_ctx_special(ctx);
+        init_ctx(ctx);
 
         ctx->buffer->mem_64[8]  = (uint64_t) 0;
         ctx->buffer->mem_64[9]  = (uint64_t) 0;
@@ -481,17 +470,17 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
         }
 
         if (i % 3) {
-	    APPEND(ctx->buffer->mem_64, temp_result->mem_64[0], ctx->total);
-	    APPEND(ctx->buffer->mem_64, temp_result->mem_64[1], ctx->total + 8);
-	    ctx->total += saltlen;
+            APPEND(ctx->buffer->mem_64, temp_result->mem_64[0], ctx->total);
+            APPEND(ctx->buffer->mem_64, temp_result->mem_64[1], ctx->total + 8);
+            ctx->total += saltlen;
         }
 
         if (i % 7) {
-	    APPEND(ctx->buffer->mem_64, p_sequence->mem_64[0], ctx->total);
-	    APPEND(ctx->buffer->mem_64, p_sequence->mem_64[1], ctx->total + 8);
-	    APPEND(ctx->buffer->mem_64, p_sequence->mem_64[2], ctx->total + 16);
-	    ctx->total += passlen;
-	}
+            APPEND(ctx->buffer->mem_64, p_sequence->mem_64[0], ctx->total);
+            APPEND(ctx->buffer->mem_64, p_sequence->mem_64[1], ctx->total + 8);
+            APPEND(ctx->buffer->mem_64, p_sequence->mem_64[2], ctx->total + 16);
+            ctx->total += passlen;
+        }
 
         if (i & 1) {
             APPEND(ctx->buffer->mem_64, alt_result->mem_64[0], ctx->total);
@@ -509,7 +498,7 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
             APPEND(ctx->buffer->mem_64, p_sequence->mem_64[2], ctx->total + 16);
             ctx->total += passlen;
         }
-	ctx->buflen = ctx->total;
+        ctx->buflen = ctx->total;
         //ctx_update_R(ctx, ((i & 1) ? alt_result->mem_08 : p_sequence->mem_08),
         //                  ((i & 1) ? 64U :                passlen));
 
@@ -538,7 +527,6 @@ void kernel_prepare(__constant sha512_salt     * salt,
 
     //Do the job
     sha512_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);
-
 
     //Save results.
     #pragma unroll
