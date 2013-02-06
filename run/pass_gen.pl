@@ -16,6 +16,7 @@ use Authen::Passphrase::NTHash;
 use Authen::Passphrase::PHPass;
 use Digest::MD4 qw(md4 md4_hex md4_base64);
 use Digest::MD5 qw(md5 md5_hex md5_base64);
+use Digest::HMAC_MD5;
 use Digest; # Whirlpool is gotten from Digest->new('Whirlpool')
 use Digest::SHA qw(sha1 sha1_hex sha1_base64 sha224 sha224_hex sha224_base64 sha256 sha256_hex sha256_base64 sha384 sha384_hex sha384_base64 sha512 sha512_hex sha512_base64 );
 use Digest::GOST qw(gost gost_hex gost_base64);
@@ -304,13 +305,39 @@ sub base64i {
 	my $mod = $len%3;
 	my $cnt = ($len-$mod)/3;
 	my $out = "";
-	my ($l, $p);
+	my $l;
 	for ($i = 0; $i < $cnt; $i++) {
 		$l = (ord(substr($final, $i*3, 1))) | (ord(substr($final, $i*3+1, 1)) << 8) | (ord(substr($final, $i*3+2, 1))<<16);
-		_crypt_to64($out, $l, 4); $p += 4;
+		_crypt_to64($out, $l, 4);
 	}
 	if ($mod == 2) { $l = ord(substr($final, $i*3, 1)) | (ord(substr($final, $i*3+1, 1)) << 8); _crypt_to64($out, $l, 4); }
 	if ($mod == 1) { $l = ord(substr($final, $i*3, 1));                                         _crypt_to64($out, $l, 4); }
+	return $out;
+}
+
+# the encoding used for JtR wpapsk is strange enough, I had to make my own version.
+# base64i 'worked' but the data output was out of order (I think it was LE vs BE building).
+sub _crypt_to64_wpa {
+	my $itoa64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+	my ($v, $n) = ($_[1], $_[2]);
+	while (--$n >= 0) {
+		$_[0] .= substr($itoa64, ($v & 0xFC0000)>>18, 1);
+		$v <<= 6;
+	}
+}
+sub base64_wpa {
+	my $final = $_[0];
+	my $len = length $final;
+	my $mod = $len%3;
+	my $cnt = ($len-$mod)/3;
+	my $out = "";
+	my $l;
+	for ($i = 0; $i < $cnt; $i++) {
+		$l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1)) << 8) | (ord(substr($final, $i*3+2, 1)));
+		_crypt_to64_wpa($out, $l, 4);
+	}
+	if ($mod == 2) { $l = (ord(substr($final, $i*3, 1))<<16) | (ord(substr($final, $i*3+1, 1))<<8); _crypt_to64_wpa($out, $l, 3); }
+	if ($mod == 1) { $l = (ord(substr($final, $i*3, 1))<<16);                                       _crypt_to64_wpa($out, $l, 2); }
 	return $out;
 }
 
@@ -558,6 +585,103 @@ sub mscash {
 	if (defined $argsalt) { $salt = $argsalt; } else { $salt = randusername(19); }
 	print "$salt:", md4_hex(md4(encode("UTF-16LE",$_[0])).encode("UTF-16LE", lc($salt))),
 			":$u:0:$_[0]:mscash (uname is salt):\n";
+}
+sub vnc {
+}
+sub sip {
+}
+sub pfx {
+}
+sub racf {
+}
+sub keepass {
+}
+sub ike {
+}
+sub keychain {
+}
+sub wpapsk {
+	# max ssid is 32 bytes
+	# min password is 8 bytes.  Max is 63 bytes
+	if (length($_[0]) < 8 || length($_[0]) > 63) { return; }
+
+	my $ssid; my $nonce1; my $nonce2; my $mac1; my $mac2; my $eapol; my $eapolsz;
+	my $keyver; my $keymic; my $data; my $prf; my $inpdat; my $i;
+	# load ssid
+	if (defined $argsalt) {$ssid = $argsalt; } else { $ssid = randusername(32); }
+
+	# Compute the pbkdf2-sha1(4096) for 32 bytes
+	my $pbkdf2 = Crypt::PBKDF2->new(
+		hash_class => 'HMACSHA1',
+		iterations => 4096,
+		output_len => 32,
+		salt_len => length($ssid),
+		);
+	my $wpaH = $pbkdf2->PBKDF2($ssid,$_[0]);
+
+	# load some other 'random' values, for the other data.
+	$nonce1 = randbytes(32);
+	$nonce2 = randbytes(32);
+	$mac1 = randbytes(6);
+	$mac2 = randbytes(6);
+	$eapolsz = 92 + rand (32);
+	$eapol = randbytes($eapolsz);
+	$keyver = (rand(32) / 6) + 1; # more chance of a keyver1
+	if ($keyver > 2) { $keyver = 2; }
+	if ($keyver < 2) { $keyver = 1; }
+
+	# ok, keymic now needs to be computed.
+	# for keyver=1 we use md5, for keyver=2 we use sha1
+	# (see wpapsk.h wpapsk_postprocess() for information)
+	Load_MinMax($data, $mac1, $mac2);
+	Load_MinMax($data, $nonce1, $nonce2);
+
+	# in JtR prf_512($wpaH, $data, $prf), but we simply do it inline.
+	$data = "Pairwise key expansion" . chr(0) . $data . chr(0);
+	$prf = Digest::SHA::hmac_sha1($data, $wpaH);
+
+	if ($keyver == 1) {
+		$prf = substr($prf, 0, 16);
+		$keymic = Digest::HMAC_MD5::hmac_md5($eapol, $prf);
+	} else {
+		$prf = substr($prf, 0, 16);
+		$keymic = Digest::SHA::hmac_sha1($eapol, $prf);
+		$keymic = substr($keymic, 0, 16);
+	}
+	# ok, now we have the keymic.
+
+	############################################################
+	# Now build the data for JtR's hccap_t structure.
+	############################################################
+	$inpdat = $mac1 . $mac2 . $nonce1 . $nonce2 . $eapol;      # first 4 parts easy.  Simply append them AND data we have for eapol
+	for ($i = $eapolsz; $i < 256; ++$i) { $inpdat .= chr(0); } # pad eapol data to 256 bytes.
+	$inpdat .= chr($eapolsz).chr(0).chr(0).chr(0);             # put eapolsz, and keyver into a LE 4 byte integers
+	$inpdat .= chr($keyver).chr(0).chr(0).chr(0);
+	$inpdat .= $keymic;                                        # now append the keymic
+
+	# drop out the JtR hash.  NOTE, base64_wpa() is specialzed for this hash.
+	print "u$u-wpapsk:\$WPAPSK\$$ssid#",base64_wpa($inpdat),":$u:0:$_[0]::\n";
+}
+
+# used by wpapsk, to load the MAC1/MAC2 and NONCE1/NONCE2. It loads the smallest of
+# the two, first, then loads the larger one.  All data is appended to the first param
+sub Load_MinMax {
+	my ($v1, $v2) = ($_[1], $_[2]);
+	my $c1; my $c2; my $off;
+	for ($off = 0; $off < length($v1); ++$off) {
+		$c1 = substr($v1, $off, 1);
+		$c2 = substr($v2, $off, 1);
+		if (ord($c1) > ord($c2)) {
+			$_[0] .= $v2.$v1;
+			return;
+		}
+		if (ord($c2) > ord($c1)) {
+			$_[0] .= $v1.$v2;
+			return;
+		}
+	}
+	# same??
+	$_[0] .= $v1.$v2;
 }
 sub mscash2 {
 	# max username (salt) length is supposed to be 19 characters (in John)
@@ -1379,22 +1503,6 @@ sub wbb3 {
 	# Simply 'dynamic' format:  sha1($s.sha1($s.sha1($p)))
 	if (defined $argsalt && length($argsalt)==40) { $salt = $argsalt; } else { $salt=randstr(40, \@chrHexLo); }
 	print "u$u-wbb3:\$wbb3\$\*1\*$salt\*",sha1_hex($salt,sha1_hex($salt,sha1_hex($_[0]))),":$u:0:$_[0]::\n";
-}
-sub vnc {
-}
-sub sip {
-}
-sub pfx {
-}
-sub racf {
-}
-sub keepass {
-}
-sub ike {
-}
-sub keychain {
-}
-sub wpapsk {
 }
 ############################################################
 #  DYNAMIC code.  Quite a large block.  Many 'fixed' formats, and then a parser
