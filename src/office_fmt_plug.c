@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <openssl/aes.h>
 #ifdef _OPENMP
 #include <omp.h>
 #define OMP_SCALE               4
@@ -21,7 +22,7 @@
 #include "unicode.h"
 #include "sha.h"
 #include "sha2.h"
-#include <openssl/aes.h>
+#include "johnswap.h"
 
 #define FORMAT_LABEL		"office"
 #define FORMAT_NAME		"Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES"
@@ -33,6 +34,8 @@
 #define SALT_SIZE		sizeof(*cur_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
+
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
 static struct fmt_tests office_tests[] = {
 	{"$office$*2007*20*128*16*8b2c9e8c878844fc842012273be4bea8*aa862168b80d8c45c852696a8bb499eb*a413507fabe2d87606595f987f679ff4b5b4c2cd", "Password"},
@@ -148,7 +151,11 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(&inputBuf[1], hashBuf, 20);
 	for (i = 0; i < 50000; i++) {
-		*inputBuf = i; // XXX: size & endianness
+#if ARCH_LITTLE_ENDIAN
+		*inputBuf = i;
+#else
+		*inputBuf = JOHNSWAP(i);
+#endif
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
@@ -156,7 +163,7 @@ static unsigned char* GeneratePasswordHashUsingSHA1(UTF16 *passwordBuf, int pass
 	}
 	// Finally, append "block" (0) to H(n)
 	// hashBuf = SHA1Hash(hashBuf, 0);
-	memset(&inputBuf[6], 0, 4); // XXX: size & endianness
+	memset(&inputBuf[6], 0, 4);
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, &inputBuf[1], 0x14 + 0x04);
 	SHA1_Final(hashBuf, &ctx);
@@ -221,7 +228,11 @@ static void GenerateAgileEncryptionKey(UTF16 *passwordBuf, int passwordBufSize, 
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(&inputBuf[1], hashBuf, 20);
 	for (i = 0; i < cur_salt->spinCount; i++) {
-		*inputBuf = i; // XXX: size & endianness
+#if ARCH_LITTLE_ENDIAN
+		*inputBuf = i;
+#else
+		*inputBuf = JOHNSWAP(i);
+#endif
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
@@ -263,7 +274,11 @@ static void GenerateAgileEncryptionKey512(UTF16 *passwordBuf, int passwordBufSiz
 	// 1.3.6 says that little-endian byte ordering is expected
 	memcpy(&inputBuf[1], hashBuf, 64);
 	for (i = 0; i < cur_salt->spinCount; i++) {
-		*inputBuf = i; // XXX: size & endianness
+#if ARCH_LITTLE_ENDIAN
+		*inputBuf = i;
+#else
+		*inputBuf = JOHNSWAP(i);
+#endif
 		// 'append' the previously generated hash to the input buffer
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
@@ -318,7 +333,7 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 
 	if (options.utf8)
-		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 }
 
 static int ishex(char *q)

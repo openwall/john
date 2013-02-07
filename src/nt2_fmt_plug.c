@@ -487,8 +487,13 @@ static char *get_key(int index)
 
 	for(; md4_size < PLAINTEXT_LENGTH; i += MMX_COEF, md4_size++)
 	{
+#if ARCH_LITTLE_ENDIAN
 		key[md4_size] = keybuffer[i];
 		key[md4_size+1] = keybuffer[i] >> 16;
+#else
+		key[md4_size] = keybuffer[i] >> 16;
+		key[md4_size+1] = keybuffer[i];
+#endif
 		if (key[md4_size] == 0x80 && key[md4_size+1] == 0) {
 			key[md4_size] = 0;
 			break;
@@ -501,26 +506,7 @@ static char *get_key(int index)
 	}
 	return (char*)utf16_to_enc(key);
 #else
-#if ARCH_LITTLE_ENDIAN
-//	char *x = utf16_to_enc(saved_key);
-//	printf ("x=%s\n",x);
-//	return x;
 	return (char*)utf16_to_enc(saved_key);
-#else
-	int i;
-	UTF16 Tmp[80];
-	UTF8 *p = (UTF8*)saved_key, *p2 = (UTF8*)Tmp;
-	for (i = 0; i < saved_key_length; i += 2) {
-		p2[i] = p[i+1];
-		p2[i+1] = p[i];
-	}
-	p2[i] = 0;
-	p2[i+1] = 0;
-//	char *x = utf16_to_enc(Tmp);
-//	printf ("x=%s\n",x);
-//	return x;
-	return (char*)utf16_to_enc(Tmp);
-#endif
 #endif
 }
 

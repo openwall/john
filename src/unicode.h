@@ -83,8 +83,8 @@ char * utf8_to_enc_r (UTF8 *src, char* dst, int dstlen);
 extern UTF8 * utf16_to_utf8 (const UTF16* source);
 extern UTF8 * utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16* source);
 
-/* Convert back to UTF-8 or ISO-8859-1 depending on --encoding= flag
- * (for get_key without a saved_plain) */
+/* Convert back to UTF-8 or codepage (for get_key without a saved_plain)
+   from UTF-16LE (regardless of host architecture) */
 extern UTF8 * utf16_to_enc (const UTF16* source);
 extern UTF8 * utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16* source);
 

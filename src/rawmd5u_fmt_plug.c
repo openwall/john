@@ -417,20 +417,7 @@ static char *get_key(int index)
 	}
 	return (char*)utf16_to_enc(key);
 #else
-#if ARCH_LITTLE_ENDIAN
 	return (char*)utf16_to_enc(saved_key);
-#else
-	int i;
-	UTF16 Tmp[80];
-	UTF8 *p = (UTF8*)saved_key, *p2 = (UTF8*)Tmp;
-	for (i = 0; i < saved_key_length; i += 2) {
-		p2[i] = p[i+1];
-		p2[i+1] = p[i];
-	}
-	p2[i] = 0;
-	p2[i+1] = 0;
-	return (char*)utf16_to_enc(Tmp);
-#endif
 #endif
 }
 
