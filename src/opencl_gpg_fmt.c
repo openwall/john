@@ -31,7 +31,7 @@
 #define MIN_KEYS_PER_CRYPT	8*1024
 #define MAX_KEYS_PER_CRYPT	MIN_KEYS_PER_CRYPT
 #define BINARY_SIZE		0
-#define PLAINTEXT_LENGTH	20
+#define PLAINTEXT_LENGTH	32
 #define SALT_SIZE		sizeof(struct custom_salt)
 
 #define uint8_t			unsigned char
@@ -56,16 +56,8 @@ typedef struct {
 static int *cracked;
 static int any_cracked;
 
-
-#define KEYBUFFER_LENGTH 8192
-#ifndef MD5_DIGEST_LENGTH
-#define MD5_DIGEST_LENGTH 16
-#endif
-
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64
-
-static int *cracked;
 
 enum {
 	SPEC_SIMPLE = 0,

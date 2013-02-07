@@ -28,6 +28,12 @@
  *  http://www.itl.nist.gov/fipspubs/fip180-1.htm
  */
 
+#include "opencl_device_info.h"
+
+#if gpu_amd(DEVICE_INFO)
+#define USE_BITSELECT
+#endif
+
 #define  uint8_t		uchar
 #define uint16_t		ushort
 #define uint32_t		uint
@@ -99,7 +105,7 @@ typedef struct {
 
 typedef struct
 {
-	uint32_t total[2];     /*!< number of bytes processed  */
+	uint32_t total;        /*!< number of bytes processed  */
 	uint32_t state[5];     /*!< intermediate digest state  */
 	uint8_t buffer[64];    /*!< data block being processed */
 }
@@ -107,8 +113,7 @@ typedef struct
 
 inline void sha1_init( sha1_context *ctx )
 {
-	ctx->total[0] = 0;
-	ctx->total[1] = 0;
+	ctx->total = 0;
 
 	ctx->state[0] = 0x67452301;
 	ctx->state[1] = 0xEFCDAB89;
@@ -138,7 +143,11 @@ inline void sha1_process( sha1_context *ctx, const uchar data[64] )
 	GET_UINT_BE( W[14], data, 56 );
 	GET_UINT_BE( W[15], data, 60 );
 
+#if gpu(DEVICE_INFO)
+#define S(x,n) (rotate(x, (uint)n))
+#else
 #define S(x,n) ((x << n) | ((x & 0xFFFFFFFF) >> (32 - n)))
+#endif
 
 #define R(t)	  \
 	( \
@@ -158,7 +167,11 @@ inline void sha1_process( sha1_context *ctx, const uchar data[64] )
 	D = ctx->state[3];
 	E = ctx->state[4];
 
-#define F(x,y,z) (z ^ (x & (y ^ z)))
+#ifdef USE_BITSELECT
+#define F(x, y, z)	bitselect(z, y, x)
+#else
+#define F(x, y, z)	(z ^ (x & (y ^ z)))
+#endif
 #define K 0x5A827999
 
 	P( A, B, C, D, E, W[0]  );
@@ -212,7 +225,11 @@ inline void sha1_process( sha1_context *ctx, const uchar data[64] )
 #undef K
 #undef F
 
-#define F(x,y,z) ((x & y) | (z & (x | y)))
+#ifdef USE_BITSELECT
+#define F(x, y, z)	(bitselect(x, y, z) ^ bitselect(x, 0U, y))
+#else
+#define F(x, y, z)	((x & y) | (z & (x | y)))
+#endif
 #define K 0x8F1BBCDC
 
 	P( A, B, C, D, E, R(40) );
@@ -284,37 +301,33 @@ inline void sha1_update( sha1_context *ctx, const uchar *input, int ilen )
 	if( ilen <= 0 )
 		return;
 
-	left = ctx->total[0] & 0x3F;
+	left = ctx->total & 0x3F;
 	fill = 64 - left;
 
-	ctx->total[0] += (uint32_t) ilen;
-	ctx->total[0] &= 0xFFFFFFFF;
-
-	if( ctx->total[0] < (uint32_t) ilen )
-		ctx->total[1]++;
+	ctx->total += (uint32_t) ilen;
 
 	if( left && ilen >= fill )
-		{
-			_memcpy_( (void *) (ctx->buffer + left),
-			          input, fill );
-			sha1_process( ctx, ctx->buffer );
-			input += fill;
-			ilen  -= fill;
-			left = 0;
-		}
+	{
+		_memcpy_( (void *) (ctx->buffer + left),
+		          input, fill );
+		sha1_process( ctx, ctx->buffer );
+		input += fill;
+		ilen  -= fill;
+		left = 0;
+	}
 
 	while( ilen >= 64 )
-		{
-			sha1_process( ctx, input );
-			input += 64;
-			ilen  -= 64;
-		}
+	{
+		sha1_process( ctx, input );
+		input += 64;
+		ilen  -= 64;
+	}
 
 	if( ilen > 0 )
-		{
-			_memcpy_( (void *) (ctx->buffer + left),
-			          input, ilen );
-		}
+	{
+		_memcpy_( (void *) (ctx->buffer + left),
+		          input, ilen );
+	}
 }
 
 /*
@@ -323,7 +336,7 @@ inline void sha1_update( sha1_context *ctx, const uchar *input, int ilen )
 inline void sha1_final( sha1_context *ctx, uchar output[20] )
 {
 	uint32_t last, padn;
-	uint32_t high, low;
+	uint32_t bits;
 	uchar msglen[8];
 	const uchar sha1_padding[64] = {
 		0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -332,14 +345,12 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 	};
 
-	high = ( ctx->total[0] >> 29 )
-		| ( ctx->total[1] <<  3 );
-	low  = ( ctx->total[0] <<  3 );
+	bits  = ctx->total <<  3;
 
-	PUT_UINT_BE( high, msglen, 0 );
-	PUT_UINT_BE( low,  msglen, 4 );
+	PUT_UINT_BE( 0, msglen, 0 );
+	PUT_UINT_BE( bits,  msglen, 4 );
 
-	last = ctx->total[0] & 0x3F;
+	last = ctx->total & 0x3F;
 	padn = ( last < 56 ) ? ( 56 - last ) : ( 120 - last );
 
 	sha1_update( ctx, (uchar *) sha1_padding, padn );
@@ -352,22 +363,6 @@ inline void sha1_final( sha1_context *ctx, uchar output[20] )
 	PUT_UINT_BE( ctx->state[4], output, 16 );
 }
 
-/*
- * output = SHA-1( input buffer )
- */
-#if 0 // unused
-static void sha1( const uchar *input, int ilen, uchar output[20] )
-{
-	sha1_context ctx;
-
-	sha1_init( &ctx );
-	sha1_update( &ctx, input, ilen );
-	sha1_final( &ctx, output );
-
-	// memset( &ctx, 0, sizeof( sha1_context ) );
-}
-#endif
-
 #define KEYBUFFER_LENGTH (64 * (PLAINTEXT_LENGTH + 8))
 #define SHA_DIGEST_LENGTH 20
 
@@ -379,7 +374,7 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 #if PLAINTEXT_LENGTH > 20
 	int i;
 	int numHashes = (length + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH;
-	uchar wtf = '\0';
+	const uchar pad[(PLAINTEXT_LENGTH + SHA_DIGEST_LENGTH - 1) / SHA_DIGEST_LENGTH] = { 0 };
 #endif
 	uchar lkey[20];
 	int outlen = 0;
@@ -400,8 +395,8 @@ inline void S2KItSaltedSHA1Generator(__global const uchar *password, int passwor
 		sha1_init(&ctx);
 
 #if PLAINTEXT_LENGTH > 20
-		for (n = 0; n < i; n++)
-			sha1_update(&ctx, &wtf, 1);
+		if (i)
+			sha1_update(&ctx, pad, i);
 #endif
 		// Find multiplicator
 		tl = password_length + 8;
