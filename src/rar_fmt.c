@@ -317,7 +317,11 @@ static void *get_salt(char *ciphertext)
 		p = strtok(NULL, "*");
 		rarfile.method = atoi16[ARCH_INDEX(p[0])] * 16 + atoi16[ARCH_INDEX(p[1])];
 		if (rarfile.method != 0x30)
+#if ARCH_LITTLE_ENDIAN
 			rarfile.crc.w = ~rarfile.crc.w;
+#else
+			rarfile.crc.w = JOHNSWAP(~rarfile.crc.w);
+#endif
 	}
 	MEM_FREE(keep_ptr);
 	return (void*)&rarfile;
@@ -503,13 +507,19 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	unsigned char bit_length[20];
 	unsigned char *was = next;
 
+#if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 	hold = JOHNSWAP(*(unsigned int*)next);
+#else
+	hold = next[3] + (((unsigned int)next[2]) << 8) +
+		(((unsigned int)next[1]) << 16) +
+		(((unsigned int)next[0]) << 24);
+#endif
 	next += 4;	// we already have the first 32 bits
 	hold <<= 2;	// we already processed 2 bits, PPM and keepOldTable
 	bits = 32 - 2;
 
 	/* First, read 20 pairs of (bitlength[, zerocount]) */
-	for (i=0 ; i < 20 ; i++) {
+	for (i = 0 ; i < 20 ; i++) {
 		int length, zero_count;
 
 		length = hold >> 28;
@@ -616,12 +626,18 @@ static void crypt_all(int count)
 				unsigned int tempout[5];
 
 				SHA1_Final((unsigned char*) tempout, &tempctx);
+#if ARCH_LITTLE_ENDIAN
 				aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)JOHNSWAP(tempout[4]);
+#else
+				aes_iv[i16 + i / (ROUNDS / 16)] = (unsigned char)tempout[4];
+#endif
 			}
 		}
 		SHA1_Final((unsigned char*)digest, &ctx);
+#if ARCH_LITTLE_ENDIAN
 		for (j = 0; j < 5; j++)	/* reverse byte order */
 			digest[j] = JOHNSWAP(digest[j]);
+#endif
 		for (i = 0; i < 4; i++)
 			for (j = 0; j < 4; j++)
 				aes_key[i16 + i * 4 + j] = (unsigned char)(digest[i] >> (j * 8));

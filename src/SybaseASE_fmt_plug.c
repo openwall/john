@@ -223,7 +223,6 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-#if ARCH_LITTLE_ENDIAN
     UTF16 key_le[PLAINTEXT_LENGTH + 1];
     UTF16 *s = prep_key[index];
     UTF16 *d = key_le;
@@ -233,9 +232,6 @@ static char *get_key(int index)
         s++;
 
     return (char*)utf16_to_enc(key_le);
-#else
-    return (char*)utf16_to_enc(prep_key[index]);
-#endif
 }
 
 static void crypt_all(int count)

@@ -53,6 +53,8 @@
 #define MAX_KEYS_PER_CRYPT		1
 #endif
 
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+
 static struct fmt_tests tests[] = {
 	{"0x01004086CEB6BF932BC4151A1AF1F13CD17301D70816A8886908", "toto"},
 	{"0x01004086CEB60ED526885801C23B366965586A43D3DEAC6DD3FD", "titi"},
@@ -154,7 +156,7 @@ static void init(struct fmt_main *self)
 #endif
 	if (options.utf8) {
 		self->methods.set_key = set_key_utf8;
-		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 	}
 	else if (options.iso8859_1 || options.ascii) {
 		; // do nothing
@@ -205,7 +207,11 @@ key_cleaning:
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = (UTF16*)saved_key;
 	for (key_length = 0; s[key_length]; key_length++)
+#if ARCH_LITTLE_ENDIAN
 		d[key_length] = s[key_length];
+#else
+		d[key_length] = s[key_length] << 8;
+#endif
 	d[key_length] = 0;
 	key_length <<= 1;
 #endif

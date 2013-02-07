@@ -920,8 +920,18 @@ static char *get_key(int index)
 	else
 		return (char*)utf16_to_enc(get_key_helper(&nt_buffer1x[16 * (index - NT_NUM_KEYS4)], 1));
 #else
+#if ARCH_LITTLE_ENDIAN
 	return (char*)utf16_to_enc(get_key_helper(&nt_buffer1x[index << 4], 1));
+#else
+	UTF16 *u16 = get_key_helper(&nt_buffer1x[index << 4], 1);
+	UTF16 *out = u16;
 
+	while (*u16) {
+		*u16 = (*u16 << 8) | (*u16 >> 8);
+		u16++;
+	}
+	return (char*)utf16_to_enc(out);
+#endif
 #endif
 }
 

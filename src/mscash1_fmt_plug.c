@@ -26,6 +26,7 @@
 #include "unicode.h"
 #include "options.h"
 #include "loader.h"
+#include "johnswap.h"
 
 #define FORMAT_LABEL			"mscash"
 #define FORMAT_NAME			"M$ Cache Hash MD4"
@@ -98,15 +99,10 @@ static void * get_salt_encoding(char *_ciphertext);
 struct fmt_main fmt_mscash;
 
 #if !ARCH_LITTLE_ENDIAN
-#define ROTATE_LEFT(x, n) (x) = (((x)<<(n))|((unsigned int)(x)>>(32-(n))))
-static void swap(unsigned int *x, unsigned int *y, int count)
+static inline void swap(unsigned int *x, unsigned int *y, int count)
 {
-	unsigned int tmp;
-	do {
-		tmp = *x++;
-		ROTATE_LEFT(tmp, 16);
-		*y++ = ((tmp & 0x00FF00FF) << 8) | ((tmp >> 8) & 0x00FF00FF);
-	} while (--count);
+	while (count--)
+		*x++ = JOHNSWAP(*y++);
 }
 #endif
 
@@ -402,75 +398,22 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int binary_hash_0(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0x0F;
-}
 
-static int binary_hash_1(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0xFF;
-}
+static int binary_hash_0(void *binary) { return ((unsigned int*)binary)[3] & 0x0F; }
+static int binary_hash_1(void *binary) { return ((unsigned int*)binary)[3] & 0xFF; }
+static int binary_hash_2(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFF; }
+static int binary_hash_3(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFFF; }
+static int binary_hash_4(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFFFF; }
+static int binary_hash_5(void *binary) { return ((unsigned int*)binary)[3] & 0x0FFFFFF; }
+static int binary_hash_6(void *binary) { return ((unsigned int*)binary)[3] & 0x07FFFFFF; }
 
-static int binary_hash_2(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0x0FFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0x0FFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0x0FFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0x0FFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return ((unsigned int*)binary)[3] & 0x07FFFFFF;
-}
-
-static int get_hash_0(int index)
-{
-	return output1x[4*index+3] & 0x0F;
-}
-
-static int get_hash_1(int index)
-{
-	return output1x[4*index+3] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return output1x[4*index+3] & 0x0FFF;
-}
-
-static int get_hash_3(int index)
-{
-	return output1x[4*index+3] & 0x0FFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return output1x[4*index+3] & 0x0FFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return output1x[4*index+3] & 0x0FFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return output1x[4*index+3] & 0x07FFFFFF;
-}
+static int get_hash_0(int index) { return output1x[4*index+3] & 0x0F; }
+static int get_hash_1(int index) { return output1x[4*index+3] & 0xFF; }
+static int get_hash_2(int index) { return output1x[4*index+3] & 0x0FFF; }
+static int get_hash_3(int index) { return output1x[4*index+3] & 0x0FFFF; }
+static int get_hash_4(int index) { return output1x[4*index+3] & 0x0FFFFF; }
+static int get_hash_5(int index) { return output1x[4*index+3] & 0x0FFFFFF; }
+static int get_hash_6(int index) { return output1x[4*index+3] & 0x07FFFFFF; }
 
 static void nt_hash(int count)
 {
@@ -738,12 +681,6 @@ static void set_key(char *_key, int index)
 	               &last_i[index]);
 	//new password_candidate
 	new_key=1;
-
-//	printf ("\n");
-//	dump_stuff(ms_buffer1x, 64);
-
-//dump_stuff_msg("setkey     ", (unsigned char*)&ms_buffer1x[index << 4], 40);
-//{static int i;if (++i==1)exit(0);}
 }
 
 // UTF-8 conversion right into key buffer
@@ -855,9 +792,6 @@ static void set_key_utf8(char *_key, int index)
 	                &last_i[index]);
 	//new password_candidate
 	new_key=1;
-
-//dump_stuff_msg("setkey utf8", (unsigned char*)&ms_buffer1x[index << 4], 40);
-//{static int i;if (++i==1)exit(0);}
 }
 
 // This is common code for the SSE/MMX/generic variants of non-UTF8 non-ISO-8859-1 set_key
@@ -903,43 +837,34 @@ static void set_key_encoding(char *_key, int index)
 	               &last_i[index]);
 	//new password_candidate
 	new_key=1;
-
-//	printf ("\n");
-//	dump_stuff(ms_buffer1x, 64);
-
-//dump_stuff_msg("setkey     ", (unsigned char*)&ms_buffer1x[index << 4], 40);
-//{static int i;if (++i==1)exit(0);}
 }
 
 
-// Get the key back from the key buffer, from UCS-2
-// This is common code for the SSE/MMX/generic variants
-static inline UTF16 *get_key_helper(unsigned int * keybuffer, unsigned int xBuf)
-{
-	static UTF16 key[PLAINTEXT_LENGTH + 1];
-	unsigned int md4_size=0;
-	unsigned int i=0;
-
-	for(; md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
-	{
-		key[md4_size] = keybuffer[i];
-		key[md4_size+1] = keybuffer[i] >> 16;
-		if (key[md4_size] == 0x80 && key[md4_size+1] == 0) {
-			key[md4_size] = 0;
-			break;
-		}
-		++md4_size;
-		if (key[md4_size] == 0x80 && ((keybuffer[i+xBuf]&0xFFFF) == 0 || md4_size == PLAINTEXT_LENGTH)) {
-			key[md4_size] = 0;
-			break;
-		}
-	}
-	return key;
-}
-
+// Get the key back from the key buffer, from UCS-2 LE
 static char *get_key(int index)
 {
-	return (char *)utf16_to_enc(get_key_helper(&ms_buffer1x[index << 4], 1));
+	static UTF16 key[PLAINTEXT_LENGTH + 1];
+	unsigned int * keybuffer = &ms_buffer1x[index << 4];
+	unsigned int md4_size;
+	unsigned int i=0;
+	int len = keybuffer[14] >> 4;
+
+	for(md4_size = 0; md4_size < len; i++, md4_size += 2)
+	{
+#if ARCH_LITTLE_ENDIAN
+		key[md4_size] = keybuffer[i];
+		key[md4_size+1] = keybuffer[i] >> 16;
+#else
+		key[md4_size] = keybuffer[i] >> 16;
+		key[md4_size+1] = keybuffer[i];
+#endif
+	}
+#if !ARCH_LITTLE_ENDIAN
+	swap((unsigned int*)key, (unsigned int*)key, md4_size >> 1);
+#endif
+	key[len] = 0x00;
+
+	return (char *)utf16_to_enc(key);
 }
 
 // Public domain hash function by DJ Bernstein (salt is a username)

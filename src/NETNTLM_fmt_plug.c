@@ -133,7 +133,7 @@ static ARCH_WORD_32 *bitmap;
 static int cmps_per_crypt, use_bitmap;
 static int valid_i, valid_j;
 
-static uchar (*crypt_key)[21]; // NT hash
+static uchar (*crypt_key)[22]; /* 21 + aligned to short */
 static uchar *challenge;
 static int keys_prepared;
 
@@ -794,20 +794,7 @@ static char *get_key(int index)
 	}
 	return (char*)utf16_to_enc(key);
 #else
-#if ARCH_LITTLE_ENDIAN
 	return (char*)utf16_to_enc(saved_key[index]);
-#else
-	int i;
-	UTF16 Tmp[80];
-	UTF8 *p = (UTF8*)saved_key[index], *p2 = (UTF8*)Tmp;
-	for (i = 0; i < saved_key_length[index]; i += 2) {
-		p2[i] = p[i+1];
-		p2[i+1] = p[i];
-	}
-	p2[i] = 0;
-	p2[i+1] = 0;
-	return (char*)utf16_to_enc(Tmp);
-#endif
 #endif
 }
 

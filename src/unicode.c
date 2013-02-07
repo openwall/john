@@ -645,7 +645,8 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 }
 
 // Convert UTF-16LE to UTF-8. This is not optimised as it's
-// only used in get_key() as of now.
+// only used in get_key() as of now. NOTE this is from LE
+// regardless of architecture!
 // Non thread-safe version
 UTF8 *utf16_to_utf8 (const UTF16 *source) {
 	static UTF8 ret_Key[PLAINTEXT_BUFFER_SIZE + 1];
@@ -663,6 +664,9 @@ UTF8 *utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 		const UTF32 byteMark = 0x80;
 
 		ch = *source++;
+#if !ARCH_LITTLE_ENDIAN
+		ch = (ch >> 8) | (UTF16)(ch << 8);
+#endif
 		/* If we have a surrogate pair, convert to UTF32 first. */
 		if (ch >= UNI_SUR_HIGH_START && ch <= UNI_SUR_HIGH_END) {
 			/* If the 16 bits following the high surrogate are in the source buffer... */
@@ -673,15 +677,19 @@ UTF8 *utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 					ch = ((ch - UNI_SUR_HIGH_START) << halfShift)
 						+ (ch2 - UNI_SUR_LOW_START) + halfBase;
 					++source;
-//				} else { /* it's an unpaired high surrogate */
-//					--source; /* return to the illegal value itself */
-//					fprintf(stderr, "warning, utf16toutf8 failed (illegal) - this is a bug in JtR\n");
-//					break;
+#ifdef DEBUG
+				} else { /* it's an unpaired high surrogate */
+					--source; /* return to the illegal value itself */
+					fprintf(stderr, "warning, utf16toutf8 failed (illegal) - this is a bug in JtR\n");
+					break;
+#endif
 				}
-//			} else { /* We don't have the 16 bits following the high surrogate. */
-//				--source; /* return to the high surrogate */
-//				fprintf(stderr, "warning, utf16toutf8 failed (no surrogate) - this is a bug in JtR\n");
-//				break;
+#ifdef DEBUG
+			} else { /* We don't have the 16 bits following the high surrogate. */
+				--source; /* return to the high surrogate */
+				fprintf(stderr, "warning, utf16toutf8 failed (no surrogate) - this is a bug in JtR\n");
+				break;
+#endif
 			}
 		}
 		/* Figure out how many bytes the result will require */
@@ -746,8 +754,14 @@ UTF8 *utf16_to_enc_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 		UTF8 *tgt = dst;
 		UTF8 *targetEnd = tgt + dst_len;
 
-		while (*source && tgt < targetEnd)
+		while (*source && tgt < targetEnd) {
+#if ARCH_LITTLE_ENDIAN
 			*tgt++ = CP_from_Unicode[*source++];
+#else
+			*tgt++ = CP_from_Unicode[(*source >> 8) | (UTF16)(*source << 8)];
+			source++;
+#endif
+		}
 		*tgt = 0;
 	}
 	return dst;

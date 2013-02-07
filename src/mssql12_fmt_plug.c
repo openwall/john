@@ -58,6 +58,8 @@ static int omp_t = 1;
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
+#define MIN(a, b)		(((a) > (b)) ? (b) : (a))
+
 static struct fmt_tests tests[] = {
 	{"0x0200F733058A07892C5CACE899768F89965F6BD1DED7955FE89E1C9A10E27849B0B213B5CE92CC9347ECCB34C3EFADAF2FD99BFFECD8D9150DD6AACB5D409A9D2652A4E0AF16", "Password1!"},
 	{"0x0200AB3E1F9028A739EEF62ABF672427276A32D5EDD349E638E7F2CD81DAA247CFE20EE4E3B0A30B2D0AE3C3FA010E61752F1BF45E045041F1B988C083C7F118527E3E5F0562", "openwall"},
@@ -124,7 +126,7 @@ static void init(struct fmt_main *self)
 	key_length = mem_calloc_tiny(sizeof(*key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	if (options.utf8) {
 		self->methods.set_key = set_key_enc;
-		self->params.plaintext_length = PLAINTEXT_LENGTH * 3;
+		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
 	}
 	else if (options.iso8859_1 || options.ascii) {
 		; // do nothing
@@ -139,11 +141,15 @@ static void set_key(char *_key, int index)
 	/* ASCII or ISO-8859-1 to UCS-2 */
 	UTF8 *s = (UTF8*)_key;
 	UTF16 *d = (UTF16*)saved_key[index];
+
 	for (key_length[index] = 0; s[key_length[index]]; key_length[index]++)
+#if ARCH_LITTLE_ENDIAN
 		d[key_length[index]] = s[key_length[index]];
+#else
+		d[key_length[index]] = s[key_length[index]] << 8;
+#endif
 	d[key_length[index]] = 0;
 	key_length[index] <<= 1;
-
 }
 
 static void set_key_enc(char *_key, int index)
