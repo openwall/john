@@ -209,10 +209,10 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
-inline void ctx_update_special(sha512_ctx * ctx,
-                               uint8_t    * string,
+inline void ctx_update_special(         sha512_ctx * ctx,
+                               __global uint8_t    * string,
                                const uint32_t len) {
-    uint64_t * src = (uint64_t *) string;
+    __global uint64_t * src = (__global uint64_t *) string;
     uint64_t * dst = ctx->buffer->mem_64;
 
     ctx->total += len;
@@ -344,7 +344,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     init_ctx(ctx);
 
-    ctx_update_G(ctx, pass, passlen);
+    ctx_update_special(ctx, pass, passlen);
     ctx_update_C(ctx, salt, saltlen);
     ctx_update_G(ctx, pass, passlen);
 
@@ -352,7 +352,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
     init_ctx(ctx);
 
-    ctx_update_G(ctx, pass, passlen);
+    ctx_update_special(ctx, pass, passlen);
     ctx_update_C(ctx, salt, saltlen);
     ctx_update_R(ctx, alt_result->mem_08, passlen);
 
@@ -397,6 +397,15 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     pos = (uint32_t) (start >> 3);                 \
     dest[pos]   = (dest[pos] | (src << tmp));      \
     dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
+}
+
+#define APPEND_FINAL(dest, src, start) {           \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
+    dest[pos]   = (dest[pos] | (src << tmp));      \
+    if (pos < 15)                                  \
+       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
 
 #define temp_result fast_buffers->temp_result
@@ -480,16 +489,14 @@ inline void sha512_crypt(sha512_buffers * fast_buffers,
             APPEND(ctx->buffer->mem_64, alt_result->mem_64[4], ctx->total + 32);
             APPEND(ctx->buffer->mem_64, alt_result->mem_64[5], ctx->total + 40);
             APPEND(ctx->buffer->mem_64, alt_result->mem_64[6], ctx->total + 48);
-            APPEND(ctx->buffer->mem_64, alt_result->mem_64[7], ctx->total + 56);
+            APPEND_FINAL(ctx->buffer->mem_64, alt_result->mem_64[7], ctx->total + 56);
             ctx->total += 64U;
         } else {
             APPEND(ctx->buffer->mem_64, p_sequence->mem_64[0], ctx->total);
             APPEND(ctx->buffer->mem_64, p_sequence->mem_64[1], ctx->total + 8);
-            APPEND(ctx->buffer->mem_64, p_sequence->mem_64[2], ctx->total + 16);
+            APPEND_FINAL(ctx->buffer->mem_64, p_sequence->mem_64[2], ctx->total + 16);
             ctx->total += passlen;
         }
-        ctx->buflen = ctx->total;
-
         sha512_digest_special(ctx);
         sha512_digest_move(ctx, alt_result->mem_64, BUFFER_ARRAY);
     }
