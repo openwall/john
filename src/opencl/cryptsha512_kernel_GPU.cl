@@ -222,37 +222,34 @@ inline void ctx_update_special(         sha512_ctx * ctx,
         *dst++ = *src++;
 }
 
-inline void clean_buffer(uint64_t     * src,
+inline void clear_buffer(uint64_t     * destination,
                          const uint32_t len,
                          const uint32_t limit) {
 
-    uint32_t length = len;
-    uint8_t * string = (uint8_t *) src;
+    uint32_t length;
 
-    while (length & 7)
-        PUT(string, length++, 0);
+    CLEAR_BUFFER_64(destination, len);
 
-    uint64_t * l = (uint64_t *) (string + length);
+    uint64_t * l = destination + length;
 
     while (length < limit) {
         *l++ = 0;
-        length += 8;
+        length++;
     }
 }
 
 inline void ctx_append_1(sha512_ctx * ctx) {
 
-    uint32_t length = ctx->buflen;
-    PUT(BUFFER, length, 0x80);
+    uint32_t length;
+    PUT(BUFFER, ctx->buflen, 0x80);
 
-    while (++length & 7)
-        PUT(BUFFER, length, 0);
+    CLEAR_BUFFER_64(ctx->buffer->mem_64, ctx->buflen + 1);
 
-    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+    uint64_t * l = ctx->buffer->mem_64 + length;
 
-    while (length < 128) {
+    while (length < 16) {
         *l++ = 0;
-        length += 8;
+        length ++;
     }
 }
 
@@ -372,7 +369,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 
     sha512_digest(ctx);
     sha512_digest_move(ctx, p_sequence->mem_64, PLAINTEXT_ARRAY);
-    clean_buffer(p_sequence->mem_64, passlen, PLAINTEXT_LENGTH);
+    clear_buffer(p_sequence->mem_64, passlen, PLAINTEXT_ARRAY);
     init_ctx(ctx);
 
     /* For every character in the password add the entire password. */
@@ -382,7 +379,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
     /* Finish the digest. */
     sha512_digest(ctx);
     sha512_digest_move(ctx, temp_result->mem_64, SALT_ARRAY);
-    clean_buffer(temp_result->mem_64, saltlen, SALT_LENGTH);
+    clear_buffer(temp_result->mem_64, saltlen, SALT_ARRAY);
 }
 #undef salt
 #undef pass
@@ -390,23 +387,6 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 #undef passlen
 #undef temp_result
 #undef p_sequence
-
-#define APPEND(dest, src, start) {                 \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src << tmp));      \
-    dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
-}
-
-#define APPEND_FINAL(dest, src, start) {           \
-    uint32_t tmp, pos;                             \
-    tmp = (uint32_t) ((start & 7) << 3);           \
-    pos = (uint32_t) (start >> 3);                 \
-    dest[pos]   = (dest[pos] | (src << tmp));      \
-    if (pos < 15)                                  \
-       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
-}
 
 #define temp_result fast_buffers->temp_result
 #define p_sequence  fast_buffers->p_sequence
