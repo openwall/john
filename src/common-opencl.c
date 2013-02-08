@@ -412,6 +412,7 @@ void init_opencl_devices(void)
 
 	if (platform_id == -1 || ocl_gpu_id == -1) {
 		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+		ocl_gpu_id = get_sequential_id(ocl_gpu_id, platform_id);
 	}
 
 	if (!device_list[0]) {
@@ -1186,6 +1187,11 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 		for (; d < num_devices; ++d) {
 			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
 					sizeof(cl_ulong), &long_entries, NULL);
+
+			if (*platform_id == -1 || *dev_id  == -1) {
+				*platform_id = i;
+				*dev_id = d;
+			}
 			if (long_entries & CL_DEVICE_TYPE_GPU) {
 				*platform_id = i;
 				*dev_id = d;
