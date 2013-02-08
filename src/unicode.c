@@ -135,7 +135,7 @@ UTF8 CP_isSeparator[0x100];
 #if ARCH_LITTLE_ENDIAN
 #define BE_FIX(a) a
 #else
-#define BE_FIX(a) ( ((a&0xFF00)>>8) | ((a&0xFF)<<8) )
+#define BE_FIX(a) ( (((a)&0xFF00)>>8) | (((a)&0xFF)<<8) )
 #endif
 
 //Init values for NT hashing
@@ -653,7 +653,7 @@ UTF8 *utf16_to_utf8 (const UTF16 *source) {
 	return utf16_to_utf8_r(ret_Key, PLAINTEXT_BUFFER_SIZE, source);
 }
 
-// Thread-safe version
+// Thread-safe version. NOTE this is from LE regardless of arch.
 UTF8 *utf16_to_utf8_r (UTF8 *dst, int dst_len, const UTF16 *source) {
 	UTF8 *tpt = dst;
 	UTF8 *targetEnd = tpt + dst_len;
@@ -1183,7 +1183,7 @@ int initUnicode(int type) {
 //	return 0;
 //}
 
-// Lowercase UTF-16
+// Lowercase UTF-16 LE (regardless of arch)
 int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 	int i, j = 0;
 	UTF16 cur_src;
@@ -1194,10 +1194,10 @@ int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 		}
 		cur_src = BE_FIX(*src);
 		if (ucs2_downcase[ cur_src ] == 0)
-			*dst = cur_src;
+			*dst = BE_FIX(cur_src);
 		else {
 			if (ucs2_downcase[ cur_src ] & 0xFFFE) {
-				*dst = ucs2_downcase[ cur_src ];
+				*dst = BE_FIX(ucs2_downcase[ cur_src ]);
 			}
 			else {
 				// multi-byte.
@@ -1209,7 +1209,7 @@ int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 							return -j;
 						}
 						for (l = 0; l < uniMultiCase[k].Cnt; ++l)
-							dst[l] = uniMultiCase[k].ToVals[l];
+							dst[l] = BE_FIX(uniMultiCase[k].ToVals[l]);
 						dst += uniMultiCase[k].Cnt-1;
 						j += uniMultiCase[k].Cnt-1;
 						break;
@@ -1222,7 +1222,7 @@ int utf16_lc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 	return j;
 }
 
-// Uppercase UTF-16
+// Uppercase UTF-16 LE (regardless of arch)
 int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 	int i, j = 0;
 	UTF16 cur_src;
@@ -1233,10 +1233,10 @@ int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 		}
 		cur_src = BE_FIX(*src);
 		if (ucs2_upcase[ cur_src ] == 0)
-			*dst = cur_src;
+			*dst = BE_FIX(cur_src);
 		else {
 			if (ucs2_upcase[ cur_src ] & 0xFFFE) {
-				*dst = ucs2_upcase[ cur_src ];
+				*dst = BE_FIX(ucs2_upcase[ cur_src ]);
 			}
 			else {
 				// multi-byte.
@@ -1248,7 +1248,7 @@ int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len) {
 							return -j;
 						}
 						for (l = 0; l < uniMultiCase[k].Cnt; ++l)
-							dst[l] = uniMultiCase[k].ToVals[l];
+							dst[l] = BE_FIX(uniMultiCase[k].ToVals[l]);
 						dst += uniMultiCase[k].Cnt-1;
 						j += uniMultiCase[k].Cnt-1;
 						break;

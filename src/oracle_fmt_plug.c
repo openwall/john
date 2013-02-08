@@ -188,9 +188,7 @@ static void set_salt(void *salt) {
 
 static void oracle_set_key(char *key, int index) {
 	UTF16 cur_key_mixedcase[PLAINTEXT_LENGTH+1];
-#if ARCH_LITTLE_ENDIAN
 	UTF16 *c;
-#endif
 
 	plain_key = key;
 	// Can't use enc_to_utf16_be() because we need to do utf16_uc later
@@ -206,12 +204,10 @@ static void oracle_set_key(char *key, int index) {
 	if (key_length < 0)
 		key_length *= -1;
 
-	// This must be byte-swapped on LE systems only (odd!?)
-#if ARCH_LITTLE_ENDIAN
+	// Now byte-swap to UTF16-BE
 	c = cur_key;
 	while((*c = *c << 8 | *c >> 8))
 		c++;
-#endif
 	key_length *= sizeof(UTF16);
 
 #ifdef DEBUG_ORACLE
