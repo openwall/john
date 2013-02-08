@@ -35,6 +35,7 @@ static size_t program_size;
 
 extern volatile int bench_running;
 static void opencl_get_dev_info(unsigned int sequential_id);
+static void find_valid_opencl_device(int *dev_id, int *platform_id);
 
 //Used by auto-tuning to decide how GWS should changed between trials.
 extern int common_get_next_gws_size(size_t num, int step, int startup,
@@ -411,7 +412,7 @@ void init_opencl_devices(void)
 	}
 
 	if (platform_id == -1 || ocl_gpu_id == -1) {
-		opencl_find_gpu(&ocl_gpu_id, &platform_id);
+		find_valid_opencl_device(&ocl_gpu_id, &platform_id);
 		ocl_gpu_id = get_sequential_id(ocl_gpu_id, platform_id);
 	}
 
@@ -1153,7 +1154,7 @@ static void opencl_get_dev_info(unsigned int sequential_id)
 	device_info[sequential_id] += get_byte_addressable(sequential_id);
 }
 
-void opencl_find_gpu(int *dev_id, int *platform_id)
+static void find_valid_opencl_device(int *dev_id, int *platform_id)
 {
 	cl_platform_id platform[MAX_PLATFORMS];
 	cl_device_id devices[MAXGPUS];
@@ -1175,16 +1176,8 @@ void opencl_find_gpu(int *dev_id, int *platform_id)
 
 		if (!num_devices)
 			continue;
-		d = 0;
-		if (*dev_id >= 0) {
-			if (num_devices < *dev_id)
-				continue;
-			else
-				*platform_id = i;
-			d = *dev_id;
-			num_devices = *dev_id + 1;
-		}
-		for (; d < num_devices; ++d) {
+
+		for (d = 0; d < num_devices; ++d) {
 			clGetDeviceInfo(devices[d], CL_DEVICE_TYPE,
 					sizeof(cl_ulong), &long_entries, NULL);
 
