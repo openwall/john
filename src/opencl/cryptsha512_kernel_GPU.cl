@@ -222,6 +222,42 @@ inline void ctx_update_special(         sha512_ctx * ctx,
         *dst++ = *src++;
 }
 
+#if amd_gcn(DEVICE_INFO)
+inline void clear_buffer(uint64_t     * src,
+                         const uint32_t len,
+                         const uint32_t limit) {
+
+    uint32_t length = len;
+    uint8_t * string = (uint8_t *) src;
+
+    while (length & 7)
+        PUT(string, length++, 0);
+
+    uint64_t * l = (uint64_t *) (string + length);
+
+    while (length < limit) {
+        *l++ = 0;
+        length += 8;
+    }
+}
+
+inline void ctx_append_1(sha512_ctx * ctx) {
+
+    uint32_t length = ctx->buflen;
+    PUT(BUFFER, length, 0x80);
+
+    while (++length & 7)
+        PUT(BUFFER, length, 0);
+
+    uint64_t * l = (uint64_t *) (ctx->buffer->mem_08 + length);
+
+    while (length < 128) {
+        *l++ = 0;
+        length += 8;
+    }
+}
+
+#else
 inline void clear_buffer(uint64_t     * destination,
                          const uint32_t len,
                          const uint32_t limit) {
@@ -252,6 +288,7 @@ inline void ctx_append_1(sha512_ctx * ctx) {
         length ++;
     }
 }
+#endif
 
 inline void ctx_add_length(sha512_ctx * ctx) {
 
