@@ -173,6 +173,7 @@ static void clear_keys(void) {
 static void set_key(char *key, int index) {
 	UTF8 utf8[PLAINTEXT_LENGTH+1];
 	int utf8len, orig_len;
+
 #ifdef MMX_COEF
 	int i;
 	strnzcpy(plain_keys[index], key, PLAINTEXT_LENGTH + 1);
@@ -231,13 +232,8 @@ static void set_key_enc(char *key, int index) {
 	for(i=0;i<utf16len;i++)
 	{
 		unsigned char *uc = (unsigned char*)&(utf16key[i]);
-#if ARCH_LITTLE_ENDIAN
 		saved_key[(i<<1)  ] = uc[0];
 		saved_key[(i<<1)+1] = uc[1];
-#else
-		saved_key[(i<<1)  ] = uc[1];
-		saved_key[(i<<1)+1] = uc[0];
-#endif
 	}
 	key_length = i;
 #endif
