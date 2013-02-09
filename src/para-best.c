@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 
 		fprintf(stderr, "FAILED\n");
 	} else {
-		tmp = results.count;
+		tmp = results.crypts;
 		mul64by32(&tmp, clk_tck * 10);
 #ifdef _OPENMP
 		virtual = div64by32lo(&tmp, results.real);
@@ -81,8 +81,8 @@ int main(int argc, char **argv)
 		virtual = div64by32lo(&tmp, results.virtual);
 #endif
 
-		benchmark_cps(&results.count, results.real, s_real);
-		benchmark_cps(&results.count, results.virtual, s_virtual);
+		benchmark_cps(&results.crypts, results.real, s_real);
+		benchmark_cps(&results.crypts, results.virtual, s_virtual);
 
 		fprintf(stderr, "%s c/s real, %s c/s virtual\n",
 			s_real, s_virtual);
