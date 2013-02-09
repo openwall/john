@@ -1233,8 +1233,8 @@ void opencl_build_kernel_opt(char *kernel_filename, unsigned int sequential_id, 
 	build_kernel(sequential_id, options, 0, NULL);
 }
 
-// Only AMD gpu code, and OSX (including with nvidia)
-// will benefit from this routine.
+//CPU and any non nvidia GPU will benefit from this routine.
+//On OSX (including with nvidia) save binary kernel too.
 void opencl_build_kernel_save(char *kernel_filename, unsigned int sequential_id, char *options, int save, int warn) {
 	struct stat source_stat, bin_stat;
 	char dev_name[128], bin_name[128];
