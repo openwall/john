@@ -36,7 +36,7 @@
 
 #define SALT_LEN_MAX 16
 #define ROUNDS_DEFAULT 5000
-#define ROUNDS_MIN 1000
+#define ROUNDS_MIN 1	/* Drepper has it as 1000 */
 #define ROUNDS_MAX 999999999
 
 typedef struct {
