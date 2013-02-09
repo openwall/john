@@ -353,9 +353,9 @@ static int cmp_exact(char *source, int index)
 	MEM_FREE(binary);
 	MEM_FREE(crypt);
 	if (!result)
-		fprintf(stderr, "%s: Note: False positive from cmp_one() for "
-		        "'%s'. This is a bug or a\nmiswritten input line.\n",
-		        FORMAT_LABEL, saved_key[index]);
+		fprintf(stderr, "\n%s: Warning: Partial match for '%s'.\n"
+		        "This is a bug or a malformed input line of:\n%s\n",
+		        FORMAT_LABEL, saved_key[index], source);
 
 	return result;
 }
