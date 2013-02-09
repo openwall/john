@@ -30,15 +30,16 @@
 #define FORMAT_TAG		"$pbkdf2-hmac-sha512$"
 #define FORMAT_TAG2		"$ml$"
 #define FORMAT_TAG3		"grub.pbkdf2.sha512."
-#define MAX_CIPHERTEXT_LENGTH	1024 /* Bump here and code will work */
 #define FORMAT_NAME		"PBKDF2-HMAC-SHA512 GRUB2 / OS X 10.8"
 #if ARCH_BITS >= 64
 #define ALGORITHM_NAME		"64/" ARCH_BITS_STR " " SHA2_LIB
 #else
 #define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
-#define BINARY_SIZE		64 /* Can be longer but we ignore the rest */
-#define MAX_SALT_SIZE		64 /* Bump here and code will work */
+#define BINARY_SIZE		64
+#define MAX_CIPHERTEXT_LENGTH	1024 /* Bump this and code will adopt */
+#define MAX_BINARY_SIZE		(4*64) /* Bump this and code will adopt */
+#define MAX_SALT_SIZE		128 /* Bump this and code will adopt */
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -65,7 +66,7 @@ static struct fmt_tests tests[] = {
 	{"$ml$37313$189dce2ede21e297a8884d0a33e4431107e3e40866f3c493e5f9506c2bd2fe44$948010870e110a6d185494799552d8cf30b0203c6706ab06e6270bf0ac17d496d820c5a75c12caf9070051f34acd2a2911bb38b202eebd4413e571e4fbff883e75f35c36c88a2b42a4fb521a97953438c72b2182fd9c5bba902395766e703b52b9aaa3895770d3cebffbee05076d9110ebb9f0342692a238174655b1acdce1c0", "crackable4us"},
 	/* GRUB hash, GRUB format */
 	{"grub.pbkdf2.sha512.10000.4483972AD2C52E1F590B3E2260795FDA9CA0B07B96FF492814CA9775F08C4B59CD1707F10B269E09B61B1E2D11729BCA8D62B7827B25B093EC58C4C1EAC23137.DF4FCB5DD91340D6D31E33423E4210AD47C7A4DF9FA16F401663BF288C20BF973530866178FE6D134256E4DBEFBD984B652332EED3ACAED834FEA7B73CAE851D", "password"},
-	/* Format made up by McGyver */
+	/* Generic format made up by us */
 	{"$pbkdf2-hmac-sha512$10000.82DBAB96E072834D1F725DB9ADED51E703F1D449E77D01F6BE65147A765C997D8865A1F1AB50856AA3B08D25A5602FE538AD0757B8CA2933FE8CA9E7601B3FBF.859D65960E6D05C6858F3D63FA35C6ADFC456637B4A0A90F6AFA7D8E217CE2D3DFDC56C8DEACA217F0864AE1EFB4A09B00EB84CF9E4A2723534F34E26A279193", "openwall"},
 	{NULL}
 };
@@ -131,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtok(NULL, ".$")))
 		goto error;
 	len = strlen(ptr); // binary length
-	if (len < BINARY_SIZE || len & 1)
+	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
@@ -185,17 +186,18 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static union {
-		unsigned char c[BINARY_SIZE];
+		unsigned char c[MAX_BINARY_SIZE];
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
-	int i;
+	int i, len;
 	char delim;
 
 	delim = strchr(ciphertext, '.') ? '.' : '$';
 	p = strrchr(ciphertext, delim) + 1;
-	for (i = 0; i < BINARY_SIZE && *p; i++) {
+	len = strlen(p) / 2;
+	for (i = 0; i < len && *p; i++) {
 		out[i] =
 			(atoi16[ARCH_INDEX(*p)] << 4) |
 			atoi16[ARCH_INDEX(p[1])];
@@ -298,9 +300,64 @@ static int cmp_one(void *binary, int index)
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
+/* Check the FULL binary, just for good measure. There is no chance we'll
+   have a false positive here but this function is not performance sensitive. */
 static int cmp_exact(char *source, int index)
 {
-	return 1;
+	int i = 0, j, l, result;
+	uint64_t tmp[BINARY_SIZE];
+	uint64_t key[BINARY_SIZE];
+	char *p;
+	int len, loops;
+	char delim;
+	char *binary, *crypt;
+
+	delim = strchr(source, '.') ? '.' : '$';
+	p = strrchr(source, delim) + 1;
+	len = strlen(p) / 2;
+
+	if (len == 64) return 1;
+
+	//printf("Full test of \"%s\"...\n", saved_key[index]);
+	binary = mem_alloc(len);
+	crypt = mem_alloc(len);
+
+	while (*p) {
+		binary[i++] =
+			(atoi16[ARCH_INDEX(*p)] << 4) |
+			atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+
+	l = strlen(saved_key[index]);
+	for (loops = 0; loops < (len + 63) / 64; loops++) {
+		unsigned int iter = 0;
+
+		((unsigned char*)&iter)[3] = loops + 1;
+		hmac_sha512((unsigned char*)saved_key[index], l,
+		            (uint8_t *) cur_salt->salt, cur_salt->length,
+		            iter, tmp);
+		memcpy(key, tmp, BINARY_SIZE);
+
+		for (i = 1; i < cur_salt->rounds; i++) {
+			hmac_sha512((unsigned char*)saved_key[index], l,
+			            (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
+			for (j = 0; j < 8; j++)
+				key[j] ^= tmp[j];
+		}
+		memcpy((unsigned char*)&crypt[64 * loops], key, BINARY_SIZE);
+	}
+	//dump_stuff_msg("in ", binary, len);
+	//dump_stuff_msg("out", crypt, len);
+	result = !memcmp(binary, crypt, len);
+	MEM_FREE(binary);
+	MEM_FREE(crypt);
+	if (!result)
+		fprintf(stderr, "%s: Note: False positive from cmp_one() for "
+		        "'%s'. This is a bug or a\nmiswritten input line.\n",
+		        FORMAT_LABEL, saved_key[index]);
+
+	return result;
 }
 
 static void set_key(char *key, int index)
