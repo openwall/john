@@ -20,7 +20,7 @@
 //Constants.
 #define ROUNDS_PREFIX           "rounds="
 #define ROUNDS_DEFAULT          5000
-#define ROUNDS_MIN              1000
+#define ROUNDS_MIN              1	/* Drepper has it as 1000 */
 #define ROUNDS_MAX              999999999
 
 #define SALT_LENGTH             16

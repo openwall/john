@@ -59,7 +59,7 @@ static const char sha512_rounds_prefix[] = "rounds=";
 /* Default number of rounds if not explicitly specified.  */
 #define ROUNDS_DEFAULT 5000
 /* Minimum number of rounds.  */
-#define ROUNDS_MIN 1000
+#define ROUNDS_MIN 1	/* Drepper has it as 1000 */
 /* Maximum number of rounds.  */
 #define ROUNDS_MAX 999999999
 
