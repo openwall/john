@@ -78,6 +78,47 @@ __constant uint64_t k[] = {
     0x28db77f523047d84UL, 0x32caab7b40c72493UL, 0x3c9ebe0a15c9bebcUL, 0x431d67c49c100d4cUL,
     0x4cc5d4becb3e42b6UL, 0x597f299cfc657e2aUL, 0x5fcb6fab3ad6faecUL, 0x6c44198c4a475817UL
 };
+
+__constant uint64_t clear_mask[] = {
+    0xffffffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //0
+    0x00000000000000ffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
+    0x000000000000ffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //16
+    0x0000000000ffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
+    0x00000000ffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //32
+    0x000000ffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
+    0x0000ffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //48
+    0x00ffffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
+    0xffffffffffffffffUL
+};
+
+#define CLEAR_BUFFER_64(dest, start) {             \
+    uint64_t tmp, pos;                             \
+    tmp = (uint64_t) ((start & 7) << 3);           \
+    pos = (uint64_t) (start >> 3);                 \
+    dest[pos] = dest[pos] & clear_mask[tmp];       \
+    if (tmp)                                       \
+        length = pos + 1;                          \
+    else                                           \
+	length = pos;                              \
+}
+
+#define APPEND(dest, src, start) {                 \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
+    dest[pos]   = (dest[pos] | (src << tmp));      \
+    dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
+}
+
+#define APPEND_FINAL(dest, src, start) {           \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
+    dest[pos]   = (dest[pos] | (src << tmp));      \
+    if (pos < 15)                                  \
+       dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
+}
+
 #endif
 
 #endif	/* OPENCL_SHA512_H */
