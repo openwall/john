@@ -8,13 +8,13 @@
 #include "arch.h"
 #include "common.h"
 
-char itoa64[64] =
+const char itoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 char atoi64[0x100];
 
-char itoa16[16] =
+const char itoa16[16] =
 	"0123456789abcdef";
-char itoa16u[16] =
+const char itoa16u[16] =
 	"0123456789ABCDEF";
 char atoi16[0x100];
 
@@ -22,7 +22,7 @@ static int initialized = 0;
 
 void common_init(void)
 {
-	char *pos;
+	const char *pos;
 
 	if (initialized) return;
 

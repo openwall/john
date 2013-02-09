@@ -59,9 +59,11 @@ typedef unsigned long long ARCH_WORD_64;
 /*
  * ASCII <-> binary conversion tables.
  */
-extern char itoa64[64], atoi64[0x100];
-extern char itoa16[16], atoi16[0x100];
-extern char itoa16u[16]; // uppercase
+extern const char itoa64[64];
+extern char atoi64[0x100];
+extern const char itoa16[16];
+extern char atoi16[0x100];
+extern const char itoa16u[16]; // uppercase
 
 /*
  * Initializes the tables.

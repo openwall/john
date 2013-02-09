@@ -473,7 +473,7 @@ static int usernamelen;
 static unsigned char *flds[10];
 static int fld_lens[10];
 
-static char *dynamic_itoa16 = itoa16;
+static const char *dynamic_itoa16 = itoa16;
 static unsigned short itoa16_w2_u[256], itoa16_w2_l[256], *itoa16_w2=itoa16_w2_l;
 
 // array of the keys.  Also lengths of the keys. NOTE if store_keys_in_input, then the
