@@ -20,12 +20,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include "arch.h"
 
 #include "bad_blowfish.h"
 
 #define true 		1
 #define false 		0
+
+// BUG: output of this code matches that of OpenSSL running on LE when Q_BYTE_ORDER is 0
+#if ARCH_LITTLE_ENDIAN
 #define Q_BYTE_ORDER 	1 /* Use Little Endian order */
+#else
+#define Q_BYTE_ORDER 	0
+#endif
 
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
 #define shuffle(x) do {				\
