@@ -1102,6 +1102,7 @@ static void set_key(char *key, int index)
 {
 	unsigned int len;
 
+	//printf("idx=%d key=%s\n", index, key);
 #ifdef MMX_COEF
 	if (curdat.store_keys_in_input==2)
 		dynamic_use_sse = 3;
@@ -2383,6 +2384,9 @@ static void * binary_b64(char *ciphertext)
 	b[bidx] = sixbits;
 	sixbits = atoi64[ARCH_INDEX(*pos++)];
 	b[bidx] |= (sixbits<<6);
+
+	//printf("\nciphertext=%s\n", ciphertext);
+	//dump_stuff_msg("binary", b, 16);
 	return b;
 }
 
@@ -5074,9 +5078,10 @@ void DynamicFunc__PHPassCrypt()
 	// output, in big endian (thus needing no swapping).
 	// we only have to 'fix up' the final crypt results.
 #if MD5_X2
-		MD5_swap(input_buf_X86[0].x2.w2, input_buf_X86[0].x2.w2, 4);
-#endif
+		MD5_swap2(input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, 4);
+#else
 		MD5_swap(input_buf_X86[0].x1.w, input_buf_X86[0].x1.w, 4);
+#endif
 #endif
 
 	--Lcount;
@@ -5091,9 +5096,12 @@ void DynamicFunc__PHPassCrypt()
 	// is found in the input buf to the output buf.
 	DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen();
 #if MD5_X2
-	MD5_swap(input_buf_X86[0].x2.w2, crypt_key_X86[0].x2.w2, 4);
-#endif
+	MD5_swap2(input_buf_X86[0].x1.w, input_buf_X86[0].x2.w2, crypt_key_X86[0].x1.w, crypt_key_X86[0].x2.w2, 4);
+#else
 	MD5_swap(input_buf_X86[0].x1.w, crypt_key_X86[0].x1.w, 4);
+#endif
+	//dump_stuff_msg("crypt0", crypt_key_X86[0].x1.w, 16);
+	//dump_stuff_msg("crypt1", crypt_key_X86[0].x2.w2, 16);
 #else
 	// little endian can use 'original' crypt function.
 	DynamicFunc__crypt_md5();

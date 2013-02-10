@@ -1423,7 +1423,11 @@ static DYNAMIC_Setup Setups[] =
 #endif
 	{ "dynamic_15: md5($u.md5($p).$s)",         _Funcs_15,_Preloads_15,_ConstDefault, MGF_SALTED|MGF_USERNAME|MGF_NOTSSE2Safe|MGF_FULL_CLEAN_REQUIRED, MGF_KEYS_BASE16_IN1, -12, 55, 80 }, // 26 is 12+12+2 so 24+52 'fits
 	{ "dynamic_16: md5(md5(md5($p).$s).$s2)",   _Funcs_16,_Preloads_16,_ConstDefault, MGF_SALTED|MGF_SALTED2|MGF_NOTSSE2Safe, MGF_KEYS_BASE16_IN1, -23, 55, 80 },
+	#if !ARCH_LITTLE_ENDIAN
+	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38, 38 },
+	#else
 	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38 },
+	#endif
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s)(Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 32 },
 	{ "dynamic_19: Cisco PIX (MD5)",            _Funcs_19,_Preloads_19,_ConstDefault, MGF_INPBASE64_4x6, MGF_NO_FLAG, 0, 16, 16 },
 	{ "dynamic_20: Cisco PIX (MD5 salted)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
