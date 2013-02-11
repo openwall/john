@@ -13,6 +13,9 @@
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/engine.h>
+#include <string.h>
+
+#include "arch.h"
 #include "stdint.h"
 #include "pbkdf2_hmac_sha1.h"
 #undef MEM_FREE
@@ -21,8 +24,6 @@
 #include <omp.h>
 #define OMP_SCALE               1
 #endif
-#include <string.h>
-#include "arch.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"

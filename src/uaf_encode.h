@@ -32,7 +32,7 @@ struct uaf_packed_text {
 #endif
 
 #ifdef NOLONGLONG
-#ifndef ARCH_LITTLE_ENDIAN
+#if !ARCH_LITTLE_ENDIAN
 #define MSL 0
 #define LSL 1		/* big endian ordering */
 #else
