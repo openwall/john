@@ -39,26 +39,31 @@
 #define F3(x,y,z)		((x & y) | (z & (x | y)))
 #define F4(x,y,z)		(x ^ y ^ z)
 
+#if ARCH_LITTLE_ENDIAN
 #define XORCHAR_BE(buf, index, val)	  \
-	((unsigned char*)(buf))[(index) ^ 3] ^= (val)
+	((uint8_t*)(buf))[(index) ^ 3] ^= (val)
+#else
+#define XORCHAR_BE(buf, index, val)	  \
+	((uint8_t*)(buf))[(index)] ^= (val)
+#endif
 
 #ifndef GET_WORD_32_BE
 #define GET_WORD_32_BE(n,b,i)                           \
 {                                                       \
-    (n) = ( (unsigned long) (b)[(i)    ] << 24 )        \
-        | ( (unsigned long) (b)[(i) + 1] << 16 )        \
-        | ( (unsigned long) (b)[(i) + 2] <<  8 )        \
-        | ( (unsigned long) (b)[(i) + 3]       );       \
+    (n) = ( (uint32_t) (b)[(i)    ] << 24 )        \
+        | ( (uint32_t) (b)[(i) + 1] << 16 )        \
+        | ( (uint32_t) (b)[(i) + 2] <<  8 )        \
+        | ( (uint32_t) (b)[(i) + 3]       );       \
 }
 #endif
 
 #ifndef PUT_WORD_32_BE
 #define PUT_WORD_32_BE(n,b,i)                           \
 {                                                       \
-    (b)[(i)    ] = (unsigned char) ( (n) >> 24 );       \
-    (b)[(i) + 1] = (unsigned char) ( (n) >> 16 );       \
-    (b)[(i) + 2] = (unsigned char) ( (n) >>  8 );       \
-    (b)[(i) + 3] = (unsigned char) ( (n)       );       \
+    (b)[(i)    ] = (uint8_t) ( (n) >> 24 );       \
+    (b)[(i) + 1] = (uint8_t) ( (n) >> 16 );       \
+    (b)[(i) + 2] = (uint8_t) ( (n) >>  8 );       \
+    (b)[(i) + 3] = (uint8_t) ( (n)       );       \
 }
 #endif
 
@@ -322,6 +327,7 @@ static void hmac_sha1_(uint32_t * output,
 	uint32_t A, B, C, D, E;
 	uint8_t buf[64];
 	uint32_t *src = (uint32_t *) buf;
+
 	i = 64 / 4;
 	while (i--)
 		*src++ = 0;
@@ -474,6 +480,10 @@ static void pbkdf2(const uint8_t *pass, int passlen, const uint8_t *salt,
 		              tmp_out, n);
 
 		for (i = 0; i < 20 && t < outlen; i++)
+#if ARCH_LITTLE_ENDIAN
 			out[t++] = ((uint8_t*)tmp_out)[i];
+#else
+			out[t++] = ((uint8_t*)tmp_out)[i^3];
+#endif
 	}
 }

@@ -181,10 +181,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(hccap->essid) > 32) /* real life limit */
 		return 0;
 
-#if !ARCH_LITTLE_ENDIAN
-	/* So why did we swap it in decode_hcap?! */
-	hccap->eapol_size = JOHNSWAP(hccap->eapol_size);
-#endif
 	if(hccap->eapol_size > 256)
 		return 0;
 	if(hccap->eapol_size < 0)

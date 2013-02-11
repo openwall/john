@@ -20,6 +20,7 @@
 #include "common.h"
 #include "formats.h"
 #include "sha2.h"
+#include "johnswap.h"
 
 #define uint8_t			unsigned char
 #define uint16_t		unsigned short
@@ -243,8 +244,12 @@ static void hmac_sha512(uint8_t * pass, uint8_t passlen, uint8_t * salt,
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, ipad, PAD_SIZE);
 	SHA512_Update(&ctx, salt, saltlen);
-	if (add > 0)
+	if (add > 0) {
+#if ARCH_LITTLE_ENDIAN
+		add = JOHNSWAP(add);
+#endif
 		SHA512_Update(&ctx, &add, 4);
+	}
 	SHA512_Final((uint8_t *) ret, &ctx);
 
 	SHA512_Init(&ctx);
@@ -271,7 +276,7 @@ static void crypt_all(int count)
 		l = strlen(saved_key[index]);
 		hmac_sha512((unsigned char*)saved_key[index], l,
 		            (uint8_t *) cur_salt->salt, cur_salt->length,
-		            0x01000000, tmp);
+		            1, tmp);
 		memcpy(key, tmp, BINARY_SIZE);
 
 		for (i = 1; i < cur_salt->rounds; i++) {
@@ -331,12 +336,9 @@ static int cmp_exact(char *source, int index)
 
 	l = strlen(saved_key[index]);
 	for (loops = 0; loops < (len + 63) / 64; loops++) {
-		unsigned int iter = 0;
-
-		((unsigned char*)&iter)[3] = loops + 1;
 		hmac_sha512((unsigned char*)saved_key[index], l,
 		            (uint8_t *) cur_salt->salt, cur_salt->length,
-		            iter, tmp);
+		            loops + 1, tmp);
 		memcpy(key, tmp, BINARY_SIZE);
 
 		for (i = 1; i < cur_salt->rounds; i++) {

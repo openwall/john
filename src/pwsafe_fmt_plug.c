@@ -11,12 +11,12 @@
 
 
 
-#include "sha2.h"
-
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+
 #include "arch.h"
+#include "sha2.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -170,7 +170,11 @@ static void set_salt(void *salt)
 #define ROTXOR2(x) (rotr(x,6) ^ rotr(x,11) ^ rotr(x,25))
 #define ROTXOR3(x) (rotr(x,7) ^ rotr(x,18) ^ (x>>3))
 #define ROTXOR4(x) (rotr(x,17) ^ rotr(x,19) ^ (x>>10))
+#if ARCH_LITTLE_ENDIAN
 #define bytereverse(x) ( ((x) << 24) | (((x) << 8) & 0x00ff0000) | (((x) >> 8) & 0x0000ff00) | ((x) >> 24) )
+#else
+#define bytereverse(x) (x)
+#endif
 
 static void pwsafe_sha256_iterate(unsigned int * state, unsigned int iterations)
 {

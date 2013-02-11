@@ -19,6 +19,7 @@
 #include "blowfish.h"
 #include "bf_tab.h"		/* P-box P-array, S-box */
 #include "memory.h"
+#include "johnswap.h"
 
 /* #define S(x,i) (bf_S[i][x.w.byte##i]) */
 #define S0(x) (bf_S[0][x.w.byte0])
@@ -187,6 +188,10 @@ static void blowfish_encrypt_pass(char *text, char *new)
   blowfish_encipher(&left, &right);
 
 #if 1
+#if !ARCH_LITTLE_ENDIAN
+  left = JOHNSWAP(left);
+  right = JOHNSWAP(right);
+#endif
   /* We lose one byte due to flawed base64 below */
   memcpy(new, (unsigned char*)&right, 32/8);
   memcpy(new + 32/8, (unsigned char*)&left, 32/8 - 1);
