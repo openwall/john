@@ -99,10 +99,12 @@ static void * get_salt_encoding(char *_ciphertext);
 struct fmt_main fmt_mscash;
 
 #if !ARCH_LITTLE_ENDIAN
-static inline void swap(unsigned int *x, unsigned int *y, int count)
+static inline void swap(unsigned int *x, int count)
 {
-	while (count--)
-		*x++ = JOHNSWAP(*y++);
+	while (count--) {
+		*x = JOHNSWAP(*x);
+		x++;
+	}
 }
 #endif
 
@@ -152,9 +154,9 @@ static void init(struct fmt_main *self)
 static char * ms_split(char *ciphertext, int index)
 {
 	static char out[MAX_CIPHERTEXT_LENGTH + 1];
-	int i=0;
+	int i;
 
-	for(; ciphertext[i] && i < MAX_CIPHERTEXT_LENGTH; i++)
+	for(i = 0; i < MAX_CIPHERTEXT_LENGTH && ciphertext[i]; i++)
 		out[i]=ciphertext[i];
 
 	out[i]=0;
@@ -238,15 +240,15 @@ static void *get_salt(char *_ciphertext)
 	// position 10 = length
 	// 0-9 = 1-19 Unicode characters + EOS marker (0x80)
 	static unsigned int *out=0;
-	unsigned int md4_size=0;
+	unsigned int md4_size;
 
 	if (!out) out = mem_alloc_tiny(11*sizeof(unsigned int), MEM_ALIGN_WORD);
 	memset(out,0,11*sizeof(unsigned int));
 
 	ciphertext+=2;
 
-	for(;;md4_size++)
-		if(ciphertext[md4_size]!='#' && md4_size < 19)
+	for(md4_size = 0 ;; md4_size++)
+		if(md4_size < 19 && ciphertext[md4_size]!='#')
 		{
 			md4_size++;
 
@@ -294,7 +296,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 	out[utf16len] = 0x80;
 #else
 	out[utf16len] = 0x8000;
-	swap((unsigned int*)out, (unsigned int*)out, (md4_size>>1)+1);
+	swap((unsigned int*)out, (md4_size>>1)+1);
 #endif
 
 	((unsigned int*)out)[10] = (8 + utf16len) << 4;
@@ -308,7 +310,7 @@ static void *get_salt_encoding(char *_ciphertext) {
 static void * get_salt_utf8(char *_ciphertext)
 {
 	unsigned char *ciphertext = (unsigned char *)_ciphertext;
-	unsigned int md4_size=0;
+	unsigned int md4_size;
 	UTF16 ciphertext_utf16[21];
 	int len;
 	static ARCH_WORD_32 *out=0;
@@ -320,13 +322,15 @@ static void * get_salt_utf8(char *_ciphertext)
 	len = ((unsigned char*)strchr((char*)ciphertext, '#')) - ciphertext;
 	utf8_to_utf16(ciphertext_utf16, 20, ciphertext, len+1);
 
-	for(;;md4_size++) {
+	for(md4_size = 0 ;; md4_size++) {
 #if !ARCH_LITTLE_ENDIAN
 		ciphertext_utf16[md4_size] = (ciphertext_utf16[md4_size]>>8)|(ciphertext_utf16[md4_size]<<8);
-		ciphertext_utf16[md4_size+1] = (ciphertext_utf16[md4_size+1]>>8)|(ciphertext_utf16[md4_size+1]<<8);
 #endif
-		if(ciphertext_utf16[md4_size]!=(UTF16)'#' && md4_size < 19) {
+		if(md4_size < 19 && ciphertext_utf16[md4_size]!=(UTF16)'#') {
 			md4_size++;
+#if !ARCH_LITTLE_ENDIAN
+			ciphertext_utf16[md4_size] = (ciphertext_utf16[md4_size]>>8)|(ciphertext_utf16[md4_size]<<8);
+#endif
 			out[md4_size>>1] = ciphertext_utf16[md4_size-1] |
 				((ciphertext_utf16[md4_size]!=(UTF16)'#') ?
 				 (ciphertext_utf16[md4_size]<<16) : 0x800000);
@@ -648,9 +652,9 @@ static inline void set_key_helper(unsigned int * keybuffer,
                                   unsigned int lenStoreOffset,
                                   unsigned int *last_length)
 {
-	unsigned int i=0;
-	unsigned int md4_size=0;
-	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
+	unsigned int i = 0;
+	unsigned int md4_size;
+	for(md4_size = 0; md4_size < PLAINTEXT_LENGTH && key[md4_size]; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]))
@@ -823,7 +827,7 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 		keybuffer[i] = 0;
 
 #if !ARCH_LITTLE_ENDIAN
-	swap(keybuffer, keybuffer, (md4_size>>1)+1);
+	swap(keybuffer, (md4_size>>1)+1);
 #endif
 
 	*last_length = (md4_size >> 1) + 1;
@@ -843,7 +847,10 @@ static void set_key_encoding(char *_key, int index)
 // Get the key back from the key buffer, from UCS-2 LE
 static char *get_key(int index)
 {
-	static UTF16 key[PLAINTEXT_LENGTH + 1];
+	static union {
+		UTF16 u16[PLAINTEXT_LENGTH + 1];
+		unsigned int u32[(PLAINTEXT_LENGTH + 1 + 1) / 2];
+	} key;
 	unsigned int * keybuffer = &ms_buffer1x[index << 4];
 	unsigned int md4_size;
 	unsigned int i=0;
@@ -852,19 +859,19 @@ static char *get_key(int index)
 	for(md4_size = 0; md4_size < len; i++, md4_size += 2)
 	{
 #if ARCH_LITTLE_ENDIAN
-		key[md4_size] = keybuffer[i];
-		key[md4_size+1] = keybuffer[i] >> 16;
+		key.u16[md4_size] = keybuffer[i];
+		key.u16[md4_size+1] = keybuffer[i] >> 16;
 #else
-		key[md4_size] = keybuffer[i] >> 16;
-		key[md4_size+1] = keybuffer[i];
+		key.u16[md4_size] = keybuffer[i] >> 16;
+		key.u16[md4_size+1] = keybuffer[i];
 #endif
 	}
 #if !ARCH_LITTLE_ENDIAN
-	swap((unsigned int*)key, (unsigned int*)key, md4_size >> 1);
+	swap(key.u32, md4_size >> 1);
 #endif
-	key[len] = 0x00;
+	key.u16[len] = 0x00;
 
-	return (char *)utf16_to_enc(key);
+	return (char *)utf16_to_enc(key.u16);
 }
 
 // Public domain hash function by DJ Bernstein (salt is a username)
