@@ -158,30 +158,12 @@ static void listconf_list_build_info(void)
 #endif
 #ifdef NSS_VERSION
 	// <major>.<minor>[.<patch_level>[.<build_number>]][ <ECC>][ <Beta>]
-	printf("NSS library version: %s", NSS_VERSION);
-	// NSS_GetVersion() ONLY added to the API at NSS v3.13+
-	//    See https://bugzilla.mozilla.org/show_bug.cgi?id=673115
-#if (NSS_VMAJOR>3) || (NSS_VMAJOR==3 && NSS_VMINOR>12)
-	if(strcmp(NSS_VERSION, NSS_GetVersion()))
-		printf("\t(loaded: %s)", NSS_GetVersion());
-#endif
-	printf("\n");
+	printf("NSS library version: %s\n", NSS_VERSION);
 #endif
 // NSS_VERSION and NSSUTIL_VERSION always seem to match.
 // At least, I didn't find any differences on Fedora 16/17/18 systems.
-//#ifdef NSSUTIL_VERSION
-//	printf("NSS utilities version: %s (%s)\n",
-//	        NSSUTIL_VERSION, NSSUTIL_GetVersion());
-//#endif
 #ifdef PR_VERSION
-	printf("NSPR library version: %s", PR_VERSION);
-	// PR_GetVersion() ONLY added to API at PR v4.8.9
-	//    See https://bugzilla.mozilla.org/show_bug.cgi?id=673223
-#if (PR_VMAJOR>4) || (PR_VMAJOR==4 && PR_VMINOR>8) || (PR_VMAJOR==4 && PR_VMINOR==8 && PR_VPATCH > 8)
-	if(strcmp(PR_VERSION, PR_GetVersion()))
-		printf("\t(loaded: %s)", PR_GetVersion());
-#endif
-	printf("\n");
+	printf("NSPR library version: %s\n", PR_VERSION);
 #endif
 #ifdef HAVE_KRB5
 	// I have no idea how to get version info
