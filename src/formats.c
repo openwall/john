@@ -22,14 +22,13 @@ static struct fmt_main **fmt_tail = &fmt_list;
 
 extern volatile int bench_running;
 
-#if defined(__MINGW32__) || defined(__sun__)
-static size_t strnlen(const char *s, size_t max) {
+/* We could move this to misc.c */
+static size_t fmt_strnlen(const char *s, size_t max) {
     const char *p=s;
     while(*p && max--)
 		++p;
     return(p - s);
 }
-#endif
 
 void fmt_register(struct fmt_main *format)
 {
@@ -187,7 +186,7 @@ char *fmt_self_test(struct fmt_main *format)
 			/* Now read it back and verify it's intact */
 			if (strncmp(format->methods.get_key(index),
 			            longcand, ml + 1)) {
-				if (strnlen(format->methods.get_key(index), ml + 1) > ml)
+				if (fmt_strnlen(format->methods.get_key(index), ml + 1) > ml)
 					sprintf(s_size, "max. length in index %d: wrote %d, got longer back", index, ml);
 				else
 					sprintf(s_size, "max. length in index %d: wrote %d, got %d back", index, ml, (int)strlen(format->methods.get_key(index)));
@@ -246,7 +245,7 @@ char *fmt_self_test(struct fmt_main *format)
 				longcand[ml] = 0;
 				if (strncmp(format->methods.get_key(i),
 				            longcand, ml + 1)) {
-					if (strnlen(format->methods.get_key(i), ml + 1) > ml)
+					if (fmt_strnlen(format->methods.get_key(i), ml + 1) > ml)
 						sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
 					else
 						sprintf(s_size, "max. length in index %d: wrote %d, got %d back", i, ml, (int)strlen(format->methods.get_key(i)));
