@@ -230,7 +230,7 @@ void sha256_final(void *_output, sha256_ctx *ctx)
 
 	bits = (ctx->total <<  3);
 	m.wlen[0] = 0;
-	OUTBE32(bits, (unsigned char*)m.wlen, 4);
+	OUTBE32(bits, m.wlen, 4);
 
 	last = ctx->total & 0x3F;
 	padcnt = (last < 56) ? (56 - last) : (120 - last);
@@ -552,7 +552,7 @@ void sha512_final(void *_output, sha512_ctx *ctx)
 
 	bits = (ctx->total <<  3);
 	m.wlen[0] = 0;
-	OUTBE64(bits, (unsigned char*)m.wlen, 8);
+	OUTBE64(bits, m.wlen, 8);
 
 	last = ctx->total & 0x7F;
 	padcnt = (last < 112) ? (112 - last) : (240 - last);
