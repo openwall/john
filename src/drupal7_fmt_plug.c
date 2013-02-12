@@ -41,7 +41,7 @@
 #define BINARY_SIZE			(258/8) // ((258+7)/8)
 #define BINARY_ALIGN			4
 #define SALT_SIZE			8
-#define SALT_ALIGN			8
+#define SALT_ALIGN			4
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
@@ -177,45 +177,50 @@ static void * binary(char *ciphertext)
 {
 	int i;
 	unsigned sixbits;
-	static unsigned char b[BINARY_SIZE + 1];
+	static union {
+		unsigned char u8[BINARY_SIZE + 1];
+		ARCH_WORD_32 u32;
+	} out;
 	int bidx=0;
 	char *pos;
 
 	pos = &ciphertext[3 + 1 + 8];
 	for (i = 0; i < 10; ++i) {
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx] = sixbits;
+		out.u8[bidx] = sixbits;
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits<<6);
+		out.u8[bidx++] |= (sixbits<<6);
 		sixbits >>= 2;
-		b[bidx] = sixbits;
+		out.u8[bidx] = sixbits;
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits<<4);
+		out.u8[bidx++] |= (sixbits<<4);
 		sixbits >>= 4;
-		b[bidx] = sixbits;
+		out.u8[bidx] = sixbits;
 		sixbits = atoi64[ARCH_INDEX(*pos++)];
-		b[bidx++] |= (sixbits<<2);
+		out.u8[bidx++] |= (sixbits<<2);
 	}
 	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx] = sixbits;
+	out.u8[bidx] = sixbits;
 	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx++] |= (sixbits<<6);
+	out.u8[bidx++] |= (sixbits<<6);
 	sixbits >>= 2;
-	b[bidx] = sixbits;
+	out.u8[bidx] = sixbits;
 	sixbits = atoi64[ARCH_INDEX(*pos++)];
-	b[bidx++] |= (sixbits<<4);
-	return b;
+	out.u8[bidx++] |= (sixbits<<4);
+	return out.u8;
 }
 
 static void * salt(char *ciphertext)
 {
-	static unsigned long salt_[(SALT_SIZE/sizeof(unsigned long))+1];
-	unsigned char *salt = (unsigned char*)salt_;
+	static union {
+		unsigned char u8[SALT_SIZE + 1];
+		ARCH_WORD_32 u32;
+	} salt;
 	// store off the 'real' 8 bytes of salt
-	memcpy(salt, &ciphertext[4], 8);
+	memcpy(salt.u8, &ciphertext[4], 8);
 	// append the 1 byte of loop count information.
-	salt[8] = ciphertext[3];
-	return salt;
+	salt.u8[8] = ciphertext[3];
+	return salt.u8;
 }
 
 static int binary_hash_0(void * binary) { return ((ARCH_WORD_32 *)binary)[0] & 0xf; }

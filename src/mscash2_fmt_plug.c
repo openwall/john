@@ -102,7 +102,7 @@ static struct fmt_tests tests[] = {
 #define MAX_CIPHERTEXT_LENGTH		(6 + 5 + 22*3 + 2 + 32) // x3 because salt may be UTF-8 in input  // changed to $DCC2$num#salt#hash  WARNING, only handles num of 5 digits!!
 
 #define BINARY_SIZE			16
-#define BINARY_ALIGN			8
+#define BINARY_ALIGN			4
 #define SALT_SIZE			(11*4+4)
 #define SALT_ALIGN			1
 
@@ -325,11 +325,7 @@ static void *get_salt(char *_ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static union {
-		unsigned long dummy;
-		unsigned int i[BINARY_SIZE/sizeof(unsigned int)];
-	} _out;
-	unsigned int *out = _out.i;
+	static unsigned int out[BINARY_SIZE / sizeof(unsigned int)];
 	unsigned int i = 0;
 	unsigned int temp;
 
