@@ -117,26 +117,21 @@ extern void sha512_hash_block(sha512_ctx *ctx, const unsigned char data[128], in
 #define SHA384_Final(a,b)    sha512_final(a,b)
 
 #if ARCH_LITTLE_ENDIAN
-#define OUTBE32(n,b,i) do {	  \
-		((unsigned char*)b)[i] = ((n)>>24); \
-		((unsigned char*)b)[i+1] = ((n)>>16); \
-		((unsigned char*)b)[i+2] = ((n)>>8); \
-		((unsigned char*)b)[i+3] = (n); \
-	} while(0)
+#define OUTBE32(n,b,i) do { (b)[i] = ((n)>>24); (b)[i+1] = ((n)>>16); (b)[i+2] = ((n)>>8); (b)[i+3] = (n); } while(0)
 #define OUTBE64(n,b,i) do {	  \
-		((unsigned char*)b)[(i)]   = (unsigned char) ( (n) >> 56 ); \
-		((unsigned char*)b)[(i)+1] = (unsigned char) ( (n) >> 48 ); \
-		((unsigned char*)b)[(i)+2] = (unsigned char) ( (n) >> 40 ); \
-		((unsigned char*)b)[(i)+3] = (unsigned char) ( (n) >> 32 ); \
-		((unsigned char*)b)[(i)+4] = (unsigned char) ( (n) >> 24 ); \
-		((unsigned char*)b)[(i)+5] = (unsigned char) ( (n) >> 16 ); \
-		((unsigned char*)b)[(i)+6] = (unsigned char) ( (n) >>  8 ); \
-		((unsigned char*)b)[(i)+7] = (unsigned char) ( (n)       ); \
+		(b)[(i)]   = (unsigned char) ( (n) >> 56 ); \
+		(b)[(i)+1] = (unsigned char) ( (n) >> 48 ); \
+		(b)[(i)+2] = (unsigned char) ( (n) >> 40 ); \
+		(b)[(i)+3] = (unsigned char) ( (n) >> 32 ); \
+		(b)[(i)+4] = (unsigned char) ( (n) >> 24 ); \
+		(b)[(i)+5] = (unsigned char) ( (n) >> 16 ); \
+		(b)[(i)+6] = (unsigned char) ( (n) >>  8 ); \
+		(b)[(i)+7] = (unsigned char) ( (n)       ); \
 	} while(0)
 
 #else
-#define OUTBE32(n,b,i) (b[i>>2])=(n)
-#define OUTBE64(n,b,i) (b[i>>3])=(n)
+#define OUTBE32(n,b,i) *((ARCH_WORD_32*)&(b[i]))=n
+#define OUTBE64(n,b,i) *((ARCH_WORD_64*)&(b[i]))=n
 #endif
 
 #endif
