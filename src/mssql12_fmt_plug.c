@@ -60,6 +60,7 @@ static int omp_t = 1;
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
 
+#undef MIN
 #define MIN(a, b)		(((a) > (b)) ? (b) : (a))
 
 static struct fmt_tests tests[] = {
