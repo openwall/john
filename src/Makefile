@@ -109,7 +109,6 @@ JOHN_OBJS = \
 	trip_fmt.o \
 	timer.o \
 	md5_go.o \
-	md5_eq.o \
 	md5.o \
 	rc4.o \
 	hmacmd5.o \
