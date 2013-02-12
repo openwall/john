@@ -58,7 +58,9 @@ static struct fmt_tests tests[] = {
 #define ALGORITHM_NAME			"32/" ARCH_BITS_STR
 
 #define BINARY_SIZE			16
+#define BINARY_ALIGN			4
 #define SALT_SIZE			(11*4)
+#define SALT_ALIGN			4
 
 #define OK_NUM_KEYS			64
 #define BEST_NUM_KEYS			512
@@ -351,11 +353,7 @@ static void * get_salt_utf8(char *_ciphertext)
 
 static void *get_binary(char *ciphertext)
 {
-	static union {
-		unsigned long u64[BINARY_SIZE/sizeof(unsigned long)];
-		unsigned int u32[BINARY_SIZE/sizeof(unsigned int)];
-	} outbuf;
-	unsigned int *out = (unsigned int*)outbuf.u32;
+	static unsigned int out[BINARY_SIZE/sizeof(unsigned int)];
 	unsigned int i=0;
 	unsigned int temp;
 	unsigned int *salt=fmt_mscash.methods.salt(ciphertext);

@@ -32,7 +32,9 @@
 #define CIPHERTEXT_LENGTH		128
 
 #define BINARY_SIZE			64
+#define BINARY_ALIGN			MEM_ALIGN_WORD
 #define SALT_SIZE			0
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
