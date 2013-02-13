@@ -84,8 +84,10 @@ static void hash_plugin_parse_hash(char *filename)
 	char buf8[8];
 	int64_t cno = 0;
 	int64_t data_size = 0;
+	int64_t count = 0;
 	unsigned char *chunk1 = NULL;
-	unsigned char *chunk2 = NULL;
+	unsigned char chunk2[4096];
+
 
 	headerver = 0;
 	fd = open(filename, O_RDONLY);
@@ -102,7 +104,10 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 
 	else {
-		lseek(fd, -8, SEEK_END);
+		if (lseek(fd, -8, SEEK_END) < 0) {
+			fprintf(stderr, "Unable to seek in %s\n", filename);
+			return;
+		}
 		if (read(fd, buf8, 8) <= 0) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
@@ -119,7 +124,10 @@ static void hash_plugin_parse_hash(char *filename)
 	if (headerver == 1) {
 		char *name;
 
-		lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END);
+		if (lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END) < 0) {
+			fprintf(stderr, "Unable to seek in %s\n", filename);
+			return;
+		}
 		if (read(fd, &header, sizeof(cencrypted_v1_header)) < 1) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
@@ -144,7 +152,10 @@ static void hash_plugin_parse_hash(char *filename)
 	else {
 		char *name;
 
-		lseek(fd, 0, SEEK_SET);
+		if (lseek(fd, 0, SEEK_SET) < 0) {
+			fprintf(stderr, "Unable to seek in %s\n", filename);
+			return;
+		}
 		if (read(fd, &header2, sizeof(cencrypted_v2_pwheader)) < 1) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			return;
@@ -152,7 +163,10 @@ static void hash_plugin_parse_hash(char *filename)
 		header2_byteorder_fix(&header2);
 
 		chunk_size = header2.blocksize;
-		lseek(fd, header2.dataoffset, SEEK_SET);
+		if (lseek(fd, header2.dataoffset, SEEK_SET) < 0) {
+			fprintf(stderr, "Unable to seek in %s\n", filename);
+			return;
+		}
 		cno = ((header2.datasize + 4095ULL) / 4096) - 2;
 		data_size = header2.datasize - cno * 4096ULL;
 		if (data_size < 0) {
@@ -171,6 +185,31 @@ static void hash_plugin_parse_hash(char *filename)
 		        "count %u\n", filename, headerver,
 		        header2.kdf_iteration_count);
 
+		/* read starting chunk(s) */
+		chunk1 = (unsigned char *) malloc(data_size);
+		if (lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET) < 0) {
+			fprintf(stderr, "Unable to seek in %s\n", filename);
+			return;
+		}
+		count = read(fd, chunk1, data_size);
+		if (count < 1 || count != data_size) {
+			fprintf(stderr, "Unable to read required data from %s\n", filename);
+			free(chunk1);
+			return;
+		}
+		/* read last chunk */
+		if (lseek(fd, header2.dataoffset, SEEK_SET) < 0) {
+			fprintf(stderr, "Unable to seek in %s\n", filename);
+			return;
+		}
+		count = read(fd, chunk2, 4096);
+		if (count < 1 || count != 4096) {
+			fprintf(stderr, "Unable to read required data from %s\n", filename);
+			free(chunk1);
+			return;
+		}
+
+		/* output hash */
 		printf("%s:$dmg$%d*%d*", name, headerver, header2.kdf_salt_len);
 		print_hex(header2.kdf_salt, header2.kdf_salt_len);
 		printf("*32*");
@@ -178,16 +217,11 @@ static void hash_plugin_parse_hash(char *filename)
 		printf("*%d*", header2.encrypted_keyblob_size);
 		print_hex(header2.encrypted_keyblob, header2.encrypted_keyblob_size);
 		printf("*%d*%d*", (int)cno, (int)data_size);
-		chunk1 = (unsigned char *) malloc(data_size);
-		chunk2 = (unsigned char *) malloc(4096);
-		lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET);
-		read(fd, chunk1, data_size);
 		print_hex(chunk1, data_size);
 		printf("*1*");
-		lseek(fd, header2.dataoffset, SEEK_SET);
-		read(fd, chunk2, 4096);
 		print_hex(chunk2, 4096);
 		printf("*%u::::%s\n", header2.kdf_iteration_count, filename);
+		free(chunk1);
 	}
 	close(fd);
 }
