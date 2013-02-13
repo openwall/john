@@ -35,9 +35,9 @@
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1001
 #define BINARY_SIZE         0
-#define BINARY_ALIGN        1
+#define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           sizeof(struct custom_salt)
-#define SALT_ALIGN          DEFAULT_ALIGN
+#define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 

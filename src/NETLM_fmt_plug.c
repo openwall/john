@@ -57,9 +57,9 @@
 #define PLAINTEXT_LENGTH     14
 #define PARTIAL_BINARY_SIZE  8
 #define BINARY_SIZE          24
-#define BINARY_ALIGN         1
+#define BINARY_ALIGN         4
 #define SALT_SIZE            8
-#define SALT_ALIGN           1
+#define SALT_ALIGN           4
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         8 + 2 * SALT_SIZE + CIPHERTEXT_LENGTH
 

@@ -58,9 +58,9 @@
 #define USERNAME_LENGTH      256 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH        15  /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE          8
-#define BINARY_ALIGN         1
+#define BINARY_ALIGN         MEM_ALIGN_WORD
 #define SALT_SIZE            8
-#define SALT_ALIGN           1
+#define SALT_ALIGN           MEM_ALIGN_WORD
 #define DIGEST_SIZE          24
 #define CHALLENGE_LENGTH     64
 #define CIPHERTEXT_LENGTH    48

@@ -22,7 +22,7 @@
 #define CIPHERTEXT_LENGTH		32
 
 #define BINARY_SIZE			16
-#define BINARY_ALIGN			1
+#define BINARY_ALIGN			4
 #define SALT_SIZE			64 /* length + type + 62 chars */
 #define SALT_ALIGN			1
 

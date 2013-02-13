@@ -36,7 +36,9 @@
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	32
 #define BINARY_SIZE		0
+#define BINARY_ALIGN		MEM_ALIGN_NONE
 #define SALT_SIZE		sizeof(struct custom_salt)
+#define SALT_ALIGN		4
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -326,6 +328,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int pad_byte;
 		int datasize;
 		AES_KEY akey;
+
 		transform_key(saved_key[index], cur_salt, final_key);
 		/* AES decrypt cur_salt->contents with final_key */
 		memcpy(iv, cur_salt->enc_iv, 16);
@@ -391,9 +394,9 @@ struct fmt_main fmt_KeePass = {
 		BENCHMARK_LENGTH,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
-		DEFAULT_ALIGN,
+		BINARY_ALIGN,
 		SALT_SIZE,
-		DEFAULT_ALIGN,
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,

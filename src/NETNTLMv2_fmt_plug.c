@@ -66,7 +66,7 @@
 #define USERNAME_LENGTH		60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH		45 /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE		16
-#define BINARY_ALIGN		1
+#define BINARY_ALIGN		4
 #define SERVER_CHALL_LENGTH	16
 #define CLIENT_CHALL_LENGTH_MAX	1024 /* FIXME - Max Target Information Size Unknown */
 #define SALT_SIZE		2 * USERNAME_LENGTH + 2 * DOMAIN_LENGTH + 3 + SERVER_CHALL_LENGTH/2 + CLIENT_CHALL_LENGTH_MAX/2
