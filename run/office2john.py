@@ -1923,7 +1923,6 @@ def process_new_office(filename):
         headerLength -= 4
         CSPName = stm.read(headerLength)
         provider = CSPName.decode('utf-16').lower()
-        assert(provider)
         # print provider
         # Encryption verifier
         saltSize = unpack("<I", stm.read(4))[0]
