@@ -22,6 +22,7 @@ static struct fmt_main **fmt_tail = &fmt_list;
 
 extern volatile int bench_running;
 
+#ifndef BENCH_BUILD
 /* We could move this to misc.c */
 static size_t fmt_strnlen(const char *s, size_t max) {
     const char *p=s;
@@ -29,6 +30,7 @@ static size_t fmt_strnlen(const char *s, size_t max) {
 		++p;
     return(p - s);
 }
+#endif
 
 void fmt_register(struct fmt_main *format)
 {
