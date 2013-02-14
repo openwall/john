@@ -63,10 +63,17 @@
 .bss
 #endif
 
+#ifdef UNDERSCORES
+.globl _P
+DO_ALIGN(6)
+_P:
+DO_SPACE(nvec(64))
+#else
 .globl P
 DO_ALIGN(6)
 P:
 DO_SPACE(nvec(64))
+#endif
 
 .globl DES_bs_all
 DO_ALIGN(6)
