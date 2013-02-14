@@ -87,7 +87,7 @@
 #define BINARY_ALIGN			4
 /* Length of salt in bytes. */
 #define SALT_SIZE			10
-#define SALT_ALIGN			1
+#define SALT_ALIGN			4
 
 /* Sanity check. Don't change. */
 #if (BINARY_SIZE + SALT_SIZE) * 2 != CIPHERTEXT_LENGTH

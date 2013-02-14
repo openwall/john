@@ -65,10 +65,10 @@
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		24
-#define BINARY_ALIGN            1
+#define BINARY_ALIGN            MEM_ALIGN_WORD
 #define PARTIAL_BINARY_SIZE	8
 #define SALT_SIZE		8
-#define SALT_ALIGN              1
+#define SALT_ALIGN              MEM_ALIGN_WORD
 #define CIPHERTEXT_LENGTH	48
 #define TOTAL_LENGTH		(10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
 

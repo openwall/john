@@ -77,7 +77,7 @@
 #define BINARY_SIZE		(2 + 8)
 #define BINARY_ALIGN            2
 #define SALT_SIZE		8
-#define SALT_ALIGN              1
+#define SALT_ALIGN              MEM_ALIGN_WORD
 #define CIPHERTEXT_LENGTH	48
 #define TOTAL_LENGTH		(10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
 

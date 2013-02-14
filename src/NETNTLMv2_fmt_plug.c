@@ -66,7 +66,7 @@
 #define USERNAME_LENGTH		60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH		45 /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE		16
-#define BINARY_ALIGN		1
+#define BINARY_ALIGN		4
 #define SERVER_CHALL_LENGTH	16
 #define CLIENT_CHALL_LENGTH_MAX	1024 /* FIXME - Max Target Information Size Unknown */
 #define SALT_SIZE		2 * USERNAME_LENGTH + 2 * DOMAIN_LENGTH + 3 + SERVER_CHALL_LENGTH/2 + CLIENT_CHALL_LENGTH_MAX/2
@@ -443,7 +443,11 @@ static int salt_hash(void *salt)
 {
 	// Hash the client challenge (in case server salt was spoofed)
 	int identity_length = ((char *)salt)[0];
-	return (*(ARCH_WORD_32 *)salt+1+identity_length+1+2+8) & (SALT_HASH_SIZE - 1);
+	unsigned int hash;
+	char *chal = salt+1+identity_length+1+2+8;
+
+	hash = chal[0] + (chal[1] << 8) + (chal[2] << 16) + (chal[3] << 24);
+	return hash & (SALT_HASH_SIZE - 1);
 }
 
 static int binary_hash_0(void *binary)

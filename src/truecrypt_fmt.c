@@ -34,7 +34,7 @@ static int omp_t = 1;
 #define PLAINTEXT_LENGTH	64
 #define MAX_CIPHERTEXT_LENGTH	(512*2+32)
 #define SALT_SIZE		64
-#define SALT_ALIGN		1
+#define SALT_ALIGN		4
 #define BINARY_SIZE		(512-SALT_SIZE)
 #define BINARY_ALIGN		1
 #define MIN_KEYS_PER_CRYPT	1

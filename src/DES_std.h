@@ -25,7 +25,7 @@ extern unsigned char DES_E[48];
 extern unsigned char DES_PC1[56];
 extern unsigned char DES_ROT[16];
 extern unsigned char DES_PC2[48];
-
+extern unsigned char DES_IP[64];
 /*
  * Current key schedule.
  */

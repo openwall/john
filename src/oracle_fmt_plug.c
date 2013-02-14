@@ -28,7 +28,7 @@
 #define PLAINTEXT_LENGTH		120 // worst case UTF-8 is 40 characters of Unicode, that'll do
 
 #define BINARY_SIZE			8
-#define BINARY_ALIGN			1
+#define BINARY_ALIGN			4
 #define SALT_SIZE			(32 + 4)  // also contain the NULL
 #define SALT_ALIGN			2
 #define CIPHERTEXT_LENGTH		16

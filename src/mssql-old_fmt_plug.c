@@ -41,7 +41,7 @@
 #define BINARY_SIZE			20
 #define BINARY_ALIGN			4
 #define SALT_SIZE			4
-#define SALT_ALIGN			1
+#define SALT_ALIGN			4
 
 #ifdef MMX_COEF
 #define MIN_KEYS_PER_CRYPT		NBKEYS

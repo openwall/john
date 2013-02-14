@@ -104,7 +104,7 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			16
 #define BINARY_ALIGN			4
 #define SALT_SIZE			(11*4+4)
-#define SALT_ALIGN			1
+#define SALT_ALIGN			2
 
 #define ALGORITHM_NAME			SHA1_ALGORITHM_NAME
 

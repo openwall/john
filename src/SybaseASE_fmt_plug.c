@@ -54,7 +54,7 @@
 #define BINARY_SIZE         32
 #define BINARY_ALIGN        4
 #define SALT_SIZE           8
-#define SALT_ALIGN          1
+#define SALT_ALIGN          4
 
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1

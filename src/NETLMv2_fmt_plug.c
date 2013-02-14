@@ -66,10 +66,10 @@
 #define USERNAME_LENGTH      60 /* lmcons.h - UNLEN (256) / LM20_UNLEN (20) */
 #define DOMAIN_LENGTH        45 /* lmcons.h - CNLEN / DNLEN */
 #define BINARY_SIZE          16
-#define BINARY_ALIGN         1
+#define BINARY_ALIGN         4
 #define CHALLENGE_LENGTH     32
 #define SALT_SIZE            16 + 1 + 2 * (USERNAME_LENGTH + DOMAIN_LENGTH) + 1
-#define SALT_ALIGN           1
+#define SALT_ALIGN           4
 #define CIPHERTEXT_LENGTH    32
 #define TOTAL_LENGTH         12 + USERNAME_LENGTH + DOMAIN_LENGTH + CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
