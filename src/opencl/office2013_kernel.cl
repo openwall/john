@@ -12,6 +12,10 @@
 
 #include "opencl_device_info.h"
 
+#if ! amd_gcn(DEVICE_INFO)
+    #define UNROLL
+#endif
+
 //#if (defined(VECTORIZE) || (!defined(SCALAR) && gpu_amd(DEVICE_INFO) && !amd_gcn(DEVICE_INFO)))
 #ifdef VECTORIZE
 #define MAYBE_VECTOR_ULONG	ulong4
@@ -109,6 +113,9 @@ inline void sha512_single_s(ulong *w, ulong *output) {
 	g = 0x1f83d9abfb41bd6bUL;
 	h = 0x5be0cd19137e2179UL;
 
+#ifdef UNROLL
+	#pragma unroll
+#endif
 	for (int i = 0; i < 16; i++) {
 		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 		t2 = Maj(a, b, c) + Sigma0(a);
@@ -123,6 +130,9 @@ inline void sha512_single_s(ulong *w, ulong *output) {
 		a = t1 + t2;
 	}
 
+#ifdef UNROLL
+	#pragma unroll
+#endif
 	for (int i = 16; i < 80; i++) {
 		w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
 		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -163,6 +173,9 @@ inline void sha512_single(MAYBE_VECTOR_ULONG *w, MAYBE_VECTOR_ULONG *output) {
 	g = 0x1f83d9abfb41bd6bUL;
 	h = 0x5be0cd19137e2179UL;
 
+#ifdef UNROLL
+	#pragma unroll
+#endif
 	for (int i = 0; i < 16; i++) {
 		t1 = k[i] + w[i] + h + Sigma1(e) + Ch(e, f, g);
 		t2 = Maj(a, b, c) + Sigma0(a);
@@ -177,6 +190,9 @@ inline void sha512_single(MAYBE_VECTOR_ULONG *w, MAYBE_VECTOR_ULONG *output) {
 		a = t1 + t2;
 	}
 
+#ifdef UNROLL
+	#pragma unroll
+#endif
 	for (int i = 16; i < 80; i++) {
 		w[i & 15] = sigma1(w[(i - 2) & 15]) + sigma0(w[(i - 15) & 15]) + w[(i - 16) & 15] + w[(i - 7) & 15];
 		t1 = k[i] + w[i & 15] + h + Sigma1(e) + Ch(e, f, g);
@@ -215,14 +231,17 @@ __kernel void GenerateSHA512pwhash(
 
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
+	#pragma unroll
 	for (i = 0; i < 2; i++)
 		block[i] = SWAP64(salt[i]);
+	#pragma unroll
 	for (i = 2; i < 14; i++)
 		block[i] = SWAP64(unicode_pw[gid * (UNICODE_LENGTH >> 3) + i - 2]);
 	block[14] = 0;
 	block[15] = (ulong)(pw_len[gid] + 16) << 3;
 	sha512_single_s(block, output);
 
+	#pragma unroll
 	for (i = 0; i < 8; i++)
 #ifdef SCALAR
 		pwhash[gid * 9 + i] = output[i];
@@ -245,6 +264,7 @@ __kernel void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 	uint base = pwhash[gid * 9 + 8].s0;
 #endif
 
+	#pragma unroll
 	for (i = 0; i < 8; i++)
 		output[i] = pwhash[gid * 9 + i];
 
@@ -261,6 +281,7 @@ __kernel void HashLoop(__global MAYBE_VECTOR_ULONG *pwhash)
 		block[15] = 68 << 3;
 		sha512_single(block, output);
 	}
+	#pragma unroll
 	for (i = 0; i < 8; i++)
 		pwhash[gid * 9 + i] = output[i];
 	pwhash[gid * 9 + 8] += HASH_LOOPS;
@@ -282,6 +303,7 @@ __kernel void Generate2013key(
 #endif
 	uint iterations = *spincount % HASH_LOOPS;
 
+	#pragma unroll
 	for (i = 0; i < 8; i++)
 		output[i] = pwhash[gid * 9 + i];
 
@@ -289,9 +311,11 @@ __kernel void Generate2013key(
 	for (j = 0; j < iterations; j++)
 	{
 		block[0] = ((ulong)SWAP32(base + j) << 32) | (output[0] >> 32);
+		#pragma unroll
 		for (i = 1; i < 8; i++)
 			block[i] = (output[i - 1] << 32) | (output[i] >> 32);
 		block[8] = (output[7] << 32) | 0x80000000UL;
+		#pragma unroll
 		for (i = 9; i < 15; i++)
 			block[i] = 0;
 		block[15] = 68 << 3;
@@ -299,22 +323,26 @@ __kernel void Generate2013key(
 	}
 
 	/* Our sha512 destroys input so we store a needed portion in temp[] */
+	#pragma unroll
 	for (i = 0; i < 8; i++)
 		block[i] = temp[i] = output[i];
 
 	/* Final hash 1 */
 	block[8] = InputBlockKey;
 	block[9] = 0x8000000000000000UL;
+	#pragma unroll
 	for (i = 10; i < 15; i++)
 		block[i] = 0;
 	block[15] = 72 << 3;
 	sha512_single(block, output);
 
 	/* Prepare for final hash 2 */
+	#pragma unroll
 	for (i = 0; i < 8; i++)
 		block[i] = temp[i];
 
 	/* Endian-swap to hash 1 output */
+	#pragma unroll
 	for (i = 0; i < 8; i++) {
 #ifdef SCALAR
 		key[gid * 128/8 + i] = SWAP64(output[i]);
@@ -329,12 +357,14 @@ __kernel void Generate2013key(
 	/* Final hash 2 */
 	block[8] = ValueBlockKey;
 	block[9] = 0x8000000000000000UL;
+	#pragma unroll
 	for (i = 10; i < 15; i++)
 		block[i] = 0;
 	block[15] = 72 << 3;
 	sha512_single(block, output);
 
 	/* Endian-swap to hash 2 output */
+	#pragma unroll
 	for (i = 0; i < 8; i++) {
 #ifdef SCALAR
 		key[gid * 128/8 + 64/8 + i] = SWAP64(output[i]);
