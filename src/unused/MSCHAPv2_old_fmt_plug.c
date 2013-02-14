@@ -49,7 +49,7 @@
 #define uchar unsigned char
 #endif
 
-#define FORMAT_LABEL         "mschapv2-naive"
+#define FORMAT_LABEL         "mschapv2-old"
 #define FORMAT_NAME          "MSCHAPv2 C/R MD4 DES"
 #define ALGORITHM_NAME       "32/" ARCH_BITS_STR " naive"
 #define BENCHMARK_COMMENT    ""
@@ -76,30 +76,30 @@
 #endif
 
 static struct fmt_tests tests[] = {
-  {"$MSCHAPv2$4c092fd3fd98236502e8591100046326$b912ce522524d33123a982cf330a57f8e953fa7974042b5d$6a4915d0ce61d42be533640a75391925$1111", "2222"},
-  {"$MSCHAPv2$5B5D7C7D7B3F2F3E3C2C602132262628$82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF$21402324255E262A28295F2B3A337C7E$User", "clientPass"},
-  {"$MSCHAPv2$d07054459a1fdbc266a006f0220e6fac$33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde$3545cb1d89b507a5de104435e81b14a4$testuser1", "Cricket8"},
-  {"$MSCHAPv2$56d64cbe7bad61349a0b752335100eaf$d7d829d9545cef1d631b4e568ffb7586050fa3a4d02dbc0b$7f8a466cff2a6bf0c80218bbf56d76bc$fred", "OMG!BBQ!11!one"}, /* domain\fred */
-  {"$MSCHAPv2$b3c42db475b881d3c52ff3923d7b3bf8$f07c7a4eb391f5debe32d814679a5a69661b86b33227c4f8$6321f8649b971bd11ce8d5cb22a4a738$bOb", "asdblahblahblahblahblahblahblahblah"}, /* WorkGroup\bOb */
-  {"$MSCHAPv2$d94e7c7972b2376b28c268583e162de7$eba25a3b04d2c7085d01f842e2befc91745c40db0f792356$0677ca7318fd7f65ae1b4f58c9f4f400$lameuser", ""}, /* no password */
-  {"$MSCHAPv2$8710da60ebfc4cab$c4e3bb55904c966927ee68e5f1472e1f5d8ec165713b5360$$foo4", "bar4" },
-  {"$MSCHAPv2$8710da60ebfc4cab$c4e3bb55904c966927ee68e5f1472e1f5d8ec165713b5360$$", "bar4" },
+	{"$MSCHAPv2$4c092fd3fd98236502e8591100046326$b912ce522524d33123a982cf330a57f8e953fa7974042b5d$6a4915d0ce61d42be533640a75391925$1111", "2222"},
+	{"$MSCHAPv2$5B5D7C7D7B3F2F3E3C2C602132262628$82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF$21402324255E262A28295F2B3A337C7E$User", "clientPass"},
+	{"$MSCHAPv2$d07054459a1fdbc266a006f0220e6fac$33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde$3545cb1d89b507a5de104435e81b14a4$testuser1", "Cricket8"},
+	{"$MSCHAPv2$56d64cbe7bad61349a0b752335100eaf$d7d829d9545cef1d631b4e568ffb7586050fa3a4d02dbc0b$7f8a466cff2a6bf0c80218bbf56d76bc$fred", "OMG!BBQ!11!one"}, /* domain\fred */
+	{"$MSCHAPv2$b3c42db475b881d3c52ff3923d7b3bf8$f07c7a4eb391f5debe32d814679a5a69661b86b33227c4f8$6321f8649b971bd11ce8d5cb22a4a738$bOb", "asdblahblahblahblahblahblahblahblah"}, /* WorkGroup\bOb */
+	{"$MSCHAPv2$d94e7c7972b2376b28c268583e162de7$eba25a3b04d2c7085d01f842e2befc91745c40db0f792356$0677ca7318fd7f65ae1b4f58c9f4f400$lameuser", ""}, /* no password */
+	{"$MSCHAPv2$8710da60ebfc4cab$c4e3bb55904c966927ee68e5f1472e1f5d8ec165713b5360$$foo4", "bar4" },
+	{"$MSCHAPv2$8710da60ebfc4cab$c4e3bb55904c966927ee68e5f1472e1f5d8ec165713b5360$$", "bar4" },
 
-  /* Ettercap generated three test vectors */
-  {"$MSCHAPv2$3D79CC8CDC0261D4$B700770725F87739ADB110B310D9A289CDBB550ADCA6CB86$solar", "solarisalwaysbusy"},
-  {"$MSCHAPv2$BA75EB14EFBFBF25$ED8CC90FD40FAA2D6BCD0ABD0B1F562FD777DF6C5609C98B$lulu", "password"},
-  {"$MSCHAPv2$95A87FA62EBCD2E3C8B09E1B448A6C72$ED8CC90FD40FAA2D6BCD0ABD0B1F562FD777DF6C5609C98B$E2AE0995EAAC6CEFF0D9757428B51509$lulu", "password"},
+	/* Ettercap generated three test vectors */
+	{"$MSCHAPv2$3D79CC8CDC0261D4$B700770725F87739ADB110B310D9A289CDBB550ADCA6CB86$solar", "solarisalwaysbusy"},
+	{"$MSCHAPv2$BA75EB14EFBFBF25$ED8CC90FD40FAA2D6BCD0ABD0B1F562FD777DF6C5609C98B$lulu", "password"},
+	{"$MSCHAPv2$95A87FA62EBCD2E3C8B09E1B448A6C72$ED8CC90FD40FAA2D6BCD0ABD0B1F562FD777DF6C5609C98B$E2AE0995EAAC6CEFF0D9757428B51509$lulu", "password"},
 
-  /* Single test vector from chapcrack's sample pcap file */
-  {"$MSCHAPv2$6D0E1C056CD94D5F$1C93ABCE815400686BAECA315F348469256420598A73AD49$moxie", "bPCFyF2uL1p5Lg5yrKmqmY"},
+	/* Single test vector from chapcrack's sample pcap file */
+	{"$MSCHAPv2$6D0E1C056CD94D5F$1C93ABCE815400686BAECA315F348469256420598A73AD49$moxie", "bPCFyF2uL1p5Lg5yrKmqmY"},
 
-  {"", "clientPass",     {"User",        "", "",    "5B5D7C7D7B3F2F3E3C2C602132262628", "82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF", "21402324255E262A28295F2B3A337C7E"} },
-  {"", "Cricket8",       {"testuser1",   "", "",    "d07054459a1fdbc266a006f0220e6fac", "33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde", "3545cb1d89b507a5de104435e81b14a4"} },
-  {"", "OMG!BBQ!11!one", {"domain\\fred", "", "",   "56d64cbe7bad61349a0b752335100eaf", "d7d829d9545cef1d631b4e568ffb7586050fa3a4d02dbc0b", "7f8a466cff2a6bf0c80218bbf56d76bc"} }, /* domain\fred */
-  {"", "",               {"lameuser", "", "domain", "d94e7c7972b2376b28c268583e162de7", "eba25a3b04d2c7085d01f842e2befc91745c40db0f792356", "0677ca7318fd7f65ae1b4f58c9f4f400"} }, /* no password */
-  {"", "asdblahblahblahblahblahblahblahblah", {"WorkGroup\\bOb", "", "", "b3c42db475b881d3c52ff3923d7b3bf8", "f07c7a4eb391f5debe32d814679a5a69661b86b33227c4f8", "6321f8649b971bd11ce8d5cb22a4a738"} }, /* WorkGroup\bOb */
+	{"", "clientPass",     {"User",        "", "",    "5B5D7C7D7B3F2F3E3C2C602132262628", "82309ECD8D708B5EA08FAA3981CD83544233114A3D85D6DF", "21402324255E262A28295F2B3A337C7E"} },
+	{"", "Cricket8",       {"testuser1",   "", "",    "d07054459a1fdbc266a006f0220e6fac", "33c8331a9b03b7e003f09dd253d740a2bead544143cc8bde", "3545cb1d89b507a5de104435e81b14a4"} },
+	{"", "OMG!BBQ!11!one", {"domain\\fred", "", "",   "56d64cbe7bad61349a0b752335100eaf", "d7d829d9545cef1d631b4e568ffb7586050fa3a4d02dbc0b", "7f8a466cff2a6bf0c80218bbf56d76bc"} }, /* domain\fred */
+	{"", "",               {"lameuser", "", "domain", "d94e7c7972b2376b28c268583e162de7", "eba25a3b04d2c7085d01f842e2befc91745c40db0f792356", "0677ca7318fd7f65ae1b4f58c9f4f400"} }, /* no password */
+	{"", "asdblahblahblahblahblahblahblahblah", {"WorkGroup\\bOb", "", "", "b3c42db475b881d3c52ff3923d7b3bf8", "f07c7a4eb391f5debe32d814679a5a69661b86b33227c4f8", "6321f8649b971bd11ce8d5cb22a4a738"} }, /* WorkGroup\bOb */
 
-  {NULL}
+	{NULL}
 };
 
 static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
@@ -133,71 +133,71 @@ static void init(struct fmt_main *self)
 
 static int valid_long(char *ciphertext)
 {
-  char *pos, *pos2;
+	char *pos, *pos2;
 
-  if (ciphertext == NULL) return 0;
-  else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
+	if (ciphertext == NULL) return 0;
+	else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
 
-  /* Validate Authenticator/Server Challenge Length */
-  pos = &ciphertext[10];
-  for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
-    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
-      return 0;
+	/* Validate Authenticator/Server Challenge Length */
+	pos = &ciphertext[10];
+	for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
+		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+			return 0;
 
-  if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 2)) )
-    return 0;
+	if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 2)) )
+		return 0;
 
-  /* Validate MSCHAPv2 Response Length */
-  pos2++; pos = pos2;
-  for (; strncmp(pos2, "$", 1) != 0; pos2++)
-    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
-      return 0;
+	/* Validate MSCHAPv2 Response Length */
+	pos2++; pos = pos2;
+	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+			return 0;
 
-  if ( !(*pos2 && (pos2 - pos == CIPHERTEXT_LENGTH)) )
-    return 0;
+	if ( !(*pos2 && (pos2 - pos == CIPHERTEXT_LENGTH)) )
+		return 0;
 
-  /* Validate Peer/Client Challenge Length */
-  pos2++; pos = pos2;
-  for (; strncmp(pos2, "$", 1) != 0; pos2++)
-    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
-      return 0;
+	/* Validate Peer/Client Challenge Length */
+	pos2++; pos = pos2;
+	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+			return 0;
 
-  if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 2)) )
-    return 0;
+	if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 2)) )
+		return 0;
 
-  /* Validate Username Length */
-  if (strlen(++pos2) > USERNAME_LENGTH)
-    return 0;
+	/* Validate Username Length */
+	if (strlen(++pos2) > USERNAME_LENGTH)
+		return 0;
 
-  return 1;
+	return 1;
 }
 
 static int valid_short(char *ciphertext)
 {
-  char *pos, *pos2;
+	char *pos, *pos2;
 
-  if (ciphertext == NULL) return 0;
-  else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
+	if (ciphertext == NULL) return 0;
+	else if (strncmp(ciphertext, "$MSCHAPv2$", 10)!=0) return 0;
 
-  /* Validate MSCHAPv2 Challenge Length */
-  pos = &ciphertext[10];
-  for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
-    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
-      return 0;
+	/* Validate MSCHAPv2 Challenge Length */
+	pos = &ciphertext[10];
+	for (pos2 = pos; strncmp(pos2, "$", 1) != 0; pos2++)
+		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+			return 0;
 
-  if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 4)) )
-    return 0;
+	if ( !(*pos2 && (pos2 - pos == CHALLENGE_LENGTH / 4)) )
+		return 0;
 
-  /* Validate MSCHAPv2 Response Length */
-  pos2++; pos = pos2;
-  for (; strncmp(pos2, "$", 1) != 0; pos2++)
-    if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
-      return 0;
+	/* Validate MSCHAPv2 Response Length */
+	pos2++; pos = pos2;
+	for (; strncmp(pos2, "$", 1) != 0; pos2++)
+		if (atoi16[ARCH_INDEX(*pos2)] == 0x7F)
+			return 0;
 
-  if ( !(*pos2 && (pos2 - pos == CIPHERTEXT_LENGTH)) )
-    return 0;
+	if ( !(*pos2 && (pos2 - pos == CIPHERTEXT_LENGTH)) )
+		return 0;
 
-  return 1;
+	return 1;
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
@@ -208,116 +208,116 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 
 static char *prepare_long(char *split_fields[10])
 {
-  char *username, *cp;
+	char *username, *cp;
 
-  /* DOMAIN\USERNAME -or - USERNAME -- ignore DOMAIN */
-  if ((username = strstr(split_fields[0], "\\")) == NULL)
-    username = split_fields[0];
-  else
-    username++;
+	/* DOMAIN\USERNAME -or - USERNAME -- ignore DOMAIN */
+	if ((username = strstr(split_fields[0], "\\")) == NULL)
+		username = split_fields[0];
+	else
+		username++;
 
-  cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+strlen(split_fields[5])+1+strlen(username)+1);
-  sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4], split_fields[5], username);
-  if (valid_long(cp)) {
-    char *cp2 = str_alloc_copy(cp);
-    MEM_FREE(cp);
-    return cp2;
-  }
-  MEM_FREE(cp);
-  return split_fields[1];
+	cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+strlen(split_fields[5])+1+strlen(username)+1);
+	sprintf(cp, "$MSCHAPv2$%s$%s$%s$%s", split_fields[3], split_fields[4], split_fields[5], username);
+	if (valid_long(cp)) {
+		char *cp2 = str_alloc_copy(cp);
+		MEM_FREE(cp);
+		return cp2;
+	}
+	MEM_FREE(cp);
+	return split_fields[1];
 }
 
 static char *prepare_short(char *split_fields[10])
 {
-  char *cp;
+	char *cp;
 
-  cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+1+1);
-  sprintf(cp, "$MSCHAPv2$%s$%s$$", split_fields[3], split_fields[4]);
-  if (valid_short(cp)) {
-    char *cp2 = str_alloc_copy(cp);
-    MEM_FREE(cp);
-    return cp2;
-  }
-  MEM_FREE(cp);
-  return split_fields[1];
+	cp = mem_alloc(1+8+1+strlen(split_fields[3])+1+strlen(split_fields[4])+1+1+1);
+	sprintf(cp, "$MSCHAPv2$%s$%s$$", split_fields[3], split_fields[4]);
+	if (valid_short(cp)) {
+		char *cp2 = str_alloc_copy(cp);
+		MEM_FREE(cp);
+		return cp2;
+	}
+	MEM_FREE(cp);
+	return split_fields[1];
 }
 
 static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 {
-  char *ret;
+	char *ret;
 
-  if (!strncmp(split_fields[1], "$MSCHAPv2$", 10))
-    ret = NULL;
-  else if (split_fields[0] && split_fields[3] && split_fields[4] && split_fields[5] &&
-           strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
-           strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
-           strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
-    ret = prepare_long(split_fields);
-  else if (split_fields[0] && split_fields[3] && split_fields[4] &&
-           strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
-           strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
-    ret = prepare_short(split_fields);
-  else
-    ret = NULL;
+	if (!strncmp(split_fields[1], "$MSCHAPv2$", 10))
+		ret = NULL;
+	else if (split_fields[0] && split_fields[3] && split_fields[4] && split_fields[5] &&
+	         strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
+	         strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
+	         strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
+		ret = prepare_long(split_fields);
+	else if (split_fields[0] && split_fields[3] && split_fields[4] &&
+	         strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
+	         strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
+		ret = prepare_short(split_fields);
+	else
+		ret = NULL;
 
-  return ret ? ret : split_fields[1];
+	return ret ? ret : split_fields[1];
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-  static char *out;
-  int i, j = 0;
+	static char *out;
+	int i, j = 0;
 
-  if (!out) out = mem_alloc_tiny(TOTAL_LENGTH + 1, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(TOTAL_LENGTH + 1, MEM_ALIGN_WORD);
 
-  memset(out, 0, TOTAL_LENGTH + 1);
-  memcpy(out, ciphertext, strlen(ciphertext));
+	memset(out, 0, TOTAL_LENGTH + 1);
+	memcpy(out, ciphertext, strlen(ciphertext));
 
-  /* convert hashes to lower-case - exclude $MSCHAPv2 and USERNAME */
-  for (i = 10; i < TOTAL_LENGTH + 1 && j < 3; i++) {
-    if (out[i] >= 'A' && out[i] <= 'Z')
-      out[i] |= 0x20;
-    else if (out[i] == '$')
-      j++;
-  }
+	/* convert hashes to lower-case - exclude $MSCHAPv2 and USERNAME */
+	for (i = 10; i < TOTAL_LENGTH + 1 && j < 3; i++) {
+		if (out[i] >= 'A' && out[i] <= 'Z')
+			out[i] |= 0x20;
+		else if (out[i] == '$')
+			j++;
+	}
 
-  return out;
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
 {
-  static uchar *binary;
-  int i;
+	static uchar *binary;
+	int i;
 
-  if (!binary) binary = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
+	if (!binary) binary = mem_alloc_tiny(DIGEST_SIZE, MEM_ALIGN_WORD);
 
-  if (valid_short(ciphertext))
-    ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
-  else
-    ciphertext += 10 + CHALLENGE_LENGTH / 2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
+	if (valid_short(ciphertext))
+		ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
+	else
+		ciphertext += 10 + CHALLENGE_LENGTH / 2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
 
-  for (i=0; i<DIGEST_SIZE; i++)
-  {
-    binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
-    binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
-  }
-  return binary;
+	for (i=0; i<DIGEST_SIZE; i++)
+	{
+		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
+		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
+	}
+	return binary;
 }
 
 static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
 {
-  DES_cblock key;
+	DES_cblock key;
 
-  key[0] = key_56[0];
-  key[1] = (key_56[0] << 7) | (key_56[1] >> 1);
-  key[2] = (key_56[1] << 6) | (key_56[2] >> 2);
-  key[3] = (key_56[2] << 5) | (key_56[3] >> 3);
-  key[4] = (key_56[3] << 4) | (key_56[4] >> 4);
-  key[5] = (key_56[4] << 3) | (key_56[5] >> 5);
-  key[6] = (key_56[5] << 2) | (key_56[6] >> 6);
-  key[7] = (key_56[6] << 1);
+	key[0] = key_56[0];
+	key[1] = (key_56[0] << 7) | (key_56[1] >> 1);
+	key[2] = (key_56[1] << 6) | (key_56[2] >> 2);
+	key[3] = (key_56[2] << 5) | (key_56[3] >> 3);
+	key[4] = (key_56[3] << 4) | (key_56[4] >> 4);
+	key[5] = (key_56[4] << 3) | (key_56[5] >> 5);
+	key[6] = (key_56[5] << 2) | (key_56[6] >> 6);
+	key[7] = (key_56[6] << 1);
 
-  DES_set_key(&key, ks);
+	DES_set_key(&key, ks);
 }
 
 /* Calculate the MSCHAPv2 response for the given challenge, using the
@@ -397,11 +397,11 @@ static int cmp_exact(char *source, int index)
 
 static void get_challenge(const char *ciphertext, unsigned char *binary_salt)
 {
-  int i;
-  const char *pos = ciphertext + 10;
+	int i;
+	const char *pos = ciphertext + 10;
 
-  for (i = 0; i < SALT_SIZE; i++)
-    binary_salt[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+	for (i = 0; i < SALT_SIZE; i++)
+		binary_salt[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 }
 
 /* Either the cipherext already contains the MSCHAPv2 Challenge (4 Bytes) or
@@ -410,59 +410,59 @@ static void get_challenge(const char *ciphertext, unsigned char *binary_salt)
 */
 static void *get_salt(char *ciphertext)
 {
-  static unsigned char *binary_salt;
-  SHA_CTX ctx;
-  unsigned char tmp[16];
-  int i;
-  char *pos = NULL;
-  unsigned char digest[20];
+	static unsigned char *binary_salt;
+	SHA_CTX ctx;
+	unsigned char tmp[16];
+	int i;
+	char *pos = NULL;
+	unsigned char digest[20];
 
-  if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
+	if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
-  /* This is just to silence scan-build. It will never happen. It is unclear
-     why only this format gave warnings, many others do similar things. */
-  if (!ciphertext)
-	  return ciphertext;
+	/* This is just to silence scan-build. It will never happen. It is unclear
+	   why only this format gave warnings, many others do similar things. */
+	if (!ciphertext)
+		return ciphertext;
 
-  memset(binary_salt, 0, SALT_SIZE);
-  memset(digest, 0, 20);
+	memset(binary_salt, 0, SALT_SIZE);
+	memset(digest, 0, 20);
 
-  if (valid_short(ciphertext)) {
-    get_challenge(ciphertext, binary_salt);
-    goto out;
-  }
+	if (valid_short(ciphertext)) {
+		get_challenge(ciphertext, binary_salt);
+		goto out;
+	}
 
-  SHA1_Init(&ctx);
+	SHA1_Init(&ctx);
 
-  /* Peer Challenge */
-  pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
+	/* Peer Challenge */
+	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1; /* Skip $MSCHAPv2$, Authenticator Challenge and Response Hash */
 
-  memset(tmp, 0, 16);
-  for (i = 0; i < 16; i++)
-    tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+	memset(tmp, 0, 16);
+	for (i = 0; i < 16; i++)
+		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 
-  SHA1_Update(&ctx, tmp, 16);
+	SHA1_Update(&ctx, tmp, 16);
 
-  /* Authenticator Challenge */
-  pos = ciphertext + 10; /* Skip $MSCHAPv2$ */
+	/* Authenticator Challenge */
+	pos = ciphertext + 10; /* Skip $MSCHAPv2$ */
 
-  memset(tmp, 0, 16);
-  for (i = 0; i < 16; i++)
-    tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+	memset(tmp, 0, 16);
+	for (i = 0; i < 16; i++)
+		tmp[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 
-  SHA1_Update(&ctx, tmp, 16);
+	SHA1_Update(&ctx, tmp, 16);
 
-  /* Username - Only the user name (as presented by the peer and
-     excluding any prepended domain name) is used as input to SHAUpdate()
-  */
-  pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
-  SHA1_Update(&ctx, pos, strlen(pos));
+	/* Username - Only the user name (as presented by the peer and
+	   excluding any prepended domain name) is used as input to SHAUpdate()
+	*/
+	pos = ciphertext + 10 + 16*2 + 1 + 24*2 + 1 + 16*2 + 1; /* Skip $MSCHAPv2$, Authenticator, Response and Peer */
+	SHA1_Update(&ctx, pos, strlen(pos));
 
-  SHA1_Final(digest, &ctx);
-  memcpy(binary_salt, digest, SALT_SIZE);
+	SHA1_Final(digest, &ctx);
+	memcpy(binary_salt, digest, SALT_SIZE);
 
 out:
-  return (void*)binary_salt;
+	return (void*)binary_salt;
 }
 
 static void set_salt(void *salt)
