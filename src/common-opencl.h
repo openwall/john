@@ -76,6 +76,7 @@ cl_event multi_profilingEvent[EVENTS];
 #define GWS_CONFIG_NAME			"_GWS"
 #define DUR_CONFIG_NAME			"_MaxDuration"
 #define FALSE				0
+#define TRUE				1
 
 int device_info[MAXGPUS];
 int cores_per_MP[MAXGPUS];
