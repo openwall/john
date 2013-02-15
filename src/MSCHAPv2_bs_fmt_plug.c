@@ -371,19 +371,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for(i=0; i<count; i++) {
 			int len;
 			/* Generate 16-byte NTLM hash */
-			len = E_md4hash((uchar *) saved_plain[i], saved_len[i], saved_key[i]);
+			len = E_md4hash((uchar *) saved_plain[i], saved_len[i],
+			                saved_key[i]);
 
 			if (len <= 0)
-				saved_plain[i][-len] = 0; // match if it was truncated
+				saved_plain[i][-len] = 0; // match if truncated
 
-			/* NULL-padding the 16-byte hash to 21-bytes is made in cmp_exact if needed */
-		}
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-		for(i=0; i<count; i++)
+			/* NULL-padding the 16-byte hash to 21-bytes is made
+			   in cmp_exact if needed */
+
 			setup_des_key(saved_key[i], i);
-
+		}
 		keys_prepared = 1;
 	}
 
@@ -445,7 +443,10 @@ static int cmp_exact(char *source, int index)
 */
 static void *get_salt(char *ciphertext)
 {
-	static unsigned char binary_salt[SALT_SIZE];
+	static union {
+		unsigned char u8[SALT_SIZE];
+		ARCH_WORD_32 u32[SALT_SIZE / 4];
+	} binary_salt;
 	int i, cnt;
 	uchar j;
 	char *pos = NULL;
@@ -455,7 +456,7 @@ static void *get_salt(char *ciphertext)
 		pos = ciphertext + 10;
 
 		for (i = 0; i < SALT_SIZE; i++)
-			binary_salt[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+			binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 	} else {
 		static SHA_CTX ctx;
 		unsigned char tmp[16];
@@ -488,19 +489,19 @@ static void *get_salt(char *ciphertext)
 		SHA1_Update(&ctx, pos, strlen(pos));
 
 		SHA1_Final(digest, &ctx);
-		memcpy(binary_salt, digest, SALT_SIZE);
+		memcpy(binary_salt.u8, digest, SALT_SIZE);
 	}
 
 	/* Apply IP to salt */
 	memset(temp, 0, SALT_SIZE);
 	for (i = 0; i < 64; i++) {
 		cnt = DES_IP[i ^ 0x20];
-		j = (uchar)((binary_salt[cnt >> 3] >> (7 - (cnt & 7))) & 1);
+		j = (uchar)((binary_salt.u8[cnt >> 3] >> (7 - (cnt & 7))) & 1);
 		temp[i/8] |= j << (7 - (i % 8));
 	}
 
-	memcpy(binary_salt, temp, SALT_SIZE);
-	return (void*)binary_salt;
+	memcpy(binary_salt.u8, temp, SALT_SIZE);
+	return (void*)binary_salt.u32;
 }
 
 static void set_salt(void *salt)
@@ -548,7 +549,13 @@ struct fmt_main fmt_MSCHAPv2_naive = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_BS | FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+#if DES_BS
+		FMT_BS |
+#if DES_bs_mt
+		FMT_OMP |
+#endif
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	}, {
 		init,
