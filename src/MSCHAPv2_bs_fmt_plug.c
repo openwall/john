@@ -445,7 +445,10 @@ static int cmp_exact(char *source, int index)
 */
 static void *get_salt(char *ciphertext)
 {
-	static unsigned char binary_salt[SALT_SIZE];
+	static union {
+		unsigned char u8[SALT_SIZE];
+		ARCH_WORD_32 u32[SALT_SIZE / 4];
+	} binary_salt;
 	int i, cnt;
 	uchar j;
 	char *pos = NULL;
@@ -455,7 +458,7 @@ static void *get_salt(char *ciphertext)
 		pos = ciphertext + 10;
 
 		for (i = 0; i < SALT_SIZE; i++)
-			binary_salt[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
+			binary_salt.u8[i] = (atoi16[ARCH_INDEX(pos[i*2])] << 4) + atoi16[ARCH_INDEX(pos[i*2+1])];
 	} else {
 		static SHA_CTX ctx;
 		unsigned char tmp[16];
@@ -488,19 +491,19 @@ static void *get_salt(char *ciphertext)
 		SHA1_Update(&ctx, pos, strlen(pos));
 
 		SHA1_Final(digest, &ctx);
-		memcpy(binary_salt, digest, SALT_SIZE);
+		memcpy(binary_salt.u8, digest, SALT_SIZE);
 	}
 
 	/* Apply IP to salt */
 	memset(temp, 0, SALT_SIZE);
 	for (i = 0; i < 64; i++) {
 		cnt = DES_IP[i ^ 0x20];
-		j = (uchar)((binary_salt[cnt >> 3] >> (7 - (cnt & 7))) & 1);
+		j = (uchar)((binary_salt.u8[cnt >> 3] >> (7 - (cnt & 7))) & 1);
 		temp[i/8] |= j << (7 - (i % 8));
 	}
 
-	memcpy(binary_salt, temp, SALT_SIZE);
-	return (void*)binary_salt;
+	memcpy(binary_salt.u8, temp, SALT_SIZE);
+	return (void*)binary_salt.u32;
 }
 
 static void set_salt(void *salt)
