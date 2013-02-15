@@ -11,7 +11,6 @@
 #include "common.h"
 #include "DES_bs.h"
 
-DES_bs_vector P[64];
 
 #if DES_BS_ASM && defined(_OPENMP) && defined(__GNUC__)
 #warning Assembly code and OpenMP are both requested - will provide the former, but not the latter (for DES-based hashes).  This may likely be corrected by enabling SIMD intrinsics with the C compiler (try adding -msse2 to OMPFLAGS).

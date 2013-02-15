@@ -40,6 +40,9 @@ int DES_bs_nt = 0;
 DES_bs_combined *DES_bs_all_p = NULL;
 #elif !DES_BS_ASM
 DES_bs_combined CC_CACHE_ALIGN DES_bs_all;
+#endif
+
+#if !DES_BS_ASM
 DES_bs_vector P[64];
 #endif
 

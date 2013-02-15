@@ -22,6 +22,9 @@
  *
  * The effort has been sponsored by Rapid7: http://www.rapid7.com
  *
+ * Addition of single DES encryption with no salt by Deepika Dutta Mishra
+ * <dipikadutta at gmail.com> in 2013, no rights reserved.
+
  * ...with changes in the jumbo patch, by Alain Espinosa (starting with a
  * comment further down this file).
  */
