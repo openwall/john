@@ -59,7 +59,7 @@ typedef unsigned long long ARCH_WORD_64;
 /*
  * ASCII <-> binary conversion tables.
  */
-extern const char itoa64[64];
+extern const char itoa64[64]; /* crypt(3) base64 - not MIME Base64! */
 extern char atoi64[0x100];
 extern const char itoa16[16];
 extern char atoi16[0x100];
