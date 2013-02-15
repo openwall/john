@@ -369,19 +369,17 @@ static void crypt_all(int count)
 		for(i=0; i<count; i++) {
 			int len;
 			/* Generate 16-byte NTLM hash */
-			len = E_md4hash((uchar *) saved_plain[i], saved_len[i], saved_key[i]);
+			len = E_md4hash((uchar *) saved_plain[i], saved_len[i],
+			                saved_key[i]);
 
 			if (len <= 0)
-				saved_plain[i][-len] = 0; // match if it was truncated
+				saved_plain[i][-len] = 0; // match if truncated
 
-			/* NULL-padding the 16-byte hash to 21-bytes is made in cmp_exact if needed */
-		}
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-		for(i=0; i<count; i++)
+			/* NULL-padding the 16-byte hash to 21-bytes is made
+			   in cmp_exact if needed */
+
 			setup_des_key(saved_key[i], i);
-
+		}
 		keys_prepared = 1;
 	}
 
