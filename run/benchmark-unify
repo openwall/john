@@ -119,13 +119,17 @@ MediaWiki -- md5($s.'-'.md5($p))	MediaWiki md5($s.'-'.md5($p))
 More Secure Internet Password	Lotus Notes/Domino 6 More Secure Internet Password
 NT v2	NT MD4
 Netscape LDAP SHA	Netscape LDAP SHA-1
+ODF SHA-1 Blowfish	ODF SHA-1 Blowfish / SHA-256 AES
+Office 2007/2010 SHA-1/AES	Office 2007/2010 (SHA-1) / 2013 (SHA-512), with AES
 Oracle	Oracle 10 DES
 Oracle 11g	Oracle 11g SHA-1
+PDF MD5 RC4	PDF MD5 SHA-2 RC4 / AES
 PHPS -- md5(md5($pass).$salt)	PHPS md5(md5($pass).$salt)
 PHPass MD5	phpass MD5 ($P$9)
 Raw SHA	Raw SHA-0
 SAP BCODE	SAP CODVN B (BCODE)
 SAP CODVN G (PASSCODE)	SAP CODVN F/G (PASSCODE)
+ssh-ng SSH RSA / DSA	SSH RSA/DSA (one 2048-bit RSA and one 1024-bit DSA key)
 dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)	dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)
 generic crypt(3)	generic crypt(3) DES
 hmailserver	hMailServer salted SHA-256
