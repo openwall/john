@@ -194,8 +194,8 @@ static void *get_binary(char *ciphertext)
 	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
 		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
-	out[31] = value >> 8; \
-	out[30] = value; \
+	out[31] = value >> 8;
+	out[30] = value;
 	return (void *)out;
 }
 
