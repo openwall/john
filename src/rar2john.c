@@ -59,6 +59,62 @@
 #include "unicode.h"
 #include "stdint.h"
 
+#define CHUNK_SIZE 4096
+
+/* borrowed from http://dsss.be/w/c:memmem */
+static inline unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen)
+{
+	int i, j = 0;
+	if (nlen > hlen)
+		return 0;
+	switch (nlen) {	// we have a few specialized compares for certain sizes
+	case 0:		// no needle? just give the haystack
+		return haystack;
+	case 1:		// just use memchr for 1-byte needle
+		return memchr(haystack, needle[0], hlen);
+#if ARCH_ALLOWS_UNALIGNED
+	case 2:		// use 16-bit compares for 2-byte needles
+		for (i = 0; i < hlen - nlen + 1; i++) {
+			if (*(uint16_t *) (haystack + i) == *(uint16_t *) needle) {
+				return haystack + i;
+			}
+		}
+		break;
+	case 4:		// use 32-bit compares for 4-byte needles
+		for (i = 0; i < hlen - nlen + 1; i++) {
+			if (*(uint32_t *) (haystack + i) == *(uint32_t *) needle) {
+				return haystack + i;
+			}
+		}
+		break;
+#if ARCH_SIZE >= 64
+	case 8: // use 64-bit compares for 8-byte needles
+		for (i=0; i<hlen-nlen+1; i++) {
+			if (*(uint64_t*)(haystack+i)==*(uint64_t*)needle) {
+				return haystack+i;
+			}
+		}
+		break;
+#endif /* ARCH_SIZE >= 64 */
+#endif /* ARCH_ALLOWS_UNALIGNED */
+	default: // generic compare for any other needle size
+		// walk i through the haystack, matching j as long as needle[j] matches haystack[i]
+		for (i = 0; i < hlen - nlen + 1; i++) {
+			if (haystack[i] == needle[j]) {
+				if (j == nlen - 1) {	// end of needle and it all matched?  win.
+					return haystack + i - j;
+				} else {	// keep advancing j (and i, implicitly)
+					j++;
+				}
+			} else {	// no match, rewind i the length of the failed match (j), and reset j
+				i -= j;
+				j = 0;
+			}
+		}
+	}
+	return NULL;
+}
+
 /* Derived from unrar's encname.cpp */
 void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
                             UTF16 *NameW, size_t MaxDecSize)
@@ -123,8 +179,12 @@ static void process_file(const char *archive_name)
 	size_t bestsize = 0;
 	char best[LINE_BUFFER_SIZE] = "";
 	char *base_aname;
+	unsigned char buf[CHUNK_SIZE];
 	char *pp;
 	uint16_t archive_header_head_flags, file_header_head_flags;
+	unsigned char *pos;
+	int diff;
+	int found = 0;
 
 	pp = strdup(archive_name);
 	base_aname = basename(pp);
@@ -138,8 +198,28 @@ static void process_file(const char *archive_name)
 	count = fread(marker_block, 7, 1, fp);
 	assert(count == 1);
 	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) {
-		fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
-		goto err;
+		if (memcmp(marker_block, "MZ", 2) == 0) {
+			/* jump to "Rar!" signature */
+			while (!feof(fp)) {
+				count = fread(buf, 1, CHUNK_SIZE, fp);
+				if( (pos = _memmem(buf, count, "Rar!", 4))) {
+					diff = count - (pos - buf);
+					fseek(fp, - diff, SEEK_CUR);
+					fseek(fp, 7, SEEK_CUR);
+					found = 1;
+					break;
+				}
+				fseek(fp, -3, SEEK_CUR);
+			}
+			if (!found) {
+				fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
+				goto err;
+			}
+		}
+		else {
+			fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
+			goto err;
+		}
 	}
 
 	/* archive header block */
