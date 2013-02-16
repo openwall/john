@@ -143,9 +143,8 @@ static void *get_binary(char *ciphertext)
 		i = (i+22)%63;
 	} while (i != 21);
 	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
-		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
-	out[63] = value; \
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6);
+	out[63] = value;
 	return (void *)out;
 }
 

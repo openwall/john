@@ -1,3 +1,6 @@
+/*
+ * This is MIME Base64 (as opposed to crypt(3) encoding found in common.[ch])
+ */
 
 #include <stdio.h>
 #include <string.h>

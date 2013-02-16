@@ -8,6 +8,8 @@
 #include "arch.h"
 #include "common.h"
 
+/* This is the base64 that is used in crypt(3). It differs from MIME Base64
+   and the latter can be found in base64.[ch] */
 const char itoa64[64] =
 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 char atoi64[0x100];
