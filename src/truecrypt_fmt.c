@@ -27,7 +27,7 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               4
 #endif
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */

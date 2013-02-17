@@ -50,7 +50,7 @@
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               1
 #endif
 
 #define PAD_SIZE		128
