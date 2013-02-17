@@ -202,7 +202,7 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 __kernel void pwsafe_iter(__global pwsafe_pass * in)
 {
 	uint32_t idx = get_global_id(0);
-	uint32_t i = 130;
+	uint32_t i = 258;
 	if(i > in[idx].length)
 	{
 		i = in[idx].length;

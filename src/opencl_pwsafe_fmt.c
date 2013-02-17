@@ -39,7 +39,7 @@
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
 #define CONFIG_NAME		"pwsafe"
-#define STEP                    1024
+#define STEP                    256
 #define ROUNDS_DEFAULT          2048
 
 static const char * warn[] = {
@@ -143,7 +143,7 @@ static void create_clobj(int gws, struct fmt_main * self)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, in_size, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, in_size, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 	mem_out =
@@ -169,9 +169,25 @@ static void create_clobj(int gws, struct fmt_main * self)
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
+	cl_kernel tKernel = init_kernel;
+	size_t largest = 0;
+	size_t temp = get_current_work_group_size(ocl_gpu_id, init_kernel);
+	largest = temp;
+	temp = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	if(temp > largest)
+	{
+		largest = temp;
+		tKernel = crypt_kernel;
+	}
+	temp = get_current_work_group_size(ocl_gpu_id, finish_kernel);
+	if(temp > largest)
+	{
+		largest = temp;
+		tKernel = finish_kernel;
+	}
 	common_find_best_lws(
-		get_current_work_group_size(ocl_gpu_id, finish_kernel),
-		sequential_id, crypt_kernel
+		largest,
+		sequential_id, tKernel
 	);
 }
 
@@ -211,7 +227,7 @@ static void init(struct fmt_main *self)
 	opencl_get_user_preferences(CONFIG_NAME);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 4, NULL,
+	opencl_init_auto_setup(STEP, 8, 6, NULL,
 		warn, &multi_profilingEvent[2], self, create_clobj, release_clobj,
 		sizeof(pwsafe_pass));
 
@@ -315,9 +331,9 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
 		0, insize, host_pass, 0, NULL, &multi_profilingEvent[0]), "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_TRUE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
 		0, saltsize, host_salt, 0, NULL, &multi_profilingEvent[1]), "Copy memsalt");
 
 	///Run the init kernel
@@ -326,7 +342,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		0, NULL, &multi_profilingEvent[2]), "Set ND range");
 
 	///Run split kernel
-	for(i = 0; i < 16; i++)
+	for(i = 0; i < 8; i++)
 	{
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
 			NULL, &global_work_size, &local_work_size,
@@ -360,10 +376,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	///Copy data to GPU memory
 	if (new_keys)
 		HANDLE_CLERROR(clEnqueueWriteBuffer
-			(queue[ocl_gpu_id], mem_in, CL_TRUE, 0, insize, host_pass, 0, NULL,
+			(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
 			NULL), "Copy memin");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_TRUE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
 		0, saltsize, host_salt, 0, NULL, NULL), "Copy memsalt");
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
@@ -371,7 +387,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		0, NULL, profilingEvent), "Set ND range");
 
 	///Run kernel
-	for(i = 0; i < 16; i++)
+	for(i = 0; i < 8; i++)
 	{
 		HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    		(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
