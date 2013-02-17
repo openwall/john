@@ -55,6 +55,8 @@ extern void common_find_best_gws(int sequential_id, unsigned int rounds, int ste
     (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
 
 static int new_keys;
+static int split_events[3] = { 3, 6, 7 };
+
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
@@ -227,8 +229,8 @@ static void init(struct fmt_main *self)
 	opencl_get_user_preferences(CONFIG_NAME);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 8, 6, NULL,
-		warn, &multi_profilingEvent[2], self, create_clobj, release_clobj,
+	opencl_init_auto_setup(STEP, 8, 8, split_events,
+		warn, &multi_profilingEvent[3], self, create_clobj, release_clobj,
 		sizeof(pwsafe_pass));
 
 	self->methods.crypt_all = crypt_all_benchmark;
@@ -342,11 +344,11 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		0, NULL, &multi_profilingEvent[2]), "Set ND range");
 
 	///Run split kernel
-	for(i = 0; i < 8; i++)
+	for(i = 0; i < 3; i++)
 	{
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
 			NULL, &global_work_size, &local_work_size,
-			0, NULL, &multi_profilingEvent[3]), "Set ND range");
+			0, NULL, &multi_profilingEvent[split_events[i]]), "Set ND range");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
@@ -384,21 +386,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[ocl_gpu_id], init_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, profilingEvent), "Set ND range");
+		0, NULL, NULL), "Set ND range");
 
 	///Run kernel
 	for(i = 0; i < 8; i++)
 	{
 		HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    		(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
-			0, NULL, profilingEvent), "Set ND range");
+			0, NULL, NULL), "Set ND range");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
 	    (queue[ocl_gpu_id], finish_kernel, 1, NULL, &global_work_size, &local_work_size,
-		0, NULL, profilingEvent), "Set ND range");
+		0, NULL, NULL), "Set ND range");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, host_hash, 0, NULL, NULL),
