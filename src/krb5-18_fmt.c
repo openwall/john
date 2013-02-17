@@ -82,10 +82,13 @@ static krb5_enctype enctype;
 static void init(struct fmt_main *pFmt)
 {
 #ifdef _OPENMP
-	int omp_t = omp_get_max_threads();
-	pFmt->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	pFmt->params.max_keys_per_crypt *= omp_t;
+	if (krb5_is_thread_safe()) {
+		int omp_t = omp_get_max_threads();
+		pFmt->params.min_keys_per_crypt *= omp_t;
+		omp_t *= OMP_SCALE;
+		pFmt->params.max_keys_per_crypt *= omp_t;
+	} else
+		omp_set_num_threads(1);
 #endif
 	salt.data = "";
 	salt.length = 0;
@@ -165,9 +168,10 @@ static void *get_binary(char *ciphertext)
 	static unsigned char *out;
 	char *p;
 	int i = 0;
-	p = ciphertext;
 
 	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	p = ciphertext;
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
@@ -179,51 +183,53 @@ static void *get_binary(char *ciphertext)
 		        atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-
 	return out;
 }
 
 static void crypt_all(int count)
 {
-  int index = 0;
+	int index = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel for
-  for (index = 0; index < count; index++)
 #endif
-    {
-      int i;
-      krb5_data string;
-      // krb5_error_code ret;
-      krb5_keyblock key;
-      salt.data = saved_salt;
-      salt.length = strlen(salt.data);
-      string.data = saved_key[index];
-      string.length = strlen(saved_key[index]);
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
+	for (index = 0; index < count; index++)
+#endif
+	{
+		int i;
+		krb5_data string;
+		krb5_keyblock key;
+
+		memset(&key, 0, sizeof(krb5_keyblock));
+
+		salt.data = saved_salt;
+		salt.length = strlen(salt.data);
+		string.data = saved_key[index];
+		string.length = strlen(saved_key[index]);
 #ifdef USE_HEIMDAL
-      krb5_c_string_to_key (NULL, ENCTYPE_AES256_CTS_HMAC_SHA1_96, &string, &salt, &key);
+		krb5_c_string_to_key (NULL, ENCTYPE_AES256_CTS_HMAC_SHA1_96,
+		                      &string, &salt, &key);
 #else
-      krb5_c_string_to_key_with_params(NULL,
-					     enctype,
-					     &string,
-					     &salt,
-					     NULL,
-					     &key);
+		krb5_c_string_to_key_with_params(NULL, enctype, &string, &salt,
+		                                 NULL, &key);
 #endif
-      for(i = 0; i < key.length / 4; i++){
-	      crypt_out[index][i] = (key.contents[4 * i]) |
-		      (key.contents[4 * i + 1] << 8) |
-		      (key.contents[4 * i + 2] << 16) |
-		      (key.contents[4 * i + 3] << 24);
-      }
-    }
+		for(i = 0; i < key.length / 4; i++){
+			crypt_out[index][i] = (key.contents[4 * i]) |
+				(key.contents[4 * i + 1] << 8) |
+				(key.contents[4 * i + 2] << 16) |
+				(key.contents[4 * i + 3] << 24);
+		}
+	}
 }
 
 static int cmp_all(void *binary, int count)
 {
 	int index = 0;
 
+#if defined(_OPENMP) || MAX_KEYS_PER_CRYPT > 1
 	for (; index < count; index++)
+#endif
 	        if (crypt_out[index][0] == *(ARCH_WORD_32*)binary)
 			return 1;
 
@@ -237,7 +243,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-  return 1;
+	return 1;
 }
 
 static void set_key(char *key, int index)
