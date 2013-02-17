@@ -58,8 +58,8 @@
 
 
 typedef struct {
-        uint8_t v[15];
-        uint8_t length;
+        uint8_t v[32];
+        uint32_t length;
 } pwsafe_pass;
 
 typedef struct {
@@ -73,11 +73,11 @@ typedef struct {
         uint8_t salt[32];
 } pwsafe_salt;
 
-__kernel void pwsafe(__global pwsafe_pass * in,
-    __global pwsafe_hash * out, __global pwsafe_salt * salt)
+__kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt)
 {
 	uint32_t idx = get_global_id(0);
 	uint32_t pl = in[idx].length, i;
+	__global uint32_t * state = (__global uint32_t*)in[idx].v;
 
 	uint32_t a = 0x6a09e667;
 	uint32_t b = 0xbb67ae85;
@@ -188,15 +188,57 @@ __kernel void pwsafe(__global pwsafe_pass * in,
 	R1(c, d, e, f, g, h, a, b, 0xbef9a3f7 + w[14]);
 	R1(b, c, d, e, f, g, h, a, 0xc67178f2 + w[15]);
 
-	w[0] = a + 0x6a09e667;
-	w[1] = b + 0xbb67ae85;
-	w[2] = c + 0x3c6ef372;
-	w[3] = d + 0xa54ff53a;
-	w[4] = e + 0x510e527f;
-	w[5] = f + 0x9b05688c;
-	w[6] = g + 0x1f83d9ab;
-	w[7] = h + 0x5be0cd19;
-	for (i = 0; i <= salt->iterations; i++) {
+	state[0] = a + 0x6a09e667;
+	state[1] = b + 0xbb67ae85;
+	state[2] = c + 0x3c6ef372;
+	state[3] = d + 0xa54ff53a;
+	state[4] = e + 0x510e527f;
+	state[5] = f + 0x9b05688c;
+	state[6] = g + 0x1f83d9ab;
+	state[7] = h + 0x5be0cd19;
+	in[idx].length = salt->iterations + 1;
+}
+
+__kernel void pwsafe_iter(__global pwsafe_pass * in)
+{
+	uint32_t idx = get_global_id(0);
+	uint32_t i = 130;
+	if(i > in[idx].length)
+	{
+		i = in[idx].length;
+	}
+	in[idx].length -= i;
+	__global uint32_t * state = (__global uint32_t *)in[idx].v;
+
+	uint32_t a = 0x6a09e667;
+	uint32_t b = 0xbb67ae85;
+	uint32_t c = 0x3c6ef372;
+	uint32_t d = 0xa54ff53a;
+	uint32_t e = 0x510e527f;
+	uint32_t f = 0x9b05688c;
+	uint32_t g = 0x1f83d9ab;
+	uint32_t h = 0x5be0cd19;
+
+	uint32_t w[16];
+	w[0] = state[0];
+	w[1] = state[1];
+	w[2] = state[2];
+	w[3] = state[3];
+	w[4] = state[4];
+	w[5] = state[5];
+	w[6] = state[6];
+	w[7] = state[7];
+	w[8] = 0;
+	w[9] = 0;
+	w[10] = 0;
+	w[11] = 0;
+	w[12] = 0;
+	w[13] = 0;
+	w[14] = 0;
+
+
+	while (i > 0) {
+		i--;
 		a = 0x6a09e667;
 		b = 0xbb67ae85;
 		c = 0x3c6ef372;
@@ -305,7 +347,22 @@ __kernel void pwsafe(__global pwsafe_pass * in,
 		w[7] = 0x5be0cd19 + h;
 	}
 
+	state[0] = w[0];
+	state[1] = w[1];
+	state[2] = w[2];
+	state[3] = w[3];
+	state[4] = w[4];
+	state[5] = w[5];
+	state[6] = w[6];
+	state[7] = w[7];
+}
 
+
+
+__kernel void pwsafe_check(__global pwsafe_pass * in, __global pwsafe_hash * out, __global pwsafe_salt * salt)
+{
+	uint32_t idx = get_global_id(0);
+	__global uint32_t * w = (__global uint32_t *)in[idx].v;
 	uint32_t cmp = 0;
 	__global uint32_t *v = (__global uint32_t *) salt->hash;
 	if (*v++ == w[0]) {

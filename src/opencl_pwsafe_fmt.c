@@ -32,7 +32,9 @@
 #define BENCHMARK_LENGTH        0
 #define PLAINTEXT_LENGTH        15
 #define BINARY_SIZE             0
-#define KERNEL_NAME             "pwsafe"
+#define KERNEL_INIT_NAME	"pwsafe_init"
+#define KERNEL_RUN_NAME   	"pwsafe_iter"
+#define KERNEL_FINISH_NAME	"pwsafe_check"
 #define MIN_KEYS_PER_CRYPT      (512*112)
 #define MAX_KEYS_PER_CRYPT      MIN_KEYS_PER_CRYPT
 
@@ -62,9 +64,13 @@ static struct fmt_tests pwsafe_tests[] = {
 	{NULL}
 };
 
+cl_kernel init_kernel;
+cl_kernel finish_kernel;
+
+//Also acts as the hash state
 typedef struct {
-	uint8_t v[15];
-	uint8_t length;
+	uint8_t v[32];
+	uint32_t length;
 } pwsafe_pass;
 
 typedef struct {
@@ -75,7 +81,6 @@ typedef struct {
 	int version;
 	uint32_t iterations;
 	uint8_t hash[32];
-//        uint8_t length;
 	uint8_t salt[32];
 } pwsafe_salt;
 #define SALT_SIZE               sizeof(pwsafe_salt)
@@ -105,7 +110,9 @@ static void done(void)
 {
 	release_clobj();
 
+	HANDLE_CLERROR(clReleaseKernel(init_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+	HANDLE_CLERROR(clReleaseKernel(finish_kernel), "Release kernel");
 	HANDLE_CLERROR(clReleaseProgram(program[ocl_gpu_id]), "Release Program");
 }
 
@@ -136,7 +143,7 @@ static void create_clobj(int gws, struct fmt_main * self)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for salt");
 	mem_in =
-	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY, in_size, NULL,
+	    clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE, in_size, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
 	mem_out =
@@ -144,9 +151,12 @@ static void create_clobj(int gws, struct fmt_main * self)
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for hashes");
 	///Assign kernel parameters
+	clSetKernelArg(init_kernel, 0, sizeof(mem_in), &mem_in);
+	clSetKernelArg(init_kernel, 1, sizeof(mem_salt), &mem_salt);
 	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(crypt_kernel, 1, sizeof(mem_out), &mem_out);
-	clSetKernelArg(crypt_kernel, 2, sizeof(mem_salt), &mem_salt);
+	clSetKernelArg(finish_kernel, 0, sizeof(mem_in), &mem_in);
+	clSetKernelArg(finish_kernel, 1, sizeof(mem_out), &mem_out);
+	clSetKernelArg(finish_kernel, 2, sizeof(mem_salt), &mem_salt);
 }
 
 /* ------- Try to find the best configuration ------- */
@@ -160,7 +170,7 @@ static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
 	//Call the default function.
 	common_find_best_lws(
-		get_current_work_group_size(ocl_gpu_id, crypt_kernel),
+		get_current_work_group_size(ocl_gpu_id, finish_kernel),
 		sequential_id, crypt_kernel
 	);
 }
@@ -187,8 +197,14 @@ static void init(struct fmt_main *self)
 
 	opencl_init_opt("$JOHN/kernels/pwsafe_kernel.cl", ocl_gpu_id, NULL);
 
-	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_NAME, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error while creating kernel");
+	init_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_INIT_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating init kernel");
+
+	crypt_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_RUN_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating crypt kernel");
+
+	finish_kernel = clCreateKernel(program[ocl_gpu_id], KERNEL_FINISH_NAME, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while creating finish kernel");
 
 	local_work_size = cpu(device_info[ocl_gpu_id]) ? 1 : 64;
 	global_work_size = 0;
@@ -295,20 +311,37 @@ static void set_salt(void *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	int i = 0;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_TRUE,
 		0, insize, host_pass, 0, NULL, &multi_profilingEvent[0]), "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_TRUE,
 		0, saltsize, host_salt, 0, NULL, &multi_profilingEvent[1]), "Copy memsalt");
 
-	///Run kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+	///Run the init kernel
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], init_kernel, 1,
 		NULL, &global_work_size, &local_work_size,
 		0, NULL, &multi_profilingEvent[2]), "Set ND range");
+
+	///Run split kernel
+	for(i = 0; i < 16; i++)
+	{
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+			NULL, &global_work_size, &local_work_size,
+			0, NULL, &multi_profilingEvent[3]), "Set ND range");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
+
+	///Run the finish kernel
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], finish_kernel, 1,
+		NULL, &global_work_size, &local_work_size,
+		0, NULL, &multi_profilingEvent[4]), "Set ND range");
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
-		outsize, host_hash, 0, NULL, &multi_profilingEvent[3]),
+		outsize, host_hash, 0, NULL, &multi_profilingEvent[5]),
 	    "Copy data back");
 
 	///Await completion of all the above
@@ -320,22 +353,37 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
+	int i = 0;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
 	///Copy data to GPU memory
 	if (new_keys)
 		HANDLE_CLERROR(clEnqueueWriteBuffer
-			(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
+			(queue[ocl_gpu_id], mem_in, CL_TRUE, 0, insize, host_pass, 0, NULL,
 			NULL), "Copy memin");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_TRUE,
 		0, saltsize, host_salt, 0, NULL, NULL), "Copy memsalt");
 
-	///Run kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel
-	    (queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
+	    (queue[ocl_gpu_id], init_kernel, 1, NULL, &global_work_size, &local_work_size,
 		0, NULL, profilingEvent), "Set ND range");
+
+	///Run kernel
+	for(i = 0; i < 16; i++)
+	{
+		HANDLE_CLERROR(clEnqueueNDRangeKernel
+	    		(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size,
+			0, NULL, profilingEvent), "Set ND range");
+		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
+
+	HANDLE_CLERROR(clEnqueueNDRangeKernel
+	    (queue[ocl_gpu_id], finish_kernel, 1, NULL, &global_work_size, &local_work_size,
+		0, NULL, profilingEvent), "Set ND range");
+
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, host_hash, 0, NULL, NULL),
 	    "Copy data back");
