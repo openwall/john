@@ -666,29 +666,22 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 	out[b3] = value;
 
 static void * get_binary(char * ciphertext) {
-    static ARCH_WORD_32 outbuf[BINARY_SIZE / 4];
-    ARCH_WORD_32 value;
-    char *pos;
-    unsigned char *out = (unsigned char*) outbuf;
+	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
+	ARCH_WORD_32 value;
+	char *pos = strrchr(ciphertext, '$') + 1;
+	unsigned char *out = (unsigned char*)outbuf;
+	int i=0;
 
-    pos = strrchr(ciphertext, '$') + 1;
-
-    TO_BINARY(0, 10, 20);
-    TO_BINARY(21, 1, 11);
-    TO_BINARY(12, 22, 2);
-    TO_BINARY(3, 13, 23);
-    TO_BINARY(24, 4, 14);
-    TO_BINARY(15, 25, 5);
-    TO_BINARY(6, 16, 26);
-    TO_BINARY(27, 7, 17);
-    TO_BINARY(18, 28, 8);
-    TO_BINARY(9, 19, 29);
-    value = (ARCH_WORD_32) atoi64[ARCH_INDEX(pos[0])] |
-            ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[1])] << 6) |
-            ((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[2])] << 12);
-    out[31] = value >> 8; \
-	out[30] = value; \
-    return (void *) out;
+	do {
+		TO_BINARY(i, (i+10)%30, (i+20)%30);
+		i = (i+21)%30;
+	} while (i != 0);
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6) |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[2])] << 12);
+	out[31] = value >> 8;
+	out[30] = value;
+	return (void *)out;
 }
 
 /* ------- Compare functins ------- */
