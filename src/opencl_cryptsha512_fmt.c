@@ -444,23 +444,20 @@ static int valid(char * ciphertext, struct fmt_main * self) {
 	out[b3] = value;
 
 static void * get_binary(char * ciphertext) {
-	static ARCH_WORD_32 outbuf[BINARY_SIZE / 4];
+	static ARCH_WORD_32 outbuf[BINARY_SIZE/4];
 	ARCH_WORD_32 value;
 	char *pos = strrchr(ciphertext, '$') + 1;
-	unsigned char *out = (unsigned char*) outbuf;
+	unsigned char *out = (unsigned char*)outbuf;
 	int i = 0;
 
 	do {
-		TO_BINARY(i, (i + 21) % 63, (i + 42) % 63);
-		i = (i + 22) % 63;
+		TO_BINARY(i, (i+21)%63, (i+42)%63);
+		i = (i+22)%63;
 	} while (i != 21);
-
-	value = (ARCH_WORD_32) atoi64[ARCH_INDEX(pos[0])] |
-			((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[1])] << 6) |
-			((ARCH_WORD_32) atoi64[ARCH_INDEX(pos[2])] << 12);
+	value = (ARCH_WORD_32)atoi64[ARCH_INDEX(pos[0])] |
+		((ARCH_WORD_32)atoi64[ARCH_INDEX(pos[1])] << 6);
 	out[63] = value;
-
-	return (void *) out;
+	return (void *)out;
 }
 
 /* ------- Compare functins ------- */
