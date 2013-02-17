@@ -30,7 +30,7 @@
 #define ALGORITHM_NAME          "OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0
-#define PLAINTEXT_LENGTH        15
+#define PLAINTEXT_LENGTH        23
 #define BINARY_SIZE             0
 #define KERNEL_INIT_NAME	"pwsafe_init"
 #define KERNEL_RUN_NAME   	"pwsafe_iter"
@@ -61,6 +61,7 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 static struct fmt_tests pwsafe_tests[] = {
 	{"$pwsafe$*3*fefc1172093344c9d5577b25f5b4b6e5d2942c94f9fc24c21733e28ae6527521*2048*88cbaf7d8668c1a98263f5dce7cb39c3304c49a3e0d76a7ea475dc02ab2f97a7", "12345678"},
 	{"$pwsafe$*3*581cd1135b9b993ccb0f6b01c1fcfacd799c69960496c96286f94fe1400c1b25*2048*4ab3c2d3af251e94eb2f753fdf30fb9da074bec6bac0fa9d9d152b95fc5795c6", "openwall"},
+	{"$pwsafe$*3*34ba0066d0fc594c126b60b9db98b6024e1cf585901b81b5b005ce386f173d4c*2048*cc86f1a5d930ff19b3602770a86586b5d9dea7bb657012aca875aa2a7dc71dc0", "12345678901234567890123"},
 	{NULL}
 };
 
@@ -327,7 +328,6 @@ static void set_salt(void *salt)
 static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	int i = 0;
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
@@ -342,14 +342,14 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 		0, NULL, &multi_profilingEvent[2]), "Set ND range");
 
 	///Run split kernel
-	for(i = 0; i < 8; i++)
-	{
+	//for(i = 0; i < 8; i++)
+	//{
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
 			NULL, &global_work_size, &local_work_size,
 			0, NULL, &multi_profilingEvent[3]), "Set ND range");
 		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
-	}
+	//}
 
 	///Run the finish kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], finish_kernel, 1,

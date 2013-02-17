@@ -88,22 +88,7 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 	uint32_t g = 0x1f83d9ab;
 	uint32_t h = 0x5be0cd19;
 
-	uint32_t w[16];
-	w[0] = 0;
-	w[1] = 0;
-	w[2] = 0;
-	w[3] = 0;
-	w[4] = 0;
-	w[5] = 0;
-	w[6] = 0;
-	w[7] = 0;
-	w[8] = 0;
-	w[9] = 0;
-	w[10] = 0;
-	w[11] = 0;
-	w[12] = 0;
-	w[13] = 0;
-	w[14] = 0;
+	uint32_t w[16] = {0};
 
 	for(i = 0; i < pl; i++){
 		w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
@@ -202,22 +187,11 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 __kernel void pwsafe_iter(__global pwsafe_pass * in)
 {
 	uint32_t idx = get_global_id(0);
-	uint32_t i = 258;
-	if(i > in[idx].length)
-	{
-		i = in[idx].length;
-	}
+	uint32_t i = (258 > in[idx].length) ? in[idx].length : 258;
 	in[idx].length -= i;
 	__global uint32_t * state = (__global uint32_t *)in[idx].v;
 
-	uint32_t a = 0x6a09e667;
-	uint32_t b = 0xbb67ae85;
-	uint32_t c = 0x3c6ef372;
-	uint32_t d = 0xa54ff53a;
-	uint32_t e = 0x510e527f;
-	uint32_t f = 0x9b05688c;
-	uint32_t g = 0x1f83d9ab;
-	uint32_t h = 0x5be0cd19;
+	uint32_t a, b, c, d, e, f, g, h;
 
 	uint32_t w[16];
 	w[0] = state[0];
@@ -228,14 +202,6 @@ __kernel void pwsafe_iter(__global pwsafe_pass * in)
 	w[5] = state[5];
 	w[6] = state[6];
 	w[7] = state[7];
-	w[8] = 0;
-	w[9] = 0;
-	w[10] = 0;
-	w[11] = 0;
-	w[12] = 0;
-	w[13] = 0;
-	w[14] = 0;
-
 
 	while (i > 0) {
 		i--;
