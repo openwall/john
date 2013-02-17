@@ -2,8 +2,9 @@
  * 2012 by Dhiru Kholia <dhiru.kholia at gmail.com>.
  *
  * OpenCL port by Lukas Odzioba <ukasz at openwall.net>
+ * Split kernel implemented and plaintext extension by Brian Wallace <brian.wallace9809 at gmail.com>
  *
- * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2012-2013, Dhiru Kholia <dhiru.kholia at gmail.com> and Brian Wallace <brian.wallace9809 at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted. */
