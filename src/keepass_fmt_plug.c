@@ -22,7 +22,7 @@
 #include "base64.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               16
 #endif
 
 #ifdef _MSC_VER
