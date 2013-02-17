@@ -25,7 +25,6 @@
 #include "recovery.h"
 #include "status.h"
 #include <signal.h>
-#include <dlfcn.h>
 
 #define LOG_SIZE 1024*16
 
@@ -167,19 +166,6 @@ int get_sequential_id(unsigned int dev_id, unsigned int platform_id)
 		return -1;
 
 	return (platforms[i].platform ? pos + dev_id : -1);
-}
-
-static int is_opencl_library_available()
-{
-	void * ocl_library;
-	char * lib_name = "libOpenCL.so";
-
-	ocl_library = dlopen(lib_name, RTLD_LAZY);
-
-	if (ocl_library == NULL)
-		return FALSE;
-	else
-		return TRUE;
 }
 
 static void start_opencl_environment()
@@ -337,14 +323,9 @@ static void build_device_list(char * device_list[MAXGPUS])
 
 int any_opencl_device_exists(void)
 {
-	//Intitialize important control variables.
 	ocl_device_list[0] = -1;
 	ocl_device_list[1] = -1;
-	platforms[0].platform = NULL;
-	devices[0] = NULL;
-
-	if (is_opencl_library_available())
-		start_opencl_environment();
+	start_opencl_environment();
 
 	/* This is an OpenCL build on a host without *any* working OpenCL device or platform. */
 	return (get_number_of_available_devices() > 0);
