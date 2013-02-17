@@ -43,7 +43,7 @@
 #define BINARY_ALIGN			1
 
 #define SALT_SIZE			(sizeof(PKZ_SALT*))
-#define SALT_ALIGN			MEM_ALIGN_WORD
+#define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
 /* max keys allows 256 words per thread on a 16 thread OMP build */
