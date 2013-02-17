@@ -58,7 +58,7 @@
 
 
 typedef struct {
-        uint8_t v[32];
+        uint8_t v[87];
         uint32_t length;
 } pwsafe_pass;
 
@@ -73,31 +73,16 @@ typedef struct {
         uint8_t salt[32];
 } pwsafe_salt;
 
-__kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt)
+void sha256_transform(uint32_t * w, uint32_t * state)
 {
-	uint32_t idx = get_global_id(0);
-	uint32_t pl = in[idx].length, i;
-	__global uint32_t * state = (__global uint32_t*)in[idx].v;
-
-	uint32_t a = 0x6a09e667;
-	uint32_t b = 0xbb67ae85;
-	uint32_t c = 0x3c6ef372;
-	uint32_t d = 0xa54ff53a;
-	uint32_t e = 0x510e527f;
-	uint32_t f = 0x9b05688c;
-	uint32_t g = 0x1f83d9ab;
-	uint32_t h = 0x5be0cd19;
-
-	uint32_t w[16] = {0};
-
-	for(i = 0; i < pl; i++){
-		w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
-	}
-	for (; i < 32 + pl; i++) {
-		w[i / 4] |= (((uint32_t) salt->salt[i - pl]) << ((3 - (i & 0x3)) << 3));
-	}
-	w[i / 4] |= (((uint32_t) 0x80) << ((3 - (i & 0x3)) << 3));
-	w[15] = i * 8;
+	uint32_t a = state[0];
+	uint32_t b = state[1];
+	uint32_t c = state[2];
+	uint32_t d = state[3];
+	uint32_t e = state[4];
+	uint32_t f = state[5];
+	uint32_t g = state[6];
+	uint32_t h = state[7];	
 
 	R1(a, b, c, d, e, f, g, h, 0x428a2f98 + w[0]);
 	R1(h, a, b, c, d, e, f, g, 0x71374491 + w[1]);
@@ -173,14 +158,62 @@ __kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt
 	R1(c, d, e, f, g, h, a, b, 0xbef9a3f7 + w[14]);
 	R1(b, c, d, e, f, g, h, a, 0xc67178f2 + w[15]);
 
-	state[0] = a + 0x6a09e667;
-	state[1] = b + 0xbb67ae85;
-	state[2] = c + 0x3c6ef372;
-	state[3] = d + 0xa54ff53a;
-	state[4] = e + 0x510e527f;
-	state[5] = f + 0x9b05688c;
-	state[6] = g + 0x1f83d9ab;
-	state[7] = h + 0x5be0cd19;
+	state[0] += a;
+	state[1] += b;
+	state[2] += c;
+	state[3] += d;
+	state[4] += e;
+	state[5] += f;
+	state[6] += g;
+	state[7] += h;
+}
+
+__kernel void pwsafe_init(__global pwsafe_pass * in, __global pwsafe_salt * salt)
+{
+	uint32_t idx = get_global_id(0);
+	uint32_t pl = in[idx].length, i;
+	__global uint32_t * state = (__global uint32_t*)in[idx].v;
+	uint32_t w[32] = {0};
+	uint32_t tstate[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+
+	if(pl < 24)
+	{
+		for(i = 0; i < pl; i++)
+		{
+			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
+		}
+		for (; i < 32 + pl; i++) 
+		{
+			w[i / 4] |= (((uint32_t) salt->salt[i - pl]) << ((3 - (i & 0x3)) << 3));
+		}
+		w[i / 4] |= (((uint32_t) 0x80) << ((3 - (i & 0x3)) << 3));
+		w[15] = i * 8;
+		sha256_transform(w, tstate);
+	}
+	else
+	{
+		for(i = 0; i < pl; i++)
+		{
+			w[i / 4] |= (((uint32_t) in[idx].v[i]) << ((3 - (i & 0x3)) << 3));
+		}
+		for (; i < 32 + pl; i++) 
+		{
+			w[i / 4] |= (((uint32_t) salt->salt[i - pl]) << ((3 - (i & 0x3)) << 3));
+		}
+		w[i / 4] |= (((uint32_t) 0x80) << ((3 - (i & 0x3)) << 3));
+		w[31] = i * 8;
+		sha256_transform(w, tstate);
+		sha256_transform(&w[16], tstate);
+	}
+
+	state[0] = tstate[0];
+	state[1] = tstate[1];
+	state[2] = tstate[2];
+	state[3] = tstate[3];
+	state[4] = tstate[4];
+	state[5] = tstate[5];
+	state[6] = tstate[6];
+	state[7] = tstate[7];
 	in[idx].length = salt->iterations + 1;
 }
 
