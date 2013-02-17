@@ -117,70 +117,70 @@ extern struct fmt_main fmt_mozilla;
 extern int mozilla2john(int argc, char **argv);
 #endif
 #ifdef HAVE_KRB5
-extern struct fmt_main fmt_KRB5_kinit;
 extern struct fmt_main fmt_krb5_18;
+extern struct fmt_main fmt_KRB5_kinit;
 #endif
 extern int hccap2john(int argc, char **argv);
 
 #ifdef HAVE_OPENCL
+extern struct fmt_main fmt_opencl_DES;
 extern struct fmt_main fmt_opencl_NSLDAPS;
-extern struct fmt_main fmt_opencl_rawMD4;
-extern struct fmt_main fmt_opencl_rawMD5;
 extern struct fmt_main fmt_opencl_NT;
-extern struct fmt_main fmt_opencl_rawSHA1;
+extern struct fmt_main fmt_opencl_NTLMv2;
+extern struct fmt_main fmt_opencl_agilekeychain;
+extern struct fmt_main fmt_opencl_bf;
 extern struct fmt_main fmt_opencl_cryptMD5;
-extern struct fmt_main fmt_opencl_phpass;
-extern struct fmt_main fmt_opencl_mysqlsha1;
 extern struct fmt_main fmt_opencl_cryptsha256;
 extern struct fmt_main fmt_opencl_cryptsha256_ng;
 extern struct fmt_main fmt_opencl_cryptsha512;
-extern struct fmt_main fmt_opencl_mscash2;
-extern struct fmt_main fmt_opencl_wpapsk;
-extern struct fmt_main fmt_opencl_keychain;
-extern struct fmt_main fmt_opencl_agilekeychain;
-extern struct fmt_main fmt_opencl_strip;
-extern struct fmt_main fmt_opencl_zip;
+extern struct fmt_main fmt_opencl_dmg;
 extern struct fmt_main fmt_opencl_encfs;
+extern struct fmt_main fmt_opencl_gpg;
+extern struct fmt_main fmt_opencl_keychain;
+extern struct fmt_main fmt_opencl_krb5pa_sha1;
+extern struct fmt_main fmt_opencl_mscash2;
+extern struct fmt_main fmt_opencl_mysqlsha1;
 extern struct fmt_main fmt_opencl_odf;
 extern struct fmt_main fmt_opencl_odf_aes;
-extern struct fmt_main fmt_opencl_sxc;
-extern struct fmt_main fmt_opencl_gpg;
-extern struct fmt_main fmt_opencl_dmg;
-extern struct fmt_main fmt_opencl_xsha512;
-extern struct fmt_main fmt_opencl_xsha512_ng;
-extern struct fmt_main fmt_opencl_rawsha512;
-extern struct fmt_main fmt_opencl_rawsha512_ng;
-extern struct fmt_main fmt_opencl_rawsha256;
-extern struct fmt_main fmt_opencl_bf;
-extern struct fmt_main fmt_opencl_pwsafe;
-extern struct fmt_main fmt_opencl_DES;
 extern struct fmt_main fmt_opencl_office2007;
 extern struct fmt_main fmt_opencl_office2010;
 extern struct fmt_main fmt_opencl_office2013;
-extern struct fmt_main fmt_opencl_NTLMv2;
-extern struct fmt_main fmt_opencl_krb5pa_sha1;
+extern struct fmt_main fmt_opencl_phpass;
+extern struct fmt_main fmt_opencl_pwsafe;
 extern struct fmt_main fmt_opencl_rar;
+extern struct fmt_main fmt_opencl_rawMD4;
+extern struct fmt_main fmt_opencl_rawMD5;
+extern struct fmt_main fmt_opencl_rawSHA1;
+extern struct fmt_main fmt_opencl_rawsha256;
+extern struct fmt_main fmt_opencl_rawsha512;
+extern struct fmt_main fmt_opencl_rawsha512_ng;
+extern struct fmt_main fmt_opencl_strip;
+extern struct fmt_main fmt_opencl_sxc;
+extern struct fmt_main fmt_opencl_wpapsk;
+extern struct fmt_main fmt_opencl_xsha512;
+extern struct fmt_main fmt_opencl_xsha512_ng;
+extern struct fmt_main fmt_opencl_zip;
 #endif
 #ifdef HAVE_CUDA
 extern struct fmt_main fmt_cuda_cryptmd5;
-extern struct fmt_main fmt_cuda_phpass;
 extern struct fmt_main fmt_cuda_cryptsha256;
 extern struct fmt_main fmt_cuda_cryptsha512;
-extern struct fmt_main fmt_cuda_mscash;
 extern struct fmt_main fmt_cuda_mscash2;
-extern struct fmt_main fmt_cuda_rawsha256;
-extern struct fmt_main fmt_cuda_rawsha224;
-extern struct fmt_main fmt_cuda_xsha512;
-extern struct fmt_main fmt_cuda_wpapsk;
-extern struct fmt_main fmt_cuda_rawsha512;
+extern struct fmt_main fmt_cuda_mscash;
+extern struct fmt_main fmt_cuda_phpass;
 extern struct fmt_main fmt_cuda_pwsafe;
+extern struct fmt_main fmt_cuda_rawsha224;
+extern struct fmt_main fmt_cuda_rawsha256;
+extern struct fmt_main fmt_cuda_rawsha512;
+extern struct fmt_main fmt_cuda_wpapsk;
+extern struct fmt_main fmt_cuda_xsha512;
 #endif
 
-extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_pfx;
 extern struct fmt_main fmt_rar;
-extern struct fmt_main fmt_zip;
+extern struct fmt_main fmt_ssh;
 extern struct fmt_main fmt_wpapsk;
+extern struct fmt_main fmt_zip;
 
 #include "fmt_externs.h"
 
@@ -244,17 +244,21 @@ static void john_register_all(void)
 	john_register_one(&fmt_AFS);
 	john_register_one(&fmt_LM);
 	john_register_one(&fmt_NT);
-
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
 #include "fmt_registers.h"
 
+#ifdef HAVE_CRYPT
+	john_register_one(&fmt_crypt);
+#endif
+	john_register_one(&fmt_trip);
+	john_register_one(&fmt_dummy);
 	john_register_one(&fmt_hmacMD5);
 	john_register_one(&fmt_hmacSHA1);
 	john_register_one(&fmt_rawSHA0);
-
 	john_register_one(&fmt_django);
+
 #if OPENSSL_VERSION_NUMBER >= 0x10001000
 	john_register_one(&fmt_truecrypt);
 	john_register_one(&fmt_truecrypt_sha512);
@@ -269,83 +273,77 @@ static void john_register_all(void)
 	john_register_one(&fmt_mozilla);
 #endif
 #ifdef HAVE_KRB5
-	john_register_one(&fmt_KRB5_kinit);
 	john_register_one(&fmt_krb5_18);
+	john_register_one(&fmt_KRB5_kinit);
 #endif
 
-#ifdef HAVE_CRYPT
-	john_register_one(&fmt_crypt);
-#endif
-	john_register_one(&fmt_trip);
 #ifdef HAVE_SKEY
 	john_register_one(&fmt_SKEY);
 #endif
 
-	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_pfx);
-	john_register_one(&fmt_wpapsk);
 #ifndef _MSC_VER
 	john_register_one(&fmt_rar);
 #endif
+	john_register_one(&fmt_ssh);
+	john_register_one(&fmt_wpapsk);
 	john_register_one(&fmt_zip);
-	john_register_one(&fmt_dummy);
 
 #ifdef HAVE_OPENCL
-
 	if (any_opencl_device_exists()) {
+		john_register_one(&fmt_opencl_DES);
 		john_register_one(&fmt_opencl_NSLDAPS);
-		john_register_one(&fmt_opencl_rawMD4);
-		john_register_one(&fmt_opencl_rawMD5);
 		john_register_one(&fmt_opencl_NT);
-		john_register_one(&fmt_opencl_rawSHA1);
+		john_register_one(&fmt_opencl_NTLMv2);
+		john_register_one(&fmt_opencl_agilekeychain);
+		john_register_one(&fmt_opencl_bf);
 		john_register_one(&fmt_opencl_cryptMD5);
-		john_register_one(&fmt_opencl_phpass);
-		john_register_one(&fmt_opencl_mysqlsha1);
 		john_register_one(&fmt_opencl_cryptsha256);
 		john_register_one(&fmt_opencl_cryptsha256_ng);
 		john_register_one(&fmt_opencl_cryptsha512);
-		john_register_one(&fmt_opencl_mscash2);
-		john_register_one(&fmt_opencl_wpapsk);
-		john_register_one(&fmt_opencl_keychain);
-		john_register_one(&fmt_opencl_agilekeychain);
-		john_register_one(&fmt_opencl_strip);
-		john_register_one(&fmt_opencl_zip);
+		john_register_one(&fmt_opencl_dmg);
 		john_register_one(&fmt_opencl_encfs);
+		john_register_one(&fmt_opencl_gpg);
+		john_register_one(&fmt_opencl_keychain);
+		john_register_one(&fmt_opencl_krb5pa_sha1);
+		john_register_one(&fmt_opencl_mscash2);
+		john_register_one(&fmt_opencl_mysqlsha1);
 		john_register_one(&fmt_opencl_odf);
 		john_register_one(&fmt_opencl_odf_aes);
-		john_register_one(&fmt_opencl_sxc);
-		john_register_one(&fmt_opencl_gpg);
-		john_register_one(&fmt_opencl_dmg);
-		john_register_one(&fmt_opencl_xsha512);
-		john_register_one(&fmt_opencl_xsha512_ng);
-		john_register_one(&fmt_opencl_rawsha512);
-		john_register_one(&fmt_opencl_rawsha512_ng);
-		john_register_one(&fmt_opencl_rawsha256);
-		john_register_one(&fmt_opencl_bf);
-		john_register_one(&fmt_opencl_pwsafe);
-		john_register_one(&fmt_opencl_DES);
 		john_register_one(&fmt_opencl_office2007);
 		john_register_one(&fmt_opencl_office2010);
 		john_register_one(&fmt_opencl_office2013);
-		john_register_one(&fmt_opencl_NTLMv2);
-		john_register_one(&fmt_opencl_krb5pa_sha1);
+		john_register_one(&fmt_opencl_phpass);
+		john_register_one(&fmt_opencl_pwsafe);
 		john_register_one(&fmt_opencl_rar);
+		john_register_one(&fmt_opencl_rawMD4);
+		john_register_one(&fmt_opencl_rawMD5);
+		john_register_one(&fmt_opencl_rawSHA1);
+		john_register_one(&fmt_opencl_rawsha256);
+		john_register_one(&fmt_opencl_rawsha512);
+		john_register_one(&fmt_opencl_rawsha512_ng);
+		john_register_one(&fmt_opencl_strip);
+		john_register_one(&fmt_opencl_sxc);
+		john_register_one(&fmt_opencl_wpapsk);
+		john_register_one(&fmt_opencl_xsha512);
+		john_register_one(&fmt_opencl_xsha512_ng);
+		john_register_one(&fmt_opencl_zip);
 	}
 #endif
 
 #ifdef HAVE_CUDA
 	john_register_one(&fmt_cuda_cryptmd5);
-	john_register_one(&fmt_cuda_phpass);
 	john_register_one(&fmt_cuda_cryptsha256);
 	john_register_one(&fmt_cuda_cryptsha512);
 	john_register_one(&fmt_cuda_mscash);
 	john_register_one(&fmt_cuda_mscash2);
-	john_register_one(&fmt_cuda_rawsha256);
-	john_register_one(&fmt_cuda_rawsha224);
-	john_register_one(&fmt_cuda_xsha512);
-	john_register_one(&fmt_cuda_wpapsk);
-	john_register_one(&fmt_cuda_rawsha512);
+	john_register_one(&fmt_cuda_phpass);
 	john_register_one(&fmt_cuda_pwsafe);
+	john_register_one(&fmt_cuda_rawsha224);
+	john_register_one(&fmt_cuda_rawsha256);
+	john_register_one(&fmt_cuda_rawsha512);
+	john_register_one(&fmt_cuda_wpapsk);
+	john_register_one(&fmt_cuda_xsha512);
 #endif
 
 #ifdef HAVE_DL

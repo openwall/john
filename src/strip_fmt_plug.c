@@ -20,7 +20,7 @@
 #include "pbkdf2_hmac_sha1.h"
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE               64
+#define OMP_SCALE               32
 #endif
 
 #define FORMAT_LABEL		"strip"

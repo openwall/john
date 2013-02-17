@@ -120,15 +120,18 @@ static void *get_binary(char *ciphertext)
 
 static void *salt(char *ciphertext)
 {
-    static unsigned char out[SALT_SIZE];
-    int i;
-    char *p = ciphertext + PREFIX_LENGTH;
+	static union {
+		unsigned char u8[SALT_SIZE];
+		ARCH_WORD_32 u32;
+	} out;
+	int i;
+	char *p = ciphertext + PREFIX_LENGTH;
 
-    for (i = 0; i < sizeof(out); i++) {
-        out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |atoi16[ARCH_INDEX(p[1])];
-        p += 2;
-    }
-    return out;
+	for (i = 0; i < sizeof(out.u8); i++) {
+		out.u8[i] = (atoi16[ARCH_INDEX(*p)] << 4) |atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	return out.u8;
 }
 
 static int binary_hash_0(void *binary)
