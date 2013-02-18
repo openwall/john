@@ -345,6 +345,8 @@ void listconf_parse_late(void)
 			       ntests,
 			       format->params.algorithm_name,
 			       format->params.format_name,
+			       format->params.benchmark_comment[0] == ' ' ?
+			       &format->params.benchmark_comment[1] :
 			       format->params.benchmark_comment,
 			       format->params.benchmark_length,
 			       format->params.binary_size,
@@ -388,7 +390,7 @@ void listconf_parse_late(void)
 			printf("Number of test cases for --test \t%d\n", ntests);
 			printf("Algorithm name                  \t%s\n", format->params.algorithm_name);
 			printf("Format name                     \t%s\n", format->params.format_name);
-			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment);
+			printf("Benchmark comment               \t%s\n", format->params.benchmark_comment[0] == ' ' ? &format->params.benchmark_comment[1] : format->params.benchmark_comment);
 			printf("Benchmark length                \t%d\n", format->params.benchmark_length);
 			printf("Binary size                     \t%d\n", format->params.binary_size);
 			printf("Salt size                       \t%d\n",
