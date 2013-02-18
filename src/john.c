@@ -311,12 +311,10 @@ static void john_register_all(void)
 
 #ifdef HAVE_OPENCL
 	if (any_opencl_device_exists()) {
-		john_register_one(&fmt_opencl_DES);
 		john_register_one(&fmt_opencl_NSLDAPS);
 		john_register_one(&fmt_opencl_NT);
 		john_register_one(&fmt_opencl_NTLMv2);
 		john_register_one(&fmt_opencl_agilekeychain);
-		john_register_one(&fmt_opencl_bf);
 		john_register_one(&fmt_opencl_cryptMD5);
 		john_register_one(&fmt_opencl_cryptsha256);
 		john_register_one(&fmt_opencl_cryptsha256_ng);
@@ -348,6 +346,10 @@ static void john_register_all(void)
 		john_register_one(&fmt_opencl_xsha512);
 		john_register_one(&fmt_opencl_xsha512_ng);
 		john_register_one(&fmt_opencl_zip);
+		/* The following two need to be last until they are fixed
+		   for new --device handling */
+		john_register_one(&fmt_opencl_bf);
+		john_register_one(&fmt_opencl_DES);
 	}
 #endif
 
