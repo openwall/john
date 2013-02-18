@@ -73,7 +73,7 @@ typedef struct {
         uint8_t salt[32];
 } pwsafe_salt;
 
-void sha256_transform(uint32_t * w, uint32_t * state)
+static void sha256_transform(uint32_t * w, uint32_t * state)
 {
 	uint32_t a = state[0];
 	uint32_t b = state[1];
