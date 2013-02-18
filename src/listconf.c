@@ -301,46 +301,29 @@ void listconf_parse_late(void)
 	}
 
 	if (!strcasecmp(options.listconf, "formats")) {
-		int column;
 		struct fmt_main *format;
-		int i, dynamics = 0;
-		char **formats_list;
+		int column = 0, dynamics = 0;
 
-		i = 0;
-		format = fmt_list;
-		while ((format = format->next))
-			i++;
-
-		formats_list = malloc(sizeof(char*) * i);
-
-		i = 0;
 		format = fmt_list;
 		do {
+			int length;
 			char *label = format->params.label;
-			if (!strncmp(label, "dynamic", 7)) {
+			if ((!options.format ||
+			     strcmp(options.format, "dynamic")) &&
+			    !strncmp(label, "dynamic", 7)) {
 				if (dynamics++)
 					continue;
 				else
 					label = "dynamic_n";
 			}
-			formats_list[i++] = label;
-		} while ((format = format->next));
-		formats_list[i] = NULL;
-
-		column = 0;
-		i = 0;
-		do {
-			int length;
-			char *label = formats_list[i++];
 			length = strlen(label) + 2;
 			column += length;
 			if (column > 78) {
 				printf("\n");
 				column = length;
 			}
-			printf("%s%s", label, formats_list[i] ? ", " : "\n");
-		} while (formats_list[i]);
-		MEM_FREE(formats_list);
+			printf("%s%s", label, format->next ? ", " : "\n");
+		} while ((format = format->next));
 		exit(0);
 	}
 	if (!strcasecmp(options.listconf, "format-details")) {
