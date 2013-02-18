@@ -242,7 +242,11 @@ static void init(struct fmt_main *self)
 
 	selected_gws = global_work_size;
 	/* Note: we ask for the kernels' max sizes, not the device's! */
-	maxsize = get_current_work_group_size(ocl_gpu_id, crypt_kernel);
+	maxsize = get_current_work_group_size(ocl_gpu_id, init_kernel);
+	maxsize = MIN(get_current_work_group_size(ocl_gpu_id, crypt_kernel),
+	              maxsize);
+	maxsize = MIN(get_current_work_group_size(ocl_gpu_id, finish_kernel),
+	              maxsize);
 
 	while (local_work_size > maxsize)
 		local_work_size >>= 1;
