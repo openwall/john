@@ -216,10 +216,30 @@ static int exit_status = 0;
 static void john_register_one(struct fmt_main *format)
 {
 	if (options.format) {
-		// -format=dynamic is working again.  It was 'broke' when switched to thin dynamic format structures.
-		if (!strcmp(options.format, "dynamic")) {
+		int len = strlen(options.format) - 1;
+
+		if (options.format[len] == '*') {
+			// Wildcard, as in wpapsk*
+			if (strncmp(options.format, format->params.label, len)) return;
+		}
+		else if (!strcmp(options.format, "dynamic")) {
 			if ( (format->params.flags & FMT_DYNAMIC) == 0) return;
-		} else if (strcmp(options.format, format->params.label)) return;
+		}
+		else if (!strcmp(options.format, "cpu")) {
+			if (strstr(format->params.label, "-opencl") ||
+			    strstr(format->params.label, "-cuda")) return;
+		}
+		else if (!strcmp(options.format, "gpu")) {
+			if (!strstr(format->params.label, "-opencl") &&
+			    !strstr(format->params.label, "-cuda")) return;
+		}
+		else if (!strcmp(options.format, "opencl")) {
+			if (!strstr(format->params.label, "-opencl")) return;
+		}
+		else if (!strcmp(options.format, "cuda")) {
+			if (!strstr(format->params.label, "cuda")) return;
+		}
+		else if (strcmp(options.format, format->params.label)) return;
 	}
 
 	fmt_register(format);
