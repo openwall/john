@@ -25,7 +25,8 @@ formats).  This is because GPU resources allocated by one format are
 currently not freed before proceeding to test another format (they're
 only freed when John exits).  We're going to correct this in a future
 release.  Meanwhile, please test GPU-enabled formats one by one, e.g.
-with "john --test --format=mscash2-opencl", etc.
+with "john --test --format=mscash2-opencl", etc. From this version of
+Jumbo, you can test all CPU formats using "john --test --format=cpu".
 
 Some OpenCL-enabled formats (for "slow" hashes and non-hashes) may
 sometimes trigger "ASIC hang" errors as reported by AMD/ATI GPU drivers,

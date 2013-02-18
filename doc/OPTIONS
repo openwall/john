@@ -176,7 +176,9 @@ starting a cracking session or along with one of: "--test", "--show",
 at the same time.  If you happen to get a password file that uses more
 than one hash type, then you have to invoke John once for each hash type
 and you need to use this option to make John crack hashes of types other
-than the one it would autodetect by default.
+than the one it would autodetect by default. Mainly for test and list
+purposes, you can use group aliases "cpu", "gpu", "opencl" and "cuda" as
+a format name, or use a trailing wildcard, as in "--format=wpapsk*".
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on
