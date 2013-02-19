@@ -70,7 +70,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
-        "salt xfer: "  ,  ", pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
 };
 #endif
 
