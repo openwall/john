@@ -363,6 +363,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
         cudaFree(cuda_hash);
 #else
 
+	int blocks = (count + THREADS - 1) / THREADS;
 	//int runtimeVersion=0;
 	//cudaRuntimeGetVersion(&runtimeVersion);
 	//printf("Cuda runtime: %d.%d\n",runtimeVersion/1000,(runtimeVersion%100)/10);
@@ -396,7 +397,7 @@ extern "C" void gpu_pwpass(pwsafe_pass * host_in, pwsafe_salt * host_salt,
 		pwsafe_salt *current_salt=cuda_salt[gpu];
 		pwsafe_hash *current_hash=cuda_hash[gpu];
 
-		kernel_pwsafe <<< BLOCKS, THREADS >>> (current_pass, current_salt,
+		kernel_pwsafe <<< blocks, THREADS >>> (current_pass, current_salt,
 			current_hash);
 
 		//cudaThreadSynchronize();
