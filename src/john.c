@@ -131,7 +131,6 @@ extern struct fmt_main fmt_opencl_agilekeychain;
 extern struct fmt_main fmt_opencl_bf;
 extern struct fmt_main fmt_opencl_cryptMD5;
 extern struct fmt_main fmt_opencl_cryptsha256;
-extern struct fmt_main fmt_opencl_cryptsha256_ng;
 extern struct fmt_main fmt_opencl_cryptsha512;
 extern struct fmt_main fmt_opencl_dmg;
 extern struct fmt_main fmt_opencl_encfs;
@@ -318,7 +317,6 @@ static void john_register_all(void)
 		john_register_one(&fmt_opencl_agilekeychain);
 		john_register_one(&fmt_opencl_cryptMD5);
 		john_register_one(&fmt_opencl_cryptsha256);
-		john_register_one(&fmt_opencl_cryptsha256_ng);
 		john_register_one(&fmt_opencl_cryptsha512);
 		john_register_one(&fmt_opencl_dmg);
 		john_register_one(&fmt_opencl_encfs);
