@@ -495,13 +495,13 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 	//Send data to device.
 	if (new_keys)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
 			sizeof(sha512_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], prepare_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[3]),
 			"failed in clEnqueueNDRangeKernel I");
 
@@ -510,19 +510,17 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 				&gws, &local_work_size, 0, NULL,
 				&multi_profilingEvent[split_events[i]]),  //1, 4, 5
 				"failed in clEnqueueNDRangeKernel");
-			BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
-			opencl_process_event();
 		}
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], final_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[6]),
 			"failed in clEnqueueNDRangeKernel II");
 	} else
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
 			sizeof(sha512_hash) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[2]),
 			"failed in reading data back");
 

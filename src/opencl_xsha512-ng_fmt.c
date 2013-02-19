@@ -238,12 +238,7 @@ static char * get_key(int index) {
   This function could be used to calculated the best num
   for the workgroup
   Work-items that make up a work-group (also referred to
-  as the size of the work-group)
-
-  For formats using __local
-  LWS should never be a big number since every work-item
-  uses about 400 bytes of local memory. Local memory
-  is usually 32 KB.
+  as the size of the work-group).
 -- */
 static void find_best_lws(struct fmt_main * self, int sequential_id) {
 
@@ -406,17 +401,17 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 	//Send data to device.
 	if (new_keys)
 		//Send data to device.
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
 			sizeof(sha512_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer pass_buffer");
 
 	//Enqueue the kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 		&gws, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
 		"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
 		sizeof(uint32_t) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[2]),
 		"failed in reading data back");
 
