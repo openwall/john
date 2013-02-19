@@ -355,22 +355,22 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 	gws = GET_MULTIPLE_BIGGER(count, local_work_size);
 
 	//Send data to device.
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
 				sizeof(sha256_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[0]),
 				"failed in clEnqueueWriteBuffer pass_buffer");
 
 	//Enqueue the kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
 			&gws, &local_work_size, 0, NULL, &multi_profilingEvent[1]),
 			"failed in clEnqueueNDRangeKernel");
 
 	//Read back hashes
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], hash_buffer, CL_FALSE, 0,
 			sizeof(uint32_t) * gws, calculated_hash, 0, NULL, &multi_profilingEvent[2]),
 			"failed in reading data back");
 
 	//Do the work
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
+	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "failed in clFinish");
 
 	return count;
 }

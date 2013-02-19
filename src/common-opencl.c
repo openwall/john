@@ -768,7 +768,13 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 			// Some formats need this for "keys_dirty"
 			self->methods.set_key(self->params.tests[0].plaintext, self->params.max_keys_per_crypt - 1);
 
-			self->methods.crypt_all(&count, NULL);
+			if (self->methods.crypt_all(&count, NULL) < 0) {
+				startTime = endTime = 0;
+#ifdef DEBUG
+				fprintf(stderr, " Error occured\n");
+#endif
+				break;
+			}
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*firstEvent,
@@ -781,6 +787,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 			sumStartTime += startTime;
 			sumEndTime += endTime;
 		}
+		if (!endTime)
+			break;
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;
@@ -840,7 +848,13 @@ static cl_ulong gws_test(
 
 	// Timing run
 	count = self->params.max_keys_per_crypt;
-	self->methods.crypt_all(&count, NULL);
+	if (self->methods.crypt_all(&count, NULL) < 0) {
+		runtime = looptime = 0;
+
+		if (show_details)
+			fprintf(stderr, " (error occured)");
+		return 0;
+	}
 
 	//** Get execution time **//
 	for (i = 0; i < number_of_events; i++) {
@@ -1001,7 +1015,13 @@ void opencl_find_best_lws(
 			advance_cursor();
 			local_work_size = my_work_group;
 
-			self->methods.crypt_all(&count, NULL);
+			if (self->methods.crypt_all(&count, NULL) < 0) {
+				startTime = endTime = 0;
+
+				if (show_details)
+					fprintf(stderr, " Error occured\n");
+				break;
+			}
 
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish error");
 			HANDLE_CLERROR(clGetEventProfilingInfo(*profilingEvent,
@@ -1016,6 +1036,8 @@ void opencl_find_best_lws(
 
 			release_profiling_events();
 		}
+		if (!endTime)
+			break;
 		if ((sumEndTime - sumStartTime) < kernelExecTimeNs) {
 			kernelExecTimeNs = sumEndTime - sumStartTime;
 			optimal_work_group = my_work_group;

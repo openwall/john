@@ -136,6 +136,12 @@ void opencl_process_event(void);
 /* Use this macro for OpenCL Error handling */
 #define HANDLE_CLERROR(cl_error, message) (handle_clerror(cl_error,message,__FILE__,__LINE__))
 
+/* Use this macro for OpenCL Error handling in crypt_all_benchmark() */
+#define BENCH_CLERROR(cl_error, message) {	  \
+		if ((cl_error) != CL_SUCCESS) \
+			return -1; \
+	}
+
 /* Macro for get a multiple of a given value */
 #define GET_MULTIPLE(dividend, divisor)		 ((unsigned int) ((dividend / divisor) * divisor))
 

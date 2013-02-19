@@ -883,18 +883,18 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	/// Copy data to gpu
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(pbkdf2_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(pbkdf2_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 		new_keys = 0;
 	}
 
 	/// Run kernels, no iterations for fast enumeration
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
+	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel (2nd pass)");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel (2nd pass)");
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running loop kernel");
+	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Failed running loop kernel");
 
 	return count;
 }

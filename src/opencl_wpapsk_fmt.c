@@ -458,16 +458,16 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 	size_t scalar_gws = global_work_size * VF;
 
 	/// Copy data to gpu
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE, 0, sizeof(wpapsk_password) * scalar_gws, inbuffer, 0, NULL, NULL), "Copy data to gpu");
 
 	/// Run kernels, no iterations for fast enumeration
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_init, 1, NULL, &scalar_gws, &local_work_size, 0, NULL, NULL), "Run initial kernel");
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running kernel");
+	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], wpapsk_loop, 1, NULL, &global_work_size, &local_work_size, 0, NULL, profilingEvent), "Run loop kernel");
 
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 	return count;
 }
 

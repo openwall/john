@@ -342,37 +342,37 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *salt)
 
 	global_work_size = (count + local_work_size - 1) / local_work_size * local_work_size;
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_in, CL_FALSE,
 		0, insize, host_pass, 0, NULL, &multi_profilingEvent[0]), "Copy memin");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], mem_salt, CL_FALSE,
 		0, saltsize, host_salt, 0, NULL, &multi_profilingEvent[1]), "Copy memsalt");
 
 	///Run the init kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], init_kernel, 1,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], init_kernel, 1,
 		NULL, &global_work_size, &local_work_size,
 		0, NULL, &multi_profilingEvent[2]), "Set ND range");
 
 	///Run split kernel
 	for(i = 0; i < 3; i++)
 	{
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1,
 			NULL, &global_work_size, &local_work_size,
 			0, NULL, &multi_profilingEvent[split_events[i]]), "Set ND range");  //3, 4, 5
-		HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
+		BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 	}
 
 	///Run the finish kernel
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], finish_kernel, 1,
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], finish_kernel, 1,
 		NULL, &global_work_size, &local_work_size,
 		0, NULL, &multi_profilingEvent[6]), "Set ND range");
 
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], mem_out, CL_FALSE, 0,
 		outsize, host_hash, 0, NULL, &multi_profilingEvent[7]),
 	    "Copy data back");
 
 	///Await completion of all the above
-	HANDLE_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
+	BENCH_CLERROR(clFinish(queue[ocl_gpu_id]), "clFinish error");
 
 	return count;
 }
