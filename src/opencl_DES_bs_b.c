@@ -40,6 +40,8 @@ typedef unsigned WORD vtype;
 	
         static   WORD current_salt;
 
+	static size_t DES_local_work_size;
+
 #if (HARDCODE_SALT)
 
 	static WORD stored_salt[4096]= {0x7fffffff};
@@ -240,6 +242,13 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	if(err) {printf("Create Kernel DES_bs_25_b FAILED\n"); return ;}
 	cmdq[platform_no][dev_no] = queue[dev_no];
 	
+	/* Cap LWS at device limit */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][0], devices[dev_no], CL_KERNEL_WORK_GROUP_SIZE, sizeof(DES_local_work_size), &DES_local_work_size, NULL), "Query max work group size");
+
+	if (DES_local_work_size > WORK_GROUP_SIZE)
+		DES_local_work_size = WORK_GROUP_SIZE;
+	//fprintf(stderr, "Using LWS %zu\n", DES_local_work_size);
+
 	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
 	if(opencl_DES_bs_data_gpu==(cl_mem)0) { HANDLE_CLERROR(err, "Create Buffer FAILED\n"); }
 	
@@ -320,11 +329,11 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 	
 	section=keys_count_multiple/DES_BS_DEPTH;
 	
-	M = WORK_GROUP_SIZE;
-	
-	if(section%WORK_GROUP_SIZE !=0)
-	N=  (section/WORK_GROUP_SIZE +1) *WORK_GROUP_SIZE ;
-	
+	M = DES_local_work_size;
+
+	if(section%DES_local_work_size !=0)
+	N=  (section/DES_local_work_size +1) *DES_local_work_size ;
+
 	else
 	N = section;  
 	
@@ -388,11 +397,11 @@ int opencl_DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 	
 	section=keys_count_multiple/DES_BS_DEPTH;
 	
-	M = WORK_GROUP_SIZE;
-	
-	if(section%WORK_GROUP_SIZE !=0)
-	N=  (section/WORK_GROUP_SIZE +1) *WORK_GROUP_SIZE ;
-	
+	M = DES_local_work_size;
+
+	if(section%DES_local_work_size !=0)
+	N=  (section/DES_local_work_size +1) *DES_local_work_size ;
+
 	else
 	N = section;  
 	
