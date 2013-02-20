@@ -330,6 +330,7 @@ default:
 	@echo "tru64-alpha              Tru64 (Digital UNIX, OSF/1), Alpha"
 	@echo "aix-ppc32                AIX, PowerPC 32-bit"
 	@echo "macosx-x86-64            Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2 (best)"
+#	@echo "macosx-x86-64-clang-debug Mac OS X 10.5+, Xcode 3.0+, x86-64 compiled with clang (with debugging options)
 	@echo "macosx-x86-64-gpu        Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, CUDA and OpenCL support"
 	@echo "macosx-x86-64-opencl     Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, OpenCL support"
 	@echo "macosx-x86-64-cuda       Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, CUDA support"
@@ -1131,14 +1132,15 @@ macosx-x86-64:
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -m64 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m64"
 
-macosx-x86-64i:
+macosx-x86-64-clang-debug:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics-64.o" \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -m64 -DUSING_ICC_S_FILE -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64"
+		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
+		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)" \
+		CPP="clang" CC="clang" AS="clang" LD="clang"
 
 macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -1147,15 +1149,6 @@ macosx-x86-sse2:
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m32"
-
-macosx-x86-sse2i:
-	$(LN) x86-sse.h arch.h
-	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics-32.o" \
-		ASFLAGS="$(ASFLAGS) -m32 -msse2 -DUNDERSCORES -DBSD -DALIGN_LOG" \
-		CFLAGS="$(CFLAGS) -m32 -msse2 -DUSING_ICC_S_FILE -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 
 macosx-x86-mmx:
