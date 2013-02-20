@@ -250,7 +250,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 #ifdef DEBUG
 	extern volatile int bench_running;
-#ifdef
+#endif
 	char *cp = NULL;
 
 	if (valid_short(ciphertext))
