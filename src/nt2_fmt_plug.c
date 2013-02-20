@@ -487,13 +487,8 @@ static char *get_key(int index)
 
 	for(; md4_size < PLAINTEXT_LENGTH; i += MMX_COEF, md4_size++)
 	{
-#if ARCH_LITTLE_ENDIAN
 		key[md4_size] = keybuffer[i];
 		key[md4_size+1] = keybuffer[i] >> 16;
-#else
-		key[md4_size] = keybuffer[i] >> 16;
-		key[md4_size+1] = keybuffer[i];
-#endif
 		if (key[md4_size] == 0x80 && key[md4_size+1] == 0) {
 			key[md4_size] = 0;
 			break;
