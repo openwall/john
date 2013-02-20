@@ -22,7 +22,7 @@ static struct fmt_main **fmt_tail = &fmt_list;
 
 extern volatile int bench_running;
 
-#ifndef BENCH_BUILD
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 /* We could move this to misc.c */
 static size_t fmt_strnlen(const char *s, size_t max) {
     const char *p=s;
@@ -76,11 +76,9 @@ char *fmt_self_test(struct fmt_main *format)
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
-#ifndef BENCH_BUILD
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 	int binary_size_warned = 0, salt_size_warned = 0;
 	int validkiller = 0;
-#endif
 	int lengthcheck = 0;
 	int ml = format->params.plaintext_length;
 	char longcand[PLAINTEXT_BUFFER_SIZE + 1];
@@ -172,7 +170,7 @@ char *fmt_self_test(struct fmt_main *format)
 
 		format->methods.set_salt(salt);
 
-#ifndef BENCH_BUILD
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 		/* Check that claimed maxlength is actually supported */
 		/* This version is for max == 1, other version below */
 		if (lengthcheck == 0 && max == 1) {
@@ -205,7 +203,7 @@ char *fmt_self_test(struct fmt_main *format)
 			format->methods.clear_keys();
 		format->methods.set_key(current->plaintext, index);
 
-#ifndef BENCH_BUILD
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 		/* Check that claimed maxlength is actually supported */
 		/* This version is for max > 1 */
 		/* Part 1: Fill the buffer with maximum length keys */
@@ -228,14 +226,14 @@ char *fmt_self_test(struct fmt_main *format)
 #ifdef HAVE_OPENCL
 		advance_cursor();
 #endif
-#ifndef BENCH_BUILD
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 		if (lengthcheck == 1)
 			format->methods.crypt_all(max);
 		else
 #endif
 			format->methods.crypt_all(index + 1);
 
-#ifndef BENCH_BUILD
+#if defined(DEBUG) && !defined(BENCH_BUILD)
 		/* Check that claimed maxlength is actually supported */
 		/* Part 2: Now read them back and verify they are intact */
 		if (index == 1 && lengthcheck == 1 && max > 1) {
