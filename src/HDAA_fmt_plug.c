@@ -551,7 +551,7 @@ static char *mystrndup(const char *s, size_t n)
 	size_t size;
 	char *ret;
 
-	for (tmp = 0; tmp <= n && s[tmp] != 0; tmp++);
+	for (tmp = 0; s[tmp] != 0 && tmp <= n; tmp++);
 	size = n;
 	if (tmp < size)
 		size = tmp;

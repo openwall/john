@@ -652,9 +652,9 @@ static inline void set_key_helper(unsigned int * keybuffer,
                                   unsigned int lenStoreOffset,
                                   unsigned int *last_length)
 {
-	unsigned int i = 0;
-	unsigned int md4_size;
-	for(md4_size = 0; md4_size < PLAINTEXT_LENGTH && key[md4_size]; i += xBuf, md4_size++)
+	unsigned int i=0;
+	unsigned int md4_size=0;
+	for(; key[md4_size] && md4_size < PLAINTEXT_LENGTH; i += xBuf, md4_size++)
 	{
 		unsigned int temp;
 		if ((temp = key[++md4_size]))

@@ -428,7 +428,7 @@ void MD5_std_set_key(char *key, int index)
 
 	init_t();
 
-	for (length = 0; length < 15 && key[length]; length++);
+	for (length = 0; key[length] && length < 15; length++);
 	current = &pool[index];
 
 	memcpy(current->o.p.b, key, current->l.p = length);
