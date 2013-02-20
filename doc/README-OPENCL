@@ -134,7 +134,7 @@ dmg-opencl            Apple DMG PBKDF2-HMAC-SHA-1 3DES / AES
 encfs-opencl          EncFS PBKDF2 AES / Blowfish
 gpg-opencl            OpenPGP / GnuPG Secret Key
 keychain-opencl       Mac OS X Keychain PBKDF2-HMAC-SHA-1 3DES
-krb5pa-sha1-opencl    Kerberos 5 AS-REQ Pre-Auth etype 17/18
+krb5pa-sha1-opencl    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
 md5crypt-opencl       md5crypt
 mscash2-opencl        M$ Cache Hash 2 (DCC2) PBKDF2-HMAC-SHA-1
 mysql-sha1-opencl     MySQL 4.1 double-SHA-1
@@ -152,16 +152,16 @@ raw-md4-opencl        Raw MD4
 raw-md5-opencl        Raw MD5
 raw-sha1-opencl       Raw SHA-1
 raw-sha256-opencl     Raw SHA-256 (pwlen < 32)
-raw-sha512-opencl     Raw SHA-512
 raw-sha512-ng-opencl  Raw SHA-512 (pwlen < 32)
+raw-sha512-opencl     Raw SHA-512
 sha256crypt-opencl    sha256crypt
 sha512crypt-opencl    sha512crypt
 ssha-opencl           Netscape LDAP salted SHA-1
 strip-opencl          STRIP Password Manager PBKDF2-SHA1
 sxc-opencl            SXC SHA-1 Blowfish
 wpapsk-opencl         WPA-PSK PBKDF2-HMAC-SHA-1
-xsha512-opencl        Mac OS X 10.7+ salted SHA-512
 xsha512-ng-opencl     Mac OS X 10.7+ salted SHA-512 (pwlen < 32)
+xsha512-opencl        Mac OS X 10.7+ salted SHA-512
 zip-opencl            ZIP-AES PBKDF2-HMAC-SHA-1
 
 
@@ -182,22 +182,22 @@ might need to disable this watchdog. For nvidia cards, you can check this
 setting using "--list=opencl-devices". Example output:
 
     Platform version: OpenCL 1.1 CUDA 4.2.1
-	Device #0 name:		GeForce GT 650M
-	Device vendor:		NVIDIA Corporation
-	Device type:		GPU (LE)
-	Device version:		OpenCL 1.1 CUDA
-	Driver version:		304.51
-	Global Memory:		1023.10 MB
-	Global Memory Cache:	32.0 KB
-	Local Memory:		48.0 KB (Local)
-	Max clock (MHz) :	900
-	Max Work Group Size:	1024
-	Parallel compute cores:	2
-	Stream processors:	384  (2 x 192)
-	Warp size:		32
-	Max. GPRs/work-group:	65536
-	Compute capability:	3.0 (sm_30)
-	Kernel exec. timeout:	yes            <-- enabled watchdog
+        Device #0 name:         GeForce GT 650M
+        Device vendor:          NVIDIA Corporation
+        Device type:            GPU (LE)
+        Device version:         OpenCL 1.1 CUDA
+        Driver version:         304.51
+        Global Memory:          1023.10 MB
+        Global Memory Cache:    32.0 KB
+        Local Memory:           48.0 KB (Local)
+        Max clock (MHz) :       900
+        Max Work Group Size:    1024
+        Parallel compute cores: 2
+        Stream processors:      384  (2 x 192)
+        Warp size:              32
+        Max. GPRs/work-group:   65536
+        Compute capability:     3.0 (sm_30)
+        Kernel exec. timeout:   yes            <-- enabled watchdog
 
 This particular output is not always available under OSX but you can get the
 information using "--list=cuda-devices" instead, see doc/README-CUDA. We are
