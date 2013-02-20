@@ -248,6 +248,7 @@ static inline void setup_des_key(uchar key_56[], DES_key_schedule *ks);
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
+	extern volatile int bench_running;
 	char *cp = NULL;
 
 	if (valid_short(ciphertext))
@@ -282,7 +283,9 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			}
 		}
 #ifdef DEBUG
-		fprintf(stderr, "Rejected MSCHAPv2 hash with invalid 3rd block\n");
+		if (!bench_running)
+			fprintf(stderr, "Rejected MSCHAPv2 hash with "
+			        "invalid 3rd block\n");
 #endif
 	}
 	return 0;
