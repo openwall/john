@@ -229,7 +229,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* content */
 		goto err;
-	if (strlen(p) > 2048)
+	res = strlen(p);
+	if (res > 2048 || res & 1)
 		goto err;
 	if (!ishex(p))
 		goto err;
