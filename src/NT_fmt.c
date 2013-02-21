@@ -872,17 +872,21 @@ static inline void set_key_helper_encoding(unsigned int * keybuffer,
 		((UTF16*)keybuffer)[md4_size+1] = 0;
 		i = md4_size>>1;
 	} else {
-		unsigned int temp;
+		unsigned int temp, temp2;
 		i = 0;
-		for(md4_size = 0; key[md4_size]; i += xBuf, md4_size++)
+		for(md4_size = 0; (temp2 = key[md4_size]); i += xBuf, md4_size++)
+		{
+			if ((temp = key[++md4_size]) && md4_size < PLAINTEXT_LENGTH)
 			{
-				if ((temp = CP_to_Unicode[key[++md4_size]]) && md4_size < PLAINTEXT_LENGTH)
-					keybuffer[i] = CP_to_Unicode[key[md4_size-1]] | (temp << 16);
-				else {
-					keybuffer[i] = CP_to_Unicode[key[md4_size-1]] | 0x800000;
-					goto key_cleaning_enc;
-				}
+				temp = CP_to_Unicode[temp] << 16;
+				temp |= CP_to_Unicode[temp2];
+				keybuffer[i] = temp;
+			} else {
+				temp = CP_to_Unicode[temp2] | 0x800000;
+				keybuffer[i] = temp;
+				goto key_cleaning_enc;
 			}
+		}
 		keybuffer[i] = 0x80;
 	}
 key_cleaning_enc:
