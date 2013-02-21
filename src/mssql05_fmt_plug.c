@@ -228,10 +228,12 @@ static void set_key_CP(char *_key, int index)
 	unsigned int len, temp2;
 
 	len = SALT_SIZE >> 1;
-	while((temp2 = CP_to_Unicode[*key++])) {
+	while((temp2 = *key++)) {
 		unsigned int temp;
-		if ((temp = CP_to_Unicode[*key++]))
+		temp2 = CP_to_Unicode[temp2];
+		if ((temp = *key++))
 		{
+			temp = CP_to_Unicode[temp];
 			*keybuf_word = JOHNSWAP((temp << 16) | temp2);
 		}
 		else
