@@ -61,6 +61,7 @@ typedef struct {
 	int key_size;
 	int iv_length;
 	int salt_length;
+	int content_length;
 	unsigned char iv[16];
 	unsigned char salt[32];
 	unsigned char content[1024];
@@ -228,7 +229,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* content */
 		goto err;
-	if (strlen(p) < 2048)
+	if (strlen(p) > 2048)
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -273,9 +274,11 @@ static void *get_salt(char *ciphertext)
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	p = strtok(NULL, "*");
-	for (i = 0; i < 1024; i++)
+	memset(cs.content, 0, sizeof(cs.content));
+	for (i = 0; p[i * 2] && i < 1024; i++)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	cs.content_length = i;
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
@@ -402,9 +405,9 @@ static void crypt_all(int count)
 		bf_ivec_pos = 0;
 		memcpy(ivec, cur_salt->iv, 8);
 		BF_set_key(&bf_key, cur_salt->key_size, (unsigned char*)outbuffer[index].v);
-		BF_cfb64_encrypt(cur_salt->content, output, 1024, &bf_key, ivec, &bf_ivec_pos, 0);
+		BF_cfb64_encrypt(cur_salt->content, output, cur_salt->content_length, &bf_key, ivec, &bf_ivec_pos, 0);
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, output, 1024);
+		SHA1_Update(&ctx, output, cur_salt->content_length);
 		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 	 }
 }

@@ -61,6 +61,7 @@ typedef struct {
 	int key_size;
 	int iv_length;
 	int salt_length;
+	int content_length;
 	unsigned char iv[16];
 	unsigned char salt[32];
 	unsigned char content[1024];
@@ -228,7 +229,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* content */
 		goto err;
-	if (strlen(p) < 2048)
+	if (strlen(p) > 2048)
 		goto err;
 	if (!ishex(p))
 		goto err;
@@ -273,9 +274,11 @@ static void *get_salt(char *ciphertext)
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	p = strtok(NULL, "*");
-	for (i = 0; i < 1024; i++)
+	memset(cs.content, 0, sizeof(cs.content));
+	for (i = 0; p[i * 2] && i < 1024; i++)
 		cs.content[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	cs.content_length = i;
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
@@ -400,9 +403,9 @@ static void crypt_all(int count)
 		memcpy(iv, cur_salt->iv, 32);
 		memset(&akey, 0, sizeof(AES_KEY));
 		AES_set_decrypt_key((unsigned char*)outbuffer[index].v, 256, &akey);
-		AES_cbc_encrypt(cur_salt->content, pt, 1024, &akey, iv, AES_DECRYPT);
+		AES_cbc_encrypt(cur_salt->content, pt, cur_salt->content_length, &akey, iv, AES_DECRYPT);
 		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, pt, 1024);
+		SHA256_Update(&ctx, pt, cur_salt->content_length);
 		SHA256_Final((unsigned char*)crypt_out[index], &ctx);
 	 }
 }
