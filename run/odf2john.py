@@ -70,7 +70,7 @@ def process_file(filename):
     salt = binascii.hexlify(base64.decodestring(salt))
 
     try:
-        content = zf.open("content.xml").read()
+        content = zf.open("content.xml").read(1024)
     except KeyError:
         print >> sys.stderr, "%s is not an encrypted OpenOffice file, content.xml missing!" % filename
         return 5
@@ -93,7 +93,7 @@ def process_file(filename):
 
     print "%s:$odf$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%s" % (filename, algorithm_type,
             checksum_type, iteration_count, key_size, checksum, len(iv) / 2,
-            iv, len(salt) / 2, salt, 0, binascii.hexlify(content[:1024]))
+            iv, len(salt) / 2, salt, 0, binascii.hexlify(content))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
