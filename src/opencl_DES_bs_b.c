@@ -40,7 +40,7 @@ typedef unsigned WORD vtype;
 	
         static   WORD current_salt;
 
-	static size_t DES_local_work_size;
+	static size_t DES_local_work_size = WORK_GROUP_SIZE;
 
 #if (HARDCODE_SALT)
 
@@ -231,6 +231,9 @@ void DES_bs_select_device(int platform_no,int dev_no)
 
 void DES_bs_select_device(int platform_no,int dev_no)
 {
+	//char *env;
+	size_t max_lws;
+
 	devno = dev_no;
 	pltfrmno = platform_no;
 	opencl_init("$JOHN/kernels/DES_bs_kernel.cl", dev_no, platform_no);
@@ -241,12 +244,17 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	krnl[platform_no][dev_no][0] = clCreateKernel(prg[platform_no][dev_no],"DES_bs_25_b",&err) ;
 	if(err) {printf("Create Kernel DES_bs_25_b FAILED\n"); return ;}
 	cmdq[platform_no][dev_no] = queue[dev_no];
-	
-	/* Cap LWS at device limit */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][0], devices[dev_no], CL_KERNEL_WORK_GROUP_SIZE, sizeof(DES_local_work_size), &DES_local_work_size, NULL), "Query max work group size");
 
-	if (DES_local_work_size > WORK_GROUP_SIZE)
-		DES_local_work_size = WORK_GROUP_SIZE;
+	/* Honour this for testing and --test=0 */
+	//if ((env = getenv("LWS")))
+	//	DES_local_work_size = atoi(env);
+
+	/* Cap LWS at device limit... */
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][0], devices[dev_no], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_lws), &max_lws, NULL), "Query max work group size");
+
+	/* ...but ensure GWS is still a multiple of LWS */
+	while (DES_local_work_size > max_lws)
+		DES_local_work_size >>= 1;
 	//fprintf(stderr, "Using LWS %zu\n", DES_local_work_size);
 
 	opencl_DES_bs_data_gpu = clCreateBuffer(cntxt[platform_no][dev_no], CL_MEM_READ_WRITE, MULTIPLIER*sizeof(opencl_DES_bs_transfer), NULL, &err);
