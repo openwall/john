@@ -25,7 +25,7 @@ MD5_std_combined CC_CACHE_ALIGN MD5_std_all;
 #endif
 
 #if !MD5_IMM
-static MD5_data MD5_data_init = {
+static const MD5_data MD5_data_init = {
 	{
 		0xd76aa477, 0xf8fa0bcc, 0xbcdb4dd9, 0xb18b7a77,
 		0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -276,7 +276,7 @@ static MD5_data MD5_data_init = {
 
 #endif
 
-static unsigned char PADDING[56] = {
+static const unsigned char PADDING[56] = {
 	0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

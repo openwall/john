@@ -46,7 +46,7 @@ static int omp_t = 1;
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static unsigned char a2e[256] = {
+static const unsigned char a2e[256] = {
 	0,  1,  2,  3, 55, 45, 46, 47, 22,  5, 37, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 60, 61, 50, 38, 24, 25, 63, 39, 28, 29, 30, 31,
 	64, 79,127,123, 91,108, 80,125, 77, 93, 92, 78,107, 96, 75, 97,
@@ -68,7 +68,7 @@ static unsigned char a2e[256] = {
 /* This is a2e[] with each entry XOR 0x55, left-shifted one bit
    and finally with odd parity so that DES_set_key_unchecked
    can be used directly.  This provides about 15% speed up.    */
-static unsigned char a2e_precomputed[256] = {
+static const unsigned char a2e_precomputed[256] = {
 	 171, 168, 174, 173, 196, 241, 247, 244, 134, 161, 224, 188, 179, 176, 182, 181,
 	 138, 137, 143, 140, 211, 208, 206, 230, 155, 152, 213, 229, 146, 145, 151, 148,
 	  42,  52,  84,  93,  28, 115,  11,  81,  49,  16,  19,  55, 124, 107,  61, 104,

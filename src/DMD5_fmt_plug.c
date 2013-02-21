@@ -49,7 +49,7 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-static char itoa16_shr_04[] =
+static const char itoa16_shr_04[] =
 	"0000000000000000"
 	"1111111111111111"
 	"2222222222222222"
@@ -67,7 +67,7 @@ static char itoa16_shr_04[] =
 	"eeeeeeeeeeeeeeee"
 	"ffffffffffffffff";
 
-static char itoa16_and_0f[] =
+static const char itoa16_and_0f[] =
 	"0123456789abcdef"
 	"0123456789abcdef"
 	"0123456789abcdef"

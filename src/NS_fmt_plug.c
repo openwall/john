@@ -67,7 +67,7 @@ static unsigned short e64toshort[256];
 static int salt_len, key_len;
 static char cipher_salt[ SALT_SIZE  ];
 static char cipher_key[ PLAINTEXT_LENGTH + 1 ];
-static char *adm = ":Administration Tools:";
+static const char *adm = ":Administration Tools:";
 static char tocipher[ SALT_SIZE + ADM_LEN + PLAINTEXT_LENGTH ];
 static ARCH_WORD_32 crypted[4];
 
@@ -75,8 +75,8 @@ static ARCH_WORD_32 crypted[4];
 static void NS_init(struct fmt_main *self)
 {
 	int i;
-	static char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	char *pos;
+	const char *b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+	const char *pos;
 	for (pos = b64, i = 0 ; *pos != 0 ; pos++, i++)
 		e64toshort[(int)*pos] = i;
 }

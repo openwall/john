@@ -48,7 +48,7 @@ static char saved_key[PLAINTEXT_LENGTH + 1];
 #define _atoi64 JtR_atoi64
 #endif
 
-static char _itoa64[] = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static const char _itoa64[] = "./0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 static char _atoi64[0x100];
 
 static int valid(char *ciphertext, struct fmt_main *self) {
@@ -64,7 +64,7 @@ static int valid(char *ciphertext, struct fmt_main *self) {
 }
 
 void init(struct fmt_main *self) {
-    char *pos;
+    const char *pos;
 
     memset(_atoi64, 0x7F, sizeof(_atoi64));
     for (pos = _itoa64; pos <= &_itoa64[63]; pos++)
