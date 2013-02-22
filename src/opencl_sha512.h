@@ -88,13 +88,13 @@ __constant uint64_t clear_mask[] = {
     0x000000ffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
     0x0000ffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, //48
     0x00ffffffffffffffUL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL, 0x0UL,
-    0xffffffffffffffffUL
+    0xffffffffffffffffUL                                                   //64
 };
 
 #define CLEAR_BUFFER_64(dest, start) {             \
-    uint64_t tmp, pos;                             \
-    tmp = (uint64_t) ((start & 7) << 3);           \
-    pos = (uint64_t) (start >> 3);                 \
+    uint32_t tmp, pos;                             \
+    tmp = (uint32_t) ((start & 7) << 3);           \
+    pos = (uint32_t) (start >> 3);                 \
     dest[pos] = dest[pos] & clear_mask[tmp];       \
     if (tmp)                                       \
         length = pos + 1;                          \
@@ -118,7 +118,6 @@ __constant uint64_t clear_mask[] = {
     if (pos < 15)                                  \
        dest[pos+1] = (tmp == 0 ? (uint64_t) 0 : (src >> (64 - tmp)));  \
 }
-
 #endif
 
 #endif	/* OPENCL_SHA512_H */

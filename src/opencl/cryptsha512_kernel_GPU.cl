@@ -235,7 +235,7 @@ inline void clear_buffer(uint64_t     * src,
 
     uint64_t * l = (uint64_t *) (string + length);
 
-    while (length < limit) {
+    while (length < (limit  * 8)) {
         *l++ = 0;
         length += 8;
     }
@@ -285,7 +285,7 @@ inline void ctx_append_1(sha512_ctx * ctx) {
 
     while (length < 16) {
         *l++ = 0;
-        length ++;
+        length++;
     }
 }
 #endif
