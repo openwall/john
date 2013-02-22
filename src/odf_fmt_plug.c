@@ -281,7 +281,7 @@ static void crypt_all(int count)
 			memcpy(iv, cur_salt->iv, 32);
 			memset(&akey, 0, sizeof(AES_KEY));
 			if(AES_set_decrypt_key(key, 256, &akey) < 0) {
-				fprintf(stderr, "AES_set_derypt_key failed!\n");
+				fprintf(stderr, "AES_set_decrypt_key failed!\n");
 			}
 			AES_cbc_encrypt(cur_salt->content, output, cur_salt->content_length, &akey, iv, AES_DECRYPT);
 			SHA256_Init(&ctx);
