@@ -15,6 +15,7 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
+#include "stdint.h"
 #include "opencl_device_info.h"
 
 #define MAXGPUS	8
