@@ -335,6 +335,7 @@ default:
 	@echo "macosx-x86-64-opencl     Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, OpenCL support"
 	@echo "macosx-x86-64-cuda       Mac OS X 10.5+, Xcode 3.0+, x86-64 with SSE2, CUDA support"
 	@echo "macosx-x86-sse2          Mac OS X, x86 with SSE2"
+	@echo "macosx-x86-sse2-opencl   Mac OS X, x86 with SSE2 and OpenCL"
 	@echo "macosx-ppc32-altivec     Mac OS X, PowerPC w/AltiVec (best)"
 	@echo "macosx-ppc32             Mac OS X, PowerPC 32-bit"
 #	@echo "macosx-ppc64-altivec     Mac OS X, PowerPC 64-bit w/AltiVec"
@@ -1107,8 +1108,7 @@ macosx-x86-64-opencl:
 		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m64 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -Wno-deprecated-declarations" \
-		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL" \
-		NVCC_FLAGS="$(NVCC_FLAGS) -m64"
+		LDFLAGS="$(LDFLAGS) -m64 -framework OpenCL"
 	$(MKDIR) ../run/kernels/
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
@@ -1150,6 +1150,18 @@ macosx-x86-sse2:
 		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
+
+macosx-x86-sse2-opencl:
+	$(LN) x86-sse.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) $(OCL_OBJS) c3_fmt.o x86.o x86-sse.o sha1-mmx.o md4-mmx.o md5-mmx.o sse-intrinsics.o" \
+		ASFLAGS="$(ASFLAGS) -m32 -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -m32 -I$(OCLROOT)/include -DBSD -DHAVE_CRYPT -DHAVE_OPENCL -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -m32 -framework OpenCL"
+	$(MKDIR) ../run/kernels/
+	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
+	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 
 macosx-x86-mmx:
 	$(LN) x86-mmx.h arch.h
