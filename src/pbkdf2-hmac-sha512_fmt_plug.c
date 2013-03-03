@@ -15,17 +15,14 @@
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+
 #include "misc.h"
 #include "arch.h"
 #include "common.h"
 #include "formats.h"
 #include "sha2.h"
 #include "johnswap.h"
-
-#define uint8_t			unsigned char
-#define uint16_t		unsigned short
-#define uint32_t		unsigned int
-#define uint64_t		unsigned long long int
+#include "stdint.h"
 
 #define FORMAT_LABEL		"pbkdf2-hmac-sha512"
 #define FORMAT_TAG		"$pbkdf2-hmac-sha512$"
