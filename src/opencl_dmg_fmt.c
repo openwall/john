@@ -455,6 +455,8 @@ static void *get_salt(char *ciphertext)
 		else
 			cs.iterations = 1000;
 	}
+	if (cs.iterations == 0)
+		cs.iterations = 1000;
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
