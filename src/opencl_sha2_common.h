@@ -12,12 +12,13 @@
 #ifndef OPENCL_SHA2_COMMON_H
 #define	OPENCL_SHA2_COMMON_H
 
-//Type names definition.
+// Type names definition.
+// NOTE: long is always 64-bit in OpenCL, and long long is 128 bit.
 #ifdef _OPENCL_COMPILER
 	#define uint8_t  unsigned char
 	#define uint16_t unsigned short
 	#define uint32_t unsigned int
-	#define uint64_t unsigned long  //Tip: unsigned long long int failed on compile (AMD).
+	#define uint64_t unsigned long
 #endif
 
 //Functions.
