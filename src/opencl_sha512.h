@@ -13,10 +13,12 @@
 #define	OPENCL_SHA512_H
 
 //Type names definition.
+#ifdef _OPENCL_COMPILER
 #define uint8_t  unsigned char
 #define uint16_t unsigned short
 #define uint32_t unsigned int
-#define uint64_t unsigned long  //Tip: unsigned long long int failed on compile (AMD).
+#define uint64_t unsigned long
+#endif
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -107,4 +109,3 @@ __constant uint64_t k[] = {
 #endif
 
 #endif	/* OPENCL_SHA512_H */
-

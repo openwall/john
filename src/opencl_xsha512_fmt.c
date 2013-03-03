@@ -32,10 +32,6 @@
 #define KERNEL_NAME "kernel_xsha512"
 #define CMP_KERNEL_NAME "kernel_cmp"
 
-#define uint8_t  unsigned char
-#define uint32_t unsigned int
-#define uint64_t unsigned long long int
-
 #define ITERATIONS 1
 
 #define MIN_KEYS_PER_CRYPT	(1024*512)
