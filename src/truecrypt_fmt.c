@@ -190,10 +190,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void* binary, int count)
 {
-	int i;
-	int *res = mem_alloc(count * sizeof(int));
+	int i, res = 0;
 
-	memset(res, 0, sizeof(int) * count);
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -214,17 +212,9 @@ static int cmp_all(void* binary, int count)
 		EVP_DecryptUpdate(&cipher_context, first_block_dec, &outlen, binary, 16);
 		// If first 4 bytes is 'TRUE' successful decryption
 		if(first_block_dec[0] == 84 && first_block_dec[1] == 82 && first_block_dec[2] == 85 && first_block_dec[3] == 69)
-			res[i] = 1;
+			res = 1;
 	}
-
-	for(i = 0; i < count; i++)
-		if (res[i]) {
-			MEM_FREE(res);
-			return 1;
-		}
-
-	MEM_FREE(res);
-	return 0;
+	return res;
 }
 
 static int cmp_one(void* binary, int index)
@@ -233,8 +223,8 @@ static int cmp_one(void* binary, int index)
 	unsigned char tweak[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	int outlen;
 	unsigned char first_block_dec[16];
-
 	EVP_CIPHER_CTX cipher_context;
+
 	// Key Strengthening
 	PKCS5_PBKDF2_HMAC(key_buffer[index], strlen(key_buffer[index]), salt_buffer, 64, num_iterations, md, sizeof(key), key);
 
