@@ -500,8 +500,7 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 		return (-1);
 	}
 	if (!EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen)) {
-		if (cur_salt->len_wrapped_aes_key == 48)
-			return (-1);
+		return (-1);
 	}
 	outlen += tmplen;
 	EVP_CIPHER_CTX_cleanup(&ctx);
@@ -525,7 +524,7 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 static void dump_strings (unsigned char *p, int len)
 {
 	unsigned char *s = p;
-	extern volatile int bench_running;
+	//extern volatile int bench_running;
 
 	//if (bench_running) return;
 
@@ -556,7 +555,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 	unsigned char aes_key_[32];
 
 	if (cur_salt->headerver == 1) {
-		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, 40, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, 48, derived_key) == 0)) {
+		if ((apple_des3_ede_unwrap_key1(cur_salt->wrapped_aes_key, cur_salt->len_wrapped_aes_key, derived_key) == 0) && (apple_des3_ede_unwrap_key1(cur_salt->wrapped_hmac_sha1_key, cur_salt->len_hmac_sha1_key, derived_key) == 0)) {
 			return 1;
 		}
 	}
@@ -594,13 +593,11 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		else
 			AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
-#ifdef DMG_DEBUG
-		dump_strings(outbuf, cur_salt->data_size);
-#endif
 
 		/* 16 consecutive nulls */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)nulls, 16)) {
 #ifdef DMG_DEBUG
+			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "NULLS found!\n");
 #endif
 			return 1;
@@ -609,6 +606,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		/* </plist> is a pretty generic signature for Apple */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
+			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "</plist> found!\n");
 #endif
 			return 1;
@@ -617,6 +615,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		/* Journalled HFS+ */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
 #ifdef DMG_DEBUG
+			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "jrnlhfs+ found!\n");
 #endif
 			return 1;
@@ -630,6 +629,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 
 			if (HTONL(*u32Version) == 4) {
 #ifdef DMG_DEBUG
+				dump_strings(outbuf, cur_salt->data_size);
 				fprintf(stderr, "koly found!\n");
 #endif
 				return 1;
@@ -639,6 +639,7 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 		/* Handle VileFault sample images */
 		if (_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
+			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "EFI PART found!\n");
 #endif
 			return 1;
@@ -657,11 +658,9 @@ static int hash_plugin_check_hash(unsigned char *derived_key)
 				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 
 			AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-#ifdef DMG_DEBUG
-			dump_strings(outbuf, 4096);
-#endif
 			if (_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DMG_DEBUG
+				dump_strings(outbuf, 4096);
 				fprintf(stderr, "MS-DOS UDRW signature found!\n");
 #endif
 				return 1;
