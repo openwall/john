@@ -182,7 +182,7 @@ static void hash_plugin_parse_hash(char *filename)
 		    name = filename;
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
-		        "count %u\n", filename, headerver,
+		        "count %u\n", name, headerver,
 		        header2.kdf_iteration_count);
 
 		/* read starting chunk(s) */
