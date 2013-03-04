@@ -139,7 +139,7 @@ static void hash_plugin_parse_hash(char *filename)
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
 		        "count %u\n", name, headerver,
-		        header2.kdf_iteration_count);
+		        header.kdf_iteration_count);
 
 		printf("%s:$dmg$%d*%d*", name, headerver, header.kdf_salt_len);
 		print_hex(header.kdf_salt, header.kdf_salt_len);
@@ -147,7 +147,7 @@ static void hash_plugin_parse_hash(char *filename)
 		print_hex(header.wrapped_aes_key, header.len_wrapped_aes_key);
 		printf("*%d*", header.len_hmac_sha1_key);
 		print_hex(header.wrapped_hmac_sha1_key, header.len_hmac_sha1_key);
-		printf("*%u::::%s\n", header2.kdf_iteration_count, filename);
+		printf("*%u::::%s\n", header.kdf_iteration_count, filename);
 	}
 	else {
 		char *name;
