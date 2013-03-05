@@ -63,10 +63,11 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <libgen.h>
+
 #include "common.h"
 #include "misc.h"
 #include "formats.h"
-
 #include "stdint.h"
 
 static int ascii_mode=0, checksum_only=0, use_magic=1;
@@ -154,6 +155,7 @@ static void process_file(const char *fname)
 				int n = 0;
 				uint16_t password_verification_value;
 				unsigned char *p;
+				char *bname = basename(strdup(fname));
 
 				fprintf(stderr,
 				    "%s->%s is using AES encryption, extrafield_length is %d\n",
@@ -166,7 +168,7 @@ static void process_file(const char *fname)
 				(void) efh_aes_strength;
 				(void) actual_compression_method;
 
-				printf("%s:$zip$*0*%d*", fname,
+				printf("%s:$zip$*0*%d*", bname,
 				    efh_aes_strength);
 				switch (efh_aes_strength) {
 				case 1:
@@ -206,7 +208,7 @@ static void process_file(const char *fname)
 					    itoa16[ARCH_INDEX(p[i] >> 4)],
 					    itoa16[ARCH_INDEX(p[i] & 0x0f)]);
 				}
-				printf("\n");
+				printf(":::::%s\n", fname);
 				fseek(fp, 10, SEEK_CUR);
 
 			} else if (flags & 1) {	/* old encryption */
@@ -465,7 +467,9 @@ static void process_old_zip(const char *fname)
 print_and_cleanup:;
 	if (count_of_hashes) {
 		int i=1;
-		printf ("%s:$pkzip$%x*%x*", fname, count_of_hashes, zfp.two_byte_check?2:1);
+		char *bname = basename(strdup(fname));
+
+		printf ("%s:$pkzip$%x*%x*", bname, count_of_hashes, zfp.two_byte_check?2:1);
 		if (checksum_only)
 			i = 0;
 		for (; i < count_of_hashes; ++i) {
@@ -484,7 +488,7 @@ print_and_cleanup:;
 			else
 				printf("%x*%s*%s*", (unsigned int)strlen(fname), hashes[0].chksum, fname);
 		}
-		printf("$/pkzip$\n");
+		printf("$/pkzip$:::::%s\n", fname);
 	}
 	fclose(fp);
 }
