@@ -122,7 +122,7 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
-		char *name;
+		char *name = strdup(filename);
 
 		if (lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
@@ -134,7 +134,7 @@ static void hash_plugin_parse_hash(char *filename)
 		}
 		header_byteorder_fix(&header);
 
-		if (!(name = basename(filename)))
+		if (!(name = basename(name)))
 		    name = filename;
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
@@ -150,7 +150,7 @@ static void hash_plugin_parse_hash(char *filename)
 		printf("*%u::::%s\n", header.kdf_iteration_count, filename);
 	}
 	else {
-		char *name;
+		char *name = strdup(filename);
 
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
@@ -178,7 +178,7 @@ static void hash_plugin_parse_hash(char *filename)
 			return;
 		}
 
-		if (!(name = basename(filename)))
+		if (!(name = basename(name)))
 		    name = filename;
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "

@@ -16,17 +16,17 @@ uint8 packet[65535];
 static int bROT;
 WPA4way_t wpa[1000];
 int nwpa=0;
-char itoa64[65] = 	"./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+char itoa64[65] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 int Process(FILE *in, const char *InFName) {
 	pcap_hdr_t main_hdr;
 	if (fread(&main_hdr, 1, sizeof(pcap_hdr_t), in) != sizeof(pcap_hdr_t)) {
-		fprintf(stderr, "Error, could not read enough bytes to get a common 'main' pcap header\n");
+		fprintf(stderr, "%s: Error, could not read enough bytes to get a common 'main' pcap header\n", InFName);
 		return 0;
 	}
 	if (main_hdr.magic_number ==  0xa1b2c3d4) bROT = 0;
 	else if (main_hdr.magic_number ==  0xd4c3b2a1) bROT = 1;
-	else { fprintf(stderr, "Error, Invalid pcap magic number, (not a pcap file!)\n");  return 0; }
+	else { fprintf(stderr, "%s: Error, Invalid pcap magic number, (not a pcap file!)\n", InFName);  return 0; }
 	if(bROT) {
 		main_hdr.magic_number = swap32u(main_hdr.magic_number);
 		main_hdr.version_major = swap16u(main_hdr.version_major);
@@ -36,7 +36,7 @@ int Process(FILE *in, const char *InFName) {
 		main_hdr.network = swap32u(main_hdr.network);
 	}
 	if (main_hdr.network != 105) {
-		fprintf(stderr, "This program will only read 802.11 wireless traffic\n");
+		fprintf(stderr, "%s: No 802.11 wireless traffic data\n", InFName);
 		return 0;
 	}
 
@@ -346,14 +346,22 @@ void DumpKey(int ess, int one_three, int bIsQOS) {
 	fprintf(stderr, "keyver=%d\n\n",hccap.keyver);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	FILE *in;
-	if (argc != 2) return !!fprintf(stderr, "Usage wpacpap2john cpap_filename\n");
-	in = fopen(argv[1], "rb");
-	if (in) {
-		Process(in, argv[1]);
-		fclose(in);
-	} else
-		fprintf(stderr, "Error, file %s not found\n", argv[1]);
+	int i;
+
+	if (argc < 2)
+		return !!fprintf(stderr,
+		                 "Usage wpapcap2john pcap_filename[s]\n");
+
+	for (i = 1; i < argc; i++) {
+		in = fopen(argv[i], "rb");
+		if (in) {
+			Process(in, argv[i]);
+			fclose(in);
+		} else
+			fprintf(stderr, "Error, file %s not found\n", argv[i]);
+	}
 	return 0;
 }
