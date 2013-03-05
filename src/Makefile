@@ -1824,6 +1824,9 @@ vncpcap2john:
 gpg2john:
 	g++ -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
 
+wpapcap2john:
+	gcc -Wall -Wdeclaration-after-statement wpapcap2john.c -o ../run/wpapcap2john
+
 office2john:
 	$(CC) `xml2-config --cflags` `pkg-config --cflags libgsf-1` office2john.c common.o base64.o `pkg-config --libs libgsf-1` `xml2-config --libs` -o ../run/office2john
 
