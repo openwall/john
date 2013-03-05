@@ -32,6 +32,7 @@ run/ssh2john
 run/tgtsnarf
 run/to_dyna
 run/truecrypt_volume2john
+run/uaf2john
 run/unafs
 run/undrop
 run/unique
