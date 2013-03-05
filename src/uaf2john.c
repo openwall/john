@@ -73,6 +73,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 #ifdef VMS
 #include <descrip.h>
 #include <jpidef.h>
@@ -244,7 +245,7 @@ static void single_user ( char *infile, char *username )
 int main ( int argc, char **argv )
 {
     int i, status, lnum, is_raw;
-    FILE *listf, *rawf, *outf;
+    FILE *listf, *rawf;
     char line[4096], *infile, *lf, *username, *suffix, *directory, *prefix;
     char encoded[UAF_ENCODE_SIZE], *result;
 
@@ -257,10 +258,10 @@ int main ( int argc, char **argv )
      */
     if ( argc < 2 ) {
 #ifdef VMS
-	printf ( "Usage: uaf_to_passwd [sysuaf-brief-list|$|~user] [outfile]\n" );
+	printf ( "Usage: uaf_to_passwd [sysuaf-brief-list|$|~user]\n" );
 	printf ( "($ spawns authorize to make SYSUAF.LIS file)\n");
 #else
-	printf ( "Usage: uaf_to_passwd uaf_file [outfile]\n" );
+	printf ( "Usage: uaf_to_passwd uaf_file\n" );
 #endif
 	return 0;
     }
@@ -291,15 +292,6 @@ int main ( int argc, char **argv )
 	return 44;
     }
 
-    if ( argc > 2 ) {
-	outf = fopen ( argv[2], "w" );
-	if ( !outf ) {
-	    printf ( "Error opening output file!\n" );
-	    return 44;
-	}
-    } else {
-	outf = stdout;
-    }
     /*
      * Convert each input line to a corresponding passwd file line.
      */
@@ -369,7 +361,7 @@ int main ( int argc, char **argv )
 
 	    result = uaf_hash_encode ( &pwd, encoded );
 
-	    fprintf ( outf, "%s%s:%s:%d:%d:%s:/%s%s%s/%s:%s\n",
+	    fprintf ( stdout, "%s%s:%s:%d:%d:%s:/%s%s%s/%s:%s\n",
 		colon_blow(pwd.username.s), suffix,
 		result,
 		acct.uic[0],
@@ -383,7 +375,7 @@ int main ( int argc, char **argv )
 		 * secondary password present.
 		 */
 		result = uaf_hash_encode ( &pwd2, encoded );
-		fprintf ( outf, "%s%s:%s:%d:%d:%s:/%s%s%s/%s:%s\n",
+		fprintf ( stdout, "%s%s:%s:%d:%d:%s:/%s%s%s/%s:%s\n",
 		    colon_blow(pwd.username.s), suffix,
 		    result,
 		    acct.uic[0],
@@ -400,7 +392,6 @@ int main ( int argc, char **argv )
     }
 
     if ( is_raw ) fclose ( rawf ); else fclose ( listf );
-    if ( outf != stdout ) fclose ( outf );
 
     return 0;
 }

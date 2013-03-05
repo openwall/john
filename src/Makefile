@@ -1824,6 +1824,9 @@ vncpcap2john:
 gpg2john:
 	g++ -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
 
+uaf2john: uaf2john.o uaf_encode_plug.o
+	$(CC) -Wall uaf2john.c uaf_encode_plug.o -o ../run/uaf2john
+
 wpapcap2john:
 	gcc -Wall -Wdeclaration-after-statement wpapcap2john.c -o ../run/wpapcap2john
 
