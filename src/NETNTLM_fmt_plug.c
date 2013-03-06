@@ -84,9 +84,12 @@
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH	27
 #ifdef MD4_SSE_PARA
-#define BLOCK_LOOPS		(256 / NBKEYS)
-//#define BLOCK_LOOPS		1536 /* for use with OMP */
-//#define SSE_OMP
+#ifdef _OPENMP
+#define BLOCK_LOOPS		(2048 / NBKEYS)
+#else
+#define BLOCK_LOOPS		(1024 / NBKEYS)
+#endif
+#define SSE_OMP
 #else
 #define BLOCK_LOOPS		1 /* Only 1 is supported for MMX/SSE asm. */
 #endif
@@ -97,7 +100,7 @@
 #else
 #define PLAINTEXT_LENGTH	64
 #define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	256
+#define MAX_KEYS_PER_CRYPT	2048
 #endif
 
 static struct fmt_tests tests[] = {
@@ -119,8 +122,7 @@ static struct fmt_tests tests[] = {
 };
 
 #ifdef MMX_COEF
-static unsigned char (*saved_key);
-static unsigned char (*nthash);
+static unsigned char *saved_key;
 #ifndef MD4_SSE_PARA
 static unsigned int total_len;
 #endif
@@ -129,11 +131,13 @@ static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int (*saved_key_length);
 #endif
 
+typedef unsigned short HOT_TYPE;
+static HOT_TYPE (*crypt_key);
+static unsigned char *nthash;
 static ARCH_WORD_32 *bitmap;
 static int cmps_per_crypt, use_bitmap;
 static int valid_i, valid_j;
 
-static uchar (*crypt_key)[22]; /* 21 + aligned to short */
 static uchar *challenge;
 static int keys_prepared;
 
@@ -162,8 +166,9 @@ static void init(struct fmt_main *self)
 #else
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key_length = mem_calloc_tiny(sizeof(*saved_key_length) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	nthash = mem_calloc_tiny(sizeof(*nthash) * 16 * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 #endif
-	crypt_key = mem_calloc_tiny(sizeof(*crypt_key) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_key = mem_calloc_tiny(sizeof(HOT_TYPE) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	bitmap = mem_calloc_tiny(0x10000 / 8, MEM_ALIGN_SIMD);
 	use_bitmap = 0; /* we did not use bitmap yet */
 	cmps_per_crypt = 2; /* try bitmap */
@@ -303,9 +308,8 @@ static void *get_binary(char *ciphertext)
 	if (!warned && ++loaded > 100) {
 		warned = 1;
 		fprintf(stderr, FORMAT_LABEL ": Note: slow loading. For short "
-		        "runs, try " FORMAT_LABEL "-naive instead (using\n"
-		        "--format=" FORMAT_LABEL "-naive). That version loads "
-		        "faster but runs slower.\n");
+		        "runs, try --format=" FORMAT_LABEL "-naive\ninstead. "
+		        "That version loads faster but runs slower.\n");
 	}
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
@@ -349,7 +353,7 @@ out:
 static void crypt_all(int count)
 {
 	if (!keys_prepared) {
-		int i;
+		int i = 0;
 
 		if (use_bitmap) {
 #if MAX_KEYS_PER_CRYPT >= 200
@@ -363,8 +367,7 @@ static void crypt_all(int count)
 			for (i = 0; i < count; i++)
 #endif
 			{
-				unsigned int value =
-				    ((unsigned short *)crypt_key[i])[7];
+				unsigned int value = crypt_key[i];
 				bitmap[value >> 5] = 0;
 			}
 #endif
@@ -389,16 +392,15 @@ static void crypt_all(int count)
 #endif
 		if (use_bitmap)
 		for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
-			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
-			{
-				unsigned int value =
-				    ((unsigned short *)crypt_key[i])[7];
-				bitmap[value >> 5] |= 1U << (value & 0x1f);
-			}
+			unsigned int value;
+
+			value = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)] >> 16;
+			crypt_key[i] = value;
+			bitmap[value >> 5] |= 1U << (value & 0x1f);
 		}
 		else
 		for (i = 0; i < NBKEYS * BLOCK_LOOPS; i++) {
-			((ARCH_WORD_32*)crypt_key[i])[3] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)];
+			crypt_key[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(12, i)] >> 16;
 		}
 #else
 #if defined(_OPENMP) || (MAX_KEYS_PER_CRYPT > 1)
@@ -412,10 +414,11 @@ static void crypt_all(int count)
 
 			MD4_Init( &ctx );
 			MD4_Update(&ctx, saved_key[i], saved_key_length[i]);
-			MD4_Final((uchar*)crypt_key[i], &ctx);
+			MD4_Final((uchar*)&nthash[i * 16], &ctx);
+
+			crypt_key[i] = ((ARCH_WORD_32*)&nthash[i * 16])[3] >> 16;
 			if (use_bitmap) {
-				unsigned int value =
-				    ((unsigned short *)crypt_key[i])[7];
+				unsigned int value = crypt_key[i];
 				bitmap[value >> 5] |= 1U << (value & 0x1f);
 			}
 		}
@@ -426,20 +429,20 @@ static void crypt_all(int count)
 
 static int cmp_one(void *binary, int index)
 {
-	if (crypt_key[index][14] == ((uchar *)binary)[0] &&
-	    crypt_key[index][15] == ((uchar *)binary)[1]) {
+	if (crypt_key[index] == *(unsigned short*)binary) {
 		DES_key_schedule ks;
 		DES_cblock computed_binary;
+		unsigned int key[2];
 #ifdef MMX_COEF
 		int i;
 
 		for (i = 0; i < 2; i++)
-			((ARCH_WORD_32*)crypt_key[index])[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
+			key[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
+#else
+		memcpy(key, &nthash[index * 16], 8);
 #endif
-
-		setup_des_key(crypt_key[index], &ks);
-		DES_ecb_encrypt((DES_cblock *)challenge, &computed_binary, &ks, DES_ENCRYPT);
-
+		setup_des_key((unsigned char*)key, &ks);
+		DES_ecb_encrypt((DES_cblock*)challenge, &computed_binary, &ks, DES_ENCRYPT);
 		return !memcmp(((char*)binary) + 2, computed_binary, 8);
 	}
 
@@ -448,7 +451,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_all(void *binary, int count)
 {
-	unsigned int value = *(unsigned short *)binary;
+	unsigned int value = *(unsigned short*)binary;
 	int index;
 
 	cmps_per_crypt++;
@@ -462,8 +465,9 @@ static int cmp_all(void *binary, int count)
 #else
 	for (index = 0; index < count; index += 2) {
 #endif
-		unsigned int a = ((unsigned short *)crypt_key[index])[7];
-		unsigned int b = ((unsigned short *)crypt_key[index + 1])[7];
+		unsigned int a = crypt_key[index];
+		unsigned int b = crypt_key[index + 1];
+
 #if 0
 		if (((a | b) & value) != value)
 			continue;
@@ -480,9 +484,7 @@ thorough:
 #else
 	for (; index < count; index++) {
 #endif
-		if (crypt_key[index][14] == ((uchar *)binary)[0] &&
-		    crypt_key[index][15] == ((uchar *)binary)[1] &&
-		    cmp_one(binary, index))
+		if (crypt_key[index] == value && cmp_one(binary, index))
 			return 1;
 	}
 
@@ -494,24 +496,26 @@ static int cmp_exact(char *source, int index)
 {
 	DES_key_schedule ks;
 	uchar binary[24];
+	unsigned char key[21];
 #ifdef MMX_COEF
 	int i;
 
-	for (i = 2; i < 4; i++)
-		((ARCH_WORD_32*)crypt_key[index])[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
+	for (i = 0; i < 4; i++)
+		((ARCH_WORD_32*)key)[i] = *(ARCH_WORD_32*)&nthash[GETOUTPOS(4 * i, index)];
+#else
+	memcpy(key, &nthash[index * 16], 16);
 #endif
-
 	/* Hash is NULL padded to 21-bytes */
-	memset(&crypt_key[index][16], 0, 5);
+	memset(&key[16], 0, 5);
 
 	/* Split into three 7-byte segments for use as DES keys
 	   Use each key to DES encrypt challenge
 	   Concatenate output to for 24-byte NTLM response */
-	setup_des_key(crypt_key[index], &ks);
+	setup_des_key(key, &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)binary, &ks, DES_ENCRYPT);
-	setup_des_key(&crypt_key[index][7], &ks);
+	setup_des_key(&key[7], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[8], &ks, DES_ENCRYPT);
-	setup_des_key(&crypt_key[index][14], &ks);
+	setup_des_key(&key[14], &ks);
 	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
 
 	return !memcmp(binary, ((char*)get_binary(source)) + 2, FULL_BINARY_SIZE - 2);
@@ -596,7 +600,7 @@ key_cleaning:
 	}
 
 #ifdef MD4_SSE_PARA
-	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
+	((unsigned int*)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
 #else
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif
@@ -658,7 +662,7 @@ key_cleaning_enc:
 	}
 
 #ifdef MD4_SSE_PARA
-	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
+	((unsigned int*)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
 #else
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif
@@ -759,7 +763,7 @@ static void set_key_utf8(char *_key, int index)
 	}
 
 #ifdef MD4_SSE_PARA
-	((unsigned int *)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
+	((unsigned int*)saved_key)[14*MMX_COEF + (index&3) + (index>>2)*16*MMX_COEF] = len << 4;
 #else
 	total_len += len << (1 + ( (32/MMX_COEF) * index ) );
 #endif
@@ -803,17 +807,17 @@ static char *get_key(int index)
 #endif
 }
 
-static int salt_hash(void *salt) { return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1); }
+static int salt_hash(void *salt) { return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1); }
 
-static int binary_hash_0(void *binary) { return *(uchar *)binary & 0xF; }
-static int binary_hash_1(void *binary) { return *(uchar *)binary & 0xFF; }
-static int binary_hash_2(void *binary) { return *(unsigned short *)binary & 0xFFF; }
-static int binary_hash_3(void *binary) { return *(unsigned short *)binary & 0xFFFF; }
+static int binary_hash_0(void *binary) { return *(uchar*)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(uchar*)binary & 0xFF; }
+static int binary_hash_2(void *binary) { return *(HOT_TYPE*)binary & 0xFFF; }
+static int binary_hash_3(void *binary) { return *(HOT_TYPE*)binary & 0xFFFF; }
 
-static int get_hash_0(int index) { return crypt_key[index][14] & 0xF; }
-static int get_hash_1(int index) { return crypt_key[index][14] & 0xFF; }
-static int get_hash_2(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFF; }
-static int get_hash_3(int index) { return ((unsigned short *)&crypt_key[index])[7] & 0xFFFF; }
+static int get_hash_0(int index) { return crypt_key[index] & 0xF; }
+static int get_hash_1(int index) { return crypt_key[index] & 0xFF; }
+static int get_hash_2(int index) { return crypt_key[index] & 0xFFF; }
+static int get_hash_3(int index) { return crypt_key[index] & 0xFFFF; }
 
 struct fmt_main fmt_NETNTLM_new = {
 	{
