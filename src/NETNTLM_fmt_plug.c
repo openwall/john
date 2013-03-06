@@ -84,12 +84,12 @@
 #ifdef MMX_COEF
 #define PLAINTEXT_LENGTH	27
 #ifdef MD4_SSE_PARA
-#ifdef _OPENMP
+//#define SSE_OMP
+#if defined (_OPENMP) && defined(SSE_OMP)
 #define BLOCK_LOOPS		(2048 / NBKEYS)
 #else
 #define BLOCK_LOOPS		(1024 / NBKEYS)
 #endif
-#define SSE_OMP
 #else
 #define BLOCK_LOOPS		1 /* Only 1 is supported for MMX/SSE asm. */
 #endif
