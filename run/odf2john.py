@@ -29,7 +29,13 @@ def process_file(filename):
     tree = ElementTree()
     tree.parse(mf)
     r = tree.getroot()
-    elements = list(r.getiterator())
+
+    # getiterator() is deprecated but 2.6 does not have iter()
+    try :
+        elements = list(r.iter())
+    except :
+        elements = list(r.getiterator())
+
     is_encrypted = False
     key_size = 16
     for i in range(0, len(elements)):
