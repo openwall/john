@@ -29,7 +29,7 @@ def process_file(filename):
     tree = ElementTree()
     tree.parse(mf)
     r = tree.getroot()
-    elements = list(r.iter())
+    elements = list(r.getiterator())
     is_encrypted = False
     key_size = 16
     for i in range(0, len(elements)):
