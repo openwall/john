@@ -152,7 +152,7 @@ JOHN_OBJS = \
 	unshadow.o \
 	unafs.o \
 	undrop.o \
-	unique.o
+	unique.o putty2john.o
 
 OCL_OBJS = \
 	common-opencl.o common_opencl_pbkdf2.o opencl_mysqlsha1_fmt.o \
@@ -230,7 +230,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/tgtsnarf ../run/racf2john ../run/mozilla2john ../run/hccap2john \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
-	../run/dmg2john john.local.conf
+	../run/dmg2john ../run/putty2john john.local.conf
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -238,7 +238,7 @@ PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/racf2john.com ../run/mozilla2john.com ../run/hccap2john.com \
 	../run/pwsafe2john.com ../run/keepass2john.com ../run/pfx2john.com \
 	../run/keychain2john.com ../run/keyring2john.com ../run/kwallet2john.com \
-	../run/dmg2john.com john.local.conf
+	../run/dmg2john.com ../run/putty2john.com john.local.conf
 PROJ_WIN32 = ../run/john.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -247,7 +247,7 @@ PROJ_WIN32 = ../run/john.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe ../run/dmg2john.exe john.local.conf
+	../run/kwallet2john.exe ../run/dmg2john.exe ../run/putty2john.exe john.local.conf
 PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/unshadow.exe ../run/unafs.exe ../run/unique.exe \
 	../run/undrop.exe \
@@ -256,7 +256,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/racf2john.exe ../run/mozilla2john.exe ../run/hccap2john.exe \
 	../run/pwsafe2john.exe ../run/raw2dyna.exe ../run/keepass2john.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
-	../run/kwallet2john.exe john.local.conf
+	../run/kwallet2john.exe ../run/putty2john john.local.conf
 
 default:
 	@echo "To build John the Ripper, type:"
@@ -1580,6 +1580,10 @@ opencl_mscash2_fmt.o: common_opencl_pbkdf2.h common_opencl_pbkdf2.o opencl_mscas
 	$(RM) ../run/ssh2john
 	ln -s john ../run/ssh2john
 
+../run/putty2john: ../run/john
+	$(RM) ../run/putty2john
+	ln -s john ../run/putty2john
+
 ../run/pfx2john: ../run/john
 	$(RM) ../run/pfx2john
 	ln -s john ../run/pfx2john
@@ -1653,6 +1657,9 @@ endif
 
 ../run/ssh2john.com: john.com
 	copy john.com ..\run\ssh2john.com
+
+../run/putty2john.com: john.com
+	copy john.com ..\run\putty2john.com
 
 ../run/pfx2john.com: john.com
 	copy john.com ..\run\pfx2john.com
@@ -1736,6 +1743,10 @@ john.com: john.asm
 ../run/ssh2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/ssh2john.exe
 	strip ../run/ssh2john.exe
+
+../run/putty2john.exe: symlink.c
+	$(CC) symlink.c -o ../run/putty2john.exe
+	strip ../run/putty2john.exe
 
 ../run/pfx2john.exe: symlink.c
 	$(CC) symlink.c -o ../run/pfx2john.exe
