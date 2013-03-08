@@ -136,7 +136,6 @@ static int i, is_mac, old_fmt;
 static char alg[8];
 static int cipher, cipherblk;
 static unsigned char *public_blob, *private_blob;
-static unsigned char *public_blobXX, *private_blobXX;
 static int public_blob_len, private_blob_len;
 
 static char *read_body(FILE * fp)
@@ -146,7 +145,7 @@ static char *read_body(FILE * fp)
 	int size;
 	int c;
 
-	size = 128;
+	size = 128 * 1024;
 	text = (char*)mem_alloc(size);
 	len = 0;
 	text[len] = '\0';
@@ -161,10 +160,6 @@ static char *read_body(FILE * fp)
 		}
 		if (c == EOF) {
 			return NULL;
-		}
-		if (len + 1 >= size) {
-			size += 128;
-			// text = sresize(text, size, char);
 		}
 		text[len++] = c;
 		text[len] = '\0';
@@ -192,6 +187,7 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 		if (linelen % 4 != 0 || linelen > 64) {
 			MEM_FREE(blob);
 			MEM_FREE(line);
+			line = NULL;
 			return NULL;
 		}
 		for (j = 0; j < linelen; j += 4) {
@@ -201,6 +197,7 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 			}
 			len += k;
 		}
+		MEM_FREE(line);
 	}
 	*bloblen = len;
 	return blob;
@@ -265,6 +262,7 @@ static int init_LAME(const Filename *filename) {
 		strcpy(alg, "ssh-rsa");
     	else if (!strcmp(b, "ssh-dss"))
 		strcpy(alg, "ssh-dss");
+	MEM_FREE(b);
 
 	/* Read the Encryption header line. */
 	if (!read_header(fp, header) || 0 != strcmp(header, "Encryption"))
@@ -365,6 +363,7 @@ static void LAME_ssh2_load_userkey(char *filename, const char **errorstr)
 		else {
 			printf("\n");
 		}
+		MEM_FREE(comment);
 		return;
 	}
 error:
@@ -527,8 +526,9 @@ static int base64_decode_atom(char *atom, unsigned char *out)
     return len;
 }
 
-int main(int argc, char **argv)
+static void process_file(const char *fname)
 {
+
 	FILE *fp;
 
 	int type, realtype;
@@ -537,38 +537,24 @@ int main(int argc, char **argv)
 	int needs_pass = 0;
 	const char *errmsg = NULL;
 
-	// printf( "%s - made by michu@neophob.com - PuTTY private key cracker\n", argv[0]);
-
-	if (argc < 2) {
-		printf( "Usage: %s [PuTTY-Private-Key-File]\n", argv[0]);
-		printf( "Example:\n");
-		printf( " $ john -stdout -incremental | %s id_dsa\n",argv[0]);
-		printf( " $ %s id_dsa < dictionary\n", argv[0]);
-		printf( "\n");
-		exit(1);
-	}
-
-	/*
-	* check if file exist
-	*/
-	if ((fp = fopen(argv[1], "r")) == NULL) {
-		printf( "Error: Cannot open %s.\n", argv[1]);
-		return 2;
+	/* check if file exist */
+	if ((fp = fopen(fname, "r")) == NULL) {
+		fprintf(stderr, "Error: Cannot open %s.\n", fname);
+		return;
 	}
 	fclose(fp);
 
-	strcpy(filename.path, argv[1]);
+	strcpy(filename.path, fname);
 
 	//src: winpgen.c
 	type = realtype = key_type(&filename);
 	if (type != SSH_KEYTYPE_SSH1 && type != SSH_KEYTYPE_SSH2) {
 		fprintf(stderr, "Error: Couldn't load private key (%s)\n", filename.path);
-		return 2;
+		return;
 	}
 
 	if (type != SSH_KEYTYPE_SSH1 && type != SSH_KEYTYPE_SSH2) {
 		realtype = type;
-		//type = import_target_type(type);
 	}
 
 	comment = NULL;
@@ -576,33 +562,42 @@ int main(int argc, char **argv)
 		needs_pass = ssh2_userkey_encrypted(&filename, &comment);
 	}
 	if (needs_pass==0) {
-		printf("this private key doesn't need a passphrase - exit now!\n");
-		return 0;
+		fprintf(stderr, "%s : this private key doesn't need a passphrase!\n", fname);
+		goto out;
 	}
 
 	if (init_LAME(&filename)==1) {
-		printf("error, not valid private key!\n");
-		return 1;
+		fprintf(stderr, "error, not valid private key!\n");
+		goto out;
 	}
-	// printf("len: %i/%i\n", public_blob_len, private_blob_len);
-	private_blobXX=(unsigned char*)mem_alloc(private_blob_len);
-	public_blobXX=(unsigned char*)mem_alloc(public_blob_len);
-
 	if (type == SSH_KEYTYPE_SSH1) {
 		fprintf(stderr, "SSH1 key type not supported!\n");
-		return 3;
+		goto out;
 	} else { //SSH_KEYTYPE_SSH2
 		if (realtype == type) {
 			LAME_ssh2_load_userkey(filename.path, &errmsg);
 		}
 	}
 
+out:
+
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
-	MEM_FREE(private_blobXX);
+}
 
+int putty2john(int argc, char **argv)
+{
+	int i;
+
+	if (argc < 2) {
+		printf( "Usage: putty2john [PuTTY-Private-Key-File(s)]\n");
+		exit(1);
+	}
+
+	for (i = 1; i < argc; i++)
+	    process_file(argv[i]);
 	return 0;
 }
