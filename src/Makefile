@@ -1835,6 +1835,9 @@ vncpcap2john:
 gpg2john:
 	g++ -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
 
+truecrypt_volume2john:
+	gcc -Wall truecrypt_volume2john.c -lcrypto -o ../run/truecrypt_volume2john
+
 uaf2john: uaf2john.o uaf_encode_plug.o
 	$(CC) -Wall uaf2john.c uaf_encode_plug.o -o ../run/uaf2john
 

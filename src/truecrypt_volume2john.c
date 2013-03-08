@@ -16,32 +16,23 @@
  */
 #include <stdio.h>
 
-void print_help()
+static void print_help()
 {
-	printf("/////////////////////////////////////////////////////////////////////////////\n");
-	printf("Utility to import TrueCrypt volume to a format crackeable by John The Ripper\n");
-	printf("/////////////////////////////////////////////////////////////////////////////\n");
-	printf("Usage: truecrypt_volume2john.exe volume_filename > output_file\n");
+	printf("\nUtility to import TrueCrypt volume to a format crackeable by John The Ripper\n");
+	printf("\nUsage: truecrypt_volume2john.exe volume_filename > output_file\n");
 }
 
-int main(int argc, char **argv)
+static void process_file(char * filename)
 {
+	int i;
 	FILE* truecrypt_volume_file = NULL;// Volume file to read
 	unsigned char header[512];// Encrypted header of the volume
-	int i;
 
-	if(argc != 2)
-	{
-		printf("Error: No truecrypt volume file specified.\n");
-		print_help();
-		return 0;
-	}
-
-	truecrypt_volume_file = fopen(argv[1], "rb");
+	truecrypt_volume_file = fopen(filename, "rb");
 	if(truecrypt_volume_file)
 	{
 		if( fread(header, 1, 512, truecrypt_volume_file) != 512 )
-			printf("Truecrypt volume file to short: Need at least 512 bytes\n");
+			fprintf(stderr, "%s : Truecrypt volume file to short: Need at least 512 bytes\n", filename);
 		else
 		{
 			printf("truecrypt_normal_volume:truecrypt_RIPEMD_160$");
@@ -81,9 +72,25 @@ int main(int argc, char **argv)
 		}
 
 		fclose(truecrypt_volume_file);
-		return 0;
+		return;
+	}
+	fprintf(stderr, "%s : No truecrypt volume found", filename);
+}
+
+int main(int argc, char **argv)
+{
+	int i;
+
+	if(argc < 2)
+	{
+		fprintf(stderr, "Error: No truecrypt volume file specified.\n");
+		print_help();
+		return 1;
 	}
 
-	printf("No truecrypt volume found");
-	return -1;
+	for (i = 1; i < argc; i++) {
+		process_file(argv[i]);
+	}
+
+	return 0;
 }
