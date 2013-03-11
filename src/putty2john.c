@@ -43,8 +43,6 @@
 #define TRUE 1
 #endif
 
-typedef struct Filename Filename;
-
 #ifndef lenof
 #define lenof(x) ( (sizeof((x))) / (sizeof(*(x))))
 #endif
