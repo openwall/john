@@ -157,7 +157,6 @@ class Key
 		const String2Key &string2Key() const;
 
 		PIStream &operator<<(PIStream &in);
-		POStream &operator>>(POStream &out);
 
 		Key &operator=(const Key &other);
 
@@ -193,11 +192,6 @@ inline PIStream &operator>>(PIStream &in, Key &key)
 	return (key << in);
 }
 
-inline POStream &operator<<(POStream &out, Key &key)
-{
-	return (key >> out);
-}
-
 
 #endif // KEY_H_
 
@@ -205,8 +199,6 @@ inline POStream &operator<<(POStream &out, Key &key)
 #define PACKETHEADER_H_
 
 class PIStream;
-class POStream;
-
 
 class PacketHeader
 {
@@ -232,7 +224,6 @@ class PacketHeader
 		int32_t length() const;
 
 		PIStream &operator<<(PIStream &in);
-		POStream &operator>>(POStream &out);
 
 	private:
 		Format m_format;
@@ -246,12 +237,6 @@ inline PIStream &operator>>(PIStream &in, PacketHeader &header)
 {
 	return (header << in);
 }
-
-inline POStream &operator<<(POStream &out, PacketHeader &header)
-{
-	return (header >> out);
-}
-
 
 #endif // PACKETHEADER_H_
 
