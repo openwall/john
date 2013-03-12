@@ -261,12 +261,21 @@ const String2Key &Key::string2Key() const
 	return m_s2k;
 }
 
-// Reads a key data from a stream
-PIStream &Key::operator<<(PIStream &in)
-{
-	// Read packet header
-	PacketHeader header;
+
+void readPacketHeader(PIStream &in, PacketHeader &header){
 	in >> header;
+}
+
+void suckUnwantedPacket(PIStream &in, PacketHeader &header){
+	uint8_t tmp;
+	for(int i=0;i<header.length();i++){
+		in>>tmp;
+	}
+	tmp=0;
+}
+
+void readSecretKey(PIStream &in,PacketHeader &header,Key &key)
+{
 	if (!header.valid()) {
 		throw "Invalid packet header";
 	}
@@ -276,55 +285,54 @@ PIStream &Key::operator<<(PIStream &in)
 	uint32_t headerOff = in.pos();
 
 	// Read public key
-	in >> m_version;
-	if (m_version != 3 && m_version != 4) {
-		throw Utils::strprintf("Unsupported key version %d", m_version);
+	in >> key.m_version;
+	if (key.m_version != 3 && key.m_version != 4) {
+		throw Utils::strprintf("Unsupported key version %d", key.m_version);
 	}
-	in >> m_time;
-	if (m_version == 3) {
-		in >> m_expire;
+	in >> key.m_time;
+	if (key.m_version == 3) {
+		in >> key.m_expire;
 	}
 	uint8_t tmp;
-	in >> tmp; m_algorithm = (CryptUtils::PublicKeyAlgorithm)tmp;
-	if (m_algorithm == CryptUtils::PKA_RSA_ENCSIGN) {
-		m_rsa = RSA_new();
-		in >> m_rsa->n;
-		in >> m_rsa->e;
-	} else if (m_algorithm == CryptUtils::PKA_DSA) {
-		m_dsa = DSA_new();
-		in >> m_dsa->p;
-		in >> m_dsa->q;
-		in >> m_dsa->g;
-		in >> m_dsa->pub_key;
+	in >> tmp; key.m_algorithm = (CryptUtils::PublicKeyAlgorithm)tmp;
+	if (key.m_algorithm == CryptUtils::PKA_RSA_ENCSIGN) {
+		key.m_rsa = RSA_new();
+		in >> key.m_rsa->n;
+		in >> key.m_rsa->e;
+	} else if (key.m_algorithm == CryptUtils::PKA_DSA) {
+		key.m_dsa = DSA_new();
+		in >> key.m_dsa->p;
+		in >> key.m_dsa->q;
+		in >> key.m_dsa->g;
+		in >> key.m_dsa->pub_key;
 	} else {
-		throw Utils::strprintf("Unsupported public-key algorithm %d", m_algorithm);
+		throw Utils::strprintf("Unsupported public-key algorithm %d", key.m_algorithm);
 	}
 
 	// Read private key
-	in >> m_s2k;
-	if (m_s2k.usage() != 0) {
+	in >> key.m_s2k;
+	if (key.m_s2k.usage() != 0) {
 		// Encrypted
-		m_datalen = header.length() - in.pos() + headerOff;
-		m_data = new uint8_t[m_datalen];
-		if (in.read((char *)m_data, m_datalen) != m_datalen) {
+		key.m_datalen = header.length() - in.pos() + headerOff;
+		key.m_data = new uint8_t[key.m_datalen];
+		if (in.read((char *)key.m_data, key.m_datalen) != key.m_datalen) {
 			throw "Premature end of data stream";
 		}
 	} else {
 		// Plaintext
-		if (m_algorithm == CryptUtils::PKA_RSA_ENCSIGN) {
-			in >> m_rsa->d;
-			in >> m_rsa->p;
-			in >> m_rsa->q;
-			in >> m_rsa->iqmp;
-		} else if (m_algorithm == CryptUtils::PKA_DSA) {
-			in >> m_dsa->priv_key;
+		if (key.m_algorithm == CryptUtils::PKA_RSA_ENCSIGN) {
+			in >> key.m_rsa->d;
+			in >> key.m_rsa->p;
+			in >> key.m_rsa->q;
+			in >> key.m_rsa->iqmp;
+		} else if (key.m_algorithm == CryptUtils::PKA_DSA) {
+			in >> key.m_dsa->priv_key;
 		}
 	}
 
-	m_locked = (m_s2k.usage() != 0);
-
-	return in;
+	key.m_locked = (key.m_s2k.usage() != 0);
 }
+
 
 // Assignment operator
 Key &Key::operator=(const Key &other)
@@ -960,38 +968,11 @@ enum {
 	SPEC_ITERATED_SALTED = 3
 };
 
-int main(int argc, char **argv)
-{
-	if(argc < 2) {
-		fprintf(stderr, "Usage: %s <GPG Secret Key File>\n", argv[0]);
-		exit(-1);
-	}
 
-	ifstream inStream;
-	inStream.open(argv[1]);
-	Key key;
-	try {
-		PIStream in(inStream);
-		in >> key;
-	} catch(const std::string & str) {
-		std::cerr << "Exception while parsing key: " << str << std::
-		    endl;
-		return EXIT_FAILURE;
-	}
-	catch(const char *cstr) {
-		std::cerr << "Exception while parsing key: " << cstr << std::
-		    endl;
-		return EXIT_FAILURE;
-	}
 
-	if (!key.locked()) {
-		std::
-		    cerr << "Err, this secret key doesn't seem to be encrypted"
-		    << std::endl;
-		return EXIT_FAILURE;
-	}
+void key2john(Key &key,char *filename) {
 	const String2Key &s2k = key.string2Key();
-	printf("%s:$gpg$*%d*%d*%d*", argv[1], key.m_algorithm, key.m_datalen, key.bits());
+	printf("%s:$gpg$*%d*%d*%d*", filename, key.m_algorithm, key.m_datalen, key.bits());
 	print_hex(key.m_data, key.m_datalen);
 	printf("*%d*%d*%d*%d*%d*", s2k.m_spec, s2k.m_usage, s2k.m_hashAlgorithm, s2k.m_cipherAlgorithm, s2k.bs);
 	print_hex(s2k.m_iv, s2k.bs);
@@ -1008,5 +989,66 @@ int main(int argc, char **argv)
 			break;
 	}
 	printf("\n");
-	exit(1);
+}
+
+
+int process_file(char *filename) {
+	ifstream inStream;
+	inStream.open(filename);
+	if(!inStream.is_open()) {
+		std::cerr << "Couldn't open file "<<filename << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	Key key;
+	try {
+		PIStream in(inStream);
+		PacketHeader header;
+
+		while(true) {
+			readPacketHeader(in,header);
+#ifdef DEBUG
+			fprintf(stderr,"header type = %d, size = %d\n",header.type(), header.length());
+#endif
+			if(header.type()==PacketHeader::TYPE_SECRET_KEY){
+				readSecretKey(in,header,key);
+
+				if(key.locked()){
+					key2john(key,filename);
+				}//emit warning otherwise??
+			}else{//at the moment we're not interested what's inside
+				//TODO add user name extraction from type 13 packets
+				suckUnwantedPacket(in,header);
+			}
+		}
+
+
+	} catch(const std::string & str) {
+		if(str!="Premature end of data stream") {
+			std::cerr << "Exception while parsing key: " << str << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
+	catch(const char *cstr) {
+		if(strcmp("Premature end of data stream",cstr)!=0){
+			std::cerr << "Exception while parsing key: " << cstr << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
+	return EXIT_SUCCESS;
+}
+
+int main(int argc, char **argv)
+{
+	if (argc < 2) {
+		fprintf(stderr, "Usage: %s <GPG Secret Key File>\n", argv[0]);
+		return EXIT_FAILURE;
+	}
+	int ret=EXIT_SUCCESS;
+	for (int i = 1; i < argc; i++) {
+		if (process_file(argv[i])!=EXIT_SUCCESS) {
+			ret=EXIT_FAILURE;
+		}
+	}
+	return ret;
 }
