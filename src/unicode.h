@@ -44,6 +44,37 @@
 #ifndef _CONVERTUTF_H
 #define _CONVERTUTF_H
 
+#ifdef NOT_JOHN
+struct opts {
+	char *encoding;
+	char *encodingStr;
+	char *encodingDef;
+	int ascii;
+	int utf8;
+	int iso8859_1;
+	int iso8859_2;
+	int iso8859_7;
+	int iso8859_15;
+	int koi8_r;
+	int cp437;
+	int cp737;
+	int cp850;
+	int cp852;
+	int cp858;
+	int cp866;
+	int cp1250;
+	int cp1251;
+	int cp1252;
+	int cp1253;
+	int cp1254;
+	int cp1255;
+	int cp1256;
+} options;
+#include "params.h"
+#else
+#include "options.h"
+#endif
+
 #ifdef _MSC_VER
 #define inline _inline
 #endif

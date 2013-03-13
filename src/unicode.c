@@ -83,13 +83,6 @@
 #include "misc.h"
 #include "config.h"
 #include "md4.h"
-#if !defined (NOT_JOHN)
-#include "options.h"
-#else
-struct opts { int flags; };
-#define FLG_UTF8 1
-struct opts options;
-#endif
 
 #if !defined(uint16) && !defined(HAVE_UINT16_FROM_RPC_RPC_H)
 #if (SIZEOF_SHORT == 4)
@@ -520,6 +513,7 @@ inline unsigned int strlen8(const UTF8 *source)
  *
  * This is now thread-safe
  */
+#ifndef NOT_JOHN
 int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 {
 	int trunclen;
@@ -643,6 +637,7 @@ int E_md4hash(const UTF8 *passwd, unsigned int len, unsigned char *p16)
 #endif
 	return trunclen;
 }
+#endif
 
 // Convert UTF-16LE to UTF-8. This is not optimised as it's
 // only used in get_key() as of now. NOTE this is from LE
@@ -888,11 +883,12 @@ int initUnicode(int type) {
 		}
 	}
 
+#ifndef NOT_JOHN
 	options.log_passwords = cfg_get_bool(SECTION_OPTIONS,
 	    NULL, "LogCrackedPasswords", 0);
 	options.report_utf8 = cfg_get_bool(SECTION_OPTIONS,
 	    NULL, "AlwaysReportUTF8", 0);
-
+#endif
 	memset(ucs2_upcase, 0, sizeof(ucs2_upcase));
 	memset(ucs2_downcase, 0, sizeof(ucs2_downcase));
 
