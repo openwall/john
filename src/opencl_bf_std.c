@@ -11,6 +11,7 @@
 #include "arch.h"
 #include "common.h"
 #include "opencl_bf_std.h"
+#include <math.h>
 
 /* Number of Blowfish rounds, this is also hardcoded into a few places */
 #define BF_ROUNDS			16
@@ -432,7 +433,9 @@ static void clean_gpu_buffer(gpu_buffer *pThis)
 
 void BF_clear_buffer()
 {
-  clean_gpu_buffer(&buffers[pltfrmno][devno]);
+	clean_gpu_buffer(&buffers[pltfrmno][devno]);
+	
+	HANDLE_CLERROR(clReleaseKernel(krnl[pltfrmno][devno]),"Error releasing kernel");  
 }
 
 static cl_device_type device_type(int platform_id, int dev_id)
@@ -453,8 +456,44 @@ static cl_device_type device_type(int platform_id, int dev_id)
 	return type;
 }
 
+static void find_best_gws(struct fmt_main *fmt) {
+	
+	struct timeval start,end;
+	double savetime;
+	long int count=2*WORK_GROUP_SIZE;
+	double speed=999999,diff;
+	BF_salt random_salt;
+	random_salt.salt[0] = 0x12345678;
+	random_salt.salt[1] = 0x87654321;
+	random_salt.salt[2] = 0x21876543;
+	random_salt.salt[3] = 0x98765432;
+	random_salt.rounds  = 5;
+	random_salt.subtype = 'x';
+	gettimeofday(&start,NULL);
+	opencl_BF_std_crypt(&random_salt,count);
+	gettimeofday(&end, NULL);
+	savetime = (end.tv_sec-start.tv_sec)+(double)(end.tv_usec-start.tv_usec)/1000000.000;
+	speed = ((double)count)/savetime;
+	do {
+	count *= 2;
+	if(count>BF_N) {count=count>>1; break; } 
+	gettimeofday(&start,NULL);
+	opencl_BF_std_crypt(&random_salt,count);
+	gettimeofday(&end, NULL);
+	savetime = (end.tv_sec-start.tv_sec)+(double)(end.tv_usec-start.tv_usec)/1000000.000;
+	diff = (((double)count)/savetime)/speed;
+	if(diff<1) {count = count>>1; break; }
+	diff = diff - 1;
+	diff = (diff<0)?(-diff):diff;
+	speed = ((double)count)/savetime;
+	}while(diff>0.01);
+	fprintf(stderr, "Optimal Global Work Size:%ld\n",count);
+	fmt->params.max_keys_per_crypt = count ;
+	fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE ;
+	
+}  
 
-void BF_select_device(int platform_no,int dev_no)
+void BF_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 {
 	devno=dev_no;pltfrmno=platform_no;
 	
@@ -510,8 +549,14 @@ void BF_select_device(int platform_no,int dev_no)
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],4,sizeof(cl_mem),&buffers[platform_no][dev_no].BF_current_P_gpu),"Set Kernel Arg FAILED arg5");
 
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no],6,sizeof(cl_mem),&buffers[platform_no][dev_no].S_box_gpu),"Set Kernel Arg FAILED arg7");
-
-
+	
+	if(!global_work_size)	find_best_gws(fmt);
+	
+	else {  
+		fprintf(stderr, "Global worksize (GWS) forced to %zu\n",global_work_size);
+		fmt->params.max_keys_per_crypt = global_work_size;
+		fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE ;
+	}
 }
 
 void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
@@ -536,16 +581,35 @@ void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug)
 	}
 }
 
-void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,int dev_no)
+void exec_bf(cl_uint *salt_api,cl_uint *BF_out,cl_uint rounds,int platform_no,int dev_no,int n)
 {
 	cl_event evnt;
 	
 	size_t N ,M=WORK_GROUP_SIZE;
 	
+	double temp;
+		
+	temp = (log((double)n)/log((double)2));
+	
+	n = (int)temp;
+	
+	///Make sure amount of work isn't unnecessarily doubled
+	if((temp-n)!=0) {	
+		if((temp-n)<0.00001) n =(int)pow((double)2,(double)n);    
+		if((n+1-temp)<0.00001) n =(int)pow((double)2,(double)n);
+		else n =(int)pow((double)2,(double)(n+1));
+	}
+	
+	else  n =(int)pow((double)2,(double)n);
+		
+	n = (n>BF_N)?BF_N:n;
+	
+	n = (n<(2*M))?2*M:n;
+	
 	if(CL_DEVICE_TYPE_CPU == get_device_type(dev_no))
-		N = BF_N/2;
+		N = n/2;  ///Two hashes per crypt call for cpu
 	else
-		N = BF_N ;
+		N = n ;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[platform_no][dev_no],buffers[platform_no][dev_no].salt_gpu,CL_TRUE,0,4*sizeof(cl_uint),salt_api,0,NULL,NULL ), "Failed Copy data to gpu");
 
@@ -573,13 +637,13 @@ void opencl_BF_std_crypt(BF_salt *salt, int n)
 	static unsigned int salt_api[4];
 	unsigned int rounds=salt->rounds;
 	static unsigned int BF_out[2*BF_N];
-
+	
 	salt_api[0]=salt->salt[0];
 	salt_api[1]=salt->salt[1];
 	salt_api[2]=salt->salt[2];
 	salt_api[3]=salt->salt[3];
 
-	exec_bf(salt_api,BF_out,rounds,pltfrmno,devno);
+	exec_bf(salt_api,BF_out,rounds,pltfrmno,devno,n);
 
 	for_each_index(){ j=2*index;
 		 opencl_BF_out INDEX[0]=BF_out[j++];
