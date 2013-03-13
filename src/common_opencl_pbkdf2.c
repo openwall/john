@@ -178,6 +178,8 @@ static void find_best_gws(int pltform_no,int dev_no,struct fmt_main *fmt) {
 	
 	gds_size = (gds_size>8192)?gds_size:8192 ;
 	
+	fprintf(stderr, "Optimal Global Work Size:%ld\n",gds_size);
+	
 	fmt->params.max_keys_per_crypt = gds_size ;
 	
 	fmt->params.min_keys_per_crypt = max_lws() ;
@@ -232,10 +234,22 @@ size_t 	select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 	
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][2],1,sizeof(cl_mem),&gpu_buffer[platform_no][dev_no].hash_out_gpu),"Set Kernel Arg FAILED arg1");
 
-	find_best_workgroup(platform_no,dev_no);
+	if(((!global_work_size)||((!local_work_size)&&global_work_size))||(active_dev_ctr!=0)) find_best_workgroup(platform_no,dev_no);
 	
-	find_best_gws(platform_no,dev_no,fmt) ;
-
+	else {
+		fprintf(stderr, "Local worksize (LWS) forced to %zu\n",local_work_size);
+		lws[platform_no][dev_no] = local_work_size;
+	}
+	
+	if((!global_work_size)||(active_dev_ctr!=0)) find_best_gws(platform_no,dev_no,fmt);
+		  
+	else {
+		fprintf(stderr, "Global worksize (GWS) forced to %zu\n",global_work_size);
+		fmt->params.max_keys_per_crypt = global_work_size;
+		fmt->params.min_keys_per_crypt = max_lws() ;
+	}
+	
+	
 	cmdq[platform_no][dev_no]=queue[dev_no];
 
 	store_platform_no[active_dev_ctr]=platform_no;
