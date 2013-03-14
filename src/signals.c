@@ -49,6 +49,7 @@
 #include "config.h"
 #include "options.h"
 #include "bench.h"
+#include "status.h"
 
 volatile int event_pending = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0;
@@ -153,12 +154,16 @@ static void sig_remove_update(void)
 
 void check_abort(int be_async_signal_safe)
 {
+	unsigned int time;
+
 	if (!event_abort) return;
+
+	time = status_get_time();
 
 	tty_done();
 
 	if (be_async_signal_safe) {
-		if (timer_abort)
+		if (time < timer_abort)
 			write_loop(2, "Session aborted\n", 16);
 		else
 			write_loop(2, "Session stopped (max run-time reached)\n", 39);
@@ -171,7 +176,7 @@ void check_abort(int be_async_signal_safe)
 		_exit(1);
 	}
 
-	fprintf(stderr, "Session %s\n", timer_abort ?
+	fprintf(stderr, "Session %s\n", (time < timer_abort) ?
 	        "aborted" : "stopped (max run-time reached)");
 	error();
 }
@@ -273,6 +278,7 @@ static void sig_install_timer(void);
 
 static void sig_handle_timer(int signum)
 {
+	unsigned int time = status_get_time();
 	int saved_errno = errno;
 
 	if (!--timer_save_value) {
@@ -281,13 +287,13 @@ static void sig_handle_timer(int signum)
 		event_save = event_pending = 1;
 	}
 
-	if (!--timer_abort)
+	if (time >= timer_abort)
 		event_abort = event_pending = 1;
 
 #ifndef BENCH_BUILD
-	if (!--timer_status) {
+	if (time >= timer_status) {
 		event_status = event_pending = 1;
-		timer_status = options.status_interval;
+		timer_status += options.status_interval;
 	}
 #endif
 
