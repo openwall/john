@@ -36,12 +36,16 @@ typedef BF_word BF_binary[6];
  */
 
 #define WORK_GROUP_SIZE                 8
-#define NUM_CHANNELS                    1
+/* 
+ * Parameters NUM_CHANNELS and WAVEFRONT_SIZE are kept to supprt legacy codes. Please don't change the parameters. 
+ */
+#define NUM_CHANNELS                    1   
 #define WAVEFRONT_SIZE                  1
-#define CHANNEL_INTERLEAVE              WAVEFRONT_SIZE*NUM_CHANNELS
+#define CHANNEL_INTERLEAVE              (WAVEFRONT_SIZE*NUM_CHANNELS)
 #define MULTIPLIER                      1024
-#define BF_N				CHANNEL_INTERLEAVE*MULTIPLIER
+#define BF_N				(CHANNEL_INTERLEAVE*MULTIPLIER)
 #define MAX_DEVICES_PER_PLATFORM        8
+#define GWS_CONFIG		        "bf_GWS"
 
 /*
  * BF_std_crypt() output buffer.
@@ -83,7 +87,7 @@ extern void *opencl_BF_std_get_binary(char *ciphertext);
  * Select a device: BF_select_device(platform_id,device_id)
  */
 
-extern void BF_select_device(int,int);
+extern void BF_select_device(int,int,struct fmt_main*);
 
 /*
  * Clear all GPU Buffers

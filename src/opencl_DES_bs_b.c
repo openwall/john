@@ -9,7 +9,7 @@
 #include "opencl_DES_bs.h"
 #include <assert.h>
 #include <string.h>
-#include<sys/time.h>
+#include <sys/time.h>
 #define LOG_SIZE 1024*16
 
 opencl_DES_bs_transfer CC_CACHE_ALIGN opencl_DES_bs_data[MULTIPLIER];
@@ -41,6 +41,51 @@ typedef unsigned WORD vtype;
         static   WORD current_salt;
 
 	static size_t DES_local_work_size = WORK_GROUP_SIZE;
+	
+void DES_opencl_clean_all_buffer()
+{	
+	int i;
+	
+	HANDLE_CLERROR(clReleaseMemObject(index768_gpu),"Release Memory Object FAILED.");
+
+	HANDLE_CLERROR(clReleaseMemObject(index96_gpu),"Release Memory Object FAILED.");
+
+	HANDLE_CLERROR(clReleaseMemObject(opencl_DES_bs_data_gpu),"Release Memory Object FAILED.");
+
+	HANDLE_CLERROR(clReleaseMemObject(B_gpu),"Release Memory Object FAILED.");
+	
+	for(i=0; i< 4096;i++)
+		clReleaseKernel(krnl[pltfrmno][devno][i]);
+}
+
+static void find_best_gws(struct fmt_main *fmt) {
+	
+	struct timeval start,end;
+	double savetime;
+	long int count=64;
+	double speed=999999,diff;
+	gettimeofday(&start,NULL);
+	opencl_DES_bs_crypt_25(count*WORK_GROUP_SIZE*DES_BS_DEPTH);
+	gettimeofday(&end, NULL);
+	savetime = (end.tv_sec-start.tv_sec)+(double)(end.tv_usec-start.tv_usec)/1000000.000;
+	speed = ((double)count)/savetime;
+	do {
+	count *= 2;
+	if((count*WORK_GROUP_SIZE)>MULTIPLIER) {count=count>>1; break; } 
+	gettimeofday(&start,NULL);
+	opencl_DES_bs_crypt_25(count*WORK_GROUP_SIZE*DES_BS_DEPTH);
+	gettimeofday(&end, NULL);
+	savetime = (end.tv_sec-start.tv_sec)+(double)(end.tv_usec-start.tv_usec)/1000000.000;
+	diff = (((double)count)/savetime)/speed;
+	if(diff<1) {count = count>>1; break; }
+	diff = diff - 1;
+	diff = (diff<0)?(-diff):diff;
+	speed = ((double)count)/savetime;
+	}while(diff>0.01);
+	fprintf(stderr, "Optimal Global Work Size:%ld\n",count*WORK_GROUP_SIZE*DES_BS_DEPTH);
+	fmt->params.max_keys_per_crypt = count*WORK_GROUP_SIZE*DES_BS_DEPTH ;
+	fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE*DES_BS_DEPTH ;
+}  
 
 #if (HARDCODE_SALT)
 
@@ -217,11 +262,17 @@ void modify_src() {
 }  
 
 	
-void DES_bs_select_device(int platform_no,int dev_no)
+void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 {
 	devno = dev_no;
 	pltfrmno = platform_no;
 	init_dev();
+	if(!global_work_size)	find_best_gws(fmt);
+	else {  
+		fprintf(stderr, "Global worksize (GWS) forced to %zu\n",global_work_size);
+		fmt->params.max_keys_per_crypt = global_work_size;
+		fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE*DES_BS_DEPTH ;
+	}
 	
 }	
 
@@ -229,7 +280,7 @@ void DES_bs_select_device(int platform_no,int dev_no)
 
 	static cl_program prg[MAX_PLATFORMS][MAX_DEVICES_PER_PLATFORM];	
 
-void DES_bs_select_device(int platform_no,int dev_no)
+void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 {
 	//char *env;
 	size_t max_lws;
@@ -275,6 +326,15 @@ void DES_bs_select_device(int platform_no,int dev_no)
 	HANDLE_CLERROR(clSetKernelArg(krnl[platform_no][dev_no][0],3,sizeof(cl_mem),&B_gpu),"Set Kernel Arg FAILED arg4\n");
 	
 	HANDLE_CLERROR(clEnqueueWriteBuffer(cmdq[pltfrmno][devno],index768_gpu,CL_TRUE,0,768*sizeof(unsigned int),index768,0,NULL,NULL ), "Failed Copy data to gpu");
+	
+	if(!global_work_size)	find_best_gws(fmt);
+	
+	else {  
+		fprintf(stderr, "Global worksize (GWS) forced to %zu\n",global_work_size);
+		fmt->params.max_keys_per_crypt = global_work_size;
+		fmt->params.min_keys_per_crypt = WORK_GROUP_SIZE*DES_BS_DEPTH ;
+	}
+	
 }	
 
 #endif
