@@ -325,7 +325,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	options.loader.max_wordfile_memory = WORDLIST_BUFFER_DEFAULT;
 	options.force_maxkeys = options.force_maxlength = 0;
 	options.force_minlength = -1;
-	options.max_run_time = options.status_interval = -2;
+	options.max_run_time = options.status_interval = 0;
 	options.dynamic_raw_hashes_always_valid = 0;
 
 	list_init(&options.passwd);

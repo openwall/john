@@ -842,6 +842,7 @@ static void john_done(void)
 int main(int argc, char **argv)
 {
 	char *name;
+	unsigned int time;
 
 #ifdef _MSC_VER
    // Send all reports to STDOUT
@@ -985,8 +986,11 @@ int main(int argc, char **argv)
 	john_init(name, argc, argv);
 
 	/* --max-run-time and --progress-every disregards load time */
-	timer_abort = options.max_run_time + 1;
-	timer_status = options.status_interval;
+	time = status_get_time();
+	if (options.max_run_time)
+		timer_abort = time + options.max_run_time;
+	if (options.status_interval)
+		timer_status = time + options.status_interval;
 
 	john_run();
 	john_done();

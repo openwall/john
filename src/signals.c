@@ -372,7 +372,7 @@ void sig_init(void)
 	else
 	if ((timer_save_interval /= TIMER_INTERVAL) <= 0)
 		timer_save_interval = 1;
-	timer_save_value = timer_save_interval;
+	timer_save_value = status_get_time() + timer_save_interval;
 
 	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
 	timer_ticksafety_interval /= clk_tck;
