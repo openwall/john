@@ -823,12 +823,14 @@ static void john_run(void)
 
 static void john_done(void)
 {
+	unsigned int time = status_get_time();
+
 	path_done();
 
 	if ((options.flags & FLG_CRACKING_CHK) &&
 	    !(options.flags & FLG_STDOUT)) {
 		if (event_abort)
-			log_event(timer_abort ?
+			log_event((time < timer_abort) ?
 			          "Session aborted" :
 			          "Session stopped (max run-time reached)");
 		else
