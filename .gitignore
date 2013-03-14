@@ -9,6 +9,7 @@
 *.rej
 run/SIPdump
 run/calc_stat
+run/cprepair
 run/dmg2john
 run/genmkvpwd
 run/gpg2john

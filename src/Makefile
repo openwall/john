@@ -265,7 +265,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
 	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john \
-	../run/gpg2john ../run/luks2john
+	../run/gpg2john ../run/luks2john ../run/cprepair
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -2329,6 +2329,12 @@ endif
 ../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
 	ln -s john ../run/keystore2john
+
+../run/cprepair: cprepair.c unicode.c unicode.h options.h misc.h misc.c
+	gcc -DNOT_JOHN -D_JOHN_MISC_NO_LOG -O3 -s cprepair.c unicode.c misc.c -o ../run/cprepair
+
+cprepair: cprepair.c unicode.c misc.c
+	gcc -DNOT_JOHN -D_JOHN_MISC_NO_LOG -O3 -s cprepair.c unicode.c misc.c -o ../run/cprepair
 
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
