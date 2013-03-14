@@ -121,4 +121,3 @@ __constant uint64_t clear_mask[] = {
 #endif
 
 #endif	/* OPENCL_SHA512_H */
-
