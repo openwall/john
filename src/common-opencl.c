@@ -1597,15 +1597,19 @@ int get_device_version(unsigned int sequential_id)
 
 char *get_error_name(cl_int cl_error)
 {
-	static char *err_1[] =
-		{ "CL_SUCCESS", "CL_DEVICE_NOT_FOUND", "CL_DEVICE_NOT_AVAILABLE",
+	static char *err_small[] = {
+		"CL_SUCCESS", "CL_DEVICE_NOT_FOUND", "CL_DEVICE_NOT_AVAILABLE",
 		"CL_COMPILER_NOT_AVAILABLE",
 		"CL_MEM_OBJECT_ALLOCATION_FAILURE", "CL_OUT_OF_RESOURCES",
 		"CL_OUT_OF_HOST_MEMORY",
 		"CL_PROFILING_INFO_NOT_AVAILABLE", "CL_MEM_COPY_OVERLAP",
 		"CL_IMAGE_FORMAT_MISMATCH",
 		"CL_IMAGE_FORMAT_NOT_SUPPORTED", "CL_BUILD_PROGRAM_FAILURE",
-		"CL_MAP_FAILURE"
+		"CL_MAP_FAILURE", "CL_MISALIGNED_SUB_BUFFER_OFFSET",
+		"CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST",
+		"CL_COMPILE_PROGRAM_FAILURE","CL_LINKER_NOT_AVAILABLE",
+		"CL_LINK_PROGRAM_FAILURE","CL_DEVICE_PARTITION_FAILED",
+		"CL_KERNEL_ARG_INFO_NOT_AVAILABLE"
 	};
 	static char *err_invalid[] = {
 		"CL_INVALID_VALUE", "CL_INVALID_DEVICE_TYPE",
@@ -1624,19 +1628,20 @@ char *get_error_name(cl_int cl_error)
 		"CL_INVALID_GLOBAL_OFFSET", "CL_INVALID_EVENT_WAIT_LIST",
 		"CL_INVALID_EVENT", "CL_INVALID_OPERATION",
 		"CL_INVALID_GL_OBJECT", "CL_INVALID_BUFFER_SIZE",
-		"CL_INVALID_MIP_LEVEL", "CL_INVALID_GLOBAL_WORK_SIZE"
+		"CL_INVALID_MIP_LEVEL", "CL_INVALID_GLOBAL_WORK_SIZE",
+		"CL_INVALID_PROPERTY", "CL_INVALID_IMAGE_DESCRIPTOR",
+		"CL_INVALID_COMPILER_OPTIONS","CL_INVALID_LINKER_OPTIONS",
+		"CL_INVALID_DEVICE_PARTITION_COUNT"
 	};
 
-	if (cl_error <= 0 && cl_error >= -12) {
-		cl_error = -cl_error;
-		return err_1[cl_error];
+	if (cl_error <= 0 && cl_error >= -19) {
+		return err_small[-cl_error];
 	}
-	if (cl_error <= -30 && cl_error >= -63) {
-		cl_error = -cl_error;
-		return err_invalid[cl_error - 30];
+	if (cl_error <= -30 && cl_error >= -68) {
+		return err_invalid[-cl_error - 30];
 	}
 
-	return "UNKNOWN ERROR :(";
+	return "UNKNOWN OPENCL ERROR";
 }
 
 static char *human_format(size_t size)
