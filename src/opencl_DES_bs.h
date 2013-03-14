@@ -28,6 +28,8 @@
 #define MIN_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 #define MAX_KEYS_PER_CRYPT		(DES_BS_DEPTH*MULTIPLIER)
 
+#define GWS_CONFIG		        "des_GWS"
+
 unsigned int CC_CACHE_ALIGN index768[0x300];
 unsigned int CC_CACHE_ALIGN index96[96];
 
@@ -164,7 +166,8 @@ extern WORD *opencl_DES_do_IP(WORD in[2]);
  */
 extern WORD *opencl_DES_raw_get_binary(char *ciphertext);   
 
-extern void DES_bs_select_device(int platform_no,int dev_no);
+extern void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main*);
 
+extern void DES_opencl_clean_all_buffer(void); 
 
 #endif

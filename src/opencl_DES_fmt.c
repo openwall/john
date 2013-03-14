@@ -10,6 +10,7 @@
 #include "arch.h"
 #include "common.h"
 #include "formats.h"
+#include "config.h"
 
 #define FORMAT_LABEL			"des-opencl"
 #define FORMAT_NAME			"Traditional DES"
@@ -38,16 +39,31 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			sizeof(WORD)
 #define SALT_SIZE			sizeof(WORD)
 
+static void done()
+{
+	DES_opencl_clean_all_buffer();
+}
 
 static void init(struct fmt_main *pFmt)
 {
-unsigned int i;
-for(i=0;i<MULTIPLIER;i++)
-	opencl_DES_bs_init(0, DES_bs_cpt,i);
+	unsigned int i;
+	
+	char *conf;
+	
+	for(i=0;i<MULTIPLIER;i++)
+		opencl_DES_bs_init(0, DES_bs_cpt,i);
+	
+	global_work_size = 0;
+	
+	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
+		global_work_size = atoi(conf);
 
-DES_bs_select_device(platform_id,ocl_gpu_id);
+	if ((conf = getenv("GWS")))
+		global_work_size = atoi(conf);
 
+	DES_bs_select_device(platform_id,ocl_gpu_id,pFmt);
 
+	atexit(done);
 
 }
 
