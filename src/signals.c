@@ -278,24 +278,44 @@ static void sig_install_timer(void);
 
 static void sig_handle_timer(int signum)
 {
-	unsigned int time = status_get_time();
 	int saved_errno = errno;
+	unsigned int time;
+
+#ifndef BENCH_BUILD
+#if OS_TIMER
+	if (!--timer_save_value) {
+		timer_save_value = timer_save_interval;
+		event_save = event_pending = 1;
+	}
+
+	if (timer_abort > 0 || timer_status > 0) {
+		time = status_get_time();
+
+		if (time >= timer_abort)
+			event_abort = event_pending = 1;
+
+		if (time >= timer_status) {
+			event_status = event_pending = 1;
+			timer_status += options.status_interval;
+		}
+	}
+#else /* no OS_TIMER */
+	time = status_get_time();
 
 	if (time >= timer_save_value) {
 		timer_save_value += timer_save_interval;
-
 		event_save = event_pending = 1;
 	}
 
 	if (time >= timer_abort)
 		event_abort = event_pending = 1;
 
-#ifndef BENCH_BUILD
 	if (time >= timer_status) {
 		event_status = event_pending = 1;
 		timer_status += options.status_interval;
 	}
-#endif
+#endif /* OS_TIMER */
+#endif /* !BENCH_BUILD */
 
 	if (!--timer_ticksafety_value) {
 		timer_ticksafety_value = timer_ticksafety_interval;
@@ -372,8 +392,11 @@ void sig_init(void)
 	else
 	if ((timer_save_interval /= TIMER_INTERVAL) <= 0)
 		timer_save_interval = 1;
+#if OS_TIMER
 	timer_save_value = timer_save_interval;
-
+#else
+	timer_save_value = status_get_time() + timer_save_interval;
+#endif
 	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
 	timer_ticksafety_interval /= clk_tck;
 	if ((timer_ticksafety_interval /= TIMER_INTERVAL) <= 0)
