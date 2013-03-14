@@ -281,8 +281,8 @@ static void sig_handle_timer(int signum)
 	unsigned int time = status_get_time();
 	int saved_errno = errno;
 
-	if (!--timer_save_value) {
-		timer_save_value = timer_save_interval;
+	if (time >= timer_save_value) {
+		timer_save_value += timer_save_interval;
 
 		event_save = event_pending = 1;
 	}
