@@ -165,6 +165,26 @@ xsha512-opencl        Mac OS X 10.7+ salted SHA-512
 zip-opencl            ZIP-AES PBKDF2-HMAC-SHA-1
 
 
+===================
+Optional vecorizing
+===================
+
+A few formats honour the --request-vector option. A vectorized format runs
+faster on some devices (notably pre-Tahiti AMD GPUs, and CPUs). If a format
+defaults to vectorizing, --request-scalar will disable it. There has been a
+lot of problems with vectorizing, possibly due to driver bugs so it's usually
+not the default. The following formats currently support optional vectorizing:
+
+krb5pa-sha1-opencl    Kerberos 5 AS-REQ PreAuth etype 17/18 aes-cts-hmac-sha1-96
+office2007-opencl     Office 2007 SHA-1 AES
+office2010-opencl     Office 2010 SHA-1 AES
+office2013-opencl     Office 2013 SHA-512 AES
+wpapsk-opencl         WPA-PSK PBKDF2-HMAC-SHA-1
+
+When a format runs vectorized, it will show algorithm name as eg. [OpenCL 4x]
+as opposed to just [OpenCL].
+
+
 =================
 Watchdog Timer:
 =================
