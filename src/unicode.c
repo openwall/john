@@ -118,6 +118,7 @@ static UTF8 CP_from_Unicode[0x10000];
 UTF8 CP_up[0x100];
 UTF8 CP_down[0x100];
 static int UnicodeType = -1;
+static char *UnicodeInited = "";
 
 /*
  * This is used by single.c for determining that a character is a letter
@@ -788,7 +789,8 @@ int initUnicode(int type) {
 	char *encTemp;
 	char *pos;
 
-	if (UnicodeType==type) return 0;
+	if (UnicodeType == type && !strcmp(UnicodeInited, options.encoding))
+		return 0;
 
 	UnicodeType = type;
 
@@ -1158,6 +1160,7 @@ int initUnicode(int type) {
 	for (pos = encTemp; *pos; pos++)
 		CP_isLetter[ARCH_INDEX(*pos)] = 1;
 
+	UnicodeInited = options.encoding;
 	return 0;
 }
 
