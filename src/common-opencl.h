@@ -80,7 +80,11 @@ int get_platform_vendor_id(int platform_id);
 int get_device_version(int dev_id);
 int get_byte_addressable(int dev_id);
 
+/* Returns error name based on error codes list defined in cl.h */
 char *get_error_name(cl_int cl_error);
+
+/* Returns OpenCL version based on macro CL_VERSION_X_Y definded in cl.h */
+char *get_opencl_header_version();
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
 

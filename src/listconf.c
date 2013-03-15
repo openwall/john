@@ -134,6 +134,9 @@ static void listconf_list_build_info(void)
 #ifdef __clang_version__
 	printf("clang version: %s\n", __clang_version__);
 #endif
+#ifdef HAVE_OPENCL
+	printf("OpenCL library version: %s\n",get_opencl_header_version());
+#endif
 #ifdef OPENSSL_VERSION_NUMBER
 	// The man page suggests the type of OPENSSL_VERSION_NUMBER is long,
 	// gcc insists it is int.
@@ -142,7 +145,6 @@ static void listconf_list_build_info(void)
 		printf("\t(loaded: %lx)", (unsigned long)SSLeay());
 	printf("\n");
 #endif
-
 #ifdef __GNU_MP_VERSION
 	// print GMP version info if HAVE_GMP has been set in Makefile
 	printf("GMP library version: %d.%d.%d",
