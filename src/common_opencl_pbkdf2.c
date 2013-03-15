@@ -236,6 +236,17 @@ size_t 	select_device(int platform_no,int dev_no,int gpu_id,struct fmt_main *fmt
 	if(((!global_work_size)||((!local_work_size)&&global_work_size))||(active_dev_ctr!=0)) find_best_workgroup(platform_no,dev_no);
 	
 	else {
+		size_t maxsize, maxsize2;
+
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][0], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize), &maxsize, NULL), "Query max work group size");
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][1], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+		if (maxsize2 > maxsize) maxsize = maxsize2;
+		HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][2], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(maxsize2), &maxsize2, NULL), "Query max work group size");
+		if (maxsize2 > maxsize) maxsize = maxsize2;
+
+		while (local_work_size > maxsize)
+			local_work_size /= 2;
+
 		fprintf(stderr, "Local worksize (LWS) forced to %zu\n",local_work_size);
 		lws[platform_no][dev_no] = local_work_size;
 	}
