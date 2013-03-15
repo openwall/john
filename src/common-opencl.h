@@ -118,7 +118,11 @@ size_t get_kernel_preferred_work_group_size(unsigned int sequential_id, cl_kerne
 
 void opencl_get_user_preferences(char * format);
 
+/* Returns error name based on error codes list defined in cl.h */
 char *get_error_name(cl_int cl_error);
+
+/* Returns OpenCL version based on macro CL_VERSION_X_Y definded in cl.h */
+char *get_opencl_header_version();
 
 void handle_clerror(cl_int cl_error, const char *message, const char *file, int line);
 

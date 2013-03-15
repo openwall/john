@@ -24,6 +24,7 @@ run/mozilla2john
 run/office2john
 run/kernels/
 run/pfx2john
+run/putty2john
 run/pwsafe2john
 run/racf2john
 run/rar2john

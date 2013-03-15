@@ -1595,6 +1595,31 @@ int get_device_version(unsigned int sequential_id)
 	return DEV_UNKNOWN;
 }
 
+char *get_opencl_header_version()
+{
+	static char *opencl_versions[] = {
+		"1.0","1.1","1.2","1.3","1.4","1.5",
+	};
+	int version = -1;
+	#ifdef CL_VERSION_1_5
+	version = 5;
+	#elif CL_VERSION_1_4
+	version = 4;
+	#elif CL_VERSION_1_3
+	version = 3;
+	#elif CL_VERSION_1_2
+	version = 2;
+	#elif CL_VERSION_1_1
+	version = 1;
+	#elif CL_VERSION_1_0
+	version = 0;
+	#endif
+	if (version == -1 || version > 5 ) {
+		return "Unknown";
+	}
+	return opencl_versions[version];
+}
+
 char *get_error_name(cl_int cl_error)
 {
 	static char *err_small[] = {
