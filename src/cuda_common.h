@@ -1,5 +1,5 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com>
+* This software is Copyright (c) 2011,2013 Lukas Odzioba <ukasz at openwall dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
@@ -14,6 +14,8 @@
 int cuda_gpu_id;
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
+extern char *get_cuda_header_version();
+extern void cuda_init(unsigned int cuda_gpu_id);
 
 #define check_mem_allocation(inbuffer,outbuffer)\
     if(inbuffer==NULL){\

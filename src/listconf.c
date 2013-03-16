@@ -37,6 +37,7 @@
 #endif
 
 #ifdef HAVE_CUDA
+extern char *get_cuda_header_version();
 extern void cuda_device_list();
 #endif
 #ifdef HAVE_OPENCL
@@ -133,6 +134,9 @@ static void listconf_list_build_info(void)
 #endif
 #ifdef __clang_version__
 	printf("clang version: %s\n", __clang_version__);
+#endif
+#ifdef HAVE_CUDA
+	printf("CUDA library version: %s\n",get_cuda_header_version());
 #endif
 #ifdef HAVE_OPENCL
 	printf("OpenCL library version: %s\n",get_opencl_header_version());
