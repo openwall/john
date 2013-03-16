@@ -1,16 +1,16 @@
 /*
-* This software is Copyright (c) 2011 Lukas Odzioba <lukas dot odzioba at gmail dot com>
+* This software is Copyright (c) 2011,2013 Lukas Odzioba <ukasz at openwall dot com>
 * and it is hereby released to the general public under the following terms:
 * Redistribution and use in source and binary forms, with or without modification, are permitted.
 */
 #ifndef _CUDA_COMMON_H
 #define _CUDA_COMMON_H
-
 /*
 * CUDA device id specified by -device parameter
 */
 int cuda_gpu_id;
 
+extern char *get_cuda_header_version();
 extern void cuda_init(unsigned int cuda_gpu_id);
 
 #define check_mem_allocation(inbuffer,outbuffer)\

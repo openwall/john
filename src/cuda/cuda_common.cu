@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include "cuda.h"
 #include "cuda_common.cuh"
 
 extern "C"
@@ -23,6 +24,16 @@ void HandleError(cudaError_t err, const char *file, int line)
 }
 
 #define HANDLE_ERROR(err) (HandleError(err,__FILE__,__LINE__))
+
+extern "C"
+char *get_cuda_header_version()
+{
+	unsigned int minor=((CUDA_VERSION%100)/10)%10;
+	unsigned int major=(CUDA_VERSION/1000)%100;
+	static char ret[8];
+	snprintf(ret,8,"%d.%d",major,minor);
+	return ret;
+}
 
 static char *human_format(size_t size)
 {
