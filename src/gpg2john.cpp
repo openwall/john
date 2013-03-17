@@ -1,6 +1,9 @@
 /*
  * pgpry - PGP private key recovery
  * Copyright (C) 2010 Jonas Gehring
+ * Modified for John the Ripper:
+ * Copyright (C) 2012 Dhiru Kholia
+ * Copyright (C) 2013 Lukas Odzioba
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,9 +22,27 @@
 #include <openssl/aes.h>
 #include <openssl/blowfish.h>
 #include <openssl/cast.h>
+#include <openssl/md5.h>
+#include <openssl/sha.h>
+#include <openssl/ripemd.h>
 #include <cstdio>
+#include <cstring>
+#include <iostream>
+#include <ostream>
 #include <cstdlib>
+#include <cassert>
+#include <cerrno>
+#include <cstdarg>
+#include <limits>
+#include <sstream>
+#include <fstream>
+#include <libgen.h>
+#include <string.h>
+
 #include "gpg2john.h"
+
+using namespace std;
+
 
 namespace CryptUtils
 {
@@ -88,9 +109,6 @@ uint32_t digestSize(HashAlgorithm algorithm)
 }
 
 } // namespace CryptUtils
-
-#include <cstring>
-#include <ostream>
 
 class Memblock
 {
@@ -202,14 +220,11 @@ inline Memblock &Memblock::operator+=(const Memblock &other)
 
 
 // Convenience functions
-inline std::ostream& operator<<(std::ostream &out, const Memblock &in)
+inline ostream& operator<<(ostream &out, const Memblock &in)
 {
 	out << in.data;
 	return out;
 }
-
-#include <iostream>
-#include <cstring>
 
 
 // Constructor
@@ -263,7 +278,11 @@ const String2Key &Key::string2Key() const
 
 
 void readPacketHeader(PIStream &in, PacketHeader &header){
-	in >> header;
+	try {
+		in >> header;
+	} catch (...) {
+		throw "File might not contain a secret key";
+	}
 }
 
 void suckUnwantedPacket(PIStream &in, PacketHeader &header){
@@ -470,10 +489,10 @@ PIStream &PacketHeader::operator<<(PIStream &in)
 	return in;
 }
 
-#include <cstring>
+
 
 // Constructor
-PIStream::PIStream(std::istream &stream)
+PIStream::PIStream(istream &stream)
 	: m_in(stream), m_read(0), m_armored(false),
 	  m_b64count(0), m_b64buf(0)
 {
@@ -623,13 +642,7 @@ void PIStream::dearmor()
 	} while (m_in.good() && buffer[0] != 0);
 }
 
-#include <cassert>
-#include <cstring>
-#include <iostream>
 
-#include <openssl/md5.h>
-#include <openssl/sha.h>
-#include <openssl/ripemd.h>
 
 #define KEYBUFFER_LENGTH 8192
 
@@ -763,27 +776,19 @@ String2Key &String2Key::operator=(const String2Key &other)
 	return *this;
 }
 
-#include <cerrno>
-#include <cstdarg>
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <limits>
-#include <sstream>
-
 namespace Utils
 {
 
 // Wrapper for strtol()
 template<typename T>
-static bool tstr2int(const std::string &str, T *i)
+static bool tstr2int(const string &str, T *i)
 {
 	char *end;
 	long val = strtol(str.c_str(), &end, 0);
 
 	if (errno == ERANGE || str.c_str() == end
-	    || val > std::numeric_limits<int32_t>::max()
-	    || val < std::numeric_limits<int32_t>::min()) {
+	    || val > numeric_limits<int32_t>::max()
+	    || val < numeric_limits<int32_t>::min()) {
 		return false;
 	}
 
@@ -792,27 +797,27 @@ static bool tstr2int(const std::string &str, T *i)
 }
 
 // Wrapper for strtol()
-bool str2int(const std::string &str, int32_t *i)
+bool str2int(const string &str, int32_t *i)
 {
 	return tstr2int<int32_t>(str, i);
 }
 
 // Wrapper for strtol()
-bool str2int(const std::string &str, uint32_t *i)
+bool str2int(const string &str, uint32_t *i)
 {
 	return tstr2int<uint32_t>(str, i);
 }
 
 // Converts an interger to a string
-std::string int2str(int32_t i)
+string int2str(int32_t i)
 {
-	std::stringstream out;
+	stringstream out;
 	out << i;
 	return out.str();
 }
 
 // Removes white-space characters at the beginning and end of a string
-void trim(std::string *str)
+void trim(string *str)
 {
 	int32_t start = 0;
 	int32_t end = str->length()-1;
@@ -830,17 +835,17 @@ void trim(std::string *str)
 }
 
 // Removes white-space characters at the beginning and end of a string
-std::string trim(const std::string &str)
+string trim(const string &str)
 {
-	std::string copy(str);
+	string copy(str);
 	trim(&copy);
 	return copy;
 }
 
 // Split a string using the given token
-std::vector<std::string> split(const std::string &str, const std::string &token)
+vector<string> split(const string &str, const string &token)
 {
-	std::vector<std::string> parts;
+	vector<string> parts;
 	size_t index = 0;
 
 	if (token.length() == 0) {
@@ -853,7 +858,7 @@ std::vector<std::string> split(const std::string &str, const std::string &token)
 	while (index < str.length()) {
 		size_t pos = str.find(token, index);
 		parts.push_back(str.substr(index, pos - index));
-		if (pos == std::string::npos) {
+		if (pos == string::npos) {
 			break;
 		}
 		index = pos + token.length();
@@ -865,13 +870,13 @@ std::vector<std::string> split(const std::string &str, const std::string &token)
 	return parts;
 }
 
-// sprintf for std::string
-std::string strprintf(const char *format, ...)
+// sprintf for string
+string strprintf(const char *format, ...)
 {
 	va_list vl;
 	va_start(vl, format);
 
-	std::ostringstream os;
+	ostringstream os;
 
 	const char *ptr = format-1;
 	while (*(++ptr) != '\0') {
@@ -912,7 +917,7 @@ std::string strprintf(const char *format, ...)
 
 			default:
 #ifndef NDEBUG
-				std::cerr << "Error in strprintf(): unknown format specifier " << *ptr << std::endl;
+				cerr << "Error in strprintf(): unknown format specifier " << *ptr << endl;
 				exit(1);
 #endif
 				break;
@@ -924,9 +929,9 @@ std::string strprintf(const char *format, ...)
 }
 
 // Returns an option from the given map or a default value
-std::string defaultOption(const std::map<std::string, std::string> &options, const std::string name, const std::string &def)
+string defaultOption(const map<string, string> &options, const string name, const string &def)
 {
-	std::map<std::string, std::string>::const_iterator it = options.find(name);
+	map<string, string>::const_iterator it = options.find(name);
 	if (it != options.end()) {
 		return (*it).second;
 	} else {
@@ -935,7 +940,7 @@ std::string defaultOption(const std::map<std::string, std::string> &options, con
 }
 
 // Returns an option from the given map or a default value
-int32_t defaultOption(const std::map<std::string, std::string> &options, const std::string name, int32_t def)
+int32_t defaultOption(const map<string, string> &options, const string name, int32_t def)
 {
 	int32_t i = 0;
 	if (str2int(defaultOption(options, name, int2str(def)), &i)) {
@@ -947,11 +952,6 @@ int32_t defaultOption(const std::map<std::string, std::string> &options, const s
 
 } // namespace Utils
 
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-
-using namespace std;
 
 #define N 128
 
@@ -970,9 +970,30 @@ enum {
 
 
 
+char *strip_basename(char* filename)
+{
+	int len;
+	char *base = basename(strdup(filename));
+
+	if (!base || !*base)
+		strcpy(base, filename);
+	len = strlen(base);
+	if (len > 4) {
+		len -= 4;
+		if (!strcmp(&base[len], ".gpg") || !strcmp(&base[len],".asc") || !strcmp(&base[len], ".pgp")) {
+			base[len] = 0;
+		}
+	}
+	return base;
+}
+
 void key2john(Key &key,char *filename) {
 	const String2Key &s2k = key.string2Key();
-	printf("%s:$gpg$*%d*%d*%d*", filename, key.m_algorithm, key.m_datalen, key.bits());
+	char *base=strip_basename(filename);
+	printf("%s:$gpg$*%d*%d*%d*", base, key.m_algorithm, key.m_datalen, key.bits());
+	// Both dirname() and basename() return pointers to null-terminated strings.
+	// (Do not pass these pointers to free(3).) (man 3 basename)
+	// free(base);
 	print_hex(key.m_data, key.m_datalen);
 	printf("*%d*%d*%d*%d*%d*", s2k.m_spec, s2k.m_usage, s2k.m_hashAlgorithm, s2k.m_cipherAlgorithm, s2k.bs);
 	print_hex(s2k.m_iv, s2k.bs);
@@ -996,11 +1017,12 @@ int process_file(char *filename) {
 	ifstream inStream;
 	inStream.open(filename);
 	if(!inStream.is_open()) {
-		std::cerr << "Couldn't open file "<<filename << std::endl;
+		cerr << "Couldn't open file "<<filename << endl;
 		return EXIT_FAILURE;
 	}
 
 	Key key;
+	bool foundSecret=false;
 	try {
 		PIStream in(inStream);
 		PacketHeader header;
@@ -1015,7 +1037,9 @@ int process_file(char *filename) {
 
 				if(key.locked()){
 					key2john(key,filename);
-				}//emit warning otherwise??
+				}
+				foundSecret=true;
+
 			}else{//at the moment we're not interested what's inside
 				//TODO add user name extraction from type 13 packets
 				suckUnwantedPacket(in,header);
@@ -1023,17 +1047,18 @@ int process_file(char *filename) {
 		}
 
 
-	} catch(const std::string & str) {
-		if(str!="Premature end of data stream") {
-			std::cerr << "Exception while parsing key: " << str << std::endl;
+	} catch(const string & str) {
+		if (!foundSecret)
+		{
+			cerr << "File is corrupted or does not contain a secret key." << endl;
 			return EXIT_FAILURE;
 		}
 	}
 	catch(const char *cstr) {
-		if(strcmp("Premature end of data stream",cstr)!=0){
-			std::cerr << "Exception while parsing key: " << cstr << std::endl;
-			return EXIT_FAILURE;
-		}
+			if (!foundSecret){
+				cerr << "File is corrupted or does not contain a secret key." << endl;
+				return EXIT_FAILURE;
+			}
 	}
 	return EXIT_SUCCESS;
 }
