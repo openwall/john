@@ -17,7 +17,13 @@ Many OpenCL formats fail at runtime on Mac OS X (whereas CUDA ones work
 fine).  We've seen these fail on Mac OS X 10.8.1: bf-opencl,
 mscash2-opencl, nt-opencl, rar, raw-sha512-opencl, sha512crypt-opencl,
 wpapsk-opencl, and xsha512-opencl.  We suspect that this may be caused
-by driver bugs.  The same formats work fine on Linux.
+by driver bugs.  The same formats work fine on Linux using the same
+hardware.
+
+OS X also has a problem with run-time compile of kernels that include
+header files. A workaround is to cd to the src directory and run each
+OpenCL format once. After that, the kernel binary is cached so you can
+move away from the src directory.
 
 In GPU-enabled builds, running "john --test" (with no --format
 restriction) will eventually fail (before it has a chance to test all
