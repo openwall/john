@@ -3,6 +3,7 @@
  * Based on source code provided by Samuele Giovanni Tonon
  *
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-256
+ * More information at http://openwall.info/wiki/john/OpenCL-CISCO4
  *
  * Copyright (c) 2011 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
@@ -19,8 +20,11 @@
 #include "config.h"
 #include "opencl_rawsha256.h"
 
-#define FORMAT_LABEL			"raw-sha256-opencl"
-#define FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
+#define RAW_FORMAT_LABEL		"raw-sha256-opencl"
+#define RAW_FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
+#define CISCO_FORMAT_LABEL		"cisco4-opencl"
+#define CISCO_FORMAT_NAME		"Cisco \"type 4\" hashes SHA-256"
+
 #define ALGORITHM_NAME			"OpenCL (inefficient, development use mostly)"
 
 #define BENCHMARK_COMMENT		""
@@ -44,13 +48,27 @@ static int hash_found;
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
 
-static struct fmt_tests tests[] = {
+static struct fmt_tests raw_tests[] = {
 	{"5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", "password"},
 	{"$SHA256$ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
 	{"$SHA256$e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
 #ifdef DEBUG //Special test cases.
 	{"a49c2c9d0c006c8cb55a9a7a38822b83e0cd442614cb416af952fa50156761dc", "openwall"},
 #endif
+	{NULL}
+};
+
+static struct fmt_tests cisco_tests[] = {
+	{"$cisco4$OsOmQzwozC4ROs/CzpczJoShdCeW9lp7k/tGrPS5Kog", "1"},
+	{"$cisco4$LcV6aBcc/53FoCJjXQMd7rBUDEpeevrK8V5jQVoJEhU", "password"},
+	{"$cisco4$d7kgbEk.P6mpKdduC66fUy1BF0MImo3eyJ9uI/JbMRk", "openwall"},
+	{"$cisco4$p5BSCWNS3ivUDpZlWthR.k4Q/xWqlFyEqXdaPikHenI", "2"},
+	{"$cisco4$HwUf7ev9Fx84X2vvspULAeDbmwlg9jgm/Wk63kc3vfU", "11"},
+	{"$cisco4$bsPEUMVATKKO9yeUlJfE3OCzHlgf0s6goJpg3P1k0UU", "test"},
+	{"$cisco4$hUsuWZSE8dZERUBYNwRK8Aa8VxEGIHsuZFUCjNj2.Ac", "verylongbutweakpassword"},
+	{"$cisco4$fLUL1VG98zYDf9Q.M40nZ5blVT3M6UBex74Blw.UDCc", "thismaximumpasswordlength"},
+	{"$cisco4$Xq81UiuCj7bz9B..EX2BZumsU/d8pF5gs2NlRMW6sTk", "applesucks"},
+	{"$cisco4$O/D/cn1nawcByQoJfBxrNnUx6jjfWV.FNFx5TzmzihU", "AppleSucks"},
 	{NULL}
 };
 
@@ -72,6 +90,29 @@ static size_t get_default_workgroup(){
 		return 1;
 	else
 		return 128;
+}
+
+static void decode64(unsigned char * dst, unsigned char * src) {
+	int i, j;
+	unsigned int ch;
+
+	for (i = 0, j = 0; j < SHA256_DIGEST_LENGTH; j += 3) {
+		// Get 1st byte of input (1st and 2nd)
+	        ch = src[i++];
+		dst[j] = ((atoi64[ch] << 2) & 252) + (atoi64[src[i]] >> 4 & 0x03);
+
+		// Get 2nd byte of input (2nd and 3rd)
+		ch = src[i++];
+		dst[j + 1] = ((atoi64[ch] << 4) & 240) + (atoi64[src[i]] >> 2 & 0x0f);
+
+		// Size of destination string.
+		if (j + 2 == SHA256_DIGEST_LENGTH) {
+			break;
+		}
+		// Get 3rd byte of input (3rd and 4th)
+		ch = src[i++];
+		dst[j + 2] = ((atoi64[ch] << 6) & 192) + (atoi64[src[i++]] & 0x3f);
+	}
 }
 
 static void crypt_one(int index, sha256_hash * hash) {
@@ -307,6 +348,31 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt) {
 	return out;
 }
 
+static int valid_cisco(char * ciphertext, struct fmt_main * self) {
+	char *p, *q;
+
+	p = ciphertext;
+	if (!strncmp(p, "$cisco4$", 8))
+		p += 8;
+
+	q = p;
+	while (atoi64[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q && q - p == CISCO_CIPHERTEXT_LENGTH;
+}
+
+static char *split_cisco(char *ciphertext, int index, struct fmt_main *pFmt) {
+
+	static char out[8 + CISCO_CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, "$cisco4$", 8))
+		return ciphertext;
+
+	memcpy(out, "$cisco4$", 8);
+	memcpy(out + 8, ciphertext, CISCO_CIPHERTEXT_LENGTH + 1);
+	return out;
+}
+
 /* ------- To binary functions ------- */
 static void * get_binary(char *ciphertext) {
 	static unsigned char *out;
@@ -343,6 +409,39 @@ static void * get_full_binary(char *ciphertext) {
 				 atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
+
+	return out;
+}
+
+static void * get_cisco_binary(char *ciphertext) {
+	static unsigned char *out;
+	uint32_t * b;
+	unsigned char *p;
+
+	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	p = (unsigned char *) ciphertext + 8;
+
+	//Decode for CISCO-4.
+	decode64(out, p);
+
+	//Undo some computation.
+	b = (uint32_t *) out;
+	b[0] = SWAP32(b[3]) - H3;
+
+	return out;
+}
+
+static void * get_cisco_full_binary(char *ciphertext) {
+	static unsigned char *out;
+	unsigned char *p;
+
+	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+
+	p = (unsigned char *) ciphertext + 8;
+
+	//Decode for CISCO-4.
+	decode64(out, p);
 
 	return out;
 }
@@ -454,6 +553,21 @@ static int cmp_exact(char *source, int index) {
 	return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
 }
 
+static int cmp_exact_cisco(char *source, int index) {
+	//I don't know why, but this is called and i have to recheck.
+	//If i skip this final test i get:
+	//form=raw-sha512-ng-opencl	 guesses: 1468 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+	//.pot CHK:raw-sha512-ng-opencl	 guesses: 1452 time: 0:00:00:02 : Expected count(s) (1500)  [!!!FAILED!!!]
+
+	uint32_t * binary;
+	sha256_hash full_hash;
+
+	crypt_one(index, &full_hash);
+
+	binary = (uint32_t *) get_cisco_full_binary(source);
+	return !memcmp(binary, (void *) &full_hash, FULL_BINARY_SIZE);
+}
+
 /* ------- Binary Hash functions group ------- */
 #ifdef DEBUG
 static void print_binary(void * binary) {
@@ -502,8 +616,8 @@ static int get_hash_6(int index) { return calculated_hash[index] & 0x7FFFFFF; }
 /* ------- Format structure ------- */
 struct fmt_main fmt_opencl_rawsha256 = {
 	{
-		FORMAT_LABEL,
-		FORMAT_NAME,
+		RAW_FORMAT_LABEL,
+		RAW_FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
@@ -514,8 +628,8 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
-		tests
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+		raw_tests
 	}, {
 		init,
 		done,
@@ -553,5 +667,62 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		cmp_all,
 		cmp_one,
 		cmp_exact
+	}
+};
+
+/* ------- Format structure ------- */
+struct fmt_main fmt_opencl_cisco4 = {
+	{
+		CISCO_FORMAT_LABEL,
+		CISCO_FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		CISCO_LIMIT_PLAINTEXT - 1,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT,
+		cisco_tests
+	}, {
+		init,
+		done,
+		fmt_default_reset,
+		fmt_default_prepare,
+		valid_cisco,
+		split_cisco,
+		get_cisco_binary,
+		fmt_default_salt,
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		fmt_default_set_salt,
+		set_key,
+		get_key,
+		fmt_default_clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		cmp_all,
+		cmp_one,
+		cmp_exact_cisco
 	}
 };

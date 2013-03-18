@@ -18,6 +18,15 @@
 #include "opencl_sha256.h"
 
 //Constants.
+#define RAW_PLAINTEXT_LENGTH    32      /* 31 characters + 0x80 */
+#define CISCO_LIMIT_PLAINTEXT   26      /* 25 characters + 0x80 */
+#define CISCO_PLAINTEXT_LENGTH  28      /* CISCO_LIMIT_PLAINTEXT multiple of 4 */
+
+#define RAW_CIPHERTEXT_LENGTH   64
+#define CISCO_CIPHERTEXT_LENGTH 43
+#define RAW_PLAINTEXT_ARRAY     (RAW_PLAINTEXT_LENGTH / 4)
+#define CISCO_PLAINTEXT_ARRAY   (CISCO_PLAINTEXT_LENGTH / 4)
+
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
 #define PLAINTEXT_TEXT          "32"
 #define CIPHERTEXT_LENGTH       64
