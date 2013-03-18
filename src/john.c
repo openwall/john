@@ -967,6 +967,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
+#ifndef _MSC_VER
 	if (!strcmp(name, "zip2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
@@ -975,6 +976,7 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return hccap2john(argc, argv);
 	}
+#endif
 
 #ifdef HAVE_MPI
 	mpi_setup(argc, argv);
