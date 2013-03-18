@@ -27,6 +27,7 @@
 #include <map>
 #include <fstream>
 #include <iostream>
+#include <cstdlib>
 #include <stdio.h>
 #include <sstream>
 #include <stdexcept>
@@ -233,19 +234,20 @@ void attempt_crack(VNC_Auth_Reader & reader, std::istream & wordlist)
 
 int main(int argc, char *argv[])
 {
-	try {
-		if (argc < 2) {
-			std::cerr << "Usage: " << argv[0] << " <pcapfiles>\n";
-			return 1;
-		}
-		for(int i = 1; i < argc; i++) {
+	int ret=EXIT_SUCCESS;
+	if (argc < 2) {
+		std::cerr << "Usage: " << argv[0] << " <pcapfiles>\n";
+		return EXIT_FAILURE;
+	}
+	for(int i = 1; i < argc; i++) {
+		try {
 			VNC_Auth_Reader reader(argv[i]);
 			attempt_crack(reader, std::cin);
 		}
+		catch(std::exception & e) {
+			std::cerr << "Error while processing: "<< argv[i] << " " << e.what() << std::endl;
+			ret = EXIT_FAILURE;
+		}
 	}
-	catch(std::exception & e) {
-		std::cout << e.what() << std::endl;
-		return 1;
-	}
-	return 0;
+	return ret;
 }
