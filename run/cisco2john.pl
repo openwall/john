@@ -40,13 +40,17 @@
 
 use strict;
 
-die "Usage: $0 [cisco config file] [...]\n" if ($ARGV[0] =~ /-h/);
-
 my $seedNotice = 1;
-
 my %Alphabets = (
 	CISCO => "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
 	);
+
+sub usage {
+    my $dn = $0; $dn =~ s/(.*)\/cisco2john.pl/$1/;
+    print "Usage:\t$0 [cisco config file(s)] >>hashfile 2>>seed.txt\n";
+    print "\t${dn}/john -format:md5 -wordlist:seed.txt -rules hashfile\n\n";
+    exit 1;
+}
 
 sub Decode {
   my $data = shift;
@@ -96,7 +100,7 @@ sub deobfuscate
 		 0x2c, 0x2e, 0x69, 0x79, 0x65, 0x77, 0x72, 0x6b, 0x6c,
 		 0x64, 0x4a, 0x4b, 0x44, 0x48, 0x53 , 0x55, 0x42 );
     my $dp = "";
-    my ($s, $e) = ($2 =~ /^(..)(.+)/o);
+    my ($s, $e) = ($2 =~ /^(..)(.+)/);
     for (my $i = 0; $i < length($e); $i+=2) {
 	$dp .= sprintf "%c",hex(substr($e,$i,2))^$xlat[$s++];
     }
@@ -107,45 +111,77 @@ sub notice
 {
     if ($seedNotice) {
 	$seedNotice = 0;
-	print STDERR "#!comment: Found recoverable or clear-text passwords:\n";
+	print STDERR "#!comment: Found recoverable or clear-text passwords, or other seed:\n";
     }
 }
 
+if ($ARGV[0] =~ /-h/) { usage() }
+
 foreach (<>) {
     s/[\r\n]//g;
-    if (/(password|md5|secret)\s+0\s/) {
+    #print "in: $_\n";
+
+    # password 0 <cleartext>
+    if (/(password|md5|secret|ascii) 0 /) {
+	#print "in1: $_\n";
 	notice();
-	s/\s+privilege\s+[0-9]+\s*$//;
+	s/\s+privilege [0-9]+ *$//;
 	s/[ :]+/_/g;
 	m/^.{1,}_0_(.*)/;
 	if (unique($1)) {
 	    print STDERR $1, "\n";
 	}
-    } elsif (/(password|md5)\s+7\s+([\da-f]+)/io) {
+    # password 7 <obfuscated>
+    } elsif (/(password|md5|ascii|key) 7 ([\dA-F]+)/) {
+	#print "in2: $_\n";
 	notice();
 	my $pw = deobfuscate($1);
 	if (unique($pw)) {
 	    print STDERR $pw, "\n";
 	}
-    } elsif (m/(\$1\$[\$\.\/0-9A-Za-z]{27,31})/) {
+    # secret 5 <crypt-md5-hash>
+    } elsif (m/ (\$1\$[\$\.\/0-9A-Za-z]{27,31})(?: |$)/) {
+	#print "in3: $_\n";
 	my $hash = $1;
 	s/[ :]+/_/g;
 	m/^(.{1,})_5_\$1\$.*/;
-	print $1, ":", $hash, "\n";
-    } elsif (m/([\$\.\/0-9A-Za-z]{43})/) {
+	my $output = $1 . ":" . $hash;
+	if (unique($output)) {
+	    print $output, "\n";
+	}
+    # secret 4 <sha-256 hash>
+    } elsif (m/ 4 ([\$\.\/0-9A-Za-z]{43})(?: |$)/) {
+	#print "in4: $_\n";
 	my $hash = $1;
-	s/[ :]+/_/g;
+	s/[\s:]+/_/g;
 	m/^(.{1,})_4_[\$\.\/0-9A-Za-z]{43}/;
-	print $1, ":";
+	my $output = $1 . ':$SHA256$';
 	my $binhash = Decode($hash, 'CISCO');
-	print join("", map { sprintf("%02x", ord($_)) } split(//, join("", $binhash))), "\n";
-    } elsif (/(password|md5|secret)\s+[^045]/) {
+	$output .= join("", map { sprintf("%02x", ord($_)) } split(//, join("", $binhash)));
+	if (unique($output)) {
+	    print $output, "\n";
+	}
+    # Hostname and SNMP communities - add to seeds
+    } elsif (m/(?:hostname|snmp-server community) ([^\s]+)/) {
+	#print "in5: $_\n";
 	notice();
-	s/\s+privilege\s+[0-9]+\s*$//;
+	if (unique($1)) {
+	    print STDERR $1, "\n";
+	}
+    # password <cleartext> (may produce false hits but what the heck)
+    } elsif (/^(username|enable|wpapsk).*(password|md5|secret|ascii) / ||
+	     /^ (password|md5|secret|ascii) /) {
+	#print "in6: $_\n";
+	notice();
+	s/ privilege [0-9] *$//;
 	s/[ :]+/_/g;
 	m/^((?:.*)(?:password|md5|secret))_(.*)/;
 	if (unique($2)) {
 	    print STDERR $2, "\n";
 	}
     }
+}
+
+if (keys(%uniq) == 0) {
+    usage();
 }
