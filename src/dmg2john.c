@@ -27,7 +27,6 @@
 #include <alloca.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <libgen.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <openssl/evp.h>
@@ -37,6 +36,7 @@
 #include "stdint.h"
 #include "gladman_fileenc.h"
 #include "filevault.h"
+#include "misc.h"
 
 #define ntohll(x) (((uint64_t) ntohl((x) >> 32)) | (((uint64_t) ntohl((uint32_t) ((x) & 0xFFFFFFFF))) << 32))
 

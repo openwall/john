@@ -49,7 +49,6 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
-#include <libgen.h>
 
 #include "misc.h"
 #include "common.h"

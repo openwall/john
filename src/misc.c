@@ -18,6 +18,7 @@
 #include <errno.h>
 
 #include "logger.h"
+#include "params.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
@@ -184,3 +185,59 @@ char *strupr(char *s)
 	return s;
 }
 #endif
+
+// For used in jtr_basename_r function.  We need to handle separator chars differently
+// in unix vs Win32(DOS).
+#if defined _WIN32 || defined __WIN32__ || defined _MSC_VER || defined __DJGPP__ || defined __CYGWIN32__ || defined __MINGW32__
+#define SEP_CHAR(c) ((c)=='/'||(c)=='\\')
+#else
+#define SEP_CHAR(c) ((c)=='/')
+#endif
+
+
+char *jtr_basename_r(const char *name, char *buf) {
+	char *base, *p;
+	int something=0;
+
+	// if name was null, or the string was null, then return a '.' char.
+	if (!name || name[0]==0) return ".";
+
+	strcpy(buf, name);
+	base = buf;
+
+	// deal with 'possible' drive letter in Win32/DOS type systems.
+#if defined _WIN32 || defined __WIN32__ || defined _MSC_VER || defined __DJGPP__ || defined __CYGWIN32__ || defined __MINGW32__
+	if (strlen(base)>1 &&
+	   ((base[0] >= 'A' && base[0] <= 'Z')||(base[0] >= 'a' && base[0] <= 'z')) &&
+	   base[1] == ':')
+		base += 2;
+	if (base[0]==0) return ".";
+#endif
+
+	p = base;
+	while (*p) {
+		if (SEP_CHAR(*p)) {
+			if (p[1] && !SEP_CHAR(p[1]))
+				base = p+1;
+		}
+		else
+			something = 1;
+		++p;
+	}
+	if (!something) {
+		base = &base[strlen(base)-1];
+	} else if (strlen(base)) {
+		p = &base[strlen(base)-1];
+		while (SEP_CHAR(*p) && p >= base) {
+			*p = 0;
+			--p;
+		}
+		if (base[0]==0) return ".";
+	}
+	return (char*)base;
+}
+
+char *jtr_basename(const char *name) {
+	static char buf[PATH_BUFFER_SIZE+1];
+	return jtr_basename_r(name, buf);
+}
