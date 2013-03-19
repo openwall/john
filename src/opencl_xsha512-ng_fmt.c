@@ -740,7 +740,7 @@ struct fmt_main fmt_opencl_xsha512_ng = {
 #endif
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		tests
 	}, {
 		init,
