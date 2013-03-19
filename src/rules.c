@@ -701,7 +701,7 @@ void rules_init(int max_length)
 
 char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 {
-	static char out_rule[RULE_BUFFER_SIZE];
+	static char out_rule[4 * RULE_BUFFER_SIZE]; // 4x for \xHEX encoding
 
 	while (RULE)
 	switch (LAST) {
