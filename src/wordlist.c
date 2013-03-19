@@ -495,6 +495,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 					fprintf(stderr, "fread: Unexpected EOF\n");
 					error();
 				}
+				if (memchr(word_file_str, 0, file_len)) {
+					fprintf(stderr, "Error: wordlist contains NULL bytes - aborting\n");
+					error();
+				}
 			}
 #else
 		if (file_len < db->options->max_wordfile_memory || forceLoad)
@@ -509,6 +513,10 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 				if (ferror(word_file))
 					pexit("fread");
 				fprintf(stderr, "fread: Unexpected EOF\n");
+				error();
+			}
+			if (memchr(word_file_str, 0, file_len)) {
+				fprintf(stderr, "Error: wordlist contains NULL bytes - aborting\n");
 				error();
 			}
 #endif
@@ -555,6 +563,15 @@ void do_wordlist_crack(struct db_main *db, char *name, int rules)
 			do
 			{
 				char *ep, ec;
+				if (i > nWordFileLines) {
+#ifdef HAVE_MPI
+					if (mpi_id == 0)
+#endif
+						fprintf(stderr, "Warning: wordlist contains inconsequent newlines, some words may be skipped\n");
+					log_event("- Warning: wordlist contains inconsequent newlines, some words may be skipped");
+					i--;
+					break;
+				}
 				if (loopBack)
 					cp = (char*)potword(cp);
 				ep = cp;
@@ -591,7 +608,7 @@ skip:
 				if (ec == '\r' && *cp == '\n') cp++;
 				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
-			if (nWordFileLines - i)
+			if ((long long)nWordFileLines - i > 0)
 				log_event("- suppressed %u duplicate lines and/or comments from wordlist.", nWordFileLines - i);
 			MEM_FREE(buffer.hash);
 			MEM_FREE(buffer.data);
