@@ -580,19 +580,19 @@ void BF_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 	else
 		opencl_init_Sayantan("$JOHN/kernels/bf_kernel.cl", dev_no, platform_no, NULL);
 
-	pltfrmid[platform_no]=platform[platform_no];
+	pltfrmid[platform_no]=platform[ocl_gpu_id];
 
-	devid[platform_no][dev_no]=devices[dev_no];
+	devid[platform_no][dev_no]=devices[ocl_gpu_id];
 
-	cntxt[platform_no][dev_no]=context[dev_no];
+	cntxt[platform_no][dev_no]=context[ocl_gpu_id];
 
-	prg[platform_no][dev_no]=program[dev_no];
+	prg[platform_no][dev_no]=program[ocl_gpu_id];
 
 	krnl[platform_no][dev_no]=clCreateKernel(prg[platform_no][dev_no],"blowfish",&err) ;
 
 	if(err) {fprintf(stderr, "Create Kernel blowfish FAILED\n"); return ;}
 
-	cmdq[platform_no][dev_no]=queue[dev_no];
+	cmdq[platform_no][dev_no]=queue[ocl_gpu_id];
 
 	buffers[platform_no][dev_no].salt_gpu=clCreateBuffer(cntxt[platform_no][dev_no],CL_MEM_READ_ONLY, 4*sizeof(cl_uint), NULL, &err);
 	if((buffers[platform_no][dev_no].salt_gpu==(cl_mem)0)) { HANDLE_CLERROR(err, "Create Buffer FAILED"); }

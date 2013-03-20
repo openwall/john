@@ -94,21 +94,22 @@ static void done(void)
 }
 
 static void init(struct fmt_main *self)
-{	
+{
 	char *conf;
-	
+
 	saved_key = mem_calloc(BF_N * sizeof(*saved_key));
-	
+
 	global_work_size = 0;
-	
+
 	if ((conf = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, GWS_CONFIG)))
 		global_work_size = atoi(conf);
 
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf);
-	
+
 	// BF_select_device(platform,device);
-        BF_select_device(platform_id, ocl_gpu_id,self);
+	platform_id = get_platform_id(ocl_gpu_id);
+        BF_select_device(platform_id, get_device_id(ocl_gpu_id),self);
 	keys_mode = 'a';
 	sign_extension_bug = 0;
 	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");

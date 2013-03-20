@@ -1303,11 +1303,11 @@ void opencl_init_dev(unsigned int sequential_id)
 void opencl_init_Sayantan(char *kernel_filename, unsigned int dev_id, unsigned int platform_id, char *options)
 {
 	//Shows the information about in use device(s).
-	int sequential_id = dev_id;
+	int sequential_id = get_sequential_id(dev_id, platform_id);
 
 	kernel_loaded=0;
 	opencl_init_dev(sequential_id);
-	opencl_build_kernel_save(kernel_filename, sequential_id, options, 1, 0);
+	opencl_build_kernel_save(kernel_filename, sequential_id, options, 1, 1);
 }
 
 void opencl_init_opt(char *kernel_filename, unsigned int sequential_id, char *options)
