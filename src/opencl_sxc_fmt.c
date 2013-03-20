@@ -22,7 +22,7 @@
 #endif
 
 #define FORMAT_LABEL		"sxc-opencl"
-#define FORMAT_NAME		"SXC SHA-1 Blowfish"
+#define FORMAT_NAME		"Staroffice SXC SHA-1 Blowfish"
 #define ALGORITHM_NAME		"OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	-1
