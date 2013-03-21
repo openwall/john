@@ -61,7 +61,8 @@ static void init(struct fmt_main *pFmt)
 	if ((conf = getenv("GWS")))
 		global_work_size = atoi(conf);
 
-	DES_bs_select_device(platform_id,ocl_gpu_id,pFmt);
+	platform_id = get_platform_id(ocl_gpu_id);
+	DES_bs_select_device(platform_id,get_device_id(ocl_gpu_id),pFmt);
 
 	atexit(done);
 

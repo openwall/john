@@ -292,20 +292,20 @@ void DES_bs_select_device(int platform_no,int dev_no,struct fmt_main *fmt)
 	devno = dev_no;
 	pltfrmno = platform_no;
 	opencl_init_Sayantan("$JOHN/kernels/DES_bs_kernel.cl", dev_no, platform_no, NULL);
-	pltfrmid[platform_no] = platform[platform_no];
-	devid[platform_no][dev_no] = devices[dev_no];
-	cntxt[platform_no][dev_no] = context[dev_no];
-	prg[platform_no][dev_no] = program[dev_no];
+	pltfrmid[platform_no] = platform[ocl_gpu_id];
+	devid[platform_no][dev_no] = devices[ocl_gpu_id];
+	cntxt[platform_no][dev_no] = context[ocl_gpu_id];
+	prg[platform_no][dev_no] = program[ocl_gpu_id];
 	krnl[platform_no][dev_no][0] = clCreateKernel(prg[platform_no][dev_no],"DES_bs_25_b",&err) ;
 	if(err) {printf("Create Kernel DES_bs_25_b FAILED\n"); return ;}
-	cmdq[platform_no][dev_no] = queue[dev_no];
+	cmdq[platform_no][dev_no] = queue[ocl_gpu_id];
 
 	/* Honour this for testing and --test=0 */
 	//if ((env = getenv("LWS")))
 	//	DES_local_work_size = atoi(env);
 
 	/* Cap LWS at device limit... */
-	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][0], devices[dev_no], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_lws), &max_lws, NULL), "Query max work group size");
+	HANDLE_CLERROR(clGetKernelWorkGroupInfo(krnl[platform_no][dev_no][0], devices[ocl_gpu_id], CL_KERNEL_WORK_GROUP_SIZE, sizeof(max_lws), &max_lws, NULL), "Query max work group size");
 
 	/* ...but ensure GWS is still a multiple of LWS */
 	while (DES_local_work_size > max_lws)
