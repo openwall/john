@@ -89,7 +89,7 @@ static void process_file(char *filename)
 	int i, j;
 	int tag;
 	unsigned char p, length;
-	int count, keysize;
+	int count, keysize = 0;
 	int numOfCerts, certsize;
 	long size;
 	size_t read;
