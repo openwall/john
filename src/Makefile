@@ -2090,14 +2090,14 @@ endif
 ../run/gpg2john:
 	$(CXX) -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
 
-../run/truecrypt_volume2john:
-	$(CC) $(CFLAGS) truecrypt_volume2john.c -lcrypto -o ../run/truecrypt_volume2john
+../run/truecrypt_volume2john: truecrypt_volume2john.o
+	$(LD) $(LDFLAGS) truecrypt_volume2john.o -lcrypto -o ../run/truecrypt_volume2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o -o ../run/uaf2john
 
-../run/wpapcap2john:
-	$(CC) $(CFLAGS) wpapcap2john.c -o ../run/wpapcap2john
+../run/wpapcap2john: wpapcap2john.o
+	$(LD) $(LDFLAGS) wpapcap2john.o -o ../run/wpapcap2john
 
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf
