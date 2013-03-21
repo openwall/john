@@ -1,3 +1,10 @@
+/*
+Removed from Makefile:
+office2john:
+	$(CC) `xml2-config --cflags` `pkg-config --cflags libgsf-1` office2john.c common.o base64.o `pkg-config --libs libgsf-1` `xml2-config --libs` -o ../run/office2john
+
+*/
+
 /* office2john.c: written by Dhiru Kholia in Summer of 2012 and released
  * under GNU LGPL. Based on test-dump-msole.c (under LPGL) and OoXmlCrypto.cs
  * (under LGPL).
