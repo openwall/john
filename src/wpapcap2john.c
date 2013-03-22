@@ -66,8 +66,7 @@ int GetNextPacket(FILE *in) {
 	} else
 		cur_u = pkt_hdr.ts_usec-start_u;
 
-	fread(packet, 1, pkt_hdr.incl_len, in);
-	return 1;
+	return (fread(packet, 1, pkt_hdr.incl_len, in) == pkt_hdr.incl_len);
 }
 
 // Ok, this function is the main packet processor.  NOTE, when we are done
