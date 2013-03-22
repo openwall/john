@@ -170,7 +170,7 @@ int uaf_extract_from_raw(void *rec_vp, int rec_len,
 	 * Fill in password data.
 	 */
 	memcpy(pwd, rec->pwd, 8);	/* assume hash is first member */
-	pwd->flags = *((unsigned long *) &rec->flags);
+	pwd->flags = rec->flagbits;
 	if ((pwd->flags & UAI$M_PWDMIX) && !rec->flags.pwdmix)
 		printf("Bugcheck, pwdmix bitfield definition wrong: %d\n",
 		    rec->flags.pwdmix);

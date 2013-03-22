@@ -101,7 +101,10 @@ struct uaf_rec {
     uafrec_qword def_priv;		/* default privileges */
     char min_class[20];		/* Minimum security class */
     char max_class[20];
-    uaf_flags_bitset flags;
+    union {
+	uaf_flags_bitset flags;
+	unsigned flagbits;
+    };
 
     unsigned char fixed_fill[128+44];
     unsigned char user_fill[768];
