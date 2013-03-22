@@ -89,8 +89,8 @@
 #define BENCHMARK_LENGTH		-1
 
 // There 'ARE' more types, but we only handle these 2, at this time.
-#define MAGIC  "$md5,rounds=904$"
-#define MAGIC2 "$md5$rounds=904$"
+#define MAGIC  "$md5,"
+#define MAGIC2 "$md5$"
 
 /* THIS one IS a depricated sun string, but for real:  $md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0: Sun MD5 "password"  */
 /* $md5,rounds=5000$GUBv0xjJ$$mSwgIswdjlTY0YxV7HBVm0   passwd  This one was the python code from http://packages.python.org/passlib/lib/passlib.hash.sun_md5_crypt.html, but the rounds are busted. */
