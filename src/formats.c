@@ -108,7 +108,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
-#ifndef BENCH_BUILD
 #ifdef DEBUG
 	int validkiller = 0;
 #endif
@@ -116,6 +115,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int ml = format->params.plaintext_length;
 	char longcand[PLAINTEXT_BUFFER_SIZE];
 
+#ifndef BENCH_BUILD
 	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back */
 	if ((options.utf8) && (format->params.flags & FMT_UTF8) &&
 	    (format->params.flags & FMT_UNICODE))
