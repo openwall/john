@@ -126,7 +126,8 @@ static void process_file(char *filename)
 			// Read the alias
 			p = fgetc(fp);
 			length = fgetc(fp);
-			fread(buf, length, 1, fp);
+			read = fread(buf, length, 1, fp);
+			assert(read == 1);
 
 			// Read the (entry creation) date
 			read = fread(buf, 8, 1, fp);
