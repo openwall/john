@@ -232,7 +232,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
-	../run/truecrypt_volume2john
+	../run/truecrypt_volume2john ../run/wpapcap2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -260,7 +260,7 @@ PROJ_WIN32_MINGW = ../run/john-mingw.exe \
 	../run/pfx2john.exe ../run/keychain2john.exe ../run/keyring2john.exe \
 	../run/kwallet2john.exe ../run/putty2john john.local.conf
 PROJ_CXX = ../run/gpg2john
-PROJ_PCAP = ../run/SIPdump ../run/wpapcap2john ../run/vncpcap2john
+PROJ_PCAP = ../run/SIPdump ../run/vncpcap2john
 default:
 	@echo "To build John the Ripper, type:"
 	@echo "	make clean SYSTEM"
