@@ -22,7 +22,7 @@
 #else
 #include <unistd.h>
 #endif
-#include <stdlib.h> 
+#include <stdlib.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -66,7 +66,7 @@
 
 #define MIN_KEYS_PER_CRYPT		1
 #ifdef MMX_COEF
-/* 
+/*
  * 576 divides evenly by 4, 8, 12, 16 (para = 1, 2, 3, 4) Each of these
  * will get an even number of para buckets, so hopefully we get the best
  * average fill we possibly can get. 960 would also allow us to pick up 20 (para 5)
@@ -89,8 +89,8 @@
 #define BENCHMARK_LENGTH		-1
 
 // There 'ARE' more types, but we only handle these 2, at this time.
-#define MAGIC  "$md5,rounds=904$"
-#define MAGIC2 "$md5$rounds=904$"
+#define MAGIC  "$md5,"
+#define MAGIC2 "$md5$"
 
 /* THIS one IS a depricated sun string, but for real:  $md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0: Sun MD5 "password"  */
 /* $md5,rounds=5000$GUBv0xjJ$$mSwgIswdjlTY0YxV7HBVm0   passwd  This one was the python code from http://packages.python.org/passlib/lib/passlib.hash.sun_md5_crypt.html, but the rounds are busted. */
@@ -381,7 +381,7 @@ static int cmp_exact(char *source, int index)
 
 // inline function, as a macro.
 #define md5bit_1(d,b) ((d[((b)>>3)&0xF]&(1<<((b)&7))) ? 1 : 0)
-// md5bit with no conditional logic. 
+// md5bit with no conditional logic.
 #define md5bit_2(d,b) (((d[((b)>>3)&0xF]>>((b)&7)))&1)
 
 static inline int
@@ -504,7 +504,7 @@ static void crypt_all(int count)
 
 		/*
 		 *  now this is computed at bottom of loop (we start properly set at "0", len==1)
-		 *    ** code replaced** 
+		 *    ** code replaced**
 		 *  roundasciilen = sprintf(roundascii, "%d", round);
 		 */
 
@@ -793,7 +793,7 @@ static void crypt_all(int count)
 			MD5_Final(px->digest, &px->context);
 		}
 #endif
-		/* 
+		/*
 		 * this is the equivelent of the original code:
 		 *    roundasciilen = sprintf(roundascii, "%d", round);
 		 * that was at the top of this rounds loop.  We have moved
