@@ -158,8 +158,11 @@ void check_abort(int be_async_signal_safe)
 
 	if (!event_abort) return;
 
+#ifdef BENCH_BUILD
+	time = 0;
+#else
 	time = status_get_time();
-
+#endif
 	tty_done();
 
 	if (be_async_signal_safe) {
@@ -279,9 +282,9 @@ static void sig_install_timer(void);
 static void sig_handle_timer(int signum)
 {
 	int saved_errno = errno;
+#ifndef BENCH_BUILD
 	unsigned int time;
 
-#ifndef BENCH_BUILD
 #if OS_TIMER
 	if (!--timer_save_value) {
 		timer_save_value = timer_save_interval;
@@ -290,7 +293,6 @@ static void sig_handle_timer(int signum)
 
 	if (timer_abort > 0 || timer_status > 0) {
 		time = status_get_time();
-
 		if (time >= timer_abort)
 			event_abort = event_pending = 1;
 
@@ -394,7 +396,7 @@ void sig_init(void)
 		timer_save_interval = 1;
 #if OS_TIMER
 	timer_save_value = timer_save_interval;
-#else
+#elif !defined(BENCH_BUILD)
 	timer_save_value = status_get_time() + timer_save_interval;
 #endif
 	timer_ticksafety_interval = (clock_t)1 << (sizeof(clock_t) * 8 - 4);
