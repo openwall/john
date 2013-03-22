@@ -16,7 +16,7 @@ uint8 packet[65535];
 static int bROT;
 WPA4way_t wpa[1000];
 int nwpa=0;
-char itoa64[65] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+char cpItoa64[65] = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
 int Process(FILE *in, const char *InFName) {
 	pcap_hdr_t main_hdr;
@@ -179,7 +179,8 @@ void Handle4Way(int bIsQOS) {
 	// p now points to the 802.1X Authentication structure.
 	auth = (ether_auto_802_1x_t*)p;
 	auth->length = swap16u(auth->length);
-	*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
+	//*(uint16*)&(auth->key_info) = swap16u(*(uint16*)&(auth->key_info));
+	auth->key_info_u16 = swap16u(auth->key_info_u16);
 	auth->key_len  = swap16u(auth->key_len);
 	auth->replay_cnt  = swap64u(auth->replay_cnt);
 	auth->wpa_keydatlen  = swap16u(auth->wpa_keydatlen);
@@ -282,13 +283,13 @@ void Handle4Way(int bIsQOS) {
 // were taken from hccap2john.c source, and modified for this project.
 static void code_block(unsigned char *in, unsigned char b)
 {
-	putchar(itoa64[in[0] >> 2]);
-	putchar(itoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)]);
+	putchar(cpItoa64[in[0] >> 2]);
+	putchar(cpItoa64[((in[0] & 0x03) << 4) | (in[1] >> 4)]);
 	if (b) {
-		putchar(itoa64[((in[1] & 0x0f) << 2) | (in[2] >> 6)]);
-		putchar(itoa64[in[2] & 0x3f]);
+		putchar(cpItoa64[((in[1] & 0x0f) << 2) | (in[2] >> 6)]);
+		putchar(cpItoa64[in[2] & 0x3f]);
 	} else
-		putchar(itoa64[((in[1] & 0x0f) << 2)]);
+		putchar(cpItoa64[((in[1] & 0x0f) << 2)]);
 }
 
 void DumpKey(int ess, int one_three, int bIsQOS) {

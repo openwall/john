@@ -15,6 +15,8 @@ typedef   signed short     int16;
 typedef unsigned char      uint8;
 typedef   signed char      int8;
 
+#include "johnswap.h"
+
 // All data structures MUST be byte aligned, since we work on 'raw' data in structures
 // and do not load structures record by record.
 #pragma pack(1)
@@ -71,18 +73,21 @@ typedef struct ether_auto_802_1x_s {
 	uint8 key;
 	uint16 length;  // in BE format
 	uint8 key_descr; // should be 2 for EAPOL RSN KEY ?
-	struct {
-		uint16 KeyDescr	: 3; //
-		uint16 KeyType	: 1; // 1 is pairwise key
-		uint16 KeyIdx	: 2; // should be 0
-		uint16 Install	: 1; // should be 0
-		uint16 KeyACK	: 1; // 1=set 0=nope
-		uint16 KeyMIC	: 1; // 1 set, 0 nope
-		uint16 Secure	: 1;
-		uint16 Error	: 1;
-		uint16 Reqst	: 1;
-		uint16 EncKeyDat: 1;
-	}key_info;
+	union {
+		struct {
+			uint16 KeyDescr	: 3; //
+			uint16 KeyType	: 1; // 1 is pairwise key
+			uint16 KeyIdx	: 2; // should be 0
+			uint16 Install	: 1; // should be 0
+			uint16 KeyACK	: 1; // 1=set 0=nope
+			uint16 KeyMIC	: 1; // 1 set, 0 nope
+			uint16 Secure	: 1;
+			uint16 Error	: 1;
+			uint16 Reqst	: 1;
+			uint16 EncKeyDat: 1;
+		}key_info;
+		uint16 key_info_u16;	// union used for swapping, to work around worthless gcc warning.
+	};
 	uint16 key_len;
 	uint64 replay_cnt;
 	uint8 wpa_nonce[32];
@@ -118,17 +123,10 @@ inline uint16 swap16u(uint16 v) {
 	return ((v>>8)|((v&0xFF)<<8));
 }
 inline uint32 swap32u(uint32 v) {
-	return ((v>>24)|((v&0xFF)<<24) | ((v&0xFF0000)>>8) | ((v&0xFF00)<<8));
+	return JOHNSWAP(v);
 }
 inline uint64 swap64u(uint64 v) {
-	uint32 h,l;
-	h = ((uint32*)&v)[0];
-	l = ((uint32*)&v)[1];
-	h = ((h>>24)|((h&0xFF)<<24) | ((h&0xFF0000)>>8) | ((h&0xFF00)<<8));
-	l = ((l>>24)|((l&0xFF)<<24) | ((l&0xFF0000)>>8) | ((l&0xFF00)<<8));
-	((uint32*)&v)[0] = l;
-	((uint32*)&v)[1] = h;
-	return v;
+	return JOHNSWAP64(v);
 }
 
 // This type structure is used to keep track of EAPOL packets, as they are read
