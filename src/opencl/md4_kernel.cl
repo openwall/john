@@ -40,28 +40,26 @@
 /* some constants used below are passed with -D */
 //#define KEY_LENGTH (MD4_PLAINTEXT_LENGTH + 1)
 
-/* OpenCL kernel entry point. Copy KEY_LENGTH bytes key to be hashed from
- * global to local memory. Break the key into 16 32-bit (uint) words.
- * MD4 hash of a key is 128 bit (uint4). */
-__kernel void md4(__global const uint * keys, __global uint * hashes)
+/* OpenCL kernel entry point. Copy key to be hashed from
+ * global to local (thread) memory. Break the key into 16 32-bit (uint)
+ * words. MD4 hash of a key is 128 bit (uint4). */
+__kernel void md4(__global const uint *keys, __global const uint *index, __global uint *hashes)
 {
-	int id = get_global_id(0);
+	uint gid = get_global_id(0);
 	uint W[16] = { 0 };
 	uint i;
 	uint num_keys = get_global_size(0);
-	int base = id * (KEY_LENGTH / 4);
-	char *p;
+	uint base = index[gid];
+	uint len = base & 63;
 	uint a, b, c, d;
 
-	for (i = 0; i != (KEY_LENGTH / 4) && keys[base + i]; i++)
-		W[i] = keys[base + i];
+	keys += base >> 6;
 
-	// Find actual length
-	p = (char *) W;
-	for (i = i ? (i - 1) * 4 : 0; p[i]; i++);
-            
-	PUTCHAR(W, i, 0x80);
-	W[14] = i << 3;
+	for (i = 0; i < (len+3)/4; i++)
+		W[i] = *keys++;
+
+	PUTCHAR(W, len, 0x80);
+	W[14] = len << 3;
 
 	a = 0x67452301;
 	b = 0xefcdab89;
@@ -122,8 +120,8 @@ __kernel void md4(__global const uint * keys, __global uint * hashes)
 	STEP(H, c, d, a, b, W[7] + 0x6ed9eba1, 11);
 	STEP(H, b, c, d, a, W[15] + 0x6ed9eba1, 15);
 
-	hashes[id] = a + 0x67452301;
-	hashes[1 * num_keys + id] = b + 0xefcdab89;
-	hashes[2 * num_keys + id] = c + 0x98badcfe;
-	hashes[3 * num_keys + id] = d + 0x10325476;
+	hashes[gid] = a + 0x67452301;
+	hashes[1 * num_keys + gid] = b + 0xefcdab89;
+	hashes[2 * num_keys + gid] = c + 0x98badcfe;
+	hashes[3 * num_keys + gid] = d + 0x10325476;
 }
