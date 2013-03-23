@@ -289,9 +289,9 @@ extern int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define C_DATA_SIZE			0x8000000
 
 /*
- * Buffer size for rules.
+ * Buffer size for rules. This is 4x in jumbo, for \xhh notation.
  */
-#define RULE_BUFFER_SIZE		0x100
+#define RULE_BUFFER_SIZE		0x400
 
 /*
  * Maximum number of character ranges for rules.
