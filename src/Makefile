@@ -374,6 +374,7 @@ linux-x86-64-avx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64-xop:
 	$(LN) x86-64.h arch.h
@@ -387,6 +388,7 @@ linux-x86-64-xop:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64-gpu:
 	$(LN) x86-64.h arch.h
@@ -402,6 +404,7 @@ linux-x86-64-gpu:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -417,6 +420,7 @@ linux-x86-64-opencl:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -429,6 +433,7 @@ linux-x86-64-cuda:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64-native:
 	$(LN) x86-64.h arch.h
@@ -441,6 +446,7 @@ linux-x86-64-native:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64:
 	$(LN) x86-64.h arch.h
@@ -452,6 +458,7 @@ linux-x86-64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64i:
 	$(LN) x86-64.h arch.h
@@ -463,6 +470,7 @@ linux-x86-64i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-64-clang:
 	$(LN) x86-64.h arch.h
@@ -475,6 +483,7 @@ linux-x86-64-clang:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) CC="clang"
+	@echo "All done"
 
 linux-x86-64-clang-debug:
 	$(LN) x86-64.h arch.h
@@ -493,6 +502,7 @@ linux-x86-64-clang-debug:
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+	@echo "All done"
 
 linux-x86-64-icc:
 	$(LN) x86-64.h arch.h
@@ -506,6 +516,7 @@ linux-x86-64-icc:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CPP="icc" CC="icc" AS="icc" LD="icc"
 	$(MAKE) $(PROJ_PCAP) CPP="icc" CC="icc" AS="icc" LD="icc"
+	@echo "All done"
 
 linux-x86-64-32-native:
 	$(LN) x86-sse.h arch.h
@@ -518,6 +529,7 @@ linux-x86-64-32-native:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-64-32-sse2:
 	$(LN) x86-sse.h arch.h
@@ -530,6 +542,7 @@ linux-x86-64-32-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-64-32-sse2asm:
 	$(LN) x86-sse.h arch.h
@@ -542,6 +555,7 @@ linux-x86-64-32-sse2asm:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-64-32-sse2i:
 	$(LN) x86-sse.h arch.h
@@ -554,6 +568,7 @@ linux-x86-64-32-sse2i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-64-32-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -566,6 +581,7 @@ linux-x86-64-32-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-64-32-any:
 	$(LN) x86-any.h arch.h
@@ -578,6 +594,7 @@ linux-x86-64-32-any:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-avx:
 	$(LN) x86-sse.h arch.h
@@ -591,6 +608,7 @@ linux-x86-avx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-xop:
 	$(LN) x86-sse.h arch.h
@@ -604,6 +622,7 @@ linux-x86-xop:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 linux-x86-gpu:
 	$(LN) x86-sse.h arch.h
@@ -618,6 +637,7 @@ linux-x86-gpu:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-opencl:
 	$(LN) x86-sse.h arch.h
@@ -632,6 +652,7 @@ linux-x86-opencl:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-cuda:
 	$(LN) x86-sse.h arch.h
@@ -643,6 +664,7 @@ linux-x86-cuda:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-native:
 	$(LN) x86-sse.h arch.h
@@ -655,6 +677,7 @@ linux-x86-native:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -667,6 +690,7 @@ linux-x86-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-sse2i:
 	$(LN) x86-sse.h arch.h
@@ -679,6 +703,7 @@ linux-x86-sse2i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -690,6 +715,7 @@ linux-x86-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-any:
 	$(LN) x86-any.h arch.h
@@ -701,6 +727,7 @@ linux-x86-any:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-x86-clang:
 	$(LN) x86-sse.h arch.h
@@ -713,6 +740,7 @@ linux-x86-clang:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CXX="clang++"
 	$(MAKE) $(PROJ_PCAP) CC="clang"
+	@echo "All done"
 
 linux-x86-clang-debug:
 	$(LN) x86-sse.h arch.h
@@ -731,6 +759,7 @@ linux-x86-clang-debug:
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_DL $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+	@echo "All done"
 
 linux-alpha:
 	$(LN) alpha.h arch.h
@@ -742,6 +771,7 @@ linux-alpha:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 # This target is currently "undocumented" as ccc generates much slower
 # code for the large unrolled loops in John; let's hope it gets fixed.
@@ -758,6 +788,7 @@ linux-alpha-ccc:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CC=ccc
 	$(MAKE) $(PROJ_PCAP) CC=ccc
+	@echo "All done"
 
 linux-sparc:
 	$(LN) sparc32.h arch.h
@@ -769,6 +800,7 @@ linux-sparc:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
@@ -781,6 +813,7 @@ linux-ppc32-altivec:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-ppc32:
 	$(LN) ppc32.h arch.h
@@ -792,6 +825,7 @@ linux-ppc32:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 # This is slightly slower than linux-ppc32-altivec for most hash types.
 linux-ppc64-altivec:
@@ -805,6 +839,7 @@ linux-ppc64-altivec:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
+	@echo "All done"
 
 linux-ppc64:
 	$(LN) ppc64.h arch.h
@@ -817,6 +852,7 @@ linux-ppc64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
+	@echo "All done"
 
 linux-ia64:
 	$(LN) ia64.h arch.h
@@ -828,6 +864,7 @@ linux-ia64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-64:
 	$(LN) x86-64.h arch.h
@@ -837,6 +874,7 @@ freebsd-x86-64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-64i:
 	$(LN) x86-64.h arch.h
@@ -847,6 +885,7 @@ freebsd-x86-64i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -857,6 +896,7 @@ freebsd-x86-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-sse2i:
 	$(LN) x86-sse.h arch.h
@@ -868,6 +908,7 @@ freebsd-x86-sse2i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -878,6 +919,7 @@ freebsd-x86-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-any:
 	$(LN) x86-any.h arch.h
@@ -888,6 +930,7 @@ freebsd-x86-any:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-x86-any-a.out:
 	$(LN) x86-any.h arch.h
@@ -898,6 +941,7 @@ freebsd-x86-any-a.out:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 freebsd-alpha:
 	$(LN) alpha.h arch.h
@@ -907,6 +951,7 @@ freebsd-alpha:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-64:
 	$(LN) x86-64.h arch.h
@@ -916,6 +961,7 @@ openbsd-x86-64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-64i:
 	$(LN) x86-64.h arch.h
@@ -926,6 +972,7 @@ openbsd-x86-64i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -936,6 +983,7 @@ openbsd-x86-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-sse2i:
 	$(LN) x86-sse.h arch.h
@@ -947,6 +995,7 @@ openbsd-x86-sse2i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -957,6 +1006,7 @@ openbsd-x86-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-any:
 	$(LN) x86-any.h arch.h
@@ -967,6 +1017,7 @@ openbsd-x86-any:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-x86-any-a.out:
 	$(LN) x86-any.h arch.h
@@ -977,6 +1028,7 @@ openbsd-x86-any-a.out:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-alpha:
 	$(LN) alpha.h arch.h
@@ -986,6 +1038,7 @@ openbsd-alpha:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-sparc64:
 	$(LN) sparc64.h arch.h
@@ -996,6 +1049,7 @@ openbsd-sparc64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
+	@echo "All done"
 
 openbsd-sparc:
 	$(LN) sparc32.h arch.h
@@ -1004,6 +1058,7 @@ openbsd-sparc:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-ppc32:
 	$(LN) ppc32.h arch.h
@@ -1012,6 +1067,7 @@ openbsd-ppc32:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-ppc64:
 	$(LN) ppc64.h arch.h
@@ -1023,6 +1079,7 @@ openbsd-ppc64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
+	@echo "All done"
 
 openbsd-pa-risc:
 	$(LN) pa-risc.h arch.h
@@ -1032,6 +1089,7 @@ openbsd-pa-risc:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 openbsd-vax:
 	$(LN) vax.h arch.h
@@ -1040,6 +1098,7 @@ openbsd-vax:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 netbsd-sparc64:
 	$(LN) sparc64.h arch.h
@@ -1050,6 +1109,7 @@ netbsd-sparc64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
+	@echo "All done"
 
 netbsd-vax:
 	$(LN) vax.h arch.h
@@ -1058,6 +1118,7 @@ netbsd-vax:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 solaris-sparc64-cc:
 	$(RM) arch.h
@@ -1297,6 +1358,7 @@ macosx-x86-64:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m64"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m64"
+	@echo "All done"
 
 macosx-x86-64-gpu:
 	$(LN) x86-64.h arch.h
@@ -1313,6 +1375,7 @@ macosx-x86-64-gpu:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 macosx-x86-64-opencl:
 	$(LN) x86-64.h arch.h
@@ -1328,6 +1391,7 @@ macosx-x86-64-opencl:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 macosx-x86-64-cuda:
 	$(LN) x86-64.h arch.h
@@ -1341,6 +1405,7 @@ macosx-x86-64-cuda:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 macosx-x86-64-clang-debug:
 	$(LN) x86-64.h arch.h
@@ -1362,6 +1427,7 @@ macosx-x86-64-clang-debug:
 		CFLAGS="-Wall -Wdeclaration-after-statement -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(JOHN_CFLAGS)" \
 		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(NSS_LDFLAGS) $(GMP_LDFLAGS) $(KRB5_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
+	@echo "All done"
 
 macosx-x86-sse2:
 	$(LN) x86-sse.h arch.h
@@ -1374,6 +1440,7 @@ macosx-x86-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 macosx-x86-sse2-opencl:
 	$(LN) x86-sse.h arch.h
@@ -1389,6 +1456,7 @@ macosx-x86-sse2-opencl:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 macosx-x86-mmx:
 	$(LN) x86-mmx.h arch.h
@@ -1401,6 +1469,7 @@ macosx-x86-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 macosx-ppc32-altivec:
 	$(LN) ppc32alt.h arch.h
@@ -1592,6 +1661,7 @@ win32-cygwin-x86-sse2i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 win32-cygwin-x86-sse2:
 	$(CP) x86-sse.h arch.h
@@ -1603,6 +1673,7 @@ win32-cygwin-x86-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 win32-cygwin-x86-mmx:
 	$(CP) x86-mmx.h arch.h
@@ -1614,6 +1685,7 @@ win32-cygwin-x86-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 win32-cygwin-x86-any:
 	$(CP) x86-any.h arch.h
@@ -1626,6 +1698,7 @@ win32-cygwin-x86-any:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX)
 	$(MAKE) $(PROJ_PCAP)
+	@echo "All done"
 
 win32-mingw-x86-sse2i:
 	$(CP) x86-sse.h arch.h
@@ -1638,6 +1711,7 @@ win32-mingw-x86-sse2i:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 win32-mingw-x86-sse2:
 	$(CP) x86-sse.h arch.h
@@ -1650,6 +1724,7 @@ win32-mingw-x86-sse2:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 win32-mingw-x86-mmx:
 	$(CP) x86-mmx.h arch.h
@@ -1662,6 +1737,7 @@ win32-mingw-x86-mmx:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 win32-mingw-x86-any:
 	$(CP) x86-any.h arch.h
@@ -1674,6 +1750,7 @@ win32-mingw-x86-any:
 	@echo "Failing after this point only means some helper tools did not build:"
 	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
 	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	@echo "All done"
 
 beos-x86-sse2:
 	$(LN) x86-sse.h arch.h
