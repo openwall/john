@@ -307,7 +307,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			/* Always call set_key() even if skipping. Some
 			   formats depend on it. We use a max-length key
 			   just to stress the format. */
-			for (i = index;
+			for (i = index + 1;
 			     i < max && i < (index + (index >> 1)); i++) {
 				memset(longcand, 'A' + (i % 23), ml);
 				longcand[ml] = 0;
@@ -318,6 +318,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			index++;
 
 		if (index >= max) {
+			format->methods.clear_keys();
 			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
 			done |= 1;
 		}
