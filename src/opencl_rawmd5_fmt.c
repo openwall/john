@@ -164,8 +164,6 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 	create_clobj(global_work_size, self);
 }
 
-static void clear_keys(void);
-
 static void init(struct fmt_main *self)
 {
 	size_t selected_gws, max_mem;
@@ -191,7 +189,6 @@ static void init(struct fmt_main *self)
 		create_clobj(self->params.max_keys_per_crypt, self);
 		find_best_lws(self, ocl_gpu_id);
 		release_clobj();
-		clear_keys();
 	}
 	global_work_size = selected_gws;
 
@@ -207,7 +204,6 @@ static void init(struct fmt_main *self)
 		create_clobj(global_work_size, self);
 	else {
 		find_best_gws(self, ocl_gpu_id);
-		clear_keys();
 	}
 	fprintf(stderr, "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
 	        local_work_size, global_work_size);
@@ -289,10 +285,8 @@ static void set_key(char *_key, int index)
 		saved_plain[key_idx++] = *key++;
 		len -= 4;
 	}
-	if (len) {
+	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
-		len += 4;
-	}
 }
 
 static char *get_key(int index)

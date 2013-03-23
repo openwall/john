@@ -701,6 +701,8 @@ void opencl_find_best_workgroup_limit(struct fmt_main *self, size_t group_size_l
 
 	//fprintf(stderr, "Max local work size %d, ", (int) max_group_size);
 
+	self->methods.clear_keys();
+
 	/// Set keys - first key from tests will be benchmarked
 	for (i = 0; i < self->params.max_keys_per_crypt; i++) {
 		self->methods.set_key(self->params.tests[0].plaintext, i);
@@ -824,8 +826,10 @@ static cl_ulong gws_test(
 	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
 	int i, count;
 
-	//Prepare buffers.
+	// Prepare buffers.
 	create_clobj(num, self);
+
+	self->methods.clear_keys();
 
 	// Set keys (only the key[0] from tests will be benchmarked)
 	for (i = 0; i < num; i++)
@@ -945,6 +949,8 @@ void opencl_find_best_lws(
 		clCreateCommandQueue(context[sequential_id], devices[sequential_id],
 		CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating command queue");
+
+	self->methods.clear_keys();
 
 	// Set keys (only the key[0] from tests will be benchmarked)
 	for (i = 0; i < self->params.max_keys_per_crypt; i++)
