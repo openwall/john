@@ -91,17 +91,17 @@ static void create_clobj(int gws, struct fmt_main * self) {
 	self->params.min_keys_per_crypt = self->params.max_keys_per_crypt = gws;
 
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id],
-			CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+			CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
 			sizeof(sha512_password) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 
 	plaintext = (sha512_password *) clEnqueueMapBuffer(queue[ocl_gpu_id],
-			pinned_saved_keys, CL_TRUE, CL_MAP_WRITE | CL_MAP_READ, 0,
+			pinned_saved_keys, CL_TRUE, CL_MAP_WRITE, 0,
 			sizeof(sha512_password) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
 
 	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
-			CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR,
+			CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR,
 			sizeof(uint32_t) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_partial_hashes");
 
@@ -127,7 +127,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
 			sizeof(uint32_t), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument p_binary_buffer");
 
-	result_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
+	result_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_WRITE,
 			sizeof(int), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument result_buffer");
 
