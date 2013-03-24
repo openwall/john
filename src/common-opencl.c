@@ -853,6 +853,8 @@ static cl_ulong gws_test(
 
 		if (show_details)
 			fprintf(stderr, " (error occured)");
+		release_profiling_events();
+		release_clobj();
 		return 0;
 	}
 
