@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <strings.h>
+#include <string.h>
 
 /*
  * Exit on error. Logs the event, closes john.pot and the log file, and
