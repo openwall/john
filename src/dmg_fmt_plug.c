@@ -92,60 +92,6 @@ static struct custom_salt {
 	unsigned int iterations;
 } *cur_salt;
 
-/* borrowed from http://dsss.be/w/c:memmem */
-static inline unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen)
-{
-	int i, j = 0;
-	if (nlen > hlen)
-		return 0;
-	switch (nlen) {	// we have a few specialized compares for certain sizes
-	case 0:		// no needle? just give the haystack
-		return haystack;
-	case 1:		// just use memchr for 1-byte needle
-		return memchr(haystack, needle[0], hlen);
-#if ARCH_ALLOWS_UNALIGNED
-	case 2:		// use 16-bit compares for 2-byte needles
-		for (i = 0; i < hlen - nlen + 1; i++) {
-			if (*(uint16_t *) (haystack + i) == *(uint16_t *) needle) {
-				return haystack + i;
-			}
-		}
-		break;
-	case 4:		// use 32-bit compares for 4-byte needles
-		for (i = 0; i < hlen - nlen + 1; i++) {
-			if (*(uint32_t *) (haystack + i) == *(uint32_t *) needle) {
-				return haystack + i;
-			}
-		}
-		break;
-#if ARCH_SIZE >= 64
-	case 8: // use 64-bit compares for 8-byte needles
-		for (i=0; i<hlen-nlen+1; i++) {
-			if (*(uint64_t*)(haystack+i)==*(uint64_t*)needle) {
-				return haystack+i;
-			}
-		}
-		break;
-#endif /* ARCH_SIZE >= 64 */
-#endif /* ARCH_ALLOWS_UNALIGNED */
-	default: // generic compare for any other needle size
-		// walk i through the haystack, matching j as long as needle[j] matches haystack[i]
-		for (i = 0; i < hlen - nlen + 1; i++) {
-			if (haystack[i] == needle[j]) {
-				if (j == nlen - 1) {	// end of needle and it all matched?  win.
-					return haystack + i - j;
-				} else {	// keep advancing j (and i, implicitly)
-					j++;
-				}
-			} else {	// no match, rewind i the length of the failed match (j), and reset j
-				i -= j;
-				j = 0;
-			}
-		}
-	}
-	return NULL;
-}
-
 static struct fmt_tests dmg_tests[] = {
 	// testimage.AES-256.64k.header_v2.dmg
 	{"$dmg$2*20*fd70ac1e078f01fce55a2e56145a2494446db32a*32*9110b1778f09b1a7000000000000000000000000000000000000000000000000*64*68a32866b0e67515f35dc67c4d6747a8561a9f4f6a6718a894b0a77a47c452471e04ecef9bf56f0d83d1201a509a374e00000000000000000000000000000000*14*8192*70ebe6f1d387e33e3d1093cca2e94c9a32e2c9ba47d461d737d49a7dc1b1f69407b7dbc16f7671689ea4a4641652b3f976b6f1c73c551a0a407d5a335caa169db4a6a25bbd27fbbc38fc71b29ee9b1eae349b0d8a21d57959ecca6bf74bc26ccaee69cfee4999b55374605491af6d0b9066c26995209cd1b71925bcb45a8ef5727a6c20338f08de4357d4cb42cb65ecdc2344a5d7387633c913258ba40699ea5f88804b5e562bf973096337b17b4fc1236d3c8a80b9b48aed63c5a0eae3ae924a883e948f374771bba46923658f225fd2795ce0e795269f589e0ffc81615585e1224cddde654d689a3260e69683c6198bdfcd87507c23cefe36d72f8878cb27bbe5dce868752a7cce067f5a3110f20ebd31ecd53840103e0b2d44385656398edc487bf6d1a5ec3a56af54f9d4254fd20988df41eb85e366f13da1270a3f42c6672ad5faf00fa21e9ba3691bde78ab2c267a142f275467d5b853a107dbf1d75839f0e87b3b4f1d2cec88cc02a26bc4a63aa6836b0c43c5dbb44a832050385a48d46968361ebb053c2416c02458b76c95e50970922556d40b100967340a32824e6b6e44c0c1e0da7ce989d9d5ad91560156"
@@ -507,7 +453,7 @@ static int hash_plugin_check_hash(const char *password)
 		AES_cbc_encrypt(cur_salt->chunk, outbuf, cur_salt->data_size, &aes_decrypt_key, iv, AES_DECRYPT);
 
 		/* 16 consecutive nulls */
-		if (_memmem(outbuf, cur_salt->data_size, (void*)nulls, 16)) {
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)nulls, 16)) {
 #ifdef DMG_DEBUG
 			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "NULLS found!\n");
@@ -516,7 +462,7 @@ static int hash_plugin_check_hash(const char *password)
 		}
 
 		/* </plist> is a pretty generic signature for Apple */
-		if (_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"</plist>", 8)) {
 #ifdef DMG_DEBUG
 			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "</plist> found!\n");
@@ -525,7 +471,7 @@ static int hash_plugin_check_hash(const char *password)
 		}
 
 		/* Journalled HFS+ */
-		if (_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"jrnlhfs+", 8)) {
 #ifdef DMG_DEBUG
 			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "jrnlhfs+ found!\n");
@@ -535,7 +481,7 @@ static int hash_plugin_check_hash(const char *password)
 
 		/* Handle compressed DMG files, CMIYC 2012 and self-made samples.
 		   Is this test obsoleted by the </plist> one? */
-		r = _memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
+		r = jtr_memmem(outbuf, cur_salt->data_size, (void*)"koly", 4);
 		if (r) {
 			unsigned int *u32Version = (unsigned int *)(r + 4);
 
@@ -549,7 +495,7 @@ static int hash_plugin_check_hash(const char *password)
 		}
 
 		/* Handle VileFault sample images */
-		if (_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
+		if (jtr_memmem(outbuf, cur_salt->data_size, (void*)"EFI PART", 8)) {
 #ifdef DMG_DEBUG
 			dump_strings(outbuf, cur_salt->data_size);
 			fprintf(stderr, "EFI PART found!\n");
@@ -570,7 +516,7 @@ static int hash_plugin_check_hash(const char *password)
 				AES_set_decrypt_key(aes_key_, 128 * 2, &aes_decrypt_key);
 
 			AES_cbc_encrypt(cur_salt->zchunk, outbuf, 4096, &aes_decrypt_key, iv, AES_DECRYPT);
-			if (_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
+			if (jtr_memmem(outbuf, 4096, (void*)"Press any key to reboot", 23)) {
 #ifdef DMG_DEBUG
 				dump_strings(outbuf, 4096);
 				fprintf(stderr, "MS-DOS UDRW signature found!\n");

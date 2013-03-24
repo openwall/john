@@ -13,6 +13,7 @@
 #define _JOHN_MISC_H
 
 #include <stdio.h>
+#include <strings.h>
 
 /*
  * Exit on error. Logs the event, closes john.pot and the log file, and
@@ -103,6 +104,58 @@ extern char *jtr_basename_r(const char *name, char *buf);
 #undef basename
 #define basename(a) jtr_basename(a)
 
+/* Return the first occurrence of NEEDLE in HAYSTACK.
+   Faster implementation by Christian Thaeter <ct at pipapo dot org>
+   http://sourceware.org/ml/libc-alpha/2007-12/msg00000.html
+   LGPL 2.1+ */
+#ifndef INCLUDED_FROM_MISC_C
+#if __GNUC__ && !__GNUC_STDC_INLINE__
+extern
+#endif
+inline
+#endif
+void *jtr_memmem(const void *haystack, size_t haystack_len,
+                        const void *needle, size_t needle_len)
+{
+	/* not really Rabin-Karp, just using additive hashing */
+	char* haystack_ = (char*)haystack;
+	char* needle_ = (char*)needle;
+	int hash = 0;		/* static hash value of the needle */
+	int hay_hash = 0;	/* rolling hash over the haystack */
+	char* last;
+	size_t i;
+
+	if (haystack_len < needle_len)
+		return NULL;
+
+	if (!needle_len)
+		return haystack_;
+
+	/* initialize hashes */
+	for (i = needle_len; i; --i)
+	{
+		hash += *needle_++;
+		hay_hash += *haystack_++;
+	}
+
+	/* iterate over the haystack */
+	haystack_ = (char*)haystack;
+	needle_ = (char*)needle;
+	last = haystack_+(haystack_len - needle_len + 1);
+	for (; haystack_ < last; ++haystack_)
+	{
+		if (hash == hay_hash &&
+		    *haystack_ == *needle_ &&	/* prevent calling memcmp */
+		    !memcmp (haystack_, needle_, needle_len))
+			return haystack_;
+
+		/* roll the hash */
+		hay_hash -= *haystack_;
+		hay_hash += *(haystack_+needle_len);
+	}
+
+	return NULL;
+}
 
 /*
  * Converts a string to lowercase.

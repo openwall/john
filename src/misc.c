@@ -19,6 +19,8 @@
 
 #include "logger.h"
 #include "params.h"
+#define INCLUDED_FROM_MISC_C
+#include "misc.h"
 
 #ifdef HAVE_MPI
 #include "john-mpi.h"
