@@ -113,16 +113,6 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void insert_to_buffer_L(        sha512_ctx    * ctx,
-                               __local const uint8_t * string,
-                               const uint32_t len) {
-
-    for (uint32_t i = 0; i < len; i++)
-        PUT(BUFFER, ctx->buflen + i, string[i]);
-
-    ctx->buflen += len;
-}
-
 inline void insert_to_buffer_C(           sha512_ctx    * ctx,
                                __constant const uint8_t * string,
                                const uint32_t len) {
@@ -156,23 +146,6 @@ inline void ctx_update_R(sha512_ctx * ctx,
         sha512_block(ctx);
         ctx->buflen = 0;
         insert_to_buffer_R(ctx, (string + offset), len - offset);
-    }
-}
-
-inline void ctx_update_L(        sha512_ctx * ctx,
-                         __local uint8_t    * string,
-                         const uint32_t len) {
-
-    ctx->total += len;
-    uint32_t startpos = ctx->buflen;
-
-    insert_to_buffer_L(ctx, string, (startpos + len <= 128 ? len : 128 - startpos));
-
-    if (ctx->buflen == 128) {  //Branching.
-        uint32_t offset = 128 - startpos;
-        sha512_block(ctx);
-        ctx->buflen = 0;
-        insert_to_buffer_L(ctx, (string + offset), len - offset);
     }
 }
 
@@ -534,7 +507,6 @@ void kernel_prepare(__constant sha512_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
-    size_t lid = get_local_id(0);
 
     //Do the job
     sha512_prepare(salt, &keys_buffer[gid], &tmp_memory[gid], &fast_buffers, &ctx_data);

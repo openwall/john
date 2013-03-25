@@ -30,9 +30,6 @@
         #define ror(x, n)       rotate(x, (uint32_t) 32-n)
         #define SWAP32(n)       (as_uint(as_uchar4(n).s3210))
 #else
-        #if gpu_nvidia(DEVICE_INFO)
-            #pragma OPENCL EXTENSION cl_nv_pragma_unroll : enable
-        #endif
         #define Ch(x, y, z)     ((x & y) ^ ( (~x) & z))
         #define Maj(x, y, z)    ((x & y) ^ (x & z) ^ (y & z))
         #define ror(x, n)       ((x >> n) | (x << (32-n)))
