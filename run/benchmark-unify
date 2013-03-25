@@ -117,6 +117,7 @@ MYSQL	MySQL
 MYSQL_fast	MySQL
 MediaWiki -- md5($s.'-'.md5($p))	MediaWiki md5($s.'-'.md5($p))
 More Secure Internet Password	Lotus Notes/Domino 6 More Secure Internet Password
+Mozilla SHA-1 3DES	Mozilla (key3.db) SHA-1 3DES
 NT v2	NT MD4
 Netscape LDAP SHA	Netscape LDAP SHA-1
 ODF SHA-1 Blowfish	ODF SHA-1 Blowfish / SHA-256 AES
@@ -133,7 +134,7 @@ ssh-ng SSH RSA / DSA	SSH RSA/DSA (one 2048-bit RSA and one 1024-bit DSA key)
 dynamic_38: sha1($s.sha1($s.($p))) (Wolt3BB)	dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)
 generic crypt(3)	generic crypt(3) DES
 hmailserver	hMailServer salted SHA-256
-pdf	PDF MD5 RC4
+pdf	PDF MD5 SHA-2 RC4 / AES
 pkzip	PKZIP
 rar	RAR3 SHA-1 AES (4 characters)
 sybasease	Sybase ASE salted SHA-256
