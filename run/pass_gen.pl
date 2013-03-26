@@ -151,7 +151,11 @@ if (@ARGV == 0) {
 	die usage();
 }
 
-if ($arg_utf8) { $arg_codepage="UTF-8"; }
+if ($arg_utf8) {
+    #@ARGV = map { decode_utf8($_, 1) } @ARGV;
+    $argsalt = decode_utf8($argsalt, 1);
+    $arg_codepage="UTF-8";
+}
 
 #if not a redirected file, prompt the user
 if (-t STDIN) {
