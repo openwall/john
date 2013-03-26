@@ -1375,8 +1375,15 @@ sub netlmv2 {
 sub netntlmv2 {
 	my $pwd = shift;
 	my $nthash = Authen::Passphrase::NTHash->new(passphrase => $pwd)->hash;
-	my $domain = randstr(rand(15)+1);
-	my $user = randusername(20);
+	my $user;
+	my $domain;
+	if (defined $argsalt) {
+	    $domain = "workgroup";
+	    $user = $argsalt;
+	} else {
+	    $domain = randstr(rand(15)+1);
+	    $user = randusername(20);
+	}
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
 	my $s_challenge = randbytes(8);
 	my $c_challenge = randbytes(8);
