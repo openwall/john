@@ -312,7 +312,7 @@ struct fmt_main fmt_truecrypt = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests_ripemd160
 	}, {
 		init_ripemd160,
@@ -363,7 +363,7 @@ struct fmt_main fmt_truecrypt_sha512 = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests_sha512
 	}, {
 		init_sha512,
@@ -414,7 +414,7 @@ struct fmt_main fmt_truecrypt_whirlpool = {
 		SALT_SIZE,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UTF8 | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		tests_whirlpool
 	}, {
 		init_whirlpool,
