@@ -389,17 +389,18 @@ int benchmark_all(void)
 		if (!format->params.tests && format != fmt_list)
 			continue;
 
-/* Just test the UTF-8 aware formats if --encoding=utf8 */
-		if ((options.utf8) && !(format->params.flags & FMT_UTF8)) {
+/* Just test the encoding-aware formats if --encoding */
+		if ((!options.ascii && !options.iso8859_1) &&
+		    !(format->params.flags & FMT_UTF8)) {
 			if (options.format == NULL)
 				continue;
 			else {
 				if (format->params.flags & FMT_UNICODE) {
-					printf("The %s format does not yet support UTF-8 conversion.\n\n", format->params.label);
+					printf("The %s format does not yet support encodings other than ISO-8859-1\n\n", format->params.label);
 					continue;
 				}
 				else {
-					printf("The %s format does not use internal charset conversion (--encoding=utf8 option).\n\n", format->params.label);
+					printf("The %s format does not use internal charset conversion (--encoding option).\n\n", format->params.label);
 					continue;
 				}
 			}

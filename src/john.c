@@ -511,11 +511,14 @@ static void john_load(void)
 			ldr_load_pw_file(&database, current->data);
 		} while ((current = current->next));
 
-		// Unicode (UTF-16) formats may lack UTF-8 support (initially)
-		if (options.utf8 && database.password_count &&
+		/* Unicode (UTF-16) formats may lack encoding support. We
+		   must stop the user from trying to use it because it will
+		   just result in false negatives. */
+		if (database.password_count &&
+		    !options.ascii && !options.iso8859_1 &&
 		    database.format->params.flags & FMT_UNICODE &&
 		    !(database.format->params.flags & FMT_UTF8)) {
-			fprintf(stderr, "This format does not yet support UTF-8 conversion\n");
+			fprintf(stderr, "This format does not yet support other encodings than ISO-8859-1\n");
 				error();
 		}
 
