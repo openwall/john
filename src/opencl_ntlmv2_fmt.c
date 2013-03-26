@@ -454,8 +454,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	   of Unicode, which has no exact correlation to number of octets.
 	   The actual rejection is postponed to the bottom of this function. */
 	saltlen = enc_to_utf16(utf16temp, SALT_MAX_LENGTH + 1,
-	                       (UTF8*)strnzcpy(utf8temp, pos, pos2 - pos - 1),
-	                       pos2 - pos - 2);
+	                       (UTF8*)strnzcpy(utf8temp, pos, pos2 - pos + 1),
+	                       pos2 - pos);
 
 	/* Validate Server Challenge Length */
 	pos2++; pos = pos2;
