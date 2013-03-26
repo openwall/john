@@ -789,7 +789,7 @@ int initUnicode(int type) {
 	char *encTemp;
 	char *pos;
 
-	if (UnicodeType == type && !strcmp(UnicodeInited, options.encoding))
+	if (UnicodeType == type && UnicodeInited == options.encoding)
 		return 0;
 
 	UnicodeType = type;
