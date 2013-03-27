@@ -26,15 +26,12 @@ inline void init_ctx(sha256_ctx * ctx) {
     ctx->H[7] = H7;
 }
 
-inline void _memcpy(               uint8_t * dest,
-                    __global const uint8_t * src) {
+inline void _memcpy(               uint32_t * dest,
+                    __global const uint32_t * src,
+                             const uint32_t   len) {
 
-    uint32_t * l = (uint32_t *) dest;
-    __global uint32_t * s = (__global uint32_t *) src;
-
-    #pragma unroll
-    for (int i = 0; i < PLAINTEXT_LENGTH; i += 4)
-        *l++ = *s++;
+    for (int i = 0; i < len; i += 4)
+        *dest++ = *src++;
 }
 
 inline void sha256_block(sha256_ctx * ctx) {
@@ -86,27 +83,32 @@ inline void sha256_block(sha256_ctx * ctx) {
     }
 }
 
-inline void insert_to_buffer(         sha256_ctx    * ctx,
-                             __global const uint8_t * string,
-                                      const uint32_t  len) {
+inline void insert_to_buffer(         sha256_ctx     * ctx,
+                             __global const uint32_t * string,
+                                      const uint32_t   len) {
 
-    _memcpy(ctx->buffer->mem_08, string);
+    _memcpy(ctx->buffer->mem_32, string, len);
     ctx->buflen = len;
 }
 
-inline void ctx_update(         sha256_ctx * ctx,
-                       __global uint8_t    * string,
-                                uint32_t     len) {
+inline void ctx_update(         sha256_ctx     * ctx,
+                       __global const uint32_t * string,
+                                const uint32_t   len) {
 
     insert_to_buffer(ctx, string, len);
 }
 
 inline void ctx_append_1(sha256_ctx * ctx) {
 
-    uint32_t * l = ctx->buffer->mem_32 + PLAINTEXT_ARRAY;
+    uint32_t length = ctx->buflen;
+    PUT(BUFFER, length, 0x80);
 
-    #pragma unroll
-    for (int i = PLAINTEXT_LENGTH; i < 60; i += 4)
+    while (++length & 3)
+        PUT(BUFFER, length, 0);
+
+    uint32_t * l = ctx->buffer->mem_32 + (length >> 2);
+
+    for (int i = length; i < 60; i += 4)
         *l++ = 0;
 }
 
@@ -121,10 +123,9 @@ inline void finish_ctx(sha256_ctx * ctx) {
     ctx_add_length(ctx);
 }
 
-inline void sha256_crypt(__global sha256_password * keys_data,
+inline void sha256_crypt(__global const uint32_t  * pass,
+                                  const uint32_t    passlen,
                                   sha256_ctx      * ctx) {
-#define pass        keys_data->pass->mem_08
-#define passlen     keys_data->length
 
     init_ctx(ctx);
 
@@ -135,8 +136,10 @@ inline void sha256_crypt(__global sha256_password * keys_data,
     sha256_block(ctx);
 }
 
+//Break the key into 15 32-bit (uint) words.
 __kernel
-void kernel_crypt(__global   sha256_password * keys_buffer,
+void kernel_crypt(__global   const uint32_t  * keys_buffer,
+                  __global   const uint32_t  * index,
                   __global   uint32_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
@@ -145,8 +148,15 @@ void kernel_crypt(__global   sha256_password * keys_buffer,
     //Get the task to be done
     size_t gid = get_global_id(0);
 
+    //Get position and length of informed key.
+    uint32_t base = index[gid];
+    uint32_t len = base & 63;
+
+    //Ajust keys to it start position.
+    keys_buffer += (base >> 6);
+
     //Do the job
-    sha256_crypt(&keys_buffer[gid], &ctx);
+    sha256_crypt(keys_buffer, len, &ctx);
 
     //Save parcial results.
     out_buffer[gid] = ctx.H[0];

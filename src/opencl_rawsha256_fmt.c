@@ -21,7 +21,7 @@
 #include "opencl_rawsha256.h"
 
 #define RAW_FORMAT_LABEL		"raw-sha256-opencl"
-#define RAW_FORMAT_NAME			"Raw SHA-256 (pwlen < " PLAINTEXT_TEXT ")"
+#define RAW_FORMAT_NAME			"Raw SHA-256"
 #define CISCO_FORMAT_LABEL		"cisco4-opencl"
 #define CISCO_FORMAT_NAME		"Cisco \"type 4\" hashes SHA-256"
 
@@ -32,18 +32,20 @@
 
 #define CONFIG_NAME			"rawsha256"
 
-static sha256_password			* plaintext;			// plaintext ciphertexts
+static uint32_t				* plaintext, * saved_idx;	// plaintext ciphertexts
 static uint32_t				* calculated_hash;		// calculated (partial) hashes
 
 static cl_mem pass_buffer;		//Plaintext buffer.
 static cl_mem hash_buffer;		//Partial hash keys (output).
+static cl_mem idx_buffer;		//Sizes and offsets buffer.
 static cl_mem p_binary_buffer;		//To compare partial binary ([3]).
 static cl_mem result_buffer;		//To get the if a hash was found.
-static cl_mem pinned_saved_keys, pinned_partial_hashes;
+static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_partial_hashes;
 
 static cl_kernel cmp_kernel;
 
 static int hash_found;
+static uint32_t key_idx = 0;
 
 static int crypt_all(int *pcount, struct db_salt *_salt);
 static int crypt_all_benchmark(int *pcount, struct db_salt *_salt);
@@ -54,6 +56,13 @@ static struct fmt_tests raw_tests[] = {
 	{"$SHA256$e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
 #ifdef DEBUG //Special test cases.
 	{"a49c2c9d0c006c8cb55a9a7a38822b83e0cd442614cb416af952fa50156761dc", "openwall"},
+	{"c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646", "1234567890"},
+	{"6ed645ef0e1abea1bf1e4e935ff04f9e18d39812387f63cda3415b46240f0405", "12345678901234567890"},
+	{"f54e5c8f810648e7638d25eb7ed6d24b7e5999d588e88826f2aa837d2ee52ecd", "123456789012345678901234567890"},
+	{"a4ebdd541454b84cc670c9f1f5508baf67ffd3fe59b883267808781f992a0b1d", "1234567890123456789012345678901234567890"},
+	{"f58fffba129aa67ec63bf12571a42977c0b785d3b2a93cc0538557c91da2115d", "12345678901234567890123456789012345678901234567890"},
+	{"3874d5c9cc5ab726e6bbebadee22c680ce530004d4f0bb32f765d42a0a6c6dc1", "123456789012345678901234567890123456789012345678901"},
+	{"03c3a70e99ed5eeccd80f73771fcf1ece643d939d9ecc76f25544b0233f708e9", "1234567890123456789012345678901234567890123456789012345"},
 #endif
 	{NULL}
 };
@@ -118,8 +127,11 @@ static void decode64(unsigned char * dst, unsigned char * src) {
 static void crypt_one(int index, sha256_hash * hash) {
 	SHA256_CTX ctx;
 
+	int len = saved_idx[index] & 63;
+	char * key = (char *) &plaintext[saved_idx[index] >> 6];
+
 	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, plaintext[index].pass, plaintext[index].length);
+	SHA256_Update(&ctx, key, len);
 	SHA256_Final((unsigned char *) (hash), &ctx);
 }
 
@@ -129,13 +141,23 @@ static void create_clobj(int gws, struct fmt_main * self) {
 
 	pinned_saved_keys = clCreateBuffer(context[ocl_gpu_id],
 			CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
-			sizeof(sha256_password) * gws, NULL, &ret_code);
+			BUFFER_SIZE * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_keys");
 
-	plaintext = (sha256_password *) clEnqueueMapBuffer(queue[ocl_gpu_id],
+	plaintext = (uint32_t *) clEnqueueMapBuffer(queue[ocl_gpu_id],
 			pinned_saved_keys, CL_TRUE, CL_MAP_WRITE, 0,
-			sizeof(sha256_password) * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
+			BUFFER_SIZE * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory plaintext");
+
+	pinned_saved_idx = clCreateBuffer(context[ocl_gpu_id],
+			CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
+			sizeof(uint32_t) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
+
+	saved_idx = (uint32_t *) clEnqueueMapBuffer(queue[ocl_gpu_id],
+			pinned_saved_idx, CL_TRUE, CL_MAP_WRITE, 0,
+			sizeof(uint32_t) * gws, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
 
 	pinned_partial_hashes = clCreateBuffer(context[ocl_gpu_id],
 			CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR,
@@ -149,8 +171,12 @@ static void create_clobj(int gws, struct fmt_main * self) {
 
 	// create arguments (buffers)
 	pass_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
-			sizeof(sha256_password) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_keys");
+			BUFFER_SIZE * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument pass_buffer");
+
+	idx_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_READ_ONLY,
+			sizeof(uint32_t) * gws, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument idx_buffer");
 
 	hash_buffer = clCreateBuffer(context[ocl_gpu_id], CL_MEM_WRITE_ONLY,
 			sizeof(uint32_t) * gws, NULL, &ret_code);
@@ -168,7 +194,9 @@ static void create_clobj(int gws, struct fmt_main * self) {
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem),
 			(void *) &pass_buffer), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem),
-			(void *) &hash_buffer), "Error setting argument 1");
+			(void *) &idx_buffer), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem),
+			(void *) &hash_buffer), "Error setting argument 2");
 
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 0, sizeof(cl_mem),
 			(void *) &hash_buffer), "Error setting argument 0");
@@ -177,7 +205,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
 			(void *) &result_buffer), "Error setting argument 2");
 
-	memset(plaintext, '\0', sizeof(sha256_password) * gws);
+	memset(plaintext, '\0', BUFFER_SIZE * gws);
 }
 
 static void release_clobj(void) {
@@ -185,12 +213,20 @@ static void release_clobj(void) {
 
 	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_keys,
 			plaintext, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
+	HANDLE_CLERROR(ret_code, "Error Unmapping keys");
+	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_saved_idx,
+			saved_idx, 0, NULL, NULL);
+	HANDLE_CLERROR(ret_code, "Error Unmapping indexes");
+	ret_code = clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_partial_hashes,
+			calculated_hash, 0, NULL, NULL);
+	HANDLE_CLERROR(ret_code, "Error Unmapping partial hashes");
 
 	ret_code = clReleaseMemObject(pass_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing buffer_keys");
 	ret_code = clReleaseMemObject(hash_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing hash_buffer");
+	ret_code = clReleaseMemObject(idx_buffer);
+	HANDLE_CLERROR(ret_code, "Error Releasing idx_buffer");
 
 	ret_code = clReleaseMemObject(p_binary_buffer);
 	HANDLE_CLERROR(ret_code, "Error Releasing p_binary_buffer");
@@ -199,30 +235,42 @@ static void release_clobj(void) {
 
 	ret_code = clReleaseMemObject(pinned_saved_keys);
 	HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_keys");
+	ret_code = clReleaseMemObject(pinned_saved_idx);
+	HANDLE_CLERROR(ret_code, "Error Releasing pinned_saved_idx");
 	ret_code = clReleaseMemObject(pinned_partial_hashes);
 	HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
 }
 
 /* ------- Key functions ------- */
-static void set_key(char * key, int index) {
+static void clear_keys(void) {
+	key_idx = 0;
+}
+
+static void set_key(char * _key, int index) {
 	int len;
 
-	//Assure buffer has no "trash data".
-	memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
-	len = strlen(key);
+	const uint32_t * key = (uint32_t *) _key;
+	len = strlen(_key);
 
-	//Put the tranfered key on password buffer.
-	memcpy(plaintext[index].pass, key, len);
-	plaintext[index].length = len ;
+	saved_idx[index] = (key_idx << 6) | len;
 
-	/* Prepare for GPU */
-	plaintext[index].pass->mem_08[len] = 0x80;
+	while (len > 4) {
+		plaintext[key_idx++] = *key++;
+		len -= 4;
+	}
+
+	if (len)
+		plaintext[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
 }
 
 static char * get_key(int index) {
-	static char ret[PLAINTEXT_LENGTH + 1];
-	memcpy(ret, plaintext[index].pass, PLAINTEXT_LENGTH);
-	ret[plaintext[index].length] = '\0';
+	static char ret[RAW_PLAINTEXT_LENGTH + 1];
+	int len = saved_idx[index] & 63;
+	char * key = (char *) &plaintext[saved_idx[index] >> 6];
+
+	memcpy(ret, key, RAW_PLAINTEXT_LENGTH);
+	ret[len] = '\0';
+
 	return ret;
 }
 
@@ -281,7 +329,7 @@ static void init(struct fmt_main * self) {
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 3, NULL,
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
-		sizeof(sha256_password));
+		BUFFER_SIZE);
 
 	self->methods.crypt_all = crypt_all_benchmark;
 
@@ -306,6 +354,11 @@ static void init(struct fmt_main * self) {
 		//user chose to die of boredom
 		find_best_gws(self, ocl_gpu_id);
 	}
+	//Limit worksize using index limitation.
+	while (global_work_size > MIN((1 << 26) * 4 / BUFFER_SIZE,
+		get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE))
+		global_work_size -= local_work_size;
+
 	fprintf(stderr, "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
 		   local_work_size, global_work_size);
 	self->params.min_keys_per_crypt = local_work_size;
@@ -455,8 +508,12 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 	//Send data to device.
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-				sizeof(sha256_password) * gws, plaintext, 0, NULL, &multi_profilingEvent[0]),
+				sizeof(uint32_t) * key_idx, plaintext, 0, NULL, &multi_profilingEvent[0]),
 				"failed in clEnqueueWriteBuffer pass_buffer");
+
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0,
+				sizeof(uint32_t) * gws, saved_idx, 0, NULL, &multi_profilingEvent[3]),
+				"failed in clEnqueueWriteBuffer idx_buffer");
 
 	//Enqueue the kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
@@ -482,8 +539,12 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 
 	//Send data to device.
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-				sizeof(sha256_password) * gws, plaintext, 0, NULL, NULL),
+				sizeof(uint32_t) * key_idx, plaintext, 0, NULL, NULL),
 				"failed in clEnqueueWriteBuffer pass_buffer");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0,
+				sizeof(uint32_t) * gws, saved_idx, 0, NULL, NULL),
+				"failed in clEnqueueWriteBuffer idx_buffer");
 
 	//Enqueue the kernel
 	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL,
@@ -621,7 +682,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-		PLAINTEXT_LENGTH - 1,
+		RAW_PLAINTEXT_LENGTH - 1,
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
@@ -653,7 +714,7 @@ struct fmt_main fmt_opencl_rawsha256 = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
@@ -678,7 +739,7 @@ struct fmt_main fmt_opencl_cisco4 = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-		CISCO_LIMIT_PLAINTEXT - 1,
+		CISCO_PLAINTEXT_LENGTH - 1,
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
@@ -710,7 +771,7 @@ struct fmt_main fmt_opencl_cisco4 = {
 		fmt_default_set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
