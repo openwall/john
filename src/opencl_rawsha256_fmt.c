@@ -352,7 +352,7 @@ static void init(struct fmt_main * self) {
 			get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE);
 
 	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(STEP, 0, 3, NULL,
+	opencl_init_auto_setup(STEP, 0, 4, NULL,
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
 		BUFFER_SIZE, gws_limit);
 
