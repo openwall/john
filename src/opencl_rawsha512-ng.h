@@ -2,6 +2,7 @@
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  *
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-XSHA-512
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
@@ -20,13 +21,16 @@
 //Constants.
 #define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
 #define PLAINTEXT_TEXT          "32"
-#define CIPHERTEXT_LENGTH       128
+#define CIPHERTEXT_LENGTH_RAW   128
+#define CIPHERTEXT_LENGTH_X     136
 #define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
 #define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        64
 #define BINARY_ALIGN            4
-#define SALT_SIZE               0
-#define SALT_ALIGN              1
+#define SALT_SIZE_RAW           0
+#define SALT_SIZE_X             4
+#define SALT_ALIGN_RAW          1
+#define SALT_ALIGN_X            4
 #define STEP                    65536
 
 #define KEYS_PER_CORE_CPU       65536
@@ -39,6 +43,10 @@ typedef union {
     uint32_t                    mem_32[2];
     uint64_t                    mem_64[1];
 } buffer_64;
+
+typedef struct {
+    uint32_t                    salt;
+} sha512_salt;
 
 typedef struct {
     uint32_t                    length;

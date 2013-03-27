@@ -167,7 +167,7 @@ OCL_OBJS = \
 	opencl_cryptsha256_fmt.o opencl_rawsha512-ng_fmt.o opencl_dmg_fmt.o \
 	opencl_DES_fmt.o opencl_DES_bs.o opencl_DES_bs_b.o opencl_strip_fmt.o \
 	opencl_office2007_fmt.o opencl_office2010_fmt.o opencl_office2013_fmt.o \
-	opencl_ntlmv2_fmt.o opencl_rawsha256_fmt.o opencl_xsha512-ng_fmt.o \
+	opencl_ntlmv2_fmt.o opencl_rawsha256_fmt.o \
 	opencl_krb5pa-sha1_fmt.o opencl_rar_fmt.o opencl_odf_aes_fmt.o \
 	opencl_sha2_common.o
 

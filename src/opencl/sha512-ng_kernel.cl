@@ -2,6 +2,7 @@
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  *
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-XSHA-512
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
@@ -14,44 +15,30 @@
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
 
-inline void init_ctx(sha512_ctx * ctx) {
-    ctx->H[0] = H0;
-    ctx->H[1] = H1;
-    ctx->H[2] = H2;
-    ctx->H[3] = H3;
-    ctx->H[4] = H4;
-    ctx->H[5] = H5;
-    ctx->H[6] = H6;
-    ctx->H[7] = H7;
-}
+inline void _memcpy(               uint32_t * dest,
+                    __global const uint32_t * src,
+                             const uint32_t  len) {
 
-inline void _memcpy(               uint8_t * dest,
-                    __global const uint8_t * src) {
-
-    uint64_t * l = (uint64_t *) dest;
-    __global uint64_t * s = (__global uint64_t *) src;
-
-    #pragma unroll
-    for (int i = 0; i < PLAINTEXT_LENGTH; i += 8)
-        *l++ = *s++;
+    for (int i = 0; i < len; i += 4)
+        *dest++ = *src++;
 }
 
 inline void sha512_block(sha512_ctx * ctx) {
-#define  a   ctx->H[0]
-#define  b   ctx->H[1]
-#define  c   ctx->H[2]
-#define  d   ctx->H[3]
-#define  e   ctx->H[4]
-#define  f   ctx->H[5]
-#define  g   ctx->H[6]
-#define  h   ctx->H[7]
-#define  w   ctx->buffer->mem_64
-
+    uint64_t a = H0;
+    uint64_t b = H1;
+    uint64_t c = H2;
+    uint64_t d = H3;
+    uint64_t e = H4;
+    uint64_t f = H5;
+    uint64_t g = H6;
+    uint64_t h = H7;
     uint64_t t1, t2;
+    uint64_t w[16];
 
     #pragma unroll
     for (int i = 0; i < 15; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
+    w[15] = ctx->buffer->mem_64[15];
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
@@ -83,29 +70,21 @@ inline void sha512_block(sha512_ctx * ctx) {
         b = a;
         a = t1 + t2;
     }
-}
-
-inline void insert_to_buffer(         sha512_ctx    * ctx,
-                             __global const uint8_t * string,
-                                      const uint32_t  len) {
-
-    _memcpy(ctx->buffer->mem_08, string);
-    ctx->buflen = len;
-}
-
-inline void ctx_update(         sha512_ctx * ctx,
-                       __global uint8_t    * string,
-                                uint32_t     len) {
-
-    insert_to_buffer(ctx, string, len);
+    /* Put checksum in context given as argument. */
+    ctx->H[0] = a;
 }
 
 inline void ctx_append_1(sha512_ctx * ctx) {
 
-    uint64_t * l = ctx->buffer->mem_64 + PLAINTEXT_ARRAY;
+    uint32_t length = ctx->buflen;
+    PUT(BUFFER, length, 0x80);
 
-    #pragma unroll
-    for (int i = PLAINTEXT_LENGTH; i < 120; i += 8)
+    while (++length & 3)
+        PUT(BUFFER, length, 0);
+
+    uint32_t * l = ctx->buffer->mem_32 + (length >> 2);
+
+    for (int i = length; i < 120; i += 4)
         *l++ = 0;
 }
 
@@ -120,14 +99,8 @@ inline void finish_ctx(sha512_ctx * ctx) {
     ctx_add_length(ctx);
 }
 
-inline void sha512_crypt(__global sha512_password * keys_data,
-                                  sha512_ctx      * ctx) {
-#define pass        keys_data->pass->mem_08
-#define passlen     keys_data->length
+inline void sha512_crypt(sha512_ctx * ctx) {
 
-    init_ctx(ctx);
-
-    ctx_update(ctx, pass, passlen);
     finish_ctx(ctx);
 
     /* Run the collected hash value through SHA512. */
@@ -135,8 +108,8 @@ inline void sha512_crypt(__global sha512_password * keys_data,
 }
 
 __kernel
-void kernel_crypt(__global   sha512_password * keys_buffer,
-                  __global   uint32_t        * out_buffer) {
+void kernel_crypt_raw(__global   sha512_password * keys_buffer,
+                      __global   uint32_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
     sha512_ctx     ctx;
@@ -144,11 +117,41 @@ void kernel_crypt(__global   sha512_password * keys_buffer,
     //Get the task to be done
     size_t gid = get_global_id(0);
 
+    //Get password.
+    ctx.buflen = keys_buffer[gid].length;
+    _memcpy(ctx.buffer->mem_32, keys_buffer[gid].pass->mem_32, ctx.buflen);
+
     //Do the job
-    sha512_crypt(&keys_buffer[gid], &ctx);
+    sha512_crypt(&ctx);
 
     //Save parcial results.
-    out_buffer[gid] = (int) ctx.H[0];
+    out_buffer[gid] = (uint32_t) ctx.H[0];
+}
+
+__kernel
+void kernel_crypt_xsha(__constant sha512_salt     * salt,
+                       __global   sha512_password * keys_buffer,
+                       __global   uint32_t        * out_buffer) {
+
+    //Compute buffers (on CPU and NVIDIA, better private)
+    sha512_ctx     ctx;
+
+    //Get the task to be done
+    size_t gid = get_global_id(0);
+
+    //Get salt information.
+    ctx.buffer->mem_32[0] = salt->salt;
+
+    //Get password.
+    ctx.buflen = keys_buffer[gid].length;
+    _memcpy(ctx.buffer->mem_32 + 1, keys_buffer[gid].pass->mem_32, ctx.buflen);
+    ctx.buflen += SALT_SIZE_X;
+
+    //Do the job
+    sha512_crypt(&ctx);
+
+    //Save parcial results.
+    out_buffer[gid] = (uint32_t) ctx.H[0];
 }
 
 __kernel
