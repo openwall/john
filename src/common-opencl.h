@@ -208,7 +208,7 @@ void opencl_find_best_gws(
  * - p_buffer_size: the size of the plaintext/the most important buffer to allocate.
  *   (needed to assure there is enough memory to handle a GWS that is going to be tested).
  * - p_gws_limit: the maximum number of global_work_size the format can handle.
- *   (needed to ariable size plaintext formats).
+ *   (needed to variable size plaintext formats).
  */
 void opencl_init_auto_setup(
 	int p_default_value, int p_hash_loops, int p_number_of_events,
