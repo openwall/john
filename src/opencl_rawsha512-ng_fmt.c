@@ -264,7 +264,7 @@ static void init(struct fmt_main * self) {
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 3, NULL,
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
-		sizeof(sha512_password));
+		sizeof(sha512_password), 0);
 
 	self->methods.crypt_all = crypt_all_benchmark;
 

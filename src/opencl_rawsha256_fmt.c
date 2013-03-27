@@ -312,6 +312,7 @@ static void find_best_gws(struct fmt_main * self, int sequential_id) {
 /* ------- Initialization  ------- */
 static void init(struct fmt_main * self) {
 	char * task = "$JOHN/kernels/sha256_kernel.cl";
+	size_t gws_limit;
 
 	opencl_init_dev(ocl_gpu_id);
 	opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
@@ -326,10 +327,13 @@ static void init(struct fmt_main * self) {
 	local_work_size = get_default_workgroup();
 	opencl_get_user_preferences(CONFIG_NAME);
 
+	gws_limit = MIN((1 << 26) * 4 / BUFFER_SIZE,
+			get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE);
+
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, 0, 3, NULL,
 		warn, &multi_profilingEvent[1], self, create_clobj, release_clobj,
-		BUFFER_SIZE);
+		BUFFER_SIZE, gws_limit);
 
 	self->methods.crypt_all = crypt_all_benchmark;
 
@@ -355,8 +359,7 @@ static void init(struct fmt_main * self) {
 		find_best_gws(self, ocl_gpu_id);
 	}
 	//Limit worksize using index limitation.
-	while (global_work_size > MIN((1 << 26) * 4 / BUFFER_SIZE,
-		get_max_mem_alloc_size(ocl_gpu_id) / BUFFER_SIZE))
+	while (global_work_size > gws_limit)
 		global_work_size -= local_work_size;
 
 	fprintf(stderr, "Local worksize (LWS) %zd, global worksize (GWS) %zd\n",
