@@ -139,7 +139,7 @@ inline void sha512_crypt(__global sha512_password   * keys_data,
 }
 
 __kernel
-void kernel_crypt(__global   sha512_password   * keys_buffer,
+void kernel_crypt_raw(__global   sha512_password   * keys_buffer,
                   __global   uint32_t          * out_buffer,
                   __local    sha512_ctx_buffer * ctx_data) {
 

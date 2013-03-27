@@ -41,7 +41,7 @@
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
 #define _USE_GPU_SOURCE			(gpu(source_in_use))
-#define _USE_LOCAL_SOURCE		(amd_gcn(source_in_use) || use_local(source_in_use))
+#define _USE_LOCAL_SOURCE		((amd_gcn(source_in_use) || use_local(source_in_use)) && !salted_format)
 
 static sha512_salt			* salt;
 static sha512_password			* plaintext;			// plaintext ciphertexts
@@ -321,7 +321,7 @@ static void init(struct fmt_main * self) {
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
 
-	if (_USE_LOCAL_SOURCE && !salted_format)
+	if (_USE_LOCAL_SOURCE)
 		task = "$JOHN/kernels/sha512-ng_kernel_LOCAL.cl";
 	opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
