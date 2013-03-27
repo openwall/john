@@ -233,8 +233,8 @@ static int start_opencl_device(unsigned int sequential_id)
 	if (ret_code != CL_SUCCESS) {
 #ifdef DEBUG
 		fprintf(stderr, "Error creating context for device %d "
-			"(%d:%d): %s\n", i, get_platform_id(i),
-			get_device_id(i), get_error_name(ret_code));
+			"(%d:%d): %s\n", sequential_id, get_platform_id(sequential_id),
+			get_device_id(sequential_id), get_error_name(ret_code));
 #endif
 		platforms[get_platform_id(sequential_id)].num_devices--;
 		return 0;
@@ -244,8 +244,8 @@ static int start_opencl_device(unsigned int sequential_id)
 	if (ret_code != CL_SUCCESS) {
 #ifdef DEBUG
 		fprintf(stderr, "Error creating command queue for "
-			"device %d (%d:%d): %s\n", i,
-			get_platform_id(i), get_device_id(i),
+			"device %d (%d:%d): %s\n", sequential_id,
+			get_platform_id(sequential_id), get_device_id(sequential_id),
 			get_error_name(ret_code));
 #endif
 		platforms[get_platform_id(sequential_id)].num_devices--;
@@ -254,7 +254,7 @@ static int start_opencl_device(unsigned int sequential_id)
 		return 0;
 	}
 #ifdef DEBUG
-	fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
+	fprintf(stderr, "  Device %d: %s\n", sequential_id, opencl_data);
 #endif
 	//Success.
 	return 1;
