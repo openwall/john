@@ -250,10 +250,12 @@ static void clear_keys(void) {
 }
 
 static void set_key(char * _key, int index) {
-	int len;
+	int len = 0;
 
 	const uint32_t * key = (uint32_t *) _key;
-	len = strlen(_key);
+
+	while (*(_key++))
+		len++;
 
 	saved_idx[index] = (key_idx << 6) | len;
 
