@@ -78,7 +78,8 @@ static struct fmt_tests tests[] = {
 };
 
 static char *saved_key;
-static unsigned int *output, *saved_idx, key_idx = 0;
+static unsigned int *output, *saved_idx, key_idx;
+static size_t key_offset, idx_offset;
 static unsigned char *challenge;
 static int new_keys, partial_output;
 static int max_len = PLAINTEXT_LENGTH;
@@ -223,6 +224,7 @@ static void set_salt(void *salt)
 {
 	memcpy(challenge, salt, SALT_SIZE_MAX);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
 }
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
@@ -607,8 +609,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = ((count + (local_work_size - 1)) / local_work_size) * local_work_size;
 
 	if (new_keys) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, 0, key_idx, saved_key, 0, NULL, NULL), "Failed transferring keys");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, 0, 4 * (global_work_size + 1), saved_idx, 0, NULL, NULL), "Failed transferring index");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, firstEvent), "Failed running first kernel");
 
 		new_keys = 0;
@@ -657,6 +659,8 @@ static void clear_keys(void)
 {
 	key_idx = 0;
 	saved_idx[0] = 0;
+	key_offset = 0;
+	idx_offset = 0;
 }
 
 static void set_key(char *key, int index)
@@ -666,6 +670,15 @@ static void set_key(char *key, int index)
 
 	saved_idx[index + 1] = key_idx;
 	new_keys = 1;
+
+	/* Early partial transfer to GPU */
+	if (index && !(index & (256*1024 - 1))) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
+		key_offset = key_idx;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * index - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
+		idx_offset = 4 * index;
+		HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
+	}
 }
 
 static char *get_key(int index)
