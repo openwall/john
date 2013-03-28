@@ -7,11 +7,9 @@ PRELUDE:
 
     In 2008, it was picked up by AoZ and stripped back down to the original
     MPI-only changes to improve its compatibility with the 'jumbo' patchsets,
-    which had better-maintained alternate cipher support. This is often
-    referred to as "the mpi10 patch"
+    which had better-maintained alternate cipher support.
 
-    In 2010, it was extended by magnum to support all cracking modes. This
-    should be referred to as "the fullmpi patch" to avoid confusion. With the
+    In 2010, it was extended by magnum to support all cracking modes. With the
     exception of Markov it is far from perfect but it works just fine and
     should support correct resuming in all modes. It is well tested but you
     have absolutely NO guarantees.
@@ -61,8 +59,7 @@ USAGE:
 
     In MARKOV mode, the range is automatically split evenly across the nodes,
     just like you could do manually. This does not introduce any overhead,
-    assuming job runs to completion - and also assuming your MPI compiler
-    behaves.
+    assuming job runs to completion.
 
     The single and wordlist modes scale fairly well and cleartexts will not be
     tried by more than one node (except when different word + rule combinations
@@ -97,7 +94,7 @@ USAGE:
     Wordlist mode without rules. That is, all candidates will be produced on
     all nodes, and then skipped by all nodes but one. This is the mode where
     the fullmpi patch performs worst. When attacking very fast formats, this
-    scales VERY poorly.
+    scales very poorly.
 
 
     You may send a USR1 signal to the parent MPI process (or HUP to all
@@ -114,17 +111,14 @@ USAGE:
 
     mpiexec -np 4 ./john --status
 
-    Which will dump the status of each process as recorded in the .rec files.
-    This way you also get an extra line with total statistics.
+    This will dump the status of each process as recorded in the .rec files.
+    You will also get an extra summary line with total statistics.
 
 ====================
 CAVEATS:
 ====================
     - This implementation does not account for heterogeneous clusters or nodes
       that come and go.
-    - In interest of cooperating with other patches, benchmarking is less
-      accurate.  Specifically, it assumes all participant cores are the same
-      as the fastest.
     - Benchmark virtual c/s will appear inflated if launching more processes
       than cores available. It will basically indicate what the speed would be
       with that many real cores.
