@@ -30,7 +30,7 @@ inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
-    for (int i = 0; i < len; i += 4)
+    for (uint32_t i = 0; i < len; i += 4)
         *dest++ = *src++;
 }
 
@@ -108,7 +108,7 @@ inline void ctx_append_1(sha256_ctx * ctx) {
 
     uint32_t * l = ctx->buffer->mem_32 + (length >> 2);
 
-    for (int i = length; i < 60; i += 4)
+    for (uint32_t i = length; i < 60; i += 4)
         *l++ = 0;
 }
 
