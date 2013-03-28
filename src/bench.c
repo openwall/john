@@ -340,14 +340,20 @@ void benchmark_cps(int64 *count, clock_t time, char *buffer)
 void gather_results(struct bench_results *results)
 {
 	struct bench_results combined;
+
 	MPI_Reduce(&results->real, &combined.real, 1, MPI_LONG,
-		MPI_MAX, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&results->virtual, &combined.virtual, 1, MPI_LONG,
-		MPI_MAX, 0, MPI_COMM_WORLD);
-	MPI_Reduce(&results->count, &combined.count, 1, MPI_UNSIGNED_LONG,
 		MPI_SUM, 0, MPI_COMM_WORLD);
-	if (mpi_id == 0)
+	MPI_Reduce(&results->virtual, &combined.virtual, 1, MPI_LONG,
+		MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&results->count.lo, &combined.count.lo, 1, MPI_UNSIGNED,
+		MPI_SUM, 0, MPI_COMM_WORLD);
+	MPI_Reduce(&results->count.hi, &combined.count.hi, 1, MPI_UNSIGNED,
+		MPI_SUM, 0, MPI_COMM_WORLD);
+	if (mpi_id == 0) {
+		combined.real /= mpi_p;
+		combined.virtual /= mpi_p;
 		memcpy(results, &combined, sizeof(struct bench_results));
+	}
 }
 #endif
 
