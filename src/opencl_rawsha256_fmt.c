@@ -99,7 +99,7 @@ static size_t get_default_workgroup(){
 	if (cpu(device_info[ocl_gpu_id]))
 		return 1;
 	else
-		return 128;
+		return 64;
 }
 
 static void decode64(unsigned char * dst, unsigned char * src) {
