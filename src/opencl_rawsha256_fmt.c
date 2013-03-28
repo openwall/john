@@ -207,6 +207,7 @@ static void create_clobj(int gws, struct fmt_main * self) {
 			(void *) &result_buffer), "Error setting argument 2");
 
 	memset(plaintext, '\0', BUFFER_SIZE * gws);
+	memset(saved_idx, '\0', sizeof(uint32_t) * gws);
 }
 
 static void release_clobj(void) {
