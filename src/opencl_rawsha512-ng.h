@@ -2,6 +2,7 @@
  * Developed by Claudio André <claudio.andre at correios.net.br> in 2012
  *
  * More information at http://openwall.info/wiki/john/OpenCL-RAWSHA-512
+ * More information at http://openwall.info/wiki/john/OpenCL-XSHA-512
  *
  * Copyright (c) 2012 Claudio André <claudio.andre at correios.net.br>
  * This program comes with ABSOLUTELY NO WARRANTY; express or implied.
@@ -18,15 +19,19 @@
 #include "opencl_sha512.h"
 
 //Constants.
-#define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
-#define PLAINTEXT_TEXT          "32"
-#define CIPHERTEXT_LENGTH       128
-#define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
+#define PLAINTEXT_LENGTH        56      /* 31 characters + 0x80 */
+#define PLAINTEXT_TEXT          "55"
+#define CIPHERTEXT_LENGTH_RAW   128
+#define CIPHERTEXT_LENGTH_X     136
+
+#define BUFFER_SIZE             56      /* PLAINTEXT_LENGTH multiple of 4 */
 #define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        64
 #define BINARY_ALIGN            4
-#define SALT_SIZE               0
-#define SALT_ALIGN              1
+#define SALT_SIZE_RAW           0
+#define SALT_SIZE_X             4
+#define SALT_ALIGN_RAW          1
+#define SALT_ALIGN_X            4
 #define STEP                    65536
 
 #define KEYS_PER_CORE_CPU       65536
@@ -41,9 +46,8 @@ typedef union {
 } buffer_64;
 
 typedef struct {
-    uint32_t                    length;
-    buffer_64                   pass[PLAINTEXT_ARRAY];
-} sha512_password;
+    uint32_t                    salt;
+} sha512_salt;
 
 typedef struct {
     uint64_t                    v[8];           //512 bits
@@ -66,7 +70,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
-        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",  ", index xfer: "
 };
 #endif
 

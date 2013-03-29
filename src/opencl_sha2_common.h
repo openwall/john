@@ -35,6 +35,7 @@
 #define GET_MULTIPLE_BIGGER(dividend, divisor)  (((dividend + divisor - 1) / divisor) * divisor)
 
 #define HASH_LOOPS              (7*3*2)
+#define TRANSFER_SIZE           (1024 * 64)
 
 #ifdef _OPENCL_COMPILER
 #if no_byte_addressable(DEVICE_INFO)

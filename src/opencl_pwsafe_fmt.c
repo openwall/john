@@ -236,7 +236,7 @@ static void init(struct fmt_main *self)
 	//Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(STEP, ROUNDS_DEFAULT/8, 8, split_events,
 		warn, &multi_profilingEvent[3], self, create_clobj, release_clobj,
-		sizeof(pwsafe_pass));
+		sizeof(pwsafe_pass), 0);
 
 	self->methods.crypt_all = crypt_all_benchmark;
 
