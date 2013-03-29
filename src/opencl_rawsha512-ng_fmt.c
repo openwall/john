@@ -254,16 +254,11 @@ static int salt_hash(void * salt) {
 static void set_key(char * key, int index) {
 	int len;
 
-	//Assure buffer has no "trash data".
-	memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
 	len = strlen(key);
 
 	//Put the tranfered key on password buffer.
 	memcpy(plaintext[index].pass, key, len);
 	plaintext[index].length = len ;
-
-	/* Prepare for GPU */
-	plaintext[index].pass->mem_08[len] = 0x80;
 
 	new_keys = 1;
 }

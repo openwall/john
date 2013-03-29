@@ -266,7 +266,7 @@ static void set_key(char * _key, int index) {
 	}
 
 	if (len)
-		plaintext[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+		plaintext[key_idx++] = *key;
 
 	//Batch transfers to GPU.
 	if ((index % TRANSFER_SIZE) == 0 && (index > 0)) {

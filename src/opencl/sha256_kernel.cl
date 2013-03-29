@@ -24,6 +24,12 @@ inline void init_ctx(sha256_ctx * ctx) {
     ctx->H[5] = H5;
     ctx->H[6] = H6;
     ctx->H[7] = H7;
+
+    //Clear the buffer.
+    #pragma unroll
+    for (uint32_t i = 0; i < 15; i++)
+        ctx->buffer->mem_32[i] = 0;
+
 }
 
 inline void _memcpy(               uint32_t * dest,
@@ -105,11 +111,6 @@ inline void ctx_append_1(sha256_ctx * ctx) {
 
     while (++length & 3)
         PUT(BUFFER, length, 0);
-
-    uint32_t * l = ctx->buffer->mem_32 + (length >> 2);
-
-    for (uint32_t i = length; i < 60; i += 4)
-        *l++ = 0;
 }
 
 inline void ctx_add_length(sha256_ctx * ctx) {

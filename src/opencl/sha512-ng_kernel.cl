@@ -15,11 +15,19 @@
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
 
-inline void _memcpy(               uint32_t * dest,
-                    __global const uint32_t * src,
+inline void _memcpy_32(               uint32_t * dest,
+                       __global const uint32_t * src,
+                                const uint32_t  len) {
+
+    for (uint32_t i = 0; i < len; i += 4)
+        *dest++ = *src++;
+}
+
+inline void _memcpy(               uint64_t * dest,
+                    __global const uint64_t * src,
                              const uint32_t  len) {
 
-    for (int i = 0; i < len; i += 4)
+    for (uint32_t i = 0; i < len; i += 8)
         *dest++ = *src++;
 }
 
@@ -76,16 +84,10 @@ inline void sha512_block(sha512_ctx * ctx) {
 
 inline void ctx_append_1(sha512_ctx * ctx) {
 
-    uint32_t length = ctx->buflen;
-    PUT(BUFFER, length, 0x80);
+    uint32_t length;
+    PUT(BUFFER, ctx->buflen, 0x80);
 
-    while (++length & 3)
-        PUT(BUFFER, length, 0);
-
-    uint32_t * l = ctx->buffer->mem_32 + (length >> 2);
-
-    for (int i = length; i < 120; i += 4)
-        *l++ = 0;
+    CLEAR_BUFFER_64(ctx->buffer->mem_64, ctx->buflen + 1);
 }
 
 inline void ctx_add_length(sha512_ctx * ctx) {
@@ -117,9 +119,14 @@ void kernel_crypt_raw(__global   sha512_password * keys_buffer,
     //Get the task to be done
     size_t gid = get_global_id(0);
 
+    //Clear the buffer.
+    #pragma unroll
+    for (uint32_t i = 0; i < 15; i++)
+        ctx.buffer->mem_64[i] = 0;
+
     //Get password.
     ctx.buflen = keys_buffer[gid].length;
-    _memcpy(ctx.buffer->mem_32, keys_buffer[gid].pass->mem_32, ctx.buflen);
+    _memcpy(ctx.buffer->mem_64, keys_buffer[gid].pass->mem_64, ctx.buflen);
 
     //Do the job
     sha512_crypt(&ctx);
@@ -139,12 +146,17 @@ void kernel_crypt_xsha(__constant sha512_salt     * salt,
     //Get the task to be done
     size_t gid = get_global_id(0);
 
+    //Clear the buffer.
+    #pragma unroll
+    for (uint32_t i = 0; i < 15; i++)
+        ctx.buffer->mem_64[i] = 0;
+
     //Get salt information.
     ctx.buffer->mem_32[0] = salt->salt;
 
     //Get password.
     ctx.buflen = keys_buffer[gid].length;
-    _memcpy(ctx.buffer->mem_32 + 1, keys_buffer[gid].pass->mem_32, ctx.buflen);
+    _memcpy_32(ctx.buffer->mem_32 + 1, keys_buffer[gid].pass->mem_32, ctx.buflen);
     ctx.buflen += SALT_SIZE_X;
 
     //Do the job
