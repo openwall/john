@@ -303,6 +303,23 @@ static void set_key(char * _key, int index) {
 	if (len)
 		plaintext[key_idx++] = *key;
 
+	//Batch transfers to GPU.
+	if ((index % TRANSFER_SIZE) == 0 && (index > 0)) {
+	    	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer,
+			CL_FALSE, sizeof(uint32_t) * offset,
+			sizeof(uint32_t) * TRANSFER_SIZE,
+			plaintext + offset, 0, NULL, NULL),
+			"failed in clEnqueueWriteBuffer pass_buffer");
+	    	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer,
+			CL_FALSE, sizeof(uint32_t) * offset,
+			sizeof(uint32_t) * TRANSFER_SIZE,
+			saved_idx + offset, 0, NULL, NULL),
+			"failed in clEnqueueWriteBuffer idx_buffer");
+
+		HANDLE_CLERROR(clFlush(queue[ocl_gpu_id]), "failed in clFlush");
+		offset += TRANSFER_SIZE;
+		offset_idx = key_idx;
+	}
 	new_keys = 1;
 }
 
@@ -536,12 +553,16 @@ static int crypt_all_benchmark(int *pcount, struct db_salt *_salt) {
 
 	//Send data to device.
 	if (new_keys)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-				sizeof(uint32_t) * key_idx, plaintext, 0, NULL, &multi_profilingEvent[0]),
-				"failed in clEnqueueWriteBuffer pass_buffer");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE,
+			sizeof(uint32_t) * offset,
+			sizeof(uint32_t) * (key_idx - offset),
+			plaintext + offset, 0, NULL, &multi_profilingEvent[0]),
+			"failed in clEnqueueWriteBuffer pass_buffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0,
-		sizeof(uint32_t) * gws, saved_idx, 0, NULL, &multi_profilingEvent[3]),
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE,
+		sizeof(uint32_t) * offset,
+		sizeof(uint32_t) * (gws - offset),
+		saved_idx + offset, 0, NULL, &multi_profilingEvent[3]),
 		"failed in clEnqueueWriteBuffer idx_buffer");
 
 	//Enqueue the kernel
@@ -569,12 +590,16 @@ static int crypt_all(int *pcount, struct db_salt *_salt) {
 
 	//Send data to device.
 	if (new_keys)
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE, 0,
-				sizeof(uint32_t) * key_idx, plaintext, 0, NULL, NULL),
-				"failed in clEnqueueWriteBuffer pass_buffer");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], pass_buffer, CL_FALSE,
+			sizeof(uint32_t) * offset,
+			sizeof(uint32_t) * (key_idx - offset),
+			plaintext + offset, 0, NULL, NULL),
+			"failed in clEnqueueWriteBuffer pass_buffer");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE, 0,
-		sizeof(uint32_t) * gws, saved_idx, 0, NULL, NULL),
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], idx_buffer, CL_FALSE,
+		sizeof(uint32_t) * offset,
+		sizeof(uint32_t) * (gws - offset),
+		saved_idx + offset, 0, NULL, NULL),
 		"failed in clEnqueueWriteBuffer idx_buffer");
 
 	//Enqueue the kernel
