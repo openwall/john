@@ -51,9 +51,10 @@ static int number_of_events;
 static int * split_events;
 static cl_event * to_profile_event;
 static struct fmt_main * self;
-void (*create_clobj)(int gws, struct fmt_main * self);
-void (*release_clobj)(void);
+static void (*create_clobj)(int gws, struct fmt_main * self);
+static void (*release_clobj)(void);
 static const char * config_name;
+static size_t gws_limit;
 
 void opencl_process_event(void)
 {
@@ -233,8 +234,8 @@ static int start_opencl_device(unsigned int sequential_id)
 	if (ret_code != CL_SUCCESS) {
 #ifdef DEBUG
 		fprintf(stderr, "Error creating context for device %d "
-			"(%d:%d): %s\n", i, get_platform_id(i),
-			get_device_id(i), get_error_name(ret_code));
+			"(%d:%d): %s\n", sequential_id, get_platform_id(sequential_id),
+			get_device_id(sequential_id), get_error_name(ret_code));
 #endif
 		platforms[get_platform_id(sequential_id)].num_devices--;
 		return 0;
@@ -244,8 +245,8 @@ static int start_opencl_device(unsigned int sequential_id)
 	if (ret_code != CL_SUCCESS) {
 #ifdef DEBUG
 		fprintf(stderr, "Error creating command queue for "
-			"device %d (%d:%d): %s\n", i,
-			get_platform_id(i), get_device_id(i),
+			"device %d (%d:%d): %s\n", sequential_id,
+			get_platform_id(sequential_id), get_device_id(sequential_id),
 			get_error_name(ret_code));
 #endif
 		platforms[get_platform_id(sequential_id)].num_devices--;
@@ -254,7 +255,7 @@ static int start_opencl_device(unsigned int sequential_id)
 		return 0;
 	}
 #ifdef DEBUG
-	fprintf(stderr, "  Device %d: %s\n", i, opencl_data);
+	fprintf(stderr, "  Device %d: %s\n", sequential_id, opencl_data);
 #endif
 	//Success.
 	return 1;
@@ -899,7 +900,7 @@ void opencl_init_auto_setup(
 	int * p_split_events, const char ** p_warnings,
 	cl_event * p_to_profile_event, struct fmt_main * p_self,
 	void (*p_create_clobj)(int gws, struct fmt_main * self),
-	void (*p_release_clobj)(void), int p_buffer_size)
+	void (*p_release_clobj)(void), int p_buffer_size, size_t p_gws_limit)
 {
 	int i;
 
@@ -918,6 +919,7 @@ void opencl_init_auto_setup(
 	self = p_self;
 	create_clobj = p_create_clobj;
 	release_clobj = p_release_clobj;
+	gws_limit = p_gws_limit;
 }
 
 void opencl_find_best_lws(
@@ -1103,8 +1105,13 @@ void opencl_find_best_gws(
 		num = common_get_next_gws_size(num, step, 0, default_value)) {
 
 		//Check if hardware can handle the size we are going to try now.
-		if (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id))
+		if ((gws_limit && (num > gws_limit)) || ((gws_limit == 0) &&
+		    (buffer_size * num * 1.2 > get_max_mem_alloc_size(ocl_gpu_id)))) {
+
+			if (show_details)
+				fprintf(stderr, "Hardware resources fullfilled\n");
 			break;
+		}
 
 		if (!(run_time = gws_test(num, show_details, rounds, sequential_id)))
 			break;

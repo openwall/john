@@ -18,10 +18,14 @@
 #include "opencl_sha256.h"
 
 //Constants.
-#define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
-#define PLAINTEXT_TEXT          "32"
+#define RAW_PLAINTEXT_LENGTH    56      /* 55 characters + 0x80 */
+#define CISCO_PLAINTEXT_LENGTH  26      /* 25 characters + 0x80 */
+
+#define RAW_CIPHERTEXT_LENGTH   64
+#define CISCO_CIPHERTEXT_LENGTH 43
+
+#define BUFFER_SIZE             56      /* RAW_PLAINTEXT_LENGTH multiple of 4 */
 #define CIPHERTEXT_LENGTH       64
-#define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 4)
 #define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        32
 #define BINARY_ALIGN            4
@@ -40,11 +44,6 @@ typedef union {
 } buffer_32;
 
 typedef struct {
-    uint32_t                    length;
-    buffer_32                   pass[PLAINTEXT_ARRAY];
-} sha256_password;
-
-typedef struct {
     uint32_t                    v[8];           //256 bits
 } sha256_hash;
 
@@ -56,7 +55,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
-        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",  ", index xfer: "
 };
 #endif
 
