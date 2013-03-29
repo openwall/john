@@ -84,10 +84,9 @@ inline void sha512_block(sha512_ctx * ctx) {
 
 inline void ctx_append_1(sha512_ctx * ctx) {
 
-    uint32_t length;
     PUT(BUFFER, ctx->buflen, 0x80);
 
-    CLEAR_BUFFER_64(ctx->buffer->mem_64, ctx->buflen + 1);
+    CLEAR_BUFFER_64_FAST(ctx->buffer->mem_64, ctx->buflen + 1);
 }
 
 inline void ctx_add_length(sha512_ctx * ctx) {

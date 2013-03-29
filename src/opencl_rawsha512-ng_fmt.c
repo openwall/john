@@ -41,7 +41,6 @@
 //Checks for source code to pick (parameters, sizes, kernels to execute, etc.)
 #define _USE_CPU_SOURCE			(cpu(source_in_use))
 #define _USE_GPU_SOURCE			(gpu(source_in_use))
-#define _USE_LOCAL_SOURCE		((amd_gcn(source_in_use) || use_local(source_in_use)) && !salted_format)
 
 static sha512_salt			* salt;
 static sha512_password			* plaintext;			// plaintext ciphertexts
@@ -80,8 +79,7 @@ static struct fmt_tests x_tests[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size(){
 
-	return common_get_task_max_work_group_size(_USE_LOCAL_SOURCE,
-		(sizeof(sha512_ctx_buffer)), crypt_kernel);
+	return common_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
 static size_t get_task_max_size(){
@@ -179,12 +177,6 @@ static void create_clobj(int gws, struct fmt_main * self) {
 	HANDLE_CLERROR(clSetKernelArg(cmp_kernel, 2, sizeof(cl_mem),
 			(void *) &result_buffer), "Error setting argument 2");
 
-	if (_USE_LOCAL_SOURCE) {
-		//Fast working memory.
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2,
-		   sizeof(sha512_ctx_buffer) * local_work_size,
-		   NULL), "Error setting argument 2");
-	}
 	memset(plaintext, '\0', sizeof(sha512_password) * gws);
 }
 
@@ -316,8 +308,6 @@ static void init(struct fmt_main * self) {
 	if ((tmp_value = getenv("_TYPE")))
 		source_in_use = atoi(tmp_value);
 
-	if (_USE_LOCAL_SOURCE)
-		task = "$JOHN/kernels/sha512-ng_kernel_LOCAL.cl";
 	opencl_build_kernel_save(task, ocl_gpu_id, NULL, 1, 1);
 
 	// create kernel(s) to execute
