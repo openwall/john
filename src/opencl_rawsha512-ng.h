@@ -19,11 +19,12 @@
 #include "opencl_sha512.h"
 
 //Constants.
-#define PLAINTEXT_LENGTH        32      /* 31 characters + 0x80 */
-#define PLAINTEXT_TEXT          "32"
+#define PLAINTEXT_LENGTH        56      /* 31 characters + 0x80 */
+#define PLAINTEXT_TEXT          "55"
 #define CIPHERTEXT_LENGTH_RAW   128
 #define CIPHERTEXT_LENGTH_X     136
-#define PLAINTEXT_ARRAY         (PLAINTEXT_LENGTH / 8)
+
+#define BUFFER_SIZE             56      /* PLAINTEXT_LENGTH multiple of 4 */
 #define BINARY_SIZE             4
 #define FULL_BINARY_SIZE        64
 #define BINARY_ALIGN            4
@@ -49,11 +50,6 @@ typedef struct {
 } sha512_salt;
 
 typedef struct {
-    uint32_t                    length;
-    buffer_64                   pass[PLAINTEXT_ARRAY];
-} sha512_password;
-
-typedef struct {
     uint64_t                    v[8];           //512 bits
 } sha512_hash;
 
@@ -74,7 +70,7 @@ typedef struct {
 
 #ifndef _OPENCL_COMPILER
     static const char * warn[] = {
-        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: "
+        "pass xfer: "  ,  ", crypt: "    ,  ", result xfer: ",  ", index xfer: "
 };
 #endif
 

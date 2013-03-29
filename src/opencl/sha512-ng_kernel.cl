@@ -15,19 +15,11 @@
 #define _OPENCL_COMPILER
 #include "opencl_rawsha512-ng.h"
 
-inline void _memcpy_32(               uint32_t * dest,
-                       __global const uint32_t * src,
-                                const uint32_t  len) {
+inline void _memcpy(               uint32_t * dest,
+                    __global const uint32_t * src,
+                             const uint32_t   len) {
 
     for (uint32_t i = 0; i < len; i += 4)
-        *dest++ = *src++;
-}
-
-inline void _memcpy(               uint64_t * dest,
-                    __global const uint64_t * src,
-                             const uint32_t  len) {
-
-    for (uint32_t i = 0; i < len; i += 8)
         *dest++ = *src++;
 }
 
@@ -109,7 +101,8 @@ inline void sha512_crypt(sha512_ctx * ctx) {
 }
 
 __kernel
-void kernel_crypt_raw(__global   sha512_password * keys_buffer,
+void kernel_crypt_raw(__global   const uint32_t  * keys_buffer,
+                      __global   const uint32_t  * index,
                       __global   uint32_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
@@ -118,14 +111,20 @@ void kernel_crypt_raw(__global   sha512_password * keys_buffer,
     //Get the task to be done
     size_t gid = get_global_id(0);
 
+    //Get position and length of informed key.
+    uint32_t base = index[gid];
+    ctx.buflen = base & 63;
+
+    //Ajust keys to it start position.
+    keys_buffer += (base >> 6);
+
     //Clear the buffer.
     #pragma unroll
     for (uint32_t i = 0; i < 15; i++)
         ctx.buffer->mem_64[i] = 0;
 
     //Get password.
-    ctx.buflen = keys_buffer[gid].length;
-    _memcpy(ctx.buffer->mem_64, keys_buffer[gid].pass->mem_64, ctx.buflen);
+    _memcpy(ctx.buffer->mem_32, keys_buffer, ctx.buflen);
 
     //Do the job
     sha512_crypt(&ctx);
@@ -136,7 +135,8 @@ void kernel_crypt_raw(__global   sha512_password * keys_buffer,
 
 __kernel
 void kernel_crypt_xsha(__constant sha512_salt     * salt,
-                       __global   sha512_password * keys_buffer,
+                       __global   const uint32_t  * keys_buffer,
+                       __global   const uint32_t  * index,
                        __global   uint32_t        * out_buffer) {
 
     //Compute buffers (on CPU and NVIDIA, better private)
@@ -144,6 +144,13 @@ void kernel_crypt_xsha(__constant sha512_salt     * salt,
 
     //Get the task to be done
     size_t gid = get_global_id(0);
+
+    //Get position and length of informed key.
+    uint32_t base = index[gid];
+    ctx.buflen = base & 63;
+
+    //Ajust keys to it start position.
+    keys_buffer += (base >> 6);
 
     //Clear the buffer.
     #pragma unroll
@@ -154,8 +161,7 @@ void kernel_crypt_xsha(__constant sha512_salt     * salt,
     ctx.buffer->mem_32[0] = salt->salt;
 
     //Get password.
-    ctx.buflen = keys_buffer[gid].length;
-    _memcpy_32(ctx.buffer->mem_32 + 1, keys_buffer[gid].pass->mem_32, ctx.buflen);
+    _memcpy(ctx.buffer->mem_32 + 1, keys_buffer, ctx.buflen);
     ctx.buflen += SALT_SIZE_X;
 
     //Do the job
