@@ -38,7 +38,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     #pragma unroll
     for (int i = 0; i < 15; i++)
         w[i] = SWAP64(ctx->buffer->mem_64[i]);
-    w[15] = ctx->buffer->mem_64[15];
+    w[15] = ctx->buffer[15].mem_64[0];
 
     #pragma unroll
     for (int i = 0; i < 16; i++) {
