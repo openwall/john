@@ -268,7 +268,7 @@ static void fmt_ssha_init(struct fmt_main *self)
 
 	self->params.min_keys_per_crypt = local_work_size;
 
-	atexit(release_clobj);
+	//atexit(release_clobj);
 }
 
 

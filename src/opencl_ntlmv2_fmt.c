@@ -427,7 +427,7 @@ static void init(struct fmt_main *self)
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
 
-	atexit(release_clobj);
+	//atexit(release_clobj);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

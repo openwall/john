@@ -93,6 +93,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define outsize (sizeof(encfs_hash) * global_work_size)
 #define settingsize sizeof(encfs_salt)
 
+/*
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
@@ -104,6 +105,7 @@ static void done(void)
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
 }
+*/
 
 static void setIVec( unsigned char *ivec, uint64_t seed,
         unsigned char *key)
@@ -319,7 +321,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 }
 
 static int ishex(char *q)

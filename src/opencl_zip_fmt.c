@@ -87,6 +87,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define settingsize (sizeof(zip_salt))
 #define cracked_size (sizeof(*cracked) * global_work_size)
 
+/*
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
@@ -98,6 +99,7 @@ static void done(void)
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
 }
+*/
 
 static void init(struct fmt_main *self)
 {
@@ -171,7 +173,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

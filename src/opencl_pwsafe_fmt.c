@@ -73,7 +73,7 @@ static pwsafe_pass *host_pass;				/** binary ciphertexts **/
 static pwsafe_salt *host_salt;				/** salt **/
 static pwsafe_hash *host_hash;				/** calculated hashes **/
 
-
+/*
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
@@ -86,6 +86,7 @@ static void done(void)
 	MEM_FREE(host_hash);
 	MEM_FREE(host_salt);
 }
+*/
 
 static void pwsafe_set_key(char *key, int index)
 {
@@ -151,7 +152,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

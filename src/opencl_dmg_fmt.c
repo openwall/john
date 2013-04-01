@@ -224,6 +224,7 @@ static struct fmt_tests dmg_tests[] = {
 	{NULL}
 };
 
+/*
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
@@ -235,6 +236,7 @@ static void done(void)
 	MEM_FREE(outbuffer);
 	MEM_FREE(cracked);
 }
+*/
 
 static void init(struct fmt_main *self)
 {
@@ -307,7 +309,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

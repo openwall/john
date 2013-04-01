@@ -121,6 +121,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 }
 
+/*
 static void done(void)
 {
 	release_clobj();
@@ -133,6 +134,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_md5), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(wpapsk_final_sha1), "Release Kernel");
 }
+*/
 
 static void set_key(char *key, int index);
 static void *salt(char *ciphertext);
@@ -403,7 +405,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(done);
+	//atexit(done);
 }
 
 static void crypt_all(int count)

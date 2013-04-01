@@ -192,7 +192,7 @@ static void md4_crypt(unsigned int *buffer, unsigned int *hash)
 }
 
 static 	void set_key(char*,int);
-static 	void done(void);
+//static 	void done(void);
 static  void crypt_all(int);
 
 static void init(struct fmt_main *self)
@@ -231,7 +231,7 @@ static void init(struct fmt_main *self)
 	///select default platform=0 and default device=0
 	//select_default_device();
 
-	atexit(done);
+	//atexit(done);
 
 }
 
@@ -293,7 +293,7 @@ static void DCC(unsigned char *salt,unsigned char *username,unsigned int usernam
 
 }
 
-
+/*
 static void done()
 {
 	MEM_FREE(dcc2_hash_host);
@@ -301,6 +301,7 @@ static void done()
 	MEM_FREE(key_host);
 	clean_all_buffer();
 }
+*/
 
 static int valid(char *ciphertext,struct fmt_main *self)
 {

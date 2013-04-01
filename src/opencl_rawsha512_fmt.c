@@ -105,6 +105,7 @@ cl_kernel cmp_kernel;
 #define insize (sizeof(sha512_key) * global_work_size)
 #define outsize (sizeof(sha512_hash) * global_work_size)
 
+/*
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
@@ -115,6 +116,7 @@ static void done(void)
 	MEM_FREE(ghash);
 	MEM_FREE(gkey);
 }
+*/
 
 static void copy_hash_back()
 {
@@ -199,7 +201,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n",(int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 
 }
 

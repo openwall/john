@@ -178,6 +178,7 @@ static void release_clobj(void)
 	MEM_FREE(crypt_out);
 }
 
+/*
 static void done(void)
 {
 	release_clobj();
@@ -189,6 +190,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_pass2), "Release Kernel");
 	HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release Kernel");
 }
+*/
 
 static void set_key(char *key, int index);
 static void *get_salt(char *ciphertext);
@@ -500,7 +502,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(done);
+	//atexit(done);
 
 	// generate 128 bits from 40 bits of "kerberos" string
 	nfold(8 * 8, (unsigned char*)"kerberos", 128, constant);

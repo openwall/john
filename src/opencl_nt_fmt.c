@@ -111,6 +111,7 @@ cl_mem pinned_saved_keys, pinned_bbbs, buffer_out, buffer_keys;
 
 static int have_full_hashes;
 
+/*
 static void done(void)
 {
 	clEnqueueUnmapMemObject(queue[ocl_gpu_id], pinned_bbbs, bbbs, 0, NULL, NULL);
@@ -128,6 +129,7 @@ static void done(void)
 
 	MEM_FREE(res_hashes);
 }
+*/
 
 // TODO: Use concurrent memory copy & execute
 static void crypt_all(int count)
@@ -207,7 +209,7 @@ static void init(struct fmt_main *self){
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 }
 
 static char *split(char *ciphertext, int index)

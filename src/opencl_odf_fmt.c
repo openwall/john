@@ -83,6 +83,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 #define outsize (sizeof(odf_hash) * global_work_size)
 #define settingsize sizeof(odf_salt)
 
+/*
 static void done(void)
 {
 	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release Kernel");
@@ -95,6 +96,7 @@ static void done(void)
 	MEM_FREE(saved_key);
 	MEM_FREE(crypt_out);
 }
+*/
 
 static void init(struct fmt_main *self)
 {
@@ -169,7 +171,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 
-	atexit(done);
+	//atexit(done);
 }
 
 static int ishex(char *q)

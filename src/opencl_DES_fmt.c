@@ -39,10 +39,12 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			sizeof(WORD)
 #define SALT_SIZE			sizeof(WORD)
 
+/*
 static void done()
 {
 	DES_opencl_clean_all_buffer();
 }
+*/
 
 static void init(struct fmt_main *pFmt)
 {
@@ -63,8 +65,8 @@ static void init(struct fmt_main *pFmt)
 
 	DES_bs_select_device(platform_id,ocl_gpu_id,pFmt);
 
-	atexit(done);
-	
+	//atexit(done);
+
 }
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)

@@ -85,11 +85,13 @@ static char keys_mode;
 static int sign_extension_bug;
 static BF_salt saved_salt;
 
+/*
 static void done(void)
 {
 	BF_clear_buffer();
 	MEM_FREE(saved_key);
 }
+*/
 
 static void init(struct fmt_main *self)
 {	
@@ -110,7 +112,7 @@ static void init(struct fmt_main *self)
 	keys_mode = 'a';
 	sign_extension_bug = 0;
 	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
-	atexit(done);
+	//atexit(done);
 }
 
 static int valid(char *ciphertext,struct fmt_main *self)

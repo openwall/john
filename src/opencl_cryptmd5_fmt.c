@@ -174,6 +174,7 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
 }
 
+/*
 static void done(void)
 {
 	release_clobj();
@@ -183,6 +184,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
 	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
+*/
 
 static int salt_hash(void *salt)
 {
@@ -422,7 +424,7 @@ static void init(struct fmt_main *self)
 
 	fprintf(stderr, "Local worksize (LWS) %d, Global worksize (GWS) %d\n", (int)local_work_size, (int)global_work_size);
 	create_clobj(global_work_size, self);
-	atexit(done);
+	//atexit(done);
 
 	self->params.min_keys_per_crypt = local_work_size;
 	self->params.max_keys_per_crypt = global_work_size;

@@ -97,6 +97,7 @@ static void release_clobj(void)
 	MEM_FREE(res_hashes);
 }
 
+/*
 static void done(void)
 {
 	release_clobj();
@@ -106,6 +107,7 @@ static void done(void)
 	HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_gpu_id]), "Release Queue");
 	HANDLE_CLERROR(clReleaseContext(context[ocl_gpu_id]), "Release Context");
 }
+*/
 
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 {
@@ -270,7 +272,7 @@ static void init(struct fmt_main *self)
 		find_best_gws(getenv("GWS") == NULL ? 0 : 1, self);
 
 	fprintf(stderr, "Local worksize (LWS) %zu, Global worksize (GWS) %zu\n",local_work_size, global_work_size);
-	atexit(done);
+	//atexit(done);
 	create_clobj(global_work_size);
 
 	self->params.max_keys_per_crypt = global_work_size;
