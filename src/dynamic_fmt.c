@@ -839,15 +839,14 @@ static void init(struct fmt_main *pFmt)
 			input_buf2[i].c[GETPOS(57,0)] = 0x1;
 			input_buf2[i].c[GETPOS(32,1)] = 0x80;
 			input_buf2[i].c[GETPOS(57,1)] = 0x1;
-			total_len2[i*MMX_COEF] = 32;
-			total_len2[i*MMX_COEF+1] = 32;
 #if (MMX_COEF==4)
 			input_buf2[i].c[GETPOS(32,2)] = 0x80;
 			input_buf2[i].c[GETPOS(57,2)] = 0x1;
 			input_buf2[i].c[GETPOS(32,3)] = 0x80;
 			input_buf2[i].c[GETPOS(57,3)] = 0x1;
-			total_len2[i*MMX_COEF+2] = 32;
-			total_len2[i*MMX_COEF+3] = 32;
+			total_len2[i] = 0x20202020;
+#else
+			total_len2[i] = 0x00200020;
 #endif
 		}
 #endif
