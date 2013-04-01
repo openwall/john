@@ -330,9 +330,6 @@ static void find_best_workgroup(struct fmt_main *self) {
     opencl_find_best_workgroup_limit(self, max_group_size);
 
     fprintf(stderr, "Optimal local worksize %d\n", (int) local_work_size);
-    fprintf(stderr, "(to avoid this test on next run, put \""
-        LWS_CONFIG " = %d\" in john.conf, section [" SECTION_OPTIONS
-        SUBSECTION_OPENCL "])\n", (int)local_work_size);
 }
 
 //Allow me to have a configurable step size.
