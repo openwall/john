@@ -111,6 +111,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	} while (1);
 
 	p = mem_alloc(size + mask);
+	add_memory_link((void*)p);
 	p += mask;
 	p -= (size_t)p & mask;
 	return p;

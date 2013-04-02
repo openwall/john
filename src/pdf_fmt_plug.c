@@ -116,6 +116,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* 0 */
 		goto err;
+	MEM_FREE(keeptr);
 	return 1;
 
 err:
