@@ -299,7 +299,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 	else
 		goto err;
-
+	MEM_FREE(keeptr);
 	return 1;
 
 err:

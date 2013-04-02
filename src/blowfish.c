@@ -31,7 +31,7 @@
 
 #include <time.h>
 
-#define USE_ALLOC
+//#define USE_ALLOC
 /* keep a set of rotating P & S boxes */
 #ifdef USE_ALLOC
 static struct box_t {

@@ -406,7 +406,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 
 /* skeyid_data = ni_b | nr_b */
 	skeyid_data_len = ni_b_len + nr_b_len;
-	skeyid_data = malloc(skeyid_data_len);
+	skeyid_data = mem_alloc_tiny(skeyid_data_len, MEM_ALIGN_WORD);
 	cp = skeyid_data;
 	memcpy(cp, ni_b, ni_b_len);
 	cp += ni_b_len;
@@ -417,7 +417,7 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 /* hash_r_data = g_xr | g_xi | cky_r | cky_i | sai_b | idir_b */
 	hash_r_data_len = g_xr_len + g_xi_len + cky_r_len + cky_i_len +
 	    sai_b_len + idir_b_len;
-	hash_r_data = malloc(hash_r_data_len);
+	hash_r_data = mem_alloc_tiny(hash_r_data_len, MEM_ALIGN_WORD);
 	cp = hash_r_data;
 	memcpy(cp, g_xr, g_xr_len);
 	cp += g_xr_len;
@@ -443,9 +443,13 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	pe->skeyid_data_len = skeyid_data_len;
 	pe->hash_r_data = hash_r_data;
 	pe->hash_r_data_len = hash_r_data_len;
-	pe->hash_r = hex2data(hash_r_hex, &pe->hash_r_len);
+	{
+		unsigned char *c = hex2data(hash_r_hex, &pe->hash_r_len);
+		pe->hash_r = mem_alloc_copy(pe->hash_r_len, MEM_ALIGN_WORD, c);
+		MEM_FREE(c);
+	}
 	hash_r_hex_len = strlen(hash_r_hex) + 1;	/* includes terminating null */
-	pe->hash_r_hex = malloc(hash_r_hex_len);
+	pe->hash_r_hex = mem_alloc_tiny(hash_r_hex_len, MEM_ALIGN_WORD);
 	strncpy(pe->hash_r_hex, hash_r_hex, hash_r_hex_len);
 	pe->nortel_user = nortel_user;
 /*
