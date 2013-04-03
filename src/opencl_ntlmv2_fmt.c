@@ -230,29 +230,34 @@ static void set_salt(void *salt)
 static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 {
 	cl_ulong startTime, endTime;
-	cl_command_queue queue_prof;
 	cl_event Event[5];
-	cl_int ret_code;
-	int i;
+	int i, tidx = 0;
 
 	create_clobj(gws, self);
-	queue_prof = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+
+	/* Use all available test vectors to set keys */
 	self->methods.clear_keys();
-	for (i = 0; i < gws; i++)
-		self->methods.set_key(tests[0].plaintext, i);
+	for (i = 0; i < gws; i++) {
+		if (tests[tidx].plaintext == NULL)
+			tidx = 0;
+		self->methods.set_key(tests[tidx++].plaintext, i);
+	}
+
+	/* Emulate set_salt() */
 	memcpy(challenge, get_salt(tests[0].ciphertext), SALT_SIZE_MAX);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_challenge, CL_FALSE, 0, SALT_SIZE_MAX, challenge, 0, NULL, NULL), "Failed transferring salt");
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_key, CL_FALSE, 0, key_idx, saved_key, 0, NULL, &Event[0]), "Failed transferring keys");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue_prof, cl_saved_idx, CL_FALSE, 0, 4 * (gws + 1), saved_idx, 0, NULL, &Event[1]), "Failed transferring index");
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
+	/* Emulate crypt_all() */
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, &Event[0]), "Failed transferring keys");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[ocl_gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (global_work_size + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, &Event[1]), "Failed transferring index");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], ntlmv2_nthash, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[2]), "running kernel");
+	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[ocl_gpu_id], crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
 
-	HANDLE_CLERROR(clEnqueueNDRangeKernel(queue_prof, crypt_kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, &Event[3]), "running kernel");
-
-	HANDLE_CLERROR(clEnqueueReadBuffer(queue_prof, cl_result, CL_TRUE, 0, 4 * gws, output, 0, NULL, &Event[4]), "failed in reading output back");
+	/* Only benchmark partial transfer - that is what we optimize for */
+	HANDLE_CLERROR(clEnqueueReadBuffer(queue[ocl_gpu_id], cl_result, CL_TRUE, 0, 4 * gws, output, 0, NULL, &Event[4]), "failed in reading output back");
 
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[0],
-	        CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &startTime,
+	        CL_PROFILING_COMMAND_SUBMIT, sizeof(cl_ulong), &startTime,
 	        NULL), "Failed to get profiling info");
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[1],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
@@ -273,7 +278,6 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "exceeds 200 ms\n");
-		clReleaseCommandQueue(queue_prof);
 		release_clobj();
 		return 0;
 	}
@@ -291,7 +295,6 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	if (amd_gcn(device_info[ocl_gpu_id]) && endTime - startTime > 200000000) {
 		if (do_benchmark)
 			fprintf(stderr, "- exceeds 200 ms\n");
-		clReleaseCommandQueue(queue_prof);
 		release_clobj();
 		return 0;
 	}
@@ -314,7 +317,7 @@ static cl_ulong gws_test(int gws, int do_benchmark, struct fmt_main *self)
 	HANDLE_CLERROR(clGetEventProfilingInfo(Event[4],
 	        CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &endTime,
 	        NULL), "Failed to get profiling info");
-	clReleaseCommandQueue(queue_prof);
+
 	release_clobj();
 
 	return (endTime - startTime);
@@ -329,6 +332,16 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 	const int md5perkey = 11;
 	unsigned long long int MaxRunTime = 1000000000ULL;
 
+	/* Enable profiling */
+#ifndef CL_VERSION_1_1
+	HANDLE_CLERROR(clSetCommandQueueProperty(queue[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, CL_TRUE, NULL), "Failed enabling profiling");
+#else /* clSetCommandQueueProperty() is deprecated */
+	cl_command_queue origQueue = origQueue = queue[ocl_gpu_id];
+	queue[ocl_gpu_id] = clCreateCommandQueue(context[ocl_gpu_id], devices[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	HANDLE_CLERROR(ret_code, "Failed enabling profiling");
+#endif
+
+	/* Beware of device limits */
 	max_gws = MIN(get_max_mem_alloc_size(ocl_gpu_id) / max_len, get_global_memory_size(ocl_gpu_id) / (max_len + 16 + 16 + SALT_SIZE_MAX));
 
 	if (do_benchmark) {
@@ -369,6 +382,15 @@ static void find_best_gws(int do_benchmark, struct fmt_main *self)
 				break;
 		}
 	}
+
+	/* Disable profiling */
+#ifndef CL_VERSION_1_1
+	HANDLE_CLERROR(clSetCommandQueueProperty(queue[ocl_gpu_id], CL_QUEUE_PROFILING_ENABLE, CL_FALSE, NULL), "Failed disabling profiling");
+#else /* clSetCommandQueueProperty() is deprecated */
+	clReleaseCommandQueue(queue[ocl_gpu_id]);
+	queue[ocl_gpu_id] = origQueue;
+#endif
+
 	global_work_size = optimal_gws;
 }
 
