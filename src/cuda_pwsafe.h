@@ -9,8 +9,8 @@
 #define uint8_t                         unsigned char
 #define uint32_t                        unsigned int
 
-#define THREADS                         512
-#define BLOCKS                          112//14 // 112 is good for gtx460
+#define THREADS                         128
+#define BLOCKS                          448//14 // 112 is good for gtx460
 #define KEYS_PER_CRYPT                  THREADS*BLOCKS
 
 #define MIN(a,b) (((a)<(b))?(a):(b))

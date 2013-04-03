@@ -12,8 +12,8 @@
 #define uint16_t		unsigned short
 #define uint32_t		unsigned int
 
-#define THREADS			512
-#define BLOCKS			21
+#define THREADS			256
+#define BLOCKS			42
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
 
 #define BINARY_SIZE		16
