@@ -16,8 +16,8 @@
 #define MIN(a,b) ((a)<(b)?(a):(b))
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
-#define BLOCKS			28*3
-#define THREADS 		256
+#define BLOCKS			56*3
+#define THREADS 		128
 #define KEYS_PER_CRYPT		BLOCKS*THREADS
 #define PLAINTEXT_LENGTH	15
 

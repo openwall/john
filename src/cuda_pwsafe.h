@@ -7,14 +7,14 @@
 #ifndef _CUDA_PWSAFE_H
 #define _CUDA_PWSAFE_H
 #include "common.h"
-#define uint8_t                         unsigned char
-#define uint32_t                        unsigned int
+#define uint8_t                 unsigned char
+#define uint32_t                unsigned int
 
-#define GPUS                            1
-#define THREADS                         256
-#define BLOCKS                          128//112//14 // 112 is good for gtx460
-#define KEYS_PER_GPU			THREADS*BLOCKS
-#define KEYS_PER_CRYPT                  KEYS_PER_GPU*GPUS
+#define GPUS                    1
+#define THREADS                 128
+#define BLOCKS                  256//112//14 // 112 is good for gtx460
+#define KEYS_PER_GPU            THREADS*BLOCKS
+#define KEYS_PER_CRYPT          KEYS_PER_GPU*GPUS
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))

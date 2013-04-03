@@ -8,8 +8,8 @@
 #include "wpapsk.h"
 
 
-#define THREADS			256	//set at least 256 on fermi
-#define BLOCKS			14
+#define THREADS			64	//set at least 256 on fermi
+#define BLOCKS			16
 #define	KEYS_PER_CRYPT		(THREADS)*(BLOCKS)
 
 #define MIN_KEYS_PER_CRYPT	THREADS

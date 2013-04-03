@@ -23,12 +23,14 @@ Performance issues:
   with using "-arch sm_30" as well but some formats may actually perform better
   with sm_20.
 
-  Default THREADS and BLOCKS settings might not be optimal. For some (weak)
-  cards, THREADS may even be too high and this will show up as eg. "too many
-  resources requested for launch in cryptmd5.cu at line 241".
-
   To get better performance you can experiment with THREADS and BLOCKS macros
-  defined for each format in cuda*.h file.
+  defined for each format in cuda*.h file. Default THREADS and BLOCKS settings
+  are not likely optimal. For some (weak) cards, THREADS may even be too high
+  and this will show up as eg. "too many resources requested for launch in
+  cryptmd5.cu at line 241". If this happens, try halving THREADS and doubling
+  BLOCKS in cuda_cryptmd5.h, and then re-build. For more powerful cards, you
+  can try just doubling THREADS until it gets too high (error) or suboptimal
+  (slower), then settle for previous figure.
 
   For MSCash2[1]:
     CARD NAME   BLOCKS  THREADS SM      RESULT
