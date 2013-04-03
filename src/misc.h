@@ -13,7 +13,12 @@
 #define _JOHN_MISC_H
 
 #include <stdio.h>
+#ifndef _MSC_VER
 #include <strings.h>
+#else
+#undef inline
+#define inline static
+#endif
 #include <string.h>
 
 /*
