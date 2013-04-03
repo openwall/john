@@ -63,7 +63,6 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
-#include <libgen.h>
 
 #include "common.h"
 #include "misc.h"

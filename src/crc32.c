@@ -14,8 +14,8 @@
 #define POLY 0xEDB88320
 #define ALL1 0xFFFFFFFF
 
-static CRC32_t *table = NULL;
-
+static CRC32_t table[256];
+static int bInit=0;
 void CRC32_Init(CRC32_t *value)
 {
 	unsigned int index, bit;
@@ -23,11 +23,8 @@ void CRC32_Init(CRC32_t *value)
 
 	*value = ALL1;
 
-	if (table) return;
-/* mem_alloc() doesn't return on failure.  If replacing this with plain
- * malloc(3), error checking would need to be added. */
-	table = mem_alloc(sizeof(*table) * 0x100);
-
+	if (bInit) return;
+	bInit = 1;
 	for (index = 0; index < 0x100; index++) {
 		entry = index;
 
