@@ -60,7 +60,7 @@
 //dynamic_17 --> phpass ($P$ or $H$)		// phpass OR phpbb (or WordPress, etc).  Should handle all conforming formats
 //dynamic_18 --> md5($s.Y.$p.\xF7.$s)		//(Post.Office MD5) Does not workin SSE2, uses ONLY x86 md5 calls.
 //dynamic_19 --> Cisco PIX (MD5)
-//dynamic_20 --> Cisco PIX (MD5 salted)
+//dynamic_20 --> Cisco ASA (MD5 salted)
 //dynamic_21 --> HTTP Digest Access Auth
 //dynamic_22 --> md5(sha1($p))
 //dynamic_23 --> sha1(md5($p))             // requires a 40 byte hex hash
@@ -571,7 +571,7 @@ static struct fmt_tests _Preloads_19[] =
 };
 
 
-//dynamic_20$ --> Salted Cisco PIX hash
+//dynamic_20$ --> Salted Cisco ASA hash (same as asaMD5_fmt.c)
 static DYNAMIC_primitive_funcp _Funcs_20[] =
 {
 	//MGF_INPBASE64_4x6
@@ -1430,7 +1430,7 @@ static DYNAMIC_Setup Setups[] =
 	#endif
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s)(Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 32 },
 	{ "dynamic_19: Cisco PIX (MD5)",            _Funcs_19,_Preloads_19,_ConstDefault, MGF_INPBASE64_4x6, MGF_NO_FLAG, 0, 16, 16 },
-	{ "dynamic_20: Cisco PIX (MD5 salted)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
+	{ "dynamic_20: Cisco ASA (MD5 salted)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, 4, 12, 12 },
 	{ "dynamic_21: HTTP Digest Access Auth",    _Funcs_21,_Preloads_21,_Const_21,     MGF_HDAA_SALT|MGF_FLD2|MGF_FLD3|MGF_SALTED, MGF_NO_FLAG, 0, 26, 26 },
 	{ "dynamic_22: md5(sha1($p))",              _Funcs_22,_Preloads_22,_ConstDefault, MGF_StartInX86Mode, MGF_KEYS_INPUT_BE_SAFE },
 	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_NO_FLAG, MGF_SHA1_40_BYTE_FINISH|MGF_KEYS_INPUT, },
