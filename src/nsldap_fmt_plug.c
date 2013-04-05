@@ -105,11 +105,13 @@ static void init(struct fmt_main *self)
 static void set_key(char *_key, int index)
 {
 #ifdef MMX_COEF
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	unsigned char nkey[PLAINTEXT_LENGTH + 1 + 3] = { 0 };
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)nkey;
 	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(3, index)];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
+	strncpy((char*)nkey, _key, PLAINTEXT_LENGTH + 1);
 
 	len = 0;
 	while((temp = JOHNSWAP(*key++)) & 0xff000000) {
@@ -229,9 +231,11 @@ static void crypt_all(int count) {
 static void * binary(char *ciphertext)
 {
 	static char realcipher[BINARY_SIZE + 9];
+	char ciphertext_padded[CIPHERTEXT_LENGTH + 7] = { 0 }; /* why 3 is not enough? */
+	strncpy(ciphertext_padded, ciphertext, CIPHERTEXT_LENGTH);
 
 	memset(realcipher, 0, sizeof(realcipher));
-	base64_decode(NSLDAP_MAGIC_LENGTH+ciphertext, CIPHERTEXT_LENGTH, realcipher);
+	base64_decode(NSLDAP_MAGIC_LENGTH+ciphertext_padded, CIPHERTEXT_LENGTH, realcipher);
 
 #ifdef MMX_COEF
 	alter_endianity((unsigned char*)realcipher, BINARY_SIZE);

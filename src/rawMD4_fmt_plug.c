@@ -175,11 +175,13 @@ static void clear_keys(void)
 static void set_key(char *_key, int index)
 {
 #ifdef MMX_COEF
-	const ARCH_WORD_32 *key = (ARCH_WORD_32*)_key;
+	unsigned char nkey[PLAINTEXT_LENGTH + 1 + 3] = { 0 };
+	const ARCH_WORD_32 *key = (ARCH_WORD_32*)nkey;
 	ARCH_WORD_32 *keybuffer = (ARCH_WORD_32*)&saved_key[GETPOS(0, index)];
 	ARCH_WORD_32 *keybuf_word = keybuffer;
 	unsigned int len;
 	ARCH_WORD_32 temp;
+	strncpy((char*)key, _key, PLAINTEXT_LENGTH + 1);
 
 	len = 0;
 	while((temp = *key++) & 0xff) {

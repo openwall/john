@@ -120,6 +120,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	/* skip two characters, for "nk_tests[]" this is '#'
 	 * followed by decal value */
+	if (strlen(ptr) <= 2)
+		goto error;
 	ptr += 2;
 	/* hash is of fixed length 32 */
 	if (strlen(ptr) != 32)

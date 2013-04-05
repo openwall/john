@@ -153,10 +153,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	unsigned char nkey[PLAINTEXT_LENGTH + 1 + 3] = { 0 };
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)nkey;
 	ARCH_WORD_32 *keybuf_word = (ARCH_WORD_32*)&saved_key[GETPOS(3, index)];
 	unsigned int len;
 	ARCH_WORD_32 temp;
+	strncpy((char*)nkey, key, PLAINTEXT_LENGTH + 1);
 
 	len = 0;
 	while((temp = *wkey++) & 0xff) {
