@@ -224,10 +224,10 @@ static char *userclass_expand(const char *src)
 	char *dst = dst_tmp, *dstend = &dst_tmp[0x100];
 	int j, br = 0;
 
-	// pass 1: decode \xNN characters
+	// pass 1: decode \xNN characters (except \x00)
 	while(*src && dst < dstend) {
 		if (*src == '\\' && (src[1]|0x20) == 'x' &&
-		    strlen(&src[2]) >= 2 && (sscanf(&src[2], "%2x", &j)))
+		    strlen(&src[2]) >= 2 && (sscanf(&src[2], "%2x", &j)) && j)
 		{
 			*dst++ = (char) j;
 			src += 4;
