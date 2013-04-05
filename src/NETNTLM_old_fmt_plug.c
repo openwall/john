@@ -188,7 +188,7 @@ static char *split(char *ciphertext, int index)
   static char out[TOTAL_LENGTH + 1];
 
   memset(out, 0, TOTAL_LENGTH + 1);
-  memcpy(&out, ciphertext, TOTAL_LENGTH);
+  strncpy(&out, ciphertext, TOTAL_LENGTH);
   strlwr(&out[8]); /* Exclude: $NETNTLM$ */
 
   return out;
