@@ -101,6 +101,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!memcmp(ciphertext, "O$", 2))
 	{
 		l = strlen(ciphertext) - CIPHERTEXT_LENGTH;
+		if (l <= 0)
+			return 0;
 		if(ciphertext[l-1]!='#')
 			return 0;
 	}
