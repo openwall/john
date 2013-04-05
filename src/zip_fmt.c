@@ -40,13 +40,13 @@
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    -1
 #define BINARY_SIZE         0
-#define SALT_SIZE           512
+#define SALT_SIZE           128
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  96
 
 static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 static int has_been_cracked[MAX_KEYS_PER_CRYPT];
-static unsigned char saved_salt[48];
+static unsigned char *saved_salt;
 static unsigned char passverify[2];
 static int type;		/* type of zip file */
 static int mode;
@@ -101,18 +101,14 @@ error:
 
 static void *get_salt(char *ciphertext)
 {
-	return ciphertext;
-}
-
-static void set_salt(void *salt)
-{
 	int i, strength, n;
-	/* extract data from "salt" */
-	char *encoded_salt, *p;
-	char *saltcopy_mem = strdup(salt);
-	char *saltcopy = saltcopy_mem + 6; /* skip over "$zip$*" */
+	static unsigned char salt[SALT_SIZE];
+	/* extract data from "ciphertext" */
+	char *encoded_ciphertext, *p;
+	char *copy_mem = strdup(ciphertext);
+	char *copy = copy_mem + 6; /* skip over "$zip$*" */
 
-	type = atoi(strtok(saltcopy, "*"));
+	type = atoi(strtok(copy, "*"));
 	strength = atoi(strtok(NULL, "*"));
 	mode = strength;
 	switch (strength) {
@@ -130,16 +126,22 @@ static void set_salt(void *salt)
 		error();
 		n = 0; /* Not reached */
 	}
-	encoded_salt = strtok(NULL, "*");
+	encoded_ciphertext = strtok(NULL, "*");
 	for (i = 0; i < n; i++)
-		saved_salt[i] = atoi16[ARCH_INDEX(encoded_salt[i * 2])] * 16
-		    + atoi16[ARCH_INDEX(encoded_salt[i * 2 + 1])];
+		salt[i] = atoi16[ARCH_INDEX(encoded_ciphertext[i * 2])] * 16
+		    + atoi16[ARCH_INDEX(encoded_ciphertext[i * 2 + 1])];
 	p = strtok(NULL, "*");
 	for (i = 0; i < 2; i++)
 		passverify[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16 +
 		    atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	MEM_FREE(copy_mem);
+	return (void*)salt;
+}
+
+static void set_salt(void *salt)
+{
 	memset(has_been_cracked, 0, MAX_KEYS_PER_CRYPT);
-	MEM_FREE(saltcopy_mem);
+	saved_salt = (unsigned char*)salt;
 }
 
 static void zip_set_key(char *key, int index)
