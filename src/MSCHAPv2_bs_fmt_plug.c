@@ -9,7 +9,6 @@
  *
  * Modified for using Bitsliced DES by Deepika Dutta Mishra
  * <dipikadutta at gmail.com> in 2012, no rights reserved.
- * Supports Openmp.
  *
  * Support for freeradius-wep-patch challenge/response format
  * added by Linus Lüssing in 2012 and is licensed under CC0/PD terms:
@@ -70,7 +69,6 @@
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         13 + USERNAME_LENGTH + CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
-// these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT      DES_BS_DEPTH
 
@@ -310,14 +308,14 @@ static void *generate_des_format(uchar* binary)
 		block[i+1] = ptr[0];
 	}
 
-	return block;
+	return (void *) block;
 }
 
 static void *get_binary(char *ciphertext)
 {
 	uchar binary[BINARY_SIZE];
 	int i;
-	ARCH_WORD *ptr;
+	void *ptr;
 
 	if (valid_short(ciphertext))
 		ciphertext += 10 + CHALLENGE_LENGTH / 4 + 1; /* Skip - $MSCHAPv2$, MSCHAPv2 Challenge */
@@ -405,7 +403,7 @@ static int cmp_exact(char *source, int index)
 	/* NULL-pad 16-byte NTLM hash to 21-bytes (postponed until now) */
 	memset(&saved_key[index][16], 0, 5);
 
-	binary = get_binary(source);
+	binary = (ARCH_WORD *) get_binary(source);
 	if (!DES_bs_cmp_one(binary, 64, index))
 	{
 		setup_des_key(saved_key[0], 0);
@@ -414,7 +412,7 @@ static int cmp_exact(char *source, int index)
 
 	setup_des_key(&saved_key[index][7], 0);
 	DES_bs_crypt_plain(1);
-	binary = get_binary(source);
+	binary = (ARCH_WORD *) get_binary(source);
 	if (!DES_bs_cmp_one(&binary[2], 64, 0))
 	{
 		setup_des_key(saved_key[0], 0);
@@ -423,7 +421,7 @@ static int cmp_exact(char *source, int index)
 
 	setup_des_key(&saved_key[index][14], 0);
 	DES_bs_crypt_plain(1);
-	binary = get_binary(source);
+	binary = (ARCH_WORD *) get_binary(source);
 	if (!DES_bs_cmp_one(&binary[4], 64, 0))
 	{
 		setup_des_key(saved_key[0], 0);
