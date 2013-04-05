@@ -81,10 +81,17 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+		q++;
+	return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int ctlen;
+	int len;
 	if (strncmp(ciphertext, "$sshng$", 7) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -94,16 +101,23 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt len */
 		goto err;
-	if(atoi(p) > 16)
+	len = atoi(p);
+	if(len > 16)
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* salt */
 		goto err;
+	if(strlen(p) != len * 2)
+		goto err;
+	if (!ishex(p))
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* ciphertext length */
 		goto err;
-	ctlen = atoi(p);
+	len = atoi(p);
 	if ((p = strtok(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
-	if(strlen(p) != ctlen * 2)
+	if(strlen(p) != len * 2)
+		goto err;
+	if (!ishex(p))
 		goto err;
 
 	MEM_FREE(keeptr);
