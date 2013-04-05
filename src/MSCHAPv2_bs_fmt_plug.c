@@ -9,7 +9,6 @@
  *
  * Modified for using Bitsliced DES by Deepika Dutta Mishra
  * <dipikadutta at gmail.com> in 2012, no rights reserved.
- * Supports Openmp.
  *
  * Support for freeradius-wep-patch challenge/response format
  * added by Linus Lüssing in 2012 and is licensed under CC0/PD terms:
@@ -70,7 +69,6 @@
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         13 + USERNAME_LENGTH + CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
-// these may be altered in init() if running OMP
 #define MIN_KEYS_PER_CRYPT	DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT      DES_BS_DEPTH
 

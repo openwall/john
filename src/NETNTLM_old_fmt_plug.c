@@ -6,6 +6,9 @@
  *
  * Modified for performance, support for Extended Session Security, OMP
  * and UTF-8, by magnum 2010-2011.
+
+ * Modified for using Bitsliced DES by Deepika Dutta Mishra
+ * <dipikadutta at gmail.com> in 2013, no rights reserved.
  *
  * This algorithm is designed for performing brute-force cracking of the NTLM
  * (version 1) challenge/response pairs exchanged during network-based
@@ -40,6 +43,8 @@
  */
 
 #include <string.h>
+#include "DES_std.h"
+#include "DES_bs.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -50,8 +55,6 @@
 #include "options.h"
 
 #include "md5.h"
-#include <openssl/des.h>
-
 #include "unicode.h"
 
 #ifndef uchar
@@ -60,26 +63,20 @@
 
 #define FORMAT_LABEL		"netntlm-naive"
 #define FORMAT_NAME		"NTLMv1 C/R MD4 DES (ESS MD5)"
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " naive"
+#define ALGORITHM_NAME		DES_BS_ALGORITHM_NAME " naive"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0
 #define PLAINTEXT_LENGTH	125
 #define BINARY_SIZE		24
-#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define BINARY_ALIGN            4
 #define PARTIAL_BINARY_SIZE	8
 #define SALT_SIZE		8
-#define SALT_ALIGN              MEM_ALIGN_WORD
+#define SALT_ALIGN              1
 #define CIPHERTEXT_LENGTH	48
 #define TOTAL_LENGTH		(10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
 
-// these may be altered in init() if running OMP
-#define MIN_KEYS_PER_CRYPT	1
-#define THREAD_RATIO		128
-#ifdef _OPENMP
-#define MAX_KEYS_PER_CRYPT	0x10000
-#else
-#define MAX_KEYS_PER_CRYPT	THREAD_RATIO
-#endif
+#define MIN_KEYS_PER_CRYPT	DES_BS_DEPTH
+#define MAX_KEYS_PER_CRYPT      DES_BS_DEPTH
 
 static struct fmt_tests tests[] = {
   {"$NETNTLM$1122334455667788$BFCCAF26128EC95F9999C9792F49434267A1D9B0EF89BFFB", "g3rg3g3rg3g3rg3"},
@@ -104,20 +101,15 @@ static uchar (*output)[PARTIAL_BINARY_SIZE];
 static uchar (*saved_key)[21]; // NT hash
 static uchar *challenge;
 static int keys_prepared;
+static void set_salt(void *salt);
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
-	int n = MIN_KEYS_PER_CRYPT * omp_get_max_threads();
-	if (n < MIN_KEYS_PER_CRYPT)
-		n = MIN_KEYS_PER_CRYPT;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	self->params.min_keys_per_crypt = n;
-	n = n * (n << 1) * THREAD_RATIO;
-	if (n > MAX_KEYS_PER_CRYPT)
-		n = MAX_KEYS_PER_CRYPT;
-	self->params.max_keys_per_crypt = n;
+	/* LM =2 for DES encryption with no salt and no iterations */
+		DES_bs_init(2, DES_bs_cpt);
+#if DES_bs_mt
+	self->params.min_keys_per_crypt = DES_bs_min_kpc;
+	self->params.max_keys_per_crypt = DES_bs_max_kpc;
 #endif
 	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -193,13 +185,48 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
   return out;
 }
+static void *generate_des_format(uchar* binary)
+{
+	static ARCH_WORD block[6];
+	int chr, src,dst,i;
+	uchar value, mask;
+	ARCH_WORD *ptr;
+
+	memset(block, 0, sizeof(ARCH_WORD) * 6);
+
+	for (chr = 0; chr < 24; chr=chr + 8)
+	{
+		dst = 0;
+		for(i=0; i<8; i++)
+		{
+			value = binary[chr + i];
+			mask = 0x80;
+
+			for (src = 0; src < 8; src++) {
+				if (value & mask)
+					block[(chr/4) + (dst>>5)]|= 1 << (dst & 0x1F);
+				mask >>= 1;
+				dst++;
+			}
+		}
+	}
+
+	/* Apply initial permutation on ciphertext blocks */
+	for(i=0; i<6; i=i+2)
+	{
+		ptr = (ARCH_WORD *)DES_do_IP(&block[i]);
+		block[i] = ptr[1];
+		block[i+1] = ptr[0];
+	}
+
+	return (void *)block;
+}
 
 static void *get_binary(char *ciphertext)
 {
-	static uchar *binary;
+	uchar binary[BINARY_SIZE];
 	int i;
-
-	if (!binary) binary = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	void *ptr;
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
 	for (i=0; i<BINARY_SIZE; i++) {
@@ -207,29 +234,34 @@ static void *get_binary(char *ciphertext)
 		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
 	}
 
-	return binary;
+	/* Set binary in DES format */
+	ptr = generate_des_format(binary);
+	return ptr;
 }
 
-static inline void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
+static inline void setup_des_key(unsigned char key_56[], int index)
 {
-  DES_cblock key;
+	char key[8];
 
-  key[0] = key_56[0];
-  key[1] = (key_56[0] << 7) | (key_56[1] >> 1);
-  key[2] = (key_56[1] << 6) | (key_56[2] >> 2);
-  key[3] = (key_56[2] << 5) | (key_56[3] >> 3);
-  key[4] = (key_56[3] << 4) | (key_56[4] >> 4);
-  key[5] = (key_56[4] << 3) | (key_56[5] >> 5);
-  key[6] = (key_56[5] << 2) | (key_56[6] >> 6);
-  key[7] = (key_56[6] << 1);
+	/* Right shift key bytes by 1 to bring in openssl format */
+	/* Each byte of key is xored with 0x80 to pass check for 0 in DES_bs_set_key() */
 
-  DES_set_key(&key, ks);
+	key[0] = (key_56[0] >> 1) | 0x80;
+	key[1] = (((key_56[0] << 7) | (key_56[1] >> 1)) >>1) | 0x80;
+	key[2] = (((key_56[1] << 6) | (key_56[2] >> 2)) >>1) | 0x80;
+	key[3] = (((key_56[2] << 5) | (key_56[3] >> 3)) >>1) | 0x80;
+	key[4] = (((key_56[3] << 4) | (key_56[4] >> 4)) >>1) | 0x80;
+	key[5] = (((key_56[4] << 3) | (key_56[5] >> 5)) >>1) | 0x80;
+	key[6] = (((key_56[5] << 2) | (key_56[6] >> 6)) >>1) | 0x80;
+	key[7] = ((key_56[6] << 1) >>1 ) | 0x80;
+
+	DES_bs_set_key((char*)key, index);
 }
+
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	DES_key_schedule ks;
 	int i;
 
 	if (!keys_prepared) {
@@ -246,61 +278,69 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				saved_plain[i][-len] = 0; // match truncation
 
 			/* Hash is NULL padded to 21-bytes in cmp_exact if needed */
+			setup_des_key(saved_key[i], i);
 		}
 		keys_prepared = 1;
 	}
 
-#ifdef _OPENMP
-#pragma omp parallel for default(none) private(i, ks) shared(count, output, saved_key, challenge)
-#endif
-	for(i=0; i<count; i++) {
-		/* Just do the first DES operation, for a partial binary */
-		setup_des_key(saved_key[i], &ks);
-		DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&output[i], &ks, DES_ENCRYPT);
-	}
+	/* Bitsliced des encryption */
+	DES_bs_crypt_plain(count);
+
 	return count;
 }
 
+
 static int cmp_all(void *binary, int count)
 {
-	int index;
-	for(index=0; index<count; index++)
-		if (!memcmp(output[index], binary, PARTIAL_BINARY_SIZE))
-			return 1;
-	return 0;
+	return DES_bs_cmp_all((ARCH_WORD *)binary, count);
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(output[index], binary, PARTIAL_BINARY_SIZE);
+	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	DES_key_schedule ks;
-	uchar binary[24];
+        ARCH_WORD *binary;
+	/* NULL-pad 16-byte NTLM hash to 21-bytes (postponed until now) */
 
-	/* Hash is NULL padded to 21-bytes (postponed until now) */
 	memset(&saved_key[index][16], 0, 5);
 
-	/* Split into three 7-byte segments for use as DES keys
-	   Use each key to DES encrypt challenge
-	   Concatenate output to for 24-byte NTLM response */
+	binary = (ARCH_WORD *)get_binary(source);
+	if (!DES_bs_cmp_one(binary, 64, index))
+	{
+		setup_des_key(saved_key[0], 0);
+		return 0;
+	}
 
-	setup_des_key(saved_key[index], &ks);
-	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)binary, &ks, DES_ENCRYPT);
-	setup_des_key(&saved_key[index][7], &ks);
-	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[8], &ks, DES_ENCRYPT);
-	setup_des_key(&saved_key[index][14], &ks);
-	DES_ecb_encrypt((DES_cblock*)challenge, (DES_cblock*)&binary[16], &ks, DES_ENCRYPT);
+	setup_des_key(&saved_key[index][7], 0);
+	DES_bs_crypt_plain(1);
+	binary = (ARCH_WORD *) get_binary(source);
+	if (!DES_bs_cmp_one(&binary[2], 64, 0))
+	{
+		setup_des_key(saved_key[0], 0);
+		return 0;
+	}
 
-	return !memcmp(binary, get_binary(source), BINARY_SIZE);
+	setup_des_key(&saved_key[index][14], 0);
+	DES_bs_crypt_plain(1);
+	binary = (ARCH_WORD *) get_binary(source);
+	if (!DES_bs_cmp_one(&binary[4], 64, 0))
+	{
+		setup_des_key(saved_key[0], 0);
+		return 0;
+	}
+
+	setup_des_key(saved_key[0], 0);
+	return 1;
 }
 
 static void *get_salt(char *ciphertext)
 {
 	static uchar *binary_salt;
-	int i;
+	int i, cnt,j;
+	unsigned char temp[SALT_SIZE];
 
 	if (!binary_salt) binary_salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
@@ -325,12 +365,23 @@ static void *get_salt(char *ciphertext)
 		MD5_Final((void*)k1, &ctx);
 		memcpy(binary_salt, k1, SALT_SIZE); // but only 8 bytes of it
 	}
+
+	/* Apply IP to salt */
+	memset(temp, 0, SALT_SIZE);
+	for (i = 0; i < 64; i++) {
+		cnt = DES_IP[i ^ 0x20];
+		j = (uchar)((binary_salt[cnt >> 3] >> (7 - (cnt & 7))) & 1);
+		temp[i/8] |= j << (7 - (i % 8));
+	}
+
+	memcpy(binary_salt, temp, SALT_SIZE);
 	return (void*)binary_salt;
 }
 
 static void set_salt(void *salt)
 {
 	challenge = salt;
+	DES_bs_generate_plaintext(challenge);
 }
 
 static void netntlm_set_key(char *key, int index)
@@ -385,41 +436,6 @@ static int binary_hash_6(void *binary)
 	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
 }
 
-static int get_hash_0(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0xF;
-}
-
-static int get_hash_1(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0xFF;
-}
-
-static int get_hash_2(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0xFFF;
-}
-
-static int get_hash_3(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0xFFFF;
-}
-
-static int get_hash_4(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0xFFFFF;
-}
-
-static int get_hash_5(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0xFFFFFF;
-}
-
-static int get_hash_6(int index)
-{
-	return *(ARCH_WORD_32 *)output[index] & 0x7FFFFFF;
-}
-
 struct fmt_main fmt_NETNTLM_old = {
 	{
 		FORMAT_LABEL,
@@ -462,13 +478,13 @@ struct fmt_main fmt_NETNTLM_old = {
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			DES_bs_get_hash_0,
+			DES_bs_get_hash_1,
+			DES_bs_get_hash_2,
+			DES_bs_get_hash_3,
+			DES_bs_get_hash_4,
+			DES_bs_get_hash_5,
+			DES_bs_get_hash_6
 		},
 		cmp_all,
 		cmp_one,
