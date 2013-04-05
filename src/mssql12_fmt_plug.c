@@ -85,7 +85,7 @@ static int *key_length;
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if(memcmp(ciphertext, "0x0200", 6))
+	if(strncmp(ciphertext, "0x0200", 6))
 		return 0;
 	return 1;
 }
