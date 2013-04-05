@@ -135,13 +135,16 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 static char *split(char *ciphertext, int index)
 #endif
 {
+	int len;
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + SALT_SIZE + 1];
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
-
+	len = CIPHERTEXT_LENGTH + SALT_SIZE + 1;
+	if (len > strlen(ciphertext))
+		len = strlen(ciphertext);
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
+	memcpy(out + TAG_LENGTH, ciphertext, len);
 	return out;
 }
 
