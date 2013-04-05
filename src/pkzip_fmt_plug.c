@@ -219,7 +219,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	u32 offex;
 	int type;
 
-	if (strncmp(ciphertext, "$pkzip$", 6))
+	if (strncmp(ciphertext, "$pkzip$", 7))
 		return 0;
 
 	cp = (u8*)str_alloc_copy(ciphertext);
