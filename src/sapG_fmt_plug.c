@@ -245,7 +245,7 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
-	memcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
+	strncpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
 

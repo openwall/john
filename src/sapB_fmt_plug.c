@@ -189,7 +189,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	for (i = 0; i < p - ciphertext; i++) {
 		// even those lower case non-ascii characters with a
 		// corresponding upper case character could be rejected
-		if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') return 0; 
+		if (ciphertext[i] >= 'a' && ciphertext[i] <= 'z') return 0;
 		// SAP user names cannot be longer than 12 characters
 		if (i >= SALT_LENGTH && ciphertext[i] != ' ') return 0;
 	}
@@ -215,7 +215,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	memcpy(saved_plain[index], key, PLAINTEXT_LENGTH);
+	strncpy(saved_plain[index], key, PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
 
