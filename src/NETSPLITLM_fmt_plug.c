@@ -35,7 +35,7 @@
 #define ALGORITHM_NAME       "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
-#define PLAINTEXT_LENGTH     7
+#define PLAINTEXT_LENGTH     12
 #define BINARY_SIZE          8
 #define BINARY_ALIGN         4
 #define SALT_SIZE            8
@@ -127,8 +127,10 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 
 	// this string suggests we have an improperly formatted NTLMv2
-	if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
-		return split_fields[1];
+	if (strlen(split_fields[4]) > 31) {
+		if (!strncmp(&split_fields[4][32], "0101000000000000", 16))
+			return split_fields[1];
+	}
 
 	tmp = (char *) mem_alloc(12 + strlen(split_fields[3]) + strlen(split_fields[5]) + 1);
 	sprintf(tmp, "$NETHALFLM$%s$%s", split_fields[5], split_fields[3]);
