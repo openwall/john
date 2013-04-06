@@ -229,7 +229,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
   identity_length = pos - (ciphertext + 9);
 
   memset(out, 0, TOTAL_LENGTH + 1);
-  memcpy(&out, ciphertext, strlen(ciphertext));
+  memcpy(out, ciphertext, strlen(ciphertext));
   strlwr(&out[10 + identity_length]); /* Exclude: $NETLMv2$USERDOMAIN$ */
 
   return out;

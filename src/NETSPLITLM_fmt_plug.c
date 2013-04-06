@@ -146,7 +146,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
   static char out[TOTAL_LENGTH + 1] = {0};
 
-  memcpy(&out, ciphertext, TOTAL_LENGTH);
+  memcpy(out, ciphertext, TOTAL_LENGTH);
   strlwr(&out[10]); /* Exclude: $NETHALFLM$ */
   return out;
 }
