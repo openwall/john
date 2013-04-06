@@ -227,7 +227,7 @@ static char *netlmv2_split(char *ciphertext, int index)
   identity_length = pos - (ciphertext + 9);
 
   memset(out, 0, TOTAL_LENGTH + 1);
-  memcpy(&out, ciphertext, strlen(ciphertext));
+  memcpy(out, ciphertext, strlen(ciphertext));
   strlwr(&out[10 + identity_length]); /* Exclude: $NETLMv2$USERDOMAIN$ */
 
   return out;
