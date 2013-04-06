@@ -192,9 +192,11 @@ static void clear_keys(void)
 static void set_key(char *key, int index)
 {
 #ifdef MMX_COEF
-	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)key;
+	unsigned char nkey[PLAINTEXT_LENGTH + 1 + 3] = { 0 };
+	const ARCH_WORD_32 *wkey = (ARCH_WORD_32*)nkey;
 	ARCH_WORD_32 *keybuf_word = (unsigned int*)&saved_key[GETPOS_WORD(0, index)];
 	unsigned int len;
+	strncpy((char*)nkey, key, PLAINTEXT_LENGTH + 1);
 
 	len = SALT_SIZE;
 	while((*keybuf_word = JOHNSWAP(*wkey++)) & 0xff000000) {
