@@ -270,11 +270,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	memcpy(saved_key[index], key, PLAINTEXT_LENGTH);
 }
 
 static char *get_key(int index)
