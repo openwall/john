@@ -245,6 +245,7 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
+	// fix ASAN crash here without performance loss
 	memcpy((char*)saved_plain[index], key, PLAINTEXT_LENGTH);
 	keyLen[index] = -1;
 }
