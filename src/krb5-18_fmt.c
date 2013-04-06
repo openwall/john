@@ -137,7 +137,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		return ciphertext;
 
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
+	strnzcpyn(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + SALT_SIZE + 1);
 	return out;
 }
 
