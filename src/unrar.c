@@ -38,6 +38,10 @@
 
 #define int64to32(x) ((unsigned int)(x))
 
+#ifdef _MSC_VER
+#define ssize_t int
+#endif
+
 #ifdef RAR_HIGH_DEBUG
 #define rar_dbgmsg printf
 #else

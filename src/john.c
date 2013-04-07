@@ -194,7 +194,11 @@ extern int unafs(int argc, char **argv);
 extern int undrop(int argc, char **argv);
 #ifndef _MSC_VER
 /* XXX: What's wrong with having these along with MSC? Perhaps this restriction
- * was meant to apply to some of these only? Maybe SSH only? */
+ * was meant to apply to some of these only? Maybe SSH only?
+ *
+ * NOPE, most will not compile at all. They use libs, headers, and other features (and poor coding)
+ * that simply will not build or link under VC. (Jim)
+ */
 extern int ssh2john(int argc, char **argv);
 extern int pfx2john(int argc, char **argv);
 extern int keychain2john(int argc, char **argv);
@@ -303,9 +307,7 @@ static void john_register_all(void)
 #endif
 
 	john_register_one(&fmt_pfx);
-#ifndef _MSC_VER
 	john_register_one(&fmt_rar);
-#endif
 	john_register_one(&fmt_ssh);
 	john_register_one(&fmt_wpapsk);
 	john_register_one(&fmt_zip);

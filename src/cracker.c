@@ -97,7 +97,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	if (db->loaded) {
 		size = crk_params.max_keys_per_crypt * sizeof(int64);
-		memset(crk_timestamps = mem_alloc(size), -1, size);
+		memset(crk_timestamps = mem_alloc_tiny(size,sizeof(int64)), -1, size);
 	} else
 		crk_stdout_key[0] = 0;
 
@@ -512,7 +512,6 @@ void crk_done(void)
 	if (crk_db->loaded) {
 		if (crk_key_index && crk_db->salts && !event_abort)
 			crk_salt_loop();
-
-		MEM_FREE(crk_timestamps);
 	}
+	c_cleanup();
 }

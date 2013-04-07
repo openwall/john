@@ -23,6 +23,11 @@
 
 //#define RAR_HIGH_DEBUG
 
+#ifdef _MSC_VER
+#undef inline
+#define inline
+#endif
+
 inline void *rar_malloc(size_t size);
 inline void *rar_realloc2(void *ptr, size_t size);
 

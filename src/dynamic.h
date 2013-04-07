@@ -274,7 +274,7 @@ extern void DynamicFunc__base16_convert_upcase();
 extern void DynamicFunc__LargeHash_OUTMode_base16();
 extern void DynamicFunc__LargeHash_OUTMode_base16u();
 extern void DynamicFunc__LargeHash_OUTMode_base64();
-extern void DynamicFunc__LargeHash_OUTMode_base64_nte(); // no trailing = chars, for non length%3 !=0 
+extern void DynamicFunc__LargeHash_OUTMode_base64_nte(); // no trailing = chars, for non length%3 !=0
 extern void DynamicFunc__LargeHash_OUTMode_raw();
 
 extern void DynamicFunc__SHA1_crypt_input1_append_input2();

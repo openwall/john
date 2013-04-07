@@ -64,6 +64,10 @@ struct see2_context_tag
 	unsigned char shift, count;
 };
 
+#ifdef _MSC_VER
+#define __attribute__(a)
+#pragma pack(1)
+#endif
 struct state_tag
 {
 	struct ppm_context *successor;
@@ -85,6 +89,11 @@ struct ppm_context {
 	} con_ut;
 	unsigned short num_stats;
 } __attribute__((packed));
+
+#ifdef _MSC_VER
+#undef __attribute__
+#pragma pack()
+#endif
 
 typedef struct ppm_data_tag
 {

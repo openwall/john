@@ -80,4 +80,6 @@ extern void *c_lookup(char *name);
 		c_execute_fast(addr)
 extern void c_execute_fast(void *addr);
 
+extern void c_cleanup();
+
 #endif

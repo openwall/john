@@ -351,6 +351,16 @@ static void c_free_fixup(struct c_fixup *list, union c_insn *pc)
 	}
 }
 
+void c_cleanup() {
+	MEM_FREE(c_code_start);
+	MEM_FREE(c_data_start);
+	c_free_ident(c_funcs, NULL);
+	c_funcs = NULL;
+	c_pass = 0; /* Tell c_free_fixup() that we're just freeing memory */
+	c_free_fixup(c_break_fixups, NULL);
+	c_break_fixups = NULL;
+}
+
 static void (*c_op_return)(void);
 static void (*c_op_bz)(void);
 static void (*c_op_ba)(void);
