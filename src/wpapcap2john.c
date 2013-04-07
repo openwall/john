@@ -187,7 +187,7 @@ void Handle4Way(int bIsQOS) {
 	if (!auth->key_info.KeyACK) {
 		// msg 2 or 4
 		if (auth->key_info.Secure) {
-			msg = 4;
+			// msg = 4;
 			// is this useful?
 			return;
 		}
