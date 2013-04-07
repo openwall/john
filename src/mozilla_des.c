@@ -798,7 +798,7 @@ void DES_EDE3CBCEn(struct DESContext *cx, BYTE *out, const BYTE *in, unsigned in
 // This is the algorithm used for decryption....
 int DES_EDE3CBCDe(struct DESContext *cx, const BYTE *in)
 {
-	HALF plaintext    [2];
+	HALF plaintext    [2] = { 0 };
 	DES_Do1Block(cx->ks0, in /*(BYTE *)&oldcihpertext*/,    (BYTE *)plaintext);
 
 	DES_Do1Block(cx->ks1, (BYTE *)plaintext, (BYTE *)plaintext);
@@ -823,7 +823,7 @@ struct DESContext *DES_CreateContext(struct DESContext *cx, const BYTE * key, co
 }
 
 #if 0
-/* DES_DestroyContext might be needed in future john versions! */ 
+/* DES_DestroyContext might be needed in future john versions! */
 void DES_DestroyContext(struct DESContext *cx, PRBool freeit)
 {
 	if (cx)
