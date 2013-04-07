@@ -87,7 +87,7 @@ static void hash_plugin_parse_hash(char *filename)
 	int64_t count = 0;
 	unsigned char *chunk1 = NULL;
 	unsigned char chunk2[4096];
-
+	char path[8192];
 
 	headerver = 0;
 	fd = open(filename, O_RDONLY);
@@ -97,6 +97,7 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 	if (read(fd, buf8, 8) <= 0) {
 		fprintf(stderr, "%s is not a DMG file!\n", filename);
+		close(fd);
 		return;
 	}
 	if (strncmp(buf8, "encrcdsa", 8) == 0) {
@@ -106,10 +107,12 @@ static void hash_plugin_parse_hash(char *filename)
 	else {
 		if (lseek(fd, -8, SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
+			close(fd);
 			return;
 		}
 		if (read(fd, buf8, 8) <= 0) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
+			close(fd);
 			return;
 		}
 		if (strncmp(buf8, "cdsaencr", 8) == 0) {
@@ -123,6 +126,8 @@ static void hash_plugin_parse_hash(char *filename)
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
 		char *name = strdup(filename);
+		strncpy(path, name, 8192);
+		free(name);
 
 		if (lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
@@ -134,8 +139,8 @@ static void hash_plugin_parse_hash(char *filename)
 		}
 		header_byteorder_fix(&header);
 
-		if (!(name = basename(name)))
-		    name = filename;
+		if (!(name = basename(path)))
+		    name = path;
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
 		        "count %u\n", name, headerver,
@@ -151,6 +156,8 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 	else {
 		char *name = strdup(filename);
+		strncpy(path, name, 8192);
+		free(name);
 
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
@@ -177,9 +184,8 @@ static void hash_plugin_parse_hash(char *filename)
 			fprintf(stderr, "%s is not a valid DMG file, salt length is too long!\n", filename);
 			return;
 		}
-
-		if (!(name = basename(name)))
-		    name = filename;
+		if (!(name = basename(path)))
+		    name = path;
 
 		fprintf(stderr, "%s (DMG v%d) successfully parsed, iterations "
 		        "count %u\n", name, headerver,
@@ -189,6 +195,7 @@ static void hash_plugin_parse_hash(char *filename)
 		chunk1 = (unsigned char *) malloc(data_size);
 		if (lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
+			free(chunk1);
 			return;
 		}
 		count = read(fd, chunk1, data_size);
@@ -200,6 +207,7 @@ static void hash_plugin_parse_hash(char *filename)
 		/* read last chunk */
 		if (lseek(fd, header2.dataoffset, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
+			free(chunk1);
 			return;
 		}
 		count = read(fd, chunk2, 4096);
