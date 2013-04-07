@@ -182,7 +182,7 @@ bool CrackKeyData(char *profilePath, struct KeyCrackData *keyCrackData)
 	memcpy(keyCrackData->encData, &buffer[index], 16);
 	keyCrackData->encData[16] = 0;
 	keyCrackData->encDataLen = 16;
-	index += 16;
+	// index += 16;
 
 	// copy password check string .. currently not used
 	/* unsigned char *pwCheckStr =  (unsigned char*) malloc( strlen(KEYDB_PW_CHECK_STR) + 1);
