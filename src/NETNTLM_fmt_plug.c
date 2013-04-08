@@ -209,10 +209,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		key[0] = valid_i; key[1] = valid_j;
 		setup_des_key(key, &ks);
 		DES_ecb_encrypt(challenge, &b3cmp, &ks, DES_ENCRYPT);
-		if (!memcmp(binary, &b3cmp, 8)) {
-			binary[0] = valid_i; binary[1] = valid_j;
+		if (!memcmp(binary, &b3cmp, 8))
 			return 1;
-		}
 
 		for (i = 0; i < 0x100; i++)
 		for (j = 0; j < 0x100; j++) {
@@ -416,7 +414,7 @@ static void crypt_all(int count)
 			MD4_Update(&ctx, saved_key[i], saved_key_length[i]);
 			MD4_Final((uchar*)&nthash[i * 16], &ctx);
 
-			crypt_key[i] = ((ARCH_WORD_32*)&nthash[i * 16])[3] >> 16;
+			crypt_key[i] = ((unsigned short*)&nthash[i * 16])[7];
 			if (use_bitmap) {
 				unsigned int value = crypt_key[i];
 				bitmap[value >> 5] |= 1U << (value & 0x1f);
@@ -809,8 +807,8 @@ static char *get_key(int index)
 
 static int salt_hash(void *salt) { return *(ARCH_WORD_32*)salt & (SALT_HASH_SIZE - 1); }
 
-static int binary_hash_0(void *binary) { return *(uchar*)binary & 0xF; }
-static int binary_hash_1(void *binary) { return *(uchar*)binary & 0xFF; }
+static int binary_hash_0(void *binary) { return *(HOT_TYPE*)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(HOT_TYPE*)binary & 0xFF; }
 static int binary_hash_2(void *binary) { return *(HOT_TYPE*)binary & 0xFFF; }
 static int binary_hash_3(void *binary) { return *(HOT_TYPE*)binary & 0xFFFF; }
 

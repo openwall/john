@@ -12,6 +12,9 @@
 #define _XPG4_2
 #define _GNU_SOURCE /* for crypt_r(3) */
 #include <string.h>
+#ifndef _MSC_VER
+#include <strings.h>
+#endif
 #if defined(_OPENMP) && defined(__GLIBC__)
 #include <crypt.h>
 #include <omp.h> /* for omp_get_thread_num() */
