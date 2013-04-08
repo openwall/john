@@ -165,9 +165,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(ctcopy, "$")) == NULL)
 		goto err;
 	if (strlen(p) != CIPHERTEXT_LENGTH)
-		return 0;
+		goto err;
 	if (!ishex(p))
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	MEM_FREE(keeptr);

@@ -136,7 +136,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* oidLen */
@@ -145,7 +145,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* encDataLen */
@@ -154,7 +154,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* globalSaltLen */
@@ -163,7 +163,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) != res * 2)
 		goto err;
 	if (!ishex(p))
-		return 0;
+		goto err;
 	MEM_FREE(keeptr);
 	return 1;
 
