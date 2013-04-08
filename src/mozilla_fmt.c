@@ -103,9 +103,73 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$mozilla$", 9);
+	char *ctcopy;
+	char *keeptr;
+	char *p = NULL;
+	int res;
+	if (strncmp(ciphertext, "$mozilla$*", 10))
+		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 10;
+	if ((p = strtok(ctcopy, "*")) == NULL)
+		goto err;
+	res = atoi(p);
+	if (res != 3) /* we only know about this particular version */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	res = atoi(p); /* saltLen */
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		return 0;
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	res = atoi(p); /* oidLen */
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		return 0;
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	res = atoi(p); /* encDataLen */
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		return 0;
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	res = atoi(p); /* globalSaltLen */
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if (!ishex(p))
+		return 0;
+	MEM_FREE(keeptr);
+	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
