@@ -69,6 +69,14 @@ void fmt_init(struct fmt_main *format)
 #endif
 }
 
+/* Mutes ASAN problems. We pass a buffer long enough for any use */
+#define fmt_set_key(key, index)	  \
+	{ \
+		static char buf_key[PLAINTEXT_BUFFER_SIZE]; \
+		strncpy(buf_key, key, sizeof(buf_key)); \
+		format->methods.set_key(buf_key, index); \
+	}
+
 char *fmt_self_test(struct fmt_main *format)
 {
 	static char s_size[128];
@@ -76,7 +84,6 @@ char *fmt_self_test(struct fmt_main *format)
 	char *ciphertext, *plaintext;
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
-	char safe_null[PLAINTEXT_BUFFER_SIZE] = { 0 };
 #if defined(DEBUG) && !defined(BENCH_BUILD)
 	int binary_size_warned = 0, salt_size_warned = 0;
 	int validkiller = 0;
@@ -197,12 +204,12 @@ char *fmt_self_test(struct fmt_main *format)
 		if (lengthcheck == 3 && index == 2) {
 			format->methods.clear_keys();
 			for (i = 0; i < 2; i++)
-				format->methods.set_key(safe_null, i);
+				fmt_set_key("", i);
 		}
 #endif
 		if (index == 0)
 			format->methods.clear_keys();
-		format->methods.set_key(current->plaintext, index);
+		fmt_set_key(current->plaintext, index);
 
 #if defined(DEBUG) && !defined(BENCH_BUILD)
 		/* Check that claimed maxlength is actually supported */
@@ -214,7 +221,7 @@ char *fmt_self_test(struct fmt_main *format)
 			format->methods.clear_keys();
 			for (i = 0; i < max; i++) {
 				if (i == index)
-					format->methods.set_key(
+					fmt_set_key(
 						current->plaintext, index);
 				else {
 					memset(longcand, 'A' + (i % 23), ml);
@@ -282,7 +289,7 @@ char *fmt_self_test(struct fmt_main *format)
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
-			format->methods.set_key(safe_null, index);
+			fmt_set_key("", index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
@@ -290,7 +297,7 @@ char *fmt_self_test(struct fmt_main *format)
 			   formats depend on it */
 			for (i = index;
 			     i < max && i < (index + (index >> 1)); i++)
-				format->methods.set_key(safe_null, i);
+				fmt_set_key("", i);
 			index = i;
 		} else
 			index++;
