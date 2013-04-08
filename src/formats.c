@@ -99,6 +99,14 @@ static int is_aligned(void *p, size_t align)
 	return ((size_t)p & (align - 1)) == 0;
 }
 
+/* Mutes ASAN problems. We pass a buffer long enough for any use */
+#define fmt_set_key(key, index)	  \
+	{ \
+		static char buf_key[PLAINTEXT_BUFFER_SIZE]; \
+		strncpy(buf_key, key, sizeof(buf_key)); \
+		format->methods.set_key(buf_key, index); \
+	}
+
 static char *fmt_self_test_body(struct fmt_main *format,
     void *binary_copy, void *salt_copy)
 {
@@ -108,7 +116,6 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
-	char safe_null[PLAINTEXT_BUFFER_SIZE] = { 0 };
 #ifdef DEBUG
 	int validkiller = 0;
 #endif
@@ -262,7 +269,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		if (index == 0)
 			format->methods.clear_keys();
-		format->methods.set_key(current->plaintext, index);
+		fmt_set_key(current->plaintext, index);
 
 #if !defined(BENCH_BUILD) && (defined(HAVE_OPENCL) || defined(HAVE_CUDA))
 		advance_cursor();
@@ -301,7 +308,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
-			format->methods.set_key(safe_null, index);
+			fmt_set_key("", index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
