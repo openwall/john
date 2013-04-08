@@ -119,13 +119,13 @@ typedef struct ether_beacon_data_s {
 } ether_beacon_data_t;
 #pragma pack()
 
-inline uint16 swap16u(uint16 v) {
+static inline uint16 swap16u(uint16 v) {
 	return ((v>>8)|((v&0xFF)<<8));
 }
-inline uint32 swap32u(uint32 v) {
+static inline uint32 swap32u(uint32 v) {
 	return JOHNSWAP(v);
 }
-inline uint64 swap64u(uint64 v) {
+static inline uint64 swap64u(uint64 v) {
 	return JOHNSWAP64(v);
 }
 
