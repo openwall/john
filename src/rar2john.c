@@ -59,6 +59,7 @@
 #include "stdint.h"
 
 #define CHUNK_SIZE 4096
+#define LARGE_ENOUGH 8192
 
 /* borrowed from http://dsss.be/w/c:memmem */
 static inline unsigned char *_memmem(unsigned char *haystack, int hlen, char *needle, int nlen)
@@ -179,14 +180,14 @@ static void process_file(const char *archive_name)
 	char best[LINE_BUFFER_SIZE] = "";
 	char *base_aname;
 	unsigned char buf[CHUNK_SIZE];
-	char *pp;
 	uint16_t archive_header_head_flags, file_header_head_flags;
 	unsigned char *pos;
 	int diff;
 	int found = 0;
+	char path[LARGE_ENOUGH];
 
-	pp = strdup(archive_name);
-	base_aname = basename(pp);
+	strnzcpy(path, archive_name, sizeof(path));
+	base_aname = basename(path);
 
 	if (!(fp = fopen(archive_name, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
@@ -277,7 +278,7 @@ next_file_header:
 		}
 		printf(":%d::::%s\n", type, archive_name);
 	} else {
-		size_t file_header_pack_size, file_header_unp_size;
+		size_t file_header_pack_size = 0, file_header_unp_size = 0;
 		int ext_time_size;
 		uint16_t file_header_head_size, file_name_size;
 		unsigned char file_name[256], file_crc[4];
@@ -404,7 +405,6 @@ next_file_header:
 		}
 
 		bestsize = file_header_unp_size;
-		base_aname = basename(strdup(archive_name));
 
 		/* process encrypted data of size "file_header_pack_size" */
 		sprintf(best, "%s:$RAR3$*%d*", base_aname, type);
@@ -472,8 +472,6 @@ BailOut:
 err:
 	if (fp)
 		fclose(fp);
-	MEM_FREE(pp);
-
 }
 
 int rar2john(int argc, char **argv)
