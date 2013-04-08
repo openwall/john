@@ -782,6 +782,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (mode == 0) {
 		if (hexlen(ptr) != 32) /* 16 bytes of encrypted known plain */
 			goto error;
+		MEM_FREE(keeptr);
 		return 1;
 	} else {
 		int inlined;
