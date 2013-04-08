@@ -117,7 +117,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (*ctcopy != '0' && *ctcopy != '1')
 		goto error;
 	/* skip '*0' */
-	ctcopy += 2;
+	ctcopy += 1;
+	if (*ctcopy != '*')
+		goto error;
+	ctcopy += 1;
 	if (!(ptr = strtok(ctcopy, "*")))
 		goto error;
 	if (!ishex(ptr))
