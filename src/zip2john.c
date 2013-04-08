@@ -69,6 +69,8 @@
 #include "formats.h"
 #include "stdint.h"
 
+#define LARGE_ENOUGH 8192
+
 static int ascii_mode=0, checksum_only=0, use_magic=1;
 static char *ascii_fname;
 
@@ -106,6 +108,7 @@ static void process_file(const char *fname)
 	unsigned char filename[1024];
 	FILE *fp;
 	int i;
+	char path[LARGE_ENOUGH];
 
 	if (!(fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "! %s : %s\n", fname, strerror(errno));
@@ -151,10 +154,12 @@ static void process_file(const char *fname)
 				char efh_aes_strength = fgetc(fp);
 				uint16_t actual_compression_method = fget16(fp);
 				unsigned char salt[16];
+				char *bname;
 				int n = 0;
 				uint16_t password_verification_value;
 				unsigned char *p;
-				char *bname = basename(strdup(fname));
+				strnzcpy(path, fname, sizeof(path));
+				bname = basename(path);
 
 				fprintf(stderr,
 				    "%s->%s is using AES encryption, extrafield_length is %d\n",
@@ -373,6 +378,8 @@ static void process_old_zip(const char *fname)
 	zip_ptr hashes[3], curzip;
 	zip_file zfp;
 
+	char path[LARGE_ENOUGH];
+
 	zfp.check_in_crc = 1;
 	zfp.two_byte_check = zfp.unix_made = 0;
 
@@ -466,7 +473,9 @@ static void process_old_zip(const char *fname)
 print_and_cleanup:;
 	if (count_of_hashes) {
 		int i=1;
-		char *bname = basename(strdup(fname));
+		char *bname;
+		strnzcpy(path, fname, sizeof(path));
+		bname = basename(path);
 
 		printf ("%s:$pkzip$%x*%x*", bname, count_of_hashes, zfp.two_byte_check?2:1);
 		if (checksum_only)
