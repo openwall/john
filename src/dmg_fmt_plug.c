@@ -345,10 +345,10 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 	EVP_CIPHER_CTX_init(&ctx);
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, decryptKey, IV);
 	if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen, wrapped_key, wrapped_key_len)) {
-		return (-1);
+		goto err;
 	}
 	if (!EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen)) {
-		return (-1);
+		goto err;
 	}
 	outlen += tmplen;
 	EVP_CIPHER_CTX_cleanup(&ctx);
@@ -358,14 +358,17 @@ static int apple_des3_ede_unwrap_key1(unsigned char *wrapped_key, int wrapped_ke
 	EVP_CIPHER_CTX_init(&ctx);
 	EVP_DecryptInit_ex(&ctx, EVP_des_ede3_cbc(), NULL, decryptKey, TEMP2);
 	if (!EVP_DecryptUpdate(&ctx, CEKICV, &outlen, TEMP2 + 8, outlen - 8)) {
-		return (-1);
+		goto err;
 	}
 	if (!EVP_DecryptFinal_ex(&ctx, CEKICV + outlen, &tmplen)) {
-		return (-1);
+		goto err;
 	}
 	outlen += tmplen;
 	EVP_CIPHER_CTX_cleanup(&ctx);
 	return 0;
+err:
+	EVP_CIPHER_CTX_cleanup(&ctx);
+	return -1;
 }
 
 #ifdef DMG_DEBUG
@@ -434,6 +437,7 @@ static int hash_plugin_check_hash(const char *password)
 		if (!EVP_DecryptUpdate(&ctx, TEMP1, &outlen,
 		    cur_salt->encrypted_keyblob, cur_salt->encrypted_keyblob_size)) {
 			/* FIXME: should we fail here? */
+			EVP_CIPHER_CTX_cleanup(&ctx);
 			return 0;
 		}
 		EVP_DecryptFinal_ex(&ctx, TEMP1 + outlen, &tmplen);
