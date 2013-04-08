@@ -108,6 +108,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	int i, ntests, done, index, max, size;
 	void *binary, *salt;
 	int binary_align_warned = 0, salt_align_warned = 0;
+	char safe_null[PLAINTEXT_BUFFER_SIZE] = { 0 };
 #ifdef DEBUG
 	int validkiller = 0;
 #endif
@@ -300,7 +301,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 /* Remove some old keys to better test cmp_all() */
 		if (index & 1)
-			format->methods.set_key("", index);
+			format->methods.set_key(safe_null, index);
 
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
