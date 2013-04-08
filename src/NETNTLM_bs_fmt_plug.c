@@ -43,17 +43,17 @@
  */
 
 #include <string.h>
-#include "DES_std.h"
-#include "DES_bs.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+#include "arch.h"
+#include "DES_std.h"
+#include "DES_bs.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-
 #include "md5.h"
 #include "unicode.h"
 
@@ -61,38 +61,38 @@
 #define uchar unsigned char
 #endif
 
-#define FORMAT_LABEL		"netntlm-naive"
-#define FORMAT_NAME		"NTLMv1 C/R MD4 DES (ESS MD5)"
-#define ALGORITHM_NAME		DES_BS_ALGORITHM_NAME " naive"
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0
-#define PLAINTEXT_LENGTH	125
-#define BINARY_SIZE		24
-#define BINARY_ALIGN            4
-#define PARTIAL_BINARY_SIZE	8
-#define SALT_SIZE		8
-#define SALT_ALIGN              1
-#define CIPHERTEXT_LENGTH	48
-#define TOTAL_LENGTH		(10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
+#define FORMAT_LABEL         "netntlm-naive"
+#define FORMAT_NAME          "NTLMv1 C/R MD4 DES (ESS MD5)"
+#define ALGORITHM_NAME       DES_BS_ALGORITHM_NAME " naive"
+#define BENCHMARK_COMMENT    ""
+#define BENCHMARK_LENGTH     0
+#define PLAINTEXT_LENGTH     125
+#define BINARY_SIZE          24
+#define BINARY_ALIGN         4
+#define PARTIAL_BINARY_SIZE  8
+#define SALT_SIZE            8
+#define SALT_ALIGN           4
+#define CIPHERTEXT_LENGTH    48
+#define TOTAL_LENGTH         (10 + 2 * 2 * SALT_SIZE + CIPHERTEXT_LENGTH)
 
-#define MIN_KEYS_PER_CRYPT	DES_BS_DEPTH
+#define MIN_KEYS_PER_CRYPT      DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT      DES_BS_DEPTH
 
 static struct fmt_tests tests[] = {
-  {"$NETNTLM$1122334455667788$BFCCAF26128EC95F9999C9792F49434267A1D9B0EF89BFFB", "g3rg3g3rg3g3rg3"},
-  {"$NETNTLM$1122334455667788$E463FAA5D868ECE20CAE622474A2F440A652D642156AF863", "M1xedC4se%^&*@)##(blahblah!@#"},
-  {"$NETNTLM$c75c20bff9baa71f4765f360625700b0$81f5ecd8a77fe819f7f6689a08a27ac705fc2e1bb00cecb2", "password"},
-  {"$NETNTLM$1122334455667788$35B62750E1B9B3205C50D6BA351092C12A1B9B3CDC65D44A", "FooBarGerg"},
-  {"$NETNTLM$1122334455667788$A4765EBFE83D345A7CB1660B8899251905164029F8086DDE", "visit www.foofus.net"},
-  {"$NETNTLM$24ca92fdab441aa4c70e4fb229437ef3$abf7762caf2b1bbfc5cfc1f46665249f049e0af72ae5b5a9", "longpassword"},
-  {"$NETNTLM$1122334455667788$B2B2220790F40C88BCFF347C652F67A7C4A70D3BEBD70233", "cory21"},
-  {"", "g3rg3g3rg3g3rg3",               {"User", "", "", "lm-hash", "BFCCAF26128EC95F9999C9792F49434267A1D9B0EF89BFFB", "1122334455667788"} },
-  {"", "M1xedC4se%^&*@)##(blahblah!@#", {"User", "", "", "lm-hash", "E463FAA5D868ECE20CAE622474A2F440A652D642156AF863", "1122334455667788"} },
-  {"", "FooBarGerg",                    {"User", "", "", "lm-hash", "35B62750E1B9B3205C50D6BA351092C12A1B9B3CDC65D44A", "1122334455667788"} },
-  {"", "visit www.foofus.net",          {"User", "", "", "lm-hash", "A4765EBFE83D345A7CB1660B8899251905164029F8086DDE", "1122334455667788"} },
-  {"", "password",                      {"ESS", "", "", "4765f360625700b000000000000000000000000000000000", "81f5ecd8a77fe819f7f6689a08a27ac705fc2e1bb00cecb2", "c75c20bff9baa71f"} },
-  {"", "cory21",                        {"User", "", "", "lm-hash", "B2B2220790F40C88BCFF347C652F67A7C4A70D3BEBD70233", "1122334455667788"} },
-  {NULL}
+	{"$NETNTLM$1122334455667788$BFCCAF26128EC95F9999C9792F49434267A1D9B0EF89BFFB", "g3rg3g3rg3g3rg3"},
+	{"$NETNTLM$1122334455667788$E463FAA5D868ECE20CAE622474A2F440A652D642156AF863", "M1xedC4se%^&*@)##(blahblah!@#"},
+	{"$NETNTLM$c75c20bff9baa71f4765f360625700b0$81f5ecd8a77fe819f7f6689a08a27ac705fc2e1bb00cecb2", "password"},
+	{"$NETNTLM$1122334455667788$35B62750E1B9B3205C50D6BA351092C12A1B9B3CDC65D44A", "FooBarGerg"},
+	{"$NETNTLM$1122334455667788$A4765EBFE83D345A7CB1660B8899251905164029F8086DDE", "visit www.foofus.net"},
+	{"$NETNTLM$24ca92fdab441aa4c70e4fb229437ef3$abf7762caf2b1bbfc5cfc1f46665249f049e0af72ae5b5a9", "longpassword"},
+	{"$NETNTLM$1122334455667788$B2B2220790F40C88BCFF347C652F67A7C4A70D3BEBD70233", "cory21"},
+	{"", "g3rg3g3rg3g3rg3",               {"User", "", "", "lm-hash", "BFCCAF26128EC95F9999C9792F49434267A1D9B0EF89BFFB", "1122334455667788"} },
+	{"", "M1xedC4se%^&*@)##(blahblah!@#", {"User", "", "", "lm-hash", "E463FAA5D868ECE20CAE622474A2F440A652D642156AF863", "1122334455667788"} },
+	{"", "FooBarGerg",                    {"User", "", "", "lm-hash", "35B62750E1B9B3205C50D6BA351092C12A1B9B3CDC65D44A", "1122334455667788"} },
+	{"", "visit www.foofus.net",          {"User", "", "", "lm-hash", "A4765EBFE83D345A7CB1660B8899251905164029F8086DDE", "1122334455667788"} },
+	{"", "password",                      {"ESS", "", "", "4765f360625700b000000000000000000000000000000000", "81f5ecd8a77fe819f7f6689a08a27ac705fc2e1bb00cecb2", "c75c20bff9baa71f"} },
+	{"", "cory21",                        {"User", "", "", "lm-hash", "B2B2220790F40C88BCFF347C652F67A7C4A70D3BEBD70233", "1122334455667788"} },
+	{NULL}
 };
 
 static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
@@ -106,12 +106,12 @@ static void set_salt(void *salt);
 static void init(struct fmt_main *self)
 {
 	/* LM =2 for DES encryption with no salt and no iterations */
-		DES_bs_init(2, DES_bs_cpt);
+	DES_bs_init(2, DES_bs_cpt);
 #if DES_bs_mt
 	self->params.min_keys_per_crypt = DES_bs_min_kpc;
 	self->params.max_keys_per_crypt = DES_bs_max_kpc;
 #endif
-	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_plain = mem_calloc_tiny(sizeof(*saved_plain) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
 	saved_len = mem_calloc_tiny(sizeof(*saved_len) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	output = mem_calloc_tiny(sizeof(*output) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_NONE);
@@ -132,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	for (pos++;atoi16[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (!*pos && ((pos - ciphertext - 26 == CIPHERTEXT_LENGTH) ||
-	              (pos - ciphertext - 42 == CIPHERTEXT_LENGTH)))
+	        (pos - ciphertext - 42 == CIPHERTEXT_LENGTH)))
 		return 1;
 	else
 		return 0;
@@ -157,7 +157,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	// Handle ESS (8 byte client challenge in "LM" field padded with zeros)
 	if (strlen(split_fields[3]) == 48 && !strncmp(&split_fields[3][16],
-	    "00000000000000000000000000000000", 32)) {
+	        "00000000000000000000000000000000", 32)) {
 		memcpy(clientChal, split_fields[3],16);
 		clientChal[16] = 0;
 	}
@@ -177,22 +177,24 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-  static char out[TOTAL_LENGTH + 1];
+	static char out[TOTAL_LENGTH + 1];
 
-  memset(out, 0, TOTAL_LENGTH + 1);
-  memcpy(&out, ciphertext, TOTAL_LENGTH);
-  strlwr(&out[8]); /* Exclude: $NETNTLM$ */
+	memset(out, 0, TOTAL_LENGTH + 1);
+	memcpy(&out, ciphertext, TOTAL_LENGTH);
+	strlwr(&out[8]); /* Exclude: $NETNTLM$ */
 
-  return out;
+	return out;
 }
-static void *generate_des_format(uchar* binary)
+
+static ARCH_WORD_32 *generate_des_format(uchar* binary)
 {
-	static ARCH_WORD block[6];
+	static ARCH_WORD_32 out[6];
+	ARCH_WORD block[6];
 	int chr, src,dst,i;
 	uchar value, mask;
 	ARCH_WORD *ptr;
 
-	memset(block, 0, sizeof(ARCH_WORD) * 6);
+	memset(block, 0, sizeof(block));
 
 	for (chr = 0; chr < 24; chr=chr + 8)
 	{
@@ -214,19 +216,19 @@ static void *generate_des_format(uchar* binary)
 	/* Apply initial permutation on ciphertext blocks */
 	for(i=0; i<6; i=i+2)
 	{
-		ptr = (ARCH_WORD *)DES_do_IP(&block[i]);
-		block[i] = ptr[1];
-		block[i+1] = ptr[0];
+		ptr = DES_do_IP(&block[i]);
+		out[i] = ptr[1];
+		out[i+1] = ptr[0];
 	}
 
-	return (void *)block;
+	return out;
 }
 
 static void *get_binary(char *ciphertext)
 {
 	uchar binary[BINARY_SIZE];
 	int i;
-	void *ptr;
+	ARCH_WORD_32 *ptr;
 
 	ciphertext = strrchr(ciphertext, '$') + 1;
 	for (i=0; i<BINARY_SIZE; i++) {
@@ -272,12 +274,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			int len;
 
 			/* Generate 16-byte NTLM hash */
-			len = E_md4hash((uchar *) saved_plain[i], saved_len[i], saved_key[i]);
+			len = E_md4hash((uchar *) saved_plain[i], saved_len[i],
+			        saved_key[i]);
 
 			if (len <= 0)
 				saved_plain[i][-len] = 0; // match truncation
 
-			/* Hash is NULL padded to 21-bytes in cmp_exact if needed */
+			/* NULL-padding the 16-byte hash to 21-bytes is made
+			   in cmp_exact if needed */
+
 			setup_des_key(saved_key[i], i);
 		}
 		keys_prepared = 1;
@@ -289,25 +294,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-
 static int cmp_all(void *binary, int count)
 {
-	return DES_bs_cmp_all((ARCH_WORD *)binary, count);
+	return DES_bs_cmp_all((ARCH_WORD_32 *)binary, count);
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return DES_bs_cmp_one((ARCH_WORD *)binary, 32, index);
+	return DES_bs_cmp_one((ARCH_WORD_32 *)binary, 32, index);
 }
 
 static int cmp_exact(char *source, int index)
 {
-        ARCH_WORD *binary;
-	/* NULL-pad 16-byte NTLM hash to 21-bytes (postponed until now) */
+	ARCH_WORD_32 *binary;
 
+	/* NULL-pad 16-byte NTLM hash to 21-bytes (postponed until now) */
 	memset(&saved_key[index][16], 0, 5);
 
-	binary = (ARCH_WORD *)get_binary(source);
+	binary = get_binary(source);
 	if (!DES_bs_cmp_one(binary, 64, index))
 	{
 		setup_des_key(saved_key[0], 0);
@@ -316,7 +320,7 @@ static int cmp_exact(char *source, int index)
 
 	setup_des_key(&saved_key[index][7], 0);
 	DES_bs_crypt_plain(1);
-	binary = (ARCH_WORD *) get_binary(source);
+	binary = get_binary(source);
 	if (!DES_bs_cmp_one(&binary[2], 64, 0))
 	{
 		setup_des_key(saved_key[0], 0);
@@ -325,7 +329,7 @@ static int cmp_exact(char *source, int index)
 
 	setup_des_key(&saved_key[index][14], 0);
 	DES_bs_crypt_plain(1);
-	binary = (ARCH_WORD *) get_binary(source);
+	binary = get_binary(source);
 	if (!DES_bs_cmp_one(&binary[4], 64, 0))
 	{
 		setup_des_key(saved_key[0], 0);
@@ -401,40 +405,13 @@ static int salt_hash(void *salt)
 	return *(ARCH_WORD_32 *)salt & (SALT_HASH_SIZE - 1);
 }
 
-static int binary_hash_0(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xF;
-}
-
-static int binary_hash_1(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFF;
-}
-
-static int binary_hash_2(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFF;
-}
-
-static int binary_hash_3(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFF;
-}
-
-static int binary_hash_4(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFF;
-}
-
-static int binary_hash_5(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0xFFFFFF;
-}
-
-static int binary_hash_6(void *binary)
-{
-	return *(ARCH_WORD_32 *)binary & 0x7FFFFFF;
-}
+static int binary_hash_0(void *binary) { return *(ARCH_WORD*)binary & 0xF; }
+static int binary_hash_1(void *binary) { return *(ARCH_WORD*)binary & 0xFF; }
+static int binary_hash_2(void *binary) { return *(ARCH_WORD*)binary & 0xFFF; }
+static int binary_hash_3(void *binary) { return *(ARCH_WORD*)binary & 0xFFFF; }
+static int binary_hash_4(void *binary) { return *(ARCH_WORD*)binary & 0xFFFFF; }
+static int binary_hash_5(void *binary) { return *(ARCH_WORD*)binary & 0xFFFFFF; }
+static int binary_hash_6(void *binary) { return *(ARCH_WORD*)binary & 0x7FFFFFF; }
 
 struct fmt_main fmt_NETNTLM_old = {
 	{
@@ -450,7 +427,13 @@ struct fmt_main fmt_NETNTLM_old = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP | FMT_UNICODE | FMT_UTF8,
+#if DES_BS
+		FMT_BS |
+#if DES_bs_mt
+		FMT_OMP |
+#endif
+#endif
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_UTF8,
 		tests
 	}, {
 		init,

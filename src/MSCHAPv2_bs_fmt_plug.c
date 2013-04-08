@@ -33,21 +33,21 @@
  *
  */
 
-#include "arch.h"
-#include "DES_std.h"
-#include "DES_bs.h"
 #include <string.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
+#include "arch.h"
+#include "DES_std.h"
+#include "DES_bs.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
 #include "options.h"
 #include "memory.h"
-
 #include "sha.h"
+#include "unicode.h"
 
 #ifndef uchar
 #define uchar unsigned char
@@ -69,7 +69,7 @@
 #define CIPHERTEXT_LENGTH    48
 #define TOTAL_LENGTH         13 + USERNAME_LENGTH + CHALLENGE_LENGTH + CIPHERTEXT_LENGTH
 
-#define MIN_KEYS_PER_CRYPT	DES_BS_DEPTH
+#define MIN_KEYS_PER_CRYPT      DES_BS_DEPTH
 #define MAX_KEYS_PER_CRYPT      DES_BS_DEPTH
 
 static struct fmt_tests tests[] = {
@@ -99,14 +99,12 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static uchar (*saved_plain)[PLAINTEXT_LENGTH + 1];
+static char (*saved_plain)[PLAINTEXT_LENGTH + 1];
 static int (*saved_len);
 static uchar (*saved_key)[21];
 static uchar *challenge;
 static int keys_prepared;
 static void set_salt(void *salt);
-
-#include "unicode.h"
 
 static void init(struct fmt_main *self)
 {
@@ -192,7 +190,7 @@ static int valid_short(char *ciphertext)
 
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
-	return	valid_short(ciphertext) ||
+	return  valid_short(ciphertext) ||
 		valid_long(ciphertext);
 }
 
@@ -239,13 +237,13 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	if (!strncmp(split_fields[1], "$MSCHAPv2$", 10))
 		ret = NULL;
 	else if (split_fields[0] && split_fields[3] && split_fields[4] && split_fields[5] &&
-	         strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
-	         strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
-	         strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
+	        strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
+	        strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
+	        strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
 		ret = prepare_long(split_fields);
 	else if (split_fields[0] && split_fields[3] && split_fields[4] &&
-	         strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
-	         strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
+	        strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
+	        strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
 		ret = prepare_short(split_fields);
 	else
 		ret = NULL;
@@ -323,8 +321,7 @@ static void *get_binary(char *ciphertext)
 	else
 		ciphertext += 10 + CHALLENGE_LENGTH / 2 + 1; /* Skip - $MSCHAPv2$, Authenticator Challenge */
 
-	for (i=0; i<BINARY_SIZE; i++)
-	{
+	for (i=0; i<BINARY_SIZE; i++) {
 		binary[i] = (atoi16[ARCH_INDEX(ciphertext[i*2])])<<4;
 		binary[i] |= (atoi16[ARCH_INDEX(ciphertext[i*2+1])]);
 	}
@@ -366,14 +363,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-		for(i=0; i<count; i++) {
+		for (i = 0; i < count; i++) {
 			int len;
+
 			/* Generate 16-byte NTLM hash */
 			len = E_md4hash((uchar *) saved_plain[i], saved_len[i],
-			                saved_key[i]);
+			        saved_key[i]);
 
 			if (len <= 0)
-				saved_plain[i][-len] = 0; // match if truncated
+				saved_plain[i][-len] = 0; // match truncation
 
 			/* NULL-padding the 16-byte hash to 21-bytes is made
 			   in cmp_exact if needed */
@@ -517,7 +515,7 @@ static void mschapv2_set_key(char *key, int index)
 
 static char *get_key(int index)
 {
-	return (char *)saved_plain[index];
+	return saved_plain[index];
 }
 
 static int salt_hash(void *salt)
