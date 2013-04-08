@@ -430,19 +430,25 @@ static unsigned int total_len2[BLOCK_LOOPS];
 #endif
 // Allows us to work with up to 96 byte keys in the non-sse2 code
 
+// this allows 2x sized buffers. 1x for pw and 1x for salt.  Was shown 'needed' by type 1014.
+// NOTE, this was flushed out by the max password sized stuff in format self test code, but
+// this IS the size needed to avoid overflows.  126 'would' be large enough. We go a bit over
+// this.  NOTE, if we are using md5_go any more, we would need to expand this even more.
+#define EX_BUF_LEN 136
+
 typedef struct {
 	union {
 		double dummy;
-		MD5_word w[(PLAINTEXT_LENGTH_X86+96)/4];
-		char b[PLAINTEXT_LENGTH_X86+96];
-		unsigned char B[PLAINTEXT_LENGTH_X86+96];
+		MD5_word w[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/4];
+		char b[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
+		unsigned char B[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 	}x1;
 #if MD5_X2
 	union {
 		double dummy2;
-		MD5_word w2[(PLAINTEXT_LENGTH_X86+96)/4];
-		char b2[PLAINTEXT_LENGTH_X86+96];
-		unsigned char B2[PLAINTEXT_LENGTH_X86+96];
+		MD5_word w2[(PLAINTEXT_LENGTH_X86+EX_BUF_LEN)/4];
+		char b2[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
+		unsigned char B2[PLAINTEXT_LENGTH_X86+EX_BUF_LEN];
 	}x2;
 #endif
 } MD5_IN;
