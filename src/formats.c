@@ -220,9 +220,10 @@ char *fmt_self_test(struct fmt_main *format)
 
 			format->methods.clear_keys();
 			for (i = 0; i < max; i++) {
-				if (i == index)
+				if (i == index) {
 					fmt_set_key(
 						current->plaintext, index);
+				}
 				else {
 					memset(longcand, 'A' + (i % 23), ml);
 					longcand[ml] = 0;
