@@ -62,9 +62,24 @@ static void init(struct fmt_main *self)
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$radmin2$", 9);
+	char *p;
+	if (strncmp(ciphertext, "$radmin2$", 9))
+		return 0;
+	p = ciphertext + 9;
+	if (strlen(p) != CIPHERTEXT_LENGTH)
+		return 0;
+	if (!ishex(p))
+		return 0;
+	return 1;
 }
 
 static void *get_binary(char *ciphertext)
