@@ -40,6 +40,8 @@
 
 #define ntohll(x) (((uint64_t) ntohl((x) >> 32)) | (((uint64_t) ntohl((uint32_t) ((x) & 0xFFFFFFFF))) << 32))
 
+#define LARGE_ENOUGH 8192
+
 static int chunk_size;
 static int headerver;
 static cencrypted_v1_header header;
@@ -87,7 +89,8 @@ static void hash_plugin_parse_hash(char *filename)
 	int64_t count = 0;
 	unsigned char *chunk1 = NULL;
 	unsigned char chunk2[4096];
-	char path[8192];
+	char path[LARGE_ENOUGH];
+	char *name = NULL;
 
 	headerver = 0;
 	fd = open(filename, O_RDONLY);
@@ -125,9 +128,7 @@ static void hash_plugin_parse_hash(char *filename)
 	}
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
-		char *name = strdup(filename);
-		strncpy(path, name, 8192);
-		free(name);
+		strnzcpyn(path, filename, LARGE_ENOUGH);
 
 		if (lseek(fd, -sizeof(cencrypted_v1_header), SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
@@ -155,9 +156,7 @@ static void hash_plugin_parse_hash(char *filename)
 		printf("*%u::::%s\n", header.kdf_iteration_count, filename);
 	}
 	else {
-		char *name = strdup(filename);
-		strncpy(path, name, 8192);
-		free(name);
+		strnzcpyn(path, filename, LARGE_ENOUGH);
 
 		if (lseek(fd, 0, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
