@@ -60,9 +60,24 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$pst$", 5);
+	char *p;
+	if (strncmp(ciphertext, "$pst$", 5))
+		return 0;
+	p = ciphertext + 5;
+	if (strlen(p) != BINARY_SIZE * 2)
+		return 0;
+	if (!ishex(p))
+		return 0;
+	return 1;
 }
 
 static void set_key(char *key, int index) {
