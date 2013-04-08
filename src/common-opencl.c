@@ -441,6 +441,7 @@ void clean_opencl_environment()
 		HANDLE_CLERROR(clReleaseCommandQueue(queue[ocl_device_list[i]]), "Release Queue");
 		HANDLE_CLERROR(clReleaseContext(context[ocl_device_list[i]]), "Release Context");
 	}
+	MEM_FREE(kernel_source);
 }
 
 static char * opencl_get_config_name(char * format, char * config_name)
