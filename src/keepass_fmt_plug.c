@@ -151,7 +151,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	int version, res, contentsize;
 
-	if (strncmp(ciphertext, "$keepass$", 9))
+	if (strncmp(ciphertext, "$keepass$*", 10))
 		return 0;
 	ctcopy = strdup(ciphertext);
 	keeptr = ctcopy;
