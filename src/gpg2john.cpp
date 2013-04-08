@@ -201,7 +201,8 @@ inline Memblock &Memblock::operator=(const Memblock &other)
 		m_alloced = other.length+1;
 	}
 
-	memcpy(data, other.data, other.length);
+	if(data)
+		memcpy(data, other.data, other.length);
 	length = other.length;
 	return *this;
 }
@@ -290,7 +291,6 @@ void suckUnwantedPacket(PIStream &in, PacketHeader &header){
 	for(int i=0;i<header.length();i++){
 		in>>tmp;
 	}
-	tmp=0;
 }
 
 void readSecretKey(PIStream &in,PacketHeader &header,Key &key)
@@ -312,7 +312,7 @@ void readSecretKey(PIStream &in,PacketHeader &header,Key &key)
 	if (key.m_version == 3) {
 		in >> key.m_expire;
 	}
-	uint8_t tmp;
+	uint8_t tmp = 0;
 	in >> tmp; key.m_algorithm = (CryptUtils::PublicKeyAlgorithm)tmp;
 	if (key.m_algorithm == CryptUtils::PKA_RSA_ENCSIGN) {
 		key.m_rsa = RSA_new();
@@ -437,7 +437,7 @@ int32_t PacketHeader::length() const
 // Reads the header from a stream
 PIStream &PacketHeader::operator<<(PIStream &in)
 {
-	uint8_t byte;
+	uint8_t byte = 0;
 	in >> byte;
 	if (byte & 0x40) {
 		m_format = FORMAT_NEW;
@@ -462,13 +462,13 @@ PIStream &PacketHeader::operator<<(PIStream &in)
 
 		switch (byte & 0x03) {
 			case 0: {
-				uint8_t t;
+				uint8_t t = 0;
 				in >> t;
 				m_length = (int32_t)t;
 				break;
 			}
 			case 1: {
-				uint16_t t;
+				uint16_t t = 0;
 				in >> t;
 				m_length = (int32_t)t;
 				break;
@@ -618,7 +618,7 @@ PIStream &PIStream::operator>>(int32_t &i)
 
 PIStream &PIStream::operator>>(BIGNUM *&b)
 {
-	uint16_t length;
+	uint16_t length = 0;
 	*this >> length;
 	length = (length + 7) / 8; // Length in bits -> length in bytes
 
@@ -718,7 +718,7 @@ PIStream &String2Key::operator<<(PIStream &in)
 	// Read usage and spec info
 	in >> m_usage;
 	if (m_usage == 254 || m_usage == 255) {
-		uint8_t tmp;
+		uint8_t tmp = 0;
 		in >> tmp; m_cipherAlgorithm = (CryptUtils::CipherAlgorithm)tmp;
 		in >> tmp; m_spec = (Spec)tmp;
 		in >> tmp; m_hashAlgorithm = (CryptUtils::HashAlgorithm)tmp;
@@ -742,7 +742,7 @@ PIStream &String2Key::operator<<(PIStream &in)
 				throw "Unknown String2Key spec";
 		}
 	} else if (m_usage != 0) {
-		uint8_t tmp;
+		uint8_t tmp = 0;
 		in >> tmp; m_cipherAlgorithm = (CryptUtils::CipherAlgorithm)tmp;
 		m_spec = SPEC_SIMPLE;
 	}
@@ -972,11 +972,12 @@ enum {
 
 char *strip_basename(char* filename)
 {
+	static char path[LARGE_ENOUGH];
 	int len;
-	char *base = basename(strdup(filename));
+	memset(path, 0, sizeof(path));
+	strncpy(path, filename, sizeof(path));
+	char *base = basename(filename);
 
-	if (!base || !*base)
-		strcpy(base, filename);
 	len = strlen(base);
 	if (len > 4) {
 		len -= 4;

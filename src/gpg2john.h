@@ -22,6 +22,8 @@
 #include <openssl/sha.h>
 #include "stdint.h"
 
+#define LARGE_ENOUGH 8192
+
 namespace CryptUtils
 {
 
