@@ -159,29 +159,34 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	// format $pwsafe$version*salt*iterations*hash
 	char *p;
-	char *ctcopy = strdup(ciphertext);
-	char *keeptr = ctcopy;
-	if (strncmp(ciphertext, "$pwsafe$", 8) != 0)
+	char *ctcopy;
+	char *keeptr;
+	if (strncmp(ciphertext, "$pwsafe$*", 9) != 0)
 		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
 	ctcopy += 9;		/* skip over "$pwsafe$*" */
 	if ((p = strtok(ctcopy, "*")) == NULL)	/* version */
-		return 0;
+		goto err;
 	if (atoi(p) == 0)
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
-		return 0;
+		goto err;
 	if (strlen(p) < 64)
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iterations */
-		return 0;
+		goto err;
 	if (atoi(p) == 0)
-		return 0;
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
-		return 0;
+		goto err;
 	if (strlen(p) != 64)
-		return 0;
+		goto err;
 	MEM_FREE(keeptr);
 	return 1;
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
