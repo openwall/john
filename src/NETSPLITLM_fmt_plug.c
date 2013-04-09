@@ -35,7 +35,7 @@
 #define ALGORITHM_NAME       "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0
-#define PLAINTEXT_LENGTH     12
+#define PLAINTEXT_LENGTH     7
 #define BINARY_SIZE          8
 #define BINARY_ALIGN         4
 #define SALT_SIZE            8
@@ -247,7 +247,7 @@ static void netsplitlm_set_key(char *key, int index)
 	const unsigned char magic[] = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
 	DES_key_schedule ks;
 
-	strncpy((char *)saved_plain[index], key, sizeof(saved_plain[index]));
+	strnzcpyn((char *)saved_plain[index], key, PLAINTEXT_LENGTH + 1);
 
 	/* Upper-case password */
 	enc_strupper((char *)saved_plain[index]);
