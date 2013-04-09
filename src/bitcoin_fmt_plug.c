@@ -91,11 +91,67 @@ static void print_hex(unsigned char *str, int len)
 }
 #endif
 
+static int ishex(char *q)
+{
+       while (atoi16[ARCH_INDEX(*q)] != 0x7F)
+               q++;
+       return !*q;
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncmp(ciphertext, "$bitcoin$*", 9) != 0)
+	char *ctcopy;
+	char *keeptr;
+	char *p = NULL;
+	int res;
+	if (strncmp(ciphertext, "$bitcoin$", 9))
 		return 0;
+	ctcopy = strdup(ciphertext);
+	keeptr = ctcopy;
+	ctcopy += 9;
+	if ((p = strtok(ctcopy, "$")) == NULL)
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != res)
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	res = atoi(p);
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != res)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	// res = atoi(p); /* cry_rounds */
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	res = atoi(p); /* ckey_length */
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != res)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	res = atoi(p); /* public_key_length */
+	if ((p = strtok(NULL, "$")) == NULL)
+		goto err;
+	if (strlen(p) != res)
+		goto err;
+	if (!ishex(p))
+		goto err;
+	MEM_FREE(keeptr);
 	return 1;
+
+err:
+	MEM_FREE(keeptr);
+	return 0;
 }
 
 static void *get_salt(char *ciphertext)
