@@ -54,17 +54,20 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+#define ENCSTRING_LENGTH    	17
+#define SALTDATA_LENGTH    	4096
+
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 struct custom_salt {
 	SHA_CTX pctx;
 	SECItem saltItem;
-	unsigned char encString[128];
+	unsigned char encString[ENCSTRING_LENGTH];
 	struct NSSPKCS5PBEParameter *paramPKCS5;;
 	struct KeyCrackData keyCrackData;
 	struct NSSPKCS5PBEParameter gpbe_param;
-	unsigned char salt_data[4096];
+	unsigned char salt_data[SALTDATA_LENGTH];
 } *salt_struct;
 
 static int CheckMasterPassword(char *password, SECItem *pkcs5_pfxpbe, SECItem *secPreHash)
@@ -129,6 +132,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* saltLen */
+	if (res > 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
@@ -140,6 +145,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* oidLen */
+	if (res > 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) != res * 2)
@@ -149,6 +156,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* encDataLen */
+	if (res > ENCSTRING_LENGTH)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) != res * 2)
@@ -158,6 +167,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	res = atoi(p); /* globalSaltLen */
+	if (res > 25)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
 		goto err;
 	if (strlen(p) != res * 2)
@@ -201,7 +212,7 @@ static void *get_salt(char *ciphertext)
 	p = strtok(NULL, "*");
 	salt_struct->keyCrackData.encDataLen = atoi(p);
 	p = strtok(NULL, "*");
-	for (i = 0; i < salt_struct->keyCrackData.oidLen; i++)
+	for (i = 0; i < salt_struct->keyCrackData.encDataLen; i++)
 		salt_struct->keyCrackData.encData[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtok(NULL, "*");
