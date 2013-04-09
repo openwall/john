@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006,2008,2010-2012 by Solar Designer
  *
- * ...with a change in the jumbo patch, by JimF
+ * ...with changes in the jumbo patch, by JimF and magnum
  */
 
 #include <stdio.h>
@@ -73,7 +73,10 @@ void fmt_init(struct fmt_main *format)
 			format->params.plaintext_length =
 				options.force_maxlength;
 		else {
-			fprintf(stderr, "Can't set max length larger than %u for %s format\n", format->params.plaintext_length, format->params.label);
+			fprintf(stderr, "Can't set max length larger than %u "
+			        "for %s format\n",
+			        format->params.plaintext_length,
+			        format->params.label);
 			error();
 		}
 	}
@@ -119,12 +122,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #ifdef DEBUG
 	int validkiller = 0;
 #endif
-	int binary_size_warned = 0, salt_size_warned = 0;
 	int ml = format->params.plaintext_length;
 	char longcand[PLAINTEXT_BUFFER_SIZE];
 
 #ifndef BENCH_BUILD
-	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back */
+	/* UTF-8 bodge in reverse. Otherwise we will get truncated keys back
+	   from the max-length self-test */
 	if ((options.utf8) && (format->params.flags & FMT_UTF8) &&
 	    (format->params.flags & FMT_UNICODE))
 		ml /= 3;
@@ -182,15 +185,13 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		return "FMT_SPLIT_UNIFIES_CASE";
 
 	if ((format->methods.binary == fmt_default_binary) &&
-	    (format->params.binary_size > 0) && !binary_size_warned) {
-		binary_size_warned = 1;
-		puts("Warning: Using default binary() with a non-zero BINARY_SIZE");
-	}
+	    (format->params.binary_size > 0))
+		puts("Warning: Using default binary() with a "
+		     "non-zero BINARY_SIZE");
+
 	if ((format->methods.salt == fmt_default_salt) &&
-	    (format->params.salt_size > 0) && !salt_size_warned) {
-		salt_size_warned = 1;
+	    (format->params.salt_size > 0))
 		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
-	}
 
 	if (!(current = format->params.tests)) return NULL;
 	ntests = 0;
@@ -225,8 +226,8 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		}
 #endif
 
-
-		if (!(ciphertext = format->methods.split(ciphertext, 0, format)))
+		ciphertext = format->methods.split(ciphertext, 0, format);
+		if (!ciphertext)
 			return "split() returned NULL";
 		plaintext = current->plaintext;
 
@@ -313,8 +314,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 /* 0 1 2 3 4 6 9 13 19 28 42 63 94 141 211 316 474 711 1066 ... */
 		if (index >= 2 && max > ntests) {
 			/* Always call set_key() even if skipping. Some
-			   formats depend on it. We use a max-length key
-			   just to stress the format. */
+			   formats depend on it. */
 			for (i = index + 1;
 			     i < max && i < (index + (index >> 1)); i++) {
 				memset(longcand, 'A' + (i % 23), ml);
@@ -328,6 +328,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (index >= max) {
 			format->methods.clear_keys();
 			index = (max > 5 && max > ntests && done != 1) ? 5 : 0;
+			/* Always call set_key() even if skipping. Some
+			   formats depend on it. */
+			if (index == 5)
+			for (i = 0; i < 5; i++)
+				fmt_set_key("", i);
 			done |= 1;
 		}
 
@@ -353,12 +358,18 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		longcand[ml] = 0;
 		format->methods.set_key(longcand, i);
 	}
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	advance_cursor();
+#endif
 	/* 2. Perform a crypt */
 	{
 		int count = max;
 		if (format->methods.crypt_all(&count, NULL) != count)
 			return "crypt_all";
 	}
+#if defined(HAVE_OPENCL) || defined(HAVE_CUDA)
+	advance_cursor();
+#endif
 	/* 3. Now read them back and verify they are intact */
 	for (i = 0; i < max; i++) {
 		char *getkey = format->methods.get_key(i);
@@ -366,9 +377,12 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		longcand[ml] = 0;
 		if (strncmp(getkey, longcand, ml + 1)) {
 			if (fmt_strnlen(getkey, ml + 1) > ml)
-				sprintf(s_size, "max. length in index %d: wrote %d, got longer back", i, ml);
+				sprintf(s_size, "max. length in index %d: wrote"
+				        " %d, got longer back", i, ml);
 			else
-				sprintf(s_size, "max. length in index %d: wrote %d, got %d back", i, ml, (int)strlen(getkey));
+				sprintf(s_size, "max. length in index %d: wrote"
+				        " %d, got %d back", i, ml,
+				        (int)strlen(getkey));
 			return s_size;
 		}
 	}
