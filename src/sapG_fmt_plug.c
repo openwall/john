@@ -123,9 +123,9 @@ static int *keyLen;
 
 #ifdef MMX_COEF
 
-// max intermediate crypt size is 192 bytes
+// max intermediate crypt size is 256 bytes
 // multiple key buffers for lengths > 55
-#define LIMB				3
+#define LIMB	4
 static unsigned char *saved_key[LIMB];
 static unsigned char *crypt_key;
 static unsigned char *interm_crypt;
