@@ -46,41 +46,32 @@ static struct fmt_tests keyring_tests[] = {
 	{NULL}
 };
 
-#if defined (_OPENMP)
-static int omp_t = 1;
-unsigned char *input[64*OMP_SCALE]; /* allows omp_get_max_threads() up to 64 CPU's.  So init() if more, we limite omp_t to 64 or less. */
-#else
-unsigned char *input[1];
-#endif
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
-static int any_cracked;
-static size_t cracked_size;
-
 static struct custom_salt {
 	unsigned int iterations;
 	unsigned char salt[SALTLEN];
 	unsigned int crypto_size;
 	unsigned int inlined;
-	unsigned char ct[LINE_BUFFER_SIZE];
+	unsigned char ct[LINE_BUFFER_SIZE / 2]; /* after hex conversion */
 } *cur_salt;
+
+unsigned char (*input)[sizeof(cur_salt->ct)];
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static int *cracked;
+static int any_cracked;
+static size_t cracked_size;
 
 static void init(struct fmt_main *self)
 {
 
 #if defined (_OPENMP)
-	int i;
+	int i, omp_t;
+
 	omp_t = omp_get_max_threads();
-	if (omp_t > 64)
-		omp_t = 64;
 	self->params.min_keys_per_crypt *= omp_t;
-	omp_t *= OMP_SCALE;
-	self->params.max_keys_per_crypt *= omp_t;
-	/* note, since custom_salt.ct[] is LINE_BUFFER_SIZE long, we simple allocate this size buffer, ONE time */
-	for (i = 0; i < self->params.max_keys_per_crypt; ++i)
-		input[i] = mem_alloc_tiny(LINE_BUFFER_SIZE+1, MEM_ALIGN_WORD);
+	self->params.max_keys_per_crypt *= omp_t * OMP_SCALE;
+	input = mem_alloc_tiny(sizeof(*input) * omp_t, MEM_ALIGN_WORD);
 #else
-	input[0] = mem_alloc_tiny(LINE_BUFFER_SIZE+1, MEM_ALIGN_WORD);
+	input = mem_alloc_tiny(sizeof(*input), MEM_ALIGN_WORD);
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
 			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
@@ -254,9 +245,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++)
 #endif
 	{
-		memcpy(input[index], cur_salt->ct, cur_salt->crypto_size);
-		decrypt_buffer(input[index], cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
-		if (verify_decrypted_buffer(input[index], cur_salt->crypto_size))
+#ifdef _OPENMP
+		int t = omp_get_thread_num();
+#else
+		const int t = 0;
+#endif
+		memcpy(input[t], cur_salt->ct, cur_salt->crypto_size);
+		decrypt_buffer(input[t], cur_salt->crypto_size, cur_salt->salt, cur_salt->iterations, saved_key[index]);
+		if (verify_decrypted_buffer(input[t], cur_salt->crypto_size))
 			any_cracked = cracked[index] = 1;
 		else
 			cracked[index] = 0;
