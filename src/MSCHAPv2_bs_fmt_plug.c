@@ -261,7 +261,7 @@ static char *split(char *ciphertext, int index)
 	if (!out) out = mem_alloc_tiny(TOTAL_LENGTH + 1, MEM_ALIGN_WORD);
 
 	memset(out, 0, TOTAL_LENGTH + 1);
-	memcpy(out, ciphertext, strlen(ciphertext));
+	strnzcpyn(out, ciphertext, TOTAL_LENGTH + 1);
 
 	/* convert hashes to lower-case - exclude $MSCHAPv2 and USERNAME */
 	for (i = 10; i < TOTAL_LENGTH + 1 && j < 3; i++) {
