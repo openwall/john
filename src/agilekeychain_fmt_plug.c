@@ -104,6 +104,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* ct length */
 		goto err;
 	ctlen = atoi(p);
+	if (ctlen > CTLEN)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
 	if(strlen(p) != ctlen * 2)

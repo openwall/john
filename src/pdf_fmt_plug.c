@@ -99,6 +99,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr;
 	char *p;
+	int res;
 
 	if (strncmp(ciphertext,  "$pdf$", 5) != 0)
 		return 0;
@@ -118,15 +119,30 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length_id */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* id*/
+	res = atoi(p);
+	if (res > 32)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* id */
+		goto err;
+	if (strlen(p) != res * 2)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* length_u */
 		goto err;
+	res = atoi(p);
+	if (res > 127)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* u */
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* length_ */
+	if (strlen(p) != res * 2)
 		goto err;
-	if ((p = strtok(NULL, "*")) == NULL)	/* 0 */
+	if ((p = strtok(NULL, "*")) == NULL)	/* length_o */
+		goto err;
+	res = atoi(p);
+	if (res > 127)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* o */
+		goto err;
+	if (strlen(p) != res * 2)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

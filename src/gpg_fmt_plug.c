@@ -217,6 +217,7 @@ static void init(struct fmt_main *self)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+	int res;
 	if (strncmp(ciphertext, "$gpg$", 5) != 0)
 		return 0;
 	ctcopy = strdup(ciphertext);
@@ -226,9 +227,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* datalen */
 		goto err;
+	res = atoi(p);
+	if (res > 4096)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* bits */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* data */
+		goto err;
+	if (strlen(p) != res * 2)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* spec */
 		goto err;
@@ -238,7 +244,21 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher_algorithm */
 		goto err;
-
+	if ((p = strtok(NULL, "*")) == NULL)	/* ivlen */
+		goto err;
+	res = atoi(p);
+	if (res > 16)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
+		goto err;
+	if (strlen(p) != res * 2)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* count */
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
+		goto err;
+	if (strlen(p) != 8 * 2)
+		goto err;
 	MEM_FREE(keeptr);
 	return 1;
 

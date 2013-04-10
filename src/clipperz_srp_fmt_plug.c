@@ -84,6 +84,8 @@
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	4
 
+#define SZ 				128
+
 // salt is in hex  (salt and salt2)
 static struct fmt_tests tests[] = {
 	{CLIPPERZSIG"e8be8c8d9c1d5dc79ecc7b15d1787d5b5dc22e815ddb0b37f6145ca667421f1f$e0bc11ee4db80a3ecabd293f5201cb747856361192c68f4133ea707c7d4d2d32*hackme@mailinator.com", "openwall"},
@@ -107,8 +109,8 @@ static ARCH_WORD_32 (*crypt_out)[8];
 
 
 static struct custom_salt {
-	unsigned char saved_salt[128];
-	unsigned char user_id[128];
+	unsigned char saved_salt[SZ];
+	unsigned char user_id[SZ];
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -171,6 +173,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!ishex(p))
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if (strlen(p) > SZ)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)
+		goto err;
+	if (strlen(p) > SZ)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

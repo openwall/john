@@ -123,34 +123,51 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 1;
 	if (!(ptr = strtok(ctcopy, "*")))
 		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
 	if (!(ptr = strtok(NULL, "*")))
 		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
 	if (!(ptr = strtok(NULL, "*")))
 		goto error;
-	if (!ishex(ptr))
-		goto error;
-	if (!(ptr = strtok(NULL, "*")))
+	if (strlen(ptr) > MAXLEN)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
 	if (!(ptr = strtok(NULL, "*")))
 		goto error;
+	if (strlen(ptr) > MAXLEN)
+		goto error;
 	if (!ishex(ptr))
 		goto error;
 	if (!(ptr = strtok(NULL, "*")))
 		goto error;
+	if (strlen(ptr) > MAXLEN)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) > MAXLEN)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) > MAXLEN)
+		goto error;
+	if (!ishex(ptr))
+		goto error;
+	if (!(ptr = strtok(NULL, "*")))
+		goto error;
+	if (strlen(ptr) > MAXLEN)
+		goto error;
+
 	if (!ishex(ptr))
 		goto error;
 	MEM_FREE(keeptr);

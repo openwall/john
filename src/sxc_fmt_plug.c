@@ -106,11 +106,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* key size */
 		goto err;
+	res = atoi(p);
+	if (res != 16 && res != 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv length */
 		goto err;
 	res = atoi(p);
+	if (res > 16)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* iv */
 		goto err;
 	if (strlen(p) != res * 2)
@@ -120,6 +125,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
+	if (res > 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (strlen(p) != res * 2)
@@ -131,6 +138,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* length */
 		goto err;
 	res = atoi(p);
+	if (res > 1024)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* content */
 		goto err;
 	if (strlen(p) != res * 2)
