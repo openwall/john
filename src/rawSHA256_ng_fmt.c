@@ -276,14 +276,14 @@ static void set_key (char *key, int index)
 {
     uint32_t *buf32 = (uint32_t *) &saved_key[index];
     uint8_t  *buf8  = (uint8_t *) buf32;
+    int len = 0;
 
-    size_t len = strlen (key);
-
-    memset (buf8 , 0, 64);
-    memcpy (buf8, key, len);
-
-    buf8[len] = 0x80;
+    while (*key)
+	    buf8[len++] = *key++;
     buf32[15] = len << 3;
+    buf8[len++] = 0x80;
+    while (buf8[len] && len <= MAXLEN)
+        buf8[len++] = 0;
 }
 
 
