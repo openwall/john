@@ -12,7 +12,7 @@
 #pragma GCC optimize 3
 
 //#define DEBUG
-#define EXTENDED_TESTS
+//#define EXTENDED_TESTS
 
 #include <string.h>
 #include <stdint.h>
@@ -52,7 +52,7 @@
 #define BENCHMARK_COMMENT         ""
 #define BENCHMARK_LENGTH          -1
 
-#define MAXLEN                    59
+#define MAXLEN                    55
 #define CIPHERTEXT_LENGTH         64
 #define DIGEST_SIZE               32
 #define BINARY_SIZE               32
@@ -466,7 +466,7 @@ static int cmp_all (void *binary, int count)
     bin    = _mm_set1_epi32 (((uint32_t *) binary)[0]);
     tmp    = _mm_cmpeq_epi32 (bin, digest);
 
-    return _mm_movemask_epi8 (_mm_cmpeq_epi32 (tmp, zero));
+    return _mm_movemask_epi8 (_mm_cmpeq_epi32 (tmp, zero)) != 0xffff;
 }
 
 
