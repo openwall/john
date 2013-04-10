@@ -215,11 +215,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	long offset;
 	u32 offex;
 	int type;
+	PKZ_SALT *salt;
+	int i = 0;
 
 	if (strncmp(ciphertext, "$pkzip$", 7))
 		return 0;
 
 	cp = (u8*)str_alloc_copy(ciphertext);
+
+	salt = mem_alloc_tiny(sizeof(PKZ_SALT), MEM_ALIGN_WORD);
+	memset(salt, 0, sizeof(PKZ_SALT));
 
 	p = &cp[7];
 	p = GetFld(p, &cp);
@@ -231,7 +236,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = GetFld(p, &cp);
 	if (!p || *p==0 || *cp < '1' || *cp > '2') {
 		sFailStr = "Number of valid hash bytes empty or out of range"; goto Bail; }
-
 	while (cnt--) {
 		p = GetFld(p, &cp);
 		if ( !p || *cp<'1' || *cp>'3') {
@@ -242,6 +246,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			sFailStr = "Invalid type enumeration"; goto Bail; }
 		if (type > 1) {
 			p = GetFld(p, &cp);
+			sscanf((c8*)cp, "%x", &(salt->compLen));
 			if ( !p || !cp[0] || !is_hex_str(cp)) {
 				sFailStr = "Invalid compressed length"; goto Bail; }
 			sscanf((c8*)cp, "%x", &len);
@@ -268,6 +273,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ( !p || !is_hex_str(cp)) {
 			sFailStr = "data length value"; goto Bail; }
 		sscanf((c8*)cp, "%x", &data_len);
+		sscanf((c8*)cp, "%x", &(salt->H[i].datlen));
 		p = GetFld(p, &cp);
 		if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
@@ -279,6 +285,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			if (!in) {
 				/* this error is listed, even if not in pkzip debugging mode. */
 				fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
+				MEM_FREE(salt);
 				return 0;
 			}
 			sFailStr = ValidateZipContents(in, offset, offex, len, crc);
@@ -286,14 +293,24 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			if (*sFailStr) {
 				/* this error is listed, even if not in pkzip debugging mode. */
 				fprintf(stderr, "pkzip validation failed [%s] Hash is %s\n", sFailStr, ciphertext);
+				MEM_FREE(salt);
 				return 0;
 			}
 		} else {
+			/* 'inline' data. */
+			if (salt->compLen != salt->H[i].datlen) {
+				MEM_FREE(salt);
+				return 0;
+			}
 			if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
-				sFailStr = "invalid checksum value"; goto Bail; }
+				MEM_FREE(salt);
+				sFailStr = "invalid checksum value"; goto Bail;
+			}
 		}
+		i++;
 	}
 	p = GetFld(p, &cp);
+	MEM_FREE(salt);
 	return !strcmp((c8*)cp, "$/pkzip$");
 
 Bail:;
