@@ -161,9 +161,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int i;
+	char *cp=FORTINET_MAGIC;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_len, crypt_key)
+#pragma omp parallel for default(none) private(i) shared(ctx_salt, count, saved_key, saved_key_len, crypt_key, cp)
 #endif
 	for (i = 0; i < count; i++) {
 		SHA_CTX ctx;
@@ -171,7 +172,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memcpy(&ctx, &ctx_salt, sizeof(ctx));
 
 		SHA1_Update(&ctx, saved_key[i], saved_key_len[i]);
-		SHA1_Update(&ctx, (char *)FORTINET_MAGIC, FORTINET_MAGIC_LENGTH);
+		SHA1_Update(&ctx, cp, FORTINET_MAGIC_LENGTH);
 		SHA1_Final((unsigned char*)crypt_key[i], &ctx);
 	}
 	return count;

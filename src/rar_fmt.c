@@ -183,7 +183,7 @@ static struct fmt_tests cpu_tests[] = {
 };
 
 #if defined (_OPENMP)
-static void lock_callback(int mode, int type, char *file, int line)
+static void lock_callback(int mode, int type, const char *file, int line)
 {
 	(void)file;
 	(void)line;
@@ -195,9 +195,7 @@ static void lock_callback(int mode, int type, char *file, int line)
 
 static unsigned long thread_id(void)
 {
-	unsigned long ret;
-	ret = (unsigned long) pthread_self();
-	return (ret);
+	return omp_get_thread_num();
 }
 
 static void init_locks(void)
@@ -206,8 +204,8 @@ static void init_locks(void)
 	lockarray = (pthread_mutex_t*) OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
 	for (i = 0; i < CRYPTO_num_locks(); i++)
 		pthread_mutex_init(&(lockarray[i]), NULL);
-	CRYPTO_set_id_callback((unsigned long (*)()) thread_id);
-	CRYPTO_set_locking_callback((void (*)()) lock_callback);
+	CRYPTO_set_id_callback(thread_id);
+	CRYPTO_set_locking_callback(lock_callback);
 }
 #endif	/* _OPENMP */
 

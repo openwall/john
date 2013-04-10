@@ -139,6 +139,7 @@ typedef union {
 #define MD5_swap(x, y, count)
 #define MD5_swap2(a,b,c,d,e)
 #ifdef SHA1_SSE_PARA
+#undef shammx
 #define shammx(a,b,c)
 static void SHA1_swap(MD5_word *x, MD5_word *y, int count)
 {

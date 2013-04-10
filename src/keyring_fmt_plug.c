@@ -64,7 +64,7 @@ static void init(struct fmt_main *self)
 {
 
 #if defined (_OPENMP)
-	int i, omp_t;
+	int omp_t;
 
 	omp_t = omp_get_max_threads();
 	self->params.min_keys_per_crypt *= omp_t;
