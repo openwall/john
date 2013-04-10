@@ -11,6 +11,8 @@
 
 #pragma GCC optimize 3
 
+//#define DEBUG
+#define EXTENDED_TESTS
 
 #include <string.h>
 #include <stdint.h>
@@ -192,6 +194,17 @@ static struct fmt_tests tests[] = {
     {"04cdd6c523673bf448efe055711a9b184817d7843b0a76c2046f5398b5854152", "TestTESTt3st"},
     {FORMAT_TAG "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
     {FORMAT_TAG "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
+#ifdef EXTENDED_TESTS
+    {"9e7d3e56996c5a06a6a378567e62f5aa7138ebb0f55c0bdaf73666bf77f73380", "mot\xf6rhead"},
+    {FORMAT_TAG "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
+    {"0f46e4b0802fee6fed599682a16287d0397699cfd742025482c086a70979e56a", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 31
+    {"c62e4615bd39e222572f3a1bf7c2132ea1e65b17ec805047bd6b2842c593493f", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 32
+    {"d5e285683cd4efc02d021a5c62014694958901005d6f71e89e0989fac77e4072", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 55
+#if MAXLEN > 55
+    {"04c26261370ee7541549d16dee320c723e3fd14671e66a099afe0a377c16888e", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 56
+    {"6e20a1199bf58ddb8fadbe63725f1dd9de8440153af062ca56b70d99a22c306e", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 59
+#endif
+#endif
     {NULL}
 };
 
@@ -312,6 +325,10 @@ static void crypt_all (int count)
 
     int i;
 
+#ifdef DEBUG
+    printf("index %d key '%s'\n", *pcount - 1, get_key(*pcount - 1));
+    dump_stuff(saved_key[*pcount-1], 64);
+#endif
 #ifdef __SSE4_1__
     for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
     for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
@@ -330,6 +347,10 @@ static void crypt_all (int count)
     }
 
     w[15] = _mm_load_si128 ((__m128i *) __w[15]);
+#endif
+#ifdef DEBUG
+    puts("w");
+    dump_stuff_shammx(w, 64, *pcount-1);
 #endif
 
     a = _mm_set1_epi32 (0x6a09e667);
