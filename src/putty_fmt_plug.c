@@ -92,7 +92,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy;
 	char *keeptr;
-	char *p, *q;
+	char *p;
 	int res;
 	int is_old_fmt;
 
