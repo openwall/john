@@ -118,11 +118,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	if (!(ptr = strtok(NULL, "*")))	/* salt */
 		goto error;
-	/* if (strlen(ptr) != 24)
-		goto error; */
+	if (strlen(ptr) > 24)
+		goto error;
 	if (!(ptr = strtok(NULL, "*"))) /* hash */
 		goto error;
-
+	if (strlen(ptr) > 44)
+		goto error;
 	MEM_FREE(keeptr);
 	return 1;
 

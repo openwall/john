@@ -84,6 +84,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 4;
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* email */
 		goto err;
+	if (strlen(p) > 32)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* hash */
 		goto err;
 	if (strlen(p) != 32)

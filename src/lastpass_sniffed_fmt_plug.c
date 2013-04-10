@@ -94,9 +94,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += 10;
 	if ((p = strtok(ctcopy, "$")) == NULL)	/* username */
 		goto err;
+	if (strlen(p) > 129)
+		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* data */
+		goto err;
+	if (strlen(p) > 50) /* not exact! */
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

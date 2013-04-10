@@ -52,6 +52,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	" (x10000)"
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
+#define HASH_LENGTH		44
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -107,6 +108,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
 		goto err;
 	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
+		goto err;
+	if (strlen(p) > HASH_LENGTH)
 		goto err;
 	MEM_FREE(keeptr);
 	return 1;

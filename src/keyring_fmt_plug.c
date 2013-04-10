@@ -100,6 +100,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* ciphertext */
 		goto err;
+	if (ctlen > LINE_BUFFER_SIZE)
+		goto err;
 	if(strlen(p) != ctlen * 2)
 		goto err;
 

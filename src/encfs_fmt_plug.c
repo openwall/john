@@ -275,6 +275,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt length */
 		goto err;
 	res = atoi(p);
+	if (res > 40)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* salt */
 		goto err;
 	if (res * 2 != strlen(p))
@@ -284,6 +286,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* data length */
 		goto err;
 	res = atoi(p);
+	if (res > 128)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* data */
 		goto err;
 	if (res * 2 != strlen(p))

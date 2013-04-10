@@ -109,7 +109,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtok(NULL, "*")) == NULL)	/* cipher block length*/
 		goto err;
 	res = atoi(p);
-
 	if(res != 16) /* check cipher block length */
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* is_mac */
@@ -124,18 +123,36 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* mac */
 		goto err;
+	if (strlen(p) > 128)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* public_blob_len */
+		goto err;
+	res = atoi(p);
+	if (res > 4096)
+		goto err;
+	if ((p = strtok(NULL, "*")) == NULL)	/* public_blob */
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* private_blob_len */
 		goto err;
 	res = atoi(p);
+	if (res > 4096)
+		goto err;
 	if ((p = strtok(NULL, "*")) == NULL)	/* private_blob */
 		goto err;
-	q = p;
-	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
-		q++;
-	if(q - p != res * 2)
-		goto err;
-	if (*q && is_old_fmt)
-		goto err;
+	if (!is_old_fmt) {
+		if ((p = strtok(NULL, "*")) == NULL)	/* alg */
+			goto err;
+		if (strlen(p) > 8)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* encryption */
+			goto err;
+		if (strlen(p) > 32)
+			goto err;
+		if ((p = strtok(NULL, "*")) == NULL)	/* comment */
+			goto err;
+		if (strlen(p) > 512)
+			goto err;
+	}
 	MEM_FREE(keeptr);
 	return 1;
 

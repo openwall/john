@@ -419,22 +419,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 		if (hexlen(ptr) != 8) /* 4 bytes of CRC */
 			goto error;
-		if (!(ptr = strtok(NULL, "*")))
+		if (!(ptr = strtok(NULL, "*"))) /* pack_size */
 			goto error;
 		if ((plen = atoll(ptr)) < 16)
 			goto error;
-		if (!(ptr = strtok(NULL, "*")))
+		if (!(ptr = strtok(NULL, "*"))) /* unp_size */
 			goto error;
 		if ((ulen = atoll(ptr)) < 1)
 			goto error;
-		if (!(ptr = strtok(NULL, "*")))
+		if (!(ptr = strtok(NULL, "*"))) /* inlined */
 			goto error;
 		if (hexlen(ptr) != 1)
 			goto error;
 		inlined = atoi(ptr);
 		if (inlined < 0 || inlined > 1)
 			goto error;
-		if (!(ptr = strtok(NULL, "*")))
+		if (!(ptr = strtok(NULL, "*"))) /* pack_size / archive_name */
 			goto error;
 		if (inlined) {
 			if (hexlen(ptr) != plen * 2)
@@ -442,16 +442,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		} else {
 			FILE *fp;
 			char *archive_name;
-
 			archive_name = ptr;
 			if (!(fp = fopen(archive_name, "rb"))) {
 				fprintf(stderr, "! %s: %s, skipping.\n", archive_name, strerror(errno));
 				goto error;
 			}
+			if (!(ptr = strtok(NULL, "*"))) /* pos */
+				goto error;
 			/* We could go on and actually try seeking to pos
 			   but this is enough for now */
 			fclose(fp);
 		}
+		if (!(ptr = strtok(NULL, "*"))) /* method */
+			goto error;
 	}
 	MEM_FREE(keeptr);
 	return 1;
