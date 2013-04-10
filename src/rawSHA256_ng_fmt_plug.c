@@ -7,7 +7,6 @@
  */
 
 
-#ifdef __GNUC__
 #ifdef __SSE2__
 
 #pragma GCC optimize 3
@@ -19,6 +18,8 @@
 
 #if defined __XOP__
 #include <x86intrin.h>
+#elif defined __SSE4_1__
+#include <smmintrin.h>
 #elif defined __SSSE3__
 #include <tmmintrin.h>
 #endif
@@ -28,16 +29,18 @@
 
 
 #if defined __XOP__
-#define SSE_TYPE                  "XOP"
+#define SIMD_TYPE                 "XOP"
+#elif defined __SSE4_1__
+#define SIMD_TYPE                 "SSE4.1"
 #elif defined __SSSE3__
-#define SSE_TYPE                  "SSSE3"
+#define SIMD_TYPE                 "SSSE3"
 #else
-#define SSE_TYPE                  "SSE2"
+#define SIMD_TYPE                 "SSE2"
 #endif
 
 #define FORMAT_LABEL              "raw-sha256-ng"
 #define FORMAT_NAME               "Raw SHA-256"
-#define ALGORITHM_NAME            "128/128 " SSE_TYPE " instrinsics 4x"
+#define ALGORITHM_NAME            "128/128 " SIMD_TYPE " instrinsics 4x"
 #define FORMAT_TAG                "$SHA256$"
 #define TAG_LENGTH                8
 
@@ -79,28 +82,38 @@
 
 #ifdef __SSSE3__
 #define SWAP_ENDIAN(n)                                                    \
-(                                                                         \
-    _mm_shuffle_epi8 (n,                                                  \
-        _mm_set_epi32 (0x0c0d0e0f, 0x08090a0b,                            \
-                       0x04050607, 0x00010203                             \
-        )                                                                 \
-    )                                                                     \
-)
+{                                                                         \
+    n = _mm_shuffle_epi8 (n,                                              \
+            _mm_set_epi32 (0x0c0d0e0f, 0x08090a0b,                        \
+                           0x04050607, 0x00010203                         \
+            )                                                             \
+        );                                                                \
+}
 #else
 #define ROT16(n)                                                          \
 (                                                                         \
     _mm_shufflelo_epi16 (                                                 \
-        _mm_shufflehi_epi16(n, 0xb1), 0xb1                                \
+        _mm_shufflehi_epi16 (n, 0xb1), 0xb1                               \
     )                                                                     \
 )
 
 #define SWAP_ENDIAN(n)                                                    \
 (                                                                         \
-    _mm_xor_si128 (                                                       \
-        _mm_srli_epi16 (ROT16(n), 8),                                     \
-        _mm_slli_epi16 (ROT16(n), 8)                                      \
-    )                                                                     \
+    n = _mm_xor_si128 (                                                   \
+            _mm_srli_epi16 (ROT16(n), 8),                                 \
+            _mm_slli_epi16 (ROT16(n), 8)                                  \
+        )                                                                 \
 )
+#endif
+
+#ifdef __SSE4_1__
+#define GATHER(x, y, z)                                                   \
+{                                                                         \
+    x = _mm_cvtsi32_si128 (   y[0][z]   );                                \
+    x = _mm_insert_epi32  (x, y[1][z], 1);                                \
+    x = _mm_insert_epi32  (x, y[2][z], 2);                                \
+    x = _mm_insert_epi32  (x, y[3][z], 3);                                \
+}
 #endif
 
 #define S0(x)                                                             \
@@ -161,13 +174,13 @@
 #define SHA256_STEP(a,b,c,d,e,f,g,h,x,K)                                  \
 {                                                                         \
     if (x > 15) R(x);                                                     \
-    tmp1 = _mm_add_epi32 (h,     S1(e));                                  \
-    tmp1 = _mm_add_epi32 (tmp1,  Ch(e,f,g));                              \
-    tmp1 = _mm_add_epi32 (tmp1,  _mm_set1_epi32(K));                      \
-    tmp1 = _mm_add_epi32 (tmp1,  w[x]);                                   \
-    tmp2 = _mm_add_epi32 (S0(a), Maj(a,b,c));                             \
-    d    = _mm_add_epi32 (tmp1,  d);                                      \
-    h    = _mm_add_epi32 (tmp1,  tmp2);                                   \
+    tmp1 = _mm_add_epi32 (h,    S1(e));                                   \
+    tmp1 = _mm_add_epi32 (tmp1, Ch(e,f,g));                               \
+    tmp1 = _mm_add_epi32 (tmp1, _mm_set1_epi32(K));                       \
+    tmp1 = _mm_add_epi32 (tmp1, w[x]);                                    \
+    tmp2 = _mm_add_epi32 (S0(a),Maj(a,b,c));                              \
+    d    = _mm_add_epi32 (tmp1, d);                                       \
+    h    = _mm_add_epi32 (tmp1, tmp2);                                    \
 }
 
 
@@ -184,7 +197,7 @@ static struct fmt_tests tests[] = {
 
 
 uint32_t saved_key[VWIDTH][64] __attribute__ ((aligned(16)));
-uint32_t crypt_key[8][VWIDTH] __attribute__ ((aligned (16)));
+uint32_t crypt_key[ 8][VWIDTH] __attribute__ ((aligned(16)));
 
 
 static int valid (char *ciphertext, struct fmt_main *self)
@@ -294,13 +307,17 @@ static int crypt_all (int *pcount, struct db_salt *salt)
 static void crypt_all (int count)
 #endif
 {
-    uint32_t __w[16][VWIDTH] __attribute__ ((aligned (16)));
-
     __m128i a, b, c, d, e, f, g, h;
     __m128i w[64], tmp1, tmp2;
 
-    int i, j;
+    int i;
 
+#ifdef __SSE4_1__
+    for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
+    for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
+#else
+    uint32_t __w[16][VWIDTH] __attribute__ ((aligned (16)));
+    int j;
 
     for (i=0; i < VWIDTH; i++)
         for (j=0; j < 16; j++)
@@ -309,11 +326,11 @@ static void crypt_all (int count)
     for (i=0; i < 15; i++)
     {
         w[i] = _mm_load_si128 ((__m128i *) __w[i]);
-        w[i] = SWAP_ENDIAN (w[i]);
+        SWAP_ENDIAN (w[i]);
     }
 
     w[15] = _mm_load_si128 ((__m128i *) __w[15]);
-
+#endif
 
     a = _mm_set1_epi32 (0x6a09e667);
     b = _mm_set1_epi32 (0xbb67ae85);
@@ -514,5 +531,4 @@ struct fmt_main fmt_rawSHA256_ng = {
     }
 };
 
-#endif
 #endif
