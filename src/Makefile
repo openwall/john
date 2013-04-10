@@ -136,7 +136,7 @@ JOHN_OBJS = \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
 	$(PLUGFORMATS_OBJS) \
-	rawSHA1_ng_fmt.o \
+	rawSHA1_ng_fmt.o rawSHA256_ng_fmt.o \
 	plugin.o \
 	dummy.o \
 	NT_fmt.o \

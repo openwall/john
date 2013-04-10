@@ -104,8 +104,9 @@ extern struct fmt_main fmt_truecrypt_sha512;
 extern struct fmt_main fmt_truecrypt_whirlpool;
 #endif
 
-#if defined(__GNUC__) && defined(__SSE2__)
+#ifdef __SSE2__
 extern struct fmt_main fmt_sha1_ng;
+extern struct fmt_main fmt_rawSHA256_ng;
 #endif
 
 #ifdef HAVE_SKEY
@@ -272,6 +273,10 @@ static void john_register_all(void)
 	for (i = 0; i < cnt; ++i)
 		john_register_one(&(selfs[i]));
 
+#ifdef __SSE2__
+	john_register_one(&fmt_rawSHA256_ng);
+#endif
+
 #include "fmt_registers.h"
 
 #ifdef HAVE_CRYPT
@@ -290,7 +295,7 @@ static void john_register_all(void)
 	john_register_one(&fmt_truecrypt_whirlpool);
 #endif
 
-#if defined(__GNUC__) && defined(__SSE2__)
+#ifdef __SSE2__
 	john_register_one(&fmt_sha1_ng);
 #endif
 
