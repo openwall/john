@@ -496,7 +496,7 @@ static void * get_cisco_binary(char *ciphertext) {
 	uint32_t * b;
 	unsigned char *p;
 
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
 
 	p = (unsigned char *) ciphertext + 8;
 
@@ -514,7 +514,7 @@ static void * get_cisco_full_binary(char *ciphertext) {
 	static unsigned char *out;
 	unsigned char *p;
 
-	if (!out) out = mem_alloc_tiny(BINARY_SIZE, MEM_ALIGN_WORD);
+	if (!out) out = mem_alloc_tiny(FULL_BINARY_SIZE, MEM_ALIGN_WORD);
 
 	p = (unsigned char *) ciphertext + 8;
 
