@@ -93,10 +93,10 @@ static char *Convert(char *Buf, char *ciphertext)
 	cp = strchr(&ciphertext[3], '$');
 	if (!cp)
 		return "*";
-	i = sprintf(Buf, "$dynamic_9$%s$", &cp[1]);
+	i = snprintf(Buf, sizeof(Conv_Buf), "$dynamic_9$%s$", &cp[1]);
 	ciphertext += 3;
 	// now append salt, and the '-' char
-	while (*ciphertext != '$')
+	while (*ciphertext && i < sizeof(Conv_Buf) - 3 && *ciphertext != '$')
 		Buf[i++] = *ciphertext++;
 	Buf[i++] = '-';
 	Buf[i] = 0;

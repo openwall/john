@@ -63,7 +63,7 @@ static char *Convert(char *Buf, char *ciphertext)
 	if (text_in_dynamic_format_already(pDynamic_61, ciphertext))
 		return ciphertext;
 
-	sprintf(Buf, "$dynamic_61$%s", ciphertext);
+	snprintf(Buf, sizeof(Conv_Buf), "$dynamic_61$%s", ciphertext);
 	return Buf;
 }
 
