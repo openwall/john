@@ -215,6 +215,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	long offset;
 	u32 offex;
 	int type;
+	int complen = 0;
 
 	if (strncmp(ciphertext, "$pkzip$", 7))
 		return 0;
@@ -242,6 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			sFailStr = "Invalid type enumeration"; goto Bail; }
 		if (type > 1) {
 			p = GetFld(p, &cp);
+			sscanf((c8*)cp, "%x", &(complen));
 			if ( !p || !cp[0] || !is_hex_str(cp)) {
 				sFailStr = "Invalid compressed length"; goto Bail; }
 			sscanf((c8*)cp, "%x", &len);
@@ -272,25 +274,44 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != 4) {
 			sFailStr = "invalid checksum value"; goto Bail; }
 		p = GetFld(p, &cp);
-		if (type == 3) {
-			if ( !p || strlen((c8*)cp) != data_len) {
-				sFailStr = "invalid checksum value"; goto Bail; }
-			in = fopen((c8*)cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
-			if (!in) {
-				/* this error is listed, even if not in pkzip debugging mode. */
-				fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
-				return 0;
+		if (type > 1) {
+			if (type == 3) {
+				if ( !p || strlen((c8*)cp) != data_len) {
+					sFailStr = "invalid checksum value"; goto Bail; }
+				in = fopen((c8*)cp, "rb"); /* have to open in bin mode for OS's where this matters, DOS/Win32 */
+				if (!in) {
+					/* this error is listed, even if not in pkzip debugging mode. */
+					fprintf(stderr, "Error loading a pkzip hash line. The ZIP file '%s' could NOT be found\n", cp);
+					return 0;
+				}
+				sFailStr = ValidateZipContents(in, offset, offex, len, crc);
+				if (*sFailStr) {
+					/* this error is listed, even if not in pkzip debugging mode. */
+					fprintf(stderr, "pkzip validation failed [%s] Hash is %s\n", sFailStr, ciphertext);
+					fclose(in);
+					return 0;
+				}
+				fseek(in, offset+offex, SEEK_SET);
+				if (complen < 16*1024) {
+					/* simply load the whole blob */
+					unsigned char *tbuf = mem_alloc_tiny(complen, MEM_ALIGN_WORD);
+					if (fread(tbuf, 1, complen, in) != complen) {
+						fclose(in);
+						MEM_FREE(tbuf);
+						return 0;
+					}
+					data_len = complen;
+				}
+				fclose(in);
+			} else {
+				/* 'inline' data. */
+				if (complen != data_len) {
+					return 0;
+				}
+				if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
+					sFailStr = "invalid checksum value"; goto Bail;
+				}
 			}
-			sFailStr = ValidateZipContents(in, offset, offex, len, crc);
-			fclose(in);
-			if (*sFailStr) {
-				/* this error is listed, even if not in pkzip debugging mode. */
-				fprintf(stderr, "pkzip validation failed [%s] Hash is %s\n", sFailStr, ciphertext);
-				return 0;
-			}
-		} else {
-			if ( !p || !is_hex_str(cp) || strlen((c8*)cp) != data_len<<1) {
-				sFailStr = "invalid checksum value"; goto Bail; }
 		}
 	}
 	p = GetFld(p, &cp);
