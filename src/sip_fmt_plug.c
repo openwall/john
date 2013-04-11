@@ -82,7 +82,87 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	return !strncmp(ciphertext, "$sip$", 5);
+	char *p = ciphertext, *q;
+	int res = 0;
+	if (strncmp(ciphertext, "$sip$*", 6))
+		return 0;
+	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
+		return 0;
+	p += 6;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > HOST_MAXLEN) /* host */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > HOST_MAXLEN) /* host */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > USER_MAXLEN) /* user */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > HOST_MAXLEN) /* realm */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > METHOD_MAXLEN) /* method */
+		goto err;
+	p = q + 1;
+	/* uri stuff */
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	res += q - p;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	res += q - p;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	res += q - p;
+	if (res > URI_MAXLEN) /* uri */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > NONCE_MAXLEN) /* nonce */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > NONCE_MAXLEN) /* cnonce */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > CNONCE_MAXLEN) /* nonce_count */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > QOP_MAXLEN) /* qop */
+		goto err;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if ((q - p) > ALG_MAXLEN) /* algorithm */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '*')) == NULL)
+		goto err;
+	if (strncmp("MD5*", p, 4))
+		goto err;
+	p = q + 1;
+	if (strlen(p) != MD5_LEN_HEX) /* hash */
+		goto err;
+	return 1;
+err:
+	return 0;
 }
 
 // NOTE, this still needs work. I am sure this will not eliminate (compact out)
