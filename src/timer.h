@@ -19,7 +19,6 @@
 #define GOT_TIMER_H
 
 #include <time.h>
-#include <sys/timeb.h>
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
 #undef MEM_FREE
