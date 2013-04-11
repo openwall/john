@@ -6,7 +6,11 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#ifdef __linux
 #include <endian.h>
+#else
+#include <machine/endian.h>
+#endif
 
 struct tcp_hdr {
 	uint16_t th_sport;
