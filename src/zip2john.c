@@ -558,5 +558,6 @@ int zip2john(int argc, char **argv)
 	for (; i < argc; i++)
 		process_file(argv[i]);
 
+	cleanup_tiny_memory();
 	return 0;
 }
