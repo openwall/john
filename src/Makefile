@@ -81,7 +81,10 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include $(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
+#since we link -lssl -lcrypto unconditionally, we have to define HAVE_OPENSSL as well
+HAVE_OPENSSL = -DHAVE_OPENSSL
+CFLAGS = -c -Wall -Wdeclaration-after-statement -O2 -fomit-frame-pointer -I/usr/local/include \
+	$(HAVE_NSS) $(HAVE_GMP) $(HAVE_KRB5) $(HAVE_OPENSSL) $(OMPFLAGS) $(JOHN_CFLAGS) $(AMDAPP)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
