@@ -61,6 +61,8 @@ typedef struct {
 
 #define NSLDAP_MAGIC "{ssha}"
 #define NSLDAP_MAGIC_LENGTH 6
+#define BASE64_ALPHABET	  \
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 cl_command_queue queue_prof;
 cl_mem pinned_saved_keys, pinned_partial_hashes, buffer_out, buffer_keys,
@@ -296,12 +298,16 @@ static void *get_salt(char *ciphertext){
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	if (!ciphertext)
+	int len;
+
+	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
 		return 0;
-	if (!strcmp(NSLDAP_MAGIC, ciphertext))
+	ciphertext += NSLDAP_MAGIC_LENGTH;
+
+	len = strspn(ciphertext, BASE64_ALPHABET);
+	if (len != CIPHERTEXT_LENGTH - 2)
 		return 0;
-	if (strlen(ciphertext) != CIPHERTEXT_LENGTH + NSLDAP_MAGIC_LENGTH)
-		return 0;
+
 	return 1;
 }
 
