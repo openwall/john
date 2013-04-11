@@ -40,6 +40,7 @@
 #define __FAVOR_BSD
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include "tcphdr.h"
 #include <pcap.h>
 
 using namespace std;
@@ -117,12 +118,12 @@ bool Packet_Reader::kick()
 			continue;	// bogus IP header
 
 		if (header.len <
-		    sizeof(struct ether_header) + size_ip + sizeof(tcphdr))
+		    sizeof(struct ether_header) + size_ip + sizeof(struct tcp_hdr))
 			continue;
 
-		const struct tcphdr *tcp =
+		const struct tcp_hdr *tcp =
 		    reinterpret_cast <
-		    const struct tcphdr *>(packet + sizeof(ether_header) +
+		    const struct tcp_hdr *>(packet + sizeof(ether_header) +
 		    size_ip);
 
 		size_t size_tcp = tcp->th_off * 4;

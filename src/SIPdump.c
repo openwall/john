@@ -20,6 +20,8 @@
 #define __FAVOR_BSD
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
+#include "tcphdr.h"
+
 #include <arpa/inet.h>
 #include <pcap.h>
 #include "SIPdump.h"
@@ -494,7 +496,7 @@ static void sniff_logins(unsigned char *args,
 {
 	const struct ip6_hdr *ip6;
 	const struct ip *ip_hdr;
-	const struct tcphdr *tcp_hdr;
+	const struct tcp_hdr *tcp_hdr;
 	const struct udphdr *udp_hdr;
 	unsigned char *payload;
 	int ip_protocol, ip_tot_len;
@@ -548,7 +550,7 @@ static void sniff_logins(unsigned char *args,
 	/* Check proto and get source and destination port */
 	switch (ip_protocol) {
 	case IPPROTO_TCP:
-		tcp_hdr = (struct tcphdr *) (packet + size_ip);
+		tcp_hdr = (struct tcp_hdr *) (packet + size_ip);
 		size_proto = tcp_hdr->th_off * 4;
 		if (size_proto < 20) {
 			debug(
