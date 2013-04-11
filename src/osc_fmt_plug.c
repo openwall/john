@@ -73,7 +73,7 @@ static char *Convert(char *Buf, char *ciphertext)
 	if (!cp)
 		return "*";
 
-	sprintf(Buf, "$dynamic_4$%s$", &cp[1]);
+	snprintf(Buf, sizeof(Conv_Buf) - SALT_SIZE, "$dynamic_4$%s$", &cp[1]);
 	for (i = 0; i < SALT_SIZE; ++i)
 	{
 		char bTmp[3];

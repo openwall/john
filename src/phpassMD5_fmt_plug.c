@@ -83,7 +83,8 @@ static char *Convert(char *Buf, char *ciphertext)
 	if (text_in_dynamic_format_already(pDynamic_17, ciphertext))
 		return ciphertext;
 
-	sprintf(Buf, "$dynamic_17$%s%10.10s", &ciphertext[3+8+1], &ciphertext[2]);
+	snprintf(Buf, sizeof(Conv_Buf), "$dynamic_17$%s%10.10s",
+	        &ciphertext[3+8+1], &ciphertext[2]);
 	return Buf;
 }
 
