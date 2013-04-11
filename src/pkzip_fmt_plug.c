@@ -300,7 +300,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 					unsigned char *tbuf = mem_alloc_tiny(complen, MEM_ALIGN_WORD);
 					if (fread(tbuf, 1, complen, in) != complen) {
 						fclose(in);
-						MEM_FREE(tbuf);
 						return 0;
 					}
 					data_len = complen;
