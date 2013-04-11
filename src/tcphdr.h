@@ -8,7 +8,6 @@ extern "C" {
 #include <stdint.h>
 #include <endian.h>
 
-typedef	u_int32_t tcp_seq;
 struct tcp_hdr {
 	uint16_t th_sport;
 	uint16_t th_dport;
