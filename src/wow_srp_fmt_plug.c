@@ -94,7 +94,7 @@ typedef struct t_SRP_CTX {
 
 static SRP_CTX *pSRP_CTX;
 static unsigned char saved_salt[SALT_SIZE];
-static unsigned char user_id[SALT_SIZE];
+static unsigned char user_id[USERNAMELEN];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static ARCH_WORD_32 (*crypt_out)[8];
 
@@ -151,10 +151,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	++q;
 	p = strchr(q, '*');
 	if (!p) return 0;
-	if ( ((p-q)&1)) return 0;
+	if (((p - q) & 1)) return 0;
+	if (p - q > 2 * SALT_SIZE) return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
 	if (q != p) return 0;
+	if (strlen(&p[1]) > USERNAMELEN) return 0;
 	return 1;
 }
 
@@ -163,7 +165,8 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	static char ct[128+32+1];
 	char *cp;
 
-	if (!split_fields[1][0] || strncmp(split_fields[1], WOWSIG, WOWSIGLEN))  return split_fields[1];
+	if (!split_fields[1][0] || strncmp(split_fields[1], WOWSIG, WOWSIGLEN))
+		return split_fields[1];
 	cp = strchr(split_fields[1], '*');
 	if (cp) return split_fields[1];
 	strnzcpy(ct, split_fields[1], 128);
@@ -171,11 +174,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 	*cp++ = '*';
 	strnzcpy(cp, split_fields[0], USERNAMELEN);
 	// upcase user name
-	while (*cp) {
-		if (*cp >= 'a' && *cp <= 'z')
-			*cp -= 0x20;
-		++cp;
-	}
+	enc_strupper(cp);
 	return ct;
 }
 
@@ -224,7 +223,7 @@ static void *salt(char *ciphertext)
 	memset(out.b, 0, SALT_SIZE);
 	p = &ciphertext[WOWSIGLEN+64+1];
 
-	while (*p != '*') {
+	while (atoi16[ARCH_INDEX(*p)] != 0x7f) {
 		out.b[++length] =
 		    (atoi16[ARCH_INDEX(*p)] << 4) |
 		    atoi16[ARCH_INDEX(p[1])];
