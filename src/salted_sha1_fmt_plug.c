@@ -60,6 +60,8 @@
 
 #define NSLDAP_MAGIC "{ssha}"
 #define NSLDAP_MAGIC_LENGTH 6
+#define BASE64_ALPHABET	  \
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
 struct s_salt
 {
@@ -140,16 +142,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	int len;
 
-	len = strlen(ciphertext);
+	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
+		return 0;
+	ciphertext += NSLDAP_MAGIC_LENGTH;
 
-	if (len < NSLDAP_MAGIC_LENGTH + (BINARY_SIZE+1+2)/3*4)
+	len = strspn(ciphertext, BASE64_ALPHABET);
+	if (len < (BINARY_SIZE+1+2)/3*4-2)
 		return 0;
 
-	len -= NSLDAP_MAGIC_LENGTH;
+	len = strspn(ciphertext, BASE64_ALPHABET "=");
 	if (len & 3 || len > CIPHERTEXT_LENGTH)
 		return 0;
 
-	return !strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH);
+	return 1;
 }
 
 static void set_key(char *key, int index)
