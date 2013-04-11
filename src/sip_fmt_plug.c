@@ -86,6 +86,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int res = 0;
 	if (strncmp(ciphertext, "$sip$*", 6))
 		return 0;
+	if (strlen(ciphertext) > 2048) // sizeof(saltBuf) in get_salt
+		return 0;
 	p += 6;
 	if ((q = strchr(p, '*')) == NULL)
 		goto err;
@@ -153,7 +155,10 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	p = q + 1;
 	if ((q = strchr(p, '*')) == NULL)
 		goto err;
-	if ((q - p) > MD5_LEN_HEX + 1) /* hash */
+	if (strncmp("MD5*", p, 4))
+		goto err;
+	p = q + 1;
+	if (strlen(p) != MD5_LEN_HEX) /* hash */
 		goto err;
 	return 1;
 err:
