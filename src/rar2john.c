@@ -133,14 +133,27 @@ void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
 		switch(Flags >> 6)
 		{
 		case 0:
+#if ARCH_LITTLE_ENDIAN
 			NameW[DecPos++] = EncName[EncPos++];
+#else
+			NameW[DecPos++] = EncName[EncPos++] << 8;
+#endif
 			break;
 		case 1:
+#if ARCH_LITTLE_ENDIAN
 			NameW[DecPos++] = EncName[EncPos++] + (HighByte << 8);
+#else
+			NameW[DecPos++] = (EncName[EncPos++] << 8) + HighByte;
+#endif
 			break;
 		case 2:
+#if ARCH_LITTLE_ENDIAN
 			NameW[DecPos++] = EncName[EncPos] +
 				(EncName[EncPos+1]<<8);
+#else
+			NameW[DecPos++] = (EncName[EncPos] << 8) +
+				EncName[EncPos+1];
+#endif
 			EncPos+=2;
 			break;
 		case 3:
@@ -152,14 +165,23 @@ void DecodeFileName(unsigned char *Name, unsigned char *EncName, size_t EncSize,
 				for (Length = (Length & 0x7f) + 2;
 				     Length>0 && DecPos < MaxDecSize;
 				     Length--, DecPos++)
+#if ARCH_LITTLE_ENDIAN
 					NameW[DecPos] = ((Name[DecPos] +
 					  Correction) & 0xff) + (HighByte << 8);
+#else
+					NameW[DecPos] = (((Name[DecPos] +
+					  Correction) & 0xff) << 8) + HighByte;
+#endif
 			}
 			else
 				for (Length += 2;
 				     Length>0 && DecPos < MaxDecSize;
 				     Length--,DecPos++)
+#if ARCH_LITTLE_ENDIAN
 					NameW[DecPos] = Name[DecPos];
+#else
+					NameW[DecPos] = Name[DecPos] << 8;
+#endif
 		}
 		break;
 		}
@@ -293,13 +315,20 @@ next_file_header:
 
 		file_header_head_size =
 		    file_header_block[6] << 8 | file_header_block[5];
-		memcpy(&file_header_pack_size, file_header_block + 7, 4);
-		memcpy(&file_header_unp_size, file_header_block + 11, 4);
+		file_header_pack_size = file_header_block[7] +
+			(file_header_block[8] << 8) +
+			(file_header_block[9] << 16) +
+			(file_header_block[10] << 24);
+		file_header_unp_size = file_header_block[11] +
+			(file_header_block[12] << 8) +
+			(file_header_block[13] << 16) +
+			(file_header_block[14] << 24);
 #ifdef DEBUG
 		fprintf(stderr,
-		        "! HEAD_SIZE: %d, PACK_SIZE: %zu, UNP_SIZE: %zu\n",
-		        file_header_head_size, file_header_pack_size,
-		        file_header_unp_size);
+		        "! HEAD_SIZE: %d, PACK_SIZE: %llu, UNP_SIZE: %llu\n",
+		        file_header_head_size,
+		        (unsigned long long)file_header_pack_size,
+		        (unsigned long long)file_header_unp_size);
 #endif
 		/* calculate EXT_TIME size */
 		ext_time_size = file_header_head_size - 32;
@@ -437,7 +466,9 @@ next_file_header:
 		/* fp is at ciphertext location */
 		pos = ftell(fp);
 
-		sprintf(&best[strlen(best)], "*%zu*%zu*", file_header_pack_size, file_header_unp_size);
+		sprintf(&best[strlen(best)], "*%llu*%llu*",
+		        (unsigned long long)file_header_pack_size,
+		        (unsigned long long)file_header_unp_size);
 
 		/* We duplicate file name to the GECOS field, for single mode */
 		/* If small enough, we store it inline */
