@@ -123,6 +123,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	unsigned char *c = (unsigned char*)ciphertext + 12;
 	unsigned char f = 0;
+	char *p, *data = ciphertext + 12;
 
 	if (strncmp(ciphertext, "$DIGEST-MD5$", 12) != 0)
 		return 0;
@@ -136,6 +137,44 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (f < 7 || f > 8) // last field is optional
 		return 0;
+
+	/* more checking */
+	p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > 64)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > 64)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > 64)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > DSIZE)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > MD5_HEX_SIZE + 1)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > 9)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$'); if (!p) return 0;
+	if (p - data + 1 > 9)
+		return 0;
+
+	data = p + 1; p = strchr(data, '$');
+	if (p) {
+		data = p + 1;
+		if (*data) {
+			if (strlen(data) > 8)
+				return 0;
+		}
+	}
 
 	return 1;
 }
