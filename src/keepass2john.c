@@ -300,7 +300,7 @@ static void process_database(char* encryptedDatabase)
 #ifdef KEEPASS_DEBUG
 	fprintf(stderr, "%d, %d, %d, %d\n", masterSeedLength, transformSeedLength, initializationVectorsLength, expectedStartBytesLength);
 #endif
-	if (!masterSeed || !transformSeed || !initializationVectors || expectedStartBytes) {
+	if (!masterSeed || !transformSeed || !initializationVectors || !expectedStartBytes) {
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 		goto bailout;
 	}
