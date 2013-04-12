@@ -766,6 +766,23 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		if ( (pPriv->FldMask & (MGF_FLDx_BIT<<i)) == (MGF_FLDx_BIT<<i) && !strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET-1], Fld))
 			return 0;
 	}
+	if (pPriv->pSetup->flags & MGF_HDAA_SALT) {
+		char *cp = strchr(&ciphertext[12], '$'), *cp2;
+		if (!cp) return 0;
+		cp2 = strchr(&cp[1], '$');
+		if (!cp2 || cp2-cp == 0 || strncmp(cp2,"$$U",3)) return 0;
+		cp = strstr(&cp2[2], "$$F2");
+		if (!cp) return 0;
+		cp = strstr(&cp[2], "$$F3");
+		if (!cp) return 0;
+		cp = strstr(&cp[2], "$$F4");
+		if (!cp) return 0;
+		cp += 3;
+		cp = strchr(cp, '$');
+		if (!cp) return 0;
+		cp = strchr(&cp[1], '$');
+		if (!cp) return 0;
+	}
 
 	return 1;
 }
