@@ -5,26 +5,20 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-#ifdef __linux
-#include <endian.h>
-#else
-#include <machine/endian.h>
-#endif
+#include "arch.h"
+#include "stdint.h"
 
 struct tcp_hdr {
 	uint16_t th_sport;
 	uint16_t th_dport;
 	uint32_t th_seq;
 	uint32_t th_ack;
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN
 	uint8_t th_x2:4;
 	uint8_t th_off:4;
-#elif __BYTE_ORDER == __BIG_ENDIAN
+#else
 	uint8_t th_off:4;
 	uint8_t th_x2:4;
-#else 
-#error invalid byte order
 #endif
 	uint8_t th_flags;
 	uint16_t th_win;
