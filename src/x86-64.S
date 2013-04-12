@@ -1611,6 +1611,12 @@ CPU_detect_fail:
  */
 /* ...converted to use %rip-relative addressing, still public domain */
 
+/* the array output8x which is used in the asm in only available
+ * in NT_X86_64 mode
+ */
+
+#ifdef NT_X86_64
+
 /*
  * FIXME: this depends on the assembler being able to multiply, which won't
  * work on Solaris (unless the use of GNU assembler is forced).
@@ -1943,6 +1949,8 @@ nt_crypt_all_8859_1_x86_64:
 	NT_CRYPT_BODY_8859_1(3)
 
 	ret
+
+#endif /* NT_X86_64 */
 
 #if defined(__ELF__) && defined(__linux__)
 .section .note.GNU-stack,"",@progbits
