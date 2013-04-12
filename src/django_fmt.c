@@ -52,7 +52,7 @@ static int omp_t = 1;
 #define BENCHMARK_COMMENT	" (x10000)"
 #define BENCHMARK_LENGTH	-1
 #define PLAINTEXT_LENGTH	64
-#define HASH_LENGTH		44
+#define HASH_LENGTH		58
 #define BINARY_SIZE		32
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define MIN_KEYS_PER_CRYPT	1
@@ -90,32 +90,30 @@ static void init(struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy, *keeptr, *p;
-	if (strncmp(ciphertext, "$django$*", 9) != 0)
+	char *p = ciphertext, *q = ciphertext;
+	if (strncmp(ciphertext, "$django$*", 9))
 		return 0;
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;;
-	ctcopy += 9;
-	if ((p = strtok(ctcopy, "*")) == NULL)	/* type */
-		goto err;
-	/* type must be 1 */
-	if (atoi(p) != 1)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* algorithm */
-		goto err;
-	if (strncmp(p, "pbkdf2_sha256", 13) != 0)
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* iterations */
-		goto err;
-	if ((p = strtok(NULL, "$")) == NULL)	/* hash */
-		goto err;
-	if (strlen(p) > HASH_LENGTH)
-		goto err;
-	MEM_FREE(keeptr);
-	return 1;
+	q += 9;
 
+	/* type must be 1 */
+	if (*q != '1')
+		goto err;
+	q = q + 1;
+	if (*q != '*')
+		goto err;
+	q = q + 1; /* now at algorithm */
+	if (strncmp(q, "pbkdf2_sha256", 13) != 0)
+		goto err;
+	if ((q = strchr(q, '$')) == NULL) /* at iterations */
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '$')) == NULL) /* hash */
+		goto err;
+	if (strlen(q) > HASH_LENGTH + 1)
+		goto err;
+
+	return 1;
 err:
-	MEM_FREE(keeptr);
 	return 0;
 }
 
