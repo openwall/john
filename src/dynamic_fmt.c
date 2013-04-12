@@ -9673,6 +9673,18 @@ static char *FixupIfNeeded(char *ciphertext, private_subformat_data *pPriv)
 	if (m_allow_rawhash_fixup && strncmp(ciphertext, "$dynamic_", 9))
 	{
 		static char __ciphertext[512+24];
+		if (pPriv->pSetup->flags & MGF_SALTED) {
+			if (!strchr(ciphertext, '$'))
+				return ciphertext;
+		}
+		if (pPriv->pSetup->flags & MGF_SALTED2) {
+			if (!strstr(ciphertext, "$$2"))
+				return ciphertext;
+		}
+		if (pPriv->pSetup->flags & MGF_HDAA_SALT) {
+			if (!strstr(ciphertext, "$$F2")||!strstr(ciphertext, "$$F3"))
+				return ciphertext;
+		}
 		strcpy(__ciphertext, pPriv->dynamic_WHICH_TYPE_SIG);
 		strnzcpy(&__ciphertext[strlen(__ciphertext)], ciphertext, 512);
 		return __ciphertext;
