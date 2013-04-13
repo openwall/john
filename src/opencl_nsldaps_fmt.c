@@ -10,14 +10,6 @@
 
 #include <string.h>
 
-#ifdef BSD
-	 // OSX
-	 #include <architecture/byte_order.h>
-#else
-	 #include <endian.h>
-#endif
-
-
 #include "path.h"
 #include "misc.h"
 #include "params.h"
