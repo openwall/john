@@ -15,7 +15,7 @@
 //#define EXTENDED_TESTS
 
 #include <string.h>
-#include <stdint.h>
+#include "stdint.h"
 #include <emmintrin.h>
 
 #if defined __XOP__
