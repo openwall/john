@@ -14,7 +14,7 @@ import os
 def process_folder(folder):
     filename = os.path.join(folder, ".encfs6.xml")
     if not os.path.exists(filename):
-        print >> sys.stderr, "%s doesn't have .encfs6.xml!" % folder
+        sys.stderr.write("%s doesn't have .encfs6.xml!\n" % folder)
         return 1
     mf = open(filename)
     tree = ElementTree()
@@ -32,12 +32,12 @@ def process_folder(folder):
         if element.tag == "keySize":
             keySize = element.text
             if not keySize.isdigit():
-                print >> sys.stderr, "%s contains bad keySize" % filename
+                sys.stderr.write("%s contains bad keySize\n" % filename)
                 return
         if element.tag == "kdfIterations":
             iterations = element.text
             if not iterations.isdigit():
-                print >> sys.stderr, "%s contains bad iterations" % filename
+                sys.stderr.write("%s contains bad iterations\n" % filename)
                 return
         if element.tag == "name" and not cipher:
             cipher = element.text
@@ -50,19 +50,25 @@ def process_folder(folder):
         if element.tag == "encodedKeyData":
             data = element.text
 
-    if not cipher or not keySize or not iterations or not salt or not saltLen or not dataLen or not data:
-        print >> sys.stderr, "%s contains bad data, please report this if target contains valid EncFS data" % filename
+    if not cipher or not keySize or not iterations or not salt or \
+       not saltLen or not dataLen or not data:
+        sys.stderr.write("%s contains bad data, please report this " \
+            "if target contains valid EncFS data" % filename)
         return
 
     if cipher.upper().find("AES") > -1:
         cipher = 0
-    print "%s:$encfs$%s*%s*%s*%s*%s*%s*%s" % (folder, keySize, iterations, cipher,
-            saltLen, binascii.hexlify(base64.decodestring(salt)), dataLen,
-            binascii.hexlify(base64.decodestring(data)))
+    salt = binascii.hexlify(base64.decodestring(salt.encode()))
+    data = binascii.hexlify(base64.decodestring(data.encode()))
+    sys.stdout.write("%s:$encfs$%s*%s*%s*%s*%s*%s*%s\n" % \
+            (folder, keySize, iterations, cipher, saltLen,
+            salt.decode("ascii"),
+            dataLen,
+            data.decode("ascii")))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s <EncFS folder>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <EncFS folder>\n" % sys.argv[0])
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):

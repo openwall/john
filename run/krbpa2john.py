@@ -8,7 +8,7 @@ import sys
 try:
     from lxml import etree
 except ImportError:
-    print >> sys.stderr, "This program needs lxml libraries to run!"
+    sys.stderr.write("This program needs lxml libraries to run!\n")
     sys.exit(1)
 import binascii
 
@@ -63,14 +63,16 @@ def process_file(f):
             if state == "AS-REQ2":
                 if user == "":
                     user = binascii.unhexlify(salt)
-                print "%s:$krb5pa$%s$%s$%s$%s$%s" % (user, etype, user, realm, binascii.unhexlify(salt), encrypted_timestamp)
+                sys.stdout.write("%s:$krb5pa$%s$%s$%s$%s$%s\n" % (user,
+                    etype, user, realm, binascii.unhexlify(salt),
+                    encrypted_timestamp))
                 # reset state
                 state = None
                 got_etype = False
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "Usage: %s <pdml file(s)>" % sys.argv[0]
+        sys.stdout.write("Usage: %s <pdml file(s)>\n" % sys.argv[0])
         sys.exit(1)
 
     for i in range(1, len(sys.argv)):
