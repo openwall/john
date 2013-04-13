@@ -7,7 +7,8 @@ import sys
 
 
 def usage():
-    print >>sys.stderr, "Usage: %s <psk-parameters-file> [norteluser]" % sys.argv[0]
+    sys.stderr.write("Usage: %s <psk-parameters-file> [norteluser]\n" % \
+                     sys.argv[0])
     sys.exit(-1)
 
 if __name__ == "__main__":
@@ -18,8 +19,8 @@ if __name__ == "__main__":
         for line in f.readlines():
             line = line.rstrip().replace(':', '*')
             if len(sys.argv) == 2:
-                print "$ike$*0*%s" % (line)
+                sys.stdout.write("$ike$*0*%s\n" % (line))
             elif len(sys.argv) == 3:
-                print "$ike$*1*%s*%s" % (sys.argv[2], line)
+                sys.stdout.write("$ike$*1*%s*%s\n" % (sys.argv[2], line))
             else:
                 usage()
