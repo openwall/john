@@ -112,7 +112,7 @@ static int netlm_valid(char *ciphertext, struct fmt_main *self)
 {
   char *pos;
 
-  if (strncmp(ciphertext, "$NETLM$", 5)!=0) return 0;
+  if (strncmp(ciphertext, "$NETLM$", 7)!=0) return 0;
   if (ciphertext[23] != '$') return 0;
 
   if (strncmp(&ciphertext[24 + 2 * SALT_SIZE],
