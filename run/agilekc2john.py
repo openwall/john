@@ -3,6 +3,16 @@
 # Modfied by Dhiru Kholia <dhiru at openwall.com> in July 2012
 # for JtR project.
 #
+# Code borrowed from https://github.com/Roguelazer/onepasswordpy
+#
+# Copyright (c) 2013, James Brown
+#
+# Permission to use, copy, modify, and/or distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# Code borrowed from https://bitbucket.org/gwik/agilekeychain
+#
 # Copyright (c) 2009 Antonin Amand <antonin.amand@gmail.com>
 #
 # Permission to use, copy, modify, and distribute this software and its
@@ -39,6 +49,8 @@
 
 import os
 import sys
+import struct
+import base64
 
 try:
     import json
@@ -48,6 +60,20 @@ except ImportError:
 
 from base64 import b64decode
 import binascii
+
+OPDATA1_MINIMUM_SIZE = 80
+DEFAULT_PBKDF_ITERATIONS = 1000
+MINIMUM_PBKDF_ITERATIONS = 1000
+
+A_AES_SIZE = 128
+C_AES_SIZE = 256
+KEY_SIZE = {
+    128: 16,
+    192: 24,
+    256: 32,
+}
+
+INITIAL_KEY_OFFSET = 12
 
 
 class Key(object):
@@ -81,25 +107,67 @@ class Key(object):
     def __is_salted(self, data):
         return self.SALTED_PREFIX == data[:len(self.SALTED_PREFIX)]
 
+def opdata1_unpack(data):
+    HEADER_LENGTH = 8
+    TOTAL_HEADER_LENGTH = 32
+    HMAC_LENGTH = 32
+    if data[:HEADER_LENGTH] != "opdata01":
+        data = base64.b64decode(data)
+    if data[:HEADER_LENGTH] != "opdata01":
+        raise TypeError("expected opdata1 format message")
+    plaintext_length, iv = struct.unpack("<Q16s",
+                data[HEADER_LENGTH:TOTAL_HEADER_LENGTH])
+    cryptext = data[TOTAL_HEADER_LENGTH:-HMAC_LENGTH]
+    expected_hmac = data[-HMAC_LENGTH:]
+    hmac_d_data = data[:-HMAC_LENGTH]
+    return plaintext_length, iv, cryptext, expected_hmac, hmac_d_data
 
-# Todo remove plist logic its not generic
-class Keychain(object):
-    """Manage the enc/dec key
-    """
 
-    def __init__(self):
+class CloudKeychain(object):
+    def __init__(self, path, name='default'):
+        self.path = path
         self.keys = list()
+        self.name = name
+        self.entries = None
+        self.processed = False
+        self.__open_keys_file()
 
-    def add_key(self, key):
-        self.keys.append(key)
+    def __repr__(self):
+        return '<%s.CloudKeychain path="%s">' % (self.__module__, self.path)
+
+    def __open_keys_file(self):
+        try:
+            keys_file_path = \
+                os.path.join(self.path, 'default', 'profile.js')
+            if os.path.exists(keys_file_path):
+                self.processed = True
+                # print >> sys.stderr, "%s is Cloud Keychain!\n" % os.path.basename(self.path)
+            else:
+                return
+            f = open(keys_file_path, 'r')
+            ds = f.read()[INITIAL_KEY_OFFSET:-1]
+            data = json.loads(ds)
+
+            sys.stdout.write("$cloudkeychain$%s$%s$%s$%s$%s" % (len(base64.b64decode(data['salt'])),
+                binascii.hexlify(base64.b64decode(data['salt'])), data["iterations"],
+                len(base64.b64decode(data['masterKey'])),
+                binascii.hexlify(base64.b64decode(data['masterKey']))))
+            plaintext_length, iv, cryptext, expected_hmac, hmac_d_data = opdata1_unpack(data['masterKey'])
+            sys.stdout.write("$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" % (plaintext_length, len(iv), binascii.hexlify(iv),
+                        len(cryptext), binascii.hexlify(cryptext), len(expected_hmac), binascii.hexlify(expected_hmac),
+                            len(hmac_d_data), binascii.hexlify(hmac_d_data)))
+        except (IOError, KeyError, ValueError, TypeError) as e:
+            import traceback
+            traceback.print_exc()
+            print >> sys.stderr, 'error while opening the keychain,', str(e)
 
 
-class AgileKeychain(Keychain):
-
+class AgileKeychain(object):
     def __init__(self, path, name='default'):
         self.path = path
         self.name = name
         self.entries = None
+        self.keys = list()
         ret = self.__open_keys_file()
         if ret:
             self.john_output()
@@ -116,21 +184,28 @@ class AgileKeychain(Keychain):
                 os.path.join(self.path, 'data', self.name, 'encryptionKeys.js')
             keys_file = open(keys_file_path, 'r')
             try:
-                # seems that their is some \0 and the of base64 blobs
-                # that makes expat parser fail
-                # TODO: add some expat exception handling
                 keys = json.loads(keys_file.read())
                 self.keys = []
                 for kd in keys['list']:
-                    key = Key(kd['identifier'],
-                              kd['level'],
-                              b64decode(kd['data'][:-1]),
-                              b64decode(kd['validation'][:-1]),
-                              kd.get('iterations', Key.ITERATIONS))
-                    self.keys.append(key)
+                    try:
+                        key = Key(kd['identifier'],
+                                kd['level'],
+                                b64decode(kd['data'][:-1]),
+                                b64decode(kd['validation'][:-1]),
+                                kd.get('iterations', Key.ITERATIONS))
+                        self.keys.append(key)
+                    except TypeError:
+                        key = Key(kd['identifier'],
+                                kd['level'],
+                                b64decode(kd['data']),
+                                b64decode(kd['validation']),
+                                kd.get('iterations', Key.ITERATIONS))
+                        self.keys.append(key)
             finally:
                 keys_file.close()
         except (IOError, KeyError, ValueError, TypeError) as e:
+            import traceback
+            traceback.print_exc()
             print >> sys.stderr, 'error while opening the keychain,', str(e)
             return False
 
@@ -147,12 +222,15 @@ class AgileKeychain(Keychain):
 
 
 def process_file(keychain):
-    keychain = AgileKeychain(keychain)
+
+    keychainobj = CloudKeychain(keychain)
+    if not keychainobj.processed:
+        keychain = AgileKeychain(keychain)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >>sys.stderr, "Usage: %s <1Password Agile Keychain(s)>" % sys.argv[0]
+        print >> sys.stderr, "Usage: %s <1Password Agile Keychain(s)>" % sys.argv[0]
         sys.exit(-1)
 
-    for i in range(1, len(sys.argv)):
-        process_file(sys.argv[i])
+    for j in range(1, len(sys.argv)):
+        process_file(sys.argv[j])
