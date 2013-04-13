@@ -13,6 +13,10 @@
 #elif !defined(_MD4_H)
 #define _MD4_H
 
+#define MD4_Init john_MD4_Init
+#define MD4_Update john_MD4_Update
+#define MD4_Final john_MD4_Final
+
 /* Any 32-bit or wider unsigned integer data type will do */
 typedef unsigned int MD4_u32plus;
 

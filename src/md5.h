@@ -22,6 +22,10 @@ typedef unsigned int MD5_u32plus;
 #elif !defined(_MD5_H)
 #define _MD5_H
 
+#define MD5_Init john_MD5_Init
+#define MD5_Update john_MD5_Update
+#define MD5_Final john_MD5_Final
+
 typedef struct {
 	MD5_u32plus lo, hi;
 	MD5_u32plus a, b, c, d;
