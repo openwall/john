@@ -36,9 +36,12 @@
  */
 
 #ifdef HAVE_NSS
-#include "mozilla_des.h"
+
 #include <stddef.h>
 #include <stdio.h>
+
+#include "arch.h"
+#include "mozilla_des.h"
 
 //#define USE_INDEXING 1
 
@@ -438,7 +441,7 @@ void DES_MakeSchedule( HALF * ks, const BYTE * key,   DESDirection direction )
     if (((ptrdiff_t)key & 0x03) == 0) {
 	left  = HALFPTR(key)[0];
 	right = HALFPTR(key)[1];
-#if defined(IS_LITTLE_ENDIAN)
+#if ARCH_LITTLE_ENDIAN
 	BYTESWAP(left, temp);
 	BYTESWAP(right, temp);
 #endif
@@ -656,7 +659,7 @@ void DES_Do1Block(HALF * ks, const BYTE * inbuf, BYTE * outbuf)
     HALFPTR(outbuf)[1]  = right;
 #else
     if (((ptrdiff_t)inbuf & 0x03) == 0) {
-#if defined(IS_LITTLE_ENDIAN)
+#if ARCH_LITTLE_ENDIAN
 	BYTESWAP(left, temp);
 	BYTESWAP(right, temp);
 #endif

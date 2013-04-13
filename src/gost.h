@@ -1,11 +1,11 @@
 /* gost.h */
 #ifndef GOST_H
 #define GOST_H
-#include "stdint.h"
+
 #include <stdlib.h>
-#ifdef __GLIBC__
-# include <endian.h>
-#endif
+
+#include "arch.h"
+#include "stdint.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,30 +37,6 @@ extern "C" {
 # define USE_GCC_ASM_IA32
 #elif defined(__GNUC__) && defined(CPU_X64) && !defined(RHASH_NO_ASM)
 # define USE_GCC_ASM_X64
-#endif
-
-/* detect CPU endianness */
-#if (defined(__BYTE_ORDER) && defined(__LITTLE_ENDIAN) && \
-		__BYTE_ORDER == __LITTLE_ENDIAN) || \
-	defined(CPU_IA32) || defined(CPU_X64) || \
-	defined(__ia64) || defined(__ia64__) || defined(__alpha__) || defined(_M_ALPHA) || \
-	defined(vax) || defined(MIPSEL) || defined(_ARM_)
-# define CPU_LITTLE_ENDIAN
-# define IS_BIG_ENDIAN 0
-# define IS_LITTLE_ENDIAN 1
-#elif (defined(__BYTE_ORDER) && defined(__BIG_ENDIAN) && \
-		__BYTE_ORDER == __BIG_ENDIAN) || \
-	defined(__sparc) || defined(__sparc__) || defined(sparc) || \
-	defined(_ARCH_PPC) || defined(_ARCH_PPC64) || defined(_POWER) || \
-	defined(__POWERPC__) || defined(POWERPC) || defined(__powerpc) || \
-	defined(__powerpc__) || defined(__powerpc64__) || defined(__ppc__) || \
-	defined(__hpux)  || defined(_MIPSEB) || defined(mc68000) || \
-	defined(__s390__) || defined(__s390x__) || defined(sel)
-# define CPU_BIG_ENDIAN
-# define IS_BIG_ENDIAN 1
-# define IS_LITTLE_ENDIAN 0
-#else
-# error "Can't detect CPU architechture"
 #endif
 
 #define IS_ALIGNED_32(p) (0 == (3 & ((const char*)(p) - (const char*)0)))
@@ -137,7 +113,7 @@ static inline uint64_t _JtR_Swap_64(uint64_t x) {
 #error "bswap_64 unsupported"
 #endif
 
-#ifdef CPU_BIG_ENDIAN
+#if !ARCH_LITTLE_ENDIAN
 # define be2me_32(x) (x)
 # define be2me_64(x) (x)
 # define le2me_32(x) bswap_32(x)
@@ -147,7 +123,7 @@ static inline uint64_t _JtR_Swap_64(uint64_t x) {
 # define le32_copy(to, index, from, length) rhash_u32_swap_copy((to), (index), (from), (length))
 # define be64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
 # define le64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
-#else /* CPU_BIG_ENDIAN */
+#else /* !ARCH_LITTLE_ENDIAN */
 # define be2me_32(x) bswap_32(x)
 # define be2me_64(x) bswap_64(x)
 # define le2me_32(x) (x)
@@ -157,7 +133,7 @@ static inline uint64_t _JtR_Swap_64(uint64_t x) {
 # define le32_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
 # define be64_copy(to, index, from, length) rhash_u64_swap_copy((to), (index), (from), (length))
 # define le64_copy(to, index, from, length) memcpy((to) + (index), (from), (length))
-#endif /* CPU_BIG_ENDIAN */
+#endif /* !ARCH_LITTLE_ENDIAN */
 
 /* ROTL/ROTR macros rotate a 32/64-bit word left/right by n bits */
 #define ROTL32(dword, n) ((dword) << (n) ^ ((dword) >> (32 - (n))))
