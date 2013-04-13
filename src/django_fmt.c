@@ -95,6 +95,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	q += 9;
 
+	if (strlen(ciphertext) > 100) /* CIPHERTEXT_LENGTH */
+		return 0;
+
 	/* type must be 1 */
 	if (*q != '1')
 		goto err;
@@ -107,9 +110,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((q = strchr(q, '$')) == NULL) /* at iterations */
 		goto err;
 	p = q + 1;
-	if ((q = strchr(p, '$')) == NULL) /* hash */
+	if ((q = strchr(p, '$')) == NULL) /* full hash */
 		goto err;
-	if (strlen(q) > HASH_LENGTH + 1)
+	if (strlen(q) != HASH_LENGTH)
+		goto err;
+	if (q[HASH_LENGTH - 1] != '=' )
+		goto err;
+	p = q + 1;
+	if ((q = strchr(p, '$')) == NULL) /* hash part */
+		goto err;
+	if((q - p) > 32) /* SALT_SIZE */
+		goto err;
+	p = strrchr(ciphertext, '$') + 1;
+	if (strlen(p) != 44) /* actual HASH_SIZE */
 		goto err;
 
 	return 1;
@@ -119,23 +132,23 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
-	char Buf[120], *ctcopy=Buf;
-	char *p, *t;
+	char *p;
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy;
 	static struct custom_salt cs;
 	memset(&cs, 0, sizeof(cs));
-	strncpy(Buf, ciphertext, 119);
-	Buf[119] = 0;
 	ctcopy += 9;	/* skip over "$django$*" */
 	p = strtok(ctcopy, "*");
 	cs.type = atoi(p);
 	p = strtok(NULL, "*");
 	/* break up 'p' */
 	strtok(p, "$");
-	t = strtok(NULL, "$");
-	cs.iterations = atoi(t);
-	t = strtok(NULL, "$");
-	strcpy((char*)cs.salt, t);
+	p = strtok(NULL, "$");
+	cs.iterations = atoi(p);
+	p = strtok(NULL, "$");
+	strcpy((char*)cs.salt, p);
 
+	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
 
