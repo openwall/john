@@ -269,7 +269,7 @@ static void rhash_gost_block_compress(gost_ctx *ctx, const unsigned* block)
  */
 static void rhash_gost_compute_sum_and_hash(gost_ctx * ctx, const unsigned* block)
 {
-#ifdef CPU_BIG_ENDIAN
+#if !ARCH_LITTLE_ENDIAN
 	unsigned block_le[8]; /* tmp buffer for little endian number */
 # define LOAD_BLOCK_LE(i) (block_le[i] = le2me_32(block[i]))
 #else
