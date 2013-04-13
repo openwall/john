@@ -16,11 +16,11 @@ def process_file(filename):
             apexhash = apexhash.rstrip().lstrip()
             sgid = sgid.rstrip().lstrip()
 
-            print "$dynamic_1$%s$%s" % (apexhash, sgid + username)
+            sys.stdout.write("$dynamic_1$%s$%s\n" % (apexhash, sgid + username))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >>sys.stderr, "Usage: %s <apex-hashes.txt file(s)>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <apex-hashes.txt file(s)>\n" % sys.argv[0])
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
