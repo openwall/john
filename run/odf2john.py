@@ -19,21 +19,21 @@ def process_file(filename):
     try:
         zf = zipfile.ZipFile(filename)
     except zipfile.BadZipfile:
-        print >> sys.stderr, "%s is not an OpenOffice file!" % filename
+        sys.stderr.write("%s is not an OpenOffice file!\n" % filename)
         return 2
     try:
         mf = zf.open("META-INF/manifest.xml")
     except KeyError:
-        print >> sys.stderr, "%s is not an OpenOffice file!" % filename
+        sys.stderr.write("%s is not an OpenOffice file!\n" % filename)
         return 3
     tree = ElementTree()
     tree.parse(mf)
     r = tree.getroot()
 
     # getiterator() is deprecated but 2.6 does not have iter()
-    try :
+    try:
         elements = list(r.iter())
-    except :
+    except:
         elements = list(r.getiterator())
 
     is_encrypted = False
@@ -68,17 +68,19 @@ def process_file(filename):
                     key_size = data
 
     if not is_encrypted:
-        print >> sys.stderr, "%s is not an encrypted OpenOffice file!" % filename
+        sys.stderr.write("%s is not an encrypted OpenOffice file!\n" % filename)
         return 4
 
-    checksum = binascii.hexlify(base64.decodestring(checksum))
-    iv = binascii.hexlify(base64.decodestring(iv))
-    salt = binascii.hexlify(base64.decodestring(salt))
+    checksum = base64.decodestring(checksum.encode())
+    checksum = binascii.hexlify(checksum).decode("ascii")
+    iv = binascii.hexlify(base64.decodestring(iv.encode())).decode("ascii")
+    salt = binascii.hexlify(base64.decodestring(salt.encode())).decode("ascii")
 
     try:
         content = zf.open("content.xml").read(1024)
     except KeyError:
-        print >> sys.stderr, "%s is not an encrypted OpenOffice file, content.xml missing!" % filename
+        sys.stderr.write("%s is not an encrypted OpenOffice file, " \
+                "content.xml missing!\n" % filename)
         return 5
 
     if algorithm_name.find("Blowfish CFB") > -1:
@@ -86,7 +88,7 @@ def process_file(filename):
     elif algorithm_name.find("aes256-cbc") > -1:
         algorithm_type = 1
     else:
-        print >> sys.stderr, "%s uses un-supported encryption!" % filename
+        sys.stderr.write("%s uses un-supported encryption!\n" % filename)
         return 6
 
     if checksum_type.upper().find("SHA1") > -1:
@@ -94,17 +96,20 @@ def process_file(filename):
     elif checksum_type.upper().find("SHA256") > -1:
         checksum_type = 1
     else:
-        print >> sys.stderr, "%s uses un-supported checksum algorithm!" % filename
+        sys.stderr.write("%s uses un-supported checksum algorithm!\n" % \
+                filename)
         return 7
 
-    print "%s:$odf$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%s" % (filename, algorithm_type,
-            checksum_type, iteration_count, key_size, checksum, len(iv) / 2,
-            iv, len(salt) / 2, salt, 0, binascii.hexlify(content))
+    sys.stdout.write("%s:$odf$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%s\n" % \
+            (filename, algorithm_type, checksum_type, iteration_count,
+            key_size, checksum, len(iv) / 2,
+            iv, len(salt) / 2, salt, 0,
+            binascii.hexlify(content).decode("ascii")))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s <ODF files>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <ODF files>\n" % sys.argv[0])
         sys.exit(-1)
 
-    for i in range(1, len(sys.argv)):
-        process_file(sys.argv[i])
+    for k in range(1, len(sys.argv)):
+        process_file(sys.argv[k])
