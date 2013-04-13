@@ -41,7 +41,11 @@ try:
     import json
     assert json
 except ImportError:
-    import simplejson as json
+    try:
+        import simplejson as json
+    except ImportError:
+        sys.stderr.write("Please install json / simplejson module which is currently not installed.\n")
+        sys.exit(-1)
 
 from base64 import b64decode
 import binascii
@@ -60,12 +64,18 @@ KEY_SIZE = {
 
 INITIAL_KEY_OFFSET = 12
 
+PY3 = sys.version_info[0] == 3
+PMV = sys.version_info[1] >= 6
+
 
 class Key(object):
     """ A Key in the keyring
     """
 
-    SALTED_PREFIX = b'Salted__'
+    if PY3 or PMV:
+        exec("SALTED_PREFIX=b'Salted__'")
+    else:
+        SALTED_PREFIX = 'Salted__'
     ZERO_IV = "\0" * 16
     ITERATIONS = 1000
     BLOCK_SIZE = 16
@@ -98,7 +108,12 @@ def opdata1_unpack(data):
     HMAC_LENGTH = 32
     if data[:HEADER_LENGTH] != "opdata01":
         data = base64.b64decode(data)
-    if data[:HEADER_LENGTH] != b"opdata01":
+    if PY3 or PMV:
+        exec('MAGIC = b"opdata01"')
+    else:
+        MAGIC = "opdata01"
+
+    if data[:HEADER_LENGTH] != MAGIC:
         raise TypeError("expected opdata1 format message")
     plaintext_length, iv = struct.unpack("<Q16s",
                 data[HEADER_LENGTH:TOTAL_HEADER_LENGTH])
@@ -152,7 +167,8 @@ class CloudKeychain(object):
                 len(hmac_d_data),
                 binascii.hexlify(hmac_d_data).decode("ascii")))
 
-        except (IOError, KeyError, ValueError, TypeError) as e:
+        except (IOError, KeyError, ValueError, TypeError):
+            e = sys.exc_info()[1]
             sys.stderr.write('Error while opening the keychain, %s\n' % str(e))
 
 
@@ -197,7 +213,8 @@ class AgileKeychain(object):
                         self.keys.append(key)
             finally:
                 keys_file.close()
-        except (IOError, KeyError, ValueError, TypeError) as e:
+        except (IOError, KeyError, ValueError, TypeError):
+            e = sys.exc_info()[1]
             sys.stderr.write('Error while opening the keychain, %s\n' % str(e))
             return False
 
