@@ -25,12 +25,16 @@
 import traceback
 import binascii
 import base64
-import StringIO
 import sys
 from hashlib import md5 as MD5
 
 limited = False
 
+PY3 = sys.version_info[0] == 3
+if PY3:
+    from io import StringIO
+else:
+    from StringIO import StringIO
 
 class Object(object):
     pass
@@ -38,7 +42,6 @@ class Object(object):
 try:
     from Crypto.Cipher import DES3, AES
 except ImportError:
-    # print >> sys.stderr, "PyCrypto is missing in your Python installation, %s is operating is limited features mode!" % sys.argv[0]
     AES = Object()
     AES.MODE_CBC = ""
     DES3 = Object()
@@ -121,11 +124,6 @@ class BER(object):
             out.append(x)
         return out
     decode_sequence = staticmethod(decode_sequence)
-
-"""
-Exceptions defined by ssh.
-"""
-
 
 class SSHException (Exception):
     """
@@ -220,32 +218,13 @@ class BadHostKeyException (SSHException):
         self.expected_key = expected_key
 
 
-"""
-Useful functions used by the rest of ssh.
-"""
-
-
 from binascii import hexlify, unhexlify
-import sys
 import struct
 
-
-# Change by RogerB - python < 2.3 doesn't have enumerate so we implement it
-if sys.version_info < (2, 3):
-    class enumerate:
-        def __init__(self, sequence):
-            self.sequence = sequence
-
-        def __iter__(self):
-            count = 0
-            for item in self.sequence:
-                yield (count, item)
-                count += 1
-
-
 def inflate_long(s, always_positive=False):
-    "turns a normalized byte string into a long-int (adapted from Crypto.Util.number)"
-    out = 0L
+    """turns a normalized byte string into a long-int
+    (adapted from Crypto.Util.number)"""
+    out = 0
     negative = 0
     if not always_positive and (len(s) > 0) and (ord(s[0]) >= 0x80):
         negative = 1
@@ -257,7 +236,7 @@ def inflate_long(s, always_positive=False):
     for i in range(0, len(s), 4):
         out = (out << 32) + struct.unpack('>I', s[i:i + 4])[0]
     if negative:
-        out -= (1L << (8 * len(s)))
+        out -= (1 << (8 * len(s)))
     return out
 
 
@@ -267,7 +246,7 @@ def deflate_long(n, add_sign_padding=True):
     s = ''
     n = long(n)
     while (n != 0) and (n != -1):
-        s = struct.pack('>I', n & 0xffffffffL) + s
+        s = struct.pack('>I', n & 0xffffffff) + s
         n = n >> 32
     # strip off leading zeros, FFs
     for i in enumerate(s):
@@ -625,7 +604,7 @@ class PKey (object):
         while (start < len(lines)) and (lines[start].strip() != '-----BEGIN ' + tag + ' PRIVATE KEY-----'):
             start += 1
         if start >= len(lines):
-            print >> sys.stderr, "%s is not a valid private key file" % f.name
+            sys.stdout.write("%s is not a valid private key file\n" % f.name)
             return None
         # parse any headers first
         headers = {}
@@ -642,13 +621,14 @@ class PKey (object):
             end += 1
         # if we trudged to the end of the file, just try to cope.
         try:
-            data = base64.decodestring(''.join(lines[start:end]))
-        except base64.binascii.Error, e:
+            data = ''.join(lines[start:end]).encode()
+            data = base64.decodestring(data)
+        except base64.binascii.Error as e:
             raise SSHException('base64 decoding error: ' + str(e))
 
         if 'proc-type' not in headers:
             # unencryped: done
-            print >> sys.stderr, "%s has no password!" % f.name
+            sys.stderr.write("%s has no password!\n" % f.name)
             return None
         # encrypted keyfile: will need a password
         if headers['proc-type'] != '4,ENCRYPTED':
@@ -666,12 +646,15 @@ class PKey (object):
         keysize = self._CIPHER_TABLE[encryption_type]['keysize']
         mode = self._CIPHER_TABLE[encryption_type]['mode']
         salt = unhexlify(saltstr)
+        data = binascii.hexlify(data).decode("ascii")
         if keysize == 24:
-            self.hash = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 0, len(saltstr) / 2, saltstr, len(binascii.hexlify(data)) / 2, binascii.hexlify(data))
+            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 0,
+                len(saltstr) // 2, saltstr, len(data) / 2, data)
         elif keysize == 16:
-            self.hash = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(saltstr) / 2, saltstr, len(binascii.hexlify(data)) / 2, binascii.hexlify(data))
+            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(saltstr) // 2,
+                saltstr, len(data), data)
         else:
-            print >> sys.stderr, "%s uses unsupported cipher, please file a bug! " % f.name
+            sys.stderr.out("%s uses unsupported cipher, please file a bug!\n" % f.name)
             return None
 
         if not limited:
@@ -684,7 +667,7 @@ class PKey (object):
                 return ddata
             except ValueError:  # incorrect password
                 return data
-        return self.hash  # dummy value
+        return self.hashline  # dummy value
 
 
 def chunks(l, n):
@@ -730,31 +713,31 @@ class RSADSSKey (PKey):
         if not data:
             return
         if limited:
-            print self.hash
+            sys.stdout.write("%s\n" % self.hashline)
             return
         try:
             if self.type == 0:
                 self._decode_key(data)
             else:
                 self._decode_dss_key(data)
-            print >> sys.stderr, "%s has no password!" % filename
+            sys.stderr.write("%s has no password!\n" % filename)
         except SSHException:
-            print self.hash
+            sys.stdout.write("%s\n" % self.hashline)
 
     def _from_private_key(self, file_obj, password):
         """used for converting older format hashes"""
         data = self._read_private_key('RSA', file_obj, password)
         if limited:
-            print self.hash
+            sys.stdout.write("%s\n" % self.hashline)
             return
         try:
             if self.type == 0:
                 self._decode_key(data)
             else:
                 self._decode_dss_key(data)
-            print >> sys.stderr, "%s has no password!" % file_obj.name
+            sys.stderr.write("%s has no password!\n" % file_obj.name)
         except SSHException:
-            print self.hash
+            sys.stdout.write("%s\n" % self.hashline)
 
     def _decode_key(self, data):
         # private key file contains:
@@ -778,9 +761,10 @@ class RSADSSKey (PKey):
         # DSAPrivateKey = { version = 0, p, q, g, y, x }
         try:
             keylist = BER(data).decode()
-        except BERException, x:
+        except BERException as x:
             raise SSHException('Unable to parse key file: ' + str(x))
-        if (type(keylist) is not list) or (len(keylist) < 6) or (keylist[0] != 0):
+        if (type(keylist) is not list) or (len(keylist) < 6) or \
+                (keylist[0] != 0):
             raise SSHException('not a valid DSA private key file (bad ber encoding)')
         self.p = keylist[1]
         self.q = keylist[2]
@@ -839,7 +823,7 @@ class PKCS7Encoder(object):
         Pad an input string according to PKCS#7
         '''
         l = len(text)
-        output = StringIO.StringIO()
+        output = StringIO()
         val = self.k - (l % self.k)
         for _ in xrange(val):
             output.write('%02x' % val)
@@ -849,7 +833,8 @@ class PKCS7Encoder(object):
 if __name__ == "__main__":
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s < RSA/DSA private key files >" % sys.argv[0]
+        sys.stdout.write("Usage: %s < RSA/DSA private key files >\n" % \
+                sys.argv[0])
 
-    for file in sys.argv[1:]:
-        key = RSADSSKey.from_private_key_file(file, '')
+    for filename in sys.argv[1:]:
+        key = RSADSSKey.from_private_key_file(filename, '')
