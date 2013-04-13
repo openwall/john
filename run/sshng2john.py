@@ -26,7 +26,10 @@ import traceback
 import binascii
 import base64
 import sys
-from hashlib import md5 as MD5
+try:
+    from hashlib import md5 as MD5
+except ImportError:
+    from md5 import md5 as MD5
 
 limited = False
 
@@ -585,7 +588,13 @@ class PKey (object):
             encrypted, and C{password} is C{None}.
         @raise SSHException: if the key file is invalid.
         """
-        f = open(filename, 'r')
+        try:
+            f = open(filename, 'r')
+        except IOError:
+            e = sys.exc_info()[1]
+            sys.stdout.write("%s\n" % str(e))
+            return
+
         data = self._read_private_key(tag, f, password)
         f.close()
         return data
@@ -623,7 +632,8 @@ class PKey (object):
         try:
             data = ''.join(lines[start:end]).encode()
             data = base64.decodestring(data)
-        except base64.binascii.Error as e:
+        except base64.binascii.Error:
+            e = sys.exc_info()[1]
             raise SSHException('base64 decoding error: ' + str(e))
 
         if 'proc-type' not in headers:
@@ -649,10 +659,10 @@ class PKey (object):
         data = binascii.hexlify(data).decode("ascii")
         if keysize == 24:
             self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 0,
-                len(saltstr) // 2, saltstr, len(data) / 2, data)
+                len(salt), saltstr, len(data) // 2, data)
         elif keysize == 16:
-            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(saltstr) // 2,
-                saltstr, len(data), data)
+            self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(salt),
+                saltstr, len(data) // 2, data)
         else:
             sys.stderr.out("%s uses unsupported cipher, please file a bug!\n" % f.name)
             return None
@@ -761,8 +771,9 @@ class RSADSSKey (PKey):
         # DSAPrivateKey = { version = 0, p, q, g, y, x }
         try:
             keylist = BER(data).decode()
-        except BERException as x:
-            raise SSHException('Unable to parse key file: ' + str(x))
+        except BERException:
+            e = sys.exc_info()[1]
+            raise SSHException('Unable to parse key file: ' + str(e))
         if (type(keylist) is not list) or (len(keylist) < 6) or \
                 (keylist[0] != 0):
             raise SSHException('not a valid DSA private key file (bad ber encoding)')
