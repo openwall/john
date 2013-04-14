@@ -30,11 +30,24 @@ class PdfParser:
         f = open(file_name, 'rb')
         self.encrypted = f.read()
         f.close()
+        self.process = True
         psr = re.compile(r'PDF-\d\.\d')
-        self.pdf_spec = psr.findall(self.encrypted)[0]
+        try:
+            self.pdf_spec = psr.findall(self.encrypted)[0]
+        except IndexError:
+            sys.stderr.write("%s is not a PDF file!\n" % file_name)
+            self.process = False
 
     def parse(self):
-        trailer = self.get_trailer()
+        if not self.process:
+            return
+
+        try:
+            trailer = self.get_trailer()
+        except RuntimeError:
+            e = sys.exc_info()[1]
+            sys.stdout.write("%s : %s\n" % (self.file_name, str(e)))
+            return
         object_id = self.get_encrypted_object_id(trailer)
         encryption_dictionary = self.get_encryption_dictionary(object_id)
         dr = re.compile(r'\d+')
@@ -195,6 +208,6 @@ if __name__ == "__main__":
                          sys.argv[0])
         sys.exit(-1)
     for j in range(1, len(sys.argv)):
-        sys.stderr.write("Analyzing %s\n" % sys.argv[j])
+        # sys.stderr.write("Analyzing %s\n" % sys.argv[j])
         parser = PdfParser(sys.argv[j])
         parser.parse()
