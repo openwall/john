@@ -31,21 +31,6 @@
 # THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#
-"""
-    This module is a set of classes to decrypt and encrypt data using the
-    "AgileKeychain" format developed for 1Password by Agile Web Solutions, Inc.
-    http://agilewebsolutions.com/products/1Password
-
-    Encryption keys are encrypted with the AES-CBC algorithm using a password
-    which is derived using the PBKDF2 algorithm and a salt to provide more safety.
-
-    Data is then encrypted with encryption keys using the same AES-CBC algorithm.
-
-    This module depends on hashlib and PyCrypto available on PyPi
-    The implementation of the PBKDF2 algorithm distributed with this module
-    is courtesy of Dwayne C. Litzenberger <dlitz@dlitz.net>
-"""
 
 import os
 import sys
@@ -56,7 +41,11 @@ try:
     import json
     assert json
 except ImportError:
-    import simplejson as json
+    try:
+        import simplejson as json
+    except ImportError:
+        sys.stderr.write("Please install json / simplejson module which is currently not installed.\n")
+        sys.exit(-1)
 
 from base64 import b64decode
 import binascii
@@ -75,12 +64,18 @@ KEY_SIZE = {
 
 INITIAL_KEY_OFFSET = 12
 
+PY3 = sys.version_info[0] == 3
+PMV = sys.version_info[1] >= 6
+
 
 class Key(object):
     """ A Key in the keyring
     """
 
-    SALTED_PREFIX = 'Salted__'
+    if PY3 or PMV:
+        exec("SALTED_PREFIX=b'Salted__'")
+    else:
+        SALTED_PREFIX = 'Salted__'
     ZERO_IV = "\0" * 16
     ITERATIONS = 1000
     BLOCK_SIZE = 16
@@ -113,7 +108,12 @@ def opdata1_unpack(data):
     HMAC_LENGTH = 32
     if data[:HEADER_LENGTH] != "opdata01":
         data = base64.b64decode(data)
-    if data[:HEADER_LENGTH] != "opdata01":
+    if PY3 or PMV:
+        exec('MAGIC = b"opdata01"')
+    else:
+        MAGIC = "opdata01"
+
+    if data[:HEADER_LENGTH] != MAGIC:
         raise TypeError("expected opdata1 format message")
     plaintext_length, iv = struct.unpack("<Q16s",
                 data[HEADER_LENGTH:TOTAL_HEADER_LENGTH])
@@ -141,25 +141,35 @@ class CloudKeychain(object):
                 os.path.join(self.path, 'default', 'profile.js')
             if os.path.exists(keys_file_path):
                 self.processed = True
-                # print >> sys.stderr, "%s is Cloud Keychain!\n" % os.path.basename(self.path)
             else:
                 return
             f = open(keys_file_path, 'r')
             ds = f.read()[INITIAL_KEY_OFFSET:-1]
             data = json.loads(ds)
 
-            sys.stdout.write("$cloudkeychain$%s$%s$%s$%s$%s" % (len(base64.b64decode(data['salt'])),
-                binascii.hexlify(base64.b64decode(data['salt'])), data["iterations"],
-                len(base64.b64decode(data['masterKey'])),
-                binascii.hexlify(base64.b64decode(data['masterKey']))))
-            plaintext_length, iv, cryptext, expected_hmac, hmac_d_data = opdata1_unpack(data['masterKey'])
-            sys.stdout.write("$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" % (plaintext_length, len(iv), binascii.hexlify(iv),
-                        len(cryptext), binascii.hexlify(cryptext), len(expected_hmac), binascii.hexlify(expected_hmac),
-                            len(hmac_d_data), binascii.hexlify(hmac_d_data)))
-        except (IOError, KeyError, ValueError, TypeError) as e:
-            import traceback
-            traceback.print_exc()
-            print >> sys.stderr, 'error while opening the keychain,', str(e)
+            salt = base64.b64decode(data['salt'])
+            masterKey = base64.b64decode(data['masterKey'])
+            sys.stdout.write("$cloudkeychain$%s$%s$%s$%s$%s" % (len(salt),
+                binascii.hexlify(salt).decode("ascii"),
+                data["iterations"],
+                len(masterKey),
+                binascii.hexlify(masterKey).decode("ascii")))
+
+            plaintext_length, iv, cryptext, expected_hmac, hmac_d_data = \
+                                         opdata1_unpack(data['masterKey'])
+
+            sys.stdout.write("$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" % \
+                (plaintext_length, len(iv),
+                binascii.hexlify(iv).decode("ascii"), len(cryptext),
+                binascii.hexlify(cryptext).decode("ascii"),
+                len(expected_hmac),
+                binascii.hexlify(expected_hmac).decode("ascii"),
+                len(hmac_d_data),
+                binascii.hexlify(hmac_d_data).decode("ascii")))
+
+        except (IOError, KeyError, ValueError, TypeError):
+            e = sys.exc_info()[1]
+            sys.stderr.write('Error while opening the keychain, %s\n' % str(e))
 
 
 class AgileKeychain(object):
@@ -203,10 +213,9 @@ class AgileKeychain(object):
                         self.keys.append(key)
             finally:
                 keys_file.close()
-        except (IOError, KeyError, ValueError, TypeError) as e:
-            import traceback
-            traceback.print_exc()
-            print >> sys.stderr, 'error while opening the keychain,', str(e)
+        except (IOError, KeyError, ValueError, TypeError):
+            e = sys.exc_info()[1]
+            sys.stderr.write('Error while opening the keychain, %s\n' % str(e))
             return False
 
         return True
@@ -215,8 +224,10 @@ class AgileKeychain(object):
         sys.stdout.write("%s:$agilekeychain$%s" % (self.path, len(self.keys)))
         for i in range(0, len(self.keys)):
             sys.stdout.write("*%s*%s*%s*%s*%s" % (self.keys[i].iterations,
-                len(self.keys[i].salt), binascii.hexlify(self.keys[i].salt),
-                len(self.keys[i].data), binascii.hexlify(self.keys[i].data)))
+                len(self.keys[i].salt),
+                binascii.hexlify(self.keys[i].salt).decode("ascii"),
+                len(self.keys[i].data),
+                binascii.hexlify(self.keys[i].data).decode("ascii")))
 
         sys.stdout.write("\n")
 
@@ -229,7 +240,8 @@ def process_file(keychain):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s <1Password Agile Keychain(s)>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <1Password Agile Keychain(s)>\n" % \
+                         sys.argv[0])
         sys.exit(-1)
 
     for j in range(1, len(sys.argv)):
