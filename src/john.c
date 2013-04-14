@@ -107,6 +107,7 @@ extern struct fmt_main fmt_truecrypt_whirlpool;
 #ifdef __SSE2__
 extern struct fmt_main fmt_sha1_ng;
 extern struct fmt_main fmt_rawSHA256_ng;
+extern struct fmt_main fmt_rawSHA512_ng;
 #endif
 
 #ifdef HAVE_SKEY
@@ -275,6 +276,7 @@ static void john_register_all(void)
 
 #ifdef __SSE2__
 	john_register_one(&fmt_rawSHA256_ng);
+        john_register_one(&fmt_rawSHA512_ng);
 #endif
 
 #include "fmt_registers.h"
