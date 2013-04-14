@@ -50,7 +50,7 @@
 #define CIPHERTEXT_LENGTH         128
 #define DIGEST_SIZE               64
 #define BINARY_SIZE               64
-#define BINARY_ALIGN              MEM_ALIGN_WORD
+#define BINARY_ALIGN              8
 #define SALT_SIZE                 0
 #define SALT_ALIGN                1
 #define MIN_KEYS_PER_CRYPT        1
@@ -93,7 +93,10 @@
 #endif
 
 #define GATHER(x,y,z)                                                     \
-    x = _mm_set_epi64x (y[1][z], y[0][z]);
+{                                                                         \
+    x = _mm_setzero_si128 ();                                             \
+    x = _mm_set_epi64x (y[1][z], y[0][z]);                                \
+}
 
 #define S0(x)                                                             \
 (                                                                         \
@@ -187,7 +190,7 @@ static inline void alter_endianity_64 (void *_x, unsigned int size)
     uint64_t *x = (uint64_t *) _x;
     int i;
 
-    for (i=0; i < (size >> 2); i++)
+    for (i=0; i < (size / sizeof(*x)); i++)
         x[i] = __builtin_bswap64 (x[i]);
 }
 
@@ -247,13 +250,13 @@ static void *get_binary (char *ciphertext)
 }
 
 
-static int binary_hash_0 (void *binary) { return *(uint64_t *) binary & 0xf; }
-static int binary_hash_1 (void *binary) { return *(uint64_t *) binary & 0xff; }
-static int binary_hash_2 (void *binary) { return *(uint64_t *) binary & 0xfff; }
-static int binary_hash_3 (void *binary) { return *(uint64_t *) binary & 0xffff; }
-static int binary_hash_4 (void *binary) { return *(uint64_t *) binary & 0xfffff; }
-static int binary_hash_5 (void *binary) { return *(uint64_t *) binary & 0xffffff; }
-static int binary_hash_6 (void *binary) { return *(uint64_t *) binary & 0x7ffffff; }
+static int binary_hash_0 (void *binary) { return *(uint32_t *) binary & 0xf; }
+static int binary_hash_1 (void *binary) { return *(uint32_t *) binary & 0xff; }
+static int binary_hash_2 (void *binary) { return *(uint32_t *) binary & 0xfff; }
+static int binary_hash_3 (void *binary) { return *(uint32_t *) binary & 0xffff; }
+static int binary_hash_4 (void *binary) { return *(uint32_t *) binary & 0xfffff; }
+static int binary_hash_5 (void *binary) { return *(uint32_t *) binary & 0xffffff; }
+static int binary_hash_6 (void *binary) { return *(uint32_t *) binary & 0x7ffffff; }
 
 static int get_hash_0 (int index) { return crypt_key[0][index] & 0xf; }
 static int get_hash_1 (int index) { return crypt_key[0][index] & 0xff; }
@@ -270,7 +273,7 @@ static void set_key (char *key, int index)
     uint8_t  *buf8  = (uint8_t * ) buf64;
     int len = 0;
 
-    memset(buf64, 0, 16);
+    memset(buf8, 0, 64);
 
     while (*key)
         buf8[len++] = *key++;
