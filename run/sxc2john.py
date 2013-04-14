@@ -14,12 +14,12 @@ def process_file(filename):
     try:
         zf = zipfile.ZipFile(filename)
     except zipfile.BadZipfile:
-        print >> sys.stderr, "%s is not an StarOffice file!" % filename
+        sys.stderr.write("%s is not an StarOffice file!\n" % filename)
         return 2
     try:
         mf = zf.open("META-INF/manifest.xml")
     except KeyError:
-        print >> sys.stderr, "%s is not an StarOffice file!" % filename
+        sys.stderr.write("%s is not an StarOffice file!\n" % filename)
         return 3
     #print mf.read()
     tree = ElementTree()
@@ -57,17 +57,19 @@ def process_file(filename):
                     assert(data == "Blowfish CFB")
 
     if not is_encrypted:
-        print >> sys.stderr, "%s is not an encrypted StarOffice file!" % filename
+        sys.stderr.write("%s is not an encrypted StarOffice file!\n" % filename)
         return 4
 
-    checksum = binascii.hexlify(base64.decodestring(checksum))
-    iv = binascii.hexlify(base64.decodestring(iv))
-    salt = binascii.hexlify(base64.decodestring(salt))
+    checksum = base64.decodestring(checksum.encode)
+    checksum = binascii.hexlify(checksum).decode("ascii")
+    iv = binascii.hexlify(base64.decodestring(iv.encode)).decode("ascii")
+    salt = binascii.hexlify(base64.decodestring(salt.encode)).decode("ascii")
 
     try:
         content = zf.open("content.xml").read()
     except KeyError:
-        print >> sys.stderr, "%s is not an encrypted StarOffice file, content.xml missing!" % filename
+        sys.stderr.write("%s is not an encrypted StarOffice file, " \
+                         "content.xml missing!\n" % filename)
         return 5
 
     algorithm_type = 0
@@ -87,14 +89,16 @@ def process_file(filename):
             content = content + pad[0:pad_length]
         length = len(content)
 
-    print "%s:$sxc$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%d*%s" % (filename, algorithm_type,
+    sys.stdout.write("%s:$sxc$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%d*%s\n" % \
+            (filename, algorithm_type,
             checksum_type, iteration_count, key_size, checksum, len(iv) / 2,
-            iv, len(salt) / 2, salt, original_length, length, binascii.hexlify(content[:length]))
+            iv, len(salt) / 2, salt, original_length, length,
+            binascii.hexlify(content[:length])))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s <SXC files>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <SXC files>\n" % sys.argv[0])
         sys.exit(-1)
 
-    for i in range(1, len(sys.argv)):
-        process_file(sys.argv[i])
+    for k in range(1, len(sys.argv)):
+        process_file(sys.argv[k])

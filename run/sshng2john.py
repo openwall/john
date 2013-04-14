@@ -664,7 +664,7 @@ class PKey (object):
             self.hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 1, len(salt),
                 saltstr, len(data) // 2, data)
         else:
-            sys.stderr.out("%s uses unsupported cipher, please file a bug!\n" % f.name)
+            sys.stderr.write("%s uses unsupported cipher, please file a bug!\n" % f.name)
             return None
 
         if not limited:
