@@ -197,7 +197,14 @@ __version__ = '0.23'
 
 #------------------------------------------------------------------------------
 
-import string, StringIO, struct, array, os.path, sys
+import struct, array, os.path, sys
+
+PY3 = sys.version_info[0] == 3
+
+if PY3:
+    from io import BytesIO as StringIO
+else:
+    from StringIO import StringIO
 
 #[PL] Define explicitly the public API to avoid private objects in pydoc:
 __all__ = ['OleFileIO', 'isOleFile']
@@ -210,28 +217,12 @@ elif array.array('I').itemsize == 4:
     # on 64 bits platforms, integers in an array are 32 bits:
     UINT32 = 'I'
 else:
-    raise ValueError, 'Need to fix a bug with 32 bit arrays, please contact author...'
+    raise ValueError('Need to fix a bug with 32 bit arrays, please contact author...')
 
 
 #[PL] These workarounds were inspired from the Path module
 # (see http://www.jorendorff.com/articles/python/path/)
 #TODO: test with old Python versions
-
-# Pre-2.3 workaround for booleans
-try:
-    True, False
-except NameError:
-    True, False = 1, 0
-
-# Pre-2.3 workaround for basestring.
-try:
-    basestring
-except NameError:
-    try:
-        # is Unicode supported (Python >2.0 or >1.6 ?)
-        basestring = (str, unicode)
-    except NameError:
-        basestring = str
 
 #[PL] Experimental setting: if True, OLE filenames will be kept in Unicode
 # if False (default PIL behaviour), all filenames are converted to Latin-1.
@@ -241,7 +232,7 @@ KEEP_UNICODE_NAMES = False
 # command line to change it.
 DEBUG_MODE = False
 def debug_print(msg):
-    print msg
+    print(msg)
 def debug_pass(msg):
     pass
 debug = debug_pass
@@ -259,18 +250,18 @@ def set_debug_mode(debug_mode):
         debug = debug_pass
 
 #TODO: convert this to hex
-MAGIC = '\320\317\021\340\241\261\032\341'
+MAGIC = b'\320\317\021\340\241\261\032\341'
 
 #[PL]: added constants for Sector IDs (from AAF specifications)
-MAXREGSECT = 0xFFFFFFFAL; # maximum SECT
-DIFSECT    = 0xFFFFFFFCL; # (-4) denotes a DIFAT sector in a FAT
-FATSECT    = 0xFFFFFFFDL; # (-3) denotes a FAT sector in a FAT
-ENDOFCHAIN = 0xFFFFFFFEL; # (-2) end of a virtual stream chain
-FREESECT   = 0xFFFFFFFFL; # (-1) unallocated sector
+MAXREGSECT = 0xFFFFFFFA; # maximum SECT
+DIFSECT    = 0xFFFFFFFC; # (-4) denotes a DIFAT sector in a FAT
+FATSECT    = 0xFFFFFFFD; # (-3) denotes a FAT sector in a FAT
+ENDOFCHAIN = 0xFFFFFFFE; # (-2) end of a virtual stream chain
+FREESECT   = 0xFFFFFFFF; # (-1) unallocated sector
 
 #[PL]: added constants for Directory Entry IDs (from AAF specifications)
-MAXREGSID  = 0xFFFFFFFAL; # maximum directory entry ID
-NOSTREAM   = 0xFFFFFFFFL; # (-1) unallocated directory entry
+MAXREGSID  = 0xFFFFFFFA; # maximum directory entry ID
+NOSTREAM   = 0xFFFFFFFF; # (-1) unallocated directory entry
 
 #[PL] object types in storage (from AAF specifications)
 STGTY_EMPTY     = 0 # empty directory entry (according to OpenOffice.org doc)
@@ -295,13 +286,6 @@ VT_BLOB=65; VT_STREAM=66; VT_STORAGE=67; VT_STREAMED_OBJECT=68;
 VT_STORED_OBJECT=69; VT_BLOB_OBJECT=70; VT_CF=71; VT_CLSID=72;
 VT_VECTOR=0x1000;
 
-# map property id to name (for debugging purposes)
-
-VT = {}
-for keyword, var in vars().items():
-    if keyword[:3] == "VT_":
-        VT[var] = keyword
-
 #
 # --------------------------------------------------------------------
 # Some common document types (root.clsid fields)
@@ -316,11 +300,6 @@ DEFECT_INCORRECT = 30    # an error according to specifications, but parsing
                          # can go on
 DEFECT_FATAL =     40    # an error which cannot be ignored, parsing is
                          # impossible
-
-#[PL] add useful constants to __all__:
-for key in vars().keys():
-    if key.startswith('STGTY_') or key.startswith('DEFECT_'):
-        __all__.append(key)
 
 
 #--- FUNCTIONS ----------------------------------------------------------------
@@ -347,6 +326,8 @@ def i16(c, o = 0):
     c: string containing bytes to convert
     o: offset of bytes to convert in string
     """
+    if isinstance(c[o], int):
+        return c[o] + (c[o+1]<<8)
     return ord(c[o])+(ord(c[o+1])<<8)
 
 
@@ -357,6 +338,8 @@ def i32(c, o = 0):
     c: string containing bytes to convert
     o: offset of bytes to convert in string
     """
+    if isinstance(c[o], int):
+        return c[o] + (c[o+1]<<8) + (c[o+2]<<16) + (c[o+3]<<24)
     return int(ord(c[o])+(ord(c[o+1])<<8)+(ord(c[o+2])<<16)+(ord(c[o+3])<<24))
     # [PL]: added int() because "<<" gives long int since Python 2.4
 
@@ -380,8 +363,6 @@ def _clsid(clsid):
 
 try:
     # is Unicode supported ?
-    unicode
-
     def _unicode(s, errors='replace'):
         """
         Map unicode string to Latin 1. (Python with Unicode support)
@@ -402,7 +383,7 @@ try:
                 return u.encode('latin_1', errors)
         except:
             # there was an error during Unicode to Latin-1 conversion:
-            raise IOError, 'incorrect Unicode name'
+            raise IOError('incorrect Unicode name')
 
 except NameError:
     def _unicode(s, errors='replace'):
@@ -416,8 +397,7 @@ except NameError:
         # Python version without Unicode support.
         # Null bytes are simply removed (this only works with usual Latin-1
         # strings which do not contain unicode characters>256):
-        return filter(ord, s)
-
+        return filter(ord, s) # this is bullshit!
 
 
 
@@ -425,7 +405,7 @@ except NameError:
 
 #--- _OleStream ---------------------------------------------------------------
 
-class _OleStream(StringIO.StringIO):
+class _OleStream(StringIO):
     """
     OLE2 Stream
 
@@ -473,11 +453,13 @@ class _OleStream(StringIO.StringIO):
             unknown_size = True
             debug('  stream with UNKNOWN SIZE')
         nb_sectors = (size + (sectorsize-1)) / sectorsize
-        debug('nb_sectors = %d' % nb_sectors)
+        nb_sectors = int(nb_sectors)
+        # print('nb_sectors = %d' % nb_sectors)
         # This number should (at least) be less than the total number of
         # sectors in the given FAT:
         if nb_sectors > len(fat):
-            raise IOError, 'malformed OLE document, stream too large'
+
+            raise IOError('malformed OLE document, stream too large')
         # optimization(?): data is first a list of strings, and join() is called
         # at the end to concatenate all in one string.
         # (this may not be really useful with recent Python versions)
@@ -485,10 +467,10 @@ class _OleStream(StringIO.StringIO):
         # if size is zero, then first sector index should be ENDOFCHAIN:
         if size == 0 and sect != ENDOFCHAIN:
             debug('size == 0 and sect != ENDOFCHAIN:')
-            raise IOError, 'incorrect OLE sector index for empty stream'
+            raise IOError('incorrect OLE sector index for empty stream')
         #[PL] A fixed-length for loop is used instead of an undefined while
         # loop to avoid DoS attacks:
-        for i in xrange(nb_sectors):
+        for i in range(nb_sectors):
             # Sector index may be ENDOFCHAIN, but only if size was unknown
             if sect == ENDOFCHAIN:
                 if unknown_size:
@@ -496,7 +478,7 @@ class _OleStream(StringIO.StringIO):
                 else:
                     # else this means that the stream is smaller than declared:
                     debug('sect=ENDOFCHAIN before expected size')
-                    raise IOError, 'incomplete OLE stream'
+                    raise IOError('incomplete OLE stream')
             # sector index should be within FAT:
             if sect<0 or sect>=len(fat):
                 debug('sect=%d (%X) / len(fat)=%d' % (sect, sect, len(fat)))
@@ -506,7 +488,7 @@ class _OleStream(StringIO.StringIO):
 ##                f.write(tmp_data)
 ##                f.close()
 ##                debug('data read so far: %d bytes' % len(tmp_data))
-                raise IOError, 'incorrect OLE FAT, sector index out of range'
+                raise IOError('incorrect OLE FAT, sector index out of range')
             #TODO: merge this code with OleFileIO.getsect() ?
             #TODO: check if this works with 4K sectors:
             try:
@@ -514,7 +496,7 @@ class _OleStream(StringIO.StringIO):
             except:
                 debug('sect=%d, seek=%d, filesize=%d' %
                     (sect, offset+sectorsize*sect, filesize))
-                raise IOError, 'OLE sector index out of range'
+                raise IOError('OLE sector index out of range')
             sector_data = fp.read(sectorsize)
             # [PL] check if there was enough data:
             # Note: if sector is the last of the file, sometimes it is not a
@@ -524,18 +506,19 @@ class _OleStream(StringIO.StringIO):
                 debug('sect=%d / len(fat)=%d, seek=%d / filesize=%d, len read=%d' %
                     (sect, len(fat), offset+sectorsize*sect, filesize, len(sector_data)))
                 debug('seek+len(read)=%d' % (offset+sectorsize*sect+len(sector_data)))
-                raise IOError, 'incomplete OLE sector'
+                raise IOError('incomplete OLE sector')
             data.append(sector_data)
             # jump to next sector in the FAT:
             try:
                 sect = fat[sect]
             except IndexError:
                 # [PL] if pointer is out of the FAT an exception is raised
-                raise IOError, 'incorrect OLE FAT, sector index out of range'
+                raise IOError('incorrect OLE FAT, sector index out of range')
         #[PL] Last sector should be a "end of chain" marker:
         if sect != ENDOFCHAIN:
-            raise IOError, 'incorrect last sector index in OLE stream'
-        data = string.join(data, "")
+            raise IOError('incorrect last sector index in OLE stream')
+        data = b"".join(data)
+        # data = string.join(data, "")
         # Data is truncated to the actual stream size:
         if len(data) >= size:
             data = data[:size]
@@ -548,9 +531,9 @@ class _OleStream(StringIO.StringIO):
         else:
             # read data is less than expected:
             debug('len(data)=%d, size=%d' % (len(data), size))
-            raise IOError, 'OLE stream size is less than declared'
+            raise IOError('OLE stream size is less than declared')
         # when all data is read in memory, StringIO constructor is called
-        StringIO.StringIO.__init__(self, data)
+        StringIO.__init__(self, data)
         # Then the _OleStream object can be used as a read-only file object.
 
 
@@ -654,7 +637,7 @@ class _OleDirectoryEntry:
         # sectors, BUT apparently some implementations set it as 0xFFFFFFFFL, 1
         # or some other value so it cannot be raised as a defect in general:
         if olefile.sectorsize == 512:
-            if sizeHigh != 0 and sizeHigh != 0xFFFFFFFFL:
+            if sizeHigh != 0 and sizeHigh != 0xFFFFFFFF:
                 debug('sectorsize=%d, sizeLow=%d, sizeHigh=%d (%X)' %
                     (olefile.sectorsize, sizeLow, sizeHigh, sizeHigh))
                 olefile._raise_defect(DEFECT_UNSURE, 'incorrect OLE stream size')
@@ -663,7 +646,7 @@ class _OleDirectoryEntry:
             self.size = sizeLow + (long(sizeHigh)<<32)
         debug(' - size: %d (sizeLow=%d, sizeHigh=%d)' % (self.size, sizeLow, sizeHigh))
 
-        self.clsid = _clsid(clsid)
+        # self.clsid = _clsid(clsid)
         # a storage should have a null size, BUT some implementations such as
         # Word 8 for Mac seem to allow non-null values => Potential defect:
         if self.entry_type == STGTY_STORAGE and self.size != 0:
@@ -701,7 +684,7 @@ class _OleDirectoryEntry:
             # in the OLE file, entries are sorted on (length, name).
             # for convenience, we sort them on name instead:
             # (see __cmp__ method in this class)
-            self.kids.sort()
+            # self.kids.sort()
 
 
     def append_kids(self, child_sid):
@@ -729,8 +712,10 @@ class _OleDirectoryEntry:
         # First walk through left side of the tree:
         self.append_kids(child.sid_left)
         # Check if its name is not already used (case-insensitive):
+        # name_lower = child.name
+        child.name = child.name.decode()
         name_lower = child.name.lower()
-        if self.kids_dict.has_key(name_lower):
+        if self.kids_dict.get(name_lower, None):
             self.olefile._raise_defect(DEFECT_INCORRECT,
                 "Duplicate filename in OLE storage")
         # Then the child_sid _OleDirectoryEntry object is appended to the
@@ -754,20 +739,6 @@ class _OleDirectoryEntry:
         #TODO: replace by the same function as MS implementation ?
         # (order by name length first, then case-insensitive order)
 
-
-    def dump(self, tab = 0):
-        "Dump this entry, and all its subentries (for debug purposes only)"
-        TYPES = ["(invalid)", "(storage)", "(stream)", "(lockbytes)",
-                 "(property)", "(root)"]
-        print " "*tab + repr(self.name), TYPES[self.entry_type],
-        if self.entry_type in (STGTY_STREAM, STGTY_ROOT):
-            print self.size, "bytes",
-        print
-        if self.entry_type in (STGTY_STORAGE, STGTY_ROOT) and self.clsid:
-            print " "*tab + "{%s}" % self.clsid
-
-        for kid in self.kids:
-            kid.dump(tab + 2)
 
 
 #--- OleFileIO ----------------------------------------------------------------
@@ -830,7 +801,7 @@ class OleFileIO:
         """
         # added by [PL]
         if defect_level >= self._raise_defects_level:
-            raise IOError, message
+            raise IOError(message)
 
 
     def open(self, filename):
@@ -937,10 +908,10 @@ class OleFileIO:
         ) = struct.unpack(fmt_header, header1)
         debug( struct.unpack(fmt_header,    header1))
 
-        if self.Sig != '\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
+        if self.Sig != b'\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1':
             # OLE signature should always be present
             self._raise_defect(DEFECT_FATAL, "incorrect OLE signature")
-        if self.clsid != '\x00'*16:
+        if self.clsid != b'\x00'*16:
             # according to AAF specs, CLSID should always be zero
             self._raise_defect(DEFECT_INCORRECT, "incorrect CLSID in OLE header")
         debug( "MinorVersion = %d" % self.MinorVersion )
@@ -989,7 +960,7 @@ class OleFileIO:
         debug( "Number of sectors in the file: %d" % self.nb_sect )
 
         # file clsid (probably never used, so we don't store it)
-        clsid = _clsid(header[8:24])
+        # clsid = _clsid(header[8:24])
         self.sectorsize = self.SectorSize #1 << i16(header, 30)
         self.minisectorsize = self.MiniSectorSize  #1 << i16(header, 32)
         self.minisectorcutoff = self.MiniSectorCutoff # i32(header, 56)
@@ -1045,66 +1016,6 @@ class OleFileIO:
             used_streams.append(first_sect)
 
 
-    def dumpfat(self, fat, firstindex=0):
-        "Displays a part of FAT in human-readable form for debugging purpose"
-        # [PL] added only for debug
-        if not DEBUG_MODE:
-            return
-        # dictionary to convert special FAT values in human-readable strings
-        VPL=8 # valeurs par ligne (8+1 * 8+1 = 81)
-        fatnames = {
-            FREESECT:   "..free..",
-            ENDOFCHAIN: "[ END. ]",
-            FATSECT:    "FATSECT ",
-            DIFSECT:    "DIFSECT "
-            }
-        nbsect = len(fat)
-        nlines = (nbsect+VPL-1)/VPL
-        print "index",
-        for i in range(VPL):
-            print ("%8X" % i),
-        print ""
-        for l in range(nlines):
-            index = l*VPL
-            print ("%8X:" % (firstindex+index)),
-            for i in range(index, index+VPL):
-                if i>=nbsect:
-                    break
-                sect = fat[i]
-                if sect in fatnames:
-                    nom = fatnames[sect]
-                else:
-                    if sect == i+1:
-                        nom = "    --->"
-                    else:
-                        nom = "%8X" % sect
-                print nom,
-            print ""
-
-
-    def dumpsect(self, sector, firstindex=0):
-        "Displays a sector in a human-readable form, for debugging purpose."
-        if not DEBUG_MODE:
-            return
-        VPL=8 # number of values per line (8+1 * 8+1 = 81)
-        tab = array.array(UINT32, sector)
-        nbsect = len(tab)
-        nlines = (nbsect+VPL-1)/VPL
-        print "index",
-        for i in range(VPL):
-            print ("%8X" % i),
-        print ""
-        for l in range(nlines):
-            index = l*VPL
-            print ("%8X:" % (firstindex+index)),
-            for i in range(index, index+VPL):
-                if i>=nbsect:
-                    break
-                sect = tab[i]
-                nom = "%8X" % sect
-                print nom,
-            print ""
-
     def sect2array(self, sect):
         """
         convert a sector to an array of 32 bits unsigned integers,
@@ -1130,7 +1041,7 @@ class OleFileIO:
         else:
             # if it's a raw sector, it is parsed in an array
             fat1 = self.sect2array(sect)
-            self.dumpsect(sect)
+            # self.dumpsect(sect)
         # The FAT is a sector chain starting at the first index of itself.
         for isect in fat1:
             #print "isect = %X" % isect
@@ -1187,7 +1098,7 @@ class OleFileIO:
             nb_difat = (self.csectFat-109 + 126)/127
             debug( "nb_difat = %d" % nb_difat )
             if self.csectDif != nb_difat:
-                raise IOError, 'incorrect DIFAT'
+                raise IOError('incorrect DIFAT')
             isect_difat = self.sectDifStart
             for i in xrange(nb_difat):
                 debug( "DIFAT block %d, sector %X" % (i, isect_difat) )
@@ -1202,7 +1113,7 @@ class OleFileIO:
             # checks:
             if isect_difat not in [ENDOFCHAIN, FREESECT]:
                 # last DIFAT pointer value must be ENDOFCHAIN or FREESECT
-                raise IOError, 'incorrect end of DIFAT'
+                raise IOError('incorrect end of DIFAT')
 ##          if len(self.fat) != self.csectFat:
 ##              # FAT should contain csectFat blocks
 ##              print "FAT length: %d instead of %d" % (len(self.fat), self.csectFat)
@@ -1212,9 +1123,9 @@ class OleFileIO:
         # Keep only the relevant sector indexes:
         if len(self.fat) > self.nb_sect:
             debug('len(fat)=%d, shrunk to nb_sect=%d' % (len(self.fat), self.nb_sect))
-            self.fat = self.fat[:self.nb_sect]
+            self.fat = self.fat[:int(self.nb_sect)]
         debug('\nFAT:')
-        self.dumpfat(self.fat)
+        #self.dumpfat(self.fat)
 
 
     def loadminifat(self):
@@ -1246,10 +1157,10 @@ class OleFileIO:
         self.minifat = self.sect2array(s)
         # Then shrink the array to used size, to avoid indexes out of MiniStream:
         debug('MiniFAT shrunk from %d to %d sectors' % (len(self.minifat), nb_minisectors))
-        self.minifat = self.minifat[:nb_minisectors]
+        self.minifat = self.minifat[:int(nb_minisectors)]
         debug('loadminifat(): len=%d' % len(self.minifat))
         debug('\nMiniFAT:')
-        self.dumpfat(self.minifat)
+        # self.dumpfat(self.minifat)
 
     def getsect(self, sect):
         """
@@ -1297,7 +1208,7 @@ class OleFileIO:
         # Create list of directory entries
         #self.direntries = []
         # We start with a list of "None" object
-        self.direntries = [None] * max_entries
+        self.direntries = [None] * int(max_entries)
 ##        for sid in xrange(max_entries):
 ##            entry = fp.read(128)
 ##            if not entry:
@@ -1414,10 +1325,10 @@ class OleFileIO:
         raise IOError if file not found
         """
 
+        #filename = filename.decode()
         # if filename is a string instead of a list, split it on slashes to
         # convert to a list:
-        if isinstance(filename, basestring):
-            filename = filename.split('/')
+        filename = filename.split('/')
         # walk across storage tree, following given path:
         node = self.root
         for name in filename:
@@ -1425,7 +1336,7 @@ class OleFileIO:
                 if kid.name.lower() == name.lower():
                     break
             else:
-                raise IOError, "file not found"
+                raise IOError("file not found")
             node = kid
         return node.sid
 
@@ -1445,7 +1356,7 @@ class OleFileIO:
         sid = self._find(filename)
         entry = self.direntries[sid]
         if entry.entry_type != STGTY_STREAM:
-            raise IOError, "this file is not a stream"
+            raise IOError("this file is not a stream")
         return self._open(entry.isectStart, entry.size)
 
 
@@ -1495,7 +1406,7 @@ class OleFileIO:
         entry = self.direntries[sid]
         if entry.entry_type != STGTY_STREAM:
             #TODO: Should it return zero instead of raising an exception ?
-            raise TypeError, 'object is not an OLE stream'
+            raise TypeError('object is not an OLE stream')
         return entry.size
 
 
@@ -1520,15 +1431,15 @@ class OleFileIO:
 
         # header
         s = fp.read(28)
-        clsid = _clsid(s[8:24])
+        # clsid = _clsid(s[8:24])
 
         # format id
         s = fp.read(20)
-        fmtid = _clsid(s[:16])
+        # fmtid = _clsid(s[:16])
         fp.seek(i32(s, 16))
 
         # get section
-        s = "****" + fp.read(i32(fp.read(4))-4)
+        s = b"****" + fp.read(i32(fp.read(4))-4)
 
         for i in range(i32(s, 4)):
 
@@ -1561,10 +1472,10 @@ class OleFileIO:
                 count = i32(s, offset+4)
                 value = _unicode(s[offset+8:offset+8+count*2])
             elif type == VT_FILETIME:
-                value = long(i32(s, offset+4)) + (long(i32(s, offset+8))<<32)
+                value = i32(s, offset+4) + ((i32(s, offset+8))<<32)
                 # FIXME: this is a 64-bit int: "number of 100ns periods
                 # since Jan 1,1601".  Should map this to Python time
-                value = value / 10000000L # seconds
+                value = value / 10000000 # seconds
             elif type == VT_UI1:
                 value = ord(s[offset+4])
             elif type == VT_CLSID:
@@ -1574,11 +1485,6 @@ class OleFileIO:
                 value = s[offset+8:offset+8+count]
             else:
                 value = None  # everything else yields "None"
-
-            # FIXME: add support for VT_VECTOR
-
-            #print "%08x" % id, repr(value),
-            #print "(%s)" % VT[i32(s, offset) & 0xFFF]
 
             data[id] = value
 
@@ -1592,8 +1498,6 @@ class OleFileIO:
 
 from struct import unpack
 import binascii
-import StringIO
-
 
 def find_rc4_passinfo_xls(filename, stream):
     while True:
@@ -1602,24 +1506,23 @@ def find_rc4_passinfo_xls(filename, stream):
             break  # eof
 
         type = unpack("<h", stream.read(2))[0]
-        #print binascii.hexlify(type), "11"
         length = unpack("<h", stream.read(2))[0]
         data = stream.read(length)
 
         if type == 0x2f:  # FILEPASS
-            if data[0:2] == "\x00\x00":  # XOR obfuscation
-                print >> sys.stderr, "%s : XOR obfuscation detected, key : %s, hash : %s " % (filename, binascii.hexlify(data[2:4]),
-                        binascii.hexlify(data[4:6]))
-            elif data[0:6] == '\x01\x00\x01\x00\x01\x00':
+            if data[0:2] == b"\x00\x00":  # XOR obfuscation
+                sys.stderr.write("%s : XOR obfuscation detected, key : %s, hash : %s\n" % \
+                    (filename, binascii.hexlify(data[2:4]), binascii.hexlify(data[4:6])))
+            elif data[0:6] == b'\x01\x00\x01\x00\x01\x00':
                 # RC4 encryption header structure
                 data = data[6:]
                 salt = data[:16]
                 verifier = data[16:32]
                 verifierHash = data[32:48]
                 return (salt, verifier, verifierHash)
-            elif data[0:4] == '\x01\x00\x02\x00' or data[0:4] == '\x01\x00\x03\x00':
+            elif data[0:4] == b'\x01\x00\x02\x00' or data[0:4] == b'\x01\x00\x03\x00':
                 # If RC4 CryptoAPI encryption is used, certain storages and streams are stored in Encryption Stream
-                stm = StringIO.StringIO(data)
+                stm = StringIO(data)
                 stm.read(2)  # unused
                 # RC4 CryptoAPI Encryption Header
                 unpack("<h", stm.read(2))[0]  # major_version
@@ -1648,7 +1551,6 @@ def find_rc4_passinfo_xls(filename, stream):
                 headerLength -= 4
                 CSPName = stm.read(headerLength)
                 provider = CSPName.decode('utf-16').lower()
-                # print provider
                 # Encryption verifier
                 saltSize = unpack("<I", stm.read(4))[0]
                 assert(saltSize == 16)
@@ -1658,8 +1560,9 @@ def find_rc4_passinfo_xls(filename, stream):
                 assert(verifierHashSize == 20)
                 encryptedVerifierHash = stm.read(verifierHashSize)
                 sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-                    typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
-                binascii.hexlify(encryptedVerifierHash)))
+                    typ, binascii.hexlify(salt).decode("ascii"),
+                    binascii.hexlify(encryptedVerifier).decode("ascii"),
+                    binascii.hexlify(encryptedVerifierHash).decode("ascii")))
 
     return None
 
@@ -1680,10 +1583,11 @@ def find_doc_type(filename, stream):
     if F == 1 and M == 1:
         stream.read(2)  # unused
         i_key = stream.read(4)
-        print >> sys.stderr, "%s : XOR obfuscation detected, Password Verifier : %s" % (filename, binascii.hexlify(i_key))
+        sys.stderr.write("%s : XOR obfuscation detected, Password Verifier : %s\n" % \
+                (filename, binascii.hexlify(i_key)))
         return True
     if F == 0:
-        print >> sys.stderr, "%s : Document is not encrypted!" % (filename)
+        sys.stderr.write("%s : Document is not encrypted!\n" % (filename))
         return True
 
 
@@ -1745,15 +1649,17 @@ def find_rc4_passinfo_doc(filename, stream):
         encryptedVerifierHash = stream.read(verifierHashSize)
         if not have_summary:
             sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-                typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
-                binascii.hexlify(encryptedVerifierHash)))
+                typ, binascii.hexlify(salt).decode("ascii"),
+                binascii.hexlify(encryptedVerifier).decode("ascii"),
+                binascii.hexlify(encryptedVerifierHash).decode("ascii")))
         else:
             sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s:::%s::%s\n" % (os.path.basename(filename),
-                typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
-                binascii.hexlify(encryptedVerifierHash), summary, filename))
+                typ, binascii.hexlify(salt).decode("ascii"),
+                binascii.hexlify(encryptedVerifier).decode("ascii"),
+                binascii.hexlify(encryptedVerifierHash).decode("ascii"), summary, filename))
 
     else:
-        print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
+        sys.stderr.write("%s : Cannot find RC4 pass info, is document encrypted?\n" % filename)
 
 
 def find_rc4_passinfo_ppt(filename, stream, offset):
@@ -1763,10 +1669,10 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
     recType = unpack("<h", stream.read(2))[0]
     recLen = unpack("<L", stream.read(4))[0]
     if recLen != 32:
-        print >> sys.stderr, "%s : Document is not encrypted!" % (filename)
+        sys.stderr.write("%s : Document is not encrypted!\n" % (filename))
         return
     if recType != 0x0FF5:
-        print >> sys.stderr, "%s : Document is corrupt!" % (filename)
+        sys.stderr.write("%s : Document is corrupt!\n" % (filename))
         return
     # read reset of UserEditAtom
     unpack("<L", stream.read(4))[0]  # lastSlideRef
@@ -1839,10 +1745,11 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
         sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-            typ, binascii.hexlify(salt), binascii.hexlify(encryptedVerifier),
-        binascii.hexlify(encryptedVerifierHash)))
+            typ, binascii.hexlify(salt).decode("ascii"),
+            binascii.hexlify(encryptedVerifier).decode("ascii"),
+            binascii.hexlify(encryptedVerifierHash).decode("ascii")))
     else:
-        print >> sys.stderr, "%s : Cannot find RC4 pass info, is document encrypted?" % filename
+        sys.stderr.write("%s : Cannot find RC4 pass info, is document encrypted?\n" % filename)
 
 from xml.etree.ElementTree import ElementTree
 import base64
@@ -1856,17 +1763,17 @@ def process_new_office(filename):
     minor_version = unpack("<h", stream.read(2))[0]
     encryptionFlags = unpack("<I", stream.read(4))[0]  # encryptionFlags
     if encryptionFlags == 16:  # fExternal
-        print >> sys.stderr, "%s : An external cryptographic provider is not supported!" % filename
+        sys.stderr.write("%s : An external cryptographic provider is not supported!\n" % filename)
         return -1
 
     if major_version == 0x04 and minor_version == 0x04:
         # Office 2010 and 2013 file detected
         if encryptionFlags != 0x40:  # fAgile
-            print >> sys.stderr, "%s : The encryption flags are not consistent with the encryption type\n" % filename
+            sys.stderr.write("%s : The encryption flags are not consistent with the encryption type\n" % filename)
             return -2
 
         # rest of the data is in XML format
-        data = StringIO.StringIO(stream.read())
+        data = StringIO(stream.read())
         tree = ElementTree()
         tree.parse(data)
 
@@ -1884,22 +1791,27 @@ def process_new_office(filename):
             elif hashAlgorithm == "SHA512":
                 version = 2013
             else:
-                print >> sys.stderr, "%s uses un-supported hashing algorithm %s, please file a bug! \n" % (filename, hashAlgorithm)
+                sys.stderr.write("%s uses un-supported hashing algorithm %s, please file a bug! \n" \
+                        % (filename, hashAlgorithm))
                 return -3
             cipherAlgorithm = node.attrib.get("cipherAlgorithm")
             if not cipherAlgorithm.find("AES") > -1:
-                print >> sys.stderr, "%s uses un-supported cipher algorithm %s, please file a bug! \n" % (filename, cipherAlgorithm)
+                sys.stderr.write("%s uses un-supported cipher algorithm %s, please file a bug! \n" \
+                    % (filename, cipherAlgorithm))
                 return -4
 
             saltValue = node.attrib.get("saltValue")
             assert(saltValue)
             encryptedVerifierHashInput = node.attrib.get("encryptedVerifierHashInput")
             encryptedVerifierHashValue = node.attrib.get("encryptedVerifierHashValue")
-            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue))
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
 
-            print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (os.path.basename(filename), version,
-                    int(spinCount), int(keyBits), int(saltSize), binascii.hexlify(base64.decodestring(saltValue)),
-                    binascii.hexlify(base64.decodestring(encryptedVerifierHashInput)), encryptedVerifierHashValue[0:64])
+            sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
+                (os.path.basename(filename), version,
+                int(spinCount), int(keyBits), int(saltSize),
+                binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii"),
+                binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii"),
+                encryptedVerifierHashValue[0:64].decode("ascii")))
             return 0
     else:
         # Office 2007 file detected, process CryptoAPI Encryption Header
@@ -1923,7 +1835,6 @@ def process_new_office(filename):
         headerLength -= 4
         CSPName = stm.read(headerLength)
         provider = CSPName.decode('utf-16').lower()
-        # print provider
         # Encryption verifier
         saltSize = unpack("<I", stm.read(4))[0]
         assert(saltSize == 16)
@@ -1932,8 +1843,11 @@ def process_new_office(filename):
         verifierHashSize = unpack("<I", stm.read(4))[0]
         encryptedVerifierHash = stm.read(verifierHashSize)
 
-        print "%s:$office$*%d*%d*%d*%d*%s*%s*%s" % (os.path.basename(filename), 2007, verifierHashSize, keySize, saltSize,
-                binascii.hexlify(salt), binascii.hexlify(encryptedVerifier), binascii.hexlify(encryptedVerifierHash)[0:64])
+        sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
+            (os.path.basename(filename), 2007, verifierHashSize,
+             keySize, saltSize, binascii.hexlify(salt).decode("ascii"),
+            binascii.hexlify(encryptedVerifier).decode("ascii"),
+            binascii.hexlify(encryptedVerifierHash)[0:64].decode("ascii")))
 
 
 have_summary = False
@@ -1957,11 +1871,22 @@ def process_file(filename):
 
     # Test if a file is an OLE container:
     try:
-        if not isOleFile(filename):
-            print >> sys.stderr, "%s : Invalid OLE file" % filename
+        f = open(filename, "rb")
+        if f.read(2) == b"PK":
+            sys.stderr.write("%s : zip container found, file is " \
+                        "unencrypted?, invalid OLE file!\n" % filename)
+            f.close()
             return 1
-    except Exception, e:
-        print >> sys.stderr, "%s : OLE check failed, %s " % (filename, str(e))
+        f.close()
+
+        if not isOleFile(filename):
+            sys.stderr.write("%s : Invalid OLE file\n" % filename)
+            return 1
+    except Exception:
+        e = sys.exc_info()[1]
+        import traceback
+        traceback.print_exc()
+        sys.stderr.write("%s : OLE check failed, %s\n" % (filename, str(e)))
         return 2
 
     # Open OLE file:
@@ -1969,28 +1894,42 @@ def process_file(filename):
 
     stream = None
 
-    # print ole.listdir()
     # find "summary" streams
     global have_summary, summary
     have_summary = False
     summary = []
 
     for streamname in ole.listdir():
-        if streamname[-1][0] == "\005":
+        streamname = streamname[-1]
+        if streamname[0] == "\005":
             have_summary = True
             props = ole.getproperties(streamname)
             props = props.items()
-            props.sort()
             for k, v in props:
                 if v is None:
                     continue
                 binary = False
-                if isinstance(v, basestring):
+                if isinstance(v, bytes):
+                    try:
+                        v = v.decode()
+                    except:
+                        import traceback
+                        traceback.print_exc()
+                if PY3:
+                    check = isinstance(v, str)
+                else:
+                    check = isinstance(v, str) or isinstance(v, unicode)
+                if check:
                     v = remove_html_tags(v)
                     v = v.replace(":", "")
                     v = remove_extra_spaces(v)
                     # binary filter
-                    v = filter(lambda x: x in string.printable, v)
+                    o = ""
+                    for c in v:
+                        if c in string.printable:
+                            o = o + c
+                    v = o
+                    # v = filter(lambda x: x in string.printable, v)
                     # length filter
                     words = str(v).split()
                     words = filter(lambda x: len(x) < 20, words)
@@ -2020,17 +1959,19 @@ def process_file(filename):
     elif ["PowerPoint Document"] in ole.listdir():
         stream = "Current User"
     else:
-        print >> sys.stderr, "%s : No supported streams found" % filename
+        sys.stderr.write("%s : No supported streams found\n" % filename)
         return 2
 
     try:
         workbookStream = ole.openstream(stream)
     except:
-        print >> sys.stderr, "%s : stream %s not found!" % (filename, stream)
+        import traceback
+        traceback.print_exc()
+        sys.stderr.write("%s : stream %s not found!\n" % (filename, stream))
         return 2
 
     if workbookStream is None:
-        print >> sys.stderr, "%s : Error opening stream, %s" % filename
+        sys.stderr.write("%s : Error opening stream, %s\n" % filename)
         (filename, stream)
         return 3
 
@@ -2059,21 +2000,25 @@ def process_file(filename):
     (salt, verifier, verifierHash) = passinfo
     if not have_summary:
         sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-            typ, binascii.hexlify(salt), binascii.hexlify(verifier),
-            binascii.hexlify(verifierHash)))
+            typ, binascii.hexlify(salt).decode("ascii"),
+            binascii.hexlify(verifier).decode("ascii"),
+            binascii.hexlify(verifierHash).decode("ascii")))
     else:
         sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s:::%s::%s\n" % (os.path.basename(filename),
-            typ, binascii.hexlify(salt), binascii.hexlify(verifier),
-            binascii.hexlify(verifierHash), summary, filename))
+            typ, binascii.hexlify(salt).decode("ascii"),
+            binascii.hexlify(verifier).decode("ascii"),
+            binascii.hexlify(verifierHash).decode("ascii"),
+            summary, filename))
 
     workbookStream.close()
     ole.close()
 
+    return 0
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print "Usage: %s <Office RC4 encrypted file(s)>" % sys.argv[0]
+        sys.stderr.write("Usage: %s <encrypted Office file(s)>\n" % sys.argv[0])
         sys.exit(1)
 
 for i in range(1, len(sys.argv)):
-    process_file(sys.argv[i])
+    ret = process_file(sys.argv[i])
