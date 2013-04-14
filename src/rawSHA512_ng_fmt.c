@@ -9,7 +9,11 @@
 
 #ifdef _OPENMP
 #include <omp.h>
-#define OMP_SCALE                 2048
+#if defined __XOP__
+#define OMP_SCALE                 1024 /* AMD */
+#else
+#define OMP_SCALE                 2048 /* Intel */
+#endif
 #endif
 
 #include "arch.h"
