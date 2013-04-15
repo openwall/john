@@ -191,7 +191,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	new_ciphertext = crypt(pw, ciphertext);
 #endif
 
-	if (strlen(new_ciphertext) == length &&
+	if (new_ciphertext && strlen(new_ciphertext) == length &&
 	    !strncmp(new_ciphertext, ciphertext, 2)) {
 		sup_length[length] = 1;
 		sup_id[id] = 1;
