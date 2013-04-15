@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "stdint.h"
 #include "memory.h"
+#include "misc.h"
 
 #define KEYRING_FILE_HEADER "GnomeKeyring\n\r\0\n"
 #define KEYRING_FILE_HEADER_LEN 16
@@ -183,7 +184,7 @@ static void process_file(const char *fname)
 	to_decrypt = (unsigned char *) mem_alloc(crypto_size);
 	count = fread(to_decrypt, crypto_size, 1, fp);
 	assert(count == 1);
-	printf("%s:$keyring$", fname);
+	printf("%s:$keyring$", basename(fname));
 	print_hex(salt, 8);
 	printf("*%d*%d*%d*", hash_iterations, crypto_size, 0);
 	print_hex(to_decrypt, crypto_size);

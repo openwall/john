@@ -243,3 +243,32 @@ char *jtr_basename(const char *name) {
 	static char buf[PATH_BUFFER_SIZE+1];
 	return jtr_basename_r(name, buf);
 }
+
+char *strip_suffixes(const char *src, const char *suffixes[], int count)
+{
+	int i, suflen, retlen, done;
+	static char ret[PATH_BUFFER_SIZE + 1];
+
+	done = ret[0] = 0;
+	if (src == NULL)
+		return ret;
+
+	strnzcpy(ret, src, sizeof(ret));
+	if (suffixes == NULL)
+		return ret;
+
+	while (done == 0) {
+		done = 1;
+		for (i = 0; i < count; i++) {
+			if (!suffixes[i] || !*suffixes[i])
+				continue;
+			retlen = strlen(ret);
+			suflen = strlen(suffixes[i]);
+			if (retlen >= suflen && !strcmp(&ret[retlen - suflen], suffixes[i])) {
+				ret[retlen - suflen] = 0;
+				done = 0;
+			}
+		}
+	}
+	return ret;
+}

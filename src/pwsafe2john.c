@@ -21,6 +21,7 @@
 #include <string.h>
 #include <assert.h>
 #include "stdint.h"
+#include "misc.h"
 
 static char *magic = "PWS3";
 
@@ -49,6 +50,7 @@ static void process_file(const char *filename)
 	int count;
 	unsigned char buf[32];
 	unsigned int iterations;
+	const char *ext[] = {".psafe3"};
 
 	if (!(fp = fopen(filename, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", filename, strerror(errno));
@@ -64,7 +66,7 @@ static void process_file(const char *filename)
 	assert(count == 1);
 	iterations = fget32(fp);
 
-	printf("%s:$pwsafe$*3*", filename);
+	printf("%s:$pwsafe$*3*", strip_suffixes(basename(filename), ext, 1));
 	print_hex(buf, 32);
 	printf("*%d*", iterations);
 	count = fread(buf, 32, 1, fp);

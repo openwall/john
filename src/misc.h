@@ -110,6 +110,11 @@ extern char *jtr_basename_r(const char *name, char *buf);
 #undef basename
 #define basename(a) jtr_basename(a)
 
+/*
+ * Removes suffixes frome src.
+ */
+extern char *strip_suffixes(const char *src, const char *suffixes[], int count);
+
 /* Return the first occurrence of NEEDLE in HAYSTACK.
    Faster implementation by Christian Thaeter <ct at pipapo dot org>
    http://sourceware.org/ml/libc-alpha/2007-12/msg00000.html
