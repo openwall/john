@@ -16,6 +16,8 @@
  */
 #include <stdio.h>
 
+#include "misc.h"
+
 static void print_help()
 {
 	printf("\nUtility to import TrueCrypt volume to a format crackeable by John The Ripper\n");
@@ -35,39 +37,39 @@ static void process_file(char * filename)
 			fprintf(stderr, "%s : Truecrypt volume file to short: Need at least 512 bytes\n", filename);
 		else
 		{
-			printf("truecrypt_normal_volume:truecrypt_RIPEMD_160$");
+			printf("%s:truecrypt_RIPEMD_160$", basename(filename));
 			for(i = 0;i < 512; i++)
 				printf("%02x", (int)(header[i]));
-			printf("\n");
+			printf(":normal::::%s\n", filename);
 
-			printf("truecrypt_normal_volume:truecrypt_SHA_512$");
+			printf("%s:truecrypt_SHA_512$", basename(filename));
 			for(i = 0;i < 512; i++)
 				printf("%02x", (int)(header[i]));
-			printf("\n");
+			printf(":normal::::%s\n", filename);
 
-			printf("truecrypt_normal_volume:truecrypt_WHIRLPOOL$");
+			printf("%s:truecrypt_WHIRLPOOL$", basename(filename));
 			for(i = 0;i < 512; i++)
 				printf("%02x", (int)(header[i]));
-			printf("\n");
+			printf(":normal::::%s\n", filename);
 
 			// Try hidden volume if any
 			if(!fseek(truecrypt_volume_file, 65536, SEEK_SET))
 				if( fread(header, 1, 512, truecrypt_volume_file) == 512 )
 				{
-					printf("truecrypt_hidden_volume:truecrypt_RIPEMD_160$");
+					printf("%s:truecrypt_RIPEMD_160$", basename(filename));
 					for(i = 0;i < 512; i++)
 						printf("%02x", (int)(header[i]));
-					printf("\n");
+					printf(":hidden::::%s\n", filename);
 
-					printf("truecrypt_hidden_volume:truecrypt_SHA_512$");
+					printf("%s:truecrypt_SHA_512$", basename(filename));
 					for(i = 0;i < 512; i++)
 						printf("%02x", (int)(header[i]));
-					printf("\n");
+					printf(":hidden::::%s\n", filename);
 
-					printf("truecrypt_hidden_volume:truecrypt_WHIRLPOOL$");
+					printf("%s:truecrypt_WHIRLPOOL$", basename(filename));
 					for(i = 0;i < 512; i++)
 						printf("%02x", (int)(header[i]));
-					printf("\n");
+					printf(":hidden::::%s\n", filename);
 				}
 		}
 
@@ -77,7 +79,7 @@ static void process_file(char * filename)
 	fprintf(stderr, "%s : No truecrypt volume found", filename);
 }
 
-int main(int argc, char **argv)
+int truecrypt_volume2john(int argc, char **argv)
 {
 	int i;
 

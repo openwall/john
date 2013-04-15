@@ -134,6 +134,7 @@ JOHN_OBJS = \
 	dmg2john.o \
 	keepass2john.o \
 	keyring2john.o \
+	truecrypt_volume2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
@@ -1987,6 +1988,10 @@ endif
 	$(RM) ../run/hccap2john
 	ln -s john ../run/hccap2john
 
+../run/truecrypt_volume2john: ../run/john
+	$(RM) ../run/truecrypt_volume2john
+	ln -s john ../run/truecrypt_volume2john
+
 ../run/unique: ../run/john
 	$(RM) ../run/unique
 	ln -s john ../run/unique
@@ -2188,9 +2193,6 @@ endif
 
 ../run/gpg2john:
 	$(CXX) -Wall gpg2john.cpp -lcrypto -o ../run/gpg2john
-
-../run/truecrypt_volume2john: truecrypt_volume2john.o
-	$(LD) $(LDFLAGS) truecrypt_volume2john.o -lcrypto -o ../run/truecrypt_volume2john
 
 ../run/uaf2john: uaf2john.o uaf_encode_plug.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode_plug.o -o ../run/uaf2john
