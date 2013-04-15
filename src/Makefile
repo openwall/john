@@ -132,7 +132,7 @@ JOHN_OBJS = \
 	pwsafe2john.o \
 	dmg2john.o \
 	keepass2john.o \
-	keyring2john.o \
+	keyring2john.o keystore2john.o \
 	wpapsk_fmt.o hccap2john.o \
 	mozilla_fmt.o KeyDBCracker.o mozilla_des.o lowpbe.o mozilla2john.o \
 	krb5-18_fmt.o krb5-23_fmt.o \
@@ -233,7 +233,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
-	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john
+	../run/truecrypt_volume2john ../run/wpapcap2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -2198,8 +2198,9 @@ endif
 ../run/wpapcap2john: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o -o ../run/wpapcap2john
 
-../run/keystore2john: keystore2john.o
-	$(LD) $(LDFLAGS) keystore2john.o -o ../run/keystore2john
+../run/keystore2john: john.o
+	$(RM) ../run/keystore2john
+	ln -s john ../run/keystore2john
 
 ../run/tgtsnarf: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) -o ../run/tgtsnarf

@@ -50,11 +50,13 @@
  */
 
 #include <stdio.h>
-#include "stdint.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include "stdint.h"
+#include "misc.h"
 
 #define N 819200
 
@@ -97,6 +99,8 @@ static void process_file(char *filename)
 	unsigned char md[20];
 	int xMagic;
 	int xVersion;
+	char *bname;
+	const char *extension[] = { ".keystore" };
 
 	if (!(fp = fopen(filename, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", filename, strerror(errno));
@@ -114,7 +118,7 @@ static void process_file(char *filename)
 	xVersion = fget32(fp);
 
 	if (xMagic!=MAGIC || (xVersion!=VERSION_1 && xVersion!=VERSION_2)) {
-		fprintf(stderr, "Invalid keystore format");
+		fprintf(stderr, "Invalid keystore format\n");
 		goto bail;
 	}
 
@@ -194,18 +198,19 @@ static void process_file(char *filename)
 	read = fread(md, 20, 1, fp);
 	assert(read == 1);
 
-	printf("%s:$keystore$0$%d$", filename, pos);
+	bname = strip_suffixes(basename(filename), extension, 1);
+	printf("%s:$keystore$0$%d$", bname, pos);
 	print_hex(data, pos);
 	printf("$");
 	print_hex(md, 20);
 	printf("$%d$%d$", count, keysize);
 	print_hex(protectedPrivKey, keysize);
-	printf("\n");
+	printf(":::::%s\n", filename);
 bail:
 	return;
 }
 
-int main(int argc, char **argv)
+int keystore2john(int argc, char **argv)
 {
         if (argc < 2) {
                 fprintf(stderr, "Usage: %s <.keystore file>\n", argv[0]);
