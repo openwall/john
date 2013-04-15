@@ -1811,18 +1811,18 @@ generic.h:
 testpara:
 	$(LN) x86-64.h arch.h
 	perl ./para-best.pl "$(CC)" "$(MAKE)" \
-		"$(BENCH_PARA_DEPEND)" "-msse2" 64
+		"$(BENCH_PARA_DEPEND)" "-msse2 -DHAVE_OPENSSL" 64
 
 testpara-native:
 	$(LN) x86-64.h arch.h
 	perl ./para-best.pl "$(CC)" "$(MAKE)" \
-		"$(BENCH_PARA_DEPEND)" "-march=native" 64
+		"$(BENCH_PARA_DEPEND)" "-march=native -DHAVE_OPENSSL" 64
 
 testpara32:
 	$(LN) x86-sse.h arch.h
-	CFLAGS="$(CFLAGS) -m32 -msse2" \
+	CFLAGS="$(CFLAGS) -m32 -msse2 -DHAVE_OPENSSL" \
 	perl ./para-best.pl "$(CC)" "$(MAKE)" \
-		"$(BENCH_PARA_DEPEND)" "-m32 -msse2" 32
+		"$(BENCH_PARA_DEPEND)" "-m32 -msse2 -DHAVE_OPENSSL" 32
 
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
