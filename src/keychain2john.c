@@ -43,6 +43,7 @@
 #include <string.h>
 #include <assert.h>
 #include "stdint.h"
+#include "misc.h"
 
 #define SALTLEN 20
 #define IVLEN 8
@@ -122,7 +123,7 @@ static void process_file(const char *filename)
 		exit(1);
 	}
 	// output
-	printf("%s:$keychain$*", filename);
+	printf("%s:$keychain$*", basename(filename));
 	print_hex(salt, SALTLEN);
 	printf("*");
 	print_hex(iv, IVLEN);

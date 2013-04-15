@@ -33,6 +33,9 @@
 #include <unistd.h>
 #include "params.h"
 #include "memory.h"
+#include "misc.h"
+
+const char *extension[]={".kdbx"};
 
 // KeePass 1.x signature
 uint32_t FileSignatureOld1 = 0x9AA2D903;
@@ -130,6 +133,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	int count;
 	long long filesize;
 	long long datasize;
+	char *dbname;
 	enc_flag = fget32(fp);
 	version = fget32(fp);
 	count = fread(final_randomseed, 16, 1, fp);
@@ -154,7 +158,8 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		fprintf(stderr, "! %s : Unsupported file encryption!\n", encryptedDatabase);
 		return;
 	}
-	printf("%s:$keepass$*1*%d*%d*",encryptedDatabase, key_transf_rounds, 124);
+	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
+	printf("%s:$keepass$*1*%d*%d*",dbname, key_transf_rounds, 124);
 	print_hex(final_randomseed, 16);
 	printf("*");
 	print_hex(transf_randomseed, 32);
@@ -173,7 +178,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 		print_hex(buffer, datasize);
 	}
 	else {
-		printf("*0*%s", encryptedDatabase); /* data is not inline */
+		printf("*0*%s", dbname); /* data is not inline */
 	}
 	printf("\n");
 }
@@ -193,6 +198,7 @@ static void process_database(char* encryptedDatabase)
 	uint32_t uSig1, uSig2, uVersion;
 	FILE *fp;
 	unsigned char out[32];
+	char *dbname;
 
 	fp = fopen(encryptedDatabase, "rb");
 	if (!fp) {
@@ -304,7 +310,8 @@ static void process_database(char* encryptedDatabase)
 		fprintf(stderr, "! %s : parsing failed, please open a bug if target is valid KeepPass database.\n", encryptedDatabase);
 		goto bailout;
 	}
-	printf("%s:$keepass$*2*%ld*%ld*",encryptedDatabase, transformRounds, dataStartOffset);
+	dbname = strip_suffixes(basename(encryptedDatabase),extension, 1);
+	printf("%s:$keepass$*2*%ld*%ld*",dbname, transformRounds, dataStartOffset);
 	print_hex(masterSeed, masterSeedLength);
 	printf("*");
 	print_hex(transformSeed, transformSeedLength);
@@ -333,7 +340,7 @@ int keepass2john(int argc, char **argv)
 	int i;
 
 	if(argc < 2) {
-		fprintf(stderr, "Usage: keepass2john [KeePass database(s)]\n");
+		fprintf(stderr, "Usage: keepass2john [.kdbx KeePass database(s)]\n");
 		return -1;
 	}
 	for(i = 1; i < argc; i++) {

@@ -19,6 +19,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include "memory.h"
+#include "misc.h"
 
 #define smalloc(z) safemalloc(z,1)
 #define snmalloc safemalloc
@@ -129,7 +130,7 @@ typedef struct Filename {
 #define PASSPHRASE_MAXLEN 512
 
 static char header[40], *b, *encryption, *comment, *mac;
-static const char *error = NULL;
+static const char *putty_error = NULL;
 static int i, is_mac, old_fmt;
 static char alg[8];
 static int cipher, cipherblk;
@@ -235,7 +236,7 @@ static int init_LAME(const Filename *filename) {
 
 	fp = fopen(filename->path, "rb" );
 	if (!fp) {
-		error = "can't open file";
+		putty_error = "can't open file";
 		goto error;
 	}
 
@@ -249,10 +250,10 @@ static int init_LAME(const Filename *filename) {
 		// old_keyfile_warning();
 		old_fmt = 1;
 	} else {
-		error = "not a PuTTY SSH-2 private key";
+		putty_error = "not a PuTTY SSH-2 private key";
 		goto error;
 	}
-	error = "file format error";
+	putty_error = "file format error";
 	if ((b = read_body(fp)) == NULL)
 		goto error;
 	/* Select key algorithm structure. */
@@ -340,8 +341,10 @@ static void print_hex(unsigned char *str, int len)
 		printf("%02x", str[i]);
 }
 
-static void LAME_ssh2_load_userkey(char *filename, const char **errorstr)
+static void LAME_ssh2_load_userkey(char *path, const char **errorstr)
 {
+	const char *ext[] = {".ppk"};
+	char *fname;
 	/*
 	* Decrypt the private blob.
 	*/
@@ -351,7 +354,8 @@ static void LAME_ssh2_load_userkey(char *filename, const char **errorstr)
 	}
 
 	{
-		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", filename, cipher,cipherblk, is_mac, old_fmt, mac, public_blob_len);
+		fname = strip_suffixes(basename(path), ext, 1);
+		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher,cipherblk, is_mac, old_fmt, mac, public_blob_len);
 		print_hex(public_blob, public_blob_len);
 		printf("*%d*", private_blob_len);
 		print_hex(private_blob, private_blob_len);
@@ -591,7 +595,7 @@ int putty2john(int argc, char **argv)
 	int i;
 
 	if (argc < 2) {
-		printf( "Usage: putty2john [PuTTY-Private-Key-File(s)]\n");
+		printf( "Usage: putty2john [.ppk PuTTY-Private-Key-File(s)]\n");
 		exit(1);
 	}
 

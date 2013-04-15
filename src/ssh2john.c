@@ -121,7 +121,7 @@ static void process_file(const char *filename)
         }
 	/* key has been verified */
 	count = fread(buffer, 1, LINE_BUFFER_SIZE, keyfile);
-	printf("%s:$ssh2$", filename);
+	printf("%s:$ssh2$", basename(filename));
 	for (i = 0; i < count; i++) {
 	    printf("%c%c", itoa16[ARCH_INDEX(buffer[i] >> 4)],
 	            itoa16[ARCH_INDEX(buffer[i] & 0x0f)]);

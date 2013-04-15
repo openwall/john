@@ -103,6 +103,10 @@ extern char *jtr_basename_r(const char *name, char *buf);
 #undef basename
 #define basename(a) jtr_basename(a)
 
+/*
+ * Removes suffixes frome src.
+ */
+extern char *strip_suffixes(const char *src, const char *suffixes[], int count);
 
 /*
  * Converts a string to lowercase.

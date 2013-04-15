@@ -66,6 +66,8 @@ static void process_file(const char *filename)
 	unsigned char buffer[LINE_BUFFER_SIZE];
 	BIO* in = NULL;
 	PKCS12 *p12 = NULL;
+	const char *ext[] = {".p12",".pfx"};
+	char *fname;
 
 	if (!(pfxfile = fopen(filename, "rb"))) {
 	    fprintf(stderr, "! %s : %s\n", filename, strerror(errno));
@@ -85,7 +87,8 @@ static void process_file(const char *filename)
 		return;
 	}
 	count = fread(buffer, 1, LINE_BUFFER_SIZE, pfxfile);
-	printf("%s:$pfx$*%d*", filename, count);
+	fname = strip_suffixes(basename(filename), ext, 2);
+	printf("%s:$pfx$*%d*", fname, count);
 	for (i = 0; i < count; i++) {
 	    printf("%c%c", itoa16[ARCH_INDEX(buffer[i] >> 4)],
 	            itoa16[ARCH_INDEX(buffer[i] & 0x0f)]);

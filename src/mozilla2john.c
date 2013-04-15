@@ -47,6 +47,8 @@ static void process_path(char *path)
 	unsigned char data2[512];
 	SECItem secPreHash;
 	SECItem pkcs5_pfxpbe;
+	const char *extension[]={".db"};
+	char *fname;
 
 	if(stat(path, &sb) == 0) {
 		if(S_ISDIR(sb.st_mode)) {
@@ -84,7 +86,8 @@ static void process_path(char *path)
 		fprintf (stderr, "%s : no Master Password set!\n", path);
 		return;
 	}
-	printf("%s:$mozilla$*%d*%d*%d*",path, keyCrackData.version, keyCrackData.saltLen, keyCrackData.nnLen);
+	fname = strip_suffixes(basename(path),extension,1);
+	printf("%s:$mozilla$*%d*%d*%d*",fname, keyCrackData.version, keyCrackData.saltLen, keyCrackData.nnLen);
 	for (i = 0; i < keyCrackData.saltLen; i++)
 		printf("%c%c", itoa16[ARCH_INDEX(keyCrackData.salt[i] >> 4)],
 				itoa16[ARCH_INDEX(keyCrackData.salt[i] & 0x0f)]);
