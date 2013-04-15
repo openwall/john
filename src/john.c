@@ -213,6 +213,7 @@ extern int pwsafe2john(int argc, char **argv);
 extern int dmg2john(int argc, char **argv);
 extern int putty2john(int argc, char **argv);
 extern int keystore2john(int argc, char **argv);
+extern int truecrypt_volume2john(int argc, char **argv);
 #endif
 extern int zip2john(int argc, char **argv);
 
@@ -969,6 +970,11 @@ int main(int argc, char **argv)
 	if (!strcmp(name, "keystore2john")) {
 		CPU_detect_or_fallback(argv, 0);
 		return keystore2john(argc, argv);
+	}
+
+	if (!strcmp(name, "truecrypt_volume2john")) {
+		CPU_detect_or_fallback(argv, 0);
+		return truecrypt_volume2john(argc, argv);
 	}
 #if !defined (__MINGW32__)
 	if (!strcmp(name, "dmg2john")) {
