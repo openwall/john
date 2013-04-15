@@ -531,7 +531,7 @@ static int binary_hash_4(void *binary) { return *(ARCH_WORD*)binary & 0xFFFFF; }
 static int binary_hash_5(void *binary) { return *(ARCH_WORD*)binary & 0xFFFFFF; }
 static int binary_hash_6(void *binary) { return *(ARCH_WORD*)binary & 0x7FFFFFF; }
 
-struct fmt_main fmt_MSCHAPv2_naive = {
+struct fmt_main fmt_MSCHAPv2_old = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
