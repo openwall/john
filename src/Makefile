@@ -1352,6 +1352,23 @@ aix-ppc32:
 		OPT_NORMAL="-O2" \
 		OPT_INLINE="-O3 -Q=99 -w"
 
+# This target needs a real gcc and a wrapper for using clang's assembler:
+# Copy osx_as_wrapper.sh to /usr/local/bin/as or some other directory at your
+# choice (but the file MUST be named 'as') and be sure this directory is
+# first in your $PATH.
+macosx-x86-64-native:
+	$(LN) x86-64.h arch.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o sse-intrinsics.o" \
+		ASFLAGS="$(ASFLAGS) -march=native -DUNDERSCORES -DBSD -DALIGN_LOG" \
+		CFLAGS="$(CFLAGS) -DHAVE_CRYPT -march=native -Wno-deprecated-declarations" \
+		LDFLAGS="$(LDFLAGS) -march=native"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -march=native"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -march=native"
+	@echo "All done"
+
 macosx-x86-64:
 	$(LN) x86-64.h arch.h
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
