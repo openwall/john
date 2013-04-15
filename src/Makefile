@@ -233,7 +233,7 @@ PROJ = ../run/john ../run/unshadow ../run/unafs ../run/unique ../run/undrop \
 	../run/pwsafe2john ../run/raw2dyna ../run/keepass2john ../run/pfx2john \
 	../run/keychain2john ../run/keyring2john ../run/kwallet2john \
 	../run/dmg2john ../run/putty2john john.local.conf ../run/uaf2john \
-	../run/truecrypt_volume2john ../run/wpapcap2john
+	../run/truecrypt_volume2john ../run/keystore2john ../run/wpapcap2john
 PROJ_DOS = ../run/john.bin ../run/john.com \
 	../run/unshadow.com ../run/unafs.com ../run/unique.com \
 	../run/undrop.com \
@@ -2198,7 +2198,7 @@ endif
 ../run/wpapcap2john: wpapcap2john.o
 	$(LD) $(LDFLAGS) wpapcap2john.o -o ../run/wpapcap2john
 
-../run/keystore2john: john.o
+../run/keystore2john: ../run/john
 	$(RM) ../run/keystore2john
 	ln -s john ../run/keystore2john
 
