@@ -12,8 +12,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include "stdint.h"
 
+#include "stdint.h"
+#include "misc.h"
 
 #define KWMAGIC 			"KWALLET\n\r\0\r\n"
 #define KWMAGIC_LEN 			12
@@ -62,6 +63,8 @@ static void process_file(const char *fname)
 	long size, offset = 0;
 	size_t i, j;
 	uint32_t n;
+	const char *extension[]={".kwl"};
+	char *bname;
 
 	if (!(fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "%s : %s\n", fname, strerror(errno));
@@ -133,8 +136,11 @@ static void process_file(const char *fname)
 		exit(7);
 	}
 
-	printf("$kwallet$%ld$", encrypted_size);
+	bname = strip_suffixes(basename(fname), extension, 1);
+
+	printf("%s:$kwallet$%ld$", bname, encrypted_size);
 	print_hex(encrypted, encrypted_size);
+	printf(":::::%s\n", fname);
 
 	fclose(fp);
 }
@@ -142,11 +148,15 @@ static void process_file(const char *fname)
 
 int kwallet2john(int argc, char **argv)
 {
+	int i;
+
 	if (argc < 2) {
-		fprintf(stderr, "Usage: %s <.kwl file>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <.kwl file(s)>\n", argv[0]);
 		exit(-1);
 	}
-	process_file(argv[1]);
+
+	for (i = 1; i < argc; i++)
+		process_file(argv[i]);
 
 	return 0;
 }
