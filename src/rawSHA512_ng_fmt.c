@@ -6,6 +6,8 @@
  * retains the above copyright.
  */
 
+#include "arch.h"
+#ifdef MMX_COEF
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -15,9 +17,6 @@
 #define OMP_SCALE                 2048 /* Intel */
 #endif
 #endif
-
-#include "arch.h"
-#ifdef MMX_COEF
 
 #pragma GCC optimize 3
 
@@ -294,13 +293,12 @@ static void set_key (char *key, int index)
     uint8_t  *buf8  = (uint8_t * ) buf64;
     int len = 0;
 
-    memset(buf8, 0, 64);
-
     while (*key)
-        buf8[len++] = *key++;
-
+	    buf8[len++] = *key++;
     buf64[15] = len << 3;
     buf8[len++] = 0x80;
+    while (buf8[len] && len <= MAXLEN)
+        buf8[len++] = 0;
 }
 
 
