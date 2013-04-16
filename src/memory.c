@@ -69,11 +69,17 @@ void *mem_calloc(size_t size)
 void *mem_alloc_tiny(size_t size, size_t align)
 {
 #ifdef DEBUG
-	void *res;
+	size_t mask;
+	char *p;
 
-	res = mem_alloc(size);
-	add_memory_link(res);
-	return res;
+	mask = align - 1;
+
+	p = mem_alloc(size + mask);
+	add_memory_link(p);
+
+	p += mask;
+	p -= (size_t)p & mask;
+	return p;
 #else
 	static char *buffer = NULL;
 	static size_t bufree = 0;
@@ -81,7 +87,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	char *p;
 
 #if ARCH_ALLOWS_UNALIGNED
-	if (mem_saving_level > 2)
+	if (mem_saving_level > 2 && align != MEM_ALIGN_SIMD)
 		align = MEM_ALIGN_NONE;
 #endif
 
