@@ -1797,8 +1797,8 @@ static unsigned char *AddSaltHash(unsigned char *salt, unsigned len, unsigned in
 		dyna_salt_list_count = 25000;
 	}
 	if (nSaltDataBuf < len) {
-		pSaltDataBuf = pNextSaltDataBuf = mem_alloc_tiny(MEM_ALLOC_SIZE*6, MEM_ALIGN_NONE);
-		nSaltDataBuf = MEM_ALLOC_SIZE*6;
+		pSaltDataBuf = pNextSaltDataBuf = mem_alloc_tiny(0x60000, MEM_ALIGN_NONE);
+		nSaltDataBuf = 0x60000;
 	}
 	pRet = pNextSaltDataBuf;
 	pSaltHashDataNext->salt = pNextSaltDataBuf;
