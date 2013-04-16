@@ -1461,8 +1461,8 @@ macosx-x86-sse2:
 		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
-	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 macosx-x86-sse2-opencl:
@@ -1477,8 +1477,8 @@ macosx-x86-sse2-opencl:
 	$(CP_PRESERVE) opencl/*.cl ../run/kernels/
 	$(CP_PRESERVE) opencl_*.h ../run/kernels/
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
-	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 macosx-x86-mmx:
@@ -1490,8 +1490,8 @@ macosx-x86-mmx:
 		CFLAGS="$(CFLAGS) -m32 -Wno-deprecated-declarations" \
 		LDFLAGS="$(LDFLAGS) -m32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32"
-	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE) $(PROJ_CXX) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
+	$(MAKE) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 macosx-ppc32-altivec:
