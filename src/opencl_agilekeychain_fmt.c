@@ -52,7 +52,7 @@ typedef struct {
 } keychain_password;
 
 typedef struct {
-	uint32_t v[32/4];
+	uint32_t v[16/4];
 } keychain_hash;
 
 typedef struct {
@@ -253,7 +253,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, cur_salt->salt, cur_salt->saltlen[0]);
 	currentsalt.length = cur_salt->saltlen[0];
 	currentsalt.iterations = cur_salt->iterations[0];
-	currentsalt.outlen = 32;
+	currentsalt.outlen = 16;
 }
 
 #undef set_key
@@ -278,19 +278,18 @@ static char *get_key(int index)
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
 	unsigned char key[16];
-	unsigned char iv[16];
+	unsigned char iv[16] = { 0 };
 	unsigned char out[CTLEN];
 	int pad, n, i, key_size;
 	AES_KEY akey;
 	memcpy(key, derived_key, 16);
-	memcpy(iv, derived_key + 16, 16);
 	memset(out, 0, sizeof(out));
 	memset(&akey, 0, sizeof(AES_KEY));
 
 	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
 	}
-	AES_cbc_encrypt(data, out, CTLEN, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(data + CTLEN - 32, out + CTLEN - 32, 32, &akey, iv, AES_DECRYPT);
 
 	// now check padding
 	pad = out[CTLEN - 1];
