@@ -1880,29 +1880,35 @@ static unsigned salt_external_to_internal_convert(unsigned char *extern_salt, un
 			// a 'likely' extra salt value.
 			switch(extern_salt[i+2]) {
 				case '2':
-					salt2 = &extern_salt[i+3];
-					nsalt2 = strlen((char*)salt2);
-					nsalt2 = ConvertFromHex(salt2, nsalt2);
-					extern_salt[i] = 0;
-					bit_array |= 1;
-					the_real_len += (nsalt2+1);
+					if (curdat.b2Salts) {
+						salt2 = &extern_salt[i+3];
+						nsalt2 = strlen((char*)salt2);
+						nsalt2 = ConvertFromHex(salt2, nsalt2);
+						extern_salt[i] = 0;
+						bit_array |= 1;
+						the_real_len += (nsalt2+1);
+					}
 					break;
 				case 'U':
-					userid = &extern_salt[i+3];
-					nuserid = strlen((char*)userid);
-					nuserid = ConvertFromHex(userid, nuserid);
-					extern_salt[i] = 0;
-					bit_array |= 2;
-					the_real_len += (nuserid+1);
+					if (curdat.nUserName) {
+						userid = &extern_salt[i+3];
+						nuserid = strlen((char*)userid);
+						nuserid = ConvertFromHex(userid, nuserid);
+						extern_salt[i] = 0;
+						bit_array |= 2;
+						the_real_len += (nuserid+1);
+					}
 					break;
 				case 'F': {
 					if (extern_salt[i+3] >= '0' && extern_salt[i+3] <= '9') {
-						Flds[extern_salt[i+3]-'0'] = &extern_salt[i+4];
-						nFlds[extern_salt[i+3]-'0'] = strlen((char*)(Flds[extern_salt[i+3]-'0']));
-						nFlds[extern_salt[i+3]-'0'] = ConvertFromHex(Flds[extern_salt[i+3]-'0'], nFlds[extern_salt[i+3]-'0']);
-						extern_salt[i] = 0;
-						bit_array |= (1<<(2+extern_salt[i+3]-'0'));
-						the_real_len += (nFlds[extern_salt[i+3]-'0']+1);
+						if (curdat.FldMask && (curdat.FldMask & (MGF_FLDx_BIT<<(extern_salt[i+3]-'0'))) == (MGF_FLDx_BIT<<(extern_salt[i+3]-'0'))) {
+							Flds[extern_salt[i+3]-'0'] = &extern_salt[i+4];
+							nFlds[extern_salt[i+3]-'0'] = strlen((char*)(Flds[extern_salt[i+3]-'0']));
+							nFlds[extern_salt[i+3]-'0'] = ConvertFromHex(Flds[extern_salt[i+3]-'0'], nFlds[extern_salt[i+3]-'0']);
+							extern_salt[i] = 0;
+							bit_array |= (1<<(2+extern_salt[i+3]-'0'));
+							the_real_len += (nFlds[extern_salt[i+3]-'0']+1);
+						}
 						break;
 					}
 				}
@@ -2040,10 +2046,16 @@ static void *salt(char *ciphertext)
 	else
 		off=curdat.dynamic_SALT_OFFSET-strlen(curdat.dynamic_WHICH_TYPE_SIG);
 
-	if (ciphertext[off] == '$' && (ciphertext[off+1]=='U' ||
-		                          (ciphertext[off+1]=='F' && ciphertext[off+2]>='0' && ciphertext[off+2]<='9') ||
-								   ciphertext[off+1]=='2') )
-		possible_neg_one = -1;
+	if (ciphertext[off] == '$') {
+		if (ciphertext[off+1]=='U' && curdat.nUserName)
+			possible_neg_one = -1;
+		else if (ciphertext[off+1]=='2' && curdat.b2Salts)
+			possible_neg_one = -1;
+		else if (ciphertext[off+1]=='F' && ciphertext[off+2]>='0' && ciphertext[off+2]<='9' && curdat.FldMask) {
+			if ((curdat.FldMask & (MGF_FLDx_BIT<<(ciphertext[off+2]-'0'))) == (MGF_FLDx_BIT<<(ciphertext[off+2]-'0')))
+			possible_neg_one = -1;
+		}
+	}
 	strnzcpy(Salt, &ciphertext[off + possible_neg_one], SALT_SIZE);
 
 	if (curdat.dynamic_salt_as_hex)
