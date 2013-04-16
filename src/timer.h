@@ -21,6 +21,7 @@
 #include <time.h>
 
 #if defined (_MSC_VER) || defined (__MINGW32__)
+#include <sys/timeb.h> /* for ftime(), which is not used */
 #undef MEM_FREE
 #include <windows.h>
 #undef MEM_FREE
