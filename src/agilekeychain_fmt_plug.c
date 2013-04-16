@@ -156,19 +156,19 @@ static void set_salt(void *salt)
 
 static int akcdecrypt(unsigned char *derived_key, unsigned char *data)
 {
-	unsigned char key[16];
-	unsigned char iv[16] = { 0 };
+	unsigned char *iv = data + CTLEN - 32;
 	unsigned char out[CTLEN];
 	int pad, n, i, key_size;
 	AES_KEY akey;
-	memcpy(key, derived_key, 16);
-	memset(out, 0, sizeof(out));
-	memset(&akey, 0, sizeof(AES_KEY));
 
-	if(AES_set_decrypt_key(key, 128, &akey) < 0) {
+	// memcpy(key, derived_key, 16);
+	// memset(out, 0, sizeof(out));
+	// memset(&akey, 0, sizeof(AES_KEY));
+
+	if(AES_set_decrypt_key(derived_key, 128, &akey) < 0) {
 		fprintf(stderr, "AES_set_derypt_key failed in crypt!\n");
 	}
-	AES_cbc_encrypt(data + CTLEN - 32, out + CTLEN - 32, 32, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(data + CTLEN - 16, out + CTLEN - 16, 16, &akey, iv, AES_DECRYPT);
 
 	// now check padding
 	pad = out[CTLEN - 1];

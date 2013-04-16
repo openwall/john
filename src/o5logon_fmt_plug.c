@@ -149,7 +149,7 @@ static void crypt_all(int count)
 	{
 		unsigned char key[24];
 		unsigned char pt[48];
-		unsigned char iv[16];
+		unsigned char *iv = cur_salt->ct + 16;
 		AES_KEY akey;
 		SHA_CTX ctx;
 
@@ -160,7 +160,7 @@ static void crypt_all(int count)
 		SHA1_Final(key, &ctx);
 
 		AES_set_decrypt_key(key, 192, &akey);
-		AES_cbc_encrypt(cur_salt->ct + 16, pt + 16, 32, &akey, iv, AES_DECRYPT);
+		AES_cbc_encrypt(cur_salt->ct + 32, pt + 32, 16, &akey, iv, AES_DECRYPT);
 		if (!memcmp(pt + 40, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
 			any_cracked = cracked[index] = 1;
 	}
