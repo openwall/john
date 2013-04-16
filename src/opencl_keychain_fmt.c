@@ -227,7 +227,7 @@ static void set_salt(void *salt)
 	memcpy((char*)currentsalt.salt, salt_struct->salt, 20);
 	currentsalt.length = 20;
 	currentsalt.iterations = 1000;
-	currentsalt.outlen = 32;
+	currentsalt.outlen = 24;
 }
 
 #undef set_key
