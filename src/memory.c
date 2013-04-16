@@ -66,21 +66,17 @@ void *mem_calloc(size_t size)
 	return res;
 }
 
+/*
+ * if -DDEBUG we turn mem_alloc_tiny() to essentially be just a malloc()
+ * with additional alignment. The reason for this is it's way easier to
+ * trace bugs that way.
+ */
+#ifdef DEBUG
+#undef  MEM_ALLOC_SIZE
+#define MEM_ALLOC_SIZE 0
+#endif
 void *mem_alloc_tiny(size_t size, size_t align)
 {
-#ifdef DEBUG
-	size_t mask;
-	char *p;
-
-	mask = align - 1;
-
-	p = mem_alloc(size + mask);
-	add_memory_link(p);
-
-	p += mask;
-	p -= (size_t)p & mask;
-	return p;
-#else
 	static unsigned long buffer, bufree = 0;
 	unsigned long start, end;
 
@@ -108,7 +104,6 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	}
 
 	return (void *)start;
-#endif
 }
 
 void *mem_calloc_tiny(size_t size, size_t align) {
