@@ -6,13 +6,21 @@
  * retains the above copyright.
  */
 
-
+#include "arch.h"
 #ifdef __SSE2__
+
+#ifdef _OPENMP
+#include <omp.h>
+#if defined __XOP__
+#define OMP_SCALE                 512 /* AMD */
+#else
+#define OMP_SCALE                 512 /* Intel */
+#endif
+#endif
 
 #pragma GCC optimize 3
 
 //#define DEBUG
-//#define EXTENDED_TESTS
 
 #include <string.h>
 #include "stdint.h"
@@ -111,10 +119,10 @@
 #ifdef __SSE4_1__
 #define GATHER(x, y, z)                                                   \
 {                                                                         \
-    x = _mm_cvtsi32_si128 (   y[0][z]   );                                \
-    x = _mm_insert_epi32  (x, y[1][z], 1);                                \
-    x = _mm_insert_epi32  (x, y[2][z], 2);                                \
-    x = _mm_insert_epi32  (x, y[3][z], 3);                                \
+    x = _mm_cvtsi32_si128 (   y[index][z]   );                            \
+    x = _mm_insert_epi32  (x, y[index + 1][z], 1);                        \
+    x = _mm_insert_epi32  (x, y[index + 2][z], 2);                        \
+    x = _mm_insert_epi32  (x, y[index + 3][z], 3);                        \
 }
 #endif
 
@@ -194,23 +202,35 @@ static struct fmt_tests tests[] = {
     {"04cdd6c523673bf448efe055711a9b184817d7843b0a76c2046f5398b5854152", "TestTESTt3st"},
     {FORMAT_TAG "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f", "12345678"},
     {FORMAT_TAG "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
-#ifdef EXTENDED_TESTS
+#ifdef DEBUG
     {"9e7d3e56996c5a06a6a378567e62f5aa7138ebb0f55c0bdaf73666bf77f73380", "mot\xf6rhead"},
-    {FORMAT_TAG "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", ""},
     {"0f46e4b0802fee6fed599682a16287d0397699cfd742025482c086a70979e56a", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 31
     {"c62e4615bd39e222572f3a1bf7c2132ea1e65b17ec805047bd6b2842c593493f", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 32
     {"d5e285683cd4efc02d021a5c62014694958901005d6f71e89e0989fac77e4072", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 55
-#if MAXLEN > 55
-    {"04c26261370ee7541549d16dee320c723e3fd14671e66a099afe0a377c16888e", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 56
-    {"6e20a1199bf58ddb8fadbe63725f1dd9de8440153af062ca56b70d99a22c306e", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}, // 59
-#endif
 #endif
     {NULL}
 };
 
 
-uint32_t saved_key[VWIDTH][64] __attribute__ ((aligned(16)));
-uint32_t crypt_key[ 8][VWIDTH] __attribute__ ((aligned(16)));
+static uint32_t (*saved_key)[64];
+static uint32_t *crypt_key[ 8];
+
+
+static void init(struct fmt_main *self)
+{
+    int i;
+#ifdef _OPENMP
+    int omp_t;
+
+    omp_t = omp_get_max_threads();
+    self->params.min_keys_per_crypt *= omp_t;
+    omp_t *= OMP_SCALE;
+    self->params.max_keys_per_crypt *= omp_t;
+#endif
+    saved_key = mem_calloc_tiny(sizeof(*saved_key) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+    for (i = 0; i < 8; i++)
+        crypt_key[i] = mem_calloc_tiny(sizeof(uint32_t) * self->params.max_keys_per_crypt, MEM_ALIGN_SIMD);
+}
 
 
 static int valid (char *ciphertext, struct fmt_main *self)
@@ -320,142 +340,152 @@ static int crypt_all (int *pcount, struct db_salt *salt)
 static void crypt_all (int count)
 #endif
 {
-    __m128i a, b, c, d, e, f, g, h;
-    __m128i w[64], tmp1, tmp2;
-
-    int i;
-
-#ifdef DEBUG
-    printf("index %d key '%s'\n", *pcount - 1, get_key(*pcount - 1));
-    dump_stuff(saved_key[*pcount-1], 64);
-#endif
-#ifdef __SSE4_1__
-    for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
-    for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
-#else
-    uint32_t __w[16][VWIDTH] __attribute__ ((aligned (16)));
-    int j;
-
-    for (i=0; i < VWIDTH; i++)
-        for (j=0; j < 16; j++)
-            __w[j][i] = saved_key[i][j];
-
-    for (i=0; i < 15; i++)
-    {
-        w[i] = _mm_load_si128 ((__m128i *) __w[i]);
-        SWAP_ENDIAN (w[i]);
-    }
-
-    w[15] = _mm_load_si128 ((__m128i *) __w[15]);
-#endif
-#ifdef DEBUG
-    puts("w");
-    dump_stuff_shammx(w, 64, *pcount-1);
-#endif
-
-    a = _mm_set1_epi32 (0x6a09e667);
-    b = _mm_set1_epi32 (0xbb67ae85);
-    c = _mm_set1_epi32 (0x3c6ef372);
-    d = _mm_set1_epi32 (0xa54ff53a);
-    e = _mm_set1_epi32 (0x510e527f);
-    f = _mm_set1_epi32 (0x9b05688c);
-    g = _mm_set1_epi32 (0x1f83d9ab);
-    h = _mm_set1_epi32 (0x5be0cd19);
-
-    SHA256_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98);
-    SHA256_STEP(h, a, b, c, d, e, f, g,  1, 0x71374491);
-    SHA256_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcf);
-    SHA256_STEP(f, g, h, a, b, c, d, e,  3, 0xe9b5dba5);
-    SHA256_STEP(e, f, g, h, a, b, c, d,  4, 0x3956c25b);
-    SHA256_STEP(d, e, f, g, h, a, b, c,  5, 0x59f111f1);
-    SHA256_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4);
-    SHA256_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5);
-    SHA256_STEP(a, b, c, d, e, f, g, h,  8, 0xd807aa98);
-    SHA256_STEP(h, a, b, c, d, e, f, g,  9, 0x12835b01);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 10, 0x243185be);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 11, 0x550c7dc3);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a7);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 15, 0xc19bf174);
-
-    SHA256_STEP(a, b, c, d, e, f, g, h, 16, 0xe49b69c1);
-    SHA256_STEP(h, a, b, c, d, e, f, g, 17, 0xefbe4786);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 18, 0x0fc19dc6);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 19, 0x240ca1cc);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 20, 0x2de92c6f);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 21, 0x4a7484aa);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 22, 0x5cb0a9dc);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 23, 0x76f988da);
-    SHA256_STEP(a, b, c, d, e, f, g, h, 24, 0x983e5152);
-    SHA256_STEP(h, a, b, c, d, e, f, g, 25, 0xa831c66d);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 26, 0xb00327c8);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 27, 0xbf597fc7);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 28, 0xc6e00bf3);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 29, 0xd5a79147);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 30, 0x06ca6351);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 31, 0x14292967);
-
-    SHA256_STEP(a, b, c, d, e, f, g, h, 32, 0x27b70a85);
-    SHA256_STEP(h, a, b, c, d, e, f, g, 33, 0x2e1b2138);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 34, 0x4d2c6dfc);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 35, 0x53380d13);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 36, 0x650a7354);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 37, 0x766a0abb);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 38, 0x81c2c92e);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 39, 0x92722c85);
-    SHA256_STEP(a, b, c, d, e, f, g, h, 40, 0xa2bfe8a1);
-    SHA256_STEP(h, a, b, c, d, e, f, g, 41, 0xa81a664b);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 42, 0xc24b8b70);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 43, 0xc76c51a3);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 44, 0xd192e819);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 45, 0xd6990624);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 46, 0xf40e3585);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 47, 0x106aa070);
-
-    SHA256_STEP(a, b, c, d, e, f, g, h, 48, 0x19a4c116);
-    SHA256_STEP(h, a, b, c, d, e, f, g, 49, 0x1e376c08);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 50, 0x2748774c);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 51, 0x34b0bcb5);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 52, 0x391c0cb3);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 53, 0x4ed8aa4a);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 54, 0x5b9cca4f);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 55, 0x682e6ff3);
-    SHA256_STEP(a, b, c, d, e, f, g, h, 56, 0x748f82ee);
-    SHA256_STEP(h, a, b, c, d, e, f, g, 57, 0x78a5636f);
-    SHA256_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814);
-    SHA256_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc70208);
-    SHA256_STEP(e, f, g, h, a, b, c, d, 60, 0x90befffa);
-    SHA256_STEP(d, e, f, g, h, a, b, c, 61, 0xa4506ceb);
-    SHA256_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7);
-    SHA256_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2);
-
-    a = _mm_add_epi32 (a, _mm_set1_epi32 (0x6a09e667));
-    b = _mm_add_epi32 (b, _mm_set1_epi32 (0xbb67ae85));
-    c = _mm_add_epi32 (c, _mm_set1_epi32 (0x3c6ef372));
-    d = _mm_add_epi32 (d, _mm_set1_epi32 (0xa54ff53a));
-    e = _mm_add_epi32 (e, _mm_set1_epi32 (0x510e527f));
-    f = _mm_add_epi32 (f, _mm_set1_epi32 (0x9b05688c));
-    g = _mm_add_epi32 (g, _mm_set1_epi32 (0x1f83d9ab));
-    h = _mm_add_epi32 (h, _mm_set1_epi32 (0x5be0cd19));
-
-    _mm_store_si128 ((__m128i *) crypt_key[0], a);
-    _mm_store_si128 ((__m128i *) crypt_key[1], b);
-    _mm_store_si128 ((__m128i *) crypt_key[2], c);
-    _mm_store_si128 ((__m128i *) crypt_key[3], d);
-    _mm_store_si128 ((__m128i *) crypt_key[4], e);
-    _mm_store_si128 ((__m128i *) crypt_key[5], f);
-    _mm_store_si128 ((__m128i *) crypt_key[6], g);
-    _mm_store_si128 ((__m128i *) crypt_key[7], h);
-
 #if FMT_MAIN_VERSION > 10
-    return *pcount;
+    int count = *pcount;
+#endif
+    int index = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+    for (index = 0; index < count; index += 4)
+#endif
+    {
+        __m128i a, b, c, d, e, f, g, h;
+        __m128i w[64], tmp1, tmp2;
+
+        int i;
+
+#ifdef __SSE4_1__
+        for (i=0; i < 16; i++) GATHER (w[i], saved_key, i);
+        for (i=0; i < 15; i++) SWAP_ENDIAN (w[i]);
+#else
+        uint32_t __w[16][VWIDTH] __attribute__ ((aligned (16)));
+        int j;
+
+        for (i=0; i < VWIDTH; i++)
+	        for (j=0; j < 16; j++)
+		        __w[j][i] = saved_key[i][j];
+
+        for (i=0; i < 15; i++)
+        {
+	        w[i] = _mm_load_si128 ((__m128i *) __w[i]);
+	        SWAP_ENDIAN (w[i]);
+        }
+
+        w[15] = _mm_load_si128 ((__m128i *) __w[15]);
+#endif
+
+        a = _mm_set1_epi32 (0x6a09e667);
+        b = _mm_set1_epi32 (0xbb67ae85);
+        c = _mm_set1_epi32 (0x3c6ef372);
+        d = _mm_set1_epi32 (0xa54ff53a);
+        e = _mm_set1_epi32 (0x510e527f);
+        f = _mm_set1_epi32 (0x9b05688c);
+        g = _mm_set1_epi32 (0x1f83d9ab);
+        h = _mm_set1_epi32 (0x5be0cd19);
+
+        SHA256_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98);
+        SHA256_STEP(h, a, b, c, d, e, f, g,  1, 0x71374491);
+        SHA256_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcf);
+        SHA256_STEP(f, g, h, a, b, c, d, e,  3, 0xe9b5dba5);
+        SHA256_STEP(e, f, g, h, a, b, c, d,  4, 0x3956c25b);
+        SHA256_STEP(d, e, f, g, h, a, b, c,  5, 0x59f111f1);
+        SHA256_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4);
+        SHA256_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5);
+        SHA256_STEP(a, b, c, d, e, f, g, h,  8, 0xd807aa98);
+        SHA256_STEP(h, a, b, c, d, e, f, g,  9, 0x12835b01);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 10, 0x243185be);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 11, 0x550c7dc3);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a7);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 15, 0xc19bf174);
+
+        SHA256_STEP(a, b, c, d, e, f, g, h, 16, 0xe49b69c1);
+        SHA256_STEP(h, a, b, c, d, e, f, g, 17, 0xefbe4786);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 18, 0x0fc19dc6);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 19, 0x240ca1cc);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 20, 0x2de92c6f);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 21, 0x4a7484aa);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 22, 0x5cb0a9dc);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 23, 0x76f988da);
+        SHA256_STEP(a, b, c, d, e, f, g, h, 24, 0x983e5152);
+        SHA256_STEP(h, a, b, c, d, e, f, g, 25, 0xa831c66d);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 26, 0xb00327c8);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 27, 0xbf597fc7);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 28, 0xc6e00bf3);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 29, 0xd5a79147);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 30, 0x06ca6351);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 31, 0x14292967);
+
+        SHA256_STEP(a, b, c, d, e, f, g, h, 32, 0x27b70a85);
+        SHA256_STEP(h, a, b, c, d, e, f, g, 33, 0x2e1b2138);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 34, 0x4d2c6dfc);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 35, 0x53380d13);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 36, 0x650a7354);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 37, 0x766a0abb);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 38, 0x81c2c92e);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 39, 0x92722c85);
+        SHA256_STEP(a, b, c, d, e, f, g, h, 40, 0xa2bfe8a1);
+        SHA256_STEP(h, a, b, c, d, e, f, g, 41, 0xa81a664b);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 42, 0xc24b8b70);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 43, 0xc76c51a3);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 44, 0xd192e819);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 45, 0xd6990624);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 46, 0xf40e3585);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 47, 0x106aa070);
+
+        SHA256_STEP(a, b, c, d, e, f, g, h, 48, 0x19a4c116);
+        SHA256_STEP(h, a, b, c, d, e, f, g, 49, 0x1e376c08);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 50, 0x2748774c);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 51, 0x34b0bcb5);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 52, 0x391c0cb3);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 53, 0x4ed8aa4a);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 54, 0x5b9cca4f);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 55, 0x682e6ff3);
+        SHA256_STEP(a, b, c, d, e, f, g, h, 56, 0x748f82ee);
+        SHA256_STEP(h, a, b, c, d, e, f, g, 57, 0x78a5636f);
+        SHA256_STEP(g, h, a, b, c, d, e, f, 58, 0x84c87814);
+        SHA256_STEP(f, g, h, a, b, c, d, e, 59, 0x8cc70208);
+        SHA256_STEP(e, f, g, h, a, b, c, d, 60, 0x90befffa);
+        SHA256_STEP(d, e, f, g, h, a, b, c, 61, 0xa4506ceb);
+        SHA256_STEP(c, d, e, f, g, h, a, b, 62, 0xbef9a3f7);
+        SHA256_STEP(b, c, d, e, f, g, h, a, 63, 0xc67178f2);
+
+        a = _mm_add_epi32 (a, _mm_set1_epi32 (0x6a09e667));
+        b = _mm_add_epi32 (b, _mm_set1_epi32 (0xbb67ae85));
+        c = _mm_add_epi32 (c, _mm_set1_epi32 (0x3c6ef372));
+        d = _mm_add_epi32 (d, _mm_set1_epi32 (0xa54ff53a));
+        e = _mm_add_epi32 (e, _mm_set1_epi32 (0x510e527f));
+        f = _mm_add_epi32 (f, _mm_set1_epi32 (0x9b05688c));
+        g = _mm_add_epi32 (g, _mm_set1_epi32 (0x1f83d9ab));
+        h = _mm_add_epi32 (h, _mm_set1_epi32 (0x5be0cd19));
+
+        _mm_store_si128 ((__m128i *) &crypt_key[0][index], a);
+        _mm_store_si128 ((__m128i *) &crypt_key[1][index], b);
+        _mm_store_si128 ((__m128i *) &crypt_key[2][index], c);
+        _mm_store_si128 ((__m128i *) &crypt_key[3][index], d);
+        _mm_store_si128 ((__m128i *) &crypt_key[4][index], e);
+        _mm_store_si128 ((__m128i *) &crypt_key[5][index], f);
+        _mm_store_si128 ((__m128i *) &crypt_key[6][index], g);
+        _mm_store_si128 ((__m128i *) &crypt_key[7][index], h);
+    }
+#if FMT_MAIN_VERSION > 10
+    return count;
 #endif
 }
 
 
 static int cmp_all (void *binary, int count)
 {
+#ifdef _OPENMP
+    int i;
+
+    for (i = 0; i < count; i++)
+        if (((uint32_t *) binary)[0] == crypt_key[0][i])
+             return 1;
+    return 0;
+#else
     static const __m128i zero = {0};
 
     __m128i tmp;
@@ -467,6 +497,7 @@ static int cmp_all (void *binary, int count)
     tmp    = _mm_cmpeq_epi32 (bin, digest);
 
     return _mm_movemask_epi8 (_mm_cmpeq_epi32 (tmp, zero)) != 0xffff;
+#endif
 }
 
 
@@ -506,10 +537,10 @@ struct fmt_main fmt_rawSHA256_ng = {
 #endif
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
-        FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
+        FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_OMP,
         tests
     }, {
-        fmt_default_init,
+        init,
 #if FMT_MAIN_VERSION > 10
         fmt_default_done,
         fmt_default_reset,
