@@ -38,9 +38,15 @@
 #endif
 
 /*
- * Block size used by mem_alloc_tiny().
+ * Block size used by mem_alloc_tiny(). If -DDEBUG we turn that function to
+ * essentially be just a malloc() with additional alignment. The reason for
+ * this is it's way easier to track bugs that way.
  */
+#ifdef DEBUG
+#define MEM_ALLOC_SIZE			0
+#else
 #define MEM_ALLOC_SIZE			0x10000
+#endif
 
 /*
  * Use mem_alloc() instead of allocating a new block in mem_alloc_tiny()
