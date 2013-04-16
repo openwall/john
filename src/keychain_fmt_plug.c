@@ -174,7 +174,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	{
 		unsigned char master[32];
-		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master, 32);
+		pbkdf2((unsigned char *)saved_key[index],  strlen(saved_key[index]), salt_struct->salt, SALTLEN, 1000, master, 24);
 		if(kcdecrypt(master, salt_struct->iv, salt_struct->ct) == 0)
 			cracked[index] = 1;
 		else
