@@ -1,10 +1,12 @@
 /* This software is Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
  * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification, are permitted.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
  * Based on hmac-sha512 by magnum
  *
- * Minor fixes, format unification and OMP support done by Dhiru Kholia <dhiru@openwall.com>
+ * Minor fixes, format unification and OMP support done by Dhiru Kholia
+ * <dhiru@openwall.com>
  *
  * Fixed for supporting $ml$ "dave" format as well as GRUB native format by
  * magnum 2013. Note: We support a binary size of >512 bits (64 bytes / 128
@@ -24,37 +26,37 @@
 #include "johnswap.h"
 #include "stdint.h"
 
-#define FORMAT_LABEL		"pbkdf2-hmac-sha512"
-#define FORMAT_TAG		"$pbkdf2-hmac-sha512$"
-#define FORMAT_TAG2		"$ml$"
-#define FORMAT_TAG3		"grub.pbkdf2.sha512."
-#define FORMAT_NAME		"PBKDF2-HMAC-SHA512 GRUB2 / OS X 10.8"
+#define FORMAT_LABEL            "pbkdf2-hmac-sha512"
+#define FORMAT_TAG              "$pbkdf2-hmac-sha512$"
+#define FORMAT_TAG2             "$ml$"
+#define FORMAT_TAG3             "grub.pbkdf2.sha512."
+#define FORMAT_NAME             "PBKDF2-HMAC-SHA512 GRUB2 / OS X 10.8"
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME		"64/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "64/" ARCH_BITS_STR " " SHA2_LIB
 #else
-#define ALGORITHM_NAME		"32/" ARCH_BITS_STR " " SHA2_LIB
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR " " SHA2_LIB
 #endif
-#define BINARY_SIZE		64
-#define MAX_CIPHERTEXT_LENGTH	1024 /* Bump this and code will adopt */
-#define MAX_BINARY_SIZE		(4*64) /* Bump this and code will adopt */
-#define MAX_SALT_SIZE		128 /* Bump this and code will adopt */
-#define SALT_SIZE		sizeof(struct custom_salt)
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
-#define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	-1
-#define KEYS_PER_CRYPT		1
+#define BINARY_SIZE             64
+#define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */
+#define MAX_BINARY_SIZE         (4*64) /* Bump this and code will adopt */
+#define MAX_SALT_SIZE           128 /* Bump this and code will adopt */
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define MIN_KEYS_PER_CRYPT      1
+#define MAX_KEYS_PER_CRYPT      1
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        -1
+#define KEYS_PER_CRYPT          1
 #ifdef _OPENMP
 static int omp_t = 1;
 #include <omp.h>
 #define OMP_SCALE               1
 #endif
 
-#define PAD_SIZE		128
-#define PLAINTEXT_LENGTH	125
+#define PAD_SIZE                128
+#define PLAINTEXT_LENGTH        125
 
-#define MIN(a,b)		(((a)<(b))?(a):(b))
-#define MAX(a,b)		(((a)>(b))?(a):(b))
+#define MIN(a,b)                (((a)<(b))?(a):(b))
+#define MAX(a,b)                (((a)>(b))?(a):(b))
 
 static struct fmt_tests tests[] = {
 	/* OS X 10.8 Mountain Lion hashes, "dave" format */
@@ -64,8 +66,8 @@ static struct fmt_tests tests[] = {
 	{"$ml$37313$189dce2ede21e297a8884d0a33e4431107e3e40866f3c493e5f9506c2bd2fe44$948010870e110a6d185494799552d8cf30b0203c6706ab06e6270bf0ac17d496d820c5a75c12caf9070051f34acd2a2911bb38b202eebd4413e571e4fbff883e75f35c36c88a2b42a4fb521a97953438c72b2182fd9c5bba902395766e703b52b9aaa3895770d3cebffbee05076d9110ebb9f0342692a238174655b1acdce1c0", "crackable4us"},
 	/* GRUB hash, GRUB format */
 	{"grub.pbkdf2.sha512.10000.4483972AD2C52E1F590B3E2260795FDA9CA0B07B96FF492814CA9775F08C4B59CD1707F10B269E09B61B1E2D11729BCA8D62B7827B25B093EC58C4C1EAC23137.DF4FCB5DD91340D6D31E33423E4210AD47C7A4DF9FA16F401663BF288C20BF973530866178FE6D134256E4DBEFBD984B652332EED3ACAED834FEA7B73CAE851D", "password"},
-	/* Generic format made up by us */
-	{"$pbkdf2-hmac-sha512$10000.82DBAB96E072834D1F725DB9ADED51E703F1D449E77D01F6BE65147A765C997D8865A1F1AB50856AA3B08D25A5602FE538AD0757B8CA2933FE8CA9E7601B3FBF.859D65960E6D05C6858F3D63FA35C6ADFC456637B4A0A90F6AFA7D8E217CE2D3DFDC56C8DEACA217F0864AE1EFB4A09B00EB84CF9E4A2723534F34E26A279193", "openwall"},
+	/* Canonical format */
+	{"$pbkdf2-hmac-sha512$10000.82dbab96e072834d1f725db9aded51e703f1d449e77d01f6be65147a765c997d8865a1f1ab50856aa3b08d25a5602fe538ad0757b8ca2933fe8ca9e7601b3fbf.859d65960e6d05c6858f3d63fa35c6adfc456637b4a0a90f6afa7d8e217ce2d3dfdc56c8deaca217f0864ae1efb4a09b00eb84cf9e4a2723534f34e26a279193", "openwall"},
 	{NULL}
 };
 
@@ -87,8 +89,9 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= omp_t;
 #endif
 	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-	                            self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) * self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	        self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
+	        self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
 }
 
 static int ishex(char *q)
@@ -103,31 +106,26 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ptr, *ctcopy, *keeptr;
 	size_t len;
 
-	if (!strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
-		ciphertext += sizeof(FORMAT_TAG) - 1;
-	else if (!strncmp(ciphertext, FORMAT_TAG2, sizeof(FORMAT_TAG2) - 1))
-		ciphertext += sizeof(FORMAT_TAG2) - 1;
-	else if (!strncmp(ciphertext, FORMAT_TAG3, sizeof(FORMAT_TAG3) - 1))
-		ciphertext += sizeof(FORMAT_TAG3) - 1;
-	else
+	if (strncmp(ciphertext, FORMAT_TAG, sizeof(FORMAT_TAG) - 1))
 		return 0;
 	if (strlen(ciphertext) > MAX_CIPHERTEXT_LENGTH)
 		return 0;
+	ciphertext += sizeof(FORMAT_TAG) - 1;
 	if (!(ctcopy = strdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
-	if (!(ptr = strtok(ctcopy, ".$")))
+	if (!(ptr = strtok(ctcopy, ".")))
 		goto error;
 	if (!atoi(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, ".$")))
+	if (!(ptr = strtok(NULL, ".")))
 		goto error;
 	len = strlen(ptr); // salt length
 	if (len > 2 * MAX_SALT_SIZE || len & 1)
 		goto error;
 	if (!ishex(ptr))
 		goto error;
-	if (!(ptr = strtok(NULL, ".$")))
+	if (!(ptr = strtok(NULL, ".")))
 		goto error;
 	len = strlen(ptr); // binary length
 	if (len < BINARY_SIZE || len > MAX_BINARY_SIZE || len & 1)
@@ -139,6 +137,39 @@ static int valid(char *ciphertext, struct fmt_main *self)
 error:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+/* This converts any input format to the canonical $pbkdf2-hmac-sha512$ */
+static char *prepare(char *split_fields[10], struct fmt_main *self)
+{
+	static char out[MAX_CIPHERTEXT_LENGTH + 1];
+	int i;
+
+	if (!*split_fields[1])
+		return split_fields[1];
+
+	/* Unify format */
+	if (!strncmp(split_fields[1], FORMAT_TAG, sizeof(FORMAT_TAG)-1))
+		i = sizeof(FORMAT_TAG) - 1;
+	else if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2)-1))
+		i = sizeof(FORMAT_TAG2) - 1;
+	else if (!strncmp(split_fields[1], FORMAT_TAG3, sizeof(FORMAT_TAG3)-1))
+		i = sizeof(FORMAT_TAG3) - 1;
+	else
+		return split_fields[1];
+
+	strcpy(out, FORMAT_TAG);
+	strncat(out, &split_fields[1][i], sizeof(out) - 1);
+
+	if (!strncmp(split_fields[1], FORMAT_TAG2, sizeof(FORMAT_TAG2) - 1))
+		for (i = sizeof(FORMAT_TAG); out[i]; i++)
+			if (out[i] == '$')
+				out[i] = '.';
+
+	if (valid(out, self))
+		return out;
+	else
+		return split_fields[1];
 }
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -170,7 +201,7 @@ static void *get_salt(char *ciphertext)
 	ciphertext = strchr(ciphertext, delim) + 1;
 	p = strchr(ciphertext, delim);
 	saltlen = 0;
-	while (ciphertext < p) {	/** extract salt **/
+	while (ciphertext < p) {        /** extract salt **/
 		cs.salt[saltlen++] =
 			atoi16[ARCH_INDEX(ciphertext[0])] * 16 +
 			atoi16[ARCH_INDEX(ciphertext[1])];
@@ -274,13 +305,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		l = strlen(saved_key[index]);
 		hmac_sha512((unsigned char*)saved_key[index], l,
-		            (uint8_t *) cur_salt->salt, cur_salt->length,
-		            1, tmp);
+		        (uint8_t *) cur_salt->salt, cur_salt->length,
+		        1, tmp);
 		memcpy(key, tmp, BINARY_SIZE);
 
 		for (i = 1; i < cur_salt->rounds; i++) {
 			hmac_sha512((unsigned char*)saved_key[index], l,
-			            (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
+			        (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
 			for (j = 0; j < 8; j++)
 				key[j] ^= tmp[j];
 		}
@@ -337,13 +368,13 @@ static int cmp_exact(char *source, int index)
 	l = strlen(saved_key[index]);
 	for (loops = 0; loops < (len + 63) / 64; loops++) {
 		hmac_sha512((unsigned char*)saved_key[index], l,
-		            (uint8_t *) cur_salt->salt, cur_salt->length,
-		            loops + 1, tmp);
+		        (uint8_t *) cur_salt->salt, cur_salt->length,
+		        loops + 1, tmp);
 		memcpy(key, tmp, BINARY_SIZE);
 
 		for (i = 1; i < cur_salt->rounds; i++) {
 			hmac_sha512((unsigned char*)saved_key[index], l,
-			            (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
+			        (uint8_t *) tmp, BINARY_SIZE, 0, tmp);
 			for (j = 0; j < 8; j++)
 				key[j] ^= tmp[j];
 		}
@@ -396,7 +427,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		init,
 		fmt_default_done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,
