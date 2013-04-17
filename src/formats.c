@@ -238,6 +238,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
  */
 		if (!(binary = format->methods.binary(ciphertext)))
 			return "binary() returned NULL";
+#if ARCH_ALLOWS_UNALIGNED
+		if (mem_saving_level <= 2 || format->params.binary_align >= MEM_ALIGN_SIMD)
+#endif
 		if (!is_aligned(binary, format->params.binary_align) &&
 		    (format->params.binary_size > 0) &&
 		    !binary_align_warned) {
@@ -249,6 +252,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 		if (!(salt = format->methods.salt(ciphertext)))
 			return "salt() returned NULL";
+#if ARCH_ALLOWS_UNALIGNED
+		if (mem_saving_level <= 2 || format->params.salt_align >= MEM_ALIGN_SIMD)
+#endif
 		if (!is_aligned(salt, format->params.salt_align) &&
 		    (format->params.salt_size > 0) &&
 		    !salt_align_warned) {
