@@ -81,7 +81,7 @@ void *mem_alloc_tiny(size_t size, size_t align)
 	unsigned long start, end;
 
 #if ARCH_ALLOWS_UNALIGNED
-	if (mem_saving_level > 2 && align != MEM_ALIGN_SIMD)
+	if (mem_saving_level > 2 && align < MEM_ALIGN_SIMD)
 		align = MEM_ALIGN_NONE;
 #endif
 
